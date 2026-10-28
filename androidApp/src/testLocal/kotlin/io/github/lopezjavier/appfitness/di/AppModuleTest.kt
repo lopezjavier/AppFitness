@@ -23,6 +23,7 @@ import io.github.lopezjavier.appfitness.domain.port.WatchSeedStore
 import io.github.lopezjavier.appfitness.domain.repository.AuthRepository
 import io.github.lopezjavier.appfitness.domain.repository.BodyMeasurementRepository
 import io.github.lopezjavier.appfitness.domain.repository.CircumferenceRepository
+import io.github.lopezjavier.appfitness.domain.repository.DiscomfortRepository
 import io.github.lopezjavier.appfitness.domain.repository.ExerciseRepository
 import io.github.lopezjavier.appfitness.domain.repository.FoodDiaryRepository
 import io.github.lopezjavier.appfitness.domain.repository.FoodPhotoRepository
@@ -218,6 +219,7 @@ class AppModuleTest {
                 CircumferenceRepository::class,
                 NotificationSettingsRepository::class,
                 WeeklyCheckInRepository::class,
+                DiscomfortRepository::class,
                 LoadCheckInSummary::class,
                 LoadReminders::class,
                 CoroutineScope::class,

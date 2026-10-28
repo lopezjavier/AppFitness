@@ -53,7 +53,12 @@ data class LiveExercise(
     val metricType: ExerciseMetricType = ExerciseMetricType.WeightReps,
     /** Decides the hint of the weight field; null when unknown. */
     val equipment: Equipment? = null,
+    /** The open discomfort of this exercise ("Molestia registrada"), null when none (US-67). */
+    val discomfort: LiveDiscomfort? = null,
 )
+
+/** An open discomfort on an exercise; [severe] (stored when logged) adds the fixed health-professional message. */
+data class LiveDiscomfort(val severe: Boolean, val resolving: Boolean = false)
 
 /**
  * The rest countdown: [remaining] of [total] (the total grows when time is added past it); [paused] while the session
@@ -148,6 +153,10 @@ sealed interface LiveSessionUiState {
         val pausedTotalSeconds: Long = 0,
         /** The open warm-up calculator or disc loader; null when closed. Survives process death (ADR-40). */
         val calculator: CalculatorUiState? = null,
+        /** A discomfort is being stored: the sheet's "Guardar" shows progress and is blocked. */
+        val discomfortSaving: Boolean = false,
+        /** Counts stored discomforts; the card closes its sheet when it changes (a failure keeps the sheet open). */
+        val discomfortLogs: Int = 0,
     ) : LiveSessionUiState {
         val isPaused: Boolean get() = pausedAt != null
 
@@ -236,6 +245,12 @@ sealed interface LiveSessionEvent {
     /** Rest of the exercise for the following sets of this session; saved on the session, not on the routine. */
     data class SetExerciseRest(val position: Int, val seconds: Int) : LiveSessionEvent
 
+    /** "Guardar" in the discomfort sheet: logs a discomfort on the exercise (online only); [note] is optional. */
+    data class LogDiscomfort(val position: Int, val note: String?) : LiveSessionEvent
+
+    /** "Ya no me molesta": closes every open discomfort of the exercise (online only). */
+    data class ResolveDiscomfort(val position: Int) : LiveSessionEvent
+
     /** The screen is visible again: the countdown is recomputed from the clock at once. */
     data object Resume : LiveSessionEvent
 
@@ -311,6 +326,18 @@ sealed interface LiveSessionEffect {
 
     /** Saving the double-dumbbell option or the body weight failed; the sheet stays open with its draft. */
     data object OptionSaveFailed : LiveSessionEffect
+
+    /** The discomfort was stored (Confirm haptic; the card already shows "Molestia registrada"). */
+    data object DiscomfortLogged : LiveSessionEffect
+
+    /** The discomfort was closed (Confirm haptic). */
+    data object DiscomfortResolved : LiveSessionEffect
+
+    /** Logging failed (Reject haptic + "No se pudo registrar la molestia. Inténtalo de nuevo."). */
+    data object DiscomfortLogFailed : LiveSessionEffect
+
+    /** Resolving failed (Reject haptic + "No se pudo actualizar la molestia. Inténtalo de nuevo."). */
+    data object DiscomfortResolveFailed : LiveSessionEffect
 
     /**
      * Notifications were denied at the first rest and the user was never told why they matter: show the one-time

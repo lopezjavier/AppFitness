@@ -9,8 +9,12 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -47,15 +51,24 @@ internal fun LiveExerciseCard(
     modifier: Modifier = Modifier,
     options: VolumeOptionsUi = VolumeOptionsUi(),
     deleteEnabled: Boolean = true,
+    online: Boolean = true,
+    discomfortSaving: Boolean = false,
+    discomfortLogs: Int = 0,
 ) {
     val position = exercise.position
     val name = exercise.name ?: stringResource(Res.string.exercise_unnamed)
     var sheet by rememberSaveable { mutableStateOf(ExerciseSheet.None) }
+    OnDiscomfortStored(discomfortLogs) { if (sheet == ExerciseSheet.Discomfort) sheet = ExerciseSheet.None }
     AppCard(modifier.fillMaxWidth()) {
         Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 ExerciseHeading(exercise, name, onOpenExercise, Modifier.weight(1f))
                 ExerciseMenuButton(name, position, onClick = { sheet = ExerciseSheet.Menu })
+            }
+            exercise.discomfort?.let {
+                DiscomfortBlock(position, it, online, onResolve = {
+                    onEvent(LiveSessionEvent.ResolveDiscomfort(position))
+                })
             }
             exercise.targetRpeText?.let {
                 Row(verticalAlignment = Alignment.CenterVertically) {
@@ -92,12 +105,27 @@ internal fun LiveExerciseCard(
         exercise,
         options,
         onEvent,
+        online,
+        discomfortSaving,
         onSheetChange = { sheet = it },
         onSheetClose = { from -> if (sheet == from) sheet = ExerciseSheet.None },
     )
 }
 
-private enum class ExerciseSheet { None, Menu, Rest, BodyWeight }
+/** Runs [onStore] when [logs] changes (a discomfort was stored); a failed log leaves the sheet open with its draft. */
+@Composable
+private fun OnDiscomfortStored(logs: Int, onStore: () -> Unit) {
+    var seen by remember { mutableIntStateOf(logs) }
+    val current by rememberUpdatedState(onStore)
+    LaunchedEffect(logs) {
+        if (logs != seen) {
+            seen = logs
+            current()
+        }
+    }
+}
+
+private enum class ExerciseSheet { None, Menu, Rest, BodyWeight, Discomfort }
 
 /** The heading is one tap target (min 48 dp) that opens the exercise; the menu button stays a sibling. */
 @Composable
@@ -142,6 +170,8 @@ private fun ExerciseSheets(
     exercise: LiveExercise,
     options: VolumeOptionsUi,
     onEvent: (LiveSessionEvent) -> Unit,
+    online: Boolean,
+    discomfortSaving: Boolean,
     onSheetChange: (ExerciseSheet) -> Unit,
     onSheetClose: (ExerciseSheet) -> Unit,
 ) {
@@ -166,6 +196,8 @@ private fun ExerciseSheets(
                 onEvent(LiveSessionEvent.BodyWeightDraftChanged(options.bodyWeightKg?.let(::decimalText).orEmpty()))
                 onSheetChange(ExerciseSheet.BodyWeight)
             },
+            online = online,
+            onDiscomfort = { onSheetChange(ExerciseSheet.Discomfort) },
             // The sheet closes after the tapped action ran: only close it if the action did not open another one.
             onDismiss = { onSheetClose(ExerciseSheet.Menu) },
         )
@@ -175,6 +207,14 @@ private fun ExerciseSheets(
             options = options,
             onEvent = onEvent,
             onClose = { onSheetChange(ExerciseSheet.None) },
+        )
+
+        ExerciseSheet.Discomfort -> DiscomfortSheet(
+            position = position,
+            online = online,
+            saving = discomfortSaving,
+            onSave = { onEvent(LiveSessionEvent.LogDiscomfort(position, it)) },
+            onDismiss = { onSheetChange(ExerciseSheet.None) },
         )
 
         ExerciseSheet.Rest -> ExerciseRestSheet(

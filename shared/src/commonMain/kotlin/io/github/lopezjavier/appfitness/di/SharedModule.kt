@@ -14,6 +14,7 @@ import io.github.lopezjavier.appfitness.data.repository.SupabaseAccountRepositor
 import io.github.lopezjavier.appfitness.data.repository.SupabaseAuthRepository
 import io.github.lopezjavier.appfitness.data.repository.SupabaseBodyMeasurementRepository
 import io.github.lopezjavier.appfitness.data.repository.SupabaseCircumferenceRepository
+import io.github.lopezjavier.appfitness.data.repository.SupabaseDiscomfortRepository
 import io.github.lopezjavier.appfitness.data.repository.SupabaseExerciseRepository
 import io.github.lopezjavier.appfitness.data.repository.SupabaseFoodDiaryRepository
 import io.github.lopezjavier.appfitness.data.repository.SupabaseFoodPhotoRepository
@@ -37,6 +38,7 @@ import io.github.lopezjavier.appfitness.data.repository.UnconfiguredAccountRepos
 import io.github.lopezjavier.appfitness.data.repository.UnconfiguredAuthRepository
 import io.github.lopezjavier.appfitness.data.repository.UnconfiguredBodyMeasurementRepository
 import io.github.lopezjavier.appfitness.data.repository.UnconfiguredCircumferenceRepository
+import io.github.lopezjavier.appfitness.data.repository.UnconfiguredDiscomfortRepository
 import io.github.lopezjavier.appfitness.data.repository.UnconfiguredExerciseRepository
 import io.github.lopezjavier.appfitness.data.repository.UnconfiguredFoodDiaryRepository
 import io.github.lopezjavier.appfitness.data.repository.UnconfiguredFoodPhotoRepository
@@ -63,6 +65,7 @@ import io.github.lopezjavier.appfitness.domain.repository.AccountRepository
 import io.github.lopezjavier.appfitness.domain.repository.AuthRepository
 import io.github.lopezjavier.appfitness.domain.repository.BodyMeasurementRepository
 import io.github.lopezjavier.appfitness.domain.repository.CircumferenceRepository
+import io.github.lopezjavier.appfitness.domain.repository.DiscomfortRepository
 import io.github.lopezjavier.appfitness.domain.repository.ExerciseRepository
 import io.github.lopezjavier.appfitness.domain.repository.FoodDiaryRepository
 import io.github.lopezjavier.appfitness.domain.repository.FoodPhotoRepository
@@ -255,6 +258,14 @@ val sharedModule =
                 SupabaseWeeklyCheckInRepository(client.auth, client.postgrest)
             } else {
                 UnconfiguredWeeklyCheckInRepository()
+            }
+        }
+        single<DiscomfortRepository> {
+            if (get<AppConfig>().isSupabaseConfigured) {
+                val client = get<SupabaseClient>()
+                SupabaseDiscomfortRepository(client.auth, client.postgrest)
+            } else {
+                UnconfiguredDiscomfortRepository()
             }
         }
         single<TrainingStatsRepository> {

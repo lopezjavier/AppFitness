@@ -92,6 +92,9 @@ private fun LazyListScope.exerciseItems(
             onOpenExercise,
             options = state.volumeOptionsFor(optionSaveFailed),
             deleteEnabled = !state.busy,
+            online = state.isOnline,
+            discomfortSaving = state.discomfortSaving,
+            discomfortLogs = state.discomfortLogs,
             modifier = appAnimateItem(),
         )
     }

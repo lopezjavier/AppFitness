@@ -6,6 +6,7 @@ import androidx.lifecycle.viewModelScope
 import io.github.lopezjavier.appfitness.designsystem.NumberInputDefaults
 import io.github.lopezjavier.appfitness.domain.AppError
 import io.github.lopezjavier.appfitness.domain.appErrorOrNull
+import io.github.lopezjavier.appfitness.domain.model.Discomfort
 import io.github.lopezjavier.appfitness.domain.model.Equipment
 import io.github.lopezjavier.appfitness.domain.model.ExerciseHistoryPoint
 import io.github.lopezjavier.appfitness.domain.model.ExerciseMetricType
@@ -33,6 +34,7 @@ import io.github.lopezjavier.appfitness.domain.port.NotificationPermission
 import io.github.lopezjavier.appfitness.domain.port.RestAlertPreferences
 import io.github.lopezjavier.appfitness.domain.port.RestAlertScheduler
 import io.github.lopezjavier.appfitness.domain.repository.BodyMeasurementRepository
+import io.github.lopezjavier.appfitness.domain.repository.DiscomfortRepository
 import io.github.lopezjavier.appfitness.domain.repository.ExerciseRepository
 import io.github.lopezjavier.appfitness.domain.repository.RoutineRepository
 import io.github.lopezjavier.appfitness.domain.repository.TrainingPreferencesRepository
@@ -41,9 +43,12 @@ import io.github.lopezjavier.appfitness.domain.repository.autoUpdateRoutineOrDef
 import io.github.lopezjavier.appfitness.domain.repository.warmUpIncludedOrDefault
 import io.github.lopezjavier.appfitness.domain.usecase.BestPastWeight
 import io.github.lopezjavier.appfitness.domain.usecase.BuildSessionSummary
+import io.github.lopezjavier.appfitness.domain.usecase.DiscomfortStatus
 import io.github.lopezjavier.appfitness.domain.usecase.GhostData
+import io.github.lopezjavier.appfitness.domain.usecase.LogDiscomfort
 import io.github.lopezjavier.appfitness.domain.usecase.MeasurementsByDay
 import io.github.lopezjavier.appfitness.domain.usecase.PendingSetQueue
+import io.github.lopezjavier.appfitness.domain.usecase.ResolveDiscomfort
 import io.github.lopezjavier.appfitness.domain.usecase.RestTimer
 import io.github.lopezjavier.appfitness.domain.usecase.RoutineChange
 import io.github.lopezjavier.appfitness.domain.usecase.RpeScale
@@ -194,8 +199,21 @@ class LiveSessionViewModel(
     private val restAlertScheduler: RestAlertScheduler = NoRestAlertScheduler,
     private val notificationPermission: NotificationPermission = NotificationsGranted,
     private val restAlertPreferences: RestAlertPreferences = ExplanationAlreadyShown,
+    private val discomfortRepository: DiscomfortRepository = NoDiscomforts,
 ) : ViewModel() {
     private var session: SessionState? = null
+
+    private val logDiscomfort = LogDiscomfort(discomfortRepository)
+    private val resolveDiscomfort = ResolveDiscomfort(discomfortRepository, clock)
+
+    /** The newest unresolved discomfort per exercise id (expiry is applied when rendering). */
+    private var discomforts: Map<String, List<Discomfort>> = emptyMap()
+    private var discomfortSaving = false
+    private var discomfortLogs = 0
+    private var discomfortResolving: Set<String> = emptySet()
+
+    /** Exercises whose discomfort read failed; retried when the device is back online. */
+    private var discomfortUnread: Set<String> = emptySet()
 
     /** Rest in seconds per exercise position; positions without an entry use the default. */
     private var rests: MutableMap<Int, Int> = mutableMapOf()
@@ -291,7 +309,10 @@ class LiveSessionViewModel(
             connectivity.isOnline.collect { isOnline ->
                 online = isOnline
                 publish()
-                if (isOnline) sync()
+                if (isOnline) {
+                    sync()
+                    retryDiscomfortLoad()
+                }
             }
         }
         load()
@@ -357,6 +378,10 @@ class LiveSessionViewModel(
             LiveSessionEvent.RestSkip -> stopRest()
 
             is LiveSessionEvent.SetExerciseRest -> setExerciseRest(event.position, event.seconds)
+
+            is LiveSessionEvent.LogDiscomfort -> logExerciseDiscomfort(event.position, event.note)
+
+            is LiveSessionEvent.ResolveDiscomfort -> resolveExerciseDiscomfort(event.position)
 
             LiveSessionEvent.Resume -> {
                 visible = true
@@ -426,6 +451,75 @@ class LiveSessionViewModel(
         }
     }
 
+    /** Reads the open discomforts of [exerciseIds]; a failed read changes nothing (it never blocks the session). */
+    private suspend fun loadDiscomforts(exerciseIds: Set<String>) {
+        val rows = discomfortRepository.unresolved(exerciseIds).getOrNull()
+        if (rows == null) {
+            discomfortUnread = discomfortUnread + exerciseIds
+            return
+        }
+        discomfortUnread = discomfortUnread - exerciseIds
+        val byExercise = rows.groupBy { it.exerciseId }
+        discomforts = discomforts + exerciseIds.associateWith { byExercise[it].orEmpty() }
+    }
+
+    /** Back online: reads again the exercises whose discomfort read failed. */
+    private fun retryDiscomfortLoad() {
+        val ids = discomfortUnread
+        if (ids.isEmpty()) return
+        viewModelScope.launch {
+            loadDiscomforts(ids)
+            publish()
+        }
+    }
+
+    /** Online only: stores the discomfort and shows it at once; the newest open one is the one displayed. */
+    private fun logExerciseDiscomfort(position: Int, note: String?) {
+        val exerciseId = session?.exercises?.firstOrNull { it.position == position }?.exerciseId ?: return
+        if (!online || terminal != null || discomfortSaving) return
+        discomfortSaving = true
+        publish()
+        viewModelScope.launch {
+            logDiscomfort(exerciseId, note).fold(
+                onSuccess = {
+                    discomforts = discomforts + (exerciseId to (listOf(it) + discomforts[exerciseId].orEmpty()))
+                    discomfortSaving = false
+                    discomfortLogs++
+                    publish()
+                    effectChannel.trySend(LiveSessionEffect.DiscomfortLogged)
+                },
+                onFailure = {
+                    discomfortSaving = false
+                    publish()
+                    effectChannel.trySend(LiveSessionEffect.DiscomfortLogFailed)
+                },
+            )
+        }
+    }
+
+    /** Online only: closes every open discomfort of the exercise ("Ya no me molesta"). */
+    private fun resolveExerciseDiscomfort(position: Int) {
+        val exerciseId = session?.exercises?.firstOrNull { it.position == position }?.exerciseId ?: return
+        if (!online || terminal != null || exerciseId in discomfortResolving) return
+        discomfortResolving = discomfortResolving + exerciseId
+        publish()
+        viewModelScope.launch {
+            resolveDiscomfort(exerciseId).fold(
+                onSuccess = {
+                    discomforts = discomforts - exerciseId
+                    discomfortResolving = discomfortResolving - exerciseId
+                    publish()
+                    effectChannel.trySend(LiveSessionEffect.DiscomfortResolved)
+                },
+                onFailure = {
+                    discomfortResolving = discomfortResolving - exerciseId
+                    publish()
+                    effectChannel.trySend(LiveSessionEffect.DiscomfortResolveFailed)
+                },
+            )
+        }
+    }
+
     /** Reads the options, the latest weight and today's Health Connect weight; a failed read leaves the defaults. */
     private suspend fun loadVolumeOptions() {
         perHandIds = exerciseRepository.perHandIdsOrDefault()
@@ -487,6 +581,9 @@ class LiveSessionViewModel(
                         loadRests(loaded)
                         ensureStopwatchTicker()
                         ghosts = mutableMapOf()
+                        discomforts = emptyMap()
+                        discomfortUnread = emptySet()
+                        loadDiscomforts(loaded.exercises.map { it.exerciseId }.toSet())
                         coroutineScope {
                             loaded.exercises.map { it.exerciseId }.distinct().map { async { loadGhost(it) } }.awaitAll()
                         }
@@ -814,6 +911,7 @@ class LiveSessionViewModel(
         viewModelScope.launch {
             if (exerciseId !in names || exerciseId !in traits) loadNames()
             if (exerciseId !in ghosts) loadGhost(exerciseId)
+            if (exerciseId !in discomforts) loadDiscomforts(setOf(exerciseId))
             val latest = session ?: return@launch
             val position = latest.exercises.size
             rests[position] = RoutineBounds.DEFAULT_REST_SECONDS
@@ -1448,10 +1546,18 @@ class LiveSessionViewModel(
                     },
                     restSeconds = rests[exercise.position] ?: RoutineBounds.DEFAULT_REST_SECONDS,
                     targetRpeText = targetRpes[exercise.position]?.let(RpeScale::text),
+                    discomfort = discomforts[exercise.exerciseId].orEmpty()
+                        .filter { DiscomfortStatus.isOpen(it, clock.now()) }
+                        .takeIf { it.isNotEmpty() }
+                        ?.let { open ->
+                            LiveDiscomfort(open.any { it.severe }, exercise.exerciseId in discomfortResolving)
+                        },
                 )
             },
             restTimer = restTimer?.let { RestTimerUi(it.remaining(clock.now()), it.total, it.isPaused) },
             isOnline = online,
+            discomfortSaving = discomfortSaving,
+            discomfortLogs = discomfortLogs,
             finishSheet = finishSheet,
             discardConfirm = discardAsked,
             busy = busy,

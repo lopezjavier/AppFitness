@@ -1294,6 +1294,16 @@
     <string name="preferences_calc_plates_error">Deja al menos un disco</string>
     <string name="live_exercise_menu_warm_up_calc">Calculadora de calentamiento</string>
     <string name="live_exercise_menu_plate_calc">Cargador de discos</string>
+    <string name="live_exercise_menu_discomfort">Registrar molestia</string>
+    <string name="live_exercise_menu_discomfort_offline">Sin conexión: no se puede registrar la molestia</string>
+    <string name="live_discomfort_sheet_title">Molestia</string>
+    <string name="live_discomfort_note_label">Nota (opcional)</string>
+    <string name="live_discomfort_note_too_long">Máximo 200 caracteres</string>
+    <string name="live_discomfort_registered">Molestia registrada</string>
+    <string name="live_discomfort_resolve">Ya no me molesta</string>
+    <string name="live_discomfort_resolve_offline">Sin conexión: no se puede actualizar la molestia</string>
+    <string name="live_discomfort_log_failed">No se pudo registrar la molestia. Inténtalo de nuevo.</string>
+    <string name="live_discomfort_resolve_failed">No se pudo actualizar la molestia. Inténtalo de nuevo.</string>
     <string name="live_calc_warm_up_title">Calculadora de calentamiento</string>
     <string name="disc_loader_title">Cargador de discos</string>
     <string name="disc_loader_disc_label">%1$s kg</string>
