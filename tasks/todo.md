@@ -20,4 +20,4 @@ None open.
 
 - **E11:** verify `READ_HEALTH_DATA_HISTORY` on the device before the breakdown (first read covers 90 days).
 - **E12:** verify screen-off alert behaviour on Android 17; 👤 the user picks the new alert sound (E9 point 16 candidates).
-- **E13:** before the breakdown verify the sources marked *verify* in `planning/07-coach-design.md` §10, the Anthropic API data policy and current prices; resolve the coach's entry point (`planning/09-open-questions.md`); 👤 Anthropic account, monthly spending limit and `ANTHROPIC_API_KEY` Supabase secret.
+- **E13:** before the breakdown verify the sources marked *verify* in `planning/07-coach-design.md` §10, the Anthropic API data policy and current prices; 👤 Anthropic account, monthly spending limit and `ANTHROPIC_API_KEY` Supabase secret.

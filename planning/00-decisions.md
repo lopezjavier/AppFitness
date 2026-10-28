@@ -4,7 +4,7 @@ Live index of every closed decision, with the numbers frozen in Phase 1. The ful
 
 ## New ADRs go here
 
-Phase 2 ADRs continue the numbering (next: **ADR-79**) and are written **in full** in this file (context, decision, consequences, approval), below the index. Add their one-line row to the table too. Format: context -> decision -> consequences. A new decision also updates the affected live docs.
+Phase 2 ADRs continue the numbering (next: **ADR-80**) and are written **in full** in this file (context, decision, consequences, approval), below the index. Add their one-line row to the table too. Format: context -> decision -> consequences. A new decision also updates the affected live docs.
 
 ## Index (Phase 1, ADR-01..72)
 
@@ -46,7 +46,7 @@ Phase 2 ADRs continue the numbering (next: **ADR-79**) and are written **in full
 | 34 | Favourites table plus derived "most eaten" RPC | |
 | 35 | Body composition scope: extra metrics via Health Connect, bidirectional sync, circumferences table, target weight in profile, informative metrics only | |
 | 36 | No universal FAB; each screen owns its actions | |
-| 37 | 3 tabs Diario/Entreno/Perfil; Perfil root = photo, name, Preferencias, statistics entries; weight editable in Preferencias; name from Google or onboarding | Supersedes 26 |
+| 37 | 3 tabs Diario/Entreno/Perfil; Perfil root = photo, name, Preferencias, statistics entries; weight editable in Preferencias; name from Google or onboarding | Supersedes 26; tab set amended by 79 |
 | 38 | RepDB catalogue text/images stay out of the repo and DB (client bundle only); superset rest model in `routine_exercises.rest_seconds` | |
 | 39 | Exercise assets in `composeApp` Compose resources (gitignored); catalogue rows from a generated idempotent migration | |
 | 40 | State restoration is a requirement of every stateful screen (`rememberSaveable`/`SavedStateHandle`, restoration tests); NavHostController above the root route | |
@@ -95,6 +95,7 @@ Phase 2 ADRs continue the numbering (next: **ADR-79**) and are written **in full
 | 76 | Evidence-based coach: deterministic calculations, the model explains, proposals need acceptance, derived values confirmed, coach sets outcomes, RIR derived from RPE | Supersedes the assistant part of 09 |
 | 77 | Claude through a `coach` Edge Function (Opus 5.5 plan, Sonnet 5.5 report and chat); paid AI capped at 2 € per user and 5 € in total per month; NFR-02 changed | |
 | 78 | `activity_level` kept as the starting factor; `target_weight_kg` retired as a user input; intention, place, equipment, days and session length in `training_preferences`; `exercises.movement_pattern` | |
+| 79 | 4 tabs Diario/Entreno/Asistente/Perfil: the coach gets its own tab between Entreno and Perfil, added with the first E13 UI task | Amends 37 |
 
 ## Phase 2 ADRs (full text)
 
@@ -152,4 +153,10 @@ Phase 2 ADRs continue the numbering (next: **ADR-79**) and are written **in full
   - `training_preferences` gains `intention`, `place`, `equipment[]`, `days_per_week`, `session_minutes`.
   - `exercises.movement_pattern` is filled by the generated catalogue migration (ADR-39) and is optional on custom exercises.
 - **Consequences:** `epics/E12-training-data-and-preferences.md`, `epics/E13-performance-assistant.md`, `03-data-model.md` when implemented.
+- **Approval:** 2026-10-28, user (chat).
+
+### ADR-79 · The coach gets its own tab (E13; amends ADR-37)
+- **Context:** ADR-37 fixed 3 tabs (Diario, Entreno, Perfil). The coach (E13) has a plan, a weekly report, a history and a chat, and needs a stable home.
+- **Decision:** A fourth tab "Asistente" between "Entreno" and "Perfil" (order: Diario, Entreno, Asistente, Perfil). It appears with the first E13 UI task; before that the bar keeps 3 tabs. Active-tab styling stays as ADR-22. The label and icon are checked by ux-reviewer in that task's plan pass.
+- **Consequences:** `epics/E13-performance-assistant.md` (navigation), `05-design-system.md` (navigation section) when implemented, `09-open-questions.md` (resolved).
 - **Approval:** 2026-10-28, user (chat).

@@ -8,7 +8,7 @@ A coach that designs a four-week training and nutrition block from the user's in
 - Out of scope: medical advice or diagnosis, video analysis, meal plans, soreness as a signal, water and voice (Phase 3).
 
 ## Decisions
-Base: `07-coach-design.md`. ADR-76 (coach rules), ADR-77 (provider and cost; changes NFR-02), ADR-78 (target weight retired as a user input; `activity_level` is the starting factor). Amends ADR-09 (AI assistant no longer deferred) and E5 (the target weight and distance to the goal become the coach's block outcome).
+Base: `07-coach-design.md`. ADR-76 (coach rules), ADR-77 (provider and cost; changes NFR-02), ADR-78 (target weight retired as a user input; `activity_level` is the starting factor). ADR-79 (own tab). Amends ADR-09 (AI assistant no longer deferred), ADR-37 (tab set) and E5 (the target weight and distance to the goal become the coach's block outcome).
 
 ## Dependencies
 E10 (reminders, weekly check-in), E11 (watch data), E12 (intention, preferences, notes, discomfort, `movement_pattern`).
@@ -16,7 +16,9 @@ E10 (reminders, weekly check-in), E11 (watch data), E12 (intention, preferences,
 ## Before the breakdown
 - Verify the sources marked *verify* in `07-coach-design.md` §10, the Anthropic API data policy (retention, training use) and current prices.
 - 👤 The user creates the Anthropic account, sets its monthly spending limit and enters `ANTHROPIC_API_KEY` as a Supabase secret (never in the repo or the chat).
-- Resolve the coach's entry point (`09-open-questions.md`).
+
+## Navigation
+The coach has its own tab "Asistente" between "Entreno" and "Perfil" (ADR-79), added with the first E13 UI task.
 
 ## Architecture
 - One Edge Function `coach` (JWT, RLS through the user's token; the API key only server-side). It receives a compact summary built in SQL (last 8 weeks at most), never raw tables.

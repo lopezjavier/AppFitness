@@ -44,6 +44,7 @@ An evidence-based performance assistant (coach) that plans four-week training an
 | AI provider | Claude: Opus 5.5 for the block plan, Sonnet 5.5 for report and chat; Gemini stays only for food photos | 77 |
 | AI cost | Monthly budget: 2 € per user, 5 € in total; estimate ≈ $1-3 per user and month (`07-coach-design.md` §11) | 77 |
 | Prior consent | Not required while the app is personal; written condition before distributing it | 76 |
+| Coach navigation | New tab "Asistente" between Entreno and Perfil | 79 |
 | Water and voice | Phase 3 | — |
 
 ## 5. Out of Phase 2 scope
@@ -70,5 +71,5 @@ The Phase 1 epic files are frozen; these amendments are recorded here and in the
 ## 7. Pending before implementing
 - E11: verify `READ_HEALTH_DATA_HISTORY` on the device (the first read covers 90 days).
 - E12: verify screen-off alert behaviour on Android 17.
-- E13: verify the sources marked *verify* in `07-coach-design.md` §10, the Anthropic API data policy and current prices; 👤 Anthropic account, spending limit and `ANTHROPIC_API_KEY` secret; resolve the coach's entry point.
+- E13: verify the sources marked *verify* in `07-coach-design.md` §10, the Anthropic API data policy and current prices; 👤 Anthropic account, spending limit and `ANTHROPIC_API_KEY` secret.
 - Release version of each epic (`v1.x` for now).
