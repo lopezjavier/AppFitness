@@ -8,7 +8,7 @@ Secrets rule: never pasted in the chat or in versioned files. The user enters th
 
 Last task ID used: T-145 (E11 checkpoint fix). Numbering continues from here.
 
-**Next:** T-143 (E11 closure). Checkpoint E11 approved by the user, 2026-10-28.
+**Next:** E12 breakdown by the epic-planner in a fresh session (E11 closed, `v1.2.0`, retrospective held 2026-10-28; nothing to add). The user agrees the task list and checkpoints before the breakdown PR merges.
 
 ---
 
@@ -222,14 +222,14 @@ Journey: grant the new permissions once and see last night's sleep, yesterday's 
 **Description:** Closes E11 once Checkpoint E11 is approved: version bump (`versionName`/`versionCode` in `androidApp/build.gradle.kts`, PR) per the versioning rule (`06` §6; minor per epic, proposed `1.2.0`), tag, retrospective, archive of the E11 log lines. No 👤 checkpoint of its own.
 
 **Acceptance criteria:**
-- [ ] T-139…T-142 (and any fix tasks) merged with green CI; `deploy-supabase` green after T-140's migration.
-- [ ] ux-reviewer ran in plan and diff mode on T-141 and T-142; `check-ux-conventions.sh` passes.
-- [ ] `planning/03-data-model.md` and `04-business-rules.md` describe the three tables, `last_auto_sync_date`, the read types and the daily trigger.
-- [ ] Checkpoint E11 approved; every reported bug fixed.
-- [ ] Version bumped; `tasks/todo.md` (next-task pointer) updated through a PR.
+- [x] T-139…T-142 (and any fix tasks) merged with green CI; `deploy-supabase` green after T-140's migration.
+- [x] ux-reviewer ran in plan and diff mode on T-141 and T-142; `check-ux-conventions.sh` passes.
+- [x] `planning/03-data-model.md` and `04-business-rules.md` describe the three tables, `last_auto_sync_date`, the read types and the daily trigger.
+- [x] Checkpoint E11 approved; every reported bug fixed.
+- [x] Version bumped; `tasks/todo.md` (next-task pointer) updated through a PR.
 
 **Verification:**
-- [ ] `git tag` lists the E11 tag.
+- [x] `git tag` lists the E11 tag.
 
 **Dependencies:** T-145 and Checkpoint E11 approved
 **Files likely touched:** `androidApp/build.gradle.kts`, `tasks/todo.md`, `tasks/plan.md`, `planning/09-open-questions.md`, `retrospectives/E11.md`

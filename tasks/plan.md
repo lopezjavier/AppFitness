@@ -52,7 +52,7 @@ Full checkpoint item lists in `tasks/todo.md`.
   - **Checkpoint E11 👤 Your watch data, synced by itself each day (12 items + leave and come back; agreed 2026-10-28):** permissions (reads asked, writes only weight and fat); last night's sleep; yesterday's steps and calories; resting heart rate present or silently absent; partial permission; no duplicates (double sync, own weight); history window; first open of the day (cold start or return from the background); second open; fresh weigh-in with the button (reminder clears); offline and missing permission; final regression of E11. Why here: last implementation task, so it is also the final regression; its approval releases T-143.
 
 ### Phase 4: Closure
-- [ ] T-143: E11 closure → `v1.x` — PM — S (no checkpoint; Checkpoint E11's approval releases it)
+- [x] T-143: E11 closure → `v1.x` — PM — S (no checkpoint; Checkpoint E11's approval releases it)
 
 Internal milestones (not 👤 checkpoints):
 - lint (`check-design-tokens.sh`, `check-ux-conventions.sh`, ktlint, detekt) + `testLocalDebugUnitTest` green per task; pgTAP green for T-140;
