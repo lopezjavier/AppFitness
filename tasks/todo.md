@@ -6,9 +6,9 @@ Operating instructions: [`CLAUDE.md`](../CLAUDE.md). Phase 1 history (frozen): [
 Legend: **👤** = done by the user (accounts, web consoles, secrets) · **PM** = done by Claude Code.
 Secrets rule: never pasted in the chat or in versioned files. The user enters them in their terminal or in the consoles, and Claude only verifies that they exist.
 
-Last task ID used: T-138 (E10 checkpoint fix). Numbering continues from here.
+Last task ID used: T-145 (E11 checkpoint fix). Numbering continues from here.
 
-**Next:** Checkpoint E11 👤 (all tasks merged: T-144 merged, #330). Its approval releases T-143 (E11 closure).
+**Next:** T-145 (fix from Checkpoint E11 feedback, 2026-10-28). After it merges, Checkpoint E11 is re-presented; its approval releases T-143 (E11 closure).
 
 ---
 
@@ -170,9 +170,32 @@ Checkpoints (agreed with the user, 2026-10-28): 👤 spike report after T-139 (n
 
 ---
 
+## T-145: Checkpoint E11 fixes: missing watch data, sleep axis format, outside-tap dismissal (fix) · M
+
+**Story:** US-61, US-62, US-64 · **Flow:** investigation + core + UI · **Origin:** user feedback at Checkpoint E11 (2026-10-28); the planner may propose splitting it
+
+**Description:** (1) **Missing data (bug, confirmed by the user as such):** on the user's phone, Actividad shows no Pasos since 1 August, no sleep since 23 October, no active or total calories since 22 October and no resting heart rate since 23 October, although Health Connect (Zepp) holds them. The expectation is data from the first-sync window (90 days, branch A) up to yesterday, with nothing ignored. The developer finds the cause (candidates: the Changes token not covering the new types or advancing past them, a daily-total re-read that skips days, the window or the stored `last_synced`, the auto-sync marking a day synced after a partial read, the chart or query range) and fixes it with a regression test; days already missed must be backfilled by the next sync (no manual reset by the user). (2) **Sleep chart axis:** hour labels show one decimal at most (`7.0h`, never `7.0000000001h`); sweep every axis and value label that formats a float (`AppNumberFormat`). (3) **Outside-tap dismissal (ADR-80):** pickers and read-only sheets close on an outside tap; sheets with editable input keep X/back/Cancelar. Update the sheet templates in `designsystem/`, sweep every sheet in the app, update guard G11 and its fixtures, and `05` R-38 is already amended.
+
+**Acceptance criteria:**
+- [ ] After "Sincronizar", Pasos, sleep, active and total calories and resting heart rate appear for every day Health Connect holds, from the first-sync window up to yesterday.
+- [ ] A regression test reproduces the cause of the gaps.
+- [ ] No chart axis or label shows more than one decimal where one is intended (sleep hours `X.Xh`).
+- [ ] Tapping outside the calendar and the other pickers or read-only sheets closes them; editor sheets do not close on an outside tap.
+- [ ] `check-ux-conventions.sh` and its fixtures reflect ADR-80.
+
+**Host tests:** sync/data tests for the root cause; number-format tests; Robolectric outside-tap tests per sheet archetype; guard fixtures.
+
+**Verification:**
+- [ ] lint + `testLocalDebugUnitTest` green.
+
+**Dependencies:** T-144 merged
+**Estimated scope:** M
+
+---
+
 ### Checkpoint E11 — Your watch data, synced by itself each day 👤 (13 items + leave and come back) *(agreed with the user, 2026-10-28: one checkpoint for the whole epic)*
 Journey: grant the new permissions once and see last night's sleep, yesterday's steps, calories and resting heart rate, never duplicated; from then on the app brings them on the first open of each day, and the button still brings a fresh weigh-in. Why here: right after T-142, the last implementation task, so it is also the final regression of E11; its approval releases T-143. The user chose one checkpoint over two (E11-A after T-141 and E11-B after T-142).
-- [x] T-140, T-141, T-142 and T-144 merged, CI green, `deploy-supabase` applied T-140's migration (data intact), every reported bug fixed.
+- [ ] T-140, T-141, T-142, T-144 and T-145 merged, CI green, `deploy-supabase` applied T-140's migration (data intact), every reported bug fixed.
 - [ ] 👤 Install the APK and try:
   1. Permissions (US-63): tap "Sincronizar": Health Connect asks to read sleep, steps, active and total calories and resting heart rate (and, in branch A, older history); in Ajustes → Health Connect → AppFitness, write access lists only weight and body fat.
   2. Sleep (US-61): after the sync, last night's sleep appears with its duration; compare it with Zepp.
@@ -208,7 +231,7 @@ Journey: grant the new permissions once and see last night's sleep, yesterday's 
 **Verification:**
 - [ ] `git tag` lists the E11 tag.
 
-**Dependencies:** T-144 and Checkpoint E11 approved
+**Dependencies:** T-145 and Checkpoint E11 approved
 **Files likely touched:** `androidApp/build.gradle.kts`, `tasks/todo.md`, `tasks/plan.md`, `planning/09-open-questions.md`, `retrospectives/E11.md`
 **Estimated scope:** S
 
