@@ -2,6 +2,8 @@ package io.github.lopezjavier.appfitness.app
 
 import io.github.lopezjavier.appfitness.domain.model.ChangesResult
 import io.github.lopezjavier.appfitness.domain.model.HealthAccess
+import io.github.lopezjavier.appfitness.domain.model.HealthActivityBatch
+import io.github.lopezjavier.appfitness.domain.model.HealthActivityImportResult
 import io.github.lopezjavier.appfitness.domain.model.HealthAvailability
 import io.github.lopezjavier.appfitness.domain.model.HealthMetric
 import io.github.lopezjavier.appfitness.domain.model.HealthReading
@@ -14,6 +16,7 @@ import io.github.lopezjavier.appfitness.domain.port.HealthDataSource
 import io.github.lopezjavier.appfitness.domain.port.HealthHistoryProbe
 import io.github.lopezjavier.appfitness.domain.repository.HealthSyncRepository
 import kotlinx.coroutines.CompletableDeferred
+import kotlinx.datetime.LocalDate
 import kotlin.time.Instant
 
 internal data class RecordedWeighIn(
@@ -112,5 +115,24 @@ internal class FakeHealthSyncRepository(var state: HealthSyncState? = null) : He
         imports += rows
         state = HealthSyncState(syncedAt, changesToken)
         return Result.success(rows.count { known.add(it.externalId) })
+    }
+
+    var activityFailure: Throwable? = null
+    val activityImports = mutableListOf<HealthActivityBatch>()
+    val autoSyncedDays = mutableListOf<LocalDate>()
+
+    override suspend fun importActivity(batch: HealthActivityBatch): Result<HealthActivityImportResult> {
+        activityFailure?.let { return Result.failure(it) }
+        activityImports += batch
+        return Result.success(
+            HealthActivityImportResult(batch.daily.size, batch.sleep.size, batch.restingHeartRate.size),
+        )
+    }
+
+    override suspend fun markAutoSynced(day: LocalDate): Result<Unit> {
+        activityFailure?.let { return Result.failure(it) }
+        autoSyncedDays += day
+        state = state?.copy(lastAutoSyncDate = day)
+        return Result.success(Unit)
     }
 }
