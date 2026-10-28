@@ -7,7 +7,7 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.github.lopezjavier.appfitness.feature.about.AboutRoot
-import io.github.lopezjavier.appfitness.feature.about.HealthDiagnosticsRoot
+import io.github.lopezjavier.appfitness.feature.activity.ActivityRoot
 import io.github.lopezjavier.appfitness.feature.analytics.ExerciseProgressRoot
 import io.github.lopezjavier.appfitness.feature.analytics.MuscleVolumeRoot
 import io.github.lopezjavier.appfitness.feature.analytics.StrengthRoot
@@ -74,6 +74,7 @@ fun AppRoot(
                 onOpenWeight,
                 onOpenTrainingStats,
                 onOpenAbout,
+                onOpenActivity,
             ->
             ProfileRootRoute(
                 profileModifier,
@@ -85,6 +86,7 @@ fun AppRoot(
                     onOpenDiaryHistory = onOpenDiaryHistory,
                     onOpenTrainingStats = onOpenTrainingStats,
                     onOpenAbout = onOpenAbout,
+                    onOpenActivity = onOpenActivity,
                 ),
             )
         },
@@ -109,10 +111,8 @@ fun AppRoot(
         },
         preferencesSection = { sectionModifier, onClose -> PreferencesSectionRoot(onClose, sectionModifier) },
         account = { accountModifier, onBack -> AccountRoot(onBack, accountModifier) },
-        about = { aboutModifier, onBack, onOpenHealthDiagnostics ->
-            AboutRoot(onBack, onOpenHealthDiagnostics, aboutModifier)
-        },
-        healthDiagnostics = { diagnosticsModifier, onBack -> HealthDiagnosticsRoot(onBack, diagnosticsModifier) },
+        about = { aboutModifier, onBack -> AboutRoot(onBack, aboutModifier) },
+        activity = { activityModifier, onOpenWeight, onBack -> ActivityRoot(onOpenWeight, onBack, activityModifier) },
         exercisePicker = { pickerModifier, selectMode, onOpenDetail, onSelected, onBack ->
             ExercisePickerRoot(selectMode, onOpenDetail, onSelected, pickerModifier, onBack)
         },

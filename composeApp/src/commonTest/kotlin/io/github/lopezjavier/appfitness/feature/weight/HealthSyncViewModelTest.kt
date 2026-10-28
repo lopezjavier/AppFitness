@@ -7,13 +7,17 @@ import io.github.lopezjavier.appfitness.app.FakeHealthDataSource
 import io.github.lopezjavier.appfitness.app.FakeHealthSyncRepository
 import io.github.lopezjavier.appfitness.domain.AppError
 import io.github.lopezjavier.appfitness.domain.AppException
+import io.github.lopezjavier.appfitness.domain.model.DailyActivity
 import io.github.lopezjavier.appfitness.domain.model.HealthAccess
+import io.github.lopezjavier.appfitness.domain.model.HealthActivityBatch
 import io.github.lopezjavier.appfitness.domain.model.HealthAvailability
 import io.github.lopezjavier.appfitness.domain.model.HealthMetric
 import io.github.lopezjavier.appfitness.domain.model.HealthRecord
 import io.github.lopezjavier.appfitness.domain.model.HealthSyncState
 import io.github.lopezjavier.appfitness.domain.model.RawHealthRecords
+import io.github.lopezjavier.appfitness.domain.model.WatchMetric
 import io.github.lopezjavier.appfitness.domain.port.Clock
+import io.github.lopezjavier.appfitness.domain.usecase.SyncHealthData
 import io.github.lopezjavier.appfitness.domain.usecase.SyncHealthMeasurements
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
@@ -25,6 +29,7 @@ import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
 import kotlinx.datetime.LocalDate
+import kotlinx.datetime.TimeZone
 import kotlin.test.AfterTest
 import kotlin.test.BeforeTest
 import kotlin.test.Test
@@ -60,7 +65,13 @@ class HealthSyncViewModelTest {
 
     private fun viewModel(state: SavedStateHandle = savedState) = HealthSyncViewModel(
         source = source,
-        syncHealthMeasurements = SyncHealthMeasurements(source, repository, clock),
+        syncHealthData = SyncHealthData(
+            source,
+            repository,
+            SyncHealthMeasurements(source, repository, clock),
+            clock,
+            TimeZone.UTC,
+        ),
         repository = repository,
         connectivity = connectivity,
         clock = clock,
@@ -132,6 +143,61 @@ class HealthSyncViewModelTest {
 
         gate.complete(Unit)
         advanceUntilIdle()
+        assertIs<HealthSyncStatus.Synced>(model.status())
+    }
+
+    // -- Watch data (US-61, US-63) ----------------------------------------------------------------------------------
+
+    @Test
+    fun tapWithOnlyWatchTypesGranted_asksOnceThenSyncsTheWatchData() = runTest(dispatcher) {
+        source.access = HealthAccess(emptySet(), canWrite = false, watchRead = setOf(WatchMetric.Steps))
+        source.watchBatch = HealthActivityBatch(
+            listOf(DailyActivity(LocalDate(2026, 10, 21), 8500, null, null)),
+            emptyList(),
+            emptyList(),
+        )
+        val model = viewModel()
+        advanceUntilIdle()
+        assertEquals(HealthSyncStatus.NeverSynced, model.status())
+
+        model.effects.test {
+            model.onEvent(HealthSyncEvent.Tap)
+            assertEquals(HealthSyncEffect.RequestPermissions, awaitItem())
+        }
+        model.onEvent(HealthSyncEvent.Tap)
+        advanceUntilIdle()
+
+        assertIs<HealthSyncStatus.Synced>(model.status())
+        assertEquals(1, repository.activityImports.single().daily.size)
+    }
+
+    @Test
+    fun tapWithOnlyTheBodyTypesGranted_asksOnceForTheWatchPermissionsThenSyncs() = runTest(dispatcher) {
+        source.access = HealthAccess(HealthMetric.entries.toSet(), canWrite = true)
+        aWeighIn()
+        val model = viewModel()
+        advanceUntilIdle()
+
+        model.effects.test {
+            model.onEvent(HealthSyncEvent.Tap)
+            assertEquals(HealthSyncEffect.RequestPermissions, awaitItem())
+            model.onEvent(HealthSyncEvent.Tap)
+            advanceUntilIdle()
+            assertEquals(HealthSyncEffect.Synced(imported = 1), awaitItem())
+        }
+        assertIs<HealthSyncStatus.Synced>(model.status())
+    }
+
+    @Test
+    fun permissionDialogReturningOnlyWatchTypes_syncsThem() = runTest(dispatcher) {
+        withoutAccess()
+        val model = viewModel()
+        advanceUntilIdle()
+        source.access = HealthAccess(emptySet(), canWrite = false, watchRead = setOf(WatchMetric.Sleep))
+
+        model.onEvent(HealthSyncEvent.PermissionResult(granted = false))
+        advanceUntilIdle()
+
         assertIs<HealthSyncStatus.Synced>(model.status())
     }
 
@@ -265,6 +331,7 @@ class HealthSyncViewModelTest {
     fun failedImport_showsFailedAndRetryingSucceeds() = runTest(dispatcher) {
         aWeighIn()
         repository.importFailure = AppException(AppError.Network)
+        repository.activityFailure = AppException(AppError.Network)
         val model = viewModel()
         advanceUntilIdle()
 
@@ -273,6 +340,7 @@ class HealthSyncViewModelTest {
         assertEquals(HealthSyncStatus.Failed, model.status())
 
         repository.importFailure = null
+        repository.activityFailure = null
         model.onEvent(HealthSyncEvent.Tap)
         advanceUntilIdle()
         assertIs<HealthSyncStatus.Synced>(model.status())

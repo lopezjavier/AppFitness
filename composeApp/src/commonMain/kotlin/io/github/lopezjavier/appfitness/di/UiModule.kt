@@ -4,7 +4,7 @@ import io.github.lopezjavier.appfitness.app.AppViewModel
 import io.github.lopezjavier.appfitness.app.ReminderCoordinator
 import io.github.lopezjavier.appfitness.domain.port.ExerciseLibrary
 import io.github.lopezjavier.appfitness.feature.about.AboutViewModel
-import io.github.lopezjavier.appfitness.feature.about.HealthDiagnosticsViewModel
+import io.github.lopezjavier.appfitness.feature.activity.ActivityViewModel
 import io.github.lopezjavier.appfitness.feature.analytics.ExerciseProgressViewModel
 import io.github.lopezjavier.appfitness.feature.analytics.MuscleVolumeViewModel
 import io.github.lopezjavier.appfitness.feature.analytics.StrengthViewModel
@@ -52,6 +52,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.datetime.LocalDate
+import kotlinx.datetime.TimeZone
 import org.koin.core.module.dsl.viewModel
 import org.koin.core.module.dsl.viewModelOf
 import org.koin.dsl.module
@@ -165,14 +166,13 @@ val uiModule =
         viewModel {
             HealthSyncViewModel(
                 source = get(),
-                syncHealthMeasurements = get(),
+                syncHealthData = get(),
                 repository = get(),
                 connectivity = get(),
                 clock = get(),
                 savedState = get(),
             )
         }
-        viewModel { HealthDiagnosticsViewModel(source = get(), probe = get(), savedState = get()) }
         viewModel {
             CircumferencesViewModel(
                 repository = get(),
@@ -394,6 +394,7 @@ val uiModule =
         }
         viewModel { PastWorkoutChooserViewModel(routineRepository = get(), savedState = get()) }
         viewModelOf(::StrengthViewModel)
+        viewModel { ActivityViewModel(get(), get(), TimeZone.currentSystemDefault(), get()) }
         viewModelOf(::MuscleVolumeViewModel)
         viewModel {
             TrainingStatsViewModel(

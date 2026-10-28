@@ -9,11 +9,13 @@ import androidx.compose.ui.test.performScrollTo
 import io.github.lopezjavier.appfitness.domain.model.BuildInfo
 import io.github.lopezjavier.appfitness.feature.about.AboutScreen
 import io.github.lopezjavier.appfitness.feature.about.AboutUiState
+import io.github.lopezjavier.appfitness.feature.activity.ActivityScreen
 import io.github.lopezjavier.appfitness.feature.analytics.stats.TrainingStatsScreen
 import io.github.lopezjavier.appfitness.feature.diary.DiaryScreen
 import io.github.lopezjavier.appfitness.feature.weight.CircumferencesUiState
 import io.github.lopezjavier.appfitness.feature.weight.WeightScreen
 import io.github.lopezjavier.appfitness.feature.workout.LiveSessionScreen
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.datetime.TimeZone
 import org.junit.Rule
 import org.junit.Test
@@ -36,7 +38,6 @@ class FontScaleTest {
                     AboutUiState(BuildInfo("AppFitness", "1.0", 7, "local")),
                     onBack = {},
                     onOpenLicenses = {},
-                    onOpenHealthDiagnostics = {},
                 )
             }
         }
@@ -85,6 +86,25 @@ class FontScaleTest {
 
         listOf("live_subtitle", "live_set_0_1_weight", "live_set_0_1_reps", "live_set_0_1_check").forEach {
             rule.onNodeWithTag(it).assertIsDisplayed()
+            rule.assertWithinWindowWidth(it)
+        }
+    }
+
+    @Test
+    fun activity_atLargeFont_stacksTheCardsInOneColumn() {
+        rule.setContent {
+            WithFontScale { ActivityScreen(qualityActivityState(), MutableStateFlow(true), {}, {}, {}) }
+        }
+        rule.waitForIdle()
+
+        listOf(
+            "activity_sleep_card",
+            "activity_steps_card",
+            "activity_active_kcal_card",
+            "activity_total_kcal_card",
+            "activity_resting_hr_card",
+        ).forEach {
+            rule.onNodeWithTag(it).performScrollTo().assertIsDisplayed()
             rule.assertWithinWindowWidth(it)
         }
     }

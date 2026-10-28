@@ -4,19 +4,19 @@ import io.github.lopezjavier.appfitness.domain.model.ChangesResult
 import io.github.lopezjavier.appfitness.domain.model.HealthAccess
 import io.github.lopezjavier.appfitness.domain.model.HealthActivityBatch
 import io.github.lopezjavier.appfitness.domain.model.HealthActivityImportResult
+import io.github.lopezjavier.appfitness.domain.model.HealthActivitySummary
 import io.github.lopezjavier.appfitness.domain.model.HealthAvailability
 import io.github.lopezjavier.appfitness.domain.model.HealthMetric
 import io.github.lopezjavier.appfitness.domain.model.HealthReading
 import io.github.lopezjavier.appfitness.domain.model.HealthSyncState
-import io.github.lopezjavier.appfitness.domain.model.HistoryProbeResult
-import io.github.lopezjavier.appfitness.domain.model.HistoryWindows
 import io.github.lopezjavier.appfitness.domain.model.RawHealthRecords
-import io.github.lopezjavier.appfitness.domain.model.WindowStats
+import io.github.lopezjavier.appfitness.domain.model.WatchMetric
 import io.github.lopezjavier.appfitness.domain.port.HealthDataSource
-import io.github.lopezjavier.appfitness.domain.port.HealthHistoryProbe
+import io.github.lopezjavier.appfitness.domain.repository.HealthActivityRepository
 import io.github.lopezjavier.appfitness.domain.repository.HealthSyncRepository
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.datetime.LocalDate
+import kotlinx.datetime.TimeZone
 import kotlin.time.Instant
 
 internal data class RecordedWeighIn(
@@ -29,7 +29,7 @@ internal data class RecordedWeighIn(
 /** Scriptable [HealthDataSource] that records the write-back calls. */
 internal class FakeHealthDataSource : HealthDataSource {
     var availability = HealthAvailability.Available
-    var access = HealthAccess(HealthMetric.entries.toSet(), canWrite = true)
+    var access = HealthAccess(HealthMetric.entries.toSet(), canWrite = true, watchRead = WatchMetric.entries.toSet())
     var writeFailure: Throwable? = null
     var deleteFailure: Throwable? = null
     var readFailure: Throwable? = null
@@ -46,6 +46,14 @@ internal class FakeHealthDataSource : HealthDataSource {
     override suspend fun readRange(from: Instant, to: Instant): Result<RawHealthRecords> {
         readFailure?.let { return Result.failure(it) }
         return Result.success(records)
+    }
+
+    var watchBatch = HealthActivityBatch(emptyList(), emptyList(), emptyList())
+    var watchFailure: Throwable? = null
+
+    override suspend fun readWatchData(from: Instant, to: Instant, zone: TimeZone): Result<HealthActivityBatch> {
+        watchFailure?.let { return Result.failure(it) }
+        return Result.success(watchBatch)
     }
 
     override suspend fun readChanges(token: String): Result<ChangesResult> =
@@ -67,28 +75,6 @@ internal class FakeHealthDataSource : HealthDataSource {
         deleteFailure?.let { return Result.failure(it) }
         deletedCopies += rowId
         return Result.success(Unit)
-    }
-}
-
-/** Scriptable [HealthHistoryProbe]: returns [result] (or [failure]) and counts the calls. */
-internal class FakeHealthHistoryProbe : HealthHistoryProbe {
-    var result = HistoryProbeResult(
-        featureAvailable = true,
-        historyGranted = true,
-        steps = HistoryWindows(WindowStats(10, Instant.parse("2026-09-01T00:00:00Z")), WindowStats(5, null)),
-        weight = HistoryWindows(WindowStats.EMPTY, WindowStats.EMPTY),
-    )
-    var failure: Throwable? = null
-
-    /** When set, a probe waits for it: lets a test observe the running state. */
-    var gate: CompletableDeferred<Unit>? = null
-    var calls = 0
-
-    override suspend fun probe(): Result<HistoryProbeResult> {
-        calls++
-        gate?.await()
-        failure?.let { return Result.failure(it) }
-        return Result.success(result)
     }
 }
 
@@ -135,4 +121,14 @@ internal class FakeHealthSyncRepository(var state: HealthSyncState? = null) : He
         state = state?.copy(lastAutoSyncDate = day)
         return Result.success(Unit)
     }
+}
+
+/** Scriptable [HealthActivityRepository]: answers [summary], or [failure] when set. */
+internal class FakeHealthActivityRepository(
+    var summary: HealthActivitySummary = HealthActivitySummary(null, emptyList(), null),
+) : HealthActivityRepository {
+    var failure: Throwable? = null
+
+    override suspend fun latestSummary(): Result<HealthActivitySummary> =
+        failure?.let { Result.failure(it) } ?: Result.success(summary)
 }

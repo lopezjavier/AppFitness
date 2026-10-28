@@ -13,11 +13,13 @@ import io.github.lopezjavier.appfitness.designsystem.WindowWidthClassDefaults
 import io.github.lopezjavier.appfitness.domain.model.BuildInfo
 import io.github.lopezjavier.appfitness.feature.about.AboutScreen
 import io.github.lopezjavier.appfitness.feature.about.AboutUiState
+import io.github.lopezjavier.appfitness.feature.activity.ActivityScreen
 import io.github.lopezjavier.appfitness.feature.analytics.stats.TrainingStatsScreen
 import io.github.lopezjavier.appfitness.feature.diary.DiaryScreen
 import io.github.lopezjavier.appfitness.feature.weight.CircumferencesUiState
 import io.github.lopezjavier.appfitness.feature.weight.WeightScreen
 import io.github.lopezjavier.appfitness.feature.workout.LiveSessionScreen
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.datetime.TimeZone
 import org.junit.Assert.assertTrue
 import org.junit.Rule
@@ -55,6 +57,17 @@ class WideWindowTest {
         rule.onNodeWithTag("diary_two_column").assertIsDisplayed()
         assertNoWiderThan("diary_two_column", WindowWidthClassDefaults.TwoColumnContentMaxWidth)
         assertLeftOfRight("diary_ring", "diary_section_breakfast")
+    }
+
+    @Test
+    fun activity_usesTwoColumnsWithinTheCap() {
+        rule.setContent {
+            AppTheme { ActivityScreen(qualityActivityState(), MutableStateFlow(true), {}, {}, {}) }
+        }
+        rule.waitForIdle()
+
+        assertNoWiderThan("activity_steps_card", WindowWidthClassDefaults.TwoColumnContentMaxWidth)
+        assertLeftOfRight("activity_sleep_card", "activity_steps_card")
     }
 
     @Test
@@ -102,7 +115,6 @@ class WideWindowTest {
                     AboutUiState(BuildInfo("AppFitness", "1.0", 7, "prod")),
                     onBack = {},
                     onOpenLicenses = {},
-                    onOpenHealthDiagnostics = {},
                 )
             }
         }

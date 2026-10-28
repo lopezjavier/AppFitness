@@ -26,6 +26,7 @@ import io.github.lopezjavier.appfitness.composeapp.resources.catalog_title
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_settings
 import io.github.lopezjavier.appfitness.composeapp.resources.preferences_title
 import io.github.lopezjavier.appfitness.composeapp.resources.profile_about_row
+import io.github.lopezjavier.appfitness.composeapp.resources.profile_activity_row
 import io.github.lopezjavier.appfitness.composeapp.resources.profile_calories_value
 import io.github.lopezjavier.appfitness.composeapp.resources.profile_diary_history_row
 import io.github.lopezjavier.appfitness.composeapp.resources.profile_statistics_section
@@ -69,6 +70,7 @@ class ProfileRootActions(
     val onOpenDiaryHistory: () -> Unit = {},
     val onOpenTrainingStats: () -> Unit = {},
     val onOpenAbout: () -> Unit = {},
+    val onOpenActivity: () -> Unit = {},
 )
 
 /** Stateful Perfil root: connects [ProfileRootViewModel] to the stateless [ProfileRootScreen]. */
@@ -84,9 +86,10 @@ fun ProfileRootRoute(
 
 /**
  * The Perfil tab root (ADR-37, US-05, US-56) on [AppScreen]: the notifications bell and the "Preferencias" gear in
- * the bar, the photo and name, and "Estadísticas" with the "Peso", "Fuerza", "Calorías" and "Entrenamiento" rows. A
- * row shows its value once it is known and none when it could not be read. The debug catalog button appears where
- * [ProfileRootActions.onOpenCatalog] is non-null (local flavor). It holds no editable state: nothing to restore.
+ * the bar, the photo and name, and "Estadísticas" with the "Peso", "Fuerza", "Calorías", "Entrenamiento" and
+ * "Actividad" rows. A row shows its value once it is known and none when it could not be read. The debug catalog
+ * button appears where [ProfileRootActions.onOpenCatalog] is non-null (local flavor). It holds no editable state:
+ * nothing to restore.
  */
 @Composable
 fun ProfileRootScreen(
@@ -215,6 +218,11 @@ private fun StatisticsSection(state: ProfileRootUiState.Loaded, actions: Profile
             label = stringResource(Res.string.profile_training_stats_row),
             onClick = actions.onOpenTrainingStats,
             modifier = Modifier.testTag("profile_training_stats_row"),
+        )
+        NavigationRow(
+            label = stringResource(Res.string.profile_activity_row),
+            onClick = actions.onOpenActivity,
+            modifier = Modifier.testTag("profile_activity_row"),
         )
     }
 }

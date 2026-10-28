@@ -62,10 +62,6 @@ data object AccountRoute : AppRoute
 @Serializable
 data object AboutRoute : AppRoute
 
-/** Temporary Health Connect history diagnostic opened from "Acerca de" (T-139); removed by T-141. */
-@Serializable
-data object HealthDiagnosticsRoute : AppRoute
-
 /** Exercise picker (US-09). In [selectMode] a row returns the exercise to the caller instead of opening the detail. */
 @Serializable
 data class ExercisePickerRoute(val selectMode: Boolean = false) : AppRoute
@@ -121,6 +117,10 @@ data object MuscleVolumeRoute : AppRoute
 /** "Estadisticas": training statistics and muscle distribution (US-40, US-41), opened from the Perfil root. */
 @Serializable
 data object StatsRoute : AppRoute
+
+/** "Actividad": sleep, steps, calories and resting heart rate from the watch (US-61), opened from the Perfil root. */
+@Serializable
+data object ActivityRoute : AppRoute
 
 /** Progress charts of one exercise (US-15), opened from Fuerza, the exercise detail and the session detail. */
 @Serializable
@@ -334,6 +334,7 @@ object AppDestinations {
             StrengthRoute,
             MuscleVolumeRoute,
             StatsRoute,
+            ActivityRoute,
             ExerciseProgressRoute(""),
             FoodSearchRoute(null, ""),
             AddFoodRoute("", null, ""),
@@ -347,7 +348,6 @@ object AppDestinations {
             WeightRoute(),
             WeightHistoryRoute,
             AboutRoute,
-            HealthDiagnosticsRoute,
             NotificationCenterRoute,
             CheckInRoute,
         )

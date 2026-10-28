@@ -58,6 +58,7 @@ class ShellChromeTest {
                 StrengthRoute,
                 MuscleVolumeRoute,
                 StatsRoute,
+                ActivityRoute,
                 ExerciseProgressRoute::class,
                 FoodSearchRoute::class,
                 AddFoodRoute::class,
@@ -71,7 +72,6 @@ class ShellChromeTest {
                 WeightRoute::class,
                 WeightHistoryRoute,
                 AboutRoute,
-                HealthDiagnosticsRoute,
                 NotificationCenterRoute,
                 CheckInRoute,
             ),
@@ -86,10 +86,10 @@ class ShellChromeTest {
                     it is StrengthRoute ||
                     it is MuscleVolumeRoute ||
                     it is StatsRoute ||
+                    it is ActivityRoute ||
                     it is DiaryHistoryRoute ||
                     it is WeightHistoryRoute ||
                     it is AboutRoute ||
-                    it is HealthDiagnosticsRoute ||
                     it is NotificationCenterRoute ||
                     it is CheckInRoute
                 ) {
@@ -141,6 +141,7 @@ class ShellChromeTest {
     @Test
     fun statisticsRoutes_drawTheirOwnBarThroughAppScreen() {
         assertEquals(ShellChrome.Screen, StatsRoute.chrome)
+        assertEquals(ShellChrome.Screen, ActivityRoute.chrome)
         assertEquals(ShellChrome.Screen, StrengthRoute.chrome)
         assertEquals(ShellChrome.Screen, MuscleVolumeRoute.chrome)
         assertEquals(ShellChrome.Screen, ExerciseProgressRoute("e1").chrome)

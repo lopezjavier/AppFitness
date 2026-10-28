@@ -49,17 +49,14 @@ internal typealias ProfileSlot =
         onOpenWeight: () -> Unit,
         onOpenTrainingStats: () -> Unit,
         onOpenAbout: () -> Unit,
+        onOpenActivity: () -> Unit,
     ) -> Unit
 
-/** Content of "Acerca de": its modifier (full-screen insets), how to leave and the opener of the diagnostic (T-139). */
-internal typealias AboutSlot = @Composable (
-    modifier: Modifier,
-    onBack: () -> Unit,
-    onOpenDiagnostics: () -> Unit,
-) -> Unit
+/** Content of "Actividad": its modifier (full-screen insets), the Peso opener (empty state) and how to leave. */
+internal typealias ActivitySlot = @Composable (modifier: Modifier, onOpenWeight: () -> Unit, onBack: () -> Unit) -> Unit
 
-/** Content of the temporary Health Connect diagnostic (T-139): its modifier (full-screen insets) and how to leave. */
-internal typealias HealthDiagnosticsSlot = @Composable (modifier: Modifier, onBack: () -> Unit) -> Unit
+/** Content of "Acerca de": its modifier (full-screen insets) and how to leave. */
+internal typealias AboutSlot = @Composable (modifier: Modifier, onBack: () -> Unit) -> Unit
 
 /**
  * Content of the Preferencias hub: its modifier (full-screen insets), how to leave, and the openers of a section
@@ -387,7 +384,7 @@ internal typealias RoutineDetailsSlot =
 const val SELECTED_EXERCISE_KEY = "selected_exercise_id"
 
 /** Empty Perfil root for previews and shell tests; the real one is wired by `AppRoot`. */
-internal val DefaultProfileSlot: ProfileSlot = { modifier, onOpenPreferences, _, _, _, _, _, _ ->
+internal val DefaultProfileSlot: ProfileSlot = { modifier, onOpenPreferences, _, _, _, _, _, _, _ ->
     Box(modifier.fillMaxSize().testTag("profile_screen")) {
         Box(Modifier.fillMaxSize().clickable(onClick = onOpenPreferences).testTag("profile_stub_open_preferences"))
     }
@@ -544,14 +541,14 @@ internal val DefaultAccountSlot: AccountSlot = { modifier, _ ->
     Box(modifier.fillMaxSize().testTag("account_screen"))
 }
 
-/** Empty "Acerca de" for previews and shell tests; the real one is wired by `AppRoot`. */
-internal val DefaultAboutSlot: AboutSlot = { modifier, _, _ ->
-    Box(modifier.fillMaxSize().testTag("about_screen"))
+/** Empty "Actividad" for previews and shell tests; the real one is wired by `AppRoot`. */
+internal val DefaultActivitySlot: ActivitySlot = { modifier, _, _ ->
+    Box(modifier.fillMaxSize().testTag("activity_screen"))
 }
 
-/** Empty diagnostic for previews and shell tests; the real one is wired by `AppRoot`. */
-internal val DefaultHealthDiagnosticsSlot: HealthDiagnosticsSlot = { modifier, _ ->
-    Box(modifier.fillMaxSize().testTag("health_diagnostics_screen"))
+/** Empty "Acerca de" for previews and shell tests; the real one is wired by `AppRoot`. */
+internal val DefaultAboutSlot: AboutSlot = { modifier, _ ->
+    Box(modifier.fillMaxSize().testTag("about_screen"))
 }
 
 /**
@@ -572,7 +569,7 @@ internal fun AppNavHost(
     preferencesSection: PreferencesSectionSlot = DefaultPreferencesSectionSlot,
     account: AccountSlot = DefaultAccountSlot,
     about: AboutSlot = DefaultAboutSlot,
-    healthDiagnostics: HealthDiagnosticsSlot = DefaultHealthDiagnosticsSlot,
+    activity: ActivitySlot = DefaultActivitySlot,
     exercisePicker: ExercisePickerSlot = DefaultExercisePickerSlot,
     exerciseDetail: ExerciseDetailSlot = DefaultExerciseDetailSlot,
     routines: RoutinesSlot = DefaultRoutinesSlot,
@@ -622,6 +619,7 @@ internal fun AppNavHost(
     val openHistory = remember(navController) { { navController.navigateToFullScreen(HistoryRoute) } }
     val openStrength = remember(navController) { { navController.navigateToFullScreen(StrengthRoute) } }
     val openTrainingStats = remember(navController) { { navController.navigateToFullScreen(StatsRoute) } }
+    val openActivity = remember(navController) { { navController.navigateToFullScreen(ActivityRoute) } }
     val openAbout = remember(navController) { { navController.navigateToFullScreen(AboutRoute) } }
     val openDetails: (String) -> Unit =
         remember(navController) { { id -> navController.navigateToFullScreen(RoutineDetailsRoute(id)) } }
@@ -699,18 +697,15 @@ internal fun AppNavHost(
                     openWeight,
                     openTrainingStats,
                     openAbout,
+                    openActivity,
                 )
             }
         }
-        composable<AboutRoute> { entry ->
-            about(
-                Modifier.padding(fullScreenPadding),
-                { navController.popFullScreen(entry) },
-                { navController.navigateToFullScreen(HealthDiagnosticsRoute) },
-            )
+        composable<ActivityRoute> { entry ->
+            activity(Modifier.padding(fullScreenPadding), openWeight) { navController.popFullScreen(entry) }
         }
-        composable<HealthDiagnosticsRoute> { entry ->
-            healthDiagnostics(Modifier.padding(fullScreenPadding)) { navController.popFullScreen(entry) }
+        composable<AboutRoute> { entry ->
+            about(Modifier.padding(fullScreenPadding)) { navController.popFullScreen(entry) }
         }
         composable<WeightRoute> { entry ->
             weight(

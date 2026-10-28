@@ -2,29 +2,48 @@ package io.github.lopezjavier.appfitness.platform
 
 import android.content.Context
 import androidx.health.connect.client.HealthConnectClient
+import androidx.health.connect.client.aggregate.AggregateMetric
 import androidx.health.connect.client.changes.UpsertionChange
 import androidx.health.connect.client.permission.HealthPermission
+import androidx.health.connect.client.records.ActiveCaloriesBurnedRecord
 import androidx.health.connect.client.records.BasalMetabolicRateRecord
 import androidx.health.connect.client.records.BodyFatRecord
 import androidx.health.connect.client.records.BodyWaterMassRecord
 import androidx.health.connect.client.records.BoneMassRecord
 import androidx.health.connect.client.records.LeanBodyMassRecord
 import androidx.health.connect.client.records.Record
+import androidx.health.connect.client.records.RestingHeartRateRecord
+import androidx.health.connect.client.records.SleepSessionRecord
+import androidx.health.connect.client.records.StepsRecord
+import androidx.health.connect.client.records.TotalCaloriesBurnedRecord
 import androidx.health.connect.client.records.WeightRecord
 import androidx.health.connect.client.records.metadata.Metadata
+import androidx.health.connect.client.request.AggregateGroupByPeriodRequest
 import androidx.health.connect.client.request.ChangesTokenRequest
 import androidx.health.connect.client.request.ReadRecordsRequest
 import androidx.health.connect.client.time.TimeRangeFilter
 import androidx.health.connect.client.units.Mass
 import androidx.health.connect.client.units.Percentage
 import io.github.lopezjavier.appfitness.domain.model.ChangesResult
+import io.github.lopezjavier.appfitness.domain.model.DailyActivity
 import io.github.lopezjavier.appfitness.domain.model.HealthAccess
+import io.github.lopezjavier.appfitness.domain.model.HealthActivityBatch
 import io.github.lopezjavier.appfitness.domain.model.HealthAvailability
 import io.github.lopezjavier.appfitness.domain.model.HealthMetric
 import io.github.lopezjavier.appfitness.domain.model.HealthRecord
 import io.github.lopezjavier.appfitness.domain.model.RawHealthRecords
+import io.github.lopezjavier.appfitness.domain.model.SleepSession
+import io.github.lopezjavier.appfitness.domain.model.SleepStage
+import io.github.lopezjavier.appfitness.domain.model.WatchMetric
 import io.github.lopezjavier.appfitness.domain.port.HealthDataSource
+import io.github.lopezjavier.appfitness.domain.usecase.RestingReading
+import io.github.lopezjavier.appfitness.domain.usecase.WatchDataShaping
 import kotlinx.coroutines.CancellationException
+import kotlinx.datetime.LocalDate
+import kotlinx.datetime.TimeZone
+import kotlinx.datetime.toLocalDateTime
+import java.time.LocalDateTime
+import java.time.Period
 import java.time.ZoneId
 import kotlin.reflect.KClass
 import kotlin.time.Instant
@@ -42,9 +61,21 @@ private val METRIC_TYPES: Map<HealthMetric, KClass<out Record>> = mapOf(
     HealthMetric.Bmr to BasalMetabolicRateRecord::class,
 )
 
-/** The Health Connect permission strings the app asks for: read of the six types, write of weight and fat. */
+private val WATCH_TYPES: Map<WatchMetric, KClass<out Record>> = mapOf(
+    WatchMetric.Sleep to SleepSessionRecord::class,
+    WatchMetric.Steps to StepsRecord::class,
+    WatchMetric.ActiveCalories to ActiveCaloriesBurnedRecord::class,
+    WatchMetric.TotalCalories to TotalCaloriesBurnedRecord::class,
+    WatchMetric.RestingHeartRate to RestingHeartRateRecord::class,
+)
+
+/**
+ * The Health Connect permission strings the app asks for: read of the six body types and the five watch types, the
+ * history read (first sync reaches back 90 days), write of weight and fat only.
+ */
 fun healthConnectPermissions(): Set<String> =
-    METRIC_TYPES.values.map { HealthPermission.getReadPermission(it) }.toSet() +
+    (METRIC_TYPES.values + WATCH_TYPES.values).map { HealthPermission.getReadPermission(it) }.toSet() +
+        HealthPermission.PERMISSION_READ_HEALTH_DATA_HISTORY +
         HealthPermission.getWritePermission(WeightRecord::class) +
         HealthPermission.getWritePermission(BodyFatRecord::class)
 
@@ -67,6 +98,7 @@ class HealthConnectDataSource(private val context: Context) : HealthDataSource {
         val granted = client.permissionController.getGrantedPermissions()
         HealthAccess(
             read = readableMetrics(granted),
+            watchRead = readableWatchMetrics(granted),
             canWrite = HealthPermission.getWritePermission(WeightRecord::class) in granted,
         )
     }.getOrDefault(HealthAccess.NONE)
@@ -91,6 +123,102 @@ class HealthConnectDataSource(private val context: Context) : HealthDataSource {
             bmr = of(HealthMetric.Bmr) { (it as BasalMetabolicRateRecord).basalMetabolicRate.inKilocaloriesPerDay },
         )
     }
+
+    /**
+     * Steps and calories are aggregated per local day (Health Connect de-duplicates overlapping records of several
+     * apps by its own priority); the app never writes these types, so no origin filter is needed. Sleep and resting
+     * heart rate are read as records, own origin dropped. Each type is read only when its permission is granted.
+     */
+    override suspend fun readWatchData(from: Instant, to: Instant, zone: TimeZone): Result<HealthActivityBatch> = safe {
+        val readable = readableWatchMetrics(client.permissionController.getGrantedPermissions())
+        HealthActivityBatch(
+            daily = dailyTotals(readable, from, to, zone),
+            sleep = if (WatchMetric.Sleep in readable) readSleep(from, to) else emptyList(),
+            restingHeartRate = if (WatchMetric.RestingHeartRate in
+                readable
+            ) {
+                readResting(from, to, zone)
+            } else {
+                emptyList()
+            },
+        )
+    }
+
+    private suspend fun dailyTotals(
+        readable: Set<WatchMetric>,
+        from: Instant,
+        to: Instant,
+        zone: TimeZone,
+    ): List<DailyActivity> {
+        val steps = if (WatchMetric.Steps in readable) {
+            aggregateDaily(StepsRecord.COUNT_TOTAL, from, to, zone) { it.toDouble() }
+        } else {
+            emptyMap()
+        }
+        val active = if (WatchMetric.ActiveCalories in readable) {
+            aggregateDaily(ActiveCaloriesBurnedRecord.ACTIVE_CALORIES_TOTAL, from, to, zone) { it.inKilocalories }
+        } else {
+            emptyMap()
+        }
+        val total = if (WatchMetric.TotalCalories in readable) {
+            aggregateDaily(TotalCaloriesBurnedRecord.ENERGY_TOTAL, from, to, zone) { it.inKilocalories }
+        } else {
+            emptyMap()
+        }
+        return (steps.keys + active.keys + total.keys).sorted().map { day ->
+            DailyActivity(day, steps[day]?.toInt(), active[day], total[day])
+        }
+    }
+
+    private suspend fun <T : Any> aggregateDaily(
+        metric: AggregateMetric<T>,
+        from: Instant,
+        to: Instant,
+        zone: TimeZone,
+        convert: (T) -> Double,
+    ): Map<LocalDate, Double> {
+        val request = AggregateGroupByPeriodRequest(
+            metrics = setOf(metric),
+            timeRangeFilter = TimeRangeFilter.between(localStartOfDay(from, zone), localDateTime(to, zone)),
+            timeRangeSlicer = Period.ofDays(1),
+        )
+        return client.aggregateGroupByPeriod(request).mapNotNull { group ->
+            val value = group.result[metric] ?: return@mapNotNull null
+            LocalDate(group.startTime.year, group.startTime.monthValue, group.startTime.dayOfMonth) to convert(value)
+        }.toMap()
+    }
+
+    private fun localDateTime(instant: Instant, zone: TimeZone): LocalDateTime = instant.toLocalDateTime(zone).let {
+        LocalDateTime.of(it.year, it.monthNumber, it.dayOfMonth, it.hour, it.minute, it.second)
+    }
+
+    private fun localStartOfDay(instant: Instant, zone: TimeZone): LocalDateTime =
+        localDateTime(instant, zone).toLocalDate().atStartOfDay()
+
+    private suspend fun readSleep(from: Instant, to: Instant): List<SleepSession> =
+        readPaged(SleepSessionRecord::class, from, to).map { record ->
+            val stages = record.stages.map {
+                SleepStage(WatchDataShaping.stageKey(it.stage), it.startTime.toKotlin(), it.endTime.toKotlin())
+            }
+            val started = record.startTime.toKotlin()
+            val ended = record.endTime.toKotlin()
+            SleepSession(
+                record.metadata.id,
+                started,
+                ended,
+                WatchDataShaping.sleepMinutes(stages, started, ended),
+                stages,
+            )
+        }
+
+    private suspend fun readResting(from: Instant, to: Instant, zone: TimeZone) = WatchDataShaping.restingPerDay(
+        readPaged(RestingHeartRateRecord::class, from, to).map {
+            RestingReading(it.metadata.id, it.time.toKotlin(), it.beatsPerMinute.toInt())
+        },
+        zone,
+    )
+
+    private fun JavaInstant.toKotlin() = Instant.fromEpochMilliseconds(toEpochMilli())
 
     /**
      * Any failure of the Changes API (expired token, token of another install) falls back to the 90-day read, which
@@ -172,24 +300,30 @@ class HealthConnectDataSource(private val context: Context) : HealthDataSource {
         from: Instant,
         to: Instant,
         convert: (Record) -> Double?,
-    ): List<HealthRecord> {
+    ): List<HealthRecord> = readPaged(type, from, to).mapNotNull { record ->
+        val time = timeOf(record)
+        val value = convert(record)
+        if (time != null && value != null) HealthRecord(record.metadata.id, time, value) else null
+    }
+
+    /** Every page of [type] records in `from..to`, own-origin records dropped. */
+    private suspend fun <T : Record> readPaged(type: KClass<T>, from: Instant, to: Instant): List<T> {
         val filter = TimeRangeFilter.between(
             JavaInstant.ofEpochMilli(from.toEpochMilliseconds()),
             JavaInstant.ofEpochMilli(to.toEpochMilliseconds()),
         )
-        val result = mutableListOf<HealthRecord>()
+        val result = mutableListOf<T>()
         var pageToken: String? = null
         do {
             val response = client.readRecords(ReadRecordsRequest(type, filter, pageToken = pageToken))
-            result += response.records.filterNot(::isOwnOrigin).mapNotNull { record ->
-                val time = timeOf(record)
-                val value = convert(record)
-                if (time != null && value != null) HealthRecord(record.metadata.id, time, value) else null
-            }
+            result += response.records.filterNot(::isOwnOrigin)
             pageToken = response.pageToken
         } while (pageToken != null)
         return result
     }
+
+    private fun readableWatchMetrics(granted: Set<String>): Set<WatchMetric> =
+        WATCH_TYPES.filter { (_, type) -> HealthPermission.getReadPermission(type) in granted }.keys
 
     private fun isOwnOrigin(record: Record): Boolean {
         val origin = record.metadata.dataOrigin.packageName
