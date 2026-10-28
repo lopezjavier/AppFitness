@@ -1,4 +1,4 @@
-package io.github.lopezjavier.appfitness.feature.diary
+package io.github.lopezjavier.appfitness.designsystem
 
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -12,7 +12,6 @@ import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
-import io.github.lopezjavier.appfitness.designsystem.AppTheme
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.YearMonth
 import org.junit.Assert.assertEquals
@@ -27,7 +26,7 @@ private val Today = LocalDate(2026, 10, 21)
 /** US-56 "Calendario": the day picker on the picker archetype, with marked days and the "Hoy" chip. */
 @RunWith(RobolectricTestRunner::class)
 @Config(qualifiers = "w360dp-h2400dp-xxhdpi")
-class DiaryDayPickerSheetTest {
+class DayPickerSheetTest {
     @get:Rule
     val rule = createComposeRule()
 
@@ -45,7 +44,10 @@ class DiaryDayPickerSheetTest {
     @Composable
     private fun Picker(selected: LocalDate, marked: Set<LocalDate> = emptySet()) {
         if (open) {
-            DiaryDayPickerSheet(
+            DayPickerSheet(
+                title = "Calendario",
+                todayContentDescription = "Ir a hoy",
+                tagPrefix = "diary_day_picker",
                 selected = selected,
                 today = Today,
                 isToday = selected == Today,

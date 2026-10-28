@@ -35,6 +35,7 @@ import io.github.lopezjavier.appfitness.composeapp.resources.weight_chart_detail
 import io.github.lopezjavier.appfitness.composeapp.resources.weight_chart_empty
 import io.github.lopezjavier.appfitness.composeapp.resources.weight_chart_empty_metric
 import io.github.lopezjavier.appfitness.composeapp.resources.weight_chart_legend
+import io.github.lopezjavier.appfitness.composeapp.resources.weight_chart_metric_picker_title
 import io.github.lopezjavier.appfitness.composeapp.resources.weight_chart_summary
 import io.github.lopezjavier.appfitness.composeapp.resources.weight_chart_summary_goal
 import io.github.lopezjavier.appfitness.composeapp.resources.weight_chart_summary_target
@@ -48,6 +49,7 @@ import io.github.lopezjavier.appfitness.designsystem.AppLineChartDefaults
 import io.github.lopezjavier.appfitness.designsystem.AppLineChartSkeleton
 import io.github.lopezjavier.appfitness.designsystem.AppStateAction
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
+import io.github.lopezjavier.appfitness.designsystem.ChartMetricPickerSheet
 import io.github.lopezjavier.appfitness.designsystem.ErrorState
 import io.github.lopezjavier.appfitness.designsystem.LocalAnimationsEnabled
 import io.github.lopezjavier.appfitness.designsystem.Spacing
@@ -106,13 +108,16 @@ fun WeightChart(state: WeightTrendUiState, onEvent: (WeightTrendEvent) -> Unit, 
         }
     }
     if (pickerOpen && state is WeightTrendUiState.Content) {
-        MetricPickerSheet(
+        ChartMetricPickerSheet(
+            title = stringResource(Res.string.weight_chart_metric_picker_title),
+            options = bodyMetricOptions(),
             selected = state.metric,
             onSelect = {
                 onEvent(WeightTrendEvent.SelectMetric(it))
                 pickerOpen = false
             },
             onDismiss = { pickerOpen = false },
+            tagPrefix = "weight_chart_metric",
         )
     }
 }

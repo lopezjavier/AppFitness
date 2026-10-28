@@ -20,6 +20,7 @@ import io.ktor.http.HttpStatusCode
 import io.ktor.http.headersOf
 import kotlinx.coroutines.test.runTest
 import kotlinx.datetime.LocalDate
+import kotlinx.datetime.TimeZone
 import kotlinx.io.IOException
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -65,19 +66,19 @@ class SupabaseHealthActivityRepositoryTest {
         val config = AppConfig("http://localhost:54321", "sb_publishable_test", "", isLocal = true)
         val client = SupabaseClientFactory.create(config, engine, MemorySessionManager())
         if (signIn) SupabaseAuthRepository(client.auth).signInWithPassword(TestLoginCredentials("a@b.c", "pw"))
-        return SupabaseHealthActivityRepository(client.auth, client.postgrest)
+        return SupabaseHealthActivityRepository(client.auth, client.postgrest, TimeZone.of("Europe/Madrid"))
     }
 
     @Test
-    fun latestSummary_decodesTheThreeTablesIncludingNulls() = runTest {
-        val summary = signedIn().latestSummary().getOrThrow()
+    fun history_decodesTheThreeTables() = runTest {
+        val history = signedIn().history(LocalDate(2026, 10, 1), LocalDate(2026, 10, 29)).getOrThrow()
 
         assertEquals(
             listOf(
                 DailyActivity(LocalDate(2026, 10, 27), 8500, 420.5, null),
                 DailyActivity(LocalDate(2026, 10, 26), null, 300.0, 2500.0),
             ),
-            summary.recentDays,
+            history.daily,
         )
         assertEquals(
             SleepSession(
@@ -93,45 +94,67 @@ class SupabaseHealthActivityRepositoryTest {
                     ),
                 ),
             ),
-            summary.lastSleep,
+            history.sleep.single(),
         )
-        assertEquals(RestingHeartRate(LocalDate(2026, 10, 27), 52, null), summary.restingHeartRate)
+        assertEquals(RestingHeartRate(LocalDate(2026, 10, 27), 52, null), history.restingHeartRate.single())
     }
 
     @Test
-    fun latestSummary_queriesNewestFirstWithTheContractLimits() = runTest {
-        signedIn().latestSummary().getOrThrow()
+    fun history_queriesTheWindowAscending_sleepByLocalDayBounds() = runTest {
+        signedIn().history(LocalDate(2026, 10, 1), LocalDate(2026, 10, 29)).getOrThrow()
 
         val data = requests.filterNot { it.url.encodedPath.contains("/auth/") }
         fun query(table: String) = data.single { it.url.encodedPath.endsWith("/$table") }.url.parameters
-        assertEquals("day.desc.nullslast", query("daily_activity")["order"])
-        assertEquals("7", query("daily_activity")["limit"])
-        assertEquals("ended_at.desc.nullslast", query("sleep_sessions")["order"])
-        assertEquals("1", query("sleep_sessions")["limit"])
-        assertEquals("day.desc.nullslast", query("resting_heart_rate")["order"])
-        assertEquals("1", query("resting_heart_rate")["limit"])
+        val daily = query("daily_activity")
+        assertEquals("day.asc.nullslast", daily["order"])
+        assertTrue(daily.toString().contains("2026-10-01") && daily.toString().contains("2026-10-29"))
+        assertEquals("ended_at.asc.nullslast", query("sleep_sessions")["order"])
+        // Madrid is UTC+2 until Oct 25 and UTC+1 after: local midnight is 22:00Z / 23:00Z of the day before.
+        val sleep = query("sleep_sessions").toString()
+        assertTrue(sleep.contains("2026-09-30T22:00:00Z"), sleep)
+        assertTrue(sleep.contains("2026-10-28T23:00:00Z"), sleep)
+        assertEquals("day.asc.nullslast", query("resting_heart_rate")["order"])
     }
 
     @Test
-    fun latestSummary_withNothingStored_isEmpty() = runTest {
-        val summary = signedIn(daily = "[]", sleep = "[]", resting = "[]").latestSummary().getOrThrow()
+    fun day_returnsTheFiveValuesOfThatDay() = runTest {
+        val day = signedIn().day(LocalDate(2026, 10, 27)).getOrThrow()
 
-        assertNull(summary.lastSleep)
-        assertTrue(summary.recentDays.isEmpty())
-        assertNull(summary.restingHeartRate)
+        assertEquals(8500, day.steps)
+        assertEquals(420.5, day.activeKcal)
+        assertNull(day.totalKcal)
+        assertEquals(435, day.sleep?.minutes)
+        assertEquals(52, day.restingHeartRate)
     }
 
     @Test
-    fun latestSummary_withoutASession_isUnauthorized() = runTest {
-        val result = signedIn(signIn = false).latestSummary()
+    fun day_withNothingStored_isAllNullNotAFailure() = runTest {
+        val day = signedIn(daily = "[]", sleep = "[]", resting = "[]").day(LocalDate(2026, 10, 27)).getOrThrow()
 
-        assertEquals(AppError.Unauthorized, result.appErrorOrNull())
+        assertNull(day.steps)
+        assertNull(day.sleep)
+        assertNull(day.restingHeartRate)
     }
 
     @Test
-    fun latestSummary_whenOffline_isANetworkError() = runTest {
-        val result = signedIn(failing = true).latestSummary()
+    fun history_andDay_withoutASession_areUnauthorized() = runTest {
+        val repository = signedIn(signIn = false)
 
-        assertEquals(AppError.Network, result.appErrorOrNull())
+        assertEquals(
+            AppError.Unauthorized,
+            repository.history(LocalDate(2026, 10, 1), LocalDate(2026, 10, 2)).appErrorOrNull(),
+        )
+        assertEquals(AppError.Unauthorized, repository.day(LocalDate(2026, 10, 1)).appErrorOrNull())
+    }
+
+    @Test
+    fun history_andDay_whenOffline_areNetworkErrors() = runTest {
+        val repository = signedIn(failing = true)
+
+        assertEquals(
+            AppError.Network,
+            repository.history(LocalDate(2026, 10, 1), LocalDate(2026, 10, 2)).appErrorOrNull(),
+        )
+        assertEquals(AppError.Network, repository.day(LocalDate(2026, 10, 1)).appErrorOrNull())
     }
 }

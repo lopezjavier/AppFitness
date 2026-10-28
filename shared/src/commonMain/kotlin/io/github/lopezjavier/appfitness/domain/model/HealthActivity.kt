@@ -31,9 +31,19 @@ data class HealthActivityBatch(
 /** Rows written (inserted or replaced) per type after de-duplication. */
 data class HealthActivityImportResult(val daily: Int, val sleep: Int, val restingHeartRate: Int)
 
-/** What the activity screen shows: the latest sleep, the last seven days (newest first) and the latest resting rate. */
-data class HealthActivitySummary(
-    val lastSleep: SleepSession?,
-    val recentDays: List<DailyActivity>,
-    val restingHeartRate: RestingHeartRate?,
+/** Stored watch data of a date window, every list ascending by day (sleep by end time). */
+data class HealthActivityHistory(
+    val daily: List<DailyActivity>,
+    val sleep: List<SleepSession>,
+    val restingHeartRate: List<RestingHeartRate>,
+)
+
+/** The five values of one day; each is null when nothing is stored for it. */
+data class HealthActivityDay(
+    val day: LocalDate,
+    val steps: Int?,
+    val activeKcal: Double?,
+    val totalKcal: Double?,
+    val sleep: SleepSession?,
+    val restingHeartRate: Int?,
 )

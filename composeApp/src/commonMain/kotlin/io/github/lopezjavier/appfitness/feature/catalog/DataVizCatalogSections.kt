@@ -34,6 +34,7 @@ import io.github.lopezjavier.appfitness.composeapp.resources.catalog_section_mac
 import io.github.lopezjavier.appfitness.composeapp.resources.catalog_section_metric_tiles
 import io.github.lopezjavier.appfitness.composeapp.resources.catalog_section_radar
 import io.github.lopezjavier.appfitness.composeapp.resources.catalog_section_ring
+import io.github.lopezjavier.appfitness.composeapp.resources.catalog_section_sleep_stages_bar
 import io.github.lopezjavier.appfitness.composeapp.resources.catalog_section_trend_pills
 import io.github.lopezjavier.appfitness.composeapp.resources.catalog_state_disabled
 import io.github.lopezjavier.appfitness.composeapp.resources.catalog_text_pill
@@ -67,6 +68,9 @@ import io.github.lopezjavier.appfitness.designsystem.MetricTile
 import io.github.lopezjavier.appfitness.designsystem.ProgressRing
 import io.github.lopezjavier.appfitness.designsystem.RadarChart
 import io.github.lopezjavier.appfitness.designsystem.RadarLegend
+import io.github.lopezjavier.appfitness.designsystem.SleepStageKind
+import io.github.lopezjavier.appfitness.designsystem.SleepStageSegment
+import io.github.lopezjavier.appfitness.designsystem.SleepStagesBar
 import io.github.lopezjavier.appfitness.designsystem.Spacing
 import io.github.lopezjavier.appfitness.designsystem.TextPill
 import io.github.lopezjavier.appfitness.designsystem.TrendDirection
@@ -102,6 +106,7 @@ internal fun LazyListScope.dataVizItems() {
     item { MacroBarsSection() }
     item { MacroSlidersSection() }
     item { MacroStackedBarSection() }
+    item { SleepStagesBarSection() }
     item { MetricTilesSection() }
     item { TrendPillsSection() }
     item { LineChartSection() }
@@ -193,6 +198,30 @@ private fun MacroStackedBarSection() {
                 carbsPct = DEFAULT_CARBS_PERCENT,
                 fatPct = DEFAULT_FAT_PERCENT,
                 testTag = "catalog_macro_stacked_bar",
+            )
+        }
+    }
+}
+
+@Suppress("MagicNumber") // Sample minutes of the demo night.
+private val SleepStagesCatalogSegments = listOf(
+    SleepStageSegment(SleepStageKind.Deep, 80, "Profundo", "1 h 20 min"),
+    SleepStageSegment(SleepStageKind.Light, 240, "Ligero", "4 h"),
+    SleepStageSegment(SleepStageKind.Rem, 90, "REM", "1 h 30 min"),
+    SleepStageSegment(SleepStageKind.Awake, 20, "Despierto", "20 min"),
+)
+
+@Composable
+private fun SleepStagesBarSection() {
+    CatalogSection(
+        stringResource(Res.string.catalog_section_sleep_stages_bar),
+        "catalog_section_sleep_stages_bar",
+    ) {
+        AppCard(Modifier.fillMaxWidth()) {
+            SleepStagesBar(
+                segments = SleepStagesCatalogSegments,
+                description = "Profundo 1 h 20 min, Ligero 4 h, REM 1 h 30 min, Despierto 20 min",
+                testTag = "catalog_sleep_stages_bar",
             )
         }
     }

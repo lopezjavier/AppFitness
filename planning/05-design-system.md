@@ -84,6 +84,7 @@ Generic rules cited by number; ux-reviewer rejects plans and diffs that break on
 - **R-30 Offline:** only the shell shows "Sin conexión"; a write disabled offline shows the standard hint; a failed offline load shows `OfflineState`, which retries on reconnect.
 - **R-31 States:** loading = skeleton shaped like the layout; empty = `EmptyState` with at most one action; error = `ErrorState` with "Reintentar"; an action waiting for server/AI shows progress ("Estimando…") and then its result or an error with "Reintentar". Every outcome is visible.
 - **R-32** Help is always `HelpButton`, never text expanding in place.
+- **R-43 Watch data.** Every screen that shows watch data (Health Connect: weight, sleep, steps, calories, resting heart rate) shows the Health Connect status line and its "Sincronizar" button (`HealthStatusLine`) directly under the top bar, in every state (loading, empty, error, content). Today: Peso and Actividad.
 ### Selection controls
 - **R-33** Tabs (`AppTabRow`) switch sibling views of one screen; a segmented control (`SegmentedSelector`) picks one of 2-5 short options; chips filter a list or pick among many/long options. A control never changes type with the number of options.
 - **R-34** The same concept uses the same control and labels. Chart ranges use `TimeRangeSelector`: "1S 1M 3M 6M 1A".

@@ -62,12 +62,12 @@ class WideWindowTest {
     @Test
     fun activity_usesTwoColumnsWithinTheCap() {
         rule.setContent {
-            AppTheme { ActivityScreen(qualityActivityState(), MutableStateFlow(true), {}, {}, {}) }
+            AppTheme { ActivityScreen(qualityActivityState(), MutableStateFlow(true), {}, qualityHealthSync(), {}, {}) }
         }
         rule.waitForIdle()
 
         assertNoWiderThan("activity_steps_card", WindowWidthClassDefaults.TwoColumnContentMaxWidth)
-        assertLeftOfRight("activity_sleep_card", "activity_steps_card")
+        assertLeftOfRight("activity_steps_card", "activity_sleep_card")
     }
 
     @Test

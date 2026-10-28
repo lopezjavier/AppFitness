@@ -117,7 +117,7 @@ class AccessibilitySweepTest {
     @Test
     fun activity_everyTappableNodeIsNamedAndBigEnough() {
         rule.setContent {
-            AppTheme { ActivityScreen(qualityActivityState(), MutableStateFlow(true), {}, {}, {}) }
+            AppTheme { ActivityScreen(qualityActivityState(), MutableStateFlow(true), {}, qualityHealthSync(), {}, {}) }
         }
         assertEveryClickableIsNamedAndBigEnough("Activity")
     }

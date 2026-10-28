@@ -16,7 +16,8 @@ import androidx.compose.ui.semantics.Role
 /**
  * A card with one headline number: the technical [label] over the [value] (`headlineMetric`, same styles as
  * [MetricTile]), then optional [supporting] content (a trend, a hint), a [trailingAction] at the end of the
- * header (for example an edit icon button) and a [progress] bar under everything. With [onClick] and no
+ * header (for example an edit icon button), a [leading] decorative icon before the text, a [highlighted] border for the
+ * selected card and a [progress] bar under everything. With [onClick] and no
  * [trailingAction] the whole card is one `Role.Button` target. With both, only the label and value block is the
  * button; [supporting] and [trailingAction] are sibling nodes outside it, so they may hold interactive content (an
  * edit pencil, a "Sincronizar" button). [clickLabel] is the spoken action of [onClick] ("Ver detalle"). At least
@@ -32,6 +33,8 @@ fun MetricCard(
     progress: (@Composable () -> Unit)? = null,
     onClick: (() -> Unit)? = null,
     clickLabel: String? = null,
+    leading: (@Composable () -> Unit)? = null,
+    highlighted: Boolean = false,
 ) {
     // With a trailing action only the label and value block is the button, so the action is a sibling node.
     val cardClick = onClick.takeIf { trailingAction == null }?.let {
@@ -40,8 +43,9 @@ fun MetricCard(
     val headClick = onClick.takeIf { trailingAction != null }?.let {
         Modifier.clickable(onClickLabel = clickLabel, role = Role.Button, onClick = it)
     } ?: Modifier
-    AppCard(modifier.fillMaxWidth().heightIn(min = Spacing.minTouchTarget).then(cardClick)) {
+    AppCard(modifier.fillMaxWidth().heightIn(min = Spacing.minTouchTarget).then(cardClick), highlighted) {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.md)) {
+            leading?.invoke()
             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
                 Column(
                     Modifier.fillMaxWidth().heightIn(min = Spacing.minTouchTarget).then(headClick),
