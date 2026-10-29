@@ -14,7 +14,7 @@ Base: `07-coach-design.md`. ADR-76 (coach rules), ADR-77 (provider and cost; cha
 E10 (reminders, weekly check-in), E11 (watch data), E12 (intention, preferences, notes, discomfort, `movement_pattern`).
 
 ## Before the breakdown
-- Verify the sources marked *verify* in `07-coach-design.md` §10, the Anthropic API data policy (retention, training use) and current prices.
+- [x] Verify the sources marked *verify* in `07-coach-design.md` §10, the Anthropic API data policy (retention, training use) and current prices (done 2026-10-29; results in `07` §3-§4, §10-§11).
 - 👤 The user creates the Anthropic account, sets its monthly spending limit and enters `ANTHROPIC_API_KEY` as a Supabase secret (never in the repo or the chat).
 
 ## Navigation
@@ -80,6 +80,10 @@ Feature: Confirmation of derived values
     Then the card asks for confirmation again
 ```
 
+**Technical notes**
+- **Resolved 2026-10-29 (user, Q13):** an activity level edited on the card is stored only as the coach's confirmed value; Diario's calorie target keeps using `profiles.activity_level`.
+- **Labels (Q5):** "Confirmar" (accept the coach's derived values) and "Aceptar" / "Descartar" (decide on a coach proposal) get their own glossary entries in `05` §10; they are distinct from "Guardar" (commit an edit).
+
 ## US-69 · Plan calories, macros and outcomes
 **As** a user with an intention
 **I want** the coach to set the calories, macros and the outcomes it can justify
@@ -114,6 +118,12 @@ Feature: Plan calories, macros and outcomes
     And it may set no body weight target
     And each outcome shows its reason and its deadline
 
+  Scenario: Protein distribution guidance
+    Given the user weighs 75 kg
+    When the coach proposes the plan
+    Then the plan shows about 30 g of protein per meal over at least 4 meals
+    And it is shown as guidance, not as a meal plan
+
   Scenario: Accepting writes the nutrition goal
     When the user accepts the plan
     Then the daily calorie and macro targets of Diario are the plan's
@@ -145,6 +155,7 @@ Feature: Plan calories, macros and outcomes
 - The 7 700 kcal/kg constant is used only without history (`07-coach-design.md` §4).
 - A manual edit of the nutrition goal in Preferencias keeps working; it marks the plan's nutrition as edited by the user.
 - `profiles.target_weight_kg` and its UI are removed in this story's task (ADR-78).
+- **Resolved 2026-10-29 (user):** any Preferencias save that changes the nutrition goal, including the recalculation after editing personal data, counts as a manual edit and marks the plan's nutrition "edited by the user"; it never silently restores the plan (Q8). Before the block exists a plan can be accepted for its nutrition alone; "Guardar bloque" (US-72) accepts the training part; both decisions are stored (Q9). The deterministic checks ("when the coach runs": re-asking derived values, the in-block calorie change, the deload) run on each open of the Trainer tab and after saving the weekly check-in, at most once a day, never in the background (Q6).
 
 ## US-70 · Progression per exercise
 **As** a user in the gym
@@ -177,17 +188,29 @@ Feature: Progression suggestion
     When the coach suggests the next session
     Then only the reps rule applies
 
+  Scenario: Each session uses its own rep range
+    Given "Sentadilla" is planned at 3 to 5 reps on Monday and 8 to 10 reps on Thursday
+    When the user opens "Sentadilla" on Thursday
+    Then the suggestion uses the 8 to 10 range
+    And it is based only on earlier sessions with that range
+
+  Scenario: No rep range, no suggestion
+    Given "Curl de bíceps" has no rep range in the routine
+    When the user opens the exercise in the live session
+    Then no progression suggestion is shown for it
+
   Scenario: Open discomfort blocks increases
-    Given "Press banca" has an open discomfort
+    Given "Press banca" has an open discomfort of level 1 to 3
     When the coach suggests the next session
     Then no load increase is suggested for "Press banca"
-    And the fixed message asks the user to consult a professional if the pain persists or is strong
+    And the reason says the load is kept because of the open discomfort
+    And no health message is shown
 
   Scenario: Severe discomfort blocks the exercise
-    Given "Press banca" has an open severe discomfort
+    Given "Press banca" has an open discomfort of level 4 or 5
     When the coach suggests the next session
     Then no suggestion is made for "Press banca"
-    And the fixed message is shown
+    And no health message is shown
 
   Scenario: Ignoring the suggestion
     When the user ignores the suggestion
@@ -197,6 +220,8 @@ Feature: Progression suggestion
 **Technical notes**
 - Deterministic rules in SQL or TypeScript (no model call); they count sessions of the exercise, not calendar days.
 - Reps in reserve are derived as 10 − RPE (ADR-76).
+- **Rep range (E13 Q2, user 2026-10-29):** each routine exercise has an optional rep range (min-max), set in the routine editor with the same control as "Descanso" and "Objetivo RPE" (R-47) and filled by the block creator (US-72). It is per session: with undulating periodization ("Ganar fuerza", `07` §3) the same exercise can have different ranges on different days.
+- **Discomfort (E13 Q1, user 2026-10-29; ADR-81):** levels 1-3 block load increases only (the reps rule and the 5 % drop still apply) and the reason states it neutrally; levels 4-5 give no suggestion. No health message.
 
 ## US-71 · Weekly coach report
 **As** a user
@@ -270,15 +295,47 @@ Feature: Block creator
     When the block is shown
     Then every exercise uses only that equipment
 
+  Scenario: Rest between sets
+    When the block is shown
+    Then the main multi-joint lifts rest 2 to 3 minutes
+    And the isolation exercises rest 1 to 2 minutes
+    And the saved routines keep those rests
+
+  Scenario: Exercise order
+    When the block is shown
+    Then each session starts with its priority multi-joint lifts
+
+  Scenario: Undulating periodization for strength
+    Given the intention is "Ganar fuerza"
+    When the block is shown
+    Then the load and the reps of the main lifts vary between the sessions of a week
+
+  Scenario: One rep range for other intentions
+    Given the intention is "Ganar musculatura"
+    When the block is shown
+    Then each exercise keeps one rep range across the block
+
+  Scenario: Cardio is not reduced
+    Given the user logs cardio sessions or steps
+    When the block is shown
+    Then the block does not remove or shorten them
+    And no text advises fewer steps
+
   Scenario: Saving creates routines
     When the user taps "Guardar bloque"
     Then the routines are created with the existing save procedure in one folder for the block
+    And each exercise keeps its rep range and rest
     And the plan is linked to them
 
   Scenario: Nothing is saved without confirmation
     When the user leaves the preview
     Then no routine is created
 ```
+
+**Technical notes**
+- Range of motion stays a technique note in the exercise's reason (full range by default, `07` §3), not a computed rule.
+- Main multi-joint lifts = exercises whose `movement_pattern` is squat, hinge, lunge, horizontal or vertical push or pull (Q3, user 2026-10-29).
+- Leaving the preview keeps the proposal as `proposed`; it can be reopened from Trainer until a new one supersedes it; no discard dialog (Q10, user 2026-10-29).
 
 ## US-73 · Plan adherence
 **As** a user
@@ -322,9 +379,10 @@ Feature: Recommendation history
     Then the outcomes since then are shown next to the plan
 
   Scenario: Deleting the coach history
-    When the user taps "Borrar historial del asistente" and confirms
+    When the user taps "Eliminar historial del entrenador" and confirms
     Then the plans, recommendations, outcomes, reports and conversations are deleted
     And the account, the routines and the training data stay
+    And the confirmed derived values and this month's AI usage stay
 
   Scenario: Deleting the account
     When the user deletes the account
@@ -356,6 +414,7 @@ Feature: Deload suggestion
 
 **Technical notes**
 - Deterministic trigger; thresholds are design decisions (`07-coach-design.md` §9).
+- **Resolved 2026-10-29 (user, Q3):** a main lift is an exercise whose `movement_pattern` is squat, hinge, lunge, horizontal or vertical push or pull, done in at least one session in each of the three weeks. A deload is suggested only inside an accepted block (it marks the next plan week). The 40 % cut rounds to the nearest whole set, at least 1 set per exercise. The deload is shown in the live session; the routines are never rewritten.
 
 ## US-76 · Monthly AI budget
 **As** the owner of the app
@@ -387,6 +446,7 @@ Feature: Monthly AI budget
 ```
 
 **Technical notes**
+- The "coach settings" are a read-only "Uso de IA" screen opened from the Trainer root's ⋮ menu (Q7, user 2026-10-29).
 - Cost is computed from the usage returned by the API and the price table in the function; dollars are counted as euros (conservative).
 - The Anthropic account spending limit is the backstop (👤).
 
@@ -416,6 +476,7 @@ Feature: Coach chat
 - Acceptance criteria:
   - 100 % of discomfort cases: no load increase.
   - 100 % of report figures traceable to the summary.
-  - Every plan meets the frequency (when days allow), volume, protein, fat and calorie-floor rules of `07-coach-design.md` §3-§4.
-  - Report and chat answer under 30 s at the 95th percentile; the plan shows progress and finishes within the Edge Function limit (verify the limit).
+  - Every plan meets the rules of `07-coach-design.md` §3-§4: frequency (when days allow), volume, intensity, rest between sets, exercise order, periodization (undulating only for "Ganar fuerza"), no reduction of cardio or steps, protein (incl. the distribution guidance), fat and the calorie floor.
+  - Report and chat answer under 30 s at the 95th percentile; the plan shows progress and finishes within the Edge Function limit (150 s wall clock on the Free plan, checked 2026-10-29, `07` §11).
 - Evaluation runs are paid calls: the user approves each run. A function is not enabled until it meets its criteria.
+- **Resolved 2026-10-29 (user, Q4 B):** the plan and the report are usable at the checkpoints before the evaluation (the server validators enforce the hard rules on every output); the evaluation is the formal gate before the chat (US-77) and before the app is shared with other users.

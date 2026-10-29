@@ -1,193 +1,208 @@
-# Implementation Plan: E12 · Training data and preferences → `v1.x` (proposed `v1.3.0`)
+# Implementation Plan: E13 · Performance assistant → `v1.x` (proposed `v1.4.0`)
 
-> **Status:** broken down on 2026-10-28 by the epic-planner. Restructured the same day by user decision to **two checkpoints** (E12-A after T-147, E12-B after T-150). E12 Q1 and Q2 were resolved by the user on 2026-10-28. 6 tasks (T-146…T-151). No task is blocked.
+> **Status:** broken down on 2026-10-29 by the epic-planner and **agreed by the user the same day** with two changes: three checkpoints instead of five, and every recommended option of E13 Q1-Q13 approved (resolved below; amended Gherkin in the epic file; `planning/09-open-questions.md`). 14 tasks (T-157…T-170). No task is blocked.
 
 ## Overview
-Collect what the coach (E13) cannot derive from the data, and make the rest-end alert work with the screen off. The epic covers:
-- the rest alert, the only system notification (ADR-75);
-- the discomfort log with the fixed strong-pain message (ADR-76);
-- notes per set and per routine exercise;
-- the training intention and static preferences ("Mi entrenamiento");
-- a movement pattern for every catalogue exercise (ADR-78).
+A coach that builds a four-week training and nutrition block from the user's intention and preferences, sets the outcomes it can justify, and adjusts the plan with the user's data. It proposes; the user accepts. Every calculation is deterministic (SQL or TypeScript); the model only selects within validated options and explains; nothing is applied without consent (ADR-76).
 
-Nothing here plans or adjusts training; E13 consumes it.
+Sources: `planning/epics/E13-performance-assistant.md` (US-68…US-77 + evaluation), `planning/07-coach-design.md` (every rule and figure, incl. the rules added on 2026-10-29: rest between sets, exercise order, undulating periodization for "Ganar fuerza", range of motion, cardio, protein distribution), `planning/01-scope.md` §3-§4, ADR-76…ADR-82, ADR-25, ADR-29, ADR-40, ADR-73, `04` §1, §3, §4, §6.6, `05` §5, §8-§10. Tasks: `tasks/todo.md` (E13 section).
 
-Sources: `planning/epics/E12-training-data-and-preferences.md` (US-64…US-67 + data task), `planning/01-scope.md` §4, §6 and §7, ADR-75/76/78, ADR-39 (generated catalogue migration), ADR-29 (cascade), ADR-40 (restoration), ADR-80 (sheet dismissal), `planning/04-business-rules.md` §4.4 and §4.10, `planning/07-coach-design.md` §7, `planning/05-design-system.md` §8–§10. Tasks: `tasks/todo.md` (T-146…T-151).
+Carried over from "Notes for later epics": verification of sources, data policy and prices is done (2026-10-29); the 👤 Anthropic key is placed right before T-160, the first task that calls the model.
 
-Carried over from "Notes for later epics" (both in scope, ADR-75):
-- verify the screen-off alert on Android 17 → T-146 plan step;
-- 👤 the user picks the alert sound among the E9 point 16 candidates → Checkpoint E12-A item 5, wired in T-148.
+Out of scope (epic, `01` §5): medical advice or diagnosis, video analysis, meal plans (the protein distribution is guidance only), soreness as a signal, water and voice (Phase 3), background jobs (ADR-73), distribution to other users (written condition, `07` §8).
 
-Out of scope (epic, `01` §5): the coach and the plan storage (E13); an RIR field (ADR-76); removing the target weight (E13, ADR-78); system notifications for reminders (ADR-73); water and voice (Phase 3).
+## Ordering and sizing
+Every task pays 6-8 agent hand-offs, so stories stay whole unless one is too large for one PR.
+- **Model-free first:** US-68 (T-157 backend, T-158 UI) and US-70 (T-159) give Checkpoint E13-A with no paid call.
+- **US-73 and US-75 move after US-72** (deviation from the initial guidance, justified by the epic): adherence links workouts to `coach_plan_sessions`, and the deload "changes the week" of a block; both need a saved block (US-72). They merge into T-165 (L): both are deterministic on the plan weeks, and each alone is M.
+- **Splits (backend → UI):** US-68 (T-157 SQL math with heavy pgTAP; T-158 Trainer tab and card; ~20 files together). US-69 (T-161 function call, validators, RPCs; T-162 proposal screen and target-weight removal). US-72 (T-163 block call and validators; T-164 preview and "Guardar bloque").
+- **US-76** rides with the Edge Function foundation (T-160): the budget check guards every call, so it must exist before the first one.
+- **Evaluation** is its own task (T-168, not a story). **US-77** last (T-169), gated by it. **Closure** T-170 stays S: it waits for Checkpoint E13-C.
 
-## Sizing
-Every task pays 6–8 agent hand-offs, so the plan has one task per story:
-- **T-146 (L)** = US-64: scheduling outside the app, the notification and its permission, the in-app/notification split, three sound candidates and a temporary chooser. No backend.
-- **T-147 (L)** = US-67. It comes before US-66 because it builds the strong-pain matcher and the fixed message that the notes reuse.
-- **T-148 (L)** = US-66: two columns, the routine and set write paths, the live session, the routine builder, "Editar entreno" and the workout detail. It also wires the sound chosen at Checkpoint E12-A, because it is the first task after that checkpoint and it touches the live session too. One PR; the planner may run backend + core and UI as developer slices.
-- **T-149 (M)** = US-65: one migration and one new Preferencias section. It also moves the shared duration formatter into `designsystem/`.
-- **T-150 (M)** = the movement-pattern data task: a reviewed mapping of every catalogue row plus an optional field in the custom exercise form. It stays alone: merged with T-149 it would exceed ~15 files across two unrelated forms and two migrations.
-- **T-151 (S)** = closure. It cannot merge with another task because it waits for Checkpoint E12-B.
+| Task | Story | Flow | Size | Agent runs |
+|---|---|---|---|---|
+| T-157: Coach summary and derived values in SQL | US-68 (+ US-69 trend, intake) | backend | L | 4 |
+| T-158: Trainer tab and the derived-values card | US-68 | core + UI | M | 7 |
+| T-159: Rep range and progression suggestion in the live session | US-70 | backend + core + UI | L | 8 |
+| T-160: `coach` Edge Function, AI usage and the monthly budget | US-76 | backend + small UI | L | 8 |
+| T-161: Plan nutrition and outcomes: generation, validation, acceptance | US-69 backend | backend | L | 4 |
+| T-162: Plan proposal screen, nutrition acceptance, target weight retired | US-69 UI (+ US-68 gate) | core + UI + small migration | L | 8 |
+| T-163: Block creator: training block generation and validation | US-72 backend | backend | L | 4 |
+| T-164: Block preview and "Guardar bloque" | US-72 UI | core + UI | L | 7 |
+| T-165: Plan weeks: adherence and the deload suggestion | US-73 + US-75 | backend + core + UI | L | 8 |
+| T-166: Weekly coach report | US-71 (+ US-76 fallback) | backend + core + UI | L | 8 |
+| T-167: Recommendation history, outcomes and deletion | US-74 | backend + core + UI | M | 8 |
+| T-168: Coach evaluation: cases, runner and results | Evaluation | backend + 👤 | M | 4 + runs |
+| T-169: Coach chat with tools | US-77 | backend + core + UI | L | 8 |
+| T-170: E13 closure | DoD | PM | S | PM only |
 
-## Sound ordering (planner decision)
-The user must choose the sound before it is wired, but Checkpoint E12-A comes after T-147. So:
-- T-146 ships the three candidates and a temporary chooser (Perfil → "Acerca de" → "Sonido de fin de descanso").
-- T-147 leaves the chooser untouched.
-- At Checkpoint E12-A the user listens to the candidates and names one. The pick is recorded with the approval. It is a choice, not a bug, so it needs no fix task before approval.
-- T-148, the next task, wires the chosen sound into the in-app alert and a final notification channel, then deletes the chooser and the other candidates.
-- Checkpoint E12-B re-tests the sound.
-
-No extra S task is needed.
-
-## Checkpoints (user decision, 2026-10-28: two)
+## Checkpoints (user decision, 2026-10-29: three)
 Collected test items:
-- rest alert: 6 (screen off, background, foreground, skip/+30s, finish/discard, notifications denied);
-- sound: choice 1 + wiring re-test 1;
-- discomfort: 3 (log, strong pain, resolve; the 7-day expiry is covered by host tests);
-- notes: 3 (set note, routine exercise note, limits/term message/offline);
-- preferences: 4 (list, save, place/equipment, optional fields);
-- movement pattern: 1;
-- final regression: 1.
+- Trainer tab and derived values: 4 (tab and card with sources; provisional and confirm; edit; trend and diary reliability);
+- progression: 3 (suggestion with reason; discomfort levels; ignoring keeps the routine);
+- nutrition plan: 6 (create with progress; rules visible incl. protein guidance; outcomes; confirmation gate; Diario follows and manual edit; no target numbers) + usage 1;
+- block: 4 (preview; frequency/volume; limits and structure: one day, equipment, order, rests, periodization; save or leave);
+- plan weeks: 3 (adherence; missed day; deload);
+- report: 4 (commentary after the check-in; real figures; once a day; sleep);
+- history: 3 (decisions; outcomes; delete);
+- chat: 3 (answer cites; proposal cards; cost) + final regression 2.
 
-Related scenarios are grouped into two journeys of 7 items each:
-- **Checkpoint E12-A — Rest alert with the screen off, its sound, and the discomfort log (7 items)**, after T-147:
-  1. screen off and background (tapping the notification opens the session);
-  2. foreground: no notification;
-  3. "Omitir", "+30s", finish or discard;
-  4. notifications denied: explained once;
-  5. choose the sound;
-  6. "Registrar molestia" → "Molestia registrada" across sessions;
-  7. "dolor fuerte" → the fixed message, then "Ya no me molesta".
+Grouped into three journeys (the user chose fewer, larger checkpoints; 7-9 items each, related items merged):
+- **Checkpoint E13-A — The Trainer tab knows you, and the gym tells you what to lift next (7)**, after T-159: Trainer tab, derived values, rep range and progression. Why: the last model-free task, before plans build on the derived values. No paid call.
+- **Checkpoint E13-B — Your plan from the coach: nutrition, the four-week block, adherence and deload (9)**, after T-165: nutrition plan and outcomes, target weight gone, AI usage, block preview and "Guardar bloque", adherence, deload. Why: before the report and history read the plan and its weeks.
+- **Checkpoint E13-C — Your weekly report, the coach's track record, the chat, and the final E13 regression (9)**, after T-169, the last implementation task; its approval releases T-170. If the evaluation keeps US-77 disabled, it is presented right after T-168 without the chat items.
 
-  Why here: before T-148 wires the sound and builds on the live session.
-- **Checkpoint E12-B — Notes, your training situation, and the final E12 regression (7 items)**, after T-150:
-  1. the chosen sound plays and the chooser is gone;
-  2. set note (workout detail, "Editar entreno") and routine exercise note (live session);
-  3. note limits, term message and offline;
-  4. the intention list, saving it and seeing it shown;
-  5. place → default equipment, and optional days and session length (15 min to 3 h 0 min);
-  6. movement pattern on an "ejercicio propio";
-  7. final regression of E12.
-
-  Why here: T-150 is the last implementation task, so this is also the final regression. Its approval releases T-151.
-
-Each checkpoint also has "leave the app and come back: the same tab, screen and draft are restored". T-146, T-148 and T-149 merge with no checkpoint after them. Full item lists are in `tasks/todo.md`.
+Each checkpoint also has "leave the app and come back: the same tab, screen and draft are restored" and an out-of-scope line. Full item lists are in `tasks/todo.md`. Non-checkpoint 👤 steps: the Anthropic key before T-160; the evaluation cases and the approval of every paid run in T-168. T-157, T-158, T-160…T-164 and T-166…T-168 merge with no checkpoint after them.
 
 ## Architecture Decisions
-- **Rest alert technique chosen in T-146's plan after verifying Android 17 (ADR-75).** Candidates:
-  - an exact alarm (`setExactAndAllowWhileIdle`/`setAlarmClock`). `SCHEDULE_EXACT_ALARM` is not granted by default on Android 14+; `USE_EXACT_ALARM` is possible because the APK is sideloaded;
-  - a foreground service during the rest (`shortService` is capped at 3 min);
-  - a scheduled notification, if its Doze delay is a few seconds at most.
+- **One `coach` Edge Function** (T-160): JWT, RLS through the user's token, `ANTHROPIC_API_KEY` only server-side (ADR-17/77); request kinds `plan_nutrition`, `plan_block`, `report`, `chat`; streamed (SSE) responses so the app shows progress; a call timeout below the 150 s wall clock (Free plan, `07` §11) with a clean error; structured JSON output validated server-side, retried once, then an error; the model never writes to the database, accepted proposals are written by RPCs.
+- **150 s limit:** the plan is two calls (nutrition and outcomes in T-161; the training block in T-163). T-163's planner measures the block call and splits it further (per two weeks or per week) if it risks the limit.
+- **One source for the math:** the derived values (BMR, activity, adaptive expenditure with intake completeness, weight trend with its interval, experience) and the compact summary (`coach_summary`, last 8 weeks, never raw rows) are computed in SQL (T-157), so the app and the function read the same numbers. Nutrition and block rules are TypeScript validators in the function; progression is SQL or TypeScript (T-159 planner).
+- **Model picks from server-built candidates:** exercises come from a catalogue list filtered by place and equipment, never free names; outcomes from a validated option set.
+- **Coach rules enforced by validators (`07` §3-§4):** frequency (≥ 2 per muscle group when days allow; 1 day = full body), ~10 weekly sets per muscle group, intensity per intention, 1-3 RIR, rest 2-3 min on main multi-joint lifts and 1-2 min on isolation (written into `rest_seconds`), priority multi-joint lifts first, undulating rep ranges within the week only for "Ganar fuerza", no reduction of cardio or steps, full range of motion only as a technique note; calorie floor (ADR-25), rate of loss/gain, protein ≥ 1.6 g/kg with distribution guidance (~0.4 g/kg per meal over ≥ 4 meals, not a meal plan), fat ≥ 20 %, in-block change ≤ 10 % after two weeks outside the trend's interval.
+- **Budget:** `coach_usage` per user and month; the function refuses any call that would pass 2 € per user or 5 € in total (dollars counted as euros); the global total comes from an aggregate that exposes no row. Deterministic features never call the function. CI never calls the API (fake client); every real call (smoke test, evaluation) is approved by the user.
+- **Suggestions never rewrite routines:** progression and deload are shown in the live session; "Actualizar automáticamente" (ADR-70) keeps copying what was performed.
+- **Plan storage (epic §Tables):** `coach_derived_values` (T-157), `coach_usage` (T-160), `coach_plans` and `coach_recommendations` (T-161), `coach_plan_sessions` (T-163), adherence and deload columns (T-165), `coach_reports` (T-166), `coach_outcomes` (T-167), `coach_conversations` (T-169). Every table cascades on account deletion (ADR-29) and is covered by `delete_account_cascade.test.sql`.
+- **Target weight retired (ADR-78)** in T-162: UI removed first, then `profiles.target_weight_kg` dropped in the same PR's migration; "Peso" shows the plan's weight outcome.
+- **UI:** fourth tab "Trainer" (ADR-79) in T-158 (`05` §5 and the §8 "Decided" line updated). Shared pieces built once and reused (R-39): provisional label (T-158), `CoachProposalCard` and the streamed-progress state (T-162), reused by T-164/T-165/T-166/T-169. Screens on `AppScreen`, sheets on the four archetypes, `NavigationRow` "Informe semanal", history delete with the R-08 many-records dialog (G5 allow-list), a new chat pattern recorded in `05` §9 (T-169).
 
-  Timing comes from `endsAt` (§4.4). A permission the user must enable in Ajustes is raised as a product question before implementation. The choice is recorded in `02-architecture.md`.
-  **Decided (T-146):** an exact alarm (`setExactAndAllowWhileIdle`, `USE_EXACT_ALARM`, no user action). Android 17 blocks background audio even from an exact-alarm receiver (see `02-architecture.md` §10), so the receiver only posts the notification and the notification channel plays the sound and the vibration.
-- **One `RestAlertScheduler` port.** The live-session ViewModel schedules the alert, reschedules it ("+30s", new set) and cancels it ("Omitir", finish, discard, rest ending in the foreground). Foreground = a resumed activity (`CurrentActivityHolder`), so a locked screen counts as background. In the foreground only the in-app alert fires.
-- **Notification permission.** `POST_NOTIFICATIONS` is requested at the first rest of a session (Android 13+). If denied, nothing is posted and the app explains it once (persisted flag).
-- **Sound.** Three candidates and a temporary chooser in T-146, one notification channel per candidate (`rest_alert_system`, `rest_alert_chime`, `rest_alert_double_beep`; a channel sound is frozen after creation), each high importance with the `RestAlertPattern` vibration. The notification goes to the channel of the sound chosen in `RestAlertPreferences`; in the foreground `AndroidAlertSound` plays it. T-148 keeps only the chosen sound in a new channel ID and deletes the other channels, the chooser and the unused assets.
-- ~~**Strong-pain matcher in the domain.** (void, ADR-81 / T-152: the user picks a level, nothing is matched) A fixed, versioned term list lives in `shared/…/domain/rules/` (E12 Q1). Matching is case- and accent-insensitive on normalised text; no model reads the text (`07` §7). Discomfort notes use it to set `severe`. Set and routine-exercise notes use it only to show the message.~~
-- **Discomfort open window on the client.** A discomfort is open while unresolved and `now < logged_at + 7 days`. The user never deletes stored rows: they are the history E13 US-70 needs.
-- **Four migrations, one per story** (`02` §6): `exercise_discomforts` (T-147), the notes columns (T-148), the `training_preferences` fields + enums (T-149; `session_minutes` check 15-180, multiple of 5), and `movement_pattern` (T-150). Each has pgTAP, owner RLS where a table is new, and needs `deploy-supabase` green before the next task or checkpoint.
-- **"Mi entrenamiento" is a new Preferencias hub section** (Gherkin literal) beside the existing "Entrenamiento" app-settings section, and it saves only its own fields. Default equipment per place is a pure domain rule.
-- **One duration formatter.** The session length is shown with the existing `durationText(seconds: Long)` (`feature/analytics/stats/TrainingStatsFormat.kt`; "45 min", "1 h 0 min", "1 h 5 min", "1 h 30 min"). T-149 moves it into `designsystem/` without changing its output, because a third feature now uses it (R-39, R-44).
-- **Movement pattern from the generator.** `scripts/generate-exercise-catalog.py` takes the column from a RepDB field if one is equivalent, otherwise from a reviewed mapping keyed by catalogue `key`. A coverage check fails on a missing key.
-- **UI on existing templates.**
-  - Notes and discomfort: Edit sheets (`AppEditSheet`); shown notes and "Molestia registrada" as `InlineNote`; exercise actions in `AppActionSheet`.
-  - "Mi entrenamiento": `AppEditorScreen` with `SegmentedSelector`, `AppToggleChip` and `AppPickerSheet`.
-  - Movement pattern: `AppPickerSheet`.
+## Phases
+### Phase 1: Model-free coach (US-68, US-70)
+- [ ] T-157: Coach summary and derived values in SQL — L
+- [ ] T-158: Trainer tab and the derived-values card — M
+- [ ] T-159: Rep range and progression suggestion in the live session — L
+  - **Checkpoint E13-A 👤 (7 items)**
 
-  No new designsystem component is expected. If the three note uses converge, they share one note sheet (R-39).
+### Phase 2: The coach's plan: function, nutrition, block, plan weeks (US-76, US-69, US-72, US-73, US-75)
+- [ ] 👤 Anthropic account, spending limit, `ANTHROPIC_API_KEY` secret
+- [ ] T-160: `coach` Edge Function, AI usage and the monthly budget — L
+- [ ] T-161: Plan nutrition and outcomes (backend) — L
+- [ ] T-162: Plan proposal screen, nutrition acceptance, target weight retired — L
+- [ ] T-163: Block creator (backend) — L
+- [ ] T-164: Block preview and "Guardar bloque" — L
+- [ ] T-165: Plan weeks: adherence and the deload suggestion — L
+  - **Checkpoint E13-B 👤 (9 items)**
 
-## Task List
+### Phase 3: Report, history, evaluation, chat and closure (US-71, US-74, US-77)
+- [ ] T-166: Weekly coach report — L
+- [ ] T-167: Recommendation history, outcomes and deletion — M
+- [ ] T-168: Coach evaluation — M (👤 cases and each paid run)
+- [ ] T-169: Coach chat with tools — L (only after T-168 passes)
+  - **Checkpoint E13-C 👤 (9 items, final regression; releases T-170)**
+- [ ] T-170: E13 closure — PM — S
 
-| Task | Flow | Size | Expected agent runs |
-|---|---|---|---|
-| T-146: Rest-end alert with the screen off and the sound candidates (US-64) | platform + core + UI | L | 7 |
-| T-147: Discomfort log per exercise and the strong-pain message (US-67) | backend + core + UI | L | 8 |
-| T-148: Notes per set and per routine exercise, and the chosen rest sound (US-66) | backend + core + UI | L | 8 |
-| T-149: "Mi entrenamiento": training intention and static preferences (US-65) | backend + core + UI | M | 8 |
-| T-150: Movement pattern in the exercise catalogue and the custom exercise form | backend + data + small UI | M | 8 |
-| T-151: E12 closure → `v1.x` | PM | S | PM only |
-
-### Phase 1: Rest alert and discomfort in the live session (US-64, US-67)
-- [x] T-146: Rest-end alert with the screen off and the sound candidates — L (no checkpoint after it)
-- [x] T-147: Discomfort log and the strong-pain message — L
-  - **Checkpoint E12-A 👤 (7 items):** screen off and background; foreground; skip, +30s, finish/discard; notifications denied; choose the sound; log discomfort; strong pain and resolve. *(approved 2026-10-29)*
-
-### Phase 2: Notes and static inputs for the coach (US-66, US-65, data task)
-- [x] T-152: Discomfort level scale (ADR-81) and help on every rating scale (R-45); before re-presenting Checkpoint E12-A — L (merged #346)
-- [x] T-148: Notes per set and per routine exercise, and the chosen rest sound — L (no checkpoint after it; `deploy-supabase` green before T-149)
-- [x] T-149: "Mi entrenamiento" — M (no checkpoint after it; `deploy-supabase` green before T-150)
-- [x] T-150: Movement pattern — M
-  - **Checkpoint E12-B 👤 (7 items):** chosen sound; notes; note limits; intention; place, equipment, days and length; movement pattern; final regression of E12. Releases T-151.
-
-### Phase 3: Closure
-- [ ] T-151: E12 closure → `v1.x` — PM — S (no checkpoint of its own; Checkpoint E12-B's approval releases it)
-
-Internal milestones (not 👤 checkpoints):
-- per task: lint (`check-design-tokens.sh`, `check-ux-conventions.sh`, ktlint, detekt) + `testLocalDebugUnitTest` green; pgTAP green for T-147…T-150;
-- after each migration task: `deploy-supabase` green on `main`, data intact, before the next task or checkpoint;
-- T-146's plan: Android 17 technique verified and recorded.
+Internal milestones (not 👤 checkpoints): per task lint (`check-design-tokens.sh`, `check-ux-conventions.sh`, ktlint, detekt) + `testLocalDebugUnitTest`, pgTAP and `deno test` green; after each migration or function change, `deploy-supabase` green on `main` with data intact before the next task or checkpoint; T-160 smoke call approved by the user.
 
 ## Dependencies
-
 ```
-v1.2.0 ─► T-146 ─► T-147 ─► (deploy) ─► [Checkpoint E12-A 👤: sound chosen]
-       ─► T-148 ─► (deploy) ─► T-149 ─► (deploy) ─► T-150 ─► (deploy) ─► [Checkpoint E12-B 👤] ─► T-151 ─► v1.3.0
+v1.3.0 ─► T-157 ─► T-158 ─► T-159 ─► [E13-A 👤]
+       ─► [👤 key] ─► T-160 ─► T-161 ─► T-162 ─► T-163 ─► T-164 ─► T-165 ─► [E13-B 👤]
+       ─► T-166 ─► T-167 ─► T-168 (👤 cases, paid runs) ─► T-169 ─► [E13-C 👤] ─► T-170 ─► v1.4.0
 ```
 - Strictly sequential (one active task at a time).
-- T-148 needs Checkpoint E12-A's approval (the sound choice) and T-147's matcher and message.
-- Earlier work used:
-  - `RestTimer`, `AlertSound`, the `Haptics` alert pattern and `RestAlertPattern` (E3, E9);
-  - the live session and its ⋮ actions, `save_routine`, "Editar entreno" and the workout detail (E3, E6);
-  - `training_preferences` and the Preferencias hub (E2, E6, T-138);
-  - the custom exercise form (E4, E6);
-  - the duration formatter `durationText` (E6 statistics, T-144 Actividad);
-  - the process-lifecycle hook (T-135, T-142);
-  - T-139's temporary-screen precedent.
+- Earlier work used: E10 weekly check-in and summary (`weekly_set_counts`, `weekly_records`, weight trend); E11 `daily_activity`, `sleep_sessions`; E12 `training_preferences` (intention, place, equipment, days, length), `exercise_discomforts.level`, `note_kind`, `exercises.movement_pattern`; E3/E6 `save_routine`, routine folders, the live session, e1RM (Epley, `04` §4.1), plate and dumbbell rounding (`04` §4.9); E5 weight screen and `nutrition_goals`.
 
 ## Risks and Mitigations
 | Risk | Impact | Mitigation |
 |---|---|---|
-| Android 17 delays or blocks the alert with the screen off (Doze, exact-alarm permission, foreground-service limits) | High | Verified in T-146's plan with sources; tested on the user's phone at Checkpoint E12-A items 1-2; a permission the user must grant is asked before implementation |
-| `shortService`'s 3-minute cap is shorter than some rests | Medium | The planner checks the longest `rest_seconds`; another technique or service type if needed |
-| A notification channel's sound cannot change after creation | Medium | The temporary chooser plays the sound itself or uses one channel per candidate; T-148 creates the final channel with a new ID |
-| The sound is tested at Checkpoint E12-A from a chooser that T-148 later removes | Low | The pick is recorded with the approval; Checkpoint E12-B item 1 re-tests the wired sound |
-| Sound candidates carry a licence problem in a public repo | Low | Synthesised or licence-free assets only; the system sound is referenced, not bundled |
-| ~~The strong-pain list misses or over-matches terms~~ (void, ADR-81) | Medium | Fixed list agreed by the user (Q1; plain "dolor"/"molestia" excluded on purpose); whole-word normalised matching; host tests for every term and its variants; the message never diagnoses |
-| Moving `durationText` changes statistics or Actividad output | Low | Moved with no change to its output; existing tests keep passing, plus new cases |
-| The movement-pattern mapping is wrong for some rows | Medium | Reviewed mapping by key, pgTAP spot checks, coverage check; E13 uses it only for substitutions |
-| Regenerating the catalogue migration needs the RepDB bundle | Low | Only if the generator must re-run (the user's local bundle, as in E4); otherwise an update migration from the mapping |
-| T-148 exceeds ~25 files (notes + sound wiring) | Low | Developer slices (backend + core, then UI) within the same PR; no extra task |
-| "Mi entrenamiento" next to "Entrenamiento" in the hub is confusing | Low | Gherkin literal kept; ux-reviewer checks the hub wording against R-04/§10; the user sees it at Checkpoint E12-B |
-
-## T-152 plan (ADR-81; planner, 2026-10-29)
-Full detail: `.workflow/current_task.md`. Supersedes the "Strong-pain matcher" decision, assumptions A3 and A5, and the matcher risk row above (E12 Q1 void). T-148 notes show no health message and are never scanned.
-- **Backend:** migration `20261129100000_exercise_discomforts_level.sql`: add `level smallint`, map `severe` true -> 5 and false -> 2, `not null`, check 1..5, drop `severe` (derived: level >= 4). Level immutable after insert (column grants). Slice 1.
-- **Core:** `DiscomfortLevel` enum, `Discomfort.level`, `LogDiscomfort(exerciseId, level, note)`, `StrongPainTerms` and its test deleted, `LiveDiscomfort(level)`. Slice 2.
-- **UI:** `AppTextField` v4 (multi-line vertical padding: the box only had horizontal padding, so a taller multi-line `BasicTextField` sat flush against the border; same defect in Check-in semanal), required level picker with `ScaleOptionRow` (generalised from `RpeOptionRow`) and `discomfortScale` colours (not the lime), level help, open row shows the level, help buttons on check-in Energía and food-photo Confianza (activity cards, categorical selectors and sliders exempt). Slice 3.
-- **Docs:** `03`, `04` §4.12, `05` §2.5/§8/§10 (new rule is R-45 "Scales explain themselves"; R-43 stays "Watch data"), `07` §7, `09` Q1, ADR-81 ticks.
+| The block call exceeds the 150 s wall clock | High | Two calls (nutrition, block), streaming, a timeout below 150 s; T-163 measures and splits further |
+| The model invents figures or breaks a rule | High | Server validators for every `07` rule, retry once then error; candidate lists; figure validator for reports; evaluation gate (T-168) |
+| Paid calls during development exceed the budget | Medium | Fake client in CI and `deno test`; every real call approved by the user; the function's budget check; Anthropic spending limit (👤) |
+| Global budget needs a cross-user read | Medium | An aggregate that returns only the total (or the secret key inside the function), pgTAP proves no row leaks |
+| SQL statistics (trend interval, adaptive expenditure) are hard to test | Medium | Fixed series with known slopes and intervals in pgTAP; cases shared with domain tests where a formula exists |
+| No rep range exists on routines today (planned weight/reps per set, ADR-50; only a legacy `target_reps_max`) | High | Q2 resolved: T-159 adds an optional per-exercise range to the routine editor (more files: developer slices) |
+| E13-B and E13-C are large (9 items) | Medium | Items grouped by journey; fixes become `fix(T-###)` and the checkpoint is re-presented with the list to re-test |
+| Undulating ranges make progression compare unlike sessions | Medium | Per-session range matching (T-159), Q2 Gherkin |
+| Removing `target_weight_kg` breaks screens or onboarding | Medium | UI removed before the column drop in the same PR; sweep for every reader; pgTAP |
+| Plan targets overwritten by a later Preferencias save (`04` §1.4) | Medium | Q8; the save marks the plan's nutrition as edited |
+| Deload and adherence untestable by hand without weeks of data | Low | Host tests and pgTAP cover the triggers; checkpoint items say "if your data shows it" |
 
 ## Open Questions
 
-**Resolved (user, 2026-10-28):**
-- **E12 Q1 · Strong-pain term list and fixed message → option B, approved as drafted.** *Superseded by ADR-81 (T-152): no term list, no message.*
-  - Terms: "dolor fuerte", "dolor agudo", "dolor intenso", "pinchazo", "chasquido", "hormigueo", "entumecimiento", "hinchazón", "lesión", "me he lesionado", "desgarro", "no puedo mover". Plain "dolor" and "molestia" are deliberately excluded.
-  - Message: "Si el dolor es fuerte o no mejora, consulta a un profesional sanitario."
-  - Used by T-147 (discomfort, severe) and T-148 (notes, message only). Recorded in `planning/09-open-questions.md` and the epic's US-67 technical notes.
-- **E12 Q2 · Session length → option A: 15-180 min in 5-min steps, human-readable.**
-  - Shown with the existing duration formatter `durationText` ("15 min", "45 min", "1 h 0 min", "1 h 5 min", "1 h 30 min", "3 h 0 min"), reused with no ad-hoc copy (T-149).
-  - Recorded in `planning/09-open-questions.md` and the epic's US-65 technical notes.
-  - Note: the existing pattern writes whole hours as "1 h 0 min", not "1 h". T-149 keeps that output unchanged. Dropping " 0 min" everywhere would be a separate product decision.
+**All resolved by the user on 2026-10-29, each with the recommended option and every sub-choice** (recorded in `planning/09-open-questions.md`; amended Gherkin written into `planning/epics/E13-performance-assistant.md`; durable rules in `07` §3, §7, §8). Resolutions: Q1 B (neutral reason, no health message; levels 1-3 keep the reps rule and the 5 % drop) · Q2 A (optional per-exercise rep range in the routine editor, per session; scenario added) · Q3 (main lifts by `movement_pattern`; deload only inside an accepted block; 40 % cut to the nearest whole set, at least 1) · Q4 B · Q5 (glossary entries; "Eliminar historial del entrenador") · Q6-Q10 and Q13 the defaults below · Q11 and Q12 the scenarios below. The original wording is kept for reference.
 
-**Assumptions (non-blocking; applied unless the user objects at the checkpoints):**
-- A1. Tapping "Descanso terminado" opens the app on the live session.
-- A2. The notification permission is requested at the first rest of a session (Android 13+). The sound follows the phone's mute/ringer mode (E9 point 16: silent when muted).
-- A3. ~~`severe` is set only by the term match; the user does not mark severity by hand.~~ Void (ADR-81): `severe` is derived from the chosen level (>= 4).
-- A4. "Molestia registrada" and "Ya no me molesta" live in the live session, where the discomfort is logged. The exercise detail does not show it in E12.
-- A5. ~~A strong-pain term in a set or routine note shows the fixed message but does not create a discomfort.~~ Void (ADR-81): notes show no message and are never scanned.
-- A6. Set notes are editable in "Editar entreno" and read-only in the workout detail.
-- A7. "Mi entrenamiento" is a new hub section. The existing "Entrenamiento" section keeps warm-up, previous values, calculators and auto-update.
-- A8. Choosing a place replaces the draft's equipment with that place's defaults; the user then edits it.
-- A9. The movement pattern is editable only on custom exercises and shown nowhere else in E12.
-- A10. E12's release version is proposed as `v1.3.0` (minor per epic) and confirmed at the closure.
-- A11. ux-reviewer writes the Spanish copy beyond the Gherkin literals (sound chooser, permission explanation, place labels, movement-pattern labels) within the glossary, and the user sees it at the checkpoints.
+**Formerly BLOCKING (resolved 2026-10-29):**
+
+- **E13 Q1 · US-70 discomfort scenarios conflict with ADR-81 / `07` §7 (before T-159).** Both scenarios still say "the fixed message asks the user to consult a professional"; ADR-81 removed that message. Proposed Gherkin:
+  ```gherkin
+  Scenario: Open discomfort blocks increases
+    Given "Press banca" has an open discomfort of level 1 to 3
+    When the coach suggests the next session
+    Then no load increase is suggested for "Press banca"
+    And no health message is shown
+
+  Scenario: Severe discomfort blocks the exercise
+    Given "Press banca" has an open discomfort of level 4 or 5
+    When the coach suggests the next session
+    Then no suggestion is made for "Press banca"
+    And no health message is shown
+  ```
+  Also decide: (A) the suggestion says nothing about the discomfort (strict ADR-81 "nothing else is shown"), or (B) the suggestion's reason states neutrally that the load is kept because of the open discomfort (no health advice). Recommended: B (the user sees why). Levels 1-3 still allow the reps rule and the 5 % drop (proposed).
+
+- **E13 Q2 · Where does an exercise's rep range come from, and per-session ranges (before T-159).** US-70 says "has a target of 6 to 8 reps", but routines store planned weight and reps per set (ADR-50); only a legacy `target_reps_max` exists, not shown in the editor. Options: (A) add an optional rep range ("Rango de repeticiones", min-max) per routine exercise in the routine editor, set by the block creator for coach routines; (B) progression only for routines created by the coach, whose plan carries the range; (C) derive the range from the planned reps (planned reps = bottom, +2 = top). Recommended: A. With "Ganar fuerza" the block varies ranges within the week (`07` §3), so the range is per routine exercise (session). Proposed extra scenario:
+  ```gherkin
+  Scenario: Each session uses its own rep range
+    Given "Sentadilla" is planned at 3 to 5 reps on Monday and 8 to 10 reps on Thursday
+    When the user opens "Sentadilla" on Thursday
+    Then the suggestion uses the 8 to 10 range
+    And it is based only on earlier sessions with that range
+  ```
+
+- **E13 Q3 · "Main lifts" and "main multi-joint lifts"; deload without a plan (before T-163 and T-165).** Neither `07` nor the epic defines them. Proposed: an exercise whose `movement_pattern` is squat, hinge, lunge, horizontal/vertical push or pull (not isolation, core, carry, cardio, other), and for the deload trigger only those done in at least one session in each of the three weeks. Also: (A) a deload is suggested only inside an accepted block (it marks the next plan week), or (B) also without a block (then it marks the next 7 days and shows in the live session). Recommended: A. The 40 % cut rounds to the nearest whole set, at least 1 per exercise (proposed).
+
+- **E13 Q4 · Does the evaluation gate the plan and report before the user tries them (before Checkpoint E13-B is presented)?** The epic says "a function is not enabled until it meets its criteria", but the plan and report are tested at E13-B…E13-D, before T-168. Options: (A) each model task runs its share of the cases (user-approved paid runs) before its checkpoint, and T-168 consolidates and gates US-77; (B) the plan and report are usable at the checkpoints (the validators already enforce the hard rules on every output), and T-168 is the formal gate before US-77 and before the app is shared with other users. Recommended: B (the tasks are written for it).
+
+- **E13 Q5 · Labels that clash with the glossary (before T-158's ux pass).** §10 says commit = "Guardar", never "Aceptar"/"Confirmar"; "Descartar" = abandon unsaved work; deleting saved records = "Eliminar", "Borrar" only for the account and clearing text; R-35 one label per concept, and the tab is "Trainer" while the Gherkin says "asistente". Proposed: add glossary entries "Confirmar" (accept the coach's derived values), "Aceptar" / "Descartar" (decide on a coach proposal: a distinct concept from editing), and rename "Borrar historial del asistente" to "Eliminar historial del entrenador" (or keep the Gherkin literal and add the exception). Recommended: the three entries plus the rename; the Gherkin literals of US-68, US-74, US-75, US-77 updated accordingly.
+
+- **E13 Q11 · US-72 Gherkin for the new `07` §3 rules (before T-163).** Proposed scenarios:
+  ```gherkin
+  Scenario: Rest between sets
+    When the block is shown
+    Then the main multi-joint lifts rest 2 to 3 minutes
+    And the isolation exercises rest 1 to 2 minutes
+    And the saved routines keep those rests
+
+  Scenario: Exercise order
+    When the block is shown
+    Then each session starts with its priority multi-joint lifts
+
+  Scenario: Undulating periodization for strength
+    Given the intention is "Ganar fuerza"
+    When the block is shown
+    Then the load and the reps of the main lifts vary between the sessions of a week
+
+  Scenario: One rep range for other intentions
+    Given the intention is "Ganar musculatura"
+    When the block is shown
+    Then each exercise keeps one rep range across the block
+
+  Scenario: Cardio is not reduced
+    Given the user logs cardio sessions or steps
+    When the block is shown
+    Then the block does not remove or shorten them
+    And no text advises fewer steps
+  ```
+  Range of motion stays a technique note in the exercise reason (no scenario proposed).
+
+- **E13 Q12 · US-69 Gherkin for the protein distribution (before T-161).** Proposed:
+  ```gherkin
+  Scenario: Protein distribution guidance
+    Given the user weighs 75 kg
+    When the coach proposes the plan
+    Then the plan shows about 30 g of protein per meal over at least 4 meals
+    And it is shown as guidance, not as a meal plan
+  ```
+
+**Non-blocking (resolved 2026-10-29: the default below was approved):**
+- **E13 Q6 · When does "the coach run"?** (US-68 re-ask, US-69 calorie change, US-75 deload). Default: the deterministic checks run on each open of the Trainer tab and after saving the weekly check-in, at most once a day; never in the background (ADR-73).
+- **E13 Q7 · Where are the "coach settings" (US-76)?** §8 puts every setting in Preferencias, but usage is read-only information. Default: "Uso de IA" from the Trainer root's ⋮ menu (an `AppScreen` with this month's usage and the 2 € limit); alternative: a read-only row in a new Preferencias section.
+- **E13 Q8 · A Preferencias save recalculates the calorie target (`04` §1.4).** Default: a save that changes the nutrition goal (including the recalculation after editing personal data) counts as a manual edit and marks the plan's nutrition "edited by you"; it never silently restores the plan.
+- **E13 Q9 · One acceptance or two?** `07` §1 says the user accepts the whole plan; US-69 "accepts the plan" and US-72 "Guardar bloque". Default: after T-162 a plan can be accepted for nutrition alone; once the block exists (T-164), "Guardar bloque" accepts the training part and creates the routines; both decisions are stored.
+- **E13 Q10 · Leaving the block preview.** Default: no routine is created, the proposal stays `proposed` and can be reopened from Trainer until a new one supersedes it (no discard dialog: it is not an editor).
+- **E13 Q13 · Edited activity level and deletion scope.** Default: an activity level edited on the coach card is stored only as the coach's confirmed value (Diario's TDEE keeps `profiles.activity_level`); deleting the coach history ("Eliminar historial del entrenador", Q5) keeps the derived values and the AI usage (not in the Gherkin list; the usage must stay for the budget).
+
+**Assumptions:**
+- A1. Proposed release version `v1.4.0` (minor per epic, `06` §6).
+- A2. The Trainer tab label "Trainer" (ADR-79) and its icon are checked by ux-reviewer in T-158.
+- A3. ux-reviewer writes the Spanish copy beyond the Gherkin literals (suggestion line, progress texts, limit message, outcome and deload labels) within the glossary; the user sees it at the checkpoints.
+- A4. Evaluation cases contain no personal data, so they can live in the public repo; otherwise they stay local (planner of T-168 proposes, the PM asks).

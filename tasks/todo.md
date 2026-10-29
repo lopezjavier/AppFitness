@@ -6,7 +6,7 @@ Operating instructions: [`CLAUDE.md`](../CLAUDE.md). Phase 1 history (frozen): [
 Legend: **👤** = done by the user (accounts, web consoles, secrets) · **PM** = done by Claude Code.
 Secrets rule: never pasted in the chat or in versioned files. The user enters them in their terminal or in the consoles, and Claude only verifies that they exist.
 
-Last task ID used: T-156 (wrist roller metric type). Numbering continues from here.
+Last task ID used: T-170 (E13 closure, planned by the E13 breakdown). Numbering continues from here.
 
 **Next:** T-156 (user-reported bug, 2026-10-29), then tag `v1.3.0` is already planned with the closure PR; after T-156, the E13 breakdown by the epic-planner in a fresh session (the user agrees the task list and checkpoints first). Carry-over from T-155 (non-blocking): duration-based records show "kg" on weight×seconds (e.g. "Mejor serie 2560 kg"). T-154 review nits (non-blocking): the picker footer with the keyboard open has no host test (Robolectric cannot simulate the IME): manual check at the checkpoint. T-150 review nits (non-blocking): mapping rows `box-jump` (squat), `wall-sit`/`squat-hold` (squat), `handstand-hold` (vertical_push), `dead-hang` (vertical_pull) are debatable; the "picker open survives recreation" has no Robolectric test (manual check at the checkpoint). **T-153 review nits (non-blocking):** `applyRoutineNotes` does a second non-atomic `routineRepository.save` after `update_routine_from_session` and matches by `exerciseId` (repeated exercise gets the note on each occurrence); `LiveSet.previous` and the `showPrevious`/`onUsePrevious` path of `SetRow` are dead after dropping the Anterior column (remove; check the previous-values preference/help); `FormSetRow` KDoc still says "delete button"; SQL comment on empty-string notes becoming `other`. **Carry-overs:** chosen sound **"campana suave"** (T-148 wires it); T-148 no longer scans notes (ADR-81); (the padding screenshot was deleted at approval). T-152 review nits (non-blocking): KDoc of `DiscomfortSheet` should mention the required level picker; the migration-mapping pgTAP asserts use a scratch table that copies the CASE; narrow the `@Suppress("MagicNumber")` in `DiscomfortLevel`. T-147 carry-overs: `ActivityFlowTest.kt:86` uses `CoroutineScope(SupervisorJob())` like the flaky `HealthSyncRestorationTest` fixed in #342; no retry of unread discomforts on resume. T-146 carry-overs (non-blocking, for the checkpoint or T-148): rest ending while the user is on another tab posts no notification and no in-app alert (pre-existing); permission dialog interrupted by Activity recreation can show the explanation without a real denial; `FLAG_NO_CREATE` on cancel; own notification icon.
 
@@ -18,13 +18,468 @@ E10 (agreed with the user, 2026-10-28): one **Checkpoint E10** after T-136 (whol
 
 E11 (agreed with the user, 2026-10-28): a 👤 spike report after T-139 (device result, not a functionality checkpoint; gates T-141) and **one Checkpoint E11** after T-142 (watch data + daily automatic sync, also the final regression; its approval releases T-143). Details under the E11 section.
 
+E13 (agreed with the user, 2026-10-29: three checkpoints): **Checkpoint E13-A** after T-159 (Trainer tab, derived values, progression in the live session; no paid call; 7 items), **E13-B** after T-165 (nutrition plan and outcomes, target weight gone, AI usage, block preview and "Guardar bloque", adherence, deload; 9 items), **E13-C** after T-169 (weekly report, history and deletion, chat, final E13 regression; 9 items; releases T-170; if T-168 keeps the chat disabled, presented after T-168 without the chat items). Non-checkpoint 👤 steps: Anthropic key before T-160; evaluation cases and paid-run approvals in T-168. Details under the E13 section.
+
 E12 (user decision, 2026-10-28: two checkpoints): **Checkpoint E12-A** after T-147 (rest alert with the screen off, choosing the sound, discomfort log; 7 items), **Checkpoint E12-B** after T-150 (chosen sound, notes, Mi entrenamiento, movement pattern, final regression; 7 items; its approval releases T-151). Details under the E12 section.
 
 ## Notes for later epics
 
 - **E11:** the `READ_HEALTH_DATA_HISTORY` pre-check is replaced by the spike T-139 (user decision, 2026-10-28; see the E11 section).
 - **E12:** consumed by the E12 breakdown: Android 17 verification → T-146 (plan step and Checkpoint E12-A item 1); sound pick → Checkpoint E12-A item 5, wired in T-148.
-- **E13:** before the breakdown verify the sources marked *verify* in `planning/07-coach-design.md` §10, the Anthropic API data policy and current prices; 👤 Anthropic account, monthly spending limit and `ANTHROPIC_API_KEY` Supabase secret.
+- **E13:** consumed by the E13 breakdown: source, data-policy and price verification done 2026-10-29 (`07` §3-§4, §10-§11); 👤 Anthropic account, spending limit and `ANTHROPIC_API_KEY` → the 👤 step before T-160.
+
+---
+
+# E13 · Performance assistant → `v1.x` (proposed `v1.4.0`)
+
+Stories: `planning/epics/E13-performance-assistant.md` (US-68…US-77 + the evaluation). Plan: [tasks/plan.md](plan.md). Decisions: ADR-76 (coach rules), ADR-77 (provider, cost cap; NFR-02), ADR-78 (target weight retired, `activity_level` starting factor), ADR-79 (Trainer tab), ADR-81 (discomfort level, no message), ADR-82 (note kind), ADR-25 (calorie floor), ADR-29 (cascade), ADR-40 (restoration), ADR-73 (no background job). Rules: `planning/07-coach-design.md` §2-§9 (every figure), §11 (prices, 150 s wall clock), `04` §1, §3, §4.1, §4.9, §4.12, §6.6, `05` §8-§10.
+Carried over from "Notes for later epics": the source/price/data-policy verification is done (2026-10-29); the 👤 Anthropic key is the step right before T-160 (the first task that calls the model).
+**Status: agreed by the user, 2026-10-29** (task list as proposed; three checkpoints instead of five). Coach rules added to `07` §3-§4 on 2026-10-29 (rest, exercise order, undulating periodization for "Ganar fuerza", range of motion, cardio, protein distribution) are folded into T-159, T-161/T-162, T-163/T-164 and the T-168 criteria. **E13 Q1-Q13 resolved by the user, 2026-10-29, each with the recommended option** (`tasks/plan.md`, `planning/09-open-questions.md`); the amended Gherkin is in the epic file. No task is blocked. Key resolutions: Q1 B (no health message; the suggestion's reason states neutrally that the load is kept because of the open discomfort; levels 1-3 keep the reps rule and the 5 % drop); Q2 A (optional rep range per routine exercise, per session, in the routine editor; set by the block creator); Q3 (main lifts = `movement_pattern` squat, hinge, lunge, horizontal/vertical push or pull; deload only inside an accepted block; 40 % cut rounded to the nearest whole set, at least 1); Q4 B (T-168 is the formal gate for the chat); Q5 (glossary entries "Confirmar", "Aceptar"/"Descartar"; "Eliminar historial del entrenador").
+Ordering: deterministic, model-free work first (US-68 derived values, US-70 progression), so Checkpoint E13-A gives value before any paid call. **US-73 (adherence) and US-75 (deload) move after US-72**, against the initial guidance, because both need plan weeks: US-73 links workouts to `coach_plan_sessions` and US-75 "changes the week" of a block, and plans only exist once US-72 saves one. Then the `coach` Edge Function with US-76, US-69 (nutrition part of the plan), US-72 (training block), US-73 + US-75, US-71, US-74, the evaluation, and US-77 last.
+Sizing: 14 tasks. One task per story except: US-68 splits into backend (T-157: the SQL coach summary and derived-value math, heavy pgTAP) and UI (T-158: the Trainer tab and the card), together about 20 files; US-69 and US-72 each split into backend (Edge Function call, validators, RPCs) and UI (screens), each half about 12-15 files. US-73 and US-75 merge into one L task (T-165: both are deterministic and live on the plan weeks; each alone is M). US-76 rides with the Edge Function foundation (T-160). The evaluation is its own task (T-168, not a story). Closure T-170 stays S (it waits for Checkpoint E13-C).
+**150 s wall clock (07 §11):** the block plan is generated in two calls: nutrition + outcomes (T-161) and the training block (T-163), each streamed to the app with visible progress; T-163's planner measures the block call and, if it risks 150 s, splits it further (for example one call per two weeks). The function never runs a call it cannot finish (timeout below 150 s, clean error with "Reintentar").
+**Paid calls:** CI and `deno test` never call the Anthropic API (a fake client). Any real call during a task (smoke test, evaluation run) is approved by the user first; the cost lands in `coach_usage`.
+Flow: UI tasks run planner → ux-reviewer (plan) → developers → pr-creator → pr-reviewer ∥ ux-reviewer (diff) (`06` §2.1); backend tasks run `06` §2.2. Every migration task needs `deploy-supabase` green on `main` before the next task or checkpoint; every Edge Function change is deployed by the same workflow.
+**Shared UI built once (R-39):** `CoachProposalCard` ("Aceptar" / "Descartar", reason, data used) is built in T-162 (calorie change) and reused by T-165 (deload) and T-169 (chat proposals); `ProvisionalLabel`-style text + colour marker for provisional values (R-41) is built in T-158 and reused by T-162/T-164; the streamed-progress state ("Preparando tu plan…") is built in T-162 and reused by T-164/T-166/T-169.
+
+---
+
+## T-157: Coach summary and derived values in SQL (US-68 backend; US-69 trend and intake scenarios) · L
+
+**Story:** US-68 (+ US-69 "Weight trend with weekly averages", "Incomplete diary") · **Flow:** backend · **Size:** L · **Scenarios:** Values are shown with their source (data); Starting value without history; Confirming (storage); Editing a value (storage); Re-asking when the data changes; Weight trend with weekly averages; Incomplete diary (estimate marked unreliable)
+
+**Description:** (1) **Migration:** `coach_derived_values` (`user_id` cascade, `key` enum `coach_value_key`: `bmr`, `activity_level`, `tdee`, `weight_trend`, `experience`; `value` jsonb, `uncertainty` jsonb, `source` jsonb (data used and data missing), `confirmed` boolean, `confirmed_at`, unique `(user_id, key)`), owner RLS enabled and forced with `(select auth.uid())`, extend `delete_account_cascade.test.sql`. (2) **Deterministic math in SQL** (one source for the app and the `coach` function, `07` §1): BMR (Mifflin-St Jeor, `04` §1.2, same cases as the domain); activity level from `profiles.activity_level` as the starting value (ADR-78), with a proposed level from `daily_activity` steps and active kcal (E11) and the logged training volume (planner documents the mapping as a design decision in `07` §2 or raises it); TDEE = BMR × factor, then **adaptive expenditure** from logged intake and weight change, using only logged days and marking the estimate unreliable below 70 % logged days (`07` §2, §9); the 7 700 kcal/kg constant only without history (`07` §4); **weight trend** = slope of weekly averages of the daily values (`04` §3.1) with its confidence interval from the real spread (`07` §5); experience from training history (none = beginner). (3) **RPCs** (`security invoker`, `authenticated`): `coach_derived_estimates()` (current estimates with source and missing data; provisional when unconfirmed), `confirm_derived_values(p_values jsonb)` (confirm or edit; stores `confirmed_at`; whether an edited activity level also updates `profiles.activity_level`, and so Diario's TDEE, is E13 Q13, resolved 2026-10-29: no, it is stored only as the coach's confirmed value), re-ask rule: a confirmed value whose new estimate falls outside its stored uncertainty returns `confirmed = false` (`07` §2); `coach_summary(p_weeks int default 8)` (compact jsonb, last 8 weeks at most: derived values, weekly weight averages and trend, intake completeness, weekly sets per muscle group, e1RM per exercise, sleep 7-day average, open discomfort levels, intention and preferences, note kinds; never raw rows; consumed by T-160+). (4) **Docs:** `03` (table, RPCs), `04` new §7 "Coach" (derived values, trend, intake completeness), `07` §2 if the activity mapping is a new design decision.
+
+**Acceptance criteria:**
+- [ ] With steps, active kcal and sessions, `coach_derived_estimates` returns the activity level, its source data and the missing data.
+- [ ] With no Health Connect data and no training history, the activity level is the profile's and it is provisional (unconfirmed).
+- [ ] `confirm_derived_values` stores the confirmation and an edited value; the edited value is returned afterwards.
+- [ ] A confirmed value whose new estimate is outside its uncertainty comes back unconfirmed; one inside stays confirmed.
+- [ ] Daily weigh-ins over 4+ weeks: the trend is the slope of the weekly averages with its interval; fewer weeks widen the interval, never block.
+- [ ] Diary logged on 60 % of the days: the expenditure estimate is flagged unreliable (and T-161 will not propose calorie changes from it).
+- [ ] `coach_summary` covers at most 8 weeks and contains no raw table rows; size is bounded (planner sets a cap and tests it).
+- [ ] pgTAP: RLS enabled and forced, cross-user isolation, cascade on account deletion, BMR/trend/intake cases shared with the domain tests where the domain has the formula.
+
+**Host tests:** pgTAP `coach_derived_values.test.sql` (math cases: BMR example of `04` §1.3, trend slope and interval on a fixed series, 60 % vs 70 % logged days, re-ask inside/outside, no-history provisional) and `coach_summary.test.sql` (window, shape, isolation; the summary includes steps and any cardio sessions so later calls can respect the "never reduce cardio or steps" rule, `07` §3). Kotlin: DTO mapping tests for the estimates (if T-157 ships the repository; otherwise T-158).
+
+**Verification:**
+- [ ] `npx supabase db reset && npx supabase db lint && npx supabase test db` green.
+- [ ] After the merge: `deploy-supabase` green on `main`, data intact (before T-158 starts).
+
+**Agent runs:** planner, backend-developer, pr-creator, pr-reviewer = 4. About 8 files (SQL heavy).
+**Dependencies:** E12 closed (`v1.3.0`); breakdown agreed by the user
+**Files likely touched:** `supabase/migrations/<ts>_coach_derived_values.sql`, `supabase/migrations/<ts>_coach_summary.sql`, `supabase/tests/{coach_derived_values,coach_summary,delete_account_cascade}.test.sql`, `planning/03-data-model.md`, `planning/04-business-rules.md`, `planning/07-coach-design.md`
+**Estimated scope:** L
+
+---
+
+## T-158: Trainer tab and the derived-values card (US-68 UI) · M
+
+**Story:** US-68 · **Flow:** core + UI · **Size:** M · **Scenarios:** Values are shown with their source; Starting value without history; Confirming; Editing a value; Re-asking when the data changes (UI); US-69 trend and unreliable-intake display
+
+**Description:** (1) **Navigation (ADR-79):** fourth tab "Trainer" between "Entreno" and "Perfil" (Diario, Entreno, Trainer, Perfil); label and icon checked by ux-reviewer; the rail on medium/expanded too; tab restored after process death (ADR-40); update `05` §5 (tabs) and the §8 "Decided" line ("three tabs" → four, ADR-79). (2) **Core:** `CoachRepository` port + supabase-kt implementation (estimates, confirm), `DerivedValue` models, `TrainerViewModel` (load, confirm, edit, offline, error). (3) **UI — templates and patterns:** Trainer root = `AppScreen` tab root with its own compact header (R-01, R-05); a derived-values card (`AppCard` with one row per value: activity level, basal expenditure, total expenditure, weight trend with its uncertainty, experience; each row shows the value, its source data and what is missing; provisional values carry a text label plus a marker, never colour alone, R-41; build the shared provisional label here); "Confirmar" (Gherkin literal; see E13 Q5 for the glossary entry) as the card's primary button; editing the activity level opens an Edit sheet (`AppEditSheet`, R-07/R-38) reusing the existing activity-level cards of Preferencias (title + description, no new selector, R-39); the unreliable intake estimate shows the reason as an `InlineNote`; `HelpButton` on each derived value explaining how it is computed (R-46); empty/loading/error/offline per R-30/R-31. The plan proposal does not exist yet: the card lives on the Trainer root and T-162 shows it inside the proposal too.
+
+**Acceptance criteria:**
+- [ ] The bar shows Diario, Entreno, Trainer, Perfil; Trainer opens the root with the derived-values card.
+- [ ] With steps and sessions, the card shows the activity level, its source and the missing data.
+- [ ] Without Health Connect data or history, the activity level is the profile's, labelled provisional.
+- [ ] "Confirmar" stores the confirmation (provisional label disappears, survives reopening the app); editing the activity level and confirming stores and shows the edited value.
+- [ ] A value re-asked by the backend shows as provisional again.
+- [ ] The weight trend shows its uncertainty; an incomplete diary shows the unreliable-estimate note.
+- [ ] Trainer tab, card scroll and the edit sheet draft survive background and process death (ADR-40).
+
+**Host tests:** repository/DTO mapping tests; `TrainerViewModel` tests (load, confirm, edit, re-ask, offline, error); Robolectric tests (four tabs in order, card rows with source and missing data, provisional label text, "Confirmar", edit sheet with the activity cards, unreliable note, help sheets); navigation restoration test; recreated-ViewModel test.
+
+**Verification:**
+- [ ] lint (`check-design-tokens.sh`, `check-ux-conventions.sh`, ktlint, detekt) + `testLocalDebugUnitTest` green.
+
+**Agent runs:** planner, ux-reviewer (plan), kotlin-core-developer, compose-ui-developer, pr-creator, pr-reviewer ∥ ux-reviewer (diff) = 7. About 14 files.
+**Dependencies:** T-157 merged and deployed; E13 Q5 resolved (2026-10-29: glossary entries "Confirmar", "Aceptar"/"Descartar", added in `05` §10 by this task)
+**Files likely touched:** `shared/…/domain/model/Coach*.kt`, `shared/…/domain/repository/CoachRepository.kt`, `shared/…/data/{remote/CoachDto,repository/SupabaseCoachRepository}.kt`, `shared/…/di/`, `feature/trainer/{TrainerScreen,TrainerViewModel,TrainerUiState,DerivedValuesCard,ActivityLevelSheet}.kt`, `designsystem/` provisional label, `app/{AppRoutes,AppNavHost,AppBottomBar}.kt`, strings, `planning/05-design-system.md` §5/§8/§10, tests
+**Estimated scope:** M
+
+---
+
+## T-159: Progression suggestion per exercise in the live session (US-70) · L
+
+**Story:** US-70 (Gherkin amended per E13 Q1/Q2, resolved 2026-10-29) · **Flow:** backend + core + UI · **Size:** L (the planner may run backend + core and UI as developer slices of the same PR) · **Scenarios:** Rep range per routine exercise; Raising the weight; Raising the reps; Lowering after two failed sessions; Without RPE; Each session uses its own rep range; Open discomfort blocks increases; Severe discomfort blocks the exercise; Ignoring the suggestion; US-76 "Deterministic features keep working" (no model, no budget check)
+
+**Rep range (E13 Q2 A):** an optional "Rango de repeticiones" (min-max) per routine exercise: one migration on `routine_exercises` (nullable min/max with checks 1-50 and min ≤ max; the planner decides whether to reuse the legacy `target_reps`/`target_reps_max` summary columns or add new ones, and records it in `03`), carried by `save_routine` and its reads; in the routine builder a range control on each exercise beside "Descanso" / "Objetivo RPE", with the same control type (R-47, no dropdown), "Sin definir" allowed; a `HelpButton` explaining what the range is for (R-46). Without a range, no progression suggestion is shown for that exercise. The block creator (T-163) fills it.
+
+**Description:** (1) **Rule (deterministic, no model; `07` §3):** double progression over the exercise's last sessions (counted by sessions of the exercise, not calendar days): every working set at the top of the rep range with RPE ≤ 8 → next available increment (`04` §4.9: derived rounding = 2 × smallest enabled plate; dumbbells by the handle rules; machine/other per the planner); not all at the top → same weight, goal one more rep; most working sets below the bottom of the range in two consecutive sessions → 5 % lower rounded to the increment; no RPE on the sets → only the reps rule; RIR = 10 − RPE (ADR-76). Open discomfort (level 1-3) → no load increase (reps rule and the 5 % drop still apply) and the suggestion's reason states neutrally that the load is kept because of the open discomfort (E13 Q1 B; no health advice); open severe discomfort (level ≥ 4, ADR-81) → no suggestion line at all; no health message in either case (ADR-81, `07` §7). The rep range is the routine exercise's (above) and is **per session**: with "Ganar fuerza" a block varies load and reps within the week (undulating, `07` §3), so the rule uses the range of the session being opened and compares it only with earlier sessions of the exercise that had the same range (planner records the matching rule; other intentions keep one range per exercise). The planner picks SQL (RPC + pgTAP) or TypeScript per the US-70 technical note; the live session calls it once per session load for its exercises. (2) **Core:** `ProgressionSuggestion` model, repository method, `LiveSessionViewModel` loads suggestions with the session; works over the monthly AI limit (no Edge Function call). (3) **UI — templates and patterns:** under each exercise header in the live session, one suggestion line (e.g. "Sugerencia: 82,5 kg × 8"; copy by ux-reviewer, §10 glossary entry "Sugerencia") as an `InlineNote`-style row integrated in the exercise block (R-49), with a `HelpButton` opening an Info sheet with the reason and the sets used (dates, kg × reps @ RPE); the suggestion never fills or rewrites the planned values (architecture note; ADR-70 unchanged: "Actualizar automáticamente" keeps copying what was performed); it sits beside the open-discomfort block of T-147/T-148 without duplicating it (ux-reviewer defines the order). Offline: the suggestion loads with the session or is omitted silently.
+
+**Acceptance criteria:**
+- [ ] The routine builder sets an optional rep range per exercise (same control as "Descanso"/"Objetivo RPE", "Sin definir" allowed, help sheet); it is saved, reloaded and survives process death; an exercise without a range shows no suggestion.
+- [ ] Range 6-8, every working set 8 reps at RPE ≤ 8 last time → suggested weight = next increment; the Info sheet lists the sets used.
+- [ ] 80 kg × 6, 6, 7 → stays 80 kg, goal one more rep.
+- [ ] Most sets under the minimum in the last two sessions → 5 % lower, rounded to the increment.
+- [ ] Sets without RPE → only the reps rule.
+- [ ] Per-session ranges: an exercise done at 3-5 reps on one day and 8-10 on another gets each day's suggestion from its own range and its own earlier sessions.
+- [ ] Open discomfort level 1-3 → no load increase, and the reason says neutrally that the load is kept because of the open discomfort; level 4-5 → no suggestion; no health message for any level.
+- [ ] Ignoring the suggestion → the routine's planned values are unchanged after finishing (with and without "Actualizar automáticamente").
+- [ ] With the monthly AI limit reached (fake usage), the suggestion still shows.
+- [ ] `04` §7 (progression rule, increments, discomfort effect) and `03` (RPC) updated.
+
+**Host tests:** rule tests with the Gherkin cases (SQL pgTAP or `deno test`, plus Kotlin mapping); increment rounding cases (plates, dumbbells); discomfort levels 1-5 boundary; `LiveSessionViewModel` tests (suggestion loaded, ignored, planned values untouched, over-limit); Robolectric tests (suggestion line, help sheet with sets, no message with discomfort, severe = no line); live-session restoration with the help sheet open.
+
+**Verification:**
+- [ ] pgTAP / `deno test` green; lint + `testLocalDebugUnitTest` green.
+- [ ] After the merge: `deploy-supabase` green on `main` (before Checkpoint E13-A is presented).
+
+**Agent runs:** planner, ux-reviewer (plan), backend-developer, kotlin-core-developer, compose-ui-developer, pr-creator, pr-reviewer ∥ ux-reviewer (diff) = 8. About 20 files (rep range added by E13 Q2: developer slices backend + core, then UI).
+**Dependencies:** T-158 merged; E13 Q1 and Q2 resolved (2026-10-29)
+**Files likely touched:** `supabase/migrations/<ts>_routine_rep_range.sql`, `supabase/migrations/<ts>_coach_progression.sql` (or `supabase/functions/_shared/progression.ts`), `supabase/tests/{routines,coach_progression}.test.sql`, `shared/…/domain/model/{Routine,ProgressionSuggestion}.kt`, `shared/…/data/…` (`RoutineDto`, repositories), `feature/routines/{RoutineBuilderScreen,RoutineBuilderViewModel,RoutineDraft}.kt`, `feature/workout/{LiveSessionViewModel,LiveSessionScreen,LiveSessionUiState}.kt` (+ `ProgressionHelpSheet.kt`), strings, `planning/03-data-model.md`, `planning/04-business-rules.md`, `planning/05-design-system.md` §10, tests
+**Estimated scope:** L
+
+---
+
+### Checkpoint E13-A — The Trainer tab knows you, and the gym tells you what to lift next 👤 (7 items + leave and come back) *(agreed with the user, 2026-10-29: three checkpoints)*
+Journey: open the new Trainer tab, check what the coach estimated about you and confirm or fix it; then train and see, for each exercise, the weight and reps to aim for and why, also when an exercise bothers you. No paid AI is involved yet. Why here: right after T-159, the last model-free task, before the `coach` function and the plans build on the derived values.
+- [ ] T-157, T-158 and T-159 merged, CI green, `deploy-supabase` applied their migrations (data intact), every reported bug fixed.
+- [ ] 👤 Install the APK and try:
+  1. Trainer tab: the bar reads Diario, Entreno, Trainer, Perfil; Trainer opens with the card of estimated values (activity level, basal and total expenditure, weight trend, experience), each with where it comes from and what is missing.
+  2. Provisional and confirm: values not yet confirmed are labelled provisional; tap "Confirmar": the label goes and stays after reopening the app.
+  3. Edit: change the activity level in the card, confirm: the new value shows; Perfil → Preferencias still shows your profile data as before.
+  4. Trend and diary: the weight trend shows a range (more weeks of weigh-ins = narrower); if your diary has gaps, the card says the expenditure estimate is not reliable.
+  5. Rep range and progression: in a routine give an exercise you did before a "Rango de repeticiones" (e.g. 6-8) and save; start the routine: under it a suggested weight and reps appears; tap its `?`: the reason lists the sets it used; an exercise without a range shows no suggestion.
+  6. Discomfort: log a discomfort (level 1-3) on that exercise: no weight increase is suggested and the reason says the weight is kept because of the open discomfort; log a level 4-5 one on another: no suggestion at all; no health message anywhere.
+  7. Ignore it: finish the workout without following the suggestion: the routine's planned values are unchanged (also with "Actualizar automáticamente" on, which keeps copying what you did).
+  - Leave the app and come back on the Trainer tab with the activity-level sheet half changed, once in the routine editor with a rep range changed but not saved, and once in the live session with a suggestion's `?` open: the same tab, screen and draft are restored.
+  - Out of scope: plans, calories and any AI text (from E13-B); "lowering after two failed sessions" and "without RPE" (host tests; try only if your data has them).
+
+---
+
+### 👤 Anthropic account and API key (before T-160; not a functionality checkpoint)
+- [ ] 👤 Create the Anthropic account, set its monthly spending limit (backstop of US-76; ADR-77) and enter the key as a Supabase secret in your terminal: `npx supabase secrets set ANTHROPIC_API_KEY=…` (never in the repo or the chat). The PM only verifies the name exists (`npx supabase secrets list`, via a subagent).
+- [ ] `planning/08-environment-setup.md` lists `ANTHROPIC_API_KEY` (T-160 adds it).
+
+---
+
+## T-160: `coach` Edge Function, AI usage and the monthly budget (US-76) · L
+
+**Story:** US-76 · **Flow:** backend + small core/UI · **Size:** L · **Scenarios:** Usage is visible; User budget reached (refusal path; the report fallback is wired in T-166); Deterministic features keep working (already covered by T-159, re-asserted); Global budget
+
+**Description:** (1) **Migration:** `coach_usage` (`user_id` cascade, `month` date (first day), `input_tokens`, `output_tokens`, `cost_eur` numeric, unique `(user_id, month)`), owner select only for the client; writes only by the function; a `security definer` aggregate (or the function's secret key, planner picks and records it in `02`) that returns only the global monthly total, never other users' rows; pgTAP. (2) **Edge Function `coach`** (Deno/TS, `verify_jwt = true`, RLS through the user's token, `ANTHROPIC_API_KEY` server-side only, ADR-17/77): request router by `kind` (`plan_nutrition`, `plan_block`, `report`, `chat`; T-160 ships the skeleton and a `ping`-style smoke kind only if needed), Anthropic client in `_shared/` with streaming (SSE to the app), a call timeout below the 150 s wall clock, JSON-schema structured output and a validator hook (retry once, then error; architecture), price table (Opus 5.5 $4/$20, Sonnet 5.5 $2/$10 per million, cache read/write factors, `07` §11; dollars counted as euros), usage recorded per call from the API's returned usage, **budget check before every call**: refuse when this user's month would pass 2 € or all users' would pass 5 € (`coach_limit_reached` error); never logs prompts, summaries or outputs; `deno test` with a fake Anthropic client (no paid call in CI). (3) **Core/UI:** `CoachUsage` model and repository; the usage view "this month's AI usage and the monthly limit" (e.g. "0,42 € de 2,00 €" with `AppLinearProgress`) in the place decided by **E13 Q7** (resolved 2026-10-29: a read-only "Uso de IA" entry from the Trainer root's ⋮ `AppActionSheet`, R-02, opening an `AppScreen`); the shared limit message (copy by ux-reviewer: the monthly limit was reached until next month; R-37) used by every later model feature. (4) **Docs:** `02` (function, streaming, timeout, budget), `03` §7 (function row, table), `08` (`ANTHROPIC_API_KEY`), `01` NFR-02 unchanged.
+
+**Acceptance criteria:**
+- [ ] Usage screen shows this month's usage and the 2 € limit; zero usage shows 0,00 €.
+- [ ] A user at 2 € gets `coach_limit_reached` for any model call; the app shows the limit message; deterministic features keep working.
+- [ ] All users at 5 € → any user's model call is refused with the same message.
+- [ ] Each call stores input/output tokens and cost from the API usage and the price table; dollars counted as euros.
+- [ ] A call that would exceed the wall clock is cut by the timeout and returns a clean error.
+- [ ] pgTAP: RLS, cross-user isolation, client cannot write usage, global total exposes no row, cascade on account deletion.
+- [ ] One real smoke call, approved by the user beforehand, succeeds after deployment and its cost appears in the usage view.
+
+**Host tests:** `deno test` (budget boundaries for user and global, price math incl. cache factors, usage recording, timeout, retry-once on invalid JSON, streaming framing, JWT required); pgTAP `coach_usage.test.sql`; Kotlin repository mapping; usage ViewModel tests; Robolectric tests (usage screen, limit message, offline).
+
+**Verification:**
+- [ ] `deno test --allow-all supabase/functions`, pgTAP, lint + `testLocalDebugUnitTest` green.
+- [ ] After the merge: `deploy-supabase` green on `main` (migration + function); smoke call approved by the user.
+
+**Agent runs:** planner, ux-reviewer (plan), backend-developer, kotlin-core-developer, compose-ui-developer, pr-creator, pr-reviewer ∥ ux-reviewer (diff) = 8. About 15 files.
+**Dependencies:** Checkpoint E13-A approved; 👤 Anthropic key step done; E13 Q7 resolved (2026-10-29: "Uso de IA" from the Trainer root's ⋮)
+**Files likely touched:** `supabase/migrations/<ts>_coach_usage.sql`, `supabase/tests/{coach_usage,delete_account_cascade}.test.sql`, `supabase/functions/coach/{index,router,budget,prices}.ts` (+ tests), `supabase/functions/_shared/anthropic.ts`, `supabase/config.toml`, `.github/workflows/deploy-supabase.yml` (if functions are listed), `shared/…` (usage model, repository, DTO), `feature/trainer/{CoachUsageScreen,CoachUsageViewModel}.kt`, strings, `planning/02-architecture.md`, `planning/03-data-model.md`, `planning/08-environment-setup.md`, tests
+**Estimated scope:** L
+
+---
+
+## T-161: Plan nutrition and outcomes: generation, validation and acceptance (US-69 backend) · L
+
+**Story:** US-69 (+ US-74 "Every decision is stored" for plans and calorie proposals) · **Flow:** backend · **Size:** L · **Scenarios:** Weight loss plan; Calorie floor; Muscle gain plan; Outcomes are optional; Accepting writes the nutrition goal (RPC); Incomplete diary (no calorie change); Changing the calories within a block (trigger + proposal)
+
+**Description:** (1) **Migration:** `coach_plans` (epic §Tables: `block_start`, `block_weeks` = 4, `intention`, `nutrition` jsonb, `outcomes` jsonb, `method` jsonb, `status` enum proposed | accepted | superseded | discarded, `data_version`; `nutrition` carries an `edited_by_user` flag), `coach_recommendations` (epic §Tables; `kind` enum starts with `plan`, `calorie_change`; `input_summary` = the `coach_summary` used), owner RLS, cascade, pgTAP. (2) **Deterministic nutrition** (TypeScript in the function or SQL; `07` §4): target calories from the confirmed expenditure and the intention's rate (loss 0.5-1 %/week, default 0.5 %; gain 0.25-0.5 %; recomposition/maintenance per `07`), calorie floor 1200/1500 kcal (ADR-25) with "the rate is slower because of the floor", protein ≥ 1.6 g/kg (≤ 2.2 plateau; deficit high-lean-mass upper end), fat ≥ 20 % (20-35 %), carbs the rest; 7 700 kcal/kg only without history; **protein distribution guidance** (`07` §4, user-approved 2026-10-29): about 0.4 g/kg per meal over at least 4 meals, stored in `nutrition` as guidance text and figures, never as a meal plan (no foods, no meal times; `01` §5 excludes meal plans). (3) **Model call `plan_nutrition`** (Opus 5.5, ADR-77; streamed; under the 150 s limit): the model selects outcomes within validated options (weight, body fat, circumferences, e1RM per main lift; none is allowed) and writes each outcome's reason and deadline (normally the end of the block, `07` §6); the server validator rejects any plan that breaks a rule (rates, floor, protein, fat, outcome without reason/deadline, a figure not derivable from the summary), retries once, then errors (architecture). Refused when derived values are unconfirmed? → the plan is generated but marked `requires_confirmation` (US-68 "Unconfirmed values block the plan": the **accept** is blocked, not the proposal). (4) **RPCs:** `accept_coach_plan(p_plan_id)` (rejects while any derived value is unconfirmed; supersedes the previous accepted plan; writes `nutrition_goals` so Diario's daily calorie and macro targets are the plan's, within the existing `nutrition_goals` columns, planner maps strategy/adjustment/percentages; stores the decision in `coach_recommendations`), `discard_coach_plan`, `decide_recommendation(p_id, p_status accepted|edited|discarded, p_payload)`; a Preferencias save that changes the nutrition goal marks the accepted plan's nutrition `edited_by_user` (E13 Q8). (5) **In-block calorie change (deterministic):** when the plan's target rate is outside the trend's confidence interval for two consecutive weeks and the intake estimate is reliable, the coach creates a `calorie_change` recommendation of at most 10 % of the calories (`07` §4); applied only through `decide_recommendation` accepted; evaluated when the coach runs (E13 Q6, resolved: on each Trainer open and after saving the weekly check-in, at most once a day; never in the background, ADR-73). (6) Docs: `03`, `04` §7, `07` if a rate default needs a label.
+
+**Acceptance criteria:**
+- [ ] "Perder grasa", expenditure 2600 kcal → calories below expenditure, rate 0.5-1 %/week, protein ≥ 1.6 g/kg, fat ≥ 20 %.
+- [ ] Woman whose deficit gives 1100 kcal → 1200 kcal and the plan states the slower rate.
+- [ ] "Ganar musculatura" → surplus rate 0.25-0.5 %/week.
+- [ ] Every plan carries the protein distribution guidance (≈ 0.4 g/kg per meal, ≥ 4 meals) computed from the body weight; no foods or meal times (US-69 "Protein distribution guidance", E13 Q12).
+- [ ] "Ganar fuerza" → may set e1RM outcomes, may set no weight outcome; each outcome has reason and deadline.
+- [ ] Accepting writes `nutrition_goals`; accepting with an unconfirmed derived value is rejected.
+- [ ] Diary logged on 60 % of days → no calorie change is proposed.
+- [ ] Rate outside the interval two weeks running → one `calorie_change` ≤ 10 %, applied only when accepted.
+- [ ] Invalid model output → one retry, then a clean error; nothing stored as accepted.
+- [ ] Every accept/edit/discard is stored with its `input_summary`.
+- [ ] pgTAP: RLS, isolation, cascade; RPC paths; `deno test` for the validator and nutrition math.
+
+**Host tests:** `deno test` (nutrition math per scenario, floor by sex, validator rejections, retry-once, streaming with a fake client, budget refusal path, calorie-change trigger boundaries: one week vs two, 10 % cap, unreliable intake); pgTAP `coach_plans.test.sql` (accept/discard/supersede, unconfirmed blocks accept, nutrition goal written, decisions stored, Preferencias edit flag).
+
+**Verification:**
+- [ ] `deno test`, pgTAP green; after the merge `deploy-supabase` green on `main`.
+- [ ] E13 Q4 B (resolved): no evaluation gate here; one real plan call approved by the user as a smoke test.
+
+**Agent runs:** planner, backend-developer, pr-creator, pr-reviewer = 4. About 12 files.
+**Dependencies:** T-160 merged and deployed; E13 Q6, Q8, Q12 resolved (2026-10-29)
+**Files likely touched:** `supabase/migrations/<ts>_coach_plans.sql`, `supabase/tests/{coach_plans,delete_account_cascade}.test.sql`, `supabase/functions/coach/{planNutrition,nutritionRules,validators,schemas}.ts` (+ tests), `supabase/functions/_shared/`, `planning/03-data-model.md`, `planning/04-business-rules.md`
+**Estimated scope:** L
+
+---
+
+## T-162: Plan proposal screen, nutrition acceptance and the target weight retired (US-69 UI; US-68 gating; ADR-78) · L
+
+**Story:** US-69 UI (+ US-68 "Unconfirmed values block the plan") · **Flow:** core + UI + small migration · **Size:** L · **Scenarios:** Weight loss plan (display); Calorie floor (display); Outcomes are optional (display); Accepting writes the nutrition goal; The user never enters target numbers; Changing the calories within a block (card); Unconfirmed values block the plan
+
+**Description:** (1) **Core:** plan and recommendation models, repository (request a plan with streamed progress, accept, discard, decide recommendation), `PlanProposalViewModel`, Trainer root state (no plan / proposed / accepted / pending recommendation). (2) **UI — templates and patterns:** Trainer root gains the plan entry (e.g. "Crear plan" when none; the accepted plan's summary card otherwise; copy by ux-reviewer); the request shows streamed progress (R-31 "Preparando tu plan…"-style state; build the shared progress state here) then the **plan proposal** `AppScreen`: the derived-values card of T-158 on top (provisional values marked; the accept button disabled with the reason until "Confirmar", US-68), nutrition section (kcal, P/C/F grams with the fixed macro colours, weekly rate, the floor note when it applies, and the protein distribution guidance as an `InlineNote`-style line, e.g. "≈ 30 g de proteína por comida, en 4 comidas o más"; copy by ux-reviewer; guidance only, no meal plan), outcomes list (each with reason and deadline via `HelpButton`/Info sheet, R-46) and a pinned footer with the accept and discard actions (labels per E13 Q5); accept → Confirm haptic, Diario shows the new targets; discarding leaves Diario untouched. **`CoachProposalCard`** (new designsystem component: title, payload, reason, data used, "Aceptar" / "Descartar") on the Trainer root for the in-block calorie change; reused by T-165 and T-169. Limit reached → the US-76 message instead of the proposal. (3) **Target weight retired (ADR-78, US-69 technical note):** remove every UI that asks for a target weight (E5 goal card and sheets `GoalSheets.kt`/`GoalViewModel.kt`, onboarding if it asks, Preferencias if it asks), and "Peso" shows the accepted plan's weight outcome when there is one (otherwise nothing); migration drops `profiles.target_weight_kg` (and its column grant) after the UI no longer reads it; `04` §1.4 goal progress and §3.5 rewritten for the plan outcome; pgTAP `profiles.test.sql` updated. Sweep: no screen asks for a target weight, body fat or circumference target. (4) Glossary §10: plan, outcome ("Objetivo del plan"?), accept/discard labels (E13 Q5).
+
+**Acceptance criteria:**
+- [ ] Creating a plan shows progress, then the proposal with calories, macros, rate, the protein distribution guidance and outcomes (reason and deadline each).
+- [ ] With an unconfirmed value the accept action is disabled with its reason; after "Confirmar" it is enabled.
+- [ ] Accepting → Diario's calorie and macro targets are the plan's; a later manual edit in Preferencias still works and marks the plan's nutrition as edited.
+- [ ] No screen asks for a target weight, body fat or circumference; "Peso" shows the plan's weight outcome when one exists.
+- [ ] A calorie-change proposal shows as a card; "Aceptar" applies it, "Descartar" leaves the calories.
+- [ ] Limit reached → the limit message, no proposal; offline → the standard hint.
+- [ ] The proposal screen, its scroll and the in-flight request survive background and process death (ADR-40; a finished stream is reloaded from the stored plan).
+
+**Host tests:** repository/DTO tests (plan, recommendation, streamed events); ViewModel tests (progress, success, invalid → error with "Reintentar", limit, accept gated by confirmation, accept, discard, calorie card decisions); Robolectric tests (proposal sections, floor note, outcome help, disabled accept with reason, `CoachProposalCard`, "Peso" outcome, no target-weight inputs anywhere); restoration tests; pgTAP for the column drop.
+
+**Verification:**
+- [ ] pgTAP, lint + `testLocalDebugUnitTest` green; after the merge `deploy-supabase` green on `main`, data intact (before T-163 starts).
+
+**Agent runs:** planner, ux-reviewer (plan), backend-developer, kotlin-core-developer, compose-ui-developer, pr-creator, pr-reviewer ∥ ux-reviewer (diff) = 8. About 18 files (the target-weight removal is mostly deletions; if the planner counts more than ~25, run core and UI as developer slices of the same PR).
+**Dependencies:** T-161 merged and deployed (no checkpoint after T-162: its items are in Checkpoint E13-B); E13 Q5, Q8, Q9 resolved (2026-10-29)
+**Files likely touched:** `shared/…` (plan models, repository, DTO), `feature/trainer/{TrainerScreen,TrainerViewModel,PlanProposalScreen,PlanProposalViewModel}.kt`, `designsystem/{CoachProposalCard,StreamProgressState}.kt`, `feature/weight/{WeightScreen,WeightTrendViewModel}.kt`, removal of `feature/weight/{GoalSheets,GoalViewModel}.kt` and their tests, onboarding/Preferencias target-weight bits, `shared/…/{ProfileRepository,SupabaseProfileRepository,NutritionGoalsDto}.kt`, `supabase/migrations/<ts>_drop_target_weight.sql`, `supabase/tests/profiles.test.sql`, strings, `planning/03`, `04` §1.4/§3.5, `05` §9/§10, tests
+**Estimated scope:** L
+
+---
+
+## T-163: Block creator: training block generation and validation (US-72 backend) · L
+
+**Story:** US-72 · **Flow:** backend · **Size:** L · **Scenarios:** Preview before saving (data); Frequency and volume are shown; One training day; Frequency chosen by the coach; Only available equipment; Saving creates routines (RPC); Nothing is saved without confirmation
+
+**Description:** (1) **Migration:** `coach_plan_sessions` (`plan_id` cascade, `week` 1-4, `routine_id` nullable until saved, `session_id` nullable, `deload` boolean default false; plus the proposed routine content in the plan's `method` jsonb until saved), owner RLS via the plan, pgTAP. (2) **Model call `plan_block`** (Opus 5.5, streamed; **150 s limit**: the planner measures a realistic call against the fake and one approved real call; if it risks the limit, split per two weeks or per week, each a separate validated call): the model picks exercises **only from a candidate list built server-side** from the catalogue filtered by place and equipment (`07` §3; `movement_pattern` for substitutions), never free text names; the output is the week → routines → exercises → planned sets (rep range, sets, target RPE, rest) with a reason per exercise. (3) **Validators (`07` §3):** each muscle group at least twice a week when days ≥ 2; 1 day → one full-body routine; weekly sets per muscle group around the 10-set starting point (experience-adjusted, beginner lowest); intensity ranges per intention; 1-3 RIR on main work; only available equipment; session length respected when set; days unset → the coach chooses and states the frequency; **rules added to `07` §3 (user-approved 2026-10-29):** rest between sets written into each routine exercise's `rest_seconds` (2-3 min on main multi-joint lifts, 1-2 min on isolation; "main multi-joint" per E13 Q3), **exercise order** with the priority multi-joint lifts first in each session, **periodization**: "Ganar fuerza" varies load and reps within the week across the block (undulating, per-session rep ranges stored per planned exercise), every other intention keeps one rep range per exercise, **range of motion**: full range as a technique note on the exercise reason only (never a computed rule), **cardio**: the block never reduces cardio or steps (no output removes or shortens cardio exercises the user does, and no text advises fewer steps); retry once, then error. Weekly sets per muscle group are computed deterministically (`04` §4.11 weighting) and stored for display. (4) **RPC `save_coach_block(p_plan_id)`**: creates one routine folder for the block and the routines through the existing `save_routine` procedure (no parallel insert path), each routine exercise with its rep range (T-159's column, E13 Q2) and rest, links `coach_plan_sessions.routine_id`, and accepts the plan's training part (one plan acceptance per E13 Q9); nothing is created before this call. (5) Docs: `03`, `04` §7.
+
+**Acceptance criteria:**
+- [ ] "Ganar musculatura", "Gimnasio" → a four-week block with routines and a reason per exercise.
+- [ ] 3 days → every muscle group at least twice a week; weekly sets per muscle group returned.
+- [ ] 1 day → one full-body routine per week.
+- [ ] No days or length set → the plan states the frequency it chose.
+- [ ] Equipment "Mancuernas" + "Peso corporal" → every exercise uses only that equipment (validator rejects otherwise).
+- [ ] Rests: main multi-joint lifts 120-180 s, isolation 60-120 s, written into the saved routines' `rest_seconds`.
+- [ ] Order: in every session the priority multi-joint lifts come before the isolation work.
+- [ ] "Ganar fuerza" → rep ranges vary across the sessions of a week; any other intention → one rep range per exercise in the block.
+- [ ] No output reduces cardio or steps; full range of motion appears only as a technique note.
+- [ ] `save_coach_block` creates one folder and the routines via `save_routine`, linked to the plan; without it no routine exists.
+- [ ] The block call finishes within the wall clock (measured, recorded in the PR body) or is split.
+
+**Host tests:** `deno test` (candidate filtering, every validator rule with passing and failing fixtures incl. rest bounds, order, undulating vs single range by intention, cardio not reduced, frequency/volume math, one-day case, retry-once, split-call orchestration, timeout); pgTAP `coach_plan_sessions.test.sql` (RLS via plan, `save_coach_block` creates folder + routines through `save_routine`, idempotency, isolation, cascade).
+
+**Verification:**
+- [ ] `deno test`, pgTAP green; after the merge `deploy-supabase` green on `main`.
+
+**Agent runs:** planner, backend-developer, pr-creator, pr-reviewer = 4. About 12 files.
+**Dependencies:** T-162 merged and deployed (no checkpoint in between); E13 Q3, Q9 and Q11 resolved (2026-10-29)
+**Files likely touched:** `supabase/migrations/<ts>_coach_plan_sessions.sql`, `supabase/tests/{coach_plan_sessions,delete_account_cascade}.test.sql`, `supabase/functions/coach/{planBlock,blockRules,candidates,schemas,validators}.ts` (+ tests), `planning/03-data-model.md`, `planning/04-business-rules.md`
+**Estimated scope:** L
+
+---
+
+## T-164: Block preview and "Guardar bloque" (US-72 UI) · L
+
+**Story:** US-72 · **Flow:** core + UI · **Size:** L · **Scenarios:** Preview before saving; Frequency and volume are shown; One training day; Frequency chosen by the coach; Only available equipment (display); Saving creates routines; Nothing is saved without confirmation
+
+**Description:** (1) **Core:** block models, repository (request block with streamed progress, save block), `BlockPreviewViewModel`. (2) **UI — templates and patterns:** from the plan (proposal or accepted nutrition plan) the user requests the block; streamed progress (shared state from T-162); the **block preview** is an `AppScreen` with weeks as `AppTabRow` ("Semana 1"…"Semana 4", R-33 sibling views), each week a list of routine cards (`AppCard`) with `ExerciseRow`s in session order (tapping a name opens the exercise details, R-18) showing sets × rep range and the rest (shared duration formatter, R-47), the exercise's reason in an Info sheet (`HelpButton`, R-46) that also carries the full-range technique note; with "Ganar fuerza" the different rep ranges of each session are visible; a "Series por semana" section with the weekly sets per muscle group; the chosen frequency stated when the user set no days; pinned "Guardar bloque" (Gherkin literal, R-09); leaving the preview creates nothing (no discard dialog: it is not an editor, R-14; the proposal stays reopenable from Trainer, E13 Q10); after saving: Confirm haptic, the routines appear in Entreno in the block's folder, and the Trainer root shows the block. The new-block review at the end of a block or after preferences change (`07` §1) is the same entry ("Nuevo bloque"; copy by ux-reviewer). Limit reached → the US-76 message.
+
+**Acceptance criteria:**
+- [ ] The preview shows each week with its routines and the exercises' reasons.
+- [ ] The weekly sets per muscle group are shown; with 3 days each group appears at least twice a week; with 1 day one full-body routine.
+- [ ] Without days set, the preview states the chosen frequency.
+- [ ] Each exercise shows its rest and rep range; multi-joint lifts come first; with "Ganar fuerza" the rep ranges differ between the sessions of a week; the saved routines keep those rests and that order.
+- [ ] With "Mancuernas" + "Peso corporal" only those exercises appear.
+- [ ] "Guardar bloque" → one folder with the block's routines in Entreno, linked to the plan; leaving the preview creates no routine.
+- [ ] Preview tab, scroll and help sheet survive background and process death (ADR-40).
+
+**Host tests:** repository/DTO tests; ViewModel tests (progress, success, error/retry, limit, save, leave without saving); Robolectric tests (week tabs, routine cards, reason help, sets-per-group section, chosen-frequency line, "Guardar bloque", folder created via fake); restoration tests.
+
+**Verification:**
+- [ ] lint + `testLocalDebugUnitTest` green.
+
+**Agent runs:** planner, ux-reviewer (plan), kotlin-core-developer, compose-ui-developer, pr-creator, pr-reviewer ∥ ux-reviewer (diff) = 7. About 13 files.
+**Dependencies:** T-163 merged and deployed
+**Files likely touched:** `shared/…` (block models, repository, DTO), `feature/trainer/{BlockPreviewScreen,BlockPreviewViewModel,BlockWeekTab,ExerciseReasonSheet}.kt`, `feature/trainer/TrainerScreen.kt`, `app/{AppRoutes,AppNavHost}.kt`, strings, `planning/05-design-system.md` §10, tests
+**Estimated scope:** L
+
+---
+
+## T-165: Plan weeks: adherence and the deload suggestion (US-73, US-75) · L
+
+**Story:** US-73 + US-75 (merged: both deterministic on the plan weeks; each alone is M) · **Flow:** backend + core + UI · **Size:** L · **Scenarios:** US-73 Completing a planned routine; Weekly adherence; Missed sessions do not block the next week · US-75 No e1RM improvement for three weeks; The deload; Accepting or discarding
+
+**Description:** (1) **Adherence (backend):** finishing a workout of a routine listed in the current plan week links it (`coach_plan_sessions.session_id`) in the same transaction as the finish path (`finish_workout_session` / `save_completed_workout`; planner picks the hook); week = block week by `block_start`; adherence % = completed / planned per week; a missed session is never moved; `coach_outcomes` gains `adherence_pct` per week if US-74 needs it (or T-167 computes it). (2) **Deload (deterministic, `07` §3/§9):** trigger = no **main lift** (definition per E13 Q3 (resolved: an exercise whose `movement_pattern` is squat, hinge, lunge, horizontal or vertical push or pull, done in at least one session in each of the three weeks; a deload is suggested only inside an accepted block)) improved its e1RM (`04` §4.1) over the last three weeks of sessions; it creates a `deload` recommendation for the next plan week; accepted → that week's `coach_plan_sessions.deload = true`; in the live session a deload week's exercises show the suggestion "same weights, 40 % fewer working sets" (rounded to the nearest whole set, at least 1 per exercise, E13 Q3) through the T-159 suggestion line, never rewriting the routine (architecture note); discarded → nothing changes. Evaluated when the coach runs (E13 Q6). (3) **UI — templates and patterns:** the Trainer root's block section shows each week with its sessions (done ✓ / pending), the week's adherence ("75 %") and the current week; the deload proposal is a `CoachProposalCard` (T-162) with "Aceptar" / "Descartar"; a deload week is labelled in the week list and in the live session (copy by ux-reviewer, glossary "Descarga"?). `04` §7 (adherence, deload).
+
+**Acceptance criteria:**
+- [ ] Week 1 lists "Push"; completing "Push" that week links the workout to that plan session.
+- [ ] 4 planned, 3 completed → week 1 adherence 75 %.
+- [ ] A missed week-1 session: week 2 shows as planned; nothing is moved.
+- [ ] No main lift improved its e1RM in three weeks → a deload card for next week; none when one improved.
+- [ ] Accepted → next week marked deload; its exercises suggest the same weights and 40 % fewer working sets; routines unchanged. Discarded → week unchanged.
+- [ ] The Trainer root with the week list and the card survives background and process death (ADR-40).
+
+**Host tests:** pgTAP (linking on finish within the week, other weeks/routines not linked, adherence math, isolation); deload trigger tests (three weeks boundary, main-lift filter per Q3, e1RM ties); set-reduction rounding cases; ViewModel tests (weeks, adherence, card accept/discard, live-session deload suggestion); Robolectric tests (week list, adherence text, card, deload label, live suggestion); restoration test.
+
+**Verification:**
+- [ ] pgTAP, lint + `testLocalDebugUnitTest` green; after the merge `deploy-supabase` green on `main` (before Checkpoint E13-B).
+
+**Agent runs:** planner, ux-reviewer (plan), backend-developer, kotlin-core-developer, compose-ui-developer, pr-creator, pr-reviewer ∥ ux-reviewer (diff) = 8. About 15 files.
+**Dependencies:** T-164 merged; E13 Q3 resolved (2026-10-29)
+**Files likely touched:** `supabase/migrations/<ts>_coach_adherence_deload.sql`, `supabase/tests/{coach_adherence,coach_deload}.test.sql`, `shared/…` (plan week, deload models; repository), `feature/trainer/{TrainerScreen,TrainerViewModel,PlanWeeksSection}.kt`, `feature/workout/{LiveSessionViewModel,LiveSessionScreen}.kt`, strings, `planning/03`, `04` §7, `05` §10, tests
+**Estimated scope:** L
+
+---
+
+### Checkpoint E13-B — Your plan from the coach: nutrition, the four-week block, adherence and deload 👤 (9 items + leave and come back) *(agreed with the user, 2026-10-29: three checkpoints)*
+Journey: ask the coach for a plan, read the calories, macros, protein guidance and outcomes with their reasons, confirm your values and accept it so Diario follows it (the old target weight is gone); see what it cost; then ask for the training block, browse it, save it, train from it and watch adherence; accept or discard a deload. Why here: right after T-165, before the weekly report (T-166) and the history (T-167) read the plan and its weeks. T-160…T-164 merge with no checkpoint after them.
+- [ ] T-160…T-165 merged, CI green, `deploy-supabase` applied their migrations and the `coach` function (data intact), every reported bug fixed.
+- [ ] 👤 Install the APK and try (each plan or block request is a paid call of about 0,1-0,4 €):
+  1. Nutrition plan: in Trainer start a plan: progress shows while it is prepared, then calories, protein/carbs/fat, weekly rate, the protein guidance (about 0,4 g per kg per meal, 4 meals or more) and the outcomes, each with its reason and deadline (`?`).
+  2. Rules and intentions: with "Perder grasa" the calories are below your expenditure, protein at least 1,6 g/kg and fat at least 20 % (if you hit the floor, the plan says why the rate is slower); with "Ganar musculatura" a small surplus; with "Ganar fuerza" possibly e1RM outcomes and no weight outcome.
+  3. Confirm and accept: with a provisional value the accept action is disabled and says why; "Confirmar" the card, accept: Diario's calorie and macro targets are the plan's; a manual change in Preferencias saves and the plan shows its nutrition as edited by you.
+  4. No target numbers: no screen asks for a target weight (Peso, onboarding data, Preferencias); Peso shows the plan's weight outcome when it has one.
+  5. Cost: Trainer ⋮ → "Uso de IA" shows this month's usage and the 2 € limit, updated after your requests.
+  6. Block preview: with "Gimnasio" ask for the block: four weeks ("Semana 1"…"Semana 4") with routines, weekly sets per muscle group, each muscle group at least twice a week with 3 days (or the frequency the coach chose when days are empty); an exercise's `?` shows its reason.
+  7. Structure and limits: big multi-joint lifts first with 2-3 min rest, isolation 1-2 min; with "Ganar fuerza" the reps change between the days of a week; with 1 day one full-body routine; with "Mancuernas" + "Peso corporal" only those exercises; each exercise shows its rep range.
+  8. Save or leave, then train: leave the preview: no new routine; reopen it and tap "Guardar bloque": one folder with the block's routines in Entreno (with the rep ranges in the routine editor); train one: the Trainer week shows it done and the week's percentage; skip one: next week stays as planned, nothing moved.
+  9. Deload: if your data shows no main-lift e1RM improvement in three weeks a deload card appears (otherwise host tests cover it): "Descartar" leaves the week; "Aceptar" marks next week as deload and its exercises suggest the same weights with 40 % fewer working sets; routines unchanged.
+  - Leave the app and come back while the plan is being prepared, and once on the block preview in week 3 with an exercise reason open: the same tab, screen and state are restored.
+  - Out of scope: the in-block calorie change and the limit-reached message (host tests: two weeks of data or 2 € of usage); the weekly report, the history and the chat (E13-C); outcome measurement after four weeks (E13-C).
+
+---
+
+## T-166: Weekly coach report (US-71; US-76 report fallback) · L
+
+**Story:** US-71 (+ US-76 "User budget reached" for the report) · **Flow:** backend + core + UI · **Size:** L · **Scenarios:** Report after the weekly check-in; Report cites real data; Invented figure is rejected; Short sleep is mentioned, not acted on; Report on demand, once a day; US-76 User budget reached
+
+**Description:** (1) **Migration:** `coach_reports` (epic §Tables: `week_start` ISO Monday, `generated_on` date, `figures` jsonb = the stored weekly summary: volume, records, adherence, weight trend, sleep 7-day average; `text` nullable), unique `(user_id, week_start, generated_on)` or the planner's equivalent for "once a day", owner RLS, cascade, pgTAP. (2) **Model call `report`** (Sonnet 5.5, streamed, < 30 s p95 target): input = the stored figures only; **figure validator** (US-71 technical note): every number in the text, after normalising decimals ("," / ".") and units, must be in `figures` (rounding to the shown precision allowed); any other number → text discarded, the report shows only tables and figures; sleep 7-day average < 6 h → the text mentions sleep and nothing changes load or calories (no recommendation created). Budget reached → figures and tables without text plus the limit message. (3) **UI — templates and patterns:** in "Check-in semanal" the coach commentary appears **below the weekly summary** after saving the check-in (E10 US-59 hook; text block in an `AppCard`, streamed progress state from T-162); a Trainer root `NavigationRow` "Informe semanal" (Gherkin literal; R-03/R-04: the screen title equals the label) opens the report `AppScreen` for the current week (figures tables reuse the check-in summary components, R-39); tapping it again the same day shows the stored report, no new call.
+
+**Acceptance criteria:**
+- [ ] After completing the check-in, the coach commentary shows below the weekly summary.
+- [ ] Every figure in the text exists in the stored figures (validator tests with real-shaped summaries).
+- [ ] A text with an invented figure is discarded; only tables and figures show.
+- [ ] Sleep average < 6 h → the text mentions sleep; no load or calorie change is created.
+- [ ] "Informe semanal" shows this week's report and does not generate again the same day.
+- [ ] At 2 € the report shows figures and tables without text plus the limit message.
+- [ ] Report screen and check-in with the commentary survive background and process death (ADR-40).
+
+**Host tests:** `deno test` (validator: decimals, units, rounding, percentages, dates not counted as figures per the planner's rule, invented figure; once-a-day reuse; sleep mention; budget fallback); pgTAP `coach_reports.test.sql`; ViewModel tests (check-in commentary, on-demand, same-day reuse, limit, error); Robolectric tests (commentary below the summary, report screen, figures-only state, limit message); restoration tests.
+
+**Verification:**
+- [ ] `deno test`, pgTAP, lint + `testLocalDebugUnitTest` green; after the merge `deploy-supabase` green on `main`.
+
+**Agent runs:** planner, ux-reviewer (plan), backend-developer, kotlin-core-developer, compose-ui-developer, pr-creator, pr-reviewer ∥ ux-reviewer (diff) = 8. About 15 files.
+**Dependencies:** Checkpoint E13-B approved
+**Files likely touched:** `supabase/migrations/<ts>_coach_reports.sql`, `supabase/tests/{coach_reports,delete_account_cascade}.test.sql`, `supabase/functions/coach/{report,figureValidator}.ts` (+ tests), `shared/…` (report model, repository, DTO), `feature/checkin/{CheckInScreen,CheckInViewModel}.kt`, `feature/trainer/{WeeklyReportScreen,WeeklyReportViewModel}.kt`, `app/{AppRoutes,AppNavHost}.kt`, strings, `planning/03`, `04` §6.6/§7, tests
+**Estimated scope:** L
+
+---
+
+## T-167: Recommendation history, outcomes and deleting the coach history (US-74) · M
+
+**Story:** US-74 · **Flow:** backend + core + UI · **Size:** M · **Scenarios:** Every decision is stored (already written by T-161/T-163/T-165; asserted end to end here); Outcome after a block; Deleting the coach history; Deleting the account
+
+**Description:** (1) **Backend:** `coach_outcomes` (epic §Tables: `recommendation_id` cascade, `measured_at`, `weight_kg`, `e1rm_kg`, `adherence_pct`), filled deterministically when the history is read for plans older than their block (or on each coach run, planner picks); RPC `delete_coach_history()` deletes plans, plan sessions (routines stay; `routine_id` links only), recommendations, outcomes, reports (derived values and AI usage are not in the Gherkin list: kept, E13 Q13) and conversations (when T-169 adds them), never routines, workouts or the account; `delete_account_cascade.test.sql` covers every coach table. (2) **UI — templates and patterns:** Trainer root ⋮ `AppActionSheet` (R-02) → "Historial" (glossary entry added by this task) `AppScreen`: one `AppListRow` per plan and recommendation (date, kind, decision), tapping opens a details `AppScreen` with the data it was based on and, for a plan older than its block, the outcomes since then next to the plan's outcomes; the delete action ("Eliminar historial del entrenador", E13 Q5) in that screen's top bar ⋮, confirmed by the R-08 many-records dialog (extend the G5 allow-list); empty state after deleting.
+
+**Acceptance criteria:**
+- [ ] Accepting, editing or discarding any proposal shows in the history with the data it was based on.
+- [ ] A plan accepted four weeks ago shows the measured outcomes (weight, e1RM, adherence) next to its outcomes.
+- [ ] Deleting the coach history after confirming removes plans, recommendations, outcomes, reports and conversations; account, routines (including the block's) and training data stay.
+- [ ] Deleting the account deletes every coach table's rows (pgTAP).
+- [ ] History list and details survive background and process death (ADR-40).
+
+**Host tests:** pgTAP (`coach_outcomes`, `delete_coach_history` keeps routines/workouts/account, isolation, cascade); repository/ViewModel tests (list, details, outcomes, delete, offline); Robolectric tests (rows, details with input summary, outcomes, delete dialog, empty state); `check-ux-conventions.sh` G5 fixture for the new dialog.
+
+**Verification:**
+- [ ] pgTAP, lint + `testLocalDebugUnitTest` green; after the merge `deploy-supabase` green on `main` (before T-168 starts).
+
+**Agent runs:** planner, ux-reviewer (plan), backend-developer, kotlin-core-developer, compose-ui-developer, pr-creator, pr-reviewer ∥ ux-reviewer (diff) = 8. About 13 files.
+**Dependencies:** T-166 merged (no checkpoint in between); E13 Q5, Q13 resolved (2026-10-29)
+**Files likely touched:** `supabase/migrations/<ts>_coach_history.sql`, `supabase/tests/{coach_history,delete_account_cascade}.test.sql`, `shared/…` (history models, repository), `feature/trainer/{CoachHistoryScreen,CoachHistoryDetailScreen,CoachHistoryViewModel}.kt`, `app/{AppRoutes,AppNavHost}.kt`, `scripts/check-ux-conventions.sh` + fixtures (G5 allow-list), strings, `planning/03`, `05` §8/§10, tests
+**Estimated scope:** M
+
+---
+
+
+## T-168: Coach evaluation: cases, runner and results (not a story) · M
+
+**Story:** Evaluation (epic §Evaluation) · **Flow:** backend + 👤 · **Size:** M · **Scenarios:** none (acceptance criteria of the epic's evaluation)
+
+**Description:** (1) **👤 Cases:** the user writes the cases, each with its correct answer: a plan for each intention, one training day, limited equipment, discomfort, missing data, rate inside and outside range, calorie floor, invented figure in a report (the planner provides a case template file; the user fills it; cases hold no personal data, public repo, or live gitignored under `design/reported/`-style local storage if they do; planner proposes, PM asks). (2) **Runner:** a script (`scripts/coach-eval.ts` or a `deno` task, never in CI) that runs each case through the deployed `coach` function's validators and model calls with a dedicated test account, records pass/fail per criterion and latency, and writes a results table (no prompt or output dumps in the repo beyond the verdicts). (3) **Criteria (epic):** 100 % of discomfort cases with no load increase; 100 % of report figures traceable; every plan meets the rules of `07` §3-§4: frequency (when days allow), volume, intensity per intention, rest between sets (2-3 min main multi-joint, 1-2 min isolation), exercise order (priority multi-joint first), periodization (undulating only for "Ganar fuerza", one range otherwise), no reduction of cardio or steps, protein (≥ 1.6 g/kg, distribution guidance ≈ 0.4 g/kg per meal over ≥ 4 meals), fat and the calorie floor; report and chat under 30 s at p95; the plan shows progress and finishes within 150 s. (4) **Gate:** a function that fails its criteria is disabled server-side (a `coach_feature_flags` row or a constant, planner picks) until fixed (fix tasks), and US-77 (T-169) starts only when every criterion is met. **Each run is a paid call: the PM asks the user before each run** and reports its cost.
+
+**Acceptance criteria:**
+- [ ] 👤 Cases written by the user and committed (or stored as agreed).
+- [ ] 👤 Each run approved by the user; results table recorded in `07` (new §12 "Evaluation results") with date and cost.
+- [ ] Every epic criterion met, or the failing function disabled and a `fix(T-###)` task recorded.
+
+**Verification:**
+- [ ] `deno test` for the runner's scoring (fake responses); results reviewed with the user.
+
+**Agent runs:** planner, backend-developer, pr-creator, pr-reviewer = 4 (+ one backend-developer run per approved evaluation run).
+**Dependencies:** T-167 merged and deployed (no checkpoint in between)
+**Files likely touched:** `scripts/coach-eval/{cases.template.json,run.ts,score.ts}` (+ tests), `supabase/functions/coach/flags.ts` (if a gate is needed), `planning/07-coach-design.md` §12
+**Estimated scope:** M
+
+---
+
+## T-169: Coach chat with tools (US-77; enabled only after T-168 passes) · L
+
+**Story:** US-77 · **Flow:** backend + core + UI · **Size:** L · **Scenarios:** Answer cites data; Proposals are cards, not changes
+
+**Description:** (1) **Migration:** `coach_conversations` (and messages; owner RLS, cascade, included in `delete_coach_history`), pgTAP. (2) **Model call `chat`** (Sonnet 5.5, streamed, prompt caching of the summary per `07` §11; < 30 s p95): read-only tools over the user's data (sessions of an exercise, e1RM history, weekly sets, weight trend, adherence; each a parameterised SQL read through the user's token, capped rows); every answer cites the sessions/data it used (validated: cited ids exist in the tool results); a proposal in an answer goes through the same validators as US-69/US-72 and is stored as a pending `coach_recommendations` row; nothing is changed until accepted (`decide_recommendation`). Budget per US-76 (the 2 € cap stops chat first, `07` §11). (3) **UI — templates and patterns:** a "Chat" entry on the Trainer root (copy by ux-reviewer; a new chat screen pattern: `AppScreen` with a lazy message list, a pinned input row using `AppTextField` with a send icon, R-39, keyboard room as `AppEditorScreen`), streamed answer with progress, citations as tappable rows to the workout detail (R-17), proposals as `CoachProposalCard` (T-162) with "Aceptar" / "Descartar"; limit message (US-76); offline hint (R-30). Record the chat pattern in `05` §9.
+
+**Acceptance criteria:**
+- [ ] "¿Por qué estoy estancado en press banca?" → the answer cites the sessions it used.
+- [ ] A proposal in an answer shows as a card with "Aceptar" and "Descartar"; nothing changes until "Aceptar".
+- [ ] Limit reached → the limit message; the rest of the coach keeps working.
+- [ ] Deleting the coach history deletes the conversations.
+- [ ] The conversation, its scroll and the typed draft survive background and process death (ADR-40).
+
+**Host tests:** `deno test` (tools: owner-only, row caps; citation validator; proposal validation reuse; budget); pgTAP `coach_conversations.test.sql`; ViewModel tests (send, stream, citation tap, proposal accept/discard, limit, offline); Robolectric tests (message list, input, cards, citations); restoration tests.
+
+**Verification:**
+- [ ] `deno test`, pgTAP, lint + `testLocalDebugUnitTest` green; after the merge `deploy-supabase` green on `main`; the chat's evaluation cases re-run with the user's approval (T-168 runner).
+
+**Agent runs:** planner, ux-reviewer (plan), backend-developer, kotlin-core-developer, compose-ui-developer, pr-creator, pr-reviewer ∥ ux-reviewer (diff) = 8. About 16 files.
+**Dependencies:** T-168 criteria met for the other stories (epic)
+**Files likely touched:** `supabase/migrations/<ts>_coach_conversations.sql`, `supabase/tests/{coach_conversations,coach_history,delete_account_cascade}.test.sql`, `supabase/functions/coach/{chat,tools,citations}.ts` (+ tests), `shared/…` (chat models, repository, streaming), `feature/trainer/{CoachChatScreen,CoachChatViewModel}.kt`, `app/{AppRoutes,AppNavHost}.kt`, strings, `planning/03`, `05` §9/§10, tests
+**Estimated scope:** L
+
+---
+
+### Checkpoint E13-C — Your weekly report, the coach's track record, the chat, and the final E13 regression 👤 (9 items + leave and come back) *(agreed with the user, 2026-10-29: three checkpoints)*
+Journey: finish the weekly check-in and read the coach's commentary, ask for the weekly report, look back at everything the coach proposed and how it turned out and wipe it if you want, ask the coach about your training, then one pass over the whole coach. Why here: right after T-169, the last implementation task, so it is also the final regression of E13; its approval releases T-170. T-166, T-167 and T-168 merge with no checkpoint after them. **If T-168 keeps US-77 disabled**, this checkpoint is presented right after T-168 without items 7-8 (and T-169 waits for its fix tasks).
+- [ ] T-166…T-169 merged (T-168 criteria met, results recorded), CI green, `deploy-supabase` applied their migrations and the function (data intact), every reported bug fixed.
+- [ ] 👤 Install the APK and try:
+  1. Check-in commentary: answer the weekly check-in: the coach's text appears below the weekly summary.
+  2. Real figures: every number in the text (volume, records, adherence, weight trend, sleep) appears in the report's tables.
+  3. On demand: Trainer → "Informe semanal" shows this week's report; open it again the same day: the same report, no new cost in "Uso de IA". If your watch shows under 6 h of sleep on average, the report mentions it and nothing in the plan changes.
+  4. History: Trainer ⋮ → "Historial" lists the plan, the block and every proposal you accepted, edited or discarded, each with the data it used.
+  5. Outcomes: open a plan: its outcomes are shown next to what was measured since (weight, e1RM, adherence so far).
+  6. Delete: "Eliminar historial del entrenador" and confirm: the history is empty; your account, routines (also the block's), workouts, confirmed values and AI usage stay.
+  7. Ask: in the Trainer chat ask "¿Por qué estoy estancado en press banca?": the answer cites the sessions it used; tap one: its workout opens.
+  8. Proposals: a proposal in an answer is a card: "Descartar" changes nothing; "Aceptar" applies it; "Uso de IA" shows the chat calls.
+  9. Final regression: a fresh block (plan + "Guardar bloque"), a workout from it with the progression suggestion and a discomfort; Diario follows the plan's targets, Peso shows the plan outcome, Actividad and "Centro de avisos" work as before.
+  - Leave the app and come back on the report, once on a history detail, and once in the chat with a question half typed: the same tab, screen and draft are restored.
+  - Out of scope: the invented-figure fallback and the limit-reached report (host tests); deleting the account (pgTAP; destructive); water and voice (Phase 3); medical advice, meal plans, video analysis (never); distribution to other users (written consent condition, `07` §8).
+
+---
+
+## T-170: E13 closure → `v1.x` · S
+
+**Story:** E13 Definition of Done · **Flow:** PM · **Size:** S (cannot merge: it waits for Checkpoint E13-C's approval)
+
+**Description:** Closes E13 once Checkpoint E13-C is approved: version bump (`versionName`/`versionCode` in `androidApp/build.gradle.kts`, PR; minor per epic, proposed `1.4.0`), tag, retrospective, archive of the E13 log lines; `09-open-questions.md` already holds E13 Q1-Q13 (resolved 2026-10-29): only add any question raised during the epic. No 👤 checkpoint of its own.
+
+**Acceptance criteria:**
+- [ ] T-157…T-169 (and any fix tasks) merged with green CI; `deploy-supabase` green after each migration and function change.
+- [ ] ux-reviewer ran in plan and diff mode on every UI task; `check-ux-conventions.sh` passes.
+- [ ] `02` (coach function, streaming, budget), `03` (coach tables, RPCs, function), `04` §7 (coach rules), `05` (Trainer tab, coach patterns, glossary) and `07` (evaluation results) are current.
+- [ ] Checkpoints E13-A, E13-B and E13-C approved; every reported bug fixed.
+- [ ] Version bumped; `tasks/todo.md` (next-task pointer) updated through a PR.
+
+**Verification:**
+- [ ] `git tag` lists the E13 tag.
+
+**Dependencies:** T-169 and Checkpoint E13-C approved
+**Files likely touched:** `androidApp/build.gradle.kts`, `tasks/todo.md`, `tasks/plan.md`, `planning/09-open-questions.md`, `retrospectives/E13.md`
+**Estimated scope:** S
 
 ---
 
@@ -298,8 +753,8 @@ Journey: the rest alert now plays the sound you chose; write what happened on a 
 **Description:** remove `wrist-roller` from `REPS_ONLY_KEYS` in `scripts/generate-exercise-catalog.py` (it is listed twice) so its metric type is weight × reps, and ship the regenerated catalogue migration (ADR-39) with pgTAP; check no other catalogue key with a hung or added load is wrongly reps-only. Not in scope: hiding the weight field in the routine builder for reps-only exercises.
 
 **Acceptance criteria:**
-- [ ] `wrist-roller` has the weight × reps metric type in the catalogue; the live session shows the kg column for it and records weight with reps.
-- [ ] Generator, migration and pgTAP agree; `deploy-supabase` green on `main` after the merge.
+- [x] `wrist-roller` has the weight × reps metric type in the catalogue; the live session shows the kg column for it and records weight with reps.
+- [x] Generator, migration and pgTAP agree; `deploy-supabase` green on `main` after the merge.
 
 ---
 
