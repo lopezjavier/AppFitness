@@ -68,7 +68,7 @@ Each checkpoint also has "leave the app and come back: the same tab, screen and 
 
 ## Phases
 ### Phase 1: Model-free coach (US-68, US-70)
-- [ ] T-157: Coach summary and derived values in SQL — L
+- [x] T-157: Coach summary and derived values in SQL — L
 - [ ] T-158: Trainer tab and the derived-values card — M
 - [ ] T-159: Rep range and progression suggestion in the live session — L
   - **Checkpoint E13-A 👤 (7 items)**
