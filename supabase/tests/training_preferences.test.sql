@@ -34,7 +34,8 @@ insert into public.workout_sets
 -- Schema and security
 -- ---------------------------------------------------------------------------
 select has_table('public', 'training_preferences', 'public.training_preferences exists');
-select columns_are('public', 'training_preferences', array['user_id', 'warm_up_included', 'updated_at', 'previous_values_mode', 'bar_weight_kg', 'plate_kg', 'dumbbell_handle_kg', 'auto_update_routine'],
+select columns_are('public', 'training_preferences', array['user_id', 'warm_up_included', 'updated_at', 'previous_values_mode', 'bar_weight_kg', 'plate_kg', 'dumbbell_handle_kg', 'auto_update_routine',
+  'intention', 'place', 'equipment', 'days_per_week', 'session_minutes'],
   'training_preferences has exactly the planned columns');
 select hasnt_function('public', 'save_preferences',
   array['text', 'sex', 'date', 'numeric', 'activity_level', 'goal_strategy', 'integer', 'integer',

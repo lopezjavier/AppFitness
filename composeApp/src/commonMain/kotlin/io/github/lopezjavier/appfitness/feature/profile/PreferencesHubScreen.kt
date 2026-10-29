@@ -10,14 +10,19 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.compose.LifecycleEventEffect
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.github.lopezjavier.appfitness.composeapp.resources.Res
 import io.github.lopezjavier.appfitness.composeapp.resources.preferences_account_title
 import io.github.lopezjavier.appfitness.composeapp.resources.preferences_cooking_title
 import io.github.lopezjavier.appfitness.composeapp.resources.preferences_energy_title
 import io.github.lopezjavier.appfitness.composeapp.resources.preferences_macros_title
 import io.github.lopezjavier.appfitness.composeapp.resources.preferences_meals_title
+import io.github.lopezjavier.appfitness.composeapp.resources.preferences_my_training_title
 import io.github.lopezjavier.appfitness.composeapp.resources.preferences_reminders_title
 import io.github.lopezjavier.appfitness.composeapp.resources.preferences_title
 import io.github.lopezjavier.appfitness.composeapp.resources.preferences_training_title
@@ -26,10 +31,12 @@ import io.github.lopezjavier.appfitness.designsystem.AppCard
 import io.github.lopezjavier.appfitness.designsystem.AppScreen
 import io.github.lopezjavier.appfitness.designsystem.NavigationRow
 import io.github.lopezjavier.appfitness.designsystem.Spacing
+import io.github.lopezjavier.appfitness.domain.model.TrainingIntention
 import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.stringResource
+import org.koin.compose.viewmodel.koinViewModel
 
-/** The hub's destinations: the six section editors, the meals editor (T-126) and "Cuenta". */
+/** The hub's destinations: the seven section editors, the meals editor (T-126) and "Cuenta". */
 class PreferencesHubActions(
     val onOpenSection: (PreferencesSection) -> Unit = {},
     val onOpenMeals: () -> Unit = {},
@@ -38,12 +45,17 @@ class PreferencesHubActions(
 
 /**
  * Preferencias hub (US-56): stateless groups of [NavigationRow]s, one per editor, on a full-screen [AppScreen]:
- * [Datos personales] · [Objetivo calórico, Macros, Comidas del día, Cocina] · [Entrenamiento] ·
+ * [Datos personales] · [Objetivo calórico, Macros, Comidas del día, Cocina] · [Mi entrenamiento, Entrenamiento] ·
  * [Avisos] · [Cuenta]. Each row
  * label is the title of the screen it opens (R-04). It holds no state, so there is nothing to restore.
  */
 @Composable
-fun PreferencesHubScreen(onBack: () -> Unit, actions: PreferencesHubActions, modifier: Modifier = Modifier) {
+fun PreferencesHubScreen(
+    onBack: () -> Unit,
+    actions: PreferencesHubActions,
+    modifier: Modifier = Modifier,
+    intention: TrainingIntention? = null,
+) {
     AppScreen(
         title = stringResource(Res.string.preferences_title),
         modifier = modifier,
@@ -70,12 +82,19 @@ fun PreferencesHubScreen(onBack: () -> Unit, actions: PreferencesHubActions, mod
                 HubRow(Res.string.preferences_macros_title, "macros") {
                     actions.onOpenSection(PreferencesSection.Macros)
                 }
-                HubRow(Res.string.preferences_meals_title, "meals", actions.onOpenMeals)
+                HubRow(Res.string.preferences_meals_title, "meals") { actions.onOpenMeals() }
                 HubRow(Res.string.preferences_cooking_title, "cooking") {
                     actions.onOpenSection(PreferencesSection.Cooking)
                 }
             }
             HubGroup {
+                HubRow(
+                    Res.string.preferences_my_training_title,
+                    "mi_entrenamiento",
+                    value = intention?.let { stringResource(it.label) },
+                ) {
+                    actions.onOpenSection(PreferencesSection.MyTraining)
+                }
                 HubRow(Res.string.preferences_training_title, "training") {
                     actions.onOpenSection(PreferencesSection.Training)
                 }
@@ -85,7 +104,7 @@ fun PreferencesHubScreen(onBack: () -> Unit, actions: PreferencesHubActions, mod
                     actions.onOpenSection(PreferencesSection.Reminders)
                 }
             }
-            HubGroup { HubRow(Res.string.preferences_account_title, "account", actions.onOpenAccount) }
+            HubGroup { HubRow(Res.string.preferences_account_title, "account") { actions.onOpenAccount() } }
         }
     }
 }
@@ -96,10 +115,24 @@ private fun HubGroup(content: @Composable () -> Unit) {
 }
 
 @Composable
-private fun HubRow(label: StringResource, key: String, onClick: () -> Unit) {
+private fun HubRow(label: StringResource, key: String, value: String? = null, onClick: () -> Unit) {
     NavigationRow(
         label = stringResource(label),
         onClick = onClick,
         modifier = Modifier.testTag("preferences_row_$key"),
+        value = value,
     )
+}
+
+/** Hub wired to [PreferencesHubViewModel]: the intention value is re-read each time the hub resumes (editor closed). */
+@Composable
+fun PreferencesHubRoot(
+    onBack: () -> Unit,
+    actions: PreferencesHubActions,
+    modifier: Modifier = Modifier,
+    viewModel: PreferencesHubViewModel = koinViewModel(),
+) {
+    val intention by viewModel.intention.collectAsStateWithLifecycle()
+    LifecycleEventEffect(Lifecycle.Event.ON_RESUME) { viewModel.reload() }
+    PreferencesHubScreen(onBack, actions, modifier, intention)
 }

@@ -529,7 +529,7 @@
     <string name="muscle_core">Core</string>
     <string name="muscle_full_body">Cuerpo completo</string>
     <string name="equipment_barbell">Barra</string>
-    <string name="equipment_dumbbell">Mancuerna</string>
+    <string name="equipment_dumbbell">Mancuernas</string>
     <string name="equipment_machine">Máquina</string>
     <string name="equipment_cable">Polea</string>
     <string name="equipment_bodyweight">Peso corporal</string>
@@ -977,6 +977,27 @@
     <string name="preferences_meals_subtitle">Nombre y orden de tus comidas del día</string>
     <string name="preferences_training_title">Entrenamiento</string>
     <string name="preferences_reminders_title">Avisos</string>
+    <string name="preferences_my_training_title">Mi entrenamiento</string>
+    <string name="my_training_intention_label">Objetivo de entrenamiento</string>
+    <string name="my_training_intention_helper">Tu objetivo orienta las sugerencias del entrenador. No cambia tu objetivo calórico.</string>
+    <string name="my_training_intention_strength">Ganar fuerza</string>
+    <string name="my_training_intention_muscle">Ganar musculatura</string>
+    <string name="my_training_intention_fat_loss">Perder grasa</string>
+    <string name="my_training_intention_recomposition">Recomposición</string>
+    <string name="my_training_intention_maintenance">Mantenimiento</string>
+    <string name="my_training_place_label">Lugar</string>
+    <string name="my_training_place_helper">Al elegir un lugar se preselecciona el equipamiento; puedes cambiarlo.</string>
+    <string name="my_training_place_home">Casa</string>
+    <string name="my_training_place_gym">Gimnasio</string>
+    <string name="my_training_place_other">Otro</string>
+    <string name="my_training_equipment_label">Equipamiento</string>
+    <string name="my_training_days_label">Días por semana</string>
+    <string name="my_training_session_label">Duración del entreno</string>
+    <string name="my_training_unset">Sin definir</string>
+    <plurals name="my_training_days_count">
+        <item quantity="one">%1$d día</item>
+        <item quantity="other">%1$d días</item>
+    </plurals>
     <string name="preferences_warm_up_label">Incluir calentamiento</string>
     <string name="preferences_warm_up_helper">Las series de calentamiento cuentan en volumen, 1RM y récords.</string>
     <string name="switch_row_on">Activado</string>

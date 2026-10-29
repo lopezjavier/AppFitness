@@ -161,6 +161,19 @@ class PreferencesNavigationTest {
     }
 
     @Test
+    fun miEntrenamientoRow_opensAnEditor_andSavingReturnsToTheHub() {
+        showShell()
+        openHubFromPerfil()
+        tap("preferences_row_mi_entrenamiento")
+        rule.onNodeWithTag("preferences_hub").assertDoesNotExist()
+
+        tap("preferences_macros_save")
+
+        rule.onNodeWithTag("preferences_hub").assertExists()
+        rule.onNodeWithTag("preferences_row_mi_entrenamiento").assertExists()
+    }
+
+    @Test
     fun cuentaRow_opensTheAccountScreen_andBackReturnsToTheHub() {
         showShell()
         openHubFromPerfil()

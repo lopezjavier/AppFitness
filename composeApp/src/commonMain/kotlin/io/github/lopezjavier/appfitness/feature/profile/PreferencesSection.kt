@@ -22,6 +22,9 @@ enum class PreferencesSection(val key: String) {
 
     /** "Avisos": the three reminder switches (weight, circumferences, weekly check-in) and the check-in day. */
     Reminders("avisos"),
+
+    /** "Mi entrenamiento": intention, place, equipment, days per week and session length. */
+    MyTraining("mi_entrenamiento"),
     ;
 
     companion object {
@@ -48,7 +51,13 @@ private fun PreferencesForm.ownedFields(section: PreferencesSection): List<Any> 
 
     PreferencesSection.Reminders ->
         listOf(weightReminder, circumferenceReminder, checkInReminder, checkInWeekday)
+
+    PreferencesSection.MyTraining ->
+        listOf(intention ?: NONE, place ?: NONE, equipment, daysPerWeek ?: NONE, sessionMinutes ?: NONE)
 }
+
+/** Stands for a null in [ownedFields], which holds non-null values. */
+private const val NONE = "none"
 
 /** This form with the fields [section] owns taken from [other]; every other field is kept. */
 fun PreferencesForm.withSectionFrom(section: PreferencesSection, other: PreferencesForm): PreferencesForm =
@@ -80,5 +89,13 @@ fun PreferencesForm.withSectionFrom(section: PreferencesSection, other: Preferen
             circumferenceReminder = other.circumferenceReminder,
             checkInReminder = other.checkInReminder,
             checkInWeekday = other.checkInWeekday,
+        )
+
+        PreferencesSection.MyTraining -> copy(
+            intention = other.intention,
+            place = other.place,
+            equipment = other.equipment,
+            daysPerWeek = other.daysPerWeek,
+            sessionMinutes = other.sessionMinutes,
         )
     }

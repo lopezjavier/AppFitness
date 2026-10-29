@@ -3,15 +3,20 @@ package io.github.lopezjavier.appfitness.feature.profile
 import io.github.lopezjavier.appfitness.domain.model.ActivityLevel
 import io.github.lopezjavier.appfitness.domain.model.Biometrics
 import io.github.lopezjavier.appfitness.domain.model.CalculatorSettings
+import io.github.lopezjavier.appfitness.domain.model.Equipment
 import io.github.lopezjavier.appfitness.domain.model.FoodPreferences
 import io.github.lopezjavier.appfitness.domain.model.GoalStrategy
 import io.github.lopezjavier.appfitness.domain.model.MacroSplit
 import io.github.lopezjavier.appfitness.domain.model.MacroTargets
 import io.github.lopezjavier.appfitness.domain.model.Macronutrient
+import io.github.lopezjavier.appfitness.domain.model.MyTraining
 import io.github.lopezjavier.appfitness.domain.model.NotificationKind
 import io.github.lopezjavier.appfitness.domain.model.PreviousValuesMode
 import io.github.lopezjavier.appfitness.domain.model.Sex
+import io.github.lopezjavier.appfitness.domain.model.TrainingIntention
+import io.github.lopezjavier.appfitness.domain.model.TrainingPlace
 import io.github.lopezjavier.appfitness.domain.usecase.CalculateMacroTargets
+import io.github.lopezjavier.appfitness.domain.usecase.DefaultEquipment
 import io.github.lopezjavier.appfitness.feature.food.formatNumber
 import io.github.lopezjavier.appfitness.feature.food.parseAmount
 import io.github.lopezjavier.appfitness.feature.goals.EnergyStrategyEvent
@@ -51,7 +56,16 @@ data class PreferencesForm(
     val circumferenceReminder: Boolean = true,
     /** "Avisos". */
     val checkInReminder: Boolean = true,
+    /** "Mi entrenamiento" (US-65): intention, place, equipment, days per week and session length. */
+    val intention: TrainingIntention? = null,
+    val place: TrainingPlace? = null,
+    val equipment: Set<Equipment> = emptySet(),
+    val daysPerWeek: Int? = null,
+    val sessionMinutes: Int? = null,
 ) {
+    /** The five "Mi entrenamiento" fields as the unit that is saved. */
+    fun toMyTraining(): MyTraining = MyTraining(intention, place, equipment, daysPerWeek, sessionMinutes)
+
     fun toBiometrics(): Biometrics = Biometrics(sex, birthDate, heightCm, activity)
 
     /** The typed fat percentages, or null while any is blank or outside 0..20. */
@@ -150,6 +164,10 @@ sealed interface PreferencesUiState {
 
                 PreferencesSection.EnergyGoal, PreferencesSection.Macros -> saved.isNameValid
 
+                // Written alone (the name is not re-sent); the pickers only produce valid values.
+                PreferencesSection.MyTraining ->
+                    MyTraining.isValidDays(form.daysPerWeek) && MyTraining.isValidSessionMinutes(form.sessionMinutes)
+
                 // The reminders are written alone, so no other field has to be valid.
                 PreferencesSection.Reminders -> form.checkInWeekday in 1..DAYS_PER_WEEK
             }
@@ -224,6 +242,21 @@ sealed interface PreferencesEvent {
     /** A reminder switch of "Avisos"; only a draft until [Save]. */
     data class SetReminderEnabled(val kind: NotificationKind, val enabled: Boolean) : PreferencesEvent
 
+    /** The training intention picked (null clears it); only a draft until [Save]. */
+    data class SetIntention(val intention: TrainingIntention?) : PreferencesEvent
+
+    /** The place picked: the equipment is replaced by [DefaultEquipment.forPlace]; only a draft until [Save]. */
+    data class SetPlace(val place: TrainingPlace) : PreferencesEvent
+
+    /** One equipment chip toggled; only a draft until [Save]. */
+    data class SetEquipment(val equipment: Equipment, val checked: Boolean) : PreferencesEvent
+
+    /** Days per week (1..7) or null for "Sin definir"; only a draft until [Save]. */
+    data class SetDaysPerWeek(val days: Int?) : PreferencesEvent
+
+    /** Session length (15..180, multiples of 5) or null for "Sin definir"; only a draft until [Save]. */
+    data class SetSessionMinutes(val minutes: Int?) : PreferencesEvent
+
     data object Save : PreferencesEvent
 
     data object Retry : PreferencesEvent
@@ -254,6 +287,10 @@ internal val PreferencesEvent.owner: PreferencesSection?
         -> PreferencesSection.Training
 
         is PreferencesEvent.SetCheckInWeekday, is PreferencesEvent.SetReminderEnabled -> PreferencesSection.Reminders
+
+        is PreferencesEvent.SetIntention, is PreferencesEvent.SetPlace, is PreferencesEvent.SetEquipment,
+        is PreferencesEvent.SetDaysPerWeek, is PreferencesEvent.SetSessionMinutes,
+        -> PreferencesSection.MyTraining
 
         PreferencesEvent.Save, PreferencesEvent.Retry -> null
     }

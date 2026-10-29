@@ -27,7 +27,7 @@ import io.github.lopezjavier.appfitness.feature.meals.defaults.MealDefaultsRoot
 import io.github.lopezjavier.appfitness.feature.notifications.NotificationCenterRoot
 import io.github.lopezjavier.appfitness.feature.profile.AccountRoot
 import io.github.lopezjavier.appfitness.feature.profile.PreferencesHubActions
-import io.github.lopezjavier.appfitness.feature.profile.PreferencesHubScreen
+import io.github.lopezjavier.appfitness.feature.profile.PreferencesHubRoot
 import io.github.lopezjavier.appfitness.feature.profile.PreferencesSectionRoot
 import io.github.lopezjavier.appfitness.feature.profile.ProfileRootActions
 import io.github.lopezjavier.appfitness.feature.profile.ProfileRootRoute
@@ -103,7 +103,7 @@ fun AppRoot(
             ExerciseProgressRoot(exerciseId, onBack, progressModifier)
         },
         preferences = { hubModifier, onBack, onOpenSection, onOpenMeals, onOpenAccount ->
-            PreferencesHubScreen(
+            PreferencesHubRoot(
                 onBack = onBack,
                 actions = PreferencesHubActions({ onOpenSection(it.key) }, onOpenMeals, onOpenAccount),
                 modifier = hubModifier,

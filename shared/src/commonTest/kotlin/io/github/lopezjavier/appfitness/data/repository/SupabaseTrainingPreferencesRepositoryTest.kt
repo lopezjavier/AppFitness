@@ -7,17 +7,29 @@ import io.github.lopezjavier.appfitness.config.AppConfig
 import io.github.lopezjavier.appfitness.data.remote.SupabaseClientFactory
 import io.github.lopezjavier.appfitness.domain.AppError
 import io.github.lopezjavier.appfitness.domain.appErrorOrNull
+import io.github.lopezjavier.appfitness.domain.model.Equipment
+import io.github.lopezjavier.appfitness.domain.model.MyTraining
 import io.github.lopezjavier.appfitness.domain.model.PreviousValuesMode
 import io.github.lopezjavier.appfitness.domain.model.TestLoginCredentials
+import io.github.lopezjavier.appfitness.domain.model.TrainingIntention
+import io.github.lopezjavier.appfitness.domain.model.TrainingPlace
 import io.github.lopezjavier.appfitness.domain.model.TrainingPreferences
 import io.ktor.client.engine.mock.MockEngine
 import io.ktor.client.engine.mock.respond
 import io.ktor.client.request.HttpRequestData
 import io.ktor.http.HttpHeaders
+import io.ktor.http.HttpMethod
 import io.ktor.http.HttpStatusCode
+import io.ktor.http.content.TextContent
 import io.ktor.http.headersOf
 import kotlinx.coroutines.test.runTest
 import kotlinx.io.IOException
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonNull
+import kotlinx.serialization.json.int
+import kotlinx.serialization.json.jsonArray
+import kotlinx.serialization.json.jsonObject
+import kotlinx.serialization.json.jsonPrimitive
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
@@ -118,6 +130,73 @@ class SupabaseTrainingPreferencesRepositoryTest {
     @Test
     fun get_withoutARowIsTheDefault() = runTest {
         assertEquals(TrainingPreferences(warmUpIncluded = false), repository().get().getOrThrow())
+    }
+
+    @Test
+    fun get_readsMyTrainingColumns() = runTest {
+        body = """[{"intention":"strength","place":"gym","equipment":["barbell","machine"],""" +
+            """"days_per_week":3,"session_minutes":60}]"""
+
+        val result = repository().get().getOrThrow()
+
+        assertEquals(TrainingIntention.Strength, result.intention)
+        assertEquals(TrainingPlace.Gym, result.place)
+        assertEquals(setOf(Equipment.Barbell, Equipment.Machine), result.equipment)
+        assertEquals(3, result.daysPerWeek)
+        assertEquals(60, result.sessionMinutes)
+        assertTrue(rest().single().url.toString().contains("session_minutes"))
+    }
+
+    @Test
+    fun get_withoutARowHasNoMyTraining() = runTest {
+        assertEquals(MyTraining(), repository().get().getOrThrow().myTraining)
+    }
+
+    @Test
+    fun saveMyTraining_upsertsOnlyTheFiveColumns() = runTest {
+        val repo = repository()
+
+        repo.saveMyTraining(
+            MyTraining(TrainingIntention.Muscle, TrainingPlace.Home, setOf(Equipment.Band), 4, 45),
+        ).getOrThrow()
+
+        val request = rest().single()
+        assertEquals(HttpMethod.Post, request.method)
+        assertTrue(request.url.toString().contains("on_conflict=user_id"), request.url.toString())
+        val sent = Json.parseToJsonElement((request.body as TextContent).text).jsonArray.single().jsonObject
+        assertEquals(
+            setOf("user_id", "intention", "place", "equipment", "days_per_week", "session_minutes"),
+            sent.keys,
+        )
+        assertEquals("user-1", sent.getValue("user_id").jsonPrimitive.content)
+        assertEquals("muscle", sent.getValue("intention").jsonPrimitive.content)
+        assertEquals("home", sent.getValue("place").jsonPrimitive.content)
+        assertEquals("band", sent.getValue("equipment").jsonArray.single().jsonPrimitive.content)
+        assertEquals(4, sent.getValue("days_per_week").jsonPrimitive.int)
+        assertEquals(45, sent.getValue("session_minutes").jsonPrimitive.int)
+    }
+
+    @Test
+    fun saveMyTraining_sendsExplicitNullsToClear() = runTest {
+        val repo = repository()
+
+        repo.saveMyTraining(MyTraining()).getOrThrow()
+
+        val body = (rest().single().body as TextContent).text
+        val sent = Json.parseToJsonElement(body).jsonArray.single().jsonObject
+        assertEquals(JsonNull, sent.getValue("intention"))
+        assertEquals(JsonNull, sent.getValue("place"))
+        assertEquals(JsonNull, sent.getValue("days_per_week"))
+        assertEquals(JsonNull, sent.getValue("session_minutes"))
+        assertEquals(0, sent.getValue("equipment").jsonArray.size)
+    }
+
+    @Test
+    fun saveMyTraining_offlineIsNetworkError() = runTest {
+        val repo = repository()
+        failing = true
+
+        assertEquals(AppError.Network, repo.saveMyTraining(MyTraining()).appErrorOrNull())
     }
 
     @Test

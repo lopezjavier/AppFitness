@@ -14,9 +14,41 @@ data class TrainingPreferences(
     val dumbbellHandleKg: Double = CalculatorSettings.DEFAULT_DUMBBELL_HANDLE_KG,
     /** A finished routine session updates its routine without asking (ADR-70, one global setting). */
     val autoUpdateRoutine: Boolean = false,
+    /** "Mi entrenamiento" (US-65): the training intention; never touches the nutrition goal. */
+    val intention: TrainingIntention? = null,
+    val place: TrainingPlace? = null,
+    val equipment: Set<Equipment> = emptySet(),
+    val daysPerWeek: Int? = null,
+    val sessionMinutes: Int? = null,
 ) {
     val calculators: CalculatorSettings
         get() = CalculatorSettings(barWeightKg, plateKg, dumbbellHandleKg)
+
+    val myTraining: MyTraining
+        get() = MyTraining(intention, place, equipment, daysPerWeek, sessionMinutes)
+}
+
+/** Fixed list of training intentions (`public.training_intention`). */
+enum class TrainingIntention { Strength, Muscle, FatLoss, Recomposition, Maintenance }
+
+/** Where the user trains (`public.training_place`); it seeds the equipment. */
+enum class TrainingPlace { Home, Gym, Other }
+
+/** The "Mi entrenamiento" fields, saved on their own (only these five columns are written). */
+data class MyTraining(
+    val intention: TrainingIntention? = null,
+    val place: TrainingPlace? = null,
+    val equipment: Set<Equipment> = emptySet(),
+    val daysPerWeek: Int? = null,
+    val sessionMinutes: Int? = null,
+) {
+    companion object {
+        val DAYS: IntRange = 1..7
+        val SESSION_MINUTES: IntProgression = 15..180 step 5
+
+        fun isValidDays(days: Int?): Boolean = days == null || days in DAYS
+        fun isValidSessionMinutes(minutes: Int?): Boolean = minutes == null || minutes in SESSION_MINUTES
+    }
 }
 
 /** The calculator settings stored in `training_preferences` and saved with `save_preferences`. */

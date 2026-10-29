@@ -32,6 +32,8 @@ import io.github.lopezjavier.appfitness.domain.model.PreviousValuesMode
 import io.github.lopezjavier.appfitness.domain.model.ProfileSummary
 import io.github.lopezjavier.appfitness.domain.model.SavedBiometrics
 import io.github.lopezjavier.appfitness.domain.model.Sex
+import io.github.lopezjavier.appfitness.domain.model.TrainingIntention
+import io.github.lopezjavier.appfitness.domain.model.TrainingPlace
 import io.github.lopezjavier.appfitness.domain.model.TrainingPreferences
 import io.github.lopezjavier.appfitness.domain.usecase.CalculateTdee
 import io.github.lopezjavier.appfitness.domain.usecase.ComputeReminders
@@ -1297,6 +1299,7 @@ class PreferencesViewModelTest {
             PreferencesSection.Cooking to PreferencesEvent.SetFatPctFried("9"),
             PreferencesSection.Training to PreferencesEvent.SetWarmUpIncluded(true),
             PreferencesSection.Reminders to PreferencesEvent.SetCheckInWeekday(3),
+            PreferencesSection.MyTraining to PreferencesEvent.SetIntention(TrainingIntention.Strength),
         )
         val reminderSwitch = PreferencesEvent.SetReminderEnabled(NotificationKind.Weight, enabled = false)
         for (section in PreferencesSection.entries) {
@@ -1757,6 +1760,8 @@ class PreferencesViewModelTest {
                     first.onEvent(PreferencesEvent.SetCheckInWeekday(3))
                     first.onEvent(PreferencesEvent.SetReminderEnabled(NotificationKind.Circumference, false))
                 }
+
+                PreferencesSection.MyTraining -> first.onEvent(PreferencesEvent.SetPlace(TrainingPlace.Home))
             }
             val edited = assertIs<PreferencesUiState.Loaded>(first.uiState.value).form
             // The server value of another section changes while the editor is away.

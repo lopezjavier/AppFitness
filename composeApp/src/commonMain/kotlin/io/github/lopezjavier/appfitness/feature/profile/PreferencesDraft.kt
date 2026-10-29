@@ -2,10 +2,14 @@ package io.github.lopezjavier.appfitness.feature.profile
 
 import io.github.lopezjavier.appfitness.domain.model.ActivityLevel
 import io.github.lopezjavier.appfitness.domain.model.CalculatorSettings
+import io.github.lopezjavier.appfitness.domain.model.Equipment
 import io.github.lopezjavier.appfitness.domain.model.GoalStrategy
 import io.github.lopezjavier.appfitness.domain.model.MacroSplit
+import io.github.lopezjavier.appfitness.domain.model.MyTraining
 import io.github.lopezjavier.appfitness.domain.model.PreviousValuesMode
 import io.github.lopezjavier.appfitness.domain.model.Sex
+import io.github.lopezjavier.appfitness.domain.model.TrainingIntention
+import io.github.lopezjavier.appfitness.domain.model.TrainingPlace
 import kotlinx.datetime.LocalDate
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
@@ -47,6 +51,12 @@ internal data class PreferencesDraft(
     val weightReminder: Boolean? = null,
     val circumferenceReminder: Boolean? = null,
     val checkInReminder: Boolean? = null,
+    /** "Mi entrenamiento": enums by name, equipment as names; absent in drafts saved by older versions. */
+    val intention: String? = null,
+    val place: String? = null,
+    val equipment: List<String> = emptyList(),
+    val daysPerWeek: Int? = null,
+    val sessionMinutes: Int? = null,
 )
 
 internal fun PreferencesForm.encodeDraft(): String = Json.encodeToString(
@@ -76,6 +86,11 @@ internal fun PreferencesForm.encodeDraft(): String = Json.encodeToString(
         weightReminder = weightReminder,
         circumferenceReminder = circumferenceReminder,
         checkInReminder = checkInReminder,
+        intention = intention?.name,
+        place = place?.name,
+        equipment = equipment.map { it.name },
+        daysPerWeek = daysPerWeek,
+        sessionMinutes = sessionMinutes,
     ),
 )
 
@@ -106,5 +121,11 @@ internal fun decodeDraft(json: String, saved: PreferencesForm? = null): Preferen
         weightReminder = draft.weightReminder ?: saved?.weightReminder ?: true,
         circumferenceReminder = draft.circumferenceReminder ?: saved?.circumferenceReminder ?: true,
         checkInReminder = draft.checkInReminder ?: saved?.checkInReminder ?: true,
+        intention = draft.intention?.let(TrainingIntention::valueOf),
+        place = draft.place?.let(TrainingPlace::valueOf),
+        equipment = draft.equipment.map(Equipment::valueOf).toSet(),
+        // An out-of-range restored value is dropped to "Sin definir".
+        daysPerWeek = draft.daysPerWeek?.takeIf(MyTraining::isValidDays),
+        sessionMinutes = draft.sessionMinutes?.takeIf(MyTraining::isValidSessionMinutes),
     )
 }.getOrNull()

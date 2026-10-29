@@ -23,6 +23,7 @@ import io.github.lopezjavier.appfitness.composeapp.resources.action_retry
 import io.github.lopezjavier.appfitness.composeapp.resources.preferences_cooking_title
 import io.github.lopezjavier.appfitness.composeapp.resources.preferences_energy_title
 import io.github.lopezjavier.appfitness.composeapp.resources.preferences_macros_title
+import io.github.lopezjavier.appfitness.composeapp.resources.preferences_my_training_title
 import io.github.lopezjavier.appfitness.composeapp.resources.preferences_reminders_title
 import io.github.lopezjavier.appfitness.composeapp.resources.preferences_save_error
 import io.github.lopezjavier.appfitness.composeapp.resources.preferences_save_error_offline
@@ -57,6 +58,7 @@ internal val PreferencesSection.title: StringResource
         PreferencesSection.Cooking -> Res.string.preferences_cooking_title
         PreferencesSection.Training -> Res.string.preferences_training_title
         PreferencesSection.Reminders -> Res.string.preferences_reminders_title
+        PreferencesSection.MyTraining -> Res.string.preferences_my_training_title
     }
 
 /**
@@ -177,6 +179,8 @@ private fun SectionContent(
         )
 
         PreferencesSection.Reminders -> RemindersSection(state.form, onEvent)
+
+        PreferencesSection.MyTraining -> MyTrainingSection(state.form, onEvent)
     }
 }
 
