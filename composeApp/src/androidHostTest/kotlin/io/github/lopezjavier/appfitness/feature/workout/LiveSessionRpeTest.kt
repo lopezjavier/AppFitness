@@ -10,6 +10,7 @@ import androidx.compose.ui.test.assertHeightIsAtLeast
 import androidx.compose.ui.test.assertIsOff
 import androidx.compose.ui.test.assertIsOn
 import androidx.compose.ui.test.assertIsSelected
+import androidx.compose.ui.test.assertTextContains
 import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.assertWidthIsAtLeast
 import androidx.compose.ui.test.getUnclippedBoundsInRoot
@@ -132,16 +133,6 @@ class LiveSessionRpeTest {
         rule.onNodeWithTag("live_rpe_help_sheet_bullet_6", useUnmergedTree = true).assertDoesNotExist()
     }
 
-    @Test
-    fun targetRpeHelp_sharesTheSameBullets() {
-        showStateful(target = "8")
-
-        rule.onNodeWithTag("live_target_rpe_help").performClick()
-
-        assertBulletStartsWith("live_target_rpe_help", 1, "10:")
-        assertBulletStartsWith("live_target_rpe_help", 5, "6:")
-    }
-
     private fun assertBulletStartsWith(helpTag: String, n: Int, text: String) {
         rule.onNode(
             hasText(text, substring = true) and hasAnyAncestor(hasTestTag("${helpTag}_sheet_bullet_$n")),
@@ -255,16 +246,11 @@ class LiveSessionRpeTest {
     }
 
     @Test
-    fun targetRpe_help_opensItsExplanation_andClosesWithTheCloseButton() {
+    fun targetRpe_hasNoHelpButton() {
         showStateful(target = "8")
 
-        rule.onNodeWithTag("live_target_rpe_help").assertWidthIsAtLeast(48.dp).assertHeightIsAtLeast(48.dp)
-        rule.onNodeWithTag("live_target_rpe_help").performClick()
-        rule.onNodeWithTag("live_target_rpe_help_sheet").assertExists()
-        rule.onNodeWithTag("live_target_rpe_help_sheet_close").performClick()
-        rule.waitForIdle()
-
-        rule.onNodeWithTag("live_target_rpe_help_sheet").assertDoesNotExist()
+        rule.onNodeWithTag("live_exercise_0_target_rpe").assertTextContains("Objetivo RPE", substring = true)
+        rule.onNodeWithTag("live_target_rpe_help").assertDoesNotExist()
     }
 
     @Test

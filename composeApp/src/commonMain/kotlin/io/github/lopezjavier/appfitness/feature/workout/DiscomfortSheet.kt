@@ -1,7 +1,6 @@
 package io.github.lopezjavier.appfitness.feature.workout
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -21,8 +20,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.semantics.contentDescription
-import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.input.ImeAction
 import io.github.lopezjavier.appfitness.composeapp.resources.Res
 import io.github.lopezjavier.appfitness.composeapp.resources.help_discomfort_level_bullet_1
@@ -47,11 +44,10 @@ import io.github.lopezjavier.appfitness.composeapp.resources.live_discomfort_res
 import io.github.lopezjavier.appfitness.composeapp.resources.live_discomfort_sheet_title
 import io.github.lopezjavier.appfitness.composeapp.resources.live_exercise_menu_discomfort_offline
 import io.github.lopezjavier.appfitness.composeapp.resources.note_too_long
-import io.github.lopezjavier.appfitness.designsystem.AppBorder
 import io.github.lopezjavier.appfitness.designsystem.AppEditSheet
-import io.github.lopezjavier.appfitness.designsystem.AppShapes
 import io.github.lopezjavier.appfitness.designsystem.AppTextField
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
+import io.github.lopezjavier.appfitness.designsystem.ExerciseStatusRow
 import io.github.lopezjavier.appfitness.designsystem.GhostButton
 import io.github.lopezjavier.appfitness.designsystem.GhostTone
 import io.github.lopezjavier.appfitness.designsystem.HelpButton
@@ -181,8 +177,9 @@ private fun DiscomfortLevelPicker(tag: String, selected: DiscomfortLevel?, onPic
 }
 
 /**
- * The open discomfort of an exercise under its heading, as one block: level dot, level text and "Ya no me molesta".
- * Resolving needs the server (the hint sits inside the block). The block speaks "Molestia: <level>".
+ * The open discomfort of an exercise under its heading, as one status row (R-51): level dot, level text and the
+ * "Ya no me molesta" action. Resolving needs the server (the hint sits inside the row). The row speaks
+ * "Molestia: <level>".
  */
 @Composable
 internal fun DiscomfortBlock(
@@ -194,27 +191,14 @@ internal fun DiscomfortBlock(
 ) {
     val tag = "live_exercise_${position}_discomfort"
     val levelLabel = discomfort.level.label()
-    val blockCd = stringResource(Res.string.live_discomfort_block_cd, levelLabel)
-    Column(
-        modifier.fillMaxWidth()
-            .background(AppTheme.colors.surfaceOverlay, AppShapes.md)
-            .border(AppBorder.thin, AppTheme.colors.borderSubtle, AppShapes.md)
-            .padding(horizontal = Spacing.md)
-            .semantics { contentDescription = blockCd }
-            .testTag("${tag}_block"),
-        verticalArrangement = Arrangement.spacedBy(Spacing.xs),
-    ) {
-        Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm), verticalAlignment = Alignment.CenterVertically) {
-            Box(
-                Modifier.size(Spacing.md)
-                    .background(AppTheme.colors.discomfortScale(discomfort.level), CircleShape),
-            )
-            Text(
-                text = levelLabel,
-                style = AppTheme.typography.bodyMedium,
-                color = AppTheme.colors.textPrimary,
-                modifier = Modifier.weight(1f).testTag("${tag}_level"),
-            )
+    ExerciseStatusRow(
+        text = levelLabel,
+        marker = {
+            Box(Modifier.size(Spacing.md).background(AppTheme.colors.discomfortScale(discomfort.level), CircleShape))
+        },
+        modifier = modifier,
+        testTag = "${tag}_block",
+        trailing = {
             GhostButton(
                 text = stringResource(Res.string.live_discomfort_resolve),
                 onClick = onResolve,
@@ -223,14 +207,11 @@ internal fun DiscomfortBlock(
                 tone = GhostTone.Neutral,
                 modifier = Modifier.testTag("${tag}_resolve"),
             )
-        }
-        if (!online) {
-            Text(
-                text = stringResource(Res.string.live_discomfort_resolve_offline),
-                style = AppTheme.typography.bodySmall,
-                color = AppTheme.colors.textSecondary,
-                modifier = Modifier.padding(bottom = Spacing.sm).testTag("${tag}_resolve_hint"),
-            )
-        }
-    }
+        },
+        supporting = stringResource(Res.string.live_discomfort_resolve_offline).takeIf { !online },
+        contentDescription = stringResource(Res.string.live_discomfort_block_cd, levelLabel),
+        primaryText = true,
+        textTestTag = "${tag}_level",
+        supportingTestTag = "${tag}_resolve_hint",
+    )
 }

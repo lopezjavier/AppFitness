@@ -29,13 +29,23 @@ import io.github.lopezjavier.appfitness.composeapp.resources.catalog_section_act
 import io.github.lopezjavier.appfitness.composeapp.resources.catalog_section_offline_banner
 import io.github.lopezjavier.appfitness.composeapp.resources.catalog_section_state_messages
 import io.github.lopezjavier.appfitness.composeapp.resources.catalog_state_action_count
+import io.github.lopezjavier.appfitness.composeapp.resources.catalog_status_discomfort
+import io.github.lopezjavier.appfitness.composeapp.resources.catalog_status_note
+import io.github.lopezjavier.appfitness.composeapp.resources.catalog_status_suggestion
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_photo_camera
+import io.github.lopezjavier.appfitness.composeapp.resources.live_discomfort_resolve
+import io.github.lopezjavier.appfitness.composeapp.resources.live_discomfort_resolve_offline
 import io.github.lopezjavier.appfitness.designsystem.ActionRow
 import io.github.lopezjavier.appfitness.designsystem.AppCard
 import io.github.lopezjavier.appfitness.designsystem.AppStateAction
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
 import io.github.lopezjavier.appfitness.designsystem.EmptyState
 import io.github.lopezjavier.appfitness.designsystem.ErrorState
+import io.github.lopezjavier.appfitness.designsystem.ExerciseStatusChevron
+import io.github.lopezjavier.appfitness.designsystem.ExerciseStatusInfoMarker
+import io.github.lopezjavier.appfitness.designsystem.ExerciseStatusRow
+import io.github.lopezjavier.appfitness.designsystem.GhostButton
+import io.github.lopezjavier.appfitness.designsystem.GhostTone
 import io.github.lopezjavier.appfitness.designsystem.InlineNote
 import io.github.lopezjavier.appfitness.designsystem.OfflineBanner
 import io.github.lopezjavier.appfitness.designsystem.Spacing
@@ -64,8 +74,43 @@ private fun ActionRowAndNoteSection() {
                     testTag = "catalog_action_row",
                 )
                 InlineNote(stringResource(Res.string.catalog_inline_note), testTag = "catalog_inline_note")
+                ExerciseStatusRows()
             }
         }
+    }
+}
+
+/** R-51 status rows of an exercise card: discomfort with its action and hint, a tappable note, a suggestion. */
+@Composable
+private fun ExerciseStatusRows() {
+    Column(verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
+        ExerciseStatusRow(
+            text = stringResource(Res.string.catalog_status_discomfort),
+            marker = { ExerciseStatusInfoMarker() },
+            trailing = {
+                GhostButton(
+                    text = stringResource(Res.string.live_discomfort_resolve),
+                    onClick = {},
+                    tone = GhostTone.Neutral,
+                )
+            },
+            supporting = stringResource(Res.string.live_discomfort_resolve_offline),
+            primaryText = true,
+            testTag = "catalog_status_discomfort",
+        )
+        ExerciseStatusRow(
+            text = stringResource(Res.string.catalog_status_note),
+            marker = { ExerciseStatusInfoMarker() },
+            onClick = {},
+            testTag = "catalog_status_note",
+        )
+        ExerciseStatusRow(
+            text = stringResource(Res.string.catalog_status_suggestion),
+            marker = { ExerciseStatusInfoMarker() },
+            onClick = {},
+            trailing = { ExerciseStatusChevron() },
+            testTag = "catalog_status_suggestion",
+        )
     }
 }
 

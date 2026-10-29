@@ -29,16 +29,17 @@ import io.github.lopezjavier.appfitness.composeapp.resources.builder_superset_la
 import io.github.lopezjavier.appfitness.composeapp.resources.exercise_unnamed
 import io.github.lopezjavier.appfitness.composeapp.resources.live_object_set
 import io.github.lopezjavier.appfitness.composeapp.resources.live_suggestion
-import io.github.lopezjavier.appfitness.composeapp.resources.live_suggestion_help_cd
+import io.github.lopezjavier.appfitness.composeapp.resources.live_suggestion_cd
+import io.github.lopezjavier.appfitness.composeapp.resources.live_suggestion_open_label
 import io.github.lopezjavier.appfitness.composeapp.resources.live_target_rpe
 import io.github.lopezjavier.appfitness.composeapp.resources.note_edit
 import io.github.lopezjavier.appfitness.designsystem.AddItemButton
 import io.github.lopezjavier.appfitness.designsystem.AppCard
 import io.github.lopezjavier.appfitness.designsystem.AppNumberFormat
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
-import io.github.lopezjavier.appfitness.designsystem.HelpTriggerButton
-import io.github.lopezjavier.appfitness.designsystem.InlineNote
-import io.github.lopezjavier.appfitness.designsystem.RpeHelpButton
+import io.github.lopezjavier.appfitness.designsystem.ExerciseStatusChevron
+import io.github.lopezjavier.appfitness.designsystem.ExerciseStatusInfoMarker
+import io.github.lopezjavier.appfitness.designsystem.ExerciseStatusRow
 import io.github.lopezjavier.appfitness.designsystem.SetFieldSpec
 import io.github.lopezjavier.appfitness.designsystem.SetTableHeader
 import io.github.lopezjavier.appfitness.designsystem.Spacing
@@ -74,24 +75,15 @@ internal fun LiveExerciseCard(
                 ExerciseHeading(exercise, name, onOpenExercise, Modifier.weight(1f))
                 ExerciseMenuButton(name, position, onClick = { sheet = ExerciseSheet.Menu })
             }
-            exercise.discomfort?.let {
-                DiscomfortBlock(position, it, online, onResolve = {
-                    onEvent(LiveSessionEvent.ResolveDiscomfort(position))
-                })
-            }
-            RoutineNoteLine(exercise, position) { onEvent(LiveSessionEvent.OpenRoutineNote(position)) }
             exercise.targetRpeText?.let {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(
-                        text = stringResource(Res.string.live_target_rpe, it),
-                        style = AppTheme.typography.bodySmall,
-                        color = AppTheme.colors.textSecondary,
-                        modifier = Modifier.testTag("live_exercise_${position}_target_rpe"),
-                    )
-                    RpeHelpButton(testTag = "live_target_rpe_help")
-                }
+                Text(
+                    text = stringResource(Res.string.live_target_rpe, it),
+                    style = AppTheme.typography.bodySmall,
+                    color = AppTheme.colors.textSecondary,
+                    modifier = Modifier.testTag("live_exercise_${position}_target_rpe"),
+                )
             }
-            exercise.suggestion?.let { SuggestionLine(position, it, onEvent) }
+            ExerciseStatusRows(exercise, online, onEvent)
             val fields = setFieldSpecs(exercise.metricType, exercise.equipment)
             LiveSetTableHeader(fields)
             exercise.sets.forEach {
@@ -123,26 +115,48 @@ internal fun LiveExerciseCard(
     )
 }
 
-/** "Sugerencia: 82,5 kg × 6" with its "?" (US-70): read-only, the reason lives in the help sheet. */
+/**
+ * Discomfort, routine note and suggestion as status rows (R-51), in that order; nothing is drawn (no empty gap)
+ * when the exercise has none of them.
+ */
 @Composable
-private fun SuggestionLine(position: Int, suggestion: ProgressionSuggestion, onEvent: (LiveSessionEvent) -> Unit) {
-    Row(verticalAlignment = Alignment.CenterVertically) {
-        Text(
-            text = stringResource(
-                Res.string.live_suggestion,
-                AppNumberFormat.decimal(suggestion.weightKg, maxDecimals = 2),
-                AppNumberFormat.integer(suggestion.goalReps),
-            ),
-            style = AppTheme.typography.bodySmall,
-            color = AppTheme.colors.textSecondary,
-            modifier = Modifier.testTag("live_exercise_${position}_suggestion"),
-        )
-        HelpTriggerButton(
-            contentDescription = stringResource(Res.string.live_suggestion_help_cd),
-            testTag = "live_exercise_${position}_suggestion_help",
-            onClick = { onEvent(LiveSessionEvent.OpenProgressionHelp(position)) },
-        )
+private fun ExerciseStatusRows(exercise: LiveExercise, online: Boolean, onEvent: (LiveSessionEvent) -> Unit) {
+    val position = exercise.position
+    val noteSummary = exerciseNoteSummary(exercise.routineNoteKind, exercise.routineNote)
+    if (exercise.discomfort == null && noteSummary == null && exercise.suggestion == null) return
+    Column(verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
+        exercise.discomfort?.let {
+            DiscomfortBlock(position, it, online, onResolve = { onEvent(LiveSessionEvent.ResolveDiscomfort(position)) })
+        }
+        noteSummary?.let {
+            ExerciseStatusRow(
+                text = it,
+                marker = { ExerciseStatusInfoMarker() },
+                testTag = "live_exercise_note_$position",
+                onClick = {
+                    onEvent(LiveSessionEvent.OpenRoutineNote(position))
+                }.takeIf { exercise.routineNoteEditable },
+                onClickLabel = stringResource(Res.string.note_edit),
+            )
+        }
+        exercise.suggestion?.let { SuggestionRow(position, it, onEvent) }
     }
+}
+
+/** "Sugerencia: 82,5 kg × 6" (US-70): the whole row opens the reason sheet. */
+@Composable
+private fun SuggestionRow(position: Int, suggestion: ProgressionSuggestion, onEvent: (LiveSessionEvent) -> Unit) {
+    val weight = AppNumberFormat.decimal(suggestion.weightKg, maxDecimals = 2)
+    val reps = AppNumberFormat.integer(suggestion.goalReps)
+    ExerciseStatusRow(
+        text = stringResource(Res.string.live_suggestion, weight, reps),
+        marker = { ExerciseStatusInfoMarker() },
+        testTag = "live_exercise_${position}_suggestion",
+        onClick = { onEvent(LiveSessionEvent.OpenProgressionHelp(position)) },
+        onClickLabel = stringResource(Res.string.live_suggestion_open_label),
+        trailing = { ExerciseStatusChevron() },
+        contentDescription = stringResource(Res.string.live_suggestion_cd, weight, reps),
+    )
 }
 
 @Composable
@@ -274,19 +288,6 @@ private fun ExerciseSheets(
                 onSheetChange(ExerciseSheet.None)
             },
             onDismiss = { onSheetChange(ExerciseSheet.None) },
-        )
-    }
-}
-
-/** The routine note under the heading; a tap edits it when the exercise belongs to a routine. */
-@Composable
-private fun RoutineNoteLine(exercise: LiveExercise, position: Int, onEdit: () -> Unit) {
-    exerciseNoteSummary(exercise.routineNoteKind, exercise.routineNote)?.let {
-        InlineNote(
-            text = it,
-            testTag = "live_exercise_note_$position",
-            onClick = onEdit.takeIf { exercise.routineNoteEditable },
-            onClickLabel = stringResource(Res.string.note_edit),
         )
     }
 }
