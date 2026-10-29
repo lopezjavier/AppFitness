@@ -247,7 +247,7 @@ Journey: during a workout, lock the phone or switch apps while resting and still
 
 **Source:** user feedback at Checkpoint E12-B, 2026-10-29 (screenshots: `design/reported/E12-B-live-set-table-alignment.png`, `design/reported/E12-B-checkin-records-ejercicio-name-2.png`; delete them once the user confirms the fix). New rule R-50 in `05` §8 (same docs PR); the task sweeps every table-like screen (R-39).
 1. **Live set table (R-50):** remove the "Nº" column and the per-set numbers; keep "Tipo" (set type badge). Header labels and every row share the same column widths; "KG" (and REPS, RPE, LISTO) centred over their fields. Sweep the workout editor and any other set table.
-2. **Bug, still open after T-154:** Check-in semanal "Récords de la semana" still shows "Ejercicio" for some exercises (Skull Crusher, Peso Muerto, Press de Banca resolve; three records of one exercise show the fallback). T-154's fix did not cover this case: the planner must reproduce it with real data shape first (e.g. an exercise missing from the library snapshot, deleted, replaced or custom-with-different-source, or the lookup racing the library load), fix the root cause, and add a regression test that fails on the real case.
+2. **Dropped (user, 2026-10-29):** the "Ejercicio" name in the check-in records came from a manually created exercise in the user's test account and is already fixed; new accounts are not affected. No code change.
 **Dependencies:** T-154 · **Estimated scope:** M
 
 ---

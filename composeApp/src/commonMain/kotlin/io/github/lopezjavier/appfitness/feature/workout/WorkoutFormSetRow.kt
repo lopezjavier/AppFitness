@@ -77,7 +77,7 @@ private val RpeCellWidth = Spacing.minTouchTarget + Spacing.sm
 @Composable
 internal fun FormSetHeader(exercise: FormExercise) {
     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(Spacing.xs)) {
-        Spacer(Modifier.width(Spacing.minTouchTarget))
+        Spacer(Modifier.width(SetRowDefaults.OrdinalTypeWidth))
         exercise.fields.forEach { field ->
             val header: StringResource = field.kind(exercise.metricType).header
             Text(
@@ -89,7 +89,7 @@ internal fun FormSetHeader(exercise: FormExercise) {
                 style = AppTheme.typography.labelTechnical,
                 color = AppTheme.colors.textSecondary,
                 textAlign = TextAlign.Center,
-                modifier = Modifier.weight(1f),
+                modifier = Modifier.weight(1f).testTag("form_set_header_${field.tagPart()}"),
             )
         }
         Text(
@@ -97,9 +97,9 @@ internal fun FormSetHeader(exercise: FormExercise) {
             style = AppTheme.typography.labelTechnical,
             color = AppTheme.colors.textSecondary,
             textAlign = TextAlign.Center,
-            modifier = Modifier.width(RpeCellWidth),
+            modifier = Modifier.width(RpeCellWidth).testTag("form_set_header_rpe"),
         )
-        Spacer(Modifier.width(Spacing.minTouchTarget))
+        Spacer(Modifier.width(SetRowDefaults.FixedCellWidth))
     }
 }
 

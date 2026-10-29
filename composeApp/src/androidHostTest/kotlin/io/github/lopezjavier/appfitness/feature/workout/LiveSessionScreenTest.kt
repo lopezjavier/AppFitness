@@ -6,6 +6,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.assert
+import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.assertTextContains
@@ -466,7 +467,7 @@ class LiveSessionScreenTest {
     )
 
     @Test
-    fun plannedSets_showTheTypeLetterInTheBadge_andTheOrderAsAnOrdinalOutsideIt() {
+    fun plannedSets_showTheTypeLetterInTheBadge_andNoOrdinalColumn() {
         show(plannedState())
 
         fun badge(set: Int) = rule.onNode(
@@ -476,9 +477,7 @@ class LiveSessionScreenTest {
         badge(1).assertTextEquals("C")
         badge(2).assertTextEquals("N")
         badge(4).assertTextEquals("N")
-        val ordinals = rule.onAllNodesWithTag("set_ordinal")
-        ordinals[1].assertTextEquals("2")
-        ordinals[3].assertTextEquals("4")
+        rule.onAllNodesWithTag("set_ordinal").assertCountEquals(0)
     }
 
     @Test

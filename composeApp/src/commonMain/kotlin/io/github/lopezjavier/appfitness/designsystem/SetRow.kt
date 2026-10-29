@@ -30,11 +30,11 @@ import androidx.compose.ui.unit.dp
 import io.github.lopezjavier.appfitness.composeapp.resources.Res
 import io.github.lopezjavier.appfitness.composeapp.resources.action_done
 import io.github.lopezjavier.appfitness.composeapp.resources.set_checkbox_cd
-import io.github.lopezjavier.appfitness.composeapp.resources.set_header_index
-import io.github.lopezjavier.appfitness.composeapp.resources.set_header_index_cd
 import io.github.lopezjavier.appfitness.composeapp.resources.set_header_previous
 import io.github.lopezjavier.appfitness.composeapp.resources.set_header_rpe
 import io.github.lopezjavier.appfitness.composeapp.resources.set_header_rpe_cd
+import io.github.lopezjavier.appfitness.composeapp.resources.set_header_type
+import io.github.lopezjavier.appfitness.composeapp.resources.set_header_type_cd
 import io.github.lopezjavier.appfitness.composeapp.resources.set_row_use_previous_cd
 import io.github.lopezjavier.appfitness.domain.model.SetType
 import org.jetbrains.compose.resources.stringResource
@@ -84,8 +84,17 @@ object SetRowDefaults {
     const val PREVIOUS_MAX_LINES = 2
     val IndexBadgeSize: Dp = 24.dp
 
-    /** Width of the [SetOrdinal] left of the type badge. */
+    /** Width of the [SetOrdinal] left of the type badge (read-only summaries and editors). */
     val OrdinalWidth: Dp = 16.dp
+
+    /** Column of the type badge, shared by [SetRow] and [SetTableHeader] ("TIPO" fits; one touch target). */
+    val TypeColumnWidth: Dp = SetCompletionCheckboxDefaults.TouchTarget
+
+    /** Ordinal + gap + type column of the editors that keep the set number; their headers use it as a spacer. */
+    val OrdinalTypeWidth: Dp get() = OrdinalWidth + ColumnGap + TypeColumnWidth
+
+    /** Fixed width of the RPE, LISTO and note cells, shared by rows and headers. */
+    val FixedCellWidth: Dp = SetCompletionCheckboxDefaults.TouchTarget
     val MinHeight: Dp = 48.dp
 
     /** Compact gap: at 360 dp the three weighted columns need every dp (UX: "102,25" at 130 % font). */
@@ -163,13 +172,14 @@ fun SetRow(
         horizontalArrangement = Arrangement.spacedBy(SetRowDefaults.ColumnGap),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        SetOrdinal(number)
-        SetTypeBadge(
-            type = values.type,
-            modifier = Modifier.tag(testTagPrefix, "type"),
-            onClick = onTypeClick,
-            clickLabel = typeClickLabel,
-        )
+        Box(Modifier.width(SetRowDefaults.TypeColumnWidth), contentAlignment = Alignment.Center) {
+            SetTypeBadge(
+                type = values.type,
+                modifier = Modifier.tag(testTagPrefix, "type"),
+                onClick = onTypeClick,
+                clickLabel = typeClickLabel,
+            )
+        }
         if (showPrevious) {
             PreviousCell(
                 text = previousText,
@@ -317,6 +327,7 @@ fun SetTableHeader(
     fields: List<SetFieldSpec> = SetFieldSpec.WeightReps,
     showNote: Boolean = false,
     showPrevious: Boolean = true,
+    testTagPrefix: String? = null,
 ) {
     Row(
         modifier = modifier.fillMaxWidth(),
@@ -324,22 +335,22 @@ fun SetTableHeader(
         verticalAlignment = Alignment.CenterVertically,
     ) {
         HeaderText(
-            text = stringResource(Res.string.set_header_index),
-            modifier = Modifier.width(SetRowDefaults.IndexBadgeSize + SetRowDefaults.OrdinalWidth),
-            spoken = stringResource(Res.string.set_header_index_cd),
+            text = stringResource(Res.string.set_header_type),
+            modifier = Modifier.width(SetRowDefaults.TypeColumnWidth).tag(testTagPrefix, "type"),
+            spoken = stringResource(Res.string.set_header_type_cd),
             centered = true,
         )
         if (showPrevious) {
             HeaderText(
                 stringResource(Res.string.set_header_previous),
-                Modifier.weight(SetRowDefaults.previousWeight(showRpe)),
+                Modifier.weight(SetRowDefaults.previousWeight(showRpe)).tag(testTagPrefix, "previous"),
             )
         }
         val weights = SetRowFieldLayout.weights(fields, showRpe)
         fields.forEachIndexed { position, spec ->
             HeaderText(
                 text = stringResource(spec.kind.header),
-                modifier = Modifier.weight(weights[position]),
+                modifier = Modifier.weight(weights[position]).tag(testTagPrefix, spec.kind.tagPart),
                 spoken = stringResource(spec.kind.headerDescription),
                 centered = true,
             )
@@ -347,17 +358,17 @@ fun SetTableHeader(
         if (showRpe) {
             HeaderText(
                 text = stringResource(Res.string.set_header_rpe),
-                modifier = Modifier.width(SetCompletionCheckboxDefaults.TouchTarget),
+                modifier = Modifier.width(SetRowDefaults.FixedCellWidth).tag(testTagPrefix, "rpe"),
                 spoken = stringResource(Res.string.set_header_rpe_cd),
                 centered = true,
             )
         }
         HeaderText(
             text = stringResource(Res.string.action_done),
-            modifier = Modifier.width(SetCompletionCheckboxDefaults.TouchTarget),
+            modifier = Modifier.width(SetRowDefaults.FixedCellWidth).tag(testTagPrefix, "check"),
             centered = true,
         )
-        if (showNote) Spacer(Modifier.width(SetCompletionCheckboxDefaults.TouchTarget))
+        if (showNote) Spacer(Modifier.width(SetRowDefaults.FixedCellWidth))
     }
 }
 

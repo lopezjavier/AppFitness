@@ -35,6 +35,7 @@ import io.github.lopezjavier.appfitness.designsystem.AppCard
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
 import io.github.lopezjavier.appfitness.designsystem.InlineNote
 import io.github.lopezjavier.appfitness.designsystem.RpeHelpButton
+import io.github.lopezjavier.appfitness.designsystem.SetFieldSpec
 import io.github.lopezjavier.appfitness.designsystem.SetTableHeader
 import io.github.lopezjavier.appfitness.designsystem.Spacing
 import io.github.lopezjavier.appfitness.designsystem.exerciseNoteSummary
@@ -86,7 +87,7 @@ internal fun LiveExerciseCard(
                 }
             }
             val fields = setFieldSpecs(exercise.metricType, exercise.equipment)
-            SetTableHeader(showRpe = true, fields = fields, showNote = true, showPrevious = false)
+            LiveSetTableHeader(fields)
             exercise.sets.forEach {
                 SessionSetRow(
                     position,
@@ -117,6 +118,17 @@ internal fun LiveExerciseCard(
 }
 
 /** Runs [onStore] when [logs] changes (a discomfort was stored); a failed log leaves the sheet open with its draft. */
+@Composable
+private fun LiveSetTableHeader(fields: List<SetFieldSpec>) {
+    SetTableHeader(
+        showRpe = true,
+        fields = fields,
+        showNote = true,
+        showPrevious = false,
+        testTagPrefix = "live_set_header",
+    )
+}
+
 @Composable
 private fun OnDiscomfortStored(logs: Int, onStore: () -> Unit) {
     var seen by remember { mutableIntStateOf(logs) }

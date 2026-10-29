@@ -138,6 +138,20 @@ scan G11 "dismissOnClickOutside = true outside the picker/info/action archetypes
   '.*/designsystem/(AppSheets|AppActionSheet|AppDatePickerDialog)\.kt' "${kotlin_all[@]}"
 scan G11 "rememberModalBottomSheetState outside AppBottomSheet.kt (use rememberAppSheetState)" 'rememberModalBottomSheetState\(' '.*/designsystem/AppBottomSheet\.kt' "${kotlin_all[@]}"
 
+# G12: R-50 set tables size header columns from the shared column spec (SetRowDefaults), never a literal
+# 48 dp spacer, and the live SetRow draws no per-set number.
+set_table_files=()
+for file in "${kotlin_all[@]}"; do
+  case "$file" in
+    */designsystem/SetRow.kt | */feature/workout/WorkoutFormSetRow.kt | */feature/routines/RoutineBuilderSets.kt)
+      set_table_files+=("$file") ;;
+  esac
+done
+scan G12 "literal minTouchTarget spacer in a set table header (R-50: use SetRowDefaults column widths)" \
+  'Spacer\(Modifier\.width\((Spacing\.)?minTouchTarget\)\)' '' "${set_table_files[@]}"
+scan G12 "SetOrdinal inside the live SetRow (R-50)" '\bSetOrdinal\(' \
+  '.*/feature/[^:]*' "${set_table_files[@]}"
+
 # G9 / G10: strings.xml.
 if [ -f "$strings_file" ]; then
   rc=0
