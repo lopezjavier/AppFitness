@@ -14,6 +14,7 @@ import io.github.lopezjavier.appfitness.data.repository.SupabaseAccountRepositor
 import io.github.lopezjavier.appfitness.data.repository.SupabaseAuthRepository
 import io.github.lopezjavier.appfitness.data.repository.SupabaseBodyMeasurementRepository
 import io.github.lopezjavier.appfitness.data.repository.SupabaseCircumferenceRepository
+import io.github.lopezjavier.appfitness.data.repository.SupabaseCoachRepository
 import io.github.lopezjavier.appfitness.data.repository.SupabaseDiscomfortRepository
 import io.github.lopezjavier.appfitness.data.repository.SupabaseExerciseRepository
 import io.github.lopezjavier.appfitness.data.repository.SupabaseFoodDiaryRepository
@@ -38,6 +39,7 @@ import io.github.lopezjavier.appfitness.data.repository.UnconfiguredAccountRepos
 import io.github.lopezjavier.appfitness.data.repository.UnconfiguredAuthRepository
 import io.github.lopezjavier.appfitness.data.repository.UnconfiguredBodyMeasurementRepository
 import io.github.lopezjavier.appfitness.data.repository.UnconfiguredCircumferenceRepository
+import io.github.lopezjavier.appfitness.data.repository.UnconfiguredCoachRepository
 import io.github.lopezjavier.appfitness.data.repository.UnconfiguredDiscomfortRepository
 import io.github.lopezjavier.appfitness.data.repository.UnconfiguredExerciseRepository
 import io.github.lopezjavier.appfitness.data.repository.UnconfiguredFoodDiaryRepository
@@ -65,6 +67,7 @@ import io.github.lopezjavier.appfitness.domain.repository.AccountRepository
 import io.github.lopezjavier.appfitness.domain.repository.AuthRepository
 import io.github.lopezjavier.appfitness.domain.repository.BodyMeasurementRepository
 import io.github.lopezjavier.appfitness.domain.repository.CircumferenceRepository
+import io.github.lopezjavier.appfitness.domain.repository.CoachRepository
 import io.github.lopezjavier.appfitness.domain.repository.DiscomfortRepository
 import io.github.lopezjavier.appfitness.domain.repository.ExerciseRepository
 import io.github.lopezjavier.appfitness.domain.repository.FoodDiaryRepository
@@ -274,6 +277,14 @@ val sharedModule =
                 SupabaseTrainingStatsRepository(client.auth, client.postgrest)
             } else {
                 UnconfiguredTrainingStatsRepository()
+            }
+        }
+        single<CoachRepository> {
+            if (get<AppConfig>().isSupabaseConfigured) {
+                val client = get<SupabaseClient>()
+                SupabaseCoachRepository(client.auth, client.postgrest)
+            } else {
+                UnconfiguredCoachRepository()
             }
         }
         single<MealSlotRepository> {

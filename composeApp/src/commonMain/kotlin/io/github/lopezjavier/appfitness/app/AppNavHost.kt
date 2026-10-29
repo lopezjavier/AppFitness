@@ -37,6 +37,9 @@ import io.github.lopezjavier.appfitness.feature.templates.pickedFoodResult
 import io.github.lopezjavier.appfitness.feature.workout.PastWorkoutSource
 import kotlinx.datetime.LocalDate
 
+/** Content of the Trainer root: its modifier (tab insets). */
+internal typealias TrainerSlot = @Composable (modifier: Modifier) -> Unit
+
 /**
  * Content of the Perfil root: its modifier (tab insets) and the openers of its destinations ([ProfileRootActions];
  * the catalog opener is null where it is unavailable).
@@ -385,6 +388,11 @@ internal val DefaultProfileSlot: ProfileSlot = { modifier, actions ->
     }
 }
 
+/** Empty Trainer root for previews and shell tests; the real one is wired by `AppRoot`. */
+internal val DefaultTrainerSlot: TrainerSlot = { modifier ->
+    Box(modifier.fillMaxSize().testTag("trainer_screen"))
+}
+
 /** Empty picker for previews and shell tests; the real one is wired by `AppRoot`. */
 internal val DefaultExercisePickerSlot: ExercisePickerSlot = { modifier, _, _, _, _ ->
     Box(modifier.fillMaxSize().testTag("exercise_picker_screen"))
@@ -560,6 +568,7 @@ internal fun AppNavHost(
     features: AppFeatures,
     modifier: Modifier = Modifier,
     profile: ProfileSlot = DefaultProfileSlot,
+    trainer: TrainerSlot = DefaultTrainerSlot,
     preferences: PreferencesSlot = DefaultPreferencesSlot,
     preferencesSection: PreferencesSectionSlot = DefaultPreferencesSectionSlot,
     account: AccountSlot = DefaultAccountSlot,
@@ -683,6 +692,9 @@ internal fun AppNavHost(
             composable<WorkoutHome> {
                 routines(Modifier.padding(tabPadding), openBuilder, openDetails, openLiveSession, openHistory)
             }
+        }
+        navigation<TrainerGraph>(startDestination = TopLevelTab.Trainer.startRoute) {
+            composable<TrainerHome> { trainer(Modifier.padding(tabPadding)) }
         }
         navigation<ProfileGraph>(startDestination = TopLevelTab.Profile.startRoute) {
             composable<ProfileHome> {

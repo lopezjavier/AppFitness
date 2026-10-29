@@ -90,6 +90,11 @@ class AppRoutesChromeTest {
     }
 
     @Test
+    fun theTrainerRoot_hasTheTabScreenChrome() {
+        assertEquals(ShellChrome.TabScreen(TopLevelTab.Trainer), TrainerHome.chrome)
+    }
+
+    @Test
     fun theDiarySheets_keepTheDiaryTabChrome() {
         assertEquals(ShellChrome.TabScreen(TopLevelTab.Diary), EditEntryRoute("e", "2026-10-26").chrome)
         assertEquals(ShellChrome.TabScreen(TopLevelTab.Diary), SaveTemplateRoute("s", "2026-10-26").chrome)
@@ -99,6 +104,7 @@ class AppRoutesChromeTest {
     fun tabRoutes_haveTheTabScreenChrome() {
         assertEquals(ShellChrome.TabScreen(TopLevelTab.Diary), DiaryGraph.chrome)
         assertEquals(ShellChrome.TabScreen(TopLevelTab.Workout), WorkoutGraph.chrome)
+        assertEquals(ShellChrome.TabScreen(TopLevelTab.Trainer), TrainerGraph.chrome)
         assertEquals(ShellChrome.TabScreen(TopLevelTab.Profile), ProfileGraph.chrome)
     }
 }

@@ -35,10 +35,12 @@ import io.github.lopezjavier.appfitness.composeapp.resources.ic_edit
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_nav_diary
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_nav_diary_filled
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_nav_profile
+import io.github.lopezjavier.appfitness.composeapp.resources.ic_nav_trainer
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_nav_workout
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_notifications
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_star
 import io.github.lopezjavier.appfitness.composeapp.resources.nav_diary
+import io.github.lopezjavier.appfitness.composeapp.resources.nav_trainer
 import io.github.lopezjavier.appfitness.composeapp.resources.nav_workout
 import io.github.lopezjavier.appfitness.composeapp.resources.notifications_title
 import io.github.lopezjavier.appfitness.composeapp.resources.profile_title
@@ -185,6 +187,7 @@ private val NavigationSampleItems =
             Res.drawable.ic_nav_diary_filled,
         ),
         AppNavigationItem(Res.string.nav_workout, Res.drawable.ic_nav_workout, "catalog_nav_tab_workout"),
+        AppNavigationItem(Res.string.nav_trainer, Res.drawable.ic_nav_trainer, "catalog_nav_tab_trainer"),
         AppNavigationItem(Res.string.profile_title, Res.drawable.ic_nav_profile, "catalog_nav_tab_profile"),
     )
 
@@ -197,6 +200,7 @@ private val RailSampleItems =
             Res.drawable.ic_nav_diary_filled,
         ),
         AppNavigationItem(Res.string.nav_workout, Res.drawable.ic_nav_workout, "catalog_rail_tab_workout"),
+        AppNavigationItem(Res.string.nav_trainer, Res.drawable.ic_nav_trainer, "catalog_rail_tab_trainer"),
         AppNavigationItem(Res.string.profile_title, Res.drawable.ic_nav_profile, "catalog_rail_tab_profile"),
     )
 

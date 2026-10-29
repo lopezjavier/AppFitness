@@ -160,7 +160,7 @@ Phase 2 ADRs continue the numbering (next: **ADR-80**) and are written **in full
 
 ### ADR-79 · The coach gets its own tab (E13; amends ADR-37)
 - **Context:** ADR-37 fixed 3 tabs (Diario, Entreno, Perfil). The coach (E13) has a plan, a weekly report, a history and a chat, and needs a stable home.
-- **Decision:** A fourth tab "Trainer" between "Entreno" and "Perfil" (order: Diario, Entreno, Trainer, Perfil). It appears with the first E13 UI task; before that the bar keeps 3 tabs. Active-tab styling stays as ADR-22. The label and icon are checked by ux-reviewer in that task's plan pass.
+- **Decision:** A fourth tab "Trainer" between "Entreno" and "Perfil" (order: Diario, Entreno, Trainer, Perfil). It arrives with T-158 (the derived-values card is its first root); before that the bar kept 3 tabs. Active-tab styling stays as ADR-22. The label and icon are checked by ux-reviewer in that task's plan pass.
 - **Consequences:** `epics/E13-performance-assistant.md` (navigation), `05-design-system.md` (navigation section) when implemented, `09-open-questions.md` (resolved).
 - **Approval:** 2026-10-28, user (chat).
 
