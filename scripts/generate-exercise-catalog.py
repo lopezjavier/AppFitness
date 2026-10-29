@@ -199,7 +199,7 @@ DURATION_SUBSTR = ("plank", "-hold", "stretch", "-pose")
 REPS_ONLY_KEYS = {
     "crunches", "bicycle-crunch", "reverse-crunches", "cross-body-crunch", "decline-crunch", "sit-ups",
     "jackknife-sit-up", "box-jump", "jump-squat", "burpees", "rope-climb", "plank-knee-tuck", "reverse-plank-dips",
-    "downward-dog-to-plank", "ab-wheel-rollout", "wrist-roller", "wrist-roller",
+    "downward-dog-to-plank", "ab-wheel-rollout",
     "battle-rope-double-slam", "bear-crawl", "heel-to-toe-walk", "heel-flicks", "heel-touches", "high-knees",
     "flutter-kicks", "scissor-kicks", "v-ups", "v-sit", "russian-twist", "torso-twists", "cocoons", "dead-bug",
     "bird-dog", "superman", "cat-cow", "inchworm", "supine-windshield-wipers", "lateral-leg-swing",
