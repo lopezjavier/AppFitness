@@ -13,9 +13,15 @@ import io.github.lopezjavier.appfitness.domain.model.CheckIn
 import io.github.lopezjavier.appfitness.domain.model.CircumferenceSite
 import io.github.lopezjavier.appfitness.domain.model.MeasurementSource
 import io.github.lopezjavier.appfitness.domain.model.NotificationKind
+import io.github.lopezjavier.appfitness.domain.model.PersonalRecordType
 import io.github.lopezjavier.appfitness.domain.model.TrainingSummary
+import io.github.lopezjavier.appfitness.domain.model.WeekRecord
 import io.github.lopezjavier.appfitness.domain.usecase.LoadCheckInSummary
 import io.github.lopezjavier.appfitness.feature.analytics.stats.FakeTrainingStatsRepository
+import io.github.lopezjavier.appfitness.feature.exercises.FakeExerciseLibrary
+import io.github.lopezjavier.appfitness.feature.exercises.FakeExerciseRepository
+import io.github.lopezjavier.appfitness.feature.exercises.exerciseInfo
+import io.github.lopezjavier.appfitness.feature.exercises.exerciseRow
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.StandardTestDispatcher
@@ -71,7 +77,11 @@ class CheckInViewModelTest {
         val ready get() = assertIs<CheckInUiState.Ready>(viewModel.uiState.value)
     }
 
-    private fun TestScope.fixture(env: ReminderEnv = env(), handle: SavedStateHandle = SavedStateHandle()): Fixture {
+    private fun TestScope.fixture(
+        env: ReminderEnv = env(),
+        handle: SavedStateHandle = SavedStateHandle(),
+        exercises: FakeExerciseRepository? = null,
+    ): Fixture {
         val stats = FakeTrainingStatsRepository().apply {
             summaryFor = { w ->
                 if (w.from == WEEK) TrainingSummary(4, 40, 12_400.0, 0) else TrainingSummary(3, 30, 11_600.0, 0)
@@ -85,6 +95,8 @@ class CheckInViewModelTest {
             LoadCheckInSummary(stats, env.weight, TimeZone.UTC),
             connectivity,
             handle,
+            exercises,
+            FakeExerciseLibrary(mapOf("bench" to exerciseInfo("bench", "Press de banca"))),
         )
         return Fixture(env, stats, coordinator, connectivity, viewModel)
     }
@@ -247,6 +259,37 @@ class CheckInViewModelTest {
 
         assertIs<CheckInSummaryState.Loaded>(f.ready.summary)
         assertEquals(3, f.ready.energy, "the draft survives the retry")
+    }
+
+    private fun withRecords(f: Fixture) {
+        f.stats.recordsFor = {
+            listOf(
+                WeekRecord("a", PersonalRecordType.HeaviestLift, 100.0, CHECK_IN_DAY),
+                WeekRecord("c1", PersonalRecordType.BestSet, 30.0, CHECK_IN_DAY),
+            )
+        }
+    }
+
+    @Test
+    fun recordNames_resolveCatalogueExercisesThroughTheLibrary_andCustomOnesFromTheirRow() = runTest {
+        val rows = FakeExerciseRepository(
+            listOf(exerciseRow("a", "bench"), exerciseRow("c1", null, name = "Hand grip", custom = true)),
+        )
+        val f = fixture(exercises = rows)
+        withRecords(f)
+        advanceUntilIdle()
+
+        assertEquals(mapOf("a" to "Press de banca", "c1" to "Hand grip"), f.ready.exerciseNames)
+    }
+
+    @Test
+    fun recordNames_whenTheExercisesCannotBeRead_stayEmptyAndTheSummaryLoads() = runTest {
+        val f = fixture(exercises = FakeExerciseRepository(failure = AppError.Network))
+        withRecords(f)
+        advanceUntilIdle()
+
+        assertEquals(emptyMap(), f.ready.exerciseNames)
+        assertIs<CheckInSummaryState.Loaded>(f.ready.summary)
     }
 
     @Test

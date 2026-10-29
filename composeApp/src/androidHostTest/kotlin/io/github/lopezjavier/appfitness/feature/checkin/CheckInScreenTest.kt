@@ -125,6 +125,22 @@ class CheckInScreenTest {
     }
 
     @Test
+    fun weeklySummary_showsTheNameOfCatalogueAndCustomExercises() {
+        val records = listOf(
+            WeekRecord("bench", PersonalRecordType.HeaviestLift, 100.0, FRIDAY),
+            WeekRecord("grip", PersonalRecordType.BestSet, 30.0, FRIDAY),
+        )
+        show(
+            (ready(summary(records = records)) as CheckInUiState.Ready).copy(
+                exerciseNames = mapOf("bench" to "Press banca", "grip" to "Hand grip"),
+            ),
+        )
+
+        rule.onNodeWithTag("checkin_summary_record_0").assertTextContains("Press banca", substring = true)
+        rule.onNodeWithTag("checkin_summary_record_1").assertTextContains("Hand grip", substring = true)
+    }
+
+    @Test
     fun weeklySummary_weightTrendShowsTheSignedDelta() {
         show()
 
