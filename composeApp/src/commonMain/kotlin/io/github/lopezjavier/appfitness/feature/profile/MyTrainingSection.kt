@@ -36,6 +36,8 @@ import io.github.lopezjavier.appfitness.designsystem.AppOption
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
 import io.github.lopezjavier.appfitness.designsystem.AppToggleChip
 import io.github.lopezjavier.appfitness.designsystem.NavigationRow
+import io.github.lopezjavier.appfitness.designsystem.OptionPickerSheet
+import io.github.lopezjavier.appfitness.designsystem.PickerOption
 import io.github.lopezjavier.appfitness.designsystem.SegmentedSelector
 import io.github.lopezjavier.appfitness.designsystem.Spacing
 import io.github.lopezjavier.appfitness.designsystem.durationText
@@ -158,7 +160,7 @@ private fun IntentionPicker(current: TrainingIntention?, onEvent: (PreferencesEv
             onEvent(PreferencesEvent.SetIntention(it))
         }
     }
-    MyTrainingPickerSheet(
+    OptionPickerSheet(
         title = stringResource(Res.string.my_training_intention_label),
         tagPrefix = "preferences_intention",
         options = listOf(none) + options,
@@ -174,7 +176,7 @@ private fun DaysPicker(current: Int?, onEvent: (PreferencesEvent) -> Unit, onClo
     val options = MyTraining.DAYS.map {
         PickerOption("$it", daysText(it), it == current) { onEvent(PreferencesEvent.SetDaysPerWeek(it)) }
     }
-    MyTrainingPickerSheet(
+    OptionPickerSheet(
         title = stringResource(Res.string.my_training_days_label),
         tagPrefix = "preferences_days",
         options = listOf(none) + options,
@@ -192,7 +194,7 @@ private fun SessionPicker(current: Int?, onEvent: (PreferencesEvent) -> Unit, on
             onEvent(PreferencesEvent.SetSessionMinutes(it))
         }
     }
-    MyTrainingPickerSheet(
+    OptionPickerSheet(
         title = stringResource(Res.string.my_training_session_label),
         tagPrefix = "preferences_session",
         options = listOf(none) + options,

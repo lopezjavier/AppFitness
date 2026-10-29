@@ -13,6 +13,7 @@ import io.github.lopezjavier.appfitness.domain.model.ExerciseMetricType
 import io.github.lopezjavier.appfitness.domain.model.FoodPreferences
 import io.github.lopezjavier.appfitness.domain.model.LatestComposition
 import io.github.lopezjavier.appfitness.domain.model.ManualWeightSave
+import io.github.lopezjavier.appfitness.domain.model.MovementPattern
 import io.github.lopezjavier.appfitness.domain.model.MuscleGroup
 import io.github.lopezjavier.appfitness.domain.model.NutritionGoals
 import io.github.lopezjavier.appfitness.domain.model.PreviousValuesMode
@@ -137,6 +138,7 @@ class UnconfiguredExerciseRepository : ExerciseRepository {
         equipment: Equipment,
         metricType: ExerciseMetricType,
         perHand: Boolean,
+        movementPattern: MovementPattern?,
     ): Result<Exercise> = Result.failure(AppException(AppError.Unknown))
 
     override suspend fun updateCustom(
@@ -145,6 +147,7 @@ class UnconfiguredExerciseRepository : ExerciseRepository {
         muscleGroup: MuscleGroup,
         equipment: Equipment,
         perHand: Boolean,
+        movementPattern: MovementPattern?,
     ): Result<Unit> = Result.failure(AppException(AppError.Unknown))
 
     override suspend fun deleteCustom(id: String): Result<Unit> = Result.failure(AppException(AppError.Unknown))

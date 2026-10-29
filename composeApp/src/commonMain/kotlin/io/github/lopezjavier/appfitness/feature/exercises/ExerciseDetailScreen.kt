@@ -57,6 +57,7 @@ import io.github.lopezjavier.appfitness.designsystem.Spacing
 import io.github.lopezjavier.appfitness.designsystem.WindowWidthClass
 import io.github.lopezjavier.appfitness.designsystem.windowWidthClassFor
 import io.github.lopezjavier.appfitness.domain.model.Equipment
+import io.github.lopezjavier.appfitness.domain.model.MovementPattern
 import io.github.lopezjavier.appfitness.domain.model.MuscleGroup
 import io.github.lopezjavier.appfitness.domain.port.Clock
 import kotlinx.datetime.LocalDate
@@ -80,6 +81,7 @@ class ExerciseDetailActions(
     val onEditMuscleGroup: (MuscleGroup) -> Unit = {},
     val onEditEquipment: (Equipment) -> Unit = {},
     val onEditPerHand: (Boolean) -> Unit = {},
+    val onEditMovementPattern: (MovementPattern?) -> Unit = {},
     val onSubmitEdit: () -> Unit = {},
     val onDelete: () -> Unit = {},
 )
@@ -143,6 +145,7 @@ fun ExerciseDetailRoot(
             onEditMuscleGroup = viewModel::selectEditMuscleGroup,
             onEditEquipment = viewModel::selectEditEquipment,
             onEditPerHand = viewModel::setEditPerHand,
+            onEditMovementPattern = viewModel::setEditMovementPattern,
             onSubmitEdit = viewModel::submitEdit,
             onDelete = viewModel::delete,
         )
@@ -267,6 +270,7 @@ private fun ExerciseDetailActions.toFormActions() = ExerciseFormActions(
     onMuscleGroup = onEditMuscleGroup,
     onEquipment = onEditEquipment,
     onPerHand = onEditPerHand,
+    onMovementPattern = onEditMovementPattern,
     onMetricType = {},
     onSubmit = onSubmitEdit,
     onDismiss = onDismissEdit,

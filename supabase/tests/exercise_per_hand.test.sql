@@ -38,9 +38,9 @@ select is((select per_hand from public.exercises where key = 'hammer-curl'), tru
 select is((select per_hand from public.exercises where key = 'concentration-curl'), false,
   'concentration-curl (one hand) is not');
 select is((select per_hand from public.exercises where key = 'bench-press'), false, 'bench-press is not');
-select ok(has_function_privilege('authenticated', 'public.update_custom_exercise(uuid, text, public.muscle_group, public.equipment, boolean)', 'execute'),
+select ok(has_function_privilege('authenticated', 'public.update_custom_exercise(uuid, text, public.muscle_group, public.equipment, boolean, public.movement_pattern)', 'execute'),
   'authenticated can execute update_custom_exercise');
-select ok(not has_function_privilege('anon', 'public.update_custom_exercise(uuid, text, public.muscle_group, public.equipment, boolean)', 'execute'),
+select ok(not has_function_privilege('anon', 'public.update_custom_exercise(uuid, text, public.muscle_group, public.equipment, boolean, public.movement_pattern)', 'execute'),
   'anon cannot execute update_custom_exercise');
 select ok(has_function_privilege('authenticated', 'public.delete_custom_exercise(uuid)', 'execute'),
   'authenticated can execute delete_custom_exercise');

@@ -3,6 +3,7 @@ package io.github.lopezjavier.appfitness.domain.repository
 import io.github.lopezjavier.appfitness.domain.model.Equipment
 import io.github.lopezjavier.appfitness.domain.model.Exercise
 import io.github.lopezjavier.appfitness.domain.model.ExerciseMetricType
+import io.github.lopezjavier.appfitness.domain.model.MovementPattern
 import io.github.lopezjavier.appfitness.domain.model.MuscleGroup
 
 /** The exercise catalog plus the signed-in user's custom exercises. A failure carries an `AppException`. */
@@ -20,15 +21,21 @@ interface ExerciseRepository {
         equipment: Equipment,
         metricType: ExerciseMetricType = ExerciseMetricType.WeightReps,
         perHand: Boolean = false,
+        movementPattern: MovementPattern? = null,
     ): Result<Exercise>
 
-    /** Edits an own custom exercise (the metric type is fixed); `NotFound` when it is not an own custom one. */
+    /**
+     * Edits an own custom exercise (the metric type is fixed); `NotFound` when it is not an own custom one.
+     * A null [movementPattern] clears it.
+     */
+    @Suppress("LongParameterList") // One argument per editable column.
     suspend fun updateCustom(
         id: String,
         name: String,
         muscleGroup: MuscleGroup,
         equipment: Equipment,
         perHand: Boolean,
+        movementPattern: MovementPattern?,
     ): Result<Unit>
 
     /** Deletes an own custom exercise; `InUse(sets, routines)` (nothing deleted) while something references it. */

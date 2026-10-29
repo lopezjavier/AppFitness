@@ -1,6 +1,6 @@
 @file:Suppress("MatchingDeclarationName") // The option holder sits next to the picker sheet that renders it.
 
-package io.github.lopezjavier.appfitness.feature.profile
+package io.github.lopezjavier.appfitness.designsystem
 
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.layout.size
@@ -16,26 +16,17 @@ import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
 import io.github.lopezjavier.appfitness.composeapp.resources.Res
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_check
-import io.github.lopezjavier.appfitness.designsystem.AppListRow
-import io.github.lopezjavier.appfitness.designsystem.AppPickerSheet
-import io.github.lopezjavier.appfitness.designsystem.AppTheme
-import io.github.lopezjavier.appfitness.designsystem.Spacing
 import org.jetbrains.compose.resources.painterResource
 
-/** One row of a [MyTrainingPickerSheet]: its [tag] suffix, visible [label] and whether it is the chosen value. */
+/** One row of an [OptionPickerSheet]: its [tag] suffix, visible [label] and whether it is the chosen value. */
 internal class PickerOption(val tag: String, val label: String, val isSelected: Boolean, val onPick: () -> Unit)
 
 /**
- * Picker archetype shared by the three "Mi entrenamiento" rows: a tap applies the option to the draft and closes
- * (R-12); the chosen row shows a check and is scrolled into view. Rows are tagged `<tagPrefix>_option_<tag>`.
+ * Picker archetype for a plain single-choice list: a tap applies the option to the draft and closes (R-12); the
+ * chosen row shows a check and is scrolled into view. Rows are tagged `<tagPrefix>_option_<tag>`.
  */
 @Composable
-internal fun MyTrainingPickerSheet(
-    title: String,
-    tagPrefix: String,
-    options: List<PickerOption>,
-    onClose: () -> Unit,
-) {
+internal fun OptionPickerSheet(title: String, tagPrefix: String, options: List<PickerOption>, onClose: () -> Unit) {
     AppPickerSheet(title = title, onDismiss = onClose, testTagPrefix = "${tagPrefix}_sheet") {
         options.forEach { option ->
             PickerRow(tagPrefix, option, onClose)

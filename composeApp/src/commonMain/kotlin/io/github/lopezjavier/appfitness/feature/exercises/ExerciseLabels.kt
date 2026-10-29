@@ -9,6 +9,18 @@ import io.github.lopezjavier.appfitness.composeapp.resources.equipment_dumbbell
 import io.github.lopezjavier.appfitness.composeapp.resources.equipment_kettlebell
 import io.github.lopezjavier.appfitness.composeapp.resources.equipment_machine
 import io.github.lopezjavier.appfitness.composeapp.resources.equipment_other
+import io.github.lopezjavier.appfitness.composeapp.resources.movement_pattern_cardio
+import io.github.lopezjavier.appfitness.composeapp.resources.movement_pattern_carry
+import io.github.lopezjavier.appfitness.composeapp.resources.movement_pattern_core
+import io.github.lopezjavier.appfitness.composeapp.resources.movement_pattern_hinge
+import io.github.lopezjavier.appfitness.composeapp.resources.movement_pattern_horizontal_pull
+import io.github.lopezjavier.appfitness.composeapp.resources.movement_pattern_horizontal_push
+import io.github.lopezjavier.appfitness.composeapp.resources.movement_pattern_isolation
+import io.github.lopezjavier.appfitness.composeapp.resources.movement_pattern_lunge
+import io.github.lopezjavier.appfitness.composeapp.resources.movement_pattern_other
+import io.github.lopezjavier.appfitness.composeapp.resources.movement_pattern_squat
+import io.github.lopezjavier.appfitness.composeapp.resources.movement_pattern_vertical_pull
+import io.github.lopezjavier.appfitness.composeapp.resources.movement_pattern_vertical_push
 import io.github.lopezjavier.appfitness.composeapp.resources.muscle_back
 import io.github.lopezjavier.appfitness.composeapp.resources.muscle_biceps
 import io.github.lopezjavier.appfitness.composeapp.resources.muscle_calves
@@ -23,6 +35,7 @@ import io.github.lopezjavier.appfitness.composeapp.resources.muscle_quads
 import io.github.lopezjavier.appfitness.composeapp.resources.muscle_shoulders
 import io.github.lopezjavier.appfitness.composeapp.resources.muscle_triceps
 import io.github.lopezjavier.appfitness.domain.model.Equipment
+import io.github.lopezjavier.appfitness.domain.model.MovementPattern
 import io.github.lopezjavier.appfitness.domain.model.MuscleGroup
 import org.jetbrains.compose.resources.StringResource
 
@@ -60,6 +73,24 @@ internal val Equipment.label: StringResource
             Equipment.Kettlebell -> Res.string.equipment_kettlebell
             Equipment.Band -> Res.string.equipment_band
             Equipment.Other -> Res.string.equipment_other
+        }
+
+/** Spanish label of this movement pattern. */
+internal val MovementPattern.label: StringResource
+    get() =
+        when (this) {
+            MovementPattern.Squat -> Res.string.movement_pattern_squat
+            MovementPattern.Hinge -> Res.string.movement_pattern_hinge
+            MovementPattern.Lunge -> Res.string.movement_pattern_lunge
+            MovementPattern.HorizontalPush -> Res.string.movement_pattern_horizontal_push
+            MovementPattern.VerticalPush -> Res.string.movement_pattern_vertical_push
+            MovementPattern.HorizontalPull -> Res.string.movement_pattern_horizontal_pull
+            MovementPattern.VerticalPull -> Res.string.movement_pattern_vertical_pull
+            MovementPattern.Carry -> Res.string.movement_pattern_carry
+            MovementPattern.Core -> Res.string.movement_pattern_core
+            MovementPattern.Isolation -> Res.string.movement_pattern_isolation
+            MovementPattern.Cardio -> Res.string.movement_pattern_cardio
+            MovementPattern.Other -> Res.string.movement_pattern_other
         }
 
 /** Test-tag suffix of an enum value: `FullBody` gives `full_body`. */

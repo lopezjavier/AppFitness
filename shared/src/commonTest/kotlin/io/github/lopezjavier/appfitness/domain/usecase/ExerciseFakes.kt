@@ -7,6 +7,7 @@ import io.github.lopezjavier.appfitness.domain.model.Equipment
 import io.github.lopezjavier.appfitness.domain.model.Exercise
 import io.github.lopezjavier.appfitness.domain.model.ExerciseInfo
 import io.github.lopezjavier.appfitness.domain.model.ExerciseMetricType
+import io.github.lopezjavier.appfitness.domain.model.MovementPattern
 import io.github.lopezjavier.appfitness.domain.model.MuscleGroup
 import io.github.lopezjavier.appfitness.domain.port.ExerciseLibrary
 import io.github.lopezjavier.appfitness.domain.repository.ExerciseRepository
@@ -53,11 +54,12 @@ class FakeExerciseRepository(var rows: List<Exercise> = emptyList(), var failure
         equipment: Equipment,
         metricType: ExerciseMetricType,
         perHand: Boolean,
+        movementPattern: MovementPattern?,
     ): Result<Exercise> {
         createCalls++
         createFailure?.let { return Result.failure(AppException(it)) }
         val created = catalogRow("custom-$createCalls", null, muscleGroup, equipment, name, custom = true)
-            .copy(perHand = perHand)
+            .copy(perHand = perHand, movementPattern = movementPattern)
         rows = rows + created
         return Result.success(created)
     }
@@ -68,13 +70,20 @@ class FakeExerciseRepository(var rows: List<Exercise> = emptyList(), var failure
         muscleGroup: MuscleGroup,
         equipment: Equipment,
         perHand: Boolean,
+        movementPattern: MovementPattern?,
     ): Result<Unit> {
         if (rows.none { it.id == id && it.isCustom }) return Result.failure(AppException(AppError.NotFound))
         rows = rows.map {
             if (it.id ==
                 id
             ) {
-                it.copy(name = name, muscleGroup = muscleGroup, equipment = equipment, perHand = perHand)
+                it.copy(
+                    name = name,
+                    muscleGroup = muscleGroup,
+                    equipment = equipment,
+                    perHand = perHand,
+                    movementPattern = movementPattern,
+                )
             } else {
                 it
             }

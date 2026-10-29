@@ -3,6 +3,7 @@ package io.github.lopezjavier.appfitness.feature.exercises
 import io.github.lopezjavier.appfitness.domain.model.CatalogExercise
 import io.github.lopezjavier.appfitness.domain.model.Equipment
 import io.github.lopezjavier.appfitness.domain.model.ExerciseMetricType
+import io.github.lopezjavier.appfitness.domain.model.MovementPattern
 import io.github.lopezjavier.appfitness.domain.model.MuscleGroup
 
 /** The "create exercise" sheet. Nothing is pre-selected, so a wrong default can never be submitted. */
@@ -14,6 +15,8 @@ data class CreateExerciseForm(
     val metricType: ExerciseMetricType = ExerciseMetricType.WeightReps,
     /** The logged weight is per hand/side (volume counts twice); off by default. */
     val perHand: Boolean = false,
+    /** Optional movement pattern (E13 coach data); null = "Sin definir". */
+    val movementPattern: MovementPattern? = null,
     val isSubmitting: Boolean = false,
 ) {
     val canSubmit: Boolean get() = name.isNotBlank() && muscleGroup != null && equipment != null && !isSubmitting
@@ -71,6 +74,9 @@ sealed interface ExercisePickerEvent {
     data class SelectCreateMetricType(val metricType: ExerciseMetricType) : ExercisePickerEvent
 
     data class SetCreatePerHand(val perHand: Boolean) : ExercisePickerEvent
+
+    /** Null clears the pattern ("Sin definir"). */
+    data class SetCreateMovementPattern(val movementPattern: MovementPattern?) : ExercisePickerEvent
 
     data object SubmitCreate : ExercisePickerEvent
 }
