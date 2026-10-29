@@ -116,7 +116,7 @@ Each checkpoint also has "leave the app and come back: the same tab, screen and 
 ### Phase 2: Notes and static inputs for the coach (US-66, US-65, data task)
 - [x] T-152: Discomfort level scale (ADR-81) and help on every rating scale (R-45); before re-presenting Checkpoint E12-A — L (merged #346)
 - [x] T-148: Notes per set and per routine exercise, and the chosen rest sound — L (no checkpoint after it; `deploy-supabase` green before T-149)
-- [ ] T-149: "Mi entrenamiento" — M (no checkpoint after it; `deploy-supabase` green before T-150)
+- [x] T-149: "Mi entrenamiento" — M (no checkpoint after it; `deploy-supabase` green before T-150)
 - [ ] T-150: Movement pattern — M
   - **Checkpoint E12-B 👤 (7 items):** chosen sound; notes; note limits; intention; place, equipment, days and length; movement pattern; final regression of E12. Releases T-151.
 
