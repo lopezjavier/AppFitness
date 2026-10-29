@@ -161,14 +161,13 @@ class TrainerViewModelTest {
     }
 
     @Test
-    fun saveEdit_passesTheChosenLevel_closesTheSheetAndShowsEdited() = runTest(dispatcher) {
+    fun pickLevel_commitsAtOnce_closesTheSheetAndShowsEdited() = runTest(dispatcher) {
         val model = viewModel()
         advanceUntilIdle()
 
         model.onEvent(TrainerEvent.OpenEdit)
         assertEquals(ActivityLevel.Light, model.content().editSheet)
         model.onEvent(TrainerEvent.PickLevel(ActivityLevel.Moderate))
-        model.onEvent(TrainerEvent.SaveEdit)
         advanceUntilIdle()
 
         assertEquals(listOf<Pair<LocalDate, ActivityLevel?>>(TODAY to ActivityLevel.Moderate), repository.confirmCalls)
@@ -195,20 +194,61 @@ class TrainerViewModelTest {
     }
 
     @Test
-    fun offlineConfirmFailure_flagsOffline_andSheetFailureKeepsTheDraft() = runTest(dispatcher) {
+    fun offlineConfirmFailure_flagsOffline_andKeepsTheSheetOpen() = runTest(dispatcher) {
         repository.confirmResult = { _ -> Result.failure<CoachDerivedValues>(AppException(AppError.Network)) }
         val model = viewModel()
         advanceUntilIdle()
         model.onEvent(TrainerEvent.OpenEdit)
-        model.onEvent(TrainerEvent.PickLevel(ActivityLevel.High))
 
         model.effects.test {
-            model.onEvent(TrainerEvent.SaveEdit)
+            model.onEvent(TrainerEvent.PickLevel(ActivityLevel.High))
             advanceUntilIdle()
             assertEquals(TrainerEffect.ConfirmFailed(fromSheet = true, offline = true), awaitItem())
         }
 
-        assertEquals(ActivityLevel.High, model.content().editSheet)
+        assertEquals(ActivityLevel.Light, model.content().editSheet)
+        assertFalse(model.content().confirming)
+    }
+
+    @Test
+    fun pickLevel_emitsConfirmed() = runTest(dispatcher) {
+        val model = viewModel()
+        advanceUntilIdle()
+        model.onEvent(TrainerEvent.OpenEdit)
+
+        model.effects.test {
+            model.onEvent(TrainerEvent.PickLevel(ActivityLevel.High))
+            advanceUntilIdle()
+            assertEquals(TrainerEffect.Confirmed, awaitItem())
+        }
+    }
+
+    @Test
+    fun pickLevel_ofTheAlreadySelectedLevel_stillConfirms() = runTest(dispatcher) {
+        val model = viewModel()
+        advanceUntilIdle()
+        model.onEvent(TrainerEvent.OpenEdit)
+
+        model.onEvent(TrainerEvent.PickLevel(ActivityLevel.Light))
+        advanceUntilIdle()
+
+        assertEquals(listOf<Pair<LocalDate, ActivityLevel?>>(TODAY to ActivityLevel.Light), repository.confirmCalls)
+    }
+
+    @Test
+    fun secondPickWhileConfirming_isIgnored() = runTest(dispatcher) {
+        repository.gate = CompletableDeferred()
+        val model = viewModel()
+        advanceUntilIdle()
+        model.onEvent(TrainerEvent.OpenEdit)
+
+        model.onEvent(TrainerEvent.PickLevel(ActivityLevel.High))
+        advanceUntilIdle()
+        model.onEvent(TrainerEvent.PickLevel(ActivityLevel.VeryHigh))
+        repository.gate!!.complete(Unit)
+        advanceUntilIdle()
+
+        assertEquals(listOf<Pair<LocalDate, ActivityLevel?>>(TODAY to ActivityLevel.High), repository.confirmCalls)
     }
 
     @Test
@@ -247,12 +287,11 @@ class TrainerViewModelTest {
     }
 
     @Test
-    fun closeEdit_discardsTheDraftSilently() = runTest(dispatcher) {
+    fun closeEdit_closesTheSheetWithoutConfirming() = runTest(dispatcher) {
         val saved = SavedStateHandle()
         val model = viewModel(saved)
         advanceUntilIdle()
         model.onEvent(TrainerEvent.OpenEdit)
-        model.onEvent(TrainerEvent.PickLevel(ActivityLevel.High))
 
         model.onEvent(TrainerEvent.CloseEdit)
 
@@ -262,17 +301,31 @@ class TrainerViewModelTest {
     }
 
     @Test
-    fun recreatedFromTheSameSavedState_keepsTheSheetDraft() = runTest(dispatcher) {
+    fun recreatedFromTheSameSavedState_keepsTheOpenSheet() = runTest(dispatcher) {
         val saved = SavedStateHandle()
         val first = viewModel(saved)
         advanceUntilIdle()
         first.onEvent(TrainerEvent.OpenEdit)
-        first.onEvent(TrainerEvent.PickLevel(ActivityLevel.VeryHigh))
 
         val second = viewModel(saved)
         advanceUntilIdle()
 
-        assertEquals(ActivityLevel.VeryHigh, second.content().editSheet)
+        assertEquals(ActivityLevel.Light, second.content().editSheet)
+    }
+
+    @Test
+    fun recreatedAfterASuccessfulPick_startsWithTheSheetClosed() = runTest(dispatcher) {
+        val saved = SavedStateHandle()
+        val first = viewModel(saved)
+        advanceUntilIdle()
+        first.onEvent(TrainerEvent.OpenEdit)
+        first.onEvent(TrainerEvent.PickLevel(ActivityLevel.High))
+        advanceUntilIdle()
+
+        val second = viewModel(saved)
+        advanceUntilIdle()
+
+        assertNull(second.content().editSheet)
     }
 
     @Test
@@ -281,7 +334,9 @@ class TrainerViewModelTest {
         advanceUntilIdle()
 
         model.onEvent(TrainerEvent.PickLevel(ActivityLevel.High))
+        advanceUntilIdle()
 
+        assertTrue(repository.confirmCalls.isEmpty())
         assertNull(model.content().editSheet)
     }
 }

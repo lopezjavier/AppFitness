@@ -314,6 +314,7 @@ internal fun ActivityCards(
     onSelect: (ActivityLevel) -> Unit,
     tagPrefix: String,
     modifier: Modifier = Modifier,
+    enabled: Boolean = true,
 ) {
     Column(modifier.selectableGroup(), verticalArrangement = Arrangement.spacedBy(Spacing.cardGap)) {
         ActivityOptions.forEach { option ->
@@ -323,6 +324,7 @@ internal fun ActivityCards(
                 selected = selected == option.level,
                 onClick = { onSelect(option.level) },
                 modifier = Modifier.testTag("${tagPrefix}_activity_${option.tagName}"),
+                enabled = enabled,
             )
         }
     }

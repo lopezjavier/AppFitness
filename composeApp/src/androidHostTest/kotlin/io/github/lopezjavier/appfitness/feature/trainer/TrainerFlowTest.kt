@@ -1,10 +1,13 @@
 package io.github.lopezjavier.appfitness.feature.trainer
 
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertHeightIsAtLeast
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.getUnclippedBoundsInRoot
+import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
@@ -21,6 +24,8 @@ import io.github.lopezjavier.appfitness.domain.model.ActivityLevel
 import io.github.lopezjavier.appfitness.domain.model.CoachDerivedValues
 import io.github.lopezjavier.appfitness.domain.model.CoachMissing
 import io.github.lopezjavier.appfitness.domain.model.DerivedActivityLevel
+import io.github.lopezjavier.appfitness.feature.notifications.LocalNotificationsEntry
+import io.github.lopezjavier.appfitness.feature.notifications.NotificationsEntry
 import io.github.lopezjavier.appfitness.feature.workout.MutableClock
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
@@ -44,6 +49,18 @@ class TrainerFlowTest {
     private fun show(saved: SavedStateHandle = SavedStateHandle()) {
         val model = TrainerViewModel(repository, MutableClock(), saved)
         rule.setContent { AppTheme { TrainerRoute(viewModel = model, connectivity = connectivity) } }
+        rule.waitForIdle()
+    }
+
+    private fun showWithBell(entry: NotificationsEntry) {
+        val model = TrainerViewModel(repository, MutableClock(), SavedStateHandle())
+        rule.setContent {
+            AppTheme {
+                CompositionLocalProvider(LocalNotificationsEntry provides entry) {
+                    TrainerRoute(viewModel = model, connectivity = connectivity)
+                }
+            }
+        }
         rule.waitForIdle()
     }
 
@@ -115,31 +132,91 @@ class TrainerFlowTest {
     }
 
     @Test
-    fun editingTheLevel_showsTheFiveCards_andTheEditedValueAfterSaving() {
+    fun editingTheLevel_showsTheFiveCards_withoutAFooter_andTappingACardAppliesAtOnce() {
         show()
         tap("trainer_edit_activity_button")
         listOf("sedentary", "light", "moderate", "high", "very_high").forEach {
             rule.onNodeWithTag("activity_level_sheet_activity_$it").assertExists()
         }
+        rule.onNodeWithTag("activity_level_sheet_commit").assertDoesNotExist()
+        rule.onNodeWithText("Guardar").assertDoesNotExist()
+
         tap("activity_level_sheet_activity_moderate")
 
-        tap("activity_level_sheet_commit")
-
-        rule.onNodeWithTag("activity_level_sheet_commit").assertDoesNotExist()
+        rule.onNodeWithTag("activity_level_sheet_close").assertDoesNotExist()
         rule.onNodeWithText("Moderado · Editado por ti").assertExists()
         assertEquals(listOf<ActivityLevel?>(ActivityLevel.Moderate), repository.confirmCalls.map { it.second })
     }
 
     @Test
-    fun editSheet_closesWithX_withoutSaving() {
+    fun editSheet_closesWithX_withoutConfirming() {
         show()
         tap("trainer_edit_activity_button")
-        tap("activity_level_sheet_activity_high")
 
         tap("activity_level_sheet_close")
 
-        rule.onNodeWithTag("activity_level_sheet_commit").assertDoesNotExist()
+        rule.onNodeWithTag("activity_level_sheet_activity_high").assertDoesNotExist()
         assertTrue(repository.confirmCalls.isEmpty())
+    }
+
+    @Test
+    fun failedTap_keepsTheSheetOpen_andTheValuesUnchanged() {
+        repository.confirmResult = { Result.failure(AppException(AppError.Unknown)) }
+        show()
+        tap("trainer_edit_activity_button")
+
+        tap("activity_level_sheet_activity_high")
+
+        rule.onNodeWithTag("activity_level_sheet_activity_high").assertExists().assertIsEnabled()
+        rule.onNodeWithText("Ligero · Según tu perfil").assertExists()
+        assertEquals(listOf<ActivityLevel?>(ActivityLevel.High), repository.confirmCalls.map { it.second })
+    }
+
+    @Test
+    fun offline_sheetCardsAreDisabled_andTheHintIsInTheBody() {
+        show()
+        tap("trainer_edit_activity_button")
+        rule.onNodeWithTag("trainer_sheet_offline").assertDoesNotExist()
+
+        connectivity.state.value = false
+        rule.waitForIdle()
+
+        rule.onNodeWithTag("trainer_sheet_offline")
+            .assertTextEquals("Sin conexión: no puedes cambiar el nivel ahora.")
+        rule.onNodeWithTag("activity_level_sheet_activity_high").assertIsNotEnabled()
+        rule.onNodeWithTag("trainer_sheet_note").assertExists()
+    }
+
+    @Test
+    fun bell_isShownWithTheCount_andOpensTheNotificationCenter() {
+        var opened = 0
+        showWithBell(NotificationsEntry(count = 2, onOpen = { opened++ }))
+
+        tap("trainer_action_notifications")
+
+        assertEquals(1, opened)
+    }
+
+    @Test
+    fun bell_isAlsoShownInTheErrorAndOfflineStates() {
+        repository.loaded = Result.failure(AppException(AppError.Unknown))
+        showWithBell(NotificationsEntry(count = 0, onOpen = {}))
+        rule.onNodeWithTag("trainer_action_notifications").assertExists()
+    }
+
+    @Test
+    fun bell_isAlsoShownWhenOffline() {
+        repository.loaded = Result.failure(AppException(AppError.Network))
+        showWithBell(NotificationsEntry(count = 0, onOpen = {}))
+        rule.onNodeWithText("Sin conexión").assertExists()
+        rule.onNodeWithTag("trainer_action_notifications").assertExists()
+    }
+
+    @Test
+    fun bell_isHiddenWithoutANotificationsEntry() {
+        show()
+
+        rule.onNodeWithTag("trainer_action_notifications").assertDoesNotExist()
     }
 
     @Test
@@ -153,14 +230,15 @@ class TrainerFlowTest {
     }
 
     @Test
-    fun weightTrend_showsItsInterval_andTheLowConfidenceNote() {
+    fun weightTrend_readsAsAPlainSentence_andTheLowConfidenceNote() {
         repository.loaded = Result.success(
             coachValues().let { it.copy(weightTrend = it.weightTrend.copy(lowConfidence = true)) },
         )
 
         show()
 
-        rule.onNodeWithText("−0,4 kg/sem (±0,2) · Según tus pesajes").assertExists()
+        rule.onNodeWithText("Bajando 0,4 kg por semana · Según tus pesajes").assertExists()
+        rule.onAllNodes(hasText("±", substring = true)).assertCountEquals(0)
         rule.onNodeWithTag("trainer_trend_note")
             .assertTextEquals("Pocas semanas de datos: la tendencia es orientativa.")
     }

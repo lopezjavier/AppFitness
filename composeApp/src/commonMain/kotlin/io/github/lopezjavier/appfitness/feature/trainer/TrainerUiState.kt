@@ -33,10 +33,8 @@ sealed interface TrainerEvent {
 
     data object OpenEdit : TrainerEvent
 
+    /** A card tapped in the sheet: confirms every value with that level at once (R-12); ignored with it closed. */
     data class PickLevel(val level: ActivityLevel) : TrainerEvent
-
-    /** "Guardar" in the sheet: confirms with the picked level. */
-    data object SaveEdit : TrainerEvent
 
     data object CloseEdit : TrainerEvent
 }
