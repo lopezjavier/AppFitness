@@ -1298,9 +1298,15 @@
     <string name="live_exercise_menu_discomfort_offline">Sin conexión: no se puede registrar la molestia</string>
     <string name="live_discomfort_sheet_title">Molestia</string>
     <string name="live_discomfort_note_label">Nota (opcional)</string>
-    <string name="live_discomfort_note_too_long">Máximo 200 caracteres</string>
-    <string name="live_discomfort_registered">Molestia registrada</string>
-    <string name="live_discomfort_registered_cd">Molestia registrada, nivel %1$s</string>
+    <string name="live_discomfort_block_cd">Molestia: %1$s</string>
+    <string name="note_too_long">Máximo 200 caracteres</string>
+    <string name="note_label">Nota</string>
+    <string name="note_add">Añadir nota</string>
+    <string name="note_edit">Editar nota</string>
+    <string name="note_set_add_cd">Añadir nota a la serie %1$d</string>
+    <string name="note_set_edit_cd">Editar nota de la serie %1$d</string>
+    <string name="note_sheet_set_title">Nota de la serie %1$d</string>
+    <string name="note_sheet_exercise_title">Nota del ejercicio</string>
     <string name="live_discomfort_level_label">Nivel</string>
     <string name="live_discomfort_level_1">Tensión o fatiga</string>
     <string name="live_discomfort_level_2">Molestia leve</string>
@@ -1615,11 +1621,5 @@
     <string name="checkin_save_error_offline">Sin conexión: no se puede guardar el check-in</string>
 
     <!-- TEMPORARY (T-146, removed by T-148): end-of-rest sound chooser and the notification-permission message. -->
-    <string name="rest_sound_title">Sonido de fin de descanso</string>
-    <string name="rest_sound_about_supporting">Temporal: elige entre 3 opciones</string>
-    <string name="rest_sound_system">Sonido del sistema</string>
-    <string name="rest_sound_chime">Campana suave</string>
-    <string name="rest_sound_double_beep">Doble pitido</string>
-    <string name="rest_sound_selected">Seleccionado</string>
     <string name="rest_sound_permission_note">Para avisarte al acabar el descanso con la pantalla apagada, activa las notificaciones de AppFitness en Ajustes.</string>
 </resources>

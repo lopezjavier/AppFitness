@@ -60,7 +60,14 @@ object WorkoutDraftFactory {
                     exerciseId = exercise.exerciseId,
                     supersetGroup = exercise.supersetGroup,
                     restSeconds = session.exerciseRests[exercise.position] ?: RoutineBounds.DEFAULT_REST_SECONDS,
-                    sets = sets.map { DraftWorkoutSet(it.setType, it.rpe?.let(RpeScale::round), it.entry) },
+                    sets = sets.map {
+                        DraftWorkoutSet(
+                            it.setType,
+                            it.rpe?.let(RpeScale::round),
+                            it.entry,
+                            it.notes.takeIf { !asTemplate },
+                        )
+                    },
                 )
             }
         }

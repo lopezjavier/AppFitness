@@ -95,6 +95,19 @@ class WorkoutDraftFactoryTest {
     }
 
     @Test
+    fun fromSession_keepsTheSetNotesWhenEditing_butNotAsATemplate() {
+        val noted = session(
+            SessionExercise("a", 0, null, listOf(done(1, 50.0, 10).copy(notes = "pausa larga"))),
+        )
+
+        val edit = WorkoutDraftFactory.fromSession(noted, date)
+        val template = WorkoutDraftFactory.fromSession(noted, date, asTemplate = true)
+
+        assertEquals("pausa larga", edit.exercises.single().sets.single().notes)
+        assertNull(template.exercises.single().sets.single().notes)
+    }
+
+    @Test
     fun fromSession_asTemplateIsANewWorkoutWithoutRoutineLinkOrDuration() {
         val draft = WorkoutDraftFactory.fromSession(
             session(SessionExercise("a", 0, null, listOf(done(1, 50.0, 10)))),

@@ -32,6 +32,7 @@ interface WorkoutSessionRepository {
         completedAt: Instant?,
         setType: SetType = SetType.Working,
         rpe: Double? = null,
+        notes: String? = null,
     ): Result<Unit>
 
     /** Completed sessions, newest first; a page is [limit] rows starting at [offset]. */

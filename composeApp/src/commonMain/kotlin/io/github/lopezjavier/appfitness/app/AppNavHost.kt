@@ -30,7 +30,6 @@ import androidx.navigation.toRoute
 import io.github.lopezjavier.appfitness.domain.model.ReminderKind
 import io.github.lopezjavier.appfitness.feature.catalog.ComponentCatalogScreen
 import io.github.lopezjavier.appfitness.feature.diary.DiaryEditHost
-import io.github.lopezjavier.appfitness.feature.profile.RestSoundChooserRoot
 import io.github.lopezjavier.appfitness.feature.templates.PICKED_FOOD_KEY
 import io.github.lopezjavier.appfitness.feature.templates.pickedFoodResult
 import io.github.lopezjavier.appfitness.feature.workout.PastWorkoutSource
@@ -57,7 +56,7 @@ internal typealias ProfileSlot =
 internal typealias ActivitySlot = @Composable (modifier: Modifier, onBack: () -> Unit) -> Unit
 
 /** Content of "Acerca de": its modifier (full-screen insets) and how to leave. */
-internal typealias AboutSlot = @Composable (modifier: Modifier, onBack: () -> Unit, onOpenRestSound: () -> Unit) -> Unit
+internal typealias AboutSlot = @Composable (modifier: Modifier, onBack: () -> Unit) -> Unit
 
 /**
  * Content of the Preferencias hub: its modifier (full-screen insets), how to leave, and the openers of a section
@@ -548,7 +547,7 @@ internal val DefaultActivitySlot: ActivitySlot = { modifier, _ ->
 }
 
 /** Empty "Acerca de" for previews and shell tests; the real one is wired by `AppRoot`. */
-internal val DefaultAboutSlot: AboutSlot = { modifier, _, _ ->
+internal val DefaultAboutSlot: AboutSlot = { modifier, _ ->
     Box(modifier.fillMaxSize().testTag("about_screen"))
 }
 
@@ -706,15 +705,7 @@ internal fun AppNavHost(
             activity(Modifier.padding(fullScreenPadding)) { navController.popFullScreen(entry) }
         }
         composable<AboutRoute> { entry ->
-            about(
-                Modifier.padding(fullScreenPadding),
-                { navController.popFullScreen(entry) },
-                { navController.navigateToFullScreen(RestSoundRoute) },
-            )
-        }
-        composable<RestSoundRoute> { entry ->
-            // TEMPORARY - removed by T-148.
-            RestSoundChooserRoot({ navController.popFullScreen(entry) }, Modifier.padding(fullScreenPadding))
+            about(Modifier.padding(fullScreenPadding)) { navController.popFullScreen(entry) }
         }
         composable<WeightRoute> { entry ->
             weight(

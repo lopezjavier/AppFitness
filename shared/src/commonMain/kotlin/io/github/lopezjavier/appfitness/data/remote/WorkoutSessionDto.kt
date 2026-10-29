@@ -3,6 +3,7 @@ package io.github.lopezjavier.appfitness.data.remote
 import io.github.lopezjavier.appfitness.domain.model.ExerciseHistoryPoint
 import io.github.lopezjavier.appfitness.domain.model.ExerciseMetricType
 import io.github.lopezjavier.appfitness.domain.model.ExerciseSessionRecords
+import io.github.lopezjavier.appfitness.domain.model.NoteText
 import io.github.lopezjavier.appfitness.domain.model.PersonalRecord
 import io.github.lopezjavier.appfitness.domain.model.PersonalRecordType
 import io.github.lopezjavier.appfitness.domain.model.PreviousSet
@@ -40,6 +41,7 @@ internal data class WorkoutSetDto(
     val floors: Int? = null,
     val rpe: Double? = null,
     @SerialName("completed_at") val completedAt: String? = null,
+    val notes: String? = null,
     // Embedded `exercises(metric_type)`; absent means the default weight and reps.
     val exercises: ExerciseMetricDto? = null,
 ) {
@@ -50,12 +52,13 @@ internal data class WorkoutSetDto(
             .toEntry(exercises?.metricType ?: ExerciseMetricType.WeightReps),
         completedAt = completedAt?.let(Instant::parse),
         rpe = rpe,
+        notes = NoteText.normalise(notes),
     )
 
     companion object {
         const val COLUMNS =
             "exercise_id,exercise_position,superset_group,set_index,set_type,weight_kg,reps,duration_s,distance_m," +
-                "steps,floors,rpe,completed_at,exercises(metric_type)"
+                "steps,floors,rpe,completed_at,notes,exercises(metric_type)"
     }
 }
 
@@ -149,6 +152,8 @@ internal data class WorkoutSetUpsertDto(
     // Always sent, even when null, so clearing the RPE reaches the server.
     @EncodeDefault val rpe: Double? = null,
     @EncodeDefault @SerialName("completed_at") val completedAt: String? = null,
+    // Always sent, even when null, so clearing the note reaches the server.
+    @EncodeDefault val notes: String? = null,
 )
 
 @Serializable

@@ -30,7 +30,6 @@ import io.github.lopezjavier.appfitness.feature.onboarding.OnboardingViewModel
 import io.github.lopezjavier.appfitness.feature.profile.AccountViewModel
 import io.github.lopezjavier.appfitness.feature.profile.PreferencesViewModel
 import io.github.lopezjavier.appfitness.feature.profile.ProfileRootViewModel
-import io.github.lopezjavier.appfitness.feature.profile.RestSoundChooserViewModel
 import io.github.lopezjavier.appfitness.feature.routines.RoutineBuilderViewModel
 import io.github.lopezjavier.appfitness.feature.routines.RoutineDetailsViewModel
 import io.github.lopezjavier.appfitness.feature.routines.RoutinesViewModel
@@ -77,7 +76,6 @@ val uiModule =
         viewModel { CheckInViewModel(get(), get(), get(), get(), savedState = get(), exercises = get()) }
         viewModelOf(::AccountViewModel)
         viewModelOf(::AboutViewModel)
-        viewModelOf(::RestSoundChooserViewModel) // TEMPORARY - removed by T-148
         // Explicit: the time zone is a defaulted constructor parameter (the device zone), not a dependency.
         viewModel {
             PreferencesViewModel(

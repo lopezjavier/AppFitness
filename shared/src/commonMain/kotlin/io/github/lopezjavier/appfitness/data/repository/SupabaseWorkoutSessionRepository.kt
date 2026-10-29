@@ -30,6 +30,7 @@ import io.github.lopezjavier.appfitness.domain.AppError
 import io.github.lopezjavier.appfitness.domain.AppException
 import io.github.lopezjavier.appfitness.domain.model.ExerciseHistoryPoint
 import io.github.lopezjavier.appfitness.domain.model.ExerciseSessionRecords
+import io.github.lopezjavier.appfitness.domain.model.NoteText
 import io.github.lopezjavier.appfitness.domain.model.PersonalRecord
 import io.github.lopezjavier.appfitness.domain.model.PreviousSet
 import io.github.lopezjavier.appfitness.domain.model.SetEntry
@@ -159,6 +160,7 @@ class SupabaseWorkoutSessionRepository(
         completedAt: Instant?,
         setType: SetType,
         rpe: Double?,
+        notes: String?,
     ): Result<Unit> = auth.ownRow {
         val columns = entry.columns()
         val dto = WorkoutSetUpsertDto(
@@ -176,6 +178,7 @@ class SupabaseWorkoutSessionRepository(
             steps = columns.steps,
             floors = columns.floors,
             rpe = rpe,
+            notes = NoteText.normalise(notes),
             completedAt = completedAt?.toString(),
         )
         postgrest.from("workout_sets").upsert(dto) { onConflict = "session_id,exercise_position,set_index" }

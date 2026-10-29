@@ -200,6 +200,43 @@ class RoutineBuilderScreenTest {
     }
 
     @Test
+    fun exerciseNote_isAddedFromTheMenu_shownUnderTheExercise_andSavedWithTheRoutine() {
+        val vm = show()
+        rule.onNodeWithTag("routine_builder_name_field").performTextInput("Torso")
+        vm.add("a")
+
+        rule.onNodeWithTag("routine_builder_menu_0").performClick()
+        rule.waitForIdle()
+        rule.onNodeWithTag("routine_builder_exercise_note_0").assertTextContains("Añadir nota")
+        rule.onNodeWithTag("routine_builder_exercise_note_0").performClick()
+        rule.waitForIdle()
+        rule.onNodeWithTag("note_sheet_field").performTextInput("bajar el peso si duele")
+        rule.onNodeWithTag("note_sheet_commit").performClick()
+        rule.waitForIdle()
+
+        rule.onNodeWithTag("routine_builder_note_0").assertTextContains("bajar el peso si duele")
+        assertTrue(repository.saved.isEmpty())
+        rule.onNodeWithTag("routine_builder_save").performClick()
+        rule.waitForIdle()
+        assertEquals("bajar el peso si duele", repository.saved.single().exercises.single().notes)
+    }
+
+    @Test
+    fun exerciseNote_over200Characters_disablesGuardarWithTheError() {
+        val vm = show()
+        vm.add("a")
+        rule.onNodeWithTag("routine_builder_menu_0").performClick()
+        rule.waitForIdle()
+        rule.onNodeWithTag("routine_builder_exercise_note_0").performClick()
+        rule.waitForIdle()
+
+        rule.onNodeWithTag("note_sheet_field").performTextInput("a".repeat(201))
+
+        rule.onNodeWithText("Máximo 200 caracteres").assertExists()
+        rule.onNodeWithTag("note_sheet_commit").assertIsNotEnabled()
+    }
+
+    @Test
     fun anExerciseReturnedByThePicker_isAddedOnce_andConsumed() {
         show()
 

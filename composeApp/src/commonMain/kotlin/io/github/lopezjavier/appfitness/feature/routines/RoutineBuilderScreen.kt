@@ -31,6 +31,7 @@ import io.github.lopezjavier.appfitness.composeapp.resources.builder_no_exercise
 import io.github.lopezjavier.appfitness.composeapp.resources.builder_save_failed
 import io.github.lopezjavier.appfitness.composeapp.resources.builder_title_edit
 import io.github.lopezjavier.appfitness.composeapp.resources.builder_title_new
+import io.github.lopezjavier.appfitness.composeapp.resources.note_sheet_exercise_title
 import io.github.lopezjavier.appfitness.designsystem.AddItemButton
 import io.github.lopezjavier.appfitness.designsystem.AppEditorScreen
 import io.github.lopezjavier.appfitness.designsystem.AppShapes
@@ -40,6 +41,7 @@ import io.github.lopezjavier.appfitness.designsystem.AppTheme
 import io.github.lopezjavier.appfitness.designsystem.ErrorState
 import io.github.lopezjavier.appfitness.designsystem.LocalAppHaptics
 import io.github.lopezjavier.appfitness.designsystem.LocalAppMessages
+import io.github.lopezjavier.appfitness.designsystem.NoteSheet
 import io.github.lopezjavier.appfitness.designsystem.ReorderableColumn
 import io.github.lopezjavier.appfitness.designsystem.SetTypePickerSheet
 import io.github.lopezjavier.appfitness.designsystem.SkeletonBox
@@ -142,6 +144,8 @@ private fun BuilderForm(
 ) {
     // The row whose menu sheet is open, by its stable id (positions change while editing).
     var menuRowId by rememberSaveable { mutableStateOf<Long?>(null) }
+    // The row whose note sheet is open (opened from the menu, which closes itself).
+    var noteRowId by rememberSaveable { mutableStateOf<Long?>(null) }
     val scrollState = rememberScrollState()
     Column(
         Modifier
@@ -181,6 +185,7 @@ private fun BuilderForm(
                     onEvent = onEvent,
                     onOpenMenu = { menuRowId = row.rowId },
                     onOpenExercise = { onOpenExercise(row.exerciseId) },
+                    onEditNote = { noteRowId = row.rowId },
                     modifier = Modifier.padding(top = if (index > 0 && !continuesGroup) Spacing.xs else Spacing.none),
                 )
             }
@@ -191,7 +196,32 @@ private fun BuilderForm(
             modifier = Modifier.testTag("routine_builder_add_exercise"),
         )
     }
-    BuilderSheets(state, menuRowId, onEvent) { menuRowId = null }
+    BuilderSheets(state, menuRowId, onEvent, onEditNote = { noteRowId = it }) { menuRowId = null }
+    BuilderNoteSheet(state, noteRowId, onEvent) { noteRowId = null }
+}
+
+/** The note sheet of the row [rowId]; "Guardar" puts the note in the draft (the routine's Guardar persists). */
+@Composable
+private fun BuilderNoteSheet(
+    state: RoutineBuilderUiState.Editing,
+    rowId: Long?,
+    onEvent: (RoutineBuilderEvent) -> Unit,
+    onClose: () -> Unit,
+) {
+    val index = state.rows.indexOfFirst { it.rowId == rowId }
+    if (index < 0) return
+    val haptics = LocalAppHaptics.current
+    NoteSheet(
+        title = stringResource(Res.string.note_sheet_exercise_title),
+        initial = state.rows[index].notes,
+        onSave = {
+            haptics.confirm()
+            onEvent(RoutineBuilderEvent.SetExerciseNote(index, it.orEmpty()))
+            onClose()
+        },
+        onDismiss = onClose,
+        testTagPrefix = "note_sheet",
+    )
 }
 
 /** The set type picker, the row menu and the calculator / double-dumbbell sheets, whichever is open. */
@@ -200,6 +230,7 @@ private fun BuilderSheets(
     state: RoutineBuilderUiState.Editing,
     menuRowId: Long?,
     onEvent: (RoutineBuilderEvent) -> Unit,
+    onEditNote: (Long) -> Unit,
     onCloseMenu: () -> Unit,
 ) {
     state.typePicker?.let { picker ->
@@ -211,7 +242,14 @@ private fun BuilderSheets(
     }
     val menuIndex = state.rows.indexOfFirst { it.rowId == menuRowId }
     if (menuIndex >= 0) {
-        BuilderRowMenu(row = state.rows[menuIndex], index = menuIndex, onEvent = onEvent, onDismiss = onCloseMenu)
+        val row = state.rows[menuIndex]
+        BuilderRowMenu(
+            row = row,
+            index = menuIndex,
+            onEvent = onEvent,
+            onEditNote = { onEditNote(row.rowId) },
+            onDismiss = onCloseMenu,
+        )
     }
     BuilderOptionSheets(state, onEvent)
 }

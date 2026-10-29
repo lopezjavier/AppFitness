@@ -34,6 +34,8 @@ data class RoutineExercise(
     val plannedSets: List<PlannedSet>,
     val restSeconds: Int,
     val targetRpe: Double? = null,
+    /** Free-text note of the exercise (1-200 chars, [NoteText]); null when none. */
+    val notes: String? = null,
 ) {
     val targetSets: Int get() = plannedSets.size
 }

@@ -111,7 +111,7 @@ fun AppRoot(
         },
         preferencesSection = { sectionModifier, onClose -> PreferencesSectionRoot(onClose, sectionModifier) },
         account = { accountModifier, onBack -> AccountRoot(onBack, accountModifier) },
-        about = { aboutModifier, onBack, onOpenRestSound -> AboutRoot(onBack, aboutModifier, onOpenRestSound) },
+        about = { aboutModifier, onBack -> AboutRoot(onBack, aboutModifier) },
         activity = { activityModifier, onBack -> ActivityRoot(onBack, activityModifier) },
         exercisePicker = { pickerModifier, selectMode, onOpenDetail, onSelected, onBack ->
             ExercisePickerRoot(selectMode, onOpenDetail, onSelected, pickerModifier, onBack)

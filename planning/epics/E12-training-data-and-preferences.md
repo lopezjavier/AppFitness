@@ -119,6 +119,16 @@ Feature: Notes
     Given the routine has the note "bajar el peso si duele" on "Press banca"
     When the user starts the routine
     Then the note is shown in the live session for "Press banca"
+
+  Scenario: Note limit
+    When the user writes a note of 201 characters on a set
+    Then "Máximo 200 caracteres" is shown and "Guardar" is disabled
+    When the user clears a saved note and taps "Guardar"
+    Then the note is removed
+
+  Scenario: A note is never interpreted
+    When the user writes the note "dolor fuerte" on a set
+    Then the note is saved as typed and no message is shown
 ```
 
 ## US-67 · Discomfort log per exercise
@@ -136,7 +146,7 @@ Feature: Discomfort log
     And picks the level "Molestia leve"
     And saves it
     Then the discomfort is stored for "Press banca" with today's date and the level "Molestia leve"
-    And "Press banca" shows "Molestia registrada" with the level "Molestia leve"
+    And "Press banca" shows the level "Molestia leve" with "Ya no me molesta"
 
   Scenario: A level is required
     When the user opens "Registrar molestia" on "Press banca"
@@ -149,6 +159,11 @@ Feature: Discomfort log
     Then the discomfort is stored with that level and that note
     And no health-professional message is shown
     And the discomfort is not marked severe
+
+  Scenario: Open discomfort reads as one block
+    Given "Press banca" has an open discomfort with the level "Molestia leve"
+    Then the level dot, the level text and "Ya no me molesta" are shown in one block
+    And "Molestia registrada" is not shown
 
   Scenario: Levels are ordered and colour-coded
     When the user opens "Registrar molestia"
@@ -171,7 +186,7 @@ Feature: Discomfort log
 
   Scenario: Open discomforts expire
     Given a discomfort on "Press banca" was logged 8 days ago
-    Then "Press banca" no longer shows "Molestia registrada"
+    Then "Press banca" no longer shows a discomfort level
 
   Scenario: Existing discomforts keep a level
     Given discomforts stored before the level existed
@@ -182,7 +197,7 @@ Feature: Discomfort log
 - Level = `smallint` 1..5 in `exercise_discomforts.level` (1 "Tensión o fatiga", 2 "Molestia leve", 3 "Pinchazo o chasquido", 4 "Hinchazón, hormigueo o entumecimiento", 5 "Dolor agudo o lesión"). Labels, colours and help copy are finalised by ux-reviewer in T-152 (ADR-81). `severe` is derived (level >= 4), not stored. No term list, no matching and no fixed health message exist (the 12-term list of 2026-10-28 and E12 Q1 are void).
 - A discomfort is open for 7 days or until resolved. E13 (US-70) blocks load increases while it is open, using the level.
 - Notes (exercise, set, discomfort) are plain text for the user and the coach; nothing scans them.
-- The open row shows the level next to "Molestia registrada" (text, plus the scale colour as reinforcement only).
+- The open discomfort is one block: level dot, level text and "Ya no me molesta" (text, plus the scale colour as reinforcement only); there is no "Molestia registrada" label.
 
 ## Data task · Movement pattern in the catalogue
 Not a user story. `exercises.movement_pattern` is filled for every catalogue row by the generated catalogue migration (ADR-39), from the RepDB data where it has an equivalent field and otherwise from a reviewed mapping by catalogue key. Custom exercises get it as an optional field in the custom exercise form. Used by the coach to substitute exercises (E13).

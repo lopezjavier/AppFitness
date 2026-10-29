@@ -3,6 +3,7 @@
 package io.github.lopezjavier.appfitness.feature.routines
 
 import io.github.lopezjavier.appfitness.designsystem.AppNumberFormat
+import io.github.lopezjavier.appfitness.domain.model.NoteText
 import io.github.lopezjavier.appfitness.domain.model.PlannedSet
 import io.github.lopezjavier.appfitness.domain.model.Routine
 import io.github.lopezjavier.appfitness.domain.model.RoutineBounds
@@ -28,6 +29,7 @@ internal data class DraftRow(
     val restSeconds: Int,
     val group: Int?,
     val targetRpe: Double? = null,
+    val notes: String? = null,
 )
 
 /** The editable routine. Serializable so it survives process death inside the [SavedStateHandle]. */
@@ -192,6 +194,7 @@ internal fun RoutineDraft.toRoutine(id: String?) = Routine(
             plannedSets = row.sets.map { it.toPlannedSet() ?: PlannedSet(null, RoutineBounds.REPS_MIN, it.type) },
             restSeconds = row.restSeconds,
             targetRpe = row.targetRpe,
+            notes = NoteText.normalise(row.notes),
         )
     },
 )
@@ -208,6 +211,7 @@ internal fun Routine.toDraft(): RoutineDraft {
                 restSeconds = exercise.restSeconds,
                 group = groups[index],
                 targetRpe = exercise.targetRpe?.let(RpeScale::round),
+                notes = NoteText.normalise(exercise.notes),
             )
         }
     return RoutineDraft(

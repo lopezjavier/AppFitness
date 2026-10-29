@@ -23,6 +23,6 @@ class AppFitnessApplication : Application() {
         // Credential Manager needs an Activity context; the holder hands the foreground one to the adapter.
         koin.get<CurrentActivityHolder>().register(this)
         // One channel per rest-alert sound; created once, early, so a rest ending in the background can post.
-        koin.get<RestAlertNotifier>().ensureChannels()
+        koin.get<RestAlertNotifier>().createChannels()
     }
 }

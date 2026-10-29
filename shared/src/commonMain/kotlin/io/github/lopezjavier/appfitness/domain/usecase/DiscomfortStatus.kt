@@ -5,7 +5,7 @@ import io.github.lopezjavier.appfitness.domain.model.DiscomfortLevel
 import kotlin.time.Duration.Companion.days
 import kotlin.time.Instant
 
-/** Whether a discomfort still shows as "Molestia registrada" (planning/04-business-rules.md §4.12). */
+/** Whether a discomfort is still open, shown with its level (planning/04-business-rules.md §4.12). */
 object DiscomfortStatus {
     const val OPEN_DAYS = 7
 

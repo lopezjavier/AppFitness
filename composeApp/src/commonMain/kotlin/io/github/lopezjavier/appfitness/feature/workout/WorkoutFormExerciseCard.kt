@@ -60,6 +60,7 @@ internal fun FormExerciseCard(
     onEvent: (WorkoutFormEvent) -> Unit,
     onOpenTypePicker: (setIndex: Int) -> Unit,
     onOpenRpePicker: (setIndex: Int) -> Unit,
+    onOpenNote: (setIndex: Int) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val title = name ?: stringResource(Res.string.exercise_unnamed)
@@ -108,6 +109,13 @@ internal fun FormExerciseCard(
                         onEvent = onEvent,
                         onOpenTypePicker = { onOpenTypePicker(setIndex) },
                         onOpenRpePicker = { onOpenRpePicker(setIndex) },
+                    )
+                    SetNoteLine(
+                        setIndex = setIndex + 1,
+                        notes = set.notes,
+                        onEdit = { onOpenNote(setIndex) },
+                        noteTag = "${tagPrefix}_set_note_${index}_$setIndex",
+                        actionTag = "${tagPrefix}_set_note_action_${index}_$setIndex",
                     )
                     if (setIndex in card.flaggedSets) {
                         Text(

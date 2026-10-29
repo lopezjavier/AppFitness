@@ -32,6 +32,7 @@ import io.github.lopezjavier.appfitness.composeapp.resources.live_target_rpe
 import io.github.lopezjavier.appfitness.designsystem.AddItemButton
 import io.github.lopezjavier.appfitness.designsystem.AppCard
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
+import io.github.lopezjavier.appfitness.designsystem.InlineNote
 import io.github.lopezjavier.appfitness.designsystem.RpeHelpButton
 import io.github.lopezjavier.appfitness.designsystem.SetTableHeader
 import io.github.lopezjavier.appfitness.designsystem.Spacing
@@ -70,6 +71,7 @@ internal fun LiveExerciseCard(
                     onEvent(LiveSessionEvent.ResolveDiscomfort(position))
                 })
             }
+            exercise.routineNote?.let { InlineNote(text = it, testTag = "live_exercise_note_$position") }
             exercise.targetRpeText?.let {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text(

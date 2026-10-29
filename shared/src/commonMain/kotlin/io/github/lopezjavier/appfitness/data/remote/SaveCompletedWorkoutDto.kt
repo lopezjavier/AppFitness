@@ -1,6 +1,7 @@
 package io.github.lopezjavier.appfitness.data.remote
 
 import io.github.lopezjavier.appfitness.domain.model.DraftWorkoutSet
+import io.github.lopezjavier.appfitness.domain.model.NoteText
 import io.github.lopezjavier.appfitness.domain.model.SetType
 import io.github.lopezjavier.appfitness.domain.model.WorkoutDraft
 import io.github.lopezjavier.appfitness.domain.model.columns
@@ -67,6 +68,7 @@ internal data class SaveCompletedSetRequest(
     @SerialName("distance_m") val distanceM: Double? = null,
     val steps: Int? = null,
     val floors: Int? = null,
+    val notes: String? = null,
 ) {
     companion object {
         fun from(set: DraftWorkoutSet): SaveCompletedSetRequest {
@@ -80,6 +82,7 @@ internal data class SaveCompletedSetRequest(
                 distanceM = columns.distanceM,
                 steps = columns.steps,
                 floors = columns.floors,
+                notes = NoteText.normalise(set.notes),
             )
         }
     }

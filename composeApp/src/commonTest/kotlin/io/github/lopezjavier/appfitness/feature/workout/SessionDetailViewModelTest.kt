@@ -413,6 +413,34 @@ class SessionDetailViewModelTest {
     }
 
     @Test
+    fun setsExposeTheirNoteOnlyWhenTheyHaveOne() = runTest(dispatcher) {
+        repository.completed += completedSession("s1").copy(
+            exercises = listOf(
+                SessionExercise(
+                    "e1",
+                    0,
+                    null,
+                    listOf(
+                        WorkoutSet(
+                            1,
+                            SetType.Working,
+                            SetEntry.WeightReps(80.0, 8),
+                            SESSION_START,
+                            notes = "pausa larga",
+                        ),
+                        WorkoutSet(2, SetType.Working, SetEntry.WeightReps(80.0, 8), SESSION_START),
+                    ),
+                ),
+            ),
+        )
+        val model = viewModel()
+
+        advanceUntilIdle()
+
+        assertEquals(listOf("pausa larga", null), model.content().exercises.single().sets.map { it.notes })
+    }
+
+    @Test
     fun openingSaveAsRoutineLoadsTheNamesOfTheActiveRoutines() = runTest(dispatcher) {
         seed()
         routines.routines += routineOf("r1", "Torso", "e1")

@@ -7,7 +7,14 @@ import io.github.lopezjavier.appfitness.domain.usecase.SessionStats
 import kotlinx.datetime.LocalDate
 
 /** One completed set of a past session; [text] is the shared set text ("85 kg × 8", "8 reps", "01:30"). */
-data class DetailSet(val setIndex: Int, val setType: SetType, val text: String, val rpe: Double? = null)
+data class DetailSet(
+    val setIndex: Int,
+    val setType: SetType,
+    val text: String,
+    val rpe: Double? = null,
+    /** The set note (US-66), read-only in the detail; null when none. */
+    val notes: String? = null,
+)
 
 /** An exercise of the session; [name] is null when the library has none (the UI shows a generic label). */
 data class DetailExercise(

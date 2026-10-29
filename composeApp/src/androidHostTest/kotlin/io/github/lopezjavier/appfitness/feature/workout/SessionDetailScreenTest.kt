@@ -76,6 +76,34 @@ class SessionDetailScreenTest {
     }
 
     @Test
+    fun aSetNote_isShownReadOnlyUnderItsSet() {
+        val base = detail()
+        val first = base.exercises.first()
+        val state = base.copy(
+            exercises =
+            listOf(
+                first.copy(
+                    sets = first.sets.map {
+                        if (it.setIndex ==
+                            1
+                        ) {
+                            it.copy(notes = "pausa larga")
+                        } else {
+                            it
+                        }
+                    },
+                ),
+            ) +
+                base.exercises.drop(1),
+        )
+        show(state)
+
+        rule.onNodeWithTag("session_detail_set_note_0_1").assertTextContains("pausa larga")
+        rule.onNodeWithTag("session_detail_set_note_0_2").assertDoesNotExist()
+        rule.onNodeWithTag("note_sheet_commit").assertDoesNotExist()
+    }
+
+    @Test
     fun exerciseName_opensTheExerciseDetails_andThereIsNoProgressLink() {
         val opened = mutableListOf<String>()
         rule.setContent {

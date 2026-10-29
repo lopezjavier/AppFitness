@@ -51,12 +51,12 @@ val appModule =
         }
         single<ConnectivityObserver> { AndroidConnectivityObserver(androidContext()) }
         single<Haptics> { AndroidHaptics(androidContext()) }
-        single<AlertSound> { AndroidAlertSound(androidContext(), get()) }
+        single<AlertSound> { AndroidAlertSound(androidContext()) }
         single<RestAlertScheduler> { AndroidRestAlertScheduler(androidContext()) }
         single { AndroidNotificationPermission(androidContext()) }
         single<NotificationPermission> { get<AndroidNotificationPermission>() }
         single { RestAlertNotifier(androidContext()) }
-        single { RestAlertHandler(get(), get(), isForeground = { get<CurrentActivityHolder>().get() != null }) }
+        single { RestAlertHandler(get(), isForeground = { get<CurrentActivityHolder>().get() != null }) }
         single<DataStore<Preferences>> {
             PreferenceDataStoreFactory.create {
                 androidContext().filesDir.resolve("datastore/appfitness.preferences_pb")
