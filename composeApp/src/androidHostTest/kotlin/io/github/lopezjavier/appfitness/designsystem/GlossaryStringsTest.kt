@@ -64,8 +64,9 @@ class GlossaryStringsTest {
 
     @Test
     fun forbiddenSynonyms_doNotAppearAsValues() {
+        // "Confirmar" is the canonical derived-values button (T-158), so it is not forbidden.
         val forbidden =
-            listOf("Aceptar", "Confirmar", "Cerrar sin guardar", "Archivar", "Crear ejercicio", "Último mes")
+            listOf("Aceptar", "Cerrar sin guardar", "Archivar", "Crear ejercicio", "Último mes")
         forbidden.forEach { word ->
             assertTrue(valuesWith { it == word }.isEmpty(), "\"$word\" must not be a value")
         }
