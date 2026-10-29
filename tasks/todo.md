@@ -6,9 +6,9 @@ Operating instructions: [`CLAUDE.md`](../CLAUDE.md). Phase 1 history (frozen): [
 Legend: **👤** = done by the user (accounts, web consoles, secrets) · **PM** = done by Claude Code.
 Secrets rule: never pasted in the chat or in versioned files. The user enters them in their terminal or in the consoles, and Claude only verifies that they exist.
 
-Last task ID used: T-153 (E12-B feedback fixes). Numbering continues from here.
+Last task ID used: T-154 (E12-B feedback fixes, part 2). Numbering continues from here.
 
-**Next:** T-153 (Checkpoint E12-B feedback fixes; notes redesign decided with the user, ADR-82); then Checkpoint E12-B is re-presented with the re-test list; after its approval, T-151. T-150 review nits (non-blocking): mapping rows `box-jump` (squat), `wall-sit`/`squat-hold` (squat), `handstand-hold` (vertical_push), `dead-hang` (vertical_pull) are debatable; the "picker open survives recreation" has no Robolectric test (manual check at the checkpoint). **Carry-overs:** chosen sound **"campana suave"** (T-148 wires it); T-148 no longer scans notes (ADR-81); (the padding screenshot was deleted at approval). T-152 review nits (non-blocking): KDoc of `DiscomfortSheet` should mention the required level picker; the migration-mapping pgTAP asserts use a scratch table that copies the CASE; narrow the `@Suppress("MagicNumber")` in `DiscomfortLevel`. T-147 carry-overs: `ActivityFlowTest.kt:86` uses `CoroutineScope(SupervisorJob())` like the flaky `HealthSyncRestorationTest` fixed in #342; no retry of unread discomforts on resume. T-146 carry-overs (non-blocking, for the checkpoint or T-148): rest ending while the user is on another tab posts no notification and no in-app alert (pre-existing); permission dialog interrupted by Activity recreation can show the explanation without a real denial; `FLAG_NO_CREATE` on cancel; own notification icon.
+**Next:** T-153, then T-154 (Checkpoint E12-B feedback fixes; notes redesign decided with the user, ADR-82); then Checkpoint E12-B is re-presented with the re-test list; after its approval, T-151. T-150 review nits (non-blocking): mapping rows `box-jump` (squat), `wall-sit`/`squat-hold` (squat), `handstand-hold` (vertical_push), `dead-hang` (vertical_pull) are debatable; the "picker open survives recreation" has no Robolectric test (manual check at the checkpoint). **Carry-overs:** chosen sound **"campana suave"** (T-148 wires it); T-148 no longer scans notes (ADR-81); (the padding screenshot was deleted at approval). T-152 review nits (non-blocking): KDoc of `DiscomfortSheet` should mention the required level picker; the migration-mapping pgTAP asserts use a scratch table that copies the CASE; narrow the `@Suppress("MagicNumber")` in `DiscomfortLevel`. T-147 carry-overs: `ActivityFlowTest.kt:86` uses `CoroutineScope(SupervisorJob())` like the flaky `HealthSyncRestorationTest` fixed in #342; no retry of unread discomforts on resume. T-146 carry-overs (non-blocking, for the checkpoint or T-148): rest ending while the user is on another tab posts no notification and no in-app alert (pre-existing); permission dialog interrupted by Activity recreation can show the explanation without a real denial; `FLAG_NO_CREATE` on cancel; own notification icon.
 
 ---
 
@@ -236,10 +236,17 @@ Journey: during a workout, lock the phone or switch apps while resting and still
 
 ---
 
+## T-154: Checkpoint E12-B feedback fixes, part 2 ("Mi entrenamiento" row, help, steppers, pinned create, check-in names) · L
+
+**Source:** split of T-153 by the planner (user feedback at Checkpoint E12-B, 2026-10-29); plan in `.workflow/current_task.md`. Covers T-153 items 3-7: "Mi entrenamiento" row in the Perfil root (R-46 help on the training intention); `NumberStepper` for "Días por semana" and "Duración del entreno" (R-47; "Sin definir" is the lowest step, session step 15 min; `durationText` drops zero parts); "Añadir ejercicio propio" pinned (R-48); check-in records show real exercise names (inject `ExerciseLibrary` into `CheckInViewModel`, regression test; sweep other name lookups).
+**Dependencies:** T-153 · **Estimated scope:** L
+
+---
+
 ### Checkpoint E12-B — Notes, your training situation, and the final E12 regression 👤 (7 items + leave and come back) *(agreed with the user, 2026-10-28: two checkpoints)*
 Journey: the rest alert now plays the sound you chose; write what happened on a set and read the note you left on a routine exercise; tell the app your goal, where and with what you train, and how many days and minutes you have; give a movement pattern to your own exercises; then one pass over the whole epic. Why here: right after T-150, the last implementation task, so it is also the final regression of E12; its approval releases T-151.
 - [x] T-148, T-149 and T-150 merged, CI green, `deploy-supabase` applied their three migrations (data intact), every reported bug fixed.
-- [ ] T-153 (checkpoint feedback fixes) merged, CI green.
+- [ ] T-153 and T-154 (checkpoint feedback fixes) merged, CI green.
 - [ ] 👤 Install the APK and try *(feedback 2026-10-29 → T-153; re-test every item, plus: the note button inside the set row, the `?` help on notes and training intention, "Mi entrenamiento" row in Perfil, durations without dropdowns, "Añadir ejercicio propio" pinned, real exercise names in the check-in records)*:
   1. Chosen sound (T-148, from Checkpoint E12-A): a rest ending in the foreground and one with the screen off both play the sound you chose; "Sonido de fin de descanso" is gone from "Acerca de".
   2. Notes (US-66): write "pausa larga" on a set, finish the workout: the note shows under that set in the workout detail; edit it in "Editar entreno"; in a routine add "bajar el peso si duele" to "Press banca" and save; start the routine: the note shows under "Press banca".
