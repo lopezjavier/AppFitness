@@ -65,17 +65,20 @@ internal fun PlannedSets(row: BuilderRowUi, index: Int, onEvent: (RoutineBuilder
 @Composable
 private fun SetColumnsHeader() {
     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(Spacing.xs)) {
-        Spacer(Modifier.width(Spacing.minTouchTarget))
-        listOf(Res.string.builder_set_hint_kg, Res.string.builder_set_hint_reps).forEach {
+        Spacer(Modifier.width(SetRowDefaults.OrdinalTypeWidth))
+        listOf(
+            Res.string.builder_set_hint_kg to "weight",
+            Res.string.builder_set_hint_reps to "reps",
+        ).forEach { (label, part) ->
             Text(
-                text = stringResource(it).uppercase(),
+                text = stringResource(label).uppercase(),
                 style = AppTheme.typography.labelTechnical,
                 color = AppTheme.colors.textSecondary,
                 textAlign = TextAlign.Center,
-                modifier = Modifier.weight(1f),
+                modifier = Modifier.weight(1f).testTag("routine_set_header_$part"),
             )
         }
-        Spacer(Modifier.width(Spacing.minTouchTarget))
+        Spacer(Modifier.width(SetRowDefaults.FixedCellWidth))
     }
 }
 
