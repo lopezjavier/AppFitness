@@ -74,6 +74,7 @@ import io.github.lopezjavier.appfitness.designsystem.ReorderableItemScope
 import io.github.lopezjavier.appfitness.designsystem.RpeHelpButton
 import io.github.lopezjavier.appfitness.designsystem.Spacing
 import io.github.lopezjavier.appfitness.designsystem.SwipeToDeleteRow
+import io.github.lopezjavier.appfitness.designsystem.exerciseNoteSummary
 import io.github.lopezjavier.appfitness.domain.model.Equipment
 import io.github.lopezjavier.appfitness.domain.model.RoutineBounds
 import io.github.lopezjavier.appfitness.domain.usecase.RpeScale
@@ -146,7 +147,7 @@ internal fun ReorderableItemScope.BuilderRow(
     ) {
         AppCard(Modifier.fillMaxWidth().padding(start = if (superset != null) AccentWidth else Spacing.none)) {
             RowHeader(row, index, superset, onEvent, onOpenMenu, onOpenExercise)
-            row.notes?.let {
+            exerciseNoteSummary(row.noteKind, row.notes)?.let {
                 InlineNote(
                     text = it,
                     modifier = Modifier.padding(top = Spacing.sm),
@@ -389,7 +390,7 @@ internal fun BuilderRowMenu(
         add(
             AppSheetAction(
                 Res.drawable.ic_edit,
-                stringResource(if (row.notes == null) Res.string.note_add else Res.string.note_edit),
+                stringResource(if (row.noteKind == null) Res.string.note_add else Res.string.note_edit),
                 testTag = "routine_builder_exercise_note_$index",
                 onClick = onEditNote,
             ),

@@ -66,6 +66,7 @@ object WorkoutDraftFactory {
                             it.rpe?.let(RpeScale::round),
                             it.entry,
                             it.notes.takeIf { !asTemplate },
+                            it.noteKind.takeIf { !asTemplate },
                         )
                     },
                 )

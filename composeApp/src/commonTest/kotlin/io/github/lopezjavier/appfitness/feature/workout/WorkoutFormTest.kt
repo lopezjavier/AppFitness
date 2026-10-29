@@ -2,6 +2,7 @@ package io.github.lopezjavier.appfitness.feature.workout
 
 import io.github.lopezjavier.appfitness.domain.model.ExerciseMetricType
 import io.github.lopezjavier.appfitness.domain.model.SetEntry
+import io.github.lopezjavier.appfitness.domain.model.SetNoteKind
 import io.github.lopezjavier.appfitness.domain.model.SetType
 import kotlinx.datetime.LocalDate
 import kotlin.test.Test
@@ -73,7 +74,7 @@ class WorkoutFormTest {
 
     @Test
     fun aSetNote_roundTripsThroughTheDraft_andAnAddedSetStartsWithoutIt() {
-        val noted = form().withNote(0, 0, "pausa larga")
+        val noted = form().withNote(0, 0, SetNoteKind.Other, "pausa larga")
 
         assertEquals("pausa larga", noted.toDraft().exercises[0].sets[0].notes)
         assertEquals("pausa larga", noted.toDraft().toForm().exercises[0].sets[0].notes)
@@ -82,10 +83,35 @@ class WorkoutFormTest {
 
     @Test
     fun aBlankNote_isNoNote_andAnOversizedOneIsRefused() {
-        val noted = form().withNote(0, 0, "pausa")
+        val noted = form().withNote(0, 0, SetNoteKind.Other, "pausa")
 
-        assertEquals(null, noted.withNote(0, 0, "   ").exercises[0].sets[0].notes)
-        assertEquals("pausa", noted.withNote(0, 0, "x".repeat(201)).exercises[0].sets[0].notes)
+        assertEquals(null, noted.withNote(0, 0, null, "   ").exercises[0].sets[0].notes)
+        assertEquals("pausa", noted.withNote(0, 0, SetNoteKind.Other, "x".repeat(201)).exercises[0].sets[0].notes)
+    }
+
+    @Test
+    fun aSetNoteKind_roundTripsThroughTheDraft_withAndWithoutText() {
+        val noted = form().withAddedSet(0)
+            .withNote(0, 0, SetNoteKind.Range, "")
+            .withNote(0, 1, SetNoteKind.Grip, "suave")
+
+        val sets = noted.toDraft().exercises[0].sets
+        assertEquals(listOf(SetNoteKind.Range, SetNoteKind.Grip), sets.map { it.noteKind })
+        assertEquals(listOf(null, "suave"), sets.map { it.notes })
+        assertEquals(
+            listOf(SetNoteKind.Range, SetNoteKind.Grip),
+            noted.toDraft().toForm().exercises[0].sets.map { it.noteKind },
+        )
+        assertEquals(null, noted.withAddedSet(0).exercises[0].sets.last().noteKind)
+    }
+
+    @Test
+    fun anInvalidNote_isRefused_andNullKindClearsIt() {
+        val noted = form().withNote(0, 0, SetNoteKind.Technique, "")
+
+        assertEquals(SetNoteKind.Technique, noted.withNote(0, 0, SetNoteKind.Other, " ").exercises[0].sets[0].noteKind)
+        assertEquals(SetNoteKind.Technique, noted.withNote(0, 0, null, "texto").exercises[0].sets[0].noteKind)
+        assertEquals(null, noted.withNote(0, 0, null, "").exercises[0].sets[0].noteKind)
     }
 
     @Test

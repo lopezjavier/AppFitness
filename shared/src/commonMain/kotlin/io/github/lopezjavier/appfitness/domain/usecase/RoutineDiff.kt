@@ -1,5 +1,7 @@
 package io.github.lopezjavier.appfitness.domain.usecase
 
+import io.github.lopezjavier.appfitness.domain.model.ExerciseNoteKind
+import io.github.lopezjavier.appfitness.domain.model.Note
 import io.github.lopezjavier.appfitness.domain.model.PlannedSet
 import io.github.lopezjavier.appfitness.domain.model.Routine
 import io.github.lopezjavier.appfitness.domain.model.RoutineBounds
@@ -24,6 +26,9 @@ sealed interface RoutineChange {
 
     data class RestChanged(val exerciseId: String) : RoutineChange
 
+    /** The routine-exercise note was edited during the session (ADR-82). */
+    data class NoteChanged(val exerciseId: String) : RoutineChange
+
     data class SupersetChanged(val exerciseId: String) : RoutineChange
 
     /** The common exercises are done in another order than the routine's. */
@@ -39,7 +44,12 @@ data class RoutineDiffResult(val changes: List<RoutineChange>) {
  * position (original, not renumbered) to its rest seconds; a missing entry means "unchanged". Exercises are matched
  * by exercise id in order; the routine's weight and reps are the only values compared (null weight equals 0).
  */
-fun routineDiff(session: WorkoutSession, rests: Map<Int, Int>, routine: Routine): RoutineDiffResult {
+fun routineDiff(
+    session: WorkoutSession,
+    rests: Map<Int, Int>,
+    routine: Routine,
+    editedNotes: Map<Int, Note<ExerciseNoteKind>?> = emptyMap(),
+): RoutineDiffResult {
     val done = session.exercises
         .sortedBy { it.position }
         .mapNotNull { exercise ->
@@ -59,6 +69,9 @@ fun routineDiff(session: WorkoutSession, rests: Map<Int, Int>, routine: Routine)
         planned.remove(match)
         matchedSessionIds += exercise.exerciseId
         changes += exerciseChanges(exercise, completed, match, rests)
+        if (exercise.position in editedNotes && editedNotes[exercise.position] != match.note()) {
+            changes += RoutineChange.NoteChanged(exercise.exerciseId)
+        }
     }
     planned.forEach { changes += RoutineChange.ExerciseRemoved(it.exerciseId) }
     val routineOrder = routine.exercises.sortedBy { it.position }.map { it.exerciseId }
@@ -89,6 +102,9 @@ private fun exerciseChanges(
     if (exercise.supersetGroup != planned.supersetGroup) changes += RoutineChange.SupersetChanged(id)
     return changes
 }
+
+/** The planned note of the exercise, or null when it has none (a kind without a valid pair counts as none). */
+private fun RoutineExercise.note(): Note<ExerciseNoteKind>? = Note.of(noteKind, notes)
 
 private fun WorkoutSet.asPlanned(): PlannedSet {
     val columns = entry.columns()

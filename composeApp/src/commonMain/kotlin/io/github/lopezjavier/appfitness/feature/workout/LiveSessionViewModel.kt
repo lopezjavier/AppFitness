@@ -11,7 +11,9 @@ import io.github.lopezjavier.appfitness.domain.model.DiscomfortLevel
 import io.github.lopezjavier.appfitness.domain.model.Equipment
 import io.github.lopezjavier.appfitness.domain.model.ExerciseHistoryPoint
 import io.github.lopezjavier.appfitness.domain.model.ExerciseMetricType
+import io.github.lopezjavier.appfitness.domain.model.ExerciseNoteKind
 import io.github.lopezjavier.appfitness.domain.model.ExerciseSessionRecords
+import io.github.lopezjavier.appfitness.domain.model.Note
 import io.github.lopezjavier.appfitness.domain.model.NoteText
 import io.github.lopezjavier.appfitness.domain.model.PlannedSet
 import io.github.lopezjavier.appfitness.domain.model.PreviousSet
@@ -20,6 +22,7 @@ import io.github.lopezjavier.appfitness.domain.model.SessionExercise
 import io.github.lopezjavier.appfitness.domain.model.SessionStatus
 import io.github.lopezjavier.appfitness.domain.model.SetColumns
 import io.github.lopezjavier.appfitness.domain.model.SetEntry
+import io.github.lopezjavier.appfitness.domain.model.SetNoteKind
 import io.github.lopezjavier.appfitness.domain.model.SetType
 import io.github.lopezjavier.appfitness.domain.model.TrainingPreferences
 import io.github.lopezjavier.appfitness.domain.model.WarmUpSet
@@ -27,6 +30,7 @@ import io.github.lopezjavier.appfitness.domain.model.WorkoutSession
 import io.github.lopezjavier.appfitness.domain.model.WorkoutSet
 import io.github.lopezjavier.appfitness.domain.model.columns
 import io.github.lopezjavier.appfitness.domain.model.empty
+import io.github.lopezjavier.appfitness.domain.model.resolveNoteKind
 import io.github.lopezjavier.appfitness.domain.port.AlertSound
 import io.github.lopezjavier.appfitness.domain.port.Clock
 import io.github.lopezjavier.appfitness.domain.port.ConnectivityObserver
@@ -104,6 +108,13 @@ private const val KEY_RPE_PICKER_COMPLETES = "live_rpe_picker_completes"
 private const val KEY_NOTE_POSITION = "live_note_position"
 private const val KEY_NOTE_SET = "live_note_set"
 private const val KEY_NOTE_DRAFT = "live_note_draft"
+private const val KEY_NOTE_KIND = "live_note_kind"
+private const val KEY_RNOTE_POSITION = "live_routine_note_position"
+private const val KEY_RNOTE_DRAFT = "live_routine_note_draft"
+private const val KEY_RNOTE_KIND = "live_routine_note_kind"
+private const val KEY_RNOTE_EDITS = "live_routine_note_edits"
+private const val NOTE_EDIT_SEPARATOR = '\u001F'
+private const val NOTE_EDIT_FIELDS = 3
 private const val KEY_DRAFTS = "live_drafts"
 private const val KEY_PAUSE_KNOWN = "live_pause_known"
 private const val KEY_PAUSED_AT = "live_paused_at"
@@ -129,6 +140,7 @@ private data class SetState(
     val invalid: Boolean = false,
     val rpe: Double? = null,
     val notes: String? = null,
+    val noteKind: SetNoteKind? = null,
     val distance: String = "",
     val steps: String = "",
     val floors: String = "",
@@ -141,7 +153,10 @@ private data class SetState(
 }
 
 /** The text being typed in the set note sheet, with the set it belongs to. */
-private data class NoteSheetDraft(val position: Int, val setIndex: Int, val draft: String)
+private data class NoteSheetDraft(val position: Int, val setIndex: Int, val draft: String, val kind: SetNoteKind?)
+
+/** The option and text being typed in the routine note sheet, with the exercise it belongs to. */
+private data class RoutineNoteSheetDraft(val position: Int, val draft: String, val kind: ExerciseNoteKind?)
 
 /** What the screen needs to know about an exercise's kind: how its sets are measured and its equipment. */
 private data class ExerciseTraits(val metricType: ExerciseMetricType, val equipment: Equipment)
@@ -268,8 +283,19 @@ class LiveSessionViewModel(
     /** The open set note sheet (its saved note is looked up when rendered); mirrored in [savedState]. */
     private var noteSheet: NoteSheetDraft? = restoredNoteSheet()
 
-    /** The routine's note per exercise position (read at load; shown read-only). */
-    private var routineNotes: Map<Int, String> = emptyMap()
+    /** The routine's note per exercise position (read at load). */
+    private var routineNotes: Map<Int, Note<ExerciseNoteKind>> = emptyMap()
+
+    /** Positions whose exercise is in the session's routine: only those have an editable routine note. */
+    private var routineNotePositions: Set<Int> = emptySet()
+
+    /** Routine notes edited in this session by position (null = cleared); a routine change (ADR-82). */
+    private var editedRoutineNotes: MutableMap<Int, Note<ExerciseNoteKind>?> = restoredRoutineNoteEdits()
+
+    private var routineNoteSheet: RoutineNoteSheetDraft? = restoredRoutineNoteSheet()
+
+    /** Exercise id per position of the finished session, to carry edited notes to the routine. */
+    private var finishedExerciseIds: Map<Int, String> = emptyMap()
     private var terminal: LiveSessionUiState? = LiveSessionUiState.Loading
 
     /** The "Actualizar rutina" sheet saved before the screen was recreated; read before the first publish. */
@@ -350,11 +376,23 @@ class LiveSessionViewModel(
 
             is LiveSessionEvent.OpenSetNote -> openSetNote(event.position, event.setIndex)
 
+            is LiveSessionEvent.SetNoteKindChanged -> changeNoteKind(event.kind)
+
             is LiveSessionEvent.SetNoteDraftChanged -> changeNoteDraft(event.text)
 
             LiveSessionEvent.SaveSetNote -> saveSetNote()
 
             LiveSessionEvent.DismissSetNote -> setNoteSheet(null)
+
+            is LiveSessionEvent.OpenRoutineNote -> openRoutineNote(event.position)
+
+            is LiveSessionEvent.RoutineNoteKindChanged -> changeRoutineNote { it.copy(kind = event.kind) }
+
+            is LiveSessionEvent.RoutineNoteDraftChanged -> changeRoutineNote { it.copy(draft = event.text) }
+
+            LiveSessionEvent.SaveRoutineNote -> saveRoutineNote()
+
+            LiveSessionEvent.DismissRoutineNote -> setRoutineNoteSheet(null)
 
             is LiveSessionEvent.SetRpeChosen -> chooseRpe(event)
 
@@ -654,13 +692,17 @@ class LiveSessionViewModel(
                 match?.plannedSets?.forEachIndexed { index, set -> put(exercise.position to (index + 1), set) }
             }
         }
-        routineNotes = buildMap {
-            loaded.exercises.forEach { exercise ->
-                routine?.exercises
-                    ?.firstOrNull { it.position == exercise.position && it.exerciseId == exercise.exerciseId }
-                    ?.notes?.let { put(exercise.position, it) }
-            }
+        val routineMatches = loaded.exercises.mapNotNull { exercise ->
+            routine?.exercises
+                ?.firstOrNull { it.position == exercise.position && it.exerciseId == exercise.exerciseId }
+                ?.let { exercise.position to it }
         }
+        routineNotePositions = routineMatches.map { it.first }.toSet()
+        routineNotes = routineMatches.mapNotNull { (position, planned) ->
+            val kind = resolveNoteKind(planned.noteKind, planned.notes, ExerciseNoteKind.Other)
+            Note.of(kind, planned.notes)?.let { position to it }
+        }.toMap()
+        editedRoutineNotes.keys.retainAll(routineNotePositions)
         targetRpes = buildMap {
             loaded.exercises.forEach { exercise ->
                 routine?.exercises
@@ -923,7 +965,57 @@ class LiveSessionViewModel(
     private fun openSetNote(position: Int, setIndex: Int) {
         val set = findSet(position, setIndex)
         if (terminal != null || set == null) return
-        setNoteSheet(NoteSheetDraft(position, setIndex, set.notes.orEmpty()))
+        setNoteSheet(NoteSheetDraft(position, setIndex, set.notes.orEmpty(), set.noteKind))
+    }
+
+    private fun changeNoteKind(kind: SetNoteKind?) {
+        noteSheet = noteSheet?.copy(kind = kind) ?: return
+        publish()
+    }
+
+    private fun currentRoutineNote(position: Int): Note<ExerciseNoteKind>? =
+        if (position in editedRoutineNotes) editedRoutineNotes[position] else routineNotes[position]
+
+    private fun openRoutineNote(position: Int) {
+        if (terminal != null || position !in routineNotePositions) return
+        val note = currentRoutineNote(position)
+        setRoutineNoteSheet(RoutineNoteSheetDraft(position, note?.text.orEmpty(), note?.kind))
+    }
+
+    private fun setRoutineNoteSheet(sheet: RoutineNoteSheetDraft?) {
+        routineNoteSheet = sheet
+        publish()
+    }
+
+    private fun changeRoutineNote(change: (RoutineNoteSheetDraft) -> RoutineNoteSheetDraft) {
+        routineNoteSheet = routineNoteSheet?.let(change) ?: return
+        publish()
+    }
+
+    /** Stores the edit for this workout; it is a routine change decided at the end of the session (ADR-82). */
+    private fun saveRoutineNote() {
+        val sheet = routineNoteSheet?.takeIf { Note.isValid(it.kind, it.draft) } ?: return
+        routineNoteSheet = null
+        editedRoutineNotes[sheet.position] = Note.of(sheet.kind, sheet.draft)
+        publish()
+    }
+
+    /** Writes the notes edited in this session on the routine after it was updated from the session. */
+    private suspend fun applyRoutineNotes(routineId: String): Boolean {
+        val edits = editedRoutineNotes.mapNotNull { (position, note) ->
+            finishedExerciseIds[position]?.let { it to note }
+        }.toMap()
+        if (edits.isEmpty()) return true
+        val routine = routineRepository.get(routineId).getOrNull()
+        val updated = routine?.exercises?.map { exercise ->
+            if (exercise.exerciseId in edits) {
+                val note = edits[exercise.exerciseId]
+                exercise.copy(notes = note?.text, noteKind = note?.kind)
+            } else {
+                exercise
+            }
+        }
+        return routine != null && updated != null && routineRepository.save(routine.copy(exercises = updated)).isSuccess
     }
 
     private fun setNoteSheet(sheet: NoteSheetDraft?) {
@@ -938,12 +1030,13 @@ class LiveSessionViewModel(
 
     /** Stores the trimmed draft as the set's note (blank removes it) and queues the write; invalid stays open. */
     private fun saveSetNote() {
-        val sheet = noteSheet?.takeIf { NoteText.isValid(it.draft) } ?: return
+        val sheet = noteSheet?.takeIf { Note.isValid(it.kind, it.draft) } ?: return
         noteSheet = null
         if (findSet(sheet.position, sheet.setIndex) == null) {
             publish()
         } else {
-            updateSet(sheet.position, sheet.setIndex) { it.copy(notes = NoteText.normalise(sheet.draft)) }
+            val note = Note.of(sheet.kind, sheet.draft)
+            updateSet(sheet.position, sheet.setIndex) { it.copy(notes = note?.text, noteKind = note?.kind) }
             write(sheet.position, sheet.setIndex)
         }
     }
@@ -1217,14 +1310,24 @@ class LiveSessionViewModel(
      * (ADR-70; a failed read counts as off) the routine is updated here; a failure is ignored because the session is
      * already saved. Otherwise returns the sheet the user must answer.
      */
+    private suspend fun routineUpdateSheet(finished: WorkoutSession): UpdateRoutineSheet? =
+        askRoutineUpdate(finished).also { if (it == null) clearRoutineNoteEdits() }
+
+    /** The edited routine notes live until the "update the routine?" choice is resolved (ADR-82). */
+    private fun clearRoutineNoteEdits() {
+        editedRoutineNotes = mutableMapOf()
+        savedState.remove<List<String>>(KEY_RNOTE_EDITS)
+    }
+
     @Suppress("ReturnCount") // Each early return is one reason not to ask.
-    private suspend fun routineUpdateSheet(finished: WorkoutSession): UpdateRoutineSheet? {
+    private suspend fun askRoutineUpdate(finished: WorkoutSession): UpdateRoutineSheet? {
         val routine = finished.routineId?.let { routineRepository.get(it).getOrNull() } ?: return null
         if (!routine.trackAsRoutine) return null
-        val diff = routineDiff(finished, changedRests, routine)
+        finishedExerciseIds = finished.exercises.associate { it.position to it.exerciseId }
+        val diff = routineDiff(finished, changedRests, routine, editedRoutineNotes)
         if (diff.isSame) return null
         if (preferences.autoUpdateRoutineOrDefault()) {
-            routineRepository.updateFromSession(finished.id)
+            if (routineRepository.updateFromSession(finished.id).isSuccess) applyRoutineNotes(routine.id.orEmpty())
             return null
         }
         return UpdateRoutineSheet(finished.id, diff.changes.toSummary())
@@ -1238,6 +1341,7 @@ class LiveSessionViewModel(
         exercisesAdded = count { it is RoutineChange.ExerciseAdded },
         exercisesRemoved = count { it is RoutineChange.ExerciseRemoved },
         orderOrSupersetChanged = any { it is RoutineChange.OrderChanged || it is RoutineChange.SupersetChanged },
+        notesChanged = count { it is RoutineChange.NoteChanged },
     )
 
     private fun updateRoutine() {
@@ -1246,8 +1350,10 @@ class LiveSessionViewModel(
         terminal = finished.copy(updateRoutineSheet = sheet.copy(loading = true, failed = false))
         publish()
         viewModelScope.launch {
-            val failed = routineRepository.updateFromSession(sheet.sessionId).isFailure
+            val routineId = routineRepository.updateFromSession(sheet.sessionId).getOrNull()
+            val failed = routineId == null || !applyRoutineNotes(routineId)
             terminal = finished.copy(updateRoutineSheet = if (failed) sheet.copy(failed = true) else null)
+            if (!failed) clearRoutineNoteEdits()
             publish()
         }
     }
@@ -1256,12 +1362,14 @@ class LiveSessionViewModel(
         val finished = terminal as? LiveSessionUiState.Finished ?: return
         if (finished.updateRoutineSheet?.loading != false) return
         terminal = finished.copy(updateRoutineSheet = null)
+        clearRoutineNoteEdits()
         publish()
     }
 
     /** Rebuilds the summary of the finished session behind a restored sheet; null when it cannot be read. */
     private suspend fun restoreFinished(sheet: UpdateRoutineSheet): LiveSessionUiState? {
         val finished = repository.getSession(sheet.sessionId).getOrNull() ?: return null
+        finishedExerciseIds = finished.exercises.associate { it.position to it.exerciseId }
         loadNames()
         val named = finished.exercises.associate { it.position to names[it.exerciseId] }
         val summary = LiveSummary(buildSummary(finished, finished.endedAt ?: clock.now()), named)
@@ -1282,6 +1390,7 @@ class LiveSessionViewModel(
             tickerJob?.cancel()
             publish()
             clearSavedState()
+            clearRoutineNoteEdits()
             effectChannel.trySend(LiveSessionEffect.Closed)
         }
     }
@@ -1330,6 +1439,7 @@ class LiveSessionViewModel(
                 setType = set.setType,
                 rpe = set.rpe,
                 notes = set.notes,
+                noteKind = set.noteKind,
             ),
         )
         if (online) {
@@ -1383,6 +1493,7 @@ class LiveSessionViewModel(
         write.setType,
         write.rpe,
         write.notes,
+        write.noteKind,
     ).isSuccess
 
     /** Sends the rest changes of the session; false at the first failure (the rest stays pending). */
@@ -1478,10 +1589,35 @@ class LiveSessionViewModel(
         val position = savedState.get<Int>(KEY_NOTE_POSITION)
         val setIndex = savedState.get<Int>(KEY_NOTE_SET)
         return if (position != null && setIndex != null) {
-            NoteSheetDraft(position, setIndex, savedState.get<String>(KEY_NOTE_DRAFT).orEmpty())
+            NoteSheetDraft(
+                position,
+                setIndex,
+                savedState.get<String>(KEY_NOTE_DRAFT).orEmpty(),
+                SetNoteKind.fromWire(savedState.get<String>(KEY_NOTE_KIND)),
+            )
         } else {
             null
         }
+    }
+
+    private fun restoredRoutineNoteSheet(): RoutineNoteSheetDraft? {
+        val position = savedState.get<Int>(KEY_RNOTE_POSITION) ?: return null
+        return RoutineNoteSheetDraft(
+            position,
+            savedState.get<String>(KEY_RNOTE_DRAFT).orEmpty(),
+            ExerciseNoteKind.fromWire(savedState.get<String>(KEY_RNOTE_KIND)),
+        )
+    }
+
+    /** Edits as "position, kind, text" (kind blank = cleared), so they survive process death (ADR-40). */
+    private fun restoredRoutineNoteEdits(): MutableMap<Int, Note<ExerciseNoteKind>?> {
+        val edits = mutableMapOf<Int, Note<ExerciseNoteKind>?>()
+        savedState.get<List<String>>(KEY_RNOTE_EDITS).orEmpty().forEach { line ->
+            val fields = line.split(NOTE_EDIT_SEPARATOR, limit = NOTE_EDIT_FIELDS)
+            val position = fields.getOrNull(0)?.toIntOrNull() ?: return@forEach
+            edits[position] = Note.of(ExerciseNoteKind.fromWire(fields.getOrNull(1)), fields.getOrNull(2))
+        }
+        return edits
     }
 
     /** Mirrors the picker target and the unchecked weight/reps drafts into [savedState] (ADR-40). */
@@ -1497,6 +1633,15 @@ class LiveSessionViewModel(
         savedState[KEY_NOTE_POSITION] = noteSheet?.position
         savedState[KEY_NOTE_SET] = noteSheet?.setIndex
         savedState[KEY_NOTE_DRAFT] = noteSheet?.draft
+        savedState[KEY_NOTE_KIND] = noteSheet?.kind?.wire
+        savedState[KEY_RNOTE_POSITION] = routineNoteSheet?.position
+        savedState[KEY_RNOTE_DRAFT] = routineNoteSheet?.draft
+        savedState[KEY_RNOTE_KIND] = routineNoteSheet?.kind?.wire
+        savedState[KEY_RNOTE_EDITS] = ArrayList(
+            editedRoutineNotes.map { (position, note) ->
+                listOf(position, note?.kind?.wire.orEmpty(), note?.text.orEmpty()).joinToString("$NOTE_EDIT_SEPARATOR")
+            },
+        )
         session?.takeIf { terminal == null }?.let {
             savedState[KEY_PAUSE_KNOWN] = true
             savedState[KEY_PAUSED_AT] = it.pausedAt?.toString()
@@ -1529,6 +1674,7 @@ class LiveSessionViewModel(
         typePicker = null
         rpePicker = null
         noteSheet = null
+        routineNoteSheet = null
         bodyWeightDraft = null
         calculatorDraft = null
         savedState.persistCalculatorDraft(null)
@@ -1541,6 +1687,10 @@ class LiveSessionViewModel(
         savedState.remove<Int>(KEY_NOTE_POSITION)
         savedState.remove<Int>(KEY_NOTE_SET)
         savedState.remove<String>(KEY_NOTE_DRAFT)
+        savedState.remove<String>(KEY_NOTE_KIND)
+        savedState.remove<Int>(KEY_RNOTE_POSITION)
+        savedState.remove<String>(KEY_RNOTE_DRAFT)
+        savedState.remove<String>(KEY_RNOTE_KIND)
         savedState.remove<List<String>>(KEY_DRAFTS)
         savedState.remove<Boolean>(KEY_PAUSE_KNOWN)
         savedState.remove<String>(KEY_PAUSED_AT)
@@ -1627,11 +1777,14 @@ class LiveSessionViewModel(
                             invalid = set.invalid,
                             rpe = set.rpe?.let(RpeScale::text),
                             notes = set.notes,
+                            noteKind = set.noteKind,
                         )
                     },
                     restSeconds = rests[exercise.position] ?: RoutineBounds.DEFAULT_REST_SECONDS,
                     targetRpeText = targetRpes[exercise.position]?.let(RpeScale::text),
-                    routineNote = routineNotes[exercise.position],
+                    routineNote = currentRoutineNote(exercise.position)?.text,
+                    routineNoteKind = currentRoutineNote(exercise.position)?.kind,
+                    routineNoteEditable = exercise.position in routineNotePositions,
                     discomfort = DiscomfortStatus
                         .highestOpenLevel(discomforts[exercise.exerciseId].orEmpty(), clock.now())
                         ?.let { LiveDiscomfort(it, exercise.exerciseId in discomfortResolving) },
@@ -1647,12 +1800,12 @@ class LiveSessionViewModel(
             typePicker = typePicker,
             rpePicker = rpePicker,
             noteSheet = noteSheet?.let { sheet ->
-                LiveNoteSheet(
-                    sheet.position,
-                    sheet.setIndex,
-                    sheet.draft,
-                    findSet(sheet.position, sheet.setIndex)?.notes,
-                )
+                val saved = findSet(sheet.position, sheet.setIndex)
+                LiveNoteSheet(sheet.position, sheet.setIndex, sheet.kind, sheet.draft, saved?.noteKind, saved?.notes)
+            },
+            routineNoteSheet = routineNoteSheet?.let { sheet ->
+                val saved = currentRoutineNote(sheet.position)
+                LiveRoutineNoteSheet(sheet.position, sheet.kind, sheet.draft, saved?.kind, saved?.text)
             },
             perHandIds = perHandIds,
             bodyWeightKg = bodyWeightKg,
@@ -1705,6 +1858,7 @@ class LiveSessionViewModel(
             completedAt = completedAt,
             rpe = rpe?.let(RpeScale::round),
             notes = NoteText.normalise(notes),
+            noteKind = noteKind,
             distance = columns.distanceM.text(METRES_PER_KM),
             steps = columns.steps.text(),
             floors = columns.floors.text(),
@@ -1735,6 +1889,7 @@ class LiveSessionViewModel(
                         set.completedAt,
                         set.rpe,
                         set.notes,
+                        set.noteKind,
                     )
                 },
             )

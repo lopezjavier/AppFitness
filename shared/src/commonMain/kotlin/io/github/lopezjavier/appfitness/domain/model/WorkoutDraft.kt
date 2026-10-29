@@ -3,7 +3,13 @@ package io.github.lopezjavier.appfitness.domain.model
 import kotlinx.datetime.LocalDate
 
 /** One set of a [WorkoutDraft]; [rpe] is null or a whole number 6-10 (ADR-56). */
-data class DraftWorkoutSet(val setType: SetType, val rpe: Double?, val entry: SetEntry, val notes: String? = null)
+data class DraftWorkoutSet(
+    val setType: SetType,
+    val rpe: Double?,
+    val entry: SetEntry,
+    val notes: String? = null,
+    val noteKind: SetNoteKind? = null,
+)
 
 /** One exercise of a [WorkoutDraft]; its position is its index in the list. */
 data class DraftExercise(

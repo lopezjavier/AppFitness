@@ -17,6 +17,7 @@ import io.github.lopezjavier.appfitness.composeapp.resources.live_finish_empty_r
 import io.github.lopezjavier.appfitness.composeapp.resources.live_finish_offline_reason
 import io.github.lopezjavier.appfitness.composeapp.resources.live_menu_discard
 import io.github.lopezjavier.appfitness.composeapp.resources.live_title
+import io.github.lopezjavier.appfitness.composeapp.resources.note_sheet_exercise_title
 import io.github.lopezjavier.appfitness.composeapp.resources.note_sheet_set_title
 import io.github.lopezjavier.appfitness.designsystem.AppActionSheet
 import io.github.lopezjavier.appfitness.designsystem.AppConfirmDialog
@@ -27,6 +28,10 @@ import io.github.lopezjavier.appfitness.designsystem.NoteSheet
 import io.github.lopezjavier.appfitness.designsystem.RpePickerSheet
 import io.github.lopezjavier.appfitness.designsystem.SetTypePickerSheet
 import io.github.lopezjavier.appfitness.designsystem.Spacing
+import io.github.lopezjavier.appfitness.designsystem.exerciseNoteHelp
+import io.github.lopezjavier.appfitness.designsystem.exerciseNoteOptions
+import io.github.lopezjavier.appfitness.designsystem.setNoteHelp
+import io.github.lopezjavier.appfitness.designsystem.setNoteOptions
 import io.github.lopezjavier.appfitness.domain.usecase.RpeScale
 import org.jetbrains.compose.resources.stringResource
 
@@ -65,8 +70,13 @@ internal fun LiveNoteSheetHost(state: LiveSessionUiState.Active, onEvent: (LiveS
     val haptics = LocalAppHaptics.current
     NoteSheet(
         title = stringResource(Res.string.note_sheet_set_title, sheet.setIndex),
+        options = setNoteOptions(),
+        kind = sheet.kind,
         draft = sheet.draft,
+        originalKind = sheet.originalKind,
         original = sheet.original,
+        help = setNoteHelp(),
+        onKindChange = { onEvent(LiveSessionEvent.SetNoteKindChanged(it)) },
         onDraftChange = { onEvent(LiveSessionEvent.SetNoteDraftChanged(it)) },
         onSave = {
             haptics.confirm()
@@ -74,6 +84,33 @@ internal fun LiveNoteSheetHost(state: LiveSessionUiState.Active, onEvent: (LiveS
         },
         onDismiss = { onEvent(LiveSessionEvent.DismissSetNote) },
         testTagPrefix = "note_sheet",
+    )
+}
+
+/**
+ * The routine note sheet of the targeted exercise (ADR-82); "Guardar" stores the note in the session's copy of the
+ * routine, which the "Actualizar rutina" prompt may then persist.
+ */
+@Composable
+internal fun LiveRoutineNoteSheetHost(state: LiveSessionUiState.Active, onEvent: (LiveSessionEvent) -> Unit) {
+    val sheet = state.routineNoteSheet ?: return
+    val haptics = LocalAppHaptics.current
+    NoteSheet(
+        title = stringResource(Res.string.note_sheet_exercise_title),
+        options = exerciseNoteOptions(),
+        kind = sheet.kind,
+        draft = sheet.draft,
+        originalKind = sheet.originalKind,
+        original = sheet.original,
+        help = exerciseNoteHelp(),
+        onKindChange = { onEvent(LiveSessionEvent.RoutineNoteKindChanged(it)) },
+        onDraftChange = { onEvent(LiveSessionEvent.RoutineNoteDraftChanged(it)) },
+        onSave = {
+            haptics.confirm()
+            onEvent(LiveSessionEvent.SaveRoutineNote)
+        },
+        onDismiss = { onEvent(LiveSessionEvent.DismissRoutineNote) },
+        testTagPrefix = "routine_note_sheet",
     )
 }
 

@@ -4,10 +4,14 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.test.assert
+import androidx.compose.ui.test.assertHeightIsAtLeast
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.assertTextContains
+import androidx.compose.ui.test.assertWidthIsAtLeast
+import androidx.compose.ui.test.getUnclippedBoundsInRoot
 import androidx.compose.ui.test.hasContentDescription
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
@@ -16,6 +20,8 @@ import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performTextClearance
 import androidx.compose.ui.test.performTextInput
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.width
 import io.github.lopezjavier.appfitness.app.FakeConnectivityObserver
 import io.github.lopezjavier.appfitness.designsystem.AppMessages
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
@@ -24,6 +30,7 @@ import io.github.lopezjavier.appfitness.designsystem.LocalAppHaptics
 import io.github.lopezjavier.appfitness.designsystem.LocalAppMessages
 import io.github.lopezjavier.appfitness.designsystem.RecordingAppHaptics
 import io.github.lopezjavier.appfitness.domain.model.SetEntry
+import io.github.lopezjavier.appfitness.domain.model.SetNoteKind
 import io.github.lopezjavier.appfitness.domain.model.SetType
 import io.github.lopezjavier.appfitness.feature.exercises.FakeExerciseLibrary
 import io.github.lopezjavier.appfitness.feature.exercises.FakeExerciseRepository
@@ -129,13 +136,27 @@ class EditWorkoutScreenTest {
 
         rule.onNodeWithTag("edit_workout_set_note_action_0_1").performScrollTo().performClick()
         rule.waitForIdle()
-        rule.onNodeWithTag("note_sheet_field").performTextInput("pausa larga")
+        rule.onNodeWithTag("note_sheet_option_other").performClick()
+        rule.onNodeWithTag("note_sheet_text").performTextInput("pausa larga")
         rule.onNodeWithTag("note_sheet_commit").performClick()
         rule.waitForIdle()
 
-        rule.onNodeWithTag("edit_workout_set_note_0_1").assertTextContains("pausa larga")
+        rule.onNodeWithTag("edit_workout_set_note_0_1").assertTextContains("Otro · pausa larga")
         save()
-        assertEquals("pausa larga", repository.savedDrafts.single().first.exercises.single().sets[1].notes)
+        val set = repository.savedDrafts.single().first.exercises.single().sets[1]
+        assertEquals("pausa larga", set.notes)
+        assertEquals(SetNoteKind.Other, set.noteKind)
+    }
+
+    @Test
+    fun setRow_at360Dp_keepsInputsWideEnoughNextToTheNoteButton() {
+        show()
+
+        val weight = rule.onNodeWithTag("edit_workout_set_0_1_weight").performScrollTo().getUnclippedBoundsInRoot()
+        val reps = rule.onNodeWithTag("edit_workout_set_0_1_reps").getUnclippedBoundsInRoot()
+        assertTrue("weight too narrow: ${weight.width}", weight.width >= 40.dp)
+        assertTrue("reps too narrow: ${reps.width}", reps.width >= 40.dp)
+        rule.onNodeWithTag("edit_workout_set_note_action_0_1").assertWidthIsAtLeast(48.dp).assertHeightIsAtLeast(48.dp)
     }
 
     @Test
@@ -187,7 +208,10 @@ class EditWorkoutScreenTest {
 
         rule.onNodeWithTag("edit_workout_add_set_0").performScrollTo().performClick()
         rule.onNodeWithTag("edit_workout_set_0_2_weight").assertExists()
-        rule.onNodeWithTag("edit_workout_set_0_0_delete").performScrollTo().performClick()
+        val row = rule.onNodeWithTag("edit_workout_set_0_0_row").performScrollTo().fetchSemanticsNode()
+        val remove = row.config[SemanticsActions.CustomActions].single { it.label.startsWith("Eliminar") }
+        rule.runOnUiThread { remove.action() }
+        rule.waitForIdle()
         rule.onNodeWithTag("edit_workout_set_0_2_weight").assertDoesNotExist()
         save()
 

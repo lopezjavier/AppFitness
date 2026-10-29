@@ -10,6 +10,7 @@ import io.github.lopezjavier.appfitness.domain.appErrorOrNull
 import io.github.lopezjavier.appfitness.domain.model.DraftExercise
 import io.github.lopezjavier.appfitness.domain.model.DraftWorkoutSet
 import io.github.lopezjavier.appfitness.domain.model.SetEntry
+import io.github.lopezjavier.appfitness.domain.model.SetNoteKind
 import io.github.lopezjavier.appfitness.domain.model.SetType
 import io.github.lopezjavier.appfitness.domain.model.TestLoginCredentials
 import io.github.lopezjavier.appfitness.domain.model.WorkoutDraft
@@ -130,6 +131,31 @@ class SupabaseSaveWorkoutTest {
         val body = bodyOf(rest().single())
         assertTrue(""""notes":"pausa larga"""" in body, body)
         assertEquals(1, Regex(""""notes":""").findAll(body).count(), body)
+    }
+
+    @Test
+    fun saveCompleted_sendsTheSetNoteKind_andOtherForTextWithoutKind() = runTest {
+        val (sessions, _) = signedIn()
+        val entry = SetEntry.WeightReps(80.0, 5)
+        val noted = draft().copy(
+            exercises = listOf(
+                DraftExercise(
+                    "e1",
+                    null,
+                    90,
+                    listOf(
+                        DraftWorkoutSet(SetType.Working, null, entry, null, SetNoteKind.Range),
+                        DraftWorkoutSet(SetType.Working, null, entry, "vieja", null),
+                    ),
+                ),
+            ),
+        )
+
+        sessions.saveCompleted(noted).getOrThrow()
+
+        val body = bodyOf(rest().single())
+        assertTrue(""""note_kind":"range"""" in body, body)
+        assertTrue(""""note_kind":"other"""" in body, body)
     }
 
     @Test

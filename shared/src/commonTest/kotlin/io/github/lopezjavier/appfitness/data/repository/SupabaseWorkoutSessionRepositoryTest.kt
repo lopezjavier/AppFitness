@@ -11,6 +11,7 @@ import io.github.lopezjavier.appfitness.domain.model.PersonalRecordType
 import io.github.lopezjavier.appfitness.domain.model.PreviousSet
 import io.github.lopezjavier.appfitness.domain.model.SessionStatus
 import io.github.lopezjavier.appfitness.domain.model.SetEntry
+import io.github.lopezjavier.appfitness.domain.model.SetNoteKind
 import io.github.lopezjavier.appfitness.domain.model.SetType
 import io.github.lopezjavier.appfitness.domain.model.TestLoginCredentials
 import io.ktor.client.engine.mock.MockEngine
@@ -368,6 +369,57 @@ class SupabaseWorkoutSessionRepositoryTest {
 
         assertEquals(listOf("pausa larga", null, null), session.exercises.single().sets.map { it.notes })
         assertTrue("notes" in rest().single().url.encodedQuery)
+    }
+
+    @Test
+    fun upsertSet_sendsTheNoteKind_andANullOneWhenThereIsNoNote() = runTest {
+        val repo = signedIn()
+
+        repo.upsertSet(
+            "s1",
+            "e1",
+            0,
+            null,
+            1,
+            SetEntry.WeightReps(80.5, 8),
+            null,
+            noteKind = SetNoteKind.Technique,
+        ).getOrThrow()
+        repo.upsertSet("s1", "e1", 0, null, 2, SetEntry.WeightReps(80.5, 8), null).getOrThrow()
+
+        val bodies = rest().map { bodyOf(it) }
+        assertTrue(""""note_kind":"technique"""" in bodies[0], bodies[0])
+        assertTrue(""""note_kind":null""" in bodies[1], bodies[1])
+    }
+
+    @Test
+    fun upsertSet_withTextButNoKind_sendsOther() = runTest {
+        val repo = signedIn()
+
+        repo.upsertSet("s1", "e1", 0, null, 1, SetEntry.WeightReps(80.5, 8), null, notes = "vieja").getOrThrow()
+
+        assertTrue(""""note_kind":"other"""" in bodyOf(rest().single()))
+    }
+
+    @Test
+    fun getSession_mapsTheNoteKind_andOldNotesWithoutKindAreOther() = runTest {
+        val repo = signedIn()
+        getBody = """[{"id":"s1","routine_id":null,"name":"A","status":"completed",""" +
+            """"started_at":"2026-10-19T10:00:00+00:00","ended_at":null,"workout_sets":[""" +
+            """{"exercise_id":"e1","exercise_position":0,"set_index":1,"weight_kg":80,"reps":5,""" +
+            """"note_kind":"grip","completed_at":null},""" +
+            """{"exercise_id":"e1","exercise_position":0,"set_index":2,"weight_kg":80,"reps":5,""" +
+            """"notes":"vieja","completed_at":null},""" +
+            """{"exercise_id":"e1","exercise_position":0,"set_index":3,"weight_kg":80,"reps":5,""" +
+            """"completed_at":null}]}]"""
+
+        val session = repo.getSession("s1").getOrThrow()!!
+
+        assertEquals(
+            listOf(SetNoteKind.Grip, SetNoteKind.Other, null),
+            session.exercises.single().sets.map { it.noteKind },
+        )
+        assertTrue("note_kind" in rest().single().url.encodedQuery)
     }
 
     @Test

@@ -23,6 +23,7 @@ import io.github.lopezjavier.appfitness.composeapp.resources.exercise_unnamed
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_arrow_downward
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_arrow_upward
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_delete
+import io.github.lopezjavier.appfitness.composeapp.resources.note_edit
 import io.github.lopezjavier.appfitness.composeapp.resources.workout_form_exercise_down_cd
 import io.github.lopezjavier.appfitness.composeapp.resources.workout_form_exercise_remove_cd
 import io.github.lopezjavier.appfitness.composeapp.resources.workout_form_exercise_up_cd
@@ -31,8 +32,10 @@ import io.github.lopezjavier.appfitness.designsystem.AppCard
 import io.github.lopezjavier.appfitness.designsystem.AppIconButton
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
 import io.github.lopezjavier.appfitness.designsystem.GhostButton
+import io.github.lopezjavier.appfitness.designsystem.InlineNote
 import io.github.lopezjavier.appfitness.designsystem.NumberStepper
 import io.github.lopezjavier.appfitness.designsystem.Spacing
+import io.github.lopezjavier.appfitness.designsystem.setNoteSummary
 import io.github.lopezjavier.appfitness.domain.model.RoutineBounds
 import io.github.lopezjavier.appfitness.domain.model.WorkoutDraftBounds
 import org.jetbrains.compose.resources.stringResource
@@ -109,14 +112,16 @@ internal fun FormExerciseCard(
                         onEvent = onEvent,
                         onOpenTypePicker = { onOpenTypePicker(setIndex) },
                         onOpenRpePicker = { onOpenRpePicker(setIndex) },
+                        onOpenNote = { onOpenNote(setIndex) },
                     )
-                    SetNoteLine(
-                        setIndex = setIndex + 1,
-                        notes = set.notes,
-                        onEdit = { onOpenNote(setIndex) },
-                        noteTag = "${tagPrefix}_set_note_${index}_$setIndex",
-                        actionTag = "${tagPrefix}_set_note_action_${index}_$setIndex",
-                    )
+                    setNoteSummary(set.noteKind, set.notes)?.let {
+                        InlineNote(
+                            text = it,
+                            testTag = "${tagPrefix}_set_note_${index}_$setIndex",
+                            onClick = { onOpenNote(setIndex) },
+                            onClickLabel = stringResource(Res.string.note_edit),
+                        )
+                    }
                     if (setIndex in card.flaggedSets) {
                         Text(
                             text = stringResource(Res.string.workout_form_set_error, setIndex + 1),

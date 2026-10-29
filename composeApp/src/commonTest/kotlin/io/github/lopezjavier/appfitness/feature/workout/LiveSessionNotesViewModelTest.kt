@@ -3,10 +3,12 @@ package io.github.lopezjavier.appfitness.feature.workout
 import androidx.lifecycle.SavedStateHandle
 import io.github.lopezjavier.appfitness.app.FakeConnectivityObserver
 import io.github.lopezjavier.appfitness.app.FakeTrainingPreferencesRepository
+import io.github.lopezjavier.appfitness.domain.model.ExerciseNoteKind
 import io.github.lopezjavier.appfitness.domain.model.PlannedSet
 import io.github.lopezjavier.appfitness.domain.model.Routine
 import io.github.lopezjavier.appfitness.domain.model.RoutineExercise
 import io.github.lopezjavier.appfitness.domain.model.SessionExercise
+import io.github.lopezjavier.appfitness.domain.model.SetNoteKind
 import io.github.lopezjavier.appfitness.domain.model.SetType
 import io.github.lopezjavier.appfitness.domain.usecase.SaveBodyMeasurement
 import io.github.lopezjavier.appfitness.feature.exercises.FakeExerciseLibrary
@@ -86,11 +88,165 @@ class LiveSessionNotesViewModelTest {
     private fun LiveSessionViewModel.setRow(position: Int, setIndex: Int) =
         active().exercises.first { it.position == position }.sets.first { it.setIndex == setIndex }
 
-    private fun TestScope.saveNote(vm: LiveSessionViewModel, position: Int, setIndex: Int, text: String) {
+    private fun TestScope.saveNote(
+        vm: LiveSessionViewModel,
+        position: Int,
+        setIndex: Int,
+        text: String,
+        kind: SetNoteKind? = SetNoteKind.Other,
+    ) {
         vm.onEvent(LiveSessionEvent.OpenSetNote(position, setIndex))
+        vm.onEvent(LiveSessionEvent.SetNoteKindChanged(kind))
         vm.onEvent(LiveSessionEvent.SetNoteDraftChanged(text))
         vm.onEvent(LiveSessionEvent.SaveSetNote)
         runCurrent()
+    }
+
+    @Test
+    fun savingAKindWithoutText_isValidAndWritesTheKind() = runSessionTest {
+        val vm = loaded()
+
+        saveNote(vm, 0, 1, "", SetNoteKind.Technique)
+
+        assertEquals(SetNoteKind.Technique, vm.setRow(0, 1).noteKind)
+        assertNull(vm.setRow(0, 1).notes)
+        val write = repository.upserts.last { it.setIndex == 1 && it.exercisePosition == 0 }
+        assertEquals(SetNoteKind.Technique, write.noteKind)
+        assertNull(write.notes)
+    }
+
+    @Test
+    fun otherWithoutText_cannotBeSaved() = runSessionTest {
+        val vm = loaded()
+        val writes = repository.upserts.size
+
+        vm.onEvent(LiveSessionEvent.OpenSetNote(0, 1))
+        vm.onEvent(LiveSessionEvent.SetNoteKindChanged(SetNoteKind.Other))
+        runCurrent()
+        val sheet = vm.active().noteSheet!!
+        vm.onEvent(LiveSessionEvent.SaveSetNote)
+        runCurrent()
+
+        assertFalse(sheet.canSave)
+        assertNull(vm.setRow(0, 1).noteKind)
+        assertEquals(writes, repository.upserts.size)
+        assertEquals(SetNoteKind.Other, vm.active().noteSheet?.kind)
+    }
+
+    @Test
+    fun textWithoutAKind_cannotBeSaved() = runSessionTest {
+        val vm = loaded()
+
+        vm.onEvent(LiveSessionEvent.OpenSetNote(0, 1))
+        vm.onEvent(LiveSessionEvent.SetNoteDraftChanged("sin opcion"))
+        runCurrent()
+
+        assertFalse(vm.active().noteSheet!!.canSave)
+    }
+
+    @Test
+    fun aNonOtherKind_keepsItsOptionalText() = runSessionTest {
+        val vm = loaded()
+
+        saveNote(vm, 0, 1, " codo abierto ", SetNoteKind.Technique)
+
+        assertEquals("codo abierto", vm.setRow(0, 1).notes)
+        assertEquals(SetNoteKind.Technique, vm.setRow(0, 1).noteKind)
+    }
+
+    @Test
+    fun deselectingTheKindAndSaving_removesTheNote() = runSessionTest {
+        val vm = loaded()
+        saveNote(vm, 0, 1, "", SetNoteKind.Grip)
+
+        saveNote(vm, 0, 1, "", null)
+
+        assertNull(vm.setRow(0, 1).noteKind)
+        assertNull(vm.setRow(0, 1).notes)
+        assertNull(repository.upserts.last().noteKind)
+    }
+
+    @Test
+    fun openingASetWithAKind_preselectsItAndNothingElse() = runSessionTest {
+        val vm = loaded()
+        saveNote(vm, 0, 1, "", SetNoteKind.Assisted)
+
+        vm.onEvent(LiveSessionEvent.OpenSetNote(0, 1))
+        vm.onEvent(LiveSessionEvent.OpenSetNote(0, 2))
+        runCurrent()
+
+        assertEquals(null, vm.active().noteSheet!!.kind)
+        vm.onEvent(LiveSessionEvent.OpenSetNote(0, 1))
+        runCurrent()
+        assertEquals(SetNoteKind.Assisted, vm.active().noteSheet!!.kind)
+        assertFalse(vm.active().noteSheet!!.canSave)
+    }
+
+    @Test
+    fun theNoteKindDraft_survivesRecreationFromTheSameSavedState() = runSessionTest {
+        val saved = SavedStateHandle()
+        val first = loaded(saved)
+        first.onEvent(LiveSessionEvent.OpenSetNote(0, 2))
+        first.onEvent(LiveSessionEvent.SetNoteKindChanged(SetNoteKind.Range))
+        runCurrent()
+
+        val second = loaded(saved)
+
+        assertEquals(SetNoteKind.Range, second.active().noteSheet!!.kind)
+    }
+
+    @Test
+    fun editingTheRoutineNote_showsItOnTheExercise() = runSessionTest {
+        val vm = loaded()
+
+        vm.onEvent(LiveSessionEvent.OpenRoutineNote(1))
+        vm.onEvent(LiveSessionEvent.RoutineNoteKindChanged(ExerciseNoteKind.WeightUp))
+        vm.onEvent(LiveSessionEvent.RoutineNoteDraftChanged("  con calma "))
+        vm.onEvent(LiveSessionEvent.SaveRoutineNote)
+        runCurrent()
+
+        val shown = vm.active().exercises.first { it.position == 1 }
+        assertEquals("con calma", shown.routineNote)
+        assertEquals(ExerciseNoteKind.WeightUp, shown.routineNoteKind)
+        assertNull(vm.active().routineNoteSheet)
+    }
+
+    @Test
+    fun openingTheRoutineNote_prefillsTheRoutinesNote() = runSessionTest {
+        val vm = loaded()
+
+        vm.onEvent(LiveSessionEvent.OpenRoutineNote(0))
+        runCurrent()
+
+        val sheet = vm.active().routineNoteSheet!!
+        assertEquals(ExerciseNoteKind.Other, sheet.kind)
+        assertEquals(routineNote, sheet.draft)
+        assertFalse(sheet.canSave)
+    }
+
+    @Test
+    fun theRoutineNoteSheet_survivesRecreationFromTheSameSavedState() = runSessionTest {
+        val saved = SavedStateHandle()
+        val first = loaded(saved)
+        first.onEvent(LiveSessionEvent.OpenRoutineNote(1))
+        first.onEvent(LiveSessionEvent.RoutineNoteKindChanged(ExerciseNoteKind.Setup))
+        runCurrent()
+
+        val second = loaded(saved)
+
+        assertEquals(ExerciseNoteKind.Setup, second.active().routineNoteSheet!!.kind)
+        assertEquals(1, second.active().routineNoteSheet!!.position)
+    }
+
+    @Test
+    fun withoutARoutine_theRoutineNoteCannotBeOpened() = runSessionTest {
+        repository.session = freshSession().copy(routineId = null)
+        val vm = loaded()
+
+        vm.onEvent(LiveSessionEvent.OpenRoutineNote(0))
+        runCurrent()
+
+        assertNull(vm.active().routineNoteSheet)
     }
 
     @Test
@@ -134,7 +290,7 @@ class LiveSessionNotesViewModelTest {
         val vm = loaded()
         saveNote(vm, 0, 1, "pausa larga")
 
-        saveNote(vm, 0, 1, "   ")
+        saveNote(vm, 0, 1, "   ", kind = null)
 
         assertNull(vm.setRow(0, 1).notes)
         assertNull(repository.upserts.last().notes)
@@ -256,6 +412,7 @@ class LiveSessionNotesViewModelTest {
                     List(2) { PlannedSet(60.0, 10) },
                     restSeconds = 90,
                     notes = "bajar el peso si duele",
+                    noteKind = ExerciseNoteKind.Other,
                 ),
                 RoutineExercise("e2", 1, null, listOf(PlannedSet(100.0, 5)), restSeconds = 120),
             ),

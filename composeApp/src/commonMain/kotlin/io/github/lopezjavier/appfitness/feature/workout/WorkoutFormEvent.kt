@@ -1,5 +1,6 @@
 package io.github.lopezjavier.appfitness.feature.workout
 
+import io.github.lopezjavier.appfitness.domain.model.SetNoteKind
 import io.github.lopezjavier.appfitness.domain.model.SetType
 
 /**
@@ -39,6 +40,10 @@ sealed interface WorkoutFormEvent {
     /** A whole number 6-10, or null to clear it. */
     data class RpeChanged(val index: Int, val setIndex: Int, val rpe: Double?) : WorkoutFormEvent
 
-    /** "Guardar" in the set note sheet: the trimmed text, blank removes the note; over 200 characters is ignored. */
-    data class NoteChanged(val index: Int, val setIndex: Int, val text: String) : WorkoutFormEvent
+    /**
+     * "Guardar" in the set note sheet: the chosen option (null removes the note) and its optional trimmed text,
+     * required for "Otro". An invalid pair is ignored.
+     */
+    data class NoteChanged(val index: Int, val setIndex: Int, val kind: SetNoteKind?, val text: String) :
+        WorkoutFormEvent
 }

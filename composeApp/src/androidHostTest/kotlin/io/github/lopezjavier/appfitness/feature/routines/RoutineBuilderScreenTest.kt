@@ -42,6 +42,7 @@ import io.github.lopezjavier.appfitness.designsystem.LocalAppHaptics
 import io.github.lopezjavier.appfitness.designsystem.LocalAppMessages
 import io.github.lopezjavier.appfitness.designsystem.RecordingAppHaptics
 import io.github.lopezjavier.appfitness.domain.AppError
+import io.github.lopezjavier.appfitness.domain.model.ExerciseNoteKind
 import io.github.lopezjavier.appfitness.domain.model.SetType
 import io.github.lopezjavier.appfitness.domain.usecase.LoadExerciseCatalog
 import io.github.lopezjavier.appfitness.feature.exercises.FakeExerciseLibrary
@@ -210,15 +211,17 @@ class RoutineBuilderScreenTest {
         rule.onNodeWithTag("routine_builder_exercise_note_0").assertTextContains("Añadir nota")
         rule.onNodeWithTag("routine_builder_exercise_note_0").performClick()
         rule.waitForIdle()
-        rule.onNodeWithTag("note_sheet_field").performTextInput("bajar el peso si duele")
+        rule.onNodeWithTag("note_sheet_option_weight_down").performClick()
+        rule.onNodeWithTag("note_sheet_text").performTextInput("si duele")
         rule.onNodeWithTag("note_sheet_commit").performClick()
         rule.waitForIdle()
 
-        rule.onNodeWithTag("routine_builder_note_0").assertTextContains("bajar el peso si duele")
+        rule.onNodeWithTag("routine_builder_note_0").assertTextContains("Bajar peso · si duele")
         assertTrue(repository.saved.isEmpty())
         rule.onNodeWithTag("routine_builder_save").performClick()
         rule.waitForIdle()
-        assertEquals("bajar el peso si duele", repository.saved.single().exercises.single().notes)
+        assertEquals("si duele", repository.saved.single().exercises.single().notes)
+        assertEquals(ExerciseNoteKind.WeightDown, repository.saved.single().exercises.single().noteKind)
     }
 
     @Test
@@ -230,7 +233,8 @@ class RoutineBuilderScreenTest {
         rule.onNodeWithTag("routine_builder_exercise_note_0").performClick()
         rule.waitForIdle()
 
-        rule.onNodeWithTag("note_sheet_field").performTextInput("a".repeat(201))
+        rule.onNodeWithTag("note_sheet_option_other").performClick()
+        rule.onNodeWithTag("note_sheet_text").performTextInput("a".repeat(201))
 
         rule.onNodeWithText("Máximo 200 caracteres").assertExists()
         rule.onNodeWithTag("note_sheet_commit").assertIsNotEnabled()

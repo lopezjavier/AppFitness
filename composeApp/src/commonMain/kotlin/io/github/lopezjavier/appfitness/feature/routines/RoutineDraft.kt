@@ -3,6 +3,8 @@
 package io.github.lopezjavier.appfitness.feature.routines
 
 import io.github.lopezjavier.appfitness.designsystem.AppNumberFormat
+import io.github.lopezjavier.appfitness.domain.model.ExerciseNoteKind
+import io.github.lopezjavier.appfitness.domain.model.Note
 import io.github.lopezjavier.appfitness.domain.model.NoteText
 import io.github.lopezjavier.appfitness.domain.model.PlannedSet
 import io.github.lopezjavier.appfitness.domain.model.Routine
@@ -10,6 +12,7 @@ import io.github.lopezjavier.appfitness.domain.model.RoutineBounds
 import io.github.lopezjavier.appfitness.domain.model.RoutineExercise
 import io.github.lopezjavier.appfitness.domain.model.SetType
 import io.github.lopezjavier.appfitness.domain.model.WarmUpSet
+import io.github.lopezjavier.appfitness.domain.model.resolveNoteKind
 import io.github.lopezjavier.appfitness.domain.usecase.RpeScale
 import io.github.lopezjavier.appfitness.domain.usecase.moveExercise
 import io.github.lopezjavier.appfitness.domain.usecase.normalizeGroups
@@ -30,6 +33,7 @@ internal data class DraftRow(
     val group: Int?,
     val targetRpe: Double? = null,
     val notes: String? = null,
+    val noteKind: ExerciseNoteKind? = null,
 )
 
 /** The editable routine. Serializable so it survives process death inside the [SavedStateHandle]. */
@@ -194,7 +198,8 @@ internal fun RoutineDraft.toRoutine(id: String?) = Routine(
             plannedSets = row.sets.map { it.toPlannedSet() ?: PlannedSet(null, RoutineBounds.REPS_MIN, it.type) },
             restSeconds = row.restSeconds,
             targetRpe = row.targetRpe,
-            notes = NoteText.normalise(row.notes),
+            notes = Note.of(row.noteKind, row.notes)?.text,
+            noteKind = Note.of(row.noteKind, row.notes)?.kind,
         )
     },
 )
@@ -212,6 +217,7 @@ internal fun Routine.toDraft(): RoutineDraft {
                 group = groups[index],
                 targetRpe = exercise.targetRpe?.let(RpeScale::round),
                 notes = NoteText.normalise(exercise.notes),
+                noteKind = resolveNoteKind(exercise.noteKind, exercise.notes, ExerciseNoteKind.Other),
             )
         }
     return RoutineDraft(

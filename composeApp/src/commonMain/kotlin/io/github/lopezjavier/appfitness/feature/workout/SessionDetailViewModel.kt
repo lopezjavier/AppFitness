@@ -250,7 +250,14 @@ class SessionDetailViewModel(
                     exerciseId = exercise.exerciseId,
                     name = names[exercise.exerciseId],
                     sets = exercise.sets.sortedBy { it.setIndex }.filter { it.isCompleted }.map { set ->
-                        DetailSet(set.setIndex, set.setType, SetEntryText.format(set.entry), set.rpe, set.notes)
+                        DetailSet(
+                            set.setIndex,
+                            set.setType,
+                            SetEntryText.format(set.entry),
+                            set.rpe,
+                            set.notes,
+                            set.noteKind,
+                        )
                     },
                     isPersonalRecord = exercise.exerciseId in records,
                     records = beaten[exercise.exerciseId].orEmpty(),

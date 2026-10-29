@@ -21,6 +21,7 @@ import io.github.lopezjavier.appfitness.composeapp.resources.live_updateRoutine_
 import io.github.lopezjavier.appfitness.composeapp.resources.live_updateRoutine_keep
 import io.github.lopezjavier.appfitness.composeapp.resources.live_updateRoutine_keep_desc
 import io.github.lopezjavier.appfitness.composeapp.resources.live_updateRoutine_more
+import io.github.lopezjavier.appfitness.composeapp.resources.live_updateRoutine_notes_changed
 import io.github.lopezjavier.appfitness.composeapp.resources.live_updateRoutine_order_changed
 import io.github.lopezjavier.appfitness.composeapp.resources.live_updateRoutine_rests_changed
 import io.github.lopezjavier.appfitness.composeapp.resources.live_updateRoutine_sets_added
@@ -49,6 +50,7 @@ private fun RoutineChangeSummary.lines(): List<SummaryLine> = buildList {
     if (setsRemoved > 0) add(SummaryLine(Res.plurals.live_updateRoutine_sets_removed, setsRemoved))
     if (setsChanged > 0) add(SummaryLine(Res.plurals.live_updateRoutine_sets_changed, setsChanged))
     if (restsChanged > 0) add(SummaryLine(Res.plurals.live_updateRoutine_rests_changed, restsChanged))
+    if (notesChanged > 0) add(SummaryLine(Res.plurals.live_updateRoutine_notes_changed, notesChanged))
     if (exercisesAdded > 0) add(SummaryLine(Res.plurals.live_updateRoutine_exercises_added, exercisesAdded))
     if (exercisesRemoved > 0) add(SummaryLine(Res.plurals.live_updateRoutine_exercises_removed, exercisesRemoved))
     if (orderOrSupersetChanged) add(SummaryLine(null, 1))

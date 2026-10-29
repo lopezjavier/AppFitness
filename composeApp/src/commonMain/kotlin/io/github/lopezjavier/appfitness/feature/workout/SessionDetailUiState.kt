@@ -1,6 +1,7 @@
 package io.github.lopezjavier.appfitness.feature.workout
 
 import io.github.lopezjavier.appfitness.domain.model.PersonalRecordType
+import io.github.lopezjavier.appfitness.domain.model.SetNoteKind
 import io.github.lopezjavier.appfitness.domain.model.SetType
 import io.github.lopezjavier.appfitness.domain.usecase.MuscleShare
 import io.github.lopezjavier.appfitness.domain.usecase.SessionStats
@@ -14,6 +15,8 @@ data class DetailSet(
     val rpe: Double? = null,
     /** The set note (US-66), read-only in the detail; null when none. */
     val notes: String? = null,
+    /** The option of the set note; null when none. */
+    val noteKind: SetNoteKind? = null,
 )
 
 /** An exercise of the session; [name] is null when the library has none (the UI shows a generic label). */

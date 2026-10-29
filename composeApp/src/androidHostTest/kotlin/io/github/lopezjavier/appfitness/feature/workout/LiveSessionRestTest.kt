@@ -69,32 +69,6 @@ class LiveSessionRestTest {
     }
 
     @Test
-    fun ghost_showsThePreviousPerformance_andADashWhenThereIsNone() {
-        show(session())
-
-        rule.onNodeWithTag("live_set_0_2_previous").assertTextContains("85 kg × 8")
-        rule.onNodeWithTag("live_set_0_3_previous").assertTextContains("—")
-    }
-
-    @Test
-    fun ghost_tapOnAPendingRowAsksToUseThePreviousValues() {
-        show(session())
-
-        rule.onNodeWithTag("live_set_0_2_previous").performClick()
-
-        assertEquals(listOf<LiveSessionEvent>(LiveSessionEvent.UsePrevious(0, 2)), events)
-    }
-
-    @Test
-    fun ghost_tapOnACompletedRowDoesNothing() {
-        show(session())
-
-        rule.onNodeWithTag("live_set_0_1_previous").performClick()
-
-        assertTrue(events.isEmpty())
-    }
-
-    @Test
     fun ghost_placeholdersAreNotValues() {
         show(session())
 

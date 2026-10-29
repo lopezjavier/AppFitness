@@ -5,6 +5,7 @@ import io.github.lopezjavier.appfitness.domain.model.ExerciseSessionRecords
 import io.github.lopezjavier.appfitness.domain.model.PersonalRecord
 import io.github.lopezjavier.appfitness.domain.model.PreviousSet
 import io.github.lopezjavier.appfitness.domain.model.SetEntry
+import io.github.lopezjavier.appfitness.domain.model.SetNoteKind
 import io.github.lopezjavier.appfitness.domain.model.SetType
 import io.github.lopezjavier.appfitness.domain.model.TrainedSession
 import io.github.lopezjavier.appfitness.domain.model.WorkoutDraft
@@ -33,6 +34,7 @@ interface WorkoutSessionRepository {
         setType: SetType = SetType.Working,
         rpe: Double? = null,
         notes: String? = null,
+        noteKind: SetNoteKind? = null,
     ): Result<Unit>
 
     /** Completed sessions, newest first; a page is [limit] rows starting at [offset]. */

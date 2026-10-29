@@ -145,11 +145,9 @@ class FullSessionTest {
         }
         settle()
 
-        // Ghost: last time's sets, and a tap fills the drafts.
-        rule.onNodeWithTag("live_set_0_1_previous").assertTextContains("80 kg × 10")
-        rule.onNodeWithTag("live_set_0_2_previous").assertTextContains("85 kg × 8")
-        rule.onNodeWithTag("live_set_1_1_previous").assertTextContains("—")
-        rule.onNodeWithTag("live_set_0_1_previous").performClick()
+        // The previous performance is no column of the live row: type the first set.
+        rule.onNodeWithTag("live_set_0_1_weight").performTextInput("80")
+        rule.onNodeWithTag("live_set_0_1_reps").performTextInput("10")
         settle()
         rule.onNodeWithTag("live_set_0_1_check").performClick()
         settle()

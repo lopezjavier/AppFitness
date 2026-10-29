@@ -46,6 +46,8 @@ import io.github.lopezjavier.appfitness.designsystem.ReorderableColumn
 import io.github.lopezjavier.appfitness.designsystem.SetTypePickerSheet
 import io.github.lopezjavier.appfitness.designsystem.SkeletonBox
 import io.github.lopezjavier.appfitness.designsystem.Spacing
+import io.github.lopezjavier.appfitness.designsystem.exerciseNoteHelp
+import io.github.lopezjavier.appfitness.designsystem.exerciseNoteOptions
 import io.github.lopezjavier.appfitness.designsystem.offlineHint
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
@@ -213,10 +215,13 @@ private fun BuilderNoteSheet(
     val haptics = LocalAppHaptics.current
     NoteSheet(
         title = stringResource(Res.string.note_sheet_exercise_title),
-        initial = state.rows[index].notes,
-        onSave = {
+        options = exerciseNoteOptions(),
+        initialKind = state.rows[index].noteKind,
+        initialText = state.rows[index].notes,
+        help = exerciseNoteHelp(),
+        onSave = { kind, text ->
             haptics.confirm()
-            onEvent(RoutineBuilderEvent.SetExerciseNote(index, it.orEmpty()))
+            onEvent(RoutineBuilderEvent.SetExerciseNote(index, kind, text.orEmpty()))
             onClose()
         },
         onDismiss = onClose,

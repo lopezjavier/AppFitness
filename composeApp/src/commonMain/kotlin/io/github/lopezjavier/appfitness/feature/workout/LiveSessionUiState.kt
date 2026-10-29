@@ -3,8 +3,11 @@ package io.github.lopezjavier.appfitness.feature.workout
 import io.github.lopezjavier.appfitness.domain.model.DiscomfortLevel
 import io.github.lopezjavier.appfitness.domain.model.Equipment
 import io.github.lopezjavier.appfitness.domain.model.ExerciseMetricType
+import io.github.lopezjavier.appfitness.domain.model.ExerciseNoteKind
+import io.github.lopezjavier.appfitness.domain.model.Note
 import io.github.lopezjavier.appfitness.domain.model.NoteText
 import io.github.lopezjavier.appfitness.domain.model.RoutineBounds
+import io.github.lopezjavier.appfitness.domain.model.SetNoteKind
 import io.github.lopezjavier.appfitness.domain.model.SetType
 import io.github.lopezjavier.appfitness.domain.model.WarmUpSet
 import io.github.lopezjavier.appfitness.domain.usecase.SessionSummary
@@ -40,6 +43,8 @@ data class LiveSetRow(
     val stopwatchRunning: Boolean = false,
     /** The set note (1-200 chars), shown under the set; null when none (US-66). */
     val notes: String? = null,
+    /** The option of the set note; null when the set has no note (US-66, ADR-82). */
+    val noteKind: SetNoteKind? = null,
 )
 
 /** An exercise card. [name] is null when the library has no name for it (the UI shows a generic label). */
@@ -59,8 +64,12 @@ data class LiveExercise(
     val equipment: Equipment? = null,
     /** The open discomfort of this exercise, shown with its level; null when none (US-67). */
     val discomfort: LiveDiscomfort? = null,
-    /** The routine's note for this exercise, read-only here; null when none or the session has no routine. */
+    /** The optional text of the routine's note for this exercise; null when none. */
     val routineNote: String? = null,
+    /** The option of the routine note (edited or not); null when the exercise has none or no routine. */
+    val routineNoteKind: ExerciseNoteKind? = null,
+    /** The exercise belongs to a routine, so its routine note can be edited here (ADR-82). */
+    val routineNoteEditable: Boolean = false,
 )
 
 /** An open discomfort on an exercise, shown at the highest [level] among its open rows. */
@@ -79,15 +88,43 @@ data class TypePickerTarget(val position: Int, val setIndex: Int)
 data class RpePickerTarget(val position: Int, val setIndex: Int, val completesSet: Boolean = false)
 
 /**
- * The set note sheet: the set (exercise [position], [setIndex]), the text being typed ([draft]) and the saved note it
- * started from ([original]). Survives process death (ADR-40). Closing it discards the draft silently.
+ * The set note sheet: the set (exercise [position], [setIndex]), the chosen option ([kind], null = none), the text
+ * being typed ([draft]) and the saved note it started from ([originalKind], [original]). Survives process death
+ * (ADR-40). Closing it discards the draft silently.
  */
-data class LiveNoteSheet(val position: Int, val setIndex: Int, val draft: String, val original: String?) {
+data class LiveNoteSheet(
+    val position: Int,
+    val setIndex: Int,
+    val kind: SetNoteKind?,
+    val draft: String,
+    val originalKind: SetNoteKind?,
+    val original: String?,
+) {
     /** More than [NoteText.MAX] characters: the field shows the error and "Guardar" is disabled. */
     val tooLong: Boolean get() = !NoteText.isValid(draft)
 
-    /** Valid and different from the saved note (clearing a saved note counts as a change). */
-    val canSave: Boolean get() = !tooLong && NoteText.normalise(draft) != original
+    /** "Otro" is chosen and the text is blank: the text is required. */
+    val textRequired: Boolean get() = kind?.requiresText == true && NoteText.normalise(draft) == null
+
+    /** A valid pair, different from the saved note (deselecting the option of a saved note clears it). */
+    val canSave: Boolean
+        get() = Note.isValid(kind, draft) &&
+            (kind != originalKind || NoteText.normalise(draft) != original)
+}
+
+/** Like [LiveNoteSheet] for the routine note of the exercise at [position] (options of [ExerciseNoteKind]). */
+data class LiveRoutineNoteSheet(
+    val position: Int,
+    val kind: ExerciseNoteKind?,
+    val draft: String,
+    val originalKind: ExerciseNoteKind?,
+    val original: String?,
+) {
+    val tooLong: Boolean get() = !NoteText.isValid(draft)
+    val textRequired: Boolean get() = kind?.requiresText == true && NoteText.normalise(draft) == null
+    val canSave: Boolean
+        get() = Note.isValid(kind, draft) &&
+            (kind != originalKind || NoteText.normalise(draft) != original)
 }
 
 /** The confirmation sheet of "Finalizar entreno": [pendingCount] sets are not completed and will be dropped. */
@@ -108,11 +145,13 @@ data class RoutineChangeSummary(
     val exercisesAdded: Int = 0,
     val exercisesRemoved: Int = 0,
     val orderOrSupersetChanged: Boolean = false,
+    /** Routine-exercise notes edited during the session (ADR-82). */
+    val notesChanged: Int = 0,
 ) {
     /** Number of change lines (the order/superset one counts as 1). */
     val total: Int
         get() = setsAdded + setsRemoved + setsChanged + restsChanged + exercisesAdded + exercisesRemoved +
-            if (orderOrSupersetChanged) 1 else 0
+            notesChanged + if (orderOrSupersetChanged) 1 else 0
 }
 
 /**
@@ -157,6 +196,8 @@ sealed interface LiveSessionUiState {
         val rpePicker: RpePickerTarget? = null,
         /** The set note sheet; null when closed. Survives process death (ADR-40). */
         val noteSheet: LiveNoteSheet? = null,
+        /** The routine-exercise note sheet; null when closed. Survives process death (ADR-40). */
+        val routineNoteSheet: LiveRoutineNoteSheet? = null,
         /** Exercises whose logged weight is per hand (volume counts twice); empty when none or unreadable. */
         val perHandIds: Set<String> = emptySet(),
         /** The latest body weight in kg (prefills the body-weight sheet); null when there is none. */
@@ -282,8 +323,26 @@ sealed interface LiveSessionEvent {
     /** The note action of a set (pending or completed): opens the note sheet prefilled with its note. */
     data class OpenSetNote(val position: Int, val setIndex: Int) : LiveSessionEvent
 
+    /** The option of the open set note sheet changed; null deselects it (saving then removes the note). */
+    data class SetNoteKindChanged(val kind: SetNoteKind?) : LiveSessionEvent
+
     /** The note field of the open sheet changed (draft only). */
     data class SetNoteDraftChanged(val text: String) : LiveSessionEvent
+
+    /** The note action of an exercise: opens the routine note sheet; ignored when the session has no routine. */
+    data class OpenRoutineNote(val position: Int) : LiveSessionEvent
+
+    data class RoutineNoteKindChanged(val kind: ExerciseNoteKind?) : LiveSessionEvent
+
+    data class RoutineNoteDraftChanged(val text: String) : LiveSessionEvent
+
+    /**
+     * "Guardar" in the routine note sheet: the note changes for this workout and counts as a routine change (the
+     * "update the routine?" choice at the end, ADR-82); ignored when invalid.
+     */
+    data object SaveRoutineNote : LiveSessionEvent
+
+    data object DismissRoutineNote : LiveSessionEvent
 
     /** "Guardar" in the note sheet: stores the trimmed note with the set; blank removes it; ignored when invalid. */
     data object SaveSetNote : LiveSessionEvent

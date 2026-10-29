@@ -248,14 +248,6 @@ class LiveSessionRpeTest {
     }
 
     @Test
-    fun previousRpe_ghostShowsRpe8OnSet2Only() {
-        showStateful(previous = mapOf(2 to "85 kg × 8\nRPE 8", 1 to "80 kg × 10"))
-
-        rule.onNodeWithTag("live_set_0_2_previous").assertTextEquals("85 kg × 8\nRPE 8")
-        rule.onNodeWithTag("live_set_0_1_previous").assertTextEquals("80 kg × 10")
-    }
-
-    @Test
     fun targetRpe_isShownOncePerExercise() {
         showStateful(target = "8")
 

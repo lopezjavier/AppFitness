@@ -14,6 +14,7 @@ import io.github.lopezjavier.appfitness.domain.model.MuscleGroup
 import io.github.lopezjavier.appfitness.domain.model.PersonalRecordType
 import io.github.lopezjavier.appfitness.domain.model.SessionExercise
 import io.github.lopezjavier.appfitness.domain.model.SetEntry
+import io.github.lopezjavier.appfitness.domain.model.SetNoteKind
 import io.github.lopezjavier.appfitness.domain.model.SetType
 import io.github.lopezjavier.appfitness.domain.model.TrainingPreferences
 import io.github.lopezjavier.appfitness.domain.model.WorkoutSet
@@ -427,8 +428,16 @@ class SessionDetailViewModelTest {
                             SetEntry.WeightReps(80.0, 8),
                             SESSION_START,
                             notes = "pausa larga",
+                            noteKind = SetNoteKind.Other,
                         ),
-                        WorkoutSet(2, SetType.Working, SetEntry.WeightReps(80.0, 8), SESSION_START),
+                        WorkoutSet(
+                            2,
+                            SetType.Working,
+                            SetEntry.WeightReps(80.0, 8),
+                            SESSION_START,
+                            noteKind = SetNoteKind.Technique,
+                        ),
+                        WorkoutSet(3, SetType.Working, SetEntry.WeightReps(80.0, 8), SESSION_START),
                     ),
                 ),
             ),
@@ -437,7 +446,9 @@ class SessionDetailViewModelTest {
 
         advanceUntilIdle()
 
-        assertEquals(listOf("pausa larga", null), model.content().exercises.single().sets.map { it.notes })
+        val sets = model.content().exercises.single().sets
+        assertEquals(listOf("pausa larga", null, null), sets.map { it.notes })
+        assertEquals(listOf(SetNoteKind.Other, SetNoteKind.Technique, null), sets.map { it.noteKind })
     }
 
     @Test

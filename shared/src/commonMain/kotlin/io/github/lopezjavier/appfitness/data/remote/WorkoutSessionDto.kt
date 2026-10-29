@@ -10,10 +10,12 @@ import io.github.lopezjavier.appfitness.domain.model.PreviousSet
 import io.github.lopezjavier.appfitness.domain.model.SessionExercise
 import io.github.lopezjavier.appfitness.domain.model.SessionStatus
 import io.github.lopezjavier.appfitness.domain.model.SetColumns
+import io.github.lopezjavier.appfitness.domain.model.SetNoteKind
 import io.github.lopezjavier.appfitness.domain.model.SetType
 import io.github.lopezjavier.appfitness.domain.model.TrainedSession
 import io.github.lopezjavier.appfitness.domain.model.WorkoutSession
 import io.github.lopezjavier.appfitness.domain.model.WorkoutSet
+import io.github.lopezjavier.appfitness.domain.model.resolveNoteKind
 import kotlinx.datetime.LocalDate
 import kotlinx.serialization.EncodeDefault
 import kotlinx.serialization.ExperimentalSerializationApi
@@ -42,6 +44,8 @@ internal data class WorkoutSetDto(
     val rpe: Double? = null,
     @SerialName("completed_at") val completedAt: String? = null,
     val notes: String? = null,
+    // Absent in old payloads: a note with text but no kind reads as "other".
+    @SerialName("note_kind") val noteKind: SetNoteKind? = null,
     // Embedded `exercises(metric_type)`; absent means the default weight and reps.
     val exercises: ExerciseMetricDto? = null,
 ) {
@@ -53,12 +57,13 @@ internal data class WorkoutSetDto(
         completedAt = completedAt?.let(Instant::parse),
         rpe = rpe,
         notes = NoteText.normalise(notes),
+        noteKind = resolveNoteKind(noteKind, notes, SetNoteKind.Other),
     )
 
     companion object {
         const val COLUMNS =
             "exercise_id,exercise_position,superset_group,set_index,set_type,weight_kg,reps,duration_s,distance_m," +
-                "steps,floors,rpe,completed_at,notes,exercises(metric_type)"
+                "steps,floors,rpe,completed_at,notes,note_kind,exercises(metric_type)"
     }
 }
 
@@ -154,6 +159,7 @@ internal data class WorkoutSetUpsertDto(
     @EncodeDefault @SerialName("completed_at") val completedAt: String? = null,
     // Always sent, even when null, so clearing the note reaches the server.
     @EncodeDefault val notes: String? = null,
+    @EncodeDefault @SerialName("note_kind") val noteKind: SetNoteKind? = null,
 )
 
 @Serializable
