@@ -225,6 +225,12 @@ class RoutineBuilderViewModel(
         is RoutineBuilderEvent.StepTargetRpe ->
             event.index to { row -> row.copy(targetRpe = steppedRpe(row.targetRpe, event.delta)) }
 
+        is RoutineBuilderEvent.StepRepMin ->
+            event.index to { row -> row.withRepRange(steppedRepRange(row.repRange(), event.delta, 0)) }
+
+        is RoutineBuilderEvent.StepRepMax ->
+            event.index to { row -> row.withRepRange(steppedRepRange(row.repRange(), 0, event.delta)) }
+
         is RoutineBuilderEvent.SetExerciseNote ->
             event.index to { row ->
                 if (Note.isValid(event.kind, event.text)) {
@@ -417,6 +423,7 @@ class RoutineBuilderViewModel(
                         targetRpe = row.targetRpe,
                         notes = row.notes,
                         noteKind = row.noteKind,
+                        repRange = row.repRange(),
                         supersetLabel = labels[index],
                         canMoveUp = index > 0,
                         canMoveDown = index < lastIndex,

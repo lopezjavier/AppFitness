@@ -6,6 +6,7 @@ import io.github.lopezjavier.appfitness.domain.model.ExerciseMetricType
 import io.github.lopezjavier.appfitness.domain.model.ExerciseNoteKind
 import io.github.lopezjavier.appfitness.domain.model.Note
 import io.github.lopezjavier.appfitness.domain.model.NoteText
+import io.github.lopezjavier.appfitness.domain.model.ProgressionSuggestion
 import io.github.lopezjavier.appfitness.domain.model.RoutineBounds
 import io.github.lopezjavier.appfitness.domain.model.SetNoteKind
 import io.github.lopezjavier.appfitness.domain.model.SetType
@@ -58,6 +59,11 @@ data class LiveExercise(
     val restSeconds: Int = RoutineBounds.DEFAULT_REST_SECONDS,
     /** The routine's target RPE as "8"; null when the exercise has none or the session is free. */
     val targetRpeText: String? = null,
+    /**
+     * The progression suggestion (US-70) with the weight change already applied; null when there is none (no range,
+     * no history, severe discomfort, offline or error). Read-only: it never touches the set rows or the routine.
+     */
+    val suggestion: ProgressionSuggestion? = null,
     /** What each set of this exercise measures; decides the fields of its rows. */
     val metricType: ExerciseMetricType = ExerciseMetricType.WeightReps,
     /** Decides the hint of the weight field; null when unknown. */
@@ -214,6 +220,8 @@ sealed interface LiveSessionUiState {
         val pausedTotalSeconds: Long = 0,
         /** The open warm-up calculator or disc loader; null when closed. Survives process death (ADR-40). */
         val calculator: CalculatorUiState? = null,
+        /** Position of the exercise whose "Sugerencia" help sheet is open; null when closed. Survives process death. */
+        val progressionHelpPosition: Int? = null,
         /** A discomfort is being stored: the sheet's "Guardar" shows progress and is blocked. */
         val discomfortSaving: Boolean = false,
         /** Counts stored discomforts; the card closes its sheet when it changes (a failure keeps the sheet open). */
@@ -394,6 +402,11 @@ sealed interface LiveSessionEvent {
 
     /** The calculator was closed (X, back, scrim, swipe, "Cerrar"): nothing is inserted. */
     data object DismissCalculator : LiveSessionEvent
+
+    /** The `?` of the suggestion line of the exercise at [position]: opens the help sheet (ignored without one). */
+    data class OpenProgressionHelp(val position: Int) : LiveSessionEvent
+
+    data object DismissProgressionHelp : LiveSessionEvent
 
     /** "Actualizar rutina" in the sheet: replaces the routine with the session's completed sets. */
     data object UpdateRoutine : LiveSessionEvent

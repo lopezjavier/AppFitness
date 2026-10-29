@@ -346,6 +346,7 @@ val uiModule =
                 notificationPermission = get(),
                 restAlertPreferences = get(),
                 discomfortRepository = get(),
+                progressionRepository = get(),
             )
         }
         viewModelOf(::HistoryViewModel)

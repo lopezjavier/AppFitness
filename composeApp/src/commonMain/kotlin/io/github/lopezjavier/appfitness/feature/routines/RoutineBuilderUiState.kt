@@ -2,6 +2,7 @@ package io.github.lopezjavier.appfitness.feature.routines
 
 import io.github.lopezjavier.appfitness.domain.model.Equipment
 import io.github.lopezjavier.appfitness.domain.model.ExerciseNoteKind
+import io.github.lopezjavier.appfitness.domain.model.RepRange
 import io.github.lopezjavier.appfitness.domain.model.RoutineBounds
 import io.github.lopezjavier.appfitness.domain.model.SetType
 import io.github.lopezjavier.appfitness.domain.model.WarmUpSet
@@ -46,6 +47,8 @@ data class BuilderRowUi(
     val notes: String? = null,
     /** The option of the exercise note; null when none (ADR-82). */
     val noteKind: ExerciseNoteKind? = null,
+    /** Rep range of the exercise (US-70); null = "Sin definir", no progression suggestion. */
+    val repRange: RepRange? = null,
     /** Equipment of the exercise; null while the catalog loads (equipment-dependent menu entries stay hidden). */
     val equipment: Equipment? = null,
     /** The logged weight is per hand (`Exercise.perHand`): volume counts it twice. */
@@ -132,6 +135,12 @@ sealed interface RoutineBuilderEvent {
 
     /** [delta] is -1 or +1 half point of the target RPE: from none +1 gives 8, below 6 clears it. */
     data class StepTargetRpe(val index: Int, val delta: Int) : RoutineBuilderEvent
+
+    /** [delta] is -1 or +1 of "Reps mín.": from none +1 gives 8-12, below 1 clears the range, above max raises max. */
+    data class StepRepMin(val index: Int, val delta: Int) : RoutineBuilderEvent
+
+    /** [delta] is -1 or +1 of "Reps máx.": from none +1 gives 8-12, below min lowers min. */
+    data class StepRepMax(val index: Int, val delta: Int) : RoutineBuilderEvent
 
     /**
      * "Guardar" in the note sheet of row [index]: the chosen option (null removes the note) and its optional trimmed

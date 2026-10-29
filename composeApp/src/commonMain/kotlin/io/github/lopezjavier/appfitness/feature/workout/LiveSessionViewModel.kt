@@ -17,6 +17,7 @@ import io.github.lopezjavier.appfitness.domain.model.Note
 import io.github.lopezjavier.appfitness.domain.model.NoteText
 import io.github.lopezjavier.appfitness.domain.model.PlannedSet
 import io.github.lopezjavier.appfitness.domain.model.PreviousSet
+import io.github.lopezjavier.appfitness.domain.model.ProgressionSuggestion
 import io.github.lopezjavier.appfitness.domain.model.RoutineBounds
 import io.github.lopezjavier.appfitness.domain.model.SessionExercise
 import io.github.lopezjavier.appfitness.domain.model.SessionStatus
@@ -42,6 +43,7 @@ import io.github.lopezjavier.appfitness.domain.port.RestAlertScheduler
 import io.github.lopezjavier.appfitness.domain.repository.BodyMeasurementRepository
 import io.github.lopezjavier.appfitness.domain.repository.DiscomfortRepository
 import io.github.lopezjavier.appfitness.domain.repository.ExerciseRepository
+import io.github.lopezjavier.appfitness.domain.repository.ProgressionRepository
 import io.github.lopezjavier.appfitness.domain.repository.RoutineRepository
 import io.github.lopezjavier.appfitness.domain.repository.TrainingPreferencesRepository
 import io.github.lopezjavier.appfitness.domain.repository.WorkoutSessionRepository
@@ -54,6 +56,7 @@ import io.github.lopezjavier.appfitness.domain.usecase.GhostData
 import io.github.lopezjavier.appfitness.domain.usecase.LogDiscomfort
 import io.github.lopezjavier.appfitness.domain.usecase.MeasurementsByDay
 import io.github.lopezjavier.appfitness.domain.usecase.PendingSetQueue
+import io.github.lopezjavier.appfitness.domain.usecase.ProgressionWeight
 import io.github.lopezjavier.appfitness.domain.usecase.ResolveDiscomfort
 import io.github.lopezjavier.appfitness.domain.usecase.RestTimer
 import io.github.lopezjavier.appfitness.domain.usecase.RoutineChange
@@ -124,6 +127,7 @@ private const val KEY_REST_PERMISSION_ASKED = "live_rest_permission_asked"
 private const val KEY_REST_PAUSED_TOTAL = "live_rest_paused_total"
 private const val KEY_BODY_WEIGHT_DRAFT = "live_body_weight_draft"
 private const val KEY_UPDATE_SHEET = "live_update_routine_sheet"
+private const val KEY_PROGRESSION_HELP = "live_progression_help_position"
 private const val DRAFT_SEPARATOR = ''
 private const val DRAFT_FIELDS = 9
 private const val METRES_PER_KM = 1000.0
@@ -224,8 +228,15 @@ class LiveSessionViewModel(
     private val notificationPermission: NotificationPermission = NotificationsGranted,
     private val restAlertPreferences: RestAlertPreferences = ExplanationAlreadyShown,
     private val discomfortRepository: DiscomfortRepository = NoDiscomforts,
+    private val progressionRepository: ProgressionRepository = NoProgression,
 ) : ViewModel() {
     private var session: SessionState? = null
+
+    /** Server suggestions by exercise id (base weight); empty until loaded, on error or offline (US-70). */
+    private var suggestions: Map<String, ProgressionSuggestion> = emptyMap()
+
+    /** Position of the exercise whose "Sugerencia" help sheet is open; mirrored in [savedState] (ADR-40). */
+    private var progressionHelp: Int? = savedState.get<Int>(KEY_PROGRESSION_HELP)
 
     private val logDiscomfort = LogDiscomfort(discomfortRepository)
     private val resolveDiscomfort = ResolveDiscomfort(discomfortRepository, clock)
@@ -504,6 +515,12 @@ class LiveSessionViewModel(
 
             LiveSessionEvent.DismissCalculator -> updateDialogs { calculatorDraft = null }
 
+            is LiveSessionEvent.OpenProgressionHelp -> updateDialogs {
+                if (suggestionFor(event.position) != null) progressionHelp = event.position
+            }
+
+            LiveSessionEvent.DismissProgressionHelp -> updateDialogs { progressionHelp = null }
+
             LiveSessionEvent.UpdateRoutine -> updateRoutine()
 
             LiveSessionEvent.KeepRoutine -> keepRoutine()
@@ -646,6 +663,7 @@ class LiveSessionViewModel(
                         discomforts = emptyMap()
                         discomfortUnread = emptySet()
                         loadDiscomforts(loaded.exercises.map { it.exerciseId }.toSet())
+                        loadSuggestions(loaded.id)
                         coroutineScope {
                             loaded.exercises.map { it.exerciseId }.distinct().map { async { loadGhost(it) } }.awaitAll()
                         }
@@ -656,6 +674,20 @@ class LiveSessionViewModel(
             )
             publish()
         }
+    }
+
+    /** A failed read (offline, error) just means no suggestion line; it never blocks the session (US-70). */
+    private suspend fun loadSuggestions(sessionId: String) {
+        suggestions =
+            progressionRepository.suggestionsFor(sessionId).getOrNull().orEmpty().associateBy { it.exerciseId }
+        progressionHelp = progressionHelp?.takeIf { suggestionFor(it) != null }
+    }
+
+    /** The suggestion of the exercise at [position] with the weight change applied (plates or dumbbell handle). */
+    private fun suggestionFor(position: Int): ProgressionSuggestion? {
+        val exerciseId = session?.exercises?.firstOrNull { it.position == position }?.exerciseId
+        val base = exerciseId?.let { suggestions[it] } ?: return null
+        return ProgressionWeight.apply(base, traits[base.exerciseId]?.equipment, trainingPreferences.calculators)
     }
 
     /** Catalog names come from the library by key, custom ones from their row; a failure leaves rows unnamed. */
@@ -1622,6 +1654,7 @@ class LiveSessionViewModel(
 
     /** Mirrors the picker target and the unchecked weight/reps drafts into [savedState] (ADR-40). */
     private fun persistState() {
+        savedState[KEY_PROGRESSION_HELP] = progressionHelp
         savedState[KEY_UPDATE_SHEET] = (terminal as? LiveSessionUiState.Finished)?.updateRoutineSheet?.encoded()
         savedState[KEY_BODY_WEIGHT_DRAFT] = bodyWeightDraft
         savedState.persistCalculatorDraft(calculatorDraft)
@@ -1782,6 +1815,7 @@ class LiveSessionViewModel(
                     },
                     restSeconds = rests[exercise.position] ?: RoutineBounds.DEFAULT_REST_SECONDS,
                     targetRpeText = targetRpes[exercise.position]?.let(RpeScale::text),
+                    suggestion = suggestionFor(exercise.position),
                     routineNote = currentRoutineNote(exercise.position)?.text,
                     routineNoteKind = currentRoutineNote(exercise.position)?.kind,
                     routineNoteEditable = exercise.position in routineNotePositions,
@@ -1792,6 +1826,7 @@ class LiveSessionViewModel(
             },
             restTimer = restTimer?.let { RestTimerUi(it.remaining(clock.now()), it.total, it.isPaused) },
             isOnline = online,
+            progressionHelpPosition = progressionHelp,
             discomfortSaving = discomfortSaving,
             discomfortLogs = discomfortLogs,
             finishSheet = finishSheet,

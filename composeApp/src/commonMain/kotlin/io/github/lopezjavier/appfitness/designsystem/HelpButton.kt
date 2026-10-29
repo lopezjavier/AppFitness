@@ -87,6 +87,22 @@ fun HelpButton(
     }
 }
 
+/**
+ * The "?" icon alone, for help whose sheet is state of a view model (it survives process death there) instead of
+ * the local state [HelpButton] keeps. The caller opens its own [AppInfoSheet].
+ */
+@Composable
+fun HelpTriggerButton(contentDescription: String, testTag: String, onClick: () -> Unit, modifier: Modifier = Modifier) {
+    AppIconButton(
+        contentDescription = contentDescription,
+        icon = Res.drawable.ic_help,
+        testTag = testTag,
+        onClick = onClick,
+        modifier = modifier,
+        tint = AppTheme.colors.textSecondary,
+    )
+}
+
 @Composable
 private fun HelpText(text: String, modifier: Modifier = Modifier) {
     Text(
