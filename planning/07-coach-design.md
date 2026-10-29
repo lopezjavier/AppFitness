@@ -28,7 +28,7 @@ Design base of the performance assistant (E13) and of the data it needs (E10-E12
 | Value | How it is computed | Confidence without history |
 |---|---|---|
 | Basal expenditure | Mifflin-St Jeor with sex, age, height and weight (profile, `04` §1) | High (validated equation) |
-| Activity level | Starts from `profiles.activity_level` (ADR-78); the coach proposes a change from Health Connect steps and active calories (E11) and the logged training volume | Low: shown as provisional |
+| Activity level | Starts from `profiles.activity_level` (ADR-78); the coach proposes a change from Health Connect steps (bands of Tudor-Locke et al. 2011), active calories when there are no steps, and the completed sessions per week (3 or more raise a measured level by one). Exact mapping in `04` §7.1. Sessions alone never change the profile level (it already includes training) | Low: shown as provisional |
 | Total expenditure | Initially BMR × activity factor (`04` §1.3); then adaptive expenditure from logged intake and weight change | Improves with months of data |
 | Weight trend | Slope of weekly averages, with its confidence interval (§5) | Depends on the number of weigh-ins |
 | Experience | Training history | Without history: beginner, lowest volume of §3 |
@@ -91,7 +91,7 @@ Design base of the performance assistant (E13) and of the data it needs (E10-E12
 ## 8. Data, privacy and cost
 
 - Personal use: no prior consent screen, by user decision. Before distributing the app to other people, each must accept the use of their data and the coach provider's terms; this condition is written, not implemented.
-- The `coach` Edge Function sends a compact summary (last 8 weeks at most), never raw tables or photos.
+- The `coach` Edge Function sends a compact summary (last 8 weeks at most), never raw tables or photos. `coach_summary` (`04` §7.8) caps it at 16 384 bytes (about 4 000 tokens) and excludes all free text (discomfort, set and routine notes, check-in notes, food names, custom exercise names), raw rows and photos; exercises go by catalogue key or custom id.
 - Cost control by money, not by calls (ADR-77): 2 € per user and 5 € in total per calendar month, plus a spending limit on the Anthropic account.
 - Deleting the account deletes the coach's plans, recommendations, outcomes, usage and conversations (ADR-29); "Eliminar historial del entrenador" deletes the plans, recommendations, outcomes, reports and conversations without deleting the account; the confirmed derived values and the AI usage stay (E13 Q5, Q13).
 
@@ -102,6 +102,9 @@ Defaults chosen for this app; adjusted with real data, not scientific figures:
 - Load increments: those available in the user's equipment (plates or dumbbells, E6).
 - Place defines the default equipment; the user can change it.
 - 5 % load drop after two failed sessions; 40 % fewer sets in a deload; three weeks without e1RM improvement as the deload trigger; at most 10 % calorie change per adjustment; 70 % logged days for a reliable intake; 14 days between circumference reminders; sleep below 6 h mentioned in the report (below the 7 h adult recommendation).
+- Activity level (T-157, `04` §7.1): the active-kcal bands (150 / 300 / 500 / 750 per day), the 28-day window with 7 days minimum per source, the +1 level for 3 or more sessions per week, and the uncertainties 0.1 (data) and 0.2 (profile only). The step bands are published (§10, ref. 28).
+- Experience (T-157, `04` §7.5): 24 sessions and 12 weeks for intermediate, 150 sessions and 52 weeks for advanced.
+- Coach summary: 16 384-byte cap and the 12 main lifts / 10 discomforts / 8 muscle groups per week lists (`04` §7.8); fallback trend uncertainty of 0.5 kg per week without an interval.
 
 ## 10. Sources
 
@@ -138,6 +141,10 @@ Added by the gap review of 2026-10-29 (user-approved; rules in §3-§4):
 25. Wolf M et al. Partial vs full range of motion resistance training: a systematic review and meta-analysis. *Int J Strength Cond*. 2023.
 26. Schoenfeld BJ, Aragon AA. How much protein can the body use in a single meal for muscle-building? Implications for daily protein distribution. *J Int Soc Sports Nutr*. 2018;15:10.
 27. Schumann M et al. Compatibility of concurrent aerobic and strength training for skeletal muscle size and function: an updated systematic review and meta-analysis. *Sports Med*. 2022;52:601-612.
+
+Added with T-157 (checked 2026-10-29 against the PubMed record 21798015 and the open full text, PMC3197470):
+
+28. Tudor-Locke C, Craig CL, Brown WJ, Clemes SA, De Cocker K, Giles-Corti B et al. How many steps/day are enough? For adults. *Int J Behav Nutr Phys Act*. 2011;8:79. doi:10.1186/1479-5868-8-79. Used for the steps-per-day bands of the activity level (below 5 000 sedentary, 5 000-7 499 low active, 7 500-9 999 somewhat active, 10 000-12 499 active, 12 500 or more highly active, the "Adult Graduated Step Index"). Only the bands come from the paper; mapping them onto the five activity levels of `04` §1.3 is a design decision (§9).
 
 ## 11. Cost estimate (ADR-77)
 
