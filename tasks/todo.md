@@ -189,6 +189,7 @@ Journey: open the new Trainer tab, check what the coach estimated about you and 
 ### 👤 Anthropic account and API key (before T-160; not a functionality checkpoint)
 - [ ] 👤 Create the Anthropic account, set its monthly spending limit (backstop of US-76; ADR-77) and enter the key as a Supabase secret in your terminal: `npx supabase secrets set ANTHROPIC_API_KEY=…` (never in the repo or the chat). The PM only verifies the name exists (`npx supabase secrets list`, via a subagent).
 - [ ] `planning/08-environment-setup.md` lists `ANTHROPIC_API_KEY` (T-160 adds it).
+- [ ] **Key expiry:** the console key expires 2 years after creation (set by the user, 2026-10-29; exact date in the console, about 2028-10-29). Rotate before it expires: new key, `npx supabase secrets set ANTHROPIC_API_KEY=…` again, revoke the old one. Set a yearly calendar reminder for the user. Revoke at once if the key is ever pasted anywhere public.
 
 ---
 
