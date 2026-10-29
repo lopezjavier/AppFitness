@@ -40,8 +40,8 @@ class CheckInViewModel(
     private val loadSummary: LoadCheckInSummary,
     connectivity: ConnectivityObserver,
     private val savedState: SavedStateHandle = SavedStateHandle(),
-    private val exercises: ExerciseRepository? = null,
-    private val library: ExerciseLibrary? = null,
+    private val exercises: ExerciseRepository,
+    private val library: ExerciseLibrary,
 ) : ViewModel() {
     private val _uiState = MutableStateFlow<CheckInUiState>(CheckInUiState.Loading)
     val uiState: StateFlow<CheckInUiState> = _uiState.asStateFlow()
@@ -110,7 +110,7 @@ class CheckInViewModel(
             )
             updateReady { it.copy(summary = state) }
             val records = (state as? CheckInSummaryState.Loaded)?.summary?.records.orEmpty()
-            if (records.isNotEmpty() && exercises != null && library != null) {
+            if (records.isNotEmpty()) {
                 // Catalogue exercises have no name in their row: the library names them by key.
                 val names = loadExerciseNames(exercises, library).orEmpty()
                 updateReady { it.copy(exerciseNames = names) }

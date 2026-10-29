@@ -43,7 +43,7 @@ internal fun DaysRow(days: Int?, unset: String, onChange: (Int?) -> Unit) {
     )
 }
 
-/** The stepper row of "Duración del entreno": steps of 15 min, "Sin definir" below the first. */
+/** The stepper row of "Duración del entreno": steps of 5 min, "Sin definir" below the first. */
 @Composable
 internal fun SessionRow(minutes: Int?, unset: String, onChange: (Int?) -> Unit) {
     val text = minutes?.let { durationText(it.toLong() * SECONDS_PER_MINUTE) } ?: unset
@@ -103,7 +103,7 @@ private fun StepperRow(
 
 internal const val DEFAULT_DAYS = 3
 internal const val DEFAULT_SESSION_MINUTES = 60
-internal const val SESSION_STEP_MINUTES = 15
+internal const val SESSION_STEP_MINUTES = 5
 
 /** "+" from "Sin definir" jumps to the default; otherwise one day up. */
 internal fun nextDays(days: Int?): Int = if (days == null) DEFAULT_DAYS else minOf(days + 1, MyTraining.DAYS.last)
@@ -111,20 +111,16 @@ internal fun nextDays(days: Int?): Int = if (days == null) DEFAULT_DAYS else min
 /** "-" at the first day returns to "Sin definir" (null). */
 internal fun previousDays(days: Int?): Int? = days?.let { if (it <= MyTraining.DAYS.first) null else it - 1 }
 
-/** "+" snaps to the next multiple of 15 min, so a stored 50 goes to 60. */
+/** "+" adds one step (stored values are always multiples of 5, so no snapping is needed). */
 internal fun nextSessionMinutes(minutes: Int?): Int = if (minutes == null) {
     DEFAULT_SESSION_MINUTES
 } else {
-    minOf((minutes / SESSION_STEP_MINUTES + 1) * SESSION_STEP_MINUTES, MyTraining.SESSION_MINUTES.last)
+    minOf(minutes + SESSION_STEP_MINUTES, MyTraining.SESSION_MINUTES.last)
 }
 
-/** "-" snaps to the previous multiple of 15 min; below 15 min it returns to "Sin definir" (null). */
-internal fun previousSessionMinutes(minutes: Int?): Int? {
-    if (minutes == null) return null
-    val floor = minutes / SESSION_STEP_MINUTES * SESSION_STEP_MINUTES
-    val previous = if (floor == minutes) minutes - SESSION_STEP_MINUTES else floor
-    return previous.takeIf { it >= MyTraining.SESSION_MINUTES.first }
-}
+/** "-" removes one step; below the first value (15 min) it returns to "Sin definir" (null). */
+internal fun previousSessionMinutes(minutes: Int?): Int? =
+    minutes?.minus(SESSION_STEP_MINUTES)?.takeIf { it >= MyTraining.SESSION_MINUTES.first }
 
 @Composable
 private fun daysText(days: Int) = pluralStringResource(Res.plurals.my_training_days_count, days, days)

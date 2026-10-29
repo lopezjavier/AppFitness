@@ -80,7 +80,7 @@ class CheckInViewModelTest {
     private fun TestScope.fixture(
         env: ReminderEnv = env(),
         handle: SavedStateHandle = SavedStateHandle(),
-        exercises: FakeExerciseRepository? = null,
+        exercises: FakeExerciseRepository = FakeExerciseRepository(),
     ): Fixture {
         val stats = FakeTrainingStatsRepository().apply {
             summaryFor = { w ->

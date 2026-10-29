@@ -196,7 +196,7 @@ class MyTrainingSectionTest {
         tap("preferences_intention_field")
         tap("preferences_intention_option_none")
         repeat(4) { tap("preferences_days_stepper_decrement") }
-        repeat(4) { tap("preferences_session_stepper_decrement") }
+        repeat(10) { tap("preferences_session_stepper_decrement") }
 
         rule.onNodeWithTag("preferences_intention_field").assertTextContains("Sin definir", substring = true)
         rule.onNodeWithTag("preferences_days_stepper_value").assertTextEquals("Sin definir")
@@ -233,33 +233,39 @@ class MyTrainingSectionTest {
     }
 
     @Test
-    fun session_stepsByFifteenMinutes_andReadsDurationsWithoutZeroParts() {
+    fun session_stepsByFiveMinutes_andReadsDurationsWithoutZeroParts() {
         show()
         rule.onNodeWithTag("preferences_session_stepper_value").performScrollTo().assertTextEquals("Sin definir")
 
         tap("preferences_session_stepper_increment")
         rule.onNodeWithTag("preferences_session_stepper_value").assertTextEquals("1 h")
         tap("preferences_session_stepper_increment")
-        rule.onNodeWithTag("preferences_session_stepper_value").assertTextEquals("1 h 15 min")
+        rule.onNodeWithTag("preferences_session_stepper_value").assertTextEquals("1 h 5 min")
         repeat(2) { tap("preferences_session_stepper_decrement") }
-        rule.onNodeWithTag("preferences_session_stepper_value").assertTextEquals("45 min")
-        repeat(3) { tap("preferences_session_stepper_increment") }
-        rule.onNodeWithTag("preferences_session_stepper_value").assertTextEquals("1 h 30 min")
-        repeat(6) { tap("preferences_session_stepper_increment") }
+        rule.onNodeWithTag("preferences_session_stepper_value").assertTextEquals("55 min")
+        repeat(8) { tap("preferences_session_stepper_decrement") }
+        rule.onNodeWithTag("preferences_session_stepper_value").assertTextEquals("15 min")
+        tap("preferences_session_stepper_decrement")
+        rule.onNodeWithTag("preferences_session_stepper_value").assertTextEquals("Sin definir")
+    }
+
+    @Test
+    fun session_stopsAtThreeHours() {
+        show(TrainingPreferences(false, sessionMinutes = 175))
+        tap("preferences_session_stepper_increment")
+
         rule.onNodeWithTag("preferences_session_stepper_value").assertTextEquals("3 h")
         rule.onNodeWithTag("preferences_session_stepper_increment").assertIsNotEnabled()
     }
 
     @Test
-    fun session_withAStoredValueOffTheStep_snapsToTheNextMultiple() {
-        show(TrainingPreferences(false, sessionMinutes = 50))
+    fun session_fromAStoredFortyFive_goesToFifty() {
+        show(TrainingPreferences(false, sessionMinutes = 45))
         tap("preferences_session_stepper_increment")
-        rule.onNodeWithTag("preferences_session_stepper_value").assertTextEquals("1 h")
+        rule.onNodeWithTag("preferences_session_stepper_value").assertTextEquals("50 min")
 
-        tap("preferences_session_stepper_decrement")
-        rule.onNodeWithTag("preferences_session_stepper_value").assertTextEquals("45 min")
         tap("preferences_mi_entrenamiento_save")
-        assertEquals(listOf(MyTraining(sessionMinutes = 45)), prefs.savedMyTraining)
+        assertEquals(listOf(MyTraining(sessionMinutes = 50)), prefs.savedMyTraining)
     }
 
     @Test
