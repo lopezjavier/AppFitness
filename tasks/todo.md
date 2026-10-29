@@ -6,9 +6,9 @@ Operating instructions: [`CLAUDE.md`](../CLAUDE.md). Phase 1 history (frozen): [
 Legend: **👤** = done by the user (accounts, web consoles, secrets) · **PM** = done by Claude Code.
 Secrets rule: never pasted in the chat or in versioned files. The user enters them in their terminal or in the consoles, and Claude only verifies that they exist.
 
-Last task ID used: T-152 (E12-A feedback fixes). Numbering continues from here.
+Last task ID used: T-153 (E12-B feedback fixes). Numbering continues from here.
 
-**Next:** **Checkpoint E12-B 👤** (T-150 merged, `deploy-supabase` green, 2026-10-29); after its approval, T-151. T-150 review nits (non-blocking): mapping rows `box-jump` (squat), `wall-sit`/`squat-hold` (squat), `handstand-hold` (vertical_push), `dead-hang` (vertical_pull) are debatable; the "picker open survives recreation" has no Robolectric test (manual check at the checkpoint). **Carry-overs:** chosen sound **"campana suave"** (T-148 wires it); T-148 no longer scans notes (ADR-81); (the padding screenshot was deleted at approval). T-152 review nits (non-blocking): KDoc of `DiscomfortSheet` should mention the required level picker; the migration-mapping pgTAP asserts use a scratch table that copies the CASE; narrow the `@Suppress("MagicNumber")` in `DiscomfortLevel`. T-147 carry-overs: `ActivityFlowTest.kt:86` uses `CoroutineScope(SupervisorJob())` like the flaky `HealthSyncRestorationTest` fixed in #342; no retry of unread discomforts on resume. T-146 carry-overs (non-blocking, for the checkpoint or T-148): rest ending while the user is on another tab posts no notification and no in-app alert (pre-existing); permission dialog interrupted by Activity recreation can show the explanation without a real denial; `FLAG_NO_CREATE` on cancel; own notification icon.
+**Next:** T-153 (Checkpoint E12-B feedback fixes; open question on live set notes goes to the user first); then Checkpoint E12-B is re-presented with the re-test list; after its approval, T-151. T-150 review nits (non-blocking): mapping rows `box-jump` (squat), `wall-sit`/`squat-hold` (squat), `handstand-hold` (vertical_push), `dead-hang` (vertical_pull) are debatable; the "picker open survives recreation" has no Robolectric test (manual check at the checkpoint). **Carry-overs:** chosen sound **"campana suave"** (T-148 wires it); T-148 no longer scans notes (ADR-81); (the padding screenshot was deleted at approval). T-152 review nits (non-blocking): KDoc of `DiscomfortSheet` should mention the required level picker; the migration-mapping pgTAP asserts use a scratch table that copies the CASE; narrow the `@Suppress("MagicNumber")` in `DiscomfortLevel`. T-147 carry-overs: `ActivityFlowTest.kt:86` uses `CoroutineScope(SupervisorJob())` like the flaky `HealthSyncRestorationTest` fixed in #342; no retry of unread discomforts on resume. T-146 carry-overs (non-blocking, for the checkpoint or T-148): rest ending while the user is on another tab posts no notification and no in-app alert (pre-existing); permission dialog interrupted by Activity recreation can show the explanation without a real denial; `FLAG_NO_CREATE` on cancel; own notification icon.
 
 ---
 
@@ -219,10 +219,30 @@ Journey: during a workout, lock the phone or switch apps while resting and still
 
 ---
 
+## T-153: Checkpoint E12-B feedback fixes (notes, "Mi entrenamiento", pickers, check-in names) · L
+
+**Source:** user feedback at Checkpoint E12-B, 2026-10-29 (screenshots: `design/reported/E12-B-live-set-note-button.png`, `design/reported/E12-B-checkin-records-ejercicio-name.png`; delete them once the user confirms the fix). New rules R-46…R-49 and the Perfil decision are already in `05` §8 (same docs PR); the task sweeps every screen with those patterns (R-39). **Flow:** UI + small core; planner may split into two PRs if it exceeds ~15 files (then T-154).
+
+1. **Set-note button (R-49):** the note icon sits alone on a line under each set row in the live session; integrate it into the set row (trailing slot or inside the row layout) in the live session and every other place that shows set notes.
+2. **Notes need explaining (R-46):** a `HelpButton` on the set-note and routine-exercise-note fields saying what notes are for and giving real examples (not "pausa larga"/"bajar el peso si duele" without context); ux-reviewer writes the copy. Pending user decision (see Open question below) on whether the note stays in the live session.
+3. **"Mi entrenamiento" in the Perfil root (decided):** its own row in the Perfil root (not inside Preferencias); update `05` §6.2, navigation, tests and the Gherkin/UI literals that say "Preferencias → Mi entrenamiento".
+4. **Non-obvious options (R-46):** `HelpButton` with an Info sheet on the training intention (what "Ganar fuerza", "Ganar musculatura", "Perder grasa", "Recomposición", "Mantenimiento" mean and how they differ), and a sweep of every other option whose meaning is not obvious (list them in the plan). Consider a `check-ux-conventions.sh` guard if feasible.
+5. **No dropdowns (R-47):** "Días por semana" and "Duración del entreno" use the "Descanso" / "Objetivo RPE" control of the routine editor; the shared duration formatter drops zero parts ("1 h", not "1 h 0 min"); sweep statistics and every caller.
+6. **"Añadir ejercicio propio" pinned (R-48):** fixed at the bottom of the exercise selection; the list scrolls above it.
+7. **Bug: Check-in semanal "Récords de la semana" shows "Ejercicio" instead of the exercise name** for catalogue exercises (only the custom "Hand grip" shows its name; the name lookup apparently covers custom exercises only). Show the real name for every exercise; add a regression test; sweep other places that resolve exercise names (Diario, statistics, coach notes).
+
+**Open question for the user:** do set notes stay in the live session? (They are saved with the workout and shown in its detail; the user's concern is that a note is lost when the routine is not saved. Recommendation: keep set notes in the live session, with the in-app help explaining they belong to this workout only, and make routine-exercise notes editable only from the routine editor.) Item 2 waits for the answer.
+
+**Acceptance criteria:** the planner derives the Gherkin from items 1-7; host tests per item; the bug has a regression test; lint + `testLocalDebugUnitTest` green.
+**Dependencies:** none · **Estimated scope:** L
+
+---
+
 ### Checkpoint E12-B — Notes, your training situation, and the final E12 regression 👤 (7 items + leave and come back) *(agreed with the user, 2026-10-28: two checkpoints)*
 Journey: the rest alert now plays the sound you chose; write what happened on a set and read the note you left on a routine exercise; tell the app your goal, where and with what you train, and how many days and minutes you have; give a movement pattern to your own exercises; then one pass over the whole epic. Why here: right after T-150, the last implementation task, so it is also the final regression of E12; its approval releases T-151.
 - [x] T-148, T-149 and T-150 merged, CI green, `deploy-supabase` applied their three migrations (data intact), every reported bug fixed.
-- [ ] 👤 Install the APK and try:
+- [ ] T-153 (checkpoint feedback fixes) merged, CI green.
+- [ ] 👤 Install the APK and try *(feedback 2026-10-29 → T-153; re-test every item, plus: the note button inside the set row, the `?` help on notes and training intention, "Mi entrenamiento" row in Perfil, durations without dropdowns, "Añadir ejercicio propio" pinned, real exercise names in the check-in records)*:
   1. Chosen sound (T-148, from Checkpoint E12-A): a rest ending in the foreground and one with the screen off both play the sound you chose; "Sonido de fin de descanso" is gone from "Acerca de".
   2. Notes (US-66): write "pausa larga" on a set, finish the workout: the note shows under that set in the workout detail; edit it in "Editar entreno"; in a routine add "bajar el peso si duele" to "Press banca" and save; start the routine: the note shows under "Press banca".
   3. Note limits: a note over 200 characters is refused with "Máximo 200 caracteres"; a note with "dolor fuerte" shows no message (ADR-81); airplane mode disables "Guardar" with the standard hint.
