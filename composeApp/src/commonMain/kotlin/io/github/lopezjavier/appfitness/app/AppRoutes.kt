@@ -4,8 +4,10 @@ import io.github.lopezjavier.appfitness.composeapp.resources.Res
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_nav_diary
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_nav_diary_filled
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_nav_profile
+import io.github.lopezjavier.appfitness.composeapp.resources.ic_nav_trainer
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_nav_workout
 import io.github.lopezjavier.appfitness.composeapp.resources.nav_diary
+import io.github.lopezjavier.appfitness.composeapp.resources.nav_trainer
 import io.github.lopezjavier.appfitness.composeapp.resources.nav_workout
 import io.github.lopezjavier.appfitness.composeapp.resources.profile_title
 import kotlinx.serialization.SerialName
@@ -31,10 +33,16 @@ data object WorkoutGraph : TabRoute
 data object ProfileGraph : TabRoute
 
 @Serializable
+data object TrainerGraph : TabRoute
+
+@Serializable
 data object DiaryHome : TabRoute
 
 @Serializable
 data object WorkoutHome : TabRoute
+
+@Serializable
+data object TrainerHome : TabRoute
 
 @Serializable
 data object ProfileHome : TabRoute
@@ -258,6 +266,14 @@ enum class TopLevelTab(
         Res.drawable.ic_nav_workout,
         "nav_tab_workout",
     ),
+    Trainer(
+        TrainerGraph,
+        TrainerHome,
+        Res.string.nav_trainer,
+        Res.drawable.ic_nav_trainer,
+        Res.drawable.ic_nav_trainer,
+        "nav_tab_trainer",
+    ),
     Profile(
         ProfileGraph,
         ProfileHome,
@@ -279,6 +295,7 @@ val TabRoute.tab: TopLevelTab
         when (this) {
             DiaryGraph, DiaryHome -> TopLevelTab.Diary
             WorkoutGraph, WorkoutHome -> TopLevelTab.Workout
+            TrainerGraph, TrainerHome -> TopLevelTab.Trainer
             ProfileGraph, ProfileHome -> TopLevelTab.Profile
         }
 

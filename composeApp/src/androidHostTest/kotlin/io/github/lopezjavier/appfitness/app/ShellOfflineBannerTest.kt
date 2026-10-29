@@ -78,7 +78,7 @@ class ShellOfflineBannerTest {
         rule.setContent { AppTheme { AppScaffold(navigationType = AppNavigationType.Rail, isOffline = true) } }
         rule.waitForIdle()
         val rootBottom = rule.onRoot().getUnclippedBoundsInRoot().bottom
-        listOf("nav_tab_diary", "nav_tab_workout", "nav_tab_profile").forEach { tag ->
+        listOf("nav_tab_diary", "nav_tab_workout", "nav_tab_trainer", "nav_tab_profile").forEach { tag ->
             val b = bounds(tag)
             assertTrue(
                 "$tag bottom ${b.bottom} must be within root bottom $rootBottom",

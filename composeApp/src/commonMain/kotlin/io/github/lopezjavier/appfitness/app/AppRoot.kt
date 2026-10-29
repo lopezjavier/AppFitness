@@ -34,6 +34,7 @@ import io.github.lopezjavier.appfitness.feature.routines.RoutineBuilderRoot
 import io.github.lopezjavier.appfitness.feature.routines.RoutineDetailsRoot
 import io.github.lopezjavier.appfitness.feature.templates.SaveTemplateRoot
 import io.github.lopezjavier.appfitness.feature.templates.TemplateDetailsRoot
+import io.github.lopezjavier.appfitness.feature.trainer.TrainerRoute
 import io.github.lopezjavier.appfitness.feature.weight.WeightHistoryRoot
 import io.github.lopezjavier.appfitness.feature.weight.WeightRoot
 import io.github.lopezjavier.appfitness.feature.workout.EditWorkoutRoot
@@ -65,6 +66,7 @@ fun AppRoot(
         rootRoute = state.rootRoute,
         onRetryProfile = { viewModel.onEvent(AppEvent.RetryProfile) },
         profile = { profileModifier, actions -> ProfileRootRoute(profileModifier, actions) },
+        trainer = { trainerModifier -> TrainerRoute(trainerModifier) },
         strength = { strengthModifier, onOpenExercise, onOpenMuscleVolume, onStartWorkout, onBack ->
             StrengthRoot(onOpenExercise, onOpenMuscleVolume, onStartWorkout, onBack, strengthModifier)
         },

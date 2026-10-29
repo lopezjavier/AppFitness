@@ -3,6 +3,7 @@
 <resources>
     <string name="nav_diary">Diario</string>
     <string name="nav_workout">Entreno</string>
+    <string name="nav_trainer">Trainer</string>
     <string name="profile_title">Perfil</string>
     <string name="wip_message">Sección en construcción. Pronto verás aquí tus datos.</string>
     <string name="wip_footer">Más funciones próximamente</string>
@@ -1707,6 +1708,54 @@
     <string name="checkin_notes_too_long">Máximo 1000 caracteres</string>
     <string name="checkin_save_error">No se pudo guardar el check-in. Inténtalo de nuevo.</string>
     <string name="checkin_save_error_offline">Sin conexión: no se puede guardar el check-in</string>
+
+    <!-- Trainer tab (T-158, US-68, US-69) -->
+    <string name="trainer_title">Trainer</string>
+    <string name="trainer_card_title">Tus valores</string>
+    <string name="trainer_help_cd">Ayuda: tus valores</string>
+    <string name="trainer_help_body">El entrenador usa estos valores para ajustar tu plan. Se calculan con tus datos y puedes corregir el nivel de actividad. Esto solo lo usa el entrenador; tu objetivo calórico del Diario no cambia.</string>
+    <string name="trainer_row_activity_level">Nivel de actividad</string>
+    <string name="trainer_row_total_expenditure">Gasto calórico total</string>
+    <string name="trainer_row_weight_trend">Tendencia de peso</string>
+    <string name="trainer_row_experience">Experiencia</string>
+    <string name="trainer_edit_activity_cd">Editar nivel de actividad</string>
+    <string name="trainer_value_unknown">Sin datos</string>
+    <string name="trainer_value_supporting">%1$s · %2$s</string>
+    <string name="trainer_kcal_value">%1$s kcal</string>
+    <string name="trainer_trend_value">%1$s kg/sem</string>
+    <string name="trainer_trend_value_interval">%1$s kg/sem (±%2$s)</string>
+    <string name="trainer_experience_beginner">Principiante</string>
+    <string name="trainer_experience_intermediate">Intermedio</string>
+    <string name="trainer_experience_advanced">Avanzado</string>
+    <string name="trainer_source_activity_data">Según tus pasos y entrenos</string>
+    <string name="trainer_source_profile">Según tu perfil</string>
+    <string name="trainer_source_adaptive">Según tu dieta y tu peso</string>
+    <string name="trainer_source_formula">Fórmula</string>
+    <string name="trainer_source_weigh_ins">Según tus pesajes</string>
+    <string name="trainer_source_sessions">Según tus entrenos</string>
+    <string name="trainer_source_edited">Editado por ti</string>
+    <string name="trainer_reask">Tus datos han cambiado: vuelve a confirmar.</string>
+    <string name="trainer_provisional">Provisional</string>
+    <string name="trainer_provisional_state">Valor provisional</string>
+    <string name="trainer_missing_template">Falta: %1$s</string>
+    <string name="trainer_missing_steps">pasos</string>
+    <string name="trainer_missing_active_kcal">calorías activas</string>
+    <string name="trainer_missing_training_history">historial de entrenos</string>
+    <string name="trainer_missing_profile_data">datos del perfil</string>
+    <string name="trainer_missing_diary">diario</string>
+    <string name="trainer_missing_weigh_ins">pesajes</string>
+    <string name="trainer_trend_note">Pocas semanas de datos: la tendencia es orientativa.</string>
+    <string name="trainer_unreliable_note">Diario incompleto: la estimación del gasto no es fiable.</string>
+    <string name="trainer_unreliable_days">%1$d de %2$d días registrados.</string>
+    <string name="trainer_confirm">Confirmar</string>
+    <string name="trainer_confirmed">Confirmado</string>
+    <string name="trainer_confirm_action">confirmar</string>
+    <string name="trainer_save_action">guardar</string>
+    <string name="trainer_confirm_error">No se pudo confirmar. Inténtalo de nuevo.</string>
+    <string name="trainer_save_error">No se pudo guardar. Inténtalo de nuevo.</string>
+    <string name="trainer_error_message">No se pudieron cargar tus valores.</string>
+    <string name="trainer_sheet_title">Nivel de actividad</string>
+    <string name="trainer_sheet_note">Al guardar, también confirmas los demás valores del entrenador.</string>
 
     <!-- TEMPORARY (T-146, removed by T-148): end-of-rest sound chooser and the notification-permission message. -->
     <string name="rest_sound_permission_note">Para avisarte al acabar el descanso con la pantalla apagada, activa las notificaciones de AppFitness en Ajustes.</string>

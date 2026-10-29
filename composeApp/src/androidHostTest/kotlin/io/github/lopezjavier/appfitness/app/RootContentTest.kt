@@ -127,7 +127,7 @@ class RootContentTest {
     @Test
     fun main_hasExactlyThreeTabs_andNoPhotoInTheBar() {
         rule.setContent { App(rootRoute = RootRoute.Main) }
-        listOf("nav_tab_diary", "nav_tab_workout", "nav_tab_profile").forEach {
+        listOf("nav_tab_diary", "nav_tab_workout", "nav_tab_trainer", "nav_tab_profile").forEach {
             rule.onNodeWithTag(it).assertExists()
         }
         rule.onNodeWithTag("nav_tab_progress").assertDoesNotExist()

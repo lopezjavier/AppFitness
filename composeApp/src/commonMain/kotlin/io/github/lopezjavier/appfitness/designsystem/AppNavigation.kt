@@ -37,8 +37,10 @@ import io.github.lopezjavier.appfitness.composeapp.resources.Res
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_nav_diary
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_nav_diary_filled
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_nav_profile
+import io.github.lopezjavier.appfitness.composeapp.resources.ic_nav_trainer
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_nav_workout
 import io.github.lopezjavier.appfitness.composeapp.resources.nav_diary
+import io.github.lopezjavier.appfitness.composeapp.resources.nav_trainer
 import io.github.lopezjavier.appfitness.composeapp.resources.nav_workout
 import io.github.lopezjavier.appfitness.composeapp.resources.profile_title
 import org.jetbrains.compose.resources.DrawableResource
@@ -237,6 +239,7 @@ private fun previewItems(): List<AppNavigationItem> = listOf(
         Res.drawable.ic_nav_diary_filled,
     ),
     AppNavigationItem(Res.string.nav_workout, Res.drawable.ic_nav_workout, "nav_tab_workout"),
+    AppNavigationItem(Res.string.nav_trainer, Res.drawable.ic_nav_trainer, "nav_tab_trainer"),
     AppNavigationItem(Res.string.profile_title, Res.drawable.ic_nav_profile, "nav_tab_profile"),
 )
 

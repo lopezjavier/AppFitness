@@ -20,7 +20,7 @@ class TopLevelTabTest {
     @Test
     fun entries_followTheBarOrder() {
         assertEquals(
-            listOf(TopLevelTab.Diary, TopLevelTab.Workout, TopLevelTab.Profile),
+            listOf(TopLevelTab.Diary, TopLevelTab.Workout, TopLevelTab.Trainer, TopLevelTab.Profile),
             TopLevelTab.entries,
         )
     }
@@ -44,7 +44,7 @@ class TopLevelTabTest {
     @Test
     fun testTags_matchTheContract() {
         val actual = TopLevelTab.entries.map { it.testTag }
-        assertEquals(listOf("nav_tab_diary", "nav_tab_workout", "nav_tab_profile"), actual)
+        assertEquals(listOf("nav_tab_diary", "nav_tab_workout", "nav_tab_trainer", "nav_tab_profile"), actual)
         actual.forEach { assertTrue(tags.matches(it), it) }
     }
 
@@ -66,6 +66,7 @@ class TopLevelTabTest {
         assertEquals(Res.drawable.ic_nav_diary_filled, TopLevelTab.Diary.selectedIcon)
         assertNotEquals(TopLevelTab.Diary.icon, TopLevelTab.Diary.selectedIcon)
         assertEquals(TopLevelTab.Workout.icon, TopLevelTab.Workout.selectedIcon)
+        assertEquals(TopLevelTab.Trainer.icon, TopLevelTab.Trainer.selectedIcon)
         assertEquals(TopLevelTab.Profile.icon, TopLevelTab.Profile.selectedIcon)
     }
 
@@ -79,7 +80,9 @@ class TopLevelTabTest {
                 serializer<WorkoutHome>(),
                 serializer<ProfileGraph>(),
                 serializer<ProfileHome>(),
+                serializer<TrainerGraph>(),
+                serializer<TrainerHome>(),
             ).map { it.descriptor.serialName }
-        assertEquals(6, names.toSet().size)
+        assertEquals(8, names.toSet().size)
     }
 }
