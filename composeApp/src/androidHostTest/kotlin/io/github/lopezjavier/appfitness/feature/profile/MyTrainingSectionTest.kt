@@ -195,52 +195,88 @@ class MyTrainingSectionTest {
         show(TrainingPreferences(false, intention = TrainingIntention.Muscle, daysPerWeek = 4, sessionMinutes = 60))
         tap("preferences_intention_field")
         tap("preferences_intention_option_none")
-        tap("preferences_days_field")
-        tap("preferences_days_option_none")
-        tap("preferences_session_field")
-        tap("preferences_session_option_none")
+        repeat(4) { tap("preferences_days_stepper_decrement") }
+        repeat(10) { tap("preferences_session_stepper_decrement") }
 
-        listOf("intention", "days", "session").forEach {
-            rule.onNodeWithTag("preferences_${it}_field").assertTextContains("Sin definir", substring = true)
-        }
+        rule.onNodeWithTag("preferences_intention_field").assertTextContains("Sin definir", substring = true)
+        rule.onNodeWithTag("preferences_days_stepper_value").assertTextEquals("Sin definir")
+        rule.onNodeWithTag("preferences_session_stepper_value").assertTextEquals("Sin definir")
         tap("preferences_mi_entrenamiento_save")
         assertEquals(listOf(MyTraining()), prefs.savedMyTraining)
     }
 
     @Test
-    fun daysPicker_offersOneToSeven_andAppliesOnTap() {
+    fun days_useAStepperWithoutPickerSheet_fromSinDefinirUpToSeven() {
         show()
-        tap("preferences_days_field")
-        rule.onNodeWithTag("preferences_days_option_1").assertTextContains("1 día")
-        for (day in 2..7) rule.onNodeWithTag("preferences_days_option_$day").assertTextContains("$day días")
-        rule.onNodeWithTag("preferences_days_option_8").assertDoesNotExist()
+        rule.onNodeWithTag("preferences_days_field").assertDoesNotExist()
+        rule.onNodeWithTag("preferences_days_stepper_value").performScrollTo().assertTextEquals("Sin definir")
+        rule.onNodeWithTag("preferences_days_stepper_decrement").assertIsNotEnabled()
 
-        tap("preferences_days_option_3")
-
-        rule.onNodeWithTag("preferences_days_option_3").assertDoesNotExist()
-        rule.onNodeWithTag("preferences_days_field").assertTextContains("3 días", substring = true)
+        tap("preferences_days_stepper_increment")
+        rule.onNodeWithTag("preferences_days_stepper_value").assertTextEquals("3 días")
+        tap("preferences_days_stepper_decrement")
+        tap("preferences_days_stepper_decrement")
+        rule.onNodeWithTag("preferences_days_stepper_value").assertTextEquals("1 día")
+        repeat(6) { tap("preferences_days_stepper_increment") }
+        rule.onNodeWithTag("preferences_days_stepper_value").assertTextEquals("7 días")
+        rule.onNodeWithTag("preferences_days_stepper_increment").assertIsNotEnabled()
+        tap("preferences_mi_entrenamiento_save")
+        assertEquals(listOf(MyTraining(daysPerWeek = 7)), prefs.savedMyTraining)
     }
 
     @Test
-    fun sessionPicker_offersFifteenToOneEighty_inFiveMinuteSteps_asDurations() {
+    fun days_goingBelowOne_returnsToSinDefinir() {
+        show(TrainingPreferences(false, daysPerWeek = 1))
+        tap("preferences_days_stepper_decrement")
+
+        rule.onNodeWithTag("preferences_days_stepper_value").assertTextEquals("Sin definir")
+    }
+
+    @Test
+    fun session_stepsByFiveMinutes_andReadsDurationsWithoutZeroParts() {
         show()
-        tap("preferences_session_field")
+        rule.onNodeWithTag("preferences_session_stepper_value").performScrollTo().assertTextEquals("Sin definir")
 
-        rule.onNodeWithTag("preferences_session_option_15").assertTextContains("15 min")
-        rule.onNodeWithTag("preferences_session_option_45").assertTextContains("45 min")
-        rule.onNodeWithTag("preferences_session_option_60").assertTextContains("1 h 0 min")
-        rule.onNodeWithTag("preferences_session_option_90").assertTextContains("1 h 30 min")
-        rule.onNodeWithTag("preferences_session_option_180").assertTextContains("3 h 0 min")
-        rule.onNodeWithTag("preferences_session_option_20").assertExists()
-        rule.onNodeWithTag("preferences_session_option_10").assertDoesNotExist()
-        rule.onNodeWithTag("preferences_session_option_47").assertDoesNotExist()
-        rule.onNodeWithTag("preferences_session_option_185").assertDoesNotExist()
+        tap("preferences_session_stepper_increment")
+        rule.onNodeWithTag("preferences_session_stepper_value").assertTextEquals("1 h")
+        tap("preferences_session_stepper_increment")
+        rule.onNodeWithTag("preferences_session_stepper_value").assertTextEquals("1 h 5 min")
+        repeat(2) { tap("preferences_session_stepper_decrement") }
+        rule.onNodeWithTag("preferences_session_stepper_value").assertTextEquals("55 min")
+        repeat(8) { tap("preferences_session_stepper_decrement") }
+        rule.onNodeWithTag("preferences_session_stepper_value").assertTextEquals("15 min")
+        tap("preferences_session_stepper_decrement")
+        rule.onNodeWithTag("preferences_session_stepper_value").assertTextEquals("Sin definir")
+    }
 
-        tap("preferences_session_option_45")
+    @Test
+    fun session_stopsAtThreeHours() {
+        show(TrainingPreferences(false, sessionMinutes = 175))
+        tap("preferences_session_stepper_increment")
 
-        rule.onNodeWithTag("preferences_session_field").assertTextContains("45 min", substring = true)
+        rule.onNodeWithTag("preferences_session_stepper_value").assertTextEquals("3 h")
+        rule.onNodeWithTag("preferences_session_stepper_increment").assertIsNotEnabled()
+    }
+
+    @Test
+    fun session_fromAStoredFortyFive_goesToFifty() {
+        show(TrainingPreferences(false, sessionMinutes = 45))
+        tap("preferences_session_stepper_increment")
+        rule.onNodeWithTag("preferences_session_stepper_value").assertTextEquals("50 min")
+
         tap("preferences_mi_entrenamiento_save")
-        assertEquals(listOf(MyTraining(sessionMinutes = 45)), prefs.savedMyTraining)
+        assertEquals(listOf(MyTraining(sessionMinutes = 50)), prefs.savedMyTraining)
+    }
+
+    @Test
+    fun intentionHelp_opensTheInfoSheetListingTheFiveIntentions() {
+        show()
+        tap("preferences_intention_help")
+
+        rule.onNodeWithTag("preferences_intention_help_sheet").assertIsDisplayed()
+        listOf("Ganar fuerza:", "Ganar musculatura:", "Perder grasa:", "Recomposición:", "Mantenimiento:").forEach {
+            rule.onNodeWithText(it, substring = true).assertIsDisplayed()
+        }
     }
 
     @Test

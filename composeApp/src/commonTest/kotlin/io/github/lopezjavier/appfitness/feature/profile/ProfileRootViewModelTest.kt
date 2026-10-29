@@ -3,6 +3,7 @@ package io.github.lopezjavier.appfitness.feature.profile
 import io.github.lopezjavier.appfitness.app.FakeBodyMeasurementRepository
 import io.github.lopezjavier.appfitness.app.FakeClock
 import io.github.lopezjavier.appfitness.app.FakeProfileRepository
+import io.github.lopezjavier.appfitness.app.FakeTrainingPreferencesRepository
 import io.github.lopezjavier.appfitness.domain.AppError
 import io.github.lopezjavier.appfitness.domain.AppException
 import io.github.lopezjavier.appfitness.domain.model.BodyMeasurement
@@ -11,6 +12,8 @@ import io.github.lopezjavier.appfitness.domain.model.ExerciseHistoryPoint
 import io.github.lopezjavier.appfitness.domain.model.MealTotals
 import io.github.lopezjavier.appfitness.domain.model.MeasurementSource
 import io.github.lopezjavier.appfitness.domain.model.ProfileSummary
+import io.github.lopezjavier.appfitness.domain.model.TrainingIntention
+import io.github.lopezjavier.appfitness.domain.model.TrainingPreferences
 import io.github.lopezjavier.appfitness.feature.analytics.FakeStrengthRepository
 import io.github.lopezjavier.appfitness.feature.analytics.completedWith
 import io.github.lopezjavier.appfitness.feature.diary.FakeFoodDiaryRepository
@@ -44,6 +47,7 @@ class ProfileRootViewModelTest {
     private val strength = FakeStrengthRepository()
     private val workouts = FakeWorkoutSessionRepository()
     private val diary = FakeFoodDiaryRepository()
+    private val training = FakeTrainingPreferencesRepository()
 
     @BeforeTest
     fun setUp() {
@@ -75,7 +79,59 @@ class ProfileRootViewModelTest {
         workoutSessionRepository = workouts,
         foodDiaryRepository = diary,
         clock = FakeClock(today, now),
+        trainingPreferences = training,
     )
+
+    @Test
+    fun noIntentionChosen_hasNoIntentionValue() = runTest {
+        val (_, state) = loaded()
+
+        assertNull(state().intention)
+    }
+
+    @Test
+    fun theChosenIntention_isExposedForTheMiEntrenamientoRow() = runTest {
+        training.result = Result.success(TrainingPreferences(intention = TrainingIntention.Strength))
+
+        val (_, state) = loaded()
+
+        assertEquals(TrainingIntention.Strength, state().intention)
+    }
+
+    @Test
+    fun reloadIntention_picksUpAChangeMadeInTheEditor() = runTest {
+        val (viewModel, state) = loaded()
+        training.result = Result.success(TrainingPreferences(intention = TrainingIntention.Muscle))
+
+        viewModel.onEvent(ProfileRootEvent.ReloadIntention)
+        advanceUntilIdle()
+
+        assertEquals(TrainingIntention.Muscle, state().intention)
+    }
+
+    @Test
+    fun reloadIntention_afterClearingIt_hasNoValue() = runTest {
+        training.result = Result.success(TrainingPreferences(intention = TrainingIntention.Muscle))
+        val (viewModel, state) = loaded()
+        training.result = Result.success(TrainingPreferences())
+
+        viewModel.onEvent(ProfileRootEvent.ReloadIntention)
+        advanceUntilIdle()
+
+        assertNull(state().intention)
+    }
+
+    @Test
+    fun intentionReadFailure_keepsTheLastValue() = runTest {
+        training.result = Result.success(TrainingPreferences(intention = TrainingIntention.Muscle))
+        val (viewModel, state) = loaded()
+        training.result = Result.failure(AppException(AppError.Network))
+
+        viewModel.onEvent(ProfileRootEvent.ReloadIntention)
+        advanceUntilIdle()
+
+        assertEquals(TrainingIntention.Muscle, state().intention)
+    }
 
     private fun TestScope.loaded(): Pair<ProfileRootViewModel, () -> ProfileRootUiState.Loaded> {
         val viewModel = viewModel()

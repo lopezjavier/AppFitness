@@ -107,9 +107,13 @@ class DiaryHistoryFlowTest {
         DiaryHistoryRoot(onOpenDay, onBack, modifier, model)
     }
 
-    private val profileSlot: ProfileSlot = { modifier, _, _, _, onOpenDiaryHistory, _, _, _, _ ->
+    private val profileSlot: ProfileSlot = { modifier, actions ->
         Box(modifier.fillMaxSize().testTag("profile_screen")) {
-            Box(Modifier.size(48.dp).testTag("profile_diary_history_row").clickable(onClick = onOpenDiaryHistory))
+            Box(
+                Modifier.size(
+                    48.dp,
+                ).testTag("profile_diary_history_row").clickable(onClick = actions.onOpenDiaryHistory),
+            )
         }
     }
 

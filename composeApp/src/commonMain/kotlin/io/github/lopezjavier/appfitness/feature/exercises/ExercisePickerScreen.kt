@@ -106,7 +106,8 @@ fun ExercisePickerRoot(
 /**
  * Exercise picker (US-09) on [AppScreen]: search field and two filter chip rows on top, then the list. In
  * [selectMode] a row selects the exercise and its thumbnail opens the detail (R-17); otherwise the row opens the
- * detail. "Añadir ejercicio propio" and the RepDB attribution end the list. From 600 dp the list has two columns in a
+ * detail. The RepDB attribution ends the list; "Añadir ejercicio propio" is pinned in the footer (R-48), so it never
+ * scrolls away and stays visible when a search finds nothing. From 600 dp the list has two columns in a
  * centred, capped column.
  */
 @Composable
@@ -123,6 +124,9 @@ fun ExercisePickerScreen(
         onBack = onBack,
         maxContentWidth = ExerciseLayoutDefaults.ContentMaxWidth,
         testTagPrefix = "exercise_picker",
+        footer = (state as? ExercisePickerUiState.Content)?.let { content ->
+            { CreateOwnExercise(content.isOnline, onEvent) }
+        },
     ) {
         BoxWithConstraints(Modifier.fillMaxSize().testTag("exercise_picker_screen")) {
             val wide = windowWidthClassFor(maxWidth) == WindowWidthClass.Wide
@@ -196,8 +200,7 @@ private fun SearchField(query: String, onQueryChange: (String) -> Unit, modifier
 }
 
 /**
- * The rows (or the empty state) followed by "Añadir ejercicio propio" and the RepDB attribution, all in one grid so
- * the button is the last element and stays visible when a search finds nothing.
+ * The rows (or the empty state) followed by the RepDB attribution, all in one grid.
  */
 @Composable
 private fun PickerList(
@@ -222,7 +225,6 @@ private fun PickerList(
                 PickerRow(item, selectMode, mediaUris, onEvent, appAnimateItem())
             }
         }
-        fullSpanItem("create") { CreateOwnExercise(state.isOnline, onEvent) }
         fullSpanItem("attribution") {
             Text(
                 text = stringResource(Res.string.exercise_attribution),

@@ -8,9 +8,11 @@ import io.github.lopezjavier.appfitness.domain.AppError
 import io.github.lopezjavier.appfitness.domain.appErrorOrNull
 import io.github.lopezjavier.appfitness.domain.model.CheckIn
 import io.github.lopezjavier.appfitness.domain.port.ConnectivityObserver
+import io.github.lopezjavier.appfitness.domain.port.ExerciseLibrary
 import io.github.lopezjavier.appfitness.domain.repository.ExerciseRepository
 import io.github.lopezjavier.appfitness.domain.repository.WeeklyCheckInRepository
 import io.github.lopezjavier.appfitness.domain.usecase.LoadCheckInSummary
+import io.github.lopezjavier.appfitness.feature.workout.loadExerciseNames
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.Flow
@@ -38,7 +40,8 @@ class CheckInViewModel(
     private val loadSummary: LoadCheckInSummary,
     connectivity: ConnectivityObserver,
     private val savedState: SavedStateHandle = SavedStateHandle(),
-    private val exercises: ExerciseRepository? = null,
+    private val exercises: ExerciseRepository,
+    private val library: ExerciseLibrary,
 ) : ViewModel() {
     private val _uiState = MutableStateFlow<CheckInUiState>(CheckInUiState.Loading)
     val uiState: StateFlow<CheckInUiState> = _uiState.asStateFlow()
@@ -107,10 +110,9 @@ class CheckInViewModel(
             )
             updateReady { it.copy(summary = state) }
             val records = (state as? CheckInSummaryState.Loaded)?.summary?.records.orEmpty()
-            if (records.isNotEmpty() && exercises != null) {
-                val names = exercises.getAll().getOrNull().orEmpty()
-                    .mapNotNull { exercise -> exercise.name?.let { exercise.id to it } }
-                    .toMap()
+            if (records.isNotEmpty()) {
+                // Catalogue exercises have no name in their row: the library names them by key.
+                val names = loadExerciseNames(exercises, library).orEmpty()
                 updateReady { it.copy(exerciseNames = names) }
             }
         }

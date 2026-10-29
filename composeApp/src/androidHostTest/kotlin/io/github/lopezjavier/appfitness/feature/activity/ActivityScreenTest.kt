@@ -200,7 +200,7 @@ class ActivityScreenTest {
                 "Profundo",
                 "1 h 20 min",
                 "Ligero",
-                "4 h 0 min",
+                "4 h",
                 "REM",
                 "1 h 30 min",
                 "Despierto",

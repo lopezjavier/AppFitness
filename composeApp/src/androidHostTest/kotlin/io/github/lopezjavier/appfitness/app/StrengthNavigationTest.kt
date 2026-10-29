@@ -30,9 +30,9 @@ class StrengthNavigationTest {
     @get:Rule
     val rule = createComposeRule()
 
-    private val profileSlot: ProfileSlot = { modifier, _, _, onOpenStrength, _, _, _, _, _ ->
+    private val profileSlot: ProfileSlot = { modifier, actions ->
         Box(modifier.fillMaxSize().testTag("profile_screen")) {
-            Box(tapTarget().testTag("profile_open_strength").clickable(onClick = onOpenStrength))
+            Box(tapTarget().testTag("profile_open_strength").clickable(onClick = actions.onOpenStrength))
         }
     }
     private val strengthSlot: StrengthSlot = { modifier, onOpenExercise, onOpenMuscleVolume, onStartWorkout, onBack ->

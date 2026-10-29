@@ -28,9 +28,9 @@ class TrainingStatsNavigationTest {
     @get:Rule
     val rule = createComposeRule()
 
-    private val profileSlot: ProfileSlot = { modifier, _, _, _, _, _, onOpenTrainingStats, _, _ ->
+    private val profileSlot: ProfileSlot = { modifier, actions ->
         Box(modifier.fillMaxSize().testTag("profile_screen")) {
-            Box(Modifier.size(48.dp).testTag("profile_open_stats").clickable(onClick = onOpenTrainingStats))
+            Box(Modifier.size(48.dp).testTag("profile_open_stats").clickable(onClick = actions.onOpenTrainingStats))
         }
     }
     private val statsSlot: TrainingStatsSlot = { modifier, onOpenExercise, onBack ->

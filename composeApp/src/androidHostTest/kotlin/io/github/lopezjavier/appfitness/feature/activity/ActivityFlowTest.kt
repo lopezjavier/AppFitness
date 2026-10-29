@@ -111,7 +111,7 @@ class ActivityFlowTest {
         open()
 
         rule.onNodeWithTag("activity_steps_card").assertTextEquals("Pasos", "8.500")
-        rule.onNodeWithTag("activity_sleep_card").assertTextEquals("Sueño", "6 h 0 min")
+        rule.onNodeWithTag("activity_sleep_card").assertTextEquals("Sueño", "6 h")
         rule.onNodeWithTag("activity_active_kcal_card").assertTextEquals("Calorías activas", "620 kcal")
         rule.onNodeWithTag("activity_total_kcal_card").assertTextEquals("Calorías totales", "2.300 kcal")
         rule.onNodeWithTag("activity_resting_hr_card").assertTextEquals("Frecuencia cardiaca en reposo", "Sin datos")
@@ -164,7 +164,7 @@ class ActivityFlowTest {
         rule.waitForIdle()
 
         rule.onNodeWithTag("activity_sleep_stages").performScrollTo()
-            .assertTextEquals("Profundo", "1 h 0 min", "Ligero", "4 h 0 min", "REM", "1 h 0 min")
+            .assertTextEquals("Profundo", "1 h", "Ligero", "4 h", "REM", "1 h")
     }
 
     @Test
@@ -179,7 +179,7 @@ class ActivityFlowTest {
         rule.onNodeWithTag("activity_sleep_card").performClick()
         rule.waitForIdle()
 
-        rule.onNodeWithTag("activity_sleep_total").performScrollTo().assertTextEquals("Sueño 6 h 0 min")
+        rule.onNodeWithTag("activity_sleep_total").performScrollTo().assertTextEquals("Sueño 6 h")
         rule.onNodeWithTag("activity_sleep_stages").assertDoesNotExist()
     }
 

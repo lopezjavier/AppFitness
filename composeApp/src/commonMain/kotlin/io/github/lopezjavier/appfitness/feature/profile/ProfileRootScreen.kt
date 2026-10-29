@@ -19,11 +19,14 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.github.lopezjavier.appfitness.composeapp.resources.Res
 import io.github.lopezjavier.appfitness.composeapp.resources.action_retry
 import io.github.lopezjavier.appfitness.composeapp.resources.catalog_title
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_settings
+import io.github.lopezjavier.appfitness.composeapp.resources.preferences_my_training_title
 import io.github.lopezjavier.appfitness.composeapp.resources.preferences_title
 import io.github.lopezjavier.appfitness.composeapp.resources.profile_about_row
 import io.github.lopezjavier.appfitness.composeapp.resources.profile_activity_row
@@ -71,6 +74,7 @@ class ProfileRootActions(
     val onOpenTrainingStats: () -> Unit = {},
     val onOpenAbout: () -> Unit = {},
     val onOpenActivity: () -> Unit = {},
+    val onOpenMyTraining: () -> Unit = {},
 )
 
 /** Stateful Perfil root: connects [ProfileRootViewModel] to the stateless [ProfileRootScreen]. */
@@ -81,15 +85,17 @@ fun ProfileRootRoute(
     viewModel: ProfileRootViewModel = koinViewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
+    // Back from the "Mi entrenamiento" editor the row shows the intention just saved.
+    LifecycleEventEffect(Lifecycle.Event.ON_RESUME) { viewModel.onEvent(ProfileRootEvent.ReloadIntention) }
     ProfileRootScreen(state = state, onEvent = viewModel::onEvent, modifier = modifier, actions = actions)
 }
 
 /**
  * The Perfil tab root (ADR-37, US-05, US-56) on [AppScreen]: the notifications bell and the "Preferencias" gear in
- * the bar, the photo and name, and "Estadísticas" with the "Peso", "Fuerza", "Calorías", "Entrenamiento" and
- * "Actividad" rows. A row shows its value once it is known and none when it could not be read. The debug catalog
- * button appears where [ProfileRootActions.onOpenCatalog] is non-null (local flavor). It holds no editable state:
- * nothing to restore.
+ * the bar, the photo and name, the "Mi entrenamiento" row (value = the intention) and "Estadísticas" with the
+ * "Peso", "Fuerza", "Calorías", "Entrenamiento" and "Actividad" rows. A row shows its value once it is known and
+ * none when it could not be read. The debug catalog button appears where [ProfileRootActions.onOpenCatalog] is
+ * non-null (local flavor). It holds no editable state: nothing to restore.
  */
 @Composable
 fun ProfileRootScreen(
@@ -174,6 +180,12 @@ private fun RootLoaded(state: ProfileRootUiState.Loaded, actions: ProfileRootAct
                 modifier = Modifier.fillMaxWidth().testTag("profile_root_name"),
             )
         }
+        NavigationRow(
+            label = stringResource(Res.string.preferences_my_training_title),
+            onClick = actions.onOpenMyTraining,
+            modifier = Modifier.fillMaxWidth().testTag("profile_my_training_row"),
+            value = state.intention?.let { stringResource(it.label) },
+        )
         StatisticsSection(state, actions)
         NavigationRow(
             label = stringResource(Res.string.profile_about_row),

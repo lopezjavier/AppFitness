@@ -27,9 +27,9 @@ class ActivityNavigationTest {
     @get:Rule
     val rule = createComposeRule()
 
-    private val profileSlot: ProfileSlot = { modifier, _, _, _, _, _, _, _, onOpenActivity ->
+    private val profileSlot: ProfileSlot = { modifier, actions ->
         Box(modifier.fillMaxSize().testTag("profile_screen")) {
-            Box(Modifier.size(48.dp).testTag("profile_open_activity").clickable(onClick = onOpenActivity))
+            Box(Modifier.size(48.dp).testTag("profile_open_activity").clickable(onClick = actions.onOpenActivity))
         }
     }
     private val activitySlot: ActivitySlot = { modifier, onBack ->

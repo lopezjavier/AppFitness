@@ -30,27 +30,18 @@ import androidx.navigation.toRoute
 import io.github.lopezjavier.appfitness.domain.model.ReminderKind
 import io.github.lopezjavier.appfitness.feature.catalog.ComponentCatalogScreen
 import io.github.lopezjavier.appfitness.feature.diary.DiaryEditHost
+import io.github.lopezjavier.appfitness.feature.profile.PreferencesSection
+import io.github.lopezjavier.appfitness.feature.profile.ProfileRootActions
 import io.github.lopezjavier.appfitness.feature.templates.PICKED_FOOD_KEY
 import io.github.lopezjavier.appfitness.feature.templates.pickedFoodResult
 import io.github.lopezjavier.appfitness.feature.workout.PastWorkoutSource
 import kotlinx.datetime.LocalDate
 
 /**
- * Content of the Perfil root: its modifier (tab insets), the "Preferencias" opener, the catalog opener (null where
- * it is unavailable), the "Fuerza" opener, the "Historial de comidas" opener and the "Peso" opener.
+ * Content of the Perfil root: its modifier (tab insets) and the openers of its destinations ([ProfileRootActions];
+ * the catalog opener is null where it is unavailable).
  */
-internal typealias ProfileSlot =
-    @Composable (
-        modifier: Modifier,
-        onOpenPreferences: () -> Unit,
-        onOpenCatalog: (() -> Unit)?,
-        onOpenStrength: () -> Unit,
-        onOpenDiaryHistory: () -> Unit,
-        onOpenWeight: () -> Unit,
-        onOpenTrainingStats: () -> Unit,
-        onOpenAbout: () -> Unit,
-        onOpenActivity: () -> Unit,
-    ) -> Unit
+internal typealias ProfileSlot = @Composable (modifier: Modifier, actions: ProfileRootActions) -> Unit
 
 /** Content of "Actividad": its modifier (full-screen insets), the Peso opener (empty state) and how to leave. */
 internal typealias ActivitySlot = @Composable (modifier: Modifier, onBack: () -> Unit) -> Unit
@@ -384,9 +375,13 @@ internal typealias RoutineDetailsSlot =
 const val SELECTED_EXERCISE_KEY = "selected_exercise_id"
 
 /** Empty Perfil root for previews and shell tests; the real one is wired by `AppRoot`. */
-internal val DefaultProfileSlot: ProfileSlot = { modifier, onOpenPreferences, _, _, _, _, _, _, _ ->
+internal val DefaultProfileSlot: ProfileSlot = { modifier, actions ->
     Box(modifier.fillMaxSize().testTag("profile_screen")) {
-        Box(Modifier.fillMaxSize().clickable(onClick = onOpenPreferences).testTag("profile_stub_open_preferences"))
+        Box(
+            Modifier.fillMaxSize().clickable(
+                onClick = actions.onOpenPreferences,
+            ).testTag("profile_stub_open_preferences"),
+        )
     }
 }
 
@@ -621,6 +616,9 @@ internal fun AppNavHost(
     val openTrainingStats = remember(navController) { { navController.navigateToFullScreen(StatsRoute) } }
     val openActivity = remember(navController) { { navController.navigateToFullScreen(ActivityRoute) } }
     val openAbout = remember(navController) { { navController.navigateToFullScreen(AboutRoute) } }
+    val openMyTraining = remember(navController) {
+        { navController.navigateToFullScreen(PreferencesSectionRoute(PreferencesSection.MyTraining.key)) }
+    }
     val openDetails: (String) -> Unit =
         remember(navController) { { id -> navController.navigateToFullScreen(RoutineDetailsRoute(id)) } }
     val openProgress: (String) -> Unit =
@@ -690,14 +688,17 @@ internal fun AppNavHost(
             composable<ProfileHome> {
                 profile(
                     Modifier.padding(tabPadding),
-                    openPreferences,
-                    if (catalogAvailable) openCatalog else null,
-                    openStrength,
-                    openDiaryHistory,
-                    openWeight,
-                    openTrainingStats,
-                    openAbout,
-                    openActivity,
+                    ProfileRootActions(
+                        onOpenPreferences = openPreferences,
+                        onOpenCatalog = if (catalogAvailable) openCatalog else null,
+                        onOpenStrength = openStrength,
+                        onOpenWeight = openWeight,
+                        onOpenDiaryHistory = openDiaryHistory,
+                        onOpenTrainingStats = openTrainingStats,
+                        onOpenAbout = openAbout,
+                        onOpenActivity = openActivity,
+                        onOpenMyTraining = openMyTraining,
+                    ),
                 )
             }
         }
