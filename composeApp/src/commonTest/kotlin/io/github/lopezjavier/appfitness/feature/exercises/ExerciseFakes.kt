@@ -6,6 +6,7 @@ import io.github.lopezjavier.appfitness.domain.model.Equipment
 import io.github.lopezjavier.appfitness.domain.model.Exercise
 import io.github.lopezjavier.appfitness.domain.model.ExerciseInfo
 import io.github.lopezjavier.appfitness.domain.model.ExerciseMetricType
+import io.github.lopezjavier.appfitness.domain.model.MovementPattern
 import io.github.lopezjavier.appfitness.domain.model.MuscleGroup
 import io.github.lopezjavier.appfitness.domain.port.ExerciseLibrary
 import io.github.lopezjavier.appfitness.domain.repository.ExerciseRepository
@@ -34,6 +35,7 @@ class FakeExerciseRepository(var rows: List<Exercise> = emptyList(), var failure
     var lastCreated: Triple<String, MuscleGroup, Equipment>? = null
     var lastCreatedMetricType: ExerciseMetricType? = null
     var lastCreatedPerHand: Boolean? = null
+    var lastCreatedMovementPattern: MovementPattern? = null
     var updateCalls = 0
     var updateFailure: AppError? = null
     var deleteCalls = 0
@@ -56,14 +58,16 @@ class FakeExerciseRepository(var rows: List<Exercise> = emptyList(), var failure
         equipment: Equipment,
         metricType: ExerciseMetricType,
         perHand: Boolean,
+        movementPattern: MovementPattern?,
     ): Result<Exercise> {
         createCalls++
+        lastCreatedMovementPattern = movementPattern
         lastCreated = Triple(name, muscleGroup, equipment)
         lastCreatedMetricType = metricType
         lastCreatedPerHand = perHand
         createFailure?.let { return Result.failure(AppException(it)) }
         val created = exerciseRow("custom-$createCalls", null, muscleGroup, equipment, name, custom = true)
-            .copy(metricType = metricType, perHand = perHand)
+            .copy(metricType = metricType, perHand = perHand, movementPattern = movementPattern)
         rows = rows + created
         return Result.success(created)
     }
@@ -74,13 +78,20 @@ class FakeExerciseRepository(var rows: List<Exercise> = emptyList(), var failure
         muscleGroup: MuscleGroup,
         equipment: Equipment,
         perHand: Boolean,
+        movementPattern: MovementPattern?,
     ): Result<Unit> {
         updateCalls++
         val failure = updateFailure ?: AppError.NotFound.takeIf { rows.none { it.id == id && it.isCustom } }
         if (failure != null) return Result.failure(AppException(failure))
         rows = rows.map {
             if (it.id == id) {
-                it.copy(name = name, muscleGroup = muscleGroup, equipment = equipment, perHand = perHand)
+                it.copy(
+                    name = name,
+                    muscleGroup = muscleGroup,
+                    equipment = equipment,
+                    perHand = perHand,
+                    movementPattern = movementPattern,
+                )
             } else {
                 it
             }

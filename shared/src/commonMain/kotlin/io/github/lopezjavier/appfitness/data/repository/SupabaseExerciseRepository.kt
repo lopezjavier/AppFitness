@@ -15,6 +15,7 @@ import io.github.lopezjavier.appfitness.domain.AppException
 import io.github.lopezjavier.appfitness.domain.model.Equipment
 import io.github.lopezjavier.appfitness.domain.model.Exercise
 import io.github.lopezjavier.appfitness.domain.model.ExerciseMetricType
+import io.github.lopezjavier.appfitness.domain.model.MovementPattern
 import io.github.lopezjavier.appfitness.domain.model.MuscleGroup
 import io.github.lopezjavier.appfitness.domain.repository.ExerciseRepository
 
@@ -55,9 +56,11 @@ class SupabaseExerciseRepository(private val auth: Auth, private val postgrest: 
         equipment: Equipment,
         metricType: ExerciseMetricType,
         perHand: Boolean,
+        movementPattern: MovementPattern?,
     ): Result<Exercise> = signedIn {
+        val body = ExerciseInsertDto(name.trim(), muscleGroup, equipment, metricType, true, perHand, movementPattern)
         postgrest.from("exercises")
-            .insert(ExerciseInsertDto(name.trim(), muscleGroup, equipment, metricType, isCustom = true, perHand)) {
+            .insert(body) {
                 select()
             }
             .decodeSingle<ExerciseDto>()
@@ -71,10 +74,11 @@ class SupabaseExerciseRepository(private val auth: Auth, private val postgrest: 
         muscleGroup: MuscleGroup,
         equipment: Equipment,
         perHand: Boolean,
+        movementPattern: MovementPattern?,
     ): Result<Unit> = signedIn {
         postgrest.rpc(
             "update_custom_exercise",
-            UpdateCustomExerciseParams(id, name.trim(), muscleGroup, equipment, perHand),
+            UpdateCustomExerciseParams(id, name.trim(), muscleGroup, equipment, perHand, movementPattern),
         )
         cache = null
     }.mapRpcErrors()

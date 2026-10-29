@@ -7,6 +7,7 @@ import io.github.lopezjavier.appfitness.domain.AppError
 import io.github.lopezjavier.appfitness.domain.model.Equipment
 import io.github.lopezjavier.appfitness.domain.model.ExerciseMetricType
 import io.github.lopezjavier.appfitness.domain.model.ExerciseSessionRecords
+import io.github.lopezjavier.appfitness.domain.model.MovementPattern
 import io.github.lopezjavier.appfitness.domain.model.MuscleGroup
 import io.github.lopezjavier.appfitness.domain.model.PersonalRecordType
 import io.github.lopezjavier.appfitness.domain.model.SessionExercise
@@ -36,6 +37,7 @@ import kotlin.test.assertNull
 import kotlin.test.assertTrue
 import kotlin.time.Duration.Companion.days
 
+@Suppress("LargeClass") // One class per ViewModel; the edit form tests grow it.
 class ExerciseDetailViewModelTest {
     private val repository = FakeExerciseRepository(listOf(exerciseRow("1", "bench")))
     private val library = FakeExerciseLibrary(mapOf("bench" to exerciseInfo("bench", "Press de banca")))
@@ -463,9 +465,10 @@ class ExerciseDetailViewModelTest {
 
     // Manual exercises: edit and delete (US-09)
 
-    private fun custom() {
+    private fun custom(pattern: MovementPattern? = null) {
         repository.rows = listOf(
-            exerciseRow("c1", null, MuscleGroup.Chest, Equipment.Machine, "Press Hammer", custom = true),
+            exerciseRow("c1", null, MuscleGroup.Chest, Equipment.Machine, "Press Hammer", custom = true)
+                .copy(movementPattern = pattern),
         )
     }
 
@@ -589,6 +592,89 @@ class ExerciseDetailViewModelTest {
 
         assertEquals("Borrador", form.name)
         assertTrue(form.perHand)
+    }
+
+    @Test
+    fun theEditForm_isPrefilledWithTheStoredMovementPattern() = runTest {
+        custom(MovementPattern.Hinge)
+        val vm = viewModel("c1")
+        advanceUntilIdle()
+
+        vm.openEdit()
+
+        assertEquals(MovementPattern.Hinge, loaded(vm).editForm!!.movementPattern)
+    }
+
+    @Test
+    fun changingAndSavingTheMovementPattern_passesItToTheRepository() = runTest {
+        custom()
+        val vm = viewModel("c1")
+        advanceUntilIdle()
+        vm.openEdit()
+        assertNull(loaded(vm).editForm!!.movementPattern)
+
+        vm.setEditMovementPattern(MovementPattern.Squat)
+        vm.submitEdit()
+        advanceUntilIdle()
+
+        assertEquals(MovementPattern.Squat, repository.rows.single().movementPattern)
+        assertEquals(MovementPattern.Squat, loaded(vm).detail.exercise.movementPattern)
+    }
+
+    @Test
+    fun clearingTheMovementPattern_savesNone() = runTest {
+        custom(MovementPattern.Carry)
+        val vm = viewModel("c1")
+        advanceUntilIdle()
+        vm.openEdit()
+
+        vm.setEditMovementPattern(null)
+        vm.submitEdit()
+        advanceUntilIdle()
+
+        assertNull(repository.rows.single().movementPattern)
+    }
+
+    @Test
+    fun aFailedSave_keepsTheChosenMovementPattern() = runTest {
+        custom()
+        val vm = viewModel("c1")
+        advanceUntilIdle()
+        vm.openEdit()
+        vm.setEditMovementPattern(MovementPattern.Core)
+        repository.updateFailure = AppError.Network
+
+        vm.submitEdit()
+        advanceUntilIdle()
+
+        assertEquals(MovementPattern.Core, loaded(vm).editForm!!.movementPattern)
+        assertNull(repository.rows.single().movementPattern)
+    }
+
+    @Test
+    fun theMovementPatternDraft_survivesARecreatedViewModel() = runTest {
+        custom()
+        val first = viewModel("c1")
+        advanceUntilIdle()
+        first.openEdit()
+        first.setEditMovementPattern(MovementPattern.VerticalPull)
+
+        val second = viewModel("c1")
+
+        assertEquals(MovementPattern.VerticalPull, loaded(second).editForm!!.movementPattern)
+    }
+
+    @Test
+    fun aClearedMovementPatternDraft_staysNullAfterRecreation() = runTest {
+        custom(MovementPattern.Carry)
+        val first = viewModel("c1")
+        advanceUntilIdle()
+        first.openEdit()
+        first.setEditMovementPattern(null)
+
+        val second = viewModel("c1")
+
+        assertNull(loaded(second).editForm!!.movementPattern)
     }
 
     @Test

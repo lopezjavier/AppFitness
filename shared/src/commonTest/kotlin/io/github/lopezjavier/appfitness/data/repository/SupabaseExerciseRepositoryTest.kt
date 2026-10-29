@@ -9,6 +9,7 @@ import io.github.lopezjavier.appfitness.domain.AppError
 import io.github.lopezjavier.appfitness.domain.appErrorOrNull
 import io.github.lopezjavier.appfitness.domain.model.Equipment
 import io.github.lopezjavier.appfitness.domain.model.ExerciseMetricType
+import io.github.lopezjavier.appfitness.domain.model.MovementPattern
 import io.github.lopezjavier.appfitness.domain.model.MuscleGroup
 import io.github.lopezjavier.appfitness.domain.model.TestLoginCredentials
 import io.ktor.client.engine.mock.MockEngine
@@ -148,7 +149,7 @@ class SupabaseExerciseRepositoryTest {
         val repo = signedIn()
         repo.getAll().getOrThrow()
 
-        repo.updateCustom("e2", "Press", MuscleGroup.Back, Equipment.Cable, perHand = true).getOrThrow()
+        repo.updateCustom("e2", "Press", MuscleGroup.Back, Equipment.Cable, true, null).getOrThrow()
 
         val call = rpcPosts().single()
         assertTrue(call.url.encodedPath.endsWith("/rpc/update_custom_exercise"))
@@ -159,11 +160,87 @@ class SupabaseExerciseRepositoryTest {
     }
 
     @Test
+    fun createCustom_sendsTheMovementPattern() = runTest {
+        val repo = signedIn()
+
+        repo.createCustom(
+            "Press",
+            MuscleGroup.Chest,
+            Equipment.Machine,
+            movementPattern = MovementPattern.HorizontalPush,
+        )
+            .getOrThrow()
+
+        val post = requests.single { it.method == HttpMethod.Post && !it.url.encodedPath.contains("/auth/") }
+        assertTrue((post.body as TextContent).text.contains(""""movement_pattern":"horizontal_push""""))
+    }
+
+    @Test
+    fun createCustom_withoutPattern_omitsTheColumn() = runTest {
+        val repo = signedIn()
+
+        repo.createCustom("Press", MuscleGroup.Chest, Equipment.Machine).getOrThrow()
+
+        val post = requests.single { it.method == HttpMethod.Post && !it.url.encodedPath.contains("/auth/") }
+        assertTrue(!(post.body as TextContent).text.contains("movement_pattern"))
+    }
+
+    @Test
+    fun getAll_mapsMovementPattern_andNullWhenAbsent() = runTest {
+        val repo = signedIn()
+        rows = "[" + CATALOG_ROW.replace("\"is_custom\":false", "\"is_custom\":false,\"movement_pattern\":\"squat\"") +
+            "," + CUSTOM_ROW.replace("\"is_custom\":true", "\"is_custom\":true,\"movement_pattern\":null") + "]"
+
+        val all = repo.getAll().getOrThrow()
+
+        assertEquals(MovementPattern.Squat, all[0].movementPattern)
+        assertNull(all[1].movementPattern)
+    }
+
+    @Test
+    fun getAll_mapsEveryMovementPatternValue() = runTest {
+        val repo = signedIn()
+        val names = listOf(
+            "squat", "hinge", "lunge", "horizontal_push", "vertical_push", "horizontal_pull",
+            "vertical_pull", "carry", "core", "isolation", "cardio", "other",
+        )
+        rows = names.joinToString(",", "[", "]") {
+            CATALOG_ROW.replace("\"is_custom\":false", "\"is_custom\":false,\"movement_pattern\":\"$it\"")
+        }
+
+        val all = repo.getAll().getOrThrow()
+
+        assertEquals(MovementPattern.entries, all.map { it.movementPattern })
+    }
+
+    @Test
+    fun getAll_unknownMovementPattern_fails() = runTest {
+        val repo = signedIn()
+        rows =
+            "[" + CATALOG_ROW.replace("\"is_custom\":false", "\"is_custom\":false,\"movement_pattern\":\"nope\"") + "]"
+
+        assertTrue(repo.getAll().isFailure)
+    }
+
+    @Test
+    fun updateCustom_sendsThePatternAndNullToClearIt() = runTest {
+        val repo = signedIn()
+
+        repo.updateCustom("e2", "Press", MuscleGroup.Back, Equipment.Cable, false, MovementPattern.VerticalPull)
+            .getOrThrow()
+        repo.updateCustom("e2", "Press", MuscleGroup.Back, Equipment.Cable, false, null).getOrThrow()
+
+        val (first, second) = rpcPosts().map { (it.body as TextContent).text }
+        assertTrue(first.contains(""""p_movement_pattern":"vertical_pull""""))
+        assertTrue(second.contains(""""p_movement_pattern":null"""))
+    }
+
+    @Test
     fun updateCustom_notOwnExercise_isNotFound() = runTest {
         val repo = signedIn()
         rpcFails(HttpStatusCode.BadRequest, "P0002", "exercise not found")
 
-        val result = repo.updateCustom("e1", "x", MuscleGroup.Back, Equipment.Cable, perHand = false)
+        val result = repo.updateCustom("e1", "x", MuscleGroup.Back, Equipment.Cable, false, null)
 
         assertEquals(AppError.NotFound, result.appErrorOrNull())
     }
@@ -173,7 +250,7 @@ class SupabaseExerciseRepositoryTest {
         val repo = signedIn()
         rpcFails(HttpStatusCode.BadRequest, "22023", "name must be 1-100 characters")
 
-        val result = repo.updateCustom("e2", " ", MuscleGroup.Back, Equipment.Cable, perHand = false)
+        val result = repo.updateCustom("e2", " ", MuscleGroup.Back, Equipment.Cable, false, null)
 
         assertEquals(AppError.Validation, result.appErrorOrNull())
     }

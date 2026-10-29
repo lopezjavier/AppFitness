@@ -105,6 +105,46 @@ enum class ExerciseMetricType {
     FloorsDuration,
 }
 
+/** DB values of `public.movement_pattern` (ADR-78); data for the coach, optional on custom exercises. */
+@Serializable
+enum class MovementPattern {
+    @SerialName("squat")
+    Squat,
+
+    @SerialName("hinge")
+    Hinge,
+
+    @SerialName("lunge")
+    Lunge,
+
+    @SerialName("horizontal_push")
+    HorizontalPush,
+
+    @SerialName("vertical_push")
+    VerticalPush,
+
+    @SerialName("horizontal_pull")
+    HorizontalPull,
+
+    @SerialName("vertical_pull")
+    VerticalPull,
+
+    @SerialName("carry")
+    Carry,
+
+    @SerialName("core")
+    Core,
+
+    @SerialName("isolation")
+    Isolation,
+
+    @SerialName("cardio")
+    Cardio,
+
+    @SerialName("other")
+    Other,
+}
+
 /**
  * Row of `public.exercises`. Catalog rows have a [key] and no [name] (the Spanish name lives in the client library,
  * ADR-38); custom rows have a [name] and no key.
@@ -120,6 +160,7 @@ data class Exercise(
     val isCustom: Boolean,
     /** The logged weight is per hand/side: volume counts it twice (1RM is never doubled, 04 §4.7). */
     val perHand: Boolean = false,
+    val movementPattern: MovementPattern? = null,
 )
 
 /** Client library entry of one catalog exercise (Spanish texts from the RepDB bundle). */

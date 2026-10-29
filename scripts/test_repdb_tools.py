@@ -138,6 +138,75 @@ class MetricTypeTest(unittest.TestCase):
         self.assertNotIn("bench-press", sql)
 
 
+REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+CATALOG_SQL = os.path.join(REPO, "supabase", "migrations", "20261019130100_exercise_catalog.sql")
+PATTERNS_CSV = os.path.join(REPO, "scripts", "exercise-movement-patterns.csv")
+CATALOG_ROWS = [("alfa", "chest", "barbell"), ("beta", "back", "cable")]
+
+
+class MovementPatternTest(unittest.TestCase):
+    def _csv(self, tmp, body, header="key,movement_pattern\n"):
+        path = os.path.join(tmp, "p.csv")
+        with open(path, "w", encoding="utf-8", newline="\n") as f:
+            f.write(header + body)
+        return path
+
+    def test_missing_catalogue_key_fails(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            mapping = gen.load_patterns_csv(self._csv(tmp, "alfa,horizontal_push\n"))
+            with self.assertRaises(gen.CatalogError) as ctx:
+                gen.build_pattern_rows(CATALOG_ROWS, mapping)
+        self.assertIn("beta", str(ctx.exception))
+
+    def test_unknown_pattern_fails(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            with self.assertRaises(gen.CatalogError) as ctx:
+                gen.load_patterns_csv(self._csv(tmp, "alfa,horizontal_push\nbeta,sideways\n"))
+        self.assertIn("sideways", str(ctx.exception))
+
+    def test_extra_csv_key_fails(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            mapping = gen.load_patterns_csv(self._csv(tmp, "alfa,horizontal_push\nbeta,vertical_pull\ngamma,core\n"))
+            with self.assertRaises(gen.CatalogError) as ctx:
+                gen.build_pattern_rows(CATALOG_ROWS, mapping)
+        self.assertIn("gamma", str(ctx.exception))
+
+    def test_duplicate_key_and_bad_header_fail(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            with self.assertRaises(gen.CatalogError):
+                gen.load_patterns_csv(self._csv(tmp, "alfa,core\nalfa,core\n"))
+            with self.assertRaises(gen.CatalogError):
+                gen.load_patterns_csv(self._csv(tmp, "alfa,core\n", header="k,p\n"))
+
+    def test_render_groups_keys_per_pattern(self):
+        sql = gen.render_patterns_sql(
+            [("alfa", "horizontal_push"), ("beta", "vertical_pull"), ("gamma", "vertical_pull")])
+        self.assertIn("set movement_pattern = 'vertical_pull'\nwhere not is_custom and key in (\n  'beta',\n  'gamma'\n);", sql)
+        self.assertIn("movement_pattern = 'horizontal_push'", sql)
+        self.assertNotIn("'core'", sql)
+
+    def test_render_sql_writes_the_column_only_with_patterns(self):
+        self.assertNotIn("movement_pattern", gen.render_sql(CATALOG_ROWS))
+        sql = gen.render_sql(CATALOG_ROWS, {"alfa": "core", "beta": "squat"})
+        self.assertIn("name, movement_pattern)", sql)
+        self.assertIn("('alfa', 'chest', 'barbell', 'weight_reps', false, null, 'core')", sql)
+
+    def test_committed_csv_covers_the_real_catalogue_exactly(self):
+        rows = gen.rows_from_catalog_sql(CATALOG_SQL)
+        mapping = gen.load_patterns_csv(PATTERNS_CSV)
+        pattern_rows = gen.build_pattern_rows(rows, mapping)
+        self.assertEqual(len(pattern_rows), len(rows))
+        self.assertEqual(dict(pattern_rows)["bench-press"], "horizontal_push")
+
+    def test_cli_writes_patterns_from_the_catalogue_sql(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            out = os.path.join(tmp, "p.sql")
+            code = gen.main(["--catalog-sql", CATALOG_SQL, "--patterns-csv", PATTERNS_CSV, "--patterns-out", out])
+            self.assertEqual(code, 0)
+            with open(out, encoding="utf-8") as f:
+                self.assertIn("update public.exercises set movement_pattern", f.read())
+
+
 class ImportTest(unittest.TestCase):
     def test_copies_images_and_trims_json(self):
         with tempfile.TemporaryDirectory() as tmp:

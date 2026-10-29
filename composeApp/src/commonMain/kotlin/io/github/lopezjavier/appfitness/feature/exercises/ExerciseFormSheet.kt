@@ -8,6 +8,10 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
@@ -23,6 +27,8 @@ import io.github.lopezjavier.appfitness.composeapp.resources.exercise_per_hand_h
 import io.github.lopezjavier.appfitness.composeapp.resources.exercise_per_hand_label
 import io.github.lopezjavier.appfitness.composeapp.resources.exercise_per_hand_off
 import io.github.lopezjavier.appfitness.composeapp.resources.exercise_per_hand_on
+import io.github.lopezjavier.appfitness.composeapp.resources.movement_pattern_label
+import io.github.lopezjavier.appfitness.composeapp.resources.my_training_unset
 import io.github.lopezjavier.appfitness.designsystem.AppEditSheet
 import io.github.lopezjavier.appfitness.designsystem.AppOption
 import io.github.lopezjavier.appfitness.designsystem.AppSwitch
@@ -30,11 +36,15 @@ import io.github.lopezjavier.appfitness.designsystem.AppTextField
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
 import io.github.lopezjavier.appfitness.designsystem.FilterChipRow
 import io.github.lopezjavier.appfitness.designsystem.HelpButton
+import io.github.lopezjavier.appfitness.designsystem.NavigationRow
+import io.github.lopezjavier.appfitness.designsystem.OptionPickerSheet
+import io.github.lopezjavier.appfitness.designsystem.PickerOption
 import io.github.lopezjavier.appfitness.designsystem.SelectableCard
 import io.github.lopezjavier.appfitness.designsystem.SheetCommit
 import io.github.lopezjavier.appfitness.designsystem.Spacing
 import io.github.lopezjavier.appfitness.domain.model.Equipment
 import io.github.lopezjavier.appfitness.domain.model.ExerciseMetricType
+import io.github.lopezjavier.appfitness.domain.model.MovementPattern
 import io.github.lopezjavier.appfitness.domain.model.MuscleGroup
 import org.jetbrains.compose.resources.stringResource
 
@@ -52,6 +62,7 @@ internal data class ExerciseFormUi(
     val muscleGroup: MuscleGroup?,
     val equipment: Equipment?,
     val perHand: Boolean,
+    val movementPattern: MovementPattern?,
     val metricType: ExerciseMetricType?,
     val canSubmit: Boolean,
     val isSubmitting: Boolean,
@@ -66,6 +77,7 @@ internal class ExerciseFormActions(
     val onMuscleGroup: (MuscleGroup) -> Unit,
     val onEquipment: (Equipment) -> Unit,
     val onPerHand: (Boolean) -> Unit,
+    val onMovementPattern: (MovementPattern?) -> Unit,
     val onMetricType: (ExerciseMetricType) -> Unit,
     val onSubmit: () -> Unit,
     val onDismiss: () -> Unit,
@@ -98,6 +110,7 @@ internal fun ExerciseFormSheet(ui: ExerciseFormUi, actions: ExerciseFormActions,
                 testTagPrefix = "${ui.tagPrefix}_name",
             )
             FormChoices(ui, actions)
+            MovementPatternField(ui, actions.onMovementPattern)
             PerHandRow(ui, actions.onPerHand)
         }
     }
@@ -130,6 +143,35 @@ private fun FormChoices(ui: ExerciseFormUi, actions: ExerciseFormActions) {
                 MetricTypeChoices(ui.metricType, actions.onMetricType)
             }
         }
+    }
+}
+
+/**
+ * Optional "Patrón de movimiento": a [NavigationRow] with the current value that opens a picker sibling sheet. The
+ * picker is a second modal over the form: closing it never discards the form, and a tap only updates the draft.
+ */
+@Composable
+private fun MovementPatternField(ui: ExerciseFormUi, onChange: (MovementPattern?) -> Unit) {
+    var pickerOpen by rememberSaveable { mutableStateOf(false) }
+    val label = stringResource(Res.string.movement_pattern_label)
+    val unset = stringResource(Res.string.my_training_unset)
+    NavigationRow(
+        label = label,
+        value = ui.movementPattern?.let { stringResource(it.label) } ?: unset,
+        onClick = { pickerOpen = true },
+        modifier = Modifier.testTag("${ui.tagPrefix}_movement_pattern"),
+    )
+    if (pickerOpen) {
+        val none = PickerOption("none", unset, ui.movementPattern == null) { onChange(null) }
+        val options = listOf(none) + MovementPattern.entries.map {
+            PickerOption(it.tagName(), stringResource(it.label), it == ui.movementPattern) { onChange(it) }
+        }
+        OptionPickerSheet(
+            title = label,
+            tagPrefix = "${ui.tagPrefix}_movement_pattern_picker",
+            options = options,
+            onClose = { pickerOpen = false },
+        )
     }
 }
 

@@ -55,7 +55,7 @@ Generic rules cited by number; ux-reviewer rejects plans and diffs that break on
 - **R-05** Bottom navigation appears only on tab roots; every other screen has a back arrow.
 ### Templates
 - **R-06** Every screen is built on `AppScreen` (read) or `AppEditorScreen` (edit); none draws its own top bar, footer, message host or offline banner.
-- **R-07** Every bottom sheet is one of four archetypes: Edit (form + pinned footer), Picker (one choice applied on tap, no footer), Actions (menu), Info (help/read-only). Each has a header (title, optional "?", close X "Cerrar"), scrolling body, optional pinned footer.
+- **R-07** Every bottom sheet is one of four archetypes: Edit (form + pinned footer), Picker (one choice applied on tap, no footer), Actions (menu), Info (help/read-only). A plain single-choice Picker list uses `OptionPickerSheet` (`designsystem/`, R-39). Each has a header (title, optional "?", close X "Cerrar"), scrolling body, optional pinned footer.
 - **R-08 Dialogs** only to: delete the account; sign out; delete many records at once (a folder with its routines); discard an in-progress workout; discard unsaved changes (R-14). Nothing else.
 - **R-09** The primary action of a sheet or editor is pinned and always visible.
 ### Editing
@@ -146,6 +146,7 @@ Uses `SwipeToDeleteRow` only (guard G7) · right-to-left, "Eliminar"/"Quitar" ·
 | Discomfort logged on an exercise | "Molestia" ("Registrar molestia", "Ya no me molesta"; the open one shows the level text, never a "Molestia registrada" label) | "Lesión", "Dolor" | Required level 1-5 (ADR-81): "Tensión o fatiga", "Molestia leve", "Pinchazo o chasquido", "Hinchazón, hormigueo o entumecimiento", "Dolor agudo o lesión"; section "Nivel". Exception: "Dolor"/"lesión" appear only inside the top level label, which must be explicit. No term matching, no health message |
 | Training intention (US-65) | Section and hub row "Mi entrenamiento"; field "Objetivo de entrenamiento"; values "Ganar fuerza", "Ganar musculatura", "Perder grasa", "Recomposición", "Mantenimiento"; unset "Sin definir" | "Intención", "Objetivo calórico" for it | Never the nutrition goal ("Objetivo calórico", E13); the hub row shows the chosen value, nothing when unset |
 | Training place (US-65) | "Lugar": "Casa", "Gimnasio", "Otro" | "Ubicación" | Seeds the equipment ("Equipamiento"); equipment chips use `Equipment.label` ("Mancuernas") |
+| Movement pattern of an own exercise (E12/E13) | Field and picker title "Patrón de movimiento"; values "Sentadilla", "Bisagra de cadera", "Zancada", "Empuje horizontal", "Empuje vertical", "Tirón horizontal", "Tirón vertical", "Acarreo", "Core", "Aislamiento", "Cardio", "Otro"; unset "Sin definir" | "Tipo de movimiento", "Categoría" | Optional, custom exercises only, never shown on catalogue exercises or details; "Otro" is a real value, "Sin definir" means none |
 | System licences list | "Licencias de código abierto" | "Licencias", "Open source" | Credits heading "Créditos" |
 
 Message templates: required "Escribe un nombre" · too long "Máximo N caracteres" · range "Entre X y Y <unidad>" · duplicate "Ya existe <una comida / una carpeta / una rutina> con ese nombre" · error "No se pudo <acción>. Inténtalo de nuevo." · offline "Sin conexión: no se puede <acción>" · saved "Cambios guardados".

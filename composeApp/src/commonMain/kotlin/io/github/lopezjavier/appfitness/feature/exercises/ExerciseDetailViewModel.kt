@@ -9,6 +9,7 @@ import io.github.lopezjavier.appfitness.domain.model.Equipment
 import io.github.lopezjavier.appfitness.domain.model.ExerciseDetail
 import io.github.lopezjavier.appfitness.domain.model.ExerciseMetricType
 import io.github.lopezjavier.appfitness.domain.model.ExerciseSessionRecords
+import io.github.lopezjavier.appfitness.domain.model.MovementPattern
 import io.github.lopezjavier.appfitness.domain.model.MuscleGroup
 import io.github.lopezjavier.appfitness.domain.model.PersonalRecord
 import io.github.lopezjavier.appfitness.domain.model.PersonalRecordType
@@ -37,6 +38,7 @@ private const val KEY_EDIT_NAME = "detail_edit_name"
 private const val KEY_EDIT_MUSCLE = "detail_edit_muscle"
 private const val KEY_EDIT_EQUIPMENT = "detail_edit_equipment"
 private const val KEY_EDIT_PER_HAND = "detail_edit_per_hand"
+private const val KEY_EDIT_MOVEMENT_PATTERN = "detail_edit_movement_pattern"
 
 /** Longest exercise name, matching the DB check. */
 private const val NAME_MAX_LENGTH = 100
@@ -50,6 +52,8 @@ data class EditExerciseForm(
     val muscleGroup: MuscleGroup,
     val equipment: Equipment,
     val perHand: Boolean,
+    /** Optional movement pattern (E13 coach data); null = "Sin definir", saved as none. */
+    val movementPattern: MovementPattern? = null,
     val isSubmitting: Boolean = false,
 ) {
     val canSubmit: Boolean get() = name.isNotBlank() && !isSubmitting
@@ -213,7 +217,13 @@ class ExerciseDetailViewModel(
     fun openEdit() {
         val exercise = loaded()?.detail?.exercise?.takeIf { it.isCustom } ?: return
         setEditForm(
-            EditExerciseForm(exercise.name.orEmpty(), exercise.muscleGroup, exercise.equipment, exercise.perHand),
+            EditExerciseForm(
+                exercise.name.orEmpty(),
+                exercise.muscleGroup,
+                exercise.equipment,
+                exercise.perHand,
+                exercise.movementPattern,
+            ),
         )
     }
 
@@ -227,12 +237,23 @@ class ExerciseDetailViewModel(
 
     fun setEditPerHand(perHand: Boolean) = editForm { it.copy(perHand = perHand) }
 
+    /** Null clears the pattern ("Sin definir"). */
+    fun setEditMovementPattern(pattern: MovementPattern?) = editForm { it.copy(movementPattern = pattern) }
+
     /** "Guardar": applies the edit; on success the form closes and the detail shows the new values. */
     fun submitEdit() {
         val form = loaded()?.editForm?.takeIf { it.canSubmit && online } ?: return
         setEditForm(form.copy(isSubmitting = true))
         viewModelScope.launch {
-            repository.updateCustom(exerciseId, form.name.trim(), form.muscleGroup, form.equipment, form.perHand).fold(
+            val result = repository.updateCustom(
+                exerciseId,
+                form.name.trim(),
+                form.muscleGroup,
+                form.equipment,
+                form.perHand,
+                form.movementPattern,
+            )
+            result.fold(
                 onSuccess = {
                     loadCatalog.detail(exerciseId).onSuccess { detail -> updateLoaded { it.copy(detail = detail) } }
                     setEditForm(null)
@@ -279,6 +300,7 @@ class ExerciseDetailViewModel(
         savedState[KEY_EDIT_MUSCLE] = form?.muscleGroup?.name
         savedState[KEY_EDIT_EQUIPMENT] = form?.equipment?.name
         savedState[KEY_EDIT_PER_HAND] = form?.perHand
+        savedState[KEY_EDIT_MOVEMENT_PATTERN] = form?.movementPattern?.name
     }
 
     private fun restoredEditForm(detail: ExerciseDetail): EditExerciseForm? {
@@ -291,6 +313,10 @@ class ExerciseDetailViewModel(
             equipment = Equipment.entries.firstOrNull { it.name == savedState.get<String>(KEY_EDIT_EQUIPMENT) }
                 ?: exercise.equipment,
             perHand = savedState.get<Boolean>(KEY_EDIT_PER_HAND) ?: exercise.perHand,
+            // The draft is written together with KEY_EDIT_OPEN, so an absent value means "cleared", not "untouched".
+            movementPattern = MovementPattern.entries.firstOrNull {
+                it.name == savedState.get<String>(KEY_EDIT_MOVEMENT_PATTERN)
+            },
         )
     }
 

@@ -6,6 +6,7 @@ import io.github.lopezjavier.appfitness.app.FakeConnectivityObserver
 import io.github.lopezjavier.appfitness.domain.AppError
 import io.github.lopezjavier.appfitness.domain.model.Equipment
 import io.github.lopezjavier.appfitness.domain.model.ExerciseMetricType
+import io.github.lopezjavier.appfitness.domain.model.MovementPattern
 import io.github.lopezjavier.appfitness.domain.model.MuscleGroup
 import io.github.lopezjavier.appfitness.domain.usecase.LoadExerciseCatalog
 import io.github.lopezjavier.appfitness.domain.usecase.SearchExercises
@@ -22,6 +23,7 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertIs
+import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 class ExercisePickerViewModelTest {
@@ -343,6 +345,67 @@ class ExercisePickerViewModelTest {
         val second = viewModel(savedState = handle).also { advanceUntilIdle() }
 
         assertTrue(second.content().createForm!!.perHand)
+    }
+
+    @Test
+    fun theMovementPattern_defaultsToNone_andUntouchedIsSentAsNull() = runTest {
+        val vm = loaded()
+        vm.onEvent(ExercisePickerEvent.OpenCreate)
+        assertNull(vm.content().createForm!!.movementPattern)
+        vm.onEvent(ExercisePickerEvent.SetCreateName("Press Hammer"))
+        vm.onEvent(ExercisePickerEvent.SelectCreateMuscleGroup(MuscleGroup.Chest))
+        vm.onEvent(ExercisePickerEvent.SelectCreateEquipment(Equipment.Machine))
+
+        vm.onEvent(ExercisePickerEvent.SubmitCreate)
+        advanceUntilIdle()
+
+        assertNull(repository.lastCreatedMovementPattern)
+        assertNull(repository.rows.single { it.name == "Press Hammer" }.movementPattern)
+    }
+
+    @Test
+    fun aChosenMovementPattern_isSentWithTheCreateRequest_andTheCreatedExerciseKeepsIt() = runTest {
+        val vm = loaded()
+        vm.onEvent(ExercisePickerEvent.OpenCreate)
+        vm.onEvent(ExercisePickerEvent.SetCreateName("Press Hammer"))
+        vm.onEvent(ExercisePickerEvent.SelectCreateMuscleGroup(MuscleGroup.Chest))
+        vm.onEvent(ExercisePickerEvent.SelectCreateEquipment(Equipment.Machine))
+        vm.onEvent(ExercisePickerEvent.SetCreateMovementPattern(MovementPattern.HorizontalPush))
+
+        vm.onEvent(ExercisePickerEvent.SubmitCreate)
+        advanceUntilIdle()
+
+        assertEquals(MovementPattern.HorizontalPush, repository.lastCreatedMovementPattern)
+        assertEquals(
+            MovementPattern.HorizontalPush,
+            repository.rows.single { it.name == "Press Hammer" }.movementPattern,
+        )
+    }
+
+    @Test
+    fun clearingTheMovementPattern_goesBackToNone() = runTest {
+        val vm = loaded()
+        vm.onEvent(ExercisePickerEvent.OpenCreate)
+        vm.onEvent(ExercisePickerEvent.SetCreateMovementPattern(MovementPattern.Core))
+
+        vm.onEvent(ExercisePickerEvent.SetCreateMovementPattern(null))
+
+        assertNull(vm.content().createForm!!.movementPattern)
+    }
+
+    @Test
+    fun theMovementPattern_survivesARecreatedViewModel_andNullStaysNull() = runTest {
+        val handle = SavedStateHandle()
+        val first = viewModel(savedState = handle).also { advanceUntilIdle() }
+        first.onEvent(ExercisePickerEvent.OpenCreate)
+        first.onEvent(ExercisePickerEvent.SetCreateMovementPattern(MovementPattern.Cardio))
+        val second = viewModel(savedState = handle).also { advanceUntilIdle() }
+        assertEquals(MovementPattern.Cardio, second.content().createForm!!.movementPattern)
+
+        second.onEvent(ExercisePickerEvent.SetCreateMovementPattern(null))
+        val third = viewModel(savedState = handle).also { advanceUntilIdle() }
+
+        assertNull(third.content().createForm!!.movementPattern)
     }
 
     @Test

@@ -27,7 +27,7 @@ select enum_has_labels('public', 'exercise_metric_type', array['weight_reps', 'r
   'floors_duration'], 'exercise_metric_type enum labels');
 select columns_are('public', 'exercises', array[
   'id', 'name', 'key', 'muscle_group', 'secondary_muscles', 'equipment', 'metric_type', 'is_custom',
-  'created_by', 'created_at', 'per_hand'
+  'created_by', 'created_at', 'per_hand', 'movement_pattern'
 ], 'exercises has exactly the planned columns');
 select fk_ok('public', 'exercises', 'created_by', 'auth', 'users', 'id', 'created_by references auth.users.id');
 select has_index('public', 'exercises', 'exercises_created_by_idx', 'index on created_by exists');
