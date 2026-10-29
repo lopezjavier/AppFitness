@@ -111,10 +111,10 @@ Each checkpoint also has "leave the app and come back: the same tab, screen and 
 ### Phase 1: Rest alert and discomfort in the live session (US-64, US-67)
 - [x] T-146: Rest-end alert with the screen off and the sound candidates — L (no checkpoint after it)
 - [x] T-147: Discomfort log and the strong-pain message — L
-  - **Checkpoint E12-A 👤 (7 items):** screen off and background; foreground; skip, +30s, finish/discard; notifications denied; choose the sound; log discomfort; strong pain and resolve.
+  - **Checkpoint E12-A 👤 (7 items):** screen off and background; foreground; skip, +30s, finish/discard; notifications denied; choose the sound; log discomfort; strong pain and resolve. *(approved 2026-10-29)*
 
 ### Phase 2: Notes and static inputs for the coach (US-66, US-65, data task)
-- [ ] T-152: Discomfort level scale (ADR-81) and help on every rating scale (R-45); before re-presenting Checkpoint E12-A — L
+- [x] T-152: Discomfort level scale (ADR-81) and help on every rating scale (R-45); before re-presenting Checkpoint E12-A — L (merged #346)
 - [ ] T-148: Notes per set and per routine exercise, and the chosen rest sound — L (no checkpoint after it; `deploy-supabase` green before T-149)
 - [ ] T-149: "Mi entrenamiento" — M (no checkpoint after it; `deploy-supabase` green before T-150)
 - [ ] T-150: Movement pattern — M
