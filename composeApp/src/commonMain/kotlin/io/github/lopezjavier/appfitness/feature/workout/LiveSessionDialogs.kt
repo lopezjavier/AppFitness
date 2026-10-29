@@ -17,10 +17,13 @@ import io.github.lopezjavier.appfitness.composeapp.resources.live_finish_empty_r
 import io.github.lopezjavier.appfitness.composeapp.resources.live_finish_offline_reason
 import io.github.lopezjavier.appfitness.composeapp.resources.live_menu_discard
 import io.github.lopezjavier.appfitness.composeapp.resources.live_title
+import io.github.lopezjavier.appfitness.composeapp.resources.note_sheet_set_title
 import io.github.lopezjavier.appfitness.designsystem.AppActionSheet
 import io.github.lopezjavier.appfitness.designsystem.AppConfirmDialog
 import io.github.lopezjavier.appfitness.designsystem.AppSheetAction
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
+import io.github.lopezjavier.appfitness.designsystem.LocalAppHaptics
+import io.github.lopezjavier.appfitness.designsystem.NoteSheet
 import io.github.lopezjavier.appfitness.designsystem.RpePickerSheet
 import io.github.lopezjavier.appfitness.designsystem.SetTypePickerSheet
 import io.github.lopezjavier.appfitness.designsystem.Spacing
@@ -52,6 +55,25 @@ internal fun LiveRpePicker(state: LiveSessionUiState.Active, onEvent: (LiveSessi
         onSelect = { onEvent(LiveSessionEvent.SetRpeChosen(target.position, target.setIndex, it)) },
         onDismiss = { onEvent(LiveSessionEvent.DismissRpePicker) },
         completesSet = target.completesSet,
+    )
+}
+
+/** The note sheet of the targeted set; "Guardar" stores the note with the set and confirms, closing discards. */
+@Composable
+internal fun LiveNoteSheetHost(state: LiveSessionUiState.Active, onEvent: (LiveSessionEvent) -> Unit) {
+    val sheet = state.noteSheet ?: return
+    val haptics = LocalAppHaptics.current
+    NoteSheet(
+        title = stringResource(Res.string.note_sheet_set_title, sheet.setIndex),
+        draft = sheet.draft,
+        original = sheet.original,
+        onDraftChange = { onEvent(LiveSessionEvent.SetNoteDraftChanged(it)) },
+        onSave = {
+            haptics.confirm()
+            onEvent(LiveSessionEvent.SaveSetNote)
+        },
+        onDismiss = { onEvent(LiveSessionEvent.DismissSetNote) },
+        testTagPrefix = "note_sheet",
     )
 }
 

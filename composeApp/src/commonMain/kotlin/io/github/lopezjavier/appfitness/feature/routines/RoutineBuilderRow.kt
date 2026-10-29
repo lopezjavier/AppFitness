@@ -48,12 +48,15 @@ import io.github.lopezjavier.appfitness.composeapp.resources.exercise_unnamed
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_arrow_downward
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_arrow_upward
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_delete
+import io.github.lopezjavier.appfitness.composeapp.resources.ic_edit
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_label
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_more_vert
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_remove
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_set_normal
 import io.github.lopezjavier.appfitness.composeapp.resources.live_exercise_menu_plate_calc
 import io.github.lopezjavier.appfitness.composeapp.resources.live_exercise_menu_warm_up_calc
+import io.github.lopezjavier.appfitness.composeapp.resources.note_add
+import io.github.lopezjavier.appfitness.composeapp.resources.note_edit
 import io.github.lopezjavier.appfitness.composeapp.resources.routine_builder_target_rpe_decrease_cd
 import io.github.lopezjavier.appfitness.composeapp.resources.routine_builder_target_rpe_increase_cd
 import io.github.lopezjavier.appfitness.composeapp.resources.routine_builder_target_rpe_label
@@ -65,6 +68,7 @@ import io.github.lopezjavier.appfitness.designsystem.AppTheme
 import io.github.lopezjavier.appfitness.designsystem.DragHandle
 import io.github.lopezjavier.appfitness.designsystem.ExerciseThumbnail
 import io.github.lopezjavier.appfitness.designsystem.ExerciseThumbnailDefaults
+import io.github.lopezjavier.appfitness.designsystem.InlineNote
 import io.github.lopezjavier.appfitness.designsystem.NumberStepper
 import io.github.lopezjavier.appfitness.designsystem.ReorderableItemScope
 import io.github.lopezjavier.appfitness.designsystem.RpeHelpButton
@@ -98,12 +102,14 @@ internal fun BuilderRowUi.supersetText(): String? =
  * reorder.
  */
 @Composable
+@Suppress("LongParameterList") // Row data, its position and the four hooks.
 internal fun ReorderableItemScope.BuilderRow(
     row: BuilderRowUi,
     index: Int,
     onEvent: (RoutineBuilderEvent) -> Unit,
     onOpenMenu: () -> Unit,
     onOpenExercise: () -> Unit,
+    onEditNote: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val name = row.displayName()
@@ -140,6 +146,15 @@ internal fun ReorderableItemScope.BuilderRow(
     ) {
         AppCard(Modifier.fillMaxWidth().padding(start = if (superset != null) AccentWidth else Spacing.none)) {
             RowHeader(row, index, superset, onEvent, onOpenMenu, onOpenExercise)
+            row.notes?.let {
+                InlineNote(
+                    text = it,
+                    modifier = Modifier.padding(top = Spacing.sm),
+                    testTag = "routine_builder_note_$index",
+                    onClick = onEditNote,
+                    onClickLabel = stringResource(Res.string.note_edit),
+                )
+            }
             Steppers(row, index, onEvent)
         }
         if (superset != null) {
@@ -344,6 +359,7 @@ internal fun BuilderRowMenu(
     row: BuilderRowUi,
     index: Int,
     onEvent: (RoutineBuilderEvent) -> Unit,
+    onEditNote: () -> Unit,
     onDismiss: () -> Unit,
 ) {
     val moveUp = stringResource(Res.string.builder_move_up)
@@ -370,6 +386,14 @@ internal fun BuilderRowMenu(
         if (row.supersetLabel != null) {
             add(AppSheetAction(Res.drawable.ic_remove, ungroup) { onEvent(RoutineBuilderEvent.Ungroup(index)) })
         }
+        add(
+            AppSheetAction(
+                Res.drawable.ic_edit,
+                stringResource(if (row.notes == null) Res.string.note_add else Res.string.note_edit),
+                testTag = "routine_builder_exercise_note_$index",
+                onClick = onEditNote,
+            ),
+        )
         add(
             AppSheetAction(Res.drawable.ic_set_normal, warmUp) {
                 onEvent(RoutineBuilderEvent.OpenCalculator(index, CalculatorKind.WarmUp))

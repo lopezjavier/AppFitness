@@ -23,10 +23,7 @@ import io.github.lopezjavier.appfitness.composeapp.resources.about_title
 import io.github.lopezjavier.appfitness.composeapp.resources.about_version_flavor_format
 import io.github.lopezjavier.appfitness.composeapp.resources.about_version_format
 import io.github.lopezjavier.appfitness.composeapp.resources.credits
-import io.github.lopezjavier.appfitness.composeapp.resources.rest_sound_about_supporting
-import io.github.lopezjavier.appfitness.composeapp.resources.rest_sound_title
 import io.github.lopezjavier.appfitness.designsystem.AppCard
-import io.github.lopezjavier.appfitness.designsystem.AppListRow
 import io.github.lopezjavier.appfitness.designsystem.AppScreen
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
 import io.github.lopezjavier.appfitness.designsystem.ListSectionHeader
@@ -40,18 +37,12 @@ import org.koin.compose.viewmodel.koinViewModel
 
 /** Stateful "Acerca de": connects [AboutViewModel] and the system licences screen to the stateless [AboutScreen]. */
 @Composable
-fun AboutRoot(
-    onBack: () -> Unit,
-    modifier: Modifier = Modifier,
-    onOpenRestSound: () -> Unit = {},
-    viewModel: AboutViewModel = koinViewModel(),
-) {
+fun AboutRoot(onBack: () -> Unit, modifier: Modifier = Modifier, viewModel: AboutViewModel = koinViewModel()) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     AboutScreen(
         state = state,
         onBack = onBack,
         onOpenLicenses = rememberOpenSourceLicensesLauncher()::open,
-        onOpenRestSound = onOpenRestSound,
         modifier = modifier,
     )
 }
@@ -61,13 +52,7 @@ fun AboutRoot(
  * "Licencias de código abierto" row. It is static and holds no editable state, so there is nothing to restore.
  */
 @Composable
-fun AboutScreen(
-    state: AboutUiState,
-    onBack: () -> Unit,
-    onOpenLicenses: () -> Unit,
-    modifier: Modifier = Modifier,
-    onOpenRestSound: () -> Unit = {},
-) {
+fun AboutScreen(state: AboutUiState, onBack: () -> Unit, onOpenLicenses: () -> Unit, modifier: Modifier = Modifier) {
     val credits = stringArrayResource(Res.array.credits)
     val parsed = remember(credits) { credits.map(Credit::parse) }
     AppScreen(
@@ -95,15 +80,6 @@ fun AboutScreen(
                     label = stringResource(Res.string.about_licenses_row),
                     onClick = onOpenLicenses,
                     modifier = Modifier.testTag("about_licenses_row"),
-                )
-            }
-            // TEMPORARY - removed by T-148 (sound chooser entry).
-            AppCard(Modifier.fillMaxWidth()) {
-                AppListRow(
-                    headline = stringResource(Res.string.rest_sound_title),
-                    supporting = stringResource(Res.string.rest_sound_about_supporting),
-                    onClick = onOpenRestSound,
-                    modifier = Modifier.testTag("about_rest_sound_row"),
                 )
             }
         }

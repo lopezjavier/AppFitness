@@ -325,6 +325,52 @@ class SupabaseWorkoutSessionRepositoryTest {
     }
 
     @Test
+    fun upsertSet_sendsTheNormalisedNote() = runTest {
+        val repo = signedIn()
+
+        repo.upsertSet(
+            "s1",
+            "e1",
+            0,
+            null,
+            2,
+            SetEntry.WeightReps(80.5, 8),
+            null,
+            notes = "  pausa larga ",
+        ).getOrThrow()
+
+        assertTrue(""""notes":"pausa larga"""" in bodyOf(rest().single()))
+    }
+
+    @Test
+    fun upsertSet_withABlankNote_sendsANullSoItCanBeCleared() = runTest {
+        val repo = signedIn()
+
+        repo.upsertSet("s1", "e1", 0, null, 2, SetEntry.WeightReps(80.5, 8), null, notes = "   ").getOrThrow()
+
+        assertTrue(""""notes":null""" in bodyOf(rest().single()))
+    }
+
+    @Test
+    fun getSession_mapsTheSetNotes_andAsksForTheColumn() = runTest {
+        val repo = signedIn()
+        getBody = """[{"id":"s1","routine_id":null,"name":"A","status":"completed",""" +
+            """"started_at":"2026-10-19T10:00:00+00:00","ended_at":null,"workout_sets":[""" +
+            """{"exercise_id":"e1","exercise_position":0,"set_index":1,"weight_kg":80,"reps":5,""" +
+            """"notes":"pausa larga",""" +
+            """"completed_at":null},""" +
+            """{"exercise_id":"e1","exercise_position":0,"set_index":2,"weight_kg":80,"reps":5,"notes":"  ",""" +
+            """"completed_at":null},""" +
+            """{"exercise_id":"e1","exercise_position":0,"set_index":3,"weight_kg":80,"reps":5,""" +
+            """"completed_at":null}]}]"""
+
+        val session = repo.getSession("s1").getOrThrow()!!
+
+        assertEquals(listOf("pausa larga", null, null), session.exercises.single().sets.map { it.notes })
+        assertTrue("notes" in rest().single().url.encodedQuery)
+    }
+
+    @Test
     fun finish_callsTheRpcWithTheSessionId() = runTest {
         val repo = signedIn()
 

@@ -27,7 +27,7 @@ private fun stateOf(metrics: List<ExerciseMetricType>) = LiveSessionUiState.Acti
 
 /** US-31: one set row per metric type, with exactly the fields of the type. */
 @RunWith(RobolectricTestRunner::class)
-@Config(qualifiers = "w360dp-h2400dp-xxhdpi")
+@Config(qualifiers = "w360dp-h4000dp-xxhdpi")
 class LiveSessionSetRowVariantsTest {
     @get:Rule
     val rule = createComposeRule()

@@ -100,4 +100,58 @@ class RoutineBuilderRestorationTest {
 
         rule.onNodeWithTag("routine_builder_row_0").assertContentDescriptionEquals("Press de banca")
     }
+
+    @Test
+    fun theOpenNoteSheet_keepsItsHalfTypedText() {
+        val handle = SavedStateHandle()
+        val tester = StateRestorationTester(rule)
+        lateinit var current: RoutineBuilderViewModel
+        tester.setContent {
+            val vm = androidx.compose.runtime.remember { viewModel(handle).also { current = it } }
+            val state by vm.uiState.collectAsState()
+            AppTheme {
+                CompositionLocalProvider(LocalExerciseMediaUris provides FakeExerciseMediaUris) {
+                    RoutineBuilderScreen(state, vm::onEvent, {}, {})
+                }
+            }
+        }
+        rule.waitForIdle()
+        current.onEvent(RoutineBuilderEvent.AddExercise("a"))
+        rule.waitForIdle()
+        rule.onNodeWithTag("routine_builder_menu_0").performClick()
+        rule.waitForIdle()
+        rule.onNodeWithTag("routine_builder_exercise_note_0").performClick()
+        rule.waitForIdle()
+        rule.onNodeWithTag("note_sheet_field").performTextInput("bajar el pe")
+
+        tester.emulateSavedInstanceStateRestore()
+        rule.waitForIdle()
+
+        rule.onNodeWithTag("note_sheet_field").assertTextContains("bajar el pe")
+    }
+
+    @Test
+    fun aSavedExerciseNote_survivesARecreatedViewModel() {
+        val handle = SavedStateHandle()
+        val tester = StateRestorationTester(rule)
+        lateinit var current: RoutineBuilderViewModel
+        tester.setContent {
+            val vm = androidx.compose.runtime.remember { viewModel(handle).also { current = it } }
+            val state by vm.uiState.collectAsState()
+            AppTheme {
+                CompositionLocalProvider(LocalExerciseMediaUris provides FakeExerciseMediaUris) {
+                    RoutineBuilderScreen(state, vm::onEvent, {}, {})
+                }
+            }
+        }
+        rule.waitForIdle()
+        current.onEvent(RoutineBuilderEvent.AddExercise("a"))
+        current.onEvent(RoutineBuilderEvent.SetExerciseNote(0, "bajar el peso si duele"))
+        rule.waitForIdle()
+
+        tester.emulateSavedInstanceStateRestore()
+        rule.waitForIdle()
+
+        rule.onNodeWithTag("routine_builder_note_0").assertTextContains("bajar el peso si duele")
+    }
 }

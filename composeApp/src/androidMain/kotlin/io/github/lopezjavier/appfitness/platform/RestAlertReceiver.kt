@@ -3,17 +3,14 @@ package io.github.lopezjavier.appfitness.platform
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
-import io.github.lopezjavier.appfitness.domain.port.RestAlertPreferences
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import org.koin.mp.KoinPlatform
 
-/** Decides whether the alarm of a finished rest posts the notification, and with which sound. */
+/** Decides whether the alarm of a finished rest posts the notification. */
 class RestAlertHandler(
     private val notifier: RestAlertNotifier,
-    private val preferences: RestAlertPreferences,
     private val isForeground: () -> Boolean,
     private val nowMillis: () -> Long = System::currentTimeMillis,
 ) {
@@ -21,7 +18,7 @@ class RestAlertHandler(
     suspend fun handle(endsAtEpochMs: Long): Boolean {
         // In the foreground the in-app alert already fired; a very late alarm is no longer useful.
         if (isForeground() || nowMillis() - endsAtEpochMs > MAX_LATE_MILLIS) return false
-        return notifier.post(preferences.sound.first())
+        return notifier.post()
     }
 
     companion object {

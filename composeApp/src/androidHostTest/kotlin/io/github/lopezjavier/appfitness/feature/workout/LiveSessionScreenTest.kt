@@ -224,6 +224,8 @@ class LiveSessionScreenTest {
     fun addSetAndAddExercise_sendTheirEvents() {
         show(active())
 
+        // Each set row carries a note line, so the add-set button may sit below the fold.
+        rule.onNode(hasScrollAction()).performScrollToNode(hasTestTag("live_exercise_1_add_set"))
         rule.onNodeWithTag("live_exercise_1_add_set").performClick()
         rule.onNode(hasScrollAction()).performScrollToNode(hasTestTag("live_add_exercise"))
         rule.onNodeWithTag("live_add_exercise").performClick()

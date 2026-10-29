@@ -72,6 +72,23 @@ class WorkoutFormTest {
     }
 
     @Test
+    fun aSetNote_roundTripsThroughTheDraft_andAnAddedSetStartsWithoutIt() {
+        val noted = form().withNote(0, 0, "pausa larga")
+
+        assertEquals("pausa larga", noted.toDraft().exercises[0].sets[0].notes)
+        assertEquals("pausa larga", noted.toDraft().toForm().exercises[0].sets[0].notes)
+        assertEquals(listOf("pausa larga", null), noted.withAddedSet(0).exercises[0].sets.map { it.notes })
+    }
+
+    @Test
+    fun aBlankNote_isNoNote_andAnOversizedOneIsRefused() {
+        val noted = form().withNote(0, 0, "pausa")
+
+        assertEquals(null, noted.withNote(0, 0, "   ").exercises[0].sets[0].notes)
+        assertEquals("pausa", noted.withNote(0, 0, "x".repeat(201)).exercises[0].sets[0].notes)
+    }
+
+    @Test
     fun aSupersetAddsAndRemovesSetsOnEveryMember() {
         val grouped = form().let { f -> f.copy(exercises = f.exercises.map { it.copy(group = 1) }) }
 

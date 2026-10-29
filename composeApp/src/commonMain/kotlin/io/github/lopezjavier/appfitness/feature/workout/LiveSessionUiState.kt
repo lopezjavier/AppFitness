@@ -3,6 +3,7 @@ package io.github.lopezjavier.appfitness.feature.workout
 import io.github.lopezjavier.appfitness.domain.model.DiscomfortLevel
 import io.github.lopezjavier.appfitness.domain.model.Equipment
 import io.github.lopezjavier.appfitness.domain.model.ExerciseMetricType
+import io.github.lopezjavier.appfitness.domain.model.NoteText
 import io.github.lopezjavier.appfitness.domain.model.RoutineBounds
 import io.github.lopezjavier.appfitness.domain.model.SetType
 import io.github.lopezjavier.appfitness.domain.model.WarmUpSet
@@ -37,6 +38,8 @@ data class LiveSetRow(
     /** The set stopwatch's time, recomputed from the clock on every publish. */
     val durationSeconds: Int = 0,
     val stopwatchRunning: Boolean = false,
+    /** The set note (1-200 chars), shown under the set; null when none (US-66). */
+    val notes: String? = null,
 )
 
 /** An exercise card. [name] is null when the library has no name for it (the UI shows a generic label). */
@@ -54,8 +57,10 @@ data class LiveExercise(
     val metricType: ExerciseMetricType = ExerciseMetricType.WeightReps,
     /** Decides the hint of the weight field; null when unknown. */
     val equipment: Equipment? = null,
-    /** The open discomfort of this exercise ("Molestia registrada"), null when none (US-67). */
+    /** The open discomfort of this exercise, shown with its level; null when none (US-67). */
     val discomfort: LiveDiscomfort? = null,
+    /** The routine's note for this exercise, read-only here; null when none or the session has no routine. */
+    val routineNote: String? = null,
 )
 
 /** An open discomfort on an exercise, shown at the highest [level] among its open rows. */
@@ -72,6 +77,18 @@ data class TypePickerTarget(val position: Int, val setIndex: Int)
 
 /** The set (exercise [position], [setIndex]) whose RPE picker is open. */
 data class RpePickerTarget(val position: Int, val setIndex: Int, val completesSet: Boolean = false)
+
+/**
+ * The set note sheet: the set (exercise [position], [setIndex]), the text being typed ([draft]) and the saved note it
+ * started from ([original]). Survives process death (ADR-40). Closing it discards the draft silently.
+ */
+data class LiveNoteSheet(val position: Int, val setIndex: Int, val draft: String, val original: String?) {
+    /** More than [NoteText.MAX] characters: the field shows the error and "Guardar" is disabled. */
+    val tooLong: Boolean get() = !NoteText.isValid(draft)
+
+    /** Valid and different from the saved note (clearing a saved note counts as a change). */
+    val canSave: Boolean get() = !tooLong && NoteText.normalise(draft) != original
+}
 
 /** The confirmation sheet of "Finalizar entreno": [pendingCount] sets are not completed and will be dropped. */
 data class FinishSheet(val pendingCount: Int)
@@ -138,6 +155,8 @@ sealed interface LiveSessionUiState {
         val typePicker: TypePickerTarget? = null,
         /** The set whose RPE picker is open; null when closed. Survives process death (ADR-40). */
         val rpePicker: RpePickerTarget? = null,
+        /** The set note sheet; null when closed. Survives process death (ADR-40). */
+        val noteSheet: LiveNoteSheet? = null,
         /** Exercises whose logged weight is per hand (volume counts twice); empty when none or unreadable. */
         val perHandIds: Set<String> = emptySet(),
         /** The latest body weight in kg (prefills the body-weight sheet); null when there is none. */
@@ -260,6 +279,18 @@ sealed interface LiveSessionEvent {
 
     data object AddExercise : LiveSessionEvent
 
+    /** The note action of a set (pending or completed): opens the note sheet prefilled with its note. */
+    data class OpenSetNote(val position: Int, val setIndex: Int) : LiveSessionEvent
+
+    /** The note field of the open sheet changed (draft only). */
+    data class SetNoteDraftChanged(val text: String) : LiveSessionEvent
+
+    /** "Guardar" in the note sheet: stores the trimmed note with the set; blank removes it; ignored when invalid. */
+    data object SaveSetNote : LiveSessionEvent
+
+    /** The note sheet was closed without saving (X, back, scrim, swipe): the draft is dropped, no dialog. */
+    data object DismissSetNote : LiveSessionEvent
+
     /** The picker returned [exerciseId] (the result of [LiveSessionEffect.OpenPicker]). */
     data class ExerciseSelected(val exerciseId: String) : LiveSessionEvent
 
@@ -328,7 +359,7 @@ sealed interface LiveSessionEffect {
     /** Saving the double-dumbbell option or the body weight failed; the sheet stays open with its draft. */
     data object OptionSaveFailed : LiveSessionEffect
 
-    /** The discomfort was stored (Confirm haptic; the card already shows "Molestia registrada"). */
+    /** The discomfort was stored (Confirm haptic; the card already shows the level). */
     data object DiscomfortLogged : LiveSessionEffect
 
     /** The discomfort was closed (Confirm haptic). */

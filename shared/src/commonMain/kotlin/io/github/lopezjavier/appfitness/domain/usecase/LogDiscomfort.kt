@@ -4,6 +4,7 @@ import io.github.lopezjavier.appfitness.domain.AppError
 import io.github.lopezjavier.appfitness.domain.AppException
 import io.github.lopezjavier.appfitness.domain.model.Discomfort
 import io.github.lopezjavier.appfitness.domain.model.DiscomfortLevel
+import io.github.lopezjavier.appfitness.domain.model.NoteText
 import io.github.lopezjavier.appfitness.domain.repository.DiscomfortRepository
 
 /**
@@ -12,12 +13,12 @@ import io.github.lopezjavier.appfitness.domain.repository.DiscomfortRepository
  */
 class LogDiscomfort(private val repository: DiscomfortRepository) {
     suspend operator fun invoke(exerciseId: String, level: DiscomfortLevel, note: String?): Result<Discomfort> {
-        val clean = note?.trim()?.takeIf { it.isNotEmpty() }
-        if (clean != null && clean.length > MAX_NOTE) return Result.failure(AppException(AppError.Validation))
+        val clean = NoteText.normalise(note)
+        if (clean != null && !NoteText.isValid(clean)) return Result.failure(AppException(AppError.Validation))
         return repository.log(exerciseId, level, clean)
     }
 
     companion object {
-        const val MAX_NOTE = 200
+        const val MAX_NOTE = NoteText.MAX
     }
 }

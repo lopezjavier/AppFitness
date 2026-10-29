@@ -14,6 +14,7 @@ import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
+import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTextInput
 import androidx.lifecycle.SavedStateHandle
@@ -129,13 +130,15 @@ class LiveSessionDiscomfortTest {
     private fun stored(ageDays: Int) = Discomfort("old", "e1", clock.current - ageDays.days, DiscomfortLevel.Mild, null)
 
     @Test
-    fun logging_showsMolestiaRegistradaOnTheExercise() {
+    fun logging_showsTheLevelAndResolveInOneBlock_withoutAMolestiaRegistradaLabel() {
         show()
-        rule.onNodeWithTag("live_exercise_0_discomfort").assertDoesNotExist()
+        rule.onNodeWithTag("live_exercise_0_discomfort_block").assertDoesNotExist()
 
         log("rodilla")
 
-        rule.onNodeWithTag("live_exercise_0_discomfort").assertTextContains("Molestia registrada")
+        rule.onNodeWithTag("live_exercise_0_discomfort_block").assertExists()
+        rule.onNodeWithTag("live_exercise_0_discomfort_resolve").assertTextContains("Ya no me molesta")
+        rule.onNodeWithText("Molestia registrada", substring = true).assertDoesNotExist()
         rule.onNodeWithTag("live_exercise_0_discomfort_level").assertTextContains("Molestia leve")
         rule.onNodeWithTag("live_exercise_0_discomfort_severe").assertDoesNotExist()
         assertEquals(DiscomfortLevel.Mild, discomforts.rows.single().level)
@@ -147,8 +150,8 @@ class LiveSessionDiscomfortTest {
         show()
 
         assertEquals(
-            listOf("Molestia registrada, nivel Molestia leve"),
-            rule.onNodeWithTag("live_exercise_0_discomfort_level").fetchSemanticsNode()
+            listOf("Molestia: Molestia leve"),
+            rule.onNodeWithTag("live_exercise_0_discomfort_block").fetchSemanticsNode()
                 .config[SemanticsProperties.ContentDescription],
         )
     }
@@ -262,7 +265,7 @@ class LiveSessionDiscomfortTest {
         log("rodilla")
 
         rule.onNodeWithTag("live_exercise_0_discomfort_note").assertTextContains("rodilla")
-        rule.onNodeWithTag("live_exercise_0_discomfort").assertDoesNotExist()
+        rule.onNodeWithTag("live_exercise_0_discomfort_block").assertDoesNotExist()
     }
 
     @Test
@@ -283,7 +286,7 @@ class LiveSessionDiscomfortTest {
         rule.onNodeWithTag("live_exercise_0_discomfort_sheet_commit").assertIsEnabled()
         tap("live_exercise_0_discomfort_sheet_commit")
 
-        rule.onNodeWithTag("live_exercise_0_discomfort").assertExists()
+        rule.onNodeWithTag("live_exercise_0_discomfort_block").assertExists()
     }
 
     @Test
@@ -292,7 +295,7 @@ class LiveSessionDiscomfortTest {
 
         log("dolor fuerte")
 
-        rule.onNodeWithTag("live_exercise_0_discomfort").assertExists()
+        rule.onNodeWithTag("live_exercise_0_discomfort_block").assertExists()
         rule.onNodeWithTag("live_exercise_0_discomfort_severe").assertDoesNotExist()
         assertFalse(discomforts.rows.single().severe)
     }
@@ -309,11 +312,11 @@ class LiveSessionDiscomfortTest {
     fun resolving_removesTheLabel() {
         discomforts.rows = listOf(stored(ageDays = 1))
         show()
-        rule.onNodeWithTag("live_exercise_0_discomfort").assertExists()
+        rule.onNodeWithTag("live_exercise_0_discomfort_block").assertExists()
 
         tap("live_exercise_0_discomfort_resolve")
 
-        rule.onNodeWithTag("live_exercise_0_discomfort").assertDoesNotExist()
+        rule.onNodeWithTag("live_exercise_0_discomfort_block").assertDoesNotExist()
         assertEquals(clock.current, discomforts.rows.single().resolvedAt)
     }
 
@@ -322,7 +325,7 @@ class LiveSessionDiscomfortTest {
         discomforts.rows = listOf(stored(ageDays = 8))
         show()
 
-        rule.onNodeWithTag("live_exercise_0_discomfort").assertDoesNotExist()
+        rule.onNodeWithTag("live_exercise_0_discomfort_block").assertDoesNotExist()
     }
 
     @Test
@@ -330,7 +333,7 @@ class LiveSessionDiscomfortTest {
         discomforts.rows = listOf(stored(ageDays = 6))
         show()
 
-        rule.onNodeWithTag("live_exercise_0_discomfort").assertExists()
+        rule.onNodeWithTag("live_exercise_0_discomfort_block").assertExists()
     }
 
     @Test

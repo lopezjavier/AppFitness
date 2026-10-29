@@ -139,6 +139,8 @@ internal class WorkoutDraftEditor(
             is WorkoutFormEvent.TypeChanged -> update { it.withSetType(event.index, event.setIndex, event.type) }
 
             is WorkoutFormEvent.RpeChanged -> update { it.withRpe(event.index, event.setIndex, event.rpe) }
+
+            is WorkoutFormEvent.NoteChanged -> update { it.withNote(event.index, event.setIndex, event.text) }
         }
     }
 

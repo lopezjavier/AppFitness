@@ -4,13 +4,10 @@ import io.github.lopezjavier.appfitness.domain.AppError
 import io.github.lopezjavier.appfitness.domain.AppException
 import io.github.lopezjavier.appfitness.domain.model.Discomfort
 import io.github.lopezjavier.appfitness.domain.model.DiscomfortLevel
-import io.github.lopezjavier.appfitness.domain.model.RestSound
 import io.github.lopezjavier.appfitness.domain.port.NotificationPermission
 import io.github.lopezjavier.appfitness.domain.port.RestAlertPreferences
 import io.github.lopezjavier.appfitness.domain.port.RestAlertScheduler
 import io.github.lopezjavier.appfitness.domain.repository.DiscomfortRepository
-import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.flowOf
 import kotlin.time.Instant
 
 /**
@@ -41,10 +38,6 @@ internal object NoDiscomforts : DiscomfortRepository {
 }
 
 internal object ExplanationAlreadyShown : RestAlertPreferences {
-    override val sound: Flow<RestSound> = flowOf(RestSound.Default)
-
-    override suspend fun setSound(sound: RestSound) = Unit
-
     override suspend fun explanationShown(): Boolean = true
 
     override suspend fun markExplanationShown() = Unit

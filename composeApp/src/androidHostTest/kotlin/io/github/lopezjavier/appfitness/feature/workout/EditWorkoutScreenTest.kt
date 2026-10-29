@@ -124,6 +124,21 @@ class EditWorkoutScreenTest {
     }
 
     @Test
+    fun addingASetNote_showsItInTheForm_andGuardarSendsIt() {
+        show()
+
+        rule.onNodeWithTag("edit_workout_set_note_action_0_1").performScrollTo().performClick()
+        rule.waitForIdle()
+        rule.onNodeWithTag("note_sheet_field").performTextInput("pausa larga")
+        rule.onNodeWithTag("note_sheet_commit").performClick()
+        rule.waitForIdle()
+
+        rule.onNodeWithTag("edit_workout_set_note_0_1").assertTextContains("pausa larga")
+        save()
+        assertEquals("pausa larga", repository.savedDrafts.single().first.exercises.single().sets[1].notes)
+    }
+
+    @Test
     fun backWithoutEdits_leavesSilently() {
         show()
 

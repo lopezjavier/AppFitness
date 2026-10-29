@@ -2,7 +2,5 @@
 <resources>
     <string name="rest_alert_title">Descanso terminado</string>
     <string name="rest_alert_body">Vuelve a tu entrenamiento.</string>
-    <string name="rest_alert_channel_system">Fin de descanso: sonido del sistema</string>
-    <string name="rest_alert_channel_chime">Fin de descanso: campana suave</string>
-    <string name="rest_alert_channel_double_beep">Fin de descanso: doble pitido</string>
+    <string name="rest_alert_channel_chime">Fin de descanso</string>
 </resources>

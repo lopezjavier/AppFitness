@@ -12,6 +12,7 @@ import io.github.lopezjavier.appfitness.domain.model.Equipment
 import io.github.lopezjavier.appfitness.domain.model.ExerciseHistoryPoint
 import io.github.lopezjavier.appfitness.domain.model.ExerciseMetricType
 import io.github.lopezjavier.appfitness.domain.model.ExerciseSessionRecords
+import io.github.lopezjavier.appfitness.domain.model.NoteText
 import io.github.lopezjavier.appfitness.domain.model.PlannedSet
 import io.github.lopezjavier.appfitness.domain.model.PreviousSet
 import io.github.lopezjavier.appfitness.domain.model.RoutineBounds
@@ -100,6 +101,9 @@ private const val KEY_PICKER_SET = "live_picker_set"
 private const val KEY_RPE_PICKER_POSITION = "live_rpe_picker_position"
 private const val KEY_RPE_PICKER_SET = "live_rpe_picker_set"
 private const val KEY_RPE_PICKER_COMPLETES = "live_rpe_picker_completes"
+private const val KEY_NOTE_POSITION = "live_note_position"
+private const val KEY_NOTE_SET = "live_note_set"
+private const val KEY_NOTE_DRAFT = "live_note_draft"
 private const val KEY_DRAFTS = "live_drafts"
 private const val KEY_PAUSE_KNOWN = "live_pause_known"
 private const val KEY_PAUSED_AT = "live_paused_at"
@@ -124,6 +128,7 @@ private data class SetState(
     val repsPlaceholder: String? = null,
     val invalid: Boolean = false,
     val rpe: Double? = null,
+    val notes: String? = null,
     val distance: String = "",
     val steps: String = "",
     val floors: String = "",
@@ -134,6 +139,9 @@ private data class SetState(
         get() = weight.isNotEmpty() || reps.isNotEmpty() || distance.isNotEmpty() || steps.isNotEmpty() ||
             floors.isNotEmpty() || stopwatch != Stopwatch()
 }
+
+/** The text being typed in the set note sheet, with the set it belongs to. */
+private data class NoteSheetDraft(val position: Int, val setIndex: Int, val draft: String)
 
 /** What the screen needs to know about an exercise's kind: how its sets are measured and its equipment. */
 private data class ExerciseTraits(val metricType: ExerciseMetricType, val equipment: Equipment)
@@ -256,6 +264,12 @@ class LiveSessionViewModel(
     /** The set whose type picker is open; mirrored in [savedState] so it survives process death. */
     private var typePicker: TypePickerTarget? = restoredPicker()
     private var rpePicker: RpePickerTarget? = restoredRpePicker()
+
+    /** The open set note sheet (its saved note is looked up when rendered); mirrored in [savedState]. */
+    private var noteSheet: NoteSheetDraft? = restoredNoteSheet()
+
+    /** The routine's note per exercise position (read at load; shown read-only). */
+    private var routineNotes: Map<Int, String> = emptyMap()
     private var terminal: LiveSessionUiState? = LiveSessionUiState.Loading
 
     /** The "Actualizar rutina" sheet saved before the screen was recreated; read before the first publish. */
@@ -333,6 +347,14 @@ class LiveSessionViewModel(
             is LiveSessionEvent.OpenRpePicker -> openRpePicker(event.position, event.setIndex)
 
             LiveSessionEvent.DismissRpePicker -> setRpePicker(null)
+
+            is LiveSessionEvent.OpenSetNote -> openSetNote(event.position, event.setIndex)
+
+            is LiveSessionEvent.SetNoteDraftChanged -> changeNoteDraft(event.text)
+
+            LiveSessionEvent.SaveSetNote -> saveSetNote()
+
+            LiveSessionEvent.DismissSetNote -> setNoteSheet(null)
 
             is LiveSessionEvent.SetRpeChosen -> chooseRpe(event)
 
@@ -579,6 +601,7 @@ class LiveSessionViewModel(
                             calculatorDraft?.takeIf { draft -> loaded.exercises.any { it.position == draft.position } }
                         typePicker = typePicker?.takeIf { findSet(it.position, it.setIndex) != null }
                         rpePicker = rpePicker?.takeIf { findSet(it.position, it.setIndex) != null }
+                        noteSheet = noteSheet?.takeIf { findSet(it.position, it.setIndex) != null }
                         loadRests(loaded)
                         ensureStopwatchTicker()
                         ghosts = mutableMapOf()
@@ -629,6 +652,13 @@ class LiveSessionViewModel(
                     it.position == exercise.position && it.exerciseId == exercise.exerciseId
                 }
                 match?.plannedSets?.forEachIndexed { index, set -> put(exercise.position to (index + 1), set) }
+            }
+        }
+        routineNotes = buildMap {
+            loaded.exercises.forEach { exercise ->
+                routine?.exercises
+                    ?.firstOrNull { it.position == exercise.position && it.exerciseId == exercise.exerciseId }
+                    ?.notes?.let { put(exercise.position, it) }
             }
         }
         targetRpes = buildMap {
@@ -890,6 +920,34 @@ class LiveSessionViewModel(
         }
     }
 
+    private fun openSetNote(position: Int, setIndex: Int) {
+        val set = findSet(position, setIndex)
+        if (terminal != null || set == null) return
+        setNoteSheet(NoteSheetDraft(position, setIndex, set.notes.orEmpty()))
+    }
+
+    private fun setNoteSheet(sheet: NoteSheetDraft?) {
+        noteSheet = sheet
+        publish()
+    }
+
+    private fun changeNoteDraft(text: String) {
+        noteSheet = noteSheet?.copy(draft = text) ?: return
+        publish()
+    }
+
+    /** Stores the trimmed draft as the set's note (blank removes it) and queues the write; invalid stays open. */
+    private fun saveSetNote() {
+        val sheet = noteSheet?.takeIf { NoteText.isValid(it.draft) } ?: return
+        noteSheet = null
+        if (findSet(sheet.position, sheet.setIndex) == null) {
+            publish()
+        } else {
+            updateSet(sheet.position, sheet.setIndex) { it.copy(notes = NoteText.normalise(sheet.draft)) }
+            write(sheet.position, sheet.setIndex)
+        }
+    }
+
     private fun addSet(position: Int) {
         val current = session ?: return
         val exercise = current.exercises.firstOrNull { it.position == position } ?: return
@@ -1022,6 +1080,10 @@ class LiveSessionViewModel(
             shiftedBy(picker.position to picker.setIndex, position, setIndex)
                 ?.let { picker.copy(position = it.first, setIndex = it.second) }
         }
+        noteSheet = noteSheet?.let { sheet ->
+            shiftedBy(sheet.position to sheet.setIndex, position, setIndex)
+                ?.let { sheet.copy(position = it.first, setIndex = it.second) }
+        }
         val before = queue.drain().filterNot { it.exercisePosition == position && it.setIndex == setIndex }
         deleteOps.addLast(DeleteOp(current.id, position, setIndex, before.toMutableList()))
         unsynced = queuedKeys()
@@ -1102,6 +1164,8 @@ class LiveSessionViewModel(
             typePicker?.let { if (moved(it.position, it.setIndex)) it.copy(setIndex = it.setIndex + sets.size) else it }
         rpePicker =
             rpePicker?.let { if (moved(it.position, it.setIndex)) it.copy(setIndex = it.setIndex + sets.size) else it }
+        noteSheet =
+            noteSheet?.let { if (moved(it.position, it.setIndex)) it.copy(setIndex = it.setIndex + sets.size) else it }
         calculatorDraft = null
         // Highest index first: the new row is created before the lower ones are overwritten.
         merged.drop(insertAt).reversed().forEach { write(position, it.setIndex) }
@@ -1265,6 +1329,7 @@ class LiveSessionViewModel(
                 completedAt = set.completedAt,
                 setType = set.setType,
                 rpe = set.rpe,
+                notes = set.notes,
             ),
         )
         if (online) {
@@ -1317,6 +1382,7 @@ class LiveSessionViewModel(
         write.completedAt,
         write.setType,
         write.rpe,
+        write.notes,
     ).isSuccess
 
     /** Sends the rest changes of the session; false at the first failure (the rest stays pending). */
@@ -1408,6 +1474,16 @@ class LiveSessionViewModel(
         return if (position != null && setIndex != null) RpePickerTarget(position, setIndex, completes) else null
     }
 
+    private fun restoredNoteSheet(): NoteSheetDraft? {
+        val position = savedState.get<Int>(KEY_NOTE_POSITION)
+        val setIndex = savedState.get<Int>(KEY_NOTE_SET)
+        return if (position != null && setIndex != null) {
+            NoteSheetDraft(position, setIndex, savedState.get<String>(KEY_NOTE_DRAFT).orEmpty())
+        } else {
+            null
+        }
+    }
+
     /** Mirrors the picker target and the unchecked weight/reps drafts into [savedState] (ADR-40). */
     private fun persistState() {
         savedState[KEY_UPDATE_SHEET] = (terminal as? LiveSessionUiState.Finished)?.updateRoutineSheet?.encoded()
@@ -1418,6 +1494,9 @@ class LiveSessionViewModel(
         savedState[KEY_RPE_PICKER_POSITION] = rpePicker?.position
         savedState[KEY_RPE_PICKER_SET] = rpePicker?.setIndex
         savedState[KEY_RPE_PICKER_COMPLETES] = rpePicker?.completesSet
+        savedState[KEY_NOTE_POSITION] = noteSheet?.position
+        savedState[KEY_NOTE_SET] = noteSheet?.setIndex
+        savedState[KEY_NOTE_DRAFT] = noteSheet?.draft
         session?.takeIf { terminal == null }?.let {
             savedState[KEY_PAUSE_KNOWN] = true
             savedState[KEY_PAUSED_AT] = it.pausedAt?.toString()
@@ -1449,6 +1528,7 @@ class LiveSessionViewModel(
     private fun clearSavedState() {
         typePicker = null
         rpePicker = null
+        noteSheet = null
         bodyWeightDraft = null
         calculatorDraft = null
         savedState.persistCalculatorDraft(null)
@@ -1458,6 +1538,9 @@ class LiveSessionViewModel(
         savedState.remove<Int>(KEY_RPE_PICKER_POSITION)
         savedState.remove<Int>(KEY_RPE_PICKER_SET)
         savedState.remove<Boolean>(KEY_RPE_PICKER_COMPLETES)
+        savedState.remove<Int>(KEY_NOTE_POSITION)
+        savedState.remove<Int>(KEY_NOTE_SET)
+        savedState.remove<String>(KEY_NOTE_DRAFT)
         savedState.remove<List<String>>(KEY_DRAFTS)
         savedState.remove<Boolean>(KEY_PAUSE_KNOWN)
         savedState.remove<String>(KEY_PAUSED_AT)
@@ -1543,10 +1626,12 @@ class LiveSessionViewModel(
                             pendingSave = (exercise.position to set.setIndex) in unsynced,
                             invalid = set.invalid,
                             rpe = set.rpe?.let(RpeScale::text),
+                            notes = set.notes,
                         )
                     },
                     restSeconds = rests[exercise.position] ?: RoutineBounds.DEFAULT_REST_SECONDS,
                     targetRpeText = targetRpes[exercise.position]?.let(RpeScale::text),
+                    routineNote = routineNotes[exercise.position],
                     discomfort = DiscomfortStatus
                         .highestOpenLevel(discomforts[exercise.exerciseId].orEmpty(), clock.now())
                         ?.let { LiveDiscomfort(it, exercise.exerciseId in discomfortResolving) },
@@ -1561,6 +1646,14 @@ class LiveSessionViewModel(
             busy = busy,
             typePicker = typePicker,
             rpePicker = rpePicker,
+            noteSheet = noteSheet?.let { sheet ->
+                LiveNoteSheet(
+                    sheet.position,
+                    sheet.setIndex,
+                    sheet.draft,
+                    findSet(sheet.position, sheet.setIndex)?.notes,
+                )
+            },
             perHandIds = perHandIds,
             bodyWeightKg = bodyWeightKg,
             todayHasHealthConnectWeight = todayHasHealthConnectWeight,
@@ -1611,6 +1704,7 @@ class LiveSessionViewModel(
             reps = columns.reps.text(),
             completedAt = completedAt,
             rpe = rpe?.let(RpeScale::round),
+            notes = NoteText.normalise(notes),
             distance = columns.distanceM.text(METRES_PER_KM),
             steps = columns.steps.text(),
             floors = columns.floors.text(),
@@ -1640,6 +1734,7 @@ class LiveSessionViewModel(
                         entryOf(set, exercise.exerciseId),
                         set.completedAt,
                         set.rpe,
+                        set.notes,
                     )
                 },
             )

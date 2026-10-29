@@ -100,6 +100,59 @@ class EditWorkoutViewModelTest {
     }
 
     @Test
+    fun aSetNote_isLoadedIntoTheForm() = runTest(dispatcher) {
+        repository.completed += completedSession("s1").let { session ->
+            session.copy(
+                exercises = session.exercises.map { exercise ->
+                    exercise.copy(
+                        sets = exercise.sets.mapIndexed { i, set ->
+                            if (i ==
+                                0
+                            ) {
+                                set.copy(notes = "pausa larga")
+                            } else {
+                                set
+                            }
+                        },
+                    )
+                },
+            )
+        }
+        val model = viewModel()
+
+        advanceUntilIdle()
+
+        assertEquals(listOf("pausa larga", null), model.form().exercises.single().sets.map { it.notes })
+    }
+
+    @Test
+    fun editingASetNote_isSavedWithTheWorkout_trimmedAndClearedWhenBlank() = runTest(dispatcher) {
+        seed()
+        val model = viewModel()
+        advanceUntilIdle()
+        model.onEvent(WorkoutFormEvent.NoteChanged(0, 0, "  pausa larga "))
+        model.onEvent(WorkoutFormEvent.NoteChanged(0, 1, "borrar"))
+        model.onEvent(WorkoutFormEvent.NoteChanged(0, 1, "   "))
+
+        model.onEvent(EditWorkoutEvent.Save)
+        advanceUntilIdle()
+
+        val (draft, _) = repository.savedDrafts.single()
+        assertEquals(listOf("pausa larga", null), draft.exercises.single().sets.map { it.notes })
+    }
+
+    @Test
+    fun aSetNoteOver200Characters_isIgnored() = runTest(dispatcher) {
+        seed()
+        val model = viewModel()
+        advanceUntilIdle()
+
+        model.onEvent(WorkoutFormEvent.NoteChanged(0, 0, "x".repeat(201)))
+
+        assertEquals(null, model.form().exercises.single().sets[0].notes)
+    }
+
+    @Test
     fun leavingWithoutSavingWritesNothing() = runTest(dispatcher) {
         seed()
         val model = viewModel()

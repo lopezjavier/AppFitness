@@ -8,6 +8,7 @@ import io.github.lopezjavier.appfitness.domain.AppError
 import io.github.lopezjavier.appfitness.domain.AppException
 import io.github.lopezjavier.appfitness.domain.model.CatalogExercise
 import io.github.lopezjavier.appfitness.domain.model.Equipment
+import io.github.lopezjavier.appfitness.domain.model.NoteText
 import io.github.lopezjavier.appfitness.domain.model.RoutineBounds
 import io.github.lopezjavier.appfitness.domain.model.SetType
 import io.github.lopezjavier.appfitness.domain.model.TrainingPreferences
@@ -224,6 +225,11 @@ class RoutineBuilderViewModel(
         is RoutineBuilderEvent.StepTargetRpe ->
             event.index to { row -> row.copy(targetRpe = steppedRpe(row.targetRpe, event.delta)) }
 
+        is RoutineBuilderEvent.SetExerciseNote ->
+            event.index to { row ->
+                if (NoteText.isValid(event.text)) row.copy(notes = NoteText.normalise(event.text)) else row
+            }
+
         else -> null
     }
 
@@ -404,6 +410,7 @@ class RoutineBuilderViewModel(
                         plannedSets = row.sets.map { it.toUi() },
                         restSeconds = row.restSeconds,
                         targetRpe = row.targetRpe,
+                        notes = row.notes,
                         supersetLabel = labels[index],
                         canMoveUp = index > 0,
                         canMoveDown = index < lastIndex,

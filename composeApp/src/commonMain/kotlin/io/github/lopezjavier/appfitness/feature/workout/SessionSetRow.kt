@@ -61,6 +61,7 @@ internal fun LiveSetRow.toSetRowValues() = SetRowValues(
  * (icon and text) and a hint when checking was refused.
  */
 @Composable
+@Suppress("LongMethod") // The design-system row plus its markers and the note line.
 internal fun SessionSetRow(
     position: Int,
     row: LiveSetRow,
@@ -107,6 +108,13 @@ internal fun SessionSetRow(
                 ),
             )
             if (row.pendingSave) PendingSaveLabel(Modifier.testTag("${tag}_pending"))
+            SetNoteLine(
+                setIndex = row.setIndex,
+                notes = row.notes,
+                onEdit = { onEvent(LiveSessionEvent.OpenSetNote(position, row.setIndex)) },
+                noteTag = "live_set_note_${position}_${row.setIndex}",
+                actionTag = "live_set_note_action_${position}_${row.setIndex}",
+            )
             if (row.invalid) {
                 Text(
                     text = stringResource(

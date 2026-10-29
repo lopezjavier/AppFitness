@@ -109,6 +109,30 @@ class SupabaseSaveWorkoutTest {
     }
 
     @Test
+    fun saveCompleted_sendsTheTrimmedSetNote_andOmitsABlankOne() = runTest {
+        val (sessions, _) = signedIn()
+        val noted = draft().copy(
+            exercises = listOf(
+                DraftExercise(
+                    "e1",
+                    null,
+                    90,
+                    listOf(
+                        DraftWorkoutSet(SetType.Working, null, SetEntry.WeightReps(80.0, 5), " pausa larga "),
+                        DraftWorkoutSet(SetType.Working, null, SetEntry.WeightReps(80.0, 5), "  "),
+                    ),
+                ),
+            ),
+        )
+
+        sessions.saveCompleted(noted).getOrThrow()
+
+        val body = bodyOf(rest().single())
+        assertTrue(""""notes":"pausa larga"""" in body, body)
+        assertEquals(1, Regex(""""notes":""").findAll(body).count(), body)
+    }
+
+    @Test
     fun saveCompleted_createdTodayBeforeNoonIsCappedToNow() = runTest {
         val (sessions, _) = signedIn()
 

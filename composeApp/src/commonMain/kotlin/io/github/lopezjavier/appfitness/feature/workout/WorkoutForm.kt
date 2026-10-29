@@ -6,6 +6,7 @@ import io.github.lopezjavier.appfitness.designsystem.NumberInputDefaults
 import io.github.lopezjavier.appfitness.domain.model.DraftExercise
 import io.github.lopezjavier.appfitness.domain.model.DraftWorkoutSet
 import io.github.lopezjavier.appfitness.domain.model.ExerciseMetricType
+import io.github.lopezjavier.appfitness.domain.model.NoteText
 import io.github.lopezjavier.appfitness.domain.model.RoutineBounds
 import io.github.lopezjavier.appfitness.domain.model.SetColumn
 import io.github.lopezjavier.appfitness.domain.model.SetColumns
@@ -29,6 +30,7 @@ data class FormSet(
     val setId: Long,
     val type: SetType = SetType.Working,
     val rpe: Double? = null,
+    val notes: String? = null,
     val weight: String = "",
     val reps: String = "",
     val duration: String = "",
@@ -141,6 +143,7 @@ private fun DraftWorkoutSet.toFormSet(setId: Long): FormSet {
         setId = setId,
         type = setType,
         rpe = rpe,
+        notes = notes,
         weight = columns.weightKg?.let(::weightText).orEmpty(),
         reps = columns.reps?.toString().orEmpty(),
         duration = columns.durationS?.toString().orEmpty(),
@@ -170,7 +173,12 @@ fun WorkoutForm.toDraft(): WorkoutDraft = WorkoutDraft(
             supersetGroup = exercise.group,
             restSeconds = exercise.restSeconds,
             sets = exercise.sets.map { set ->
-                DraftWorkoutSet(set.type, set.rpe, set.toColumns(exercise.metricType).toEntry(exercise.metricType))
+                DraftWorkoutSet(
+                    set.type,
+                    set.rpe,
+                    set.toColumns(exercise.metricType).toEntry(exercise.metricType),
+                    NoteText.normalise(set.notes),
+                )
             },
         )
     },
@@ -247,7 +255,7 @@ fun WorkoutForm.withAddedSet(index: Int): WorkoutForm {
         if (i in
             members
         ) {
-            row.copy(sets = row.sets + (row.sets.lastOrNull() ?: FormSet(0)).copy(setId = next++))
+            row.copy(sets = row.sets + (row.sets.lastOrNull() ?: FormSet(0)).copy(setId = next++, notes = null))
         } else {
             row
         }
@@ -276,6 +284,10 @@ fun WorkoutForm.withSetType(index: Int, setIndex: Int, type: SetType): WorkoutFo
 
 fun WorkoutForm.withRpe(index: Int, setIndex: Int, rpe: Double?): WorkoutForm =
     withSet(index, setIndex) { it.copy(rpe = rpe) }
+
+/** Sets the note of the set (trimmed, blank removes it); more than [NoteText.MAX] characters leaves it as it was. */
+fun WorkoutForm.withNote(index: Int, setIndex: Int, text: String): WorkoutForm =
+    if (NoteText.isValid(text)) withSet(index, setIndex) { it.copy(notes = NoteText.normalise(text)) } else this
 
 private fun WorkoutForm.withRow(index: Int, change: (FormExercise) -> FormExercise): WorkoutForm = if (index !in
     exercises.indices

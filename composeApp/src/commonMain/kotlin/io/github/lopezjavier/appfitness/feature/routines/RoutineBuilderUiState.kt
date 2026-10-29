@@ -41,6 +41,8 @@ data class BuilderRowUi(
     val canGroupWithNext: Boolean,
     /** Target RPE of the exercise (6 to 10 in half points); null = no target. */
     val targetRpe: Double? = null,
+    /** The exercise note (1-200 chars); null when none (US-66). */
+    val notes: String? = null,
     /** Equipment of the exercise; null while the catalog loads (equipment-dependent menu entries stay hidden). */
     val equipment: Equipment? = null,
     /** The logged weight is per hand (`Exercise.perHand`): volume counts it twice. */
@@ -127,6 +129,9 @@ sealed interface RoutineBuilderEvent {
 
     /** [delta] is -1 or +1 half point of the target RPE: from none +1 gives 8, below 6 clears it. */
     data class StepTargetRpe(val index: Int, val delta: Int) : RoutineBuilderEvent
+
+    /** "Guardar" in the note sheet of row [index]: the trimmed text; blank removes the note, 201+ chars is ignored. */
+    data class SetExerciseNote(val index: Int, val text: String) : RoutineBuilderEvent
 
     /** Opens the warm-up calculator or disc loader of row [index], prefilled with its first working weight. */
     data class OpenCalculator(val index: Int, val kind: CalculatorKind) : RoutineBuilderEvent

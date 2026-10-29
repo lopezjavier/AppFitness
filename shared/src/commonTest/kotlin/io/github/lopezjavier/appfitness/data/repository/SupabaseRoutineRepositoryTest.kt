@@ -151,6 +151,37 @@ class SupabaseRoutineRepositoryTest {
     }
 
     @Test
+    fun save_sendsTheExerciseNoteTrimmed_andOmitsABlankOne() = runTest {
+        val repo = signedIn()
+        val base = routine()
+
+        repo.save(
+            base.copy(
+                exercises = listOf(
+                    base.exercises[0].copy(notes = "  bajar el peso si duele "),
+                    base.exercises[1].copy(notes = "   "),
+                ),
+            ),
+        ).getOrThrow()
+
+        val text = body(rest().single())
+        assertTrue(""""notes":"bajar el peso si duele"""" in text, text)
+        assertEquals(1, Regex(""""notes":""").findAll(text).count(), text)
+    }
+
+    @Test
+    fun get_mapsTheExerciseNote_andAsksForTheColumn() = runTest {
+        val repo = signedIn()
+        getBody =
+            ROUTINE_ROW.replace(""""rest_seconds":90,""", """"rest_seconds":90,"notes":"bajar el peso si duele",""")
+
+        val routine = repo.get("r1").getOrThrow()
+
+        assertEquals(listOf(null, "bajar el peso si duele"), routine.exercises.map { it.notes })
+        assertTrue("rest_seconds,notes" in rest().single().url.encodedQuery.replace("%2C", ","))
+    }
+
+    @Test
     fun get_mapsTheTrackingFlag_andIgnoresALegacyAutoUpdateColumn() = runTest {
         val repo = signedIn()
         getBody =

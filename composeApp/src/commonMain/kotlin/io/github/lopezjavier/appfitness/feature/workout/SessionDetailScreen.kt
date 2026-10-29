@@ -57,6 +57,7 @@ import io.github.lopezjavier.appfitness.designsystem.AppTheme
 import io.github.lopezjavier.appfitness.designsystem.AppTopBarAction
 import io.github.lopezjavier.appfitness.designsystem.ErrorState
 import io.github.lopezjavier.appfitness.designsystem.ExerciseRow
+import io.github.lopezjavier.appfitness.designsystem.InlineNote
 import io.github.lopezjavier.appfitness.designsystem.LocalAppHaptics
 import io.github.lopezjavier.appfitness.designsystem.LocalAppMessages
 import io.github.lopezjavier.appfitness.designsystem.OfflineHint
@@ -270,7 +271,12 @@ private fun ExerciseBlock(exercise: DetailExercise, onOpen: () -> Unit, modifier
                     color = AppTheme.colors.textSecondary,
                 )
             }
-            exercise.sets.forEach { set -> SetLine(exercise.position, set) }
+            exercise.sets.forEach { set ->
+                SetLine(exercise.position, set)
+                set.notes?.let {
+                    InlineNote(text = it, testTag = "session_detail_set_note_${exercise.position}_${set.setIndex}")
+                }
+            }
         }
     }
 }

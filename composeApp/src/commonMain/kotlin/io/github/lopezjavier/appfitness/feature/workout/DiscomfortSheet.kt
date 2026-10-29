@@ -1,11 +1,13 @@
 package io.github.lopezjavier.appfitness.feature.workout
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.shape.CircleShape
@@ -31,6 +33,7 @@ import io.github.lopezjavier.appfitness.composeapp.resources.help_discomfort_lev
 import io.github.lopezjavier.appfitness.composeapp.resources.help_discomfort_level_cd
 import io.github.lopezjavier.appfitness.composeapp.resources.help_discomfort_level_intro
 import io.github.lopezjavier.appfitness.composeapp.resources.help_discomfort_level_title
+import io.github.lopezjavier.appfitness.composeapp.resources.live_discomfort_block_cd
 import io.github.lopezjavier.appfitness.composeapp.resources.live_discomfort_level_1
 import io.github.lopezjavier.appfitness.composeapp.resources.live_discomfort_level_2
 import io.github.lopezjavier.appfitness.composeapp.resources.live_discomfort_level_3
@@ -39,26 +42,25 @@ import io.github.lopezjavier.appfitness.composeapp.resources.live_discomfort_lev
 import io.github.lopezjavier.appfitness.composeapp.resources.live_discomfort_level_label
 import io.github.lopezjavier.appfitness.composeapp.resources.live_discomfort_level_option_cd
 import io.github.lopezjavier.appfitness.composeapp.resources.live_discomfort_note_label
-import io.github.lopezjavier.appfitness.composeapp.resources.live_discomfort_note_too_long
-import io.github.lopezjavier.appfitness.composeapp.resources.live_discomfort_registered
-import io.github.lopezjavier.appfitness.composeapp.resources.live_discomfort_registered_cd
 import io.github.lopezjavier.appfitness.composeapp.resources.live_discomfort_resolve
 import io.github.lopezjavier.appfitness.composeapp.resources.live_discomfort_resolve_offline
 import io.github.lopezjavier.appfitness.composeapp.resources.live_discomfort_sheet_title
 import io.github.lopezjavier.appfitness.composeapp.resources.live_exercise_menu_discomfort_offline
+import io.github.lopezjavier.appfitness.composeapp.resources.note_too_long
+import io.github.lopezjavier.appfitness.designsystem.AppBorder
 import io.github.lopezjavier.appfitness.designsystem.AppEditSheet
+import io.github.lopezjavier.appfitness.designsystem.AppShapes
 import io.github.lopezjavier.appfitness.designsystem.AppTextField
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
 import io.github.lopezjavier.appfitness.designsystem.GhostButton
 import io.github.lopezjavier.appfitness.designsystem.GhostTone
 import io.github.lopezjavier.appfitness.designsystem.HelpButton
 import io.github.lopezjavier.appfitness.designsystem.HelpContent
-import io.github.lopezjavier.appfitness.designsystem.InlineNote
 import io.github.lopezjavier.appfitness.designsystem.ScaleOptionRow
 import io.github.lopezjavier.appfitness.designsystem.SheetCommit
 import io.github.lopezjavier.appfitness.designsystem.Spacing
 import io.github.lopezjavier.appfitness.domain.model.DiscomfortLevel
-import io.github.lopezjavier.appfitness.domain.usecase.LogDiscomfort
+import io.github.lopezjavier.appfitness.domain.model.NoteText
 import org.jetbrains.compose.resources.stringResource
 
 /** The Spanish label of a discomfort level (also the level text of the open row). */
@@ -94,7 +96,7 @@ internal fun DiscomfortLevelHelpButton(testTag: String, modifier: Modifier = Mod
     )
 }
 
-/** Room for a paste: the field never cuts the text, it flags more than [LogDiscomfort.MAX_NOTE] characters. */
+/** Room for a paste: the field never cuts the text, it flags more than [NoteText.MAX] characters. */
 private const val FIELD_LIMIT = 1000
 private const val NOTE_LINES = 3
 
@@ -115,7 +117,7 @@ internal fun DiscomfortSheet(
     var pickedValue by rememberSaveable { mutableIntStateOf(0) }
     val level = DiscomfortLevel.fromValue(pickedValue)
     val tag = "live_exercise_${position}_discomfort"
-    val tooLong = draft.trim().length > LogDiscomfort.MAX_NOTE
+    val tooLong = !NoteText.isValid(draft)
     AppEditSheet(
         title = stringResource(Res.string.live_discomfort_sheet_title),
         commit = SheetCommit.Save,
@@ -131,9 +133,9 @@ internal fun DiscomfortSheet(
             value = draft,
             onValueChange = { draft = it },
             label = stringResource(Res.string.live_discomfort_note_label),
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier.fillMaxWidth().padding(top = Spacing.lg),
             maxLength = FIELD_LIMIT,
-            errorText = stringResource(Res.string.live_discomfort_note_too_long).takeIf { tooLong },
+            errorText = stringResource(Res.string.note_too_long).takeIf { tooLong },
             testTagPrefix = "${tag}_note",
             imeAction = ImeAction.Default,
             singleLine = false,
@@ -179,8 +181,8 @@ private fun DiscomfortLevelPicker(tag: String, selected: DiscomfortLevel?, onPic
 }
 
 /**
- * The open discomfort of an exercise under its heading: "Molestia registrada" with its level (dot and text) and
- * "Ya no me molesta". Resolving needs the server.
+ * The open discomfort of an exercise under its heading, as one block: level dot, level text and "Ya no me molesta".
+ * Resolving needs the server (the hint sits inside the block). The block speaks "Molestia: <level>".
  */
 @Composable
 internal fun DiscomfortBlock(
@@ -191,29 +193,28 @@ internal fun DiscomfortBlock(
     modifier: Modifier = Modifier,
 ) {
     val tag = "live_exercise_${position}_discomfort"
-    Column(modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-        val levelLabel = discomfort.level.label()
-        val registeredCd = stringResource(Res.string.live_discomfort_registered_cd, levelLabel)
+    val levelLabel = discomfort.level.label()
+    val blockCd = stringResource(Res.string.live_discomfort_block_cd, levelLabel)
+    Column(
+        modifier.fillMaxWidth()
+            .background(AppTheme.colors.surfaceOverlay, AppShapes.md)
+            .border(AppBorder.thin, AppTheme.colors.borderSubtle, AppShapes.md)
+            .padding(horizontal = Spacing.md)
+            .semantics { contentDescription = blockCd }
+            .testTag("${tag}_block"),
+        verticalArrangement = Arrangement.spacedBy(Spacing.xs),
+    ) {
         Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm), verticalAlignment = Alignment.CenterVertically) {
-            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
-                InlineNote(text = stringResource(Res.string.live_discomfort_registered), testTag = tag)
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Box(
-                        Modifier.size(Spacing.md)
-                            .background(AppTheme.colors.discomfortScale(discomfort.level), CircleShape),
-                    )
-                    Text(
-                        text = levelLabel,
-                        style = AppTheme.typography.bodyMedium,
-                        color = AppTheme.colors.textPrimary,
-                        modifier = Modifier.semantics { contentDescription = registeredCd }
-                            .testTag("${tag}_level"),
-                    )
-                }
-            }
+            Box(
+                Modifier.size(Spacing.md)
+                    .background(AppTheme.colors.discomfortScale(discomfort.level), CircleShape),
+            )
+            Text(
+                text = levelLabel,
+                style = AppTheme.typography.bodyMedium,
+                color = AppTheme.colors.textPrimary,
+                modifier = Modifier.weight(1f).testTag("${tag}_level"),
+            )
             GhostButton(
                 text = stringResource(Res.string.live_discomfort_resolve),
                 onClick = onResolve,
@@ -228,7 +229,7 @@ internal fun DiscomfortBlock(
                 text = stringResource(Res.string.live_discomfort_resolve_offline),
                 style = AppTheme.typography.bodySmall,
                 color = AppTheme.colors.textSecondary,
-                modifier = Modifier.testTag("${tag}_resolve_hint"),
+                modifier = Modifier.padding(bottom = Spacing.sm).testTag("${tag}_resolve_hint"),
             )
         }
     }

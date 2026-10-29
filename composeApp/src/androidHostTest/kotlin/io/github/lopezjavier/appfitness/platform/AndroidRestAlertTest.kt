@@ -2,11 +2,9 @@ package io.github.lopezjavier.appfitness.platform
 
 import android.content.Context
 import android.media.AudioManager
-import android.media.RingtoneManager
 import android.os.Looper
 import android.os.Vibrator
 import androidx.test.core.app.ApplicationProvider
-import io.github.lopezjavier.appfitness.domain.model.RestSound
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
@@ -27,13 +25,9 @@ class AndroidRestAlertTest {
 
     private fun realRingtone(name: String) = AlertTone(play = { played += name }, stop = { stopped += name })
 
-    private fun sound(alarm: Boolean = true, notification: Boolean = true) = AndroidAlertSound(context) { type ->
-        requested += type
-        when {
-            type == RingtoneManager.TYPE_ALARM && alarm -> realRingtone("alarm")
-            type == RingtoneManager.TYPE_NOTIFICATION && notification -> realRingtone("notification")
-            else -> null
-        }
+    private fun sound(available: Boolean = true) = AndroidAlertSound(context) {
+        requested += 1
+        if (available) realRingtone("chime") else null
     }
 
     @Test
@@ -44,13 +38,12 @@ class AndroidRestAlertTest {
     }
 
     @Test
-    fun sound_withNormalRinger_playsTheAlarmTone() {
+    fun sound_withNormalRinger_playsTheChime() {
         audio.ringerMode = AudioManager.RINGER_MODE_NORMAL
 
         sound().play()
 
-        assertEquals(listOf(RingtoneManager.TYPE_ALARM), requested)
-        assertEquals(listOf("alarm"), played)
+        assertEquals(listOf("chime"), played)
     }
 
     @Test
@@ -61,60 +54,14 @@ class AndroidRestAlertTest {
         assertTrue(stopped.isEmpty())
         shadowOf(Looper.getMainLooper()).idleFor(Duration.ofMillis(2100))
 
-        assertEquals(listOf("alarm"), stopped)
+        assertEquals(listOf("chime"), stopped)
     }
 
     @Test
-    fun sound_withoutAlarmTone_fallsBackToTheNotificationTone() {
+    fun sound_withTheChimeUnavailable_doesNothing() {
         audio.ringerMode = AudioManager.RINGER_MODE_NORMAL
 
-        sound(alarm = false).play()
-
-        assertEquals(listOf(RingtoneManager.TYPE_ALARM, RingtoneManager.TYPE_NOTIFICATION), requested)
-        assertEquals(listOf("notification"), played)
-    }
-
-    @Test
-    fun sound_withNoToneAtAll_doesNothing() {
-        audio.ringerMode = AudioManager.RINGER_MODE_NORMAL
-
-        sound(alarm = false, notification = false).play()
-
-        assertTrue(played.isEmpty())
-    }
-
-    private fun chosenCandidate(current: RestSound) = AndroidAlertSound(
-        context,
-        currentSound = { current },
-        assetOf = { sound -> AlertTone(play = { played += sound.id }, stop = { stopped += sound.id }) },
-        toneOf = { realRingtone("system") },
-    )
-
-    @Test
-    fun sound_withAChosenCandidate_playsItsAssetNotTheSystemTone() {
-        audio.ringerMode = AudioManager.RINGER_MODE_NORMAL
-
-        chosenCandidate(RestSound.CHIME).play()
-
-        assertEquals(listOf("chime"), played)
-    }
-
-    @Test
-    fun preview_playsTheGivenCandidateWhateverIsChosen() {
-        audio.ringerMode = AudioManager.RINGER_MODE_NORMAL
-        val chosen = chosenCandidate(RestSound.CHIME)
-
-        chosen.preview(RestSound.DOUBLE_BEEP)
-        chosen.preview(RestSound.SYSTEM)
-
-        assertEquals(listOf("double_beep", "system"), played)
-    }
-
-    @Test
-    fun preview_onVibrateRinger_isSilent() {
-        audio.ringerMode = AudioManager.RINGER_MODE_VIBRATE
-
-        chosenCandidate(RestSound.CHIME).preview(RestSound.CHIME)
+        sound(available = false).play()
 
         assertTrue(played.isEmpty())
     }

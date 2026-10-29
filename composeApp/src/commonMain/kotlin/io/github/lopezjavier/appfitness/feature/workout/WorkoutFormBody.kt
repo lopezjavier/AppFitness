@@ -17,6 +17,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import io.github.lopezjavier.appfitness.composeapp.resources.Res
 import io.github.lopezjavier.appfitness.composeapp.resources.builder_add_exercise
+import io.github.lopezjavier.appfitness.composeapp.resources.note_sheet_set_title
 import io.github.lopezjavier.appfitness.composeapp.resources.workout_form_description
 import io.github.lopezjavier.appfitness.composeapp.resources.workout_form_duration
 import io.github.lopezjavier.appfitness.composeapp.resources.workout_form_gym
@@ -26,6 +27,8 @@ import io.github.lopezjavier.appfitness.composeapp.resources.workout_form_no_exe
 import io.github.lopezjavier.appfitness.designsystem.AppTextField
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
 import io.github.lopezjavier.appfitness.designsystem.GhostButton
+import io.github.lopezjavier.appfitness.designsystem.LocalAppHaptics
+import io.github.lopezjavier.appfitness.designsystem.NoteSheet
 import io.github.lopezjavier.appfitness.designsystem.NumberInput
 import io.github.lopezjavier.appfitness.designsystem.RpePickerSheet
 import io.github.lopezjavier.appfitness.designsystem.SetTypePickerSheet
@@ -59,6 +62,7 @@ internal fun WorkoutFormBody(
     val form = view.form
     var typePicker by rememberSaveable { mutableIntStateOf(NO_PICKER) }
     var rpePicker by rememberSaveable { mutableIntStateOf(NO_PICKER) }
+    var notePicker by rememberSaveable { mutableIntStateOf(NO_PICKER) }
     Column(
         modifier
             .fillMaxSize()
@@ -123,6 +127,7 @@ internal fun WorkoutFormBody(
                 onEvent = onEvent,
                 onOpenTypePicker = { typePicker = slot(index, it) },
                 onOpenRpePicker = { rpePicker = slot(index, it) },
+                onOpenNote = { notePicker = slot(index, it) },
             )
         }
         GhostButton(
@@ -132,6 +137,28 @@ internal fun WorkoutFormBody(
         )
     }
     FormPickers(form, typePicker, rpePicker, onEvent, { typePicker = NO_PICKER }, { rpePicker = NO_PICKER })
+    FormNoteSheet(form, notePicker, onEvent) { notePicker = NO_PICKER }
+}
+
+/** The note sheet of the set in [slot]; saving applies the note to the form (the screen's Guardar persists it). */
+@Composable
+private fun FormNoteSheet(form: WorkoutForm, slot: Int, onEvent: (WorkoutFormEvent) -> Unit, close: () -> Unit) {
+    if (slot < 0) return
+    val index = slot / SETS_PER_SLOT
+    val setIndex = slot % SETS_PER_SLOT
+    val set = form.exercises.getOrNull(index)?.sets?.getOrNull(setIndex) ?: return
+    val haptics = LocalAppHaptics.current
+    NoteSheet(
+        title = stringResource(Res.string.note_sheet_set_title, setIndex + 1),
+        initial = set.notes,
+        onSave = {
+            haptics.confirm()
+            onEvent(WorkoutFormEvent.NoteChanged(index, setIndex, it.orEmpty()))
+            close()
+        },
+        onDismiss = close,
+        testTagPrefix = "note_sheet",
+    )
 }
 
 /** The set-type and RPE pickers, whichever is open; a target that no longer exists shows nothing. */

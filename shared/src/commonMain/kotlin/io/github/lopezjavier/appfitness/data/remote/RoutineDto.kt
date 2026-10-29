@@ -1,5 +1,6 @@
 package io.github.lopezjavier.appfitness.data.remote
 
+import io.github.lopezjavier.appfitness.domain.model.NoteText
 import io.github.lopezjavier.appfitness.domain.model.PlannedSet
 import io.github.lopezjavier.appfitness.domain.model.Routine
 import io.github.lopezjavier.appfitness.domain.model.RoutineBounds
@@ -63,7 +64,7 @@ internal data class RoutineDto(
         const val COLUMNS =
             "id,name,notes,archived,track_as_routine," +
                 "routine_exercises(exercise_id,position,superset_group,target_sets,target_reps," +
-                "target_weight_kg,planned_set_type,target_rpe,rest_seconds," +
+                "target_weight_kg,planned_set_type,target_rpe,rest_seconds,notes," +
                 "routine_exercise_sets(target_weight_kg,target_reps,set_type,set_index))"
     }
 }
@@ -92,6 +93,7 @@ internal data class RoutineExerciseDto(
     @SerialName("planned_set_type") val plannedSetType: SetType = SetType.Working,
     @SerialName("target_rpe") val targetRpe: Double? = null,
     @SerialName("rest_seconds") val restSeconds: Int,
+    val notes: String? = null,
     @SerialName("routine_exercise_sets") val sets: List<PlannedSetRowDto> = emptyList(),
 ) {
     fun toDomain() = RoutineExercise(
@@ -105,6 +107,7 @@ internal data class RoutineExerciseDto(
         },
         restSeconds = restSeconds,
         targetRpe = targetRpe,
+        notes = NoteText.normalise(notes),
     )
 }
 
@@ -133,6 +136,7 @@ internal data class SaveRoutineRequest(
                     supersetGroup = exercise.supersetGroup,
                     restSeconds = exercise.restSeconds,
                     targetRpe = exercise.targetRpe,
+                    notes = NoteText.normalise(exercise.notes),
                     sets = exercise.plannedSets.map { PlannedSetDto(it.weightKg, it.reps, it.type) },
                 )
             },
@@ -147,6 +151,7 @@ internal data class SaveRoutineExerciseRequest(
     @SerialName("superset_group") val supersetGroup: Int? = null,
     @SerialName("rest_seconds") val restSeconds: Int,
     @SerialName("target_rpe") val targetRpe: Double? = null,
+    val notes: String? = null,
     val sets: List<PlannedSetDto>,
 )
 

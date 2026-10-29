@@ -5,13 +5,10 @@ import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.mutablePreferencesOf
 import androidx.datastore.preferences.core.preferencesOf
 import androidx.datastore.preferences.core.stringPreferencesKey
-import io.github.lopezjavier.appfitness.domain.model.RestSound
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
 import kotlin.test.Test
-import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 
@@ -28,28 +25,6 @@ private class MemoryRestStore(initial: Preferences = preferencesOf()) : DataStor
 
 class DataStoreRestAlertPreferencesTest {
     @Test
-    fun nothingSaved_soundIsSystem() = runTest {
-        assertEquals(RestSound.SYSTEM, DataStoreRestAlertPreferences(MemoryRestStore()).sound.first())
-    }
-
-    @Test
-    fun everySound_roundTripsThroughAnotherInstance() = runTest {
-        RestSound.entries.forEach { sound ->
-            val store = MemoryRestStore()
-            DataStoreRestAlertPreferences(store).setSound(sound)
-
-            assertEquals(sound, DataStoreRestAlertPreferences(store).sound.first())
-        }
-    }
-
-    @Test
-    fun unknownStoredId_fallsBackToSystem() = runTest {
-        val store = MemoryRestStore(mutablePreferencesOf(stringPreferencesKey("rest_alert_sound") to "gong"))
-
-        assertEquals(RestSound.SYSTEM, DataStoreRestAlertPreferences(store).sound.first())
-    }
-
-    @Test
     fun explanation_isNotShownByDefault() = runTest {
         assertFalse(DataStoreRestAlertPreferences(MemoryRestStore()).explanationShown())
     }
@@ -63,18 +38,13 @@ class DataStoreRestAlertPreferencesTest {
     }
 
     @Test
-    fun soundAndExplanation_doNotOverwriteEachOther() = runTest {
-        val prefs = DataStoreRestAlertPreferences(MemoryRestStore())
-        prefs.setSound(RestSound.CHIME)
+    fun aLeftoverSoundKey_isIgnoredAndKeptHarmless() = runTest {
+        val store = MemoryRestStore(mutablePreferencesOf(stringPreferencesKey("rest_alert_sound") to "double_beep"))
+        val prefs = DataStoreRestAlertPreferences(store)
+
+        assertFalse(prefs.explanationShown())
         prefs.markExplanationShown()
 
-        assertEquals(RestSound.CHIME, prefs.sound.first())
         assertTrue(prefs.explanationShown())
-    }
-
-    @Test
-    fun restSoundIds_areUniqueAndNullGivesDefault() {
-        assertEquals(RestSound.entries.size, RestSound.entries.map { it.id }.toSet().size)
-        assertEquals(RestSound.SYSTEM, RestSound.fromId(null))
     }
 }

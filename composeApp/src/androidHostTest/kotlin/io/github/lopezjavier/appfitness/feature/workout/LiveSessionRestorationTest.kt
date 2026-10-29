@@ -130,7 +130,7 @@ class LiveSessionRestorationTest {
 
         recreate()
 
-        rule.onNodeWithTag("live_exercise_0_discomfort").assertExists()
+        rule.onNodeWithTag("live_exercise_0_discomfort_block").assertExists()
         rule.onNodeWithTag("live_exercise_0_discomfort_level").assertTextContains("Dolor agudo o lesión")
     }
 

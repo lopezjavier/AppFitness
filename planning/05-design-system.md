@@ -118,6 +118,7 @@ Uses `SwipeToDeleteRow` only (guard G7) · right-to-left, "Eliminar"/"Quitar" ·
 
 | Concept | Label to use | Never use for it | Notes |
 |---|---|---|---|
+| A free-text note on a set, a routine exercise or a discomfort | "Nota" ("Añadir nota", "Editar nota", sheet field "Nota", error "Máximo 200 caracteres") | "Comentario", "Observaciones" | 1-200 chars, shown with `InlineNote`; clearing and "Guardar" removes it; never interpreted (ADR-81) |
 | A meal of the day (Desayuno...) | The meal's name; in settings "Comidas del día" | "Comidas" alone in settings | "Añadir comida del día"; Name sheet "Nueva comida del día" |
 | A saved template | "Comida guardada" / "Comidas guardadas" | "Plantilla" | Search tab "Guardadas"; "Guardar como comida" stays |
 | A catalogue food | "Alimento" | "Comida" | "Crear alimento", "Editar alimento" |
@@ -142,7 +143,7 @@ Uses `SwipeToDeleteRow` only (guard G7) · right-to-left, "Eliminar"/"Quitar" ·
 | Muscle on the radar axis | "Isquios" (radar only) | - | Elsewhere "Isquiotibiales" |
 | User-created exercise | "ejercicio propio"; "Añadir ejercicio propio"; sheet "Nuevo ejercicio" | "Crear ejercicio", "Añadir ejercicio" for it | "Añadir ejercicio" is only the routine/workout picker button |
 | App information screen | "Acerca de" (last Perfil row and title) | "Información", "Sobre la app" | Not "Sobre ti" (onboarding step); no value on the row |
-| Discomfort logged on an exercise | "Molestia" ("Registrar molestia", "Molestia registrada", "Ya no me molesta") | "Lesión", "Dolor" | Required level 1-5 (ADR-81): "Tensión o fatiga", "Molestia leve", "Pinchazo o chasquido", "Hinchazón, hormigueo o entumecimiento", "Dolor agudo o lesión"; section "Nivel". Exception: "Dolor"/"lesión" appear only inside the top level label, which must be explicit. No term matching, no health message |
+| Discomfort logged on an exercise | "Molestia" ("Registrar molestia", "Ya no me molesta"; the open one shows the level text, never a "Molestia registrada" label) | "Lesión", "Dolor" | Required level 1-5 (ADR-81): "Tensión o fatiga", "Molestia leve", "Pinchazo o chasquido", "Hinchazón, hormigueo o entumecimiento", "Dolor agudo o lesión"; section "Nivel". Exception: "Dolor"/"lesión" appear only inside the top level label, which must be explicit. No term matching, no health message |
 | System licences list | "Licencias de código abierto" | "Licencias", "Open source" | Credits heading "Créditos" |
 
 Message templates: required "Escribe un nombre" · too long "Máximo N caracteres" · range "Entre X y Y <unidad>" · duplicate "Ya existe <una comida / una carpeta / una rutina> con ese nombre" · error "No se pudo <acción>. Inténtalo de nuevo." · offline "Sin conexión: no se puede <acción>" · saved "Cambios guardados".

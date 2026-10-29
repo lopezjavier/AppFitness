@@ -15,6 +15,7 @@ data class SetWrite(
     val completedAt: Instant?,
     val setType: SetType,
     val rpe: Double? = null,
+    val notes: String? = null,
 )
 
 /**

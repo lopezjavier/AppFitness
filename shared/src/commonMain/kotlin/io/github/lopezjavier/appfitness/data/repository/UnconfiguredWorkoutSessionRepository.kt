@@ -34,6 +34,7 @@ class UnconfiguredWorkoutSessionRepository : WorkoutSessionRepository {
         completedAt: Instant?,
         setType: SetType,
         rpe: Double?,
+        notes: String?,
     ): Result<Unit> = fail()
 
     override suspend fun listCompleted(offset: Int, limit: Int): Result<List<WorkoutSession>> = fail()
