@@ -15,8 +15,8 @@ E2 (Preferencias), E3 and E6 (live session, routines, RPE).
 
 ## Tables
 - `training_preferences` (existing, E6): add `intention` enum (`strength` | `muscle` | `fat_loss` | `recomposition` | `maintenance`, nullable until chosen), `place` enum (`home` | `gym` | `other`), `equipment` `equipment[]`, `days_per_week` nullable 1-7, `session_minutes` nullable.
-- `workout_sets.notes` (nullable text, 1-200 chars).
-- `routine_exercises.notes` (nullable text, 1-200 chars).
+- `workout_sets.notes` (nullable text, 1-200 chars) plus `note_kind` (enum, nullable; ADR-82; `other` carries the free text).
+- `routine_exercises.notes` (nullable text, 1-200 chars) plus `note_kind` (enum, nullable; ADR-82).
 - `exercise_discomforts` (`user_id`, `exercise_id`, `logged_at`, `level` smallint 1..5 (ADR-81; replaces `severe`, which is derived), `note` nullable, `resolved_at` nullable).
 - `exercises.movement_pattern` enum (`squat` | `hinge` | `lunge` | `horizontal_push` | `vertical_push` | `horizontal_pull` | `vertical_pull` | `carry` | `core` | `isolation` | `cardio` | `other`); nullable for custom exercises.
 
@@ -104,30 +104,48 @@ Feature: Training intention and preferences
 
 ## US-66 · Notes per set and per routine exercise
 **As** a user
-**I want** to add a note to a set or to an exercise of a routine
-**So that** I remember what happened.
+**I want** to tag a set with what the numbers cannot say, and to leave myself a reminder on a routine exercise
+**So that** I remember what happened and the coach has consistent context.
+
+Amended by ADR-82 (Checkpoint E12-B feedback, 2026-10-29): notes are a chosen option plus an optional free text, not free text only; options never repeat data already recorded (kg, reps, RPE, rest) and pain stays in the discomfort log (US-67). A routine-exercise note edited in the live session counts as a routine change (the existing "update the routine?" prompt); discomforts do not (they belong to the exercise, not the routine).
 
 ```gherkin
 Feature: Notes
 
   Scenario: Note on a set
-    When the user writes "pausa larga" on a set
+    When the user picks "Técnica mejorable" on a set
     Then the note is saved with the workout
     And it is shown in the workout detail
 
+  Scenario: Set note options
+    When the user opens the set note
+    Then the options are "Técnica mejorable", "Rango incompleto", "Agarre flojo", "Con ayuda" and "Otro"
+    And "Otro" opens a free text of at most 200 characters
+    And a "?" explains each option
+
   Scenario: Note on an exercise in the routine
-    Given the routine has the note "bajar el peso si duele" on "Press banca"
+    Given the routine has the note "Subir peso" on "Press banca"
     When the user starts the routine
     Then the note is shown in the live session for "Press banca"
 
+  Scenario: Routine note options
+    When the user opens the note of a routine exercise
+    Then the options are "Subir peso", "Bajar peso", "Cuidar la técnica", "Ajustar máquina o asiento" and "Otro"
+
+  Scenario: Editing a routine note in the live session
+    When the user changes the note of "Press banca" in the live session
+    Then the routine is considered changed and the usual "update the routine?" choice is offered
+    When the user declines
+    Then the note stays only in that workout
+
   Scenario: Note limit
-    When the user writes a note of 201 characters on a set
+    When the user writes an "Otro" text of 201 characters
     Then "Máximo 200 caracteres" is shown and "Guardar" is disabled
     When the user clears a saved note and taps "Guardar"
     Then the note is removed
 
   Scenario: A note is never interpreted
-    When the user writes the note "dolor fuerte" on a set
+    When the user writes the "Otro" text "dolor fuerte" on a set
     Then the note is saved as typed and no message is shown
 ```
 

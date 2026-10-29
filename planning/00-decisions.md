@@ -181,3 +181,12 @@ Phase 2 ADRs continue the numbering (next: **ADR-80**) and are written **in full
   - [x] Core: `DiscomfortLevel`, `LogDiscomfort(exerciseId, level, note)`, `StrongPainTerms` deleted.
   - [x] UI: required coloured level picker with help, open row with the level, `AppTextField` v4, help on every scale (R-45).
   - [x] Docs: `03`, `04` §4.12, `05` §2.6/§8 (R-45)/§10, `07` §7, `09` Q1.
+
+### ADR-82 · Notes are a chosen option plus optional text; a live routine note is a routine change (E12; amends US-66 and ADR-81's note clause)
+- **Context:** At Checkpoint E12-B (2026-10-29) the user found free-text notes unexplained ("what do I write?") and pointless in the live session: a set note was seen only in that workout's detail, and a note edited live never reached the routine unless the routine was updated.
+- **Decision:**
+  - A note is one chosen option plus an optional free text ("Otro", 1-200 chars), like the discomfort levels. Set options carry only what kg, reps, RPE and rest do not say: "Técnica mejorable", "Rango incompleto", "Agarre flojo", "Con ayuda", "Otro". Routine-exercise options: "Subir peso", "Bajar peso", "Cuidar la técnica", "Ajustar máquina o asiento", "Otro". Pain is never a note option (it is the discomfort log). Storage: `note_kind` enum beside `notes` on `workout_sets` and `routine_exercises`; existing free-text notes become `other`. Notes are still never interpreted (ADR-81).
+  - A routine-exercise note edited in the live session counts as a routine change and triggers the existing "update the routine?" choice; declined, it stays only in that workout. Discomforts never count (they belong to the exercise, not the routine).
+  - Every option list has a `?` Info sheet (R-46).
+- **Consequences:** T-153 (migration `note_kind` + pgTAP, core, UI, `03`, `04`, `05` §10, glossary). The coach (E13) reads the kind plus the text.
+- **Approval:** the user, 2026-10-29, in the chat.
