@@ -2,7 +2,7 @@
 
 Design base of the performance assistant (E13) and of the data it needs (E10-E12). Decisions: ADR-76 (coach), ADR-77 (AI provider and cost), ADR-78 (profile and catalogue).
 
-**Principle:** every rule has a source, a common practice or a "design decision" label. No figure exists for convenience. Sources marked *verify* are cited from memory and must be checked before E13 is broken into tasks (see §10).
+**Principle:** every rule has a source, a common practice or a "design decision" label. No figure exists for convenience. Every source was checked before the E13 breakdown (2026-10-29, §10).
 
 ## 1. What the coach does
 
@@ -40,24 +40,31 @@ Design base of the performance assistant (E13) and of the data it needs (E10-E12
 ## 3. Training
 
 - **Frequency:** each muscle group at least twice a week when the available days allow it (two or more training days); with one day, one full-body session. When weekly volume is equated, frequency itself shows no clear hypertrophy difference [Schoenfeld, Grgic, Krieger 2019]; twice a week is the practical way to spread the volume [Schoenfeld, Ogborn, Krieger 2016]. *Common practice built on that evidence.*
-- **Volume:** starting point of 10 weekly sets per muscle group. Dose-response is positive [Schoenfeld, Ogborn, Krieger 2017], with diminishing returns at higher volumes [Pelland et al. 2024, *verify*].
+- **Volume:** starting point of 10 weekly sets per muscle group. Dose-response is positive [Schoenfeld, Ogborn, Krieger 2017], with diminishing returns at higher volumes, much more pronounced for strength than for hypertrophy [Pelland et al. 2026].
 - **Intensity:**
   - Strength: heavy loads, 1-6 reps.
   - Hypertrophy: 6-15 reps. Low and high loads give similar hypertrophy when sets are taken close to failure [Schoenfeld, Grgic et al. 2017].
-- **Proximity to failure:** 1-3 reps in reserve on main work [Refalo et al. 2023, *verify*]. Reps in reserve are derived from the logged RPE (RIR = 10 − RPE); there is no separate RIR field (ADR-76).
+- **Proximity to failure:** 1-3 reps in reserve on main work. Training to momentary failure shows no hypertrophy advantage over stopping short of it, and set failure only a trivial one [Refalo et al. 2023]; the 1-3 range is *common practice built on that evidence*. Reps in reserve are derived from the logged RPE (RIR = 10 − RPE); there is no separate RIR field (ADR-76).
 - **Progression:** double progression. Work inside the rep range; when every working set reaches the top of the range at RPE 8 or less, raise the load to the next available increment. *Common practice; little comparative evidence.*
 - **Failed sessions:** when most working sets miss the bottom of the range in two consecutive sessions of the exercise, lower the load 5 %, rounded to the available increment. *Design decision.*
+- **Rest between sets:** 2-3 min on main multi-joint lifts, 1-2 min on isolation exercises. Trained lifters need more than 2 min to maximise strength [Grgic et al. 2018]; 3 min beat 1 min for strength and thigh hypertrophy [Schoenfeld et al. 2016]; for hypertrophy alone the difference is small [Singer et al. 2024]. The block creator writes these rests into the routines.
+- **Exercise order:** the priority multi-joint lifts go first in the session; strength improves most on exercises done early, hypertrophy is similar in any order [Nunes et al. 2021].
+- **Periodization ("Ganar fuerza"):** load and reps vary within the week across the block (undulating) instead of one fixed range; a small strength benefit, larger than linear periodization in trained lifters, and no hypertrophy difference [Moesgaard et al. 2022; Williams et al. 2017]. Other intentions keep one rep range per exercise.
+- **Range of motion:** full range by default; differences against partial range are small [Pallarés et al. 2021; Wolf et al. 2023]. A technique note, not a computed rule.
+- **Cardio:** concurrent aerobic training does not compromise hypertrophy or maximal strength [Schumann et al. 2022], so the coach does not reduce cardio or steps for strength or muscle goals.
 - **Warm-up:** ramp-up sets on main lifts. *Common practice.*
 - **Exercise selection:** the catalogue is filtered by place and equipment; substitutions keep the muscle group and the movement pattern (`exercises.movement_pattern`, ADR-78).
-- **Deload:** suggested when no main lift improved its e1RM over the last three weeks of sessions; the deload week keeps the weights and cuts working sets by 40 %. *Design decision* (thresholds from common practice). Soreness is not a signal (§7).
+- **Main lifts:** the "main" or "priority multi-joint" lifts are the exercises whose `movement_pattern` is squat, hinge, lunge, horizontal or vertical push or pull. *Design decision* (user, 2026-10-29, E13 Q3).
+- **Rep range:** each routine exercise carries an optional rep range, per session (so undulating weeks keep their ranges); without one, no progression is suggested (user, 2026-10-29, E13 Q2).
+- **Deload:** suggested when no main lift (done in each of the three weeks) improved its e1RM over the last three weeks of sessions, and only inside an accepted block; the deload week keeps the weights and cuts working sets by 40 %, rounded to the nearest whole set and at least 1 per exercise. *Design decision* (thresholds from common practice; scope and rounding by the user, 2026-10-29, E13 Q3). Soreness is not a signal (§7).
 
 ## 4. Energy and macros
 
 - **Calorie floor:** a plan never goes below 1200 kcal (women) / 1500 kcal (men) (ADR-25).
-- **Protein:** at least 1.6 g/kg, plateau around 2.2 g/kg [Morton et al. 2018]. In a deficit with high lean mass, the upper end: 2.3-3.1 g/kg of fat-free mass [Helms, Zinn, Rowlands, Brown 2014].
-- **Fat:** at least 20 % of calories; usual range 20-35 % [Thomas, Erdman, Burke 2016, ACSM/AND/DC position, *verify*].
+- **Protein:** at least 1.6 g/kg, plateau around 2.2 g/kg [Morton et al. 2018]. In a deficit with high lean mass, the upper end: 2.3-3.1 g/kg of fat-free mass [Helms, Zinn, Rowlands, Brown 2014]. Shown as guidance, not a meal plan: about 0.4 g/kg per meal over at least 4 meals [Schoenfeld, Aragon 2018].
+- **Fat:** at least 20 % of calories; usual range 20-35 %; below 20 % gives no performance benefit [Rodriguez, DiMarco, Langley 2009, ADA/DC/ACSM position]. (The 2016 update [Thomas, Erdman, Burke 2016] could not be checked for these figures, so it is not cited for them.)
 - **Rate of loss:** 0.5-1 % of body weight per week [Helms, Aragon, Fitschen 2014]; default 0.5 %. (ACSM 2009 states 0.5-1 kg per week for the general population; the percentage suits lean trainees better.)
-- **Rate of gain:** 0.25-0.5 % of body weight per week [Iraki et al. 2019, *verify*].
+- **Rate of gain:** 0.25-0.5 % of body weight per week [Iraki et al. 2019; slower for advanced lifters].
 - **Energy constant:** 7 700 kcal per kg is an approximation, used only without history; with history the adaptive estimate is used [Hall 2008; Hall et al. 2011].
 - **Adjustment inside a block:** proposed only when the plan's target rate is outside the confidence interval of the weight trend for two consecutive weeks; the proposal changes calories by at most 10 % (*design decision*) and needs acceptance.
 
@@ -77,16 +84,16 @@ Design base of the performance assistant (E13) and of the data it needs (E10-E12
 ## 7. Discomfort and safety
 
 - Logging discomfort on an exercise (E12) blocks load increases for that exercise for 7 days, or until the user confirms "Ya no me molesta".
-- The user picks a **level** (1 to 5, ADR-81) when logging a discomfort; the two highest levels (swelling, tingling or numbness; sharp pain or injury) are severe. The level, not the text, drives the coach. No message is shown and no suggestion is made for that exercise beyond the load block. No diagnosis and no medical advice.
+- The user picks a **level** (1 to 5, ADR-81) when logging a discomfort; the two highest levels (swelling, tingling or numbness; sharp pain or injury) are severe. The level, not the text, drives the coach. No health message is shown. Levels 1-3 block load increases only (the reps rule and the 5 % drop still apply) and the suggestion's reason states neutrally that the load is kept because of the open discomfort; levels 4-5 give no suggestion for that exercise (E13 Q1, user 2026-10-29). No diagnosis and no medical advice.
 - Free text (discomfort or exercise notes) is context for the user only: it is never matched against terms and never interpreted to diagnose.
-- Muscle soreness is not collected: it is a poor indicator of recovery or of adaptation [Schoenfeld, Contreras 2013; Nosaka et al. 2002, *verify*].
+- Muscle soreness is not collected: it is a poor indicator of recovery or of adaptation [Schoenfeld, Contreras 2013; Nosaka et al. 2002].
 
 ## 8. Data, privacy and cost
 
 - Personal use: no prior consent screen, by user decision. Before distributing the app to other people, each must accept the use of their data and the coach provider's terms; this condition is written, not implemented.
 - The `coach` Edge Function sends a compact summary (last 8 weeks at most), never raw tables or photos.
 - Cost control by money, not by calls (ADR-77): 2 € per user and 5 € in total per calendar month, plus a spending limit on the Anthropic account.
-- Deleting the account deletes the coach's plans, recommendations, outcomes, usage and conversations (ADR-29); "Borrar historial del asistente" deletes them without deleting the account.
+- Deleting the account deletes the coach's plans, recommendations, outcomes, usage and conversations (ADR-29); "Eliminar historial del entrenador" deletes the plans, recommendations, outcomes, reports and conversations without deleting the account; the confirmed derived values and the AI usage stay (E13 Q5, Q13).
 
 ## 9. Design decisions without evidence backing
 
@@ -98,29 +105,47 @@ Defaults chosen for this app; adjusted with real data, not scientific figures:
 
 ## 10. Sources
 
-Corrected against the earlier draft (frequency, rate of loss, Hall year). Entries marked *verify* above are still cited from memory; every source is checked before the E13 breakdown.
+Corrected against the earlier draft (frequency, rate of loss, Hall year). Checked on 2026-10-29 before the E13 breakdown: Pelland (published version replaces the 2024 preprint), Refalo (finding restated), Iraki (0.25-0.5 %/week confirmed), Nosaka (confirmed); the fat range is now cited to the 2009 position, where it was confirmed.
 
 1. Schoenfeld BJ, Ogborn D, Krieger JW. Effects of resistance training frequency on measures of muscle hypertrophy: a systematic review and meta-analysis. *Sports Med*. 2016.
 2. Schoenfeld BJ, Grgic J, Krieger J. How many times per week should a muscle be trained to maximize muscle hypertrophy? A systematic review and meta-analysis. *J Sports Sci*. 2019.
 3. Schoenfeld BJ, Ogborn D, Krieger JW. Dose-response relationship between weekly resistance training volume and increases in muscle mass: a systematic review and meta-analysis. *J Sports Sci*. 2017.
-4. Pelland JC et al. The resistance training dose-response: meta-regressions exploring the effects of weekly volume and frequency on muscle hypertrophy and strength gain. 2024.
+4. Pelland JC, Remmert JF, Robinson ZP, Hinson SR, Zourdos MC. The resistance training dose response: meta-regressions exploring the effects of weekly volume and frequency on muscle hypertrophy and strength gains. *Sports Med*. 2026;56(2):481-505. doi:10.1007/s40279-025-02344-w (preprint SportRxiv 2024).
 5. Schoenfeld BJ, Grgic J, Ogborn D, Krieger JW. Strength and hypertrophy adaptations between low- vs. high-load resistance training: a systematic review and meta-analysis. *J Strength Cond Res*. 2017.
-6. Refalo MC et al. Influence of resistance training proximity-to-failure on skeletal muscle hypertrophy: a systematic review with meta-analysis. *Sports Med*. 2023.
+6. Refalo MC, Helms ER, Trexler ET, Hamilton DL, Fyfe JJ. Influence of resistance training proximity-to-failure on skeletal muscle hypertrophy: a systematic review with meta-analysis. *Sports Med*. 2023;53(3):649-665. doi:10.1007/s40279-022-01784-y.
 7. Morton RW et al. A systematic review, meta-analysis and meta-regression of the effect of protein supplementation on resistance training-induced gains in muscle mass and strength in healthy adults. *Br J Sports Med*. 2018.
 8. Helms ER, Zinn C, Rowlands DS, Brown SR. A systematic review of dietary protein during caloric restriction in resistance trained lean athletes. *Int J Sport Nutr Exerc Metab*. 2014.
 9. Helms ER, Aragon AA, Fitschen PJ. Evidence-based recommendations for natural bodybuilding contest preparation: nutrition and supplementation. *J Int Soc Sports Nutr*. 2014.
-10. Iraki J, Fitschen P, Espinar S, Helms E. Nutrition recommendations for bodybuilders in the off-season: a narrative review. *Sports*. 2019.
-11. Thomas DT, Erdman KA, Burke LM. Position of the Academy of Nutrition and Dietetics, Dietitians of Canada, and the American College of Sports Medicine: nutrition and athletic performance. *J Acad Nutr Diet*. 2016.
+10. Iraki J, Fitschen P, Espinar S, Helms E. Nutrition recommendations for bodybuilders in the off-season: a narrative review. *Sports*. 2019;7(7):154.
+11. Thomas DT, Erdman KA, Burke LM. Position of the Academy of Nutrition and Dietetics, Dietitians of Canada, and the American College of Sports Medicine: nutrition and athletic performance. *J Acad Nutr Diet*. 2016;116(3):501-528. (Current position; not cited for the fat figures.)
+11b. Rodriguez NR, DiMarco NM, Langley S. Position of the American Dietetic Association, Dietitians of Canada, and the American College of Sports Medicine: nutrition and athletic performance. *J Am Diet Assoc*. 2009;109(3):509-527.
 12. Donnelly JE et al. (ACSM). Appropriate physical activity intervention strategies for weight loss and prevention of weight regain for adults. *Med Sci Sports Exerc*. 2009.
 13. Hall KD. What is the required energy deficit per unit weight loss? *Int J Obes*. 2008.
 14. Hall KD et al. Quantification of the effect of energy imbalance on bodyweight. *Lancet*. 2011.
 15. Mifflin MD et al. A new predictive equation for resting energy expenditure in healthy individuals. *Am J Clin Nutr*. 1990.
 16. Schoenfeld BJ, Contreras B. Is postexercise muscle soreness a valid indicator of muscular adaptations? *Strength Cond J*. 2013.
-17. Nosaka K, Newton M, Sacco P. Delayed-onset muscle soreness does not reflect the magnitude of eccentric exercise-induced muscle damage. *Scand J Med Sci Sports*. 2002.
+17. Nosaka K, Newton M, Sacco P. Delayed-onset muscle soreness does not reflect the magnitude of eccentric exercise-induced muscle damage. *Scand J Med Sci Sports*. 2002;12(6):337-346.
+
+Added by the gap review of 2026-10-29 (user-approved; rules in §3-§4):
+
+18. Grgic J, Schoenfeld BJ, Skrepnik M, Davies TB, Mikulic P. Effects of rest interval duration in resistance training on measures of muscular strength: a systematic review. *Sports Med*. 2018;48(1):137-151.
+19. Schoenfeld BJ et al. Longer interset rest periods enhance muscle strength and hypertrophy in resistance-trained men. *J Strength Cond Res*. 2016;30(7):1805-1812.
+20. Singer A, Wolf M, Generoso L et al. Give it a rest: a systematic review with Bayesian meta-analysis on the effect of inter-set rest interval duration on muscle hypertrophy. *Front Sports Act Living*. 2024;6:1429789.
+21. Nunes JP et al. What influence does resistance exercise order have on muscular strength gains and muscle hypertrophy? A systematic review and meta-analysis. *Eur J Sport Sci*. 2021;21(2):149-157.
+22. Moesgaard L, Beck MM, Christiansen L, Aagaard P, Lundbye-Jensen J. Effects of periodization on strength and muscle hypertrophy in volume-equated resistance training programs: a systematic review and meta-analysis. *Sports Med*. 2022.
+23. Williams TD, Tolusso DV, Fedewa MV, Esco MR. Comparison of periodized and non-periodized resistance training on maximal strength: a meta-analysis. *Sports Med*. 2017.
+24. Pallarés JG et al. Effects of range of motion on resistance training adaptations: a systematic review and meta-analysis. *Scand J Med Sci Sports*. 2021.
+25. Wolf M et al. Partial vs full range of motion resistance training: a systematic review and meta-analysis. *Int J Strength Cond*. 2023.
+26. Schoenfeld BJ, Aragon AA. How much protein can the body use in a single meal for muscle-building? Implications for daily protein distribution. *J Int Soc Sports Nutr*. 2018;15:10.
+27. Schumann M et al. Compatibility of concurrent aerobic and strength training for skeletal muscle size and function: an updated systematic review and meta-analysis. *Sports Med*. 2022;52:601-612.
 
 ## 11. Cost estimate (ADR-77)
 
-Prices from the Anthropic price list cached on 2026-10-06 (Opus 5.5 $4 / $20, Sonnet 5.5 $2 / $10 per million input / output tokens); re-check before E13.
+Prices re-checked on the Anthropic price list on 2026-10-29, unchanged: Opus 5.5 $4 / $20, Sonnet 5.5 $2 / $10 per million input / output tokens; cache reads 0.05× input ($0.20 / $0.10), 5-minute cache writes 1.25× input. US-only inference (`inference_geo`) would multiply every price by 1.1; it is not used. The function's price table (US-76) holds these figures.
+
+**Data policy (checked 2026-10-29):** the Anthropic API deletes inputs and outputs within 30 days (longer only for Usage Policy enforcement or legal reasons) and does not use them for training by default.
+
+**Edge Function limit (checked 2026-10-29):** wall clock 150 s per invocation on the Supabase Free plan (400 s on paid), 2 s CPU (waiting for the API does not count). The block plan call must finish within 150 s, or be streamed or split.
 
 | Use | Model | Assumption per call | Per call | Per user and month |
 |---|---|---|---|---|
