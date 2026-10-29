@@ -28,6 +28,7 @@ import io.github.lopezjavier.appfitness.feature.meals.defaults.MealDefaultsViewM
 import io.github.lopezjavier.appfitness.feature.notifications.NotificationCenterViewModel
 import io.github.lopezjavier.appfitness.feature.onboarding.OnboardingViewModel
 import io.github.lopezjavier.appfitness.feature.profile.AccountViewModel
+import io.github.lopezjavier.appfitness.feature.profile.PreferencesHubViewModel
 import io.github.lopezjavier.appfitness.feature.profile.PreferencesViewModel
 import io.github.lopezjavier.appfitness.feature.profile.ProfileRootViewModel
 import io.github.lopezjavier.appfitness.feature.routines.RoutineBuilderViewModel
@@ -74,6 +75,7 @@ val uiModule =
         viewModelOf(::ProfileRootViewModel)
         viewModelOf(::NotificationCenterViewModel)
         viewModel { CheckInViewModel(get(), get(), get(), get(), savedState = get(), exercises = get()) }
+        viewModelOf(::PreferencesHubViewModel)
         viewModelOf(::AccountViewModel)
         viewModelOf(::AboutViewModel)
         // Explicit: the time zone is a defaulted constructor parameter (the device zone), not a dependency.

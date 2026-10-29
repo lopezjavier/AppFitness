@@ -192,4 +192,18 @@ class GlossaryStringsTest {
 
         assertTrue(stray.isEmpty(), "Stray spaces: $stray")
     }
+
+    @Test
+    fun trainingIntentionAndPlace_useTheGlossaryLabels() {
+        assertEquals("Mi entrenamiento", value("preferences_my_training_title"))
+        assertEquals("Objetivo de entrenamiento", value("my_training_intention_label"))
+        assertEquals("Ganar fuerza", value("my_training_intention_strength"))
+        assertEquals("Ganar musculatura", value("my_training_intention_muscle"))
+        assertEquals("Perder grasa", value("my_training_intention_fat_loss"))
+        assertEquals("Recomposición", value("my_training_intention_recomposition"))
+        assertEquals("Mantenimiento", value("my_training_intention_maintenance"))
+        assertEquals("Sin definir", value("my_training_unset"))
+        assertEquals("Lugar", value("my_training_place_label"))
+        assertEquals("Mancuernas", value("equipment_dumbbell"))
+    }
 }

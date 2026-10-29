@@ -15,8 +15,8 @@ import io.github.lopezjavier.appfitness.composeapp.resources.ic_sleep
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_steps
 import io.github.lopezjavier.appfitness.designsystem.AppNumberFormat
 import io.github.lopezjavier.appfitness.designsystem.ChartMetricOption
+import io.github.lopezjavier.appfitness.designsystem.durationText
 import io.github.lopezjavier.appfitness.domain.usecase.ActivityMetric
-import io.github.lopezjavier.appfitness.feature.analytics.stats.durationText
 import org.jetbrains.compose.resources.DrawableResource
 import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.stringResource

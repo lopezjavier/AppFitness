@@ -33,6 +33,7 @@ import io.github.lopezjavier.appfitness.domain.model.MacroSplit
 import io.github.lopezjavier.appfitness.domain.model.Macronutrient
 import io.github.lopezjavier.appfitness.domain.model.NotificationKind
 import io.github.lopezjavier.appfitness.domain.model.Sex
+import io.github.lopezjavier.appfitness.domain.model.TrainingIntention
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.datetime.LocalDate
@@ -148,6 +149,7 @@ class PreferencesSectionScreenTest {
             PreferencesSection.Training -> base.copy(warmUpIncluded = true)
             PreferencesSection.PersonalData -> base.copy(name = "Eva")
             PreferencesSection.Reminders -> base.copy(weightReminder = false)
+            PreferencesSection.MyTraining -> base.copy(intention = TrainingIntention.Strength)
         },
     )
 

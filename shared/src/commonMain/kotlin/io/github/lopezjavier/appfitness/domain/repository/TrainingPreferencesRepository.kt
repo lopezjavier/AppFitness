@@ -1,11 +1,15 @@
 package io.github.lopezjavier.appfitness.domain.repository
 
+import io.github.lopezjavier.appfitness.domain.model.MyTraining
 import io.github.lopezjavier.appfitness.domain.model.TrainingPreferences
 
 /** The signed-in user's `training_preferences` row (written through `save_preferences`). */
 interface TrainingPreferencesRepository {
     /** The saved preferences; a missing row yields the defaults. */
     suspend fun get(): Result<TrainingPreferences>
+
+    /** Writes only the "Mi entrenamiento" columns (nulls clear the optional ones); the rest of the row is kept. */
+    suspend fun saveMyTraining(training: MyTraining): Result<Unit>
 }
 
 /** Whether warm-up sets count; a failed read falls back to the default (off) and never blocks the caller. */

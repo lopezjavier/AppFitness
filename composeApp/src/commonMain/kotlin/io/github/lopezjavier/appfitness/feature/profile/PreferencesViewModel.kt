@@ -12,6 +12,7 @@ import io.github.lopezjavier.appfitness.domain.model.FoodPreferences
 import io.github.lopezjavier.appfitness.domain.model.GoalStrategy
 import io.github.lopezjavier.appfitness.domain.model.MacroSplit
 import io.github.lopezjavier.appfitness.domain.model.MeasurementSource
+import io.github.lopezjavier.appfitness.domain.model.MyTraining
 import io.github.lopezjavier.appfitness.domain.model.NotificationKind
 import io.github.lopezjavier.appfitness.domain.model.NutritionGoals
 import io.github.lopezjavier.appfitness.domain.model.ProfileSummary
@@ -26,6 +27,7 @@ import io.github.lopezjavier.appfitness.domain.repository.NutritionGoalsReposito
 import io.github.lopezjavier.appfitness.domain.repository.ProfileRepository
 import io.github.lopezjavier.appfitness.domain.repository.TrainingPreferencesRepository
 import io.github.lopezjavier.appfitness.domain.usecase.BalanceMacros
+import io.github.lopezjavier.appfitness.domain.usecase.DefaultEquipment
 import io.github.lopezjavier.appfitness.domain.usecase.EnergyStrategyRules
 import io.github.lopezjavier.appfitness.domain.usecase.HealthWriteBack
 import io.github.lopezjavier.appfitness.domain.usecase.SavePreferences
@@ -177,11 +179,36 @@ class PreferencesViewModel(
                 }
             }
 
+            is PreferencesEvent.SetIntention, is PreferencesEvent.SetPlace, is PreferencesEvent.SetEquipment,
+            is PreferencesEvent.SetDaysPerWeek, is PreferencesEvent.SetSessionMinutes,
+            -> editMyTraining(event)
+
             PreferencesEvent.Save -> save()
 
             PreferencesEvent.Retry -> if (_uiState.value == PreferencesUiState.LoadFailed) load()
 
             PreferencesEvent.Refresh -> refreshWeight()
+        }
+    }
+
+    private fun editMyTraining(event: PreferencesEvent) = edit { form ->
+        when (event) {
+            is PreferencesEvent.SetIntention -> form.copy(intention = event.intention)
+
+            is PreferencesEvent.SetPlace ->
+                form.copy(place = event.place, equipment = DefaultEquipment.forPlace(event.place))
+
+            is PreferencesEvent.SetEquipment -> form.copy(
+                equipment = if (event.checked) form.equipment + event.equipment else form.equipment - event.equipment,
+            )
+
+            is PreferencesEvent.SetDaysPerWeek ->
+                if (MyTraining.isValidDays(event.days)) form.copy(daysPerWeek = event.days) else form
+
+            is PreferencesEvent.SetSessionMinutes ->
+                if (MyTraining.isValidSessionMinutes(event.minutes)) form.copy(sessionMinutes = event.minutes) else form
+
+            else -> form
         }
     }
 
@@ -310,6 +337,11 @@ class PreferencesViewModel(
             weightReminder = switches[NotificationKind.Weight] ?: true,
             circumferenceReminder = switches[NotificationKind.Circumference] ?: true,
             checkInReminder = switches[NotificationKind.WeeklyCheckIn] ?: true,
+            intention = training.intention,
+            place = training.place,
+            equipment = training.equipment,
+            daysPerWeek = training.daysPerWeek,
+            sessionMinutes = training.sessionMinutes,
         )
         // Only the section's fields come from the draft: the other sections are always the fresh saved values.
         val draft = savedState.get<String>(KEY_DRAFT)?.let { decodeDraft(it, form) }?.let {
@@ -386,6 +418,10 @@ class PreferencesViewModel(
                 saveReminders(state, source)
                 return@launch
             }
+            if (owns(PreferencesSection.MyTraining)) {
+                saveMyTraining(source)
+                return@launch
+            }
             val result = run {
                 savePreferences(
                     displayName = source.name,
@@ -450,6 +486,17 @@ class PreferencesViewModel(
         } else {
             updateLoaded { it.copy(saved = written, isSaving = false) }
             effectChannel.send(PreferencesEffect.SaveFailed(offline = failure.appErrorOrNull() == AppError.Network))
+        }
+    }
+
+    /** "Mi entrenamiento" writes only its five columns (D1): no name, TDEE or `save_preferences` involved. */
+    private suspend fun saveMyTraining(source: PreferencesForm) {
+        val result = trainingPreferencesRepository.saveMyTraining(source.toMyTraining())
+        if (result.isSuccess) {
+            updateLoaded { it.copy(form = source, saved = source, isSaving = false, isSaved = true) }
+        } else {
+            updateLoaded { it.copy(isSaving = false) }
+            effectChannel.send(PreferencesEffect.SaveFailed(offline = result.appErrorOrNull() == AppError.Network))
         }
     }
 

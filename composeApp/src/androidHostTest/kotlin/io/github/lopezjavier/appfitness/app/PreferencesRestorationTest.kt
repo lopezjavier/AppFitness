@@ -5,6 +5,7 @@ import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.assertIsOff
+import androidx.compose.ui.test.assertIsOn
 import androidx.compose.ui.test.assertTextContains
 import androidx.compose.ui.test.junit4.StateRestorationTester
 import androidx.compose.ui.test.junit4.v2.createComposeRule
@@ -16,6 +17,7 @@ import io.github.lopezjavier.appfitness.designsystem.AppTheme
 import io.github.lopezjavier.appfitness.domain.model.AccountProtection
 import io.github.lopezjavier.appfitness.domain.model.ActivityLevel
 import io.github.lopezjavier.appfitness.domain.model.BodyMeasurement
+import io.github.lopezjavier.appfitness.domain.model.Equipment
 import io.github.lopezjavier.appfitness.domain.model.GoalStrategy
 import io.github.lopezjavier.appfitness.domain.model.MacroSplit
 import io.github.lopezjavier.appfitness.domain.model.Macronutrient
@@ -25,6 +27,8 @@ import io.github.lopezjavier.appfitness.domain.model.NutritionGoals
 import io.github.lopezjavier.appfitness.domain.model.ProfileSummary
 import io.github.lopezjavier.appfitness.domain.model.SavedBiometrics
 import io.github.lopezjavier.appfitness.domain.model.Sex
+import io.github.lopezjavier.appfitness.domain.model.TrainingIntention
+import io.github.lopezjavier.appfitness.domain.model.TrainingPlace
 import io.github.lopezjavier.appfitness.domain.usecase.SavePreferences
 import io.github.lopezjavier.appfitness.feature.food.FakeFoodPreferencesRepository
 import io.github.lopezjavier.appfitness.feature.goals.EnergyStrategyEvent
@@ -207,6 +211,30 @@ class PreferencesRestorationTest {
         rule.onNodeWithTag("preferences_checkin_weekday_option_3").assertIsDisplayed()
         rule.onNodeWithTag("preferences_reminders_switch_circumference").assertIsOff()
         rule.onNodeWithTag("preferences_avisos_save").assertIsEnabled()
+    }
+
+    @Test
+    fun myTraining_keepsTheDraft_andTheOpenSessionPicker_afterRecreation() {
+        val tester = StateRestorationTester(rule)
+        show(tester, "mi_entrenamiento")
+        send(PreferencesEvent.SetIntention(TrainingIntention.Muscle))
+        send(PreferencesEvent.SetPlace(TrainingPlace.Home))
+        send(PreferencesEvent.SetEquipment(Equipment.Barbell, true))
+        send(PreferencesEvent.SetDaysPerWeek(4))
+        send(PreferencesEvent.SetSessionMinutes(45))
+        rule.onNodeWithTag("preferences_session_field").performScrollTo().performClick()
+        rule.waitForIdle()
+
+        recreate(tester)
+
+        rule.onNodeWithTag("preferences_session_option_45").assertIsDisplayed()
+        rule.onNodeWithTag("preferences_session_option_45").performClick()
+        rule.waitForIdle()
+        rule.onNodeWithTag("preferences_intention_field").assertTextContains("Ganar musculatura", substring = true)
+        rule.onNodeWithTag("preferences_days_field").performScrollTo().assertTextContains("4 días", substring = true)
+        rule.onNodeWithTag("preferences_session_field").performScrollTo().assertTextContains("45 min", substring = true)
+        rule.onNodeWithTag("preferences_equipment_barbell").performScrollTo().assertIsOn()
+        rule.onNodeWithTag("preferences_mi_entrenamiento_save").assertIsEnabled()
     }
 
     @Test

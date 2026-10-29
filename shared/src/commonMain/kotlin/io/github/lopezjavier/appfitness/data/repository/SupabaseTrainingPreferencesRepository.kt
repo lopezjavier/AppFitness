@@ -4,7 +4,9 @@ import io.github.jan.supabase.auth.Auth
 import io.github.jan.supabase.postgrest.Postgrest
 import io.github.jan.supabase.postgrest.from
 import io.github.jan.supabase.postgrest.query.Columns
+import io.github.lopezjavier.appfitness.data.remote.MyTrainingUpsertDto
 import io.github.lopezjavier.appfitness.data.remote.TrainingPreferencesDto
+import io.github.lopezjavier.appfitness.domain.model.MyTraining
 import io.github.lopezjavier.appfitness.domain.model.TrainingPreferences
 import io.github.lopezjavier.appfitness.domain.repository.TrainingPreferencesRepository
 
@@ -18,5 +20,12 @@ class SupabaseTrainingPreferencesRepository(private val auth: Auth, private val 
             .firstOrNull()
             ?.toDomain()
             ?: TrainingPreferences()
+    }
+
+    override suspend fun saveMyTraining(training: MyTraining): Result<Unit> = auth.ownRow { userId ->
+        postgrest.from("training_preferences").upsert(MyTrainingUpsertDto.of(userId, training)) {
+            onConflict = "user_id"
+        }
+        Unit
     }
 }

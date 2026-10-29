@@ -2,10 +2,13 @@ package io.github.lopezjavier.appfitness.feature.profile
 
 import io.github.lopezjavier.appfitness.domain.model.ActivityLevel
 import io.github.lopezjavier.appfitness.domain.model.CalculatorSettings
+import io.github.lopezjavier.appfitness.domain.model.Equipment
 import io.github.lopezjavier.appfitness.domain.model.GoalStrategy
 import io.github.lopezjavier.appfitness.domain.model.MacroSplit
 import io.github.lopezjavier.appfitness.domain.model.PreviousValuesMode
 import io.github.lopezjavier.appfitness.domain.model.Sex
+import io.github.lopezjavier.appfitness.domain.model.TrainingIntention
+import io.github.lopezjavier.appfitness.domain.model.TrainingPlace
 import kotlinx.datetime.LocalDate
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -45,7 +48,32 @@ class PreferencesSectionTest {
             autoUpdateRoutine = true,
         ),
         PreferencesSection.Reminders to base.copy(checkInWeekday = 3),
+        PreferencesSection.MyTraining to base.copy(
+            intention = TrainingIntention.Strength,
+            place = TrainingPlace.Home,
+            equipment = setOf(Equipment.Band),
+            daysPerWeek = 3,
+            sessionMinutes = 45,
+        ),
     )
+
+    @Test
+    fun myTraining_ownsEachOfItsFiveFields_includingClearingThem() {
+        val set = base.copy(intention = TrainingIntention.Muscle, daysPerWeek = 4, sessionMinutes = 60)
+        val fieldChanges = listOf(
+            base.copy(intention = TrainingIntention.Muscle),
+            base.copy(place = TrainingPlace.Gym),
+            base.copy(equipment = setOf(Equipment.Barbell)),
+            base.copy(daysPerWeek = 2),
+            base.copy(sessionMinutes = 90),
+        )
+        for (changed in fieldChanges) {
+            assertFalse(base.sectionEquals(PreferencesSection.MyTraining, changed))
+            assertTrue(base.sectionEquals(PreferencesSection.Training, changed))
+        }
+        assertFalse(set.sectionEquals(PreferencesSection.MyTraining, set.copy(daysPerWeek = null)))
+        assertFalse(set.sectionEquals(PreferencesSection.MyTraining, set.copy(intention = null)))
+    }
 
     @Test
     fun sectionEquals_isFalseOnlyForTheSectionWhoseFieldsChanged() {

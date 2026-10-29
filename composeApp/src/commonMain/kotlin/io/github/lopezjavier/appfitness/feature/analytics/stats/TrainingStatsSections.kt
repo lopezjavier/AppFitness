@@ -36,6 +36,7 @@ import io.github.lopezjavier.appfitness.designsystem.AppTheme
 import io.github.lopezjavier.appfitness.designsystem.MetricTile
 import io.github.lopezjavier.appfitness.designsystem.MuscleSplitBar
 import io.github.lopezjavier.appfitness.designsystem.Spacing
+import io.github.lopezjavier.appfitness.designsystem.durationText
 import io.github.lopezjavier.appfitness.domain.model.MuscleGroupSets
 import io.github.lopezjavier.appfitness.domain.model.ProgressRange
 import io.github.lopezjavier.appfitness.domain.model.SetCountPoint

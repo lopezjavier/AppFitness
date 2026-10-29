@@ -9,6 +9,7 @@ import io.github.lopezjavier.appfitness.domain.model.FoodPreferences
 import io.github.lopezjavier.appfitness.domain.model.LatestComposition
 import io.github.lopezjavier.appfitness.domain.model.ManualWeightSave
 import io.github.lopezjavier.appfitness.domain.model.MeasurementSource
+import io.github.lopezjavier.appfitness.domain.model.MyTraining
 import io.github.lopezjavier.appfitness.domain.model.NutritionGoals
 import io.github.lopezjavier.appfitness.domain.model.PreviousValuesMode
 import io.github.lopezjavier.appfitness.domain.model.ProfileSummary
@@ -294,8 +295,17 @@ internal class FakeTrainingPreferencesRepository(warmUpIncluded: Boolean = false
         Result.success(TrainingPreferences(warmUpIncluded, autoUpdateRoutine = autoUpdateRoutine))
     var reads = 0
 
+    /** Every "Mi entrenamiento" save, in order; [saveResult] answers them. */
+    val savedMyTraining = mutableListOf<MyTraining>()
+    var saveResult: Result<Unit> = Result.success(Unit)
+
     override suspend fun get(): Result<TrainingPreferences> {
         reads++
         return result
+    }
+
+    override suspend fun saveMyTraining(training: MyTraining): Result<Unit> {
+        savedMyTraining += training
+        return saveResult
     }
 }
