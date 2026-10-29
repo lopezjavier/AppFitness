@@ -126,6 +126,8 @@ Uses `SwipeToDeleteRow` only (guard G7) · right-to-left, "Eliminar"/"Quitar" ·
 | Concept | Label to use | Never use for it | Notes |
 |---|---|---|---|
 | A free-text note on a set, a routine exercise or a discomfort | "Nota" ("Añadir nota", "Editar nota", sheet field "Nota", error "Máximo 200 caracteres") | "Comentario", "Observaciones" | 1-200 chars, shown with `InlineNote`; clearing and "Guardar" removes it; never interpreted (ADR-81) |
+| The live hint of the next load for an exercise | "Sugerencia" ("Sugerencia: 82,5 kg × 6", sheet "Sugerencia", `?` "Por qué esta sugerencia") | "Recomendación", "Consejo" | Deterministic (not the coach), no buttons, never writes sets or the routine |
+| The min-max reps wanted on a routine exercise | "Rango de repeticiones" (steppers "Reps mín." / "Reps máx.", unset "Sin definir") | "Repeticiones objetivo" | Optional; unset = no suggestion |
 | A meal of the day (Desayuno...) | The meal's name; in settings "Comidas del día" | "Comidas" alone in settings | "Añadir comida del día"; Name sheet "Nueva comida del día" |
 | A saved template | "Comida guardada" / "Comidas guardadas" | "Plantilla" | Search tab "Guardadas"; "Guardar como comida" stays |
 | A catalogue food | "Alimento" | "Comida" | "Crear alimento", "Editar alimento" |

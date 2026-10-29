@@ -28,17 +28,22 @@ import io.github.lopezjavier.appfitness.composeapp.resources.builder_exercise_op
 import io.github.lopezjavier.appfitness.composeapp.resources.builder_superset_label
 import io.github.lopezjavier.appfitness.composeapp.resources.exercise_unnamed
 import io.github.lopezjavier.appfitness.composeapp.resources.live_object_set
+import io.github.lopezjavier.appfitness.composeapp.resources.live_suggestion
+import io.github.lopezjavier.appfitness.composeapp.resources.live_suggestion_help_cd
 import io.github.lopezjavier.appfitness.composeapp.resources.live_target_rpe
 import io.github.lopezjavier.appfitness.composeapp.resources.note_edit
 import io.github.lopezjavier.appfitness.designsystem.AddItemButton
 import io.github.lopezjavier.appfitness.designsystem.AppCard
+import io.github.lopezjavier.appfitness.designsystem.AppNumberFormat
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
+import io.github.lopezjavier.appfitness.designsystem.HelpTriggerButton
 import io.github.lopezjavier.appfitness.designsystem.InlineNote
 import io.github.lopezjavier.appfitness.designsystem.RpeHelpButton
 import io.github.lopezjavier.appfitness.designsystem.SetFieldSpec
 import io.github.lopezjavier.appfitness.designsystem.SetTableHeader
 import io.github.lopezjavier.appfitness.designsystem.Spacing
 import io.github.lopezjavier.appfitness.designsystem.exerciseNoteSummary
+import io.github.lopezjavier.appfitness.domain.model.ProgressionSuggestion
 import io.github.lopezjavier.appfitness.feature.exercises.setFieldSpecs
 import io.github.lopezjavier.appfitness.feature.weight.decimalText
 import org.jetbrains.compose.resources.stringResource
@@ -86,6 +91,7 @@ internal fun LiveExerciseCard(
                     RpeHelpButton(testTag = "live_target_rpe_help")
                 }
             }
+            exercise.suggestion?.let { SuggestionLine(position, it, onEvent) }
             val fields = setFieldSpecs(exercise.metricType, exercise.equipment)
             LiveSetTableHeader(fields)
             exercise.sets.forEach {
@@ -115,6 +121,28 @@ internal fun LiveExerciseCard(
         onSheetChange = { sheet = it },
         onSheetClose = { from -> if (sheet == from) sheet = ExerciseSheet.None },
     )
+}
+
+/** "Sugerencia: 82,5 kg × 6" with its "?" (US-70): read-only, the reason lives in the help sheet. */
+@Composable
+private fun SuggestionLine(position: Int, suggestion: ProgressionSuggestion, onEvent: (LiveSessionEvent) -> Unit) {
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        Text(
+            text = stringResource(
+                Res.string.live_suggestion,
+                AppNumberFormat.decimal(suggestion.weightKg, maxDecimals = 2),
+                AppNumberFormat.integer(suggestion.goalReps),
+            ),
+            style = AppTheme.typography.bodySmall,
+            color = AppTheme.colors.textSecondary,
+            modifier = Modifier.testTag("live_exercise_${position}_suggestion"),
+        )
+        HelpTriggerButton(
+            contentDescription = stringResource(Res.string.live_suggestion_help_cd),
+            testTag = "live_exercise_${position}_suggestion_help",
+            onClick = { onEvent(LiveSessionEvent.OpenProgressionHelp(position)) },
+        )
+    }
 }
 
 @Composable

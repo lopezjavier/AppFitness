@@ -7,6 +7,7 @@ import io.github.lopezjavier.appfitness.domain.model.ExerciseNoteKind
 import io.github.lopezjavier.appfitness.domain.model.Note
 import io.github.lopezjavier.appfitness.domain.model.NoteText
 import io.github.lopezjavier.appfitness.domain.model.PlannedSet
+import io.github.lopezjavier.appfitness.domain.model.RepRange
 import io.github.lopezjavier.appfitness.domain.model.Routine
 import io.github.lopezjavier.appfitness.domain.model.RoutineBounds
 import io.github.lopezjavier.appfitness.domain.model.RoutineExercise
@@ -34,6 +35,9 @@ internal data class DraftRow(
     val targetRpe: Double? = null,
     val notes: String? = null,
     val noteKind: ExerciseNoteKind? = null,
+    /** Rep range as two ints, both set or both null (US-70). */
+    val repMin: Int? = null,
+    val repMax: Int? = null,
 )
 
 /** The editable routine. Serializable so it survives process death inside the [SavedStateHandle]. */
@@ -200,6 +204,7 @@ internal fun RoutineDraft.toRoutine(id: String?) = Routine(
             targetRpe = row.targetRpe,
             notes = Note.of(row.noteKind, row.notes)?.text,
             noteKind = Note.of(row.noteKind, row.notes)?.kind,
+            repRange = RepRange.ofOrNull(row.repMin, row.repMax),
         )
     },
 )
@@ -218,6 +223,8 @@ internal fun Routine.toDraft(): RoutineDraft {
                 targetRpe = exercise.targetRpe?.let(RpeScale::round),
                 notes = NoteText.normalise(exercise.notes),
                 noteKind = resolveNoteKind(exercise.noteKind, exercise.notes, ExerciseNoteKind.Other),
+                repMin = exercise.repRange?.min,
+                repMax = exercise.repRange?.max,
             )
         }
     return RoutineDraft(
@@ -231,6 +238,30 @@ internal fun Routine.toDraft(): RoutineDraft {
 }
 
 private const val DEFAULT_TARGET_RPE = 8.0
+private const val DEFAULT_REP_MIN = 8
+private const val DEFAULT_REP_MAX = 12
+
+/**
+ * One step of the rep-range steppers (US-70). Unset + any up = 8-12; min down from 1 clears the range; min up above
+ * max raises max; max down below min lowers min. [minDelta] and [maxDelta] are -1, 0 or +1 (one of them is non-zero).
+ */
+internal fun steppedRepRange(current: RepRange?, minDelta: Int, maxDelta: Int): RepRange? {
+    val lo = RoutineBounds.REPS_MIN
+    val hi = RoutineBounds.REPS_MAX
+    return when {
+        current == null -> if (minDelta > 0 || maxDelta > 0) RepRange(DEFAULT_REP_MIN, DEFAULT_REP_MAX) else null
+
+        minDelta < 0 && current.min + minDelta < lo -> null
+
+        else -> {
+            var min = (current.min + minDelta).coerceIn(lo, hi)
+            var max = (current.max + maxDelta).coerceIn(lo, hi)
+            if (minDelta != 0 && min > max) max = min
+            if (maxDelta != 0 && max < min) min = max
+            RepRange(min, max)
+        }
+    }
+}
 
 /** One whole-point step of a target RPE: none + up = 8, 10 + up stays 10, 6 + down = none (a half value rounds). */
 internal fun steppedRpe(current: Double?, delta: Int): Double? {
@@ -247,3 +278,7 @@ internal fun decode(json: String): RoutineDraft? =
 /** A draft saved with a half target RPE (before ADR-56) shows and keeps the rounded value. */
 private fun RoutineDraft.withWholeTargetRpes() =
     copy(rows = rows.map { row -> row.copy(targetRpe = row.targetRpe?.let(RpeScale::round)) })
+
+internal fun DraftRow.repRange(): RepRange? = RepRange.ofOrNull(repMin, repMax)
+
+internal fun DraftRow.withRepRange(range: RepRange?) = copy(repMin = range?.min, repMax = range?.max)

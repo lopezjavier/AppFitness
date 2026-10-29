@@ -3,6 +3,7 @@ package io.github.lopezjavier.appfitness.data.remote
 import io.github.lopezjavier.appfitness.domain.model.ExerciseNoteKind
 import io.github.lopezjavier.appfitness.domain.model.NoteText
 import io.github.lopezjavier.appfitness.domain.model.PlannedSet
+import io.github.lopezjavier.appfitness.domain.model.RepRange
 import io.github.lopezjavier.appfitness.domain.model.Routine
 import io.github.lopezjavier.appfitness.domain.model.RoutineBounds
 import io.github.lopezjavier.appfitness.domain.model.RoutineExercise
@@ -66,7 +67,7 @@ internal data class RoutineDto(
         const val COLUMNS =
             "id,name,notes,archived,track_as_routine," +
                 "routine_exercises(exercise_id,position,superset_group,target_sets,target_reps," +
-                "target_weight_kg,planned_set_type,target_rpe,rest_seconds,notes,note_kind," +
+                "target_weight_kg,planned_set_type,target_rpe,rest_seconds,notes,note_kind,rep_min,rep_max," +
                 "routine_exercise_sets(target_weight_kg,target_reps,set_type,set_index))"
     }
 }
@@ -98,6 +99,8 @@ internal data class RoutineExerciseDto(
     val notes: String? = null,
     // Absent in old payloads: a note with text but no kind reads as "other".
     @SerialName("note_kind") val noteKind: ExerciseNoteKind? = null,
+    @SerialName("rep_min") val repMin: Int? = null,
+    @SerialName("rep_max") val repMax: Int? = null,
     @SerialName("routine_exercise_sets") val sets: List<PlannedSetRowDto> = emptyList(),
 ) {
     fun toDomain() = RoutineExercise(
@@ -113,6 +116,7 @@ internal data class RoutineExerciseDto(
         targetRpe = targetRpe,
         notes = NoteText.normalise(notes),
         noteKind = resolveNoteKind(noteKind, notes, ExerciseNoteKind.Other),
+        repRange = RepRange.ofOrNull(repMin, repMax),
     )
 }
 
@@ -143,6 +147,8 @@ internal data class SaveRoutineRequest(
                     targetRpe = exercise.targetRpe,
                     notes = NoteText.normalise(exercise.notes),
                     noteKind = resolveNoteKind(exercise.noteKind, exercise.notes, ExerciseNoteKind.Other),
+                    repMin = exercise.repRange?.min,
+                    repMax = exercise.repRange?.max,
                     sets = exercise.plannedSets.map { PlannedSetDto(it.weightKg, it.reps, it.type) },
                 )
             },
@@ -159,6 +165,9 @@ internal data class SaveRoutineExerciseRequest(
     @SerialName("target_rpe") val targetRpe: Double? = null,
     val notes: String? = null,
     @SerialName("note_kind") val noteKind: ExerciseNoteKind? = null,
+    // Both or neither; null is omitted (encodeDefaults is off) and means "no range".
+    @SerialName("rep_min") val repMin: Int? = null,
+    @SerialName("rep_max") val repMax: Int? = null,
     val sets: List<PlannedSetDto>,
 )
 

@@ -29,6 +29,7 @@ import io.github.lopezjavier.appfitness.data.repository.SupabaseMealTemplateRepo
 import io.github.lopezjavier.appfitness.data.repository.SupabaseNotificationSettingsRepository
 import io.github.lopezjavier.appfitness.data.repository.SupabaseNutritionGoalsRepository
 import io.github.lopezjavier.appfitness.data.repository.SupabaseProfileRepository
+import io.github.lopezjavier.appfitness.data.repository.SupabaseProgressionRepository
 import io.github.lopezjavier.appfitness.data.repository.SupabaseRoutineRepository
 import io.github.lopezjavier.appfitness.data.repository.SupabaseStrengthRepository
 import io.github.lopezjavier.appfitness.data.repository.SupabaseTrainingPreferencesRepository
@@ -54,6 +55,7 @@ import io.github.lopezjavier.appfitness.data.repository.UnconfiguredMealTemplate
 import io.github.lopezjavier.appfitness.data.repository.UnconfiguredNotificationSettingsRepository
 import io.github.lopezjavier.appfitness.data.repository.UnconfiguredNutritionGoalsRepository
 import io.github.lopezjavier.appfitness.data.repository.UnconfiguredProfileRepository
+import io.github.lopezjavier.appfitness.data.repository.UnconfiguredProgressionRepository
 import io.github.lopezjavier.appfitness.data.repository.UnconfiguredRoutineRepository
 import io.github.lopezjavier.appfitness.data.repository.UnconfiguredStrengthRepository
 import io.github.lopezjavier.appfitness.data.repository.UnconfiguredTrainingPreferencesRepository
@@ -82,6 +84,7 @@ import io.github.lopezjavier.appfitness.domain.repository.MealTemplateRepository
 import io.github.lopezjavier.appfitness.domain.repository.NotificationSettingsRepository
 import io.github.lopezjavier.appfitness.domain.repository.NutritionGoalsRepository
 import io.github.lopezjavier.appfitness.domain.repository.ProfileRepository
+import io.github.lopezjavier.appfitness.domain.repository.ProgressionRepository
 import io.github.lopezjavier.appfitness.domain.repository.RoutineRepository
 import io.github.lopezjavier.appfitness.domain.repository.StrengthRepository
 import io.github.lopezjavier.appfitness.domain.repository.TrainingPreferencesRepository
@@ -285,6 +288,14 @@ val sharedModule =
                 SupabaseCoachRepository(client.auth, client.postgrest)
             } else {
                 UnconfiguredCoachRepository()
+            }
+        }
+        single<ProgressionRepository> {
+            if (get<AppConfig>().isSupabaseConfigured) {
+                val client = get<SupabaseClient>()
+                SupabaseProgressionRepository(client.auth, client.postgrest)
+            } else {
+                UnconfiguredProgressionRepository()
             }
         }
         single<MealSlotRepository> {

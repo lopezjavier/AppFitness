@@ -54,7 +54,7 @@ select results_eq(
 select enum_has_labels('public', 'set_type', array['working', 'warm_up', 'failure', 'drop'], 'set_type labels');
 select columns_are('public', 'routine_exercises', array[
   'id', 'routine_id', 'exercise_id', 'position', 'superset_group', 'target_sets', 'target_reps',
-  'target_reps_max', 'target_rpe', 'planned_set_type', 'target_weight_kg', 'rest_seconds', 'notes', 'note_kind'
+  'target_reps_max', 'target_rpe', 'planned_set_type', 'target_weight_kg', 'rest_seconds', 'notes', 'note_kind', 'rep_min', 'rep_max'
 ], 'routine_exercises has the planned columns');
 select ok(
   (select bool_and(relrowsecurity and relforcerowsecurity) from pg_class

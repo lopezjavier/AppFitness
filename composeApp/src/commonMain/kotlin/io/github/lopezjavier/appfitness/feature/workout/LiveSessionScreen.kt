@@ -266,6 +266,11 @@ private fun LiveActive(
     LiveNoteSheetHost(state, onEvent)
     LiveRoutineNoteSheetHost(state, onEvent)
     LiveCalculator(state, onEvent)
+    state.progressionHelpPosition?.let { position ->
+        state.exercises.firstOrNull { it.position == position }?.suggestion?.let {
+            ProgressionHelpSheet(it, onDismiss = { onEvent(LiveSessionEvent.DismissProgressionHelp) })
+        }
+    }
 }
 
 /** Pause or resume (hidden while an action is blocked or running) and the overflow menu of the top bar. */

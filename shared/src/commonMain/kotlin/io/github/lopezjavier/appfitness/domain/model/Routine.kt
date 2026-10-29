@@ -38,8 +38,27 @@ data class RoutineExercise(
     val notes: String? = null,
     /** Option of the exercise note; null when the exercise has no note ([Note]). */
     val noteKind: ExerciseNoteKind? = null,
+    /** Optional rep range of the exercise; without it there is no progression suggestion (US-70). */
+    val repRange: RepRange? = null,
 ) {
     val targetSets: Int get() = plannedSets.size
+}
+
+/** Rep range of a routine exercise (`rep_min`-`rep_max`, both 1-50, min <= max; mirrors the DB check). */
+data class RepRange(val min: Int, val max: Int) {
+    init {
+        require(isValid(min, max)) { "Invalid rep range $min-$max" }
+    }
+
+    companion object {
+        fun isValid(min: Int, max: Int): Boolean = min in RoutineBounds.REPS_MIN..RoutineBounds.REPS_MAX &&
+            max in RoutineBounds.REPS_MIN..RoutineBounds.REPS_MAX &&
+            min <= max
+
+        /** The range, or null when [min] or [max] is missing or the pair is invalid. */
+        fun ofOrNull(min: Int?, max: Int?): RepRange? =
+            if (min != null && max != null && isValid(min, max)) RepRange(min, max) else null
+    }
 }
 
 /** A routine template. [id] is null until it has been saved. */

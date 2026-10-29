@@ -9,6 +9,7 @@ import io.github.lopezjavier.appfitness.domain.AppError
 import io.github.lopezjavier.appfitness.domain.appErrorOrNull
 import io.github.lopezjavier.appfitness.domain.model.ExerciseNoteKind
 import io.github.lopezjavier.appfitness.domain.model.PlannedSet
+import io.github.lopezjavier.appfitness.domain.model.RepRange
 import io.github.lopezjavier.appfitness.domain.model.Routine
 import io.github.lopezjavier.appfitness.domain.model.RoutineExercise
 import io.github.lopezjavier.appfitness.domain.model.SetType
@@ -221,6 +222,31 @@ class SupabaseRoutineRepositoryTest {
             repo.get("r1").getOrThrow().exercises.map { it.noteKind },
         )
         assertTrue("notes,note_kind" in rest().first().url.encodedQuery.replace("%2C", ","))
+    }
+
+    @Test
+    fun save_sendsTheRepRangeOnlyWhenSet() = runTest {
+        val repo = signedIn()
+        val base = routine()
+
+        repo.save(base.copy(exercises = listOf(base.exercises[0].copy(repRange = RepRange(6, 8)), base.exercises[1])))
+            .getOrThrow()
+
+        val text = body(rest().single())
+        assertEquals(1, Regex(""""rep_min":6""").findAll(text).count(), text)
+        assertEquals(1, Regex(""""rep_max":8""").findAll(text).count(), text)
+        assertEquals(1, Regex(""""rep_min"""").findAll(text).count(), text)
+    }
+
+    @Test
+    fun get_mapsTheRepRange_andReadsTheColumns() = runTest {
+        val repo = signedIn()
+        getBody = ROUTINE_ROW.replace(""""rest_seconds":90,""", """"rest_seconds":90,"rep_min":6,"rep_max":8,""")
+
+        val routine = repo.get("r1").getOrThrow()
+
+        assertEquals(listOf(null, RepRange(6, 8)), routine.exercises.map { it.repRange })
+        assertTrue("rep_min,rep_max" in rest().single().url.encodedQuery.replace("%2C", ","))
     }
 
     @Test

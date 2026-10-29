@@ -57,6 +57,18 @@ import io.github.lopezjavier.appfitness.composeapp.resources.live_exercise_menu_
 import io.github.lopezjavier.appfitness.composeapp.resources.live_exercise_menu_warm_up_calc
 import io.github.lopezjavier.appfitness.composeapp.resources.note_add
 import io.github.lopezjavier.appfitness.composeapp.resources.note_edit
+import io.github.lopezjavier.appfitness.composeapp.resources.routine_builder_rep_max_decrease_cd
+import io.github.lopezjavier.appfitness.composeapp.resources.routine_builder_rep_max_increase_cd
+import io.github.lopezjavier.appfitness.composeapp.resources.routine_builder_rep_max_label
+import io.github.lopezjavier.appfitness.composeapp.resources.routine_builder_rep_min_decrease_cd
+import io.github.lopezjavier.appfitness.composeapp.resources.routine_builder_rep_min_increase_cd
+import io.github.lopezjavier.appfitness.composeapp.resources.routine_builder_rep_min_label
+import io.github.lopezjavier.appfitness.composeapp.resources.routine_builder_rep_none
+import io.github.lopezjavier.appfitness.composeapp.resources.routine_builder_rep_range_help_1
+import io.github.lopezjavier.appfitness.composeapp.resources.routine_builder_rep_range_help_2
+import io.github.lopezjavier.appfitness.composeapp.resources.routine_builder_rep_range_help_3
+import io.github.lopezjavier.appfitness.composeapp.resources.routine_builder_rep_range_help_cd
+import io.github.lopezjavier.appfitness.composeapp.resources.routine_builder_rep_range_title
 import io.github.lopezjavier.appfitness.composeapp.resources.routine_builder_target_rpe_decrease_cd
 import io.github.lopezjavier.appfitness.composeapp.resources.routine_builder_target_rpe_increase_cd
 import io.github.lopezjavier.appfitness.composeapp.resources.routine_builder_target_rpe_label
@@ -68,6 +80,8 @@ import io.github.lopezjavier.appfitness.designsystem.AppTheme
 import io.github.lopezjavier.appfitness.designsystem.DragHandle
 import io.github.lopezjavier.appfitness.designsystem.ExerciseThumbnail
 import io.github.lopezjavier.appfitness.designsystem.ExerciseThumbnailDefaults
+import io.github.lopezjavier.appfitness.designsystem.HelpButton
+import io.github.lopezjavier.appfitness.designsystem.HelpContent
 import io.github.lopezjavier.appfitness.designsystem.InlineNote
 import io.github.lopezjavier.appfitness.designsystem.NumberStepper
 import io.github.lopezjavier.appfitness.designsystem.ReorderableItemScope
@@ -286,6 +300,54 @@ private fun Steppers(row: BuilderRowUi, index: Int, onEvent: (RoutineBuilderEven
             tag = "routine_builder_rest_$index",
         )
         TargetRpeLine(row, index, onEvent)
+        RepRangeLines(row, index, onEvent)
+    }
+}
+
+/** "Reps mín." and "Reps máx." steppers (US-70); unset shows "Sin definir" and the "?" sits on the first line. */
+@Composable
+private fun RepRangeLines(row: BuilderRowUi, index: Int, onEvent: (RoutineBuilderEvent) -> Unit) {
+    val range = row.repRange
+    val none = stringResource(Res.string.routine_builder_rep_none)
+    val minText = range?.min?.toString() ?: none
+    val maxText = range?.max?.toString() ?: none
+    Column(verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
+        StepperLine(
+            unit = stringResource(Res.string.routine_builder_rep_min_label),
+            valueText = minText,
+            state = minText,
+            decreaseDescription = stringResource(Res.string.routine_builder_rep_min_decrease_cd, minText),
+            increaseDescription = stringResource(Res.string.routine_builder_rep_min_increase_cd, minText),
+            canDecrease = range != null,
+            canIncrease = range == null || range.min < RoutineBounds.REPS_MAX,
+            onStep = { onEvent(RoutineBuilderEvent.StepRepMin(index, it)) },
+            tag = "routine_builder_rep_min_$index",
+            help = {
+                HelpButton(
+                    contentDescription = stringResource(Res.string.routine_builder_rep_range_help_cd),
+                    title = stringResource(Res.string.routine_builder_rep_range_title),
+                    content = HelpContent(
+                        listOf(
+                            stringResource(Res.string.routine_builder_rep_range_help_1),
+                            stringResource(Res.string.routine_builder_rep_range_help_2),
+                            stringResource(Res.string.routine_builder_rep_range_help_3),
+                        ),
+                    ),
+                    testTag = "routine_builder_rep_range_help_$index",
+                )
+            },
+        )
+        StepperLine(
+            unit = stringResource(Res.string.routine_builder_rep_max_label),
+            valueText = maxText,
+            state = maxText,
+            decreaseDescription = stringResource(Res.string.routine_builder_rep_max_decrease_cd, maxText),
+            increaseDescription = stringResource(Res.string.routine_builder_rep_max_increase_cd, maxText),
+            canDecrease = range != null && range.max > RoutineBounds.REPS_MIN,
+            canIncrease = range == null || range.max < RoutineBounds.REPS_MAX,
+            onStep = { onEvent(RoutineBuilderEvent.StepRepMax(index, it)) },
+            tag = "routine_builder_rep_max_$index",
+        )
     }
 }
 
