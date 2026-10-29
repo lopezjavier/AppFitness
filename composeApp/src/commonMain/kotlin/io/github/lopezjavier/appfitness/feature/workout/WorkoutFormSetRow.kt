@@ -22,16 +22,15 @@ import io.github.lopezjavier.appfitness.composeapp.resources.Res
 import io.github.lopezjavier.appfitness.composeapp.resources.action_remove
 import io.github.lopezjavier.appfitness.composeapp.resources.builder_set_delete_cd
 import io.github.lopezjavier.appfitness.composeapp.resources.builder_set_type_cd
-import io.github.lopezjavier.appfitness.composeapp.resources.ic_delete
 import io.github.lopezjavier.appfitness.composeapp.resources.set_header_rpe
 import io.github.lopezjavier.appfitness.composeapp.resources.workout_form_rpe_cd
 import io.github.lopezjavier.appfitness.composeapp.resources.workout_form_rpe_value_cd
 import io.github.lopezjavier.appfitness.composeapp.resources.workout_form_seconds_cd
 import io.github.lopezjavier.appfitness.composeapp.resources.workout_form_seconds_header
-import io.github.lopezjavier.appfitness.designsystem.AppIconButton
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
 import io.github.lopezjavier.appfitness.designsystem.NumberInput
 import io.github.lopezjavier.appfitness.designsystem.SetFieldKind
+import io.github.lopezjavier.appfitness.designsystem.SetNoteButton
 import io.github.lopezjavier.appfitness.designsystem.SetOrdinal
 import io.github.lopezjavier.appfitness.designsystem.SetRowDefaults
 import io.github.lopezjavier.appfitness.designsystem.SetTypeBadge
@@ -120,6 +119,7 @@ internal fun FormSetRow(
     onEvent: (WorkoutFormEvent) -> Unit,
     onOpenTypePicker: () -> Unit,
     onOpenRpePicker: () -> Unit,
+    onOpenNote: () -> Unit,
 ) {
     val set = exercise.sets[setIndex]
     val number = setIndex + 1
@@ -162,12 +162,11 @@ internal fun FormSetRow(
                 )
             }
             RpeCell(set.rpe, number, onOpenRpePicker, Modifier.testTag("${tag}_rpe"))
-            AppIconButton(
-                contentDescription = delete,
-                icon = Res.drawable.ic_delete,
-                testTag = "${tag}_delete",
-                onClick = { onEvent(WorkoutFormEvent.RemoveSet(index, setIndex)) },
-                enabled = canRemove,
+            SetNoteButton(
+                setNumber = number,
+                hasNote = set.noteKind != null,
+                testTag = "${tagPrefix}_set_note_action_${index}_$setIndex",
+                onClick = onOpenNote,
             )
         }
     }

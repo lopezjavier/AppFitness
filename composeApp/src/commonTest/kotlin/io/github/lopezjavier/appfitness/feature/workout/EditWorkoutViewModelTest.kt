@@ -5,6 +5,7 @@ import app.cash.turbine.test
 import io.github.lopezjavier.appfitness.app.FakeConnectivityObserver
 import io.github.lopezjavier.appfitness.domain.AppError
 import io.github.lopezjavier.appfitness.domain.model.SetEntry
+import io.github.lopezjavier.appfitness.domain.model.SetNoteKind
 import io.github.lopezjavier.appfitness.domain.model.SetType
 import io.github.lopezjavier.appfitness.domain.usecase.WorkoutDraftIssue
 import io.github.lopezjavier.appfitness.feature.exercises.FakeExerciseLibrary
@@ -130,9 +131,9 @@ class EditWorkoutViewModelTest {
         seed()
         val model = viewModel()
         advanceUntilIdle()
-        model.onEvent(WorkoutFormEvent.NoteChanged(0, 0, "  pausa larga "))
-        model.onEvent(WorkoutFormEvent.NoteChanged(0, 1, "borrar"))
-        model.onEvent(WorkoutFormEvent.NoteChanged(0, 1, "   "))
+        model.onEvent(WorkoutFormEvent.NoteChanged(0, 0, SetNoteKind.Other, "  pausa larga "))
+        model.onEvent(WorkoutFormEvent.NoteChanged(0, 1, SetNoteKind.Other, "borrar"))
+        model.onEvent(WorkoutFormEvent.NoteChanged(0, 1, null, "   "))
 
         model.onEvent(EditWorkoutEvent.Save)
         advanceUntilIdle()
@@ -142,12 +143,38 @@ class EditWorkoutViewModelTest {
     }
 
     @Test
+    fun aSetNoteKind_isSavedWithTheWorkout_withoutText() = runTest(dispatcher) {
+        seed()
+        val model = viewModel()
+        advanceUntilIdle()
+        model.onEvent(WorkoutFormEvent.NoteChanged(0, 0, SetNoteKind.Technique, ""))
+
+        model.onEvent(EditWorkoutEvent.Save)
+        advanceUntilIdle()
+
+        val (draft, _) = repository.savedDrafts.single()
+        assertEquals(SetNoteKind.Technique, draft.exercises.single().sets[0].noteKind)
+        assertEquals(null, draft.exercises.single().sets[0].notes)
+    }
+
+    @Test
+    fun otherWithoutText_isIgnored() = runTest(dispatcher) {
+        seed()
+        val model = viewModel()
+        advanceUntilIdle()
+
+        model.onEvent(WorkoutFormEvent.NoteChanged(0, 0, SetNoteKind.Other, "  "))
+
+        assertEquals(null, model.form().exercises.single().sets[0].noteKind)
+    }
+
+    @Test
     fun aSetNoteOver200Characters_isIgnored() = runTest(dispatcher) {
         seed()
         val model = viewModel()
         advanceUntilIdle()
 
-        model.onEvent(WorkoutFormEvent.NoteChanged(0, 0, "x".repeat(201)))
+        model.onEvent(WorkoutFormEvent.NoteChanged(0, 0, SetNoteKind.Other, "x".repeat(201)))
 
         assertEquals(null, model.form().exercises.single().sets[0].notes)
     }

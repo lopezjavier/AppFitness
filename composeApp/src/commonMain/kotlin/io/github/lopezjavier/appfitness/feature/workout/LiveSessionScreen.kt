@@ -264,6 +264,7 @@ private fun LiveActive(
     LiveTypePicker(state, onEvent)
     LiveRpePicker(state, onEvent)
     LiveNoteSheetHost(state, onEvent)
+    LiveRoutineNoteSheetHost(state, onEvent)
     LiveCalculator(state, onEvent)
 }
 

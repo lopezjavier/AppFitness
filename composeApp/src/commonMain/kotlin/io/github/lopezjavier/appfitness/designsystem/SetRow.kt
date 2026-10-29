@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
@@ -130,6 +131,9 @@ object SetRowDefaults {
  * `_weight`, `_reps`, `_check`, `_type` (the badge) and `_rpe`. [onTypeClick]
  * (optional) makes the badge a 48 dp button described by [typeClickLabel]. [onRpeClick] (optional) adds a fixed
  * 48 dp RPE cell between reps and the checkbox, spoken as [rpeClickLabel]; it stays tappable on completed rows.
+ * Without [showPrevious] the "Anterior" column is gone and the inputs take its width (the live row, which has the
+ * note button).
+ * [trailing] is an optional 48 dp action after the checkbox (the set note, R-49); pass `showNote` to the header too.
  * Pair it with a [SetTableHeader] above, which names the columns.
  */
 @Composable
@@ -147,6 +151,8 @@ fun SetRow(
     rpeClickLabel: String? = null,
     fields: List<SetFieldSpec> = SetFieldSpec.WeightReps,
     actions: SetRowFieldActions = SetRowFieldActions(),
+    trailing: (@Composable () -> Unit)? = null,
+    showPrevious: Boolean = true,
 ) {
     val withRpe = onRpeClick != null
     val number = AppNumberFormat.integer(values.index)
@@ -164,13 +170,15 @@ fun SetRow(
             onClick = onTypeClick,
             clickLabel = typeClickLabel,
         )
-        PreviousCell(
-            text = previousText,
-            contentDescription = stringResource(Res.string.set_row_use_previous_cd, previousText),
-            onClick = onUsePrevious.takeIf { clickable },
-            maxLines = SetRowDefaults.previousMaxLines(withRpe),
-            modifier = Modifier.weight(SetRowDefaults.previousWeight(withRpe)).tag(testTagPrefix, "previous"),
-        )
+        if (showPrevious) {
+            PreviousCell(
+                text = previousText,
+                contentDescription = stringResource(Res.string.set_row_use_previous_cd, previousText),
+                onClick = onUsePrevious.takeIf { clickable },
+                maxLines = SetRowDefaults.previousMaxLines(withRpe),
+                modifier = Modifier.weight(SetRowDefaults.previousWeight(withRpe)).tag(testTagPrefix, "previous"),
+            )
+        }
         SetFieldCells(
             fields = fields,
             values = values,
@@ -192,6 +200,7 @@ fun SetRow(
             contentDescription = stringResource(Res.string.set_checkbox_cd, number),
             modifier = Modifier.tag(testTagPrefix, "check"),
         )
+        trailing?.invoke()
     }
 }
 
@@ -306,6 +315,8 @@ fun SetTableHeader(
     modifier: Modifier = Modifier,
     showRpe: Boolean = false,
     fields: List<SetFieldSpec> = SetFieldSpec.WeightReps,
+    showNote: Boolean = false,
+    showPrevious: Boolean = true,
 ) {
     Row(
         modifier = modifier.fillMaxWidth(),
@@ -318,10 +329,12 @@ fun SetTableHeader(
             spoken = stringResource(Res.string.set_header_index_cd),
             centered = true,
         )
-        HeaderText(
-            stringResource(Res.string.set_header_previous),
-            Modifier.weight(SetRowDefaults.previousWeight(showRpe)),
-        )
+        if (showPrevious) {
+            HeaderText(
+                stringResource(Res.string.set_header_previous),
+                Modifier.weight(SetRowDefaults.previousWeight(showRpe)),
+            )
+        }
         val weights = SetRowFieldLayout.weights(fields, showRpe)
         fields.forEachIndexed { position, spec ->
             HeaderText(
@@ -344,6 +357,7 @@ fun SetTableHeader(
             modifier = Modifier.width(SetCompletionCheckboxDefaults.TouchTarget),
             centered = true,
         )
+        if (showNote) Spacer(Modifier.width(SetCompletionCheckboxDefaults.TouchTarget))
     }
 }
 

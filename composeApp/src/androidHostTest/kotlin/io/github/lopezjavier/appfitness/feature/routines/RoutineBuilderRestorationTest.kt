@@ -4,6 +4,7 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.test.assertContentDescriptionEquals
+import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.assertTextContains
 import androidx.compose.ui.test.junit4.StateRestorationTester
 import androidx.compose.ui.test.junit4.v2.createComposeRule
@@ -14,6 +15,7 @@ import androidx.lifecycle.SavedStateHandle
 import io.github.lopezjavier.appfitness.app.FakeConnectivityObserver
 import io.github.lopezjavier.appfitness.app.FakeTrainingPreferencesRepository
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
+import io.github.lopezjavier.appfitness.domain.model.ExerciseNoteKind
 import io.github.lopezjavier.appfitness.domain.usecase.LoadExerciseCatalog
 import io.github.lopezjavier.appfitness.feature.exercises.FakeExerciseLibrary
 import io.github.lopezjavier.appfitness.feature.exercises.FakeExerciseMediaUris
@@ -122,12 +124,14 @@ class RoutineBuilderRestorationTest {
         rule.waitForIdle()
         rule.onNodeWithTag("routine_builder_exercise_note_0").performClick()
         rule.waitForIdle()
-        rule.onNodeWithTag("note_sheet_field").performTextInput("bajar el pe")
+        rule.onNodeWithTag("note_sheet_option_setup").performClick()
+        rule.onNodeWithTag("note_sheet_text").performTextInput("bajar el pe")
 
         tester.emulateSavedInstanceStateRestore()
         rule.waitForIdle()
 
-        rule.onNodeWithTag("note_sheet_field").assertTextContains("bajar el pe")
+        rule.onNodeWithTag("note_sheet_option_setup").assertIsSelected()
+        rule.onNodeWithTag("note_sheet_text").assertTextContains("bajar el pe")
     }
 
     @Test
@@ -146,12 +150,12 @@ class RoutineBuilderRestorationTest {
         }
         rule.waitForIdle()
         current.onEvent(RoutineBuilderEvent.AddExercise("a"))
-        current.onEvent(RoutineBuilderEvent.SetExerciseNote(0, "bajar el peso si duele"))
+        current.onEvent(RoutineBuilderEvent.SetExerciseNote(0, ExerciseNoteKind.Other, "bajar el peso si duele"))
         rule.waitForIdle()
 
         tester.emulateSavedInstanceStateRestore()
         rule.waitForIdle()
 
-        rule.onNodeWithTag("routine_builder_note_0").assertTextContains("bajar el peso si duele")
+        rule.onNodeWithTag("routine_builder_note_0").assertTextContains("bajar el peso si duele", substring = true)
     }
 }

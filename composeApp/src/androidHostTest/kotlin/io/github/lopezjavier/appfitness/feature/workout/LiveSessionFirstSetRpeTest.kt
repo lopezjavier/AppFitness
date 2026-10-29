@@ -127,10 +127,11 @@ class LiveSessionFirstSetRpeTest {
     }
 
     @Test
-    fun firstSetWithTheGhostFilledByATap_checkedWithoutRpe_opensThePicker() {
+    fun firstSetWithValuesTyped_checkedWithoutRpe_opensThePicker() {
         repository.previous = mapOf("e1" to listOf(PreviousSet(1, 80.0, 10)))
         setContent()
-        rule.onNodeWithTag("live_set_0_1_previous").performClick()
+        rule.onNodeWithTag("live_set_0_1_weight").performTextInput("80")
+        rule.onNodeWithTag("live_set_0_1_reps").performTextInput("10")
         settle()
 
         rule.onNodeWithTag("live_set_0_1_check").performClick()

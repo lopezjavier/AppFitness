@@ -23,15 +23,19 @@ import io.github.lopezjavier.appfitness.composeapp.resources.live_pending_save
 import io.github.lopezjavier.appfitness.composeapp.resources.live_rpe_cell_cd
 import io.github.lopezjavier.appfitness.composeapp.resources.live_rpe_empty_state
 import io.github.lopezjavier.appfitness.composeapp.resources.live_set_delete_cd
+import io.github.lopezjavier.appfitness.composeapp.resources.note_edit
 import io.github.lopezjavier.appfitness.designsystem.AppNumberFormat
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
+import io.github.lopezjavier.appfitness.designsystem.InlineNote
 import io.github.lopezjavier.appfitness.designsystem.SetFieldKind
+import io.github.lopezjavier.appfitness.designsystem.SetNoteButton
 import io.github.lopezjavier.appfitness.designsystem.SetRow
 import io.github.lopezjavier.appfitness.designsystem.SetRowFieldActions
 import io.github.lopezjavier.appfitness.designsystem.SetRowValues
 import io.github.lopezjavier.appfitness.designsystem.SetTypeBadgeDefaults
 import io.github.lopezjavier.appfitness.designsystem.Spacing
 import io.github.lopezjavier.appfitness.designsystem.SwipeToDeleteRow
+import io.github.lopezjavier.appfitness.designsystem.setNoteSummary
 import io.github.lopezjavier.appfitness.domain.model.Equipment
 import io.github.lopezjavier.appfitness.domain.model.ExerciseMetricType
 import io.github.lopezjavier.appfitness.feature.exercises.setFieldSpecs
@@ -72,6 +76,8 @@ internal fun SessionSetRow(
     deleteEnabled: Boolean = true,
 ) {
     val tag = "live_set_${position}_${row.setIndex}"
+    val noteText = setNoteSummary(row.noteKind, row.notes)
+    val openNote = { onEvent(LiveSessionEvent.OpenSetNote(position, row.setIndex)) }
     SwipeToDeleteRow(
         deleteLabel = stringResource(Res.string.live_set_delete_cd, row.setIndex),
         enabled = deleteEnabled,
@@ -86,7 +92,7 @@ internal fun SessionSetRow(
                 onRepsChange = { onEvent(LiveSessionEvent.RepsChanged(position, row.setIndex, it)) },
                 onCompletedChange = { onEvent(LiveSessionEvent.SetChecked(position, row.setIndex, it)) },
                 modifier = Modifier.testTag(tag),
-                onUsePrevious = { onEvent(LiveSessionEvent.UsePrevious(position, row.setIndex)) },
+                showPrevious = false,
                 testTagPrefix = tag,
                 onTypeClick = { onEvent(LiveSessionEvent.OpenTypePicker(position, row.setIndex)) },
                 typeClickLabel = stringResource(
@@ -106,15 +112,24 @@ internal fun SessionSetRow(
                     AppNumberFormat.integer(row.setIndex),
                     row.rpe ?: stringResource(Res.string.live_rpe_empty_state),
                 ),
+                trailing = {
+                    SetNoteButton(
+                        setNumber = row.setIndex,
+                        hasNote = noteText != null,
+                        testTag = "live_set_note_action_${position}_${row.setIndex}",
+                        onClick = openNote,
+                    )
+                },
             )
             if (row.pendingSave) PendingSaveLabel(Modifier.testTag("${tag}_pending"))
-            SetNoteLine(
-                setIndex = row.setIndex,
-                notes = row.notes,
-                onEdit = { onEvent(LiveSessionEvent.OpenSetNote(position, row.setIndex)) },
-                noteTag = "live_set_note_${position}_${row.setIndex}",
-                actionTag = "live_set_note_action_${position}_${row.setIndex}",
-            )
+            noteText?.let {
+                InlineNote(
+                    text = it,
+                    testTag = "live_set_note_${position}_${row.setIndex}",
+                    onClick = openNote,
+                    onClickLabel = stringResource(Res.string.note_edit),
+                )
+            }
             if (row.invalid) {
                 Text(
                     text = stringResource(

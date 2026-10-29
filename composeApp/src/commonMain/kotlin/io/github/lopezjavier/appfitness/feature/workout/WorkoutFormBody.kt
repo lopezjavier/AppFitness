@@ -33,6 +33,8 @@ import io.github.lopezjavier.appfitness.designsystem.NumberInput
 import io.github.lopezjavier.appfitness.designsystem.RpePickerSheet
 import io.github.lopezjavier.appfitness.designsystem.SetTypePickerSheet
 import io.github.lopezjavier.appfitness.designsystem.Spacing
+import io.github.lopezjavier.appfitness.designsystem.setNoteHelp
+import io.github.lopezjavier.appfitness.designsystem.setNoteOptions
 import io.github.lopezjavier.appfitness.domain.model.WorkoutDraftBounds
 import io.github.lopezjavier.appfitness.domain.usecase.WorkoutDraftIssue
 import org.jetbrains.compose.resources.stringResource
@@ -150,10 +152,13 @@ private fun FormNoteSheet(form: WorkoutForm, slot: Int, onEvent: (WorkoutFormEve
     val haptics = LocalAppHaptics.current
     NoteSheet(
         title = stringResource(Res.string.note_sheet_set_title, setIndex + 1),
-        initial = set.notes,
-        onSave = {
+        options = setNoteOptions(),
+        initialKind = set.noteKind,
+        initialText = set.notes,
+        help = setNoteHelp(),
+        onSave = { kind, text ->
             haptics.confirm()
-            onEvent(WorkoutFormEvent.NoteChanged(index, setIndex, it.orEmpty()))
+            onEvent(WorkoutFormEvent.NoteChanged(index, setIndex, kind, text.orEmpty()))
             close()
         },
         onDismiss = close,

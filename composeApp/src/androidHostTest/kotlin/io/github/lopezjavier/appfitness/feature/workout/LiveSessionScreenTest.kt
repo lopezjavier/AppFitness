@@ -482,7 +482,7 @@ class LiveSessionScreenTest {
     }
 
     @Test
-    fun plannedWeightAndReps_areDimHintsNotValues_andThePreviousColumnIsKept() {
+    fun plannedWeightAndReps_areDimHintsNotValues_andThereIsNoPreviousColumn() {
         show(plannedState())
 
         rule.onNodeWithTag("live_set_0_2_weight").assertTextEquals("")
@@ -491,6 +491,6 @@ class LiveSessionScreenTest {
         val values = (plannedState().exercises.single().sets[1]).toSetRowValues()
         assertEquals("80" to "8", values.weightPlaceholder to values.repsPlaceholder)
         assertEquals("" to "", values.weight to values.reps)
-        rule.onNodeWithTag("live_set_0_1_previous").assertTextContains("30 kg × 12")
+        rule.onNodeWithTag("live_set_0_1_previous").assertDoesNotExist()
     }
 }

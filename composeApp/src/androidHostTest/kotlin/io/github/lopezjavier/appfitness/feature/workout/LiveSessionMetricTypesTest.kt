@@ -19,7 +19,6 @@ import io.github.lopezjavier.appfitness.app.FakeTrainingPreferencesRepository
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
 import io.github.lopezjavier.appfitness.domain.model.Equipment
 import io.github.lopezjavier.appfitness.domain.model.ExerciseMetricType
-import io.github.lopezjavier.appfitness.domain.model.PreviousSet
 import io.github.lopezjavier.appfitness.domain.model.SessionExercise
 import io.github.lopezjavier.appfitness.domain.model.SetEntry
 import io.github.lopezjavier.appfitness.domain.usecase.SaveBodyMeasurement
@@ -205,14 +204,6 @@ class LiveSessionMetricTypesTest {
     }
 
     @Test
-    fun durationExercise_ghostShowsThePreviousTime() {
-        repository.previous = mapOf("e1" to listOf(PreviousSet(1, 0.0, 0, durationS = 90)))
-        show()
-
-        rule.onNodeWithTag("live_set_1_1_previous").assertTextEquals("01:30")
-    }
-
-    @Test
     fun distanceExercise_showsDistanceAndDuration_andSavesMetresAndSeconds() {
         show()
 
@@ -226,14 +217,6 @@ class LiveSessionMetricTypesTest {
         tap("live_set_2_1_check")
 
         assertEquals(SetEntry.DistanceDuration(5000.0, 1800), lastEntry(TREADMILL))
-    }
-
-    @Test
-    fun distanceExercise_ghostShowsKilometresAndTime() {
-        repository.previous = mapOf("e2" to listOf(PreviousSet(1, 0.0, 0, durationS = 1800, distanceM = 5000.0)))
-        show()
-
-        rule.onNodeWithTag("live_set_2_1_previous").assertTextEquals("5,0 km · 30:00")
     }
 
     @Test

@@ -2,14 +2,18 @@ package io.github.lopezjavier.appfitness.feature.workout
 
 import androidx.lifecycle.SavedStateHandle
 import io.github.lopezjavier.appfitness.app.FakeConnectivityObserver
+import io.github.lopezjavier.appfitness.app.FakeDiscomfortRepository
 import io.github.lopezjavier.appfitness.app.FakeTrainingPreferencesRepository
 import io.github.lopezjavier.appfitness.domain.AppError
 import io.github.lopezjavier.appfitness.domain.AppException
+import io.github.lopezjavier.appfitness.domain.model.DiscomfortLevel
+import io.github.lopezjavier.appfitness.domain.model.ExerciseNoteKind
 import io.github.lopezjavier.appfitness.domain.model.PlannedSet
 import io.github.lopezjavier.appfitness.domain.model.Routine
 import io.github.lopezjavier.appfitness.domain.model.RoutineExercise
 import io.github.lopezjavier.appfitness.domain.model.SessionExercise
 import io.github.lopezjavier.appfitness.domain.model.SessionStatus
+import io.github.lopezjavier.appfitness.domain.model.SetNoteKind
 import io.github.lopezjavier.appfitness.domain.model.TrainingPreferences
 import io.github.lopezjavier.appfitness.domain.usecase.SaveBodyMeasurement
 import io.github.lopezjavier.appfitness.feature.exercises.FakeExerciseLibrary
@@ -59,6 +63,7 @@ class LiveSessionRoutineUpdateViewModelTest {
         SaveBodyMeasurement(bodyMeasurements, clock, TimeZone.UTC),
         TimeZone.UTC,
         savedState,
+        discomfortRepository = FakeDiscomfortRepository(now = { clock.current }),
     ).also { created = it }
 
     private fun runSessionTest(body: suspend TestScope.() -> Unit) = runTest {
@@ -344,6 +349,110 @@ class LiveSessionRoutineUpdateViewModelTest {
         advanceUntilIdle()
         assertEquals(listOf("s1"), routines.updatedFromSession)
         assertFalse(recreated.finished().updateRoutineSheet != null)
+    }
+
+    private fun TestScope.editRoutineNote(vm: LiveSessionViewModel, position: Int, kind: ExerciseNoteKind) {
+        vm.onEvent(LiveSessionEvent.OpenRoutineNote(position))
+        vm.onEvent(LiveSessionEvent.RoutineNoteKindChanged(kind))
+        vm.onEvent(LiveSessionEvent.SaveRoutineNote)
+        runCurrent()
+    }
+
+    @Test
+    fun editingARoutineNote_andFinishing_offersTheRoutineUpdateWithTheNoteChange() = runSessionTest {
+        val vm = loaded()
+        logAsPlanned(vm)
+        editRoutineNote(vm, 0, ExerciseNoteKind.WeightUp)
+
+        finish(vm)
+
+        assertEquals(RoutineChangeSummary(notesChanged = 1), vm.finished().updateRoutineSheet?.summary)
+        assertTrue(routines.updatedFromSession.isEmpty())
+    }
+
+    @Test
+    fun decliningTheUpdate_leavesTheRoutineNoteUntouched() = runSessionTest {
+        val vm = loaded()
+        logAsPlanned(vm)
+        editRoutineNote(vm, 0, ExerciseNoteKind.WeightUp)
+        finish(vm)
+
+        vm.onEvent(LiveSessionEvent.KeepRoutine)
+        advanceUntilIdle()
+
+        assertTrue(routines.updatedFromSession.isEmpty())
+        assertTrue(routines.saved.isEmpty())
+        assertNull(routines.routines.first().exercises[0].noteKind)
+    }
+
+    @Test
+    fun acceptingTheUpdate_savesTheEditedNoteOnTheRoutine() = runSessionTest {
+        val vm = loaded()
+        logAsPlanned(vm)
+        editRoutineNote(vm, 1, ExerciseNoteKind.Setup)
+        finish(vm)
+
+        vm.onEvent(LiveSessionEvent.UpdateRoutine)
+        advanceUntilIdle()
+
+        assertEquals(listOf("s1"), routines.updatedFromSession)
+        val saved = routines.saved.single()
+        assertEquals(listOf(null, ExerciseNoteKind.Setup), saved.exercises.map { it.noteKind })
+        assertNull(vm.finished().updateRoutineSheet)
+    }
+
+    @Test
+    fun withAutoUpdateOn_anEditedRoutineNoteIsSavedWithoutTheSheet() = runSessionTest {
+        trainingPreferences.result = Result.success(TrainingPreferences(autoUpdateRoutine = true))
+        val vm = loaded()
+        logAsPlanned(vm)
+        editRoutineNote(vm, 0, ExerciseNoteKind.Technique)
+
+        finish(vm)
+
+        assertNull(vm.finished().updateRoutineSheet)
+        assertEquals(ExerciseNoteKind.Technique, routines.saved.single().exercises[0].noteKind)
+    }
+
+    @Test
+    fun aSetNote_isNotARoutineChange() = runSessionTest {
+        val vm = loaded()
+        logAsPlanned(vm)
+        vm.onEvent(LiveSessionEvent.OpenSetNote(0, 1))
+        vm.onEvent(LiveSessionEvent.SetNoteKindChanged(SetNoteKind.Technique))
+        vm.onEvent(LiveSessionEvent.SaveSetNote)
+        runCurrent()
+
+        finish(vm)
+
+        assertNull(vm.finished().updateRoutineSheet)
+    }
+
+    @Test
+    fun loggingADiscomfort_neverOffersTheRoutineUpdate() = runSessionTest {
+        val vm = loaded()
+        logAsPlanned(vm)
+        vm.onEvent(LiveSessionEvent.LogDiscomfort(0, DiscomfortLevel.Mild, "rodilla"))
+        runCurrent()
+
+        finish(vm)
+
+        assertNull(vm.finished().updateRoutineSheet)
+        assertTrue(routines.saved.isEmpty())
+    }
+
+    @Test
+    fun anEditedRoutineNote_survivesRecreationAndStillCountsAsAChange() = runSessionTest {
+        val saved = SavedStateHandle()
+        val first = loaded(saved)
+        editRoutineNote(first, 0, ExerciseNoteKind.WeightDown)
+
+        val second = loaded(saved)
+
+        assertEquals(
+            ExerciseNoteKind.WeightDown,
+            assertIs<LiveSessionUiState.Active>(second.uiState.value).exercises[0].routineNoteKind,
+        )
     }
 
     private companion object {

@@ -66,6 +66,7 @@ import io.github.lopezjavier.appfitness.designsystem.SetTypeBadge
 import io.github.lopezjavier.appfitness.designsystem.SkeletonBox
 import io.github.lopezjavier.appfitness.designsystem.Spacing
 import io.github.lopezjavier.appfitness.designsystem.appAnimateItem
+import io.github.lopezjavier.appfitness.designsystem.setNoteSummary
 import io.github.lopezjavier.appfitness.domain.usecase.RpeScale
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
@@ -273,7 +274,7 @@ private fun ExerciseBlock(exercise: DetailExercise, onOpen: () -> Unit, modifier
             }
             exercise.sets.forEach { set ->
                 SetLine(exercise.position, set)
-                set.notes?.let {
+                setNoteSummary(set.noteKind, set.notes)?.let {
                     InlineNote(text = it, testTag = "session_detail_set_note_${exercise.position}_${set.setIndex}")
                 }
             }

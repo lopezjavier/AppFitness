@@ -86,6 +86,13 @@ class LiveSessionUpdateRoutineScreenTest {
     }
 
     @Test
+    fun changedRoutineNotes_showTheirOwnSummaryLine() {
+        show(LiveSessionUiState.Finished(SUMMARY, sheet(RoutineChangeSummary(notesChanged = 2))))
+
+        rule.onNodeWithText("2 notas modificadas").assertExists()
+    }
+
+    @Test
     fun choicesAndCommit_have48dpTargets() {
         show(LiveSessionUiState.Finished(SUMMARY, sheet()))
 

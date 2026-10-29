@@ -17,6 +17,7 @@ import androidx.compose.ui.test.performTextClearance
 import androidx.compose.ui.test.performTextInput
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
 import io.github.lopezjavier.appfitness.domain.model.PersonalRecordType
+import io.github.lopezjavier.appfitness.domain.model.SetNoteKind
 import io.github.lopezjavier.appfitness.domain.model.SetType
 import io.github.lopezjavier.appfitness.domain.usecase.SessionStats
 import kotlinx.datetime.LocalDate
@@ -87,7 +88,7 @@ class SessionDetailScreenTest {
                         if (it.setIndex ==
                             1
                         ) {
-                            it.copy(notes = "pausa larga")
+                            it.copy(notes = "pausa larga", noteKind = SetNoteKind.Grip)
                         } else {
                             it
                         }
@@ -98,7 +99,7 @@ class SessionDetailScreenTest {
         )
         show(state)
 
-        rule.onNodeWithTag("session_detail_set_note_0_1").assertTextContains("pausa larga")
+        rule.onNodeWithTag("session_detail_set_note_0_1").assertTextContains("Agarre flojo · pausa larga")
         rule.onNodeWithTag("session_detail_set_note_0_2").assertDoesNotExist()
         rule.onNodeWithTag("note_sheet_commit").assertDoesNotExist()
     }

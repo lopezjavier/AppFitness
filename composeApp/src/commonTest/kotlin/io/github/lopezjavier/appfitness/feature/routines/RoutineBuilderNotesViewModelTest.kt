@@ -3,6 +3,7 @@ package io.github.lopezjavier.appfitness.feature.routines
 import androidx.lifecycle.SavedStateHandle
 import io.github.lopezjavier.appfitness.app.FakeConnectivityObserver
 import io.github.lopezjavier.appfitness.app.FakeTrainingPreferencesRepository
+import io.github.lopezjavier.appfitness.domain.model.ExerciseNoteKind
 import io.github.lopezjavier.appfitness.domain.model.PlannedSet
 import io.github.lopezjavier.appfitness.domain.model.Routine
 import io.github.lopezjavier.appfitness.domain.model.RoutineExercise
@@ -75,7 +76,7 @@ class RoutineBuilderNotesViewModelTest {
         val vm = builder()
         assertFalse(vm.form().isDirty)
 
-        vm.onEvent(RoutineBuilderEvent.SetExerciseNote(1, "  pausa al bajar "))
+        vm.onEvent(RoutineBuilderEvent.SetExerciseNote(1, ExerciseNoteKind.Other, "  pausa al bajar "))
 
         assertEquals("pausa al bajar", vm.form().rows[1].notes)
         assertTrue(vm.form().isDirty)
@@ -84,7 +85,7 @@ class RoutineBuilderNotesViewModelTest {
     @Test
     fun theNote_isSavedWithTheRoutine() = runTest {
         val vm = builder()
-        vm.onEvent(RoutineBuilderEvent.SetExerciseNote(1, "pausa al bajar"))
+        vm.onEvent(RoutineBuilderEvent.SetExerciseNote(1, ExerciseNoteKind.Other, "pausa al bajar"))
 
         vm.onEvent(RoutineBuilderEvent.Save)
         advanceUntilIdle()
@@ -97,7 +98,7 @@ class RoutineBuilderNotesViewModelTest {
     fun clearingANote_removesItFromTheSavedRoutine() = runTest {
         val vm = builder()
 
-        vm.onEvent(RoutineBuilderEvent.SetExerciseNote(0, "   "))
+        vm.onEvent(RoutineBuilderEvent.SetExerciseNote(0, null, "   "))
         vm.onEvent(RoutineBuilderEvent.Save)
         advanceUntilIdle()
 
@@ -108,7 +109,7 @@ class RoutineBuilderNotesViewModelTest {
     fun aNoteOver200Characters_isIgnored() = runTest {
         val vm = builder()
 
-        vm.onEvent(RoutineBuilderEvent.SetExerciseNote(0, "x".repeat(201)))
+        vm.onEvent(RoutineBuilderEvent.SetExerciseNote(0, ExerciseNoteKind.Other, "x".repeat(201)))
 
         assertEquals("bajar el peso si duele", vm.form().rows[0].notes)
         assertFalse(vm.form().isDirty)
@@ -118,8 +119,8 @@ class RoutineBuilderNotesViewModelTest {
     fun revertingANoteToItsSavedText_isNotDirty() = runTest {
         val vm = builder()
 
-        vm.onEvent(RoutineBuilderEvent.SetExerciseNote(0, "otra"))
-        vm.onEvent(RoutineBuilderEvent.SetExerciseNote(0, "bajar el peso si duele"))
+        vm.onEvent(RoutineBuilderEvent.SetExerciseNote(0, ExerciseNoteKind.Other, "otra"))
+        vm.onEvent(RoutineBuilderEvent.SetExerciseNote(0, ExerciseNoteKind.Other, "bajar el peso si duele"))
 
         assertFalse(vm.form().isDirty)
     }
@@ -128,7 +129,7 @@ class RoutineBuilderNotesViewModelTest {
     fun aDraftWithANote_survivesRecreationFromTheSameSavedState() = runTest {
         val saved = SavedStateHandle()
         val first = builder(savedState = saved)
-        first.onEvent(RoutineBuilderEvent.SetExerciseNote(1, "pausa al bajar"))
+        first.onEvent(RoutineBuilderEvent.SetExerciseNote(1, ExerciseNoteKind.Other, "pausa al bajar"))
         advanceUntilIdle()
 
         val second = builder(savedState = saved)
@@ -141,9 +142,60 @@ class RoutineBuilderNotesViewModelTest {
     fun aNoteSayingDolorFuerte_isKeptAsIs() = runTest {
         val vm = builder()
 
-        vm.onEvent(RoutineBuilderEvent.SetExerciseNote(1, "dolor fuerte"))
+        vm.onEvent(RoutineBuilderEvent.SetExerciseNote(1, ExerciseNoteKind.Other, "dolor fuerte"))
 
         assertEquals("dolor fuerte", vm.form().rows[1].notes)
+    }
+
+    @Test
+    fun aKindWithoutText_isSavedWithTheRoutine() = runTest {
+        val vm = builder()
+        vm.onEvent(RoutineBuilderEvent.SetExerciseNote(1, ExerciseNoteKind.WeightUp, ""))
+
+        vm.onEvent(RoutineBuilderEvent.Save)
+        advanceUntilIdle()
+
+        val saved = repository.saved.single().exercises[1]
+        assertEquals(ExerciseNoteKind.WeightUp, saved.noteKind)
+        assertNull(saved.notes)
+        assertEquals(ExerciseNoteKind.WeightUp, vm.form().rows[1].noteKind)
+    }
+
+    @Test
+    fun otherWithoutText_andTextWithoutAKind_areIgnored() = runTest {
+        val vm = builder()
+
+        vm.onEvent(RoutineBuilderEvent.SetExerciseNote(1, ExerciseNoteKind.Other, "  "))
+        vm.onEvent(RoutineBuilderEvent.SetExerciseNote(1, null, "texto suelto"))
+
+        assertNull(vm.form().rows[1].noteKind)
+        assertNull(vm.form().rows[1].notes)
+        assertFalse(vm.form().isDirty)
+    }
+
+    @Test
+    fun clearingTheKind_removesTheNote() = runTest {
+        val vm = builder()
+
+        vm.onEvent(RoutineBuilderEvent.SetExerciseNote(0, null, ""))
+        vm.onEvent(RoutineBuilderEvent.Save)
+        advanceUntilIdle()
+
+        val saved = repository.saved.single().exercises[0]
+        assertNull(saved.noteKind)
+        assertNull(saved.notes)
+    }
+
+    @Test
+    fun theKind_survivesRecreationFromTheSameSavedState() = runTest {
+        val saved = SavedStateHandle()
+        val first = builder(savedState = saved)
+        first.onEvent(RoutineBuilderEvent.SetExerciseNote(1, ExerciseNoteKind.Setup, ""))
+        advanceUntilIdle()
+
+        val second = builder(savedState = saved)
+
+        assertEquals(ExerciseNoteKind.Setup, second.form().rows[1].noteKind)
     }
 
     private fun stored() = Routine(

@@ -9,6 +9,7 @@ import io.github.lopezjavier.appfitness.domain.model.PreviousSet
 import io.github.lopezjavier.appfitness.domain.model.SessionExercise
 import io.github.lopezjavier.appfitness.domain.model.SessionStatus
 import io.github.lopezjavier.appfitness.domain.model.SetEntry
+import io.github.lopezjavier.appfitness.domain.model.SetNoteKind
 import io.github.lopezjavier.appfitness.domain.model.SetType
 import io.github.lopezjavier.appfitness.domain.model.TrainedSession
 import io.github.lopezjavier.appfitness.domain.model.WorkoutDraft
@@ -193,15 +194,16 @@ internal class FakeWorkoutSessionRepository(var session: WorkoutSession? = null)
         setType: SetType,
         rpe: Double?,
         notes: String?,
+        noteKind: SetNoteKind?,
     ): Result<Unit> {
         failing(upsertFailure)?.let { return it }
         applyToCompleted(sessionId, exercisePosition, setIndex, entry)
-        storeSetTypeAndRpe(sessionId, exercisePosition, setIndex, setType, rpe, notes)
+        storeSetTypeAndRpe(sessionId, exercisePosition, setIndex, setType, rpe, notes, noteKind)
         serverLog += "upsert:$exercisePosition:$setIndex"
         upserts +=
             SetWrite(
                 sessionId, exerciseId, exercisePosition, supersetGroup, setIndex, entry, completedAt, setType, rpe,
-                notes,
+                notes, noteKind,
             )
         return Result.success(Unit)
     }
@@ -306,6 +308,7 @@ internal class FakeWorkoutSessionRepository(var session: WorkoutSession? = null)
         setType: SetType,
         rpe: Double?,
         notes: String?,
+        noteKind: SetNoteKind?,
     ) {
         val stored = session?.takeIf { it.id == sessionId } ?: return
         session = stored.copy(
@@ -315,7 +318,13 @@ internal class FakeWorkoutSessionRepository(var session: WorkoutSession? = null)
                 } else {
                     exercise.copy(
                         sets = exercise.sets.map {
-                            if (it.setIndex == setIndex) it.copy(setType = setType, rpe = rpe, notes = notes) else it
+                            if (it.setIndex ==
+                                setIndex
+                            ) {
+                                it.copy(setType = setType, rpe = rpe, notes = notes, noteKind = noteKind)
+                            } else {
+                                it
+                            }
                         },
                     )
                 }

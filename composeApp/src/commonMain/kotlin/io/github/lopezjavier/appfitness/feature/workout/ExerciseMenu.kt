@@ -34,6 +34,7 @@ import io.github.lopezjavier.appfitness.composeapp.resources.live_exercise_menu_
 import io.github.lopezjavier.appfitness.composeapp.resources.live_exercise_menu_discomfort_offline
 import io.github.lopezjavier.appfitness.composeapp.resources.live_exercise_menu_plate_calc
 import io.github.lopezjavier.appfitness.composeapp.resources.live_exercise_menu_rest
+import io.github.lopezjavier.appfitness.composeapp.resources.live_exercise_menu_routine_note
 import io.github.lopezjavier.appfitness.composeapp.resources.live_exercise_menu_title
 import io.github.lopezjavier.appfitness.composeapp.resources.live_exercise_menu_warm_up_calc
 import io.github.lopezjavier.appfitness.composeapp.resources.live_rest_sheet_hint
@@ -98,6 +99,7 @@ internal fun ExerciseMenuSheet(
     onBodyWeight: () -> Unit,
     onDismiss: () -> Unit,
     onDiscomfort: () -> Unit = {},
+    onRoutineNote: (() -> Unit)? = null,
     online: Boolean = true,
 ) {
     val prefix = "live_exercise_$position"
@@ -130,6 +132,7 @@ internal fun ExerciseMenuSheet(
             )
         }
         add(discomfortAction(prefix, online, onDiscomfort))
+        onRoutineNote?.let { add(routineNoteAction(prefix, it)) }
         if (exercise.metricType in BODY_WEIGHT_TYPES) {
             add(
                 AppSheetAction(
@@ -207,3 +210,12 @@ internal fun ExerciseRestSheet(position: Int, currentSeconds: Int, onSave: (Int)
 
 private const val MIN = RoutineBounds.REST_MIN_SECONDS
 private const val MAX = RoutineBounds.REST_MAX_SECONDS
+
+/** "Nota del ejercicio": edits the routine's note of this exercise (ADR-82). */
+@Composable
+private fun routineNoteAction(prefix: String, onClick: () -> Unit) = AppSheetAction(
+    Res.drawable.ic_edit,
+    stringResource(Res.string.live_exercise_menu_routine_note),
+    onClick = onClick,
+    testTag = "${prefix}_menu_note",
+)

@@ -29,6 +29,7 @@ import io.github.lopezjavier.appfitness.composeapp.resources.builder_superset_la
 import io.github.lopezjavier.appfitness.composeapp.resources.exercise_unnamed
 import io.github.lopezjavier.appfitness.composeapp.resources.live_object_set
 import io.github.lopezjavier.appfitness.composeapp.resources.live_target_rpe
+import io.github.lopezjavier.appfitness.composeapp.resources.note_edit
 import io.github.lopezjavier.appfitness.designsystem.AddItemButton
 import io.github.lopezjavier.appfitness.designsystem.AppCard
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
@@ -36,6 +37,7 @@ import io.github.lopezjavier.appfitness.designsystem.InlineNote
 import io.github.lopezjavier.appfitness.designsystem.RpeHelpButton
 import io.github.lopezjavier.appfitness.designsystem.SetTableHeader
 import io.github.lopezjavier.appfitness.designsystem.Spacing
+import io.github.lopezjavier.appfitness.designsystem.exerciseNoteSummary
 import io.github.lopezjavier.appfitness.feature.exercises.setFieldSpecs
 import io.github.lopezjavier.appfitness.feature.weight.decimalText
 import org.jetbrains.compose.resources.stringResource
@@ -71,7 +73,7 @@ internal fun LiveExerciseCard(
                     onEvent(LiveSessionEvent.ResolveDiscomfort(position))
                 })
             }
-            exercise.routineNote?.let { InlineNote(text = it, testTag = "live_exercise_note_$position") }
+            RoutineNoteLine(exercise, position) { onEvent(LiveSessionEvent.OpenRoutineNote(position)) }
             exercise.targetRpeText?.let {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text(
@@ -84,7 +86,7 @@ internal fun LiveExerciseCard(
                 }
             }
             val fields = setFieldSpecs(exercise.metricType, exercise.equipment)
-            SetTableHeader(showRpe = true, fields = fields)
+            SetTableHeader(showRpe = true, fields = fields, showNote = true, showPrevious = false)
             exercise.sets.forEach {
                 SessionSetRow(
                     position,
@@ -200,6 +202,11 @@ private fun ExerciseSheets(
             },
             online = online,
             onDiscomfort = { onSheetChange(ExerciseSheet.Discomfort) },
+            onRoutineNote = if (exercise.routineNoteEditable) {
+                { onEvent(LiveSessionEvent.OpenRoutineNote(position)) }
+            } else {
+                null
+            },
             // The sheet closes after the tapped action ran: only close it if the action did not open another one.
             onDismiss = { onSheetClose(ExerciseSheet.Menu) },
         )
@@ -227,6 +234,19 @@ private fun ExerciseSheets(
                 onSheetChange(ExerciseSheet.None)
             },
             onDismiss = { onSheetChange(ExerciseSheet.None) },
+        )
+    }
+}
+
+/** The routine note under the heading; a tap edits it when the exercise belongs to a routine. */
+@Composable
+private fun RoutineNoteLine(exercise: LiveExercise, position: Int, onEdit: () -> Unit) {
+    exerciseNoteSummary(exercise.routineNoteKind, exercise.routineNote)?.let {
+        InlineNote(
+            text = it,
+            testTag = "live_exercise_note_$position",
+            onClick = onEdit.takeIf { exercise.routineNoteEditable },
+            onClickLabel = stringResource(Res.string.note_edit),
         )
     }
 }
