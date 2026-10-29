@@ -27,7 +27,6 @@ import io.github.lopezjavier.appfitness.feature.profile.PreferencesHubScreen
 import io.github.lopezjavier.appfitness.feature.profile.PreferencesSection
 import io.github.lopezjavier.appfitness.feature.profile.PreferencesSectionScreen
 import io.github.lopezjavier.appfitness.feature.profile.PreferencesUiState
-import io.github.lopezjavier.appfitness.feature.profile.ProfileRootActions
 import io.github.lopezjavier.appfitness.feature.profile.ProfileRootScreen
 import io.github.lopezjavier.appfitness.feature.profile.ProfileRootUiState
 import kotlinx.datetime.LocalDate
@@ -59,12 +58,12 @@ class PreferencesNavigationTest {
         split = MacroSplit.DEFAULT,
     )
 
-    private val profileSlot: ProfileSlot = { modifier, onOpenPreferences, _, _, _, _, _, _, _ ->
+    private val profileSlot: ProfileSlot = { modifier, actions ->
         ProfileRootScreen(
             state = ProfileRootUiState.Loaded("Ana", null),
             onEvent = {},
             modifier = modifier,
-            actions = ProfileRootActions(onOpenPreferences = onOpenPreferences),
+            actions = actions,
         )
     }
     private val hubSlot: PreferencesSlot = { modifier, onBack, onOpenSection, onOpenMeals, onOpenAccount ->
@@ -161,16 +160,26 @@ class PreferencesNavigationTest {
     }
 
     @Test
-    fun miEntrenamientoRow_opensAnEditor_andSavingReturnsToTheHub() {
+    fun miEntrenamientoRow_inThePerfilRoot_opensTheEditorDirectly_andSavingReturnsToPerfil() {
         showShell()
-        openHubFromPerfil()
-        tap("preferences_row_mi_entrenamiento")
+        tap("nav_tab_profile")
+        tap("profile_my_training_row")
         rule.onNodeWithTag("preferences_hub").assertDoesNotExist()
+        rule.onNodeWithTag("preferences_macros_save").assertExists()
 
         tap("preferences_macros_save")
 
-        rule.onNodeWithTag("preferences_hub").assertExists()
-        rule.onNodeWithTag("preferences_row_mi_entrenamiento").assertExists()
+        rule.onNodeWithTag("profile_my_training_row").assertExists()
+        rule.onNodeWithTag("preferences_hub").assertDoesNotExist()
+    }
+
+    @Test
+    fun theHub_noLongerListsMiEntrenamiento() {
+        showShell()
+        openHubFromPerfil()
+
+        rule.onNodeWithTag("preferences_row_mi_entrenamiento").assertDoesNotExist()
+        rule.onNodeWithTag("preferences_row_training").assertExists()
     }
 
     @Test

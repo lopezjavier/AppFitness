@@ -7,6 +7,7 @@ import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.assertIsOff
 import androidx.compose.ui.test.assertIsOn
 import androidx.compose.ui.test.assertTextContains
+import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.junit4.StateRestorationTester
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
@@ -214,7 +215,7 @@ class PreferencesRestorationTest {
     }
 
     @Test
-    fun myTraining_keepsTheDraft_andTheOpenSessionPicker_afterRecreation() {
+    fun myTraining_keepsTheDraft_andTheOpenIntentionPicker_afterRecreation() {
         val tester = StateRestorationTester(rule)
         show(tester, "mi_entrenamiento")
         send(PreferencesEvent.SetIntention(TrainingIntention.Muscle))
@@ -222,17 +223,17 @@ class PreferencesRestorationTest {
         send(PreferencesEvent.SetEquipment(Equipment.Barbell, true))
         send(PreferencesEvent.SetDaysPerWeek(4))
         send(PreferencesEvent.SetSessionMinutes(45))
-        rule.onNodeWithTag("preferences_session_field").performScrollTo().performClick()
+        rule.onNodeWithTag("preferences_intention_field").performScrollTo().performClick()
         rule.waitForIdle()
 
         recreate(tester)
 
-        rule.onNodeWithTag("preferences_session_option_45").assertIsDisplayed()
-        rule.onNodeWithTag("preferences_session_option_45").performClick()
+        rule.onNodeWithTag("preferences_intention_option_muscle").assertIsDisplayed()
+        rule.onNodeWithTag("preferences_intention_option_muscle").performClick()
         rule.waitForIdle()
         rule.onNodeWithTag("preferences_intention_field").assertTextContains("Ganar musculatura", substring = true)
-        rule.onNodeWithTag("preferences_days_field").performScrollTo().assertTextContains("4 días", substring = true)
-        rule.onNodeWithTag("preferences_session_field").performScrollTo().assertTextContains("45 min", substring = true)
+        rule.onNodeWithTag("preferences_days_stepper_value").performScrollTo().assertTextEquals("4 días")
+        rule.onNodeWithTag("preferences_session_stepper_value").performScrollTo().assertTextEquals("45 min")
         rule.onNodeWithTag("preferences_equipment_barbell").performScrollTo().assertIsOn()
         rule.onNodeWithTag("preferences_mi_entrenamiento_save").assertIsEnabled()
     }

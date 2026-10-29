@@ -251,6 +251,11 @@
     <string name="onboarding_helper_goals">Ajusta tu estrategia de energía y guarda.</string>
     <string name="onboarding_goals_saved">Objetivos guardados</string>
     <string name="energy_heading">Estrategia energética</string>
+    <string name="energy_strategy_help_cd">Ayuda: estrategia energética</string>
+    <string name="energy_strategy_help_intro">La estrategia decide si comes por debajo, igual o por encima de tu gasto diario estimado.</string>
+    <string name="energy_strategy_help_deficit">Déficit: comes menos de lo que gastas para perder grasa.</string>
+    <string name="energy_strategy_help_maintenance">Mantenimiento: comes lo que gastas para mantener el peso.</string>
+    <string name="energy_strategy_help_surplus">Superávit: comes más de lo que gastas para ganar peso y músculo.</string>
     <string name="energy_tdee">Gasto diario estimado: %1$s kcal</string>
     <string name="energy_strategy_deficit">Déficit</string>
     <string name="energy_strategy_maintenance">Mantenimiento</string>
@@ -716,6 +721,7 @@
     <string name="stats_tile_duration">Duración</string>
     <string name="stats_unit_kg">kg</string>
     <string name="stats_duration_hm">%1$d h %2$d min</string>
+    <string name="stats_duration_h">%1$d h</string>
     <string name="stats_duration_m">%1$d min</string>
     <!-- T-141 wearable activity data -->
     <string name="profile_activity_row">Actividad</string>
@@ -1007,6 +1013,18 @@
     <string name="my_training_days_label">Días por semana</string>
     <string name="my_training_session_label">Duración del entreno</string>
     <string name="my_training_unset">Sin definir</string>
+    <string name="my_training_days_less">Menos días</string>
+    <string name="my_training_days_more">Más días</string>
+    <string name="my_training_session_less">Menos minutos</string>
+    <string name="my_training_session_more">Más minutos</string>
+    <string name="my_training_intention_help_cd">Ayuda: objetivo de entrenamiento</string>
+    <string name="my_training_intention_help_title">Objetivo de entrenamiento</string>
+    <string name="my_training_intention_help_intro">Elige lo que más pesa en tu entrenamiento ahora; el entrenador lo usa para orientar sus sugerencias.</string>
+    <string name="my_training_intention_help_strength">Ganar fuerza: levantar más peso en los ejercicios principales, con pocas repeticiones y descansos largos.</string>
+    <string name="my_training_intention_help_muscle">Ganar musculatura: aumentar el tamaño del músculo con volumen moderado y repeticiones medias.</string>
+    <string name="my_training_intention_help_fat_loss">Perder grasa: bajar peso conservando la fuerza y el músculo que ya tienes.</string>
+    <string name="my_training_intention_help_recomposition">Recomposición: perder grasa y ganar músculo a la vez, con un peso casi estable.</string>
+    <string name="my_training_intention_help_maintenance">Mantenimiento: conservar lo que has conseguido con el menor esfuerzo posible.</string>
     <plurals name="my_training_days_count">
         <item quantity="one">%1$d día</item>
         <item quantity="other">%1$d días</item>

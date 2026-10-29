@@ -31,7 +31,13 @@ class AppDurationFormatTest {
     fun fortyFiveMinutes() = assertDuration(45, "45 min")
 
     @Test
-    fun anHour_readsZeroMinutes() = assertDuration(60, "1 h 0 min")
+    fun anHour_dropsTheZeroMinutes() = assertDuration(60, "1 h")
+
+    @Test
+    fun zeroMinutes() = assertDuration(0, "0 min")
+
+    @Test
+    fun twoHours() = assertDuration(120, "2 h")
 
     @Test
     fun anHourAndFive() = assertDuration(65, "1 h 5 min")
@@ -40,5 +46,5 @@ class AppDurationFormatTest {
     fun anHourAndAHalf() = assertDuration(90, "1 h 30 min")
 
     @Test
-    fun threeHours() = assertDuration(180, "3 h 0 min")
+    fun threeHours() = assertDuration(180, "3 h")
 }

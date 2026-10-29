@@ -3,6 +3,7 @@ package io.github.lopezjavier.appfitness.feature.profile
 import androidx.compose.ui.test.assertContentDescriptionEquals
 import androidx.compose.ui.test.assertHeightIsAtLeast
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertTextContains
 import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.getUnclippedBoundsInRoot
 import androidx.compose.ui.test.junit4.v2.createComposeRule
@@ -14,6 +15,7 @@ import androidx.compose.ui.unit.width
 import io.github.lopezjavier.appfitness.designsystem.AppAvatarDefaults
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
 import io.github.lopezjavier.appfitness.designsystem.WindowWidthClassDefaults
+import io.github.lopezjavier.appfitness.domain.model.TrainingIntention
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Rule
@@ -39,6 +41,7 @@ class ProfileRootScreenTest {
     private var trainingStatsOpens = 0
     private var aboutOpens = 0
     private var activityOpens = 0
+    private var myTrainingOpens = 0
 
     private fun loaded(
         name: String? = "Ana María",
@@ -58,6 +61,7 @@ class ProfileRootScreenTest {
         trainingStatsOpens = 0
         aboutOpens = 0
         activityOpens = 0
+        myTrainingOpens = 0
         rule.setContent {
             AppTheme {
                 ProfileRootScreen(
@@ -72,6 +76,7 @@ class ProfileRootScreenTest {
                         onOpenTrainingStats = { trainingStatsOpens++ },
                         onOpenAbout = { aboutOpens++ },
                         onOpenActivity = { activityOpens++ },
+                        onOpenMyTraining = { myTrainingOpens++ },
                     ),
                 )
             }
@@ -101,6 +106,27 @@ class ProfileRootScreenTest {
         show(loaded(name = null))
         rule.onNodeWithTag("profile_root_name").assertDoesNotExist()
         rule.onNodeWithTag("profile_root_avatar").assertExists()
+    }
+
+    // -- Mi entrenamiento -----------------------------------------------------------------------------------------
+
+    @Test
+    fun miEntrenamientoRow_isInThePerfilRoot_andOpensTheEditor() {
+        show()
+        rule.onNodeWithTag("profile_my_training_row").assertTextEquals("Mi entrenamiento").performClick()
+        assertEquals(1, myTrainingOpens)
+    }
+
+    @Test
+    fun miEntrenamientoRow_showsTheChosenIntention() {
+        show(ProfileRootUiState.Loaded("Ana", null, intention = TrainingIntention.Strength))
+        rule.onNodeWithTag("profile_my_training_row").assertTextContains("Ganar fuerza", substring = true)
+    }
+
+    @Test
+    fun miEntrenamientoRow_withoutAnIntention_showsNoValue() {
+        show()
+        rule.onNodeWithTag("profile_my_training_row").assertTextEquals("Mi entrenamiento")
     }
 
     // -- gear -----------------------------------------------------------------------------------------------------

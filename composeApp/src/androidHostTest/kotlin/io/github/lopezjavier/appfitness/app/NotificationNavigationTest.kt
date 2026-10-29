@@ -46,7 +46,7 @@ class NotificationNavigationTest {
     private val routinesSlot: RoutinesSlot = { modifier, _, _, _, _ ->
         WorkoutEntryHost(WorkoutEntryState.Routines, {}, {}, modifier, routines = { _, _ -> })
     }
-    private val profileSlot: ProfileSlot = { modifier, _, _, _, _, _, _, _, _ ->
+    private val profileSlot: ProfileSlot = { modifier, _ ->
         ProfileRootScreen(ProfileRootUiState.Loaded("Ana", null), {}, modifier)
     }
     private val today = LocalDate(2026, 10, 28)

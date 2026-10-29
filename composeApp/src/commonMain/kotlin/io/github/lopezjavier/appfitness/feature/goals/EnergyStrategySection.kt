@@ -37,6 +37,11 @@ import io.github.lopezjavier.appfitness.composeapp.resources.energy_pill_deficit
 import io.github.lopezjavier.appfitness.composeapp.resources.energy_pill_maintenance
 import io.github.lopezjavier.appfitness.composeapp.resources.energy_pill_surplus
 import io.github.lopezjavier.appfitness.composeapp.resources.energy_strategy_deficit
+import io.github.lopezjavier.appfitness.composeapp.resources.energy_strategy_help_cd
+import io.github.lopezjavier.appfitness.composeapp.resources.energy_strategy_help_deficit
+import io.github.lopezjavier.appfitness.composeapp.resources.energy_strategy_help_intro
+import io.github.lopezjavier.appfitness.composeapp.resources.energy_strategy_help_maintenance
+import io.github.lopezjavier.appfitness.composeapp.resources.energy_strategy_help_surplus
 import io.github.lopezjavier.appfitness.composeapp.resources.energy_strategy_maintenance
 import io.github.lopezjavier.appfitness.composeapp.resources.energy_strategy_surplus
 import io.github.lopezjavier.appfitness.composeapp.resources.energy_target
@@ -45,6 +50,8 @@ import io.github.lopezjavier.appfitness.composeapp.resources.ic_warning
 import io.github.lopezjavier.appfitness.designsystem.AppNumberFormat
 import io.github.lopezjavier.appfitness.designsystem.AppOption
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
+import io.github.lopezjavier.appfitness.designsystem.HelpButton
+import io.github.lopezjavier.appfitness.designsystem.HelpContent
 import io.github.lopezjavier.appfitness.designsystem.NumberStepper
 import io.github.lopezjavier.appfitness.designsystem.SegmentedSelector
 import io.github.lopezjavier.appfitness.designsystem.Spacing
@@ -60,7 +67,7 @@ private val WarningIconSize = Spacing.lg + Spacing.xs
  * "Estrategia energética": TDEE, strategy selector, adjustment stepper, daily target, adjustment pill and the
  * safety-floor warning. Stateless: Onboarding and Profile own the state. Tags (prefix = [testTagPrefix]):
  * `_tdee`, `_strategy_<deficit|maintenance|surplus>`, `_adjust_decrement|_increment|_value`, `_target`, `_pill`,
- * `_floor_warning`.
+ * `_floor_warning`, `_strategy_help`.
  */
 @Composable
 fun EnergyStrategySection(
@@ -70,12 +77,27 @@ fun EnergyStrategySection(
     modifier: Modifier = Modifier,
 ) {
     Column(modifier.fillMaxWidth()) {
-        Text(
-            text = stringResource(Res.string.energy_heading),
-            style = AppTheme.typography.titleLarge,
-            color = AppTheme.colors.textPrimary,
-            modifier = Modifier.semantics { heading() },
-        )
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text(
+                text = stringResource(Res.string.energy_heading),
+                style = AppTheme.typography.titleLarge,
+                color = AppTheme.colors.textPrimary,
+                modifier = Modifier.weight(1f).semantics { heading() },
+            )
+            HelpButton(
+                contentDescription = stringResource(Res.string.energy_strategy_help_cd),
+                title = stringResource(Res.string.energy_heading),
+                content = HelpContent(
+                    paragraphs = listOf(stringResource(Res.string.energy_strategy_help_intro)),
+                    bullets = listOf(
+                        stringResource(Res.string.energy_strategy_help_deficit),
+                        stringResource(Res.string.energy_strategy_help_maintenance),
+                        stringResource(Res.string.energy_strategy_help_surplus),
+                    ),
+                ),
+                testTag = "${testTagPrefix}_strategy_help",
+            )
+        }
         Text(
             text = stringResource(Res.string.energy_tdee, AppNumberFormat.integer(state.tdeeKcal)),
             style = AppTheme.typography.bodyMedium,

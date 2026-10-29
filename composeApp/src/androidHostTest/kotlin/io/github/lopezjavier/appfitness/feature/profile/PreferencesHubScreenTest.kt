@@ -1,7 +1,6 @@
 package io.github.lopezjavier.appfitness.feature.profile
 
 import androidx.compose.ui.test.assertHeightIsAtLeast
-import androidx.compose.ui.test.assertTextContains
 import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.getUnclippedBoundsInRoot
 import androidx.compose.ui.test.junit4.v2.createComposeRule
@@ -11,7 +10,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.width
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
 import io.github.lopezjavier.appfitness.designsystem.WindowWidthClassDefaults
-import io.github.lopezjavier.appfitness.domain.model.TrainingIntention
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Rule
@@ -20,7 +18,7 @@ import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 
-/** US-56 and US-59 on the Preferencias hub: nine rows in order, each opening its destination, no state of its own. */
+/** US-56 and US-59 on the Preferencias hub: eight rows in order, each opening its destination, no state of its own. */
 @RunWith(RobolectricTestRunner::class)
 @Config(qualifiers = "w360dp-h1000dp-xxhdpi")
 class PreferencesHubScreenTest {
@@ -33,15 +31,14 @@ class PreferencesHubScreenTest {
     private var backs = 0
 
     private val keys =
-        listOf("personal", "energy", "macros", "meals", "cooking", "mi_entrenamiento", "training", "avisos", "account")
+        listOf("personal", "energy", "macros", "meals", "cooking", "training", "avisos", "account")
 
-    private fun show(intention: TrainingIntention? = null) {
+    private fun show() {
         rule.setContent {
             AppTheme {
                 PreferencesHubScreen(
                     onBack = { backs++ },
                     actions = PreferencesHubActions({ sections += it }, { meals++ }, { account++ }),
-                    intention = intention,
                 )
             }
         }
@@ -57,7 +54,7 @@ class PreferencesHubScreenTest {
     }
 
     @Test
-    fun nineRows_readTheDestinationTitles_inOrder() {
+    fun eightRows_readTheDestinationTitles_inOrder() {
         show()
         val labels = listOf(
             "Datos personales",
@@ -65,7 +62,6 @@ class PreferencesHubScreenTest {
             "Macros",
             "Comidas del día",
             "Cocina",
-            "Mi entrenamiento",
             "Entrenamiento",
             "Avisos",
             "Cuenta",
@@ -87,7 +83,6 @@ class PreferencesHubScreenTest {
                 PreferencesSection.EnergyGoal,
                 PreferencesSection.Macros,
                 PreferencesSection.Cooking,
-                PreferencesSection.MyTraining,
                 PreferencesSection.Training,
                 PreferencesSection.Reminders,
             ),
@@ -98,16 +93,9 @@ class PreferencesHubScreenTest {
     }
 
     @Test
-    fun miEntrenamientoRow_showsTheChosenIntention() {
-        show(TrainingIntention.Strength)
-        rule.onNodeWithTag("preferences_row_mi_entrenamiento").assertTextContains("Ganar fuerza", substring = true)
-    }
-
-    @Test
-    fun miEntrenamientoRow_showsNoValueWithoutAnIntention_andNoOtherRowHasOne() {
-        show(null)
-        rule.onNodeWithTag("preferences_row_mi_entrenamiento").assertTextEquals("Mi entrenamiento")
-        rule.onNodeWithTag("preferences_row_training").assertTextEquals("Entrenamiento")
+    fun miEntrenamiento_isNotListed_itLivesInThePerfilRoot() {
+        show()
+        rule.onNodeWithTag("preferences_row_mi_entrenamiento").assertDoesNotExist()
     }
 
     @Test

@@ -66,6 +66,7 @@ fun NumberStepper(
     stateDescription: String,
     modifier: Modifier = Modifier,
     testTagPrefix: String? = null,
+    valueColor: Color = AppTheme.colors.textPrimary,
 ) {
     Row(
         modifier = modifier.semantics { this.stateDescription = stateDescription },
@@ -82,7 +83,7 @@ fun NumberStepper(
         Text(
             text = valueText,
             style = AppTheme.typography.labelNumeric,
-            color = AppTheme.colors.textPrimary,
+            color = valueColor,
             textAlign = TextAlign.Center,
             modifier = Modifier.widthIn(min = NumberStepperDefaults.ValueMinWidth)
                 .then(childTestTag(testTagPrefix, "value")?.let { Modifier.testTag(it) } ?: Modifier),

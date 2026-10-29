@@ -16,6 +16,7 @@ import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.assertWidthIsAtLeast
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
+import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.unit.dp
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
@@ -67,6 +68,18 @@ class EnergyStrategySectionTest {
     private fun show(state: EnergyStrategyUiState) {
         rule.setContent {
             AppTheme { EnergyStrategySection(state, { events += it }, TAG) }
+        }
+    }
+
+    @Test
+    fun strategyHelp_opensTheInfoSheetExplainingTheThreeStrategies() {
+        show(state())
+
+        rule.onNodeWithTag("${TAG}_strategy_help").performClick()
+
+        rule.onNodeWithTag("${TAG}_strategy_help_sheet").assertExists()
+        listOf("Déficit:", "Mantenimiento:", "Superávit:").forEach {
+            rule.onNodeWithText(it, substring = true).assertExists()
         }
     }
 

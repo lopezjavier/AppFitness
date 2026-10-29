@@ -2,11 +2,13 @@ package io.github.lopezjavier.appfitness.feature.profile
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import io.github.lopezjavier.appfitness.domain.model.TrainingIntention
 import io.github.lopezjavier.appfitness.domain.port.Clock
 import io.github.lopezjavier.appfitness.domain.repository.BodyMeasurementRepository
 import io.github.lopezjavier.appfitness.domain.repository.FoodDiaryRepository
 import io.github.lopezjavier.appfitness.domain.repository.ProfileRepository
 import io.github.lopezjavier.appfitness.domain.repository.StrengthRepository
+import io.github.lopezjavier.appfitness.domain.repository.TrainingPreferencesRepository
 import io.github.lopezjavier.appfitness.domain.repository.WorkoutSessionRepository
 import io.github.lopezjavier.appfitness.domain.usecase.BuildStrengthSummary
 import io.github.lopezjavier.appfitness.domain.usecase.DiaryHistorySummary
@@ -44,12 +46,16 @@ sealed interface ProfileRootUiState {
         val weightKg: Double? = null,
         val strengthRecordKg: Double? = null,
         val avgKcal: Int? = null,
+        val intention: TrainingIntention? = null,
     ) : ProfileRootUiState
 }
 
 /** Events of the Perfil root. */
 sealed interface ProfileRootEvent {
     data object Retry : ProfileRootEvent
+
+    /** The screen resumed (for example back from the "Mi entrenamiento" editor): re-read the intention. */
+    data object ReloadIntention : ProfileRootEvent
 }
 
 /**
@@ -64,6 +70,7 @@ class ProfileRootViewModel(
     private val workoutSessionRepository: WorkoutSessionRepository,
     private val foodDiaryRepository: FoodDiaryRepository,
     private val clock: Clock,
+    private val trainingPreferences: TrainingPreferencesRepository,
 ) : ViewModel() {
     private val _uiState = MutableStateFlow<ProfileRootUiState>(ProfileRootUiState.Loading)
     val uiState: StateFlow<ProfileRootUiState> = _uiState.asStateFlow()
@@ -78,6 +85,14 @@ class ProfileRootViewModel(
     fun onEvent(event: ProfileRootEvent) {
         when (event) {
             ProfileRootEvent.Retry -> if (_uiState.value == ProfileRootUiState.LoadFailed) load()
+            ProfileRootEvent.ReloadIntention -> if (_uiState.value is ProfileRootUiState.Loaded) loadIntention()
+        }
+    }
+
+    /** A failed read keeps the last known value: the row never flickers or shows an error. */
+    private fun loadIntention() {
+        highlightWork += viewModelScope.launch {
+            trainingPreferences.get().onSuccess { prefs -> updateLoaded { it.copy(intention = prefs.intention) } }
         }
     }
 
@@ -105,6 +120,7 @@ class ProfileRootViewModel(
     }
 
     private fun loadHighlights() {
+        loadIntention()
         highlightWork += viewModelScope.launch {
             val weight = bodyMeasurementRepository.getLatestWeight().getOrNull()?.weightKg
             updateLoaded { it.copy(weightKg = weight) }
