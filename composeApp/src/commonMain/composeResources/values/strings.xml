@@ -463,7 +463,8 @@
     <string name="routine_builder_rep_range_help_2">Cuando completes todas las series en el máximo, la app te sugerirá subir el peso; si no, te sugerirá una repetición más con el mismo peso.</string>
     <string name="routine_builder_rep_range_help_3">Sin definir: no hay sugerencia para este ejercicio.</string>
     <string name="live_suggestion">Sugerencia: %1$s kg × %2$s</string>
-    <string name="live_suggestion_help_cd">Por qué esta sugerencia</string>
+    <string name="live_suggestion_open_label">Ver por qué</string>
+    <string name="live_suggestion_cd">Sugerencia: %1$s kg × %2$s. Toca para ver el motivo</string>
     <string name="progression_help_title">Sugerencia</string>
     <string name="progression_help_raise">Completaste todas las series en %1$s repeticiones y sin pasar de RPE 8, así que toca subir el peso.</string>
     <string name="progression_help_add_rep">Mantén el peso e intenta llegar a %1$s repeticiones.</string>
@@ -1586,6 +1587,9 @@
     <string name="catalog_action_row_title">Hacer foto</string>
     <string name="catalog_action_row_hint">Usa la cámara</string>
     <string name="catalog_inline_note">Estimado por IA · revisa los valores</string>
+    <string name="catalog_status_discomfort">Tensión o fatiga</string>
+    <string name="catalog_status_note">Otro · Pausa larga</string>
+    <string name="catalog_status_suggestion">Sugerencia: 60 kg × 9</string>
     <string name="catalog_error_secondary">Crear manualmente</string>
     <string name="catalog_section_cooking_selector">Selector de cocción</string>
     <string name="cooking_method_raw">Crudo</string>

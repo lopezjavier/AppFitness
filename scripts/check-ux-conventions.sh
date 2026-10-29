@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # UX conventions guard (T-118, planning/phase1/ux-audit-2026-10.md section 10, planning/05-design-system.md).
-# Features must reuse the design-system templates instead of reinventing them (guards G1..G14).
+# Features must reuse the design-system templates instead of reinventing them (guards G1..G15).
 #
 # Usage: check-ux-conventions.sh [root-dir] [warnings-file]
 #   root-dir       tree to scan (default: repository root). Tests pass a fixture tree.
@@ -29,7 +29,7 @@ while IFS= read -r raw || [ -n "$raw" ]; do
   line="${raw%%#*}"
   line="$(printf '%s' "$line" | sed -E 's/^[[:space:]]+//; s/[[:space:]]+$//')"
   [ -z "$line" ] && continue
-  if ! printf '%s' "$line" | grep -qE '^G([1-9]|1[0-4]) [^ ]+$'; then
+  if ! printf '%s' "$line" | grep -qE '^G([1-9]|1[0-5]) [^ ]+$'; then
     echo "UX conventions guard ERROR: malformed warnings line: $raw" >&2
     exit 2
   fi
@@ -176,6 +176,17 @@ scan G14 "AppEditSheet outside the multi-field allow-list (R-12: a single choice
   '\bAppEditSheet\(' \
   '.*/feature/(catalog/OverlayCatalogSections|exercises/ExerciseFormSheet|meals/defaults/MealDefaultsSheets|profile/PersonalDataCard|weight/(CircumferenceSheet|GoalSheets|WeightDaySheet)|workout/(DiscomfortSheet|ExerciseMenu|FinishSessionSheet|UpdateRoutineSheet|VolumeOptionsSheets|WarmUpCalculatorSheet))\.kt' \
   "${kotlin_feature[@]}"
+
+# G15: R-51 the live exercise card shows its per-exercise information as status rows; no "?" help buttons there
+# (the suggestion row opens its reason sheet, the RPE target is plain text).
+live_card_files=()
+for file in "${kotlin_feature[@]}"; do
+  case "$file" in
+    */feature/workout/LiveExerciseCard.kt) live_card_files+=("$file") ;;
+  esac
+done
+scan G15 "HelpTriggerButton/RpeHelpButton in LiveExerciseCard (R-51: status rows, no help buttons)" \
+  '\b(HelpTriggerButton|RpeHelpButton)\(' '' "${live_card_files[@]}"
 
 # G9 / G10: strings.xml.
 if [ -f "$strings_file" ]; then

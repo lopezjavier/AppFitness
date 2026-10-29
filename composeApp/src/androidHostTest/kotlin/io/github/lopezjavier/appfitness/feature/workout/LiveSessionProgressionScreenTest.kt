@@ -5,12 +5,15 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.test.assertHasClickAction
+import androidx.compose.ui.test.assertHeightIsAtLeast
 import androidx.compose.ui.test.assertTextContains
 import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.junit4.StateRestorationTester
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.unit.dp
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
 import io.github.lopezjavier.appfitness.domain.model.ProgressionAction
 import io.github.lopezjavier.appfitness.domain.model.ProgressionReason
@@ -114,10 +117,19 @@ class LiveSessionProgressionScreenTest {
     }
 
     @Test
+    fun theSuggestionRow_isTheOnlyTapTarget_a48DpButtonWithNoSeparateHelp() {
+        show(suggestion(ProgressionReason.AllSetsAtMax))
+
+        rule.onNodeWithTag("live_exercise_0_suggestion").assertHasClickAction().assertHeightIsAtLeast(48.dp)
+        rule.onNodeWithTag("live_exercise_0_suggestion_help").assertDoesNotExist()
+        rule.onNodeWithTag("progression_help_sheet").assertDoesNotExist()
+    }
+
+    @Test
     fun theHelp_listsTheSetsUsedWithDateWeightRepsAndRpe() {
         show(suggestion(ProgressionReason.AllSetsAtMax))
 
-        rule.onNodeWithTag("live_exercise_0_suggestion_help").performClick()
+        rule.onNodeWithTag("live_exercise_0_suggestion").performClick()
 
         rule.onNodeWithTag("progression_help_sheet").assertExists()
         rule.onNodeWithTag("progression_help_set_1").assertTextEquals("sáb, 24 oct · 80 kg × 8 · RPE 8")
@@ -128,7 +140,7 @@ class LiveSessionProgressionScreenTest {
     fun theHelpReason_explainsTheRaise() {
         show(suggestion(ProgressionReason.AllSetsAtMax))
 
-        rule.onNodeWithTag("live_exercise_0_suggestion_help").performClick()
+        rule.onNodeWithTag("live_exercise_0_suggestion").performClick()
 
         rule.onNodeWithTag("progression_help_reason").assertTextContains("toca subir el peso", substring = true)
     }
@@ -137,7 +149,7 @@ class LiveSessionProgressionScreenTest {
     fun openDiscomfortReason_isNeutralWithoutHealthWords() {
         show(suggestion(ProgressionReason.KeptDiscomfort, weight = 80.0, goal = 8))
 
-        rule.onNodeWithTag("live_exercise_0_suggestion_help").performClick()
+        rule.onNodeWithTag("live_exercise_0_suggestion").performClick()
 
         rule.onNodeWithTag("progression_help_reason").assertTextEquals("Mantén el peso de la última vez.")
         rule.onNodeWithTag("progression_help_footer").assertTextContains("no cambia tu rutina", substring = true)
@@ -148,7 +160,7 @@ class LiveSessionProgressionScreenTest {
         val tester = StateRestorationTester(rule)
         tester.setContent { AppTheme { StatefulProgressionLive(suggestion(ProgressionReason.AllSetsAtMax)) } }
         rule.waitForIdle()
-        rule.onNodeWithTag("live_exercise_0_suggestion_help").performClick()
+        rule.onNodeWithTag("live_exercise_0_suggestion").performClick()
         rule.waitForIdle()
 
         tester.emulateSavedInstanceStateRestore()

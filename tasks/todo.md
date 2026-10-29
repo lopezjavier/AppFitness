@@ -159,12 +159,12 @@ Flow: UI tasks run planner → ux-reviewer (plan) → developers → pr-creator 
 
 **Source:** user feedback at Checkpoint E13-A, 2026-10-29. Screenshot: `design/reported/E13-A-live-session-density.png` (delete once the user confirms the fix).
 The live session degraded across E12-E13: the exercise card now stacks the discomfort row with its "Ya no me molesta" button, the note row ("Otro · Pausa larga"), "Objetivo RPE" with `?`, the suggestion with `?`, the set table and "Añadir serie"; it looks scattered and "Ya no me molesta" is not integrated.
-- [ ] **ux-reviewer first** (plan mode, before the planner): think how to render all the per-exercise information in one coherent structure (what is always visible, what is collapsed or moved to the header ⋮ or a sheet, order, spacing, one visual grammar for status rows), reviewing the whole live session, not only the card.
-- [ ] "Ya no me molesta" integrated into the discomfort row (not a second segmented bar).
-- [ ] **Suggestion without its own `?`** (user asked "do we really need it?"): recommended default is to drop the separate `?` and let the suggestion line open the reason sheet (or fold the reason in the new structure); ux-reviewer decides within the redesign and records it.
-- [ ] **"Objetivo RPE" without its `?`** in the live session (user, 2026-10-29): the routine builder already explains it, so the live card repeats no help button for it; ux-reviewer checks that no other live-session row repeats a help the builder already gives.
-- [ ] Sweep: every element above kept functionally (E12 discomfort and notes, RPE target, suggestion), host tests updated, restoration kept.
-- [ ] The new structure becomes a rule/template in `05` §8-§9 in the same PR (a retired ad-hoc pattern is retired everywhere).
+- [x] **ux-reviewer first** (plan mode, before the planner): think how to render all the per-exercise information in one coherent structure (what is always visible, what is collapsed or moved to the header ⋮ or a sheet, order, spacing, one visual grammar for status rows), reviewing the whole live session, not only the card.
+- [x] "Ya no me molesta" integrated into the discomfort row (not a second segmented bar).
+- [x] **Suggestion without its own `?`** (user asked "do we really need it?"): recommended default is to drop the separate `?` and let the suggestion line open the reason sheet (or fold the reason in the new structure); ux-reviewer decides within the redesign and records it.
+- [x] **"Objetivo RPE" without its `?`** in the live session (user, 2026-10-29): the routine builder already explains it, so the live card repeats no help button for it; ux-reviewer checks that no other live-session row repeats a help the builder already gives.
+- [x] Sweep: every element above kept functionally (E12 discomfort and notes, RPE target, suggestion), host tests updated, restoration kept.
+- [x] The new structure becomes a rule/template in `05` §8-§9 in the same PR (a retired ad-hoc pattern is retired everywhere).
 
 **Flow:** UX plan + core + UI · **Dependencies:** T-171 merged (or in parallel branches only if the user asks).
 

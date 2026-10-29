@@ -81,6 +81,15 @@ printf 'G12 .*\n' > "$work/listed-g12.txt"
 run "$here/ux-conventions/g13-ok" "$work/listed-g12.txt"
 expect "the warnings parser accepts G12" 0 NOWARN
 
+# G15 (R-51): no help buttons inside LiveExerciseCard.kt.
+run "$here/ux-conventions/g15" "$empty"
+expect "G15 help buttons in LiveExerciseCard fail" 1
+run "$here/ux-conventions/g15-ok" "$empty"
+expect "G15 LiveExerciseCard without help buttons passes" 0 NOWARN
+printf 'G15 .*\n' > "$work/listed-g15.txt"
+run "$here/ux-conventions/g15" "$work/listed-g15.txt"
+expect "G15 violation in a listed path warns and passes (parser accepts G15)" 0 WARN
+
 # The folder-delete dialog of the routines list is on the R-08 allow-list (G5).
 run "$here/ux-conventions/g5-allowed" "$empty"
 expect "G5 routines folder-delete dialog is allowed" 0 NOWARN
