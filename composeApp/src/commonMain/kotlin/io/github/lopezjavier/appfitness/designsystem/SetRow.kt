@@ -317,7 +317,7 @@ private fun RpeCell(value: String?, description: String?, onClick: () -> Unit, m
 }
 
 /**
- * Column headers of a set table ("SERIE · ANTERIOR · KG · REPS · LISTO") on the same column widths as
+ * Column headers of a set table ("TIPO · ANTERIOR · KG · REPS · LISTO") on the same column widths as
  * [SetRow]. Not interactive: each field speaks its own label.
  */
 @Composable

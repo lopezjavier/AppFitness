@@ -117,7 +117,6 @@ internal fun LiveExerciseCard(
     )
 }
 
-/** Runs [onStore] when [logs] changes (a discomfort was stored); a failed log leaves the sheet open with its draft. */
 @Composable
 private fun LiveSetTableHeader(fields: List<SetFieldSpec>) {
     SetTableHeader(
@@ -129,6 +128,7 @@ private fun LiveSetTableHeader(fields: List<SetFieldSpec>) {
     )
 }
 
+/** Runs [onStore] when [logs] changes (a discomfort was stored); a failed log leaves the sheet open with its draft. */
 @Composable
 private fun OnDiscomfortStored(logs: Int, onStore: () -> Unit) {
     var seen by remember { mutableIntStateOf(logs) }
