@@ -6,9 +6,9 @@ Operating instructions: [`CLAUDE.md`](../CLAUDE.md). Phase 1 history (frozen): [
 Legend: **👤** = done by the user (accounts, web consoles, secrets) · **PM** = done by Claude Code.
 Secrets rule: never pasted in the chat or in versioned files. The user enters them in their terminal or in the consoles, and Claude only verifies that they exist.
 
-Last task ID used: T-155 (E12-B feedback fixes, round 3). Numbering continues from here.
+Last task ID used: T-156 (wrist roller metric type). Numbering continues from here.
 
-**Next:** T-151 (E12 closure; Checkpoint E12-B approved by the user, 2026-10-29). Carry-over from T-155 (non-blocking): duration-based records show "kg" on weight×seconds (e.g. "Mejor serie 2560 kg"). T-154 review nits (non-blocking): the picker footer with the keyboard open has no host test (Robolectric cannot simulate the IME): manual check at the checkpoint. T-150 review nits (non-blocking): mapping rows `box-jump` (squat), `wall-sit`/`squat-hold` (squat), `handstand-hold` (vertical_push), `dead-hang` (vertical_pull) are debatable; the "picker open survives recreation" has no Robolectric test (manual check at the checkpoint). **T-153 review nits (non-blocking):** `applyRoutineNotes` does a second non-atomic `routineRepository.save` after `update_routine_from_session` and matches by `exerciseId` (repeated exercise gets the note on each occurrence); `LiveSet.previous` and the `showPrevious`/`onUsePrevious` path of `SetRow` are dead after dropping the Anterior column (remove; check the previous-values preference/help); `FormSetRow` KDoc still says "delete button"; SQL comment on empty-string notes becoming `other`. **Carry-overs:** chosen sound **"campana suave"** (T-148 wires it); T-148 no longer scans notes (ADR-81); (the padding screenshot was deleted at approval). T-152 review nits (non-blocking): KDoc of `DiscomfortSheet` should mention the required level picker; the migration-mapping pgTAP asserts use a scratch table that copies the CASE; narrow the `@Suppress("MagicNumber")` in `DiscomfortLevel`. T-147 carry-overs: `ActivityFlowTest.kt:86` uses `CoroutineScope(SupervisorJob())` like the flaky `HealthSyncRestorationTest` fixed in #342; no retry of unread discomforts on resume. T-146 carry-overs (non-blocking, for the checkpoint or T-148): rest ending while the user is on another tab posts no notification and no in-app alert (pre-existing); permission dialog interrupted by Activity recreation can show the explanation without a real denial; `FLAG_NO_CREATE` on cancel; own notification icon.
+**Next:** T-156 (user-reported bug, 2026-10-29), then tag `v1.3.0` is already planned with the closure PR; after T-156, the E13 breakdown by the epic-planner in a fresh session (the user agrees the task list and checkpoints first). Carry-over from T-155 (non-blocking): duration-based records show "kg" on weight×seconds (e.g. "Mejor serie 2560 kg"). T-154 review nits (non-blocking): the picker footer with the keyboard open has no host test (Robolectric cannot simulate the IME): manual check at the checkpoint. T-150 review nits (non-blocking): mapping rows `box-jump` (squat), `wall-sit`/`squat-hold` (squat), `handstand-hold` (vertical_push), `dead-hang` (vertical_pull) are debatable; the "picker open survives recreation" has no Robolectric test (manual check at the checkpoint). **T-153 review nits (non-blocking):** `applyRoutineNotes` does a second non-atomic `routineRepository.save` after `update_routine_from_session` and matches by `exerciseId` (repeated exercise gets the note on each occurrence); `LiveSet.previous` and the `showPrevious`/`onUsePrevious` path of `SetRow` are dead after dropping the Anterior column (remove; check the previous-values preference/help); `FormSetRow` KDoc still says "delete button"; SQL comment on empty-string notes becoming `other`. **Carry-overs:** chosen sound **"campana suave"** (T-148 wires it); T-148 no longer scans notes (ADR-81); (the padding screenshot was deleted at approval). T-152 review nits (non-blocking): KDoc of `DiscomfortSheet` should mention the required level picker; the migration-mapping pgTAP asserts use a scratch table that copies the CASE; narrow the `@Suppress("MagicNumber")` in `DiscomfortLevel`. T-147 carry-overs: `ActivityFlowTest.kt:86` uses `CoroutineScope(SupervisorJob())` like the flaky `HealthSyncRestorationTest` fixed in #342; no retry of unread discomforts on resume. T-146 carry-overs (non-blocking, for the checkpoint or T-148): rest ending while the user is on another tab posts no notification and no in-app alert (pre-existing); permission dialog interrupted by Activity recreation can show the explanation without a real denial; `FLAG_NO_CREATE` on cancel; own notification icon.
 
 ---
 
@@ -277,18 +277,29 @@ Journey: the rest alert now plays the sound you chose; write what happened on a 
 **Description:** Closes E12 once Checkpoint E12-B is approved: version bump (`versionName`/`versionCode` in `androidApp/build.gradle.kts`, PR) per the versioning rule (`06` §6; minor per epic, proposed `1.3.0`), tag, retrospective, archive of the E12 log lines. No 👤 checkpoint of its own.
 
 **Acceptance criteria:**
-- [ ] T-146…T-150 (and any fix tasks) merged with green CI; `deploy-supabase` green after each of the four migrations.
-- [ ] ux-reviewer ran in plan and diff mode on every UI task; `check-ux-conventions.sh` passes.
-- [ ] `planning/02-architecture.md` (rest-alert technique), `03-data-model.md` and `04-business-rules.md` describe the alert, `exercise_discomforts`, the notes, the new `training_preferences` fields and `movement_pattern`.
-- [ ] Checkpoints E12-A and E12-B approved; every reported bug fixed.
-- [ ] Version bumped; `tasks/todo.md` (next-task pointer) updated through a PR.
+- [x] T-146…T-150 (and any fix tasks) merged with green CI; `deploy-supabase` green after each of the four migrations.
+- [x] ux-reviewer ran in plan and diff mode on every UI task; `check-ux-conventions.sh` passes.
+- [x] `planning/02-architecture.md` (rest-alert technique), `03-data-model.md` and `04-business-rules.md` describe the alert, `exercise_discomforts`, the notes, the new `training_preferences` fields and `movement_pattern`.
+- [x] Checkpoints E12-A and E12-B approved; every reported bug fixed.
+- [x] Version bumped; `tasks/todo.md` (next-task pointer) updated through a PR.
 
 **Verification:**
-- [ ] `git tag` lists the E12 tag.
+- [x] `git tag` lists the E12 tag.
 
 **Dependencies:** T-150 and Checkpoint E12-B approved
 **Files likely touched:** `androidApp/build.gradle.kts`, `tasks/todo.md`, `tasks/plan.md`, `planning/09-open-questions.md`, `retrospectives/E12.md`
 **Estimated scope:** S
+
+
+## T-156: Wrist roller takes a weight (fix) · S
+
+**Source:** user report, 2026-10-29: "Rodillo de Muñeca" shows only reps in the live session; it must take a weight (a plate hangs from the rope). **Flow:** backend + data · **Size:** S
+
+**Description:** remove `wrist-roller` from `REPS_ONLY_KEYS` in `scripts/generate-exercise-catalog.py` (it is listed twice) so its metric type is weight × reps, and ship the regenerated catalogue migration (ADR-39) with pgTAP; check no other catalogue key with a hung or added load is wrongly reps-only. Not in scope: hiding the weight field in the routine builder for reps-only exercises.
+
+**Acceptance criteria:**
+- [ ] `wrist-roller` has the weight × reps metric type in the catalogue; the live session shows the kg column for it and records weight with reps.
+- [ ] Generator, migration and pgTAP agree; `deploy-supabase` green on `main` after the merge.
 
 ---
 
