@@ -48,7 +48,6 @@ class TrainerViewModel(
             TrainerEvent.Confirm -> submit(level = null, fromSheet = false)
             TrainerEvent.OpenEdit -> openEdit()
             is TrainerEvent.PickLevel -> pickLevel(event.level)
-            TrainerEvent.SaveEdit -> saveEdit()
             TrainerEvent.CloseEdit -> setDraft(null)
         }
     }
@@ -76,17 +75,12 @@ class TrainerViewModel(
 
     private fun pickLevel(level: ActivityLevel) {
         val content = _uiState.value as? TrainerUiState.Content ?: return
-        if (content.editSheet != null) setDraft(level)
+        if (content.editSheet != null) submit(level = level, fromSheet = true)
     }
 
     private fun setDraft(level: ActivityLevel?) {
         if (level == null) savedState.remove<String>(KEY_DRAFT) else savedState[KEY_DRAFT] = level.name
         _uiState.update { state -> if (state is TrainerUiState.Content) state.copy(editSheet = level) else state }
-    }
-
-    private fun saveEdit() {
-        val content = _uiState.value as? TrainerUiState.Content ?: return
-        submit(level = content.editSheet ?: return, fromSheet = true)
     }
 
     private fun submit(level: ActivityLevel?, fromSheet: Boolean) {

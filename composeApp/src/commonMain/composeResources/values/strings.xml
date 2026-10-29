@@ -1745,15 +1745,17 @@
     <string name="trainer_value_unknown">Sin datos</string>
     <string name="trainer_value_supporting">%1$s · %2$s</string>
     <string name="trainer_kcal_value">%1$s kcal</string>
-    <string name="trainer_trend_value">%1$s kg/sem</string>
-    <string name="trainer_trend_value_interval">%1$s kg/sem (±%2$s)</string>
+    <string name="trainer_trend_falling">Bajando %1$s kg por semana</string>
+    <string name="trainer_trend_rising">Subiendo %1$s kg por semana</string>
+    <string name="trainer_trend_flat">Estable</string>
+    <string name="trainer_trend_unclear">Sin tendencia clara</string>
     <string name="trainer_experience_beginner">Principiante</string>
     <string name="trainer_experience_intermediate">Intermedio</string>
     <string name="trainer_experience_advanced">Avanzado</string>
     <string name="trainer_source_activity_data">Según tus pasos y entrenos</string>
     <string name="trainer_source_profile">Según tu perfil</string>
     <string name="trainer_source_adaptive">Según tu dieta y tu peso</string>
-    <string name="trainer_source_formula">Fórmula</string>
+    <string name="trainer_source_formula">Según una fórmula</string>
     <string name="trainer_source_weigh_ins">Según tus pesajes</string>
     <string name="trainer_source_sessions">Según tus entrenos</string>
     <string name="trainer_source_edited">Editado por ti</string>
@@ -1773,12 +1775,12 @@
     <string name="trainer_confirm">Confirmar</string>
     <string name="trainer_confirmed">Confirmado</string>
     <string name="trainer_confirm_action">confirmar</string>
-    <string name="trainer_save_action">guardar</string>
     <string name="trainer_confirm_error">No se pudo confirmar. Inténtalo de nuevo.</string>
     <string name="trainer_save_error">No se pudo guardar. Inténtalo de nuevo.</string>
     <string name="trainer_error_message">No se pudieron cargar tus valores.</string>
     <string name="trainer_sheet_title">Nivel de actividad</string>
-    <string name="trainer_sheet_note">Al guardar, también confirmas los demás valores del entrenador.</string>
+    <string name="trainer_sheet_note">Al elegir un nivel, también se confirman los demás valores del entrenador.</string>
+    <string name="trainer_sheet_offline">Sin conexión: no puedes cambiar el nivel ahora.</string>
 
     <!-- TEMPORARY (T-146, removed by T-148): end-of-rest sound chooser and the notification-permission message. -->
     <string name="rest_sound_permission_note">Para avisarte al acabar el descanso con la pantalla apagada, activa las notificaciones de AppFitness en Ajustes.</string>

@@ -3,6 +3,7 @@ package io.github.lopezjavier.appfitness.feature.trainer
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -38,6 +39,7 @@ import io.github.lopezjavier.appfitness.designsystem.OfflineState
 import io.github.lopezjavier.appfitness.designsystem.SkeletonBox
 import io.github.lopezjavier.appfitness.designsystem.Spacing
 import io.github.lopezjavier.appfitness.domain.port.ConnectivityObserver
+import io.github.lopezjavier.appfitness.feature.notifications.NotificationsBell
 import kotlinx.coroutines.flow.Flow
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.koinInject
@@ -150,12 +152,18 @@ private fun TrainerContent(state: TrainerUiState.Content, online: Boolean, onEve
 /** The tab heading, equal to the bottom-bar label (R-04). */
 @Composable
 private fun TrainerHeader(title: String) {
-    Text(
-        text = title,
-        style = AppTheme.typography.titleLarge,
-        color = AppTheme.colors.textPrimary,
-        modifier = Modifier.fillMaxWidth().padding(horizontal = Spacing.screenMargin).semantics { heading() },
-    )
+    Row(
+        Modifier.fillMaxWidth().padding(start = Spacing.screenMargin, end = Spacing.xs),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(
+            text = title,
+            style = AppTheme.typography.titleLarge,
+            color = AppTheme.colors.textPrimary,
+            modifier = Modifier.weight(1f).semantics { heading() },
+        )
+        NotificationsBell("trainer_action_notifications")
+    }
 }
 
 /** Card-shaped placeholder while the values load (R-31): a title bar, one bar per value and the button. */

@@ -21,7 +21,7 @@ import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 
-/** ADR-40: the Trainer tab, the open edit sheet and its picked-but-unsaved level survive recreation. */
+/** ADR-40: the Trainer tab, and the open edit sheet (with the stored level highlighted) survive recreation. */
 @RunWith(RobolectricTestRunner::class)
 @Config(qualifiers = "w360dp-h2400dp-xxhdpi")
 class TrainerRestorationTest {
@@ -43,7 +43,7 @@ class TrainerRestorationTest {
     }
 
     @Test
-    fun recreatedViewModel_reopensTheSheet_withThePickedLevel() {
+    fun recreatedViewModel_reopensTheSheet_withoutAFooter() {
         val saved = SavedStateHandle()
         val repository = FakeCoachRepository()
         val first = TrainerViewModel(repository, MutableClock(), saved)
@@ -53,15 +53,32 @@ class TrainerRestorationTest {
         rule.waitForIdle()
         rule.onNodeWithTag("trainer_edit_activity_button").performClick()
         rule.waitForIdle()
-        rule.onNodeWithTag("activity_level_sheet_activity_high").performClick()
-        rule.waitForIdle()
 
         // A new view model over the same saved state, as after process death: the values are fetched again.
         current = TrainerViewModel(repository, MutableClock(), saved)
         rule.waitForIdle()
 
-        rule.onNodeWithTag("activity_level_sheet_commit").assertExists()
-        rule.onNodeWithTag("activity_level_sheet_activity_high").assertIsSelected()
+        rule.onNodeWithTag("activity_level_sheet_activity_light").assertIsSelected()
+        rule.onNodeWithTag("activity_level_sheet_commit").assertDoesNotExist()
         assertTrue(repository.confirmCalls.isEmpty())
+    }
+
+    @Test
+    fun recreatedViewModel_afterATap_startsWithTheSheetClosed() {
+        val saved = SavedStateHandle()
+        val repository = FakeCoachRepository()
+        var current by mutableStateOf(TrainerViewModel(repository, MutableClock(), saved))
+        val connectivity = FakeConnectivityObserver()
+        rule.setContent { AppTheme { TrainerRoute(viewModel = current, connectivity = connectivity) } }
+        rule.waitForIdle()
+        rule.onNodeWithTag("trainer_edit_activity_button").performClick()
+        rule.waitForIdle()
+        rule.onNodeWithTag("activity_level_sheet_activity_high").performClick()
+        rule.waitForIdle()
+
+        current = TrainerViewModel(repository, MutableClock(), saved)
+        rule.waitForIdle()
+
+        rule.onNodeWithTag("activity_level_sheet_activity_high").assertDoesNotExist()
     }
 }

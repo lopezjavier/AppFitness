@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Fixture tests for scripts/check-ux-conventions.sh (T-118). For each guard G1..G11 a small tree under
+# Fixture tests for scripts/check-ux-conventions.sh (T-118). For each guard G1..G11 (G13/G14: own cases below) a small tree under
 # scripts/tests/ux-conventions/g<n>/ holds one violating file. Three cases per guard:
 #   violation  : no warning list              -> exit 1
 #   listed     : path in the warning list     -> exit 0 and a WARN line
@@ -61,6 +61,25 @@ for n in 1 2 3 4 5 6 7 8 9 10 11; do
   run "$clean" "$empty"
   expect "G$n clean tree passes" 0 NOWARN
 done
+
+# G14 (allow-list) and G13 (tab-root bell) have their own fixtures: an emptied G13 root would fail by design.
+run "$here/ux-conventions/g14" "$empty"
+expect "G14 AppEditSheet in an unlisted feature file fails" 1
+run "$here/ux-conventions/g14-allowed" "$empty"
+expect "G14 AppEditSheet in an allow-listed file passes" 0 NOWARN
+printf 'G14 .*\n' > "$work/listed-g14.txt"
+run "$here/ux-conventions/g14" "$work/listed-g14.txt"
+expect "G14 violation in a listed path warns and passes (parser accepts G14)" 0 WARN
+run "$here/ux-conventions/g13" "$empty"
+expect "G13 tab root without the bell fails" 1
+run "$here/ux-conventions/g13-ok" "$empty"
+expect "G13 tab root with the bell passes" 0 NOWARN
+printf 'G13 .*\n' > "$work/listed-g13.txt"
+run "$here/ux-conventions/g13" "$work/listed-g13.txt"
+expect "G13 violation in a listed path warns and passes (parser accepts G13)" 0 WARN
+printf 'G12 .*\n' > "$work/listed-g12.txt"
+run "$here/ux-conventions/g13-ok" "$work/listed-g12.txt"
+expect "the warnings parser accepts G12" 0 NOWARN
 
 # The folder-delete dialog of the routines list is on the R-08 allow-list (G5).
 run "$here/ux-conventions/g5-allowed" "$empty"

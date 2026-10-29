@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # UX conventions guard (T-118, planning/phase1/ux-audit-2026-10.md section 10, planning/05-design-system.md).
-# Features must reuse the design-system templates instead of reinventing them (guards G1..G11).
+# Features must reuse the design-system templates instead of reinventing them (guards G1..G14).
 #
 # Usage: check-ux-conventions.sh [root-dir] [warnings-file]
 #   root-dir       tree to scan (default: repository root). Tests pass a fixture tree.
@@ -29,7 +29,7 @@ while IFS= read -r raw || [ -n "$raw" ]; do
   line="${raw%%#*}"
   line="$(printf '%s' "$line" | sed -E 's/^[[:space:]]+//; s/[[:space:]]+$//')"
   [ -z "$line" ] && continue
-  if ! printf '%s' "$line" | grep -qE '^G([1-9]|1[01]) [^ ]+$'; then
+  if ! printf '%s' "$line" | grep -qE '^G([1-9]|1[0-4]) [^ ]+$'; then
     echo "UX conventions guard ERROR: malformed warnings line: $raw" >&2
     exit 2
   fi
@@ -151,6 +151,31 @@ scan G12 "literal minTouchTarget spacer in a set table header (R-50: use SetRowD
   'Spacer\(Modifier\.width\((Spacing\.)?minTouchTarget\)\)' '' "${set_table_files[@]}"
 scan G12 "SetOrdinal inside the live SetRow (R-50)" '\bSetOrdinal\(' \
   '.*/feature/[^:]*' "${set_table_files[@]}"
+
+# G13: every tab root carries the notification bell in all its states (R-04). The four roots are listed here;
+# a root file without NotificationsBell( or notificationsBarAction( fails.
+for file in "${kotlin_feature[@]}"; do
+  case "$file" in
+    */feature/trainer/TrainerScreen.kt | */feature/diary/DiaryScreen.kt | */feature/workout/WorkoutEntry.kt \
+      | */feature/profile/ProfileRootScreen.kt)
+      rc=0
+      grep -qE '\b(NotificationsBell|notificationsBarAction)\(' "$file" || rc=$?
+      if [ "$rc" -ge 2 ]; then
+        echo "UX conventions guard ERROR: grep failed with exit code $rc (G13)." >&2
+        exit "$rc"
+      fi
+      [ "$rc" -eq 1 ] && report G13 "tab root without the notification bell (R-04)" "$file:1:missing NotificationsBell("
+      ;;
+  esac
+done
+
+# G14: AppEditSheet( (a Save/Apply footer) only in the files below, all multi-field or stepper/wheel editors
+# (T-171 sweep). A single choice from a list applies on tap in AppPickerSheet (R-12). A new file using it fails:
+# use the Picker archetype, or add the file here with a one-line reason.
+scan G14 "AppEditSheet outside the multi-field allow-list (R-12: a single choice uses AppPickerSheet)" \
+  '\bAppEditSheet\(' \
+  '.*/feature/(catalog/OverlayCatalogSections|exercises/ExerciseFormSheet|meals/defaults/MealDefaultsSheets|profile/PersonalDataCard|weight/(CircumferenceSheet|GoalSheets|WeightDaySheet)|workout/(DiscomfortSheet|ExerciseMenu|FinishSessionSheet|UpdateRoutineSheet|VolumeOptionsSheets|WarmUpCalculatorSheet))\.kt' \
+  "${kotlin_feature[@]}"
 
 # G9 / G10: strings.xml.
 if [ -f "$strings_file" ]; then

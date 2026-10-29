@@ -65,6 +65,7 @@ fun SelectableCard(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
     description: String = "",
+    enabled: Boolean = true,
 ) {
     val colors = SelectableCardDefaults.colors(selected, AppTheme.colors)
     Row(
@@ -75,7 +76,7 @@ fun SelectableCard(
             .clip(SelectableCardDefaults.Shape)
             .background(colors.container)
             .border(SelectableCardDefaults.borderWidth(selected), colors.border, SelectableCardDefaults.Shape)
-            .selectable(selected = selected, role = Role.RadioButton, onClick = onClick)
+            .selectable(selected = selected, enabled = enabled, role = Role.RadioButton, onClick = onClick)
             .padding(Spacing.cardPadding),
         horizontalArrangement = Arrangement.spacedBy(Spacing.md),
         verticalAlignment = Alignment.CenterVertically,

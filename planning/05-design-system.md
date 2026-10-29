@@ -53,7 +53,7 @@ Generic rules cited by number; ux-reviewer rejects plans and diffs that break on
 - **R-01 Titles.** Tab roots show their own compact header, never a bar repeating the tab label. A screen about one object is titled with its name; an editor with verb + object ("Nueva rutina", "Editar rutina").
 - **R-02 Object actions** go in the top bar: at most 2 icons plus a ⋮ action sheet; never an extra icon row under the bar, never inside one tab/section.
 - **R-03** A navigation entry is a `NavigationRow` (label, optional value, chevron). The history or calendar of X is a calendar icon in X's top bar.
-- **R-04** An entry's label equals the title of the screen it opens. A sheet opened from a row is titled with that row's label ("Nivel de actividad"), and a tab root's header equals its tab label ("Trainer").
+- **R-04** An entry's label equals the title of the screen it opens. A sheet opened from a row is titled with that row's label ("Nivel de actividad"), and a tab root's header equals its tab label ("Trainer"). Every tab root carries the notification bell in all its states (loading, error, offline; guard G13).
 - **R-05** Bottom navigation appears only on tab roots; every other screen has a back arrow.
 ### Templates
 - **R-06** Every screen is built on `AppScreen` (read) or `AppEditorScreen` (edit); none draws its own top bar, footer, message host or offline banner.
@@ -63,7 +63,7 @@ Generic rules cited by number; ux-reviewer rejects plans and diffs that break on
 ### Editing
 - **R-10** Every edit surface has an explicit "Guardar"; closing (X, back) never applies anything.
 - **R-11** In an editor every change, removals included, waits for "Guardar". Immediate deletion exists only outside editors (list or details).
-- **R-12** "Guardar" writes to the server. "Listo" applies to the unsaved changes of the screen underneath, which has its own "Guardar". Single-choice pickers apply on tap, no "Listo".
+- **R-12** "Guardar" writes to the server. "Listo" applies to the unsaved changes of the screen underneath, which has its own "Guardar". Single-choice pickers apply on tap, no "Listo". Card lists count as single-choice: a sheet whose only control is one choice from a list uses `AppPickerSheet`, never `AppEditSheet` with a footer (guard G14 allow-lists the multi-field `AppEditSheet` users).
 - **R-13** After a successful "Guardar" the editor closes and returns, with a Confirm haptic; a message only if the change is not visible there.
 - **R-42 Live settings.** A switch on a read screen (`AppScreen`, no other fields, no "Guardar") applies on toggle: optimistic update, Reject haptic + message and rollback on failure, disabled offline with the standard hint (R-30). Its effect must be visible on the same screen. A switch inside an editor (Preferencias) is a draft until "Guardar" (R-10/R-11). No screen uses it today (the reminder switches live in Preferencias → "Avisos", T-138); the rule stays for a future read-screen switch.
 - **R-45 Scales explain themselves.** A numeric or ordinal scale (for example the 1-5 "Energía" of the weekly check-in, the discomfort level, RPE, the photo "Confianza") shows a `HelpButton` (R-32) next to its label that opens an Info sheet listing what each value means (one bullet per value; a 1-10 scale may group values in bands). Exempt: options that already carry their own description in place (activity-level cards), categorical choices (strategy, set type, goal, units) and continuous quantities (macro sliders, durations). A coloured scale of long labels is a list of `ScaleOptionRow`s (RPE, discomfort level), not chips (R-33 exception). Added at Checkpoint E12-A (user feedback, 2026-10-29); T-152 sweeps every existing scale.
@@ -137,7 +137,7 @@ Uses `SwipeToDeleteRow` only (guard G7) · right-to-left, "Eliminar"/"Quitar" ·
 | Abandon unsaved work or a live workout | "Descartar" | "Cancelar" | "¿Descartar los cambios?" [Descartar] [Seguir editando] |
 | Delete the account | "Borrar cuenta" (ADR-29) | - | Only other "Borrar": clearing text ("Borrar búsqueda") |
 | Commit an edit | "Guardar" | "Aceptar", "Confirmar" | "Confirmar" is never used for "Guardar" (see the coach rows below) |
-| Accept the coach's derived values (T-158) | "Confirmar" (card button; "Confirmado" once all are) | "Guardar", "Aceptar" | The activity-level sheet still ends in "Guardar", which also confirms the values |
+| Accept the coach's derived values (T-158) | "Confirmar" (card button; "Confirmado" once all are) | "Guardar", "Aceptar" | The activity-level sheet applies on tap (R-12) and confirms the values |
 | Decide on a coach proposal | "Aceptar" / "Descartar" | "Guardar", "Cancelar" | Distinct from the edit pair "Guardar"/"Cancelar"; used by the plan tasks of E13 |
 | A coach value not yet confirmed | "Provisional" (`StatusChip` Caution, announced "Valor provisional") | "Pendiente", "Sin confirmar" | A re-asked value shows the same chip with the line "Tus datos han cambiado: vuelve a confirmar." |
 | Apply to the screen underneath | "Listo" | "Guardar" | Only when that screen has its own "Guardar" |
