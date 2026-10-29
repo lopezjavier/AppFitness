@@ -7,6 +7,7 @@ import io.github.lopezjavier.appfitness.domain.model.RoutineExercise
 import io.github.lopezjavier.appfitness.domain.model.SessionExercise
 import io.github.lopezjavier.appfitness.domain.model.SessionStatus
 import io.github.lopezjavier.appfitness.domain.model.SetEntry
+import io.github.lopezjavier.appfitness.domain.model.SetNoteKind
 import io.github.lopezjavier.appfitness.domain.model.SetType
 import io.github.lopezjavier.appfitness.domain.model.WorkoutSession
 import io.github.lopezjavier.appfitness.domain.model.WorkoutSet
@@ -105,6 +106,19 @@ class WorkoutDraftFactoryTest {
 
         assertEquals("pausa larga", edit.exercises.single().sets.single().notes)
         assertNull(template.exercises.single().sets.single().notes)
+    }
+
+    @Test
+    fun fromSession_keepsTheSetNoteKindWhenEditing_butNotAsATemplate() {
+        val noted = session(
+            SessionExercise("a", 0, null, listOf(done(1, 50.0, 10).copy(noteKind = SetNoteKind.Assisted))),
+        )
+
+        val edit = WorkoutDraftFactory.fromSession(noted, date)
+        val template = WorkoutDraftFactory.fromSession(noted, date, asTemplate = true)
+
+        assertEquals(SetNoteKind.Assisted, edit.exercises.single().sets.single().noteKind)
+        assertNull(template.exercises.single().sets.single().noteKind)
     }
 
     @Test

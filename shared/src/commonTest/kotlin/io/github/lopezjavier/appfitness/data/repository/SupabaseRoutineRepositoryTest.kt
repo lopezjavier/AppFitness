@@ -7,6 +7,7 @@ import io.github.lopezjavier.appfitness.config.AppConfig
 import io.github.lopezjavier.appfitness.data.remote.SupabaseClientFactory
 import io.github.lopezjavier.appfitness.domain.AppError
 import io.github.lopezjavier.appfitness.domain.appErrorOrNull
+import io.github.lopezjavier.appfitness.domain.model.ExerciseNoteKind
 import io.github.lopezjavier.appfitness.domain.model.PlannedSet
 import io.github.lopezjavier.appfitness.domain.model.Routine
 import io.github.lopezjavier.appfitness.domain.model.RoutineExercise
@@ -179,6 +180,47 @@ class SupabaseRoutineRepositoryTest {
 
         assertEquals(listOf(null, "bajar el peso si duele"), routine.exercises.map { it.notes })
         assertTrue("rest_seconds,notes" in rest().single().url.encodedQuery.replace("%2C", ","))
+    }
+
+    @Test
+    fun save_sendsTheExerciseNoteKind() = runTest {
+        val repo = signedIn()
+        val base = routine()
+
+        repo.save(
+            base.copy(
+                exercises = listOf(
+                    base.exercises[0].copy(noteKind = ExerciseNoteKind.WeightUp),
+                    base.exercises[1].copy(notes = "x", noteKind = ExerciseNoteKind.Other),
+                ),
+            ),
+        ).getOrThrow()
+
+        val text = body(rest().single())
+        assertTrue(""""note_kind":"weight_up"""" in text, text)
+        assertTrue(""""note_kind":"other"""" in text, text)
+    }
+
+    @Test
+    fun get_mapsTheNoteKind_andOldNotesWithoutKindAreOther() = runTest {
+        val repo = signedIn()
+        getBody = ROUTINE_ROW.replace(
+            """"rest_seconds":90,""",
+            """"rest_seconds":90,"notes":"vieja",""",
+        )
+
+        val routine = repo.get("r1").getOrThrow()
+
+        assertEquals(listOf(null, ExerciseNoteKind.Other), routine.exercises.map { it.noteKind })
+        getBody = ROUTINE_ROW.replace(
+            """"rest_seconds":90,""",
+            """"rest_seconds":90,"note_kind":"setup",""",
+        )
+        assertEquals(
+            listOf(null, ExerciseNoteKind.Setup),
+            repo.get("r1").getOrThrow().exercises.map { it.noteKind },
+        )
+        assertTrue("notes,note_kind" in rest().first().url.encodedQuery.replace("%2C", ","))
     }
 
     @Test

@@ -1,5 +1,6 @@
 package io.github.lopezjavier.appfitness.data.remote
 
+import io.github.lopezjavier.appfitness.domain.model.ExerciseNoteKind
 import io.github.lopezjavier.appfitness.domain.model.NoteText
 import io.github.lopezjavier.appfitness.domain.model.PlannedSet
 import io.github.lopezjavier.appfitness.domain.model.Routine
@@ -8,6 +9,7 @@ import io.github.lopezjavier.appfitness.domain.model.RoutineExercise
 import io.github.lopezjavier.appfitness.domain.model.RoutineFolder
 import io.github.lopezjavier.appfitness.domain.model.RoutineSummary
 import io.github.lopezjavier.appfitness.domain.model.SetType
+import io.github.lopezjavier.appfitness.domain.model.resolveNoteKind
 import io.github.lopezjavier.appfitness.domain.usecase.plannedSetsFromLegacy
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
@@ -64,7 +66,7 @@ internal data class RoutineDto(
         const val COLUMNS =
             "id,name,notes,archived,track_as_routine," +
                 "routine_exercises(exercise_id,position,superset_group,target_sets,target_reps," +
-                "target_weight_kg,planned_set_type,target_rpe,rest_seconds,notes," +
+                "target_weight_kg,planned_set_type,target_rpe,rest_seconds,notes,note_kind," +
                 "routine_exercise_sets(target_weight_kg,target_reps,set_type,set_index))"
     }
 }
@@ -94,6 +96,8 @@ internal data class RoutineExerciseDto(
     @SerialName("target_rpe") val targetRpe: Double? = null,
     @SerialName("rest_seconds") val restSeconds: Int,
     val notes: String? = null,
+    // Absent in old payloads: a note with text but no kind reads as "other".
+    @SerialName("note_kind") val noteKind: ExerciseNoteKind? = null,
     @SerialName("routine_exercise_sets") val sets: List<PlannedSetRowDto> = emptyList(),
 ) {
     fun toDomain() = RoutineExercise(
@@ -108,6 +112,7 @@ internal data class RoutineExerciseDto(
         restSeconds = restSeconds,
         targetRpe = targetRpe,
         notes = NoteText.normalise(notes),
+        noteKind = resolveNoteKind(noteKind, notes, ExerciseNoteKind.Other),
     )
 }
 
@@ -137,6 +142,7 @@ internal data class SaveRoutineRequest(
                     restSeconds = exercise.restSeconds,
                     targetRpe = exercise.targetRpe,
                     notes = NoteText.normalise(exercise.notes),
+                    noteKind = resolveNoteKind(exercise.noteKind, exercise.notes, ExerciseNoteKind.Other),
                     sets = exercise.plannedSets.map { PlannedSetDto(it.weightKg, it.reps, it.type) },
                 )
             },
@@ -152,6 +158,7 @@ internal data class SaveRoutineExerciseRequest(
     @SerialName("rest_seconds") val restSeconds: Int,
     @SerialName("target_rpe") val targetRpe: Double? = null,
     val notes: String? = null,
+    @SerialName("note_kind") val noteKind: ExerciseNoteKind? = null,
     val sets: List<PlannedSetDto>,
 )
 

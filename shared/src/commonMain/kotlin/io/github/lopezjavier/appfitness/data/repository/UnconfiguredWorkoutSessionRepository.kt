@@ -7,6 +7,7 @@ import io.github.lopezjavier.appfitness.domain.model.ExerciseSessionRecords
 import io.github.lopezjavier.appfitness.domain.model.PersonalRecord
 import io.github.lopezjavier.appfitness.domain.model.PreviousSet
 import io.github.lopezjavier.appfitness.domain.model.SetEntry
+import io.github.lopezjavier.appfitness.domain.model.SetNoteKind
 import io.github.lopezjavier.appfitness.domain.model.SetType
 import io.github.lopezjavier.appfitness.domain.model.TrainedSession
 import io.github.lopezjavier.appfitness.domain.model.WorkoutDraft
@@ -35,6 +36,7 @@ class UnconfiguredWorkoutSessionRepository : WorkoutSessionRepository {
         setType: SetType,
         rpe: Double?,
         notes: String?,
+        noteKind: SetNoteKind?,
     ): Result<Unit> = fail()
 
     override suspend fun listCompleted(offset: Int, limit: Int): Result<List<WorkoutSession>> = fail()

@@ -2,9 +2,11 @@ package io.github.lopezjavier.appfitness.data.remote
 
 import io.github.lopezjavier.appfitness.domain.model.DraftWorkoutSet
 import io.github.lopezjavier.appfitness.domain.model.NoteText
+import io.github.lopezjavier.appfitness.domain.model.SetNoteKind
 import io.github.lopezjavier.appfitness.domain.model.SetType
 import io.github.lopezjavier.appfitness.domain.model.WorkoutDraft
 import io.github.lopezjavier.appfitness.domain.model.columns
+import io.github.lopezjavier.appfitness.domain.model.resolveNoteKind
 import io.github.lopezjavier.appfitness.domain.usecase.WorkoutStartInstant
 import kotlinx.datetime.TimeZone
 import kotlinx.serialization.SerialName
@@ -69,6 +71,7 @@ internal data class SaveCompletedSetRequest(
     val steps: Int? = null,
     val floors: Int? = null,
     val notes: String? = null,
+    @SerialName("note_kind") val noteKind: SetNoteKind? = null,
 ) {
     companion object {
         fun from(set: DraftWorkoutSet): SaveCompletedSetRequest {
@@ -83,6 +86,7 @@ internal data class SaveCompletedSetRequest(
                 steps = columns.steps,
                 floors = columns.floors,
                 notes = NoteText.normalise(set.notes),
+                noteKind = resolveNoteKind(set.noteKind, set.notes, SetNoteKind.Other),
             )
         }
     }

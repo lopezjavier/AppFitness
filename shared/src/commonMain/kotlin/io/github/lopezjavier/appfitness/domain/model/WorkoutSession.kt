@@ -9,8 +9,10 @@ data class WorkoutSet(
     val entry: SetEntry,
     val completedAt: Instant?,
     val rpe: Double? = null,
-    /** Free-text note of the set (1-200 chars, [NoteText]); null when none. */
+    /** Optional text of the set note (1-200 chars, [NoteText]); required when [noteKind] is `Other`. */
     val notes: String? = null,
+    /** Option of the set note; null when the set has no note ([Note]). */
+    val noteKind: SetNoteKind? = null,
 ) {
     val isCompleted: Boolean get() = completedAt != null
 }

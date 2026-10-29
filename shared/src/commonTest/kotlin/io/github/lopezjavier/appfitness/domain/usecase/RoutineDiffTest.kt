@@ -1,5 +1,7 @@
 package io.github.lopezjavier.appfitness.domain.usecase
 
+import io.github.lopezjavier.appfitness.domain.model.ExerciseNoteKind
+import io.github.lopezjavier.appfitness.domain.model.Note
 import io.github.lopezjavier.appfitness.domain.model.PlannedSet
 import io.github.lopezjavier.appfitness.domain.model.Routine
 import io.github.lopezjavier.appfitness.domain.model.RoutineExercise
@@ -202,5 +204,41 @@ class RoutineDiffTest {
         )
 
         assertTrue(routineDiff(s, emptyMap(), r).isSame)
+    }
+
+    @Test
+    fun editedRoutineNote_isReportedAsNoteChanged() {
+        val notes = mapOf(0 to Note(ExerciseNoteKind.WeightUp, null))
+
+        assertEquals(
+            listOf(RoutineChange.NoteChanged("a")),
+            routineDiff(baseSession(), emptyMap(), baseRoutine, notes).changes,
+        )
+    }
+
+    @Test
+    fun clearedRoutineNote_isReportedWhenTheRoutineHadOne() {
+        val withNote = routine(
+            planned("a", 0, listOf(working(80.0, 8), working(80.0, 8)))
+                .copy(noteKind = ExerciseNoteKind.Setup),
+            planned("b", 1, listOf(working(50.0, 10))),
+        )
+
+        val changes = routineDiff(baseSession(), emptyMap(), withNote, mapOf(0 to null)).changes
+
+        assertEquals(listOf(RoutineChange.NoteChanged("a")), changes)
+    }
+
+    @Test
+    fun routineNoteEqualToThePlannedOne_isNotAChange() {
+        val withNote = routine(
+            planned("a", 0, listOf(working(80.0, 8), working(80.0, 8)))
+                .copy(noteKind = ExerciseNoteKind.Other, notes = "tempo lento"),
+            planned("b", 1, listOf(working(50.0, 10))),
+        )
+        val same = mapOf(0 to Note(ExerciseNoteKind.Other, "tempo lento"))
+
+        assertTrue(routineDiff(baseSession(), emptyMap(), withNote, same).isSame)
+        assertTrue(routineDiff(baseSession(), emptyMap(), baseRoutine, mapOf(0 to null)).isSame)
     }
 }

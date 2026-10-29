@@ -1,6 +1,7 @@
 package io.github.lopezjavier.appfitness.domain.usecase
 
 import io.github.lopezjavier.appfitness.domain.model.SetEntry
+import io.github.lopezjavier.appfitness.domain.model.SetNoteKind
 import io.github.lopezjavier.appfitness.domain.model.SetType
 import kotlin.time.Instant
 
@@ -16,6 +17,7 @@ data class SetWrite(
     val setType: SetType,
     val rpe: Double? = null,
     val notes: String? = null,
+    val noteKind: SetNoteKind? = null,
 )
 
 /**

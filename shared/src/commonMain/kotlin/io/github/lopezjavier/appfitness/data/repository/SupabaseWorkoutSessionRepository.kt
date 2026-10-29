@@ -34,11 +34,13 @@ import io.github.lopezjavier.appfitness.domain.model.NoteText
 import io.github.lopezjavier.appfitness.domain.model.PersonalRecord
 import io.github.lopezjavier.appfitness.domain.model.PreviousSet
 import io.github.lopezjavier.appfitness.domain.model.SetEntry
+import io.github.lopezjavier.appfitness.domain.model.SetNoteKind
 import io.github.lopezjavier.appfitness.domain.model.SetType
 import io.github.lopezjavier.appfitness.domain.model.TrainedSession
 import io.github.lopezjavier.appfitness.domain.model.WorkoutDraft
 import io.github.lopezjavier.appfitness.domain.model.WorkoutSession
 import io.github.lopezjavier.appfitness.domain.model.columns
+import io.github.lopezjavier.appfitness.domain.model.resolveNoteKind
 import io.github.lopezjavier.appfitness.domain.port.Clock
 import io.github.lopezjavier.appfitness.domain.repository.WorkoutSessionRepository
 import kotlinx.datetime.LocalDate
@@ -161,6 +163,7 @@ class SupabaseWorkoutSessionRepository(
         setType: SetType,
         rpe: Double?,
         notes: String?,
+        noteKind: SetNoteKind?,
     ): Result<Unit> = auth.ownRow {
         val columns = entry.columns()
         val dto = WorkoutSetUpsertDto(
@@ -179,6 +182,7 @@ class SupabaseWorkoutSessionRepository(
             floors = columns.floors,
             rpe = rpe,
             notes = NoteText.normalise(notes),
+            noteKind = resolveNoteKind(noteKind, notes, SetNoteKind.Other),
             completedAt = completedAt?.toString(),
         )
         postgrest.from("workout_sets").upsert(dto) { onConflict = "session_id,exercise_position,set_index" }
