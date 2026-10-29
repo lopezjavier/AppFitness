@@ -77,13 +77,13 @@ Feature: Rest-end alert outside the app
 Feature: Training intention and preferences
 
   Scenario: Intentions are a fixed list
-    When the user opens "Mi entrenamiento" in Preferencias
+    When the user opens "Mi entrenamiento" from the Perfil root
     Then they can choose among "Ganar fuerza", "Ganar musculatura", "Perder grasa", "Recomposición" and "Mantenimiento"
 
   Scenario: Choosing the intention
     When the user chooses "Ganar fuerza" and taps "Guardar"
     Then the intention is stored
-    And it is shown in "Mi entrenamiento"
+    And it is shown in the "Mi entrenamiento" row of the Perfil root
 
   Scenario: Place defines the default equipment
     When the user chooses the place "Casa"
@@ -100,7 +100,7 @@ Feature: Training intention and preferences
 - Intention and preferences are static: they change only when the user edits them.
 - Default equipment per place (design decision): home = dumbbell, band, bodyweight; gym = every value; other = bodyweight.
 - The intention does not change the nutrition goal by itself; an accepted coach plan does (E13, ADR-76).
-- Session length (user, 2026-10-28): 15-180 min in 5-min steps, shown with the app's existing duration format ("45 min", "1 h 0 min", "1 h 30 min").
+- Session length (user, 2026-10-28): 15-180 min in 5-min steps, edited with the stepper control and shown with the app's duration format, zero parts dropped ("45 min", "1 h", "1 h 30 min"); days (1-7) and session length use steppers whose lowest step is "Sin definir".
 
 ## US-66 · Notes per set and per routine exercise
 **As** a user
