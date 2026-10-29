@@ -8,6 +8,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.test.assertContentDescriptionEquals
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertHeightIsAtLeast
+import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.assertIsNotSelected
@@ -478,15 +479,36 @@ class ExercisePickerScreenTest {
     }
 
     @Test
-    fun addOwnExercise_isTheLastElement_followedOnlyByTheAttribution() {
+    fun addOwnExercise_isPinnedInTheFooter_belowTheList() {
+        show()
+
+        val footer = rule.onNodeWithTag("exercise_picker_footer").getUnclippedBoundsInRoot()
+        val button = rule.onNodeWithTag("exercise_picker_create_button").assertTextEquals("Añadir ejercicio propio")
+            .getUnclippedBoundsInRoot()
+        val list = rule.onNodeWithTag("exercise_picker_list").getUnclippedBoundsInRoot()
+        assertTrue(button.top >= footer.top && button.bottom <= footer.bottom)
+        assertTrue(button.top >= list.bottom)
+    }
+
+    @Test
+    fun addOwnExercise_doesNotScrollAway_whenTheListIsScrolledToItsEnd() {
+        show()
+        val before = rule.onNodeWithTag("exercise_picker_create_button").getUnclippedBoundsInRoot()
+
+        rule.onNodeWithTag("exercise_picker_attribution").performScrollTo()
+        rule.waitForIdle()
+
+        val after = rule.onNodeWithTag("exercise_picker_create_button").assertIsDisplayed().getUnclippedBoundsInRoot()
+        assertEquals(before.top, after.top)
+    }
+
+    @Test
+    fun attribution_endsTheList() {
         show()
 
         val lastRow = rule.onNodeWithTag("exercise_picker_row_mine").getUnclippedBoundsInRoot()
-        val button = rule.onNodeWithTag("exercise_picker_create_button").assertTextEquals("Añadir ejercicio propio")
-            .getUnclippedBoundsInRoot()
         val attribution = rule.onNodeWithTag("exercise_picker_attribution").getUnclippedBoundsInRoot()
-        assertTrue(button.top >= lastRow.bottom)
-        assertTrue(attribution.top >= button.bottom)
+        assertTrue(attribution.top >= lastRow.bottom)
     }
 
     @Test
@@ -496,15 +518,7 @@ class ExercisePickerScreenTest {
         rule.waitForIdle()
 
         rule.onNodeWithTag("exercise_picker_empty").assertExists()
-        rule.onNodeWithTag("exercise_picker_create_button").assertExists()
-    }
-
-    @Test
-    fun thereIsNoSnackbarHostOrPinnedFooter() {
-        show()
-
-        rule.onNodeWithTag("exercise_picker_deleted_message").assertDoesNotExist()
-        rule.onNodeWithTag("exercise_picker_footer").assertDoesNotExist()
+        rule.onNodeWithTag("exercise_picker_create_button").assertIsDisplayed()
     }
 
     @Test
