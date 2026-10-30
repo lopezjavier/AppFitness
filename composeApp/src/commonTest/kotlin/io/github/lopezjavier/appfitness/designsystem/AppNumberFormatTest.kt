@@ -102,4 +102,18 @@ class AppNumberFormatTest {
     fun integer_minValue_doesNotOverflow() {
         assertEquals("−2.147.483.648", AppNumberFormat.integer(Int.MIN_VALUE))
     }
+
+    @Test
+    fun euro_alwaysShowsTwoDecimalsAndTheSymbol() {
+        assertEquals("0,00 €", AppNumberFormat.euro(0.0))
+        assertEquals("0,42 €", AppNumberFormat.euro(0.42))
+        assertEquals("2,00 €", AppNumberFormat.euro(2.0))
+        assertEquals("1.234,50 €", AppNumberFormat.euro(1234.5))
+    }
+
+    @Test
+    fun euro_roundsToCents() {
+        assertEquals("0,13 €", AppNumberFormat.euro(0.125))
+        assertEquals("2,00 €", AppNumberFormat.euro(1.999999))
+    }
 }

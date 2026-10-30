@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.semantics.ProgressBarRangeInfo
 import androidx.compose.ui.semantics.progressBarRangeInfo
 import androidx.compose.ui.semantics.semantics
@@ -25,10 +26,16 @@ object AppLinearProgressDefaults {
 /**
  * A plain progress bar towards a goal: an `athleticCyan` fill over a `divider` track, rounded. [fraction] is clamped
  * to 0..1; [stateDescription] is the spoken value ("Progreso hacia el objetivo, 50 %"), so the bar is never
- * colour-only. Unlike `MacroProgressBar` it has no macro colour and no amounts.
+ * colour-only. [fillColor] overrides the fill (for example the caution token at a limit). Unlike
+ * `MacroProgressBar` it has no macro colour and no amounts.
  */
 @Composable
-fun AppLinearProgress(fraction: Float, stateDescription: String, modifier: Modifier = Modifier) {
+fun AppLinearProgress(
+    fraction: Float,
+    stateDescription: String,
+    modifier: Modifier = Modifier,
+    fillColor: Color? = null,
+) {
     val clamped = fraction.coerceIn(0f, 1f)
     Box(
         modifier
@@ -45,7 +52,7 @@ fun AppLinearProgress(fraction: Float, stateDescription: String, modifier: Modif
             Modifier
                 .fillMaxHeight()
                 .fillMaxWidth(clamped)
-                .background(AppTheme.colors.athleticCyan),
+                .background(fillColor ?: AppTheme.colors.athleticCyan),
         )
     }
 }

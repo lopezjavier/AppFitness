@@ -13,7 +13,10 @@ import io.github.lopezjavier.appfitness.app.App
 import io.github.lopezjavier.appfitness.app.FakeConnectivityObserver
 import io.github.lopezjavier.appfitness.app.RootRoute
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
+import io.github.lopezjavier.appfitness.domain.model.CoachUsage
 import io.github.lopezjavier.appfitness.feature.workout.MutableClock
+import kotlinx.coroutines.flow.flowOf
+import kotlinx.datetime.LocalDate
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
@@ -80,5 +83,56 @@ class TrainerRestorationTest {
         rule.waitForIdle()
 
         rule.onNodeWithTag("activity_level_sheet_activity_high").assertDoesNotExist()
+    }
+
+    private fun StateRestorationTester.setTrainerApp() {
+        val usage = CoachUsage(LocalDate(2026, 11, 1), 0, 0, 0.42)
+        val connectivity = FakeConnectivityObserver()
+        setContent {
+            App(
+                rootRoute = RootRoute.Main,
+                trainer = { modifier, open ->
+                    TrainerRoute(
+                        modifier,
+                        open,
+                        viewModel = TrainerViewModel(FakeCoachRepository(), MutableClock(), SavedStateHandle()),
+                        connectivity = connectivity,
+                    )
+                },
+                coachUsage = { modifier, onBack ->
+                    CoachUsageScreen(CoachUsageUiState.Content(usage), flowOf(true), {}, onBack, modifier)
+                },
+            )
+        }
+    }
+
+    @Test
+    fun recreation_keepsTheOverflowSheetOpen() {
+        val tester = StateRestorationTester(rule)
+        tester.setTrainerApp()
+        rule.onNodeWithTag("nav_tab_trainer").performClick()
+        rule.onNodeWithTag("trainer_overflow").performClick()
+        rule.waitForIdle()
+
+        tester.emulateSavedInstanceStateRestore()
+        rule.waitForIdle()
+
+        rule.onNodeWithTag("trainer_action_coach_usage").assertExists()
+    }
+
+    @Test
+    fun recreation_keepsTheUsageScreenOpen() {
+        val tester = StateRestorationTester(rule)
+        tester.setTrainerApp()
+        rule.onNodeWithTag("nav_tab_trainer").performClick()
+        rule.onNodeWithTag("trainer_overflow").performClick()
+        rule.waitForIdle()
+        rule.onNodeWithTag("trainer_action_coach_usage").performClick()
+        rule.waitForIdle()
+
+        tester.emulateSavedInstanceStateRestore()
+        rule.waitForIdle()
+
+        rule.onNodeWithTag("coach_usage_figure").assertExists()
     }
 }

@@ -7,6 +7,7 @@ private const val GROUP_SIZE = 3
 private const val MINUS = '−'
 private const val TEN = 10L
 private const val HALF = 0.5
+private const val CENTS = 100.0
 private const val MAX_SCALED = 9.0e18
 private const val HUGE = "999.999.999.999.999"
 
@@ -47,6 +48,14 @@ object AppNumberFormat {
             }
         }
         return if (value < 0) "$MINUS$text" else text
+    }
+
+    /** An amount in euros with always two decimals and a space before the symbol: "0,42 €", "2,00 €". */
+    fun euro(value: Double): String {
+        val cents = if (value.isFinite()) floor(abs(value) * CENTS + HALF).toLong() else 0L
+        val fraction = (cents % CENTS.toLong()).toString().padStart(2, '0')
+        val sign = if (value < 0 && cents > 0) MINUS.toString() else ""
+        return "$sign${group((cents / CENTS.toLong()).toString())},$fraction €"
     }
 
     /** Like [integer] but a positive value carries "+" ("+250", "−400", "0"). */

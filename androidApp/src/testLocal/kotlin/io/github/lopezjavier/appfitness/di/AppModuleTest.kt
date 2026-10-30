@@ -24,6 +24,7 @@ import io.github.lopezjavier.appfitness.domain.repository.AuthRepository
 import io.github.lopezjavier.appfitness.domain.repository.BodyMeasurementRepository
 import io.github.lopezjavier.appfitness.domain.repository.CircumferenceRepository
 import io.github.lopezjavier.appfitness.domain.repository.CoachRepository
+import io.github.lopezjavier.appfitness.domain.repository.CoachUsageRepository
 import io.github.lopezjavier.appfitness.domain.repository.DiscomfortRepository
 import io.github.lopezjavier.appfitness.domain.repository.ExerciseRepository
 import io.github.lopezjavier.appfitness.domain.repository.FoodDiaryRepository
@@ -197,6 +198,7 @@ class AppModuleTest {
                 StrengthRepository::class,
                 TrainingStatsRepository::class,
                 CoachRepository::class,
+                CoachUsageRepository::class,
                 ExerciseLibrary::class,
                 LoadExerciseCatalog::class,
                 SearchExercises::class,

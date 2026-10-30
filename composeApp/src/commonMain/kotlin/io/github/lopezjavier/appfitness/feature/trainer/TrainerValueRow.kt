@@ -30,7 +30,8 @@ import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.stringResource
 
 /**
- * One derived value of the Trainer card: label, "value · source" line, the "Provisional" chip while it is not
+ * One derived value of the Trainer card: label, "value · source" line (only the source when [value] is blank: the
+ * value then lives in [trailing]), the "Provisional" chip while it is not
  * confirmed (R-39, R-41: text and icon, announced as "Valor provisional"), the missing data note and any extra
  * [notes]. Tags: `trainer_row_<key>`, `trainer_provisional_<key>`, `trainer_missing_note_<key>`.
  */
@@ -51,7 +52,11 @@ internal fun TrainerValueRow(
     Column(modifier.fillMaxWidth().testTag("trainer_row_$key")) {
         AppListRow(
             headline = headline,
-            supporting = stringResource(Res.string.trainer_value_supporting, value, supportingText),
+            supporting = if (value.isBlank()) {
+                supportingText
+            } else {
+                stringResource(Res.string.trainer_value_supporting, value, supportingText)
+            },
             trailing = trailing,
             modifier = if (provisional) Modifier.semantics { stateDescription = provisionalState } else Modifier,
         )

@@ -9,6 +9,7 @@ import io.github.lopezjavier.appfitness.domain.model.ActivityLevel
 import io.github.lopezjavier.appfitness.domain.model.CoachDerivedValues
 import io.github.lopezjavier.appfitness.domain.port.Clock
 import io.github.lopezjavier.appfitness.domain.repository.CoachRepository
+import io.github.lopezjavier.appfitness.domain.repository.NutritionGoalsRepository
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -28,6 +29,7 @@ class TrainerViewModel(
     private val repository: CoachRepository,
     private val clock: Clock,
     private val savedState: SavedStateHandle = SavedStateHandle(),
+    private val goals: NutritionGoalsRepository? = null,
 ) : ViewModel() {
     private val _uiState = MutableStateFlow<TrainerUiState>(TrainerUiState.Loading)
     val uiState: StateFlow<TrainerUiState> = _uiState.asStateFlow()
@@ -56,8 +58,10 @@ class TrainerViewModel(
         _uiState.value = TrainerUiState.Loading
         viewModelScope.launch {
             val result = repository.derivedValues(today())
+            // The strategy only colours the trend; an unreadable or missing goal leaves it neutral.
+            val strategy = if (result.isSuccess) goals?.getOwn()?.getOrNull()?.strategy else null
             _uiState.value = result.fold(
-                onSuccess = { TrainerUiState.Content(it, editSheet = restoredDraft()) },
+                onSuccess = { TrainerUiState.Content(it, editSheet = restoredDraft(), strategy = strategy) },
                 onFailure = {
                     if (result.appErrorOrNull() == AppError.Network) TrainerUiState.Offline else TrainerUiState.Error
                 },
@@ -94,7 +98,7 @@ class TrainerViewModel(
                 if (fromSheet) savedState.remove<String>(KEY_DRAFT)
                 _uiState.update { state ->
                     if (state is TrainerUiState.Content) {
-                        TrainerUiState.Content(values, confirming = false, editSheet = null)
+                        state.copy(values = values, confirming = false, editSheet = null)
                     } else {
                         state
                     }

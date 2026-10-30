@@ -3,7 +3,7 @@ begin;
 create extension if not exists pgtap with schema extensions;
 set local search_path = extensions, public;
 
-select plan(22);
+select plan(24);
 
 -- The on_auth_user_created trigger creates each profile.
 insert into auth.users (id, email) values
@@ -61,6 +61,10 @@ insert into public.exercise_discomforts (user_id, exercise_id, level, note)
 insert into public.coach_confirmed_values (user_id, key, estimate, uncertainty) values
   ('d1000000-0000-4000-8000-000000000001', 'experience', 0, 0.5),
   ('d2000000-0000-4000-8000-000000000002', 'experience', 1, 0.5);
+
+insert into public.coach_usage (user_id, month, cost_eur) values
+  ('d1000000-0000-4000-8000-000000000001', date '2026-10-01', 0.5),
+  ('d2000000-0000-4000-8000-000000000002', date '2026-10-01', 0.7);
 
 delete from auth.users where id = 'd1000000-0000-4000-8000-000000000001';
 
@@ -133,6 +137,13 @@ select is(
 select is(
   (select count(*)::int from public.resting_heart_rate where user_id = 'd2000000-0000-4000-8000-000000000002'),
   1, 'another user''s resting_heart_rate are untouched');
+
+select is(
+  (select count(*)::int from public.coach_usage where user_id = 'd1000000-0000-4000-8000-000000000001'),
+  0, 'the deleted user''s coach_usage is gone');
+select is(
+  (select count(*)::int from public.coach_usage where user_id = 'd2000000-0000-4000-8000-000000000002'),
+  1, 'another user''s coach_usage is untouched');
 
 select * from finish();
 rollback;

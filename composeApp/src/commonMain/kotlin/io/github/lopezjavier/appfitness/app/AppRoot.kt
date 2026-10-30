@@ -34,6 +34,7 @@ import io.github.lopezjavier.appfitness.feature.routines.RoutineBuilderRoot
 import io.github.lopezjavier.appfitness.feature.routines.RoutineDetailsRoot
 import io.github.lopezjavier.appfitness.feature.templates.SaveTemplateRoot
 import io.github.lopezjavier.appfitness.feature.templates.TemplateDetailsRoot
+import io.github.lopezjavier.appfitness.feature.trainer.CoachUsageRoot
 import io.github.lopezjavier.appfitness.feature.trainer.TrainerRoute
 import io.github.lopezjavier.appfitness.feature.weight.WeightHistoryRoot
 import io.github.lopezjavier.appfitness.feature.weight.WeightRoot
@@ -66,7 +67,7 @@ fun AppRoot(
         rootRoute = state.rootRoute,
         onRetryProfile = { viewModel.onEvent(AppEvent.RetryProfile) },
         profile = { profileModifier, actions -> ProfileRootRoute(profileModifier, actions) },
-        trainer = { trainerModifier -> TrainerRoute(trainerModifier) },
+        trainer = { trainerModifier, onOpenCoachUsage -> TrainerRoute(trainerModifier, onOpenCoachUsage) },
         strength = { strengthModifier, onOpenExercise, onOpenMuscleVolume, onStartWorkout, onBack ->
             StrengthRoot(onOpenExercise, onOpenMuscleVolume, onStartWorkout, onBack, strengthModifier)
         },
@@ -88,6 +89,7 @@ fun AppRoot(
         },
         preferencesSection = { sectionModifier, onClose -> PreferencesSectionRoot(onClose, sectionModifier) },
         account = { accountModifier, onBack -> AccountRoot(onBack, accountModifier) },
+        coachUsage = { usageModifier, onBack -> CoachUsageRoot(onBack, usageModifier) },
         about = { aboutModifier, onBack -> AboutRoot(onBack, aboutModifier) },
         activity = { activityModifier, onBack -> ActivityRoot(onBack, activityModifier) },
         exercisePicker = { pickerModifier, selectMode, onOpenDetail, onSelected, onBack ->

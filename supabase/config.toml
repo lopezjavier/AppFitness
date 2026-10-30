@@ -443,3 +443,6 @@ enabled = true
 
 [functions.food-photo]
 verify_jwt = true
+
+[functions.coach]
+verify_jwt = true
