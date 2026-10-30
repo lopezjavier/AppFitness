@@ -1,5 +1,6 @@
 package io.github.lopezjavier.appfitness.feature.workout
 
+import io.github.lopezjavier.appfitness.domain.model.DeloadExerciseSuggestion
 import io.github.lopezjavier.appfitness.domain.model.DiscomfortLevel
 import io.github.lopezjavier.appfitness.domain.model.Equipment
 import io.github.lopezjavier.appfitness.domain.model.ExerciseMetricType
@@ -64,6 +65,11 @@ data class LiveExercise(
      * no history, severe discomfort, offline or error). Read-only: it never touches the set rows or the routine.
      */
     val suggestion: ProgressionSuggestion? = null,
+    /**
+     * The deload line (T-165) when the session is in an accepted deload week: same weights, [deloadSets] working sets.
+     * When present, [suggestion] is null for this exercise. Read-only: routines and set rows are never rewritten.
+     */
+    val deload: DeloadExerciseSuggestion? = null,
     /** What each set of this exercise measures; decides the fields of its rows. */
     val metricType: ExerciseMetricType = ExerciseMetricType.WeightReps,
     /** Decides the hint of the weight field; null when unknown. */

@@ -3,6 +3,7 @@ package io.github.lopezjavier.appfitness.feature.trainer
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.junit4.StateRestorationTester
 import androidx.compose.ui.test.junit4.v2.createComposeRule
@@ -156,5 +157,69 @@ class TrainerRestorationTest {
 
         rule.onNodeWithTag("trainer_plan_card").assertExists()
         rule.onNodeWithTag("trainer_calorie_card").assertExists()
+    }
+
+    @Test
+    fun recreatedViewModel_reloadsTheWeeksAndThePendingDeloadFromTheServer() {
+        val plans = FakeCoachPlanRepository()
+        plans.current = Result.success(coachPlan(status = PlanStatus.Accepted))
+        val blocks = FakeCoachBlockRepository()
+        blocks.current = Result.success(coachBlock(saved = true))
+        val weeks = FakeCoachWeeksRepository()
+        weeks.weeksResult = Result.success(listOf(planWeek(week = 1), planWeek(week = 2)))
+        weeks.pending = Result.success(deloadProposal())
+        val saved = SavedStateHandle()
+        val repository = FakeCoachRepository()
+        fun model() = TrainerViewModel(
+            repository,
+            MutableClock(),
+            saved,
+            plans = plans,
+            blocks = blocks,
+            coachWeeks = weeks,
+        )
+        var current by mutableStateOf(model())
+        val connectivity = FakeConnectivityObserver()
+        rule.setContent { AppTheme { TrainerRoute(viewModel = current, connectivity = connectivity) } }
+        rule.waitForIdle()
+        rule.onNodeWithTag("trainer_deload_card").assertExists()
+
+        // A new view model over the same saved state, as after process death: nothing is kept only in memory.
+        current = model()
+        rule.waitForIdle()
+
+        rule.onNodeWithTag("trainer_deload_card").assertExists()
+        rule.onNodeWithTag("trainer_deload_card_accept").assertIsEnabled()
+        rule.onNodeWithTag("trainer_week_2").assertExists()
+    }
+
+    @Test
+    fun recreation_keepsTheWeekListAndTheDeloadCard() {
+        val plans = FakeCoachPlanRepository()
+        plans.current = Result.success(coachPlan(status = PlanStatus.Accepted))
+        val blocks = FakeCoachBlockRepository()
+        blocks.current = Result.success(coachBlock(saved = true))
+        val weeks = FakeCoachWeeksRepository()
+        weeks.weeksResult = Result.success(listOf(planWeek(week = 1), planWeek(week = 2)))
+        weeks.pending = Result.success(deloadProposal())
+        val model = TrainerViewModel(
+            FakeCoachRepository(),
+            MutableClock(),
+            SavedStateHandle(),
+            plans = plans,
+            blocks = blocks,
+            coachWeeks = weeks,
+        )
+        val connectivity = FakeConnectivityObserver()
+        val tester = StateRestorationTester(rule)
+        tester.setContent { AppTheme { TrainerRoute(viewModel = model, connectivity = connectivity) } }
+        rule.waitForIdle()
+
+        tester.emulateSavedInstanceStateRestore()
+        rule.waitForIdle()
+
+        rule.onNodeWithTag("trainer_deload_card").assertExists()
+        rule.onNodeWithTag("trainer_deload_card_accept").assertIsEnabled()
+        rule.onNodeWithTag("trainer_weeks_section").assertExists()
     }
 }

@@ -348,6 +348,7 @@ val uiModule =
                 restAlertPreferences = get(),
                 discomfortRepository = get(),
                 progressionRepository = get(),
+                deloadRepository = get(),
             )
         }
         viewModelOf(::HistoryViewModel)
@@ -418,6 +419,7 @@ val uiModule =
                 goals = get(),
                 plans = get(),
                 blocks = get(),
+                coachWeeks = get(),
             )
         }
         viewModel { params ->

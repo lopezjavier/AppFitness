@@ -6,6 +6,7 @@ import androidx.lifecycle.viewModelScope
 import io.github.lopezjavier.appfitness.designsystem.NumberInputDefaults
 import io.github.lopezjavier.appfitness.domain.AppError
 import io.github.lopezjavier.appfitness.domain.appErrorOrNull
+import io.github.lopezjavier.appfitness.domain.model.DeloadExerciseSuggestion
 import io.github.lopezjavier.appfitness.domain.model.Discomfort
 import io.github.lopezjavier.appfitness.domain.model.DiscomfortLevel
 import io.github.lopezjavier.appfitness.domain.model.Equipment
@@ -41,6 +42,7 @@ import io.github.lopezjavier.appfitness.domain.port.NotificationPermission
 import io.github.lopezjavier.appfitness.domain.port.RestAlertPreferences
 import io.github.lopezjavier.appfitness.domain.port.RestAlertScheduler
 import io.github.lopezjavier.appfitness.domain.repository.BodyMeasurementRepository
+import io.github.lopezjavier.appfitness.domain.repository.DeloadRepository
 import io.github.lopezjavier.appfitness.domain.repository.DiscomfortRepository
 import io.github.lopezjavier.appfitness.domain.repository.ExerciseRepository
 import io.github.lopezjavier.appfitness.domain.repository.ProgressionRepository
@@ -229,8 +231,12 @@ class LiveSessionViewModel(
     private val restAlertPreferences: RestAlertPreferences = ExplanationAlreadyShown,
     private val discomfortRepository: DiscomfortRepository = NoDiscomforts,
     private val progressionRepository: ProgressionRepository = NoProgression,
+    private val deloadRepository: DeloadRepository = NoDeload,
 ) : ViewModel() {
     private var session: SessionState? = null
+
+    /** Deload lines by exercise id (T-165); empty outside a deload week, on error or offline. */
+    private var deloads: Map<String, DeloadExerciseSuggestion> = emptyMap()
 
     /** Server suggestions by exercise id (base weight); empty until loaded, on error or offline (US-70). */
     private var suggestions: Map<String, ProgressionSuggestion> = emptyMap()
@@ -680,13 +686,23 @@ class LiveSessionViewModel(
     private suspend fun loadSuggestions(sessionId: String) {
         suggestions =
             progressionRepository.suggestionsFor(sessionId).getOrNull().orEmpty().associateBy { it.exerciseId }
+        deloads = deloadRepository.suggestionsFor(sessionId).getOrNull().orEmpty().associateBy { it.exerciseId }
         progressionHelp = progressionHelp?.takeIf { suggestionFor(it) != null }
     }
 
-    /** The suggestion of the exercise at [position] with the weight change applied (plates or dumbbell handle). */
+    /** The deload line of the exercise at [position]; null outside a deload week or when the read failed. */
+    fun deloadFor(position: Int): DeloadExerciseSuggestion? {
+        val exerciseId = session?.exercises?.firstOrNull { it.position == position }?.exerciseId
+        return exerciseId?.let { deloads[it] }
+    }
+
+    /**
+     * The suggestion of the exercise at [position] with the weight change applied (plates or dumbbell handle). An
+     * exercise with a deload line has none: "raise the weight" contradicts "same weights".
+     */
     private fun suggestionFor(position: Int): ProgressionSuggestion? {
         val exerciseId = session?.exercises?.firstOrNull { it.position == position }?.exerciseId
-        val base = exerciseId?.let { suggestions[it] } ?: return null
+        val base = exerciseId?.takeIf { it !in deloads }?.let { suggestions[it] } ?: return null
         return ProgressionWeight.apply(base, traits[base.exerciseId]?.equipment, trainingPreferences.calculators)
     }
 
@@ -1816,6 +1832,7 @@ class LiveSessionViewModel(
                     restSeconds = rests[exercise.position] ?: RoutineBounds.DEFAULT_REST_SECONDS,
                     targetRpeText = targetRpes[exercise.position]?.let(RpeScale::text),
                     suggestion = suggestionFor(exercise.position),
+                    deload = deloadFor(exercise.position),
                     routineNote = currentRoutineNote(exercise.position)?.text,
                     routineNoteKind = currentRoutineNote(exercise.position)?.kind,
                     routineNoteEditable = exercise.position in routineNotePositions,

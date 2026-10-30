@@ -5,7 +5,9 @@ import io.github.lopezjavier.appfitness.domain.model.CalorieChange
 import io.github.lopezjavier.appfitness.domain.model.CoachBlock
 import io.github.lopezjavier.appfitness.domain.model.CoachDerivedValues
 import io.github.lopezjavier.appfitness.domain.model.CoachPlan
+import io.github.lopezjavier.appfitness.domain.model.DeloadProposal
 import io.github.lopezjavier.appfitness.domain.model.GoalStrategy
+import io.github.lopezjavier.appfitness.domain.model.PlanWeek
 
 /** The plan entry of the Trainer tab: no plan, a proposal waiting for a decision, or the active plan. */
 sealed interface PlanSummary {
@@ -45,6 +47,11 @@ sealed interface TrainerUiState {
         val decidingChange: Boolean = false,
         /** The training block of the open [plan]; [BlockSummary.None] when there is no plan or the read failed. */
         val block: BlockSummary = BlockSummary.None,
+        /** Weeks of the saved block with their adherence; empty without a saved block or when the read failed. */
+        val weeks: List<PlanWeek> = emptyList(),
+        /** The pending easier-week suggestion; null when none or when the read failed. */
+        val deload: DeloadProposal? = null,
+        val decidingDeload: Boolean = false,
     ) : TrainerUiState {
         val allConfirmed: Boolean get() = values.allConfirmed
     }
@@ -71,6 +78,9 @@ sealed interface TrainerEvent {
 
     /** "Aceptar" / "Descartar" on the calorie-change card. */
     data class DecideCalorieChange(val accept: Boolean) : TrainerEvent
+
+    /** "Aceptar" / "Descartar" on the deload card. */
+    data class DecideDeload(val accept: Boolean) : TrainerEvent
 }
 
 /** One-off effects; the UI shows the message and fires the haptics. */
@@ -85,4 +95,10 @@ sealed interface TrainerEffect {
 
     /** The decision failed; [accept] says which action, [offline] picks the offline hint. */
     data class CalorieChangeFailed(val accept: Boolean, val offline: Boolean) : TrainerEffect
+
+    /** The deload was accepted or discarded ([accepted]). */
+    data class DeloadDecided(val accepted: Boolean) : TrainerEffect
+
+    /** The deload decision failed; [accept] says which action, [offline] picks the offline hint. */
+    data class DeloadFailed(val accept: Boolean, val offline: Boolean) : TrainerEffect
 }

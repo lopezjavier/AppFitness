@@ -27,6 +27,10 @@ import io.github.lopezjavier.appfitness.composeapp.resources.Res
 import io.github.lopezjavier.appfitness.composeapp.resources.builder_exercise_open_cd
 import io.github.lopezjavier.appfitness.composeapp.resources.builder_superset_label
 import io.github.lopezjavier.appfitness.composeapp.resources.exercise_unnamed
+import io.github.lopezjavier.appfitness.composeapp.resources.live_deload
+import io.github.lopezjavier.appfitness.composeapp.resources.live_deload_cd
+import io.github.lopezjavier.appfitness.composeapp.resources.live_deload_single
+import io.github.lopezjavier.appfitness.composeapp.resources.live_deload_single_cd
 import io.github.lopezjavier.appfitness.composeapp.resources.live_object_set
 import io.github.lopezjavier.appfitness.composeapp.resources.live_suggestion
 import io.github.lopezjavier.appfitness.composeapp.resources.live_suggestion_cd
@@ -44,6 +48,7 @@ import io.github.lopezjavier.appfitness.designsystem.SetFieldSpec
 import io.github.lopezjavier.appfitness.designsystem.SetTableHeader
 import io.github.lopezjavier.appfitness.designsystem.Spacing
 import io.github.lopezjavier.appfitness.designsystem.exerciseNoteSummary
+import io.github.lopezjavier.appfitness.domain.model.DeloadExerciseSuggestion
 import io.github.lopezjavier.appfitness.domain.model.ProgressionSuggestion
 import io.github.lopezjavier.appfitness.feature.exercises.setFieldSpecs
 import io.github.lopezjavier.appfitness.feature.weight.decimalText
@@ -123,7 +128,8 @@ internal fun LiveExerciseCard(
 private fun ExerciseStatusRows(exercise: LiveExercise, online: Boolean, onEvent: (LiveSessionEvent) -> Unit) {
     val position = exercise.position
     val noteSummary = exerciseNoteSummary(exercise.routineNoteKind, exercise.routineNote)
-    if (exercise.discomfort == null && noteSummary == null && exercise.suggestion == null) return
+    val progression = exercise.suggestion ?: exercise.deload
+    if (exercise.discomfort == null && noteSummary == null && progression == null) return
     Column(verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
         exercise.discomfort?.let {
             DiscomfortBlock(position, it, online, onResolve = { onEvent(LiveSessionEvent.ResolveDiscomfort(position)) })
@@ -139,8 +145,38 @@ private fun ExerciseStatusRows(exercise: LiveExercise, online: Boolean, onEvent:
                 onClickLabel = stringResource(Res.string.note_edit),
             )
         }
-        exercise.suggestion?.let { SuggestionRow(position, it, onEvent) }
+        // A deload week replaces the progression row: "raise the weight" contradicts "same weights".
+        val deload = exercise.deload
+        if (deload != null) {
+            DeloadRow(position, deload)
+        } else {
+            exercise.suggestion?.let { SuggestionRow(position, it, onEvent) }
+        }
     }
+}
+
+/** "Descarga: mismo peso, 3 de 5 series" (US-75): informative only, no sheet (R-51). */
+@Composable
+private fun DeloadRow(position: Int, deload: DeloadExerciseSuggestion) {
+    val single = deload.plannedSets == 1
+    val sets = AppNumberFormat.integer(deload.deloadSets)
+    val planned = AppNumberFormat.integer(deload.plannedSets)
+    val text = if (single) {
+        stringResource(Res.string.live_deload_single)
+    } else {
+        stringResource(Res.string.live_deload, sets, planned)
+    }
+    val description = if (single) {
+        stringResource(Res.string.live_deload_single_cd)
+    } else {
+        stringResource(Res.string.live_deload_cd, sets, planned)
+    }
+    ExerciseStatusRow(
+        text = text,
+        marker = { ExerciseStatusInfoMarker() },
+        testTag = "live_exercise_${position}_deload",
+        contentDescription = description,
+    )
 }
 
 /** "Sugerencia: 82,5 kg × 6" (US-70): the whole row opens the reason sheet. */
