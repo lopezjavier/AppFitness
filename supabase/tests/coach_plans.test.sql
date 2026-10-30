@@ -3,7 +3,7 @@ begin;
 create extension if not exists pgtap with schema extensions;
 set local search_path = extensions, public;
 
-select plan(86);
+select plan(96);
 
 -- ---------------------------------------------------------------------------
 -- Fixture helpers (run as the migration owner)
@@ -254,6 +254,32 @@ select is((select count(*)::int from public.coach_recommendations where kind = '
 select is((select count(*)::int from public.coach_recommendations where kind = 'plan' and status = 'pending'), 1,
   'only the new recommendation is pending');
 
+-- Forged proposals: the database enforces the same invariants as the coach function's validator.
+select throws_ok(
+  $$select public.propose_coach_plan(pg_temp.d0(), 'fat_loss', pg_temp.nut(1400, -900, -0.4, 1500), '[]', '{}', '{}')$$,
+  '22023', 'plan invariant: target_below_floor', 'a forged plan below the calorie floor is rejected');
+select throws_ok(
+  $$select public.propose_coach_plan(pg_temp.d0(), 'fat_loss',
+      pg_temp.nut(2200, -400, -0.4, 1500) || '{"protein_g_per_kg": 1.0, "protein_g": 80}', '[]', '{}', '{}')$$,
+  '22023', 'plan invariant: protein_g_per_kg_range', 'a forged protein value under 1.6 g/kg is rejected');
+select throws_ok(
+  $$select public.propose_coach_plan(pg_temp.d0(), 'fat_loss', pg_temp.nut(2200, -400, -0.4, 1500) || '{"floor_kcal": 1000}',
+      '[]', '{}', '{}')$$,
+  '22023', 'plan invariant: target_below_floor', 'a forged floor that is not the sex floor is rejected');
+select throws_ok(
+  $$select public.propose_coach_plan(pg_temp.d0(), 'fat_loss', pg_temp.nut(2200, -400, -0.4, 1500),
+      jsonb_build_array(jsonb_build_object('reason', 'short', 'deadline', (pg_temp.d0() + 14)::text)), '{}', '{}')$$,
+  '22023', 'plan invariant: outcome_reason', 'a forged outcome with a too short reason is rejected');
+select throws_ok(
+  $$select public.propose_coach_plan(pg_temp.d0(), 'fat_loss', pg_temp.nut(2200, -400, -0.4, 1500),
+      jsonb_build_array(jsonb_build_object('reason', 'A reason long enough', 'deadline', (pg_temp.d0() + 90)::text)),
+      '{}', '{}')$$,
+  '22023', 'plan invariant: outcome_deadline', 'a forged outcome deadline outside the block is rejected');
+select is((select count(*)::int from public.coach_plans where status = 'proposed'), 1,
+  'rejected proposals leave the stored proposal untouched');
+select is((select count(*)::int from public.coach_plans where status = 'superseded'), 1,
+  'rejected proposals do not supersede anything');
+
 -- ---------------------------------------------------------------------------
 -- accept_coach_plan: the confirmation gate
 -- ---------------------------------------------------------------------------
@@ -337,6 +363,18 @@ select throws_ok(
   '55000', null, 'discarding a plan that is not proposed is a wrong state');
 select is((select count(*)::int from public.nutrition_goals where target_kcal = 2100), 1,
   'discarding leaves the nutrition goal untouched');
+
+-- A tampered stored row (written outside the RPC) is rejected on accept and writes no goal.
+reset role;
+insert into public.coach_plans (user_id, block_start, intention, nutrition)
+values (pg_temp.u(13), pg_temp.d0(), 'fat_loss', pg_temp.nut(1400, -900, -0.4, 1500));
+set local role authenticated;
+select pg_temp.as_user(13);
+select throws_ok(
+  $$select public.accept_coach_plan((select id from public.coach_plans where status = 'proposed'), pg_temp.d0())$$,
+  '22023', 'plan invariant: target_below_floor', 'accepting a tampered plan below the floor is rejected');
+select is((select count(*)::int from public.nutrition_goals), 0, 'a rejected accept writes no nutrition goal');
+select is((select status from public.coach_plans), 'proposed', 'a rejected accept leaves the plan proposed');
 
 -- User C: only a slope-less trend is unconfirmed, so the gate lets the plan through.
 select pg_temp.as_user(3);

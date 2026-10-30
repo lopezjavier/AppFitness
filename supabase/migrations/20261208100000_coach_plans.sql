@@ -106,6 +106,154 @@ create trigger nutrition_goals_flag_manual_edit
 revoke execute on function public.coach_flag_manual_goal_edit() from public, anon, authenticated;
 
 -- ---------------------------------------------------------------------------
+-- coach_assert_plan: the server-side invariants of a plan (04 section 8), mirroring the coach function's
+-- validator so that no caller can store or accept a plan that breaks them. Raises 22023.
+-- ---------------------------------------------------------------------------
+create function public.coach_assert_plan(
+  p_uid uuid,
+  p_intention public.training_intention,
+  p_block_start date,
+  p_nutrition jsonb,
+  p_outcomes jsonb
+)
+returns void
+language plpgsql
+stable
+security definer
+set search_path = ''
+as $$
+declare
+  v_sex      public.sex;
+  v_floor    integer;
+  v_target   integer;
+  v_exp      integer;
+  v_adj      integer;
+  v_strategy text;
+  v_limited  text;
+  v_rate     numeric;
+  v_w        numeric;
+  v_gkg      numeric;
+  v_prot_g   numeric;
+  v_prot     integer;
+  v_carbs    integer;
+  v_fat      integer;
+  v_min      numeric;
+  v_max      numeric;
+  v_item     jsonb;
+  v_reason   text;
+  v_deadline date;
+begin
+  select sex into v_sex from public.profiles where id = p_uid;
+  if v_sex is null then
+    raise exception 'plan invariant: sex_missing' using errcode = '22023';
+  end if;
+  v_floor := case v_sex when 'female' then 1200 else 1500 end;
+
+  begin
+    v_target := (p_nutrition->>'target_kcal')::numeric::integer;
+    v_exp := (p_nutrition->>'expenditure_kcal')::numeric::integer;
+    v_adj := (p_nutrition->>'calorie_adjustment')::numeric::integer;
+    v_strategy := p_nutrition->>'strategy';
+    v_limited := p_nutrition->>'limited_by';
+    v_rate := (p_nutrition->>'rate_pct_week')::numeric;
+    v_w := (p_nutrition->>'weight_kg')::numeric;
+    v_gkg := (p_nutrition->>'protein_g_per_kg')::numeric;
+    v_prot_g := (p_nutrition->>'protein_g')::numeric;
+    v_prot := (p_nutrition->>'protein_pct')::numeric::integer;
+    v_carbs := (p_nutrition->>'carbs_pct')::numeric::integer;
+    v_fat := (p_nutrition->>'fat_pct')::numeric::integer;
+  exception when invalid_text_representation or numeric_value_out_of_range then
+    raise exception 'plan invariant: malformed_nutrition' using errcode = '22023';
+  end;
+
+  if v_target is null or v_exp is null or v_adj is null or v_strategy is null or v_rate is null
+     or v_w is null or v_w <= 0 or v_gkg is null or v_prot_g is null
+     or v_prot is null or v_carbs is null or v_fat is null then
+    raise exception 'plan invariant: missing_field' using errcode = '22023';
+  end if;
+
+  -- Calories: the floor of the user's sex, the adjustment range and a consistent strategy.
+  if (p_nutrition->>'floor_kcal')::numeric is distinct from v_floor::numeric or v_target < v_floor then
+    raise exception 'plan invariant: target_below_floor' using errcode = '22023';
+  end if;
+  if v_limited = 'floor' and v_target <> v_floor then
+    raise exception 'plan invariant: floor_flag_without_floor_target' using errcode = '22023';
+  end if;
+  if v_adj <> v_target - v_exp or v_adj < -1000 or v_adj > 750 then
+    raise exception 'plan invariant: adjustment' using errcode = '22023';
+  end if;
+  if v_strategy is distinct from (case when v_adj < 0 then 'deficit' when v_adj > 0 then 'surplus' else 'maintenance' end) then
+    raise exception 'plan invariant: strategy_mismatch' using errcode = '22023';
+  end if;
+
+  -- Rate of change by intention (a slower rate needs a limiter flag; the maximum carries the rounding tolerance).
+  if p_intention in ('fat_loss', 'muscle') then
+    if p_intention = 'fat_loss' then
+      if v_target >= v_exp then
+        raise exception 'plan invariant: loss_needs_deficit' using errcode = '22023';
+      end if;
+      v_min := 0.5; v_max := 1.0;
+    else
+      if v_target <= v_exp then
+        raise exception 'plan invariant: gain_needs_surplus' using errcode = '22023';
+      end if;
+      v_min := 0.25; v_max := 0.5;
+    end if;
+    if v_rate > v_max + 0.05 or (v_rate < v_min and v_limited is null) then
+      raise exception 'plan invariant: rate_out_of_range' using errcode = '22023';
+    end if;
+  elsif v_adj < 0 or (v_adj > 0 and v_limited is distinct from 'floor') then
+    raise exception 'plan invariant: adjustment_for_intention' using errcode = '22023';
+  end if;
+
+  -- Macros: protein 1.6..2.2 g/kg, fat 20..35 %, shares summing to 100.
+  if v_gkg < 1.6 or v_gkg > 2.2 then
+    raise exception 'plan invariant: protein_g_per_kg_range' using errcode = '22023';
+  end if;
+  if v_prot_g < 1.6 * v_w - 0.5 then
+    raise exception 'plan invariant: protein_below_min' using errcode = '22023';
+  end if;
+  if v_prot_g > 2.2 * v_w + v_target / 400.0 + 1 then
+    raise exception 'plan invariant: protein_above_max' using errcode = '22023';
+  end if;
+  if v_prot not between 5 and 90 or v_carbs not between 5 and 90 or v_fat not between 5 and 90
+     or v_prot + v_carbs + v_fat <> 100 then
+    raise exception 'plan invariant: pct' using errcode = '22023';
+  end if;
+  if v_fat < 20 or v_fat > 35 then
+    raise exception 'plan invariant: fat_range' using errcode = '22023';
+  end if;
+
+  -- Outcomes: at most 4, each with a reason of 10..300 characters and a deadline 7..28 days into the block.
+  if jsonb_typeof(p_outcomes) <> 'array' or jsonb_array_length(p_outcomes) > 4 then
+    raise exception 'plan invariant: outcomes' using errcode = '22023';
+  end if;
+  for v_item in select value from jsonb_array_elements(p_outcomes) loop
+    if jsonb_typeof(v_item) <> 'object' or jsonb_typeof(v_item->'reason') is distinct from 'string'
+       or jsonb_typeof(v_item->'deadline') is distinct from 'string' then
+      raise exception 'plan invariant: outcome_shape' using errcode = '22023';
+    end if;
+    v_reason := btrim(v_item->>'reason');
+    if char_length(v_reason) < 10 or char_length(v_reason) > 300 then
+      raise exception 'plan invariant: outcome_reason' using errcode = '22023';
+    end if;
+    begin
+      v_deadline := (v_item->>'deadline')::date;
+    exception when invalid_datetime_format or datetime_field_overflow or invalid_text_representation then
+      raise exception 'plan invariant: outcome_deadline' using errcode = '22023';
+    end;
+    if (v_item->>'deadline') !~ '^\d{4}-\d{2}-\d{2}$'
+       or v_deadline < p_block_start + 7 or v_deadline > p_block_start + 28 then
+      raise exception 'plan invariant: outcome_deadline' using errcode = '22023';
+    end if;
+  end loop;
+end;
+$$;
+
+revoke execute on function public.coach_assert_plan(uuid, public.training_intention, date, jsonb, jsonb)
+  from public, anon, authenticated;
+
+-- ---------------------------------------------------------------------------
 -- propose_coach_plan: stores a new proposed plan (called by the coach function with the caller's token).
 -- ---------------------------------------------------------------------------
 create function public.propose_coach_plan(
@@ -134,6 +282,7 @@ begin
      or p_input_summary is null then
     raise exception 'invalid plan' using errcode = '22023';
   end if;
+  perform public.coach_assert_plan(v_uid, p_intention, p_block_start, p_nutrition, p_outcomes);
 
   update public.coach_recommendations
     set status = 'discarded', decided_at = now()
@@ -177,6 +326,9 @@ begin
   if v_plan.status <> 'proposed' then
     raise exception 'plan is not proposed' using errcode = '55000';
   end if;
+
+  -- Re-check the stored plan: nothing that breaks the invariants reaches nutrition_goals.
+  perform public.coach_assert_plan(v_uid, v_plan.intention, v_plan.block_start, v_plan.nutrition, v_plan.outcomes);
 
   -- Unconfirmed derived values block the acceptance (US-68).
   v_est := public.coach_compute(p_today, null);
