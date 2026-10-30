@@ -88,6 +88,7 @@ Each checkpoint also has "leave the app and come back: the same tab, screen and 
 - [ ] T-167: Recommendation history, outcomes and deletion — M
 - [ ] T-168: Coach evaluation — M (👤 cases and each paid run)
 - [ ] T-169: Coach chat with tools — L (only after T-168 passes)
+- [ ] T-173: E13 UI refinements — S (after T-169, before Checkpoint E13-C)
   - **Checkpoint E13-C 👤 (9 items, final regression; releases T-170)**
 - [ ] T-170: E13 closure — PM — S
 
