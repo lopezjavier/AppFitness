@@ -212,7 +212,7 @@ Journey: open the new Trainer tab, check what the coach estimated about you and 
 - [x] Each call stores input/output tokens and cost from the API usage and the price table; dollars counted as euros.
 - [x] A call that would exceed the wall clock is cut by the timeout and returns a clean error.
 - [x] pgTAP: RLS, cross-user isolation, client cannot write usage, global total exposes no row, cascade on account deletion.
-- [ ] One real smoke call, approved by the user beforehand, succeeds after deployment and its cost appears in the usage view (done in T-161 via the dev-only button).
+- [x] One real smoke call, approved by the user beforehand, succeeds after deployment and its cost appears in the usage view (done in T-161 via the dev-only button).
 
 **Host tests:** `deno test` (budget boundaries for user and global, price math incl. cache factors, usage recording, timeout, retry-once on invalid JSON, streaming framing, JWT required); pgTAP `coach_usage.test.sql`; Kotlin repository mapping; usage ViewModel tests; Robolectric tests (usage screen, limit message, offline).
 
