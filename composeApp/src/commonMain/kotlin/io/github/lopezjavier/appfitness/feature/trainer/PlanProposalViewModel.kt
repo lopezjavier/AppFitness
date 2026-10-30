@@ -23,6 +23,7 @@ import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
 
 private const val KEY_REQUESTING = "plan_requesting"
+private const val KEY_REPLACING = "replacingPlanId"
 
 /**
  * The plan proposal screen (US-69, US-68 gate). A proposed plan is always reloaded from the stored row, so a finished
@@ -43,6 +44,9 @@ class PlanProposalViewModel(
     private val effectChannel = Channel<PlanProposalEffect>(Channel.BUFFERED)
     val effects = effectChannel.receiveAsFlow()
 
+    // Set by the navigation route (PlanProposalRoute.replacingPlanId); null when opening a plan normally.
+    private val replacingPlanId: String? = savedState.get<String>(KEY_REPLACING)
+
     // The server accepts a date within one day of UTC today, so it is the UTC date.
     private fun today(): LocalDate = clock.now().toLocalDateTime(TimeZone.UTC).date
 
@@ -56,7 +60,7 @@ class PlanProposalViewModel(
                 PlanProposalUiState.Idle
             }
             val stored = plans.currentPlan()
-            val proposed = stored.getOrNull()?.takeIf { it.status == PlanStatus.Proposed }
+            val proposed = stored.proposedToShow()
             when {
                 stored.isFailure -> _uiState.value = PlanProposalUiState.Failed(kindOf(stored.exceptionOrNull()))
                 proposed != null -> showProposal(proposed)
@@ -93,11 +97,14 @@ class PlanProposalViewModel(
     private fun retry() {
         _uiState.value = PlanProposalUiState.Loading
         viewModelScope.launch {
-            val stored = plans.currentPlan()
-            val proposed = stored.getOrNull()?.takeIf { it.status == PlanStatus.Proposed }
+            val proposed = plans.currentPlan().proposedToShow()
             if (proposed != null) showProposal(proposed) else runRequest()
         }
     }
+
+    /** The stored proposed plan, except the one the user is replacing (it must not be re-shown nor re-billed). */
+    private fun Result<CoachPlan?>.proposedToShow(): CoachPlan? =
+        getOrNull()?.takeIf { it.status == PlanStatus.Proposed && it.id != replacingPlanId }
 
     private suspend fun showProposal(plan: CoachPlan) {
         _uiState.value = coach.derivedValues(today()).fold(

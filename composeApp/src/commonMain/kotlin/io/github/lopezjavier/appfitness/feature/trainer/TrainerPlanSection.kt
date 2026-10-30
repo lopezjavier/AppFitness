@@ -6,6 +6,10 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.Role
@@ -36,6 +40,7 @@ import io.github.lopezjavier.appfitness.composeapp.resources.trainer_plan_create
 import io.github.lopezjavier.appfitness.composeapp.resources.trainer_plan_outcomes
 import io.github.lopezjavier.appfitness.composeapp.resources.trainer_plan_pending_supporting
 import io.github.lopezjavier.appfitness.composeapp.resources.trainer_plan_pending_title
+import io.github.lopezjavier.appfitness.composeapp.resources.trainer_plan_replace
 import io.github.lopezjavier.appfitness.composeapp.resources.trainer_plan_section
 import io.github.lopezjavier.appfitness.composeapp.resources.trainer_source_edited
 import io.github.lopezjavier.appfitness.designsystem.AppCard
@@ -45,6 +50,7 @@ import io.github.lopezjavier.appfitness.designsystem.CoachProposalCard
 import io.github.lopezjavier.appfitness.designsystem.ListSectionHeader
 import io.github.lopezjavier.appfitness.designsystem.OfflineHint
 import io.github.lopezjavier.appfitness.designsystem.PrimaryButton
+import io.github.lopezjavier.appfitness.designsystem.SecondaryButton
 import io.github.lopezjavier.appfitness.designsystem.Spacing
 import io.github.lopezjavier.appfitness.designsystem.StatusChip
 import io.github.lopezjavier.appfitness.designsystem.StatusTone
@@ -106,39 +112,61 @@ internal fun BlockSection(plan: PlanSummary, block: BlockSummary, online: Boolea
 
 /** "Tu plan" on the Trainer tab: create, review the pending proposal or see the active plan. */
 @Composable
-internal fun PlanSection(plan: PlanSummary, online: Boolean, onOpenPlan: () -> Unit) {
+internal fun PlanSection(plan: PlanSummary, online: Boolean, onOpenPlan: (replacingPlanId: String?) -> Unit) {
     Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
         ListSectionHeader(stringResource(Res.string.trainer_plan_section))
         when (plan) {
             PlanSummary.None -> {
                 PrimaryButton(
                     text = stringResource(Res.string.trainer_plan_create),
-                    onClick = onOpenPlan,
+                    onClick = { onOpenPlan(null) },
                     modifier = Modifier.fillMaxWidth().testTag("trainer_create_plan"),
                     enabled = online,
                 )
                 if (!online) OfflineHint(stringResource(Res.string.trainer_plan_create_action))
             }
 
-            is PlanSummary.Proposed -> AppCard(
-                Modifier.fillMaxWidth()
-                    .testTag("trainer_plan_card")
-                    .clickable(role = Role.Button, onClick = onOpenPlan),
-            ) {
-                Text(
-                    text = stringResource(Res.string.trainer_plan_pending_title),
-                    style = AppTheme.typography.titleMedium,
-                    color = AppTheme.colors.textPrimary,
-                )
-                Text(
-                    text = stringResource(Res.string.trainer_plan_pending_supporting),
-                    style = AppTheme.typography.bodyMedium,
-                    color = AppTheme.colors.textSecondary,
-                )
+            is PlanSummary.Proposed -> {
+                AppCard(
+                    Modifier.fillMaxWidth()
+                        .testTag("trainer_plan_card")
+                        .clickable(role = Role.Button, onClick = { onOpenPlan(null) }),
+                ) {
+                    Text(
+                        text = stringResource(Res.string.trainer_plan_pending_title),
+                        style = AppTheme.typography.titleMedium,
+                        color = AppTheme.colors.textPrimary,
+                    )
+                    Text(
+                        text = stringResource(Res.string.trainer_plan_pending_supporting),
+                        style = AppTheme.typography.bodyMedium,
+                        color = AppTheme.colors.textSecondary,
+                    )
+                }
+                ReplacePlanEntry(plan.plan.id, online, onOpenPlan)
             }
 
-            is PlanSummary.Accepted -> ActivePlanCard(plan.plan)
+            is PlanSummary.Accepted -> {
+                ActivePlanCard(plan.plan)
+                ReplacePlanEntry(plan.plan.id, online, onOpenPlan)
+            }
         }
+    }
+}
+
+/** "Crear plan nuevo" under the current plan: asks first in a sheet, then opens the proposal replacing [planId]. */
+@Composable
+private fun ReplacePlanEntry(planId: String, online: Boolean, onOpenPlan: (replacingPlanId: String?) -> Unit) {
+    var confirming by rememberSaveable { mutableStateOf(false) }
+    SecondaryButton(
+        text = stringResource(Res.string.trainer_plan_replace),
+        onClick = { confirming = true },
+        modifier = Modifier.fillMaxWidth().testTag("trainer_replace_plan"),
+        enabled = online,
+    )
+    if (!online) OfflineHint(stringResource(Res.string.trainer_plan_create_action))
+    if (confirming) {
+        ReplacePlanSheet(onConfirm = { onOpenPlan(planId) }, onDismiss = { confirming = false })
     }
 }
 

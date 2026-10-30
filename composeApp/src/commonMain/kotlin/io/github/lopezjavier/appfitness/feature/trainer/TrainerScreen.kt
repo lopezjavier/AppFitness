@@ -74,7 +74,7 @@ private const val TITLE_FRACTION = 0.4f
 fun TrainerRoute(
     modifier: Modifier = Modifier,
     onOpenCoachUsage: () -> Unit = {},
-    onOpenPlan: () -> Unit = {},
+    onOpenPlan: (replacingPlanId: String?) -> Unit = {},
     onOpenBlock: (String) -> Unit = {},
     viewModel: TrainerViewModel = koinViewModel(),
     connectivity: ConnectivityObserver = koinInject(),
@@ -159,7 +159,7 @@ fun TrainerScreen(
     onEvent: (TrainerEvent) -> Unit,
     modifier: Modifier = Modifier,
     onOpenCoachUsage: () -> Unit = {},
-    onOpenPlan: () -> Unit = {},
+    onOpenPlan: (replacingPlanId: String?) -> Unit = {},
     onOpenBlock: (String) -> Unit = {},
 ) {
     val title = stringResource(Res.string.trainer_title)
@@ -200,7 +200,7 @@ private fun TrainerContent(
     state: TrainerUiState.Content,
     online: Boolean,
     onEvent: (TrainerEvent) -> Unit,
-    onOpenPlan: () -> Unit,
+    onOpenPlan: (replacingPlanId: String?) -> Unit,
     onOpenBlock: (String) -> Unit,
 ) {
     Column(
@@ -216,6 +216,7 @@ private fun TrainerContent(
             strategy = state.strategy,
             onEdit = { onEvent(TrainerEvent.OpenEdit) },
             onConfirm = { onEvent(TrainerEvent.Confirm) },
+            expenditureSource = state.expenditureSource,
         )
         PlanSection(state.plan, online, onOpenPlan)
         BlockSection(state.plan, state.block, online, onOpenBlock)

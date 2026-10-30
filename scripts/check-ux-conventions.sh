@@ -171,10 +171,10 @@ done
 
 # G14: AppEditSheet( (a Save/Apply footer) only in the files below, all multi-field or stepper/wheel editors
 # (T-171 sweep). A single choice from a list applies on tap in AppPickerSheet (R-12). A new file using it fails:
-# use the Picker archetype, or add the file here with a one-line reason.
+# use the Picker archetype, or add the file here with a one-line reason (trainer/ReplacePlanSheet: confirm footer "Crear plan", retired by T-176).
 scan G14 "AppEditSheet outside the multi-field allow-list (R-12: a single choice uses AppPickerSheet)" \
   '\bAppEditSheet\(' \
-  '.*/feature/(catalog/OverlayCatalogSections|exercises/ExerciseFormSheet|meals/defaults/MealDefaultsSheets|profile/PersonalDataCard|weight/(CircumferenceSheet|GoalSheets|WeightDaySheet)|workout/(DiscomfortSheet|ExerciseMenu|FinishSessionSheet|UpdateRoutineSheet|VolumeOptionsSheets|WarmUpCalculatorSheet))\.kt' \
+  '.*/feature/(catalog/OverlayCatalogSections|exercises/ExerciseFormSheet|meals/defaults/MealDefaultsSheets|profile/PersonalDataCard|trainer/ReplacePlanSheet|weight/(CircumferenceSheet|GoalSheets|WeightDaySheet)|workout/(DiscomfortSheet|ExerciseMenu|FinishSessionSheet|UpdateRoutineSheet|VolumeOptionsSheets|WarmUpCalculatorSheet))\.kt' \
   "${kotlin_feature[@]}"
 
 # G15: R-51 the live exercise card shows its per-exercise information as status rows; no "?" help buttons there

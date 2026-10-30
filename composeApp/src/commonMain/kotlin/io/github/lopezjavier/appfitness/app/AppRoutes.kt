@@ -70,9 +70,12 @@ data object AccountRoute : AppRoute
 @Serializable
 data object CoachUsageRoute : AppRoute
 
-/** The nutrition plan proposal (US-69): request, review and accept or discard, opened from the Trainer tab. */
+/**
+ * The nutrition plan proposal (US-69): request, review and accept or discard, opened from the Trainer tab.
+ * [replacingPlanId] is the plan the user is replacing: the proposal screen ignores it and asks for a new plan.
+ */
 @Serializable
-data object PlanProposalRoute : AppRoute
+data class PlanProposalRoute(val replacingPlanId: String? = null) : AppRoute
 
 /** The four-week training block of the plan [planId] (US-72): request, review and save, opened from the Trainer tab. */
 @Serializable
@@ -378,7 +381,7 @@ object AppDestinations {
             WeightHistoryRoute,
             AboutRoute,
             CoachUsageRoute,
-            PlanProposalRoute,
+            PlanProposalRoute(),
             BlockPreviewRoute(""),
             NotificationCenterRoute,
             CheckInRoute,

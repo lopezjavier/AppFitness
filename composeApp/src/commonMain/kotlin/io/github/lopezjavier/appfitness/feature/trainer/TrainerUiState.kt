@@ -6,6 +6,7 @@ import io.github.lopezjavier.appfitness.domain.model.CoachBlock
 import io.github.lopezjavier.appfitness.domain.model.CoachDerivedValues
 import io.github.lopezjavier.appfitness.domain.model.CoachPlan
 import io.github.lopezjavier.appfitness.domain.model.DeloadProposal
+import io.github.lopezjavier.appfitness.domain.model.DerivedSource
 import io.github.lopezjavier.appfitness.domain.model.GoalStrategy
 import io.github.lopezjavier.appfitness.domain.model.PlanWeek
 
@@ -26,6 +27,9 @@ sealed interface BlockSummary {
 
     data class Saved(val block: CoachBlock) : BlockSummary
 }
+
+/** Where the total expenditure comes from: the user's own data (Adaptive) or a formula (Estimated). */
+enum class ExpenditureSource { Adaptive, Estimated }
 
 sealed interface TrainerUiState {
     data object Loading : TrainerUiState
@@ -54,6 +58,18 @@ sealed interface TrainerUiState {
         val decidingDeload: Boolean = false,
     ) : TrainerUiState {
         val allConfirmed: Boolean get() = values.allConfirmed
+
+        /** Source tag of the total expenditure; null while the kcal is unknown or asked again. */
+        val expenditureSource: ExpenditureSource?
+            get() {
+                val expenditure = values.totalExpenditure
+                return when {
+                    expenditure.kcal == null || expenditure.reask -> null
+                    expenditure.source == DerivedSource.Adaptive -> ExpenditureSource.Adaptive
+                    expenditure.source == DerivedSource.Formula -> ExpenditureSource.Estimated
+                    else -> null
+                }
+            }
     }
 
     data object Error : TrainerUiState

@@ -152,6 +152,8 @@ Uses `SwipeToDeleteRow` only (guard G7) · right-to-left, "Eliminar"/"Quitar" ·
 | Current week marker (T-165) | "Actual" chip | "Hoy", "En curso" | |
 | Decide on a coach proposal | "Aceptar" / "Descartar" | "Guardar", "Cancelar" | Distinct from the edit pair "Guardar"/"Cancelar"; used by the plan tasks of E13 |
 | A coach value not yet confirmed | "Provisional" (`StatusChip` Caution, announced "Valor provisional") | "Pendiente", "Sin confirmar" | A re-asked value shows the same chip with the line "Tus datos han cambiado: vuelve a confirmar." |
+| Source of the total expenditure (T-177) | "Adaptativo" (`StatusChip` Good, announced "Gasto calculado con tu dieta y tu peso registrados") / "Estimado" (`StatusChip` Caution, announced "Gasto estimado con una fórmula") | "Calculado", "Fórmula" alone | No chip while the value is re-asked or unknown; the activity and experience rows carry no source chip |
+| Start a new plan while one exists (T-177) | "Crear plan nuevo" button; sheet "¿Crear un plan nuevo?" with "Sustituirá tu plan actual. Hasta que aceptes el nuevo, sigue valiendo el de ahora." and footer "Crear plan" | "Reemplazar plan", dialog | A notice sheet, not a dialog (R-08); T-176 moves it into "Antes de empezar" |
 | Apply to the screen underneath | "Listo" | "Guardar" | Only when that screen has its own "Guardar" |
 | Close a sheet | X described as "Cerrar" | "Cerrar sin guardar" | |
 | List of past records | "Historial" | - | "Historial de entrenos", "Historial de peso" |
