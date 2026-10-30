@@ -22,6 +22,7 @@ import io.ktor.http.HttpMethod
 import io.ktor.http.HttpStatusCode
 import io.ktor.http.content.TextContent
 import io.ktor.http.headersOf
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.test.runTest
 import kotlinx.datetime.LocalDate
 import kotlinx.io.IOException
@@ -32,6 +33,9 @@ import kotlin.test.assertEquals
 import kotlin.test.assertIs
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
+import kotlin.time.Duration
+import kotlin.time.Duration.Companion.milliseconds
+import kotlin.time.Duration.Companion.seconds
 
 private const val SESSION =
     """{"access_token":"access","token_type":"bearer","expires_in":3600,"refresh_token":"refresh",""" +
@@ -67,10 +71,13 @@ class SupabaseCoachPlanRepositoryTest {
 
     private suspend fun repo(
         signIn: Boolean = true,
+        responseDelayMs: Long = 0,
+        requestTimeout: Duration = COACH_CLIENT_TIMEOUT,
         respond: (HttpRequestData) -> Pair<HttpStatusCode, String>,
     ): SupabaseCoachPlanRepository {
         val engine = MockEngine { request ->
             requests += request
+            if (responseDelayMs > 0 && request.url.encodedPath.contains("/functions/")) delay(responseDelayMs)
             val json = headersOf(HttpHeaders.ContentType, "application/json")
             when {
                 request.url.encodedPath.contains("/auth/") -> respond(SESSION, HttpStatusCode.OK, json)
@@ -94,7 +101,7 @@ class SupabaseCoachPlanRepositoryTest {
             MemorySessionManager(),
         )
         if (signIn) SupabaseAuthRepository(client.auth).signInWithPassword(TestLoginCredentials("a@b.c", "pw"))
-        return SupabaseCoachPlanRepository(client.auth, client.postgrest, client.functions)
+        return SupabaseCoachPlanRepository(client.auth, client.postgrest, client.functions, requestTimeout)
     }
 
     private fun rest() = requests.filter { !it.url.encodedPath.contains("/auth/") }
@@ -110,6 +117,20 @@ class SupabaseCoachPlanRepositoryTest {
     private fun planRoutes(request: HttpRequestData): Pair<HttpStatusCode, String> = when {
         request.url.encodedPath.contains("/functions/") -> HttpStatusCode.OK to deltaFrame(PLAN_EVENT)
         else -> HttpStatusCode.OK to "[${planRow()}]"
+    }
+
+    @Test
+    fun requestPlan_succeedsWhenTheAnswerIsSlowerThanTheClientDefaultButWithinTheConfiguredTimeout() = runTest {
+        val repository = repo(responseDelayMs = 300L, requestTimeout = 5.seconds, respond = ::planRoutes)
+
+        assertTrue(repository.requestPlan(today).isSuccess)
+    }
+
+    @Test
+    fun requestPlan_failsWithTimeoutNotNetworkWhenSlowerThanTheConfiguredTimeout() = runTest {
+        val repository = repo(responseDelayMs = 3_000L, requestTimeout = 200.milliseconds, respond = ::planRoutes)
+
+        assertEquals(CoachFailure.Timeout, failureOf(repository.requestPlan(today)))
     }
 
     @Test

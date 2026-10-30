@@ -60,6 +60,7 @@ object AppSheetsDefaults {
  * `!commitEnabled` or [saving] (so a second tap or a keyboard action cannot fire twice). [commitHint] is a short
  * line under the button, typically `offlineHint("guardar")` (R-30), tagged `<prefix>_commit_hint`.
  * [secondaryAction] is an optional slot between the button and the hint (e.g. a destructive "Eliminar").
+ * [commitLabel] overrides the footer text for a confirmation that is none of the four (e.g. "Crear plan").
  *
  * Closing (X, back or Cancelar; an outside tap and a swipe do nothing, R-38) only calls [onDismiss] and never
  * [onCommit]: an edit is never applied silently (R-10, no dialog, R-08). The sheet draws no state of its own; the
@@ -87,11 +88,12 @@ fun AppEditSheet(
     help: (@Composable () -> Unit)? = null,
     secondaryAction: (@Composable () -> Unit)? = null,
     testTagPrefix: String = "edit_sheet",
+    commitLabel: String? = null,
     content: @Composable ColumnScope.() -> Unit,
 ) {
     val sheetState = rememberAppSheetState()
     val scope = rememberCoroutineScope()
-    val label = stringResource(
+    val label = commitLabel ?: stringResource(
         when (commit) {
             SheetCommit.Save -> Res.string.action_save
             SheetCommit.Apply -> Res.string.action_done

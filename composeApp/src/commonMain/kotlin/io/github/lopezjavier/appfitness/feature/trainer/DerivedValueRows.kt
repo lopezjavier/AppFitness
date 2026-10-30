@@ -19,8 +19,12 @@ import io.github.lopezjavier.appfitness.composeapp.resources.trainer_row_total_e
 import io.github.lopezjavier.appfitness.composeapp.resources.trainer_row_weight_trend
 import io.github.lopezjavier.appfitness.composeapp.resources.trainer_source_activity_data
 import io.github.lopezjavier.appfitness.composeapp.resources.trainer_source_adaptive
+import io.github.lopezjavier.appfitness.composeapp.resources.trainer_source_adaptive_cd
+import io.github.lopezjavier.appfitness.composeapp.resources.trainer_source_adaptive_chip
 import io.github.lopezjavier.appfitness.composeapp.resources.trainer_source_edited
 import io.github.lopezjavier.appfitness.composeapp.resources.trainer_source_formula
+import io.github.lopezjavier.appfitness.composeapp.resources.trainer_source_formula_cd
+import io.github.lopezjavier.appfitness.composeapp.resources.trainer_source_formula_chip
 import io.github.lopezjavier.appfitness.composeapp.resources.trainer_source_profile
 import io.github.lopezjavier.appfitness.composeapp.resources.trainer_source_sessions
 import io.github.lopezjavier.appfitness.composeapp.resources.trainer_trend_cd
@@ -31,6 +35,8 @@ import io.github.lopezjavier.appfitness.composeapp.resources.weight_trend_pill
 import io.github.lopezjavier.appfitness.designsystem.AppIconButton
 import io.github.lopezjavier.appfitness.designsystem.AppNumberFormat
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
+import io.github.lopezjavier.appfitness.designsystem.StatusChip
+import io.github.lopezjavier.appfitness.designsystem.StatusTone
 import io.github.lopezjavier.appfitness.designsystem.TrendPill
 import io.github.lopezjavier.appfitness.designsystem.TrendPillDefaults
 import io.github.lopezjavier.appfitness.designsystem.TrendTone
@@ -82,7 +88,7 @@ internal fun ActivityLevelRow(values: CoachDerivedValues, onEdit: (() -> Unit)?)
 }
 
 @Composable
-internal fun ExpenditureRow(values: CoachDerivedValues) {
+internal fun ExpenditureRow(values: CoachDerivedValues, source: ExpenditureSource? = null) {
     val expenditure = values.totalExpenditure
     val sourceText = if (expenditure.state == ValueState.Reask) {
         stringResource(Res.string.trainer_reask)
@@ -104,7 +110,23 @@ internal fun ExpenditureRow(values: CoachDerivedValues) {
         supportingText = sourceText,
         provisional = expenditure.provisional,
         missing = expenditure.missing,
+        trailing = source?.let { { ExpenditureSourceChip(it) } },
         notes = { UnreliableIntakeNote(values) },
+    )
+}
+
+@Composable
+private fun ExpenditureSourceChip(source: ExpenditureSource) {
+    val adaptive = source == ExpenditureSource.Adaptive
+    val description = stringResource(
+        if (adaptive) Res.string.trainer_source_adaptive_cd else Res.string.trainer_source_formula_cd,
+    )
+    StatusChip(
+        text = stringResource(
+            if (adaptive) Res.string.trainer_source_adaptive_chip else Res.string.trainer_source_formula_chip,
+        ),
+        tone = if (adaptive) StatusTone.Good else StatusTone.Caution,
+        modifier = Modifier.testTag("trainer_source_total_expenditure").semantics { contentDescription = description },
     )
 }
 

@@ -42,7 +42,7 @@ internal typealias TrainerSlot =
     @Composable (
         modifier: Modifier,
         onOpenCoachUsage: () -> Unit,
-        onOpenPlan: () -> Unit,
+        onOpenPlan: (replacingPlanId: String?) -> Unit,
         onOpenBlock: (String) -> Unit,
     ) -> Unit
 
@@ -659,7 +659,9 @@ internal fun AppNavHost(
     val openActivity = remember(navController) { { navController.navigateToFullScreen(ActivityRoute) } }
     val openAbout = remember(navController) { { navController.navigateToFullScreen(AboutRoute) } }
     val openCoachUsage = remember(navController) { { navController.navigateToFullScreen(CoachUsageRoute) } }
-    val openPlan = remember(navController) { { navController.navigateToFullScreen(PlanProposalRoute) } }
+    val openPlan = remember(navController) {
+        { replacingPlanId: String? -> navController.navigateToFullScreen(PlanProposalRoute(replacingPlanId)) }
+    }
     val openBlock =
         remember(navController) { { planId: String -> navController.navigateToFullScreen(BlockPreviewRoute(planId)) } }
     val openMyTraining = remember(navController) {

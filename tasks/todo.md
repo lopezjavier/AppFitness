@@ -36,6 +36,7 @@ E12 (user decision, 2026-10-28: two checkpoints): **Checkpoint E12-A** after T-1
 - **E11:** the `READ_HEALTH_DATA_HISTORY` pre-check is replaced by the spike T-139 (user decision, 2026-10-28; see the E11 section).
 - **E12:** consumed by the E12 breakdown: Android 17 verification → T-146 (plan step and Checkpoint E12-A item 1); sound pick → Checkpoint E12-A item 5, wired in T-148.
 - **E13:** consumed by the E13 breakdown: source, data-policy and price verification done 2026-10-29 (`07` §3-§4, §10-§11); 👤 Anthropic account, spending limit and `ANTHROPIC_API_KEY` → the 👤 step before T-160.
+- **E13 backlog (user request, 2026-10-30; for the epic-planner, not in T-177):** (1) the block offers alternatives per exercise (for example "Press banca con barra" or "Press banca con mancuernas" in place of "Press en suelo con barra") and the user picks one, instead of one fixed exercise per slot; (2) the block includes cardio, which the block model has no field for today (`blockValidators.ts` rejects `cardio`); the weight stays the user's own input during the session.
 
 ---
 
@@ -214,9 +215,9 @@ Journey: open the new Trainer tab, check what the coach estimated about you and 
 ## T-177: Fix from Checkpoint E13-B: Trainer still shows "Crear plan" after a plan was created (US-69) · M
 
 **Source:** user report at Checkpoint E13-B, 2026-10-30. Screenshot: `design/reported/e13-b-trainer-plan-missing-after-create.png` (delete once the user confirms the fix). After "Crear plan" succeeded (Diario's calorie and weight targets were set, so the plan was at least accepted for its nutrition or its goals were written), the Trainer tab still shows "Tu plan" with the "Crear plan" button: no pending or active plan card, and no "Crear bloque" (`BlockSection` returns nothing while `PlanSummary` is `None`). The user cannot reach the block.
-- [ ] **Find the cause:** the Trainer state is not refreshed after the plan is created or accepted (`TrainerViewModel` reload on return or on resume), or the open-plan lookup fails (repository query, status filter, RLS, DTO mapping), or the plan was never stored as accepted or proposed although `nutrition_goals` was written. Record the cause in the PR body.
-- [ ] **Fix in every layer** the cause touches (RPC or query, repository, ViewModel, screen); no workaround that hides the state.
-- [ ] **Host tests:** the Trainer tab right after a plan is created (pending card shown, "Crear bloque" reachable) and right after it is accepted (active plan card, "Crear bloque"); the same after leaving the app and coming back (recreated ViewModel and process death); pgTAP or repository test for the lookup if the cause is there.
+- [x] **Find the cause:** the Trainer state is not refreshed after the plan is created or accepted (`TrainerViewModel` reload on return or on resume), or the open-plan lookup fails (repository query, status filter, RLS, DTO mapping), or the plan was never stored as accepted or proposed although `nutrition_goals` was written. Record the cause in the PR body.
+- [x] **Fix in every layer** the cause touches (RPC or query, repository, ViewModel, screen); no workaround that hides the state.
+- [x] **Host tests:** the Trainer tab right after a plan is created (pending card shown, "Crear bloque" reachable) and right after it is accepted (active plan card, "Crear bloque"); the same after leaving the app and coming back (recreated ViewModel and process death); pgTAP or repository test for the lookup if the cause is there.
 - [ ] After the merge (and `deploy-supabase` green if it touches a migration or the function), Checkpoint E13-B is re-presented (items 1-9 to re-test). US-78 (T-175, T-176) depends on this task.
 
 **Flow:** core + UI as the cause requires (backend too if the lookup is server-side) · **Size:** M · **Agent runs:** planner, ux-reviewer (plan, if UI changes), kotlin-core-developer, compose-ui-developer, pr-creator, pr-reviewer ∥ ux-reviewer (diff) = 6-7 · **Dependencies:** T-174 merged.

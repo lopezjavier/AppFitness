@@ -388,6 +388,83 @@ class PlanProposalViewModelTest {
         assertEquals(1, plans.requests.size)
     }
 
+    private fun replacing(id: String?) = SavedStateHandle().apply { if (id != null) set("replacingPlanId", id) }
+
+    @Test
+    fun replacingAPendingPlan_ignoresItAndRequestsOnceThenShowsTheNewPlan() = runTest(dispatcher) {
+        plans.current = Result.success(coachPlan(id = "old"))
+        plans.request = Result.success(coachPlan(id = "new"))
+        val model = viewModel(replacing("old"))
+        advanceUntilIdle()
+        assertEquals(PlanProposalUiState.Idle, model.uiState.value)
+
+        model.onEvent(PlanProposalEvent.Request)
+        advanceUntilIdle()
+
+        assertEquals(1, plans.requests.size)
+        assertEquals("new", model.proposal().plan.id)
+    }
+
+    @Test
+    fun replacingAnAcceptedPlan_requestsANewOne() = runTest(dispatcher) {
+        plans.current = Result.success(coachPlan(id = "old", status = PlanStatus.Accepted))
+        plans.request = Result.success(coachPlan(id = "new"))
+        val model = viewModel(replacing("old"))
+        advanceUntilIdle()
+
+        model.onEvent(PlanProposalEvent.Request)
+        advanceUntilIdle()
+
+        assertEquals("new", model.proposal().plan.id)
+    }
+
+    @Test
+    fun aProposedPlanWithAnotherId_isStillShownWhileReplacing() = runTest(dispatcher) {
+        plans.current = Result.success(coachPlan(id = "other"))
+        val model = viewModel(replacing("old"))
+
+        advanceUntilIdle()
+
+        assertEquals("other", model.proposal().plan.id)
+        assertTrue(plans.requests.isEmpty())
+    }
+
+    @Test
+    fun retryWhileReplacing_requestsAgainInsteadOfShowingTheOldPendingPlan() = runTest(dispatcher) {
+        plans.current = Result.success(coachPlan(id = "old"))
+        plans.request = Result.failure(CoachException(CoachFailure.Timeout))
+        val model = viewModel(replacing("old"))
+        advanceUntilIdle()
+        model.onEvent(PlanProposalEvent.Request)
+        advanceUntilIdle()
+        assertEquals(PlanFailureKind.Timeout, model.failure())
+
+        plans.request = Result.success(coachPlan(id = "new"))
+        model.onEvent(PlanProposalEvent.Retry)
+        advanceUntilIdle()
+
+        assertEquals(2, plans.requests.size)
+        assertEquals("new", model.proposal().plan.id)
+    }
+
+    @Test
+    fun recreatedAfterTheReplacementIsStored_showsItAndNeverBillsAgain() = runTest(dispatcher) {
+        val saved = replacing("old")
+        plans.current = Result.success(coachPlan(id = "old"))
+        plans.request = Result.success(coachPlan(id = "new"))
+        val first = viewModel(saved)
+        advanceUntilIdle()
+        first.onEvent(PlanProposalEvent.Request)
+        advanceUntilIdle()
+
+        plans.current = Result.success(coachPlan(id = "new"))
+        val second = viewModel(saved)
+        advanceUntilIdle()
+
+        assertEquals("new", second.proposal().plan.id)
+        assertEquals(1, plans.requests.size)
+    }
+
     @Test
     fun recreatedMidRequest_withoutAStoredPlan_offersRetryAndNeverRequestsAgain() = runTest(dispatcher) {
         val saved = SavedStateHandle()

@@ -14,6 +14,7 @@ import io.github.lopezjavier.appfitness.domain.repository.CoachPlanRepository
 import io.github.lopezjavier.appfitness.domain.repository.CoachRepository
 import io.github.lopezjavier.appfitness.domain.repository.CoachWeeksRepository
 import io.github.lopezjavier.appfitness.domain.repository.NutritionGoalsRepository
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -70,6 +71,7 @@ class TrainerViewModel(
     fun onEvent(event: TrainerEvent) {
         when (event) {
             TrainerEvent.Load, TrainerEvent.Retry -> load()
+            TrainerEvent.Refresh -> refresh()
             TrainerEvent.Confirm -> submit(level = null, fromSheet = false)
             TrainerEvent.OpenEdit -> openEdit()
             is TrainerEvent.PickLevel -> pickLevel(event.level)
@@ -112,36 +114,66 @@ class TrainerViewModel(
 
     private fun load() {
         _uiState.value = TrainerUiState.Loading
-        viewModelScope.launch {
-            val result = repository.derivedValues(today())
-            // The strategy only colours the trend; an unreadable or missing goal leaves it neutral.
-            val strategy = if (result.isSuccess) goals?.getOwn()?.getOrNull()?.strategy else null
-            // The plan entry and the calorie card never block the derived values: a failed read means none.
-            val plan = if (result.isSuccess) readPlan() else PlanSummary.None
-            val change = if (plan is PlanSummary.Accepted) plans?.pendingCalorieChange(today())?.getOrNull() else null
-            val block = blocks.summaryFor(plan)
-            // Weeks and the deload card need an accepted plan with a saved block; failed reads mean none.
-            val savedPlanId = (plan as? PlanSummary.Accepted)?.plan?.id?.takeIf { block is BlockSummary.Saved }
-            val deload = savedPlanId?.let { coachWeeks?.pendingDeload(today())?.getOrNull() }
-            val planWeeks = savedPlanId?.let { coachWeeks?.weeks(it, today())?.getOrNull() }.orEmpty()
-            _uiState.value = result.fold(
-                onSuccess = {
-                    TrainerUiState.Content(
-                        it,
-                        editSheet = restoredDraft(),
-                        strategy = strategy,
-                        plan = plan,
-                        calorieChange = change,
-                        block = block,
-                        weeks = planWeeks,
-                        deload = deload,
+        loadJob?.cancel()
+        loadJob = viewModelScope.launch { _uiState.value = fetch() }
+    }
+
+    /**
+     * Silent reload (the tab came back to the foreground): keeps the shown Content, the open sheet and any in-flight
+     * decision, and keeps the previous Content when the reload fails. Coalesced with a fetch already in flight, so
+     * the calorie-change evaluation never runs twice. Without Content it is a regular load.
+     */
+    private fun refresh() {
+        if (loadJob?.isActive == true) return
+        if (_uiState.value !is TrainerUiState.Content) return load()
+        loadJob = viewModelScope.launch {
+            val fresh = fetch() as? TrainerUiState.Content ?: return@launch
+            _uiState.update { state ->
+                if (state is TrainerUiState.Content) {
+                    fresh.copy(
+                        editSheet = state.editSheet,
+                        confirming = state.confirming,
+                        decidingChange = state.decidingChange,
+                        decidingDeload = state.decidingDeload,
                     )
-                },
-                onFailure = {
-                    if (result.appErrorOrNull() == AppError.Network) TrainerUiState.Offline else TrainerUiState.Error
-                },
-            )
+                } else {
+                    state
+                }
+            }
         }
+    }
+
+    private var loadJob: Job? = null
+
+    private suspend fun fetch(): TrainerUiState {
+        val result = repository.derivedValues(today())
+        // The strategy only colours the trend; an unreadable or missing goal leaves it neutral.
+        val strategy = if (result.isSuccess) goals?.getOwn()?.getOrNull()?.strategy else null
+        // The plan entry and the calorie card never block the derived values: a failed read means none.
+        val plan = if (result.isSuccess) readPlan() else PlanSummary.None
+        val change = if (plan is PlanSummary.Accepted) plans?.pendingCalorieChange(today())?.getOrNull() else null
+        val block = blocks.summaryFor(plan)
+        // Weeks and the deload card need an accepted plan with a saved block; failed reads mean none.
+        val savedPlanId = (plan as? PlanSummary.Accepted)?.plan?.id?.takeIf { block is BlockSummary.Saved }
+        val deload = savedPlanId?.let { coachWeeks?.pendingDeload(today())?.getOrNull() }
+        val planWeeks = savedPlanId?.let { coachWeeks?.weeks(it, today())?.getOrNull() }.orEmpty()
+        return result.fold(
+            onSuccess = {
+                TrainerUiState.Content(
+                    it,
+                    editSheet = restoredDraft(),
+                    strategy = strategy,
+                    plan = plan,
+                    calorieChange = change,
+                    block = block,
+                    weeks = planWeeks,
+                    deload = deload,
+                )
+            },
+            onFailure = {
+                if (result.appErrorOrNull() == AppError.Network) TrainerUiState.Offline else TrainerUiState.Error
+            },
+        )
     }
 
     private suspend fun readPlan(): PlanSummary {

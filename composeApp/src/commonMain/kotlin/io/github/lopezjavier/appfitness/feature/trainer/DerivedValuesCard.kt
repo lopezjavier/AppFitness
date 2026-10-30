@@ -44,6 +44,7 @@ internal fun DerivedValuesCard(
     onEdit: (() -> Unit)?,
     onConfirm: () -> Unit,
     modifier: Modifier = Modifier,
+    expenditureSource: ExpenditureSource? = null,
 ) {
     AppCard(modifier.fillMaxWidth().testTag("trainer_card")) {
         Row(verticalAlignment = Alignment.CenterVertically) {
@@ -62,7 +63,7 @@ internal fun DerivedValuesCard(
         }
         Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
             ActivityLevelRow(values, onEdit)
-            ExpenditureRow(values)
+            ExpenditureRow(values, expenditureSource)
             WeightTrendRow(values, strategy)
             ExperienceRow(values)
         }

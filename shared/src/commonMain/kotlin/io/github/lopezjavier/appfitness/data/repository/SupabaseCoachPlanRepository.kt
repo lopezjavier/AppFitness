@@ -28,6 +28,7 @@ import io.github.lopezjavier.appfitness.domain.model.CoachFailure
 import io.github.lopezjavier.appfitness.domain.model.CoachPlan
 import io.github.lopezjavier.appfitness.domain.model.PlanStatus
 import io.github.lopezjavier.appfitness.domain.repository.CoachPlanRepository
+import io.ktor.client.plugins.HttpRequestTimeoutException
 import io.ktor.client.request.setBody
 import io.ktor.client.statement.bodyAsText
 import io.ktor.http.ContentType
@@ -35,6 +36,7 @@ import io.ktor.http.HttpMethod
 import io.ktor.http.contentType
 import kotlinx.coroutines.CancellationException
 import kotlinx.datetime.LocalDate
+import kotlin.time.Duration
 
 private const val WRONG_OBJECT_STATE = "55000"
 
@@ -42,11 +44,15 @@ private const val WRONG_OBJECT_STATE = "55000"
  * Plans through the `coach` function (`plan_nutrition`, whole SSE body read as text) and the T-161 RPCs; reads go
  * through the owner-select RLS of `coach_plans` and `coach_recommendations`.
  */
-class SupabaseCoachPlanRepository(
+class SupabaseCoachPlanRepository internal constructor(
     private val auth: Auth,
     private val postgrest: Postgrest,
     private val functions: Functions,
+    private val requestTimeout: Duration,
 ) : CoachPlanRepository {
+    constructor(auth: Auth, postgrest: Postgrest, functions: Functions) :
+        this(auth, postgrest, functions, COACH_CLIENT_TIMEOUT)
+
     @Suppress("TooGenericExceptionCaught")
     override suspend fun requestPlan(today: LocalDate): Result<CoachPlan> {
         if (auth.currentUserOrNull() == null) return Result.failure(AppException(AppError.Unauthorized))
@@ -56,6 +62,7 @@ class SupabaseCoachPlanRepository(
                 method = HttpMethod.Post
                 contentType(ContentType.Application.Json)
                 setBody(body)
+                coachTimeout(requestTimeout)
             }.bodyAsText()
             CoachStreamParser.parse(stream).fold(
                 onSuccess = { text -> storedPlanOf(text) },
@@ -63,6 +70,9 @@ class SupabaseCoachPlanRepository(
             )
         } catch (cancellation: CancellationException) {
             throw cancellation
+        } catch (failure: HttpRequestTimeoutException) {
+            // The model took too long: the service is reachable, so offer a retry instead of "offline".
+            Result.failure(CoachException(CoachFailure.Timeout))
         } catch (failure: RestException) {
             Result.failure(CoachException(CoachErrorParser.parse(failure.description ?: failure.error)))
         } catch (failure: Exception) {
