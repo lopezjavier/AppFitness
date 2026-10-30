@@ -66,6 +66,9 @@ sealed interface TrainerEvent {
 
     data object Retry : TrainerEvent
 
+    /** The tab came back to the foreground: silent reload that keeps the shown content (T-177). */
+    data object Refresh : TrainerEvent
+
     /** "Confirmar" on the card: accepts the values as they are. */
     data object Confirm : TrainerEvent
 

@@ -23,6 +23,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.github.lopezjavier.appfitness.composeapp.resources.Res
 import io.github.lopezjavier.appfitness.composeapp.resources.action_retry
@@ -91,6 +93,7 @@ fun TrainerRoute(
     val deloadAcceptOffline = offlineHint(stringResource(Res.string.deload_accept_offline)) + "."
     val deloadDiscardOffline = offlineHint(stringResource(Res.string.deload_discard_offline)) + "."
     val latestHaptics by rememberUpdatedState(haptics)
+    LifecycleEventEffect(Lifecycle.Event.ON_RESUME) { viewModel.onEvent(TrainerEvent.Refresh) }
     LaunchedEffect(viewModel) {
         viewModel.effects.collect { effect ->
             when (effect) {
