@@ -24,7 +24,7 @@ Public repo `https://github.com/lopezjavier/AppFitness` (ADR-13); secret scannin
 | `GOOGLE_WEB_CLIENT_ID` | repository | `android-ci` |
 
 ### 2.2 Supabase (Free plan)
-Project `AppFitness` in `eu-west-3` (local CLI `project_id` `appfitness`). Auth: Google provider enabled, Email disabled (ADR-02). Edge Functions secrets (set with `npx supabase secrets set`, never in the repo or GitHub): `OFF_USER_AGENT`, `GEMINI_API_KEY` (free tier, `food-photo` only, ADR-59), `PROTECTED_EMAILS` (ADR-57).
+Project `AppFitness` in `eu-west-3` (local CLI `project_id` `appfitness`). Auth: Google provider enabled, Email disabled (ADR-02). Edge Functions secrets (set with `npx supabase secrets set`, never in the repo or GitHub): `OFF_USER_AGENT`, `GEMINI_API_KEY` (free tier, `food-photo` only, ADR-59), `PROTECTED_EMAILS` (ADR-57), `ANTHROPIC_API_KEY` (`coach` only; paid, capped by the app budget and the Anthropic account limit; set with `npx supabase secrets set ANTHROPIC_API_KEY=...` by the user, never in the repo; locally in `supabase/.env.local`, template `supabase/.env.example`; the key expires after 2 years, about 2028-10-29: rotate it before then). Without it `coach` answers `NOT_CONFIGURED`.
 ### 2.3 Google Cloud Console
 No billing or free trial. OAuth consent screen "External"/Testing with the app's users as test users; Web client `appfitness-web` (its Client ID is `GOOGLE_WEB_CLIENT_ID`; Supabase callback as redirect URI); two Android clients (ADR-14) `appfitness-android` and `appfitness-android-local` with the debug keystore SHA-1. No release SHA-1 (ADR-67).
 

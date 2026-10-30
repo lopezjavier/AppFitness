@@ -47,6 +47,8 @@ Compact summary; full column tables, constraints and RPC contracts are in [`phas
 - Rep range (T-159, US-70): `routine_exercises.rep_min/rep_max smallint null` (both null or both set, 1-50, min <= max; legacy `target_reps` untouched) and a snapshot `workout_sets.rep_min/rep_max` copied by `start_workout_session` from the routine exercise (free workouts and `save_completed_workout` leave it null). `save_routine` accepts optional `rep_min`/`rep_max` per exercise (both or neither, else `22023`); `update_routine_from_session` carries the range over.
 - `coach_confirmed_values` (T-157, `04` §7, `07` §2): PK `(user_id, key)` with `key` enum `coach_value_key`; `estimate` (server estimate at confirmation: activity factor, kcal, kg per week or experience ordinal 0-2), `uncertainty` (half-width, >= 0), `level_value` (confirmed or edited activity level, only for `activity_level`), `edited`, `confirmed_at`, `updated_at`. RLS owner-only (select/insert/update, no delete); written by `confirm_derived_values`. It is not part of the coach history, so "Eliminar historial del entrenador" keeps it; deleting the account removes it (cascade).
 
+- `coach_usage` (T-160, `07` §11): PK `(user_id, month)`, `month` the first day of the UTC month (check), `input_tokens`, `output_tokens` (bigint >= 0), `cost_eur` numeric(12,6) >= 0, `updated_at`. RLS owner select only, no insert/update/delete privilege for `authenticated`; written only by `coach_record_usage(p_user, p_month, p_input, p_output, p_cost)` (atomic upsert that adds to the row) and totalled by `coach_global_month_cost(p_month)` (one number), both `security definer`, `service_role` only. Removed with the account (cascade).
+
 ## 6. RPC functions (all `security invoker`, `authenticated` only, owner-scoped)
 - Profile: `save_preferences` (profile + goals + optional weight, one transaction).
 - Weight: `save_body_measurement`.
@@ -69,6 +71,7 @@ Compact summary; full column tables, constraints and RPC contracts are in [`phas
 | `food-search` | JWT | `?q=` (2-60 chars): full-text in `foods`, then OFF (Spain, Spanish name, ADR-46) when < 10 results; normalizes, upserts, returns up to 20 |
 | `food-barcode` | JWT | `?code=` EAN-8/13/UPC-A: `foods` first, OFF when missing or older than 30 days; `404` if absent or without kcal |
 | `food-photo` | JWT | `POST` JSON `{image_base64, mode: dish\|label\|barcode\|weight, comment?, food?}` -> Gemini -> normalized draft or amount estimate (ADR-59, 64, 72); never stores or logs the image |
+| `coach` | JWT | `POST` JSON `{kind: ping\|plan_nutrition\|plan_block\|report\|chat, input}` -> `text/event-stream` (`delta`, `done`, `error`); budget 2 EUR/user and 5 EUR global per UTC month. Only `ping` works until T-161+; the rest answer `coach_kind_not_available` (501). Errors: `coach_limit_reached` 429 (`scope` user or global), `coach_no_credit` 402, `coach_timeout` 504, `coach_invalid_output` 502, `coach_kind_not_available` 501, plus `UNAUTHORIZED`, `INVALID_INPUT`, `NOT_CONFIGURED`, `PROVIDER_ERROR` |
 
 OFF client: custom `User-Agent`, 8 s timeout, normalization (base unit from `nutrition_data_per`).
 
