@@ -8,6 +8,7 @@ import {
     callerClient,
 } from "../_shared/food-store.ts";
 import { createCoachHandler } from "./handler.ts";
+import type { CatalogExercise } from "./schemas.ts";
 
 const apiKey = Deno.env.get("ANTHROPIC_API_KEY")?.trim();
 
@@ -66,6 +67,47 @@ const handler = createCoachHandler({
         return {
             plan_id: String(data.plan_id),
             recommendation_id: String(data.recommendation_id),
+        };
+    },
+    loadCatalog: async (token) => {
+        // RLS: the catalogue plus the caller's own custom exercises.
+        const { data, error } = await callerClient(token)
+            .from("exercises")
+            .select(
+                "id,key,name,muscle_group,equipment,movement_pattern,metric_type,is_custom",
+            );
+        if (error || !data) throw new Error("catalog read failed");
+        return data as CatalogExercise[];
+    },
+    loadPlan: async (token, planId) => {
+        const { data, error } = await callerClient(token)
+            .from("coach_plans")
+            .select("status,folder_id")
+            .eq("id", planId)
+            .maybeSingle();
+        if (error) throw new Error("plan read failed");
+        return data
+            ? {
+                status: String(data.status),
+                training_saved: data.folder_id != null,
+            }
+            : null;
+    },
+    attachBlock: async (token, row) => {
+        const { data, error } = await callerClient(token).rpc(
+            "attach_coach_block",
+            {
+                p_plan_id: row.planId,
+                p_training: row.training,
+                p_sessions: row.sessions,
+                p_method: row.method,
+                p_input_summary: row.inputSummary,
+            },
+        );
+        if (error || !data?.plan_id) throw new Error("block write failed");
+        return {
+            plan_id: String(data.plan_id),
+            session_ids: (data.sessions as unknown[] ?? []).map(String),
         };
     },
     client: apiKey
