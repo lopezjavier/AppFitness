@@ -77,7 +77,6 @@ class PlanProposalViewModel(
     }
 
     private fun request() {
-        _uiState.value = PlanProposalUiState.Requesting
         viewModelScope.launch { runRequest() }
     }
 

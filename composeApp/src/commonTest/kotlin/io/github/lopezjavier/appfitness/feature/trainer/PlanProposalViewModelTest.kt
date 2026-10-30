@@ -249,6 +249,44 @@ class PlanProposalViewModelTest {
     }
 
     @Test
+    fun accept_withUnconfirmedValues_emitsNoEffectAndNeverCallsTheRepository() = runTest(dispatcher) {
+        coach.loaded = Result.success(coachValues(provisional = true))
+        plans.current = Result.success(coachPlan())
+        val model = viewModel()
+        advanceUntilIdle()
+
+        model.effects.test {
+            model.onEvent(PlanProposalEvent.Accept)
+            advanceUntilIdle()
+            expectNoEvents()
+        }
+
+        assertTrue(plans.acceptCalls.isEmpty())
+        assertIs<PlanProposalUiState.Proposal>(model.uiState.value)
+    }
+
+    @Test
+    fun accept_afterTheServerReportedChangedData_isBlockedUntilConfirmed() = runTest(dispatcher) {
+        plans.current = Result.success(coachPlan())
+        val model = viewModel()
+        advanceUntilIdle()
+        plans.acceptResult = Result.failure(CoachException(CoachFailure.NeedsConfirmation))
+        coach.loaded = Result.success(coachValues(provisional = true, reask = true))
+        model.onEvent(PlanProposalEvent.Accept)
+        advanceUntilIdle()
+        assertEquals(1, plans.acceptCalls.size)
+
+        model.effects.test {
+            model.onEvent(PlanProposalEvent.Accept)
+            advanceUntilIdle()
+            expectNoEvents()
+        }
+
+        assertEquals(1, plans.acceptCalls.size)
+        assertEquals(AcceptBlockedReason.DataChanged, model.proposal().acceptBlockedReason)
+    }
+
+    @Test
     fun serverRefusingForUnconfirmedValues_refreshesThemAndKeepsTheProposal() = runTest(dispatcher) {
         plans.current = Result.success(coachPlan())
         val model = viewModel()

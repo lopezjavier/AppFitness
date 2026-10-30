@@ -72,7 +72,10 @@ class SupabaseCoachPlanRepository(
 
     override suspend fun currentPlan(): Result<CoachPlan?> = auth.ownRow {
         val plans = postgrest.from("coach_plans")
-            .select { filter { isIn("status", listOf("proposed", "accepted")) } }
+            .select {
+                filter { isIn("status", listOf("proposed", "accepted")) }
+                order("created_at", Order.DESCENDING)
+            }
             .decodeList<CoachPlanDto>()
             .map { it.toDomain() }
         plans.firstOrNull { it.status == PlanStatus.Proposed } ?: plans.firstOrNull()
@@ -80,7 +83,11 @@ class SupabaseCoachPlanRepository(
 
     override suspend fun acceptedPlan(): Result<CoachPlan?> = auth.ownRow {
         postgrest.from("coach_plans")
-            .select { filter { eq("status", "accepted") } }
+            .select {
+                filter { eq("status", "accepted") }
+                order("created_at", Order.DESCENDING)
+                limit(1)
+            }
             .decodeList<CoachPlanDto>()
             .firstOrNull()?.toDomain()
     }
