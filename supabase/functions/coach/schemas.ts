@@ -89,3 +89,148 @@ export const MODEL_OUTPUT_SCHEMA: Record<string, unknown> = {
         },
     },
 };
+
+// --- Training block (T-163) ---------------------------------------------------------------------------------
+
+export type MuscleGroup =
+    | "chest"
+    | "back"
+    | "shoulders"
+    | "biceps"
+    | "triceps"
+    | "forearms"
+    | "quads"
+    | "hamstrings"
+    | "glutes"
+    | "calves"
+    | "core"
+    | "full_body";
+
+export type MovementPattern =
+    | "squat"
+    | "hinge"
+    | "lunge"
+    | "horizontal_push"
+    | "vertical_push"
+    | "horizontal_pull"
+    | "vertical_pull"
+    | "carry"
+    | "core"
+    | "isolation"
+    | "cardio"
+    | "other";
+
+export type Role = "main" | "isolation";
+
+/** A row of `exercises` as the coach function reads it (caller's own token: catalogue + own custom exercises). */
+export type CatalogExercise = {
+    id: string;
+    key: string | null;
+    name: string | null;
+    muscle_group: MuscleGroup;
+    equipment: string;
+    movement_pattern: MovementPattern | null;
+    metric_type: string;
+    is_custom: boolean;
+    /** Present when read, but a per-hand weight does not matter for a routine. */
+    per_hand?: boolean;
+};
+
+/** The training preferences the block is built from. */
+export type BlockPrefs = {
+    intention: Intention;
+    place: string | null;
+    equipment: string[];
+    days_per_week: number | null;
+    session_minutes: number | null;
+    experience: Experience;
+};
+
+export type BlockSlot = {
+    slot_id: string;
+    muscle_group: MuscleGroup;
+    role: Role;
+    sets: number;
+    rep_min: number;
+    rep_max: number;
+    rest_seconds: number;
+};
+
+export type SkeletonSession = {
+    session_index: number;
+    name: string;
+    focus: MuscleGroup[];
+    slots: BlockSlot[];
+};
+
+export type BlockSkeleton = {
+    days_per_week: number;
+    days_chosen: boolean;
+    session_minutes: number;
+    rep_scheme: "single" | "undulating";
+    block_weeks: number;
+    sessions: SkeletonSession[];
+};
+
+/** What the model returns per slot: a candidate key and a reason. */
+export type ModelBlockPick = {
+    slot_id: string;
+    exercise_key: string;
+    reason: string;
+};
+
+export type BlockExercise = {
+    exercise_id: string;
+    exercise_key: string;
+    role: Role;
+    muscle_group: MuscleGroup;
+    sets: number;
+    rep_min: number;
+    rep_max: number;
+    rest_seconds: number;
+    reason: string;
+};
+
+export type BlockSession = {
+    session_index: number;
+    name: string;
+    focus: MuscleGroup[];
+    exercises: BlockExercise[];
+};
+
+export type BlockTraining = {
+    days_per_week: number;
+    days_chosen: boolean;
+    session_minutes: number;
+    rep_scheme: "single" | "undulating";
+    block_weeks: number;
+    equipment: string[];
+    weekly_sets: Record<string, number>;
+    sessions_per_muscle: Record<string, number>;
+};
+
+export type Block = {
+    training: BlockTraining;
+    sessions: BlockSession[];
+};
+
+export const BLOCK_OUTPUT_SCHEMA: Record<string, unknown> = {
+    type: "object",
+    additionalProperties: false,
+    required: ["picks"],
+    properties: {
+        picks: {
+            type: "array",
+            items: {
+                type: "object",
+                additionalProperties: false,
+                required: ["slot_id", "exercise_key", "reason"],
+                properties: {
+                    slot_id: { type: "string" },
+                    exercise_key: { type: "string" },
+                    reason: { type: "string" },
+                },
+            },
+        },
+    },
+};

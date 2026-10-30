@@ -23,17 +23,17 @@ export const REASON_MAX = 300;
 export const DEADLINE_MIN_DAYS = 7;
 export const DEADLINE_MAX_DAYS = 28;
 
-const isRecord = (v: unknown): v is Record<string, unknown> =>
+export const isRecord = (v: unknown): v is Record<string, unknown> =>
     typeof v === "object" && v !== null && !Array.isArray(v);
 
-const sameKeys = (o: Record<string, unknown>, keys: string[]) => {
+export const sameKeys = (o: Record<string, unknown>, keys: string[]) => {
     const own = Object.keys(o).sort();
     return own.length === keys.length &&
         [...keys].sort().every((k, i) => k === own[i]);
 };
 
 /** Extracts the JSON from a bare or fenced (```json) answer. */
-function parseJson(text: string): unknown {
+export function parseJson(text: string): unknown {
     let body = text.trim();
     const fenced = body.match(/^```(?:json)?\s*([\s\S]*?)\s*```$/i);
     if (fenced) body = fenced[1];

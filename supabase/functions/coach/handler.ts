@@ -21,13 +21,17 @@ import {
 } from "../_shared/errors.ts";
 import { checkBudget, monthKey } from "./budget.ts";
 import {
+    type AttachedBlock,
+    type BlockRow,
     CoachInputError,
     type PlanRow,
+    type PlanState,
     type Prepared,
     type SavedPlan,
 } from "./context.ts";
 import { costEur } from "./prices.ts";
 import { KINDS, type KindSpec } from "./router.ts";
+import type { CatalogExercise } from "./schemas.ts";
 
 export type CoachDeps = {
     /** User id of an access token, or null when invalid. */
@@ -51,6 +55,12 @@ export type CoachDeps = {
     loadContext: (token: string, today: string) => Promise<unknown>;
     /** Stores a proposed plan through `propose_coach_plan`, with the caller's own token. */
     savePlan: (token: string, row: PlanRow) => Promise<SavedPlan>;
+    /** Catalogue and own custom exercises, read with the caller's own token. */
+    loadCatalog: (token: string) => Promise<CatalogExercise[]>;
+    /** Status of one of the caller's plans (null when not theirs), read with their own token. */
+    loadPlan: (token: string, planId: string) => Promise<PlanState | null>;
+    /** Stores a block through `attach_coach_block`, with the caller's own token. */
+    attachBlock: (token: string, row: BlockRow) => Promise<AttachedBlock>;
     now: () => Date;
     timeoutMs?: number;
     kinds?: Record<string, KindSpec>;
@@ -174,6 +184,9 @@ export function createCoachHandler(
                     prepared = await spec.prepare(body.input, {
                         loadContext: (today) => deps.loadContext(token, today),
                         savePlan: (row) => deps.savePlan(token, row),
+                        loadCatalog: () => deps.loadCatalog(token),
+                        loadPlan: (id) => deps.loadPlan(token, id),
+                        attachBlock: (row) => deps.attachBlock(token, row),
                     });
                 } catch (e) {
                     if (e instanceof CoachInputError) {
@@ -182,7 +195,8 @@ export function createCoachHandler(
                     throw e;
                 }
             }
-            const request = prepared?.request ?? spec.buildRequest!(body.input);
+            const request = prepared?.request ??
+                spec.buildRequest?.(body.input);
             const validate = prepared?.validate ?? spec.validate;
             const deadline = new Deadline(deps.timeoutMs ?? COACH_TIMEOUT_MS);
             const record = async (usage: AnthropicUsage) => {
@@ -207,13 +221,76 @@ export function createCoachHandler(
                 };
             };
 
+            if (prepared?.parts) {
+                // Parallel validated parts inside the one deadline; the usage of every part is charged once.
+                const parts = prepared.parts;
+                try {
+                    const signal = deadline.controller.signal;
+                    const results = await deadline.race(
+                        Promise.allSettled(
+                            parts.map((p) =>
+                                completeValidated(
+                                    deps.client!,
+                                    p.request,
+                                    p.validate,
+                                    signal,
+                                )
+                            ),
+                        ),
+                    );
+                    let total = NO_USAGE;
+                    let failed: unknown = null;
+                    let invalid = false;
+                    for (const r of results) {
+                        if (r.status === "fulfilled") {
+                            total = addUsage(total, r.value.usage);
+                        } else if (r.reason instanceof InvalidOutputError) {
+                            total = addUsage(total, r.reason.usage);
+                            invalid = true;
+                        } else if (
+                            failed === null ||
+                            r.reason instanceof ProviderCreditError
+                        ) failed = r.reason;
+                    }
+                    if (failed instanceof ProviderCreditError) throw failed;
+                    if (invalid) throw new InvalidOutputError(total);
+                    if (failed !== null) throw failed;
+                    const usage = await record(total);
+                    let text: string;
+                    try {
+                        text = JSON.stringify(
+                            await prepared.finalize(
+                                results.map((r) =>
+                                    (r as PromiseFulfilledResult<
+                                        { value: unknown }
+                                    >)
+                                        .value.value
+                                ),
+                                { costEur: usage.cost_eur },
+                            ),
+                        );
+                    } catch {
+                        return errorResponse("INTERNAL", "Unexpected error");
+                    }
+                    return sse([
+                        frame("delta", { text }),
+                        frame("done", { usage }),
+                    ]);
+                } catch (e) {
+                    if (e instanceof InvalidOutputError) await record(e.usage);
+                    return failure(e);
+                } finally {
+                    deadline.clear();
+                }
+            }
+
             if (validate) {
                 // Buffered: validated output is sent whole, after the (single) retry.
                 try {
                     const result = await deadline.race(
                         completeValidated(
                             deps.client,
-                            request,
+                            request!,
                             validate,
                             deadline.controller.signal,
                         ),
@@ -249,7 +326,7 @@ export function createCoachHandler(
 
             // Streamed: pull the first event before answering so early failures are JSON errors.
             const iterator = deps.client
-                .stream(request, deadline.controller.signal)[
+                .stream(request!, deadline.controller.signal)[
                 Symbol.asyncIterator
             ]();
             let first: IteratorResult<AnthropicEvent>;

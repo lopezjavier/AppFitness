@@ -69,6 +69,9 @@ function setup(
             records.push(r);
             return Promise.resolve();
         },
+        loadCatalog: () => Promise.reject(new Error("unexpected loadCatalog")),
+        loadPlan: () => Promise.reject(new Error("unexpected loadPlan")),
+        attachBlock: () => Promise.reject(new Error("unexpected attachBlock")),
         client: o.client === undefined ? client : o.client,
         loadContext: () => {
             loads++;
@@ -300,7 +303,7 @@ Deno.test("other kinds are still not available", async () => {
         new Request("http://x/coach", {
             method: "POST",
             headers: { authorization: "Bearer good" },
-            body: JSON.stringify({ kind: "plan_block", input: {} }),
+            body: JSON.stringify({ kind: "report", input: {} }),
         }),
     );
     assertEquals(res.status, 501);
