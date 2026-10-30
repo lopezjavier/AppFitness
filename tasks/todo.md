@@ -207,6 +207,19 @@ Journey: open the new Trainer tab, check what the coach estimated about you and 
 
 ---
 
+## T-174: Fix from Checkpoint E13-B: "Crear plan" shows "No se pudo usar la IA" (US-69) · M
+
+**Source:** user report at Checkpoint E13-B, 2026-10-30. Tapping "Crear plan" in Trainer shows `coach_error` ("No se pudo usar la IA. Inténtalo de nuevo.", the generic `CoachFailure.Other`). The Supabase edge function log shows `POST /functions/v1/coach` answered **422** (no log lines, level warning, 2026-10-30 15:33 UTC). The dev-only ping button answers "ping correcto", so the function, the key and the JWT work: the 422 comes from the `plan_nutrition` request or its validation.
+- [ ] **Find the cause of the 422** (function logs, request payload shape vs the `plan_nutrition` validator, model output rejected after the retry) and fix it in every layer (function, app, tests).
+- [ ] **The app must say why:** map the failure to a specific `CoachFailure` and Spanish message where the user can act on it, instead of the generic one (ux-reviewer writes the copy); a rejected model output stays a clean "Inténtalo de nuevo" with a non-sensitive reason logged.
+- [ ] **Remove the dev-only "Probar coach (ping)" button** (T-160 decision: not part of the user-facing UI); keep the `ping` kind in the function only if tests or the evaluation need it.
+- [ ] Test with the real request shape (deno test for the handler, host test for the mapping); the user approves the one paid retry of "Crear plan".
+- [ ] After the merge and `deploy-supabase` green, Checkpoint E13-B is re-presented (items 1-9 to re-test).
+
+**Flow:** backend + core + UI as the cause requires · **Dependencies:** T-165 merged.
+
+---
+
 ## T-160: `coach` Edge Function, AI usage and the monthly budget (US-76) · L
 
 **Story:** US-76 · **Flow:** backend + small core/UI · **Size:** L · **Scenarios:** Usage is visible; User budget reached (refusal path; the report fallback is wired in T-166); Deterministic features keep working (already covered by T-159, re-asserted); Global budget
