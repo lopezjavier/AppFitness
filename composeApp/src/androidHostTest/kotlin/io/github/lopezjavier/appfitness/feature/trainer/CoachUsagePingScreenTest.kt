@@ -64,9 +64,9 @@ class CoachUsagePingScreenTest {
     @Test
     fun pingStatus_showsRunningSuccessOfflineAndTheFailureReason() {
         val expected = mapOf(
-            CoachPingUiState.Running to "Llamando al coach...",
+            CoachPingUiState.Running to "Llamando al coach…",
             CoachPingUiState.Success to "Ping correcto.",
-            CoachPingUiState.Offline to "Sin conexión. Inténtalo de nuevo.",
+            CoachPingUiState.Offline to "Sin conexión: inténtalo de nuevo.",
             CoachPingUiState.Failed(CoachFailure.Timeout) to
                 "No se pudo completar la respuesta de IA. Inténtalo de nuevo.",
         )
