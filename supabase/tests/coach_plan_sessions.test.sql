@@ -3,7 +3,7 @@ begin;
 create extension if not exists pgtap with schema extensions;
 set local search_path = extensions, public;
 
-select plan(52);
+select plan(56);
 
 create function pg_temp.u(n int) returns uuid language sql as $$
   select ('c8000000-0000-4000-8000-0000000000' || lpad(n::text, 2, '0'))::uuid $$;
@@ -74,13 +74,17 @@ select ok(not has_function_privilege('anon', 'public.save_coach_block(uuid)', 'e
 select ok(not has_function_privilege('authenticated', 'public.coach_assert_block(uuid,jsonb,jsonb)', 'execute'),
   'coach_assert_block is internal');
 select throws_ok(
-  $$insert into public.coach_plan_sessions (plan_id, user_id, session_index, name, exercises)
-    values ('c8000000-0000-4000-8000-0000000000a3', pg_temp.u(3), 8, 'x', '[]')$$,
+  $$insert into public.coach_plan_sessions (plan_id, user_id, week, session_index, name, exercises)
+    values ('c8000000-0000-4000-8000-0000000000a3', pg_temp.u(3), 1, 8, 'x', '[]')$$,
   '23514', null, 'session_index above 7 is rejected');
 select throws_ok(
-  $$insert into public.coach_plan_sessions (plan_id, user_id, session_index, name, exercises)
-    values ('c8000000-0000-4000-8000-0000000000a3', pg_temp.u(3), 1, 'x', '{}')$$,
+  $$insert into public.coach_plan_sessions (plan_id, user_id, week, session_index, name, exercises)
+    values ('c8000000-0000-4000-8000-0000000000a3', pg_temp.u(3), 1, 1, 'x', '{}')$$,
   '23514', null, 'exercises must be a JSON array');
+select throws_ok(
+  $$insert into public.coach_plan_sessions (plan_id, user_id, week, session_index, name, exercises)
+    values ('c8000000-0000-4000-8000-0000000000a3', pg_temp.u(3), 5, 1, 'x', '[]')$$,
+  '23514', null, 'week above 4 is rejected');
 select throws_ok(
   $$insert into public.coach_recommendations (user_id, plan_id, kind, payload, input_summary)
     values (pg_temp.u(3), 'c8000000-0000-4000-8000-0000000000a3', 'bogus', '{}', '{}')$$,
@@ -92,9 +96,10 @@ select throws_ok(
 set local role authenticated;
 select pg_temp.as_user(1);
 
-select is(jsonb_array_length(pg_temp.attach('c8000000-0000-4000-8000-0000000000a1')->'sessions'), 2,
-  'attach returns the ids of both sessions');
-select is((select count(*)::int from public.coach_plan_sessions), 2, 'the owner sees the two sessions');
+select is(jsonb_array_length(pg_temp.attach('c8000000-0000-4000-8000-0000000000a1')->'sessions'), 8,
+  'attach returns the ids of both sessions in each of the 4 weeks');
+select is((select count(*)::int from public.coach_plan_sessions), 8, 'the owner sees 2 sessions x 4 weeks');
+select is((select count(distinct week)::int from public.coach_plan_sessions where not deload), 4, 'weeks 1 to 4 exist and none is a deload');
 select ok((select training is not null from public.coach_plans where id = 'c8000000-0000-4000-8000-0000000000a1'),
   'the plan carries the training summary');
 select is((select count(*)::int from public.routines where user_id = pg_temp.u(1)), 0,
@@ -104,7 +109,7 @@ select is((select count(*)::int from public.coach_recommendations where kind = '
 
 -- Re-proposing replaces the unsaved sessions.
 select pg_temp.attach('c8000000-0000-4000-8000-0000000000a1');
-select is((select count(*)::int from public.coach_plan_sessions), 2, 'a second proposal replaces the unsaved sessions');
+select is((select count(*)::int from public.coach_plan_sessions), 8, 'a second proposal replaces the unsaved sessions');
 select is((select count(*)::int from public.coach_recommendations where kind = 'block' and status = 'discarded'), 1,
   'the previous block recommendation is discarded');
 
@@ -151,7 +156,7 @@ select throws_ok(
   $$select pg_temp.attach('c8000000-0000-4000-8000-0000000000a1',
       jsonb_set(pg_temp.sessions(), '{0,exercises,0,reason}', '"corto"'))$$,
   '22023', null, 'a reason shorter than 10 characters is rejected');
-select is((select count(*)::int from public.coach_plan_sessions), 2, 'rejected proposals leave the stored sessions untouched');
+select is((select count(*)::int from public.coach_plan_sessions), 8, 'rejected proposals leave the stored sessions untouched');
 
 -- ---------------------------------------------------------------------------
 -- save_coach_block
@@ -162,8 +167,11 @@ select is((select count(*)::int from public.routines where user_id = pg_temp.u(1
 select is((select count(*)::int from public.routine_folders where user_id = pg_temp.u(1)), 1, 'one folder is created');
 select is((select count(*)::int from public.routines r join public.routine_folders f on f.id = r.folder_id
            where r.user_id = pg_temp.u(1)), 2, 'both routines are inside the block folder');
-select is((select count(*)::int from public.coach_plan_sessions where routine_id is not null), 2,
-  'the sessions link to their routines');
+select is((select count(*)::int from public.coach_plan_sessions where routine_id is not null), 8,
+  'every week of the sessions links to its routine');
+select is((select count(distinct routine_id)::int from public.coach_plan_sessions), 2, 'the weeks share the same two routines');
+select throws_ok($$select public.coach_link_block('c8000000-0000-4000-8000-0000000000a1', gen_random_uuid(), '{}')$$, '42501', null,
+  'coach_link_block refuses a direct call');
 select ok((select folder_id is not null from public.coach_plans where id = 'c8000000-0000-4000-8000-0000000000a1'),
   'the plan links to the folder');
 select is((select re.rest_seconds::int from public.routine_exercises re join public.routines r on r.id = re.routine_id
@@ -178,7 +186,7 @@ select ok((select re.notes is not null and re.note_kind = 'other' from public.ro
   'the reason is kept as the exercise note');
 
 select is(public.save_coach_block('c8000000-0000-4000-8000-0000000000a1')->'routine_ids',
-  (select jsonb_agg(routine_id order by session_index) from public.coach_plan_sessions),
+  (select jsonb_agg(routine_id order by session_index) from public.coach_plan_sessions where week = 1),
   'a second save returns the same routines');
 select is((select count(*)::int from public.routines where user_id = pg_temp.u(1)), 2, 'a second save creates no extra routine');
 select throws_ok($$select pg_temp.attach('c8000000-0000-4000-8000-0000000000a1')$$, '55000', null,
@@ -206,7 +214,7 @@ select ok(exists (select 1 from public.routines where user_id = pg_temp.u(4) and
 
 reset role;
 select is((select count(*)::int from public.routines r join public.coach_plan_sessions s on s.routine_id = r.id
-           where s.plan_id = 'c8000000-0000-4000-8000-0000000000a1'), 2, 'routines are reachable from the sessions (as owner)');
+           where s.plan_id = 'c8000000-0000-4000-8000-0000000000a1' and s.week = 1), 2, 'routines are reachable from the sessions (as owner)');
 -- Deleting the plan removes the sessions and keeps the routines.
 delete from public.coach_plans where id = 'c8000000-0000-4000-8000-0000000000a1';
 select is((select count(*)::int from public.coach_plan_sessions where plan_id = 'c8000000-0000-4000-8000-0000000000a1'), 0,

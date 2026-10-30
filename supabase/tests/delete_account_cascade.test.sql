@@ -73,9 +73,9 @@ insert into public.coach_recommendations (user_id, plan_id, kind, payload, input
   ('d1000000-0000-4000-8000-000000000001', 'd1000000-0000-4000-8000-0000000000b1', 'plan', '{}', '{}'),
   ('d2000000-0000-4000-8000-000000000002', 'd2000000-0000-4000-8000-0000000000b2', 'plan', '{}', '{}');
 
-insert into public.coach_plan_sessions (plan_id, user_id, session_index, name, exercises) values
-  ('d1000000-0000-4000-8000-0000000000b1', 'd1000000-0000-4000-8000-000000000001', 1, 'Sesion', '[]'),
-  ('d2000000-0000-4000-8000-0000000000b2', 'd2000000-0000-4000-8000-000000000002', 1, 'Sesion', '[]');
+insert into public.coach_plan_sessions (plan_id, user_id, week, session_index, name, exercises) values
+  ('d1000000-0000-4000-8000-0000000000b1', 'd1000000-0000-4000-8000-000000000001', 1, 1, 'Sesion', '[]'),
+  ('d2000000-0000-4000-8000-0000000000b2', 'd2000000-0000-4000-8000-000000000002', 1, 1, 'Sesion', '[]');
 
 delete from auth.users where id = 'd1000000-0000-4000-8000-000000000001';
 
