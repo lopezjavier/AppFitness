@@ -76,7 +76,7 @@ Each checkpoint also has "leave the app and come back: the same tab, screen and 
 ### Phase 2: The coach's plan: function, nutrition, block, plan weeks (US-76, US-69, US-72, US-73, US-75)
 - [ ] 👤 Anthropic account, spending limit, `ANTHROPIC_API_KEY` secret
 - [ ] T-160: `coach` Edge Function, AI usage and the monthly budget — L
-- [ ] T-161: Plan nutrition and outcomes (backend) — L
+- [x] T-161: Plan nutrition and outcomes (backend) — L
 - [ ] T-162: Plan proposal screen, nutrition acceptance, target weight retired — L
 - [ ] T-163: Block creator (backend) — L
 - [ ] T-164: Block preview and "Guardar bloque" — L
