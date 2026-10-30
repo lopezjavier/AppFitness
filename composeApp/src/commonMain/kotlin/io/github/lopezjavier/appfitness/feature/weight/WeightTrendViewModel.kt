@@ -7,11 +7,12 @@ import io.github.lopezjavier.appfitness.domain.model.BodyCircumference
 import io.github.lopezjavier.appfitness.domain.model.BodyMeasurement
 import io.github.lopezjavier.appfitness.domain.model.BodyMetric
 import io.github.lopezjavier.appfitness.domain.model.GoalStrategy
+import io.github.lopezjavier.appfitness.domain.model.PlanOutcome
 import io.github.lopezjavier.appfitness.domain.port.Clock
 import io.github.lopezjavier.appfitness.domain.repository.BodyMeasurementRepository
 import io.github.lopezjavier.appfitness.domain.repository.CircumferenceRepository
+import io.github.lopezjavier.appfitness.domain.repository.CoachPlanRepository
 import io.github.lopezjavier.appfitness.domain.repository.NutritionGoalsRepository
-import io.github.lopezjavier.appfitness.domain.repository.ProfileRepository
 import io.github.lopezjavier.appfitness.domain.repository.WeightChartPreferences
 import io.github.lopezjavier.appfitness.domain.usecase.MetricDailyValues
 import io.github.lopezjavier.appfitness.domain.usecase.WeightChartRange
@@ -43,7 +44,7 @@ private sealed interface TrendLoad {
         val rows: List<BodyMeasurement>,
         /** Null when the circumference read failed: only the circumference metrics depend on it. */
         val circumferenceRows: List<BodyCircumference>?,
-        val targetKg: Double?,
+        val outcome: PlanOutcome?,
         val startKg: Double?,
         val strategy: GoalStrategy,
     ) : TrendLoad
@@ -53,9 +54,10 @@ private data class TrendSelection(val range: WeightChartRange, val metric: BodyM
 
 /**
  * The trend of the weight screen (US-27): loads once everything any range or metric needs (the measurements of the
- * widest range plus the MA7 lead-in, all circumferences, the target and the goal strategy, Maintenance when there is
- * no goals row or it cannot be read) and derives the trend of the selected range and metric from memory, so switching
- * tabs makes no call, shows no loading state and works offline. The selected point date is kept in [savedState] as an
+ * widest range plus the MA7 lead-in, all circumferences, the accepted plan's weight outcome and the goal strategy,
+ * Maintenance when there is no goals row or it cannot be read) and derives the trend of the selected range and
+ * metric from memory, so switching tabs makes no call, shows no loading state and works offline. The selected point
+ * date is kept in [savedState] as an
  * ISO string. The range and the metric live in [preferences]; selecting one saves it and updates the in-memory
  * selection at once. Refresh and Retry reload the data. The weekly rate and the target are always the weight's.
  */
@@ -65,7 +67,7 @@ class WeightTrendViewModel(
     private val measurements: BodyMeasurementRepository,
     private val circumferences: CircumferenceRepository,
     private val goals: NutritionGoalsRepository,
-    private val profile: ProfileRepository,
+    private val plans: CoachPlanRepository,
     private val preferences: WeightChartPreferences,
     private val weightTrend: WeightTrend,
     private val clock: Clock,
@@ -130,7 +132,8 @@ class WeightTrendViewModel(
                 window.endExclusive.atStartOfDayIn(timeZone),
             )
             val circumferenceRows = circumferences.getAll()
-            val targetDeferred = async { profile.getTargetWeight().getOrNull() }
+            // The dashed line is the accepted plan's weight outcome; no plan or a failed read means no line.
+            val targetDeferred = async { plans.acceptedPlan().getOrNull()?.weightOutcome }
             val startDeferred = async { measurements.getOnboardingWeight().getOrNull()?.weightKg }
             val strategy = goals.getOwn().getOrNull()?.strategy ?: GoalStrategy.Maintenance
             val target = targetDeferred.await()
@@ -177,7 +180,8 @@ class WeightTrendViewModel(
                     weeklyRate = weight.rate,
                     trend = shown,
                     selectedPoint = shown.points.firstOrNull { it.date == selected },
-                    targetKg = load.targetKg.takeIf { metric == BodyMetric.Weight },
+                    targetKg = load.outcome?.targetValue.takeIf { metric == BodyMetric.Weight },
+                    planOutcome = load.outcome,
                     startKg = load.startKg.takeIf { metric == BodyMetric.Weight },
                 )
             }

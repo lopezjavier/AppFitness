@@ -36,6 +36,7 @@ import io.github.lopezjavier.appfitness.feature.routines.RoutinesViewModel
 import io.github.lopezjavier.appfitness.feature.templates.SaveTemplateViewModel
 import io.github.lopezjavier.appfitness.feature.templates.TemplateDetailsViewModel
 import io.github.lopezjavier.appfitness.feature.trainer.CoachUsageViewModel
+import io.github.lopezjavier.appfitness.feature.trainer.PlanProposalViewModel
 import io.github.lopezjavier.appfitness.feature.trainer.TrainerViewModel
 import io.github.lopezjavier.appfitness.feature.weight.CircumferencesViewModel
 import io.github.lopezjavier.appfitness.feature.weight.GoalViewModel
@@ -149,7 +150,7 @@ val uiModule =
                 measurements = get(),
                 circumferences = get(),
                 goals = get(),
-                profile = get(),
+                plans = get(),
                 preferences = get(),
                 weightTrend = get(),
                 clock = get(),
@@ -163,10 +164,8 @@ val uiModule =
                 goals = get(),
                 circumferences = get(),
                 bmi = get(),
-                targetDistance = get(),
                 interpret = get(),
                 waistHipRatio = get(),
-                validate = get(),
                 connectivity = get(),
                 savedState = get(),
             )
@@ -410,7 +409,10 @@ val uiModule =
         viewModel { ActivityViewModel(get(), get(), TimeZone.currentSystemDefault(), get(), get()) }
         viewModelOf(::MuscleVolumeViewModel)
         viewModel { CoachUsageViewModel(repository = get(), clock = get(), pingRepository = get(), devOptions = get()) }
-        viewModel { TrainerViewModel(repository = get(), clock = get(), savedState = get(), goals = get()) }
+        viewModel {
+            TrainerViewModel(repository = get(), clock = get(), savedState = get(), goals = get(), plans = get())
+        }
+        viewModel { PlanProposalViewModel(plans = get(), coach = get(), clock = get(), savedState = get()) }
         viewModel {
             TrainingStatsViewModel(
                 stats = get(),

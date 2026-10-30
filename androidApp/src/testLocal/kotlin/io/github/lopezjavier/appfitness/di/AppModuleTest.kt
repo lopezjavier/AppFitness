@@ -25,6 +25,7 @@ import io.github.lopezjavier.appfitness.domain.repository.AuthRepository
 import io.github.lopezjavier.appfitness.domain.repository.BodyMeasurementRepository
 import io.github.lopezjavier.appfitness.domain.repository.CircumferenceRepository
 import io.github.lopezjavier.appfitness.domain.repository.CoachPingRepository
+import io.github.lopezjavier.appfitness.domain.repository.CoachPlanRepository
 import io.github.lopezjavier.appfitness.domain.repository.CoachRepository
 import io.github.lopezjavier.appfitness.domain.repository.CoachUsageRepository
 import io.github.lopezjavier.appfitness.domain.repository.DiscomfortRepository
@@ -74,7 +75,6 @@ import io.github.lopezjavier.appfitness.domain.usecase.SearchExercises
 import io.github.lopezjavier.appfitness.domain.usecase.SignInWithGoogle
 import io.github.lopezjavier.appfitness.domain.usecase.SyncHealthData
 import io.github.lopezjavier.appfitness.domain.usecase.SyncHealthMeasurements
-import io.github.lopezjavier.appfitness.domain.usecase.TargetDistance
 import io.github.lopezjavier.appfitness.domain.usecase.ValidateBodyMeasurement
 import io.github.lopezjavier.appfitness.domain.usecase.ValidateCircumference
 import io.github.lopezjavier.appfitness.domain.usecase.ValidateMealSlots
@@ -202,6 +202,7 @@ class AppModuleTest {
                 CoachRepository::class,
                 CoachUsageRepository::class,
                 CoachPingRepository::class,
+                CoachPlanRepository::class,
                 DevOptions::class,
                 ExerciseLibrary::class,
                 LoadExerciseCatalog::class,
@@ -234,7 +235,6 @@ class AppModuleTest {
                 ValidateCircumference::class,
                 WaistHipRatio::class,
                 Bmi::class,
-                TargetDistance::class,
                 InterpretMetric::class,
                 WeightChartPreferences::class,
                 WatchSeedStore::class,

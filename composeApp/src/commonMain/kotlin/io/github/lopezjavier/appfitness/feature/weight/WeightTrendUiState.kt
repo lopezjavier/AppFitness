@@ -1,6 +1,7 @@
 package io.github.lopezjavier.appfitness.feature.weight
 
 import io.github.lopezjavier.appfitness.domain.model.BodyMetric
+import io.github.lopezjavier.appfitness.domain.model.PlanOutcome
 import io.github.lopezjavier.appfitness.domain.usecase.TrendData
 import io.github.lopezjavier.appfitness.domain.usecase.TrendPoint
 import io.github.lopezjavier.appfitness.domain.usecase.WeeklyRate
@@ -29,6 +30,8 @@ sealed interface WeightTrendUiState {
         val selectedPoint: TrendPoint?,
         val targetKg: Double? = null,
         val startKg: Double? = null,
+        /** The accepted plan's weight outcome for the "Objetivo del plan" card; null without a plan (any metric). */
+        val planOutcome: PlanOutcome? = null,
     ) : WeightTrendUiState {
         /**
          * Whether the chart is drawn instead of the "not enough data" hint. Weight needs an MA7 somewhere; the other

@@ -26,12 +26,6 @@ interface ProfileRepository {
     /** Saves the display name only (onboarding, when Google gave none). The name is trimmed by the caller. */
     suspend fun updateDisplayName(name: String): Result<Unit>
 
-    /** The weight goal in kg, or null when none is set. */
-    suspend fun getTargetWeight(): Result<Double?>
-
-    /** Sets the weight goal (20-400 kg) or clears it with null. */
-    suspend fun setTargetWeight(kg: Double?): Result<Unit>
-
     /** The weekly check-in day, ISO weekday 1 (Monday) to 7 (Sunday); 7 by default. */
     suspend fun getCheckInWeekday(): Result<Int>
 

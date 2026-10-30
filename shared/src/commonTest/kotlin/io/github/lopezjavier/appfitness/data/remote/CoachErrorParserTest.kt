@@ -35,6 +35,13 @@ class CoachErrorParserTest {
     fun timeout() = assertEquals(CoachFailure.Timeout, CoachErrorParser.parse(error("coach_timeout")))
 
     @Test
+    fun planCodes_areMapped() {
+        assertEquals(CoachFailure.Invalid, CoachErrorParser.parse(error("coach_invalid_output")))
+        assertEquals(CoachFailure.Missing, CoachErrorParser.parse(error("coach_missing_data")))
+        assertEquals(CoachFailure.Infeasible, CoachErrorParser.parse(error("coach_plan_infeasible")))
+    }
+
+    @Test
     fun sseErrorEventData_isParsedToo() =
         assertEquals(CoachFailure.Timeout, CoachErrorParser.parse("{\"code\":\"coach_timeout\"}"))
 

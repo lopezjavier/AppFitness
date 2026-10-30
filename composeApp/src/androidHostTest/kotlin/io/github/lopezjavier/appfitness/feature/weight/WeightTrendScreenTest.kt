@@ -30,13 +30,11 @@ import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.SavedStateHandle
 import io.github.lopezjavier.appfitness.app.FakeNutritionGoalsRepository
-import io.github.lopezjavier.appfitness.app.FakeProfileRepository
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
 import io.github.lopezjavier.appfitness.domain.model.BodyMeasurement
 import io.github.lopezjavier.appfitness.domain.model.BodyMetric
 import io.github.lopezjavier.appfitness.domain.model.DayMeasurements
 import io.github.lopezjavier.appfitness.domain.model.MeasurementSource
-import io.github.lopezjavier.appfitness.domain.model.ProfileSummary
 import io.github.lopezjavier.appfitness.domain.port.Clock
 import io.github.lopezjavier.appfitness.domain.repository.WeightChartPreferences
 import io.github.lopezjavier.appfitness.domain.usecase.RateTone
@@ -45,6 +43,7 @@ import io.github.lopezjavier.appfitness.domain.usecase.TrendPoint
 import io.github.lopezjavier.appfitness.domain.usecase.WeeklyRate
 import io.github.lopezjavier.appfitness.domain.usecase.WeightChartRange
 import io.github.lopezjavier.appfitness.domain.usecase.WeightTrend
+import io.github.lopezjavier.appfitness.feature.trainer.FakeCoachPlanRepository
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.datetime.LocalDate
@@ -601,7 +600,7 @@ class WeightTrendScreenTest {
             measurements = FakeWeightRepository().apply { this.rows += rows },
             circumferences = FakeCircumferenceRepository(),
             goals = FakeNutritionGoalsRepository(),
-            profile = FakeProfileRepository(Result.success(ProfileSummary("Ana", null, true))),
+            plans = FakeCoachPlanRepository(),
             preferences = preferences,
             weightTrend = WeightTrend(),
             clock = TrendClock,

@@ -68,8 +68,11 @@ class GlossaryStringsTest {
         val forbidden =
             listOf("Aceptar", "Cerrar sin guardar", "Archivar", "Crear ejercicio", "Último mes")
         forbidden.forEach { word ->
-            assertTrue(valuesWith { it == word }.isEmpty(), "\"$word\" must not be a value")
+            // "Aceptar" is the coach-proposal decision (T-162 glossary row); only under its key.
+            val stray = strings.filter { (key, text) -> text == word && key != "action_accept" }
+            assertTrue(stray.isEmpty(), "\"$word\" must not be a value: $stray")
         }
+        assertEquals("Aceptar", value("action_accept"))
         assertTrue(valuesWith { it.contains("Deshacer") }.isEmpty(), "No Deshacer")
         assertTrue(valuesWith { it.contains("Tasa metabólica") }.isEmpty(), "Use Metabolismo basal")
     }

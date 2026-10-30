@@ -24,7 +24,9 @@ internal fun coachFailureMessage(failure: CoachFailure): StringResource = when (
 
     CoachFailure.Timeout -> Res.string.coach_timeout
 
-    CoachFailure.Other -> Res.string.coach_error
+    CoachFailure.Invalid, CoachFailure.Missing, CoachFailure.Infeasible, CoachFailure.NeedsConfirmation,
+    CoachFailure.Conflict, CoachFailure.Other,
+    -> Res.string.coach_error
 }
 
 /** A message (not a dialog, R-08) for a failed AI call, shown where the action failed (R-31). */

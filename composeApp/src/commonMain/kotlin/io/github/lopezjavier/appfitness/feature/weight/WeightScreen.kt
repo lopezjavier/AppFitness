@@ -61,8 +61,9 @@ private val SkeletonPanelHeight = Spacing.xl * 5
 
 /**
  * Stateless weight screen (US-25) on an `AppScreen`: "Peso actual" (opens the composition; the pencil edits today),
- * "Objetivo", the BMI and body-fat cards, the trend chart and the circumferences. The calendar action of the top bar
- * opens the measurement history ([onOpenHistory]). The day sheet, target sheet and metric detail open over it.
+ * "Objetivo del plan" (only with an accepted plan), the BMI and body-fat cards, the trend chart and the
+ * circumferences. The calendar action of the top bar opens the measurement history ([onOpenHistory]). The day
+ * sheet and metric detail open over it.
  */
 @Composable
 @Suppress("LongMethod") // One screen: state switch, sheets and the wide/narrow choice.
@@ -173,8 +174,8 @@ private fun WeightContentView(
     val summary: @Composable () -> Unit = {
         Column(verticalArrangement = Arrangement.spacedBy(Spacing.cardGap)) {
             CurrentWeightCard(content, onEvent, timeZone, trend, healthSync, onHealthEvent)
+            (trend as? WeightTrendUiState.Content)?.planOutcome?.let { PlanOutcomeCard(it) }
             goal?.let {
-                GoalCardSection(it, onGoalEvent)
                 MetricCardsSection(it, onGoalEvent)
             }
             trend?.let { WeightChart(it, onTrendEvent) }
@@ -212,7 +213,7 @@ private fun WeightContentView(
     }
 }
 
-/** The day sheet, the composition, the target sheet and the metric detail over the screen. */
+/** The day sheet, the composition and the metric detail over the screen. */
 @Composable
 private fun WeightSheets(
     content: WeightContent,
@@ -227,7 +228,6 @@ private fun WeightSheets(
     if (content.compositionOpen) {
         CompositionSheet(content.composition, timeZone, { onEvent(WeightEvent.CloseComposition) })
     }
-    goal?.targetSheet?.let { TargetWeightSheet(it, content.isOnline, onGoalEvent) }
     val metric = goal?.openMetric?.let { kind ->
         when (kind) {
             MetricKind.Bmi -> goal.bmi

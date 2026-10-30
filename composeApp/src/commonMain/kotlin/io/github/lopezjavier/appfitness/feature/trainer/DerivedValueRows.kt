@@ -43,8 +43,9 @@ import io.github.lopezjavier.appfitness.feature.biometrics.activityTitle
 import io.github.lopezjavier.appfitness.feature.weight.rateText
 import org.jetbrains.compose.resources.stringResource
 
+/** [onEdit] null hides the pencil: the plan screen shows the values it was built from, read-only. */
 @Composable
-internal fun ActivityLevelRow(values: CoachDerivedValues, onEdit: () -> Unit) {
+internal fun ActivityLevelRow(values: CoachDerivedValues, onEdit: (() -> Unit)?) {
     val level = values.activityLevel
     val sourceText = when (level.state) {
         ValueState.Reask -> stringResource(Res.string.trainer_reask)
@@ -67,13 +68,15 @@ internal fun ActivityLevelRow(values: CoachDerivedValues, onEdit: () -> Unit) {
         supportingText = sourceText,
         provisional = level.provisional,
         missing = level.missing,
-        trailing = {
-            AppIconButton(
-                contentDescription = stringResource(Res.string.trainer_edit_activity_cd),
-                icon = Res.drawable.ic_edit,
-                testTag = "trainer_edit_activity_button",
-                onClick = onEdit,
-            )
+        trailing = onEdit?.let { edit ->
+            {
+                AppIconButton(
+                    contentDescription = stringResource(Res.string.trainer_edit_activity_cd),
+                    icon = Res.drawable.ic_edit,
+                    testTag = "trainer_edit_activity_button",
+                    onClick = edit,
+                )
+            }
         },
     )
 }

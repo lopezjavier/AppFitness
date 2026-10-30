@@ -14,6 +14,7 @@ import io.github.lopezjavier.appfitness.app.FakeConnectivityObserver
 import io.github.lopezjavier.appfitness.app.RootRoute
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
 import io.github.lopezjavier.appfitness.domain.model.CoachUsage
+import io.github.lopezjavier.appfitness.domain.model.PlanStatus
 import io.github.lopezjavier.appfitness.feature.workout.MutableClock
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.datetime.LocalDate
@@ -91,7 +92,7 @@ class TrainerRestorationTest {
         setContent {
             App(
                 rootRoute = RootRoute.Main,
-                trainer = { modifier, open ->
+                trainer = { modifier, open, _ ->
                     TrainerRoute(
                         modifier,
                         open,
@@ -134,5 +135,26 @@ class TrainerRestorationTest {
         rule.waitForIdle()
 
         rule.onNodeWithTag("coach_usage_figure").assertExists()
+    }
+
+    @Test
+    fun recreatedViewModel_keepsThePlanSectionAndTheCalorieCard() {
+        val plans = FakeCoachPlanRepository()
+        plans.current = Result.success(coachPlan(status = PlanStatus.Accepted))
+        plans.pending = Result.success(calorieChange())
+        val saved = SavedStateHandle()
+        val repository = FakeCoachRepository()
+        var current by mutableStateOf(TrainerViewModel(repository, MutableClock(), saved, plans = plans))
+        val connectivity = FakeConnectivityObserver()
+        rule.setContent { AppTheme { TrainerRoute(viewModel = current, connectivity = connectivity) } }
+        rule.waitForIdle()
+        rule.onNodeWithTag("trainer_calorie_card").assertExists()
+
+        // A new view model over the same saved state, as after process death: the plan is read again.
+        current = TrainerViewModel(repository, MutableClock(), saved, plans = plans)
+        rule.waitForIdle()
+
+        rule.onNodeWithTag("trainer_plan_card").assertExists()
+        rule.onNodeWithTag("trainer_calorie_card").assertExists()
     }
 }
