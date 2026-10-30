@@ -202,7 +202,7 @@ Journey: open the new Trainer tab, check what the coach estimated about you and 
 - [x] **The app must say why:** map the failure to a specific `CoachFailure` and Spanish message where the user can act on it, instead of the generic one (ux-reviewer writes the copy); a rejected model output stays a clean "Inténtalo de nuevo" with a non-sensitive reason logged.
 - [x] **Remove the dev-only "Probar coach (ping)" button** (T-160 decision: not part of the user-facing UI); keep the `ping` kind in the function only if tests or the evaluation need it.
 - [x] Test with the real request shape (deno test for the handler, host test for the mapping); the user approves the one paid retry of "Crear plan".
-- [x] After the merge and `deploy-supabase` green, Checkpoint E13-B is re-presented (items 1-9 to re-test).
+- [ ] After the merge and `deploy-supabase` green, Checkpoint E13-B is re-presented (items 1-9 to re-test).
 
 **Flow:** backend + core + UI as the cause requires · **Dependencies:** T-165 merged.
 
