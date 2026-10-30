@@ -24,6 +24,7 @@ import io.github.lopezjavier.appfitness.domain.port.WatchSeedStore
 import io.github.lopezjavier.appfitness.domain.repository.AuthRepository
 import io.github.lopezjavier.appfitness.domain.repository.BodyMeasurementRepository
 import io.github.lopezjavier.appfitness.domain.repository.CircumferenceRepository
+import io.github.lopezjavier.appfitness.domain.repository.CoachBlockRepository
 import io.github.lopezjavier.appfitness.domain.repository.CoachPingRepository
 import io.github.lopezjavier.appfitness.domain.repository.CoachPlanRepository
 import io.github.lopezjavier.appfitness.domain.repository.CoachRepository
@@ -203,6 +204,7 @@ class AppModuleTest {
                 CoachUsageRepository::class,
                 CoachPingRepository::class,
                 CoachPlanRepository::class,
+                CoachBlockRepository::class,
                 DevOptions::class,
                 ExerciseLibrary::class,
                 LoadExerciseCatalog::class,

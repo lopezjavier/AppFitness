@@ -39,7 +39,12 @@ import kotlinx.datetime.LocalDate
 
 /** Content of the Trainer root: its modifier (tab insets). */
 internal typealias TrainerSlot =
-    @Composable (modifier: Modifier, onOpenCoachUsage: () -> Unit, onOpenPlan: () -> Unit) -> Unit
+    @Composable (
+        modifier: Modifier,
+        onOpenCoachUsage: () -> Unit,
+        onOpenPlan: () -> Unit,
+        onOpenBlock: (String) -> Unit,
+    ) -> Unit
 
 /**
  * Content of the Perfil root: its modifier (tab insets) and the openers of its destinations ([ProfileRootActions];
@@ -55,6 +60,11 @@ internal typealias CoachUsageSlot = @Composable (modifier: Modifier, onBack: () 
 
 /** Content of the plan proposal: its modifier (full-screen insets) and how to leave. */
 internal typealias PlanProposalSlot = @Composable (modifier: Modifier, onBack: () -> Unit) -> Unit
+
+/** Content of the block preview: modifier (full-screen insets), plan id, exercise opener and how to leave. */
+internal typealias BlockPreviewSlot =
+    @Composable (modifier: Modifier, planId: String, onOpenExercise: (String) -> Unit, onBack: () -> Unit) -> Unit
+
 internal typealias AboutSlot = @Composable (modifier: Modifier, onBack: () -> Unit) -> Unit
 
 /**
@@ -394,7 +404,7 @@ internal val DefaultProfileSlot: ProfileSlot = { modifier, actions ->
 }
 
 /** Empty Trainer root for previews and shell tests; the real one is wired by `AppRoot`. */
-internal val DefaultTrainerSlot: TrainerSlot = { modifier, _, _ ->
+internal val DefaultTrainerSlot: TrainerSlot = { modifier, _, _, _ ->
     Box(modifier.fillMaxSize().testTag("trainer_screen"))
 }
 
@@ -564,6 +574,11 @@ internal val DefaultPlanProposalSlot: PlanProposalSlot = { modifier, _ ->
     Box(modifier.fillMaxSize().testTag("plan_proposal_screen"))
 }
 
+/** Empty block preview for previews and shell tests; the real one is wired by `AppRoot`. */
+internal val DefaultBlockPreviewSlot: BlockPreviewSlot = { modifier, _, _, _ ->
+    Box(modifier.fillMaxSize().testTag("block_preview_screen"))
+}
+
 /** Empty "Acerca de" for previews and shell tests; the real one is wired by `AppRoot`. */
 internal val DefaultAboutSlot: AboutSlot = { modifier, _ ->
     Box(modifier.fillMaxSize().testTag("about_screen"))
@@ -590,6 +605,7 @@ internal fun AppNavHost(
     about: AboutSlot = DefaultAboutSlot,
     coachUsage: CoachUsageSlot = DefaultCoachUsageSlot,
     planProposal: PlanProposalSlot = DefaultPlanProposalSlot,
+    blockPreview: BlockPreviewSlot = DefaultBlockPreviewSlot,
     activity: ActivitySlot = DefaultActivitySlot,
     exercisePicker: ExercisePickerSlot = DefaultExercisePickerSlot,
     exerciseDetail: ExerciseDetailSlot = DefaultExerciseDetailSlot,
@@ -644,6 +660,8 @@ internal fun AppNavHost(
     val openAbout = remember(navController) { { navController.navigateToFullScreen(AboutRoute) } }
     val openCoachUsage = remember(navController) { { navController.navigateToFullScreen(CoachUsageRoute) } }
     val openPlan = remember(navController) { { navController.navigateToFullScreen(PlanProposalRoute) } }
+    val openBlock =
+        remember(navController) { { planId: String -> navController.navigateToFullScreen(BlockPreviewRoute(planId)) } }
     val openMyTraining = remember(navController) {
         { navController.navigateToFullScreen(PreferencesSectionRoute(PreferencesSection.MyTraining.key)) }
     }
@@ -713,7 +731,7 @@ internal fun AppNavHost(
             }
         }
         navigation<TrainerGraph>(startDestination = TopLevelTab.Trainer.startRoute) {
-            composable<TrainerHome> { trainer(Modifier.padding(tabPadding), openCoachUsage, openPlan) }
+            composable<TrainerHome> { trainer(Modifier.padding(tabPadding), openCoachUsage, openPlan, openBlock) }
         }
         navigation<ProfileGraph>(startDestination = TopLevelTab.Profile.startRoute) {
             composable<ProfileHome> {
@@ -741,6 +759,14 @@ internal fun AppNavHost(
         }
         composable<PlanProposalRoute> { entry ->
             planProposal(Modifier.padding(fullScreenPadding)) { navController.popFullScreen(entry) }
+        }
+        composable<BlockPreviewRoute> { entry ->
+            blockPreview(
+                Modifier.padding(fullScreenPadding),
+                entry.toRoute<BlockPreviewRoute>().planId,
+                { navController.navigateToFullScreen(ExerciseDetailRoute(it, selectMode = false)) },
+                { navController.popFullScreen(entry) },
+            )
         }
         composable<AboutRoute> { entry ->
             about(Modifier.padding(fullScreenPadding)) { navController.popFullScreen(entry) }

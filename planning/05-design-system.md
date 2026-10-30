@@ -144,6 +144,9 @@ Uses `SwipeToDeleteRow` only (guard G7) · right-to-left, "Eliminar"/"Quitar" ·
 | A nutrition plan (T-162) | "Plan" ("Crear plan", "Plan pendiente", "Plan activo") | "Programa", "Dieta" | The screen title "Plan nutricional" says what is decided; the buttons stay "Aceptar"/"Descartar" |
 | A target the plan sets (T-162) | "Objetivo del plan" (read-only, with the reason behind `?`) | "Meta", "Peso objetivo" | The user never enters target numbers (ADR-78) |
 | Waiting for the AI to answer (T-162) | "Preparando tu plan…" (`StreamProgressState`) | "Cargando…", a skeleton | A skeleton is only for stored data (R-31) |
+| A training block the coach proposes (T-164) | "Bloque propuesto" (Trainer card, screen title "Bloque de entrenamiento"; entry "Crear bloque") | "Programa", "Rutina semanal" | Weeks are "Semana N" tabs; the workouts inside are "entrenos" ("X min por entreno"), never "sesión" |
+| Commit the coach's block to Entreno (T-164) | "Guardar bloque" (footer; "Bloque guardado" once done) | "Aceptar", "Descartar" | It creates routines, not a plan decision; leaving the preview asks nothing and the proposal stays stored |
+| Weekly work per muscle group (T-164) | "Series por grupo muscular" ("10 series · 2 días/semana") | "Volumen", "Sets" | Shown once above the week tabs: it does not change by week |
 | Decide on a coach proposal | "Aceptar" / "Descartar" | "Guardar", "Cancelar" | Distinct from the edit pair "Guardar"/"Cancelar"; used by the plan tasks of E13 |
 | A coach value not yet confirmed | "Provisional" (`StatusChip` Caution, announced "Valor provisional") | "Pendiente", "Sin confirmar" | A re-asked value shows the same chip with the line "Tus datos han cambiado: vuelve a confirmar." |
 | Apply to the screen underneath | "Listo" | "Guardar" | Only when that screen has its own "Guardar" |

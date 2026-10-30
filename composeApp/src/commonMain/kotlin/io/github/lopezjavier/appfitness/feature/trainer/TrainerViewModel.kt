@@ -9,6 +9,7 @@ import io.github.lopezjavier.appfitness.domain.model.ActivityLevel
 import io.github.lopezjavier.appfitness.domain.model.CoachDerivedValues
 import io.github.lopezjavier.appfitness.domain.model.PlanStatus
 import io.github.lopezjavier.appfitness.domain.port.Clock
+import io.github.lopezjavier.appfitness.domain.repository.CoachBlockRepository
 import io.github.lopezjavier.appfitness.domain.repository.CoachPlanRepository
 import io.github.lopezjavier.appfitness.domain.repository.CoachRepository
 import io.github.lopezjavier.appfitness.domain.repository.NutritionGoalsRepository
@@ -23,6 +24,21 @@ import kotlinx.datetime.LocalDate
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
 
+/** The stored block of an open plan; a failed read means none, like the plan entry itself. */
+private suspend fun CoachBlockRepository?.summaryFor(plan: PlanSummary): BlockSummary {
+    val planId = when (plan) {
+        is PlanSummary.Proposed -> plan.plan.id
+        is PlanSummary.Accepted -> plan.plan.id
+        PlanSummary.None -> null
+    }
+    val block = planId?.let { this?.currentBlock(it)?.getOrNull() }
+    return when {
+        block == null -> BlockSummary.None
+        block.saved -> BlockSummary.Saved(block)
+        else -> BlockSummary.Proposed(block)
+    }
+}
+
 /**
  * Trainer tab root (US-68): the derived values with their confirmation state. The open edit sheet and its picked
  * level survive recreation through [savedState]; the loaded values are always re-fetched, never persisted.
@@ -33,6 +49,7 @@ class TrainerViewModel(
     private val savedState: SavedStateHandle = SavedStateHandle(),
     private val goals: NutritionGoalsRepository? = null,
     private val plans: CoachPlanRepository? = null,
+    private val blocks: CoachBlockRepository? = null,
 ) : ViewModel() {
     private val _uiState = MutableStateFlow<TrainerUiState>(TrainerUiState.Loading)
     val uiState: StateFlow<TrainerUiState> = _uiState.asStateFlow()
@@ -67,6 +84,7 @@ class TrainerViewModel(
             // The plan entry and the calorie card never block the derived values: a failed read means none.
             val plan = if (result.isSuccess) readPlan() else PlanSummary.None
             val change = if (plan is PlanSummary.Accepted) plans?.pendingCalorieChange(today())?.getOrNull() else null
+            val block = blocks.summaryFor(plan)
             _uiState.value = result.fold(
                 onSuccess = {
                     TrainerUiState.Content(
@@ -75,6 +93,7 @@ class TrainerViewModel(
                         strategy = strategy,
                         plan = plan,
                         calorieChange = change,
+                        block = block,
                     )
                 },
                 onFailure = {

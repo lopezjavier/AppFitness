@@ -1836,4 +1836,44 @@
     <string name="plan_proposal_discard_offline">descartar el plan</string>
     <string name="weight_plan_outcome_title">Objetivo del plan</string>
     <string name="weight_plan_outcome_value">%1$s kg</string>
+
+    <!-- T-164: training block preview (US-72) and its Trainer entry. -->
+    <string name="trainer_block_create">Crear bloque</string>
+    <string name="trainer_block_create_action">crear el bloque</string>
+    <string name="trainer_block_proposed_title">Bloque propuesto</string>
+    <string name="trainer_block_proposed_supporting">Revísalo y guárdalo en Entreno.</string>
+    <string name="trainer_block_saved_title">Bloque guardado</string>
+    <string name="block_preview_title">Bloque de entrenamiento</string>
+    <string name="block_preview_progress">Preparando tu bloque…</string>
+    <string name="block_preview_progress_cd">Preparando tu bloque</string>
+    <string name="block_preview_error">No se pudo crear el bloque. Inténtalo de nuevo.</string>
+    <string name="block_preview_interrupted">No se recibió el bloque. Inténtalo de nuevo.</string>
+    <plurals name="block_frequency">
+        <item quantity="one">%1$d día por semana</item>
+        <item quantity="other">%1$d días por semana</item>
+    </plurals>
+    <plurals name="block_frequency_chosen">
+        <item quantity="one">El coach ha elegido %1$d día por semana (%2$d min por entreno).</item>
+        <item quantity="other">El coach ha elegido %1$d días por semana (%2$d min por entreno).</item>
+    </plurals>
+    <string name="block_sets_header">Series por grupo muscular</string>
+    <plurals name="block_sets_count">
+        <item quantity="one">%1$d serie</item>
+        <item quantity="other">%1$d series</item>
+    </plurals>
+    <plurals name="block_days_week">
+        <item quantity="one">%1$d día/semana</item>
+        <item quantity="other">%1$d días/semana</item>
+    </plurals>
+    <string name="block_sets_row">%1$s · %2$s</string>
+    <string name="block_week_tab">Semana %1$d</string>
+    <string name="block_reps_range">%1$d×%2$d-%3$d reps</string>
+    <string name="block_reps_single">%1$d×%2$d reps</string>
+    <string name="block_exercise_detail">%1$s · %2$s</string>
+    <string name="block_exercise_fallback">Ejercicio</string>
+    <string name="block_reason_cd">Por qué este ejercicio</string>
+    <string name="block_save">Guardar bloque</string>
+    <string name="block_save_action">guardar el bloque</string>
+    <string name="block_saved">Bloque guardado en Entreno.</string>
+    <string name="block_save_error">No se pudo guardar el bloque. Inténtalo de nuevo.</string>
 </resources>

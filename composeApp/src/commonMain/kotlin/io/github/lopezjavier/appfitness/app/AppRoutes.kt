@@ -74,6 +74,10 @@ data object CoachUsageRoute : AppRoute
 @Serializable
 data object PlanProposalRoute : AppRoute
 
+/** The four-week training block of the plan [planId] (US-72): request, review and save, opened from the Trainer tab. */
+@Serializable
+data class BlockPreviewRoute(val planId: String) : AppRoute
+
 /** "Acerca de": app name, version, credits and open-source licences, opened from the Perfil root (US-45). */
 @Serializable
 data object AboutRoute : AppRoute
@@ -375,6 +379,7 @@ object AppDestinations {
             AboutRoute,
             CoachUsageRoute,
             PlanProposalRoute,
+            BlockPreviewRoute(""),
             NotificationCenterRoute,
             CheckInRoute,
         )

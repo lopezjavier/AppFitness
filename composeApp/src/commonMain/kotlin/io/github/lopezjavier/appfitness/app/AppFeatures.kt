@@ -23,6 +23,7 @@ fun AppFeatures.isAvailable(route: AppRoute): Boolean = when (route) {
     is TabRoute -> true
     CatalogRoute -> componentCatalog
     PreferencesRoute, is PreferencesSectionRoute, AccountRoute, AboutRoute, CoachUsageRoute, PlanProposalRoute -> true
+    is BlockPreviewRoute -> true
     is ExercisePickerRoute, is ExerciseDetailRoute, is RoutineBuilderRoute, LiveSessionRoute -> true
     is RoutineDetailsRoute -> true
     HistoryRoute, is SessionDetailRoute -> true

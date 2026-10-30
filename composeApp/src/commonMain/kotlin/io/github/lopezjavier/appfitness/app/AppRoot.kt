@@ -34,6 +34,7 @@ import io.github.lopezjavier.appfitness.feature.routines.RoutineBuilderRoot
 import io.github.lopezjavier.appfitness.feature.routines.RoutineDetailsRoot
 import io.github.lopezjavier.appfitness.feature.templates.SaveTemplateRoot
 import io.github.lopezjavier.appfitness.feature.templates.TemplateDetailsRoot
+import io.github.lopezjavier.appfitness.feature.trainer.BlockPreviewRoot
 import io.github.lopezjavier.appfitness.feature.trainer.CoachUsageRoot
 import io.github.lopezjavier.appfitness.feature.trainer.PlanProposalRoot
 import io.github.lopezjavier.appfitness.feature.trainer.TrainerRoute
@@ -68,8 +69,8 @@ fun AppRoot(
         rootRoute = state.rootRoute,
         onRetryProfile = { viewModel.onEvent(AppEvent.RetryProfile) },
         profile = { profileModifier, actions -> ProfileRootRoute(profileModifier, actions) },
-        trainer = { trainerModifier, onOpenCoachUsage, onOpenPlan ->
-            TrainerRoute(trainerModifier, onOpenCoachUsage, onOpenPlan)
+        trainer = { trainerModifier, onOpenCoachUsage, onOpenPlan, onOpenBlock ->
+            TrainerRoute(trainerModifier, onOpenCoachUsage, onOpenPlan, onOpenBlock)
         },
         strength = { strengthModifier, onOpenExercise, onOpenMuscleVolume, onStartWorkout, onBack ->
             StrengthRoot(onOpenExercise, onOpenMuscleVolume, onStartWorkout, onBack, strengthModifier)
@@ -94,6 +95,9 @@ fun AppRoot(
         account = { accountModifier, onBack -> AccountRoot(onBack, accountModifier) },
         coachUsage = { usageModifier, onBack -> CoachUsageRoot(onBack, usageModifier) },
         planProposal = { planModifier, onBack -> PlanProposalRoot(onBack, planModifier) },
+        blockPreview = { blockModifier, planId, onOpenExercise, onBack ->
+            BlockPreviewRoot(planId, onBack, onOpenExercise, blockModifier)
+        },
         about = { aboutModifier, onBack -> AboutRoot(onBack, aboutModifier) },
         activity = { activityModifier, onBack -> ActivityRoot(onBack, activityModifier) },
         exercisePicker = { pickerModifier, selectMode, onOpenDetail, onSelected, onBack ->

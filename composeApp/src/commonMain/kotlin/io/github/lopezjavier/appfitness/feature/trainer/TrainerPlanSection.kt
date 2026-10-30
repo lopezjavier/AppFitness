@@ -19,6 +19,11 @@ import io.github.lopezjavier.appfitness.composeapp.resources.calorie_change_payl
 import io.github.lopezjavier.appfitness.composeapp.resources.calorie_change_reason_faster
 import io.github.lopezjavier.appfitness.composeapp.resources.calorie_change_reason_slower
 import io.github.lopezjavier.appfitness.composeapp.resources.calorie_change_title
+import io.github.lopezjavier.appfitness.composeapp.resources.trainer_block_create
+import io.github.lopezjavier.appfitness.composeapp.resources.trainer_block_create_action
+import io.github.lopezjavier.appfitness.composeapp.resources.trainer_block_proposed_supporting
+import io.github.lopezjavier.appfitness.composeapp.resources.trainer_block_proposed_title
+import io.github.lopezjavier.appfitness.composeapp.resources.trainer_block_saved_title
 import io.github.lopezjavier.appfitness.composeapp.resources.trainer_plan_active_line
 import io.github.lopezjavier.appfitness.composeapp.resources.trainer_plan_active_title
 import io.github.lopezjavier.appfitness.composeapp.resources.trainer_plan_create
@@ -46,6 +51,52 @@ import org.jetbrains.compose.resources.stringResource
 import kotlin.math.abs
 
 private const val HALF = 2
+
+/** The block entry under an open plan: "Crear bloque", the proposed block to review, or the saved one. */
+@Composable
+internal fun BlockSection(plan: PlanSummary, block: BlockSummary, online: Boolean, onOpenBlock: (String) -> Unit) {
+    val planId = when (plan) {
+        is PlanSummary.Proposed -> plan.plan.id
+        is PlanSummary.Accepted -> plan.plan.id
+        PlanSummary.None -> return
+    }
+    when (block) {
+        BlockSummary.None -> {
+            PrimaryButton(
+                text = stringResource(Res.string.trainer_block_create),
+                onClick = { onOpenBlock(planId) },
+                modifier = Modifier.fillMaxWidth().testTag("trainer_create_block"),
+                enabled = online,
+            )
+            if (!online) OfflineHint(stringResource(Res.string.trainer_block_create_action))
+        }
+
+        is BlockSummary.Proposed -> AppCard(
+            Modifier.fillMaxWidth()
+                .testTag("trainer_block_card")
+                .clickable(role = Role.Button) { onOpenBlock(planId) },
+        ) {
+            Text(
+                text = stringResource(Res.string.trainer_block_proposed_title),
+                style = AppTheme.typography.titleMedium,
+                color = AppTheme.colors.textPrimary,
+            )
+            Text(
+                text = stringResource(Res.string.trainer_block_proposed_supporting),
+                style = AppTheme.typography.bodyMedium,
+                color = AppTheme.colors.textSecondary,
+            )
+        }
+
+        is BlockSummary.Saved -> AppCard(Modifier.fillMaxWidth().testTag("trainer_block_card")) {
+            Text(
+                text = stringResource(Res.string.trainer_block_saved_title),
+                style = AppTheme.typography.titleMedium,
+                color = AppTheme.colors.textPrimary,
+            )
+        }
+    }
+}
 
 /** "Tu plan" on the Trainer tab: create, review the pending proposal or see the active plan. */
 @Composable

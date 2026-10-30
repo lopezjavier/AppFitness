@@ -4,7 +4,6 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import io.github.lopezjavier.appfitness.domain.AppError
-import io.github.lopezjavier.appfitness.domain.AppException
 import io.github.lopezjavier.appfitness.domain.appErrorOrNull
 import io.github.lopezjavier.appfitness.domain.model.CoachException
 import io.github.lopezjavier.appfitness.domain.model.CoachFailure
@@ -170,19 +169,5 @@ class PlanProposalViewModel(
     private fun failed(action: PlanAction, error: AppError?) =
         PlanProposalEffect.ActionFailed(action, offline = error == AppError.Network)
 
-    private fun kindOf(failure: Throwable?): PlanFailureKind = when {
-        failure is CoachException -> when (val coachFailure = failure.failure) {
-            is CoachFailure.LimitReached -> PlanFailureKind.Limit(coachFailure.scope)
-            CoachFailure.NoCredit -> PlanFailureKind.NoCredit
-            CoachFailure.Timeout -> PlanFailureKind.Timeout
-            CoachFailure.Invalid -> PlanFailureKind.Invalid
-            CoachFailure.Missing -> PlanFailureKind.Missing
-            CoachFailure.Infeasible -> PlanFailureKind.Infeasible
-            CoachFailure.NeedsConfirmation, CoachFailure.Conflict, CoachFailure.Other -> PlanFailureKind.Other
-        }
-
-        (failure as? AppException)?.error == AppError.Network -> PlanFailureKind.Offline
-
-        else -> PlanFailureKind.Other
-    }
+    private fun kindOf(failure: Throwable?): PlanFailureKind = planFailureKindOf(failure)
 }

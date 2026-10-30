@@ -69,6 +69,7 @@ fun TrainerRoute(
     modifier: Modifier = Modifier,
     onOpenCoachUsage: () -> Unit = {},
     onOpenPlan: () -> Unit = {},
+    onOpenBlock: (String) -> Unit = {},
     viewModel: TrainerViewModel = koinViewModel(),
     connectivity: ConnectivityObserver = koinInject(),
 ) {
@@ -114,6 +115,7 @@ fun TrainerRoute(
         modifier = modifier,
         onOpenCoachUsage = onOpenCoachUsage,
         onOpenPlan = onOpenPlan,
+        onOpenBlock = onOpenBlock,
     )
 }
 
@@ -130,6 +132,7 @@ fun TrainerScreen(
     modifier: Modifier = Modifier,
     onOpenCoachUsage: () -> Unit = {},
     onOpenPlan: () -> Unit = {},
+    onOpenBlock: (String) -> Unit = {},
 ) {
     val title = stringResource(Res.string.trainer_title)
     val online by isOnline.collectAsStateWithLifecycle(initialValue = true)
@@ -158,7 +161,7 @@ fun TrainerScreen(
                     OfflineState(isOnline = isOnline, onReload = { onEvent(TrainerEvent.Retry) })
                 }
 
-                is TrainerUiState.Content -> TrainerContent(state, online, onEvent, onOpenPlan)
+                is TrainerUiState.Content -> TrainerContent(state, online, onEvent, onOpenPlan, onOpenBlock)
             }
         }
     }
@@ -170,6 +173,7 @@ private fun TrainerContent(
     online: Boolean,
     onEvent: (TrainerEvent) -> Unit,
     onOpenPlan: () -> Unit,
+    onOpenBlock: (String) -> Unit,
 ) {
     Column(
         Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(Spacing.screenMargin),
@@ -185,6 +189,7 @@ private fun TrainerContent(
             onConfirm = { onEvent(TrainerEvent.Confirm) },
         )
         PlanSection(state.plan, online, onOpenPlan)
+        BlockSection(state.plan, state.block, online, onOpenBlock)
     }
     if (state.editSheet != null) {
         ActivityLevelSheet(

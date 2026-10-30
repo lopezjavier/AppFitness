@@ -102,8 +102,67 @@ class TrainerViewModelTest {
 
     private val plans = FakeCoachPlanRepository()
 
+    private val blocks = FakeCoachBlockRepository()
+
     private fun viewModel(saved: SavedStateHandle = SavedStateHandle(), goals: NutritionGoalsRepository? = null) =
-        TrainerViewModel(repository, MutableClock(), saved, goals, plans)
+        TrainerViewModel(repository, MutableClock(), saved, goals, plans, blocks)
+
+    @Test
+    fun withoutAPlan_theBlockSummaryIsNone_andNoBlockIsRead() = runTest(dispatcher) {
+        val model = viewModel()
+
+        advanceUntilIdle()
+
+        assertEquals(BlockSummary.None, model.content().block)
+        assertTrue(blocks.reads.isEmpty())
+    }
+
+    @Test
+    fun openPlanWithoutStoredSessions_hasNoBlock() = runTest(dispatcher) {
+        plans.current = Result.success(coachPlan())
+        val model = viewModel()
+
+        advanceUntilIdle()
+
+        assertEquals(BlockSummary.None, model.content().block)
+        assertEquals(listOf("plan-1"), blocks.reads)
+    }
+
+    @Test
+    fun storedUnsavedBlock_isSummarisedAsProposed_forAProposedOrAcceptedPlan() = runTest(dispatcher) {
+        for (status in listOf(PlanStatus.Proposed, PlanStatus.Accepted)) {
+            plans.current = Result.success(coachPlan(status = status))
+            blocks.current = Result.success(coachBlock())
+            val model = viewModel()
+
+            advanceUntilIdle()
+
+            assertEquals(BlockSummary.Proposed(coachBlock()), model.content().block)
+        }
+    }
+
+    @Test
+    fun storedSavedBlock_isSummarisedAsSaved() = runTest(dispatcher) {
+        plans.current = Result.success(coachPlan(status = PlanStatus.Accepted))
+        blocks.current = Result.success(coachBlock(saved = true))
+        val model = viewModel()
+
+        advanceUntilIdle()
+
+        assertEquals(BlockSummary.Saved(coachBlock(saved = true)), model.content().block)
+    }
+
+    @Test
+    fun blockReadFailure_degradesToNone_withoutBlockingThePlan() = runTest(dispatcher) {
+        plans.current = Result.success(coachPlan())
+        blocks.current = Result.failure(AppException(AppError.Network))
+        val model = viewModel()
+
+        advanceUntilIdle()
+
+        assertEquals(BlockSummary.None, model.content().block)
+        assertEquals(PlanSummary.Proposed(coachPlan()), model.content().plan)
+    }
 
     private fun TrainerViewModel.content() = assertIs<TrainerUiState.Content>(uiState.value)
 
