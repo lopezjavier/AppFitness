@@ -79,7 +79,7 @@ Each checkpoint also has "leave the app and come back: the same tab, screen and 
 - [x] T-161: Plan nutrition and outcomes (backend) — L
 - [ ] T-162: Plan proposal screen, nutrition acceptance, target weight retired — L
 - [ ] T-163: Block creator (backend) — L
-- [ ] T-164: Block preview and "Guardar bloque" — L
+- [x] T-164: Block preview and "Guardar bloque" — L
 - [ ] T-165: Plan weeks: adherence and the deload suggestion — L
   - **Checkpoint E13-B 👤 (9 items)**
 
