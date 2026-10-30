@@ -46,6 +46,7 @@ class CoachUsageScreenTest {
         rule.onNodeWithTag("coach_usage_explanation")
             .assertTextEquals("Gasto de este mes. El límite se renueva el día 1.")
         rule.onNodeWithTag("coach_usage_limit_message").assertDoesNotExist()
+        rule.onNodeWithTag("coach_usage_ping").assertDoesNotExist()
     }
 
     @Test

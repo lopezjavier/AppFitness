@@ -6,7 +6,6 @@ import androidx.datastore.preferences.core.Preferences
 import io.github.lopezjavier.appfitness.BuildConfig
 import io.github.lopezjavier.appfitness.config.AppConfig
 import io.github.lopezjavier.appfitness.domain.model.BuildInfo
-import io.github.lopezjavier.appfitness.domain.model.DevOptions
 import io.github.lopezjavier.appfitness.domain.port.AlertSound
 import io.github.lopezjavier.appfitness.domain.port.AuthCredentialProvider
 import io.github.lopezjavier.appfitness.domain.port.BarcodeScanner
@@ -50,7 +49,6 @@ val appModule =
                 flavor = BuildConfig.FLAVOR,
             )
         }
-        single { DevOptions(showCoachPing = BuildConfig.DEBUG) }
         single<ConnectivityObserver> { AndroidConnectivityObserver(androidContext()) }
         single<Haptics> { AndroidHaptics(androidContext()) }
         single<AlertSound> { AndroidAlertSound(androidContext()) }

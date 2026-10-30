@@ -18,10 +18,6 @@ import androidx.compose.ui.platform.testTag
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.github.lopezjavier.appfitness.composeapp.resources.Res
 import io.github.lopezjavier.appfitness.composeapp.resources.action_retry
-import io.github.lopezjavier.appfitness.composeapp.resources.coach_ping_button
-import io.github.lopezjavier.appfitness.composeapp.resources.coach_ping_offline
-import io.github.lopezjavier.appfitness.composeapp.resources.coach_ping_running
-import io.github.lopezjavier.appfitness.composeapp.resources.coach_ping_success
 import io.github.lopezjavier.appfitness.composeapp.resources.coach_usage_error
 import io.github.lopezjavier.appfitness.composeapp.resources.coach_usage_explanation
 import io.github.lopezjavier.appfitness.composeapp.resources.coach_usage_figure
@@ -35,7 +31,6 @@ import io.github.lopezjavier.appfitness.designsystem.AppStateAction
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
 import io.github.lopezjavier.appfitness.designsystem.ErrorState
 import io.github.lopezjavier.appfitness.designsystem.OfflineState
-import io.github.lopezjavier.appfitness.designsystem.SecondaryButton
 import io.github.lopezjavier.appfitness.designsystem.SkeletonBox
 import io.github.lopezjavier.appfitness.designsystem.Spacing
 import io.github.lopezjavier.appfitness.domain.model.CoachBudget
@@ -60,15 +55,12 @@ fun CoachUsageRoot(
     connectivity: ConnectivityObserver = koinInject(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
-    val pingState by viewModel.pingState.collectAsStateWithLifecycle()
     CoachUsageScreen(
         state = state,
         isOnline = connectivity.isOnline,
         onEvent = viewModel::onEvent,
         onBack = onBack,
         modifier = modifier,
-        showPing = viewModel.showPing,
-        pingState = pingState,
     )
 }
 
@@ -83,8 +75,6 @@ fun CoachUsageScreen(
     onEvent: (CoachUsageEvent) -> Unit,
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
-    showPing: Boolean = false,
-    pingState: CoachPingUiState = CoachPingUiState.Idle,
 ) {
     AppScreen(
         title = stringResource(Res.string.coach_usage_title),
@@ -114,19 +104,14 @@ fun CoachUsageScreen(
                     OfflineState(isOnline = isOnline, onReload = { onEvent(CoachUsageEvent.Retry) })
                 }
 
-                is CoachUsageUiState.Content -> UsageContent(
-                    usage = state.usage,
-                    showPing = showPing,
-                    pingState = pingState,
-                    onPing = { onEvent(CoachUsageEvent.Ping) },
-                )
+                is CoachUsageUiState.Content -> UsageContent(state.usage)
             }
         }
     }
 }
 
 @Composable
-private fun UsageContent(usage: CoachUsage, showPing: Boolean, pingState: CoachPingUiState, onPing: () -> Unit) {
+private fun UsageContent(usage: CoachUsage) {
     val percent = (usage.fraction * PERCENT).roundToInt()
     Column(
         Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(Spacing.screenMargin),
@@ -163,38 +148,6 @@ private fun UsageContent(usage: CoachUsage, showPing: Boolean, pingState: CoachP
                     )
                 }
             }
-        }
-        if (showPing) PingBlock(pingState, onPing)
-    }
-}
-
-/** Dev-only: one button that calls the `coach` function with `ping`, plus a plain status line. */
-@Composable
-private fun PingBlock(state: CoachPingUiState, onPing: () -> Unit) {
-    Column(verticalArrangement = Arrangement.spacedBy(Spacing.md)) {
-        SecondaryButton(
-            text = stringResource(Res.string.coach_ping_button),
-            onClick = onPing,
-            modifier = Modifier.fillMaxWidth().testTag("coach_usage_ping"),
-            enabled = state != CoachPingUiState.Running,
-        )
-        when (state) {
-            CoachPingUiState.Idle -> Unit
-
-            is CoachPingUiState.Failed -> CoachLimitMessage(state.failure, testTag = "coach_usage_ping_status")
-
-            else -> Text(
-                text = stringResource(
-                    when (state) {
-                        CoachPingUiState.Success -> Res.string.coach_ping_success
-                        CoachPingUiState.Offline -> Res.string.coach_ping_offline
-                        else -> Res.string.coach_ping_running
-                    },
-                ),
-                style = AppTheme.typography.bodyMedium,
-                color = AppTheme.colors.textSecondary,
-                modifier = Modifier.testTag("coach_usage_ping_status"),
-            )
         }
     }
 }

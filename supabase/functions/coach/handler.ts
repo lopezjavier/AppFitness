@@ -190,7 +190,19 @@ export function createCoachHandler(
                     });
                 } catch (e) {
                     if (e instanceof CoachInputError) {
-                        return errorResponse(e.code, e.message);
+                        if (e.code !== "INVALID_INPUT") {
+                            // Names only: never values, prompts or summary data.
+                            console.warn("coach: input rejected", {
+                                kind: body.kind,
+                                code: e.code,
+                                missing: e.missing,
+                            });
+                        }
+                        return errorResponse(
+                            e.code,
+                            e.message,
+                            e.missing ? { extra: { missing: e.missing } } : {},
+                        );
                     }
                     throw e;
                 }

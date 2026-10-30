@@ -1769,11 +1769,6 @@
     <!-- Uso de IA (T-160, US-76) -->
     <string name="coach_usage_title">Uso de IA</string>
     <string name="coach_usage_explanation">Gasto de este mes. El límite se renueva el día 1.</string>
-    <!-- Dev-only ping block (debug builds only; T-161). -->
-    <string name="coach_ping_button">Probar coach (ping)</string>
-    <string name="coach_ping_running">Llamando al coach…</string>
-    <string name="coach_ping_success">Ping correcto.</string>
-    <string name="coach_ping_offline">Sin conexión: inténtalo de nuevo.</string>
     <string name="coach_usage_figure">%1$s de %2$s</string>
     <string name="coach_usage_progress_cd">%1$d % del límite mensual</string>
     <string name="coach_usage_error">No se pudo cargar el uso de IA. Inténtalo de nuevo.</string>
@@ -1781,6 +1776,12 @@
     <string name="coach_unavailable">La IA no está disponible ahora mismo. Inténtalo más tarde.</string>
     <string name="coach_timeout">No se pudo completar la respuesta de IA. Inténtalo de nuevo.</string>
     <string name="coach_error">No se pudo usar la IA. Inténtalo de nuevo.</string>
+    <string name="coach_failure_missing_intention">Elige tu objetivo de entrenamiento en Perfil, dentro de Mi entrenamiento, para crear el plan.</string>
+    <string name="coach_failure_missing_place">Elige tu lugar de entrenamiento en Perfil, dentro de Mi entrenamiento, para crear el bloque.</string>
+    <string name="coach_failure_missing_profile">Faltan datos para calcular tu plan. Completa tu perfil y registra tu peso.</string>
+    <string name="coach_failure_missing_generic">Faltan datos para crear el plan. Completa tu perfil e inténtalo de nuevo.</string>
+    <string name="coach_failure_infeasible">No hay un plan seguro con tus datos actuales. Revisa tu peso y tu perfil.</string>
+    <string name="coach_failure_invalid">La IA no dio una respuesta válida. Inténtalo de nuevo.</string>
 
     <!-- TEMPORARY (T-146, removed by T-148): end-of-rest sound chooser and the notification-permission message. -->
     <string name="rest_sound_permission_note">Para avisarte al acabar el descanso con la pantalla apagada, activa las notificaciones de AppFitness en Ajustes.</string>

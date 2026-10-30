@@ -96,10 +96,17 @@ async function prepareAsync(
     const sex: Sex | null = profile.sex === "male" || profile.sex === "female"
         ? profile.sex
         : null;
-    if (!intention) {
+    const positive = (v: number | null) => v !== null && v > 0;
+    const missing: string[] = [];
+    if (!intention) missing.push("intention");
+    if (sex === null) missing.push("sex");
+    if (!positive(num(profile.weight_kg))) missing.push("weight");
+    if (!positive(num(expenditure.value))) missing.push("expenditure");
+    if (!intention || missing.length > 0) {
         throw new CoachInputError(
             "coach_missing_data",
-            "Training intention is missing",
+            "Required data is missing",
+            missing,
         );
     }
     const experience =

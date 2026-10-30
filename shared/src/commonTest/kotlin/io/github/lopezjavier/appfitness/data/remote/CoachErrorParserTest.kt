@@ -1,6 +1,7 @@
 package io.github.lopezjavier.appfitness.data.remote
 
 import io.github.lopezjavier.appfitness.domain.model.CoachFailure
+import io.github.lopezjavier.appfitness.domain.model.MissingField
 import kotlin.test.Test
 import kotlin.test.assertEquals
 
@@ -37,8 +38,34 @@ class CoachErrorParserTest {
     @Test
     fun planCodes_areMapped() {
         assertEquals(CoachFailure.Invalid, CoachErrorParser.parse(error("coach_invalid_output")))
-        assertEquals(CoachFailure.Missing, CoachErrorParser.parse(error("coach_missing_data")))
+        assertEquals(CoachFailure.Missing(emptySet()), CoachErrorParser.parse(error("coach_missing_data")))
         assertEquals(CoachFailure.Infeasible, CoachErrorParser.parse(error("coach_plan_infeasible")))
+    }
+
+    @Test
+    fun missingData_readsTheMissingList() {
+        val body = """{"error":{"code":"coach_missing_data","missing":["intention","sex","weight","expenditure"]}}"""
+
+        assertEquals(
+            CoachFailure.Missing(
+                setOf(MissingField.Intention, MissingField.Sex, MissingField.Weight, MissingField.Expenditure),
+            ),
+            CoachErrorParser.parse(body),
+        )
+    }
+
+    @Test
+    fun missingData_readsPlace() {
+        val body = """{"error":{"code":"coach_missing_data","missing":["place"]}}"""
+
+        assertEquals(CoachFailure.Missing(setOf(MissingField.Place)), CoachErrorParser.parse(body))
+    }
+
+    @Test
+    fun missingData_ignoresUnknownNames() {
+        val body = """{"error":{"code":"coach_missing_data","missing":["intention","shoe_size",7]}}"""
+
+        assertEquals(CoachFailure.Missing(setOf(MissingField.Intention)), CoachErrorParser.parse(body))
     }
 
     @Test

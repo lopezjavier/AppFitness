@@ -197,18 +197,6 @@ Journey: open the new Trainer tab, check what the coach estimated about you and 
 
 ## T-174: Fix from Checkpoint E13-B: "Crear plan" shows "No se pudo usar la IA" (US-69) · M
 
-**Source:** user report at Checkpoint E13-B, 2026-10-30. Tapping "Crear plan" in Trainer shows `coach_error` ("No se pudo usar la IA. Inténtalo de nuevo.", the generic `CoachFailure.Other`). The Supabase edge function log shows `POST /functions/v1/coach` answered **422** (no log lines, level warning, 2026-10-30 15:33 UTC).
-- [ ] **Find the cause of the 422** (function logs and request payload shape, app request vs the `plan_nutrition` validator; check whether the app sends something the function rejects, or the model output fails validation twice) and fix it in every layer (function, app, tests).
-- [ ] **The app must say why:** map the 422 to a specific `CoachFailure` and Spanish message instead of the generic one where the cause is user-actionable (ux-reviewer defines the copy); a rejected model output stays a clean "Inténtalo de nuevo" with the reason logged without sensitive data.
-- [ ] Test with the real request shape (deno test for the handler, host test for the mapping); the one paid retry of "Crear plan" is approved by the user.
-- [ ] After the merge and `deploy-supabase` green, Checkpoint E13-B is re-presented (items 1-9 to re-test).
-
-**Flow:** backend + core + UI as the cause requires · **Dependencies:** T-165 merged.
-
----
-
-## T-174: Fix from Checkpoint E13-B: "Crear plan" shows "No se pudo usar la IA" (US-69) · M
-
 **Source:** user report at Checkpoint E13-B, 2026-10-30. Tapping "Crear plan" in Trainer shows `coach_error` ("No se pudo usar la IA. Inténtalo de nuevo.", the generic `CoachFailure.Other`). The Supabase edge function log shows `POST /functions/v1/coach` answered **422** (no log lines, level warning, 2026-10-30 15:33 UTC). The dev-only ping button answers "ping correcto", so the function, the key and the JWT work: the 422 comes from the `plan_nutrition` request or its validation.
 - [ ] **Find the cause of the 422** (function logs, request payload shape vs the `plan_nutrition` validator, model output rejected after the retry) and fix it in every layer (function, app, tests).
 - [ ] **The app must say why:** map the failure to a specific `CoachFailure` and Spanish message where the user can act on it, instead of the generic one (ux-reviewer writes the copy); a rejected model output stays a clean "Inténtalo de nuevo" with a non-sensitive reason logged.
@@ -217,6 +205,8 @@ Journey: open the new Trainer tab, check what the coach estimated about you and 
 - [ ] After the merge and `deploy-supabase` green, Checkpoint E13-B is re-presented (items 1-9 to re-test).
 
 **Flow:** backend + core + UI as the cause requires · **Dependencies:** T-165 merged.
+
+**Open product gap (user feedback at Checkpoint E13-B, 2026-10-30; decision A: T-174 stays the error fix, this goes to the epic-planner in a fresh session after T-174 merges):** "Crear plan" has no interview. The coach reads the intention, profile and estimates itself and the user is blind to what is missing or how to fix it. Wanted: a new "Antes de empezar" step with an excellent UX that shows the user's profile data used by the plan, lets them confirm it or edit it (edits stay in the existing places, e.g. Perfil → Mi entrenamiento), and says what is missing and where to fix it, before the plan or block is generated. Also rethink the Trainer tab layout: "Tus valores" feels odd. Needs a story and Gherkin in E13, a checkpoint decision and a breakdown through the epic-planner; do not implement without it. Checkpoint E13-B stays gated until then.
 
 ---
 

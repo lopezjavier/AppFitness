@@ -2,11 +2,7 @@ package io.github.lopezjavier.appfitness.feature.trainer
 
 import io.github.lopezjavier.appfitness.domain.AppError
 import io.github.lopezjavier.appfitness.domain.AppException
-import io.github.lopezjavier.appfitness.domain.model.CoachException
-import io.github.lopezjavier.appfitness.domain.model.CoachFailure
 import io.github.lopezjavier.appfitness.domain.model.CoachUsage
-import io.github.lopezjavier.appfitness.domain.model.DevOptions
-import io.github.lopezjavier.appfitness.domain.repository.CoachPingRepository
 import io.github.lopezjavier.appfitness.domain.repository.CoachUsageRepository
 import io.github.lopezjavier.appfitness.feature.workout.MutableClock
 import kotlinx.coroutines.Dispatchers
@@ -32,15 +28,6 @@ private class FakeCoachUsageRepository(var result: Result<CoachUsage>) : CoachUs
     }
 }
 
-private class FakeCoachPingRepository(var result: Result<Unit> = Result.success(Unit)) : CoachPingRepository {
-    var calls = 0
-
-    override suspend fun ping(): Result<Unit> {
-        calls++
-        return result
-    }
-}
-
 @OptIn(ExperimentalCoroutinesApi::class)
 class CoachUsageViewModelTest {
     private val dispatcher = StandardTestDispatcher()
@@ -53,10 +40,7 @@ class CoachUsageViewModelTest {
     @AfterTest
     fun tearDown() = Dispatchers.resetMain()
 
-    private val pingRepository = FakeCoachPingRepository()
-
-    private fun viewModel(devOptions: DevOptions = DevOptions(showCoachPing = true)) =
-        CoachUsageViewModel(repository, MutableClock(), pingRepository, devOptions)
+    private fun viewModel() = CoachUsageViewModel(repository, MutableClock())
 
     @Test
     fun startsLoadingThenShowsTheUsage() = runTest(dispatcher) {
@@ -111,87 +95,5 @@ class CoachUsageViewModelTest {
         advanceUntilIdle()
 
         assertEquals(1, repository.calls.size)
-    }
-
-    @Test
-    fun pingStartsIdle_andTheFlagComesFromDevOptions() = runTest(dispatcher) {
-        assertEquals(CoachPingUiState.Idle, viewModel().pingState.value)
-        assertEquals(true, viewModel().showPing)
-        assertEquals(false, viewModel(DevOptions(showCoachPing = false)).showPing)
-    }
-
-    @Test
-    fun ping_runsThenSucceeds_andReloadsTheUsageWithoutLoadingFlash() = runTest(dispatcher) {
-        val model = viewModel()
-        advanceUntilIdle()
-        val updated = CoachUsage(LocalDate(2026, 11, 1), 1300, 320, 0.43)
-        repository.result = Result.success(updated)
-
-        model.onEvent(CoachUsageEvent.Ping)
-        assertEquals(CoachPingUiState.Running, model.pingState.value)
-        assertEquals(CoachUsageUiState.Content(usage), model.uiState.value)
-        advanceUntilIdle()
-
-        assertEquals(CoachPingUiState.Success, model.pingState.value)
-        assertEquals(1, pingRepository.calls)
-        assertEquals(CoachUsageUiState.Content(updated), model.uiState.value)
-    }
-
-    @Test
-    fun ping_functionRefusal_isFailedWithTheReason_andRetryCanSucceed() = runTest(dispatcher) {
-        val limit = CoachFailure.LimitReached(CoachFailure.Scope.User)
-        pingRepository.result = Result.failure(CoachException(limit))
-        val model = viewModel()
-        advanceUntilIdle()
-
-        model.onEvent(CoachUsageEvent.Ping)
-        advanceUntilIdle()
-        assertEquals(CoachPingUiState.Failed(limit), model.pingState.value)
-
-        pingRepository.result = Result.success(Unit)
-        model.onEvent(CoachUsageEvent.Ping)
-        advanceUntilIdle()
-        assertEquals(CoachPingUiState.Success, model.pingState.value)
-    }
-
-    @Test
-    fun ping_offline_isOffline() = runTest(dispatcher) {
-        pingRepository.result = Result.failure(AppException(AppError.Network))
-        val model = viewModel()
-        advanceUntilIdle()
-
-        model.onEvent(CoachUsageEvent.Ping)
-        advanceUntilIdle()
-
-        assertEquals(CoachPingUiState.Offline, model.pingState.value)
-    }
-
-    @Test
-    fun ping_otherError_isFailedOther() = runTest(dispatcher) {
-        pingRepository.result = Result.failure(AppException(AppError.Unknown))
-        val model = viewModel()
-        advanceUntilIdle()
-
-        model.onEvent(CoachUsageEvent.Ping)
-        advanceUntilIdle()
-
-        assertEquals(CoachPingUiState.Failed(CoachFailure.Other), model.pingState.value)
-    }
-
-    @Test
-    fun ping_whileRunning_orWhenDisabled_doesNotCallAgain() = runTest(dispatcher) {
-        val model = viewModel()
-        advanceUntilIdle()
-        model.onEvent(CoachUsageEvent.Ping)
-        model.onEvent(CoachUsageEvent.Ping)
-        advanceUntilIdle()
-        assertEquals(1, pingRepository.calls)
-
-        val release = viewModel(DevOptions(showCoachPing = false))
-        advanceUntilIdle()
-        release.onEvent(CoachUsageEvent.Ping)
-        advanceUntilIdle()
-        assertEquals(1, pingRepository.calls)
-        assertEquals(CoachPingUiState.Idle, release.pingState.value)
     }
 }

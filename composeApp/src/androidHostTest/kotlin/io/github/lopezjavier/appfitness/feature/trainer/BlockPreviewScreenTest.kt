@@ -17,6 +17,7 @@ import io.github.lopezjavier.appfitness.designsystem.LocalAppMessages
 import io.github.lopezjavier.appfitness.domain.model.BlockSession
 import io.github.lopezjavier.appfitness.domain.model.CoachBlock
 import io.github.lopezjavier.appfitness.domain.model.CoachFailure
+import io.github.lopezjavier.appfitness.domain.model.MissingField
 import io.github.lopezjavier.appfitness.feature.exercises.FakeExerciseLibrary
 import io.github.lopezjavier.appfitness.feature.exercises.FakeExerciseRepository
 import io.github.lopezjavier.appfitness.feature.exercises.exerciseInfo
@@ -248,6 +249,23 @@ class BlockPreviewScreenTest {
         rule.onNodeWithText("No se pudo crear el bloque. Inténtalo de nuevo.").assertExists()
         tap("block_preview_retry")
         assertEquals(listOf<BlockPreviewEvent>(BlockPreviewEvent.Retry), events)
+    }
+
+    @Test
+    fun missingPlace_namesWhereToFixIt_andOffersRetry() {
+        show(BlockPreviewUiState.Failed(PlanFailureKind.Missing(setOf(MissingField.Place))))
+
+        rule.onNodeWithText(
+            "Elige tu lugar de entrenamiento en Perfil, dentro de Mi entrenamiento, para crear el bloque.",
+        ).assertExists()
+        rule.onNodeWithTag("block_preview_retry").assertExists()
+    }
+
+    @Test
+    fun infeasible_showsItsOwnMessage() {
+        show(BlockPreviewUiState.Failed(PlanFailureKind.Infeasible))
+
+        rule.onNodeWithText("No hay un plan seguro con tus datos actuales. Revisa tu peso y tu perfil.").assertExists()
     }
 
     @Test

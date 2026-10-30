@@ -68,7 +68,12 @@ export type Prepared = {
 
 /** An error the client caused or can fix; answered as JSON before any model call. */
 export class CoachInputError extends Error {
-    constructor(readonly code: ErrorCode, message: string) {
+    constructor(
+        readonly code: ErrorCode,
+        message: string,
+        /** Names of the missing fields (never values) for `coach_missing_data`. */
+        readonly missing?: string[],
+    ) {
         super(message);
         this.name = "CoachInputError";
     }

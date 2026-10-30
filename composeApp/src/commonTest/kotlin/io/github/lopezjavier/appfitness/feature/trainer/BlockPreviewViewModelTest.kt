@@ -6,6 +6,7 @@ import io.github.lopezjavier.appfitness.domain.AppError
 import io.github.lopezjavier.appfitness.domain.AppException
 import io.github.lopezjavier.appfitness.domain.model.CoachException
 import io.github.lopezjavier.appfitness.domain.model.CoachFailure
+import io.github.lopezjavier.appfitness.domain.model.MissingField
 import io.github.lopezjavier.appfitness.feature.exercises.FakeExerciseLibrary
 import io.github.lopezjavier.appfitness.feature.exercises.FakeExerciseRepository
 import io.github.lopezjavier.appfitness.feature.exercises.exerciseInfo
@@ -159,8 +160,9 @@ class BlockPreviewViewModelTest {
             CoachException(CoachFailure.NoCredit) to PlanFailureKind.NoCredit,
             CoachException(CoachFailure.Timeout) to PlanFailureKind.Timeout,
             CoachException(CoachFailure.Invalid) to PlanFailureKind.Invalid,
-            CoachException(CoachFailure.Missing) to PlanFailureKind.Missing,
-            CoachException(CoachFailure.Infeasible) to PlanFailureKind.Other,
+            CoachException(CoachFailure.Missing(setOf(MissingField.Intention, MissingField.Place))) to
+                PlanFailureKind.Missing(setOf(MissingField.Intention, MissingField.Place)),
+            CoachException(CoachFailure.Infeasible) to PlanFailureKind.Infeasible,
             CoachException(CoachFailure.Other) to PlanFailureKind.Other,
             AppException(AppError.Network) to PlanFailureKind.Offline,
         )

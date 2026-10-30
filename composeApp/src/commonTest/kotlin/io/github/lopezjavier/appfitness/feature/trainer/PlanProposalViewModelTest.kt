@@ -7,6 +7,7 @@ import io.github.lopezjavier.appfitness.domain.AppException
 import io.github.lopezjavier.appfitness.domain.model.CoachDerivedValues
 import io.github.lopezjavier.appfitness.domain.model.CoachException
 import io.github.lopezjavier.appfitness.domain.model.CoachFailure
+import io.github.lopezjavier.appfitness.domain.model.MissingField
 import io.github.lopezjavier.appfitness.domain.model.PlanStatus
 import io.github.lopezjavier.appfitness.feature.workout.MutableClock
 import kotlinx.coroutines.CompletableDeferred
@@ -141,7 +142,8 @@ class PlanProposalViewModelTest {
             CoachFailure.NoCredit to PlanFailureKind.NoCredit,
             CoachFailure.Timeout to PlanFailureKind.Timeout,
             CoachFailure.Invalid to PlanFailureKind.Invalid,
-            CoachFailure.Missing to PlanFailureKind.Missing,
+            CoachFailure.Missing(setOf(MissingField.Sex, MissingField.Weight)) to
+                PlanFailureKind.Missing(setOf(MissingField.Sex, MissingField.Weight)),
             CoachFailure.Infeasible to PlanFailureKind.Infeasible,
             CoachFailure.Other to PlanFailureKind.Other,
         )
