@@ -28,7 +28,7 @@
 ```
 pr-reviewer is skipped for PRs that only touch docs or task files; the ux-reviewer diff pass is skipped for minor corrective tasks (§2.3).
 ### 2.2 Infrastructure / backend task without UI
-PM start -> planner -> backend-developer (pgTAP / deno test / local CI) -> pr-creator -> pr-reviewer -> green CI -> merge. A user-reported bug becomes the next `fix(T-###)` task. L tasks run as slices.
+PM start -> planner -> backend-developer (pgTAP / deno test / local CI) -> pr-creator -> pr-reviewer -> green CI -> merge. A user-reported bug becomes the next `fix(T-###)` task. L tasks run as slices. The implementing developer stays resumable (SendMessage) from the first commit until the PR is merged, and is used again for CI failures, review findings and re-tests; it is stopped after the merge. pr-reviewer and ux-reviewer are always fresh agents.
 ### 2.3 Minor corrective task (< ~50 lines)
 Planner optional (short plan in the PR); the rest follows the applicable flow.
 ### 2.4 Why the task is marked on the branch
