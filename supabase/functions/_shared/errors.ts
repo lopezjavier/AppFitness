@@ -12,6 +12,11 @@ export type ErrorCode =
     | "QUOTA_EXCEEDED"
     | "PROVIDER_ERROR"
     | "NOT_CONFIGURED"
+    | "coach_limit_reached"
+    | "coach_no_credit"
+    | "coach_timeout"
+    | "coach_invalid_output"
+    | "coach_kind_not_available"
     | "INTERNAL";
 
 const STATUS: Record<ErrorCode, number> = {
@@ -25,6 +30,11 @@ const STATUS: Record<ErrorCode, number> = {
     QUOTA_EXCEEDED: 429,
     PROVIDER_ERROR: 502,
     NOT_CONFIGURED: 503,
+    coach_limit_reached: 429,
+    coach_no_credit: 402,
+    coach_timeout: 504,
+    coach_invalid_output: 502,
+    coach_kind_not_available: 501,
     INTERNAL: 500,
 };
 
@@ -48,11 +58,16 @@ export function jsonResponse(
 export function errorResponse(
     code: ErrorCode,
     message: string,
-    options: { status?: number; headers?: Record<string, string> } = {},
+    options: {
+        status?: number;
+        headers?: Record<string, string>;
+        /** Extra fields of the error object (e.g. the budget `scope`); never personal data. */
+        extra?: Record<string, unknown>;
+    } = {},
 ): Response {
     return jsonResponse(
         options.status ?? STATUS[code],
-        { error: { code, message } },
+        { error: { code, message, ...options.extra } },
         options.headers,
     );
 }
