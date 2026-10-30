@@ -157,6 +157,8 @@ class BlockPreviewViewModel(
                 _uiState.value = BlockPreviewUiState.Closed
                 effectChannel.send(BlockPreviewEffect.Saved)
             } else {
+                // CoachFailure.Conflict (block already saved or plan no longer open) also lands here: the generic
+                // save error is shown and the proposal stays, since nothing more can be saved from this screen.
                 _uiState.update { state ->
                     if (state is BlockPreviewUiState.Preview) state.copy(saving = false) else state
                 }
