@@ -10,15 +10,19 @@ import io.github.lopezjavier.appfitness.domain.model.PlanStatus
 import io.github.lopezjavier.appfitness.feature.profile.PreferencesHubActions
 import io.github.lopezjavier.appfitness.feature.profile.PreferencesHubScreen
 import kotlinx.coroutines.flow.flowOf
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
+import java.io.File
 
 /**
  * US-69, "The user never enters target numbers" (ADR-78): no screen offers a target weight, and the plan screen has
- * no field at all. The Weight screen is covered in `WeightScreenGoalTest`.
+ * no field at all. The Weight screen is covered in `WeightScreenGoalTest`. Onboarding is not rendered here (it needs
+ * its ViewModel); its sources are checked with a text search instead.
  */
 @RunWith(RobolectricTestRunner::class)
 @Config(qualifiers = "w360dp-h2400dp-xxhdpi")
@@ -26,7 +30,28 @@ class NoTargetInputsTest {
     @get:Rule
     val rule = createComposeRule()
 
-    private val forbidden = listOf("Peso objetivo", "Fijar objetivo", "Grasa objetivo", "Objetivo de peso")
+    private val forbidden = listOf(
+        "Peso objetivo",
+        "Fijar objetivo",
+        "Grasa objetivo",
+        "Objetivo de peso",
+        "Objetivo de grasa",
+        "Perímetro objetivo",
+        "Cintura objetivo",
+    )
+
+    @Test
+    fun onboarding_sourcesDeclareNoTargetWeightField() {
+        val dir = listOf(
+            File("src/commonMain/kotlin/io/github/lopezjavier/appfitness/feature/onboarding"),
+            File("composeApp/src/commonMain/kotlin/io/github/lopezjavier/appfitness/feature/onboarding"),
+        ).first { it.isDirectory }
+        val sources = dir.listFiles { f -> f.extension == "kt" }.orEmpty().joinToString("\n") { it.readText() }
+        assertTrue(sources.isNotEmpty())
+        listOf("targetWeight", "target_weight", "targetBodyFat", "targetCircumference").forEach {
+            assertFalse("Onboarding must not mention $it", sources.contains(it, ignoreCase = true))
+        }
+    }
 
     private fun showAndAssertNoTargetInput(content: @Composable () -> Unit) {
         rule.setContent { AppTheme { content() } }

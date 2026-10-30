@@ -213,6 +213,7 @@ A presentation-only pass (FR-6) over the screens built in E2…E8. Items collect
 | C | Comida details (editable screen): kcal/P/C/G summary, "+" and trash scattered; "Guardar" in its own row above "Añadir"; remove the hint "Se añadirá tal como lo ves…" (reference `design/reported/E7-A-comida-details-layout.png`) | Built on the shared templates: name in the title, actions in the top bar, `AddItemButton` at the end of the list, pinned "Guardar" (§6.3 of the audit). |
 | D | Chart metric and range on other screens: `ExerciseProgressScreen` (`ProgressMetric` chips and its own range selector) and `TrainingStatsScreen` (`FrameChips`) still use chips, while Peso now picks the metric from the chart title (`AppPickerSheet`, T-123) and the range with `TimeRangeSelector` | Owner T-125: decide one pattern (title picker vs chips) and move both to `TimeRangeSelector` |
 | E | AI-wait states still ad-hoc `CircularProgressIndicator` (T-162 ux-reviewer sweep): `PhotoSteps.kt` (food photo analysis), `AmountPhotoFlow.kt` ("Estimando…"); `CoachUsageScreen` ping row ("Llamando al coach…") is dev-only and stays | Migrate the first two to `StreamProgressState` (owner T-173); `ExerciseHistoryTab` is plain stored-data loading and out of scope. |
+| F | Plan proposal: the e1RM outcome line reads "Fuerza (e1RM): N kg" without the exercise name (`PlanOutcome` carries no exercise name; T-162 ux-reviewer) | Owner T-163: carry the exercise name in the e1RM outcome (core change) and show it in the line. |
 
 ---
 

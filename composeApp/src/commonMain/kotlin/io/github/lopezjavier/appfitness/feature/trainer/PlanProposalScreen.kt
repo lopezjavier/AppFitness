@@ -132,7 +132,10 @@ fun PlanProposalRoot(
                     latestOnBack()
                 }
 
-                PlanProposalEffect.Discarded -> latestOnBack()
+                PlanProposalEffect.Discarded -> {
+                    latestHaptics.confirm()
+                    latestOnBack()
+                }
 
                 is PlanProposalEffect.ActionFailed -> {
                     latestHaptics.reject()
