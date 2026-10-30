@@ -333,3 +333,36 @@ Deno.test("config.toml enables verify_jwt for coach", async () => {
     );
     assert(/\[functions\.coach\]\s*\nverify_jwt = true/.test(toml));
 });
+
+Deno.test("a mid-stream failure after a usage event still records that usage", async () => {
+    const { handler, records } = setup({
+        events: async function* () {
+            yield { type: "delta", text: "par" } as AnthropicEvent;
+            yield {
+                type: "usage",
+                usage: { ...NO_USAGE, inputTokens: 500, outputTokens: 9 },
+            } as AnthropicEvent;
+            throw new ProviderError("provider");
+        },
+    });
+    const text = await (await handler(post(ping))).text();
+    assert(text.includes("event: error"));
+    assertEquals(records.length, 1);
+    assertEquals(records[0].inputTokens, 500);
+    assertEquals(records[0].outputTokens, 9);
+});
+
+Deno.test("a credit rejection after a usage event records nothing", async () => {
+    const { handler, records } = setup({
+        events: async function* () {
+            yield { type: "delta", text: "x" } as AnthropicEvent;
+            yield {
+                type: "usage",
+                usage: { ...NO_USAGE, inputTokens: 5 },
+            } as AnthropicEvent;
+            throw new ProviderCreditError();
+        },
+    });
+    await (await handler(post(ping))).text();
+    assertEquals(records.length, 0);
+});

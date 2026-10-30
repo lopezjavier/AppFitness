@@ -250,6 +250,7 @@ function streamResponse(
         async start(controller) {
             let usage = NO_USAGE;
             let finished = false;
+            let recorded = false;
             try {
                 let step = first;
                 while (!step.done) {
@@ -267,10 +268,19 @@ function streamResponse(
                     step = await deadline.race(iterator.next());
                 }
                 if (!finished) throw new ProviderError("provider");
+                recorded = true;
                 controller.enqueue(
                     frame("done", { usage: await record(usage) }),
                 );
             } catch (e) {
+                // Tokens seen before the failure were spent: charge them (a billing rejection consumed nothing).
+                if (
+                    !(e instanceof ProviderCreditError) && !recorded &&
+                    usage !== NO_USAGE
+                ) {
+                    recorded = true;
+                    await record(usage);
+                }
                 controller.enqueue(frame("error", { code: failureCode(e) }));
                 try {
                     await iterator.return?.();
