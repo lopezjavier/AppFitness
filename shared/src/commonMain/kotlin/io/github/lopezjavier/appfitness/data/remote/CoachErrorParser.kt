@@ -24,6 +24,12 @@ object CoachErrorParser {
 
             "coach_timeout" -> CoachFailure.Timeout
 
+            "coach_invalid_output" -> CoachFailure.Invalid
+
+            "coach_missing_data" -> CoachFailure.Missing
+
+            "coach_plan_infeasible" -> CoachFailure.Infeasible
+
             else -> CoachFailure.Other
         }
     }

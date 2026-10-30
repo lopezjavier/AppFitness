@@ -15,6 +15,7 @@ import io.github.lopezjavier.appfitness.data.repository.SupabaseAuthRepository
 import io.github.lopezjavier.appfitness.data.repository.SupabaseBodyMeasurementRepository
 import io.github.lopezjavier.appfitness.data.repository.SupabaseCircumferenceRepository
 import io.github.lopezjavier.appfitness.data.repository.SupabaseCoachPingRepository
+import io.github.lopezjavier.appfitness.data.repository.SupabaseCoachPlanRepository
 import io.github.lopezjavier.appfitness.data.repository.SupabaseCoachRepository
 import io.github.lopezjavier.appfitness.data.repository.SupabaseCoachUsageRepository
 import io.github.lopezjavier.appfitness.data.repository.SupabaseDiscomfortRepository
@@ -43,6 +44,7 @@ import io.github.lopezjavier.appfitness.data.repository.UnconfiguredAuthReposito
 import io.github.lopezjavier.appfitness.data.repository.UnconfiguredBodyMeasurementRepository
 import io.github.lopezjavier.appfitness.data.repository.UnconfiguredCircumferenceRepository
 import io.github.lopezjavier.appfitness.data.repository.UnconfiguredCoachPingRepository
+import io.github.lopezjavier.appfitness.data.repository.UnconfiguredCoachPlanRepository
 import io.github.lopezjavier.appfitness.data.repository.UnconfiguredCoachRepository
 import io.github.lopezjavier.appfitness.data.repository.UnconfiguredCoachUsageRepository
 import io.github.lopezjavier.appfitness.data.repository.UnconfiguredDiscomfortRepository
@@ -74,6 +76,7 @@ import io.github.lopezjavier.appfitness.domain.repository.AuthRepository
 import io.github.lopezjavier.appfitness.domain.repository.BodyMeasurementRepository
 import io.github.lopezjavier.appfitness.domain.repository.CircumferenceRepository
 import io.github.lopezjavier.appfitness.domain.repository.CoachPingRepository
+import io.github.lopezjavier.appfitness.domain.repository.CoachPlanRepository
 import io.github.lopezjavier.appfitness.domain.repository.CoachRepository
 import io.github.lopezjavier.appfitness.domain.repository.CoachUsageRepository
 import io.github.lopezjavier.appfitness.domain.repository.DiscomfortRepository
@@ -128,7 +131,6 @@ import io.github.lopezjavier.appfitness.domain.usecase.SearchExercises
 import io.github.lopezjavier.appfitness.domain.usecase.SignInWithGoogle
 import io.github.lopezjavier.appfitness.domain.usecase.SyncHealthData
 import io.github.lopezjavier.appfitness.domain.usecase.SyncHealthMeasurements
-import io.github.lopezjavier.appfitness.domain.usecase.TargetDistance
 import io.github.lopezjavier.appfitness.domain.usecase.ValidateBodyMeasurement
 import io.github.lopezjavier.appfitness.domain.usecase.ValidateCircumference
 import io.github.lopezjavier.appfitness.domain.usecase.ValidateMealSlots
@@ -296,6 +298,14 @@ val sharedModule =
                 UnconfiguredCoachRepository()
             }
         }
+        single<CoachPlanRepository> {
+            if (get<AppConfig>().isSupabaseConfigured) {
+                val client = get<SupabaseClient>()
+                SupabaseCoachPlanRepository(client.auth, client.postgrest, client.functions)
+            } else {
+                UnconfiguredCoachPlanRepository()
+            }
+        }
         single<CoachPingRepository> {
             if (get<AppConfig>().isSupabaseConfigured) {
                 val client = get<SupabaseClient>()
@@ -397,7 +407,6 @@ val sharedModule =
         factory { ValidateCircumference() }
         factory { WaistHipRatio() }
         factory { Bmi() }
-        factory { TargetDistance() }
         factory { InterpretMetric(get()) }
         factory { MeasurementsByDay() }
         factory { CurrentWeight() }

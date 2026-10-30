@@ -64,10 +64,6 @@ class UnconfiguredProfileRepository : ProfileRepository {
 
     override suspend fun updateDisplayName(name: String): Result<Unit> = Result.failure(AppException(AppError.Unknown))
 
-    override suspend fun getTargetWeight(): Result<Double?> = Result.failure(AppException(AppError.Unknown))
-
-    override suspend fun setTargetWeight(kg: Double?): Result<Unit> = Result.failure(AppException(AppError.Unknown))
-
     override suspend fun getCheckInWeekday(): Result<Int> = Result.failure(AppException(AppError.Unknown))
 
     override suspend fun setCheckInWeekday(weekday: Int): Result<Unit> = Result.failure(AppException(AppError.Unknown))

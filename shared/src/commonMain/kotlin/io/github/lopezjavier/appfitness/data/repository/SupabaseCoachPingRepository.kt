@@ -4,10 +4,10 @@ import io.github.jan.supabase.auth.Auth
 import io.github.jan.supabase.exceptions.RestException
 import io.github.jan.supabase.functions.Functions
 import io.github.lopezjavier.appfitness.data.remote.CoachErrorParser
+import io.github.lopezjavier.appfitness.data.remote.CoachStreamParser
 import io.github.lopezjavier.appfitness.domain.AppError
 import io.github.lopezjavier.appfitness.domain.AppException
 import io.github.lopezjavier.appfitness.domain.model.CoachException
-import io.github.lopezjavier.appfitness.domain.model.CoachFailure
 import io.github.lopezjavier.appfitness.domain.repository.CoachPingRepository
 import io.ktor.client.request.setBody
 import io.ktor.client.statement.bodyAsText
@@ -30,27 +30,13 @@ class SupabaseCoachPingRepository(private val auth: Auth, private val functions:
                 contentType(ContentType.Application.Json)
                 setBody("""{"kind":"ping"}""")
             }.bodyAsText()
-            parseStream(body)
+            CoachStreamParser.parse(body).map {}
         } catch (cancellation: CancellationException) {
             throw cancellation
         } catch (failure: RestException) {
             Result.failure(CoachException(CoachErrorParser.parse(failure.description ?: failure.error)))
         } catch (failure: Exception) {
             Result.failure(AppException(failure.toAppError(), failure))
-        }
-    }
-
-    private fun parseStream(text: String): Result<Unit> {
-        val frames = text.split("\n\n").map { it.lines() }
-        val error = frames.firstOrNull { it.contains("event: error") }
-        if (error != null) {
-            val data = error.firstOrNull { it.startsWith("data:") }?.removePrefix("data:")?.trim().orEmpty()
-            return Result.failure(CoachException(CoachErrorParser.parse(data)))
-        }
-        return if (frames.any { it.contains("event: done") }) {
-            Result.success(Unit)
-        } else {
-            Result.failure(CoachException(CoachFailure.Other))
         }
     }
 }
