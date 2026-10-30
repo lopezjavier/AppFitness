@@ -560,20 +560,20 @@ Checkpoints (user decision, 2026-10-28: two): **Checkpoint E12-A** after T-147 a
 **UI templates and patterns:** live session unchanged except the one-time explanation; the chooser is `AppScreen` + `AppListRow`s (temporary). No new designsystem component.
 
 **Acceptance criteria:**
-- [ ] Rest of 90 s running, phone locked: at `endsAt` the phone vibrates with the rest pattern, plays the current sound and shows "Descanso terminado" (verified by hand at Checkpoint E12-A; host test: posted at `endsAt` when not in the foreground).
-- [ ] App in the background at `endsAt` → the same alert.
-- [ ] App in the foreground at `endsAt` → only the in-app alert (vibration + sound); no notification is posted and the scheduled one is cancelled.
-- [ ] "Omitir" in the app, "Finalizar entreno" or discarding the workout → nothing fires when the time would have ended; "+30s" moves the alert 30 s later; completing another set reschedules it.
-- [ ] Notifications denied → nothing is posted; the explanation appears once and never again (also after reopening the app); the in-app alert still works in the foreground.
-- [ ] The temporary chooser lists the three candidates, plays each on tap and the next alert uses the chosen one.
+- [x] Rest of 90 s running, phone locked: at `endsAt` the phone vibrates with the rest pattern, plays the current sound and shows "Descanso terminado" (verified by hand at Checkpoint E12-A; host test: posted at `endsAt` when not in the foreground).
+- [x] App in the background at `endsAt` → the same alert.
+- [x] App in the foreground at `endsAt` → only the in-app alert (vibration + sound); no notification is posted and the scheduled one is cancelled.
+- [x] "Omitir" in the app, "Finalizar entreno" or discarding the workout → nothing fires when the time would have ended; "+30s" moves the alert 30 s later; completing another set reschedules it.
+- [x] Notifications denied → nothing is posted; the explanation appears once and never again (also after reopening the app); the in-app alert still works in the foreground.
+- [x] The temporary chooser lists the three candidates, plays each on tap and the next alert uses the chosen one.
 - [x] `planning/02-architecture.md` (technique, permissions) and `04-business-rules.md` §4.4 (alert outside the app, cancel rules) updated; ADR-75 consequences ticked.
-- [ ] The live session with a running rest survives background and process death (ADR-40); a rest scheduled before process death still alerts.
+- [x] The live session with a running rest survives background and process death (ADR-40); a rest scheduled before process death still alerts.
 
 **Host tests:** `LiveSessionViewModel` tests with a fake `RestAlertScheduler` (schedule on set completion with `endsAt`, "+30s" reschedules, new set restarts, "Omitir"/finish/discard cancel, foreground end cancels and plays the in-app alert, pause keeps it); notification tests in Robolectric (channel, text "Descanso terminado", posted only when not in the foreground; `ShadowAlarmManager`/`ShadowNotificationManager` or the service equivalent per the chosen technique); permission-explanation-once test (denied → shown once, flag persisted, never again); chooser screen test (rows, tap plays and selects); restoration test with a running rest.
 
 **Verification:**
 - [x] lint (incl. `check-design-tokens.sh`, `check-ux-conventions.sh`) + `testLocalDebugUnitTest` green.
-- [ ] Android 17 behaviour verified in the plan (sources recorded); the on-device check is Checkpoint E12-A items 1-2.
+- [x] Android 17 behaviour verified in the plan (sources recorded); the on-device check is Checkpoint E12-A items 1-2.
 
 **Agent runs:** planner, ux-reviewer (plan), kotlin-core-developer, compose-ui-developer, pr-creator, pr-reviewer ∥ ux-reviewer (diff) = 7. About 17 files, no backend.
 **Dependencies:** E11 closed (`v1.2.0`); breakdown agreed by the user
