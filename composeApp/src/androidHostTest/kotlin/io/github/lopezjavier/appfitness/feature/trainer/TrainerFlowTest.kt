@@ -317,7 +317,7 @@ class TrainerFlowTest {
         rule.setContent {
             App(
                 rootRoute = RootRoute.Main,
-                trainer = { modifier, open ->
+                trainer = { modifier, open, _ ->
                     TrainerRoute(modifier, open, viewModel = model, connectivity = connectivity)
                 },
                 coachUsage = { modifier, onBack ->

@@ -3,7 +3,6 @@ package io.github.lopezjavier.appfitness.feature.weight
 import androidx.lifecycle.SavedStateHandle
 import io.github.lopezjavier.appfitness.app.FakeClock
 import io.github.lopezjavier.appfitness.app.FakeNutritionGoalsRepository
-import io.github.lopezjavier.appfitness.app.FakeProfileRepository
 import io.github.lopezjavier.appfitness.domain.AppError
 import io.github.lopezjavier.appfitness.domain.AppException
 import io.github.lopezjavier.appfitness.domain.model.BodyCircumference
@@ -13,11 +12,13 @@ import io.github.lopezjavier.appfitness.domain.model.CircumferenceSite
 import io.github.lopezjavier.appfitness.domain.model.GoalStrategy
 import io.github.lopezjavier.appfitness.domain.model.MeasurementSource
 import io.github.lopezjavier.appfitness.domain.model.NutritionGoals
-import io.github.lopezjavier.appfitness.domain.model.ProfileSummary
+import io.github.lopezjavier.appfitness.domain.model.PlanStatus
 import io.github.lopezjavier.appfitness.domain.repository.WeightChartPreferences
 import io.github.lopezjavier.appfitness.domain.usecase.RateTone
 import io.github.lopezjavier.appfitness.domain.usecase.WeightChartRange
 import io.github.lopezjavier.appfitness.domain.usecase.WeightTrend
+import io.github.lopezjavier.appfitness.feature.trainer.FakeCoachPlanRepository
+import io.github.lopezjavier.appfitness.feature.trainer.coachPlan
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
@@ -69,7 +70,11 @@ class WeightTrendViewModelTest {
         NutritionGoals(GoalStrategy.Deficit, calorieAdjustment = -500, targetKcal = 2000),
     )
 
-    private val profile = FakeProfileRepository(Result.success(ProfileSummary("Ana", null, true)))
+    private val plans = FakeCoachPlanRepository()
+
+    private fun acceptedPlanWithWeightTarget(kg: Double?) {
+        plans.accepted = Result.success(coachPlan(status = PlanStatus.Accepted, weightTarget = kg))
+    }
 
     @BeforeTest
     fun setUp() = Dispatchers.setMain(dispatcher)
@@ -106,7 +111,7 @@ class WeightTrendViewModelTest {
             measurements = repository,
             circumferences = circumferences,
             goals = goals,
-            profile = profile,
+            plans = plans,
             preferences = prefs,
             weightTrend = WeightTrend(),
             clock = clock,
@@ -121,8 +126,8 @@ class WeightTrendViewModelTest {
     }
 
     @Test
-    fun targetKg_comesFromTheProfile() = runTest(dispatcher) {
-        profile.targetWeight = Result.success(72.5)
+    fun targetKg_isTheAcceptedPlansWeightOutcome() = runTest(dispatcher) {
+        acceptedPlanWithWeightTarget(72.5)
         val vm = viewModel(FakeWeightRepository(*series(80.0, 0.0).toTypedArray()))
         advanceUntilIdle()
 
@@ -130,15 +135,29 @@ class WeightTrendViewModelTest {
     }
 
     @Test
-    fun targetKg_isNullWithoutATargetOrWhenTheReadFails() = runTest(dispatcher) {
-        profile.targetWeight = Result.success(null)
+    fun targetKg_isNullWithoutAPlan() = runTest(dispatcher) {
+        plans.accepted = Result.success(null)
         val vm = viewModel(FakeWeightRepository(*series(80.0, 0.0).toTypedArray()))
         advanceUntilIdle()
-        assertNull(vm.content().targetKg)
 
-        profile.targetWeight = Result.failure(AppException(AppError.Network))
-        vm.onEvent(WeightTrendEvent.Refresh)
+        assertNull(vm.content().targetKg)
+    }
+
+    @Test
+    fun targetKg_isNullWhenThePlanHasNoWeightOutcome() = runTest(dispatcher) {
+        acceptedPlanWithWeightTarget(null)
+        val vm = viewModel(FakeWeightRepository(*series(80.0, 0.0).toTypedArray()))
         advanceUntilIdle()
+
+        assertNull(vm.content().targetKg)
+    }
+
+    @Test
+    fun targetKg_isNullWhenThePlanReadFails_andTheChartStillRenders() = runTest(dispatcher) {
+        plans.accepted = Result.failure(AppException(AppError.Network))
+        val vm = viewModel(FakeWeightRepository(*series(80.0, 0.0).toTypedArray()))
+        advanceUntilIdle()
+
         assertNull(vm.content().targetKg)
         assertEquals(20, vm.content().trend.points.size)
     }
@@ -154,11 +173,11 @@ class WeightTrendViewModelTest {
 
     @Test
     fun refresh_picksUpAChangedTarget() = runTest(dispatcher) {
-        profile.targetWeight = Result.success(72.5)
+        acceptedPlanWithWeightTarget(72.5)
         val vm = viewModel(FakeWeightRepository(*series(80.0, 0.0).toTypedArray()))
         advanceUntilIdle()
 
-        profile.targetWeight = Result.success(70.0)
+        acceptedPlanWithWeightTarget(70.0)
         vm.onEvent(WeightTrendEvent.Refresh)
         advanceUntilIdle()
 
@@ -346,7 +365,7 @@ class WeightTrendViewModelTest {
 
     @Test
     fun defaultMetric_isWeightWithTarget() = runTest(dispatcher) {
-        profile.targetWeight = Result.success(72.5)
+        acceptedPlanWithWeightTarget(72.5)
         val vm = viewModel(FakeWeightRepository(*series(80.0, 0.0).toTypedArray()))
         advanceUntilIdle()
 
@@ -356,7 +375,7 @@ class WeightTrendViewModelTest {
 
     @Test
     fun selectingBodyFat_savesItAndShowsItsSeriesWithoutTarget() = runTest(dispatcher) {
-        profile.targetWeight = Result.success(72.5)
+        acceptedPlanWithWeightTarget(72.5)
         val rows = (0..9).map { fatMeasurement(LocalDate.fromEpochDays(today.toEpochDays() - it), 80.0, 20.0 + it) }
         val vm = viewModel(FakeWeightRepository(*rows.toTypedArray()))
         advanceUntilIdle()

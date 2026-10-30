@@ -4,7 +4,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
@@ -16,7 +15,6 @@ import io.github.lopezjavier.appfitness.app.WeightEntryTarget
 import io.github.lopezjavier.appfitness.composeapp.resources.Res
 import io.github.lopezjavier.appfitness.composeapp.resources.delete_failed
 import io.github.lopezjavier.appfitness.composeapp.resources.delete_offline
-import io.github.lopezjavier.appfitness.composeapp.resources.goal_target_save_error
 import io.github.lopezjavier.appfitness.composeapp.resources.weight_delete_error
 import io.github.lopezjavier.appfitness.composeapp.resources.weight_delete_error_offline
 import io.github.lopezjavier.appfitness.composeapp.resources.weight_save_error
@@ -55,7 +53,6 @@ fun WeightRoot(
     val launcher = launcherFor { granted -> healthSyncViewModel.onEvent(HealthSyncEvent.PermissionResult(granted)) }
     CollectWeightEffects(viewModel, onRemindersChange)
     CollectCircumferenceEffects(circumferencesViewModel.effects, onRemindersChange)
-    CollectGoalEffects(goalViewModel.effects)
     CollectHealthEffects(healthSyncViewModel, viewModel, trendViewModel, launcher, onRemindersChange)
     // A saved, edited or deleted weight changes the latest reading or the month's days: the trend reloads.
     val measurements = (state as? WeightUiState.Content)?.content?.let { it.current to it.days }
@@ -64,12 +61,6 @@ fun WeightRoot(
             trendViewModel.onEvent(WeightTrendEvent.Refresh)
             goalViewModel.onEvent(GoalEvent.Refresh)
         }
-    }
-    // A saved goal changes the dashed target line of the chart.
-    val goalTarget = (goal as? GoalUiState.Content)?.content?.targetKg
-    var firstTarget by remember { mutableStateOf(true) }
-    LaunchedEffect(goalTarget) {
-        if (firstTarget) firstTarget = false else trendViewModel.onEvent(WeightTrendEvent.Refresh)
     }
     OpenRequestedEntry(
         target = openEntry,
@@ -219,26 +210,6 @@ private fun CollectCircumferenceEffects(effects: Flow<CircumferencesEffect>, onR
                 }
 
                 is CircumferencesEffect.SaveFailed -> {
-                    haptics.reject()
-                    appMessages.show(if (effect.offline) saveOffline else saveFailed)
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun CollectGoalEffects(effects: Flow<GoalEffect>) {
-    val saveFailed = stringResource(Res.string.goal_target_save_error)
-    val saveOffline = offlineHint("guardar")
-    val appMessages = LocalAppMessages.current
-    val haptics = LocalAppHaptics.current
-    LaunchedEffect(effects) {
-        effects.collect { effect ->
-            when (effect) {
-                GoalEffect.Saved -> haptics.confirm()
-
-                is GoalEffect.SaveFailed -> {
                     haptics.reject()
                     appMessages.show(if (effect.offline) saveOffline else saveFailed)
                 }

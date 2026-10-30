@@ -4,14 +4,11 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
-import androidx.compose.ui.semantics.SemanticsProperties
-import androidx.compose.ui.semantics.getOrNull
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.StateRestorationTester
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
-import androidx.compose.ui.test.performTextReplacement
 import androidx.lifecycle.SavedStateHandle
 import io.github.lopezjavier.appfitness.app.FakeConnectivityObserver
 import io.github.lopezjavier.appfitness.app.FakeNutritionGoalsRepository
@@ -27,12 +24,10 @@ import io.github.lopezjavier.appfitness.domain.usecase.Bmi
 import io.github.lopezjavier.appfitness.domain.usecase.InterpretMetric
 import io.github.lopezjavier.appfitness.domain.usecase.MeasurementsByDay
 import io.github.lopezjavier.appfitness.domain.usecase.SaveBodyMeasurement
-import io.github.lopezjavier.appfitness.domain.usecase.TargetDistance
 import io.github.lopezjavier.appfitness.domain.usecase.ValidateBodyMeasurement
 import io.github.lopezjavier.appfitness.domain.usecase.WaistHipRatio
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.TimeZone
-import org.junit.Assert.assertEquals
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -68,7 +63,6 @@ class GoalRestorationTest {
 
     init {
         profile.biometrics = Result.success(SavedBiometrics(sex = Sex.Male, heightCm = 178))
-        profile.targetWeight = Result.success(70.0)
         weights.onboarding =
             BodyMeasurement("start", Instant.parse("2026-09-01T08:00:00Z"), 78.0, MeasurementSource.Manual)
     }
@@ -85,9 +79,8 @@ class GoalRestorationTest {
     )
 
     private fun goalModel(state: SavedStateHandle) = GoalViewModel(
-        profile, weights, goals, FakeCircumferenceRepository(), Bmi(), TargetDistance(),
-        InterpretMetric(), WaistHipRatio(), ValidateBodyMeasurement(),
-        FakeConnectivityObserver(), state,
+        profile, weights, goals, FakeCircumferenceRepository(), Bmi(),
+        InterpretMetric(), WaistHipRatio(), FakeConnectivityObserver(), state,
     )
 
     @Composable
@@ -114,25 +107,6 @@ class GoalRestorationTest {
         rule.waitForIdle()
     }
 
-    private fun editableText(tag: String): String =
-        rule.onNodeWithTag(tag).fetchSemanticsNode().config.getOrNull(SemanticsProperties.EditableText)?.text.orEmpty()
-
-    @Test
-    fun targetSheet_keepsItsDraft_afterRecreation() {
-        val state = SavedStateHandle()
-        val tester = StateRestorationTester(rule)
-        tester.setContent { Host(state) }
-        rule.waitForIdle()
-        tap("weight_goal_change_button")
-        rule.onNodeWithTag("weight_target_field").performTextReplacement("66,5")
-        rule.waitForIdle()
-
-        tester.emulateSavedInstanceStateRestore()
-        rule.waitForIdle()
-
-        assertEquals("66,5", editableText("weight_target_field"))
-    }
-
     @Test
     fun metricDetail_staysOpen_afterRecreation() {
         val state = SavedStateHandle()
@@ -157,7 +131,6 @@ class GoalRestorationTest {
         tester.emulateSavedInstanceStateRestore()
         rule.waitForIdle()
 
-        rule.onNodeWithTag("weight_target_sheet").assertDoesNotExist()
         rule.onNodeWithTag("weight_metric_sheet").assertDoesNotExist()
     }
 }

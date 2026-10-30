@@ -70,6 +70,10 @@ data object AccountRoute : AppRoute
 @Serializable
 data object CoachUsageRoute : AppRoute
 
+/** The nutrition plan proposal (US-69): request, review and accept or discard, opened from the Trainer tab. */
+@Serializable
+data object PlanProposalRoute : AppRoute
+
 /** "Acerca de": app name, version, credits and open-source licences, opened from the Perfil root (US-45). */
 @Serializable
 data object AboutRoute : AppRoute
@@ -370,6 +374,7 @@ object AppDestinations {
             WeightHistoryRoute,
             AboutRoute,
             CoachUsageRoute,
+            PlanProposalRoute,
             NotificationCenterRoute,
             CheckInRoute,
         )

@@ -12,12 +12,10 @@ import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
 import io.github.lopezjavier.appfitness.app.FakeConnectivityObserver
 import io.github.lopezjavier.appfitness.app.FakeNutritionGoalsRepository
-import io.github.lopezjavier.appfitness.app.FakeProfileRepository
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
 import io.github.lopezjavier.appfitness.domain.model.BodyMeasurement
 import io.github.lopezjavier.appfitness.domain.model.BodyMetric
 import io.github.lopezjavier.appfitness.domain.model.MeasurementSource
-import io.github.lopezjavier.appfitness.domain.model.ProfileSummary
 import io.github.lopezjavier.appfitness.domain.port.Clock
 import io.github.lopezjavier.appfitness.domain.repository.WeightChartPreferences
 import io.github.lopezjavier.appfitness.domain.usecase.MeasurementsByDay
@@ -25,6 +23,7 @@ import io.github.lopezjavier.appfitness.domain.usecase.SaveBodyMeasurement
 import io.github.lopezjavier.appfitness.domain.usecase.ValidateBodyMeasurement
 import io.github.lopezjavier.appfitness.domain.usecase.WeightChartRange
 import io.github.lopezjavier.appfitness.domain.usecase.WeightTrend
+import io.github.lopezjavier.appfitness.feature.trainer.FakeCoachPlanRepository
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.datetime.LocalDate
@@ -105,7 +104,7 @@ class WeightDeleteOldTest {
             measurements = repository,
             circumferences = FakeCircumferenceRepository(),
             goals = FakeNutritionGoalsRepository(null),
-            profile = FakeProfileRepository(Result.success(ProfileSummary("Ana", null, true))),
+            plans = FakeCoachPlanRepository(),
             preferences = Prefs(),
             weightTrend = WeightTrend(),
             clock = DeleteClock,

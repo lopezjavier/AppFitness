@@ -26,6 +26,10 @@ import androidx.compose.ui.semantics.semantics
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.github.lopezjavier.appfitness.composeapp.resources.Res
 import io.github.lopezjavier.appfitness.composeapp.resources.action_retry
+import io.github.lopezjavier.appfitness.composeapp.resources.calorie_change_accept_error
+import io.github.lopezjavier.appfitness.composeapp.resources.calorie_change_accept_offline
+import io.github.lopezjavier.appfitness.composeapp.resources.calorie_change_discard_error
+import io.github.lopezjavier.appfitness.composeapp.resources.calorie_change_discard_offline
 import io.github.lopezjavier.appfitness.composeapp.resources.coach_usage_title
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_info
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_more_vert
@@ -48,6 +52,7 @@ import io.github.lopezjavier.appfitness.designsystem.LocalAppMessages
 import io.github.lopezjavier.appfitness.designsystem.OfflineState
 import io.github.lopezjavier.appfitness.designsystem.SkeletonBox
 import io.github.lopezjavier.appfitness.designsystem.Spacing
+import io.github.lopezjavier.appfitness.designsystem.offlineHint
 import io.github.lopezjavier.appfitness.domain.port.ConnectivityObserver
 import io.github.lopezjavier.appfitness.feature.notifications.NotificationsBell
 import kotlinx.coroutines.flow.Flow
@@ -63,6 +68,7 @@ private const val TITLE_FRACTION = 0.4f
 fun TrainerRoute(
     modifier: Modifier = Modifier,
     onOpenCoachUsage: () -> Unit = {},
+    onOpenPlan: () -> Unit = {},
     viewModel: TrainerViewModel = koinViewModel(),
     connectivity: ConnectivityObserver = koinInject(),
 ) {
@@ -71,6 +77,10 @@ fun TrainerRoute(
     val messages = LocalAppMessages.current
     val confirmError = stringResource(Res.string.trainer_confirm_error)
     val saveError = stringResource(Res.string.trainer_save_error)
+    val acceptChangeError = stringResource(Res.string.calorie_change_accept_error)
+    val discardChangeError = stringResource(Res.string.calorie_change_discard_error)
+    val acceptOffline = offlineHint(stringResource(Res.string.calorie_change_accept_offline)) + "."
+    val discardOffline = offlineHint(stringResource(Res.string.calorie_change_discard_offline)) + "."
     val latestHaptics by rememberUpdatedState(haptics)
     LaunchedEffect(viewModel) {
         viewModel.effects.collect { effect ->
@@ -81,6 +91,19 @@ fun TrainerRoute(
                     latestHaptics.reject()
                     messages.show(if (effect.fromSheet) saveError else confirmError)
                 }
+
+                is TrainerEffect.CalorieChangeDecided -> latestHaptics.confirm()
+
+                is TrainerEffect.CalorieChangeFailed -> {
+                    latestHaptics.reject()
+                    messages.show(
+                        when {
+                            effect.offline -> if (effect.accept) acceptOffline else discardOffline
+                            effect.accept -> acceptChangeError
+                            else -> discardChangeError
+                        },
+                    )
+                }
             }
         }
     }
@@ -90,12 +113,14 @@ fun TrainerRoute(
         onEvent = viewModel::onEvent,
         modifier = modifier,
         onOpenCoachUsage = onOpenCoachUsage,
+        onOpenPlan = onOpenPlan,
     )
 }
 
 /**
- * The Trainer tab root (US-68, US-69) on [AppScreen] with the compact header: the derived-values card, or its
- * skeleton, the load error with "Reintentar" or the offline state. The activity-level sheet floats over the card.
+ * The Trainer tab root (US-68, US-69) on [AppScreen] with the compact header: the pending calorie change, the
+ * derived-values card (or its skeleton), the plan entry, the load error with "Reintentar" or the offline state.
+ * The activity-level sheet floats over the card.
  */
 @Composable
 fun TrainerScreen(
@@ -104,6 +129,7 @@ fun TrainerScreen(
     onEvent: (TrainerEvent) -> Unit,
     modifier: Modifier = Modifier,
     onOpenCoachUsage: () -> Unit = {},
+    onOpenPlan: () -> Unit = {},
 ) {
     val title = stringResource(Res.string.trainer_title)
     val online by isOnline.collectAsStateWithLifecycle(initialValue = true)
@@ -132,18 +158,24 @@ fun TrainerScreen(
                     OfflineState(isOnline = isOnline, onReload = { onEvent(TrainerEvent.Retry) })
                 }
 
-                is TrainerUiState.Content -> TrainerContent(state, online, onEvent)
+                is TrainerUiState.Content -> TrainerContent(state, online, onEvent, onOpenPlan)
             }
         }
     }
 }
 
 @Composable
-private fun TrainerContent(state: TrainerUiState.Content, online: Boolean, onEvent: (TrainerEvent) -> Unit) {
+private fun TrainerContent(
+    state: TrainerUiState.Content,
+    online: Boolean,
+    onEvent: (TrainerEvent) -> Unit,
+    onOpenPlan: () -> Unit,
+) {
     Column(
         Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(Spacing.screenMargin),
         verticalArrangement = Arrangement.spacedBy(Spacing.blockGap),
     ) {
+        state.calorieChange?.let { CalorieChangeCard(it, state.decidingChange, online, onEvent) }
         DerivedValuesCard(
             values = state.values,
             confirming = state.confirming,
@@ -152,6 +184,7 @@ private fun TrainerContent(state: TrainerUiState.Content, online: Boolean, onEve
             onEdit = { onEvent(TrainerEvent.OpenEdit) },
             onConfirm = { onEvent(TrainerEvent.Confirm) },
         )
+        PlanSection(state.plan, online, onOpenPlan)
     }
     if (state.editSheet != null) {
         ActivityLevelSheet(

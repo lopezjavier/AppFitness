@@ -38,7 +38,8 @@ import io.github.lopezjavier.appfitness.feature.workout.PastWorkoutSource
 import kotlinx.datetime.LocalDate
 
 /** Content of the Trainer root: its modifier (tab insets). */
-internal typealias TrainerSlot = @Composable (modifier: Modifier, onOpenCoachUsage: () -> Unit) -> Unit
+internal typealias TrainerSlot =
+    @Composable (modifier: Modifier, onOpenCoachUsage: () -> Unit, onOpenPlan: () -> Unit) -> Unit
 
 /**
  * Content of the Perfil root: its modifier (tab insets) and the openers of its destinations ([ProfileRootActions];
@@ -51,6 +52,9 @@ internal typealias ActivitySlot = @Composable (modifier: Modifier, onBack: () ->
 
 /** Content of "Acerca de": its modifier (full-screen insets) and how to leave. */
 internal typealias CoachUsageSlot = @Composable (modifier: Modifier, onBack: () -> Unit) -> Unit
+
+/** Content of the plan proposal: its modifier (full-screen insets) and how to leave. */
+internal typealias PlanProposalSlot = @Composable (modifier: Modifier, onBack: () -> Unit) -> Unit
 internal typealias AboutSlot = @Composable (modifier: Modifier, onBack: () -> Unit) -> Unit
 
 /**
@@ -390,7 +394,7 @@ internal val DefaultProfileSlot: ProfileSlot = { modifier, actions ->
 }
 
 /** Empty Trainer root for previews and shell tests; the real one is wired by `AppRoot`. */
-internal val DefaultTrainerSlot: TrainerSlot = { modifier, _ ->
+internal val DefaultTrainerSlot: TrainerSlot = { modifier, _, _ ->
     Box(modifier.fillMaxSize().testTag("trainer_screen"))
 }
 
@@ -555,6 +559,11 @@ internal val DefaultCoachUsageSlot: CoachUsageSlot = { modifier, _ ->
     Box(modifier.fillMaxSize().testTag("coach_usage_screen"))
 }
 
+/** Empty plan proposal for previews and shell tests; the real one is wired by `AppRoot`. */
+internal val DefaultPlanProposalSlot: PlanProposalSlot = { modifier, _ ->
+    Box(modifier.fillMaxSize().testTag("plan_proposal_screen"))
+}
+
 /** Empty "Acerca de" for previews and shell tests; the real one is wired by `AppRoot`. */
 internal val DefaultAboutSlot: AboutSlot = { modifier, _ ->
     Box(modifier.fillMaxSize().testTag("about_screen"))
@@ -580,6 +589,7 @@ internal fun AppNavHost(
     account: AccountSlot = DefaultAccountSlot,
     about: AboutSlot = DefaultAboutSlot,
     coachUsage: CoachUsageSlot = DefaultCoachUsageSlot,
+    planProposal: PlanProposalSlot = DefaultPlanProposalSlot,
     activity: ActivitySlot = DefaultActivitySlot,
     exercisePicker: ExercisePickerSlot = DefaultExercisePickerSlot,
     exerciseDetail: ExerciseDetailSlot = DefaultExerciseDetailSlot,
@@ -633,6 +643,7 @@ internal fun AppNavHost(
     val openActivity = remember(navController) { { navController.navigateToFullScreen(ActivityRoute) } }
     val openAbout = remember(navController) { { navController.navigateToFullScreen(AboutRoute) } }
     val openCoachUsage = remember(navController) { { navController.navigateToFullScreen(CoachUsageRoute) } }
+    val openPlan = remember(navController) { { navController.navigateToFullScreen(PlanProposalRoute) } }
     val openMyTraining = remember(navController) {
         { navController.navigateToFullScreen(PreferencesSectionRoute(PreferencesSection.MyTraining.key)) }
     }
@@ -702,7 +713,7 @@ internal fun AppNavHost(
             }
         }
         navigation<TrainerGraph>(startDestination = TopLevelTab.Trainer.startRoute) {
-            composable<TrainerHome> { trainer(Modifier.padding(tabPadding), openCoachUsage) }
+            composable<TrainerHome> { trainer(Modifier.padding(tabPadding), openCoachUsage, openPlan) }
         }
         navigation<ProfileGraph>(startDestination = TopLevelTab.Profile.startRoute) {
             composable<ProfileHome> {
@@ -727,6 +738,9 @@ internal fun AppNavHost(
         }
         composable<CoachUsageRoute> { entry ->
             coachUsage(Modifier.padding(fullScreenPadding)) { navController.popFullScreen(entry) }
+        }
+        composable<PlanProposalRoute> { entry ->
+            planProposal(Modifier.padding(fullScreenPadding)) { navController.popFullScreen(entry) }
         }
         composable<AboutRoute> { entry ->
             about(Modifier.padding(fullScreenPadding)) { navController.popFullScreen(entry) }

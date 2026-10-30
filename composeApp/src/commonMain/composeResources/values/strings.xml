@@ -1209,7 +1209,6 @@
     <string name="weight_chart_metric_title_cd">Métrica del gráfico: %1$s. Cambiar</string>
     <string name="weight_chart_metric_picker_title">Métrica del gráfico</string>
     <string name="weight_chart_summary_goal">Objetivo %1$s kg; peso inicial %2$s kg.</string>
-    <string name="goal_progress_cd">Progreso hacia el objetivo, %1$s %</string>
     <string name="weight_chart_legend">Media 7 días</string>
     <string name="weight_chart_empty">Registra tu peso varios días para ver la tendencia</string>
     <string name="weight_chart_empty_metric">%1$s: sin datos en este periodo. Regístralos para ver la tendencia</string>
@@ -1232,22 +1231,6 @@
     <string name="weight_chart_detail_value">%1$s: %2$s</string>
     <string name="weight_chart_detail_ma7">Media 7 días: %1$s</string>
     <string name="weight_chart_detail_ma7_none">Media 7 días: sin datos</string>
-    <string name="goal_card_title">Objetivo</string>
-    <string name="goal_card_empty_value">Sin fijar</string>
-    <string name="goal_card_set">Fijar objetivo</string>
-    <string name="goal_card_change_cd">Editar objetivo</string>
-    <string name="goal_card_empty_hint">Fija un peso objetivo para ver cuánto te falta.</string>
-    <string name="goal_target_value">%1$s kg</string>
-    <string name="goal_distance_remaining">faltan %1$s kg</string>
-    <string name="goal_distance_reached">objetivo alcanzado</string>
-    <string name="goal_distance_above">%1$s kg por encima del objetivo</string>
-    <string name="goal_distance_below">%1$s kg por debajo del objetivo</string>
-    <string name="goal_since_first">Desde tu primer peso: %1$s kg</string>
-    <string name="goal_error_message">No se pudo cargar tu objetivo</string>
-    <string name="goal_target_sheet_title">Objetivo de peso</string>
-    <string name="goal_target_field_label">Peso objetivo (kg)</string>
-    <string name="goal_target_range">El objetivo debe estar entre 20 y 400 kg</string>
-    <string name="goal_target_save_error">No se pudo guardar el objetivo. Inténtalo de nuevo.</string>
     <string name="metric_bmi_label">IMC</string>
     <string name="metric_body_fat_label">Grasa corporal</string>
     <string name="metric_whr_label">Relación cintura-cadera</string>
@@ -1465,7 +1448,6 @@
         <item quantity="other">%1$d discos de %2$s kg por lado</item>
     </plurals>
     <string name="live_calc_working_weight">Peso objetivo (kg)</string>
-    <string name="live_calc_target_weight">Peso objetivo</string>
     <string name="live_calc_bar_title">Barra</string>
     <string name="live_calc_warm_up_row">%1$s kg × %2$d</string>
     <string name="live_calc_warm_up_row_cd">Calentamiento %1$d: %2$s kilos, %3$d repeticiones</string>
@@ -1739,7 +1721,7 @@
     <string name="trainer_title">Trainer</string>
     <string name="trainer_card_title">Tus valores</string>
     <string name="trainer_help_cd">Ayuda: tus valores</string>
-    <string name="trainer_help_body">El entrenador usa estos valores para ajustar tu plan. Se calculan con tus datos y puedes corregir el nivel de actividad. Esto solo lo usa el entrenador; tu objetivo calórico del Diario no cambia.</string>
+    <string name="trainer_help_body">El entrenador usa estos valores para preparar tu plan. Se calculan con tus datos y puedes corregir el nivel de actividad. Tus objetivos del Diario solo cambian cuando aceptas un plan.</string>
     <string name="trainer_row_activity_level">Nivel de actividad</string>
     <string name="trainer_row_total_expenditure">Gasto calórico total</string>
     <string name="trainer_row_weight_trend">Tendencia de peso</string>
@@ -1802,4 +1784,56 @@
 
     <!-- TEMPORARY (T-146, removed by T-148): end-of-rest sound chooser and the notification-permission message. -->
     <string name="rest_sound_permission_note">Para avisarte al acabar el descanso con la pantalla apagada, activa las notificaciones de AppFitness en Ajustes.</string>
+
+    <!-- T-162: nutrition plan proposal, plan entry on the Trainer tab, calorie-change card, Weight plan outcome. -->
+    <string name="action_accept">Aceptar</string>
+    <string name="trainer_plan_section">Tu plan</string>
+    <string name="trainer_plan_create">Crear plan</string>
+    <string name="trainer_plan_create_action">crear el plan</string>
+    <string name="trainer_plan_pending_title">Plan pendiente</string>
+    <string name="trainer_plan_pending_supporting">Revísalo y acepta o descarta.</string>
+    <string name="trainer_plan_active_title">Plan activo</string>
+    <string name="trainer_plan_active_line">%1$s kcal al día · %2$s kg/sem</string>
+    <plurals name="trainer_plan_outcomes">
+        <item quantity="one">%1$d objetivo del plan</item>
+        <item quantity="other">%1$d objetivos del plan</item>
+    </plurals>
+    <string name="calorie_change_title">Ajuste de calorías</string>
+    <string name="calorie_change_payload">De %1$s a %2$s kcal al día</string>
+    <string name="calorie_change_reason_faster">Tu peso baja más rápido de lo previsto.</string>
+    <string name="calorie_change_reason_slower">Tu peso baja más despacio de lo previsto.</string>
+    <string name="calorie_change_data">Según tu tendencia: %1$s kg/sem (margen ±%2$s)</string>
+    <string name="calorie_change_data_short">Según tu tendencia: %1$s kg/sem</string>
+    <string name="calorie_change_accept_error">No se pudo aceptar el cambio. Inténtalo de nuevo.</string>
+    <string name="calorie_change_discard_error">No se pudo descartar el cambio. Inténtalo de nuevo.</string>
+    <string name="calorie_change_accept_offline">aceptar el cambio</string>
+    <string name="calorie_change_discard_offline">descartar el cambio</string>
+    <string name="plan_proposal_title">Plan nutricional</string>
+    <string name="plan_proposal_progress">Preparando tu plan…</string>
+    <string name="plan_proposal_progress_cd">Preparando tu plan</string>
+    <string name="plan_proposal_calories">Calorías</string>
+    <string name="plan_proposal_kcal_day">%1$s kcal al día</string>
+    <string name="plan_proposal_grams">%1$s g</string>
+    <string name="plan_proposal_rate">Ritmo semanal</string>
+    <string name="plan_proposal_rate_value">%1$s kg/sem</string>
+    <string name="plan_proposal_rate_help_cd">Ayuda: ritmo semanal</string>
+    <string name="plan_proposal_rate_help_body">Es la variación de peso por semana que busca el plan. Se ajusta a tu tendencia real.</string>
+    <string name="plan_proposal_floor_note">Tu plan se queda en %1$s kcal, el mínimo recomendado. Un ritmo más rápido no sería seguro.</string>
+    <string name="plan_proposal_distribution">Reparte la proteína: unos %1$s g por comida, en %2$s comidas o más.</string>
+    <string name="plan_proposal_outcomes_header">Objetivos del plan</string>
+    <string name="plan_proposal_outcome_weight">Peso: %1$s kg</string>
+    <string name="plan_proposal_outcome_e1rm">Fuerza (e1RM): %1$s kg</string>
+    <string name="plan_outcome_deadline">Para el %1$s</string>
+    <string name="plan_outcome_help_cd">Ayuda: por qué este objetivo</string>
+    <string name="plan_outcome_help_title">Por qué este objetivo</string>
+    <string name="plan_proposal_accept_reason">Confirma tus valores para aceptar el plan.</string>
+    <string name="plan_proposal_accepted">Plan aceptado. Tus objetivos del Diario se han actualizado.</string>
+    <string name="plan_proposal_error">No se pudo crear el plan. Inténtalo de nuevo.</string>
+    <string name="plan_proposal_interrupted">No se recibió el plan. Inténtalo de nuevo.</string>
+    <string name="plan_proposal_accept_error">No se pudo aceptar el plan. Inténtalo de nuevo.</string>
+    <string name="plan_proposal_discard_error">No se pudo descartar el plan. Inténtalo de nuevo.</string>
+    <string name="plan_proposal_accept_offline">aceptar el plan</string>
+    <string name="plan_proposal_discard_offline">descartar el plan</string>
+    <string name="weight_plan_outcome_title">Objetivo del plan</string>
+    <string name="weight_plan_outcome_value">%1$s kg</string>
 </resources>

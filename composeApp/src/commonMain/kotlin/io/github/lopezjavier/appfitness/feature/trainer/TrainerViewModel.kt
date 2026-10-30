@@ -7,7 +7,9 @@ import io.github.lopezjavier.appfitness.domain.AppError
 import io.github.lopezjavier.appfitness.domain.appErrorOrNull
 import io.github.lopezjavier.appfitness.domain.model.ActivityLevel
 import io.github.lopezjavier.appfitness.domain.model.CoachDerivedValues
+import io.github.lopezjavier.appfitness.domain.model.PlanStatus
 import io.github.lopezjavier.appfitness.domain.port.Clock
+import io.github.lopezjavier.appfitness.domain.repository.CoachPlanRepository
 import io.github.lopezjavier.appfitness.domain.repository.CoachRepository
 import io.github.lopezjavier.appfitness.domain.repository.NutritionGoalsRepository
 import kotlinx.coroutines.channels.Channel
@@ -30,6 +32,7 @@ class TrainerViewModel(
     private val clock: Clock,
     private val savedState: SavedStateHandle = SavedStateHandle(),
     private val goals: NutritionGoalsRepository? = null,
+    private val plans: CoachPlanRepository? = null,
 ) : ViewModel() {
     private val _uiState = MutableStateFlow<TrainerUiState>(TrainerUiState.Loading)
     val uiState: StateFlow<TrainerUiState> = _uiState.asStateFlow()
@@ -51,6 +54,7 @@ class TrainerViewModel(
             TrainerEvent.OpenEdit -> openEdit()
             is TrainerEvent.PickLevel -> pickLevel(event.level)
             TrainerEvent.CloseEdit -> setDraft(null)
+            is TrainerEvent.DecideCalorieChange -> decideCalorieChange(event.accept)
         }
     }
 
@@ -60,12 +64,60 @@ class TrainerViewModel(
             val result = repository.derivedValues(today())
             // The strategy only colours the trend; an unreadable or missing goal leaves it neutral.
             val strategy = if (result.isSuccess) goals?.getOwn()?.getOrNull()?.strategy else null
+            // The plan entry and the calorie card never block the derived values: a failed read means none.
+            val plan = if (result.isSuccess) readPlan() else PlanSummary.None
+            val change = if (plan is PlanSummary.Accepted) plans?.pendingCalorieChange(today())?.getOrNull() else null
             _uiState.value = result.fold(
-                onSuccess = { TrainerUiState.Content(it, editSheet = restoredDraft(), strategy = strategy) },
+                onSuccess = {
+                    TrainerUiState.Content(
+                        it,
+                        editSheet = restoredDraft(),
+                        strategy = strategy,
+                        plan = plan,
+                        calorieChange = change,
+                    )
+                },
                 onFailure = {
                     if (result.appErrorOrNull() == AppError.Network) TrainerUiState.Offline else TrainerUiState.Error
                 },
             )
+        }
+    }
+
+    private suspend fun readPlan(): PlanSummary {
+        val plan = plans?.currentPlan()?.getOrNull() ?: return PlanSummary.None
+        return if (plan.status == PlanStatus.Accepted) PlanSummary.Accepted(plan) else PlanSummary.Proposed(plan)
+    }
+
+    @Suppress("ReturnCount") // Guards for a missing card, repository or an in-flight decision.
+    private fun decideCalorieChange(accept: Boolean) {
+        val content = _uiState.value as? TrainerUiState.Content ?: return
+        val change = content.calorieChange ?: return
+        val repository = plans ?: return
+        if (content.decidingChange) return
+        _uiState.value = content.copy(decidingChange = true)
+        viewModelScope.launch {
+            val result = repository.decideCalorieChange(change.id, accept, today())
+            if (result.isSuccess) {
+                // Accepting changes the plan's calories: reload the summary.
+                val plan = readPlan()
+                _uiState.update { state ->
+                    if (state is TrainerUiState.Content) {
+                        val kept = if (plan is PlanSummary.None) state.plan else plan
+                        state.copy(calorieChange = null, decidingChange = false, plan = kept)
+                    } else {
+                        state
+                    }
+                }
+                effectChannel.send(TrainerEffect.CalorieChangeDecided(accept))
+            } else {
+                _uiState.update { state ->
+                    if (state is TrainerUiState.Content) state.copy(decidingChange = false) else state
+                }
+                effectChannel.send(
+                    TrainerEffect.CalorieChangeFailed(accept, offline = result.appErrorOrNull() == AppError.Network),
+                )
+            }
         }
     }
 

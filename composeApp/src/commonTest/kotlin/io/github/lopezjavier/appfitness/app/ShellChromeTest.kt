@@ -73,6 +73,7 @@ class ShellChromeTest {
                 WeightHistoryRoute,
                 AboutRoute,
                 CoachUsageRoute,
+                PlanProposalRoute,
                 NotificationCenterRoute,
                 CheckInRoute,
             ),
@@ -92,6 +93,7 @@ class ShellChromeTest {
                     it is WeightHistoryRoute ||
                     it is AboutRoute ||
                     it is CoachUsageRoute ||
+                    it is PlanProposalRoute ||
                     it is NotificationCenterRoute ||
                     it is CheckInRoute
                 ) {

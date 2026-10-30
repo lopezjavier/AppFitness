@@ -33,12 +33,12 @@ import io.github.lopezjavier.appfitness.domain.usecase.MeasurementsByDay
 import io.github.lopezjavier.appfitness.domain.usecase.SaveBodyMeasurement
 import io.github.lopezjavier.appfitness.domain.usecase.SyncHealthData
 import io.github.lopezjavier.appfitness.domain.usecase.SyncHealthMeasurements
-import io.github.lopezjavier.appfitness.domain.usecase.TargetDistance
 import io.github.lopezjavier.appfitness.domain.usecase.ValidateBodyMeasurement
 import io.github.lopezjavier.appfitness.domain.usecase.ValidateCircumference
 import io.github.lopezjavier.appfitness.domain.usecase.WaistHipRatio
 import io.github.lopezjavier.appfitness.domain.usecase.WeightChartRange
 import io.github.lopezjavier.appfitness.domain.usecase.WeightTrend
+import io.github.lopezjavier.appfitness.feature.trainer.FakeCoachPlanRepository
 import io.github.lopezjavier.appfitness.platform.HealthConnectLauncher
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -164,7 +164,7 @@ class HealthSyncRestorationTest {
                 measurements = weights,
                 circumferences = FakeCircumferenceRepository(),
                 goals = FakeNutritionGoalsRepository(),
-                profile = FakeProfileRepository(Result.success(ProfileSummary("Ana", null, true))),
+                plans = FakeCoachPlanRepository(),
                 preferences = InMemoryChartPreferences(),
                 weightTrend = WeightTrend(),
                 clock = HealthClock,
@@ -178,10 +178,8 @@ class HealthSyncRestorationTest {
                 goals = FakeNutritionGoalsRepository(),
                 circumferences = FakeCircumferenceRepository(),
                 bmi = Bmi(),
-                targetDistance = TargetDistance(),
                 interpret = InterpretMetric(),
                 waistHipRatio = WaistHipRatio(),
-                validate = ValidateBodyMeasurement(),
                 connectivity = FakeConnectivityObserver(),
             )
         }

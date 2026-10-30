@@ -31,7 +31,8 @@ import org.jetbrains.compose.resources.stringResource
 
 /**
  * The derived-values card (US-68): one [TrainerValueRow] per value, then "Confirmar" (disabled and reading
- * "Confirmado" once everything is confirmed, offline it explains why it is disabled, R-30).
+ * "Confirmado" once everything is confirmed, offline it explains why it is disabled, R-30). A null [onEdit] hides the
+ * activity-level pencil (the plan screen).
  */
 @Composable
 @Suppress("LongParameterList") // The card values, its states and the two actions.
@@ -40,7 +41,7 @@ internal fun DerivedValuesCard(
     confirming: Boolean,
     online: Boolean,
     strategy: GoalStrategy?,
-    onEdit: () -> Unit,
+    onEdit: (() -> Unit)?,
     onConfirm: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
