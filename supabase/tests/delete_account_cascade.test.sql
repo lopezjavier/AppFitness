@@ -3,7 +3,7 @@ begin;
 create extension if not exists pgtap with schema extensions;
 set local search_path = extensions, public;
 
-select plan(24);
+select plan(28);
 
 -- The on_auth_user_created trigger creates each profile.
 insert into auth.users (id, email) values
@@ -65,6 +65,13 @@ insert into public.coach_confirmed_values (user_id, key, estimate, uncertainty) 
 insert into public.coach_usage (user_id, month, cost_eur) values
   ('d1000000-0000-4000-8000-000000000001', date '2026-10-01', 0.5),
   ('d2000000-0000-4000-8000-000000000002', date '2026-10-01', 0.7);
+
+insert into public.coach_plans (id, user_id, block_start, intention, nutrition) values
+  ('d1000000-0000-4000-8000-0000000000b1', 'd1000000-0000-4000-8000-000000000001', date '2026-10-27', 'fat_loss', '{}'),
+  ('d2000000-0000-4000-8000-0000000000b2', 'd2000000-0000-4000-8000-000000000002', date '2026-10-27', 'fat_loss', '{}');
+insert into public.coach_recommendations (user_id, plan_id, kind, payload, input_summary) values
+  ('d1000000-0000-4000-8000-000000000001', 'd1000000-0000-4000-8000-0000000000b1', 'plan', '{}', '{}'),
+  ('d2000000-0000-4000-8000-000000000002', 'd2000000-0000-4000-8000-0000000000b2', 'plan', '{}', '{}');
 
 delete from auth.users where id = 'd1000000-0000-4000-8000-000000000001';
 
@@ -144,6 +151,19 @@ select is(
 select is(
   (select count(*)::int from public.coach_usage where user_id = 'd2000000-0000-4000-8000-000000000002'),
   1, 'another user''s coach_usage is untouched');
+
+select is(
+  (select count(*)::int from public.coach_plans where user_id = 'd1000000-0000-4000-8000-000000000001'),
+  0, 'the deleted user''s coach_plans are gone');
+select is(
+  (select count(*)::int from public.coach_recommendations where user_id = 'd1000000-0000-4000-8000-000000000001'),
+  0, 'the deleted user''s coach_recommendations are gone');
+select is(
+  (select count(*)::int from public.coach_plans where user_id = 'd2000000-0000-4000-8000-000000000002'),
+  1, 'another user''s coach_plans are untouched');
+select is(
+  (select count(*)::int from public.coach_recommendations where user_id = 'd2000000-0000-4000-8000-000000000002'),
+  1, 'another user''s coach_recommendations are untouched');
 
 select * from finish();
 rollback;

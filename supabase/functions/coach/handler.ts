@@ -20,6 +20,12 @@ import {
     unauthorized,
 } from "../_shared/errors.ts";
 import { checkBudget, monthKey } from "./budget.ts";
+import {
+    CoachInputError,
+    type PlanRow,
+    type Prepared,
+    type SavedPlan,
+} from "./context.ts";
 import { costEur } from "./prices.ts";
 import { KINDS, type KindSpec } from "./router.ts";
 
@@ -41,6 +47,10 @@ export type CoachDeps = {
     ) => Promise<void>;
     /** Null when ANTHROPIC_API_KEY is not configured. */
     client: AnthropicClient | null;
+    /** `coach_summary` of the caller (with the derived estimates), read with their own token. */
+    loadContext: (token: string, today: string) => Promise<unknown>;
+    /** Stores a proposed plan through `propose_coach_plan`, with the caller's own token. */
+    savePlan: (token: string, row: PlanRow) => Promise<SavedPlan>;
     now: () => Date;
     timeoutMs?: number;
     kinds?: Record<string, KindSpec>;
@@ -131,7 +141,7 @@ export function createCoachHandler(
             const userId = await deps.authenticate(token);
             if (!userId) return unauthorized();
 
-            if (!spec.available || !spec.buildRequest) {
+            if (!spec.available || !(spec.buildRequest || spec.prepare)) {
                 return errorResponse(
                     "coach_kind_not_available",
                     "This kind is not available yet",
@@ -158,7 +168,22 @@ export function createCoachHandler(
                 );
             }
 
-            const request = spec.buildRequest(body.input);
+            let prepared: Prepared | null = null;
+            if (spec.prepare) {
+                try {
+                    prepared = await spec.prepare(body.input, {
+                        loadContext: (today) => deps.loadContext(token, today),
+                        savePlan: (row) => deps.savePlan(token, row),
+                    });
+                } catch (e) {
+                    if (e instanceof CoachInputError) {
+                        return errorResponse(e.code, e.message);
+                    }
+                    throw e;
+                }
+            }
+            const request = prepared?.request ?? spec.buildRequest!(body.input);
+            const validate = prepared?.validate ?? spec.validate;
             const deadline = new Deadline(deps.timeoutMs ?? COACH_TIMEOUT_MS);
             const record = async (usage: AnthropicUsage) => {
                 const cost = costEur(spec.model, usage);
@@ -182,9 +207,8 @@ export function createCoachHandler(
                 };
             };
 
-            if (spec.validate) {
+            if (validate) {
                 // Buffered: validated output is sent whole, after the (single) retry.
-                const validate = spec.validate;
                 try {
                     const result = await deadline.race(
                         completeValidated(
@@ -195,8 +219,24 @@ export function createCoachHandler(
                         ),
                     );
                     const usage = await record(result.usage);
+                    let text = result.text;
+                    if (prepared) {
+                        // A failure here (invariants, persistence) is INTERNAL; the usage stays charged.
+                        try {
+                            text = JSON.stringify(
+                                await prepared.finalize(result.value, {
+                                    costEur: usage.cost_eur,
+                                }),
+                            );
+                        } catch {
+                            return errorResponse(
+                                "INTERNAL",
+                                "Unexpected error",
+                            );
+                        }
+                    }
                     return sse([
-                        frame("delta", { text: result.text }),
+                        frame("delta", { text }),
                         frame("done", { usage }),
                     ]);
                 } catch (e) {

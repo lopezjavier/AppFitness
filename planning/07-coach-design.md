@@ -77,7 +77,7 @@ Design base of the performance assistant (E13) and of the data it needs (E10-E12
 
 ## 6. Outcomes set by the coach
 
-- Weight, body fat, circumferences or e1RM per lift, depending on the intention and the plan.
+- Weight, body fat, circumferences or e1RM per lift, depending on the intention and the plan. (T-161 ships weight and e1RM per lift: the figures are derived by the server from the summary and the model only picks, explains and sets the deadline; body fat and circumferences wait for data the summary does not carry.)
 - Each outcome carries its reason and its deadline (normally the end of the block).
 - The user cannot set an outcome's value; they can turn an outcome off. `profiles.target_weight_kg` stops being a user input (ADR-78).
 
@@ -104,6 +104,8 @@ Defaults chosen for this app; adjusted with real data, not scientific figures:
 - 5 % load drop after two failed sessions; 40 % fewer sets in a deload; three weeks without e1RM improvement as the deload trigger; at most 10 % calorie change per adjustment; 70 % logged days for a reliable intake; 14 days between circumference reminders; sleep below 6 h mentioned in the report (below the 7 h adult recommendation).
 - Activity level (T-157, `04` §7.1): the active-kcal bands (150 / 300 / 500 / 750 per day), the 28-day window with 7 days minimum per source, the +1 level for 3 or more sessions per week, and the uncertainties 0.1 (data) and 0.2 (profile only). The step bands are published (§10, ref. 28).
 - Experience (T-157, `04` §7.5): 24 sessions and 12 weeks for intermediate, 150 sessions and 52 weeks for advanced.
+- Nutrition plan (T-161, `04` §8): rate 0 and adjustment 0 for strength, recomposition and maintenance; gain rate by experience 0.5 / 0.35 / 0.25 % per week (the range 0.25-0.5 is sourced, the split by experience follows "slower for advanced"); protein 2.2 / 2.0 / 1.8 g/kg by case (the lean-mass formula of §4 is not used: there is no body-fat input); fat default 25 %; 7 700 kcal per kg for every rate-to-deficit conversion (§4 "only without history" is read as: the adaptive expenditure of `04` §7.2 replaces BMR x factor when available); minimum change 50 kcal; at least 14 days between calorie changes (so the two weeks restart after a decision); a floor-limited plan keeps its slower rate instead of failing.
+- Outcome candidates (T-161, `04` §8.4): weight only for loss and gain; e1RM per main lift by a 4-week extrapolation of the user's own least-squares slope over at least 3 weeks with data; body fat and circumferences are deferred (nothing to derive them from in the summary).
 - Coach summary: 16 384-byte cap and the 12 main lifts / 10 discomforts / 8 muscle groups per week lists (`04` §7.8); fallback trend uncertainty of 0.5 kg per week without an interval.
 
 ## 10. Sources
