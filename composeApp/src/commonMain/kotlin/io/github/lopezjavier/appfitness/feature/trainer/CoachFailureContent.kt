@@ -61,7 +61,7 @@ internal fun CoachFailureContent(
 
         PlanFailureKind.Interrupted -> errorMessage(copy.interrupted)
 
-        PlanFailureKind.Timeout, PlanFailureKind.Invalid, PlanFailureKind.Missing, PlanFailureKind.Infeasible ->
+        PlanFailureKind.Timeout, PlanFailureKind.Invalid, is PlanFailureKind.Missing, PlanFailureKind.Infeasible ->
             errorMessage(coachFailureMessage(kind.toCoachFailure()))
 
         PlanFailureKind.Other -> errorMessage(copy.error)
@@ -71,7 +71,7 @@ internal fun CoachFailureContent(
 private fun PlanFailureKind.toCoachFailure(): CoachFailure = when (this) {
     PlanFailureKind.Timeout -> CoachFailure.Timeout
     PlanFailureKind.Invalid -> CoachFailure.Invalid
-    PlanFailureKind.Missing -> CoachFailure.Missing
+    is PlanFailureKind.Missing -> CoachFailure.Missing(fields)
     PlanFailureKind.Infeasible -> CoachFailure.Infeasible
     else -> CoachFailure.Other
 }

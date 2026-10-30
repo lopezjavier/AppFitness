@@ -216,24 +216,68 @@ Deno.test("a bad today is 400 INVALID_INPUT before any model call", async () => 
 });
 
 Deno.test("missing sex, weight, expenditure or intention is coach_missing_data without a model call", async () => {
-    const cases = [
-        summary({ profile: { sex: null, weight_kg: 80 } }),
-        summary({ profile: { sex: "male", weight_kg: null } }),
-        summary({ training_preferences: { intention: null } }),
-        summary({
-            estimates: {
-                total_expenditure: { value: null, provisional: true },
-            },
-        }),
+    const noExpenditure = {
+        total_expenditure: { value: null, provisional: true },
+    };
+    const cases: [unknown, string[]][] = [
+        [summary({ profile: { sex: null, weight_kg: 80 } }), ["sex"]],
+        [summary({ profile: { sex: "male", weight_kg: null } }), ["weight"]],
+        [
+            summary({ training_preferences: { intention: null } }),
+            ["intention"],
+        ],
+        [summary({ estimates: noExpenditure }), ["expenditure"]],
+        [
+            summary({
+                profile: { sex: null, weight_kg: null },
+                training_preferences: { intention: null },
+                estimates: noExpenditure,
+            }),
+            ["intention", "sex", "weight", "expenditure"],
+        ],
     ];
-    for (const s of cases) {
+    for (const [s, missing] of cases) {
         const { handler, modelCalls, records } = setup({ summary: s });
         const res = await handler(post());
         assertEquals(res.status, 422);
-        assertEquals((await res.json()).error.code, "coach_missing_data");
+        const error = (await res.json()).error;
+        assertEquals(error.code, "coach_missing_data");
+        assertEquals(error.missing, missing);
         assertEquals(modelCalls(), 0);
         assertEquals(records.length, 0);
     }
+});
+
+Deno.test("a rejected input logs kind, code and field names but never values", async () => {
+    const original = console.warn;
+    const logged: unknown[][] = [];
+    console.warn = (...args: unknown[]) => {
+        logged.push(args);
+    };
+    try {
+        const { handler } = setup({
+            summary: summary({ profile: { sex: null, weight_kg: 81.7 } }),
+        });
+        await handler(post());
+    } finally {
+        console.warn = original;
+    }
+    assertEquals(logged.length, 1);
+    assertEquals(logged[0][0], "coach: input rejected");
+    assertEquals(logged[0][1], {
+        kind: "plan_nutrition",
+        code: "coach_missing_data",
+        missing: ["sex"],
+    });
+    assert(!JSON.stringify(logged).includes("81.7"));
+});
+
+Deno.test("two invalid model outputs are 502 coach_invalid_output", async () => {
+    const { handler, modelCalls } = setup({ texts: ["nope", "still nope"] });
+    const res = await handler(post());
+    assertEquals(res.status, 502);
+    assertEquals((await res.json()).error.code, "coach_invalid_output");
+    assertEquals(modelCalls(), 2);
 });
 
 Deno.test("an infeasible plan is 422 coach_plan_infeasible", async () => {

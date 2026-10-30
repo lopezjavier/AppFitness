@@ -16,6 +16,7 @@ import io.github.lopezjavier.appfitness.app.FakeConnectivityObserver
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
 import io.github.lopezjavier.appfitness.domain.model.CoachFailure
 import io.github.lopezjavier.appfitness.domain.model.CoachPlan
+import io.github.lopezjavier.appfitness.domain.model.MissingField
 import io.github.lopezjavier.appfitness.domain.model.OutcomeKind
 import io.github.lopezjavier.appfitness.domain.model.PlanLimit
 import io.github.lopezjavier.appfitness.domain.model.PlanOutcome
@@ -233,6 +234,45 @@ class PlanProposalScreenTest {
         tap("plan_proposal_retry")
 
         assertEquals(listOf<PlanProposalEvent>(PlanProposalEvent.Retry), events)
+    }
+
+    @Test
+    fun missingIntention_namesWhereToFixIt_andOffersReintentar() {
+        show(PlanProposalUiState.Failed(PlanFailureKind.Missing(setOf(MissingField.Intention))))
+
+        rule.onNodeWithText(
+            "Elige tu objetivo de entrenamiento en Perfil, dentro de Mi entrenamiento, para crear el plan.",
+        ).assertExists()
+        rule.onNodeWithTag("plan_proposal_retry").assertExists()
+    }
+
+    @Test
+    fun missingProfileData_asksToCompleteProfileAndWeight() {
+        show(PlanProposalUiState.Failed(PlanFailureKind.Missing(setOf(MissingField.Sex, MissingField.Weight))))
+
+        rule.onNodeWithText("Faltan datos para calcular tu plan. Completa tu perfil y registra tu peso.").assertExists()
+    }
+
+    @Test
+    fun missingUnknownFields_showsTheGenericMissingMessage() {
+        show(PlanProposalUiState.Failed(PlanFailureKind.Missing(emptySet())))
+
+        rule.onNodeWithText("Faltan datos para crear el plan. Completa tu perfil e inténtalo de nuevo.").assertExists()
+    }
+
+    @Test
+    fun infeasible_showsItsOwnMessage() {
+        show(PlanProposalUiState.Failed(PlanFailureKind.Infeasible))
+
+        rule.onNodeWithText("No hay un plan seguro con tus datos actuales. Revisa tu peso y tu perfil.").assertExists()
+        rule.onNodeWithTag("plan_proposal_retry").assertExists()
+    }
+
+    @Test
+    fun invalidOutput_showsItsOwnMessage() {
+        show(PlanProposalUiState.Failed(PlanFailureKind.Invalid))
+
+        rule.onNodeWithText("La IA no dio una respuesta válida. Inténtalo de nuevo.").assertExists()
     }
 
     @Test

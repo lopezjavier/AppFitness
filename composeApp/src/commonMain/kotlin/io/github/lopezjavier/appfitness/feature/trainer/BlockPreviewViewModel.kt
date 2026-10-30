@@ -22,10 +22,6 @@ import kotlinx.datetime.LocalDate
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
 
-/** A block has no "infeasible" outcome, so that kind reads as any other failure. */
-private fun blockFailureKindOf(failure: Throwable?): PlanFailureKind =
-    planFailureKindOf(failure).let { if (it == PlanFailureKind.Infeasible) PlanFailureKind.Other else it }
-
 private const val KEY_REQUESTING = "block_requesting"
 private const val KEY_WEEK = "block_week"
 private const val KEY_REASON = "block_reason_exercise"
@@ -68,7 +64,7 @@ class BlockPreviewViewModel(
             when {
                 stored.isFailure ->
                     _uiState.value =
-                        BlockPreviewUiState.Failed(blockFailureKindOf(stored.exceptionOrNull()))
+                        BlockPreviewUiState.Failed(planFailureKindOf(stored.exceptionOrNull()))
 
                 block != null -> showBlock(block, restore = true)
 
@@ -99,7 +95,7 @@ class BlockPreviewViewModel(
         savedState.remove<Boolean>(KEY_REQUESTING)
         result.fold(
             onSuccess = { showBlock(it, restore = false) },
-            onFailure = { _uiState.value = BlockPreviewUiState.Failed(blockFailureKindOf(it)) },
+            onFailure = { _uiState.value = BlockPreviewUiState.Failed(planFailureKindOf(it)) },
         )
     }
 

@@ -6,6 +6,7 @@ import io.github.lopezjavier.appfitness.domain.model.CoachDerivedValues
 import io.github.lopezjavier.appfitness.domain.model.CoachException
 import io.github.lopezjavier.appfitness.domain.model.CoachFailure
 import io.github.lopezjavier.appfitness.domain.model.CoachPlan
+import io.github.lopezjavier.appfitness.domain.model.MissingField
 
 /** Why a plan could not be shown; the UI picks the Spanish message and whether "Reintentar" makes sense. */
 sealed interface PlanFailureKind {
@@ -18,8 +19,8 @@ sealed interface PlanFailureKind {
 
     data object Invalid : PlanFailureKind
 
-    /** The user lacks data the plan needs. */
-    data object Missing : PlanFailureKind
+    /** The user lacks data the plan needs; [fields] names it (empty when unknown). */
+    data class Missing(val fields: Set<MissingField>) : PlanFailureKind
 
     /** No safe plan fits the user's numbers. */
     data object Infeasible : PlanFailureKind
@@ -39,7 +40,7 @@ internal fun planFailureKindOf(failure: Throwable?): PlanFailureKind = when {
         CoachFailure.NoCredit -> PlanFailureKind.NoCredit
         CoachFailure.Timeout -> PlanFailureKind.Timeout
         CoachFailure.Invalid -> PlanFailureKind.Invalid
-        CoachFailure.Missing -> PlanFailureKind.Missing
+        is CoachFailure.Missing -> PlanFailureKind.Missing(coachFailure.fields)
         CoachFailure.Infeasible -> PlanFailureKind.Infeasible
         CoachFailure.NeedsConfirmation, CoachFailure.Conflict, CoachFailure.Other -> PlanFailureKind.Other
     }

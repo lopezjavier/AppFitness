@@ -220,11 +220,18 @@ Deno.test("the prompt carries no personal data beyond what the block needs", asy
 });
 
 Deno.test("missing intention or place is 422 coach_missing_data and no model call", async () => {
-    for (const tp of [{ intention: null }, { place: null }]) {
+    for (
+        const [tp, missing] of [
+            [{ intention: null }, ["intention"]],
+            [{ place: null }, ["place"]],
+        ] as const
+    ) {
         const t = setup({ tp });
         const res = await t.handler(post());
         assertEquals(res.status, 422);
-        assertEquals((await res.json()).error.code, "coach_missing_data");
+        const error = (await res.json()).error;
+        assertEquals(error.code, "coach_missing_data");
+        assertEquals(error.missing, missing);
         assertEquals(t.calls(), 0);
     }
 });

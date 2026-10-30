@@ -86,9 +86,13 @@ export function buildPrefs(summary: unknown): BlockPrefs {
     const intention = INTENTIONS.find((i) => i === tp.intention);
     const place = typeof tp.place === "string" ? tp.place : null;
     if (!intention || !place) {
+        const missing: string[] = [];
+        if (!intention) missing.push("intention");
+        if (!place) missing.push("place");
         throw new CoachInputError(
             "coach_missing_data",
             "Training intention or place is missing",
+            missing,
         );
     }
     const experience =

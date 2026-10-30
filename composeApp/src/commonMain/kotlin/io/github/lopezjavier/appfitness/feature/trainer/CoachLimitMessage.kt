@@ -4,11 +4,18 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import io.github.lopezjavier.appfitness.composeapp.resources.Res
 import io.github.lopezjavier.appfitness.composeapp.resources.coach_error
+import io.github.lopezjavier.appfitness.composeapp.resources.coach_failure_infeasible
+import io.github.lopezjavier.appfitness.composeapp.resources.coach_failure_invalid
+import io.github.lopezjavier.appfitness.composeapp.resources.coach_failure_missing_generic
+import io.github.lopezjavier.appfitness.composeapp.resources.coach_failure_missing_intention
+import io.github.lopezjavier.appfitness.composeapp.resources.coach_failure_missing_place
+import io.github.lopezjavier.appfitness.composeapp.resources.coach_failure_missing_profile
 import io.github.lopezjavier.appfitness.composeapp.resources.coach_limit_user
 import io.github.lopezjavier.appfitness.composeapp.resources.coach_timeout
 import io.github.lopezjavier.appfitness.composeapp.resources.coach_unavailable
 import io.github.lopezjavier.appfitness.designsystem.InlineNote
 import io.github.lopezjavier.appfitness.domain.model.CoachFailure
+import io.github.lopezjavier.appfitness.domain.model.MissingField
 import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.stringResource
 
@@ -24,9 +31,25 @@ internal fun coachFailureMessage(failure: CoachFailure): StringResource = when (
 
     CoachFailure.Timeout -> Res.string.coach_timeout
 
-    CoachFailure.Invalid, CoachFailure.Missing, CoachFailure.Infeasible, CoachFailure.NeedsConfirmation,
-    CoachFailure.Conflict, CoachFailure.Other,
-    -> Res.string.coach_error
+    CoachFailure.Invalid -> Res.string.coach_failure_invalid
+
+    is CoachFailure.Missing -> missingMessage(failure.fields)
+
+    CoachFailure.Infeasible -> Res.string.coach_failure_infeasible
+
+    CoachFailure.NeedsConfirmation, CoachFailure.Conflict, CoachFailure.Other -> Res.string.coach_error
+}
+
+/** Names where to fix what is missing: the profile data first, then the training intention, then the place. */
+private fun missingMessage(fields: Set<MissingField>): StringResource = when {
+    fields.any { it == MissingField.Sex || it == MissingField.Weight || it == MissingField.Expenditure } ->
+        Res.string.coach_failure_missing_profile
+
+    fields.isEmpty() || MissingField.Unknown in fields -> Res.string.coach_failure_missing_generic
+
+    MissingField.Intention in fields -> Res.string.coach_failure_missing_intention
+
+    else -> Res.string.coach_failure_missing_place
 }
 
 /** A message (not a dialog, R-08) for a failed AI call, shown where the action failed (R-31). */

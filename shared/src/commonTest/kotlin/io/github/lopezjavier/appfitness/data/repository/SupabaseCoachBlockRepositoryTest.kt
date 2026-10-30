@@ -10,6 +10,7 @@ import io.github.lopezjavier.appfitness.domain.AppError
 import io.github.lopezjavier.appfitness.domain.appErrorOrNull
 import io.github.lopezjavier.appfitness.domain.model.CoachException
 import io.github.lopezjavier.appfitness.domain.model.CoachFailure
+import io.github.lopezjavier.appfitness.domain.model.MissingField
 import io.github.lopezjavier.appfitness.domain.model.TestLoginCredentials
 import io.ktor.client.engine.mock.MockEngine
 import io.ktor.client.engine.mock.respond
@@ -165,9 +166,15 @@ class SupabaseCoachBlockRepositoryTest {
 
     @Test
     fun requestBlock_missingData_isMapped() = runTest {
-        val repository = repo { HttpStatusCode.UnprocessableEntity to """{"error":{"code":"coach_missing_data"}}""" }
+        val repository = repo {
+            HttpStatusCode.UnprocessableEntity to
+                """{"error":{"code":"coach_missing_data","missing":["intention","place"]}}"""
+        }
 
-        assertEquals(CoachFailure.Missing, failureOf(repository.requestBlock("p1", today)))
+        assertEquals(
+            CoachFailure.Missing(setOf(MissingField.Intention, MissingField.Place)),
+            failureOf(repository.requestBlock("p1", today)),
+        )
     }
 
     @Test

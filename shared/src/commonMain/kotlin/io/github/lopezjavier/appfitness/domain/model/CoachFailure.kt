@@ -14,8 +14,8 @@ sealed interface CoachFailure {
     /** `coach_invalid_output`: the model answered something the server could not validate. */
     data object Invalid : CoachFailure
 
-    /** `coach_missing_data`: the user lacks data the plan needs (sex, weight, expenditure, intention). */
-    data object Missing : CoachFailure
+    /** `coach_missing_data`: the user lacks data the plan needs; [fields] names it (empty if none was sent). */
+    data class Missing(val fields: Set<MissingField>) : CoachFailure
 
     /** `coach_plan_infeasible`: no safe plan fits the user's numbers. */
     data object Infeasible : CoachFailure

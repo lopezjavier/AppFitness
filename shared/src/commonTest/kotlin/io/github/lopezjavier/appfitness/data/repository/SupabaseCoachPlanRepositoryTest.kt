@@ -10,6 +10,7 @@ import io.github.lopezjavier.appfitness.domain.AppError
 import io.github.lopezjavier.appfitness.domain.appErrorOrNull
 import io.github.lopezjavier.appfitness.domain.model.CoachException
 import io.github.lopezjavier.appfitness.domain.model.CoachFailure
+import io.github.lopezjavier.appfitness.domain.model.MissingField
 import io.github.lopezjavier.appfitness.domain.model.OutcomeKind
 import io.github.lopezjavier.appfitness.domain.model.PlanStatus
 import io.github.lopezjavier.appfitness.domain.model.TestLoginCredentials
@@ -177,9 +178,15 @@ class SupabaseCoachPlanRepositoryTest {
 
     @Test
     fun requestPlan_missingDataBody_isMapped() = runTest {
-        val repository = repo { HttpStatusCode.UnprocessableEntity to """{"error":{"code":"coach_missing_data"}}""" }
+        val repository = repo {
+            HttpStatusCode.UnprocessableEntity to
+                """{"error":{"code":"coach_missing_data","missing":["intention","weight"]}}"""
+        }
 
-        assertEquals(CoachFailure.Missing, failureOf(repository.requestPlan(today)))
+        assertEquals(
+            CoachFailure.Missing(setOf(MissingField.Intention, MissingField.Weight)),
+            failureOf(repository.requestPlan(today)),
+        )
     }
 
     @Test
