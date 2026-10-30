@@ -36,6 +36,7 @@ E12 (user decision, 2026-10-28: two checkpoints): **Checkpoint E12-A** after T-1
 - **E11:** the `READ_HEALTH_DATA_HISTORY` pre-check is replaced by the spike T-139 (user decision, 2026-10-28; see the E11 section).
 - **E12:** consumed by the E12 breakdown: Android 17 verification → T-146 (plan step and Checkpoint E12-A item 1); sound pick → Checkpoint E12-A item 5, wired in T-148.
 - **E13:** consumed by the E13 breakdown: source, data-policy and price verification done 2026-10-29 (`07` §3-§4, §10-§11); 👤 Anthropic account, spending limit and `ANTHROPIC_API_KEY` → the 👤 step before T-160.
+- **E13 backlog (user request, 2026-10-30; for the epic-planner, not in T-177):** (1) the block offers alternatives per exercise (for example "Press banca con barra" or "Press banca con mancuernas" in place of "Press en suelo con barra") and the user picks one, instead of one fixed exercise per slot; (2) the block includes cardio, which the block model has no field for today (`blockValidators.ts` rejects `cardio`); the weight stays the user's own input during the session.
 
 ---
 
