@@ -365,10 +365,12 @@ insert into public.meal_defaults (user_id, meal_slot_id, template_id, weekday) v
   ('22222222-2222-4222-8222-222222222222', (select v from slots where k = 'b_dinner'),
    'b2000000-0000-4000-8000-000000000002', 7);
 delete from public.meal_slots where id = 'c0000000-0000-4000-8000-000000000001';
-select is((select count(*)::int from public.meal_defaults where weekday = 6), 0,
+select is((select count(*)::int from public.meal_defaults
+           where user_id = '22222222-2222-4222-8222-222222222222' and weekday = 6), 0,
   'deleting a meal removes its defaults');
 delete from public.meal_templates where id = 'b2000000-0000-4000-8000-000000000002';
-select is((select count(*)::int from public.meal_defaults where weekday = 7), 0,
+select is((select count(*)::int from public.meal_defaults
+           where user_id = '22222222-2222-4222-8222-222222222222' and weekday = 7), 0,
   'deleting a comida removes its defaults for every meal');
 select is((select count(*)::int from public.meal_defaults where user_id = '22222222-2222-4222-8222-222222222222'), 1,
   'other defaults of the user remain');
