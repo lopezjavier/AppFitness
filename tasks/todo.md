@@ -489,6 +489,7 @@ Journey: ask the coach for a plan, read the calories, macros, protein guidance a
 
 **Source:** user, 2026-10-30. Collects small UI changes asked for during E13 that belong to no functionality; it runs after T-169 and before Checkpoint E13-C, so the final regression covers them. New lines are added here as they arrive.
 - [ ] **Perfil → Preferencias: remove the "Cuenta" section and move its "Cerrar sesión" and "Borrar cuenta" buttons into Preferencias** (the user finds them misplaced in Cuenta). Keep their confirmations and behaviour; update `05` §8-§9 if the placement is a rule, sweep tests and help.
+- [ ] **Weight reminder "No te has pesado en N días" opens the wrong screen (user, 2026-10-30):** tapping the reminder correctly opens "Peso", but it opens the manual weigh-in form too. Weights come from Health Connect: the user goes to "Peso" and taps "Sincronizar". The manual form opens only when the user taps its own button. Fix the reminder's target (no form), keep the Peso screen as the landing, and add a host test that the reminder tap never opens the form.
 
 **Flow:** UX + UI · **Dependencies:** T-169 merged.
 
