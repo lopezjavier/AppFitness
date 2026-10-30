@@ -1,6 +1,7 @@
 # Implementation Plan: E13 · Performance assistant → `v1.x` (proposed `v1.4.0`)
 
 > **Status:** broken down on 2026-10-29 by the epic-planner and **agreed by the user the same day** with two changes: three checkpoints instead of five, and every recommended option of E13 Q1-Q13 approved (resolved below; amended Gherkin in the epic file; `planning/09-open-questions.md`). 14 tasks (T-157…T-170). No task is blocked.
+> **Amendment 2026-10-30 (epic-planner, from the Checkpoint E13-B feedback; E13 Q14-Q22 resolved by the user the same day):** new story US-78 "Antes de empezar" (epic file) as T-175 (backend, M) and T-176 (UI incl. the Trainer tab layout, L). Order: the fix T-177 (plan card missing after "Crear plan") first; then Checkpoint E13-B is re-presented (items 1-9); then T-175, T-176 and the checkpoints E13-B1 and E13-B2 (Q22 B). Fix tasks added since the breakdown: T-171, T-172 (E13-A), T-173 (refinements), T-174, T-177 (E13-B). No task is blocked.
 
 ## Overview
 A coach that builds a four-week training and nutrition block from the user's intention and preferences, sets the outcomes it can justify, and adjusts the plan with the user's data. It proposes; the user accepts. Every calculation is deterministic (SQL or TypeScript); the model only selects within validated options and explains; nothing is applied without consent (ADR-76).
@@ -30,6 +31,9 @@ Every task pays 6-8 agent hand-offs, so stories stay whole unless one is too lar
 | T-163: Block creator: training block generation and validation | US-72 backend | backend | L | 4 |
 | T-164: Block preview and "Guardar bloque" | US-72 UI | core + UI | L | 7 |
 | T-165: Plan weeks: adherence and the deload suggestion | US-73 + US-75 | backend + core + UI | L | 8 |
+| T-177: Fix: Trainer shows "Crear plan" after a plan was created | E13-B bug (US-69) | core + UI | M | 6-7 |
+| T-175: "Antes de empezar" inputs | US-78 backend | backend + core | M | 5 |
+| T-176: "Antes de empezar" screen and the Trainer tab layout | US-78 UI (+ US-68 confirmation) | core + UI | L | 7 |
 | T-166: Weekly coach report | US-71 (+ US-76 fallback) | backend + core + UI | L | 8 |
 | T-167: Recommendation history, outcomes and deletion | US-74 | backend + core + UI | M | 8 |
 | T-168: Coach evaluation: cases, runner and results | Evaluation | backend + 👤 | M | 4 + runs |
@@ -81,7 +85,14 @@ Each checkpoint also has "leave the app and come back: the same tab, screen and 
 - [ ] T-163: Block creator (backend) — L
 - [x] T-164: Block preview and "Guardar bloque" — L
 - [x] T-165: Plan weeks: adherence and the deload suggestion — L
-  - **Checkpoint E13-B 👤 (9 items)**
+- [ ] T-174: Fix: "Crear plan" 422 explained — M (merged #401; tick pending)
+- [ ] T-177: Fix: Trainer shows "Crear plan" after a plan was created — M (runs first)
+  - **Checkpoint E13-B 👤 (9 items) re-presented** after T-177 (items 1-9 to re-test)
+- [ ] T-175: "Antes de empezar" inputs (US-78 backend) — M
+- [ ] T-176: "Antes de empezar" screen and the Trainer tab layout (US-78 UI) — L
+  - **Checkpoint E13-B1 👤 "Before starting, and your nutrition plan" (7)**, then **Checkpoint E13-B2 👤 "Your four-week block, adherence and deload" (6)**, both after T-176 (Q22 B); T-166 waits for both. Item lists in `tasks/todo.md`.
+
+**Sizing of US-78:** one story, split backend → UI because the whole slice is about 28 files: T-175 (one read-only RPC shared by the screen and the `coach` function's precondition, plus the repository; M, about 11 files) and T-176 (the screen in two modes, the Trainer root rework and the proposal clean-up; L, about 17 files). The root rework stays inside T-176: it moves the "Tus valores" card into the new screen, so splitting it would make an S task touching the same files.
 
 ### Phase 3: Report, history, evaluation, chat and closure (US-71, US-74, US-77)
 - [ ] T-166: Weekly coach report — L
@@ -97,7 +108,8 @@ Internal milestones (not 👤 checkpoints): per task lint (`check-design-tokens.
 ## Dependencies
 ```
 v1.3.0 ─► T-157 ─► T-158 ─► T-159 ─► [E13-A 👤]
-       ─► [👤 key] ─► T-160 ─► T-161 ─► T-162 ─► T-163 ─► T-164 ─► T-165 ─► [E13-B 👤]
+       ─► [👤 key] ─► T-160 ─► T-161 ─► T-162 ─► T-163 ─► T-164 ─► T-165 ─► T-174
+       ─► T-177 ─► [E13-B 👤 re-presented] ─► T-175 ─► T-176 ─► [E13-B1 👤] ─► [E13-B2 👤]
        ─► T-166 ─► T-167 ─► T-168 (👤 cases, paid runs) ─► T-169 ─► [E13-C 👤] ─► T-170 ─► v1.4.0
 ```
 - Strictly sequential (one active task at a time).
@@ -117,8 +129,18 @@ v1.3.0 ─► T-157 ─► T-158 ─► T-159 ─► [E13-A 👤]
 | Removing `target_weight_kg` breaks screens or onboarding | Medium | UI removed before the column drop in the same PR; sweep for every reader; pgTAP |
 | Plan targets overwritten by a later Preferencias save (`04` §1.4) | Medium | Q8; the save marks the plan's nutrition as edited |
 | Deload and adherence untestable by hand without weeks of data | Low | Host tests and pgTAP cover the triggers; checkpoint items say "if your data shows it" |
+| "Antes de empezar" says complete while the function refuses (or the reverse) | High | One server list (T-175 RPC) read by both the screen and the function precondition; shared fixtures in pgTAP and `deno test` |
+| Returning from an existing editor does not refresh the screen | Medium | Reload on resume in `BeforeStartViewModel`; restoration test of the editor round-trip (T-176) |
+| Moving the derived values off the root breaks the US-68 gate or its tests | Medium | Q15/Q21 decide where confirmation lives; US-68 Gherkin amended in the same docs PR; T-176 sweeps `DerivedValuesCard` users |
 
 ## Open Questions
+
+**Resolved by the user on 2026-10-30 (raised with US-78; recorded in `planning/09-open-questions.md`; US-78 and US-68 amended in the epic file):**
+- **E13 Q14 · What the screen shows.** A summary of the data the plan or block uses; tap opens the full details. Not an interview: the screen only flags what is wrong or missing and where to fix it.
+- **E13 Q15 · Confirmation.** "Crear plan" confirms the shown values and starts. With an accepted or pending plan, the screen says the new plan replaces it ("Sustituirá tu plan actual" or similar; ux-reviewer finalises).
+- **E13 Q16 · Copy.** As recommended, with flag wording ("Falta: elige tu objetivo en Mi entrenamiento"), not "complete it here".
+- **E13 Q17-Q18, Q21 · As recommended.** Detail rows open the existing editors; a weigh-in older than 14 days gets a caution note, not blocking; the derived-values card leaves the proposal.
+- **E13 Q19 · Two modes.** **E13 Q20 · Option A** (plan hub, "Tus datos" row). **E13 Q22 · Option B** (T-175, T-176, then E13-B1 and E13-B2), with the fix T-177 first and E13-B re-presented after it.
 
 **All resolved by the user on 2026-10-29, each with the recommended option and every sub-choice** (recorded in `planning/09-open-questions.md`; amended Gherkin written into `planning/epics/E13-performance-assistant.md`; durable rules in `07` §3, §7, §8). Resolutions: Q1 B (neutral reason, no health message; levels 1-3 keep the reps rule and the 5 % drop) · Q2 A (optional per-exercise rep range in the routine editor, per session; scenario added) · Q3 (main lifts by `movement_pattern`; deload only inside an accepted block; 40 % cut to the nearest whole set, at least 1) · Q4 B · Q5 (glossary entries; "Eliminar historial del entrenador") · Q6-Q10 and Q13 the defaults below · Q11 and Q12 the scenarios below. The original wording is kept for reference.
 

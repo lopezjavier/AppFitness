@@ -50,17 +50,17 @@ Feature: Confirmation of derived values
 
   Scenario: Values are shown with their source
     Given the coach estimated my activity level from my steps and my sessions
-    When I open the plan proposal
-    Then the card shows the activity level, the source data and the data that is missing
+    When I open "Antes de empezar"
+    Then the details show the activity level, the source data and the data that is missing
 
   Scenario: Starting value without history
     Given there is no Health Connect data and no training history
-    When I open the plan proposal
+    When I open "Antes de empezar"
     Then the activity level is the one in my profile
     And it is marked as provisional
 
   Scenario: Confirming
-    When I tap "Confirmar" on the card
+    When I tap "Crear plan" in "Antes de empezar"
     Then the values are used in the plan
     And the confirmation is stored
 
@@ -70,9 +70,9 @@ Feature: Confirmation of derived values
     And the change is stored
 
   Scenario: Unconfirmed values block the plan
-    Given a value is not confirmed
-    Then the plan shows it as provisional
-    And the plan cannot be accepted until the card is confirmed
+    Given a value was asked again after the plan was generated
+    Then the plan shows a note that it is provisional
+    And the plan cannot be accepted until it is confirmed in "Tus datos"
 
   Scenario: Re-asking when the data changes
     Given a confirmed value's new estimate is outside its uncertainty
@@ -82,6 +82,7 @@ Feature: Confirmation of derived values
 
 **Technical notes**
 - **Resolved 2026-10-29 (user, Q13):** an activity level edited on the card is stored only as the coach's confirmed value; Diario's calorie target keeps using `profiles.activity_level`.
+- **Amended 2026-10-30 (user, E13 Q15/Q21, US-78):** the values are reviewed and confirmed in "Antes de empezar" (its "Crear plan" confirms them); the "Tus valores" card leaves the Trainer root and the plan proposal, and "Tus datos" (Trainer root row) shows them.
 - **Labels (Q5):** "Confirmar" (accept the coach's derived values) and "Aceptar" / "Descartar" (decide on a coach proposal) get their own glossary entries in `05` §10; they are distinct from "Guardar" (commit an edit).
 
 ## US-69 · Plan calories, macros and outcomes
@@ -470,6 +471,77 @@ Feature: Coach chat
 
 **Technical notes**
 - Enabled only after the evaluation below is met for the other stories. Tools are read-only queries over the user's data; proposals go through the same validators as US-69/US-72.
+
+## US-78 · "Antes de empezar": the data a plan or a block will use
+*Added 2026-10-30 from the Checkpoint E13-B feedback (tasks T-175, T-176); E13 Q14-Q22 resolved by the user the same day. Runs before "Crear plan" (US-69) and "Crear bloque" (US-72) generate anything.*
+
+**As** a user about to ask the coach for a plan or a block
+**I want** a short summary of the data it will use, with anything wrong or missing flagged and where to fix it
+**So that** I am never blind to what the coach reads, without an interview to fill in.
+
+```gherkin
+Feature: Before starting a plan or a block
+
+  Scenario: A summary of the data the plan will use
+    Given my profile has sex, birth date, height, a weigh-in and the training goal "Perder grasa"
+    When I tap "Crear plan"
+    Then "Antes de empezar" shows a summary of the data the plan will use
+    And no AI call is made yet
+
+  Scenario: Details on tap
+    When I tap the summary in "Antes de empezar"
+    Then the full details show each data with its value and where it comes from
+
+  Scenario: Fixing a data in its own place
+    When I tap "Objetivo de entrenamiento" in the details
+    Then its existing editor in "Mi entrenamiento" opens
+    And after saving I am back with the new value
+
+  Scenario: Missing or wrong data is flagged
+    Given my training goal is "Sin definir"
+    When I open "Antes de empezar"
+    Then the screen flags that the training goal is missing and where to fix it
+    And the plan cannot start until it is fixed
+
+  Scenario: Optional data left to the coach
+    Given I did not set "Días por semana"
+    When I open "Antes de empezar" for the block
+    Then it says the coach will choose it
+    And nothing is flagged
+
+  Scenario: An old weigh-in is flagged, not blocking
+    Given my last weigh-in is older than 14 days
+    When I open "Antes de empezar"
+    Then the screen shows its date with a caution note
+    And the plan can start
+
+  Scenario: Creating the plan confirms the values
+    Given a derived value is provisional
+    When I tap "Crear plan" in "Antes de empezar"
+    Then the values shown are confirmed
+    And the plan is requested with them
+
+  Scenario: A new plan replaces the current one
+    Given I have an accepted or pending plan
+    When I open "Antes de empezar"
+    Then the screen says the new plan will replace my current plan
+
+  Scenario: The block has its own data
+    Given a plan exists
+    When I tap "Crear bloque"
+    Then "Antes de empezar" summarises the place, the equipment, the days per week and the session length
+
+  Scenario: Leaving changes nothing
+    When I leave "Antes de empezar" without creating anything
+    Then no plan or block is requested
+    And no value is confirmed
+```
+
+**Technical notes**
+- **Resolved 2026-10-30 (user, Q14-Q22):** a summary with details on tap, not an interview (Q14); the footer "Crear plan" / "Crear bloque" confirms the shown values and starts (Q15); a new plan over an accepted or pending one says it replaces it (Q15; copy such as "Sustituirá tu plan actual", ux-reviewer finalises); flag wording such as "Falta: elige tu objetivo en Mi entrenamiento" and "Sin definir · Lo elige el entrenador", not "complete it here" (Q16); detail rows open the existing editors and come back refreshed, the activity level keeps the coach sheet (Q17); a weigh-in older than 14 days shows a caution note, not blocking (Q18); two modes, before the plan and before the block (Q19); Trainer root option A (Q20); the derived-values card leaves the plan proposal (Q21).
+- Edits stay in their existing places (Perfil → Mi entrenamiento, Preferencias → Datos personales, Peso, the coach's activity-level sheet of US-68). No new editor.
+- A flagged item that the `coach` function would refuse (today's `missing` 422, T-174) keeps "Crear plan" from starting, so no paid call fails on it. One source: the screen and the function read the same server-side list (T-175).
+- The Trainer root becomes a plan hub: pending proposals, "Tu plan" with its current week, the block, and a "Tus datos" row that replaces the "Tus valores" card (Q20 A).
 
 ## Evaluation (not a user story)
 - Cases written by the user, each with its correct answer: a plan for each intention, one training day, limited equipment, discomfort, missing data, rate inside and outside range, calorie floor, invented figure in a report.
