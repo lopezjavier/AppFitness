@@ -42,6 +42,32 @@ const handler = createCoachHandler({
         });
         if (error) throw new Error("usage write failed");
     },
+    // Both RPCs run with the caller's own token: the data is theirs and RLS/auth.uid() apply.
+    loadContext: async (token, today) => {
+        const { data, error } = await callerClient(token).rpc("coach_summary", {
+            p_today: today,
+        });
+        if (error || data == null) throw new Error("summary read failed");
+        return data;
+    },
+    savePlan: async (token, row) => {
+        const { data, error } = await callerClient(token).rpc(
+            "propose_coach_plan",
+            {
+                p_block_start: row.blockStart,
+                p_intention: row.intention,
+                p_nutrition: row.nutrition,
+                p_outcomes: row.outcomes,
+                p_method: row.method,
+                p_input_summary: row.inputSummary,
+            },
+        );
+        if (error || !data?.plan_id) throw new Error("plan write failed");
+        return {
+            plan_id: String(data.plan_id),
+            recommendation_id: String(data.recommendation_id),
+        };
+    },
     client: apiKey
         ? createAnthropicClient({ fetch: (u, i) => fetch(u, i), apiKey })
         : null,

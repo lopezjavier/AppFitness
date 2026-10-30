@@ -53,6 +53,8 @@ function setup(
             return Promise.resolve();
         },
         client,
+        loadContext: () => Promise.reject(new Error("unexpected loadContext")),
+        savePlan: () => Promise.reject(new Error("unexpected savePlan")),
         now: () => NOW,
         ...overrides,
     };
@@ -117,7 +119,7 @@ Deno.test("a non-JSON body is 400", async () => {
 });
 
 Deno.test("skeleton kinds answer 501 coach_kind_not_available without calling the model", async () => {
-    for (const kind of ["plan_nutrition", "plan_block", "report", "chat"]) {
+    for (const kind of ["plan_block", "report", "chat"]) {
         const { handler, clientCalls } = setup();
         const res = await handler(post({ kind, input: {} }));
         assertEquals(res.status, 501);

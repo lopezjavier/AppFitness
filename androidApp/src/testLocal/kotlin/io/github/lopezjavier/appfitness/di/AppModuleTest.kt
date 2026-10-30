@@ -6,6 +6,7 @@ import androidx.lifecycle.SavedStateHandle
 import io.github.lopezjavier.appfitness.BuildConfig
 import io.github.lopezjavier.appfitness.config.AppConfig
 import io.github.lopezjavier.appfitness.domain.model.BuildInfo
+import io.github.lopezjavier.appfitness.domain.model.DevOptions
 import io.github.lopezjavier.appfitness.domain.model.TestLoginCredentials
 import io.github.lopezjavier.appfitness.domain.port.AlertSound
 import io.github.lopezjavier.appfitness.domain.port.AuthCredentialProvider
@@ -23,6 +24,7 @@ import io.github.lopezjavier.appfitness.domain.port.WatchSeedStore
 import io.github.lopezjavier.appfitness.domain.repository.AuthRepository
 import io.github.lopezjavier.appfitness.domain.repository.BodyMeasurementRepository
 import io.github.lopezjavier.appfitness.domain.repository.CircumferenceRepository
+import io.github.lopezjavier.appfitness.domain.repository.CoachPingRepository
 import io.github.lopezjavier.appfitness.domain.repository.CoachRepository
 import io.github.lopezjavier.appfitness.domain.repository.CoachUsageRepository
 import io.github.lopezjavier.appfitness.domain.repository.DiscomfortRepository
@@ -199,6 +201,8 @@ class AppModuleTest {
                 TrainingStatsRepository::class,
                 CoachRepository::class,
                 CoachUsageRepository::class,
+                CoachPingRepository::class,
+                DevOptions::class,
                 ExerciseLibrary::class,
                 LoadExerciseCatalog::class,
                 SearchExercises::class,

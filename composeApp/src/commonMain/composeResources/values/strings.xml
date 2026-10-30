@@ -1787,6 +1787,11 @@
     <!-- Uso de IA (T-160, US-76) -->
     <string name="coach_usage_title">Uso de IA</string>
     <string name="coach_usage_explanation">Gasto de este mes. El límite se renueva el día 1.</string>
+    <!-- Dev-only ping block (debug builds only; T-161). -->
+    <string name="coach_ping_button">Probar coach (ping)</string>
+    <string name="coach_ping_running">Llamando al coach...</string>
+    <string name="coach_ping_success">Ping correcto.</string>
+    <string name="coach_ping_offline">Sin conexión. Inténtalo de nuevo.</string>
     <string name="coach_usage_figure">%1$s de %2$s</string>
     <string name="coach_usage_progress_cd">%1$d % del límite mensual</string>
     <string name="coach_usage_error">No se pudo cargar el uso de IA. Inténtalo de nuevo.</string>
