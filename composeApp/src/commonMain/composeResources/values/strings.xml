@@ -470,7 +470,6 @@
     <string name="progression_help_add_rep">Mantén el peso e intenta llegar a %1$s repeticiones.</string>
     <string name="progression_help_lower">En los dos últimos entrenos no llegaste a %1$s repeticiones en la mayoría de series, así que se baja un poco el peso.</string>
     <string name="progression_help_kept">Mantén el peso de la última vez.</string>
-    <string name="progression_help_footer">Es solo una sugerencia: no cambia tu rutina ni tus series.</string>
     <string name="progression_help_sets_title">Series usadas</string>
     <string name="progression_help_set">%1$s · %2$s kg × %3$s</string>
     <string name="progression_help_set_rpe">%1$s · %2$s kg × %3$s · RPE %4$s</string>
@@ -1749,10 +1748,9 @@
     <string name="trainer_value_unknown">Sin datos</string>
     <string name="trainer_value_supporting">%1$s · %2$s</string>
     <string name="trainer_kcal_value">%1$s kcal</string>
-    <string name="trainer_trend_falling">Bajando %1$s kg por semana</string>
-    <string name="trainer_trend_rising">Subiendo %1$s kg por semana</string>
-    <string name="trainer_trend_flat">Estable</string>
-    <string name="trainer_trend_unclear">Sin tendencia clara</string>
+    <string name="trainer_trend_margin">Margen ±%1$s kg/sem · Según tus pesajes</string>
+    <string name="trainer_trend_source">Según tus pesajes</string>
+    <string name="trainer_trend_cd">Tendencia: %1$s kg por semana</string>
     <string name="trainer_experience_beginner">Principiante</string>
     <string name="trainer_experience_intermediate">Intermedio</string>
     <string name="trainer_experience_advanced">Avanzado</string>
@@ -1785,6 +1783,17 @@
     <string name="trainer_sheet_title">Nivel de actividad</string>
     <string name="trainer_sheet_note">Al elegir un nivel, también se confirman los demás valores del entrenador.</string>
     <string name="trainer_sheet_offline">Sin conexión: no puedes cambiar el nivel ahora.</string>
+
+    <!-- Uso de IA (T-160, US-76) -->
+    <string name="coach_usage_title">Uso de IA</string>
+    <string name="coach_usage_explanation">Gasto de este mes. El límite se renueva el día 1.</string>
+    <string name="coach_usage_figure">%1$s de %2$s</string>
+    <string name="coach_usage_progress_cd">%1$d % del límite mensual</string>
+    <string name="coach_usage_error">No se pudo cargar el uso de IA. Inténtalo de nuevo.</string>
+    <string name="coach_limit_user">Has alcanzado el límite mensual de IA. Vuelve a probar el mes que viene.</string>
+    <string name="coach_unavailable">La IA no está disponible ahora mismo. Inténtalo más tarde.</string>
+    <string name="coach_timeout">No se pudo completar la respuesta de IA. Inténtalo de nuevo.</string>
+    <string name="coach_error">No se pudo usar la IA. Inténtalo de nuevo.</string>
 
     <!-- TEMPORARY (T-146, removed by T-148): end-of-rest sound chooser and the notification-permission message. -->
     <string name="rest_sound_permission_note">Para avisarte al acabar el descanso con la pantalla apagada, activa las notificaciones de AppFitness en Ajustes.</string>

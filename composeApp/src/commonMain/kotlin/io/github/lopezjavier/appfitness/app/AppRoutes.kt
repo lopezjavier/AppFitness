@@ -66,6 +66,10 @@ data class PreferencesSectionRoute(val section: String) : AppRoute
 @Serializable
 data object AccountRoute : AppRoute
 
+/** "Uso de IA": this month's AI spending against the monthly limit, opened from the Trainer overflow (US-76). */
+@Serializable
+data object CoachUsageRoute : AppRoute
+
 /** "Acerca de": app name, version, credits and open-source licences, opened from the Perfil root (US-45). */
 @Serializable
 data object AboutRoute : AppRoute
@@ -365,6 +369,7 @@ object AppDestinations {
             WeightRoute(),
             WeightHistoryRoute,
             AboutRoute,
+            CoachUsageRoute,
             NotificationCenterRoute,
             CheckInRoute,
         )

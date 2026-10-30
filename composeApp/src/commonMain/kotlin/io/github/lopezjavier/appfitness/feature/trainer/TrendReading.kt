@@ -1,31 +1,30 @@
 package io.github.lopezjavier.appfitness.feature.trainer
 
-import io.github.lopezjavier.appfitness.designsystem.AppNumberFormat
+import io.github.lopezjavier.appfitness.designsystem.TrendTone
 import io.github.lopezjavier.appfitness.domain.model.DerivedWeightTrend
+import io.github.lopezjavier.appfitness.domain.model.GoalStrategy
+import io.github.lopezjavier.appfitness.domain.usecase.rateTone
+import io.github.lopezjavier.appfitness.feature.weight.toTrendTone
 import kotlin.math.abs
 
-/** What the weight trend says in words; the interval only decides whether the direction can be trusted. */
-internal sealed interface TrendReading {
-    data object Unknown : TrendReading
+/** Slopes below half a hundredth show as "0,00" (see `rateText`), so they count as flat. */
+private const val FLAT_BELOW = 0.005
 
-    data object Flat : TrendReading
-
-    data object Unclear : TrendReading
-
-    data class Falling(val kgPerWeek: String) : TrendReading
-
-    data class Rising(val kgPerWeek: String) : TrendReading
+/**
+ * The weight trend as numbers for the Peso `TrendPill`: [slope] in kg/week (null when unknown), [margin] the half
+ * width of the interval in kg/week (null when unknown) and [tone] from the goal strategy (Neutral without a slope or
+ * without a known goal).
+ */
+internal data class TrendReading(val slope: Double?, val margin: Double?, val tone: TrendTone) {
+    /** True when the slope is a number that displays as zero; a numeric check, not a formatted-string compare. */
+    val isFlat: Boolean get() = slope != null && abs(slope) < FLAT_BELOW
 }
 
-internal fun trendReading(trend: DerivedWeightTrend): TrendReading {
-    val slope = trend.slopeKgWeek ?: return TrendReading.Unknown
-    val magnitude = AppNumberFormat.decimal(abs(slope))
+internal fun trendReading(trend: DerivedWeightTrend, strategy: GoalStrategy?): TrendReading {
+    val slope = trend.slopeKgWeek
     val low = trend.intervalLow
     val high = trend.intervalHigh
-    return when {
-        magnitude == "0" -> TrendReading.Flat
-        low != null && high != null && low < 0 && high > 0 -> TrendReading.Unclear
-        slope < 0 -> TrendReading.Falling(magnitude)
-        else -> TrendReading.Rising(magnitude)
-    }
+    val margin = if (low != null && high != null) (high - low) / 2 else null
+    val tone = if (slope != null && strategy != null) rateTone(slope, strategy).toTrendTone() else TrendTone.Neutral
+    return TrendReading(slope, margin, tone)
 }

@@ -14,7 +14,10 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
@@ -23,13 +26,20 @@ import androidx.compose.ui.semantics.semantics
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.github.lopezjavier.appfitness.composeapp.resources.Res
 import io.github.lopezjavier.appfitness.composeapp.resources.action_retry
+import io.github.lopezjavier.appfitness.composeapp.resources.coach_usage_title
+import io.github.lopezjavier.appfitness.composeapp.resources.ic_info
+import io.github.lopezjavier.appfitness.composeapp.resources.ic_more_vert
+import io.github.lopezjavier.appfitness.composeapp.resources.topbar_more_cd
 import io.github.lopezjavier.appfitness.composeapp.resources.trainer_confirm_error
 import io.github.lopezjavier.appfitness.composeapp.resources.trainer_error_message
 import io.github.lopezjavier.appfitness.composeapp.resources.trainer_save_error
 import io.github.lopezjavier.appfitness.composeapp.resources.trainer_title
+import io.github.lopezjavier.appfitness.designsystem.AppActionSheet
 import io.github.lopezjavier.appfitness.designsystem.AppCard
+import io.github.lopezjavier.appfitness.designsystem.AppIconButton
 import io.github.lopezjavier.appfitness.designsystem.AppScreen
 import io.github.lopezjavier.appfitness.designsystem.AppShapes
+import io.github.lopezjavier.appfitness.designsystem.AppSheetAction
 import io.github.lopezjavier.appfitness.designsystem.AppStateAction
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
 import io.github.lopezjavier.appfitness.designsystem.ErrorState
@@ -52,6 +62,7 @@ private const val TITLE_FRACTION = 0.4f
 @Composable
 fun TrainerRoute(
     modifier: Modifier = Modifier,
+    onOpenCoachUsage: () -> Unit = {},
     viewModel: TrainerViewModel = koinViewModel(),
     connectivity: ConnectivityObserver = koinInject(),
 ) {
@@ -78,6 +89,7 @@ fun TrainerRoute(
         isOnline = connectivity.isOnline,
         onEvent = viewModel::onEvent,
         modifier = modifier,
+        onOpenCoachUsage = onOpenCoachUsage,
     )
 }
 
@@ -91,13 +103,14 @@ fun TrainerScreen(
     isOnline: Flow<Boolean>,
     onEvent: (TrainerEvent) -> Unit,
     modifier: Modifier = Modifier,
+    onOpenCoachUsage: () -> Unit = {},
 ) {
     val title = stringResource(Res.string.trainer_title)
     val online by isOnline.collectAsStateWithLifecycle(initialValue = true)
     AppScreen(
         title = title,
         modifier = modifier,
-        header = { TrainerHeader(title) },
+        header = { TrainerHeader(title, onOpenCoachUsage) },
         testTagPrefix = "trainer",
     ) {
         Box(Modifier.fillMaxSize().testTag("trainer_screen")) {
@@ -135,6 +148,7 @@ private fun TrainerContent(state: TrainerUiState.Content, online: Boolean, onEve
             values = state.values,
             confirming = state.confirming,
             online = online,
+            strategy = state.strategy,
             onEdit = { onEvent(TrainerEvent.OpenEdit) },
             onConfirm = { onEvent(TrainerEvent.Confirm) },
         )
@@ -151,7 +165,8 @@ private fun TrainerContent(state: TrainerUiState.Content, online: Boolean, onEve
 
 /** The tab heading, equal to the bottom-bar label (R-04). */
 @Composable
-private fun TrainerHeader(title: String) {
+private fun TrainerHeader(title: String, onOpenCoachUsage: () -> Unit) {
+    var menuOpen by rememberSaveable { mutableStateOf(false) }
     Row(
         Modifier.fillMaxWidth().padding(start = Spacing.screenMargin, end = Spacing.xs),
         verticalAlignment = Alignment.CenterVertically,
@@ -163,6 +178,27 @@ private fun TrainerHeader(title: String) {
             modifier = Modifier.weight(1f).semantics { heading() },
         )
         NotificationsBell("trainer_action_notifications")
+        AppIconButton(
+            contentDescription = stringResource(Res.string.topbar_more_cd),
+            icon = Res.drawable.ic_more_vert,
+            testTag = "trainer_overflow",
+            onClick = { menuOpen = true },
+        )
+        if (menuOpen) {
+            val usageTitle = stringResource(Res.string.coach_usage_title)
+            AppActionSheet(
+                actions = listOf(
+                    AppSheetAction(
+                        icon = Res.drawable.ic_info,
+                        title = usageTitle,
+                        testTag = "trainer_action_coach_usage",
+                        onClick = onOpenCoachUsage,
+                    ),
+                ),
+                onDismiss = { menuOpen = false },
+                testTagPrefix = "trainer_overflow_sheet",
+            )
+        }
     }
 }
 

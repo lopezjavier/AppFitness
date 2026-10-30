@@ -2,6 +2,7 @@ package io.github.lopezjavier.appfitness.feature.trainer
 
 import io.github.lopezjavier.appfitness.domain.model.ActivityLevel
 import io.github.lopezjavier.appfitness.domain.model.CoachDerivedValues
+import io.github.lopezjavier.appfitness.domain.model.GoalStrategy
 
 sealed interface TrainerUiState {
     data object Loading : TrainerUiState
@@ -14,6 +15,8 @@ sealed interface TrainerUiState {
         val values: CoachDerivedValues,
         val confirming: Boolean = false,
         val editSheet: ActivityLevel? = null,
+        /** Goal strategy that colours the weight trend; null when unknown (the trend is then neutral). */
+        val strategy: GoalStrategy? = null,
     ) : TrainerUiState {
         val allConfirmed: Boolean get() = values.allConfirmed
     }

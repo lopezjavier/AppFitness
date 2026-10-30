@@ -1,12 +1,15 @@
 package io.github.lopezjavier.appfitness.feature.trainer
 
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.ui.test.assertContentDescriptionEquals
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertHeightIsAtLeast
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.getUnclippedBoundsInRoot
+import androidx.compose.ui.test.hasAnyAncestor
+import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
@@ -23,10 +26,13 @@ import io.github.lopezjavier.appfitness.domain.AppException
 import io.github.lopezjavier.appfitness.domain.model.ActivityLevel
 import io.github.lopezjavier.appfitness.domain.model.CoachDerivedValues
 import io.github.lopezjavier.appfitness.domain.model.CoachMissing
+import io.github.lopezjavier.appfitness.domain.model.CoachUsage
 import io.github.lopezjavier.appfitness.domain.model.DerivedActivityLevel
 import io.github.lopezjavier.appfitness.feature.notifications.LocalNotificationsEntry
 import io.github.lopezjavier.appfitness.feature.notifications.NotificationsEntry
 import io.github.lopezjavier.appfitness.feature.workout.MutableClock
+import kotlinx.coroutines.flow.flowOf
+import kotlinx.datetime.LocalDate
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Rule
@@ -230,17 +236,103 @@ class TrainerFlowTest {
     }
 
     @Test
-    fun weightTrend_readsAsAPlainSentence_andTheLowConfidenceNote() {
+    fun weightTrend_showsThePill_theMargin_andTheLowConfidenceNote_withoutAHelpButton() {
         repository.loaded = Result.success(
             coachValues().let { it.copy(weightTrend = it.weightTrend.copy(lowConfidence = true)) },
         )
 
         show()
 
-        rule.onNodeWithText("Bajando 0,4 kg por semana · Según tus pesajes").assertExists()
-        rule.onAllNodes(hasText("±", substring = true)).assertCountEquals(0)
+        rule.onNodeWithTag(
+            "trainer_trend_pill",
+        ).assertExists().assertContentDescriptionEquals("Tendencia: −0,40 kg por semana")
+        rule.onNodeWithText("−0,40 kg esta semana").assertExists()
+        rule.onNodeWithText("Margen ±0,2 kg/sem · Según tus pesajes").assertExists()
+        rule.onAllNodes(hasText("Bajando", substring = true)).assertCountEquals(0)
+        rule.onAllNodes(hasText("Sin tendencia clara")).assertCountEquals(0)
         rule.onNodeWithTag("trainer_trend_note")
             .assertTextEquals("Pocas semanas de datos: la tendencia es orientativa.")
+        rule.onNodeWithTag("trainer_help_button").assertExists()
+        rule.onAllNodes(hasTestTag("trainer_help_button").and(hasAnyAncestor(hasTestTag("trainer_row_weight_trend"))))
+            .assertCountEquals(0)
+    }
+
+    @Test
+    fun weightTrend_withoutMargin_showsOnlyTheSource() {
+        repository.loaded = Result.success(
+            coachValues().let { it.copy(weightTrend = it.weightTrend.copy(intervalLow = null, intervalHigh = null)) },
+        )
+
+        show()
+
+        rule.onNodeWithTag("trainer_trend_pill").assertExists()
+        rule.onNodeWithText("Según tus pesajes").assertExists()
+    }
+
+    @Test
+    fun weightTrend_withoutSlope_hasNoPill() {
+        repository.loaded = Result.success(
+            coachValues().let { it.copy(weightTrend = it.weightTrend.copy(slopeKgWeek = null)) },
+        )
+
+        show()
+
+        rule.onNodeWithTag("trainer_trend_pill").assertDoesNotExist()
+    }
+
+    @Test
+    fun overflow_opensTheSheetWithUsoDeIa_andOpensTheUsageScreen() {
+        var opened = 0
+        val model = TrainerViewModel(repository, MutableClock(), SavedStateHandle())
+        rule.setContent {
+            AppTheme { TrainerRoute(onOpenCoachUsage = { opened++ }, viewModel = model, connectivity = connectivity) }
+        }
+        rule.waitForIdle()
+
+        tap("trainer_overflow")
+        rule.onNodeWithText("Uso de IA").assertExists()
+        tap("trainer_action_coach_usage")
+
+        assertEquals(1, opened)
+    }
+
+    @Test
+    fun overflow_isShownInEveryState() {
+        repository.loaded = Result.failure(AppException(AppError.Unknown))
+        show()
+        rule.onNodeWithTag("trainer_overflow").assertExists()
+    }
+
+    @Test
+    fun overflow_isShownWhenOffline() {
+        repository.loaded = Result.failure(AppException(AppError.Network))
+        show()
+        rule.onNodeWithTag("trainer_overflow").assertExists()
+    }
+
+    @Test
+    fun usageScreen_opensFromTheTrainerOverflow_andBackReturns() {
+        val model = TrainerViewModel(repository, MutableClock(), SavedStateHandle())
+        val usage = CoachUsage(LocalDate(2026, 11, 1), 0, 0, 0.42)
+        rule.setContent {
+            App(
+                rootRoute = RootRoute.Main,
+                trainer = { modifier, open ->
+                    TrainerRoute(modifier, open, viewModel = model, connectivity = connectivity)
+                },
+                coachUsage = { modifier, onBack ->
+                    CoachUsageScreen(CoachUsageUiState.Content(usage), flowOf(true), {}, onBack, modifier)
+                },
+            )
+        }
+        tap("nav_tab_trainer")
+
+        tap("trainer_overflow")
+        tap("trainer_action_coach_usage")
+        rule.onNodeWithTag("coach_usage_screen").assertExists()
+        tap("coach_usage_back")
+
+        rule.onNodeWithTag("trainer_screen").assertExists()
     }
 
     @Test

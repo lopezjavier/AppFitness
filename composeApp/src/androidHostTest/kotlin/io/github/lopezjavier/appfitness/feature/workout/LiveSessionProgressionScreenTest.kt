@@ -5,6 +5,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.test.assertContentDescriptionEquals
 import androidx.compose.ui.test.assertHasClickAction
 import androidx.compose.ui.test.assertHeightIsAtLeast
 import androidx.compose.ui.test.assertTextContains
@@ -78,6 +79,7 @@ private fun StatefulProgressionLive(suggestion: ProgressionSuggestion?) {
 /** US-70 live part: the suggestion line, its help sheet and the cases where it is absent. */
 @RunWith(RobolectricTestRunner::class)
 @Config(qualifiers = "w360dp-h800dp-xxhdpi")
+@Suppress("TooManyFunctions") // One method per scenario.
 class LiveSessionProgressionScreenTest {
     @get:Rule
     val rule = createComposeRule()
@@ -106,6 +108,14 @@ class LiveSessionProgressionScreenTest {
         show(suggestion(ProgressionReason.TwoSessionsBelowMin, weight = 75.0, goal = 6))
 
         rule.onNodeWithTag("live_exercise_0_suggestion").assertTextEquals("Sugerencia: 75 kg × 6")
+    }
+
+    @Test
+    fun theSuggestionRow_announcesTheSuggestionAndThatItOpensTheReason() {
+        show(suggestion(ProgressionReason.AllSetsAtMax))
+
+        rule.onNodeWithTag("live_exercise_0_suggestion")
+            .assertContentDescriptionEquals("Sugerencia: 82,5 kg × 6. Toca para ver el motivo")
     }
 
     @Test
@@ -152,7 +162,7 @@ class LiveSessionProgressionScreenTest {
         rule.onNodeWithTag("live_exercise_0_suggestion").performClick()
 
         rule.onNodeWithTag("progression_help_reason").assertTextEquals("Mantén el peso de la última vez.")
-        rule.onNodeWithTag("progression_help_footer").assertTextContains("no cambia tu rutina", substring = true)
+        rule.onNodeWithTag("progression_help_footer").assertDoesNotExist()
     }
 
     @Test

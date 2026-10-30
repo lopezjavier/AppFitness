@@ -2,6 +2,7 @@ package io.github.lopezjavier.appfitness.feature.trainer
 
 import androidx.lifecycle.SavedStateHandle
 import app.cash.turbine.test
+import io.github.lopezjavier.appfitness.app.FakeNutritionGoalsRepository
 import io.github.lopezjavier.appfitness.domain.AppError
 import io.github.lopezjavier.appfitness.domain.AppException
 import io.github.lopezjavier.appfitness.domain.model.ActivityLevel
@@ -13,7 +14,10 @@ import io.github.lopezjavier.appfitness.domain.model.DerivedIntake
 import io.github.lopezjavier.appfitness.domain.model.DerivedSource
 import io.github.lopezjavier.appfitness.domain.model.DerivedTotalExpenditure
 import io.github.lopezjavier.appfitness.domain.model.DerivedWeightTrend
+import io.github.lopezjavier.appfitness.domain.model.GoalStrategy
+import io.github.lopezjavier.appfitness.domain.model.NutritionGoals
 import io.github.lopezjavier.appfitness.domain.repository.CoachRepository
+import io.github.lopezjavier.appfitness.domain.repository.NutritionGoalsRepository
 import io.github.lopezjavier.appfitness.feature.workout.MutableClock
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
@@ -95,8 +99,8 @@ class TrainerViewModelTest {
     @AfterTest
     fun tearDown() = Dispatchers.resetMain()
 
-    private fun viewModel(saved: SavedStateHandle = SavedStateHandle()) =
-        TrainerViewModel(repository, MutableClock(), saved)
+    private fun viewModel(saved: SavedStateHandle = SavedStateHandle(), goals: NutritionGoalsRepository? = null) =
+        TrainerViewModel(repository, MutableClock(), saved, goals)
 
     private fun TrainerViewModel.content() = assertIs<TrainerUiState.Content>(uiState.value)
 
@@ -338,5 +342,36 @@ class TrainerViewModelTest {
 
         assertTrue(repository.confirmCalls.isEmpty())
         assertNull(model.content().editSheet)
+    }
+
+    @Test
+    fun content_carriesTheGoalStrategyForTheTrendTone() = runTest(dispatcher) {
+        val goals = FakeNutritionGoalsRepository(NutritionGoals(GoalStrategy.Deficit, -300, 2000))
+        val model = viewModel(goals = goals)
+
+        advanceUntilIdle()
+
+        assertEquals(GoalStrategy.Deficit, model.content().strategy)
+    }
+
+    @Test
+    fun content_hasNoStrategyWhenTheGoalsCannotBeRead() = runTest(dispatcher) {
+        val goals = FakeNutritionGoalsRepository().apply {
+            readResult = Result.failure(AppException(AppError.Network))
+        }
+        val model = viewModel(goals = goals)
+
+        advanceUntilIdle()
+
+        assertNull(model.content().strategy)
+    }
+
+    @Test
+    fun content_hasNoStrategyWithoutAGoalsRow() = runTest(dispatcher) {
+        val model = viewModel(goals = FakeNutritionGoalsRepository(null))
+
+        advanceUntilIdle()
+
+        assertNull(model.content().strategy)
     }
 }

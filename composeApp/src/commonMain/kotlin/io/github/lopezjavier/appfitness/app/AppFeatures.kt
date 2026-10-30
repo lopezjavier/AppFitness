@@ -22,7 +22,7 @@ data class AppFeatures(val componentCatalog: Boolean = false, val testLogin: Tes
 fun AppFeatures.isAvailable(route: AppRoute): Boolean = when (route) {
     is TabRoute -> true
     CatalogRoute -> componentCatalog
-    PreferencesRoute, is PreferencesSectionRoute, AccountRoute, AboutRoute -> true
+    PreferencesRoute, is PreferencesSectionRoute, AccountRoute, AboutRoute, CoachUsageRoute -> true
     is ExercisePickerRoute, is ExerciseDetailRoute, is RoutineBuilderRoute, LiveSessionRoute -> true
     is RoutineDetailsRoute -> true
     HistoryRoute, is SessionDetailRoute -> true

@@ -8,7 +8,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import io.github.lopezjavier.appfitness.composeapp.resources.Res
 import io.github.lopezjavier.appfitness.composeapp.resources.progression_help_add_rep
-import io.github.lopezjavier.appfitness.composeapp.resources.progression_help_footer
 import io.github.lopezjavier.appfitness.composeapp.resources.progression_help_kept
 import io.github.lopezjavier.appfitness.composeapp.resources.progression_help_lower
 import io.github.lopezjavier.appfitness.composeapp.resources.progression_help_raise
@@ -49,7 +48,6 @@ internal fun ProgressionHelpSheet(suggestion: ProgressionSuggestion, onDismiss: 
                     HelpLine(setText(set), Modifier.testTag("progression_help_set_${index + 1}"))
                 }
             }
-            HelpLine(stringResource(Res.string.progression_help_footer), Modifier.testTag("progression_help_footer"))
         }
     }
 }

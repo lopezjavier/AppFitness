@@ -35,6 +35,7 @@ import io.github.lopezjavier.appfitness.feature.routines.RoutineDetailsViewModel
 import io.github.lopezjavier.appfitness.feature.routines.RoutinesViewModel
 import io.github.lopezjavier.appfitness.feature.templates.SaveTemplateViewModel
 import io.github.lopezjavier.appfitness.feature.templates.TemplateDetailsViewModel
+import io.github.lopezjavier.appfitness.feature.trainer.CoachUsageViewModel
 import io.github.lopezjavier.appfitness.feature.trainer.TrainerViewModel
 import io.github.lopezjavier.appfitness.feature.weight.CircumferencesViewModel
 import io.github.lopezjavier.appfitness.feature.weight.GoalViewModel
@@ -408,7 +409,8 @@ val uiModule =
         viewModelOf(::StrengthViewModel)
         viewModel { ActivityViewModel(get(), get(), TimeZone.currentSystemDefault(), get(), get()) }
         viewModelOf(::MuscleVolumeViewModel)
-        viewModel { TrainerViewModel(repository = get(), clock = get(), savedState = get()) }
+        viewModel { CoachUsageViewModel(repository = get(), clock = get()) }
+        viewModel { TrainerViewModel(repository = get(), clock = get(), savedState = get(), goals = get()) }
         viewModel {
             TrainingStatsViewModel(
                 stats = get(),
