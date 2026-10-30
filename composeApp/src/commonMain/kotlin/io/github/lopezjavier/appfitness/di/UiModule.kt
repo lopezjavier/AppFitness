@@ -35,6 +35,7 @@ import io.github.lopezjavier.appfitness.feature.routines.RoutineDetailsViewModel
 import io.github.lopezjavier.appfitness.feature.routines.RoutinesViewModel
 import io.github.lopezjavier.appfitness.feature.templates.SaveTemplateViewModel
 import io.github.lopezjavier.appfitness.feature.templates.TemplateDetailsViewModel
+import io.github.lopezjavier.appfitness.feature.trainer.BlockPreviewViewModel
 import io.github.lopezjavier.appfitness.feature.trainer.CoachUsageViewModel
 import io.github.lopezjavier.appfitness.feature.trainer.PlanProposalViewModel
 import io.github.lopezjavier.appfitness.feature.trainer.TrainerViewModel
@@ -410,7 +411,24 @@ val uiModule =
         viewModelOf(::MuscleVolumeViewModel)
         viewModel { CoachUsageViewModel(repository = get(), clock = get(), pingRepository = get(), devOptions = get()) }
         viewModel {
-            TrainerViewModel(repository = get(), clock = get(), savedState = get(), goals = get(), plans = get())
+            TrainerViewModel(
+                repository = get(),
+                clock = get(),
+                savedState = get(),
+                goals = get(),
+                plans = get(),
+                blocks = get(),
+            )
+        }
+        viewModel { params ->
+            BlockPreviewViewModel(
+                planId = params.get(),
+                blocks = get(),
+                exercises = get(),
+                library = get(),
+                clock = get(),
+                savedState = get(),
+            )
         }
         viewModel { PlanProposalViewModel(plans = get(), coach = get(), clock = get(), savedState = get()) }
         viewModel {

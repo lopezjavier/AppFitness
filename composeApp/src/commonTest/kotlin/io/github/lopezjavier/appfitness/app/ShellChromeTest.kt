@@ -74,6 +74,7 @@ class ShellChromeTest {
                 AboutRoute,
                 CoachUsageRoute,
                 PlanProposalRoute,
+                BlockPreviewRoute::class,
                 NotificationCenterRoute,
                 CheckInRoute,
             ),

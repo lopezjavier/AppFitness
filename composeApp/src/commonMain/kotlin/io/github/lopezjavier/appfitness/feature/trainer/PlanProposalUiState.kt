@@ -1,6 +1,9 @@
 package io.github.lopezjavier.appfitness.feature.trainer
 
+import io.github.lopezjavier.appfitness.domain.AppError
+import io.github.lopezjavier.appfitness.domain.AppException
 import io.github.lopezjavier.appfitness.domain.model.CoachDerivedValues
+import io.github.lopezjavier.appfitness.domain.model.CoachException
 import io.github.lopezjavier.appfitness.domain.model.CoachFailure
 import io.github.lopezjavier.appfitness.domain.model.CoachPlan
 
@@ -27,6 +30,23 @@ sealed interface PlanFailureKind {
     data object Interrupted : PlanFailureKind
 
     data object Other : PlanFailureKind
+}
+
+/** Maps a failed coach call to what the screen shows; shared by the plan and the block screens. */
+internal fun planFailureKindOf(failure: Throwable?): PlanFailureKind = when {
+    failure is CoachException -> when (val coachFailure = failure.failure) {
+        is CoachFailure.LimitReached -> PlanFailureKind.Limit(coachFailure.scope)
+        CoachFailure.NoCredit -> PlanFailureKind.NoCredit
+        CoachFailure.Timeout -> PlanFailureKind.Timeout
+        CoachFailure.Invalid -> PlanFailureKind.Invalid
+        CoachFailure.Missing -> PlanFailureKind.Missing
+        CoachFailure.Infeasible -> PlanFailureKind.Infeasible
+        CoachFailure.NeedsConfirmation, CoachFailure.Conflict, CoachFailure.Other -> PlanFailureKind.Other
+    }
+
+    (failure as? AppException)?.error == AppError.Network -> PlanFailureKind.Offline
+
+    else -> PlanFailureKind.Other
 }
 
 /** Why "Aceptar" is disabled; null on [PlanProposalUiState.Proposal] when it is enabled. */

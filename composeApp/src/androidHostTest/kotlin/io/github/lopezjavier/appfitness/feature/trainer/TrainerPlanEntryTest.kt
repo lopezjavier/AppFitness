@@ -32,13 +32,18 @@ class TrainerPlanEntryTest {
     private val events = mutableListOf<TrainerEvent>()
     private var opened = 0
 
-    private fun content(plan: PlanSummary, change: CalorieChange? = null) =
-        TrainerUiState.Content(coachValues(provisional = false), plan = plan, calorieChange = change)
+    private val openedBlocks = mutableListOf<String>()
+
+    private fun content(plan: PlanSummary, change: CalorieChange? = null, block: BlockSummary = BlockSummary.None) =
+        TrainerUiState.Content(coachValues(provisional = false), plan = plan, calorieChange = change, block = block)
 
     private fun show(state: TrainerUiState, online: Boolean = true) {
         rule.setContent {
             AppTheme {
-                TrainerScreen(state, flowOf(online), { events += it }, onOpenPlan = { opened++ })
+                TrainerScreen(state, flowOf(online), { events += it }, onOpenPlan = { opened++ }, onOpenBlock = {
+                    openedBlocks +=
+                        it
+                })
             }
         }
         rule.waitForIdle()
@@ -163,5 +168,53 @@ class TrainerPlanEntryTest {
         assertEquals(listOf("change-1" to true), plans.decisions)
         rule.onNodeWithTag("trainer_calorie_card").assertDoesNotExist()
         assertTrue(plans.pendingReads >= 1)
+    }
+
+    @Test
+    fun withoutAPlan_thereIsNoBlockEntry() {
+        show(content(PlanSummary.None))
+
+        rule.onNodeWithTag("trainer_create_block").assertDoesNotExist()
+        rule.onNodeWithTag("trainer_block_card").assertDoesNotExist()
+    }
+
+    @Test
+    fun anOpenPlanWithoutABlock_crearBloqueOpensThePreviewForThatPlan() {
+        show(content(PlanSummary.Accepted(coachPlan(id = "plan-9", status = PlanStatus.Accepted))))
+
+        tap("trainer_create_block")
+
+        assertEquals(listOf("plan-9"), openedBlocks)
+    }
+
+    @Test
+    fun offline_crearBloqueIsDisabledWithTheHint() {
+        show(content(PlanSummary.Accepted(coachPlan(status = PlanStatus.Accepted))), online = false)
+
+        rule.onNodeWithTag("trainer_create_block").assertIsNotEnabled()
+        rule.onNodeWithText("Sin conexión: no se puede crear el bloque").assertExists()
+    }
+
+    @Test
+    fun aProposedBlock_showsTheCardThatReopensThePreview() {
+        val plan = PlanSummary.Accepted(coachPlan(status = PlanStatus.Accepted))
+        show(content(plan, block = BlockSummary.Proposed(coachBlock())))
+
+        rule.onNodeWithText("Bloque propuesto").assertExists()
+        rule.onNodeWithTag("trainer_create_block").assertDoesNotExist()
+        tap("trainer_block_card")
+
+        assertEquals(listOf("plan-1"), openedBlocks)
+    }
+
+    @Test
+    fun aSavedBlock_readsBloqueGuardado_withoutOpeningAnything() {
+        val plan = PlanSummary.Accepted(coachPlan(status = PlanStatus.Accepted))
+        show(content(plan, block = BlockSummary.Saved(coachBlock(saved = true))))
+
+        rule.onNodeWithText("Bloque guardado").assertExists()
+        tap("trainer_block_card")
+
+        assertTrue(openedBlocks.isEmpty())
     }
 }

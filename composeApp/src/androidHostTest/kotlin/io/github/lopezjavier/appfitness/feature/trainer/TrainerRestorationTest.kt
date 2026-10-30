@@ -92,7 +92,7 @@ class TrainerRestorationTest {
         setContent {
             App(
                 rootRoute = RootRoute.Main,
-                trainer = { modifier, open, _ ->
+                trainer = { modifier, open, _, _ ->
                     TrainerRoute(
                         modifier,
                         open,

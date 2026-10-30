@@ -2,6 +2,7 @@ package io.github.lopezjavier.appfitness.feature.trainer
 
 import io.github.lopezjavier.appfitness.domain.model.ActivityLevel
 import io.github.lopezjavier.appfitness.domain.model.CalorieChange
+import io.github.lopezjavier.appfitness.domain.model.CoachBlock
 import io.github.lopezjavier.appfitness.domain.model.CoachDerivedValues
 import io.github.lopezjavier.appfitness.domain.model.CoachPlan
 import io.github.lopezjavier.appfitness.domain.model.GoalStrategy
@@ -13,6 +14,15 @@ sealed interface PlanSummary {
     data class Proposed(val plan: CoachPlan) : PlanSummary
 
     data class Accepted(val plan: CoachPlan) : PlanSummary
+}
+
+/** The training block entry under an open plan: none requested, one waiting to be saved, or already in Entreno. */
+sealed interface BlockSummary {
+    data object None : BlockSummary
+
+    data class Proposed(val block: CoachBlock) : BlockSummary
+
+    data class Saved(val block: CoachBlock) : BlockSummary
 }
 
 sealed interface TrainerUiState {
@@ -33,6 +43,8 @@ sealed interface TrainerUiState {
         val plan: PlanSummary = PlanSummary.None,
         val calorieChange: CalorieChange? = null,
         val decidingChange: Boolean = false,
+        /** The training block of the open [plan]; [BlockSummary.None] when there is no plan or the read failed. */
+        val block: BlockSummary = BlockSummary.None,
     ) : TrainerUiState {
         val allConfirmed: Boolean get() = values.allConfirmed
     }

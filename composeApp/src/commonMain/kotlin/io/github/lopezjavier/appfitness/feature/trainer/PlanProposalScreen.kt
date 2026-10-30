@@ -24,7 +24,6 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.github.lopezjavier.appfitness.composeapp.resources.Res
 import io.github.lopezjavier.appfitness.composeapp.resources.action_accept
 import io.github.lopezjavier.appfitness.composeapp.resources.action_discard
-import io.github.lopezjavier.appfitness.composeapp.resources.action_retry
 import io.github.lopezjavier.appfitness.composeapp.resources.macro_carbs
 import io.github.lopezjavier.appfitness.composeapp.resources.macro_fat
 import io.github.lopezjavier.appfitness.composeapp.resources.macro_protein
@@ -61,9 +60,7 @@ import io.github.lopezjavier.appfitness.designsystem.AppDateFormat
 import io.github.lopezjavier.appfitness.designsystem.AppListRow
 import io.github.lopezjavier.appfitness.designsystem.AppNumberFormat
 import io.github.lopezjavier.appfitness.designsystem.AppScreen
-import io.github.lopezjavier.appfitness.designsystem.AppStateAction
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
-import io.github.lopezjavier.appfitness.designsystem.ErrorState
 import io.github.lopezjavier.appfitness.designsystem.GhostButton
 import io.github.lopezjavier.appfitness.designsystem.GhostTone
 import io.github.lopezjavier.appfitness.designsystem.HelpButton
@@ -74,13 +71,11 @@ import io.github.lopezjavier.appfitness.designsystem.LocalAppMessages
 import io.github.lopezjavier.appfitness.designsystem.Macro
 import io.github.lopezjavier.appfitness.designsystem.MacroDefaults
 import io.github.lopezjavier.appfitness.designsystem.OfflineHint
-import io.github.lopezjavier.appfitness.designsystem.OfflineState
 import io.github.lopezjavier.appfitness.designsystem.PrimaryButton
 import io.github.lopezjavier.appfitness.designsystem.SkeletonBox
 import io.github.lopezjavier.appfitness.designsystem.Spacing
 import io.github.lopezjavier.appfitness.designsystem.StreamProgressState
 import io.github.lopezjavier.appfitness.designsystem.offlineHint
-import io.github.lopezjavier.appfitness.domain.model.CoachFailure
 import io.github.lopezjavier.appfitness.domain.model.OutcomeKind
 import io.github.lopezjavier.appfitness.domain.model.PlanLimit
 import io.github.lopezjavier.appfitness.domain.model.PlanOutcome
@@ -203,57 +198,14 @@ fun PlanProposalScreen(
     }
 }
 
+private val PlanFailureCopy = CoachFailureCopy(
+    error = Res.string.plan_proposal_error,
+    interrupted = Res.string.plan_proposal_interrupted,
+)
+
 @Composable
-private fun FailedContent(kind: PlanFailureKind, isOnline: Flow<Boolean>, onEvent: (PlanProposalEvent) -> Unit) {
-    val retry = AppStateAction(stringResource(Res.string.action_retry)) { onEvent(PlanProposalEvent.Retry) }
-    when (kind) {
-        is PlanFailureKind.Limit -> CoachLimitMessage(
-            failure = CoachFailure.LimitReached(kind.scope),
-            modifier = Modifier.padding(Spacing.screenMargin),
-            testTag = "plan_proposal_limit",
-        )
-
-        PlanFailureKind.NoCredit -> CoachLimitMessage(
-            failure = CoachFailure.NoCredit,
-            modifier = Modifier.padding(Spacing.screenMargin),
-            testTag = "plan_proposal_limit",
-        )
-
-        PlanFailureKind.Offline -> Box(Modifier.testTag("plan_proposal_offline")) {
-            OfflineState(isOnline = isOnline, onReload = { onEvent(PlanProposalEvent.Retry) })
-        }
-
-        PlanFailureKind.Interrupted -> ErrorState(
-            message = stringResource(Res.string.plan_proposal_interrupted),
-            action = retry,
-            testTagPrefix = "plan_proposal_error",
-            actionTestTag = "plan_proposal_retry",
-        )
-
-        PlanFailureKind.Timeout, PlanFailureKind.Invalid, PlanFailureKind.Missing, PlanFailureKind.Infeasible ->
-            ErrorState(
-                message = stringResource(coachFailureMessage(kind.toCoachFailure())),
-                action = retry,
-                testTagPrefix = "plan_proposal_error",
-                actionTestTag = "plan_proposal_retry",
-            )
-
-        PlanFailureKind.Other -> ErrorState(
-            message = stringResource(Res.string.plan_proposal_error),
-            action = retry,
-            testTagPrefix = "plan_proposal_error",
-            actionTestTag = "plan_proposal_retry",
-        )
-    }
-}
-
-private fun PlanFailureKind.toCoachFailure(): CoachFailure = when (this) {
-    PlanFailureKind.Timeout -> CoachFailure.Timeout
-    PlanFailureKind.Invalid -> CoachFailure.Invalid
-    PlanFailureKind.Missing -> CoachFailure.Missing
-    PlanFailureKind.Infeasible -> CoachFailure.Infeasible
-    else -> CoachFailure.Other
-}
+private fun FailedContent(kind: PlanFailureKind, isOnline: Flow<Boolean>, onEvent: (PlanProposalEvent) -> Unit) =
+    CoachFailureContent(kind, isOnline, PlanFailureCopy, "plan_proposal") { onEvent(PlanProposalEvent.Retry) }
 
 @Composable
 private fun ProposalContent(
