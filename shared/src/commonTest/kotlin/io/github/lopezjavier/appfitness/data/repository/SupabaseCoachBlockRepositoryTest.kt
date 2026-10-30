@@ -20,6 +20,7 @@ import io.ktor.http.HttpMethod
 import io.ktor.http.HttpStatusCode
 import io.ktor.http.content.TextContent
 import io.ktor.http.headersOf
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.test.runTest
 import kotlinx.datetime.LocalDate
 import kotlinx.io.IOException
@@ -31,6 +32,9 @@ import kotlin.test.assertFalse
 import kotlin.test.assertIs
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
+import kotlin.time.Duration
+import kotlin.time.Duration.Companion.milliseconds
+import kotlin.time.Duration.Companion.seconds
 
 private const val SESSION =
     """{"access_token":"access","token_type":"bearer","expires_in":3600,"refresh_token":"refresh",""" +
@@ -60,10 +64,13 @@ class SupabaseCoachBlockRepositoryTest {
 
     private suspend fun repo(
         signIn: Boolean = true,
+        responseDelayMs: Long = 0,
+        requestTimeout: Duration = COACH_CLIENT_TIMEOUT,
         respond: (HttpRequestData) -> Pair<HttpStatusCode, String>,
     ): SupabaseCoachBlockRepository {
         val engine = MockEngine { request ->
             requests += request
+            if (responseDelayMs > 0 && request.url.encodedPath.contains("/functions/")) delay(responseDelayMs)
             val json = headersOf(HttpHeaders.ContentType, "application/json")
             when {
                 request.url.encodedPath.contains("/auth/") -> respond(SESSION, HttpStatusCode.OK, json)
@@ -87,7 +94,7 @@ class SupabaseCoachBlockRepositoryTest {
             MemorySessionManager(),
         )
         if (signIn) SupabaseAuthRepository(client.auth).signInWithPassword(TestLoginCredentials("a@b.c", "pw"))
-        return SupabaseCoachBlockRepository(client.auth, client.postgrest, client.functions)
+        return SupabaseCoachBlockRepository(client.auth, client.postgrest, client.functions, requestTimeout)
     }
 
     private fun rest() = requests.filter { !it.url.encodedPath.contains("/auth/") }
@@ -105,6 +112,25 @@ class SupabaseCoachBlockRepositoryTest {
         request.url.encodedPath.endsWith("/coach_plan_sessions") -> HttpStatusCode.OK to sessionRows()
 
         else -> HttpStatusCode.OK to planRow()
+    }
+
+    @Test
+    fun requestBlock_succeedsWhenTheAnswerIsSlowerThanTheClientDefaultButWithinTheConfiguredTimeout() = runTest {
+        val repository = repo(responseDelayMs = 300L, requestTimeout = 5.seconds, respond = ::blockRoutes)
+
+        assertTrue(repository.requestBlock("p1", today).isSuccess)
+    }
+
+    @Test
+    fun requestBlock_failsWithTimeoutNotNetworkWhenSlowerThanTheConfiguredTimeout() = runTest {
+        val repository = repo(responseDelayMs = 3_000L, requestTimeout = 200.milliseconds, respond = ::blockRoutes)
+
+        assertEquals(CoachFailure.Timeout, failureOf(repository.requestBlock("p1", today)))
+    }
+
+    @Test
+    fun coachClientTimeout_isLongerThanTheFunctionsOwnTimeout() {
+        assertTrue(COACH_CLIENT_TIMEOUT > 120.seconds)
     }
 
     @Test
