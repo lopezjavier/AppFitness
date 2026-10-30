@@ -19,11 +19,16 @@ import io.github.lopezjavier.appfitness.composeapp.resources.calorie_change_payl
 import io.github.lopezjavier.appfitness.composeapp.resources.calorie_change_reason_faster
 import io.github.lopezjavier.appfitness.composeapp.resources.calorie_change_reason_slower
 import io.github.lopezjavier.appfitness.composeapp.resources.calorie_change_title
+import io.github.lopezjavier.appfitness.composeapp.resources.deload_accept_offline
 import io.github.lopezjavier.appfitness.composeapp.resources.trainer_block_create
 import io.github.lopezjavier.appfitness.composeapp.resources.trainer_block_create_action
 import io.github.lopezjavier.appfitness.composeapp.resources.trainer_block_proposed_supporting
 import io.github.lopezjavier.appfitness.composeapp.resources.trainer_block_proposed_title
 import io.github.lopezjavier.appfitness.composeapp.resources.trainer_block_saved_title
+import io.github.lopezjavier.appfitness.composeapp.resources.trainer_deload_data
+import io.github.lopezjavier.appfitness.composeapp.resources.trainer_deload_payload
+import io.github.lopezjavier.appfitness.composeapp.resources.trainer_deload_reason
+import io.github.lopezjavier.appfitness.composeapp.resources.trainer_deload_title
 import io.github.lopezjavier.appfitness.composeapp.resources.trainer_plan_active_line
 import io.github.lopezjavier.appfitness.composeapp.resources.trainer_plan_active_title
 import io.github.lopezjavier.appfitness.composeapp.resources.trainer_plan_create
@@ -45,6 +50,7 @@ import io.github.lopezjavier.appfitness.designsystem.StatusChip
 import io.github.lopezjavier.appfitness.designsystem.StatusTone
 import io.github.lopezjavier.appfitness.domain.model.CalorieChange
 import io.github.lopezjavier.appfitness.domain.model.CoachPlan
+import io.github.lopezjavier.appfitness.domain.model.DeloadProposal
 import io.github.lopezjavier.appfitness.feature.weight.signedTenths
 import org.jetbrains.compose.resources.pluralStringResource
 import org.jetbrains.compose.resources.stringResource
@@ -165,6 +171,25 @@ private fun ActivePlanCard(plan: CoachPlan) {
             StatusChip(stringResource(Res.string.trainer_source_edited), StatusTone.Caution)
         }
     }
+}
+
+/** The easier-week suggestion waiting for a decision (US-75), on the shared [CoachProposalCard]. */
+@Composable
+internal fun DeloadCard(deload: DeloadProposal, deciding: Boolean, online: Boolean, onEvent: (TrainerEvent) -> Unit) {
+    CoachProposalCard(
+        title = stringResource(Res.string.trainer_deload_title),
+        payload = stringResource(Res.string.trainer_deload_payload, deload.week),
+        reason = stringResource(Res.string.trainer_deload_reason),
+        dataUsed = stringResource(Res.string.trainer_deload_data),
+        acceptText = stringResource(Res.string.action_accept),
+        discardText = stringResource(Res.string.action_discard),
+        onAccept = { onEvent(TrainerEvent.DecideDeload(accept = true)) },
+        onDiscard = { onEvent(TrainerEvent.DecideDeload(accept = false)) },
+        testTagPrefix = "trainer_deload_card",
+        busy = deciding,
+        acceptEnabled = online,
+        footer = if (online) null else ({ OfflineHint(stringResource(Res.string.deload_accept_offline)) }),
+    )
 }
 
 /** The in-block calorie change waiting for a decision (US-69), on the shared [CoachProposalCard]. */

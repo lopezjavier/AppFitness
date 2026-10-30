@@ -19,6 +19,8 @@ import io.github.lopezjavier.appfitness.data.repository.SupabaseCoachPingReposit
 import io.github.lopezjavier.appfitness.data.repository.SupabaseCoachPlanRepository
 import io.github.lopezjavier.appfitness.data.repository.SupabaseCoachRepository
 import io.github.lopezjavier.appfitness.data.repository.SupabaseCoachUsageRepository
+import io.github.lopezjavier.appfitness.data.repository.SupabaseCoachWeeksRepository
+import io.github.lopezjavier.appfitness.data.repository.SupabaseDeloadRepository
 import io.github.lopezjavier.appfitness.data.repository.SupabaseDiscomfortRepository
 import io.github.lopezjavier.appfitness.data.repository.SupabaseExerciseRepository
 import io.github.lopezjavier.appfitness.data.repository.SupabaseFoodDiaryRepository
@@ -49,6 +51,8 @@ import io.github.lopezjavier.appfitness.data.repository.UnconfiguredCoachPingRep
 import io.github.lopezjavier.appfitness.data.repository.UnconfiguredCoachPlanRepository
 import io.github.lopezjavier.appfitness.data.repository.UnconfiguredCoachRepository
 import io.github.lopezjavier.appfitness.data.repository.UnconfiguredCoachUsageRepository
+import io.github.lopezjavier.appfitness.data.repository.UnconfiguredCoachWeeksRepository
+import io.github.lopezjavier.appfitness.data.repository.UnconfiguredDeloadRepository
 import io.github.lopezjavier.appfitness.data.repository.UnconfiguredDiscomfortRepository
 import io.github.lopezjavier.appfitness.data.repository.UnconfiguredExerciseRepository
 import io.github.lopezjavier.appfitness.data.repository.UnconfiguredFoodDiaryRepository
@@ -82,6 +86,8 @@ import io.github.lopezjavier.appfitness.domain.repository.CoachPingRepository
 import io.github.lopezjavier.appfitness.domain.repository.CoachPlanRepository
 import io.github.lopezjavier.appfitness.domain.repository.CoachRepository
 import io.github.lopezjavier.appfitness.domain.repository.CoachUsageRepository
+import io.github.lopezjavier.appfitness.domain.repository.CoachWeeksRepository
+import io.github.lopezjavier.appfitness.domain.repository.DeloadRepository
 import io.github.lopezjavier.appfitness.domain.repository.DiscomfortRepository
 import io.github.lopezjavier.appfitness.domain.repository.ExerciseRepository
 import io.github.lopezjavier.appfitness.domain.repository.FoodDiaryRepository
@@ -339,6 +345,22 @@ val sharedModule =
                 SupabaseProgressionRepository(client.auth, client.postgrest)
             } else {
                 UnconfiguredProgressionRepository()
+            }
+        }
+        single<CoachWeeksRepository> {
+            if (get<AppConfig>().isSupabaseConfigured) {
+                val client = get<SupabaseClient>()
+                SupabaseCoachWeeksRepository(client.auth, client.postgrest)
+            } else {
+                UnconfiguredCoachWeeksRepository()
+            }
+        }
+        single<DeloadRepository> {
+            if (get<AppConfig>().isSupabaseConfigured) {
+                val client = get<SupabaseClient>()
+                SupabaseDeloadRepository(client.auth, client.postgrest)
+            } else {
+                UnconfiguredDeloadRepository()
             }
         }
         single<MealSlotRepository> {

@@ -31,6 +31,10 @@ import io.github.lopezjavier.appfitness.composeapp.resources.calorie_change_acce
 import io.github.lopezjavier.appfitness.composeapp.resources.calorie_change_discard_error
 import io.github.lopezjavier.appfitness.composeapp.resources.calorie_change_discard_offline
 import io.github.lopezjavier.appfitness.composeapp.resources.coach_usage_title
+import io.github.lopezjavier.appfitness.composeapp.resources.deload_accept_error
+import io.github.lopezjavier.appfitness.composeapp.resources.deload_accept_offline
+import io.github.lopezjavier.appfitness.composeapp.resources.deload_discard_error
+import io.github.lopezjavier.appfitness.composeapp.resources.deload_discard_offline
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_info
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_more_vert
 import io.github.lopezjavier.appfitness.composeapp.resources.topbar_more_cd
@@ -82,6 +86,10 @@ fun TrainerRoute(
     val discardChangeError = stringResource(Res.string.calorie_change_discard_error)
     val acceptOffline = offlineHint(stringResource(Res.string.calorie_change_accept_offline)) + "."
     val discardOffline = offlineHint(stringResource(Res.string.calorie_change_discard_offline)) + "."
+    val acceptDeloadError = stringResource(Res.string.deload_accept_error)
+    val discardDeloadError = stringResource(Res.string.deload_discard_error)
+    val deloadAcceptOffline = offlineHint(stringResource(Res.string.deload_accept_offline)) + "."
+    val deloadDiscardOffline = offlineHint(stringResource(Res.string.deload_discard_offline)) + "."
     val latestHaptics by rememberUpdatedState(haptics)
     LaunchedEffect(viewModel) {
         viewModel.effects.collect { effect ->
@@ -105,6 +113,19 @@ fun TrainerRoute(
                         },
                     )
                 }
+
+                is TrainerEffect.DeloadDecided -> latestHaptics.confirm()
+
+                is TrainerEffect.DeloadFailed -> {
+                    latestHaptics.reject()
+                    messages.show(
+                        decisionMessage(
+                            effect.accept,
+                            effect.offline,
+                            listOf(acceptDeloadError, discardDeloadError, deloadAcceptOffline, deloadDiscardOffline),
+                        ),
+                    )
+                }
             }
         }
     }
@@ -118,6 +139,10 @@ fun TrainerRoute(
         onOpenBlock = onOpenBlock,
     )
 }
+
+/** Picks the failure message from `[acceptError, discardError, acceptOffline, discardOffline]`. */
+private fun decisionMessage(accept: Boolean, offline: Boolean, texts: List<String>): String =
+    texts[(if (offline) 2 else 0) + (if (accept) 0 else 1)]
 
 /**
  * The Trainer tab root (US-68, US-69) on [AppScreen] with the compact header: the pending calorie change, the
@@ -179,6 +204,7 @@ private fun TrainerContent(
         Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(Spacing.screenMargin),
         verticalArrangement = Arrangement.spacedBy(Spacing.blockGap),
     ) {
+        state.deload?.let { DeloadCard(it, state.decidingDeload, online, onEvent) }
         state.calorieChange?.let { CalorieChangeCard(it, state.decidingChange, online, onEvent) }
         DerivedValuesCard(
             values = state.values,
@@ -190,6 +216,7 @@ private fun TrainerContent(
         )
         PlanSection(state.plan, online, onOpenPlan)
         BlockSection(state.plan, state.block, online, onOpenBlock)
+        PlanWeeksSection(state.weeks)
     }
     if (state.editSheet != null) {
         ActivityLevelSheet(

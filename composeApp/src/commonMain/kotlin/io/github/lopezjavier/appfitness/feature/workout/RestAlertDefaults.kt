@@ -2,12 +2,14 @@ package io.github.lopezjavier.appfitness.feature.workout
 
 import io.github.lopezjavier.appfitness.domain.AppError
 import io.github.lopezjavier.appfitness.domain.AppException
+import io.github.lopezjavier.appfitness.domain.model.DeloadExerciseSuggestion
 import io.github.lopezjavier.appfitness.domain.model.Discomfort
 import io.github.lopezjavier.appfitness.domain.model.DiscomfortLevel
 import io.github.lopezjavier.appfitness.domain.model.ProgressionSuggestion
 import io.github.lopezjavier.appfitness.domain.port.NotificationPermission
 import io.github.lopezjavier.appfitness.domain.port.RestAlertPreferences
 import io.github.lopezjavier.appfitness.domain.port.RestAlertScheduler
+import io.github.lopezjavier.appfitness.domain.repository.DeloadRepository
 import io.github.lopezjavier.appfitness.domain.repository.DiscomfortRepository
 import io.github.lopezjavier.appfitness.domain.repository.ProgressionRepository
 import kotlin.time.Instant
@@ -42,6 +44,12 @@ internal object NoDiscomforts : DiscomfortRepository {
 /** No suggestions: the default of [LiveSessionViewModel] for callers ignoring US-70. */
 internal object NoProgression : ProgressionRepository {
     override suspend fun suggestionsFor(sessionId: String): Result<List<ProgressionSuggestion>> =
+        Result.success(emptyList())
+}
+
+/** No deload lines: the default of [LiveSessionViewModel] for callers ignoring T-165. */
+internal object NoDeload : DeloadRepository {
+    override suspend fun suggestionsFor(sessionId: String): Result<List<DeloadExerciseSuggestion>> =
         Result.success(emptyList())
 }
 

@@ -147,6 +147,9 @@ Uses `SwipeToDeleteRow` only (guard G7) · right-to-left, "Eliminar"/"Quitar" ·
 | A training block the coach proposes (T-164) | "Bloque propuesto" (Trainer card, screen title "Bloque de entrenamiento"; entry "Crear bloque") | "Programa", "Rutina semanal" | Weeks are "Semana N" tabs; the workouts inside are "entrenos" ("X min por entreno"), never "sesión" |
 | Commit the coach's block to Entreno (T-164) | "Guardar bloque" (footer; "Bloque guardado" once done) | "Aceptar", "Descartar" | It creates routines, not a plan decision; leaving the preview asks nothing and the proposal stays stored |
 | Weekly work per muscle group (T-164) | "Series por grupo muscular" ("10 series · 2 días/semana") | "Volumen", "Sets" | Shown once above the week tabs: it does not change by week |
+| Easier week the coach suggests (T-165) | "Descarga" (chip "Descarga", card "Semana de descarga", live "Descarga: mismo peso, 3 de 5 series") | "Deload", "Semana suave", "Descanso" | Same weights, 40 % fewer working sets; routines are never rewritten; accept/discard with "Aceptar"/"Descartar" |
+| Plan adherence (T-165) | "3 de 4 entrenos · 75 %" (no label) | "Adherencia", "Cumplimiento", "sesiones" | Counts routines done per week; a missed workout shows "No hecho", never an error |
+| Current week marker (T-165) | "Actual" chip | "Hoy", "En curso" | |
 | Decide on a coach proposal | "Aceptar" / "Descartar" | "Guardar", "Cancelar" | Distinct from the edit pair "Guardar"/"Cancelar"; used by the plan tasks of E13 |
 | A coach value not yet confirmed | "Provisional" (`StatusChip` Caution, announced "Valor provisional") | "Pendiente", "Sin confirmar" | A re-asked value shows the same chip with the line "Tus datos han cambiado: vuelve a confirmar." |
 | Apply to the screen underneath | "Listo" | "Guardar" | Only when that screen has its own "Guardar" |

@@ -12,6 +12,7 @@ import io.github.lopezjavier.appfitness.domain.port.Clock
 import io.github.lopezjavier.appfitness.domain.repository.CoachBlockRepository
 import io.github.lopezjavier.appfitness.domain.repository.CoachPlanRepository
 import io.github.lopezjavier.appfitness.domain.repository.CoachRepository
+import io.github.lopezjavier.appfitness.domain.repository.CoachWeeksRepository
 import io.github.lopezjavier.appfitness.domain.repository.NutritionGoalsRepository
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -43,6 +44,7 @@ private suspend fun CoachBlockRepository?.summaryFor(plan: PlanSummary): BlockSu
  * Trainer tab root (US-68): the derived values with their confirmation state. The open edit sheet and its picked
  * level survive recreation through [savedState]; the loaded values are always re-fetched, never persisted.
  */
+@Suppress("TooManyFunctions") // One small handler per decision card (calorie change, deload) plus the sheet.
 class TrainerViewModel(
     private val repository: CoachRepository,
     private val clock: Clock,
@@ -50,6 +52,7 @@ class TrainerViewModel(
     private val goals: NutritionGoalsRepository? = null,
     private val plans: CoachPlanRepository? = null,
     private val blocks: CoachBlockRepository? = null,
+    private val coachWeeks: CoachWeeksRepository? = null,
 ) : ViewModel() {
     private val _uiState = MutableStateFlow<TrainerUiState>(TrainerUiState.Loading)
     val uiState: StateFlow<TrainerUiState> = _uiState.asStateFlow()
@@ -72,6 +75,38 @@ class TrainerViewModel(
             is TrainerEvent.PickLevel -> pickLevel(event.level)
             TrainerEvent.CloseEdit -> setDraft(null)
             is TrainerEvent.DecideCalorieChange -> decideCalorieChange(event.accept)
+            is TrainerEvent.DecideDeload -> decideDeload(event.accept)
+        }
+    }
+
+    @Suppress("ReturnCount") // Guards for a missing card, repository or an in-flight decision.
+    private fun decideDeload(accept: Boolean) {
+        val content = _uiState.value as? TrainerUiState.Content ?: return
+        val proposal = content.deload ?: return
+        val repository = coachWeeks ?: return
+        if (content.decidingDeload) return
+        _uiState.value = content.copy(decidingDeload = true)
+        viewModelScope.launch {
+            val result = repository.decideDeload(proposal.id, accept)
+            if (result.isSuccess) {
+                // Accepting marks next week: reload the list; a failed reload keeps the weeks already shown.
+                val reloaded = repository.weeks(proposal.planId, today()).getOrNull()
+                _uiState.update { state ->
+                    if (state is TrainerUiState.Content) {
+                        state.copy(deload = null, decidingDeload = false, weeks = reloaded ?: state.weeks)
+                    } else {
+                        state
+                    }
+                }
+                effectChannel.send(TrainerEffect.DeloadDecided(accept))
+            } else {
+                _uiState.update { state ->
+                    if (state is TrainerUiState.Content) state.copy(decidingDeload = false) else state
+                }
+                effectChannel.send(
+                    TrainerEffect.DeloadFailed(accept, offline = result.appErrorOrNull() == AppError.Network),
+                )
+            }
         }
     }
 
@@ -85,6 +120,10 @@ class TrainerViewModel(
             val plan = if (result.isSuccess) readPlan() else PlanSummary.None
             val change = if (plan is PlanSummary.Accepted) plans?.pendingCalorieChange(today())?.getOrNull() else null
             val block = blocks.summaryFor(plan)
+            // Weeks and the deload card need an accepted plan with a saved block; failed reads mean none.
+            val savedPlanId = (plan as? PlanSummary.Accepted)?.plan?.id?.takeIf { block is BlockSummary.Saved }
+            val deload = savedPlanId?.let { coachWeeks?.pendingDeload(today())?.getOrNull() }
+            val planWeeks = savedPlanId?.let { coachWeeks?.weeks(it, today())?.getOrNull() }.orEmpty()
             _uiState.value = result.fold(
                 onSuccess = {
                     TrainerUiState.Content(
@@ -94,6 +133,8 @@ class TrainerViewModel(
                         plan = plan,
                         calorieChange = change,
                         block = block,
+                        weeks = planWeeks,
+                        deload = deload,
                     )
                 },
                 onFailure = {
