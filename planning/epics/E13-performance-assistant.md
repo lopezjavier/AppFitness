@@ -4,7 +4,7 @@
 A coach that designs a four-week training and nutrition block from the user's intention and preferences, sets the outcomes it can justify, and adjusts the plan with the user's data. It proposes; the user accepts. It never applies a change without consent.
 
 ## Scope
-- Includes: confirmation of derived values, calorie and macro plan with outcomes, progression per exercise, weekly report, block creator with plan storage and adherence, recommendation history with outcome and deletion, deload suggestion, monthly AI budget, chat with tools (last, gated by the evaluation).
+- Includes: confirmation of derived values, calorie and macro plan with outcomes, progression per exercise, weekly report, block creator with plan storage and adherence, recommendation history with outcome and deletion, deload suggestion, monthly AI budget, chat with tools (last, gated by the evaluation); weekly cardio and daily steps in the plan, and cardio as the last exercise of every routine of the block (US-79, ADR-85 proposed 2026-11-01; the coach plans no warm-up, E13 Q27); cardio machines as their own equipment group (US-80).
 - Out of scope: medical advice or diagnosis, video analysis, meal plans, soreness as a signal, water and voice (Phase 3).
 
 ## Decisions
@@ -324,10 +324,69 @@ Feature: Block creator
     Then the block does not remove or shorten them
     And no text advises fewer steps
 
+  # Cardio scenarios below: added 2026-11-01 (ADR-85 proposed, T-182/T-183); E13 Q26-Q30 resolved 2026-11-01.
+  Scenario: Cardio closes every routine
+    Given the plan has a weekly cardio target of 150 minutes
+    And the block has 3 routines a week
+    When the block is shown
+    Then the last exercise of each routine is one cardio exercise of 50 minutes
+    And it shows its minutes and its pace, such as "Bicicleta estática · 50 min · suave"
+    And the cardio of each week adds up to 150 minutes
+    And there is no day with only cardio
+
+  Scenario: Minutes over the routine cap
+    Given the plan has a weekly cardio target of 300 minutes
+    And the block has 3 routines a week
+    When the block is shown
+    Then each routine ends with 60 minutes of cardio
+    And the week shows the remaining 120 minutes as "por tu cuenta"
+
+  Scenario: Cardio does not shorten the lifting
+    Given "Duración de la sesión" is 60 minutes
+    When the block is shown
+    Then the lifting of each routine is the same as without cardio
+    And each routine shows its total time with the cardio, such as "1 h 50 min"
+
+  Scenario: Cardio uses the available equipment
+    Given the place is "Casa" and the equipment is "Mancuernas" and "Peso corporal"
+    When the block is shown
+    Then every cardio exercise needs only that equipment, such as "Caminar a paso ligero"
+
+  Scenario: Swapping the cardio keeps the minutes
+    Given a routine ends with "Bicicleta estática · 50 min · suave"
+    When the user swaps it
+    Then the list shows only cardio exercises timed in minutes that fit the user's cardio equipment, plus walking and running
+    And under the list it says "Cuentan los mismos minutos con cualquier cardio, a ritmo suave."
+    When the user picks "Caminar a paso ligero"
+    Then the routine ends with "Caminar a paso ligero · 50 min · suave" in every week
+
+  Scenario: Any cardio swaps with any other
+    Given the user's cardio equipment is "Bicicleta estática" and "Cinta"
+    When the user opens the swap of any cardio exercise of the block
+    Then the list has every other cardio exercise timed in minutes with that equipment, plus walking and running
+    And the list is the same whichever cardio exercise it starts from
+    And the minutes stay the same after any swap
+
+  Scenario: A cardio set is minutes only
+    When the block is shown
+    Then each cardio exercise has one set with its planned minutes
+    And it has no reps and no RPE
+
+  Scenario: Training the cardio
+    Given the user trains a routine of the block
+    When the user reaches its cardio exercise
+    Then the set shows the planned minutes
+    And completing it starts no rest timer
+
+  Scenario: The coach plans no warm-up
+    When the block is shown
+    Then no routine has a warm-up exercise or warm-up sets
+
   Scenario: Saving creates routines
     When the user taps "Guardar bloque"
     Then the routines are created with the existing save procedure in one folder for the block
     And each exercise keeps its rep range and rest
+    And each cardio exercise keeps its planned minutes
     And the plan is linked to them
 
   Scenario: Nothing is saved without confirmation
@@ -339,6 +398,8 @@ Feature: Block creator
 - Range of motion stays a technique note in the exercise's reason (full range by default, `07` §3), not a computed rule.
 - Main multi-joint lifts = exercises whose `movement_pattern` is squat, hinge, lunge, horizontal or vertical push or pull (Q3, user 2026-10-29).
 - Leaving the preview keeps the proposal as `proposed`; it can be reopened from Trainer until a new one supersedes it; no discard dialog (Q10, user 2026-10-29).
+- **Cardio (2026-11-01, ADR-85 proposed; E13 Q26-Q30):** the block reads the plan's weekly cardio target (US-79) and splits it evenly across the week's routines in whole 5-minute units (remainder to the first routines), at most 60 min per routine, the excess shown as "por tu cuenta". Cardio is the last exercise of every lifting routine; there are no cardio-only routines. It comes from the catalogue's `cardio` pattern within place and equipment, default bike, elliptical, incline treadmill walk, rower with machines and brisk walking without ("Caminar a paso ligero"), never running, air bike, ski erg, stair climber or burpee-style moves by default, and the most-logged cardio of the last 8 weeks when it fits the equipment; continuous "suave" only. Cardio candidates use the cardio equipment values of US-80. The cardio swap is any-to-any (user requirement, 2026-11-01): every cardio exercise timed in minutes within the user's cardio equipment, plus walking and running always, is an alternative of every other one at the same minutes, in every week of the routine; the alternatives are derived from category and equipment, never from the T-179 pairs table or a per-exercise list (`07` §3, Q28b). Cardio is outside "Duración de la sesión" (no lifting slot is removed); the preview shows each routine's total time. A cardio exercise has one planned set of minutes only (no reps, no RPE, no rest timer), stored in a new nullable planned duration on planned sets and shown with the existing duration metric types and set rows.
+- **No warm-up (E13 Q27, user):** the coach does not plan, generate or mention warm-ups; the user adds warm-up sets himself.
 
 ## US-73 · Plan adherence
 **As** a user
@@ -362,6 +423,24 @@ Feature: Plan adherence
     When week 2 starts
     Then week 2 is shown as planned
     And the missed session is not moved automatically
+
+  # Added 2026-11-01 (ADR-85 proposed, T-183).
+  Scenario: Cardio minutes of the week
+    Given week 1 plans 150 minutes of cardio
+    And the user logged 100 minutes of cardio exercises that week
+    Then week 1 shows "Cardio de la semana: 100 de 150 min"
+    And only logged cardio counts
+    And the missing 50 minutes are not moved to week 2
+
+  Scenario: Steps of the week
+    Given the steps target is 7000 a day
+    And the user's watch reported an average of 7800 steps this week
+    Then the week shows "Pasos: media 7.800 de 7.000"
+    And a missed target moves nothing to the next week
+
+  Scenario: No steps data
+    Given there is no steps data this week
+    Then the week shows "Sin datos de pasos"
 ```
 
 ## US-74 · Recommendation history, outcome and deletion
@@ -544,6 +623,128 @@ Feature: Before starting a plan or a block
 - Edits stay in their existing places (Perfil → Mi entrenamiento, Preferencias → Datos personales, Peso, the coach's activity-level sheet of US-68). No new editor.
 - A flagged item that the `coach` function would refuse (today's `missing` 422, T-174) keeps "Crear plan" from starting, so no paid call fails on it. One source: the screen and the function read the same server-side list (T-175).
 - The Trainer root becomes a plan hub: pending proposals, "Tu plan" with its current week, the block, and a "Tus datos" row that replaces the "Tus valores" card (Q20 A).
+
+## US-79 · Cardio and daily steps in the plan
+*Added 2026-11-01 (user: "the app replaces a real trainer; if the trainer would plan cardio, the app must"). ADR-85 proposed; rules and sources in `07` §3 "Cardio prescription" and §10 (29-50, checked online 2026-11-01). E13 Q23-Q25 and Q29 resolved 2026-11-01. Task T-181; the block side is in US-72 (T-182, T-183) and the weekly tracking in US-73 (T-183).*
+
+**As** a user with an intention
+**I want** the coach to tell me how much cardio to do each week and how many steps to walk each day
+**So that** my plan covers what a trainer would prescribe, not only lifting and food.
+
+```gherkin
+Feature: Cardio and daily steps in the plan
+
+  Scenario: Targets next to the calories
+    Given the intention is "Perder grasa"
+    When the coach proposes the plan
+    Then the plan shows "Actividad" with "Cardio · 150 min por semana · ritmo suave" and "Pasos · 7.000 al día" next to the calories and macros
+    And each target shows its reason
+    And the cardio reason explains "Ritmo suave: respiras más fuerte, pero puedes hablar con frases completas."
+    And the cardio reason ends with "Si tienes una enfermedad del corazón, metabólica o renal, o notas síntomas al esforzarte, consulta antes con tu médico."
+
+  Scenario Outline: The coach proposes 150 minutes for every intention
+    Given the intention is "<intention>"
+    When the coach proposes the plan
+    Then the weekly cardio target is 150 minutes of moderate cardio
+
+    Examples:
+      | intention          |
+      | Perder grasa       |
+      | Ganar musculatura  |
+      | Ganar fuerza       |
+      | Recomposición      |
+      | Mantenimiento      |
+
+  Scenario: The user changes the cardio minutes
+    Given the plan proposes 150 minutes of cardio a week
+    When the user taps the "Cardio" row and changes it to 90 minutes
+    Then the plan keeps 90 minutes
+    And a note says "Está por debajo de lo que recomienda la OMS (150 min). Puedes dejarlo así."
+    And nothing is blocked
+
+  Scenario: Changing the cardio after the block is saved
+    Given the block is saved with 50 minutes of cardio per routine
+    When the user changes the cardio to 120 minutes from "Tu plan"
+    Then the weekly cardio target is 120 minutes
+    And the next block uses 120 minutes
+    And the saved routines keep their 50 minutes
+
+  Scenario: Steps never go down
+    Given my average over the last 28 days is 11000 steps a day
+    When the coach proposes the plan
+    Then the steps target is 11000 a day
+    And no text advises fewer steps
+
+  Scenario: Steps floor without a watch
+    Given there is no steps data
+    When the coach proposes the plan
+    Then the steps target is 7000 a day at any age
+
+  Scenario: The steps target is not editable
+    When the user opens the steps target
+    Then it cannot be changed
+    And a plain note says it comes from the user's average and the recommendation
+
+  Scenario: Cardio does not change the calories
+    Given the plan sets 150 minutes of cardio a week
+    When the user changes it to 300 minutes
+    Then the calories are the same as before
+    And the plan says the expenditure will follow the logged data
+
+  Scenario: Accepting keeps the targets
+    When the user accepts the plan
+    Then "Tu plan" in Trainer shows the weekly cardio target and the daily steps target
+```
+
+**Technical notes**
+- Every figure is computed by the server's rules (`cardioRules`), never by the model; the model only explains (`07` §1). Cardio: 150 min/week proposed for every intention; for "Perder grasa" the sourced band is 150-300 (E13 Q23). Copy of the reasons: `07` §3 "What the user sees" (ux-reviewer finalises within the glossary).
+- Steps target = max(28-day average rounded down to 500, 7 000) at every age (E13 Q24); the current average comes from `coach_summary` (`04` §7.8 steps per week). Not editable.
+- The only new user input is the weekly cardio minutes (free, a plain note below 150, never blocks), edited in a form sheet from the "Cardio" row on the proposal and in "Tu plan" (E13 Q31); the steps target comes from the logged steps.
+- The planned cardio does not change the calories (E13 Q25). The medical line closes the cardio help sheet (E13 Q29); no questionnaire, no blocking.
+
+## US-80 · Cardio equipment
+*Added 2026-11-01 (user decision: cardio machines leave `machine` and form their own category; details by the fitness-scientist, E13 Q28b; `07` §3 "Cardio equipment"). ADR-85 proposed. Task T-184, before the block uses it (T-182).*
+
+**As** a user who trains where there are some cardio machines and not others
+**I want** to say which cardio machines I have
+**So that** the coach only proposes cardio I can do.
+
+```gherkin
+Feature: Cardio equipment
+
+  Scenario: Cardio machines are their own group
+    When the user opens "Equipamiento" in "Mi entrenamiento"
+    Then a group "Cardio" under the lifting equipment shows "Bicicleta estática", "Cinta", "Elíptica", "Remo" and "Otra máquina de cardio"
+    And it says "Sin máquinas de cardio, el entrenador te propone caminar a paso ligero."
+
+  Scenario: Place seeds the cardio machines
+    When the user picks "Gimnasio"
+    Then the five cardio machines are selected
+    When the user picks "Casa"
+    Then no cardio machine is selected
+
+  Scenario: Saved equipment gains nothing
+    Given the user saved "Máquinas" before the cardio group existed
+    When the user opens "Equipamiento"
+    Then no cardio machine is selected
+    And the coach does not treat "Máquinas" as cardio
+
+  Scenario: "Antes de empezar" shows the cardio
+    Given the user selected "Bicicleta estática" and "Cinta"
+    When the user opens "Antes de empezar"
+    Then the "Cardio" row reads "Bicicleta estática, Cinta"
+    And tapping it opens "Mi entrenamiento"
+
+  Scenario: No cardio machine means walking
+    Given no cardio machine is selected
+    When the user opens "Antes de empezar"
+    Then the "Cardio" row reads "Sin máquinas · caminar"
+    And the block proposes "Caminar a paso ligero" as cardio
+```
+
+**Technical notes**
+- Five new `public.equipment` values `cardio_bike`, `treadmill`, `elliptical`, `rower`, `cardio_other` (precedent `band_long`, ADR-83); the catalogue's cardio machines are re-tagged from `machine`; `walking` and `running` stay `bodyweight`. `machine` means lifting machines only.
+- The migration adds no cardio value to any saved equipment list; "a gym with none selected: everything" (`04` §9.4) is unchanged.
 
 ## Evaluation (not a user story)
 - Cases written by the user, each with its correct answer: a plan for each intention, one training day, limited equipment, discomfort, missing data, rate inside and outside range, calorie floor, invented figure in a report.
