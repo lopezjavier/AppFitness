@@ -91,7 +91,7 @@ Each checkpoint also has "leave the app and come back: the same tab, screen and 
   - **Checkpoint E13-B 👤 (9 items) re-presented** after T-177 (items 1-9 to re-test)
 - [ ] T-175: "Antes de empezar" inputs (US-78 backend) — M
 - [x] T-176: "Antes de empezar" screen and the Trainer tab layout (US-78 UI) — L
-- [ ] T-179: Long band and exercise alternatives — L (after T-176; does not wait for E13-B1/E13-B2)
+- [x] T-179: Long band and exercise alternatives — L (after T-176; does not wait for E13-B1/E13-B2)
   - **Checkpoint E13-B1 👤 "Before starting, and your nutrition plan" (7)**, then **Checkpoint E13-B2 👤 "Your four-week block, adherence and deload" (6)**, both after T-176 (Q22 B); T-166 waits for both. Item lists in `tasks/todo.md`.
 
 **Sizing of US-78:** one story, split backend → UI because the whole slice is about 28 files: T-175 (one read-only RPC shared by the screen and the `coach` function's precondition, plus the repository; M, about 11 files) and T-176 (the screen in two modes, the Trainer root rework and the proposal clean-up; L, about 17 files). The root rework stays inside T-176: it moves the "Tus valores" card into the new screen, so splitting it would make an S task touching the same files.
