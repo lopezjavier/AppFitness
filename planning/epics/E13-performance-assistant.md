@@ -4,7 +4,7 @@
 A coach that designs a four-week training and nutrition block from the user's intention and preferences, sets the outcomes it can justify, and adjusts the plan with the user's data. It proposes; the user accepts. It never applies a change without consent.
 
 ## Scope
-- Includes: confirmation of derived values, calorie and macro plan with outcomes, progression per exercise, weekly report, block creator with plan storage and adherence, recommendation history with outcome and deletion, deload suggestion, monthly AI budget, chat with tools (last, gated by the evaluation).
+- Includes: confirmation of derived values, calorie and macro plan with outcomes, progression per exercise, weekly report, block creator with plan storage and adherence, recommendation history with outcome and deletion, deload suggestion, monthly AI budget, chat with tools (last, gated by the evaluation); cardio, warm-up and daily steps in the plan and the block (US-79, ADR-85 proposed 2026-11-01).
 - Out of scope: medical advice or diagnosis, video analysis, meal plans, soreness as a signal, water and voice (Phase 3).
 
 ## Decisions
@@ -324,10 +324,34 @@ Feature: Block creator
     Then the block does not remove or shorten them
     And no text advises fewer steps
 
+  # Cardio scenarios below: added 2026-11-01 (ADR-85 proposed, T-182/T-183); figures pending E13 Q23-Q28.
+  Scenario: Cardio sessions reach the weekly target
+    Given the plan has a weekly cardio target of 150 minutes
+    When the block is shown
+    Then the cardio of each week adds up to 150 minutes
+    And each cardio exercise shows its minutes and its pace, such as "Bicicleta estática · 25 min · suave"
+
+  Scenario: Cardio never goes before leg lifting
+    Given a session has lower-body lifting
+    When the block is shown
+    Then the session's cardio comes after the lifting
+    And cardio that does not fit after the lifting is on a day without lifting
+
+  Scenario: Cardio uses the available equipment
+    Given the place is "Casa" and the equipment is "Mancuernas" and "Peso corporal"
+    When the block is shown
+    Then every cardio exercise needs only that equipment, such as walking
+
+  Scenario: A warm-up starts each routine
+    When the block is shown
+    Then each routine starts with a warm-up of about 5 minutes
+    And the warm-up does not count toward the weekly cardio minutes
+
   Scenario: Saving creates routines
     When the user taps "Guardar bloque"
     Then the routines are created with the existing save procedure in one folder for the block
     And each exercise keeps its rep range and rest
+    And each cardio exercise and the warm-up keep their planned minutes
     And the plan is linked to them
 
   Scenario: Nothing is saved without confirmation
@@ -339,6 +363,7 @@ Feature: Block creator
 - Range of motion stays a technique note in the exercise's reason (full range by default, `07` §3), not a computed rule.
 - Main multi-joint lifts = exercises whose `movement_pattern` is squat, hinge, lunge, horizontal or vertical push or pull (Q3, user 2026-10-29).
 - Leaving the preview keeps the proposal as `proposed`; it can be reopened from Trainer until a new one supersedes it; no discard dialog (Q10, user 2026-10-29).
+- **Cardio (2026-11-01, ADR-85 proposed):** the block reads the plan's weekly cardio target (US-79); cardio exercises come from the catalogue's `cardio` pattern within the equipment, low-impact first; placement, warm-up form and whether cardio time counts in the session length are E13 Q26-Q28. A planned cardio exercise and the warm-up store a planned duration (new nullable column on planned sets).
 
 ## US-73 · Plan adherence
 **As** a user
@@ -362,6 +387,18 @@ Feature: Plan adherence
     When week 2 starts
     Then week 2 is shown as planned
     And the missed session is not moved automatically
+
+  # Added 2026-11-01 (ADR-85 proposed, T-183).
+  Scenario: Cardio minutes of the week
+    Given week 1 plans 150 minutes of cardio
+    And the user logged 100 minutes of cardio exercises that week
+    Then week 1 shows 100 of 150 minutes of cardio
+
+  Scenario: Steps of the week
+    Given the steps target is 8000 a day
+    And the user's watch reported an average of 7200 steps this week
+    Then the week shows the average steps against the target
+    And a missed target moves nothing to the next week
 ```
 
 ## US-74 · Recommendation history, outcome and deletion
@@ -544,6 +581,62 @@ Feature: Before starting a plan or a block
 - Edits stay in their existing places (Perfil → Mi entrenamiento, Preferencias → Datos personales, Peso, the coach's activity-level sheet of US-68). No new editor.
 - A flagged item that the `coach` function would refuse (today's `missing` 422, T-174) keeps "Crear plan" from starting, so no paid call fails on it. One source: the screen and the function read the same server-side list (T-175).
 - The Trainer root becomes a plan hub: pending proposals, "Tu plan" with its current week, the block, and a "Tus datos" row that replaces the "Tus valores" card (Q20 A).
+
+## US-79 · Cardio and daily steps in the plan
+*Added 2026-11-01 (user: "the app replaces a real trainer; if the trainer would plan cardio, the app must"). ADR-85 proposed; rules and sources in `07` §3 "Cardio prescription" and §10 (29-38). Figures pending E13 Q23-Q25. Task T-181; the block side is in US-72 (T-182, T-183) and the weekly tracking in US-73 (T-183).*
+
+**As** a user with an intention
+**I want** the coach to tell me how much cardio to do each week and how many steps to walk each day
+**So that** my plan covers what a trainer would prescribe, not only lifting and food.
+
+```gherkin
+Feature: Cardio and daily steps in the plan
+
+  Scenario: Targets next to the calories
+    Given the intention is "Perder grasa"
+    When the coach proposes the plan
+    Then the plan shows a weekly cardio target in minutes and a daily steps target next to the calories and macros
+    And each target shows its reason
+
+  Scenario Outline: The cardio dose follows the intention
+    Given the intention is "<intention>"
+    When the coach proposes the plan
+    Then the weekly cardio target is between <min> and <max> minutes of moderate cardio
+
+    Examples:
+      | intention          | min | max |
+      | Perder grasa       | 150 | 250 |
+      | Ganar musculatura  | 150 | 150 |
+      | Ganar fuerza       | 150 | 150 |
+      | Recomposición      | 150 | 150 |
+      | Mantenimiento      | 150 | 150 |
+
+  Scenario: Steps never go down
+    Given my average over the last 28 days is 11000 steps a day
+    When the coach proposes the plan
+    Then the steps target is at least 11000
+    And no text advises fewer steps
+
+  Scenario: Steps floor without a watch
+    Given I am 35 years old and there is no steps data
+    When the coach proposes the plan
+    Then the steps target is 8000 a day
+
+  Scenario: Cardio does not change the calories
+    Given the plan sets 200 minutes of cardio a week
+    When the coach proposes the plan
+    Then the calories are the same as without the cardio target
+    And the plan says the expenditure will follow the logged data
+
+  Scenario: Accepting keeps the targets
+    When the user accepts the plan
+    Then "Tu plan" in Trainer shows the weekly cardio target and the daily steps target
+```
+
+**Technical notes**
+- Every figure is computed by the server's rules (`cardioRules`), never by the model; the model only explains (`07` §1). The table values are the proposed defaults of E13 Q23 and change with its resolution before T-181 starts.
+- The steps floor is 8 000 under 60 years and 6 000 from 60 (Q24 proposed); the current average comes from `coach_summary` (`04` §7.8 steps per week).
+- No new user input: the targets come from the intention, the age and the logged steps.
 
 ## Evaluation (not a user story)
 - Cases written by the user, each with its correct answer: a plan for each intention, one training day, limited equipment, discomfort, missing data, rate inside and outside range, calorie floor, invented figure in a report.
