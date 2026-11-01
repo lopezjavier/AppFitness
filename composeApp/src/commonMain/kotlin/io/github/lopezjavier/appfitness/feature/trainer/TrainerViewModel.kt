@@ -1,10 +1,12 @@
 package io.github.lopezjavier.appfitness.feature.trainer
 
+import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import io.github.lopezjavier.appfitness.domain.AppError
 import io.github.lopezjavier.appfitness.domain.appErrorOrNull
 import io.github.lopezjavier.appfitness.domain.model.CoachDerivedValues
+import io.github.lopezjavier.appfitness.domain.model.CoachPlan
 import io.github.lopezjavier.appfitness.domain.model.PlanStatus
 import io.github.lopezjavier.appfitness.domain.port.Clock
 import io.github.lopezjavier.appfitness.domain.repository.CoachBlockRepository
@@ -38,6 +40,8 @@ private suspend fun CoachBlockRepository?.summaryFor(plan: PlanSummary): BlockSu
     }
 }
 
+private fun CoachPlan.cardioMinutes(): Int? = nutrition.activity?.cardioMinWeek
+
 private fun CoachDerivedValues.provisionalCount(): Int = listOf(
     activityLevel.provisional,
     totalExpenditure.provisional,
@@ -50,13 +54,17 @@ private fun CoachDerivedValues.provisionalCount(): Int = listOf(
  * for the "Tus datos" row. Every read degrades to "none" on failure; nothing here blocks the screen. The derived values
  * are read only for that count and are never confirmed from here ("Antes de empezar" confirms).
  */
+@Suppress("TooManyFunctions") // One small handler per event.
 class TrainerViewModel(
     private val repository: CoachRepository,
     private val clock: Clock,
     private val plans: CoachPlanRepository? = null,
     private val blocks: CoachBlockRepository? = null,
     private val coachWeeks: CoachWeeksRepository? = null,
+    savedState: SavedStateHandle = SavedStateHandle(),
 ) : ViewModel() {
+    private val cardioEdit = CardioEditState(savedState)
+
     private val _uiState = MutableStateFlow<TrainerUiState>(TrainerUiState.Loading)
     val uiState: StateFlow<TrainerUiState> = _uiState.asStateFlow()
 
@@ -78,6 +86,64 @@ class TrainerViewModel(
             TrainerEvent.Refresh -> refresh()
             is TrainerEvent.DecideCalorieChange -> decideCalorieChange(event.accept)
             is TrainerEvent.DecideDeload -> decideDeload(event.accept)
+            TrainerEvent.OpenCardioEdit -> openCardioEdit()
+            is TrainerEvent.CardioMinutesChanged -> changeCardio(event.minutes)
+            TrainerEvent.SaveCardio -> saveCardio()
+            TrainerEvent.DismissCardioEdit -> dismissCardioEdit()
+        }
+    }
+
+    private fun openCardioEdit() {
+        val content = _uiState.value as? TrainerUiState.Content ?: return
+        val saved = (content.plan as? PlanSummary.Accepted)?.plan?.cardioMinutes() ?: return
+        cardioEdit.open(saved)
+        _uiState.value = content.copy(cardioEdit = cardioEdit.current(saved))
+    }
+
+    private fun changeCardio(minutes: Int) {
+        val content = _uiState.value as? TrainerUiState.Content ?: return
+        val edit = content.cardioEdit?.takeUnless { it.saving } ?: return
+        cardioEdit.change(minutes)
+        _uiState.value = content.copy(cardioEdit = cardioEdit.current(edit.saved))
+    }
+
+    private fun dismissCardioEdit() {
+        val content = _uiState.value as? TrainerUiState.Content ?: return
+        if (content.cardioEdit?.saving != false) return
+        cardioEdit.close()
+        _uiState.value = content.copy(cardioEdit = null)
+    }
+
+    @Suppress("ReturnCount") // Guards for a missing sheet, repository or plan.
+    private fun saveCardio() {
+        val content = _uiState.value as? TrainerUiState.Content ?: return
+        val edit = content.cardioEdit?.takeIf { it.canSave } ?: return
+        val repository = plans ?: return
+        val planId = (content.plan as? PlanSummary.Accepted)?.plan?.id ?: return
+        _uiState.value = content.copy(cardioEdit = edit.copy(saving = true))
+        viewModelScope.launch {
+            val result = repository.setCardioMinutes(planId, edit.draft)
+            val updated = result.getOrNull()
+            if (updated != null) {
+                cardioEdit.close()
+                _uiState.update { state ->
+                    if (state is TrainerUiState.Content) {
+                        state.copy(plan = PlanSummary.Accepted(updated), cardioEdit = null)
+                    } else {
+                        state
+                    }
+                }
+                effectChannel.send(TrainerEffect.CardioSaved)
+            } else {
+                _uiState.update { state ->
+                    if (state is TrainerUiState.Content) {
+                        state.copy(cardioEdit = cardioEdit.current(edit.saved))
+                    } else {
+                        state
+                    }
+                }
+                effectChannel.send(TrainerEffect.CardioFailed(offline = result.appErrorOrNull() == AppError.Network))
+            }
         }
     }
 
@@ -133,6 +199,7 @@ class TrainerViewModel(
                     fresh.copy(
                         decidingChange = state.decidingChange,
                         decidingDeload = state.decidingDeload,
+                        cardioEdit = state.cardioEdit,
                         provisionalCount = fresh.provisionalCount ?: state.provisionalCount,
                     )
                 } else {
@@ -160,6 +227,7 @@ class TrainerViewModel(
             weeks = planWeeks,
             deload = deload,
             provisionalCount = provisional,
+            cardioEdit = cardioEdit.current((plan as? PlanSummary.Accepted)?.plan?.cardioMinutes()),
         )
     }
 

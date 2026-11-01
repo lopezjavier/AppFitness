@@ -89,8 +89,10 @@ sealed interface PlanProposalUiState {
         val accepting: Boolean = false,
         val discarding: Boolean = false,
         val dataChanged: Boolean = false,
+        /** The open cardio-minutes sheet; null when closed or when the plan has no activity targets. */
+        val cardioEdit: CardioEdit? = null,
     ) : PlanProposalUiState {
-        val busy: Boolean get() = accepting || discarding
+        val busy: Boolean get() = accepting || discarding || cardioEdit?.saving == true
 
         /** US-68 gate: nothing provisional and no call in flight. */
         val canAccept: Boolean get() = !unconfirmed && !busy
@@ -109,7 +111,7 @@ sealed interface PlanProposalUiState {
     data object Closed : PlanProposalUiState
 }
 
-enum class PlanAction { Accept, Discard }
+enum class PlanAction { Accept, Discard, Cardio }
 
 sealed interface PlanProposalEvent {
     /** Asks the coach for a plan (costs money); ignored unless the state is [PlanProposalUiState.Idle]. */
@@ -121,6 +123,18 @@ sealed interface PlanProposalEvent {
     data object Accept : PlanProposalEvent
 
     data object Discard : PlanProposalEvent
+
+    /** Opens the cardio-minutes sheet at the saved value; ignored when the plan has no activity targets. */
+    data object OpenCardioEdit : PlanProposalEvent
+
+    /** The stepper moved: [minutes] is clamped to 0..600 in steps of 5. The steps target has no edit event. */
+    data class CardioMinutesChanged(val minutes: Int) : PlanProposalEvent
+
+    /** "Guardar" in the sheet: stores the draft on the proposed plan; ignored while it equals the saved value. */
+    data object SaveCardio : PlanProposalEvent
+
+    /** X, back or "Cancelar": closes the sheet and drops the draft. */
+    data object DismissCardioEdit : PlanProposalEvent
 }
 
 sealed interface PlanProposalEffect {
@@ -129,6 +143,9 @@ sealed interface PlanProposalEffect {
 
     /** The plan was discarded: navigate back. */
     data object Discarded : PlanProposalEffect
+
+    /** The cardio minutes were stored and the sheet closed: confirm haptic, no message. */
+    data object CardioSaved : PlanProposalEffect
 
     data class ActionFailed(val action: PlanAction, val offline: Boolean) : PlanProposalEffect
 }

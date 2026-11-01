@@ -17,6 +17,7 @@ import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.StandardTestDispatcher
+import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
@@ -28,6 +29,7 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertIs
+import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
@@ -496,5 +498,131 @@ class PlanProposalViewModelTest {
 
         assertEquals(PlanFailureKind.Interrupted, second.failure())
         assertEquals(1, plans.requests.size)
+    }
+
+    private fun withActivity(minutes: Int = 150) =
+        Result.success(coachPlan(activity = defaultActivity.copy(cardioMinWeek = minutes)))
+
+    private fun TestScope.openedCardio(saved: SavedStateHandle = SavedStateHandle()): PlanProposalViewModel {
+        plans.current = withActivity()
+        val model = viewModel(saved)
+        advanceUntilIdle()
+        model.onEvent(PlanProposalEvent.OpenCardioEdit)
+        return model
+    }
+
+    @Test
+    fun openCardioEdit_startsAtTheSavedMinutesWithSaveDisabled() = runTest(dispatcher) {
+        val model = openedCardio()
+
+        val edit = assertNotNull(model.proposal().cardioEdit)
+        assertEquals(CardioEdit(draft = 150, saved = 150), edit)
+        assertFalse(edit.canSave)
+        assertFalse(edit.belowRecommended)
+    }
+
+    @Test
+    fun openCardioEdit_onAPlanWithoutActivity_doesNothing() = runTest(dispatcher) {
+        plans.current = Result.success(coachPlan())
+        val model = viewModel()
+        advanceUntilIdle()
+
+        model.onEvent(PlanProposalEvent.OpenCardioEdit)
+
+        assertNull(model.proposal().cardioEdit)
+    }
+
+    @Test
+    fun changingTheDraftBelow150_flagsTheNoteAndEnablesSave() = runTest(dispatcher) {
+        val model = openedCardio()
+
+        model.onEvent(PlanProposalEvent.CardioMinutesChanged(90))
+
+        val edit = assertNotNull(model.proposal().cardioEdit)
+        assertEquals(90, edit.draft)
+        assertTrue(edit.belowRecommended)
+        assertTrue(edit.canSave)
+        assertEquals(2000, model.proposal().plan.nutrition.targetKcal)
+    }
+
+    @Test
+    fun aDraftOutsideTheRange_isClamped() = runTest(dispatcher) {
+        val model = openedCardio()
+
+        model.onEvent(PlanProposalEvent.CardioMinutesChanged(700))
+
+        assertEquals(600, assertNotNull(model.proposal().cardioEdit).draft)
+    }
+
+    @Test
+    fun saveCardio_storesTheMinutesReplacesThePlanAndClosesTheSheet() = runTest(dispatcher) {
+        val model = openedCardio()
+        model.onEvent(PlanProposalEvent.CardioMinutesChanged(90))
+
+        model.effects.test {
+            model.onEvent(PlanProposalEvent.SaveCardio)
+            advanceUntilIdle()
+
+            assertEquals(PlanProposalEffect.CardioSaved, awaitItem())
+        }
+
+        assertEquals(listOf("plan-1" to 90), plans.cardioCalls)
+        val proposal = model.proposal()
+        assertNull(proposal.cardioEdit)
+        assertEquals(90, proposal.plan.nutrition.activity?.cardioMinWeek)
+        assertTrue(proposal.canAccept)
+    }
+
+    @Test
+    fun saveCardio_withoutChanges_isIgnored() = runTest(dispatcher) {
+        val model = openedCardio()
+
+        model.onEvent(PlanProposalEvent.SaveCardio)
+        advanceUntilIdle()
+
+        assertTrue(plans.cardioCalls.isEmpty())
+        assertNotNull(model.proposal().cardioEdit)
+    }
+
+    @Test
+    fun saveCardio_failure_keepsTheSheetAndTheDraftAndReportsOffline() = runTest(dispatcher) {
+        val model = openedCardio()
+        model.onEvent(PlanProposalEvent.CardioMinutesChanged(90))
+        plans.cardioResult = Result.failure(AppException(AppError.Network))
+
+        model.effects.test {
+            model.onEvent(PlanProposalEvent.SaveCardio)
+            advanceUntilIdle()
+
+            assertEquals(PlanProposalEffect.ActionFailed(PlanAction.Cardio, offline = true), awaitItem())
+        }
+
+        val edit = assertNotNull(model.proposal().cardioEdit)
+        assertEquals(90, edit.draft)
+        assertFalse(edit.saving)
+        assertEquals(150, model.proposal().plan.nutrition.activity?.cardioMinWeek)
+    }
+
+    @Test
+    fun dismissCardioEdit_dropsTheDraftWithoutSaving() = runTest(dispatcher) {
+        val model = openedCardio()
+        model.onEvent(PlanProposalEvent.CardioMinutesChanged(90))
+
+        model.onEvent(PlanProposalEvent.DismissCardioEdit)
+
+        assertNull(model.proposal().cardioEdit)
+        assertTrue(plans.cardioCalls.isEmpty())
+    }
+
+    @Test
+    fun recreatedWithTheSheetOpen_keepsTheSheetAndTheDraft() = runTest(dispatcher) {
+        val saved = SavedStateHandle()
+        val first = openedCardio(saved)
+        first.onEvent(PlanProposalEvent.CardioMinutesChanged(90))
+
+        val second = viewModel(saved)
+        advanceUntilIdle()
+
+        assertEquals(CardioEdit(draft = 90, saved = 150), second.proposal().cardioEdit)
     }
 }

@@ -11,6 +11,37 @@ enum class PlanLimit { Floor, GoalRange }
 /** Per-meal protein guidance (not a meal plan): about [perMealG] g per meal, in [minMeals] meals or more. */
 data class ProteinDistribution(val perMealG: Int, val minMeals: Int, val gPerKg: Double)
 
+/** Where the daily steps target comes from: the user's 28-day average or the 7 000 floor (no or little data). */
+enum class StepsBasis { Average, Floor }
+
+/** WHO weekly minimum of moderate cardio; below it the editor shows a note (the user may keep the value). */
+const val RECOMMENDED_CARDIO_MIN_WEEK = 150
+
+/** Weekly cardio (user-editable) and daily steps (not editable) targets of a plan; calories never depend on them. */
+data class PlanActivity(
+    val cardioMinWeek: Int,
+    val cardioEdited: Boolean,
+    val stepsDay: Int,
+    val stepsBasis: StepsBasis,
+)
+
+/** Valid weekly cardio minutes (0..600 in steps of 5), shared by the editor and the view models. */
+object CardioMinutes {
+    const val MIN = 0
+    const val MAX = 600
+    const val STEP = 5
+
+    fun isValid(minutes: Int): Boolean = minutes in MIN..MAX && minutes % STEP == 0
+
+    /** The nearest valid value to [minutes]. */
+    fun clamp(minutes: Int): Int {
+        val rounded = (minutes + STEP / 2).floorDiv(STEP) * STEP
+        return rounded.coerceIn(MIN, MAX)
+    }
+
+    fun isBelowRecommended(minutes: Int): Boolean = minutes < RECOMMENDED_CARDIO_MIN_WEEK
+}
+
 /** Deterministic calories and macros of a plan (`coach_plans.nutrition`, data_version 1). */
 data class PlanNutrition(
     val targetKcal: Int,
@@ -31,6 +62,8 @@ data class PlanNutrition(
     val distribution: ProteinDistribution?,
     /** True once the user changed the Diario targets by hand after accepting. */
     val editedByUser: Boolean,
+    /** Null for a plan stored before the activity targets existed. */
+    val activity: PlanActivity? = null,
 )
 
 enum class OutcomeKind { Weight, E1rm }

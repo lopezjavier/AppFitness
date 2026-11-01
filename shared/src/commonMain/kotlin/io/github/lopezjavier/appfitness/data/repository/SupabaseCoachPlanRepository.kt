@@ -19,6 +19,7 @@ import io.github.lopezjavier.appfitness.data.remote.EvaluateCalorieParams
 import io.github.lopezjavier.appfitness.data.remote.PlanEventDto
 import io.github.lopezjavier.appfitness.data.remote.PlanRequestBody
 import io.github.lopezjavier.appfitness.data.remote.PlanRequestInput
+import io.github.lopezjavier.appfitness.data.remote.SetCardioParams
 import io.github.lopezjavier.appfitness.data.remote.coachPlanJson
 import io.github.lopezjavier.appfitness.domain.AppError
 import io.github.lopezjavier.appfitness.domain.AppException
@@ -46,6 +47,7 @@ private const val WRONG_OBJECT_STATE = "55000"
  * Plans through the `coach` function (`plan_nutrition`, whole SSE body read as text) and the T-161 RPCs; reads go
  * through the owner-select RLS of `coach_plans` and `coach_recommendations`.
  */
+@Suppress("TooManyFunctions") // One method per plan operation of the interface.
 class SupabaseCoachPlanRepository internal constructor(
     private val auth: Auth,
     private val postgrest: Postgrest,
@@ -115,6 +117,12 @@ class SupabaseCoachPlanRepository internal constructor(
     override suspend fun discardPlan(planId: String): Result<Unit> = auth.ownRow {
         postgrest.rpc("discard_coach_plan", DiscardPlanParams(planId))
         Unit
+    }.mapPlanErrors()
+
+    /** The RPC returns only the updated `nutrition`, so the whole plan is reloaded from the table. */
+    override suspend fun setCardioMinutes(planId: String, minutes: Int): Result<CoachPlan> = auth.ownRow {
+        postgrest.rpc("set_coach_plan_cardio", SetCardioParams(planId, minutes))
+        loadPlan(planId) ?: throw CoachException(CoachFailure.Other)
     }.mapPlanErrors()
 
     override suspend fun pendingCalorieChange(today: LocalDate): Result<CalorieChange?> = auth.ownRow {

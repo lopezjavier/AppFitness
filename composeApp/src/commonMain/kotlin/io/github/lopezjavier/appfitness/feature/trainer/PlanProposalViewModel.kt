@@ -19,6 +19,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.receiveAsFlow
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.TimeZone
@@ -45,6 +46,8 @@ class PlanProposalViewModel(
 
     private val effectChannel = Channel<PlanProposalEffect>(Channel.BUFFERED)
     val effects = effectChannel.receiveAsFlow()
+
+    private val cardioEdit = CardioEditState(savedState)
 
     // Set by the navigation route (PlanProposalRoute.replacingPlanId); null when opening a plan normally.
     private val replacingPlanId: String? = savedState.get<String>(KEY_REPLACING)
@@ -77,6 +80,63 @@ class PlanProposalViewModel(
             PlanProposalEvent.Retry -> if (_uiState.value is PlanProposalUiState.Failed) retry()
             PlanProposalEvent.Accept -> accept()
             PlanProposalEvent.Discard -> discard()
+            PlanProposalEvent.OpenCardioEdit -> openCardioEdit()
+            is PlanProposalEvent.CardioMinutesChanged -> changeCardio(event.minutes)
+            PlanProposalEvent.SaveCardio -> saveCardio()
+            PlanProposalEvent.DismissCardioEdit -> dismissCardioEdit()
+        }
+    }
+
+    @Suppress("ReturnCount") // Guards for the state, a plan without activity and an in-flight call.
+    private fun openCardioEdit() {
+        val proposal = _uiState.value as? PlanProposalUiState.Proposal ?: return
+        val saved = proposal.plan.nutrition.activity?.cardioMinWeek ?: return
+        if (proposal.busy) return
+        cardioEdit.open(saved)
+        _uiState.value = proposal.copy(cardioEdit = cardioEdit.current(saved))
+    }
+
+    private fun changeCardio(minutes: Int) {
+        val proposal = _uiState.value as? PlanProposalUiState.Proposal ?: return
+        val edit = proposal.cardioEdit?.takeUnless { it.saving } ?: return
+        cardioEdit.change(minutes)
+        _uiState.value = proposal.copy(cardioEdit = cardioEdit.current(edit.saved))
+    }
+
+    private fun dismissCardioEdit() {
+        val proposal = _uiState.value as? PlanProposalUiState.Proposal ?: return
+        if (proposal.cardioEdit?.saving != false) return
+        cardioEdit.close()
+        _uiState.value = proposal.copy(cardioEdit = null)
+    }
+
+    private fun saveCardio() {
+        val proposal = _uiState.value as? PlanProposalUiState.Proposal ?: return
+        val edit = proposal.cardioEdit?.takeIf { it.canSave } ?: return
+        _uiState.value = proposal.copy(cardioEdit = edit.copy(saving = true))
+        viewModelScope.launch {
+            val result = plans.setCardioMinutes(proposal.plan.id, edit.draft)
+            val updated = result.getOrNull()
+            if (updated != null) {
+                cardioEdit.close()
+                _uiState.update { state ->
+                    if (state is PlanProposalUiState.Proposal) {
+                        state.copy(plan = updated, cardioEdit = null)
+                    } else {
+                        state
+                    }
+                }
+                effectChannel.send(PlanProposalEffect.CardioSaved)
+            } else {
+                _uiState.update { state ->
+                    if (state is PlanProposalUiState.Proposal) {
+                        state.copy(cardioEdit = cardioEdit.current(edit.saved))
+                    } else {
+                        state
+                    }
+                }
+                effectChannel.send(failed(PlanAction.Cardio, result.appErrorOrNull()))
+            }
         }
     }
 
@@ -109,7 +169,10 @@ class PlanProposalViewModel(
 
     private suspend fun showProposal(plan: CoachPlan) {
         _uiState.value = unconfirmedInputs().fold(
-            onSuccess = { PlanProposalUiState.Proposal(plan, unconfirmed = it) },
+            onSuccess = {
+                val saved = plan.nutrition.activity?.cardioMinWeek
+                PlanProposalUiState.Proposal(plan, unconfirmed = it, cardioEdit = cardioEdit.current(saved))
+            },
             onFailure = { PlanProposalUiState.Failed(kindOf(it)) },
         )
     }

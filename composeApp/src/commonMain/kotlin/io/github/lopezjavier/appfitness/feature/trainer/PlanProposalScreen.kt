@@ -24,6 +24,8 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.github.lopezjavier.appfitness.composeapp.resources.Res
 import io.github.lopezjavier.appfitness.composeapp.resources.action_accept
 import io.github.lopezjavier.appfitness.composeapp.resources.action_discard
+import io.github.lopezjavier.appfitness.composeapp.resources.cardio_save_error
+import io.github.lopezjavier.appfitness.composeapp.resources.cardio_save_offline
 import io.github.lopezjavier.appfitness.composeapp.resources.macro_carbs
 import io.github.lopezjavier.appfitness.composeapp.resources.macro_fat
 import io.github.lopezjavier.appfitness.composeapp.resources.macro_protein
@@ -113,6 +115,8 @@ fun PlanProposalRoot(
     val discardError = stringResource(Res.string.plan_proposal_discard_error)
     val acceptOffline = offlineHint(stringResource(Res.string.plan_proposal_accept_offline)) + "."
     val discardOffline = offlineHint(stringResource(Res.string.plan_proposal_discard_offline)) + "."
+    val cardioError = stringResource(Res.string.cardio_save_error)
+    val cardioOffline = offlineHint(stringResource(Res.string.cardio_save_offline)) + "."
     LaunchedEffect(state) {
         if (state == PlanProposalUiState.Idle) viewModel.onEvent(PlanProposalEvent.Request)
     }
@@ -125,6 +129,8 @@ fun PlanProposalRoot(
                     latestOnBack()
                 }
 
+                PlanProposalEffect.CardioSaved -> latestHaptics.confirm()
+
                 PlanProposalEffect.Discarded -> {
                     latestHaptics.confirm()
                     latestOnBack()
@@ -136,6 +142,7 @@ fun PlanProposalRoot(
                         when (effect.action) {
                             PlanAction.Accept -> if (effect.offline) acceptOffline else acceptError
                             PlanAction.Discard -> if (effect.offline) discardOffline else discardError
+                            PlanAction.Cardio -> if (effect.offline) cardioOffline else cardioError
                         },
                     )
                 }
@@ -193,7 +200,7 @@ fun PlanProposalScreen(
                     FailedContent(state.kind, isOnline, onEvent)
                 }
 
-                is PlanProposalUiState.Proposal -> ProposalContent(state)
+                is PlanProposalUiState.Proposal -> ProposalContent(state, online, onEvent)
             }
         }
     }
@@ -209,7 +216,11 @@ private fun FailedContent(kind: PlanFailureKind, isOnline: Flow<Boolean>, onEven
     CoachFailureContent(kind, isOnline, PlanFailureCopy, "plan_proposal") { onEvent(PlanProposalEvent.Retry) }
 
 @Composable
-private fun ProposalContent(state: PlanProposalUiState.Proposal) {
+private fun ProposalContent(
+    state: PlanProposalUiState.Proposal,
+    online: Boolean,
+    onEvent: (PlanProposalEvent) -> Unit,
+) {
     val nutrition = state.plan.nutrition
     Column(
         Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(Spacing.screenMargin),
@@ -231,7 +242,19 @@ private fun ProposalContent(state: PlanProposalUiState.Proposal) {
                 testTag = "plan_proposal_distribution",
             )
         }
+        nutrition.activity?.let {
+            ActivityCard(it, state.plan.intention, enabled = !state.busy) { onEvent(PlanProposalEvent.OpenCardioEdit) }
+        }
         if (state.plan.outcomes.isNotEmpty()) OutcomesSection(state.plan.outcomes)
+    }
+    state.cardioEdit?.let {
+        CardioMinutesSheet(
+            edit = it,
+            online = online,
+            onChange = { minutes -> onEvent(PlanProposalEvent.CardioMinutesChanged(minutes)) },
+            onSave = { onEvent(PlanProposalEvent.SaveCardio) },
+            onDismiss = { onEvent(PlanProposalEvent.DismissCardioEdit) },
+        )
     }
 }
 

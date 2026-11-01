@@ -420,6 +420,7 @@ val uiModule =
                 plans = get(),
                 blocks = get(),
                 coachWeeks = get(),
+                savedState = get(),
             )
         }
         viewModel { BeforeStartViewModel(coach = get(), clock = get(), savedState = get()) }

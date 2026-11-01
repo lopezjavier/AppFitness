@@ -1,4 +1,5 @@
 // Types and JSON schema of the nutrition plan (T-161). Shapes are persisted in coach_plans (data_version 1).
+import type { Activity } from "./cardioRules.ts";
 
 export const DATA_VERSION = 1;
 /** Version of the constants in nutritionRules.ts / outcomes.ts, stored in the plan's `method`. */
@@ -47,6 +48,8 @@ export type Nutrition = {
     unconfirmed: string[];
     edited_by_user: boolean;
     calorie_changes: number;
+    /** Cardio and steps targets (T-181); absent on plans stored before it. */
+    activity?: Activity;
 };
 
 export type OutcomeBasis = Record<string, number | string | null>;

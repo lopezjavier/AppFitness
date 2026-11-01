@@ -44,6 +44,8 @@ sealed interface TrainerUiState {
         val deload: DeloadProposal? = null,
         val decidingDeload: Boolean = false,
         val provisionalCount: Int? = null,
+        /** The open cardio-minutes sheet of the accepted plan ("Tu plan"); null when closed. */
+        val cardioEdit: CardioEdit? = null,
     ) : TrainerUiState
 }
 
@@ -58,6 +60,18 @@ sealed interface TrainerEvent {
 
     /** "Aceptar" / "Descartar" on the deload card. */
     data class DecideDeload(val accept: Boolean) : TrainerEvent
+
+    /** Opens the cardio-minutes sheet of the accepted plan; ignored without an accepted plan with activity targets. */
+    data object OpenCardioEdit : TrainerEvent
+
+    /** The stepper moved: [minutes] is clamped to 0..600 in steps of 5. */
+    data class CardioMinutesChanged(val minutes: Int) : TrainerEvent
+
+    /** "Guardar" in the sheet; ignored while the draft equals the saved value. */
+    data object SaveCardio : TrainerEvent
+
+    /** X, back or "Cancelar": closes the sheet and drops the draft. */
+    data object DismissCardioEdit : TrainerEvent
 }
 
 /** One-off effects; the UI shows the message and fires the haptics. */
@@ -73,4 +87,10 @@ sealed interface TrainerEffect {
 
     /** The deload decision failed; [accept] says which action, [offline] picks the offline hint. */
     data class DeloadFailed(val accept: Boolean, val offline: Boolean) : TrainerEffect
+
+    /** The cardio minutes were stored and the sheet closed: confirm haptic, no message. */
+    data object CardioSaved : TrainerEffect
+
+    /** Saving the cardio failed; the sheet stays open. [offline] picks the offline hint. */
+    data class CardioFailed(val offline: Boolean) : TrainerEffect
 }
