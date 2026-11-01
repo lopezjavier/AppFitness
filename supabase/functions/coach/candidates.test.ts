@@ -139,7 +139,10 @@ Deno.test("a band_long-only user gets long-band candidates", () => {
         ex({ key: "band-long-row", equipment: "band_long" }),
         ex({ key: "cable-row", equipment: "cable" }),
     ];
-    const got = filterCandidates(list, { place: "home", equipment: ["band_long"] }, mainChest);
+    const got = filterCandidates(list, {
+        place: "home",
+        equipment: ["band_long"],
+    }, mainChest);
     assertEquals(got.map((e) => e.key), ["band-long-row"]);
 });
 
@@ -154,7 +157,12 @@ Deno.test("band_long ranks right after band and before other; unknown equipment 
         { place: "gym", equipment: [] },
         mainChest,
     );
-    assertEquals(got.map((e) => e.key), ["d-band", "c-long", "b-other", "a-unknown"]);
+    assertEquals(got.map((e) => e.key), [
+        "d-band",
+        "c-long",
+        "b-other",
+        "a-unknown",
+    ]);
 });
 
 Deno.test("a custom exercise counts only with a movement pattern and is keyed by id", () => {
