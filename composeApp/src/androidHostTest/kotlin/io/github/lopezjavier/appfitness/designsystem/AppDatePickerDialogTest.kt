@@ -11,6 +11,8 @@ import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
 import kotlinx.datetime.LocalDate
+import kotlinx.datetime.TimeZone
+import kotlinx.datetime.todayIn
 import org.junit.Assert.assertEquals
 import org.junit.Rule
 import org.junit.Test
@@ -18,6 +20,9 @@ import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 import org.robolectric.shadows.ShadowDialog
+import java.time.format.TextStyle
+import java.util.Locale
+import kotlin.time.Clock
 
 @RunWith(RobolectricTestRunner::class)
 @Config(qualifiers = "w360dp-h800dp-xxhdpi")
@@ -112,10 +117,13 @@ class AppDatePickerDialogTest {
 
     @Test
     fun withoutAnInitialDate_acceptStaysDisabledUntilADayIsPicked() {
-        show(selected = null)
+        // Without a selection the picker opens on the current month, so pick a day of that month.
+        show(selected = null, maxDate = null)
+        val monthNumber = Clock.System.todayIn(TimeZone.UTC).monthNumber
+        val month = java.time.Month.of(monthNumber).getDisplayName(TextStyle.FULL, Locale.ENGLISH)
 
         rule.onNodeWithTag("picker_confirm").assertIsNotEnabled()
-        day(12).performClick()
+        rule.onNode(hasText("$month 12,", substring = true)).performClick()
         rule.onNodeWithTag("picker_confirm").assertIsEnabled()
     }
 
