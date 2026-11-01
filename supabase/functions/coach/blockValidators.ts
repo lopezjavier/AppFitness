@@ -21,21 +21,15 @@ import type {
 } from "./schemas.ts";
 import {
     isRecord,
+    mentionsCardioReduction,
     parseJson,
     REASON_MAX,
     REASON_MIN,
     sameKeys,
 } from "./validators.ts";
 
-/** Phrases that advise less cardio or fewer steps: the block never reduces either (07 section 3). */
-const CARDIO_REDUCTION: RegExp[] = [
-    /menos\s+pasos/i,
-    /menos\s+cardio/i,
-    /\b(reduc\w*|disminu\w*|recort\w*|acort\w*|limit\w*)\b[^.]{0,40}\b(cardio|pasos)\b/i,
-    /\b(evit\w*|elimin\w*|quit\w*|deja\w*)\b[^.]{0,40}\b(cardio|pasos)\b/i,
-];
-export const mentionsCardioReduction = (text: string): boolean =>
-    CARDIO_REDUCTION.some((re) => re.test(text));
+// The phrase list lives in validators.ts (shared with the plan_nutrition reasons).
+export { mentionsCardioReduction };
 
 const validReason = (r: unknown): r is string => {
     if (typeof r !== "string") return false;

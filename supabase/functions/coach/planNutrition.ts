@@ -5,6 +5,7 @@ import {
     type PrepareContext,
     type Prepared,
 } from "./context.ts";
+import { computeActivity } from "./cardioRules.ts";
 import { CoachPlanError, computeNutrition } from "./nutritionRules.ts";
 import {
     addDays,
@@ -24,6 +25,7 @@ import {
     type Sex,
 } from "./schemas.ts";
 import {
+    assertActivityInvariants,
     assertNutritionInvariants,
     unconfirmedKeys,
     validateOutcomesText,
@@ -146,13 +148,18 @@ async function prepareAsync(
         throw e;
     }
 
+    // Cardio and steps targets (07 section 3): independent of the calories, which stay as computed above.
+    const stepsAvg = num(rec(rec(estimates.activity_level).sources).steps_avg);
+    const activity = computeActivity({ intention, stepsAvg28: stepsAvg });
+    const stored = { ...nutrition, activity };
+
     const candidates = buildCandidates(
         s as CandidateSummary,
         nutrition,
         today,
     );
     const model = MODEL_IDS[ctx.model];
-    const prompt = buildPrompt(today, nutrition, candidates, s);
+    const prompt = buildPrompt(today, stored, candidates, s);
     let attempts = 0;
 
     return {
@@ -183,10 +190,11 @@ async function prepareAsync(
                 };
             });
             assertNutritionInvariants(nutrition);
+            assertActivityInvariants(activity, stepsAvg);
             const saved = await ctx.savePlan({
                 blockStart: today,
                 intention,
-                nutrition,
+                nutrition: stored,
                 outcomes,
                 method: {
                     model,
@@ -199,7 +207,7 @@ async function prepareAsync(
             return {
                 plan_id: saved.plan_id,
                 recommendation_id: saved.recommendation_id,
-                nutrition,
+                nutrition: stored,
                 outcomes,
             };
         },

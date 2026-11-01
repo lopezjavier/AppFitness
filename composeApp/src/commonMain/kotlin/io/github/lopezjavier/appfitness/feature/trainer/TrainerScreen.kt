@@ -31,6 +31,8 @@ import io.github.lopezjavier.appfitness.composeapp.resources.calorie_change_acce
 import io.github.lopezjavier.appfitness.composeapp.resources.calorie_change_accept_offline
 import io.github.lopezjavier.appfitness.composeapp.resources.calorie_change_discard_error
 import io.github.lopezjavier.appfitness.composeapp.resources.calorie_change_discard_offline
+import io.github.lopezjavier.appfitness.composeapp.resources.cardio_save_error
+import io.github.lopezjavier.appfitness.composeapp.resources.cardio_save_offline
 import io.github.lopezjavier.appfitness.composeapp.resources.coach_usage_title
 import io.github.lopezjavier.appfitness.composeapp.resources.deload_accept_error
 import io.github.lopezjavier.appfitness.composeapp.resources.deload_accept_offline
@@ -98,6 +100,8 @@ fun TrainerRoute(
     val discardDeloadError = stringResource(Res.string.deload_discard_error)
     val deloadAcceptOffline = offlineHint(stringResource(Res.string.deload_accept_offline)) + "."
     val deloadDiscardOffline = offlineHint(stringResource(Res.string.deload_discard_offline)) + "."
+    val cardioError = stringResource(Res.string.cardio_save_error)
+    val cardioOffline = offlineHint(stringResource(Res.string.cardio_save_offline)) + "."
     val latestHaptics by rememberUpdatedState(haptics)
     LifecycleEventEffect(Lifecycle.Event.ON_RESUME) { viewModel.onEvent(TrainerEvent.Refresh) }
     LaunchedEffect(viewModel) {
@@ -117,6 +121,13 @@ fun TrainerRoute(
                 }
 
                 is TrainerEffect.DeloadDecided -> latestHaptics.confirm()
+
+                TrainerEffect.CardioSaved -> latestHaptics.confirm()
+
+                is TrainerEffect.CardioFailed -> {
+                    latestHaptics.reject()
+                    messages.show(if (effect.offline) cardioOffline else cardioError)
+                }
 
                 is TrainerEffect.DeloadFailed -> {
                     latestHaptics.reject()
@@ -186,7 +197,7 @@ private fun TrainerContent(
     ) {
         state.deload?.let { DeloadCard(it, state.decidingDeload, online, onEvent) }
         state.calorieChange?.let { CalorieChangeCard(it, state.decidingChange, online, onEvent) }
-        PlanSection(state.plan, online, actions.onOpenProposal, actions.onOpenBeforeStart)
+        PlanSection(state.plan, online, actions.onOpenProposal, actions.onOpenBeforeStart, state.cardioEdit, onEvent)
         BlockSection(state.plan, state.block, online, actions.onOpenBlock, actions.onOpenBeforeStart)
         PlanWeeksSection(state.weeks)
         YourDataEntry(state.provisionalCount, actions.onOpenYourData)

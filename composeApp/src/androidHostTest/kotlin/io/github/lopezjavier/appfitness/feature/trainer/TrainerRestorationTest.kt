@@ -5,10 +5,12 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsSelected
+import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.junit4.StateRestorationTester
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
+import androidx.lifecycle.SavedStateHandle
 import io.github.lopezjavier.appfitness.app.App
 import io.github.lopezjavier.appfitness.app.FakeConnectivityObserver
 import io.github.lopezjavier.appfitness.app.RootRoute
@@ -193,5 +195,29 @@ class TrainerRestorationTest {
         rule.onNodeWithTag("trainer_deload_card").assertExists()
         rule.onNodeWithTag("trainer_deload_card_accept").assertIsEnabled()
         rule.onNodeWithTag("trainer_weeks_section").assertExists()
+    }
+
+    @Test
+    fun recreatedViewModel_keepsTheCardioSheetOpenWithTheChangedDraft() {
+        val plans = FakeCoachPlanRepository()
+        plans.current = Result.success(
+            coachPlan(status = PlanStatus.Accepted, activity = defaultActivity.copy(cardioMinWeek = 120)),
+        )
+        val repository = FakeCoachRepository()
+        val saved = SavedStateHandle()
+        var current by mutableStateOf(TrainerViewModel(repository, MutableClock(), plans = plans, savedState = saved))
+        val connectivity = FakeConnectivityObserver()
+        rule.setContent { AppTheme { TrainerRoute(viewModel = current, connectivity = connectivity) } }
+        rule.waitForIdle()
+        rule.onNodeWithTag("trainer_plan_cardio_row").performClick()
+        rule.onNodeWithTag("cardio_sheet_stepper_increment").performClick()
+        rule.waitForIdle()
+        rule.onNodeWithTag("cardio_sheet_stepper_value").assertTextEquals("125 min")
+
+        current = TrainerViewModel(repository, MutableClock(), plans = plans, savedState = saved)
+        rule.waitForIdle()
+
+        rule.onNodeWithTag("cardio_sheet_stepper_value").assertTextEquals("125 min")
+        rule.onNodeWithTag("cardio_sheet_commit").assertIsEnabled()
     }
 }

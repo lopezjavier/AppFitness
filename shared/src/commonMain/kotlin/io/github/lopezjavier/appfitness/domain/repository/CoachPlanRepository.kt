@@ -24,6 +24,12 @@ interface CoachPlanRepository {
     /** Discards the proposed plan. */
     suspend fun discardPlan(planId: String): Result<Unit>
 
+    /**
+     * Changes the weekly cardio minutes of a proposed or accepted plan (0..600 in steps of 5) and returns the plan.
+     * Calories, macros and saved routines are never touched.
+     */
+    suspend fun setCardioMinutes(planId: String, minutes: Int): Result<CoachPlan>
+
     /** Evaluates the in-block calorie change (idempotent) and returns the pending one, if any. */
     suspend fun pendingCalorieChange(today: LocalDate): Result<CalorieChange?>
 

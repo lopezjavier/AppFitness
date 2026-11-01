@@ -2,8 +2,10 @@ package io.github.lopezjavier.appfitness.data.remote
 
 import io.github.lopezjavier.appfitness.domain.model.GoalStrategy
 import io.github.lopezjavier.appfitness.domain.model.OutcomeKind
+import io.github.lopezjavier.appfitness.domain.model.PlanActivity
 import io.github.lopezjavier.appfitness.domain.model.PlanLimit
 import io.github.lopezjavier.appfitness.domain.model.PlanStatus
+import io.github.lopezjavier.appfitness.domain.model.StepsBasis
 import kotlinx.datetime.LocalDate
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -50,6 +52,39 @@ class CoachPlanDtoTest {
         assertNull(nutrition.distribution)
         assertEquals(GoalStrategy.Surplus, nutrition.strategy)
         assertTrue(nutrition.editedByUser)
+    }
+
+    private fun nutritionWithActivity(activity: String) =
+        NUTRITION_FREE.removeSuffix("}") + ""","activity":$activity}"""
+
+    @Test
+    fun planWithoutActivity_hasNullActivity() {
+        assertNull(decode(plan(NUTRITION_FREE, "[]")).nutrition.activity)
+    }
+
+    @Test
+    fun activity_isMappedWithItsExtraKeysIgnored() {
+        val activity = decode(
+            plan(
+                nutritionWithActivity(
+                    """{"cardio_min_week":120,"cardio_edited":true,"cardio_band":[150,300],"steps_day":8500,""" +
+                        """"steps_basis":"average","steps_avg":8760,"future":1}""",
+                ),
+                "[]",
+            ),
+        ).nutrition.activity
+
+        assertEquals(PlanActivity(120, true, 8500, StepsBasis.Average), activity)
+    }
+
+    @Test
+    fun unknownStepsBasis_fallsBackToTheFloor() {
+        val activity = decode(
+            plan(nutritionWithActivity("""{"cardio_min_week":150,"steps_day":7000,"steps_basis":"x"}"""), "[]"),
+        ).nutrition.activity
+
+        assertEquals(StepsBasis.Floor, activity?.stepsBasis)
+        assertEquals(false, activity?.cardioEdited)
     }
 
     @Test

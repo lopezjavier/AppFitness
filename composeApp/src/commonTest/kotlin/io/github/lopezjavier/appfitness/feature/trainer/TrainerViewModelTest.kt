@@ -1,5 +1,6 @@
 package io.github.lopezjavier.appfitness.feature.trainer
 
+import androidx.lifecycle.SavedStateHandle
 import app.cash.turbine.test
 import io.github.lopezjavier.appfitness.domain.AppError
 import io.github.lopezjavier.appfitness.domain.AppException
@@ -572,5 +573,115 @@ class TrainerViewModelTest {
         assertEquals(deloadProposal(), recreated.content().deload)
         assertEquals(1, recreated.content().weeks.size)
         assertFalse(recreated.content().decidingDeload)
+    }
+
+    private fun acceptedWithActivity(minutes: Int = 120) {
+        plans.current = Result.success(
+            coachPlan(status = PlanStatus.Accepted, activity = defaultActivity.copy(cardioMinWeek = minutes)),
+        )
+    }
+
+    private fun viewModelWith(saved: SavedStateHandle) =
+        TrainerViewModel(repository, MutableClock(), plans, blocks, weeks, saved)
+
+    @Test
+    fun cardioEdit_opensAtTheSavedMinutesOfTheAcceptedPlan() = runTest(dispatcher) {
+        acceptedWithActivity()
+        val model = viewModel()
+        advanceUntilIdle()
+
+        model.onEvent(TrainerEvent.OpenCardioEdit)
+
+        assertEquals(CardioEdit(draft = 120, saved = 120), model.content().cardioEdit)
+    }
+
+    @Test
+    fun cardioEdit_withoutActivityOrWithAProposedPlan_doesNotOpen() = runTest(dispatcher) {
+        plans.current = Result.success(coachPlan(status = PlanStatus.Accepted))
+        val withoutActivity = viewModel()
+        advanceUntilIdle()
+        withoutActivity.onEvent(TrainerEvent.OpenCardioEdit)
+        assertNull(withoutActivity.content().cardioEdit)
+
+        plans.current = Result.success(coachPlan(activity = defaultActivity))
+        val proposed = viewModel()
+        advanceUntilIdle()
+        proposed.onEvent(TrainerEvent.OpenCardioEdit)
+        assertNull(proposed.content().cardioEdit)
+    }
+
+    @Test
+    fun cardioEdit_afterAcceptance_savesAndUpdatesThePlanLine() = runTest(dispatcher) {
+        acceptedWithActivity(150)
+        val model = viewModel()
+        advanceUntilIdle()
+        model.onEvent(TrainerEvent.OpenCardioEdit)
+        model.onEvent(TrainerEvent.CardioMinutesChanged(90))
+        plans.cardioResult = Result.success(
+            coachPlan(status = PlanStatus.Accepted, activity = defaultActivity.copy(cardioMinWeek = 90)),
+        )
+
+        model.effects.test {
+            model.onEvent(TrainerEvent.SaveCardio)
+            advanceUntilIdle()
+
+            assertEquals(TrainerEffect.CardioSaved, awaitItem())
+        }
+
+        assertEquals(listOf("plan-1" to 90), plans.cardioCalls)
+        val content = model.content()
+        assertNull(content.cardioEdit)
+        val plan = assertIs<PlanSummary.Accepted>(content.plan).plan
+        assertEquals(90, plan.nutrition.activity?.cardioMinWeek)
+    }
+
+    @Test
+    fun cardioEdit_failure_keepsTheSheetAndTheDraft() = runTest(dispatcher) {
+        acceptedWithActivity(150)
+        val model = viewModel()
+        advanceUntilIdle()
+        model.onEvent(TrainerEvent.OpenCardioEdit)
+        model.onEvent(TrainerEvent.CardioMinutesChanged(90))
+        plans.cardioResult = Result.failure(AppException(AppError.Network))
+
+        model.effects.test {
+            model.onEvent(TrainerEvent.SaveCardio)
+            advanceUntilIdle()
+
+            assertEquals(TrainerEffect.CardioFailed(offline = true), awaitItem())
+        }
+
+        assertEquals(CardioEdit(draft = 90, saved = 150), model.content().cardioEdit)
+    }
+
+    @Test
+    fun cardioEdit_dismiss_closesWithoutSaving() = runTest(dispatcher) {
+        acceptedWithActivity()
+        val model = viewModel()
+        advanceUntilIdle()
+        model.onEvent(TrainerEvent.OpenCardioEdit)
+
+        model.onEvent(TrainerEvent.DismissCardioEdit)
+
+        assertNull(model.content().cardioEdit)
+        assertTrue(plans.cardioCalls.isEmpty())
+    }
+
+    @Test
+    fun cardioEdit_survivesRecreationAndARefresh() = runTest(dispatcher) {
+        acceptedWithActivity(150)
+        val saved = SavedStateHandle()
+        val first = viewModelWith(saved)
+        advanceUntilIdle()
+        first.onEvent(TrainerEvent.OpenCardioEdit)
+        first.onEvent(TrainerEvent.CardioMinutesChanged(90))
+
+        val second = viewModelWith(saved)
+        advanceUntilIdle()
+        assertEquals(CardioEdit(draft = 90, saved = 150), second.content().cardioEdit)
+
+        second.onEvent(TrainerEvent.Refresh)
+        advanceUntilIdle()
+        assertEquals(CardioEdit(draft = 90, saved = 150), second.content().cardioEdit)
     }
 }

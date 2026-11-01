@@ -4,6 +4,8 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertIsEnabled
+import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.junit4.StateRestorationTester
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
@@ -113,5 +115,52 @@ class PlanProposalRestorationTest {
         rule.onNodeWithTag("plan_proposal_retry").assertExists()
         rule.onNodeWithText("No se recibió el plan. Inténtalo de nuevo.").assertExists()
         assertEquals(requestsBefore, plans.requests.size)
+    }
+
+    @Test
+    fun cardioHelpSheet_staysOpenAfterRecreation() {
+        val tester = StateRestorationTester(rule)
+        tester.setContent {
+            AppTheme {
+                PlanProposalScreen(
+                    state = PlanProposalUiState.Proposal(coachPlan(activity = defaultActivity)),
+                    isOnline = flowOf(true),
+                    onEvent = {},
+                    onBack = {},
+                    onOpenBeforeStart = {},
+                )
+            }
+        }
+        rule.onNodeWithTag("plan_proposal_activity_cardio_help").performScrollTo().performClick()
+        rule.waitForIdle()
+
+        tester.emulateSavedInstanceStateRestore()
+        rule.waitForIdle()
+
+        rule.onNodeWithTag("plan_proposal_activity_cardio_help_sheet_body").assertExists()
+    }
+
+    @Test
+    fun recreatedViewModel_keepsTheCardioSheetOpenWithTheChangedDraft() {
+        plans.current = Result.success(coachPlan(activity = defaultActivity))
+        current = PlanProposalViewModel(plans, coach, MutableClock(), saved)
+        rule.setContent {
+            AppTheme {
+                PlanProposalRoot(onBack = {
+                }, onOpenBeforeStart = {}, viewModel = current, connectivity = FakeConnectivityObserver())
+            }
+        }
+        rule.waitForIdle()
+        rule.onNodeWithTag("plan_proposal_activity_cardio_row").performScrollTo().performClick()
+        rule.onNodeWithTag("cardio_sheet_stepper_decrement").performClick()
+        rule.waitForIdle()
+        rule.onNodeWithTag("cardio_sheet_stepper_value").assertTextEquals("145 min")
+
+        // A new view model over the same saved state, as after process death.
+        current = PlanProposalViewModel(plans, coach, MutableClock(), saved)
+        rule.waitForIdle()
+
+        rule.onNodeWithTag("cardio_sheet_stepper_value").assertTextEquals("145 min")
+        rule.onNodeWithTag("cardio_sheet_commit").assertIsEnabled()
     }
 }

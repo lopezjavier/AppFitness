@@ -1,6 +1,12 @@
 // Validation of the model output (the retry validator) and the final invariants of the plan (planning/04 section 8).
 // Pure: no I/O.
 import {
+    type Activity,
+    CARDIO_MIN_WEEK,
+    STEPS_FLOOR,
+    STEPS_STEP,
+} from "./cardioRules.ts";
+import {
     DEFICIT_CAP,
     FAT_MAX_PCT,
     FAT_MIN_PCT,
@@ -46,6 +52,16 @@ export function parseJson(text: string): unknown {
     }
 }
 
+/** Phrases that advise less cardio or fewer steps: the plan never reduces either (07 section 3). */
+const CARDIO_REDUCTION: RegExp[] = [
+    /menos\s+pasos/i,
+    /menos\s+cardio/i,
+    /\b(reduc\w*|disminu\w*|recort\w*|acort\w*|limit\w*)\b[^.]{0,40}\b(cardio|pasos)\b/i,
+    /\b(evit\w*|elimin\w*|quit\w*|deja\w*)\b[^.]{0,40}\b(cardio|pasos)\b/i,
+];
+export const mentionsCardioReduction = (text: string): boolean =>
+    CARDIO_REDUCTION.some((re) => re.test(text));
+
 const DATE = /^\d{4}-\d{2}-\d{2}$/;
 function isRealDate(s: string): boolean {
     if (!DATE.test(s)) return false;
@@ -84,6 +100,7 @@ export function validateOutcomesText(
         if (trimmed.length < REASON_MIN || trimmed.length > REASON_MAX) {
             return null;
         }
+        if (mentionsCardioReduction(trimmed)) return null;
         // ISO dates compare correctly as strings.
         if (!isRealDate(deadline) || deadline < earliest || deadline > latest) {
             return null;
@@ -92,6 +109,23 @@ export function validateOutcomesText(
         out.push({ candidate_id, reason: trimmed, deadline });
     }
     return out;
+}
+
+/** Final check of the activity targets before they are stored; throws on the first broken rule. */
+export function assertActivityInvariants(
+    a: Activity,
+    stepsAvg: number | null,
+): void {
+    const fail = (rule: string): never => {
+        throw new NutritionInvariantError(rule);
+    };
+    if (a.cardio_min_week !== CARDIO_MIN_WEEK) fail("cardio_minutes");
+    if (a.steps_day < STEPS_FLOOR) fail("steps_below_floor");
+    if (a.steps_day % STEPS_STEP !== 0) fail("steps_not_multiple");
+    if (
+        stepsAvg !== null &&
+        a.steps_day < Math.floor(stepsAvg / STEPS_STEP) * STEPS_STEP
+    ) fail("steps_below_average");
 }
 
 export class NutritionInvariantError extends Error {

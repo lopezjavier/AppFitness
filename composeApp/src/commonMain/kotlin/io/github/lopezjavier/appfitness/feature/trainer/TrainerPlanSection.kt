@@ -2,10 +2,13 @@ package io.github.lopezjavier.appfitness.feature.trainer
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.Role
@@ -31,6 +34,7 @@ import io.github.lopezjavier.appfitness.composeapp.resources.trainer_deload_reas
 import io.github.lopezjavier.appfitness.composeapp.resources.trainer_deload_title
 import io.github.lopezjavier.appfitness.composeapp.resources.trainer_plan_active_line
 import io.github.lopezjavier.appfitness.composeapp.resources.trainer_plan_active_title
+import io.github.lopezjavier.appfitness.composeapp.resources.trainer_plan_activity
 import io.github.lopezjavier.appfitness.composeapp.resources.trainer_plan_create
 import io.github.lopezjavier.appfitness.composeapp.resources.trainer_plan_create_action
 import io.github.lopezjavier.appfitness.composeapp.resources.trainer_plan_outcomes
@@ -120,6 +124,8 @@ internal fun PlanSection(
     online: Boolean,
     onOpenProposal: () -> Unit,
     onOpenBeforeStart: (BeforeStartMode, String?, String?) -> Unit,
+    cardioEdit: CardioEdit? = null,
+    onEvent: (TrainerEvent) -> Unit = {},
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
         ListSectionHeader(stringResource(Res.string.trainer_plan_section))
@@ -155,7 +161,16 @@ internal fun PlanSection(
             }
 
             is PlanSummary.Accepted -> {
-                ActivePlanCard(plan.plan)
+                ActivePlanCard(plan.plan, onEditCardio = { onEvent(TrainerEvent.OpenCardioEdit) })
+                cardioEdit?.let {
+                    CardioMinutesSheet(
+                        edit = it,
+                        online = online,
+                        onChange = { minutes -> onEvent(TrainerEvent.CardioMinutesChanged(minutes)) },
+                        onSave = { onEvent(TrainerEvent.SaveCardio) },
+                        onDismiss = { onEvent(TrainerEvent.DismissCardioEdit) },
+                    )
+                }
                 ReplacePlanEntry(plan.plan.id, online, onOpenBeforeStart)
             }
         }
@@ -180,7 +195,7 @@ private fun ReplacePlanEntry(
 }
 
 @Composable
-private fun ActivePlanCard(plan: CoachPlan) {
+private fun ActivePlanCard(plan: CoachPlan, onEditCardio: () -> Unit) {
     val nutrition = plan.nutrition
     AppCard(Modifier.fillMaxWidth().testTag("trainer_plan_card")) {
         Text(
@@ -197,6 +212,26 @@ private fun ActivePlanCard(plan: CoachPlan) {
             style = AppTheme.typography.bodyLarge,
             color = AppTheme.colors.textPrimary,
         )
+        nutrition.activity?.let { activity ->
+            Box(
+                Modifier.fillMaxWidth()
+                    .heightIn(min = Spacing.minTouchTarget)
+                    .testTag("trainer_plan_cardio_row")
+                    .clickable(role = Role.Button, onClick = onEditCardio),
+                contentAlignment = Alignment.CenterStart,
+            ) {
+                Text(
+                    text = stringResource(
+                        Res.string.trainer_plan_activity,
+                        AppNumberFormat.integer(activity.cardioMinWeek),
+                        AppNumberFormat.integer(activity.stepsDay),
+                    ),
+                    style = AppTheme.typography.bodyMedium,
+                    color = AppTheme.colors.textPrimary,
+                    modifier = Modifier.testTag("trainer_plan_activity"),
+                )
+            }
+        }
         if (plan.outcomes.isNotEmpty()) {
             Text(
                 text = pluralStringResource(Res.plurals.trainer_plan_outcomes, plan.outcomes.size, plan.outcomes.size),

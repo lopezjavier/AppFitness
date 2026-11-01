@@ -347,6 +347,33 @@ class SupabaseCoachPlanRepositoryTest {
     }
 
     @Test
+    fun setCardioMinutes_callsTheRpcThenReloadsThePlan() = runTest {
+        val repository = repo { request ->
+            if (request.url.encodedPath.contains("/rpc/")) {
+                HttpStatusCode.OK to "{}"
+            } else {
+                HttpStatusCode.OK to
+                    "[${planRow("p1", "accepted")}]"
+            }
+        }
+
+        val plan = repository.setCardioMinutes("p1", 90).getOrThrow()
+
+        val call = rest().first()
+        assertTrue(call.url.encodedPath.endsWith("/rest/v1/rpc/set_coach_plan_cardio"), call.url.toString())
+        assertEquals("""{"p_plan_id":"p1","p_minutes":90}""", bodyOf(call))
+        assertEquals("p1", plan.id)
+    }
+
+    @Test
+    fun setCardioMinutes_offline_isNetworkError() = runTest {
+        val repository = repo { HttpStatusCode.OK to planRow() }
+        offline = true
+
+        assertEquals(AppError.Network, repository.setCardioMinutes("p1", 90).appErrorOrNull())
+    }
+
+    @Test
     fun discardPlan_callsTheRpcWithThePlanId() = runTest {
         val repository = repo { HttpStatusCode.NoContent to "" }
 

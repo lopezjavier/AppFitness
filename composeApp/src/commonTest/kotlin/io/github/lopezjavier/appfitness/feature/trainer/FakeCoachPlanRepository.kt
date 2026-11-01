@@ -4,11 +4,13 @@ import io.github.lopezjavier.appfitness.domain.model.CalorieChange
 import io.github.lopezjavier.appfitness.domain.model.CoachPlan
 import io.github.lopezjavier.appfitness.domain.model.GoalStrategy
 import io.github.lopezjavier.appfitness.domain.model.OutcomeKind
+import io.github.lopezjavier.appfitness.domain.model.PlanActivity
 import io.github.lopezjavier.appfitness.domain.model.PlanLimit
 import io.github.lopezjavier.appfitness.domain.model.PlanNutrition
 import io.github.lopezjavier.appfitness.domain.model.PlanOutcome
 import io.github.lopezjavier.appfitness.domain.model.PlanStatus
 import io.github.lopezjavier.appfitness.domain.model.ProteinDistribution
+import io.github.lopezjavier.appfitness.domain.model.StepsBasis
 import io.github.lopezjavier.appfitness.domain.repository.CoachPlanRepository
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.datetime.LocalDate
@@ -20,6 +22,7 @@ internal fun coachPlan(
     weightTarget: Double? = 72.5,
     limitedBy: PlanLimit? = null,
     editedByUser: Boolean = false,
+    activity: PlanActivity? = null,
 ) = CoachPlan(
     id = id,
     blockStart = LocalDate(2026, 10, 19),
@@ -42,6 +45,7 @@ internal fun coachPlan(
         fatPct = 30,
         distribution = ProteinDistribution(perMealG = 30, minMeals = 4, gPerKg = 0.4),
         editedByUser = editedByUser,
+        activity = activity,
     ),
     outcomes = listOfNotNull(
         weightTarget?.let {
@@ -49,6 +53,14 @@ internal fun coachPlan(
         },
     ),
     acceptedAt = null,
+)
+
+/** The activity block of a fresh fat-loss plan: 150 min of cardio, 7 000 steps from the floor. */
+internal val defaultActivity = PlanActivity(
+    cardioMinWeek = 150,
+    cardioEdited = false,
+    stepsDay = 7000,
+    stepsBasis = StepsBasis.Floor,
 )
 
 internal fun calorieChange(id: String = "change-1") = CalorieChange(
@@ -72,6 +84,10 @@ internal class FakeCoachPlanRepository : CoachPlanRepository {
     var discardResult: Result<Unit> = Result.success(Unit)
     var pending: Result<CalorieChange?> = Result.success(null)
     var decideResult: Result<Unit> = Result.success(Unit)
+
+    /** Answer of [setCardioMinutes]; null echoes a fat-loss plan with the requested minutes. */
+    var cardioResult: Result<CoachPlan>? = null
+    val cardioCalls = mutableListOf<Pair<String, Int>>()
 
     /** When set, [requestPlan] suspends until completed (a plan being prepared). */
     var requestGate: CompletableDeferred<Unit>? = null
@@ -104,6 +120,13 @@ internal class FakeCoachPlanRepository : CoachPlanRepository {
     override suspend fun discardPlan(planId: String): Result<Unit> {
         discardCalls += planId
         return discardResult
+    }
+
+    override suspend fun setCardioMinutes(planId: String, minutes: Int): Result<CoachPlan> {
+        cardioCalls += planId to minutes
+        return cardioResult ?: Result.success(
+            coachPlan(id = planId, activity = defaultActivity.copy(cardioMinWeek = minutes, cardioEdited = true)),
+        )
     }
 
     override suspend fun pendingCalorieChange(today: LocalDate): Result<CalorieChange?> {

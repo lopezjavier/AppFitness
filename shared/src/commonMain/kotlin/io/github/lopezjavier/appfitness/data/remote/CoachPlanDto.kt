@@ -4,11 +4,13 @@ import io.github.lopezjavier.appfitness.domain.model.CalorieChange
 import io.github.lopezjavier.appfitness.domain.model.CoachPlan
 import io.github.lopezjavier.appfitness.domain.model.GoalStrategy
 import io.github.lopezjavier.appfitness.domain.model.OutcomeKind
+import io.github.lopezjavier.appfitness.domain.model.PlanActivity
 import io.github.lopezjavier.appfitness.domain.model.PlanLimit
 import io.github.lopezjavier.appfitness.domain.model.PlanNutrition
 import io.github.lopezjavier.appfitness.domain.model.PlanOutcome
 import io.github.lopezjavier.appfitness.domain.model.PlanStatus
 import io.github.lopezjavier.appfitness.domain.model.ProteinDistribution
+import io.github.lopezjavier.appfitness.domain.model.StepsBasis
 import kotlinx.datetime.Instant
 import kotlinx.datetime.LocalDate
 import kotlinx.serialization.SerialName
@@ -29,6 +31,22 @@ internal data class ProteinDistributionDto(
     @SerialName("g_per_kg") val gPerKg: Double = 0.0,
 )
 
+/** `coach_plans.nutrition.activity`; absent on plans stored before the activity targets. */
+@Serializable
+internal data class ActivityDto(
+    @SerialName("cardio_min_week") val cardioMinWeek: Double = 0.0,
+    @SerialName("cardio_edited") val cardioEdited: Boolean = false,
+    @SerialName("steps_day") val stepsDay: Double = 0.0,
+    @SerialName("steps_basis") val stepsBasis: String? = null,
+) {
+    fun toDomain(): PlanActivity = PlanActivity(
+        cardioMinWeek = cardioMinWeek.roundToInt(),
+        cardioEdited = cardioEdited,
+        stepsDay = stepsDay.roundToInt(),
+        stepsBasis = if (stepsBasis == "average") StepsBasis.Average else StepsBasis.Floor,
+    )
+}
+
 /** `coach_plans.nutrition` (shape in planning/03-data-model.md section 5). */
 @Serializable
 internal data class PlanNutritionDto(
@@ -47,6 +65,7 @@ internal data class PlanNutritionDto(
     @SerialName("fat_pct") val fatPct: Double = 0.0,
     val distribution: ProteinDistributionDto? = null,
     @SerialName("edited_by_user") val editedByUser: Boolean = false,
+    val activity: ActivityDto? = null,
 ) {
     fun toDomain(): PlanNutrition = PlanNutrition(
         targetKcal = targetKcal.roundToInt(),
@@ -72,6 +91,7 @@ internal data class PlanNutritionDto(
         fatPct = fatPct.roundToInt(),
         distribution = distribution?.let { ProteinDistribution(it.perMealG.roundToInt(), it.minMeals, it.gPerKg) },
         editedByUser = editedByUser,
+        activity = activity?.toDomain(),
     )
 }
 
@@ -184,6 +204,12 @@ internal data class AcceptPlanParams(
 
 @Serializable
 internal data class DiscardPlanParams(@SerialName("p_plan_id") val planId: String)
+
+@Serializable
+internal data class SetCardioParams(
+    @SerialName("p_plan_id") val planId: String,
+    @SerialName("p_minutes") val minutes: Int,
+)
 
 @Serializable
 internal data class EvaluateCalorieParams(@SerialName("p_today") val today: LocalDate)

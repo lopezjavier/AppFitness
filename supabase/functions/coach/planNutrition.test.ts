@@ -459,3 +459,27 @@ Deno.test("a summary without the new keys (old fixtures) still plans from the ex
     assertEquals(plan.nutrition.intake_anchor_kcal, null);
     assertEquals(plan.nutrition.slope_used, false);
 });
+
+Deno.test("the activity targets are saved inside nutrition and returned", async () => {
+    const s = summary();
+    (s.estimates as Record<string, unknown>).activity_level = {
+        provisional: false,
+        sources: { steps_avg: 7740 },
+    };
+    const { handler, saved } = setup({ summary: s });
+    const plan = await planOf(await handler(post()));
+    assertEquals(plan.nutrition.target_kcal, 2160);
+    assertEquals(plan.nutrition.activity.cardio_min_week, 150);
+    assertEquals(plan.nutrition.activity.steps_day, 7500);
+    assertEquals(plan.nutrition.activity.steps_basis, "average");
+    assertEquals(saved[0].nutrition.activity?.steps_avg, 7740);
+});
+
+Deno.test("without steps data the activity falls back to the 7000 floor", async () => {
+    const { handler, saved } = setup();
+    await handler(post());
+    const a = saved[0].nutrition.activity!;
+    assertEquals(a.steps_day, 7000);
+    assertEquals(a.steps_basis, "floor");
+    assertEquals(a.steps_avg, null);
+});

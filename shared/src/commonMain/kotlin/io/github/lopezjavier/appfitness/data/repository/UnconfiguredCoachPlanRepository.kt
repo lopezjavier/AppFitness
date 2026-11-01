@@ -21,6 +21,9 @@ class UnconfiguredCoachPlanRepository : CoachPlanRepository {
 
     override suspend fun discardPlan(planId: String): Result<Unit> = Result.failure(AppException(AppError.Unknown))
 
+    override suspend fun setCardioMinutes(planId: String, minutes: Int): Result<CoachPlan> =
+        Result.failure(AppException(AppError.Unknown))
+
     override suspend fun pendingCalorieChange(today: LocalDate): Result<CalorieChange?> =
         Result.failure(AppException(AppError.Unknown))
 
