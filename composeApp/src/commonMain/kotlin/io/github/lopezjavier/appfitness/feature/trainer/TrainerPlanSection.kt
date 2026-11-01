@@ -35,6 +35,7 @@ import io.github.lopezjavier.appfitness.composeapp.resources.trainer_deload_titl
 import io.github.lopezjavier.appfitness.composeapp.resources.trainer_plan_active_line
 import io.github.lopezjavier.appfitness.composeapp.resources.trainer_plan_active_title
 import io.github.lopezjavier.appfitness.composeapp.resources.trainer_plan_activity
+import io.github.lopezjavier.appfitness.composeapp.resources.trainer_plan_cardio_edit_label
 import io.github.lopezjavier.appfitness.composeapp.resources.trainer_plan_create
 import io.github.lopezjavier.appfitness.composeapp.resources.trainer_plan_create_action
 import io.github.lopezjavier.appfitness.composeapp.resources.trainer_plan_outcomes
@@ -217,7 +218,11 @@ private fun ActivePlanCard(plan: CoachPlan, onEditCardio: () -> Unit) {
                 Modifier.fillMaxWidth()
                     .heightIn(min = Spacing.minTouchTarget)
                     .testTag("trainer_plan_cardio_row")
-                    .clickable(role = Role.Button, onClick = onEditCardio),
+                    .clickable(
+                        onClickLabel = stringResource(Res.string.trainer_plan_cardio_edit_label),
+                        role = Role.Button,
+                        onClick = onEditCardio,
+                    ),
                 contentAlignment = Alignment.CenterStart,
             ) {
                 Text(
