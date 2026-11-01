@@ -108,7 +108,7 @@ Each checkpoint also has "leave the app and come back: the same tab, screen and 
 - [x] E13 Q23-Q31 resolved (2026-11-01; Q30 and Q31 by the PM)
 - [x] T-181: Weekly cardio and daily steps targets in the plan — M
 - [x] T-184: Cardio equipment in "Mi entrenamiento" and "Antes de empezar" — M
-- [ ] T-182: Cardio as the last exercise of every routine of the block (backend) — L
+- [x] T-182: Cardio as the last exercise of every routine of the block (backend) — L
 - [ ] T-183: Cardio in the preview, routine editor and live session; weekly cardio and steps — L
   - **Checkpoint E13-B3 👤 "Re-test the plan, and cardio in your plan and block" (7 items + leave and come back)**, proposed: carries the pending E13-B1 re-test (item 5 with the T-180 calories) so one APK covers both; T-166 waits for it. Item list in `tasks/todo.md` under T-183.
 
