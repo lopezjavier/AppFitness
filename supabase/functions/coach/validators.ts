@@ -6,12 +6,14 @@ import {
     FAT_MIN_PCT,
     FLOOR,
     GAIN_RATE_RANGE,
+    intakeRangeViolation,
     LOSS_RATE_RANGE,
     MEAL_PROTEIN_G_PER_KG,
     MIN_MEALS,
     PROTEIN_MAX,
     PROTEIN_MIN,
     RATE_TOLERANCE_PCT,
+    rateKcal,
     SURPLUS_CAP,
 } from "./nutritionRules.ts";
 import { addDays, type Candidate } from "./outcomes.ts";
@@ -126,6 +128,23 @@ export function assertNutritionInvariants(n: Nutrition): void {
         ? "surplus"
         : "maintenance";
     if (n.strategy !== strategy) fail("strategy_mismatch");
+
+    // Target against the intake anchor (04 section 8.7). Plans stored before T-180 lack the fields: skipped.
+    const anchor = n.intake_anchor_kcal ?? null;
+    if (anchor !== null) {
+        const shift = n.slope_term_kcal ?? 0;
+        if (Math.abs(shift) > rateKcal(GAIN_RATE_RANGE[1], w) + 1) {
+            fail("slope_term_range");
+        }
+        const violation = intakeRangeViolation(
+            n.intention,
+            w,
+            shift,
+            n.target_kcal - anchor,
+            n.limited_by,
+        );
+        if (violation !== null) fail(violation);
+    }
 
     const limited = n.limited_by !== null;
     if (n.intention === "fat_loss") {

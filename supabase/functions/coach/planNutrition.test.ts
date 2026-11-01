@@ -425,3 +425,37 @@ Deno.test("an invalid first output is retried on the same overridden model", asy
     await (await handler(post({ today: TODAY }, "good", "sonnet"))).text();
     assertEquals(models, ["claude-sonnet-5-5", "claude-sonnet-5-5"]);
 });
+
+Deno.test("the intake anchor and slope flag of the summary reach the plan; a muscle target is not stacked on a thin slope", async () => {
+    const { handler, saved } = setup({
+        summary: summary({
+            training_preferences: { intention: "muscle" },
+            estimates: {
+                activity_level: confirmed,
+                total_expenditure: {
+                    value: 2262,
+                    source: "adaptive",
+                    slope_used: false,
+                    anchor_kcal: 2262,
+                    provisional: false,
+                },
+                intake: { anchor_kcal: 2262, mean_kcal: 2310, reliable: true },
+                experience: { value: "beginner", provisional: false },
+                weight_trend: { slope_kg_week: -0.263, provisional: true },
+            },
+        }),
+    });
+    const plan = await planOf(await handler(post()));
+    assertEquals(plan.nutrition.target_kcal, 2702);
+    assertEquals(plan.nutrition.intake_anchor_kcal, 2262);
+    assertEquals(plan.nutrition.slope_used, false);
+    assertEquals(saved.length, 1);
+});
+
+Deno.test("a summary without the new keys (old fixtures) still plans from the expenditure", async () => {
+    const { handler } = setup();
+    const plan = await planOf(await handler(post()));
+    assertEquals(plan.nutrition.target_kcal, 2160);
+    assertEquals(plan.nutrition.intake_anchor_kcal, null);
+    assertEquals(plan.nutrition.slope_used, false);
+});

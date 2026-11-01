@@ -49,10 +49,11 @@ internal fun BlockWeekTab(
     onOpenExercise: (String) -> Unit,
     onOpenReason: (String) -> Unit,
     isChanged: (sessionIndex: Int, position: Int) -> Boolean,
+    canSwap: (sessionIndex: Int, position: Int) -> Boolean,
     onReplace: (sessionIndex: Int, position: Int) -> Unit,
 ) {
     sessions.forEach { session ->
-        BlockRoutineCard(session, exerciseNames, onOpenExercise, onOpenReason, isChanged, onReplace)
+        BlockRoutineCard(session, exerciseNames, onOpenExercise, onOpenReason, isChanged, canSwap, onReplace)
     }
 }
 
@@ -64,6 +65,7 @@ private fun BlockRoutineCard(
     onOpenExercise: (String) -> Unit,
     onOpenReason: (String) -> Unit,
     isChanged: (sessionIndex: Int, position: Int) -> Boolean,
+    canSwap: (sessionIndex: Int, position: Int) -> Boolean,
     onReplace: (sessionIndex: Int, position: Int) -> Unit,
 ) {
     AppCard(Modifier.fillMaxWidth().testTag("block_preview_routine_${session.week}_${session.sessionIndex}")) {
@@ -89,6 +91,7 @@ private fun BlockRoutineCard(
                 onOpenExercise = onOpenExercise,
                 onOpenReason = onOpenReason,
                 changed = isChanged(session.sessionIndex, position),
+                swappable = canSwap(session.sessionIndex, position),
                 onReplace = { onReplace(session.sessionIndex, position) },
             )
         }
@@ -105,6 +108,7 @@ private fun BlockExerciseRow(
     onOpenExercise: (String) -> Unit,
     onOpenReason: (String) -> Unit,
     changed: Boolean,
+    swappable: Boolean,
     onReplace: () -> Unit,
 ) {
     val tag = "${session.week}_${session.sessionIndex}_$position"
@@ -122,13 +126,15 @@ private fun BlockExerciseRow(
     val displayName = name ?: stringResource(Res.string.block_exercise_fallback)
     val reasonButton: @Composable () -> Unit = {
         Row(verticalAlignment = Alignment.CenterVertically) {
-            AppIconButton(
-                contentDescription = stringResource(Res.string.block_replace_action_cd, displayName),
-                icon = Res.drawable.ic_swap,
-                testTag = "block_preview_replace_$tag",
-                onClick = onReplace,
-                tint = AppTheme.colors.textSecondary,
-            )
+            if (swappable) {
+                AppIconButton(
+                    contentDescription = stringResource(Res.string.block_replace_action_cd, displayName),
+                    icon = Res.drawable.ic_swap,
+                    testTag = "block_preview_replace_$tag",
+                    onClick = onReplace,
+                    tint = AppTheme.colors.textSecondary,
+                )
+            }
             HelpTriggerButton(
                 contentDescription = stringResource(Res.string.block_reason_cd),
                 testTag = "block_preview_reason_$tag",

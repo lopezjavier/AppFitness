@@ -18,7 +18,10 @@ import io.github.lopezjavier.appfitness.domain.usecase.LoadExerciseCatalog
 import io.github.lopezjavier.appfitness.feature.exercises.SimilarExerciseRow
 import io.github.lopezjavier.appfitness.feature.workout.loadExerciseNames
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -55,6 +58,11 @@ class BlockPreviewViewModel(
     val uiState: StateFlow<BlockPreviewUiState> = _uiState.asStateFlow()
 
     private var alternativesJob: Job? = null
+    private var prefetchJob: Job? = null
+
+    // Alternative ids by the coach's exercise id; an exercise whose read failed is absent.
+    private val alternativeIds = mutableMapOf<String, Set<String>>()
+    private var prefetched = false
 
     private val effectChannel = Channel<BlockPreviewEffect>(Channel.BUFFERED)
     val effects = effectChannel.receiveAsFlow()
@@ -201,7 +209,7 @@ class BlockPreviewViewModel(
             replacements = replacements,
             replaceSlot = slot,
             alternatives = AlternativesState.Loading,
-        )
+        ).withSwappable()
     }
 
     private fun saveReplacementsState(replacements: Map<String, Replacement>, slot: String?) {
@@ -298,6 +306,44 @@ class BlockPreviewViewModel(
             preview
         }
         if (slot != null) loadAlternatives()
+        prefetchAlternatives(block)
+    }
+
+    /**
+     * Reads the alternatives of each distinct exercise of the block once, in parallel, to know which slots can be
+     * swapped. A failed read leaves its exercise out of the cache, so its button stays (the sheet shows the retry).
+     */
+    private fun prefetchAlternatives(block: CoachBlock) {
+        prefetchJob?.cancel()
+        alternativeIds.clear()
+        prefetched = false
+        prefetchJob = viewModelScope.launch {
+            val ids = block.sessions.flatMap { session -> session.exercises.map { it.exerciseId } }.distinct()
+            val results = coroutineScope { ids.map { id -> async { id to exercises.alternatives(id) } }.awaitAll() }
+            results.forEach { (id, result) ->
+                result.getOrNull()?.let { list -> alternativeIds[id] = list.map { it.exercise.id }.toSet() }
+            }
+            prefetched = true
+            _uiState.update { state ->
+                if (state is BlockPreviewUiState.Preview) state.withSwappable() else state
+            }
+        }
+    }
+
+    /** The slots with at least one alternative that is not already elsewhere in the same workout. */
+    private fun BlockPreviewUiState.Preview.withSwappable(): BlockPreviewUiState.Preview {
+        if (!prefetched) return copy(swappable = null)
+        val slots = sessions.flatMap { session ->
+            session.exercises.indices.filter { position ->
+                val original = block.sessions.first { it.sessionIndex == session.sessionIndex }
+                    .exercises[position].exerciseId
+                val candidates = alternativeIds[original] ?: return@filter true
+                val others = session.exercises.filterIndexed { index, _ -> index != position }
+                    .map { it.exerciseId }.toSet()
+                candidates.any { it !in others }
+            }.map { replaceSlotKey(session.sessionIndex, it) }
+        }
+        return copy(swappable = slots.toSet())
     }
 
     private fun slotFits(block: CoachBlock, slot: String): Boolean {
@@ -339,7 +385,7 @@ class BlockPreviewViewModel(
                 clearReplacementsState()
                 _uiState.update { state ->
                     if (state is BlockPreviewUiState.Preview) {
-                        state.copy(saving = false, replacements = emptyMap(), replaceSlot = null)
+                        state.copy(saving = false, replacements = emptyMap(), replaceSlot = null).withSwappable()
                     } else {
                         state
                     }

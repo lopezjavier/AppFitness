@@ -237,3 +237,127 @@ Deno.test("unconfirmedKeys follows the accept_coach_plan rule", () => {
     );
     assertEquals(unconfirmedKeys(null), []);
 });
+
+// --- T-180: target against the intake anchor (04 section 8.7) ---
+
+const anchoredPlan = (o: Partial<NutritionInput> = {}): Nutrition =>
+    good({
+        intention: "muscle",
+        experience: "beginner",
+        expenditureKcal: 2262,
+        intakeAnchorKcal: 2262,
+        ...o,
+    });
+/** Rewrites the target `delta` kcal over the anchor, keeping every other field consistent. */
+const withDelta = (n: Nutrition, delta: number) => {
+    n.target_kcal = (n.intake_anchor_kcal ?? 0) + delta;
+    n.calorie_adjustment = n.target_kcal - n.expenditure_kcal;
+    n.strategy = n.calorie_adjustment < 0
+        ? "deficit"
+        : n.calorie_adjustment > 0
+        ? "surplus"
+        : "maintenance";
+};
+// Only the intake rules matter here: fields after them are not reached because the rule fails first, or are accepted
+// as is when the delta is inside the range (checked through the same intakeRange, 80 kg).
+const intakeRuleOf = (n: Nutrition): string | null => {
+    try {
+        assertNutritionInvariants(n);
+        return null;
+    } catch (e) {
+        return e instanceof NutritionInvariantError ? e.rule : null;
+    }
+};
+
+Deno.test("a gain 1 kcal above the range edge is rejected, the edge itself passes the intake rule", () => {
+    const edge = anchoredPlan();
+    withDelta(edge, 450);
+    assertEquals(intakeRuleOf(edge) === "target_above_intake_range", false);
+    const over = anchoredPlan();
+    withDelta(over, 451);
+    assertEquals(intakeRuleOf(over), "target_above_intake_range");
+});
+
+Deno.test("a gain below the range edge is rejected unless a limiter is set", () => {
+    const edge = anchoredPlan();
+    withDelta(edge, 220);
+    assertEquals(intakeRuleOf(edge) === "target_below_intake_range", false);
+    const under = anchoredPlan();
+    withDelta(under, 219);
+    assertEquals(intakeRuleOf(under), "target_below_intake_range");
+    const limited = anchoredPlan();
+    withDelta(limited, 219);
+    limited.limited_by = "goal_range";
+    assertEquals(intakeRuleOf(limited) === "target_below_intake_range", false);
+});
+
+Deno.test("the unrealistic target of the T-180 report (+710 over the intake) is rejected", () => {
+    const n = anchoredPlan();
+    withDelta(n, 710);
+    assertEquals(intakeRuleOf(n), "target_above_intake_range");
+});
+
+Deno.test("a loss deeper than the range is rejected and a floor-slowed one is allowed", () => {
+    const deep = anchoredPlan({
+        intention: "fat_loss",
+        experience: "intermediate",
+        expenditureKcal: 2600,
+        intakeAnchorKcal: 2600,
+    });
+    withDelta(deep, -891);
+    assertEquals(intakeRuleOf(deep), "target_below_intake_range");
+    const slow = anchoredPlan({
+        intention: "fat_loss",
+        experience: "intermediate",
+        expenditureKcal: 2600,
+        intakeAnchorKcal: 2600,
+    });
+    withDelta(slow, -100);
+    slow.limited_by = "floor";
+    assertEquals(intakeRuleOf(slow) === "target_above_intake_range", false);
+    const slowNoLimiter = anchoredPlan({
+        intention: "fat_loss",
+        experience: "intermediate",
+        expenditureKcal: 2600,
+        intakeAnchorKcal: 2600,
+    });
+    withDelta(slowNoLimiter, -100);
+    assertEquals(intakeRuleOf(slowNoLimiter), "target_above_intake_range");
+});
+
+Deno.test("no-change intentions allow +/-220 kcal around the anchor at 80 kg and no more", () => {
+    const ok = anchoredPlan({
+        intention: "maintenance",
+        expenditureKcal: 2262,
+    });
+    assertNutritionInvariants(ok);
+    const high = anchoredPlan({
+        intention: "maintenance",
+        expenditureKcal: 2262,
+    });
+    withDelta(high, 221);
+    assertEquals(intakeRuleOf(high), "target_above_intake_range");
+    const low = anchoredPlan({
+        intention: "maintenance",
+        expenditureKcal: 2262,
+    });
+    withDelta(low, -221);
+    assertEquals(intakeRuleOf(low), "target_below_intake_range");
+});
+
+Deno.test("a missing anchor skips the intake rules (formula path and plans stored before T-180)", () => {
+    const n = good({ intention: "muscle", experience: "beginner" });
+    assertEquals(n.intake_anchor_kcal, null);
+    assertNutritionInvariants(n);
+    const old = n as unknown as Record<string, unknown>;
+    delete old.intake_anchor_kcal;
+    delete old.slope_used;
+    delete old.slope_term_kcal;
+    assertNutritionInvariants(n);
+});
+
+Deno.test("a slope term beyond one top-of-range rate is rejected", () => {
+    const n = anchoredPlan();
+    n.slope_term_kcal = 442;
+    assertEquals(intakeRuleOf(n), "slope_term_range");
+});

@@ -423,6 +423,7 @@ class BlockPreviewViewModelTest {
         val model = viewModel()
         advanceUntilIdle()
 
+        exercises.alternativesCalls.clear()
         openedPicker(model, session = 1, position = 0)
 
         assertEquals(listOf("ex-4", "ex-3"), model.alternatives())
@@ -450,6 +451,7 @@ class BlockPreviewViewModelTest {
         val model = viewModel()
         advanceUntilIdle()
 
+        exercises.alternativesCalls.clear()
         openedPicker(model, position = 1)
         assertEquals(listOf("ex-2"), exercises.alternativesCalls)
         assertEquals(AlternativesState.Empty, model.preview().alternatives)

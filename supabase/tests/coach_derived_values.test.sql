@@ -3,7 +3,7 @@ begin;
 create extension if not exists pgtap with schema extensions;
 set local search_path = extensions, public;
 
-select plan(115);
+select plan(136);
 
 -- ---------------------------------------------------------------------------
 -- Fixture helpers (run as the migration owner; today is the UTC date, inside the RPC window)
@@ -83,6 +83,20 @@ create function pg_temp.diary(n int, days int, kcal numeric) returns void langua
          '0ff00000-0000-4000-8000-0000000000c1', 100, 'Alimento', kcal, 10, 10, 10
   from generate_series(0, days - 1) i $$;
 
+-- One extra weigh-in day_offset days after the Monday of that week (past days only).
+create function pg_temp.weigh_on(n int, weeks_ago int, day_offset int, kg numeric) returns void language sql as $$
+  insert into public.body_measurements (user_id, weight_kg, source, measured_at)
+  select pg_temp.u(n), kg, 'manual',
+         ((pg_temp.d0() - (extract(isodow from pg_temp.d0())::int - 1) - 7 * weeks_ago + day_offset)::timestamp
+           + interval '30 minutes') at time zone 'UTC' $$;
+
+-- A single diary day days_ago days back with kcal in one entry.
+create function pg_temp.food_day(n int, days_ago int, kcal numeric) returns void language sql as $$
+  insert into public.food_log_entries (user_id, log_date, meal_slot_id, food_id, amount, food_name, kcal, protein_g, carbs_g, fat_g)
+  values (pg_temp.u(n), pg_temp.d0() - days_ago,
+          (select id from public.meal_slots where user_id = pg_temp.u(n) and code = 'breakfast'),
+          '0ff00000-0000-4000-8000-0000000000c1', 100, 'Alimento', kcal, 10, 10, 10) $$;
+
 -- Estimates / confirmation as user n (sets the JWT claims for the rest of the transaction).
 create function pg_temp.est(n int) returns jsonb language plpgsql as $$
 begin
@@ -104,7 +118,7 @@ grant execute on all functions in schema pg_temp to authenticated;
 insert into auth.users (id, email)
 select pg_temp.u(n), 'coach' || n || '@example.com'
 from unnest(array[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 20, 21, 22, 23, 24, 30, 31, 32, 33, 34, 35, 36,
-                  40, 41, 42, 43, 44, 45, 46, 50, 51, 52, 54]) n;
+                  40, 41, 42, 43, 44, 45, 46, 50, 51, 52, 54, 60, 61, 62, 64]) n;
 
 insert into public.foods (id, source, name, kcal_100) values ('0ff00000-0000-4000-8000-0000000000c1', 'off', 'Alimento c', 100);
 
@@ -138,6 +152,15 @@ select pg_temp.diary(30, 17, 2000), pg_temp.diary(31, 20, 2000), pg_temp.diary(3
 select pg_temp.profile(34, 'sedentary', null), pg_temp.profile(35, 'sedentary', null), pg_temp.profile(36, 'sedentary', null);
 select pg_temp.weights(34, array[80, 79, 79, 78]), pg_temp.weights(35, array[80, 79, 79, 78]), pg_temp.weights(36, array[79, 78]);
 select pg_temp.diary(34, 20, 2000), pg_temp.diary(35, 19, 2000), pg_temp.diary(36, 20, 2000);
+-- 60: reliable diary, 4 weeks and 10 weigh-in days (slope used). 61: reliable diary with a 6000 kcal day and a 500 kcal day.
+-- 62: reliable diary, no weigh-ins. 64: the T-180 shape: reliable diary, 3 weeks and 5 weigh-in days.
+select pg_temp.profile(60, 'sedentary', null), pg_temp.profile(61, 'sedentary', null), pg_temp.profile(62, 'sedentary', null),
+       pg_temp.profile(64, 'sedentary', null);
+select pg_temp.weights(60, array[80, 79, 79, 78]), pg_temp.weights(64, array[80, 79, 78]);
+select pg_temp.weigh_on(60, w, o, k) from (values (1, 1, 79), (1, 2, 79), (2, 1, 79), (2, 2, 79), (3, 1, 80), (3, 2, 80)) t(w, o, k);
+select pg_temp.weigh_on(64, 1, 1, 79), pg_temp.weigh_on(64, 2, 1, 80);
+select pg_temp.diary(60, 20, 2000), pg_temp.diary(61, 20, 2000), pg_temp.diary(62, 20, 2000), pg_temp.diary(64, 20, 2262);
+select pg_temp.food_day(61, 20, 6000), pg_temp.food_day(61, 21, 500);
 -- 40..46: experience boundaries.
 select pg_temp.sessions(40, 23, 100), pg_temp.sessions(41, 24, 100), pg_temp.sessions(42, 24, 77),
        pg_temp.sessions(43, 24, 84), pg_temp.sessions(44, 150, 364), pg_temp.sessions(45, 150, 357);
@@ -259,12 +282,35 @@ select is((pg_temp.est(32)->'intake'->>'reliable')::boolean, false, '19 of 28 da
 select is((pg_temp.est(33)->'intake'->>'logged_days')::int, 0, 'no logged days is 0');
 select is((pg_temp.est(33)->'intake'->>'reliable')::boolean, false, 'and unreliable, without an error');
 select is(pg_temp.est(34)->'total_expenditure'->>'source', 'adaptive', 'reliable intake and 4 weeks of weights give the adaptive estimate');
-select is((pg_temp.est(34)->'total_expenditure'->>'value')::numeric, 2660::numeric,
-  'adaptive = mean intake 2000 - (-0.6 x 7700 / 7) = 2660');
+select is((pg_temp.est(34)->'total_expenditure'->>'slope_used')::boolean, false,
+  '4 weekly averages from only 4 weigh-in days do not use the slope');
+select is((pg_temp.est(34)->'weight_trend'->>'weigh_in_days')::int, 4, 'weigh-in days are counted');
+select is((pg_temp.est(34)->'total_expenditure'->>'value')::numeric, 2000::numeric,
+  'without the slope the adaptive expenditure is the intake anchor');
+select is(pg_temp.est(60)->'total_expenditure'->>'source', 'adaptive', 'reliable diary, 4 weeks, 10 weigh-in days: adaptive');
+select is((pg_temp.est(60)->'total_expenditure'->>'slope_used')::boolean, true, 'and the slope is used');
+select is((pg_temp.est(60)->'weight_trend'->>'weigh_in_days')::int, 10, 'ten distinct weigh-in days');
+select is((pg_temp.est(60)->'total_expenditure'->>'value')::numeric, 2660::numeric,
+  'adaptive = anchor 2000 - (-0.6 x 7700 / 7) = 2660');
+select is((pg_temp.est(61)->'intake'->>'logged_days')::int, 22, 'raw logged days include the outlier days');
+select is((pg_temp.est(61)->'intake'->>'mean_kcal')::numeric, 2114::numeric, 'mean_kcal stays the raw mean (46500 / 22)');
+select is((pg_temp.est(61)->'intake'->>'anchor_kcal')::numeric, 2048::numeric,
+  'anchor caps 6000 at 150 % of the 2000 median and drops the 500 kcal day: 43000 / 21');
+select is((pg_temp.est(61)->'total_expenditure'->>'value')::numeric, 2048::numeric, 'the expenditure follows the anchor');
+select is(pg_temp.est(62)->'total_expenditure'->>'source', 'adaptive', 'a reliable diary without weigh-ins is adaptive');
+select is((pg_temp.est(62)->'total_expenditure'->>'slope_used')::boolean, false, 'with no slope used');
+select is((pg_temp.est(62)->'total_expenditure'->>'value')::numeric, 2000::numeric, 'and the anchor as expenditure');
+select is((pg_temp.est(64)->'weight_trend'->>'weeks')::int, 3, 'the T-180 shape has 3 weekly averages');
+select is((pg_temp.est(64)->'weight_trend'->>'weigh_in_days')::int, 5, 'and 5 weigh-in days');
+select is((pg_temp.est(64)->'total_expenditure'->>'slope_used')::boolean, false, 'so the slope is not used');
+select is((pg_temp.est(64)->'total_expenditure'->>'value')::numeric, 2262::numeric,
+  'and the expenditure is the intake, not intake plus a thin-trend term');
+select is(pg_temp.est(30)->'intake'->'anchor_kcal', 'null'::jsonb, 'an unreliable diary has no anchor');
 select is(pg_temp.est(35)->'total_expenditure'->>'source', 'formula', 'an unreliable diary falls back to the formula');
 select is((pg_temp.est(35)->'total_expenditure'->>'value')::numeric, 2121::numeric, 'formula: 1767.5 x 1.2 = 2121');
 select is(pg_temp.est(35)->'total_expenditure'->'missing', '["diary"]'::jsonb, 'and lists the diary as missing');
-select is(pg_temp.est(36)->'total_expenditure'->>'source', 'formula', 'fewer than 3 weeks of weights use the formula');
+select is(pg_temp.est(36)->'total_expenditure'->>'source', 'adaptive', 'a reliable diary is adaptive even with 2 weeks of weights');
+select is((pg_temp.est(36)->'total_expenditure'->>'value')::numeric, 2000::numeric, 'and ignores their slope');
 
 -- ---------------------------------------------------------------------------
 -- Experience
@@ -346,6 +392,8 @@ set local role authenticated;
 select is((pg_temp.est(54)->'activity_level'->'sources'->>'steps_days')::int, 0, 'estimates ignore the data of other users');
 select is(pg_temp.est(54)->'activity_level'->>'source', 'profile', 'and fall back to the profile');
 select is((pg_temp.est(54)->'intake'->>'logged_days')::int, 0, 'the diary of others is not counted');
+select is(pg_temp.est(54)->'intake'->'anchor_kcal', 'null'::jsonb, 'the anchor ignores the diary of others');
+select is((pg_temp.est(54)->'weight_trend'->>'weigh_in_days')::int, 0, 'weigh-in days ignore the weigh-ins of others');
 
 select * from finish();
 rollback;

@@ -86,6 +86,8 @@ Feature: Confirmation of derived values
 - **Labels (Q5):** "Confirmar" (accept the coach's derived values) and "Aceptar" / "Descartar" (decide on a coach proposal) get their own glossary entries in `05` §10; they are distinct from "Guardar" (commit an edit).
 
 ## US-69 · Plan calories, macros and outcomes
+
+> **T-180 note (ADR-84):** the plan's expenditure is anchored on the capped 28-day intake and its target is checked against the intention's rate (`04` §8.7); the scenarios below hold for thin weight data too.
 **As** a user with an intention
 **I want** the coach to set the calories, macros and the outcomes it can justify
 **So that** the plan has a clear direction.
