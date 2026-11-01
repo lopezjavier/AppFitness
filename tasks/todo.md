@@ -580,7 +580,7 @@ User request, 2026-11-01: "the app replaces a real trainer; if the trainer would
 **Host tests:** pgTAP (enum values, re-tags, no saved list changed, `exercises.test.sql` updated, isolation); `deno test` (lifting candidates unchanged with cardio values present; `EQUIPMENT_ORDER`); Kotlin (enum/DTO with the new values and an unknown one, `DefaultEquipment` per place, labels); Robolectric (the "Cardio" group and helper, place seeding, the "Antes de empezar" row in both states and its navigation); restoration test.
 
 **Verification:**
-- [ ] `npx supabase db reset && npx supabase db lint && npx supabase test db`, `deno test`, lint (`check-design-tokens.sh`, `check-ux-conventions.sh`, ktlint, detekt) + `testLocalDebugUnitTest` green; after the merge `deploy-supabase` green on `main` with data intact (before T-182).
+- [x] `npx supabase db reset && npx supabase db lint && npx supabase test db`, `deno test`, lint (`check-design-tokens.sh`, `check-ux-conventions.sh`, ktlint, detekt) + `testLocalDebugUnitTest` green; after the merge `deploy-supabase` green on `main` with data intact (before T-182).
 
 **Agent runs:** planner, ux-reviewer (plan), backend-developer, kotlin-core-developer, compose-ui-developer, pr-creator, pr-reviewer ∥ ux-reviewer (diff) = 8. About 14 files.
 **Dependencies:** T-181 merged and deployed; the user's OK on this breakdown and ADR-85; E13 Q28b resolved (done).
