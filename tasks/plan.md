@@ -90,7 +90,7 @@ Each checkpoint also has "leave the app and come back: the same tab, screen and 
 - [ ] T-177: Fix: Trainer shows "Crear plan" after a plan was created — M (runs first)
   - **Checkpoint E13-B 👤 (9 items) re-presented** after T-177 (items 1-9 to re-test)
 - [ ] T-175: "Antes de empezar" inputs (US-78 backend) — M
-- [ ] T-176: "Antes de empezar" screen and the Trainer tab layout (US-78 UI) — L
+- [x] T-176: "Antes de empezar" screen and the Trainer tab layout (US-78 UI) — L
 - [ ] T-179: Long band and exercise alternatives — L (after T-176; does not wait for E13-B1/E13-B2)
   - **Checkpoint E13-B1 👤 "Before starting, and your nutrition plan" (7)**, then **Checkpoint E13-B2 👤 "Your four-week block, adherence and deload" (6)**, both after T-176 (Q22 B); T-166 waits for both. Item lists in `tasks/todo.md`.
 
