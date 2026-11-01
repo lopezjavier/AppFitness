@@ -106,7 +106,7 @@ Each checkpoint also has "leave the app and come back: the same tab, screen and 
 ### Phase 2b: Cardio in the plan (US-79, US-72/US-73 amended; ADR-85 proposed, 2026-11-01)
 - [x] Sources 29-50 of `07` §10 verified and dated (fitness-scientist, 2026-11-01)
 - [x] E13 Q23-Q31 resolved (2026-11-01; Q30 and Q31 by the PM)
-- [ ] T-181: Weekly cardio and daily steps targets in the plan — M
+- [x] T-181: Weekly cardio and daily steps targets in the plan — M
 - [ ] T-184: Cardio equipment in "Mi entrenamiento" and "Antes de empezar" — M
 - [ ] T-182: Cardio as the last exercise of every routine of the block (backend) — L
 - [ ] T-183: Cardio in the preview, routine editor and live session; weekly cardio and steps — L
