@@ -731,7 +731,7 @@ Journey: ask the coach for a plan, read the calories, macros, protein guidance a
 **Verification:**
 - [ ] `deno test`, pgTAP, lint + `testLocalDebugUnitTest` green; after the merge `deploy-supabase` green on `main`.
 
-**Agent runs:** planner, ux-reviewer (plan), backend-developer, kotlin-core-developer, compose-ui-developer, pr-creator, pr-reviewer ∥ ux-reviewer (diff) = 8. About 15 files.
+**Agent runs:** fitness-scientist first (decides how the weekly check and report judge the week, cardio and steps included: what counts as hit or missed, what the coach says about it; records it in `07` before the planner), planner, ux-reviewer (plan), backend-developer, kotlin-core-developer, compose-ui-developer, pr-creator, pr-reviewer ∥ ux-reviewer (diff) = 9. About 15 files.
 **Dependencies:** Checkpoint E13-B approved (E13-B1 and E13-B2 if E13 Q22 B is chosen); Checkpoint E13-B3 (cardio and the E13-B1 re-test, proposed 2026-11-01) approved
 **Files likely touched:** `supabase/migrations/<ts>_coach_reports.sql`, `supabase/tests/{coach_reports,delete_account_cascade}.test.sql`, `supabase/functions/coach/{report,figureValidator}.ts` (+ tests), `shared/…` (report model, repository, DTO), `feature/checkin/{CheckInScreen,CheckInViewModel}.kt`, `feature/trainer/{WeeklyReportScreen,WeeklyReportViewModel}.kt`, `app/{AppRoutes,AppNavHost}.kt`, strings, `planning/03`, `04` §6.6/§7, tests
 **Estimated scope:** L
