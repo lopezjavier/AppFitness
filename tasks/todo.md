@@ -680,6 +680,9 @@ Journey: ask the coach for a plan, read the calories, macros, protein guidance a
 
 **Flow:** UX + UI · **Dependencies:** T-169 merged.
 
+### E13 backlog (not yet a task; the epic-planner or planner sizes it)
+- [ ] **Cardio in the plan (user, 2026-11-01: "the app replaces a real trainer; if the trainer would plan cardio, the app must"):** the coach prescribes cardio like a trainer. Recommended shape (PM, to be verified against sources in `07` §10 before it becomes a rule): (1) a weekly cardio target (minutes and daily steps) by intention, next to the calories and macros, from the deterministic rules module, not the model; (2) cardio sessions in the block (e.g. "Bicicleta estática, 25 min, ritmo suave"), placed after lifting or on rest days, never before heavy legs; (3) a 5-minute warm-up line at the start of each routine; (4) adherence counts the cardio sessions; (5) the validator checks the weekly minutes are in range and the existing "never reduce cardio" rule stays (`07` §3). Needs `01-scope.md`, `07` §3-§4, US-72/US-69 Gherkin and an ADR; no implementation until planned.
+
 ---
 
 ### Checkpoint E13-C — Your weekly report, the coach's track record, the chat, and the final E13 regression 👤 (9 items + leave and come back) *(agreed with the user, 2026-10-29: three checkpoints)*
