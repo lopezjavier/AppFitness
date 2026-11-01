@@ -35,6 +35,7 @@ Every task pays 6-8 agent hand-offs, so stories stay whole unless one is too lar
 | T-175: "Antes de empezar" inputs | US-78 backend | backend + core | M | 5 |
 | T-176: "Antes de empezar" screen and the Trainer tab layout | US-78 UI (+ US-68 confirmation) | core + UI | L | 7 |
 | T-179: Long band and exercise alternatives | User request (training catalogue) | backend + core + UI | L | 8 |
+| T-180: Fix: unrealistic calorie surplus in the plan | E13-B1 feedback (US-69) | backend | M | 4 |
 | T-166: Weekly coach report | US-71 (+ US-76 fallback) | backend + core + UI | L | 8 |
 | T-167: Recommendation history, outcomes and deletion | US-74 | backend + core + UI | M | 8 |
 | T-168: Coach evaluation: cases, runner and results | Evaluation | backend + 👤 | M | 4 + runs |
@@ -92,6 +93,7 @@ Each checkpoint also has "leave the app and come back: the same tab, screen and 
 - [ ] T-175: "Antes de empezar" inputs (US-78 backend) — M
 - [x] T-176: "Antes de empezar" screen and the Trainer tab layout (US-78 UI) — L
 - [x] T-179: Long band and exercise alternatives — L (after T-176; does not wait for E13-B1/E13-B2)
+- [ ] T-180: Fix from Checkpoint E13-B1: unrealistic calorie surplus in the plan — M (before E13-B1 is re-presented)
   - **Checkpoint E13-B1 👤 "Before starting, and your nutrition plan" (7)**, then **Checkpoint E13-B2 👤 "Your four-week block, adherence and deload" (6)**, both after T-176 (Q22 B); T-166 waits for both. Item lists in `tasks/todo.md`.
 
 **Sizing of US-78:** one story, split backend → UI because the whole slice is about 28 files: T-175 (one read-only RPC shared by the screen and the `coach` function's precondition, plus the repository; M, about 11 files) and T-176 (the screen in two modes, the Trainer root rework and the proposal clean-up; L, about 17 files). The root rework stays inside T-176: it moves the "Tus valores" card into the new screen, so splitting it would make an S task touching the same files.
@@ -111,7 +113,7 @@ Internal milestones (not 👤 checkpoints): per task lint (`check-design-tokens.
 ```
 v1.3.0 ─► T-157 ─► T-158 ─► T-159 ─► [E13-A 👤]
        ─► [👤 key] ─► T-160 ─► T-161 ─► T-162 ─► T-163 ─► T-164 ─► T-165 ─► T-174
-       ─► T-177 ─► [E13-B 👤 re-presented] ─► T-175 ─► T-176 ─► T-179 ─► [E13-B1 👤] ─► [E13-B2 👤]
+       ─► T-177 ─► [E13-B 👤 re-presented] ─► T-175 ─► T-176 ─► T-179 ─► T-180 ─► [E13-B1 👤] ─► [E13-B2 👤]
        ─► T-166 ─► T-167 ─► T-168 (👤 cases, paid runs) ─► T-169 ─► [E13-C 👤] ─► T-170 ─► v1.4.0
 ```
 - Strictly sequential (one active task at a time).
