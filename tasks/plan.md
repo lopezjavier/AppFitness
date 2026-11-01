@@ -1,7 +1,7 @@
 # Implementation Plan: E13 · Performance assistant → `v1.x` (proposed `v1.4.0`)
 
 > **Status:** broken down on 2026-10-29 by the epic-planner and **agreed by the user the same day** with two changes: three checkpoints instead of five, and every recommended option of E13 Q1-Q13 approved (resolved below; amended Gherkin in the epic file; `planning/09-open-questions.md`). 14 tasks (T-157…T-170). No task is blocked.
-> **Amendment 2026-10-30 (epic-planner, from the Checkpoint E13-B feedback; E13 Q14-Q22 resolved by the user the same day):** new story US-78 "Antes de empezar" (epic file) as T-175 (backend, M) and T-176 (UI incl. the Trainer tab layout, L). Order: the fix T-177 (plan card missing after "Crear plan") first; then Checkpoint E13-B is re-presented (items 1-9); then T-175, T-176 and the checkpoints E13-B1 and E13-B2 (Q22 B). Fix tasks added since the breakdown: T-171, T-172 (E13-A), T-173 (refinements), T-174, T-177 (E13-B). No task is blocked.
+> **Amendment 2026-10-30 (epic-planner, from the Checkpoint E13-B feedback; E13 Q14-Q22 resolved by the user the same day):** new story US-78 "Antes de empezar" (epic file) as T-175 (backend, M) and T-176 (UI incl. the Trainer tab layout, L). Order: the fix T-177 (plan card missing after "Crear plan") first; then Checkpoint E13-B is re-presented (items 1-9); then T-175, T-176, T-179 (long band and exercise alternatives, user request 2026-11-01; it does not wait for the checkpoints) and the checkpoints E13-B1 and E13-B2 (Q22 B). Fix tasks added since the breakdown: T-171, T-172 (E13-A), T-173 (refinements), T-174, T-177 (E13-B). No task is blocked.
 
 ## Overview
 A coach that builds a four-week training and nutrition block from the user's intention and preferences, sets the outcomes it can justify, and adjusts the plan with the user's data. It proposes; the user accepts. Every calculation is deterministic (SQL or TypeScript); the model only selects within validated options and explains; nothing is applied without consent (ADR-76).
@@ -34,6 +34,7 @@ Every task pays 6-8 agent hand-offs, so stories stay whole unless one is too lar
 | T-177: Fix: Trainer shows "Crear plan" after a plan was created | E13-B bug (US-69) | core + UI | M | 6-7 |
 | T-175: "Antes de empezar" inputs | US-78 backend | backend + core | M | 5 |
 | T-176: "Antes de empezar" screen and the Trainer tab layout | US-78 UI (+ US-68 confirmation) | core + UI | L | 7 |
+| T-179: Long band and exercise alternatives | User request (training catalogue) | backend + core + UI | L | 8 |
 | T-166: Weekly coach report | US-71 (+ US-76 fallback) | backend + core + UI | L | 8 |
 | T-167: Recommendation history, outcomes and deletion | US-74 | backend + core + UI | M | 8 |
 | T-168: Coach evaluation: cases, runner and results | Evaluation | backend + 👤 | M | 4 + runs |
@@ -90,6 +91,7 @@ Each checkpoint also has "leave the app and come back: the same tab, screen and 
   - **Checkpoint E13-B 👤 (9 items) re-presented** after T-177 (items 1-9 to re-test)
 - [ ] T-175: "Antes de empezar" inputs (US-78 backend) — M
 - [ ] T-176: "Antes de empezar" screen and the Trainer tab layout (US-78 UI) — L
+- [ ] T-179: Long band and exercise alternatives — L (after T-176; does not wait for E13-B1/E13-B2)
   - **Checkpoint E13-B1 👤 "Before starting, and your nutrition plan" (7)**, then **Checkpoint E13-B2 👤 "Your four-week block, adherence and deload" (6)**, both after T-176 (Q22 B); T-166 waits for both. Item lists in `tasks/todo.md`.
 
 **Sizing of US-78:** one story, split backend → UI because the whole slice is about 28 files: T-175 (one read-only RPC shared by the screen and the `coach` function's precondition, plus the repository; M, about 11 files) and T-176 (the screen in two modes, the Trainer root rework and the proposal clean-up; L, about 17 files). The root rework stays inside T-176: it moves the "Tus valores" card into the new screen, so splitting it would make an S task touching the same files.
@@ -109,7 +111,7 @@ Internal milestones (not 👤 checkpoints): per task lint (`check-design-tokens.
 ```
 v1.3.0 ─► T-157 ─► T-158 ─► T-159 ─► [E13-A 👤]
        ─► [👤 key] ─► T-160 ─► T-161 ─► T-162 ─► T-163 ─► T-164 ─► T-165 ─► T-174
-       ─► T-177 ─► [E13-B 👤 re-presented] ─► T-175 ─► T-176 ─► [E13-B1 👤] ─► [E13-B2 👤]
+       ─► T-177 ─► [E13-B 👤 re-presented] ─► T-175 ─► T-176 ─► T-179 ─► [E13-B1 👤] ─► [E13-B2 👤]
        ─► T-166 ─► T-167 ─► T-168 (👤 cases, paid runs) ─► T-169 ─► [E13-C 👤] ─► T-170 ─► v1.4.0
 ```
 - Strictly sequential (one active task at a time).

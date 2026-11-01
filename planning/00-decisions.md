@@ -4,7 +4,7 @@ Live index of every closed decision, with the numbers frozen in Phase 1. The ful
 
 ## New ADRs go here
 
-Phase 2 ADRs continue the numbering (next: **ADR-80**) and are written **in full** in this file (context, decision, consequences, approval), below the index. Add their one-line row to the table too. Format: context -> decision -> consequences. A new decision also updates the affected live docs.
+Phase 2 ADRs continue the numbering (next: **ADR-84**) and are written **in full** in this file (context, decision, consequences, approval), below the index. Add their one-line row to the table too. Format: context -> decision -> consequences. A new decision also updates the affected live docs.
 
 ## Index (Phase 1, ADR-01..72)
 
@@ -96,6 +96,10 @@ Phase 2 ADRs continue the numbering (next: **ADR-80**) and are written **in full
 | 77 | Claude through a `coach` Edge Function (Opus 5.5 plan, Sonnet 5.5 report and chat); paid AI capped at 2 € per user and 5 € in total per month; NFR-02 changed | |
 | 78 | `activity_level` kept as the starting factor; `target_weight_kg` retired as a user input; intention, place, equipment, days and session length in `training_preferences`; `exercises.movement_pattern` | |
 | 79 | 4 tabs Diario/Entreno/Trainer/Perfil: the coach gets its own tab between Entreno and Perfil, added with the first E13 UI task | Amends 37 |
+| 80 | Pickers, read-only sheets and action menus close on an outside tap; sheets with editable input or unsaved changes keep ADR-71 | Amends 71 |
+| 81 | Discomfort is a level chosen from an ordered scale; no strong-pain term matching or fixed message | Amends 76 |
+| 82 | A note is a chosen option plus optional text; a live routine note is a routine change | Amends 81 |
+| 83 | `band_long` is its own equipment with 30 cable counterparts and a curated symmetric alternatives graph; trainer replacements apply only on "Guardar bloque" | |
 
 ## Phase 2 ADRs (full text)
 
@@ -190,3 +194,14 @@ Phase 2 ADRs continue the numbering (next: **ADR-80**) and are written **in full
   - Every option list has a `?` Info sheet (R-46).
 - **Consequences:** T-153 (migration `note_kind` + pgTAP, core, UI, `03`, `04`, `05` §10, glossary). The coach (E13) reads the kind plus the text.
 - **Approval:** the user, 2026-10-29, in the chat.
+
+### ADR-83 — Long band as its own equipment and curated exercise alternatives (training catalogue; user request 2026-11-01)
+- **Context:** The catalogue's `band` is a short loop band. A long elastic band can replace many cable exercises at home, but it is a different tool for equipment filtering, weights and instructions. The catalogue also has no way to offer a similar exercise when the selected one is unavailable or the user prefers an alternative; the coach and the trainer need the same curated graph.
+- **Decision:**
+  - `band_long` is added to `public.equipment` and to the app's `Equipment` enum. It never replaces `band`. Both Home and Gym select it by default; Gym already selects every value.
+  - The catalogue gets 30 long-band exercises, one per cable exercise: key `band-long-<cable-key>`, same muscle group and hand count, `per_hand = false`, and its own Spanish name and instructions. The cable exercise stays in the catalogue.
+  - Each cable exercise and its long-band counterpart have similarity 1. The alternatives are a curated, symmetric graph in `exercise_alternatives` (one row per unordered pair, similarity greater than 0 and at most 1); a long-band row inherits its cable source's alternatives, mapped to the long-band counterpart when one exists. The graph is data, not a model call.
+  - The exercise detail shows a "Similares" tab sorted by similarity; the trainer block preview can replace an exercise only with one of its alternatives. A replacement is local until "Guardar bloque" and, once saved, applies to that session in every week of the block. Leaving discards it.
+  - The 30 rows, their source media keys and the alternatives come from the two outside-repo CSVs. Names, descriptions, instructions, tips and media stay in the gitignored exercise bundle; no RepDB text or images enter the repo or the database (ADR-38/39). The database migration stores only keys and catalogue metadata.
+- **Consequences:** T-179 (migration of the enum, catalogue rows and `exercise_alternatives`; generated library entries and copied media outside the repo; `Equipment.BandLong`, defaults, labels and hints; Similar tab; trainer picker and `save_coach_block` edit payload; coach equipment order; `03`, `04`, `05`, `07`; pgTAP, Kotlin and Robolectric tests). The old APK may fail to read `band_long` until the new APK is installed after T-179; the database-first deployment is accepted.
+- **Approval:** 2026-11-01, user (chat).
