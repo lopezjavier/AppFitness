@@ -186,6 +186,51 @@ class MyTrainingSectionTest {
     }
 
     @Test
+    fun cardioGroup_showsTheFiveMachines_andTheWalkingHelper() {
+        show()
+        rule.onNodeWithText("Cardio").performScrollTo().assertIsDisplayed()
+        mapOf(
+            "cardio_bike" to "Bicicleta estática",
+            "treadmill" to "Cinta de correr",
+            "elliptical" to "Elíptica",
+            "rower" to "Remo",
+            "cardio_other" to "Otra máquina de cardio",
+        ).forEach { (tag, label) ->
+            rule.onNodeWithTag("preferences_equipment_$tag").performScrollTo().assertTextContains(label)
+        }
+        rule.onNodeWithText("Sin máquinas de cardio, el entrenador te propone caminar a paso ligero.")
+            .performScrollTo()
+            .assertIsDisplayed()
+    }
+
+    @Test
+    fun pickingGimnasioThenCasa_selectsThenClearsTheCardioChips() {
+        show()
+        tap("preferences_place_gym")
+        Equipment.cardio.forEach {
+            rule.onNodeWithTag("preferences_equipment_${it.tagName()}").performScrollTo().assertIsOn()
+        }
+        tap("preferences_place_home")
+        Equipment.cardio.forEach {
+            rule.onNodeWithTag("preferences_equipment_${it.tagName()}").performScrollTo().assertIsOff()
+        }
+    }
+
+    @Test
+    fun savedMachineOnly_leavesTheCardioChipsOff() {
+        show(TrainingPreferences(false, equipment = setOf(Equipment.Machine)))
+        assertChips(setOf(Equipment.Machine))
+    }
+
+    @Test
+    fun togglingACardioChip_enablesGuardar_andSavesIt() {
+        show()
+        tap("preferences_equipment_treadmill")
+        tap("preferences_mi_entrenamiento_save")
+        assertEquals(listOf(MyTraining(equipment = setOf(Equipment.Treadmill))), prefs.savedMyTraining)
+    }
+
+    @Test
     fun dumbbellChip_readsMancuernas() {
         show()
         rule.onNodeWithTag("preferences_equipment_dumbbell").performScrollTo().assertTextContains("Mancuernas")

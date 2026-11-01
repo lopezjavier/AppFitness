@@ -111,6 +111,14 @@ class GlossaryStringsTest {
     @Test
     fun alternatives_areSimilaresAndCambiarEjercicio() {
         assertEquals("Banda larga", value("equipment_band_long"))
+        assertEquals("Bicicleta estática", value("equipment_cardio_bike"))
+        assertEquals("Cinta de correr", value("equipment_treadmill"))
+        assertEquals("Elíptica", value("equipment_elliptical"))
+        assertEquals("Remo", value("equipment_rower"))
+        assertEquals("Otra máquina de cardio", value("equipment_cardio_other"))
+        assertEquals("Cardio", value("my_training_cardio_label"))
+        assertEquals("Cardio", value("plan_input_label_cardio"))
+        assertEquals("Sin máquinas · caminar", value("plan_input_cardio_none"))
         assertEquals("Similares", value("exercise_tab_similar"))
         assertEquals("Cambiar ejercicio", value("block_replace_title"))
         assertEquals("Cambiado", value("block_replace_changed"))

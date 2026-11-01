@@ -135,11 +135,25 @@ class PlanInputRowsTest {
                 PlanInputKey.Intention,
                 PlanInputKey.Place,
                 PlanInputKey.Equipment,
+                PlanInputKey.Cardio,
                 PlanInputKey.DaysPerWeek,
                 PlanInputKey.SessionMinutes,
             ),
             PlanInputKind.Block.summaryLines().flatten(),
         )
+    }
+
+    @Test
+    fun emptyCardio_withStatusOk_isNeitherFlaggedNorOptional() {
+        val row = planInput(
+            PlanInputKey.Cardio,
+            value = PlanInputValue.Items(emptyList()),
+            source = PlanInputSource.MyTraining,
+            fixTarget = PlanFixTarget.MyTraining,
+        ).toRow()
+
+        assertEquals(PlanInputMarker.None, row.marker)
+        assertFalse(row.isFlag)
     }
 
     @Test

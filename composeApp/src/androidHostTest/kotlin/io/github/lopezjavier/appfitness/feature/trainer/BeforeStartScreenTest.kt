@@ -345,6 +345,42 @@ class BeforeStartScreenTest {
     }
 
     @Test
+    fun theCardioRow_listsThePickedMachines() {
+        blockWithCardio(listOf("cardio_bike", "treadmill"))
+
+        show(mode = "block", planId = "plan-3")
+
+        rule.onNodeWithTag("before_start_row_cardio", useUnmergedTree = true)
+            .assertTextEquals("Cardio · Bicicleta estática, Cinta de correr")
+    }
+
+    @Test
+    fun theCardioRow_withNoMachine_readsWalking_withoutSinDefinir() {
+        blockWithCardio(emptyList())
+
+        show(mode = "block", planId = "plan-3")
+
+        rule.onNodeWithTag("before_start_row_cardio", useUnmergedTree = true)
+            .assertTextEquals("Cardio · Sin máquinas · caminar")
+    }
+
+    private fun blockWithCardio(items: List<String>) {
+        repository.inputs[PlanInputKind.Block] = Result.success(
+            PlanInputs(
+                PlanInputKind.Block,
+                null,
+                listOf(
+                    planInput(
+                        PlanInputKey.Cardio,
+                        value = PlanInputValue.Items(items),
+                        source = PlanInputSource.MyTraining,
+                    ),
+                ),
+            ),
+        )
+    }
+
+    @Test
     fun creating_confirmsTheProvisionalValuesOnce_thenLeavesWithTheArguments() {
         val provisional = planKeys().inputs.map {
             if (it.key == PlanInputKey.ActivityLevel) it.copy(status = PlanInputStatus.Provisional) else it

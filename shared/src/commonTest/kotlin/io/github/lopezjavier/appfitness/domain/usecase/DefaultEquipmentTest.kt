@@ -21,9 +21,23 @@ class DefaultEquipmentTest {
     fun gym_isEveryEquipment() {
         val gym = DefaultEquipment.forPlace(TrainingPlace.Gym)
 
-        assertEquals(9, gym.size)
+        assertEquals(14, gym.size)
         assertEquals(Equipment.entries.toSet(), gym)
         assertTrue(Equipment.BandLong in gym)
+    }
+
+    @Test
+    fun gym_includesTheFiveCardioMachines() {
+        val gym = DefaultEquipment.forPlace(TrainingPlace.Gym)
+
+        assertEquals(5, Equipment.cardio.size)
+        assertTrue(gym.containsAll(Equipment.cardio))
+    }
+
+    @Test
+    fun homeAndOther_includeNoCardioMachine() {
+        assertTrue(DefaultEquipment.forPlace(TrainingPlace.Home).none { it.isCardio })
+        assertTrue(DefaultEquipment.forPlace(TrainingPlace.Other).none { it.isCardio })
     }
 
     @Test

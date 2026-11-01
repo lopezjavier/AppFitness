@@ -16,6 +16,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import io.github.lopezjavier.appfitness.composeapp.resources.Res
+import io.github.lopezjavier.appfitness.composeapp.resources.my_training_cardio_helper
+import io.github.lopezjavier.appfitness.composeapp.resources.my_training_cardio_label
 import io.github.lopezjavier.appfitness.composeapp.resources.my_training_equipment_label
 import io.github.lopezjavier.appfitness.composeapp.resources.my_training_intention_fat_loss
 import io.github.lopezjavier.appfitness.composeapp.resources.my_training_intention_help_cd
@@ -104,15 +106,20 @@ internal fun MyTrainingSection(form: PreferencesForm, onEvent: (PreferencesEvent
                 horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
                 verticalArrangement = Arrangement.spacedBy(Spacing.sm),
             ) {
-                Equipment.entries.forEach { equipment ->
-                    AppToggleChip(
-                        label = stringResource(equipment.label),
-                        checked = equipment in form.equipment,
-                        onCheckedChange = { onEvent(PreferencesEvent.SetEquipment(equipment, it)) },
-                        modifier = Modifier.testTag("preferences_equipment_${equipment.tagName()}"),
-                    )
+                Equipment.lifting.forEach { equipment ->
+                    EquipmentChip(equipment, form.equipment, onEvent)
                 }
             }
+            Label(stringResource(Res.string.my_training_cardio_label))
+            FlowRow(
+                horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+                verticalArrangement = Arrangement.spacedBy(Spacing.sm),
+            ) {
+                Equipment.cardio.forEach { equipment ->
+                    EquipmentChip(equipment, form.equipment, onEvent)
+                }
+            }
+            Helper(stringResource(Res.string.my_training_cardio_helper))
             DaysRow(form.daysPerWeek, unset) { onEvent(PreferencesEvent.SetDaysPerWeek(it)) }
             SessionRow(form.sessionMinutes, unset) { onEvent(PreferencesEvent.SetSessionMinutes(it)) }
         }
@@ -151,6 +158,15 @@ private fun IntentionRow(intention: TrainingIntention?, unset: String, onClick: 
 @Composable
 private fun Label(text: String) =
     Text(text = text, style = AppTheme.typography.bodyMedium, color = AppTheme.colors.textSecondary)
+
+@Composable
+private fun EquipmentChip(equipment: Equipment, selected: Set<Equipment>, onEvent: (PreferencesEvent) -> Unit) =
+    AppToggleChip(
+        label = stringResource(equipment.label),
+        checked = equipment in selected,
+        onCheckedChange = { onEvent(PreferencesEvent.SetEquipment(equipment, it)) },
+        modifier = Modifier.testTag("preferences_equipment_${equipment.tagName()}"),
+    )
 
 @Composable
 private fun Helper(text: String) =

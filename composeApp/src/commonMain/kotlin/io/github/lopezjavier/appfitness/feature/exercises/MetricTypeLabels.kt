@@ -73,12 +73,23 @@ internal val ExerciseMetricType.description: StringResource
 internal val Equipment.weightHint: StringResource
     get() = when (this) {
         Equipment.Barbell -> Res.string.weight_hint_barbell
+
         Equipment.Dumbbell -> Res.string.weight_hint_dumbbell
+
         Equipment.Machine -> Res.string.weight_hint_machine
+
+        Equipment.CardioBike, Equipment.Treadmill, Equipment.Elliptical, Equipment.Rower,
+        Equipment.CardioOther,
+        -> Res.string.weight_hint_machine
+
         Equipment.Cable -> Res.string.weight_hint_cable
+
         Equipment.Bodyweight -> Res.string.weight_hint_bodyweight
+
         Equipment.Kettlebell -> Res.string.weight_hint_kettlebell
+
         Equipment.Band, Equipment.BandLong -> Res.string.weight_hint_band
+
         Equipment.Other -> Res.string.weight_hint_other
     }
 

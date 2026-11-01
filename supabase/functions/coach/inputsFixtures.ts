@@ -33,6 +33,7 @@ const BLOCK_KEYS: [string, string][] = [
     ["intention", "my_training"],
     ["place", "my_training"],
     ["equipment", "my_training"],
+    ["cardio", "my_training"],
     ["days_per_week", "my_training"],
     ["session_minutes", "my_training"],
     ["experience", "coach_estimate"],

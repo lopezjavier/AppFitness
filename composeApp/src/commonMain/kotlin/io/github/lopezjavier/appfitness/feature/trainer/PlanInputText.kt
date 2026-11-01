@@ -27,8 +27,10 @@ import io.github.lopezjavier.appfitness.composeapp.resources.my_training_place_o
 import io.github.lopezjavier.appfitness.composeapp.resources.onboarding_sex_female
 import io.github.lopezjavier.appfitness.composeapp.resources.onboarding_sex_male
 import io.github.lopezjavier.appfitness.composeapp.resources.plan_input_age
+import io.github.lopezjavier.appfitness.composeapp.resources.plan_input_cardio_none
 import io.github.lopezjavier.appfitness.composeapp.resources.plan_input_height
 import io.github.lopezjavier.appfitness.composeapp.resources.plan_input_label_age
+import io.github.lopezjavier.appfitness.composeapp.resources.plan_input_label_cardio
 import io.github.lopezjavier.appfitness.composeapp.resources.plan_input_label_days
 import io.github.lopezjavier.appfitness.composeapp.resources.plan_input_label_diary
 import io.github.lopezjavier.appfitness.composeapp.resources.plan_input_label_equipment
@@ -86,6 +88,7 @@ internal fun PlanInputKey.labelResource(): StringResource = when (this) {
     PlanInputKey.Diary -> Res.string.plan_input_label_diary
     PlanInputKey.Place -> Res.string.plan_input_label_place
     PlanInputKey.Equipment -> Res.string.plan_input_label_equipment
+    PlanInputKey.Cardio -> Res.string.plan_input_label_cardio
     PlanInputKey.DaysPerWeek -> Res.string.plan_input_label_days
     PlanInputKey.SessionMinutes -> Res.string.plan_input_label_session
     PlanInputKey.Experience -> Res.string.plan_input_label_experience
@@ -163,12 +166,21 @@ internal fun PlanInputRow.labelText(): String = stringResource(key.labelResource
 private fun PlanInputRow.rawValueText(): String? {
     val v = value
     return when {
+        // No cardio machine is a valid answer: the coach proposes walking (US-80).
+        isEmpty && key == PlanInputKey.Cardio -> stringResource(Res.string.plan_input_cardio_none)
+
         isEmpty -> null
+
         v is PlanInputValue.Text -> textValue(v.text)
+
         v is PlanInputValue.Number -> numberValue(v.number)
+
         v is PlanInputValue.Date -> AppDateFormat.title(v.date)
+
         v is PlanInputValue.Flag -> stringResource(if (v.flag) Res.string.plan_input_yes else Res.string.plan_input_no)
+
         v is PlanInputValue.Items -> v.items.map { known(it, ::equipmentResource) }.joinToString(", ")
+
         else -> null
     }
 }

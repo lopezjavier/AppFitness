@@ -82,6 +82,7 @@ internal data class PlanInputDto(
             "diary" to PlanInputKey.Diary,
             "place" to PlanInputKey.Place,
             "equipment" to PlanInputKey.Equipment,
+            "cardio" to PlanInputKey.Cardio,
             "days_per_week" to PlanInputKey.DaysPerWeek,
             "session_minutes" to PlanInputKey.SessionMinutes,
             "experience" to PlanInputKey.Experience,

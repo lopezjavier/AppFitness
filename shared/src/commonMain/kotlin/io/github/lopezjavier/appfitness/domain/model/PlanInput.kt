@@ -18,6 +18,7 @@ enum class PlanInputKey {
     Diary,
     Place,
     Equipment,
+    Cardio,
     DaysPerWeek,
     SessionMinutes,
     Experience,

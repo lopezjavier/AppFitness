@@ -6,10 +6,15 @@ import io.github.lopezjavier.appfitness.composeapp.resources.equipment_band_long
 import io.github.lopezjavier.appfitness.composeapp.resources.equipment_barbell
 import io.github.lopezjavier.appfitness.composeapp.resources.equipment_bodyweight
 import io.github.lopezjavier.appfitness.composeapp.resources.equipment_cable
+import io.github.lopezjavier.appfitness.composeapp.resources.equipment_cardio_bike
+import io.github.lopezjavier.appfitness.composeapp.resources.equipment_cardio_other
 import io.github.lopezjavier.appfitness.composeapp.resources.equipment_dumbbell
+import io.github.lopezjavier.appfitness.composeapp.resources.equipment_elliptical
 import io.github.lopezjavier.appfitness.composeapp.resources.equipment_kettlebell
 import io.github.lopezjavier.appfitness.composeapp.resources.equipment_machine
 import io.github.lopezjavier.appfitness.composeapp.resources.equipment_other
+import io.github.lopezjavier.appfitness.composeapp.resources.equipment_rower
+import io.github.lopezjavier.appfitness.composeapp.resources.equipment_treadmill
 import io.github.lopezjavier.appfitness.composeapp.resources.movement_pattern_cardio
 import io.github.lopezjavier.appfitness.composeapp.resources.movement_pattern_carry
 import io.github.lopezjavier.appfitness.composeapp.resources.movement_pattern_core
@@ -74,6 +79,11 @@ internal val Equipment.label: StringResource
             Equipment.Kettlebell -> Res.string.equipment_kettlebell
             Equipment.Band -> Res.string.equipment_band
             Equipment.BandLong -> Res.string.equipment_band_long
+            Equipment.CardioBike -> Res.string.equipment_cardio_bike
+            Equipment.Treadmill -> Res.string.equipment_treadmill
+            Equipment.Elliptical -> Res.string.equipment_elliptical
+            Equipment.Rower -> Res.string.equipment_rower
+            Equipment.CardioOther -> Res.string.equipment_cardio_other
             Equipment.Other -> Res.string.equipment_other
         }
 
