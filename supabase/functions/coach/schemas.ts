@@ -19,6 +19,12 @@ export type Nutrition = {
     weight_kg: number;
     expenditure_kcal: number;
     expenditure_source: string;
+    /** Capped 28-day intake the expenditure is anchored on (04 section 7.3); null on the formula path and in old plans. */
+    intake_anchor_kcal: number | null;
+    /** Whether the weight slope moved the expenditure away from the anchor (04 section 7.2). */
+    slope_used: boolean;
+    /** expenditure_kcal - intake_anchor_kcal after the plausibility clamp; 0 without a slope. */
+    slope_term_kcal: number;
     /** Effective rate in the direction of the intention (percent of body weight per week); 0 for no-change intentions. */
     rate_pct_week: number;
     /** Expected weight change per week, signed: negative for a loss, positive for a gain. */

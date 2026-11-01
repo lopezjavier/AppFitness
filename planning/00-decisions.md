@@ -205,3 +205,13 @@ Phase 2 ADRs continue the numbering (next: **ADR-84**) and are written **in full
   - The 30 rows, their source media keys and the alternatives come from the two outside-repo CSVs. Names, descriptions, instructions, tips and media stay in the gitignored exercise bundle; no RepDB text or images enter the repo or the database (ADR-38/39). The database migration stores only keys and catalogue metadata.
 - **Consequences:** T-179 (migration of the enum, catalogue rows and `exercise_alternatives`; generated library entries and copied media outside the repo; `Equipment.BandLong`, defaults, labels and hints; Similar tab; trainer picker and `save_coach_block` edit payload; coach equipment order; `03`, `04`, `05`, `07`; pgTAP, Kotlin and Robolectric tests). The old APK may fail to read `band_long` until the new APK is installed after T-179; the database-first deployment is accepted.
 - **Approval:** 2026-11-01, user (chat).
+
+### ADR-84 — Expenditure anchors on capped intake; slope only with enough data; target checked against the rate (E13, T-180; Checkpoint E13-B1 feedback)
+- **Context:** A reported plan recommended 2 972 kcal (+710 over a mean intake of 2 262). A slope of −0.263 kg/week from 5 weigh-ins (`low_confidence`) added +289 kcal to the adaptive expenditure, then the +440 surplus of the rate stacked on it.
+- **Decision:**
+  - A reliable diary (20 of 28 days) makes the expenditure `adaptive` with no minimum of weight weeks; the base is `anchor_kcal`, the 28-day mean with partial days (under 40 % of the median) excluded and big days capped at 150 % of the median.
+  - The weight-slope term is used only with 4 weekly averages, 8 weigh-in days and a reliable diary; the plan also clamps it to ±0.5 % × weight × 11 kcal. Otherwise weight is assumed stable (expenditure = anchor).
+  - `computeNutrition` and `assertNutritionInvariants` check `target − anchor` against the intention's rate range (`04` §8.7). No fixed kcal cap.
+  - Calorie changes (`evaluate_coach_calorie_change`, at most ±10 % of the accepted target) are not migrated; revisit only if reported.
+- **Consequences:** migration `coach_realistic_expenditure`, `coach` function (`nutritionRules.ts`, `validators.ts`, `planNutrition.ts`), `04` §7-§8, `07` §2 and §4. Users with a reliable diary and fewer than 3 weeks of weigh-ins move from `formula` to `adaptive` (their confirmed expenditure may be re-asked once) and are no longer blocked by missing age or height (`04` §7.9). A user who has been dieting or bulking without weigh-ins gets a maintenance equal to their intake (assumption: stable weight). T-168's evaluation set must include this shape.
+- **Approval:** user, 2026-11-01 (scope and checklist agreed in the chat; numbers are proposed defaults).

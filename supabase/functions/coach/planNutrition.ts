@@ -128,6 +128,8 @@ async function prepareAsync(
             expenditureSource: typeof expenditure.source === "string"
                 ? expenditure.source
                 : "formula",
+            intakeAnchorKcal: num(rec(estimates.intake).anchor_kcal),
+            slopeUsed: expenditure.slope_used === true,
             experience,
             requiresConfirmation: unconfirmed.length > 0,
             unconfirmed,

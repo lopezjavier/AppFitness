@@ -213,6 +213,7 @@ private fun PreviewContent(
                     onOpenExercise = onOpenExercise,
                     onOpenReason = { onEvent(BlockPreviewEvent.OpenReason(it)) },
                     isChanged = state::isChanged,
+                    canSwap = state::canSwap,
                     onReplace = { session, position -> onEvent(BlockPreviewEvent.OpenReplace(session, position)) },
                 )
             }

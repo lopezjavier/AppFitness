@@ -45,7 +45,8 @@ sealed interface BlockPreviewUiState {
      * reason sheet is open (see [blockExerciseKey]) and [saving] is true while "Guardar bloque" is in flight.
      * [exerciseNames] maps exercise ids to display names; an id missing from it is shown as a generic exercise.
      * [replacements] are the pending swaps by [replaceSlotKey]; [weeks] and [sessions] already show them (same sets,
-     * reps, rest and reason). [replaceSlot] is the slot whose picker is open, with its [alternatives].
+     * reps, rest and reason). [replaceSlot] is the slot whose picker is open, with its [alternatives]. [swappable]
+     * holds the slots (see [replaceSlotKey]) that have at least one usable alternative; null while unknown.
      */
     data class Preview(
         val block: CoachBlock,
@@ -56,7 +57,15 @@ sealed interface BlockPreviewUiState {
         val replacements: Map<String, Replacement> = emptyMap(),
         val replaceSlot: String? = null,
         val alternatives: AlternativesState = AlternativesState.Loading,
+        val swappable: Set<String>? = null,
     ) : BlockPreviewUiState {
+        /**
+         * Whether the swap button is drawn for the slot: hidden only when the alternatives are known and none fits.
+         * While they load ([swappable] null) or when the read failed, the button stays so the sheet can retry.
+         */
+        fun canSwap(sessionIndex: Int, position: Int): Boolean =
+            swappable?.contains(replaceSlotKey(sessionIndex, position)) ?: true
+
         val weeks: List<BlockWeek>
             get() = block.weeks().map { week -> week.copy(sessions = week.sessions.map { it.withReplacements() }) }
 

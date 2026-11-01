@@ -101,6 +101,7 @@ class BlockPreviewReplaceTest {
     @Test
     fun theSheet_offersOnlyTheAlternativesOfThatExercise_withPercentage() {
         show()
+        repository.alternativesCalls.clear()
 
         tap("block_preview_replace_1_0_0")
 
@@ -176,9 +177,26 @@ class BlockPreviewReplaceTest {
     }
 
     @Test
-    fun withoutAlternatives_theSheetShowsTheEmptyState() {
-        repository.alternativesById = emptyMap()
+    fun withoutAlternatives_noSwapButtonIsShown_whileAnExerciseWithAlternativesKeepsIt() {
         show()
+
+        rule.onNodeWithTag("block_preview_replace_1_0_0").assertExists()
+        rule.onNodeWithTag("block_preview_replace_1_0_1").assertDoesNotExist()
+        rule.onNodeWithTag("block_preview_reason_1_0_1").assertExists()
+    }
+
+    @Test
+    fun aSwappedSlot_keepsItsButton_toGoBack() {
+        show()
+        swapFirstExercise()
+
+        rule.onNodeWithTag("block_preview_replace_1_0_0").assertExists()
+    }
+
+    @Test
+    fun alternativesThatDisappearLater_theSheetShowsTheEmptyState() {
+        show()
+        repository.alternativesById = emptyMap()
 
         tap("block_preview_replace_1_0_0")
 

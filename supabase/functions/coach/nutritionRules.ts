@@ -28,6 +28,71 @@ export const GAIN_RATE_RANGE = [0.25, 0.5] as const;
 /** The rounding of the daily delta (up to 10 kcal) can push the effective rate this far above a range maximum. */
 export const RATE_TOLERANCE_PCT = 0.05;
 
+/** Rounding of the daily delta up to 10 kcal can push a target this far past a range edge. */
+export const ROUNDING_KCAL = 10;
+
+/** kcal per day for a weekly rate in percent of body weight: rate% * weight / 100 * 7700 / 7 = rate * weight * 11. */
+export const rateKcal = (ratePct: number, weightKg: number) =>
+    ratePct * weightKg * (KCAL_PER_KG / DAYS / 100);
+
+/**
+ * Allowed `target - intake anchor` in kcal for an intention (planning/04 section 8.7). `shift` is the slope term
+ * (expenditure - anchor, 0 without a slope). Single source for computeNutrition and assertNutritionInvariants.
+ */
+export function intakeRange(
+    intention: Intention,
+    weightKg: number,
+    shiftKcal: number,
+): { min: number; max: number } {
+    const d = (r: number) => rateKcal(r, weightKg);
+    switch (intention) {
+        case "muscle":
+            return {
+                min: shiftKcal + d(GAIN_RATE_RANGE[0]),
+                max: shiftKcal + d(GAIN_RATE_RANGE[1]) + ROUNDING_KCAL,
+            };
+        case "fat_loss":
+            return {
+                min: shiftKcal - d(LOSS_RATE_RANGE[1]) - ROUNDING_KCAL,
+                max: shiftKcal - d(LOSS_RATE_RANGE[0]),
+            };
+        default:
+            return {
+                min: shiftKcal - d(GAIN_RATE_RANGE[0]),
+                max: shiftKcal + d(GAIN_RATE_RANGE[0]),
+            };
+    }
+}
+
+/**
+ * The rule broken by a target, or null. A limiter (floor, goal_range) may make a plan slower than the range but never
+ * faster, so the slow side is skipped when `limitedBy` is set.
+ */
+export function intakeRangeViolation(
+    intention: Intention,
+    weightKg: number,
+    shiftKcal: number,
+    deltaOverAnchor: number,
+    limitedBy: Nutrition["limited_by"],
+): "target_above_intake_range" | "target_below_intake_range" | null {
+    const { min, max } = intakeRange(intention, weightKg, shiftKcal);
+    const eps = 1e-9;
+    const limited = limitedBy !== null;
+    if (deltaOverAnchor > max + eps) {
+        // Above the range is the slow side of a loss; for the no-change intentions only the floor can lift a target.
+        const allowed = intention === "fat_loss"
+            ? limited
+            : intention !== "muscle" && limitedBy === "floor";
+        if (!allowed) return "target_above_intake_range";
+    }
+    if (deltaOverAnchor < min - eps) {
+        // Below the range is the slow side of a gain.
+        const allowed = intention === "muscle" && limited;
+        if (!allowed) return "target_below_intake_range";
+    }
+    return null;
+}
+
 export type CoachPlanErrorCode =
     | "coach_missing_data"
     | "coach_plan_infeasible";
@@ -45,6 +110,10 @@ export type NutritionInput = {
     weightKg: number | null;
     expenditureKcal: number | null;
     expenditureSource: string;
+    /** Capped 28-day intake (04 section 7.3); null on the formula path. Enables the target check and the clamp. */
+    intakeAnchorKcal?: number | null;
+    /** Whether the expenditure already includes the weight-slope term. */
+    slopeUsed?: boolean;
     experience: Experience;
     /** Overrides the loss rate (percent of body weight per week); ignored for the other intentions. */
     targetRatePct?: number;
@@ -82,13 +151,22 @@ function proteinPerKg(
 }
 
 export function computeNutrition(input: NutritionInput): Nutrition {
-    const { sex, weightKg: weight, expenditureKcal: expenditure } = input;
-    if (sex === null || weight === null || expenditure === null) {
+    const { sex, weightKg: weight, expenditureKcal: rawExpenditure } = input;
+    if (sex === null || weight === null || rawExpenditure === null) {
         throw new CoachPlanError("coach_missing_data");
     }
-    if (!(weight > 0) || !(expenditure > 0)) {
+    if (!(weight > 0) || !(rawExpenditure > 0)) {
         throw new CoachPlanError("coach_missing_data");
     }
+    // With an intake anchor the expenditure is the anchor plus the slope term, which cannot exceed one top-of-range
+    // rate (04 section 7.2). Without a slope the expenditure is the anchor itself.
+    const anchor = input.intakeAnchorKcal ?? null;
+    const slopeUsed = anchor !== null && (input.slopeUsed ?? false);
+    const maxShift = rateKcal(GAIN_RATE_RANGE[1], weight);
+    const shift = anchor === null || !slopeUsed ? 0 : Math.round(
+        Math.max(-maxShift, Math.min(maxShift, rawExpenditure - anchor)),
+    );
+    const expenditure = anchor === null ? rawExpenditure : anchor + shift;
     const floor = FLOOR[sex];
     const rate = targetRate(input);
     const loss = input.intention === "fat_loss";
@@ -109,6 +187,19 @@ export function computeNutrition(input: NutritionInput): Nutrition {
 
     // A loss needs a deficit: with an expenditure at or below the floor there is none to give.
     if (loss && target >= expenditure) {
+        throw new CoachPlanError("coach_plan_infeasible");
+    }
+
+    if (
+        anchor !== null &&
+        intakeRangeViolation(
+                input.intention,
+                weight,
+                shift,
+                target - anchor,
+                limitedBy,
+            ) !== null
+    ) {
         throw new CoachPlanError("coach_plan_infeasible");
     }
 
@@ -146,6 +237,9 @@ export function computeNutrition(input: NutritionInput): Nutrition {
         weight_kg: weight,
         expenditure_kcal: expenditure,
         expenditure_source: input.expenditureSource,
+        intake_anchor_kcal: anchor,
+        slope_used: slopeUsed,
+        slope_term_kcal: shift,
         rate_pct_week: round(ratePctWeek, 3),
         rate_kg_week: round(rateKgWeek, 3),
         target_rate_pct: rate,

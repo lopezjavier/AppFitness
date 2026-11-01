@@ -3,7 +3,10 @@ import {
     CoachPlanError,
     computeNutrition,
     DEFICIT_CAP,
+    GAIN_RATE_RANGE,
+    intakeRange,
     type NutritionInput,
+    rateKcal,
     SURPLUS_CAP,
 } from "./nutritionRules.ts";
 import { assertNutritionInvariants } from "./validators.ts";
@@ -220,4 +223,107 @@ Deno.test("the unconfirmed keys are carried into the plan", () => {
     const n = plan({ requiresConfirmation: true, unconfirmed: ["experience"] });
     assertEquals(n.requires_confirmation, true);
     assertEquals(n.unconfirmed, ["experience"]);
+});
+
+// --- T-180: expenditure anchored on the intake, target checked against the rate (04 sections 7.2, 8.7) ---
+
+const anchored = (o: Partial<NutritionInput> = {}) =>
+    plan({
+        intention: "muscle",
+        experience: "beginner",
+        expenditureKcal: 2262,
+        expenditureSource: "adaptive",
+        intakeAnchorKcal: 2262,
+        slopeUsed: false,
+        ...o,
+    });
+
+Deno.test("T-180 regression: intake 2262 without a usable slope gives a muscle target near 2700, not 2972", () => {
+    const n = anchored();
+    assertEquals(n.target_kcal, 2702);
+    assertEquals(n.intake_anchor_kcal, 2262);
+    assertEquals(n.slope_used, false);
+    assertEquals(n.slope_term_kcal, 0);
+    assert(n.target_kcal >= 2700 && n.target_kcal <= 2740);
+    assertNutritionInvariants(n);
+});
+
+Deno.test("a slope term inside the clamp moves the expenditure and the target with it", () => {
+    const n = anchored({ expenditureKcal: 2400, slopeUsed: true });
+    assertEquals(n.slope_term_kcal, 138);
+    assertEquals(n.expenditure_kcal, 2400);
+    assertEquals(n.target_kcal, 2840);
+    assertNutritionInvariants(n);
+});
+
+Deno.test("a slope term beyond one top-of-range rate (440 kcal at 80 kg) is clamped", () => {
+    const up = anchored({ expenditureKcal: 3000, slopeUsed: true });
+    assertEquals(up.slope_term_kcal, 440);
+    assertEquals(up.expenditure_kcal, 2702);
+    const down = anchored({ expenditureKcal: 1500, slopeUsed: true });
+    assertEquals(down.slope_term_kcal, -440);
+    assertEquals(down.expenditure_kcal, 1822);
+    assertNutritionInvariants(up);
+    assertNutritionInvariants(down);
+});
+
+Deno.test("with an anchor and no slope the expenditure is the anchor", () => {
+    const n = anchored({ expenditureKcal: 2500, slopeUsed: false });
+    assertEquals(n.expenditure_kcal, 2262);
+});
+
+Deno.test("without an anchor (formula) nothing is checked or clamped", () => {
+    const n = plan({ intakeAnchorKcal: null, slopeUsed: true });
+    assertEquals(n.intake_anchor_kcal, null);
+    assertEquals(n.slope_used, false);
+    assertEquals(n.slope_term_kcal, 0);
+    assertEquals(n.expenditure_kcal, 2600);
+});
+
+Deno.test("every intention lands inside its intake range", () => {
+    for (
+        const [intention, experience, rate] of [
+            ["muscle", "beginner", undefined],
+            ["muscle", "intermediate", undefined],
+            ["muscle", "advanced", undefined],
+            ["fat_loss", "intermediate", 0.5],
+            ["fat_loss", "intermediate", 1.0],
+            ["strength", "intermediate", undefined],
+            ["recomposition", "intermediate", undefined],
+            ["maintenance", "intermediate", undefined],
+        ] as const
+    ) {
+        const n = anchored({
+            intention,
+            experience,
+            targetRatePct: rate,
+            expenditureKcal: 2700,
+            intakeAnchorKcal: 2700,
+        });
+        const { min, max } = intakeRange(intention, 80, 0);
+        const delta = n.target_kcal - 2700;
+        assert(
+            delta >= min && delta <= max,
+            `${intention} ${experience} ${rate}: ${delta}`,
+        );
+        assertNutritionInvariants(n);
+    }
+});
+
+Deno.test("intakeRange: gain, loss and no-change ranges at 80 kg", () => {
+    assertEquals(rateKcal(0.5, 80), 440);
+    assertEquals(intakeRange("muscle", 80, 0), { min: 220, max: 450 });
+    assertEquals(intakeRange("fat_loss", 80, 0), { min: -890, max: -440 });
+    assertEquals(intakeRange("maintenance", 80, 100), { min: -120, max: 320 });
+    assertEquals(GAIN_RATE_RANGE[0], 0.25);
+});
+
+Deno.test("a loss with the floor is slower than the range and still allowed", () => {
+    const n = plan({
+        intakeAnchorKcal: 1600,
+        expenditureKcal: 1600,
+        slopeUsed: false,
+    });
+    assertEquals(n.limited_by, "floor");
+    assertEquals(n.target_kcal, 1500);
 });

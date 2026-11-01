@@ -29,7 +29,7 @@ Design base of the performance assistant (E13) and of the data it needs (E10-E12
 |---|---|---|
 | Basal expenditure | Mifflin-St Jeor with sex, age, height and weight (profile, `04` §1) | High (validated equation) |
 | Activity level | Starts from `profiles.activity_level` (ADR-78); the coach proposes a change from Health Connect steps (bands of Tudor-Locke et al. 2011), active calories when there are no steps, and the completed sessions per week (3 or more raise a measured level by one). Exact mapping in `04` §7.1. Sessions alone never change the profile level (it already includes training) | Low: shown as provisional |
-| Total expenditure | Initially BMR × activity factor (`04` §1.3); then adaptive expenditure from logged intake and weight change | Improves with months of data |
+| Total expenditure | BMR × activity factor (`04` §1.3) without a reliable diary; with one, the capped 28-day intake, plus a weight-change term only when the trend has 4 weekly averages and 8 weigh-in days, clamped to one top-of-range rate (`04` §7.2-§7.3; *design decision*, T-180) | Improves with months of data |
 | Weight trend | Slope of weekly averages, with its confidence interval (§5) | Depends on the number of weigh-ins |
 | Experience | Training history | Without history: beginner, lowest volume of §3 |
 
@@ -66,6 +66,7 @@ Design base of the performance assistant (E13) and of the data it needs (E10-E12
 - **Rate of loss:** 0.5-1 % of body weight per week [Helms, Aragon, Fitschen 2014]; default 0.5 %. (ACSM 2009 states 0.5-1 kg per week for the general population; the percentage suits lean trainees better.)
 - **Rate of gain:** 0.25-0.5 % of body weight per week [Iraki et al. 2019; slower for advanced lifters].
 - **Energy constant:** 7 700 kcal per kg is an approximation, used only without history; with history the adaptive estimate is used [Hall 2008; Hall et al. 2011].
+- **Target check (T-180, *design decision*):** the target must stay within the rate range of the intention measured from the user's capped intake (`04` §8.7), so a surplus or deficit is never stacked on top of an expenditure that already absorbed it.
 - **Adjustment inside a block:** proposed only when the plan's target rate is outside the confidence interval of the weight trend for two consecutive weeks; the proposal changes calories by at most 10 % (*design decision*) and needs acceptance.
 
 ## 5. Weight and measurements

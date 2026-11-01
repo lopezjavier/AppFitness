@@ -46,6 +46,26 @@ class CoachDtoTest {
     }
 
     @Test
+    fun realisticExpenditureKeys_areIgnored() {
+        val values = parse(
+            payload(
+                trend = TREND.replace("\"weeks\":6", "\"weeks\":6,\"weigh_in_days\":9"),
+                intake = INTAKE.replace(
+                    "\"reliable\":false",
+                    "\"reliable\":true,\"mean_kcal\":2262,\"anchor_kcal\":2250",
+                ),
+            ).replace(
+                "\"source\":\"adaptive\"",
+                "\"source\":\"adaptive\",\"slope_used\":false,\"anchor_kcal\":2250,\"slope_term_kcal\":0",
+            ),
+        )
+
+        assertEquals(2600.0, values.totalExpenditure.kcal)
+        assertEquals(12, values.intake.loggedDays)
+        assertEquals(6, values.weightTrend.weeks)
+    }
+
+    @Test
     fun nullNumerics_mapToNull() {
         val values = parse(
             payload(
