@@ -60,5 +60,11 @@ data class BlockExercise(
     val reason: String,
 )
 
+/**
+ * A pending replacement applied by "Guardar bloque": the exercise at [position] (1-based) of workout [sessionIndex]
+ * becomes [exerciseId] in every week.
+ */
+data class BlockEdit(val sessionIndex: Int, val position: Int, val exerciseId: String)
+
 /** What `save_coach_block` created in Entreno. */
 data class BlockSaved(val folderId: String, val routineIds: List<String>)

@@ -10,9 +10,9 @@ import kotlin.test.assertTrue
 
 class DefaultEquipmentTest {
     @Test
-    fun home_isDumbbellBandAndBodyweight() {
+    fun home_isDumbbellBothBandsAndBodyweight() {
         assertEquals(
-            setOf(Equipment.Dumbbell, Equipment.Band, Equipment.Bodyweight),
+            setOf(Equipment.Dumbbell, Equipment.Band, Equipment.BandLong, Equipment.Bodyweight),
             DefaultEquipment.forPlace(TrainingPlace.Home),
         )
     }
@@ -21,8 +21,14 @@ class DefaultEquipmentTest {
     fun gym_isEveryEquipment() {
         val gym = DefaultEquipment.forPlace(TrainingPlace.Gym)
 
-        assertEquals(8, gym.size)
+        assertEquals(9, gym.size)
         assertEquals(Equipment.entries.toSet(), gym)
+        assertTrue(Equipment.BandLong in gym)
+    }
+
+    @Test
+    fun other_doesNotIncludeLongBand() {
+        assertFalse(Equipment.BandLong in DefaultEquipment.forPlace(TrainingPlace.Other))
     }
 
     @Test

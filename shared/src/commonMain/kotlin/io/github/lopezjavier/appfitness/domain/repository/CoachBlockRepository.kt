@@ -1,5 +1,6 @@
 package io.github.lopezjavier.appfitness.domain.repository
 
+import io.github.lopezjavier.appfitness.domain.model.BlockEdit
 import io.github.lopezjavier.appfitness.domain.model.BlockSaved
 import io.github.lopezjavier.appfitness.domain.model.CoachBlock
 import kotlinx.datetime.LocalDate
@@ -15,6 +16,10 @@ interface CoachBlockRepository {
     /** The stored block of [planId], or null when the coach has not proposed one. Used to reload and reopen. */
     suspend fun currentBlock(planId: String): Result<CoachBlock?>
 
-    /** Turns the stored block into one folder with its routines in Entreno (idempotent). */
-    suspend fun saveBlock(planId: String): Result<BlockSaved>
+    /**
+     * Turns the stored block into one folder with its routines in Entreno (idempotent: a second call ignores
+     * [edits]). An [edits] entry that is not an alternative of its exercise fails with
+     * [io.github.lopezjavier.appfitness.domain.model.CoachFailure.InvalidReplacement] and saves nothing.
+     */
+    suspend fun saveBlock(planId: String, edits: List<BlockEdit> = emptyList()): Result<BlockSaved>
 }

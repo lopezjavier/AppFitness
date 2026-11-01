@@ -5,6 +5,7 @@ import io.github.lopezjavier.appfitness.domain.AppException
 import io.github.lopezjavier.appfitness.domain.model.CatalogExercise
 import io.github.lopezjavier.appfitness.domain.model.Equipment
 import io.github.lopezjavier.appfitness.domain.model.Exercise
+import io.github.lopezjavier.appfitness.domain.model.ExerciseAlternative
 import io.github.lopezjavier.appfitness.domain.model.ExerciseInfo
 import io.github.lopezjavier.appfitness.domain.model.ExerciseMetricType
 import io.github.lopezjavier.appfitness.domain.model.MovementPattern
@@ -47,6 +48,9 @@ class FakeExerciseRepository(var rows: List<Exercise> = emptyList(), var failure
     override suspend fun getById(id: String): Result<Exercise> =
         rows.firstOrNull { it.id == id }?.let { Result.success(it) }
             ?: Result.failure(AppException(AppError.NotFound))
+
+    override suspend fun alternatives(exerciseId: String): Result<List<ExerciseAlternative>> =
+        Result.success(emptyList())
 
     override suspend fun createCustom(
         name: String,

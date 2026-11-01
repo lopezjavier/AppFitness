@@ -7,6 +7,8 @@ import io.github.jan.supabase.postgrest.from
 import io.github.jan.supabase.postgrest.query.Columns
 import io.github.jan.supabase.postgrest.rpc
 import io.github.lopezjavier.appfitness.data.remote.DeleteCustomExerciseParams
+import io.github.lopezjavier.appfitness.data.remote.ExerciseAlternativeDto
+import io.github.lopezjavier.appfitness.data.remote.ExerciseAlternativesParams
 import io.github.lopezjavier.appfitness.data.remote.ExerciseDto
 import io.github.lopezjavier.appfitness.data.remote.ExerciseInsertDto
 import io.github.lopezjavier.appfitness.data.remote.UpdateCustomExerciseParams
@@ -14,6 +16,7 @@ import io.github.lopezjavier.appfitness.domain.AppError
 import io.github.lopezjavier.appfitness.domain.AppException
 import io.github.lopezjavier.appfitness.domain.model.Equipment
 import io.github.lopezjavier.appfitness.domain.model.Exercise
+import io.github.lopezjavier.appfitness.domain.model.ExerciseAlternative
 import io.github.lopezjavier.appfitness.domain.model.ExerciseMetricType
 import io.github.lopezjavier.appfitness.domain.model.MovementPattern
 import io.github.lopezjavier.appfitness.domain.model.MuscleGroup
@@ -49,6 +52,18 @@ class SupabaseExerciseRepository(private val auth: Auth, private val postgrest: 
                 .firstOrNull()
                 ?.toDomain()
     }.mapCatching { it ?: throw AppException(AppError.NotFound) }
+
+    override suspend fun alternatives(exerciseId: String): Result<List<ExerciseAlternative>> = signedIn {
+        val rows = postgrest.rpc("exercise_alternatives", ExerciseAlternativesParams(exerciseId))
+            .decodeList<ExerciseAlternativeDto>()
+        if (rows.isEmpty()) return@signedIn emptyList()
+        val catalogue = getAll().getOrThrow().associateBy { it.id }
+        rows.mapNotNull { row -> catalogue[row.exerciseId]?.let { ExerciseAlternative(it, row.similarity) } }
+            .sortedWith(
+                compareByDescending<ExerciseAlternative> { it.similarity }
+                    .thenBy { it.exercise.name ?: it.exercise.key.orEmpty() },
+            )
+    }
 
     override suspend fun createCustom(
         name: String,

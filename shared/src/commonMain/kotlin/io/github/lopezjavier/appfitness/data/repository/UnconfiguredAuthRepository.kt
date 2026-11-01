@@ -9,6 +9,7 @@ import io.github.lopezjavier.appfitness.domain.model.CalculatorSettings
 import io.github.lopezjavier.appfitness.domain.model.DeleteAccountOutcome
 import io.github.lopezjavier.appfitness.domain.model.Equipment
 import io.github.lopezjavier.appfitness.domain.model.Exercise
+import io.github.lopezjavier.appfitness.domain.model.ExerciseAlternative
 import io.github.lopezjavier.appfitness.domain.model.ExerciseMetricType
 import io.github.lopezjavier.appfitness.domain.model.FoodPreferences
 import io.github.lopezjavier.appfitness.domain.model.LatestComposition
@@ -127,6 +128,9 @@ class UnconfiguredExerciseRepository : ExerciseRepository {
     override suspend fun getAll(): Result<List<Exercise>> = Result.failure(AppException(AppError.Unknown))
 
     override suspend fun getById(id: String): Result<Exercise> = Result.failure(AppException(AppError.Unknown))
+
+    override suspend fun alternatives(exerciseId: String): Result<List<ExerciseAlternative>> =
+        Result.failure(AppException(AppError.Unknown))
 
     override suspend fun createCustom(
         name: String,

@@ -67,9 +67,15 @@ enum class Equipment {
     @SerialName("band")
     Band,
 
+    @SerialName("band_long")
+    BandLong,
+
     @SerialName("other")
     Other,
 }
+
+/** A catalogue [exercise] that can stand in for another one, with its [similarity] in (0, 1] (ADR-83). */
+data class ExerciseAlternative(val exercise: Exercise, val similarity: Double)
 
 /** DB values of `public.exercise_metric_type`; each one maps to a [SetEntry] variant (see `SetEntryMapping.kt`). */
 @Serializable

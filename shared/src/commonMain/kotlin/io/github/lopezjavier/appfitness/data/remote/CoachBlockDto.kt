@@ -98,7 +98,17 @@ internal data class BlockRequestBody(val kind: String, val input: BlockRequestIn
 internal data class BlockRequestInput(val today: LocalDate, @SerialName("plan_id") val planId: String)
 
 @Serializable
-internal data class SaveBlockParams(@SerialName("p_plan_id") val planId: String)
+internal data class SaveBlockParams(
+    @SerialName("p_plan_id") val planId: String,
+    @SerialName("p_edits") val edits: List<BlockEditDto>,
+)
+
+@Serializable
+internal data class BlockEditDto(
+    @SerialName("session_index") val sessionIndex: Int,
+    val position: Int,
+    @SerialName("exercise_id") val exerciseId: String,
+)
 
 @Serializable
 internal data class SaveBlockResultDto(

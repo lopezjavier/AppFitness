@@ -26,6 +26,9 @@ sealed interface CoachFailure {
     /** The plan or recommendation is no longer in the state the action needs (SQLSTATE 55000). */
     data object Conflict : CoachFailure
 
+    /** A block edit named a replacement that is not an alternative of its exercise (SQLSTATE 22023, ADR-83). */
+    data object InvalidReplacement : CoachFailure
+
     /** Any other or unreadable error. */
     data object Other : CoachFailure
 
