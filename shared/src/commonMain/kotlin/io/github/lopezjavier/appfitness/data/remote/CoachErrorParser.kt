@@ -17,6 +17,8 @@ object CoachErrorParser {
     private val MISSING_FIELDS = mapOf(
         "intention" to MissingField.Intention,
         "sex" to MissingField.Sex,
+        "age" to MissingField.Age,
+        "height" to MissingField.Height,
         "weight" to MissingField.Weight,
         "expenditure" to MissingField.Expenditure,
         "place" to MissingField.Place,

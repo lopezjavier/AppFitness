@@ -16,6 +16,8 @@ import io.github.lopezjavier.appfitness.domain.model.DerivedTotalExpenditure
 import io.github.lopezjavier.appfitness.domain.model.DerivedWeightTrend
 import io.github.lopezjavier.appfitness.domain.model.GoalStrategy
 import io.github.lopezjavier.appfitness.domain.model.NutritionGoals
+import io.github.lopezjavier.appfitness.domain.model.PlanInputKind
+import io.github.lopezjavier.appfitness.domain.model.PlanInputs
 import io.github.lopezjavier.appfitness.domain.model.PlanStatus
 import io.github.lopezjavier.appfitness.domain.model.WeekPhase
 import io.github.lopezjavier.appfitness.domain.repository.CoachRepository
@@ -88,6 +90,9 @@ internal class FakeCoachRepository(var loaded: Result<CoachDerivedValues> = Resu
         gate?.await()
         return confirmResult(activityLevel)
     }
+
+    override suspend fun planInputs(kind: PlanInputKind, today: LocalDate): Result<PlanInputs> =
+        Result.failure(UnsupportedOperationException("planInputs is not used here"))
 }
 
 @OptIn(ExperimentalCoroutinesApi::class)

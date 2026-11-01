@@ -12,6 +12,7 @@ import {
     type Candidate,
     type CandidateSummary,
 } from "./outcomes.ts";
+import { assertInputsComplete } from "./inputs.ts";
 import { MODEL_IDS } from "./prices.ts";
 import {
     CONSTANTS_VERSION,
@@ -86,6 +87,8 @@ async function prepareAsync(
 ): Promise<Prepared> {
     const today = parseInput(input);
     const summary = await ctx.loadContext(today);
+    // The shared list decides what blocks (same source as the "Antes de empezar" screen).
+    assertInputsComplete(await ctx.loadInputs("plan", today));
     const s = rec(summary);
     const profile = rec(s.profile);
     const estimates = rec(s.estimates);
@@ -97,6 +100,7 @@ async function prepareAsync(
         ? profile.sex
         : null;
     const positive = (v: number | null) => v !== null && v > 0;
+    // Backstop only: the list above already refused any missing root cause.
     const missing: string[] = [];
     if (!intention) missing.push("intention");
     if (sex === null) missing.push("sex");

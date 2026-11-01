@@ -4,6 +4,8 @@ import io.github.lopezjavier.appfitness.domain.AppError
 import io.github.lopezjavier.appfitness.domain.AppException
 import io.github.lopezjavier.appfitness.domain.model.ActivityLevel
 import io.github.lopezjavier.appfitness.domain.model.CoachDerivedValues
+import io.github.lopezjavier.appfitness.domain.model.PlanInputKind
+import io.github.lopezjavier.appfitness.domain.model.PlanInputs
 import io.github.lopezjavier.appfitness.domain.repository.CoachRepository
 import kotlinx.datetime.LocalDate
 
@@ -13,5 +15,8 @@ class UnconfiguredCoachRepository : CoachRepository {
         Result.failure(AppException(AppError.Unknown))
 
     override suspend fun confirm(today: LocalDate, activityLevel: ActivityLevel?): Result<CoachDerivedValues> =
+        Result.failure(AppException(AppError.Unknown))
+
+    override suspend fun planInputs(kind: PlanInputKind, today: LocalDate): Result<PlanInputs> =
         Result.failure(AppException(AppError.Unknown))
 }

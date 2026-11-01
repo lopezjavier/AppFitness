@@ -53,6 +53,12 @@ export type CoachDeps = {
     client: AnthropicClient | null;
     /** `coach_summary` of the caller (with the derived estimates), read with their own token. */
     loadContext: (token: string, today: string) => Promise<unknown>;
+    /** `coach_plan_inputs` of the caller, read with their own token. */
+    loadInputs: (
+        token: string,
+        kind: "plan" | "block",
+        today: string,
+    ) => Promise<unknown>;
     /** Stores a proposed plan through `propose_coach_plan`, with the caller's own token. */
     savePlan: (token: string, row: PlanRow) => Promise<SavedPlan>;
     /** Catalogue and own custom exercises, read with the caller's own token. */
@@ -183,6 +189,8 @@ export function createCoachHandler(
                 try {
                     prepared = await spec.prepare(body.input, {
                         loadContext: (today) => deps.loadContext(token, today),
+                        loadInputs: (k, today) =>
+                            deps.loadInputs(token, k, today),
                         savePlan: (row) => deps.savePlan(token, row),
                         loadCatalog: () => deps.loadCatalog(token),
                         loadPlan: (id) => deps.loadPlan(token, id),

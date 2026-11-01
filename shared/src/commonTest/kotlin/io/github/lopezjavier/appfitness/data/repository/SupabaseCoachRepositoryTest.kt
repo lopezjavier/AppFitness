@@ -8,6 +8,9 @@ import io.github.lopezjavier.appfitness.data.remote.SupabaseClientFactory
 import io.github.lopezjavier.appfitness.domain.AppError
 import io.github.lopezjavier.appfitness.domain.appErrorOrNull
 import io.github.lopezjavier.appfitness.domain.model.ActivityLevel
+import io.github.lopezjavier.appfitness.domain.model.CurrentPlan
+import io.github.lopezjavier.appfitness.domain.model.PlanInputKey
+import io.github.lopezjavier.appfitness.domain.model.PlanInputKind
 import io.github.lopezjavier.appfitness.domain.model.TestLoginCredentials
 import io.ktor.client.engine.mock.MockEngine
 import io.ktor.client.engine.mock.respond
@@ -32,10 +35,15 @@ private const val DERIVED =
         """"missing":["steps"]},"basal_kcal":{"value":1700,"missing":[]},"total_expenditure":{"value":2400},""" +
         """"weight_trend":{},"intake":{"logged_days":3,"window_days":28,"reliable":false},"experience":{}}"""
 
+private const val INPUTS =
+    """{"kind":"block","as_of":"2026-10-29","current_plan":"accepted","inputs":[{"key":"place","value":null,""" +
+        """"source":"my_training","status":"missing","blocking":true,"fix_target":"my_training"}]}"""
+
 class SupabaseCoachRepositoryTest {
     private val requests = mutableListOf<HttpRequestData>()
     private var status = HttpStatusCode.OK
     private var offline = false
+    private var body = DERIVED
     private val today = LocalDate(2026, 10, 29)
 
     private suspend fun repo(signIn: Boolean = true): SupabaseCoachRepository {
@@ -46,7 +54,7 @@ class SupabaseCoachRepositoryTest {
                 when {
                     request.url.encodedPath.contains("/auth/") -> respond(SESSION, HttpStatusCode.OK, headers)
                     offline -> throw IOException("offline")
-                    else -> respond(DERIVED, status, headers)
+                    else -> respond(body, status, headers)
                 }
             }
         val client = SupabaseClientFactory.create(
@@ -85,6 +93,42 @@ class SupabaseCoachRepositoryTest {
         repo().confirm(today, ActivityLevel.VeryHigh).getOrThrow()
 
         assertEquals("""{"p_today":"2026-10-29","p_activity_level":"very_high"}""", payload())
+    }
+
+    @Test
+    fun planInputs_callsTheRpcWithKindAndTodayAndMapsTheList() = runTest {
+        body = INPUTS
+        val result = repo().planInputs(PlanInputKind.Block, today).getOrThrow()
+
+        assertTrue(rest().single().url.encodedPath.endsWith("/rest/v1/rpc/coach_plan_inputs"))
+        assertEquals("""{"p_kind":"block","p_today":"2026-10-29"}""", payload())
+        assertEquals(PlanInputKind.Block, result.kind)
+        assertEquals(CurrentPlan.Accepted, result.currentPlan)
+        assertEquals(PlanInputKey.Place, result.inputs.single().key)
+        assertTrue(result.hasBlocking)
+    }
+
+    @Test
+    fun planInputs_sendsPlanKind() = runTest {
+        body = INPUTS
+        repo().planInputs(PlanInputKind.Plan, today).getOrThrow()
+
+        assertEquals("""{"p_kind":"plan","p_today":"2026-10-29"}""", payload())
+    }
+
+    @Test
+    fun planInputs_httpErrorOfflineAndSignedOut_fail() = runTest {
+        body = INPUTS
+        val repository = repo()
+        status = HttpStatusCode.BadRequest
+        assertTrue(repository.planInputs(PlanInputKind.Plan, today).isFailure)
+        status = HttpStatusCode.OK
+        offline = true
+        assertEquals(AppError.Network, repository.planInputs(PlanInputKind.Plan, today).appErrorOrNull())
+        assertEquals(
+            AppError.Unauthorized,
+            repo(signIn = false).planInputs(PlanInputKind.Plan, today).appErrorOrNull(),
+        )
     }
 
     @Test

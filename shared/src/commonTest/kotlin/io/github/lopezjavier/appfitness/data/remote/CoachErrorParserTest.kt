@@ -62,6 +62,16 @@ class CoachErrorParserTest {
     }
 
     @Test
+    fun missingData_readsAgeAndHeight() {
+        val body = """{"error":{"code":"coach_missing_data","missing":["age","height"]}}"""
+
+        assertEquals(
+            CoachFailure.Missing(setOf(MissingField.Age, MissingField.Height)),
+            CoachErrorParser.parse(body),
+        )
+    }
+
+    @Test
     fun missingData_ignoresUnknownNames() {
         val body = """{"error":{"code":"coach_missing_data","missing":["intention","shoe_size",7]}}"""
 

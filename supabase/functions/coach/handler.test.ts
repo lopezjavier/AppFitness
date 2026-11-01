@@ -54,6 +54,7 @@ function setup(
         },
         client,
         loadContext: () => Promise.reject(new Error("unexpected loadContext")),
+        loadInputs: () => Promise.reject(new Error("unexpected loadInputs")),
         savePlan: () => Promise.reject(new Error("unexpected savePlan")),
         loadCatalog: () => Promise.reject(new Error("unexpected loadCatalog")),
         loadPlan: () => Promise.reject(new Error("unexpected loadPlan")),

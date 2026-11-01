@@ -7,6 +7,7 @@ import {
 import { fullCatalog } from "./blockFixtures.ts";
 import { type BlockRow, CoachInputError, type PlanState } from "./context.ts";
 import { type CoachDeps, createCoachHandler } from "./handler.ts";
+import { blockInputs, MISSING } from "./inputsFixtures.ts";
 import { makePrepare, parseInput, SESSIONS_PER_CALL } from "./planBlock.ts";
 import type { CatalogExercise } from "./schemas.ts";
 
@@ -69,6 +70,7 @@ function setup(o: {
     timeoutMs?: number;
     slow?: boolean;
     summary?: unknown;
+    inputs?: unknown;
 } = {}) {
     const records: Parameters<CoachDeps["recordUsage"]>[0][] = [];
     const attached: BlockRow[] = [];
@@ -99,6 +101,7 @@ function setup(o: {
             return Promise.resolve();
         },
         client,
+        loadInputs: () => Promise.resolve(o.inputs ?? blockInputs()),
         loadContext: () => Promise.resolve(o.summary ?? summary(o.tp)),
         savePlan: () => Promise.reject(new Error("unexpected savePlan")),
         loadCatalog: () => Promise.resolve(o.catalog ?? fullCatalog()),
@@ -234,6 +237,37 @@ Deno.test("missing intention or place is 422 coach_missing_data and no model cal
         assertEquals(error.missing, missing);
         assertEquals(t.calls(), 0);
     }
+});
+
+Deno.test("the shared list refuses a block with its own keys and no model call", async () => {
+    for (
+        const [over, missing] of [
+            [{ place: MISSING }, ["place"]],
+            [{ intention: MISSING, place: MISSING }, ["intention", "place"]],
+        ] as const
+    ) {
+        const t = setup({ inputs: blockInputs(over) });
+        const res = await t.handler(post());
+        assertEquals(res.status, 422);
+        const error = (await res.json()).error;
+        assertEquals(error.code, "coach_missing_data");
+        assertEquals(error.missing, missing);
+        assertEquals(t.calls(), 0);
+    }
+});
+
+Deno.test("unset optional entries do not refuse a block", async () => {
+    const t = setup({
+        inputs: blockInputs({
+            equipment: { status: "unset_optional" },
+            days_per_week: { status: "unset_optional" },
+            session_minutes: { status: "unset_optional" },
+        }),
+    });
+    const res = await t.handler(post());
+    assertEquals(res.status, 200);
+    await res.text();
+    assertEquals(t.attached.length, 1);
 });
 
 Deno.test("a plan that is not the caller's, closed or already saved is 400 and no model call", async () => {

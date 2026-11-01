@@ -2,6 +2,7 @@ import { assert, assertEquals } from "jsr:@std/assert@1.0.19";
 import { type AnthropicClient, NO_USAGE } from "../_shared/anthropic.ts";
 import type { PlanRow } from "./context.ts";
 import { type CoachDeps, createCoachHandler } from "./handler.ts";
+import { MISSING, planInputs } from "./inputsFixtures.ts";
 import { parseInput } from "./planNutrition.ts";
 
 const NOW = new Date("2026-10-30T12:00:00Z");
@@ -38,6 +39,7 @@ function setup(
     o: {
         texts?: string[];
         summary?: unknown;
+        inputs?: unknown;
         spent?: number;
         globalTotal?: number;
         saveFails?: boolean;
@@ -73,6 +75,7 @@ function setup(
         loadPlan: () => Promise.reject(new Error("unexpected loadPlan")),
         attachBlock: () => Promise.reject(new Error("unexpected attachBlock")),
         client: o.client === undefined ? client : o.client,
+        loadInputs: () => Promise.resolve(o.inputs ?? planInputs()),
         loadContext: () => {
             loads++;
             return Promise.resolve(o.summary ?? summary());
@@ -246,6 +249,46 @@ Deno.test("missing sex, weight, expenditure or intention is coach_missing_data w
         assertEquals(modelCalls(), 0);
         assertEquals(records.length, 0);
     }
+});
+
+Deno.test("the shared list refuses with its own keys and no model call", async () => {
+    const cases: [Record<string, Partial<typeof MISSING>>, string[]][] = [
+        [{ intention: MISSING }, ["intention"]],
+        [{ sex: MISSING }, ["sex"]],
+        [{ weight: MISSING }, ["weight"]],
+        [{ age: MISSING, height: MISSING }, ["age", "height"]],
+        [{ intention: MISSING, sex: MISSING, weight: MISSING }, [
+            "intention",
+            "sex",
+            "weight",
+        ]],
+    ];
+    for (const [over, missing] of cases) {
+        const { handler, modelCalls, records } = setup({
+            inputs: planInputs(over),
+        });
+        const res = await handler(post());
+        assertEquals(res.status, 422);
+        const error = (await res.json()).error;
+        assertEquals(error.code, "coach_missing_data");
+        assertEquals(error.missing, missing);
+        assertEquals(modelCalls(), 0);
+        assertEquals(records.length, 0);
+    }
+});
+
+Deno.test("a stale weigh-in, a provisional estimate and a non-blocking missing entry do not refuse", async () => {
+    const { handler, saved } = setup({
+        inputs: planInputs({
+            weight: { status: "stale", blocking: false },
+            activity_level: { status: "provisional" },
+            total_expenditure: { status: "missing", blocking: false },
+        }, [{ key: "future_key", status: "ok", blocking: false }]),
+    });
+    const res = await handler(post());
+    assertEquals(res.status, 200);
+    await res.text();
+    assertEquals(saved.length, 1);
 });
 
 Deno.test("a rejected input logs kind, code and field names but never values", async () => {
