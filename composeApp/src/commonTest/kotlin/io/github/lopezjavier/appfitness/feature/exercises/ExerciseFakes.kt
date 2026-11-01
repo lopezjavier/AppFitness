@@ -4,12 +4,14 @@ import io.github.lopezjavier.appfitness.domain.AppError
 import io.github.lopezjavier.appfitness.domain.AppException
 import io.github.lopezjavier.appfitness.domain.model.Equipment
 import io.github.lopezjavier.appfitness.domain.model.Exercise
+import io.github.lopezjavier.appfitness.domain.model.ExerciseAlternative
 import io.github.lopezjavier.appfitness.domain.model.ExerciseInfo
 import io.github.lopezjavier.appfitness.domain.model.ExerciseMetricType
 import io.github.lopezjavier.appfitness.domain.model.MovementPattern
 import io.github.lopezjavier.appfitness.domain.model.MuscleGroup
 import io.github.lopezjavier.appfitness.domain.port.ExerciseLibrary
 import io.github.lopezjavier.appfitness.domain.repository.ExerciseRepository
+import kotlinx.coroutines.CompletableDeferred
 
 /** Synthetic exercise rows and library (never RepDB content). */
 fun exerciseRow(
@@ -24,7 +26,7 @@ fun exerciseRow(
 fun exerciseInfo(key: String, name: String, hasPeak: Boolean = true) =
     ExerciseInfo(key, name, "Descripcion", listOf("Primer paso", "Segundo paso"), listOf("Un consejo"), hasPeak)
 
-class FakeExerciseLibrary(private val entries: Map<String, ExerciseInfo> = emptyMap()) : ExerciseLibrary {
+class FakeExerciseLibrary(var entries: Map<String, ExerciseInfo> = emptyMap()) : ExerciseLibrary {
     override suspend fun load(): Map<String, ExerciseInfo> = entries
 }
 
@@ -51,6 +53,21 @@ class FakeExerciseRepository(var rows: List<Exercise> = emptyList(), var failure
     override suspend fun getById(id: String): Result<Exercise> =
         rows.firstOrNull { it.id == id }?.let { Result.success(it) }
             ?: Result.failure(AppException(AppError.NotFound))
+
+    /** Alternatives by exercise id, as the repository returns them (already sorted). */
+    var alternativesById: Map<String, List<ExerciseAlternative>> = emptyMap()
+    var alternativesFailure: AppError? = null
+    val alternativesCalls = mutableListOf<String>()
+
+    /** When set, [alternatives] suspends until completed (a slow read). */
+    var alternativesGate: CompletableDeferred<Unit>? = null
+
+    override suspend fun alternatives(exerciseId: String): Result<List<ExerciseAlternative>> {
+        alternativesCalls += exerciseId
+        alternativesGate?.await()
+        return alternativesFailure?.let { Result.failure(AppException(it)) }
+            ?: Result.success(alternativesById[exerciseId].orEmpty())
+    }
 
     override suspend fun createCustom(
         name: String,

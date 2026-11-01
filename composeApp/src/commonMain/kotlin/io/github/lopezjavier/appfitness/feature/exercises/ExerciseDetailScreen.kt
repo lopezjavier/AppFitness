@@ -37,6 +37,7 @@ import io.github.lopezjavier.appfitness.composeapp.resources.exercise_in_use_set
 import io.github.lopezjavier.appfitness.composeapp.resources.exercise_save_failed
 import io.github.lopezjavier.appfitness.composeapp.resources.exercise_tab_history
 import io.github.lopezjavier.appfitness.composeapp.resources.exercise_tab_how_to
+import io.github.lopezjavier.appfitness.composeapp.resources.exercise_tab_similar
 import io.github.lopezjavier.appfitness.composeapp.resources.exercise_tab_summary
 import io.github.lopezjavier.appfitness.composeapp.resources.exercise_unnamed
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_delete
@@ -72,6 +73,8 @@ import org.koin.core.parameter.parametersOf
 class ExerciseDetailActions(
     val onSelectTab: (ExerciseDetailTab) -> Unit = {},
     val onRetryRecords: () -> Unit = {},
+    val onRetrySimilar: () -> Unit = {},
+    val onOpenExercise: (String) -> Unit = {},
     val onLoadMoreHistory: () -> Unit = {},
     val onRetryHistory: () -> Unit = {},
     val onRetryHistoryPage: () -> Unit = {},
@@ -88,6 +91,7 @@ class ExerciseDetailActions(
 
 /** Stateful detail: connects [ExerciseDetailViewModel] to the stateless [ExerciseDetailScreen]. */
 @Composable
+@Suppress("LongMethod") // Effects plus the action holder of one screen.
 fun ExerciseDetailRoot(
     exerciseId: String,
     selectMode: Boolean,
@@ -95,6 +99,7 @@ fun ExerciseDetailRoot(
     modifier: Modifier = Modifier,
     onOpenProgress: () -> Unit = {},
     onClose: () -> Unit = {},
+    onOpenExercise: (String) -> Unit = {},
     viewModel: ExerciseDetailViewModel = koinViewModel(key = exerciseId, parameters = { parametersOf(exerciseId) }),
     clock: Clock = koinInject(),
 ) {
@@ -132,10 +137,13 @@ fun ExerciseDetailRoot(
             }
         }
     }
+    val currentOpenExercise by rememberUpdatedState(onOpenExercise)
     val actions = remember(viewModel) {
         ExerciseDetailActions(
             onSelectTab = viewModel::selectTab,
             onRetryRecords = viewModel::retryRecords,
+            onRetrySimilar = viewModel::retrySimilar,
+            onOpenExercise = { currentOpenExercise(it) },
             onLoadMoreHistory = viewModel::loadMoreHistory,
             onRetryHistory = viewModel::retryHistory,
             onRetryHistoryPage = viewModel::retryHistoryPage,
@@ -171,8 +179,9 @@ private suspend fun inUseMessage(effect: ExerciseDetailEffect.InUse): String = g
 
 /**
  * Exercise detail (US-09, US-28) on [AppScreen]: the exercise name as title and, for a manual exercise, edit and
- * delete in the top bar on every tab (delete is immediate, no dialog). Three tabs, "Resumen" (demonstration, header,
- * progress link, records), "Historial" (sessions that contain the exercise) and "Cómo hacerlo" (steps, tips, RepDB
+ * delete in the top bar on every tab (delete is immediate, no dialog). Four tabs, "Resumen" (demonstration, header,
+ * progress link, records), "Similares" (curated alternatives, tap opens one), "Historial" (sessions that
+ * contain the exercise) and "Cómo hacerlo" (steps, tips, RepDB
  * attribution). In [selectMode] a "Seleccionar" button is pinned at the bottom of every tab. [today] dates the
  * history rows and the records.
  */
@@ -290,6 +299,7 @@ private fun DetailLoading() {
 private const val NAME_FRACTION = 0.6f
 
 @Composable
+@Suppress("LongMethod") // One branch per tab.
 private fun DetailContent(
     state: ExerciseDetailUiState.Loaded,
     today: LocalDate,
@@ -334,6 +344,14 @@ private fun DetailContent(
                         scrollState = summaryScroll,
                     )
 
+                    ExerciseDetailTab.Similar -> ExerciseSimilarTab(
+                        state = state.similar,
+                        isOnline = state.isOnline,
+                        onOpenExercise = actions.onOpenExercise,
+                        onRetry = actions.onRetrySimilar,
+                        modifier = Modifier.fillMaxSize(),
+                    )
+
                     ExerciseDetailTab.History -> ExerciseHistoryTab(
                         state = state.history,
                         today = today,
@@ -356,11 +374,13 @@ private fun DetailContent(
 @Composable
 private fun tabOptions(): List<AppOption> {
     val summary = stringResource(Res.string.exercise_tab_summary)
+    val similar = stringResource(Res.string.exercise_tab_similar)
     val history = stringResource(Res.string.exercise_tab_history)
     val howTo = stringResource(Res.string.exercise_tab_how_to)
-    return remember(summary, history, howTo) {
+    return remember(summary, similar, history, howTo) {
         listOf(
             AppOption(summary, "exercise_detail_tab_summary"),
+            AppOption(similar, "exercise_detail_tab_similar"),
             AppOption(history, "exercise_detail_tab_history"),
             AppOption(howTo, "exercise_detail_tab_how_to"),
         )

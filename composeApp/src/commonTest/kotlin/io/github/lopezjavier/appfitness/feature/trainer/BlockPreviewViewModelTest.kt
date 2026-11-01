@@ -4,8 +4,11 @@ import androidx.lifecycle.SavedStateHandle
 import app.cash.turbine.test
 import io.github.lopezjavier.appfitness.domain.AppError
 import io.github.lopezjavier.appfitness.domain.AppException
+import io.github.lopezjavier.appfitness.domain.model.BlockEdit
 import io.github.lopezjavier.appfitness.domain.model.CoachException
 import io.github.lopezjavier.appfitness.domain.model.CoachFailure
+import io.github.lopezjavier.appfitness.domain.model.Equipment
+import io.github.lopezjavier.appfitness.domain.model.ExerciseAlternative
 import io.github.lopezjavier.appfitness.domain.model.MissingField
 import io.github.lopezjavier.appfitness.feature.exercises.FakeExerciseLibrary
 import io.github.lopezjavier.appfitness.feature.exercises.FakeExerciseRepository
@@ -16,6 +19,7 @@ import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.StandardTestDispatcher
+import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
@@ -382,6 +386,305 @@ class BlockPreviewViewModelTest {
         advanceUntilIdle()
 
         assertEquals(1, blocks.saves.size)
+    }
+
+    // Replacements (T-179)
+
+    private fun withAlternatives() {
+        exercises.rows = listOf(
+            exerciseRow("ex-1", "bench"),
+            exerciseRow("ex-2", "row"),
+            exerciseRow("ex-3", "fly", equipment = Equipment.Cable),
+            exerciseRow("ex-4", "band-long-bench", equipment = Equipment.BandLong),
+        )
+        library.entries = mapOf(
+            "bench" to exerciseInfo("bench", "Press banca"),
+            "row" to exerciseInfo("row", "Remo"),
+            "fly" to exerciseInfo("fly", "Aperturas"),
+            "band-long-bench" to exerciseInfo("band-long-bench", "Press con banda larga"),
+        )
+        exercises.alternativesById = mapOf(
+            "ex-1" to listOf(ExerciseAlternative(exercises.rows[3], 1.0), ExerciseAlternative(exercises.rows[2], 0.8)),
+        )
+        blocks.current = Result.success(coachBlock())
+    }
+
+    private fun TestScope.openedPicker(model: BlockPreviewViewModel, session: Int = 0, position: Int = 0) {
+        model.onEvent(BlockPreviewEvent.OpenReplace(session, position))
+        advanceUntilIdle()
+    }
+
+    private fun BlockPreviewViewModel.alternatives() =
+        assertIs<AlternativesState.Content>(preview().alternatives).rows.map { it.exercise.exercise.id }
+
+    @Test
+    fun openReplace_loadsOnlyThatExercisesAlternatives_mostSimilarFirst() = runTest(dispatcher) {
+        withAlternatives()
+        val model = viewModel()
+        advanceUntilIdle()
+
+        openedPicker(model, session = 1, position = 0)
+
+        assertEquals(listOf("ex-4", "ex-3"), model.alternatives())
+        assertEquals(listOf("ex-1"), exercises.alternativesCalls)
+        assertEquals(replaceSlotKey(1, 0), model.preview().replaceSlot)
+    }
+
+    @Test
+    fun openReplace_excludesExercisesAlreadyInTheSession() = runTest(dispatcher) {
+        withAlternatives()
+        exercises.alternativesById = mapOf(
+            "ex-1" to listOf(ExerciseAlternative(exercises.rows[1], 0.9), ExerciseAlternative(exercises.rows[2], 0.8)),
+        )
+        val model = viewModel()
+        advanceUntilIdle()
+
+        openedPicker(model)
+
+        assertEquals(listOf("ex-3"), model.alternatives())
+    }
+
+    @Test
+    fun openReplace_stateFollowsTheRead_emptyOfflineAndError() = runTest(dispatcher) {
+        withAlternatives()
+        val model = viewModel()
+        advanceUntilIdle()
+
+        openedPicker(model, position = 1)
+        assertEquals(listOf("ex-2"), exercises.alternativesCalls)
+        assertEquals(AlternativesState.Empty, model.preview().alternatives)
+
+        exercises.alternativesFailure = AppError.Network
+        model.onEvent(BlockPreviewEvent.LoadAlternatives)
+        advanceUntilIdle()
+        assertEquals(AlternativesState.Offline, model.preview().alternatives)
+
+        exercises.alternativesFailure = AppError.Unknown
+        model.onEvent(BlockPreviewEvent.LoadAlternatives)
+        advanceUntilIdle()
+        assertEquals(AlternativesState.Error, model.preview().alternatives)
+
+        exercises.alternativesFailure = null
+        exercises.alternativesById = exercises.alternativesById + (
+            "ex-2" to listOf(
+                ExerciseAlternative(exercises.rows[2], 0.7),
+            )
+            )
+        model.onEvent(BlockPreviewEvent.LoadAlternatives)
+        advanceUntilIdle()
+        assertEquals(listOf("ex-3"), model.alternatives())
+    }
+
+    @Test
+    fun pickReplacement_overlaysEveryWeekOfThatSession_keepingSetsRepsAndRest() = runTest(dispatcher) {
+        withAlternatives()
+        val model = viewModel()
+        advanceUntilIdle()
+        openedPicker(model, session = 1, position = 0)
+
+        model.onEvent(BlockPreviewEvent.PickReplacement("ex-4"))
+
+        val preview = model.preview()
+        assertNull(preview.replaceSlot)
+        preview.weeks.forEach { week ->
+            val replaced = week.sessions.first { it.sessionIndex == 1 }.exercises
+            assertEquals("ex-4", replaced[0].exerciseId)
+            assertEquals("band-long-bench", replaced[0].exerciseKey)
+            assertEquals(
+                coachBlock().sessions.first().exercises[0].copy(exerciseId = "ex-4", exerciseKey = "band-long-bench"),
+                replaced[0],
+            )
+            assertEquals("ex-2", replaced[1].exerciseId)
+            assertEquals("ex-1", week.sessions.first { it.sessionIndex == 0 }.exercises[0].exerciseId)
+        }
+        assertTrue(preview.isChanged(1, 0))
+        assertFalse(preview.isChanged(0, 0))
+        assertEquals(Equipment.BandLong, preview.replacementAt(1, 0)?.equipment)
+    }
+
+    @Test
+    fun pickReplacement_afterSelectingAnotherWeek_keepsTheOverlay() = runTest(dispatcher) {
+        withAlternatives()
+        val model = viewModel()
+        advanceUntilIdle()
+        openedPicker(model)
+        model.onEvent(BlockPreviewEvent.PickReplacement("ex-3"))
+
+        model.onEvent(BlockPreviewEvent.SelectWeek(3))
+
+        assertEquals("ex-3", model.preview().sessions.first { it.sessionIndex == 0 }.exercises[0].exerciseId)
+    }
+
+    @Test
+    fun pickReplacement_writesNothingToTheRepository() = runTest(dispatcher) {
+        withAlternatives()
+        val model = viewModel()
+        advanceUntilIdle()
+        openedPicker(model)
+
+        model.onEvent(BlockPreviewEvent.PickReplacement("ex-3"))
+        advanceUntilIdle()
+
+        assertTrue(blocks.saves.isEmpty())
+        assertTrue(blocks.requests.isEmpty())
+    }
+
+    @Test
+    fun pickReplacement_notAmongTheLoadedAlternatives_isIgnored() = runTest(dispatcher) {
+        withAlternatives()
+        val model = viewModel()
+        advanceUntilIdle()
+        openedPicker(model)
+
+        model.onEvent(BlockPreviewEvent.PickReplacement("ex-2"))
+
+        assertTrue(model.preview().replacements.isEmpty())
+    }
+
+    @Test
+    fun clearReplacement_restoresTheOriginalAndClosesThePicker() = runTest(dispatcher) {
+        withAlternatives()
+        val model = viewModel()
+        advanceUntilIdle()
+        openedPicker(model)
+        model.onEvent(BlockPreviewEvent.PickReplacement("ex-3"))
+        openedPicker(model)
+
+        model.onEvent(BlockPreviewEvent.ClearReplacement)
+
+        assertTrue(model.preview().replacements.isEmpty())
+        assertNull(model.preview().replaceSlot)
+        assertEquals("ex-1", model.preview().sessions.first().exercises[0].exerciseId)
+    }
+
+    @Test
+    fun closeReplace_dismissesThePickerWithoutChanges() = runTest(dispatcher) {
+        withAlternatives()
+        val model = viewModel()
+        advanceUntilIdle()
+        openedPicker(model)
+
+        model.onEvent(BlockPreviewEvent.CloseReplace)
+
+        assertNull(model.preview().replaceSlot)
+        assertTrue(model.preview().replacements.isEmpty())
+    }
+
+    @Test
+    fun save_sendsTheReplacementsAsOneBasedEdits() = runTest(dispatcher) {
+        withAlternatives()
+        val model = viewModel()
+        advanceUntilIdle()
+        openedPicker(model, session = 2, position = 0)
+        model.onEvent(BlockPreviewEvent.PickReplacement("ex-4"))
+
+        model.onEvent(BlockPreviewEvent.Save)
+        advanceUntilIdle()
+
+        assertEquals(listOf(listOf(BlockEdit(sessionIndex = 2, position = 1, exerciseId = "ex-4"))), blocks.saveEdits)
+    }
+
+    @Test
+    fun save_withoutReplacements_sendsNoEdits() = runTest(dispatcher) {
+        withAlternatives()
+        val model = viewModel()
+        advanceUntilIdle()
+
+        model.onEvent(BlockPreviewEvent.Save)
+        advanceUntilIdle()
+
+        assertEquals(listOf(emptyList()), blocks.saveEdits)
+    }
+
+    @Test
+    fun save_invalidReplacement_staysOnScreen_dropsTheEditAndTellsTheUser() = runTest(dispatcher) {
+        withAlternatives()
+        blocks.saveResult = Result.failure(CoachException(CoachFailure.InvalidReplacement))
+        val saved = SavedStateHandle()
+        val model = viewModel(saved)
+        advanceUntilIdle()
+        openedPicker(model)
+        model.onEvent(BlockPreviewEvent.PickReplacement("ex-3"))
+
+        model.effects.test {
+            model.onEvent(BlockPreviewEvent.Save)
+            advanceUntilIdle()
+
+            assertEquals(BlockPreviewEffect.ReplacementRejected, awaitItem())
+        }
+        val preview = model.preview()
+        assertFalse(preview.saving)
+        assertTrue(preview.replacements.isEmpty())
+        assertEquals("ex-1", preview.sessions.first().exercises[0].exerciseId)
+        assertNull(saved.get<String>("block_replacements"))
+    }
+
+    @Test
+    fun aRecreatedModel_restoresTheReplacementsAndTheOpenPicker_withoutWriting() = runTest(dispatcher) {
+        withAlternatives()
+        val saved = SavedStateHandle()
+        val first = viewModel(saved)
+        advanceUntilIdle()
+        openedPicker(first, session = 1, position = 0)
+        first.onEvent(BlockPreviewEvent.PickReplacement("ex-3"))
+        openedPicker(first, session = 2, position = 0)
+
+        val second = viewModel(saved)
+        advanceUntilIdle()
+
+        val preview = second.preview()
+        assertEquals("ex-3", preview.sessions.first { it.sessionIndex == 1 }.exercises[0].exerciseId)
+        assertTrue(preview.isChanged(1, 0))
+        assertEquals(replaceSlotKey(2, 0), preview.replaceSlot)
+        assertEquals(listOf("ex-4", "ex-3"), second.alternatives())
+        assertTrue(blocks.saves.isEmpty())
+        assertTrue(blocks.requests.isEmpty())
+    }
+
+    @Test
+    fun aRestoredReplacementThatNoLongerFits_isDropped() = runTest(dispatcher) {
+        withAlternatives()
+        val saved = SavedStateHandle(mapOf("block_replacements" to "9|0|ex-3,0|7|ex-3,0|0|gone"))
+        val model = viewModel(saved)
+
+        advanceUntilIdle()
+
+        assertTrue(model.preview().replacements.isEmpty())
+    }
+
+    @Test
+    fun retry_discardsThePendingReplacements() = runTest(dispatcher) {
+        withAlternatives()
+        val saved = SavedStateHandle()
+        val model = viewModel(saved)
+        advanceUntilIdle()
+        openedPicker(model)
+        model.onEvent(BlockPreviewEvent.PickReplacement("ex-3"))
+        blocks.current = Result.failure(AppException(AppError.Network))
+        val reloaded = viewModel(saved)
+        advanceUntilIdle()
+        blocks.current = Result.success(coachBlock())
+
+        reloaded.onEvent(BlockPreviewEvent.Retry)
+        advanceUntilIdle()
+
+        assertTrue(reloaded.preview().replacements.isEmpty())
+        assertNull(saved.get<String>("block_replacements"))
+    }
+
+    @Test
+    fun aNewRequest_clearsThePendingReplacements() = runTest(dispatcher) {
+        withAlternatives()
+        val saved = SavedStateHandle(mapOf("block_replacements" to "0|0|ex-3"))
+        blocks.current = Result.success(null)
+        val model = viewModel(saved)
+        advanceUntilIdle()
+
+        model.onEvent(BlockPreviewEvent.Request)
+        advanceUntilIdle()
+
+        assertTrue(model.preview().replacements.isEmpty())
+        assertNull(saved.get<String>("block_replacements"))
     }
 
     @Test

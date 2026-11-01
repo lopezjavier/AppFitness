@@ -539,6 +539,11 @@
     <string name="exercise_tab_summary">Resumen</string>
     <string name="exercise_tab_history">Historial</string>
     <string name="exercise_tab_how_to">Cómo hacerlo</string>
+    <string name="exercise_tab_similar">Similares</string>
+    <string name="exercise_similar_empty">Sin ejercicios similares</string>
+    <string name="exercise_similar_error">No se pudieron cargar los ejercicios similares</string>
+    <string name="exercise_similar_percent">%1$s&#160;%%</string>
+    <string name="exercise_similar_percent_cd">%1$s por ciento de similitud</string>
     <string name="exercise_records_title">Récords</string>
     <string name="exercise_records_empty">Aún no tienes registros de este ejercicio</string>
     <string name="exercise_records_error">No se pudieron cargar los récords</string>
@@ -577,6 +582,7 @@
     <string name="equipment_bodyweight">Peso corporal</string>
     <string name="equipment_kettlebell">Kettlebell</string>
     <string name="equipment_band">Banda</string>
+    <string name="equipment_band_long">Banda larga</string>
     <string name="equipment_other">Otro</string>
     <string name="routines_start">Empezar</string>
     <string name="routines_start_cd">Empezar %1$s</string>
@@ -1936,4 +1942,11 @@
     <string name="block_save_action">guardar el bloque</string>
     <string name="block_saved">Bloque guardado en Entreno.</string>
     <string name="block_save_error">No se pudo guardar el bloque. Inténtalo de nuevo.</string>
+    <string name="block_replace_action_cd">Cambiar ejercicio: %1$s</string>
+    <string name="block_replace_title">Cambiar ejercicio</string>
+    <string name="block_replace_empty">Este ejercicio no tiene similares</string>
+    <string name="block_replace_error">No se pudieron cargar los ejercicios similares</string>
+    <string name="block_replace_changed">Cambiado</string>
+    <string name="block_replace_reset">Volver al ejercicio original</string>
+    <string name="block_replace_invalid">No se pudo cambiar el ejercicio. Inténtalo de nuevo.</string>
 </resources>

@@ -19,7 +19,8 @@ import org.jetbrains.compose.resources.stringResource
  * [supporting] line, on an [AppListRow]. By default tapping the thumbnail or the name calls [onOpen] (the exercise
  * details). With [onSelect] (a picker that chooses an exercise, R-17) the row body calls [onSelect] and the thumbnail
  * becomes its own target (at least 48 dp, "Ver detalle de <name>", tag `<tagPrefix>_thumbnail`) that calls [onOpen].
- * [trailing] is a separate slot for the caller's own controls. The row is tagged [tagPrefix]; the thumbnail
+ * [supportingTestTag] tags the supporting line. [trailing] is a separate slot for the caller's own controls.
+ * The row is tagged [tagPrefix]; the thumbnail
  * children are `<tagPrefix>_thumbnail_image` and `<tagPrefix>_thumbnail_placeholder`.
  */
 @Composable
@@ -32,6 +33,7 @@ fun ExerciseRow(
     imageUri: String? = null,
     trailing: (@Composable () -> Unit)? = null,
     onSelect: (() -> Unit)? = null,
+    supportingTestTag: String? = null,
 ) {
     val thumbnail: @Composable () -> Unit = {
         ExerciseThumbnail(
@@ -60,6 +62,7 @@ fun ExerciseRow(
             }
         },
         trailing = trailing,
+        supportingTestTag = supportingTestTag,
         onClick = onSelect ?: onOpen,
     )
 }

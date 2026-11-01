@@ -8,6 +8,7 @@ import io.github.jan.supabase.postgrest.exception.PostgrestRestException
 import io.github.jan.supabase.postgrest.from
 import io.github.jan.supabase.postgrest.query.Order
 import io.github.jan.supabase.postgrest.rpc
+import io.github.lopezjavier.appfitness.data.remote.BlockEditDto
 import io.github.lopezjavier.appfitness.data.remote.BlockRequestBody
 import io.github.lopezjavier.appfitness.data.remote.BlockRequestInput
 import io.github.lopezjavier.appfitness.data.remote.BlockSessionDto
@@ -20,6 +21,7 @@ import io.github.lopezjavier.appfitness.data.remote.blockOf
 import io.github.lopezjavier.appfitness.data.remote.coachPlanJson
 import io.github.lopezjavier.appfitness.domain.AppError
 import io.github.lopezjavier.appfitness.domain.AppException
+import io.github.lopezjavier.appfitness.domain.model.BlockEdit
 import io.github.lopezjavier.appfitness.domain.model.BlockSaved
 import io.github.lopezjavier.appfitness.domain.model.CoachBlock
 import io.github.lopezjavier.appfitness.domain.model.CoachException
@@ -38,6 +40,7 @@ import kotlinx.datetime.LocalDate
 import kotlin.time.Duration
 
 private const val WRONG_OBJECT_STATE = "55000"
+private const val INVALID_PARAMETER = "22023"
 
 /**
  * Training blocks through the `coach` function (`plan_block`, whole SSE body read as text) and the
@@ -85,8 +88,9 @@ class SupabaseCoachBlockRepository internal constructor(
 
     override suspend fun currentBlock(planId: String): Result<CoachBlock?> = auth.ownRow { loadBlock(planId) }
 
-    override suspend fun saveBlock(planId: String): Result<BlockSaved> = auth.ownRow {
-        postgrest.rpc("save_coach_block", SaveBlockParams(planId)).decodeAs<SaveBlockResultDto>().toDomain()
+    override suspend fun saveBlock(planId: String, edits: List<BlockEdit>): Result<BlockSaved> = auth.ownRow {
+        val params = SaveBlockParams(planId, edits.map { BlockEditDto(it.sessionIndex, it.position, it.exerciseId) })
+        postgrest.rpc("save_coach_block", params).decodeAs<SaveBlockResultDto>().toDomain()
     }.mapSaveErrors()
 
     /** A finished stream whose block cannot be read back is [CoachFailure.Other]. */
@@ -113,7 +117,10 @@ class SupabaseCoachBlockRepository internal constructor(
     /** SQLSTATE 55000: the plan is no longer open or has no block to save. */
     private fun <T> Result<T>.mapSaveErrors(): Result<T> = recoverCatching { failure ->
         val cause = (failure as? AppException)?.cause as? PostgrestRestException ?: throw failure
-        if (cause.code != WRONG_OBJECT_STATE) throw failure
-        throw CoachException(CoachFailure.Conflict)
+        when (cause.code) {
+            WRONG_OBJECT_STATE -> throw CoachException(CoachFailure.Conflict)
+            INVALID_PARAMETER -> throw CoachException(CoachFailure.InvalidReplacement)
+            else -> throw failure
+        }
     }
 }

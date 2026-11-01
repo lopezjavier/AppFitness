@@ -5,7 +5,9 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import io.github.lopezjavier.appfitness.domain.AppError
 import io.github.lopezjavier.appfitness.domain.appErrorOrNull
+import io.github.lopezjavier.appfitness.domain.model.CatalogExercise
 import io.github.lopezjavier.appfitness.domain.model.Equipment
+import io.github.lopezjavier.appfitness.domain.model.ExerciseAlternative
 import io.github.lopezjavier.appfitness.domain.model.ExerciseDetail
 import io.github.lopezjavier.appfitness.domain.model.ExerciseMetricType
 import io.github.lopezjavier.appfitness.domain.model.ExerciseSessionRecords
@@ -29,8 +31,10 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.launch
+import kotlin.math.roundToInt
 import kotlin.time.Instant
 
+private const val PERCENT = 100
 private const val PAGE_SIZE = 20
 private const val KEY_TAB = "tab"
 private const val KEY_EDIT_OPEN = "detail_edit_open"
@@ -78,7 +82,27 @@ sealed interface ExerciseDetailEffect {
 }
 
 /** The tabs of the exercise detail; the selected one is kept in the saved state by name. */
-enum class ExerciseDetailTab { Summary, History, HowTo }
+enum class ExerciseDetailTab { Summary, Similar, History, HowTo }
+
+/** One row of the "Similares" tab: the [exercise] to list and how alike it is, in (0, 1]. */
+data class SimilarExerciseRow(val exercise: CatalogExercise, val similarity: Double) {
+    /** Whole percentage shown next to the row ("87 %"). */
+    val percent: Int get() = (similarity * PERCENT).roundToInt()
+}
+
+/** Curated alternatives of the exercise (T-179), loaded when the Similar tab is first shown. */
+sealed interface SimilarState {
+    data object Loading : SimilarState
+
+    /** The exercise has no alternatives. */
+    data object Empty : SimilarState
+
+    data class Content(val rows: List<SimilarExerciseRow>) : SimilarState
+
+    data object Offline : SimilarState
+
+    data object Error : SimilarState
+}
 
 /** Personal records of the exercise (T-094), already filtered to the families of its metric type. */
 sealed interface RecordsState {
@@ -131,6 +155,7 @@ sealed interface ExerciseDetailUiState {
         val tab: ExerciseDetailTab = ExerciseDetailTab.Summary,
         val records: RecordsState = RecordsState.Loading,
         val history: HistoryState = HistoryState.Loading,
+        val similar: SimilarState = SimilarState.Loading,
         /** The edit sheet (manual exercises only); null when closed. Survives process death (ADR-40). */
         val editForm: EditExerciseForm? = null,
         /** False while offline: edit and delete are disabled with a hint. */
@@ -166,6 +191,8 @@ class ExerciseDetailViewModel(
     private var nextOffset = 0
     private var historyRequested = false
     private var historyJob: Job? = null
+    private var similarRequested = false
+    private var similarJob: Job? = null
 
     /** Per-session aggregates used for the marks; null when unreadable (rows show no marks). */
     private var sessionRecords: List<ExerciseSessionRecords>? = null
@@ -190,6 +217,14 @@ class ExerciseDetailViewModel(
         savedState[KEY_TAB] = tab.name
         updateLoaded { it.copy(tab = tab) }
         if (tab == ExerciseDetailTab.History) loadHistoryIfNeeded()
+        if (tab == ExerciseDetailTab.Similar) loadSimilarIfNeeded()
+    }
+
+    fun retrySimilar() {
+        val state = loaded()?.similar
+        if (state != SimilarState.Error && state != SimilarState.Offline) return
+        similarRequested = false
+        loadSimilarIfNeeded()
     }
 
     fun retryRecords() {
@@ -330,6 +365,8 @@ class ExerciseDetailViewModel(
         _uiState.value = ExerciseDetailUiState.Loading
         historyJob?.cancel()
         historyRequested = false
+        similarJob?.cancel()
+        similarRequested = false
         nextOffset = 0
         viewModelScope.launch {
             loadCatalog.detail(exerciseId).fold(
@@ -342,6 +379,7 @@ class ExerciseDetailViewModel(
                     )
                     loadRecords()
                     if (storedTab() == ExerciseDetailTab.History) loadHistoryIfNeeded()
+                    if (storedTab() == ExerciseDetailTab.Similar) loadSimilarIfNeeded()
                 },
                 onFailure = { _uiState.value = ExerciseDetailUiState.Error },
             )
@@ -369,6 +407,41 @@ class ExerciseDetailViewModel(
     private fun recordFamilies(metricType: ExerciseMetricType): List<PersonalRecordType> =
         PersonalRecordCatalogue.families(metricType)
             .filter { it != PersonalRecordType.TotalReps || metricType == ExerciseMetricType.RepsOnly }
+
+    private fun loadSimilarIfNeeded() {
+        if (similarRequested || loaded() == null) return
+        similarRequested = true
+        updateLoaded { it.copy(similar = SimilarState.Loading) }
+        similarJob?.cancel()
+        similarJob = viewModelScope.launch {
+            val result = repository.alternatives(exerciseId)
+            val state = result.fold(
+                onSuccess = { alternatives -> similarContent(alternatives) },
+                onFailure = {
+                    if (result.appErrorOrNull() ==
+                        AppError.Network
+                    ) {
+                        SimilarState.Offline
+                    } else {
+                        SimilarState.Error
+                    }
+                },
+            )
+            updateLoaded { it.copy(similar = state) }
+        }
+    }
+
+    /** Rows named from the library (an alternative without a name to show is dropped), most similar first. */
+    @Suppress("ReturnCount") // Guard clauses: empty, unreadable names, nothing nameable.
+    private suspend fun similarContent(alternatives: List<ExerciseAlternative>): SimilarState {
+        if (alternatives.isEmpty()) return SimilarState.Empty
+        val named = loadCatalog().getOrElse { return SimilarState.Error }.associateBy { it.id }
+        val rows = alternatives.mapNotNull {
+            named[it.exercise.id]?.let { item -> SimilarExerciseRow(item, it.similarity) }
+        }
+            .sortedWith(compareByDescending<SimilarExerciseRow> { it.similarity }.thenBy { it.exercise.name })
+        return if (rows.isEmpty()) SimilarState.Empty else SimilarState.Content(rows)
+    }
 
     private fun loadHistoryIfNeeded() {
         if (historyRequested || loaded() == null) return

@@ -9,6 +9,7 @@ import io.github.lopezjavier.appfitness.data.InMemoryCoachModelPreference
 import io.github.lopezjavier.appfitness.data.remote.SupabaseClientFactory
 import io.github.lopezjavier.appfitness.domain.AppError
 import io.github.lopezjavier.appfitness.domain.appErrorOrNull
+import io.github.lopezjavier.appfitness.domain.model.BlockEdit
 import io.github.lopezjavier.appfitness.domain.model.CoachException
 import io.github.lopezjavier.appfitness.domain.model.CoachFailure
 import io.github.lopezjavier.appfitness.domain.model.CoachModelChoice
@@ -300,9 +301,35 @@ class SupabaseCoachBlockRepositoryTest {
 
         val call = rest().single()
         assertTrue(call.url.encodedPath.endsWith("/rest/v1/rpc/save_coach_block"), call.url.toString())
-        assertEquals("""{"p_plan_id":"p1"}""", (call.body as TextContent).text)
+        assertEquals("""{"p_plan_id":"p1","p_edits":[]}""", (call.body as TextContent).text)
         assertEquals("f1", saved.folderId)
         assertEquals(listOf("r1", "r2"), saved.routineIds)
+    }
+
+    @Test
+    fun saveBlock_withEdits_sendsThemAsSessionPositionAndExercise() = runTest {
+        val repository = repo { HttpStatusCode.OK to """{"folder_id":"f1","routine_ids":["r1"]}""" }
+
+        repository.saveBlock("p1", listOf(BlockEdit(2, 3, "e9"), BlockEdit(0, 1, "e8"))).getOrThrow()
+
+        assertEquals(
+            """{"p_plan_id":"p1","p_edits":[{"session_index":2,"position":3,"exercise_id":"e9"},""" +
+                """{"session_index":0,"position":1,"exercise_id":"e8"}]}""",
+            (rest().single().body as TextContent).text,
+        )
+    }
+
+    @Test
+    fun saveBlock_invalidReplacement_isMappedToItsOwnFailure() = runTest {
+        val repository = repo {
+            HttpStatusCode.BadRequest to
+                """{"code":"22023","message":"not an alternative","details":null,"hint":null}"""
+        }
+
+        assertEquals(
+            CoachFailure.InvalidReplacement,
+            failureOf(repository.saveBlock("p1", listOf(BlockEdit(0, 1, "e9")))),
+        )
     }
 
     @Test

@@ -37,7 +37,11 @@ internal fun coachFailureMessage(failure: CoachFailure): StringResource = when (
 
     CoachFailure.Infeasible -> Res.string.coach_failure_infeasible
 
-    CoachFailure.NeedsConfirmation, CoachFailure.Conflict, CoachFailure.Other -> Res.string.coach_error
+    CoachFailure.NeedsConfirmation,
+    CoachFailure.Conflict,
+    CoachFailure.InvalidReplacement,
+    CoachFailure.Other,
+    -> Res.string.coach_error
 }
 
 /** Names where to fix what is missing: the profile data first, then the training intention, then the place. */

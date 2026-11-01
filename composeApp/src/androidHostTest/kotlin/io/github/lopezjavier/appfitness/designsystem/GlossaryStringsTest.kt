@@ -109,6 +109,14 @@ class GlossaryStringsTest {
     }
 
     @Test
+    fun alternatives_areSimilaresAndCambiarEjercicio() {
+        assertEquals("Banda larga", value("equipment_band_long"))
+        assertEquals("Similares", value("exercise_tab_similar"))
+        assertEquals("Cambiar ejercicio", value("block_replace_title"))
+        assertEquals("Cambiado", value("block_replace_changed"))
+    }
+
+    @Test
     fun statistics_haveOneNameEach() {
         assertEquals("Calorías", value("diary_history_title"))
         assertEquals("Entrenamiento", value("stats_title"))

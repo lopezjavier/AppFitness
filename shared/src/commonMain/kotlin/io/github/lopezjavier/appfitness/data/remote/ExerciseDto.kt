@@ -60,3 +60,11 @@ internal data class UpdateCustomExerciseParams(
 /** Params of the `delete_custom_exercise` RPC. */
 @Serializable
 internal data class DeleteCustomExerciseParams(@SerialName("p_id") val id: String)
+
+/** Params of the `exercise_alternatives` RPC. */
+@Serializable
+internal data class ExerciseAlternativesParams(@SerialName("p_exercise_id") val exerciseId: String)
+
+/** One row of the `exercise_alternatives` RPC: the alternative's id and its similarity in (0, 1]. */
+@Serializable
+internal data class ExerciseAlternativeDto(@SerialName("exercise_id") val exerciseId: String, val similarity: Double)

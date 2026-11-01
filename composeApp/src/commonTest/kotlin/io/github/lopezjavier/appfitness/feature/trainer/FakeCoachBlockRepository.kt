@@ -1,5 +1,6 @@
 package io.github.lopezjavier.appfitness.feature.trainer
 
+import io.github.lopezjavier.appfitness.domain.model.BlockEdit
 import io.github.lopezjavier.appfitness.domain.model.BlockExercise
 import io.github.lopezjavier.appfitness.domain.model.BlockSaved
 import io.github.lopezjavier.appfitness.domain.model.BlockSession
@@ -73,6 +74,9 @@ internal class FakeCoachBlockRepository : CoachBlockRepository {
     val reads = mutableListOf<String>()
     val saves = mutableListOf<String>()
 
+    /** The edits sent with each save, in call order. */
+    val saveEdits = mutableListOf<List<BlockEdit>>()
+
     override suspend fun requestBlock(planId: String, today: LocalDate): Result<CoachBlock> {
         requests += planId to today
         requestGate?.await()
@@ -84,8 +88,9 @@ internal class FakeCoachBlockRepository : CoachBlockRepository {
         return current
     }
 
-    override suspend fun saveBlock(planId: String): Result<BlockSaved> {
+    override suspend fun saveBlock(planId: String, edits: List<BlockEdit>): Result<BlockSaved> {
         saves += planId
+        saveEdits += edits
         saveGate?.await()
         return saveResult
     }

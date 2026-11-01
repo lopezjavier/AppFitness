@@ -73,6 +73,7 @@ const EQUIPMENT_ORDER = [
     "kettlebell",
     "bodyweight",
     "band",
+    "band_long",
     "other",
 ];
 const equipmentRank = (e: string): number => {

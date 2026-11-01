@@ -41,6 +41,7 @@ class SupabaseExerciseRepositoryTest {
     private val requests = mutableListOf<HttpRequestData>()
     private var rows = "[$CATALOG_ROW]"
     private var failing = false
+    private var alternativeRows = "[]"
     private var rpcError: Pair<HttpStatusCode, String>? = null
 
     private fun rpcFails(status: HttpStatusCode, code: String, message: String, details: String? = null) {
@@ -62,6 +63,9 @@ class SupabaseExerciseRepositoryTest {
 
                     rpcError != null && request.url.encodedPath.contains("/rpc/") ->
                         respond(rpcError!!.second, rpcError!!.first, headers)
+
+                    request.url.encodedPath.endsWith("/rpc/exercise_alternatives") ->
+                        respond(alternativeRows, HttpStatusCode.OK, headers)
 
                     request.method == HttpMethod.Get -> respond(rows, HttpStatusCode.OK, headers)
 
@@ -88,6 +92,71 @@ class SupabaseExerciseRepositoryTest {
         assertEquals(listOf(MuscleGroup.Triceps), exercise.secondaryMuscles)
         assertEquals(Equipment.Barbell, exercise.equipment)
         assertTrue(!exercise.isCustom)
+    }
+
+    private fun catalogRow(id: String, key: String, equipment: String = "cable") =
+        CATALOG_ROW.replace("\"e1\"", "\"$id\"").replace("\"bench\"", "\"$key\"")
+            .replace("\"barbell\"", "\"$equipment\"")
+
+    private fun withAlternativeCatalog() {
+        rows = "[" + listOf(
+            CATALOG_ROW,
+            catalogRow("e3", "fly"),
+            catalogRow("e4", "band-long-fly", "band_long"),
+            catalogRow("e5", "crossover"),
+        ).joinToString(",") + "]"
+    }
+
+    @Test
+    fun alternatives_callsTheRpcWithTheExerciseId() = runTest {
+        val repo = signedIn()
+        withAlternativeCatalog()
+
+        repo.alternatives("e1").getOrThrow()
+
+        val call = rpcPosts().single()
+        assertTrue(call.url.encodedPath.endsWith("/rpc/exercise_alternatives"), call.url.toString())
+        assertEquals("""{"p_exercise_id":"e1"}""", (call.body as TextContent).text)
+    }
+
+    @Test
+    fun alternatives_resolvesRowsThroughTheCachedCatalogue_sortedBySimilarityThenName() = runTest {
+        val repo = signedIn()
+        withAlternativeCatalog()
+        alternativeRows =
+            """[{"exercise_id":"e5","similarity":0.60},{"exercise_id":"e4","similarity":1.00},""" +
+            """{"exercise_id":"e3","similarity":0.60}]"""
+
+        val result = repo.alternatives("e1").getOrThrow()
+
+        assertEquals(listOf("band-long-fly", "crossover", "fly"), result.map { it.exercise.key })
+        assertEquals(listOf(1.0, 0.6, 0.6), result.map { it.similarity })
+        assertEquals(Equipment.BandLong, result.first().exercise.equipment)
+        assertEquals(1, reads().size)
+    }
+
+    @Test
+    fun alternatives_skipsRowsMissingFromTheCatalogue() = runTest {
+        val repo = signedIn()
+        withAlternativeCatalog()
+        alternativeRows = """[{"exercise_id":"gone","similarity":0.90},{"exercise_id":"e3","similarity":0.70}]"""
+
+        assertEquals(listOf("e3"), repo.alternatives("e1").getOrThrow().map { it.exercise.id })
+    }
+
+    @Test
+    fun alternatives_withoutRows_isEmpty() = runTest {
+        val repo = signedIn()
+
+        assertTrue(repo.alternatives("e1").getOrThrow().isEmpty())
+    }
+
+    @Test
+    fun alternatives_offline_isNetworkError() = runTest {
+        val repo = signedIn()
+        failing = true
+
+        assertEquals(AppError.Network, repo.alternatives("e1").appErrorOrNull())
     }
 
     @Test

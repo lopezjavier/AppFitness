@@ -2,6 +2,7 @@ package io.github.lopezjavier.appfitness.feature.exercises
 
 import io.github.lopezjavier.appfitness.composeapp.resources.Res
 import io.github.lopezjavier.appfitness.composeapp.resources.equipment_band
+import io.github.lopezjavier.appfitness.composeapp.resources.equipment_band_long
 import io.github.lopezjavier.appfitness.composeapp.resources.equipment_barbell
 import io.github.lopezjavier.appfitness.composeapp.resources.equipment_bodyweight
 import io.github.lopezjavier.appfitness.composeapp.resources.equipment_cable
@@ -72,6 +73,7 @@ internal val Equipment.label: StringResource
             Equipment.Bodyweight -> Res.string.equipment_bodyweight
             Equipment.Kettlebell -> Res.string.equipment_kettlebell
             Equipment.Band -> Res.string.equipment_band
+            Equipment.BandLong -> Res.string.equipment_band_long
             Equipment.Other -> Res.string.equipment_other
         }
 
