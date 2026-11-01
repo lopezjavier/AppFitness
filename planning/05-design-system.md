@@ -97,7 +97,7 @@ Generic rules cited by number; ux-reviewer rejects plans and diffs that break on
 - **R-30 Offline:** only the shell shows "Sin conexión"; a write disabled offline shows the standard hint; a failed offline load shows `OfflineState`, which retries on reconnect.
 - **R-31 States:** loading = skeleton shaped like the layout; empty = `EmptyState` with at most one action; error = `ErrorState` with "Reintentar"; an action waiting for server/AI shows progress ("Estimando…") and then its result or an error with "Reintentar". Every outcome is visible.
 - **R-32** Help is always `HelpButton`, never text expanding in place.
-- **R-43 Watch data.** Every screen that shows watch data (Health Connect: weight, sleep, steps, calories, resting heart rate) shows the Health Connect status line and its "Sincronizar" button (`HealthStatusLine`) directly under the top bar, in every state (loading, empty, error, content). Today: Peso and Actividad.
+- **R-43 Watch data.** Every screen that shows watch data (Health Connect: weight, sleep, steps, calories, resting heart rate) shows the Health Connect status line and its "Sincronizar" button (`HealthStatusLine`) directly under the top bar, in every state (loading, empty, error, content). Today: Peso and Actividad. Exception: a derived summary line inside a card (e.g. the Trainer week's "Pasos: media X de Y") does not need the status line; the source screen (Actividad) keeps it.
 ### Selection controls
 - **R-33** Tabs (`AppTabRow`) switch sibling views of one screen; a segmented control (`SegmentedSelector`) picks one of 2-5 short options; chips filter a list or pick among many/long options. A control never changes type with the number of options.
 - **R-34** The same concept uses the same control and labels. Chart ranges use `TimeRangeSelector`: "1S 1M 3M 6M 1A".
@@ -152,6 +152,9 @@ Uses `SwipeToDeleteRow` only (guard G7) · right-to-left, "Eliminar"/"Quitar" ·
 | Easier week the coach suggests (T-165) | "Descarga" (chip "Descarga", card "Semana de descarga", live "Descarga: mismo peso, 3 de 5 series") | "Deload", "Semana suave", "Descanso" | Same weights, 40 % fewer working sets; routines are never rewritten; accept/discard with "Aceptar"/"Descartar" |
 | Plan adherence (T-165) | "3 de 4 entrenos · 75 %" (no label) | "Adherencia", "Cumplimiento", "sesiones" | Counts routines done per week; a missed workout shows "No hecho", never an error |
 | Current week marker (T-165) | "Actual" chip | "Hoy", "En curso" | |
+| Cardio progress of a week (T-183) | "Cardio de la semana: 100 de 150 min" | "Actividad física", "Ejercicio aeróbico" | Text plus bar; per week, nothing carries over |
+| Cardio minutes the routines do not hold (T-183) | "Por tu cuenta" ("Te faltan 120 min de cardio a la semana: hazlos por tu cuenta.") | "Extra", "Libre" | |
+| Routine duration with cardio (T-183) | "Tiempo total: 1 h 50 min" | "Duración", "Total" | Never "1 h 0 min" |
 | Decide on a coach proposal | "Aceptar" / "Descartar" | "Guardar", "Cancelar" | Distinct from the edit pair "Guardar"/"Cancelar"; used by the plan tasks of E13 |
 | The AI model the coach uses (T-178, test aid) | "Modelo de IA" (card in "Uso de IA"; options "Opus 5.5", "Sonnet 5.5", "Haiku 5.5") | "Motor", "Versión", "Inteligencia" | `SelectableCard` group that applies on tap (R-12); no prices in the copy (the server owns them); resets to Opus when the app closes |
 | A coach value not yet confirmed | "Provisional" (`StatusChip` Caution, announced "Valor provisional") | "Pendiente", "Sin confirmar" | A re-asked value shows the same chip; the proposal says "Hay valores sin confirmar. Revísalos y vuelve a crear el plan para poder aceptar." |

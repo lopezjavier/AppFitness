@@ -34,6 +34,8 @@ data class LiveSetRow(
     val pendingSave: Boolean = false,
     /** Checking was refused because the weight or the reps are missing; cleared by the next edit. */
     val invalid: Boolean = false,
+    /** Planned whole minutes of a cardio set (shown as the dim placeholder, no tap-to-fill); null otherwise. */
+    val plannedDurationMinutes: Int? = null,
     /** The logged RPE as "7,5"; null when none (the UI shows the empty marker). */
     val rpe: String? = null,
     /** Kilometres as typed (distance and duration sets). */

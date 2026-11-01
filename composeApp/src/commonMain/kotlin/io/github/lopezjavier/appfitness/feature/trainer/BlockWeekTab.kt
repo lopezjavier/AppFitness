@@ -13,6 +13,8 @@ import androidx.compose.ui.semantics.stateDescription
 import io.github.lopezjavier.appfitness.composeapp.resources.Res
 import io.github.lopezjavier.appfitness.composeapp.resources.block_exercise_detail
 import io.github.lopezjavier.appfitness.composeapp.resources.block_exercise_fallback
+import io.github.lopezjavier.appfitness.composeapp.resources.block_preview_cardio_detail
+import io.github.lopezjavier.appfitness.composeapp.resources.block_preview_cardio_total
 import io.github.lopezjavier.appfitness.composeapp.resources.block_reason_cd
 import io.github.lopezjavier.appfitness.composeapp.resources.block_replace_action_cd
 import io.github.lopezjavier.appfitness.composeapp.resources.block_replace_changed
@@ -28,6 +30,7 @@ import io.github.lopezjavier.appfitness.designsystem.HelpTriggerButton
 import io.github.lopezjavier.appfitness.domain.model.BlockExercise
 import io.github.lopezjavier.appfitness.domain.model.BlockSession
 import io.github.lopezjavier.appfitness.domain.model.MuscleGroup
+import io.github.lopezjavier.appfitness.domain.usecase.DurationFormat
 import io.github.lopezjavier.appfitness.feature.exercises.label
 import io.github.lopezjavier.appfitness.feature.workout.restDurationText
 import org.jetbrains.compose.resources.stringResource
@@ -51,9 +54,19 @@ internal fun BlockWeekTab(
     isChanged: (sessionIndex: Int, position: Int) -> Boolean,
     canSwap: (sessionIndex: Int, position: Int) -> Boolean,
     onReplace: (sessionIndex: Int, position: Int) -> Unit,
+    routineTotalMin: List<Int> = emptyList(),
 ) {
     sessions.forEach { session ->
-        BlockRoutineCard(session, exerciseNames, onOpenExercise, onOpenReason, isChanged, canSwap, onReplace)
+        BlockRoutineCard(
+            session,
+            exerciseNames,
+            onOpenExercise,
+            onOpenReason,
+            isChanged,
+            canSwap,
+            onReplace,
+            totalMin = routineTotalMin.getOrNull(session.sessionIndex),
+        )
     }
 }
 
@@ -67,6 +80,7 @@ private fun BlockRoutineCard(
     isChanged: (sessionIndex: Int, position: Int) -> Boolean,
     canSwap: (sessionIndex: Int, position: Int) -> Boolean,
     onReplace: (sessionIndex: Int, position: Int) -> Unit,
+    totalMin: Int?,
 ) {
     AppCard(Modifier.fillMaxWidth().testTag("block_preview_routine_${session.week}_${session.sessionIndex}")) {
         Text(
@@ -95,6 +109,17 @@ private fun BlockRoutineCard(
                 onReplace = { onReplace(session.sessionIndex, position) },
             )
         }
+        if (totalMin != null) {
+            Text(
+                text = stringResource(
+                    Res.string.block_preview_cardio_total,
+                    DurationFormat.formatHoursMinutes(totalMin),
+                ),
+                style = AppTheme.typography.bodyMedium,
+                color = AppTheme.colors.textSecondary,
+                modifier = Modifier.testTag("block_preview_cardio_total_${session.week}_${session.sessionIndex}"),
+            )
+        }
     }
 }
 
@@ -112,17 +137,26 @@ private fun BlockExerciseRow(
     onReplace: () -> Unit,
 ) {
     val tag = "${session.week}_${session.sessionIndex}_$position"
-    val reps = if (exercise.repMin == exercise.repMax) {
-        stringResource(Res.string.block_reps_single, exercise.sets, exercise.repMin)
+    val detail = if (exercise.isCardio) {
+        // Cardio is minutes at an easy pace: no sets, reps or rest.
+        stringResource(Res.string.block_preview_cardio_detail, exercise.durationMin ?: 0)
     } else {
-        stringResource(Res.string.block_reps_range, exercise.sets, exercise.repMin, exercise.repMax)
+        val reps = if (exercise.repMin == exercise.repMax) {
+            stringResource(Res.string.block_reps_single, exercise.sets, exercise.repMin)
+        } else {
+            stringResource(Res.string.block_reps_range, exercise.sets, exercise.repMin, exercise.repMax)
+        }
+        stringResource(Res.string.block_exercise_detail, reps, restDurationText(exercise.restSeconds))
     }
-    val detail = stringResource(Res.string.block_exercise_detail, reps, restDurationText(exercise.restSeconds))
     val changedText = stringResource(Res.string.block_replace_changed)
     // The marker is text, not colour alone (R-41); it also reads as the state of the row.
     val supporting = if (changed) stringResource(Res.string.block_exercise_detail, changedText, detail) else detail
     val rowSemantics = if (changed) Modifier.semantics { stateDescription = changedText } else Modifier
-    val supportingTag = if (changed) "block_preview_changed_$tag" else null
+    val supportingTag = when {
+        changed -> "block_preview_changed_$tag"
+        exercise.isCardio -> "block_preview_cardio_row_${session.week}_${session.sessionIndex}"
+        else -> null
+    }
     val displayName = name ?: stringResource(Res.string.block_exercise_fallback)
     val reasonButton: @Composable () -> Unit = {
         Row(verticalAlignment = Alignment.CenterVertically) {

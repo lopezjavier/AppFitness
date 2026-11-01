@@ -24,6 +24,7 @@ import io.github.lopezjavier.appfitness.composeapp.resources.block_days_week
 import io.github.lopezjavier.appfitness.composeapp.resources.block_exercise_fallback
 import io.github.lopezjavier.appfitness.composeapp.resources.block_frequency
 import io.github.lopezjavier.appfitness.composeapp.resources.block_frequency_chosen
+import io.github.lopezjavier.appfitness.composeapp.resources.block_preview_cardio_own
 import io.github.lopezjavier.appfitness.composeapp.resources.block_preview_error
 import io.github.lopezjavier.appfitness.composeapp.resources.block_preview_interrupted
 import io.github.lopezjavier.appfitness.composeapp.resources.block_preview_progress
@@ -207,6 +208,15 @@ private fun PreviewContent(
         }
         item(key = "week_${state.selectedWeek}") {
             Column(verticalArrangement = Arrangement.spacedBy(Spacing.blockGap)) {
+                val ownMin = training.cardio?.onYourOwnMin ?: 0
+                if (ownMin > 0) {
+                    Text(
+                        text = stringResource(Res.string.block_preview_cardio_own, ownMin),
+                        style = AppTheme.typography.bodyMedium,
+                        color = AppTheme.colors.textSecondary,
+                        modifier = Modifier.testTag("block_preview_cardio_own_${state.selectedWeek}"),
+                    )
+                }
                 BlockWeekTab(
                     sessions = state.sessions,
                     exerciseNames = state.exerciseNames,
@@ -215,6 +225,7 @@ private fun PreviewContent(
                     isChanged = state::isChanged,
                     canSwap = state::canSwap,
                     onReplace = { session, position -> onEvent(BlockPreviewEvent.OpenReplace(session, position)) },
+                    routineTotalMin = training.routineTotalMin,
                 )
             }
         }

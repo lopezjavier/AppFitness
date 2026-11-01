@@ -34,6 +34,20 @@ data class BlockTraining(
     val weeklySets: Map<String, Int>,
     /** Days per week each muscle group is trained, by muscle group key. */
     val sessionsPerMuscle: Map<String, Int>,
+    /** The cardio plan of the block; null for a block stored before cardio closed every routine. */
+    val cardio: BlockCardio? = null,
+    /** Total minutes of each routine (lifting plus cardio), by session index; empty without cardio. */
+    val routineTotalMin: List<Int> = emptyList(),
+)
+
+/** `coach_plans.training.cardio`: the weekly minutes, how the routines hold them and the pace. */
+data class BlockCardio(
+    val targetMinWeek: Int,
+    val plannedMinWeek: Int,
+    /** Minutes of the target the routines do not hold: the user does them on their own. */
+    val onYourOwnMin: Int,
+    val perRoutineMin: List<Int>,
+    val pace: String,
 )
 
 /** One workout of the block (a row of `coach_plan_sessions`); [routineId] is set once the block was saved. */
@@ -58,7 +72,18 @@ data class BlockExercise(
     val restSeconds: Int,
     /** Why the coach chose this exercise (Spanish text from the function). */
     val reason: String,
-)
+    /** Planned minutes of a cardio slot; null for lifting. */
+    val durationMin: Int? = null,
+    /** Cardio intensity code (e.g. "suave"); null for lifting. */
+    val pace: String? = null,
+) {
+    /** Cardio slots carry minutes, not sets and reps. */
+    val isCardio: Boolean get() = role == CARDIO_ROLE
+
+    companion object {
+        const val CARDIO_ROLE = "cardio"
+    }
+}
 
 /**
  * A pending replacement applied by "Guardar bloque": the exercise at [position] (1-based) of workout [sessionIndex]

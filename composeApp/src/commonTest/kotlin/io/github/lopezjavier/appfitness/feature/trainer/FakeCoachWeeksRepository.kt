@@ -15,6 +15,10 @@ internal fun planWeek(
     planned: Int = 4,
     completed: Int = 3,
     adherencePct: Int = 75,
+    cardioMinDone: Int = 0,
+    cardioMinTarget: Int? = null,
+    stepsAvg: Int? = null,
+    stepsTarget: Int? = null,
 ) = PlanWeek(
     week = week,
     startDate = LocalDate(2026, 10, 19).let { LocalDate.fromEpochDays(it.toEpochDays() + 7 * (week - 1)) },
@@ -25,6 +29,10 @@ internal fun planWeek(
     completed = completed,
     adherencePct = adherencePct,
     sessions = listOf(PlanWeekSession(0, "Push", "routine-0", done = completed > 0)),
+    cardioMinDone = cardioMinDone,
+    cardioMinTarget = cardioMinTarget,
+    stepsAvg = stepsAvg,
+    stepsTarget = stepsTarget,
 )
 
 internal fun deloadProposal(id: String = "deload-1", week: Int = 4) = DeloadProposal(id, "plan-1", week)

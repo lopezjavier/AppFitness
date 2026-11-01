@@ -12,6 +12,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.LiveRegionMode
+import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
 import io.github.lopezjavier.appfitness.composeapp.resources.Res
@@ -24,6 +25,8 @@ import io.github.lopezjavier.appfitness.composeapp.resources.live_rpe_cell_cd
 import io.github.lopezjavier.appfitness.composeapp.resources.live_rpe_empty_state
 import io.github.lopezjavier.appfitness.composeapp.resources.live_set_delete_cd
 import io.github.lopezjavier.appfitness.composeapp.resources.note_edit
+import io.github.lopezjavier.appfitness.composeapp.resources.session_cardio_minutes_cd
+import io.github.lopezjavier.appfitness.composeapp.resources.session_cardio_minutes_hint
 import io.github.lopezjavier.appfitness.designsystem.AppNumberFormat
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
 import io.github.lopezjavier.appfitness.designsystem.InlineNote
@@ -74,6 +77,7 @@ internal fun SessionSetRow(
     metricType: ExerciseMetricType = ExerciseMetricType.WeightReps,
     equipment: Equipment? = null,
     deleteEnabled: Boolean = true,
+    showRpe: Boolean = true,
 ) {
     val tag = "live_set_${position}_${row.setIndex}"
     val noteText = setNoteSummary(row.noteKind, row.notes)
@@ -106,7 +110,11 @@ internal fun SessionSetRow(
                     onStopwatchToggle = { onEvent(LiveSessionEvent.StopwatchToggled(position, row.setIndex)) },
                     onDurationEdit = { onEvent(LiveSessionEvent.DurationEdited(position, row.setIndex, it)) },
                 ),
-                onRpeClick = { onEvent(LiveSessionEvent.OpenRpePicker(position, row.setIndex)) },
+                onRpeClick = if (showRpe) {
+                    { onEvent(LiveSessionEvent.OpenRpePicker(position, row.setIndex)) }
+                } else {
+                    null
+                },
                 rpeClickLabel = stringResource(
                     Res.string.live_rpe_cell_cd,
                     AppNumberFormat.integer(row.setIndex),
@@ -121,6 +129,7 @@ internal fun SessionSetRow(
                     )
                 },
             )
+            row.plannedDurationMinutes?.let { PlannedMinutesHint(position, row.setIndex, it) }
             if (row.pendingSave) PendingSaveLabel(Modifier.testTag("${tag}_pending"))
             noteText?.let {
                 InlineNote(
@@ -179,4 +188,18 @@ private fun PendingSaveLabel(modifier: Modifier = Modifier) {
             color = AppTheme.colors.energyAmber,
         )
     }
+}
+
+/** The planned minutes of a cardio set as a dim placeholder under the row (04 4.3 ghost pattern, no tap-to-fill). */
+@Composable
+private fun PlannedMinutesHint(position: Int, setIndex: Int, minutes: Int) {
+    val description = stringResource(Res.string.session_cardio_minutes_cd, minutes)
+    Text(
+        text = stringResource(Res.string.session_cardio_minutes_hint, minutes),
+        style = AppTheme.typography.bodySmall,
+        color = AppTheme.colors.ghostData,
+        modifier = Modifier.padding(start = Spacing.xl)
+            .semantics { contentDescription = description }
+            .testTag("session_cardio_minutes_field_${position}_$setIndex"),
+    )
 }

@@ -14,6 +14,7 @@ import io.github.lopezjavier.appfitness.domain.model.ExerciseHistoryPoint
 import io.github.lopezjavier.appfitness.domain.model.ExerciseMetricType
 import io.github.lopezjavier.appfitness.domain.model.ExerciseNoteKind
 import io.github.lopezjavier.appfitness.domain.model.ExerciseSessionRecords
+import io.github.lopezjavier.appfitness.domain.model.MovementPattern
 import io.github.lopezjavier.appfitness.domain.model.Note
 import io.github.lopezjavier.appfitness.domain.model.NoteText
 import io.github.lopezjavier.appfitness.domain.model.PlannedSet
@@ -165,7 +166,11 @@ private data class NoteSheetDraft(val position: Int, val setIndex: Int, val draf
 private data class RoutineNoteSheetDraft(val position: Int, val draft: String, val kind: ExerciseNoteKind?)
 
 /** What the screen needs to know about an exercise's kind: how its sets are measured and its equipment. */
-private data class ExerciseTraits(val metricType: ExerciseMetricType, val equipment: Equipment)
+private data class ExerciseTraits(
+    val metricType: ExerciseMetricType,
+    val equipment: Equipment,
+    val cardio: Boolean = false,
+)
 
 private data class ExerciseState(
     val exerciseId: String,
@@ -710,7 +715,11 @@ class LiveSessionViewModel(
     private suspend fun loadNames() {
         names = loadExerciseNames(exerciseRepository, exerciseLibrary) ?: return
         traits = exerciseRepository.getAll().getOrNull()
-            ?.associate { it.id to ExerciseTraits(it.metricType, it.equipment) } ?: traits
+            ?.associate {
+                it.id to
+                    ExerciseTraits(it.metricType, it.equipment, it.movementPattern == MovementPattern.Cardio)
+            }
+            ?: traits
     }
 
     private fun metricOf(exerciseId: String): ExerciseMetricType =
@@ -911,7 +920,7 @@ class LiveSessionViewModel(
         fillBlankFromSuggestions(position, setIndex)
         val filled = findSet(position, setIndex)
         val valid = filled?.let { parseEntry(it, metricOf(exerciseIdAt(position))) } != null
-        val needsRpe = filled?.setType != SetType.WarmUp && filled?.rpe == null
+        val needsRpe = filled?.setType != SetType.WarmUp && filled?.rpe == null && !isTimedCardio(position, setIndex)
         when {
             !valid -> {
                 updateSet(position, setIndex) { it.copy(invalid = true) }
@@ -945,16 +954,31 @@ class LiveSessionViewModel(
         // Marking a set "Listo" while paused resumes the session and its countdown (ADR-56).
         if (session?.pausedAt != null) resumeSession()
         // Offline the resume is refused, so the session stays paused and no countdown may run inside it.
-        if (session?.pausedAt == null) startRest(position)
+        // A cardio set planned in minutes has no rest after it: the next exercise is not a lifting set.
+        if (session?.pausedAt == null && !isTimedCardio(position, setIndex)) startRest(position)
     }
+
+    private fun isTimedCardio(position: Int, setIndex: Int): Boolean {
+        val exerciseId = session?.exercises?.firstOrNull { it.position == position }?.exerciseId ?: return false
+        return traits[exerciseId]?.cardio == true && planned[position to setIndex]?.durationS != null
+    }
+
+    /** Planned whole minutes of a cardio set (the grey placeholder); null for any other set. */
+    private fun plannedMinutesOf(exercise: ExerciseState, set: SetState): Int? =
+        planned[exercise.position to set.setIndex]?.durationS?.let { it / RoutineBounds.SECONDS_PER_MINUTE }
 
     /** Untouched fields log the suggested (grey) values: planned first, then the last performance. */
     private fun fillBlankFromSuggestions(position: Int, setIndex: Int) {
         val exercise = session?.exercises?.firstOrNull { it.position == position } ?: return
+        val plannedSeconds = planned[position to setIndex]?.durationS
+        val now = clock.now()
         updateSet(position, setIndex) {
+            val untimed = plannedSeconds != null && it.stopwatch.elapsedSeconds(now) == 0
             it.copy(
                 weight = it.weight.ifBlank { weightPlaceholderOf(exercise, it).orEmpty() },
                 reps = it.reps.ifBlank { repsPlaceholderOf(exercise, it).orEmpty() },
+                // A cardio set done as planned logs the planned minutes.
+                stopwatch = if (untimed) it.stopwatch.withElapsedSeconds(plannedSeconds ?: 0) else it.stopwatch,
             )
         }
     }
@@ -1234,7 +1258,7 @@ class LiveSessionViewModel(
 
     /** The greyed reps of a set: the routine's plan, else last time's value, else the one it was added with. */
     private fun repsPlaceholderOf(exercise: ExerciseState, set: SetState): String? =
-        planned[exercise.position to set.setIndex]?.reps?.toString()
+        planned[exercise.position to set.setIndex]?.takeUnless { it.isTimed }?.reps?.toString()
             ?: ghostFor(exercise.exerciseId, set.setIndex)?.reps?.toString()
             ?: set.repsPlaceholder
 
@@ -1824,6 +1848,7 @@ class LiveSessionViewModel(
                             previous = GhostData.previousText(ghost, metricOf(exercise.exerciseId)),
                             pendingSave = (exercise.position to set.setIndex) in unsynced,
                             invalid = set.invalid,
+                            plannedDurationMinutes = plannedMinutesOf(exercise, set),
                             rpe = set.rpe?.let(RpeScale::text),
                             notes = set.notes,
                             noteKind = set.noteKind,

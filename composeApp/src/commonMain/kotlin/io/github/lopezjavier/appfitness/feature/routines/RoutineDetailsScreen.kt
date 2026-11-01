@@ -34,6 +34,7 @@ import io.github.lopezjavier.appfitness.composeapp.resources.routine_details_las
 import io.github.lopezjavier.appfitness.composeapp.resources.routine_details_never_done
 import io.github.lopezjavier.appfitness.composeapp.resources.routine_details_set_bodyweight
 import io.github.lopezjavier.appfitness.composeapp.resources.routine_details_set_line
+import io.github.lopezjavier.appfitness.composeapp.resources.routine_details_set_minutes
 import io.github.lopezjavier.appfitness.composeapp.resources.routine_details_sets_reps
 import io.github.lopezjavier.appfitness.composeapp.resources.routine_details_weight
 import io.github.lopezjavier.appfitness.composeapp.resources.routines_action_failed
@@ -57,6 +58,7 @@ import io.github.lopezjavier.appfitness.designsystem.SkeletonBox
 import io.github.lopezjavier.appfitness.designsystem.Spacing
 import io.github.lopezjavier.appfitness.designsystem.appAnimateItem
 import io.github.lopezjavier.appfitness.domain.model.PlannedSet
+import io.github.lopezjavier.appfitness.domain.model.RoutineBounds
 import io.github.lopezjavier.appfitness.feature.exercises.LocalExerciseMediaUris
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.TimeZone
@@ -272,9 +274,20 @@ private fun dateOf(instant: Instant, timeZone: TimeZone, today: LocalDate): Stri
  * ("60 kg x 8 · 62,5 kg x 6", "10 reps" without weight), so per-set weights are visible.
  */
 @Composable
-private fun setsSummary(sets: List<PlannedSet>): String {
-    if (sets.isEmpty()) return ""
-    val first = sets.first()
+private fun setsSummary(sets: List<PlannedSet>): String = // A cardio set is planned in time: "50 min", never "0 reps".
+    if (sets.isNotEmpty() && sets.all { it.durationS != null }) minutesSummary(sets) else repsSummary(sets)
+
+@Composable
+private fun minutesSummary(sets: List<PlannedSet>): String = sets.map {
+    stringResource(
+        Res.string.routine_details_set_minutes,
+        (it.durationS ?: 0) / RoutineBounds.SECONDS_PER_MINUTE,
+    )
+}.joinToString(" · ")
+
+@Composable
+private fun repsSummary(sets: List<PlannedSet>): String {
+    val first = sets.firstOrNull() ?: return ""
     val weightOf = { set: PlannedSet -> set.weightKg?.let { AppNumberFormat.decimal(it, maxDecimals = 2) } }
     return if (sets.all { it.weightKg == first.weightKg && it.reps == first.reps }) {
         val base = stringResource(Res.string.routine_details_sets_reps, sets.size, first.reps)

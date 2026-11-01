@@ -5,12 +5,14 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import io.github.lopezjavier.appfitness.composeapp.resources.Res
 import io.github.lopezjavier.appfitness.composeapp.resources.action_retry
+import io.github.lopezjavier.appfitness.composeapp.resources.block_preview_replace_cardio_note
 import io.github.lopezjavier.appfitness.composeapp.resources.block_replace_empty
 import io.github.lopezjavier.appfitness.composeapp.resources.block_replace_error
 import io.github.lopezjavier.appfitness.composeapp.resources.block_replace_reset
@@ -18,6 +20,7 @@ import io.github.lopezjavier.appfitness.composeapp.resources.block_replace_title
 import io.github.lopezjavier.appfitness.designsystem.AppListRow
 import io.github.lopezjavier.appfitness.designsystem.AppPickerSheet
 import io.github.lopezjavier.appfitness.designsystem.AppStateAction
+import io.github.lopezjavier.appfitness.designsystem.AppTheme
 import io.github.lopezjavier.appfitness.designsystem.EmptyState
 import io.github.lopezjavier.appfitness.designsystem.ErrorState
 import io.github.lopezjavier.appfitness.designsystem.LocalAppHaptics
@@ -96,17 +99,29 @@ internal fun BlockReplaceSheet(
                     )
                 }
 
-                is AlternativesState.Content -> alternatives.rows.forEach { row ->
-                    SimilarExerciseItem(
-                        row = row,
-                        rowTag = "block_preview_replace_option_${row.tagKey}",
-                        percentTag = "block_preview_replace_percent_${row.tagKey}",
-                        onOpen = { onOpenExercise(row.exercise.id) },
-                        onSelect = {
-                            haptics.confirm()
-                            onEvent(BlockPreviewEvent.PickReplacement(row.exercise.id))
-                        },
-                    )
+                is AlternativesState.Content -> {
+                    alternatives.rows.forEach { row ->
+                        SimilarExerciseItem(
+                            row = row,
+                            rowTag = "block_preview_replace_option_${row.tagKey}",
+                            percentTag = "block_preview_replace_percent_${row.tagKey}",
+                            onOpen = { onOpenExercise(row.exercise.id) },
+                            onSelect = {
+                                haptics.confirm()
+                                onEvent(BlockPreviewEvent.PickReplacement(row.exercise.id))
+                            },
+                            showPercent = !state.isCardioSwap,
+                        )
+                    }
+                    if (state.isCardioSwap) {
+                        Text(
+                            text = stringResource(Res.string.block_preview_replace_cardio_note),
+                            style = AppTheme.typography.bodyMedium,
+                            color = AppTheme.colors.textSecondary,
+                            modifier = Modifier.padding(vertical = Spacing.md)
+                                .testTag("block_preview_replace_cardio_note"),
+                        )
+                    }
                 }
             }
         }

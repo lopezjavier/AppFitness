@@ -1,5 +1,6 @@
 package io.github.lopezjavier.appfitness.data.remote
 
+import io.github.lopezjavier.appfitness.domain.model.BlockCardio
 import io.github.lopezjavier.appfitness.domain.model.BlockExercise
 import io.github.lopezjavier.appfitness.domain.model.BlockSaved
 import io.github.lopezjavier.appfitness.domain.model.BlockSession
@@ -20,6 +21,8 @@ internal data class BlockTrainingDto(
     val equipment: List<String> = emptyList(),
     @SerialName("weekly_sets") val weeklySets: Map<String, Int> = emptyMap(),
     @SerialName("sessions_per_muscle") val sessionsPerMuscle: Map<String, Int> = emptyMap(),
+    val cardio: BlockCardioDto? = null,
+    @SerialName("routine_total_min") val routineTotalMin: List<Int> = emptyList(),
 ) {
     fun toDomain() = BlockTraining(
         daysPerWeek = daysPerWeek,
@@ -30,7 +33,20 @@ internal data class BlockTrainingDto(
         equipment = equipment,
         weeklySets = weeklySets,
         sessionsPerMuscle = sessionsPerMuscle,
+        cardio = cardio?.toDomain(),
+        routineTotalMin = routineTotalMin,
     )
+}
+
+@Serializable
+internal data class BlockCardioDto(
+    @SerialName("target_min_week") val targetMinWeek: Int = 0,
+    @SerialName("planned_min_week") val plannedMinWeek: Int = 0,
+    @SerialName("on_your_own_min") val onYourOwnMin: Int = 0,
+    @SerialName("per_routine_min") val perRoutineMin: List<Int> = emptyList(),
+    val pace: String = "",
+) {
+    fun toDomain() = BlockCardio(targetMinWeek, plannedMinWeek, onYourOwnMin, perRoutineMin, pace)
 }
 
 @Serializable
@@ -44,6 +60,8 @@ internal data class BlockExerciseDto(
     @SerialName("rep_max") val repMax: Int = 0,
     @SerialName("rest_seconds") val restSeconds: Int = 0,
     val reason: String = "",
+    @SerialName("duration_min") val durationMin: Int? = null,
+    val pace: String? = null,
 ) {
     fun toDomain() = BlockExercise(
         exerciseId = exerciseId,
@@ -55,6 +73,8 @@ internal data class BlockExerciseDto(
         repMax = repMax,
         restSeconds = restSeconds,
         reason = reason,
+        durationMin = durationMin,
+        pace = pace,
     )
 }
 

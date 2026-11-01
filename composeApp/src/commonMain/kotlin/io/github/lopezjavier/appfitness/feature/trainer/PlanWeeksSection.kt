@@ -13,6 +13,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import io.github.lopezjavier.appfitness.composeapp.resources.Res
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_check
+import io.github.lopezjavier.appfitness.composeapp.resources.plan_week_cardio
+import io.github.lopezjavier.appfitness.composeapp.resources.plan_week_steps
+import io.github.lopezjavier.appfitness.composeapp.resources.plan_week_steps_none
 import io.github.lopezjavier.appfitness.composeapp.resources.trainer_week_chip_current
 import io.github.lopezjavier.appfitness.composeapp.resources.trainer_week_chip_deload
 import io.github.lopezjavier.appfitness.composeapp.resources.trainer_week_planned
@@ -25,7 +28,9 @@ import io.github.lopezjavier.appfitness.composeapp.resources.trainer_week_title
 import io.github.lopezjavier.appfitness.composeapp.resources.trainer_weeks_header
 import io.github.lopezjavier.appfitness.designsystem.AppCard
 import io.github.lopezjavier.appfitness.designsystem.AppDateFormat
+import io.github.lopezjavier.appfitness.designsystem.AppLinearProgress
 import io.github.lopezjavier.appfitness.designsystem.AppListRow
+import io.github.lopezjavier.appfitness.designsystem.AppNumberFormat
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
 import io.github.lopezjavier.appfitness.designsystem.ListSectionHeader
 import io.github.lopezjavier.appfitness.designsystem.Spacing
@@ -94,9 +99,55 @@ private fun WeekCard(week: PlanWeek) {
                 color = AppTheme.colors.textPrimary,
                 modifier = Modifier.testTag("trainer_week_${week.week}_adherence"),
             )
+            WeekCardio(week)
+            WeekSteps(week)
             week.sessions.forEach { SessionRow(week, it) }
         }
     }
+}
+
+/** "Cardio de la semana: 100 de 150 min" with its bar; hidden for a plan without a weekly cardio target. */
+@Composable
+private fun WeekCardio(week: PlanWeek) {
+    val target = week.cardioMinTarget?.takeIf { it > 0 } ?: return
+    // An upcoming week has nothing logged yet: it shows the target against 0.
+    val done = if (week.phase == WeekPhase.Upcoming) 0 else week.cardioMinDone
+    val text = stringResource(Res.string.plan_week_cardio, done, target)
+    Column(verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
+        Text(
+            text = text,
+            style = AppTheme.typography.bodyMedium,
+            color = AppTheme.colors.textPrimary,
+            modifier = Modifier.testTag("plan_week_cardio_value_${week.week}"),
+        )
+        AppLinearProgress(
+            fraction = done.toFloat() / target,
+            stateDescription = text,
+            modifier = Modifier.testTag("plan_week_cardio_bar_${week.week}"),
+        )
+    }
+}
+
+/** "Pasos: media 7.800 de 7.000", or "Sin datos de pasos"; current and past weeks only, hidden without a target. */
+@Composable
+private fun WeekSteps(week: PlanWeek) {
+    val target = week.stepsTarget ?: return
+    if (week.phase == WeekPhase.Upcoming) return
+    val average = week.stepsAvg
+    Text(
+        text = if (average == null) {
+            stringResource(Res.string.plan_week_steps_none)
+        } else {
+            stringResource(
+                Res.string.plan_week_steps,
+                AppNumberFormat.integer(average),
+                AppNumberFormat.integer(target),
+            )
+        },
+        style = AppTheme.typography.bodyMedium,
+        color = AppTheme.colors.textPrimary,
+        modifier = Modifier.testTag("plan_week_steps_value_${week.week}"),
+    )
 }
 
 /** Status row (no chevron): a check when done, otherwise text; a missed past workout is neutral, never an error. */

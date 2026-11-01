@@ -3,12 +3,14 @@ package io.github.lopezjavier.appfitness.feature.routines
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.test.assertContentDescriptionEquals
 import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.assertTextContains
 import androidx.compose.ui.test.junit4.StateRestorationTester
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
+import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTextInput
 import androidx.lifecycle.SavedStateHandle
@@ -16,6 +18,9 @@ import io.github.lopezjavier.appfitness.app.FakeConnectivityObserver
 import io.github.lopezjavier.appfitness.app.FakeTrainingPreferencesRepository
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
 import io.github.lopezjavier.appfitness.domain.model.ExerciseNoteKind
+import io.github.lopezjavier.appfitness.domain.model.PlannedSet
+import io.github.lopezjavier.appfitness.domain.model.Routine
+import io.github.lopezjavier.appfitness.domain.model.RoutineExercise
 import io.github.lopezjavier.appfitness.domain.usecase.LoadExerciseCatalog
 import io.github.lopezjavier.appfitness.feature.exercises.FakeExerciseLibrary
 import io.github.lopezjavier.appfitness.feature.exercises.FakeExerciseMediaUris
@@ -132,6 +137,47 @@ class RoutineBuilderRestorationTest {
 
         rule.onNodeWithTag("note_sheet_option_setup").assertIsSelected()
         rule.onNodeWithTag("note_sheet_text").assertTextContains("bajar el pe")
+    }
+
+    @Test
+    fun aChangedPlannedCardioMinute_survivesARecreatedViewModel() {
+        val routine = Routine(
+            id = "r1",
+            name = "Entreno",
+            notes = null,
+            archived = false,
+            exercises = listOf(RoutineExercise("bike", 0, null, listOf(PlannedSet.ofMinutes(50)), restSeconds = 0)),
+        )
+        val routines = FakeRoutineRepository(listOf(routine))
+        val cardioExercises = FakeExerciseRepository(listOf(exerciseRow("bike", "bike")))
+        val cardioLibrary = FakeExerciseLibrary(mapOf("bike" to exerciseInfo("bike", "Bicicleta")))
+        val handle = SavedStateHandle()
+        fun model() = RoutineBuilderViewModel(
+            "r1",
+            handle,
+            routines,
+            LoadExerciseCatalog(cardioExercises, cardioLibrary),
+            FakeConnectivityObserver(),
+            FakeTrainingPreferencesRepository(),
+        )
+        var current by androidx.compose.runtime.mutableStateOf(model())
+        rule.setContent {
+            val state by current.uiState.collectAsState()
+            AppTheme {
+                CompositionLocalProvider(LocalExerciseMediaUris provides FakeExerciseMediaUris) {
+                    RoutineBuilderScreen(state, current::onEvent, {}, {})
+                }
+            }
+        }
+        rule.waitForIdle()
+        rule.onNodeWithTag("routine_set_minutes_picker_0_0_increment").performClick()
+        rule.waitForIdle()
+        rule.onNodeWithText("55 min").assertExists()
+
+        current = model()
+        rule.waitForIdle()
+
+        rule.onNodeWithText("55 min").assertExists()
     }
 
     @Test

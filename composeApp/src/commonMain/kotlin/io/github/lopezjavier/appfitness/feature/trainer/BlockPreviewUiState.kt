@@ -73,6 +73,19 @@ sealed interface BlockPreviewUiState {
         fun replacementAt(sessionIndex: Int, position: Int): Replacement? =
             replacements[replaceSlotKey(sessionIndex, position)]
 
+        /**
+         * True while the open picker is for a cardio slot: the sheet shows the "same minutes with any cardio" note,
+         * no similarity percent and no "Similares" grouping.
+         */
+        val isCardioSwap: Boolean
+            get() {
+                val slot = replaceSlot?.split('/') ?: return false
+                val session = slot.getOrNull(0)?.toIntOrNull() ?: return false
+                val position = slot.getOrNull(1)?.toIntOrNull() ?: return false
+                return block.sessions.firstOrNull { it.sessionIndex == session }
+                    ?.exercises?.getOrNull(position)?.isCardio == true
+            }
+
         fun isChanged(sessionIndex: Int, position: Int): Boolean = replacementAt(sessionIndex, position) != null
 
         private fun BlockSession.withReplacements(): BlockSession = copy(

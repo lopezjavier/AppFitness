@@ -116,7 +116,7 @@ private fun SimilarLoading() {
 /**
  * One alternative as an [ExerciseRow]: thumbnail, name, equipment and the whole-number percentage ("87 %", with a
  * no-break space) read as "87 por ciento de similitud". Tagged [rowTag] and [percentTag]. With [onSelect] the
- * row body picks and the thumbnail opens the details (R-17).
+ * row body picks and the thumbnail opens the details (R-17). [showPercent] false hides the percentage (cardio swap).
  */
 @Composable
 internal fun SimilarExerciseItem(
@@ -126,6 +126,7 @@ internal fun SimilarExerciseItem(
     onOpen: () -> Unit,
     modifier: Modifier = Modifier,
     onSelect: (() -> Unit)? = null,
+    showPercent: Boolean = true,
 ) {
     val exercise = row.exercise.exercise
     val mediaKey = exercise.key
@@ -139,15 +140,19 @@ internal fun SimilarExerciseItem(
         tagPrefix = rowTag,
         modifier = modifier,
         imageUri = mediaKey?.takeIf { row.exercise.hasMedia }?.let { LocalExerciseMediaUris.current.start(it) },
-        trailing = {
-            Text(
-                text = percentText,
-                style = AppTheme.typography.bodyLarge,
-                color = AppTheme.colors.textSecondary,
-                modifier = Modifier
-                    .testTag(percentTag)
-                    .clearAndSetSemantics { contentDescription = percentDescription },
-            )
+        trailing = if (showPercent) {
+            {
+                Text(
+                    text = percentText,
+                    style = AppTheme.typography.bodyLarge,
+                    color = AppTheme.colors.textSecondary,
+                    modifier = Modifier
+                        .testTag(percentTag)
+                        .clearAndSetSemantics { contentDescription = percentDescription },
+                )
+            }
+        } else {
+            null
         },
         onSelect = onSelect,
     )

@@ -22,7 +22,16 @@ import kotlinx.serialization.json.Json
 
 /** One planned set of the draft: [weight] and [reps] are the text as typed, [setId] is stable while editing. */
 @Serializable
-internal data class DraftSet(val setId: Long, val weight: String, val reps: String, val type: SetType)
+internal data class DraftSet(
+    val setId: Long,
+    val weight: String,
+    val reps: String,
+    val type: SetType,
+    /** True for a cardio set planned in time: only [minutes] is edited and [weight] and [reps] stay empty. */
+    val timed: Boolean = false,
+    /** Planned whole minutes of a [timed] set; null = "Sin definir" (the routine cannot be saved until set). */
+    val minutes: Int? = null,
+)
 
 /** One row of the draft; [group] is the superset group value (null = standalone). */
 @Serializable
@@ -160,10 +169,12 @@ internal fun RoutineDraft.leveledTo(index: Int): RoutineDraft {
     return copy(rows = updated, nextSetId = next)
 }
 
-internal fun DraftSet.toUi() = PlannedSetUi(setId, weight, reps, type, isValid = toPlannedSet() != null)
+internal fun DraftSet.toUi() =
+    PlannedSetUi(setId, weight, reps, type, isValid = toPlannedSet() != null, timed = timed, minutes = minutes)
 
 /** The planned set, or null while the reps are not 1-50 or the weight is not a number >= 0. */
 internal fun DraftSet.toPlannedSet(): PlannedSet? {
+    if (timed) return minutes?.takeIf { it in MINUTES_RANGE }?.let { PlannedSet.ofMinutes(it, type) }
     val repsValue = reps.toIntOrNull()?.takeIf { it in RoutineBounds.REPS_MIN..RoutineBounds.REPS_MAX }
     val weightValue = weight.trimEnd(',').replace(',', '.').toDoubleOrNull()?.takeIf {
         it >= RoutineBounds.WEIGHT_MIN_KG
@@ -172,11 +183,26 @@ internal fun DraftSet.toPlannedSet(): PlannedSet? {
     return if (repsValue != null && weightOk) PlannedSet(weightValue, repsValue, type) else null
 }
 
-internal fun PlannedSet.toDraft(setId: Long) =
-    DraftSet(setId, weightKg?.let(::weightText).orEmpty(), reps.toString(), type)
+internal fun PlannedSet.toDraft(setId: Long): DraftSet {
+    val seconds = durationS
+    return if (seconds != null) {
+        DraftSet(setId, "", "", type, timed = true, minutes = seconds / RoutineBounds.SECONDS_PER_MINUTE)
+    } else {
+        DraftSet(setId, weightKg?.let(::weightText).orEmpty(), reps.toString(), type)
+    }
+}
+
+/** Whole minutes a planned-duration set may last (1 to 240, the DB bounds of 60 to 14400 s). */
+internal val MINUTES_RANGE: IntRange = run {
+    val perMinute = RoutineBounds.SECONDS_PER_MINUTE
+    (RoutineBounds.DURATION_MIN_SECONDS / perMinute)..(RoutineBounds.DURATION_MAX_SECONDS / perMinute)
+}
 
 /** The weight as editable text ("2,5"): up to two decimals (1,25 kg plates), no thousands dots, no float noise. */
 internal fun weightText(kg: Double): String = AppNumberFormat.decimal(kg, maxDecimals = 2, grouping = false)
+
+private fun DraftSet.invalidFallback() =
+    if (timed) PlannedSet.ofMinutes(MINUTES_RANGE.first, type) else PlannedSet(null, RoutineBounds.REPS_MIN, type)
 
 internal fun RoutineDraft.movedRow(from: Int, to: Int): RoutineDraft =
     copy(rows = moveExercise(rows, from, to)).renormalized()
@@ -199,7 +225,7 @@ internal fun RoutineDraft.toRoutine(id: String?) = Routine(
             exerciseId = row.exerciseId,
             position = index,
             supersetGroup = row.group,
-            plannedSets = row.sets.map { it.toPlannedSet() ?: PlannedSet(null, RoutineBounds.REPS_MIN, it.type) },
+            plannedSets = row.sets.map { it.toPlannedSet() ?: it.invalidFallback() },
             restSeconds = row.restSeconds,
             targetRpe = row.targetRpe,
             notes = Note.of(row.noteKind, row.notes)?.text,

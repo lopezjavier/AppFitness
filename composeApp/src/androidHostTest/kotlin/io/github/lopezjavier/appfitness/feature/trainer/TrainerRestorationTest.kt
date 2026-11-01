@@ -10,6 +10,7 @@ import androidx.compose.ui.test.junit4.StateRestorationTester
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollTo
 import androidx.lifecycle.SavedStateHandle
 import io.github.lopezjavier.appfitness.app.App
 import io.github.lopezjavier.appfitness.app.FakeConnectivityObserver
@@ -195,6 +196,40 @@ class TrainerRestorationTest {
         rule.onNodeWithTag("trainer_deload_card").assertExists()
         rule.onNodeWithTag("trainer_deload_card_accept").assertIsEnabled()
         rule.onNodeWithTag("trainer_weeks_section").assertExists()
+    }
+
+    @Test
+    fun recreation_keepsTheWeekCardioAndStepsLines_afterScrollingToThem() {
+        val plans = FakeCoachPlanRepository()
+        plans.current = Result.success(coachPlan(status = PlanStatus.Accepted))
+        val blocks = FakeCoachBlockRepository()
+        blocks.current = Result.success(coachBlock(saved = true))
+        val weeks = FakeCoachWeeksRepository()
+        weeks.weeksResult = Result.success(
+            listOf(
+                planWeek(week = 1, cardioMinDone = 100, cardioMinTarget = 150, stepsAvg = 7800, stepsTarget = 7000),
+                planWeek(week = 2),
+            ),
+        )
+        val model = TrainerViewModel(
+            FakeCoachRepository(),
+            MutableClock(),
+            plans = plans,
+            blocks = blocks,
+            coachWeeks = weeks,
+        )
+        val connectivity = FakeConnectivityObserver()
+        val tester = StateRestorationTester(rule)
+        tester.setContent { AppTheme { TrainerRoute(viewModel = model, connectivity = connectivity) } }
+        rule.waitForIdle()
+        rule.onNodeWithTag("plan_week_cardio_value_1").performScrollTo()
+        rule.waitForIdle()
+
+        tester.emulateSavedInstanceStateRestore()
+        rule.waitForIdle()
+
+        rule.onNodeWithTag("plan_week_cardio_value_1").assertTextEquals("Cardio de la semana: 100 de 150 min")
+        rule.onNodeWithTag("plan_week_steps_value_1").assertTextEquals("Pasos: media 7.800 de 7.000")
     }
 
     @Test

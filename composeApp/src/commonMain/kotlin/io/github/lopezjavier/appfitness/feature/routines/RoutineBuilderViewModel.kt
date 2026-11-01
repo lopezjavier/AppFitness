@@ -206,6 +206,13 @@ class RoutineBuilderViewModel(
             draft.withSetEdit(event.index, event.setIndex) { it.copy(reps = event.text.take(REPS_MAX_CHARS)) }
         }
 
+        is RoutineBuilderEvent.SetMinutes -> { draft ->
+            draft.withSetEdit(event.index, event.setIndex) {
+                val fits = event.minutes == null || event.minutes in MINUTES_RANGE
+                if (it.timed && fits) it.copy(minutes = event.minutes) else it
+            }
+        }
+
         is RoutineBuilderEvent.ChangeSetType -> { draft ->
             setPicker(null)
             draft.withSetEdit(event.index, event.setIndex) { it.copy(type = event.type) }

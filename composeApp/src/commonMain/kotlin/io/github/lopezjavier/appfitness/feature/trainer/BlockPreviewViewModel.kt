@@ -178,7 +178,14 @@ class BlockPreviewViewModel(
         val rows = candidates.mapNotNull { alt ->
             named[alt.exercise.id]?.let { SimilarExerciseRow(it, alt.similarity) }
         }
-            .sortedWith(compareByDescending<SimilarExerciseRow> { it.similarity }.thenBy { it.exercise.name })
+            .sortedWith(
+                // Any cardio counts the same minutes: no ranking, alphabetical.
+                if (preview.isCardioSwap) {
+                    compareBy { it.exercise.name }
+                } else {
+                    compareByDescending<SimilarExerciseRow> { it.similarity }.thenBy { it.exercise.name }
+                },
+            )
         return if (rows.isEmpty()) AlternativesState.Empty else AlternativesState.Content(rows)
     }
 
@@ -335,8 +342,10 @@ class BlockPreviewViewModel(
         if (!prefetched) return copy(swappable = null)
         val slots = sessions.flatMap { session ->
             session.exercises.indices.filter { position ->
-                val original = block.sessions.first { it.sessionIndex == session.sessionIndex }
-                    .exercises[position].exerciseId
+                val slotExercise = block.sessions.first { it.sessionIndex == session.sessionIndex }
+                    .exercises[position]
+                if (slotExercise.isCardio) return@filter true
+                val original = slotExercise.exerciseId
                 val candidates = alternativeIds[original] ?: return@filter true
                 val others = session.exercises.filterIndexed { index, _ -> index != position }
                     .map { it.exerciseId }.toSet()
