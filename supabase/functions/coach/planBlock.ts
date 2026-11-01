@@ -13,6 +13,7 @@ import {
     type Prepared,
     type PreparedPart,
 } from "./context.ts";
+import { CARDIO_MIN_WEEK } from "./cardioRules.ts";
 import { assertInputsComplete } from "./inputs.ts";
 import { MODEL_IDS } from "./prices.ts";
 import {
@@ -77,11 +78,26 @@ const SYSTEM = [
     "español una razón breve (10 a 300 caracteres) basada en el objetivo y el material del usuario.",
     "No repitas un ejercicio dentro de la misma sesión. Puedes mencionar el rango completo de movimiento solo como nota",
     "de técnica. Nunca aconsejes reducir el cardio ni los pasos. Sin consejos médicos.",
+    "Además, cada sesión puede tener un slot de cardio (campo cardio, con slot_id y minutos fijados por el servidor):",
+    "elige su exercise_key entre sus candidatos y explica por qué encaja con el material y el objetivo, a ritmo suave.",
+    "No añadas calentamiento. Nunca aconsejes menos cardio ni menos pasos.",
     'Responde solo con JSON: {"picks":[{"slot_id":"...","exercise_key":"...","reason":"..."}]}.',
     "Cada slot_id aparece exactamente una vez.",
 ].join(" ");
 
-export function buildPrefs(summary: unknown): BlockPrefs {
+/** The keys of the most-logged cardio exercises (`coach_summary.cardio_favorites`), most logged first. */
+function cardioFavorites(summary: Record<string, unknown>): string[] {
+    const list = summary.cardio_favorites;
+    if (!Array.isArray(list)) return [];
+    return list
+        .map((f) => rec(f).exercise)
+        .filter((k): k is string => typeof k === "string" && k.length > 0);
+}
+
+export function buildPrefs(
+    summary: unknown,
+    cardioMinWeek: number = CARDIO_MIN_WEEK,
+): BlockPrefs {
     const s = rec(summary);
     const tp = rec(s.training_preferences);
     const intention = INTENTIONS.find((i) => i === tp.intention);
@@ -109,6 +125,8 @@ export function buildPrefs(summary: unknown): BlockPrefs {
         days_per_week: intOrNull(tp.days_per_week),
         session_minutes: intOrNull(tp.session_minutes),
         experience,
+        cardio_min_week: cardioMinWeek,
+        cardio_favorites: cardioFavorites(s),
     };
 }
 
@@ -131,7 +149,11 @@ export function makePrepare(sessionsPerCall = SESSIONS_PER_CALL) {
         const summary = await ctx.loadContext(today);
         // The shared list decides what blocks (same source as the "Antes de empezar" screen).
         assertInputsComplete(await ctx.loadInputs("block", today));
-        const prefs = buildPrefs(summary);
+        // A plan stored before T-181 has no activity: the WHO minimum applies.
+        const prefs = buildPrefs(
+            summary,
+            plan.cardio_min_week ?? CARDIO_MIN_WEEK,
+        );
         const catalog = await ctx.loadCatalog();
         const skeleton = buildSkeleton(prefs);
         const candidates = buildCandidates(catalog, prefs, skeleton);
@@ -144,7 +166,7 @@ export function makePrepare(sessionsPerCall = SESSIONS_PER_CALL) {
                 .map((s) => s.session_index);
             const slots = skeleton.sessions.filter((s) =>
                 indexes.includes(s.session_index)
-            ).reduce((n, s) => n + s.slots.length, 0);
+            ).reduce((n, s) => n + s.slots.length + (s.cardio ? 1 : 0), 0);
             parts.push({
                 request: {
                     model,
@@ -195,6 +217,16 @@ export function makePrepare(sessionsPerCall = SESSIONS_PER_CALL) {
 
 export const prepare = makePrepare();
 
+const candidatesOf = (
+    candidates: ReturnType<typeof buildCandidates>,
+    slotId: string,
+) => candidates.get(slotId)!.map((e) => ({
+    exercise_key: candidateKey(e),
+    name: e.name,
+    equipment: e.equipment,
+    pattern: e.movement_pattern,
+}));
+
 function buildPrompt(
     skeleton: BlockSkeleton,
     prefs: BlockPrefs,
@@ -219,13 +251,21 @@ function buildPrompt(
                     sets: slot.sets,
                     reps: `${slot.rep_min}-${slot.rep_max}`,
                     rest_seconds: slot.rest_seconds,
-                    candidates: candidates.get(slot.slot_id)!.map((e) => ({
-                        exercise_key: candidateKey(e),
-                        name: e.name,
-                        equipment: e.equipment,
-                        pattern: e.movement_pattern,
-                    })),
+                    candidates: candidatesOf(candidates, slot.slot_id),
                 })),
+                ...(s.cardio
+                    ? {
+                        cardio: {
+                            slot_id: s.cardio.slot_id,
+                            minutes: s.cardio.minutes,
+                            pace: "suave",
+                            candidates: candidatesOf(
+                                candidates,
+                                s.cardio.slot_id,
+                            ),
+                        },
+                    }
+                    : {}),
             })),
     });
 }

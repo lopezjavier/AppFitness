@@ -34,6 +34,11 @@ type Prompt = {
     sessions: {
         session_index: number;
         slots: { slot_id: string; candidates: { exercise_key: string }[] }[];
+        cardio?: {
+            slot_id: string;
+            minutes: number;
+            candidates: { exercise_key: string }[];
+        };
     }[];
 };
 
@@ -50,6 +55,13 @@ const answer = (prompt: string, mutate?: (p: Pick[]) => void): string => {
             picks.push({
                 slot_id: slot.slot_id,
                 exercise_key: key,
+                reason: REASON,
+            });
+        }
+        if (s.cardio) {
+            picks.push({
+                slot_id: s.cardio.slot_id,
+                exercise_key: s.cardio.candidates[0].exercise_key,
                 reason: REASON,
             });
         }
@@ -413,4 +425,113 @@ Deno.test("no model: block calls use Opus", async () => {
     const { handler, models } = setup();
     await (await handler(post())).text();
     assertEquals(models, ["claude-opus-5-5"]);
+});
+
+// --- cardio (T-182) ---
+
+type Ex = { role: string; duration_min?: number; exercise_key: string };
+
+Deno.test("cardio closes every routine: server minutes, training.cardio, routine totals and the attach payload", async () => {
+    const t = setup({
+        plan: {
+            status: "proposed",
+            training_saved: false,
+            cardio_min_week: 150,
+        },
+    });
+    const body = await bodyOf(await t.handler(post()));
+    for (const s of body.sessions as { exercises: Ex[] }[]) {
+        const last = s.exercises[s.exercises.length - 1];
+        assertEquals(last.role, "cardio");
+        assertEquals(last.duration_min, 50);
+        assertEquals(s.exercises.filter((e) => e.role === "cardio").length, 1);
+    }
+    assertEquals(body.training.cardio, {
+        target_min_week: 150,
+        planned_min_week: 150,
+        on_your_own_min: 0,
+        per_routine_min: [50, 50, 50],
+        pace: "suave",
+    });
+    assertEquals(body.training.routine_total_min, [110, 110, 110]);
+    assertEquals(t.attached.length, 1);
+    assertEquals(t.attached[0].training, body.training);
+    assertEquals(t.calls(), 1);
+});
+
+Deno.test("a plan without activity plans the 150 minute default", async () => {
+    for (
+        const plan of [undefined, {
+            status: "proposed",
+            training_saved: false,
+            cardio_min_week: null,
+        }]
+    ) {
+        const t = setup({ plan });
+        const body = await bodyOf(await t.handler(post()));
+        assertEquals(body.training.cardio.target_min_week, 150);
+    }
+});
+
+Deno.test("the target of the plan is used, and 0 plans no cardio exercise nor cardio slot in the prompt", async () => {
+    const t = setup({
+        plan: { status: "accepted", training_saved: false, cardio_min_week: 0 },
+    });
+    const body = await bodyOf(await t.handler(post()));
+    assertEquals(body.training.cardio.per_routine_min, [0, 0, 0]);
+    const all = (body.sessions as { exercises: Ex[] }[]).flatMap((s) =>
+        s.exercises
+    );
+    assert(all.every((e) => e.role !== "cardio"));
+    assert(!t.prompts[0].includes('"cardio"'));
+});
+
+Deno.test("the prompt lists the cardio slot with its minutes and one candidate, and no warm-up", async () => {
+    const t = setup();
+    await (await t.handler(post())).text();
+    const sessions = (JSON.parse(t.prompts[0]) as Prompt).sessions;
+    assertEquals(sessions[0].cardio!.minutes, 50);
+    assertEquals(sessions[0].cardio!.slot_id, "s1.cardio");
+    assertEquals(sessions[0].cardio!.candidates.length, 1);
+    assert(!t.prompts[0].toLowerCase().includes("warm"));
+});
+
+Deno.test("the most-logged cardio of the summary becomes the cardio default when it fits the equipment", async () => {
+    const s = summary({ place: "gym", equipment: [] }) as Record<
+        string,
+        unknown
+    >;
+    s.cardio_favorites = [{
+        exercise: "rowing-machine",
+        sessions: 6,
+        minutes: 270,
+    }];
+    const t = setup({ summary: s });
+    const body = await bodyOf(await t.handler(post()));
+    assertEquals(
+        (body.sessions[0].exercises as Ex[]).at(-1)!.exercise_key,
+        "rowing-machine",
+    );
+});
+
+Deno.test("seven days with a gym is still one model call with cardio in every routine", async () => {
+    const t = setup({ tp: { days_per_week: 7 } });
+    const body = await bodyOf(await t.handler(post()));
+    assertEquals(t.calls(), 1);
+    assertEquals(body.training.cardio.per_routine_min.length, 7);
+    assertEquals(
+        (body.sessions as { exercises: Ex[] }[]).filter((s) =>
+            s.exercises.at(-1)!.role === "cardio"
+        ).length,
+        7,
+    );
+});
+
+Deno.test("a catalogue without any cardio exercise is 422 coach_plan_infeasible before the model", async () => {
+    const t = setup({
+        catalog: fullCatalog().filter((e) => e.movement_pattern !== "cardio"),
+    });
+    const res = await t.handler(post());
+    assertEquals(res.status, 422);
+    assertEquals(t.calls(), 0);
 });

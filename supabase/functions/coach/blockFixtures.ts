@@ -8,6 +8,8 @@ export const prefs = (over: Partial<BlockPrefs> = {}): BlockPrefs => ({
     days_per_week: 3,
     session_minutes: 60,
     experience: "intermediate",
+    cardio_min_week: 150,
+    cardio_favorites: [],
     ...over,
 });
 
@@ -36,6 +38,42 @@ const MAIN_PATTERN: Record<string, CatalogExercise["movement_pattern"]> = {
     glutes: "hinge",
 };
 
+/** A cardio catalogue row (pattern cardio, duration metric). */
+export const cardio = (
+    key: string,
+    equipment: string,
+    over: Partial<CatalogExercise> = {},
+): CatalogExercise =>
+    ex({
+        key,
+        equipment,
+        muscle_group: "full_body",
+        movement_pattern: "cardio",
+        metric_type: key === "walking" || key === "running"
+            ? "distance_duration"
+            : "duration",
+        ...over,
+    });
+
+/** The cardio rows of the real catalogue that matter to the coach (keys and equipment as in the seed). */
+export const cardioCatalog = (): CatalogExercise[] => [
+    cardio("walking", "bodyweight"),
+    cardio("running", "bodyweight"),
+    cardio("stationary-bike", "cardio_bike"),
+    cardio("air-bike", "cardio_bike"),
+    cardio("incline-treadmill-walk", "treadmill"),
+    cardio("treadmill-running", "treadmill"),
+    cardio("elliptical-trainer", "elliptical"),
+    cardio("rowing-machine", "rower"),
+    cardio("ski-erg", "cardio_other"),
+    cardio("stair-climber", "cardio_other", { metric_type: "floors_duration" }),
+    cardio("jumping-jacks", "bodyweight"),
+    cardio("jump-rope", "bodyweight"),
+    cardio("battle-ropes", "other"),
+    cardio("mountain-climbers", "bodyweight"),
+    cardio("burpees", "bodyweight", { metric_type: "reps_only" }),
+];
+
 /** A small catalogue with three main and three isolation exercises per major group, isolation-only for the rest. */
 export const fullCatalog = (): CatalogExercise[] => {
     const out: CatalogExercise[] = [];
@@ -59,5 +97,5 @@ export const fullCatalog = (): CatalogExercise[] => {
     for (let i = 0; i < 3; i++) {
         out.push(ex({ muscle_group: "core", movement_pattern: "core" }));
     }
-    return out;
+    return [...out, ...cardioCatalog()];
 };

@@ -9,7 +9,16 @@ import {
 } from "./blockValidators.ts";
 import { buildCandidates, candidateKey } from "./candidates.ts";
 import { fullCatalog, prefs } from "./blockFixtures.ts";
-import type { Block, BlockPrefs, ModelBlockPick } from "./schemas.ts";
+import {
+    type Block,
+    type BlockPrefs,
+    type BlockSession,
+    isLifting,
+    type ModelBlockPick,
+} from "./schemas.ts";
+
+/** The lifting exercises of a session (same objects, so tests can mutate them). */
+const lift = (s: BlockSession) => s.exercises.filter(isLifting);
 
 const REASON = "Buen ejercicio base para tu objetivo y tu material.";
 
@@ -29,6 +38,13 @@ function setup(over: Partial<BlockPrefs> = {}) {
             picks.push({
                 slot_id: slot.slot_id,
                 exercise_key: key,
+                reason: REASON,
+            });
+        }
+        if (s.cardio) {
+            picks.push({
+                slot_id: s.cardio.slot_id,
+                exercise_key: cands.get(s.cardio.slot_id)!.map(candidateKey)[0],
                 reason: REASON,
             });
         }
@@ -126,7 +142,17 @@ Deno.test("the same exercise twice in one session is rejected", () => {
                     ? b
                     : pool.get(s.slot_id)!.map(candidateKey)[0],
                 reason: REASON,
-            })),
+            })).concat(
+                twin.sessions[0].cardio
+                    ? [{
+                        slot_id: twin.sessions[0].cardio.slot_id,
+                        exercise_key: candidateKey(
+                            pool.get(twin.sessions[0].cardio.slot_id)![0],
+                        ),
+                        reason: REASON,
+                    }]
+                    : [],
+            ),
         });
     assertEquals(validateBlockText(answer(keys[0], keys[0]), twin, pool), null);
     assert(validateBlockText(answer(keys[0], keys[1]), twin, pool) !== null);
@@ -221,7 +247,7 @@ Deno.test("equipment outside the selected list is rejected", () => {
 
 Deno.test("rest outside the role bounds is rejected", () => {
     const rest = (role: "main" | "isolation", v: number) => (b: Block) => {
-        b.sessions[0].exercises.find((e) => e.role === role)!.rest_seconds = v;
+        lift(b.sessions[0]).find((e) => e.role === role)!.rest_seconds = v;
     };
     broken({}, rest("isolation", 59), "rest");
     broken({}, rest("isolation", 121), "rest");
@@ -230,11 +256,11 @@ Deno.test("rest outside the role bounds is rejected", () => {
 });
 
 Deno.test("an isolation exercise before a main lift is rejected", () => {
-    broken({}, (b) => {
+    broken({ cardio_min_week: 0 }, (b) => {
         const e = b.sessions[0].exercises;
         [e[0], e[e.length - 1]] = [e[e.length - 1], e[0]];
     }, "order");
-    broken({}, (b) => {
+    broken({ cardio_min_week: 0 }, (b) => {
         const e = b.sessions[0].exercises;
         const iso = e.findIndex((x) => x.role === "isolation");
         e[iso].role = "main";
@@ -244,15 +270,15 @@ Deno.test("an isolation exercise before a main lift is rejected", () => {
 
 Deno.test("a rep range changed inside a non-strength block is rejected", () => {
     broken({}, (b) => {
-        b.sessions[0].exercises[0].rep_min = 8;
-        b.sessions[0].exercises[0].rep_max = 12;
+        lift(b.sessions[0])[0].rep_min = 8;
+        lift(b.sessions[0])[0].rep_max = 12;
     }, "single_range");
 });
 
 Deno.test("identical main ranges across a strength week are rejected", () => {
     broken({ intention: "strength" }, (b) => {
         for (const s of b.sessions) {
-            for (const e of s.exercises.filter((x) => x.role === "main")) {
+            for (const e of lift(s).filter((x) => x.role === "main")) {
                 e.rep_min = 3;
                 e.rep_max = 5;
             }
@@ -262,8 +288,8 @@ Deno.test("identical main ranges across a strength week are rejected", () => {
 
 Deno.test("a strength range outside the allowed set is rejected", () => {
     broken({ intention: "strength" }, (b) => {
-        b.sessions[0].exercises[0].rep_min = 8;
-        b.sessions[0].exercises[0].rep_max = 12;
+        lift(b.sessions[0])[0].rep_min = 8;
+        lift(b.sessions[0])[0].rep_max = 12;
     }, "strength_range");
 });
 
@@ -287,7 +313,7 @@ Deno.test("wrong weekly sets, session count and frequency are rejected", () => {
     broken({}, (b) => void b.sessions.pop(), "session_count");
     broken({}, (b) => {
         b.sessions[1].exercises = b.sessions[1].exercises.filter((e) =>
-            e.muscle_group !== "chest"
+            !isLifting(e) || e.muscle_group !== "chest"
         );
         b.training.weekly_sets = {};
         b.training.sessions_per_muscle = {};

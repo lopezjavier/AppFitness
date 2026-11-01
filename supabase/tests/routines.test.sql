@@ -75,7 +75,7 @@ select table_privs_are('public', 'routine_exercises', 'authenticated',
 select function_privs_are('public', 'save_routine', array['jsonb'], 'anon', array[]::text[],
   'anon cannot execute save_routine');
 select columns_are('public', 'routine_exercise_sets', array[
-  'id', 'routine_exercise_id', 'set_index', 'target_weight_kg', 'target_reps', 'set_type'
+  'id', 'routine_exercise_id', 'set_index', 'target_weight_kg', 'target_reps', 'set_type', 'target_duration_s'
 ], 'routine_exercise_sets has the planned columns');
 select ok(
   (select relrowsecurity and relforcerowsecurity from pg_class where oid = 'public.routine_exercise_sets'::regclass),
