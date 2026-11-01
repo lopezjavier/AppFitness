@@ -395,6 +395,28 @@ class TrainerViewModelTest {
     }
 
     @Test
+    fun savedBlock_carriesTheCardioAndStepFiguresOfEachWeek() = runTest(dispatcher) {
+        openSavedBlock()
+        weeks.weeksResult = Result.success(
+            listOf(
+                planWeek(1, cardioMinDone = 100, cardioMinTarget = 150, stepsAvg = 7800, stepsTarget = 7000),
+                planWeek(2, WeekPhase.Upcoming, completed = 0, cardioMinTarget = 150),
+            ),
+        )
+        val model = viewModel()
+
+        advanceUntilIdle()
+
+        val (first, second) = model.content().weeks
+        assertEquals(100, first.cardioMinDone)
+        assertEquals(150, first.cardioMinTarget)
+        assertEquals(7800, first.stepsAvg)
+        assertEquals(7000, first.stepsTarget)
+        assertEquals(0, second.cardioMinDone)
+        assertNull(second.stepsAvg)
+    }
+
+    @Test
     fun withoutASavedBlock_noWeeksAreReadAndNoDeloadIsEvaluated() = runTest(dispatcher) {
         plans.current = Result.success(coachPlan(status = PlanStatus.Accepted))
         blocks.current = Result.success(coachBlock(saved = false))

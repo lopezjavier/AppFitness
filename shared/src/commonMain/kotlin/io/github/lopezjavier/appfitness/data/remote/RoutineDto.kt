@@ -68,7 +68,7 @@ internal data class RoutineDto(
             "id,name,notes,archived,track_as_routine," +
                 "routine_exercises(exercise_id,position,superset_group,target_sets,target_reps," +
                 "target_weight_kg,planned_set_type,target_rpe,rest_seconds,notes,note_kind,rep_min,rep_max," +
-                "routine_exercise_sets(target_weight_kg,target_reps,set_type,set_index))"
+                "routine_exercise_sets(target_weight_kg,target_reps,target_duration_s,set_type,set_index))"
     }
 }
 
@@ -76,10 +76,13 @@ internal data class RoutineDto(
 @Serializable
 internal data class PlannedSetRowDto(
     @SerialName("target_weight_kg") val weight: Double? = null,
-    @SerialName("target_reps") val reps: Int,
+    @SerialName("target_reps") val reps: Int? = null,
+    @SerialName("target_duration_s") val durationS: Int? = null,
     @SerialName("set_type") val setType: SetType = SetType.Working,
     @SerialName("set_index") val setIndex: Int = 0,
 )
+
+private fun PlannedSetRowDto.toDomain() = PlannedSet(weight, reps ?: 0, setType, durationS)
 
 /**
  * `routine_exercises` row. Exercises that still have no child rows (legacy) are mapped from the summary columns:
@@ -110,7 +113,7 @@ internal data class RoutineExerciseDto(
         plannedSets = if (sets.isEmpty()) {
             plannedSetsFromLegacy(targetSets, targetReps, targetWeightKg, plannedSetType)
         } else {
-            sets.sortedBy { it.setIndex }.map { PlannedSet(it.weight, it.reps, it.setType) }
+            sets.sortedBy { it.setIndex }.map { it.toDomain() }
         },
         restSeconds = restSeconds,
         targetRpe = targetRpe,
@@ -149,7 +152,7 @@ internal data class SaveRoutineRequest(
                     noteKind = resolveNoteKind(exercise.noteKind, exercise.notes, ExerciseNoteKind.Other),
                     repMin = exercise.repRange?.min,
                     repMax = exercise.repRange?.max,
-                    sets = exercise.plannedSets.map { PlannedSetDto(it.weightKg, it.reps, it.type) },
+                    sets = exercise.plannedSets.map { it.toDto() },
                 )
             },
         )
@@ -175,9 +178,17 @@ internal data class SaveRoutineExerciseRequest(
 @Serializable
 internal data class PlannedSetDto(
     @SerialName("weight_kg") val weightKg: Double? = null,
-    val reps: Int,
+    // Null for a duration set: the save_routine check wants reps XOR duration_s.
+    val reps: Int? = null,
+    @SerialName("duration_s") val durationS: Int? = null,
     @SerialName("set_type") val setType: SetType,
 )
+
+private fun PlannedSet.toDto() = if (durationS != null) {
+    PlannedSetDto(reps = null, durationS = durationS, setType = type)
+} else {
+    PlannedSetDto(weightKg, reps, null, type)
+}
 
 /** Arguments of the `save_routine` RPC. */
 @Serializable

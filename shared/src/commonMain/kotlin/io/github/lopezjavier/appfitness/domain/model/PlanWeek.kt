@@ -19,6 +19,13 @@ data class PlanWeek(
     val completed: Int,
     val adherencePct: Int,
     val sessions: List<PlanWeekSession>,
+    /** Minutes of cardio logged in the week (any cardio exercise, planned or not); nothing carries over. */
+    val cardioMinDone: Int = 0,
+    /** The plan's weekly cardio target in minutes; null for a plan stored before the cardio target existed. */
+    val cardioMinTarget: Int? = null,
+    /** Mean daily steps over the week's days with data; null when no day has steps. */
+    val stepsAvg: Int? = null,
+    val stepsTarget: Int? = null,
 )
 
 /** A pending coach suggestion to make [week] of plan [planId] easier (same weights, 40 % fewer working sets). */

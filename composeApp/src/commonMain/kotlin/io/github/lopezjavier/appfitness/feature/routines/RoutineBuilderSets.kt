@@ -3,6 +3,7 @@ package io.github.lopezjavier.appfitness.feature.routines
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.width
@@ -25,10 +26,16 @@ import io.github.lopezjavier.appfitness.composeapp.resources.builder_set_type_cd
 import io.github.lopezjavier.appfitness.composeapp.resources.builder_set_weight_cd
 import io.github.lopezjavier.appfitness.composeapp.resources.builder_superset_sets_hint
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_delete
+import io.github.lopezjavier.appfitness.composeapp.resources.routine_cardio_minutes_decrease_cd
+import io.github.lopezjavier.appfitness.composeapp.resources.routine_cardio_minutes_increase_cd
+import io.github.lopezjavier.appfitness.composeapp.resources.routine_cardio_minutes_label
+import io.github.lopezjavier.appfitness.composeapp.resources.routine_cardio_minutes_none
+import io.github.lopezjavier.appfitness.composeapp.resources.routine_cardio_minutes_value
 import io.github.lopezjavier.appfitness.designsystem.AppIconButton
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
 import io.github.lopezjavier.appfitness.designsystem.GhostButton
 import io.github.lopezjavier.appfitness.designsystem.NumberInput
+import io.github.lopezjavier.appfitness.designsystem.NumberStepper
 import io.github.lopezjavier.appfitness.designsystem.SetOrdinal
 import io.github.lopezjavier.appfitness.designsystem.SetRowDefaults
 import io.github.lopezjavier.appfitness.designsystem.SetTypeBadge
@@ -41,7 +48,7 @@ import org.jetbrains.compose.resources.stringResource
 @Composable
 internal fun PlannedSets(row: BuilderRowUi, index: Int, onEvent: (RoutineBuilderEvent) -> Unit) {
     Column(verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
-        SetColumnsHeader()
+        SetColumnsHeader(timed = row.plannedSets.isNotEmpty() && row.plannedSets.all { it.timed })
         row.plannedSets.forEachIndexed { setIndex, set ->
             key(set.setId) { PlannedSetRow(row, index, setIndex, set, onEvent) }
         }
@@ -63,13 +70,16 @@ internal fun PlannedSets(row: BuilderRowUi, index: Int, onEvent: (RoutineBuilder
 }
 
 @Composable
-private fun SetColumnsHeader() {
+private fun SetColumnsHeader(timed: Boolean) {
     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(Spacing.xs)) {
         Spacer(Modifier.width(SetRowDefaults.OrdinalTypeWidth))
-        listOf(
-            Res.string.builder_set_hint_kg to "weight",
-            Res.string.builder_set_hint_reps to "reps",
-        ).forEach { (label, part) ->
+        // A cardio exercise is planned in minutes: one column, no weight and no reps.
+        val columns = if (timed) {
+            listOf(Res.string.routine_cardio_minutes_label to "minutes")
+        } else {
+            listOf(Res.string.builder_set_hint_kg to "weight", Res.string.builder_set_hint_reps to "reps")
+        }
+        columns.forEach { (label, part) ->
             Text(
                 text = stringResource(label).uppercase(),
                 style = AppTheme.typography.labelTechnical,
@@ -115,26 +125,11 @@ private fun PlannedSetRow(
                 onClick = { onEvent(RoutineBuilderEvent.OpenTypePicker(index, setIndex)) },
                 clickLabel = stringResource(Res.string.builder_set_type_cd, number, typeLabel),
             )
-            NumberInput(
-                value = set.weight,
-                onValueChange = { onEvent(RoutineBuilderEvent.SetWeight(index, setIndex, it)) },
-                label = stringResource(Res.string.builder_set_weight_cd, number),
-                modifier = Modifier.weight(1f).testTag("routine_builder_set_weight_$tag"),
-                maxDecimals = SetRowDefaults.WEIGHT_MAX_DECIMALS,
-                maxIntegerDigits = SetRowDefaults.WEIGHT_MAX_INTEGER_DIGITS,
-                showLabel = false,
-                imeAction = ImeAction.Next,
-            )
-            NumberInput(
-                value = set.reps,
-                onValueChange = { onEvent(RoutineBuilderEvent.SetReps(index, setIndex, it)) },
-                label = stringResource(Res.string.builder_set_reps_cd, number),
-                modifier = Modifier.weight(1f).testTag("routine_builder_set_reps_$tag"),
-                maxDecimals = SetRowDefaults.REPS_MAX_DECIMALS,
-                maxIntegerDigits = SetRowDefaults.REPS_MAX_INTEGER_DIGITS,
-                showLabel = false,
-                imeAction = ImeAction.Done,
-            )
+            if (set.timed) {
+                MinutesStepper(set, number, tag, index, setIndex, onEvent)
+            } else {
+                WeightRepsInputs(set, number, tag, index, setIndex, onEvent)
+            }
             AppIconButton(
                 contentDescription = delete,
                 icon = Res.drawable.ic_delete,
@@ -145,3 +140,73 @@ private fun PlannedSetRow(
         }
     }
 }
+
+/** Planned minutes of a cardio set (5-minute steps, "Sin definir" below the first step); no weight or reps. */
+@Composable
+@Suppress("LongParameterList") // The set, its labels and position, and the event hook.
+private fun RowScope.MinutesStepper(
+    set: PlannedSetUi,
+    number: Int,
+    tag: String,
+    index: Int,
+    setIndex: Int,
+    onEvent: (RoutineBuilderEvent) -> Unit,
+) {
+    val minutes = set.minutes
+    val valueText = minutes?.let { stringResource(Res.string.routine_cardio_minutes_value, it) }
+        ?: stringResource(Res.string.routine_cardio_minutes_none)
+    NumberStepper(
+        valueText = valueText,
+        onDecrement = {
+            val next = minutes?.minus(MINUTES_STEP)?.takeIf { it >= MINUTES_STEP }
+            onEvent(RoutineBuilderEvent.SetMinutes(index, setIndex, next))
+        },
+        onIncrement = {
+            val next = if (minutes == null) MINUTES_START else (minutes + MINUTES_STEP).coerceAtMost(MINUTES_MAX)
+            onEvent(RoutineBuilderEvent.SetMinutes(index, setIndex, next))
+        },
+        decrementEnabled = minutes != null,
+        incrementEnabled = minutes == null || minutes < MINUTES_MAX,
+        decrementContentDescription = stringResource(Res.string.routine_cardio_minutes_decrease_cd, number),
+        incrementContentDescription = stringResource(Res.string.routine_cardio_minutes_increase_cd, number),
+        stateDescription = valueText,
+        modifier = Modifier.weight(1f),
+        testTagPrefix = "routine_set_minutes_picker_$tag",
+    )
+}
+
+@Composable
+@Suppress("LongParameterList") // The set, its labels and position, and the event hook.
+private fun RowScope.WeightRepsInputs(
+    set: PlannedSetUi,
+    number: Int,
+    tag: String,
+    index: Int,
+    setIndex: Int,
+    onEvent: (RoutineBuilderEvent) -> Unit,
+) {
+    NumberInput(
+        value = set.weight,
+        onValueChange = { onEvent(RoutineBuilderEvent.SetWeight(index, setIndex, it)) },
+        label = stringResource(Res.string.builder_set_weight_cd, number),
+        modifier = Modifier.weight(1f).testTag("routine_builder_set_weight_$tag"),
+        maxDecimals = SetRowDefaults.WEIGHT_MAX_DECIMALS,
+        maxIntegerDigits = SetRowDefaults.WEIGHT_MAX_INTEGER_DIGITS,
+        showLabel = false,
+        imeAction = ImeAction.Next,
+    )
+    NumberInput(
+        value = set.reps,
+        onValueChange = { onEvent(RoutineBuilderEvent.SetReps(index, setIndex, it)) },
+        label = stringResource(Res.string.builder_set_reps_cd, number),
+        modifier = Modifier.weight(1f).testTag("routine_builder_set_reps_$tag"),
+        maxDecimals = SetRowDefaults.REPS_MAX_DECIMALS,
+        maxIntegerDigits = SetRowDefaults.REPS_MAX_INTEGER_DIGITS,
+        showLabel = false,
+        imeAction = ImeAction.Done,
+    )
+}
+
+private const val MINUTES_STEP = 5
+private const val MINUTES_START = 30
+private const val MINUTES_MAX = 240

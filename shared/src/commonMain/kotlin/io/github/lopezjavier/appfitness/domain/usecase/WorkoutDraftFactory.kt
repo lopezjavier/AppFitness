@@ -3,6 +3,7 @@ package io.github.lopezjavier.appfitness.domain.usecase
 import io.github.lopezjavier.appfitness.domain.model.DraftExercise
 import io.github.lopezjavier.appfitness.domain.model.DraftWorkoutSet
 import io.github.lopezjavier.appfitness.domain.model.ExerciseMetricType
+import io.github.lopezjavier.appfitness.domain.model.PlannedSet
 import io.github.lopezjavier.appfitness.domain.model.Routine
 import io.github.lopezjavier.appfitness.domain.model.RoutineBounds
 import io.github.lopezjavier.appfitness.domain.model.SetColumns
@@ -37,7 +38,7 @@ object WorkoutDraftFactory {
                         DraftWorkoutSet(
                             setType = planned.type,
                             rpe = null,
-                            entry = SetColumns(weightKg = planned.weightKg ?: 0.0, reps = planned.reps).toEntry(metric),
+                            entry = planned.columns().toEntry(metric),
                         )
                     },
                 )
@@ -81,6 +82,12 @@ object WorkoutDraftFactory {
             durationMinutes = if (asTemplate) 0 else session.durationMinutes(),
             exercises = withConsistentSupersets(exercises),
         )
+    }
+
+    private fun PlannedSet.columns() = if (durationS != null) {
+        SetColumns(durationS = durationS)
+    } else {
+        SetColumns(weightKg = weightKg ?: 0.0, reps = reps)
     }
 
     private fun WorkoutSession.durationMinutes(): Int {

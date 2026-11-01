@@ -20,6 +20,9 @@ data class PlannedSetUi(
     val reps: String,
     val type: SetType,
     val isValid: Boolean = true,
+    /** A cardio set planned in time: the screen edits only [minutes] (null = "Sin definir"). */
+    val timed: Boolean = false,
+    val minutes: Int? = null,
 )
 
 /** The set whose type picker is open: [current] is the type it has now. */
@@ -122,6 +125,9 @@ sealed interface RoutineBuilderEvent {
     data class SetWeight(val index: Int, val setIndex: Int, val text: String) : RoutineBuilderEvent
 
     data class SetReps(val index: Int, val setIndex: Int, val text: String) : RoutineBuilderEvent
+
+    /** Planned whole minutes of a cardio set (1-240); null = "Sin definir". Ignored for a set that is not timed. */
+    data class SetMinutes(val index: Int, val setIndex: Int, val minutes: Int?) : RoutineBuilderEvent
 
     /** Picks the type of one set (Normal clears it) and closes the picker. */
     data class ChangeSetType(val index: Int, val setIndex: Int, val type: SetType) : RoutineBuilderEvent

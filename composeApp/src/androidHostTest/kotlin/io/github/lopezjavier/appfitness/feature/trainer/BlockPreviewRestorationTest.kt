@@ -4,6 +4,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertTextContains
 import androidx.compose.ui.test.junit4.StateRestorationTester
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
@@ -13,6 +14,10 @@ import androidx.compose.ui.test.performScrollTo
 import androidx.lifecycle.SavedStateHandle
 import io.github.lopezjavier.appfitness.app.FakeConnectivityObserver
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
+import io.github.lopezjavier.appfitness.domain.model.BlockCardio
+import io.github.lopezjavier.appfitness.domain.model.BlockExercise
+import io.github.lopezjavier.appfitness.domain.model.CoachBlock
+import io.github.lopezjavier.appfitness.domain.model.ExerciseAlternative
 import io.github.lopezjavier.appfitness.feature.exercises.FakeExerciseLibrary
 import io.github.lopezjavier.appfitness.feature.exercises.FakeExerciseRepository
 import io.github.lopezjavier.appfitness.feature.exercises.exerciseInfo
@@ -29,6 +34,7 @@ import org.robolectric.annotation.Config
 /** ADR-40: the block preview survives recreation (scroll position, week tab, open reason sheet, a cut request). */
 @RunWith(RobolectricTestRunner::class)
 @Config(qualifiers = "w360dp-h480dp-xxhdpi")
+@Suppress("TooManyFunctions") // One method per restored state.
 class BlockPreviewRestorationTest {
     @get:Rule
     val rule = createComposeRule()
@@ -108,6 +114,89 @@ class BlockPreviewRestorationTest {
         recreate()
 
         rule.onNodeWithText("Trabaja el pecho con poca fatiga.").assertExists()
+    }
+
+    private fun cardioBlockWithSwapTargets(): CoachBlock {
+        val base = coachBlock(sessionsPerWeek = 2)
+        val cardio = BlockExercise(
+            exerciseId = "bike",
+            exerciseKey = "bike",
+            role = "cardio",
+            muscleGroup = "cardio",
+            sets = 1,
+            repMin = 0,
+            repMax = 0,
+            restSeconds = 0,
+            reason = "Cardio suave.",
+            durationMin = 50,
+            pace = "suave",
+        )
+        return base.copy(
+            training = base.training.copy(
+                cardio = BlockCardio(100, 100, 0, listOf(50, 50), "suave"),
+                routineTotalMin = listOf(110, 110),
+            ),
+            sessions = base.sessions.map { it.copy(exercises = listOf(blockExercise("ex-1"), cardio)) },
+        )
+    }
+
+    private fun newCardioModel(handle: SavedStateHandle): BlockPreviewViewModel {
+        val rows = FakeExerciseRepository(
+            listOf(exerciseRow("ex-1", "bench"), exerciseRow("bike", "bike"), exerciseRow("walk", "walk")),
+        ).apply { alternativesById = mapOf("bike" to listOf(ExerciseAlternative(rows[2], 0.4))) }
+        return BlockPreviewViewModel(
+            "plan-1",
+            blocks,
+            rows,
+            FakeExerciseLibrary(
+                mapOf(
+                    "bench" to exerciseInfo("bench", "Press banca"),
+                    "bike" to exerciseInfo("bike", "Bicicleta"),
+                    "walk" to exerciseInfo("walk", "Caminar a paso ligero"),
+                ),
+            ),
+            MutableClock(),
+            handle,
+        )
+    }
+
+    private fun showCardio(handle: SavedStateHandle) {
+        blocks.current = Result.success(cardioBlockWithSwapTargets())
+        current = newCardioModel(handle)
+        showRoot()
+    }
+
+    @Test
+    fun openCardioSwapSheet_staysOpenOnTheSameSlot_afterARecreatedModel() {
+        val handle = SavedStateHandle()
+        showCardio(handle)
+        rule.onNodeWithTag("block_preview_tab_2").performClick()
+        rule.onNodeWithTag("block_preview_replace_2_0_1").performScrollTo().performClick()
+        rule.waitForIdle()
+        rule.onNodeWithTag("block_preview_replace_cardio_note").assertExists()
+
+        current = newCardioModel(handle)
+        rule.waitForIdle()
+
+        assertEquals(2, (current.uiState.value as BlockPreviewUiState.Preview).selectedWeek)
+        rule.onNodeWithTag("block_preview_replace_cardio_note").assertExists()
+        rule.onNodeWithTag("block_preview_replace_option_walk").assertExists()
+    }
+
+    @Test
+    fun pendingCardioSwap_survivesARecreatedModel() {
+        val handle = SavedStateHandle()
+        showCardio(handle)
+        rule.onNodeWithTag("block_preview_replace_1_0_1").performScrollTo().performClick()
+        rule.waitForIdle()
+        rule.onNodeWithTag("block_preview_replace_option_walk").performClick()
+        rule.waitForIdle()
+
+        current = newCardioModel(handle)
+        rule.waitForIdle()
+
+        rule.onNodeWithTag("block_preview_exercise_1_0_1")
+            .assertTextContains("Caminar a paso ligero", substring = true)
     }
 
     @Test

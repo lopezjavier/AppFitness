@@ -61,6 +61,22 @@ class RoutineDetailsScreenTest {
     }
 
     @Test
+    fun aCardioSet_readsItsMinutes_neverZeroReps() {
+        show(
+            RoutineDetailsUiState.Content(
+                name = "Torso A",
+                exercises = listOf(
+                    RoutineDetailsExerciseUi("e3", "Bicicleta", null, listOf(PlannedSet.ofMinutes(50))),
+                ),
+                lastDone = null,
+            ),
+        )
+
+        rule.onNodeWithText("50 min").assertExists()
+        rule.onNodeWithText("0 reps", substring = true).assertDoesNotExist()
+    }
+
+    @Test
     fun title_isTheRoutineName_withEditAndDeleteInTheTopBar() {
         show(content)
 

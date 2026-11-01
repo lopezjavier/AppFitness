@@ -49,6 +49,10 @@ internal data class PlanWeekDto(
     val completed: Int = 0,
     @SerialName("adherence_pct") val adherencePct: Int? = null,
     val sessions: List<PlanWeekSessionDto> = emptyList(),
+    @SerialName("cardio_min_done") val cardioMinDone: Int = 0,
+    @SerialName("cardio_min_target") val cardioMinTarget: Int? = null,
+    @SerialName("steps_avg") val stepsAvg: Int? = null,
+    @SerialName("steps_target") val stepsTarget: Int? = null,
 ) {
     fun toDomain(): PlanWeek? {
         val parsed = PHASES[phase] ?: return null
@@ -62,6 +66,10 @@ internal data class PlanWeekDto(
             completed = completed,
             adherencePct = adherencePct ?: 0,
             sessions = sessions.sortedBy { it.sessionIndex }.map { it.toDomain() },
+            cardioMinDone = cardioMinDone,
+            cardioMinTarget = cardioMinTarget,
+            stepsAvg = stepsAvg,
+            stepsTarget = stepsTarget,
         )
     }
 }

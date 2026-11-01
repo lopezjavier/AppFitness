@@ -152,6 +152,9 @@ Uses `SwipeToDeleteRow` only (guard G7) · right-to-left, "Eliminar"/"Quitar" ·
 | Easier week the coach suggests (T-165) | "Descarga" (chip "Descarga", card "Semana de descarga", live "Descarga: mismo peso, 3 de 5 series") | "Deload", "Semana suave", "Descanso" | Same weights, 40 % fewer working sets; routines are never rewritten; accept/discard with "Aceptar"/"Descartar" |
 | Plan adherence (T-165) | "3 de 4 entrenos · 75 %" (no label) | "Adherencia", "Cumplimiento", "sesiones" | Counts routines done per week; a missed workout shows "No hecho", never an error |
 | Current week marker (T-165) | "Actual" chip | "Hoy", "En curso" | |
+| Cardio progress of a week (T-183) | "Cardio de la semana: 100 de 150 min" | "Actividad física", "Ejercicio aeróbico" | Text plus bar; per week, nothing carries over |
+| Cardio minutes the routines do not hold (T-183) | "Por tu cuenta" ("Te faltan 120 min de cardio a la semana: hazlos por tu cuenta.") | "Extra", "Libre" | |
+| Routine duration with cardio (T-183) | "Tiempo total: 1 h 50 min" | "Duración", "Total" | Never "1 h 0 min" |
 | Decide on a coach proposal | "Aceptar" / "Descartar" | "Guardar", "Cancelar" | Distinct from the edit pair "Guardar"/"Cancelar"; used by the plan tasks of E13 |
 | The AI model the coach uses (T-178, test aid) | "Modelo de IA" (card in "Uso de IA"; options "Opus 5.5", "Sonnet 5.5", "Haiku 5.5") | "Motor", "Versión", "Inteligencia" | `SelectableCard` group that applies on tap (R-12); no prices in the copy (the server owns them); resets to Opus when the app closes |
 | A coach value not yet confirmed | "Provisional" (`StatusChip` Caution, announced "Valor provisional") | "Pendiente", "Sin confirmar" | A re-asked value shows the same chip; the proposal says "Hay valores sin confirmar. Revísalos y vuelve a crear el plan para poder aceptar." |

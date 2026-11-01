@@ -21,7 +21,9 @@ fun exerciseRow(
     equipment: Equipment = Equipment.Barbell,
     name: String? = null,
     custom: Boolean = false,
-) = Exercise(id, key, name, group, emptyList(), equipment, ExerciseMetricType.WeightReps, custom)
+    metric: ExerciseMetricType = ExerciseMetricType.WeightReps,
+    pattern: MovementPattern? = null,
+) = Exercise(id, key, name, group, emptyList(), equipment, metric, custom, movementPattern = pattern)
 
 fun exerciseInfo(key: String, name: String, hasPeak: Boolean = true) =
     ExerciseInfo(key, name, "Descripcion", listOf("Primer paso", "Segundo paso"), listOf("Un consejo"), hasPeak)

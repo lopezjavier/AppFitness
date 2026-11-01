@@ -4,6 +4,7 @@ package io.github.lopezjavier.appfitness.domain.usecase
 object DurationFormat {
     private const val SECONDS_PER_MINUTE = 60
     private const val SECONDS_PER_HOUR = 3600
+    private const val MINUTES_PER_HOUR = 60
 
     /** `90 -> "01:30"`, `3665 -> "1:01:05"`; negative values count as 0. */
     fun formatMmSs(totalSeconds: Int): String {
@@ -15,6 +16,18 @@ object DurationFormat {
             "$hours:${minutes.pad()}:${seconds.pad()}"
         } else {
             "${minutes.pad()}:${seconds.pad()}"
+        }
+    }
+
+    /** `110 -> "1 h 50 min"`, `60 -> "1 h"`, `50 -> "50 min"`; never "1 h 0 min" (R-47). Negative counts as 0. */
+    fun formatHoursMinutes(totalMinutes: Int): String {
+        val total = totalMinutes.coerceAtLeast(0)
+        val hours = total / MINUTES_PER_HOUR
+        val minutes = total % MINUTES_PER_HOUR
+        return when {
+            hours == 0 -> "$minutes min"
+            minutes == 0 -> "$hours h"
+            else -> "$hours h $minutes min"
         }
     }
 

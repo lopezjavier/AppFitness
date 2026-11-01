@@ -108,9 +108,15 @@ private fun RoutineExercise.note(): Note<ExerciseNoteKind>? = Note.of(noteKind, 
 
 private fun WorkoutSet.asPlanned(): PlannedSet {
     val columns = entry.columns()
+    val seconds = columns.durationS
+    // A set logged in time only (no reps, no weight) is compared with a planned-duration set.
+    if (seconds != null && columns.reps == null && columns.weightKg == null) {
+        return PlannedSet(null, 0, setType, seconds)
+    }
     return PlannedSet(columns.weightKg ?: 0.0, (columns.reps ?: 0).clampedReps(), setType)
 }
 
-private fun PlannedSet.normalized() = PlannedSet(weightKg ?: 0.0, reps.clampedReps(), type)
+private fun PlannedSet.normalized() =
+    if (durationS != null) this else PlannedSet(weightKg ?: 0.0, reps.clampedReps(), type)
 
 private fun Int.clampedReps() = coerceIn(RoutineBounds.REPS_MIN, RoutineBounds.REPS_MAX)

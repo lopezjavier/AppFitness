@@ -19,8 +19,24 @@ enum class SetType {
     Drop,
 }
 
-/** One planned set of a routine exercise (ADR-50). A null [weightKg] means "no planned weight". */
-data class PlannedSet(val weightKg: Double?, val reps: Int, val type: SetType = SetType.Working)
+/**
+ * One planned set of a routine exercise (ADR-50). A null [weightKg] means "no planned weight". A cardio set is
+ * planned in time: [durationS] is set (whole minutes) and [reps] is 0; it never has weight.
+ */
+data class PlannedSet(
+    val weightKg: Double?,
+    val reps: Int,
+    val type: SetType = SetType.Working,
+    val durationS: Int? = null,
+) {
+    val isTimed: Boolean get() = durationS != null
+
+    companion object {
+        /** A planned-duration set of [minutes] whole minutes. */
+        fun ofMinutes(minutes: Int, type: SetType = SetType.Working) =
+            PlannedSet(null, 0, type, minutes * RoutineBounds.SECONDS_PER_MINUTE)
+    }
+}
 
 /**
  * One planned exercise of a routine. [position] is 0-based and contiguous in the routine's order; [supersetGroup]
@@ -97,6 +113,9 @@ object RoutineBounds {
     const val WEIGHT_MIN_KG = 0.0
     const val RPE_MIN = 1.0
     const val RPE_MAX = 10.0
+    const val SECONDS_PER_MINUTE = 60
+    const val DURATION_MIN_SECONDS = 60
+    const val DURATION_MAX_SECONDS = 14_400
     const val REST_MIN_SECONDS = 0
     const val REST_MAX_SECONDS = 600
     const val REST_STEP_SECONDS = 10
