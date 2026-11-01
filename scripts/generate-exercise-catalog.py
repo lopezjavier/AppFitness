@@ -69,7 +69,7 @@ EQUIPMENT_TO_ENUM = {
     "cable": "cable",
     "kettlebell": "kettlebell",
     "resistance_band": "band", "loop_band": "band",
-    # Machines (strength and cardio).
+    # Strength machines.
     "ab_crunch_machine": "machine", "assisted_pullup_machine": "machine", "back_extension_machine": "machine",
     "bicep_curl_machine": "machine", "chest_fly_machine": "machine", "chest_press_machine": "machine",
     "dip_machine": "machine", "donkey_calf_raise_machine": "machine", "glute_ham_developer": "machine",
@@ -81,8 +81,9 @@ EQUIPMENT_TO_ENUM = {
     "seated_calf_raise_machine": "machine", "seated_row_machine": "machine",
     "shoulder_press_machine": "machine", "shrug_machine": "machine", "smith_machine": "machine",
     "standing_calf_raise_machine": "machine", "tricep_extension_machine": "machine",
-    "air_bike": "machine", "elliptical": "machine", "rower": "machine", "ski_erg": "machine",
-    "stair_climber": "machine", "stationary_bike": "machine", "treadmill": "machine",
+    # Cardio machines have their own values (T-184, ADR-85); the strength machines above stay `machine`.
+    "air_bike": "cardio_bike", "stationary_bike": "cardio_bike", "treadmill": "treadmill",
+    "elliptical": "elliptical", "rower": "rower", "ski_erg": "cardio_other", "stair_climber": "cardio_other",
     # Own body weight on a fixed structure.
     "pull_up_bar": "bodyweight", "dip_station": "bodyweight", "rings": "bodyweight",
     "suspension_trainer": "bodyweight",
@@ -219,7 +220,11 @@ BODYWEIGHT_SUBSTR = (
     "step-ups", "hanging-", "toes-to-bar", "captains-chair", "calf-raise", "back-extension", "reverse-nordic-curl",
     "bodyweight-", "ring-face-pull", "pike-push",
 )
-LOADED_EQUIPMENT = {"barbell", "dumbbell", "cable", "machine", "kettlebell", "band", "other"}
+LOADED_EQUIPMENT = {
+    "barbell", "dumbbell", "cable", "machine", "kettlebell", "band", "other",
+    "cardio_bike", "treadmill", "elliptical", "rower", "cardio_other",
+}
+CARDIO_EQUIPMENT = {"cardio_bike", "treadmill", "elliptical", "rower", "cardio_other"}
 METRIC_TYPES = (
     "weight_reps", "reps_only", "duration", "weight_duration", "distance_duration", "bodyweight", "assisted",
     "weighted", "steps_duration", "floors_duration",
@@ -244,7 +249,7 @@ def metric_type_of(key, equipment):
         return "reps_only"
     if key in DURATION_KEYS:
         return "duration"
-    if key not in DURATION_NOT and any(s in key for s in DURATION_SUBSTR) and equipment != "machine":
+    if key not in DURATION_NOT and any(s in key for s in DURATION_SUBSTR) and equipment != "machine" and equipment not in CARDIO_EQUIPMENT:
         return "duration"
     if any(s in key for s in BODYWEIGHT_SUBSTR) and equipment in ("bodyweight", "other"):
         return "bodyweight"
@@ -295,9 +300,9 @@ def render_metrics_table(metric_rows):
 
 SELF_CHECK_EXAMPLES = {
     ("pull-up", "bodyweight"): "bodyweight", ("plank", "bodyweight"): "duration",
-    ("treadmill-running", "machine"): "distance_duration", ("assisted-pull-ups", "machine"): "assisted",
+    ("treadmill-running", "treadmill"): "distance_duration", ("assisted-pull-ups", "machine"): "assisted",
     ("weighted-dips", "bodyweight"): "weighted", ("dumbbell-farmers-walk", "dumbbell"): "weight_duration",
-    ("stair-climber", "machine"): "floors_duration", ("crunches", "bodyweight"): "reps_only",
+    ("stair-climber", "cardio_other"): "floors_duration", ("crunches", "bodyweight"): "reps_only",
     ("bench-press", "barbell"): "weight_reps",
 }
 

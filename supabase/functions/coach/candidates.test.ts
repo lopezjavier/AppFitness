@@ -165,6 +165,56 @@ Deno.test("band_long ranks right after band and before other; unknown equipment 
     ]);
 });
 
+Deno.test("the five cardio values rank after band_long and before other", () => {
+    const got = filterCandidates(
+        [
+            ex({ key: "a-other", equipment: "other" }),
+            ex({ key: "b-cardio-other", equipment: "cardio_other" }),
+            ex({ key: "c-rower", equipment: "rower" }),
+            ex({ key: "d-elliptical", equipment: "elliptical" }),
+            ex({ key: "e-treadmill", equipment: "treadmill" }),
+            ex({ key: "f-bike", equipment: "cardio_bike" }),
+            ex({ key: "g-long", equipment: "band_long" }),
+        ],
+        { place: "gym", equipment: [] },
+        mainChest,
+    );
+    assertEquals(got.map((e) => e.key), [
+        "g-long",
+        "f-bike",
+        "e-treadmill",
+        "d-elliptical",
+        "c-rower",
+        "b-cardio-other",
+        "a-other",
+    ]);
+});
+
+Deno.test("cardio rows never reach a lifting pool, with or without cardio selected", () => {
+    const list = [
+        ex({ key: "bench", equipment: "barbell" }),
+        ex({
+            key: "stationary-bike",
+            equipment: "cardio_bike",
+            muscle_group: "quads",
+            movement_pattern: "cardio",
+            metric_type: "distance_duration",
+        }),
+        ex({
+            key: "treadmill-running",
+            equipment: "treadmill",
+            movement_pattern: "cardio",
+            metric_type: "distance_duration",
+        }),
+    ];
+    for (
+        const equipment of [["barbell"], ["barbell", "cardio_bike", "treadmill"], []]
+    ) {
+        const got = filterCandidates(list, { place: "gym", equipment }, mainChest);
+        assertEquals(got.map((e) => e.key), ["bench"]);
+    }
+});
+
 Deno.test("a custom exercise counts only with a movement pattern and is keyed by id", () => {
     const withPattern = ex({
         key: null,

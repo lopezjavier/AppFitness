@@ -202,8 +202,8 @@ select is(pg_temp.st(pg_temp.inp(10, 'block'), 'experience'), 'ok/false/-', 'exp
 -- Block
 -- ---------------------------------------------------------------------------
 select is(pg_temp.keys(pg_temp.inp(11, 'block')),
-  array['intention', 'place', 'equipment', 'days_per_week', 'session_minutes', 'experience'],
-  'block lists its six inputs, different from plan');
+  array['intention', 'place', 'equipment', 'cardio', 'days_per_week', 'session_minutes', 'experience'],
+  'block lists its seven inputs, different from plan');
 select is(pg_temp.st(pg_temp.inp(11, 'block'), 'intention'), 'missing/true/my_training', 'block: no intention blocks');
 select is(pg_temp.st(pg_temp.inp(11, 'block'), 'place'), 'missing/true/my_training', 'block: no place blocks');
 select is(pg_temp.st(pg_temp.inp(11, 'block'), 'equipment'), 'unset_optional/false/my_training', 'block: empty equipment is optional');
@@ -212,7 +212,7 @@ select is(pg_temp.st(pg_temp.inp(11, 'block'), 'session_minutes'), 'unset_option
   'block: no minutes is optional');
 select is(pg_temp.st(pg_temp.inp(11, 'block'), 'experience'), 'provisional/false/-', 'block: experience has no fix target');
 select is(pg_temp.col(pg_temp.inp(12, 'block'), 'status'),
-  array['ok', 'ok', 'ok', 'ok', 'ok', 'provisional'], 'a complete block is ok');
+  array['ok', 'ok', 'ok', 'ok', 'ok', 'ok', 'provisional'], 'a complete block is ok');
 select is(pg_temp.ent(pg_temp.inp(12, 'block'), 'equipment')->'value', '["dumbbell","barbell"]'::jsonb,
   'the equipment list is returned');
 select is((pg_temp.ent(pg_temp.inp(12, 'block'), 'days_per_week')->>'value')::int, 3, 'the days value is returned');

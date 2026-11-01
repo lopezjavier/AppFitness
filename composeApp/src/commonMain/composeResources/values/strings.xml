@@ -583,6 +583,11 @@
     <string name="equipment_kettlebell">Kettlebell</string>
     <string name="equipment_band">Banda</string>
     <string name="equipment_band_long">Banda larga</string>
+    <string name="equipment_cardio_bike">Bicicleta estática</string>
+    <string name="equipment_treadmill">Cinta de correr</string>
+    <string name="equipment_elliptical">Elíptica</string>
+    <string name="equipment_rower">Remo</string>
+    <string name="equipment_cardio_other">Otra máquina de cardio</string>
     <string name="equipment_other">Otro</string>
     <string name="routines_start">Empezar</string>
     <string name="routines_start_cd">Empezar %1$s</string>
@@ -1040,6 +1045,8 @@
     <string name="my_training_place_gym">Gimnasio</string>
     <string name="my_training_place_other">Otro</string>
     <string name="my_training_equipment_label">Equipamiento</string>
+    <string name="my_training_cardio_label">Cardio</string>
+    <string name="my_training_cardio_helper">Sin máquinas de cardio, el entrenador te propone caminar a paso ligero.</string>
     <string name="my_training_days_label">Días por semana</string>
     <string name="my_training_session_label">Duración del entreno</string>
     <string name="my_training_unset">Sin definir</string>
@@ -1921,6 +1928,8 @@
     <string name="plan_input_label_diary">Diario</string>
     <string name="plan_input_label_place">Lugar</string>
     <string name="plan_input_label_equipment">Material</string>
+    <string name="plan_input_label_cardio">Cardio</string>
+    <string name="plan_input_cardio_none">Sin máquinas · caminar</string>
     <string name="plan_input_label_days">Días por semana</string>
     <string name="plan_input_label_session">Duración del entreno</string>
     <string name="plan_input_label_experience">Experiencia</string>

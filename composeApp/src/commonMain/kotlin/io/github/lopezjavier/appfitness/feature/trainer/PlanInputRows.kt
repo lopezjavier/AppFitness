@@ -100,6 +100,7 @@ fun PlanInputKind.summaryLines(): List<List<PlanInputKey>> = when (this) {
         listOf(PlanInputKey.Intention),
         listOf(PlanInputKey.Place),
         listOf(PlanInputKey.Equipment),
+        listOf(PlanInputKey.Cardio),
         listOf(PlanInputKey.DaysPerWeek),
         listOf(PlanInputKey.SessionMinutes),
     )

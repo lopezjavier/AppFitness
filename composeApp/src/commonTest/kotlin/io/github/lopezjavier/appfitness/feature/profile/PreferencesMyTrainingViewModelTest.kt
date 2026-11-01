@@ -159,6 +159,56 @@ class PreferencesMyTrainingViewModelTest {
     }
 
     @Test
+    fun choosingGym_selectsTheFiveCardioMachines_andHomeOrOtherSelectNone() = runTest {
+        val (viewModel, state) = loaded()
+
+        viewModel.onEvent(PreferencesEvent.SetPlace(TrainingPlace.Gym))
+        assertTrue(state().form.equipment.containsAll(Equipment.cardio))
+        viewModel.onEvent(PreferencesEvent.SetPlace(TrainingPlace.Home))
+        assertTrue(state().form.equipment.none { it.isCardio })
+        viewModel.onEvent(PreferencesEvent.SetPlace(TrainingPlace.Other))
+        assertTrue(state().form.equipment.none { it.isCardio })
+    }
+
+    @Test
+    fun togglingACardioChip_dirtiesTheDraftAndSavesIt() = runTest {
+        training.result = Result.success(TrainingPreferences(equipment = setOf(Equipment.Machine)))
+        val (viewModel, state) = loaded()
+        assertFalse(state().isDirty)
+
+        viewModel.onEvent(PreferencesEvent.SetEquipment(Equipment.Treadmill, checked = true))
+        assertTrue(state().isDirty)
+        viewModel.onEvent(PreferencesEvent.Save)
+        advanceUntilIdle()
+
+        assertEquals(setOf(Equipment.Machine, Equipment.Treadmill), training.savedMyTraining.single().equipment)
+    }
+
+    @Test
+    fun savedListWithOnlyMachine_leavesTheCardioChipsOff() = runTest {
+        training.result = Result.success(TrainingPreferences(equipment = setOf(Equipment.Machine)))
+
+        val (_, state) = loaded()
+
+        assertTrue(state().form.equipment.none { it.isCardio })
+        assertTrue(Equipment.Machine in state().form.equipment)
+    }
+
+    @Test
+    fun cardioDraft_survivesRecreationFromTheSameSavedState() = runTest {
+        val handle = SavedStateHandle()
+        val (first, _) = loaded(handle)
+        first.onEvent(PreferencesEvent.SetEquipment(Equipment.Rower, checked = true))
+        advanceUntilIdle()
+
+        val (second, state) = loaded(handle)
+
+        assertTrue(Equipment.Rower in state().form.equipment)
+        assertTrue(second.uiState.value is PreferencesUiState.Loaded)
+        assertTrue(training.savedMyTraining.isEmpty())
+    }
+
+    @Test
     fun daysAndSession_areOptional_andNullClearsAPreviousValue() = runTest {
         training.result = Result.success(TrainingPreferences(daysPerWeek = 3, sessionMinutes = 45))
         val (viewModel, state) = loaded()

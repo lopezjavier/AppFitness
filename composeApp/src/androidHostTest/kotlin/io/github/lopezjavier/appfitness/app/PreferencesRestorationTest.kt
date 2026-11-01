@@ -221,6 +221,7 @@ class PreferencesRestorationTest {
         send(PreferencesEvent.SetIntention(TrainingIntention.Muscle))
         send(PreferencesEvent.SetPlace(TrainingPlace.Home))
         send(PreferencesEvent.SetEquipment(Equipment.Barbell, true))
+        send(PreferencesEvent.SetEquipment(Equipment.Rower, true))
         send(PreferencesEvent.SetDaysPerWeek(4))
         send(PreferencesEvent.SetSessionMinutes(45))
         rule.onNodeWithTag("preferences_intention_field").performScrollTo().performClick()
@@ -235,6 +236,7 @@ class PreferencesRestorationTest {
         rule.onNodeWithTag("preferences_days_stepper_value").performScrollTo().assertTextEquals("4 días")
         rule.onNodeWithTag("preferences_session_stepper_value").performScrollTo().assertTextEquals("45 min")
         rule.onNodeWithTag("preferences_equipment_barbell").performScrollTo().assertIsOn()
+        rule.onNodeWithTag("preferences_equipment_rower").performScrollTo().assertIsOn()
         rule.onNodeWithTag("preferences_mi_entrenamiento_save").assertIsEnabled()
     }
 

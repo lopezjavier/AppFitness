@@ -55,6 +55,41 @@ class TrainingPreferencesDtoTest {
     }
 
     @Test
+    fun cardioEquipmentValues_decode() {
+        val prefs = decode(
+            """{"equipment":["cardio_bike","treadmill","elliptical","rower","cardio_other","machine"]}""",
+        )
+
+        assertEquals(
+            setOf(
+                Equipment.CardioBike,
+                Equipment.Treadmill,
+                Equipment.Elliptical,
+                Equipment.Rower,
+                Equipment.CardioOther,
+                Equipment.Machine,
+            ),
+            prefs.equipment,
+        )
+    }
+
+    @Test
+    fun cardioEquipment_isSeparatedFromLiftingEquipment() {
+        assertEquals(
+            setOf(
+                Equipment.CardioBike,
+                Equipment.Treadmill,
+                Equipment.Elliptical,
+                Equipment.Rower,
+                Equipment.CardioOther,
+            ),
+            Equipment.cardio.toSet(),
+        )
+        assertEquals(Equipment.entries - Equipment.cardio.toSet(), Equipment.lifting)
+        assertEquals(false, Equipment.Machine.isCardio)
+    }
+
+    @Test
     fun unknownEquipmentValue_isRejected() {
         assertFailsWith<SerializationException> { decode("""{"equipment":["spaceship"]}""") }
     }

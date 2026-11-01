@@ -68,3 +68,9 @@ Deno.test("assertInputsComplete throws coach_missing_data with the names only", 
     assertEquals(e.missing, ["sex"]);
     assertInputsComplete(planInputs());
 });
+
+Deno.test("an empty cardio entry (ok, not blocking) never refuses a block", () => {
+    const inputs = blockInputs({ cardio: { value: [], status: "ok" } });
+    assertEquals(missingFromInputs(inputs), []);
+    assertInputsComplete(inputs);
+});

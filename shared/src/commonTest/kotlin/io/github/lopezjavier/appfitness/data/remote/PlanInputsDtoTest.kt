@@ -100,7 +100,7 @@ class PlanInputsDtoTest {
     fun allKeys_areMapped() {
         val keys = listOf(
             "intention", "sex", "age", "height", "weight", "activity_level", "total_expenditure", "weight_trend",
-            "diary", "place", "equipment", "days_per_week", "session_minutes", "experience",
+            "diary", "place", "equipment", "cardio", "days_per_week", "session_minutes", "experience",
         )
 
         val result = decode(list(*keys.map { entry(key = it) }.toTypedArray()))

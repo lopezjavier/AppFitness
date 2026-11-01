@@ -74,6 +74,11 @@ const EQUIPMENT_ORDER = [
     "bodyweight",
     "band",
     "band_long",
+    "cardio_bike",
+    "treadmill",
+    "elliptical",
+    "rower",
+    "cardio_other",
     "other",
 ];
 const equipmentRank = (e: string): number => {
