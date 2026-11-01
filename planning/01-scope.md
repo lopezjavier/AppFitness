@@ -41,7 +41,7 @@ An evidence-based performance assistant (coach) that plans four-week training an
 | Target weight | No longer a user input; the coach sets outcomes (E13) | 76, 78 |
 | Derived values | Shown with their source and confirmed before use | 76 |
 | Plan | 4-week blocks, reviewed at the end of each block | 76 |
-| Cardio (proposed 2026-11-01, pending approval) | The plan sets a weekly cardio target and a daily steps target by intention; the block places cardio sessions and a warm-up | 85 |
+| Cardio (proposed 2026-11-01, pending approval) | The plan sets a weekly cardio target (150 min, editable) and a daily steps target (never below the current average, floor 7 000); the block puts cardio as the last exercise of every routine (minutes only, swappable any-to-any, no warm-up planned); cardio machines are their own equipment group | 85 |
 | AI provider | Claude: Opus 5.5 for the block plan, Sonnet 5.5 for report and chat; Gemini stays only for food photos | 77 |
 | AI cost | Monthly budget: 2 € per user, 5 € in total; estimate ≈ $1-3 per user and month (`07-coach-design.md` §11) | 77 |
 | Prior consent | Not required while the app is personal; written condition before distributing it | 76 |
