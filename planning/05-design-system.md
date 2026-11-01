@@ -109,6 +109,7 @@ Generic rules cited by number; ux-reviewer rejects plans and diffs that break on
 - **R-36** Generic actions use the shared `action_*` strings (Guardar, Cancelar, Cerrar, Eliminar, Quitar, Añadir, Editar, Listo, Descartar, Seguir editando, Reintentar).
 - **R-37** Messages follow fixed templates (§10): errors "No se pudo <acción>. Inténtalo de nuevo."; offline "Sin conexión: no se puede <acción>". Sentences end with a period; titles and buttons do not; use "…" not "..."; titles capitalize the first word only.
 - **R-44 Dates and numbers:** dates via `AppDateFormat` (list "Hoy"/"Ayer"/"lun, 24 oct"; title "24 de octubre"; month "octubre 2026"); numbers via `AppNumberFormat`; macro grams are whole numbers outside nutrition tables.
+- **R-45 Missed targets are not failures (user, 2026-11-01).** The app never marks a plan, week or target as failed, and uses no error colour, "fallaste"-style copy or streak-loss wording for unmet cardio, steps, sessions or sets. Progress is shown neutrally ("100 de 150 min"), and the coach adapts the plan to what was actually done (the adaptation rules are decided by `fitness-scientist` in `07`, T-166).
 ### Process
 - **R-39 Sweep.** A task that adds or changes a pattern updates every other instance (found by search) or records each in the E9 table with an owning task; a new designsystem component retires its ad-hoc copies within the same epic.
 - **R-40 Guards.** `scripts/check-ux-conventions.sh` passes (CI).
