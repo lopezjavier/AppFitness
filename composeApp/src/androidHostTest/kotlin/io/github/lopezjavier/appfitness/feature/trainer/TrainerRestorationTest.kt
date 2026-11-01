@@ -9,7 +9,6 @@ import androidx.compose.ui.test.junit4.StateRestorationTester
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
-import androidx.lifecycle.SavedStateHandle
 import io.github.lopezjavier.appfitness.app.App
 import io.github.lopezjavier.appfitness.app.FakeConnectivityObserver
 import io.github.lopezjavier.appfitness.app.RootRoute
@@ -26,7 +25,7 @@ import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 
-/** ADR-40: the Trainer tab, and the open edit sheet (with the stored level highlighted) survive recreation. */
+/** ADR-40: the Trainer tab, its overflow sheet, the usage screen, the plan section and the weeks survive recreation. */
 @RunWith(RobolectricTestRunner::class)
 @Config(qualifiers = "w360dp-h2400dp-xxhdpi")
 class TrainerRestorationTest {
@@ -48,43 +47,20 @@ class TrainerRestorationTest {
     }
 
     @Test
-    fun recreatedViewModel_reopensTheSheet_withoutAFooter() {
-        val saved = SavedStateHandle()
+    fun recreatedViewModel_keepsTheRootAndTheTusDatosRow() {
         val repository = FakeCoachRepository()
-        val first = TrainerViewModel(repository, MutableClock(), saved)
-        var current by mutableStateOf(first)
+        var current by mutableStateOf(TrainerViewModel(repository, MutableClock()))
         val connectivity = FakeConnectivityObserver()
         rule.setContent { AppTheme { TrainerRoute(viewModel = current, connectivity = connectivity) } }
         rule.waitForIdle()
-        rule.onNodeWithTag("trainer_edit_activity_button").performClick()
+
+        // A new view model, as after process death: the root has no draft and no activity sheet any more.
+        current = TrainerViewModel(repository, MutableClock())
         rule.waitForIdle()
 
-        // A new view model over the same saved state, as after process death: the values are fetched again.
-        current = TrainerViewModel(repository, MutableClock(), saved)
-        rule.waitForIdle()
-
-        rule.onNodeWithTag("activity_level_sheet_activity_light").assertIsSelected()
-        rule.onNodeWithTag("activity_level_sheet_commit").assertDoesNotExist()
+        rule.onNodeWithTag("trainer_your_data").assertExists()
+        rule.onNodeWithTag("activity_level_sheet_activity_light").assertDoesNotExist()
         assertTrue(repository.confirmCalls.isEmpty())
-    }
-
-    @Test
-    fun recreatedViewModel_afterATap_startsWithTheSheetClosed() {
-        val saved = SavedStateHandle()
-        val repository = FakeCoachRepository()
-        var current by mutableStateOf(TrainerViewModel(repository, MutableClock(), saved))
-        val connectivity = FakeConnectivityObserver()
-        rule.setContent { AppTheme { TrainerRoute(viewModel = current, connectivity = connectivity) } }
-        rule.waitForIdle()
-        rule.onNodeWithTag("trainer_edit_activity_button").performClick()
-        rule.waitForIdle()
-        rule.onNodeWithTag("activity_level_sheet_activity_high").performClick()
-        rule.waitForIdle()
-
-        current = TrainerViewModel(repository, MutableClock(), saved)
-        rule.waitForIdle()
-
-        rule.onNodeWithTag("activity_level_sheet_activity_high").assertDoesNotExist()
     }
 
     private fun StateRestorationTester.setTrainerApp() {
@@ -93,11 +69,11 @@ class TrainerRestorationTest {
         setContent {
             App(
                 rootRoute = RootRoute.Main,
-                trainer = { modifier, open, _, _ ->
+                trainer = { modifier, actions ->
                     TrainerRoute(
                         modifier,
-                        open,
-                        viewModel = TrainerViewModel(FakeCoachRepository(), MutableClock(), SavedStateHandle()),
+                        actions,
+                        viewModel = TrainerViewModel(FakeCoachRepository(), MutableClock()),
                         connectivity = connectivity,
                     )
                 },
@@ -143,16 +119,15 @@ class TrainerRestorationTest {
         val plans = FakeCoachPlanRepository()
         plans.current = Result.success(coachPlan(status = PlanStatus.Accepted))
         plans.pending = Result.success(calorieChange())
-        val saved = SavedStateHandle()
         val repository = FakeCoachRepository()
-        var current by mutableStateOf(TrainerViewModel(repository, MutableClock(), saved, plans = plans))
+        var current by mutableStateOf(TrainerViewModel(repository, MutableClock(), plans = plans))
         val connectivity = FakeConnectivityObserver()
         rule.setContent { AppTheme { TrainerRoute(viewModel = current, connectivity = connectivity) } }
         rule.waitForIdle()
         rule.onNodeWithTag("trainer_calorie_card").assertExists()
 
         // A new view model over the same saved state, as after process death: the plan is read again.
-        current = TrainerViewModel(repository, MutableClock(), saved, plans = plans)
+        current = TrainerViewModel(repository, MutableClock(), plans = plans)
         rule.waitForIdle()
 
         rule.onNodeWithTag("trainer_plan_card").assertExists()
@@ -168,12 +143,10 @@ class TrainerRestorationTest {
         val weeks = FakeCoachWeeksRepository()
         weeks.weeksResult = Result.success(listOf(planWeek(week = 1), planWeek(week = 2)))
         weeks.pending = Result.success(deloadProposal())
-        val saved = SavedStateHandle()
         val repository = FakeCoachRepository()
         fun model() = TrainerViewModel(
             repository,
             MutableClock(),
-            saved,
             plans = plans,
             blocks = blocks,
             coachWeeks = weeks,
@@ -205,7 +178,6 @@ class TrainerRestorationTest {
         val model = TrainerViewModel(
             FakeCoachRepository(),
             MutableClock(),
-            SavedStateHandle(),
             plans = plans,
             blocks = blocks,
             coachWeeks = weeks,

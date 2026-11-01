@@ -27,7 +27,6 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.github.lopezjavier.appfitness.composeapp.resources.Res
-import io.github.lopezjavier.appfitness.composeapp.resources.action_retry
 import io.github.lopezjavier.appfitness.composeapp.resources.calorie_change_accept_error
 import io.github.lopezjavier.appfitness.composeapp.resources.calorie_change_accept_offline
 import io.github.lopezjavier.appfitness.composeapp.resources.calorie_change_discard_error
@@ -40,28 +39,26 @@ import io.github.lopezjavier.appfitness.composeapp.resources.deload_discard_offl
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_info
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_more_vert
 import io.github.lopezjavier.appfitness.composeapp.resources.topbar_more_cd
-import io.github.lopezjavier.appfitness.composeapp.resources.trainer_confirm_error
-import io.github.lopezjavier.appfitness.composeapp.resources.trainer_error_message
-import io.github.lopezjavier.appfitness.composeapp.resources.trainer_save_error
 import io.github.lopezjavier.appfitness.composeapp.resources.trainer_title
+import io.github.lopezjavier.appfitness.composeapp.resources.trainer_your_data_row
+import io.github.lopezjavier.appfitness.composeapp.resources.your_data_provisional_count
 import io.github.lopezjavier.appfitness.designsystem.AppActionSheet
 import io.github.lopezjavier.appfitness.designsystem.AppCard
 import io.github.lopezjavier.appfitness.designsystem.AppIconButton
 import io.github.lopezjavier.appfitness.designsystem.AppScreen
 import io.github.lopezjavier.appfitness.designsystem.AppShapes
 import io.github.lopezjavier.appfitness.designsystem.AppSheetAction
-import io.github.lopezjavier.appfitness.designsystem.AppStateAction
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
-import io.github.lopezjavier.appfitness.designsystem.ErrorState
 import io.github.lopezjavier.appfitness.designsystem.LocalAppHaptics
 import io.github.lopezjavier.appfitness.designsystem.LocalAppMessages
-import io.github.lopezjavier.appfitness.designsystem.OfflineState
+import io.github.lopezjavier.appfitness.designsystem.NavigationRow
 import io.github.lopezjavier.appfitness.designsystem.SkeletonBox
 import io.github.lopezjavier.appfitness.designsystem.Spacing
 import io.github.lopezjavier.appfitness.designsystem.offlineHint
 import io.github.lopezjavier.appfitness.domain.port.ConnectivityObserver
 import io.github.lopezjavier.appfitness.feature.notifications.NotificationsBell
 import kotlinx.coroutines.flow.Flow
+import org.jetbrains.compose.resources.pluralStringResource
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.koinInject
 import org.koin.compose.viewmodel.koinViewModel
@@ -69,21 +66,30 @@ import org.koin.compose.viewmodel.koinViewModel
 private const val SKELETON_ROWS = 4
 private const val TITLE_FRACTION = 0.4f
 
+/**
+ * Where the Trainer root goes: "Uso de IA", the pending plan proposal, a block preview ([onOpenBlock] takes the plan
+ * id), "Antes de empezar" ([onOpenBeforeStart] takes the mode, the plan id and the plan being replaced) and
+ * "Tus datos".
+ */
+data class TrainerActions(
+    val onOpenCoachUsage: () -> Unit = {},
+    val onOpenProposal: () -> Unit = {},
+    val onOpenBlock: (String) -> Unit = {},
+    val onOpenBeforeStart: (mode: BeforeStartMode, planId: String?, replacingPlanId: String?) -> Unit = { _, _, _ -> },
+    val onOpenYourData: () -> Unit = {},
+)
+
 /** Stateful Trainer tab root: connects [TrainerViewModel] to [TrainerScreen] and plays its one-off effects. */
 @Composable
 fun TrainerRoute(
     modifier: Modifier = Modifier,
-    onOpenCoachUsage: () -> Unit = {},
-    onOpenPlan: (replacingPlanId: String?) -> Unit = {},
-    onOpenBlock: (String) -> Unit = {},
+    actions: TrainerActions = TrainerActions(),
     viewModel: TrainerViewModel = koinViewModel(),
     connectivity: ConnectivityObserver = koinInject(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val haptics = LocalAppHaptics.current
     val messages = LocalAppMessages.current
-    val confirmError = stringResource(Res.string.trainer_confirm_error)
-    val saveError = stringResource(Res.string.trainer_save_error)
     val acceptChangeError = stringResource(Res.string.calorie_change_accept_error)
     val discardChangeError = stringResource(Res.string.calorie_change_discard_error)
     val acceptOffline = offlineHint(stringResource(Res.string.calorie_change_accept_offline)) + "."
@@ -97,13 +103,6 @@ fun TrainerRoute(
     LaunchedEffect(viewModel) {
         viewModel.effects.collect { effect ->
             when (effect) {
-                TrainerEffect.Confirmed -> latestHaptics.confirm()
-
-                is TrainerEffect.ConfirmFailed -> {
-                    latestHaptics.reject()
-                    messages.show(if (effect.fromSheet) saveError else confirmError)
-                }
-
                 is TrainerEffect.CalorieChangeDecided -> latestHaptics.confirm()
 
                 is TrainerEffect.CalorieChangeFailed -> {
@@ -137,9 +136,7 @@ fun TrainerRoute(
         isOnline = connectivity.isOnline,
         onEvent = viewModel::onEvent,
         modifier = modifier,
-        onOpenCoachUsage = onOpenCoachUsage,
-        onOpenPlan = onOpenPlan,
-        onOpenBlock = onOpenBlock,
+        actions = actions,
     )
 }
 
@@ -148,9 +145,8 @@ private fun decisionMessage(accept: Boolean, offline: Boolean, texts: List<Strin
     texts[(if (offline) 2 else 0) + (if (accept) 0 else 1)]
 
 /**
- * The Trainer tab root (US-68, US-69) on [AppScreen] with the compact header: the pending calorie change, the
- * derived-values card (or its skeleton), the plan entry, the load error with "Reintentar" or the offline state.
- * The activity-level sheet floats over the card.
+ * The Trainer tab root (US-68, US-69, US-78) on [AppScreen] with the compact header: the pending suggestions, "Tu
+ * plan", the block entry, the weeks and the "Tus datos" row (or the skeleton while it loads).
  */
 @Composable
 fun TrainerScreen(
@@ -158,38 +154,20 @@ fun TrainerScreen(
     isOnline: Flow<Boolean>,
     onEvent: (TrainerEvent) -> Unit,
     modifier: Modifier = Modifier,
-    onOpenCoachUsage: () -> Unit = {},
-    onOpenPlan: (replacingPlanId: String?) -> Unit = {},
-    onOpenBlock: (String) -> Unit = {},
+    actions: TrainerActions = TrainerActions(),
 ) {
     val title = stringResource(Res.string.trainer_title)
     val online by isOnline.collectAsStateWithLifecycle(initialValue = true)
     AppScreen(
         title = title,
         modifier = modifier,
-        header = { TrainerHeader(title, onOpenCoachUsage) },
+        header = { TrainerHeader(title, actions.onOpenCoachUsage) },
         testTagPrefix = "trainer",
     ) {
         Box(Modifier.fillMaxSize().testTag("trainer_screen")) {
             when (state) {
                 TrainerUiState.Loading -> TrainerSkeleton()
-
-                TrainerUiState.Error -> Box(Modifier.fillMaxSize(), Alignment.Center) {
-                    ErrorState(
-                        message = stringResource(Res.string.trainer_error_message),
-                        action = AppStateAction(stringResource(Res.string.action_retry)) {
-                            onEvent(TrainerEvent.Retry)
-                        },
-                        testTagPrefix = "trainer_error",
-                        actionTestTag = "trainer_retry",
-                    )
-                }
-
-                TrainerUiState.Offline -> Box(Modifier.fillMaxSize(), Alignment.Center) {
-                    OfflineState(isOnline = isOnline, onReload = { onEvent(TrainerEvent.Retry) })
-                }
-
-                is TrainerUiState.Content -> TrainerContent(state, online, onEvent, onOpenPlan, onOpenBlock)
+                is TrainerUiState.Content -> TrainerContent(state, online, onEvent, actions)
             }
         }
     }
@@ -200,8 +178,7 @@ private fun TrainerContent(
     state: TrainerUiState.Content,
     online: Boolean,
     onEvent: (TrainerEvent) -> Unit,
-    onOpenPlan: (replacingPlanId: String?) -> Unit,
-    onOpenBlock: (String) -> Unit,
+    actions: TrainerActions,
 ) {
     Column(
         Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(Spacing.screenMargin),
@@ -209,27 +186,23 @@ private fun TrainerContent(
     ) {
         state.deload?.let { DeloadCard(it, state.decidingDeload, online, onEvent) }
         state.calorieChange?.let { CalorieChangeCard(it, state.decidingChange, online, onEvent) }
-        DerivedValuesCard(
-            values = state.values,
-            confirming = state.confirming,
-            online = online,
-            strategy = state.strategy,
-            onEdit = { onEvent(TrainerEvent.OpenEdit) },
-            onConfirm = { onEvent(TrainerEvent.Confirm) },
-            expenditureSource = state.expenditureSource,
-        )
-        PlanSection(state.plan, online, onOpenPlan)
-        BlockSection(state.plan, state.block, online, onOpenBlock)
+        PlanSection(state.plan, online, actions.onOpenProposal, actions.onOpenBeforeStart)
+        BlockSection(state.plan, state.block, online, actions.onOpenBlock, actions.onOpenBeforeStart)
         PlanWeeksSection(state.weeks)
+        YourDataEntry(state.provisionalCount, actions.onOpenYourData)
     }
-    if (state.editSheet != null) {
-        ActivityLevelSheet(
-            selected = state.editSheet,
-            saving = state.confirming,
-            online = online,
-            onEvent = onEvent,
-        )
-    }
+}
+
+/** The "Tus datos" row at the end of the hub (R-03): its value is how many values are still provisional. */
+@Composable
+private fun YourDataEntry(provisionalCount: Int?, onOpenYourData: () -> Unit) {
+    NavigationRow(
+        label = stringResource(Res.string.trainer_your_data_row),
+        onClick = onOpenYourData,
+        modifier = Modifier.testTag("trainer_your_data"),
+        value = provisionalCount?.takeIf { it > 0 }
+            ?.let { pluralStringResource(Res.plurals.your_data_provisional_count, it, it) },
+    )
 }
 
 /** The tab heading, equal to the bottom-bar label (R-04). */

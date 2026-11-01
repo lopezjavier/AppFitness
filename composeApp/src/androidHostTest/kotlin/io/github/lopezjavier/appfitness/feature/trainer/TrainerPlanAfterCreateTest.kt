@@ -7,7 +7,6 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.LifecycleRegistry
-import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import io.github.lopezjavier.appfitness.app.FakeConnectivityObserver
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
@@ -36,7 +35,7 @@ class TrainerPlanAfterCreateTest {
 
     private fun showTrainer() {
         owner = TestOwner().also { it.registry.currentState = Lifecycle.State.RESUMED }
-        val model = TrainerViewModel(FakeCoachRepository(), MutableClock(), SavedStateHandle(), plans = plans)
+        val model = TrainerViewModel(FakeCoachRepository(), MutableClock(), plans = plans)
         rule.setContent {
             CompositionLocalProvider(LocalLifecycleOwner provides owner) {
                 AppTheme { TrainerRoute(viewModel = model, connectivity = FakeConnectivityObserver()) }

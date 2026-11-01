@@ -35,10 +35,12 @@ import io.github.lopezjavier.appfitness.feature.routines.RoutineDetailsViewModel
 import io.github.lopezjavier.appfitness.feature.routines.RoutinesViewModel
 import io.github.lopezjavier.appfitness.feature.templates.SaveTemplateViewModel
 import io.github.lopezjavier.appfitness.feature.templates.TemplateDetailsViewModel
+import io.github.lopezjavier.appfitness.feature.trainer.BeforeStartViewModel
 import io.github.lopezjavier.appfitness.feature.trainer.BlockPreviewViewModel
 import io.github.lopezjavier.appfitness.feature.trainer.CoachUsageViewModel
 import io.github.lopezjavier.appfitness.feature.trainer.PlanProposalViewModel
 import io.github.lopezjavier.appfitness.feature.trainer.TrainerViewModel
+import io.github.lopezjavier.appfitness.feature.trainer.YourDataViewModel
 import io.github.lopezjavier.appfitness.feature.weight.CircumferencesViewModel
 import io.github.lopezjavier.appfitness.feature.weight.GoalViewModel
 import io.github.lopezjavier.appfitness.feature.weight.HealthSyncViewModel
@@ -415,13 +417,13 @@ val uiModule =
             TrainerViewModel(
                 repository = get(),
                 clock = get(),
-                savedState = get(),
-                goals = get(),
                 plans = get(),
                 blocks = get(),
                 coachWeeks = get(),
             )
         }
+        viewModel { BeforeStartViewModel(coach = get(), clock = get(), savedState = get()) }
+        viewModel { YourDataViewModel(coach = get(), clock = get(), savedState = get()) }
         viewModel { params ->
             BlockPreviewViewModel(
                 planId = params.get(),

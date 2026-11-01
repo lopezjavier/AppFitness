@@ -37,10 +37,11 @@ class PlanProposalRestorationTest {
         setContent {
             AppTheme {
                 PlanProposalScreen(
-                    state = PlanProposalUiState.Proposal(coachPlan(), coachValues(provisional = false)),
+                    state = PlanProposalUiState.Proposal(coachPlan()),
                     isOnline = flowOf(true),
                     onEvent = {},
                     onBack = {},
+                    onOpenBeforeStart = {},
                 )
             }
         }
@@ -79,7 +80,8 @@ class PlanProposalRestorationTest {
         plans.requestGate = CompletableDeferred()
         rule.setContent {
             AppTheme {
-                PlanProposalRoot(onBack = {}, viewModel = current, connectivity = FakeConnectivityObserver())
+                PlanProposalRoot(onBack = {
+                }, onOpenBeforeStart = {}, viewModel = current, connectivity = FakeConnectivityObserver())
             }
         }
         rule.waitForIdle()

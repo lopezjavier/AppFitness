@@ -26,12 +26,14 @@ internal fun ActivityLevelSheet(
     selected: ActivityLevel?,
     saving: Boolean,
     online: Boolean,
-    onEvent: (TrainerEvent) -> Unit,
+    onDismiss: () -> Unit,
+    onPick: (ActivityLevel) -> Unit,
+    testTagPrefix: String = ACTIVITY_SHEET_TAG,
 ) {
     AppPickerSheet(
         title = stringResource(Res.string.trainer_sheet_title),
-        onDismiss = { onEvent(TrainerEvent.CloseEdit) },
-        testTagPrefix = ACTIVITY_SHEET_TAG,
+        onDismiss = onDismiss,
+        testTagPrefix = testTagPrefix,
     ) {
         InlineNote(text = stringResource(Res.string.trainer_sheet_note), testTag = "trainer_sheet_note")
         if (!online) {
@@ -43,8 +45,8 @@ internal fun ActivityLevelSheet(
         }
         ActivityCards(
             selected = selected,
-            onSelect = { onEvent(TrainerEvent.PickLevel(it)) },
-            tagPrefix = ACTIVITY_SHEET_TAG,
+            onSelect = onPick,
+            tagPrefix = testTagPrefix,
             modifier = Modifier.padding(top = Spacing.sm),
             enabled = online && !saving,
         )

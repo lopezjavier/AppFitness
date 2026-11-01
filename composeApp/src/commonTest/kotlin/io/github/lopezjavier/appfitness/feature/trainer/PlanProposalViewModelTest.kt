@@ -4,10 +4,13 @@ import androidx.lifecycle.SavedStateHandle
 import app.cash.turbine.test
 import io.github.lopezjavier.appfitness.domain.AppError
 import io.github.lopezjavier.appfitness.domain.AppException
-import io.github.lopezjavier.appfitness.domain.model.CoachDerivedValues
 import io.github.lopezjavier.appfitness.domain.model.CoachException
 import io.github.lopezjavier.appfitness.domain.model.CoachFailure
 import io.github.lopezjavier.appfitness.domain.model.MissingField
+import io.github.lopezjavier.appfitness.domain.model.PlanInputKey
+import io.github.lopezjavier.appfitness.domain.model.PlanInputKind
+import io.github.lopezjavier.appfitness.domain.model.PlanInputStatus
+import io.github.lopezjavier.appfitness.domain.model.PlanInputs
 import io.github.lopezjavier.appfitness.domain.model.PlanStatus
 import io.github.lopezjavier.appfitness.feature.workout.MutableClock
 import kotlinx.coroutines.CompletableDeferred
@@ -32,7 +35,7 @@ import kotlin.test.assertTrue
 class PlanProposalViewModelTest {
     private val dispatcher = StandardTestDispatcher()
     private val plans = FakeCoachPlanRepository()
-    private val coach = FakeCoachRepository(Result.success(coachValues(provisional = false)))
+    private val coach = FakeCoachRepository()
 
     @BeforeTest
     fun setUp() = Dispatchers.setMain(dispatcher)
@@ -201,9 +204,15 @@ class PlanProposalViewModelTest {
         assertEquals(coachPlan(), model.proposal().plan)
     }
 
+    private fun givenInputs(status: PlanInputStatus) {
+        coach.inputs[PlanInputKind.Plan] = Result.success(
+            PlanInputs(PlanInputKind.Plan, null, listOf(planInput(PlanInputKey.ActivityLevel, status))),
+        )
+    }
+
     @Test
     fun provisionalValues_blockAcceptWithAReason() = runTest(dispatcher) {
-        coach.loaded = Result.success(coachValues(provisional = true))
+        givenInputs(PlanInputStatus.Provisional)
         plans.current = Result.success(coachPlan())
         val model = viewModel()
 
@@ -217,20 +226,28 @@ class PlanProposalViewModelTest {
     }
 
     @Test
-    fun confirm_enablesAccept() = runTest(dispatcher) {
-        coach.loaded = Result.success(coachValues(provisional = true))
+    fun confirmedValues_leaveAcceptEnabled_withNoReason() = runTest(dispatcher) {
+        givenInputs(PlanInputStatus.Ok)
         plans.current = Result.success(coachPlan())
         val model = viewModel()
-        advanceUntilIdle()
 
-        model.effects.test {
-            model.onEvent(PlanProposalEvent.Confirm)
-            advanceUntilIdle()
-            assertEquals(PlanProposalEffect.ValuesConfirmed, awaitItem())
-        }
+        advanceUntilIdle()
 
         assertTrue(model.proposal().canAccept)
         assertNull(model.proposal().acceptBlockedReason)
+    }
+
+    @Test
+    fun theProposalNeverConfirmsValues() = runTest(dispatcher) {
+        givenInputs(PlanInputStatus.Provisional)
+        plans.current = Result.success(coachPlan())
+        val model = viewModel()
+
+        advanceUntilIdle()
+        model.onEvent(PlanProposalEvent.Accept)
+        advanceUntilIdle()
+
+        assertTrue(coach.confirmCalls.isEmpty())
     }
 
     @Test
@@ -252,7 +269,7 @@ class PlanProposalViewModelTest {
 
     @Test
     fun accept_withUnconfirmedValues_emitsNoEffectAndNeverCallsTheRepository() = runTest(dispatcher) {
-        coach.loaded = Result.success(coachValues(provisional = true))
+        givenInputs(PlanInputStatus.Provisional)
         plans.current = Result.success(coachPlan())
         val model = viewModel()
         advanceUntilIdle()
@@ -273,7 +290,7 @@ class PlanProposalViewModelTest {
         val model = viewModel()
         advanceUntilIdle()
         plans.acceptResult = Result.failure(CoachException(CoachFailure.NeedsConfirmation))
-        coach.loaded = Result.success(coachValues(provisional = true, reask = true))
+        givenInputs(PlanInputStatus.Provisional)
         model.onEvent(PlanProposalEvent.Accept)
         advanceUntilIdle()
         assertEquals(1, plans.acceptCalls.size)
@@ -294,14 +311,14 @@ class PlanProposalViewModelTest {
         val model = viewModel()
         advanceUntilIdle()
         plans.acceptResult = Result.failure(CoachException(CoachFailure.NeedsConfirmation))
-        coach.loaded = Result.success(coachValues(provisional = true, reask = true))
+        givenInputs(PlanInputStatus.Provisional)
 
         model.onEvent(PlanProposalEvent.Accept)
         advanceUntilIdle()
 
         val proposal = model.proposal()
         assertFalse(proposal.canAccept)
-        assertTrue(proposal.values.anyReask)
+        assertTrue(proposal.unconfirmed)
         assertEquals(AcceptBlockedReason.DataChanged, proposal.acceptBlockedReason)
         assertFalse(proposal.accepting)
     }
@@ -358,12 +375,12 @@ class PlanProposalViewModelTest {
     @Test
     fun derivedValuesFailureWhileLoadingTheProposal_isFailedAndRetryRecovers() = runTest(dispatcher) {
         plans.current = Result.success(coachPlan())
-        coach.loaded = Result.failure<CoachDerivedValues>(AppException(AppError.Network))
+        coach.inputs[PlanInputKind.Plan] = Result.failure(AppException(AppError.Network))
         val model = viewModel()
         advanceUntilIdle()
         assertEquals(PlanFailureKind.Offline, model.failure())
 
-        coach.loaded = Result.success(coachValues(provisional = false))
+        givenInputs(PlanInputStatus.Ok)
         model.onEvent(PlanProposalEvent.Retry)
         advanceUntilIdle()
 

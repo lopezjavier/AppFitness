@@ -1,11 +1,11 @@
 package io.github.lopezjavier.appfitness.feature.trainer
 
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
+import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.hasSetTextAction
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
@@ -41,14 +41,15 @@ class PlanProposalScreenTest {
 
     private val events = mutableListOf<PlanProposalEvent>()
     private var backs = 0
+    private val startsFor = mutableListOf<String>()
 
     private fun proposal(confirmed: Boolean = true, plan: CoachPlan = coachPlan(), dataChanged: Boolean = false) =
-        PlanProposalUiState.Proposal(plan, coachValues(provisional = !confirmed), dataChanged = dataChanged)
+        PlanProposalUiState.Proposal(plan, unconfirmed = !confirmed, dataChanged = dataChanged)
 
     private fun show(state: PlanProposalUiState, online: Boolean = true) {
         rule.setContent {
             AppTheme {
-                PlanProposalScreen(state, flowOf(online), { events += it }, { backs++ })
+                PlanProposalScreen(state, flowOf(online), { events += it }, { backs++ }, { startsFor += it })
             }
         }
         rule.waitForIdle()
@@ -69,7 +70,7 @@ class PlanProposalScreenTest {
         rule.onNodeWithText("200 g").assertExists()
         rule.onNodeWithText("60 g").assertExists()
         rule.onNodeWithText("−0,4 kg/sem").assertExists()
-        rule.onNodeWithTag("trainer_card").assertExists()
+        rule.onNodeWithTag("trainer_card").assertDoesNotExist()
     }
 
     @Test
@@ -139,40 +140,42 @@ class PlanProposalScreenTest {
     }
 
     @Test
-    fun withUnconfirmedValues_acceptIsDisabledWithItsReason_thenEnabledAfterConfirmar() {
-        var state by mutableStateOf<PlanProposalUiState>(proposal(confirmed = false))
-        rule.setContent {
-            AppTheme {
-                PlanProposalScreen(
-                    state = state,
-                    isOnline = flowOf(true),
-                    onEvent = {
-                        events += it
-                        if (it == PlanProposalEvent.Confirm) state = proposal(confirmed = true)
-                    },
-                    onBack = {},
-                )
-            }
-        }
-        rule.waitForIdle()
+    fun withUnconfirmedValues_acceptIsDisabled_andOneNoteSaysToReviewAndCreateAgain() {
+        show(proposal(confirmed = false))
 
         rule.onNodeWithTag("plan_proposal_accept").assertIsNotEnabled()
-        rule.onNodeWithText("Confirma tus valores para aceptar el plan.").assertExists()
-
-        tap("trainer_confirm_button")
-
-        rule.onNodeWithTag("plan_proposal_accept").assertIsEnabled()
-        rule.onNodeWithTag("plan_proposal_accept_reason").assertDoesNotExist()
-        assertEquals(listOf<PlanProposalEvent>(PlanProposalEvent.Confirm), events)
+        rule.onNodeWithTag("plan_proposal_reask_note").assertTextEquals(
+            "Hay valores sin confirmar. Revísalos y vuelve a crear el plan para poder aceptar.",
+        )
+        rule.onNodeWithTag("trainer_confirm_button").assertDoesNotExist()
     }
 
     @Test
-    fun whenTheServerRefusedForChangedData_theReasonAsksToConfirmAgain() {
+    fun theReaskLink_opensAntesDeEmpezarWithTheProposalAsTheReplacedPlan() {
+        show(proposal(confirmed = false, plan = coachPlan(id = "plan-5")))
+
+        rule.onNodeWithText("Antes de empezar").assertExists()
+        tap("plan_proposal_open_your_data")
+
+        assertEquals(listOf("plan-5"), startsFor)
+    }
+
+    @Test
+    fun withConfirmedValues_acceptIsEnabledWithoutReason() {
+        show(proposal(confirmed = true))
+
+        rule.onNodeWithTag("plan_proposal_accept").assertIsEnabled()
+        rule.onNodeWithTag("plan_proposal_reask_note").assertDoesNotExist()
+        rule.onNodeWithTag("plan_proposal_open_your_data").assertDoesNotExist()
+    }
+
+    @Test
+    fun whenTheServerRefusedForChangedData_theSameNoteAndLinkAreShown() {
         show(proposal(confirmed = false, dataChanged = true))
 
-        rule.onNodeWithText(
-            "Confirma tus valores para aceptar el plan. Tus datos han cambiado: vuelve a confirmar.",
-        ).assertExists()
+        rule.onNodeWithTag("plan_proposal_reask_note").assertExists()
+        rule.onNodeWithTag("plan_proposal_open_your_data").assertExists()
+        rule.onNodeWithTag("plan_proposal_accept").assertIsNotEnabled()
     }
 
     @Test
@@ -319,7 +322,9 @@ class PlanProposalScreenTest {
         val model = PlanProposalViewModel(plans, coach, MutableClock(), SavedStateHandle())
         rule.setContent {
             AppTheme {
-                PlanProposalRoot(onBack = { backs++ }, viewModel = model, connectivity = FakeConnectivityObserver())
+                PlanProposalRoot(onBack = {
+                    backs++
+                }, onOpenBeforeStart = {}, viewModel = model, connectivity = FakeConnectivityObserver())
             }
         }
         rule.waitForIdle()
@@ -350,7 +355,8 @@ class PlanProposalScreenTest {
         val model = PlanProposalViewModel(plans, coach, MutableClock(), SavedStateHandle())
         rule.setContent {
             AppTheme {
-                PlanProposalRoot(onBack = {}, viewModel = model, connectivity = FakeConnectivityObserver())
+                PlanProposalRoot(onBack = {
+                }, onOpenBeforeStart = {}, viewModel = model, connectivity = FakeConnectivityObserver())
             }
         }
         rule.waitForIdle()

@@ -1,11 +1,9 @@
 package io.github.lopezjavier.appfitness.feature.trainer
 
-import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import io.github.lopezjavier.appfitness.domain.AppError
 import io.github.lopezjavier.appfitness.domain.appErrorOrNull
-import io.github.lopezjavier.appfitness.domain.model.ActivityLevel
 import io.github.lopezjavier.appfitness.domain.model.CoachDerivedValues
 import io.github.lopezjavier.appfitness.domain.model.PlanStatus
 import io.github.lopezjavier.appfitness.domain.port.Clock
@@ -13,7 +11,6 @@ import io.github.lopezjavier.appfitness.domain.repository.CoachBlockRepository
 import io.github.lopezjavier.appfitness.domain.repository.CoachPlanRepository
 import io.github.lopezjavier.appfitness.domain.repository.CoachRepository
 import io.github.lopezjavier.appfitness.domain.repository.CoachWeeksRepository
-import io.github.lopezjavier.appfitness.domain.repository.NutritionGoalsRepository
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -41,16 +38,21 @@ private suspend fun CoachBlockRepository?.summaryFor(plan: PlanSummary): BlockSu
     }
 }
 
+private fun CoachDerivedValues.provisionalCount(): Int = listOf(
+    activityLevel.provisional,
+    totalExpenditure.provisional,
+    weightTrend.provisional,
+    experience.provisional,
+).count { it }
+
 /**
- * Trainer tab root (US-68): the derived values with their confirmation state. The open edit sheet and its picked
- * level survive recreation through [savedState]; the loaded values are always re-fetched, never persisted.
+ * Trainer tab root: the plan hub (plan entry, block, pending decisions, weeks) plus the count of provisional values
+ * for the "Tus datos" row. Every read degrades to "none" on failure; nothing here blocks the screen. The derived values
+ * are read only for that count and are never confirmed from here ("Antes de empezar" confirms).
  */
-@Suppress("TooManyFunctions") // One small handler per decision card (calorie change, deload) plus the sheet.
 class TrainerViewModel(
     private val repository: CoachRepository,
     private val clock: Clock,
-    private val savedState: SavedStateHandle = SavedStateHandle(),
-    private val goals: NutritionGoalsRepository? = null,
     private val plans: CoachPlanRepository? = null,
     private val blocks: CoachBlockRepository? = null,
     private val coachWeeks: CoachWeeksRepository? = null,
@@ -61,6 +63,8 @@ class TrainerViewModel(
     private val effectChannel = Channel<TrainerEffect>(Channel.BUFFERED)
     val effects = effectChannel.receiveAsFlow()
 
+    private var loadJob: Job? = null
+
     // The server accepts a date within one day of UTC today, so it is the UTC date.
     private fun today(): LocalDate = clock.now().toLocalDateTime(TimeZone.UTC).date
 
@@ -70,12 +74,8 @@ class TrainerViewModel(
 
     fun onEvent(event: TrainerEvent) {
         when (event) {
-            TrainerEvent.Load, TrainerEvent.Retry -> load()
+            TrainerEvent.Load -> load()
             TrainerEvent.Refresh -> refresh()
-            TrainerEvent.Confirm -> submit(level = null, fromSheet = false)
-            TrainerEvent.OpenEdit -> openEdit()
-            is TrainerEvent.PickLevel -> pickLevel(event.level)
-            TrainerEvent.CloseEdit -> setDraft(null)
             is TrainerEvent.DecideCalorieChange -> decideCalorieChange(event.accept)
             is TrainerEvent.DecideDeload -> decideDeload(event.accept)
         }
@@ -119,22 +119,21 @@ class TrainerViewModel(
     }
 
     /**
-     * Silent reload (the tab came back to the foreground): keeps the shown Content, the open sheet and any in-flight
-     * decision, and keeps the previous Content when the reload fails. Coalesced with a fetch already in flight, so
-     * the calorie-change evaluation never runs twice. Without Content it is a regular load.
+     * Silent reload (the tab came back to the foreground): keeps the shown Content and any in-flight decision, and
+     * keeps nothing else stale. Coalesced with a fetch already in flight, so the calorie-change evaluation never runs
+     * twice. Without Content it is a regular load.
      */
     private fun refresh() {
         if (loadJob?.isActive == true) return
         if (_uiState.value !is TrainerUiState.Content) return load()
         loadJob = viewModelScope.launch {
-            val fresh = fetch() as? TrainerUiState.Content ?: return@launch
+            val fresh = fetch()
             _uiState.update { state ->
                 if (state is TrainerUiState.Content) {
                     fresh.copy(
-                        editSheet = state.editSheet,
-                        confirming = state.confirming,
                         decidingChange = state.decidingChange,
                         decidingDeload = state.decidingDeload,
+                        provisionalCount = fresh.provisionalCount ?: state.provisionalCount,
                     )
                 } else {
                     state
@@ -143,36 +142,24 @@ class TrainerViewModel(
         }
     }
 
-    private var loadJob: Job? = null
-
-    private suspend fun fetch(): TrainerUiState {
-        val result = repository.derivedValues(today())
-        // The strategy only colours the trend; an unreadable or missing goal leaves it neutral.
-        val strategy = if (result.isSuccess) goals?.getOwn()?.getOrNull()?.strategy else null
-        // The plan entry and the calorie card never block the derived values: a failed read means none.
-        val plan = if (result.isSuccess) readPlan() else PlanSummary.None
+    private suspend fun fetch(): TrainerUiState.Content {
+        // The count only feeds the "Tus datos" row: a failed read leaves the row without it.
+        val provisional = repository.derivedValues(today()).getOrNull()?.provisionalCount()
+        // The plan entry and the calorie card never block the screen: a failed read means none.
+        val plan = readPlan()
         val change = if (plan is PlanSummary.Accepted) plans?.pendingCalorieChange(today())?.getOrNull() else null
         val block = blocks.summaryFor(plan)
         // Weeks and the deload card need an accepted plan with a saved block; failed reads mean none.
         val savedPlanId = (plan as? PlanSummary.Accepted)?.plan?.id?.takeIf { block is BlockSummary.Saved }
         val deload = savedPlanId?.let { coachWeeks?.pendingDeload(today())?.getOrNull() }
         val planWeeks = savedPlanId?.let { coachWeeks?.weeks(it, today())?.getOrNull() }.orEmpty()
-        return result.fold(
-            onSuccess = {
-                TrainerUiState.Content(
-                    it,
-                    editSheet = restoredDraft(),
-                    strategy = strategy,
-                    plan = plan,
-                    calorieChange = change,
-                    block = block,
-                    weeks = planWeeks,
-                    deload = deload,
-                )
-            },
-            onFailure = {
-                if (result.appErrorOrNull() == AppError.Network) TrainerUiState.Offline else TrainerUiState.Error
-            },
+        return TrainerUiState.Content(
+            plan = plan,
+            calorieChange = change,
+            block = block,
+            weeks = planWeeks,
+            deload = deload,
+            provisionalCount = provisional,
         )
     }
 
@@ -211,55 +198,5 @@ class TrainerViewModel(
                 )
             }
         }
-    }
-
-    private fun restoredDraft(): ActivityLevel? = savedState.get<String>(KEY_DRAFT)
-        ?.let { name -> ActivityLevel.entries.firstOrNull { it.name == name } }
-
-    private fun openEdit() {
-        val content = _uiState.value as? TrainerUiState.Content ?: return
-        setDraft(content.editSheet ?: content.values.activityLevel.value ?: ActivityLevel.Moderate)
-    }
-
-    private fun pickLevel(level: ActivityLevel) {
-        val content = _uiState.value as? TrainerUiState.Content ?: return
-        if (content.editSheet != null) submit(level = level, fromSheet = true)
-    }
-
-    private fun setDraft(level: ActivityLevel?) {
-        if (level == null) savedState.remove<String>(KEY_DRAFT) else savedState[KEY_DRAFT] = level.name
-        _uiState.update { state -> if (state is TrainerUiState.Content) state.copy(editSheet = level) else state }
-    }
-
-    private fun submit(level: ActivityLevel?, fromSheet: Boolean) {
-        val content = _uiState.value as? TrainerUiState.Content ?: return
-        if (content.confirming) return
-        _uiState.value = content.copy(confirming = true)
-        viewModelScope.launch {
-            val result = repository.confirm(today(), level)
-            val values: CoachDerivedValues? = result.getOrNull()
-            if (values != null) {
-                if (fromSheet) savedState.remove<String>(KEY_DRAFT)
-                _uiState.update { state ->
-                    if (state is TrainerUiState.Content) {
-                        state.copy(values = values, confirming = false, editSheet = null)
-                    } else {
-                        state
-                    }
-                }
-                effectChannel.send(TrainerEffect.Confirmed)
-            } else {
-                _uiState.update { state ->
-                    if (state is TrainerUiState.Content) state.copy(confirming = false) else state
-                }
-                effectChannel.send(
-                    TrainerEffect.ConfirmFailed(fromSheet, offline = result.appErrorOrNull() == AppError.Network),
-                )
-            }
-        }
-    }
-
-    private companion object {
-        const val KEY_DRAFT = "activity_draft"
     }
 }
