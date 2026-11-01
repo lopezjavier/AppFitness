@@ -3,7 +3,7 @@ begin;
 create extension if not exists pgtap with schema extensions;
 set local search_path = extensions, public;
 
-select plan(40);
+select plan(44);
 
 create function pg_temp.d0() returns date language sql as $$ select (now() at time zone 'utc')::date $$;
 create function pg_temp.mon0() returns date language sql as $$
@@ -190,6 +190,15 @@ select is(jsonb_array_length(pg_temp.sm(4)->'main_lifts'), 12, 'main lifts are c
 select is(jsonb_array_length(pg_temp.sm(4)->'open_discomforts'), 10, 'open discomforts are capped at 10');
 select ok(octet_length(pg_temp.sm(4)::text) <= 16384, 'the worst-case summary fits in 16 384 bytes');
 select ok(octet_length(pg_temp.sm(4)::text) <= 13000, 'and keeps a margin of about 20 percent');
+
+-- T-182: cardio_favorites
+select is(pg_temp.sm(1)->'cardio_favorites',
+  jsonb_build_array(jsonb_build_object('exercise', (select key from public.exercises where id = (select cardio_id from cat)),
+                                       'sessions', 1, 'minutes', 30)),
+  'cardio_favorites lists only the cardio exercise, with its sessions and minutes (lifting excluded)');
+select is(pg_temp.sm(2)->'cardio_favorites', '[]'::jsonb, 'an empty user has no cardio favorites');
+select ok(jsonb_array_length(pg_temp.sm(4)->'cardio_favorites') <= 3, 'cardio favorites are capped at 3');
+select is(jsonb_typeof(pg_temp.sm(4)->'cardio_favorites'), 'array', 'cardio_favorites is always an array');
 
 select * from finish();
 rollback;

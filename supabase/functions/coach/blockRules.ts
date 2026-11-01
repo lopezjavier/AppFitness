@@ -19,6 +19,39 @@ export const MAX_EXERCISES = 8;
 export const MINUTES_PER_EXERCISE = 12;
 export const MAX_DAYS = 7;
 
+/** Cardio in the block (04 section 9.11): whole 5-minute units, at most 60 min per routine, always "suave". */
+export const CARDIO_UNIT_MIN = 5;
+export const CARDIO_ROUTINE_CAP_MIN = 60;
+export const CARDIO_PACE = "suave" as const;
+/** Technical bounds of the weekly target (same as the plan edit). */
+export const CARDIO_TARGET_MAX = 600;
+
+/**
+ * Splits the weekly cardio target over the routines: units of 5 min, remainder to the first routines, at most 60 min
+ * per routine; the minutes that do not fit are "por tu cuenta". A routine with 0 has no cardio exercise.
+ */
+export function splitCardio(targetMin: number, routines: number): {
+    per_routine: number[];
+    planned: number;
+    on_your_own: number;
+} {
+    const units = Math.floor(Math.max(0, targetMin) / CARDIO_UNIT_MIN);
+    const planned = Math.min(
+        units,
+        (CARDIO_ROUTINE_CAP_MIN / CARDIO_UNIT_MIN) * routines,
+    );
+    const base = Math.floor(planned / routines);
+    const rest = planned % routines;
+    return {
+        per_routine: Array.from(
+            { length: routines },
+            (_, i) => CARDIO_UNIT_MIN * (base + (i < rest ? 1 : 0)),
+        ),
+        planned: planned * CARDIO_UNIT_MIN,
+        on_your_own: targetMin - planned * CARDIO_UNIT_MIN,
+    };
+}
+
 export const MAX_SETS_PER_SLOT = 5;
 export const MIN_SETS_PER_SLOT = 2;
 /** Weekly sets per muscle group: starting point (07 section 3), lower for beginners; secondary-only groups. */
@@ -286,6 +319,7 @@ export function buildSkeleton(prefs: BlockPrefs): BlockSkeleton {
         return Math.min(MAX_SETS_PER_SLOT, Math.max(MIN_SETS_PER_SLOT, share));
     };
 
+    const split = splitCardio(prefs.cardio_min_week, days);
     const nameCount = new Map<string, number>();
     templates.forEach((t) =>
         nameCount.set(t.name, (nameCount.get(t.name) ?? 0) + 1)
@@ -315,11 +349,16 @@ export function buildSkeleton(prefs: BlockPrefs): BlockSkeleton {
                 rest_seconds: REST[p.role].default,
             };
         });
+        const minutes = split.per_routine[i];
         return {
             session_index: sessionIndex,
             name,
             focus: [...new Set(built.map((s) => s.muscle_group))],
             slots: built,
+            // Cardio is a separate slot: it never touches the lifting slots, sets, rests or ranges.
+            ...(minutes > 0
+                ? { cardio: { slot_id: `s${sessionIndex}.cardio`, minutes } }
+                : {}),
         };
     });
 
@@ -330,6 +369,12 @@ export function buildSkeleton(prefs: BlockPrefs): BlockSkeleton {
         rep_scheme: repScheme(prefs.intention),
         block_weeks: BLOCK_WEEKS,
         sessions,
+        cardio: {
+            target_min_week: prefs.cardio_min_week,
+            planned_min_week: split.planned,
+            on_your_own_min: split.on_your_own,
+            per_routine_min: split.per_routine,
+        },
     };
 }
 

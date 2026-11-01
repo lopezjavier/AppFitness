@@ -34,7 +34,12 @@ export type BlockRow = {
 export type AttachedBlock = { plan_id: string; session_ids: string[] };
 
 /** The caller's plan a block is attached to; null when it is not theirs. */
-export type PlanState = { status: string; training_saved: boolean };
+export type PlanState = {
+    status: string;
+    training_saved: boolean;
+    /** `nutrition.activity.cardio_min_week`; null/absent for a plan stored before T-181. */
+    cardio_min_week?: number | null;
+};
 
 /** What a kind needs from the outside world; built by the handler for the caller's token. */
 export type PrepareContext = {

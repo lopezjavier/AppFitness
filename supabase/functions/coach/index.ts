@@ -90,7 +90,9 @@ const handler = createCoachHandler({
     loadPlan: async (token, planId) => {
         const { data, error } = await callerClient(token)
             .from("coach_plans")
-            .select("status,folder_id")
+            .select(
+                "status,folder_id,cardio_min_week:nutrition->activity->cardio_min_week",
+            )
             .eq("id", planId)
             .maybeSingle();
         if (error) throw new Error("plan read failed");
@@ -98,6 +100,9 @@ const handler = createCoachHandler({
             ? {
                 status: String(data.status),
                 training_saved: data.folder_id != null,
+                cardio_min_week: typeof data.cardio_min_week === "number"
+                    ? data.cardio_min_week
+                    : null,
             }
             : null;
     },

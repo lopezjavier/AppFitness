@@ -64,6 +64,90 @@ export function equipmentAllowed(
     return prefs.equipment.includes(equipment);
 }
 
+// --- Cardio (04 section 9.4) -------------------------------------------------------------------------------
+
+/** Duration metrics a cardio set (minutes only) can describe. */
+export const CARDIO_METRICS: readonly string[] = [
+    "duration",
+    "distance_duration",
+];
+/** Interval-style moves with a duration metric: not continuous "suave" cardio (E13 Q28). Mirrored in SQL. */
+export const CARDIO_EXCLUDED_KEYS: readonly string[] = [
+    "jumping-jacks",
+    "jump-rope",
+    "battle-ropes",
+    "mountain-climbers",
+];
+/** Always available: no machine needed. */
+const CARDIO_ALWAYS_KEYS: readonly string[] = ["walking", "running"];
+/** Default by selected machine, in this order (low impact, steady pace). */
+const CARDIO_MACHINE_DEFAULTS: readonly string[] = [
+    "stationary-bike",
+    "elliptical-trainer",
+    "incline-treadmill-walk",
+    "rowing-machine",
+];
+
+/** Cardio pattern with a duration metric, minus the interval-style moves. */
+export const isCardioEligible = (e: CatalogExercise): boolean =>
+    e.movement_pattern === "cardio" && CARDIO_METRICS.includes(e.metric_type) &&
+    !CARDIO_EXCLUDED_KEYS.includes(e.key ?? "");
+
+/** walking / running always; otherwise the equipment filter of the lifting pools (gym + none = all). */
+export const cardioEquipmentAllowed = (
+    prefs: Pick<BlockPrefs, "place" | "equipment">,
+    e: CatalogExercise,
+): boolean =>
+    CARDIO_ALWAYS_KEYS.includes(e.key ?? "") ||
+    equipmentAllowed(prefs, e.equipment);
+
+/**
+ * The equipment the block is validated against and stored with: an empty list outside a gym means bodyweight only
+ * (the swap list in SQL reads it the same way); a gym with none selected stays empty (= all).
+ */
+export const resolvedEquipment = (
+    prefs: Pick<BlockPrefs, "place" | "equipment">,
+): string[] =>
+    prefs.equipment.length === 0 && prefs.place !== "gym"
+        ? ["bodyweight"]
+        : [...prefs.equipment];
+
+const byCustomThenKey = (a: CatalogExercise, b: CatalogExercise): number =>
+    Number(a.is_custom) - Number(b.is_custom) ||
+    (candidateKey(a) < candidateKey(b)
+        ? -1
+        : candidateKey(a) > candidateKey(b)
+        ? 1
+        : 0);
+
+/** Every cardio exercise the user may have on the cardio slot, also the swap list (same set as SQL). */
+export function cardioOptions(
+    catalog: CatalogExercise[],
+    prefs: Pick<BlockPrefs, "place" | "equipment">,
+): CatalogExercise[] {
+    return catalog
+        .filter((e) => isCardioEligible(e) && cardioEquipmentAllowed(prefs, e))
+        .sort(byCustomThenKey);
+}
+
+/**
+ * The one candidate of a cardio slot: the most-logged favourite inside the equipment, else by selected machine,
+ * else walking. Never by default: running (unless logged), treadmill running, air bike, ski erg, stair climber.
+ */
+export function cardioDefaultCandidates(
+    catalog: CatalogExercise[],
+    prefs: Pick<BlockPrefs, "place" | "equipment">,
+    favorites: readonly string[] = [],
+): CatalogExercise[] {
+    const options = cardioOptions(catalog, prefs);
+    const find = (key: string) => options.find((e) => candidateKey(e) === key);
+    for (const key of [...favorites, ...CARDIO_MACHINE_DEFAULTS, "walking"]) {
+        const found = find(key);
+        if (found) return [found];
+    }
+    return [];
+}
+
 /** Loaded free-weight and machine lifts come before bodyweight variants, so the cap keeps the useful ones. */
 const EQUIPMENT_ORDER = [
     "barbell",
@@ -115,7 +199,9 @@ export function filterCandidates(
 /** Candidates of every slot; a slot without any (or short of distinct ones) makes the block infeasible. */
 export function buildCandidates(
     catalog: CatalogExercise[],
-    prefs: Pick<BlockPrefs, "place" | "equipment">,
+    prefs:
+        & Pick<BlockPrefs, "place" | "equipment">
+        & Partial<Pick<BlockPrefs, "cardio_favorites">>,
     skeleton: BlockSkeleton,
 ): Map<string, CatalogExercise[]> {
     const out = new Map<string, CatalogExercise[]>();
@@ -132,6 +218,20 @@ export function buildCandidates(
                     "No exercise fits a slot of the block",
                 );
             }
+        }
+        if (session.cardio) {
+            const list = cardioDefaultCandidates(
+                catalog,
+                prefs,
+                prefs.cardio_favorites,
+            );
+            if (list.length === 0) {
+                throw new CoachInputError(
+                    "coach_plan_infeasible",
+                    "No cardio exercise fits the block",
+                );
+            }
+            out.set(session.cardio.slot_id, list);
         }
     }
     return out;

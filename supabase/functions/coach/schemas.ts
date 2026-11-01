@@ -153,6 +153,10 @@ export type BlockPrefs = {
     days_per_week: number | null;
     session_minutes: number | null;
     experience: Experience;
+    /** Weekly cardio target of the plan (minutes); 0 means no cardio in the block. */
+    cardio_min_week: number;
+    /** Most-logged cardio exercises of the last 8 weeks (key or id), most logged first. */
+    cardio_favorites: string[];
 };
 
 export type BlockSlot = {
@@ -165,11 +169,24 @@ export type BlockSlot = {
     rest_seconds: number;
 };
 
+/** The cardio of a routine: one slot, planned minutes decided by the server (04 section 9.11). */
+export type CardioSlot = { slot_id: string; minutes: number };
+
 export type SkeletonSession = {
     session_index: number;
     name: string;
     focus: MuscleGroup[];
     slots: BlockSlot[];
+    /** Absent when the routine's share of the weekly cardio is 0. */
+    cardio?: CardioSlot;
+};
+
+export type BlockCardio = {
+    target_min_week: number;
+    planned_min_week: number;
+    on_your_own_min: number;
+    per_routine_min: number[];
+    pace: "suave";
 };
 
 export type BlockSkeleton = {
@@ -179,6 +196,7 @@ export type BlockSkeleton = {
     rep_scheme: "single" | "undulating";
     block_weeks: number;
     sessions: SkeletonSession[];
+    cardio: Omit<BlockCardio, "pace">;
 };
 
 /** What the model returns per slot: a candidate key and a reason. */
@@ -200,12 +218,30 @@ export type BlockExercise = {
     reason: string;
 };
 
+/** The cardio exercise: minutes only, no sets of reps, rest or RPE. */
+export type BlockCardioExercise = {
+    exercise_id: string;
+    exercise_key: string;
+    role: "cardio";
+    sets: 1;
+    duration_min: number;
+    pace: "suave";
+    reason: string;
+};
+
 export type BlockSession = {
     session_index: number;
     name: string;
     focus: MuscleGroup[];
-    exercises: BlockExercise[];
+    exercises: (BlockExercise | BlockCardioExercise)[];
 };
+
+export const isCardioExercise = (
+    e: BlockExercise | BlockCardioExercise,
+): e is BlockCardioExercise => e.role === "cardio";
+export const isLifting = (
+    e: BlockExercise | BlockCardioExercise,
+): e is BlockExercise => e.role !== "cardio";
 
 export type BlockTraining = {
     days_per_week: number;
@@ -216,6 +252,9 @@ export type BlockTraining = {
     equipment: string[];
     weekly_sets: Record<string, number>;
     sessions_per_muscle: Record<string, number>;
+    cardio: BlockCardio;
+    /** session_minutes + the routine's cardio minutes, per routine (the lifting time is untouched). */
+    routine_total_min: number[];
 };
 
 export type Block = {
