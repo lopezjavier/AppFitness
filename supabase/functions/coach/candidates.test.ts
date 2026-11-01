@@ -208,9 +208,17 @@ Deno.test("cardio rows never reach a lifting pool, with or without cardio select
         }),
     ];
     for (
-        const equipment of [["barbell"], ["barbell", "cardio_bike", "treadmill"], []]
+        const equipment of [["barbell"], [
+            "barbell",
+            "cardio_bike",
+            "treadmill",
+        ], []]
     ) {
-        const got = filterCandidates(list, { place: "gym", equipment }, mainChest);
+        const got = filterCandidates(
+            list,
+            { place: "gym", equipment },
+            mainChest,
+        );
         assertEquals(got.map((e) => e.key), ["bench"]);
     }
 });
