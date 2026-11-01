@@ -39,6 +39,8 @@ export type PlanState = { status: string; training_saved: boolean };
 export type PrepareContext = {
     /** The `coach_summary` of the caller (includes the derived estimates), read with their own token. */
     loadContext: (today: string) => Promise<unknown>;
+    /** `coach_plan_inputs` of the caller: what a plan or a block reads and what is missing (see inputs.ts). */
+    loadInputs: (kind: "plan" | "block", today: string) => Promise<unknown>;
     savePlan: (row: PlanRow) => Promise<SavedPlan>;
     /** The exercises the caller can use (catalogue and own custom ones), read with their own token. */
     loadCatalog: () => Promise<CatalogExercise[]>;

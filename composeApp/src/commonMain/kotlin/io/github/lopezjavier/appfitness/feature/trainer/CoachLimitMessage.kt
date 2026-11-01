@@ -42,7 +42,10 @@ internal fun coachFailureMessage(failure: CoachFailure): StringResource = when (
 
 /** Names where to fix what is missing: the profile data first, then the training intention, then the place. */
 private fun missingMessage(fields: Set<MissingField>): StringResource = when {
-    fields.any { it == MissingField.Sex || it == MissingField.Weight || it == MissingField.Expenditure } ->
+    fields.any {
+        it == MissingField.Sex || it == MissingField.Age || it == MissingField.Height ||
+            it == MissingField.Weight || it == MissingField.Expenditure
+    } ->
         Res.string.coach_failure_missing_profile
 
     fields.isEmpty() || MissingField.Unknown in fields -> Res.string.coach_failure_missing_generic

@@ -13,6 +13,7 @@ import {
     type Prepared,
     type PreparedPart,
 } from "./context.ts";
+import { assertInputsComplete } from "./inputs.ts";
 import { MODEL_IDS } from "./prices.ts";
 import {
     BLOCK_OUTPUT_SCHEMA,
@@ -86,6 +87,7 @@ export function buildPrefs(summary: unknown): BlockPrefs {
     const intention = INTENTIONS.find((i) => i === tp.intention);
     const place = typeof tp.place === "string" ? tp.place : null;
     if (!intention || !place) {
+        // Backstop only: the shared list already refused any missing root cause.
         const missing: string[] = [];
         if (!intention) missing.push("intention");
         if (!place) missing.push("place");
@@ -127,6 +129,8 @@ export function makePrepare(sessionsPerCall = SESSIONS_PER_CALL) {
             );
         }
         const summary = await ctx.loadContext(today);
+        // The shared list decides what blocks (same source as the "Antes de empezar" screen).
+        assertInputsComplete(await ctx.loadInputs("block", today));
         const prefs = buildPrefs(summary);
         const catalog = await ctx.loadCatalog();
         const skeleton = buildSkeleton(prefs);

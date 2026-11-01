@@ -51,6 +51,14 @@ const handler = createCoachHandler({
         if (error || data == null) throw new Error("summary read failed");
         return data;
     },
+    loadInputs: async (token, kind, today) => {
+        const { data, error } = await callerClient(token).rpc(
+            "coach_plan_inputs",
+            { p_kind: kind, p_today: today },
+        );
+        if (error || data == null) throw new Error("inputs read failed");
+        return data;
+    },
     savePlan: async (token, row) => {
         const { data, error } = await callerClient(token).rpc(
             "propose_coach_plan",

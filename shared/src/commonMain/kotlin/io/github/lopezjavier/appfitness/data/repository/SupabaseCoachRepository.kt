@@ -6,8 +6,12 @@ import io.github.jan.supabase.postgrest.rpc
 import io.github.lopezjavier.appfitness.data.remote.CoachDerivedDto
 import io.github.lopezjavier.appfitness.data.remote.CoachDerivedParams
 import io.github.lopezjavier.appfitness.data.remote.ConfirmDerivedParams
+import io.github.lopezjavier.appfitness.data.remote.PlanInputsDto
+import io.github.lopezjavier.appfitness.data.remote.PlanInputsParams
 import io.github.lopezjavier.appfitness.domain.model.ActivityLevel
 import io.github.lopezjavier.appfitness.domain.model.CoachDerivedValues
+import io.github.lopezjavier.appfitness.domain.model.PlanInputKind
+import io.github.lopezjavier.appfitness.domain.model.PlanInputs
 import io.github.lopezjavier.appfitness.domain.repository.CoachRepository
 import kotlinx.datetime.LocalDate
 
@@ -22,4 +26,8 @@ class SupabaseCoachRepository(private val auth: Auth, private val postgrest: Pos
             postgrest.rpc("confirm_derived_values", ConfirmDerivedParams.of(today, activityLevel))
                 .decodeAs<CoachDerivedDto>().toDomain()
         }
+
+    override suspend fun planInputs(kind: PlanInputKind, today: LocalDate): Result<PlanInputs> = auth.ownRow {
+        postgrest.rpc("coach_plan_inputs", PlanInputsParams.of(kind, today)).decodeAs<PlanInputsDto>().toDomain()
+    }
 }

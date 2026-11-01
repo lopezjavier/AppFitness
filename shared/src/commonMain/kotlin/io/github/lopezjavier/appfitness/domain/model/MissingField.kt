@@ -4,6 +4,8 @@ package io.github.lopezjavier.appfitness.domain.model
 enum class MissingField {
     Intention,
     Sex,
+    Age,
+    Height,
     Weight,
     Expenditure,
     Place,
