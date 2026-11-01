@@ -2,7 +2,6 @@ package io.github.lopezjavier.appfitness.feature.trainer
 
 import io.github.lopezjavier.appfitness.domain.AppError
 import io.github.lopezjavier.appfitness.domain.AppException
-import io.github.lopezjavier.appfitness.domain.model.CoachDerivedValues
 import io.github.lopezjavier.appfitness.domain.model.CoachException
 import io.github.lopezjavier.appfitness.domain.model.CoachFailure
 import io.github.lopezjavier.appfitness.domain.model.CoachPlan
@@ -70,26 +69,26 @@ sealed interface PlanProposalUiState {
     data object Requesting : PlanProposalUiState
 
     /**
-     * A proposed [plan] with the derived [values] behind it. [confirming], [accepting] and [discarding] are true while
-     * that call is in flight. [dataChanged] is set when the server refused the plan for unconfirmed values.
+     * A proposed [plan]. [unconfirmed] is true while some input the plan reads is still provisional (the re-ask): the
+     * user confirms it in "Antes de empezar", which requests the plan again. [accepting] and [discarding] are true
+     * while that call is in flight. [dataChanged] is set when the server refused the plan for unconfirmed values.
      */
     data class Proposal(
         val plan: CoachPlan,
-        val values: CoachDerivedValues,
-        val confirming: Boolean = false,
+        val unconfirmed: Boolean = false,
         val accepting: Boolean = false,
         val discarding: Boolean = false,
         val dataChanged: Boolean = false,
     ) : PlanProposalUiState {
-        val busy: Boolean get() = confirming || accepting || discarding
+        val busy: Boolean get() = accepting || discarding
 
         /** US-68 gate: nothing provisional and no call in flight. */
-        val canAccept: Boolean get() = values.allConfirmed && !busy
+        val canAccept: Boolean get() = !unconfirmed && !busy
 
         val acceptBlockedReason: AcceptBlockedReason?
             get() = when {
-                values.allConfirmed -> null
-                dataChanged || values.anyReask -> AcceptBlockedReason.DataChanged
+                !unconfirmed -> null
+                dataChanged -> AcceptBlockedReason.DataChanged
                 else -> AcceptBlockedReason.Unconfirmed
             }
     }
@@ -100,7 +99,7 @@ sealed interface PlanProposalUiState {
     data object Closed : PlanProposalUiState
 }
 
-enum class PlanAction { Confirm, Accept, Discard }
+enum class PlanAction { Accept, Discard }
 
 sealed interface PlanProposalEvent {
     /** Asks the coach for a plan (costs money); ignored unless the state is [PlanProposalUiState.Idle]. */
@@ -109,18 +108,12 @@ sealed interface PlanProposalEvent {
     /** Reloads a plan stored meanwhile, else asks the coach again. */
     data object Retry : PlanProposalEvent
 
-    /** "Confirmar" on the derived values card. */
-    data object Confirm : PlanProposalEvent
-
     data object Accept : PlanProposalEvent
 
     data object Discard : PlanProposalEvent
 }
 
 sealed interface PlanProposalEffect {
-    /** The derived values were confirmed (confirm haptic). */
-    data object ValuesConfirmed : PlanProposalEffect
-
     /** The plan was accepted and the Diario targets changed: confirm haptic, message, navigate back. */
     data object Accepted : PlanProposalEffect
 

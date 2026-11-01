@@ -1,8 +1,6 @@
 package io.github.lopezjavier.appfitness.feature.trainer
 
-import androidx.lifecycle.SavedStateHandle
 import app.cash.turbine.test
-import io.github.lopezjavier.appfitness.app.FakeNutritionGoalsRepository
 import io.github.lopezjavier.appfitness.domain.AppError
 import io.github.lopezjavier.appfitness.domain.AppException
 import io.github.lopezjavier.appfitness.domain.model.ActivityLevel
@@ -14,14 +12,12 @@ import io.github.lopezjavier.appfitness.domain.model.DerivedIntake
 import io.github.lopezjavier.appfitness.domain.model.DerivedSource
 import io.github.lopezjavier.appfitness.domain.model.DerivedTotalExpenditure
 import io.github.lopezjavier.appfitness.domain.model.DerivedWeightTrend
-import io.github.lopezjavier.appfitness.domain.model.GoalStrategy
-import io.github.lopezjavier.appfitness.domain.model.NutritionGoals
 import io.github.lopezjavier.appfitness.domain.model.PlanInputKind
+import io.github.lopezjavier.appfitness.domain.model.PlanInputStatus
 import io.github.lopezjavier.appfitness.domain.model.PlanInputs
 import io.github.lopezjavier.appfitness.domain.model.PlanStatus
 import io.github.lopezjavier.appfitness.domain.model.WeekPhase
 import io.github.lopezjavier.appfitness.domain.repository.CoachRepository
-import io.github.lopezjavier.appfitness.domain.repository.NutritionGoalsRepository
 import io.github.lopezjavier.appfitness.feature.workout.MutableClock
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
@@ -42,6 +38,9 @@ import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 private val TODAY = LocalDate(2026, 10, 19)
+
+// coachValues(provisional = true) leaves the four derived values unconfirmed.
+private const val PROVISIONAL_VALUES = 4
 
 internal fun coachValues(
     provisional: Boolean = true,
@@ -80,6 +79,10 @@ internal class FakeCoachRepository(var loaded: Result<CoachDerivedValues> = Resu
     }
     var gate: CompletableDeferred<Unit>? = null
 
+    /** The answer of [planInputs] per kind; an empty list when not set. A successful confirm confirms them all. */
+    val inputs = mutableMapOf<PlanInputKind, Result<PlanInputs>>()
+    val inputsCalls = mutableListOf<PlanInputKind>()
+
     override suspend fun derivedValues(today: LocalDate): Result<CoachDerivedValues> {
         loadCalls++
         return loaded
@@ -88,11 +91,33 @@ internal class FakeCoachRepository(var loaded: Result<CoachDerivedValues> = Resu
     override suspend fun confirm(today: LocalDate, activityLevel: ActivityLevel?): Result<CoachDerivedValues> {
         confirmCalls += today to activityLevel
         gate?.await()
-        return confirmResult(activityLevel)
+        val result = confirmResult(activityLevel)
+        if (result.isSuccess) {
+            for ((kind, stored) in inputs.toMap()) {
+                stored.getOrNull()?.let { list ->
+                    inputs[kind] = Result.success(
+                        list.copy(
+                            inputs = list.inputs.map {
+                                if (it.status ==
+                                    PlanInputStatus.Provisional
+                                ) {
+                                    it.copy(status = PlanInputStatus.Ok)
+                                } else {
+                                    it
+                                }
+                            },
+                        ),
+                    )
+                }
+            }
+        }
+        return result
     }
 
-    override suspend fun planInputs(kind: PlanInputKind, today: LocalDate): Result<PlanInputs> =
-        Result.failure(UnsupportedOperationException("planInputs is not used here"))
+    override suspend fun planInputs(kind: PlanInputKind, today: LocalDate): Result<PlanInputs> {
+        inputsCalls += kind
+        return inputs[kind] ?: Result.success(PlanInputs(kind, null, emptyList()))
+    }
 }
 
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -110,8 +135,7 @@ class TrainerViewModelTest {
 
     private val blocks = FakeCoachBlockRepository()
 
-    private fun viewModel(saved: SavedStateHandle = SavedStateHandle(), goals: NutritionGoalsRepository? = null) =
-        TrainerViewModel(repository, MutableClock(), saved, goals, plans, blocks, weeks)
+    private fun viewModel() = TrainerViewModel(repository, MutableClock(), plans, blocks, weeks)
 
     private val weeks = FakeCoachWeeksRepository()
 
@@ -180,274 +204,56 @@ class TrainerViewModelTest {
     private fun TrainerViewModel.content() = assertIs<TrainerUiState.Content>(uiState.value)
 
     @Test
-    fun startsLoadingThenShowsContent() = runTest(dispatcher) {
+    fun startsLoadingThenShowsTheHub() = runTest(dispatcher) {
         val model = viewModel()
         assertEquals(TrainerUiState.Loading, model.uiState.value)
 
         advanceUntilIdle()
 
-        assertEquals(coachValues(), model.content().values)
-        assertFalse(model.content().allConfirmed)
+        assertEquals(PlanSummary.None, model.content().plan)
     }
 
     @Test
-    fun loadFailure_isError_andRetryRecovers() = runTest(dispatcher) {
-        repository.loaded = Result.failure(AppException(AppError.Unknown))
-        val model = viewModel()
-        advanceUntilIdle()
-        assertEquals(TrainerUiState.Error, model.uiState.value)
-
-        repository.loaded = Result.success(coachValues())
-        model.onEvent(TrainerEvent.Retry)
-        advanceUntilIdle()
-
-        assertIs<TrainerUiState.Content>(model.uiState.value)
-    }
-
-    @Test
-    fun networkFailure_isOffline() = runTest(dispatcher) {
-        repository.loaded = Result.failure(AppException(AppError.Network))
+    fun provisionalCount_isTheNumberOfUnconfirmedDerivedValues() = runTest(dispatcher) {
+        repository.loaded = Result.success(coachValues(provisional = true))
         val model = viewModel()
 
         advanceUntilIdle()
 
-        assertEquals(TrainerUiState.Offline, model.uiState.value)
+        assertEquals(PROVISIONAL_VALUES, model.content().provisionalCount)
     }
 
     @Test
-    fun confirmWithoutEdit_passesNullAndTodayAndReplacesTheState() = runTest(dispatcher) {
-        val model = viewModel()
-        advanceUntilIdle()
-
-        model.onEvent(TrainerEvent.Confirm)
-        advanceUntilIdle()
-
-        assertEquals(listOf<Pair<LocalDate, ActivityLevel?>>(TODAY to null), repository.confirmCalls)
-        assertTrue(model.content().allConfirmed)
-        assertFalse(model.content().confirming)
-    }
-
-    @Test
-    fun confirmEmitsConfirmedEffect() = runTest(dispatcher) {
-        val model = viewModel()
-        advanceUntilIdle()
-
-        model.effects.test {
-            model.onEvent(TrainerEvent.Confirm)
-            advanceUntilIdle()
-            assertEquals(TrainerEffect.Confirmed, awaitItem())
-        }
-    }
-
-    @Test
-    fun pickLevel_commitsAtOnce_closesTheSheetAndShowsEdited() = runTest(dispatcher) {
-        val model = viewModel()
-        advanceUntilIdle()
-
-        model.onEvent(TrainerEvent.OpenEdit)
-        assertEquals(ActivityLevel.Light, model.content().editSheet)
-        model.onEvent(TrainerEvent.PickLevel(ActivityLevel.Moderate))
-        advanceUntilIdle()
-
-        assertEquals(listOf<Pair<LocalDate, ActivityLevel?>>(TODAY to ActivityLevel.Moderate), repository.confirmCalls)
-        assertNull(model.content().editSheet)
-        assertEquals(ActivityLevel.Moderate, model.content().values.activityLevel.value)
-        assertTrue(model.content().values.activityLevel.edited)
-    }
-
-    @Test
-    fun confirmFailure_keepsStateAndEmitsFailure() = runTest(dispatcher) {
-        repository.confirmResult = { _ -> Result.failure<CoachDerivedValues>(AppException(AppError.Unknown)) }
-        val model = viewModel()
-        advanceUntilIdle()
-        val before = model.content().values
-
-        model.effects.test {
-            model.onEvent(TrainerEvent.Confirm)
-            advanceUntilIdle()
-            assertEquals(TrainerEffect.ConfirmFailed(fromSheet = false, offline = false), awaitItem())
-        }
-
-        assertEquals(before, model.content().values)
-        assertFalse(model.content().confirming)
-    }
-
-    @Test
-    fun offlineConfirmFailure_flagsOffline_andKeepsTheSheetOpen() = runTest(dispatcher) {
-        repository.confirmResult = { _ -> Result.failure<CoachDerivedValues>(AppException(AppError.Network)) }
-        val model = viewModel()
-        advanceUntilIdle()
-        model.onEvent(TrainerEvent.OpenEdit)
-
-        model.effects.test {
-            model.onEvent(TrainerEvent.PickLevel(ActivityLevel.High))
-            advanceUntilIdle()
-            assertEquals(TrainerEffect.ConfirmFailed(fromSheet = true, offline = true), awaitItem())
-        }
-
-        assertEquals(ActivityLevel.Light, model.content().editSheet)
-        assertFalse(model.content().confirming)
-    }
-
-    @Test
-    fun pickLevel_emitsConfirmed() = runTest(dispatcher) {
-        val model = viewModel()
-        advanceUntilIdle()
-        model.onEvent(TrainerEvent.OpenEdit)
-
-        model.effects.test {
-            model.onEvent(TrainerEvent.PickLevel(ActivityLevel.High))
-            advanceUntilIdle()
-            assertEquals(TrainerEffect.Confirmed, awaitItem())
-        }
-    }
-
-    @Test
-    fun pickLevel_ofTheAlreadySelectedLevel_stillConfirms() = runTest(dispatcher) {
-        val model = viewModel()
-        advanceUntilIdle()
-        model.onEvent(TrainerEvent.OpenEdit)
-
-        model.onEvent(TrainerEvent.PickLevel(ActivityLevel.Light))
-        advanceUntilIdle()
-
-        assertEquals(listOf<Pair<LocalDate, ActivityLevel?>>(TODAY to ActivityLevel.Light), repository.confirmCalls)
-    }
-
-    @Test
-    fun secondPickWhileConfirming_isIgnored() = runTest(dispatcher) {
-        repository.gate = CompletableDeferred()
-        val model = viewModel()
-        advanceUntilIdle()
-        model.onEvent(TrainerEvent.OpenEdit)
-
-        model.onEvent(TrainerEvent.PickLevel(ActivityLevel.High))
-        advanceUntilIdle()
-        model.onEvent(TrainerEvent.PickLevel(ActivityLevel.VeryHigh))
-        repository.gate!!.complete(Unit)
-        advanceUntilIdle()
-
-        assertEquals(listOf<Pair<LocalDate, ActivityLevel?>>(TODAY to ActivityLevel.High), repository.confirmCalls)
-    }
-
-    @Test
-    fun doubleTapWhileConfirming_isIgnored() = runTest(dispatcher) {
-        repository.gate = CompletableDeferred()
-        val model = viewModel()
-        advanceUntilIdle()
-
-        model.onEvent(TrainerEvent.Confirm)
-        advanceUntilIdle()
-        assertTrue(model.content().confirming)
-        model.onEvent(TrainerEvent.Confirm)
-        repository.gate!!.complete(Unit)
-        advanceUntilIdle()
-
-        assertEquals(1, repository.confirmCalls.size)
-    }
-
-    @Test
-    fun reaskedValues_stayProvisionalAfterReload() = runTest(dispatcher) {
-        repository.loaded = Result.success(coachValues(provisional = true, reask = true))
-        val model = viewModel()
-        advanceUntilIdle()
-
-        assertTrue(model.content().values.anyReask)
-        assertFalse(model.content().allConfirmed)
-    }
-
-    @Test
-    fun allConfirmed_isTrueOnlyWhenNothingIsProvisional() = runTest(dispatcher) {
+    fun provisionalCount_isZeroWhenEverythingIsConfirmed() = runTest(dispatcher) {
         repository.loaded = Result.success(coachValues(provisional = false))
         val model = viewModel()
+
         advanceUntilIdle()
 
-        assertTrue(model.content().allConfirmed)
+        assertEquals(0, model.content().provisionalCount)
     }
 
     @Test
-    fun closeEdit_closesTheSheetWithoutConfirming() = runTest(dispatcher) {
-        val saved = SavedStateHandle()
-        val model = viewModel(saved)
-        advanceUntilIdle()
-        model.onEvent(TrainerEvent.OpenEdit)
-
-        model.onEvent(TrainerEvent.CloseEdit)
-
-        assertNull(model.content().editSheet)
-        assertTrue(repository.confirmCalls.isEmpty())
-        assertNull(viewModel(saved).also { advanceUntilIdle() }.content().editSheet)
-    }
-
-    @Test
-    fun recreatedFromTheSameSavedState_keepsTheOpenSheet() = runTest(dispatcher) {
-        val saved = SavedStateHandle()
-        val first = viewModel(saved)
-        advanceUntilIdle()
-        first.onEvent(TrainerEvent.OpenEdit)
-
-        val second = viewModel(saved)
-        advanceUntilIdle()
-
-        assertEquals(ActivityLevel.Light, second.content().editSheet)
-    }
-
-    @Test
-    fun recreatedAfterASuccessfulPick_startsWithTheSheetClosed() = runTest(dispatcher) {
-        val saved = SavedStateHandle()
-        val first = viewModel(saved)
-        advanceUntilIdle()
-        first.onEvent(TrainerEvent.OpenEdit)
-        first.onEvent(TrainerEvent.PickLevel(ActivityLevel.High))
-        advanceUntilIdle()
-
-        val second = viewModel(saved)
-        advanceUntilIdle()
-
-        assertNull(second.content().editSheet)
-    }
-
-    @Test
-    fun pickLevelWithoutOpenSheet_isIgnored() = runTest(dispatcher) {
+    fun failedDerivedRead_isNotAnErrorScreen_justARowWithoutCount() = runTest(dispatcher) {
+        repository.loaded = Result.failure(AppException(AppError.Network))
+        plans.current = Result.success(coachPlan(status = PlanStatus.Accepted))
         val model = viewModel()
+
         advanceUntilIdle()
 
-        model.onEvent(TrainerEvent.PickLevel(ActivityLevel.High))
+        assertNull(model.content().provisionalCount)
+        assertIs<PlanSummary.Accepted>(model.content().plan)
+    }
+
+    @Test
+    fun trainerNeverConfirmsAnything() = runTest(dispatcher) {
+        val model = viewModel()
+
+        advanceUntilIdle()
+        model.onEvent(TrainerEvent.Refresh)
         advanceUntilIdle()
 
         assertTrue(repository.confirmCalls.isEmpty())
-        assertNull(model.content().editSheet)
-    }
-
-    @Test
-    fun content_carriesTheGoalStrategyForTheTrendTone() = runTest(dispatcher) {
-        val goals = FakeNutritionGoalsRepository(NutritionGoals(GoalStrategy.Deficit, -300, 2000))
-        val model = viewModel(goals = goals)
-
-        advanceUntilIdle()
-
-        assertEquals(GoalStrategy.Deficit, model.content().strategy)
-    }
-
-    @Test
-    fun content_hasNoStrategyWhenTheGoalsCannotBeRead() = runTest(dispatcher) {
-        val goals = FakeNutritionGoalsRepository().apply {
-            readResult = Result.failure(AppException(AppError.Network))
-        }
-        val model = viewModel(goals = goals)
-
-        advanceUntilIdle()
-
-        assertNull(model.content().strategy)
-    }
-
-    @Test
-    fun content_hasNoStrategyWithoutAGoalsRow() = runTest(dispatcher) {
-        val model = viewModel(goals = FakeNutritionGoalsRepository(null))
-
-        advanceUntilIdle()
-
-        assertNull(model.content().strategy)
     }
 
     @Test
@@ -486,13 +292,13 @@ class TrainerViewModelTest {
     }
 
     @Test
-    fun planReadFailure_degradesToNone_withoutBlockingTheDerivedValues() = runTest(dispatcher) {
+    fun planReadFailure_degradesToNone() = runTest(dispatcher) {
         plans.current = Result.failure(AppException(AppError.Network))
         val model = viewModel()
 
         advanceUntilIdle()
 
-        assertEquals(coachValues(), model.content().values)
+        assertEquals(PROVISIONAL_VALUES, model.content().provisionalCount)
         assertEquals(PlanSummary.None, model.content().plan)
     }
 
@@ -756,11 +562,11 @@ class TrainerViewModelTest {
         openSavedBlock()
         weeks.weeksResult = Result.success(listOf(planWeek()))
         weeks.pending = Result.success(deloadProposal())
-        val saved = SavedStateHandle()
-        viewModel(saved)
+
+        viewModel()
         advanceUntilIdle()
 
-        val recreated = viewModel(saved)
+        val recreated = viewModel()
         advanceUntilIdle()
 
         assertEquals(deloadProposal(), recreated.content().deload)

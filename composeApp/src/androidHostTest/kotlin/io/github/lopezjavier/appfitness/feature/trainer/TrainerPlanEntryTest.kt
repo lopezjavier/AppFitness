@@ -6,7 +6,6 @@ import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
-import androidx.lifecycle.SavedStateHandle
 import io.github.lopezjavier.appfitness.app.FakeConnectivityObserver
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
 import io.github.lopezjavier.appfitness.domain.model.CalorieChange
@@ -33,17 +32,24 @@ class TrainerPlanEntryTest {
     private var opened = 0
 
     private val openedBlocks = mutableListOf<String>()
+    private val starts = mutableListOf<Triple<BeforeStartMode, String?, String?>>()
 
     private fun content(plan: PlanSummary, change: CalorieChange? = null, block: BlockSummary = BlockSummary.None) =
-        TrainerUiState.Content(coachValues(provisional = false), plan = plan, calorieChange = change, block = block)
+        TrainerUiState.Content(plan = plan, calorieChange = change, block = block)
 
     private fun show(state: TrainerUiState, online: Boolean = true) {
         rule.setContent {
             AppTheme {
-                TrainerScreen(state, flowOf(online), { events += it }, onOpenPlan = { opened++ }, onOpenBlock = {
-                    openedBlocks +=
-                        it
-                })
+                TrainerScreen(
+                    state,
+                    flowOf(online),
+                    { events += it },
+                    actions = TrainerActions(
+                        onOpenProposal = { opened++ },
+                        onOpenBlock = { openedBlocks += it },
+                        onOpenBeforeStart = { mode, planId, replacing -> starts += Triple(mode, planId, replacing) },
+                    ),
+                )
             }
         }
         rule.waitForIdle()
@@ -55,13 +61,14 @@ class TrainerPlanEntryTest {
     }
 
     @Test
-    fun withoutAPlan_crearPlanOpensTheProposal() {
+    fun withoutAPlan_crearPlanOpensAntesDeEmpezarInPlanMode() {
         show(content(PlanSummary.None))
 
         rule.onNodeWithText("Tu plan").assertExists()
         tap("trainer_create_plan")
 
-        assertEquals(1, opened)
+        assertEquals(listOf(Triple(BeforeStartMode.Plan, null, null)), starts)
+        assertEquals(0, opened)
     }
 
     @Test
@@ -154,7 +161,6 @@ class TrainerPlanEntryTest {
         val model = TrainerViewModel(
             FakeCoachRepository(),
             MutableClock(),
-            SavedStateHandle(),
             plans = plans,
         )
         rule.setContent {
@@ -179,12 +185,13 @@ class TrainerPlanEntryTest {
     }
 
     @Test
-    fun anOpenPlanWithoutABlock_crearBloqueOpensThePreviewForThatPlan() {
+    fun anOpenPlanWithoutABlock_crearBloqueOpensAntesDeEmpezarInBlockModeForThatPlan() {
         show(content(PlanSummary.Accepted(coachPlan(id = "plan-9", status = PlanStatus.Accepted))))
 
         tap("trainer_create_block")
 
-        assertEquals(listOf("plan-9"), openedBlocks)
+        assertEquals(listOf(Triple(BeforeStartMode.Block, "plan-9", null)), starts)
+        assertTrue(openedBlocks.isEmpty())
     }
 
     @Test

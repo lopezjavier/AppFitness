@@ -68,10 +68,11 @@ class NoTargetInputsTest {
     @Test
     fun planProposal_hasNoTargetInput() = showAndAssertNoTargetInput {
         PlanProposalScreen(
-            state = PlanProposalUiState.Proposal(coachPlan(), coachValues(provisional = false)),
+            state = PlanProposalUiState.Proposal(coachPlan()),
             isOnline = flowOf(true),
             onEvent = {},
             onBack = {},
+            onOpenBeforeStart = {},
         )
     }
 
@@ -79,7 +80,6 @@ class NoTargetInputsTest {
     fun trainer_hasNoTargetInput() = showAndAssertNoTargetInput {
         TrainerScreen(
             state = TrainerUiState.Content(
-                coachValues(provisional = false),
                 plan = PlanSummary.Accepted(coachPlan(status = PlanStatus.Accepted)),
                 calorieChange = calorieChange(),
             ),

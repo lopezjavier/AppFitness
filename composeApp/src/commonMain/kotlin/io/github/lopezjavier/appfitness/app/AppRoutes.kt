@@ -77,6 +77,19 @@ data object CoachUsageRoute : AppRoute
 @Serializable
 data class PlanProposalRoute(val replacingPlanId: String? = null) : AppRoute
 
+/**
+ * "Antes de empezar" (US-78): the data a creation reads, before the plan or the block is requested. [mode] is `plan` or
+ * `block`; [planId] is the plan a block is for; [replacingPlanId] is the plan or proposal a new plan replaces. The
+ * argument names are the keys `BeforeStartViewModel` reads from its saved state.
+ */
+@Serializable
+data class BeforeStartRoute(val mode: String, val planId: String? = null, val replacingPlanId: String? = null) :
+    AppRoute
+
+/** "Tus datos" (US-78): every input the coach reads, grouped by origin, opened from the Trainer tab. */
+@Serializable
+data object YourDataRoute : AppRoute
+
 /** The four-week training block of the plan [planId] (US-72): request, review and save, opened from the Trainer tab. */
 @Serializable
 data class BlockPreviewRoute(val planId: String) : AppRoute
@@ -382,6 +395,8 @@ object AppDestinations {
             AboutRoute,
             CoachUsageRoute,
             PlanProposalRoute(),
+            BeforeStartRoute(""),
+            YourDataRoute,
             BlockPreviewRoute(""),
             NotificationCenterRoute,
             CheckInRoute,

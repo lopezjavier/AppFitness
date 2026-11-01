@@ -64,7 +64,6 @@ class GlossaryStringsTest {
 
     @Test
     fun forbiddenSynonyms_doNotAppearAsValues() {
-        // "Confirmar" is the canonical derived-values button (T-158), so it is not forbidden.
         val forbidden =
             listOf("Aceptar", "Cerrar sin guardar", "Archivar", "Crear ejercicio", "Último mes")
         forbidden.forEach { word ->
@@ -209,5 +208,26 @@ class GlossaryStringsTest {
         assertEquals("Sin definir", value("my_training_unset"))
         assertEquals("Lugar", value("my_training_place_label"))
         assertEquals("Mancuernas", value("equipment_dumbbell"))
+    }
+
+    @Test
+    fun beforeStartAndYourData_useTheGlossaryWording() {
+        assertEquals("Antes de empezar", value("before_start_title"))
+        assertEquals("Tus datos", value("your_data_title"))
+        assertEquals("Tus datos", value("trainer_your_data_row"))
+        assertEquals("Falta: %1\$s", value("before_start_flag"))
+        assertEquals("Sin definir · Lo elige el entrenador", value("before_start_unset_optional"))
+        assertEquals("Provisional", value("trainer_provisional"))
+        assertEquals(
+            "Sustituirá tu plan actual. Hasta que aceptes el nuevo, sigue valiendo el de ahora.",
+            value("before_start_note_replace_accepted"),
+        )
+        assertEquals("Antes de empezar", value("plan_proposal_open_before_start"))
+    }
+
+    @Test
+    fun confirmar_isRetired_theFooterOfAntesDeEmpezarConfirmsSilently() {
+        assertTrue(valuesWith { it == "Confirmar" || it == "Confirmado" }.isEmpty())
+        assertTrue(strings.keys.none { it.startsWith("trainer_confirm") })
     }
 }

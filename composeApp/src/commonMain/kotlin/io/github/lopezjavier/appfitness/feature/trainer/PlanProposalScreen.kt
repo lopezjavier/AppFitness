@@ -32,7 +32,6 @@ import io.github.lopezjavier.appfitness.composeapp.resources.plan_outcome_help_c
 import io.github.lopezjavier.appfitness.composeapp.resources.plan_outcome_help_title
 import io.github.lopezjavier.appfitness.composeapp.resources.plan_proposal_accept_error
 import io.github.lopezjavier.appfitness.composeapp.resources.plan_proposal_accept_offline
-import io.github.lopezjavier.appfitness.composeapp.resources.plan_proposal_accept_reason
 import io.github.lopezjavier.appfitness.composeapp.resources.plan_proposal_accepted
 import io.github.lopezjavier.appfitness.composeapp.resources.plan_proposal_calories
 import io.github.lopezjavier.appfitness.composeapp.resources.plan_proposal_discard_error
@@ -43,6 +42,7 @@ import io.github.lopezjavier.appfitness.composeapp.resources.plan_proposal_floor
 import io.github.lopezjavier.appfitness.composeapp.resources.plan_proposal_grams
 import io.github.lopezjavier.appfitness.composeapp.resources.plan_proposal_interrupted
 import io.github.lopezjavier.appfitness.composeapp.resources.plan_proposal_kcal_day
+import io.github.lopezjavier.appfitness.composeapp.resources.plan_proposal_open_before_start
 import io.github.lopezjavier.appfitness.composeapp.resources.plan_proposal_outcome_e1rm
 import io.github.lopezjavier.appfitness.composeapp.resources.plan_proposal_outcome_weight
 import io.github.lopezjavier.appfitness.composeapp.resources.plan_proposal_outcomes_header
@@ -52,9 +52,8 @@ import io.github.lopezjavier.appfitness.composeapp.resources.plan_proposal_rate
 import io.github.lopezjavier.appfitness.composeapp.resources.plan_proposal_rate_help_body
 import io.github.lopezjavier.appfitness.composeapp.resources.plan_proposal_rate_help_cd
 import io.github.lopezjavier.appfitness.composeapp.resources.plan_proposal_rate_value
+import io.github.lopezjavier.appfitness.composeapp.resources.plan_proposal_reask_note
 import io.github.lopezjavier.appfitness.composeapp.resources.plan_proposal_title
-import io.github.lopezjavier.appfitness.composeapp.resources.trainer_confirm_error
-import io.github.lopezjavier.appfitness.composeapp.resources.trainer_reask
 import io.github.lopezjavier.appfitness.designsystem.AppCard
 import io.github.lopezjavier.appfitness.designsystem.AppDateFormat
 import io.github.lopezjavier.appfitness.designsystem.AppListRow
@@ -70,6 +69,7 @@ import io.github.lopezjavier.appfitness.designsystem.LocalAppHaptics
 import io.github.lopezjavier.appfitness.designsystem.LocalAppMessages
 import io.github.lopezjavier.appfitness.designsystem.Macro
 import io.github.lopezjavier.appfitness.designsystem.MacroDefaults
+import io.github.lopezjavier.appfitness.designsystem.NavigationRow
 import io.github.lopezjavier.appfitness.designsystem.OfflineHint
 import io.github.lopezjavier.appfitness.designsystem.PrimaryButton
 import io.github.lopezjavier.appfitness.designsystem.SkeletonBox
@@ -98,6 +98,7 @@ private const val SKELETON_ROWS = 3
 @Composable
 fun PlanProposalRoot(
     onBack: () -> Unit,
+    onOpenBeforeStart: (replacingPlanId: String) -> Unit,
     modifier: Modifier = Modifier,
     viewModel: PlanProposalViewModel = koinViewModel(),
     connectivity: ConnectivityObserver = koinInject(),
@@ -108,7 +109,6 @@ fun PlanProposalRoot(
     val latestHaptics by rememberUpdatedState(haptics)
     val latestOnBack by rememberUpdatedState(onBack)
     val accepted = stringResource(Res.string.plan_proposal_accepted)
-    val confirmError = stringResource(Res.string.trainer_confirm_error)
     val acceptError = stringResource(Res.string.plan_proposal_accept_error)
     val discardError = stringResource(Res.string.plan_proposal_discard_error)
     val acceptOffline = offlineHint(stringResource(Res.string.plan_proposal_accept_offline)) + "."
@@ -119,8 +119,6 @@ fun PlanProposalRoot(
     LaunchedEffect(viewModel) {
         viewModel.effects.collect { effect ->
             when (effect) {
-                PlanProposalEffect.ValuesConfirmed -> latestHaptics.confirm()
-
                 PlanProposalEffect.Accepted -> {
                     latestHaptics.confirm()
                     messages.show(accepted)
@@ -136,7 +134,6 @@ fun PlanProposalRoot(
                     latestHaptics.reject()
                     messages.show(
                         when (effect.action) {
-                            PlanAction.Confirm -> confirmError
                             PlanAction.Accept -> if (effect.offline) acceptOffline else acceptError
                             PlanAction.Discard -> if (effect.offline) discardOffline else discardError
                         },
@@ -150,12 +147,13 @@ fun PlanProposalRoot(
         isOnline = connectivity.isOnline,
         onEvent = viewModel::onEvent,
         onBack = onBack,
+        onOpenBeforeStart = onOpenBeforeStart,
         modifier = modifier,
     )
 }
 
 /**
- * The nutrition plan proposal on [AppScreen] with back: the derived values behind it (with "Confirmar"), the calories
+ * The nutrition plan proposal on [AppScreen] with back: the calories
  * and macros, the weekly rate, the notes and the optional outcomes, and a pinned "Aceptar" / "Descartar" footer. The
  * plan is read-only: the user never enters a target number (ADR-78). Loading the stored plan is a skeleton, waiting
  * for the model is a [StreamProgressState] (R-31).
@@ -166,6 +164,7 @@ fun PlanProposalScreen(
     isOnline: Flow<Boolean>,
     onEvent: (PlanProposalEvent) -> Unit,
     onBack: () -> Unit,
+    onOpenBeforeStart: (replacingPlanId: String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val online by isOnline.collectAsStateWithLifecycle(initialValue = true)
@@ -173,7 +172,9 @@ fun PlanProposalScreen(
         title = stringResource(Res.string.plan_proposal_title),
         modifier = modifier,
         onBack = onBack,
-        footer = (state as? PlanProposalUiState.Proposal)?.let { { ProposalFooter(it, online, onEvent) } },
+        footer = (state as? PlanProposalUiState.Proposal)?.let {
+            { ProposalFooter(it, online, onEvent, onOpenBeforeStart) }
+        },
         testTagPrefix = "plan_proposal",
     ) {
         Box(Modifier.fillMaxSize().testTag("plan_proposal_screen")) {
@@ -192,7 +193,7 @@ fun PlanProposalScreen(
                     FailedContent(state.kind, isOnline, onEvent)
                 }
 
-                is PlanProposalUiState.Proposal -> ProposalContent(state, online, onEvent)
+                is PlanProposalUiState.Proposal -> ProposalContent(state)
             }
         }
     }
@@ -208,24 +209,12 @@ private fun FailedContent(kind: PlanFailureKind, isOnline: Flow<Boolean>, onEven
     CoachFailureContent(kind, isOnline, PlanFailureCopy, "plan_proposal") { onEvent(PlanProposalEvent.Retry) }
 
 @Composable
-private fun ProposalContent(
-    state: PlanProposalUiState.Proposal,
-    online: Boolean,
-    onEvent: (PlanProposalEvent) -> Unit,
-) {
+private fun ProposalContent(state: PlanProposalUiState.Proposal) {
     val nutrition = state.plan.nutrition
     Column(
         Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(Spacing.screenMargin),
         verticalArrangement = Arrangement.spacedBy(Spacing.blockGap),
     ) {
-        DerivedValuesCard(
-            values = state.values,
-            confirming = state.confirming,
-            online = online,
-            strategy = nutrition.strategy,
-            onEdit = null,
-            onConfirm = { onEvent(PlanProposalEvent.Confirm) },
-        )
         NutritionCard(state)
         if (nutrition.limitedBy == PlanLimit.Floor) {
             InlineNote(
@@ -332,22 +321,27 @@ private fun OutcomesSection(outcomes: List<PlanOutcome>) {
     }
 }
 
-/** Pinned footer: why "Aceptar" is blocked (if it is), then "Aceptar" and "Descartar". */
+/** Pinned footer: why "Aceptar" is blocked and the way to "Antes de empezar" (if it is), then the decisions. */
 @Composable
-private fun ProposalFooter(state: PlanProposalUiState.Proposal, online: Boolean, onEvent: (PlanProposalEvent) -> Unit) {
+private fun ProposalFooter(
+    state: PlanProposalUiState.Proposal,
+    online: Boolean,
+    onEvent: (PlanProposalEvent) -> Unit,
+    onOpenBeforeStart: (replacingPlanId: String) -> Unit,
+) {
     Column(
         Modifier.fillMaxWidth().padding(Spacing.screenMargin),
         verticalArrangement = Arrangement.spacedBy(Spacing.sm),
     ) {
-        state.acceptBlockedReason?.let { reason ->
-            val base = stringResource(Res.string.plan_proposal_accept_reason)
+        if (state.acceptBlockedReason != null) {
             InlineNote(
-                text = if (reason == AcceptBlockedReason.DataChanged) {
-                    base + " " + stringResource(Res.string.trainer_reask)
-                } else {
-                    base
-                },
-                testTag = "plan_proposal_accept_reason",
+                text = stringResource(Res.string.plan_proposal_reask_note),
+                testTag = "plan_proposal_reask_note",
+            )
+            NavigationRow(
+                label = stringResource(Res.string.plan_proposal_open_before_start),
+                onClick = { onOpenBeforeStart(state.plan.id) },
+                modifier = Modifier.testTag("plan_proposal_open_your_data"),
             )
         }
         PrimaryButton(

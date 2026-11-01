@@ -6,10 +6,6 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.Role
@@ -47,10 +43,11 @@ import io.github.lopezjavier.appfitness.designsystem.AppCard
 import io.github.lopezjavier.appfitness.designsystem.AppNumberFormat
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
 import io.github.lopezjavier.appfitness.designsystem.CoachProposalCard
+import io.github.lopezjavier.appfitness.designsystem.GhostButton
+import io.github.lopezjavier.appfitness.designsystem.GhostTone
 import io.github.lopezjavier.appfitness.designsystem.ListSectionHeader
 import io.github.lopezjavier.appfitness.designsystem.OfflineHint
 import io.github.lopezjavier.appfitness.designsystem.PrimaryButton
-import io.github.lopezjavier.appfitness.designsystem.SecondaryButton
 import io.github.lopezjavier.appfitness.designsystem.Spacing
 import io.github.lopezjavier.appfitness.designsystem.StatusChip
 import io.github.lopezjavier.appfitness.designsystem.StatusTone
@@ -66,7 +63,13 @@ private const val HALF = 2
 
 /** The block entry under an open plan: "Crear bloque", the proposed block to review, or the saved one. */
 @Composable
-internal fun BlockSection(plan: PlanSummary, block: BlockSummary, online: Boolean, onOpenBlock: (String) -> Unit) {
+internal fun BlockSection(
+    plan: PlanSummary,
+    block: BlockSummary,
+    online: Boolean,
+    onOpenBlock: (String) -> Unit,
+    onOpenBeforeStart: (BeforeStartMode, String?, String?) -> Unit,
+) {
     val planId = when (plan) {
         is PlanSummary.Proposed -> plan.plan.id
         is PlanSummary.Accepted -> plan.plan.id
@@ -76,7 +79,7 @@ internal fun BlockSection(plan: PlanSummary, block: BlockSummary, online: Boolea
         BlockSummary.None -> {
             PrimaryButton(
                 text = stringResource(Res.string.trainer_block_create),
-                onClick = { onOpenBlock(planId) },
+                onClick = { onOpenBeforeStart(BeforeStartMode.Block, planId, null) },
                 modifier = Modifier.fillMaxWidth().testTag("trainer_create_block"),
                 enabled = online,
             )
@@ -112,14 +115,19 @@ internal fun BlockSection(plan: PlanSummary, block: BlockSummary, online: Boolea
 
 /** "Tu plan" on the Trainer tab: create, review the pending proposal or see the active plan. */
 @Composable
-internal fun PlanSection(plan: PlanSummary, online: Boolean, onOpenPlan: (replacingPlanId: String?) -> Unit) {
+internal fun PlanSection(
+    plan: PlanSummary,
+    online: Boolean,
+    onOpenProposal: () -> Unit,
+    onOpenBeforeStart: (BeforeStartMode, String?, String?) -> Unit,
+) {
     Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
         ListSectionHeader(stringResource(Res.string.trainer_plan_section))
         when (plan) {
             PlanSummary.None -> {
                 PrimaryButton(
                     text = stringResource(Res.string.trainer_plan_create),
-                    onClick = { onOpenPlan(null) },
+                    onClick = { onOpenBeforeStart(BeforeStartMode.Plan, null, null) },
                     modifier = Modifier.fillMaxWidth().testTag("trainer_create_plan"),
                     enabled = online,
                 )
@@ -130,7 +138,7 @@ internal fun PlanSection(plan: PlanSummary, online: Boolean, onOpenPlan: (replac
                 AppCard(
                     Modifier.fillMaxWidth()
                         .testTag("trainer_plan_card")
-                        .clickable(role = Role.Button, onClick = { onOpenPlan(null) }),
+                        .clickable(role = Role.Button, onClick = onOpenProposal),
                 ) {
                     Text(
                         text = stringResource(Res.string.trainer_plan_pending_title),
@@ -143,31 +151,32 @@ internal fun PlanSection(plan: PlanSummary, online: Boolean, onOpenPlan: (replac
                         color = AppTheme.colors.textSecondary,
                     )
                 }
-                ReplacePlanEntry(plan.plan.id, online, onOpenPlan)
+                ReplacePlanEntry(plan.plan.id, online, onOpenBeforeStart)
             }
 
             is PlanSummary.Accepted -> {
                 ActivePlanCard(plan.plan)
-                ReplacePlanEntry(plan.plan.id, online, onOpenPlan)
+                ReplacePlanEntry(plan.plan.id, online, onOpenBeforeStart)
             }
         }
     }
 }
 
-/** "Crear plan nuevo" under the current plan: asks first in a sheet, then opens the proposal replacing [planId]. */
+/** "Crear plan nuevo" under the current plan: opens "Antes de empezar", which says what it replaces. */
 @Composable
-private fun ReplacePlanEntry(planId: String, online: Boolean, onOpenPlan: (replacingPlanId: String?) -> Unit) {
-    var confirming by rememberSaveable { mutableStateOf(false) }
-    SecondaryButton(
+private fun ReplacePlanEntry(
+    planId: String,
+    online: Boolean,
+    onOpenBeforeStart: (BeforeStartMode, String?, String?) -> Unit,
+) {
+    GhostButton(
         text = stringResource(Res.string.trainer_plan_replace),
-        onClick = { confirming = true },
-        modifier = Modifier.fillMaxWidth().testTag("trainer_replace_plan"),
+        onClick = { onOpenBeforeStart(BeforeStartMode.Plan, null, planId) },
+        modifier = Modifier.fillMaxWidth().testTag("trainer_create_plan_new"),
         enabled = online,
+        tone = GhostTone.Neutral,
     )
     if (!online) OfflineHint(stringResource(Res.string.trainer_plan_create_action))
-    if (confirming) {
-        ReplacePlanSheet(onConfirm = { onOpenPlan(planId) }, onDismiss = { confirming = false })
-    }
 }
 
 @Composable

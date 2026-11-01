@@ -8,6 +8,8 @@ import io.github.lopezjavier.appfitness.domain.appErrorOrNull
 import io.github.lopezjavier.appfitness.domain.model.CoachException
 import io.github.lopezjavier.appfitness.domain.model.CoachFailure
 import io.github.lopezjavier.appfitness.domain.model.CoachPlan
+import io.github.lopezjavier.appfitness.domain.model.PlanInputKind
+import io.github.lopezjavier.appfitness.domain.model.PlanInputStatus
 import io.github.lopezjavier.appfitness.domain.model.PlanStatus
 import io.github.lopezjavier.appfitness.domain.port.Clock
 import io.github.lopezjavier.appfitness.domain.repository.CoachPlanRepository
@@ -73,7 +75,6 @@ class PlanProposalViewModel(
         when (event) {
             PlanProposalEvent.Request -> if (_uiState.value == PlanProposalUiState.Idle) request()
             PlanProposalEvent.Retry -> if (_uiState.value is PlanProposalUiState.Failed) retry()
-            PlanProposalEvent.Confirm -> confirm()
             PlanProposalEvent.Accept -> accept()
             PlanProposalEvent.Discard -> discard()
         }
@@ -107,28 +108,15 @@ class PlanProposalViewModel(
         getOrNull()?.takeIf { it.status == PlanStatus.Proposed && it.id != replacingPlanId }
 
     private suspend fun showProposal(plan: CoachPlan) {
-        _uiState.value = coach.derivedValues(today()).fold(
-            onSuccess = { PlanProposalUiState.Proposal(plan, it) },
+        _uiState.value = unconfirmedInputs().fold(
+            onSuccess = { PlanProposalUiState.Proposal(plan, unconfirmed = it) },
             onFailure = { PlanProposalUiState.Failed(kindOf(it)) },
         )
     }
 
-    private fun confirm() {
-        val proposal = _uiState.value as? PlanProposalUiState.Proposal ?: return
-        if (proposal.busy) return
-        _uiState.value = proposal.copy(confirming = true)
-        viewModelScope.launch {
-            val result = coach.confirm(today(), null)
-            val values = result.getOrNull()
-            if (values != null) {
-                _uiState.value = proposal.copy(values = values, confirming = false, dataChanged = false)
-                effectChannel.send(PlanProposalEffect.ValuesConfirmed)
-            } else {
-                _uiState.value = proposal.copy(confirming = false)
-                effectChannel.send(failed(PlanAction.Confirm, result.appErrorOrNull()))
-            }
-        }
-    }
+    /** True while some input the plan reads is provisional (the server's check is on the same list). */
+    private suspend fun unconfirmedInputs(): Result<Boolean> = coach.planInputs(PlanInputKind.Plan, today())
+        .map { list -> list.inputs.any { it.status == PlanInputStatus.Provisional } }
 
     private fun accept() {
         val proposal = _uiState.value as? PlanProposalUiState.Proposal ?: return
@@ -145,8 +133,9 @@ class PlanProposalViewModel(
 
                 (error as? CoachException)?.failure == CoachFailure.NeedsConfirmation -> {
                     // The server's check is the truth: show its values and ask for a new confirmation.
-                    val fresh = coach.derivedValues(today()).getOrNull() ?: proposal.values
-                    _uiState.value = proposal.copy(values = fresh, accepting = false, dataChanged = true)
+                    // A failed re-read still blocks: the server said the data changed.
+                    val unconfirmed = unconfirmedInputs().getOrNull() ?: true
+                    _uiState.value = proposal.copy(unconfirmed = unconfirmed, accepting = false, dataChanged = true)
                 }
 
                 else -> {

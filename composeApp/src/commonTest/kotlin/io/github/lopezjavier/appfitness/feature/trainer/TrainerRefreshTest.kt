@@ -99,15 +99,16 @@ class TrainerRefreshTest {
     }
 
     @Test
-    fun refresh_keepsTheOpenEditSheet() = runTest(dispatcher) {
+    fun refresh_keepsTheProvisionalCountWhenTheDerivedReadFails() = runTest(dispatcher) {
         val model = viewModel()
         advanceUntilIdle()
-        model.onEvent(TrainerEvent.OpenEdit)
+        val count = model.content().provisionalCount
+        repository.loaded = Result.failure(AppException(AppError.Network))
 
         model.onEvent(TrainerEvent.Refresh)
         advanceUntilIdle()
 
-        assertEquals(model.content().values.activityLevel.value, model.content().editSheet)
+        assertEquals(count, model.content().provisionalCount)
     }
 
     @Test

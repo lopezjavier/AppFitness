@@ -6,7 +6,6 @@ import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
-import androidx.lifecycle.SavedStateHandle
 import io.github.lopezjavier.appfitness.app.FakeConnectivityObserver
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
 import io.github.lopezjavier.appfitness.domain.model.DeloadProposal
@@ -34,7 +33,6 @@ class PlanWeeksTest {
     private val events = mutableListOf<TrainerEvent>()
 
     private fun content(weeks: List<PlanWeek> = emptyList(), deload: DeloadProposal? = null) = TrainerUiState.Content(
-        coachValues(provisional = false),
         plan = PlanSummary.Accepted(coachPlan(status = PlanStatus.Accepted)),
         block = BlockSummary.Saved(coachBlock(saved = true)),
         weeks = weeks,
@@ -150,7 +148,6 @@ class PlanWeeksTest {
         return TrainerViewModel(
             FakeCoachRepository(),
             MutableClock(),
-            SavedStateHandle(),
             plans = plans,
             blocks = blocks,
             coachWeeks = weeks,

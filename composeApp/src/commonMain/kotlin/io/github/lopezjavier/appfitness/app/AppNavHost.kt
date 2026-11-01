@@ -27,6 +27,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.dialog
 import androidx.navigation.navigation
 import androidx.navigation.toRoute
+import io.github.lopezjavier.appfitness.domain.model.PlanFixTarget
 import io.github.lopezjavier.appfitness.domain.model.ReminderKind
 import io.github.lopezjavier.appfitness.feature.catalog.ComponentCatalogScreen
 import io.github.lopezjavier.appfitness.feature.diary.DiaryEditHost
@@ -34,17 +35,14 @@ import io.github.lopezjavier.appfitness.feature.profile.PreferencesSection
 import io.github.lopezjavier.appfitness.feature.profile.ProfileRootActions
 import io.github.lopezjavier.appfitness.feature.templates.PICKED_FOOD_KEY
 import io.github.lopezjavier.appfitness.feature.templates.pickedFoodResult
+import io.github.lopezjavier.appfitness.feature.trainer.BeforeStartEffect
+import io.github.lopezjavier.appfitness.feature.trainer.BeforeStartMode
+import io.github.lopezjavier.appfitness.feature.trainer.TrainerActions
 import io.github.lopezjavier.appfitness.feature.workout.PastWorkoutSource
 import kotlinx.datetime.LocalDate
 
-/** Content of the Trainer root: its modifier (tab insets). */
-internal typealias TrainerSlot =
-    @Composable (
-        modifier: Modifier,
-        onOpenCoachUsage: () -> Unit,
-        onOpenPlan: (replacingPlanId: String?) -> Unit,
-        onOpenBlock: (String) -> Unit,
-    ) -> Unit
+/** Content of the Trainer root: its modifier (tab insets) and where its entries go ([TrainerActions]). */
+internal typealias TrainerSlot = @Composable (modifier: Modifier, actions: TrainerActions) -> Unit
 
 /**
  * Content of the Perfil root: its modifier (tab insets) and the openers of its destinations ([ProfileRootActions];
@@ -58,8 +56,26 @@ internal typealias ActivitySlot = @Composable (modifier: Modifier, onBack: () ->
 /** Content of "Acerca de": its modifier (full-screen insets) and how to leave. */
 internal typealias CoachUsageSlot = @Composable (modifier: Modifier, onBack: () -> Unit) -> Unit
 
-/** Content of the plan proposal: its modifier (full-screen insets) and how to leave. */
-internal typealias PlanProposalSlot = @Composable (modifier: Modifier, onBack: () -> Unit) -> Unit
+/** Content of the plan proposal: its modifier (full-screen insets), how to leave and the "Antes de empezar" opener. */
+internal typealias PlanProposalSlot =
+    @Composable (modifier: Modifier, onBack: () -> Unit, onOpenBeforeStart: (replacingPlanId: String) -> Unit) -> Unit
+
+/**
+ * Content of "Antes de empezar": modifier (full-screen insets), how to leave, what to do once the creation is
+ * confirmed (open the proposal or the block preview), the "Tus datos" opener and the editor opener of a flagged input.
+ */
+internal typealias BeforeStartSlot =
+    @Composable (
+        modifier: Modifier,
+        onBack: () -> Unit,
+        onCreated: (BeforeStartEffect.Created) -> Unit,
+        onOpenYourData: () -> Unit,
+        onFix: (PlanFixTarget) -> Unit,
+    ) -> Unit
+
+/** Content of "Tus datos": modifier (full-screen insets), how to leave and the editor opener of an input. */
+internal typealias YourDataSlot =
+    @Composable (modifier: Modifier, onBack: () -> Unit, onFix: (PlanFixTarget) -> Unit) -> Unit
 
 /** Content of the block preview: modifier (full-screen insets), plan id, exercise opener and how to leave. */
 internal typealias BlockPreviewSlot =
@@ -404,7 +420,7 @@ internal val DefaultProfileSlot: ProfileSlot = { modifier, actions ->
 }
 
 /** Empty Trainer root for previews and shell tests; the real one is wired by `AppRoot`. */
-internal val DefaultTrainerSlot: TrainerSlot = { modifier, _, _, _ ->
+internal val DefaultTrainerSlot: TrainerSlot = { modifier, _ ->
     Box(modifier.fillMaxSize().testTag("trainer_screen"))
 }
 
@@ -570,8 +586,18 @@ internal val DefaultCoachUsageSlot: CoachUsageSlot = { modifier, _ ->
 }
 
 /** Empty plan proposal for previews and shell tests; the real one is wired by `AppRoot`. */
-internal val DefaultPlanProposalSlot: PlanProposalSlot = { modifier, _ ->
+internal val DefaultPlanProposalSlot: PlanProposalSlot = { modifier, _, _ ->
     Box(modifier.fillMaxSize().testTag("plan_proposal_screen"))
+}
+
+/** Empty "Antes de empezar" for previews and shell tests; the real one is wired by `AppRoot`. */
+internal val DefaultBeforeStartSlot: BeforeStartSlot = { modifier, _, _, _, _ ->
+    Box(modifier.fillMaxSize().testTag("before_start_screen"))
+}
+
+/** Empty "Tus datos" for previews and shell tests; the real one is wired by `AppRoot`. */
+internal val DefaultYourDataSlot: YourDataSlot = { modifier, _, _ ->
+    Box(modifier.fillMaxSize().testTag("your_data_screen"))
 }
 
 /** Empty block preview for previews and shell tests; the real one is wired by `AppRoot`. */
@@ -605,6 +631,8 @@ internal fun AppNavHost(
     about: AboutSlot = DefaultAboutSlot,
     coachUsage: CoachUsageSlot = DefaultCoachUsageSlot,
     planProposal: PlanProposalSlot = DefaultPlanProposalSlot,
+    beforeStart: BeforeStartSlot = DefaultBeforeStartSlot,
+    yourData: YourDataSlot = DefaultYourDataSlot,
     blockPreview: BlockPreviewSlot = DefaultBlockPreviewSlot,
     activity: ActivitySlot = DefaultActivitySlot,
     exercisePicker: ExercisePickerSlot = DefaultExercisePickerSlot,
@@ -659,11 +687,29 @@ internal fun AppNavHost(
     val openActivity = remember(navController) { { navController.navigateToFullScreen(ActivityRoute) } }
     val openAbout = remember(navController) { { navController.navigateToFullScreen(AboutRoute) } }
     val openCoachUsage = remember(navController) { { navController.navigateToFullScreen(CoachUsageRoute) } }
-    val openPlan = remember(navController) {
-        { replacingPlanId: String? -> navController.navigateToFullScreen(PlanProposalRoute(replacingPlanId)) }
+    val trainerActions = remember(navController, openCoachUsage) {
+        TrainerActions(
+            onOpenCoachUsage = openCoachUsage,
+            onOpenProposal = { navController.navigateToFullScreen(PlanProposalRoute()) },
+            onOpenBlock = { planId -> navController.navigateToFullScreen(BlockPreviewRoute(planId)) },
+            onOpenBeforeStart = { mode, planId, replacingPlanId ->
+                navController.navigateToFullScreen(BeforeStartRoute(mode.argument, planId, replacingPlanId))
+            },
+            onOpenYourData = { navController.navigateToFullScreen(YourDataRoute) },
+        )
     }
-    val openBlock =
-        remember(navController) { { planId: String -> navController.navigateToFullScreen(BlockPreviewRoute(planId)) } }
+    val openYourData = remember(navController) { { navController.navigateToFullScreen(YourDataRoute) } }
+    val openFix = remember(navController) {
+        { target: PlanFixTarget ->
+            val route = when (target) {
+                PlanFixTarget.MyTraining -> PreferencesSectionRoute(PreferencesSection.MyTraining.key)
+                PlanFixTarget.PersonalData -> PreferencesSectionRoute(PreferencesSection.PersonalData.key)
+                PlanFixTarget.Weight -> WeightRoute()
+                PlanFixTarget.ActivitySheet -> null // The screens open their own sheet.
+            }
+            if (route != null) navController.navigateToFullScreen(route)
+        }
+    }
     val openMyTraining = remember(navController) {
         { navController.navigateToFullScreen(PreferencesSectionRoute(PreferencesSection.MyTraining.key)) }
     }
@@ -733,7 +779,7 @@ internal fun AppNavHost(
             }
         }
         navigation<TrainerGraph>(startDestination = TopLevelTab.Trainer.startRoute) {
-            composable<TrainerHome> { trainer(Modifier.padding(tabPadding), openCoachUsage, openPlan, openBlock) }
+            composable<TrainerHome> { trainer(Modifier.padding(tabPadding), trainerActions) }
         }
         navigation<ProfileGraph>(startDestination = TopLevelTab.Profile.startRoute) {
             composable<ProfileHome> {
@@ -760,7 +806,27 @@ internal fun AppNavHost(
             coachUsage(Modifier.padding(fullScreenPadding)) { navController.popFullScreen(entry) }
         }
         composable<PlanProposalRoute> { entry ->
-            planProposal(Modifier.padding(fullScreenPadding)) { navController.popFullScreen(entry) }
+            planProposal(
+                Modifier.padding(fullScreenPadding),
+                { navController.popFullScreen(entry) },
+                { replacingPlanId ->
+                    navController.navigateToFullScreen(
+                        BeforeStartRoute(BeforeStartMode.Plan.argument, replacingPlanId = replacingPlanId),
+                    )
+                },
+            )
+        }
+        composable<BeforeStartRoute> { entry ->
+            beforeStart(
+                Modifier.padding(fullScreenPadding),
+                { navController.popFullScreen(entry) },
+                { created -> navController.openCreated(entry, created) },
+                openYourData,
+                openFix,
+            )
+        }
+        composable<YourDataRoute> { entry ->
+            yourData(Modifier.padding(fullScreenPadding), { navController.popFullScreen(entry) }, openFix)
         }
         composable<BlockPreviewRoute> { entry ->
             blockPreview(
@@ -1200,6 +1266,28 @@ internal fun NavController.navigateToTab(tab: TopLevelTab) {
  */
 internal fun NavController.navigateToFullScreen(route: AppRoute) {
     navigate(route) { launchSingleTop = true }
+}
+
+/**
+ * Leaves "Antes de empezar" for the proposal or the block preview. The "Antes de empezar" entry is popped so Back
+ * returns to where the creation started; when it was opened from a proposal (the re-ask), that proposal goes too, as
+ * the new one replaces it.
+ */
+internal fun NavController.openCreated(entry: NavBackStackEntry, created: BeforeStartEffect.Created) {
+    if (currentBackStackEntry?.id != entry.id) return
+    val route: AppRoute = when (created.mode) {
+        BeforeStartMode.Plan -> PlanProposalRoute(created.replacingPlanId)
+        BeforeStartMode.Block -> BlockPreviewRoute(created.planId.orEmpty())
+    }
+    val fromProposal = previousBackStackEntry?.destination?.hasRoute(PlanProposalRoute::class) == true
+    navigate(route) {
+        launchSingleTop = true
+        if (fromProposal) {
+            popUpTo<PlanProposalRoute> { inclusive = true }
+        } else {
+            popUpTo<BeforeStartRoute> { inclusive = true }
+        }
+    }
 }
 
 /** The [AppDestinations.fullScreenRoutes] entry this destination is, or null for a tab destination. */

@@ -72,7 +72,7 @@ Feature: Confirmation of derived values
   Scenario: Unconfirmed values block the plan
     Given a value was asked again after the plan was generated
     Then the plan shows a note that it is provisional
-    And the plan cannot be accepted until it is confirmed in "Tus datos"
+    And the plan cannot be accepted until the values are confirmed in "Antes de empezar", whose footer confirms them and requests the plan again
 
   Scenario: Re-asking when the data changes
     Given a confirmed value's new estimate is outside its uncertainty
