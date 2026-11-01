@@ -50,7 +50,7 @@ class ExerciseNavigationTest {
             }
         }
     }
-    private val detailSlot: ExerciseDetailSlot = { modifier, exerciseId, selectMode, onSelect, _, onClose ->
+    private val detailSlot: ExerciseDetailSlot = { modifier, exerciseId, selectMode, onSelect, _, onClose, _ ->
         AppScreen(title = "Ejercicio", modifier = modifier, onBack = onClose, testTagPrefix = "exercise_detail") {
             Column(Modifier.fillMaxSize().testTag("exercise_detail_screen")) {
                 Text("$exerciseId $selectMode", Modifier.testTag("detail_args"))

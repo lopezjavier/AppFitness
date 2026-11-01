@@ -109,8 +109,16 @@ fun AppRoot(
         exercisePicker = { pickerModifier, selectMode, onOpenDetail, onSelected, onBack ->
             ExercisePickerRoot(selectMode, onOpenDetail, onSelected, pickerModifier, onBack)
         },
-        exerciseDetail = { detailModifier, exerciseId, selectMode, onSelect, onOpenProgress, onClose ->
-            ExerciseDetailRoot(exerciseId, selectMode, onSelect, detailModifier, onOpenProgress, onClose)
+        exerciseDetail = { detailModifier, exerciseId, selectMode, onSelect, onOpenProgress, onClose, onOpenExercise ->
+            ExerciseDetailRoot(
+                exerciseId,
+                selectMode,
+                onSelect,
+                detailModifier,
+                onOpenProgress,
+                onClose,
+                onOpenExercise,
+            )
         },
         routines = { routinesModifier, onOpenBuilder, onOpenDetails, onOpenLive, onOpenHistory ->
             WorkoutEntryRoot(onOpenBuilder, onOpenDetails, onOpenLive, onOpenHistory, routinesModifier)

@@ -36,12 +36,22 @@ sealed interface PlanFailureKind {
 internal fun planFailureKindOf(failure: Throwable?): PlanFailureKind = when {
     failure is CoachException -> when (val coachFailure = failure.failure) {
         is CoachFailure.LimitReached -> PlanFailureKind.Limit(coachFailure.scope)
+
         CoachFailure.NoCredit -> PlanFailureKind.NoCredit
+
         CoachFailure.Timeout -> PlanFailureKind.Timeout
+
         CoachFailure.Invalid -> PlanFailureKind.Invalid
+
         is CoachFailure.Missing -> PlanFailureKind.Missing(coachFailure.fields)
+
         CoachFailure.Infeasible -> PlanFailureKind.Infeasible
-        CoachFailure.NeedsConfirmation, CoachFailure.Conflict, CoachFailure.Other -> PlanFailureKind.Other
+
+        CoachFailure.NeedsConfirmation,
+        CoachFailure.Conflict,
+        CoachFailure.InvalidReplacement,
+        CoachFailure.Other,
+        -> PlanFailureKind.Other
     }
 
     (failure as? AppException)?.error == AppError.Network -> PlanFailureKind.Offline

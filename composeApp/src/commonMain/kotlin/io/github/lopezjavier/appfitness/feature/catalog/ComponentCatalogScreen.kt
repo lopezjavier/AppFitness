@@ -40,6 +40,7 @@ import io.github.lopezjavier.appfitness.composeapp.resources.catalog_state_press
 import io.github.lopezjavier.appfitness.composeapp.resources.catalog_title
 import io.github.lopezjavier.appfitness.composeapp.resources.exercise_tab_history
 import io.github.lopezjavier.appfitness.composeapp.resources.exercise_tab_how_to
+import io.github.lopezjavier.appfitness.composeapp.resources.exercise_tab_similar
 import io.github.lopezjavier.appfitness.composeapp.resources.exercise_tab_summary
 import io.github.lopezjavier.appfitness.composeapp.resources.goal_strategy_deficit
 import io.github.lopezjavier.appfitness.composeapp.resources.goal_strategy_maintenance
@@ -265,12 +266,14 @@ private fun SegmentedSection() {
 private fun TabsSection() {
     var selected by rememberSaveable { mutableIntStateOf(0) }
     val summary = stringResource(Res.string.exercise_tab_summary)
+    val similar = stringResource(Res.string.exercise_tab_similar)
     val history = stringResource(Res.string.exercise_tab_history)
     val howTo = stringResource(Res.string.exercise_tab_how_to)
     val options =
-        remember(summary, history, howTo) {
+        remember(summary, similar, history, howTo) {
             listOf(
                 AppOption(summary, "catalog_tab_summary"),
+                AppOption(similar, "catalog_tab_similar"),
                 AppOption(history, "catalog_tab_history"),
                 AppOption(howTo, "catalog_tab_how_to"),
             )

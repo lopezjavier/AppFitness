@@ -29,6 +29,7 @@ import io.github.lopezjavier.appfitness.composeapp.resources.block_preview_inter
 import io.github.lopezjavier.appfitness.composeapp.resources.block_preview_progress
 import io.github.lopezjavier.appfitness.composeapp.resources.block_preview_progress_cd
 import io.github.lopezjavier.appfitness.composeapp.resources.block_preview_title
+import io.github.lopezjavier.appfitness.composeapp.resources.block_replace_invalid
 import io.github.lopezjavier.appfitness.composeapp.resources.block_save
 import io.github.lopezjavier.appfitness.composeapp.resources.block_save_action
 import io.github.lopezjavier.appfitness.composeapp.resources.block_save_error
@@ -89,6 +90,7 @@ fun BlockPreviewRoot(
     val latestOnBack by rememberUpdatedState(onBack)
     val saved = stringResource(Res.string.block_saved)
     val saveError = stringResource(Res.string.block_save_error)
+    val replaceInvalid = stringResource(Res.string.block_replace_invalid)
     val saveOffline = offlineHint(stringResource(Res.string.block_save_action)) + "."
     LaunchedEffect(state) {
         if (state == BlockPreviewUiState.Idle) viewModel.onEvent(BlockPreviewEvent.Request)
@@ -100,6 +102,11 @@ fun BlockPreviewRoot(
                     latestHaptics.confirm()
                     messages.show(saved)
                     latestOnBack()
+                }
+
+                BlockPreviewEffect.ReplacementRejected -> {
+                    latestHaptics.reject()
+                    messages.show(replaceInvalid)
                 }
 
                 is BlockPreviewEffect.ActionFailed -> {
@@ -160,7 +167,7 @@ fun BlockPreviewScreen(
                     }
                 }
 
-                is BlockPreviewUiState.Preview -> PreviewContent(state, onEvent, onOpenExercise)
+                is BlockPreviewUiState.Preview -> PreviewContent(state, isOnline, onEvent, onOpenExercise)
             }
         }
     }
@@ -169,6 +176,7 @@ fun BlockPreviewScreen(
 @Composable
 private fun PreviewContent(
     state: BlockPreviewUiState.Preview,
+    isOnline: Flow<Boolean>,
     onEvent: (BlockPreviewEvent) -> Unit,
     onOpenExercise: (String) -> Unit,
 ) {
@@ -204,10 +212,13 @@ private fun PreviewContent(
                     exerciseNames = state.exerciseNames,
                     onOpenExercise = onOpenExercise,
                     onOpenReason = { onEvent(BlockPreviewEvent.OpenReason(it)) },
+                    isChanged = state::isChanged,
+                    onReplace = { session, position -> onEvent(BlockPreviewEvent.OpenReplace(session, position)) },
                 )
             }
         }
     }
+    if (state.replaceSlot != null) BlockReplaceSheet(state, isOnline, onEvent, onOpenExercise)
     state.reasonExercise?.let { exercise ->
         ExerciseReasonSheet(
             title = state.exerciseNames[exercise.exerciseId] ?: fallback,

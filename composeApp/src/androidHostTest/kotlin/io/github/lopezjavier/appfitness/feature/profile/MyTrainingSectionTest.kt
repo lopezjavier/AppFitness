@@ -40,6 +40,7 @@ import io.github.lopezjavier.appfitness.domain.model.TrainingIntention
 import io.github.lopezjavier.appfitness.domain.model.TrainingPlace
 import io.github.lopezjavier.appfitness.domain.model.TrainingPreferences
 import io.github.lopezjavier.appfitness.domain.usecase.SavePreferences
+import io.github.lopezjavier.appfitness.feature.exercises.tagName
 import io.github.lopezjavier.appfitness.feature.food.FakeFoodPreferencesRepository
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.TimeZone
@@ -114,7 +115,7 @@ class MyTrainingSectionTest {
     }
 
     private fun assertChips(checked: Set<Equipment>) = Equipment.entries.forEach {
-        val chip = rule.onNodeWithTag("preferences_equipment_${it.name.lowercase()}").performScrollTo()
+        val chip = rule.onNodeWithTag("preferences_equipment_${it.tagName()}").performScrollTo()
         if (it in checked) chip.assertIsOn() else chip.assertIsOff()
     }
 
@@ -148,10 +149,10 @@ class MyTrainingSectionTest {
     }
 
     @Test
-    fun pickingCasa_selectsDumbbellBandAndBodyweight() {
+    fun pickingCasa_selectsDumbbellBothBandsAndBodyweight() {
         show()
         tap("preferences_place_home")
-        assertChips(setOf(Equipment.Dumbbell, Equipment.Band, Equipment.Bodyweight))
+        assertChips(setOf(Equipment.Dumbbell, Equipment.Band, Equipment.BandLong, Equipment.Bodyweight))
     }
 
     @Test
@@ -171,13 +172,13 @@ class MyTrainingSectionTest {
         tap("preferences_equipment_barbell")
         tap("preferences_equipment_band")
 
-        assertChips(setOf(Equipment.Dumbbell, Equipment.Bodyweight, Equipment.Barbell))
+        assertChips(setOf(Equipment.Dumbbell, Equipment.BandLong, Equipment.Bodyweight, Equipment.Barbell))
         tap("preferences_mi_entrenamiento_save")
         assertEquals(
             listOf(
                 MyTraining(
                     place = TrainingPlace.Home,
-                    equipment = setOf(Equipment.Dumbbell, Equipment.Bodyweight, Equipment.Barbell),
+                    equipment = setOf(Equipment.Dumbbell, Equipment.BandLong, Equipment.Bodyweight, Equipment.Barbell),
                 ),
             ),
             prefs.savedMyTraining,

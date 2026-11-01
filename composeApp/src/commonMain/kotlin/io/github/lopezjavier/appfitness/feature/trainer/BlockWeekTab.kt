@@ -1,19 +1,26 @@
 package io.github.lopezjavier.appfitness.feature.trainer
 
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.stateDescription
 import io.github.lopezjavier.appfitness.composeapp.resources.Res
 import io.github.lopezjavier.appfitness.composeapp.resources.block_exercise_detail
 import io.github.lopezjavier.appfitness.composeapp.resources.block_exercise_fallback
 import io.github.lopezjavier.appfitness.composeapp.resources.block_reason_cd
+import io.github.lopezjavier.appfitness.composeapp.resources.block_replace_action_cd
+import io.github.lopezjavier.appfitness.composeapp.resources.block_replace_changed
 import io.github.lopezjavier.appfitness.composeapp.resources.block_reps_range
 import io.github.lopezjavier.appfitness.composeapp.resources.block_reps_single
+import io.github.lopezjavier.appfitness.composeapp.resources.ic_swap
 import io.github.lopezjavier.appfitness.designsystem.AppCard
+import io.github.lopezjavier.appfitness.designsystem.AppIconButton
 import io.github.lopezjavier.appfitness.designsystem.AppListRow
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
 import io.github.lopezjavier.appfitness.designsystem.ExerciseRow
@@ -35,23 +42,29 @@ internal fun blockMuscleName(key: String): String = muscleGroupOfKey(key)?.let {
 
 /** One week of the block: a card per workout with its exercises and the "?" that opens the coach's reason. */
 @Composable
+@Suppress("LongParameterList") // Data plus the opener callbacks of the rows.
 internal fun BlockWeekTab(
     sessions: List<BlockSession>,
     exerciseNames: Map<String, String>,
     onOpenExercise: (String) -> Unit,
     onOpenReason: (String) -> Unit,
+    isChanged: (sessionIndex: Int, position: Int) -> Boolean,
+    onReplace: (sessionIndex: Int, position: Int) -> Unit,
 ) {
     sessions.forEach { session ->
-        BlockRoutineCard(session, exerciseNames, onOpenExercise, onOpenReason)
+        BlockRoutineCard(session, exerciseNames, onOpenExercise, onOpenReason, isChanged, onReplace)
     }
 }
 
 @Composable
+@Suppress("LongParameterList") // Data plus the opener callbacks of the rows.
 private fun BlockRoutineCard(
     session: BlockSession,
     exerciseNames: Map<String, String>,
     onOpenExercise: (String) -> Unit,
     onOpenReason: (String) -> Unit,
+    isChanged: (sessionIndex: Int, position: Int) -> Boolean,
+    onReplace: (sessionIndex: Int, position: Int) -> Unit,
 ) {
     AppCard(Modifier.fillMaxWidth().testTag("block_preview_routine_${session.week}_${session.sessionIndex}")) {
         Text(
@@ -75,6 +88,8 @@ private fun BlockRoutineCard(
                 name = exerciseNames[exercise.exerciseId],
                 onOpenExercise = onOpenExercise,
                 onOpenReason = onOpenReason,
+                changed = isChanged(session.sessionIndex, position),
+                onReplace = { onReplace(session.sessionIndex, position) },
             )
         }
     }
@@ -89,6 +104,8 @@ private fun BlockExerciseRow(
     name: String?,
     onOpenExercise: (String) -> Unit,
     onOpenReason: (String) -> Unit,
+    changed: Boolean,
+    onReplace: () -> Unit,
 ) {
     val tag = "${session.week}_${session.sessionIndex}_$position"
     val reps = if (exercise.repMin == exercise.repMax) {
@@ -96,13 +113,28 @@ private fun BlockExerciseRow(
     } else {
         stringResource(Res.string.block_reps_range, exercise.sets, exercise.repMin, exercise.repMax)
     }
-    val supporting = stringResource(Res.string.block_exercise_detail, reps, restDurationText(exercise.restSeconds))
+    val detail = stringResource(Res.string.block_exercise_detail, reps, restDurationText(exercise.restSeconds))
+    val changedText = stringResource(Res.string.block_replace_changed)
+    // The marker is text, not colour alone (R-41); it also reads as the state of the row.
+    val supporting = if (changed) stringResource(Res.string.block_exercise_detail, changedText, detail) else detail
+    val rowSemantics = if (changed) Modifier.semantics { stateDescription = changedText } else Modifier
+    val supportingTag = if (changed) "block_preview_changed_$tag" else null
+    val displayName = name ?: stringResource(Res.string.block_exercise_fallback)
     val reasonButton: @Composable () -> Unit = {
-        HelpTriggerButton(
-            contentDescription = stringResource(Res.string.block_reason_cd),
-            testTag = "block_preview_reason_$tag",
-            onClick = { onOpenReason(blockExerciseKey(session.week, session.sessionIndex, position)) },
-        )
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            AppIconButton(
+                contentDescription = stringResource(Res.string.block_replace_action_cd, displayName),
+                icon = Res.drawable.ic_swap,
+                testTag = "block_preview_replace_$tag",
+                onClick = onReplace,
+                tint = AppTheme.colors.textSecondary,
+            )
+            HelpTriggerButton(
+                contentDescription = stringResource(Res.string.block_reason_cd),
+                testTag = "block_preview_reason_$tag",
+                onClick = { onOpenReason(blockExerciseKey(session.week, session.sessionIndex, position)) },
+            )
+        }
     }
     if (name != null) {
         ExerciseRow(
@@ -110,14 +142,17 @@ private fun BlockExerciseRow(
             supporting = supporting,
             onOpen = { onOpenExercise(exercise.exerciseId) },
             tagPrefix = "block_preview_exercise_$tag",
+            modifier = rowSemantics,
             trailing = reasonButton,
+            supportingTestTag = supportingTag,
         )
     } else {
         // Not in the catalog: nothing to open, so the row is not tappable.
         AppListRow(
             headline = stringResource(Res.string.block_exercise_fallback),
-            modifier = Modifier.testTag("block_preview_exercise_$tag"),
+            modifier = Modifier.testTag("block_preview_exercise_$tag").then(rowSemantics),
             supporting = supporting,
+            supportingTestTag = supportingTag,
             trailing = reasonButton,
         )
     }

@@ -5,6 +5,7 @@ import app.cash.turbine.test
 import io.github.lopezjavier.appfitness.app.FakeConnectivityObserver
 import io.github.lopezjavier.appfitness.domain.AppError
 import io.github.lopezjavier.appfitness.domain.model.Equipment
+import io.github.lopezjavier.appfitness.domain.model.ExerciseAlternative
 import io.github.lopezjavier.appfitness.domain.model.ExerciseMetricType
 import io.github.lopezjavier.appfitness.domain.model.ExerciseSessionRecords
 import io.github.lopezjavier.appfitness.domain.model.MovementPattern
@@ -163,6 +164,149 @@ class ExerciseDetailViewModelTest {
         savedState = SavedStateHandle(mapOf("tab" to "Nonsense"))
 
         assertEquals(ExerciseDetailTab.Summary, loaded(viewModel()).tab)
+    }
+
+    // Similar tab
+
+    private fun withAlternatives() {
+        repository.rows = listOf(
+            exerciseRow("1", "bench"),
+            exerciseRow("2", "fly", equipment = Equipment.Cable),
+            exerciseRow("3", "band-long-bench", equipment = Equipment.BandLong),
+            exerciseRow("4", "crossover", equipment = Equipment.Cable),
+        )
+        library.entries = mapOf(
+            "bench" to exerciseInfo("bench", "Press de banca"),
+            "fly" to exerciseInfo("fly", "Aperturas"),
+            "band-long-bench" to exerciseInfo("band-long-bench", "Press con banda larga"),
+            "crossover" to exerciseInfo("crossover", "Cruce de poleas"),
+        )
+        repository.alternativesById = mapOf(
+            "1" to listOf(
+                ExerciseAlternative(repository.rows[2], 1.0),
+                ExerciseAlternative(repository.rows[3], 0.874),
+                ExerciseAlternative(repository.rows[1], 0.874),
+            ),
+        )
+    }
+
+    @Test
+    fun tabOrder_isSummarySimilarHistoryHowTo() {
+        assertEquals(
+            listOf(
+                ExerciseDetailTab.Summary,
+                ExerciseDetailTab.Similar,
+                ExerciseDetailTab.History,
+                ExerciseDetailTab.HowTo,
+            ),
+            ExerciseDetailTab.entries,
+        )
+    }
+
+    @Test
+    fun similar_isNotLoadedUntilTheTabIsSelected() = runTest {
+        withAlternatives()
+        val vm = viewModel()
+
+        assertEquals(SimilarState.Loading, loaded(vm).similar)
+        assertTrue(repository.alternativesCalls.isEmpty())
+    }
+
+    @Test
+    fun similar_loadsOnFirstSelection_sortedBySimilarityThenName_withPercent() = runTest {
+        withAlternatives()
+        val vm = viewModel()
+        loaded(vm)
+
+        vm.selectTab(ExerciseDetailTab.Similar)
+        val content = assertIs<SimilarState.Content>(loaded(vm).similar)
+
+        assertEquals(
+            listOf("Press con banda larga", "Aperturas", "Cruce de poleas"),
+            content.rows.map { it.exercise.name },
+        )
+        assertEquals(listOf(100, 87, 87), content.rows.map { it.percent })
+        assertEquals(Equipment.BandLong, content.rows.first().exercise.exercise.equipment)
+    }
+
+    @Test
+    fun similar_loadsOnlyOnce_acrossTabSwitches() = runTest {
+        withAlternatives()
+        val vm = viewModel()
+        loaded(vm)
+
+        vm.selectTab(ExerciseDetailTab.Similar)
+        advanceUntilIdle()
+        vm.selectTab(ExerciseDetailTab.Summary)
+        vm.selectTab(ExerciseDetailTab.Similar)
+        advanceUntilIdle()
+
+        assertEquals(listOf("1"), repository.alternativesCalls)
+    }
+
+    @Test
+    fun similar_withoutAlternatives_isEmpty() = runTest {
+        val vm = viewModel()
+        loaded(vm)
+
+        vm.selectTab(ExerciseDetailTab.Similar)
+
+        assertEquals(SimilarState.Empty, loaded(vm).similar)
+    }
+
+    @Test
+    fun similar_offline_isOffline() = runTest {
+        val vm = viewModel()
+        loaded(vm)
+        repository.alternativesFailure = AppError.Network
+
+        vm.selectTab(ExerciseDetailTab.Similar)
+
+        assertEquals(SimilarState.Offline, loaded(vm).similar)
+    }
+
+    @Test
+    fun similar_failure_isError_andRetryReloads() = runTest {
+        withAlternatives()
+        val vm = viewModel()
+        loaded(vm)
+        repository.alternativesFailure = AppError.Unknown
+        vm.selectTab(ExerciseDetailTab.Similar)
+        assertEquals(SimilarState.Error, loaded(vm).similar)
+
+        repository.alternativesFailure = null
+        vm.retrySimilar()
+
+        assertIs<SimilarState.Content>(loaded(vm).similar)
+        assertEquals(2, repository.alternativesCalls.size)
+    }
+
+    @Test
+    fun similar_retryOutsideTheErrorState_doesNothing() = runTest {
+        withAlternatives()
+        val vm = viewModel()
+        loaded(vm)
+        vm.selectTab(ExerciseDetailTab.Similar)
+        advanceUntilIdle()
+
+        vm.retrySimilar()
+        advanceUntilIdle()
+
+        assertEquals(1, repository.alternativesCalls.size)
+    }
+
+    @Test
+    fun similarTab_survivesRecreation_andLoadsItsContent() = runTest {
+        withAlternatives()
+        val first = viewModel()
+        loaded(first)
+        first.selectTab(ExerciseDetailTab.Similar)
+        advanceUntilIdle()
+
+        val recreated = loaded(viewModel())
+
+        assertEquals(ExerciseDetailTab.Similar, recreated.tab)
+        assertIs<SimilarState.Content>(recreated.similar)
     }
 
     // Records

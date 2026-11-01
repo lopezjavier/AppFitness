@@ -138,13 +138,19 @@ class PreferencesMyTrainingViewModelTest {
         val (viewModel, state) = loaded()
 
         viewModel.onEvent(PreferencesEvent.SetPlace(TrainingPlace.Home))
-        assertEquals(setOf(Equipment.Dumbbell, Equipment.Band, Equipment.Bodyweight), state().form.equipment)
+        assertEquals(
+            setOf(Equipment.Dumbbell, Equipment.Band, Equipment.BandLong, Equipment.Bodyweight),
+            state().form.equipment,
+        )
 
         viewModel.send(
             PreferencesEvent.SetEquipment(Equipment.Band, checked = false),
             PreferencesEvent.SetEquipment(Equipment.Kettlebell, checked = true),
         )
-        assertEquals(setOf(Equipment.Dumbbell, Equipment.Bodyweight, Equipment.Kettlebell), state().form.equipment)
+        assertEquals(
+            setOf(Equipment.Dumbbell, Equipment.BandLong, Equipment.Bodyweight, Equipment.Kettlebell),
+            state().form.equipment,
+        )
 
         viewModel.onEvent(PreferencesEvent.SetPlace(TrainingPlace.Gym))
         assertEquals(Equipment.entries.toSet(), state().form.equipment)
@@ -227,7 +233,7 @@ class PreferencesMyTrainingViewModelTest {
             MyTraining(
                 TrainingIntention.FatLoss,
                 TrainingPlace.Home,
-                setOf(Equipment.Dumbbell, Equipment.Band, Equipment.Bodyweight),
+                setOf(Equipment.Dumbbell, Equipment.Band, Equipment.BandLong, Equipment.Bodyweight),
                 4,
                 45,
             ),

@@ -78,7 +78,7 @@ internal val Equipment.weightHint: StringResource
         Equipment.Cable -> Res.string.weight_hint_cable
         Equipment.Bodyweight -> Res.string.weight_hint_bodyweight
         Equipment.Kettlebell -> Res.string.weight_hint_kettlebell
-        Equipment.Band -> Res.string.weight_hint_band
+        Equipment.Band, Equipment.BandLong -> Res.string.weight_hint_band
         Equipment.Other -> Res.string.weight_hint_other
     }
 

@@ -59,7 +59,7 @@ class StrengthNavigationTest {
             Text(exerciseId, Modifier.testTag("progress_exercise_id"))
         }
     }
-    private val detailSlot: ExerciseDetailSlot = { modifier, _, _, _, onOpenProgress, _ ->
+    private val detailSlot: ExerciseDetailSlot = { modifier, _, _, _, onOpenProgress, _, _ ->
         Box(modifier.fillMaxSize().testTag("exercise_detail_screen")) {
             Box(tapTarget().testTag("detail_open_progress").clickable(onClick = onOpenProgress))
         }
