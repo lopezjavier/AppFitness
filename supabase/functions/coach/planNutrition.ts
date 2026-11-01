@@ -149,7 +149,7 @@ async function prepareAsync(
         nutrition,
         today,
     );
-    const model = MODEL_IDS.opus;
+    const model = MODEL_IDS[ctx.model];
     const prompt = buildPrompt(today, nutrition, candidates, s);
     let attempts = 0;
 

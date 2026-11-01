@@ -49,10 +49,12 @@ function setup(
     const texts = o.texts ?? [GOOD];
     let calls = 0;
     let loads = 0;
+    const models: string[] = [];
     const saved: PlanRow[] = [];
     const records: Parameters<CoachDeps["recordUsage"]>[0][] = [];
     const client: AnthropicClient = {
-        stream: async function* () {
+        stream: async function* (request) {
+            models.push(request.model);
             const text = texts[Math.min(calls, texts.length - 1)];
             calls++;
             yield { type: "delta", text };
@@ -95,6 +97,7 @@ function setup(
         saved,
         records,
         modelCalls: () => calls,
+        models,
         loads: () => loads,
     };
 }
@@ -102,10 +105,11 @@ function setup(
 const post = (
     input: unknown = { today: TODAY },
     token: string | null = "good",
+    model?: unknown,
 ) => new Request("http://x/coach", {
     method: "POST",
     headers: token ? { authorization: `Bearer ${token}` } : {},
-    body: JSON.stringify({ kind: "plan_nutrition", input }),
+    body: JSON.stringify({ kind: "plan_nutrition", input, model }),
 });
 
 const planOf = async (res: Response) => {
@@ -398,4 +402,26 @@ Deno.test("other kinds are still not available", async () => {
 
 Deno.test("parseInput accepts only a real date", () => {
     assertEquals(parseInput({ today: TODAY }), TODAY);
+});
+
+Deno.test("no model: the call uses Opus and is priced with the Opus table", async () => {
+    const { handler, models, records } = setup();
+    await (await handler(post())).text();
+    assertEquals(models, ["claude-opus-5-5"]);
+    assertEquals(records[0].costEur, 0.006); // 1000 in x 4 + 100 out x 20, per million
+});
+
+Deno.test("model haiku: the call uses the Haiku id and is priced with the Haiku table", async () => {
+    const { handler, models, records } = setup();
+    const res = await handler(post({ today: TODAY }, "good", "haiku"));
+    const text = await res.text();
+    assertEquals(models, ["claude-haiku-5-5"]);
+    assertEquals(records[0].costEur, 0.00015); // 1000 x 0.1 + 100 x 0.5, per million
+    assert(text.includes('"cost_eur":0.00015'));
+});
+
+Deno.test("an invalid first output is retried on the same overridden model", async () => {
+    const { handler, models } = setup({ texts: ["nope", GOOD] });
+    await (await handler(post({ today: TODAY }, "good", "sonnet"))).text();
+    assertEquals(models, ["claude-sonnet-5-5", "claude-sonnet-5-5"]);
 });

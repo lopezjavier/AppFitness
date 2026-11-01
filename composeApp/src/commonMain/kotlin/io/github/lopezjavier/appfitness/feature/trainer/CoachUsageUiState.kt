@@ -1,5 +1,6 @@
 package io.github.lopezjavier.appfitness.feature.trainer
 
+import io.github.lopezjavier.appfitness.domain.model.CoachModelChoice
 import io.github.lopezjavier.appfitness.domain.model.CoachUsage
 
 sealed interface CoachUsageUiState {
@@ -15,4 +16,6 @@ sealed interface CoachUsageUiState {
 
 sealed interface CoachUsageEvent {
     data object Retry : CoachUsageEvent
+
+    data class SelectModel(val choice: CoachModelChoice) : CoachUsageEvent
 }

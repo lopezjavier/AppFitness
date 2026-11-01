@@ -150,7 +150,7 @@ Added with T-157 (checked 2026-10-29 against the PubMed record 21798015 and the 
 
 ## 11. Cost estimate (ADR-77)
 
-Prices re-checked on the Anthropic price list on 2026-10-29, unchanged: Opus 5.5 $4 / $20, Sonnet 5.5 $2 / $10 per million input / output tokens; cache reads 0.05× input ($0.20 / $0.10), 5-minute cache writes 1.25× input. US-only inference (`inference_geo`) would multiply every price by 1.1; it is not used. The function's price table (US-76) holds these figures.
+Prices re-checked on the Anthropic price list on 2026-11-01: Opus 5.5 $4 / $20, Sonnet 5.5 $2 / $10, Haiku 5.5 (`claude-haiku-5-5`) $0.10 / $0.50 per million input / output tokens; cache reads 0.05× input for Opus and Sonnet ($0.20 / $0.10) and 0.1× for Haiku ($0.01), 5-minute cache writes 1.25× input. Haiku 5.5 charges $0.50 / $2.50 for a request whose whole prompt (input + cache reads + cache writes) is over 100,000 tokens; the price table applies it. Haiku is a test aid (T-178: the client may send an optional `model` of `opus`, `sonnet` or `haiku` that overrides the kind's default and prices the usage with that model); it is not used by default and has no row in the cost table. US-only inference (`inference_geo`) would multiply every price by 1.1; it is not used. The function's price table (US-76) holds these figures.
 
 **Data policy (checked 2026-10-29):** the Anthropic API deletes inputs and outputs within 30 days (longer only for Usage Policy enforcement or legal reasons) and does not use them for training by default.
 

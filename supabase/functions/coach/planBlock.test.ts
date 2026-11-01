@@ -75,11 +75,13 @@ function setup(o: {
     const records: Parameters<CoachDeps["recordUsage"]>[0][] = [];
     const attached: BlockRow[] = [];
     const prompts: string[] = [];
+    const models: string[] = [];
     let calls = 0;
     const client: AnthropicClient = {
         async *stream(request) {
             const n = ++calls;
             prompts.push(request.prompt);
+            models.push(request.model);
             if (o.slow) await new Promise(() => {});
             const text = o.badCalls?.includes(n)
                 ? "not json"
@@ -134,16 +136,19 @@ function setup(o: {
         records,
         attached,
         prompts,
+        models,
         calls: () => calls,
     };
 }
 
-const post = (input: unknown = { today: "2026-10-30", plan_id: PLAN_ID }) =>
-    new Request("http://x/coach", {
-        method: "POST",
-        headers: { authorization: "Bearer good" },
-        body: JSON.stringify({ kind: "plan_block", input }),
-    });
+const post = (
+    input: unknown = { today: "2026-10-30", plan_id: PLAN_ID },
+    model?: unknown,
+) => new Request("http://x/coach", {
+    method: "POST",
+    headers: { authorization: "Bearer good" },
+    body: JSON.stringify({ kind: "plan_block", input, model }),
+});
 
 const bodyOf = async (res: Response) => {
     const text = await res.text();
@@ -390,4 +395,22 @@ Deno.test("an attach failure is 500 INTERNAL and the usage stays charged", async
     assertEquals(res.status, 500);
     assertEquals((await res.json()).error.code, "INTERNAL");
     assertEquals(t.records.length, 1);
+});
+
+Deno.test("model haiku: every call of a split block uses the Haiku id and the usage is priced with Haiku", async () => {
+    const { handler, models, records } = setup({ sessionsPerCall: 2 });
+    await (await handler(post(undefined, "haiku"))).text();
+    assert(models.length > 1);
+    assert(models.every((m) => m === "claude-haiku-5-5"));
+    // 1000 in x 0.1 + 100 out x 0.5 per call, per million tokens
+    assertEquals(
+        records[0].costEur,
+        Math.round(models.length * 150) / 1_000_000,
+    );
+});
+
+Deno.test("no model: block calls use Opus", async () => {
+    const { handler, models } = setup();
+    await (await handler(post())).text();
+    assertEquals(models, ["claude-opus-5-5"]);
 });

@@ -5,6 +5,7 @@ import io.github.jan.supabase.auth.auth
 import io.github.jan.supabase.functions.functions
 import io.github.jan.supabase.postgrest.postgrest
 import io.github.lopezjavier.appfitness.config.AppConfig
+import io.github.lopezjavier.appfitness.data.InMemoryCoachModelPreference
 import io.github.lopezjavier.appfitness.data.SystemClock
 import io.github.lopezjavier.appfitness.data.local.DataStoreRestAlertPreferences
 import io.github.lopezjavier.appfitness.data.local.DataStoreWatchSeedStore
@@ -73,6 +74,7 @@ import io.github.lopezjavier.appfitness.data.repository.UnconfiguredTrainingStat
 import io.github.lopezjavier.appfitness.data.repository.UnconfiguredWeeklyCheckInRepository
 import io.github.lopezjavier.appfitness.data.repository.UnconfiguredWorkoutSessionRepository
 import io.github.lopezjavier.appfitness.domain.port.Clock
+import io.github.lopezjavier.appfitness.domain.port.CoachModelPreference
 import io.github.lopezjavier.appfitness.domain.port.RestAlertPreferences
 import io.github.lopezjavier.appfitness.domain.port.WatchSeedStore
 import io.github.lopezjavier.appfitness.domain.repository.AccountRepository
@@ -304,10 +306,11 @@ val sharedModule =
                 UnconfiguredCoachRepository()
             }
         }
+        single<CoachModelPreference> { InMemoryCoachModelPreference() }
         single<CoachPlanRepository> {
             if (get<AppConfig>().isSupabaseConfigured) {
                 val client = get<SupabaseClient>()
-                SupabaseCoachPlanRepository(client.auth, client.postgrest, client.functions)
+                SupabaseCoachPlanRepository(client.auth, client.postgrest, client.functions, get())
             } else {
                 UnconfiguredCoachPlanRepository()
             }
@@ -315,7 +318,7 @@ val sharedModule =
         single<CoachBlockRepository> {
             if (get<AppConfig>().isSupabaseConfigured) {
                 val client = get<SupabaseClient>()
-                SupabaseCoachBlockRepository(client.auth, client.postgrest, client.functions)
+                SupabaseCoachBlockRepository(client.auth, client.postgrest, client.functions, get())
             } else {
                 UnconfiguredCoachBlockRepository()
             }

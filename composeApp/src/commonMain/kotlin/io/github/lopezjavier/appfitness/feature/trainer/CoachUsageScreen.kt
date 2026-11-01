@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -18,9 +19,17 @@ import androidx.compose.ui.platform.testTag
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.github.lopezjavier.appfitness.composeapp.resources.Res
 import io.github.lopezjavier.appfitness.composeapp.resources.action_retry
+import io.github.lopezjavier.appfitness.composeapp.resources.coach_model_haiku
+import io.github.lopezjavier.appfitness.composeapp.resources.coach_model_haiku_desc
+import io.github.lopezjavier.appfitness.composeapp.resources.coach_model_opus
+import io.github.lopezjavier.appfitness.composeapp.resources.coach_model_opus_desc
+import io.github.lopezjavier.appfitness.composeapp.resources.coach_model_sonnet
+import io.github.lopezjavier.appfitness.composeapp.resources.coach_model_sonnet_desc
 import io.github.lopezjavier.appfitness.composeapp.resources.coach_usage_error
 import io.github.lopezjavier.appfitness.composeapp.resources.coach_usage_explanation
 import io.github.lopezjavier.appfitness.composeapp.resources.coach_usage_figure
+import io.github.lopezjavier.appfitness.composeapp.resources.coach_usage_model_note
+import io.github.lopezjavier.appfitness.composeapp.resources.coach_usage_model_title
 import io.github.lopezjavier.appfitness.composeapp.resources.coach_usage_progress_cd
 import io.github.lopezjavier.appfitness.composeapp.resources.coach_usage_title
 import io.github.lopezjavier.appfitness.designsystem.AppCard
@@ -31,13 +40,16 @@ import io.github.lopezjavier.appfitness.designsystem.AppStateAction
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
 import io.github.lopezjavier.appfitness.designsystem.ErrorState
 import io.github.lopezjavier.appfitness.designsystem.OfflineState
+import io.github.lopezjavier.appfitness.designsystem.SelectableCard
 import io.github.lopezjavier.appfitness.designsystem.SkeletonBox
 import io.github.lopezjavier.appfitness.designsystem.Spacing
 import io.github.lopezjavier.appfitness.domain.model.CoachBudget
 import io.github.lopezjavier.appfitness.domain.model.CoachFailure
+import io.github.lopezjavier.appfitness.domain.model.CoachModelChoice
 import io.github.lopezjavier.appfitness.domain.model.CoachUsage
 import io.github.lopezjavier.appfitness.domain.port.ConnectivityObserver
 import kotlinx.coroutines.flow.Flow
+import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.koinInject
 import org.koin.compose.viewmodel.koinViewModel
@@ -55,7 +67,9 @@ fun CoachUsageRoot(
     connectivity: ConnectivityObserver = koinInject(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
+    val model by viewModel.model.collectAsStateWithLifecycle()
     CoachUsageScreen(
+        model = model,
         state = state,
         isOnline = connectivity.isOnline,
         onEvent = viewModel::onEvent,
@@ -75,6 +89,7 @@ fun CoachUsageScreen(
     onEvent: (CoachUsageEvent) -> Unit,
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
+    model: CoachModelChoice = CoachModelChoice.Default,
 ) {
     AppScreen(
         title = stringResource(Res.string.coach_usage_title),
@@ -104,14 +119,18 @@ fun CoachUsageScreen(
                     OfflineState(isOnline = isOnline, onReload = { onEvent(CoachUsageEvent.Retry) })
                 }
 
-                is CoachUsageUiState.Content -> UsageContent(state.usage)
+                is CoachUsageUiState.Content -> UsageContent(
+                    usage = state.usage,
+                    model = model,
+                    onSelect = { onEvent(CoachUsageEvent.SelectModel(it)) },
+                )
             }
         }
     }
 }
 
 @Composable
-private fun UsageContent(usage: CoachUsage) {
+private fun UsageContent(usage: CoachUsage, model: CoachModelChoice, onSelect: (CoachModelChoice) -> Unit) {
     val percent = (usage.fraction * PERCENT).roundToInt()
     Column(
         Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(Spacing.screenMargin),
@@ -149,7 +168,51 @@ private fun UsageContent(usage: CoachUsage) {
                 }
             }
         }
+        ModelSelector(selected = model, onSelect = onSelect)
     }
+}
+
+/** Test aid: picks the AI model the plan requests use. Applies on tap (R-12), no save button. */
+@Composable
+private fun ModelSelector(selected: CoachModelChoice, onSelect: (CoachModelChoice) -> Unit) {
+    AppCard(Modifier.fillMaxWidth().testTag("coach_usage_model_card")) {
+        Column(verticalArrangement = Arrangement.spacedBy(Spacing.md)) {
+            Text(
+                text = stringResource(Res.string.coach_usage_model_title),
+                style = AppTheme.typography.titleMedium,
+                color = AppTheme.colors.textPrimary,
+            )
+            Column(Modifier.selectableGroup(), verticalArrangement = Arrangement.spacedBy(Spacing.cardGap)) {
+                CoachModelChoice.entries.forEach { choice ->
+                    SelectableCard(
+                        title = stringResource(choice.titleRes()),
+                        description = stringResource(choice.descriptionRes()),
+                        selected = choice == selected,
+                        onClick = { onSelect(choice) },
+                        modifier = Modifier.testTag("coach_usage_model_${choice.wireKey}"),
+                    )
+                }
+            }
+            Text(
+                text = stringResource(Res.string.coach_usage_model_note),
+                style = AppTheme.typography.bodyMedium,
+                color = AppTheme.colors.textSecondary,
+                modifier = Modifier.testTag("coach_usage_model_note"),
+            )
+        }
+    }
+}
+
+private fun CoachModelChoice.titleRes(): StringResource = when (this) {
+    CoachModelChoice.Opus -> Res.string.coach_model_opus
+    CoachModelChoice.Sonnet -> Res.string.coach_model_sonnet
+    CoachModelChoice.Haiku -> Res.string.coach_model_haiku
+}
+
+private fun CoachModelChoice.descriptionRes(): StringResource = when (this) {
+    CoachModelChoice.Opus -> Res.string.coach_model_opus_desc
+    CoachModelChoice.Sonnet -> Res.string.coach_model_sonnet_desc
+    CoachModelChoice.Haiku -> Res.string.coach_model_haiku_desc
 }
 
 /** Card-shaped placeholder while the usage loads (R-31): the figure, the bar and the explanation. */

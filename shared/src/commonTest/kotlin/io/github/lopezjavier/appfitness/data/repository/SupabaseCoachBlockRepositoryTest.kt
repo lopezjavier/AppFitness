@@ -5,11 +5,13 @@ import io.github.jan.supabase.auth.auth
 import io.github.jan.supabase.functions.functions
 import io.github.jan.supabase.postgrest.postgrest
 import io.github.lopezjavier.appfitness.config.AppConfig
+import io.github.lopezjavier.appfitness.data.InMemoryCoachModelPreference
 import io.github.lopezjavier.appfitness.data.remote.SupabaseClientFactory
 import io.github.lopezjavier.appfitness.domain.AppError
 import io.github.lopezjavier.appfitness.domain.appErrorOrNull
 import io.github.lopezjavier.appfitness.domain.model.CoachException
 import io.github.lopezjavier.appfitness.domain.model.CoachFailure
+import io.github.lopezjavier.appfitness.domain.model.CoachModelChoice
 import io.github.lopezjavier.appfitness.domain.model.MissingField
 import io.github.lopezjavier.appfitness.domain.model.TestLoginCredentials
 import io.ktor.client.engine.mock.MockEngine
@@ -61,6 +63,7 @@ class SupabaseCoachBlockRepositoryTest {
     private val requests = mutableListOf<HttpRequestData>()
     private var offline = false
     private val today = LocalDate(2026, 10, 29)
+    private val preference = InMemoryCoachModelPreference()
 
     private suspend fun repo(
         signIn: Boolean = true,
@@ -94,7 +97,31 @@ class SupabaseCoachBlockRepositoryTest {
             MemorySessionManager(),
         )
         if (signIn) SupabaseAuthRepository(client.auth).signInWithPassword(TestLoginCredentials("a@b.c", "pw"))
-        return SupabaseCoachBlockRepository(client.auth, client.postgrest, client.functions, requestTimeout)
+        return SupabaseCoachBlockRepository(client.auth, client.postgrest, client.functions, preference, requestTimeout)
+    }
+
+    @Test
+    fun requestBlock_sendsTheModelKeyOfTheSelectedNonDefaultChoice() = runTest {
+        val repository = repo(respond = ::blockRoutes)
+        preference.select(CoachModelChoice.Haiku)
+
+        repository.requestBlock("p1", today).getOrThrow()
+
+        val body = (rest().first().body as TextContent).text
+        assertTrue(body.endsWith(""","model":"haiku"}"""), body)
+    }
+
+    @Test
+    fun requestBlock_omitsTheModelForTheDefaultAndHonoursASelectionChangedBetweenCalls() = runTest {
+        val repository = repo(respond = ::blockRoutes)
+        repository.requestBlock("p1", today)
+        preference.select(CoachModelChoice.Sonnet)
+        repository.requestBlock("p1", today)
+
+        val bodies = rest().filter { it.url.encodedPath.contains("/functions/") }.map { (it.body as TextContent).text }
+
+        assertTrue("model" !in bodies.first(), bodies.first())
+        assertTrue(bodies.last().endsWith(""","model":"sonnet"}"""), bodies.last())
     }
 
     private fun rest() = requests.filter { !it.url.encodedPath.contains("/auth/") }

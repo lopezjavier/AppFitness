@@ -4,7 +4,9 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import io.github.lopezjavier.appfitness.domain.AppError
 import io.github.lopezjavier.appfitness.domain.appErrorOrNull
+import io.github.lopezjavier.appfitness.domain.model.CoachModelChoice
 import io.github.lopezjavier.appfitness.domain.port.Clock
+import io.github.lopezjavier.appfitness.domain.port.CoachModelPreference
 import io.github.lopezjavier.appfitness.domain.repository.CoachUsageRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -17,9 +19,16 @@ import kotlinx.datetime.toLocalDateTime
 /**
  * "Uso de IA" screen: this month's AI spending (read-only, always re-fetched, never persisted).
  */
-class CoachUsageViewModel(private val repository: CoachUsageRepository, private val clock: Clock) : ViewModel() {
+class CoachUsageViewModel(
+    private val repository: CoachUsageRepository,
+    private val clock: Clock,
+    private val modelPreference: CoachModelPreference,
+) : ViewModel() {
     private val _uiState = MutableStateFlow<CoachUsageUiState>(CoachUsageUiState.Loading)
     val uiState: StateFlow<CoachUsageUiState> = _uiState.asStateFlow()
+
+    /** The AI model choice, independent of the usage fetch so loading, error and offline never hide it. */
+    val model: StateFlow<CoachModelChoice> = modelPreference.selected
 
     init {
         load()
@@ -28,6 +37,7 @@ class CoachUsageViewModel(private val repository: CoachUsageRepository, private 
     fun onEvent(event: CoachUsageEvent) {
         when (event) {
             CoachUsageEvent.Retry -> load()
+            is CoachUsageEvent.SelectModel -> modelPreference.select(event.choice)
         }
     }
 

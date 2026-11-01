@@ -12,7 +12,7 @@ export type KindSpec = {
     /** False while the feature that owns the kind is not built yet. */
     available: boolean;
     /** Builds the provider request from the validated `input`. */
-    buildRequest?: (input: unknown) => AnthropicRequest;
+    buildRequest?: (input: unknown, model: CoachModel) => AnthropicRequest;
     /**
      * Output validator: parsed value, or null when invalid. A kind with a validator is buffered (no partial
      * deltas) and gets one retry before coach_invalid_output.
@@ -32,8 +32,8 @@ export const KINDS: Record<string, KindSpec> = {
     ping: {
         model: "sonnet",
         available: true,
-        buildRequest: () => ({
-            model: MODEL_IDS.sonnet,
+        buildRequest: (_input, model) => ({
+            model: MODEL_IDS[model],
             prompt: PING_PROMPT,
             maxTokens: PING_MAX_TOKENS,
         }),

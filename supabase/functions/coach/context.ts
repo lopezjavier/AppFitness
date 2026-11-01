@@ -1,6 +1,7 @@
 // Types shared by the handler and the kinds that prepare their own request (T-161).
 import type { AnthropicRequest } from "../_shared/anthropic.ts";
 import type { ErrorCode } from "../_shared/errors.ts";
+import type { CoachModel } from "./prices.ts";
 import type {
     CatalogExercise,
     Intention,
@@ -37,6 +38,8 @@ export type PlanState = { status: string; training_saved: boolean };
 
 /** What a kind needs from the outside world; built by the handler for the caller's token. */
 export type PrepareContext = {
+    /** The model resolved for this request (client override or the kind's default). */
+    model: CoachModel;
     /** The `coach_summary` of the caller (includes the derived estimates), read with their own token. */
     loadContext: (today: string) => Promise<unknown>;
     /** `coach_plan_inputs` of the caller: what a plan or a block reads and what is missing (see inputs.ts). */

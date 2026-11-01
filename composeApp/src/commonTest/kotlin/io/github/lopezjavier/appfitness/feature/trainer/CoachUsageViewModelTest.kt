@@ -1,7 +1,9 @@
 package io.github.lopezjavier.appfitness.feature.trainer
 
+import io.github.lopezjavier.appfitness.data.InMemoryCoachModelPreference
 import io.github.lopezjavier.appfitness.domain.AppError
 import io.github.lopezjavier.appfitness.domain.AppException
+import io.github.lopezjavier.appfitness.domain.model.CoachModelChoice
 import io.github.lopezjavier.appfitness.domain.model.CoachUsage
 import io.github.lopezjavier.appfitness.domain.repository.CoachUsageRepository
 import io.github.lopezjavier.appfitness.feature.workout.MutableClock
@@ -40,7 +42,9 @@ class CoachUsageViewModelTest {
     @AfterTest
     fun tearDown() = Dispatchers.resetMain()
 
-    private fun viewModel() = CoachUsageViewModel(repository, MutableClock())
+    private val preference = InMemoryCoachModelPreference()
+
+    private fun viewModel() = CoachUsageViewModel(repository, MutableClock(), preference)
 
     @Test
     fun startsLoadingThenShowsTheUsage() = runTest(dispatcher) {
@@ -95,5 +99,50 @@ class CoachUsageViewModelTest {
         advanceUntilIdle()
 
         assertEquals(1, repository.calls.size)
+    }
+
+    @Test
+    fun initialModel_isTheDefault() = runTest(dispatcher) {
+        assertEquals(CoachModelChoice.Default, viewModel().model.value)
+    }
+
+    @Test
+    fun selectModel_updatesTheStateAndThePreference() = runTest(dispatcher) {
+        val model = viewModel()
+
+        model.onEvent(CoachUsageEvent.SelectModel(CoachModelChoice.Haiku))
+
+        assertEquals(CoachModelChoice.Haiku, model.model.value)
+        assertEquals(CoachModelChoice.Haiku, preference.selected.value)
+    }
+
+    @Test
+    fun retry_doesNotTouchTheSelection() = runTest(dispatcher) {
+        val model = viewModel()
+        model.onEvent(CoachUsageEvent.SelectModel(CoachModelChoice.Sonnet))
+
+        model.onEvent(CoachUsageEvent.Retry)
+        advanceUntilIdle()
+
+        assertEquals(CoachModelChoice.Sonnet, model.model.value)
+    }
+
+    @Test
+    fun usageFailure_keepsTheModelChoiceAvailable() = runTest(dispatcher) {
+        repository.result = Result.failure(AppException(AppError.Network))
+        preference.select(CoachModelChoice.Haiku)
+        val model = viewModel()
+
+        advanceUntilIdle()
+
+        assertEquals(CoachUsageUiState.Offline, model.uiState.value)
+        assertEquals(CoachModelChoice.Haiku, model.model.value)
+    }
+
+    @Test
+    fun recreatedViewModelOverTheSamePreference_showsTheChoice() = runTest(dispatcher) {
+        viewModel().onEvent(CoachUsageEvent.SelectModel(CoachModelChoice.Haiku))
+
+        assertEquals(CoachModelChoice.Haiku, viewModel().model.value)
     }
 }
