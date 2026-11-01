@@ -24,6 +24,8 @@ import io.github.lopezjavier.appfitness.domain.model.BlockSaved
 import io.github.lopezjavier.appfitness.domain.model.CoachBlock
 import io.github.lopezjavier.appfitness.domain.model.CoachException
 import io.github.lopezjavier.appfitness.domain.model.CoachFailure
+import io.github.lopezjavier.appfitness.domain.model.requestKey
+import io.github.lopezjavier.appfitness.domain.port.CoachModelPreference
 import io.github.lopezjavier.appfitness.domain.repository.CoachBlockRepository
 import io.ktor.client.plugins.HttpRequestTimeoutException
 import io.ktor.client.request.setBody
@@ -45,16 +47,20 @@ class SupabaseCoachBlockRepository internal constructor(
     private val auth: Auth,
     private val postgrest: Postgrest,
     private val functions: Functions,
+    private val modelPreference: CoachModelPreference,
     private val requestTimeout: Duration,
 ) : CoachBlockRepository {
-    constructor(auth: Auth, postgrest: Postgrest, functions: Functions) :
-        this(auth, postgrest, functions, COACH_CLIENT_TIMEOUT)
+    constructor(auth: Auth, postgrest: Postgrest, functions: Functions, modelPreference: CoachModelPreference) :
+        this(auth, postgrest, functions, modelPreference, COACH_CLIENT_TIMEOUT)
 
     @Suppress("TooGenericExceptionCaught")
     override suspend fun requestBlock(planId: String, today: LocalDate): Result<CoachBlock> {
         if (auth.currentUserOrNull() == null) return Result.failure(AppException(AppError.Unauthorized))
         return try {
-            val body = coachPlanJson.encodeToString(BlockRequestBody("plan_block", BlockRequestInput(today, planId)))
+            val model = modelPreference.selected.value.requestKey()
+            val body = coachPlanJson.encodeToString(
+                BlockRequestBody("plan_block", BlockRequestInput(today, planId), model),
+            )
             val stream = functions.invoke("coach") {
                 method = HttpMethod.Post
                 contentType(ContentType.Application.Json)

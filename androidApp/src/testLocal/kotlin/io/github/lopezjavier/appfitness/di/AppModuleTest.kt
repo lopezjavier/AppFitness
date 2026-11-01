@@ -11,6 +11,7 @@ import io.github.lopezjavier.appfitness.domain.port.AlertSound
 import io.github.lopezjavier.appfitness.domain.port.AuthCredentialProvider
 import io.github.lopezjavier.appfitness.domain.port.BarcodeScanner
 import io.github.lopezjavier.appfitness.domain.port.Clock
+import io.github.lopezjavier.appfitness.domain.port.CoachModelPreference
 import io.github.lopezjavier.appfitness.domain.port.ConnectivityObserver
 import io.github.lopezjavier.appfitness.domain.port.ExerciseLibrary
 import io.github.lopezjavier.appfitness.domain.port.Haptics
@@ -200,6 +201,7 @@ class AppModuleTest {
                 TrainingStatsRepository::class,
                 CoachRepository::class,
                 CoachUsageRepository::class,
+                CoachModelPreference::class,
                 CoachPlanRepository::class,
                 CoachBlockRepository::class,
                 ExerciseLibrary::class,

@@ -29,7 +29,7 @@ import {
     type Prepared,
     type SavedPlan,
 } from "./context.ts";
-import { costEur } from "./prices.ts";
+import { type CoachModel, costEur, parseCoachModel } from "./prices.ts";
 import { KINDS, type KindSpec } from "./router.ts";
 import type { CatalogExercise } from "./schemas.ts";
 
@@ -140,7 +140,7 @@ export function createCoachHandler(
         const token = bearerToken(req);
         if (!token) return unauthorized();
 
-        let body: { kind?: unknown; input?: unknown };
+        let body: { kind?: unknown; input?: unknown; model?: unknown };
         try {
             body = await req.json();
         } catch {
@@ -152,6 +152,16 @@ export function createCoachHandler(
             ? kinds[kindName]
             : null;
         if (!spec) return errorResponse("INVALID_INPUT", "Unknown kind");
+
+        // Optional per-request override (test aid); absent means the kind's default.
+        let model: CoachModel = spec.model;
+        if (body.model !== undefined) {
+            const requested = parseCoachModel(body.model);
+            if (!requested) {
+                return errorResponse("INVALID_INPUT", "Unknown model");
+            }
+            model = requested;
+        }
 
         try {
             const userId = await deps.authenticate(token);
@@ -188,6 +198,7 @@ export function createCoachHandler(
             if (spec.prepare) {
                 try {
                     prepared = await spec.prepare(body.input, {
+                        model,
                         loadContext: (today) => deps.loadContext(token, today),
                         loadInputs: (k, today) =>
                             deps.loadInputs(token, k, today),
@@ -216,11 +227,11 @@ export function createCoachHandler(
                 }
             }
             const request = prepared?.request ??
-                spec.buildRequest?.(body.input);
+                spec.buildRequest?.(body.input, model);
             const validate = prepared?.validate ?? spec.validate;
             const deadline = new Deadline(deps.timeoutMs ?? COACH_TIMEOUT_MS);
             const record = async (usage: AnthropicUsage) => {
-                const cost = costEur(spec.model, usage);
+                const cost = costEur(model, usage);
                 const inputTokens = usage.inputTokens + usage.cacheReadTokens +
                     usage.cacheWriteTokens;
                 try {

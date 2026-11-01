@@ -23,6 +23,7 @@ function setup(
 ) {
     const records: Recorded[] = [];
     let clientCalls = 0;
+    const models: string[] = [];
     const events: AnthropicEvent[] = Array.isArray(overrides.events)
         ? overrides.events
         : [
@@ -39,8 +40,9 @@ function setup(
             for (const e of events) yield e;
         };
     const client: AnthropicClient = {
-        stream: () => {
+        stream: (request) => {
             clientCalls++;
+            models.push(request.model);
             return makeStream();
         },
     };
@@ -67,6 +69,7 @@ function setup(
         handler: createCoachHandler(deps),
         records,
         clientCalls: () => clientCalls,
+        models,
     };
 }
 
@@ -371,4 +374,68 @@ Deno.test("a credit rejection after a usage event records nothing", async () => 
     });
     await (await handler(post(ping))).text();
     assertEquals(records.length, 0);
+});
+
+// --- per-request model override (T-178) ---
+
+Deno.test("no model: ping uses Sonnet and its default price", async () => {
+    const { handler, models, records } = setup();
+    await (await handler(post(ping))).text();
+    assertEquals(models, ["claude-sonnet-5-5"]);
+    assertEquals(records[0].costEur, 0.00205);
+});
+
+Deno.test("model opus overrides the Sonnet default of ping and is priced with Opus", async () => {
+    const { handler, models, records } = setup();
+    await (await handler(post({ ...ping, model: "opus" }))).text();
+    assertEquals(models, ["claude-opus-5-5"]);
+    assertEquals(records[0].costEur, 0.0041); // 1000 x 4 + 5 x 20, per million
+});
+
+Deno.test("model haiku on ping: Haiku id and Haiku price in the record and the done event", async () => {
+    const { handler, models, records } = setup();
+    const text = await (await handler(post({ ...ping, model: "haiku" })))
+        .text();
+    assertEquals(models, ["claude-haiku-5-5"]);
+    assertEquals(records[0].costEur, 0.000103); // 1000 x 0.1 + 5 x 0.5 = 102.5 millionths, rounded
+    assert(text.includes('"cost_eur":0.000103'));
+});
+
+Deno.test("the override works for any kind, e.g. a future report with a Sonnet default", async () => {
+    const kinds = {
+        report: {
+            model: "sonnet" as const,
+            available: true,
+            buildRequest: (
+                _i: unknown,
+                model: "opus" | "sonnet" | "haiku",
+            ) => ({
+                model: "id-" + model,
+                prompt: "p",
+                maxTokens: 10,
+            }),
+        },
+    };
+    const { handler, models } = setup({ kinds });
+    await (await handler(post({ kind: "report", input: {}, model: "haiku" })))
+        .text();
+    await (await handler(post({ kind: "report", input: {} }))).text();
+    assertEquals(models, ["id-haiku", "id-sonnet"]);
+});
+
+Deno.test("an unknown model is 400 INVALID_INPUT before auth, budget or any model call", async () => {
+    for (
+        const model of ["claude-3", "", null, 42, {}, "__proto__", "toString"]
+    ) {
+        const { handler, clientCalls, records } = setup({
+            userSpent: () => Promise.reject(new Error("budget read")),
+        });
+        const res = await handler(post({ ...ping, model }, "bad"));
+        assertEquals(res.status, 400, String(model));
+        const error = (await res.json()).error;
+        assertEquals(error.code, "INVALID_INPUT");
+        assertEquals(error.message, "Unknown model");
+        assertEquals(clientCalls(), 0);
+        assertEquals(records.length, 0);
+    }
 });

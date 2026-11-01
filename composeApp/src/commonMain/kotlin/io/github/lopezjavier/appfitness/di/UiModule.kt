@@ -410,7 +410,7 @@ val uiModule =
         viewModelOf(::StrengthViewModel)
         viewModel { ActivityViewModel(get(), get(), TimeZone.currentSystemDefault(), get(), get()) }
         viewModelOf(::MuscleVolumeViewModel)
-        viewModel { CoachUsageViewModel(repository = get(), clock = get()) }
+        viewModel { CoachUsageViewModel(repository = get(), clock = get(), modelPreference = get()) }
         viewModel {
             TrainerViewModel(
                 repository = get(),
