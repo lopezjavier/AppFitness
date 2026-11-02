@@ -4,7 +4,7 @@
 A coach the user can trust for years, like a real trainer: it gets to know the user (intake), designs four-week training and nutrition blocks from the intention, the preferences and the current phase of the year, sets the outcomes it can justify, adjusts the small things on its own (load, calories inside a safe band, deloads) visibly and reversibly, and at the end of every block reviews what happened with the user and proposes the next block and any phase change. The user accepts new blocks and phase changes. *(Rewritten 2026-11-01, user: E13 was not going in the right direction; the long-term follow-up is the gap. ADR-86…ADR-89; design `07` §1-§4, §7, §8, §12.)*
 
 ## Scope
-- Includes: intake "Para conocerte" and the free text the coach reads (US-81, US-89); confirmation of derived values; calorie and macro plan with outcomes; phases over the year (cut, gain, maintenance, recomposition, regain, minimal; US-82); the end-of-block review and the next block, with optional per-muscle priorities (US-83, US-84); one "Entrenador" behaviour: progression, calorie changes in the safe band and deloads applied on their own with "Deshacer" (US-85, US-86); progression per exercise; weekly report; block creator with plan storage and adherence; breaks, the minimal plan and coming back (US-88); training around an injury, graded return and one data-triggered health note (US-87, US-90); life changes mid-block: "Revisar el bloque" with "Adaptar el bloque", "Bloque nuevo" or "Solo unos días", goal change, new exercises, kept swaps, turning 65 (US-91, US-92, `07` §12.8); recommendation history with outcome and deletion; monthly AI budget; chat with tools (last, gated by the evaluation); weekly cardio and daily steps in the plan, and cardio as the last exercise of every routine of the block (US-79, ADR-85; the coach plans no warm-up, E13 Q27); cardio machines as their own equipment group (US-80).
+- Includes: intake "Para conocerte" and the free text the coach reads (US-81, US-89); confirmation of derived values; calorie and macro plan with outcomes; phases over the year (cut, gain, maintenance, recomposition, minimal; US-82; regain removed 2026-11-02, deferred to Phase 3); the end-of-block review and the next block, with optional per-muscle priorities (US-83, US-84); one "Entrenador" behaviour: progression, calorie changes in the safe band and deloads applied on their own with "Deshacer" (US-85, US-86); progression per exercise; weekly report; block creator with plan storage and adherence; breaks, the minimal plan and coming back (US-88); training around an injury, graded return and one data-triggered health note (US-87, US-90); life changes mid-block: "Revisar el bloque" with "Adaptar el bloque", "Bloque nuevo" or "Solo unos días", goal change, new exercises, kept swaps, turning 65 (US-91, US-92, `07` §12.8); recommendation history with outcome and deletion; monthly AI budget; chat with tools (last, gated by the evaluation); weekly cardio and daily steps in the plan, and cardio as the last exercise of every routine of the block (US-79, ADR-85; the coach plans no warm-up, E13 Q27); cardio machines as their own equipment group (US-80).
 - Out of scope: medical advice, diagnosis or treatment, generic health disclaimers, video analysis, meal plans, reverse dieting and refeeds (`07` §4), soreness, pump or readiness questionnaires, illness rules (`07` §12.5), a coaching-mode selector (ADR-88), water and voice (Phase 3).
 
 ## Decisions
@@ -109,6 +109,7 @@ Feature: Confirmation of derived values
 - **Amended 2026-10-30 (user, E13 Q15/Q21, US-78):** the values are reviewed and confirmed in "Antes de empezar" (its "Crear plan" confirms them); the "Tus valores" card leaves the Trainer root and the plan proposal, and "Tus datos" (Trainer root row) shows them.
 - **Labels (Q5):** "Confirmar" (accept the coach's derived values) and "Aceptar" / "Descartar" (decide on a coach proposal) get their own glossary entries in `05` §10; they are distinct from "Guardar" (commit an edit).
 - **Amended 2026-11-01 (ADR-86, `07` §2):** intake answers are provisional priors shown as "Según lo que nos contaste (provisional)" until measured data replaces them; a returning lifter keeps the experience class; the self-reported classes are under 6 months beginner, 6 months to under 2 years intermediate, 2 years or more advanced; known cutting calories are context only, never used in a calculation. A new "Situación" value (first time, continuous, returning after a break, returning after an injury) is shown in "Tus datos"; the app sets "returning after a break" after 28 days without a completed session.
+- **Amended 2026-11-02 (user, Checkpoint E13-D feedback; T-198, R-53):** the intake keeps only what changes a figure or reaches the model: training years ("Tiempo entrenando"), the known maintenance ("Calorías de mantenimiento") and the free text. The situation (with "Recuperar", deferred to Phase 3), cutting calories, the injured area and the pre-break bests are removed; the scenarios above are unchanged.
 
 ## US-69 · Plan calories, macros and outcomes
 
@@ -777,11 +778,23 @@ Feature: Before starting a plan or a block
     When I leave "Antes de empezar" without creating anything
     Then no plan or block is requested
     And no value is confirmed
+
+  # Added 2026-11-02 (user, Checkpoint E13-D feedback; R-53, R-55). T-198.
+  Scenario: The intake rows
+    When I open "Antes de empezar" for the plan
+    Then it shows the rows "Tiempo entrenando", "Calorías de mantenimiento" and "Para conocerte"
+    And each row opens its own editor with only that value
+    When I save one of them
+    Then I am back with the new value on that row and the other rows unchanged
+
+  Scenario: The intake rows for the block
+    When I open "Antes de empezar" for the block
+    Then it shows "Tiempo entrenando" and "Para conocerte" only
 ```
 
 **Technical notes**
 - **Resolved 2026-10-30 (user, Q14-Q22):** a summary with details on tap, not an interview (Q14); the footer "Crear plan" / "Crear bloque" confirms the shown values and starts (Q15); a new plan over an accepted or pending one says it replaces it (Q15; copy such as "Sustituirá tu plan actual", ux-reviewer finalises); flag wording such as "Falta: elige tu objetivo en Mi entrenamiento" and "Sin definir · Lo elige el entrenador", not "complete it here" (Q16); detail rows open the existing editors and come back refreshed, the activity level keeps the coach sheet (Q17); a weigh-in older than 14 days shows a caution note, not blocking (Q18); two modes, before the plan and before the block (Q19); Trainer root option A (Q20); the derived-values card leaves the plan proposal (Q21).
-- Edits stay in their existing places (Perfil → Mi entrenamiento, Preferencias → Datos personales, Peso, the coach's activity-level sheet of US-68). No new editor.
+- Edits stay in their existing places (Perfil → Mi entrenamiento, Preferencias → Datos personales, Peso, the coach's activity-level sheet of US-68). No new editor. *(Amended 2026-11-02: the intake values have no other place, so each intake row opens its own small editor, the same one "Tus datos" opens; R-55.)*
 - A flagged item that the `coach` function would refuse (today's `missing` 422, T-174) keeps "Crear plan" from starting, so no paid call fails on it. One source: the screen and the function read the same server-side list (T-175).
 - The Trainer root becomes a plan hub: pending proposals, "Tu plan" with its current week, the block, and a "Tus datos" row that replaces the "Tus valores" card (Q20 A).
 
@@ -913,68 +926,61 @@ Feature: Cardio equipment
 *US-81…US-90 added 2026-11-01 (replan, user: "the app must replace a real trainer I can trust long-term; the follow-up is the gap, phases over the year the biggest"). Design: `07` §1-§4, §7, §8, §12 (fitness-scientist, sources §10 51-66). Decisions: ADR-86…ADR-89, E13 Q32-Q43 (user); E13 Q44-Q49 open with the recommendation the tasks use.*
 
 ## US-81 · "Para conocerte": the coach gets to know me
-*Tasks T-185 (backend), T-186 (UI). ADR-86, E13 Q32, Q46 (recommendation).*
+*Tasks T-185 (backend), T-186 (UI); **rewritten 2026-11-02** (user, Checkpoint E13-D feedback) and built by T-198. ADR-86 (amendment proposed: ADR-91 in `tasks/plan.md`), E13 Q32, Q46 (superseded by the user 2026-11-02), Q50 (recommendation), R-53, R-55.*
 
-**As** a user starting with the coach, maybe after a break or an injury
-**I want** to tell the coach my training past in my own words or in a few fields
-**So that** my first plan starts from who I am, not from zero.
+**As** a user starting with the coach
+**I want** to tell the coach the few things it cannot know from my data, and anything else in my own words
+**So that** my first plan starts from who I am, without answering questions nothing uses.
 
 ```gherkin
 Feature: Getting to know the user
 
-  Scenario: Asked once before the first plan
+  # Superseded 2026-11-02 (user, Checkpoint E13-D): "Asked once before the first plan" (it opened on its own, with "Ahora no"),
+  # "The fields" (injured area, pre-break bests and cutting calories removed), "Writing in my own words" with "Continuar"
+  # filling the form, "The coach never guesses" and "Only valid values" (no extraction any more), "My past bests never set
+  # my loads" and "Cutting calories are only context" (fields removed). The 2026-11-01 text is in git history (#433).
+
+  Scenario: Nothing opens on its own
     Given I have no "Para conocerte" saved
     When I tap "Crear plan" for the first time
-    Then "Para conocerte" opens before "Antes de empezar"
-    And every field is optional
-    And "Ahora no" skips it and goes on to "Antes de empezar"
+    Then "Antes de empezar" opens directly
+    And "Para conocerte" opens only when I tap it
 
-  Scenario: The fields
-    When "Para conocerte" opens
-    Then it asks for my time lifting consistently, my situation, an injured area, my best lifts before the break as weight and reps, my maintenance calories and my cutting calories if I know them
-    And a free text "Cuéntanos lo que quieras sobre tu entrenamiento" of up to 500 characters
+  Scenario: Each row opens its own editor
+    When I tap "Tiempo entrenando", "Calorías de mantenimiento" or "Para conocerte" in "Antes de empezar" or "Tus datos"
+    Then only that value's editor opens
+    And every value is optional
+
+  # "Situación" (returning after a break) was removed with "Recuperar" on 2026-11-02 (user; deferred to Phase 3).
+  Scenario: Only questions that change something
+    Then the coach asks only my time training, my maintenance calories if I know them, and a free text
+    And it asks nothing that no figure or coach request uses
 
   Scenario: Writing in my own words
-    Given I write "Entrené 4 años, lo dejé hace 8 meses por una lesión de hombro; hacía press banca con 90 kg a 5"
-    When I tap "Continuar"
-    Then the coach fills the fields it found: 4 years, returning after an injury, shoulder, "Press banca" 90 kg × 5
-    And I see them as a form to confirm or correct field by field
-    And nothing is used until I tap "Guardar"
+    When I tap "Para conocerte"
+    Then I see a free text "Cuéntanos lo que quieras sobre tu entrenamiento" of up to 500 characters with its "?"
+    When I write "Entrené 4 años, lo dejé hace 8 meses por una lesión de hombro" and tap "Guardar"
+    Then my text is saved as I wrote it
+    And no field is filled from it
 
-  Scenario: The coach never guesses
-    Given my text says nothing about my calories
-    When the coach fills the fields
-    Then the calorie fields stay empty
-
-  Scenario: Only valid values
-    Given the extraction returns an unknown situation or a lift that is not in the catalogue
-    When the server validates it
-    Then that field stays empty for me to fill
+  Scenario: Saving works
+    Given I filled any of the values
+    When I tap "Guardar"
+    Then it is saved and I am back with the new value
 
   Scenario: What I said is provisional
-    Given I saved "Para conocerte"
+    Given I saved my time training or my maintenance calories
     When I open "Tus datos"
     Then the values that come from it read "Según lo que nos contaste (provisional). Lo cambiaremos por tus datos reales cuando haya suficientes."
 
-  Scenario: My past bests never set my loads
-    Given I said my best "Press banca" was 90 kg × 5 before the break
-    When the coach builds my first block
-    Then no starting load comes from that best
-    And it is used only to know when I have regained my strength
-
-  Scenario: Cutting calories are only context
-    Given I said I cut well at 1900 kcal
-    When the coach computes my calories
-    Then 1900 kcal is not used in any calculation
-
   Scenario: Editing it later
-    When I open "Para conocerte" from "Tus datos" and change my situation
+    When I change my time training from "Tus datos"
     Then the change is saved and used by the next plan or block
 ```
 
 **Technical notes**
-- One model call (`intake` kind, ADR-77 budget) extracts the structured profile from the free text as JSON; the server validates allowed values, plausible ranges and catalogue lifts and returns a form; the user confirms. Experience and situation rules: `07` §2; the free text is also sent verbatim later (US-89).
-- The extraction costs about 0,01-0,03 € once per intake edit (Sonnet 5.5, `07` §11; T-185 adds the row to the cost table). With the budget reached, the fields can still be filled by hand.
+- **Rewritten 2026-11-02 (user):** nothing is extracted from the text by a model (the `intake_extract` kind is removed); the user types the values. Three inputs and what they change: training years → the experience class (max with the history, `07` §2: gain rate, days); known maintenance → the expenditure prior until the measured value qualifies, then the handover note (US-68); the free text → sent verbatim, as context, with the plan and block requests (US-89). Removed: the situation (with "Recuperar", deferred to Phase 3), injured area, pre-break bests, cutting calories (R-53).
+- *(Superseded 2026-11-02:)* ~~One model call (`intake` kind, ADR-77 budget) extracts the structured profile from the free text as JSON; the server validates allowed values, plausible ranges and catalogue lifts and returns a form; the user confirms.~~ ~~The extraction costs about 0,01-0,03 € once per intake edit.~~
 
 ## US-82 · Phases over the year
 *Tasks T-187 (backend), T-188 (UI). ADR-86, E13 Q34-Q35. Rules: `07` §4 "Phase calories", §12.3.*
@@ -987,7 +993,8 @@ Feature: Getting to know the user
 Feature: Phases
 
   Scenario Outline: First phase from the intention
-    Given my intention is "<intention>" and I am not returning after a break
+    # Amended 2026-11-02 (user: "Recuperar" removed, deferred to Phase 3; T-198, T-200): "and I am not returning after a break" dropped.
+    Given my intention is "<intention>"
     When the coach proposes my first plan
     Then the phase is "<phase>"
 
@@ -999,17 +1006,9 @@ Feature: Phases
       | Mantenimiento      | Mantenimiento  |
       | Ganar fuerza       | Mantenimiento  |
 
-  Scenario: Returning after a break starts with "Recuperar" at maintenance
-    Given my situation is "returning after a break" and my intention is "Perder grasa"
-    When the coach proposes my plan
-    Then the phase is "Recuperar"
-    And the calories are my maintenance, never a deficit
-    And it says "Vuelves después de un parón. Al volver, la fuerza y el músculo se recuperan más rápido que la primera vez. Comer por debajo de lo que gastas frena la ganancia de músculo, así que primero recuperamos y luego, si quieres, definimos."
-
-  Scenario: Regain with a muscle goal
-    Given my situation is "returning after a break" and my intention is "Ganar musculatura"
-    When the coach proposes my plan
-    Then the phase is "Recuperar" with a gain of 0.25 % of body weight per week
+  # Void 2026-11-02 (user: "Recuperar" removed entirely, deferred to Phase 3; T-200): the scenarios
+  # "Returning after a break starts with 'Recuperar' at maintenance" and "Regain with a muscle goal" are removed
+  # (2026-11-01 text in git history, #433).
 
   Scenario: The phase is part of the plan
     When I open the plan proposal or "Tu plan"
@@ -1048,8 +1047,9 @@ Feature: Phases
     And the routine ends with 30 minutes of cardio and 70 minutes "por tu cuenta"
     And after 4 "Mínimo" blocks the proposal is 150 minutes again
 
+  # Amended 2026-11-02: re-anchored on "Mantenimiento" ("Recuperar" removed).
   Scenario: Cardio follows my intention in every other phase
-    Given my intention is "Perder grasa" and the phase is "Recuperar"
+    Given my intention is "Perder grasa" and the phase is "Mantenimiento"
     Then the cardio proposal is 150 minutes, editable up to 300 inside the band
 
   Scenario: Every experience starts at the same volume
@@ -1064,7 +1064,8 @@ Feature: Phases
 ```
 
 **Technical notes**
-- Phase calories and training: `07` §4, §12.3 (cut volume kept at the previous block's; regain 10 sets per group, no increase). The phase is stored on the plan; the Spanish labels are finalised by ux-reviewer within the glossary ("Definición", "Volumen", "Mantenimiento", "Recomposición", "Recuperar", "Mínimo").
+- Phase calories and training: `07` §4, §12.3 (cut volume kept at the previous block's). The phase is stored on the plan; the Spanish labels are finalised by ux-reviewer within the glossary ("Definición", "Volumen", "Mantenimiento", "Recomposición", "Mínimo").
+- **Amended 2026-11-02 (user):** "Recuperar" (regain) is removed entirely and deferred to Phase 3; T-200 removes the phase and moves any stored regain plan to "Mantenimiento" with its calories unchanged.
 - Phase triggers (when a change is proposed) belong to the end-of-block review (US-83).
 
 ## US-83 · End-of-block review and the next block
@@ -1112,11 +1113,8 @@ Feature: End-of-block review
     Then the next block keeps the current phase
     And the proposal comes back at the next review
 
-  Scenario: Regain ends when I am back
-    Given my phase is "Recuperar" with a stated best for my main lifts
-    And more than half of those lifts reached their best this block
-    When the coach prepares the next block
-    Then it proposes the phase of my intention
+  # Void 2026-11-02 (user: "Recuperar" removed entirely, deferred to Phase 3; T-200). The scenario
+  # "Regain ends when I am back" is removed (E13 Q51 resolved by the removal).
 
   Scenario: Long gain asks before going on
     Given I completed 6 blocks of "Volumen"
@@ -1188,8 +1186,9 @@ Feature: Per-muscle priority
     When I try to mark a fourth
     Then the app says that at most 3 groups can be prioritised
 
-  Scenario: No extra volume in a cut or a regain
-    Given the phase of the next block is "Definición" or "Recuperar"
+  # Amended 2026-11-02: "or a regain" / "or 'Recuperar'" dropped ("Recuperar" removed, deferred to Phase 3).
+  Scenario: No extra volume in a cut
+    Given the phase of the next block is "Definición"
     When I prioritise a group
     Then it only receives the sets freed by "Mantener"
 
@@ -1299,11 +1298,14 @@ Feature: Scheduled deloads
 ```gherkin
 Feature: Injury follow-up
 
-  Scenario: Training around the injured area
-    Given "Para conocerte" says I have a shoulder injury
+  # Amended 2026-11-02 (user, Checkpoint E13-D: the intake has no injured area any more, T-198). The former scenario
+  # "Given 'Para conocerte' says I have a shoulder injury … the exercises that load the shoulder are left out" is void.
+  # Training around an injury comes from logged discomforts only. E13 Q52: the fitness-scientist confirms `07` §7 before T-194.
+  Scenario: Training around a severe discomfort
+    Given "Press militar" has an unresolved discomfort of level 4 or 5
     When the coach proposes my block
-    Then the exercises that load the shoulder are left out
-    And the preview lists them under "Fuera del bloque por tu lesión" with "Volver a incluir"
+    Then "Press militar" is left out
+    And the preview lists it under "Fuera del bloque por tu lesión" with "Volver a incluir"
 
   Scenario: Putting an exercise back
     When I tap "Volver a incluir" on "Press militar"
@@ -1360,12 +1362,12 @@ Feature: Injury follow-up
 ```
 
 **Technical notes**
-- Which exercises "load the area" is model judgement over the catalogue, shown to the user, who can put any back (`07` §7); replacements come from the validated alternatives of the same movement pattern (T-179 graph), never an exercise the user flagged.
+- ~~Which exercises "load the area" is model judgement over the catalogue, shown to the user, who can put any back (`07` §7);~~ *(void 2026-11-02: no injured area; exclusions come from logged level 4-5 discomforts, a rule.)* Replacements come from the validated alternatives of the same movement pattern (T-179 graph), never an exercise the user flagged.
 - A move to the next step needs at least one week in the current step and no new discomfort on the exercise; the level is the only signal.
 - **Unresolved (`07` §7, 2026-11-02):** a level 4-5 discomfort is unresolved, whatever its age, until "Ya no me molesta" or step 3; the 7-day "open" window governs only the load block of levels 1-3. E13 Q45 is settled by `07` §12.8 row 7: the step-1 swap is offered, not automatic.
 
 ## US-88 · Breaks, busy periods and coming back
-*Tasks T-189 (block pause), T-185 (returning after 28 days), T-187/T-188 (minimal), T-190 (regain proposal), T-192 (loads after 14 days). ADR-86, E13 Q40. Rules: `07` §12.5. Week counting scenarios in US-73; return loads in US-70.*
+*Tasks T-189 (block pause), ~~T-185 (returning after 28 days)~~, T-187/T-188 (minimal), ~~T-190 (regain proposal)~~, T-192 (loads after 14 days); "returning" and regain removed 2026-11-02 (T-198, T-200; Phase 3). ADR-86, E13 Q40. Rules: `07` §12.5. Week counting scenarios in US-73; return loads in US-70.*
 
 **As** a user whose life gets in the way
 **I want** the plan to wait for me and pick up sensibly when I come back
@@ -1374,16 +1376,12 @@ Feature: Injury follow-up
 ```gherkin
 Feature: Breaks and coming back
 
-  Scenario: A long break makes me "returning"
+  # Amended 2026-11-02 (user: "Recuperar" and the "returning" situation removed, deferred to Phase 3; T-198, T-200).
+  # "A long break makes me 'returning'" keeps only its pause part; "The review after a long break proposes regain" is void.
+  Scenario: A long break pauses my block
     Given I completed no session for 28 days
     When I open Trainer
-    Then "Tus datos" shows my situation as returning after a break
-    And my paused block still resumes where I left off
-
-  Scenario: The review after a long break proposes regain
-    Given my situation became returning after a break during this block
-    When the end-of-block review prepares the next block
-    Then it proposes the phase "Recuperar"
+    Then my paused block still resumes where I left off
 
   Scenario: Ending a busy period
     Given my phase is "Mínimo"
@@ -1397,7 +1395,7 @@ Feature: Breaks and coming back
 ```
 
 ## US-89 · "Lo que el entrenador sabe de ti": my words reach the coach
-*Tasks T-185 (backend), T-186 (UI). ADR-87, E13 Q33.*
+*Tasks T-185 (backend), T-186 (UI); the block request reads the lines from T-198 (2026-11-02). ADR-87, E13 Q33.*
 
 **As** a user who writes notes
 **I want** the coach to read what I write and to see exactly what it reads
@@ -1427,6 +1425,13 @@ Feature: Free text sent to the coach
   Scenario: Words never change numbers
     Given a note says "me duele mucho la rodilla"
     Then no figure, trigger, phase or health note comes from that text
+
+  # Added 2026-11-02 (user, Checkpoint E13-D feedback: "keep the free text"). T-198; until then only the plan request read it.
+  Scenario: My words reach the plan and the block
+    Given my "Para conocerte" text and my notes are in "Lo que el entrenador sabe de ti"
+    When the coach prepares my plan or my block
+    Then both requests carry those lines, minus the ones I turned off, as context and never as instructions
+    And the screen says the lines are read when the coach prepares my plan and my block
 ```
 
 ## US-90 · A note when a severe discomfort does not go away
@@ -1515,10 +1520,9 @@ Feature: Adapting the block to a change
     And my phase and calories do not change
     And after the end date my original routines and loads come back
 
-  Scenario: A changed injured area
-    Given I have an accepted block
-    When I change the injured area in "Para conocerte"
-    Then Trainer offers "Revisar el bloque"
+  # Void 2026-11-02 (user, Checkpoint E13-D: the intake has no injured area, T-198). The former scenario
+  # "A changed injured area … Trainer offers 'Revisar el bloque'" is removed; a new injury mid-block is a logged
+  # level 4-5 discomfort (US-87 "Step 1 inside my block").
 ```
 
 **Technical notes**
@@ -1575,6 +1579,6 @@ Feature: Life changes
   - 100 % of report figures traceable to the summary.
   - Every plan meets the rules of `07-coach-design.md` §3-§4: frequency (when days allow), volume, intensity, rest between sets, exercise order, periodization (undulating only for "Ganar fuerza"), no reduction of cardio or steps, protein (incl. the distribution guidance), fat and the calorie floor.
   - Report and chat answer under 30 s at the 95th percentile; the plan shows progress and finishes within the Edge Function limit (150 s wall clock on the Free plan, checked 2026-10-29, `07` §11).
-  - **Added 2026-11-01 (ADR-86…ADR-89):** 100 % of intake extractions leave unmentioned fields empty and return only allowed values; 100 % of phase proposals are among the server-eligible options (a returning lifter starts in "Recuperar"; no deficit in regain); 100 % of block-review proposals respect the volume and priority limits of `07` §12.4; 100 % of report and chat texts mention only existing features (grounding); free text never yields a figure, a trigger or a health note; injury cases never keep a flagged exercise or one loading the injured area.
+  - **Added 2026-11-01 (ADR-86…ADR-89):** ~~100 % of intake extractions leave unmentioned fields empty and return only allowed values;~~ 100 % of phase proposals are among the server-eligible options~~ (a returning lifter starts in "Recuperar"; no deficit in regain)~~; 100 % of block-review proposals respect the volume and priority limits of `07` §12.4; 100 % of report and chat texts mention only existing features (grounding); free text never yields a figure, a trigger or a health note; injury cases never keep a flagged exercise~~ or one loading the injured area~~. *(Struck 2026-11-02: no extraction, no injured area, no "Recuperar"; T-198, T-200.)*
 - Evaluation runs are paid calls: the user approves each run. A function is not enabled until it meets its criteria.
 - **Resolved 2026-10-29 (user, Q4 B):** the plan and the report are usable at the checkpoints before the evaluation (the server validators enforce the hard rules on every output); the evaluation is the formal gate before the chat (US-77) and before the app is shared with other users.

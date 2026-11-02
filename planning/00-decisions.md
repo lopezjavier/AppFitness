@@ -107,6 +107,7 @@ Phase 2 ADRs continue the numbering (next: **ADR-91**) and are written **in full
 | 88 | One behaviour "Entrenador": inside an accepted block, load progression, calorie changes in the safe band and deloads apply on their own with "Deshacer"/cancel; phases and new blocks need acceptance | Amends 76 |
 | 89 | No generic health disclaimers; one data-triggered note on a persisting level 4-5 discomfort; train around an injured area with a graded return the user paces | Amends 81 and 85; reverses E13 Q29 |
 | 90 | The per-user monthly AI cap rises from 2 € to 3 €; the 5 € global total stays | Amends 77 |
+| 91 | Minimal intake (years, maintenance, free text) and no "Recuperar" (deferred to Phase 3); no field extraction | Amends 86, 87 |
 
 ## Phase 2 ADRs (full text)
 
@@ -290,3 +291,9 @@ Phase 2 ADRs continue the numbering (next: **ADR-91**) and are written **in full
 - **Decision:** the per-user cap rises to **3 €** per calendar month; the **5 €** total for all users stays (dollars still counted as euros, the Anthropic spending limit stays the backstop). With the cost table (heavy ≈ 3,1 €, light ≈ 1 €), one heavy user plus two light users reach the 5 € total; with more heavy users the total, not the per-user cap, stops calls first. That is accepted for personal use (1-5 users); revisit the total only before the app is shared (`07` §8).
 - **Consequences:** `01-scope.md` NFR-02 and §4; `07` §8, §11; E13 US-76; the built code, folded into T-185: `supabase/functions/coach/budget.ts:2` (`USER_LIMIT_EUR = 2`) and its mirror `shared/src/commonMain/kotlin/io/github/lopezjavier/appfitness/domain/model/CoachUsage.kt` (`USER_MONTHLY_LIMIT_EUR`, read by `composeApp/…/feature/trainer/CoachUsageScreen.kt`, which then shows "de 3,00 €"), their `deno test` and Kotlin tests, and the `02`/`03` lines stating 2 EUR (`02-architecture.md:71`, `03-data-model.md:87`).
 - **Approval:** user, 2026-11-02 (chat, after the 3,1 € heavy-user estimate).
+
+### ADR-91 — Minimal intake: ask only what is used (E13; amends ADR-86, ADR-87)
+- **Context:** Checkpoint E13-D (user, 2026-11-02): "Para conocerte" asked for data nothing read (`known_cut_kcal`, `pre_break_bests`, `injured_area` were stored only), a model extracted fields from the text, the form opened automatically and every row opened the same screen.
+- **Decision:** the intake asks only what changes a figure or reaches the model in the same release: training years ("Tiempo entrenando", experience = max with the history), known maintenance ("Calorías de mantenimiento", the expenditure prior until measured data takes over) and the free text. No model extracts fields from the text. The situation, injured area, pre-break bests and cutting calories are dropped from the UI and from `coach_user_intake` (new migration). The regain phase "Recuperar" (returning after a break) is removed entirely and deferred to Phase 3; stored regain plans become "Mantenimiento" with their calories unchanged. The free text reaches `plan_nutrition` and `plan_block` as context, never instructions. Each row opens its own editor and nothing opens on its own.
+- **Consequences:** T-198, T-200, T-199; rules R-53, R-54, R-55 in `05` §8; E13 Q46 superseded, Q50/Q51 resolved by the removal; T-190 without regain triggers, T-193 without the regain band, T-194 injury from logged discomforts only (E13 Q52 for the fitness-scientist); `07` regain clean-up by the fitness-scientist; Phase 3 follow-up "Recuperar".
+- **Approval:** user, 2026-11-02 (chat: keep the free text and remove the complexity).
