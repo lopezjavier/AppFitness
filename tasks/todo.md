@@ -972,15 +972,9 @@ Journey: ask the coach for a plan, read the calories, macros, protein guidance a
 
 ## T-202: 👤 Decision checkpoint: how the coach builds blocks (user, 2026-11-02, Checkpoint E13-D re-test)
 
-**Why:** the user is not satisfied with how blocks are built today ("this feels terrible"; the coach should decide, not a rule table). No further patches to block generation are made until this is decided.
+The user is not satisfied with how blocks are built today. This is a checkpoint for the user to decide how blocks are built. The user decides the steps; nothing about it is planned or started until they do.
 
-**What it is:** a 👤 decision step, not an implementation task. The user decides the approach for building blocks; `fitness-scientist` and the planner prepare an options note first (what each option means for quality, cost, risk and validation, with the user's own blocks as examples). The decision becomes a new ADR in `planning/00-decisions.md`, and the block tasks are replanned from it by the epic-planner in a fresh session.
-
-- [ ] Options note prepared (`fitness-scientist` + planner), in a fresh session after T-199 and T-201 are merged.
-- [ ] 👤 The user decides the approach; the PM records the ADR (docs PR the user has seen).
-- [ ] Block tasks replanned from the ADR (epic-planner, user's OK on the breakdown).
-
-**Dependencies:** T-199 merged.
+- [ ] 👤 The user decides how blocks are built.
 
 ---
 
