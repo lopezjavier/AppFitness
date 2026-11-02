@@ -75,7 +75,9 @@ class PlanProposalPhaseTest {
         rule.onNodeWithTag("plan_proposal_phase_help").performClick()
         rule.waitForIdle()
 
-        rule.onNodeWithText("Comes algo más de lo que gastas para ganar músculo poco a poco, sin sumar grasa de más.").assertExists()
+        rule.onNodeWithText(
+            "Comes algo más de lo que gastas para ganar músculo poco a poco, sin sumar grasa de más.",
+        ).assertExists()
     }
 
     @Test
