@@ -3,10 +3,13 @@ import {
     CoachPlanError,
     computeNutrition,
     DEFICIT_CAP,
+    firstPhase,
     GAIN_RATE_RANGE,
     intakeRange,
     type NutritionInput,
+    rangeClass,
     rateKcal,
+    REGAIN_GAIN_RATE,
     SURPLUS_CAP,
 } from "./nutritionRules.ts";
 import { assertNutritionInvariants } from "./validators.ts";
@@ -100,18 +103,22 @@ Deno.test("(e) 75 kg gives 30 g of protein per meal over at least 4 meals", () =
     assertEquals(n.distribution.min_meals, 4);
 });
 
-Deno.test("(f) 120 kg aiming 0.5 percent is a 660 deficit; an aggressive rate hits the 1000 cap", () => {
+Deno.test("(f) 120 kg aiming 0.5 percent asks for 660 and is capped at 500; aiming 1.0 is capped at 500 too", () => {
+    assertEquals(DEFICIT_CAP, 500);
     const normal = plan({ weightKg: 120, expenditureKcal: 3000 });
-    assertEquals(normal.calorie_adjustment, -660);
-    assertEquals(normal.limited_by, null);
+    assertEquals(normal.calorie_adjustment, -500);
+    assertEquals(normal.target_kcal, 2500);
+    assertEquals(normal.limited_by, "deficit_cap");
+    assertEquals(normal.rate_pct_week, 0.379);
+    assertNutritionInvariants(normal);
     const aggressive = plan({
         weightKg: 120,
         expenditureKcal: 3000,
         targetRatePct: 1.0,
     });
     assertEquals(aggressive.calorie_adjustment, -DEFICIT_CAP);
-    assertEquals(aggressive.target_kcal, 2000);
-    assertEquals(aggressive.limited_by, "goal_range");
+    assertEquals(aggressive.target_kcal, 2500);
+    assertEquals(aggressive.limited_by, "deficit_cap");
     assertNutritionInvariants(aggressive);
 });
 
@@ -300,7 +307,8 @@ Deno.test("every intention lands inside its intake range", () => {
             expenditureKcal: 2700,
             intakeAnchorKcal: 2700,
         });
-        const { min, max } = intakeRange(intention, 80, 0);
+        const phase = firstPhase(intention, null).phase;
+        const { min, max } = intakeRange(rangeClass(phase), 80, 0);
         const delta = n.target_kcal - 2700;
         assert(
             delta >= min && delta <= max,
@@ -312,9 +320,10 @@ Deno.test("every intention lands inside its intake range", () => {
 
 Deno.test("intakeRange: gain, loss and no-change ranges at 80 kg", () => {
     assertEquals(rateKcal(0.5, 80), 440);
-    assertEquals(intakeRange("muscle", 80, 0), { min: 220, max: 450 });
-    assertEquals(intakeRange("fat_loss", 80, 0), { min: -890, max: -440 });
-    assertEquals(intakeRange("maintenance", 80, 100), { min: -120, max: 320 });
+    assertEquals(intakeRange("gain", 80, 0), { min: 220, max: 450 });
+    assertEquals(intakeRange("loss", 80, 0), { min: -890, max: -440 });
+    assertEquals(intakeRange("nochange", 80, 100), { min: -120, max: 320 });
+    assertEquals(intakeRange("regain", 80, 0), { min: -220, max: 230 });
     assertEquals(GAIN_RATE_RANGE[0], 0.25);
 });
 
@@ -326,4 +335,212 @@ Deno.test("a loss with the floor is slower than the range and still allowed", ()
     });
     assertEquals(n.limited_by, "floor");
     assertEquals(n.target_kcal, 1500);
+});
+
+// --- T-187: phases, the deficit cap, regain, the diet break (04 sections 8.2, 8.9; 07 sections 4, 12.3) ---
+
+Deno.test("first phase by intention: five rows", () => {
+    const rows = [
+        ["fat_loss", "cut"],
+        ["muscle", "gain"],
+        ["recomposition", "recomposition"],
+        ["maintenance", "maintenance"],
+        ["strength", "maintenance"],
+    ] as const;
+    for (const [intention, phase] of rows) {
+        assertEquals(firstPhase(intention, null), {
+            phase,
+            reason: "intention",
+        });
+        assertEquals(firstPhase(intention, "continuous").phase, phase);
+        assertEquals(firstPhase(intention, "first_time").phase, phase);
+    }
+});
+
+Deno.test("a returning user starts in regain whatever the intention, and the reason keeps which return", () => {
+    for (
+        const intention of [
+            "fat_loss",
+            "muscle",
+            "recomposition",
+            "maintenance",
+            "strength",
+        ] as const
+    ) {
+        assertEquals(firstPhase(intention, "returning_break"), {
+            phase: "regain",
+            reason: "returning_break",
+        });
+        assertEquals(firstPhase(intention, "returning_injury"), {
+            phase: "regain",
+            reason: "returning_injury",
+        });
+    }
+});
+
+Deno.test("the deficit cap: a 650 kcal deficit is cut to 500 with deficit_cap", () => {
+    // 1.0 percent at 65 kg asks for ceil(715 / 10) * 10 = 720 > 650; the cap holds it at 500.
+    const n = plan({ weightKg: 65, expenditureKcal: 2800, targetRatePct: 1.0 });
+    assertEquals(n.calorie_adjustment, -500);
+    assertEquals(n.limited_by, "deficit_cap");
+    assertEquals(n.phase_options, { cut_rate_pct: 1.0, diet_break: false });
+    assertNutritionInvariants(n);
+});
+
+Deno.test("80 kg at 1.0 percent asks for 880 and is capped at 500", () => {
+    const n = plan({ targetRatePct: 1.0 });
+    assertEquals(n.calorie_adjustment, -500);
+    assertEquals(n.target_kcal, 2100);
+    assertEquals(n.limited_by, "deficit_cap");
+    assertEquals(n.rate_pct_week, 0.568);
+});
+
+Deno.test("the floor wins over the deficit cap", () => {
+    // 120 kg, expenditure 1900: the cap would give 1400, below the male floor.
+    const n = plan({ weightKg: 120, expenditureKcal: 1900 });
+    assertEquals(n.target_kcal, 1500);
+    assertEquals(n.limited_by, "floor");
+    assertNutritionInvariants(n);
+});
+
+Deno.test("a deficit under the cap carries no limiter", () => {
+    const n = plan();
+    assertEquals(n.calorie_adjustment, -440);
+    assertEquals(n.limited_by, null);
+});
+
+Deno.test("the cut rate 1.0 and 0.5 are accepted; 1.2 and 0.4 are refused defensively", () => {
+    assertEquals(plan({ targetRatePct: 1.0 }).target_rate_pct, 1.0);
+    assertEquals(plan({ targetRatePct: 0.5 }).target_rate_pct, 0.5);
+    for (const bad of [1.2, 0.4]) {
+        const e = assertThrows(
+            () => plan({ targetRatePct: bad }),
+            CoachPlanError,
+        );
+        assertEquals(e.code, "coach_plan_infeasible");
+    }
+});
+
+Deno.test("regain: exactly the expenditure for fat loss, +0.25 percent for muscle and strength", () => {
+    const fat = plan({ phase: "regain", phaseReason: "returning_break" });
+    assertEquals(fat.target_kcal, 2600);
+    assertEquals(fat.calorie_adjustment, 0);
+    assertEquals(fat.strategy, "maintenance");
+    assertEquals(fat.phase_reason, "returning_break");
+    assertEquals(fat.limited_by, null);
+    assertNutritionInvariants(fat);
+    for (const intention of ["muscle", "strength"] as const) {
+        const n = plan({ intention, phase: "regain" });
+        // ceil(0.25 x 80 x 11 / 10) x 10 = 220
+        assertEquals(n.calorie_adjustment, 220);
+        assertEquals(n.target_rate_pct, REGAIN_GAIN_RATE);
+        assertEquals(n.rate_pct_week, 0.25);
+        assertNutritionInvariants(n);
+    }
+});
+
+Deno.test("regain never runs in a deficit, even when the floor would lift the target", () => {
+    for (const intention of ["fat_loss", "muscle"] as const) {
+        const n = plan({ intention, phase: "regain" });
+        assert(n.calorie_adjustment >= 0);
+    }
+});
+
+Deno.test("maintenance, recomposition and minimal use rate 0", () => {
+    for (const phase of ["maintenance", "recomposition", "minimal"] as const) {
+        const n = plan({ phase });
+        assertEquals(n.calorie_adjustment, 0);
+        assertEquals(n.target_rate_pct, 0);
+        assertEquals(n.rate_pct_week, 0);
+        assertEquals(n.limited_by, null);
+        assertNutritionInvariants(n);
+    }
+});
+
+Deno.test("the gain phase keeps the rate by experience", () => {
+    const n = plan({
+        intention: "muscle",
+        phase: "gain",
+        experience: "advanced",
+    });
+    assertEquals(n.target_rate_pct, 0.25);
+});
+
+Deno.test("the diet break stores the maintenance week at rate 0 with its macros", () => {
+    const n = plan({ expenditureKcal: 2600, dietBreak: true });
+    assertEquals(n.calorie_adjustment, -440);
+    assertEquals(n.phase_options.diet_break, true);
+    const b = n.diet_break!;
+    assertEquals(b.target_kcal, 2600);
+    assertEquals(b.calorie_adjustment, 0);
+    assertEquals(b.strategy, "maintenance");
+    assertEquals(b.week, 4);
+    assertEquals(b.protein_pct + b.carbs_pct + b.fat_pct, 100);
+    assertNutritionInvariants(n);
+});
+
+Deno.test("the weeks 1-3 target is the cut figure and week 4 the expenditure (2600)", () => {
+    const n = plan({ expenditureKcal: 2600, weightKg: 80, dietBreak: true });
+    assertEquals([n.target_kcal, n.diet_break!.target_kcal], [2160, 2600]);
+});
+
+Deno.test("without the diet break option the plan carries no maintenance week; other phases never do", () => {
+    assertEquals(plan().diet_break, null);
+    assertEquals(
+        plan({ dietBreak: true, phase: "maintenance" }).diet_break,
+        null,
+    );
+    assertEquals(plan({ dietBreak: true, phase: "regain" }).diet_break, null);
+});
+
+Deno.test("intake range by phase class: a regain plan of a fat-loss user uses the no-change range", () => {
+    // Anchor 2700 and a +220 regain target (muscle intention): inside the regain range, outside the loss one.
+    const n = plan({
+        intention: "muscle",
+        phase: "regain",
+        expenditureKcal: 2700,
+        intakeAnchorKcal: 2700,
+        slopeUsed: false,
+    });
+    assertEquals(n.target_kcal - 2700, 220);
+    // Fat-loss intention in regain: target = anchor, never the loss range (-890..-440).
+    const f = plan({
+        phase: "regain",
+        expenditureKcal: 2700,
+        intakeAnchorKcal: 2700,
+        slopeUsed: false,
+    });
+    assertEquals(f.target_kcal, 2700);
+    assertNutritionInvariants(f);
+});
+
+Deno.test("intake range by phase class: a maintenance user does not get the gain range", () => {
+    assertEquals(rangeClass("maintenance"), "nochange");
+    assertEquals(rangeClass("recomposition"), "nochange");
+    assertEquals(rangeClass("minimal"), "nochange");
+    assertEquals(rangeClass("cut"), "loss");
+    assertEquals(rangeClass("gain"), "gain");
+    assertEquals(rangeClass("regain"), "regain");
+    const n = plan({
+        intention: "muscle",
+        phase: "maintenance",
+        intakeAnchorKcal: 2600,
+        slopeUsed: false,
+    });
+    assertEquals(n.calorie_adjustment, 0);
+    assertNutritionInvariants(n);
+});
+
+Deno.test("a regain surplus rounded up from 0.25 percent stays inside the regain range at 82.3 kg", () => {
+    // 0.25 x 82.3 x 11 = 226.3 -> delta 230, which is 3.7 over d(0.25): inside the rounding allowance.
+    const n = plan({
+        intention: "muscle",
+        phase: "regain",
+        weightKg: 82.3,
+        expenditureKcal: 2700,
+        intakeAnchorKcal: 2700,
+        slopeUsed: false,
+    });
+    assertEquals(n.calorie_adjustment, 230);
+    assertNutritionInvariants(n);
 });

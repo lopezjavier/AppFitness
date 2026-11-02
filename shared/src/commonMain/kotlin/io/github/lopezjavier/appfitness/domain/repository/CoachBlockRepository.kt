@@ -10,8 +10,11 @@ import kotlinx.datetime.LocalDate
  * [io.github.lopezjavier.appfitness.domain.model.CoachException].
  */
 interface CoachBlockRepository {
-    /** Asks the coach for the block of [planId] as of [today] and returns the stored proposal. Costs money. */
-    suspend fun requestBlock(planId: String, today: LocalDate): Result<CoachBlock>
+    /**
+     * Asks the coach for the block of [planId] as of [today] and returns the stored proposal. Costs money.
+     * [minimal] asks for the short "Tengo poco tiempo" block.
+     */
+    suspend fun requestBlock(planId: String, today: LocalDate, minimal: Boolean = false): Result<CoachBlock>
 
     /** The stored block of [planId], or null when the coach has not proposed one. Used to reload and reopen. */
     suspend fun currentBlock(planId: String): Result<CoachBlock?>

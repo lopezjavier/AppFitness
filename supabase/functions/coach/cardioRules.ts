@@ -1,6 +1,6 @@
 // Weekly cardio and daily steps targets of the plan (planning/07 section 3, ADR-85). Pure: no I/O, no age input.
 // The calories never depend on these figures (Q25).
-import type { Intention } from "./schemas.ts";
+import type { Intention, Phase } from "./schemas.ts";
 
 /** WHO adult minimum, the same for every intention. */
 export const CARDIO_MIN_WEEK = 150;
@@ -22,9 +22,14 @@ export type Activity = {
     steps_avg: number | null;
 };
 
+/** Weekly cardio of the minimal phase: one third less than the recommendation (07 section 3 "Cardio by phase"). */
+export const CARDIO_MIN_WEEK_MINIMAL = 100;
+/** Per-routine cap of the cardio inside a minimal block, in minutes. */
+export const CARDIO_ROUTINE_CAP_MINIMAL = 30;
+
 /** `stepsAvg28` is the 28-day average, null when there are fewer than 7 days of data. */
 export function computeActivity(
-    input: { intention: Intention; stepsAvg28: number | null },
+    input: { intention: Intention; stepsAvg28: number | null; phase?: Phase },
 ): Activity {
     const avg = input.stepsAvg28;
     const rounded = avg === null || !Number.isFinite(avg) || avg < 0
@@ -32,7 +37,9 @@ export function computeActivity(
         : Math.floor(avg / STEPS_STEP) * STEPS_STEP;
     const fromAverage = rounded !== null && rounded >= STEPS_FLOOR;
     return {
-        cardio_min_week: CARDIO_MIN_WEEK,
+        cardio_min_week: input.phase === "minimal"
+            ? CARDIO_MIN_WEEK_MINIMAL
+            : CARDIO_MIN_WEEK,
         cardio_edited: false,
         cardio_band: input.intention === "fat_loss"
             ? [CARDIO_MIN_WEEK, CARDIO_BAND_MAX]

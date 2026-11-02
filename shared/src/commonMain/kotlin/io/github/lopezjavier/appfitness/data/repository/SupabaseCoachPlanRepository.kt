@@ -9,6 +9,8 @@ import io.github.jan.supabase.postgrest.from
 import io.github.jan.supabase.postgrest.query.Order
 import io.github.jan.supabase.postgrest.rpc
 import io.github.lopezjavier.appfitness.data.remote.AcceptPlanParams
+import io.github.lopezjavier.appfitness.data.remote.ApplyDietBreakParams
+import io.github.lopezjavier.appfitness.data.remote.ApplyDietBreakResultDto
 import io.github.lopezjavier.appfitness.data.remote.CoachErrorParser
 import io.github.lopezjavier.appfitness.data.remote.CoachPlanDto
 import io.github.lopezjavier.appfitness.data.remote.CoachRecommendationDto
@@ -19,6 +21,8 @@ import io.github.lopezjavier.appfitness.data.remote.EvaluateCalorieParams
 import io.github.lopezjavier.appfitness.data.remote.PlanEventDto
 import io.github.lopezjavier.appfitness.data.remote.PlanRequestBody
 import io.github.lopezjavier.appfitness.data.remote.PlanRequestInput
+import io.github.lopezjavier.appfitness.data.remote.RecomputeRequestBody
+import io.github.lopezjavier.appfitness.data.remote.RecomputeRequestInput
 import io.github.lopezjavier.appfitness.data.remote.SetCardioParams
 import io.github.lopezjavier.appfitness.data.remote.coachPlanJson
 import io.github.lopezjavier.appfitness.domain.AppError
@@ -27,6 +31,8 @@ import io.github.lopezjavier.appfitness.domain.model.CalorieChange
 import io.github.lopezjavier.appfitness.domain.model.CoachException
 import io.github.lopezjavier.appfitness.domain.model.CoachFailure
 import io.github.lopezjavier.appfitness.domain.model.CoachPlan
+import io.github.lopezjavier.appfitness.domain.model.CutRate
+import io.github.lopezjavier.appfitness.domain.model.DietBreakApplication
 import io.github.lopezjavier.appfitness.domain.model.PlanStatus
 import io.github.lopezjavier.appfitness.domain.model.requestKey
 import io.github.lopezjavier.appfitness.domain.port.CoachModelPreference
@@ -39,6 +45,7 @@ import io.ktor.http.HttpMethod
 import io.ktor.http.contentType
 import kotlinx.coroutines.CancellationException
 import kotlinx.datetime.LocalDate
+import kotlin.math.roundToInt
 import kotlin.time.Duration
 
 private const val WRONG_OBJECT_STATE = "55000"
@@ -58,14 +65,49 @@ class SupabaseCoachPlanRepository internal constructor(
     constructor(auth: Auth, postgrest: Postgrest, functions: Functions, modelPreference: CoachModelPreference) :
         this(auth, postgrest, functions, modelPreference, COACH_CLIENT_TIMEOUT)
 
+    override suspend fun requestPlan(today: LocalDate): Result<CoachPlan> = callCoach(
+        encodeBody = {
+            coachPlanJson.encodeToString(
+                PlanRequestBody("plan_nutrition", PlanRequestInput(today), modelPreference.selected.value.requestKey()),
+            )
+        },
+        onStream = { text -> storedPlanOf(text) },
+    )
+
+    /** Deterministic recompute (`plan_recompute`): no model key, and the function records no usage. */
+    override suspend fun updatePlanOptions(
+        planId: String,
+        today: LocalDate,
+        cutRatePct: Double,
+        dietBreak: Boolean,
+    ): Result<CoachPlan> {
+        if (!CutRate.isValid(cutRatePct)) return Result.failure(CoachException(CoachFailure.Invalid))
+        return callCoach(
+            encodeBody = {
+                coachPlanJson.encodeToString(
+                    RecomputeRequestBody("plan_recompute", RecomputeRequestInput(today, planId, cutRatePct, dietBreak)),
+                )
+            },
+            onStream = {
+                loadPlan(planId)?.let { Result.success(it) } ?: Result.failure(CoachException(CoachFailure.Other))
+            },
+        )
+    }
+
+    override suspend fun applyDietBreak(today: LocalDate): Result<DietBreakApplication> = auth.ownRow {
+        val result = postgrest.rpc("apply_coach_diet_break", ApplyDietBreakParams(today))
+            .decodeAs<ApplyDietBreakResultDto>()
+        DietBreakApplication(result.applied, result.week, result.targetKcal?.roundToInt())
+    }
+
     @Suppress("TooGenericExceptionCaught")
-    override suspend fun requestPlan(today: LocalDate): Result<CoachPlan> {
+    private suspend fun callCoach(
+        encodeBody: () -> String,
+        onStream: suspend (String) -> Result<CoachPlan>,
+    ): Result<CoachPlan> {
         if (auth.currentUserOrNull() == null) return Result.failure(AppException(AppError.Unauthorized))
         return try {
-            val model = modelPreference.selected.value.requestKey()
-            val body = coachPlanJson.encodeToString(
-                PlanRequestBody("plan_nutrition", PlanRequestInput(today), model),
-            )
+            val body = encodeBody()
             val stream = functions.invoke("coach") {
                 method = HttpMethod.Post
                 contentType(ContentType.Application.Json)
@@ -73,7 +115,7 @@ class SupabaseCoachPlanRepository internal constructor(
                 coachTimeout(requestTimeout)
             }.bodyAsText()
             CoachStreamParser.parse(stream).fold(
-                onSuccess = { text -> storedPlanOf(text) },
+                onSuccess = { text -> onStream(text) },
                 onFailure = { Result.failure(it) },
             )
         } catch (cancellation: CancellationException) {

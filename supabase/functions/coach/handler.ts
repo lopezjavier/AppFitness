@@ -24,14 +24,17 @@ import {
     type AttachedBlock,
     type BlockRow,
     CoachInputError,
+    type OptionsRow,
     type PlanRow,
     type PlanState,
+    type PrepareContext,
     type Prepared,
     type SavedPlan,
+    type UpdatedPlan,
 } from "./context.ts";
 import { type CoachModel, costEur, parseCoachModel } from "./prices.ts";
 import { KINDS, type KindSpec } from "./router.ts";
-import type { CatalogExercise } from "./schemas.ts";
+import type { CatalogExercise, PhaseHistory } from "./schemas.ts";
 
 export type CoachDeps = {
     /** User id of an access token, or null when invalid. */
@@ -67,6 +70,13 @@ export type CoachDeps = {
     loadPlan: (token: string, planId: string) => Promise<PlanState | null>;
     /** Stores a block through `attach_coach_block`, with the caller's own token. */
     attachBlock: (token: string, row: BlockRow) => Promise<AttachedBlock>;
+    /** `coach_phase_history` of the caller, read with their own token. */
+    loadPhaseHistory: (token: string, today: string) => Promise<PhaseHistory>;
+    /** Rewrites the options of a proposed cut through `update_coach_plan_options`, with the caller's own token. */
+    updatePlanOptions: (
+        token: string,
+        row: OptionsRow,
+    ) => Promise<UpdatedPlan>;
     now: () => Date;
     timeoutMs?: number;
     kinds?: Record<string, KindSpec>;
@@ -80,6 +90,35 @@ const SSE_HEADERS = {
 const encoder = new TextEncoder();
 const frame = (event: string, data: unknown) =>
     encoder.encode(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`);
+
+/** Runs a kind's `prepare`; an input error the client can fix is answered as JSON (names only in the log). */
+async function runPrepare(
+    spec: KindSpec,
+    kind: unknown,
+    input: unknown,
+    ctx: PrepareContext,
+): Promise<Prepared | Response> {
+    try {
+        return await spec.prepare!(input, ctx);
+    } catch (e) {
+        if (e instanceof CoachInputError) {
+            if (e.code !== "INVALID_INPUT") {
+                // Names only: never values, prompts or summary data.
+                console.warn("coach: input rejected", {
+                    kind,
+                    code: e.code,
+                    missing: e.missing,
+                });
+            }
+            return errorResponse(
+                e.code,
+                e.message,
+                e.missing ? { extra: { missing: e.missing } } : {},
+            );
+        }
+        throw e;
+    }
+}
 
 class Deadline {
     readonly controller = new AbortController();
@@ -173,6 +212,51 @@ export function createCoachHandler(
                     "This kind is not available yet",
                 );
             }
+            const ctx: PrepareContext = {
+                model,
+                loadContext: (today) => deps.loadContext(token, today),
+                loadInputs: (k, today) => deps.loadInputs(token, k, today),
+                savePlan: (row) => deps.savePlan(token, row),
+                loadCatalog: () => deps.loadCatalog(token),
+                loadPlan: (id) => deps.loadPlan(token, id),
+                attachBlock: (row) => deps.attachBlock(token, row),
+                loadPhaseHistory: (today) =>
+                    deps.loadPhaseHistory(token, today),
+                updatePlanOptions: (row) => deps.updatePlanOptions(token, row),
+            };
+
+            // A deterministic kind needs no provider, no budget and leaves no usage row (T-187 `plan_recompute`).
+            if (spec.deterministic) {
+                if (!spec.prepare) {
+                    return errorResponse("INTERNAL", "Unexpected error");
+                }
+                const ready = await runPrepare(
+                    spec,
+                    body.kind,
+                    body.input,
+                    ctx,
+                );
+                if (ready instanceof Response) return ready;
+                let text: string;
+                try {
+                    text = JSON.stringify(
+                        await ready.finalize(null, { costEur: 0 }),
+                    );
+                } catch {
+                    return errorResponse("INTERNAL", "Unexpected error");
+                }
+                return sse([
+                    frame("delta", { text }),
+                    frame("done", {
+                        usage: {
+                            input_tokens: 0,
+                            output_tokens: 0,
+                            cost_eur: 0,
+                        },
+                    }),
+                ]);
+            }
+
             if (!deps.client) {
                 return errorResponse(
                     "NOT_CONFIGURED",
@@ -196,35 +280,14 @@ export function createCoachHandler(
 
             let prepared: Prepared | null = null;
             if (spec.prepare) {
-                try {
-                    prepared = await spec.prepare(body.input, {
-                        model,
-                        loadContext: (today) => deps.loadContext(token, today),
-                        loadInputs: (k, today) =>
-                            deps.loadInputs(token, k, today),
-                        savePlan: (row) => deps.savePlan(token, row),
-                        loadCatalog: () => deps.loadCatalog(token),
-                        loadPlan: (id) => deps.loadPlan(token, id),
-                        attachBlock: (row) => deps.attachBlock(token, row),
-                    });
-                } catch (e) {
-                    if (e instanceof CoachInputError) {
-                        if (e.code !== "INVALID_INPUT") {
-                            // Names only: never values, prompts or summary data.
-                            console.warn("coach: input rejected", {
-                                kind: body.kind,
-                                code: e.code,
-                                missing: e.missing,
-                            });
-                        }
-                        return errorResponse(
-                            e.code,
-                            e.message,
-                            e.missing ? { extra: { missing: e.missing } } : {},
-                        );
-                    }
-                    throw e;
-                }
+                const ready = await runPrepare(
+                    spec,
+                    body.kind,
+                    body.input,
+                    ctx,
+                );
+                if (ready instanceof Response) return ready;
+                prepared = ready;
             }
             const request = prepared?.request ??
                 spec.buildRequest?.(body.input, model);

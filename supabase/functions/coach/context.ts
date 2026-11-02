@@ -8,6 +8,7 @@ import type {
     Method,
     Nutrition,
     Outcome,
+    PhaseHistory,
 } from "./schemas.ts";
 
 /** Row sent to propose_coach_plan. */
@@ -39,6 +40,24 @@ export type PlanState = {
     training_saved: boolean;
     /** `nutrition.activity.cardio_min_week`; null/absent for a plan stored before T-181. */
     cardio_min_week?: number | null;
+    /** The plan JSON and its phase column (T-187); absent in fakes of older kinds. */
+    nutrition?: Nutrition | null;
+    phase?: string | null;
+};
+
+/** Row sent to update_coach_plan_options (T-187). */
+export type OptionsRow = {
+    planId: string;
+    nutrition: Nutrition;
+    cutRatePct: number;
+    dietBreak: boolean;
+};
+
+/** What update_coach_plan_options answers: the rewritten plan without the weight outcome. */
+export type UpdatedPlan = {
+    plan_id: string;
+    nutrition: Nutrition;
+    outcomes: Outcome[];
 };
 
 /** What a kind needs from the outside world; built by the handler for the caller's token. */
@@ -55,6 +74,10 @@ export type PrepareContext = {
     /** Status of one of the caller's plans, or null when it does not exist for them. */
     loadPlan: (planId: string) => Promise<PlanState | null>;
     attachBlock: (row: BlockRow) => Promise<AttachedBlock>;
+    /** Phase history of the caller (previous block, minimal blocks in a row, deficit weeks), with their own token. */
+    loadPhaseHistory: (today: string) => Promise<PhaseHistory>;
+    /** Rewrites the options of a proposed cut through update_coach_plan_options, with the caller's own token. */
+    updatePlanOptions: (row: OptionsRow) => Promise<UpdatedPlan>;
 };
 
 /** One independently validated model call of a multi-part kind. */

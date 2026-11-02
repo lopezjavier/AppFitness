@@ -1,12 +1,15 @@
 // Deterministic rules of the training block (planning/04 section 9): frequency, session split, slots, volume,
 // rests, rep ranges and order. The model never decides any of this; it only picks an exercise per slot.
 // Pure: no I/O.
+import { CARDIO_MIN_WEEK, CARDIO_MIN_WEEK_MINIMAL } from "./cardioRules.ts";
+import { firstPhase } from "./nutritionRules.ts";
 import type {
     BlockPrefs,
     BlockSkeleton,
     BlockSlot,
     Intention,
     MuscleGroup,
+    Phase,
     Role,
     SkeletonSession,
 } from "./schemas.ts";
@@ -22,15 +25,26 @@ export const MAX_DAYS = 7;
 /** Cardio in the block (04 section 9.11): whole 5-minute units, at most 60 min per routine, always "suave". */
 export const CARDIO_UNIT_MIN = 5;
 export const CARDIO_ROUTINE_CAP_MIN = 60;
+/** Per-routine cap of the minimal phase (07 section 3 "Cardio by phase"). */
+export const CARDIO_ROUTINE_CAP_MINIMAL_MIN = 30;
+/** After this many minimal blocks in a row the cardio target returns to the recommendation (Spiering 2021). */
+export const MINIMAL_CARDIO_BLOCKS = 4;
+/** The minimal phase: sessions and sets per slot, doubled from this age (07 section 12.3). */
+export const MINIMAL_SENIOR_AGE = 65;
 export const CARDIO_PACE = "suave" as const;
 /** Technical bounds of the weekly target (same as the plan edit). */
 export const CARDIO_TARGET_MAX = 600;
 
 /**
- * Splits the weekly cardio target over the routines: units of 5 min, remainder to the first routines, at most 60 min
- * per routine; the minutes that do not fit are "por tu cuenta". A routine with 0 has no cardio exercise.
+ * Splits the weekly cardio target over the routines: units of 5 min, remainder to the first routines, at most `cap`
+ * (60, or 30 in the minimal phase) min per routine; the minutes that do not fit are "por tu cuenta". A routine with 0
+ * has no cardio exercise.
  */
-export function splitCardio(targetMin: number, routines: number): {
+export function splitCardio(
+    targetMin: number,
+    routines: number,
+    cap: number = CARDIO_ROUTINE_CAP_MIN,
+): {
     per_routine: number[];
     planned: number;
     on_your_own: number;
@@ -38,7 +52,7 @@ export function splitCardio(targetMin: number, routines: number): {
     const units = Math.floor(Math.max(0, targetMin) / CARDIO_UNIT_MIN);
     const planned = Math.min(
         units,
-        (CARDIO_ROUTINE_CAP_MIN / CARDIO_UNIT_MIN) * routines,
+        (cap / CARDIO_UNIT_MIN) * routines,
     );
     const base = Math.floor(planned / routines);
     const rest = planned % routines;
@@ -54,9 +68,8 @@ export function splitCardio(targetMin: number, routines: number): {
 
 export const MAX_SETS_PER_SLOT = 5;
 export const MIN_SETS_PER_SLOT = 2;
-/** Weekly sets per muscle group: starting point (07 section 3), lower for beginners; secondary-only groups. */
+/** Weekly sets per muscle group: the starting point of every experience class (07 section 3, amended 2026-11-01). */
 export const BASE_WEEKLY_SETS = 10;
-export const BEGINNER_WEEKLY_SETS = 8;
 export const SECONDARY_WEEKLY_SETS = 6;
 export const SECONDARY_GROUPS: MuscleGroup[] = ["forearms", "calves", "core"];
 
@@ -186,6 +199,26 @@ export function chooseFrequency(
     };
 }
 
+/**
+ * Weekly cardio target of a block (07 section 3 "Cardio by phase"): the minimal phase asks for 100 minutes (150 once
+ * 4 minimal blocks have run in a row), every other phase for the recommendation (150); the user's own edit of the
+ * plan's cardio always wins. Deload and diet-break weeks do not touch it.
+ */
+export function cardioTargetFor(
+    phase: Phase,
+    minimalBlocksInARow: number,
+    edited: boolean,
+    planned: number | null | undefined,
+): number {
+    if (edited && typeof planned === "number") return planned;
+    if (phase === "minimal") {
+        return minimalBlocksInARow >= MINIMAL_CARDIO_BLOCKS
+            ? CARDIO_MIN_WEEK
+            : CARDIO_MIN_WEEK_MINIMAL;
+    }
+    return CARDIO_MIN_WEEK;
+}
+
 export const exercisesPerSession = (sessionMinutes: number): number =>
     Math.min(
         MAX_EXERCISES,
@@ -262,7 +295,12 @@ function cycle(groups: MuscleGroup[], n: number): MuscleGroup[] {
     return Array.from({ length: n }, (_, i) => groups[i % groups.length]);
 }
 
-type Planned = { group: MuscleGroup; role: Role };
+type Planned = {
+    group: MuscleGroup;
+    role: Role;
+    /** A minimal block keeps the previous main lift (and its rep range) in this slot. */
+    fixed?: { id: string; rep_min: number; rep_max: number };
+};
 
 function planSession(groups: MuscleGroup[]): Planned[] {
     const seen = new Set<MuscleGroup>();
@@ -286,8 +324,14 @@ function planSession(groups: MuscleGroup[]): Planned[] {
 
 /** The session skeleton: split, slots per session, sets, rep ranges and rests. 04 section 9. */
 export function buildSkeleton(prefs: BlockPrefs): BlockSkeleton {
+    const phase = prefs.phase ?? firstPhase(prefs.intention, null).phase;
+    const minimal = phase === "minimal";
+    const senior = (prefs.age ?? 0) >= MINIMAL_SENIOR_AGE;
     const freq = chooseFrequency(prefs);
-    const days = Math.min(MAX_DAYS, Math.max(1, freq.days_per_week));
+    // The minimal phase fixes the frequency: 1 full-body session (2 from 65 years).
+    const days = minimal
+        ? (senior ? 2 : 1)
+        : Math.min(MAX_DAYS, Math.max(1, freq.days_per_week));
     const n = exercisesPerSession(freq.session_minutes);
     const templates = TEMPLATES[days];
     const fullBodyOnly = templates.every((t) => t.fullBody);
@@ -297,7 +341,25 @@ export function buildSkeleton(prefs: BlockPrefs): BlockSkeleton {
             t.fullBody ? FULL_BODY_PRIORITY.slice(0, n) : cycle(t.groups, n)
         );
 
-    const planned = allocated.map(planSession);
+    let planned: Planned[][] = allocated.map(planSession);
+    if (minimal) {
+        const lifts = (prefs.previous?.main_lifts ?? []).slice(0, n);
+        planned = lifts.length > 0
+            // The previous main lifts, the same in every session, each with its own rep range.
+            ? planned.map(() =>
+                lifts.map((l): Planned => ({
+                    group: l.muscle_group,
+                    role: "main",
+                    fixed: {
+                        id: l.exercise_id,
+                        rep_min: l.rep_min,
+                        rep_max: l.rep_max,
+                    },
+                }))
+            )
+            // No previous block: the main-lift slots of the full-body skeleton, normal rep ranges.
+            : planned.map((s) => s.filter((p) => p.role === "main"));
+    }
     // Weekly sets per group, spread over the slots of that group.
     const slotCount = new Map<MuscleGroup, number>();
     for (const s of planned) {
@@ -307,11 +369,15 @@ export function buildSkeleton(prefs: BlockPrefs): BlockSkeleton {
     }
     const placed = new Map<MuscleGroup, number>();
     const setsFor = (group: MuscleGroup): number => {
-        const total = SECONDARY_GROUPS.includes(group)
+        if (minimal) return senior ? 2 : 1;
+        let total = SECONDARY_GROUPS.includes(group)
             ? SECONDARY_WEEKLY_SETS
-            : prefs.experience === "beginner"
-            ? BEGINNER_WEEKLY_SETS
             : BASE_WEEKLY_SETS;
+        // Cut and regain add no volume: the previous block's sets of the group are kept (07 section 12.3).
+        if (phase === "cut" || phase === "regain") {
+            const kept = prefs.previous?.sets_per_group[group];
+            if (typeof kept === "number" && kept > 0) total = kept;
+        }
         const count = slotCount.get(group)!;
         const k = placed.get(group) ?? 0;
         placed.set(group, k + 1);
@@ -319,7 +385,11 @@ export function buildSkeleton(prefs: BlockPrefs): BlockSkeleton {
         return Math.min(MAX_SETS_PER_SLOT, Math.max(MIN_SETS_PER_SLOT, share));
     };
 
-    const split = splitCardio(prefs.cardio_min_week, days);
+    const split = splitCardio(
+        prefs.cardio_min_week,
+        days,
+        minimal ? CARDIO_ROUTINE_CAP_MINIMAL_MIN : CARDIO_ROUTINE_CAP_MIN,
+    );
     const nameCount = new Map<string, number>();
     templates.forEach((t) =>
         nameCount.set(t.name, (nameCount.get(t.name) ?? 0) + 1)
@@ -334,11 +404,9 @@ export function buildSkeleton(prefs: BlockPrefs): BlockSkeleton {
             : t.name;
         const sessionIndex = i + 1;
         const built: BlockSlot[] = slots.map((p, j) => {
-            const [rep_min, rep_max] = repRange(
-                prefs.intention,
-                p.role,
-                sessionIndex,
-            );
+            const [rep_min, rep_max] = p.fixed
+                ? [p.fixed.rep_min, p.fixed.rep_max]
+                : repRange(prefs.intention, p.role, sessionIndex);
             return {
                 slot_id: `s${sessionIndex}.e${j + 1}`,
                 muscle_group: p.group,
@@ -347,6 +415,7 @@ export function buildSkeleton(prefs: BlockPrefs): BlockSkeleton {
                 rep_min,
                 rep_max,
                 rest_seconds: REST[p.role].default,
+                ...(p.fixed ? { fixed_exercise_id: p.fixed.id } : {}),
             };
         });
         const minutes = split.per_routine[i];
@@ -363,8 +432,9 @@ export function buildSkeleton(prefs: BlockPrefs): BlockSkeleton {
     });
 
     return {
+        phase,
         days_per_week: days,
-        days_chosen: freq.days_chosen,
+        days_chosen: minimal ? true : freq.days_chosen,
         session_minutes: freq.session_minutes,
         rep_scheme: repScheme(prefs.intention),
         block_weeks: BLOCK_WEEKS,

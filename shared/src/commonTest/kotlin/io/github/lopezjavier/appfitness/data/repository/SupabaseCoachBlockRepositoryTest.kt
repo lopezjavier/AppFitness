@@ -181,6 +181,18 @@ class SupabaseCoachBlockRepositoryTest {
     }
 
     @Test
+    fun requestBlock_minimal_sendsTheMinimalFlag() = runTest {
+        val repository = repo(respond = ::blockRoutes)
+
+        repository.requestBlock("p1", today, minimal = true).getOrThrow()
+
+        assertEquals(
+            """{"kind":"plan_block","input":{"today":"2026-10-29","plan_id":"p1","minimal":true}}""",
+            (rest().first().body as TextContent).text,
+        )
+    }
+
+    @Test
     fun requestBlock_userLimit_isMappedWithItsScope() = runTest {
         val repository = repo {
             HttpStatusCode.TooManyRequests to """{"error":{"code":"coach_limit_reached","scope":"user"}}"""

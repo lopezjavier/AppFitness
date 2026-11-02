@@ -214,6 +214,8 @@ class TrainerViewModel(
         val provisional = repository.derivedValues(today()).getOrNull()?.provisionalCount()
         // The plan entry and the calorie card never block the screen: a failed read means none.
         val plan = readPlan()
+        // A diet-break plan switches the Diario target by plan week; a failure is swallowed like its siblings.
+        if (plan is PlanSummary.Accepted) plans?.applyDietBreak(today())
         val change = if (plan is PlanSummary.Accepted) plans?.pendingCalorieChange(today())?.getOrNull() else null
         val block = blocks.summaryFor(plan)
         // Weeks and the deload card need an accepted plan with a saved block; failed reads mean none.

@@ -5,8 +5,13 @@ import {
     type PrepareContext,
     type Prepared,
 } from "./context.ts";
-import { computeActivity } from "./cardioRules.ts";
-import { CoachPlanError, computeNutrition } from "./nutritionRules.ts";
+import { type Activity, computeActivity } from "./cardioRules.ts";
+import {
+    CoachPlanError,
+    computeNutrition,
+    firstPhase,
+    LOSS_RATE_RANGE,
+} from "./nutritionRules.ts";
 import {
     addDays,
     buildCandidates,
@@ -21,7 +26,10 @@ import {
     type Intention,
     MODEL_OUTPUT_SCHEMA,
     type ModelOutcome,
+    type Nutrition,
     type Outcome,
+    type Phase,
+    type PhaseReason,
     type Sex,
 } from "./schemas.ts";
 import {
@@ -48,23 +56,162 @@ const rec = (v: unknown): Record<string, unknown> => isRecord(v) ? v : {};
 const num = (v: unknown): number | null =>
     typeof v === "number" && Number.isFinite(v) ? v : null;
 
-/** `{ "today": "YYYY-MM-DD" }` and nothing else: the client never sends figures. */
-export function parseInput(input: unknown): string {
-    if (
-        !isRecord(input) || Object.keys(input).length !== 1 ||
-        typeof input.today !== "string" ||
-        !/^\d{4}-\d{2}-\d{2}$/.test(input.today)
-    ) {
-        throw new CoachInputError("INVALID_INPUT", "Input must be { today }");
+/** A real `YYYY-MM-DD` date, or an INVALID_INPUT error. */
+export function parseToday(today: unknown): string {
+    if (typeof today !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(today)) {
+        throw new CoachInputError("INVALID_INPUT", "today must be a date");
     }
-    const d = new Date(`${input.today}T00:00:00Z`);
-    if (
-        Number.isNaN(d.getTime()) ||
-        d.toISOString().slice(0, 10) !== input.today
-    ) {
+    const d = new Date(`${today}T00:00:00Z`);
+    if (Number.isNaN(d.getTime()) || d.toISOString().slice(0, 10) !== today) {
         throw new CoachInputError("INVALID_INPUT", "today is not a valid date");
     }
-    return input.today;
+    return today;
+}
+
+/** The cut rate the user may choose (percent of body weight per week), 0.5-1.0. */
+export function parseCutRate(v: unknown): number {
+    if (
+        typeof v !== "number" || !Number.isFinite(v) ||
+        v < LOSS_RATE_RANGE[0] || v > LOSS_RATE_RANGE[1]
+    ) {
+        throw new CoachInputError(
+            "INVALID_INPUT",
+            "cut_rate_pct must be between 0.5 and 1.0",
+        );
+    }
+    return v;
+}
+
+export type NutritionRequest = {
+    today: string;
+    cutRatePct?: number;
+    dietBreak?: boolean;
+};
+
+/**
+ * `{ "today": "YYYY-MM-DD" }` plus the optional `cut_rate_pct` (0.5-1.0) and `diet_break` (boolean), and nothing
+ * else: the client never sends figures.
+ */
+export function parseInput(input: unknown): NutritionRequest {
+    const allowed = ["today", "cut_rate_pct", "diet_break"];
+    if (
+        !isRecord(input) || !("today" in input) ||
+        Object.keys(input).some((k) => !allowed.includes(k))
+    ) {
+        throw new CoachInputError(
+            "INVALID_INPUT",
+            "Input must be { today, cut_rate_pct?, diet_break? }",
+        );
+    }
+    const out: NutritionRequest = { today: parseToday(input.today) };
+    if ("cut_rate_pct" in input) {
+        out.cutRatePct = parseCutRate(input.cut_rate_pct);
+    }
+    if ("diet_break" in input) {
+        if (typeof input.diet_break !== "boolean") {
+            throw new CoachInputError(
+                "INVALID_INPUT",
+                "diet_break must be a boolean",
+            );
+        }
+        out.dietBreak = input.diet_break;
+    }
+    return out;
+}
+
+export type DerivedNutrition = {
+    intention: Intention;
+    nutrition: Nutrition;
+    activity: Activity;
+    stepsAvg: number | null;
+};
+
+/**
+ * Calories, macros and activity targets from the summary. Shared by `plan_nutrition` and `plan_recompute`; the
+ * phase comes from the intention and the situation unless the caller fixes it (a recompute keeps its plan's).
+ */
+export function deriveNutrition(
+    summary: unknown,
+    o: {
+        cutRatePct?: number;
+        dietBreak?: boolean;
+        fixed?: { intention: Intention; phase: Phase; reason: PhaseReason };
+    } = {},
+): DerivedNutrition {
+    const s = rec(summary);
+    const profile = rec(s.profile);
+    const estimates = rec(s.estimates);
+    const prefs = rec(s.training_preferences);
+    const expenditure = rec(estimates.total_expenditure);
+
+    const intention = o.fixed?.intention ??
+        INTENTIONS.find((i) => i === prefs.intention);
+    const sex: Sex | null = profile.sex === "male" || profile.sex === "female"
+        ? profile.sex
+        : null;
+    const positive = (v: number | null) => v !== null && v > 0;
+    // Backstop only: the list of inputs already refused any missing root cause.
+    const missing: string[] = [];
+    if (!intention) missing.push("intention");
+    if (sex === null) missing.push("sex");
+    if (!positive(num(profile.weight_kg))) missing.push("weight");
+    if (!positive(num(expenditure.value))) missing.push("expenditure");
+    if (!intention || missing.length > 0) {
+        throw new CoachInputError(
+            "coach_missing_data",
+            "Required data is missing",
+            missing,
+        );
+    }
+    const experience =
+        EXPERIENCES.find((e) => e === rec(estimates.experience).value) ??
+            "beginner";
+    const unconfirmed = unconfirmedKeys(estimates);
+    const situation = rec(estimates.situation).value;
+    const first = o.fixed ??
+        firstPhase(intention, typeof situation === "string" ? situation : null);
+    const { phase, reason } = first;
+
+    let nutrition: Nutrition;
+    try {
+        nutrition = computeNutrition({
+            intention,
+            phase,
+            phaseReason: reason,
+            sex,
+            weightKg: num(profile.weight_kg),
+            expenditureKcal: num(expenditure.value),
+            expenditureSource: typeof expenditure.source === "string"
+                ? expenditure.source
+                : "formula",
+            intakeAnchorKcal: num(rec(estimates.intake).anchor_kcal),
+            slopeUsed: expenditure.slope_used === true,
+            experience,
+            targetRatePct: o.cutRatePct,
+            dietBreak: o.dietBreak,
+            requiresConfirmation: unconfirmed.length > 0,
+            unconfirmed,
+        });
+    } catch (e) {
+        if (e instanceof CoachPlanError) {
+            throw new CoachInputError(
+                e.code,
+                e.code === "coach_missing_data"
+                    ? "Sex, weight or expenditure is missing"
+                    : "No safe plan fits these numbers",
+            );
+        }
+        throw e;
+    }
+
+    // Cardio and steps targets (07 section 3): independent of the calories, which stay as computed above.
+    const stepsAvg = num(rec(rec(estimates.activity_level).sources).steps_avg);
+    const activity = computeActivity({
+        intention,
+        stepsAvg28: stepsAvg,
+        phase,
+    });
+    return { intention, nutrition, activity, stepsAvg };
 }
 
 const SYSTEM = [
@@ -88,70 +235,15 @@ async function prepareAsync(
     input: unknown,
     ctx: PrepareContext,
 ): Promise<Prepared> {
-    const today = parseInput(input);
+    const { today, cutRatePct, dietBreak } = parseInput(input);
     const summary = await ctx.loadContext(today);
     // The shared list decides what blocks (same source as the "Antes de empezar" screen).
     assertInputsComplete(await ctx.loadInputs("plan", today));
     const s = rec(summary);
-    const profile = rec(s.profile);
-    const estimates = rec(s.estimates);
-    const prefs = rec(s.training_preferences);
-    const expenditure = rec(estimates.total_expenditure);
-
-    const intention = INTENTIONS.find((i) => i === prefs.intention);
-    const sex: Sex | null = profile.sex === "male" || profile.sex === "female"
-        ? profile.sex
-        : null;
-    const positive = (v: number | null) => v !== null && v > 0;
-    // Backstop only: the list above already refused any missing root cause.
-    const missing: string[] = [];
-    if (!intention) missing.push("intention");
-    if (sex === null) missing.push("sex");
-    if (!positive(num(profile.weight_kg))) missing.push("weight");
-    if (!positive(num(expenditure.value))) missing.push("expenditure");
-    if (!intention || missing.length > 0) {
-        throw new CoachInputError(
-            "coach_missing_data",
-            "Required data is missing",
-            missing,
-        );
-    }
-    const experience =
-        EXPERIENCES.find((e) => e === rec(estimates.experience).value) ??
-            "beginner";
-    const unconfirmed = unconfirmedKeys(estimates);
-
-    let nutrition;
-    try {
-        nutrition = computeNutrition({
-            intention,
-            sex,
-            weightKg: num(profile.weight_kg),
-            expenditureKcal: num(expenditure.value),
-            expenditureSource: typeof expenditure.source === "string"
-                ? expenditure.source
-                : "formula",
-            intakeAnchorKcal: num(rec(estimates.intake).anchor_kcal),
-            slopeUsed: expenditure.slope_used === true,
-            experience,
-            requiresConfirmation: unconfirmed.length > 0,
-            unconfirmed,
-        });
-    } catch (e) {
-        if (e instanceof CoachPlanError) {
-            throw new CoachInputError(
-                e.code,
-                e.code === "coach_missing_data"
-                    ? "Sex, weight or expenditure is missing"
-                    : "No safe plan fits these numbers",
-            );
-        }
-        throw e;
-    }
-
-    // Cardio and steps targets (07 section 3): independent of the calories, which stay as computed above.
-    const stepsAvg = num(rec(rec(estimates.activity_level).sources).steps_avg);
-    const activity = computeActivity({ intention, stepsAvg28: stepsAvg });
+    const { intention, nutrition, activity, stepsAvg } = deriveNutrition(
+        summary,
+        { cutRatePct, dietBreak },
+    );
     const stored = { ...nutrition, activity };
 
     const candidates = buildCandidates(
@@ -191,7 +283,7 @@ async function prepareAsync(
                 };
             });
             assertNutritionInvariants(nutrition);
-            assertActivityInvariants(activity, stepsAvg);
+            assertActivityInvariants(activity, stepsAvg, nutrition.phase);
             const saved = await ctx.savePlan({
                 blockStart: today,
                 intention,

@@ -4,6 +4,7 @@ import io.github.lopezjavier.appfitness.domain.AppError
 import io.github.lopezjavier.appfitness.domain.AppException
 import io.github.lopezjavier.appfitness.domain.model.CalorieChange
 import io.github.lopezjavier.appfitness.domain.model.CoachPlan
+import io.github.lopezjavier.appfitness.domain.model.DietBreakApplication
 import io.github.lopezjavier.appfitness.domain.repository.CoachPlanRepository
 import kotlinx.datetime.LocalDate
 
@@ -22,6 +23,16 @@ class UnconfiguredCoachPlanRepository : CoachPlanRepository {
     override suspend fun discardPlan(planId: String): Result<Unit> = Result.failure(AppException(AppError.Unknown))
 
     override suspend fun setCardioMinutes(planId: String, minutes: Int): Result<CoachPlan> =
+        Result.failure(AppException(AppError.Unknown))
+
+    override suspend fun updatePlanOptions(
+        planId: String,
+        today: LocalDate,
+        cutRatePct: Double,
+        dietBreak: Boolean,
+    ): Result<CoachPlan> = Result.failure(AppException(AppError.Unknown))
+
+    override suspend fun applyDietBreak(today: LocalDate): Result<DietBreakApplication> =
         Result.failure(AppException(AppError.Unknown))
 
     override suspend fun pendingCalorieChange(today: LocalDate): Result<CalorieChange?> =

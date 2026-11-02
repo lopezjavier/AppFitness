@@ -8,7 +8,7 @@ import {
     callerClient,
 } from "../_shared/food-store.ts";
 import { createCoachHandler } from "./handler.ts";
-import type { CatalogExercise } from "./schemas.ts";
+import type { CatalogExercise, Nutrition, PhaseHistory } from "./schemas.ts";
 
 const apiKey = Deno.env.get("ANTHROPIC_API_KEY")?.trim();
 
@@ -91,7 +91,7 @@ const handler = createCoachHandler({
         const { data, error } = await callerClient(token)
             .from("coach_plans")
             .select(
-                "status,folder_id,cardio_min_week:nutrition->activity->cardio_min_week",
+                "status,folder_id,phase,nutrition,cardio_min_week:nutrition->activity->cardio_min_week",
             )
             .eq("id", planId)
             .maybeSingle();
@@ -103,6 +103,8 @@ const handler = createCoachHandler({
                 cardio_min_week: typeof data.cardio_min_week === "number"
                     ? data.cardio_min_week
                     : null,
+                phase: typeof data.phase === "string" ? data.phase : null,
+                nutrition: (data.nutrition ?? null) as Nutrition | null,
             }
             : null;
     },
@@ -121,6 +123,33 @@ const handler = createCoachHandler({
         return {
             plan_id: String(data.plan_id),
             session_ids: (data.sessions as unknown[] ?? []).map(String),
+        };
+    },
+    loadPhaseHistory: async (token, today) => {
+        const { data, error } = await callerClient(token).rpc(
+            "coach_phase_history",
+            { p_today: today },
+        );
+        if (error || data == null) throw new Error("phase history read failed");
+        return data as PhaseHistory;
+    },
+    updatePlanOptions: async (token, row) => {
+        const { data, error } = await callerClient(token).rpc(
+            "update_coach_plan_options",
+            {
+                p_plan_id: row.planId,
+                p_nutrition: row.nutrition,
+                p_cut_rate_pct: row.cutRatePct,
+                p_diet_break: row.dietBreak,
+            },
+        );
+        if (error || !data?.plan_id) {
+            throw new Error("plan options write failed");
+        }
+        return {
+            plan_id: String(data.plan_id),
+            nutrition: data.nutrition,
+            outcomes: data.outcomes ?? [],
         };
     },
     client: apiKey

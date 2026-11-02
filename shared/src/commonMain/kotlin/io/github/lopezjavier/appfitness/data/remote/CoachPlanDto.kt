@@ -2,8 +2,11 @@ package io.github.lopezjavier.appfitness.data.remote
 
 import io.github.lopezjavier.appfitness.domain.model.CalorieChange
 import io.github.lopezjavier.appfitness.domain.model.CoachPlan
+import io.github.lopezjavier.appfitness.domain.model.CutRate
+import io.github.lopezjavier.appfitness.domain.model.DietBreakWeek
 import io.github.lopezjavier.appfitness.domain.model.GoalStrategy
 import io.github.lopezjavier.appfitness.domain.model.OutcomeKind
+import io.github.lopezjavier.appfitness.domain.model.PhaseOptions
 import io.github.lopezjavier.appfitness.domain.model.PlanActivity
 import io.github.lopezjavier.appfitness.domain.model.PlanLimit
 import io.github.lopezjavier.appfitness.domain.model.PlanNutrition
@@ -11,6 +14,9 @@ import io.github.lopezjavier.appfitness.domain.model.PlanOutcome
 import io.github.lopezjavier.appfitness.domain.model.PlanStatus
 import io.github.lopezjavier.appfitness.domain.model.ProteinDistribution
 import io.github.lopezjavier.appfitness.domain.model.StepsBasis
+import io.github.lopezjavier.appfitness.domain.model.phaseForIntention
+import io.github.lopezjavier.appfitness.domain.model.phaseOrNull
+import io.github.lopezjavier.appfitness.domain.model.phaseReasonOf
 import kotlinx.datetime.Instant
 import kotlinx.datetime.LocalDate
 import kotlinx.serialization.SerialName
@@ -66,13 +72,22 @@ internal data class PlanNutritionDto(
     val distribution: ProteinDistributionDto? = null,
     @SerialName("edited_by_user") val editedByUser: Boolean = false,
     val activity: ActivityDto? = null,
+    val phase: String? = null,
+    @SerialName("phase_reason") val phaseReason: String? = null,
+    @SerialName("phase_options") val phaseOptions: PhaseOptionsDto? = null,
+    @SerialName("diet_break") val dietBreak: DietBreakDto? = null,
 ) {
-    fun toDomain(): PlanNutrition = PlanNutrition(
+    /**
+     * [intention] (and the row's own phase columns) only matter for a legacy JSON without phase keys: the phase then
+     * comes from the row, else from the intention.
+     */
+    fun toDomain(intention: String = "", row: PlanRowPhase = PlanRowPhase()): PlanNutrition = PlanNutrition(
         targetKcal = targetKcal.roundToInt(),
         floorKcal = floorKcal?.roundToInt(),
         limitedBy = when (limitedBy) {
             "floor" -> PlanLimit.Floor
             "goal_range" -> PlanLimit.GoalRange
+            "deficit_cap" -> PlanLimit.DeficitCap
             else -> null
         },
         expenditureKcal = expenditureKcal,
@@ -92,8 +107,49 @@ internal data class PlanNutritionDto(
         distribution = distribution?.let { ProteinDistribution(it.perMealG.roundToInt(), it.minMeals, it.gPerKg) },
         editedByUser = editedByUser,
         activity = activity?.toDomain(),
+        phase = phaseOrNull(phase) ?: phaseOrNull(row.phase) ?: phaseForIntention(intention),
+        phaseReason = phaseReasonOf(phaseReason ?: row.phaseReason),
+        phaseOptions = (phaseOptions ?: row.phaseOptions)?.toDomain() ?: PhaseOptions(),
+        dietBreak = dietBreak?.toDomain(),
     )
 }
+
+/** `nutrition.phase_options` / `coach_plans.phase_options`. */
+@Serializable
+internal data class PhaseOptionsDto(
+    @SerialName("cut_rate_pct") val cutRatePct: Double = CutRate.DEFAULT,
+    @SerialName("diet_break") val dietBreak: Boolean = false,
+) {
+    fun toDomain(): PhaseOptions = PhaseOptions(
+        cutRatePct = if (CutRate.isValid(cutRatePct)) cutRatePct else CutRate.DEFAULT,
+        dietBreak = dietBreak,
+    )
+}
+
+/** `nutrition.diet_break`: the maintenance-week figures. */
+@Serializable
+internal data class DietBreakDto(
+    @SerialName("target_kcal") val targetKcal: Double = 0.0,
+    @SerialName("protein_g") val proteinG: Double = 0.0,
+    @SerialName("carbs_g") val carbsG: Double = 0.0,
+    @SerialName("fat_g") val fatG: Double = 0.0,
+    val week: Int = 4,
+) {
+    fun toDomain(): DietBreakWeek = DietBreakWeek(
+        targetKcal = targetKcal.roundToInt(),
+        proteinG = proteinG.roundToInt(),
+        carbsG = carbsG.roundToInt(),
+        fatG = fatG.roundToInt(),
+        week = week,
+    )
+}
+
+/** The `phase*` columns of a `coach_plans` row, the fallback when the nutrition JSON has none. */
+internal data class PlanRowPhase(
+    val phase: String? = null,
+    val phaseReason: String? = null,
+    val phaseOptions: PhaseOptionsDto? = null,
+)
 
 @Serializable
 internal data class PlanOutcomeDto(
@@ -125,6 +181,9 @@ internal data class CoachPlanDto(
     val nutrition: PlanNutritionDto = PlanNutritionDto(),
     val outcomes: List<PlanOutcomeDto> = emptyList(),
     @SerialName("accepted_at") val acceptedAt: Instant? = null,
+    val phase: String? = null,
+    @SerialName("phase_reason") val phaseReason: String? = null,
+    @SerialName("phase_options") val phaseOptions: PhaseOptionsDto? = null,
 ) {
     fun toDomain(): CoachPlan = CoachPlan(
         id = id,
@@ -137,7 +196,7 @@ internal data class CoachPlanDto(
             "discarded" -> PlanStatus.Discarded
             else -> PlanStatus.Proposed
         },
-        nutrition = nutrition.toDomain(),
+        nutrition = nutrition.toDomain(intention, PlanRowPhase(phase, phaseReason, phaseOptions)),
         outcomes = outcomes.mapNotNull(PlanOutcomeDto::toDomain),
         acceptedAt = acceptedAt,
     )
@@ -213,6 +272,29 @@ internal data class SetCardioParams(
 
 @Serializable
 internal data class EvaluateCalorieParams(@SerialName("p_today") val today: LocalDate)
+
+/** `plan_recompute` call: no model key, the function answers without a paid call. */
+@Serializable
+internal data class RecomputeRequestBody(val kind: String, val input: RecomputeRequestInput)
+
+@Serializable
+internal data class RecomputeRequestInput(
+    val today: LocalDate,
+    @SerialName("plan_id") val planId: String,
+    @SerialName("cut_rate_pct") val cutRatePct: Double,
+    @SerialName("diet_break") val dietBreak: Boolean,
+)
+
+@Serializable
+internal data class ApplyDietBreakParams(@SerialName("p_today") val today: LocalDate)
+
+/** Result of `apply_coach_diet_break`. */
+@Serializable
+internal data class ApplyDietBreakResultDto(
+    val applied: Boolean = false,
+    val week: Int = 0,
+    @SerialName("target_kcal") val targetKcal: Double? = null,
+)
 
 @Serializable
 internal data class DecideRecommendationParams(

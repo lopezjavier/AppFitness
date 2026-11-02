@@ -61,6 +61,10 @@ function setup(
         loadCatalog: () => Promise.reject(new Error("unexpected loadCatalog")),
         loadPlan: () => Promise.reject(new Error("unexpected loadPlan")),
         attachBlock: () => Promise.reject(new Error("unexpected attachBlock")),
+        loadPhaseHistory: () =>
+            Promise.reject(new Error("unexpected loadPhaseHistory")),
+        updatePlanOptions: () =>
+            Promise.reject(new Error("unexpected updatePlanOptions")),
         now: () => NOW,
         ...overrides,
     };

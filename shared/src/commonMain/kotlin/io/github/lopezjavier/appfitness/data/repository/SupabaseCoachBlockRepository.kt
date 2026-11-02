@@ -57,12 +57,12 @@ class SupabaseCoachBlockRepository internal constructor(
         this(auth, postgrest, functions, modelPreference, COACH_CLIENT_TIMEOUT)
 
     @Suppress("TooGenericExceptionCaught")
-    override suspend fun requestBlock(planId: String, today: LocalDate): Result<CoachBlock> {
+    override suspend fun requestBlock(planId: String, today: LocalDate, minimal: Boolean): Result<CoachBlock> {
         if (auth.currentUserOrNull() == null) return Result.failure(AppException(AppError.Unauthorized))
         return try {
             val model = modelPreference.selected.value.requestKey()
             val body = coachPlanJson.encodeToString(
-                BlockRequestBody("plan_block", BlockRequestInput(today, planId), model),
+                BlockRequestBody("plan_block", BlockRequestInput(today, planId, minimal), model),
             )
             val stream = functions.invoke("coach") {
                 method = HttpMethod.Post

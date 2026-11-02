@@ -115,7 +115,12 @@ internal fun blockOf(plan: CoachBlockPlanDto, sessions: List<BlockSessionDto>): 
 internal data class BlockRequestBody(val kind: String, val input: BlockRequestInput, val model: String? = null)
 
 @Serializable
-internal data class BlockRequestInput(val today: LocalDate, @SerialName("plan_id") val planId: String)
+internal data class BlockRequestInput(
+    val today: LocalDate,
+    @SerialName("plan_id") val planId: String,
+    /** "Tengo poco tiempo": omitted from the JSON when false. */
+    val minimal: Boolean = false,
+)
 
 @Serializable
 internal data class SaveBlockParams(

@@ -1,8 +1,14 @@
 import { assertEquals, assertThrows } from "jsr:@std/assert@1.0.19";
-import { computeNutrition, type NutritionInput } from "./nutritionRules.ts";
+import {
+    computeNutrition,
+    intakeRangeViolation,
+    type NutritionInput,
+} from "./nutritionRules.ts";
+import { CARDIO_MIN_WEEK_MINIMAL, computeActivity } from "./cardioRules.ts";
 import type { Candidate } from "./outcomes.ts";
 import type { Nutrition } from "./schemas.ts";
 import {
+    assertActivityInvariants,
     assertNutritionInvariants,
     NutritionInvariantError,
     unconfirmedKeys,
@@ -305,7 +311,16 @@ Deno.test("a loss deeper than the range is rejected and a floor-slowed one is al
         intakeAnchorKcal: 2600,
     });
     withDelta(deep, -891);
-    assertEquals(intakeRuleOf(deep), "target_below_intake_range");
+    // The deficit cap (500) is reached first; the range edge itself is checked on its own below.
+    assertEquals(intakeRuleOf(deep), "deficit_cap");
+    assertEquals(
+        intakeRangeViolation("loss", 80, 0, -891, null),
+        "target_below_intake_range",
+    );
+    assertEquals(
+        intakeRangeViolation("loss", 80, 0, -500, "deficit_cap"),
+        null,
+    );
     const slow = anchoredPlan({
         intention: "fat_loss",
         experience: "intermediate",
@@ -360,4 +375,120 @@ Deno.test("a slope term beyond one top-of-range rate is rejected", () => {
     const n = anchoredPlan();
     n.slope_term_kcal = 442;
     assertEquals(intakeRuleOf(n), "slope_term_range");
+});
+
+// --- T-187: invariants by phase (mirror of coach_assert_plan) ---
+
+Deno.test("a deficit of 500 is accepted and 501 is rejected as deficit_cap", () => {
+    const ok = good({ weightKg: 120, expenditureKcal: 3000 });
+    assertNutritionInvariants(ok);
+    broken("deficit_cap", (x) => {
+        x.target_kcal = 2499;
+        x.calorie_adjustment = -501;
+    }, good({ weightKg: 120, expenditureKcal: 3000 }));
+});
+
+Deno.test("the deficit_cap flag needs a cut and a deficit of exactly 500", () => {
+    broken("deficit_cap_flag", (x) => (x.limited_by = "deficit_cap"));
+    broken(
+        "deficit_cap_flag",
+        (x) => (x.limited_by = "deficit_cap"),
+        good({ phase: "maintenance" }),
+    );
+});
+
+Deno.test("regain with a deficit is rejected", () => {
+    broken("regain_deficit", (x) => {
+        x.target_kcal = 2500;
+        x.calorie_adjustment = -100;
+        x.strategy = "deficit";
+    }, good({ phase: "regain" }));
+});
+
+Deno.test("regain: a surplus needs a muscle or strength intention and at most 0.25 percent", () => {
+    broken("regain_surplus", (x) => {
+        x.target_kcal = 2820;
+        x.calorie_adjustment = 220;
+        x.strategy = "surplus";
+    }, good({ phase: "regain" }));
+    broken(
+        "regain_rate",
+        (x) => (x.rate_pct_week = 0.45),
+        good({ intention: "muscle", phase: "regain" }),
+    );
+    assertNutritionInvariants(good({ intention: "strength", phase: "regain" }));
+});
+
+Deno.test("maintenance, recomposition and minimal stay inside the no-change range", () => {
+    for (const phase of ["maintenance", "recomposition", "minimal"] as const) {
+        assertNutritionInvariants(good({ phase }));
+        broken("no_change_range", (x) => {
+            x.target_kcal = 2900;
+            x.calorie_adjustment = 300;
+            x.strategy = "surplus";
+        }, good({ phase }));
+        broken("no_change_range", (x) => {
+            x.target_kcal = 2300;
+            x.calorie_adjustment = -300;
+            x.strategy = "deficit";
+        }, good({ phase }));
+    }
+});
+
+Deno.test("a diet-break week is valid on a cut and rejected on any other phase", () => {
+    assertNutritionInvariants(good({ dietBreak: true }));
+    broken("diet_break_phase", (x) => {
+        x.diet_break = good({ dietBreak: true }).diet_break;
+    }, good({ phase: "maintenance" }));
+    broken(
+        "diet_break",
+        (x) => (x.diet_break = null),
+        good({ dietBreak: true }),
+    );
+    broken(
+        "diet_break",
+        (x) => (x.diet_break!.target_kcal = 2000),
+        good({ dietBreak: true }),
+    );
+});
+
+Deno.test("phase options outside 0.5-1.0 are rejected", () => {
+    broken("phase_options", (x) => (x.phase_options.cut_rate_pct = 1.2));
+    broken("phase_options", (x) => (x.phase_options.cut_rate_pct = 0.4));
+});
+
+Deno.test("a plan stored before T-187 (no phase keys) is judged by its intention", () => {
+    const n = good() as unknown as Record<string, unknown>;
+    delete n.phase;
+    delete n.phase_reason;
+    delete n.phase_options;
+    delete n.diet_break;
+    assertNutritionInvariants(n as unknown as Nutrition);
+});
+
+Deno.test("cardio: 150 everywhere but the minimal phase, where only 100 passes", () => {
+    const a150 = computeActivity({
+        intention: "maintenance",
+        stepsAvg28: null,
+    });
+    const a100 = computeActivity({
+        intention: "maintenance",
+        stepsAvg28: null,
+        phase: "minimal",
+    });
+    assertEquals(a100.cardio_min_week, CARDIO_MIN_WEEK_MINIMAL);
+    assertActivityInvariants(a150, null, "regain");
+    assertActivityInvariants(a100, null, "minimal");
+    assertThrows(
+        () => assertActivityInvariants(a150, null, "minimal"),
+        NutritionInvariantError,
+    );
+    assertThrows(
+        () => assertActivityInvariants(a100, null, "cut"),
+        NutritionInvariantError,
+    );
+    assertThrows(
+        () => assertActivityInvariants(a100, null),
+        NutritionInvariantError,
+    );
 });
