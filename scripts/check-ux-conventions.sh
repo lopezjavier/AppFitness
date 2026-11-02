@@ -198,6 +198,12 @@ scan G16 "exercise name falls back to a string (R-54: resolve the name through E
 scan G16 "ifBlank/orEmpty/elvis on an exercise name (R-54)" \
   '\b[A-Za-z]*[eE]xercise[A-Za-z]*\??\.name\b[^/]*(\.ifBlank[[:space:]]*\{|\.orEmpty\(\)|\?:)' \
   '.*/feature/exercises/(ExerciseDetailViewModel|ExerciseFormSheet)\.kt' "${kotlin_feature[@]}"
+scan G16 "empty/blank fallback on a looked-up exercise name (R-54)" \
+  '[nN]ames?\[[^]]*\]\??(\.orEmpty\(\)|\.ifBlank|[[:space:]]*\?:[[:space:]]*"")' '' "${kotlin_feature[@]}"
+# Allow-list: ExerciseDetailScreen titles itself with exercise_detail_title while no detail is loaded (R-01, not a name).
+scan G16 "a name falls back to a string resource (R-54)" \
+  '\.name\b[[:space:]]*\?:[[:space:]]*stringResource\(' '.*/feature/exercises/ExerciseDetailScreen\.kt' \
+  "${kotlin_feature[@]}"
 scan G16 "exercise id used as a label (R-54)" '\?:[[:space:]]*[A-Za-z.]*[eE]xerciseId\b' '' "${kotlin_feature[@]}"
 
 # G9 / G10 / G16: strings.xml.
