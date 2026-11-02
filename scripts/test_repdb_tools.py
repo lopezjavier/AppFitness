@@ -68,11 +68,11 @@ class MappingTest(unittest.TestCase):
 
     def test_equipment_ids_map_to_enum(self):
         cases = {
-            "barbell": "barbell", "ez_bar": "barbell", "trap_bar": "barbell", "landmine": "barbell",
+            "barbell": "barbell", "ez_bar": "ez_bar", "trap_bar": "other", "landmine": "other",
             "dumbbell": "dumbbell", "cable": "cable", "kettlebell": "kettlebell", "loop_band": "band",
             "resistance_band": "band", "leg_press": "machine", "smith_machine": "machine",
             "pec_deck": "machine", "hack_squat": "machine", "chest_press_machine": "machine",
-            "pull_up_bar": "bodyweight", "plates": "other",
+            "pull_up_bar": "other", "plates": "other",
         }
         for eq, enum in cases.items():
             with self.subTest(equipment=eq):
@@ -92,7 +92,8 @@ class MappingTest(unittest.TestCase):
     def test_every_mapped_value_is_a_valid_enum_label(self):
         groups = {"chest", "back", "shoulders", "biceps", "triceps", "forearms", "quads", "hamstrings",
                   "glutes", "calves", "core", "full_body"}
-        equipment = {"barbell", "dumbbell", "machine", "cable", "bodyweight", "kettlebell", "band", "other"}
+        equipment = {"barbell", "dumbbell", "machine", "cable", "bodyweight", "kettlebell", "band", "other", "ez_bar",
+                     "cardio_machine"}
         self.assertLessEqual(set(gen.MUSCLE_TO_GROUP.values()) | set(gen.BODY_PART_TO_GROUP.values()), groups)
         self.assertLessEqual(set(gen.EQUIPMENT_TO_ENUM.values()), equipment)
 
@@ -249,3 +250,44 @@ class ImportTest(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class EquipmentMappingTest(unittest.TestCase):
+    """T-201 (ADR-92): equipment items of the generator."""
+
+    def _rows(self, *specs):
+        return gen.build_rows([exercise(key, equipment=eq) for key, eq in specs])
+
+    def test_ez_bar_key_is_ez_bar_and_plain_barbell_stays_barbell(self):
+        rows = dict((k, e) for k, _g, e in self._rows(("ez-bar-curl", "ez_bar"), ("barbell-curl", "barbell")))
+        self.assertEqual(rows, {"ez-bar-curl": "ez_bar", "barbell-curl": "barbell"})
+
+    def test_small_implements_and_structures_are_other(self):
+        for bundle in ("landmine", "trap_bar", "pull_up_bar", "dip_station", "rings", "suspension_trainer"):
+            self.assertEqual(self._rows(("x", bundle))[0][2], "other", bundle)
+
+    def test_every_cardio_machine_is_one_value(self):
+        for bundle in ("air_bike", "stationary_bike", "treadmill", "elliptical", "rower", "ski_erg", "stair_climber"):
+            self.assertEqual(self._rows(("x", bundle))[0][2], "cardio_machine", bundle)
+
+    def test_key_overrides_and_group_fix(self):
+        rows = {k: (g, e) for k, g, e in self._rows(
+            ("v-bar-lat-pulldown", "lat_pulldown_machine"), ("human-flag", None),
+            ("smith-machine-reverse-grip-bent-over-row", "smith_machine"))}
+        self.assertEqual(rows["v-bar-lat-pulldown"][1], "cable")
+        self.assertEqual(rows["human-flag"][1], "other")
+        self.assertEqual(rows["smith-machine-reverse-grip-bent-over-row"][0], "back")
+
+    def test_no_old_cardio_value_is_produced(self):
+        old = {"cardio_bike", "treadmill", "elliptical", "rower", "cardio_other"}
+        self.assertTrue(old.isdisjoint(gen.EQUIPMENT_TO_ENUM.values()))
+
+
+class EzBarNameTest(unittest.TestCase):
+    def test_barra_ez_becomes_barra_z_in_every_text(self):
+        ex = exercise("ez-bar-pullover")
+        ex["name"] = "Pullover con Barra EZ"
+        ex["instructions"] = ["Sujeta la Barra EZ."]
+        out = imp.trim(ex)
+        self.assertEqual(out["name"], "Pullover con Barra Z")
+        self.assertEqual(out["instructions"], ["Sujeta la Barra Z."])

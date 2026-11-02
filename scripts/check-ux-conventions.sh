@@ -231,6 +231,14 @@ if [ -f "$strings_file" ]; then
     exit "$rc"
   fi
   [ "$rc" -eq 0 ] && report G10 "three dots or 'Deshacer' in strings.xml (use the ellipsis character)" "$hits"
+  # G17: Compose resources do not collapse %%, so a doubled sign prints twice (T-201). Use a single %.
+  rc=0
+  hits=$(grep -HnE '%%' "$strings_file") || rc=$?
+  if [ "$rc" -ge 2 ]; then
+    echo "UX conventions guard ERROR: grep failed with exit code $rc (G17)." >&2
+    exit "$rc"
+  fi
+  [ "$rc" -eq 0 ] && report G17 "'%%' in strings.xml (Compose resources print both signs; use a single %)" "$hits"
   # G16: generic exercise labels. exercise_detail_title is the screen-kind title shown while the exercise is loading
   # (no object known yet, R-01), not an exercise name.
   rc=0

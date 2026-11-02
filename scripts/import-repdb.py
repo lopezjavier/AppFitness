@@ -54,13 +54,21 @@ def pose_files(exercise):
     return []
 
 
+EZ_BAR_RE = re.compile(r"\bBarra EZ\b")
+
+
+def unify(text):
+    """T-201 (ADR-92): the bundle names the EZ bar two ways; the app says "Barra Z" everywhere."""
+    return EZ_BAR_RE.sub("Barra Z", text)
+
+
 def trim(exercise):
     poses = [app for _, app in pose_files(exercise)]
     return {
-        "name": exercise["name"],
-        "description": exercise.get("description") or "",
-        "instructions": list(exercise.get("instructions") or []),
-        "tips": list(exercise.get("tips") or []),
+        "name": unify(exercise["name"]),
+        "description": unify(exercise.get("description") or ""),
+        "instructions": [unify(t) for t in (exercise.get("instructions") or [])],
+        "tips": [unify(t) for t in (exercise.get("tips") or [])],
         "poses": poses,
     }
 

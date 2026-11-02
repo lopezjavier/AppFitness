@@ -68,7 +68,7 @@ insert into public.coach_plans (id, user_id, block_start, intention, nutrition, 
 select ('c9000000-0000-4000-8000-0000000000a' || n)::uuid, pg_temp.u(n), current_date, 'muscle', '{}', 'proposed'
 from generate_series(1, 6) n;
 insert into public.training_preferences (user_id, place, equipment) values
-  (pg_temp.u(6), 'gym', array['cardio_bike', 'treadmill']::public.equipment[]),
+  (pg_temp.u(6), 'gym', array['cardio_machine']::public.equipment[]),
   (pg_temp.u(5), 'home', array[]::public.equipment[]);
 
 -- ---------------------------------------------------------------------------
@@ -76,9 +76,10 @@ insert into public.training_preferences (user_id, place, equipment) values
 -- ---------------------------------------------------------------------------
 select ok(not has_function_privilege('anon', 'public.coach_cardio_options(text[])', 'execute'),
   'anon cannot execute coach_cardio_options');
-select is(pg_temp.keys(array['cardio_bike', 'treadmill']),
-  array['air-bike', 'incline-treadmill-walk', 'running', 'stationary-bike', 'treadmill-running', 'walking'],
-  'bike + treadmill give the bikes, the treadmill moves, walking and running');
+select is(pg_temp.keys(array['cardio_machine']),
+  array['air-bike', 'elliptical-trainer', 'incline-treadmill-walk', 'rowing-machine', 'running', 'ski-erg',
+        'stationary-bike', 'treadmill-running', 'walking'],
+  'cardio_machine gives the seven continuous machines, walking and running (the stair climber has a floors metric)');
 select is(pg_temp.keys(array['bodyweight']), array['running', 'walking'],
   'bodyweight only leaves walking and running (the non-continuous moves are excluded)');
 select ok(not (pg_temp.keys('{}') && array['jumping-jacks', 'jump-rope', 'battle-ropes', 'mountain-climbers', 'burpees',
@@ -132,7 +133,7 @@ select throws_ok(
 select throws_ok(
   $$select pg_temp.attach('c9000000-0000-4000-8000-0000000000a1', pg_temp.sessions(
       pg_temp.cardio('elliptical-trainer'), pg_temp.cardio('stationary-bike')),
-      pg_temp.training(100, 100, 0, array[50, 50], '["cardio_bike", "barbell", "machine"]'))$$,
+      pg_temp.training(100, 100, 0, array[50, 50], '["barbell", "machine"]'))$$,
   '22023', 'block invariant: cardio_equipment', 'a cardio exercise outside the plan equipment is rejected');
 select lives_ok(
   $$select pg_temp.attach('c9000000-0000-4000-8000-0000000000a1', pg_temp.sessions(
@@ -249,12 +250,12 @@ select is((select count(*)::int from public.coach_plan_sessions
            where session_index = 2 and exercises->2->>'exercise_key' = 'stationary-bike'), 4, 'the other routine keeps its cardio');
 
 -- ---------------------------------------------------------------------------
--- Rejected swaps (user 4: equipment cardio_bike only) and nothing is created
+-- Rejected swaps (user 4: cardio_machine, barbell, machine) and nothing is created
 -- ---------------------------------------------------------------------------
 select pg_temp.as_user(4);
 select pg_temp.attach('c9000000-0000-4000-8000-0000000000a4',
   pg_temp.sessions(pg_temp.cardio('stationary-bike'), pg_temp.cardio('stationary-bike')),
-  pg_temp.training(100, 100, 0, array[50, 50], '["cardio_bike", "barbell", "machine"]'));
+  pg_temp.training(100, 100, 0, array[50, 50], '["cardio_machine", "barbell", "machine"]'));
 select throws_ok(format($$select public.save_coach_block('c9000000-0000-4000-8000-0000000000a4',
     '[{"session_index":1,"position":1,"exercise_id":"%s"}]'::jsonb)$$, pg_temp.k('walking')),
   '22023', null, 'a cardio exercise cannot replace a lifting exercise');
@@ -262,8 +263,8 @@ select throws_ok(format($$select public.save_coach_block('c9000000-0000-4000-800
     '[{"session_index":1,"position":3,"exercise_id":"%s"}]'::jsonb)$$, pg_temp.ex('squat', 0)),
   '22023', null, 'a lifting exercise cannot replace the cardio exercise');
 select throws_ok(format($$select public.save_coach_block('c9000000-0000-4000-8000-0000000000a4',
-    '[{"session_index":1,"position":3,"exercise_id":"%s"}]'::jsonb)$$, pg_temp.k('elliptical-trainer')),
-  '22023', null, 'a cardio swap outside the plan equipment is rejected');
+    '[{"session_index":1,"position":3,"exercise_id":"%s"}]'::jsonb)$$, pg_temp.k('jump-rope')),
+  '22023', null, 'an interval move is not a cardio swap option');
 select throws_ok(format($$select public.save_coach_block('c9000000-0000-4000-8000-0000000000a4',
     '[{"session_index":1,"position":3,"exercise_id":"%s"}]'::jsonb)$$, pg_temp.k('stationary-bike')),
   '22023', null, 'a replacement already in the session is rejected');
@@ -281,11 +282,11 @@ select throws_ok($$select public.save_coach_block('c9000000-0000-4000-8000-00000
 select pg_temp.as_user(6);
 select is((select array_agg(e.key order by e.key) from public.exercise_alternatives(pg_temp.k('stationary-bike')) a
            join public.exercises e on e.id = a.exercise_id),
-  array['air-bike', 'incline-treadmill-walk', 'running', 'treadmill-running', 'walking'],
+  array['air-bike', 'elliptical-trainer', 'incline-treadmill-walk', 'rowing-machine', 'running', 'ski-erg', 'treadmill-running', 'walking'],
   'the alternatives of a cardio exercise are all the cardio options of the user''s equipment, except itself');
 select is((select array_agg(e.key order by e.key) from public.exercise_alternatives(pg_temp.k('walking')) a
            join public.exercises e on e.id = a.exercise_id),
-  array['air-bike', 'incline-treadmill-walk', 'running', 'stationary-bike', 'treadmill-running'],
+  array['air-bike', 'elliptical-trainer', 'incline-treadmill-walk', 'rowing-machine', 'running', 'ski-erg', 'stationary-bike', 'treadmill-running'],
   'any cardio exercise swaps with any other: the same set from walking');
 select is((select count(*)::int from public.exercise_alternatives(pg_temp.k('stationary-bike')) a where a.similarity <> 1), 0,
   'every cardio alternative has similarity 1');

@@ -19,8 +19,8 @@ import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import io.github.lopezjavier.appfitness.composeapp.resources.Res
 import io.github.lopezjavier.appfitness.composeapp.resources.action_retry
 import io.github.lopezjavier.appfitness.composeapp.resources.exercise_similar_empty
@@ -148,7 +148,7 @@ internal fun SimilarExerciseItem(
                     color = AppTheme.colors.textSecondary,
                     modifier = Modifier
                         .testTag(percentTag)
-                        .clearAndSetSemantics { contentDescription = percentDescription },
+                        .semantics { contentDescription = percentDescription },
                 )
             }
         } else {

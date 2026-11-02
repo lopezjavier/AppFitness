@@ -186,15 +186,12 @@ class MyTrainingSectionTest {
     }
 
     @Test
-    fun cardioGroup_showsTheFiveMachines_andTheWalkingHelper() {
+    fun cardioGroup_showsTheSingleMachineChip_andTheWalkingHelper() {
         show()
         rule.onNodeWithText("Cardio").performScrollTo().assertIsDisplayed()
         mapOf(
-            "cardio_bike" to "Bicicleta estática",
-            "treadmill" to "Cinta de correr",
-            "elliptical" to "Elíptica",
-            "rower" to "Remo",
-            "cardio_other" to "Otra máquina de cardio",
+            "cardio_machine" to "Máquina de cardio",
+            "ez_bar" to "Barra Z",
         ).forEach { (tag, label) ->
             rule.onNodeWithTag("preferences_equipment_$tag").performScrollTo().assertTextContains(label)
         }
@@ -225,9 +222,9 @@ class MyTrainingSectionTest {
     @Test
     fun togglingACardioChip_enablesGuardar_andSavesIt() {
         show()
-        tap("preferences_equipment_treadmill")
+        tap("preferences_equipment_cardio_machine")
         tap("preferences_mi_entrenamiento_save")
-        assertEquals(listOf(MyTraining(equipment = setOf(Equipment.Treadmill))), prefs.savedMyTraining)
+        assertEquals(listOf(MyTraining(equipment = setOf(Equipment.CardioMachine))), prefs.savedMyTraining)
     }
 
     @Test

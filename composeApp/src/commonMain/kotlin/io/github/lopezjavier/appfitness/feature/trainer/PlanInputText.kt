@@ -168,7 +168,7 @@ private fun sexResource(text: String): StringResource? = when (normalized(text))
 }
 
 private fun equipmentResource(text: String): StringResource? =
-    Equipment.entries.firstOrNull { normalized(it.name) == normalized(text) }?.label
+    (Equipment.entries.firstOrNull { normalized(it.name) == normalized(text) } ?: Equipment.fromWire(text))?.label
 
 @Composable
 private fun known(text: String, mapper: (String) -> StringResource?): String =
@@ -196,7 +196,7 @@ private fun PlanInputRow.rawValueText(): String? {
 
         v is PlanInputValue.Flag -> stringResource(if (v.flag) Res.string.plan_input_yes else Res.string.plan_input_no)
 
-        v is PlanInputValue.Items -> v.items.map { known(it, ::equipmentResource) }.joinToString(", ")
+        v is PlanInputValue.Items -> v.items.map { known(it, ::equipmentResource) }.distinct().joinToString(", ")
 
         else -> null
     }

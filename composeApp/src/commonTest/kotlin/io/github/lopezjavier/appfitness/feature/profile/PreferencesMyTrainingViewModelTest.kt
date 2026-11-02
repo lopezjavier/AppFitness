@@ -159,11 +159,12 @@ class PreferencesMyTrainingViewModelTest {
     }
 
     @Test
-    fun choosingGym_selectsTheFiveCardioMachines_andHomeOrOtherSelectNone() = runTest {
+    fun choosingGym_selectsTheCardioMachineAndEzBar_andHomeOrOtherSelectNeither() = runTest {
         val (viewModel, state) = loaded()
 
         viewModel.onEvent(PreferencesEvent.SetPlace(TrainingPlace.Gym))
         assertTrue(state().form.equipment.containsAll(Equipment.cardio))
+        assertTrue(Equipment.EzBar in state().form.equipment)
         viewModel.onEvent(PreferencesEvent.SetPlace(TrainingPlace.Home))
         assertTrue(state().form.equipment.none { it.isCardio })
         viewModel.onEvent(PreferencesEvent.SetPlace(TrainingPlace.Other))
@@ -176,12 +177,30 @@ class PreferencesMyTrainingViewModelTest {
         val (viewModel, state) = loaded()
         assertFalse(state().isDirty)
 
-        viewModel.onEvent(PreferencesEvent.SetEquipment(Equipment.Treadmill, checked = true))
+        viewModel.onEvent(PreferencesEvent.SetEquipment(Equipment.CardioMachine, checked = true))
         assertTrue(state().isDirty)
         viewModel.onEvent(PreferencesEvent.Save)
         advanceUntilIdle()
 
-        assertEquals(setOf(Equipment.Machine, Equipment.Treadmill), training.savedMyTraining.single().equipment)
+        assertEquals(setOf(Equipment.Machine, Equipment.CardioMachine), training.savedMyTraining.single().equipment)
+    }
+
+    @Test
+    fun togglingEzBar_onAndOff_returnsToCleanAndSavesIt() = runTest {
+        training.result = Result.success(TrainingPreferences(equipment = setOf(Equipment.Barbell)))
+        val (viewModel, state) = loaded()
+
+        viewModel.onEvent(PreferencesEvent.SetEquipment(Equipment.EzBar, checked = true))
+        assertTrue(Equipment.EzBar in state().form.equipment)
+        assertTrue(state().isDirty)
+        viewModel.onEvent(PreferencesEvent.SetEquipment(Equipment.EzBar, checked = false))
+        assertFalse(state().isDirty)
+
+        viewModel.onEvent(PreferencesEvent.SetEquipment(Equipment.EzBar, checked = true))
+        viewModel.onEvent(PreferencesEvent.Save)
+        advanceUntilIdle()
+
+        assertEquals(setOf(Equipment.Barbell, Equipment.EzBar), training.savedMyTraining.single().equipment)
     }
 
     @Test
@@ -198,12 +217,14 @@ class PreferencesMyTrainingViewModelTest {
     fun cardioDraft_survivesRecreationFromTheSameSavedState() = runTest {
         val handle = SavedStateHandle()
         val (first, _) = loaded(handle)
-        first.onEvent(PreferencesEvent.SetEquipment(Equipment.Rower, checked = true))
+        first.onEvent(PreferencesEvent.SetEquipment(Equipment.CardioMachine, checked = true))
+        first.onEvent(PreferencesEvent.SetEquipment(Equipment.EzBar, checked = true))
         advanceUntilIdle()
 
         val (second, state) = loaded(handle)
 
-        assertTrue(Equipment.Rower in state().form.equipment)
+        assertTrue(Equipment.CardioMachine in state().form.equipment)
+        assertTrue(Equipment.EzBar in state().form.equipment)
         assertTrue(second.uiState.value is PreferencesUiState.Loaded)
         assertTrue(training.savedMyTraining.isEmpty())
     }

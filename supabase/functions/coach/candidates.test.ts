@@ -165,29 +165,74 @@ Deno.test("band_long ranks right after band and before other; unknown equipment 
     ]);
 });
 
-Deno.test("the five cardio values rank after band_long and before other", () => {
+Deno.test("cardio_machine ranks after band_long and before other", () => {
     const got = filterCandidates(
         [
             ex({ key: "a-other", equipment: "other" }),
-            ex({ key: "b-cardio-other", equipment: "cardio_other" }),
-            ex({ key: "c-rower", equipment: "rower" }),
-            ex({ key: "d-elliptical", equipment: "elliptical" }),
-            ex({ key: "e-treadmill", equipment: "treadmill" }),
-            ex({ key: "f-bike", equipment: "cardio_bike" }),
-            ex({ key: "g-long", equipment: "band_long" }),
+            ex({ key: "b-cardio", equipment: "cardio_machine" }),
+            ex({ key: "c-long", equipment: "band_long" }),
         ],
         { place: "gym", equipment: [] },
         mainChest,
     );
-    assertEquals(got.map((e) => e.key), [
-        "g-long",
-        "f-bike",
-        "e-treadmill",
-        "d-elliptical",
-        "c-rower",
-        "b-cardio-other",
-        "a-other",
-    ]);
+    assertEquals(got.map((e) => e.key), ["c-long", "b-cardio", "a-other"]);
+});
+
+Deno.test("candidate order is barbell, ez_bar, dumbbell, machine, cable, kettlebell, bodyweight, band", () => {
+    const order = [
+        "barbell",
+        "ez_bar",
+        "dumbbell",
+        "machine",
+        "cable",
+        "kettlebell",
+        "bodyweight",
+        "band",
+        "band_long",
+        "other",
+    ];
+    const got = filterCandidates(
+        [...order].reverse().map((equipment) =>
+            ex({ key: `k-${equipment}`, equipment })
+        ),
+        { place: "gym", equipment: [] },
+        mainChest,
+    );
+    assertEquals(got.map((e) => e.equipment), order);
+});
+
+Deno.test("ez_bar exercises are offered only with Barra Z saved", () => {
+    const list = [
+        ex({ key: "ez-bar-bench-press", equipment: "ez_bar" }),
+        ex({ key: "bench", equipment: "barbell" }),
+    ];
+    assertEquals(
+        filterCandidates(list, { place: "home", equipment: ["barbell"] }, mainChest)
+            .map((e) => e.key),
+        ["bench"],
+    );
+    assertEquals(
+        filterCandidates(list, { place: "home", equipment: ["ez_bar"] }, mainChest)
+            .map((e) => e.key),
+        ["ez-bar-bench-press"],
+    );
+});
+
+Deno.test("an exercise tagged other is offered only with Otro saved", () => {
+    const list = [
+        ex({ key: "landmine-press", equipment: "other" }),
+        ex({ key: "bench", equipment: "barbell" }),
+    ];
+    assertEquals(
+        filterCandidates(list, { place: "home", equipment: ["barbell"] }, mainChest)
+            .map((e) => e.key),
+        ["bench"],
+    );
+    assertEquals(
+        filterCandidates(list, { place: "home", equipment: ["other"] }, mainChest)
+            .map((e) => e.key),
+        ["landmine-press"],
+    );
 });
 
 Deno.test("cardio rows never reach a lifting pool, with or without cardio selected", () => {
@@ -195,24 +240,20 @@ Deno.test("cardio rows never reach a lifting pool, with or without cardio select
         ex({ key: "bench", equipment: "barbell" }),
         ex({
             key: "stationary-bike",
-            equipment: "cardio_bike",
+            equipment: "cardio_machine",
             muscle_group: "quads",
             movement_pattern: "cardio",
             metric_type: "distance_duration",
         }),
         ex({
             key: "treadmill-running",
-            equipment: "treadmill",
+            equipment: "cardio_machine",
             movement_pattern: "cardio",
             metric_type: "distance_duration",
         }),
     ];
     for (
-        const equipment of [["barbell"], [
-            "barbell",
-            "cardio_bike",
-            "treadmill",
-        ], []]
+        const equipment of [["barbell"], ["barbell", "cardio_machine"], []]
     ) {
         const got = filterCandidates(
             list,

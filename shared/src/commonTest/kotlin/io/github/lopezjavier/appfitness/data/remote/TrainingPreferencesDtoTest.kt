@@ -3,12 +3,11 @@ package io.github.lopezjavier.appfitness.data.remote
 import io.github.lopezjavier.appfitness.domain.model.Equipment
 import io.github.lopezjavier.appfitness.domain.model.TrainingIntention
 import io.github.lopezjavier.appfitness.domain.model.TrainingPlace
-import kotlinx.serialization.SerializationException
 import kotlinx.serialization.json.Json
 import kotlin.test.Test
 import kotlin.test.assertEquals
-import kotlin.test.assertFailsWith
 import kotlin.test.assertNull
+import kotlin.test.assertTrue
 
 class TrainingPreferencesDtoTest {
     private val json = Json { ignoreUnknownKeys = true }
@@ -55,42 +54,66 @@ class TrainingPreferencesDtoTest {
     }
 
     @Test
-    fun cardioEquipmentValues_decode() {
+    fun ezBarAndCardioMachine_roundTrip() {
+        val prefs = decode("""{"equipment":["ez_bar","cardio_machine","machine"]}""")
+
+        assertEquals(setOf(Equipment.EzBar, Equipment.CardioMachine, Equipment.Machine), prefs.equipment)
+
+        val body = json.encodeToString(
+            MyTrainingUpsertDto.serializer(),
+            MyTrainingUpsertDto("u", null, null, listOf(Equipment.EzBar, Equipment.CardioMachine), null, null),
+        )
+        assertTrue(body.contains(""""equipment":["ez_bar","cardio_machine"]"""), body)
+    }
+
+    @Test
+    fun legacyCardioValues_decodeAsTheCardioMachine() {
         val prefs = decode(
             """{"equipment":["cardio_bike","treadmill","elliptical","rower","cardio_other","machine"]}""",
         )
 
+        assertEquals(setOf(Equipment.CardioMachine, Equipment.Machine), prefs.equipment)
+    }
+
+    @Test
+    fun unknownEquipmentValueInPreferences_isSkippedWithoutThrowing() {
+        assertEquals(setOf(Equipment.Dumbbell), decode("""{"equipment":["spaceship","dumbbell"]}""").equipment)
+    }
+
+    @Test
+    fun unknownEquipmentValueInExercise_decodesAsOther() {
+        val dto = json.decodeFromString<ExerciseDto>(
+            """{"id":"1","muscle_group":"chest","equipment":"spaceship"}""",
+        )
+
+        assertEquals(Equipment.Other, dto.equipment)
+    }
+
+    @Test
+    fun legacyCardioValueInExercise_decodesAsTheCardioMachine() {
+        val dto = json.decodeFromString<ExerciseDto>(
+            """{"id":"1","muscle_group":"chest","equipment":"treadmill"}""",
+        )
+
+        assertEquals(Equipment.CardioMachine, dto.equipment)
+    }
+
+    @Test
+    fun equipmentOrder_matchesTheCoachRules() {
         assertEquals(
-            setOf(
-                Equipment.CardioBike,
-                Equipment.Treadmill,
-                Equipment.Elliptical,
-                Equipment.Rower,
-                Equipment.CardioOther,
-                Equipment.Machine,
+            listOf(
+                Equipment.Barbell, Equipment.EzBar, Equipment.Dumbbell, Equipment.Machine, Equipment.Cable,
+                Equipment.Kettlebell, Equipment.Bodyweight, Equipment.Band, Equipment.BandLong,
+                Equipment.CardioMachine, Equipment.Other,
             ),
-            prefs.equipment,
+            Equipment.entries,
         )
     }
 
     @Test
     fun cardioEquipment_isSeparatedFromLiftingEquipment() {
-        assertEquals(
-            setOf(
-                Equipment.CardioBike,
-                Equipment.Treadmill,
-                Equipment.Elliptical,
-                Equipment.Rower,
-                Equipment.CardioOther,
-            ),
-            Equipment.cardio.toSet(),
-        )
+        assertEquals(listOf(Equipment.CardioMachine), Equipment.cardio)
         assertEquals(Equipment.entries - Equipment.cardio.toSet(), Equipment.lifting)
         assertEquals(false, Equipment.Machine.isCardio)
-    }
-
-    @Test
-    fun unknownEquipmentValue_isRejected() {
-        assertFailsWith<SerializationException> { decode("""{"equipment":["spaceship"]}""") }
     }
 }

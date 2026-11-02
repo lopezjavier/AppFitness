@@ -241,12 +241,12 @@ Deno.test("cardio present with a zero share, or missing with minutes, is rejecte
 });
 
 Deno.test("cardio outside the equipment, or a lifting exercise on the cardio slot, is rejected (cardio_equipment)", () => {
-    const rowing = cardio("rowing-machine", "rower");
+    const rowing = cardio("rowing-machine", "cardio_machine");
     const interval = cardio("jump-rope", "bodyweight");
     for (const row of [rowing, interval]) {
         const s = setup({
             place: "home",
-            equipment: ["barbell", "cardio_bike"],
+            equipment: ["barbell"],
         });
         const b = structuredClone(s.block);
         cardioOf(b).exercise_id = row.id;

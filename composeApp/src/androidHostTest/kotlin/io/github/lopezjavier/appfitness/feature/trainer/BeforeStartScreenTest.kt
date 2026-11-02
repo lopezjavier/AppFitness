@@ -402,12 +402,12 @@ class BeforeStartScreenTest {
 
     @Test
     fun theCardioRow_listsThePickedMachines() {
-        blockWithCardio(listOf("cardio_bike", "treadmill"))
+        blockWithCardio(listOf("cardio_machine"))
 
         show(mode = "block", planId = "plan-3")
 
         rule.onNodeWithTag("before_start_row_cardio", useUnmergedTree = true)
-            .assertTextEquals("Cardio · Bicicleta estática, Cinta de correr")
+            .assertTextEquals("Cardio · Máquina de cardio")
     }
 
     @Test
