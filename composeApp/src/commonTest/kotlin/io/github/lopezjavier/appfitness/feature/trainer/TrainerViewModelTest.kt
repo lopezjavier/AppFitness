@@ -284,14 +284,14 @@ class TrainerViewModelTest {
     @Test
     fun acceptedPlan_exposesItsPhaseAndReason_andNoPlanExposesNone() = runTest(dispatcher) {
         plans.current = Result.success(
-            coachPlan(status = PlanStatus.Accepted, phase = Phase.Regain, phaseReason = PhaseReason.ReturningBreak),
+            coachPlan(status = PlanStatus.Accepted, phase = Phase.Maintenance, phaseReason = PhaseReason.UserBusy),
         )
         val model = viewModel()
 
         advanceUntilIdle()
 
-        assertEquals(Phase.Regain, model.content().planPhase)
-        assertEquals(PhaseReason.ReturningBreak, model.content().planPhaseReason)
+        assertEquals(Phase.Maintenance, model.content().planPhase)
+        assertEquals(PhaseReason.UserBusy, model.content().planPhaseReason)
         assertNull(TrainerUiState.Content().planPhase)
     }
 

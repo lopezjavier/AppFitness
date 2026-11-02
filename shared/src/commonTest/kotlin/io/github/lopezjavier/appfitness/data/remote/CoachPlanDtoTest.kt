@@ -99,7 +99,7 @@ class CoachPlanDtoTest {
         val nutrition = decode(
             plan(
                 nutritionWith(
-                    """"limited_by":"deficit_cap","phase":"regain","phase_reason":"returning_injury",""" +
+                    """"limited_by":"deficit_cap","phase":"minimal","phase_reason":"user_busy",""" +
                         """"phase_options":{"cut_rate_pct":0.8,"diet_break":true},""" +
                         """"diet_break":{"target_kcal":2600,"protein_g":150,"carbs_g":300,"fat_g":80,"week":4}""",
                 ),
@@ -107,10 +107,20 @@ class CoachPlanDtoTest {
             ),
         ).nutrition
 
-        assertEquals(Phase.Regain, nutrition.phase)
-        assertEquals(PhaseReason.ReturningInjury, nutrition.phaseReason)
+        assertEquals(Phase.Minimal, nutrition.phase)
+        assertEquals(PhaseReason.UserBusy, nutrition.phaseReason)
         assertEquals(PhaseOptions(0.8, true), nutrition.phaseOptions)
         assertEquals(DietBreakWeek(2600, 150, 300, 80, 4), nutrition.dietBreak)
+    }
+
+    @Test
+    fun legacyRegainPhase_readsAsMaintenanceWithIntentionReason() {
+        val nutrition = decode(
+            plan(nutritionWith(""""phase":"regain","phase_reason":"returning_break""""), "[]"),
+        ).nutrition
+
+        assertEquals(Phase.Maintenance, nutrition.phase)
+        assertEquals(PhaseReason.Intention, nutrition.phaseReason)
     }
 
     @Test
@@ -148,7 +158,7 @@ class CoachPlanDtoTest {
     fun unknownPhaseAndReason_fallBackWithoutThrowing() {
         val decoded = decode(plan(nutritionWith(""""phase":"bulk","phase_reason":"x""""), "[]"))
 
-        assertEquals(Phase.Cut, decoded.phase)
+        assertEquals(Phase.Maintenance, decoded.phase)
         assertEquals(PhaseReason.Intention, decoded.nutrition.phaseReason)
     }
 

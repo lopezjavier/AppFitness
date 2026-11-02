@@ -373,8 +373,8 @@ export function buildSkeleton(prefs: BlockPrefs): BlockSkeleton {
         let total = SECONDARY_GROUPS.includes(group)
             ? SECONDARY_WEEKLY_SETS
             : BASE_WEEKLY_SETS;
-        // Cut and regain add no volume: the previous block's sets of the group are kept (07 section 12.3).
-        if (phase === "cut" || phase === "regain") {
+        // Cut adds no volume: the previous block's sets of the group are kept (07 section 12.3).
+        if (phase === "cut") {
             const kept = prefs.previous?.sets_per_group[group];
             if (typeof kept === "number" && kept > 0) total = kept;
         }

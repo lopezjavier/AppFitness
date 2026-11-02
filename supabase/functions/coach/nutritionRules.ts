@@ -33,8 +33,6 @@ export const GAIN_RATE: Record<Experience, number> = {
     advanced: 0.25,
 };
 export const GAIN_RATE_RANGE = [0.25, 0.5] as const;
-/** Regain gains at the bottom of the sourced gain range for a muscle or strength intention (07 section 4). */
-export const REGAIN_GAIN_RATE = 0.25;
 /** The rounding of the daily delta (up to 10 kcal) can push the effective rate this far above a range maximum. */
 export const RATE_TOLERANCE_PCT = 0.05;
 
@@ -62,18 +60,16 @@ export function firstPhase(
 }
 
 /**
- * Which intake range a phase uses (planning/04 section 8.7): by the phase, never by the intention, so a regain plan of
- * a fat-loss user uses the no-change range. `regain` is the no-change range with the rounding of its optional +0.25 %.
+ * Which intake range a phase uses (planning/04 section 8.7): by the phase, never by the intention, so a maintenance
+ * plan of a fat-loss user uses the no-change range.
  */
-export type RangeClass = "loss" | "gain" | "nochange" | "regain";
+export type RangeClass = "loss" | "gain" | "nochange";
 export function rangeClass(phase: Phase): RangeClass {
     switch (phase) {
         case "cut":
             return "loss";
         case "gain":
             return "gain";
-        case "regain":
-            return "regain";
         default:
             return "nochange";
     }
@@ -99,11 +95,6 @@ export function intakeRange(
             return {
                 min: shiftKcal - d(LOSS_RATE_RANGE[1]) - ROUNDING_KCAL,
                 max: shiftKcal - d(LOSS_RATE_RANGE[0]),
-            };
-        case "regain":
-            return {
-                min: shiftKcal - d(GAIN_RATE_RANGE[0]),
-                max: shiftKcal + d(GAIN_RATE_RANGE[0]) + ROUNDING_KCAL,
             };
         default:
             return {
@@ -195,11 +186,6 @@ function targetRate(input: NutritionInput, phase: Phase): number {
         }
         case "gain":
             return GAIN_RATE[input.experience];
-        case "regain":
-            return input.intention === "muscle" ||
-                    input.intention === "strength"
-                ? REGAIN_GAIN_RATE
-                : 0;
         default:
             return 0;
     }

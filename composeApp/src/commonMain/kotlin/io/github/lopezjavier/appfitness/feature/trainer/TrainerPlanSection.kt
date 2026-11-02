@@ -63,7 +63,6 @@ import io.github.lopezjavier.appfitness.designsystem.StatusTone
 import io.github.lopezjavier.appfitness.domain.model.CalorieChange
 import io.github.lopezjavier.appfitness.domain.model.CoachPlan
 import io.github.lopezjavier.appfitness.domain.model.DeloadProposal
-import io.github.lopezjavier.appfitness.domain.model.PhaseReason
 import io.github.lopezjavier.appfitness.feature.weight.signedTenths
 import org.jetbrains.compose.resources.pluralStringResource
 import org.jetbrains.compose.resources.stringResource
@@ -262,11 +261,8 @@ private fun PhaseLine(plan: CoachPlan) {
     val phase = plan.phase
     val reason = plan.nutrition.phaseReason
     val label = stringResource(PhaseText.label(phase))
-    val text = if (reason == PhaseReason.ReturningBreak) {
-        label
-    } else {
+    val text =
         stringResource(Res.string.trainer_plan_phase_line, label, stringResource(PhaseText.reason(phase, reason)))
-    }
     Row(verticalAlignment = Alignment.CenterVertically) {
         Text(
             text = text,

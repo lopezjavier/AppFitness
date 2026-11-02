@@ -26,9 +26,12 @@ class PhaseOptionsTest {
 
     @Test
     fun phaseCodes_mapAndUnknownIsNull() {
-        assertEquals(Phase.Regain, phaseOrNull("regain"))
         assertEquals(Phase.Minimal, phaseOrNull("minimal"))
         assertEquals(null, phaseOrNull("x"))
+        assertEquals(null, phaseOrNull("regain"))
+        assertEquals(Phase.Maintenance, storedPhaseOrNull("regain"))
+        assertEquals(null, storedPhaseOrNull(null))
+        assertEquals(PhaseReason.Intention, phaseReasonOf("returning_break"))
         assertEquals(PhaseReason.UserBusy, phaseReasonOf("user_busy"))
         assertEquals(PhaseReason.Intention, phaseReasonOf(null))
     }

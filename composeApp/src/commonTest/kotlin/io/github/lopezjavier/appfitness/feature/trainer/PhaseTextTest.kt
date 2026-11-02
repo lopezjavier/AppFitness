@@ -2,9 +2,9 @@ package io.github.lopezjavier.appfitness.feature.trainer
 
 import io.github.lopezjavier.appfitness.composeapp.resources.Res
 import io.github.lopezjavier.appfitness.composeapp.resources.phase_label_cut
-import io.github.lopezjavier.appfitness.composeapp.resources.phase_label_regain
+import io.github.lopezjavier.appfitness.composeapp.resources.phase_label_maintenance
 import io.github.lopezjavier.appfitness.composeapp.resources.phase_reason_cut
-import io.github.lopezjavier.appfitness.composeapp.resources.phase_reason_returning_break
+import io.github.lopezjavier.appfitness.composeapp.resources.phase_reason_user_busy
 import io.github.lopezjavier.appfitness.domain.model.CutRate
 import io.github.lopezjavier.appfitness.domain.model.Phase
 import io.github.lopezjavier.appfitness.domain.model.PhaseReason
@@ -34,7 +34,7 @@ class PhaseTextTest {
     @Test
     fun labels_followTheGlossary() {
         assertEquals(Res.string.phase_label_cut, PhaseText.label(Phase.Cut))
-        assertEquals(Res.string.phase_label_regain, PhaseText.label(Phase.Regain))
+        assertEquals(Res.string.phase_label_maintenance, PhaseText.label(Phase.Maintenance))
     }
 
     @Test
@@ -43,11 +43,8 @@ class PhaseTextTest {
     }
 
     @Test
-    fun returningBreak_winsOverThePhase() {
-        assertEquals(
-            Res.string.phase_reason_returning_break,
-            PhaseText.reason(Phase.Regain, PhaseReason.ReturningBreak),
-        )
+    fun userBusy_winsOverThePhase() {
+        assertEquals(Res.string.phase_reason_user_busy, PhaseText.reason(Phase.Cut, PhaseReason.UserBusy))
     }
 
     @Test

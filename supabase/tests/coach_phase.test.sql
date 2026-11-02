@@ -4,7 +4,7 @@ begin;
 create extension if not exists pgtap with schema extensions;
 set local search_path = extensions, public;
 
-select plan(106);
+select plan(103);
 
 -- ---------------------------------------------------------------------------
 -- Fixture helpers
@@ -103,8 +103,8 @@ update public.profiles set birth_date = (pg_temp.d0() - interval '65 years')::da
 -- ---------------------------------------------------------------------------
 -- Structure, defaults and constraints
 -- ---------------------------------------------------------------------------
-select enum_has_labels('public', 'coach_phase', array['cut', 'gain', 'maintenance', 'recomposition', 'regain', 'minimal'],
-  'the coach_phase enum has the six phases');
+select enum_has_labels('public', 'coach_phase', array['cut', 'gain', 'maintenance', 'recomposition', 'minimal'],
+  'the coach_phase enum has the five phases, without regain');
 select col_not_null('public', 'coach_plans', 'phase', 'coach_plans.phase is not null');
 select ok(
   (select relrowsecurity and relforcerowsecurity from pg_class where oid = 'public.coach_plans'::regclass),
@@ -184,22 +184,13 @@ select throws_ok(
   $$select public.propose_coach_plan(pg_temp.d0(), 'fat_loss', pg_temp.nut(2500, 0, 0, 'cut'), '[]', '{}', '{}')$$,
   '22023', 'plan invariant: loss_needs_deficit', 'a cut without a deficit is rejected');
 
--- Regain: never a deficit.
+-- Regain is retired (T-200, ADR-91): the phase and the retired reason codes are rejected.
 select throws_ok(
-  $$select public.propose_coach_plan(pg_temp.d0(), 'fat_loss', pg_temp.nut(2900, -100, 0.1, 'regain'), '[]', '{}', '{}')$$,
-  '22023', 'plan invariant: regain_deficit', 'regain with a deficit is rejected');
-select lives_ok(
   $$select public.propose_coach_plan(pg_temp.d0(), 'fat_loss', pg_temp.nut(3000, 0, 0, 'regain'), '[]', '{}', '{}')$$,
-  'regain at the expenditure with the fat-loss intention is accepted');
+  '22023', 'plan invariant: phase', 'the retired regain phase is rejected');
 select throws_ok(
-  $$select public.propose_coach_plan(pg_temp.d0(), 'fat_loss', pg_temp.nut(3220, 220, 0.25, 'regain'), '[]', '{}', '{}')$$,
-  '22023', 'plan invariant: regain_surplus', 'regain with a surplus and the fat-loss intention is rejected');
-select lives_ok(
-  $$select public.propose_coach_plan(pg_temp.d0(), 'muscle', pg_temp.nut(3220, 220, 0.25, 'regain'), '[]', '{}', '{}')$$,
-  'regain at +0.25 percent with the muscle intention is accepted');
-select throws_ok(
-  $$select public.propose_coach_plan(pg_temp.d0(), 'muscle', pg_temp.nut(3400, 400, 0.45, 'regain'), '[]', '{}', '{}')$$,
-  '22023', 'plan invariant: regain_rate', 'regain faster than 0.25 percent is rejected');
+  $$select public.propose_coach_plan(pg_temp.d0(), 'fat_loss', pg_temp.nut(2500, -500, 0.568, 'cut', 'deficit_cap') || '{"phase_reason":"returning_break"}', '[]', '{}', '{}')$$,
+  '22023', 'plan invariant: phase_reason', 'the retired returning_break reason is rejected');
 
 -- Maintenance, recomposition and minimal: the no-change range (220 + 10 kcal at 80 kg).
 select lives_ok(
@@ -387,11 +378,11 @@ values (pg_temp.pid(21), pg_temp.u(10), pg_temp.d0() - 84, 'fat_loss', pg_temp.n
         'superseded', 'minimal', default, '{"weekly_sets":{"quads":2}}'),
        (pg_temp.pid(24), pg_temp.u(10), pg_temp.d0(), 'fat_loss', pg_temp.nut(2500, -500, 0.568, 'cut', 'deficit_cap'),
         'accepted', 'minimal', default, '{"weekly_sets":{"quads":2}}'),
--- 11: one regain block followed by a proposed plan that must not count.
-       (pg_temp.pid(25), pg_temp.u(11), pg_temp.d0() - 28, 'muscle', pg_temp.nut(3220, 220, 0.25, 'regain'),
-        'accepted', 'regain', default, '{"weekly_sets":{"chest":10,"quads":10}}'),
-       (pg_temp.pid(26), pg_temp.u(11), pg_temp.d0(), 'muscle', pg_temp.nut(3220, 220, 0.25, 'regain'),
-        'proposed', 'regain', default, '{"weekly_sets":{"chest":4}}');
+-- 11: one maintenance block followed by a proposed plan that must not count.
+       (pg_temp.pid(25), pg_temp.u(11), pg_temp.d0() - 28, 'maintenance', pg_temp.nut(3000, 0, 0, 'maintenance'),
+        'accepted', 'maintenance', default, '{"weekly_sets":{"chest":10,"quads":10}}'),
+       (pg_temp.pid(26), pg_temp.u(11), pg_temp.d0(), 'maintenance', pg_temp.nut(3000, 0, 0, 'maintenance'),
+        'proposed', 'maintenance', default, '{"weekly_sets":{"chest":4}}');
 insert into public.coach_plan_sessions (plan_id, user_id, week, session_index, name, focus, exercises)
 select p, u, w, s, 'Sesion ' || s, '{quads}',
        jsonb_build_array(pg_temp.lift(pg_temp.ex('horizontal_push', 0), 'main', 4, 6, 10),
@@ -418,7 +409,7 @@ select is((public.coach_phase_history(pg_temp.d0()))->'previous'->'rep_ranges'->
 select is((public.coach_phase_history(pg_temp.d0()))->'previous'->'rep_ranges'->(pg_temp.iso(0)::text),
   '[10, 15]'::jsonb, 'and the isolation ranges');
 select pg_temp.as_user(11);
-select is((public.coach_phase_history(pg_temp.d0()))->'previous'->>'phase', 'regain', 'a proposed plan is not history');
+select is((public.coach_phase_history(pg_temp.d0()))->'previous'->>'phase', 'maintenance', 'a proposed plan is not history');
 select is((public.coach_phase_history(pg_temp.d0()))->>'deficit_weeks_done', '0', 'no cut, no deficit weeks');
 select is((public.coach_phase_history(pg_temp.d0()))->>'minimal_blocks_in_a_row', '0', 'and no minimal blocks');
 select pg_temp.as_user(12);

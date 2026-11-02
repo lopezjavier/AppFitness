@@ -15,6 +15,11 @@ import { buildCandidates, candidateKey } from "./candidates.ts";
 import { fullCatalog, prefs } from "./blockFixtures.ts";
 import { previousBlock } from "./planBlock.ts";
 import {
+    CARDIO_BAND_MAX,
+    CARDIO_MIN_WEEK,
+    computeActivity,
+} from "./cardioRules.ts";
+import {
     type BlockPrefs,
     isLifting,
     type ModelBlockPick,
@@ -76,7 +81,6 @@ Deno.test("a first block without history is 10 sets in every phase but minimal",
             "gain",
             "maintenance",
             "recomposition",
-            "regain",
         ] as const
     ) {
         assertEquals(weekly(prefs({ days_per_week: 4, phase })).chest, 10);
@@ -94,19 +98,6 @@ Deno.test("cut keeps the previous block's sets per group and never raises them",
     assert(w.back <= 14);
     // A group the previous block did not train starts at the base.
     assertEquals(w.shoulders, 10);
-});
-
-Deno.test("regain keeps the previous block's sets and adds no volume", () => {
-    const prev = previous({ chest: 8 });
-    assertEquals(
-        weekly(prefs({ days_per_week: 4, phase: "regain", previous: prev }))
-            .chest,
-        8,
-    );
-    assertEquals(
-        weekly(prefs({ days_per_week: 4, phase: "regain" })).chest,
-        10,
-    );
 });
 
 Deno.test("gain, maintenance and recomposition start from the base, whatever the previous block", () => {
@@ -251,7 +242,6 @@ Deno.test("cardioTargetFor: 100 in the minimal phase, 150 after 4 in a row, 150 
             "gain",
             "maintenance",
             "recomposition",
-            "regain",
         ] as const
     ) {
         assertEquals(cardioTargetFor(phase, 0, false, 150), 150);
@@ -260,8 +250,14 @@ Deno.test("cardioTargetFor: 100 in the minimal phase, 150 after 4 in a row, 150 
     }
 });
 
-Deno.test("cardioTargetFor: the user's own edit wins, and the band of fat loss is kept in regain", () => {
-    assertEquals(cardioTargetFor("regain", 0, true, 240), 240);
+Deno.test("cardioTargetFor: the user's own edit wins, and the band of fat loss is kept in maintenance", () => {
+    assertEquals(cardioTargetFor("maintenance", 0, true, 240), 240);
+    const a = computeActivity({
+        intention: "fat_loss",
+        stepsAvg28: null,
+        phase: "maintenance",
+    });
+    assertEquals(a.cardio_band, [CARDIO_MIN_WEEK, CARDIO_BAND_MAX]);
     assertEquals(cardioTargetFor("minimal", 0, true, 60), 60);
     assertEquals(cardioTargetFor("cut", 0, false, undefined), 150);
 });
@@ -282,7 +278,7 @@ Deno.test("the minimal skeleton plans the cardio with the 30-minute cap", () => 
 
 Deno.test("the cardio of a normal block is untouched by the phase (60 cap)", () => {
     const sk = buildSkeleton(
-        prefs({ phase: "regain", days_per_week: 3, cardio_min_week: 300 }),
+        prefs({ phase: "maintenance", days_per_week: 3, cardio_min_week: 300 }),
     );
     assertEquals(sk.cardio.per_routine_min, [60, 60, 60]);
     assertEquals(sk.cardio.on_your_own_min, 120);

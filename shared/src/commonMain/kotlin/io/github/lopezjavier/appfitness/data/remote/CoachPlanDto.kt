@@ -15,8 +15,8 @@ import io.github.lopezjavier.appfitness.domain.model.PlanStatus
 import io.github.lopezjavier.appfitness.domain.model.ProteinDistribution
 import io.github.lopezjavier.appfitness.domain.model.StepsBasis
 import io.github.lopezjavier.appfitness.domain.model.phaseForIntention
-import io.github.lopezjavier.appfitness.domain.model.phaseOrNull
 import io.github.lopezjavier.appfitness.domain.model.phaseReasonOf
+import io.github.lopezjavier.appfitness.domain.model.storedPhaseOrNull
 import kotlinx.datetime.Instant
 import kotlinx.datetime.LocalDate
 import kotlinx.serialization.SerialName
@@ -107,7 +107,7 @@ internal data class PlanNutritionDto(
         distribution = distribution?.let { ProteinDistribution(it.perMealG.roundToInt(), it.minMeals, it.gPerKg) },
         editedByUser = editedByUser,
         activity = activity?.toDomain(),
-        phase = phaseOrNull(phase) ?: phaseOrNull(row.phase) ?: phaseForIntention(intention),
+        phase = storedPhaseOrNull(phase) ?: storedPhaseOrNull(row.phase) ?: phaseForIntention(intention),
         phaseReason = phaseReasonOf(phaseReason ?: row.phaseReason),
         phaseOptions = (phaseOptions ?: row.phaseOptions)?.toDomain() ?: PhaseOptions(),
         dietBreak = dietBreak?.toDomain(),
