@@ -79,10 +79,11 @@ private fun PlanInputSource.toOrigin(): PlanInputOrigin = when (this) {
     PlanInputSource.Profile -> PlanInputOrigin.Profile
     PlanInputSource.MyTraining -> PlanInputOrigin.MyTraining
     PlanInputSource.WeighIn -> PlanInputOrigin.Weighing
-    PlanInputSource.CoachEstimate, PlanInputSource.Unknown -> PlanInputOrigin.Estimate
+    PlanInputSource.CoachEstimate, PlanInputSource.Intake, PlanInputSource.Unknown -> PlanInputOrigin.Estimate
 }
 
-fun PlanInputs.rows(): List<PlanInputRow> = inputs.map { it.toRow() }
+/** The intake entry only drives routing ([PlanInputs.intakeSaved]); it is not a row. */
+fun PlanInputs.rows(): List<PlanInputRow> = inputs.filter { it.key != PlanInputKey.Intake }.map { it.toRow() }
 
 /**
  * The summary lines of "Antes de empezar": each line shows its keys joined ("Sexo y edad"). Plan: goal, sex and age,

@@ -41,6 +41,7 @@ import io.github.lopezjavier.appfitness.composeapp.resources.deload_discard_offl
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_info
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_more_vert
 import io.github.lopezjavier.appfitness.composeapp.resources.topbar_more_cd
+import io.github.lopezjavier.appfitness.composeapp.resources.trainer_free_text_row
 import io.github.lopezjavier.appfitness.composeapp.resources.trainer_title
 import io.github.lopezjavier.appfitness.composeapp.resources.trainer_your_data_row
 import io.github.lopezjavier.appfitness.composeapp.resources.your_data_provisional_count
@@ -71,7 +72,7 @@ private const val TITLE_FRACTION = 0.4f
 /**
  * Where the Trainer root goes: "Uso de IA", the pending plan proposal, a block preview ([onOpenBlock] takes the plan
  * id), "Antes de empezar" ([onOpenBeforeStart] takes the mode, the plan id and the plan being replaced) and
- * "Tus datos".
+ * "Tus datos" and "Lo que el entrenador sabe de ti".
  */
 data class TrainerActions(
     val onOpenCoachUsage: () -> Unit = {},
@@ -79,6 +80,7 @@ data class TrainerActions(
     val onOpenBlock: (String) -> Unit = {},
     val onOpenBeforeStart: (mode: BeforeStartMode, planId: String?, replacingPlanId: String?) -> Unit = { _, _, _ -> },
     val onOpenYourData: () -> Unit = {},
+    val onOpenFreeText: () -> Unit = {},
 )
 
 /** Stateful Trainer tab root: connects [TrainerViewModel] to [TrainerScreen] and plays its one-off effects. */
@@ -201,6 +203,11 @@ private fun TrainerContent(
         BlockSection(state.plan, state.block, online, actions.onOpenBlock, actions.onOpenBeforeStart)
         PlanWeeksSection(state.weeks)
         YourDataEntry(state.provisionalCount, actions.onOpenYourData)
+        NavigationRow(
+            label = stringResource(Res.string.trainer_free_text_row),
+            onClick = actions.onOpenFreeText,
+            modifier = Modifier.testTag("trainer_free_text_row"),
+        )
     }
 }
 

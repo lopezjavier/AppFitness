@@ -9,7 +9,9 @@ import io.github.lopezjavier.appfitness.domain.model.ActivityLevel
 import io.github.lopezjavier.appfitness.domain.model.PlanInputKey
 import io.github.lopezjavier.appfitness.domain.model.PlanInputValue
 import io.github.lopezjavier.appfitness.domain.port.Clock
+import io.github.lopezjavier.appfitness.domain.repository.CoachIntakeRepository
 import io.github.lopezjavier.appfitness.domain.repository.CoachRepository
+import io.github.lopezjavier.appfitness.domain.repository.IntakePromptPreference
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -31,6 +33,8 @@ import kotlinx.datetime.toLocalDateTime
 @Suppress("TooManyFunctions") // One small handler per event.
 class BeforeStartViewModel(
     private val coach: CoachRepository,
+    private val intakeRepo: CoachIntakeRepository,
+    private val prompt: IntakePromptPreference,
     private val clock: Clock,
     private val savedState: SavedStateHandle = SavedStateHandle(),
 ) : ViewModel() {
@@ -45,6 +49,7 @@ class BeforeStartViewModel(
     val effects = effectChannel.receiveAsFlow()
 
     private var loadJob: Job? = null
+    private var intakeRouted = false
 
     // The server accepts a date within one day of UTC today, so it is the UTC date.
     private fun today(): LocalDate = clock.now().toLocalDateTime(TimeZone.UTC).date
@@ -67,7 +72,19 @@ class BeforeStartViewModel(
     private fun load() {
         _uiState.value = BeforeStartUiState.Loading
         loadJob?.cancel()
-        loadJob = viewModelScope.launch { _uiState.value = fetch() }
+        loadJob = viewModelScope.launch {
+            val state = fetch()
+            _uiState.value = state
+            routeToIntake(state)
+        }
+    }
+
+    /** The first creation of a plan asks "Para conocerte" once: never in block mode, never after saving or skipping. */
+    private suspend fun routeToIntake(state: BeforeStartUiState) {
+        val content = state as? BeforeStartUiState.Content ?: return
+        if (intakeRouted || content.mode != BeforeStartMode.Plan || content.inputs.intakeSaved) return
+        intakeRouted = true
+        if (!prompt.isAsked()) effectChannel.send(BeforeStartEffect.OpenIntake)
     }
 
     /** Silent reload (back from an editor): keeps the shown content and any in-flight action. */
@@ -90,7 +107,16 @@ class BeforeStartViewModel(
         val result = coach.planInputs(mode.kind, today())
         return result.fold(
             onSuccess = {
-                BeforeStartUiState.Content(it, mode, planId, replacingPlanId, sheet = restoredDraft())
+                // The intake only enriches the rows: a failed read leaves them empty.
+                val intake = if (mode == BeforeStartMode.Plan) intakeRepo.get().getOrNull() else null
+                BeforeStartUiState.Content(
+                    it,
+                    mode,
+                    planId,
+                    replacingPlanId,
+                    sheet = restoredDraft(),
+                    intake = IntakeSummary.of(intake),
+                )
             },
             onFailure = {
                 if (result.appErrorOrNull() ==

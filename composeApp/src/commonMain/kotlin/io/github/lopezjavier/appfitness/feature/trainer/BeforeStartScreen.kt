@@ -36,6 +36,7 @@ import io.github.lopezjavier.appfitness.composeapp.resources.before_start_confir
 import io.github.lopezjavier.appfitness.composeapp.resources.before_start_confirm_line_plan
 import io.github.lopezjavier.appfitness.composeapp.resources.before_start_error
 import io.github.lopezjavier.appfitness.composeapp.resources.before_start_fix_activity
+import io.github.lopezjavier.appfitness.composeapp.resources.before_start_fix_intake
 import io.github.lopezjavier.appfitness.composeapp.resources.before_start_fix_personal
 import io.github.lopezjavier.appfitness.composeapp.resources.before_start_fix_preferences
 import io.github.lopezjavier.appfitness.composeapp.resources.before_start_fix_weight
@@ -49,6 +50,7 @@ import io.github.lopezjavier.appfitness.composeapp.resources.before_start_reason
 import io.github.lopezjavier.appfitness.composeapp.resources.before_start_summary_chevron_cd
 import io.github.lopezjavier.appfitness.composeapp.resources.before_start_title
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_chevron_right
+import io.github.lopezjavier.appfitness.composeapp.resources.intake_unset
 import io.github.lopezjavier.appfitness.composeapp.resources.trainer_block_create
 import io.github.lopezjavier.appfitness.composeapp.resources.trainer_block_create_action
 import io.github.lopezjavier.appfitness.composeapp.resources.trainer_plan_create
@@ -86,7 +88,8 @@ private const val TITLE_FRACTION = 0.4f
 /**
  * Stateful "Antes de empezar" (US-78): reloads when the user comes back from an editor, plays the one-off effects
  * (haptics, the confirm failure message, leaving through [onCreate]) and connects [BeforeStartViewModel] to
- * [BeforeStartScreen]. [onFix] opens the editor of a flagged input (the activity sheet is handled here).
+ * [BeforeStartScreen]. [onFix] opens the editor of a flagged input (the activity sheet is handled here);
+ * [onOpenIntake] shows "Para conocerte" once before the first plan.
  */
 @Composable
 fun BeforeStartRoot(
@@ -94,6 +97,7 @@ fun BeforeStartRoot(
     onCreate: (BeforeStartEffect.Created) -> Unit,
     onOpenYourData: () -> Unit,
     onFix: (PlanFixTarget) -> Unit,
+    onOpenIntake: () -> Unit,
     modifier: Modifier = Modifier,
     viewModel: BeforeStartViewModel = koinViewModel(),
     connectivity: ConnectivityObserver = koinInject(),
@@ -103,6 +107,7 @@ fun BeforeStartRoot(
     val messages = LocalAppMessages.current
     val latestHaptics by rememberUpdatedState(haptics)
     val latestOnCreate by rememberUpdatedState(onCreate)
+    val latestOnOpenIntake by rememberUpdatedState(onOpenIntake)
     val failed = stringResource(Res.string.before_start_confirm_error)
     val offline = offlineHint(stringResource(Res.string.before_start_confirm_action)) + "."
     LifecycleEventEffect(Lifecycle.Event.ON_RESUME) { viewModel.onEvent(BeforeStartEvent.Refresh) }
@@ -118,6 +123,8 @@ fun BeforeStartRoot(
                     latestHaptics.reject()
                     messages.show(if (effect.offline) offline else failed)
                 }
+
+                BeforeStartEffect.OpenIntake -> latestOnOpenIntake()
             }
         }
     }
@@ -240,6 +247,24 @@ private fun BeforeStartContent(
             )
         }
         SummaryCard(state, onOpenYourData)
+        IntakeBlock(state, onFix)
+    }
+}
+
+/** The three things told in "Para conocerte" (plan mode): never a flag, always "Sin indicar" when nothing was said. */
+@Composable
+private fun IntakeBlock(state: BeforeStartUiState.Content, onFix: (PlanFixTarget) -> Unit) {
+    if (state.intakeRows.isEmpty()) return
+    val unset = stringResource(Res.string.intake_unset)
+    Column(Modifier.testTag("before_start_intake_block")) {
+        state.intakeRows.forEach { kind ->
+            NavigationRow(
+                label = stringResource(kind.intakeLabel()),
+                value = kind.valueText(state.intake) ?: unset,
+                onClick = { onFix(PlanFixTarget.Intake) },
+                modifier = Modifier.testTag(kind.rowTag()),
+            )
+        }
     }
 }
 
@@ -340,6 +365,7 @@ internal fun PlanFixTarget.destinationLabel() = when (this) {
     PlanFixTarget.PersonalData -> Res.string.before_start_fix_personal
     PlanFixTarget.Weight -> Res.string.before_start_fix_weight
     PlanFixTarget.ActivitySheet -> Res.string.before_start_fix_activity
+    PlanFixTarget.Intake -> Res.string.before_start_fix_intake
 }
 
 /** Card-shaped placeholder while the inputs load (R-31): a title bar and one bar per summary line. */

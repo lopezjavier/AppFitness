@@ -7,11 +7,9 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -25,7 +23,7 @@ import io.github.lopezjavier.appfitness.composeapp.resources.action_cancel
 import io.github.lopezjavier.appfitness.composeapp.resources.action_retry
 import io.github.lopezjavier.appfitness.composeapp.resources.add_food_photo_error
 import io.github.lopezjavier.appfitness.composeapp.resources.add_food_photo_offline
-import io.github.lopezjavier.appfitness.composeapp.resources.food_photo_estimating
+import io.github.lopezjavier.appfitness.composeapp.resources.food_photo_estimating_amount
 import io.github.lopezjavier.appfitness.composeapp.resources.food_photo_retake
 import io.github.lopezjavier.appfitness.composeapp.resources.food_photo_use
 import io.github.lopezjavier.appfitness.designsystem.AppButtonDefaults
@@ -35,6 +33,7 @@ import io.github.lopezjavier.appfitness.designsystem.ErrorState
 import io.github.lopezjavier.appfitness.designsystem.PrimaryButton
 import io.github.lopezjavier.appfitness.designsystem.SecondaryButton
 import io.github.lopezjavier.appfitness.designsystem.Spacing
+import io.github.lopezjavier.appfitness.designsystem.StreamProgressState
 import io.github.lopezjavier.appfitness.designsystem.WindowWidthClassDefaults
 import org.jetbrains.compose.resources.stringResource
 
@@ -118,29 +117,20 @@ private fun AmountPreview(
 @Composable
 fun AmountPhotoNotice(state: AmountPhotoUiState, onEvent: (AmountPhotoEvent) -> Unit, modifier: Modifier = Modifier) {
     when (val phase = state.phase) {
-        AmountPhotoPhase.Estimating -> Row(
-            modifier.fillMaxWidth().testTag("${NOTICE_TAG}_estimating"),
-            horizontalArrangement = Arrangement.spacedBy(Spacing.md),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Row(
-                Modifier.weight(1f).semantics { liveRegion = LiveRegionMode.Polite },
-                horizontalArrangement = Arrangement.spacedBy(Spacing.md),
-                verticalAlignment = Alignment.CenterVertically,
+        AmountPhotoPhase.Estimating -> {
+            val message = stringResource(Res.string.food_photo_estimating_amount)
+            Column(
+                modifier.fillMaxWidth().testTag("${NOTICE_TAG}_estimating"),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(Spacing.md),
             ) {
-                // Decorative: the text carries the meaning.
-                CircularProgressIndicator(color = AppTheme.colors.neonLime, modifier = Modifier.size(Spacing.xl))
-                Text(
-                    text = stringResource(Res.string.food_photo_estimating),
-                    style = AppTheme.typography.bodyMedium,
-                    color = AppTheme.colors.textPrimary,
+                StreamProgressState(message = message, stateDescription = message)
+                SecondaryButton(
+                    text = stringResource(Res.string.action_cancel),
+                    onClick = { onEvent(AmountPhotoEvent.Dismiss) },
+                    modifier = Modifier.testTag("${NOTICE_TAG}_cancel"),
                 )
             }
-            SecondaryButton(
-                text = stringResource(Res.string.action_cancel),
-                onClick = { onEvent(AmountPhotoEvent.Dismiss) },
-                modifier = Modifier.testTag("${NOTICE_TAG}_cancel"),
-            )
         }
 
         is AmountPhotoPhase.Failed -> if (phase.retryable) {

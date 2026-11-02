@@ -14,7 +14,9 @@ import io.github.lopezjavier.appfitness.designsystem.AppTheme
 import io.github.lopezjavier.appfitness.domain.AppError
 import io.github.lopezjavier.appfitness.domain.AppException
 import io.github.lopezjavier.appfitness.domain.model.ActivityLevel
+import io.github.lopezjavier.appfitness.domain.model.CoachIntake
 import io.github.lopezjavier.appfitness.domain.model.CurrentPlan
+import io.github.lopezjavier.appfitness.domain.model.InjuredArea
 import io.github.lopezjavier.appfitness.domain.model.PlanFixTarget
 import io.github.lopezjavier.appfitness.domain.model.PlanInput
 import io.github.lopezjavier.appfitness.domain.model.PlanInputKey
@@ -23,6 +25,7 @@ import io.github.lopezjavier.appfitness.domain.model.PlanInputSource
 import io.github.lopezjavier.appfitness.domain.model.PlanInputStatus
 import io.github.lopezjavier.appfitness.domain.model.PlanInputValue
 import io.github.lopezjavier.appfitness.domain.model.PlanInputs
+import io.github.lopezjavier.appfitness.domain.model.Situation
 import io.github.lopezjavier.appfitness.feature.workout.MutableClock
 import kotlinx.datetime.LocalDate
 import org.junit.Assert.assertEquals
@@ -74,13 +77,23 @@ class BeforeStartScreenTest {
     private val connectivity = FakeConnectivityObserver()
     private val created = mutableListOf<BeforeStartEffect.Created>()
     private val fixed = mutableListOf<PlanFixTarget>()
+    private val intake = FakeCoachIntakeRepository()
+    private val prompt = FakeIntakePromptPreference(asked = true)
+    private var intakeOpened = 0
     private var yourDataOpened = 0
     private var backs = 0
     private lateinit var model: BeforeStartViewModel
 
     private fun show(mode: String = "plan", planId: String? = null, replacing: String? = null) {
         val args = mutableMapOf<String, Any?>("mode" to mode, "planId" to planId, "replacingPlanId" to replacing)
-        model = BeforeStartViewModel(repository, MutableClock(), SavedStateHandle(args))
+        model =
+            BeforeStartViewModel(
+                repository,
+                intake,
+                prompt,
+                MutableClock(),
+                SavedStateHandle(args),
+            )
         rule.setContent {
             AppTheme {
                 BeforeStartRoot(
@@ -88,6 +101,7 @@ class BeforeStartScreenTest {
                     onCreate = { created += it },
                     onOpenYourData = { yourDataOpened++ },
                     onFix = { fixed += it },
+                    onOpenIntake = { intakeOpened++ },
                     viewModel = model,
                     connectivity = connectivity,
                 )
@@ -130,6 +144,78 @@ class BeforeStartScreenTest {
         rule.onNodeWithTag("before_start_flag_intention").assertDoesNotExist()
         rule.onNodeWithTag("before_start_create").assertIsEnabled()
         assertTrue(repository.confirmCalls.isEmpty())
+    }
+
+    @Test
+    fun theIntakeRows_showWhatWasSaid_andNeverBlockCreating() {
+        repository.inputs[PlanInputKind.Plan] = Result.success(planKeys())
+        intake.stored = CoachIntake(
+            trainingYears = 4.0,
+            situation = Situation.ReturningBreak,
+            injuredArea = InjuredArea.LowerBack,
+        )
+
+        show()
+
+        rule.onNodeWithTag("before_start_intake_block").assertExists()
+        rule.onNodeWithTag("before_start_situation_row").assertTextEquals("Situación", "Vuelvo tras una pausa")
+        rule.onNodeWithTag("before_start_training_age_row").assertTextEquals("Tiempo entrenando", "4 años")
+        rule.onNodeWithTag("before_start_injured_area_row").assertTextEquals("Zona con molestia", "Zona lumbar")
+        rule.onNodeWithTag("before_start_create").assertIsEnabled()
+    }
+
+    @Test
+    fun withNothingSaid_theIntakeRowsReadSinIndicar_andTappingOneOpensParaConocerte() {
+        repository.inputs[PlanInputKind.Plan] = Result.success(planKeys())
+        show()
+
+        rule.onNodeWithTag("before_start_situation_row").assertTextEquals("Situación", "Sin indicar")
+        tap("before_start_injured_area_row")
+
+        assertEquals(listOf(PlanFixTarget.Intake), fixed)
+    }
+
+    @Test
+    fun comingBackFromTheIntake_theRowsShowTheNewValue() {
+        repository.inputs[PlanInputKind.Plan] = Result.success(planKeys())
+        show()
+        intake.stored = CoachIntake(situation = Situation.FirstTime)
+
+        rule.runOnUiThread { model.onEvent(BeforeStartEvent.Refresh) }
+        rule.waitForIdle()
+
+        rule.onNodeWithTag("before_start_situation_row").assertTextEquals("Situación", "Empiezo ahora")
+    }
+
+    @Test
+    fun aBlock_hasNoIntakeRows() {
+        repository.inputs[PlanInputKind.Block] = Result.success(
+            PlanInputs(PlanInputKind.Block, null, planKeys().inputs.take(1)),
+        )
+
+        show(mode = "block", planId = "plan-2")
+
+        rule.onNodeWithTag("before_start_intake_block").assertDoesNotExist()
+    }
+
+    @Test
+    fun theFirstPlan_opensParaConocerteOnce_whenNothingWasSavedOrSkipped() {
+        repository.inputs[PlanInputKind.Plan] = Result.success(planKeys())
+        prompt.asked = false
+
+        show()
+
+        assertEquals(1, intakeOpened)
+    }
+
+    @Test
+    fun afterSkippingOnce_theNextPlanGoesStraightToAntesDeEmpezar() {
+        repository.inputs[PlanInputKind.Plan] = Result.success(planKeys())
+        prompt.asked = true
+
+        show()
+
+        assertEquals(0, intakeOpened)
     }
 
     @Test

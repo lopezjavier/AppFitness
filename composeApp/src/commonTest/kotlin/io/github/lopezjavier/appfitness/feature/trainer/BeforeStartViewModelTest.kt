@@ -6,7 +6,9 @@ import io.github.lopezjavier.appfitness.domain.AppError
 import io.github.lopezjavier.appfitness.domain.AppException
 import io.github.lopezjavier.appfitness.domain.model.ActivityLevel
 import io.github.lopezjavier.appfitness.domain.model.CoachDerivedValues
+import io.github.lopezjavier.appfitness.domain.model.CoachIntake
 import io.github.lopezjavier.appfitness.domain.model.CurrentPlan
+import io.github.lopezjavier.appfitness.domain.model.InjuredArea
 import io.github.lopezjavier.appfitness.domain.model.PlanFixTarget
 import io.github.lopezjavier.appfitness.domain.model.PlanInput
 import io.github.lopezjavier.appfitness.domain.model.PlanInputKey
@@ -15,6 +17,7 @@ import io.github.lopezjavier.appfitness.domain.model.PlanInputSource
 import io.github.lopezjavier.appfitness.domain.model.PlanInputStatus
 import io.github.lopezjavier.appfitness.domain.model.PlanInputValue
 import io.github.lopezjavier.appfitness.domain.model.PlanInputs
+import io.github.lopezjavier.appfitness.domain.model.Situation
 import io.github.lopezjavier.appfitness.feature.workout.MutableClock
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
@@ -40,6 +43,8 @@ private val OLD_WEIGH_IN = LocalDate(2026, 10, 1)
 class BeforeStartViewModelTest {
     private val dispatcher = StandardTestDispatcher()
     private val coach = FakeCoachRepository()
+    private val intake = FakeCoachIntakeRepository()
+    private val asked = FakeIntakePromptPreference(asked = true)
 
     @BeforeTest
     fun setUp() = Dispatchers.setMain(dispatcher)
@@ -64,7 +69,8 @@ class BeforeStartViewModelTest {
             replacing?.let { set("replacingPlanId", it) }
         }
 
-    private fun viewModel(saved: SavedStateHandle = args()) = BeforeStartViewModel(coach, MutableClock(), saved)
+    private fun viewModel(saved: SavedStateHandle = args()) =
+        BeforeStartViewModel(coach, intake, asked, MutableClock(), saved)
 
     private fun BeforeStartViewModel.content() = assertIs<BeforeStartUiState.Content>(uiState.value)
 
@@ -454,5 +460,132 @@ class BeforeStartViewModelTest {
         advanceUntilIdle()
 
         assertEquals(BeforeStartMode.Plan, model.content().mode)
+    }
+
+    private val savedIntakeEntry =
+        planInput(PlanInputKey.Intake, PlanInputStatus.Ok, PlanInputValue.Absent, PlanInputSource.Intake)
+
+    @Test
+    fun planMode_exposesThreeIntakeRows_withTheSavedValues() = runTest(dispatcher) {
+        givenPlan(completePlan(savedIntakeEntry))
+        intake.stored = CoachIntake(
+            trainingYears = 4.0,
+            situation = Situation.ReturningInjury,
+            injuredArea = InjuredArea.Shoulder,
+        )
+        val model = viewModel()
+
+        advanceUntilIdle()
+
+        val content = model.content()
+        assertEquals(
+            listOf(IntakeRowKind.Situation, IntakeRowKind.TrainingAge, IntakeRowKind.InjuredArea),
+            content.intakeRows,
+        )
+        assertEquals(Situation.ReturningInjury, content.intake.situation)
+        assertEquals(4.0, content.intake.trainingYears)
+        assertEquals(InjuredArea.Shoulder, content.intake.injuredArea)
+    }
+
+    @Test
+    fun planMode_withoutAnIntake_hasEmptyRowsAndNoFlag() = runTest(dispatcher) {
+        givenPlan(completePlan())
+        val model = viewModel()
+
+        advanceUntilIdle()
+
+        assertEquals(3, model.content().intakeRows.size)
+        assertTrue(model.content().intake.isEmpty)
+        assertTrue(model.content().flags.isEmpty())
+        assertTrue(model.content().canCreate)
+    }
+
+    @Test
+    fun intakeEntry_isNeverARowOrAMissingNote() = runTest(dispatcher) {
+        givenPlan(
+            completePlan(
+                planInput(PlanInputKey.Intake, PlanInputStatus.UnsetOptional, PlanInputValue.Absent),
+            ),
+        )
+        val model = viewModel()
+
+        advanceUntilIdle()
+
+        assertTrue(model.content().rows.none { it.key == PlanInputKey.Intake })
+        assertTrue(model.content().missingNotes.isEmpty())
+    }
+
+    @Test
+    fun blockMode_hasNoIntakeRows() = runTest(dispatcher) {
+        asked.asked = false
+        coach.inputs[PlanInputKind.Block] = Result.success(PlanInputs(PlanInputKind.Block, null, emptyList()))
+        val model = viewModel(args("block"))
+
+        advanceUntilIdle()
+
+        assertTrue(model.content().intakeRows.isEmpty())
+    }
+
+    @Test
+    fun firstPlan_withoutIntakeAndNotAsked_opensTheIntakeOnce() = runTest(dispatcher) {
+        asked.asked = false
+        givenPlan(completePlan())
+        val model = viewModel()
+
+        model.effects.test {
+            advanceUntilIdle()
+            assertEquals(BeforeStartEffect.OpenIntake, awaitItem())
+            model.onEvent(BeforeStartEvent.Refresh)
+            model.onEvent(BeforeStartEvent.Retry)
+            advanceUntilIdle()
+            expectNoEvents()
+        }
+    }
+
+    @Test
+    fun savedIntake_doesNotRoute() = runTest(dispatcher) {
+        asked.asked = false
+        givenPlan(completePlan(savedIntakeEntry))
+        val model = viewModel()
+
+        model.effects.test {
+            advanceUntilIdle()
+            expectNoEvents()
+        }
+    }
+
+    @Test
+    fun alreadyAsked_doesNotRoute() = runTest(dispatcher) {
+        givenPlan(completePlan())
+        val model = viewModel()
+
+        model.effects.test {
+            advanceUntilIdle()
+            expectNoEvents()
+        }
+    }
+
+    @Test
+    fun blockMode_neverRoutesToTheIntake() = runTest(dispatcher) {
+        asked.asked = false
+        coach.inputs[PlanInputKind.Block] = Result.success(PlanInputs(PlanInputKind.Block, null, emptyList()))
+        val model = viewModel(args("block"))
+
+        model.effects.test {
+            advanceUntilIdle()
+            expectNoEvents()
+        }
+    }
+
+    @Test
+    fun failedIntakeRead_stillShowsThePlanInputs() = runTest(dispatcher) {
+        givenPlan(completePlan(savedIntakeEntry))
+        intake.getFailure = AppException(AppError.Network)
+        val model = viewModel()
+
+        advanceUntilIdle()
+
+        assertTrue(model.content().intake.isEmpty)
+        assertEquals(3, model.content().intakeRows.size)
     }
 }

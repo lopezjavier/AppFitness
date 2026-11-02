@@ -100,7 +100,7 @@ class PlanInputsDtoTest {
     fun allKeys_areMapped() {
         val keys = listOf(
             "intention", "sex", "age", "height", "weight", "activity_level", "total_expenditure", "weight_trend",
-            "diary", "place", "equipment", "cardio", "days_per_week", "session_minutes", "experience",
+            "diary", "place", "equipment", "cardio", "days_per_week", "session_minutes", "experience", "intake",
         )
 
         val result = decode(list(*keys.map { entry(key = it) }.toTypedArray()))
@@ -176,7 +176,7 @@ class PlanInputsDtoTest {
     }
 
     @Test
-    fun intakeEntry_withObjectValueAndIntakeScreen_isToleratedAndNeverBlocking() {
+    fun intakeEntry_okMeansSaved_isNeverBlocking_andDoesNotBreakNeighbours() {
         val result = decode(
             list(
                 entry(
@@ -191,12 +191,34 @@ class PlanInputsDtoTest {
         )
 
         val input = result.inputs.first()
-        assertEquals(PlanInputKey.Unknown, input.key)
-        assertEquals(PlanInputValue.Absent, input.value)
-        assertEquals(PlanInputStatus.Ok, input.status)
-        assertNull(input.fixTarget)
+        assertEquals(PlanInputKey.Intake, input.key)
+        assertEquals(PlanInputSource.Intake, input.source)
+        assertEquals(PlanFixTarget.Intake, input.fixTarget)
         assertEquals(false, input.blocking)
+        assertEquals(true, result.intakeSaved)
         assertEquals(PlanInputKey.Sex, result.inputs.last().key)
+    }
+
+    @Test
+    fun intakeEntry_unsetOptionalMeansNotSaved() {
+        val result = decode(
+            list(
+                entry(
+                    key = "intake",
+                    value = """{"saved":false,"situation":"somethingNew"}""",
+                    source = "intake",
+                    status = "unset_optional",
+                    fix = "\"intake\"",
+                ),
+            ),
+        )
+
+        assertEquals(false, result.intakeSaved)
+    }
+
+    @Test
+    fun listWithoutIntakeEntry_isNotSaved() {
+        assertEquals(false, decode(list(entry(key = "sex"))).intakeSaved)
     }
 
     @Test

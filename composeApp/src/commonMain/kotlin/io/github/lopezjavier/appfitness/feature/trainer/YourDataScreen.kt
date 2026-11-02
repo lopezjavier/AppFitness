@@ -24,15 +24,21 @@ import io.github.lopezjavier.appfitness.composeapp.resources.action_retry
 import io.github.lopezjavier.appfitness.composeapp.resources.before_start_error
 import io.github.lopezjavier.appfitness.composeapp.resources.trainer_provisional
 import io.github.lopezjavier.appfitness.composeapp.resources.trainer_value_supporting
+import io.github.lopezjavier.appfitness.composeapp.resources.your_data_handover_note
+import io.github.lopezjavier.appfitness.composeapp.resources.your_data_intake_provisional
+import io.github.lopezjavier.appfitness.composeapp.resources.your_data_intake_row
 import io.github.lopezjavier.appfitness.composeapp.resources.your_data_save_action
 import io.github.lopezjavier.appfitness.composeapp.resources.your_data_save_error
+import io.github.lopezjavier.appfitness.composeapp.resources.your_data_situation_row
 import io.github.lopezjavier.appfitness.composeapp.resources.your_data_title
 import io.github.lopezjavier.appfitness.designsystem.AppCard
 import io.github.lopezjavier.appfitness.designsystem.AppListRow
+import io.github.lopezjavier.appfitness.designsystem.AppNumberFormat
 import io.github.lopezjavier.appfitness.designsystem.AppScreen
 import io.github.lopezjavier.appfitness.designsystem.AppStateAction
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
 import io.github.lopezjavier.appfitness.designsystem.ErrorState
+import io.github.lopezjavier.appfitness.designsystem.InlineNote
 import io.github.lopezjavier.appfitness.designsystem.ListSectionHeader
 import io.github.lopezjavier.appfitness.designsystem.LocalAppHaptics
 import io.github.lopezjavier.appfitness.designsystem.LocalAppMessages
@@ -44,12 +50,14 @@ import io.github.lopezjavier.appfitness.designsystem.StatusChip
 import io.github.lopezjavier.appfitness.designsystem.StatusTone
 import io.github.lopezjavier.appfitness.designsystem.offlineHint
 import io.github.lopezjavier.appfitness.domain.model.PlanFixTarget
+import io.github.lopezjavier.appfitness.domain.model.Situation
 import io.github.lopezjavier.appfitness.domain.port.ConnectivityObserver
 import io.github.lopezjavier.appfitness.feature.exercises.tagName
 import kotlinx.coroutines.flow.Flow
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.koinInject
 import org.koin.compose.viewmodel.koinViewModel
+import kotlin.math.roundToInt
 
 private const val SKELETON_ROWS = 5
 private const val TITLE_FRACTION = 0.4f
@@ -153,17 +161,65 @@ private fun YourDataContent(
         Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(Spacing.screenMargin),
         verticalArrangement = Arrangement.spacedBy(Spacing.blockGap),
     ) {
+        if (state.showHandover) HandoverNote(state.handoverKcal, onEvent)
         state.sections.forEach { section ->
             Column(Modifier.testTag("your_data_section_${section.origin.tagName()}")) {
                 ListSectionHeader(stringResource(section.origin.title()))
-                section.rows.forEach { row -> YourDataRow(row, onEvent, onFix) }
+                section.rows.forEach { row ->
+                    YourDataRow(row, row.key in state.intakeSourcedKeys, onEvent, onFix)
+                }
             }
         }
+        IntakeEntry(state.situation, onFix)
+    }
+}
+
+/** The one-time note after the measured expenditure replaced the one the user said; it tells the server once shown. */
+@Composable
+private fun HandoverNote(kcal: Double?, onEvent: (YourDataEvent) -> Unit) {
+    val latestOnEvent by rememberUpdatedState(onEvent)
+    LaunchedEffect(Unit) { latestOnEvent(YourDataEvent.HandoverShown) }
+    InlineNote(
+        text = stringResource(
+            Res.string.your_data_handover_note,
+            kcal?.let { AppNumberFormat.integer(it.roundToInt()) }.orEmpty(),
+        ),
+        testTag = "your_data_handover_note",
+    )
+}
+
+/** The situation the coach works with and the row that opens "Para conocerte" (an editor, hence its own row). */
+@Composable
+private fun IntakeEntry(situation: Situation?, onFix: (PlanFixTarget) -> Unit) {
+    Column {
+        situation?.let {
+            AppListRow(
+                headline = stringResource(Res.string.your_data_situation_row),
+                modifier = Modifier.testTag("your_data_situation_row"),
+                trailing = {
+                    Text(
+                        text = stringResource(it.intakeLabel()),
+                        style = AppTheme.typography.bodyMedium,
+                        color = AppTheme.colors.textSecondary,
+                    )
+                },
+            )
+        }
+        NavigationRow(
+            label = stringResource(Res.string.your_data_intake_row),
+            onClick = { onFix(PlanFixTarget.Intake) },
+            modifier = Modifier.testTag("your_data_intake_row"),
+        )
     }
 }
 
 @Composable
-private fun YourDataRow(row: PlanInputRow, onEvent: (YourDataEvent) -> Unit, onFix: (PlanFixTarget) -> Unit) {
+private fun YourDataRow(
+    row: PlanInputRow,
+    fromIntake: Boolean,
+    onEvent: (YourDataEvent) -> Unit,
+    onFix: (PlanFixTarget) -> Unit,
+) {
     val tag = "your_data_row_${row.key.tagName()}"
     val value =
         stringResource(Res.string.trainer_value_supporting, row.valueText(), stringResource(row.source.originLabel()))
@@ -187,11 +243,19 @@ private fun YourDataRow(row: PlanInputRow, onEvent: (YourDataEvent) -> Unit, onF
                 },
             )
         }
-        if (row.isProvisional) {
+        if (row.isProvisional || fromIntake) {
             StatusChip(
                 text = stringResource(Res.string.trainer_provisional),
                 tone = StatusTone.Caution,
                 modifier = Modifier.testTag("your_data_chip_provisional_${row.key.tagName()}"),
+            )
+        }
+        if (fromIntake) {
+            Text(
+                text = stringResource(Res.string.your_data_intake_provisional),
+                style = AppTheme.typography.bodySmall,
+                color = AppTheme.colors.textSecondary,
+                modifier = Modifier.testTag("your_data_intake_provisional_${row.key.tagName()}"),
             )
         }
     }

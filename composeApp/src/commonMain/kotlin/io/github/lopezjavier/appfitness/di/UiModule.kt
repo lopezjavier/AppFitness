@@ -38,6 +38,8 @@ import io.github.lopezjavier.appfitness.feature.templates.TemplateDetailsViewMod
 import io.github.lopezjavier.appfitness.feature.trainer.BeforeStartViewModel
 import io.github.lopezjavier.appfitness.feature.trainer.BlockPreviewViewModel
 import io.github.lopezjavier.appfitness.feature.trainer.CoachUsageViewModel
+import io.github.lopezjavier.appfitness.feature.trainer.FreeTextLinesViewModel
+import io.github.lopezjavier.appfitness.feature.trainer.IntakeViewModel
 import io.github.lopezjavier.appfitness.feature.trainer.PlanProposalViewModel
 import io.github.lopezjavier.appfitness.feature.trainer.TrainerViewModel
 import io.github.lopezjavier.appfitness.feature.trainer.YourDataViewModel
@@ -423,8 +425,12 @@ val uiModule =
                 savedState = get(),
             )
         }
-        viewModel { BeforeStartViewModel(coach = get(), clock = get(), savedState = get()) }
-        viewModel { YourDataViewModel(coach = get(), clock = get(), savedState = get()) }
+        viewModel {
+            BeforeStartViewModel(coach = get(), intakeRepo = get(), prompt = get(), clock = get(), savedState = get())
+        }
+        viewModel { YourDataViewModel(coach = get(), intakeRepo = get(), clock = get(), savedState = get()) }
+        viewModel { IntakeViewModel(repository = get(), prompt = get(), savedState = get()) }
+        viewModel { FreeTextLinesViewModel(repository = get(), clock = get()) }
         viewModel { params ->
             BlockPreviewViewModel(
                 planId = params.get(),

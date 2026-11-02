@@ -192,7 +192,8 @@ class AmountPhotoFlowTest {
         estimate()
 
         rule.onNodeWithTag("food_sheet_amount_estimating").assertExists()
-        rule.onNodeWithText("Estimando…").assertExists()
+        rule.onNodeWithText("Estimando la cantidad…").assertExists()
+        rule.onNode(stateDescriptionIs("Estimando la cantidad…")).assertExists()
         photoRepo.amountGate?.complete(Unit)
         rule.waitForIdle()
 
