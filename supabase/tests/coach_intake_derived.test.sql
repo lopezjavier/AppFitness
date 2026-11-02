@@ -1,10 +1,10 @@
--- pgTAP: coach_compute with the user's intake (T-185; US-68 experience, US-81 priors, US-88 situation; planning/04 section 7.5).
+-- pgTAP: coach_compute with the user's intake (T-185; US-68 experience, US-81 priors; planning/04 section 7.5).
 -- The no-intake behaviour is covered, unchanged, by coach_derived_values.test.sql.
 begin;
 create extension if not exists pgtap with schema extensions;
 set local search_path = extensions, public;
 
-select plan(37);
+select plan(31);
 
 create function pg_temp.d0() returns date language sql as $$ select (now() at time zone 'utc')::date $$;
 create function pg_temp.u(n int) returns uuid language sql as $$
@@ -37,10 +37,9 @@ create function pg_temp.last_session(n int, d int) returns void language sql as 
   insert into public.workout_sessions (user_id, name, status, started_at, ended_at)
   values (pg_temp.u(n), 's', 'completed', now() - make_interval(days => d), now() - make_interval(days => d) + interval '1 hour') $$;
 
-create function pg_temp.intake(n int, years numeric default null, sit public.coach_situation default null,
-                               maint int default null, cut int default null) returns void language sql as $$
-  insert into public.coach_user_intake (user_id, training_years, situation, known_maintenance_kcal, known_cut_kcal)
-  values (pg_temp.u(n), years, sit, maint, cut) $$;
+create function pg_temp.intake(n int, years numeric default null, maint int default null) returns void language sql as $$
+  insert into public.coach_user_intake (user_id, training_years, known_maintenance_kcal)
+  values (pg_temp.u(n), years, maint) $$;
 
 create function pg_temp.diary(n int, days int, kcal numeric) returns void language sql as $$
   insert into public.food_log_entries (user_id, log_date, meal_slot_id, food_id, amount, food_name, kcal, protein_g, carbs_g, fat_g)
@@ -76,19 +75,16 @@ select pg_temp.intake(1, 3), pg_temp.sessions(1, 10, 20);
 select pg_temp.intake(2, 0.3), pg_temp.sessions(2, 24, 98);
 select pg_temp.intake(4, 0.4), pg_temp.intake(5, 0.5), pg_temp.intake(6, 1.9), pg_temp.intake(7, 2);
 select pg_temp.intake(8, 1), pg_temp.sessions(8, 150, 400);
--- Situation. 10: last session 27 days ago. 11: 28 days. 12: injury answer + 28 days. 13: no sessions at all.
--- 14: "continuous" answer + 40 days. 15: "first_time" answer + 40 days.
+-- Quiet users (T-198: no situation is derived any more). 10: last session 27 days ago. 11: 28 days. 14/15: 40 days.
 select pg_temp.last_session(10, 27), pg_temp.last_session(11, 28), pg_temp.last_session(14, 40), pg_temp.last_session(15, 40),
        pg_temp.last_session(12, 28);
-select pg_temp.intake(12, null, 'returning_injury'), pg_temp.intake(14, null, 'continuous'), pg_temp.intake(15, null, 'first_time');
 -- Expenditure prior. 16: no profile, known maintenance. 17: profile + known maintenance. 18: reliable diary + maintenance.
-select pg_temp.intake(16, null, null, 2400);
-select pg_temp.profile(17), pg_temp.intake(17, null, null, 2400);
-select pg_temp.profile(18), pg_temp.diary(18, 28, 2000), pg_temp.intake(18, null, null, 2400);
--- Cut calories are context only. 19 has one, 20 is identical without; 21 gets notes later.
+select pg_temp.intake(16, null, 2400);
+select pg_temp.profile(17), pg_temp.intake(17, null, 2400);
+select pg_temp.profile(18), pg_temp.diary(18, 28, 2000), pg_temp.intake(18, null, 2400);
+-- 19 and 20 are identical; 21 gets notes later.
 select pg_temp.profile(19), pg_temp.profile(20), pg_temp.profile(21);
 select pg_temp.diary(19, 10, 1800), pg_temp.diary(20, 10, 1800), pg_temp.diary(21, 10, 1800);
-select pg_temp.intake(19, null, null, null, 1900);
 insert into public.exercises (id, name, muscle_group, equipment, metric_type, is_custom, created_by, movement_pattern)
 values ('ea000000-0000-4000-8000-000000000001', 'Mi sentadilla', 'quads', 'barbell', 'weight_reps', true, pg_temp.u(21), 'squat');
 
@@ -112,17 +108,9 @@ select is(pg_temp.est(7)->'experience'->>'value', 'advanced', '2 years is advanc
 select is(pg_temp.est(8)->'experience'->>'value', 'advanced', 'a higher history takes over from 1 year said');
 select is(pg_temp.est(8)->'experience'->>'source', 'history', 'and becomes the source');
 
--- Situation
-select is(pg_temp.est(10)->'situation', '{"value": "continuous", "source": "history", "days_since_last_session": 27}'::jsonb,
-  '27 days without training changes nothing');
-select is(pg_temp.est(11)->'situation', '{"value": "returning_break", "source": "sessions", "days_since_last_session": 28}'::jsonb,
-  '28 days without training makes the user returning');
-select is(pg_temp.est(12)->'situation'->>'value', 'returning_injury', 'an injury answer is kept at 28 days');
-select is(pg_temp.est(12)->'situation'->>'source', 'intake', 'with the intake as its source');
-select is(pg_temp.est(13)->'situation', '{"value": "first_time", "source": "history", "days_since_last_session": null}'::jsonb,
-  'no sessions ever is not returning');
-select is(pg_temp.est(14)->'situation'->>'value', 'returning_break', 'a "continuous" answer is overridden by 40 quiet days');
-select is(pg_temp.est(15)->'situation'->>'value', 'returning_break', 'so is a "first_time" answer with sessions on record');
+-- No situation (T-198): a long pause derives nothing from the intake
+select is(pg_temp.est(11) ? 'situation', false, '28 days without training derives no situation');
+select is(pg_temp.est(14) ? 'situation', false, 'neither do 40 quiet days');
 
 -- Expenditure prior
 select is(pg_temp.est(16)->'total_expenditure'->>'value', '2400', 'the known maintenance is the expenditure when the diary is not enough');
@@ -139,9 +127,7 @@ select pg_temp.ack(18);
 select is((pg_temp.est(18)->'total_expenditure'->>'handover')::boolean, false, 'acknowledging the card hides it for good');
 
 -- Words and context never change numbers
-select is(pg_temp.est(19) - 'profile_intake', pg_temp.est(20) - 'profile_intake', 'cut calories change no figure');
-select is(pg_temp.est(19)->'profile_intake', '{"saved": true, "known_cut_kcal": 1900, "has_pre_break_bests": false}'::jsonb,
-  'the cut is reported as context');
+select is(pg_temp.est(19)->'profile_intake', '{"saved": false}'::jsonb, 'without an intake nothing is reported as saved');
 
 create temp table before_notes as select pg_temp.est(21) as j;
 grant select on before_notes to authenticated;

@@ -8,12 +8,10 @@ import io.github.lopezjavier.appfitness.domain.model.DerivedActivityLevel
 import io.github.lopezjavier.appfitness.domain.model.DerivedExperience
 import io.github.lopezjavier.appfitness.domain.model.DerivedExperienceValue
 import io.github.lopezjavier.appfitness.domain.model.DerivedIntake
-import io.github.lopezjavier.appfitness.domain.model.DerivedSituation
 import io.github.lopezjavier.appfitness.domain.model.DerivedSource
 import io.github.lopezjavier.appfitness.domain.model.DerivedTotalExpenditure
 import io.github.lopezjavier.appfitness.domain.model.DerivedWeightTrend
 import io.github.lopezjavier.appfitness.domain.model.ExperienceSource
-import io.github.lopezjavier.appfitness.domain.model.SituationSource
 import kotlinx.datetime.LocalDate
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
@@ -108,13 +106,6 @@ internal data class ExperienceDto(
     @SerialName("self_reported_years") val selfReportedYears: Double? = null,
 )
 
-@Serializable
-internal data class SituationDto(
-    val value: String? = null,
-    val source: String? = null,
-    @SerialName("days_since_last_session") val daysSinceLastSession: Int? = null,
-)
-
 /** Response of `coach_derived_estimates` and `confirm_derived_values` (one jsonb object). */
 @Serializable
 internal data class CoachDerivedDto(
@@ -124,7 +115,6 @@ internal data class CoachDerivedDto(
     @SerialName("weight_trend") val weightTrend: WeightTrendDto = WeightTrendDto(),
     val intake: IntakeDto = IntakeDto(),
     val experience: ExperienceDto = ExperienceDto(),
-    val situation: SituationDto? = null,
 ) {
     fun toDomain(): CoachDerivedValues = CoachDerivedValues(
         asOf = asOf,
@@ -180,9 +170,6 @@ internal data class CoachDerivedDto(
             source = if (experience.source == "intake") ExperienceSource.Intake else ExperienceSource.History,
             selfReportedYears = experience.selfReportedYears,
         ),
-        situation = situation?.let {
-            DerivedSituation(it.value.toSituation(), it.source.toSituationSource(), it.daysSinceLastSession)
-        },
     )
 }
 
@@ -200,12 +187,5 @@ private fun String?.toExperience(): DerivedExperience? = when (this) {
     "beginner" -> DerivedExperience.Beginner
     "intermediate" -> DerivedExperience.Intermediate
     "advanced" -> DerivedExperience.Advanced
-    else -> null
-}
-
-private fun String?.toSituationSource(): SituationSource? = when (this) {
-    "intake" -> SituationSource.Intake
-    "sessions" -> SituationSource.Sessions
-    "history" -> SituationSource.History
     else -> null
 }

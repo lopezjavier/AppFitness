@@ -3,9 +3,9 @@ package io.github.lopezjavier.appfitness.data.repository
 import io.github.lopezjavier.appfitness.domain.AppError
 import io.github.lopezjavier.appfitness.domain.AppException
 import io.github.lopezjavier.appfitness.domain.model.CoachIntake
-import io.github.lopezjavier.appfitness.domain.model.CoachIntakeDraft
 import io.github.lopezjavier.appfitness.domain.model.FreeTextKind
 import io.github.lopezjavier.appfitness.domain.model.FreeTextLine
+import io.github.lopezjavier.appfitness.domain.model.IntakeUpdate
 import io.github.lopezjavier.appfitness.domain.repository.CoachIntakeRepository
 import kotlinx.datetime.LocalDate
 
@@ -13,9 +13,7 @@ import kotlinx.datetime.LocalDate
 class UnconfiguredCoachIntakeRepository : CoachIntakeRepository {
     override suspend fun get(): Result<CoachIntake?> = Result.failure(AppException(AppError.Unknown))
 
-    override suspend fun save(intake: CoachIntake): Result<CoachIntake> = Result.failure(AppException(AppError.Unknown))
-
-    override suspend fun extract(freeText: String, fields: CoachIntakeDraft?): Result<CoachIntakeDraft> =
+    override suspend fun save(update: IntakeUpdate): Result<CoachIntake> =
         Result.failure(AppException(AppError.Unknown))
 
     override suspend fun freeTextLines(today: LocalDate): Result<List<FreeTextLine>> =

@@ -426,10 +426,10 @@ val uiModule =
             )
         }
         viewModel {
-            BeforeStartViewModel(coach = get(), intakeRepo = get(), prompt = get(), clock = get(), savedState = get())
+            BeforeStartViewModel(coach = get(), intakeRepo = get(), clock = get(), savedState = get())
         }
         viewModel { YourDataViewModel(coach = get(), intakeRepo = get(), clock = get(), savedState = get()) }
-        viewModel { IntakeViewModel(repository = get(), prompt = get(), savedState = get()) }
+        viewModel { IntakeViewModel(repository = get(), savedState = get()) }
         viewModel { FreeTextLinesViewModel(repository = get(), clock = get()) }
         viewModel { params ->
             BlockPreviewViewModel(

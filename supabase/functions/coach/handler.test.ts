@@ -113,6 +113,15 @@ Deno.test("an unknown kind is 400 INVALID_INPUT", async () => {
     assertEquals((await res.json()).error.code, "INVALID_INPUT");
 });
 
+Deno.test("T-198: the removed intake_extract kind is an unknown kind and records no usage", async () => {
+    const { handler } = setup();
+    const res = await handler(
+        post({ kind: "intake_extract", input: { text: "hola" } }),
+    );
+    assertEquals(res.status, 400);
+    assertEquals((await res.json()).error.code, "INVALID_INPUT");
+});
+
 Deno.test("a prototype key is not a kind", async () => {
     const { handler } = setup();
     const res = await handler(post({ kind: "constructor", input: {} }));

@@ -78,21 +78,38 @@ private const val SECONDS_PER_MINUTE = 60
 @Suppress("CyclomaticComplexMethod") // One branch per key.
 internal fun PlanInputKey.labelResource(): StringResource = when (this) {
     PlanInputKey.Intention -> Res.string.plan_input_label_intention
+
     PlanInputKey.Sex -> Res.string.plan_input_label_sex
+
     PlanInputKey.Age -> Res.string.plan_input_label_age
+
     PlanInputKey.Height -> Res.string.plan_input_label_height
+
     PlanInputKey.Weight -> Res.string.plan_input_label_weight
+
     PlanInputKey.ActivityLevel -> Res.string.trainer_row_activity_level
+
     PlanInputKey.TotalExpenditure -> Res.string.trainer_row_total_expenditure
+
     PlanInputKey.WeightTrend -> Res.string.trainer_row_weight_trend
+
     PlanInputKey.Diary -> Res.string.plan_input_label_diary
+
     PlanInputKey.Place -> Res.string.plan_input_label_place
+
     PlanInputKey.Equipment -> Res.string.plan_input_label_equipment
+
     PlanInputKey.Cardio -> Res.string.plan_input_label_cardio
+
     PlanInputKey.DaysPerWeek -> Res.string.plan_input_label_days
+
     PlanInputKey.SessionMinutes -> Res.string.plan_input_label_session
+
     PlanInputKey.Experience -> Res.string.plan_input_label_experience
-    PlanInputKey.Intake, PlanInputKey.Unknown -> Res.string.plan_input_label_unknown
+
+    PlanInputKey.TrainingYears, PlanInputKey.KnownMaintenance, PlanInputKey.FreeText,
+    PlanInputKey.Unknown,
+    -> Res.string.plan_input_label_unknown
 }
 
 internal fun PlanInputSource.originLabel(): StringResource = when (this) {

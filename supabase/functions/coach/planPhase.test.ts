@@ -154,30 +154,18 @@ Deno.test("plan_nutrition stores the phase, its reason and its options in the sa
     assertEquals(plan.nutrition.phase, "cut");
 });
 
-Deno.test("a returning user starts in regain at the expenditure, with the reason of the return", async () => {
+Deno.test("T-198: a summary that still carries a situation starts from the intention only", async () => {
     for (const situation of ["returning_break", "returning_injury"]) {
         const t = setup({
-            summary: summary({ situation }),
+            summary: summary({ intention: "fat_loss", situation }),
         });
         const res = await t.handler(post("plan_nutrition", { today: TODAY }));
         assertEquals(res.status, 200);
         await res.text();
         const n = t.saved[0].nutrition;
-        assertEquals(n.phase, "regain");
-        assertEquals(n.phase_reason, situation);
-        assertEquals(n.target_kcal, 2600);
-        assertEquals(n.calorie_adjustment, 0);
+        assertEquals(n.phase, "cut");
+        assertEquals(n.phase_reason, "intention");
     }
-});
-
-Deno.test("regain with a muscle intention gains 0.25 percent", async () => {
-    const t = setup({
-        summary: summary({ intention: "muscle", situation: "returning_break" }),
-    });
-    await (await t.handler(post("plan_nutrition", { today: TODAY }))).text();
-    const n = t.saved[0].nutrition;
-    assertEquals(n.phase, "regain");
-    assertEquals(n.calorie_adjustment, 220);
 });
 
 Deno.test("strength and maintenance start in maintenance, with the same model call as before", async () => {

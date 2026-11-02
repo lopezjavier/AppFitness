@@ -86,13 +86,9 @@ data class BeforeStartRoute(val mode: String, val planId: String? = null, val re
 @Serializable
 data object YourDataRoute : AppRoute
 
-/**
- * "Para conocerte" (US-81): the intake form. [next] is `before_start` when it was opened by the first "Crear plan"
- * (saving or "Ahora no" then continues to "Antes de empezar", which keeps [replacingPlanId]); null when opened from
- * "Tus datos" or "Antes de empezar" (it just closes).
- */
+/** "Para conocerte" (US-81): the free-text editor, opened from the "Para conocerte" row (R-55). */
 @Serializable
-data class IntakeRoute(val next: String? = null, val replacingPlanId: String? = null) : AppRoute
+data object IntakeRoute : AppRoute
 
 /** "Lo que el entrenador sabe de ti" (US-89): every free-text line the coach reads, opened from the Trainer tab. */
 @Serializable
@@ -404,7 +400,7 @@ object AppDestinations {
             PlanProposalRoute(),
             BeforeStartRoute(""),
             YourDataRoute,
-            IntakeRoute(),
+            IntakeRoute,
             FreeTextLinesRoute,
             BlockPreviewRoute(""),
             NotificationCenterRoute,

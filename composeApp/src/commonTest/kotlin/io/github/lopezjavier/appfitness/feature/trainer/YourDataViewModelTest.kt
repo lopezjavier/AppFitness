@@ -7,10 +7,9 @@ import io.github.lopezjavier.appfitness.domain.AppException
 import io.github.lopezjavier.appfitness.domain.model.ActivityLevel
 import io.github.lopezjavier.appfitness.domain.model.CoachDerivedValues
 import io.github.lopezjavier.appfitness.domain.model.CoachIntake
-import io.github.lopezjavier.appfitness.domain.model.DerivedSituation
 import io.github.lopezjavier.appfitness.domain.model.DerivedSource
 import io.github.lopezjavier.appfitness.domain.model.ExperienceSource
-import io.github.lopezjavier.appfitness.domain.model.InjuredArea
+import io.github.lopezjavier.appfitness.domain.model.IntakeUpdate
 import io.github.lopezjavier.appfitness.domain.model.PlanInput
 import io.github.lopezjavier.appfitness.domain.model.PlanInputKey
 import io.github.lopezjavier.appfitness.domain.model.PlanInputKind
@@ -18,8 +17,6 @@ import io.github.lopezjavier.appfitness.domain.model.PlanInputSource
 import io.github.lopezjavier.appfitness.domain.model.PlanInputStatus
 import io.github.lopezjavier.appfitness.domain.model.PlanInputValue
 import io.github.lopezjavier.appfitness.domain.model.PlanInputs
-import io.github.lopezjavier.appfitness.domain.model.Situation
-import io.github.lopezjavier.appfitness.domain.model.SituationSource
 import io.github.lopezjavier.appfitness.feature.workout.MutableClock
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -233,13 +230,11 @@ class YourDataViewModelTest {
         expenditureSource: DerivedSource = DerivedSource.Formula,
         handover: Boolean = false,
         experienceSource: ExperienceSource = ExperienceSource.History,
-        situation: DerivedSituation? = null,
     ): CoachDerivedValues {
         val base = coachValues(provisional = false)
         return base.copy(
             totalExpenditure = base.totalExpenditure.copy(source = expenditureSource, handover = handover),
             experience = base.experience.copy(source = experienceSource),
-            situation = situation,
         )
     }
 
@@ -269,42 +264,51 @@ class YourDataViewModelTest {
         val content = model.content()
         assertTrue(content.intake.isEmpty)
         assertTrue(content.intakeSourcedKeys.isEmpty())
-        assertNull(content.situation)
         assertFalse(content.showHandover)
     }
 
     @Test
-    fun savedIntake_isSummarisedAndSituationComesFromIt() = runTest(dispatcher) {
+    fun savedIntake_isSummarisedInTheThreeRows() = runTest(dispatcher) {
         plan(planInput(PlanInputKey.Sex))
-        intake.stored = CoachIntake(
-            trainingYears = 4.0,
-            situation = Situation.ReturningInjury,
-            injuredArea = InjuredArea.Shoulder,
-            knownMaintenanceKcal = 2600,
-        )
+        intake.stored = CoachIntake(trainingYears = 4.0, knownMaintenanceKcal = 2600, freeText = "Rodilla operada")
         val model = viewModel()
 
         advanceUntilIdle()
 
-        val content = model.content()
-        assertEquals(4.0, content.intake.trainingYears)
-        assertEquals(InjuredArea.Shoulder, content.intake.injuredArea)
-        assertEquals(2600, content.intake.maintenanceKcal)
-        assertEquals(Situation.ReturningInjury, content.situation)
+        assertEquals(IntakeSummary(4.0, 2600, "Rodilla operada"), model.content().intake)
     }
 
     @Test
-    fun derivedSituation_winsOverTheStatedOne() = runTest(dispatcher) {
+    fun savingTheYearsSheet_updatesOnlyThatRow() = runTest(dispatcher) {
         plan(planInput(PlanInputKey.Sex))
-        intake.stored = CoachIntake(situation = Situation.FirstTime)
-        coach.loaded = Result.success(
-            derived(situation = DerivedSituation(Situation.Continuous, SituationSource.Sessions, 2)),
-        )
+        intake.stored = CoachIntake(knownMaintenanceKcal = 2600, freeText = "hola")
         val model = viewModel()
-
         advanceUntilIdle()
 
-        assertEquals(Situation.Continuous, model.content().situation)
+        model.onEditorEvent(IntakeRowEvent.OpenYears(null))
+        model.onEditorEvent(IntakeRowEvent.YearsUp)
+        model.onEditorEvent(IntakeRowEvent.YearsUp)
+        model.onEditorEvent(IntakeRowEvent.Save)
+        advanceUntilIdle()
+
+        assertEquals(listOf<IntakeUpdate>(IntakeUpdate.TrainingYears(0.5)), intake.saveCalls)
+        assertEquals(IntakeSummary(0.5, 2600, "hola"), model.content().intake)
+        assertNull(model.editor.value.sheet)
+    }
+
+    @Test
+    fun anOpenMaintenanceSheetWithATypedValue_survivesRecreationFromTheSameSavedState() = runTest(dispatcher) {
+        plan(planInput(PlanInputKey.Sex))
+        val saved = SavedStateHandle()
+        val first = viewModel(saved)
+        advanceUntilIdle()
+        first.onEditorEvent(IntakeRowEvent.OpenMaintenance(null))
+        first.onEditorEvent(IntakeRowEvent.EditMaintenance("24"))
+
+        val second = viewModel(saved)
+        advanceUntilIdle()
+
+        assertEquals(IntakeRowSheet.Maintenance("24"), second.editor.value.sheet)
     }
 
     @Test

@@ -52,7 +52,6 @@ import io.github.lopezjavier.appfitness.composeapp.resources.before_start_reason
 import io.github.lopezjavier.appfitness.composeapp.resources.before_start_summary_chevron_cd
 import io.github.lopezjavier.appfitness.composeapp.resources.before_start_title
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_chevron_right
-import io.github.lopezjavier.appfitness.composeapp.resources.intake_unset
 import io.github.lopezjavier.appfitness.composeapp.resources.trainer_block_create
 import io.github.lopezjavier.appfitness.composeapp.resources.trainer_block_create_action
 import io.github.lopezjavier.appfitness.composeapp.resources.trainer_plan_create
@@ -91,8 +90,7 @@ private const val TITLE_FRACTION = 0.4f
 /**
  * Stateful "Antes de empezar" (US-78): reloads when the user comes back from an editor, plays the one-off effects
  * (haptics, the confirm failure message, leaving through [onCreate]) and connects [BeforeStartViewModel] to
- * [BeforeStartScreen]. [onFix] opens the editor of a flagged input (the activity sheet is handled here);
- * [onOpenIntake] shows "Para conocerte" once before the first plan.
+ * [BeforeStartScreen]. [onFix] opens the editor of a flagged input (the activity sheet is handled here).
  */
 @Composable
 fun BeforeStartRoot(
@@ -100,17 +98,16 @@ fun BeforeStartRoot(
     onCreate: (BeforeStartEffect.Created) -> Unit,
     onOpenYourData: () -> Unit,
     onFix: (PlanFixTarget) -> Unit,
-    onOpenIntake: () -> Unit,
     modifier: Modifier = Modifier,
     viewModel: BeforeStartViewModel = koinViewModel(),
     connectivity: ConnectivityObserver = koinInject(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
+    val editor by viewModel.editor.collectAsStateWithLifecycle()
     val haptics = LocalAppHaptics.current
     val messages = LocalAppMessages.current
     val latestHaptics by rememberUpdatedState(haptics)
     val latestOnCreate by rememberUpdatedState(onCreate)
-    val latestOnOpenIntake by rememberUpdatedState(onOpenIntake)
     val failed = stringResource(Res.string.before_start_confirm_error)
     val offline = offlineHint(stringResource(Res.string.before_start_confirm_action)) + "."
     LifecycleEventEffect(Lifecycle.Event.ON_RESUME) { viewModel.onEvent(BeforeStartEvent.Refresh) }
@@ -126,8 +123,6 @@ fun BeforeStartRoot(
                     latestHaptics.reject()
                     messages.show(if (effect.offline) offline else failed)
                 }
-
-                BeforeStartEffect.OpenIntake -> latestOnOpenIntake()
             }
         }
     }
@@ -139,6 +134,8 @@ fun BeforeStartRoot(
         onOpenYourData = onOpenYourData,
         onFix = onFix,
         modifier = modifier,
+        editor = editor,
+        onEditorEvent = viewModel::onEditorEvent,
     )
 }
 
@@ -157,6 +154,8 @@ fun BeforeStartScreen(
     onOpenYourData: () -> Unit,
     onFix: (PlanFixTarget) -> Unit,
     modifier: Modifier = Modifier,
+    editor: IntakeRowEditorState = IntakeRowEditorState(),
+    onEditorEvent: (IntakeRowEvent) -> Unit = {},
 ) {
     val online by isOnline.collectAsStateWithLifecycle(initialValue = true)
     val content = state as? BeforeStartUiState.Content
@@ -184,8 +183,15 @@ fun BeforeStartScreen(
                     actionTestTag = "before_start_error_retry",
                 )
 
-                is BeforeStartUiState.Content -> BeforeStartContent(state, onEvent, onOpenYourData, onFix)
+                is BeforeStartUiState.Content -> BeforeStartContent(
+                    state,
+                    onEvent,
+                    onEditorEvent,
+                    onOpenYourData,
+                    onFix,
+                )
             }
+            if (content != null) IntakeRowSheetHost(editor, online, onEditorEvent)
             if (content?.sheet != null) {
                 ActivityLevelSheet(
                     selected = content.sheet,
@@ -204,6 +210,7 @@ fun BeforeStartScreen(
 private fun BeforeStartContent(
     state: BeforeStartUiState.Content,
     onEvent: (BeforeStartEvent) -> Unit,
+    onEditorEvent: (IntakeRowEvent) -> Unit,
     onOpenYourData: () -> Unit,
     onFix: (PlanFixTarget) -> Unit,
 ) {
@@ -218,7 +225,15 @@ private fun BeforeStartContent(
                 onClick = {
                     when (row.fixTarget) {
                         null -> onOpenYourData()
+
                         PlanFixTarget.ActivitySheet -> onEvent(BeforeStartEvent.OpenSheet)
+
+                        PlanFixTarget.TrainingYears ->
+                            openIntakeRow(IntakeRowKind.TrainingYears, state.intake, onEditorEvent, onFix)
+
+                        PlanFixTarget.Maintenance ->
+                            openIntakeRow(IntakeRowKind.Maintenance, state.intake, onEditorEvent, onFix)
+
                         else -> onFix(row.fixTarget)
                     }
                 },
@@ -250,22 +265,14 @@ private fun BeforeStartContent(
             )
         }
         SummaryCard(state, onOpenYourData)
-        IntakeBlock(state, onFix)
-    }
-}
-
-/** The three things told in "Para conocerte" (plan mode): never a flag, always "Sin indicar" when nothing was said. */
-@Composable
-private fun IntakeBlock(state: BeforeStartUiState.Content, onFix: (PlanFixTarget) -> Unit) {
-    if (state.intakeRows.isEmpty()) return
-    val unset = stringResource(Res.string.intake_unset)
-    Column(Modifier.testTag("before_start_intake_block")) {
-        state.intakeRows.forEach { kind ->
-            NavigationRow(
-                label = stringResource(kind.intakeLabel()),
-                value = kind.valueText(state.intake) ?: unset,
-                onClick = { onFix(PlanFixTarget.Intake) },
-                modifier = Modifier.testTag(kind.rowTag()),
+        if (state.intakeRows.isNotEmpty()) {
+            // Never a flag, "Sin indicar" when nothing was said; each row opens only its own editor (R-55).
+            IntakeRows(
+                intake = state.intake,
+                kinds = state.intakeRows,
+                screen = "before_start",
+                onOpen = { openIntakeRow(it, state.intake, onEditorEvent, onFix) },
+                modifier = Modifier.testTag("before_start_intake_block"),
             )
         }
     }
@@ -374,10 +381,15 @@ private fun BeforeStartFooter(
 /** Where a flagged input is fixed, as the flag row's value. */
 internal fun PlanFixTarget.destinationLabel() = when (this) {
     PlanFixTarget.MyTraining -> Res.string.before_start_fix_preferences
+
     PlanFixTarget.PersonalData -> Res.string.before_start_fix_personal
+
     PlanFixTarget.Weight -> Res.string.before_start_fix_weight
+
     PlanFixTarget.ActivitySheet -> Res.string.before_start_fix_activity
-    PlanFixTarget.Intake -> Res.string.before_start_fix_intake
+
+    PlanFixTarget.TrainingYears, PlanFixTarget.Maintenance, PlanFixTarget.FreeText ->
+        Res.string.before_start_fix_intake
 }
 
 /** Card-shaped placeholder while the inputs load (R-31): a title bar and one bar per summary line. */

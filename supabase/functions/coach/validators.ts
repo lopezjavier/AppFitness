@@ -152,7 +152,7 @@ export function assertNutritionInvariants(n: Nutrition): void {
     };
     const w = n.weight_kg;
     // A plan stored before T-187 has no phase: the one its intention implies.
-    const phase: Phase = n.phase ?? firstPhase(n.intention, null).phase;
+    const phase: Phase = n.phase ?? firstPhase(n.intention).phase;
     const dietBreak = n.diet_break ?? null;
     const options = n.phase_options ?? null;
 

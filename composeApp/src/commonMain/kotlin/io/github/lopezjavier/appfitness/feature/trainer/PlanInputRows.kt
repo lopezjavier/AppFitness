@@ -82,8 +82,10 @@ private fun PlanInputSource.toOrigin(): PlanInputOrigin = when (this) {
     PlanInputSource.CoachEstimate, PlanInputSource.Intake, PlanInputSource.Unknown -> PlanInputOrigin.Estimate
 }
 
-/** The intake entry only drives routing ([PlanInputs.intakeSaved]); it is not a row. */
-fun PlanInputs.rows(): List<PlanInputRow> = inputs.filter { it.key != PlanInputKey.Intake }.map { it.toRow() }
+/** The intake entries have their own rows (see [IntakeRowKind]); they are not input rows. */
+fun PlanInputs.rows(): List<PlanInputRow> = inputs.filter { it.key !in INTAKE_KEYS }.map { it.toRow() }
+
+private val INTAKE_KEYS = setOf(PlanInputKey.TrainingYears, PlanInputKey.KnownMaintenance, PlanInputKey.FreeText)
 
 /**
  * The summary lines of "Antes de empezar": each line shows its keys joined ("Sexo y edad"). Plan: goal, sex and age,

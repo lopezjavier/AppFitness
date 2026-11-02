@@ -59,7 +59,7 @@ export function buildCandidates(
 
     // By phase (a plan stored before T-187 has none): a weight target only where the plan moves the weight.
     const phase = nutrition.phase ??
-        firstPhase(nutrition.intention, null).phase;
+        firstPhase(nutrition.intention).phase;
     const direction = phase === "cut"
         ? -1
         : phase === "gain" || phase === "regain"

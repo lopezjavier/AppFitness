@@ -72,26 +72,14 @@ internal typealias BeforeStartSlot =
         onCreated: (BeforeStartEffect.Created) -> Unit,
         onOpenYourData: () -> Unit,
         onFix: (PlanFixTarget) -> Unit,
-        onOpenIntake: () -> Unit,
     ) -> Unit
 
 /** Content of "Tus datos": modifier (full-screen insets), how to leave and the editor opener of an input. */
 internal typealias YourDataSlot =
     @Composable (modifier: Modifier, onBack: () -> Unit, onFix: (PlanFixTarget) -> Unit) -> Unit
 
-/**
- * What "Para conocerte" needs from navigation: the exercise the picker returned for a best lift (consumed once with
- * [onConsumeSelection]), how to open the picker, how to continue after saving or "Ahora no" ([onDone]) and how to
- * leave without saving ([onClose]). [continuesToBeforeStart] is true for the first-plan flow ("Ahora no" is offered).
- */
-class IntakeHost(
-    val continuesToBeforeStart: Boolean,
-    val selectedExerciseId: String?,
-    val onConsumeSelection: () -> Unit,
-    val onAddExercise: () -> Unit,
-    val onDone: () -> Unit,
-    val onClose: () -> Unit,
-)
+/** What "Para conocerte" needs from navigation: how to go on after saving ([onDone]) and how to leave ([onClose]). */
+class IntakeHost(val onDone: () -> Unit, val onClose: () -> Unit)
 
 /** Content of "Para conocerte": modifier (full-screen insets) and its [IntakeHost]. */
 internal typealias IntakeSlot = @Composable (modifier: Modifier, host: IntakeHost) -> Unit
@@ -605,7 +593,7 @@ internal val DefaultPlanProposalSlot: PlanProposalSlot = { modifier, _, _ ->
 }
 
 /** Empty "Antes de empezar" for previews and shell tests; the real one is wired by `AppRoot`. */
-internal val DefaultBeforeStartSlot: BeforeStartSlot = { modifier, _, _, _, _, _ ->
+internal val DefaultBeforeStartSlot: BeforeStartSlot = { modifier, _, _, _, _ ->
     Box(modifier.fillMaxSize().testTag("before_start_screen"))
 }
 
@@ -737,7 +725,9 @@ internal fun AppNavHost(
                 PlanFixTarget.ActivitySheet -> null
 
                 // The screens open their own sheet.
-                PlanFixTarget.Intake -> IntakeRoute()
+                PlanFixTarget.TrainingYears, PlanFixTarget.Maintenance -> null
+
+                PlanFixTarget.FreeText -> IntakeRoute
             }
             if (route != null) navController.navigateToFullScreen(route)
         }
@@ -855,21 +845,13 @@ internal fun AppNavHost(
                 { created -> navController.openCreated(entry, created) },
                 openYourData,
                 openFix,
-                { navController.openIntakeFirst(entry) },
             )
         }
         composable<IntakeRoute> { entry ->
-            val route = entry.toRoute<IntakeRoute>()
-            val handle = entry.savedStateHandle
-            val selected by handle.getStateFlow<String?>(SELECTED_EXERCISE_KEY, null).collectAsState()
             intake(
                 Modifier.padding(fullScreenPadding),
                 IntakeHost(
-                    continuesToBeforeStart = route.next == INTAKE_NEXT_BEFORE_START,
-                    selectedExerciseId = selected,
-                    onConsumeSelection = { handle[SELECTED_EXERCISE_KEY] = null },
-                    onAddExercise = { navController.navigateToFullScreen(ExercisePickerRoute(selectMode = true)) },
-                    onDone = { navController.finishIntake(entry, route) },
+                    onDone = { navController.popFullScreen(entry) },
                     onClose = { navController.popFullScreen(entry) },
                 ),
             )
@@ -1336,35 +1318,6 @@ internal fun NavController.openCreated(entry: NavBackStackEntry, created: Before
         } else {
             popUpTo<BeforeStartRoute> { inclusive = true }
         }
-    }
-}
-
-/** [IntakeRoute.next] of the first-plan flow: continue to "Antes de empezar" once the intake is saved or skipped. */
-internal const val INTAKE_NEXT_BEFORE_START = "before_start"
-
-/**
- * The first "Crear plan" with nothing said yet: "Para conocerte" takes the place of the empty "Antes de empezar",
- * which is opened again by [finishIntake] with the plan being replaced kept.
- */
-internal fun NavController.openIntakeFirst(entry: NavBackStackEntry) {
-    if (currentBackStackEntry?.id != entry.id) return
-    val before = entry.toRoute<BeforeStartRoute>()
-    navigate(IntakeRoute(INTAKE_NEXT_BEFORE_START, before.replacingPlanId)) {
-        launchSingleTop = true
-        popUpTo<BeforeStartRoute> { inclusive = true }
-    }
-}
-
-/** Leaves "Para conocerte" after saving or "Ahora no": the first-plan flow goes on, any other just closes. */
-internal fun NavController.finishIntake(entry: NavBackStackEntry, route: IntakeRoute) {
-    if (currentBackStackEntry?.id != entry.id) return
-    if (route.next == INTAKE_NEXT_BEFORE_START) {
-        navigate(BeforeStartRoute(BeforeStartMode.Plan.argument, replacingPlanId = route.replacingPlanId)) {
-            launchSingleTop = true
-            popUpTo<IntakeRoute> { inclusive = true }
-        }
-    } else {
-        popFullScreen(entry)
     }
 }
 

@@ -37,7 +37,6 @@ import io.github.lopezjavier.appfitness.domain.repository.FoodPreferencesReposit
 import io.github.lopezjavier.appfitness.domain.repository.FoodRepository
 import io.github.lopezjavier.appfitness.domain.repository.HealthActivityRepository
 import io.github.lopezjavier.appfitness.domain.repository.HealthSyncRepository
-import io.github.lopezjavier.appfitness.domain.repository.IntakePromptPreference
 import io.github.lopezjavier.appfitness.domain.repository.MealDefaultsRepository
 import io.github.lopezjavier.appfitness.domain.repository.MealSlotRepository
 import io.github.lopezjavier.appfitness.domain.repository.MealTemplateRepository
@@ -207,7 +206,6 @@ class AppModuleTest {
                 CoachPlanRepository::class,
                 CoachBlockRepository::class,
                 CoachIntakeRepository::class,
-                IntakePromptPreference::class,
                 ExerciseLibrary::class,
                 LoadExerciseCatalog::class,
                 SearchExercises::class,

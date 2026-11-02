@@ -3,7 +3,7 @@ begin;
 create extension if not exists pgtap with schema extensions;
 set local search_path = extensions, public;
 
-select plan(69);
+select plan(76);
 
 -- ---------------------------------------------------------------------------
 -- Fixture helpers (run as the migration owner; today is the UTC date, inside the RPC window)
@@ -137,17 +137,17 @@ select throws_ok(format($$select public.coach_plan_inputs('block', %L)$$, (now()
 -- Plan: complete user
 -- ---------------------------------------------------------------------------
 select is(pg_temp.keys(pg_temp.inp(1, 'plan')),
-  array['intention', 'sex', 'age', 'height', 'weight', 'activity_level', 'total_expenditure', 'weight_trend', 'diary', 'intake'],
-  'plan lists its ten inputs in display order');
+  array['intention', 'sex', 'age', 'height', 'weight', 'activity_level', 'total_expenditure', 'weight_trend', 'diary', 'training_years', 'known_maintenance', 'free_text'],
+  'plan lists its twelve inputs in display order');
 select is(pg_temp.inp(1, 'plan')->>'kind', 'plan', 'the kind is echoed');
 select is(pg_temp.inp(1, 'plan')->>'as_of', pg_temp.d0()::text, 'as_of is p_today');
 select ok(not (pg_temp.inp(1, 'plan') ? 'current_plan'), 'current_plan is absent when the user has no plan');
 select is(pg_temp.col(pg_temp.inp(1, 'plan'), 'status'),
-  array['ok', 'ok', 'ok', 'ok', 'ok', 'provisional', 'provisional', 'provisional', 'provisional', 'unset_optional'],
+  array['ok', 'ok', 'ok', 'ok', 'ok', 'provisional', 'provisional', 'provisional', 'provisional', 'unset_optional', 'unset_optional', 'unset_optional'],
   'a complete profile is ok, unconfirmed estimates are provisional');
 select is(pg_temp.col(pg_temp.inp(1, 'plan'), 'source'),
   array['my_training', 'profile', 'profile', 'profile', 'weigh_in', 'coach_estimate', 'coach_estimate',
-        'coach_estimate', 'coach_estimate', 'intake'],
+        'coach_estimate', 'coach_estimate', 'intake', 'intake', 'intake'],
   'each input names its source');
 select is(array_position(pg_temp.col(pg_temp.inp(1, 'plan'), 'blocking'), 'true'), null, 'nothing blocks a complete profile');
 select is(pg_temp.ent(pg_temp.inp(1, 'plan'), 'intention')->>'value', 'fat_loss', 'the intention value is returned');
@@ -202,8 +202,8 @@ select is(pg_temp.st(pg_temp.inp(10, 'block'), 'experience'), 'ok/false/-', 'exp
 -- Block
 -- ---------------------------------------------------------------------------
 select is(pg_temp.keys(pg_temp.inp(11, 'block')),
-  array['intention', 'place', 'equipment', 'cardio', 'days_per_week', 'session_minutes', 'experience'],
-  'block lists its seven inputs, different from plan');
+  array['intention', 'place', 'equipment', 'cardio', 'days_per_week', 'session_minutes', 'experience', 'training_years', 'free_text'],
+  'block lists its nine inputs, different from plan');
 select is(pg_temp.st(pg_temp.inp(11, 'block'), 'intention'), 'missing/true/my_training', 'block: no intention blocks');
 select is(pg_temp.st(pg_temp.inp(11, 'block'), 'place'), 'missing/true/my_training', 'block: no place blocks');
 select is(pg_temp.st(pg_temp.inp(11, 'block'), 'equipment'), 'unset_optional/false/my_training', 'block: empty equipment is optional');
@@ -212,7 +212,7 @@ select is(pg_temp.st(pg_temp.inp(11, 'block'), 'session_minutes'), 'unset_option
   'block: no minutes is optional');
 select is(pg_temp.st(pg_temp.inp(11, 'block'), 'experience'), 'provisional/false/-', 'block: experience has no fix target');
 select is(pg_temp.col(pg_temp.inp(12, 'block'), 'status'),
-  array['ok', 'ok', 'ok', 'ok', 'ok', 'ok', 'provisional'], 'a complete block is ok');
+  array['ok', 'ok', 'ok', 'ok', 'ok', 'ok', 'provisional', 'unset_optional', 'unset_optional'], 'a complete block is ok');
 select is(pg_temp.ent(pg_temp.inp(12, 'block'), 'equipment')->'value', '["dumbbell","barbell"]'::jsonb,
   'the equipment list is returned');
 select is((pg_temp.ent(pg_temp.inp(12, 'block'), 'days_per_week')->>'value')::int, 3, 'the days value is returned');
@@ -236,14 +236,20 @@ select ok(not (pg_temp.inp(1, 'plan') ? 'current_plan'), 'another user''s plans 
 select is(pg_temp.st(pg_temp.inp(2, 'plan'), 'weight'), 'missing/true/weight', 'another user''s weigh-ins never appear');
 select is(pg_temp.ent(pg_temp.inp(2, 'plan'), 'intention')->'value', 'null'::jsonb, 'another user''s intention never appears');
 
--- T-185: the optional "intake" entry never blocks.
-select is(pg_temp.st(pg_temp.inp(1, 'plan'), 'intake'), 'unset_optional/false/intake', 'without an intake the entry is optional and never blocking');
-select is(pg_temp.ent(pg_temp.inp(1, 'plan'), 'intake')->'value', 'null'::jsonb, 'and carries no value');
+-- T-198: the three intake entries never block.
+select is(pg_temp.st(pg_temp.inp(1, 'plan'), 'training_years'), 'unset_optional/false/intake', 'without an intake the years entry is optional and never blocking');
+select is(pg_temp.st(pg_temp.inp(1, 'plan'), 'known_maintenance'), 'unset_optional/false/intake', 'so is the maintenance entry');
+select is(pg_temp.st(pg_temp.inp(1, 'plan'), 'free_text'), 'unset_optional/false/intake', 'so is the free text entry');
+select is(pg_temp.ent(pg_temp.inp(1, 'plan'), 'free_text')->'value', 'null'::jsonb, 'and carries no value');
+select is(pg_temp.st(pg_temp.inp(1, 'block'), 'training_years'), 'unset_optional/false/intake', 'block: the years entry is optional');
+select is(pg_temp.st(pg_temp.inp(1, 'block'), 'free_text'), 'unset_optional/false/intake', 'block: the free text entry is optional');
 select set_config('request.jwt.claims', json_build_object('sub', pg_temp.u(2), 'role', 'authenticated')::text, true);
-insert into public.coach_user_intake (situation) values ('continuous');
-select is(pg_temp.st(pg_temp.inp(2, 'plan'), 'intake'), 'ok/false/intake', 'a saved intake makes the entry ok, still never blocking');
-select is(pg_temp.ent(pg_temp.inp(2, 'plan'), 'intake')->'value', '{"saved": true, "situation": "continuous"}'::jsonb,
-  'the entry carries the saved flag and the situation');
+insert into public.coach_user_intake (training_years, known_maintenance_kcal, free_text) values (3, 2400, 'Entreno desde hace tres años');
+select is(pg_temp.st(pg_temp.inp(2, 'plan'), 'free_text'), 'ok/false/intake', 'a saved text makes the entry ok, still never blocking');
+select is(pg_temp.ent(pg_temp.inp(2, 'plan'), 'known_maintenance')->'value', '2400'::jsonb, 'the maintenance value is returned');
+select is(pg_temp.ent(pg_temp.inp(2, 'plan'), 'training_years')->'value', '3.0'::jsonb, 'the years value is returned');
+select is(pg_temp.ent(pg_temp.inp(2, 'plan'), 'free_text')->>'value', 'Entreno desde hace tres años', 'the text is returned');
+select ok(not (pg_temp.inp(2, 'plan')::text like '%situation%'), 'no situation or injured area is listed');
 
 select set_config('request.jwt.claims', json_build_object('sub', pg_temp.u(15), 'role', 'authenticated')::text, true);
 create temp table before_counts as

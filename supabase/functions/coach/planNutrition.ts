@@ -128,7 +128,7 @@ export type DerivedNutrition = {
 
 /**
  * Calories, macros and activity targets from the summary. Shared by `plan_nutrition` and `plan_recompute`; the
- * phase comes from the intention and the situation unless the caller fixes it (a recompute keeps its plan's).
+ * phase comes from the intention unless the caller fixes it (a recompute keeps its plan's).
  */
 export function deriveNutrition(
     summary: unknown,
@@ -167,9 +167,7 @@ export function deriveNutrition(
         EXPERIENCES.find((e) => e === rec(estimates.experience).value) ??
             "beginner";
     const unconfirmed = unconfirmedKeys(estimates);
-    const situation = rec(estimates.situation).value;
-    const first = o.fixed ??
-        firstPhase(intention, typeof situation === "string" ? situation : null);
+    const first = o.fixed ?? firstPhase(intention);
     const { phase, reason } = first;
 
     let nutrition: Nutrition;

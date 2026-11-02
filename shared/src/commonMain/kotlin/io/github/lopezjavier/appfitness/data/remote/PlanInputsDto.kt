@@ -65,7 +65,7 @@ internal data class PlanInputDto(
         source = SOURCES[source] ?: PlanInputSource.Unknown,
         status = STATUSES[status] ?: PlanInputStatus.Unknown,
         blocking = blocking,
-        fixTarget = FIX_TARGETS[fixTarget],
+        fixTarget = if (fixTarget == "intake") INTAKE_FIX_BY_KEY[key] else FIX_TARGETS[fixTarget],
         date = date,
     )
 
@@ -86,7 +86,9 @@ internal data class PlanInputDto(
             "days_per_week" to PlanInputKey.DaysPerWeek,
             "session_minutes" to PlanInputKey.SessionMinutes,
             "experience" to PlanInputKey.Experience,
-            "intake" to PlanInputKey.Intake,
+            "training_years" to PlanInputKey.TrainingYears,
+            "known_maintenance" to PlanInputKey.KnownMaintenance,
+            "free_text" to PlanInputKey.FreeText,
         )
         val SOURCES = mapOf(
             "profile" to PlanInputSource.Profile,
@@ -107,7 +109,13 @@ internal data class PlanInputDto(
             "personal_data" to PlanFixTarget.PersonalData,
             "weight" to PlanFixTarget.Weight,
             "activity_sheet" to PlanFixTarget.ActivitySheet,
-            "intake" to PlanFixTarget.Intake,
+        )
+
+        // The server marks the three intake entries with the same fix target; each one opens its own editor.
+        val INTAKE_FIX_BY_KEY = mapOf(
+            "training_years" to PlanFixTarget.TrainingYears,
+            "known_maintenance" to PlanFixTarget.Maintenance,
+            "free_text" to PlanFixTarget.FreeText,
         )
     }
 }

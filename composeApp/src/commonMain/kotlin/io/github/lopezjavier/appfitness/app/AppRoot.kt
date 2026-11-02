@@ -97,8 +97,8 @@ fun AppRoot(
         planProposal = { planModifier, onBack, onOpenBeforeStart ->
             PlanProposalRoot(onBack, onOpenBeforeStart, planModifier)
         },
-        beforeStart = { startModifier, onBack, onCreated, onOpenYourData, onFix, onOpenIntake ->
-            BeforeStartRoot(onBack, onCreated, onOpenYourData, onFix, onOpenIntake, startModifier)
+        beforeStart = { startModifier, onBack, onCreated, onOpenYourData, onFix ->
+            BeforeStartRoot(onBack, onCreated, onOpenYourData, onFix, startModifier)
         },
         yourData = { dataModifier, onBack, onFix -> YourDataRoot(onBack, onFix, dataModifier) },
         intake = { intakeModifier, host -> IntakeRoot(host, intakeModifier) },

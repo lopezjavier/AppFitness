@@ -26,10 +26,8 @@ import io.github.lopezjavier.appfitness.composeapp.resources.trainer_provisional
 import io.github.lopezjavier.appfitness.composeapp.resources.trainer_value_supporting
 import io.github.lopezjavier.appfitness.composeapp.resources.your_data_handover_note
 import io.github.lopezjavier.appfitness.composeapp.resources.your_data_intake_provisional
-import io.github.lopezjavier.appfitness.composeapp.resources.your_data_intake_row
 import io.github.lopezjavier.appfitness.composeapp.resources.your_data_save_action
 import io.github.lopezjavier.appfitness.composeapp.resources.your_data_save_error
-import io.github.lopezjavier.appfitness.composeapp.resources.your_data_situation_row
 import io.github.lopezjavier.appfitness.composeapp.resources.your_data_title
 import io.github.lopezjavier.appfitness.designsystem.AppCard
 import io.github.lopezjavier.appfitness.designsystem.AppListRow
@@ -50,7 +48,6 @@ import io.github.lopezjavier.appfitness.designsystem.StatusChip
 import io.github.lopezjavier.appfitness.designsystem.StatusTone
 import io.github.lopezjavier.appfitness.designsystem.offlineHint
 import io.github.lopezjavier.appfitness.domain.model.PlanFixTarget
-import io.github.lopezjavier.appfitness.domain.model.Situation
 import io.github.lopezjavier.appfitness.domain.port.ConnectivityObserver
 import io.github.lopezjavier.appfitness.feature.exercises.tagName
 import kotlinx.coroutines.flow.Flow
@@ -72,6 +69,7 @@ fun YourDataRoot(
     connectivity: ConnectivityObserver = koinInject(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
+    val editor by viewModel.editor.collectAsStateWithLifecycle()
     val haptics = LocalAppHaptics.current
     val messages = LocalAppMessages.current
     val latestHaptics by rememberUpdatedState(haptics)
@@ -95,6 +93,8 @@ fun YourDataRoot(
         onBack = onBack,
         onFix = onFix,
         modifier = modifier,
+        editor = editor,
+        onEditorEvent = viewModel::onEditorEvent,
     )
 }
 
@@ -110,6 +110,8 @@ fun YourDataScreen(
     onBack: () -> Unit,
     onFix: (PlanFixTarget) -> Unit,
     modifier: Modifier = Modifier,
+    editor: IntakeRowEditorState = IntakeRowEditorState(),
+    onEditorEvent: (IntakeRowEvent) -> Unit = {},
 ) {
     val online by isOnline.collectAsStateWithLifecycle(initialValue = true)
     AppScreen(
@@ -134,7 +136,8 @@ fun YourDataScreen(
                 )
 
                 is YourDataUiState.Content -> {
-                    YourDataContent(state, onEvent, onFix)
+                    YourDataContent(state, onEvent, onEditorEvent, onFix)
+                    IntakeRowSheetHost(editor, online, onEditorEvent)
                     if (state.sheet != null) {
                         ActivityLevelSheet(
                             selected = state.sheet,
@@ -155,6 +158,7 @@ fun YourDataScreen(
 private fun YourDataContent(
     state: YourDataUiState.Content,
     onEvent: (YourDataEvent) -> Unit,
+    onEditorEvent: (IntakeRowEvent) -> Unit,
     onFix: (PlanFixTarget) -> Unit,
 ) {
     Column(
@@ -166,11 +170,17 @@ private fun YourDataContent(
             Column(Modifier.testTag("your_data_section_${section.origin.tagName()}")) {
                 ListSectionHeader(stringResource(section.origin.title()))
                 section.rows.forEach { row ->
-                    YourDataRow(row, row.key in state.intakeSourcedKeys, onEvent, onFix)
+                    YourDataRow(row, row.key in state.intakeSourcedKeys, state.intake, onEvent, onEditorEvent, onFix)
                 }
             }
         }
-        IntakeEntry(state.situation, onFix)
+        // The three things told in "Para conocerte": each row opens only its own editor (R-55).
+        IntakeRows(
+            intake = state.intake,
+            kinds = IntakeRowKind.entries,
+            screen = "your_data",
+            onOpen = { openIntakeRow(it, state.intake, onEditorEvent, onFix) },
+        )
     }
 }
 
@@ -188,36 +198,14 @@ private fun HandoverNote(kcal: Double?, onEvent: (YourDataEvent) -> Unit) {
     )
 }
 
-/** The situation the coach works with and the row that opens "Para conocerte" (an editor, hence its own row). */
-@Composable
-private fun IntakeEntry(situation: Situation?, onFix: (PlanFixTarget) -> Unit) {
-    Column {
-        situation?.let {
-            AppListRow(
-                headline = stringResource(Res.string.your_data_situation_row),
-                modifier = Modifier.testTag("your_data_situation_row"),
-                trailing = {
-                    Text(
-                        text = stringResource(it.intakeLabel()),
-                        style = AppTheme.typography.bodyMedium,
-                        color = AppTheme.colors.textSecondary,
-                    )
-                },
-            )
-        }
-        NavigationRow(
-            label = stringResource(Res.string.your_data_intake_row),
-            onClick = { onFix(PlanFixTarget.Intake) },
-            modifier = Modifier.testTag("your_data_intake_row"),
-        )
-    }
-}
-
+@Suppress("LongParameterList") // The row, its intake context and the three ways out.
 @Composable
 private fun YourDataRow(
     row: PlanInputRow,
     fromIntake: Boolean,
+    intake: IntakeSummary,
     onEvent: (YourDataEvent) -> Unit,
+    onEditorEvent: (IntakeRowEvent) -> Unit,
     onFix: (PlanFixTarget) -> Unit,
 ) {
     val tag = "your_data_row_${row.key.tagName()}"
@@ -230,7 +218,17 @@ private fun YourDataRow(
                 label = row.labelText(),
                 value = value,
                 onClick = {
-                    if (target == PlanFixTarget.ActivitySheet) onEvent(YourDataEvent.OpenSheet) else onFix(target)
+                    when (target) {
+                        PlanFixTarget.ActivitySheet -> onEvent(YourDataEvent.OpenSheet)
+
+                        PlanFixTarget.TrainingYears ->
+                            openIntakeRow(IntakeRowKind.TrainingYears, intake, onEditorEvent, onFix)
+
+                        PlanFixTarget.Maintenance ->
+                            openIntakeRow(IntakeRowKind.Maintenance, intake, onEditorEvent, onFix)
+
+                        else -> onFix(target)
+                    }
                 },
                 modifier = Modifier.testTag(tag),
             )
