@@ -208,6 +208,18 @@ export function buildCandidates(
     for (const session of skeleton.sessions) {
         const needed = new Map<string, number>();
         for (const slot of session.slots) {
+            // A minimal block keeps the previous main lift when it is still usable.
+            const fixed = slot.fixed_exercise_id
+                ? catalog.find((e) =>
+                    e.id === slot.fixed_exercise_id &&
+                    STRENGTH_METRICS.includes(e.metric_type) &&
+                    equipmentAllowed(prefs, e.equipment)
+                )
+                : undefined;
+            if (fixed) {
+                out.set(slot.slot_id, [fixed]);
+                continue;
+            }
             const list = filterCandidates(catalog, prefs, slot);
             out.set(slot.slot_id, list);
             const k = `${slot.muscle_group}:${slot.role}`;

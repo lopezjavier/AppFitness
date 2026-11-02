@@ -56,7 +56,9 @@ language sql as $$
     'strategy', case when adj < 0 then 'deficit' when adj > 0 then 'surplus' else 'maintenance' end,
     'protein_pct', 33, 'carbs_pct', 42, 'fat_pct', 25, 'protein_g', 176, 'carbs_g', 231, 'fat_g', 61,
     'protein_g_per_kg', 2.2, 'distribution', jsonb_build_object('per_meal_g', 32, 'g_per_kg', 0.4, 'min_meals', 4),
-    'requires_confirmation', false, 'unconfirmed', '[]'::jsonb, 'edited_by_user', edited, 'calorie_changes', 0) $$;
+    'requires_confirmation', false, 'unconfirmed', '[]'::jsonb, 'edited_by_user', edited, 'calorie_changes', 0,
+    'phase', case when adj < 0 then 'cut' when adj > 0 then 'gain' else 'maintenance' end, 'phase_reason', 'intention',
+    'phase_options', jsonb_build_object('cut_rate_pct', 0.5, 'diet_break', false)) $$;
 
 -- A user with an accepted plan, a goal equal to it, flat weight for 8 weeks and diary_days of food.
 create function pg_temp.mk(n int, diary_days int, rate numeric, target int default 2200, flr int default 1500,

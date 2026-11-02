@@ -1,5 +1,6 @@
 // Outcome candidates (planning/07 section 6, 04 section 8.4). Every figure is derived here from the summary;
 // the model only chooses among the candidates and writes the reason and the deadline.
+import { firstPhase } from "./nutritionRules.ts";
 import type { Nutrition, OutcomeBasis } from "./schemas.ts";
 
 export const BLOCK_WEEKS = 4;
@@ -56,9 +57,12 @@ export function buildCandidates(
     const deadline = addDays(blockStart, 28);
     const out: Candidate[] = [];
 
-    const direction = nutrition.intention === "fat_loss"
+    // By phase (a plan stored before T-187 has none): a weight target only where the plan moves the weight.
+    const phase = nutrition.phase ??
+        firstPhase(nutrition.intention, null).phase;
+    const direction = phase === "cut"
         ? -1
-        : nutrition.intention === "muscle"
+        : phase === "gain" || phase === "regain"
         ? 1
         : 0;
     if (direction !== 0 && nutrition.rate_kg_week * direction > 0) {

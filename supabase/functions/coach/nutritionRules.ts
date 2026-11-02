@@ -1,13 +1,21 @@
 // Deterministic calories and macros of a nutrition plan (planning/04 section 8, planning/07 sections 4 and 9).
 // Pure: no I/O. The model never produces a figure from this file.
-import type { Experience, Intention, Nutrition, Sex } from "./schemas.ts";
+import type {
+    DietBreakWeek,
+    Experience,
+    Intention,
+    Nutrition,
+    Phase,
+    PhaseReason,
+    Sex,
+} from "./schemas.ts";
 
 export const KCAL_PER_KG = 7700;
 export const DAYS = 7;
 /** Calorie floor by sex (ADR-25). */
 export const FLOOR: Record<Sex, number> = { female: 1200, male: 1500 };
-/** Range of nutrition_goals.calorie_adjustment. */
-export const DEFICIT_CAP = 1000;
+/** Largest daily deficit below the expenditure in use (07 section 4, Murphy and Koehler 2022). */
+export const DEFICIT_CAP = 500;
 export const SURPLUS_CAP = 750;
 export const PROTEIN_MIN = 1.6;
 export const PROTEIN_MAX = 2.2;
@@ -25,6 +33,8 @@ export const GAIN_RATE: Record<Experience, number> = {
     advanced: 0.25,
 };
 export const GAIN_RATE_RANGE = [0.25, 0.5] as const;
+/** Regain gains at the bottom of the sourced gain range for a muscle or strength intention (07 section 4). */
+export const REGAIN_GAIN_RATE = 0.25;
 /** The rounding of the daily delta (up to 10 kcal) can push the effective rate this far above a range maximum. */
 export const RATE_TOLERANCE_PCT = 0.05;
 
@@ -35,26 +45,69 @@ export const ROUNDING_KCAL = 10;
 export const rateKcal = (ratePct: number, weightKg: number) =>
     ratePct * weightKg * (KCAL_PER_KG / DAYS / 100);
 
+/** The phase a first plan starts in, and why (07 section 12.3). `situation` comes from `estimates.situation.value`. */
+export function firstPhase(
+    intention: Intention,
+    situation: string | null,
+): { phase: Phase; reason: PhaseReason } {
+    if (situation === "returning_break" || situation === "returning_injury") {
+        return { phase: "regain", reason: situation };
+    }
+    switch (intention) {
+        case "fat_loss":
+            return { phase: "cut", reason: "intention" };
+        case "muscle":
+            return { phase: "gain", reason: "intention" };
+        case "recomposition":
+            return { phase: "recomposition", reason: "intention" };
+        default:
+            return { phase: "maintenance", reason: "intention" };
+    }
+}
+
 /**
- * Allowed `target - intake anchor` in kcal for an intention (planning/04 section 8.7). `shift` is the slope term
+ * Which intake range a phase uses (planning/04 section 8.7): by the phase, never by the intention, so a regain plan of
+ * a fat-loss user uses the no-change range. `regain` is the no-change range with the rounding of its optional +0.25 %.
+ */
+export type RangeClass = "loss" | "gain" | "nochange" | "regain";
+export function rangeClass(phase: Phase): RangeClass {
+    switch (phase) {
+        case "cut":
+            return "loss";
+        case "gain":
+            return "gain";
+        case "regain":
+            return "regain";
+        default:
+            return "nochange";
+    }
+}
+
+/**
+ * Allowed `target - intake anchor` in kcal for a range class (planning/04 section 8.7). `shift` is the slope term
  * (expenditure - anchor, 0 without a slope). Single source for computeNutrition and assertNutritionInvariants.
  */
 export function intakeRange(
-    intention: Intention,
+    kind: RangeClass,
     weightKg: number,
     shiftKcal: number,
 ): { min: number; max: number } {
     const d = (r: number) => rateKcal(r, weightKg);
-    switch (intention) {
-        case "muscle":
+    switch (kind) {
+        case "gain":
             return {
                 min: shiftKcal + d(GAIN_RATE_RANGE[0]),
                 max: shiftKcal + d(GAIN_RATE_RANGE[1]) + ROUNDING_KCAL,
             };
-        case "fat_loss":
+        case "loss":
             return {
                 min: shiftKcal - d(LOSS_RATE_RANGE[1]) - ROUNDING_KCAL,
                 max: shiftKcal - d(LOSS_RATE_RANGE[0]),
+            };
+        case "regain":
+            return {
+                min: shiftKcal - d(GAIN_RATE_RANGE[0]),
+                max: shiftKcal + d(GAIN_RATE_RANGE[0]) + ROUNDING_KCAL,
             };
         default:
             return {
@@ -69,25 +122,23 @@ export function intakeRange(
  * faster, so the slow side is skipped when `limitedBy` is set.
  */
 export function intakeRangeViolation(
-    intention: Intention,
+    kind: RangeClass,
     weightKg: number,
     shiftKcal: number,
     deltaOverAnchor: number,
     limitedBy: Nutrition["limited_by"],
 ): "target_above_intake_range" | "target_below_intake_range" | null {
-    const { min, max } = intakeRange(intention, weightKg, shiftKcal);
+    const { min, max } = intakeRange(kind, weightKg, shiftKcal);
     const eps = 1e-9;
     const limited = limitedBy !== null;
     if (deltaOverAnchor > max + eps) {
-        // Above the range is the slow side of a loss; for the no-change intentions only the floor can lift a target.
-        const allowed = intention === "fat_loss"
-            ? limited
-            : intention !== "muscle" && limitedBy === "floor";
+        // Above the range is the slow side of a loss; for the other phases only the floor can lift a target.
+        const allowed = kind === "loss" ? limited : limitedBy === "floor";
         if (!allowed) return "target_above_intake_range";
     }
     if (deltaOverAnchor < min - eps) {
         // Below the range is the slow side of a gain.
-        const allowed = intention === "muscle" && limited;
+        const allowed = kind === "gain" && limited;
         if (!allowed) return "target_below_intake_range";
     }
     return null;
@@ -115,8 +166,13 @@ export type NutritionInput = {
     /** Whether the expenditure already includes the weight-slope term. */
     slopeUsed?: boolean;
     experience: Experience;
-    /** Overrides the loss rate (percent of body weight per week); ignored for the other intentions. */
+    /** The phase of the plan; defaults to the first phase of the intention. */
+    phase?: Phase;
+    phaseReason?: PhaseReason;
+    /** Overrides the cut rate (percent of body weight per week, 0.5-1.0); ignored outside a cut. */
     targetRatePct?: number;
+    /** Adds the maintenance week of a cut (week 4). */
+    dietBreak?: boolean;
     requiresConfirmation?: boolean;
     unconfirmed?: string[];
 };
@@ -128,12 +184,26 @@ const round = (x: number, decimals = 0) => {
     return Math.round((x + Number.EPSILON) * f) / f + 0; // + 0 turns -0 into 0
 };
 
-function targetRate(input: NutritionInput): number {
-    switch (input.intention) {
-        case "fat_loss":
-            return input.targetRatePct ?? LOSS_RATE_DEFAULT;
-        case "muscle":
+function targetRate(input: NutritionInput, phase: Phase): number {
+    switch (phase) {
+        case "cut": {
+            const rate = input.targetRatePct ?? LOSS_RATE_DEFAULT;
+            // Defensive: the caller validates the range (INVALID_INPUT) before computing.
+            if (
+                !(rate >= LOSS_RATE_RANGE[0] - 1e-9) ||
+                !(rate <= LOSS_RATE_RANGE[1] + 1e-9)
+            ) {
+                throw new CoachPlanError("coach_plan_infeasible");
+            }
+            return rate;
+        }
+        case "gain":
             return GAIN_RATE[input.experience];
+        case "regain":
+            return input.intention === "muscle" ||
+                    input.intention === "strength"
+                ? REGAIN_GAIN_RATE
+                : 0;
         default:
             return 0;
     }
@@ -168,8 +238,9 @@ export function computeNutrition(input: NutritionInput): Nutrition {
     );
     const expenditure = anchor === null ? rawExpenditure : anchor + shift;
     const floor = FLOOR[sex];
-    const rate = targetRate(input);
-    const loss = input.intention === "fat_loss";
+    const phase = input.phase ?? firstPhase(input.intention, null).phase;
+    const rate = targetRate(input, phase);
+    const loss = phase === "cut";
 
     // kcal per day for the rate: rate% * weight / 100 * 7700 / 7 = rate * weight * 11 (rounded up to 10).
     let delta = rate === 0 ? 0 : ceil(rate * weight * 11 / 10) * 10;
@@ -177,7 +248,7 @@ export function computeNutrition(input: NutritionInput): Nutrition {
     const cap = loss ? DEFICIT_CAP : SURPLUS_CAP;
     if (delta > cap) {
         delta = cap;
-        limitedBy = "goal_range";
+        limitedBy = loss ? "deficit_cap" : "goal_range";
     }
     let target = loss ? expenditure - delta : expenditure + delta;
     if (target < floor) {
@@ -193,7 +264,7 @@ export function computeNutrition(input: NutritionInput): Nutrition {
     if (
         anchor !== null &&
         intakeRangeViolation(
-                input.intention,
+                rangeClass(phase),
                 weight,
                 shift,
                 target - anchor,
@@ -232,8 +303,19 @@ export function computeNutrition(input: NutritionInput): Nutrition {
         throw new CoachPlanError("coach_plan_infeasible");
     }
 
+    const dietBreak = loss && input.dietBreak === true
+        ? maintenanceWeek(input)
+        : null;
+
     return {
         intention: input.intention,
+        phase,
+        phase_reason: input.phaseReason ?? "intention",
+        phase_options: {
+            cut_rate_pct: loss ? rate : LOSS_RATE_DEFAULT,
+            diet_break: dietBreak !== null,
+        },
+        diet_break: dietBreak,
         weight_kg: weight,
         expenditure_kcal: expenditure,
         expenditure_source: input.expenditureSource,
@@ -264,5 +346,26 @@ export function computeNutrition(input: NutritionInput): Nutrition {
         unconfirmed: input.unconfirmed ?? [],
         edited_by_user: false,
         calorie_changes: 0,
+    };
+}
+
+/** The maintenance week of a diet break: the same plan at rate 0, macros included (07 section 4). */
+function maintenanceWeek(input: NutritionInput): DietBreakWeek {
+    const m = computeNutrition({
+        ...input,
+        phase: "maintenance",
+        dietBreak: false,
+    });
+    return {
+        target_kcal: m.target_kcal,
+        calorie_adjustment: m.calorie_adjustment,
+        strategy: m.strategy,
+        protein_pct: m.protein_pct,
+        carbs_pct: m.carbs_pct,
+        fat_pct: m.fat_pct,
+        protein_g: m.protein_g,
+        carbs_g: m.carbs_g,
+        fat_g: m.fat_g,
+        week: 4,
     };
 }

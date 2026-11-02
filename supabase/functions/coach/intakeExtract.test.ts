@@ -79,6 +79,8 @@ function setup(
         loadCatalog: () => Promise.resolve(CATALOG),
         loadPlan: unexpected("loadPlan"),
         attachBlock: unexpected("attachBlock"),
+        loadPhaseHistory: unexpected("loadPhaseHistory"),
+        updatePlanOptions: unexpected("updatePlanOptions"),
         loadInputs: unexpected("loadInputs"),
         loadContext: unexpected("loadContext"),
         savePlan: unexpected("savePlan"),

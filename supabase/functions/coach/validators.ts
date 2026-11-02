@@ -3,6 +3,7 @@
 import {
     type Activity,
     CARDIO_MIN_WEEK,
+    CARDIO_MIN_WEEK_MINIMAL,
     STEPS_FLOOR,
     STEPS_STEP,
 } from "./cardioRules.ts";
@@ -10,6 +11,7 @@ import {
     DEFICIT_CAP,
     FAT_MAX_PCT,
     FAT_MIN_PCT,
+    firstPhase,
     FLOOR,
     GAIN_RATE_RANGE,
     intakeRangeViolation,
@@ -18,12 +20,15 @@ import {
     MIN_MEALS,
     PROTEIN_MAX,
     PROTEIN_MIN,
+    rangeClass,
     RATE_TOLERANCE_PCT,
     rateKcal,
+    REGAIN_GAIN_RATE,
+    ROUNDING_KCAL,
     SURPLUS_CAP,
 } from "./nutritionRules.ts";
 import { addDays, type Candidate } from "./outcomes.ts";
-import type { ModelOutcome, Nutrition } from "./schemas.ts";
+import type { ModelOutcome, Nutrition, Phase } from "./schemas.ts";
 
 export const MAX_OUTCOMES = 4;
 export const REASON_MIN = 10;
@@ -115,11 +120,16 @@ export function validateOutcomesText(
 export function assertActivityInvariants(
     a: Activity,
     stepsAvg: number | null,
+    phase: Phase = "maintenance",
 ): void {
     const fail = (rule: string): never => {
         throw new NutritionInvariantError(rule);
     };
-    if (a.cardio_min_week !== CARDIO_MIN_WEEK) fail("cardio_minutes");
+    // 150 min in every phase, 100 only in the minimal phase (07 section 3 "Cardio by phase").
+    const expectedCardio = phase === "minimal"
+        ? CARDIO_MIN_WEEK_MINIMAL
+        : CARDIO_MIN_WEEK;
+    if (a.cardio_min_week !== expectedCardio) fail("cardio_minutes");
     if (a.steps_day < STEPS_FLOOR) fail("steps_below_floor");
     if (a.steps_day % STEPS_STEP !== 0) fail("steps_not_multiple");
     if (
@@ -141,6 +151,10 @@ export function assertNutritionInvariants(n: Nutrition): void {
         throw new NutritionInvariantError(rule);
     };
     const w = n.weight_kg;
+    // A plan stored before T-187 has no phase: the one its intention implies.
+    const phase: Phase = n.phase ?? firstPhase(n.intention, null).phase;
+    const dietBreak = n.diet_break ?? null;
+    const options = n.phase_options ?? null;
 
     if (!Object.values(FLOOR).includes(n.floor_kcal)) fail("floor_value");
     if (n.target_kcal < n.floor_kcal) fail("target_below_floor");
@@ -150,12 +164,19 @@ export function assertNutritionInvariants(n: Nutrition): void {
     if (n.calorie_adjustment !== n.target_kcal - n.expenditure_kcal) {
         fail("adjustment_mismatch");
     }
+    // The deficit cap (07 section 4): at most 500 kcal below the expenditure in use.
+    if (n.calorie_adjustment < -DEFICIT_CAP) fail("deficit_cap");
+    if (n.calorie_adjustment > SURPLUS_CAP) fail("adjustment_range");
     if (
-        n.calorie_adjustment < -DEFICIT_CAP ||
-        n.calorie_adjustment > SURPLUS_CAP
-    ) {
-        fail("adjustment_range");
-    }
+        n.limited_by === "deficit_cap" &&
+        (phase !== "cut" || n.calorie_adjustment !== -DEFICIT_CAP)
+    ) fail("deficit_cap_flag");
+    if (
+        options !== null &&
+        (!(options.cut_rate_pct >= LOSS_RATE_RANGE[0] - 1e-9) ||
+            !(options.cut_rate_pct <= LOSS_RATE_RANGE[1] + 1e-9) ||
+            typeof options.diet_break !== "boolean")
+    ) fail("phase_options");
     const strategy = n.calorie_adjustment < 0
         ? "deficit"
         : n.calorie_adjustment > 0
@@ -171,7 +192,7 @@ export function assertNutritionInvariants(n: Nutrition): void {
             fail("slope_term_range");
         }
         const violation = intakeRangeViolation(
-            n.intention,
+            rangeClass(phase),
             w,
             shift,
             n.target_kcal - anchor,
@@ -181,20 +202,49 @@ export function assertNutritionInvariants(n: Nutrition): void {
     }
 
     const limited = n.limited_by !== null;
-    if (n.intention === "fat_loss") {
+    if (phase === "cut") {
         if (n.target_kcal >= n.expenditure_kcal) fail("loss_needs_deficit");
         const [min, max] = LOSS_RATE_RANGE;
         if (n.rate_pct_week > max + RATE_TOLERANCE_PCT) fail("loss_rate_max");
         if (n.rate_pct_week < min && !limited) fail("loss_rate_min");
-    } else if (n.intention === "muscle") {
+    } else if (phase === "gain") {
         if (n.target_kcal <= n.expenditure_kcal) fail("gain_needs_surplus");
         const [min, max] = GAIN_RATE_RANGE;
         if (n.rate_pct_week > max + RATE_TOLERANCE_PCT) fail("gain_rate_max");
         if (n.rate_pct_week < min && !limited) fail("gain_rate_min");
-    } else if (n.calorie_adjustment < 0) {
-        fail("no_deficit_for_intention");
-    } else if (n.calorie_adjustment > 0 && n.limited_by !== "floor") {
-        fail("no_surplus_for_intention");
+    } else if (phase === "regain") {
+        // Never a deficit; a surplus only at +0.25 %/week for a muscle or strength intention.
+        if (n.calorie_adjustment < 0) fail("regain_deficit");
+        if (n.intention === "muscle" || n.intention === "strength") {
+            if (
+                n.calorie_adjustment > 0 &&
+                n.rate_pct_week > REGAIN_GAIN_RATE + RATE_TOLERANCE_PCT
+            ) fail("regain_rate");
+        } else if (n.calorie_adjustment > 0 && n.limited_by !== "floor") {
+            fail("regain_surplus");
+        }
+    } else if (
+        // Maintenance, recomposition, minimal: the no-change range of 04 section 8.7 on the adjustment.
+        Math.abs(n.calorie_adjustment) >
+            rateKcal(GAIN_RATE_RANGE[0], w) + ROUNDING_KCAL
+    ) {
+        fail("no_change_range");
+    }
+
+    // The diet-break week: only inside a cut, maintenance figures.
+    if (dietBreak !== null) {
+        if (phase !== "cut" || options?.diet_break !== true) {
+            fail("diet_break_phase");
+        }
+        if (
+            dietBreak.week !== 4 ||
+            dietBreak.target_kcal < n.floor_kcal ||
+            dietBreak.calorie_adjustment !==
+                dietBreak.target_kcal - n.expenditure_kcal ||
+            dietBreak.calorie_adjustment < 0
+        ) fail("diet_break");
+    } else if (phase === "cut" && options?.diet_break === true) {
+        fail("diet_break");
     }
 
     if (n.protein_g_per_kg < PROTEIN_MIN || n.protein_g_per_kg > PROTEIN_MAX) {

@@ -112,12 +112,12 @@ Deno.test("weekly sets equal the sum of the slot sets, near 10 per group", () =>
     assertEquals(weekly.core, 6);
 });
 
-Deno.test("beginners start lower than the 10-set base", () => {
+Deno.test("beginners start at the same 10-set base as everyone", () => {
     const sk = buildSkeleton(
         prefs({ days_per_week: 4, experience: "beginner" }),
     );
     const weekly = weeklySetsByMuscle(sk.sessions.flatMap((s) => s.slots));
-    assertEquals(weekly.chest, 8);
+    assertEquals(weekly.chest, 10);
 });
 
 Deno.test("rests per role are the defaults inside the bounds", () => {

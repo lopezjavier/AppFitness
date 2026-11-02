@@ -2,6 +2,7 @@ package io.github.lopezjavier.appfitness.feature.trainer
 
 import io.github.lopezjavier.appfitness.domain.model.CalorieChange
 import io.github.lopezjavier.appfitness.domain.model.CoachPlan
+import io.github.lopezjavier.appfitness.domain.model.DietBreakApplication
 import io.github.lopezjavier.appfitness.domain.model.GoalStrategy
 import io.github.lopezjavier.appfitness.domain.model.OutcomeKind
 import io.github.lopezjavier.appfitness.domain.model.PlanActivity
@@ -127,6 +128,28 @@ internal class FakeCoachPlanRepository : CoachPlanRepository {
         return cardioResult ?: Result.success(
             coachPlan(id = planId, activity = defaultActivity.copy(cardioMinWeek = minutes, cardioEdited = true)),
         )
+    }
+
+    /** Answer of [updatePlanOptions]; null echoes a plan with the requested options. */
+    var optionsResult: Result<CoachPlan>? = null
+    val optionsCalls = mutableListOf<Triple<String, Double, Boolean>>()
+
+    var dietBreakResult: Result<DietBreakApplication> = Result.success(DietBreakApplication(false, 1, null))
+    val dietBreakCalls = mutableListOf<LocalDate>()
+
+    override suspend fun updatePlanOptions(
+        planId: String,
+        today: LocalDate,
+        cutRatePct: Double,
+        dietBreak: Boolean,
+    ): Result<CoachPlan> {
+        optionsCalls += Triple(planId, cutRatePct, dietBreak)
+        return optionsResult ?: Result.success(coachPlan(id = planId))
+    }
+
+    override suspend fun applyDietBreak(today: LocalDate): Result<DietBreakApplication> {
+        dietBreakCalls += today
+        return dietBreakResult
     }
 
     override suspend fun pendingCalorieChange(today: LocalDate): Result<CalorieChange?> {

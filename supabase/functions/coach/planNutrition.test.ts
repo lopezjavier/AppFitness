@@ -78,6 +78,10 @@ function setup(
         loadCatalog: () => Promise.reject(new Error("unexpected loadCatalog")),
         loadPlan: () => Promise.reject(new Error("unexpected loadPlan")),
         attachBlock: () => Promise.reject(new Error("unexpected attachBlock")),
+        loadPhaseHistory: () =>
+            Promise.reject(new Error("unexpected loadPhaseHistory")),
+        updatePlanOptions: () =>
+            Promise.reject(new Error("unexpected updatePlanOptions")),
         client: o.client === undefined ? client : o.client,
         loadInputs: () => Promise.resolve(o.inputs ?? planInputs()),
         loadContext: () => {
@@ -404,7 +408,7 @@ Deno.test("other kinds are still not available", async () => {
 });
 
 Deno.test("parseInput accepts only a real date", () => {
-    assertEquals(parseInput({ today: TODAY }), TODAY);
+    assertEquals(parseInput({ today: TODAY }), { today: TODAY });
 });
 
 Deno.test("no model: the call uses Opus and is priced with the Opus table", async () => {

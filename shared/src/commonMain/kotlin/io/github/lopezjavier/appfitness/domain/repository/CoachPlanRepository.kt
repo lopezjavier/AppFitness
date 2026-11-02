@@ -2,6 +2,8 @@ package io.github.lopezjavier.appfitness.domain.repository
 
 import io.github.lopezjavier.appfitness.domain.model.CalorieChange
 import io.github.lopezjavier.appfitness.domain.model.CoachPlan
+import io.github.lopezjavier.appfitness.domain.model.CutRate
+import io.github.lopezjavier.appfitness.domain.model.DietBreakApplication
 import kotlinx.datetime.LocalDate
 
 /**
@@ -29,6 +31,23 @@ interface CoachPlanRepository {
      * Calories, macros and saved routines are never touched.
      */
     suspend fun setCardioMinutes(planId: String, minutes: Int): Result<CoachPlan>
+
+    /**
+     * Changes the cut rate ([CutRate]) and the diet break of a proposed cut plan and returns it recomputed.
+     * Deterministic: no model call and no usage. Valid rates are 0.5..1.0 (invalid ones fail with `Invalid`).
+     */
+    suspend fun updatePlanOptions(
+        planId: String,
+        today: LocalDate,
+        cutRatePct: Double,
+        dietBreak: Boolean,
+    ): Result<CoachPlan>
+
+    /**
+     * Switches the Diario target to the diet-break week figures (plan week 4) or back to the base ones (idempotent).
+     * Does nothing for a plan without diet break or whose goals the user edited.
+     */
+    suspend fun applyDietBreak(today: LocalDate): Result<DietBreakApplication>
 
     /** Evaluates the in-block calorie change (idempotent) and returns the pending one, if any. */
     suspend fun pendingCalorieChange(today: LocalDate): Result<CalorieChange?>

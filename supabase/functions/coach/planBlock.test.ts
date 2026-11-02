@@ -9,10 +9,15 @@ import { type BlockRow, CoachInputError, type PlanState } from "./context.ts";
 import { type CoachDeps, createCoachHandler } from "./handler.ts";
 import { blockInputs, MISSING } from "./inputsFixtures.ts";
 import { makePrepare, parseInput, SESSIONS_PER_CALL } from "./planBlock.ts";
-import type { CatalogExercise } from "./schemas.ts";
+import type { CatalogExercise, PhaseHistory } from "./schemas.ts";
 
 const NOW = new Date("2026-10-30T12:00:00Z");
 const PLAN_ID = "11111111-1111-4111-8111-111111111111";
+const NO_HISTORY: PhaseHistory = {
+    previous: null,
+    minimal_blocks_in_a_row: 0,
+    deficit_weeks_done: 0,
+};
 const SECRET = "SECRET-PERSONAL-DATA";
 const REASON = "Buen ejercicio base para tu objetivo y tu material.";
 
@@ -76,6 +81,7 @@ function setup(o: {
     /** Return text to override the answer of call number n (1-based) with a bad one. */
     badCalls?: number[];
     plan?: PlanState | null;
+    history?: PhaseHistory;
     attachFails?: boolean;
     catalog?: CatalogExercise[];
     spent?: number;
@@ -127,6 +133,9 @@ function setup(o: {
                     ? { status: "proposed", training_saved: false }
                     : o.plan,
             ),
+        loadPhaseHistory: () => Promise.resolve(o.history ?? NO_HISTORY),
+        updatePlanOptions: () =>
+            Promise.reject(new Error("unexpected updatePlanOptions")),
         attachBlock: (_t, row) => {
             if (o.attachFails) return Promise.reject(new Error("db down"));
             attached.push(row);
@@ -171,15 +180,22 @@ const bodyOf = async (res: Response) => {
     return JSON.parse(JSON.parse(delta).text);
 };
 
-Deno.test("parseInput takes exactly today and a plan uuid", () => {
+Deno.test("parseInput takes today and a plan uuid, and an optional minimal flag", () => {
     assertEquals(parseInput({ today: "2026-10-30", plan_id: PLAN_ID }), {
         today: "2026-10-30",
         planId: PLAN_ID,
+        minimal: false,
     });
+    assertEquals(
+        parseInput({ today: "2026-10-30", plan_id: PLAN_ID, minimal: true })
+            .minimal,
+        true,
+    );
     for (
         const bad of [
             { today: "2026-10-30" },
             { today: "2026-10-30", plan_id: PLAN_ID, extra: 1 },
+            { today: "2026-10-30", plan_id: PLAN_ID, minimal: "yes" },
             { today: "2026-10-30", plan_id: "not-a-uuid" },
             { today: "2026-02-31", plan_id: PLAN_ID },
             { today: "30/10/2026", plan_id: PLAN_ID },
@@ -454,7 +470,15 @@ Deno.test("no model: block calls use Opus", async () => {
 
 // --- cardio (T-182) ---
 
-type Ex = { role: string; duration_min?: number; exercise_key: string };
+type Ex = {
+    role: string;
+    duration_min?: number;
+    exercise_key: string;
+    exercise_id: string;
+    sets: number;
+    rep_min: number;
+    rep_max: number;
+};
 
 Deno.test("cardio closes every routine: server minutes, training.cardio, routine totals and the attach payload", async () => {
     const t = setup({
@@ -500,7 +524,15 @@ Deno.test("a plan without activity plans the 150 minute default", async () => {
 
 Deno.test("the target of the plan is used, and 0 plans no cardio exercise nor cardio slot in the prompt", async () => {
     const t = setup({
-        plan: { status: "accepted", training_saved: false, cardio_min_week: 0 },
+        plan: {
+            status: "accepted",
+            training_saved: false,
+            cardio_min_week: 0,
+            // 0 can only come from the user's own edit.
+            nutrition: {
+                activity: { cardio_edited: true },
+            } as PlanState["nutrition"],
+        },
     });
     const body = await bodyOf(await t.handler(post()));
     assertEquals(body.training.cardio.per_routine_min, [0, 0, 0]);
@@ -559,4 +591,168 @@ Deno.test("a catalogue without any cardio exercise is 422 coach_plan_infeasible 
     const res = await t.handler(post());
     assertEquals(res.status, 422);
     assertEquals(t.calls(), 0);
+});
+
+// --- T-187: phase, minimal block, history ---
+
+const squatsAndPress = (catalog: CatalogExercise[]) => {
+    const pick = (pattern: string) =>
+        catalog.find((e) => e.movement_pattern === pattern)!;
+    return [pick("squat"), pick("horizontal_push")];
+};
+const historyOf = (
+    catalog: CatalogExercise[],
+    over: Partial<PhaseHistory> = {},
+): PhaseHistory => {
+    const lifts = squatsAndPress(catalog);
+    return {
+        previous: {
+            phase: "cut",
+            sets_per_group: { chest: 6 },
+            main_lifts: lifts.map((e) => e.id),
+            rep_ranges: Object.fromEntries(
+                lifts.map((e) => [e.id, [3, 5]]),
+            ),
+        },
+        minimal_blocks_in_a_row: 0,
+        deficit_weeks_done: 4,
+        ...over,
+    };
+};
+const withAge = (age: number) => ({
+    ...summary(),
+    profile: { sex: "male", weight_kg: 80, age },
+});
+const postMinimal = () =>
+    post({ today: "2026-10-30", plan_id: PLAN_ID, minimal: true });
+
+Deno.test("a minimal request builds one session of the previous main lifts, one set each, with 30 + 70 minutes of cardio", async () => {
+    const catalog = fullCatalog();
+    const t = setup({
+        catalog,
+        history: historyOf(catalog),
+        summary: withAge(40),
+    });
+    const body = await bodyOf(await t.handler(postMinimal()));
+    assertEquals(body.training.phase, "minimal");
+    assertEquals(body.training.days_per_week, 1);
+    assertEquals(body.sessions.length, 1);
+    const lifting = (body.sessions[0].exercises as Ex[]).filter((e) =>
+        e.role !== "cardio"
+    );
+    assertEquals(
+        lifting.map((e) => e.exercise_id),
+        squatsAndPress(catalog).map((e) => e.id),
+    );
+    for (const e of lifting) {
+        assertEquals([e.role, e.sets], ["main", 1]);
+    }
+    assertEquals(body.training.cardio.target_min_week, 100);
+    assertEquals(body.training.cardio.per_routine_min, [30]);
+    assertEquals(body.training.cardio.on_your_own_min, 70);
+    assertEquals(t.attached[0].training, body.training);
+});
+
+Deno.test("a minimal request from 65 years builds two sessions with two sets and 30 / 30 + 40", async () => {
+    const catalog = fullCatalog();
+    const t = setup({
+        catalog,
+        history: historyOf(catalog),
+        summary: withAge(65),
+    });
+    const body = await bodyOf(await t.handler(postMinimal()));
+    assertEquals(body.sessions.length, 2);
+    assertEquals(body.training.cardio.per_routine_min, [30, 30]);
+    assertEquals(body.training.cardio.on_your_own_min, 40);
+    for (const s of body.sessions as { exercises: Ex[] }[]) {
+        for (const e of s.exercises.filter((x) => x.role !== "cardio")) {
+            assertEquals(e.sets, 2);
+        }
+    }
+    // Under 65 the same history gives one session.
+    const young = setup({
+        catalog,
+        history: historyOf(catalog),
+        summary: withAge(64),
+    });
+    assertEquals(
+        (await bodyOf(await young.handler(postMinimal()))).sessions.length,
+        1,
+    );
+});
+
+Deno.test("after 4 minimal blocks in a row the cardio target returns to 150", async () => {
+    const catalog = fullCatalog();
+    const t = setup({
+        catalog,
+        history: historyOf(catalog, { minimal_blocks_in_a_row: 4 }),
+        summary: withAge(40),
+    });
+    const body = await bodyOf(await t.handler(postMinimal()));
+    assertEquals(body.training.cardio.target_min_week, 150);
+    // The 30-minute cap of the minimal routines still holds.
+    assertEquals(body.training.cardio.per_routine_min, [30]);
+});
+
+Deno.test("a minimal request without a previous block still builds from the main slots", async () => {
+    const t = setup({ summary: withAge(40) });
+    const body = await bodyOf(await t.handler(postMinimal()));
+    assertEquals(body.training.phase, "minimal");
+    assertEquals(body.sessions.length, 1);
+});
+
+Deno.test("a cut block keeps the previous sets per group; the phase comes from the plan", async () => {
+    const catalog = fullCatalog();
+    const t = setup({
+        catalog,
+        history: historyOf(catalog),
+        plan: {
+            status: "proposed",
+            training_saved: false,
+            phase: "cut",
+        },
+    });
+    const body = await bodyOf(await t.handler(post()));
+    assertEquals(body.training.phase, "cut");
+    assertEquals(body.training.weekly_sets.chest, 6);
+});
+
+Deno.test("a plan whose column says minimal but whose calories are a cut builds a normal block when minimal is not requested", async () => {
+    const catalog = fullCatalog();
+    const nutrition = {
+        phase: "cut",
+        activity: { cardio_min_week: 100, cardio_edited: false },
+    };
+    const t = setup({
+        catalog,
+        history: historyOf(catalog),
+        plan: {
+            status: "proposed",
+            training_saved: false,
+            phase: "minimal",
+            cardio_min_week: 100,
+            nutrition: nutrition as unknown as PlanState["nutrition"],
+        },
+    });
+    const body = await bodyOf(await t.handler(post()));
+    assertEquals(body.training.phase, "cut");
+    assertEquals(body.training.days_per_week, 3);
+    assertEquals(body.training.cardio.target_min_week, 150);
+});
+
+Deno.test("every block carries its phase, including a first block without history", async () => {
+    const t = setup();
+    const body = await bodyOf(await t.handler(post()));
+    assertEquals(body.training.phase, "gain");
+    assertEquals(body.training.weekly_sets.chest, 10);
+});
+
+Deno.test("strength ranges are untouched by the phases (3-5, 5-6, 6-8 across the week)", async () => {
+    const t = setup({ tp: { intention: "strength" } });
+    const body = await bodyOf(await t.handler(post()));
+    const ranges = (body.sessions as { exercises: Ex[] }[]).map((s) => {
+        const m = s.exercises.find((e) => e.role === "main")!;
+        return `${m.rep_min}-${m.rep_max}`;
+    });
+    assertEquals(ranges, ["3-5", "5-6", "6-8"]);
 });

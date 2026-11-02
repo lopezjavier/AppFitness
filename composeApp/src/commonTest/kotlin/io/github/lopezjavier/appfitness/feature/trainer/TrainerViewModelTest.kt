@@ -293,6 +293,28 @@ class TrainerViewModelTest {
     }
 
     @Test
+    fun acceptedPlan_appliesTheDietBreakSwitchOnOpen_andAFailureDoesNotBlockTheScreen() = runTest(dispatcher) {
+        plans.current = Result.success(coachPlan(status = PlanStatus.Accepted))
+        plans.dietBreakResult = Result.failure(IllegalStateException("offline"))
+        val model = viewModel()
+
+        advanceUntilIdle()
+
+        assertEquals(1, plans.dietBreakCalls.size)
+        assertEquals(PlanSummary.Accepted(coachPlan(status = PlanStatus.Accepted)), model.content().plan)
+    }
+
+    @Test
+    fun proposedPlan_doesNotApplyTheDietBreakSwitch() = runTest(dispatcher) {
+        plans.current = Result.success(coachPlan())
+        viewModel()
+
+        advanceUntilIdle()
+
+        assertEquals(0, plans.dietBreakCalls.size)
+    }
+
+    @Test
     fun planReadFailure_degradesToNone() = runTest(dispatcher) {
         plans.current = Result.failure(AppException(AppError.Network))
         val model = viewModel()

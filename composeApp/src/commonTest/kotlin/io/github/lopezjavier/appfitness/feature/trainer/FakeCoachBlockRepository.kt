@@ -77,8 +77,12 @@ internal class FakeCoachBlockRepository : CoachBlockRepository {
     /** The edits sent with each save, in call order. */
     val saveEdits = mutableListOf<List<BlockEdit>>()
 
-    override suspend fun requestBlock(planId: String, today: LocalDate): Result<CoachBlock> {
+    /** The `minimal` flag of each request, in call order. */
+    val minimalRequests = mutableListOf<Boolean>()
+
+    override suspend fun requestBlock(planId: String, today: LocalDate, minimal: Boolean): Result<CoachBlock> {
         requests += planId to today
+        minimalRequests += minimal
         requestGate?.await()
         return request
     }

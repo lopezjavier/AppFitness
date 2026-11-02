@@ -12,6 +12,7 @@ import io.github.lopezjavier.appfitness.domain.appErrorOrNull
 import io.github.lopezjavier.appfitness.domain.model.CoachException
 import io.github.lopezjavier.appfitness.domain.model.CoachFailure
 import io.github.lopezjavier.appfitness.domain.model.CoachModelChoice
+import io.github.lopezjavier.appfitness.domain.model.DietBreakApplication
 import io.github.lopezjavier.appfitness.domain.model.MissingField
 import io.github.lopezjavier.appfitness.domain.model.OutcomeKind
 import io.github.lopezjavier.appfitness.domain.model.PlanStatus
@@ -363,6 +364,69 @@ class SupabaseCoachPlanRepositoryTest {
         assertTrue(call.url.encodedPath.endsWith("/rest/v1/rpc/set_coach_plan_cardio"), call.url.toString())
         assertEquals("""{"p_plan_id":"p1","p_minutes":90}""", bodyOf(call))
         assertEquals("p1", plan.id)
+    }
+
+    @Test
+    fun updatePlanOptions_postsPlanRecomputeWithoutModel_thenReloadsThePlan() = runTest {
+        val repository = repo(respond = ::planRoutes)
+        preference.select(CoachModelChoice.Haiku)
+
+        val plan = repository.updatePlanOptions("p1", today, 0.8, true).getOrThrow()
+
+        val call = rest().first()
+        assertTrue(call.url.encodedPath.endsWith("/functions/v1/coach"), call.url.toString())
+        assertEquals(
+            """{"kind":"plan_recompute","input":{"today":"2026-10-29","plan_id":"p1",""" +
+                """"cut_rate_pct":0.8,"diet_break":true}}""",
+            bodyOf(call),
+        )
+        assertTrue(rest().last().url.toString().contains("id=eq.p1"))
+        assertEquals("p1", plan.id)
+    }
+
+    @Test
+    fun updatePlanOptions_rateOutsideTheBounds_failsInvalidWithoutAnyRequest() = runTest {
+        val repository = repo(respond = ::planRoutes)
+
+        assertEquals(CoachFailure.Invalid, failureOf(repository.updatePlanOptions("p1", today, 1.2, false)))
+        assertEquals(CoachFailure.Invalid, failureOf(repository.updatePlanOptions("p1", today, 0.4, false)))
+        assertTrue(rest().isEmpty())
+    }
+
+    @Test
+    fun updatePlanOptions_invalidOutputBody_isMapped() = runTest {
+        val repository = repo {
+            HttpStatusCode.BadGateway to """{"error":{"code":"coach_invalid_output"}}"""
+        }
+
+        assertEquals(CoachFailure.Invalid, failureOf(repository.updatePlanOptions("p1", today, 0.8, false)))
+    }
+
+    @Test
+    fun updatePlanOptions_offline_isNetworkError() = runTest {
+        val repository = repo(respond = ::planRoutes)
+        offline = true
+
+        assertEquals(AppError.Network, repository.updatePlanOptions("p1", today, 0.8, false).appErrorOrNull())
+    }
+
+    @Test
+    fun applyDietBreak_callsTheRpcWithTodayAndMapsTheResult() = runTest {
+        val repository = repo { HttpStatusCode.OK to """{"applied":true,"week":4,"target_kcal":2600}""" }
+
+        val result = repository.applyDietBreak(today).getOrThrow()
+
+        val call = rest().single()
+        assertTrue(call.url.encodedPath.endsWith("/rest/v1/rpc/apply_coach_diet_break"), call.url.toString())
+        assertEquals("""{"p_today":"2026-10-29"}""", bodyOf(call))
+        assertEquals(DietBreakApplication(applied = true, week = 4, targetKcal = 2600), result)
+    }
+
+    @Test
+    fun applyDietBreak_notApplied_hasNoTarget() = runTest {
+        val repository = repo { HttpStatusCode.OK to """{"applied":false,"week":2,"target_kcal":null}""" }
+
+        assertEquals(DietBreakApplication(false, 2, null), repository.applyDietBreak(today).getOrThrow())
     }
 
     @Test

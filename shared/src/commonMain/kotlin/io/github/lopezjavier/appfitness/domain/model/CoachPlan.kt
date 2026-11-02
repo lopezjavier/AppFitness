@@ -6,7 +6,10 @@ import kotlinx.datetime.LocalDate
 enum class PlanStatus { Proposed, Accepted, Superseded, Discarded }
 
 /** Why the calories are not what the rate alone would give: the safety floor or the goal's allowed range. */
-enum class PlanLimit { Floor, GoalRange }
+enum class PlanLimit { Floor, GoalRange, DeficitCap }
+
+/** Maintenance-week figures of a plan with a diet break: weeks 1-3 use the base figures, [week] 4 these. */
+data class DietBreakWeek(val targetKcal: Int, val proteinG: Int, val carbsG: Int, val fatG: Int, val week: Int = 4)
 
 /** Per-meal protein guidance (not a meal plan): about [perMealG] g per meal, in [minMeals] meals or more. */
 data class ProteinDistribution(val perMealG: Int, val minMeals: Int, val gPerKg: Double)
@@ -64,7 +67,15 @@ data class PlanNutrition(
     val editedByUser: Boolean,
     /** Null for a plan stored before the activity targets existed. */
     val activity: PlanActivity? = null,
+    val phase: Phase = Phase.Maintenance,
+    val phaseReason: PhaseReason = PhaseReason.Intention,
+    val phaseOptions: PhaseOptions = PhaseOptions(),
+    /** Only for a cut plan with the diet break on. */
+    val dietBreak: DietBreakWeek? = null,
 )
+
+/** Result of the diet-break switch: [applied] when the Diario target changed, for plan [week] ([targetKcal] now). */
+data class DietBreakApplication(val applied: Boolean, val week: Int, val targetKcal: Int?)
 
 enum class OutcomeKind { Weight, E1rm }
 
@@ -87,6 +98,8 @@ data class CoachPlan(
     val outcomes: List<PlanOutcome>,
     val acceptedAt: Instant?,
 ) {
+    val phase: Phase get() = nutrition.phase
+
     /** The weight outcome the Weight screen shows, if the plan has one. */
     val weightOutcome: PlanOutcome? get() = outcomes.firstOrNull { it.kind == OutcomeKind.Weight }
 }

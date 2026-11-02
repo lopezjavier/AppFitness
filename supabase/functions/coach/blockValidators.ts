@@ -3,11 +3,13 @@
 import {
     CARDIO_PACE,
     CARDIO_ROUTINE_CAP_MIN,
+    CARDIO_ROUTINE_CAP_MINIMAL_MIN,
     CARDIO_TARGET_MAX,
     CARDIO_UNIT_MIN,
     exercisesPerSession,
     isMainLift,
     ISOLATION_PATTERNS,
+    MINIMAL_SENIOR_AGE,
     requiredGroups,
     REST,
     sessionsPerMuscle,
@@ -162,6 +164,7 @@ export function assembleBlock(
     const liftingOf = sessions.map((s) => s.exercises.filter(isLifting));
     return {
         training: {
+            phase: skeleton.phase,
             days_per_week: skeleton.days_per_week,
             days_chosen: skeleton.days_chosen,
             session_minutes: skeleton.session_minutes,
@@ -209,7 +212,7 @@ export function assertBlockInvariants(
     block: Block,
     prefs:
         & Pick<BlockPrefs, "intention" | "place" | "equipment">
-        & Partial<Pick<BlockPrefs, "cardio_min_week">>,
+        & Partial<Pick<BlockPrefs, "cardio_min_week" | "age">>,
     catalog: CatalogExercise[],
 ): void {
     const fail = (rule: string): never => {
@@ -217,11 +220,20 @@ export function assertBlockInvariants(
     };
     const t = block.training;
     const byId = new Map(catalog.map((e) => [e.id, e]));
+    // The minimal phase (07 section 12.3): 1 session and 1 set per slot, 2 and 2 from 65 years, main lifts only.
+    const minimal = t.phase === "minimal";
+    const senior = (prefs.age ?? 0) >= MINIMAL_SENIOR_AGE;
+    const routineCap = minimal
+        ? CARDIO_ROUTINE_CAP_MINIMAL_MIN
+        : CARDIO_ROUTINE_CAP_MIN;
 
     if (
         t.days_per_week < 1 || t.days_per_week > 7 ||
         block.sessions.length !== t.days_per_week
     ) fail("session_count");
+    if (minimal && t.days_per_week !== (senior ? 2 : 1)) {
+        fail("minimal_sessions");
+    }
 
     // Weekly cardio: the stated split must be the one derived from the target.
     const c = t.cardio;
@@ -233,7 +245,7 @@ export function assertBlockInvariants(
         prefs.cardio_min_week !== undefined &&
         prefs.cardio_min_week !== c.target_min_week
     ) fail("cardio_total");
-    const split = splitCardio(c.target_min_week, t.days_per_week);
+    const split = splitCardio(c.target_min_week, t.days_per_week, routineCap);
     if (
         c.planned_min_week !== split.planned ||
         c.on_your_own_min !== split.on_your_own ||
@@ -281,7 +293,7 @@ export function assertBlockInvariants(
                 if (
                     !Number.isInteger(e.duration_min) ||
                     e.duration_min < CARDIO_UNIT_MIN ||
-                    e.duration_min > CARDIO_ROUTINE_CAP_MIN ||
+                    e.duration_min > routineCap ||
                     e.duration_min % CARDIO_UNIT_MIN !== 0 ||
                     e.duration_min !== split.per_routine[i] ||
                     e.pace !== CARDIO_PACE
@@ -299,6 +311,7 @@ export function assertBlockInvariants(
                 if (!isMainLift(row.movement_pattern)) fail("role_pattern");
                 if (seenIsolation) fail("order");
             } else if (e.role === "isolation") {
+                if (minimal) fail("minimal_main_only");
                 if (!ISOLATION_PATTERNS.includes(row.movement_pattern ?? "")) {
                     fail("role_pattern");
                 }
@@ -316,9 +329,15 @@ export function assertBlockInvariants(
                 e.rep_min < 1 || e.rep_max > 50 || e.rep_min > e.rep_max
             ) fail("rep_range");
             if (!validReason(e.reason)) fail("reason");
+            if (minimal && e.sets !== (senior ? 2 : 1)) fail("minimal_sets");
 
             const range = `${e.rep_min}-${e.rep_max}`;
-            if (prefs.intention === "strength") {
+            // A minimal block keeps the previous block's ranges, whatever they were.
+            if (minimal) {
+                const prev = rangeOf.get(e.exercise_id);
+                if (prev && prev !== range) fail("range_changed");
+                rangeOf.set(e.exercise_id, range);
+            } else if (prefs.intention === "strength") {
                 if (e.role === "main") {
                     if (
                         !STRENGTH_RANGES.some((r) =>
@@ -345,7 +364,10 @@ export function assertBlockInvariants(
         if (lifting === 0) fail("empty_session");
         if (split.per_routine[i] > 0 && !seenCardio) fail("cardio_total");
     });
-    if (prefs.intention === "strength" && mainRangePerSession.length >= 2) {
+    if (
+        !minimal && prefs.intention === "strength" &&
+        mainRangePerSession.length >= 2
+    ) {
         if (new Set(mainRangePerSession.filter(Boolean)).size < 2) {
             fail("strength_not_undulating");
         }
@@ -362,7 +384,7 @@ export function assertBlockInvariants(
         fail("sessions_per_muscle");
     }
     for (
-        const g of requiredGroups(
+        const g of minimal ? [] : requiredGroups(
             t.days_per_week,
             exercisesPerSession(t.session_minutes),
         )

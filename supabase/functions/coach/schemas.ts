@@ -15,8 +15,43 @@ export type Sex = "male" | "female";
 export type Experience = "beginner" | "intermediate" | "advanced";
 export type Strategy = "deficit" | "maintenance" | "surplus";
 
+/** The phase of a block (planning/07 section 12.3). One phase per block. */
+export type Phase =
+    | "cut"
+    | "gain"
+    | "maintenance"
+    | "recomposition"
+    | "regain"
+    | "minimal";
+/** Why the plan is in that phase; the Spanish text lives in the client. */
+export type PhaseReason =
+    | "intention"
+    | "returning_break"
+    | "returning_injury"
+    | "user_busy";
+export type PhaseOptions = { cut_rate_pct: number; diet_break: boolean };
+
+/** The maintenance week (week 4) of a cut with a diet break. */
+export type DietBreakWeek = {
+    target_kcal: number;
+    calorie_adjustment: number;
+    strategy: Strategy;
+    protein_pct: number;
+    carbs_pct: number;
+    fat_pct: number;
+    protein_g: number;
+    carbs_g: number;
+    fat_g: number;
+    week: 4;
+};
+
 export type Nutrition = {
     intention: Intention;
+    phase: Phase;
+    phase_reason: PhaseReason;
+    phase_options: PhaseOptions;
+    /** Null unless the plan is a cut with the diet break on. */
+    diet_break: DietBreakWeek | null;
     weight_kg: number;
     expenditure_kcal: number;
     expenditure_source: string;
@@ -31,7 +66,7 @@ export type Nutrition = {
     /** Expected weight change per week, signed: negative for a loss, positive for a gain. */
     rate_kg_week: number;
     target_rate_pct: number;
-    limited_by: "floor" | "goal_range" | null;
+    limited_by: "floor" | "goal_range" | "deficit_cap" | null;
     floor_kcal: number;
     target_kcal: number;
     calorie_adjustment: number;
@@ -145,6 +180,22 @@ export type CatalogExercise = {
     per_hand?: boolean;
 };
 
+/** What the next block is built from (rpc coach_phase_history, T-187). */
+export type PhaseHistory = {
+    previous: {
+        phase: Phase;
+        /** Weekly sets per muscle group of the previous block. */
+        sets_per_group: Record<string, number>;
+        /** Exercise ids of its main lifts, in session order. */
+        main_lifts: string[];
+        /** [rep_min, rep_max] per exercise id. */
+        rep_ranges: Record<string, [number, number]>;
+    } | null;
+    minimal_blocks_in_a_row: number;
+    /** Deficit weeks of the current run of cut blocks (4 per block, 3 with a diet break). */
+    deficit_weeks_done: number;
+};
+
 /** The training preferences the block is built from. */
 export type BlockPrefs = {
     intention: Intention;
@@ -157,6 +208,24 @@ export type BlockPrefs = {
     cardio_min_week: number;
     /** Most-logged cardio exercises of the last 8 weeks (key or id), most logged first. */
     cardio_favorites: string[];
+    /** The phase of the block (T-187); absent means the first phase of the intention. */
+    phase?: Phase;
+    /** The previous block, reduced to what the next one needs; null or absent for a first block. */
+    previous?: PreviousBlock | null;
+    /** Age in whole years (profile); 65 or more doubles the minimal phase (07 section 12.3). */
+    age?: number | null;
+};
+
+/** The previous block as the next one reads it: sets per group and its still usable main lifts. */
+export type PreviousBlock = {
+    phase: Phase;
+    sets_per_group: Record<string, number>;
+    main_lifts: {
+        exercise_id: string;
+        muscle_group: MuscleGroup;
+        rep_min: number;
+        rep_max: number;
+    }[];
 };
 
 export type BlockSlot = {
@@ -167,6 +236,8 @@ export type BlockSlot = {
     rep_min: number;
     rep_max: number;
     rest_seconds: number;
+    /** A minimal block keeps the previous main lift of this slot: it is the slot's only candidate. */
+    fixed_exercise_id?: string;
 };
 
 /** The cardio of a routine: one slot, planned minutes decided by the server (04 section 9.11). */
@@ -190,6 +261,7 @@ export type BlockCardio = {
 };
 
 export type BlockSkeleton = {
+    phase: Phase;
     days_per_week: number;
     days_chosen: boolean;
     session_minutes: number;
@@ -244,6 +316,7 @@ export const isLifting = (
 ): e is BlockExercise => e.role !== "cardio";
 
 export type BlockTraining = {
+    phase: Phase;
     days_per_week: number;
     days_chosen: boolean;
     session_minutes: number;

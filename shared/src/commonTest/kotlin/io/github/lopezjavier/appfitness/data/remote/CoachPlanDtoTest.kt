@@ -1,11 +1,16 @@
 package io.github.lopezjavier.appfitness.data.remote
 
+import io.github.lopezjavier.appfitness.domain.model.DietBreakWeek
 import io.github.lopezjavier.appfitness.domain.model.GoalStrategy
 import io.github.lopezjavier.appfitness.domain.model.OutcomeKind
+import io.github.lopezjavier.appfitness.domain.model.Phase
+import io.github.lopezjavier.appfitness.domain.model.PhaseOptions
+import io.github.lopezjavier.appfitness.domain.model.PhaseReason
 import io.github.lopezjavier.appfitness.domain.model.PlanActivity
 import io.github.lopezjavier.appfitness.domain.model.PlanLimit
 import io.github.lopezjavier.appfitness.domain.model.PlanStatus
 import io.github.lopezjavier.appfitness.domain.model.StepsBasis
+import io.github.lopezjavier.appfitness.domain.model.phaseForIntention
 import kotlinx.datetime.LocalDate
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -85,6 +90,87 @@ class CoachPlanDtoTest {
 
         assertEquals(StepsBasis.Floor, activity?.stepsBasis)
         assertEquals(false, activity?.cardioEdited)
+    }
+
+    private fun nutritionWith(extra: String) = NUTRITION_FREE.removeSuffix("}") + ",$extra}"
+
+    @Test
+    fun phaseKeys_areMapped() {
+        val nutrition = decode(
+            plan(
+                nutritionWith(
+                    """"limited_by":"deficit_cap","phase":"regain","phase_reason":"returning_injury",""" +
+                        """"phase_options":{"cut_rate_pct":0.8,"diet_break":true},""" +
+                        """"diet_break":{"target_kcal":2600,"protein_g":150,"carbs_g":300,"fat_g":80,"week":4}""",
+                ),
+                "[]",
+            ),
+        ).nutrition
+
+        assertEquals(Phase.Regain, nutrition.phase)
+        assertEquals(PhaseReason.ReturningInjury, nutrition.phaseReason)
+        assertEquals(PhaseOptions(0.8, true), nutrition.phaseOptions)
+        assertEquals(DietBreakWeek(2600, 150, 300, 80, 4), nutrition.dietBreak)
+    }
+
+    @Test
+    fun deficitCapLimit_isMapped() {
+        val nutrition = decode(
+            plan(NUTRITION_FREE.replace(""""limited_by":null""", """"limited_by":"deficit_cap""""), "[]"),
+        )
+            .nutrition
+
+        assertEquals(PlanLimit.DeficitCap, nutrition.limitedBy)
+    }
+
+    @Test
+    fun legacyJsonWithoutPhase_takesThePhaseFromTheIntention() {
+        val decoded = decode(plan(NUTRITION_FREE, "[]"))
+
+        assertEquals(Phase.Cut, decoded.phase)
+        assertEquals(PhaseReason.Intention, decoded.nutrition.phaseReason)
+        assertEquals(PhaseOptions(0.5, false), decoded.nutrition.phaseOptions)
+        assertNull(decoded.nutrition.dietBreak)
+    }
+
+    @Test
+    fun legacyJsonWithoutPhase_usesTheRowColumnsBeforeTheIntention() {
+        val row = plan(NUTRITION_FREE, "[]").removeSuffix("}") +
+            ""","phase":"minimal","phase_reason":"user_busy","phase_options":{"cut_rate_pct":0.5,"diet_break":false}}"""
+
+        val decoded = decode(row)
+
+        assertEquals(Phase.Minimal, decoded.phase)
+        assertEquals(PhaseReason.UserBusy, decoded.nutrition.phaseReason)
+    }
+
+    @Test
+    fun unknownPhaseAndReason_fallBackWithoutThrowing() {
+        val decoded = decode(plan(nutritionWith(""""phase":"bulk","phase_reason":"x""""), "[]"))
+
+        assertEquals(Phase.Cut, decoded.phase)
+        assertEquals(PhaseReason.Intention, decoded.nutrition.phaseReason)
+    }
+
+    @Test
+    fun outOfRangeCutRate_fallsBackToTheDefault() {
+        val decoded = decode(
+            plan(nutritionWith(""""phase_options":{"cut_rate_pct":1.7,"diet_break":true}"""), "[]"),
+        )
+
+        assertEquals(PhaseOptions(0.5, true), decoded.nutrition.phaseOptions)
+    }
+
+    @Test
+    fun intentionTable_givesTheFirstPhase() {
+        val expected = mapOf(
+            "fat_loss" to Phase.Cut,
+            "muscle" to Phase.Gain,
+            "recomposition" to Phase.Recomposition,
+            "maintenance" to Phase.Maintenance,
+            "strength" to Phase.Maintenance,
+        )
+        expected.forEach { (intention, phase) -> assertEquals(phase, phaseForIntention(intention), intention) }
     }
 
     @Test
