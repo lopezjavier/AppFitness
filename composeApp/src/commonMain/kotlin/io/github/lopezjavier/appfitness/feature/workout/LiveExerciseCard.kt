@@ -26,7 +26,6 @@ import androidx.compose.ui.semantics.semantics
 import io.github.lopezjavier.appfitness.composeapp.resources.Res
 import io.github.lopezjavier.appfitness.composeapp.resources.builder_exercise_open_cd
 import io.github.lopezjavier.appfitness.composeapp.resources.builder_superset_label
-import io.github.lopezjavier.appfitness.composeapp.resources.exercise_unnamed
 import io.github.lopezjavier.appfitness.composeapp.resources.live_deload
 import io.github.lopezjavier.appfitness.composeapp.resources.live_deload_cd
 import io.github.lopezjavier.appfitness.composeapp.resources.live_deload_single
@@ -71,7 +70,7 @@ internal fun LiveExerciseCard(
     discomfortLogs: Int = 0,
 ) {
     val position = exercise.position
-    val name = exercise.name ?: stringResource(Res.string.exercise_unnamed)
+    val name = exercise.name
     var sheet by rememberSaveable { mutableStateOf(ExerciseSheet.None) }
     OnDiscomfortStored(discomfortLogs) { if (sheet == ExerciseSheet.Discomfort) sheet = ExerciseSheet.None }
     AppCard(modifier.fillMaxWidth()) {

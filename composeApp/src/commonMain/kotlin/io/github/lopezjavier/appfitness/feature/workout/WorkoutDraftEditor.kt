@@ -2,6 +2,7 @@ package io.github.lopezjavier.appfitness.feature.workout
 
 import androidx.lifecycle.SavedStateHandle
 import io.github.lopezjavier.appfitness.domain.model.ExerciseMetricType
+import io.github.lopezjavier.appfitness.domain.model.ExerciseNames
 import io.github.lopezjavier.appfitness.domain.model.WorkoutDraft
 import io.github.lopezjavier.appfitness.domain.model.WorkoutDraftBounds
 import io.github.lopezjavier.appfitness.domain.usecase.ValidateWorkoutDraft
@@ -13,7 +14,7 @@ import kotlinx.serialization.json.Json
 /** What both form screens show once the workout is loaded. */
 data class WorkoutFormView(
     val form: WorkoutForm,
-    /** Exercise name by exercise id; a missing id has no name (the UI shows a generic label). */
+    /** Exercise name by exercise id; the editor only publishes a form whose exercises all have a name (R-54). */
     val names: Map<String, String>,
     /** Every problem of the form right now; the UI flags fields once the user edited the form (R-27). */
     val issues: List<WorkoutDraftIssue>,
@@ -33,6 +34,7 @@ internal class WorkoutDraftEditor(
     private val checkDate: Boolean,
     private val scope: CoroutineScope,
     private val loadLookup: suspend () -> ExerciseLookup?,
+    private val loadNames: suspend () -> ExerciseNames?,
     private val onChange: () -> Unit,
 ) {
     private val formKey = "${keyPrefix}_form"
@@ -59,10 +61,24 @@ internal class WorkoutDraftEditor(
     /** True when a form was restored from the saved state, so it must not be replaced by the loaded source. */
     val restored: Boolean get() = form != null
 
-    fun applyLookup(lookup: ExerciseLookup?) {
-        names = lookup?.names ?: names
-        metricTypes = lookup?.metricTypes ?: metricTypes
+    /** Reads the metric types and the names; false when either read failed (nothing is applied then). */
+    suspend fun refreshLookup(): Boolean {
+        val lookup = loadLookup()
+        val resolved = loadNames()
+        if (lookup == null || resolved == null) return false
+        metricTypes = lookup.metricTypes
+        names = resolved.byId
+        return true
     }
+
+    /** Re-resolved names (a renamed custom exercise); a lookup that lacks an exercise of the form changes nothing. */
+    fun updateNames(resolved: ExerciseNames) {
+        if (form?.exercises?.all { resolved[it.exerciseId] != null } == false) return
+        names = resolved.byId
+    }
+
+    /** True when every exercise of the current form has a name. */
+    fun allNamed(): Boolean = form?.exercises?.all { it.exerciseId in names } ?: true
 
     fun metricTypes(): Map<String, ExerciseMetricType> = metricTypes
 
@@ -92,10 +108,11 @@ internal class WorkoutDraftEditor(
 
     /** Applies the edit; an exercise missing from the lookup (created after the screen opened) reloads it first. */
     fun apply(event: WorkoutFormEvent) {
-        if (event is WorkoutFormEvent.AddExercise && event.exerciseId !in metricTypes) {
+        if (event is WorkoutFormEvent.AddExercise && (event.exerciseId !in metricTypes || event.exerciseId !in names)) {
             scope.launch {
-                applyLookup(loadLookup())
-                edit(event)
+                refreshLookup()
+                // An exercise that cannot be named is not added: the form never shows a generic row.
+                if (event.exerciseId in names) edit(event)
                 onChange()
             }
         } else {

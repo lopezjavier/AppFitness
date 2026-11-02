@@ -402,4 +402,15 @@ class CheckInScreenTest {
     }
 
     private fun assertTrue(condition: Boolean) = kotlin.test.assertTrue(condition)
+
+    @Test
+    fun customExerciseRecord_isShownByItsName_andARenameIsShownWithoutRecreating() {
+        show(ready().copy(exerciseNames = mapOf("bench" to "Press con cuerda")))
+        rule.onNodeWithText("Press con cuerda", substring = true).assertExists()
+
+        state = ready().copy(exerciseNames = mapOf("bench" to "Press neutro"))
+        rule.waitForIdle()
+
+        rule.onNodeWithText("Press neutro", substring = true).assertExists()
+    }
 }

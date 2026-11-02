@@ -1,5 +1,8 @@
 package io.github.lopezjavier.appfitness.feature.routines
 
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
@@ -169,5 +172,32 @@ class RoutineDetailsScreenTest {
         rule.onNodeWithTag("routine_details_back").performClick()
 
         assertEquals(1, backs)
+    }
+
+    @Test
+    fun customExercise_isShownByItsName_andARenameIsShownWithoutRecreating() {
+        fun withName(name: String) = content.copy(
+            exercises = listOf(RoutineDetailsExerciseUi("custom-1", name, null, List(3) { PlannedSet(null, 8) })),
+        )
+        var state by mutableStateOf<RoutineDetailsUiState>(withName("Remo con toalla"))
+        rule.setContent {
+            AppTheme {
+                RoutineDetailsScreen(
+                    state = state,
+                    onEvent = {},
+                    onEdit = {},
+                    onOpenExercise = {},
+                    onBack = {},
+                    timeZone = TimeZone.UTC,
+                    today = LocalDate(2026, 10, 26),
+                )
+            }
+        }
+        rule.onNodeWithText("Remo con toalla").assertExists()
+
+        state = withName("Remo en TRX")
+        rule.waitForIdle()
+
+        rule.onNodeWithText("Remo en TRX").assertExists()
     }
 }

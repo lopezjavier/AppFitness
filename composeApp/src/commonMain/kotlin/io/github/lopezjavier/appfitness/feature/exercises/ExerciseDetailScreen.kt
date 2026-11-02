@@ -39,7 +39,6 @@ import io.github.lopezjavier.appfitness.composeapp.resources.exercise_tab_histor
 import io.github.lopezjavier.appfitness.composeapp.resources.exercise_tab_how_to
 import io.github.lopezjavier.appfitness.composeapp.resources.exercise_tab_similar
 import io.github.lopezjavier.appfitness.composeapp.resources.exercise_tab_summary
-import io.github.lopezjavier.appfitness.composeapp.resources.exercise_unnamed
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_delete
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_edit
 import io.github.lopezjavier.appfitness.designsystem.AppOption
@@ -199,11 +198,7 @@ fun ExerciseDetailScreen(
     onClose: () -> Unit = {},
 ) {
     val loaded = state as? ExerciseDetailUiState.Loaded
-    val name = loaded?.detail?.name?.ifBlank { null }
-    val title = when {
-        loaded == null -> stringResource(Res.string.exercise_detail_title)
-        else -> name ?: stringResource(Res.string.exercise_unnamed)
-    }
+    val title = loaded?.detail?.name ?: stringResource(Res.string.exercise_detail_title)
     AppScreen(
         title = title,
         modifier = modifier,

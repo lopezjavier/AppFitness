@@ -21,7 +21,6 @@ import androidx.compose.ui.platform.testTag
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.github.lopezjavier.appfitness.composeapp.resources.Res
 import io.github.lopezjavier.appfitness.composeapp.resources.block_days_week
-import io.github.lopezjavier.appfitness.composeapp.resources.block_exercise_fallback
 import io.github.lopezjavier.appfitness.composeapp.resources.block_frequency
 import io.github.lopezjavier.appfitness.composeapp.resources.block_frequency_chosen
 import io.github.lopezjavier.appfitness.composeapp.resources.block_preview_cardio_own
@@ -187,7 +186,6 @@ private fun PreviewContent(
 ) {
     val training = state.block.training
     val weeks = state.weeks
-    val fallback = stringResource(Res.string.block_exercise_fallback)
     LazyColumn(
         Modifier.fillMaxSize(),
         state = rememberLazyListState(),
@@ -238,7 +236,7 @@ private fun PreviewContent(
     if (state.replaceSlot != null) BlockReplaceSheet(state, isOnline, onEvent, onOpenExercise)
     state.reasonExercise?.let { exercise ->
         ExerciseReasonSheet(
-            title = state.exerciseNames[exercise.exerciseId] ?: fallback,
+            title = state.exerciseNames.getValue(exercise.exerciseId),
             reason = exercise.reason,
             onDismiss = { onEvent(BlockPreviewEvent.CloseReason) },
         )

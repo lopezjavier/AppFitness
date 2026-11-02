@@ -492,7 +492,6 @@
     <string name="builder_load_error">No se pudo cargar la rutina</string>
     <string name="exercise_picker_title">Ejercicios</string>
     <string name="exercise_detail_title">Ejercicio</string>
-    <string name="exercise_unnamed">Ejercicio</string>
     <string name="exercise_search_label">Buscar</string>
     <string name="exercise_search_placeholder">Buscar ejercicio</string>
     <string name="exercise_filter_all">Todos</string>
@@ -2054,7 +2053,6 @@
     <string name="block_preview_cardio_total">Tiempo total: %1$s</string>
     <string name="block_preview_cardio_own">Te faltan %1$d min de cardio a la semana: hazlos por tu cuenta.</string>
     <string name="block_preview_replace_cardio_note">Cuentan los mismos minutos con cualquier cardio, a ritmo suave.</string>
-    <string name="block_exercise_fallback">Ejercicio</string>
     <string name="block_reason_cd">Por qué este ejercicio</string>
     <string name="block_save">Guardar bloque</string>
     <string name="block_save_action">guardar el bloque</string>

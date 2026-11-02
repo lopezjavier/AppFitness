@@ -378,7 +378,7 @@ class LiveSessionScreenTest {
                     ExerciseSummary(1, "e2", 400.0, false),
                 ),
             ),
-            mapOf(0 to "Press banca", 1 to null),
+            mapOf(0 to "Press banca", 1 to "Sentadilla"),
         )
         show(LiveSessionUiState.Finished(summary))
 
@@ -491,5 +491,43 @@ class LiveSessionScreenTest {
         assertEquals("80" to "8", values.weightPlaceholder to values.repsPlaceholder)
         assertEquals("" to "", values.weight to values.reps)
         rule.onNodeWithTag("live_set_0_1_previous").assertDoesNotExist()
+    }
+
+    @Test
+    fun customExerciseCard_isShownByItsName_andARenameIsShownWithoutRecreating() {
+        fun withName(name: String) =
+            active(exercises = listOf(LiveExercise(0, "custom-1", name, null, listOf(row(1), row(2)))))
+        var state by mutableStateOf<LiveSessionUiState>(withName("Remo en anillas"))
+        rule.setContent {
+            CompositionLocalProvider(LocalAppHaptics provides haptics) {
+                AppTheme { LiveSessionScreen(state, 0, {}, {}, onOpenExercise = {}) }
+            }
+        }
+        rule.onNodeWithText("Remo en anillas").assertExists()
+
+        state = withName("Remo invertido")
+        rule.waitForIdle()
+
+        rule.onNodeWithText("Remo invertido").assertExists()
+        rule.onNodeWithText("Remo en anillas").assertDoesNotExist()
+    }
+
+    @Test
+    fun summary_showsACustomExerciseByItsName_andARenameIsShownWithoutRecreating() {
+        fun finished(name: String) = LiveSessionUiState.Finished(
+            LiveSummary(SessionSummary(60, 1, listOf(ExerciseSummary(0, "custom-1", 300.0, false))), mapOf(0 to name)),
+        )
+        var state by mutableStateOf<LiveSessionUiState>(finished("Remo en anillas"))
+        rule.setContent {
+            CompositionLocalProvider(LocalAppHaptics provides haptics) {
+                AppTheme { LiveSessionScreen(state, 0, {}, {}, onOpenExercise = {}) }
+            }
+        }
+        rule.onNodeWithTag("summary_volume_0").assertTextContains("Remo en anillas")
+
+        state = finished("Remo invertido")
+        rule.waitForIdle()
+
+        rule.onNodeWithTag("summary_volume_0").assertTextContains("Remo invertido")
     }
 }

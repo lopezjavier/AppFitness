@@ -44,7 +44,6 @@ import io.github.lopezjavier.appfitness.composeapp.resources.builder_row_cd_supe
 import io.github.lopezjavier.appfitness.composeapp.resources.builder_row_menu_cd
 import io.github.lopezjavier.appfitness.composeapp.resources.builder_superset_label
 import io.github.lopezjavier.appfitness.composeapp.resources.builder_ungroup
-import io.github.lopezjavier.appfitness.composeapp.resources.exercise_unnamed
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_arrow_downward
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_arrow_upward
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_delete
@@ -101,10 +100,6 @@ import org.jetbrains.compose.resources.stringResource
 
 private val AccentWidth = Spacing.xs
 
-/** The Spanish name a row shows while its exercise name is unknown. */
-@Composable
-internal fun BuilderRowUi.displayName(): String = name ?: stringResource(Res.string.exercise_unnamed)
-
 /** "Superserie A1" of a superset member, or null. */
 @Composable
 internal fun BuilderRowUi.supersetText(): String? =
@@ -127,7 +122,7 @@ internal fun ReorderableItemScope.BuilderRow(
     onEditNote: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val name = row.displayName()
+    val name = row.name
     val superset = row.supersetText()
     val moveUp = stringResource(Res.string.builder_move_up)
     val moveDown = stringResource(Res.string.builder_move_down)
@@ -195,7 +190,7 @@ private fun ReorderableItemScope.RowHeader(
     onOpenMenu: () -> Unit,
     onOpenExercise: () -> Unit,
 ) {
-    val name = row.displayName()
+    val name = row.name
     val menuLabel = stringResource(Res.string.builder_row_menu_cd, name)
     // Only the header line swipes away (R-21): the planned sets below keep their own swipe, so the two never nest.
     SwipeToDeleteRow(
@@ -474,7 +469,7 @@ internal fun BuilderRowMenu(
     AppActionSheet(
         actions = actions,
         onDismiss = onDismiss,
-        title = row.displayName(),
+        title = row.name,
         testTagPrefix = "routine_builder_menu_sheet",
     )
 }

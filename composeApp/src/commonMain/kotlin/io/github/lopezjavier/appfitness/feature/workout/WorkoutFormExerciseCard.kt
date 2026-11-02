@@ -19,7 +19,6 @@ import io.github.lopezjavier.appfitness.composeapp.resources.builder_add_set
 import io.github.lopezjavier.appfitness.composeapp.resources.builder_rest_decrease_cd
 import io.github.lopezjavier.appfitness.composeapp.resources.builder_rest_increase_cd
 import io.github.lopezjavier.appfitness.composeapp.resources.builder_rest_unit
-import io.github.lopezjavier.appfitness.composeapp.resources.exercise_unnamed
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_arrow_downward
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_arrow_upward
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_delete
@@ -57,7 +56,7 @@ internal data class FormCardState(
 @Suppress("LongParameterList", "LongMethod") // Row data, its card state, tags and the picker hooks.
 internal fun FormExerciseCard(
     exercise: FormExercise,
-    name: String?,
+    name: String,
     card: FormCardState,
     tagPrefix: String,
     onEvent: (WorkoutFormEvent) -> Unit,
@@ -66,7 +65,7 @@ internal fun FormExerciseCard(
     onOpenNote: (setIndex: Int) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val title = name ?: stringResource(Res.string.exercise_unnamed)
+    val title = name
     val index = card.index
     AppCard(modifier.fillMaxWidth().testTag("${tagPrefix}_exercise_$index")) {
         Column(verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {

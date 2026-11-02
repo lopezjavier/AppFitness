@@ -10,7 +10,6 @@ import androidx.compose.ui.Modifier
 import io.github.lopezjavier.appfitness.composeapp.resources.Res
 import io.github.lopezjavier.appfitness.composeapp.resources.catalog_section_exercise_media
 import io.github.lopezjavier.appfitness.composeapp.resources.exercise_detail_animation_cd
-import io.github.lopezjavier.appfitness.composeapp.resources.exercise_unnamed
 import io.github.lopezjavier.appfitness.designsystem.AppCard
 import io.github.lopezjavier.appfitness.designsystem.ExerciseAnimation
 import io.github.lopezjavier.appfitness.designsystem.ExerciseLayoutDefaults
@@ -47,7 +46,10 @@ private fun ExerciseMediaSection() {
                 animationsEnabled = LocalAnimationsEnabled.current,
                 testTagPrefix = "catalog_exercise",
                 contentDescription =
-                stringResource(Res.string.exercise_detail_animation_cd, stringResource(Res.string.exercise_unnamed)),
+                stringResource(
+                    Res.string.exercise_detail_animation_cd,
+                    stringResource(Res.string.catalog_section_exercise_media),
+                ),
                 modifier = Modifier.widthIn(max = ExerciseLayoutDefaults.AnimationMaxWidth),
             )
         }

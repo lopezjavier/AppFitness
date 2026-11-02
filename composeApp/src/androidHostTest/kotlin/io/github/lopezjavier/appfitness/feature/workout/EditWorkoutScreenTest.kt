@@ -14,6 +14,7 @@ import androidx.compose.ui.test.assertWidthIsAtLeast
 import androidx.compose.ui.test.getUnclippedBoundsInRoot
 import androidx.compose.ui.test.hasContentDescription
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
@@ -29,6 +30,8 @@ import io.github.lopezjavier.appfitness.designsystem.HapticEvent
 import io.github.lopezjavier.appfitness.designsystem.LocalAppHaptics
 import io.github.lopezjavier.appfitness.designsystem.LocalAppMessages
 import io.github.lopezjavier.appfitness.designsystem.RecordingAppHaptics
+import io.github.lopezjavier.appfitness.domain.model.Equipment
+import io.github.lopezjavier.appfitness.domain.model.MuscleGroup
 import io.github.lopezjavier.appfitness.domain.model.SetEntry
 import io.github.lopezjavier.appfitness.domain.model.SetNoteKind
 import io.github.lopezjavier.appfitness.domain.model.SetType
@@ -38,6 +41,7 @@ import io.github.lopezjavier.appfitness.feature.exercises.exerciseInfo
 import io.github.lopezjavier.appfitness.feature.exercises.exerciseRow
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Rule
@@ -341,5 +345,24 @@ class EditWorkoutScreenTest {
         rule.onNodeWithTag("edit_workout_error").assertExists()
         rule.onNodeWithTag("edit_workout_error_action").performClick()
         assertEquals(1, events)
+    }
+
+    @Test
+    fun customExercise_isShownByItsName_andARenameIsShownWithoutRecreating() {
+        exercises.rows = listOf(
+            exerciseRow("e1", null, name = "Remo en anillas", custom = true),
+            exerciseRow("e2", "squat"),
+        )
+        show()
+        rule.onNodeWithText("Remo en anillas").assertExists()
+
+        runBlocking {
+            exercises.updateCustom("e1", "Remo invertido", MuscleGroup.Chest, Equipment.Barbell, false, null)
+        }
+        rule.waitUntil(5_000) {
+            rule.onAllNodesWithText("Remo invertido").fetchSemanticsNodes().isNotEmpty()
+        }
+
+        rule.onNodeWithText("Remo en anillas").assertDoesNotExist()
     }
 }

@@ -50,7 +50,6 @@ import io.github.lopezjavier.appfitness.composeapp.resources.checkin_weight_not_
 import io.github.lopezjavier.appfitness.composeapp.resources.checkin_weight_value
 import io.github.lopezjavier.appfitness.composeapp.resources.checkin_workouts_label
 import io.github.lopezjavier.appfitness.composeapp.resources.checkin_workouts_value
-import io.github.lopezjavier.appfitness.composeapp.resources.exercise_unnamed
 import io.github.lopezjavier.appfitness.composeapp.resources.help_checkin_energy_bullet_1
 import io.github.lopezjavier.appfitness.composeapp.resources.help_checkin_energy_bullet_2
 import io.github.lopezjavier.appfitness.composeapp.resources.help_checkin_energy_bullet_3
@@ -277,11 +276,10 @@ private fun RecordsCard(records: List<WeekRecord>, names: Map<String, String>) {
                     modifier = Modifier.testTag("checkin_summary_records_empty"),
                 )
             }
-            val unnamed = stringResource(Res.string.exercise_unnamed)
             records.forEachIndexed { index, record ->
                 val value = PersonalRecord(record.recordType, record.value, null, record.sessionDate).valueText()
                 AppListRow(
-                    headline = names[record.exerciseId] ?: unnamed,
+                    headline = names.getValue(record.exerciseId),
                     supporting = "${record.recordType.label()} · $value",
                     modifier = Modifier.testTag("checkin_summary_record_$index").semantics(mergeDescendants = true) {},
                 )

@@ -21,6 +21,7 @@ import androidx.compose.ui.test.assertWidthIsAtLeast
 import androidx.compose.ui.test.getUnclippedBoundsInRoot
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithTag
+import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
@@ -42,7 +43,9 @@ import io.github.lopezjavier.appfitness.designsystem.LocalAppHaptics
 import io.github.lopezjavier.appfitness.designsystem.LocalAppMessages
 import io.github.lopezjavier.appfitness.designsystem.RecordingAppHaptics
 import io.github.lopezjavier.appfitness.domain.AppError
+import io.github.lopezjavier.appfitness.domain.model.Equipment
 import io.github.lopezjavier.appfitness.domain.model.ExerciseNoteKind
+import io.github.lopezjavier.appfitness.domain.model.MuscleGroup
 import io.github.lopezjavier.appfitness.domain.model.SetType
 import io.github.lopezjavier.appfitness.domain.usecase.LoadExerciseCatalog
 import io.github.lopezjavier.appfitness.feature.exercises.FakeExerciseLibrary
@@ -51,6 +54,7 @@ import io.github.lopezjavier.appfitness.feature.exercises.FakeExerciseRepository
 import io.github.lopezjavier.appfitness.feature.exercises.LocalExerciseMediaUris
 import io.github.lopezjavier.appfitness.feature.exercises.exerciseInfo
 import io.github.lopezjavier.appfitness.feature.exercises.exerciseRow
+import kotlinx.coroutines.runBlocking
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
@@ -688,6 +692,23 @@ class RoutineBuilderScreenTest {
         rule.setContent { AppTheme { RoutineBuilderScreen(RoutineBuilderUiState.Loading, {}, {}, {}) } }
 
         rule.onNodeWithTag("routine_builder_loading").assertExists()
+    }
+
+    @Test
+    fun customExerciseRow_isShownByItsName_andARenameIsShownWithoutRecreating() {
+        exercises.rows = exercises.rows + exerciseRow("custom-1", null, name = "Remo en anillas", custom = true)
+        val vm = show()
+        vm.add("custom-1")
+        rule.onNodeWithText("Remo en anillas").assertExists()
+
+        runBlocking {
+            exercises.updateCustom("custom-1", "Remo invertido", MuscleGroup.Chest, Equipment.Barbell, false, null)
+        }
+        rule.waitUntil(5_000) {
+            rule.onAllNodesWithText("Remo invertido").fetchSemanticsNodes().isNotEmpty()
+        }
+
+        rule.onNodeWithText("Remo en anillas").assertDoesNotExist()
     }
 }
 

@@ -32,7 +32,6 @@ import io.github.lopezjavier.appfitness.composeapp.resources.action_delete
 import io.github.lopezjavier.appfitness.composeapp.resources.action_edit
 import io.github.lopezjavier.appfitness.composeapp.resources.action_retry
 import io.github.lopezjavier.appfitness.composeapp.resources.exercise_history_rpe
-import io.github.lopezjavier.appfitness.composeapp.resources.exercise_unnamed
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_bookmark_add
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_delete
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_edit
@@ -259,7 +258,7 @@ private fun ExerciseBlock(exercise: DetailExercise, onOpen: () -> Unit, modifier
     AppCard(modifier.fillMaxWidth()) {
         Column(verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
             ExerciseRow(
-                name = exercise.name ?: stringResource(Res.string.exercise_unnamed),
+                name = exercise.name,
                 supporting = null,
                 onOpen = onOpen,
                 tagPrefix = "session_detail_exercise_${exercise.position}",
