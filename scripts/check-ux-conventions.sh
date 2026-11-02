@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # UX conventions guard (T-118, planning/phase1/ux-audit-2026-10.md section 10, planning/05-design-system.md).
-# Features must reuse the design-system templates instead of reinventing them (guards G1..G15).
+# Features must reuse the design-system templates instead of reinventing them (guards G1..G16).
 #
 # Usage: check-ux-conventions.sh [root-dir] [warnings-file]
 #   root-dir       tree to scan (default: repository root). Tests pass a fixture tree.
@@ -29,7 +29,7 @@ while IFS= read -r raw || [ -n "$raw" ]; do
   line="${raw%%#*}"
   line="$(printf '%s' "$line" | sed -E 's/^[[:space:]]+//; s/[[:space:]]+$//')"
   [ -z "$line" ] && continue
-  if ! printf '%s' "$line" | grep -qE '^G([1-9]|1[0-5]) [^ ]+$'; then
+  if ! printf '%s' "$line" | grep -qE '^G([1-9]|1[0-6]) [^ ]+$'; then
     echo "UX conventions guard ERROR: malformed warnings line: $raw" >&2
     exit 2
   fi
@@ -188,7 +188,19 @@ done
 scan G15 "HelpTriggerButton/RpeHelpButton in LiveExerciseCard (R-51: status rows, no help buttons)" \
   '\b(HelpTriggerButton|RpeHelpButton)\(' '' "${live_card_files[@]}"
 
-# G9 / G10: strings.xml.
+# G16: R-54 an exercise is shown by its real name (ExerciseNameResolver), never by a generic label or a raw id.
+# Fallbacks in feature code: a name that falls back to a string, ifBlank/orEmpty/elvis on an exercise name, an id as label.
+scan G16 "exercise name falls back to a string (R-54: resolve the name through ExerciseNameResolver)" \
+  '([eE]xercise|record|chip|row|names?)[A-Za-z]*(\.[A-Za-z]*[nN]ame\b|\[)[^?]*\?:[[:space:]]*(stringResource\(|unnamed\b|fallback\b)' '' \
+  "${kotlin_feature[@]}"
+# Allow-list: the exercise form and detail view model use the own exercise's name as the edit form's initial text,
+# which is not a displayed fallback.
+scan G16 "ifBlank/orEmpty/elvis on an exercise name (R-54)" \
+  '\b[A-Za-z]*[eE]xercise[A-Za-z]*\??\.name\b[^/]*(\.ifBlank[[:space:]]*\{|\.orEmpty\(\)|\?:)' \
+  '.*/feature/exercises/(ExerciseDetailViewModel|ExerciseFormSheet)\.kt' "${kotlin_feature[@]}"
+scan G16 "exercise id used as a label (R-54)" '\?:[[:space:]]*[A-Za-z.]*[eE]xerciseId\b' '' "${kotlin_feature[@]}"
+
+# G9 / G10 / G16: strings.xml.
 if [ -f "$strings_file" ]; then
   rc=0
   generic='>(Guardar|Cancelar|Cerrar|Eliminar|Listo|Descartar|Reintentar|Editar)</string>'
@@ -213,6 +225,23 @@ if [ -f "$strings_file" ]; then
     exit "$rc"
   fi
   [ "$rc" -eq 0 ] && report G10 "three dots or 'Deshacer' in strings.xml (use the ellipsis character)" "$hits"
+  # G16: generic exercise labels. exercise_detail_title is the screen-kind title shown while the exercise is loading
+  # (no object known yet, R-01), not an exercise name.
+  rc=0
+  hits=$(grep -HnE '>[[:space:]]*(Ejercicio( (sin nombre|sin título|desconocido|sin especificar))?|Sin nombre|Desconocido|Sin título)[[:space:]]*</string>' "$strings_file") || rc=$?
+  if [ "$rc" -ge 2 ]; then
+    echo "UX conventions guard ERROR: grep failed with exit code $rc (G16)." >&2
+    exit "$rc"
+  fi
+  if [ "$rc" -eq 0 ]; then
+    rc=0
+    hits=$(printf '%s\n' "$hits" | grep -v 'name="exercise_detail_title"') || rc=$?
+    if [ "$rc" -ge 2 ]; then
+      echo "UX conventions guard ERROR: grep failed with exit code $rc (G16 filter)." >&2
+      exit "$rc"
+    fi
+    [ "$rc" -eq 0 ] && report G16 "generic exercise label in strings.xml (R-54: resolve the name through ExerciseNameResolver)" "$hits"
+  fi
 fi
 
 if [ "$violations" -gt 0 ]; then
