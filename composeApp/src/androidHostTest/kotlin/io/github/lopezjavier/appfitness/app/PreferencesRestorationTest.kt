@@ -33,9 +33,10 @@ import io.github.lopezjavier.appfitness.domain.model.TrainingPlace
 import io.github.lopezjavier.appfitness.domain.usecase.SavePreferences
 import io.github.lopezjavier.appfitness.feature.food.FakeFoodPreferencesRepository
 import io.github.lopezjavier.appfitness.feature.goals.EnergyStrategyEvent
-import io.github.lopezjavier.appfitness.feature.profile.AccountScreen
 import io.github.lopezjavier.appfitness.feature.profile.AccountUiState
 import io.github.lopezjavier.appfitness.feature.profile.PreferencesEvent
+import io.github.lopezjavier.appfitness.feature.profile.PreferencesHubActions
+import io.github.lopezjavier.appfitness.feature.profile.PreferencesHubScreen
 import io.github.lopezjavier.appfitness.feature.profile.PreferencesSectionRoot
 import io.github.lopezjavier.appfitness.feature.profile.PreferencesUiState
 import io.github.lopezjavier.appfitness.feature.profile.PreferencesViewModel
@@ -256,8 +257,10 @@ class PreferencesRestorationTest {
     @Test
     fun accountSignOutDialog_survivesRecreation() {
         val tester = StateRestorationTester(rule)
-        tester.setContent { AppTheme { AccountScreen(AccountUiState(), {}, {}) } }
-        rule.onNodeWithTag("account_sign_out").performClick()
+        tester.setContent {
+            AppTheme { PreferencesHubScreen({}, PreferencesHubActions(), accountState = AccountUiState()) }
+        }
+        rule.onNodeWithTag("preferences_sign_out").performClick()
         rule.onNodeWithTag("account_sign_out_dialog").assertIsDisplayed()
 
         recreate(tester)
@@ -270,9 +273,15 @@ class PreferencesRestorationTest {
     fun accountDeleteDialog_survivesRecreation() {
         val tester = StateRestorationTester(rule)
         tester.setContent {
-            AppTheme { AccountScreen(AccountUiState(protection = AccountProtection.Unprotected), {}, {}) }
+            AppTheme {
+                PreferencesHubScreen(
+                    {},
+                    PreferencesHubActions(),
+                    accountState = AccountUiState(protection = AccountProtection.Unprotected),
+                )
+            }
         }
-        rule.onNodeWithTag("account_delete").performClick()
+        rule.onNodeWithTag("preferences_delete_account").performClick()
         rule.onNodeWithTag("account_delete_dialog").assertIsDisplayed()
 
         recreate(tester)

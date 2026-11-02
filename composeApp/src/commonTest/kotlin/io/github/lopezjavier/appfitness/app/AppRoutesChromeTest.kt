@@ -79,7 +79,7 @@ class AppRoutesChromeTest {
 
     @Test
     fun thePreferenciasRoutes_haveScreenChrome() {
-        listOf(PreferencesRoute, PreferencesSectionRoute("energy"), AccountRoute).forEach {
+        listOf(PreferencesRoute, PreferencesSectionRoute("energy")).forEach {
             assertEquals(ShellChrome.Screen, it.chrome, it.toString())
         }
     }

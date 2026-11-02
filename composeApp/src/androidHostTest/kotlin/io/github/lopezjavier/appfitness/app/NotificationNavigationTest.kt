@@ -136,14 +136,14 @@ class NotificationNavigationTest {
     }
 
     @Test
-    fun tappingTheWeightReminder_opensThePesoScreenOnTheWeightEntry() {
+    fun tappingTheWeightReminder_opensThePesoScreenWithNoEntryOpen() {
         open(pending = 2)
         tap("diary_action_notifications")
 
         tap("notifications_reminder_weight")
 
         rule.onNodeWithTag("weight_screen").assertIsDisplayed()
-        rule.onNode(androidx.compose.ui.test.hasText("target=Weight")).assertIsDisplayed()
+        rule.onNode(androidx.compose.ui.test.hasText("target=null")).assertIsDisplayed()
     }
 
     @Test

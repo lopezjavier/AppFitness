@@ -5,6 +5,9 @@ import io.github.lopezjavier.appfitness.domain.model.CoachPlan
 import io.github.lopezjavier.appfitness.domain.model.DietBreakApplication
 import io.github.lopezjavier.appfitness.domain.model.GoalStrategy
 import io.github.lopezjavier.appfitness.domain.model.OutcomeKind
+import io.github.lopezjavier.appfitness.domain.model.Phase
+import io.github.lopezjavier.appfitness.domain.model.PhaseOptions
+import io.github.lopezjavier.appfitness.domain.model.PhaseReason
 import io.github.lopezjavier.appfitness.domain.model.PlanActivity
 import io.github.lopezjavier.appfitness.domain.model.PlanLimit
 import io.github.lopezjavier.appfitness.domain.model.PlanNutrition
@@ -24,6 +27,9 @@ internal fun coachPlan(
     limitedBy: PlanLimit? = null,
     editedByUser: Boolean = false,
     activity: PlanActivity? = null,
+    phase: Phase = Phase.Cut,
+    phaseOptions: PhaseOptions = PhaseOptions(),
+    phaseReason: PhaseReason = PhaseReason.Intention,
 ) = CoachPlan(
     id = id,
     blockStart = LocalDate(2026, 10, 19),
@@ -47,6 +53,9 @@ internal fun coachPlan(
         distribution = ProteinDistribution(perMealG = 30, minMeals = 4, gPerKg = 0.4),
         editedByUser = editedByUser,
         activity = activity,
+        phase = phase,
+        phaseReason = phaseReason,
+        phaseOptions = phaseOptions,
     ),
     outcomes = listOfNotNull(
         weightTarget?.let {
@@ -134,6 +143,9 @@ internal class FakeCoachPlanRepository : CoachPlanRepository {
     var optionsResult: Result<CoachPlan>? = null
     val optionsCalls = mutableListOf<Triple<String, Double, Boolean>>()
 
+    /** When set, [updatePlanOptions] suspends until completed. */
+    var optionsGate: CompletableDeferred<Unit>? = null
+
     var dietBreakResult: Result<DietBreakApplication> = Result.success(DietBreakApplication(false, 1, null))
     val dietBreakCalls = mutableListOf<LocalDate>()
 
@@ -144,7 +156,10 @@ internal class FakeCoachPlanRepository : CoachPlanRepository {
         dietBreak: Boolean,
     ): Result<CoachPlan> {
         optionsCalls += Triple(planId, cutRatePct, dietBreak)
-        return optionsResult ?: Result.success(coachPlan(id = planId))
+        optionsGate?.await()
+        return optionsResult ?: Result.success(
+            coachPlan(id = planId, phaseOptions = PhaseOptions(cutRatePct, dietBreak)),
+        )
     }
 
     override suspend fun applyDietBreak(today: LocalDate): Result<DietBreakApplication> {

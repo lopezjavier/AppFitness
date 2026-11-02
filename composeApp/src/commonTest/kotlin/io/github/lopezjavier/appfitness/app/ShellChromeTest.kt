@@ -17,7 +17,6 @@ class ShellChromeTest {
     fun preferencesRoutes_chrome_isScreen_becauseTheyDrawTheirOwnBarThroughAppScreen() {
         assertEquals(ShellChrome.Screen, PreferencesRoute.chrome)
         assertEquals(ShellChrome.Screen, PreferencesSectionRoute("macros").chrome)
-        assertEquals(ShellChrome.Screen, AccountRoute.chrome)
     }
 
     @Test
@@ -45,7 +44,6 @@ class ShellChromeTest {
                 CatalogRoute,
                 PreferencesRoute,
                 PreferencesSectionRoute::class,
-                AccountRoute,
                 ExercisePickerRoute::class,
                 ExerciseDetailRoute::class,
                 RoutineBuilderRoute::class,
@@ -85,7 +83,6 @@ class ShellChromeTest {
             AppDestinations.fullScreenRoutes.map {
                 if (it is CatalogRoute ||
                     it is PreferencesRoute ||
-                    it is AccountRoute ||
                     it is MealSlotsRoute ||
                     it is MealDefaultsRoute ||
                     it is LiveSessionRoute ||

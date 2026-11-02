@@ -115,14 +115,10 @@ internal typealias PreferencesSlot =
         onBack: () -> Unit,
         onOpenSection: (String) -> Unit,
         onOpenMeals: () -> Unit,
-        onOpenAccount: () -> Unit,
     ) -> Unit
 
 /** Content of one Preferencias editor: its modifier (full-screen insets) and how to leave (saved, discarded, back). */
 internal typealias PreferencesSectionSlot = @Composable (modifier: Modifier, onClose: () -> Unit) -> Unit
-
-/** Content of Cuenta: its modifier (full-screen insets) and how to leave. */
-internal typealias AccountSlot = @Composable (modifier: Modifier, onBack: () -> Unit) -> Unit
 
 /**
  * Exercise picker content: modifier, select mode, the two ways forward (open a detail, return a selection) and the
@@ -582,7 +578,7 @@ internal val DefaultExerciseProgressSlot: ExerciseProgressSlot = { modifier, _, 
 }
 
 /** Empty Preferencias for previews and shell tests; the real one is wired by `AppRoot`. */
-internal val DefaultPreferencesSlot: PreferencesSlot = { modifier, onBack, _, _, _ ->
+internal val DefaultPreferencesSlot: PreferencesSlot = { modifier, onBack, _, _ ->
     Box(modifier.fillMaxSize().testTag("preferences_screen")) {
         Box(Modifier.fillMaxSize().clickable(onClick = onBack).testTag("preferences_back"))
     }
@@ -591,11 +587,6 @@ internal val DefaultPreferencesSlot: PreferencesSlot = { modifier, onBack, _, _,
 /** Empty Preferencias editor for previews and shell tests; the real one is wired by `AppRoot`. */
 internal val DefaultPreferencesSectionSlot: PreferencesSectionSlot = { modifier, _ ->
     Box(modifier.fillMaxSize().testTag("preferences_section_screen"))
-}
-
-/** Empty Cuenta for previews and shell tests; the real one is wired by `AppRoot`. */
-internal val DefaultAccountSlot: AccountSlot = { modifier, _ ->
-    Box(modifier.fillMaxSize().testTag("account_screen"))
 }
 
 /** Empty "Actividad" for previews and shell tests; the real one is wired by `AppRoot`. */
@@ -660,7 +651,6 @@ internal fun AppNavHost(
     trainer: TrainerSlot = DefaultTrainerSlot,
     preferences: PreferencesSlot = DefaultPreferencesSlot,
     preferencesSection: PreferencesSectionSlot = DefaultPreferencesSectionSlot,
-    account: AccountSlot = DefaultAccountSlot,
     about: AboutSlot = DefaultAboutSlot,
     coachUsage: CoachUsageSlot = DefaultCoachUsageSlot,
     planProposal: PlanProposalSlot = DefaultPlanProposalSlot,
@@ -914,7 +904,7 @@ internal fun AppNavHost(
                 Modifier.padding(fullScreenPadding),
                 { kind ->
                     when (kind) {
-                        ReminderKind.Weight -> navController.navigateToFullScreen(WeightRoute(WeightEntryTarget.Weight))
+                        ReminderKind.Weight -> navController.navigateToFullScreen(WeightRoute())
 
                         ReminderKind.Circumference ->
                             navController.navigateToFullScreen(WeightRoute(WeightEntryTarget.Circumference))
@@ -940,14 +930,10 @@ internal fun AppNavHost(
                 { navController.popFullScreen(entry) },
                 { key -> navController.navigateToFullScreen(PreferencesSectionRoute(key)) },
                 openMeals,
-                { navController.navigateToFullScreen(AccountRoute) },
             )
         }
         composable<PreferencesSectionRoute> { entry ->
             preferencesSection(Modifier.padding(fullScreenPadding)) { navController.popFullScreen(entry) }
-        }
-        composable<AccountRoute> { entry ->
-            account(Modifier.padding(fullScreenPadding)) { navController.popFullScreen(entry) }
         }
         composable<ExercisePickerRoute> { entry ->
             val selectMode = entry.toRoute<ExercisePickerRoute>().selectMode
@@ -1340,7 +1326,7 @@ internal fun NavController.openCreated(entry: NavBackStackEntry, created: Before
     if (currentBackStackEntry?.id != entry.id) return
     val route: AppRoute = when (created.mode) {
         BeforeStartMode.Plan -> PlanProposalRoute(created.replacingPlanId)
-        BeforeStartMode.Block -> BlockPreviewRoute(created.planId.orEmpty())
+        BeforeStartMode.Block -> BlockPreviewRoute(created.planId.orEmpty(), created.minimal)
     }
     val fromProposal = previousBackStackEntry?.destination?.hasRoute(PlanProposalRoute::class) == true
     navigate(route) {

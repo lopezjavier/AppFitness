@@ -4,6 +4,8 @@ import io.github.lopezjavier.appfitness.domain.model.CalorieChange
 import io.github.lopezjavier.appfitness.domain.model.CoachBlock
 import io.github.lopezjavier.appfitness.domain.model.CoachPlan
 import io.github.lopezjavier.appfitness.domain.model.DeloadProposal
+import io.github.lopezjavier.appfitness.domain.model.Phase
+import io.github.lopezjavier.appfitness.domain.model.PhaseReason
 import io.github.lopezjavier.appfitness.domain.model.PlanWeek
 
 /** The plan entry of the Trainer tab: no plan, a proposal waiting for a decision, or the active plan. */
@@ -46,7 +48,14 @@ sealed interface TrainerUiState {
         val provisionalCount: Int? = null,
         /** The open cardio-minutes sheet of the accepted plan ("Tu plan"); null when closed. */
         val cardioEdit: CardioEdit? = null,
-    ) : TrainerUiState
+    ) : TrainerUiState {
+        private val accepted: CoachPlan? get() = (plan as? PlanSummary.Accepted)?.plan
+
+        /** The accepted plan's phase for the "Tu plan" line; null without an accepted plan. */
+        val planPhase: Phase? get() = accepted?.phase
+
+        val planPhaseReason: PhaseReason? get() = accepted?.nutrition?.phaseReason
+    }
 }
 
 sealed interface TrainerEvent {

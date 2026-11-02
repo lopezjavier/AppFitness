@@ -75,25 +75,21 @@ class PlanActivityScreenTest {
         val strength = activityCardioHelp("strength")
         val recomposition = activityCardioHelp("recomposition")
 
-        assertEquals(4, fat.size)
-        assertEquals(4, strength.size)
-        assertEquals(3, recomposition.size)
+        assertEquals(3, fat.size)
+        assertEquals(3, strength.size)
+        assertEquals(2, recomposition.size)
         assertEquals(fat.last(), strength.last())
         assertEquals(fat.last(), recomposition.last())
         assertEquals(false, fat[1] == strength[1])
     }
 
     @Test
-    fun medicalLine_isTheLastParagraphOfTheCardioHelp() {
+    fun cardioHelp_hasNoMedicalLine() {
         showProposal(proposal())
 
         rule.onNodeWithTag("plan_proposal_activity_cardio_help").performClick()
 
-        rule.onNodeWithText(
-            "Si tienes una enfermedad del corazón, metabólica o renal, o notas síntomas al esforzarte, " +
-                "consulta antes con tu médico.",
-            substring = true,
-        ).assertExists()
+        rule.onNodeWithText("consulta antes con tu médico", substring = true).assertDoesNotExist()
         rule.onNodeWithTag("plan_proposal_activity_cardio_help_sheet_body").assertTextEquals(
             "La OMS recomienda al menos 150 minutos a la semana de actividad moderada para tu salud. " +
                 "Ritmo suave: respiras más fuerte, pero puedes hablar con frases completas.",
@@ -101,8 +97,6 @@ class PlanActivityScreenTest {
                 "la mayor parte de la pérdida viene de tu dieta.",
             "No sumamos calorías por el cardio: los relojes fallan al calcularlas y el cuerpo compensa una parte. " +
                 "Tu plan se ajusta con tu peso real.",
-            "Si tienes una enfermedad del corazón, metabólica o renal, o notas síntomas al esforzarte, " +
-                "consulta antes con tu médico.",
         )
     }
 

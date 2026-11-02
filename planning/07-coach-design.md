@@ -337,6 +337,11 @@ The weekly report shows the weekly average weight and trend against the target r
 ### 12.7 What the user sees (plain Spanish; ux-reviewer finalises within the glossary)
 
 - Provisional value: "Según lo que nos contaste (provisional). Lo cambiaremos por tus datos reales cuando haya suficientes."
+- Phase help (T-188; checked 2026-11-02, abstracts):
+  - Cut: "Comes algo menos de lo que gastas para perder grasa poco a poco, lo que ayuda a conservar el músculo. Puedes elegir el ritmo semanal." [Helms 2014: "bodyweight losses of approximately 0.5 to 1%/wk" to "maximize muscle retention"; *moderate*, natural bodybuilders; the rate choice is §12.3's 0.5-1 %]
+  - Gain: "Comes algo más de lo que gastas para ganar músculo poco a poco, sin sumar grasa de más." [Iraki 2019: "~0.25-0.5% of bodyweight/week", "increase muscle mass without adding unnecessary body fat"; *moderate*, bodybuilders]
+  - Maintenance: "Comes lo que gastas para mantener tu peso y seguir entrenando." (rate 0; *design decision*)
+  - Recomposition: "Comes lo que gastas y entrenas subiendo el peso poco a poco. Así es posible ganar algo de músculo y perder algo de grasa a la vez, también si ya entrenabas." [Barakat 2020: recomposition in "resistance-trained individuals" with "progressive resistance training coupled with evidence-based nutritional strategies"; *moderate*, narrative review: "es posible" and "algo", never a promise]
 - Regain: "Vuelves después de un parón. Al volver, la fuerza y el músculo se recuperan más rápido que la primera vez. Comer por debajo de lo que gastas frena la ganancia de músculo, así que primero recuperamos y luego, si quieres, definimos."
 - Cut length: "Llevas 12 semanas de definición. Te proponemos 4 semanas comiendo lo que gastas antes de seguir."
 - Diet break: "Opcional: la última semana de cada bloque comes lo que gastas. En los estudios se pierde la misma grasa y se pasa menos hambre, pero la definición dura más."

@@ -247,6 +247,54 @@ class BeforeStartViewModelTest {
     }
 
     @Test
+    fun createMinimal_inBlockMode_emitsCreatedMinimal() = runTest(dispatcher) {
+        coach.inputs[PlanInputKind.Block] = Result.success(
+            PlanInputs(PlanInputKind.Block, null, listOf(planInput(PlanInputKey.Place, PlanInputStatus.Provisional))),
+        )
+        val model = viewModel(args("block", planId = "plan-1"))
+        advanceUntilIdle()
+        assertTrue(model.content().canCreateMinimal)
+
+        model.effects.test {
+            model.onEvent(BeforeStartEvent.CreateMinimal)
+            advanceUntilIdle()
+            assertEquals(
+                BeforeStartEffect.Created(BeforeStartMode.Block, "plan-1", null, minimal = true),
+                awaitItem(),
+            )
+        }
+
+        assertEquals(1, coach.confirmCalls.size)
+    }
+
+    @Test
+    fun createMinimal_inPlanMode_isIgnored() = runTest(dispatcher) {
+        givenPlan(completePlan())
+        val model = viewModel()
+        advanceUntilIdle()
+        assertFalse(model.content().canCreateMinimal)
+
+        model.effects.test {
+            model.onEvent(BeforeStartEvent.CreateMinimal)
+            advanceUntilIdle()
+            expectNoEvents()
+        }
+    }
+
+    @Test
+    fun create_inBlockMode_isNotMinimal() = runTest(dispatcher) {
+        coach.inputs[PlanInputKind.Block] = Result.success(PlanInputs(PlanInputKind.Block, null, emptyList()))
+        val model = viewModel(args("block", planId = "plan-1"))
+        advanceUntilIdle()
+
+        model.effects.test {
+            model.onEvent(BeforeStartEvent.Create)
+            advanceUntilIdle()
+            assertFalse(assertIs<BeforeStartEffect.Created>(awaitItem()).minimal)
+        }
+    }
+
+    @Test
     fun confirmFailure_emitsNoNavigation_andKeepsTheScreen() = runTest(dispatcher) {
         givenPlan(completePlan(provisionalActivity))
         coach.confirmResult = { Result.failure<CoachDerivedValues>(AppException(AppError.Unknown)) }

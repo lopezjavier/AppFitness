@@ -57,6 +57,59 @@ class BlockPreviewViewModelTest {
     private fun BlockPreviewViewModel.failure() = assertIs<BlockPreviewUiState.Failed>(uiState.value).kind
 
     @Test
+    fun minimalRouteFlag_isSentWithTheRequest_andShownInThePreview() = runTest(dispatcher) {
+        val model = viewModel(SavedStateHandle(mapOf("minimal" to true)))
+        advanceUntilIdle()
+
+        model.onEvent(BlockPreviewEvent.Request)
+        advanceUntilIdle()
+
+        assertEquals(listOf(true), blocks.minimalRequests)
+        assertTrue(model.preview().minimal)
+    }
+
+    @Test
+    fun withoutTheRouteFlag_theRequestIsNotMinimal() = runTest(dispatcher) {
+        val model = viewModel()
+        advanceUntilIdle()
+
+        model.onEvent(BlockPreviewEvent.Request)
+        advanceUntilIdle()
+
+        assertEquals(listOf(false), blocks.minimalRequests)
+        assertFalse(model.preview().minimal)
+    }
+
+    @Test
+    fun minimalRouteFlag_survivesRetry() = runTest(dispatcher) {
+        blocks.request = Result.failure(AppException(AppError.Unknown))
+        val model = viewModel(SavedStateHandle(mapOf("minimal" to true)))
+        advanceUntilIdle()
+        model.onEvent(BlockPreviewEvent.Request)
+        advanceUntilIdle()
+
+        blocks.request = Result.success(coachBlock())
+        model.onEvent(BlockPreviewEvent.Retry)
+        advanceUntilIdle()
+
+        assertEquals(listOf(true, true), blocks.minimalRequests)
+    }
+
+    @Test
+    fun minimalRouteFlag_survivesRecreationFromTheSameHandle() = runTest(dispatcher) {
+        val saved = SavedStateHandle(mapOf("minimal" to true))
+        viewModel(saved)
+        advanceUntilIdle()
+        val recreated = viewModel(saved)
+        advanceUntilIdle()
+
+        recreated.onEvent(BlockPreviewEvent.Request)
+        advanceUntilIdle()
+
+        assertEquals(listOf(true), blocks.minimalRequests)
+    }
+
+    @Test
     fun withoutAStoredBlock_theScreenStartsIdle_andDoesNotRequest() = runTest(dispatcher) {
         val model = viewModel()
         assertEquals(BlockPreviewUiState.Loading, model.uiState.value)

@@ -65,7 +65,8 @@ class BeforeStartViewModel(
             BeforeStartEvent.OpenSheet -> openSheet()
             is BeforeStartEvent.PickLevel -> pickLevel(event.level)
             BeforeStartEvent.CloseSheet -> setDraft(null)
-            BeforeStartEvent.Create -> create()
+            BeforeStartEvent.Create -> create(minimal = false)
+            BeforeStartEvent.CreateMinimal -> create(minimal = true)
         }
     }
 
@@ -131,10 +132,10 @@ class BeforeStartViewModel(
     }
 
     @Suppress("ReturnCount") // Guards for a missing content or a call in flight.
-    private fun create() {
+    private fun create(minimal: Boolean) {
         val content = _uiState.value as? BeforeStartUiState.Content ?: return
-        if (!content.canCreate) return
-        val created = BeforeStartEffect.Created(mode, planId, replacingPlanId)
+        if (!content.canCreate || (minimal && !content.canCreateMinimal)) return
+        val created = BeforeStartEffect.Created(mode, planId, replacingPlanId, minimal)
         if (!content.hasProvisional) {
             viewModelScope.launch { effectChannel.send(created) }
             return

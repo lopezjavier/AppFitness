@@ -1,9 +1,7 @@
 package io.github.lopezjavier.appfitness.feature.profile
 
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -17,16 +15,13 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.style.TextAlign
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.github.lopezjavier.appfitness.composeapp.resources.Res
 import io.github.lopezjavier.appfitness.composeapp.resources.delete_account_error
 import io.github.lopezjavier.appfitness.composeapp.resources.delete_account_error_offline
-import io.github.lopezjavier.appfitness.composeapp.resources.preferences_account_title
 import io.github.lopezjavier.appfitness.composeapp.resources.profile_account_protected
 import io.github.lopezjavier.appfitness.composeapp.resources.profile_delete_account
 import io.github.lopezjavier.appfitness.composeapp.resources.profile_deleting_account
 import io.github.lopezjavier.appfitness.composeapp.resources.profile_sign_out
-import io.github.lopezjavier.appfitness.designsystem.AppScreen
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
 import io.github.lopezjavier.appfitness.designsystem.GhostButton
 import io.github.lopezjavier.appfitness.designsystem.GhostTone
@@ -34,50 +29,18 @@ import io.github.lopezjavier.appfitness.designsystem.LocalAppMessages
 import io.github.lopezjavier.appfitness.designsystem.Spacing
 import io.github.lopezjavier.appfitness.domain.model.AccountProtection
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.emptyFlow
 import org.jetbrains.compose.resources.stringResource
-import org.koin.compose.viewmodel.koinViewModel
-
-/** Stateful Cuenta: connects [AccountViewModel] to the stateless [AccountScreen]. */
-@Composable
-fun AccountRoot(onBack: () -> Unit, modifier: Modifier = Modifier, viewModel: AccountViewModel = koinViewModel()) {
-    val state by viewModel.uiState.collectAsStateWithLifecycle()
-    AccountScreen(
-        state = state,
-        onEvent = viewModel::onEvent,
-        onBack = onBack,
-        modifier = modifier,
-        effects = viewModel.effects,
-    )
-}
 
 /**
- * Cuenta (Preferencias > "Cuenta", US-56) on [AppScreen]: "Cerrar sesión" and "Borrar cuenta" pinned at the bottom,
- * each behind its own confirmation (R-08). A protected account shows its note under "Borrar cuenta", which also
- * announces it as its state (ADR-57). A failed delete is a message (R-37). The open dialogs survive recreation.
+ * [AccountActions] with their confirmations (R-08) and the delete-failure message (R-37). The open dialogs survive
+ * recreation.
  */
 @Composable
-fun AccountScreen(
-    state: AccountUiState,
-    onEvent: (AccountEvent) -> Unit,
-    onBack: () -> Unit,
-    modifier: Modifier = Modifier,
-    effects: Flow<AccountEffect> = emptyFlow(),
-) {
+internal fun AccountSection(state: AccountUiState, onEvent: (AccountEvent) -> Unit, effects: Flow<AccountEffect>) {
     DeleteFailureMessages(effects)
     var confirmingSignOut by rememberSaveable { mutableStateOf(false) }
     var confirmingDelete by rememberSaveable { mutableStateOf(false) }
-    AppScreen(
-        title = stringResource(Res.string.preferences_account_title),
-        modifier = modifier,
-        onBack = onBack,
-        testTagPrefix = "account",
-        footer = {
-            AccountActions(state, { confirmingSignOut = true }, { confirmingDelete = true })
-        },
-    ) {
-        Box(Modifier.fillMaxSize().testTag("account_screen"))
-    }
+    AccountActions(state, { confirmingSignOut = true }, { confirmingDelete = true })
     if (confirmingSignOut) {
         SignOutDialog(
             onConfirm = {
@@ -98,13 +61,17 @@ fun AccountScreen(
     }
 }
 
+/**
+ * "Cerrar sesión" and "Borrar cuenta" at the end of the Preferencias hub (US-56), not pinned (they are not a primary
+ * action). A protected account shows its note under "Borrar cuenta", which also announces it as its state (ADR-57).
+ */
 @Composable
 private fun AccountActions(state: AccountUiState, onSignOut: () -> Unit, onDelete: () -> Unit) {
     Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(Spacing.md)) {
         GhostButton(
             text = stringResource(Res.string.profile_sign_out),
             onClick = onSignOut,
-            modifier = Modifier.fillMaxWidth().testTag("account_sign_out"),
+            modifier = Modifier.fillMaxWidth().testTag("preferences_sign_out"),
             tone = GhostTone.Neutral,
         )
         val protectedNote = stringResource(Res.string.profile_account_protected)
@@ -116,7 +83,7 @@ private fun AccountActions(state: AccountUiState, onSignOut: () -> Unit, onDelet
             onClick = onDelete,
             modifier = Modifier.fillMaxWidth()
                 .semantics { if (isProtected) stateDescription = protectedNote }
-                .testTag("account_delete"),
+                .testTag("preferences_delete_account"),
             enabled = state.canDelete,
             tone = GhostTone.Destructive,
             loading = state.isDeleting,
@@ -128,7 +95,7 @@ private fun AccountActions(state: AccountUiState, onSignOut: () -> Unit, onDelet
                 style = AppTheme.typography.bodySmall,
                 color = AppTheme.colors.textSecondary,
                 textAlign = TextAlign.Center,
-                modifier = Modifier.fillMaxWidth().testTag("account_delete_protected_note"),
+                modifier = Modifier.fillMaxWidth().testTag("preferences_delete_protected_note"),
             )
         }
     }
@@ -136,7 +103,7 @@ private fun AccountActions(state: AccountUiState, onSignOut: () -> Unit, onDelet
 
 /** A failed account deletion is one message (R-28, R-37) through the shell's queue; the session is kept. */
 @Composable
-private fun DeleteFailureMessages(effects: Flow<AccountEffect>) {
+internal fun DeleteFailureMessages(effects: Flow<AccountEffect>) {
     val messages = LocalAppMessages.current
     val failed = stringResource(Res.string.delete_account_error)
     val offline = stringResource(Res.string.delete_account_error_offline)
