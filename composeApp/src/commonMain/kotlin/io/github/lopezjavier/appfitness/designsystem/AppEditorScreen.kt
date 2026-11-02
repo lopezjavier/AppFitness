@@ -30,6 +30,15 @@ import org.jetbrains.compose.resources.stringResource
 @Immutable
 data class EditorDestructiveAction(val label: String, val enabled: Boolean = true, val onClick: () -> Unit)
 
+/** The optional non-destructive button of an [AppEditorScreen] (for example "Ahora no"), under "Guardar". */
+@Immutable
+data class EditorSecondaryAction(
+    val label: String,
+    val testTag: String,
+    val enabled: Boolean = true,
+    val onClick: () -> Unit,
+)
+
 /** Child tags of an [AppEditorScreen] with a given prefix. */
 object AppEditorScreenDefaults {
     fun saveTag(prefix: String): String = "${prefix}_save"
@@ -50,6 +59,8 @@ object AppEditorScreenDefaults {
  *  - Back (the bar's arrow and the system back) leaves silently when clean; when dirty it asks "¿Descartar los
  *    cambios?" ([Descartar] / [Seguir editando]). The dialog survives recreation.
  *  - When [saved] turns true the editor closes exactly once and vibrates one Confirm.
+ * [secondaryAction] adds a ghost button under "Guardar" (for example "Ahora no"); [footerNotice] shows a message
+ * above "Guardar" so a save error is visible without scrolling.
  * [canSave] false (an invalid draft) keeps "Guardar" disabled even while dirty. [handleSystemBack] false leaves the
  * system back to the host (a sample embedded in a larger screen).
  * The caller owns the state: this template renders it and reports events ([onSave], [onClose]).
@@ -72,6 +83,8 @@ fun AppEditorScreen(
     canSave: Boolean = true,
     handleSystemBack: Boolean = true,
     destructiveAction: EditorDestructiveAction? = null,
+    secondaryAction: EditorSecondaryAction? = null,
+    footerNotice: (@Composable () -> Unit)? = null,
     actions: List<AppTopBarAction> = emptyList(),
     maxContentWidth: Dp = WindowWidthClassDefaults.FormContentMaxWidth,
     testTagPrefix: String = AppScreenDefaults.TestTag,
@@ -113,6 +126,8 @@ fun AppEditorScreen(
                 isOnline = isOnline,
                 onSave = onSave,
                 destructiveAction = destructiveAction,
+                secondaryAction = secondaryAction,
+                notice = footerNotice,
                 testTagPrefix = testTagPrefix,
             )
         },
@@ -144,10 +159,13 @@ private fun EditorFooter(
     isOnline: Boolean,
     onSave: () -> Unit,
     destructiveAction: EditorDestructiveAction?,
+    secondaryAction: EditorSecondaryAction?,
+    notice: (@Composable () -> Unit)?,
     testTagPrefix: String,
 ) {
     val haptics = LocalAppHaptics.current
     Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+        notice?.invoke()
         Box {
             PrimaryButton(
                 text = stringResource(Res.string.action_save),
@@ -162,6 +180,14 @@ private fun EditorFooter(
             }
         }
         if (!isOnline) OfflineHint(action = stringResource(Res.string.action_save).lowercase())
+        if (secondaryAction != null) {
+            GhostButton(
+                text = secondaryAction.label,
+                onClick = secondaryAction.onClick,
+                modifier = Modifier.fillMaxWidth().testTag(secondaryAction.testTag),
+                enabled = secondaryAction.enabled,
+            )
+        }
         if (destructiveAction != null) {
             GhostButton(
                 text = destructiveAction.label,

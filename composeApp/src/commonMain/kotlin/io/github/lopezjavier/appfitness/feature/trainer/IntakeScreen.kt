@@ -31,6 +31,7 @@ import io.github.lopezjavier.appfitness.composeapp.resources.intake_best_unknown
 import io.github.lopezjavier.appfitness.composeapp.resources.intake_extract
 import io.github.lopezjavier.appfitness.composeapp.resources.intake_extract_failed
 import io.github.lopezjavier.appfitness.composeapp.resources.intake_extract_offline
+import io.github.lopezjavier.appfitness.composeapp.resources.intake_extract_offline_action
 import io.github.lopezjavier.appfitness.composeapp.resources.intake_extracting
 import io.github.lopezjavier.appfitness.composeapp.resources.intake_free_text_counter
 import io.github.lopezjavier.appfitness.composeapp.resources.intake_free_text_label
@@ -43,8 +44,8 @@ import io.github.lopezjavier.appfitness.designsystem.AppScreen
 import io.github.lopezjavier.appfitness.designsystem.AppStateAction
 import io.github.lopezjavier.appfitness.designsystem.AppTextField
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
+import io.github.lopezjavier.appfitness.designsystem.EditorSecondaryAction
 import io.github.lopezjavier.appfitness.designsystem.ErrorState
-import io.github.lopezjavier.appfitness.designsystem.GhostButton
 import io.github.lopezjavier.appfitness.designsystem.InlineNote
 import io.github.lopezjavier.appfitness.designsystem.LocalAppHaptics
 import io.github.lopezjavier.appfitness.designsystem.OfflineHint
@@ -53,7 +54,6 @@ import io.github.lopezjavier.appfitness.designsystem.SecondaryButton
 import io.github.lopezjavier.appfitness.designsystem.SkeletonBox
 import io.github.lopezjavier.appfitness.designsystem.Spacing
 import io.github.lopezjavier.appfitness.designsystem.StreamProgressState
-import io.github.lopezjavier.appfitness.designsystem.offlineHint
 import io.github.lopezjavier.appfitness.domain.model.PreBreakBest
 import io.github.lopezjavier.appfitness.domain.port.ConnectivityObserver
 import io.github.lopezjavier.appfitness.domain.repository.ExerciseRepository
@@ -143,6 +143,7 @@ fun IntakeScreen(
             latestConsume()
         }
     }
+    val saving = state.phase == IntakePhase.Saving
     val haptics = LocalAppHaptics.current
     LaunchedEffect(state.notice) {
         if (state.notice == IntakeNotice.SaveFailed || state.notice == IntakeNotice.SaveOffline) haptics.reject()
@@ -150,13 +151,24 @@ fun IntakeScreen(
     AppEditorScreen(
         title = stringResource(Res.string.intake_title),
         isDirty = state.dirty,
-        isSaving = state.phase == IntakePhase.Saving,
+        isSaving = saving,
         isOnline = isOnline,
         onSave = { onEvent(IntakeEvent.Save) },
         onClose = onClose,
         modifier = modifier,
         saved = saved,
         canSave = state.canSave,
+        secondaryAction = if (showSkip) {
+            EditorSecondaryAction(
+                label = stringResource(Res.string.intake_skip),
+                testTag = "intake_skip",
+                enabled = !saving,
+                onClick = { onEvent(IntakeEvent.Skip) },
+            )
+        } else {
+            null
+        },
+        footerNotice = { SaveNotice(state.notice) },
         testTagPrefix = "intake",
     ) {
         Column(
@@ -167,22 +179,14 @@ fun IntakeScreen(
                 .testTag("intake_screen"),
             verticalArrangement = Arrangement.spacedBy(Spacing.blockGap),
         ) {
-            FreeTextBlock(state, isOnline, onEvent)
+            FreeTextBlock(state, isOnline, !saving, onEvent)
             if (state.phase == IntakePhase.Extracting) {
                 val message = stringResource(Res.string.intake_extracting)
                 Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
                     StreamProgressState(message = message, stateDescription = message, testTag = "intake_progress")
                 }
             } else {
-                IntakeFields(state, exerciseNames, onEvent, onAddBest) { sheetExerciseId = it }
-            }
-            SaveNotice(state.notice)
-            if (showSkip) {
-                GhostButton(
-                    text = stringResource(Res.string.intake_skip),
-                    onClick = { onEvent(IntakeEvent.Skip) },
-                    modifier = Modifier.fillMaxWidth().testTag("intake_skip"),
-                )
+                IntakeFields(state, exerciseNames, !saving, onEvent, onAddBest) { sheetExerciseId = it }
             }
         }
     }
@@ -217,22 +221,40 @@ private fun BestSheetHost(
 private fun IntakeFields(
     state: IntakeUiState.Content,
     names: Map<String, String>,
+    enabled: Boolean,
     onEvent: (IntakeEvent) -> Unit,
     onAddBest: () -> Unit,
     onEditBest: (String) -> Unit,
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(Spacing.blockGap)) {
-        YearsField(state.form.years, state.extracted) { onEvent(IntakeEvent.EditYears(it)) }
-        SituationField(state.form.situation, state.extracted, state.picker == IntakePicker.Situation, onEvent)
-        InjuredAreaField(state.form.injuredArea, state.extracted, state.picker == IntakePicker.InjuredArea, onEvent)
-        BestsField(state, names, onEvent, onAddBest, onEditBest)
-        KnownCaloriesFields(state, onEvent)
+        YearsField(state.form.years, state.extracted, enabled) { onEvent(IntakeEvent.EditYears(it)) }
+        SituationField(
+            state.form.situation,
+            state.extracted,
+            state.picker == IntakePicker.Situation,
+            enabled,
+            onEvent,
+        )
+        InjuredAreaField(
+            state.form.injuredArea,
+            state.extracted,
+            state.picker == IntakePicker.InjuredArea,
+            enabled,
+            onEvent,
+        )
+        BestsField(state, names, enabled, onEvent, onAddBest, onEditBest)
+        KnownCaloriesFields(state, enabled, onEvent)
     }
 }
 
 /** The free text, its counter, "Rellenar con mi texto" and the message of a refused or failed extraction. */
 @Composable
-private fun FreeTextBlock(state: IntakeUiState.Content, online: Boolean, onEvent: (IntakeEvent) -> Unit) {
+private fun FreeTextBlock(
+    state: IntakeUiState.Content,
+    online: Boolean,
+    enabled: Boolean,
+    onEvent: (IntakeEvent) -> Unit,
+) {
     Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
         AppTextField(
             value = state.form.freeText,
@@ -243,6 +265,7 @@ private fun FreeTextBlock(state: IntakeUiState.Content, online: Boolean, onEvent
             imeAction = ImeAction.Default,
             singleLine = false,
             minLines = FREE_TEXT_MIN_LINES,
+            enabled = enabled,
         )
         Text(
             text = stringResource(
@@ -259,16 +282,19 @@ private fun FreeTextBlock(state: IntakeUiState.Content, online: Boolean, onEvent
             text = stringResource(Res.string.intake_extract),
             onClick = { onEvent(IntakeEvent.Extract) },
             modifier = Modifier.fillMaxWidth().testTag("intake_continue"),
-            enabled = state.canExtract && online,
+            enabled = state.canExtract && online && enabled,
         )
-        if (!online) OfflineHint(action = "leer tu texto")
+        if (!online) OfflineHint(action = stringResource(Res.string.intake_extract_offline_action))
         when (val notice = state.notice) {
             is IntakeNotice.Limit -> CoachLimitMessage(notice.failure, testTag = "intake_limit_message")
 
-            IntakeNotice.ExtractOffline -> InlineNote(
-                text = stringResource(Res.string.intake_extract_offline),
-                testTag = "intake_limit_message",
-            )
+            // Offline the hint above already says it: one offline message only (R-32).
+            IntakeNotice.ExtractOffline -> if (online) {
+                InlineNote(
+                    text = stringResource(Res.string.intake_extract_offline),
+                    testTag = "intake_limit_message",
+                )
+            }
 
             IntakeNotice.ExtractFailed -> InlineNote(
                 text = stringResource(Res.string.intake_extract_failed),
@@ -288,11 +314,7 @@ private fun SaveNotice(notice: IntakeNotice?) {
             testTag = "intake_save_error",
         )
 
-        IntakeNotice.SaveOffline -> InlineNote(
-            text = offlineHint("guardar") + ".",
-            testTag = "intake_save_error",
-        )
-
+        // Offline the pinned "Guardar" already carries the hint: one offline message only (R-32).
         else -> Unit
     }
 }

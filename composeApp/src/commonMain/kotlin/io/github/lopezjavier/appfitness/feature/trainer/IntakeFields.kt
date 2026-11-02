@@ -16,8 +16,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.semantics.stateDescription
 import io.github.lopezjavier.appfitness.composeapp.resources.Res
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_info
 import io.github.lopezjavier.appfitness.composeapp.resources.intake_area_label
@@ -96,7 +94,7 @@ private const val FIRST_YEARS = 1.0
 
 /** "Sin indicar" is the lowest step of the stepper: the coach never guesses (R-47). */
 @Composable
-internal fun YearsField(years: Double?, extracted: Set<IntakeField>, onChange: (Double?) -> Unit) {
+internal fun YearsField(years: Double?, extracted: Set<IntakeField>, enabled: Boolean, onChange: (Double?) -> Unit) {
     val haptics = LocalAppHaptics.current
     val unset = stringResource(Res.string.intake_unset)
     val text = years?.let { yearsText(it) } ?: unset
@@ -122,8 +120,8 @@ internal fun YearsField(years: Double?, extracted: Set<IntakeField>, onChange: (
                     haptics.tick()
                     onChange(nextYears(years))
                 },
-                decrementEnabled = years != null,
-                incrementEnabled = years == null || years < IntakeLimits.MAX_YEARS,
+                decrementEnabled = enabled && years != null,
+                incrementEnabled = enabled && (years == null || years < IntakeLimits.MAX_YEARS),
                 decrementContentDescription = stringResource(Res.string.intake_years_less),
                 incrementContentDescription = stringResource(Res.string.intake_years_more),
                 stateDescription = text,
@@ -148,6 +146,7 @@ internal fun SituationField(
     situation: Situation?,
     extracted: Set<IntakeField>,
     pickerOpen: Boolean,
+    enabled: Boolean,
     onEvent: (IntakeEvent) -> Unit,
 ) {
     val unset = stringResource(Res.string.intake_unset)
@@ -157,6 +156,7 @@ internal fun SituationField(
             value = situation?.let { stringResource(it.intakeLabel()) } ?: unset,
             onClick = { onEvent(IntakeEvent.OpenPicker(IntakePicker.Situation)) },
             modifier = Modifier.testTag("intake_situation"),
+            enabled = enabled,
         )
         ExtractedMarker(IntakeField.Situation, extracted)
     }
@@ -181,6 +181,7 @@ internal fun InjuredAreaField(
     area: InjuredArea?,
     extracted: Set<IntakeField>,
     pickerOpen: Boolean,
+    enabled: Boolean,
     onEvent: (IntakeEvent) -> Unit,
 ) {
     val unset = stringResource(Res.string.intake_unset)
@@ -190,6 +191,7 @@ internal fun InjuredAreaField(
             value = area?.let { stringResource(it.intakeLabel()) } ?: unset,
             onClick = { onEvent(IntakeEvent.OpenPicker(IntakePicker.InjuredArea)) },
             modifier = Modifier.testTag("intake_injured_area"),
+            enabled = enabled,
         )
         ExtractedMarker(IntakeField.InjuredArea, extracted)
     }
@@ -214,6 +216,7 @@ internal fun InjuredAreaField(
 internal fun BestsField(
     state: IntakeUiState.Content,
     names: Map<String, String>,
+    enabled: Boolean,
     onEvent: (IntakeEvent) -> Unit,
     onAdd: () -> Unit,
     onEdit: (String) -> Unit,
@@ -231,7 +234,7 @@ internal fun BestsField(
             val name = names[best.exerciseId] ?: unknown
             SwipeToDeleteRow(
                 deleteLabel = "${stringResource(Res.string.intake_best_remove)} $name",
-                enabled = true,
+                enabled = enabled,
                 onDelete = { onEvent(IntakeEvent.RemoveBest(best.exerciseId)) },
                 backgroundTag = "intake_best_remove_${best.exerciseId}",
                 label = stringResource(Res.string.intake_best_remove),
@@ -243,7 +246,7 @@ internal fun BestsField(
                         AppNumberFormat.decimal(best.weightKg, maxDecimals = MAX_WEIGHT_DECIMALS),
                         best.reps,
                     ),
-                    onOpen = { onEdit(best.exerciseId) },
+                    onOpen = { if (enabled) onEdit(best.exerciseId) },
                     tagPrefix = "intake_best_row_${best.exerciseId}",
                 )
             }
@@ -252,7 +255,7 @@ internal fun BestsField(
             objectLabel = stringResource(Res.string.intake_best_object),
             onClick = onAdd,
             modifier = Modifier.testTag("intake_add_best"),
-            enabled = state.canAddBest,
+            enabled = enabled && state.canAddBest,
         )
     }
 }
@@ -305,7 +308,7 @@ internal fun BestSheet(
 
 /** The two optional calorie figures ("Si las conoces"); the cutting one is context only. */
 @Composable
-internal fun KnownCaloriesFields(state: IntakeUiState.Content, onEvent: (IntakeEvent) -> Unit) {
+internal fun KnownCaloriesFields(state: IntakeUiState.Content, enabled: Boolean, onEvent: (IntakeEvent) -> Unit) {
     Column(verticalArrangement = Arrangement.spacedBy(Spacing.md)) {
         ListSectionHeader(stringResource(Res.string.intake_known_title))
         KcalField(
@@ -314,6 +317,7 @@ internal fun KnownCaloriesFields(state: IntakeUiState.Content, onEvent: (IntakeE
             invalid = IntakeField.Maintenance in state.form.errors,
             tag = "intake_maintenance_kcal",
             helper = null,
+            enabled = enabled,
         ) { onEvent(IntakeEvent.EditMaintenance(it)) }
         ExtractedMarker(IntakeField.Maintenance, state.extracted)
         KcalField(
@@ -322,6 +326,7 @@ internal fun KnownCaloriesFields(state: IntakeUiState.Content, onEvent: (IntakeE
             invalid = IntakeField.CutKcal in state.form.errors,
             tag = "intake_cut_kcal",
             helper = stringResource(Res.string.intake_cut_helper),
+            enabled = enabled,
         ) { onEvent(IntakeEvent.EditCutKcal(it)) }
         ExtractedMarker(IntakeField.CutKcal, state.extracted)
     }
@@ -335,6 +340,7 @@ private fun KcalField(
     invalid: Boolean,
     tag: String,
     helper: String?,
+    enabled: Boolean,
     onChange: (Int?) -> Unit,
 ) {
     // Local text so the cursor never jumps; an outside change (the extraction) rebuilds it.
@@ -347,9 +353,8 @@ private fun KcalField(
                 onChange(it.toIntOrNull())
             },
             label = label,
-            modifier = Modifier.fillMaxWidth().testTag(tag).semantics {
-                if (helper != null) stateDescription = helper
-            },
+            modifier = Modifier.fillMaxWidth().testTag(tag),
+            readOnly = !enabled,
             maxIntegerDigits = MAX_KCAL_DIGITS,
             errorText = if (invalid) stringResource(Res.string.intake_kcal_range) else null,
             errorTestTag = "${tag}_error",

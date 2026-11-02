@@ -4,6 +4,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.test.assertCountEquals
+import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.assertTextEquals
@@ -113,6 +114,14 @@ class IntakeScreenTest {
         rule.onNodeWithTag("intake_free_text_counter").assertTextEquals("0/500")
         rule.onNodeWithTag("intake_years_value").assertTextEquals("Sin indicar")
         rule.onNodeWithTag("intake_skip").assertDoesNotExist()
+    }
+
+    @Test
+    fun skip_isPinnedBesideSave_withoutScrolling() {
+        show(first = true)
+
+        rule.onNodeWithTag("intake_skip").assertIsDisplayed()
+        rule.onNodeWithTag("intake_save").assertIsDisplayed()
     }
 
     @Test

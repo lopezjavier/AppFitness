@@ -1994,6 +1994,7 @@
     <string name="intake_skip">Ahora no</string>
     <string name="intake_save_failed">No se pudo guardar. Inténtalo de nuevo.</string>
     <string name="intake_extract_offline">Sin conexión: no se puede leer tu texto.</string>
+    <string name="intake_extract_offline_action">leer tu texto</string>
     <string name="intake_extract_failed">No hemos podido leer tu texto. Puedes rellenar los campos a mano.</string>
     <string name="intake_load_error">No se pudo cargar. Inténtalo de nuevo.</string>
     <string name="free_text_title">Lo que el entrenador sabe de ti</string>
