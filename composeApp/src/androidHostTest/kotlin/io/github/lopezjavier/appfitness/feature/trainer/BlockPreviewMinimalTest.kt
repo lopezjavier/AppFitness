@@ -40,7 +40,7 @@ class BlockPreviewMinimalTest {
         rule.onNodeWithTag("block_preview_minimal_note").assertExists()
         rule.onNodeWithText("Mínimo").assertExists()
         rule.onNodeWithText(
-            "Para épocas con poco tiempo: una sesión a la semana y una serie por ejercicio, con el mismo peso. " +
+            "Para épocas con poco tiempo: un entreno a la semana y una serie por ejercicio, con el mismo peso. " +
                 "Así se mantienen la fuerza y el músculo durante meses.",
         ).assertExists()
     }

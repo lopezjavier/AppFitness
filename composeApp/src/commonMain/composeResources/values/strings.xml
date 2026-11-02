@@ -1880,7 +1880,7 @@
     <string name="phase_help_maintenance">Comes lo que gastas para mantener tu peso y seguir entrenando.</string>
     <string name="phase_help_recomposition">Comes lo que gastas y entrenas subiendo el peso poco a poco. Así es posible ganar algo de músculo y perder algo de grasa a la vez, también si ya entrenabas.</string>
     <string name="phase_help_regain">Vuelves después de un parón. Al volver, la fuerza y el músculo se recuperan más rápido que la primera vez. Comer por debajo de lo que gastas frena la ganancia de músculo, así que primero recuperamos y luego, si quieres, definimos.</string>
-    <string name="phase_help_minimal">Para épocas con poco tiempo: una sesión a la semana y una serie por ejercicio, con el mismo peso. Así se mantienen la fuerza y el músculo durante meses.</string>
+    <string name="phase_help_minimal">Para épocas con poco tiempo: un entreno a la semana y una serie por ejercicio, con el mismo peso. Así se mantienen la fuerza y el músculo durante meses.</string>
     <string name="trainer_plan_phase_line">%1$s · %2$s</string>
     <string name="phase_help_cd">Ayuda: fase del plan</string>
     <string name="plan_proposal_cut_rate_label">Ritmo</string>

@@ -345,7 +345,7 @@ The weekly report shows the weekly average weight and trend against the target r
 - Regain: "Vuelves después de un parón. Al volver, la fuerza y el músculo se recuperan más rápido que la primera vez. Comer por debajo de lo que gastas frena la ganancia de músculo, así que primero recuperamos y luego, si quieres, definimos."
 - Cut length: "Llevas 12 semanas de definición. Te proponemos 4 semanas comiendo lo que gastas antes de seguir."
 - Diet break: "Opcional: la última semana de cada bloque comes lo que gastas. En los estudios se pierde la misma grasa y se pasa menos hambre, pero la definición dura más."
-- Minimal: "Para épocas con poco tiempo: una sesión a la semana y una serie por ejercicio, con el mismo peso. Así se mantienen la fuerza y el músculo durante meses."
+- Minimal: "Para épocas con poco tiempo: un entreno a la semana y una serie por ejercicio, con el mismo peso. Así se mantienen la fuerza y el músculo durante meses."
 - Phase proposal: the reason in one sentence from the user's own data, then "Aceptar" / "Seguir como estoy".
 
 - Automatic calorie change: "Bajamos 150 kcal: llevas 2 semanas perdiendo menos de lo previsto." with "Deshacer".
