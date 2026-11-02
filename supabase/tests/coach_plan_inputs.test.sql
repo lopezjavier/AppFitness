@@ -3,7 +3,7 @@ begin;
 create extension if not exists pgtap with schema extensions;
 set local search_path = extensions, public;
 
-select plan(65);
+select plan(69);
 
 -- ---------------------------------------------------------------------------
 -- Fixture helpers (run as the migration owner; today is the UTC date, inside the RPC window)
@@ -137,17 +137,17 @@ select throws_ok(format($$select public.coach_plan_inputs('block', %L)$$, (now()
 -- Plan: complete user
 -- ---------------------------------------------------------------------------
 select is(pg_temp.keys(pg_temp.inp(1, 'plan')),
-  array['intention', 'sex', 'age', 'height', 'weight', 'activity_level', 'total_expenditure', 'weight_trend', 'diary'],
-  'plan lists its nine inputs in display order');
+  array['intention', 'sex', 'age', 'height', 'weight', 'activity_level', 'total_expenditure', 'weight_trend', 'diary', 'intake'],
+  'plan lists its ten inputs in display order');
 select is(pg_temp.inp(1, 'plan')->>'kind', 'plan', 'the kind is echoed');
 select is(pg_temp.inp(1, 'plan')->>'as_of', pg_temp.d0()::text, 'as_of is p_today');
 select ok(not (pg_temp.inp(1, 'plan') ? 'current_plan'), 'current_plan is absent when the user has no plan');
 select is(pg_temp.col(pg_temp.inp(1, 'plan'), 'status'),
-  array['ok', 'ok', 'ok', 'ok', 'ok', 'provisional', 'provisional', 'provisional', 'provisional'],
+  array['ok', 'ok', 'ok', 'ok', 'ok', 'provisional', 'provisional', 'provisional', 'provisional', 'unset_optional'],
   'a complete profile is ok, unconfirmed estimates are provisional');
 select is(pg_temp.col(pg_temp.inp(1, 'plan'), 'source'),
   array['my_training', 'profile', 'profile', 'profile', 'weigh_in', 'coach_estimate', 'coach_estimate',
-        'coach_estimate', 'coach_estimate'],
+        'coach_estimate', 'coach_estimate', 'intake'],
   'each input names its source');
 select is(array_position(pg_temp.col(pg_temp.inp(1, 'plan'), 'blocking'), 'true'), null, 'nothing blocks a complete profile');
 select is(pg_temp.ent(pg_temp.inp(1, 'plan'), 'intention')->>'value', 'fat_loss', 'the intention value is returned');
@@ -235,6 +235,15 @@ select ok(not (pg_temp.inp(1, 'plan') ? 'current_plan'), 'another user''s plans 
 -- ---------------------------------------------------------------------------
 select is(pg_temp.st(pg_temp.inp(2, 'plan'), 'weight'), 'missing/true/weight', 'another user''s weigh-ins never appear');
 select is(pg_temp.ent(pg_temp.inp(2, 'plan'), 'intention')->'value', 'null'::jsonb, 'another user''s intention never appears');
+
+-- T-185: the optional "intake" entry never blocks.
+select is(pg_temp.st(pg_temp.inp(1, 'plan'), 'intake'), 'unset_optional/false/intake', 'without an intake the entry is optional and never blocking');
+select is(pg_temp.ent(pg_temp.inp(1, 'plan'), 'intake')->'value', 'null'::jsonb, 'and carries no value');
+select set_config('request.jwt.claims', json_build_object('sub', pg_temp.u(2), 'role', 'authenticated')::text, true);
+insert into public.coach_user_intake (situation) values ('continuous');
+select is(pg_temp.st(pg_temp.inp(2, 'plan'), 'intake'), 'ok/false/intake', 'a saved intake makes the entry ok, still never blocking');
+select is(pg_temp.ent(pg_temp.inp(2, 'plan'), 'intake')->'value', '{"saved": true, "situation": "continuous"}'::jsonb,
+  'the entry carries the saved flag and the situation');
 
 select set_config('request.jwt.claims', json_build_object('sub', pg_temp.u(15), 'role', 'authenticated')::text, true);
 create temp table before_counts as

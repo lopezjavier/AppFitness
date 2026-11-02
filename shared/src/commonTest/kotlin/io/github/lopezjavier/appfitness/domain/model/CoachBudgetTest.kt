@@ -20,17 +20,17 @@ class CoachBudgetTest {
     }
 
     @Test
-    fun fraction_isShareOfTheLimit() = assertEquals(0.21f, usage(0.42).fraction)
+    fun fraction_isShareOfTheLimit() = assertEquals(0.14f, usage(0.42).fraction)
 
     @Test
-    fun belowTheLimit_isNotReached() = assertFalse(usage(1.99).limitReached)
+    fun belowTheLimit_isNotReached() = assertFalse(usage(2.99).limitReached)
 
     @Test
     fun atTheLimit_isReached() {
-        assertTrue(usage(2.0).limitReached)
-        assertEquals(1f, usage(2.0).fraction)
+        assertTrue(usage(3.0).limitReached)
+        assertEquals(1f, usage(3.0).fraction)
     }
 
     @Test
-    fun overTheLimit_fractionIsClamped() = assertEquals(1f, usage(3.5).fraction)
+    fun overTheLimit_fractionIsClamped() = assertEquals(1f, usage(4.5).fraction)
 }

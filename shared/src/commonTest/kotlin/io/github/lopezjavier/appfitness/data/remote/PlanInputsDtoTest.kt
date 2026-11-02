@@ -176,6 +176,30 @@ class PlanInputsDtoTest {
     }
 
     @Test
+    fun intakeEntry_withObjectValueAndIntakeScreen_isToleratedAndNeverBlocking() {
+        val result = decode(
+            list(
+                entry(
+                    key = "intake",
+                    value = """{"saved":true,"situation":"continuous"}""",
+                    source = "intake",
+                    status = "ok",
+                    fix = "\"intake\"",
+                ),
+                entry(key = "sex"),
+            ),
+        )
+
+        val input = result.inputs.first()
+        assertEquals(PlanInputKey.Unknown, input.key)
+        assertEquals(PlanInputValue.Absent, input.value)
+        assertEquals(PlanInputStatus.Ok, input.status)
+        assertNull(input.fixTarget)
+        assertEquals(false, input.blocking)
+        assertEquals(PlanInputKey.Sex, result.inputs.last().key)
+    }
+
+    @Test
     fun params_encodeKindAndToday() {
         val plan = PlanInputsParams.of(PlanInputKind.Plan, LocalDate(2026, 10, 29))
         val block = PlanInputsParams.of(PlanInputKind.Block, LocalDate(2026, 10, 29))

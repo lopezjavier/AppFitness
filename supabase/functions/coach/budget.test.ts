@@ -1,16 +1,16 @@
 import { assertEquals } from "jsr:@std/assert@1.0.19";
 import { checkBudget, monthKey } from "./budget.ts";
 
-Deno.test("under the user limit is ok", () => {
-    assertEquals(checkBudget(1.999999, 0), { ok: true });
+Deno.test("2,99 EUR spent is still under the 3 EUR user limit", () => {
+    assertEquals(checkBudget(2.99, 0), { ok: true });
 });
 
-Deno.test("exactly the user limit is refused with scope user", () => {
-    assertEquals(checkBudget(2, 2), { ok: false, scope: "user" });
+Deno.test("exactly 3,00 EUR is refused with scope user", () => {
+    assertEquals(checkBudget(3, 3), { ok: false, scope: "user" });
 });
 
 Deno.test("over the user limit is refused with scope user", () => {
-    assertEquals(checkBudget(2.5, 3), { ok: false, scope: "user" });
+    assertEquals(checkBudget(3.5, 3), { ok: false, scope: "user" });
 });
 
 Deno.test("under the global limit is ok", () => {

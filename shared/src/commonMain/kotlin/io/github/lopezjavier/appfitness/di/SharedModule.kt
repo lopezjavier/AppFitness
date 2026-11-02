@@ -16,6 +16,7 @@ import io.github.lopezjavier.appfitness.data.repository.SupabaseAuthRepository
 import io.github.lopezjavier.appfitness.data.repository.SupabaseBodyMeasurementRepository
 import io.github.lopezjavier.appfitness.data.repository.SupabaseCircumferenceRepository
 import io.github.lopezjavier.appfitness.data.repository.SupabaseCoachBlockRepository
+import io.github.lopezjavier.appfitness.data.repository.SupabaseCoachIntakeRepository
 import io.github.lopezjavier.appfitness.data.repository.SupabaseCoachPlanRepository
 import io.github.lopezjavier.appfitness.data.repository.SupabaseCoachRepository
 import io.github.lopezjavier.appfitness.data.repository.SupabaseCoachUsageRepository
@@ -47,6 +48,7 @@ import io.github.lopezjavier.appfitness.data.repository.UnconfiguredAuthReposito
 import io.github.lopezjavier.appfitness.data.repository.UnconfiguredBodyMeasurementRepository
 import io.github.lopezjavier.appfitness.data.repository.UnconfiguredCircumferenceRepository
 import io.github.lopezjavier.appfitness.data.repository.UnconfiguredCoachBlockRepository
+import io.github.lopezjavier.appfitness.data.repository.UnconfiguredCoachIntakeRepository
 import io.github.lopezjavier.appfitness.data.repository.UnconfiguredCoachPlanRepository
 import io.github.lopezjavier.appfitness.data.repository.UnconfiguredCoachRepository
 import io.github.lopezjavier.appfitness.data.repository.UnconfiguredCoachUsageRepository
@@ -82,6 +84,7 @@ import io.github.lopezjavier.appfitness.domain.repository.AuthRepository
 import io.github.lopezjavier.appfitness.domain.repository.BodyMeasurementRepository
 import io.github.lopezjavier.appfitness.domain.repository.CircumferenceRepository
 import io.github.lopezjavier.appfitness.domain.repository.CoachBlockRepository
+import io.github.lopezjavier.appfitness.domain.repository.CoachIntakeRepository
 import io.github.lopezjavier.appfitness.domain.repository.CoachPlanRepository
 import io.github.lopezjavier.appfitness.domain.repository.CoachRepository
 import io.github.lopezjavier.appfitness.domain.repository.CoachUsageRepository
@@ -313,6 +316,14 @@ val sharedModule =
                 SupabaseCoachPlanRepository(client.auth, client.postgrest, client.functions, get())
             } else {
                 UnconfiguredCoachPlanRepository()
+            }
+        }
+        single<CoachIntakeRepository> {
+            if (get<AppConfig>().isSupabaseConfigured) {
+                val client = get<SupabaseClient>()
+                SupabaseCoachIntakeRepository(client.auth, client.postgrest, client.functions, get())
+            } else {
+                UnconfiguredCoachIntakeRepository()
             }
         }
         single<CoachBlockRepository> {

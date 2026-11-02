@@ -34,7 +34,13 @@ sealed interface CoachMissing {
     }
 }
 
-enum class DerivedSource { Data, Profile, Adaptive, Formula }
+enum class DerivedSource { Data, Profile, Adaptive, Formula, Intake }
+
+/** Where the experience level comes from: the training history, or what the user said (only when higher). */
+enum class ExperienceSource { History, Intake }
+
+/** Where the training situation comes from. */
+enum class SituationSource { Intake, Sessions, History }
 
 enum class DerivedExperience { Beginner, Intermediate, Advanced }
 
@@ -73,6 +79,8 @@ data class DerivedTotalExpenditure(
     val reask: Boolean,
     val uncertainty: Double?,
     val missing: List<CoachMissing>,
+    /** True once, when the adaptive figure takes over from the maintenance the user stated (one-time card). */
+    val handover: Boolean = false,
 ) {
     val state: ValueState get() = valueState(provisional, confirmed, false, reask)
 }
@@ -103,9 +111,14 @@ data class DerivedExperienceValue(
     val reask: Boolean,
     val uncertainty: Double?,
     val missing: List<CoachMissing>,
+    val source: ExperienceSource = ExperienceSource.History,
+    val selfReportedYears: Double? = null,
 ) {
     val state: ValueState get() = valueState(provisional, confirmed, false, reask)
 }
+
+/** The training situation the coach works with; null parts are unknown (a new server value never crashes). */
+data class DerivedSituation(val value: Situation?, val source: SituationSource?, val daysSinceLastSession: Int?)
 
 /** The coach's derived values with their sources and confirmation state (US-68, US-69). */
 data class CoachDerivedValues(
@@ -115,6 +128,7 @@ data class CoachDerivedValues(
     val weightTrend: DerivedWeightTrend,
     val intake: DerivedIntake,
     val experience: DerivedExperienceValue,
+    val situation: DerivedSituation? = null,
 ) {
     /** True when no value is provisional: the plan may use them. */
     val allConfirmed: Boolean

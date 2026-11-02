@@ -41,7 +41,7 @@ class CoachUsageScreenTest {
     fun usage_isShownAsAmountOfLimit_withTheExplanation() {
         show(usage(0.42))
 
-        rule.onNodeWithTag("coach_usage_figure").assertTextEquals("0,42 € de 2,00 €")
+        rule.onNodeWithTag("coach_usage_figure").assertTextEquals("0,42 € de 3,00 €")
         rule.onNodeWithTag("coach_usage_progress").assertExists()
         rule.onNodeWithTag("coach_usage_explanation")
             .assertTextEquals("Gasto de este mes. El límite se renueva el día 1.")
@@ -53,14 +53,14 @@ class CoachUsageScreenTest {
     fun zeroUsage_showsZeroOfTheLimit() {
         show(usage(0.0))
 
-        rule.onNodeWithTag("coach_usage_figure").assertTextEquals("0,00 € de 2,00 €")
+        rule.onNodeWithTag("coach_usage_figure").assertTextEquals("0,00 € de 3,00 €")
     }
 
     @Test
     fun atTheLimit_showsTheLimitMessage() {
-        show(usage(2.0))
+        show(usage(3.0))
 
-        rule.onNodeWithTag("coach_usage_figure").assertTextEquals("2,00 € de 2,00 €")
+        rule.onNodeWithTag("coach_usage_figure").assertTextEquals("3,00 € de 3,00 €")
         rule.onNodeWithTag("coach_usage_limit_message")
             .assertTextEquals("Has alcanzado el límite mensual de IA. Vuelve a probar el mes que viene.")
     }
