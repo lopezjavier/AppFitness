@@ -66,7 +66,9 @@ export const cardioCatalog = (): CatalogExercise[] => [
     cardio("elliptical-trainer", "cardio_machine"),
     cardio("rowing-machine", "cardio_machine"),
     cardio("ski-erg", "cardio_machine"),
-    cardio("stair-climber", "cardio_machine", { metric_type: "floors_duration" }),
+    cardio("stair-climber", "cardio_machine", {
+        metric_type: "floors_duration",
+    }),
     cardio("jumping-jacks", "bodyweight"),
     cardio("jump-rope", "bodyweight"),
     cardio("battle-ropes", "other"),

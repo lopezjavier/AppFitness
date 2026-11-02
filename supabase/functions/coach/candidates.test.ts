@@ -207,12 +207,20 @@ Deno.test("ez_bar exercises are offered only with Barra Z saved", () => {
         ex({ key: "bench", equipment: "barbell" }),
     ];
     assertEquals(
-        filterCandidates(list, { place: "home", equipment: ["barbell"] }, mainChest)
+        filterCandidates(
+            list,
+            { place: "home", equipment: ["barbell"] },
+            mainChest,
+        )
             .map((e) => e.key),
         ["bench"],
     );
     assertEquals(
-        filterCandidates(list, { place: "home", equipment: ["ez_bar"] }, mainChest)
+        filterCandidates(
+            list,
+            { place: "home", equipment: ["ez_bar"] },
+            mainChest,
+        )
             .map((e) => e.key),
         ["ez-bar-bench-press"],
     );
@@ -224,12 +232,20 @@ Deno.test("an exercise tagged other is offered only with Otro saved", () => {
         ex({ key: "bench", equipment: "barbell" }),
     ];
     assertEquals(
-        filterCandidates(list, { place: "home", equipment: ["barbell"] }, mainChest)
+        filterCandidates(
+            list,
+            { place: "home", equipment: ["barbell"] },
+            mainChest,
+        )
             .map((e) => e.key),
         ["bench"],
     );
     assertEquals(
-        filterCandidates(list, { place: "home", equipment: ["other"] }, mainChest)
+        filterCandidates(
+            list,
+            { place: "home", equipment: ["other"] },
+            mainChest,
+        )
             .map((e) => e.key),
         ["landmine-press"],
     );
