@@ -53,7 +53,15 @@ class BeforeStartRestorationTest {
     fun recreatedBeforeStart_reopensTheSheet_withoutConfirmingOrCreating() {
         repository.inputs[PlanInputKind.Plan] = Result.success(missingActivity())
         val saved = SavedStateHandle(mapOf("mode" to "plan", "replacingPlanId" to "plan-1"))
-        var current by mutableStateOf(BeforeStartViewModel(repository, MutableClock(), saved))
+        var current by mutableStateOf(
+            BeforeStartViewModel(
+                repository,
+                FakeCoachIntakeRepository(),
+                FakeIntakePromptPreference(asked = true),
+                MutableClock(),
+                saved,
+            ),
+        )
         rule.setContent {
             AppTheme {
                 BeforeStartRoot(
@@ -61,6 +69,7 @@ class BeforeStartRestorationTest {
                     onCreate = { created += it },
                     onOpenYourData = {},
                     onFix = {},
+                    onOpenIntake = {},
                     viewModel = current,
                     connectivity = FakeConnectivityObserver(),
                 )
@@ -71,7 +80,14 @@ class BeforeStartRestorationTest {
         rule.waitForIdle()
 
         // A new view model over the same saved state, as after process death: the inputs are fetched again.
-        current = BeforeStartViewModel(repository, MutableClock(), saved)
+        current =
+            BeforeStartViewModel(
+                repository,
+                FakeCoachIntakeRepository(),
+                FakeIntakePromptPreference(asked = true),
+                MutableClock(),
+                saved,
+            )
         rule.waitForIdle()
 
         rule.onNodeWithTag("before_start_activity_sheet_activity_moderate").assertIsSelected()
@@ -89,7 +105,15 @@ class BeforeStartRestorationTest {
             ),
         )
         val saved = SavedStateHandle(mapOf("mode" to "block", "planId" to "plan-2"))
-        var current by mutableStateOf(BeforeStartViewModel(repository, MutableClock(), saved))
+        var current by mutableStateOf(
+            BeforeStartViewModel(
+                repository,
+                FakeCoachIntakeRepository(),
+                FakeIntakePromptPreference(asked = true),
+                MutableClock(),
+                saved,
+            ),
+        )
         rule.setContent {
             AppTheme {
                 BeforeStartRoot(
@@ -97,6 +121,7 @@ class BeforeStartRestorationTest {
                     onCreate = { created += it },
                     onOpenYourData = {},
                     onFix = {},
+                    onOpenIntake = {},
                     viewModel = current,
                     connectivity = FakeConnectivityObserver(),
                 )
@@ -104,7 +129,14 @@ class BeforeStartRestorationTest {
         }
         rule.waitForIdle()
 
-        current = BeforeStartViewModel(repository, MutableClock(), saved)
+        current =
+            BeforeStartViewModel(
+                repository,
+                FakeCoachIntakeRepository(),
+                FakeIntakePromptPreference(asked = true),
+                MutableClock(),
+                saved,
+            )
         rule.waitForIdle()
 
         rule.onNodeWithTag("before_start_row_place", useUnmergedTree = true).assertExists()
@@ -117,7 +149,7 @@ class BeforeStartRestorationTest {
     fun recreatedYourData_reopensTheSheet() {
         repository.inputs[PlanInputKind.Plan] = Result.success(planKeys())
         val saved = SavedStateHandle()
-        var current by mutableStateOf(YourDataViewModel(repository, MutableClock(), saved))
+        var current by mutableStateOf(YourDataViewModel(repository, FakeCoachIntakeRepository(), MutableClock(), saved))
         rule.setContent {
             AppTheme {
                 YourDataRoot(onBack = {}, onFix = {}, viewModel = current, connectivity = FakeConnectivityObserver())
@@ -127,7 +159,7 @@ class BeforeStartRestorationTest {
         rule.onNodeWithTag("your_data_row_activity_level").performClick()
         rule.waitForIdle()
 
-        current = YourDataViewModel(repository, MutableClock(), saved)
+        current = YourDataViewModel(repository, FakeCoachIntakeRepository(), MutableClock(), saved)
         rule.waitForIdle()
 
         rule.onNodeWithTag("your_data_activity_sheet_activity_light").assertIsSelected()

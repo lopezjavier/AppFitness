@@ -37,6 +37,8 @@ import io.github.lopezjavier.appfitness.feature.templates.TemplateDetailsRoot
 import io.github.lopezjavier.appfitness.feature.trainer.BeforeStartRoot
 import io.github.lopezjavier.appfitness.feature.trainer.BlockPreviewRoot
 import io.github.lopezjavier.appfitness.feature.trainer.CoachUsageRoot
+import io.github.lopezjavier.appfitness.feature.trainer.FreeTextLinesRoot
+import io.github.lopezjavier.appfitness.feature.trainer.IntakeRoot
 import io.github.lopezjavier.appfitness.feature.trainer.PlanProposalRoot
 import io.github.lopezjavier.appfitness.feature.trainer.TrainerRoute
 import io.github.lopezjavier.appfitness.feature.trainer.YourDataRoot
@@ -97,10 +99,12 @@ fun AppRoot(
         planProposal = { planModifier, onBack, onOpenBeforeStart ->
             PlanProposalRoot(onBack, onOpenBeforeStart, planModifier)
         },
-        beforeStart = { startModifier, onBack, onCreated, onOpenYourData, onFix ->
-            BeforeStartRoot(onBack, onCreated, onOpenYourData, onFix, startModifier)
+        beforeStart = { startModifier, onBack, onCreated, onOpenYourData, onFix, onOpenIntake ->
+            BeforeStartRoot(onBack, onCreated, onOpenYourData, onFix, onOpenIntake, startModifier)
         },
         yourData = { dataModifier, onBack, onFix -> YourDataRoot(onBack, onFix, dataModifier) },
+        intake = { intakeModifier, host -> IntakeRoot(host, intakeModifier) },
+        freeTextLines = { linesModifier, onBack -> FreeTextLinesRoot(onBack, linesModifier) },
         blockPreview = { blockModifier, planId, onOpenExercise, onBack ->
             BlockPreviewRoot(planId, onBack, onOpenExercise, blockModifier)
         },

@@ -92,7 +92,7 @@ internal fun PlanInputKey.labelResource(): StringResource = when (this) {
     PlanInputKey.DaysPerWeek -> Res.string.plan_input_label_days
     PlanInputKey.SessionMinutes -> Res.string.plan_input_label_session
     PlanInputKey.Experience -> Res.string.plan_input_label_experience
-    PlanInputKey.Unknown -> Res.string.plan_input_label_unknown
+    PlanInputKey.Intake, PlanInputKey.Unknown -> Res.string.plan_input_label_unknown
 }
 
 internal fun PlanInputSource.originLabel(): StringResource = when (this) {
@@ -100,7 +100,7 @@ internal fun PlanInputSource.originLabel(): StringResource = when (this) {
     PlanInputSource.MyTraining -> Res.string.your_data_section_my_training
     PlanInputSource.WeighIn -> Res.string.your_data_section_weighing
     PlanInputSource.CoachEstimate -> Res.string.your_data_section_estimate
-    PlanInputSource.Unknown -> Res.string.your_data_source_other
+    PlanInputSource.Intake, PlanInputSource.Unknown -> Res.string.your_data_source_other
 }
 
 internal fun PlanInputOrigin.title(): StringResource = when (this) {

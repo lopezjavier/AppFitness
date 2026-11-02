@@ -16,7 +16,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -29,9 +28,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.contentDescription
-import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
 import androidx.navigationevent.NavigationEventInfo
@@ -40,6 +37,7 @@ import androidx.navigationevent.compose.rememberNavigationEventState
 import io.github.lopezjavier.appfitness.app.InterceptTopBarBack
 import io.github.lopezjavier.appfitness.composeapp.resources.Res
 import io.github.lopezjavier.appfitness.composeapp.resources.action_retry
+import io.github.lopezjavier.appfitness.composeapp.resources.food_photo_analyzing
 import io.github.lopezjavier.appfitness.composeapp.resources.food_photo_comment_counter
 import io.github.lopezjavier.appfitness.composeapp.resources.food_photo_comment_label
 import io.github.lopezjavier.appfitness.composeapp.resources.food_photo_comment_placeholder
@@ -48,7 +46,6 @@ import io.github.lopezjavier.appfitness.composeapp.resources.food_photo_error_ma
 import io.github.lopezjavier.appfitness.composeapp.resources.food_photo_error_network
 import io.github.lopezjavier.appfitness.composeapp.resources.food_photo_error_product
 import io.github.lopezjavier.appfitness.composeapp.resources.food_photo_error_unavailable
-import io.github.lopezjavier.appfitness.composeapp.resources.food_photo_estimating
 import io.github.lopezjavier.appfitness.composeapp.resources.food_photo_preview_image_cd
 import io.github.lopezjavier.appfitness.composeapp.resources.food_photo_retake
 import io.github.lopezjavier.appfitness.composeapp.resources.food_photo_use
@@ -62,6 +59,7 @@ import io.github.lopezjavier.appfitness.designsystem.ErrorState
 import io.github.lopezjavier.appfitness.designsystem.PrimaryButton
 import io.github.lopezjavier.appfitness.designsystem.SecondaryButton
 import io.github.lopezjavier.appfitness.designsystem.Spacing
+import io.github.lopezjavier.appfitness.designsystem.StreamProgressState
 import io.github.lopezjavier.appfitness.designsystem.WindowWidthClassDefaults
 import io.github.lopezjavier.appfitness.domain.model.FoodPhotoMode
 import org.jetbrains.compose.resources.decodeToImageBitmap
@@ -203,21 +201,16 @@ private fun CommentField(comment: String, onEvent: (FoodPhotoEvent) -> Unit) {
     }
 }
 
-/** "Estimando…": progress and text only; back is disabled and nothing can be cancelled. */
+/** "Analizando tu foto…": the AI wait on the shared template; back is disabled and nothing can be cancelled. */
 @Composable
 fun PhotoEstimating(modifier: Modifier = Modifier) {
+    val message = stringResource(Res.string.food_photo_analyzing)
     FullScreenStep("food_photo_estimating", onBack = {}, modifier = modifier) {
-        Column(
-            Modifier.fillMaxSize().semantics { liveRegion = LiveRegionMode.Polite },
-            verticalArrangement = Arrangement.spacedBy(Spacing.lg, Alignment.CenterVertically),
-            horizontalAlignment = Alignment.CenterHorizontally,
-        ) {
-            // Decorative: the text carries the meaning.
-            CircularProgressIndicator(color = AppTheme.colors.neonLime)
-            Text(
-                text = stringResource(Res.string.food_photo_estimating),
-                style = AppTheme.typography.titleMedium,
-                color = AppTheme.colors.textPrimary,
+        Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+            StreamProgressState(
+                message = message,
+                stateDescription = message,
+                testTag = "food_photo_estimating_progress",
             )
         }
     }

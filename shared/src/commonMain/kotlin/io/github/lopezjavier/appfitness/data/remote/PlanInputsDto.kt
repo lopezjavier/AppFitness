@@ -86,12 +86,14 @@ internal data class PlanInputDto(
             "days_per_week" to PlanInputKey.DaysPerWeek,
             "session_minutes" to PlanInputKey.SessionMinutes,
             "experience" to PlanInputKey.Experience,
+            "intake" to PlanInputKey.Intake,
         )
         val SOURCES = mapOf(
             "profile" to PlanInputSource.Profile,
             "my_training" to PlanInputSource.MyTraining,
             "weigh_in" to PlanInputSource.WeighIn,
             "coach_estimate" to PlanInputSource.CoachEstimate,
+            "intake" to PlanInputSource.Intake,
         )
         val STATUSES = mapOf(
             "ok" to PlanInputStatus.Ok,
@@ -105,6 +107,7 @@ internal data class PlanInputDto(
             "personal_data" to PlanFixTarget.PersonalData,
             "weight" to PlanFixTarget.Weight,
             "activity_sheet" to PlanFixTarget.ActivitySheet,
+            "intake" to PlanFixTarget.Intake,
         )
     }
 }

@@ -11,6 +11,8 @@ import io.github.lopezjavier.appfitness.designsystem.AppTheme
 import io.github.lopezjavier.appfitness.domain.AppError
 import io.github.lopezjavier.appfitness.domain.AppException
 import io.github.lopezjavier.appfitness.domain.model.ActivityLevel
+import io.github.lopezjavier.appfitness.domain.model.DerivedSituation
+import io.github.lopezjavier.appfitness.domain.model.DerivedSource
 import io.github.lopezjavier.appfitness.domain.model.PlanFixTarget
 import io.github.lopezjavier.appfitness.domain.model.PlanInputKey
 import io.github.lopezjavier.appfitness.domain.model.PlanInputKind
@@ -18,6 +20,8 @@ import io.github.lopezjavier.appfitness.domain.model.PlanInputSource
 import io.github.lopezjavier.appfitness.domain.model.PlanInputStatus
 import io.github.lopezjavier.appfitness.domain.model.PlanInputValue
 import io.github.lopezjavier.appfitness.domain.model.PlanInputs
+import io.github.lopezjavier.appfitness.domain.model.Situation
+import io.github.lopezjavier.appfitness.domain.model.SituationSource
 import io.github.lopezjavier.appfitness.feature.workout.MutableClock
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
@@ -37,9 +41,10 @@ class YourDataScreenTest {
 
     private val repository = FakeCoachRepository()
     private val fixed = mutableListOf<PlanFixTarget>()
+    private val intake = FakeCoachIntakeRepository()
 
     private fun show(online: Boolean = true) {
-        val model = YourDataViewModel(repository, MutableClock(), SavedStateHandle())
+        val model = YourDataViewModel(repository, intake, MutableClock(), SavedStateHandle())
         rule.setContent {
             AppTheme {
                 YourDataRoot(
@@ -94,6 +99,92 @@ class YourDataScreenTest {
 
         rule.onNodeWithTag("your_data_chip_provisional_total_expenditure").assertTextEquals("Provisional")
         rule.onNodeWithTag("your_data_chip_provisional_intention").assertDoesNotExist()
+    }
+
+    private fun withDerived(
+        source: DerivedSource = DerivedSource.Formula,
+        handover: Boolean = false,
+        situation: DerivedSituation? = null,
+    ) {
+        withProvisionalEstimates()
+        val base = coachValues(provisional = false)
+        repository.loaded = Result.success(
+            base.copy(
+                totalExpenditure = base.totalExpenditure.copy(source = source, handover = handover),
+                situation = situation,
+            ),
+        )
+    }
+
+    @Test
+    fun aValueFromTheIntake_isProvisional_withItsExplanation() {
+        withDerived(source = DerivedSource.Intake)
+
+        show()
+
+        rule.onNodeWithTag("your_data_chip_provisional_total_expenditure").assertTextEquals("Provisional")
+        rule.onNodeWithTag("your_data_intake_provisional_total_expenditure").assertTextEquals(
+            "Según lo que nos contaste (provisional). Lo cambiaremos por tus datos reales cuando haya suficientes.",
+        )
+    }
+
+    @Test
+    fun withoutIntakeValues_thereIsNoProvisionalIntakeText() {
+        withDerived()
+
+        show()
+
+        rule.onNodeWithTag("your_data_intake_provisional_total_expenditure").assertDoesNotExist()
+    }
+
+    @Test
+    fun theSituationRow_showsWhatTheCoachWorksWith() {
+        withDerived(situation = DerivedSituation(Situation.ReturningInjury, SituationSource.Intake, null))
+
+        show()
+
+        rule.onNodeWithTag("your_data_situation_row").assertExists()
+        rule.onNodeWithText("Vuelvo tras una lesión").assertExists()
+    }
+
+    @Test
+    fun withoutASituation_thereIsNoSituationRow() {
+        withDerived()
+
+        show()
+
+        rule.onNodeWithTag("your_data_situation_row").assertDoesNotExist()
+    }
+
+    @Test
+    fun theParaConocerteRow_opensTheIntake() {
+        withDerived()
+        show()
+
+        tap("your_data_intake_row")
+
+        assertEquals(listOf(PlanFixTarget.Intake), fixed)
+    }
+
+    @Test
+    fun theHandoverNote_showsTheMeasuredFigure_andIsAcknowledgedOnce() {
+        withDerived(source = DerivedSource.Adaptive, handover = true)
+
+        show()
+
+        rule.onNodeWithTag("your_data_handover_note")
+            .assertTextEquals("Ahora usamos tus datos reales: tu gasto medido es de 2.400 kcal.")
+        assertEquals(1, intake.ackCalls)
+    }
+
+    @Test
+    fun withoutAHandover_noNoteAndNothingIsAcknowledged() {
+        withDerived()
+
+        show()
+
+        rule.onNodeWithTag("your_data_handover_note").assertDoesNotExist()
+        assertEquals(0, intake.ackCalls)
     }
 
     @Test

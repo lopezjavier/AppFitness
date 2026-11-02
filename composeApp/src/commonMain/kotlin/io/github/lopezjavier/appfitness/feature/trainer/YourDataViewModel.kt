@@ -6,10 +6,13 @@ import androidx.lifecycle.viewModelScope
 import io.github.lopezjavier.appfitness.domain.AppError
 import io.github.lopezjavier.appfitness.domain.appErrorOrNull
 import io.github.lopezjavier.appfitness.domain.model.ActivityLevel
+import io.github.lopezjavier.appfitness.domain.model.DerivedSource
+import io.github.lopezjavier.appfitness.domain.model.ExperienceSource
 import io.github.lopezjavier.appfitness.domain.model.PlanInputKey
 import io.github.lopezjavier.appfitness.domain.model.PlanInputKind
 import io.github.lopezjavier.appfitness.domain.model.PlanInputValue
 import io.github.lopezjavier.appfitness.domain.port.Clock
+import io.github.lopezjavier.appfitness.domain.repository.CoachIntakeRepository
 import io.github.lopezjavier.appfitness.domain.repository.CoachRepository
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.channels.Channel
@@ -29,6 +32,7 @@ import kotlinx.datetime.toLocalDateTime
  */
 class YourDataViewModel(
     private val coach: CoachRepository,
+    private val intakeRepo: CoachIntakeRepository,
     private val clock: Clock,
     private val savedState: SavedStateHandle = SavedStateHandle(),
 ) : ViewModel() {
@@ -39,6 +43,7 @@ class YourDataViewModel(
     val effects = effectChannel.receiveAsFlow()
 
     private var loadJob: Job? = null
+    private var handoverAcknowledged = false
 
     // The server accepts a date within one day of UTC today, so it is the UTC date.
     private fun today(): LocalDate = clock.now().toLocalDateTime(TimeZone.UTC).date
@@ -54,6 +59,7 @@ class YourDataViewModel(
             YourDataEvent.OpenSheet -> openSheet()
             is YourDataEvent.PickLevel -> pickLevel(event.level)
             YourDataEvent.CloseSheet -> setDraft(null)
+            YourDataEvent.HandoverShown -> acknowledgeHandover()
         }
     }
 
@@ -88,10 +94,38 @@ class YourDataViewModel(
             planRows == null && blockRows == null ->
                 if (plan.appErrorOrNull() == AppError.Network) YourDataUiState.Offline else YourDataUiState.Error
 
-            else -> YourDataUiState.Content(
-                rows = mergeRows(planRows.orEmpty(), blockRows.orEmpty()),
-                sheet = restoredDraft(),
-            )
+            else -> {
+                // The intake and the derived values only enrich the screen: a failure leaves them out.
+                val intake = intakeRepo.get().getOrNull()
+                val derived = coach.derivedValues(today()).getOrNull()
+                val handover = derived?.totalExpenditure?.handover == true && !handoverAcknowledged
+                YourDataUiState.Content(
+                    rows = mergeRows(planRows.orEmpty(), blockRows.orEmpty()),
+                    sheet = restoredDraft(),
+                    intake = IntakeSummary.of(intake),
+                    situation = derived?.situation?.value ?: intake?.situation,
+                    intakeSourcedKeys = buildSet {
+                        if (derived?.experience?.source == ExperienceSource.Intake) add(PlanInputKey.Experience)
+                        if (derived?.totalExpenditure?.source ==
+                            DerivedSource.Intake
+                        ) {
+                            add(PlanInputKey.TotalExpenditure)
+                        }
+                    },
+                    showHandover = handover,
+                    handoverKcal = derived?.totalExpenditure?.kcal.takeIf { handover },
+                )
+            }
+        }
+    }
+
+    private fun acknowledgeHandover() {
+        val content = _uiState.value as? YourDataUiState.Content ?: return
+        if (!content.showHandover || handoverAcknowledged) return
+        handoverAcknowledged = true
+        viewModelScope.launch {
+            // On failure the note may come back once more; better than losing it unseen.
+            if (intakeRepo.acknowledgeMaintenanceHandover().isFailure) handoverAcknowledged = false
         }
     }
 

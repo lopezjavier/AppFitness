@@ -76,6 +76,8 @@ class ShellChromeTest {
                 PlanProposalRoute::class,
                 BeforeStartRoute::class,
                 YourDataRoute,
+                IntakeRoute::class,
+                FreeTextLinesRoute,
                 BlockPreviewRoute::class,
                 NotificationCenterRoute,
                 CheckInRoute,
@@ -97,6 +99,7 @@ class ShellChromeTest {
                     it is AboutRoute ||
                     it is CoachUsageRoute ||
                     it is YourDataRoute ||
+                    it is FreeTextLinesRoute ||
                     it is NotificationCenterRoute ||
                     it is CheckInRoute
                 ) {

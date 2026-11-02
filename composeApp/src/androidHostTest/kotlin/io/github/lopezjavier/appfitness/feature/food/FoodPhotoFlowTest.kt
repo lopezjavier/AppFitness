@@ -328,7 +328,9 @@ class FoodPhotoFlowTest {
         tap("food_photo_preview_use")
 
         rule.onNodeWithTag("food_photo_estimating").assertExists()
-        rule.onNodeWithText("Estimando…").assertExists()
+        rule.onNodeWithTag("food_photo_estimating_progress", useUnmergedTree = true).assertExists()
+        rule.onNodeWithText("Analizando tu foto…").assertExists()
+        rule.onNode(stateDescriptionIs("Analizando tu foto…")).assertExists()
         absent("food_photo_preview_use")
         pressBack()
         exists("food_photo_estimating")

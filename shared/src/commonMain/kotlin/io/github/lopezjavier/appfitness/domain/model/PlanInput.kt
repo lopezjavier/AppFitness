@@ -22,6 +22,9 @@ enum class PlanInputKey {
     DaysPerWeek,
     SessionMinutes,
     Experience,
+
+    /** The "Para conocerte" intake: informational, never blocking, not a summary line. */
+    Intake,
     Unknown,
     ;
 
@@ -42,9 +45,9 @@ enum class PlanInputKey {
 enum class PlanInputStatus { Ok, Missing, UnsetOptional, Provisional, Stale, Unknown }
 
 /** Where the user fixes an input by hand. */
-enum class PlanFixTarget { MyTraining, PersonalData, Weight, ActivitySheet }
+enum class PlanFixTarget { MyTraining, PersonalData, Weight, ActivitySheet, Intake }
 
-enum class PlanInputSource { Profile, MyTraining, WeighIn, CoachEstimate, Unknown }
+enum class PlanInputSource { Profile, MyTraining, WeighIn, CoachEstimate, Intake, Unknown }
 
 /** The plan the new one would replace, when there is one. */
 enum class CurrentPlan { Accepted, Proposed }
@@ -77,6 +80,10 @@ data class PlanInput(
 
 data class PlanInputs(val kind: PlanInputKind, val currentPlan: CurrentPlan?, val inputs: List<PlanInput>) {
     val hasBlocking: Boolean get() = inputs.any { it.blocking && it.status == PlanInputStatus.Missing }
+
+    /** True when the user saved an intake (the server reports it with status `ok`). */
+    val intakeSaved: Boolean
+        get() = inputs.any { it.key == PlanInputKey.Intake && it.status == PlanInputStatus.Ok }
 
     /** The fields the server would report in a `coach_missing_data` answer for this list. */
     val missingFields: Set<MissingField>

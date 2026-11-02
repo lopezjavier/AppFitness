@@ -2,6 +2,7 @@ package io.github.lopezjavier.appfitness.feature.trainer
 
 import io.github.lopezjavier.appfitness.domain.model.ActivityLevel
 import io.github.lopezjavier.appfitness.domain.model.CurrentPlan
+import io.github.lopezjavier.appfitness.domain.model.PlanFixTarget
 import io.github.lopezjavier.appfitness.domain.model.PlanInputKey
 import io.github.lopezjavier.appfitness.domain.model.PlanInputKind
 import io.github.lopezjavier.appfitness.domain.model.PlanInputs
@@ -33,8 +34,22 @@ sealed interface BeforeStartUiState {
         val creating: Boolean = false,
         val sheet: ActivityLevel? = null,
         val savingLevel: Boolean = false,
+        /** What the user said in "Para conocerte" (empty when nothing was saved). */
+        val intake: IntakeSummary = IntakeSummary(),
     ) : BeforeStartUiState {
         val rows: List<PlanInputRow> = inputs.rows()
+
+        /**
+         * The three intake rows (plan mode only; a block does not read them). Never flags or blockers: an empty value
+         * reads "Sin indicar". Each one opens "Para conocerte" ([PlanFixTarget.Intake]).
+         */
+        val intakeRows: List<IntakeRowKind> get() = if (mode ==
+            BeforeStartMode.Plan
+        ) {
+            IntakeRowKind.entries
+        } else {
+            emptyList()
+        }
 
         /** Blocking missing inputs, shown first as "Falta: ..." rows. */
         val flags: List<PlanInputRow> get() = rows.filter { it.isFlag }
@@ -88,4 +103,7 @@ sealed interface BeforeStartEffect {
 
     /** Confirming failed (from the footer or the sheet); nothing changed. [offline] picks the offline hint. */
     data class CreateFailed(val offline: Boolean) : BeforeStartEffect
+
+    /** First "Crear plan" with no saved intake and the prompt never answered: show "Para conocerte" first. Once. */
+    data object OpenIntake : BeforeStartEffect
 }

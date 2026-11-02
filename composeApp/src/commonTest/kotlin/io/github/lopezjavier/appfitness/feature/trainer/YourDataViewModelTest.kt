@@ -6,6 +6,11 @@ import io.github.lopezjavier.appfitness.domain.AppError
 import io.github.lopezjavier.appfitness.domain.AppException
 import io.github.lopezjavier.appfitness.domain.model.ActivityLevel
 import io.github.lopezjavier.appfitness.domain.model.CoachDerivedValues
+import io.github.lopezjavier.appfitness.domain.model.CoachIntake
+import io.github.lopezjavier.appfitness.domain.model.DerivedSituation
+import io.github.lopezjavier.appfitness.domain.model.DerivedSource
+import io.github.lopezjavier.appfitness.domain.model.ExperienceSource
+import io.github.lopezjavier.appfitness.domain.model.InjuredArea
 import io.github.lopezjavier.appfitness.domain.model.PlanInput
 import io.github.lopezjavier.appfitness.domain.model.PlanInputKey
 import io.github.lopezjavier.appfitness.domain.model.PlanInputKind
@@ -13,6 +18,8 @@ import io.github.lopezjavier.appfitness.domain.model.PlanInputSource
 import io.github.lopezjavier.appfitness.domain.model.PlanInputStatus
 import io.github.lopezjavier.appfitness.domain.model.PlanInputValue
 import io.github.lopezjavier.appfitness.domain.model.PlanInputs
+import io.github.lopezjavier.appfitness.domain.model.Situation
+import io.github.lopezjavier.appfitness.domain.model.SituationSource
 import io.github.lopezjavier.appfitness.feature.workout.MutableClock
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -28,11 +35,13 @@ import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertIs
 import kotlin.test.assertNull
+import kotlin.test.assertTrue
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class YourDataViewModelTest {
     private val dispatcher = StandardTestDispatcher()
     private val coach = FakeCoachRepository()
+    private val intake = FakeCoachIntakeRepository()
 
     @BeforeTest
     fun setUp() = Dispatchers.setMain(dispatcher)
@@ -41,7 +50,7 @@ class YourDataViewModelTest {
     fun tearDown() = Dispatchers.resetMain()
 
     private fun viewModel(saved: SavedStateHandle = SavedStateHandle()) =
-        YourDataViewModel(coach, MutableClock(), saved)
+        YourDataViewModel(coach, intake, MutableClock(), saved)
 
     private fun YourDataViewModel.content() = assertIs<YourDataUiState.Content>(uiState.value)
 
@@ -218,5 +227,141 @@ class YourDataViewModelTest {
 
         assertEquals(ActivityLevel.Moderate, second.content().sheet)
         assertEquals(0, coach.confirmCalls.size)
+    }
+
+    private fun derived(
+        expenditureSource: DerivedSource = DerivedSource.Formula,
+        handover: Boolean = false,
+        experienceSource: ExperienceSource = ExperienceSource.History,
+        situation: DerivedSituation? = null,
+    ): CoachDerivedValues {
+        val base = coachValues(provisional = false)
+        return base.copy(
+            totalExpenditure = base.totalExpenditure.copy(source = expenditureSource, handover = handover),
+            experience = base.experience.copy(source = experienceSource),
+            situation = situation,
+        )
+    }
+
+    @Test
+    fun intakeSourcedValues_areMarkedProvisionalByKey() = runTest(dispatcher) {
+        plan(planInput(PlanInputKey.Experience), planInput(PlanInputKey.TotalExpenditure))
+        coach.loaded = Result.success(
+            derived(expenditureSource = DerivedSource.Intake, experienceSource = ExperienceSource.Intake),
+        )
+        val model = viewModel()
+
+        advanceUntilIdle()
+
+        assertEquals(
+            setOf(PlanInputKey.Experience, PlanInputKey.TotalExpenditure),
+            model.content().intakeSourcedKeys,
+        )
+    }
+
+    @Test
+    fun noIntake_hasNoProvisionalTextNorRows() = runTest(dispatcher) {
+        plan(planInput(PlanInputKey.Sex))
+        val model = viewModel()
+
+        advanceUntilIdle()
+
+        val content = model.content()
+        assertTrue(content.intake.isEmpty)
+        assertTrue(content.intakeSourcedKeys.isEmpty())
+        assertNull(content.situation)
+        assertFalse(content.showHandover)
+    }
+
+    @Test
+    fun savedIntake_isSummarisedAndSituationComesFromIt() = runTest(dispatcher) {
+        plan(planInput(PlanInputKey.Sex))
+        intake.stored = CoachIntake(
+            trainingYears = 4.0,
+            situation = Situation.ReturningInjury,
+            injuredArea = InjuredArea.Shoulder,
+            knownMaintenanceKcal = 2600,
+        )
+        val model = viewModel()
+
+        advanceUntilIdle()
+
+        val content = model.content()
+        assertEquals(4.0, content.intake.trainingYears)
+        assertEquals(InjuredArea.Shoulder, content.intake.injuredArea)
+        assertEquals(2600, content.intake.maintenanceKcal)
+        assertEquals(Situation.ReturningInjury, content.situation)
+    }
+
+    @Test
+    fun derivedSituation_winsOverTheStatedOne() = runTest(dispatcher) {
+        plan(planInput(PlanInputKey.Sex))
+        intake.stored = CoachIntake(situation = Situation.FirstTime)
+        coach.loaded = Result.success(
+            derived(situation = DerivedSituation(Situation.Continuous, SituationSource.Sessions, 2)),
+        )
+        val model = viewModel()
+
+        advanceUntilIdle()
+
+        assertEquals(Situation.Continuous, model.content().situation)
+    }
+
+    @Test
+    fun handover_showsTheMeasuredKcal_andIsAcknowledgedOnce() = runTest(dispatcher) {
+        plan(planInput(PlanInputKey.TotalExpenditure))
+        coach.loaded = Result.success(derived(expenditureSource = DerivedSource.Adaptive, handover = true))
+        val model = viewModel()
+        advanceUntilIdle()
+        assertTrue(model.content().showHandover)
+        assertEquals(2400.0, model.content().handoverKcal)
+
+        model.onEvent(YourDataEvent.HandoverShown)
+        model.onEvent(YourDataEvent.HandoverShown)
+        advanceUntilIdle()
+
+        assertEquals(1, intake.ackCalls)
+    }
+
+    @Test
+    fun afterTheAcknowledgement_theNextLoadHasNoHandover() = runTest(dispatcher) {
+        plan(planInput(PlanInputKey.TotalExpenditure))
+        coach.loaded = Result.success(derived(handover = true))
+        val model = viewModel()
+        advanceUntilIdle()
+        model.onEvent(YourDataEvent.HandoverShown)
+        advanceUntilIdle()
+        // The server now reports handover = false.
+        coach.loaded = Result.success(derived(handover = false))
+
+        model.onEvent(YourDataEvent.Refresh)
+        advanceUntilIdle()
+
+        assertFalse(model.content().showHandover)
+        assertEquals(1, intake.ackCalls)
+    }
+
+    @Test
+    fun handoverShownWithoutAHandover_doesNotCallTheServer() = runTest(dispatcher) {
+        plan(planInput(PlanInputKey.TotalExpenditure))
+        val model = viewModel()
+        advanceUntilIdle()
+
+        model.onEvent(YourDataEvent.HandoverShown)
+        advanceUntilIdle()
+
+        assertEquals(0, intake.ackCalls)
+    }
+
+    @Test
+    fun failedIntakeRead_stillShowsTheRows() = runTest(dispatcher) {
+        plan(planInput(PlanInputKey.Sex))
+        intake.getFailure = AppException(AppError.Network)
+        val model = viewModel()
+
+        advanceUntilIdle()
+
+        assertEquals(listOf(PlanInputKey.Sex), model.content().rows.map { it.key })
+        assertTrue(model.content().intake.isEmpty)
     }
 }
