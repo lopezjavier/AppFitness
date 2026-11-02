@@ -12,9 +12,10 @@ An evidence-based performance assistant (coach) that plans four-week training an
 | E10 | [E10-reminders-and-check-in.md](epics/E10-reminders-and-check-in.md) | In-app notification center, weight and circumference reminders, weekly check-in |
 | E11 | [E11-health-connect-daily-sync.md](epics/E11-health-connect-daily-sync.md) | Daily automatic Health Connect sync; sleep, steps, calories and resting heart rate |
 | E12 | [E12-training-data-and-preferences.md](epics/E12-training-data-and-preferences.md) | Rest alert with the screen off, intention and preferences, notes, discomfort log, movement pattern |
-| E13 | [E13-performance-assistant.md](epics/E13-performance-assistant.md) | Coach: intake, derived values, plan, phases over the year, end-of-block review, progression, report, block creator, adherence, history, deload, injury follow-up, AI budget, chat |
+| E13 | [E13-performance-assistant.md](epics/E13-performance-assistant.md) | Coach: intake, derived values, nutrition plan and phase, progression suggestions, the block creator (model-built block, routine checker, folder review, favourites, removing a block), adherence, report, history, AI budget, chat |
+| E14 | [E14-block-follow-up.md](epics/E14-block-follow-up.md) | Block follow-up (backlog, re-planned after the user approves the new block): plan weeks that follow the training, end-of-block review and phase changes, automatic progression, calories and deloads, injury and graded return, life changes |
 
-**Order:** E10 → E11 → E12 → E13. E13 depends on the other three. Design base of the coach: [`07-coach-design.md`](07-coach-design.md). Stories US-57..US-92.
+**Order:** E10 → E11 → E12 → E13 → E14. E13 depends on the other three; E14 on E13's block (user, 2026-11-03: the block follow-ups moved out of E13). Design base of the coach: [`07-coach-design.md`](07-coach-design.md). Stories US-57..US-96 (US-83…US-88, US-90…US-92 and the follow-up parts of US-69, US-70, US-73, US-75 belong to E14).
 
 ## 3. Requirement changes
 
