@@ -75,7 +75,14 @@ class BlockPreviewRestorationTest {
         tester.setContent {
             AppTheme {
                 BlockPreviewScreen(
-                    state = BlockPreviewUiState.Preview(coachBlock(sessionsPerWeek = 4), emptyMap(), 1),
+                    state = BlockPreviewUiState.Preview(
+                        coachBlock(sessionsPerWeek = 4),
+                        mapOf(
+                            "ex-1" to "Press",
+                            "ex-2" to "Flexiones",
+                        ),
+                        1,
+                    ),
                     isOnline = flowOf(true),
                     onEvent = {},
                     onBack = {},

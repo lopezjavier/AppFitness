@@ -68,7 +68,9 @@ class WarmUpSheetTest {
     private fun show() {
         val vm = LiveSessionViewModel(
             repository,
-            FakeExerciseRepository(listOf(exerciseRow("e1", null, equipment = Equipment.Barbell, name = "Banca"))),
+            FakeExerciseRepository(
+                listOf(exerciseRow("e1", null, equipment = Equipment.Barbell, name = "Banca", custom = true)),
+            ),
             FakeExerciseLibrary(),
             FakeConnectivityObserver(),
             clock,

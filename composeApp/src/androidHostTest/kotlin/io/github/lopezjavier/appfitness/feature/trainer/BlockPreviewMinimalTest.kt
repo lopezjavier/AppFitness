@@ -22,7 +22,14 @@ class BlockPreviewMinimalTest {
         rule.setContent {
             AppTheme {
                 BlockPreviewScreen(
-                    BlockPreviewUiState.Preview(coachBlock(), emptyMap(), 1, null, false, minimal = minimal),
+                    BlockPreviewUiState.Preview(
+                        coachBlock(),
+                        mapOf("ex-1" to "Press", "ex-2" to "Flexiones"),
+                        1,
+                        null,
+                        false,
+                        minimal = minimal,
+                    ),
                     flowOf(true),
                     {},
                     {},
