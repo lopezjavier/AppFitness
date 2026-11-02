@@ -211,6 +211,9 @@ internal fun InjuredAreaField(
     }
 }
 
+/** Callbacks of the bests list: open the exercise picker, edit one best. */
+internal class BestsActions(val onAdd: () -> Unit, val onEdit: (String) -> Unit)
+
 /** The best lifts from before a pause: one row each (swipe "Quitar"), one "Añadir marca" at the end (R-19). */
 @Composable
 internal fun BestsField(
@@ -218,8 +221,7 @@ internal fun BestsField(
     names: Map<String, String>,
     enabled: Boolean,
     onEvent: (IntakeEvent) -> Unit,
-    onAdd: () -> Unit,
-    onEdit: (String) -> Unit,
+    actions: BestsActions,
 ) {
     val unknown = stringResource(Res.string.intake_best_unknown_exercise)
     Column(verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
@@ -246,14 +248,14 @@ internal fun BestsField(
                         AppNumberFormat.decimal(best.weightKg, maxDecimals = MAX_WEIGHT_DECIMALS),
                         best.reps,
                     ),
-                    onOpen = { if (enabled) onEdit(best.exerciseId) },
+                    onOpen = { if (enabled) actions.onEdit(best.exerciseId) },
                     tagPrefix = "intake_best_row_${best.exerciseId}",
                 )
             }
         }
         AddItemButton(
             objectLabel = stringResource(Res.string.intake_best_object),
-            onClick = onAdd,
+            onClick = actions.onAdd,
             modifier = Modifier.testTag("intake_add_best"),
             enabled = enabled && state.canAddBest,
         )

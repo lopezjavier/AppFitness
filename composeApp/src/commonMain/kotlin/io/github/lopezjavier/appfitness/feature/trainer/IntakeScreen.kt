@@ -186,7 +186,7 @@ fun IntakeScreen(
                     StreamProgressState(message = message, stateDescription = message, testTag = "intake_progress")
                 }
             } else {
-                IntakeFields(state, exerciseNames, !saving, onEvent, onAddBest) { sheetExerciseId = it }
+                IntakeFields(state, exerciseNames, !saving, onEvent, BestsActions(onAddBest) { sheetExerciseId = it })
             }
         }
     }
@@ -223,8 +223,7 @@ private fun IntakeFields(
     names: Map<String, String>,
     enabled: Boolean,
     onEvent: (IntakeEvent) -> Unit,
-    onAddBest: () -> Unit,
-    onEditBest: (String) -> Unit,
+    bests: BestsActions,
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(Spacing.blockGap)) {
         YearsField(state.form.years, state.extracted, enabled) { onEvent(IntakeEvent.EditYears(it)) }
@@ -242,7 +241,7 @@ private fun IntakeFields(
             enabled,
             onEvent,
         )
-        BestsField(state, names, enabled, onEvent, onAddBest, onEditBest)
+        BestsField(state, names, enabled, onEvent, bests)
         KnownCaloriesFields(state, enabled, onEvent)
     }
 }
