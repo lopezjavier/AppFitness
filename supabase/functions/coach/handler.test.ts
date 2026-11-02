@@ -144,7 +144,7 @@ Deno.test("plan kinds use Opus and report/chat use Sonnet", () => {
 });
 
 Deno.test("over the user limit is 429 scope user and the model is not called", async () => {
-    const { handler, clientCalls } = setup({ spent: 2 });
+    const { handler, clientCalls } = setup({ spent: 3 });
     const res = await handler(post(ping));
     assertEquals(res.status, 429);
     const error = (await res.json()).error;

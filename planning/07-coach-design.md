@@ -263,6 +263,7 @@ Prices re-checked on the Anthropic price list on 2026-11-01: Opus 5.5 $4 / $20, 
 | Block plan | Opus 5.5 | 30k in, 15k out (with thinking); 2 per month | ≈ $0.42 | ≈ $0.85 |
 | Weekly report | Sonnet 5.5 | 20k in, 5k out; up to 8 per month | ≈ $0.09 | ≈ $0.70 |
 | Chat | Sonnet 5.5 | 15k in (12k cached), 1.5k out; 60 messages | ≈ $0.024 | ≈ $1.45 |
+| Intake extraction (T-185) | Sonnet 5.5 | about 900 in, 250 out; a few per month | ≈ $0.004 per call (0,01-0,03 € budgeted with retries) | ≈ $0.02 |
 | Derived values, progression, deload, trend | none (deterministic) | | $0 | $0 |
 
 Heavy user ≈ $3 per month (≈ 3,1 € with the trainer-journey calls: intake extraction, one review per block, the free-text block), light user ≈ $1. The 3 € per-user cap (ADR-90) stops a heavy user's chat near the end of the month; the plan and the report are served first. The 5 € total binds first when more than one user is heavy.

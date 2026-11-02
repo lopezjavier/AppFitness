@@ -8,9 +8,12 @@ import io.github.lopezjavier.appfitness.domain.model.DerivedActivityLevel
 import io.github.lopezjavier.appfitness.domain.model.DerivedExperience
 import io.github.lopezjavier.appfitness.domain.model.DerivedExperienceValue
 import io.github.lopezjavier.appfitness.domain.model.DerivedIntake
+import io.github.lopezjavier.appfitness.domain.model.DerivedSituation
 import io.github.lopezjavier.appfitness.domain.model.DerivedSource
 import io.github.lopezjavier.appfitness.domain.model.DerivedTotalExpenditure
 import io.github.lopezjavier.appfitness.domain.model.DerivedWeightTrend
+import io.github.lopezjavier.appfitness.domain.model.ExperienceSource
+import io.github.lopezjavier.appfitness.domain.model.SituationSource
 import kotlinx.datetime.LocalDate
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
@@ -66,6 +69,7 @@ internal data class TotalExpenditureDto(
     val reask: Boolean = false,
     val uncertainty: Double? = null,
     val missing: List<String> = emptyList(),
+    val handover: Boolean = false,
 )
 
 @Serializable
@@ -100,6 +104,15 @@ internal data class ExperienceDto(
     val reask: Boolean = false,
     val uncertainty: Double? = null,
     val missing: List<String> = emptyList(),
+    val source: String? = null,
+    @SerialName("self_reported_years") val selfReportedYears: Double? = null,
+)
+
+@Serializable
+internal data class SituationDto(
+    val value: String? = null,
+    val source: String? = null,
+    @SerialName("days_since_last_session") val daysSinceLastSession: Int? = null,
 )
 
 /** Response of `coach_derived_estimates` and `confirm_derived_values` (one jsonb object). */
@@ -111,6 +124,7 @@ internal data class CoachDerivedDto(
     @SerialName("weight_trend") val weightTrend: WeightTrendDto = WeightTrendDto(),
     val intake: IntakeDto = IntakeDto(),
     val experience: ExperienceDto = ExperienceDto(),
+    val situation: SituationDto? = null,
 ) {
     fun toDomain(): CoachDerivedValues = CoachDerivedValues(
         asOf = asOf,
@@ -139,6 +153,7 @@ internal data class CoachDerivedDto(
             reask = totalExpenditure.reask,
             uncertainty = totalExpenditure.uncertainty,
             missing = totalExpenditure.missing.toMissing(),
+            handover = totalExpenditure.handover,
         ),
         weightTrend = DerivedWeightTrend(
             slopeKgWeek = weightTrend.slopeKgWeek,
@@ -162,7 +177,12 @@ internal data class CoachDerivedDto(
             reask = experience.reask,
             uncertainty = experience.uncertainty,
             missing = experience.missing.toMissing(),
+            source = if (experience.source == "intake") ExperienceSource.Intake else ExperienceSource.History,
+            selfReportedYears = experience.selfReportedYears,
         ),
+        situation = situation?.let {
+            DerivedSituation(it.value.toSituation(), it.source.toSituationSource(), it.daysSinceLastSession)
+        },
     )
 }
 
@@ -172,6 +192,7 @@ private fun String?.toSource(): DerivedSource = when (this) {
     "data" -> DerivedSource.Data
     "adaptive" -> DerivedSource.Adaptive
     "formula" -> DerivedSource.Formula
+    "intake" -> DerivedSource.Intake
     else -> DerivedSource.Profile
 }
 
@@ -179,5 +200,12 @@ private fun String?.toExperience(): DerivedExperience? = when (this) {
     "beginner" -> DerivedExperience.Beginner
     "intermediate" -> DerivedExperience.Intermediate
     "advanced" -> DerivedExperience.Advanced
+    else -> null
+}
+
+private fun String?.toSituationSource(): SituationSource? = when (this) {
+    "intake" -> SituationSource.Intake
+    "sessions" -> SituationSource.Sessions
+    "history" -> SituationSource.History
     else -> null
 }

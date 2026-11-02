@@ -3,7 +3,7 @@ begin;
 create extension if not exists pgtap with schema extensions;
 set local search_path = extensions, public;
 
-select plan(44);
+select plan(54);
 
 create function pg_temp.d0() returns date language sql as $$ select (now() at time zone 'utc')::date $$;
 create function pg_temp.mon0() returns date language sql as $$
@@ -102,8 +102,9 @@ select pg_temp.u(4), pg_temp.d0() - i, 7000 + i * 13, 300 + i from generate_seri
 insert into public.sleep_sessions (user_id, external_id, started_at, ended_at, minutes)
 select pg_temp.u(4), 'sl' || i, now() - make_interval(days => i, hours => 9), now() - make_interval(days => i, hours => 1), 400 + i
 from generate_series(0, 55) i;
-insert into public.weekly_check_ins (user_id, week_start, energy)
-select pg_temp.u(4), pg_temp.mon0() - 7 * i, 1 + i % 5 from generate_series(0, 7) i;
+-- 20 free-text lines of exactly 100 escaped bytes each (50 double quotes): the largest block the 2 000-byte budget allows.
+insert into public.weekly_check_ins (user_id, week_start, energy, notes)
+select pg_temp.u(4), pg_temp.mon0() - 7 * i, 1 + i % 5, repeat(chr(34), 50) from generate_series(0, 7) i;
 insert into public.workout_sessions (id, user_id, name, status, started_at, ended_at)
 select ('a5000000-0000-4000-8000-0000000002' || lpad(i::text, 2, '0'))::uuid, pg_temp.u(4), 's', 'completed',
        now() - make_interval(days => i), now() - make_interval(days => i) + interval '1 hour'
@@ -113,8 +114,9 @@ select ('a5000000-0000-4000-8000-0000000002' || lpad(s::text, 2, '0'))::uuid,
        ('e5000000-0000-4000-8000-0000000001' || lpad(e::text, 2, '0'))::uuid, e, 1, 50 + e + (55 - s) / 2.0, 8,
        now() - make_interval(days => s), case when e > 16 then 1200 end
 from generate_series(0, 55) s, generate_series(1, 20) e;
-insert into public.exercise_discomforts (user_id, exercise_id, level, logged_at)
-select pg_temp.u(4), ('e5000000-0000-4000-8000-0000000001' || lpad(i::text, 2, '0'))::uuid, 1 + i % 5, now() - make_interval(hours => i)
+insert into public.exercise_discomforts (user_id, exercise_id, level, logged_at, note)
+select pg_temp.u(4), ('e5000000-0000-4000-8000-0000000001' || lpad(i::text, 2, '0'))::uuid, 1 + i % 5, now() - make_interval(hours => i),
+       repeat(chr(34), 50)
 from generate_series(1, 12) i;
 
 -- ---------------------------------------------------------------------------
@@ -169,7 +171,8 @@ select is(pg_temp.sm(1)->'weeks'->7->'sets_by_muscle'->0, '{"muscle": "chest", "
 select is(pg_temp.sm(1)->'open_discomforts', jsonb_build_array(
   jsonb_build_object('exercise', (select squat_key from cat), 'level', 3, 'logged_on', (now() - interval '1 day')::date)),
   'only open discomforts are listed, without their text');
-select ok(pg_temp.sm(1)::text !~ 'SECRET|resuelta|antigua', 'no free text of any kind is exported');
+select ok(pg_temp.sm(1)::text !~ 'NOTA_SECRETA|DESC_SECRETA|COMIDA_SECRETA|EJERCICIO_SECRETO',
+  'set notes, session descriptions, food names and custom exercise names are never exported');
 select ok(pg_temp.sm(1)::text !~ 'food_log_entries|body_measurements|workout_sets|daily_activity|sleep_sessions',
   'no raw table names or rows are exported');
 
@@ -189,7 +192,7 @@ select is((pg_temp.sm(1)->'main_lifts'->0->'weekly_e1rm'->>7)::numeric, 233.5::n
 select is(jsonb_array_length(pg_temp.sm(4)->'main_lifts'), 12, 'main lifts are capped at 12');
 select is(jsonb_array_length(pg_temp.sm(4)->'open_discomforts'), 10, 'open discomforts are capped at 10');
 select ok(octet_length(pg_temp.sm(4)::text) <= 16384, 'the worst-case summary fits in 16 384 bytes');
-select ok(octet_length(pg_temp.sm(4)::text) <= 13000, 'and keeps a margin of about 20 percent');
+select ok(octet_length(pg_temp.sm(4)::text) <= 14500, 'and with 20 free-text lines of escaped quotes it measures 14 158 bytes, margin of about 12 percent');
 
 -- T-182: cardio_favorites
 select is(pg_temp.sm(1)->'cardio_favorites',
@@ -199,6 +202,28 @@ select is(pg_temp.sm(1)->'cardio_favorites',
 select is(pg_temp.sm(2)->'cardio_favorites', '[]'::jsonb, 'an empty user has no cardio favorites');
 select ok(jsonb_array_length(pg_temp.sm(4)->'cardio_favorites') <= 3, 'cardio favorites are capped at 3');
 select is(jsonb_typeof(pg_temp.sm(4)->'cardio_favorites'), 'array', 'cardio_favorites is always an array');
+
+-- T-185: free_text, the user's own words (ADR-87)
+select is(pg_temp.sm(2)->'free_text', '[]'::jsonb, 'a user with no notes has an empty free_text array');
+select is(jsonb_array_length(pg_temp.sm(1)->'free_text'), 4,
+  'user 1 sends the check-in note and the three discomfort notes (resolved and older ones included)');
+select is((select array_agg(x ->> 'date' order by o) from jsonb_array_elements(pg_temp.sm(1)->'free_text') with ordinality t(x, o)),
+          (select array_agg(x ->> 'date' order by x ->> 'date' desc) from jsonb_array_elements(pg_temp.sm(1)->'free_text') t(x)),
+  'the free_text lines are newest first');
+select is((select array_agg(distinct k order by k) from jsonb_array_elements(pg_temp.sm(1)->'free_text') t(x), jsonb_object_keys(x) k),
+          array['date', 'origin', 'text'], 'each line is {origin, date, text}');
+select is((select x ->> 'origin' from jsonb_array_elements(pg_temp.sm(1)->'free_text') t(x) where x ->> 'text' = 'CHECKIN_SECRETO'),
+          'check_in', 'the check-in note keeps its origin');
+select is(jsonb_array_length(pg_temp.sm(4)->'free_text'), 20, 'the worst case sends 20 lines');
+
+select pg_temp.sm(1);
+select public.set_free_text_line_excluded('check_in', pg_temp.mon0()::text, true);
+select is(jsonb_array_length(pg_temp.sm(1)->'free_text'), 3, 'an excluded line leaves the summary');
+select ok(pg_temp.sm(1)::text !~ 'CHECKIN_SECRETO', 'and its text is not in the payload');
+select is((select notes from public.weekly_check_ins where user_id = pg_temp.u(1) and week_start = pg_temp.mon0()),
+          'CHECKIN_SECRETO', 'while the check-in note itself is intact');
+select public.set_free_text_line_excluded('check_in', pg_temp.mon0()::text, false);
+select is(jsonb_array_length(pg_temp.sm(1)->'free_text'), 4, 'including it again brings it back');
 
 select * from finish();
 rollback;

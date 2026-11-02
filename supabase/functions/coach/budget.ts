@@ -1,5 +1,5 @@
 // Monthly AI budget (planning/07 section 11). The app mirrors USER_LIMIT_EUR in CoachBudget.USER_MONTHLY_LIMIT_EUR.
-export const USER_LIMIT_EUR = 2;
+export const USER_LIMIT_EUR = 3;
 export const GLOBAL_LIMIT_EUR = 5;
 
 export type BudgetVerdict = { ok: true } | {
