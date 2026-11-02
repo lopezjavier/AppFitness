@@ -14,6 +14,7 @@ import io.github.lopezjavier.appfitness.domain.model.WarmUpSet
 import io.github.lopezjavier.appfitness.domain.usecase.SaveBodyMeasurement
 import io.github.lopezjavier.appfitness.feature.exercises.FakeExerciseLibrary
 import io.github.lopezjavier.appfitness.feature.exercises.FakeExerciseRepository
+import io.github.lopezjavier.appfitness.feature.exercises.exerciseInfo
 import io.github.lopezjavier.appfitness.feature.exercises.exerciseRow
 import io.github.lopezjavier.appfitness.feature.routines.FakeRoutineRepository
 import io.github.lopezjavier.appfitness.feature.weight.FakeWeightRepository
@@ -59,7 +60,9 @@ class CalculatorSheetViewModelTest {
     private fun newViewModel(savedState: SavedStateHandle = SavedStateHandle()) = LiveSessionViewModel(
         repository,
         exercises,
-        FakeExerciseLibrary(emptyMap()),
+        FakeExerciseLibrary(
+            mapOf("bench" to exerciseInfo("bench", "Press banca"), "curl" to exerciseInfo("curl", "Curl")),
+        ),
         connectivity,
         clock,
         FakeHaptics(),

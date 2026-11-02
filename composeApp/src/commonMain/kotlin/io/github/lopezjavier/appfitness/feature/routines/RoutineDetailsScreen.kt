@@ -240,7 +240,7 @@ private fun DetailsList(
         }
         items(content.exercises, key = { it.exerciseId }) { exercise ->
             ExerciseRow(
-                name = exercise.name ?: exercise.exerciseId,
+                name = exercise.name,
                 supporting = setsSummary(exercise.plannedSets),
                 onOpen = { onOpenExercise(exercise.exerciseId) },
                 tagPrefix = "${TAG}_exercise_${exercise.exerciseId}",

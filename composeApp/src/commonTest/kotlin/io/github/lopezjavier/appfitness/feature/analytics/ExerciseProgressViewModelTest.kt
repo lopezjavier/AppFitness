@@ -3,9 +3,11 @@ package io.github.lopezjavier.appfitness.feature.analytics
 import androidx.lifecycle.SavedStateHandle
 import io.github.lopezjavier.appfitness.app.FakeTrainingPreferencesRepository
 import io.github.lopezjavier.appfitness.domain.AppError
+import io.github.lopezjavier.appfitness.domain.model.Equipment
 import io.github.lopezjavier.appfitness.domain.model.ExerciseMetricType
 import io.github.lopezjavier.appfitness.domain.model.ExerciseSessionRecords
 import io.github.lopezjavier.appfitness.domain.model.MaxRepsPoint
+import io.github.lopezjavier.appfitness.domain.model.MuscleGroup
 import io.github.lopezjavier.appfitness.domain.model.ProgressMetric
 import io.github.lopezjavier.appfitness.domain.model.ProgressRange
 import io.github.lopezjavier.appfitness.domain.model.TrainingPreferences
@@ -250,6 +252,30 @@ class ExerciseProgressViewModelTest {
     fun aMaxRepsFailureShowsError() = runTest(dispatcher) {
         workouts.sessionRecords = mapOf("bench" to listOf(session(LocalDate(2026, 10, 15), volume = 0.0)))
         strength.maxRepsFailure = AppError.Network
+        val model = viewModel()
+
+        advanceUntilIdle()
+
+        assertEquals(ExerciseProgressUiState.Error, model.uiState.value)
+    }
+
+    @Test
+    fun aCustomExercise_titlesTheScreenWithItsNameAndFollowsARename() = runTest(dispatcher) {
+        exercises.rows = listOf(exerciseRow("bench", null, name = "Mi press", custom = true))
+        workouts.sessionRecords = mapOf("bench" to listOf(session(LocalDate(2026, 10, 15), 110.0)))
+        val model = viewModel()
+        advanceUntilIdle()
+        assertEquals("Mi press", model.content().name)
+
+        exercises.updateCustom("bench", "Press nuevo", MuscleGroup.Chest, Equipment.Barbell, false, null)
+        advanceUntilIdle()
+
+        assertEquals("Press nuevo", model.content().name)
+    }
+
+    @Test
+    fun anUnreadableExerciseList_isTheErrorState() = runTest(dispatcher) {
+        exercises.failure = AppError.Network
         val model = viewModel()
 
         advanceUntilIdle()

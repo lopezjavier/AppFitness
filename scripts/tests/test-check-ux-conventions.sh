@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Fixture tests for scripts/check-ux-conventions.sh (T-118). For each guard G1..G11 (G13/G14: own cases below) a small tree under
+# Fixture tests for scripts/check-ux-conventions.sh (T-118). For each guard G1..G11 (G16: own cases below; G13/G14: own cases below) a small tree under
 # scripts/tests/ux-conventions/g<n>/ holds one violating file. Three cases per guard:
 #   violation  : no warning list              -> exit 1
 #   listed     : path in the warning list     -> exit 0 and a WARN line
@@ -89,6 +89,43 @@ expect "G15 LiveExerciseCard without help buttons passes" 0 NOWARN
 printf 'G15 .*\n' > "$work/listed-g15.txt"
 run "$here/ux-conventions/g15" "$work/listed-g15.txt"
 expect "G15 violation in a listed path warns and passes (parser accepts G15)" 0 WARN
+
+# G16 (R-54): no generic exercise labels or name fallbacks.
+mk16() { # name file-path content
+  local d="$work/g16-$1"
+  mkdir -p "$d/$(dirname "$2")"
+  printf '%s\n' "$3" > "$d/$2"
+  echo "$d"
+}
+kt16="composeApp/src/commonMain/kotlin/demo/feature/workout/Card.kt"
+xml16="composeApp/src/commonMain/composeResources/values/strings.xml"
+run "$(mk16 a "$xml16" '<string name="x">Ejercicio sin nombre</string>')" "$empty"
+expect "G16 generic exercise label in strings.xml fails" 1
+run "$(mk16 b "$xml16" '<string name="exercise_detail_title">Ejercicio</string>')" "$empty"
+expect "G16 exercise_detail_title is allow-listed" 0 NOWARN
+run "$(mk16 c "$kt16" 'val n = exercise.name ?: stringResource(Res.string.x)')" "$empty"
+expect "G16 name falling back to a string fails" 1
+run "$(mk16 d "$kt16" 'val n = exercise.name.ifBlank { "x" }')" "$empty"
+expect "G16 ifBlank on an exercise name fails" 1
+run "$(mk16 e "$kt16" 'val n = names[id] ?: exerciseId')" "$empty"
+expect "G16 raw exercise id as a label fails" 1
+run "$(mk16 f "$kt16" 'val n = folder.name.orEmpty()')" "$empty"
+expect "G16 orEmpty on a non-exercise name passes" 0 NOWARN
+run "$(mk16 h "$kt16" 'val n = names[id].orEmpty()')" "$empty"
+expect "G16 orEmpty on names[id] fails" 1
+run "$(mk16 i "$kt16" 'val n = names[id]?.ifBlank { "x" }')" "$empty"
+expect "G16 ifBlank on names[id] fails" 1
+run "$(mk16 j "$kt16" 'val n = lookup.names[id] ?: ""')" "$empty"
+expect "G16 empty-string elvis on lookup.names[id] fails" 1
+run "$(mk16 k "$kt16" 'val n = items.map { it.name ?: stringResource(Res.string.x) }')" "$empty"
+expect "G16 it.name falling back to a string fails" 1
+run "$(mk16 l "$kt16" 'val n = ex?.name ?: stringResource(Res.string.x)')" "$empty"
+expect "G16 ex?.name falling back to a string fails" 1
+run "$(mk16 m "$kt16" 'val n = row.rpe ?: stringResource(Res.string.x)')" "$empty"
+expect "G16 a non-name value with a string fallback passes" 0 NOWARN
+printf 'G16 .*\n' > "$work/listed-g16.txt"
+run "$(mk16 g "$kt16" 'val n = exercise.name ?: stringResource(Res.string.x)')" "$work/listed-g16.txt"
+expect "G16 violation in a listed path warns and passes (parser accepts G16)" 0 WARN
 
 # The folder-delete dialog of the routines list is on the R-08 allow-list (G5).
 run "$here/ux-conventions/g5-allowed" "$empty"

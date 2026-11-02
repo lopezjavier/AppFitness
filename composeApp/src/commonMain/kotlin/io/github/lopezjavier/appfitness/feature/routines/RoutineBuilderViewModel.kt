@@ -63,6 +63,10 @@ class RoutineBuilderViewModel(
             ?: (if (routineId == null || restored == null) RoutineDraft() else restored)
     private var phase: Phase = if (routineId != null && restored == null) Phase.Loading else Phase.Editing
     private var catalog: Map<String, CatalogExercise> = emptyMap()
+
+    /** True once the exercises were read: rows are never shown before their names are known (R-54). */
+    private var catalogLoaded = false
+    private var routineLoaded = false
     private var online = true
     private var saving = false
     private var saved = false
@@ -107,6 +111,7 @@ class RoutineBuilderViewModel(
                 publish()
             }
         }
+        viewModelScope.launch { loadCatalog.changes.collect { if (catalogLoaded) refreshCatalog() } }
         if (phase == Phase.Loading) loadRoutine() else loadNames()
         loadSheetData()
         loadOtherNames()
@@ -116,7 +121,7 @@ class RoutineBuilderViewModel(
     fun onEvent(event: RoutineBuilderEvent) {
         when (event) {
             RoutineBuilderEvent.Save -> save()
-            RoutineBuilderEvent.Retry -> if (phase == Phase.LoadError) loadRoutine()
+            RoutineBuilderEvent.Retry -> if (phase == Phase.LoadError) retryLoad()
             is RoutineBuilderEvent.OpenTypePicker -> openPicker(event.index, event.setIndex)
             RoutineBuilderEvent.CloseTypePicker -> setPicker(null)
             else -> if (!sheetEvent(event)) editEvent(event)
@@ -157,8 +162,19 @@ class RoutineBuilderViewModel(
     }
 
     private fun editEvent(event: RoutineBuilderEvent) {
-        // An exercise created in the picker after this screen opened is not in the loaded catalog yet.
-        if (event is RoutineBuilderEvent.AddExercise && event.exerciseId !in catalog) loadNames()
+        if (event is RoutineBuilderEvent.AddExercise && event.exerciseId !in catalog) {
+            // An exercise created in the picker after this screen opened is not in the loaded catalog yet; one that
+            // cannot be named is not added, so the list never shows a generic row.
+            viewModelScope.launch {
+                refreshCatalog()
+                if (event.exerciseId in catalog) applyEdit(event)
+            }
+            return
+        }
+        applyEdit(event)
+    }
+
+    private fun applyEdit(event: RoutineBuilderEvent) {
         listEdit(event)?.let { edit(it) }
         setsEdit(event)?.let { edit(it) }
         targetEdit(event)?.let { (index, change) -> editRow(index, change) }
@@ -257,11 +273,13 @@ class RoutineBuilderViewModel(
         publish()
         viewModelScope.launch {
             val routine = repository.get(id).getOrNull()
-            val names = loadCatalog().getOrNull()
-            if (routine == null || names == null) {
+            val names = loadCatalog().getOrNull()?.associateBy { it.id }
+            if (routine == null || names == null || routine.exercises.any { it.exerciseId !in names }) {
                 phase = Phase.LoadError
             } else {
-                catalog = names.associateBy { it.id }
+                catalog = names
+                catalogLoaded = true
+                routineLoaded = true
                 draft = routine.toDraft()
                 baseline = draft
                 savedState[KEY_BASELINE] = encode(baseline)
@@ -272,14 +290,37 @@ class RoutineBuilderViewModel(
         }
     }
 
-    /** Fills in the exercise names; a failure just leaves the rows unnamed. */
+    private fun retryLoad() {
+        if (routineId != null && !routineLoaded && restored == null) {
+            loadRoutine()
+        } else {
+            phase = Phase.Editing
+            publish()
+            loadNames()
+        }
+    }
+
+    /** Reads the exercise names for a restored or new draft; a draft with rows that cannot be named is a load error. */
     private fun loadNames() {
         viewModelScope.launch {
-            loadCatalog().onSuccess { list ->
-                catalog = list.associateBy { it.id }
-                publish()
+            val names = loadCatalog().getOrNull()?.associateBy { it.id }
+            if (names != null && draft.rows.all { it.exerciseId in names }) {
+                catalog = names
+                catalogLoaded = true
+            } else if (draft.rows.isNotEmpty()) {
+                phase = Phase.LoadError
             }
+            publish()
         }
+    }
+
+    /** Re-reads the exercises (a created or renamed one); a failed read keeps the names already known. */
+    private suspend fun refreshCatalog() {
+        val names = loadCatalog().getOrNull()?.associateBy { it.id } ?: return
+        if (draft.rows.any { it.exerciseId !in names }) return
+        catalog = names
+        catalogLoaded = true
+        publish()
     }
 
     /** Best effort: a failed read keeps the defaults (1 kg handle) and never blocks. */
@@ -410,7 +451,9 @@ class RoutineBuilderViewModel(
 
         Phase.LoadError -> RoutineBuilderUiState.LoadError
 
-        Phase.Editing -> {
+        Phase.Editing -> if (!catalogLoaded && draft.rows.isNotEmpty()) {
+            RoutineBuilderUiState.Loading
+        } else {
             val labels = supersetLabels(draft.rows.map(DraftRow::group))
             val lastIndex = draft.rows.lastIndex
             val calculator = renderCalculator()
@@ -419,12 +462,12 @@ class RoutineBuilderViewModel(
                 name = draft.name,
                 rows =
                 draft.rows.mapIndexed { index, row ->
-                    val exercise = catalog[row.exerciseId]
+                    val exercise = catalog.getValue(row.exerciseId)
                     BuilderRowUi(
                         rowId = row.rowId,
                         exerciseId = row.exerciseId,
-                        name = exercise?.name,
-                        imageKey = exercise?.takeIf { it.hasMedia }?.exercise?.key,
+                        name = exercise.name,
+                        imageKey = exercise.takeIf { it.hasMedia }?.exercise?.key,
                         plannedSets = row.sets.map { it.toUi() },
                         restSeconds = row.restSeconds,
                         targetRpe = row.targetRpe,
@@ -435,8 +478,8 @@ class RoutineBuilderViewModel(
                         canMoveUp = index > 0,
                         canMoveDown = index < lastIndex,
                         canGroupWithNext = index < lastIndex,
-                        equipment = exercise?.exercise?.equipment,
-                        isPerHand = exercise?.exercise?.perHand == true,
+                        equipment = exercise.exercise.equipment,
+                        isPerHand = exercise.exercise.perHand,
                     )
                 },
                 isOnline = online,

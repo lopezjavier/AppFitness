@@ -18,6 +18,7 @@ import io.github.lopezjavier.appfitness.domain.repository.WorkoutSessionReposito
 import io.github.lopezjavier.appfitness.domain.repository.warmUpIncludedOrDefault
 import io.github.lopezjavier.appfitness.domain.usecase.ComputeSessionStats
 import io.github.lopezjavier.appfitness.domain.usecase.DetectSessionPersonalRecords
+import io.github.lopezjavier.appfitness.domain.usecase.ExerciseNameResolver
 import io.github.lopezjavier.appfitness.domain.usecase.MuscleSplit
 import io.github.lopezjavier.appfitness.domain.usecase.PersonalRecordCatalogue
 import io.github.lopezjavier.appfitness.domain.usecase.SaveWorkoutAsRoutine
@@ -45,13 +46,14 @@ class SessionDetailViewModel(
     private val sessionId: String,
     private val repository: WorkoutSessionRepository,
     private val exerciseRepository: ExerciseRepository,
-    private val exerciseLibrary: ExerciseLibrary,
+    exerciseLibrary: ExerciseLibrary,
     connectivity: ConnectivityObserver,
     private val clock: Clock,
     private val preferences: TrainingPreferencesRepository,
     private val bodyMeasurements: BodyMeasurementRepository,
     private val routineRepository: RoutineRepository,
     private val savedState: SavedStateHandle = SavedStateHandle(),
+    private val exerciseNames: ExerciseNameResolver = ExerciseNameResolver(exerciseRepository, exerciseLibrary),
 ) : ViewModel() {
     private var session: WorkoutSession? = null
     private var names: Map<String, String> = emptyMap()
@@ -94,6 +96,15 @@ class SessionDetailViewModel(
                 publish()
             }
         }
+        viewModelScope.launch {
+            exerciseNames.observeChanges().collect { resolved ->
+                val current = session
+                if (current != null && current.exercises.all { resolved[it.exerciseId] != null }) {
+                    names = resolved.byId
+                    publish()
+                }
+            }
+        }
         load()
         if (routineSheetOpen) loadRoutineNames()
     }
@@ -131,12 +142,16 @@ class SessionDetailViewModel(
         viewModelScope.launch {
             repository.getSession(sessionId).fold(
                 onSuccess = { loaded ->
-                    if (loaded == null) {
-                        terminal = SessionDetailUiState.Error
+                    val resolved = exerciseNames.resolve().getOrNull()
+                    // A failed name read or an exercise without a name is a failed load, never a generic row (R-54).
+                    if (loaded == null || resolved == null ||
+                        loaded.exercises.any { resolved[it.exerciseId] == null }
+                    ) {
+                        if (loaded == null || showLoading) terminal = SessionDetailUiState.Error
                     } else {
                         session = loaded
-                        val lookup = loadExerciseLookup(exerciseRepository, exerciseLibrary)
-                        names = lookup?.names ?: names
+                        names = resolved.byId
+                        val lookup = loadExerciseLookup(exerciseRepository)
                         groups = lookup?.groups ?: groups
                         includeWarmUp = preferences.warmUpIncludedOrDefault()
                         bodyWeightKg = bodyMeasurements.getLatestWeight().getOrNull()?.weightKg
@@ -248,7 +263,7 @@ class SessionDetailViewModel(
                 DetailExercise(
                     position = exercise.position,
                     exerciseId = exercise.exerciseId,
-                    name = names[exercise.exerciseId],
+                    name = names.getValue(exercise.exerciseId),
                     sets = exercise.sets.sortedBy { it.setIndex }.filter { it.isCompleted }.map { set ->
                         DetailSet(
                             set.setIndex,

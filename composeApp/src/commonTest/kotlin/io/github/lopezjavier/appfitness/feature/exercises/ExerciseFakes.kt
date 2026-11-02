@@ -12,6 +12,9 @@ import io.github.lopezjavier.appfitness.domain.model.MuscleGroup
 import io.github.lopezjavier.appfitness.domain.port.ExerciseLibrary
 import io.github.lopezjavier.appfitness.domain.repository.ExerciseRepository
 import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.asSharedFlow
 
 /** Synthetic exercise rows and library (never RepDB content). */
 fun exerciseRow(
@@ -28,12 +31,21 @@ fun exerciseRow(
 fun exerciseInfo(key: String, name: String, hasPeak: Boolean = true) =
     ExerciseInfo(key, name, "Descripcion", listOf("Primer paso", "Segundo paso"), listOf("Un consejo"), hasPeak)
 
+/** Library naming the synthetic `bench` and `squat` keys used by the workout fixtures. */
+fun benchSquatLibrary() = FakeExerciseLibrary(
+    mapOf("bench" to exerciseInfo("bench", "Press banca"), "squat" to exerciseInfo("squat", "Sentadilla")),
+)
+
 class FakeExerciseLibrary(var entries: Map<String, ExerciseInfo> = emptyMap()) : ExerciseLibrary {
     override suspend fun load(): Map<String, ExerciseInfo> = entries
 }
 
 class FakeExerciseRepository(var rows: List<Exercise> = emptyList(), var failure: AppError? = null) :
     ExerciseRepository {
+    private val changed = MutableSharedFlow<Unit>(extraBufferCapacity = 16)
+
+    override val changes: Flow<Unit> = changed.asSharedFlow()
+
     var createCalls = 0
     var createFailure: AppError? = null
     var lastCreated: Triple<String, MuscleGroup, Equipment>? = null
@@ -88,6 +100,7 @@ class FakeExerciseRepository(var rows: List<Exercise> = emptyList(), var failure
         val created = exerciseRow("custom-$createCalls", null, muscleGroup, equipment, name, custom = true)
             .copy(metricType = metricType, perHand = perHand, movementPattern = movementPattern)
         rows = rows + created
+        changed.tryEmit(Unit)
         return Result.success(created)
     }
 
@@ -115,6 +128,7 @@ class FakeExerciseRepository(var rows: List<Exercise> = emptyList(), var failure
                 it
             }
         }
+        changed.tryEmit(Unit)
         return Result.success(Unit)
     }
 
@@ -123,6 +137,7 @@ class FakeExerciseRepository(var rows: List<Exercise> = emptyList(), var failure
         val failure = deleteFailure ?: AppError.NotFound.takeIf { rows.none { it.id == id && it.isCustom } }
         if (failure != null) return Result.failure(AppException(failure))
         rows = rows.filter { it.id != id }
+        changed.tryEmit(Unit)
         return Result.success(Unit)
     }
 }

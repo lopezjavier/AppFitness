@@ -23,7 +23,6 @@ import androidx.compose.ui.text.withStyle
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.github.lopezjavier.appfitness.composeapp.resources.Res
 import io.github.lopezjavier.appfitness.composeapp.resources.action_retry
-import io.github.lopezjavier.appfitness.composeapp.resources.exercise_unnamed
 import io.github.lopezjavier.appfitness.composeapp.resources.muscle_volume_open
 import io.github.lopezjavier.appfitness.composeapp.resources.strength_card_title
 import io.github.lopezjavier.appfitness.composeapp.resources.strength_delta_down
@@ -133,8 +132,7 @@ private fun StrengthContent(
     onOpenExercise: (String) -> Unit,
     onOpenMuscleVolume: () -> Unit,
 ) {
-    val unnamed = stringResource(Res.string.exercise_unnamed)
-    val options = state.chips.map { AppOption(it.name ?: unnamed, "strength_chip_${it.exerciseId}") }
+    val options = state.chips.map { AppOption(it.name, "strength_chip_${it.exerciseId}") }
     val selectedIndex = state.chips.indexOfFirst { it.exerciseId == state.selectedId }.takeIf { it >= 0 }
     Column(
         Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(Spacing.screenMargin),

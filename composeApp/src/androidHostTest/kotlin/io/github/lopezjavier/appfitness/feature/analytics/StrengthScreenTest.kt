@@ -1,5 +1,8 @@
 package io.github.lopezjavier.appfitness.feature.analytics
 
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.test.assertIsNotSelected
 import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.assertTextEquals
@@ -178,5 +181,21 @@ class StrengthScreenTest {
         show(StrengthUiState.Loading)
 
         rule.onNodeWithTag("strength_loading").assertExists()
+    }
+
+    @Test
+    fun customExercise_isShownByItsName_andARenameIsShownWithoutRecreating() {
+        var chips by mutableStateOf(listOf(StrengthChip("custom-1", "Remo en anillas")))
+        rule.setContent {
+            AppTheme {
+                StrengthScreen(StrengthUiState.Content(chips, "custom-1", null), {}, {}, {}, {}, {})
+            }
+        }
+        rule.onNodeWithTag("strength_chip_custom-1").assertTextEquals("Remo en anillas")
+
+        chips = listOf(StrengthChip("custom-1", "Remo invertido"))
+        rule.waitForIdle()
+
+        rule.onNodeWithTag("strength_chip_custom-1").assertTextEquals("Remo invertido")
     }
 }

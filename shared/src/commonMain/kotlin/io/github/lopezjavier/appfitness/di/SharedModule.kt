@@ -124,6 +124,7 @@ import io.github.lopezjavier.appfitness.domain.usecase.CookedItemNutrition
 import io.github.lopezjavier.appfitness.domain.usecase.CurrentWeight
 import io.github.lopezjavier.appfitness.domain.usecase.DefaultMealSlot
 import io.github.lopezjavier.appfitness.domain.usecase.DeleteAccount
+import io.github.lopezjavier.appfitness.domain.usecase.ExerciseNameResolver
 import io.github.lopezjavier.appfitness.domain.usecase.GetAccountProtection
 import io.github.lopezjavier.appfitness.domain.usecase.GroupMealEntries
 import io.github.lopezjavier.appfitness.domain.usecase.HealthWriteBack
@@ -438,6 +439,7 @@ val sharedModule =
         factory { DeleteAccount(get(), get()) }
         factory { GetAccountProtection(get()) }
         factory { LoadExerciseCatalog(get(), get()) }
+        single { ExerciseNameResolver(get(), get()) }
         factory { SearchExercises() }
         factory { ValidateBodyMeasurement() }
         factory { ValidateCircumference() }

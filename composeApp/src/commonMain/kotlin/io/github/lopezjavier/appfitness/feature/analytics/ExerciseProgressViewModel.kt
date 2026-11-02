@@ -4,6 +4,7 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import io.github.lopezjavier.appfitness.domain.model.ExerciseMetricType
+import io.github.lopezjavier.appfitness.domain.model.ExerciseNames
 import io.github.lopezjavier.appfitness.domain.model.ExerciseSessionRecords
 import io.github.lopezjavier.appfitness.domain.model.MaxRepsPoint
 import io.github.lopezjavier.appfitness.domain.model.ProgressMetric
@@ -17,6 +18,7 @@ import io.github.lopezjavier.appfitness.domain.repository.WorkoutSessionReposito
 import io.github.lopezjavier.appfitness.domain.repository.warmUpIncludedOrDefault
 import io.github.lopezjavier.appfitness.domain.usecase.BuildExerciseProgress
 import io.github.lopezjavier.appfitness.domain.usecase.ChartMetricSelection
+import io.github.lopezjavier.appfitness.domain.usecase.ExerciseNameResolver
 import io.github.lopezjavier.appfitness.feature.workout.loadExerciseLookup
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -37,6 +39,7 @@ class ExerciseProgressViewModel(
     private val clock: Clock,
     private val preferences: TrainingPreferencesRepository,
     private val savedState: SavedStateHandle = SavedStateHandle(),
+    private val exerciseNames: ExerciseNameResolver = ExerciseNameResolver(exerciseRepository, exerciseLibrary),
 ) : ViewModel() {
     private var name: String? = null
     private var records: List<ExerciseSessionRecords> = emptyList()
@@ -49,6 +52,7 @@ class ExerciseProgressViewModel(
     val uiState: StateFlow<ExerciseProgressUiState> = _uiState.asStateFlow()
 
     init {
+        viewModelScope.launch { exerciseNames.observeChanges().collect(::rename) }
         load()
     }
 
@@ -68,8 +72,9 @@ class ExerciseProgressViewModel(
         _uiState.value = ExerciseProgressUiState.Loading
         viewModelScope.launch {
             val sessions = workouts.sessionRecords(exerciseId).getOrNull()
-            val lookup = loadExerciseLookup(exerciseRepository, exerciseLibrary)
-            if (sessions == null || lookup == null) {
+            val lookup = loadExerciseLookup(exerciseRepository)
+            val title = exerciseNames.resolve().getOrNull()?.get(exerciseId)
+            if (sessions == null || lookup == null || title == null) {
                 _uiState.value = ExerciseProgressUiState.Error
                 return@launch
             }
@@ -89,14 +94,25 @@ class ExerciseProgressViewModel(
             records = sessions
             metricType = type
             maxReps = reps
-            name = lookup.names[exerciseId]
-            if (sessions.isEmpty()) _uiState.value = ExerciseProgressUiState.Empty(name) else publish()
+            name = title
+            if (sessions.isEmpty()) _uiState.value = ExerciseProgressUiState.Empty(title) else publish()
+        }
+    }
+
+    /** A renamed custom exercise updates the title already shown. */
+    private fun rename(names: ExerciseNames) {
+        val title = names[exerciseId] ?: return
+        name = title
+        when (_uiState.value) {
+            is ExerciseProgressUiState.Content -> publish()
+            is ExerciseProgressUiState.Empty -> _uiState.value = ExerciseProgressUiState.Empty(title)
+            else -> Unit
         }
     }
 
     private fun publish() {
         _uiState.value = ExerciseProgressUiState.Content(
-            name = name,
+            name = name.orEmpty(),
             range = range,
             progress = BuildExerciseProgress(records, metricType, maxReps, range, clock.today()),
         )

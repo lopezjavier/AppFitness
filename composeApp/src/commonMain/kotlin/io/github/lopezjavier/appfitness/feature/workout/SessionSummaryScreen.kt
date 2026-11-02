@@ -20,7 +20,6 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
 import io.github.lopezjavier.appfitness.composeapp.resources.Res
 import io.github.lopezjavier.appfitness.composeapp.resources.action_done
-import io.github.lopezjavier.appfitness.composeapp.resources.exercise_unnamed
 import io.github.lopezjavier.appfitness.composeapp.resources.summary_duration
 import io.github.lopezjavier.appfitness.composeapp.resources.summary_sets
 import io.github.lopezjavier.appfitness.composeapp.resources.summary_title
@@ -73,7 +72,7 @@ internal fun SessionSummaryScreen(summary: LiveSummary, onDone: () -> Unit, modi
                     modifier = Modifier.padding(top = Spacing.sm).semantics { heading() },
                 )
                 summary.summary.exercises.forEach { exercise ->
-                    ExerciseVolumeRow(exercise, summary.exerciseNames[exercise.position])
+                    ExerciseVolumeRow(exercise, summary.exerciseNames.getValue(exercise.position))
                 }
             }
             PrimaryButton(
@@ -98,7 +97,7 @@ private fun StatRow(label: String, value: String, tag: String) {
 }
 
 @Composable
-private fun ExerciseVolumeRow(exercise: ExerciseSummary, name: String?) {
+private fun ExerciseVolumeRow(exercise: ExerciseSummary, name: String) {
     val volume = volumeText(exercise.volume)
     AppCard(Modifier.fillMaxWidth()) {
         Column(verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
@@ -109,7 +108,7 @@ private fun ExerciseVolumeRow(exercise: ExerciseSummary, name: String?) {
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Text(
-                    text = name ?: stringResource(Res.string.exercise_unnamed),
+                    text = name,
                     style = AppTheme.typography.titleMedium,
                     color = AppTheme.colors.textPrimary,
                     maxLines = 2,

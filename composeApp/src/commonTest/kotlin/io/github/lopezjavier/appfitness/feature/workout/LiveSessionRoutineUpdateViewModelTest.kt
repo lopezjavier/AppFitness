@@ -16,8 +16,8 @@ import io.github.lopezjavier.appfitness.domain.model.SessionStatus
 import io.github.lopezjavier.appfitness.domain.model.SetNoteKind
 import io.github.lopezjavier.appfitness.domain.model.TrainingPreferences
 import io.github.lopezjavier.appfitness.domain.usecase.SaveBodyMeasurement
-import io.github.lopezjavier.appfitness.feature.exercises.FakeExerciseLibrary
 import io.github.lopezjavier.appfitness.feature.exercises.FakeExerciseRepository
+import io.github.lopezjavier.appfitness.feature.exercises.benchSquatLibrary
 import io.github.lopezjavier.appfitness.feature.exercises.exerciseRow
 import io.github.lopezjavier.appfitness.feature.routines.FakeRoutineRepository
 import io.github.lopezjavier.appfitness.feature.weight.FakeWeightRepository
@@ -52,7 +52,7 @@ class LiveSessionRoutineUpdateViewModelTest {
     private fun newViewModel(savedState: SavedStateHandle = SavedStateHandle()) = LiveSessionViewModel(
         repository,
         exercises,
-        FakeExerciseLibrary(emptyMap()),
+        benchSquatLibrary(),
         FakeConnectivityObserver(),
         clock,
         FakeHaptics(),
@@ -301,7 +301,7 @@ class LiveSessionRoutineUpdateViewModelTest {
     fun aRestChangedOffline_isSentWhenTheConnectionReturns() = runSessionTest {
         val connectivity = FakeConnectivityObserver()
         val vm = LiveSessionViewModel(
-            repository, exercises, FakeExerciseLibrary(emptyMap()), connectivity, clock, FakeHaptics(), routines,
+            repository, exercises, benchSquatLibrary(), connectivity, clock, FakeHaptics(), routines,
             FakeAlertSound(), trainingPreferences, bodyMeasurements,
             SaveBodyMeasurement(bodyMeasurements, clock, TimeZone.UTC), TimeZone.UTC, SavedStateHandle(),
         ).also { created = it }

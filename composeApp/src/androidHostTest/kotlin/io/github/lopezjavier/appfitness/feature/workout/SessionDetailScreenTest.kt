@@ -1,5 +1,8 @@
 package io.github.lopezjavier.appfitness.feature.workout
 
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
@@ -323,5 +326,21 @@ class SessionDetailScreenTest {
         rule.onNodeWithTag("save_as_routine_sheet_input").performTextClearance()
 
         rule.onNodeWithTag("save_as_routine_sheet_commit").assertIsNotEnabled()
+    }
+
+    @Test
+    fun customExercise_isShownByItsName_andARenameIsShownWithoutRecreating() {
+        fun withName(name: String) = detail().let {
+            it.copy(exercises = it.exercises.map { e -> if (e.exerciseId == "e1") e.copy(name = name) else e })
+        }
+        var state by mutableStateOf<SessionDetailUiState>(withName("Curl con cuerda"))
+        rule.setContent { AppTheme { SessionDetailScreen(state, {}) } }
+        rule.onNodeWithText("Curl con cuerda").assertExists()
+
+        state = withName("Curl martillo")
+        rule.waitForIdle()
+
+        rule.onNodeWithText("Curl martillo").assertExists()
+        rule.onNodeWithText("Curl con cuerda").assertDoesNotExist()
     }
 }

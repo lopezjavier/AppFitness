@@ -6,8 +6,10 @@ import io.github.lopezjavier.appfitness.app.FakeConnectivityObserver
 import io.github.lopezjavier.appfitness.app.FakeTrainingPreferencesRepository
 import io.github.lopezjavier.appfitness.domain.AppError
 import io.github.lopezjavier.appfitness.domain.AppException
+import io.github.lopezjavier.appfitness.domain.model.Equipment
 import io.github.lopezjavier.appfitness.domain.model.ExerciseHistoryPoint
 import io.github.lopezjavier.appfitness.domain.model.ExerciseSessionRecords
+import io.github.lopezjavier.appfitness.domain.model.MuscleGroup
 import io.github.lopezjavier.appfitness.domain.model.PersonalRecordType
 import io.github.lopezjavier.appfitness.domain.model.PlannedSet
 import io.github.lopezjavier.appfitness.domain.model.PreviousSet
@@ -64,7 +66,9 @@ class LiveSessionViewModelTest {
                 exerciseRow("e3", null, name = "Mi ejercicio", custom = true),
             ),
         )
-    private val library = FakeExerciseLibrary(mapOf("bench" to exerciseInfo("bench", "Press banca")))
+    private val library = FakeExerciseLibrary(
+        mapOf("bench" to exerciseInfo("bench", "Press banca"), "squat" to exerciseInfo("squat", "Sentadilla")),
+    )
     private val connectivity = FakeConnectivityObserver()
     private val clock = MutableClock()
     private val haptics = FakeHaptics()
@@ -170,7 +174,7 @@ class LiveSessionViewModelTest {
         assertEquals("Torso", state.name)
         assertEquals(SESSION_START, state.startedAt)
         assertEquals(listOf(3, 3), state.exercises.map { it.sets.size })
-        assertEquals(listOf("Press banca", null), state.exercises.map { it.name })
+        assertEquals(listOf("Press banca", "Sentadilla"), state.exercises.map { it.name })
         assertTrue(state.exercises.flatMap { it.sets }.none { it.completed || it.pendingSave })
     }
 
@@ -412,12 +416,12 @@ class LiveSessionViewModelTest {
     }
 
     @Test
-    fun exerciseNamesFailing_stillShowsTheSessionWithoutNames() = runSessionTest {
+    fun exerciseNamesFailing_showsTheErrorStateNotUnnamedRows() = runSessionTest {
         exercises.failure = AppError.Network
 
         val vm = loaded()
 
-        assertEquals(listOf(null, null), vm.active().exercises.map { it.name })
+        assertEquals(LiveSessionUiState.Error, vm.uiState.value)
     }
 
     @Test
@@ -735,7 +739,7 @@ class LiveSessionViewModelTest {
         assertEquals(3150L, summary.summary.durationSeconds)
         assertEquals(3, summary.summary.completedSets)
         assertEquals(2120.0, summary.summary.exercises[0].volume)
-        assertEquals(mapOf(0 to "Press banca", 1 to null), summary.exerciseNames)
+        assertEquals(mapOf(0 to "Press banca", 1 to "Sentadilla"), summary.exerciseNames)
     }
 
     @Test
@@ -2065,5 +2069,45 @@ class LiveSessionViewModelTest {
             SessionExercise("e1", 0, null, listOf(pendingSet(1), pendingSet(2), pendingSet(3))),
             SessionExercise("e2", 1, null, listOf(pendingSet(1), pendingSet(2), pendingSet(3))),
         )
+    }
+
+    @Test
+    fun aRenamedCustomExercise_updatesTheNameWithoutTouchingTheLoggedSets() = runSessionTest {
+        repository.session = sessionOf(SessionExercise("e3", 0, null, listOf(pendingSet(1))))
+        val vm = loaded()
+        vm.onEvent(LiveSessionEvent.WeightChanged(0, 1, "60"))
+        val before = vm.active().exercises.single().sets
+
+        exercises.updateCustom("e3", "Nombre nuevo", MuscleGroup.Chest, Equipment.Barbell, false, null)
+        advanceUntilIdle()
+
+        val after = vm.active().exercises.single()
+        assertEquals("Nombre nuevo", after.name)
+        assertEquals(before, after.sets)
+    }
+
+    @Test
+    fun anExerciseThatCannotBeNamed_isNotAddedToTheSession() = runSessionTest {
+        exercises.rows = exercises.rows + exerciseRow("keyless", "unknown-key")
+        val vm = loaded()
+
+        vm.onEvent(LiveSessionEvent.ExerciseSelected("keyless"))
+        advanceUntilIdle()
+
+        assertEquals(2, vm.active().exercises.size)
+    }
+
+    @Test
+    fun anUnnamedExerciseInTheSession_isTheErrorStateThatRetryRecovers() = runSessionTest {
+        exercises.rows = exercises.rows.filter { it.id != "e3" }
+        repository.session = sessionOf(SessionExercise("e3", 0, null, listOf(pendingSet(1))))
+        val vm = loaded()
+        assertEquals(LiveSessionUiState.Error, vm.uiState.value)
+
+        exercises.rows = exercises.rows + exerciseRow("e3", null, name = "Mi ejercicio", custom = true)
+        vm.onEvent(LiveSessionEvent.Retry)
+        advanceUntilIdle()
+
+        assertEquals("Mi ejercicio", vm.active().exercises.single().name)
     }
 }

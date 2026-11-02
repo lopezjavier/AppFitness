@@ -6,9 +6,13 @@ import io.github.lopezjavier.appfitness.domain.model.ExerciseAlternative
 import io.github.lopezjavier.appfitness.domain.model.ExerciseMetricType
 import io.github.lopezjavier.appfitness.domain.model.MovementPattern
 import io.github.lopezjavier.appfitness.domain.model.MuscleGroup
+import kotlinx.coroutines.flow.Flow
 
 /** The exercise catalog plus the signed-in user's custom exercises. A failure carries an `AppException`. */
 interface ExerciseRepository {
+    /** Emits after every successful custom create, update or delete (the moments the cached list is dropped). */
+    val changes: Flow<Unit>
+
     /** Catalog rows and own custom rows. Cached for the session; creating an exercise invalidates the cache. */
     suspend fun getAll(): Result<List<Exercise>>
 

@@ -15,7 +15,6 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import io.github.lopezjavier.appfitness.composeapp.resources.Res
 import io.github.lopezjavier.appfitness.composeapp.resources.chart_date_short
-import io.github.lopezjavier.appfitness.composeapp.resources.exercise_unnamed
 import io.github.lopezjavier.appfitness.composeapp.resources.stats_chart_cd
 import io.github.lopezjavier.appfitness.composeapp.resources.stats_chart_empty
 import io.github.lopezjavier.appfitness.composeapp.resources.stats_chart_title_month
@@ -192,7 +191,7 @@ internal fun TopExercisesCard(
 /** Name over "N series · M sesiones"; at least 48 dp, one button. Shared with the muscle sheet. */
 @Composable
 internal fun ExerciseRow(exercise: StatsExercise, tag: String, onClick: () -> Unit, modifier: Modifier = Modifier) {
-    val name = exercise.name ?: stringResource(Res.string.exercise_unnamed)
+    val name = exercise.name
     val detail =
         stringResource(Res.string.stats_exercise_row_detail, setsText(exercise.sets), sessionsText(exercise.sessions))
     Column(

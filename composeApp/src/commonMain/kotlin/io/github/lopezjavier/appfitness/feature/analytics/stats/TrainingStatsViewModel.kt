@@ -3,6 +3,7 @@ package io.github.lopezjavier.appfitness.feature.analytics.stats
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import io.github.lopezjavier.appfitness.domain.model.ExerciseNames
 import io.github.lopezjavier.appfitness.domain.model.ExerciseSetCount
 import io.github.lopezjavier.appfitness.domain.model.MuscleGroup
 import io.github.lopezjavier.appfitness.domain.model.MuscleGroupSets
@@ -13,10 +14,9 @@ import io.github.lopezjavier.appfitness.domain.port.Clock
 import io.github.lopezjavier.appfitness.domain.port.ExerciseLibrary
 import io.github.lopezjavier.appfitness.domain.repository.ExerciseRepository
 import io.github.lopezjavier.appfitness.domain.repository.TrainingStatsRepository
+import io.github.lopezjavier.appfitness.domain.usecase.ExerciseNameResolver
 import io.github.lopezjavier.appfitness.domain.usecase.SetCountBuckets
 import io.github.lopezjavier.appfitness.domain.usecase.StatsWindow
-import io.github.lopezjavier.appfitness.feature.workout.ExerciseLookup
-import io.github.lopezjavier.appfitness.feature.workout.loadExerciseLookup
 import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.async
@@ -37,10 +37,11 @@ import kotlinx.datetime.toLocalDateTime
 @Suppress("TooManyFunctions") // One loader per section.
 class TrainingStatsViewModel(
     private val stats: TrainingStatsRepository,
-    private val exerciseRepository: ExerciseRepository,
-    private val exerciseLibrary: ExerciseLibrary,
+    exerciseRepository: ExerciseRepository,
+    exerciseLibrary: ExerciseLibrary,
     private val clock: Clock,
     private val savedState: SavedStateHandle = SavedStateHandle(),
+    private val exerciseNames: ExerciseNameResolver = ExerciseNameResolver(exerciseRepository, exerciseLibrary),
 ) : ViewModel() {
     private val initialRange = ProgressRange.entries.firstOrNull { it.name == savedState.get<String>(KEY_RANGE) }
         ?: DEFAULT_RANGE
@@ -52,12 +53,13 @@ class TrainingStatsViewModel(
     private var frameJob: Job? = null
     private var bodyJob: Job? = null
     private var detailJob: Job? = null
-    private var lookupLoad: Deferred<ExerciseLookup?>? = null
+    private var lookupLoad: Deferred<ExerciseNames?>? = null
 
     init {
         loadFrame()
         loadBody()
         initialMuscle?.let(::loadDetail)
+        viewModelScope.launch { exerciseNames.observeChanges().collect(::renameExercises) }
     }
 
     fun onEvent(event: TrainingStatsEvent) {
@@ -172,9 +174,9 @@ class TrainingStatsViewModel(
     }
 
     /** Loaded once per ViewModel and shared by the frame and the muscle sheet; a failed load is retried next time. */
-    private suspend fun exerciseLookup(): ExerciseLookup? {
+    private suspend fun exerciseLookup(): ExerciseNames? {
         val pending = lookupLoad
-            ?: viewModelScope.async { loadExerciseLookup(exerciseRepository, exerciseLibrary) }.also { lookupLoad = it }
+            ?: viewModelScope.async { exerciseNames.resolve().getOrNull() }.also { lookupLoad = it }
         val result = pending.await()
         if (result == null && lookupLoad === pending) lookupLoad = null
         return result
@@ -200,18 +202,20 @@ class TrainingStatsViewModel(
         _uiState.update { it.copy(radar = state) }
     }
 
-    private fun publishTopExercises(result: Result<List<ExerciseSetCount>>, lookup: ExerciseLookup?) {
+    private fun publishTopExercises(result: Result<List<ExerciseSetCount>>, lookup: ExerciseNames?) {
         val rows = result.getOrNull()
+        val named = if (rows == null || lookup == null) {
+            null
+        } else {
+            namedOrNull(rows.sortedByDescending { it.sets }.take(TOP_EXERCISES), lookup)
+        }
         val state = when {
-            rows == null || lookup == null -> SectionState.Error
+            // A failed read or an exercise without a name is a failed section, never a generic row.
+            rows == null || named == null -> SectionState.Error
 
             rows.isEmpty() -> SectionState.Empty
 
-            else -> SectionState.Content(
-                rows.sortedByDescending {
-                    it.sets
-                }.take(TOP_EXERCISES).map { it.named(lookup) },
-            )
+            else -> SectionState.Content(named)
         }
         _uiState.update { it.copy(topExercises = state) }
     }
@@ -240,14 +244,19 @@ class TrainingStatsViewModel(
             val totals = sets.await().getOrNull()
             val rows = exercises.await().getOrNull()
             val names = lookup.await()
-            val state = if (totals == null || rows == null || names == null) {
+            val exercisesNamed = if (rows == null || names == null) {
+                null
+            } else {
+                namedOrNull(rows.sortedByDescending { it.sets }, names)
+            }
+            val state = if (totals == null || exercisesNamed == null) {
                 SectionState.Error
             } else {
                 SectionState.Content(
                     MuscleDetail(
                         group = group,
                         sets = totals.firstOrNull { it.muscleGroup == group }?.sets ?: 0.0,
-                        exercises = rows.sortedByDescending { it.sets }.map { it.named(names) },
+                        exercises = exercisesNamed,
                     ),
                 )
             }
@@ -255,8 +264,23 @@ class TrainingStatsViewModel(
         }
     }
 
-    private fun ExerciseSetCount.named(lookup: ExerciseLookup) =
-        StatsExercise(exerciseId, lookup.names[exerciseId], sets, sessions)
+    private fun namedOrNull(rows: List<ExerciseSetCount>, names: ExerciseNames): List<StatsExercise>? =
+        rows.map { StatsExercise(it.exerciseId, names[it.exerciseId] ?: return null, it.sets, it.sessions) }
+
+    /** A renamed custom exercise updates the rows already shown; ids the new lookup lacks keep their name. */
+    private fun renameExercises(names: ExerciseNames) {
+        lookupLoad = null // The cached lookup is stale after a rename.
+        fun List<StatsExercise>.renamed() = map { row -> names[row.exerciseId]?.let { row.copy(name = it) } ?: row }
+        _uiState.update { state ->
+            state.copy(
+                topExercises = (state.topExercises as? SectionState.Content)
+                    ?.let { SectionState.Content(it.data.renamed()) } ?: state.topExercises,
+                muscleDetail = (state.muscleDetail as? SectionState.Content)
+                    ?.let { SectionState.Content(it.data.copy(exercises = it.data.exercises.renamed())) }
+                    ?: state.muscleDetail,
+            )
+        }
+    }
 
     /** One entry per muscle group in catalog order, zeros included, so the shapes are stable. */
     private fun allGroups(rows: List<MuscleGroupSets>): List<MuscleGroupSets> = MuscleGroup.entries.map { group ->

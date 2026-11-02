@@ -12,6 +12,9 @@ import io.github.lopezjavier.appfitness.domain.model.MovementPattern
 import io.github.lopezjavier.appfitness.domain.model.MuscleGroup
 import io.github.lopezjavier.appfitness.domain.port.ExerciseLibrary
 import io.github.lopezjavier.appfitness.domain.repository.ExerciseRepository
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.asSharedFlow
 
 /** Synthetic catalog row (never RepDB content). */
 fun catalogRow(
@@ -39,6 +42,10 @@ class FakeExerciseLibrary(private val entries: Map<String, ExerciseInfo> = empty
 
 class FakeExerciseRepository(var rows: List<Exercise> = emptyList(), var failure: AppError? = null) :
     ExerciseRepository {
+    private val changed = MutableSharedFlow<Unit>(extraBufferCapacity = 16)
+
+    override val changes: Flow<Unit> = changed.asSharedFlow()
+
     var createCalls = 0
     var createFailure: AppError? = null
 
@@ -65,6 +72,7 @@ class FakeExerciseRepository(var rows: List<Exercise> = emptyList(), var failure
         val created = catalogRow("custom-$createCalls", null, muscleGroup, equipment, name, custom = true)
             .copy(perHand = perHand, movementPattern = movementPattern)
         rows = rows + created
+        changed.tryEmit(Unit)
         return Result.success(created)
     }
 
@@ -92,12 +100,14 @@ class FakeExerciseRepository(var rows: List<Exercise> = emptyList(), var failure
                 it
             }
         }
+        changed.tryEmit(Unit)
         return Result.success(Unit)
     }
 
     override suspend fun deleteCustom(id: String): Result<Unit> {
         if (rows.none { it.id == id && it.isCustom }) return Result.failure(AppException(AppError.NotFound))
         rows = rows.filter { it.id != id }
+        changed.tryEmit(Unit)
         return Result.success(Unit)
     }
 }

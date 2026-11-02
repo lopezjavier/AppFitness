@@ -2,6 +2,7 @@ package io.github.lopezjavier.appfitness.feature.analytics.stats
 
 import androidx.lifecycle.SavedStateHandle
 import io.github.lopezjavier.appfitness.domain.AppError
+import io.github.lopezjavier.appfitness.domain.model.Equipment
 import io.github.lopezjavier.appfitness.domain.model.ExerciseSetCount
 import io.github.lopezjavier.appfitness.domain.model.MuscleGroup
 import io.github.lopezjavier.appfitness.domain.model.MuscleGroupSets
@@ -430,5 +431,34 @@ class TrainingStatsViewModelTest {
         assertEquals(MuscleGroup.Triceps, second.uiState.value.openMuscle)
         assertIs<SectionState.Content<*>>(second.uiState.value.muscleDetail)
         assertEquals(Window(LocalDate(2026, 7, 19), today), stats.summaryCalls.last())
+    }
+
+    @Test
+    fun aCustomExercise_appearsByItsNameAndFollowsARename() = runTest(dispatcher) {
+        exercises.rows = exercises.rows + exerciseRow("mine", null, name = "Mi press", custom = true)
+        stats.exercisesFor = { _, _ -> listOf(ExerciseSetCount("mine", 5.0, 2)) }
+        val model = viewModel()
+        advanceUntilIdle()
+        assertEquals(listOf("Mi press"), model.uiState.value.topExercises.data<List<StatsExercise>>().map { it.name })
+
+        exercises.updateCustom("mine", "Press nuevo", MuscleGroup.Chest, Equipment.Barbell, false, null)
+        advanceUntilIdle()
+
+        assertEquals(
+            listOf("Press nuevo"),
+            model.uiState.value.topExercises.data<List<StatsExercise>>().map {
+                it.name
+            },
+        )
+    }
+
+    @Test
+    fun anExerciseWithoutAName_failsTheSectionInsteadOfShowingAGenericRow() = runTest(dispatcher) {
+        stats.exercisesFor = { _, _ -> listOf(ExerciseSetCount("ghost", 5.0, 2)) }
+        val model = viewModel()
+
+        advanceUntilIdle()
+
+        assertEquals(SectionState.Error, model.uiState.value.topExercises)
     }
 }

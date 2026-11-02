@@ -29,7 +29,7 @@ private fun point(day: Int, value: Double, record: Boolean = false) =
 private fun content(
     progress: ExerciseProgress,
     range: ProgressRange = ProgressRange.ThreeMonths,
-    name: String? = "Press de banca",
+    name: String = "Press de banca",
 ) = ExerciseProgressUiState.Content(name, range, progress)
 
 private val TwoSessions = ExerciseProgress(
@@ -240,13 +240,6 @@ class ExerciseProgressScreenTest {
         rule.onNodeWithTag("exercise_progress_title").assertTextEquals("Press de banca")
         rule.onAllNodesWithText("Press de banca").assertCountEquals(1)
         rule.onNodeWithTag("exercise_progress_name").assertDoesNotExist()
-    }
-
-    @Test
-    fun unnamedExercise_usesTheGenericTitle() {
-        show(content(TwoSessions, name = null))
-
-        rule.onNodeWithTag("exercise_progress_title").assertTextEquals("Progreso del ejercicio")
     }
 
     @Test

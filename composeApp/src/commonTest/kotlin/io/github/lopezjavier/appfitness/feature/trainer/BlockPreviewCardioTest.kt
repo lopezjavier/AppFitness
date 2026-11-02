@@ -52,6 +52,7 @@ class BlockPreviewCardioTest {
             exerciseRow("bike", "bike"),
             exerciseRow("incline", "incline"),
             exerciseRow("walk", "walk"),
+            exerciseRow("ex-2", "row"),
         ),
     ).apply {
         alternativesById = mapOf(
@@ -62,6 +63,7 @@ class BlockPreviewCardioTest {
     private val library = FakeExerciseLibrary(
         mapOf(
             "bench" to exerciseInfo("bench", "Press banca"),
+            "row" to exerciseInfo("row", "Remo"),
             "bike" to exerciseInfo("bike", "Bicicleta"),
             "incline" to exerciseInfo("incline", "Cinta inclinada"),
             "walk" to exerciseInfo("walk", "Caminar a paso ligero"),

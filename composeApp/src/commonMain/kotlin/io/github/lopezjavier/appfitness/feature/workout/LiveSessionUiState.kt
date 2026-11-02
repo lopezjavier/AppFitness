@@ -51,11 +51,11 @@ data class LiveSetRow(
     val noteKind: SetNoteKind? = null,
 )
 
-/** An exercise card. [name] is null when the library has no name for it (the UI shows a generic label). */
+/** An exercise card. [name] is always resolved. */
 data class LiveExercise(
     val position: Int,
     val exerciseId: String,
-    val name: String?,
+    val name: String,
     val supersetLabel: SupersetLabel?,
     val sets: List<LiveSetRow>,
     /** Rest after each set of this exercise in this session (0 = no timer); editable per session only. */
@@ -145,7 +145,7 @@ data class LiveRoutineNoteSheet(
 data class FinishSheet(val pendingCount: Int)
 
 /** Result of a finished session, ready to render. [exercises] follow the session order. */
-data class LiveSummary(val summary: SessionSummary, val exerciseNames: Map<Int, String?>)
+data class LiveSummary(val summary: SessionSummary, val exerciseNames: Map<Int, String>)
 
 /**
  * What the finished session changed in its routine (US-36), as counts for the "Actualizar rutina" sheet. Exercises

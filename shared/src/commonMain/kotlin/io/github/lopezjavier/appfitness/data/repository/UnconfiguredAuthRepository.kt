@@ -34,6 +34,7 @@ import io.github.lopezjavier.appfitness.domain.repository.NutritionGoalsReposito
 import io.github.lopezjavier.appfitness.domain.repository.ProfileRepository
 import io.github.lopezjavier.appfitness.domain.repository.RoutineRepository
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.flow.flowOf
 import kotlin.time.Instant
 
@@ -125,6 +126,8 @@ class UnconfiguredAccountRepository : AccountRepository {
 
 /** Exercise counterpart of [UnconfiguredAuthRepository]: there is no catalog to read. */
 class UnconfiguredExerciseRepository : ExerciseRepository {
+    override val changes: Flow<Unit> = emptyFlow()
+
     override suspend fun getAll(): Result<List<Exercise>> = Result.failure(AppException(AppError.Unknown))
 
     override suspend fun getById(id: String): Result<Exercise> = Result.failure(AppException(AppError.Unknown))

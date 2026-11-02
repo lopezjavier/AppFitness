@@ -1,5 +1,8 @@
 package io.github.lopezjavier.appfitness.feature.analytics.stats
 
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.assertContentDescriptionEquals
 import androidx.compose.ui.test.assertHeightIsAtLeast
@@ -36,7 +39,7 @@ private val Weeks = listOf(
     SetCountPoint(LocalDate(2026, 10, 12), 0),
 )
 private val Bench = StatsExercise("bench", "Press banca", 9.0, 3)
-private val Squat = StatsExercise("squat", null, 6.0, 1)
+private val Squat = StatsExercise("squat", "Sentadilla", 6.0, 1)
 
 private fun content(range: ProgressRange = ProgressRange.OneMonth) = TrainingStatsUiState(
     range = range,
@@ -146,7 +149,9 @@ class TrainingStatsScreenTest {
         scrollTo("stats_exercise_row_bench")
         rule.onNodeWithTag("stats_exercise_row_bench").assertHeightIsAtLeast(48.dp)
             .assertContentDescriptionEquals("Press banca, 9 series · 3 entrenos")
-        rule.onNodeWithTag("stats_exercise_row_squat").assertContentDescriptionEquals("Ejercicio, 6 series · 1 entreno")
+        rule.onNodeWithTag(
+            "stats_exercise_row_squat",
+        ).assertContentDescriptionEquals("Sentadilla, 6 series · 1 entreno")
         rule.onNodeWithTag("stats_exercise_row_bench").performClick()
 
         assertEquals(listOf("bench"), opened)
@@ -356,5 +361,22 @@ class TrainingStatsScreenTest {
         scrollTo("stats_body_front")
         rule.onNodeWithTag("stats_body_front").assertExists()
         assertEquals(listOf<TrainingStatsEvent>(TrainingStatsEvent.SelectRange(ProgressRange.ThreeMonths)), events)
+    }
+
+    @Test
+    fun customExercise_isShownByItsName_andARenameIsShownWithoutRecreating() {
+        var top by mutableStateOf(listOf(StatsExercise("custom-1", "Dominadas lastradas", 4.0, 2)))
+        rule.setContent {
+            AppTheme {
+                TrainingStatsScreen(content().copy(topExercises = SectionState.Content(top)), {}, {}, {})
+            }
+        }
+        scrollTo("stats_exercise_row_custom-1")
+        rule.onNodeWithText("Dominadas lastradas").assertExists()
+
+        top = listOf(StatsExercise("custom-1", "Dominadas con lastre", 4.0, 2))
+        rule.waitForIdle()
+
+        rule.onNodeWithText("Dominadas con lastre").assertExists()
     }
 }

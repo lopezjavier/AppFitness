@@ -12,7 +12,6 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
 import io.github.lopezjavier.appfitness.composeapp.resources.Res
 import io.github.lopezjavier.appfitness.composeapp.resources.block_exercise_detail
-import io.github.lopezjavier.appfitness.composeapp.resources.block_exercise_fallback
 import io.github.lopezjavier.appfitness.composeapp.resources.block_preview_cardio_detail
 import io.github.lopezjavier.appfitness.composeapp.resources.block_preview_cardio_total
 import io.github.lopezjavier.appfitness.composeapp.resources.block_reason_cd
@@ -23,7 +22,6 @@ import io.github.lopezjavier.appfitness.composeapp.resources.block_reps_single
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_swap
 import io.github.lopezjavier.appfitness.designsystem.AppCard
 import io.github.lopezjavier.appfitness.designsystem.AppIconButton
-import io.github.lopezjavier.appfitness.designsystem.AppListRow
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
 import io.github.lopezjavier.appfitness.designsystem.ExerciseRow
 import io.github.lopezjavier.appfitness.designsystem.HelpTriggerButton
@@ -101,7 +99,7 @@ private fun BlockRoutineCard(
                 session = session,
                 position = position,
                 exercise = exercise,
-                name = exerciseNames[exercise.exerciseId],
+                name = exerciseNames.getValue(exercise.exerciseId),
                 onOpenExercise = onOpenExercise,
                 onOpenReason = onOpenReason,
                 changed = isChanged(session.sessionIndex, position),
@@ -129,7 +127,7 @@ private fun BlockExerciseRow(
     session: BlockSession,
     position: Int,
     exercise: BlockExercise,
-    name: String?,
+    name: String,
     onOpenExercise: (String) -> Unit,
     onOpenReason: (String) -> Unit,
     changed: Boolean,
@@ -157,12 +155,11 @@ private fun BlockExerciseRow(
         exercise.isCardio -> "block_preview_cardio_row_${session.week}_${session.sessionIndex}"
         else -> null
     }
-    val displayName = name ?: stringResource(Res.string.block_exercise_fallback)
     val reasonButton: @Composable () -> Unit = {
         Row(verticalAlignment = Alignment.CenterVertically) {
             if (swappable) {
                 AppIconButton(
-                    contentDescription = stringResource(Res.string.block_replace_action_cd, displayName),
+                    contentDescription = stringResource(Res.string.block_replace_action_cd, name),
                     icon = Res.drawable.ic_swap,
                     testTag = "block_preview_replace_$tag",
                     onClick = onReplace,
@@ -176,24 +173,13 @@ private fun BlockExerciseRow(
             )
         }
     }
-    if (name != null) {
-        ExerciseRow(
-            name = name,
-            supporting = supporting,
-            onOpen = { onOpenExercise(exercise.exerciseId) },
-            tagPrefix = "block_preview_exercise_$tag",
-            modifier = rowSemantics,
-            trailing = reasonButton,
-            supportingTestTag = supportingTag,
-        )
-    } else {
-        // Not in the catalog: nothing to open, so the row is not tappable.
-        AppListRow(
-            headline = stringResource(Res.string.block_exercise_fallback),
-            modifier = Modifier.testTag("block_preview_exercise_$tag").then(rowSemantics),
-            supporting = supporting,
-            supportingTestTag = supportingTag,
-            trailing = reasonButton,
-        )
-    }
+    ExerciseRow(
+        name = name,
+        supporting = supporting,
+        onOpen = { onOpenExercise(exercise.exerciseId) },
+        tagPrefix = "block_preview_exercise_$tag",
+        modifier = rowSemantics,
+        trailing = reasonButton,
+        supportingTestTag = supportingTag,
+    )
 }

@@ -7,6 +7,7 @@ import io.github.lopezjavier.appfitness.app.FakeTrainingPreferencesRepository
 import io.github.lopezjavier.appfitness.domain.AppError
 import io.github.lopezjavier.appfitness.domain.AppException
 import io.github.lopezjavier.appfitness.domain.model.BodyMeasurement
+import io.github.lopezjavier.appfitness.domain.model.Equipment
 import io.github.lopezjavier.appfitness.domain.model.ExerciseHistoryPoint
 import io.github.lopezjavier.appfitness.domain.model.ExerciseSessionRecords
 import io.github.lopezjavier.appfitness.domain.model.MeasurementSource
@@ -381,14 +382,14 @@ class SessionDetailViewModelTest {
     }
 
     @Test
-    fun theSplitIsEmptyWhenTheExerciseGroupsCannotBeRead() = runTest(dispatcher) {
+    fun unreadableExercises_showTheErrorStateNotUnnamedRows() = runTest(dispatcher) {
         seed()
         exercises.failure = AppError.Network
         val model = viewModel()
 
         advanceUntilIdle()
 
-        assertTrue(model.content().split.isEmpty())
+        assertEquals(SessionDetailUiState.Error, model.uiState.value)
     }
 
     @Test
@@ -583,5 +584,30 @@ class SessionDetailViewModelTest {
 
         assertEquals(listOf("Torso"), second.content().saveAsRoutine?.existingNames)
         assertTrue(routines.createdFromSession.isEmpty())
+    }
+
+    @Test
+    fun aCustomExercise_isShownByItsName_andFollowsARename() = runTest(dispatcher) {
+        exercises.rows = listOf(exerciseRow("e1", null, name = "Mi press", custom = true))
+        seed()
+        val model = viewModel()
+        advanceUntilIdle()
+        assertEquals("Mi press", model.content().exercises.single().name)
+
+        exercises.updateCustom("e1", "Press nuevo", MuscleGroup.Chest, Equipment.Barbell, false, null)
+        advanceUntilIdle()
+
+        assertEquals("Press nuevo", model.content().exercises.single().name)
+    }
+
+    @Test
+    fun anExerciseWithoutAName_isTheErrorState() = runTest(dispatcher) {
+        exercises.rows = emptyList()
+        seed()
+        val model = viewModel()
+
+        advanceUntilIdle()
+
+        assertEquals(SessionDetailUiState.Error, model.uiState.value)
     }
 }

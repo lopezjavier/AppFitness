@@ -1,6 +1,9 @@
 package io.github.lopezjavier.appfitness.feature.trainer
 
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
@@ -162,16 +165,6 @@ class BlockPreviewScreenTest {
     }
 
     @Test
-    fun anExerciseOutsideTheCatalog_readsAsExercise_andIsNotOpenable() {
-        val state = BlockPreviewUiState.Preview(coachBlock(sessionsPerWeek = 1), emptyMap(), 1)
-        show(state)
-
-        rule.onAllNodesWithTag("block_preview_exercise_1_0_0_thumbnail").assertCountEquals(0)
-        rule.onNodeWithTag("block_preview_exercise_1_0_0").performClick()
-        assertTrue(opened.isEmpty())
-    }
-
-    @Test
     fun tappingAnExercise_opensItsDetail() {
         show(preview(coachBlock(sessionsPerWeek = 1)))
 
@@ -206,8 +199,10 @@ class BlockPreviewScreenTest {
         val model = BlockPreviewViewModel(
             "plan-1",
             blocks,
-            FakeExerciseRepository(listOf(exerciseRow("ex-1", "bench"))),
-            FakeExerciseLibrary(mapOf("bench" to exerciseInfo("bench", "Press banca"))),
+            FakeExerciseRepository(listOf(exerciseRow("ex-1", "bench"), exerciseRow("ex-2", "row"))),
+            FakeExerciseLibrary(
+                mapOf("bench" to exerciseInfo("bench", "Press banca"), "row" to exerciseInfo("row", "Remo")),
+            ),
             MutableClock(),
         )
         val shown = mutableListOf<String>()
@@ -295,6 +290,21 @@ class BlockPreviewScreenTest {
         show(preview())
 
         rule.onNodeWithTag("block_preview_save").assertIsEnabled()
+    }
+
+    @Test
+    fun customExercise_isShownByItsName_andARenameIsShownWithoutRecreating() {
+        var current by mutableStateOf<BlockPreviewUiState>(preview(coachBlock(sessionsPerWeek = 1)))
+        rule.setContent {
+            AppTheme { BlockPreviewScreen(current, flowOf(true), { events += it }, { backs++ }, { opened += it }) }
+        }
+        rule.onNodeWithText("Press con mancuernas").assertExists()
+
+        current = BlockPreviewUiState.Preview(coachBlock(sessionsPerWeek = 1), names + ("ex-1" to "Press inclinado"), 1)
+        rule.waitForIdle()
+
+        rule.onNodeWithText("Press inclinado").assertExists()
+        rule.onNodeWithText("Press con mancuernas").assertDoesNotExist()
     }
 }
 

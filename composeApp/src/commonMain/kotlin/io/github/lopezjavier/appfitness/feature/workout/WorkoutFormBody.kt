@@ -123,7 +123,7 @@ internal fun WorkoutFormBody(
             }
             FormExerciseCard(
                 exercise = exercise,
-                name = view.names[exercise.exerciseId],
+                name = view.names.getValue(exercise.exerciseId),
                 card = FormCardState(index, index == 0, index == form.exercises.lastIndex, flagged),
                 tagPrefix = tagPrefix,
                 onEvent = onEvent,

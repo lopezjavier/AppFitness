@@ -10,6 +10,7 @@ import io.github.lopezjavier.appfitness.domain.model.CoachFailure
 import io.github.lopezjavier.appfitness.domain.model.Equipment
 import io.github.lopezjavier.appfitness.domain.model.ExerciseAlternative
 import io.github.lopezjavier.appfitness.domain.model.MissingField
+import io.github.lopezjavier.appfitness.domain.model.MuscleGroup
 import io.github.lopezjavier.appfitness.feature.exercises.FakeExerciseLibrary
 import io.github.lopezjavier.appfitness.feature.exercises.FakeExerciseRepository
 import io.github.lopezjavier.appfitness.feature.exercises.exerciseInfo
@@ -34,6 +35,7 @@ import kotlin.test.assertIs
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
+@Suppress("LargeClass") // One class per ViewModel.
 @OptIn(ExperimentalCoroutinesApi::class)
 class BlockPreviewViewModelTest {
     private val dispatcher = StandardTestDispatcher()
@@ -277,34 +279,78 @@ class BlockPreviewViewModelTest {
     }
 
     @Test
-    fun exerciseNames_resolveFromTheCatalog_andAMissingIdIsAbsent() = runTest(dispatcher) {
-        blocks.current = Result.success(
-            coachBlock(sessionsPerWeek = 1).let { block ->
-                block.copy(
-                    sessions = block.sessions.map {
-                        it.copy(exercises = listOf(blockExercise("ex-1"), blockExercise("gone")))
-                    },
-                )
-            },
-        )
+    fun exerciseNames_resolveFromTheCatalog_andCustomOnesFromTheirRow() = runTest(dispatcher) {
+        exercises.rows = exercises.rows + exerciseRow("c-1", null, name = "Mi press", custom = true)
+        blocks.current = Result.success(blockOf("ex-1", "c-1"))
         val model = viewModel()
 
         advanceUntilIdle()
 
-        val names = model.preview().exerciseNames
-        assertEquals("Press banca", names["ex-1"])
-        assertNull(names["gone"])
+        assertEquals(
+            mapOf("ex-1" to "Press banca", "c-1" to "Mi press"),
+            model.preview().exerciseNames.filterKeys {
+                it !=
+                    "ex-2"
+            },
+        )
     }
 
     @Test
-    fun anUnreadableCatalog_stillShowsTheBlock() = runTest(dispatcher) {
-        exercises.failure = AppError.Network
-        blocks.current = Result.success(coachBlock())
+    fun anExerciseWithoutAName_failsTheBlockInsteadOfShowingAGenericRow() = runTest(dispatcher) {
+        blocks.current = Result.success(blockOf("ex-1", "gone"))
         val model = viewModel()
 
         advanceUntilIdle()
 
-        assertTrue(model.preview().exerciseNames.isEmpty())
+        assertEquals(PlanFailureKind.Other, model.failure())
+    }
+
+    @Test
+    fun anUnreadableCatalog_failsOffline_andRetryShowsTheBlockWithoutAskingTheCoachAgain() = runTest(dispatcher) {
+        exercises.failure = AppError.Network
+        blocks.request = Result.success(coachBlock())
+        val model = viewModel()
+        advanceUntilIdle()
+        model.onEvent(BlockPreviewEvent.Request)
+        advanceUntilIdle()
+        assertEquals(PlanFailureKind.Offline, model.failure())
+
+        exercises.failure = null
+        model.onEvent(BlockPreviewEvent.Retry)
+        advanceUntilIdle()
+
+        assertEquals("Press banca", model.preview().exerciseNames["ex-1"])
+        assertEquals(1, blocks.requests.size)
+    }
+
+    @Test
+    fun aRenamedCustomExercise_updatesTheShownName() = runTest(dispatcher) {
+        exercises.rows = exercises.rows + exerciseRow("c-1", null, name = "Mi press", custom = true)
+        blocks.current = Result.success(blockOf("ex-1", "c-1"))
+        val model = viewModel()
+        advanceUntilIdle()
+
+        exercises.updateCustom("c-1", "Press nuevo", MuscleGroup.Chest, Equipment.Barbell, false, null)
+        advanceUntilIdle()
+
+        assertEquals("Press nuevo", model.preview().exerciseNames["c-1"])
+    }
+
+    @Test
+    fun aRecreatedViewModel_resolvesTheNamesAgain() = runTest(dispatcher) {
+        blocks.current = Result.success(coachBlock())
+        val saved = SavedStateHandle()
+        viewModel(saved)
+        advanceUntilIdle()
+
+        val recreated = viewModel(saved)
+        advanceUntilIdle()
+
+        assertEquals("Remo", recreated.preview().exerciseNames["ex-2"])
+    }
+
+    private fun blockOf(vararg ids: String) = coachBlock(sessionsPerWeek = 1).let { block ->
+        block.copy(sessions = block.sessions.map { it.copy(exercises = ids.map(::blockExercise)) })
     }
 
     @Test

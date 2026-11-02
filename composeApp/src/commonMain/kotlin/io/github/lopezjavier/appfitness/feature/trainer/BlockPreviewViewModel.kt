@@ -10,13 +10,14 @@ import io.github.lopezjavier.appfitness.domain.model.CoachBlock
 import io.github.lopezjavier.appfitness.domain.model.CoachException
 import io.github.lopezjavier.appfitness.domain.model.CoachFailure
 import io.github.lopezjavier.appfitness.domain.model.ExerciseAlternative
+import io.github.lopezjavier.appfitness.domain.model.ExerciseNames
 import io.github.lopezjavier.appfitness.domain.port.Clock
 import io.github.lopezjavier.appfitness.domain.port.ExerciseLibrary
 import io.github.lopezjavier.appfitness.domain.repository.CoachBlockRepository
 import io.github.lopezjavier.appfitness.domain.repository.ExerciseRepository
+import io.github.lopezjavier.appfitness.domain.usecase.ExerciseNameResolver
 import io.github.lopezjavier.appfitness.domain.usecase.LoadExerciseCatalog
 import io.github.lopezjavier.appfitness.feature.exercises.SimilarExerciseRow
-import io.github.lopezjavier.appfitness.feature.workout.loadExerciseNames
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
@@ -54,6 +55,7 @@ class BlockPreviewViewModel(
     private val library: ExerciseLibrary,
     private val clock: Clock,
     private val savedState: SavedStateHandle = SavedStateHandle(),
+    private val exerciseNames: ExerciseNameResolver = ExerciseNameResolver(exercises, library),
 ) : ViewModel() {
     private val _uiState = MutableStateFlow<BlockPreviewUiState>(BlockPreviewUiState.Loading)
     val uiState: StateFlow<BlockPreviewUiState> = _uiState.asStateFlow()
@@ -65,6 +67,9 @@ class BlockPreviewViewModel(
     private val alternativeIds = mutableMapOf<String, Set<String>>()
     private var prefetched = false
 
+    // A block that could not be shown because its names did not resolve: Retry shows it again without asking the coach.
+    private var unnamedBlock: CoachBlock? = null
+
     private val effectChannel = Channel<BlockPreviewEffect>(Channel.BUFFERED)
     val effects = effectChannel.receiveAsFlow()
 
@@ -75,6 +80,7 @@ class BlockPreviewViewModel(
     private fun today(): LocalDate = clock.now().toLocalDateTime(TimeZone.UTC).date
 
     init {
+        viewModelScope.launch { exerciseNames.observeChanges().collect(::renameExercises) }
         val wasRequesting = savedState.get<Boolean>(KEY_REQUESTING) == true
         viewModelScope.launch {
             val missing = if (wasRequesting) {
@@ -242,7 +248,7 @@ class BlockPreviewViewModel(
     private suspend fun catalog() = LoadExerciseCatalog(exercises, library)()
 
     /** Rebuilds the swaps kept in [savedState] against the block; one that no longer fits is dropped. */
-    private suspend fun restoredReplacements(block: CoachBlock): Map<String, Replacement> {
+    private suspend fun restoredReplacements(block: CoachBlock, names: Map<String, String>): Map<String, Replacement> {
         val stored = savedState.get<String>(KEY_REPLACEMENTS)?.split(',').orEmpty().filter { it.isNotEmpty() }
         if (stored.isEmpty()) return emptyMap()
         val byId = exercises.getAll().getOrNull().orEmpty().associateBy { it.id }
@@ -252,7 +258,7 @@ class BlockPreviewViewModel(
             val sessionIndex = session.toIntOrNull() ?: return@mapNotNull null
             val index = position.toIntOrNull() ?: return@mapNotNull null
             val fits = block.sessions.any { it.sessionIndex == sessionIndex && index in it.exercises.indices }
-            val exercise = byId[id]?.takeIf { fits } ?: return@mapNotNull null
+            val exercise = byId[id]?.takeIf { fits && id in names } ?: return@mapNotNull null
             replaceSlotKey(sessionIndex, index) to Replacement(exercise.id, exercise.key, exercise.equipment)
         }.toMap()
         saveReplacementsState(restored, savedState.get<String>(KEY_REPLACE_SLOT))
@@ -286,19 +292,41 @@ class BlockPreviewViewModel(
         clearReplacementsState()
         _uiState.value = BlockPreviewUiState.Loading
         viewModelScope.launch {
+            unnamedBlock?.let { return@launch showBlock(it, restore = false) }
             val block = blocks.currentBlock(planId).getOrNull()
             if (block != null) showBlock(block, restore = true) else runRequest()
         }
     }
 
+    /** A renamed or new custom exercise updates the names shown; a lookup lacking a block exercise changes nothing. */
+    private fun renameExercises(names: ExerciseNames) {
+        _uiState.update { state ->
+            if (state is BlockPreviewUiState.Preview && state.block.exerciseIds().all { names[it] != null }) {
+                state.copy(exerciseNames = names.byId)
+            } else {
+                state
+            }
+        }
+    }
+
+    private fun CoachBlock.exerciseIds() = sessions.flatMap { session -> session.exercises.map { it.exerciseId } }
+
     private suspend fun showBlock(block: CoachBlock, restore: Boolean) {
-        // Names are decoration: an unreadable catalog leaves every exercise with the generic name.
-        val names = loadExerciseNames(exercises, library).orEmpty()
+        val resolved = exerciseNames.resolve()
+        val named = resolved.getOrNull()
+        if (named == null || block.exerciseIds().any { named[it] == null }) {
+            // No preview with a generic name (R-54): the block is kept in memory so Retry never asks (and bills) again.
+            unnamedBlock = block
+            _uiState.value = BlockPreviewUiState.Failed(planFailureKindOf(resolved.exceptionOrNull()))
+            return
+        }
+        unnamedBlock = null
+        val names = named.byId
         val weeks = block.weeks().map { it.week }
         val savedWeek = savedState.get<Int>(KEY_WEEK)
         val week = savedWeek?.takeIf { it in weeks } ?: weeks.firstOrNull() ?: 1
         if (!restore) clearReplacementsState()
-        val replacements = if (restore) restoredReplacements(block) else emptyMap()
+        val replacements = if (restore) restoredReplacements(block, names) else emptyMap()
         val slot = if (restore) savedState.get<String>(KEY_REPLACE_SLOT)?.takeIf { slotFits(block, it) } else null
         if (slot == null) savedState.remove<String>(KEY_REPLACE_SLOT)
         val preview = BlockPreviewUiState.Preview(

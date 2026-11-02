@@ -4,8 +4,8 @@ import io.github.lopezjavier.appfitness.domain.model.ExerciseProgress
 import io.github.lopezjavier.appfitness.domain.model.ProgressRange
 import io.github.lopezjavier.appfitness.domain.model.StrengthSummary
 
-/** A top exercise chip; [name] is null when the library has none (the UI shows a generic label). */
-data class StrengthChip(val exerciseId: String, val name: String?)
+/** A top exercise chip; [name] is always resolved. */
+data class StrengthChip(val exerciseId: String, val name: String)
 
 sealed interface StrengthUiState {
     data object Loading : StrengthUiState
@@ -33,16 +33,16 @@ sealed interface StrengthEvent {
 sealed interface ExerciseProgressUiState {
     data object Loading : ExerciseProgressUiState
 
-    /** The exercise has no completed session yet; [name] is the screen title, null when the library has none. */
-    data class Empty(val name: String?) : ExerciseProgressUiState
+    /** The exercise has no completed session yet; [name] is the screen title. */
+    data class Empty(val name: String) : ExerciseProgressUiState
 
     data object Error : ExerciseProgressUiState
 
     /**
      * Charts of the exercise in [range]. [ExerciseProgress.hasEnoughData] false means a single session: the UI shows
-     * its value and the "at least 2 sessions" message. [name] is null when the library has none.
+     * its value and the "at least 2 sessions" message.
      */
-    data class Content(val name: String?, val range: ProgressRange, val progress: ExerciseProgress) :
+    data class Content(val name: String, val range: ProgressRange, val progress: ExerciseProgress) :
         ExerciseProgressUiState
 }
 

@@ -315,4 +315,23 @@ class ExerciseDetailScreenTest {
         assertTrue(tabs.width <= ExerciseLayoutDefaults.ContentMaxWidth)
         assertTrue(button.width > animation.width)
     }
+
+    @Test
+    fun customExercise_titleIsItsName_andARenameIsShownWithoutRecreating() {
+        var state by mutableStateOf<ExerciseDetailUiState>(loaded(withBothPoses.copy(name = "Remo en anillas")))
+        rule.setContent {
+            AppTheme {
+                CompositionLocalProvider(LocalExerciseMediaUris provides FakeExerciseMediaUris) {
+                    ExerciseDetailScreen(state, false, {}, {}, today)
+                }
+            }
+        }
+        rule.onNodeWithText("Remo en anillas").assertExists()
+
+        state = loaded(withBothPoses.copy(name = "Remo invertido"))
+        rule.waitForIdle()
+
+        rule.onNodeWithText("Remo invertido").assertExists()
+        rule.onNodeWithText("Remo en anillas").assertDoesNotExist()
+    }
 }

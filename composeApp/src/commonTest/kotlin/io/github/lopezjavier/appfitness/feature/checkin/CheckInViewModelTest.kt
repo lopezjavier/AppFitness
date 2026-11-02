@@ -11,7 +11,9 @@ import io.github.lopezjavier.appfitness.domain.model.BodyMeasurement
 import io.github.lopezjavier.appfitness.domain.model.CHECK_IN_NOTES_MAX
 import io.github.lopezjavier.appfitness.domain.model.CheckIn
 import io.github.lopezjavier.appfitness.domain.model.CircumferenceSite
+import io.github.lopezjavier.appfitness.domain.model.Equipment
 import io.github.lopezjavier.appfitness.domain.model.MeasurementSource
+import io.github.lopezjavier.appfitness.domain.model.MuscleGroup
 import io.github.lopezjavier.appfitness.domain.model.NotificationKind
 import io.github.lopezjavier.appfitness.domain.model.PersonalRecordType
 import io.github.lopezjavier.appfitness.domain.model.TrainingSummary
@@ -283,13 +285,13 @@ class CheckInViewModelTest {
     }
 
     @Test
-    fun recordNames_whenTheExercisesCannotBeRead_stayEmptyAndTheSummaryLoads() = runTest {
+    fun recordNames_whenTheExercisesCannotBeRead_failTheSummaryWithoutBlockingTheForm() = runTest {
         val f = fixture(exercises = FakeExerciseRepository(failure = AppError.Network))
         withRecords(f)
         advanceUntilIdle()
 
+        assertEquals(CheckInSummaryState.Failed, f.ready.summary)
         assertEquals(emptyMap(), f.ready.exerciseNames)
-        assertIs<CheckInSummaryState.Loaded>(f.ready.summary)
     }
 
     @Test
@@ -372,5 +374,29 @@ class CheckInViewModelTest {
 
         assertEquals(3, second.ready.energy)
         assertFalse(second.ready.isDirty)
+    }
+
+    @Test
+    fun aRenamedCustomExercise_updatesTheRecordName() = runTest {
+        val rows = FakeExerciseRepository(
+            listOf(exerciseRow("a", "bench"), exerciseRow("c1", null, name = "Hand grip", custom = true)),
+        )
+        val f = fixture(exercises = rows)
+        withRecords(f)
+        advanceUntilIdle()
+
+        rows.updateCustom("c1", "Pinza", MuscleGroup.Chest, Equipment.Barbell, false, null)
+        advanceUntilIdle()
+
+        assertEquals("Pinza", f.ready.exerciseNames["c1"])
+    }
+
+    @Test
+    fun aRecordWithoutAName_failsTheSummary() = runTest {
+        val f = fixture(exercises = FakeExerciseRepository(listOf(exerciseRow("a", "bench"))))
+        withRecords(f) // "c1" is not an exercise
+        advanceUntilIdle()
+
+        assertEquals(CheckInSummaryState.Failed, f.ready.summary)
     }
 }

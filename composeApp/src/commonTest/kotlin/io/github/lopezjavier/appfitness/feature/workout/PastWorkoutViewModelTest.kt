@@ -4,6 +4,8 @@ import androidx.lifecycle.SavedStateHandle
 import app.cash.turbine.test
 import io.github.lopezjavier.appfitness.app.FakeConnectivityObserver
 import io.github.lopezjavier.appfitness.domain.AppError
+import io.github.lopezjavier.appfitness.domain.model.Equipment
+import io.github.lopezjavier.appfitness.domain.model.MuscleGroup
 import io.github.lopezjavier.appfitness.domain.model.SetEntry
 import io.github.lopezjavier.appfitness.domain.usecase.WorkoutDraftIssue
 import io.github.lopezjavier.appfitness.feature.exercises.FakeExerciseLibrary
@@ -330,5 +332,45 @@ class PastWorkoutViewModelTest {
         advanceUntilIdle()
 
         assertTrue(model.content().saved)
+    }
+
+    @Test
+    fun aCustomExercise_isShownByItsName_andFollowsARename() = runTest(dispatcher) {
+        exercises.rows = listOf(exerciseRow("e1", null, name = "Mi press", custom = true))
+        val model = viewModel()
+        advanceUntilIdle()
+        model.onEvent(WorkoutFormEvent.AddExercise("e1"))
+        advanceUntilIdle()
+        assertEquals("Mi press", model.content().view.names["e1"])
+
+        exercises.updateCustom("e1", "Press nuevo", MuscleGroup.Chest, Equipment.Barbell, false, null)
+        advanceUntilIdle()
+
+        assertEquals("Press nuevo", model.content().view.names["e1"])
+    }
+
+    @Test
+    fun unreadableExercises_showTheErrorStateAndRetryRecovers() = runTest(dispatcher) {
+        exercises.failure = AppError.Network
+        val model = viewModel()
+        advanceUntilIdle()
+        assertEquals(PastWorkoutUiState.Error, model.uiState.value)
+
+        exercises.failure = null
+        model.onEvent(PastWorkoutEvent.Retry)
+        advanceUntilIdle()
+
+        assertEquals(yesterday, model.content().view.form.date)
+    }
+
+    @Test
+    fun anExerciseThatCannotBeNamed_isNotAdded() = runTest(dispatcher) {
+        val model = viewModel()
+        advanceUntilIdle()
+
+        model.onEvent(WorkoutFormEvent.AddExercise("ghost"))
+        advanceUntilIdle()
+
+        assertEquals(emptyList(), model.form().exercises)
     }
 }
