@@ -151,6 +151,7 @@ export function cardioDefaultCandidates(
 /** Loaded free-weight and machine lifts come before bodyweight variants, so the cap keeps the useful ones. */
 const EQUIPMENT_ORDER = [
     "barbell",
+    "ez_bar",
     "dumbbell",
     "machine",
     "cable",
@@ -158,11 +159,7 @@ const EQUIPMENT_ORDER = [
     "bodyweight",
     "band",
     "band_long",
-    "cardio_bike",
-    "treadmill",
-    "elliptical",
-    "rower",
-    "cardio_other",
+    "cardio_machine",
     "other",
 ];
 const equipmentRank = (e: string): number => {

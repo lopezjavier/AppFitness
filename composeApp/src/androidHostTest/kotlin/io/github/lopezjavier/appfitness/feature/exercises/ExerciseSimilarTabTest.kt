@@ -5,6 +5,7 @@ import androidx.compose.ui.test.assertContentDescriptionEquals
 import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
+import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
 import io.github.lopezjavier.appfitness.domain.model.CatalogExercise
@@ -21,6 +22,7 @@ import org.robolectric.annotation.Config
 /** ADR-83 "Similares" tab: sorted rows with percentage, opening one, and the empty, offline and error states. */
 @RunWith(RobolectricTestRunner::class)
 @Config(qualifiers = "w360dp-h800dp-xxhdpi")
+@Suppress("TooManyFunctions") // One method per Gherkin scenario.
 class ExerciseSimilarTabTest {
     @get:Rule
     val rule = createComposeRule()
@@ -67,6 +69,14 @@ class ExerciseSimilarTabTest {
             .assertContentDescriptionEquals("100 por ciento de similitud")
         rule.onNodeWithTag("exercise_detail_similar_percent_fly", useUnmergedTree = true)
             .assertContentDescriptionEquals("87 por ciento de similitud")
+    }
+
+    @Test
+    fun percentage_showsASingleSign_withNoBreakSpace() {
+        show(SimilarState.Content(listOf(similar("2", "band-long-bench", "Press con banda", 1.0))))
+
+        rule.onNodeWithText("100 %", useUnmergedTree = true).assertExists()
+        rule.onNodeWithText("100 %%", useUnmergedTree = true).assertDoesNotExist()
     }
 
     @Test

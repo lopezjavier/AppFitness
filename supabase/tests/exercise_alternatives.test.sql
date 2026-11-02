@@ -30,7 +30,7 @@ select is((select count(*)::int from public.exercises l join public.exercises c 
 -- ---------------------------------------------------------------------------
 -- Structure and seed
 -- ---------------------------------------------------------------------------
-select is((select count(*)::int from public.exercise_alternatives), 402, 'the seed holds 402 unordered pairs');
+select is((select count(*)::int from public.exercise_alternatives), 473, 'the seed holds 473 unordered pairs (402 + 71 barbell / EZ bar / dumbbell, T-201)');
 select is((select count(*)::int from public.exercise_alternatives where exercise_id >= alternative_id), 0, 'every pair is ordered');
 select is((select count(*)::int from public.exercises l join public.exercises c on c.key = substr(l.key, 11)
            join public.exercise_alternatives a on (a.exercise_id = least(l.id, c.id) and a.alternative_id = greatest(l.id, c.id))
@@ -60,9 +60,9 @@ select throws_ok($$insert into public.exercise_alternatives values
 select throws_ok($$insert into public.exercise_alternatives values
   ('a9000000-0000-4000-8000-0000000000e1', 'a9000000-0000-4000-8000-0000000000e2', 1.01)$$, '23514', null, 'similarity above 1 is rejected');
 select throws_ok($$insert into public.exercise_alternatives values
-  ('a9000000-0000-4000-8000-0000000000e1', 'ffffffff-ffff-4fff-8fff-ffffffffffff', 0.5)$$, '23503', null, 'an unknown exercise is rejected');
+  ('a9000000-0000-4000-8000-0000000000e1', 'ffffffff-ffff-4fff-8fff-ffffffffffff', 0.95)$$, '23503', null, 'an unknown exercise is rejected');
 insert into public.exercise_alternatives values
-  ('a9000000-0000-4000-8000-0000000000e1', 'a9000000-0000-4000-8000-0000000000e2', 0.5);
+  ('a9000000-0000-4000-8000-0000000000e1', 'a9000000-0000-4000-8000-0000000000e2', 0.95);
 select lives_ok($$delete from public.exercises where id = 'a9000000-0000-4000-8000-0000000000e2'$$, 'deleting an exercise works');
 select is((select count(*)::int from public.exercise_alternatives where alternative_id = 'a9000000-0000-4000-8000-0000000000e2'),
   0, 'deleting an exercise cascades to its pairs');
@@ -76,7 +76,7 @@ select set_config('request.jwt.claims', json_build_object('sub', 'a9000000-0000-
 select throws_ok($$insert into public.exercise_alternatives values
   ('a9000000-0000-4000-8000-0000000000e1', 'a9000000-0000-4000-8000-0000000000e1', 0.5)$$, '42501', null,
   'authenticated cannot insert');
-select is((select count(*)::int from public.exercise_alternatives), 402, 'authenticated reads the whole catalogue graph');
+select is((select count(*)::int from public.exercise_alternatives), 473, 'authenticated reads the whole catalogue graph');
 
 select is((select similarity from public.exercise_alternatives(pg_temp.id('cable-fly')) where exercise_id = pg_temp.id('band-long-cable-fly')),
   1.00, 'a cable exercise lists its band-long counterpart at 1.00');

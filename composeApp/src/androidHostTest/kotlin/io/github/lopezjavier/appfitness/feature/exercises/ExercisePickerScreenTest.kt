@@ -186,6 +186,34 @@ class ExercisePickerScreenTest {
     }
 
     @Test
+    fun equipmentFilter_offersBarraZ_andOneCardioMachineChip_inTheSelectableOrder() {
+        show()
+        val tags = listOf("barbell", "ez_bar", "dumbbell")
+        val lefts = tags.map {
+            rule.onNodeWithTag("exercise_picker_equipment_chip_$it").assertExists().getUnclippedBoundsInRoot().left
+        }
+        assertEquals(lefts.sorted(), lefts)
+        rule.onNodeWithTag("exercise_picker_equipment_chip_ez_bar").assertTextContains("Barra Z")
+        rule.onNodeWithTag("exercise_picker_equipment_chip_cardio_machine").assertExists()
+        rule.onNodeWithTag("exercise_picker_equipment_chip_rower").assertDoesNotExist()
+        rule.onNodeWithTag("exercise_picker_equipment_chip_ez_bar").performClick()
+        rule.waitForIdle()
+        rule.onNodeWithTag("exercise_picker_equipment_chip_ez_bar").assertIsSelected()
+        assertEquals(emptyList<String>(), visibleRows())
+    }
+
+    @Test
+    fun createSheet_offersBarraZ_andTheCardioMachine() {
+        show()
+        rule.onNodeWithTag("exercise_picker_search").performTextInput("Curl raro")
+        rule.onNodeWithTag("exercise_picker_create_button").performClick()
+        rule.waitForIdle()
+
+        rule.onNodeWithTag("exercise_create_equipment_ez_bar").assertExists().assertTextContains("Barra Z")
+        rule.onNodeWithTag("exercise_create_equipment_cardio_machine").assertExists()
+    }
+
+    @Test
     fun todosChip_clearsTheFilter() {
         show()
         rule.onNodeWithTag("exercise_picker_equipment_chip_dumbbell").performClick()

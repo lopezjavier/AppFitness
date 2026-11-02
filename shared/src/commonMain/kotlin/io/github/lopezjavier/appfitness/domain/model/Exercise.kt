@@ -43,64 +43,6 @@ enum class MuscleGroup {
     FullBody,
 }
 
-/** DB values of `public.equipment`. */
-@Serializable
-enum class Equipment {
-    @SerialName("barbell")
-    Barbell,
-
-    @SerialName("dumbbell")
-    Dumbbell,
-
-    @SerialName("machine")
-    Machine,
-
-    @SerialName("cable")
-    Cable,
-
-    @SerialName("bodyweight")
-    Bodyweight,
-
-    @SerialName("kettlebell")
-    Kettlebell,
-
-    @SerialName("band")
-    Band,
-
-    @SerialName("band_long")
-    BandLong,
-
-    @SerialName("cardio_bike")
-    CardioBike,
-
-    @SerialName("treadmill")
-    Treadmill,
-
-    @SerialName("elliptical")
-    Elliptical,
-
-    @SerialName("rower")
-    Rower,
-
-    @SerialName("cardio_other")
-    CardioOther,
-
-    @SerialName("other")
-    Other,
-    ;
-
-    /** Cardio machines have their own group in "Mi entrenamiento" (ADR-85). */
-    val isCardio: Boolean get() = this in cardio
-
-    companion object {
-        /** The five cardio machines, in display order. */
-        val cardio: List<Equipment> = listOf(CardioBike, Treadmill, Elliptical, Rower, CardioOther)
-
-        /** Every non-cardio equipment, in display order. */
-        val lifting: List<Equipment> by lazy { entries.filterNot { it.isCardio } }
-    }
-}
-
 /** A catalogue [exercise] that can stand in for another one, with its [similarity] in (0, 1] (ADR-83). */
 data class ExerciseAlternative(val exercise: Exercise, val similarity: Double)
 

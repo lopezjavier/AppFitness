@@ -2,6 +2,7 @@ package io.github.lopezjavier.appfitness.data.remote
 
 import io.github.lopezjavier.appfitness.domain.model.CalculatorSettings
 import io.github.lopezjavier.appfitness.domain.model.Equipment
+import io.github.lopezjavier.appfitness.domain.model.EquipmentListSerializer
 import io.github.lopezjavier.appfitness.domain.model.MyTraining
 import io.github.lopezjavier.appfitness.domain.model.PreviousValuesMode
 import io.github.lopezjavier.appfitness.domain.model.TrainingIntention
@@ -76,7 +77,9 @@ internal data class MyTrainingUpsertDto(
     @SerialName("user_id") val userId: String,
     @SerialName("intention") val intention: TrainingIntentionDto?,
     @SerialName("place") val place: TrainingPlaceDto?,
-    @SerialName("equipment") val equipment: List<Equipment>,
+    @Serializable(with = EquipmentListSerializer::class)
+    @SerialName("equipment")
+    val equipment: List<Equipment>,
     @SerialName("days_per_week") val daysPerWeek: Int?,
     @SerialName("session_minutes") val sessionMinutes: Int?,
 ) {
@@ -103,7 +106,9 @@ internal data class TrainingPreferencesDto(
     @SerialName("auto_update_routine") val autoUpdateRoutine: Boolean = false,
     @SerialName("intention") val intention: TrainingIntentionDto? = null,
     @SerialName("place") val place: TrainingPlaceDto? = null,
-    @SerialName("equipment") val equipment: List<Equipment> = emptyList(),
+    @Serializable(with = EquipmentListSerializer::class)
+    @SerialName("equipment")
+    val equipment: List<Equipment> = emptyList(),
     @SerialName("days_per_week") val daysPerWeek: Int? = null,
     @SerialName("session_minutes") val sessionMinutes: Int? = null,
 ) {

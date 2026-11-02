@@ -40,6 +40,16 @@ class PreferencesDraftTest {
     }
 
     @Test
+    fun aDraftWithRemovedCardioNames_decodesWithoutCrash() {
+        val form = base.copy(equipment = setOf(Equipment.EzBar, Equipment.CardioMachine))
+        val old = form.encodeDraft().replace("CardioMachine", "Treadmill").replace("EzBar", "Spaceship")
+
+        val decoded = assertNotNull(decodeDraft(old))
+
+        assertEquals(setOf(Equipment.CardioMachine), decoded.equipment)
+    }
+
+    @Test
     fun unsetMyTrainingFields_roundTripAsNulls() {
         val decoded = assertNotNull(decodeDraft(base.encodeDraft()))
 

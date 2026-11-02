@@ -94,6 +94,12 @@ internal fun PreferencesForm.encodeDraft(): String = Json.encodeToString(
     ),
 )
 
+private val legacyCardioDraftNames = setOf("CardioBike", "Treadmill", "Elliptical", "Rower", "CardioOther")
+
+/** A draft saved by an older version may name a removed cardio value: it reads as the cardio machine (ADR-92). */
+private fun equipmentOfDraftName(name: String): Equipment? = Equipment.entries.firstOrNull { it.name == name }
+    ?: Equipment.CardioMachine.takeIf { name in legacyCardioDraftNames }
+
 /** [saved] supplies the values a draft from an older version does not carry (the reminder switches). */
 internal fun decodeDraft(json: String, saved: PreferencesForm? = null): PreferencesForm? = runCatching {
     // Drafts saved before ADR-56 still carry the two rounding fields.
@@ -123,7 +129,7 @@ internal fun decodeDraft(json: String, saved: PreferencesForm? = null): Preferen
         checkInReminder = draft.checkInReminder ?: saved?.checkInReminder ?: true,
         intention = draft.intention?.let(TrainingIntention::valueOf),
         place = draft.place?.let(TrainingPlace::valueOf),
-        equipment = draft.equipment.map(Equipment::valueOf).toSet(),
+        equipment = draft.equipment.mapNotNull(::equipmentOfDraftName).toSet(),
         // An out-of-range restored value is dropped to "Sin definir".
         daysPerWeek = draft.daysPerWeek?.takeIf(MyTraining::isValidDays),
         sessionMinutes = draft.sessionMinutes?.takeIf(MyTraining::isValidSessionMinutes),

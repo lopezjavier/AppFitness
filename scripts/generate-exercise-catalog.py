@@ -64,7 +64,8 @@ BODY_PART_TO_GROUP = {
 
 EQUIPMENT_TO_ENUM = {
     # Barbell family.
-    "barbell": "barbell", "ez_bar": "barbell", "trap_bar": "barbell", "landmine": "barbell",
+    # T-201 (ADR-92): the EZ bar has its own item; landmine and hex bar are "other".
+    "barbell": "barbell", "ez_bar": "ez_bar", "trap_bar": "other", "landmine": "other",
     "dumbbell": "dumbbell",
     "cable": "cable",
     "kettlebell": "kettlebell",
@@ -81,12 +82,12 @@ EQUIPMENT_TO_ENUM = {
     "seated_calf_raise_machine": "machine", "seated_row_machine": "machine",
     "shoulder_press_machine": "machine", "shrug_machine": "machine", "smith_machine": "machine",
     "standing_calf_raise_machine": "machine", "tricep_extension_machine": "machine",
-    # Cardio machines have their own values (T-184, ADR-85); the strength machines above stay `machine`.
-    "air_bike": "cardio_bike", "stationary_bike": "cardio_bike", "treadmill": "treadmill",
-    "elliptical": "elliptical", "rower": "rower", "ski_erg": "cardio_other", "stair_climber": "cardio_other",
-    # Own body weight on a fixed structure.
-    "pull_up_bar": "bodyweight", "dip_station": "bodyweight", "rings": "bodyweight",
-    "suspension_trainer": "bodyweight",
+    # One "Máquina de cardio" (T-184, ADR-85; collapsed by T-201, ADR-92); the strength machines above stay `machine`.
+    "air_bike": "cardio_machine", "stationary_bike": "cardio_machine", "treadmill": "cardio_machine",
+    "elliptical": "cardio_machine", "rower": "cardio_machine", "ski_erg": "cardio_machine",
+    "stair_climber": "cardio_machine",
+    # Fixed structures and small implements are "other" (T-201); `bodyweight` means floor or wall only.
+    "pull_up_bar": "other", "dip_station": "other", "rings": "other", "suspension_trainer": "other",
     # Everything else the bundle names explicitly.
     "ab_wheel": "other", "battle_rope": "other", "climbing_rope": "other", "decline_bench": "other",
     "flat_bench": "other", "incline_bench": "other", "jump_rope": "other", "medicine_ball": "other",
@@ -94,6 +95,19 @@ EQUIPMENT_TO_ENUM = {
     "stability_ball": "other", "wrist_roller": "other",
 }
 MISSING_EQUIPMENT = "bodyweight"
+
+# Per-key overrides of the bundle's equipment (T-201, planning/07-coach-design.md section 3). The bundle files these
+# under bodyweight/band/machine; the rule moves them.
+KEY_EQUIPMENT_OVERRIDES = {
+    "human-flag": "other", "back-extension": "other", "band-assisted-pull-ups": "other",
+    "straight-bar-dips": "other", "captains-chair-knee-raise": "other", "captains-chair-leg-raise": "other",
+    "toes-to-bar": "other", "muscle-ups": "other", "dips": "other", "weighted-dips": "other",
+    "t-bar-row": "other", "hex-bar-deadlift": "other",
+    "behind-the-neck-lat-pulldown": "cable", "v-bar-lat-pulldown": "cable",
+}
+KEY_GROUP_OVERRIDES = {
+    "ez-bar-reverse-grip-row": "back", "smith-machine-reverse-grip-bent-over-row": "back",
+}
 
 
 class CatalogError(Exception):
@@ -140,6 +154,8 @@ def build_rows(exercises):
             raise CatalogError(f"duplicate exercise id {key!r}")
         seen.add(key)
         group, equipment = muscle_group_of(ex), equipment_of(ex)
+        group = KEY_GROUP_OVERRIDES.get(key, group)
+        equipment = KEY_EQUIPMENT_OVERRIDES.get(key, equipment)
         if group is None:
             unmapped.append(f"{key}: muscle/body_part {(ex.get('primary_muscles') or [None])[0]!r}/{ex.get('body_part')!r}")
         if equipment is None:
@@ -221,10 +237,9 @@ BODYWEIGHT_SUBSTR = (
     "bodyweight-", "ring-face-pull", "pike-push",
 )
 LOADED_EQUIPMENT = {
-    "barbell", "dumbbell", "cable", "machine", "kettlebell", "band", "other",
-    "cardio_bike", "treadmill", "elliptical", "rower", "cardio_other",
+    "barbell", "ez_bar", "dumbbell", "cable", "machine", "kettlebell", "band", "other", "cardio_machine",
 }
-CARDIO_EQUIPMENT = {"cardio_bike", "treadmill", "elliptical", "rower", "cardio_other"}
+CARDIO_EQUIPMENT = {"cardio_machine"}
 METRIC_TYPES = (
     "weight_reps", "reps_only", "duration", "weight_duration", "distance_duration", "bodyweight", "assisted",
     "weighted", "steps_duration", "floors_duration",
@@ -300,9 +315,9 @@ def render_metrics_table(metric_rows):
 
 SELF_CHECK_EXAMPLES = {
     ("pull-up", "bodyweight"): "bodyweight", ("plank", "bodyweight"): "duration",
-    ("treadmill-running", "treadmill"): "distance_duration", ("assisted-pull-ups", "machine"): "assisted",
+    ("treadmill-running", "cardio_machine"): "distance_duration", ("assisted-pull-ups", "machine"): "assisted",
     ("weighted-dips", "bodyweight"): "weighted", ("dumbbell-farmers-walk", "dumbbell"): "weight_duration",
-    ("stair-climber", "cardio_other"): "floors_duration", ("crunches", "bodyweight"): "reps_only",
+    ("stair-climber", "cardio_machine"): "floors_duration", ("crunches", "bodyweight"): "reps_only",
     ("bench-press", "barbell"): "weight_reps",
 }
 

@@ -21,7 +21,7 @@ insert into public.exercises (id, name, muscle_group, equipment, is_custom, crea
 select enum_has_labels('public', 'muscle_group', array['chest', 'back', 'shoulders', 'biceps', 'triceps',
   'forearms', 'quads', 'hamstrings', 'glutes', 'calves', 'core', 'full_body'], 'muscle_group enum labels');
 select enum_has_labels('public', 'equipment', array['barbell', 'dumbbell', 'machine', 'cable', 'bodyweight',
-  'kettlebell', 'band', 'other', 'band_long', 'cardio_bike', 'treadmill', 'elliptical', 'rower', 'cardio_other'],
+  'kettlebell', 'band', 'other', 'band_long', 'cardio_bike', 'treadmill', 'elliptical', 'rower', 'cardio_other', 'ez_bar', 'cardio_machine'],
   'equipment enum labels');
 select enum_has_labels('public', 'exercise_metric_type', array['weight_reps', 'reps_only', 'duration',
   'weight_duration', 'distance_duration', 'bodyweight', 'assisted', 'weighted', 'steps_duration',

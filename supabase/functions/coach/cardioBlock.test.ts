@@ -146,13 +146,7 @@ Deno.test("home with dumbbells and bodyweight: only bodyweight cardio, default w
 });
 
 Deno.test("the default follows the selected cardio machine", () => {
-    assertEquals(defaultKey(home(["cardio_bike", "treadmill"])), [
-        "stationary-bike",
-    ]);
-    assertEquals(defaultKey(home(["treadmill"])), ["incline-treadmill-walk"]);
-    assertEquals(defaultKey(home(["elliptical"])), ["elliptical-trainer"]);
-    assertEquals(defaultKey(home(["rower"])), ["rowing-machine"]);
-    assertEquals(defaultKey(home(["cardio_other"])), ["walking"]);
+    assertEquals(defaultKey(home(["cardio_machine"])), ["stationary-bike"]);
     assertEquals(defaultKey(home(["machine"])), ["walking"]);
     assertEquals(defaultKey({ place: "gym", equipment: [] }), [
         "stationary-bike",
@@ -172,9 +166,7 @@ Deno.test("never by default: running, treadmill running, air bike, ski erg, stai
         "mountain-climbers",
     ];
     for (
-        const equipment of [[], ["cardio_bike"], ["treadmill"], [
-            "cardio_other",
-        ], ["bodyweight"]]
+        const equipment of [[], ["cardio_machine"], ["bodyweight"]]
     ) {
         for (const place of ["gym", "home"]) {
             const [k] = defaultKey({ place, equipment });
@@ -185,11 +177,11 @@ Deno.test("never by default: running, treadmill running, air bike, ski erg, stai
 
 Deno.test("the most-logged favourite wins inside the equipment and is ignored outside it", () => {
     assertEquals(
-        defaultKey(home(["cardio_bike", "rower"]), ["rowing-machine"]),
+        defaultKey(home(["cardio_machine"]), ["rowing-machine"]),
         ["rowing-machine"],
     );
-    assertEquals(defaultKey(home(["cardio_bike"]), ["rowing-machine"]), [
-        "stationary-bike",
+    assertEquals(defaultKey(home(["bodyweight"]), ["rowing-machine"]), [
+        "walking",
     ]);
     // Running is allowed as a default when the user logs it.
     assertEquals(defaultKey(home([]), ["running"]), ["running"]);
@@ -198,11 +190,15 @@ Deno.test("the most-logged favourite wins inside the equipment and is ignored ou
 });
 
 Deno.test("the swap list does not depend on the exercise on the slot and leaves out the interval moves", () => {
-    const p = home(["cardio_bike", "treadmill"]);
+    const p = home(["cardio_machine"]);
+    // The stair climber has a floors metric, so it is not continuous cardio: seven machines plus walking and running.
     const expected = [
         "air-bike",
+        "elliptical-trainer",
         "incline-treadmill-walk",
+        "rowing-machine",
         "running",
+        "ski-erg",
         "stationary-bike",
         "treadmill-running",
         "walking",
@@ -219,13 +215,13 @@ Deno.test("a custom cardio exercise is offered last", () => {
 });
 
 Deno.test("cardio equipment: walking and running always, bodyweight only when selected", () => {
-    const bike = cardio("stationary-bike", "cardio_bike");
+    const bike = cardio("stationary-bike", "cardio_machine");
     const walking = cardio("walking", "bodyweight");
     assert(cardioEquipmentAllowed(home([]), walking));
     assert(!cardioEquipmentAllowed(home([]), bike));
     assert(cardioEquipmentAllowed({ place: "gym", equipment: [] }, bike));
     assert(!cardioEquipmentAllowed(home(["bodyweight"]), bike));
-    assert(cardioEquipmentAllowed(home(["cardio_bike"]), bike));
+    assert(cardioEquipmentAllowed(home(["cardio_machine"]), bike));
 });
 
 Deno.test("resolvedEquipment: nothing selected outside a gym means bodyweight; a gym stays empty", () => {

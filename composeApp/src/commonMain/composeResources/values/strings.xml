@@ -552,7 +552,7 @@
     <string name="exercise_tab_similar">Similares</string>
     <string name="exercise_similar_empty">Sin ejercicios similares</string>
     <string name="exercise_similar_error">No se pudieron cargar los ejercicios similares</string>
-    <string name="exercise_similar_percent">%1$s&#160;%%</string>
+    <string name="exercise_similar_percent">%1$s&#160;%</string>
     <string name="exercise_similar_percent_cd">%1$s por ciento de similitud</string>
     <string name="exercise_records_title">Récords</string>
     <string name="exercise_records_empty">Aún no tienes registros de este ejercicio</string>
@@ -586,6 +586,7 @@
     <string name="muscle_core">Core</string>
     <string name="muscle_full_body">Cuerpo completo</string>
     <string name="equipment_barbell">Barra</string>
+    <string name="equipment_ez_bar">Barra Z</string>
     <string name="equipment_dumbbell">Mancuernas</string>
     <string name="equipment_machine">Máquina</string>
     <string name="equipment_cable">Polea</string>
@@ -593,11 +594,7 @@
     <string name="equipment_kettlebell">Kettlebell</string>
     <string name="equipment_band">Banda</string>
     <string name="equipment_band_long">Banda larga</string>
-    <string name="equipment_cardio_bike">Bicicleta estática</string>
-    <string name="equipment_treadmill">Cinta de correr</string>
-    <string name="equipment_elliptical">Elíptica</string>
-    <string name="equipment_rower">Remo</string>
-    <string name="equipment_cardio_other">Otra máquina de cardio</string>
+    <string name="equipment_cardio_machine">Máquina de cardio</string>
     <string name="equipment_other">Otro</string>
     <string name="routines_start">Empezar</string>
     <string name="routines_start_cd">Empezar %1$s</string>
