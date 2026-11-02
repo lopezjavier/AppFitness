@@ -17,10 +17,10 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import io.github.lopezjavier.appfitness.composeapp.resources.Res
+import io.github.lopezjavier.appfitness.composeapp.resources.action_remove
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_info
 import io.github.lopezjavier.appfitness.composeapp.resources.intake_area_label
 import io.github.lopezjavier.appfitness.composeapp.resources.intake_best_object
-import io.github.lopezjavier.appfitness.composeapp.resources.intake_best_remove
 import io.github.lopezjavier.appfitness.composeapp.resources.intake_best_reps_label
 import io.github.lopezjavier.appfitness.composeapp.resources.intake_best_sheet_title
 import io.github.lopezjavier.appfitness.composeapp.resources.intake_best_supporting
@@ -235,11 +235,11 @@ internal fun BestsField(
         state.form.bests.forEach { best ->
             val name = names[best.exerciseId] ?: unknown
             SwipeToDeleteRow(
-                deleteLabel = "${stringResource(Res.string.intake_best_remove)} $name",
+                deleteLabel = "${stringResource(Res.string.action_remove)} $name",
                 enabled = enabled,
                 onDelete = { onEvent(IntakeEvent.RemoveBest(best.exerciseId)) },
                 backgroundTag = "intake_best_remove_${best.exerciseId}",
-                label = stringResource(Res.string.intake_best_remove),
+                label = stringResource(Res.string.action_remove),
             ) {
                 ExerciseRow(
                     name = name,

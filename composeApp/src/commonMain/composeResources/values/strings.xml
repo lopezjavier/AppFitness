@@ -1980,7 +1980,6 @@
     <string name="intake_bests_helper">Solo como contexto: no cambian las cargas que te propone el entrenador.</string>
     <string name="intake_best_object">marca</string>
     <string name="intake_best_supporting">%1$s kg x %2$d</string>
-    <string name="intake_best_remove">Quitar</string>
     <string name="intake_best_weight_label">Peso (kg)</string>
     <string name="intake_best_reps_label">Repeticiones</string>
     <string name="intake_best_sheet_title">Marca de %1$s</string>
