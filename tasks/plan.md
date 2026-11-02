@@ -149,7 +149,7 @@ Each checkpoint also has "leave the app and come back: the same tab, screen and 
 - [x] T-188: Phases in the plan; generic disclaimers removed app-wide; Perfil and Peso fixes — L
   - **Checkpoint E13-D 👤 "Getting to know you, your phase, and your plan with cardio" (7 items; carries E13-B3 and the E13-B1 re-test)** — presented 2026-11-02; **open** after the user's feedback
 - [ ] T-198: A minimal intake, one row one editor, the free text in the plan and the block, the save fix — L
-- [ ] T-200: Remove the "Recuperar" phase (user, 2026-11-02; Phase 3) — M
+- [x] T-200: Remove the "Recuperar" phase (user, 2026-11-02; Phase 3) — M
 - [ ] T-199: One exercise-name resolver and its guard — M
   - **Checkpoint E13-D 👤 re-presented** (items rewritten 2026-11-02, still 7: intake rows, "Para conocerte" and what the coach reads, exercise names, phase and options without "Recuperar", calories and activity, block with cardio, Perfil and Peso; re-test 1-3 and leave and come back)
 
