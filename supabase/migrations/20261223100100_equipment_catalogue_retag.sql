@@ -33,14 +33,9 @@ where not is_custom and key in ('ez-bar-reverse-grip-row', 'smith-machine-revers
 
 do $$
 begin
-  if (select count(*) from public.exercises where not is_custom and equipment = 'ez_bar') <> 21 then
-    raise exception 'EZ-bar retag: expected 21 catalogue rows (20 ez-bar keys + preacher-curl)';
-  end if;
+  -- Loose checks only: the production catalogue may differ from the test seed (exact counts live in pgTAP).
   if exists (select 1 from public.exercises where not is_custom and key like '%ez-bar%' and equipment <> 'ez_bar') then
     raise exception 'an ez-bar key is not tagged ez_bar';
-  end if;
-  if (select count(*) from public.exercises where not is_custom and equipment = 'cardio_machine') <> 8 then
-    raise exception 'cardio retag: expected 8 catalogue rows';
   end if;
   if exists (select 1 from public.exercises
              where not is_custom and equipment in ('cardio_bike', 'treadmill', 'elliptical', 'rower', 'cardio_other')) then
