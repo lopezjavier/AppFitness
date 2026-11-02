@@ -60,7 +60,7 @@ Every task pays 6-8 agent hand-offs, so stories stay whole unless one is too lar
 | T-191: End-of-block review screen and the next block | US-83, US-84 UI | core + UI | L | 7 |
 | T-192: Progression applies on its own, with "Deshacer" | US-70 am., US-85, US-88 | backend + core + UI | L | 8 |
 | T-193: Calories and deloads on their own; scheduled deloads; data cleaning | US-69/US-75 am., US-85, US-86 | backend + core + UI | L | 8 |
-| T-194: Injury: train around, graded return, persistent-discomfort note; "Similares" fix (former T-173 item) | US-87, US-90 | backend + core + UI | L | 8 |
+| T-194: Injury: train around, graded return, persistent-discomfort note | US-87, US-90 | backend + core + UI | L | 8 |
 | T-196: Life changes mid-block (backend) | US-91, US-92 | backend + core | L | 5 |
 | T-197: "Revisar el bloque" and "Solo unos días" (UI) | US-91, US-92 UI | core + UI | L | 7 |
 | T-166: Weekly coach report (amended: 3 parts, notes, automatic changes, grounding, note) | US-71 am. (+ US-76, US-90) | backend + core + UI | L | 8-9 |
@@ -162,8 +162,8 @@ Each checkpoint also has "leave the app and come back: the same tab, screen and 
 ### Phase 2e: The coach adjusts on its own; injury (US-85, US-86, US-87, US-90; US-69/US-70/US-75 am.)
 - [ ] T-192: Progression applies on its own, with "Deshacer" — L
 - [ ] T-193: Calories and deloads on their own; scheduled deloads; data cleaning — L
-- [ ] T-194: Injury: train around, graded return, persistent-discomfort note; "Similares" fix — L
-  - **Checkpoint E13-F 👤 "The coach adjusts on its own, and trains around an injury" (7 items)** — proposed
+- [ ] T-194: Injury: train around, graded return, persistent-discomfort note — L
+  - **Checkpoint E13-F 👤 "The coach adjusts on its own, and trains around an injury" (6 items)** — proposed
 
 ### Phase 3: Life changes, report, history, evaluation, chat and closure (US-91, US-92, US-71, US-74, US-77; amended by the replan)
 - [ ] T-196: Life changes mid-block (backend) — L
@@ -175,7 +175,7 @@ Each checkpoint also has "leave the app and come back: the same tab, screen and 
   - **Checkpoint E13-C 👤 — the last one (9 items: life changes 4, report 1, history and delete 1, cost 1, chat 1, final regression 1); releases T-170** — proposed
 - [ ] T-170: E13 closure — PM closure step
 
-**Checkpoint grouping (replan, amended 2026-11-02):** collected items: intake 2, phases 2, carried plan and cardio re-test 2 (merged), Perfil and Peso fixes 1 → E13-D (7) *(after the E13-D feedback: intake rows 1, "Para conocerte" and what the coach reads 1, exercise names 1, phase and options 1 (the two phase items merged), carried plan and cardio 2, Perfil and Peso 1 → still 7)*; review 2, priorities 1, phase change 1, next block 1, paused week 1 → E13-E (6); loads 1, calories 1, deloads 1, injury 2, unresolved and no generic warnings 1, "Similares" 1 → E13-F (7); life changes 4 (grouped from 7), report 1, history and delete 1, cost 1, chat 1, final regression 1 → E13-C (9). E13-G was removed by the user (2026-11-02): its items are E13-C 1-4. Items whose trigger needs weeks of data say "if your data shows it" and are covered by host tests.
+**Checkpoint grouping (replan, amended 2026-11-02):** collected items: intake 2, phases 2, carried plan and cardio re-test 2 (merged), Perfil and Peso fixes 1 → E13-D (7) *(after the E13-D feedback: intake rows 1, "Para conocerte" and what the coach reads 1, exercise names 1, phase and options 1 (the two phase items merged), carried plan and cardio 2, Perfil and Peso 1 → still 7)*; review 2, priorities 1, phase change 1, next block 1, paused week 1 → E13-E (6); loads 1, calories 1, deloads 1, injury 2, unresolved and no generic warnings 1 → E13-F (6); life changes 4 (grouped from 7), report 1, history and delete 1, cost 1, chat 1, final regression 1 → E13-C (9). E13-G was removed by the user (2026-11-02): its items are E13-C 1-4. Items whose trigger needs weeks of data say "if your data shows it" and are covered by host tests.
 
 Internal milestones (not 👤 checkpoints): per task lint (`check-design-tokens.sh`, `check-ux-conventions.sh`, ktlint, detekt) + `testLocalDebugUnitTest`, pgTAP and `deno test` green; after each migration or function change, `deploy-supabase` green on `main` with data intact before the next task or checkpoint; T-160 smoke call approved by the user.
 

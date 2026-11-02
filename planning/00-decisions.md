@@ -4,7 +4,7 @@ Live index of every closed decision, with the numbers frozen in Phase 1. The ful
 
 ## New ADRs go here
 
-Phase 2 ADRs continue the numbering (next: **ADR-91**) and are written **in full** in this file (context, decision, consequences, approval), below the index. Add their one-line row to the table too. Format: context -> decision -> consequences. A new decision also updates the affected live docs.
+Phase 2 ADRs continue the numbering (next: **ADR-93**) and are written **in full** in this file (context, decision, consequences, approval), below the index. Add their one-line row to the table too. Format: context -> decision -> consequences. A new decision also updates the affected live docs.
 
 ## Index (Phase 1, ADR-01..72)
 
@@ -99,15 +99,16 @@ Phase 2 ADRs continue the numbering (next: **ADR-91**) and are written **in full
 | 80 | Pickers, read-only sheets and action menus close on an outside tap; sheets with editable input or unsaved changes keep ADR-71 | Amends 71 |
 | 81 | Discomfort is a level chosen from an ordered scale; no strong-pain term matching or fixed message | Amends 76; amended by 89 |
 | 82 | A note is a chosen option plus optional text; a live routine note is a routine change | Amends 81 |
-| 83 | `band_long` is its own equipment with 30 cable counterparts and a curated symmetric alternatives graph; trainer replacements apply only on "Guardar bloque" | |
+| 83 | `band_long` is its own equipment with 30 cable counterparts and a curated symmetric alternatives graph; trainer replacements apply only on "Guardar bloque" | Amended by 92 |
 | 84 | Expenditure anchors on the capped 28-day intake; weight slope only with enough data; plan target checked against the intention's rate | |
-| 85 | The plan sets weekly cardio minutes and daily steps; cardio is the last exercise of every routine; cardio machines are their own equipment | Amends 76; amended by 89 (no medical line) |
+| 85 | The plan sets weekly cardio minutes and daily steps; cardio is the last exercise of every routine; cardio machines are their own equipment | Amends 76; amended by 89 (no medical line), 92 (one cardio machine item) |
 | 86 | Long-term follow-up: intake priors, one phase per block, end-of-block review proposes the next block and any phase change, breaks pause the block | Amends 76 |
 | 87 | The user's free text reaches the model verbatim, capped, visible and excludable line by line; the model only describes features and data that exist | Amends 76 and `07` §8 |
 | 88 | One behaviour "Entrenador": inside an accepted block, load progression, calorie changes in the safe band and deloads apply on their own with "Deshacer"/cancel; phases and new blocks need acceptance | Amends 76 |
 | 89 | No generic health disclaimers; one data-triggered note on a persisting level 4-5 discomfort; train around an injured area with a graded return the user paces | Amends 81 and 85; reverses E13 Q29 |
 | 90 | The per-user monthly AI cap rises from 2 € to 3 €; the 5 € global total stays | Amends 77 |
 | 91 | Minimal intake (years, maintenance, free text) and no "Recuperar" (deferred to Phase 3); no field extraction | Amends 86, 87 |
+| 92 | Equipment split: "Barra Z" is the only new item, every other implement is "Otro"; one "Máquina de cardio"; same barbell / EZ bar / dumbbell exercise is a 1.00 alternative both ways; no alternative below 0.90 | Amends 83, 85 |
 
 ## Phase 2 ADRs (full text)
 
@@ -297,3 +298,13 @@ Phase 2 ADRs continue the numbering (next: **ADR-91**) and are written **in full
 - **Decision:** the intake asks only what changes a figure or reaches the model in the same release: training years ("Tiempo entrenando", experience = max with the history), known maintenance ("Calorías de mantenimiento", the expenditure prior until measured data takes over) and the free text. No model extracts fields from the text. The situation, injured area, pre-break bests and cutting calories are dropped from the UI and from `coach_user_intake` (new migration). The regain phase "Recuperar" (returning after a break) is removed entirely and deferred to Phase 3; stored regain plans become "Mantenimiento" with their calories unchanged. The free text reaches `plan_nutrition` and `plan_block` as context, never instructions. Each row opens its own editor and nothing opens on its own.
 - **Consequences:** T-198, T-200, T-199; rules R-53, R-54, R-55 in `05` §8; E13 Q46 superseded, Q50/Q51 resolved by the removal; T-190 without regain triggers, T-193 without the regain band, T-194 injury from logged discomforts only (E13 Q52 for the fitness-scientist); `07` regain clean-up by the fitness-scientist; Phase 3 follow-up "Recuperar".
 - **Approval:** user, 2026-11-02 (chat: keep the free text and remove the complexity).
+
+### ADR-92 — Equipment split, one cardio machine item and barbell / EZ bar / dumbbell alternatives (T-201; amends ADR-83 and ADR-85)
+- **Context:** Checkpoint E13-D re-test (user, 2026-11-02): owning a barbell made "Press Landmine", "Press en banco inclinado con barra Z" and "Remo en T" look doable, and "Peso corporal" offered the TRX, rings and pull-up bar exercises, because the catalogue importer collapsed the bundle's `ez_bar`, `trap_bar` and `landmine` into `barbell` and `pull_up_bar`, `dip_station`, `rings` and `suspension_trainer` into `bodyweight`. The user also expects one "Máquina de cardio" instead of five machine chips. The curated alternatives graph (ADR-83) holds no barbell or EZ-bar exercise, so "Remo con Mancuernas Inclinado" has no barbell alternative.
+- **Decision:**
+  - `ez_bar` "Barra Z" is the only new equipment item; the EZ-bar exercises move to it. Landmine, T-bar, hexagonal bar, pull-up bar, dip station, rings, TRX, stability ball, `human-flag`, `back-extension` and `band-assisted-pull-ups` are `other` "Otro" (no item for a single exercise or a small implement). `barbell` is the straight bar only; `bodyweight` means floor or wall. No bench or rack requirement; no helper line under "Otro". `behind-the-neck-lat-pulldown` and `v-bar-lat-pulldown` move to `cable`; `ez-bar-reverse-grip-row` and `smith-machine-reverse-grip-bent-over-row` change muscle group to back. Full list: `07` §3 "Equipment items".
+  - Saved equipment: `ez_bar` is added only to gym lists or lists holding every old lifting value; an empty gym list stays empty; nobody else gains it. Custom exercises keep their tag.
+  - The five cardio machine values (ADR-85) merge into one `cardio_machine` "Máquina de cardio": the 8 machine cardio exercises are retagged and keep their keys, metrics and names; saved lists and stored blocks' `training.equipment` holding any of the five hold `cardio_machine`; place defaults unchanged. The tag only decides which cardio exercises are offered; the cardio default and swap logic is unchanged. The five old enum values stay in the Postgres type unused (an enum value cannot be dropped), guarded by a check.
+  - Alternatives: the same exercise (same angle, grip and movement) with a barbell, an EZ bar or dumbbells is an alternative at 1.00 in both directions; flat, incline and decline are separate groups; 34 groups listed in `07` §3 (including `barbell-row` ↔ `bent-over-db-row`, the user's case). Other curated pairs keep their scores. No alternative below 0.90 is offered or stored. A swapped exercise takes its load from its own history, never converted. Evidence and grades in `07` §3 and §10 69-70 (Haugen 2023 *strong* for equal hypertrophy across tools; Marcolin 2018 *weak*; no barbell-vs-dumbbell growth trial found): the 1.00 rule and the floor are design decisions.
+- **Consequences:** T-201 (sliced by the planner): migrations (new enum values in their own migration, catalogue retag and muscle fixes, saved-equipment and stored-block migration, redefined SQL functions that list the cardio values, alternatives seed, optional table check [0.90, 1]); `scripts/generate-exercise-catalog.py`; the `coach` Edge Function equipment order; `Equipment` enum, labels, "Mi entrenamiento" chips, strings; the EZ-bar naming fix in the bundle ("Barra EZ" → "Barra Z"); pgTAP, `deno test`, Kotlin and Robolectric tests; `03`, `04`, `05` updated by the planner and implementers; `07` §3, §9, §10 (done with this ADR).
+- **Approval:** user, 2026-11-02 (chat, after the fitness-scientist proposal and three rounds of corrections).
