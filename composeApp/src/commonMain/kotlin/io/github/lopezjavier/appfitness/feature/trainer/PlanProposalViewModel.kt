@@ -8,6 +8,7 @@ import io.github.lopezjavier.appfitness.domain.appErrorOrNull
 import io.github.lopezjavier.appfitness.domain.model.CoachException
 import io.github.lopezjavier.appfitness.domain.model.CoachFailure
 import io.github.lopezjavier.appfitness.domain.model.CoachPlan
+import io.github.lopezjavier.appfitness.domain.model.CutRate
 import io.github.lopezjavier.appfitness.domain.model.PlanInputKind
 import io.github.lopezjavier.appfitness.domain.model.PlanInputStatus
 import io.github.lopezjavier.appfitness.domain.model.PlanStatus
@@ -84,6 +85,31 @@ class PlanProposalViewModel(
             is PlanProposalEvent.CardioMinutesChanged -> changeCardio(event.minutes)
             PlanProposalEvent.SaveCardio -> saveCardio()
             PlanProposalEvent.DismissCardioEdit -> dismissCardioEdit()
+            is PlanProposalEvent.CutRatePicked -> updateOptions(event.pct, null)
+            is PlanProposalEvent.DietBreakToggled -> updateOptions(null, event.on)
+        }
+    }
+
+    /** Stores the cut options and replaces the plan with the recomputed one; the previous plan stays on failure. */
+    @Suppress("ReturnCount") // Guards: state, cut phase, valid rate and an in-flight call.
+    private fun updateOptions(ratePct: Double?, dietBreak: Boolean?) {
+        val proposal = _uiState.value as? PlanProposalUiState.Proposal ?: return
+        if (!proposal.hasCutOptions || proposal.busy) return
+        val current = proposal.plan.nutrition.phaseOptions
+        val rate = ratePct ?: current.cutRatePct
+        if (!CutRate.isValid(rate)) return
+        _uiState.value = proposal.copy(optionsSaving = true)
+        viewModelScope.launch {
+            val result = plans.updatePlanOptions(proposal.plan.id, today(), rate, dietBreak ?: current.dietBreak)
+            val updated = result.getOrNull()
+            _uiState.update { state ->
+                if (state is PlanProposalUiState.Proposal) {
+                    state.copy(plan = updated ?: state.plan, optionsSaving = false)
+                } else {
+                    state
+                }
+            }
+            if (updated == null) effectChannel.send(failed(PlanAction.Options, result.appErrorOrNull()))
         }
     }
 

@@ -22,7 +22,6 @@ import io.github.lopezjavier.appfitness.composeapp.resources.plan_activity_cardi
 import io.github.lopezjavier.appfitness.composeapp.resources.plan_activity_cardio_help_calories
 import io.github.lopezjavier.appfitness.composeapp.resources.plan_activity_cardio_help_cd
 import io.github.lopezjavier.appfitness.composeapp.resources.plan_activity_cardio_help_fat_loss
-import io.github.lopezjavier.appfitness.composeapp.resources.plan_activity_cardio_help_medical
 import io.github.lopezjavier.appfitness.composeapp.resources.plan_activity_cardio_help_muscle
 import io.github.lopezjavier.appfitness.composeapp.resources.plan_activity_cardio_row
 import io.github.lopezjavier.appfitness.composeapp.resources.plan_activity_cardio_title
@@ -54,7 +53,7 @@ import org.jetbrains.compose.resources.stringResource
 
 /**
  * The paragraphs of the cardio "?" sheet, in order: the base line, the intention line (fat loss, strength and
- * muscle only), the calories line and the medical line LAST (`07` §3). Pure so a test can assert the order.
+ * muscle only), and the calories line LAST (`07` §3). Pure so a test can assert the order.
  */
 internal fun activityCardioHelp(intention: String): List<StringResource> = buildList {
     add(Res.string.plan_activity_cardio_help_base)
@@ -63,7 +62,6 @@ internal fun activityCardioHelp(intention: String): List<StringResource> = build
         "strength", "muscle" -> add(Res.string.plan_activity_cardio_help_muscle)
     }
     add(Res.string.plan_activity_cardio_help_calories)
-    add(Res.string.plan_activity_cardio_help_medical)
 }
 
 /**

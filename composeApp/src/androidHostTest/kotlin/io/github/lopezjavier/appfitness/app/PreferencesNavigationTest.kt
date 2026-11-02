@@ -18,8 +18,6 @@ import io.github.lopezjavier.appfitness.domain.model.ActivityLevel
 import io.github.lopezjavier.appfitness.domain.model.GoalStrategy
 import io.github.lopezjavier.appfitness.domain.model.MacroSplit
 import io.github.lopezjavier.appfitness.domain.model.Sex
-import io.github.lopezjavier.appfitness.feature.profile.AccountScreen
-import io.github.lopezjavier.appfitness.feature.profile.AccountUiState
 import io.github.lopezjavier.appfitness.feature.profile.PreferencesEvent
 import io.github.lopezjavier.appfitness.feature.profile.PreferencesForm
 import io.github.lopezjavier.appfitness.feature.profile.PreferencesHubActions
@@ -38,7 +36,7 @@ import org.robolectric.annotation.Config
 
 /**
  * US-56 navigation: the Perfil gear opens the Preferencias hub, a row opens its editor and a saved editor returns to
- * the hub; the hub also leads to "Cuenta" and "Comidas del día"; the Diario goal prompt opens the hub.
+ * the hub; the hub also leads to "Comidas del día"; the Diario goal prompt opens the hub.
  */
 @RunWith(RobolectricTestRunner::class)
 @Config(qualifiers = "w360dp-h900dp-xxhdpi")
@@ -66,10 +64,10 @@ class PreferencesNavigationTest {
             actions = actions,
         )
     }
-    private val hubSlot: PreferencesSlot = { modifier, onBack, onOpenSection, onOpenMeals, onOpenAccount ->
+    private val hubSlot: PreferencesSlot = { modifier, onBack, onOpenSection, onOpenMeals ->
         PreferencesHubScreen(
             onBack = onBack,
-            actions = PreferencesHubActions({ onOpenSection(it.key) }, onOpenMeals, onOpenAccount),
+            actions = PreferencesHubActions({ onOpenSection(it.key) }, onOpenMeals),
             modifier = modifier,
         )
     }
@@ -94,9 +92,6 @@ class PreferencesNavigationTest {
             modifier = modifier,
         )
     }
-    private val accountSlot: AccountSlot = { modifier, onBack ->
-        AccountScreen(AccountUiState(), {}, onBack, modifier)
-    }
     private val mealSlotsSlot: MealSlotsSlot = { modifier, _, _ -> Box(modifier.fillMaxSize().testTag("meals_stub")) }
     private val diarySlot: DiarySlot = { modifier, onOpenPreferences, _, _, _, _ ->
         Box(modifier.fillMaxSize().testTag("diary_screen")) {
@@ -114,7 +109,6 @@ class PreferencesNavigationTest {
                     profile = profileSlot,
                     preferences = hubSlot,
                     preferencesSection = sectionSlot,
-                    account = accountSlot,
                     mealSlots = mealSlotsSlot,
                     diary = diarySlot,
                 )
@@ -183,16 +177,13 @@ class PreferencesNavigationTest {
     }
 
     @Test
-    fun cuentaRow_opensTheAccountScreen_andBackReturnsToTheHub() {
+    fun hub_hasNoCuentaRow_andShowsTheAccountButtons() {
         showShell()
         openHubFromPerfil()
-        tap("preferences_row_account")
-        rule.onNodeWithTag("account_screen").assertExists()
-        rule.onNodeWithTag("account_sign_out").assertExists()
 
-        tap("account_back")
-
-        rule.onNodeWithTag("preferences_hub").assertExists()
+        rule.onNodeWithTag("preferences_row_account").assertDoesNotExist()
+        rule.onNodeWithTag("preferences_sign_out").assertExists()
+        rule.onNodeWithTag("preferences_delete_account").assertExists()
     }
 
     @Test

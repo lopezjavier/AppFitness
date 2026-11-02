@@ -13,6 +13,8 @@ import io.github.lopezjavier.appfitness.domain.model.DerivedIntake
 import io.github.lopezjavier.appfitness.domain.model.DerivedSource
 import io.github.lopezjavier.appfitness.domain.model.DerivedTotalExpenditure
 import io.github.lopezjavier.appfitness.domain.model.DerivedWeightTrend
+import io.github.lopezjavier.appfitness.domain.model.Phase
+import io.github.lopezjavier.appfitness.domain.model.PhaseReason
 import io.github.lopezjavier.appfitness.domain.model.PlanInputKind
 import io.github.lopezjavier.appfitness.domain.model.PlanInputStatus
 import io.github.lopezjavier.appfitness.domain.model.PlanInputs
@@ -277,6 +279,20 @@ class TrainerViewModelTest {
 
         assertEquals(PlanSummary.Proposed(coachPlan()), model.content().plan)
         assertEquals(0, plans.pendingReads)
+    }
+
+    @Test
+    fun acceptedPlan_exposesItsPhaseAndReason_andNoPlanExposesNone() = runTest(dispatcher) {
+        plans.current = Result.success(
+            coachPlan(status = PlanStatus.Accepted, phase = Phase.Regain, phaseReason = PhaseReason.ReturningBreak),
+        )
+        val model = viewModel()
+
+        advanceUntilIdle()
+
+        assertEquals(Phase.Regain, model.content().planPhase)
+        assertEquals(PhaseReason.ReturningBreak, model.content().planPhaseReason)
+        assertNull(TrainerUiState.Content().planPhase)
     }
 
     @Test

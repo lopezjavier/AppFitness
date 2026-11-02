@@ -62,7 +62,7 @@ class NoTargetInputsTest {
 
     @Test
     fun preferencias_hasNoTargetWeight() = showAndAssertNoTargetInput {
-        PreferencesHubScreen(onBack = {}, actions = PreferencesHubActions({}, {}, {}))
+        PreferencesHubScreen(onBack = {}, actions = PreferencesHubActions({}, {}))
     }
 
     @Test

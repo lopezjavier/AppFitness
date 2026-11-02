@@ -28,11 +28,11 @@ import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 
-/** US-56 / US-05 on Cuenta: sign out and delete account behind their dialogs, the protected note, failures. */
+/** US-56 / US-05 at the end of the hub: both buttons behind their dialogs, the protected note, failures. */
 @RunWith(RobolectricTestRunner::class)
-@Config(qualifiers = "w360dp-h800dp-xxhdpi")
+@Config(qualifiers = "w360dp-h2400dp-xxhdpi")
 @Suppress("TooManyFunctions") // One method per scenario.
-class AccountScreenTest {
+class PreferencesHubAccountTest {
     @get:Rule
     val rule = createComposeRule()
 
@@ -51,7 +51,13 @@ class AccountScreenTest {
         rule.setContent {
             AppTheme {
                 CompositionLocalProvider(LocalAppMessages provides messages) {
-                    AccountScreen(state, { events += it }, { backs++ }, effects = effects.receiveAsFlow())
+                    PreferencesHubScreen(
+                        onBack = { backs++ },
+                        actions = PreferencesHubActions(),
+                        accountState = state,
+                        onAccountEvent = { events += it },
+                        accountEffects = effects.receiveAsFlow(),
+                    )
                 }
             }
         }
@@ -59,27 +65,21 @@ class AccountScreenTest {
     }
 
     @Test
-    fun title_isCuenta_andBackLeaves() {
+    fun noCuentaRow_andBothButtonsEndTheScroll_signOutThenDelete() {
         show()
-        rule.onNodeWithTag("account_title").assertTextEquals("Cuenta")
-        rule.onNodeWithTag("account_back").performClick()
-        assertEquals(1, backs)
-    }
-
-    @Test
-    fun buttons_sitInThePinnedFooter_signOutThenDelete() {
-        show()
-        val footer = rule.onNodeWithTag("account_footer").getUnclippedBoundsInRoot()
-        val signOut = rule.onNodeWithTag("account_sign_out").getUnclippedBoundsInRoot()
-        val delete = rule.onNodeWithTag("account_delete").getUnclippedBoundsInRoot()
-        assertTrue(signOut.top >= footer.top && delete.bottom <= footer.bottom)
+        rule.onNodeWithTag("preferences_row_account").assertDoesNotExist()
+        rule.onNodeWithTag("preferences_footer").assertDoesNotExist()
+        val avisos = rule.onNodeWithTag("preferences_row_avisos").getUnclippedBoundsInRoot()
+        val signOut = rule.onNodeWithTag("preferences_sign_out").getUnclippedBoundsInRoot()
+        val delete = rule.onNodeWithTag("preferences_delete_account").getUnclippedBoundsInRoot()
+        assertTrue(signOut.top >= avisos.bottom)
         assertTrue(signOut.bottom <= delete.top)
     }
 
     @Test
     fun signOut_asksFirst_andConfirmSendsTheEventOnce() {
         show()
-        rule.onNodeWithTag("account_sign_out").performClick()
+        rule.onNodeWithTag("preferences_sign_out").performClick()
         assertTrue(events.isEmpty())
         rule.onNodeWithTag("account_sign_out_dialog_confirm").performClick()
         rule.waitForIdle()
@@ -90,7 +90,7 @@ class AccountScreenTest {
     @Test
     fun signOut_cancelSendsNothing() {
         show()
-        rule.onNodeWithTag("account_sign_out").performClick()
+        rule.onNodeWithTag("preferences_sign_out").performClick()
         rule.onNodeWithTag("account_sign_out_dialog_cancel").performClick()
         rule.waitForIdle()
         assertTrue(events.isEmpty())
@@ -100,7 +100,7 @@ class AccountScreenTest {
     @Test
     fun delete_asksFirst_andConfirmSendsTheEventOnce() {
         show()
-        rule.onNodeWithTag("account_delete").performClick()
+        rule.onNodeWithTag("preferences_delete_account").performClick()
         assertTrue(events.isEmpty())
         rule.onNodeWithTag("account_delete_dialog_confirm").performClick()
         rule.waitForIdle()
@@ -111,7 +111,7 @@ class AccountScreenTest {
     @Test
     fun delete_cancelSendsNothing() {
         show()
-        rule.onNodeWithTag("account_delete").performClick()
+        rule.onNodeWithTag("preferences_delete_account").performClick()
         rule.onNodeWithTag("account_delete_dialog_cancel").performClick()
         rule.waitForIdle()
         assertTrue(events.isEmpty())
@@ -120,17 +120,17 @@ class AccountScreenTest {
     @Test
     fun deleteButton_isDisabledOffline() {
         show(state(isOnline = false))
-        rule.onNodeWithTag("account_delete").assertIsNotEnabled()
-        rule.onNodeWithTag("account_sign_out").assertIsEnabled()
+        rule.onNodeWithTag("preferences_delete_account").assertIsNotEnabled()
+        rule.onNodeWithTag("preferences_sign_out").assertIsEnabled()
     }
 
     @Test
     fun deleting_disablesTheButton_readsBorrando_andShowsTheLoader() {
         show(state(isDeleting = true))
-        rule.onNodeWithTag("account_delete").assertIsNotEnabled().assertTextEquals("Borrando…")
+        rule.onNodeWithTag("preferences_delete_account").assertIsNotEnabled().assertTextEquals("Borrando…")
         rule.onNode(
             SemanticsMatcher.keyIsDefined(SemanticsProperties.ProgressBarRangeInfo) and
-                hasAnyAncestor(hasTestTag("account_delete")),
+                hasAnyAncestor(hasTestTag("preferences_delete_account")),
             useUnmergedTree = true,
         ).assertExists()
     }
@@ -138,18 +138,18 @@ class AccountScreenTest {
     @Test
     fun protectedAccount_disablesDelete_showsTheNoteUnderIt_andOpensNoDialog() {
         show(state(protection = AccountProtection.Protected))
-        rule.onNodeWithTag("account_delete").assertIsNotEnabled().performClick()
-        rule.onNodeWithTag("account_delete_protected_note").assertTextEquals("Esta cuenta está protegida")
+        rule.onNodeWithTag("preferences_delete_account").assertIsNotEnabled().performClick()
+        rule.onNodeWithTag("preferences_delete_protected_note").assertTextEquals("Esta cuenta está protegida")
         rule.onNodeWithTag("account_delete_dialog").assertDoesNotExist()
-        val delete = rule.onNodeWithTag("account_delete").getUnclippedBoundsInRoot()
-        val note = rule.onNodeWithTag("account_delete_protected_note").getUnclippedBoundsInRoot()
+        val delete = rule.onNodeWithTag("preferences_delete_account").getUnclippedBoundsInRoot()
+        val note = rule.onNodeWithTag("preferences_delete_protected_note").getUnclippedBoundsInRoot()
         assertTrue(note.top >= delete.bottom)
     }
 
     @Test
     fun protectedAccount_readsTheNoteAsTheButtonState() {
         show(state(protection = AccountProtection.Protected))
-        rule.onNodeWithTag("account_delete").assert(
+        rule.onNodeWithTag("preferences_delete_account").assert(
             SemanticsMatcher.expectValue(SemanticsProperties.StateDescription, "Esta cuenta está protegida"),
         )
     }
@@ -157,15 +157,15 @@ class AccountScreenTest {
     @Test
     fun unprotectedAccount_showsNoNote_andDeleteIsEnabled() {
         show(state(protection = AccountProtection.Unprotected))
-        rule.onNodeWithTag("account_delete_protected_note").assertDoesNotExist()
-        rule.onNodeWithTag("account_delete").assertIsEnabled()
+        rule.onNodeWithTag("preferences_delete_protected_note").assertDoesNotExist()
+        rule.onNodeWithTag("preferences_delete_account").assertIsEnabled()
     }
 
     @Test
     fun unknownProtection_disablesDelete_withoutNote() {
         show(state(protection = AccountProtection.Unknown))
-        rule.onNodeWithTag("account_delete").assertIsNotEnabled()
-        rule.onNodeWithTag("account_delete_protected_note").assertDoesNotExist()
+        rule.onNodeWithTag("preferences_delete_account").assertIsNotEnabled()
+        rule.onNodeWithTag("preferences_delete_protected_note").assertDoesNotExist()
     }
 
     @Test
@@ -188,17 +188,17 @@ class AccountScreenTest {
 
     @Test
     @Config(qualifiers = "w840dp-h1000dp-mdpi")
-    fun tablet_capsTheFooterWidth() {
+    fun tablet_capsTheButtonWidth() {
         show()
-        val delete = rule.onNodeWithTag("account_delete").getUnclippedBoundsInRoot()
+        val delete = rule.onNodeWithTag("preferences_delete_account").getUnclippedBoundsInRoot()
         assertTrue("button width ${delete.width}", delete.width <= WindowWidthClassDefaults.FormContentMaxWidth)
     }
 
     @Test
     fun openDialog_survivesRecreation() {
         val tester = androidx.compose.ui.test.junit4.StateRestorationTester(rule)
-        tester.setContent { AppTheme { AccountScreen(state(), {}, {}) } }
-        rule.onNodeWithTag("account_sign_out").performClick()
+        tester.setContent { AppTheme { PreferencesHubScreen({}, PreferencesHubActions(), accountState = state()) } }
+        rule.onNodeWithTag("preferences_sign_out").performClick()
         tester.emulateSavedInstanceStateRestore()
         rule.waitForIdle()
         rule.onNodeWithTag("account_sign_out_dialog").assertExists()

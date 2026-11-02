@@ -45,6 +45,8 @@ import io.github.lopezjavier.appfitness.composeapp.resources.plan_proposal_grams
 import io.github.lopezjavier.appfitness.composeapp.resources.plan_proposal_interrupted
 import io.github.lopezjavier.appfitness.composeapp.resources.plan_proposal_kcal_day
 import io.github.lopezjavier.appfitness.composeapp.resources.plan_proposal_open_before_start
+import io.github.lopezjavier.appfitness.composeapp.resources.plan_proposal_options_error
+import io.github.lopezjavier.appfitness.composeapp.resources.plan_proposal_options_offline
 import io.github.lopezjavier.appfitness.composeapp.resources.plan_proposal_outcome_e1rm
 import io.github.lopezjavier.appfitness.composeapp.resources.plan_proposal_outcome_weight
 import io.github.lopezjavier.appfitness.composeapp.resources.plan_proposal_outcomes_header
@@ -117,6 +119,8 @@ fun PlanProposalRoot(
     val discardOffline = offlineHint(stringResource(Res.string.plan_proposal_discard_offline)) + "."
     val cardioError = stringResource(Res.string.cardio_save_error)
     val cardioOffline = offlineHint(stringResource(Res.string.cardio_save_offline)) + "."
+    val optionsError = stringResource(Res.string.plan_proposal_options_error)
+    val optionsOffline = offlineHint(stringResource(Res.string.plan_proposal_options_offline)) + "."
     LaunchedEffect(state) {
         if (state == PlanProposalUiState.Idle) viewModel.onEvent(PlanProposalEvent.Request)
     }
@@ -143,6 +147,7 @@ fun PlanProposalRoot(
                             PlanAction.Accept -> if (effect.offline) acceptOffline else acceptError
                             PlanAction.Discard -> if (effect.offline) discardOffline else discardError
                             PlanAction.Cardio -> if (effect.offline) cardioOffline else cardioError
+                            PlanAction.Options -> if (effect.offline) optionsOffline else optionsError
                         },
                     )
                 }
@@ -226,7 +231,17 @@ private fun ProposalContent(
         Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(Spacing.screenMargin),
         verticalArrangement = Arrangement.spacedBy(Spacing.blockGap),
     ) {
+        PhaseRow(state.plan.phase, nutrition.phaseReason, "plan_proposal")
         NutritionCard(state)
+        if (state.hasCutOptions) {
+            CutOptions(
+                options = nutrition.phaseOptions,
+                saving = state.optionsSaving,
+                online = online,
+                onRate = { onEvent(PlanProposalEvent.CutRatePicked(it)) },
+                onDietBreak = { onEvent(PlanProposalEvent.DietBreakToggled(it)) },
+            )
+        }
         if (nutrition.limitedBy == PlanLimit.Floor) {
             InlineNote(
                 text = stringResource(

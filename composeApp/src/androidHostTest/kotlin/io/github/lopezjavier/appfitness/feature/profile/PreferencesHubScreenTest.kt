@@ -27,18 +27,17 @@ class PreferencesHubScreenTest {
 
     private val sections = mutableListOf<PreferencesSection>()
     private var meals = 0
-    private var account = 0
     private var backs = 0
 
     private val keys =
-        listOf("personal", "energy", "macros", "meals", "cooking", "training", "avisos", "account")
+        listOf("personal", "energy", "macros", "meals", "cooking", "training", "avisos")
 
     private fun show() {
         rule.setContent {
             AppTheme {
                 PreferencesHubScreen(
                     onBack = { backs++ },
-                    actions = PreferencesHubActions({ sections += it }, { meals++ }, { account++ }),
+                    actions = PreferencesHubActions({ sections += it }, { meals++ }),
                 )
             }
         }
@@ -54,7 +53,7 @@ class PreferencesHubScreenTest {
     }
 
     @Test
-    fun eightRows_readTheDestinationTitles_inOrder() {
+    fun sevenRows_readTheDestinationTitles_inOrder() {
         show()
         val labels = listOf(
             "Datos personales",
@@ -64,7 +63,6 @@ class PreferencesHubScreenTest {
             "Cocina",
             "Entrenamiento",
             "Avisos",
-            "Cuenta",
         )
         keys.zip(labels).forEach { (key, label) ->
             rule.onNodeWithTag("preferences_row_$key").assertTextEquals(label).assertHeightIsAtLeast(48.dp)
@@ -89,7 +87,6 @@ class PreferencesHubScreenTest {
             sections,
         )
         assertEquals(1, meals)
-        assertEquals(1, account)
     }
 
     @Test

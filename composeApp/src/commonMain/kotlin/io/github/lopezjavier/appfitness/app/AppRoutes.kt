@@ -62,10 +62,6 @@ data object PreferencesRoute : AppRoute
 @Serializable
 data class PreferencesSectionRoute(val section: String) : AppRoute
 
-/** "Cuenta": sign out and delete the account, opened from the Preferencias hub (US-56). */
-@Serializable
-data object AccountRoute : AppRoute
-
 /** "Uso de IA": this month's AI spending against the monthly limit, opened from the Trainer overflow (US-76). */
 @Serializable
 data object CoachUsageRoute : AppRoute
@@ -104,7 +100,7 @@ data object FreeTextLinesRoute : AppRoute
 
 /** The four-week training block of the plan [planId] (US-72): request, review and save, opened from the Trainer tab. */
 @Serializable
-data class BlockPreviewRoute(val planId: String) : AppRoute
+data class BlockPreviewRoute(val planId: String, val minimal: Boolean = false) : AppRoute
 
 /** "Acerca de": app name, version, credits and open-source licences, opened from the Perfil root (US-45). */
 @Serializable
@@ -378,7 +374,6 @@ object AppDestinations {
             CatalogRoute,
             PreferencesRoute,
             PreferencesSectionRoute(""),
-            AccountRoute,
             ExercisePickerRoute(),
             ExerciseDetailRoute("", false),
             RoutineBuilderRoute(),

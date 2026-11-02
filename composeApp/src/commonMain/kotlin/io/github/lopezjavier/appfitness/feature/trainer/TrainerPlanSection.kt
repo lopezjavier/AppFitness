@@ -4,6 +4,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.material3.Text
@@ -23,6 +24,7 @@ import io.github.lopezjavier.appfitness.composeapp.resources.calorie_change_reas
 import io.github.lopezjavier.appfitness.composeapp.resources.calorie_change_reason_slower
 import io.github.lopezjavier.appfitness.composeapp.resources.calorie_change_title
 import io.github.lopezjavier.appfitness.composeapp.resources.deload_accept_offline
+import io.github.lopezjavier.appfitness.composeapp.resources.phase_help_cd
 import io.github.lopezjavier.appfitness.composeapp.resources.trainer_block_create
 import io.github.lopezjavier.appfitness.composeapp.resources.trainer_block_create_action
 import io.github.lopezjavier.appfitness.composeapp.resources.trainer_block_proposed_supporting
@@ -41,6 +43,7 @@ import io.github.lopezjavier.appfitness.composeapp.resources.trainer_plan_create
 import io.github.lopezjavier.appfitness.composeapp.resources.trainer_plan_outcomes
 import io.github.lopezjavier.appfitness.composeapp.resources.trainer_plan_pending_supporting
 import io.github.lopezjavier.appfitness.composeapp.resources.trainer_plan_pending_title
+import io.github.lopezjavier.appfitness.composeapp.resources.trainer_plan_phase_line
 import io.github.lopezjavier.appfitness.composeapp.resources.trainer_plan_replace
 import io.github.lopezjavier.appfitness.composeapp.resources.trainer_plan_section
 import io.github.lopezjavier.appfitness.composeapp.resources.trainer_source_edited
@@ -50,6 +53,7 @@ import io.github.lopezjavier.appfitness.designsystem.AppTheme
 import io.github.lopezjavier.appfitness.designsystem.CoachProposalCard
 import io.github.lopezjavier.appfitness.designsystem.GhostButton
 import io.github.lopezjavier.appfitness.designsystem.GhostTone
+import io.github.lopezjavier.appfitness.designsystem.HelpButton
 import io.github.lopezjavier.appfitness.designsystem.ListSectionHeader
 import io.github.lopezjavier.appfitness.designsystem.OfflineHint
 import io.github.lopezjavier.appfitness.designsystem.PrimaryButton
@@ -59,6 +63,7 @@ import io.github.lopezjavier.appfitness.designsystem.StatusTone
 import io.github.lopezjavier.appfitness.domain.model.CalorieChange
 import io.github.lopezjavier.appfitness.domain.model.CoachPlan
 import io.github.lopezjavier.appfitness.domain.model.DeloadProposal
+import io.github.lopezjavier.appfitness.domain.model.PhaseReason
 import io.github.lopezjavier.appfitness.feature.weight.signedTenths
 import org.jetbrains.compose.resources.pluralStringResource
 import org.jetbrains.compose.resources.stringResource
@@ -213,6 +218,7 @@ private fun ActivePlanCard(plan: CoachPlan, onEditCardio: () -> Unit) {
             style = AppTheme.typography.bodyLarge,
             color = AppTheme.colors.textPrimary,
         )
+        PhaseLine(plan)
         nutrition.activity?.let { activity ->
             Box(
                 Modifier.fillMaxWidth()
@@ -247,6 +253,33 @@ private fun ActivePlanCard(plan: CoachPlan, onEditCardio: () -> Unit) {
         if (nutrition.editedByUser) {
             StatusChip(stringResource(Res.string.trainer_source_edited), StatusTone.Caution)
         }
+    }
+}
+
+/** One line with the phase and, when it is short, its reason; the "?" explains the phase. */
+@Composable
+private fun PhaseLine(plan: CoachPlan) {
+    val phase = plan.phase
+    val reason = plan.nutrition.phaseReason
+    val label = stringResource(PhaseText.label(phase))
+    val text = if (reason == PhaseReason.ReturningBreak) {
+        label
+    } else {
+        stringResource(Res.string.trainer_plan_phase_line, label, stringResource(PhaseText.reason(phase, reason)))
+    }
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        Text(
+            text = text,
+            style = AppTheme.typography.bodyMedium,
+            color = AppTheme.colors.textSecondary,
+            modifier = Modifier.weight(1f).testTag("trainer_plan_phase"),
+        )
+        HelpButton(
+            contentDescription = stringResource(Res.string.phase_help_cd),
+            title = label,
+            body = stringResource(PhaseText.help(phase)),
+            testTag = "trainer_plan_phase_help",
+        )
     }
 }
 

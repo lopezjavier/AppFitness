@@ -153,16 +153,14 @@ class WeightScreenGoalTest {
     }
 
     @Test
-    fun tappingTheBmiTile_opensTheDetailWithTheDisclaimer() {
+    fun tappingTheBmiTile_opensTheDetailWithoutAnyDisclaimer() {
         show()
 
         tap("weight_bmi_tile")
 
         rule.onNodeWithTag("weight_metric_status").assertTextContains("Normal", substring = true)
         rule.onNodeWithTag("weight_metric_explanation").assertIsDisplayed()
-        rule.onNodeWithTag(
-            "weight_metric_disclaimer",
-        ).assertTextContains("no es un dispositivo médico", substring = true)
+        rule.onNodeWithTag("weight_metric_disclaimer").assertDoesNotExist()
         rule.onNodeWithTag("weight_metric_close_button").assertDoesNotExist()
         tap("weight_metric_sheet_close")
         rule.waitUntil(timeoutMillis = 5_000) {

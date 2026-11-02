@@ -6,6 +6,7 @@ import io.github.lopezjavier.appfitness.domain.model.CoachException
 import io.github.lopezjavier.appfitness.domain.model.CoachFailure
 import io.github.lopezjavier.appfitness.domain.model.CoachPlan
 import io.github.lopezjavier.appfitness.domain.model.MissingField
+import io.github.lopezjavier.appfitness.domain.model.Phase
 
 /** Why a plan could not be shown; the UI picks the Spanish message and whether "Reintentar" makes sense. */
 sealed interface PlanFailureKind {
@@ -91,8 +92,13 @@ sealed interface PlanProposalUiState {
         val dataChanged: Boolean = false,
         /** The open cardio-minutes sheet; null when closed or when the plan has no activity targets. */
         val cardioEdit: CardioEdit? = null,
+        /** True while the cut rate or the diet break is being stored and the plan recomputed. */
+        val optionsSaving: Boolean = false,
     ) : PlanProposalUiState {
-        val busy: Boolean get() = accepting || discarding || cardioEdit?.saving == true
+        val busy: Boolean get() = accepting || discarding || optionsSaving || cardioEdit?.saving == true
+
+        /** The rate selector and the diet-break switch exist only on a cut plan. */
+        val hasCutOptions: Boolean get() = plan.phase == Phase.Cut
 
         /** US-68 gate: nothing provisional and no call in flight. */
         val canAccept: Boolean get() = !unconfirmed && !busy
@@ -111,7 +117,7 @@ sealed interface PlanProposalUiState {
     data object Closed : PlanProposalUiState
 }
 
-enum class PlanAction { Accept, Discard, Cardio }
+enum class PlanAction { Accept, Discard, Cardio, Options }
 
 sealed interface PlanProposalEvent {
     /** Asks the coach for a plan (costs money); ignored unless the state is [PlanProposalUiState.Idle]. */
@@ -135,6 +141,12 @@ sealed interface PlanProposalEvent {
 
     /** X, back or "Cancelar": closes the sheet and drops the draft. */
     data object DismissCardioEdit : PlanProposalEvent
+
+    /** A weekly cut rate (percent of body weight, 0.5..1.0) picked on a cut plan; recomputed, never requested. */
+    data class CutRatePicked(val pct: Double) : PlanProposalEvent
+
+    /** The "Con semana de descanso" switch changed on a cut plan. */
+    data class DietBreakToggled(val on: Boolean) : PlanProposalEvent
 }
 
 sealed interface PlanProposalEffect {

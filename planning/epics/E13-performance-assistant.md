@@ -1033,7 +1033,7 @@ Feature: Phases
     When I tap "Tengo poco tiempo" and create the block
     Then the phase is "Mínimo"
     And the block has one full-body session a week with one set of each main lift of my previous block, at the same weights
-    And it says "Para épocas con poco tiempo: una sesión a la semana y una serie por ejercicio, con el mismo peso. Así se mantienen la fuerza y el músculo durante meses."
+    And it says "Para épocas con poco tiempo: un entreno a la semana y una serie por ejercicio, con el mismo peso. Así se mantienen la fuerza y el músculo durante meses."
 
   Scenario: Older users in the minimal phase
     Given I am 65 or older

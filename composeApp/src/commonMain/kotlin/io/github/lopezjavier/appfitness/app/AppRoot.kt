@@ -25,9 +25,8 @@ import io.github.lopezjavier.appfitness.feature.food.FoodSearchRoot
 import io.github.lopezjavier.appfitness.feature.meals.MealSlotsRoot
 import io.github.lopezjavier.appfitness.feature.meals.defaults.MealDefaultsRoot
 import io.github.lopezjavier.appfitness.feature.notifications.NotificationCenterRoot
-import io.github.lopezjavier.appfitness.feature.profile.AccountRoot
 import io.github.lopezjavier.appfitness.feature.profile.PreferencesHubActions
-import io.github.lopezjavier.appfitness.feature.profile.PreferencesHubScreen
+import io.github.lopezjavier.appfitness.feature.profile.PreferencesHubRoot
 import io.github.lopezjavier.appfitness.feature.profile.PreferencesSectionRoot
 import io.github.lopezjavier.appfitness.feature.profile.ProfileRootRoute
 import io.github.lopezjavier.appfitness.feature.routines.RoutineBuilderRoot
@@ -86,15 +85,14 @@ fun AppRoot(
         exerciseProgress = { progressModifier, exerciseId, onBack ->
             ExerciseProgressRoot(exerciseId, onBack, progressModifier)
         },
-        preferences = { hubModifier, onBack, onOpenSection, onOpenMeals, onOpenAccount ->
-            PreferencesHubScreen(
+        preferences = { hubModifier, onBack, onOpenSection, onOpenMeals ->
+            PreferencesHubRoot(
                 onBack = onBack,
-                actions = PreferencesHubActions({ onOpenSection(it.key) }, onOpenMeals, onOpenAccount),
+                actions = PreferencesHubActions({ onOpenSection(it.key) }, onOpenMeals),
                 modifier = hubModifier,
             )
         },
         preferencesSection = { sectionModifier, onClose -> PreferencesSectionRoot(onClose, sectionModifier) },
-        account = { accountModifier, onBack -> AccountRoot(onBack, accountModifier) },
         coachUsage = { usageModifier, onBack -> CoachUsageRoot(onBack, usageModifier) },
         planProposal = { planModifier, onBack, onOpenBeforeStart ->
             PlanProposalRoot(onBack, onOpenBeforeStart, planModifier)

@@ -21,7 +21,13 @@ class AppFeaturesTest {
 
     private val nonCatalogRoutes: List<AppRoute> =
         listOf(
-            DiaryGraph, DiaryHome, WorkoutGraph, WorkoutHome, ProfileGraph, ProfileHome, PreferencesRoute, AccountRoute,
+            DiaryGraph,
+            DiaryHome,
+            WorkoutGraph,
+            WorkoutHome,
+            ProfileGraph,
+            ProfileHome,
+            PreferencesRoute,
             PreferencesSectionRoute("energy"),
         )
 

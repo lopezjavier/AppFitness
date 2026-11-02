@@ -118,7 +118,7 @@ class GoalRestorationTest {
         tester.emulateSavedInstanceStateRestore()
         rule.waitForIdle()
 
-        rule.onNodeWithTag("weight_metric_disclaimer").assertIsDisplayed()
+        rule.onNodeWithTag("weight_metric_explanation").assertIsDisplayed()
     }
 
     @Test

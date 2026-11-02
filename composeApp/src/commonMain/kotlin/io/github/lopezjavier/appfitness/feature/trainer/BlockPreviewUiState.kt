@@ -58,6 +58,8 @@ sealed interface BlockPreviewUiState {
         val replaceSlot: String? = null,
         val alternatives: AlternativesState = AlternativesState.Loading,
         val swappable: Set<String>? = null,
+        /** The block was requested with "Tengo poco tiempo": the screen shows the Mínimo note. */
+        val minimal: Boolean = false,
     ) : BlockPreviewUiState {
         /**
          * Whether the swap button is drawn for the slot: hidden only when the alternatives are known and none fits.
