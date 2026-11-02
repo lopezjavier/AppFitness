@@ -57,15 +57,13 @@ class PlanProposalPhaseTest {
     }
 
     @Test
-    fun returningUser_seesRecuperarAndTheReturningSentence() {
-        show(coachPlan(phase = Phase.Regain, phaseReason = PhaseReason.ReturningBreak))
+    fun legacyRegainPlan_readsAsMantenimiento_andNeverShowsRecuperar() {
+        show(coachPlan(phase = Phase.Maintenance, phaseReason = PhaseReason.Intention))
 
-        rule.onNodeWithText("Recuperar").assertExists()
-        rule.onNodeWithText(
-            "Vuelves después de un parón. Al volver, la fuerza y el músculo se recuperan más rápido que la primera " +
-                "vez. Comer por debajo de lo que gastas frena la ganancia de músculo, así que primero recuperamos " +
-                "y luego, si quieres, definimos.",
-        ).assertExists()
+        rule.onNodeWithTag("plan_proposal_phase_row").assertExists()
+        rule.onNodeWithText("Mantenimiento").assertExists()
+        rule.onNodeWithText("Recuperar", substring = true).assertDoesNotExist()
+        rule.onNodeWithText("Vuelves después de un parón", substring = true).assertDoesNotExist()
     }
 
     @Test

@@ -21,13 +21,10 @@ export type Phase =
     | "gain"
     | "maintenance"
     | "recomposition"
-    | "regain"
     | "minimal";
 /** Why the plan is in that phase; the Spanish text lives in the client. */
 export type PhaseReason =
     | "intention"
-    | "returning_break"
-    | "returning_injury"
     | "user_busy";
 export type PhaseOptions = { cut_rate_pct: number; diet_break: boolean };
 

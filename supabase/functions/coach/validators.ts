@@ -23,7 +23,6 @@ import {
     rangeClass,
     RATE_TOLERANCE_PCT,
     rateKcal,
-    REGAIN_GAIN_RATE,
     ROUNDING_KCAL,
     SURPLUS_CAP,
 } from "./nutritionRules.ts";
@@ -212,17 +211,6 @@ export function assertNutritionInvariants(n: Nutrition): void {
         const [min, max] = GAIN_RATE_RANGE;
         if (n.rate_pct_week > max + RATE_TOLERANCE_PCT) fail("gain_rate_max");
         if (n.rate_pct_week < min && !limited) fail("gain_rate_min");
-    } else if (phase === "regain") {
-        // Never a deficit; a surplus only at +0.25 %/week for a muscle or strength intention.
-        if (n.calorie_adjustment < 0) fail("regain_deficit");
-        if (n.intention === "muscle" || n.intention === "strength") {
-            if (
-                n.calorie_adjustment > 0 &&
-                n.rate_pct_week > REGAIN_GAIN_RATE + RATE_TOLERANCE_PCT
-            ) fail("regain_rate");
-        } else if (n.calorie_adjustment > 0 && n.limited_by !== "floor") {
-            fail("regain_surplus");
-        }
     } else if (
         // Maintenance, recomposition, minimal: the no-change range of 04 section 8.7 on the adjustment.
         Math.abs(n.calorie_adjustment) >

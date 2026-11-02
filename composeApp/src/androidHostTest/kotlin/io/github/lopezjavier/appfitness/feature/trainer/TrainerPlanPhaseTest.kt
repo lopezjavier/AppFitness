@@ -46,10 +46,12 @@ class TrainerPlanPhaseTest {
     }
 
     @Test
-    fun returningPlan_showsRecuperar() {
-        show(Phase.Regain, PhaseReason.ReturningBreak)
+    fun legacyRegainPlan_readsAsMantenimiento_andNeverShowsRecuperar() {
+        show(Phase.Maintenance)
 
-        rule.onNodeWithText("Recuperar", substring = true).assertExists()
+        rule.onNodeWithText("Mantenimiento · Tu objetivo es mantener tu peso.").assertExists()
+        rule.onNodeWithText("Recuperar", substring = true).assertDoesNotExist()
+        rule.onNodeWithText("Vuelves después de un parón", substring = true).assertDoesNotExist()
     }
 
     @Test

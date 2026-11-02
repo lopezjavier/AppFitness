@@ -397,28 +397,6 @@ Deno.test("the deficit_cap flag needs a cut and a deficit of exactly 500", () =>
     );
 });
 
-Deno.test("regain with a deficit is rejected", () => {
-    broken("regain_deficit", (x) => {
-        x.target_kcal = 2500;
-        x.calorie_adjustment = -100;
-        x.strategy = "deficit";
-    }, good({ phase: "regain" }));
-});
-
-Deno.test("regain: a surplus needs a muscle or strength intention and at most 0.25 percent", () => {
-    broken("regain_surplus", (x) => {
-        x.target_kcal = 2820;
-        x.calorie_adjustment = 220;
-        x.strategy = "surplus";
-    }, good({ phase: "regain" }));
-    broken(
-        "regain_rate",
-        (x) => (x.rate_pct_week = 0.45),
-        good({ intention: "muscle", phase: "regain" }),
-    );
-    assertNutritionInvariants(good({ intention: "strength", phase: "regain" }));
-});
-
 Deno.test("maintenance, recomposition and minimal stay inside the no-change range", () => {
     for (const phase of ["maintenance", "recomposition", "minimal"] as const) {
         assertNutritionInvariants(good({ phase }));
@@ -477,7 +455,7 @@ Deno.test("cardio: 150 everywhere but the minimal phase, where only 100 passes",
         phase: "minimal",
     });
     assertEquals(a100.cardio_min_week, CARDIO_MIN_WEEK_MINIMAL);
-    assertActivityInvariants(a150, null, "regain");
+    assertActivityInvariants(a150, null, "maintenance");
     assertActivityInvariants(a100, null, "minimal");
     assertThrows(
         () => assertActivityInvariants(a150, null, "minimal"),

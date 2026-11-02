@@ -262,11 +262,8 @@ private fun PhaseLine(plan: CoachPlan) {
     val phase = plan.phase
     val reason = plan.nutrition.phaseReason
     val label = stringResource(PhaseText.label(phase))
-    val text = if (reason == PhaseReason.ReturningBreak) {
-        label
-    } else {
+    val text =
         stringResource(Res.string.trainer_plan_phase_line, label, stringResource(PhaseText.reason(phase, reason)))
-    }
     Row(verticalAlignment = Alignment.CenterVertically) {
         Text(
             text = text,

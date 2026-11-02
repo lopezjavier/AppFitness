@@ -1,10 +1,10 @@
 package io.github.lopezjavier.appfitness.domain.model
 
 /** Training/calorie phase of a coach plan (`coach_plans.phase`). */
-enum class Phase { Cut, Gain, Maintenance, Recomposition, Regain, Minimal }
+enum class Phase { Cut, Gain, Maintenance, Recomposition, Minimal }
 
 /** Why the plan is in its phase; the Spanish text belongs to the UI. */
-enum class PhaseReason { Intention, ReturningBreak, ReturningInjury, UserBusy }
+enum class PhaseReason { Intention, UserBusy }
 
 /** User-chosen options of a plan: how fast to cut (percent of body weight per week) and the optional diet break. */
 data class PhaseOptions(val cutRatePct: Double = CutRate.DEFAULT, val dietBreak: Boolean = false)
@@ -32,15 +32,18 @@ fun phaseOrNull(code: String?): Phase? = when (code) {
     "gain" -> Phase.Gain
     "maintenance" -> Phase.Maintenance
     "recomposition" -> Phase.Recomposition
-    "regain" -> Phase.Regain
     "minimal" -> Phase.Minimal
     else -> null
 }
 
-/** Maps a stored reason code; an unknown or missing one is [PhaseReason.Intention]. */
+/**
+ * Maps a stored phase code: null when missing, [Phase.Maintenance] when present but unknown (a retired code such as
+ * the old `regain` reads as Maintenance, never as Cut).
+ */
+fun storedPhaseOrNull(code: String?): Phase? = code?.let { phaseOrNull(it) ?: Phase.Maintenance }
+
+/** Maps a stored reason code; an unknown, retired (`returning_*`) or missing one is [PhaseReason.Intention]. */
 fun phaseReasonOf(code: String?): PhaseReason = when (code) {
-    "returning_break" -> PhaseReason.ReturningBreak
-    "returning_injury" -> PhaseReason.ReturningInjury
     "user_busy" -> PhaseReason.UserBusy
     else -> PhaseReason.Intention
 }
