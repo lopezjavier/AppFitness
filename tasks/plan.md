@@ -139,7 +139,7 @@ Each checkpoint also has "leave the app and come back: the same tab, screen and 
 - [ ] T-185: "Para conocerte" and the free-text block (backend; also the 3 € cap, ADR-90) — L
 - [ ] T-186: "Para conocerte" screen and "Lo que el entrenador sabe de ti" — L
 - [x] T-187: Phases: calories and training by phase — L
-- [ ] T-188: Phases in the plan; generic disclaimers removed app-wide; Perfil and Peso fixes — L
+- [x] T-188: Phases in the plan; generic disclaimers removed app-wide; Perfil and Peso fixes — L
   - **Checkpoint E13-D 👤 "Getting to know you, your phase, and your plan with cardio" (7 items; carries E13-B3 and the E13-B1 re-test)** — proposed
 
 ### Phase 2d: The end-of-block review (US-73 am., US-83, US-84, US-88)
