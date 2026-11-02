@@ -42,7 +42,7 @@ class BeforeStartNavigationTest {
             )
         }
     }
-    private val beforeStartSlot: BeforeStartSlot = { modifier, onBack, onCreated, onOpenYourData, onFix, _ ->
+    private val beforeStartSlot: BeforeStartSlot = { modifier, onBack, onCreated, onOpenYourData, onFix ->
         AppScreen("Antes de empezar", modifier.testTag("before_start_screen"), onBack = onBack, testTagPrefix = "bs") {
             Column {
                 Box(

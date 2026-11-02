@@ -11,18 +11,18 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performTextInput
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.SavedStateHandle
 import androidx.navigation.compose.rememberNavController
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
+import io.github.lopezjavier.appfitness.domain.model.IntakeUpdate
 import io.github.lopezjavier.appfitness.domain.model.PlanInputKind
-import io.github.lopezjavier.appfitness.feature.exercises.FakeExerciseRepository
 import io.github.lopezjavier.appfitness.feature.trainer.BeforeStartMode
 import io.github.lopezjavier.appfitness.feature.trainer.BeforeStartRoot
 import io.github.lopezjavier.appfitness.feature.trainer.BeforeStartViewModel
 import io.github.lopezjavier.appfitness.feature.trainer.FakeCoachIntakeRepository
 import io.github.lopezjavier.appfitness.feature.trainer.FakeCoachRepository
-import io.github.lopezjavier.appfitness.feature.trainer.FakeIntakePromptPreference
 import io.github.lopezjavier.appfitness.feature.trainer.IntakeRoot
 import io.github.lopezjavier.appfitness.feature.trainer.IntakeViewModel
 import io.github.lopezjavier.appfitness.feature.trainer.planKeys
@@ -35,7 +35,7 @@ import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 
-/** US-81 "Asked once before the first plan": the first "Crear plan" shows the intake, later ones do not. */
+/** US-81 "Nothing opens on its own": the first "Crear plan" goes straight to "Antes de empezar". */
 @RunWith(RobolectricTestRunner::class)
 @Config(qualifiers = "w360dp-h2400dp-xxhdpi")
 class IntakeFlowNavigationTest {
@@ -46,9 +46,7 @@ class IntakeFlowNavigationTest {
         inputs[PlanInputKind.Plan] = Result.success(planKeys())
     }
     private val intake = FakeCoachIntakeRepository()
-    private val prompt = FakeIntakePromptPreference()
     private val connectivity = FakeConnectivityObserver()
-    private val exercises = FakeExerciseRepository()
 
     private val trainerSlot: TrainerSlot = { modifier, actions ->
         Column(modifier.fillMaxSize().testTag("trainer_screen")) {
@@ -58,15 +56,15 @@ class IntakeFlowNavigationTest {
             )
         }
     }
-    private val beforeStartSlot: BeforeStartSlot = { modifier, onBack, onCreated, onOpenYourData, onFix, onOpenIntake ->
+    private val beforeStartSlot: BeforeStartSlot = { modifier, onBack, onCreated, onOpenYourData, onFix ->
         val model = remember {
-            BeforeStartViewModel(coach, intake, prompt, MutableClock(), SavedStateHandle(mapOf("mode" to "plan")))
+            BeforeStartViewModel(coach, intake, MutableClock(), SavedStateHandle(mapOf("mode" to "plan")))
         }
-        BeforeStartRoot(onBack, onCreated, onOpenYourData, onFix, onOpenIntake, modifier, model, connectivity)
+        BeforeStartRoot(onBack, onCreated, onOpenYourData, onFix, modifier, model, connectivity)
     }
     private val intakeSlot: IntakeSlot = { modifier, host ->
-        val model = remember { IntakeViewModel(intake, prompt, SavedStateHandle()) }
-        IntakeRoot(host, modifier, model, connectivity, exercises)
+        val model = remember { IntakeViewModel(intake, SavedStateHandle()) }
+        IntakeRoot(host, modifier, model, connectivity)
     }
 
     private fun show() {
@@ -90,50 +88,40 @@ class IntakeFlowNavigationTest {
     }
 
     @Test
-    fun theFirstPlan_showsTheIntake_andAhoraNoGoesOnToAntesDeEmpezar() {
+    fun theFirstPlan_opensAntesDeEmpezarDirectly_andNothingElseOpens() {
         show()
 
         tap("t_plan")
+
+        rule.onNodeWithTag("before_start_screen").assertExists()
+        rule.onNodeWithTag("intake_screen").assertDoesNotExist()
+        rule.onNodeWithTag("intake_years_sheet").assertDoesNotExist()
+        assertTrue(intake.saveCalls.isEmpty())
+    }
+
+    @Test
+    fun theFreeTextRow_opensParaConocerte_andSavingReturnsToAntesDeEmpezarWithTheText() {
+        show()
+        tap("t_plan")
+
+        tap("before_start_row_free_text")
         rule.onNodeWithTag("intake_screen").assertExists()
-        rule.onNodeWithTag("before_start_screen").assertDoesNotExist()
-        tap("intake_skip")
-
-        rule.onNodeWithTag("before_start_screen").assertExists()
-        rule.onNodeWithTag("intake_screen").assertDoesNotExist()
-        assertTrue(prompt.asked)
-    }
-
-    @Test
-    fun afterSkipping_theNextPlanGoesStraightToAntesDeEmpezar() {
-        prompt.asked = true
-        show()
-
-        tap("t_plan")
-
-        rule.onNodeWithTag("before_start_screen").assertExists()
-        rule.onNodeWithTag("intake_screen").assertDoesNotExist()
-    }
-
-    @Test
-    fun savingTheIntake_continuesToAntesDeEmpezar_andRemembersIt() {
-        show()
-        tap("t_plan")
-
-        tap("intake_years_increment")
+        rule.onNodeWithTag("intake_free_text").performTextInput("Rodilla operada")
         tap("intake_save")
 
         rule.onNodeWithTag("before_start_screen").assertExists()
-        assertEquals(1.0, intake.saveCalls.single().trainingYears)
-        assertTrue(prompt.asked)
+        rule.onNodeWithTag("intake_screen").assertDoesNotExist()
+        assertEquals(listOf<IntakeUpdate>(IntakeUpdate.FreeText("Rodilla operada")), intake.saveCalls)
     }
 
     @Test
-    fun backFromTheFirstPlanIntake_returnsToTheTrainer() {
+    fun backFromParaConocerte_returnsToAntesDeEmpezar() {
         show()
         tap("t_plan")
+        tap("before_start_row_free_text")
 
         tap("intake_back")
 
-        rule.onNodeWithTag("trainer_screen").assertExists()
+        rule.onNodeWithTag("before_start_screen").assertExists()
     }
 }

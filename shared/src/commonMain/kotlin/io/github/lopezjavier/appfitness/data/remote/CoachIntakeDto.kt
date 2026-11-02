@@ -1,34 +1,16 @@
 package io.github.lopezjavier.appfitness.data.remote
 
 import io.github.lopezjavier.appfitness.domain.model.CoachIntake
-import io.github.lopezjavier.appfitness.domain.model.CoachIntakeDraft
 import io.github.lopezjavier.appfitness.domain.model.FreeTextKind
 import io.github.lopezjavier.appfitness.domain.model.FreeTextLine
 import io.github.lopezjavier.appfitness.domain.model.FreeTextStatus
-import io.github.lopezjavier.appfitness.domain.model.InjuredArea
-import io.github.lopezjavier.appfitness.domain.model.PreBreakBest
-import io.github.lopezjavier.appfitness.domain.model.Situation
+import io.github.lopezjavier.appfitness.domain.model.IntakeUpdate
 import kotlinx.datetime.LocalDate
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
-
-private val SITUATION_WIRE = mapOf(
-    Situation.FirstTime to "first_time",
-    Situation.Continuous to "continuous",
-    Situation.ReturningBreak to "returning_break",
-    Situation.ReturningInjury to "returning_injury",
-)
-
-private val AREA_WIRE = mapOf(
-    InjuredArea.Shoulder to "shoulder",
-    InjuredArea.Elbow to "elbow",
-    InjuredArea.Wrist to "wrist",
-    InjuredArea.LowerBack to "lower_back",
-    InjuredArea.Hip to "hip",
-    InjuredArea.Knee to "knee",
-    InjuredArea.Ankle to "ankle",
-    InjuredArea.Other to "other",
-)
+import kotlinx.serialization.json.JsonNull
+import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.JsonPrimitive
 
 private val KIND_WIRE = mapOf(
     FreeTextKind.Intake to "intake",
@@ -43,128 +25,38 @@ private val STATUS_WIRE = mapOf(
     "over_limit" to FreeTextStatus.OverLimit,
 )
 
-/** An unknown situation is "not answered", never a crash. */
-internal fun String?.toSituation(): Situation? = SITUATION_WIRE.entries.firstOrNull { it.value == this }?.key
-
-/** An unknown area is [InjuredArea.Other] when something was said, null when nothing was. */
-private fun String?.toArea(): InjuredArea? =
-    if (this == null) null else AREA_WIRE.entries.firstOrNull { it.value == this }?.key ?: InjuredArea.Other
-
-@Serializable
-internal data class PreBreakBestDto(
-    @SerialName("exercise_id") val exerciseId: String,
-    @SerialName("weight_kg") val weightKg: Double,
-    val reps: Int,
-) {
-    fun toDomain() = PreBreakBest(exerciseId, weightKg, reps)
-
-    companion object {
-        fun of(best: PreBreakBest) = PreBreakBestDto(best.exerciseId, best.weightKg, best.reps)
-    }
-}
-
-/** A `coach_user_intake` row (owner-select RLS) or the jsonb `save_coach_intake` returns. */
+/**
+ * A `coach_user_intake` row (owner-select RLS) or the jsonb `save_coach_intake` returns. Columns dropped by T-198
+ * (situation, injured area, bests, cutting calories) are ignored by [coachPlanJson] if an old row still has them.
+ */
 @Serializable
 internal data class CoachIntakeDto(
     @SerialName("training_years") val trainingYears: Double? = null,
-    val situation: String? = null,
-    @SerialName("injured_area") val injuredArea: String? = null,
-    @SerialName("pre_break_bests") val preBreakBests: List<PreBreakBestDto> = emptyList(),
     @SerialName("known_maintenance_kcal") val knownMaintenanceKcal: Int? = null,
-    @SerialName("known_cut_kcal") val knownCutKcal: Int? = null,
     @SerialName("free_text") val freeText: String? = null,
     @SerialName("maintenance_handover_at") val maintenanceHandoverAt: String? = null,
 ) {
     fun toDomain() = CoachIntake(
         trainingYears = trainingYears,
-        situation = situation.toSituation(),
-        injuredArea = injuredArea.toArea(),
-        preBreakBests = preBreakBests.map { it.toDomain() },
         knownMaintenanceKcal = knownMaintenanceKcal,
-        knownCutKcal = knownCutKcal,
         freeText = freeText,
         maintenanceHandoverPending = knownMaintenanceKcal != null && maintenanceHandoverAt == null,
     )
 }
 
-/** Body of `save_coach_intake`: null fields are omitted (the server treats a missing key as empty). */
-@Serializable
-internal data class IntakePayloadDto(
-    @SerialName("training_years") val trainingYears: Double? = null,
-    val situation: String? = null,
-    @SerialName("injured_area") val injuredArea: String? = null,
-    @SerialName("pre_break_bests") val preBreakBests: List<PreBreakBestDto>,
-    @SerialName("known_maintenance_kcal") val knownMaintenanceKcal: Int? = null,
-    @SerialName("known_cut_kcal") val knownCutKcal: Int? = null,
-    @SerialName("free_text") val freeText: String? = null,
-)
-
-@Serializable
-internal data class SaveIntakeParams(val p: IntakePayloadDto) {
-    companion object {
-        fun of(intake: CoachIntake) = SaveIntakeParams(
-            IntakePayloadDto(
-                trainingYears = intake.trainingYears,
-                situation = intake.situation?.let(SITUATION_WIRE::getValue),
-                injuredArea = intake.injuredArea?.let(AREA_WIRE::getValue),
-                preBreakBests = intake.preBreakBests.map(PreBreakBestDto::of),
-                knownMaintenanceKcal = intake.knownMaintenanceKcal,
-                knownCutKcal = intake.knownCutKcal,
-                freeText = intake.freeText,
-            ),
-        )
+/**
+ * Body of `save_coach_intake`: only the edited key is present (the server keeps absent keys); an explicit null
+ * clears the field.
+ */
+internal object SaveIntakeParams {
+    fun of(update: IntakeUpdate): JsonObject {
+        val (key, value) = when (update) {
+            is IntakeUpdate.TrainingYears -> "training_years" to update.years?.let(::JsonPrimitive)
+            is IntakeUpdate.KnownMaintenance -> "known_maintenance_kcal" to update.kcal?.let(::JsonPrimitive)
+            is IntakeUpdate.FreeText -> "free_text" to update.text?.let(::JsonPrimitive)
+        }
+        return JsonObject(mapOf("p" to JsonObject(mapOf(key to (value ?: JsonNull)))))
     }
-}
-
-/** The fields of the extraction request (already filled by the user) and of its answer. */
-@Serializable
-internal data class IntakeFieldsDto(
-    @SerialName("training_years") val trainingYears: Double? = null,
-    val situation: String? = null,
-    @SerialName("injured_area") val injuredArea: String? = null,
-    @SerialName("pre_break_bests") val preBreakBests: List<PreBreakBestDto>? = null,
-    @SerialName("known_maintenance_kcal") val knownMaintenanceKcal: Int? = null,
-    @SerialName("known_cut_kcal") val knownCutKcal: Int? = null,
-) {
-    fun toDomain() = CoachIntakeDraft(
-        trainingYears = trainingYears,
-        situation = situation.toSituation(),
-        injuredArea = injuredArea.toArea(),
-        preBreakBests = preBreakBests.orEmpty().map { it.toDomain() },
-        knownMaintenanceKcal = knownMaintenanceKcal,
-        knownCutKcal = knownCutKcal,
-    )
-
-    companion object {
-        fun of(draft: CoachIntakeDraft) = IntakeFieldsDto(
-            trainingYears = draft.trainingYears,
-            situation = draft.situation?.let(SITUATION_WIRE::getValue),
-            injuredArea = draft.injuredArea?.let(AREA_WIRE::getValue),
-            preBreakBests = draft.preBreakBests.takeIf { it.isNotEmpty() }?.map(PreBreakBestDto::of),
-            knownMaintenanceKcal = draft.knownMaintenanceKcal,
-            knownCutKcal = draft.knownCutKcal,
-        )
-    }
-}
-
-@Serializable
-internal data class ExtractInput(@SerialName("free_text") val freeText: String, val fields: IntakeFieldsDto? = null)
-
-@Serializable
-internal data class ExtractRequestBody(val kind: String, val input: ExtractInput, val model: String? = null) {
-    companion object {
-        fun of(freeText: String, fields: CoachIntakeDraft?, model: String?) = ExtractRequestBody(
-            kind = "intake_extract",
-            input = ExtractInput(freeText, fields?.let(IntakeFieldsDto::of)),
-            model = model,
-        )
-    }
-}
-
-/** The `{fields}` answer of the `intake_extract` kind. */
-@Serializable
-internal data class ExtractResultDto(val fields: IntakeFieldsDto = IntakeFieldsDto()) {
-    fun toDomain() = fields.toDomain()
 }
 
 @Serializable

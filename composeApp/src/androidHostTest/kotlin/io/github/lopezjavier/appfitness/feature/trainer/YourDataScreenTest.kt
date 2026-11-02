@@ -11,7 +11,6 @@ import io.github.lopezjavier.appfitness.designsystem.AppTheme
 import io.github.lopezjavier.appfitness.domain.AppError
 import io.github.lopezjavier.appfitness.domain.AppException
 import io.github.lopezjavier.appfitness.domain.model.ActivityLevel
-import io.github.lopezjavier.appfitness.domain.model.DerivedSituation
 import io.github.lopezjavier.appfitness.domain.model.DerivedSource
 import io.github.lopezjavier.appfitness.domain.model.PlanFixTarget
 import io.github.lopezjavier.appfitness.domain.model.PlanInputKey
@@ -20,8 +19,6 @@ import io.github.lopezjavier.appfitness.domain.model.PlanInputSource
 import io.github.lopezjavier.appfitness.domain.model.PlanInputStatus
 import io.github.lopezjavier.appfitness.domain.model.PlanInputValue
 import io.github.lopezjavier.appfitness.domain.model.PlanInputs
-import io.github.lopezjavier.appfitness.domain.model.Situation
-import io.github.lopezjavier.appfitness.domain.model.SituationSource
 import io.github.lopezjavier.appfitness.feature.workout.MutableClock
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
@@ -101,17 +98,12 @@ class YourDataScreenTest {
         rule.onNodeWithTag("your_data_chip_provisional_intention").assertDoesNotExist()
     }
 
-    private fun withDerived(
-        source: DerivedSource = DerivedSource.Formula,
-        handover: Boolean = false,
-        situation: DerivedSituation? = null,
-    ) {
+    private fun withDerived(source: DerivedSource = DerivedSource.Formula, handover: Boolean = false) {
         withProvisionalEstimates()
         val base = coachValues(provisional = false)
         repository.loaded = Result.success(
             base.copy(
                 totalExpenditure = base.totalExpenditure.copy(source = source, handover = handover),
-                situation = situation,
             ),
         )
     }
@@ -138,32 +130,13 @@ class YourDataScreenTest {
     }
 
     @Test
-    fun theSituationRow_showsWhatTheCoachWorksWith() {
-        withDerived(situation = DerivedSituation(Situation.ReturningInjury, SituationSource.Intake, null))
-
-        show()
-
-        rule.onNodeWithTag("your_data_situation_row").assertExists()
-        rule.onNodeWithText("Vuelvo tras una lesión").assertExists()
-    }
-
-    @Test
-    fun withoutASituation_thereIsNoSituationRow() {
-        withDerived()
-
-        show()
-
-        rule.onNodeWithTag("your_data_situation_row").assertDoesNotExist()
-    }
-
-    @Test
-    fun theParaConocerteRow_opensTheIntake() {
+    fun theFreeTextRow_opensTheIntake() {
         withDerived()
         show()
 
-        tap("your_data_intake_row")
+        tap("your_data_row_free_text")
 
-        assertEquals(listOf(PlanFixTarget.Intake), fixed)
+        assertEquals(listOf(PlanFixTarget.FreeText), fixed)
     }
 
     @Test

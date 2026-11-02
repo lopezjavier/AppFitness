@@ -324,7 +324,7 @@ function planSession(groups: MuscleGroup[]): Planned[] {
 
 /** The session skeleton: split, slots per session, sets, rep ranges and rests. 04 section 9. */
 export function buildSkeleton(prefs: BlockPrefs): BlockSkeleton {
-    const phase = prefs.phase ?? firstPhase(prefs.intention, null).phase;
+    const phase = prefs.phase ?? firstPhase(prefs.intention).phase;
     const minimal = phase === "minimal";
     const senior = (prefs.age ?? 0) >= MINIMAL_SENIOR_AGE;
     const freq = chooseFrequency(prefs);

@@ -3,11 +3,8 @@ package io.github.lopezjavier.appfitness.data.remote
 import io.github.lopezjavier.appfitness.domain.model.ActivityLevel
 import io.github.lopezjavier.appfitness.domain.model.CoachMissing
 import io.github.lopezjavier.appfitness.domain.model.DerivedExperience
-import io.github.lopezjavier.appfitness.domain.model.DerivedSituation
 import io.github.lopezjavier.appfitness.domain.model.DerivedSource
 import io.github.lopezjavier.appfitness.domain.model.ExperienceSource
-import io.github.lopezjavier.appfitness.domain.model.Situation
-import io.github.lopezjavier.appfitness.domain.model.SituationSource
 import io.github.lopezjavier.appfitness.domain.model.ValueState
 import kotlinx.datetime.LocalDate
 import kotlinx.serialization.json.Json
@@ -100,11 +97,10 @@ class CoachDtoTest {
         assertEquals(ExperienceSource.History, values.experience.source)
         assertNull(values.experience.selfReportedYears)
         assertFalse(values.totalExpenditure.handover)
-        assertNull(values.situation)
     }
 
     @Test
-    fun intakeKeys_areMapped() {
+    fun intakeKeys_areMappedAndALeftoverSituationKeyIsIgnored() {
         val values = parse(
             payload(
                 extra = """"situation":{"value":"returning_break","source":"sessions","days_since_last_session":30},""",
@@ -121,7 +117,6 @@ class CoachDtoTest {
         assertEquals(ExperienceSource.Intake, values.experience.source)
         assertEquals(3.5, values.experience.selfReportedYears)
         assertTrue(values.totalExpenditure.handover)
-        assertEquals(DerivedSituation(Situation.ReturningBreak, SituationSource.Sessions, 30), values.situation)
     }
 
     @Test
@@ -129,15 +124,6 @@ class CoachDtoTest {
         val values = parse(payload().replace("\"source\":\"adaptive\"", "\"source\":\"intake\""))
 
         assertEquals(DerivedSource.Intake, values.totalExpenditure.source)
-    }
-
-    @Test
-    fun unknownSituationAndSources_doNotCrash() {
-        val values = parse(
-            payload(extra = """"situation":{"value":"on_mars","source":"magic","days_since_last_session":null},"""),
-        )
-
-        assertEquals(DerivedSituation(null, null, null), values.situation)
     }
 
     @Test

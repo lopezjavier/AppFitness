@@ -57,7 +57,6 @@ class BeforeStartRestorationTest {
             BeforeStartViewModel(
                 repository,
                 FakeCoachIntakeRepository(),
-                FakeIntakePromptPreference(asked = true),
                 MutableClock(),
                 saved,
             ),
@@ -69,7 +68,6 @@ class BeforeStartRestorationTest {
                     onCreate = { created += it },
                     onOpenYourData = {},
                     onFix = {},
-                    onOpenIntake = {},
                     viewModel = current,
                     connectivity = FakeConnectivityObserver(),
                 )
@@ -84,7 +82,6 @@ class BeforeStartRestorationTest {
             BeforeStartViewModel(
                 repository,
                 FakeCoachIntakeRepository(),
-                FakeIntakePromptPreference(asked = true),
                 MutableClock(),
                 saved,
             )
@@ -109,7 +106,6 @@ class BeforeStartRestorationTest {
             BeforeStartViewModel(
                 repository,
                 FakeCoachIntakeRepository(),
-                FakeIntakePromptPreference(asked = true),
                 MutableClock(),
                 saved,
             ),
@@ -121,7 +117,6 @@ class BeforeStartRestorationTest {
                     onCreate = { created += it },
                     onOpenYourData = {},
                     onFix = {},
-                    onOpenIntake = {},
                     viewModel = current,
                     connectivity = FakeConnectivityObserver(),
                 )
@@ -133,7 +128,6 @@ class BeforeStartRestorationTest {
             BeforeStartViewModel(
                 repository,
                 FakeCoachIntakeRepository(),
-                FakeIntakePromptPreference(asked = true),
                 MutableClock(),
                 saved,
             )

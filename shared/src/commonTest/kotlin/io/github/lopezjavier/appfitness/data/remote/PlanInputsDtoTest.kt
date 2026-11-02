@@ -100,7 +100,8 @@ class PlanInputsDtoTest {
     fun allKeys_areMapped() {
         val keys = listOf(
             "intention", "sex", "age", "height", "weight", "activity_level", "total_expenditure", "weight_trend",
-            "diary", "place", "equipment", "cardio", "days_per_week", "session_minutes", "experience", "intake",
+            "diary", "place", "equipment", "cardio", "days_per_week", "session_minutes", "experience",
+            "training_years", "known_maintenance", "free_text",
         )
 
         val result = decode(list(*keys.map { entry(key = it) }.toTypedArray()))
@@ -176,49 +177,45 @@ class PlanInputsDtoTest {
     }
 
     @Test
-    fun intakeEntry_okMeansSaved_isNeverBlocking_andDoesNotBreakNeighbours() {
+    fun intakeEntries_mapEachToItsOwnFixTarget_andAreNeverBlocking() {
         val result = decode(
             list(
+                entry(key = "training_years", value = "3", source = "intake", status = "ok", fix = "\"intake\""),
                 entry(
-                    key = "intake",
-                    value = """{"saved":true,"situation":"continuous"}""",
-                    source = "intake",
-                    status = "ok",
-                    fix = "\"intake\"",
-                ),
-                entry(key = "sex"),
-            ),
-        )
-
-        val input = result.inputs.first()
-        assertEquals(PlanInputKey.Intake, input.key)
-        assertEquals(PlanInputSource.Intake, input.source)
-        assertEquals(PlanFixTarget.Intake, input.fixTarget)
-        assertEquals(false, input.blocking)
-        assertEquals(true, result.intakeSaved)
-        assertEquals(PlanInputKey.Sex, result.inputs.last().key)
-    }
-
-    @Test
-    fun intakeEntry_unsetOptionalMeansNotSaved() {
-        val result = decode(
-            list(
-                entry(
-                    key = "intake",
-                    value = """{"saved":false,"situation":"somethingNew"}""",
+                    key = "known_maintenance",
+                    value = "null",
                     source = "intake",
                     status = "unset_optional",
                     fix = "\"intake\"",
                 ),
+                entry(key = "free_text", value = "\"hola\"", source = "intake", status = "ok", fix = "\"intake\""),
+                entry(key = "sex"),
             ),
         )
 
-        assertEquals(false, result.intakeSaved)
+        assertEquals(
+            listOf(PlanInputKey.TrainingYears, PlanInputKey.KnownMaintenance, PlanInputKey.FreeText, PlanInputKey.Sex),
+            result.inputs.map { it.key },
+        )
+        assertEquals(
+            listOf(PlanFixTarget.TrainingYears, PlanFixTarget.Maintenance, PlanFixTarget.FreeText, null),
+            result.inputs.map { it.fixTarget },
+        )
+        assertEquals(PlanInputSource.Intake, result.inputs.first().source)
+        assertEquals(listOf(false, false, false, false), result.inputs.map { it.blocking })
     }
 
     @Test
-    fun listWithoutIntakeEntry_isNotSaved() {
-        assertEquals(false, decode(list(entry(key = "sex"))).intakeSaved)
+    fun oldIntakeEntry_isUnknownAndDoesNotBreakNeighbours() {
+        val result = decode(
+            list(
+                entry(key = "intake", value = "{}", source = "intake", status = "ok", fix = "\"intake\""),
+                entry(key = "sex"),
+            ),
+        )
+
+        assertEquals(PlanInputKey.Unknown, result.inputs.first().key)
+        assertEquals(PlanInputKey.Sex, result.inputs.last().key)
     }
 
     @Test

@@ -30,6 +30,7 @@ import kotlinx.datetime.toLocalDateTime
  * "Tus datos": every input the coach reads, plan and block merged, grouped by origin. Read-only apart from the
  * activity-level sheet, which confirms the values with the picked level (as the old Trainer card did).
  */
+@Suppress("TooManyFunctions") // One small handler per event.
 class YourDataViewModel(
     private val coach: CoachRepository,
     private val intakeRepo: CoachIntakeRepository,
@@ -44,6 +45,15 @@ class YourDataViewModel(
 
     private var loadJob: Job? = null
     private var handoverAcknowledged = false
+
+    /** The years and maintenance sheets (R-55); saving one value refreshes the rows. */
+    private val rowEditor = IntakeRowEditor(intakeRepo, viewModelScope, savedState) { saved ->
+        _uiState.update { state ->
+            if (state is YourDataUiState.Content) state.copy(intake = IntakeSummary.of(saved)) else state
+        }
+        refresh()
+    }
+    val editor: StateFlow<IntakeRowEditorState> = rowEditor.state
 
     // The server accepts a date within one day of UTC today, so it is the UTC date.
     private fun today(): LocalDate = clock.now().toLocalDateTime(TimeZone.UTC).date
@@ -62,6 +72,8 @@ class YourDataViewModel(
             YourDataEvent.HandoverShown -> acknowledgeHandover()
         }
     }
+
+    fun onEditorEvent(event: IntakeRowEvent) = rowEditor.onEvent(event)
 
     private fun load() {
         _uiState.value = YourDataUiState.Loading
@@ -103,7 +115,6 @@ class YourDataViewModel(
                     rows = mergeRows(planRows.orEmpty(), blockRows.orEmpty()),
                     sheet = restoredDraft(),
                     intake = IntakeSummary.of(intake),
-                    situation = derived?.situation?.value ?: intake?.situation,
                     intakeSourcedKeys = buildSet {
                         if (derived?.experience?.source == ExperienceSource.Intake) add(PlanInputKey.Experience)
                         if (derived?.totalExpenditure?.source ==

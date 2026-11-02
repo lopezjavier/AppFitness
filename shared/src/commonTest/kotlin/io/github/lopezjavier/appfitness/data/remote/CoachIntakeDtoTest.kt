@@ -1,37 +1,31 @@
 package io.github.lopezjavier.appfitness.data.remote
 
 import io.github.lopezjavier.appfitness.domain.model.CoachIntake
-import io.github.lopezjavier.appfitness.domain.model.CoachIntakeDraft
 import io.github.lopezjavier.appfitness.domain.model.FreeTextKind
 import io.github.lopezjavier.appfitness.domain.model.FreeTextStatus
-import io.github.lopezjavier.appfitness.domain.model.InjuredArea
-import io.github.lopezjavier.appfitness.domain.model.PreBreakBest
-import io.github.lopezjavier.appfitness.domain.model.Situation
+import io.github.lopezjavier.appfitness.domain.model.IntakeUpdate
 import kotlinx.datetime.LocalDate
+import kotlinx.serialization.json.JsonObject
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
-import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 class CoachIntakeDtoTest {
     private fun row(text: String) = coachPlanJson.decodeFromString<CoachIntakeDto>(text).toDomain()
 
+    private fun body(update: IntakeUpdate) =
+        coachPlanJson.encodeToString(JsonObject.serializer(), SaveIntakeParams.of(update))
+
     @Test
-    fun fullRow_mapsEveryField() {
+    fun fullRow_mapsTheThreeFields() {
         val intake = row(
-            """{"user_id":"u1","training_years":4.5,"situation":"returning_injury","injured_area":"shoulder",""" +
-                """"pre_break_bests":[{"exercise_id":"e1","weight_kg":90,"reps":5}],"known_maintenance_kcal":2400,""" +
-                """"known_cut_kcal":1900,"free_text":"hola","maintenance_handover_at":null,""" +
-                """"saved_at":"2026-11-02T10:00:00+00:00","updated_at":"2026-11-02T10:00:00+00:00"}""",
+            """{"user_id":"u1","training_years":4.5,"known_maintenance_kcal":2400,"free_text":"hola",""" +
+                """"maintenance_handover_at":null,"saved_at":"2026-11-02T10:00:00+00:00"}""",
         )
 
         assertEquals(4.5, intake.trainingYears)
-        assertEquals(Situation.ReturningInjury, intake.situation)
-        assertEquals(InjuredArea.Shoulder, intake.injuredArea)
-        assertEquals(listOf(PreBreakBest("e1", 90.0, 5)), intake.preBreakBests)
         assertEquals(2400, intake.knownMaintenanceKcal)
-        assertEquals(1900, intake.knownCutKcal)
         assertEquals("hola", intake.freeText)
         assertEquals(true, intake.maintenanceHandoverPending)
     }
@@ -51,92 +45,41 @@ class CoachIntakeDtoTest {
     }
 
     @Test
-    fun emptyRow_mapsToNullsAndEmptyBests() {
-        assertEquals(CoachIntake(maintenanceHandoverPending = false), row("{}"))
+    fun emptyRow_mapsToNulls() {
+        assertEquals(CoachIntake(), row("{}"))
     }
 
     @Test
-    fun unknownEnumValuesAndKeys_areToleratedNeverCrash() {
+    fun oldRowWithDroppedColumns_isToleratedAndIgnored() {
         val intake = row(
-            """{"situation":"on_vacation","injured_area":"neck","future":{"a":1},""" +
-                """"pre_break_bests":[{"exercise_id":"e1","weight_kg":60,"reps":8,"rpe":9}]}""",
+            """{"training_years":3,"situation":"returning_injury","injured_area":"shoulder",""" +
+                """"pre_break_bests":[{"exercise_id":"e1","weight_kg":90,"reps":5}],"known_cut_kcal":1900,""" +
+                """"free_text":"texto","future":{"a":1}}""",
         )
 
-        assertNull(intake.situation)
-        assertEquals(InjuredArea.Other, intake.injuredArea)
-        assertEquals(1, intake.preBreakBests.size)
+        assertEquals(CoachIntake(trainingYears = 3.0, freeText = "texto"), intake)
     }
 
     @Test
-    fun saveParams_sendOnlyFilledFieldsWithWireNames() {
-        val params = SaveIntakeParams.of(
-            CoachIntake(
-                trainingYears = 2.0,
-                situation = Situation.ReturningBreak,
-                injuredArea = InjuredArea.LowerBack,
-                preBreakBests = listOf(PreBreakBest("e1", 100.0, 3)),
-                knownMaintenanceKcal = 2500,
-                freeText = "texto",
-            ),
-        )
-
-        assertEquals(
-            """{"p":{"training_years":2.0,"situation":"returning_break","injured_area":"lower_back",""" +
-                """"pre_break_bests":[{"exercise_id":"e1","weight_kg":100.0,"reps":3}],""" +
-                """"known_maintenance_kcal":2500,"free_text":"texto"}}""",
-            coachPlanJson.encodeToString(params),
-        )
+    fun saveParams_trainingYears_sendOnlyThatKey() {
+        assertEquals("""{"p":{"training_years":2.5}}""", body(IntakeUpdate.TrainingYears(2.5)))
     }
 
     @Test
-    fun extractBody_carriesTheTextAndOnlyTheFilledFields() {
-        val body = ExtractRequestBody.of(
-            "Entrené 4 años",
-            CoachIntakeDraft(trainingYears = 3.0, situation = Situation.Continuous),
-            "haiku",
-        )
-
-        assertEquals(
-            """{"kind":"intake_extract","input":{"free_text":"Entrené 4 años",""" +
-                """"fields":{"training_years":3.0,"situation":"continuous"}},"model":"haiku"}""",
-            coachPlanJson.encodeToString(body),
-        )
+    fun saveParams_maintenance_sendOnlyThatKey() {
+        assertEquals("""{"p":{"known_maintenance_kcal":2500}}""", body(IntakeUpdate.KnownMaintenance(2500)))
     }
 
     @Test
-    fun extractBody_withoutFields_omitsThem() {
-        assertEquals(
-            """{"kind":"intake_extract","input":{"free_text":"hola"}}""",
-            coachPlanJson.encodeToString(ExtractRequestBody.of("hola", null, null)),
-        )
+    fun saveParams_freeText_sendOnlyThatKey() {
+        assertEquals("""{"p":{"free_text":"texto"}}""", body(IntakeUpdate.FreeText("texto")))
     }
 
     @Test
-    fun extractResult_usExample_mapsToTheDraft() {
-        val draft = coachPlanJson.decodeFromString<ExtractResultDto>(
-            """{"fields":{"training_years":4,"situation":"returning_injury","injured_area":"shoulder",""" +
-                """"pre_break_bests":[{"exercise_id":"bench","weight_kg":90,"reps":5}],""" +
-                """"known_maintenance_kcal":null,"known_cut_kcal":null}}""",
-        ).toDomain()
-
-        assertEquals(
-            CoachIntakeDraft(
-                trainingYears = 4.0,
-                situation = Situation.ReturningInjury,
-                injuredArea = InjuredArea.Shoulder,
-                preBreakBests = listOf(PreBreakBest("bench", 90.0, 5)),
-            ),
-            draft,
-        )
-    }
-
-    @Test
-    fun extractResult_unknownValues_becomeNull() {
-        val draft = coachPlanJson.decodeFromString<ExtractResultDto>(
-            """{"fields":{"situation":"nope","extra":1}}""",
-        ).toDomain()
-
-        assertEquals(CoachIntakeDraft(), draft)
+    fun saveParams_nullValue_isAnExplicitNullThatClears() {
+        assertEquals("""{"p":{"known_maintenance_kcal":null}}""", body(IntakeUpdate.KnownMaintenance(null)))
+        assertEquals("""{"p":{"training_years":null}}""", body(IntakeUpdate.TrainingYears(null)))
+        assertEquals("""{"p":{"free_text":null}}""", body(IntakeUpdate.FreeText(null)))
     }
 
     @Test

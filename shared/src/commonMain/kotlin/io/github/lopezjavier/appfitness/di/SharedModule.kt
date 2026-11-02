@@ -7,7 +7,6 @@ import io.github.jan.supabase.postgrest.postgrest
 import io.github.lopezjavier.appfitness.config.AppConfig
 import io.github.lopezjavier.appfitness.data.InMemoryCoachModelPreference
 import io.github.lopezjavier.appfitness.data.SystemClock
-import io.github.lopezjavier.appfitness.data.local.DataStoreIntakePromptPreference
 import io.github.lopezjavier.appfitness.data.local.DataStoreRestAlertPreferences
 import io.github.lopezjavier.appfitness.data.local.DataStoreWatchSeedStore
 import io.github.lopezjavier.appfitness.data.local.DataStoreWeightChartPreferences
@@ -99,7 +98,6 @@ import io.github.lopezjavier.appfitness.domain.repository.FoodPreferencesReposit
 import io.github.lopezjavier.appfitness.domain.repository.FoodRepository
 import io.github.lopezjavier.appfitness.domain.repository.HealthActivityRepository
 import io.github.lopezjavier.appfitness.domain.repository.HealthSyncRepository
-import io.github.lopezjavier.appfitness.domain.repository.IntakePromptPreference
 import io.github.lopezjavier.appfitness.domain.repository.MealDefaultsRepository
 import io.github.lopezjavier.appfitness.domain.repository.MealSlotRepository
 import io.github.lopezjavier.appfitness.domain.repository.MealTemplateRepository
@@ -323,7 +321,7 @@ val sharedModule =
         single<CoachIntakeRepository> {
             if (get<AppConfig>().isSupabaseConfigured) {
                 val client = get<SupabaseClient>()
-                SupabaseCoachIntakeRepository(client.auth, client.postgrest, client.functions, get())
+                SupabaseCoachIntakeRepository(client.auth, client.postgrest)
             } else {
                 UnconfiguredCoachIntakeRepository()
             }
@@ -418,7 +416,6 @@ val sharedModule =
         }
         single<Clock> { SystemClock() }
         single<WeightChartPreferences> { DataStoreWeightChartPreferences(get()) }
-        single<IntakePromptPreference> { DataStoreIntakePromptPreference(get()) }
         single<RestAlertPreferences> { DataStoreRestAlertPreferences(get()) }
         single<WatchSeedStore> { DataStoreWatchSeedStore(get()) }
         factory { WeightTrend() }

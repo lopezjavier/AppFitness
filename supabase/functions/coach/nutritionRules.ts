@@ -45,14 +45,10 @@ export const ROUNDING_KCAL = 10;
 export const rateKcal = (ratePct: number, weightKg: number) =>
     ratePct * weightKg * (KCAL_PER_KG / DAYS / 100);
 
-/** The phase a first plan starts in, and why (07 section 12.3). `situation` comes from `estimates.situation.value`. */
+/** The phase a first plan starts in, and why (07 section 12.3): from the intention only (T-198). */
 export function firstPhase(
     intention: Intention,
-    situation: string | null,
 ): { phase: Phase; reason: PhaseReason } {
-    if (situation === "returning_break" || situation === "returning_injury") {
-        return { phase: "regain", reason: situation };
-    }
     switch (intention) {
         case "fat_loss":
             return { phase: "cut", reason: "intention" };
@@ -238,7 +234,7 @@ export function computeNutrition(input: NutritionInput): Nutrition {
     );
     const expenditure = anchor === null ? rawExpenditure : anchor + shift;
     const floor = FLOOR[sex];
-    const phase = input.phase ?? firstPhase(input.intention, null).phase;
+    const phase = input.phase ?? firstPhase(input.intention).phase;
     const rate = targetRate(input, phase);
     const loss = phase === "cut";
 

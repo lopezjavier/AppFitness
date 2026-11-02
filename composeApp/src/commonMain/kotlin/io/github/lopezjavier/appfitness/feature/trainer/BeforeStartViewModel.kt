@@ -11,7 +11,6 @@ import io.github.lopezjavier.appfitness.domain.model.PlanInputValue
 import io.github.lopezjavier.appfitness.domain.port.Clock
 import io.github.lopezjavier.appfitness.domain.repository.CoachIntakeRepository
 import io.github.lopezjavier.appfitness.domain.repository.CoachRepository
-import io.github.lopezjavier.appfitness.domain.repository.IntakePromptPreference
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -34,7 +33,6 @@ import kotlinx.datetime.toLocalDateTime
 class BeforeStartViewModel(
     private val coach: CoachRepository,
     private val intakeRepo: CoachIntakeRepository,
-    private val prompt: IntakePromptPreference,
     private val clock: Clock,
     private val savedState: SavedStateHandle = SavedStateHandle(),
 ) : ViewModel() {
@@ -49,7 +47,15 @@ class BeforeStartViewModel(
     val effects = effectChannel.receiveAsFlow()
 
     private var loadJob: Job? = null
-    private var intakeRouted = false
+
+    /** The years and maintenance sheets (R-55); saving one value refreshes the rows. */
+    private val rowEditor = IntakeRowEditor(intakeRepo, viewModelScope, savedState) { saved ->
+        _uiState.update { state ->
+            if (state is BeforeStartUiState.Content) state.copy(intake = IntakeSummary.of(saved)) else state
+        }
+        refresh()
+    }
+    val editor: StateFlow<IntakeRowEditorState> = rowEditor.state
 
     // The server accepts a date within one day of UTC today, so it is the UTC date.
     private fun today(): LocalDate = clock.now().toLocalDateTime(TimeZone.UTC).date
@@ -70,22 +76,14 @@ class BeforeStartViewModel(
         }
     }
 
+    fun onEditorEvent(event: IntakeRowEvent) = rowEditor.onEvent(event)
+
     private fun load() {
         _uiState.value = BeforeStartUiState.Loading
         loadJob?.cancel()
         loadJob = viewModelScope.launch {
-            val state = fetch()
-            _uiState.value = state
-            routeToIntake(state)
+            _uiState.value = fetch()
         }
-    }
-
-    /** The first creation of a plan asks "Para conocerte" once: never in block mode, never after saving or skipping. */
-    private suspend fun routeToIntake(state: BeforeStartUiState) {
-        val content = state as? BeforeStartUiState.Content ?: return
-        if (intakeRouted || content.mode != BeforeStartMode.Plan || content.inputs.intakeSaved) return
-        intakeRouted = true
-        if (!prompt.isAsked()) effectChannel.send(BeforeStartEffect.OpenIntake)
     }
 
     /** Silent reload (back from an editor): keeps the shown content and any in-flight action. */
@@ -109,7 +107,7 @@ class BeforeStartViewModel(
         return result.fold(
             onSuccess = {
                 // The intake only enriches the rows: a failed read leaves them empty.
-                val intake = if (mode == BeforeStartMode.Plan) intakeRepo.get().getOrNull() else null
+                val intake = intakeRepo.get().getOrNull()
                 BeforeStartUiState.Content(
                     it,
                     mode,

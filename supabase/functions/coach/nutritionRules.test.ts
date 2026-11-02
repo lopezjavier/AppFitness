@@ -307,7 +307,7 @@ Deno.test("every intention lands inside its intake range", () => {
             expenditureKcal: 2700,
             intakeAnchorKcal: 2700,
         });
-        const phase = firstPhase(intention, null).phase;
+        const phase = firstPhase(intention).phase;
         const { min, max } = intakeRange(rangeClass(phase), 80, 0);
         const delta = n.target_kcal - 2700;
         assert(
@@ -348,32 +348,9 @@ Deno.test("first phase by intention: five rows", () => {
         ["strength", "maintenance"],
     ] as const;
     for (const [intention, phase] of rows) {
-        assertEquals(firstPhase(intention, null), {
+        assertEquals(firstPhase(intention), {
             phase,
             reason: "intention",
-        });
-        assertEquals(firstPhase(intention, "continuous").phase, phase);
-        assertEquals(firstPhase(intention, "first_time").phase, phase);
-    }
-});
-
-Deno.test("a returning user starts in regain whatever the intention, and the reason keeps which return", () => {
-    for (
-        const intention of [
-            "fat_loss",
-            "muscle",
-            "recomposition",
-            "maintenance",
-            "strength",
-        ] as const
-    ) {
-        assertEquals(firstPhase(intention, "returning_break"), {
-            phase: "regain",
-            reason: "returning_break",
-        });
-        assertEquals(firstPhase(intention, "returning_injury"), {
-            phase: "regain",
-            reason: "returning_injury",
         });
     }
 });

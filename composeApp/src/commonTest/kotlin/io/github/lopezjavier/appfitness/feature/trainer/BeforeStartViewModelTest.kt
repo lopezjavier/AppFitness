@@ -8,7 +8,7 @@ import io.github.lopezjavier.appfitness.domain.model.ActivityLevel
 import io.github.lopezjavier.appfitness.domain.model.CoachDerivedValues
 import io.github.lopezjavier.appfitness.domain.model.CoachIntake
 import io.github.lopezjavier.appfitness.domain.model.CurrentPlan
-import io.github.lopezjavier.appfitness.domain.model.InjuredArea
+import io.github.lopezjavier.appfitness.domain.model.IntakeUpdate
 import io.github.lopezjavier.appfitness.domain.model.PlanFixTarget
 import io.github.lopezjavier.appfitness.domain.model.PlanInput
 import io.github.lopezjavier.appfitness.domain.model.PlanInputKey
@@ -17,7 +17,6 @@ import io.github.lopezjavier.appfitness.domain.model.PlanInputSource
 import io.github.lopezjavier.appfitness.domain.model.PlanInputStatus
 import io.github.lopezjavier.appfitness.domain.model.PlanInputValue
 import io.github.lopezjavier.appfitness.domain.model.PlanInputs
-import io.github.lopezjavier.appfitness.domain.model.Situation
 import io.github.lopezjavier.appfitness.feature.workout.MutableClock
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
@@ -44,7 +43,6 @@ class BeforeStartViewModelTest {
     private val dispatcher = StandardTestDispatcher()
     private val coach = FakeCoachRepository()
     private val intake = FakeCoachIntakeRepository()
-    private val asked = FakeIntakePromptPreference(asked = true)
 
     @BeforeTest
     fun setUp() = Dispatchers.setMain(dispatcher)
@@ -69,8 +67,7 @@ class BeforeStartViewModelTest {
             replacing?.let { set("replacingPlanId", it) }
         }
 
-    private fun viewModel(saved: SavedStateHandle = args()) =
-        BeforeStartViewModel(coach, intake, asked, MutableClock(), saved)
+    private fun viewModel(saved: SavedStateHandle = args()) = BeforeStartViewModel(coach, intake, MutableClock(), saved)
 
     private fun BeforeStartViewModel.content() = assertIs<BeforeStartUiState.Content>(uiState.value)
 
@@ -511,28 +508,22 @@ class BeforeStartViewModelTest {
     }
 
     private val savedIntakeEntry =
-        planInput(PlanInputKey.Intake, PlanInputStatus.Ok, PlanInputValue.Absent, PlanInputSource.Intake)
+        planInput(PlanInputKey.TrainingYears, PlanInputStatus.Ok, PlanInputValue.Number(4.0), PlanInputSource.Intake)
 
     @Test
     fun planMode_exposesThreeIntakeRows_withTheSavedValues() = runTest(dispatcher) {
         givenPlan(completePlan(savedIntakeEntry))
-        intake.stored = CoachIntake(
-            trainingYears = 4.0,
-            situation = Situation.ReturningInjury,
-            injuredArea = InjuredArea.Shoulder,
-        )
+        intake.stored = CoachIntake(trainingYears = 4.0, knownMaintenanceKcal = 2400, freeText = "Rodilla operada")
         val model = viewModel()
 
         advanceUntilIdle()
 
         val content = model.content()
         assertEquals(
-            listOf(IntakeRowKind.Situation, IntakeRowKind.TrainingAge, IntakeRowKind.InjuredArea),
+            listOf(IntakeRowKind.TrainingYears, IntakeRowKind.Maintenance, IntakeRowKind.FreeText),
             content.intakeRows,
         )
-        assertEquals(Situation.ReturningInjury, content.intake.situation)
-        assertEquals(4.0, content.intake.trainingYears)
-        assertEquals(InjuredArea.Shoulder, content.intake.injuredArea)
+        assertEquals(IntakeSummary(4.0, 2400, "Rodilla operada"), content.intake)
     }
 
     @Test
@@ -549,61 +540,37 @@ class BeforeStartViewModelTest {
     }
 
     @Test
-    fun intakeEntry_isNeverARowOrAMissingNote() = runTest(dispatcher) {
+    fun intakeEntries_areNeverARowOrAMissingNote() = runTest(dispatcher) {
         givenPlan(
             completePlan(
-                planInput(PlanInputKey.Intake, PlanInputStatus.UnsetOptional, PlanInputValue.Absent),
+                planInput(PlanInputKey.TrainingYears, PlanInputStatus.UnsetOptional, PlanInputValue.Absent),
+                planInput(PlanInputKey.KnownMaintenance, PlanInputStatus.UnsetOptional, PlanInputValue.Absent),
+                planInput(PlanInputKey.FreeText, PlanInputStatus.UnsetOptional, PlanInputValue.Absent),
             ),
         )
         val model = viewModel()
 
         advanceUntilIdle()
 
-        assertTrue(model.content().rows.none { it.key == PlanInputKey.Intake })
+        val intakeKeys = setOf(PlanInputKey.TrainingYears, PlanInputKey.KnownMaintenance, PlanInputKey.FreeText)
+        assertTrue(model.content().rows.none { it.key in intakeKeys })
         assertTrue(model.content().missingNotes.isEmpty())
     }
 
     @Test
-    fun blockMode_hasNoIntakeRows() = runTest(dispatcher) {
-        asked.asked = false
+    fun blockMode_hasOnlyYearsAndFreeTextRows_withTheStoredValues() = runTest(dispatcher) {
         coach.inputs[PlanInputKind.Block] = Result.success(PlanInputs(PlanInputKind.Block, null, emptyList()))
+        intake.stored = CoachIntake(trainingYears = 1.5, knownMaintenanceKcal = 2400)
         val model = viewModel(args("block"))
 
         advanceUntilIdle()
 
-        assertTrue(model.content().intakeRows.isEmpty())
+        assertEquals(listOf(IntakeRowKind.TrainingYears, IntakeRowKind.FreeText), model.content().intakeRows)
+        assertEquals(1.5, model.content().intake.trainingYears)
     }
 
     @Test
-    fun firstPlan_withoutIntakeAndNotAsked_opensTheIntakeOnce() = runTest(dispatcher) {
-        asked.asked = false
-        givenPlan(completePlan())
-        val model = viewModel()
-
-        model.effects.test {
-            advanceUntilIdle()
-            assertEquals(BeforeStartEffect.OpenIntake, awaitItem())
-            model.onEvent(BeforeStartEvent.Refresh)
-            model.onEvent(BeforeStartEvent.Retry)
-            advanceUntilIdle()
-            expectNoEvents()
-        }
-    }
-
-    @Test
-    fun savedIntake_doesNotRoute() = runTest(dispatcher) {
-        asked.asked = false
-        givenPlan(completePlan(savedIntakeEntry))
-        val model = viewModel()
-
-        model.effects.test {
-            advanceUntilIdle()
-            expectNoEvents()
-        }
-    }
-
-    @Test
-    fun alreadyAsked_doesNotRoute() = runTest(dispatcher) {
+    fun loading_neverOpensAnythingOnItsOwn() = runTest(dispatcher) {
         givenPlan(completePlan())
         val model = viewModel()
 
@@ -611,18 +578,7 @@ class BeforeStartViewModelTest {
             advanceUntilIdle()
             expectNoEvents()
         }
-    }
-
-    @Test
-    fun blockMode_neverRoutesToTheIntake() = runTest(dispatcher) {
-        asked.asked = false
-        coach.inputs[PlanInputKind.Block] = Result.success(PlanInputs(PlanInputKind.Block, null, emptyList()))
-        val model = viewModel(args("block"))
-
-        model.effects.test {
-            advanceUntilIdle()
-            expectNoEvents()
-        }
+        assertNull(model.editor.value.sheet)
     }
 
     @Test
@@ -635,5 +591,37 @@ class BeforeStartViewModelTest {
 
         assertTrue(model.content().intake.isEmpty)
         assertEquals(3, model.content().intakeRows.size)
+    }
+
+    @Test
+    fun savingTheMaintenanceSheet_updatesOnlyThatRow_andKeepsTheOthers() = runTest(dispatcher) {
+        givenPlan(completePlan())
+        intake.stored = CoachIntake(trainingYears = 3.0, freeText = "hola")
+        val model = viewModel()
+        advanceUntilIdle()
+
+        model.onEditorEvent(IntakeRowEvent.OpenMaintenance(null))
+        model.onEditorEvent(IntakeRowEvent.EditMaintenance("2400"))
+        model.onEditorEvent(IntakeRowEvent.Save)
+        advanceUntilIdle()
+
+        assertEquals(listOf<IntakeUpdate>(IntakeUpdate.KnownMaintenance(2400)), intake.saveCalls)
+        assertEquals(IntakeSummary(3.0, 2400, "hola"), model.content().intake)
+        assertNull(model.editor.value.sheet)
+    }
+
+    @Test
+    fun anOpenYearsSheetWithADraft_survivesRecreationFromTheSameSavedState() = runTest(dispatcher) {
+        givenPlan(completePlan())
+        val saved = SavedStateHandle()
+        val first = viewModel(saved = saved)
+        advanceUntilIdle()
+        first.onEditorEvent(IntakeRowEvent.OpenYears(2.0))
+        first.onEditorEvent(IntakeRowEvent.YearsUp)
+
+        val second = viewModel(saved = saved)
+        advanceUntilIdle()
+
+        assertEquals(IntakeRowSheet.Years(2.5), second.editor.value.sheet)
     }
 }

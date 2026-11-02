@@ -37,7 +37,6 @@ class BeforeStartMinimalTest {
         val model = BeforeStartViewModel(
             repository,
             FakeCoachIntakeRepository(),
-            FakeIntakePromptPreference(asked = true),
             MutableClock(),
             SavedStateHandle(args),
         )
@@ -48,7 +47,6 @@ class BeforeStartMinimalTest {
                     onCreate = { created += it },
                     onOpenYourData = {},
                     onFix = {},
-                    onOpenIntake = {},
                     viewModel = model,
                     connectivity = FakeConnectivityObserver(online),
                 )
