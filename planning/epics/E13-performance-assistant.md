@@ -4,11 +4,13 @@
 A coach the user can trust for years, like a real trainer: it gets to know the user (intake), designs four-week training and nutrition blocks from the intention, the preferences and the current phase of the year, sets the outcomes it can justify, adjusts the small things on its own (load, calories inside a safe band, deloads) visibly and reversibly, and at the end of every block reviews what happened with the user and proposes the next block and any phase change. The user accepts new blocks and phase changes. *(Rewritten 2026-11-01, user: E13 was not going in the right direction; the long-term follow-up is the gap. ADR-86…ADR-89; design `07` §1-§4, §7, §8, §12.)*
 
 ## Scope
-- Includes: intake "Para conocerte" and the free text the coach reads (US-81, US-89); confirmation of derived values; calorie and macro plan with outcomes; phases over the year (cut, gain, maintenance, recomposition, minimal; US-82; regain removed 2026-11-02, deferred to Phase 3); the end-of-block review and the next block, with optional per-muscle priorities (US-83, US-84); one "Entrenador" behaviour: progression, calorie changes in the safe band and deloads applied on their own with "Deshacer" (US-85, US-86); progression per exercise; weekly report; block creator with plan storage and adherence; breaks, the minimal plan and coming back (US-88); training around an injury, graded return and one data-triggered health note (US-87, US-90); life changes mid-block: "Revisar el bloque" with "Adaptar el bloque", "Bloque nuevo" or "Solo unos días", goal change, new exercises, kept swaps, turning 65 (US-91, US-92, `07` §12.8); recommendation history with outcome and deletion; monthly AI budget; chat with tools (last, gated by the evaluation); weekly cardio and daily steps in the plan, and cardio as the last exercise of every routine of the block (US-79, ADR-85; the coach plans no warm-up, E13 Q27); cardio machines as their own equipment group (US-80).
+> **Moved to E14 (user, 2026-11-03: "we don't have a proper block yet"):** the block follow-ups — plan weeks that follow the training, the end-of-block review and phase changes, the automatic changes ("Entrenador"), injury follow-up and the health note, life changes (US-83…US-88 follow-up parts, US-90, US-91, US-92 and the automatic parts of US-69, US-70, US-73, US-75). Their headings below say "→ E14 (backlog)"; [E14-block-follow-up.md](E14-block-follow-up.md) holds the backlog. E13 finishes with the block (US-72, US-93…US-96), the report (US-71), history (US-74), the evaluation and the chat (US-77). **Removed 2026-11-03 (user, E13 Q56):** the minimal phase "Mínimo" and "Tengo poco tiempo".
+
+- Includes: intake "Para conocerte" and the free text the coach reads (US-81, US-89); confirmation of derived values; calorie and macro plan with outcomes; phases over the year (cut, gain, maintenance, recomposition, minimal; US-82; regain removed 2026-11-02, deferred to Phase 3); the end-of-block review and the next block, with optional per-muscle priorities (US-83, US-84); one "Entrenador" behaviour: progression, calorie changes in the safe band and deloads applied on their own with "Deshacer" (US-85, US-86); progression per exercise; weekly report; block creator with plan storage and adherence; breaks, the minimal plan and coming back (US-88); training around an injury, graded return and one data-triggered health note (US-87, US-90); life changes mid-block: "Revisar el bloque" with "Adaptar el bloque", "Bloque nuevo" or "Solo unos días", goal change, new exercises, kept swaps, turning 65 (US-91, US-92, `07` §12.8); recommendation history with outcome and deletion; monthly AI budget; chat with tools (last, gated by the evaluation); weekly cardio and daily steps in the plan, and cardio as the last exercise of every routine of the block (US-79, ADR-85; the coach plans no warm-up, E13 Q27); cardio machines as their own equipment group (US-80). **Added 2026-11-03 (T-202, ADR-93, ADR-94):** the model builds the whole block and one routine checker validates it (US-72 amended); starting a block from scratch (2-3 split options) or from a routine folder (US-93); removing a block without a new plan (US-94); reviewing any routine folder with the coach (US-95); favourite exercises (US-96).
 - Out of scope: medical advice, diagnosis or treatment, generic health disclaimers, video analysis, meal plans, reverse dieting and refeeds (`07` §4), soreness, pump or readiness questionnaires, illness rules (`07` §12.5), a coaching-mode selector (ADR-88), water and voice (Phase 3).
 
 ## Decisions
-Base: `07-coach-design.md`. ADR-76 (coach rules), ADR-77 (provider and cost; changes NFR-02), ADR-78 (target weight retired as a user input; `activity_level` is the starting factor). ADR-79 (own tab). ADR-81 (discomfort level), ADR-84 (expenditure anchor), ADR-85 (cardio). **2026-11-01:** ADR-86 (intake, phases, end-of-block review, breaks), ADR-87 (free text to the model, grounding), ADR-88 ("Entrenador": automatic changes with "Deshacer"; amends ADR-76), ADR-89 (no generic disclaimers, persistent-discomfort note, injury follow-up; amends ADR-81 and ADR-85). **2026-11-02:** ADR-90 (per-user AI cap 3 €; amends ADR-77). Amends ADR-09 (AI assistant no longer deferred), ADR-37 (tab set) and E5 (the target weight and distance to the goal become the coach's block outcome). User decisions E13 Q32-Q43 (`09-open-questions.md`).
+Base: `07-coach-design.md`. ADR-76 (coach rules), ADR-77 (provider and cost; changes NFR-02), ADR-78 (target weight retired as a user input; `activity_level` is the starting factor). ADR-79 (own tab). ADR-81 (discomfort level), ADR-84 (expenditure anchor), ADR-85 (cardio). **2026-11-01:** ADR-86 (intake, phases, end-of-block review, breaks), ADR-87 (free text to the model, grounding), ADR-88 ("Entrenador": automatic changes with "Deshacer"; amends ADR-76), ADR-89 (no generic disclaimers, persistent-discomfort note, injury follow-up; amends ADR-81 and ADR-85). **2026-11-02:** ADR-90 (per-user AI cap 3 €; amends ADR-77), ADR-91 (minimal intake, no "Recuperar"), ADR-92 (equipment split, alternatives). **2026-11-03 (T-202, proposed):** ADR-93 (the model builds the block; one routine checker; folder review), ADR-94 (block lifecycle: two starting points, transparent block, "Eliminar bloque", favourites). Amends ADR-09 (AI assistant no longer deferred), ADR-37 (tab set) and E5 (the target weight and distance to the goal become the coach's block outcome). User decisions E13 Q32-Q43 (`09-open-questions.md`).
 
 ## Dependencies
 E10 (reminders, weekly check-in), E11 (watch data), E12 (intention, preferences, notes, discomfort, `movement_pattern`).
@@ -23,6 +25,7 @@ The coach has its own tab "Trainer" between "Entreno" and "Perfil" (ADR-79), add
 ## Architecture
 - One Edge Function `coach` (JWT, RLS through the user's token; the API key only server-side). It receives a compact summary built in SQL (last 8 weeks at most), never raw tables.
 - Models (ADR-77): Opus 5.5 for the block plan; Sonnet 5.5 for the weekly report and the chat. No model for derived values, progression, deload or trend: they are deterministic. **2026-11-01 (ADR-86, ADR-87):** the model also extracts the intake profile from the user's free text and writes the end-of-block review proposal (choosing among server-eligible phase and block options); phase triggers, the safe band and every number stay deterministic; the model reads the free-text block "Lo que el entrenador sabe de ti" and only describes features and data that exist (server-validated).
+- **2026-11-03 (ADR-93):** the training block is built by the model (split, exercises, sets, rep ranges, target RPE, rests, supersets and drop sets under time conditions) from the user's folders, history, previous blocks, favourites, discomforts and free text; one deterministic routine checker (`04` §9.6) validates it and also reviews any routine folder. Cardio stays server-computed. The minimal phase ("Mínimo", "Tengo poco tiempo") is removed (user, 2026-11-03, E13 Q56).
 - Structured output (JSON schema), validated server-side against the rules of `07-coach-design.md` before it reaches the app; an invalid plan is retried once, then an error is shown. The model never writes to the database; accepted proposals are written by RPCs.
 - Every call records its token usage and cost in `coach_usage`; the function refuses a call when the user's monthly budget (3 €, ADR-90; 2 € until 2026-11-02) or the global one (5 €) would be exceeded.
 - ~~Coach suggestions are shown in the live session; they never rewrite the routine's planned values.~~ **Amended 2026-11-01 (ADR-88):** inside an accepted block the load progression, the calorie changes in the safe band and the deloads apply on their own, each with its reason and "Deshacer" / "Cancelar descarga"; outside a block the progression stays a suggestion in the live session. "Actualizar automáticamente" (ADR-70) keeps copying what was performed.
@@ -36,6 +39,7 @@ The coach has its own tab "Trainer" between "Entreno" and "Perfil" (ADR-79), add
 - `coach_reports` (`user_id`, `week_start`, `generated_on`, `figures` jsonb, `text` nullable).
 - `coach_usage` (`user_id`, `month`, `input_tokens`, `output_tokens`, `cost_eur`).
 - `coach_conversations` only with US-77.
+- **Added 2026-11-03 (T-202):** `exercise_favorites` (US-96), the folder reviews with their proposed changes (US-95); a new `movement_pattern` value `shoulder_abduction`.
 - **Added 2026-11-01 (names final in each task's plan):** the intake (US-81: fields, free text, confirmed flags), the free-text exclusions (US-89), the phase and its options on `coach_plans` (US-82), the block reviews with "¿Cómo te ha ido?" and the per-muscle priorities (US-83, US-84), the automatic changes with their previous value for "Deshacer" (US-85, US-86), the graded-return state per exercise and the dismissed health notes (US-87, US-90).
 - Every table cascades on account deletion (ADR-29).
 
@@ -400,11 +404,13 @@ Feature: Block creator
     When the coach proposes a four-week block
     Then the user sees each week with its routines and the exercises' reasons
 
+  # Amended 2026-11-03 (T-202, ADR-93): per-muscle frequency is soft; H2 and H1 are the hard rules.
   Scenario: Frequency and volume are shown
     Given the user trains 3 days a week
     When the block is shown
-    Then each muscle group appears at least twice a week
+    Then the week has at least 2 lifting routines
     And the weekly sets per muscle group are shown
+    And chest, back, shoulders, quads, hamstrings and glutes each have 10 to 20 weekly sets
 
   Scenario: One training day
     Given the user set 1 day per week
@@ -427,19 +433,83 @@ Feature: Block creator
     And the isolation exercises rest 1 to 2 minutes
     And the saved routines keep those rests
 
+  # Amended 2026-11-03 (T-202, ADR-93, `07` §3 H7): main lifts first only for "Ganar fuerza".
   Scenario: Exercise order
+    Given the intention is "Ganar fuerza"
     When the block is shown
     Then each session starts with its priority multi-joint lifts
 
-  Scenario: Undulating periodization for strength
-    Given the intention is "Ganar fuerza"
-    When the block is shown
-    Then the load and the reps of the main lifts vary between the sessions of a week
+  # Void 2026-11-03 (T-202, ADR-93): "Undulating periodization for strength" (now an option the model may use,
+  # never required) and "One rep range for other intentions" (the model chooses ranges within H4) are removed.
 
-  Scenario: One rep range for other intentions
+  # Scenarios below added 2026-11-03 (T-202, ADR-93; `07` §3 "Complete routine"). Tasks T-205 (backend), T-206 (UI).
+  Scenario: The block fits me, not a template
+    Given two users with 4 days a week and different routines, history and favourites
+    When the coach builds each block
+    Then the splits and exercises can differ
+    And each split and each exercise has its reason
+
+  Scenario: Side deltoid and knee extension
+    Given the intention is "Ganar musculatura" and I train 2 or more days a week
+    And my equipment allows a lateral raise and a knee extension
+    When the block is shown
+    Then the week has at least one lateral raise exercise
+    And at least one knee extension exercise
+
+  Scenario: Rep ranges and target effort
     Given the intention is "Ganar musculatura"
     When the block is shown
-    Then each exercise keeps one rep range across the block
+    Then every rep range is between 6 and 20
+    And every exercise shows a target RPE of 7, 8 or 9
+    And no set is planned to failure
+
+  Scenario: Strength rep ranges
+    Given the intention is "Ganar fuerza"
+    When the block is shown
+    Then the main lifts use ranges between 3 and 8 reps
+    And the other exercises use ranges between 6 and 20
+
+  Scenario: Supersets and drop sets only when time is short
+    Given "Duración de la sesión" fits the routine without them
+    When the block is shown
+    Then no routine has supersets or drop sets
+    Given "Duración de la sesión" is too short for the planned sets
+    When the block is shown
+    Then supersets pair exercises of different muscles
+    And a drop set is only the last set of an isolation exercise
+
+  Scenario: Every routine fits the session time
+    Given "Duración de la sesión" is 60 minutes
+    When the block is shown
+    Then the lifting of each routine, with its sets, reps and rests, fits in 60 minutes
+
+  Scenario: Not enough time for the minimum volume
+    Given I train 1 day a week for 45 minutes
+    When the block is shown
+    Then it says "Por debajo de lo recomendado"
+    And the block is still created
+
+  Scenario: A block that breaks a hard rule is never shown
+    Given the coach's first answer has no lateral raise where one is required
+    When the server checks it
+    Then the coach is asked once more
+    And if it fails again the user sees an error with "Reintentar" and nothing is stored
+
+  Scenario: Planned weights come from my history
+    Given I trained "Press banca" with 60 kg last week
+    When the block includes "Press banca"
+    Then its planned weight comes from my own sets
+    And an exercise I never trained has no planned weight
+
+  Scenario: What changed since my last block
+    Given I had a block before
+    When the new block is shown
+    Then it says what changed against the last block and why
+
+  Scenario: Exercises with a severe discomfort are left out
+    Given "Press militar" has an unresolved level 4 discomfort
+    When the block is shown
+    Then "Press militar" is not in the block
 
   Scenario: Cardio is not reduced
     Given the user logs cardio sessions or steps
@@ -524,6 +594,7 @@ Feature: Block creator
 - **Cardio (2026-11-01, ADR-85 proposed; E13 Q26-Q30):** the block reads the plan's weekly cardio target (US-79) and splits it evenly across the week's routines in whole 5-minute units (remainder to the first routines), at most 60 min per routine, the excess shown as "por tu cuenta". Cardio is the last exercise of every lifting routine; there are no cardio-only routines. It comes from the catalogue's `cardio` pattern within place and equipment, default bike, elliptical, incline treadmill walk, rower with machines and brisk walking without ("Caminar a paso ligero"), never running, air bike, ski erg, stair climber or burpee-style moves by default, and the most-logged cardio of the last 8 weeks when it fits the equipment; continuous "suave" only. Cardio candidates use the cardio equipment values of US-80. The cardio swap is any-to-any (user requirement, 2026-11-01): every cardio exercise timed in minutes within the user's cardio equipment, plus walking and running always, is an alternative of every other one at the same minutes, in every week of the routine; the alternatives are derived from category and equipment, never from the T-179 pairs table or a per-exercise list (`07` §3, Q28b). Cardio is outside "Duración de la sesión" (no lifting slot is removed); the preview shows each routine's total time. A cardio exercise has one planned set of minutes only (no reps, no RPE, no rest timer), stored in a new nullable planned duration on planned sets and shown with the existing duration metric types and set rows.
 - **No warm-up (E13 Q27, user):** the coach does not plan, generate or mention warm-ups; the user adds warm-up sets himself.
 - **Amended 2026-11-01 (ADR-86, ADR-89):** the first block follows the cold-start rules of `07` §12.2 and its phase (US-82); every later block is proposed by the end-of-block review (US-83) with the volume and priority rules of `07` §12.4 (US-84); exercises flagged at level 4-5, or loading the intake's injured area, are left out and can be put back (US-87). "Guardar bloque" of a new block ends the previous one.
+- **Amended 2026-11-03 (T-202, ADR-93, ADR-94):** the model builds the whole block (split, exercises, sets, rep ranges, target RPE, rests, supersets and drop sets under time conditions) and the routine checker (`04` §9.6, hard H1-H7) validates it; the server keeps cardio (§9.11, unchanged by the model) and the minimal-phase block (§9.3). The intake injured area no longer exists (ADR-91): exclusions come from unresolved level 4-5 discomforts. The block starts from scratch or from a folder (US-93). Preview swaps stay limited to alternatives, with favourites first (US-96).
 
 ## US-73 · Plan adherence
 **As** a user
@@ -1028,24 +1099,15 @@ Feature: Phases
     And it says "Opcional: la última semana de cada bloque comes lo que gastas. En los estudios se pierde la misma grasa y se pasa menos hambre, pero la definición dura más."
     And only the deficit weeks count towards the length of the cut
 
-  Scenario: The minimal phase for busy times
-    When I tap "Tengo poco tiempo" and create the block
-    Then the phase is "Mínimo"
-    And the block has one full-body session a week with one set of each main lift of my previous block, at the same weights
-    And it says "Para épocas con poco tiempo: un entreno a la semana y una serie por ejercicio, con el mismo peso. Así se mantienen la fuerza y el músculo durante meses."
+  # Void 2026-11-03 (user, E13 Q56: "how would I know I won't have time for a full month? no real usage, drop it"):
+  # "The minimal phase for busy times", "Older users in the minimal phase" and "Cardio in the minimal phase" are removed
+  # with "Tengo poco tiempo" and the "Mínimo" phase (T-205 backend, T-206 UI). A stored "Mínimo" plan reads as
+  # "Mantenimiento" with its calories unchanged.
 
-  Scenario: Older users in the minimal phase
-    Given I am 65 or older
-    When the coach builds a "Mínimo" block
-    Then it has two sessions a week with two sets of each main lift
-
-  # Added 2026-11-02 (`07` §3 "Cardio by phase"). T-187.
-  Scenario: Cardio in the minimal phase
-    Given the phase is "Mínimo" with one session a week
-    When the block is shown
-    Then the weekly cardio target is 100 minutes
-    And the routine ends with 30 minutes of cardio and 70 minutes "por tu cuenta"
-    And after 4 "Mínimo" blocks the proposal is 150 minutes again
+  Scenario: No minimal phase
+    When I open "Antes de empezar" for a block
+    Then there is no "Tengo poco tiempo" option
+    And no plan or phase reads "Mínimo"
 
   # Amended 2026-11-02: re-anchored on "Mantenimiento" ("Recuperar" removed).
   Scenario: Cardio follows my intention in every other phase
@@ -1064,11 +1126,11 @@ Feature: Phases
 ```
 
 **Technical notes**
-- Phase calories and training: `07` §4, §12.3 (cut volume kept at the previous block's). The phase is stored on the plan; the Spanish labels are finalised by ux-reviewer within the glossary ("Definición", "Volumen", "Mantenimiento", "Recomposición", "Mínimo").
+- Phase calories and training: `07` §4, §12.3 (cut volume kept at the previous block's). The phase is stored on the plan; the Spanish labels are finalised by ux-reviewer within the glossary ("Definición", "Volumen", "Mantenimiento", "Recomposición"; "Mínimo" removed 2026-11-03, E13 Q56).
 - **Amended 2026-11-02 (user):** "Recuperar" (regain) is removed entirely and deferred to Phase 3; T-200 removes the phase and moves any stored regain plan to "Mantenimiento" with its calories unchanged.
 - Phase triggers (when a change is proposed) belong to the end-of-block review (US-83).
 
-## US-83 · End-of-block review and the next block
+## US-83 · End-of-block review and the next block → E14 (backlog)
 *Tasks T-190 (backend), T-191 (UI). ADR-86, E13 Q35, Q47 (recommendation). Rules: `07` §12.3-§12.4.*
 
 **As** a user who finished a block
@@ -1154,8 +1216,9 @@ Feature: End-of-block review
 - The model chooses among server-eligible options (phase, rep-range change, alternative exercise, fewer days) and writes the reasons; every trigger and number is a rule (`07` §12.3-§12.4). A calorie change outside the safe band is decided here with the user's OK (ADR-88).
 - A block that ended without a review: the routines stay usable and no automatic change applies past its last week (E13 Q47 recommendation).
 - Cost: one review call per block (about 0,05 € with Sonnet 5.5) plus the existing plan and block calls.
+- **Amended 2026-11-03 (T-202, ADR-93):** the next block is built by the model like any block (US-72), starting from the current block's folder with the user's edits (US-93); the per-group volume and priority rules (`07` §12.4) are bounds of the routine checker; rep-range changes and swaps are the model's choice inside the checker, not a server option list. The phase triggers stay rules.
 
-## US-84 · "Priorizar" or "Mantener" a muscle group
+## US-84 · "Priorizar" or "Mantener" a muscle group → E14 (backlog)
 *Tasks T-190 (backend), T-191 (UI). ADR-86, E13 Q38. Rules: `07` §12.4.*
 
 **As** a user with a body part I want to grow and another I only want to keep
@@ -1200,7 +1263,7 @@ Feature: Per-muscle priority
 **Technical notes**
 - The +2 follows the adherence and "Me ha costado" limits of US-83; the minimal phase ignores priorities. ux-reviewer finalises the copy ("Priorizar" adds sets to that muscle each block; "Mantener" keeps it with fewer sets, enough to not lose it).
 
-## US-85 · "Entrenador": small changes apply on their own
+## US-85 · "Entrenador": small changes apply on their own → E14 (backlog)
 *Tasks T-192 (progression), T-193 (calories). ADR-88, E13 Q36, Q41. Progression scenarios in US-70, calorie scenarios in US-69.*
 
 **As** a user who trusts the coach
@@ -1248,7 +1311,7 @@ Feature: Automatic changes
 - "14 days" after an undo reuses the 14 days between calorie changes (`07` §4, §9). Reference expenditure for every limit: the one in use at the change (`07` §4).
 - Progressed loads (`07` §3): the server computes the step from my plates and handle and writes it to every block routine with that exercise and rep range (settles E13 Q44 as A).
 
-## US-86 · Scheduled deloads, cancelling one or asking for one
+## US-86 · Scheduled deloads, cancelling one or asking for one → E14 (backlog)
 *Task T-193. ADR-88, E13 Q37. Rules: `07` §3 "Deload".*
 
 **As** a user training block after block
@@ -1288,7 +1351,7 @@ Feature: Scheduled deloads
     Then that week goes back to normal
 ```
 
-## US-87 · Training around an injury and coming back step by step
+## US-87 · Training around an injury and coming back step by step → E14 (backlog)
 *Task T-194. ADR-89, E13 Q40, Q45 (recommendation). Rules: `07` §7.*
 
 **As** a user with an injured or painful area
@@ -1366,7 +1429,7 @@ Feature: Injury follow-up
 - A move to the next step needs at least one week in the current step and no new discomfort on the exercise; the level is the only signal.
 - **Unresolved (`07` §7, 2026-11-02):** a level 4-5 discomfort is unresolved, whatever its age, until "Ya no me molesta" or step 3; the 7-day "open" window governs only the load block of levels 1-3. E13 Q45 is settled by `07` §12.8 row 7: the step-1 swap is offered, not automatic.
 
-## US-88 · Breaks, busy periods and coming back
+## US-88 · Breaks, busy periods and coming back → E14 (backlog; the minimal phase built by T-187 is removed by T-205/T-206, E13 Q56: its scenarios here are void for the E14 re-plan)
 *Tasks T-189 (block pause), ~~T-185 (returning after 28 days)~~, T-187/T-188 (minimal), ~~T-190 (regain proposal)~~, T-192 (loads after 14 days); "returning" and regain removed 2026-11-02 (T-198, T-200; Phase 3). ADR-86, E13 Q40. Rules: `07` §12.5. Week counting scenarios in US-73; return loads in US-70.*
 
 **As** a user whose life gets in the way
@@ -1434,7 +1497,7 @@ Feature: Free text sent to the coach
     And the screen says the lines are read when the coach prepares my plan and my block
 ```
 
-## US-90 · A note when a severe discomfort does not go away
+## US-90 · A note when a severe discomfort does not go away → E14 (backlog)
 *Tasks T-194 (row), T-166 (report). ADR-89, E13 Q39. Rules: `07` §7.*
 
 **As** a user with a discomfort that persists
@@ -1467,7 +1530,7 @@ Feature: Persistent discomfort note
     And the body measurements and the weight screens show no "consulta con un profesional" line
 ```
 
-## US-91 · "Revisar el bloque" when my training situation changes
+## US-91 · "Revisar el bloque" when my training situation changes → E14 (backlog)
 *Added 2026-11-02 (user-approved design, `07` §12.8 "Revisar el bloque", rows 1-3, 5, 7). Tasks T-196 (backend), T-197 (UI). The offer, the three choices and "Solo unos días" need ux-reviewer (pattern and copy).*
 
 **As** a user whose gym, days or time change in the middle of a block
@@ -1477,11 +1540,19 @@ Feature: Persistent discomfort note
 ```gherkin
 Feature: Adapting the block to a change
 
+  # Amended 2026-11-03 (T-202, ADR-93; `07` §12.8 rows 1-3): there is no server split any more, so "Adaptar el bloque"
+  # is offered only for a place or equipment change. Whether it stays at all is E13 Q55 (open).
   Scenario: The coach offers to review the block
     Given I have an accepted block
-    When I save a new place, equipment, days per week or session length in "Mi entrenamiento"
+    When I save a new place or equipment in "Mi entrenamiento"
     Then Trainer offers "Revisar el bloque"
     And it offers "Adaptar el bloque", "Bloque nuevo" and "Solo unos días"
+
+  Scenario: Days or session length change
+    Given I have an accepted block
+    When I save new days per week or a new session length in "Mi entrenamiento"
+    Then Trainer offers "Revisar el bloque" with "Bloque nuevo" and "Solo unos días"
+    And my current block runs unchanged until I accept a new one
 
   Scenario: Adapting keeps the block
     Given I switched from "Gimnasio" to "Casa" with "Mancuernas" and "Peso corporal"
@@ -1498,16 +1569,8 @@ Feature: Adapting the block to a change
     When I tap "Deshacer"
     Then my previous routines come back
 
-  Scenario: Fewer days
-    Given my block has 4 days a week and I change to 3
-    When I adapt the block
-    Then the routines are re-split for 3 days keeping the weekly sets per group where they fit
-    And the preview says which sets were dropped
-
-  Scenario: Shorter sessions
-    Given I change "Duración de la sesión" from 60 to 45 minutes
-    When I adapt the block
-    Then the sessions have fewer exercises and the weekly sets are kept where they fit, else cut evenly and shown
+  # Void 2026-11-03 (ADR-93; `07` §12.8 rows 2-3): "Fewer days" and "Shorter sessions" (the deterministic re-split and
+  # slot recompute) are removed; a days or length change offers "Bloque nuevo" (scenario above).
 
   Scenario: A new block instead
     When I tap "Bloque nuevo"
@@ -1526,10 +1589,10 @@ Feature: Adapting the block to a change
 ```
 
 **Technical notes**
-- "Adaptar el bloque" and "Solo unos días" are rules (no model call, free); "Bloque nuevo" is the paid early review of US-83. Swap order: same group and pattern in the `07` §3 order (T-179), else same group, else dropped. Re-split by `04` §9.2, slots by §9.3, cardio by §9.11.
+- "Adaptar el bloque" and "Solo unos días" are rules (no model call, free); "Bloque nuevo" is the paid early review of US-83, whose next block the model builds from the current block's folder (ADR-93). Swap order: same group and pattern in the `07` §3 order (T-179), else same group, else dropped; cardio by §9.11. *(Re-split by `04` §9.2 and slots by §9.3: superseded 2026-11-03.)*
 - Loads for an exercise new to the block: US-92.
 
-## US-92 · Other life changes
+## US-92 · Other life changes → E14 (backlog)
 *Added 2026-11-02 (`07` §12.8 rows 4, 6, 8-12). Tasks T-196, T-197; the report rows in T-166.*
 
 **As** a user over months and years
@@ -1558,10 +1621,8 @@ Feature: Life changes
     Then nothing changes because of that text
     And the break rules apply only to the sessions I missed
 
-  Scenario: My swaps stay
-    Given I swapped "Sentadilla trasera" for "Prensa de piernas" in my routine
-    When the coach prepares my next block
-    Then it does not propose "Sentadilla trasera" for that slot again
+  # Void 2026-11-03 (user, T-202; `07` §12.8 row 11, ADR-94): "My swaps stay" is removed. The next block does not
+  # remember swapped-out exercises; favourites (US-96) and starting from my own folder (US-93) carry my preferences.
 
   Scenario: Turning 65
     Given I turn 65 in the middle of a block
@@ -1572,13 +1633,191 @@ Feature: Life changes
 **Technical notes**
 - Goal reached and empty weeks are report rules (US-71); coming back after weeks off is US-88 / US-70; a new injury mid-block is US-87.
 
+## US-93 · Starting a block from scratch or from my folder
+*Added 2026-11-03 (T-202, user UX decisions 1 and 4; ADR-93, ADR-94; `07` §3 "Starting points"). Tasks T-205 (from scratch, backend), T-206 (from scratch, UI), T-207 (from a folder, backend), T-208 (from a folder and the start choice, UI).*
+
+**As** a user creating a block
+**I want** to choose between a block designed from scratch and one built from my own routines
+**So that** the block fits how I already train, or gives me a good new start.
+
+```gherkin
+Feature: Starting a block
+
+  Scenario: Choosing how to start
+    Given I have an accepted plan without a block
+    When I tap "Crear bloque"
+    Then I can choose "Desde cero" or "Desde una carpeta"
+
+  Scenario: From scratch, I pick the type of routine
+    When I choose "Desde cero"
+    Then the coach proposes 2 or 3 types of routine for my days and session time
+    And one is marked "Recomendada" with its reason
+    When I pick one
+    Then the coach builds the block with that type of routine
+    And the block preview opens
+
+  Scenario: From my folder
+    Given I have a routine folder "Mi rutina"
+    When I choose "Desde una carpeta" and pick "Mi rutina"
+    Then the coach checks it and lists what is missing and the changes it proposes, each with its reason
+    And I can accept or reject each change
+    When I continue
+    Then the block preview shows my routines with the accepted changes
+    And "Mi rutina" itself does not change
+
+  Scenario: A missing requirement must be fixed
+    Given my folder has no lateral raise where one is required
+    When I reject the change that adds one
+    Then the block is not created
+    And it shows what is missing
+
+  Scenario: My edits reach the next block
+    Given I saved a block and later edited its routines in Entreno
+    When I create a new block "Desde una carpeta" with the block's folder
+    Then the coach starts from my edited routines
+
+  Scenario: Edited block routines still count
+    Given I swapped an exercise in a routine of my block in Entreno
+    When I complete that routine
+    Then the plan week counts it as done
+
+  Scenario: Nothing is created without "Guardar bloque"
+    When I leave at any step before "Guardar bloque"
+    Then no block and no routine are created
+```
+
+**Technical notes**
+- From scratch is two paid calls (split options, then the block); from a folder is one review call plus the block save (`04` §9.14). Both pass the hard checks before the block is stored.
+- "Tengo poco tiempo" and the minimal phase are removed (user, 2026-11-03, E13 Q56): T-205 drops the backend path, T-206 the option and its strings.
+- The start choice ships with T-208; until then "Crear bloque" goes straight to the split options (T-206).
+
+## US-94 · Removing a block without a new plan
+*Added 2026-11-03 (T-202, user UX decisions 1 and 3; ADR-94). Task T-203. What removal does: E13 Q54 (user, 2026-11-03); the follow-ups without a block: E13 Q58.*
+
+**As** a user with a block I no longer want
+**I want** to remove it and keep my nutrition plan
+**So that** I can create a different block without starting a new plan.
+
+```gherkin
+Feature: Removing a block
+
+  Scenario: Removing the block keeps the plan
+    Given my accepted plan has a saved block
+    When I tap "Eliminar bloque" in "Tu plan" and confirm
+    Then the plan keeps its calories, macros, phase, cardio and steps
+    And "Tu plan" no longer shows the block or its weeks
+    And "Crear bloque" is offered again
+
+  Scenario: My routines stay
+    When I remove the block
+    Then the block's folder and routines stay in Entreno
+    And my workouts are not changed
+
+  Scenario: Cancelling keeps everything
+    When I tap "Eliminar bloque" and cancel the confirmation
+    Then the block stays as it was
+
+  Scenario: No automatic change after removal
+    Given I removed my block
+    When I finish a workout of one of its routines
+    Then the coach does not change its planned weights on its own
+    And the workout counts for no plan week
+
+  Scenario: A new block on the same plan
+    Given I removed my block
+    When I save a new block
+    Then its first week starts on the day I saved it
+```
+
+**Technical notes**
+- One RPC removes the block from the plan (plan weeks and links deleted, folder kept; E13 Q54, user 2026-11-03). Without a block: no deload and no end-of-block review; calories and the weekly report keep running (E13 Q58 recommendation). A plan with a saved block offers "Eliminar bloque" instead of "Crear bloque" (`04` §9.15). Destructive dialog per R-08; ux-reviewer finalises the copy ("Tus rutinas se quedan en Entreno").
+
+## US-95 · Reviewing a routine folder with the coach
+*Added 2026-11-03 (T-202, user UX decision 2; ADR-93; `07` §3 "Complete routine"). Tasks T-207 (backend), T-208 (UI).*
+
+**As** a user with my own routines
+**I want** the coach to check a folder and tell me what is missing
+**So that** I can improve my routine without giving it up.
+
+```gherkin
+Feature: Folder review
+
+  Scenario: Reviewing a folder
+    Given I have a routine folder "Mi rutina"
+    When I open its menu in Entreno and choose to review it with the coach
+    Then a message shows what is missing ("Falta") and the coach's comments, each with its reason
+    And each proposed change is listed
+
+  Scenario: A good folder
+    Given my folder meets every hard requirement
+    When the review opens
+    Then there is nothing under "Falta"
+    And only comments are shown
+
+  Scenario: Applying the changes in a copy
+    Given the review proposes changes
+    When I keep the ones I want and tap "Aplicar en una copia"
+    Then a new folder holds my routines with those changes
+    And "Mi rutina" does not change
+
+  Scenario: Nothing is blocked
+    When I leave the review
+    Then nothing changes in my folders
+
+  Scenario: The proposed changes are checked
+    When the review lists a proposed change
+    Then the change does not break any hard requirement
+```
+
+**Technical notes**
+- The checker uses the intention, days and minutes from "Mi entrenamiento"; the review is a paid call; "Aplicar en una copia" uses the existing save procedure (`04` §9.14). Copy of the action name and the copy folder's name: ux-reviewer.
+
+## US-96 · Favourite exercises
+*Added 2026-11-03 (T-202, user UX decision 5; ADR-94; `07` §3 "Favourites"). Task T-204; the coach reads favourites from T-205.*
+
+**As** a user with exercises I like
+**I want** to star them
+**So that** I find them first and the coach prefers them.
+
+```gherkin
+Feature: Favourite exercises
+
+  Scenario: Starring an exercise
+    When I tap the star in the detail of "Elevaciones laterales"
+    Then it is a favourite and the star shows it
+    When I tap it again
+    Then it is no longer a favourite
+
+  Scenario: Favourites first in the picker
+    Given "Elevaciones laterales" is a favourite
+    When I open the exercise picker filtered by "Hombros"
+    Then "Elevaciones laterales" is listed first
+
+  Scenario: Favourites first in the swap list
+    Given a favourite is an alternative of a block exercise
+    When I open the swap list of that exercise in the block preview
+    Then the favourite is listed first
+
+  Scenario: The coach prefers my favourites
+    Given "Press con mancuernas" is a favourite and fits a chest exercise of my block
+    When the coach builds the block
+    Then it prefers "Press con mancuernas" over other chest presses
+    And a favourite never adds sets or breaks a rule
+
+  Scenario: My own exercises can be favourites
+    Given I created "Remo en máquina del gimnasio"
+    When I star it
+    Then it is a favourite like any other
+```
+
 ## Evaluation (not a user story)
 - Cases written by the user, each with its correct answer: a plan for each intention, one training day, limited equipment, discomfort, missing data, rate inside and outside range, calorie floor, invented figure in a report.
 - Acceptance criteria:
   - 100 % of discomfort cases: no load increase.
   - 100 % of report figures traceable to the summary.
-  - Every plan meets the rules of `07-coach-design.md` §3-§4: frequency (when days allow), volume, intensity, rest between sets, exercise order, periodization (undulating only for "Ganar fuerza"), no reduction of cardio or steps, protein (incl. the distribution guidance), fat and the calorie floor.
+  - Every plan meets the rules of `07-coach-design.md` §3-§4: frequency (when days allow), volume, intensity, rest between sets, exercise order, periodization (undulating only for "Ganar fuerza"), no reduction of cardio or steps, protein (incl. the distribution guidance), fat and the calorie floor. **Amended 2026-11-03 (ADR-93):** every block passes the routine checker's hard checks H1-H7 on the first or the retried answer (100 %); blocks for different users with the same days differ in split or exercises; folder reviews propose no change that adds a hard failure (100 %); periodization is optional.
   - Report and chat answer under 30 s at the 95th percentile; the plan shows progress and finishes within the Edge Function limit (150 s wall clock on the Free plan, checked 2026-10-29, `07` §11).
   - **Added 2026-11-01 (ADR-86…ADR-89):** ~~100 % of intake extractions leave unmentioned fields empty and return only allowed values;~~ 100 % of phase proposals are among the server-eligible options~~ (a returning lifter starts in "Recuperar"; no deficit in regain)~~; 100 % of block-review proposals respect the volume and priority limits of `07` §12.4; 100 % of report and chat texts mention only existing features (grounding); free text never yields a figure, a trigger or a health note; injury cases never keep a flagged exercise~~ or one loading the injured area~~. *(Struck 2026-11-02: no extraction, no injured area, no "Recuperar"; T-198, T-200.)*
+- **2026-11-03 (E14 split):** the phase-proposal, block-review and injury cases move to E14 with their stories; E13's evaluation covers plans, blocks (checker), folder reviews, discomfort (no load increase), report figures, grounding, free text and the chat.
 - Evaluation runs are paid calls: the user approves each run. A function is not enabled until it meets its criteria.
 - **Resolved 2026-10-29 (user, Q4 B):** the plan and the report are usable at the checkpoints before the evaluation (the server validators enforce the hard rules on every output); the evaluation is the formal gate before the chat (US-77) and before the app is shared with other users.
