@@ -12,15 +12,15 @@ An evidence-based performance assistant (coach) that plans four-week training an
 | E10 | [E10-reminders-and-check-in.md](epics/E10-reminders-and-check-in.md) | In-app notification center, weight and circumference reminders, weekly check-in |
 | E11 | [E11-health-connect-daily-sync.md](epics/E11-health-connect-daily-sync.md) | Daily automatic Health Connect sync; sleep, steps, calories and resting heart rate |
 | E12 | [E12-training-data-and-preferences.md](epics/E12-training-data-and-preferences.md) | Rest alert with the screen off, intention and preferences, notes, discomfort log, movement pattern |
-| E13 | [E13-performance-assistant.md](epics/E13-performance-assistant.md) | Coach: derived values, plan, progression, report, block creator, adherence, history, deload, AI budget, chat |
+| E13 | [E13-performance-assistant.md](epics/E13-performance-assistant.md) | Coach: intake, derived values, plan, phases over the year, end-of-block review, progression, report, block creator, adherence, history, deload, injury follow-up, AI budget, chat |
 
-**Order:** E10 → E11 → E12 → E13. E13 depends on the other three. Design base of the coach: [`07-coach-design.md`](07-coach-design.md). Stories US-57..US-77.
+**Order:** E10 → E11 → E12 → E13. E13 depends on the other three. Design base of the coach: [`07-coach-design.md`](07-coach-design.md). Stories US-57..US-92.
 
 ## 3. Requirement changes
 
 | ID | Change |
 |---|---|
-| NFR-02 | "100 % free" becomes: free except the coach's AI calls (Anthropic API), accepted up to 5 € per month in total, capped by the app (2 € per user and month) and by the Anthropic account spending limit (ADR-77). Supabase, GitHub, Open Food Facts, Health Connect and the Gemini free tier stay free |
+| NFR-02 | "100 % free" becomes: free except the coach's AI calls (Anthropic API), accepted up to 5 € per month in total, capped by the app (3 € per user and month, ADR-90) and by the Anthropic account spending limit (ADR-77). Supabase, GitHub, Open Food Facts, Health Connect and the Gemini free tier stay free |
 
 ## 4. Decisions (user, 2026-10-28)
 
@@ -39,11 +39,15 @@ An evidence-based performance assistant (coach) that plans four-week training an
 | RIR | No field; derived from RPE (10 − RPE) | 76 |
 | Activity level | `profiles.activity_level` stays as the starting factor; the coach proposes changes | 78 |
 | Target weight | No longer a user input; the coach sets outcomes (E13) | 76, 78 |
-| Derived values | Shown with their source and confirmed before use | 76 |
+| Derived values | Shown with their source and confirmed before use; intake answers are provisional priors replaced by measured data; experience = the higher of self-reported and app history (2026-11-01) | 76, 86 |
 | Plan | 4-week blocks, reviewed at the end of each block | 76 |
-| Cardio (proposed 2026-11-01, pending approval) | The plan sets a weekly cardio target (150 min, editable) and a daily steps target (never below the current average, floor 7 000); the block puts cardio as the last exercise of every routine (minutes only, swappable any-to-any, no warm-up planned); cardio machines are their own equipment group | 85 |
+| Long-term follow-up (2026-11-01) | Intake "Para conocerte" (fields + free text, extracted by the model, confirmed field by field); one phase per block (cut, gain, maintenance, recomposition, regain, minimal); a returning lifter starts in regain at maintenance; phase changes proposed only at the end-of-block review ("¿Cómo te ha ido?" + data, optional "Priorizar" / "Mantener"); the user accepts phase changes and new blocks; breaks pause the block; life changes mid-block offer "Revisar el bloque" ("Adaptar el bloque", "Bloque nuevo", "Solo unos días") | 86 |
+| Coach autonomy (2026-11-01) | One behaviour "Entrenador", no mode selector: inside an accepted block, load progression, calorie changes in the safe band and deloads (triggered or scheduled) apply on their own with "Deshacer" / cancel | 88 |
+| Free text and grounding (2026-11-01) | The user's free text reaches the model verbatim, capped, visible, lines excludable; the model only describes features and data that exist | 87 |
+| Health messages and injury (2026-11-01) | No generic disclaimers; one note when a level 4-5 discomfort persists; train around an injured area; graded return in 3 steps paced by the user | 89 |
+| Cardio (2026-11-01) | The plan sets a weekly cardio target (150 min, editable) and a daily steps target (never below the current average, floor 7 000); the block puts cardio as the last exercise of every routine (minutes only, swappable any-to-any, no warm-up planned); cardio machines are their own equipment group | 85 |
 | AI provider | Claude: Opus 5.5 for the block plan, Sonnet 5.5 for report and chat; Gemini stays only for food photos | 77 |
-| AI cost | Monthly budget: 2 € per user, 5 € in total; estimate ≈ $1-3 per user and month (`07-coach-design.md` §11) | 77 |
+| AI cost | Monthly budget: 3 € per user (2 € until 2026-11-02), 5 € in total; estimate ≈ $1-3,1 per user and month (`07-coach-design.md` §11) | 77, 90 |
 | Prior consent | Not required while the app is personal; written condition before distributing it | 76 |
 | Coach navigation | New tab "Trainer" between Entreno and Perfil | 79 |
 | Water and voice | Phase 3 | — |

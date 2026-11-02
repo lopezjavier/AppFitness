@@ -5,8 +5,12 @@
 
 > **Amendment 2026-11-01 (epic-planner, cardio; needs the user's OK before its PR merges):** user request "the app replaces a real trainer; if the trainer would plan cardio, the app must", run before the E13-B1 re-test. New story US-79 (weekly cardio and daily steps targets in the plan) and amended US-72 (cardio as the last exercise of every routine) and US-73 (weekly cardio minutes and steps); ADR-85 proposed; rules and sources final in `07` §3 "Cardio prescription", §9, §10 refs. 29-50 (checked online 2026-11-01 by the fitness-scientist). **Reworked the same day** after the fitness-scientist and ux-reviewer passes: no warm-up anywhere, no cardio days, cardio last in every routine (5-min units, max 60 min, excess "por tu cuenta"), a cardio set is minutes only, 150 min for every intention (editable), steps floor 7 000, cardio swappable across modalities with the same minutes. Final pass the same day: new story US-80 (cardio equipment as its own category, E13 Q28b) as T-184 (M, runs between T-181 and T-182), and the cardio swap is any-to-any (user requirement). Tasks in order T-181 (M), T-184 (M), T-182 (L), T-183 (L), then the proposed **Checkpoint E13-B3** (E13-B1 re-test + cardio, 7 items). E13 Q23-Q31 resolved (Q30 and Q31 by the PM); no blocking question.
 
+> **Amendment 2026-11-01 (epic-planner, replan "the trainer journey"; proposed, needs the user's OK before its PR merges):** the user said E13 was not going in the right direction: the app must replace a real trainer he can trust long-term, and the follow-up (phases over the year above all) is the gap. Design approved by the user and written by the fitness-scientist in `07` §1-§4, §7, §8, §12. New ADR-86 (intake, phases, end-of-block review, breaks), ADR-87 (free text, grounding), ADR-88 ("Entrenador": automatic changes with "Deshacer"; amends ADR-76), ADR-89 (no generic disclaimers, persistent-discomfort note, injury follow-up; amends ADR-81/85, reverses E13 Q29). User decisions E13 Q32-Q43; E13 Q44-Q49 open with recommendations the tasks use. New stories US-81…US-90; US-68…US-75, US-77, US-79 amended. Twelve new tasks T-185…T-194, T-196, T-197 (11 L, 1 M; no S) that also fix every mismatch of the PM's audit of the merged E13 code; T-166…T-169 kept and amended; T-195 and T-173 folded (T-188, T-194); T-170 is the PM closure step. Three new checkpoints (E13-D, E13-E, E13-F) and E13-C rewritten as the last one (9 items); the skipped E13-B3 items go into E13-D. **Aligned 2026-11-02** with the fitness-scientist's `07`/`04` pass (eight audit points resolved and written into the tasks; `07` §12.8 "Life changes" added as US-91/US-92, T-196/T-197; E13 Q44 settled as A, Q45 settled as an offered swap). **User feedback 2026-11-02:** per-user AI cap 3 € (ADR-90, code in T-185); no S tasks; Checkpoint E13-G removed, its items in E13-C.
+
 ## Overview
-A coach that builds a four-week training and nutrition block from the user's intention and preferences, sets the outcomes it can justify, and adjusts the plan with the user's data. It proposes; the user accepts. Every calculation is deterministic (SQL or TypeScript); the model only selects within validated options and explains; nothing is applied without consent (ADR-76).
+**Since the replan (2026-11-01):** a coach the user trusts for years: it gets to know him ("Para conocerte"), runs each four-week block in a phase of the year (cut, gain, maintenance, recomposition, regain, minimal), applies small changes on its own inside an accepted block (loads, calories in a safe band, deloads) with "Deshacer", and at the end of every block reviews what happened with him and proposes the next block and any phase change, which he accepts. Breaks pause the block; an injured area is trained around with a graded return the user paces. The original overview below stays valid for everything else.
+
+*(Original overview, 2026-10-29; "nothing is applied without consent" is superseded by ADR-88 inside an accepted block.)* A coach that builds a four-week training and nutrition block from the user's intention and preferences, sets the outcomes it can justify, and adjusts the plan with the user's data. Every calculation is deterministic (SQL or TypeScript); the model only selects within validated options and explains.
 
 Sources: `planning/epics/E13-performance-assistant.md` (US-68…US-77 + evaluation), `planning/07-coach-design.md` (every rule and figure, incl. the rules added on 2026-10-29: rest between sets, exercise order, undulating periodization for "Ganar fuerza", range of motion, cardio, protein distribution), `planning/01-scope.md` §3-§4, ADR-76…ADR-82, ADR-25, ADR-29, ADR-40, ADR-73, `04` §1, §3, §4, §6.6, `05` §5, §8-§10. Tasks: `tasks/todo.md` (E13 section).
 
@@ -20,7 +24,7 @@ Every task pays 6-8 agent hand-offs, so stories stay whole unless one is too lar
 - **US-73 and US-75 move after US-72** (deviation from the initial guidance, justified by the epic): adherence links workouts to `coach_plan_sessions`, and the deload "changes the week" of a block; both need a saved block (US-72). They merge into T-165 (L): both are deterministic on the plan weeks, and each alone is M.
 - **Splits (backend → UI):** US-68 (T-157 SQL math with heavy pgTAP; T-158 Trainer tab and card; ~20 files together). US-69 (T-161 function call, validators, RPCs; T-162 proposal screen and target-weight removal). US-72 (T-163 block call and validators; T-164 preview and "Guardar bloque").
 - **US-76** rides with the Edge Function foundation (T-160): the budget check guards every call, so it must exist before the first one.
-- **Evaluation** is its own task (T-168, not a story). **US-77** last (T-169), gated by it. **Closure** T-170 stays S: it waits for Checkpoint E13-C.
+- **Evaluation** is its own task (T-168, not a story). **US-77** last (T-169), gated by it. **Closure** T-170 is the PM closure step after Checkpoint E13-C (not a developer task).
 
 | Task | Story | Flow | Size | Agent runs |
 |---|---|---|---|---|
@@ -42,11 +46,23 @@ Every task pays 6-8 agent hand-offs, so stories stay whole unless one is too lar
 | T-184: Cardio equipment in "Mi entrenamiento" and "Antes de empezar" | US-80 | backend + core + UI | M | 8 |
 | T-182: Cardio as the last exercise of every routine of the block | US-72 amended (backend) | backend | L | 4 |
 | T-183: Cardio in preview, routine, live session; weekly cardio and steps | US-72 UI + US-73 amended | small backend + core + UI | L | 8 |
-| T-166: Weekly coach report | US-71 (+ US-76 fallback) | backend + core + UI | L | 8 |
-| T-167: Recommendation history, outcomes and deletion | US-74 | backend + core + UI | M | 8 |
-| T-168: Coach evaluation: cases, runner and results | Evaluation | backend + 👤 | M | 4 + runs |
-| T-169: Coach chat with tools | US-77 | backend + core + UI | L | 8 |
-| T-170: E13 closure | DoD | PM | S | PM only |
+| T-185: "Para conocerte" and the free-text block (backend) | US-81, US-89, US-68 am., US-88 | backend + core | L | 5 |
+| T-186: "Para conocerte" screen and "Lo que el entrenador sabe de ti" | US-81, US-89 UI | core + UI | L | 7 |
+| T-187: Phases: calories and training by phase | US-82 backend, US-69 am. | backend + core | L | 5 |
+| T-188: Phases in the plan; generic disclaimers removed app-wide; Perfil and Peso fixes (former T-195, T-173 items) | US-82 UI, US-79 am., US-90 | core + UI | L | 7 |
+| T-189: Plan weeks follow the training (breaks pause the block) | US-73 am., US-88 | backend + core + small UI | M | 8 |
+| T-190: End-of-block review and the next block (backend) | US-83, US-84, US-88 | backend + core | L | 5 |
+| T-191: End-of-block review screen and the next block | US-83, US-84 UI | core + UI | L | 7 |
+| T-192: Progression applies on its own, with "Deshacer" | US-70 am., US-85, US-88 | backend + core + UI | L | 8 |
+| T-193: Calories and deloads on their own; scheduled deloads; data cleaning | US-69/US-75 am., US-85, US-86 | backend + core + UI | L | 8 |
+| T-194: Injury: train around, graded return, persistent-discomfort note; "Similares" fix (former T-173 item) | US-87, US-90 | backend + core + UI | L | 8 |
+| T-196: Life changes mid-block (backend) | US-91, US-92 | backend + core | L | 5 |
+| T-197: "Revisar el bloque" and "Solo unos días" (UI) | US-91, US-92 UI | core + UI | L | 7 |
+| T-166: Weekly coach report (amended: 3 parts, notes, automatic changes, grounding, note) | US-71 am. (+ US-76, US-90) | backend + core + UI | L | 8-9 |
+| T-167: Recommendation history, outcomes and deletion (amended) | US-74 am. | backend + core + UI | M | 8 |
+| T-168: Coach evaluation: cases, runner and results (amended cases) | Evaluation | backend + 👤 | M | 4 + runs |
+| T-169: Coach chat with tools (amended: grounding, free text) | US-77 am. | backend + core + UI | L | 8 |
+| T-170: E13 closure | DoD | PM | closure step | PM only |
 
 ## Checkpoints (user decision, 2026-10-29: three)
 Collected test items:
@@ -62,7 +78,7 @@ Collected test items:
 Grouped into three journeys (the user chose fewer, larger checkpoints; 7-9 items each, related items merged):
 - **Checkpoint E13-A — The Trainer tab knows you, and the gym tells you what to lift next (7)**, after T-159: Trainer tab, derived values, rep range and progression. Why: the last model-free task, before plans build on the derived values. No paid call.
 - **Checkpoint E13-B — Your plan from the coach: nutrition, the four-week block, adherence and deload (9)**, after T-165: nutrition plan and outcomes, target weight gone, AI usage, block preview and "Guardar bloque", adherence, deload. Why: before the report and history read the plan and its weeks.
-- **Checkpoint E13-C — Your weekly report, the coach's track record, the chat, and the final E13 regression (9)**, after T-169, the last implementation task; its approval releases T-170. If the evaluation keeps US-77 disabled, it is presented right after T-168 without the chat items.
+- **Checkpoint E13-C** — rewritten by the replan (see "Checkpoint grouping (replan)" below).
 
 Each checkpoint also has "leave the app and come back: the same tab, screen and draft are restored" and an out-of-scope line. Full item lists are in `tasks/todo.md`. Non-checkpoint 👤 steps: the Anthropic key before T-160; the evaluation cases and the approval of every paid run in T-168. T-157, T-158, T-160…T-164 and T-166…T-168 merge with no checkpoint after them.
 
@@ -72,9 +88,10 @@ Each checkpoint also has "leave the app and come back: the same tab, screen and 
 - **One source for the math:** the derived values (BMR, activity, adaptive expenditure with intake completeness, weight trend with its interval, experience) and the compact summary (`coach_summary`, last 8 weeks, never raw rows) are computed in SQL (T-157), so the app and the function read the same numbers. Nutrition and block rules are TypeScript validators in the function; progression is SQL or TypeScript (T-159 planner).
 - **Model picks from server-built candidates:** exercises come from a catalogue list filtered by place and equipment, never free names; outcomes from a validated option set.
 - **Coach rules enforced by validators (`07` §3-§4):** frequency (≥ 2 per muscle group when days allow; 1 day = full body), ~10 weekly sets per muscle group, intensity per intention, 1-3 RIR, rest 2-3 min on main multi-joint lifts and 1-2 min on isolation (written into `rest_seconds`), priority multi-joint lifts first, undulating rep ranges within the week only for "Ganar fuerza", no reduction of cardio or steps, full range of motion only as a technique note; calorie floor (ADR-25), rate of loss/gain, protein ≥ 1.6 g/kg with distribution guidance (~0.4 g/kg per meal over ≥ 4 meals, not a meal plan), fat ≥ 20 %, in-block change ≤ 10 % after two weeks outside the trend's interval.
-- **Budget:** `coach_usage` per user and month; the function refuses any call that would pass 2 € per user or 5 € in total (dollars counted as euros); the global total comes from an aggregate that exposes no row. Deterministic features never call the function. CI never calls the API (fake client); every real call (smoke test, evaluation) is approved by the user.
+- **Budget:** `coach_usage` per user and month; the function refuses any call that would pass 3 € per user (ADR-90; 2 € until 2026-11-02, changed in T-185) or 5 € in total (dollars counted as euros); the global total comes from an aggregate that exposes no row. Deterministic features never call the function. CI never calls the API (fake client); every real call (smoke test, evaluation) is approved by the user.
 - **Cardio (ADR-85 proposed, 2026-11-01):** a new deterministic `cardioRules.ts` sets 150 weekly cardio minutes for every intention (user-editable, plain note below 150) and the daily steps target max(28-day average rounded down to 500, 7 000) (T-181, plan JSON, no new table; one edit RPC). The block adds one cardio slot as the last exercise of every lifting routine, splitting the weekly minutes evenly in 5-min units, at most 60 min per routine, the excess "por tu cuenta"; cardio is outside "Duración de la sesión", so the lifting is untouched; catalogue `cardio` exercises with a duration metric, filtered by the five new cardio equipment values (T-184: `cardio_bike`, `treadmill`, `elliptical`, `rower`, `cardio_other`; `machine` is lifting only) plus `bodyweight`, default ranking by modality (`07` §3); the swap is any-to-any: alternatives derived from category + equipment, same minutes, never from the T-179 pairs table; the model only picks among candidates (T-182). Planned sets gain one nullable planned duration through `save_routine` (`target_reps` nullable only for duration sets); the cardio set reuses the duration metric types, `SetRow`, `SessionSetRow` and `MetricTypeLabels` (minutes only, no rest timer); `coach_plan_weeks` adds logged cardio minutes and steps per week (T-183). No warm-up anywhere (Q27). Calories ignore the planned cardio (Q25).
-- **Suggestions never rewrite routines:** progression and deload are shown in the live session; "Actualizar automáticamente" (ADR-70) keeps copying what was performed.
+- ~~**Suggestions never rewrite routines:** progression and deload are shown in the live session; "Actualizar automáticamente" (ADR-70) keeps copying what was performed.~~ **Replan (ADR-88):** inside an accepted, not-ended block the progression (computed on the server, T-192), the calorie changes in the safe band and the deloads apply on their own; every one is a `coach_changes` row with its `before` value, reason and "Deshacer" / "Cancelar descarga" (one table, one `CoachChangeRow`, built in T-192); outside a block the suggestion stays as before; ADR-70 unchanged.
+- **Replan: the trainer journey (ADR-86, ADR-87, ADR-89).** `coach_intake` and a free-text block in `coach_summary` with user exclusions (T-185); experience = max(self-reported, history), `situation` (intake or 28 days without a session), known maintenance as the expenditure prior. `coach_plans.phase` + options; phase calories (deficit cap 500) and phase training (minimal, regain, cut volume) in `nutritionRules`/`blockRules` (T-187). One SQL helper for plan weeks that skip calendar weeks without sessions, used by adherence, linking, deload and the block end (T-189). `coach_block_reviews`, a deterministic `coach_block_review_inputs`, phase triggers and next-block volume rules in code, a `block_review` model call that picks only eligible options, then the existing plan and block calls (T-190). One shared grounding validator (feature list + summary) for plan, block, review, report and chat reasons (T-190, reused by T-166/T-169). `coach_return_steps` and `coach_health_notes` (T-194). New kinds `intake_extract` and `block_review` (Sonnet 5.5), both budget-checked.
 - **Plan storage (epic §Tables):** `coach_derived_values` (T-157), `coach_usage` (T-160), `coach_plans` and `coach_recommendations` (T-161), `coach_plan_sessions` (T-163), adherence and deload columns (T-165), `coach_reports` (T-166), `coach_outcomes` (T-167), `coach_conversations` (T-169). Every table cascades on account deletion (ADR-29) and is covered by `delete_account_cascade.test.sql`.
 - **Target weight retired (ADR-78)** in T-162: UI removed first, then `profiles.target_weight_kg` dropped in the same PR's migration; "Peso" shows the plan's weight outcome.
 - **UI:** fourth tab "Trainer" (ADR-79) in T-158 (`05` §5 and the §8 "Decided" line updated). Shared pieces built once and reused (R-39): provisional label (T-158), `CoachProposalCard` and the streamed-progress state (T-162), reused by T-164/T-165/T-166/T-169. Screens on `AppScreen`, sheets on the four archetypes, `NavigationRow` "Informe semanal", history delete with the R-08 many-records dialog (G5 allow-list), a new chat pattern recorded in `05` §9 (T-169).
@@ -87,21 +104,22 @@ Each checkpoint also has "leave the app and come back: the same tab, screen and 
   - **Checkpoint E13-A 👤 (7 items)**
 
 ### Phase 2: The coach's plan: function, nutrition, block, plan weeks (US-76, US-69, US-72, US-73, US-75)
-- [ ] 👤 Anthropic account, spending limit, `ANTHROPIC_API_KEY` secret
-- [ ] T-160: `coach` Edge Function, AI usage and the monthly budget — L
-- [x] T-161: Plan nutrition and outcomes (backend) — L
-- [ ] T-162: Plan proposal screen, nutrition acceptance, target weight retired — L
-- [ ] T-163: Block creator (backend) — L
+*(Ticks fixed 2026-11-02: every task of this phase is merged. Behaviour of T-160 (2 € cap), T-161/T-162 (accept-first calorie change), T-163 (beginner sets, no carry-over) and T-165 (calendar weeks, accept-first deload) is superseded by the replan tasks noted in brackets.)*
+- [x] 👤 Anthropic account, spending limit, `ANTHROPIC_API_KEY` secret
+- [x] T-160: `coach` Edge Function, AI usage and the monthly budget — L (cap → 3 € in T-185, ADR-90)
+- [x] T-161: Plan nutrition and outcomes (backend) — L (deficit cap 500 and phases → T-187; auto calorie change → T-193)
+- [x] T-162: Plan proposal screen, nutrition acceptance, target weight retired — L (calorie-change card → T-193)
+- [x] T-163: Block creator (backend) — L (volume, carry-over, exclusions, grounding → T-187, T-190, T-194)
 - [x] T-164: Block preview and "Guardar bloque" — L
-- [x] T-165: Plan weeks: adherence and the deload suggestion — L
-- [ ] T-174: Fix: "Crear plan" 422 explained — M (merged #401; tick pending)
-- [ ] T-177: Fix: Trainer shows "Crear plan" after a plan was created — M (runs first)
-  - **Checkpoint E13-B 👤 (9 items) re-presented** after T-177 (items 1-9 to re-test)
-- [ ] T-175: "Antes de empezar" inputs (US-78 backend) — M
+- [x] T-165: Plan weeks: adherence and the deload suggestion — L (weeks → T-189; auto and scheduled deload → T-193)
+- [x] T-174: Fix: "Crear plan" 422 explained — M (merged #401)
+- [x] T-177: Fix: Trainer shows "Crear plan" after a plan was created — M
+  - **Checkpoint E13-B 👤 (9 items) re-presented** after T-177 — approved 2026-10-30
+- [x] T-175: "Antes de empezar" inputs (US-78 backend) — M (intake rows → T-185/T-186)
 - [x] T-176: "Antes de empezar" screen and the Trainer tab layout (US-78 UI) — L
-- [x] T-179: Long band and exercise alternatives — L (after T-176; does not wait for E13-B1/E13-B2)
-- [ ] T-180: Fix from Checkpoint E13-B1: unrealistic calorie surplus in the plan — M (before E13-B1 is re-presented)
-  - **Checkpoint E13-B1 👤 "Before starting, and your nutrition plan" (7)**, then **Checkpoint E13-B2 👤 "Your four-week block, adherence and deload" (6)**, both after T-176 (Q22 B); T-166 waits for both. Item lists in `tasks/todo.md`.
+- [x] T-179: Long band and exercise alternatives — L
+- [x] T-180: Fix from Checkpoint E13-B1: unrealistic calorie surplus in the plan — M
+  - **Checkpoint E13-B1 👤** approved 2026-11-01 except the T-180 re-test (now E13-D item 5); **Checkpoint E13-B2 👤** approved 2026-11-01.
 
 ### Phase 2b: Cardio in the plan (US-79, US-72/US-73 amended; ADR-85 proposed, 2026-11-01)
 - [x] Sources 29-50 of `07` §10 verified and dated (fitness-scientist, 2026-11-01)
@@ -109,21 +127,44 @@ Each checkpoint also has "leave the app and come back: the same tab, screen and 
 - [x] T-181: Weekly cardio and daily steps targets in the plan — M
 - [x] T-184: Cardio equipment in "Mi entrenamiento" and "Antes de empezar" — M
 - [x] T-182: Cardio as the last exercise of every routine of the block (backend) — L
-- [ ] T-183: Cardio in the preview, routine editor and live session; weekly cardio and steps — L
-  - **Checkpoint E13-B3 👤 "Re-test the plan, and cardio in your plan and block" (7 items + leave and come back)**, proposed: carries the pending E13-B1 re-test (item 5 with the T-180 calories) so one APK covers both; T-166 waits for it. Item list in `tasks/todo.md` under T-183.
+- [x] T-183: Cardio in the preview, routine editor and live session; weekly cardio and steps — L (merged #430; medical line → T-188)
+  - **Checkpoint E13-B3 👤** skipped by the user 2026-11-01; its items are Checkpoint E13-D items 5-6.
 
 **Sizing of cardio:** US-79 is one vertical slice (T-181, M, about 15 files: a deterministic rules module, plan JSON, the minutes edit, two display spots, no new table). The block side (US-72 amended) is about 25 files with heavy backend (block rules, candidates and the cross-modality swap, validators, a planned-duration column through `save_routine`/`start_workout_session`/`save_coach_block`) and heavy UI (preview, swap list, routine editor, live session), so it splits backend (T-182) → UI (T-183); the US-73 weekly cardio and steps rides with T-183 (same screens, a small RPC extension) instead of an S task. US-80 is its own vertical slice (T-184, M, about 14 files: enum + re-tag migration, coach regression checks, `Equipment` enum and labels, the "Cardio" chip group, the "Antes de empezar" row); merging it into T-181 would pass ~25 files across two domains and T-182 is already L. It keeps the next free ID (T-184) so the T-182/T-183 references in `07` and `09` stay valid. Collected test items: plan re-test 1, activity targets and editing 1, steps 1, cardio equipment + block cardio and any-to-any swap 1, save/edit 1, train 1, week 1 = 7, one journey, one checkpoint.
 
 **Sizing of US-78:** one story, split backend → UI because the whole slice is about 28 files: T-175 (one read-only RPC shared by the screen and the `coach` function's precondition, plus the repository; M, about 11 files) and T-176 (the screen in two modes, the Trainer root rework and the proposal clean-up; L, about 17 files). The root rework stays inside T-176: it moves the "Tus valores" card into the new screen, so splitting it would make an S task touching the same files.
 
-### Phase 3: Report, history, evaluation, chat and closure (US-71, US-74, US-77)
-- [ ] T-166: Weekly coach report — L
+### Phase 2c: Getting to know you and phases (US-81, US-89, US-82; replan 2026-11-01)
+- [ ] 👤 The user's OK on the replan (ADR-86…ADR-90, stories, tasks, checkpoints D/E/F and the last E13-C)
+- [ ] T-185: "Para conocerte" and the free-text block (backend; also the 3 € cap, ADR-90) — L
+- [ ] T-186: "Para conocerte" screen and "Lo que el entrenador sabe de ti" — L
+- [ ] T-187: Phases: calories and training by phase — L
+- [ ] T-188: Phases in the plan; generic disclaimers removed app-wide; Perfil and Peso fixes — L
+  - **Checkpoint E13-D 👤 "Getting to know you, your phase, and your plan with cardio" (7 items; carries E13-B3 and the E13-B1 re-test)** — proposed
+
+### Phase 2d: The end-of-block review (US-73 am., US-83, US-84, US-88)
+- [ ] T-189: Plan weeks follow the training — M
+- [ ] T-190: End-of-block review and the next block (backend) — L
+- [ ] T-191: End-of-block review screen and the next block — L
+  - **Checkpoint E13-E 👤 "Your block review: what happened, the next block and a new phase" (6 items)** — proposed
+
+### Phase 2e: The coach adjusts on its own; injury (US-85, US-86, US-87, US-90; US-69/US-70/US-75 am.)
+- [ ] T-192: Progression applies on its own, with "Deshacer" — L
+- [ ] T-193: Calories and deloads on their own; scheduled deloads; data cleaning — L
+- [ ] T-194: Injury: train around, graded return, persistent-discomfort note; "Similares" fix — L
+  - **Checkpoint E13-F 👤 "The coach adjusts on its own, and trains around an injury" (7 items)** — proposed
+
+### Phase 3: Life changes, report, history, evaluation, chat and closure (US-91, US-92, US-71, US-74, US-77; amended by the replan)
+- [ ] T-196: Life changes mid-block (backend) — L
+- [ ] T-197: "Revisar el bloque" and "Solo unos días" (UI) — L (ux-reviewer: the offer, the three choices, "Solo unos días")
+- [ ] T-166: Weekly coach report — L (no report for a week without data, `07` §12.8 row 10)
 - [ ] T-167: Recommendation history, outcomes and deletion — M
 - [ ] T-168: Coach evaluation — M (👤 cases and each paid run)
 - [ ] T-169: Coach chat with tools — L (only after T-168 passes)
-- [ ] T-173: E13 UI refinements — S (after T-169, before Checkpoint E13-C)
-  - **Checkpoint E13-C 👤 (9 items, final regression; releases T-170)**
-- [ ] T-170: E13 closure — PM — S
+  - **Checkpoint E13-C 👤 — the last one (9 items: life changes 4, report 1, history and delete 1, cost 1, chat 1, final regression 1); releases T-170** — proposed
+- [ ] T-170: E13 closure — PM closure step
+
+**Checkpoint grouping (replan, amended 2026-11-02):** collected items: intake 2, phases 2, carried plan and cardio re-test 2 (merged), Perfil and Peso fixes 1 → E13-D (7); review 2, priorities 1, phase change 1, next block 1, paused week 1 → E13-E (6); loads 1, calories 1, deloads 1, injury 2, unresolved and no generic warnings 1, "Similares" 1 → E13-F (7); life changes 4 (grouped from 7), report 1, history and delete 1, cost 1, chat 1, final regression 1 → E13-C (9). E13-G was removed by the user (2026-11-02): its items are E13-C 1-4. Items whose trigger needs weeks of data say "if your data shows it" and are covered by host tests.
 
 Internal milestones (not 👤 checkpoints): per task lint (`check-design-tokens.sh`, `check-ux-conventions.sh`, ktlint, detekt) + `testLocalDebugUnitTest`, pgTAP and `deno test` green; after each migration or function change, `deploy-supabase` green on `main` with data intact before the next task or checkpoint; T-160 smoke call approved by the user.
 
@@ -133,8 +174,11 @@ v1.3.0 ─► T-157 ─► T-158 ─► T-159 ─► [E13-A 👤]
        ─► [👤 key] ─► T-160 ─► T-161 ─► T-162 ─► T-163 ─► T-164 ─► T-165 ─► T-174
        ─► T-177 ─► [E13-B 👤 re-presented] ─► T-175 ─► T-176 ─► T-179 ─► T-180 ─► [E13-B1 👤] ─► [E13-B2 👤]
        ─► [user OK on the cardio breakdown] ─► T-181 ─► T-184 ─► T-182 ─► T-183 ─► [E13-B3 👤 = E13-B1 re-test + cardio]
-       ─► T-166 ─► T-167 ─► T-168 (👤 cases, paid runs) ─► T-169 ─► [E13-C 👤] ─► T-170 ─► v1.4.0
+       ─► [E13-B3 skipped] ─► [user OK on the replan] ─► T-185 ─► T-186 ─► T-187 ─► T-188 ─► [E13-D 👤]
+       ─► T-189 ─► T-190 ─► T-191 ─► [E13-E 👤] ─► T-192 ─► T-193 ─► T-194 ─► [E13-F 👤]
+       ─► T-196 ─► T-197 ─► T-166 ─► T-167 ─► T-168 (👤 cases, paid runs) ─► T-169 ─► [E13-C 👤] ─► T-170 (PM closure) ─► v1.4.0
 ```
+- Replan dependencies: T-187 needs T-185's `situation`; T-190 needs T-189's plan weeks (block end) and T-187's phases; T-193 needs T-192's `coach_changes` and `CoachChangeRow` and T-189's weeks; T-194 needs T-185's injured area, T-192's changes and T-190's summary in the block prompt; T-166 needs T-192/T-193 (changes listed), T-194 (note), T-190 (grounding validator) and T-196 (`has_week_data`); T-196 needs T-190 (early review) and T-192 (`coach_changes`).
 - Strictly sequential (one active task at a time).
 - Earlier work used: E10 weekly check-in and summary (`weekly_set_counts`, `weekly_records`, weight trend); E11 `daily_activity`, `sleep_sessions`; E12 `training_preferences` (intention, place, equipment, days, length), `exercise_discomforts.level`, `note_kind`, `exercises.movement_pattern`; E3/E6 `save_routine`, routine folders, the live session, e1RM (Epley, `04` §4.1), plate and dumbbell rounding (`04` §4.9); E5 weight screen and `nutrition_goals`.
 
@@ -161,11 +205,36 @@ v1.3.0 ─► T-157 ─► T-158 ─► T-159 ─► [E13-A 👤]
 | A cardio swap reuses the T-179 alternatives table (only 2 cardio pairs) and leaves the user without a usable machine | Medium | Any-to-any: T-182 derives cardio alternatives from category + equipment (plus walking and running), `save_coach_block` accepts any of them and rejects cardio on lifting slots; tests for swap and defaults |
 | Re-tagging cardio machines changes lifting candidates or gives saved users cardio they did not pick | Medium | T-184: no saved list gains a value, an old `machine` is never cardio; regression of lifting candidates, validators, `coach_plan_sessions`, volume options and `exercises.test.sql` |
 | The rest timer starts after a cardio set | Low | T-183 acceptance and a ViewModel test: no rest timer after a cardio set |
+| (Replan) Eight `07` points under-specified (open level 4-5 discomfort, experience vs sets, cardio per phase, partial days, deficit reference, where progressed loads live, week-4 collisions, undo vs band) | High | Resolved by the fitness-scientist (2026-11-02) and written into T-187, T-190, T-192, T-193, T-194 |
+| (Replan) "Revisar el bloque" (life changes) and the early review share a concept with "Bloque nuevo" | Medium | One label per concept (R-35): "Revisar el bloque" = the life-change offer, "Bloque nuevo" = the early review; ux-reviewer confirms in T-191 and T-197 |
+| (Replan) "Adaptar el bloque" rewrites routines mid-block | Medium | A rule with a preview, applied on the user's tap through `save_routine`, one `coach_changes` row with "Deshacer"; pgTAP undo |
+| (Replan) An automatic change the user did not expect erodes trust | High | Small and bounded changes only inside an accepted block, each with its reason and "Deshacer"; new blocks and phase changes always need acceptance; every change stored and listed in the report and the history |
+| (Replan) Progressed loads need the plate and dumbbell settings on the server (today client-side) | Medium | T-192 moves the increment server-side with one shared implementation; increment cases moved to pgTAP |
+| (Replan) Recounting plan weeks breaks the user's in-progress block | Medium | T-189 migration keeps every link; pgTAP fixture of the user's shape; `deploy-supabase` checks the data |
+| (Replan) Phase triggers and review rules are only testable after weeks of data | Medium | Table-driven pgTAP and `deno test`; "Revisar el bloque" opens the review early so the user can try it at E13-E |
+| (Replan) The model invents features or reads too much into free text | High | Shared grounding validator (T-190), free text never changes a figure or trigger, extracted intake fields used only after confirmation, evaluation cases (T-168) |
+| (Replan) "Deshacer" collides with R-20 ("never Deshacer") | Low | A distinct glossary entry for undoing an automatic coach change (T-192, ux-reviewer); R-20 unchanged for deletion |
+| (Replan) The summary passes 16 384 bytes with the free-text block | Medium | 2 000-byte block cap; T-185 re-budgets and tests the worst case |
+| (Replan) Cost of the new model calls | Low | Intake extraction (rare) and one review call per block; ≈ 0,1 € per user and month extra (heavy user ≈ 3,1 €); the per-user cap is raised to 3 € (ADR-90, T-185) and still stops the chat first; the 5 € total binds first with two heavy users |
 
 ## Open Questions
 
-**Waiting for the user's OK (cardio breakdown, 2026-11-01):**
-- **Checkpoint E13-B3 (proposal):** the E13-B1 re-test presented together with the cardio items after T-183 (7 items), instead of a separate re-test.
+**Replan (2026-11-01), waiting for the user's OK:** the replan as a whole (ADR-86…ADR-90, US-81…US-92, T-185…T-194, T-196, T-197) and the checkpoints E13-D, E13-E, E13-F and the last E13-C (E13-G removed by the user, 2026-11-02).
+
+**Replan, open with a recommendation the tasks use (not blocking; `planning/09-open-questions.md`):**
+- **E13 Q44** settled by `07` §3: A (server-computed, written to the block routines, "Deshacer"). T-192.
+- **E13 Q45** settled by `07` §12.8 row 7: the swap is offered and applied on the user's tap. T-194.
+- **E13 Q46** when the intake is asked: recommended once before the first "Crear plan", every field optional, "Ahora no", editable from "Tus datos". T-186.
+- **E13 Q47** a block ends without a review: recommended nothing starts on its own, a card stays, no automatic change past the block; "Revisar el bloque" also opens it early. T-190, T-191.
+- **E13 Q48** what "Eliminar historial del entrenador" deletes: recommended plans, phases, reviews, recommendations, automatic changes, reports, conversations; keeps the intake, derived values, exclusions and AI usage. T-167.
+- **E13 Q49** the report's "one change": recommended one user action from server-built candidates, never a plan change. T-166.
+- Fitness-scientist pass on eight `07` points: done 2026-11-02, tasks aligned.
+- **Needs ux-reviewer (not the user):** "Revisar el bloque" and its three choices, "Solo unos días" (T-197), the level 4-5 swap offer (T-194), the "Bloque nuevo" vs "Revisar el bloque" labels (T-191).
+
+**Resolved by the user 2026-11-01 (replan):** E13 Q32-Q43 (intake, free text, regain default, phases, autonomy, deloads, priorities, health messages (Q29 reversed), injury and breaks, data cleaning, grounding, cost).
+
+**Formerly waiting for the user's OK (cardio breakdown, 2026-11-01):**
+- **Checkpoint E13-B3 (proposal):** the E13-B1 re-test presented together with the cardio items after T-183 (7 items), instead of a separate re-test. *(Skipped by the user; items carried into E13-D.)*
 
 **Resolved 2026-11-01 (`planning/09-open-questions.md`; rules in `07` §3):** Q23 150 min for every intention, band 150-300 for "Perder grasa", editable, note below 150 · Q24 steps max(28-day average rounded down to 500, 7 000), every age, not editable · Q25 the planned cardio does not change the calories · Q26 cardio last in every lifting routine, 5-min units, max 60 min, excess "por tu cuenta", no cardio days (user) · Q27 no warm-up anywhere (user) · Q28 continuous "suave" only, no intervals or heart-rate zones; Q28b default modality ranking and cross-modality swap with the same minutes · Q29 static medical line at the end of the cardio help sheet · Q28b cardio equipment as its own category (five values), default order, swap within the cardio equipment plus walking and running; made any-to-any by the user · Q30 "Duración de la sesión" does not include the cardio; the preview shows each routine's total time (PM) · Q31 the weekly minutes are edited in a form sheet on the "Cardio" row, on the proposal and in "Tu plan"; an edit after saving changes the target and the next block, not the saved routines (PM, on the ux-reviewer and fitness-scientist recommendation).
 
