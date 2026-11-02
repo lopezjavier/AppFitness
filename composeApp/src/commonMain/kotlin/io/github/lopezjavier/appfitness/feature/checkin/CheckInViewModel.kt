@@ -5,14 +5,16 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import io.github.lopezjavier.appfitness.app.ReminderCoordinator
 import io.github.lopezjavier.appfitness.domain.AppError
+import io.github.lopezjavier.appfitness.domain.AppException
 import io.github.lopezjavier.appfitness.domain.appErrorOrNull
 import io.github.lopezjavier.appfitness.domain.model.CheckIn
+import io.github.lopezjavier.appfitness.domain.model.ExerciseNames
 import io.github.lopezjavier.appfitness.domain.port.ConnectivityObserver
 import io.github.lopezjavier.appfitness.domain.port.ExerciseLibrary
 import io.github.lopezjavier.appfitness.domain.repository.ExerciseRepository
 import io.github.lopezjavier.appfitness.domain.repository.WeeklyCheckInRepository
+import io.github.lopezjavier.appfitness.domain.usecase.ExerciseNameResolver
 import io.github.lopezjavier.appfitness.domain.usecase.LoadCheckInSummary
-import io.github.lopezjavier.appfitness.feature.workout.loadExerciseNames
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.Flow
@@ -32,7 +34,9 @@ private const val KEY_NOTES = "checkin_notes"
  * [ReminderCoordinator] (no route argument, so opening it on the Monday after still shows the closed week). The summary
  * loads on its own: a failure shows an error block with a retry and never blocks the form. An unsaved energy/notes
  * draft survives process death through [savedState] (ADR-40). Saving upserts the week, refreshes the center and then
- * emits [CheckInEffect.Saved]. [exercises] only names the records of the summary (a failed lookup leaves them unnamed).
+ * emits [CheckInEffect.Saved]. [exerciseNames] names the records of the summary: the summary only loads together
+ * with their names (a failed lookup or an id without a name is a failed summary with a retry, never an unnamed
+ * record).
  */
 class CheckInViewModel(
     private val coordinator: ReminderCoordinator,
@@ -40,8 +44,9 @@ class CheckInViewModel(
     private val loadSummary: LoadCheckInSummary,
     connectivity: ConnectivityObserver,
     private val savedState: SavedStateHandle = SavedStateHandle(),
-    private val exercises: ExerciseRepository,
-    private val library: ExerciseLibrary,
+    exercises: ExerciseRepository,
+    library: ExerciseLibrary,
+    private val exerciseNames: ExerciseNameResolver = ExerciseNameResolver(exercises, library),
 ) : ViewModel() {
     private val _uiState = MutableStateFlow<CheckInUiState>(CheckInUiState.Loading)
     val uiState: StateFlow<CheckInUiState> = _uiState.asStateFlow()
@@ -57,6 +62,11 @@ class CheckInViewModel(
             connectivity.isOnline.collect { isOnline ->
                 online = isOnline
                 updateReady { it.copy(isOffline = !isOnline) }
+            }
+        }
+        viewModelScope.launch {
+            exerciseNames.observeChanges().collect { names ->
+                updateReady { state -> state.withNames(names) }
             }
         }
         load()
@@ -103,18 +113,32 @@ class CheckInViewModel(
         summaryJob?.cancel()
         updateReady { it.copy(summary = CheckInSummaryState.Loading) }
         summaryJob = viewModelScope.launch {
-            val result = loadSummary(day)
-            val state = result.fold(
-                onSuccess = { CheckInSummaryState.Loaded(it) },
-                onFailure = { CheckInSummaryState.Failed },
-            )
-            updateReady { it.copy(summary = state) }
-            val records = (state as? CheckInSummaryState.Loaded)?.summary?.records.orEmpty()
-            if (records.isNotEmpty()) {
-                // Catalogue exercises have no name in their row: the library names them by key.
-                val names = loadExerciseNames(exercises, library).orEmpty()
-                updateReady { it.copy(exerciseNames = names) }
+            val result = loadSummary(day).mapCatching { summary ->
+                val names = exerciseNames.resolve().getOrThrow()
+                if (summary.records.any { names[it.exerciseId] == null }) throw AppException(AppError.NotFound)
+                summary to names
             }
+            result.fold(
+                onSuccess = { (summary, names) ->
+                    updateReady {
+                        it.copy(summary = CheckInSummaryState.Loaded(summary), exerciseNames = names.byId)
+                    }
+                },
+                onFailure = { updateReady { it.copy(summary = CheckInSummaryState.Failed) } },
+            )
+        }
+    }
+
+    /** Re-resolved names (a renamed or new custom exercise) replace the shown ones while they cover the records. */
+    private fun CheckInUiState.Ready.withNames(names: ExerciseNames): CheckInUiState.Ready {
+        val loaded = summary as? CheckInSummaryState.Loaded ?: return this
+        return if (loaded.summary.records.any {
+                names[it.exerciseId] == null
+            }
+        ) {
+            this
+        } else {
+            copy(exerciseNames = names.byId)
         }
     }
 

@@ -4,12 +4,13 @@ import io.github.lopezjavier.appfitness.domain.model.PlannedSet
 import kotlin.time.Instant
 
 /**
- * One exercise of the routine details. [name] and [imageKey] come from the exercise catalog (null when unknown or
- * when the exercise has no media); [plannedSets] are in set order, so the UI can show "3 x 8" and per-set weights.
+ * One exercise of the routine details. [name] (always resolved) and [imageKey] (null when the exercise has no
+ * media) come from the exercise catalog;
+ * [plannedSets] are in set order, so the UI can show "3 x 8" and per-set weights.
  */
 data class RoutineDetailsExerciseUi(
     val exerciseId: String,
-    val name: String?,
+    val name: String,
     val imageKey: String?,
     val plannedSets: List<PlannedSet>,
 )

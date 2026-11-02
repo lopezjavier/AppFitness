@@ -82,7 +82,16 @@ val uiModule =
         viewModelOf(::ProfileRootViewModel)
         viewModelOf(::NotificationCenterViewModel)
         viewModel {
-            CheckInViewModel(get(), get(), get(), get(), savedState = get(), exercises = get(), library = get())
+            CheckInViewModel(
+                get(),
+                get(),
+                get(),
+                get(),
+                savedState = get(),
+                exercises = get(),
+                library = get(),
+                exerciseNames = get(),
+            )
         }
         viewModelOf(::AccountViewModel)
         viewModelOf(::AboutViewModel)
@@ -353,6 +362,7 @@ val uiModule =
                 discomfortRepository = get(),
                 progressionRepository = get(),
                 deloadRepository = get(),
+                exerciseNames = get(),
             )
         }
         viewModelOf(::HistoryViewModel)
@@ -378,6 +388,7 @@ val uiModule =
                 preferences = get(),
                 bodyMeasurements = get(),
                 routineRepository = get(),
+                exerciseNames = get(),
             )
         }
         viewModel { (sessionId: String) ->
@@ -389,6 +400,7 @@ val uiModule =
                 connectivity = get(),
                 clock = get(),
                 savedState = get(),
+                exerciseNames = get(),
             )
         }
         // Blank ids mean "none" (Koin parameters cannot be null): both blank = an empty workout.
@@ -408,6 +420,7 @@ val uiModule =
                 clock = get(),
                 date = date.takeIf { it.isNotBlank() }?.let { runCatching { LocalDate.parse(it) }.getOrNull() },
                 savedState = get(),
+                exerciseNames = get(),
             )
         }
         viewModel { PastWorkoutChooserViewModel(routineRepository = get(), savedState = get()) }
@@ -439,6 +452,7 @@ val uiModule =
                 library = get(),
                 clock = get(),
                 savedState = get(),
+                exerciseNames = get(),
             )
         }
         viewModel { PlanProposalViewModel(plans = get(), coach = get(), clock = get(), savedState = get()) }
@@ -449,6 +463,7 @@ val uiModule =
                 exerciseLibrary = get(),
                 clock = get(),
                 savedState = get(),
+                exerciseNames = get(),
             )
         }
         viewModel { (exerciseId: String) ->
@@ -461,6 +476,7 @@ val uiModule =
                 clock = get(),
                 preferences = get(),
                 savedState = get(),
+                exerciseNames = get(),
             )
         }
         viewModel { (routineId: String) ->

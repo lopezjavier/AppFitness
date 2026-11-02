@@ -3,6 +3,8 @@ package io.github.lopezjavier.appfitness.feature.routines
 import app.cash.turbine.test
 import io.github.lopezjavier.appfitness.app.FakeConnectivityObserver
 import io.github.lopezjavier.appfitness.domain.AppError
+import io.github.lopezjavier.appfitness.domain.model.Equipment
+import io.github.lopezjavier.appfitness.domain.model.MuscleGroup
 import io.github.lopezjavier.appfitness.domain.model.PlannedSet
 import io.github.lopezjavier.appfitness.domain.model.SetType
 import io.github.lopezjavier.appfitness.domain.usecase.LoadExerciseCatalog
@@ -306,5 +308,38 @@ class RoutineDetailsViewModelTest {
         advanceUntilIdle()
 
         assertEquals(first.content(), second.content())
+    }
+
+    @Test
+    fun aRenamedCustomExercise_updatesTheShownName() = runTest {
+        repository.routines += routineOf("r2", "Brazos", "custom")
+        val vm = viewModel("r2")
+        advanceUntilIdle()
+
+        exercises.updateCustom("custom", "Nombre nuevo", MuscleGroup.Chest, Equipment.Dumbbell, false, null)
+        advanceUntilIdle()
+
+        assertEquals("Nombre nuevo", vm.content().exercises.single().name)
+    }
+
+    @Test
+    fun unreadableExercises_areTheErrorStateNotUnnamedRows() = runTest {
+        exercises.failure = AppError.Network
+        val vm = viewModel()
+
+        advanceUntilIdle()
+
+        assertEquals(RoutineDetailsUiState.Error, vm.uiState.value)
+    }
+
+    @Test
+    fun anExerciseWithoutAName_isTheErrorState() = runTest {
+        exercises.rows = exercises.rows + exerciseRow("c", "unknown-key")
+        repository.routines += routineOf("r2", "Raro", "c")
+        val vm = viewModel("r2")
+
+        advanceUntilIdle()
+
+        assertEquals(RoutineDetailsUiState.Error, vm.uiState.value)
     }
 }

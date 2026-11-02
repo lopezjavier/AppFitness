@@ -21,7 +21,11 @@ import io.github.lopezjavier.appfitness.domain.model.ExerciseMetricType
 import io.github.lopezjavier.appfitness.domain.model.MovementPattern
 import io.github.lopezjavier.appfitness.domain.model.MuscleGroup
 import io.github.lopezjavier.appfitness.domain.repository.ExerciseRepository
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.asSharedFlow
 
+private const val CHANGES_BUFFER = 8
 private const val INVALID_PARAMETER = "22023"
 private const val NO_DATA_FOUND = "P0002"
 private const val FOREIGN_KEY_VIOLATION = "23503"
@@ -35,6 +39,14 @@ private val IN_USE_COUNTS = Regex("""sets=(\d+);routines=(\d+)|\((\d+) sets, (\d
  */
 class SupabaseExerciseRepository(private val auth: Auth, private val postgrest: Postgrest) : ExerciseRepository {
     private var cache: List<Exercise>? = null
+    private val changed = MutableSharedFlow<Unit>(extraBufferCapacity = CHANGES_BUFFER)
+
+    override val changes: Flow<Unit> = changed.asSharedFlow()
+
+    private fun invalidate() {
+        cache = null
+        changed.tryEmit(Unit)
+    }
 
     override suspend fun getAll(): Result<List<Exercise>> = signedIn {
         cache ?: postgrest.from("exercises")
@@ -80,7 +92,7 @@ class SupabaseExerciseRepository(private val auth: Auth, private val postgrest: 
             }
             .decodeSingle<ExerciseDto>()
             .toDomain()
-            .also { cache = null }
+            .also { invalidate() }
     }
 
     override suspend fun updateCustom(
@@ -95,12 +107,12 @@ class SupabaseExerciseRepository(private val auth: Auth, private val postgrest: 
             "update_custom_exercise",
             UpdateCustomExerciseParams(id, name.trim(), muscleGroup, equipment, perHand, movementPattern),
         )
-        cache = null
+        invalidate()
     }.mapRpcErrors()
 
     override suspend fun deleteCustom(id: String): Result<Unit> = signedIn {
         postgrest.rpc("delete_custom_exercise", DeleteCustomExerciseParams(id))
-        cache = null
+        invalidate()
     }.mapRpcErrors()
 
     private fun Result<Unit>.mapRpcErrors(): Result<Unit> = recoverCatching { failure ->

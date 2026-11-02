@@ -963,4 +963,14 @@ class ExerciseDetailViewModelTest {
 
         assertEquals(0, repository.updateCalls)
     }
+
+    @Test
+    fun aCatalogueExerciseWithoutLibraryData_isTheErrorStateNotAnUnnamedDetail() = runTest {
+        repository.rows = listOf(exerciseRow("2", "unknown-key"))
+        val vm = viewModel("2")
+
+        advanceUntilIdle()
+
+        assertEquals(ExerciseDetailUiState.Error, vm.uiState.value)
+    }
 }

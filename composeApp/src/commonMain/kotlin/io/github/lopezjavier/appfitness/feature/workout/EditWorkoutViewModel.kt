@@ -8,6 +8,7 @@ import io.github.lopezjavier.appfitness.domain.port.ConnectivityObserver
 import io.github.lopezjavier.appfitness.domain.port.ExerciseLibrary
 import io.github.lopezjavier.appfitness.domain.repository.ExerciseRepository
 import io.github.lopezjavier.appfitness.domain.repository.WorkoutSessionRepository
+import io.github.lopezjavier.appfitness.domain.usecase.ExerciseNameResolver
 import io.github.lopezjavier.appfitness.domain.usecase.ValidateWorkoutDraft
 import io.github.lopezjavier.appfitness.domain.usecase.WorkoutDraftFactory
 import kotlinx.coroutines.channels.Channel
@@ -29,10 +30,11 @@ class EditWorkoutViewModel(
     private val sessionId: String,
     private val repository: WorkoutSessionRepository,
     private val exerciseRepository: ExerciseRepository,
-    private val exerciseLibrary: ExerciseLibrary,
+    exerciseLibrary: ExerciseLibrary,
     connectivity: ConnectivityObserver,
     clock: Clock,
     savedState: SavedStateHandle = SavedStateHandle(),
+    private val exerciseNames: ExerciseNameResolver = ExerciseNameResolver(exerciseRepository, exerciseLibrary),
 ) : ViewModel() {
     private var terminal: EditWorkoutUiState? = EditWorkoutUiState.Loading
     private var online = true
@@ -45,7 +47,8 @@ class EditWorkoutViewModel(
         validate = ValidateWorkoutDraft(clock),
         checkDate = false,
         scope = viewModelScope,
-        loadLookup = { loadExerciseLookup(exerciseRepository, exerciseLibrary) },
+        loadLookup = { loadExerciseLookup(exerciseRepository) },
+        loadNames = { exerciseNames.resolve().getOrNull() },
         onChange = ::publish,
     )
 
@@ -59,6 +62,12 @@ class EditWorkoutViewModel(
         viewModelScope.launch {
             connectivity.isOnline.collect {
                 online = it
+                publish()
+            }
+        }
+        viewModelScope.launch {
+            exerciseNames.observeChanges().collect {
+                editor.updateNames(it)
                 publish()
             }
         }
@@ -85,13 +94,12 @@ class EditWorkoutViewModel(
         viewModelScope.launch {
             repository.getSession(sessionId).fold(
                 onSuccess = { loaded ->
-                    if (loaded == null) {
+                    if (loaded == null || !editor.refreshLookup()) {
                         terminal = EditWorkoutUiState.Error
                     } else {
-                        editor.applyLookup(loadExerciseLookup(exerciseRepository, exerciseLibrary))
                         val draft = WorkoutDraftFactory.fromSession(loaded, sessionLocalDate(loaded.startedAt))
                         editor.start(draft.toForm())
-                        terminal = null
+                        terminal = if (editor.allNamed()) null else EditWorkoutUiState.Error
                     }
                 },
                 onFailure = { terminal = EditWorkoutUiState.Error },

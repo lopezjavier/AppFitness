@@ -29,14 +29,14 @@ data class PlannedSetUi(
 data class TypePickerUi(val rowIndex: Int, val setIndex: Int, val current: SetType)
 
 /**
- * One exercise row of the builder. [rowId] is stable while editing (the list key; positions are not), [name] and
- * [imageKey] come from the exercise catalog (null while it loads or when unknown). [supersetLabel] is non-null for
+ * One exercise row of the builder. [rowId] is stable while editing (the list key; positions are not), [name] (always
+ * resolved) and [imageKey] (null when unknown) come from the exercise catalog. [supersetLabel] is non-null for
  * members of a superset ("Superserie A1").
  */
 data class BuilderRowUi(
     val rowId: Long,
     val exerciseId: String,
-    val name: String?,
+    val name: String,
     val imageKey: String?,
     val plannedSets: List<PlannedSetUi>,
     val restSeconds: Int,

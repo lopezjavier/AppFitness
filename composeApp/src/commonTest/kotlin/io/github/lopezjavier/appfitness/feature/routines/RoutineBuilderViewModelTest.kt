@@ -5,6 +5,8 @@ import app.cash.turbine.test
 import io.github.lopezjavier.appfitness.app.FakeConnectivityObserver
 import io.github.lopezjavier.appfitness.app.FakeTrainingPreferencesRepository
 import io.github.lopezjavier.appfitness.domain.AppError
+import io.github.lopezjavier.appfitness.domain.model.Equipment
+import io.github.lopezjavier.appfitness.domain.model.MuscleGroup
 import io.github.lopezjavier.appfitness.domain.model.PlannedSet
 import io.github.lopezjavier.appfitness.domain.model.Routine
 import io.github.lopezjavier.appfitness.domain.model.RoutineExercise
@@ -1051,5 +1053,57 @@ class RoutineBuilderViewModelTest {
         advanceUntilIdle()
 
         assertEquals(true, repository.saved.single().trackAsRoutine)
+    }
+
+    @Test
+    fun aRenamedCustomExercise_updatesTheRowName() = runTest {
+        val vm = builder()
+        vm.add("custom")
+        assertEquals(listOf("Mi ejercicio"), vm.form().rows.map { it.name })
+
+        exercises.updateCustom("custom", "Nombre nuevo", MuscleGroup.Chest, Equipment.Dumbbell, false, null)
+        advanceUntilIdle()
+
+        assertEquals(listOf("Nombre nuevo"), vm.form().rows.map { it.name })
+    }
+
+    @Test
+    fun anExerciseThatCannotBeNamed_isNotAdded() = runTest {
+        exercises.rows = exercises.rows + exerciseRow("keyless", "unknown-key")
+        val vm = builder()
+
+        vm.add("keyless")
+        advanceUntilIdle()
+
+        assertEquals(emptyList(), vm.order())
+    }
+
+    @Test
+    fun editingARoutineWhoseExercisesCannotBeRead_isALoadErrorThatRetryRecovers() = runTest {
+        repository.routines += routineOf("r1", "Torso", "a")
+        exercises.failure = AppError.Network
+        val vm = builder("r1")
+        assertEquals(RoutineBuilderUiState.LoadError, vm.uiState.value)
+
+        exercises.failure = null
+        vm.onEvent(RoutineBuilderEvent.Retry)
+        advanceUntilIdle()
+
+        assertEquals(listOf("Press de banca"), vm.form().rows.map { it.name })
+    }
+
+    @Test
+    fun aRestoredDraftWhoseExercisesCannotBeRead_isALoadErrorNotUnnamedRows() = runTest {
+        val first = builder()
+        first.add("a")
+        exercises.failure = AppError.Network
+
+        val recreated = builder()
+
+        assertEquals(RoutineBuilderUiState.LoadError, recreated.uiState.value)
+        exercises.failure = null
+        recreated.onEvent(RoutineBuilderEvent.Retry)
+        advanceUntilIdle()
+        assertEquals(listOf("Press de banca"), recreated.form().rows.map { it.name })
     }
 }

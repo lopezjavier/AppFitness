@@ -55,6 +55,7 @@ import io.github.lopezjavier.appfitness.domain.repository.warmUpIncludedOrDefaul
 import io.github.lopezjavier.appfitness.domain.usecase.BestPastWeight
 import io.github.lopezjavier.appfitness.domain.usecase.BuildSessionSummary
 import io.github.lopezjavier.appfitness.domain.usecase.DiscomfortStatus
+import io.github.lopezjavier.appfitness.domain.usecase.ExerciseNameResolver
 import io.github.lopezjavier.appfitness.domain.usecase.GhostData
 import io.github.lopezjavier.appfitness.domain.usecase.LogDiscomfort
 import io.github.lopezjavier.appfitness.domain.usecase.MeasurementsByDay
@@ -85,6 +86,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.drop
 import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flow
@@ -220,7 +222,7 @@ private fun shiftedBy(key: Pair<Int, Int>, position: Int, setIndex: Int): Pair<I
 class LiveSessionViewModel(
     private val repository: WorkoutSessionRepository,
     private val exerciseRepository: ExerciseRepository,
-    private val exerciseLibrary: ExerciseLibrary,
+    exerciseLibrary: ExerciseLibrary,
     connectivity: ConnectivityObserver,
     private val clock: Clock,
     private val haptics: Haptics,
@@ -237,6 +239,7 @@ class LiveSessionViewModel(
     private val discomfortRepository: DiscomfortRepository = NoDiscomforts,
     private val progressionRepository: ProgressionRepository = NoProgression,
     private val deloadRepository: DeloadRepository = NoDeload,
+    private val exerciseNames: ExerciseNameResolver = ExerciseNameResolver(exerciseRepository, exerciseLibrary),
 ) : ViewModel() {
     private var session: SessionState? = null
 
@@ -375,6 +378,16 @@ class LiveSessionViewModel(
                 if (isOnline) {
                     sync()
                     retryDiscomfortLoad()
+                }
+            }
+        }
+        viewModelScope.launch {
+            // Only the name map changes: nothing typed or logged is touched by a rename or a new custom exercise.
+            exerciseNames.observeChanges().collect { resolved ->
+                val current = session
+                if (current != null && current.exercises.all { resolved[it.exerciseId] != null }) {
+                    names = resolved.byId
+                    publish()
                 }
             }
         }
@@ -657,8 +670,10 @@ class LiveSessionViewModel(
                 onSuccess = { loaded ->
                     if (loaded == null) {
                         terminal = restoredSheet?.let { restoreFinished(it) } ?: LiveSessionUiState.NoSession
+                    } else if (!loadNames() || loaded.exercises.any { it.exerciseId !in names }) {
+                        // No content before every exercise has a name (R-54): a failed read is a retryable error.
+                        terminal = LiveSessionUiState.Error
                     } else {
-                        loadNames()
                         loadVolumeOptions()
                         trainingPreferences = preferences.get().getOrNull() ?: TrainingPreferences()
                         session = loaded.toState().withRestoredDrafts().withRestoredPause()
@@ -711,16 +726,20 @@ class LiveSessionViewModel(
         return ProgressionWeight.apply(base, traits[base.exerciseId]?.equipment, trainingPreferences.calculators)
     }
 
-    /** Catalog names come from the library by key, custom ones from their row; a failure leaves rows unnamed. */
-    private suspend fun loadNames() {
-        names = loadExerciseNames(exerciseRepository, exerciseLibrary) ?: return
-        traits = exerciseRepository.getAll().getOrNull()
-            ?.associate {
-                it.id to
-                    ExerciseTraits(it.metricType, it.equipment, it.movementPattern == MovementPattern.Cardio)
-            }
-            ?: traits
+    /** Reads the names and traits of every exercise; false (nothing changed) when the exercises cannot be read. */
+    @Suppress("ReturnCount") // Guard clauses.
+    private suspend fun loadNames(): Boolean {
+        val resolved = exerciseNames.resolve().getOrNull() ?: return false
+        val rows = exerciseRepository.getAll().getOrNull() ?: return false
+        names = resolved.byId
+        traits = rows.associate {
+            it.id to ExerciseTraits(it.metricType, it.equipment, it.movementPattern == MovementPattern.Cardio)
+        }
+        return true
     }
+
+    private fun namedByPosition(idByPosition: Map<Int, String>): Map<Int, String> =
+        idByPosition.mapNotNull { (position, id) -> names[id]?.let { position to it } }.toMap()
 
     private fun metricOf(exerciseId: String): ExerciseMetricType =
         traits[exerciseId]?.metricType ?: ExerciseMetricType.WeightReps
@@ -978,7 +997,7 @@ class LiveSessionViewModel(
                 weight = it.weight.ifBlank { weightPlaceholderOf(exercise, it).orEmpty() },
                 reps = it.reps.ifBlank { repsPlaceholderOf(exercise, it).orEmpty() },
                 // A cardio set done as planned logs the planned minutes.
-                stopwatch = if (untimed) it.stopwatch.withElapsedSeconds(plannedSeconds ?: 0) else it.stopwatch,
+                stopwatch = if (untimed) it.stopwatch.withElapsedSeconds(plannedSeconds) else it.stopwatch,
             )
         }
     }
@@ -1134,6 +1153,8 @@ class LiveSessionViewModel(
         if (session == null) return
         viewModelScope.launch {
             if (exerciseId !in names || exerciseId !in traits) loadNames()
+            // An exercise that cannot be named is not added: the session never shows a generic row.
+            if (exerciseId !in names) return@launch
             if (exerciseId !in ghosts) loadGhost(exerciseId)
             if (exerciseId !in discomforts) loadDiscomforts(setOf(exerciseId))
             val latest = session ?: return@launch
@@ -1352,7 +1373,7 @@ class LiveSessionViewModel(
             val endedAt = clock.now()
             val finished = current.toWorkoutSession(endedAt)
             val sheet = routineUpdateSheet(finished)
-            val named = current.exercises.associate { it.position to names[it.exerciseId] }
+            val named = namedByPosition(current.exercises.associate { it.position to it.exerciseId })
             val summary = LiveSummary(buildSummary(finished, endedAt), named)
             busy = false
             finishSheet = null
@@ -1439,11 +1460,12 @@ class LiveSessionViewModel(
     }
 
     /** Rebuilds the summary of the finished session behind a restored sheet; null when it cannot be read. */
+    @Suppress("ReturnCount") // Guard clauses.
     private suspend fun restoreFinished(sheet: UpdateRoutineSheet): LiveSessionUiState? {
         val finished = repository.getSession(sheet.sessionId).getOrNull() ?: return null
         finishedExerciseIds = finished.exercises.associate { it.position to it.exerciseId }
-        loadNames()
-        val named = finished.exercises.associate { it.position to names[it.exerciseId] }
+        if (!loadNames()) return LiveSessionUiState.Error
+        val named = namedByPosition(finishedExerciseIds)
         val summary = LiveSummary(buildSummary(finished, finished.endedAt ?: clock.now()), named)
         return LiveSessionUiState.Finished(summary, sheet)
     }
@@ -1824,7 +1846,7 @@ class LiveSessionViewModel(
                 LiveExercise(
                     position = exercise.position,
                     exerciseId = exercise.exerciseId,
-                    name = names[exercise.exerciseId],
+                    name = names.getValue(exercise.exerciseId),
                     supersetLabel = labels[index],
                     metricType = metricOf(exercise.exerciseId),
                     equipment = traits[exercise.exerciseId]?.equipment,

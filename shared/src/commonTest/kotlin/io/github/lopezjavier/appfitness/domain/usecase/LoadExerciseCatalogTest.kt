@@ -67,13 +67,20 @@ class LoadExerciseCatalogTest {
     }
 
     @Test
-    fun detail_ofAKeyWithoutLibraryData_hasNoInfoAndBlankName() = runTest {
+    fun detail_ofAKeyWithoutLibraryData_isNotFound() = runTest {
         val repo = FakeExerciseRepository(listOf(catalogRow("2", "unknown")))
 
-        val detail = LoadExerciseCatalog(repo, library).detail("2").getOrThrow()
+        assertEquals(AppError.NotFound, LoadExerciseCatalog(repo, library).detail("2").appErrorOrNull())
+    }
+
+    @Test
+    fun detail_ofACustomRow_hasNoInfoAndItsOwnName() = runTest {
+        val repo = FakeExerciseRepository(listOf(catalogRow("c", null, name = "Mio", custom = true)))
+
+        val detail = LoadExerciseCatalog(repo, library).detail("c").getOrThrow()
 
         assertNull(detail.info)
-        assertEquals("", detail.name)
+        assertEquals("Mio", detail.name)
     }
 
     @Test

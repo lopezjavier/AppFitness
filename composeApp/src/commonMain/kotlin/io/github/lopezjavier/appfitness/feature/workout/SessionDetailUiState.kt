@@ -19,11 +19,11 @@ data class DetailSet(
     val noteKind: SetNoteKind? = null,
 )
 
-/** An exercise of the session; [name] is null when the library has none (the UI shows a generic label). */
+/** An exercise of the session; [name] is always resolved. */
 data class DetailExercise(
     val position: Int,
     val exerciseId: String,
-    val name: String?,
+    val name: String,
     val sets: List<DetailSet>,
     val isPersonalRecord: Boolean,
     /** Record families the session beat for this exercise, in enum order; empty while history is unavailable. */

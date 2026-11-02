@@ -44,6 +44,9 @@ class RoutineDetailsViewModel(
                 updateContent { it.copy(isOnline = isOnline) }
             }
         }
+        viewModelScope.launch {
+            loadCatalog.changes.collect { if (_uiState.value is RoutineDetailsUiState.Content) load(false) }
+        }
         load(showLoading = true)
     }
 
@@ -61,17 +64,18 @@ class RoutineDetailsViewModel(
         viewModelScope.launch {
             val routine = routines.get(routineId).getOrNull()
             val catalog = loadCatalog().getOrNull()?.associateBy(CatalogExercise::id)
-            if (routine == null || catalog == null) {
+            // A failed read or an exercise without a name is a failed load, never a generic row (R-54).
+            if (routine == null || catalog == null || routine.exercises.any { it.exerciseId !in catalog }) {
                 if (showLoading) _uiState.value = RoutineDetailsUiState.Error
                 return@launch
             }
             val lastDone = sessions.lastCompletedAt(routineId).getOrNull()
             val exercises = routine.exercises.sortedBy { it.position }.map { exercise ->
-                val entry = catalog[exercise.exerciseId]
+                val entry = catalog.getValue(exercise.exerciseId)
                 RoutineDetailsExerciseUi(
                     exerciseId = exercise.exerciseId,
-                    name = entry?.name,
-                    imageKey = entry?.takeIf { it.hasMedia }?.exercise?.key,
+                    name = entry.name,
+                    imageKey = entry.takeIf { it.hasMedia }?.exercise?.key,
                     plannedSets = exercise.plannedSets,
                 )
             }

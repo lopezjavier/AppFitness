@@ -2,7 +2,9 @@ package io.github.lopezjavier.appfitness.feature.analytics
 
 import androidx.lifecycle.SavedStateHandle
 import io.github.lopezjavier.appfitness.domain.AppError
+import io.github.lopezjavier.appfitness.domain.model.Equipment
 import io.github.lopezjavier.appfitness.domain.model.ExerciseHistoryPoint
+import io.github.lopezjavier.appfitness.domain.model.MuscleGroup
 import io.github.lopezjavier.appfitness.feature.exercises.FakeExerciseLibrary
 import io.github.lopezjavier.appfitness.feature.exercises.FakeExerciseRepository
 import io.github.lopezjavier.appfitness.feature.exercises.exerciseInfo
@@ -180,6 +182,42 @@ class StrengthViewModelTest {
     fun aHistoryFailureShowsError() = runTest(dispatcher) {
         seedThreeExercises()
         workouts.historyFailure = AppError.Network
+        val model = viewModel()
+
+        advanceUntilIdle()
+
+        assertEquals(StrengthUiState.Error, model.uiState.value)
+    }
+
+    @Test
+    fun aCustomExerciseChip_isNamedFromItsRow_andFollowsARename() = runTest(dispatcher) {
+        exercises.rows = exercises.rows + exerciseRow("mine", null, name = "Mi press", custom = true)
+        strength.sessions = listOf(completedWith("a", "2026-10-01T10:00:00Z", "mine"))
+        workouts.history = mapOf("mine" to listOf(point(LocalDate(2026, 10, 1), 90.0)))
+        val model = viewModel()
+        advanceUntilIdle()
+        assertEquals(listOf("Mi press"), model.content().chips.map { it.name })
+
+        exercises.updateCustom("mine", "Press nuevo", MuscleGroup.Chest, Equipment.Barbell, false, null)
+        advanceUntilIdle()
+
+        assertEquals(listOf("Press nuevo"), model.content().chips.map { it.name })
+    }
+
+    @Test
+    fun anUnreadableExerciseList_isTheErrorStateNotUnnamedChips() = runTest(dispatcher) {
+        seedThreeExercises()
+        exercises.failure = AppError.Network
+        val model = viewModel()
+
+        advanceUntilIdle()
+
+        assertEquals(StrengthUiState.Error, model.uiState.value)
+    }
+
+    @Test
+    fun anExerciseWithoutAName_isTheErrorState() = runTest(dispatcher) {
+        strength.sessions = listOf(completedWith("a", "2026-10-01T10:00:00Z", "ghost"))
         val model = viewModel()
 
         advanceUntilIdle()

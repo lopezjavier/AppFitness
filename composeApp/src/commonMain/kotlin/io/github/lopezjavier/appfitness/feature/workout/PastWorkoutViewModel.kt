@@ -10,6 +10,7 @@ import io.github.lopezjavier.appfitness.domain.port.ExerciseLibrary
 import io.github.lopezjavier.appfitness.domain.repository.ExerciseRepository
 import io.github.lopezjavier.appfitness.domain.repository.RoutineRepository
 import io.github.lopezjavier.appfitness.domain.repository.WorkoutSessionRepository
+import io.github.lopezjavier.appfitness.domain.usecase.ExerciseNameResolver
 import io.github.lopezjavier.appfitness.domain.usecase.ValidateWorkoutDraft
 import io.github.lopezjavier.appfitness.domain.usecase.WorkoutDraftFactory
 import kotlinx.coroutines.channels.Channel
@@ -35,11 +36,12 @@ class PastWorkoutViewModel(
     private val repository: WorkoutSessionRepository,
     private val routineRepository: RoutineRepository,
     private val exerciseRepository: ExerciseRepository,
-    private val exerciseLibrary: ExerciseLibrary,
+    exerciseLibrary: ExerciseLibrary,
     connectivity: ConnectivityObserver,
     private val clock: Clock,
     savedState: SavedStateHandle = SavedStateHandle(),
     private val date: LocalDate? = null,
+    private val exerciseNames: ExerciseNameResolver = ExerciseNameResolver(exerciseRepository, exerciseLibrary),
 ) : ViewModel() {
     private var terminal: PastWorkoutUiState? = PastWorkoutUiState.Loading
     private var online = true
@@ -52,7 +54,8 @@ class PastWorkoutViewModel(
         validate = ValidateWorkoutDraft(clock),
         checkDate = true,
         scope = viewModelScope,
-        loadLookup = { loadExerciseLookup(exerciseRepository, exerciseLibrary) },
+        loadLookup = { loadExerciseLookup(exerciseRepository) },
+        loadNames = { exerciseNames.resolve().getOrNull() },
         onChange = ::publish,
     )
 
@@ -66,6 +69,12 @@ class PastWorkoutViewModel(
         viewModelScope.launch {
             connectivity.isOnline.collect {
                 online = it
+                publish()
+            }
+        }
+        viewModelScope.launch {
+            exerciseNames.observeChanges().collect {
+                editor.updateNames(it)
                 publish()
             }
         }
@@ -101,15 +110,15 @@ class PastWorkoutViewModel(
         terminal = PastWorkoutUiState.Loading
         publish()
         viewModelScope.launch {
-            val lookup = loadExerciseLookup(exerciseRepository, exerciseLibrary)
-            editor.applyLookup(lookup)
-            if (editor.restored) {
-                terminal = null
+            if (!editor.refreshLookup()) {
+                terminal = PastWorkoutUiState.Error
+            } else if (editor.restored) {
+                terminal = if (editor.allNamed()) null else PastWorkoutUiState.Error
             } else {
                 initialDraft().fold(
                     onSuccess = {
                         editor.start(it.toForm())
-                        terminal = null
+                        terminal = if (editor.allNamed()) null else PastWorkoutUiState.Error
                     },
                     onFailure = { terminal = PastWorkoutUiState.Error },
                 )

@@ -20,6 +20,8 @@ import io.ktor.http.HttpMethod
 import io.ktor.http.HttpStatusCode
 import io.ktor.http.content.TextContent
 import io.ktor.http.headersOf
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.runTest
 import kotlinx.io.IOException
 import kotlin.test.Test
@@ -367,6 +369,33 @@ class SupabaseExerciseRepositoryTest {
         repo.getAll().getOrThrow()
 
         assertEquals(1, reads().size)
+    }
+
+    @Test
+    fun changes_emitsAfterCreateUpdateAndDelete() = runTest {
+        val repo = signedIn()
+        var emissions = 0
+        backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { repo.changes.collect { emissions++ } }
+
+        repo.createCustom("Press", MuscleGroup.Chest, Equipment.Machine).getOrThrow()
+        repo.updateCustom("e2", "Press", MuscleGroup.Back, Equipment.Cable, false, null).getOrThrow()
+        repo.deleteCustom("e2").getOrThrow()
+
+        assertEquals(3, emissions)
+    }
+
+    @Test
+    fun changes_doesNotEmitWhenAWriteFails() = runTest {
+        val repo = signedIn()
+        var emissions = 0
+        backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { repo.changes.collect { emissions++ } }
+        rpcFails(HttpStatusCode.Conflict, "23503", "exercise in use (1 sets, 0 routines)", "sets=1;routines=0")
+
+        repo.deleteCustom("e2")
+        failing = true
+        repo.createCustom("x", MuscleGroup.Back, Equipment.Band)
+
+        assertEquals(0, emissions)
     }
 
     @Test

@@ -4,6 +4,8 @@ import androidx.lifecycle.SavedStateHandle
 import app.cash.turbine.test
 import io.github.lopezjavier.appfitness.app.FakeConnectivityObserver
 import io.github.lopezjavier.appfitness.domain.AppError
+import io.github.lopezjavier.appfitness.domain.model.Equipment
+import io.github.lopezjavier.appfitness.domain.model.MuscleGroup
 import io.github.lopezjavier.appfitness.domain.model.SetEntry
 import io.github.lopezjavier.appfitness.domain.model.SetNoteKind
 import io.github.lopezjavier.appfitness.domain.model.SetType
@@ -446,5 +448,41 @@ class EditWorkoutViewModelTest {
         assertTrue(second.content().isDirty)
         second.onEvent(WorkoutFormEvent.NameChanged("Torso"))
         assertEquals(false, second.content().isDirty)
+    }
+
+    @Test
+    fun aCustomExercise_isShownByItsName_andFollowsARename() = runTest(dispatcher) {
+        exercises.rows = listOf(exerciseRow("e1", null, name = "Mi press", custom = true))
+        seed()
+        val model = viewModel()
+        advanceUntilIdle()
+        assertEquals("Mi press", model.content().view.names["e1"])
+
+        exercises.updateCustom("e1", "Press nuevo", MuscleGroup.Chest, Equipment.Barbell, false, null)
+        advanceUntilIdle()
+
+        assertEquals("Press nuevo", model.content().view.names["e1"])
+    }
+
+    @Test
+    fun unreadableExercises_showTheErrorStateNotUnnamedRows() = runTest(dispatcher) {
+        seed()
+        exercises.failure = AppError.Network
+        val model = viewModel()
+
+        advanceUntilIdle()
+
+        assertEquals(EditWorkoutUiState.Error, model.uiState.value)
+    }
+
+    @Test
+    fun anExerciseWithoutAName_isTheErrorState() = runTest(dispatcher) {
+        exercises.rows = emptyList()
+        seed()
+        val model = viewModel()
+
+        advanceUntilIdle()
+
+        assertEquals(EditWorkoutUiState.Error, model.uiState.value)
     }
 }

@@ -128,14 +128,20 @@ class LiveSessionVolumeOptionsViewModelTest {
     }
 
     @Test
-    fun anUnreadableCatalogOrWeightLeavesTheDefaultsWithoutBlocking() = runTest {
-        exercises.failure = AppError.Network
+    fun anUnreadableWeightLeavesTheDefaultsWithoutBlocking() = runTest {
         weights.failReads = true
 
         val state = loaded().active()
 
         assertTrue(state.perHandIds.isEmpty())
         assertNull(state.bodyWeightKg)
+    }
+
+    @Test
+    fun anUnreadableCatalogIsTheErrorStateNotUnnamedRows() = runTest {
+        exercises.failure = AppError.Network
+
+        assertEquals(LiveSessionUiState.Error, loaded().uiState.value)
     }
 
     @Test
