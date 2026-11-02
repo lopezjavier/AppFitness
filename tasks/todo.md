@@ -8,7 +8,7 @@ Secrets rule: never pasted in the chat or in versioned files. The user enters th
 
 Last task ID used: T-197 (T-185…T-197: E13 replan "the trainer journey", epic-planner 2026-11-01, aligned 2026-11-02 with the fitness-scientist's `07` pass: intake and free text T-185/T-186, phases T-187/T-188 (T-188 also absorbs the folded T-195 disclaimers and two T-173 items), plan weeks follow the training T-189, end-of-block review T-190/T-191, automatic progression T-192, automatic calories and deloads T-193, injury and health note T-194 (with the T-173 "Similares" item), life changes T-196/T-197; T-195 and T-173 folded and not reused (user 2026-11-02: no S tasks); ADR-86…ADR-90; E13 Q32-Q43 user decisions, Q44-Q49 open with recommendations (Q44, Q45 settled by `07`); checkpoints E13-D/E/F and E13-C (last) proposed); T-184 (T-181…T-184: cardio in the plan and the block, US-79 + US-80 (cardio equipment, T-184, runs between T-181 and T-182) + US-72/US-73 amended, ADR-85 proposed; epic-planner, 2026-11-01, reworked the same day after the fitness-scientist and ux-reviewer passes; E13 Q23-Q30 resolved; waiting for the user's OK on the breakdown and ADR-85); T-180 (fix from Checkpoint E13-B1: unrealistic calorie surplus, 2026-11-01); T-179 (long band + exercise alternatives, user request 2026-11-01; runs after T-176 without waiting for Checkpoints E13-B1/E13-B2); T-178 (model selector in "Uso de IA", test aid, user request 2026-11-01; runs after T-175 and before T-176); T-177 (fix from Checkpoint E13-B: plan card missing after "Crear plan"; runs before T-175); T-176 (US-78 "Antes de empezar": T-175 backend, T-176 UI; E13 Q14-Q22 resolved 2026-10-30); T-174 (fix from Checkpoint E13-B: "Crear plan" fails); T-173 (E13 UI refinements, runs after T-169 and before Checkpoint E13-C; T-170 is the E13 closure). Numbering continues from here.
 
-**Next:** **T-187** (T-186 merged in #437, 2026-11-02, no migration; phases: calories and training by phase, backend). Context: (E13 replan approved by the user on 2026-11-02 and merged in #433: ADR-86…ADR-90, US-81…US-92, tasks T-185…T-194, T-196, T-197, Checkpoints E13-D/E/F and the last E13-C agreed; see "E13 replan: the trainer journey" below) After Checkpoint E13-F: T-196, T-197, T-166…T-169, then Checkpoint E13-C. The skipped Checkpoint E13-B3 items are carried into Checkpoint E13-D.
+**Next:** **T-188** (T-187 merged in #439, 2026-11-02, migration deployed, `deploy-supabase` green; phases UI, disclaimers, Perfil/Peso fixes). Context: (E13 replan approved by the user on 2026-11-02 and merged in #433: ADR-86…ADR-90, US-81…US-92, tasks T-185…T-194, T-196, T-197, Checkpoints E13-D/E/F and the last E13-C agreed; see "E13 replan: the trainer journey" below) After Checkpoint E13-F: T-196, T-197, T-166…T-169, then Checkpoint E13-C. The skipped Checkpoint E13-B3 items are carried into Checkpoint E13-D.
 
 ---
 
@@ -795,20 +795,20 @@ Journey: ask the coach for a plan, read the calories, macros, protein guidance a
 **Audit fixes folded in:** `nutritionRules.ts:10` `DEFICIT_CAP = 1000` → 500 for every loss plan (today 0.5 % already passes 500 above ~91 kg); the plan request input (`planNutrition.ts`, `{today}` only) gains the phase options; `blockRules.ts:59, 312-314` beginner 8 weekly sets → 10 for every class (experience never changes volume, `07` §2; the experience-chosen days of `04` §9.1 stay); `blockRules.ts:70-74` strength ranges 3-5 / 5-6 / 6-8 are now what `07` §3 says (no change; the audit line is closed); the cardio split (`blockRules.ts:22-53`) gains the minimal-phase target and 30-min cap above.
 
 **Acceptance criteria:**
-- [ ] Each intention without a returning situation gives the US-82 phase; returning gives `regain`; the phase and its reason code are stored.
-- [ ] Cut at 0.5 % whose deficit would be 650 → 500 with `limited_by = deficit_cap`; the floor still wins; rate 1 % accepted, 1.2 % rejected.
-- [ ] Regain with "Perder grasa" → calories = expenditure; with "Ganar musculatura" → +0.25 %/week; a regain plan with a deficit is rejected by the invariants.
-- [ ] Diet break on → weeks 1-3 deficit and week 4 maintenance in the plan JSON; Diario's target switches at plan week 4 on the coach run.
-- [ ] Changing the cut rate or the diet break on a proposed plan recomputes the nutrition with no model call and no usage row.
-- [ ] Minimal: one full-body session (two from 65) with one set (two from 65) of each previous main lift, same rep ranges, plus the cardio slot; validators reject anything else.
-- [ ] Cut keeps the previous block's sets per group; regain 10 per group; existing plans read back with their backfilled phase; every T-161/T-163/T-180/T-182 regression still passes (the deficit-cap and strength-range expectations updated).
-- [ ] No loss plan has a deficit above 500 kcal/day (`DEFICIT_CAP` 500); a first block plans 10 weekly sets per group for a beginner too; a maintenance plan stays within ±0.25 %/week of the expenditure in use.
-- [ ] Minimal: 100 min of cardio, at most 30 per routine (1 routine → 30 + 70 "por tu cuenta"); after 4 minimal blocks the proposal is 150; regain with "Perder grasa" keeps the 150-300 band; deload and diet-break weeks keep the minutes.
+- [x] Each intention without a returning situation gives the US-82 phase; returning gives `regain`; the phase and its reason code are stored.
+- [x] Cut at 0.5 % whose deficit would be 650 → 500 with `limited_by = deficit_cap`; the floor still wins; rate 1 % accepted, 1.2 % rejected.
+- [x] Regain with "Perder grasa" → calories = expenditure; with "Ganar musculatura" → +0.25 %/week; a regain plan with a deficit is rejected by the invariants.
+- [x] Diet break on → weeks 1-3 deficit and week 4 maintenance in the plan JSON; Diario's target switches at plan week 4 on the coach run.
+- [x] Changing the cut rate or the diet break on a proposed plan recomputes the nutrition with no model call and no usage row.
+- [x] Minimal: one full-body session (two from 65) with one set (two from 65) of each previous main lift, same rep ranges, plus the cardio slot; validators reject anything else.
+- [x] Cut keeps the previous block's sets per group; regain 10 per group; existing plans read back with their backfilled phase; every T-161/T-163/T-180/T-182 regression still passes (the deficit-cap and strength-range expectations updated).
+- [x] No loss plan has a deficit above 500 kcal/day (`DEFICIT_CAP` 500); a first block plans 10 weekly sets per group for a beginner too; a maintenance plan stays within ±0.25 %/week of the expenditure in use.
+- [x] Minimal: 100 min of cardio, at most 30 per routine (1 routine → 30 + 70 "por tu cuenta"); after 4 minimal blocks the proposal is 150; regain with "Perder grasa" keeps the 150-300 band; deload and diet-break weeks keep the minutes.
 
 **Host tests:** `deno test` (phase selection table, returning, cut cap and floor order, regain rates, diet-break weeks, recompute without a model call, minimal block by age, cut and regain volume, invariants pass and fail, regressions); pgTAP (`phase` column and backfill, options RPC bounds, isolation).
 
 **Verification:**
-- [ ] `npx supabase db reset && npx supabase db lint && npx supabase test db`, `deno test`, lint + `testLocalDebugUnitTest` green; after the merge `deploy-supabase` green on `main` with data intact (before T-188).
+- [x] `npx supabase db reset && npx supabase db lint && npx supabase test db`, `deno test`, lint + `testLocalDebugUnitTest` green; after the merge `deploy-supabase` green on `main` with data intact (before T-188).
 
 **Agent runs:** planner, backend-developer, kotlin-core-developer, pr-creator, pr-reviewer = 5. About 14 files.
 **Dependencies:** T-186 merged (T-185's `situation` deployed).
