@@ -282,18 +282,18 @@ select throws_ok($$select public.save_coach_block('c9000000-0000-4000-8000-00000
 select pg_temp.as_user(6);
 select is((select array_agg(e.key order by e.key) from public.exercise_alternatives(pg_temp.k('stationary-bike')) a
            join public.exercises e on e.id = a.exercise_id),
-  array['air-bike', 'elliptical-trainer', 'incline-treadmill-walk', 'rowing-machine', 'running', 'ski-erg', 'treadmill-running', 'walking'],
-  'the alternatives of a cardio exercise are all the cardio options of the user''s equipment, except itself');
+  array_remove(pg_temp.keys('{}'), 'stationary-bike'),
+  'the alternatives of a cardio exercise are every eligible cardio exercise, except itself');
 select is((select array_agg(e.key order by e.key) from public.exercise_alternatives(pg_temp.k('walking')) a
            join public.exercises e on e.id = a.exercise_id),
-  array['air-bike', 'elliptical-trainer', 'incline-treadmill-walk', 'rowing-machine', 'running', 'ski-erg', 'stationary-bike', 'treadmill-running'],
+  array_remove(pg_temp.keys('{}'), 'walking'),
   'any cardio exercise swaps with any other: the same set from walking');
 select is((select count(*)::int from public.exercise_alternatives(pg_temp.k('stationary-bike')) a where a.similarity <> 1), 0,
   'every cardio alternative has similarity 1');
 select pg_temp.as_user(5);
 select is((select array_agg(e.key order by e.key) from public.exercise_alternatives(pg_temp.k('walking')) a
-           join public.exercises e on e.id = a.exercise_id), array['running'],
-  'at home with nothing selected only the bodyweight cardio is offered');
+           join public.exercises e on e.id = a.exercise_id), array_remove(pg_temp.keys('{}'), 'walking'),
+  'the cardio alternatives are not filtered by equipment (at home with nothing selected: still every option)');
 select ok((select count(*) from public.exercise_alternatives((select a2.exercise_id from public.exercise_alternatives a2 join public.exercises e2 on e2.id = a2.exercise_id where e2.movement_pattern <> 'cardio' order by a2.exercise_id limit 1))) > 0
           and not exists (select 1 from public.exercise_alternatives((select a2.exercise_id from public.exercise_alternatives a2 join public.exercises e2 on e2.id = a2.exercise_id where e2.movement_pattern <> 'cardio' order by a2.exercise_id limit 1)) a
                           join public.exercises e on e.id = a.exercise_id where e.movement_pattern = 'cardio'),
