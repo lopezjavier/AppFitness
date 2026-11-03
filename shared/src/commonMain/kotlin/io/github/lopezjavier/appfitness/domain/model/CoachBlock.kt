@@ -38,6 +38,8 @@ data class BlockTraining(
     val cardio: BlockCardio? = null,
     /** Total minutes of each routine (lifting plus cardio), by session index; empty without cardio. */
     val routineTotalMin: List<Int> = emptyList(),
+    /** Training intention the block was built for; null for an older block. */
+    val intention: String? = null,
 )
 
 /** `coach_plans.training.cardio`: the weekly minutes, how the routines hold them and the pace. */
@@ -76,6 +78,16 @@ data class BlockExercise(
     val durationMin: Int? = null,
     /** Cardio intensity code (e.g. "suave"); null for lifting. */
     val pace: String? = null,
+    /** The planned sets one by one; empty for cardio and for blocks stored with a plain set count. */
+    val setPlan: List<BlockSet> = emptyList(),
+    /** Target effort (RPE) of the working sets; null for cardio or older blocks. */
+    val targetRpe: Double? = null,
+    /** Exercises of the same routine sharing a group number are done as a superset; null when not in one. */
+    val supersetGroup: Int? = null,
+    /** Planned working weight from the user's history; null when there is none. */
+    val plannedWeightKg: Double? = null,
+    /** One-line technique tip for an exercise new to the user. */
+    val techniqueNote: String? = null,
 ) {
     /** Cardio slots carry minutes, not sets and reps. */
     val isCardio: Boolean get() = role == CARDIO_ROLE
@@ -84,6 +96,31 @@ data class BlockExercise(
         const val CARDIO_ROLE = "cardio"
     }
 }
+
+enum class BlockSetType { Working, Drop }
+
+/** One planned set of a lifting exercise. */
+data class BlockSet(val type: BlockSetType, val repMin: Int, val repMax: Int, val rpe: Double?, val restSeconds: Int)
+
+/** A way to split the training days into sessions, offered before the block is built (`block_splits`). */
+data class SplitOption(
+    val id: String,
+    val name: String,
+    val recommended: Boolean,
+    val reason: String,
+    val sessions: List<SplitSession>,
+)
+
+/** One session of a [SplitOption] and the muscle group keys it focuses on. */
+data class SplitSession(val name: String, val focus: List<String>)
+
+/** What the generator says about a block beyond its sessions (the `plan_block` response). */
+data class BlockNotes(
+    val splitReason: String = "",
+    val changesVsLastBlock: String = "",
+    /** Checker notes such as `below_recommended`. */
+    val notes: List<String> = emptyList(),
+)
 
 /**
  * A pending replacement applied by "Guardar bloque": the exercise at [position] (1-based) of workout [sessionIndex]

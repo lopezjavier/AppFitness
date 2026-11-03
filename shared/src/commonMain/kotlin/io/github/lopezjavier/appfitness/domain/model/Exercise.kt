@@ -113,6 +113,9 @@ enum class MovementPattern {
     @SerialName("isolation")
     Isolation,
 
+    @SerialName("shoulder_abduction")
+    ShoulderAbduction,
+
     @SerialName("cardio")
     Cardio,
 

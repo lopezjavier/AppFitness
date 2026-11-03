@@ -1,5 +1,7 @@
 package io.github.lopezjavier.appfitness.data.remote
 
+import io.github.lopezjavier.appfitness.domain.model.BlockNotes
+import io.github.lopezjavier.appfitness.domain.model.BlockSetType
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
@@ -99,6 +101,87 @@ class CoachBlockDtoTest {
 
         assertTrue(assertNotNull(withRoutine).saved)
         assertTrue(assertNotNull(withFolder).saved)
+    }
+
+    @Test
+    fun setsAsAnArray_decodeIntoThePlannedSetsAndTheCount() {
+        val sets = """[{"n":1,"type":"working","rep_min":6,"rep_max":8,"rpe":8,"rest_seconds":150},""" +
+            """{"n":2,"type":"working","rep_min":6,"rep_max":8,"rpe":8.5,"rest_seconds":150},""" +
+            """{"n":3,"type":"drop","rep_min":8,"rep_max":10,"rpe":9,"rest_seconds":0}]"""
+        val exercise = """{"exercise_id":"e1","exercise_key":"k","role":"main","muscle_group":"chest","sets":$sets,""" +
+            """"rep_min":6,"rep_max":10,"rest_seconds":150,"target_rpe":8,"superset_group":2,""" +
+            """"planned_weight_kg":62.5,"technique_note":"Codos a 45 grados","reason":"r"}"""
+
+        val decoded = assertNotNull(blockOf(plan(trainingJson(1, false)), sessions(sessionJson(1, 0, "A", exercise))))
+            .sessions.single().exercises.single()
+
+        assertEquals(3, decoded.sets)
+        assertEquals(
+            listOf(BlockSetType.Working, BlockSetType.Working, BlockSetType.Drop),
+            decoded.setPlan.map {
+                it.type
+            },
+        )
+        assertEquals(8.5, decoded.setPlan[1].rpe)
+        assertEquals(0, decoded.setPlan[2].restSeconds)
+        assertEquals(8.0, decoded.targetRpe)
+        assertEquals(2, decoded.supersetGroup)
+        assertEquals(62.5, decoded.plannedWeightKg)
+        assertEquals("Codos a 45 grados", decoded.techniqueNote)
+    }
+
+    @Test
+    fun setsAsAnInt_stillDecodeWithoutTheNewFields() {
+        val decoded = assertNotNull(
+            blockOf(plan(trainingJson(1, false)), sessions(sessionJson(1, 0, "A", exerciseJson("e1")))),
+        )
+            .sessions.single().exercises.single()
+
+        assertEquals(3, decoded.sets)
+        assertTrue(decoded.setPlan.isEmpty())
+        assertNull(decoded.targetRpe)
+        assertNull(decoded.supersetGroup)
+        assertNull(decoded.plannedWeightKg)
+        assertNull(decoded.techniqueNote)
+    }
+
+    @Test
+    fun trainingIntention_isKeptAndOptional() {
+        val withIntention = trainingJson(3, false).removeSuffix("}") + ""","intention":"muscle"}"""
+
+        assertEquals(
+            "muscle",
+            assertNotNull(blockOf(plan(withIntention), sessions(sessionJson(1, 0, "A", "")))).training.intention,
+        )
+        assertNull(
+            assertNotNull(
+                blockOf(plan(trainingJson(3, false)), sessions(sessionJson(1, 0, "A", ""))),
+            ).training.intention,
+        )
+    }
+
+    @Test
+    fun splitOptions_decodeWithTheirSessions() {
+        val json = """{"options":[{"id":"a","name":"Torso-pierna","recommended":true,"reason":"Encaja",""" +
+            """"sessions":[{"name":"Torso","focus":["chest","back"]},{"name":"Pierna","focus":["quads"]}]}]}"""
+
+        val option = coachPlanJson.decodeFromString<SplitOptionsDto>(json).options.single().toDomain()
+
+        assertTrue(option.recommended)
+        assertEquals(listOf("Torso", "Pierna"), option.sessions.map { it.name })
+        assertEquals(listOf("quads"), option.sessions.last().focus)
+    }
+
+    @Test
+    fun planBlockResponse_extrasDecodeAndAreOptional() {
+        val full = coachPlanJson.decodeFromString<PlanBlockResponseDto>(
+            """{"plan_id":"p1","split_reason":"Porque si","changes_vs_last_block":"Mas espalda",""" +
+                """"notes":["below_recommended"]}""",
+        ).toDomain()
+        val bare = coachPlanJson.decodeFromString<PlanBlockResponseDto>("""{"plan_id":"p1"}""").toDomain()
+
+        assertEquals(BlockNotes("Porque si", "Mas espalda", listOf("below_recommended")), full)
+        assertEquals(BlockNotes(), bare)
     }
 
     @Test

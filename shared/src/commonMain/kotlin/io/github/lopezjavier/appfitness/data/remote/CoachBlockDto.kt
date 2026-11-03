@@ -2,13 +2,23 @@ package io.github.lopezjavier.appfitness.data.remote
 
 import io.github.lopezjavier.appfitness.domain.model.BlockCardio
 import io.github.lopezjavier.appfitness.domain.model.BlockExercise
+import io.github.lopezjavier.appfitness.domain.model.BlockNotes
 import io.github.lopezjavier.appfitness.domain.model.BlockSaved
 import io.github.lopezjavier.appfitness.domain.model.BlockSession
+import io.github.lopezjavier.appfitness.domain.model.BlockSet
+import io.github.lopezjavier.appfitness.domain.model.BlockSetType
 import io.github.lopezjavier.appfitness.domain.model.BlockTraining
 import io.github.lopezjavier.appfitness.domain.model.CoachBlock
+import io.github.lopezjavier.appfitness.domain.model.SplitOption
+import io.github.lopezjavier.appfitness.domain.model.SplitSession
 import kotlinx.datetime.LocalDate
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.json.JsonArray
+import kotlinx.serialization.json.JsonElement
+import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.serialization.json.decodeFromJsonElement
+import kotlinx.serialization.json.intOrNull
 
 /** `coach_plans.training` (shape in planning/03-data-model.md). */
 @Serializable
@@ -23,6 +33,7 @@ internal data class BlockTrainingDto(
     @SerialName("sessions_per_muscle") val sessionsPerMuscle: Map<String, Int> = emptyMap(),
     val cardio: BlockCardioDto? = null,
     @SerialName("routine_total_min") val routineTotalMin: List<Int> = emptyList(),
+    val intention: String? = null,
 ) {
     fun toDomain() = BlockTraining(
         daysPerWeek = daysPerWeek,
@@ -35,6 +46,7 @@ internal data class BlockTrainingDto(
         sessionsPerMuscle = sessionsPerMuscle,
         cardio = cardio?.toDomain(),
         routineTotalMin = routineTotalMin,
+        intention = intention,
     )
 }
 
@@ -55,27 +67,89 @@ internal data class BlockExerciseDto(
     @SerialName("exercise_key") val exerciseKey: String? = null,
     val role: String = "",
     @SerialName("muscle_group") val muscleGroup: String = "",
-    val sets: Int = 0,
+    /** A plain set count (cardio, older blocks) or the array of planned sets (T-205 lifting). */
+    val sets: JsonElement = JsonPrimitive(0),
     @SerialName("rep_min") val repMin: Int = 0,
     @SerialName("rep_max") val repMax: Int = 0,
     @SerialName("rest_seconds") val restSeconds: Int = 0,
     val reason: String = "",
     @SerialName("duration_min") val durationMin: Int? = null,
     val pace: String? = null,
+    @SerialName("target_rpe") val targetRpe: Double? = null,
+    @SerialName("superset_group") val supersetGroup: Int? = null,
+    @SerialName("planned_weight_kg") val plannedWeightKg: Double? = null,
+    @SerialName("technique_note") val techniqueNote: String? = null,
 ) {
-    fun toDomain() = BlockExercise(
-        exerciseId = exerciseId,
-        exerciseKey = exerciseKey,
-        role = role,
-        muscleGroup = muscleGroup,
-        sets = sets,
+    fun toDomain(): BlockExercise {
+        val plan = (sets as? JsonArray)?.map { coachPlanJson.decodeFromJsonElement<BlockSetDto>(it).toDomain() }
+            .orEmpty()
+        val count = if (sets is JsonArray) plan.size else (sets as? JsonPrimitive)?.intOrNull ?: 0
+        return BlockExercise(
+            exerciseId = exerciseId,
+            exerciseKey = exerciseKey,
+            role = role,
+            muscleGroup = muscleGroup,
+            sets = count,
+            repMin = repMin,
+            repMax = repMax,
+            restSeconds = restSeconds,
+            reason = reason,
+            durationMin = durationMin,
+            pace = pace,
+            setPlan = plan,
+            targetRpe = targetRpe,
+            supersetGroup = supersetGroup,
+            plannedWeightKg = plannedWeightKg,
+            techniqueNote = techniqueNote,
+        )
+    }
+}
+
+@Serializable
+internal data class BlockSetDto(
+    val type: String = "working",
+    @SerialName("rep_min") val repMin: Int = 0,
+    @SerialName("rep_max") val repMax: Int = 0,
+    val rpe: Double? = null,
+    @SerialName("rest_seconds") val restSeconds: Int = 0,
+) {
+    fun toDomain() = BlockSet(
+        type = if (type == "drop") BlockSetType.Drop else BlockSetType.Working,
         repMin = repMin,
         repMax = repMax,
+        rpe = rpe,
         restSeconds = restSeconds,
-        reason = reason,
-        durationMin = durationMin,
-        pace = pace,
     )
+}
+
+@Serializable
+internal data class SplitSessionDto(val name: String = "", val focus: List<String> = emptyList()) {
+    fun toDomain() = SplitSession(name, focus)
+}
+
+@Serializable
+internal data class SplitOptionDto(
+    val id: String,
+    val name: String = "",
+    val recommended: Boolean = false,
+    val reason: String = "",
+    val sessions: List<SplitSessionDto> = emptyList(),
+) {
+    fun toDomain() = SplitOption(id, name, recommended, reason, sessions.map(SplitSessionDto::toDomain))
+}
+
+/** Final payload of `block_splits`. */
+@Serializable
+internal data class SplitOptionsDto(val options: List<SplitOptionDto> = emptyList())
+
+/** The extras of the `plan_block` final payload that are not stored with the block. */
+@Serializable
+internal data class PlanBlockResponseDto(
+    @SerialName("split_reason") val splitReason: String = "",
+    @SerialName("changes_vs_last_block") val changesVsLastBlock: String = "",
+    val notes: List<String> = emptyList(),
+) {
+    fun toDomain() = BlockNotes(splitReason, changesVsLastBlock, notes)
 }
 
 /** Row of `coach_plan_sessions` (owner select). */
@@ -118,9 +192,18 @@ internal data class BlockRequestBody(val kind: String, val input: BlockRequestIn
 internal data class BlockRequestInput(
     val today: LocalDate,
     @SerialName("plan_id") val planId: String,
-    /** "Tengo poco tiempo": omitted from the JSON when false. */
-    val minimal: Boolean = false,
+    val split: BlockSplitInput,
 )
+
+/** The chosen split sent to `plan_block`: its name and sessions (the server stores nothing about the options). */
+@Serializable
+internal data class BlockSplitInput(val name: String, val sessions: List<SplitSessionDto>)
+
+@Serializable
+internal data class SplitRequestBody(val kind: String, val input: SplitRequestInput, val model: String? = null)
+
+@Serializable
+internal data class SplitRequestInput(val today: LocalDate)
 
 @Serializable
 internal data class RemoveBlockParams(@SerialName("p_plan_id") val planId: String)

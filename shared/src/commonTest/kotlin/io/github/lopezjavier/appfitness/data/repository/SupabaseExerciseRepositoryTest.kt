@@ -273,7 +273,7 @@ class SupabaseExerciseRepositoryTest {
         val repo = signedIn()
         val names = listOf(
             "squat", "hinge", "lunge", "horizontal_push", "vertical_push", "horizontal_pull",
-            "vertical_pull", "carry", "core", "isolation", "cardio", "other",
+            "vertical_pull", "carry", "core", "isolation", "shoulder_abduction", "cardio", "other",
         )
         rows = names.joinToString(",", "[", "]") {
             CATALOG_ROW.replace("\"is_custom\":false", "\"is_custom\":false,\"movement_pattern\":\"$it\"")

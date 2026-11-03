@@ -6,6 +6,8 @@ import io.github.lopezjavier.appfitness.domain.model.BlockSaved
 import io.github.lopezjavier.appfitness.domain.model.BlockSession
 import io.github.lopezjavier.appfitness.domain.model.BlockTraining
 import io.github.lopezjavier.appfitness.domain.model.CoachBlock
+import io.github.lopezjavier.appfitness.domain.model.SplitOption
+import io.github.lopezjavier.appfitness.domain.model.SplitSession
 import io.github.lopezjavier.appfitness.domain.repository.CoachBlockRepository
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.datetime.LocalDate
@@ -83,12 +85,34 @@ internal class FakeCoachBlockRepository : CoachBlockRepository {
     /** The edits sent with each save, in call order. */
     val saveEdits = mutableListOf<List<BlockEdit>>()
 
-    /** The `minimal` flag of each request, in call order. */
-    val minimalRequests = mutableListOf<Boolean>()
+    /** What [requestSplitOptions] answers. */
+    var splitOptions: Result<List<SplitOption>> = Result.success(
+        listOf(
+            SplitOption("a", "Cuerpo completo", false, "Alternativa", listOf(SplitSession("Todo", listOf("chest")))),
+            SplitOption(
+                "b",
+                "Torso-pierna",
+                true,
+                "Encaja con tus dias",
+                listOf(SplitSession("Torso", listOf("chest"))),
+            ),
+        ),
+    )
 
-    override suspend fun requestBlock(planId: String, today: LocalDate, minimal: Boolean): Result<CoachBlock> {
+    /** Number of [requestSplitOptions] calls. */
+    var splitRequests = 0
+
+    /** The split sent with each block request, in call order. */
+    val splitsSent = mutableListOf<SplitOption>()
+
+    override suspend fun requestSplitOptions(today: LocalDate): Result<List<SplitOption>> {
+        splitRequests++
+        return splitOptions
+    }
+
+    override suspend fun requestBlock(planId: String, today: LocalDate, split: SplitOption): Result<CoachBlock> {
         requests += planId to today
-        minimalRequests += minimal
+        splitsSent += split
         requestGate?.await()
         return request
     }

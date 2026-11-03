@@ -12,12 +12,18 @@ import io.github.lopezjavier.appfitness.data.remote.BlockEditDto
 import io.github.lopezjavier.appfitness.data.remote.BlockRequestBody
 import io.github.lopezjavier.appfitness.data.remote.BlockRequestInput
 import io.github.lopezjavier.appfitness.data.remote.BlockSessionDto
+import io.github.lopezjavier.appfitness.data.remote.BlockSplitInput
 import io.github.lopezjavier.appfitness.data.remote.CoachBlockPlanDto
 import io.github.lopezjavier.appfitness.data.remote.CoachErrorParser
 import io.github.lopezjavier.appfitness.data.remote.CoachStreamParser
 import io.github.lopezjavier.appfitness.data.remote.RemoveBlockParams
 import io.github.lopezjavier.appfitness.data.remote.SaveBlockParams
 import io.github.lopezjavier.appfitness.data.remote.SaveBlockResultDto
+import io.github.lopezjavier.appfitness.data.remote.SplitOptionDto
+import io.github.lopezjavier.appfitness.data.remote.SplitOptionsDto
+import io.github.lopezjavier.appfitness.data.remote.SplitRequestBody
+import io.github.lopezjavier.appfitness.data.remote.SplitRequestInput
+import io.github.lopezjavier.appfitness.data.remote.SplitSessionDto
 import io.github.lopezjavier.appfitness.data.remote.blockOf
 import io.github.lopezjavier.appfitness.data.remote.coachPlanJson
 import io.github.lopezjavier.appfitness.domain.AppError
@@ -27,6 +33,7 @@ import io.github.lopezjavier.appfitness.domain.model.BlockSaved
 import io.github.lopezjavier.appfitness.domain.model.CoachBlock
 import io.github.lopezjavier.appfitness.domain.model.CoachException
 import io.github.lopezjavier.appfitness.domain.model.CoachFailure
+import io.github.lopezjavier.appfitness.domain.model.SplitOption
 import io.github.lopezjavier.appfitness.domain.model.requestKey
 import io.github.lopezjavier.appfitness.domain.port.CoachModelPreference
 import io.github.lopezjavier.appfitness.domain.repository.CoachBlockRepository
@@ -57,14 +64,34 @@ class SupabaseCoachBlockRepository internal constructor(
     constructor(auth: Auth, postgrest: Postgrest, functions: Functions, modelPreference: CoachModelPreference) :
         this(auth, postgrest, functions, modelPreference, COACH_CLIENT_TIMEOUT)
 
+    override suspend fun requestSplitOptions(today: LocalDate): Result<List<SplitOption>> {
+        val model = modelPreference.selected.value.requestKey()
+        val body = coachPlanJson.encodeToString(SplitRequestBody("block_splits", SplitRequestInput(today), model))
+        return callCoach(body) { text ->
+            val options = runCatching { coachPlanJson.decodeFromString<SplitOptionsDto>(text) }.getOrNull()
+                ?.options?.map(SplitOptionDto::toDomain)
+            if (options.isNullOrEmpty()) {
+                Result.failure(CoachException(CoachFailure.Other))
+            } else {
+                Result.success(options)
+            }
+        }
+    }
+
+    override suspend fun requestBlock(planId: String, today: LocalDate, split: SplitOption): Result<CoachBlock> {
+        val model = modelPreference.selected.value.requestKey()
+        val chosen = BlockSplitInput(split.name, split.sessions.map { SplitSessionDto(it.name, it.focus) })
+        val body = coachPlanJson.encodeToString(
+            BlockRequestBody("plan_block", BlockRequestInput(today, planId, chosen), model),
+        )
+        return callCoach(body) { storedBlockOrOther(planId) }
+    }
+
+    /** Posts [body] to the `coach` function and hands the concatenated stream text to [onText]. */
     @Suppress("TooGenericExceptionCaught")
-    override suspend fun requestBlock(planId: String, today: LocalDate, minimal: Boolean): Result<CoachBlock> {
+    private suspend fun <T> callCoach(body: String, onText: suspend (String) -> Result<T>): Result<T> {
         if (auth.currentUserOrNull() == null) return Result.failure(AppException(AppError.Unauthorized))
         return try {
-            val model = modelPreference.selected.value.requestKey()
-            val body = coachPlanJson.encodeToString(
-                BlockRequestBody("plan_block", BlockRequestInput(today, planId, minimal), model),
-            )
             val stream = functions.invoke("coach") {
                 method = HttpMethod.Post
                 contentType(ContentType.Application.Json)
@@ -72,7 +99,7 @@ class SupabaseCoachBlockRepository internal constructor(
                 coachTimeout(requestTimeout)
             }.bodyAsText()
             CoachStreamParser.parse(stream).fold(
-                onSuccess = { storedBlockOrOther(planId) },
+                onSuccess = { onText(it) },
                 onFailure = { Result.failure(it) },
             )
         } catch (cancellation: CancellationException) {

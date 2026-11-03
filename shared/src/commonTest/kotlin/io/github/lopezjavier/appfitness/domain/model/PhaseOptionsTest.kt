@@ -26,7 +26,8 @@ class PhaseOptionsTest {
 
     @Test
     fun phaseCodes_mapAndUnknownIsNull() {
-        assertEquals(Phase.Minimal, phaseOrNull("minimal"))
+        assertEquals(null, phaseOrNull("minimal"))
+        assertEquals(Phase.Maintenance, storedPhaseOrNull("minimal"))
         assertEquals(null, phaseOrNull("x"))
         assertEquals(null, phaseOrNull("regain"))
         assertEquals(Phase.Maintenance, storedPhaseOrNull("regain"))

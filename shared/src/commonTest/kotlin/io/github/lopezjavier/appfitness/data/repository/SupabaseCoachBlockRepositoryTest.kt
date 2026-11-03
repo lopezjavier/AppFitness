@@ -14,6 +14,8 @@ import io.github.lopezjavier.appfitness.domain.model.CoachException
 import io.github.lopezjavier.appfitness.domain.model.CoachFailure
 import io.github.lopezjavier.appfitness.domain.model.CoachModelChoice
 import io.github.lopezjavier.appfitness.domain.model.MissingField
+import io.github.lopezjavier.appfitness.domain.model.SplitOption
+import io.github.lopezjavier.appfitness.domain.model.SplitSession
 import io.github.lopezjavier.appfitness.domain.model.TestLoginCredentials
 import io.ktor.client.engine.mock.MockEngine
 import io.ktor.client.engine.mock.respond
@@ -56,6 +58,14 @@ private const val EXERCISE =
 
 private fun sessionRows(routine: String = "null") =
     """[{"week":1,"session_index":0,"name":"A","focus":["chest"],"exercises":[$EXERCISE],"routine_id":$routine}]"""
+
+private val SPLIT = SplitOption(
+    id = "a",
+    name = "Torso-pierna",
+    recommended = true,
+    reason = "Encaja con tus dias",
+    sessions = listOf(SplitSession("Torso", listOf("chest", "back"))),
+)
 
 private fun deltaFrame(text: String) =
     "event: delta\ndata: " + JsonObject(mapOf("text" to JsonPrimitive(text))) + "\n\nevent: done\ndata: {}\n\n"
@@ -106,7 +116,7 @@ class SupabaseCoachBlockRepositoryTest {
         val repository = repo(respond = ::blockRoutes)
         preference.select(CoachModelChoice.Haiku)
 
-        repository.requestBlock("p1", today).getOrThrow()
+        repository.requestBlock("p1", today, SPLIT).getOrThrow()
 
         val body = (rest().first().body as TextContent).text
         assertTrue(body.endsWith(""","model":"haiku"}"""), body)
@@ -115,9 +125,9 @@ class SupabaseCoachBlockRepositoryTest {
     @Test
     fun requestBlock_omitsTheModelForTheDefaultAndHonoursASelectionChangedBetweenCalls() = runTest {
         val repository = repo(respond = ::blockRoutes)
-        repository.requestBlock("p1", today)
+        repository.requestBlock("p1", today, SPLIT)
         preference.select(CoachModelChoice.Sonnet)
-        repository.requestBlock("p1", today)
+        repository.requestBlock("p1", today, SPLIT)
 
         val bodies = rest().filter { it.url.encodedPath.contains("/functions/") }.map { (it.body as TextContent).text }
 
@@ -146,14 +156,14 @@ class SupabaseCoachBlockRepositoryTest {
     fun requestBlock_succeedsWhenTheAnswerIsSlowerThanTheClientDefaultButWithinTheConfiguredTimeout() = runTest {
         val repository = repo(responseDelayMs = 300L, requestTimeout = 5.seconds, respond = ::blockRoutes)
 
-        assertTrue(repository.requestBlock("p1", today).isSuccess)
+        assertTrue(repository.requestBlock("p1", today, SPLIT).isSuccess)
     }
 
     @Test
     fun requestBlock_failsWithTimeoutNotNetworkWhenSlowerThanTheConfiguredTimeout() = runTest {
         val repository = repo(responseDelayMs = 3_000L, requestTimeout = 200.milliseconds, respond = ::blockRoutes)
 
-        assertEquals(CoachFailure.Timeout, failureOf(repository.requestBlock("p1", today)))
+        assertEquals(CoachFailure.Timeout, failureOf(repository.requestBlock("p1", today, SPLIT)))
     }
 
     @Test
@@ -162,16 +172,17 @@ class SupabaseCoachBlockRepositoryTest {
     }
 
     @Test
-    fun requestBlock_postsExactlyKindTodayAndPlanId_thenReloadsFromTables() = runTest {
+    fun requestBlock_postsKindTodayPlanIdAndSplit_thenReloadsFromTables() = runTest {
         val repository = repo(respond = ::blockRoutes)
 
-        val block = repository.requestBlock("p1", today).getOrThrow()
+        val block = repository.requestBlock("p1", today, SPLIT).getOrThrow()
 
         val call = rest().first()
         assertEquals(HttpMethod.Post, call.method)
         assertTrue(call.url.encodedPath.endsWith("/functions/v1/coach"), call.url.toString())
         assertEquals(
-            """{"kind":"plan_block","input":{"today":"2026-10-29","plan_id":"p1"}}""",
+            """{"kind":"plan_block","input":{"today":"2026-10-29","plan_id":"p1","split":""" +
+                """{"name":"Torso-pierna","sessions":[{"name":"Torso","focus":["chest","back"]}]}}}""",
             (call.body as TextContent).text,
         )
         assertEquals("p1", block.planId)
@@ -181,15 +192,43 @@ class SupabaseCoachBlockRepositoryTest {
     }
 
     @Test
-    fun requestBlock_minimal_sendsTheMinimalFlag() = runTest {
-        val repository = repo(respond = ::blockRoutes)
+    fun requestSplitOptions_postsBlockSplitsAndDecodesTheOptions() = runTest {
+        val options = """{"options":[{"id":"a","name":"Torso-pierna","recommended":true,"reason":"Encaja",""" +
+            """"sessions":[{"name":"Torso","focus":["chest","back"]}]},{"id":"b","name":"Cuerpo completo",""" +
+            """"recommended":false,"reason":"Alternativa","sessions":[{"name":"Todo","focus":["chest"]}]}]}"""
+        val repository = repo { HttpStatusCode.OK to deltaFrame(options) }
 
-        repository.requestBlock("p1", today, minimal = true).getOrThrow()
+        val result = repository.requestSplitOptions(today).getOrThrow()
 
         assertEquals(
-            """{"kind":"plan_block","input":{"today":"2026-10-29","plan_id":"p1","minimal":true}}""",
+            """{"kind":"block_splits","input":{"today":"2026-10-29"}}""",
             (rest().first().body as TextContent).text,
         )
+        assertEquals(listOf("a", "b"), result.map { it.id })
+        assertEquals(listOf(true, false), result.map { it.recommended })
+        assertEquals(listOf("chest", "back"), result.first().sessions.single().focus)
+    }
+
+    @Test
+    fun requestSplitOptions_withoutOptions_failsAsOther() = runTest {
+        val repository = repo { HttpStatusCode.OK to deltaFrame("""{"options":[]}""") }
+
+        assertEquals(CoachFailure.Other, failureOf(repository.requestSplitOptions(today)))
+    }
+
+    @Test
+    fun requestBlock_sendsTheChosenSplitAndNoMinimalFlag() = runTest {
+        val repository = repo(respond = ::blockRoutes)
+
+        repository.requestBlock("p1", today, SPLIT).getOrThrow()
+
+        val body = (rest().first().body as TextContent).text
+        assertEquals(
+            """{"kind":"plan_block","input":{"today":"2026-10-29","plan_id":"p1","split":""" +
+                """{"name":"Torso-pierna","sessions":[{"name":"Torso","focus":["chest","back"]}]}}}""",
+            body,
+        )
+        assertFalse("minimal" in body)
     }
 
     @Test
@@ -200,7 +239,7 @@ class SupabaseCoachBlockRepositoryTest {
 
         assertEquals(
             CoachFailure.LimitReached(CoachFailure.Scope.User),
-            failureOf(repository.requestBlock("p1", today)),
+            failureOf(repository.requestBlock("p1", today, SPLIT)),
         )
     }
 
@@ -212,7 +251,7 @@ class SupabaseCoachBlockRepositoryTest {
 
         assertEquals(
             CoachFailure.LimitReached(CoachFailure.Scope.Global),
-            failureOf(repository.requestBlock("p1", today)),
+            failureOf(repository.requestBlock("p1", today, SPLIT)),
         )
     }
 
@@ -220,14 +259,14 @@ class SupabaseCoachBlockRepositoryTest {
     fun requestBlock_noCredit_isMapped() = runTest {
         val repository = repo { HttpStatusCode.PaymentRequired to """{"error":{"code":"coach_no_credit"}}""" }
 
-        assertEquals(CoachFailure.NoCredit, failureOf(repository.requestBlock("p1", today)))
+        assertEquals(CoachFailure.NoCredit, failureOf(repository.requestBlock("p1", today, SPLIT)))
     }
 
     @Test
     fun requestBlock_invalidOutput_isMapped() = runTest {
         val repository = repo { HttpStatusCode.BadGateway to """{"error":{"code":"coach_invalid_output"}}""" }
 
-        assertEquals(CoachFailure.Invalid, failureOf(repository.requestBlock("p1", today)))
+        assertEquals(CoachFailure.Invalid, failureOf(repository.requestBlock("p1", today, SPLIT)))
     }
 
     @Test
@@ -239,7 +278,7 @@ class SupabaseCoachBlockRepositoryTest {
 
         assertEquals(
             CoachFailure.Missing(setOf(MissingField.Intention, MissingField.Place)),
-            failureOf(repository.requestBlock("p1", today)),
+            failureOf(repository.requestBlock("p1", today, SPLIT)),
         )
     }
 
@@ -247,7 +286,7 @@ class SupabaseCoachBlockRepositoryTest {
     fun requestBlock_cutStream_isOther() = runTest {
         val repository = repo { HttpStatusCode.OK to "event: delta\ndata: {\"text\":\"{\"}\n\n" }
 
-        assertEquals(CoachFailure.Other, failureOf(repository.requestBlock("p1", today)))
+        assertEquals(CoachFailure.Other, failureOf(repository.requestBlock("p1", today, SPLIT)))
     }
 
     @Test
@@ -255,14 +294,14 @@ class SupabaseCoachBlockRepositoryTest {
         val repository = repo(respond = ::blockRoutes)
         offline = true
 
-        assertEquals(AppError.Network, repository.requestBlock("p1", today).appErrorOrNull())
+        assertEquals(AppError.Network, repository.requestBlock("p1", today, SPLIT).appErrorOrNull())
     }
 
     @Test
     fun requestBlock_signedOut_isUnauthorizedWithoutRequests() = runTest {
         val repository = repo(signIn = false, respond = ::blockRoutes)
 
-        assertEquals(AppError.Unauthorized, repository.requestBlock("p1", today).appErrorOrNull())
+        assertEquals(AppError.Unauthorized, repository.requestBlock("p1", today, SPLIT).appErrorOrNull())
         assertTrue(rest().isEmpty())
     }
 

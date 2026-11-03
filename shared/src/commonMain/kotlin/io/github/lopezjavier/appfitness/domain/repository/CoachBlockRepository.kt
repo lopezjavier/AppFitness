@@ -3,6 +3,7 @@ package io.github.lopezjavier.appfitness.domain.repository
 import io.github.lopezjavier.appfitness.domain.model.BlockEdit
 import io.github.lopezjavier.appfitness.domain.model.BlockSaved
 import io.github.lopezjavier.appfitness.domain.model.CoachBlock
+import io.github.lopezjavier.appfitness.domain.model.SplitOption
 import kotlinx.datetime.LocalDate
 
 /**
@@ -10,11 +11,14 @@ import kotlinx.datetime.LocalDate
  * [io.github.lopezjavier.appfitness.domain.model.CoachException].
  */
 interface CoachBlockRepository {
+    /** Asks the coach for 2-3 ways to split the training days (exactly one is recommended). Costs money. */
+    suspend fun requestSplitOptions(today: LocalDate): Result<List<SplitOption>>
+
     /**
-     * Asks the coach for the block of [planId] as of [today] and returns the stored proposal. Costs money.
-     * [minimal] asks for the short "Tengo poco tiempo" block.
+     * Asks the coach to build the block of [planId] as of [today] on the chosen [split] and returns the stored
+     * proposal. Costs money.
      */
-    suspend fun requestBlock(planId: String, today: LocalDate, minimal: Boolean = false): Result<CoachBlock>
+    suspend fun requestBlock(planId: String, today: LocalDate, split: SplitOption): Result<CoachBlock>
 
     /** The stored block of [planId], or null when the coach has not proposed one. Used to reload and reopen. */
     suspend fun currentBlock(planId: String): Result<CoachBlock?>

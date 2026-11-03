@@ -1308,7 +1308,7 @@ internal fun NavController.openCreated(entry: NavBackStackEntry, created: Before
     if (currentBackStackEntry?.id != entry.id) return
     val route: AppRoute = when (created.mode) {
         BeforeStartMode.Plan -> PlanProposalRoute(created.replacingPlanId)
-        BeforeStartMode.Block -> BlockPreviewRoute(created.planId.orEmpty(), created.minimal)
+        BeforeStartMode.Block -> BlockPreviewRoute(created.planId.orEmpty())
     }
     val fromProposal = previousBackStackEntry?.destination?.hasRoute(PlanProposalRoute::class) == true
     navigate(route) {

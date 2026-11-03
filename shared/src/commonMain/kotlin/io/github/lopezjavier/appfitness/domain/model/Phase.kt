@@ -1,7 +1,7 @@
 package io.github.lopezjavier.appfitness.domain.model
 
 /** Training/calorie phase of a coach plan (`coach_plans.phase`). */
-enum class Phase { Cut, Gain, Maintenance, Recomposition, Minimal }
+enum class Phase { Cut, Gain, Maintenance, Recomposition }
 
 /** Why the plan is in its phase; the Spanish text belongs to the UI. */
 enum class PhaseReason { Intention, UserBusy }
@@ -32,13 +32,12 @@ fun phaseOrNull(code: String?): Phase? = when (code) {
     "gain" -> Phase.Gain
     "maintenance" -> Phase.Maintenance
     "recomposition" -> Phase.Recomposition
-    "minimal" -> Phase.Minimal
     else -> null
 }
 
 /**
  * Maps a stored phase code: null when missing, [Phase.Maintenance] when present but unknown (a retired code such as
- * the old `regain` reads as Maintenance, never as Cut).
+ * the old `regain` or `minimal` reads as Maintenance, never as Cut).
  */
 fun storedPhaseOrNull(code: String?): Phase? = code?.let { phaseOrNull(it) ?: Phase.Maintenance }
 
