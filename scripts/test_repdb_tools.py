@@ -186,6 +186,13 @@ class MovementPatternTest(unittest.TestCase):
         self.assertIn("movement_pattern = 'horizontal_push'", sql)
         self.assertNotIn("'core'", sql)
 
+    def test_render_adds_hamstrings_as_secondary_of_every_hinge(self):
+        sql = gen.render_patterns_sql([("alfa", "hinge")])
+        self.assertIn("movement_pattern = 'hinge' and muscle_group <> 'hamstrings'", sql)
+
+    def test_shoulder_abduction_is_an_allowed_pattern(self):
+        self.assertIn("shoulder_abduction", gen.MOVEMENT_PATTERNS)
+
     def test_render_sql_writes_the_column_only_with_patterns(self):
         self.assertNotIn("movement_pattern", gen.render_sql(CATALOG_ROWS))
         sql = gen.render_sql(CATALOG_ROWS, {"alfa": "core", "beta": "squat"})

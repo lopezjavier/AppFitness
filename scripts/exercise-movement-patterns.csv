@@ -86,7 +86,7 @@ bird-dog-hold,core
 boat-pose,core
 bodyweight-calf-raise,isolation
 bodyweight-good-morning,hinge
-bodyweight-lateral-raise,isolation
+bodyweight-lateral-raise,shoulder_abduction
 bodyweight-overhead-press,vertical_push
 bodyweight-reverse-lunge,lunge
 bodyweight-squat,squat
@@ -105,7 +105,7 @@ cable-fly,isolation
 cable-front-raise,isolation
 cable-hammer-curl,isolation
 cable-kickback,isolation
-cable-lateral-raise,isolation
+cable-lateral-raise,shoulder_abduction
 cable-overhead-tricep-extension,isolation
 cable-pallof-press,core
 cable-pull-through,hinge
@@ -362,7 +362,7 @@ l-sit,core
 landmine-press,vertical_push
 lat-pulldown,vertical_pull
 lateral-leg-swing,other
-lateral-raise,isolation
+lateral-raise,shoulder_abduction
 leg-curl,isolation
 leg-extension,isolation
 leg-press,squat
@@ -441,7 +441,7 @@ plank,core
 plank-knee-tuck,core
 plate-loaded-donkey-calf-raise,isolation
 plate-loaded-glute-drive,hinge
-plate-loaded-lateral-raise,isolation
+plate-loaded-lateral-raise,shoulder_abduction
 plate-loaded-seated-dip-machine,vertical_push
 plate-loaded-shrug,isolation
 plate-pinch,isolation
@@ -496,7 +496,7 @@ seated-calf-raise,isolation
 seated-db-press,vertical_push
 seated-dip-machine,vertical_push
 seated-dumbbell-curl,isolation
-seated-dumbbell-lateral-raise,isolation
+seated-dumbbell-lateral-raise,shoulder_abduction
 seated-dumbbell-tricep-extension,isolation
 seated-forward-fold,other
 seated-leg-curl,isolation
@@ -509,7 +509,7 @@ side-lying-hip-abduction,isolation
 side-lying-hip-abduction-hold,isolation
 side-lying-hip-adduction,isolation
 side-lying-hip-adduction-hold,isolation
-side-lying-lateral-raise,isolation
+side-lying-lateral-raise,shoulder_abduction
 side-plank,core
 side-plank-leg-lift,core
 side-plank-leg-lift-hold,core
@@ -519,7 +519,7 @@ single-arm-dumbbell-bench-press,horizontal_push
 single-arm-dumbbell-overhead-tricep-extension,isolation
 single-arm-hammer-curl,isolation
 single-arm-machine-shoulder-press,vertical_push
-single-arm-plate-loaded-lateral-raise,isolation
+single-arm-plate-loaded-lateral-raise,shoulder_abduction
 single-arm-tricep-pushdown,isolation
 single-db-svend-press,horizontal_push
 single-leg-calf-raise,isolation
