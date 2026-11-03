@@ -386,24 +386,120 @@ Deno.test("changes on the same exercise are marked as conflicting", () => {
 
 // --- validation and retry --------------------------------------------------------------------------------------
 
-Deno.test("an invented exercise key triggers one retry with the failures, then the review is stored", async () => {
+Deno.test("a fatal answer (wrong root keys) triggers one retry with the failure code, then the review is stored once", async () => {
+    const t = setup({
+        answer: (_r, n) => n === 1 ? JSON.stringify({ nope: 1 }) : review(),
+    });
+    const res = await run(t);
+    assertEquals(res.status, 200);
+    assertEquals(t.calls(), 2);
+    assert(t.requests[1].prompt.includes("shape"));
+    assertEquals(t.reviews.length, 1);
+    assertEquals(t.records.length, 1);
+});
+
+const stored = (t: ReturnType<typeof setup>) =>
+    t.reviews[0].result as {
+        message: string;
+        comments: { text: string }[];
+        changes: unknown[];
+    };
+
+// One recorded-style answer per suspect of T-210: each used to reject the whole review (coach_invalid_output).
+const softDefects: [string, Record<string, unknown>][] = [
+    ["a reason over 300 characters", {
+        changes: [change({
+            op: "set_rpe",
+            position: 1,
+            rpe: 9,
+            reason: "Ajustar el esfuerzo percibido de este ejercicio. ".repeat(
+                12,
+            ),
+        })],
+    }],
+    ["a message over 300 characters", {
+        message: "La carpeta está bastante bien equilibrada. ".repeat(14),
+    }],
+    ["a cardio phrase in a reason", {
+        changes: [change({
+            op: "set_rpe",
+            position: 1,
+            rpe: 9,
+            reason:
+                "Limita el volumen de este ejercicio; el cardio ya cubre el resto.",
+        })],
+    }],
+    ["a cardio-reduction comment", {
+        comments: [{ text: "Conviene reducir el cardio de la semana." }],
+    }],
+    ["a comment on an exercise outside the folder", {
+        comments: [{
+            text: "Este comentario cita un ejercicio ajeno.",
+            exercise_key: "no-such-exercise",
+        }],
+    }],
+    ["a remove_exercise with stray fields", {
+        changes: [change({
+            op: "remove_exercise",
+            position: 1,
+            sets: [SET],
+            exercise_key: LATERAL,
+            fixes: 3,
+        })],
+    }],
+    ["an invented exercise key in a change", {
+        changes: [change({
+            op: "add_exercise",
+            exercise_key: "no-such-exercise",
+            sets: [SET],
+        })],
+    }],
+];
+for (const [name, over] of softDefects) {
+    Deno.test(`${name} does not reject the review: one call, stored once`, async () => {
+        const t = setup({ answer: () => review(over) });
+        const res = await run(t);
+        assertEquals(res.status, 200);
+        assertEquals(t.calls(), 1);
+        assertEquals(t.reviews.length, 1);
+        assert(stored(t).message.length <= 300);
+        assert(
+            stored(t).comments.every((c) => c.text.length <= 300),
+        );
+    });
+}
+
+Deno.test("a cardio-reduction message is fatal and retried", async () => {
     const t = setup({
         answer: (_r, n) =>
             n === 1
                 ? review({
-                    changes: [change({
-                        op: "add_exercise",
-                        exercise_key: "no-such-exercise",
-                        sets: [SET],
-                    })],
+                    message: "Conviene reducir el cardio de la semana.",
                 })
                 : review(),
     });
     const res = await run(t);
     assertEquals(res.status, 200);
     assertEquals(t.calls(), 2);
-    assert(t.requests[1].prompt.includes("unknown_exercise"));
-    assertEquals(t.reviews.length, 1);
+    assert(t.requests[1].prompt.includes("message"));
+});
+
+Deno.test("a change whose reason advises less cardio is not stored", async () => {
+    const t = setup({
+        answer: () =>
+            review({
+                changes: [change({
+                    op: "set_rpe",
+                    position: 1,
+                    rpe: 9,
+                    reason: "Conviene reducir el cardio de la semana.",
+                })],
+            }),
+    });
+    const res = await run(t);
+    assertEquals(res.status, 200);
+    assertEquals(t.calls(), 1);
+    assertEquals(stored(t).changes.length, 0);
 });
 
 Deno.test("invalid JSON twice is coach_invalid_output and nothing is stored", async () => {
@@ -416,7 +512,7 @@ Deno.test("invalid JSON twice is coach_invalid_output and nothing is stored", as
     assertEquals(t.records.length, 1);
 });
 
-Deno.test("validateReview refuses unknown ops, extra keys, bad reasons and a comment on a foreign exercise", () => {
+Deno.test("validateReview: root-shape and message errors are fatal, per-item defects drop or repair the item", () => {
     const v = {
         folderKeys: new Set(["a"]),
         catalogKeys: new Set(["a", "b"]),
@@ -426,71 +522,82 @@ Deno.test("validateReview refuses unknown ops, extra keys, bad reasons and a com
         comments: [],
         changes: [],
     };
-    const fails = (o: Record<string, unknown>) =>
-        validateReview(JSON.stringify({ ...ok, ...o }), v).failures.length > 0;
-    assertEquals(fails({}), false);
-    assert(fails({ message: "corto" }));
-    assert(fails({ extra: 1 }));
-    assert(fails({ changes: [change({ op: "teleport", position: 1 })] }));
-    assert(
-        fails({
-            changes: [change({ op: "set_rpe", position: 1, rpe: 9, id: "c9" })],
-        }),
-    );
-    assert(
-        fails({ changes: [change({ op: "set_rpe", position: 1 })] }),
-    );
-    assert(
-        fails({
-            changes: [
-                change({ op: "set_rpe", position: 1, rpe: 9, reason: "no" }),
-            ],
-        }),
-    );
-    assert(
-        fails({
-            comments: [{
-                text: "Un comentario válido y largo.",
-                exercise_key: "b",
-            }],
-        }),
+    const val = (o: Record<string, unknown>) =>
+        validateReview(JSON.stringify({ ...ok, ...o }), v);
+    // fatal
+    assertEquals(val({}).failures.length, 0);
+    assertEquals(val({ message: "corto" }).review, null);
+    assertEquals(val({ extra: 1 }).review, null);
+    assertEquals(validateReview("not json", v).review, null);
+    assertEquals(
+        val({ message: "Conviene reducir el cardio de la semana." }).review,
+        null,
     );
     assertEquals(
-        fails({
-            comments: [{
-                text: "Un comentario válido y largo.",
-                exercise_key: "a",
-            }],
-        }),
-        false,
-    );
-    assert(
-        fails({
-            changes: [change({
-                op: "add_exercise",
-                exercise_key: "a",
-                sets: [{ ...SET, n: 11 }],
-            })],
-        }),
-    );
-    assert(
-        fails({
+        val({
             changes: Array.from(
                 { length: 41 },
                 () => change({ op: "set_rpe", position: 1, rpe: 9 }),
             ),
-        }),
+        }).review,
+        null,
     );
-    assert(
-        fails({
-            changes: [change({
-                op: "set_rpe",
-                position: 1,
-                rpe: 9,
-                reason: "Conviene reducir el cardio de la semana.",
-            })],
-        }),
-    );
+    // soft: dropped
+    const dropped = (changes: unknown[]) => {
+        const r = val({ changes });
+        assert(r.review !== null);
+        assertEquals(r.review.changes.length, 0);
+        assertEquals(r.failures.length, 1);
+    };
+    dropped([change({ op: "teleport", position: 1 })]);
+    dropped([change({ op: "set_rpe", position: 1 })]);
+    dropped([change({ op: "set_rpe", position: 1, rpe: 9, reason: "no" })]);
+    dropped([change({
+        op: "add_exercise",
+        exercise_key: "a",
+        sets: [{ ...SET, n: 11 }],
+    })]);
+    dropped([
+        change({ op: "replace_exercise", position: 1, exercise_key: "z" }),
+    ]);
+    dropped([change({
+        op: "set_rpe",
+        position: 1,
+        rpe: 9,
+        reason: "Conviene reducir el cardio de la semana.",
+    })]);
+    // soft: kept, repaired
+    const extra = val({
+        changes: [change({
+            op: "set_rpe",
+            position: 1,
+            rpe: 9,
+            id: "c9",
+            sets: [SET],
+        })],
+    });
+    assertEquals(extra.review?.changes.length, 1);
+    assertEquals(extra.review?.changes[0], {
+        op: "set_rpe",
+        position: 1,
+        rpe: 9,
+        routine_index: 1,
+        reason: REASON,
+    });
+    const foreign = val({
+        comments: [
+            { text: "Un comentario válido y largo.", exercise_key: "b" },
+            { text: "Un comentario válido y largo.", exercise_key: "a" },
+        ],
+    });
+    assertEquals(foreign.review?.comments, [
+        { text: "Un comentario válido y largo." },
+        { text: "Un comentario válido y largo.", exercise_key: "a" },
+    ]);
+    const long = val({ message: "Palabra ".repeat(100) });
+    assert(long.review !== null);
+    assert(long.review.message.length <= 300);
+    assert(long.review.message.length > 250);
 });
 
 // --- the handler paths -----------------------------------------------------------------------------------------
