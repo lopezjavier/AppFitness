@@ -173,7 +173,7 @@ Each checkpoint also has "leave the app and come back: the same tab, screen and 
 
 ### Phase 2c': How the coach builds blocks (US-72 am., US-93…US-96; T-202 replan 2026-11-03)
 - [x] T-203: "Eliminar bloque" — M (E13 Q54 first)
-- [ ] T-204: Favourite exercises — M
+- [x] T-204: Favourite exercises — M
 - [ ] T-205: The model builds the block; one routine checker; `shoulder_abduction` (backend) — L
 - [ ] T-206: Split options and the new block preview (UI) — L
 - [ ] T-207: Folder review and a block from a folder (backend) — L
