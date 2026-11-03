@@ -20,6 +20,7 @@ import org.jetbrains.compose.resources.stringResource
 internal fun PickerRow(
     item: CatalogExercise,
     selectMode: Boolean,
+    isFavorite: Boolean,
     mediaUris: ExerciseMediaUris,
     onEvent: (ExercisePickerEvent) -> Unit,
     modifier: Modifier = Modifier,
@@ -36,6 +37,8 @@ internal fun PickerRow(
         onOpen = { onEvent(ExercisePickerEvent.OpenDetail(item.id)) },
         tagPrefix = "exercise_picker_row_${item.id}",
         modifier = modifier,
+        favorite = isFavorite,
+        favoriteTestTag = "exercise_picker_favorite_${item.id}",
         imageUri = if (item.hasMedia && key != null) mediaUris.start(key) else null,
         onSelect = if (selectMode) {
             { onEvent(ExercisePickerEvent.OpenExercise(item.id)) }

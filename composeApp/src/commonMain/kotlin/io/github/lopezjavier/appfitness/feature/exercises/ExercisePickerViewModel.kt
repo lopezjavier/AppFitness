@@ -10,6 +10,8 @@ import io.github.lopezjavier.appfitness.domain.model.MovementPattern
 import io.github.lopezjavier.appfitness.domain.model.MuscleGroup
 import io.github.lopezjavier.appfitness.domain.port.ConnectivityObserver
 import io.github.lopezjavier.appfitness.domain.repository.ExerciseRepository
+import io.github.lopezjavier.appfitness.domain.repository.FavoriteExercisesRepository
+import io.github.lopezjavier.appfitness.domain.usecase.FavoritesFirst
 import io.github.lopezjavier.appfitness.domain.usecase.LoadExerciseCatalog
 import io.github.lopezjavier.appfitness.domain.usecase.SearchExercises
 import kotlinx.coroutines.channels.Channel
@@ -45,6 +47,7 @@ class ExercisePickerViewModel(
     private val loadCatalog: LoadExerciseCatalog,
     private val searchExercises: SearchExercises,
     private val repository: ExerciseRepository,
+    private val favorites: FavoriteExercisesRepository,
     connectivity: ConnectivityObserver,
     private val selectMode: Boolean,
     private val savedState: SavedStateHandle = SavedStateHandle(),
@@ -64,6 +67,9 @@ class ExercisePickerViewModel(
                 online = isOnline
                 updateContent { it.copy(isOnline = isOnline) }
             }
+        }
+        viewModelScope.launch {
+            favorites.favoriteIds.collect { filter { content -> content } }
         }
         load()
     }
@@ -116,6 +122,7 @@ class ExercisePickerViewModel(
 
     private fun load() {
         _uiState.value = ExercisePickerUiState.Loading
+        viewModelScope.launch { favorites.refresh() }
         viewModelScope.launch {
             loadCatalog().fold(
                 onSuccess = {
@@ -178,7 +185,14 @@ class ExercisePickerViewModel(
     private fun filter(transform: (ExercisePickerUiState.Content) -> ExercisePickerUiState.Content) {
         updateContent { current ->
             val next = transform(current)
-            next.copy(visible = searchExercises(all, next.query, next.muscleGroup, next.equipment))
+            val favoriteIds = favorites.favoriteIds.value
+            next.copy(
+                visible = FavoritesFirst(
+                    searchExercises(all, next.query, next.muscleGroup, next.equipment),
+                    favoriteIds,
+                ) { it.id },
+                favoriteIds = favoriteIds,
+            )
         }
     }
 

@@ -26,10 +26,11 @@ import io.github.lopezjavier.appfitness.composeapp.resources.catalog_section_nav
 import io.github.lopezjavier.appfitness.composeapp.resources.catalog_section_skeleton
 import io.github.lopezjavier.appfitness.composeapp.resources.catalog_section_top_bar
 import io.github.lopezjavier.appfitness.composeapp.resources.catalog_section_wip
-import io.github.lopezjavier.appfitness.composeapp.resources.catalog_topbar_action_favourite
 import io.github.lopezjavier.appfitness.composeapp.resources.catalog_topbar_count
 import io.github.lopezjavier.appfitness.composeapp.resources.catalog_topbar_sample_subtitle
 import io.github.lopezjavier.appfitness.composeapp.resources.catalog_topbar_sample_title
+import io.github.lopezjavier.appfitness.composeapp.resources.favourite_add_cd
+import io.github.lopezjavier.appfitness.composeapp.resources.favourite_remove_cd
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_delete
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_edit
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_nav_diary
@@ -38,7 +39,6 @@ import io.github.lopezjavier.appfitness.composeapp.resources.ic_nav_profile
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_nav_trainer
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_nav_workout
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_notifications
-import io.github.lopezjavier.appfitness.composeapp.resources.ic_star
 import io.github.lopezjavier.appfitness.composeapp.resources.nav_diary
 import io.github.lopezjavier.appfitness.composeapp.resources.nav_trainer
 import io.github.lopezjavier.appfitness.composeapp.resources.nav_workout
@@ -111,14 +111,14 @@ private fun TopBarSection() {
 @Composable
 private fun ActionBarSamples() {
     val edit = stringResource(Res.string.action_edit)
-    val favourite = stringResource(Res.string.catalog_topbar_action_favourite)
+    val favourite = stringResource(Res.string.favourite_add_cd)
     val delete = stringResource(Res.string.action_delete)
     val title = stringResource(Res.string.catalog_topbar_sample_title)
     val all =
         remember(edit, favourite, delete) {
             listOf(
                 AppTopBarAction(Res.drawable.ic_edit, edit, {}),
-                AppTopBarAction(Res.drawable.ic_star, favourite, {}),
+                AppTopBarAction(Res.drawable.ic_edit, favourite, {}, toggled = false),
                 AppTopBarAction(Res.drawable.ic_delete, delete, {}),
             )
         }
@@ -130,6 +130,19 @@ private fun ActionBarSamples() {
             testTagPrefix = "catalog_topbar_actions_$count",
         )
     }
+    AppTopBar(
+        title = title,
+        actions = listOf(
+            AppTopBarAction(
+                Res.drawable.ic_edit,
+                stringResource(Res.string.favourite_remove_cd),
+                {},
+                toggled = true,
+            ),
+        ),
+        windowInsets = WindowInsets(0),
+        testTagPrefix = "catalog_topbar_favourite_on",
+    )
     val bell = stringResource(Res.string.notifications_title)
     AppTopBar(
         title = title,

@@ -23,6 +23,8 @@ import io.github.lopezjavier.appfitness.composeapp.resources.Res
 import io.github.lopezjavier.appfitness.composeapp.resources.action_retry
 import io.github.lopezjavier.appfitness.composeapp.resources.add_food_sheet_title
 import io.github.lopezjavier.appfitness.composeapp.resources.add_item
+import io.github.lopezjavier.appfitness.composeapp.resources.favourite_add_cd
+import io.github.lopezjavier.appfitness.composeapp.resources.favourite_remove_cd
 import io.github.lopezjavier.appfitness.composeapp.resources.food_create_action
 import io.github.lopezjavier.appfitness.composeapp.resources.food_empty_favourites
 import io.github.lopezjavier.appfitness.composeapp.resources.food_empty_most_eaten
@@ -30,8 +32,6 @@ import io.github.lopezjavier.appfitness.composeapp.resources.food_empty_recent
 import io.github.lopezjavier.appfitness.composeapp.resources.food_empty_search
 import io.github.lopezjavier.appfitness.composeapp.resources.food_empty_search_hint
 import io.github.lopezjavier.appfitness.composeapp.resources.food_error_message
-import io.github.lopezjavier.appfitness.composeapp.resources.food_favourite_add_cd
-import io.github.lopezjavier.appfitness.composeapp.resources.food_favourite_remove_cd
 import io.github.lopezjavier.appfitness.composeapp.resources.food_kcal_per_100_g
 import io.github.lopezjavier.appfitness.composeapp.resources.food_kcal_per_100_ml
 import io.github.lopezjavier.appfitness.composeapp.resources.food_offline_message
@@ -335,7 +335,7 @@ private fun FoodRow(
         wholeHalfUp(food.nutrition.kcal),
     )
     val favouriteLabel = stringResource(
-        if (favourite) Res.string.food_favourite_remove_cd else Res.string.food_favourite_add_cd,
+        if (favourite) Res.string.favourite_remove_cd else Res.string.favourite_add_cd,
     )
     val brand = food.brand?.takeIf { it.isNotBlank() }
     AppListRow(

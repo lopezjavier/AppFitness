@@ -105,6 +105,7 @@ internal fun BlockReplaceSheet(
                             row = row,
                             rowTag = "block_preview_replace_option_${row.tagKey}",
                             percentTag = "block_preview_replace_percent_${row.tagKey}",
+                            favoriteTag = "block_preview_replace_favorite_${row.tagKey}",
                             onOpen = { onOpenExercise(row.exercise.id) },
                             onSelect = {
                                 haptics.confirm()

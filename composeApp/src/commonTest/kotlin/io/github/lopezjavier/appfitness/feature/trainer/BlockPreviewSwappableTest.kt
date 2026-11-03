@@ -7,6 +7,8 @@ import io.github.lopezjavier.appfitness.domain.model.Equipment
 import io.github.lopezjavier.appfitness.domain.model.ExerciseAlternative
 import io.github.lopezjavier.appfitness.feature.exercises.FakeExerciseLibrary
 import io.github.lopezjavier.appfitness.feature.exercises.FakeExerciseRepository
+import io.github.lopezjavier.appfitness.feature.exercises.FakeFavoriteExercisesRepository
+import io.github.lopezjavier.appfitness.feature.exercises.SimilarExerciseRow
 import io.github.lopezjavier.appfitness.feature.exercises.exerciseInfo
 import io.github.lopezjavier.appfitness.feature.exercises.exerciseRow
 import io.github.lopezjavier.appfitness.feature.workout.MutableClock
@@ -31,6 +33,7 @@ import kotlin.test.assertTrue
 /** T-180: the swap button is hidden on an exercise with no alternative to swap to. Every workout is [ex-1, ex-2]. */
 @OptIn(ExperimentalCoroutinesApi::class)
 class BlockPreviewSwappableTest {
+    private val favorites = FakeFavoriteExercisesRepository()
     private val dispatcher = StandardTestDispatcher()
     private val blocks = FakeCoachBlockRepository().apply { current = Result.success(coachBlock()) }
     private val exercises = FakeExerciseRepository(
@@ -63,6 +66,7 @@ class BlockPreviewSwappableTest {
         library,
         MutableClock(),
         FakeTrainingPreferencesRepository(),
+        favorites,
         saved,
     )
 
@@ -130,6 +134,42 @@ class BlockPreviewSwappableTest {
         assertTrue(model.preview().isChanged(0, 0))
         assertTrue(model.preview().canSwap(0, 0))
         assertFalse(model.preview().canSwap(0, 1))
+    }
+
+    private fun TestScope.swapRows(): List<SimilarExerciseRow> {
+        val extra = exerciseRow("ex-4", "press", equipment = Equipment.Cable)
+        exercises.rows = exercises.rows + extra
+        library.entries = library.entries + ("press" to exerciseInfo("press", "Cruces"))
+        exercises.alternativesById = mapOf(
+            "ex-1" to listOf(ExerciseAlternative(exercises.rows[2], 0.8), ExerciseAlternative(extra, 0.9)),
+        )
+        val model = viewModel()
+        advanceUntilIdle()
+        model.onEvent(BlockPreviewEvent.OpenReplace(0, 0))
+        advanceUntilIdle()
+        return assertIs<AlternativesState.Content>(model.preview().alternatives).rows
+    }
+
+    @Test
+    fun swapList_withoutFavourites_isBySimilarityThenName() = runTest(dispatcher) {
+        assertEquals(listOf("ex-4", "ex-3"), swapRows().map { it.exercise.id })
+    }
+
+    @Test
+    fun swapList_putsAFavouriteFirst_andMarksIt() = runTest(dispatcher) {
+        favorites.set(setOf("ex-3"))
+
+        val rows = swapRows()
+
+        assertEquals(listOf("ex-3", "ex-4"), rows.map { it.exercise.id })
+        assertEquals(listOf(true, false), rows.map { it.isFavorite })
+    }
+
+    @Test
+    fun swapList_neverShowsAFavouriteThatIsNotAnAlternative() = runTest(dispatcher) {
+        favorites.set(setOf("ex-2", "ex-99"))
+
+        assertEquals(listOf("ex-4", "ex-3"), swapRows().map { it.exercise.id })
     }
 
     @Test

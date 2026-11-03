@@ -11,9 +11,12 @@ import io.github.lopezjavier.appfitness.domain.model.MovementPattern
 import io.github.lopezjavier.appfitness.domain.model.MuscleGroup
 import io.github.lopezjavier.appfitness.domain.port.ExerciseLibrary
 import io.github.lopezjavier.appfitness.domain.repository.ExerciseRepository
+import io.github.lopezjavier.appfitness.domain.repository.FavoriteExercisesRepository
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asSharedFlow
 
 /** Synthetic exercise rows and library (never RepDB content). */
@@ -139,6 +142,38 @@ class FakeExerciseRepository(var rows: List<Exercise> = emptyList(), var failure
         rows = rows.filter { it.id != id }
         changed.tryEmit(Unit)
         return Result.success(Unit)
+    }
+}
+
+/** In-memory favourites; set [failure] to make [refresh] and [setFavorite] fail and leave the set unchanged. */
+class FakeFavoriteExercisesRepository(initial: Set<String> = emptySet(), var failure: AppError? = null) :
+    FavoriteExercisesRepository {
+    private val ids = MutableStateFlow(initial)
+
+    override val favoriteIds: StateFlow<Set<String>> = ids
+
+    var refreshCalls = 0
+    val setCalls = mutableListOf<Pair<String, Boolean>>()
+
+    /** When set, [setFavorite] suspends until completed (a slow write). */
+    var setGate: CompletableDeferred<Unit>? = null
+
+    override suspend fun refresh(): Result<Unit> {
+        refreshCalls++
+        return failure?.let { Result.failure(AppException(it)) } ?: Result.success(Unit)
+    }
+
+    override suspend fun setFavorite(exerciseId: String, favorite: Boolean): Result<Unit> {
+        setCalls += exerciseId to favorite
+        setGate?.await()
+        failure?.let { return Result.failure(AppException(it)) }
+        ids.value = if (favorite) ids.value + exerciseId else ids.value - exerciseId
+        return Result.success(Unit)
+    }
+
+    /** Changes the set as another screen would. */
+    fun set(newIds: Set<String>) {
+        ids.value = newIds
     }
 }
 

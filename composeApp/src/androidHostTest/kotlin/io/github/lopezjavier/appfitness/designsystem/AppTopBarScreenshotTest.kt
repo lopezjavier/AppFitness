@@ -9,7 +9,6 @@ import androidx.compose.ui.test.onNodeWithTag
 import io.github.lopezjavier.appfitness.composeapp.resources.Res
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_delete
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_edit
-import io.github.lopezjavier.appfitness.composeapp.resources.ic_star
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -27,7 +26,7 @@ class AppTopBarScreenshotTest {
 
     private fun actions(count: Int) = listOf(
         AppTopBarAction(Res.drawable.ic_edit, "Editar", {}),
-        AppTopBarAction(Res.drawable.ic_star, "Favorito", {}),
+        AppTopBarAction(Res.drawable.ic_edit, "Añadir a favoritos", {}, toggled = false),
         AppTopBarAction(Res.drawable.ic_delete, "Eliminar", {}),
     ).take(count)
 
@@ -46,6 +45,15 @@ class AppTopBarScreenshotTest {
     @Test
     fun threeActionsWithOverflow() =
         shot("topbar_3_actions") { AppTopBar("Perfil", actions = actions(3), windowInsets = WindowInsets(0)) }
+
+    @Test
+    fun starToggledOn() = shot("topbar_star_on") {
+        AppTopBar(
+            "Perfil",
+            actions = listOf(AppTopBarAction(Res.drawable.ic_edit, "Quitar de favoritos", {}, toggled = true)),
+            windowInsets = WindowInsets(0),
+        )
+    }
 
     @Test
     fun withSubtitleAndBack() = shot("topbar_subtitle") {

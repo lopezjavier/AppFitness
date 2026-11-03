@@ -19,6 +19,7 @@ import io.github.lopezjavier.appfitness.domain.model.SetType
 import io.github.lopezjavier.appfitness.domain.model.WorkoutSession
 import io.github.lopezjavier.appfitness.domain.port.ConnectivityObserver
 import io.github.lopezjavier.appfitness.domain.repository.ExerciseRepository
+import io.github.lopezjavier.appfitness.domain.repository.FavoriteExercisesRepository
 import io.github.lopezjavier.appfitness.domain.repository.WorkoutSessionRepository
 import io.github.lopezjavier.appfitness.domain.usecase.LoadExerciseCatalog
 import io.github.lopezjavier.appfitness.domain.usecase.PersonalRecordCatalogue
@@ -79,13 +80,24 @@ sealed interface ExerciseDetailEffect {
 
     /** The edit failed; the form stays open. */
     data object SaveFailed : ExerciseDetailEffect
+
+    /** Starring or unstarring worked; the screen confirms with a haptic only. */
+    data object FavoriteChanged : ExerciseDetailEffect
+
+    /** Starring or unstarring failed; the star keeps its previous state. */
+    data object FavoriteFailed : ExerciseDetailEffect
 }
 
 /** The tabs of the exercise detail; the selected one is kept in the saved state by name. */
 enum class ExerciseDetailTab { Summary, Similar, History, HowTo }
 
 /** One row of the "Similares" tab: the [exercise] to list and how alike it is, in (0, 1]. */
-data class SimilarExerciseRow(val exercise: CatalogExercise, val similarity: Double) {
+data class SimilarExerciseRow(
+    val exercise: CatalogExercise,
+    val similarity: Double,
+    /** The user starred this exercise (T-204); the row shows the marker. */
+    val isFavorite: Boolean = false,
+) {
     /** Whole percentage shown next to the row ("87 %"). */
     val percent: Int get() = (similarity * PERCENT).roundToInt()
 }
@@ -162,6 +174,10 @@ sealed interface ExerciseDetailUiState {
         val isOnline: Boolean = true,
         /** A delete is in flight (double taps are ignored). */
         val isDeleting: Boolean = false,
+        /** The user starred this exercise (catalogue or own). */
+        val isFavorite: Boolean = false,
+        /** A star toggle is in flight (further taps are ignored). */
+        val isTogglingFavorite: Boolean = false,
     ) : ExerciseDetailUiState {
         /** Only the user's own manual exercises can be edited or deleted. */
         val canManage: Boolean get() = detail.exercise.isCustom
@@ -178,6 +194,7 @@ class ExerciseDetailViewModel(
     private val loadCatalog: LoadExerciseCatalog,
     private val repository: ExerciseRepository,
     private val workoutSessions: WorkoutSessionRepository,
+    private val favorites: FavoriteExercisesRepository,
     connectivity: ConnectivityObserver,
     private val savedState: SavedStateHandle = SavedStateHandle(),
 ) : ViewModel() {
@@ -206,7 +223,27 @@ class ExerciseDetailViewModel(
                 updateLoaded { it.copy(isOnline = isOnline) }
             }
         }
+        viewModelScope.launch {
+            favorites.favoriteIds.collect { ids -> updateLoaded { it.copy(isFavorite = exerciseId in ids) } }
+        }
+        viewModelScope.launch { favorites.refresh() }
         load()
+    }
+
+    /**
+     * Stars or unstars the exercise (catalogue or own). Ignored offline and while a toggle is in flight; a failure
+     * leaves the star as it was and sends [ExerciseDetailEffect.FavoriteFailed].
+     */
+    fun toggleFavorite() {
+        val current = loaded()?.takeIf { online && !it.isTogglingFavorite } ?: return
+        updateLoaded { it.copy(isTogglingFavorite = true) }
+        viewModelScope.launch {
+            val result = favorites.setFavorite(exerciseId, !current.isFavorite)
+            updateLoaded { it.copy(isTogglingFavorite = false) }
+            effectChannel.trySend(
+                if (result.isFailure) ExerciseDetailEffect.FavoriteFailed else ExerciseDetailEffect.FavoriteChanged,
+            )
+        }
     }
 
     fun retry() {
@@ -376,6 +413,7 @@ class ExerciseDetailViewModel(
                         tab = storedTab(),
                         editForm = restoredEditForm(detail),
                         isOnline = online,
+                        isFavorite = exerciseId in favorites.favoriteIds.value,
                     )
                     loadRecords()
                     if (storedTab() == ExerciseDetailTab.History) loadHistoryIfNeeded()
@@ -436,8 +474,9 @@ class ExerciseDetailViewModel(
     private suspend fun similarContent(alternatives: List<ExerciseAlternative>): SimilarState {
         if (alternatives.isEmpty()) return SimilarState.Empty
         val named = loadCatalog().getOrElse { return SimilarState.Error }.associateBy { it.id }
+        val starred = favorites.favoriteIds.value
         val rows = alternatives.mapNotNull {
-            named[it.exercise.id]?.let { item -> SimilarExerciseRow(item, it.similarity) }
+            named[it.exercise.id]?.let { item -> SimilarExerciseRow(item, it.similarity, item.id in starred) }
         }
             .sortedWith(compareByDescending<SimilarExerciseRow> { it.similarity }.thenBy { it.exercise.name })
         return if (rows.isEmpty()) SimilarState.Empty else SimilarState.Content(rows)

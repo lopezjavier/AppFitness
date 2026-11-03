@@ -20,6 +20,7 @@ import androidx.compose.ui.test.getUnclippedBoundsInRoot
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithTag
+import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performTextClearance
@@ -98,6 +99,7 @@ class ExerciseManagementScreenTest {
                 LoadExerciseCatalog(repository, library),
                 repository,
                 sessions,
+                FakeFavoriteExercisesRepository(),
                 connectivity,
             )
         rule.setContent {
@@ -122,11 +124,22 @@ class ExerciseManagementScreenTest {
         return vm
     }
 
+    private fun openOverflow() {
+        rule.onNodeWithTag("exercise_detail_more").performClick()
+        rule.waitForIdle()
+    }
+
+    private fun deleteFromOverflow() {
+        openOverflow()
+        rule.onNodeWithTag("action_sheet_row_1").performClick()
+    }
+
     private fun showPicker(): ExercisePickerViewModel {
         val vm = ExercisePickerViewModel(
             LoadExerciseCatalog(repository, library),
             SearchExercises(),
             repository,
+            FakeFavoriteExercisesRepository(),
             FakeConnectivityObserver(),
             false,
         )
@@ -198,12 +211,14 @@ class ExerciseManagementScreenTest {
         rule.onAllNodesWithText("Press Hammer").assertCountEquals(1)
         rule.onNodeWithTag("exercise_detail_edit").assertHasClickAction()
             .assertContentDescriptionEquals("Editar Press Hammer")
-        rule.onNodeWithTag("exercise_detail_delete").assertHasClickAction()
-            .assertContentDescriptionEquals("Eliminar Press Hammer")
-        listOf("exercise_detail_edit", "exercise_detail_delete").forEach {
+        listOf("exercise_detail_favorite", "exercise_detail_edit", "exercise_detail_more").forEach {
             val bounds = rule.onNodeWithTag(it).getUnclippedBoundsInRoot()
             assertTrue(bounds.width >= 48.dp && bounds.height >= 48.dp)
         }
+        // With the star first, delete is the third action and sits in the overflow sheet.
+        rule.onNodeWithTag("exercise_detail_delete").assertDoesNotExist()
+        openOverflow()
+        rule.onNodeWithText("Eliminar Press Hammer").assertExists()
     }
 
     @Test
@@ -213,8 +228,9 @@ class ExerciseManagementScreenTest {
         listOf("exercise_detail_tab_history", "exercise_detail_tab_how_to", "exercise_detail_tab_summary").forEach {
             rule.onNodeWithTag(it).performClick()
             rule.waitForIdle()
+            rule.onNodeWithTag("exercise_detail_favorite").assertIsEnabled()
             rule.onNodeWithTag("exercise_detail_edit").assertIsEnabled()
-            rule.onNodeWithTag("exercise_detail_delete").assertIsEnabled()
+            rule.onNodeWithTag("exercise_detail_more").assertIsEnabled()
         }
     }
 
@@ -314,7 +330,7 @@ class ExerciseManagementScreenTest {
     @Test
     fun deletingAnUnusedManualExercise_happensAtOnce_withNoDialog_andLeavesTheScreen() {
         showDetail("mine")
-        rule.onNodeWithTag("exercise_detail_delete").performClick()
+        deleteFromOverflow()
         rule.waitUntil { closed == 1 }
 
         assertEquals(listOf("cat"), repository.rows.map { it.id })
@@ -328,28 +344,28 @@ class ExerciseManagementScreenTest {
     fun deletingAnExerciseInUse_showsTheBlockedMessage_staysOnTheScreen_andRejects() {
         repository.deleteFailure = AppError.InUse(sets = 3, routines = 1)
         showDetail("mine")
-        rule.onNodeWithTag("exercise_detail_delete").performClick()
+        deleteFromOverflow()
         rule.waitUntil { messages.shown.isNotEmpty() }
 
         assertEquals(listOf("No se puede eliminar: lo usan 3 series y 1 rutina."), messages.shown)
         haptics.assertSingle(HapticEvent.Reject)
         assertEquals(0, closed)
         assertEquals(2, repository.rows.size)
-        rule.onNodeWithTag("exercise_detail_delete").assertIsEnabled()
+        rule.onNodeWithTag("exercise_detail_more").assertIsEnabled()
     }
 
     @Test
     fun aFailedDelete_showsTheErrorMessage_rejects_andCanBeRetried() {
         repository.deleteFailure = AppError.Network
         showDetail("mine")
-        rule.onNodeWithTag("exercise_detail_delete").performClick()
+        deleteFromOverflow()
         rule.waitUntil { messages.shown.isNotEmpty() }
 
         assertEquals(listOf("No se pudo eliminar. Inténtalo de nuevo."), messages.shown)
         haptics.assertSingle(HapticEvent.Reject)
         assertEquals(0, closed)
         repository.deleteFailure = null
-        rule.onNodeWithTag("exercise_detail_delete").performClick()
+        deleteFromOverflow()
         rule.waitUntil { closed == 1 }
 
         assertEquals(1, closed)
@@ -362,10 +378,11 @@ class ExerciseManagementScreenTest {
 
         rule.onNodeWithTag("exercise_detail_edit").assertIsNotEnabled()
             .assertContentDescriptionEquals("Editar Press Hammer")
-        rule.onNodeWithTag("exercise_detail_delete").assertIsNotEnabled()
-            .assertContentDescriptionEquals("Eliminar Press Hammer")
+        openOverflow()
+        rule.onNodeWithTag("action_sheet_row_1").assertIsNotEnabled()
         rule.onNodeWithTag("exercise_detail_offline_hint").assertTextEquals("Sin conexión: no se puede eliminar")
-        rule.onNodeWithTag("exercise_detail_delete").performClick()
+        openOverflow()
+        rule.onNodeWithTag("action_sheet_row_1").performClick()
         assertEquals(0, repository.deleteCalls)
     }
 

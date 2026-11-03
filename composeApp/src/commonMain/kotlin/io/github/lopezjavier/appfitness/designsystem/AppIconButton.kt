@@ -5,6 +5,7 @@ package io.github.lopezjavier.appfitness.designsystem
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.selection.toggleable
 import androidx.compose.material3.Badge
 import androidx.compose.material3.BadgedBox
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -25,8 +26,11 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.semantics.testTag
 import io.github.lopezjavier.appfitness.composeapp.resources.Res
+import io.github.lopezjavier.appfitness.composeapp.resources.favourite_state_off
+import io.github.lopezjavier.appfitness.composeapp.resources.favourite_state_on
 import io.github.lopezjavier.appfitness.composeapp.resources.notifications_badge_overflow
 import org.jetbrains.compose.resources.DrawableResource
 import org.jetbrains.compose.resources.painterResource
@@ -60,6 +64,8 @@ private fun CountBadge(count: Int) {
  * A disabled button is inert and its icon is dimmed to `ghostData`. Long press shows the description as a tooltip.
  * [badgeCount] above zero draws a count badge on the icon ("9+" past [AppIconButtonDefaults.MAX_BADGE_COUNT]); the
  * caller puts the exact count in [contentDescription], the badge itself is hidden from accessibility.
+ * A non-null [toggled] makes it the favourite star (T-204): checkbox semantics with the state "Favorito" /
+ * "No es favorito", the star icon of [FavouriteToggleDefaults] and its tint; [icon] and [tint] are then ignored.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -72,22 +78,37 @@ fun AppIconButton(
     enabled: Boolean = true,
     tint: Color = AppTheme.colors.textPrimary,
     badgeCount: Int = 0,
+    toggled: Boolean? = null,
 ) {
+    val glyphIcon = if (toggled != null) FavouriteToggleDefaults.icon(toggled) else icon
+    val glyphTint = if (toggled != null) FavouriteToggleDefaults.tint(toggled, enabled, AppTheme.colors) else tint
+    val stateText = toggled?.let {
+        stringResource(if (it) Res.string.favourite_state_on else Res.string.favourite_state_off)
+    }
     val button: @Composable () -> Unit = {
         Box(
             modifier
                 .size(AppTopBarDefaults.NavigationTouchTarget)
                 .clip(AppShapes.full)
-                .clickable(enabled = enabled, role = Role.Button, onClick = onClick)
-                .semantics { this.contentDescription = contentDescription }
+                .let {
+                    if (toggled == null) {
+                        it.clickable(enabled = enabled, role = Role.Button, onClick = onClick)
+                    } else {
+                        it.toggleable(value = toggled, enabled = enabled, role = Role.Checkbox) { onClick() }
+                    }
+                }
+                .semantics {
+                    this.contentDescription = contentDescription
+                    stateText?.let { stateDescription = it }
+                }
                 .testTag(testTag),
             contentAlignment = Alignment.Center,
         ) {
             val glyph: @Composable () -> Unit = {
                 Icon(
-                    painter = painterResource(icon),
+                    painter = painterResource(glyphIcon),
                     contentDescription = null,
-                    tint = if (enabled) tint else AppTheme.colors.ghostData,
+                    tint = if (enabled) glyphTint else AppTheme.colors.ghostData,
                     modifier = Modifier.size(AppTopBarDefaults.NavigationIconSize),
                 )
             }

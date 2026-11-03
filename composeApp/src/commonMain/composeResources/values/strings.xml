@@ -212,7 +212,6 @@
     <string name="action_retry">Reintentar</string>
     <string name="catalog_topbar_sample_title">Rutina</string>
     <string name="catalog_topbar_sample_subtitle">Día de empuje</string>
-    <string name="catalog_topbar_action_favourite">Favorito</string>
     <string name="catalog_section_screen">Pantalla (AppScreen)</string>
     <string name="catalog_screen_sample_body">Contenido de la pantalla</string>
     <string name="catalog_screen_sample_footer">Continuar</string>
@@ -913,8 +912,11 @@
     <string name="food_offline_message">Necesitas conexión para buscar alimentos</string>
     <string name="food_kcal_per_100_g">%1$s kcal / 100 g</string>
     <string name="food_kcal_per_100_ml">%1$s kcal / 100 ml</string>
-    <string name="food_favourite_add_cd">Añadir a favoritos</string>
-    <string name="food_favourite_remove_cd">Quitar de favoritos</string>
+    <string name="favourite_add_cd">Añadir a favoritos</string>
+    <string name="favourite_remove_cd">Quitar de favoritos</string>
+    <string name="favourite_state_on">Favorito</string>
+    <string name="favourite_state_off">No es favorito</string>
+    <string name="exercise_favourite_failed">No se pudo actualizar el favorito. Inténtalo de nuevo.</string>
     <string name="add_food_nutrition_per_100_g">Por 100 g</string>
     <string name="add_food_nutrition_per_100_ml">Por 100 ml</string>
     <string name="micronutrients_title">Información nutricional adicional</string>

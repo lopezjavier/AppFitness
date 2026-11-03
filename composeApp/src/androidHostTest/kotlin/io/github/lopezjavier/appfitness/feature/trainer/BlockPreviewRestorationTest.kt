@@ -21,6 +21,7 @@ import io.github.lopezjavier.appfitness.domain.model.CoachBlock
 import io.github.lopezjavier.appfitness.domain.model.ExerciseAlternative
 import io.github.lopezjavier.appfitness.feature.exercises.FakeExerciseLibrary
 import io.github.lopezjavier.appfitness.feature.exercises.FakeExerciseRepository
+import io.github.lopezjavier.appfitness.feature.exercises.FakeFavoriteExercisesRepository
 import io.github.lopezjavier.appfitness.feature.exercises.exerciseInfo
 import io.github.lopezjavier.appfitness.feature.exercises.exerciseRow
 import io.github.lopezjavier.appfitness.feature.workout.MutableClock
@@ -53,6 +54,7 @@ class BlockPreviewRestorationTest {
         ),
         MutableClock(),
         prefs,
+        FakeFavoriteExercisesRepository(),
         handle,
     )
 
@@ -167,6 +169,7 @@ class BlockPreviewRestorationTest {
             ),
             MutableClock(),
             prefs,
+            FakeFavoriteExercisesRepository(),
             handle,
         )
     }
