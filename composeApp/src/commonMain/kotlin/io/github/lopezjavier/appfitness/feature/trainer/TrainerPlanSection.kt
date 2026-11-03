@@ -15,6 +15,8 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.Role
 import io.github.lopezjavier.appfitness.composeapp.resources.Res
 import io.github.lopezjavier.appfitness.composeapp.resources.action_accept
+import io.github.lopezjavier.appfitness.composeapp.resources.action_cancel
+import io.github.lopezjavier.appfitness.composeapp.resources.action_delete
 import io.github.lopezjavier.appfitness.composeapp.resources.action_discard
 import io.github.lopezjavier.appfitness.composeapp.resources.calorie_change_accept_offline
 import io.github.lopezjavier.appfitness.composeapp.resources.calorie_change_data
@@ -29,6 +31,10 @@ import io.github.lopezjavier.appfitness.composeapp.resources.trainer_block_creat
 import io.github.lopezjavier.appfitness.composeapp.resources.trainer_block_create_action
 import io.github.lopezjavier.appfitness.composeapp.resources.trainer_block_proposed_supporting
 import io.github.lopezjavier.appfitness.composeapp.resources.trainer_block_proposed_title
+import io.github.lopezjavier.appfitness.composeapp.resources.trainer_block_remove
+import io.github.lopezjavier.appfitness.composeapp.resources.trainer_block_remove_action
+import io.github.lopezjavier.appfitness.composeapp.resources.trainer_block_remove_message
+import io.github.lopezjavier.appfitness.composeapp.resources.trainer_block_remove_title
 import io.github.lopezjavier.appfitness.composeapp.resources.trainer_block_saved_title
 import io.github.lopezjavier.appfitness.composeapp.resources.trainer_deload_data
 import io.github.lopezjavier.appfitness.composeapp.resources.trainer_deload_payload
@@ -48,6 +54,7 @@ import io.github.lopezjavier.appfitness.composeapp.resources.trainer_plan_replac
 import io.github.lopezjavier.appfitness.composeapp.resources.trainer_plan_section
 import io.github.lopezjavier.appfitness.composeapp.resources.trainer_source_edited
 import io.github.lopezjavier.appfitness.designsystem.AppCard
+import io.github.lopezjavier.appfitness.designsystem.AppConfirmDialog
 import io.github.lopezjavier.appfitness.designsystem.AppNumberFormat
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
 import io.github.lopezjavier.appfitness.designsystem.CoachProposalCard
@@ -78,6 +85,8 @@ internal fun BlockSection(
     online: Boolean,
     onOpenBlock: (String) -> Unit,
     onOpenBeforeStart: (BeforeStartMode, String?, String?) -> Unit,
+    removeBlockConfirm: Boolean = false,
+    onEvent: (TrainerEvent) -> Unit = {},
 ) {
     val planId = when (plan) {
         is PlanSummary.Proposed -> plan.plan.id
@@ -112,13 +121,40 @@ internal fun BlockSection(
             )
         }
 
-        is BlockSummary.Saved -> AppCard(Modifier.fillMaxWidth().testTag("trainer_block_card")) {
-            Text(
-                text = stringResource(Res.string.trainer_block_saved_title),
-                style = AppTheme.typography.titleMedium,
-                color = AppTheme.colors.textPrimary,
-            )
+        is BlockSummary.Saved -> {
+            AppCard(Modifier.fillMaxWidth().testTag("trainer_block_card")) {
+                Text(
+                    text = stringResource(Res.string.trainer_block_saved_title),
+                    style = AppTheme.typography.titleMedium,
+                    color = AppTheme.colors.textPrimary,
+                )
+            }
+            SavedBlockActions(online, removeBlockConfirm, onEvent)
         }
+    }
+}
+
+/** "Eliminar bloque" under the saved block card (R-19), with its confirmation (R-08). */
+@Composable
+private fun SavedBlockActions(online: Boolean, removeBlockConfirm: Boolean, onEvent: (TrainerEvent) -> Unit) {
+    GhostButton(
+        text = stringResource(Res.string.trainer_block_remove),
+        onClick = { onEvent(TrainerEvent.RequestRemoveBlock) },
+        modifier = Modifier.fillMaxWidth().testTag("trainer_remove_block"),
+        enabled = online,
+        tone = GhostTone.Destructive,
+    )
+    if (!online) OfflineHint(stringResource(Res.string.trainer_block_remove_action))
+    if (removeBlockConfirm) {
+        AppConfirmDialog(
+            title = stringResource(Res.string.trainer_block_remove_title),
+            message = stringResource(Res.string.trainer_block_remove_message),
+            confirmLabel = stringResource(Res.string.action_delete),
+            cancelLabel = stringResource(Res.string.action_cancel),
+            onConfirm = { onEvent(TrainerEvent.ConfirmRemoveBlock) },
+            onDismiss = { onEvent(TrainerEvent.DismissRemoveBlock) },
+            testTagPrefix = "trainer_remove_block_dialog",
+        )
     }
 }
 

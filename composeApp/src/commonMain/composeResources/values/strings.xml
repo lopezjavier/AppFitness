@@ -2019,6 +2019,11 @@
     <string name="trainer_block_proposed_title">Bloque propuesto</string>
     <string name="trainer_block_proposed_supporting">Revísalo y guárdalo en Entreno.</string>
     <string name="trainer_block_saved_title">Bloque guardado</string>
+    <string name="trainer_block_remove">Eliminar bloque</string>
+    <string name="trainer_block_remove_action">eliminar el bloque</string>
+    <string name="trainer_block_remove_title">¿Eliminar el bloque?</string>
+    <string name="trainer_block_remove_message">Tus rutinas se quedan en Entreno. Tu plan de comida no cambia.</string>
+    <string name="trainer_block_remove_error">No se pudo eliminar el bloque. Inténtalo de nuevo.</string>
     <string name="block_preview_title">Bloque de entrenamiento</string>
     <string name="block_preview_progress">Preparando tu bloque…</string>
     <string name="block_preview_progress_cd">Preparando tu bloque</string>
