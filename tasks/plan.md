@@ -172,7 +172,7 @@ Each checkpoint also has "leave the app and come back: the same tab, screen and 
   - **Checkpoint E13-D 👤 re-presented** (rewritten 2026-11-03, 6 items: intake rows, "Para conocerte" and what the coach reads, exercise names, phase and options, calories and activity, equipment and alternatives with Perfil/Peso; the block items moved to E13-H)
 
 ### Phase 2c': How the coach builds blocks (US-72 am., US-93…US-96; T-202 replan 2026-11-03)
-- [ ] T-203: "Eliminar bloque" — M (E13 Q54 first)
+- [x] T-203: "Eliminar bloque" — M (E13 Q54 first)
 - [ ] T-204: Favourite exercises — M
 - [ ] T-205: The model builds the block; one routine checker; `shoulder_abduction` (backend) — L
 - [ ] T-206: Split options and the new block preview (UI) — L
