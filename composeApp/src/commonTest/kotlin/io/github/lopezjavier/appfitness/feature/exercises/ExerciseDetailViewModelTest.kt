@@ -230,6 +230,22 @@ class ExerciseDetailViewModelTest {
     }
 
     @Test
+    fun similar_isNotFilteredByEquipment_showsEveryAlternativeTheRepositoryReturns() = runTest {
+        withAlternatives()
+        val vm = viewModel()
+        loaded(vm)
+
+        vm.selectTab(ExerciseDetailTab.Similar)
+        val content = assertIs<SimilarState.Content>(loaded(vm).similar)
+
+        assertEquals(
+            setOf(Equipment.BandLong, Equipment.Cable),
+            content.rows.map { it.exercise.exercise.equipment }.toSet(),
+        )
+        assertEquals(3, content.rows.size)
+    }
+
+    @Test
     fun similar_loadsOnlyOnce_acrossTabSwitches() = runTest {
         withAlternatives()
         val vm = viewModel()

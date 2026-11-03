@@ -1,6 +1,7 @@
 package io.github.lopezjavier.appfitness.feature.trainer
 
 import androidx.lifecycle.SavedStateHandle
+import io.github.lopezjavier.appfitness.app.FakeTrainingPreferencesRepository
 import io.github.lopezjavier.appfitness.domain.model.BlockCardio
 import io.github.lopezjavier.appfitness.domain.model.BlockEdit
 import io.github.lopezjavier.appfitness.domain.model.BlockExercise
@@ -93,8 +94,15 @@ class BlockPreviewCardioTest {
         }
     }
 
-    private fun viewModel() =
-        BlockPreviewViewModel("plan-1", blocks, exercises, library, MutableClock(), SavedStateHandle())
+    private fun viewModel() = BlockPreviewViewModel(
+        "plan-1",
+        blocks,
+        exercises,
+        library,
+        MutableClock(),
+        FakeTrainingPreferencesRepository(),
+        SavedStateHandle(),
+    )
 
     private fun BlockPreviewViewModel.preview() = assertIs<BlockPreviewUiState.Preview>(uiState.value)
 
