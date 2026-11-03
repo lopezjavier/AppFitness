@@ -1,15 +1,8 @@
-// Cardio in the block (T-182, planning/04 sections 9.4 and 9.11): split, skeleton, candidates and swap list.
-import { assert, assertEquals, assertThrows } from "jsr:@std/assert@1.0.19";
-import { buildSkeleton, splitCardio } from "./blockRules.ts";
+// Cardio in the block (T-182, planning/04 sections 9.4 and 9.11): split, candidates and swap list.
+import { assert, assertEquals } from "jsr:@std/assert@1.0.19";
+import { splitCardio } from "./blockRules.ts";
+import { cardio, cardioCatalog, ex } from "./blockFixtures.ts";
 import {
-    cardio,
-    cardioCatalog,
-    ex,
-    fullCatalog,
-    prefs,
-} from "./blockFixtures.ts";
-import {
-    buildCandidates,
     candidateKey,
     cardioDefaultCandidates,
     cardioEquipmentAllowed,
@@ -17,11 +10,7 @@ import {
     isCardioEligible,
     resolvedEquipment,
 } from "./candidates.ts";
-import { CoachInputError } from "./context.ts";
 import type { CatalogExercise } from "./schemas.ts";
-
-const slotsOf = (sk: ReturnType<typeof buildSkeleton>) =>
-    sk.sessions.map((s) => s.slots);
 
 Deno.test("splitCardio: whole 5-minute units, remainder to the first routines", () => {
     assertEquals(splitCardio(150, 3), {
@@ -64,45 +53,6 @@ Deno.test("splitCardio: planned plus on your own is the target and no routine pa
             assertEquals(s.per_routine.reduce((a, b) => a + b, 0), s.planned);
             assert(s.per_routine.every((m) => m % 5 === 0 && m <= 60));
         }
-    }
-});
-
-Deno.test("the cardio never changes the lifting skeleton (days 1-7, lengths 30-90)", () => {
-    for (let d = 1; d <= 7; d++) {
-        for (const m of [30, 45, 60, 90]) {
-            const base = { days_per_week: d, session_minutes: m };
-            const without = buildSkeleton(
-                prefs({ ...base, cardio_min_week: 0 }),
-            );
-            const withCardio = buildSkeleton(
-                prefs({ ...base, cardio_min_week: 150 }),
-            );
-            assertEquals(slotsOf(withCardio), slotsOf(without));
-            assertEquals(
-                withCardio.sessions.map((s) => s.name),
-                without.sessions.map((s) => s.name),
-            );
-        }
-    }
-});
-
-Deno.test("the skeleton has a cardio slot per routine with minutes, none for a zero share, and no warm-up slot", () => {
-    const sk = buildSkeleton(prefs({ days_per_week: 3, cardio_min_week: 150 }));
-    assertEquals(sk.sessions.map((s) => s.cardio), [
-        { slot_id: "s1.cardio", minutes: 50 },
-        { slot_id: "s2.cardio", minutes: 50 },
-        { slot_id: "s3.cardio", minutes: 50 },
-    ]);
-    assertEquals(sk.cardio, {
-        target_min_week: 150,
-        planned_min_week: 150,
-        on_your_own_min: 0,
-        per_routine_min: [50, 50, 50],
-    });
-    const few = buildSkeleton(prefs({ days_per_week: 3, cardio_min_week: 10 }));
-    assertEquals(few.sessions.map((s) => s.cardio?.minutes), [5, 5, undefined]);
-    for (const s of sk.sessions) {
-        assert(!JSON.stringify(s).toLowerCase().includes("warm"));
     }
 });
 
@@ -228,20 +178,4 @@ Deno.test("resolvedEquipment: nothing selected outside a gym means bodyweight; a
     assertEquals(resolvedEquipment(home([])), ["bodyweight"]);
     assertEquals(resolvedEquipment({ place: "gym", equipment: [] }), []);
     assertEquals(resolvedEquipment(home(["dumbbell"])), ["dumbbell"]);
-});
-
-Deno.test("buildCandidates adds one cardio candidate per cardio slot; none to place is infeasible", () => {
-    const p = prefs({ days_per_week: 3 });
-    const sk = buildSkeleton(p);
-    const map = buildCandidates(fullCatalog(), p, sk);
-    for (const s of sk.sessions) {
-        assertEquals(keys(map.get(s.cardio!.slot_id)!), ["stationary-bike"]);
-    }
-    const noCardio = fullCatalog().filter((e) =>
-        e.movement_pattern !== "cardio"
-    );
-    assertThrows(() => buildCandidates(noCardio, p, sk), CoachInputError);
-    // Target 0: no cardio slot, so no cardio exercise is needed.
-    const zero = prefs({ days_per_week: 3, cardio_min_week: 0 });
-    buildCandidates(noCardio, zero, buildSkeleton(zero));
 });

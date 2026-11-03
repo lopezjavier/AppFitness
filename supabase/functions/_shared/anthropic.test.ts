@@ -229,3 +229,35 @@ Deno.test("completeValidated gives InvalidOutputError after the retry, with both
     assertEquals(calls(), 2);
     assertEquals(err.usage.outputTokens, 10);
 });
+
+Deno.test("completeValidated appends the feedback to the prompt of the retry only", async () => {
+    const prompts: string[] = [];
+    const client: AnthropicClient = {
+        async *stream(request) {
+            prompts.push(request.prompt);
+            yield { type: "delta", text: prompts.length === 1 ? "x" : "{}" };
+            yield { type: "usage", usage: { ...NO_USAGE, inputTokens: 1 } };
+            yield { type: "done" };
+        },
+    };
+    await completeValidated(client, REQUEST, parseJson, undefined, {
+        feedback: () => "FIX: h4_rep_range",
+    });
+    assertEquals(prompts[0], REQUEST.prompt);
+    assertEquals(prompts[1], `${REQUEST.prompt}\n\nFIX: h4_rep_range`);
+});
+
+Deno.test("completeValidated does not start a retry after the allowed time and still charges the attempt", async () => {
+    const { client, calls } = textClient(["nope", '{"a":2}']);
+    let t = 0;
+    const err = await assertRejects(
+        () =>
+            completeValidated(client, REQUEST, parseJson, undefined, {
+                maxRetryStartMs: 40_000,
+                now: () => (t += 50_000),
+            }),
+        InvalidOutputError,
+    );
+    assertEquals(calls(), 1);
+    assertEquals(err.usage.inputTokens, 10);
+});

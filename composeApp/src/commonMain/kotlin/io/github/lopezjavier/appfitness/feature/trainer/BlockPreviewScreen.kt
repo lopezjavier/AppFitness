@@ -26,7 +26,6 @@ import io.github.lopezjavier.appfitness.composeapp.resources.block_frequency_cho
 import io.github.lopezjavier.appfitness.composeapp.resources.block_preview_cardio_own
 import io.github.lopezjavier.appfitness.composeapp.resources.block_preview_error
 import io.github.lopezjavier.appfitness.composeapp.resources.block_preview_interrupted
-import io.github.lopezjavier.appfitness.composeapp.resources.block_preview_minimal_label
 import io.github.lopezjavier.appfitness.composeapp.resources.block_preview_progress
 import io.github.lopezjavier.appfitness.composeapp.resources.block_preview_progress_cd
 import io.github.lopezjavier.appfitness.composeapp.resources.block_preview_title
@@ -39,14 +38,12 @@ import io.github.lopezjavier.appfitness.composeapp.resources.block_sets_count
 import io.github.lopezjavier.appfitness.composeapp.resources.block_sets_header
 import io.github.lopezjavier.appfitness.composeapp.resources.block_sets_row
 import io.github.lopezjavier.appfitness.composeapp.resources.block_week_tab
-import io.github.lopezjavier.appfitness.composeapp.resources.phase_help_minimal
 import io.github.lopezjavier.appfitness.designsystem.AppCard
 import io.github.lopezjavier.appfitness.designsystem.AppListRow
 import io.github.lopezjavier.appfitness.designsystem.AppOption
 import io.github.lopezjavier.appfitness.designsystem.AppScreen
 import io.github.lopezjavier.appfitness.designsystem.AppTabRow
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
-import io.github.lopezjavier.appfitness.designsystem.InlineNote
 import io.github.lopezjavier.appfitness.designsystem.ListSectionHeader
 import io.github.lopezjavier.appfitness.designsystem.LocalAppHaptics
 import io.github.lopezjavier.appfitness.designsystem.LocalAppMessages
@@ -192,7 +189,6 @@ private fun PreviewContent(
         contentPadding = PaddingValues(Spacing.screenMargin),
         verticalArrangement = Arrangement.spacedBy(Spacing.blockGap),
     ) {
-        if (state.minimal) item(key = "minimal") { MinimalNote() }
         item(key = "frequency") { FrequencyLine(training) }
         if (training.weeklySets.isNotEmpty()) {
             item(key = "sets") { SetsSection(training.weeklySets, training.sessionsPerMuscle) }
@@ -239,22 +235,6 @@ private fun PreviewContent(
             title = state.exerciseNames.getValue(exercise.exerciseId),
             reason = exercise.reason,
             onDismiss = { onEvent(BlockPreviewEvent.CloseReason) },
-        )
-    }
-}
-
-/** The "Mínimo" phase label and its explanation, for a block requested with "Tengo poco tiempo". */
-@Composable
-private fun MinimalNote() {
-    Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-        Text(
-            text = stringResource(Res.string.block_preview_minimal_label),
-            style = AppTheme.typography.titleMedium,
-            color = AppTheme.colors.textPrimary,
-        )
-        InlineNote(
-            text = stringResource(Res.string.phase_help_minimal),
-            testTag = "block_preview_minimal_note",
         )
     }
 }

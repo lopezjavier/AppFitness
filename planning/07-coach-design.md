@@ -357,7 +357,8 @@ Prices re-checked on the Anthropic price list on 2026-11-01: Opus 5.5 $4 / $20, 
 
 | Use | Model | Assumption per call | Per call | Per user and month |
 |---|---|---|---|---|
-| Block plan | Opus 5.5 | 30k in, 15k out (with thinking); 2 per month | ≈ $0.42 | ≈ $0.85 |
+| Split options (`block_splits`, T-205) | Sonnet 5.5 | 2k in, 1k out | ≈ $0.02 | ≈ $0.04 |
+| Block plan (`plan_block`, T-205: the model builds the whole block) | Opus 5.5 | about 15k in (cap 48 000 bytes), up to 7k out; 2 per month; a failed retry doubles the call, every attempt is charged | ≈ $0.15-0.20 (retry ≈ $0.35) | ≈ $0.40 |
 | Weekly report | Sonnet 5.5 | 20k in, 5k out; up to 8 per month | ≈ $0.09 | ≈ $0.70 |
 | Chat | Sonnet 5.5 | 15k in (12k cached), 1.5k out; 60 messages | ≈ $0.024 | ≈ $1.45 |
 | Intake extraction (T-185, removed by T-198) | — | no model call | — | — |

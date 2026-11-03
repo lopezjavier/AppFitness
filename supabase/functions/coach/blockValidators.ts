@@ -1,25 +1,20 @@
-// Validation of the model's picks for the training block and the final invariants of the assembled block
-// (planning/04 section 9). Pure: no I/O. The nutrition validators live in validators.ts.
+// Validation of the model's block (T-205): the JSON shape, the grounding rules of planning/04 section 9.7 (D7), then the
+// one routine checker. Plus the assembly of the stored block and its final invariants. Pure: no I/O. The nutrition
+// validators live in validators.ts.
 import {
     CARDIO_PACE,
     CARDIO_ROUTINE_CAP_MIN,
-    CARDIO_ROUTINE_CAP_MINIMAL_MIN,
     CARDIO_TARGET_MAX,
     CARDIO_UNIT_MIN,
-    exercisesPerSession,
     isMainLift,
-    ISOLATION_PATTERNS,
-    MINIMAL_SENIOR_AGE,
-    requiredGroups,
-    REST,
     sessionsPerMuscle,
     splitCardio,
-    STRENGTH_RANGES,
     weeklySetsByMuscle,
 } from "./blockRules.ts";
 import {
     candidateKey,
     cardioEquipmentAllowed,
+    type EligibleCatalogue,
     equipmentAllowed,
     isCardioEligible,
     resolvedEquipment,
@@ -29,12 +24,24 @@ import {
     type BlockCardioExercise,
     type BlockExercise,
     type BlockPrefs,
-    type BlockSkeleton,
+    type BlockSession,
+    type BlockSet,
+    type BlockTraining,
     type CatalogExercise,
     isCardioExercise,
     isLifting,
-    type ModelBlockPick,
+    type ModelBlock,
+    type ModelExercise,
+    type MuscleGroup,
+    type Phase,
+    type Split,
 } from "./schemas.ts";
+import {
+    type CheckerInput,
+    type CheckerRoutine,
+    checkRoutines,
+    MAX_SETS_PER_EXERCISE,
+} from "./routineChecker.ts";
 import {
     isRecord,
     mentionsCardioReduction,
@@ -54,133 +61,389 @@ const validReason = (r: unknown): r is string => {
         !mentionsCardioReduction(t);
 };
 
-/**
- * The picks of one model answer, or null when it breaks any rule (which triggers the single retry). It covers
- * the sessions in `sessionIndexes` (all when omitted): every slot is answered exactly once with a key among
- * that slot's candidates, and an exercise is used once per session.
- */
-export function validateBlockText(
+/** One reason of the model's block; the prompt asks for 160 characters, the validator accepts the stored bound. */
+export const TECHNIQUE_NOTE_MAX = 200;
+export const SUPERSET_GROUP_MAX = 20;
+export const PLANNED_WEIGHT_MAX_KG = 1000;
+
+/** What the validators know besides the text: the user's inputs and what the model was shown. */
+export type BlockValidationContext = {
+    prefs: Pick<BlockPrefs, "intention" | "place" | "equipment" | "age">;
+    days: number;
+    minutes: number;
+    eligible: EligibleCatalogue;
+    /** Keys of exercises with an unresolved level 4-5 discomfort (never in the catalogue). */
+    excludedKeys: string[];
+    /** Exercise keys present in the history the model saw. */
+    history: Set<string>;
+    hasPrevious: boolean;
+    /** Planned cardio minutes per routine (04 section 9.11). */
+    cardioPerRoutine: number[];
+};
+
+export type Failure = { code: string; [k: string]: unknown };
+
+export type ModelBlockResult = {
+    /** The parsed block, or null when anything failed. */
+    block: ModelBlock | null;
+    failures: Failure[];
+    /** Non-blocking notes of the checker (e.g. "below_recommended"). */
+    notes: string[];
+};
+
+const EXERCISE_KEYS = [
+    "exercise_key",
+    "sets",
+    "reason",
+    "superset_group",
+    "planned_weight_kg",
+    "technique_note",
+];
+const SET_KEYS = ["n", "type", "rep_min", "rep_max", "rpe", "rest_seconds"];
+
+const isInt = (v: unknown): v is number =>
+    typeof v === "number" && Number.isInteger(v);
+
+/** Parses the model's text into a block, or the shape failures that refuse it. */
+function parseModelBlock(
     text: string,
-    skeleton: BlockSkeleton,
-    candidates: Map<string, CatalogExercise[]>,
-    sessionIndexes?: number[],
-): ModelBlockPick[] | null {
+    days: number,
+): { block: ModelBlock | null; failures: Failure[] } {
+    const failures: Failure[] = [];
+    const shape = (path: string) => failures.push({ code: "shape", path });
     const parsed = parseJson(text);
-    if (!isRecord(parsed) || !sameKeys(parsed, ["picks"])) return null;
-    const list = parsed.picks;
-    if (!Array.isArray(list)) return null;
-
-    // Lifting slots and cardio slots alike: every slot is answered exactly once.
-    const slots = new Map<string, { session: number }>();
-    for (const s of skeleton.sessions) {
-        if (sessionIndexes && !sessionIndexes.includes(s.session_index)) {
-            continue;
-        }
-        for (const slot of s.slots) {
-            slots.set(slot.slot_id, { session: s.session_index });
-        }
-        if (s.cardio) {
-            slots.set(s.cardio.slot_id, { session: s.session_index });
-        }
+    if (
+        !isRecord(parsed) ||
+        !sameKeys(parsed, [
+            "sessions",
+            "split_reason",
+            "changes_vs_last_block",
+        ]) ||
+        !Array.isArray(parsed.sessions) ||
+        typeof parsed.split_reason !== "string" ||
+        typeof parsed.changes_vs_last_block !== "string"
+    ) return { block: null, failures: [{ code: "shape", path: "root" }] };
+    if (parsed.sessions.length !== days) {
+        failures.push({
+            code: "h6_sessions",
+            expected: days,
+            actual: parsed.sessions.length,
+        });
+        return { block: null, failures };
     }
-    if (list.length !== slots.size) return null;
-
-    const answered = new Set<string>();
-    const usedInSession = new Set<string>();
-    const out: ModelBlockPick[] = [];
-    for (const item of list) {
+    const sessions: ModelBlock["sessions"] = [];
+    parsed.sessions.forEach((s, si) => {
+        const where = `sessions[${si}]`;
         if (
-            !isRecord(item) ||
-            !sameKeys(item, ["slot_id", "exercise_key", "reason"])
-        ) return null;
-        const { slot_id, exercise_key, reason } = item;
-        if (typeof slot_id !== "string" || typeof exercise_key !== "string") {
-            return null;
-        }
-        const target = slots.get(slot_id);
-        if (!target || answered.has(slot_id)) return null;
-        const options = candidates.get(slot_id) ?? [];
-        if (!options.some((e) => candidateKey(e) === exercise_key)) return null;
-        const used = `${target.session}:${exercise_key}`;
-        if (usedInSession.has(used)) return null;
-        if (!validReason(reason)) return null;
-        answered.add(slot_id);
-        usedInSession.add(used);
-        out.push({ slot_id, exercise_key, reason: reason.trim() });
-    }
-    return out;
+            !isRecord(s) ||
+            !sameKeys(s, ["session_index", "exercises", "cardio_reason"]) ||
+            s.session_index !== si + 1 || !Array.isArray(s.exercises) ||
+            s.exercises.length === 0 || typeof s.cardio_reason !== "string"
+        ) return shape(where);
+        const exercises: ModelExercise[] = [];
+        s.exercises.forEach((x, xi) => {
+            const at = `${where}.exercises[${xi}]`;
+            if (
+                !isRecord(x) ||
+                !Object.keys(x).every((k) => EXERCISE_KEYS.includes(k)) ||
+                typeof x.exercise_key !== "string" ||
+                typeof x.reason !== "string" || !Array.isArray(x.sets) ||
+                x.sets.length === 0 ||
+                ("superset_group" in x && !isInt(x.superset_group)) ||
+                ("planned_weight_kg" in x &&
+                    typeof x.planned_weight_kg !== "number") ||
+                ("technique_note" in x && typeof x.technique_note !== "string")
+            ) return shape(at);
+            const sets: BlockSet[] = [];
+            for (const g of x.sets as unknown[]) {
+                if (
+                    !isRecord(g) || !sameKeys(g, SET_KEYS) ||
+                    !isInt(g.n) || g.n < 1 || g.n > MAX_SETS_PER_EXERCISE ||
+                    (g.type !== "working" && g.type !== "drop") ||
+                    !isInt(g.rep_min) || !isInt(g.rep_max) || !isInt(g.rpe) ||
+                    !isInt(g.rest_seconds)
+                ) return shape(`${at}.sets`);
+                for (let i = 0; i < g.n; i++) {
+                    sets.push({
+                        type: g.type,
+                        rep_min: g.rep_min,
+                        rep_max: g.rep_max,
+                        rpe: g.rpe,
+                        rest_seconds: g.rest_seconds,
+                    });
+                }
+            }
+            exercises.push({
+                exercise_key: x.exercise_key,
+                sets,
+                reason: x.reason,
+                ...(isInt(x.superset_group)
+                    ? { superset_group: x.superset_group }
+                    : {}),
+                ...(typeof x.planned_weight_kg === "number"
+                    ? { planned_weight_kg: x.planned_weight_kg }
+                    : {}),
+                ...(typeof x.technique_note === "string"
+                    ? { technique_note: x.technique_note }
+                    : {}),
+            });
+        });
+        sessions.push({
+            session_index: si + 1,
+            exercises,
+            cardio_reason: s.cardio_reason,
+        });
+    });
+    if (failures.length > 0) return { block: null, failures };
+    return {
+        block: {
+            sessions,
+            split_reason: parsed.split_reason.trim(),
+            changes_vs_last_block: parsed.changes_vs_last_block.trim() === ""
+                ? null
+                : parsed.changes_vs_last_block.trim(),
+        },
+        failures,
+    };
 }
 
-/** Joins the skeleton and the picks into the block; the arithmetic (weekly sets, frequency) is the server's. */
-export function assembleBlock(
-    skeleton: BlockSkeleton,
-    picks: ModelBlockPick[],
-    candidates: Map<string, CatalogExercise[]>,
-    prefs: Pick<BlockPrefs, "equipment" | "place">,
-): Block {
-    const bySlot = new Map(picks.map((p) => [p.slot_id, p]));
-    const sessions = skeleton.sessions.map((s) => {
-        const lifting: BlockExercise[] = s.slots.map((slot) => {
-            const pick = bySlot.get(slot.slot_id)!;
-            const chosen = candidates.get(slot.slot_id)!.find((e) =>
-                candidateKey(e) === pick.exercise_key
-            )!;
+/**
+ * Judges a parsed block: the grounding rules of 04 section 9.7 (exercise inside the eligible list, once per routine,
+ * planned weight and technique note only where the history allows, reasons) and then the routine checker (H1-H7).
+ */
+export function checkModelBlock(
+    block: ModelBlock,
+    ctx: BlockValidationContext,
+): { failures: Failure[]; notes: string[] } {
+    const failures: Failure[] = [];
+    const byKey = new Map(
+        ctx.eligible.exercises.map((e) => [candidateKey(e), e]),
+    );
+    let notes = 0;
+
+    if (!validReason(block.split_reason)) {
+        failures.push({ code: "split_reason" });
+    }
+    if (ctx.hasPrevious) {
+        if (!validReason(block.changes_vs_last_block)) {
+            failures.push({ code: "changes_vs_last_block" });
+        }
+    }
+
+    let unknown = false;
+    const routines: CheckerRoutine[] = [];
+    block.sessions.forEach((s, si) => {
+        const seen = new Set<string>();
+        const exercises: CheckerRoutine["exercises"] = [];
+        for (const x of s.exercises) {
+            const row = byKey.get(x.exercise_key);
+            const where = { routine: si + 1, exercise_key: x.exercise_key };
+            if (!row) {
+                unknown = true;
+                failures.push({
+                    code: ctx.excludedKeys.includes(x.exercise_key)
+                        ? "h6_excluded_discomfort"
+                        : "unknown_exercise",
+                    ...where,
+                });
+                continue;
+            }
+            if (seen.has(x.exercise_key)) {
+                failures.push({ code: "duplicate_exercise", ...where });
+            }
+            seen.add(x.exercise_key);
+            if (!validReason(x.reason)) {
+                failures.push({ code: "reason", ...where });
+            }
+            if (x.planned_weight_kg !== undefined) {
+                if (!ctx.history.has(x.exercise_key)) {
+                    failures.push({
+                        code: "planned_weight_no_history",
+                        ...where,
+                    });
+                } else if (
+                    !(x.planned_weight_kg > 0) ||
+                    x.planned_weight_kg > PLANNED_WEIGHT_MAX_KG
+                ) failures.push({ code: "planned_weight", ...where });
+            }
+            if (x.technique_note !== undefined) {
+                notes++;
+                const t = x.technique_note.trim();
+                if (
+                    t.length < 1 || t.length > TECHNIQUE_NOTE_MAX ||
+                    ctx.history.has(x.exercise_key)
+                ) failures.push({ code: "technique_note", ...where });
+            }
+            if (
+                x.superset_group !== undefined &&
+                (x.superset_group < 1 || x.superset_group > SUPERSET_GROUP_MAX)
+            ) failures.push({ code: "superset_invalid", routine: si + 1 });
+            exercises.push({
+                exercise_key: x.exercise_key,
+                muscle_group: row.muscle_group,
+                secondary_muscles: row.secondary_muscles ?? [],
+                pattern: row.movement_pattern,
+                equipment: row.equipment,
+                sets: x.sets,
+                superset_group: x.superset_group ?? null,
+            });
+        }
+        if (
+            (ctx.cardioPerRoutine[si] ?? 0) > 0 &&
+            !validReason(s.cardio_reason)
+        ) failures.push({ code: "cardio_reason", routine: si + 1 });
+        routines.push({ name: `Rutina ${si + 1}`, exercises });
+    });
+    if (notes > 1) {
+        failures.push({ code: "technique_note_count", count: notes });
+    }
+
+    let checkerNotes: string[] = [];
+    if (!unknown) {
+        const input: CheckerInput = {
+            routines,
+            intention: ctx.prefs.intention,
+            days_per_week: ctx.days,
+            session_minutes: ctx.minutes,
+            equipment: ctx.prefs.equipment,
+            exclusions: ctx.excludedKeys,
+            age: ctx.prefs.age ?? null,
+            side_delta_available: ctx.eligible.exercises.some((e) =>
+                e.movement_pattern === "shoulder_abduction"
+            ),
+            knee_extension_available: ctx.eligible.exercises.some((e) =>
+                e.movement_pattern === "isolation" && e.muscle_group === "quads"
+            ),
+        };
+        const r = checkRoutines(input);
+        for (const f of r.failures) failures.push({ code: f.code, ...f.data });
+        checkerNotes = r.notes.map((n) => n.code);
+    }
+    return { failures, notes: checkerNotes };
+}
+
+/** The block of one model answer, or the failures that refuse it (which trigger the single retry). */
+export function validateModelBlock(
+    text: string,
+    ctx: BlockValidationContext,
+): ModelBlockResult {
+    const parsed = parseModelBlock(text, ctx.days);
+    if (parsed.block === null) {
+        return { block: null, failures: parsed.failures, notes: [] };
+    }
+    const checked = checkModelBlock(parsed.block, ctx);
+    return {
+        block: checked.failures.length === 0 ? parsed.block : null,
+        failures: checked.failures,
+        notes: checked.notes,
+    };
+}
+
+// --- Assembly ----------------------------------------------------------------------------------------------------
+
+export type AssembleArgs = {
+    model: ModelBlock;
+    split: Split;
+    eligible: EligibleCatalogue;
+    prefs: Pick<
+        BlockPrefs,
+        "intention" | "place" | "equipment" | "cardio_min_week"
+    >;
+    days: number;
+    sessionMinutes: number;
+    daysChosen: boolean;
+    phase: Phase;
+    blockWeeks: number;
+    cardio: { per_routine: number[]; planned: number; on_your_own: number };
+    /** The one cardio exercise the server chose; null when the weekly target plans no cardio. */
+    cardioExercise: CatalogExercise | null;
+};
+
+/** Joins the model's routines, the split names and the server's cardio into the stored block. */
+export function assembleBlock(a: AssembleArgs): Block {
+    const byKey = new Map(
+        a.eligible.exercises.map((e) => [candidateKey(e), e]),
+    );
+    const sessions: BlockSession[] = a.model.sessions.map((s, i) => {
+        const lifting: BlockExercise[] = s.exercises.map((x) => {
+            const row = byKey.get(x.exercise_key)!;
+            const working = x.sets.find((st) => st.type === "working") ??
+                x.sets[0];
             return {
-                exercise_id: chosen.id,
-                exercise_key: pick.exercise_key,
-                role: slot.role,
-                muscle_group: slot.muscle_group,
-                sets: slot.sets,
-                rep_min: slot.rep_min,
-                rep_max: slot.rep_max,
-                rest_seconds: slot.rest_seconds,
-                reason: pick.reason,
+                exercise_id: row.id,
+                exercise_key: x.exercise_key,
+                role: isMainLift(row.movement_pattern) ? "main" : "isolation",
+                muscle_group: row.muscle_group,
+                sets: x.sets.map((st) => ({ ...st })),
+                rep_min: Math.min(...x.sets.map((st) => st.rep_min)),
+                rep_max: Math.max(...x.sets.map((st) => st.rep_max)),
+                rest_seconds: working.rest_seconds,
+                target_rpe: working.rpe,
+                ...(x.superset_group !== undefined
+                    ? { superset_group: x.superset_group }
+                    : {}),
+                ...(x.planned_weight_kg !== undefined
+                    ? { planned_weight_kg: x.planned_weight_kg }
+                    : {}),
+                ...(x.technique_note !== undefined
+                    ? { technique_note: x.technique_note.trim() }
+                    : {}),
+                reason: x.reason.trim(),
             };
         });
         const exercises: (BlockExercise | BlockCardioExercise)[] = [...lifting];
-        if (s.cardio) {
-            const pick = bySlot.get(s.cardio.slot_id)!;
-            const chosen = candidates.get(s.cardio.slot_id)!.find((e) =>
-                candidateKey(e) === pick.exercise_key
-            )!;
+        const minutes = a.cardio.per_routine[i] ?? 0;
+        if (minutes > 0 && a.cardioExercise) {
             // Minutes and pace come from the server, never from the model.
             exercises.push({
-                exercise_id: chosen.id,
-                exercise_key: pick.exercise_key,
+                exercise_id: a.cardioExercise.id,
+                exercise_key: candidateKey(a.cardioExercise),
                 role: "cardio",
                 sets: 1,
-                duration_min: s.cardio.minutes,
+                duration_min: minutes,
                 pace: CARDIO_PACE,
-                reason: pick.reason,
+                reason: s.cardio_reason.trim(),
             });
         }
+        const planned = a.split.sessions[i];
         return {
-            session_index: s.session_index,
-            name: s.name,
-            focus: s.focus,
+            session_index: i + 1,
+            name: planned.name,
+            focus: planned.focus,
             exercises,
         };
     });
     const liftingOf = sessions.map((s) => s.exercises.filter(isLifting));
-    return {
-        training: {
-            phase: skeleton.phase,
-            days_per_week: skeleton.days_per_week,
-            days_chosen: skeleton.days_chosen,
-            session_minutes: skeleton.session_minutes,
-            rep_scheme: skeleton.rep_scheme,
-            block_weeks: skeleton.block_weeks,
-            equipment: resolvedEquipment(prefs),
-            weekly_sets: weeklySetsByMuscle(liftingOf.flat()),
-            sessions_per_muscle: sessionsPerMuscle(liftingOf),
-            cardio: { ...skeleton.cardio, pace: CARDIO_PACE },
-            routine_total_min: skeleton.cardio.per_routine_min.map((m) =>
-                skeleton.session_minutes + m
-            ),
+    const training: BlockTraining = {
+        phase: a.phase,
+        intention: a.prefs.intention,
+        days_per_week: a.days,
+        days_chosen: a.daysChosen,
+        session_minutes: a.sessionMinutes,
+        block_weeks: a.blockWeeks,
+        equipment: resolvedEquipment(a.prefs),
+        weekly_sets: weeklySetsByMuscle(
+            liftingOf.flat().map((e) => ({
+                muscle_group: e.muscle_group,
+                sets: e.sets.length,
+            })),
+        ),
+        sessions_per_muscle: sessionsPerMuscle(liftingOf),
+        cardio: {
+            target_min_week: a.prefs.cardio_min_week,
+            planned_min_week: a.cardio.planned,
+            on_your_own_min: a.cardio.on_your_own,
+            per_routine_min: a.cardio.per_routine,
+            pace: CARDIO_PACE,
         },
-        sessions,
+        routine_total_min: a.cardio.per_routine.map((m) =>
+            a.sessionMinutes + m
+        ),
     };
+    return { training, sessions };
 }
+
+// --- Final invariants ---------------------------------------------------------------------------------------------
 
 export class BlockInvariantError extends Error {
     constructor(readonly rule: string) {
@@ -205,14 +468,14 @@ const CARDIO_FORBIDDEN_FIELDS = [
 ];
 
 /**
- * Defensive final check of an assembled block (attach_coach_block repeats it in SQL, same rule names). Throws on
- * the first break.
+ * Defensive final check of an assembled block (attach_coach_block repeats the structural part in SQL, same rule
+ * names). Throws on the first break. The routine rules (H1-H7) were judged by the checker before this.
  */
 export function assertBlockInvariants(
     block: Block,
     prefs:
-        & Pick<BlockPrefs, "intention" | "place" | "equipment">
-        & Partial<Pick<BlockPrefs, "cardio_min_week" | "age">>,
+        & Pick<BlockPrefs, "place" | "equipment">
+        & Partial<Pick<BlockPrefs, "cardio_min_week">>,
     catalog: CatalogExercise[],
 ): void {
     const fail = (rule: string): never => {
@@ -220,20 +483,11 @@ export function assertBlockInvariants(
     };
     const t = block.training;
     const byId = new Map(catalog.map((e) => [e.id, e]));
-    // The minimal phase (07 section 12.3): 1 session and 1 set per slot, 2 and 2 from 65 years, main lifts only.
-    const minimal = t.phase === "minimal";
-    const senior = (prefs.age ?? 0) >= MINIMAL_SENIOR_AGE;
-    const routineCap = minimal
-        ? CARDIO_ROUTINE_CAP_MINIMAL_MIN
-        : CARDIO_ROUTINE_CAP_MIN;
 
     if (
         t.days_per_week < 1 || t.days_per_week > 7 ||
         block.sessions.length !== t.days_per_week
     ) fail("session_count");
-    if (minimal && t.days_per_week !== (senior ? 2 : 1)) {
-        fail("minimal_sessions");
-    }
 
     // Weekly cardio: the stated split must be the one derived from the target.
     const c = t.cardio;
@@ -245,7 +499,11 @@ export function assertBlockInvariants(
         prefs.cardio_min_week !== undefined &&
         prefs.cardio_min_week !== c.target_min_week
     ) fail("cardio_total");
-    const split = splitCardio(c.target_min_week, t.days_per_week, routineCap);
+    const split = splitCardio(
+        c.target_min_week,
+        t.days_per_week,
+        CARDIO_ROUTINE_CAP_MIN,
+    );
     if (
         c.planned_min_week !== split.planned ||
         c.on_your_own_min !== split.on_your_own ||
@@ -258,19 +516,14 @@ export function assertBlockInvariants(
     ) fail("cardio_total");
     if (c.pace !== CARDIO_PACE) fail("cardio_pace");
 
-    const rangeOf = new Map<string, string>();
-    const mainRangePerSession: string[] = [];
     block.sessions.forEach((s, i) => {
         if (s.session_index !== i + 1) fail("session_index");
         if (s.exercises.length === 0) fail("empty_session");
-        let seenIsolation = false;
         let seenCardio = false;
         let lifting = 0;
         const ids = new Set<string>();
         for (const e of s.exercises) {
-            if (
-                WARMUP.test(`${e.role} ${e.exercise_key}`)
-            ) fail("warmup");
+            if (WARMUP.test(`${e.role} ${e.exercise_key}`)) fail("warmup");
             const row = byId.get(e.exercise_id);
             if (!row) return fail("unknown_exercise");
 
@@ -293,7 +546,7 @@ export function assertBlockInvariants(
                 if (
                     !Number.isInteger(e.duration_min) ||
                     e.duration_min < CARDIO_UNIT_MIN ||
-                    e.duration_min > routineCap ||
+                    e.duration_min > CARDIO_ROUTINE_CAP_MIN ||
                     e.duration_min % CARDIO_UNIT_MIN !== 0 ||
                     e.duration_min !== split.per_routine[i] ||
                     e.pace !== CARDIO_PACE
@@ -307,89 +560,30 @@ export function assertBlockInvariants(
             if (ids.has(e.exercise_id)) fail("duplicate_exercise");
             ids.add(e.exercise_id);
             if (!equipmentAllowed(prefs, row.equipment)) fail("equipment");
-            if (e.role === "main") {
-                if (!isMainLift(row.movement_pattern)) fail("role_pattern");
-                if (seenIsolation) fail("order");
-            } else if (e.role === "isolation") {
-                if (minimal) fail("minimal_main_only");
-                if (!ISOLATION_PATTERNS.includes(row.movement_pattern ?? "")) {
-                    fail("role_pattern");
-                }
-                seenIsolation = true;
-            } else fail("role");
-            const rest = REST[e.role];
-            if (e.rest_seconds < rest.min || e.rest_seconds > rest.max) {
-                fail("rest");
-            }
-            if (!Number.isInteger(e.sets) || e.sets < 1 || e.sets > 10) {
-                fail("sets");
-            }
-            if (
-                !Number.isInteger(e.rep_min) || !Number.isInteger(e.rep_max) ||
-                e.rep_min < 1 || e.rep_max > 50 || e.rep_min > e.rep_max
-            ) fail("rep_range");
+            const main = isMainLift(row.movement_pattern);
+            if ((e.role === "main") !== main) fail("role_pattern");
+            if (!Array.isArray(e.sets) || e.sets.length === 0) fail("sets");
             if (!validReason(e.reason)) fail("reason");
-            if (minimal && e.sets !== (senior ? 2 : 1)) fail("minimal_sets");
-
-            const range = `${e.rep_min}-${e.rep_max}`;
-            // A minimal block keeps the previous block's ranges, whatever they were.
-            if (minimal) {
-                const prev = rangeOf.get(e.exercise_id);
-                if (prev && prev !== range) fail("range_changed");
-                rangeOf.set(e.exercise_id, range);
-            } else if (prefs.intention === "strength") {
-                if (e.role === "main") {
-                    if (
-                        !STRENGTH_RANGES.some((r) =>
-                            `${r[0]}-${r[1]}` === range
-                        )
-                    ) {
-                        fail("strength_range");
-                    }
-                    mainRangePerSession[i] ??= range;
-                    if (mainRangePerSession[i] !== range) {
-                        fail("strength_session_range");
-                    }
-                } else if (range !== "10-15") fail("isolation_range");
-            } else {
-                if (range !== (e.role === "main" ? "6-10" : "10-15")) {
-                    fail("single_range");
-                }
-                const prev = rangeOf.get(e.exercise_id);
-                if (prev && prev !== range) fail("range_changed");
-                rangeOf.set(e.exercise_id, range);
-            }
         }
         // No cardio-only routine, and a routine with cardio minutes carries its cardio exercise.
         if (lifting === 0) fail("empty_session");
         if (split.per_routine[i] > 0 && !seenCardio) fail("cardio_total");
     });
-    if (
-        !minimal && prefs.intention === "strength" &&
-        mainRangePerSession.length >= 2
-    ) {
-        if (new Set(mainRangePerSession.filter(Boolean)).size < 2) {
-            fail("strength_not_undulating");
-        }
-    }
 
     // Weekly sets and frequency count the lifting only.
     const liftingBySession = block.sessions.map((s) =>
         s.exercises.filter(isLifting)
     );
-    const weekly = weeklySetsByMuscle(liftingBySession.flat());
+    const weekly = weeklySetsByMuscle(
+        liftingBySession.flat().map((e) => ({
+            muscle_group: e.muscle_group as MuscleGroup,
+            sets: e.sets.length,
+        })),
+    );
     if (sortKeys(weekly) !== sortKeys(t.weekly_sets)) fail("weekly_sets");
     const per = sessionsPerMuscle(liftingBySession);
     if (sortKeys(per) !== sortKeys(t.sessions_per_muscle)) {
         fail("sessions_per_muscle");
-    }
-    for (
-        const g of minimal ? [] : requiredGroups(
-            t.days_per_week,
-            exercisesPerSession(t.session_minutes),
-        )
-    ) {
-        if ((per[g] ?? 0) < 2) fail("frequency_per_muscle");
     }
     // The block has no steps or range-of-motion fields (the cardio plan lives in training.cardio).
     for (const k of ["steps", "range_of_motion"]) {

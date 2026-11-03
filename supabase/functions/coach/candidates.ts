@@ -1,47 +1,7 @@
-// Server-built candidate exercises per slot of the block (planning/04 section 9.4). The model picks among these
-// keys only. Pure: no I/O.
+// Exercises the block may use (planning/04 section 9.4): the eligible catalogue the model reads, unranked and
+// uncapped, and the cardio options. Pure: no I/O.
 import { CoachInputError } from "./context.ts";
-import type {
-    BlockPrefs,
-    BlockSkeleton,
-    BlockSlot,
-    CatalogExercise,
-    MuscleGroup,
-    Role,
-} from "./schemas.ts";
-
-export const MAX_CANDIDATES_PER_SLOT = 12;
-
-type Pool = { groups: MuscleGroup[]; patterns: string[] };
-
-/**
- * Which catalogue rows can fill a slot. The catalogue files squats, lunges and hinges under glutes (and leg
- * curls / extensions under hamstrings / quads), so the lower-body main slots read from more than one group.
- */
-const MAIN_POOLS: Partial<Record<MuscleGroup, Pool>> = {
-    quads: { groups: ["quads", "glutes"], patterns: ["squat", "lunge"] },
-    hamstrings: { groups: ["hamstrings", "glutes"], patterns: ["hinge"] },
-    glutes: { groups: ["glutes"], patterns: ["hinge", "lunge"] },
-    chest: {
-        groups: ["chest"],
-        patterns: ["horizontal_push", "vertical_push"],
-    },
-    back: { groups: ["back"], patterns: ["horizontal_pull", "vertical_pull"] },
-    shoulders: {
-        groups: ["shoulders"],
-        patterns: ["vertical_push", "horizontal_push"],
-    },
-};
-
-export function slotPool(group: MuscleGroup, role: Role): Pool {
-    if (role === "main") {
-        return MAIN_POOLS[group] ?? { groups: [], patterns: [] };
-    }
-    return {
-        groups: [group],
-        patterns: group === "core" ? ["core"] : ["isolation"],
-    };
-}
+import type { BlockPrefs, CatalogExercise, MuscleGroup } from "./schemas.ts";
 
 /** Metric types that a routine set with repetitions can describe. */
 export const STRENGTH_METRICS: readonly string[] = [
@@ -148,7 +108,7 @@ export function cardioDefaultCandidates(
     return [];
 }
 
-/** Loaded free-weight and machine lifts come before bodyweight variants, so the cap keeps the useful ones. */
+/** Loaded free-weight and machine lifts come before bodyweight variants (the server-side swap list keeps this order). */
 const EQUIPMENT_ORDER = [
     "barbell",
     "ez_bar",
@@ -162,86 +122,55 @@ const EQUIPMENT_ORDER = [
     "cardio_machine",
     "other",
 ];
-const equipmentRank = (e: string): number => {
+export const equipmentRank = (e: string): number => {
     const i = EQUIPMENT_ORDER.indexOf(e);
     return i < 0 ? EQUIPMENT_ORDER.length : i;
 };
 
-export function filterCandidates(
+/** Pattern of a row the block can use for lifting: cardio and rows without a pattern are out. */
+const isLiftingRow = (e: CatalogExercise): boolean =>
+    e.movement_pattern != null && e.movement_pattern !== "cardio" &&
+    STRENGTH_METRICS.includes(e.metric_type);
+
+export type EligibleCatalogue = {
+    /** Every eligible row (equipment, discomfort exclusions and metric applied), sorted by key. */
+    exercises: CatalogExercise[];
+    /** What the model reads: `{group: {pattern: [keys]}}`, keys sorted, nothing ranked or cut. */
+    byGroup: Record<string, Record<string, string[]>>;
+};
+
+/**
+ * The exercises the model may put in the block (07 section 3 "Model input"): inside the user's equipment, minus the
+ * exercises with an unresolved level 4-5 discomfort. Unranked and uncapped: the checker is the gate, not a cap.
+ */
+export function buildEligibleCatalogue(
     catalog: CatalogExercise[],
     prefs: Pick<BlockPrefs, "place" | "equipment">,
-    slot: Pick<BlockSlot, "muscle_group" | "role">,
-): CatalogExercise[] {
-    const pool = slotPool(slot.muscle_group, slot.role);
-    return catalog
+    excludedIds: readonly string[] = [],
+): EligibleCatalogue {
+    const exercises = catalog
         .filter((e) =>
-            pool.groups.includes(e.muscle_group) &&
-            e.movement_pattern != null &&
-            pool.patterns.includes(e.movement_pattern) &&
-            STRENGTH_METRICS.includes(e.metric_type) &&
-            equipmentAllowed(prefs, e.equipment)
+            isLiftingRow(e) && equipmentAllowed(prefs, e.equipment) &&
+            !excludedIds.includes(e.id)
         )
         .sort((a, b) =>
-            Number(a.is_custom) - Number(b.is_custom) ||
-            equipmentRank(a.equipment) - equipmentRank(b.equipment) ||
-            (candidateKey(a) < candidateKey(b)
+            candidateKey(a) < candidateKey(b)
                 ? -1
                 : candidateKey(a) > candidateKey(b)
                 ? 1
-                : 0)
-        )
-        .slice(0, MAX_CANDIDATES_PER_SLOT);
-}
-
-/** Candidates of every slot; a slot without any (or short of distinct ones) makes the block infeasible. */
-export function buildCandidates(
-    catalog: CatalogExercise[],
-    prefs:
-        & Pick<BlockPrefs, "place" | "equipment">
-        & Partial<Pick<BlockPrefs, "cardio_favorites">>,
-    skeleton: BlockSkeleton,
-): Map<string, CatalogExercise[]> {
-    const out = new Map<string, CatalogExercise[]>();
-    for (const session of skeleton.sessions) {
-        const needed = new Map<string, number>();
-        for (const slot of session.slots) {
-            // A minimal block keeps the previous main lift when it is still usable.
-            const fixed = slot.fixed_exercise_id
-                ? catalog.find((e) =>
-                    e.id === slot.fixed_exercise_id &&
-                    STRENGTH_METRICS.includes(e.metric_type) &&
-                    equipmentAllowed(prefs, e.equipment)
-                )
-                : undefined;
-            if (fixed) {
-                out.set(slot.slot_id, [fixed]);
-                continue;
-            }
-            const list = filterCandidates(catalog, prefs, slot);
-            out.set(slot.slot_id, list);
-            const k = `${slot.muscle_group}:${slot.role}`;
-            needed.set(k, (needed.get(k) ?? 0) + 1);
-            if (list.length < needed.get(k)!) {
-                throw new CoachInputError(
-                    "coach_plan_infeasible",
-                    "No exercise fits a slot of the block",
-                );
-            }
-        }
-        if (session.cardio) {
-            const list = cardioDefaultCandidates(
-                catalog,
-                prefs,
-                prefs.cardio_favorites,
-            );
-            if (list.length === 0) {
-                throw new CoachInputError(
-                    "coach_plan_infeasible",
-                    "No cardio exercise fits the block",
-                );
-            }
-            out.set(session.cardio.slot_id, list);
-        }
+                : 0
+        );
+    if (exercises.length === 0) {
+        throw new CoachInputError(
+            "coach_plan_infeasible",
+            "No exercise fits the block",
+        );
     }
-    return out;
+    const byGroup: Record<string, Record<string, string[]>> = {};
+    for (const e of exercises) {
+        const g: MuscleGroup = e.muscle_group;
+        const patterns = byGroup[g] ??= {};
+        (patterns[e.movement_pattern!] ??= []).push(candidateKey(e));
+    }
+    return { exercises, byGroup };
 }

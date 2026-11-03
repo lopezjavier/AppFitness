@@ -22,11 +22,6 @@ export type Activity = {
     steps_avg: number | null;
 };
 
-/** Weekly cardio of the minimal phase: one third less than the recommendation (07 section 3 "Cardio by phase"). */
-export const CARDIO_MIN_WEEK_MINIMAL = 100;
-/** Per-routine cap of the cardio inside a minimal block, in minutes. */
-export const CARDIO_ROUTINE_CAP_MINIMAL = 30;
-
 /** `stepsAvg28` is the 28-day average, null when there are fewer than 7 days of data. */
 export function computeActivity(
     input: { intention: Intention; stepsAvg28: number | null; phase?: Phase },
@@ -37,9 +32,7 @@ export function computeActivity(
         : Math.floor(avg / STEPS_STEP) * STEPS_STEP;
     const fromAverage = rounded !== null && rounded >= STEPS_FLOOR;
     return {
-        cardio_min_week: input.phase === "minimal"
-            ? CARDIO_MIN_WEEK_MINIMAL
-            : CARDIO_MIN_WEEK,
+        cardio_min_week: CARDIO_MIN_WEEK,
         cardio_edited: false,
         cardio_band: input.intention === "fat_loss"
             ? [CARDIO_MIN_WEEK, CARDIO_BAND_MAX]

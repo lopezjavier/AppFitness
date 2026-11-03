@@ -99,7 +99,7 @@ class CoachPlanDtoTest {
         val nutrition = decode(
             plan(
                 nutritionWith(
-                    """"limited_by":"deficit_cap","phase":"minimal","phase_reason":"user_busy",""" +
+                    """"limited_by":"deficit_cap","phase":"gain","phase_reason":"user_busy",""" +
                         """"phase_options":{"cut_rate_pct":0.8,"diet_break":true},""" +
                         """"diet_break":{"target_kcal":2600,"protein_g":150,"carbs_g":300,"fat_g":80,"week":4}""",
                 ),
@@ -107,7 +107,7 @@ class CoachPlanDtoTest {
             ),
         ).nutrition
 
-        assertEquals(Phase.Minimal, nutrition.phase)
+        assertEquals(Phase.Gain, nutrition.phase)
         assertEquals(PhaseReason.UserBusy, nutrition.phaseReason)
         assertEquals(PhaseOptions(0.8, true), nutrition.phaseOptions)
         assertEquals(DietBreakWeek(2600, 150, 300, 80, 4), nutrition.dietBreak)
@@ -146,11 +146,11 @@ class CoachPlanDtoTest {
     @Test
     fun legacyJsonWithoutPhase_usesTheRowColumnsBeforeTheIntention() {
         val row = plan(NUTRITION_FREE, "[]").removeSuffix("}") +
-            ""","phase":"minimal","phase_reason":"user_busy","phase_options":{"cut_rate_pct":0.5,"diet_break":false}}"""
+            ""","phase":"gain","phase_reason":"user_busy","phase_options":{"cut_rate_pct":0.5,"diet_break":false}}"""
 
         val decoded = decode(row)
 
-        assertEquals(Phase.Minimal, decoded.phase)
+        assertEquals(Phase.Gain, decoded.phase)
         assertEquals(PhaseReason.UserBusy, decoded.nutrition.phaseReason)
     }
 

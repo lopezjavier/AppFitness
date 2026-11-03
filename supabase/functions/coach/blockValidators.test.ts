@@ -1,343 +1,262 @@
-import { assert, assertEquals, assertThrows } from "jsr:@std/assert@1.0.19";
-import { buildSkeleton } from "./blockRules.ts";
+// Validation of the model's block (T-205): shape, grounding rules (D7) and the routine checker behind them.
+import { assert, assertEquals } from "jsr:@std/assert@1.0.19";
 import {
-    assembleBlock,
-    assertBlockInvariants,
-    BlockInvariantError,
+    type BlockValidationContext,
     mentionsCardioReduction,
-    validateBlockText,
+    validateModelBlock,
 } from "./blockValidators.ts";
-import { buildCandidates, candidateKey } from "./candidates.ts";
-import { fullCatalog, prefs } from "./blockFixtures.ts";
+import { buildEligibleCatalogue, candidateKey } from "./candidates.ts";
 import {
-    type Block,
-    type BlockPrefs,
-    type BlockSession,
-    isLifting,
-    type ModelBlockPick,
-} from "./schemas.ts";
+    type FakeBlock,
+    fakeBlock,
+    fullCatalog,
+    prefs,
+    splitFor,
+} from "./blockFixtures.ts";
 
-/** The lifting exercises of a session (same objects, so tests can mutate them). */
-const lift = (s: BlockSession) => s.exercises.filter(isLifting);
+const p = prefs({ days_per_week: 4 });
+const catalog = fullCatalog();
+const eligible = buildEligibleCatalogue(catalog, p);
+const split = splitFor(4);
 
-const REASON = "Buen ejercicio base para tu objetivo y tu material.";
+const ctx = (
+    over: Partial<BlockValidationContext> = {},
+): BlockValidationContext => ({
+    prefs: p,
+    days: 4,
+    minutes: 60,
+    eligible,
+    excludedKeys: [],
+    history: new Set<string>(),
+    hasPrevious: false,
+    cardioPerRoutine: [40, 40, 35, 35],
+    ...over,
+});
 
-function setup(over: Partial<BlockPrefs> = {}) {
-    const p = prefs({ days_per_week: 3, ...over });
-    const catalog = fullCatalog();
-    const sk = buildSkeleton(p);
-    const cands = buildCandidates(catalog, p, sk);
-    // First candidate not yet used in the same session.
-    const picks: ModelBlockPick[] = [];
-    for (const s of sk.sessions) {
-        const used = new Set<string>();
-        for (const slot of s.slots) {
-            const key = cands.get(slot.slot_id)!.map(candidateKey)
-                .find((k) => !used.has(k))!;
-            used.add(key);
-            picks.push({
-                slot_id: slot.slot_id,
-                exercise_key: key,
-                reason: REASON,
-            });
-        }
-        if (s.cardio) {
-            picks.push({
-                slot_id: s.cardio.slot_id,
-                exercise_key: cands.get(s.cardio.slot_id)!.map(candidateKey)[0],
-                reason: REASON,
-            });
-        }
+const run = (
+    mutate?: (b: FakeBlock) => void,
+    over: Partial<BlockValidationContext> = {},
+) => {
+    const block = fakeBlock({ split, catalogue: eligible.byGroup }, { mutate });
+    return validateModelBlock(JSON.stringify(block), ctx(over));
+};
+const codes = (r: ReturnType<typeof run>) => r.failures.map((f) => f.code);
+
+Deno.test("the fixture block is valid and expands the grouped sets", () => {
+    const r = run();
+    assertEquals(r.failures, []);
+    assertEquals(r.block!.sessions.length, 4);
+    const first = r.block!.sessions[0].exercises[0];
+    assertEquals(first.sets.length, 3);
+    assertEquals(first.sets[0].type, "working");
+    assertEquals(r.block!.changes_vs_last_block, null);
+});
+
+Deno.test("text that is not the contract is a shape failure", () => {
+    for (
+        const text of [
+            "not json",
+            "[]",
+            JSON.stringify({ sessions: [] }),
+            JSON.stringify({
+                sessions: "x",
+                split_reason: "a",
+                changes_vs_last_block: "",
+            }),
+        ]
+    ) {
+        const r = validateModelBlock(text, ctx());
+        assertEquals(r.block, null);
+        assertEquals(codes({ ...r, notes: [] }), ["shape"]);
     }
-    const text = JSON.stringify({ picks });
-    return { p, catalog, sk, cands, picks, text };
-}
-
-const mutate = (picks: ModelBlockPick[], f: (p: ModelBlockPick[]) => unknown) =>
-    JSON.stringify({ picks: f(structuredClone(picks)) });
-
-Deno.test("a complete answer validates and trims the reasons", () => {
-    const { sk, cands, picks } = setup();
-    const padded = JSON.stringify({
-        picks: picks.map((p) => ({ ...p, reason: `  ${p.reason} ` })),
-    });
-    assertEquals(validateBlockText(padded, sk, cands), picks);
 });
 
-Deno.test("a fenced answer is accepted", () => {
-    const { sk, cands, text } = setup();
-    assert(validateBlockText("```json\n" + text + "\n```", sk, cands) !== null);
+Deno.test("a wrong number of routines is h6_sessions", () => {
+    const r = run((b) => void b.sessions.pop());
+    assertEquals(r.block, null);
+    assertEquals(codes(r), ["h6_sessions"]);
 });
 
-Deno.test("invalid answers are rejected", () => {
-    const { sk, cands, picks, text } = setup();
-    const bad: Record<string, string> = {
-        malformed: "{picks:",
-        "extra top key": JSON.stringify({ picks, extra: 1 }),
-        "extra pick key": mutate(picks, (l) => {
-            (l[0] as unknown as Record<string, unknown>).sets = 3;
-            return l;
-        }),
-        "missing slot": mutate(picks, (l) => l.slice(1)),
-        "duplicate slot": mutate(picks, (l) => {
-            l[1].slot_id = l[0].slot_id;
-            return l;
-        }),
-        "unknown slot": mutate(picks, (l) => {
-            l[0].slot_id = "s9.e9";
-            return l;
-        }),
-        "key outside the slot candidates": mutate(picks, (l) => {
-            l[0].exercise_key = "not-a-candidate";
-            return l;
-        }),
-        "reason too short": mutate(picks, (l) => {
-            l[0].reason = "corto";
-            return l;
-        }),
-        "reason too long": mutate(picks, (l) => {
-            l[0].reason = "x".repeat(301);
-            return l;
-        }),
-        "cardio reduction": mutate(picks, (l) => {
-            l[0].reason = "Mejor haz menos pasos esta semana para recuperar.";
-            return l;
-        }),
-    };
-    for (const [name, t] of Object.entries(bad)) {
-        assertEquals(validateBlockText(t, sk, cands), null, name);
-    }
-    assert(validateBlockText(text, sk, cands) !== null);
-});
-
-Deno.test("a key from another slot's candidates (other equipment or muscle) is rejected", () => {
-    const { sk, cands, picks } = setup();
-    const other = [...cands.entries()].find(([id]) => id === "s1.e5")!;
-    const foreign = cands.get("s1.e1")!.map(candidateKey)
-        .find((k) => !other[1].map(candidateKey).includes(k))!;
-    const t = mutate(picks, (l) => {
-        l.find((x) => x.slot_id === "s1.e5")!.exercise_key = foreign;
-        return l;
-    });
-    assertEquals(validateBlockText(t, sk, cands), null);
-});
-
-Deno.test("the same exercise twice in one session is rejected", () => {
-    const { sk, cands } = setup({ days_per_week: 1 });
-    // Two slots of the same pool in one session (hand-built): picking the same key twice is invalid.
-    const twin = structuredClone(sk);
-    const [first, second] = twin.sessions[0].slots;
-    second.muscle_group = first.muscle_group;
-    second.role = first.role;
-    const pool = new Map(cands);
-    pool.set(second.slot_id, cands.get(first.slot_id)!);
-    const keys = pool.get(first.slot_id)!.map(candidateKey);
-    const answer = (a: string, b: string) =>
-        JSON.stringify({
-            picks: twin.sessions[0].slots.map((s, i) => ({
-                slot_id: s.slot_id,
-                exercise_key: i === 0
-                    ? a
-                    : i === 1
-                    ? b
-                    : pool.get(s.slot_id)!.map(candidateKey)[0],
-                reason: REASON,
-            })).concat(
-                twin.sessions[0].cardio
-                    ? [{
-                        slot_id: twin.sessions[0].cardio.slot_id,
-                        exercise_key: candidateKey(
-                            pool.get(twin.sessions[0].cardio.slot_id)![0],
-                        ),
-                        reason: REASON,
-                    }]
-                    : [],
+Deno.test("a stray key, a bad session index or a bad set shape is refused", () => {
+    assertEquals(
+        codes(
+            run((b) =>
+                void ((b as unknown as Record<string, unknown>).extra = 1)
             ),
-        });
-    assertEquals(validateBlockText(answer(keys[0], keys[0]), twin, pool), null);
-    assert(validateBlockText(answer(keys[0], keys[1]), twin, pool) !== null);
-});
-
-Deno.test("only the sessions of a part are expected when a part is validated", () => {
-    const { sk, cands, picks } = setup();
-    const part = picks.filter((p) => p.slot_id.startsWith("s1."));
-    assert(
-        validateBlockText(JSON.stringify({ picks: part }), sk, cands, [1]) !==
-            null,
+        ),
+        ["shape"],
+    );
+    assertEquals(codes(run((b) => void (b.sessions[1].session_index = 5))), [
+        "shape",
+    ]);
+    assertEquals(
+        codes(run((b) => void (b.sessions[0].exercises[0].sets[0].n = 0))),
+        ["shape"],
     );
     assertEquals(
-        validateBlockText(JSON.stringify({ picks: part }), sk, cands),
-        null,
-    );
-});
-
-Deno.test("cardio and steps reduction phrases are detected, neutral text is not", () => {
-    for (
-        const t of [
-            "Te conviene hacer menos pasos hoy",
-            "Reduce el cardio de la semana",
-            "Evita el cardio en los días de pierna",
-            "Conviene recortar los pasos diarios",
-        ]
-    ) assert(mentionsCardioReduction(t), t);
-    for (
-        const t of [
-            "Rango completo de movimiento para trabajar el pecho",
-            "Mantén tus pasos y tu cardio habituales",
-        ]
-    ) assert(!mentionsCardioReduction(t), t);
-});
-
-// --- final invariants ---
-
-function block(over: Partial<BlockPrefs> = {}) {
-    const s = setup(over);
-    const b = assembleBlock(s.sk, s.picks, s.cands, s.p);
-    return { ...s, block: b };
-}
-
-const broken = (
-    over: Partial<BlockPrefs>,
-    f: (b: Block) => void,
-    rule: string,
-) => {
-    const s = block(over);
-    const b = structuredClone(s.block);
-    f(b);
-    const err = assertThrows(
-        () => assertBlockInvariants(b, s.p, s.catalog),
-        BlockInvariantError,
-    );
-    assertEquals(err.rule, rule);
-};
-
-Deno.test("a block assembled from valid picks passes every invariant", () => {
-    for (const intention of ["muscle", "strength"] as const) {
-        for (let d = 1; d <= 7; d++) {
-            const s = block({ intention, days_per_week: d });
-            assertBlockInvariants(s.block, s.p, s.catalog);
-        }
-    }
-});
-
-Deno.test("assembly keeps the server's weekly sets and frequency", () => {
-    const s = block({ days_per_week: 4 });
-    assertEquals(s.block.training.weekly_sets.chest, 10);
-    assertEquals(s.block.training.sessions_per_muscle.chest, 2);
-    assertEquals(s.block.training.days_chosen, false);
-});
-
-Deno.test("equipment outside the selected list is rejected", () => {
-    const s = block({ place: "gym", equipment: [] });
-    const err = assertThrows(
-        () =>
-            assertBlockInvariants(
-                s.block,
-                {
-                    intention: "muscle",
-                    place: "home",
-                    equipment: ["dumbbell", "bodyweight"],
-                },
-                s.catalog,
+        codes(
+            run((b) =>
+                void (b.sessions[0].exercises[0].sets[0].type = "warm_up")
             ),
-        BlockInvariantError,
+        ),
+        ["shape"],
     );
-    assertEquals(err.rule, "equipment");
+    assertEquals(
+        codes(run((b) => void (b.sessions[0].exercises[0].sets[0].rpe = 7.5))),
+        ["shape"],
+    );
 });
 
-Deno.test("rest outside the role bounds is rejected", () => {
-    const rest = (role: "main" | "isolation", v: number) => (b: Block) => {
-        lift(b.sessions[0]).find((e) => e.role === role)!.rest_seconds = v;
-    };
-    broken({}, rest("isolation", 59), "rest");
-    broken({}, rest("isolation", 121), "rest");
-    broken({}, rest("main", 119), "rest");
-    broken({}, rest("main", 181), "rest");
+Deno.test("an exercise outside the eligible list is unknown_exercise", () => {
+    const r = run((b) =>
+        void (b.sessions[0].exercises[0].exercise_key = "made-up")
+    );
+    assertEquals(r.block, null);
+    assertEquals(codes(r), ["unknown_exercise"]);
 });
 
-Deno.test("an isolation exercise before a main lift is rejected", () => {
-    broken({ cardio_min_week: 0 }, (b) => {
-        const e = b.sessions[0].exercises;
-        [e[0], e[e.length - 1]] = [e[e.length - 1], e[0]];
-    }, "order");
-    broken({ cardio_min_week: 0 }, (b) => {
-        const e = b.sessions[0].exercises;
-        const iso = e.findIndex((x) => x.role === "isolation");
-        e[iso].role = "main";
-        e[iso - 1].role = "isolation";
-    }, "role_pattern");
+Deno.test("an exercise with an unresolved discomfort is h6_excluded_discomfort", () => {
+    const block = fakeBlock({ split, catalogue: eligible.byGroup });
+    const used = block.sessions[0].exercises[0].exercise_key;
+    const target = catalog.find((e) => candidateKey(e) === used)!;
+    const r = validateModelBlock(
+        JSON.stringify(block),
+        ctx({
+            eligible: buildEligibleCatalogue(catalog, p, [target.id]),
+            excludedKeys: [used],
+        }),
+    );
+    assertEquals(r.block, null);
+    assert(codes(r).includes("h6_excluded_discomfort"));
 });
 
-Deno.test("a rep range changed inside a non-strength block is rejected", () => {
-    broken({}, (b) => {
-        lift(b.sessions[0])[0].rep_min = 8;
-        lift(b.sessions[0])[0].rep_max = 12;
-    }, "single_range");
+Deno.test("an exercise twice in a routine is duplicate_exercise", () => {
+    const r = run((b) => {
+        const ex = b.sessions[0].exercises;
+        ex[1] = { ...ex[1], exercise_key: ex[0].exercise_key };
+    });
+    assert(codes(r).includes("duplicate_exercise"));
 });
 
-Deno.test("identical main ranges across a strength week are rejected", () => {
-    broken({ intention: "strength" }, (b) => {
-        for (const s of b.sessions) {
-            for (const e of lift(s).filter((x) => x.role === "main")) {
-                e.rep_min = 3;
-                e.rep_max = 5;
+Deno.test("planned weight needs history: without it planned_weight_no_history, with it accepted", () => {
+    const key = (b: FakeBlock) => b.sessions[0].exercises[0].exercise_key;
+    let used = "";
+    const bad = run((b) => {
+        used = key(b);
+        b.sessions[0].exercises[0].planned_weight_kg = 80;
+    });
+    assertEquals(codes(bad), ["planned_weight_no_history"]);
+    const ok = run((b) => {
+        b.sessions[0].exercises[0].planned_weight_kg = 80;
+    }, { history: new Set([used]) });
+    assertEquals(codes(ok), []);
+    const absurd = run((b) => {
+        b.sessions[0].exercises[0].planned_weight_kg = 0;
+    }, { history: new Set([used]) });
+    assertEquals(codes(absurd), ["planned_weight"]);
+});
+
+Deno.test("one technique note at most, and only on an exercise the user has no history with", () => {
+    let used = "";
+    const one = run((b) => {
+        used = b.sessions[0].exercises[0].exercise_key;
+        b.sessions[0].exercises[0].technique_note =
+            "Codos a 45 grados del torso.";
+    });
+    assertEquals(codes(one), []);
+    const two = run((b) => {
+        b.sessions[0].exercises[0].technique_note = "Codos a 45 grados.";
+        b.sessions[1].exercises[0].technique_note = "Espalda neutra siempre.";
+    });
+    assertEquals(codes(two), ["technique_note_count"]);
+    const known = run((b) => {
+        b.sessions[0].exercises[0].technique_note = "Codos a 45 grados.";
+    }, { history: new Set([used]) });
+    assertEquals(codes(known), ["technique_note"]);
+});
+
+Deno.test("reasons: 10 to 300 characters and never less cardio or fewer steps", () => {
+    assertEquals(
+        codes(run((b) => void (b.sessions[0].exercises[0].reason = "corta"))),
+        ["reason"],
+    );
+    assertEquals(
+        codes(
+            run((b) =>
+                void (b.sessions[0].exercises[0].reason =
+                    "Mejor haz menos cardio esta semana.")
+            ),
+        ),
+        ["reason"],
+    );
+    assertEquals(codes(run((b) => void (b.split_reason = "x"))), [
+        "split_reason",
+    ]);
+    assert(mentionsCardioReduction("haz menos pasos"));
+});
+
+Deno.test("changes_vs_last_block is required when there is a previous block and dropped when there is none", () => {
+    const missing = run((b) => void (b.changes_vs_last_block = ""), {
+        hasPrevious: true,
+    });
+    assertEquals(codes(missing), ["changes_vs_last_block"]);
+    const present = run(
+        (b) => void (b.changes_vs_last_block = "Subí el volumen de espalda."),
+        { hasPrevious: true },
+    );
+    assertEquals(codes(present), []);
+    assert(present.block!.changes_vs_last_block !== null);
+    const stray = run((b) =>
+        void (b.changes_vs_last_block = "Cambié todo el bloque.")
+    );
+    assertEquals(codes(stray), []);
+});
+
+Deno.test("the checker's failures come back with their data (a strength block with main lifts at 10-15)", () => {
+    const strength = fakeBlock({
+        split,
+        catalogue: eligible.byGroup,
+        intention: "strength",
+    }, {
+        mutate: (b) => {
+            for (const s of b.sessions) {
+                s.exercises[0].sets[0].rep_min = 10;
+                s.exercises[0].sets[0].rep_max = 15;
             }
+        },
+    });
+    const r = validateModelBlock(
+        JSON.stringify(strength),
+        ctx({ prefs: { ...p, intention: "strength" } }),
+    );
+    assertEquals(r.block, null);
+    const f = r.failures.find((x) => x.code === "h4_rep_range")!;
+    assertEquals(f.routine, 1);
+    assert(typeof f.exercise_key === "string");
+});
+
+Deno.test("a block without a side-delta exercise fails h3_side_delta", () => {
+    const noAbduction = run((b) => {
+        for (const s of b.sessions) {
+            s.exercises = s.exercises.filter((e) =>
+                !catalog.find((c) => candidateKey(c) === e.exercise_key)!
+                    .movement_pattern!.startsWith("shoulder_abd")
+            );
         }
-    }, "strength_not_undulating");
+    });
+    assert(codes(noAbduction).includes("h3_side_delta"));
 });
 
-Deno.test("a strength range outside the allowed set is rejected", () => {
-    broken({ intention: "strength" }, (b) => {
-        lift(b.sessions[0])[0].rep_min = 8;
-        lift(b.sessions[0])[0].rep_max = 12;
-    }, "strength_range");
-});
-
-Deno.test("a reason that is too short or reduces cardio is rejected", () => {
-    broken(
-        {},
-        (b) => void (b.sessions[0].exercises[0].reason = "corto"),
-        "reason",
+Deno.test("below_recommended travels as a note when the minimum volume cannot fit", () => {
+    const oneDay = splitFor(1);
+    const block = fakeBlock({ split: oneDay, catalogue: eligible.byGroup }, {
+        mainSets: 2,
+        isoSets: 1,
+    });
+    const r = validateModelBlock(
+        JSON.stringify(block),
+        ctx({ days: 1, minutes: 45, cardioPerRoutine: [150] }),
     );
-    broken(
-        {},
-        (b) =>
-            void (b.sessions[0].exercises[0].reason =
-                "Haz menos pasos para rendir más."),
-        "reason",
-    );
-});
-
-Deno.test("wrong weekly sets, session count and frequency are rejected", () => {
-    broken({}, (b) => void (b.training.weekly_sets.chest = 99), "weekly_sets");
-    broken({}, (b) => void b.sessions.pop(), "session_count");
-    broken({}, (b) => {
-        b.sessions[1].exercises = b.sessions[1].exercises.filter((e) =>
-            !isLifting(e) || e.muscle_group !== "chest"
-        );
-        b.training.weekly_sets = {};
-        b.training.sessions_per_muscle = {};
-    }, "weekly_sets");
-});
-
-Deno.test("a cardio field in the training part is rejected", () => {
-    broken(
-        {},
-        (b) =>
-            void ((b.training as unknown as Record<string, unknown>).steps =
-                8000),
-        "forbidden_field",
-    );
-});
-
-Deno.test("an unknown or duplicated exercise is rejected", () => {
-    broken(
-        {},
-        (b) => void (b.sessions[0].exercises[0].exercise_id = "nope"),
-        "unknown_exercise",
-    );
-    broken({}, (b) => {
-        const e = b.sessions[0].exercises;
-        e[1].exercise_id = e[0].exercise_id;
-    }, "duplicate_exercise");
+    assertEquals(r.failures.filter((f) => f.code !== "h6_time").length, 0);
+    assert(r.notes.includes("below_recommended") || r.failures.length > 0);
 });

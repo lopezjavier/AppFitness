@@ -1,184 +1,116 @@
 import { assert, assertEquals, assertThrows } from "jsr:@std/assert@1.0.19";
-import { buildSkeleton } from "./blockRules.ts";
 import {
-    buildCandidates,
+    buildEligibleCatalogue,
     candidateKey,
-    filterCandidates,
+    equipmentAllowed,
+    equipmentRank,
 } from "./candidates.ts";
 import { CoachInputError } from "./context.ts";
-import type { CatalogExercise } from "./schemas.ts";
-import { ex, fullCatalog, prefs } from "./blockFixtures.ts";
+import { cardio, ex, fullCatalog } from "./blockFixtures.ts";
 
-const mainChest = { muscle_group: "chest", role: "main" } as const;
+const gym = { place: "gym", equipment: [] as string[] };
+const home = (equipment: string[]) => ({ place: "home", equipment });
+const keysOf = (c: ReturnType<typeof buildEligibleCatalogue>) =>
+    c.exercises.map(candidateKey);
 
 Deno.test("dumbbell + bodyweight keeps only that equipment", () => {
-    const list = [
-        ex({ key: "bb", equipment: "barbell" }),
-        ex({ key: "db", equipment: "dumbbell" }),
-        ex({ key: "bw", equipment: "bodyweight" }),
-        ex({ key: "cb", equipment: "cable" }),
+    const catalog = [
+        ex({ key: "a-bar", equipment: "barbell" }),
+        ex({ key: "b-db", equipment: "dumbbell" }),
+        ex({ key: "c-bw", equipment: "bodyweight" }),
     ];
-    const got = filterCandidates(
-        list,
-        { place: "home", equipment: ["dumbbell", "bodyweight"] },
-        mainChest,
-    );
-    assertEquals(got.map((e) => e.key), ["db", "bw"]);
-});
-
-Deno.test("a gym with no equipment selected allows all of it", () => {
-    const list = [ex({ equipment: "barbell" }), ex({ equipment: "machine" })];
     assertEquals(
-        filterCandidates(list, { place: "gym", equipment: [] }, mainChest)
-            .length,
-        2,
+        keysOf(
+            buildEligibleCatalogue(catalog, home(["dumbbell", "bodyweight"])),
+        ),
+        ["b-db", "c-bw"],
     );
 });
 
-Deno.test("a home with no equipment selected allows nothing", () => {
-    const list = [ex({ equipment: "bodyweight" })];
-    assertEquals(
-        filterCandidates(list, { place: "home", equipment: [] }, mainChest)
-            .length,
-        0,
+Deno.test("a gym with no equipment selected allows all of it; a home with none allows nothing", () => {
+    const catalog = [ex({ key: "a", equipment: "barbell" })];
+    assertEquals(keysOf(buildEligibleCatalogue(catalog, gym)), ["a"]);
+    assert(!equipmentAllowed(home([]), "barbell"));
+    assertThrows(
+        () => buildEligibleCatalogue(catalog, home([])),
+        CoachInputError,
     );
 });
 
-Deno.test("cardio, carry, other, null pattern and non-strength metrics are excluded", () => {
-    const list = ["cardio", "carry", "other", null].map((p) =>
-        ex({ movement_pattern: p as CatalogExercise["movement_pattern"] })
-    );
-    list.push(ex({ metric_type: "duration" }));
-    assertEquals(
-        filterCandidates(list, { place: "gym", equipment: [] }, mainChest)
-            .length,
-        0,
-    );
-});
-
-Deno.test("per-hand exercises are kept: the weight per hand does not affect a routine", () => {
-    const got = filterCandidates(
-        [ex({ per_hand: true, equipment: "dumbbell" })],
-        { place: "gym", equipment: [] },
-        mainChest,
-    );
-    assertEquals(got.length, 1);
-});
-
-Deno.test("lower-body main slots read the squats, lunges and hinges filed under glutes", () => {
-    const list = [
-        ex({ key: "sq", muscle_group: "glutes", movement_pattern: "squat" }),
-        ex({ key: "rdl", muscle_group: "glutes", movement_pattern: "hinge" }),
-        ex({ key: "lg", muscle_group: "glutes", movement_pattern: "lunge" }),
-        ex({ key: "lp", muscle_group: "quads", movement_pattern: "squat" }),
+Deno.test("cardio, null pattern and non-strength metrics never reach the model", () => {
+    const catalog = [
+        ex({ key: "ok" }),
+        cardio("walking", "bodyweight"),
+        ex({ key: "no-pattern", movement_pattern: null }),
+        ex({ key: "timed", metric_type: "duration" }),
     ];
-    const gym = { place: "gym", equipment: [] };
-    const keys = (g: "quads" | "hamstrings" | "glutes") =>
-        filterCandidates(list, gym, { muscle_group: g, role: "main" })
-            .map((e) => e.key).sort();
-    assertEquals(keys("quads"), ["lg", "lp", "sq"]);
-    assertEquals(keys("hamstrings"), ["rdl"]);
-    assertEquals(keys("glutes"), ["lg", "rdl"]);
+    assertEquals(keysOf(buildEligibleCatalogue(catalog, gym)), ["ok"]);
 });
 
-Deno.test("role selects the patterns: main lifts versus isolation and core", () => {
-    const list = [
-        ex({ key: "press", movement_pattern: "horizontal_push" }),
-        ex({ key: "fly", movement_pattern: "isolation" }),
-        ex({ key: "plank", muscle_group: "core", movement_pattern: "core" }),
+Deno.test("carry and other patterns are offered as isolation-like work", () => {
+    const catalog = [
+        ex({ key: "farmer", movement_pattern: "carry" }),
+        ex({ key: "misc", movement_pattern: "other" }),
     ];
-    const gym = { place: "gym", equipment: [] };
-    assertEquals(
-        filterCandidates(list, gym, mainChest).map((e) => e.key),
-        ["press"],
-    );
-    assertEquals(
-        filterCandidates(list, gym, {
-            muscle_group: "chest",
-            role: "isolation",
-        })
-            .map((e) => e.key),
-        ["fly"],
-    );
-    assertEquals(
-        filterCandidates(list, gym, { muscle_group: "core", role: "isolation" })
-            .map((e) => e.key),
-        ["plank"],
-    );
-});
-
-Deno.test("order is deterministic (catalogue first, then key) and capped at 12", () => {
-    const list = Array.from(
-        { length: 20 },
-        (_, i) => ex({ key: `k${String(19 - i).padStart(2, "0")}` }),
-    );
-    const got = filterCandidates(
-        [...list].reverse(),
-        { place: "gym", equipment: [] },
-        mainChest,
-    );
-    assertEquals(got.length, 12);
-    assertEquals(got[0].key, "k00");
-    assertEquals(got[11].key, "k11");
-});
-
-Deno.test("barbell and machine lifts rank before bodyweight variants", () => {
-    const got = filterCandidates(
-        [
-            ex({ key: "a-push-up", equipment: "bodyweight" }),
-            ex({ key: "z-bench", equipment: "barbell" }),
-        ],
-        { place: "gym", equipment: [] },
-        mainChest,
-    );
-    assertEquals(got.map((e) => e.key), ["z-bench", "a-push-up"]);
-});
-
-Deno.test("a band_long-only user gets long-band candidates", () => {
-    const list = [
-        ex({ key: "band-long-row", equipment: "band_long" }),
-        ex({ key: "cable-row", equipment: "cable" }),
-    ];
-    const got = filterCandidates(list, {
-        place: "home",
-        equipment: ["band_long"],
-    }, mainChest);
-    assertEquals(got.map((e) => e.key), ["band-long-row"]);
-});
-
-Deno.test("band_long ranks right after band and before other; unknown equipment stays last", () => {
-    const got = filterCandidates(
-        [
-            ex({ key: "a-unknown", equipment: "mystery" }),
-            ex({ key: "b-other", equipment: "other" }),
-            ex({ key: "c-long", equipment: "band_long" }),
-            ex({ key: "d-band", equipment: "band" }),
-        ],
-        { place: "gym", equipment: [] },
-        mainChest,
-    );
-    assertEquals(got.map((e) => e.key), [
-        "d-band",
-        "c-long",
-        "b-other",
-        "a-unknown",
+    assertEquals(keysOf(buildEligibleCatalogue(catalog, gym)), [
+        "farmer",
+        "misc",
     ]);
 });
 
-Deno.test("cardio_machine ranks after band_long and before other", () => {
-    const got = filterCandidates(
-        [
-            ex({ key: "a-other", equipment: "other" }),
-            ex({ key: "b-cardio", equipment: "cardio_machine" }),
-            ex({ key: "c-long", equipment: "band_long" }),
-        ],
-        { place: "gym", equipment: [] },
-        mainChest,
-    );
-    assertEquals(got.map((e) => e.key), ["c-long", "b-cardio", "a-other"]);
+Deno.test("exercises with an unresolved discomfort are removed, by id", () => {
+    const a = ex({ key: "a" });
+    const b = ex({ key: "b" });
+    assertEquals(keysOf(buildEligibleCatalogue([a, b], gym, [a.id])), ["b"]);
 });
 
-Deno.test("candidate order is barbell, ez_bar, dumbbell, machine, cable, kettlebell, bodyweight, band", () => {
+Deno.test("the catalogue is unranked and uncapped: 40 rows of one pattern all arrive, sorted by key", () => {
+    const rows = Array.from(
+        { length: 40 },
+        (_, i) =>
+            ex({
+                key: `chest-press-${String(40 - i).padStart(2, "0")}`,
+                // Equipment order must not rank anything for the model.
+                equipment: i % 2 ? "bodyweight" : "barbell",
+            }),
+    );
+    const c = buildEligibleCatalogue(rows, gym);
+    assertEquals(c.exercises.length, 40);
+    const keys = c.byGroup.chest.horizontal_push;
+    assertEquals(keys.length, 40);
+    assertEquals(keys, [...keys].sort());
+});
+
+Deno.test("by group and pattern: the side-delta pattern is its own list under shoulders", () => {
+    const c = buildEligibleCatalogue(fullCatalog(), gym);
+    assertEquals(
+        Object.keys(c.byGroup.shoulders).sort(),
+        ["shoulder_abduction", "vertical_push"],
+    );
+    assertEquals(Object.keys(c.byGroup.quads).sort(), ["isolation", "squat"]);
+    assert(!("full_body" in c.byGroup));
+});
+
+Deno.test("a custom exercise counts only with a movement pattern and is keyed by id", () => {
+    const custom = ex({
+        key: null,
+        is_custom: true,
+        movement_pattern: "isolation",
+    });
+    const noPattern = ex({
+        key: null,
+        is_custom: true,
+        movement_pattern: null,
+    });
+    const c = buildEligibleCatalogue([custom, noPattern], gym);
+    assertEquals(keysOf(c), [custom.id]);
+});
+
+Deno.test("nothing eligible is infeasible", () => {
+    assertThrows(() => buildEligibleCatalogue([], gym), CoachInputError);
+});
+
+Deno.test("swap order (kept for the server-side lists): free weights and machines before bodyweight, other last", () => {
     const order = [
         "barbell",
         "ez_bar",
@@ -189,133 +121,10 @@ Deno.test("candidate order is barbell, ez_bar, dumbbell, machine, cable, kettleb
         "bodyweight",
         "band",
         "band_long",
+        "cardio_machine",
         "other",
     ];
-    const got = filterCandidates(
-        [...order].reverse().map((equipment) =>
-            ex({ key: `k-${equipment}`, equipment })
-        ),
-        { place: "gym", equipment: [] },
-        mainChest,
-    );
-    assertEquals(got.map((e) => e.equipment), order);
-});
-
-Deno.test("ez_bar exercises are offered only with Barra Z saved", () => {
-    const list = [
-        ex({ key: "ez-bar-bench-press", equipment: "ez_bar" }),
-        ex({ key: "bench", equipment: "barbell" }),
-    ];
-    assertEquals(
-        filterCandidates(
-            list,
-            { place: "home", equipment: ["barbell"] },
-            mainChest,
-        )
-            .map((e) => e.key),
-        ["bench"],
-    );
-    assertEquals(
-        filterCandidates(
-            list,
-            { place: "home", equipment: ["ez_bar"] },
-            mainChest,
-        )
-            .map((e) => e.key),
-        ["ez-bar-bench-press"],
-    );
-});
-
-Deno.test("an exercise tagged other is offered only with Otro saved", () => {
-    const list = [
-        ex({ key: "landmine-press", equipment: "other" }),
-        ex({ key: "bench", equipment: "barbell" }),
-    ];
-    assertEquals(
-        filterCandidates(
-            list,
-            { place: "home", equipment: ["barbell"] },
-            mainChest,
-        )
-            .map((e) => e.key),
-        ["bench"],
-    );
-    assertEquals(
-        filterCandidates(
-            list,
-            { place: "home", equipment: ["other"] },
-            mainChest,
-        )
-            .map((e) => e.key),
-        ["landmine-press"],
-    );
-});
-
-Deno.test("cardio rows never reach a lifting pool, with or without cardio selected", () => {
-    const list = [
-        ex({ key: "bench", equipment: "barbell" }),
-        ex({
-            key: "stationary-bike",
-            equipment: "cardio_machine",
-            muscle_group: "quads",
-            movement_pattern: "cardio",
-            metric_type: "distance_duration",
-        }),
-        ex({
-            key: "treadmill-running",
-            equipment: "cardio_machine",
-            movement_pattern: "cardio",
-            metric_type: "distance_duration",
-        }),
-    ];
-    for (
-        const equipment of [["barbell"], ["barbell", "cardio_machine"], []]
-    ) {
-        const got = filterCandidates(
-            list,
-            { place: "gym", equipment },
-            mainChest,
-        );
-        assertEquals(got.map((e) => e.key), ["bench"]);
-    }
-});
-
-Deno.test("a custom exercise counts only with a movement pattern and is keyed by id", () => {
-    const withPattern = ex({
-        key: null,
-        is_custom: true,
-        name: "Mi press",
-    });
-    const without = ex({
-        key: null,
-        is_custom: true,
-        name: "Raro",
-        movement_pattern: null,
-    });
-    const got = filterCandidates(
-        [withPattern, without],
-        { place: "gym", equipment: [] },
-        mainChest,
-    );
-    assertEquals(got.length, 1);
-    assertEquals(candidateKey(got[0]), withPattern.id);
-});
-
-Deno.test("buildCandidates answers every slot of a skeleton", () => {
-    const p = prefs({ days_per_week: 3 });
-    const sk = buildSkeleton(p);
-    const map = buildCandidates(fullCatalog(), p, sk);
-    for (const s of sk.sessions.flatMap((x) => x.slots)) {
-        assert(map.get(s.slot_id)!.length > 0);
-    }
-});
-
-Deno.test("an empty slot makes the block infeasible", () => {
-    const p = prefs({ days_per_week: 3 });
-    const sk = buildSkeleton(p);
-    const err = assertThrows(
-        () => buildCandidates([], p, sk),
-        CoachInputError,
-    );
-    assertEquals(err.code, "coach_plan_infeasible");
+    const ranks = order.map(equipmentRank);
+    assertEquals(ranks, [...ranks].sort((x, y) => x - y));
+    assert(equipmentRank("unknown") > equipmentRank("other"));
 });

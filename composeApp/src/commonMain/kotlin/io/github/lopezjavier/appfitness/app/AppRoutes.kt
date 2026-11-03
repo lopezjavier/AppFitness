@@ -96,7 +96,7 @@ data object FreeTextLinesRoute : AppRoute
 
 /** The four-week training block of the plan [planId] (US-72): request, review and save, opened from the Trainer tab. */
 @Serializable
-data class BlockPreviewRoute(val planId: String, val minimal: Boolean = false) : AppRoute
+data class BlockPreviewRoute(val planId: String) : AppRoute
 
 /** "Acerca de": app name, version, credits and open-source licences, opened from the Perfil root (US-45). */
 @Serializable

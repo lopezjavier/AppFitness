@@ -20,8 +20,7 @@ export type Phase =
     | "cut"
     | "gain"
     | "maintenance"
-    | "recomposition"
-    | "minimal";
+    | "recomposition";
 /** Why the plan is in that phase; the Spanish text lives in the client. */
 export type PhaseReason =
     | "intention"
@@ -158,6 +157,7 @@ export type MovementPattern =
     | "carry"
     | "core"
     | "isolation"
+    | "shoulder_abduction"
     | "cardio"
     | "other";
 
@@ -169,6 +169,8 @@ export type CatalogExercise = {
     key: string | null;
     name: string | null;
     muscle_group: MuscleGroup;
+    /** Secondary muscles (fractional sets, planning/04 section 4); absent in older fixtures. */
+    secondary_muscles?: MuscleGroup[];
     equipment: string;
     movement_pattern: MovementPattern | null;
     metric_type: string;
@@ -177,18 +179,9 @@ export type CatalogExercise = {
     per_hand?: boolean;
 };
 
-/** What the next block is built from (rpc coach_phase_history, T-187). */
+/** Phase history of the caller (rpc coach_phase_history): deficit weeks of the current run of cut blocks. */
 export type PhaseHistory = {
-    previous: {
-        phase: Phase;
-        /** Weekly sets per muscle group of the previous block. */
-        sets_per_group: Record<string, number>;
-        /** Exercise ids of its main lifts, in session order. */
-        main_lifts: string[];
-        /** [rep_min, rep_max] per exercise id. */
-        rep_ranges: Record<string, [number, number]>;
-    } | null;
-    minimal_blocks_in_a_row: number;
+    previous: unknown | null;
     /** Deficit weeks of the current run of cut blocks (4 per block, 3 with a diet break). */
     deficit_weeks_done: number;
 };
@@ -207,47 +200,12 @@ export type BlockPrefs = {
     cardio_favorites: string[];
     /** The phase of the block (T-187); absent means the first phase of the intention. */
     phase?: Phase;
-    /** The previous block, reduced to what the next one needs; null or absent for a first block. */
-    previous?: PreviousBlock | null;
-    /** Age in whole years (profile); 65 or more doubles the minimal phase (07 section 12.3). */
+    /** Age in whole years (profile); the "Mantener" floor of the checker rises from 65. */
     age?: number | null;
 };
 
-/** The previous block as the next one reads it: sets per group and its still usable main lifts. */
-export type PreviousBlock = {
-    phase: Phase;
-    sets_per_group: Record<string, number>;
-    main_lifts: {
-        exercise_id: string;
-        muscle_group: MuscleGroup;
-        rep_min: number;
-        rep_max: number;
-    }[];
-};
-
-export type BlockSlot = {
-    slot_id: string;
-    muscle_group: MuscleGroup;
-    role: Role;
-    sets: number;
-    rep_min: number;
-    rep_max: number;
-    rest_seconds: number;
-    /** A minimal block keeps the previous main lift of this slot: it is the slot's only candidate. */
-    fixed_exercise_id?: string;
-};
-
-/** The cardio of a routine: one slot, planned minutes decided by the server (04 section 9.11). */
+/** The cardio of a routine: planned minutes decided by the server (04 section 9.11). */
 export type CardioSlot = { slot_id: string; minutes: number };
-
-export type SkeletonSession = {
-    session_index: number;
-    name: string;
-    focus: MuscleGroup[];
-    slots: BlockSlot[];
-    /** Absent when the routine's share of the weekly cardio is 0. */
-    cardio?: CardioSlot;
-};
 
 export type BlockCardio = {
     target_min_week: number;
@@ -257,33 +215,33 @@ export type BlockCardio = {
     pace: "suave";
 };
 
-export type BlockSkeleton = {
-    phase: Phase;
-    days_per_week: number;
-    days_chosen: boolean;
-    session_minutes: number;
-    rep_scheme: "single" | "undulating";
-    block_weeks: number;
-    sessions: SkeletonSession[];
-    cardio: Omit<BlockCardio, "pace">;
+export type BlockSetType = "working" | "drop";
+
+/** One planned set as stored in `coach_plan_sessions.exercises[].sets[]`. */
+export type BlockSet = {
+    type: BlockSetType;
+    rep_min: number;
+    rep_max: number;
+    rpe: number;
+    rest_seconds: number;
 };
 
-/** What the model returns per slot: a candidate key and a reason. */
-export type ModelBlockPick = {
-    slot_id: string;
-    exercise_key: string;
-    reason: string;
-};
-
+/** A lifting exercise of the block (planning/03 stored shape). The model chose everything but the ids and the role. */
 export type BlockExercise = {
     exercise_id: string;
     exercise_key: string;
     role: Role;
     muscle_group: MuscleGroup;
-    sets: number;
+    sets: BlockSet[];
+    /** Lowest and highest rep bound over the sets (the folder shows one range per exercise). */
     rep_min: number;
     rep_max: number;
+    /** Rest of the first working set. */
     rest_seconds: number;
+    target_rpe: number;
+    superset_group?: number;
+    planned_weight_kg?: number;
+    technique_note?: string;
     reason: string;
 };
 
@@ -314,12 +272,14 @@ export const isLifting = (
 
 export type BlockTraining = {
     phase: Phase;
+    /** The intention the block was built for: SQL applies H4 and H7 only when it is present. */
+    intention: Intention;
     days_per_week: number;
     days_chosen: boolean;
     session_minutes: number;
-    rep_scheme: "single" | "undulating";
     block_weeks: number;
     equipment: string[];
+    /** Working sets per primary muscle group (whole numbers: the folder summary). */
     weekly_sets: Record<string, number>;
     sessions_per_muscle: Record<string, number>;
     cardio: BlockCardio;
@@ -332,23 +292,147 @@ export type Block = {
     sessions: BlockSession[];
 };
 
-export const BLOCK_OUTPUT_SCHEMA: Record<string, unknown> = {
+// --- What the model returns ---------------------------------------------------------------------------------
+
+export type SplitSession = { name: string; focus: MuscleGroup[] };
+export type Split = { name: string; sessions: SplitSession[] };
+
+export type SplitOption = {
+    id: string;
+    name: string;
+    recommended: boolean;
+    reason: string;
+    sessions: SplitSession[];
+};
+
+/** A validated exercise of the model's block: sets already expanded, key not yet resolved against the catalogue. */
+export type ModelExercise = {
+    exercise_key: string;
+    sets: BlockSet[];
+    superset_group?: number;
+    planned_weight_kg?: number;
+    technique_note?: string;
+    reason: string;
+};
+
+export type ModelBlock = {
+    sessions: {
+        session_index: number;
+        exercises: ModelExercise[];
+        cardio_reason: string;
+    }[];
+    split_reason: string;
+    changes_vs_last_block: string | null;
+};
+
+export const MUSCLE_GROUPS: readonly MuscleGroup[] = [
+    "chest",
+    "back",
+    "shoulders",
+    "biceps",
+    "triceps",
+    "forearms",
+    "quads",
+    "hamstrings",
+    "glutes",
+    "calves",
+    "core",
+    "full_body",
+];
+
+const splitSessionSchema = {
     type: "object",
     additionalProperties: false,
-    required: ["picks"],
+    required: ["name", "focus"],
     properties: {
-        picks: {
+        name: { type: "string" },
+        focus: { type: "array", items: { type: "string" } },
+    },
+};
+
+export const SPLIT_OUTPUT_SCHEMA: Record<string, unknown> = {
+    type: "object",
+    additionalProperties: false,
+    required: ["options"],
+    properties: {
+        options: {
             type: "array",
             items: {
                 type: "object",
                 additionalProperties: false,
-                required: ["slot_id", "exercise_key", "reason"],
+                required: ["id", "name", "recommended", "reason", "sessions"],
                 properties: {
-                    slot_id: { type: "string" },
-                    exercise_key: { type: "string" },
+                    id: { type: "string" },
+                    name: { type: "string" },
+                    recommended: { type: "boolean" },
                     reason: { type: "string" },
+                    sessions: { type: "array", items: splitSessionSchema },
                 },
             },
         },
+    },
+};
+
+/** Sets travel grouped: `n` identical sets per entry (a drop set is its own entry with n = 1). */
+export const BLOCK_OUTPUT_SCHEMA: Record<string, unknown> = {
+    type: "object",
+    additionalProperties: false,
+    required: ["sessions", "split_reason", "changes_vs_last_block"],
+    properties: {
+        sessions: {
+            type: "array",
+            items: {
+                type: "object",
+                additionalProperties: false,
+                required: ["session_index", "exercises", "cardio_reason"],
+                properties: {
+                    session_index: { type: "integer" },
+                    exercises: {
+                        type: "array",
+                        items: {
+                            type: "object",
+                            additionalProperties: false,
+                            required: ["exercise_key", "sets", "reason"],
+                            properties: {
+                                exercise_key: { type: "string" },
+                                sets: {
+                                    type: "array",
+                                    items: {
+                                        type: "object",
+                                        additionalProperties: false,
+                                        required: [
+                                            "n",
+                                            "type",
+                                            "rep_min",
+                                            "rep_max",
+                                            "rpe",
+                                            "rest_seconds",
+                                        ],
+                                        properties: {
+                                            n: { type: "integer" },
+                                            type: {
+                                                type: "string",
+                                                enum: ["working", "drop"],
+                                            },
+                                            rep_min: { type: "integer" },
+                                            rep_max: { type: "integer" },
+                                            rpe: { type: "integer" },
+                                            rest_seconds: { type: "integer" },
+                                        },
+                                    },
+                                },
+                                superset_group: { type: "integer" },
+                                planned_weight_kg: { type: "number" },
+                                technique_note: { type: "string" },
+                                reason: { type: "string" },
+                            },
+                        },
+                    },
+                    cardio_reason: { type: "string" },
+                },
+            },
+        },
+        split_reason: { type: "string" },
+        changes_vs_last_block: { type: "string" },
     },
 };

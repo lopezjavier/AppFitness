@@ -65,56 +65,40 @@ class BlockPreviewViewModelTest {
     private fun BlockPreviewViewModel.failure() = assertIs<BlockPreviewUiState.Failed>(uiState.value).kind
 
     @Test
-    fun minimalRouteFlag_isSentWithTheRequest_andShownInThePreview() = runTest(dispatcher) {
-        val model = viewModel(SavedStateHandle(mapOf("minimal" to true)))
-        advanceUntilIdle()
-
-        model.onEvent(BlockPreviewEvent.Request)
-        advanceUntilIdle()
-
-        assertEquals(listOf(true), blocks.minimalRequests)
-        assertTrue(model.preview().minimal)
-    }
-
-    @Test
-    fun withoutTheRouteFlag_theRequestIsNotMinimal() = runTest(dispatcher) {
+    fun request_sendsTheRecommendedSplit() = runTest(dispatcher) {
         val model = viewModel()
         advanceUntilIdle()
 
         model.onEvent(BlockPreviewEvent.Request)
         advanceUntilIdle()
 
-        assertEquals(listOf(false), blocks.minimalRequests)
-        assertFalse(model.preview().minimal)
+        assertEquals(listOf("b"), blocks.splitsSent.map { it.id })
+        model.preview()
     }
 
     @Test
-    fun minimalRouteFlag_survivesRetry() = runTest(dispatcher) {
-        blocks.request = Result.failure(AppException(AppError.Unknown))
-        val model = viewModel(SavedStateHandle(mapOf("minimal" to true)))
+    fun request_withoutARecommendedOption_sendsTheFirst() = runTest(dispatcher) {
+        blocks.splitOptions = Result.success(blocks.splitOptions.getOrThrow().map { it.copy(recommended = false) })
+        val model = viewModel()
         advanceUntilIdle()
+
         model.onEvent(BlockPreviewEvent.Request)
         advanceUntilIdle()
 
-        blocks.request = Result.success(coachBlock())
-        model.onEvent(BlockPreviewEvent.Retry)
-        advanceUntilIdle()
-
-        assertEquals(listOf(true, true), blocks.minimalRequests)
+        assertEquals(listOf("a"), blocks.splitsSent.map { it.id })
     }
 
     @Test
-    fun minimalRouteFlag_survivesRecreationFromTheSameHandle() = runTest(dispatcher) {
-        val saved = SavedStateHandle(mapOf("minimal" to true))
-        viewModel(saved)
-        advanceUntilIdle()
-        val recreated = viewModel(saved)
+    fun request_whenTheSplitOptionsFail_failsWithoutBuildingABlock() = runTest(dispatcher) {
+        blocks.splitOptions = Result.failure(AppException(AppError.Network))
+        val model = viewModel()
         advanceUntilIdle()
 
-        recreated.onEvent(BlockPreviewEvent.Request)
+        model.onEvent(BlockPreviewEvent.Request)
         advanceUntilIdle()
 
-        assertEquals(listOf(true), blocks.minimalRequests)
+        assertTrue(blocks.splitsSent.isEmpty())
+        assertEquals(PlanFailureKind.Offline, model.failure())
     }
 
     @Test

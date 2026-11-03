@@ -21,6 +21,7 @@ import io.github.lopezjavier.appfitness.composeapp.resources.movement_pattern_ho
 import io.github.lopezjavier.appfitness.composeapp.resources.movement_pattern_isolation
 import io.github.lopezjavier.appfitness.composeapp.resources.movement_pattern_lunge
 import io.github.lopezjavier.appfitness.composeapp.resources.movement_pattern_other
+import io.github.lopezjavier.appfitness.composeapp.resources.movement_pattern_shoulder_abduction
 import io.github.lopezjavier.appfitness.composeapp.resources.movement_pattern_squat
 import io.github.lopezjavier.appfitness.composeapp.resources.movement_pattern_vertical_pull
 import io.github.lopezjavier.appfitness.composeapp.resources.movement_pattern_vertical_push
@@ -95,6 +96,7 @@ internal val MovementPattern.label: StringResource
             MovementPattern.Carry -> Res.string.movement_pattern_carry
             MovementPattern.Core -> Res.string.movement_pattern_core
             MovementPattern.Isolation -> Res.string.movement_pattern_isolation
+            MovementPattern.ShoulderAbduction -> Res.string.movement_pattern_shoulder_abduction
             MovementPattern.Cardio -> Res.string.movement_pattern_cardio
             MovementPattern.Other -> Res.string.movement_pattern_other
         }

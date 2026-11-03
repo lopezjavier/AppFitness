@@ -1,5 +1,5 @@
 // Types shared by the handler and the kinds that prepare their own request (T-161).
-import type { AnthropicRequest } from "../_shared/anthropic.ts";
+import type { AnthropicRequest, RetryOptions } from "../_shared/anthropic.ts";
 import type { ErrorCode } from "../_shared/errors.ts";
 import type { CoachModel } from "./prices.ts";
 import type {
@@ -74,22 +74,38 @@ export type PrepareContext = {
     /** Status of one of the caller's plans, or null when it does not exist for them. */
     loadPlan: (planId: string) => Promise<PlanState | null>;
     attachBlock: (row: BlockRow) => Promise<AttachedBlock>;
-    /** Phase history of the caller (previous block, minimal blocks in a row, deficit weeks), with their own token. */
+    /** Phase history of the caller (deficit weeks of the current cut), with their own token. */
     loadPhaseHistory: (today: string) => Promise<PhaseHistory>;
     /** Rewrites the options of a proposed cut through update_coach_plan_options, with the caller's own token. */
     updatePlanOptions: (row: OptionsRow) => Promise<UpdatedPlan>;
+    /** `coach_block_model_input` of the caller (folders, history, previous blocks, favourites), own token (T-205). */
+    loadBlockModelInput: (today: string) => Promise<BlockModelInput>;
+};
+
+/** What `coach_block_model_input` answers (planning/03 section 6). Every list may be empty. */
+export type BlockModelInput = {
+    folders: unknown[];
+    history: { exercise: string; [k: string]: unknown }[];
+    previous_blocks: unknown[];
+    /** Exercise keys (or ids of custom exercises) the user starred. */
+    favourites: string[];
+    /** Exercise ids with an unresolved level 4-5 discomfort. */
+    unresolved_exercise_ids: string[];
 };
 
 /** One independently validated model call of a multi-part kind. */
 export type PreparedPart = {
     request: AnthropicRequest;
     validate: (text: string) => unknown | null;
+    retry?: RetryOptions;
 };
 
 export type Prepared = {
     request?: AnthropicRequest;
     /** Closure over the server-built candidates: parsed value, or null when the text is invalid. */
     validate?: (text: string) => unknown | null;
+    /** Retry behaviour of `validate`: feedback for the second prompt and the latest moment to start it. */
+    retry?: RetryOptions;
     /**
      * Several calls in parallel (each validated and retried once on its own). When present, `request` and
      * `validate` are ignored and `finalize` receives the array of validated values, in order.

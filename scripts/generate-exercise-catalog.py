@@ -340,7 +340,7 @@ def self_check():
 # ---------------------------------------------------------------------------
 MOVEMENT_PATTERNS = (
     "squat", "hinge", "lunge", "horizontal_push", "vertical_push", "horizontal_pull", "vertical_pull", "carry",
-    "core", "isolation", "cardio", "other",
+    "core", "isolation", "cardio", "other", "shoulder_abduction",
 )
 
 
@@ -394,6 +394,11 @@ def render_patterns_sql(pattern_rows):
         lines += ["", f"update public.exercises set movement_pattern = '{pattern}'", "where not is_custom and key in ("]
         lines.append(",\n".join(f"  '{k}'" for k in keys))
         lines.append(");")
+    # T-205: every hinge lists hamstrings as primary or secondary (07 section 3 "Taxonomy"), so the fractional
+    # volume count does not undercount them.
+    lines += ["", "update public.exercises set secondary_muscles = secondary_muscles || array['hamstrings']::public.muscle_group[]",
+              "where not is_custom and movement_pattern = 'hinge' and muscle_group <> 'hamstrings'",
+              "  and not ('hamstrings' = any (secondary_muscles));"]
     return "\n".join(lines) + "\n"
 
 

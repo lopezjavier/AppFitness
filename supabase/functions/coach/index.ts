@@ -7,6 +7,7 @@ import {
     authenticate,
     callerClient,
 } from "../_shared/food-store.ts";
+import type { BlockModelInput } from "./context.ts";
 import { createCoachHandler } from "./handler.ts";
 import type { CatalogExercise, Nutrition, PhaseHistory } from "./schemas.ts";
 
@@ -82,7 +83,7 @@ const handler = createCoachHandler({
         const { data, error } = await callerClient(token)
             .from("exercises")
             .select(
-                "id,key,name,muscle_group,equipment,movement_pattern,metric_type,is_custom",
+                "id,key,name,muscle_group,secondary_muscles,equipment,movement_pattern,metric_type,is_custom",
             );
         if (error || !data) throw new Error("catalog read failed");
         return data as CatalogExercise[];
@@ -132,6 +133,16 @@ const handler = createCoachHandler({
         );
         if (error || data == null) throw new Error("phase history read failed");
         return data as PhaseHistory;
+    },
+    loadBlockModelInput: async (token, today) => {
+        const { data, error } = await callerClient(token).rpc(
+            "coach_block_model_input",
+            { p_today: today },
+        );
+        if (error || data == null) {
+            throw new Error("block model input read failed");
+        }
+        return data as BlockModelInput;
     },
     updatePlanOptions: async (token, row) => {
         const { data, error } = await callerClient(token).rpc(

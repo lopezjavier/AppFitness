@@ -44,7 +44,6 @@ private const val KEY_WEEK = "block_week"
 private const val KEY_REASON = "block_reason_exercise"
 private const val KEY_REPLACEMENTS = "block_replacements"
 private const val KEY_REPLACE_SLOT = "block_replace_slot"
-private const val KEY_MINIMAL = "minimal"
 private const val REPLACEMENT_PARTS = 3
 
 /**
@@ -80,9 +79,6 @@ class BlockPreviewViewModel(
 
     private val effectChannel = Channel<BlockPreviewEffect>(Channel.BUFFERED)
     val effects = effectChannel.receiveAsFlow()
-
-    // Set by the navigation route (BlockPreviewRoute.minimal) from "Tengo poco tiempo"; false when absent.
-    private val minimal: Boolean = savedState.get<Boolean>(KEY_MINIMAL) == true
 
     // The server accepts a date within one day of UTC today, so it is the UTC date.
     private fun today(): LocalDate = clock.now().toLocalDateTime(TimeZone.UTC).date
@@ -300,7 +296,14 @@ class BlockPreviewViewModel(
         clearReplacementsState()
         _uiState.value = BlockPreviewUiState.Requesting
         savedState[KEY_REQUESTING] = true
-        val result = blocks.requestBlock(planId, today(), minimal)
+        // Interim until T-206 adds the split picker: the recommended option is sent.
+        val options = blocks.requestSplitOptions(today())
+        val split = options.getOrNull()?.let { list -> list.firstOrNull { it.recommended } ?: list.firstOrNull() }
+        val result = if (split != null) {
+            blocks.requestBlock(planId, today(), split)
+        } else {
+            Result.failure<CoachBlock>(options.exceptionOrNull() ?: CoachException(CoachFailure.Other))
+        }
         savedState.remove<Boolean>(KEY_REQUESTING)
         result.fold(
             onSuccess = { showBlock(it, restore = false) },
@@ -356,7 +359,6 @@ class BlockPreviewViewModel(
             reasonKey = if (restore) savedState.get<String>(KEY_REASON) else null,
             replacements = replacements,
             replaceSlot = slot,
-            minimal = minimal,
         )
         // A key that no longer points to an exercise would open an empty sheet.
         _uiState.value = if (preview.reasonKey != null && preview.reasonExercise == null) {

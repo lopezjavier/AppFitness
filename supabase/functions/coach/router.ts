@@ -1,9 +1,10 @@
 // Kinds of coach calls and the model each one uses (planning/07 section 11).
-// `ping` (T-160), `plan_nutrition` (T-161), `plan_block` (T-163) and the model-free
+// `ping` (T-160), `plan_nutrition` (T-161), `block_splits` and `plan_block` (T-163, T-205) and the model-free
 // `plan_recompute` (T-187) are callable; `report` and `chat` answer
 // coach_kind_not_available until their tasks.
 import type { AnthropicRequest } from "../_shared/anthropic.ts";
 import type { PrepareContext, Prepared } from "./context.ts";
+import { prepare as prepareSplits } from "./blockSplits.ts";
 import { prepare as prepareBlock } from "./planBlock.ts";
 import { prepare as prepareNutrition } from "./planNutrition.ts";
 import { prepare as prepareRecompute } from "./planRecompute.ts";
@@ -49,6 +50,11 @@ export const KINDS: Record<string, KindSpec> = {
         model: "opus",
         available: true,
         prepare: prepareNutrition,
+    },
+    block_splits: {
+        model: "sonnet",
+        available: true,
+        prepare: prepareSplits,
     },
     plan_block: { model: "opus", available: true, prepare: prepareBlock },
     plan_recompute: {

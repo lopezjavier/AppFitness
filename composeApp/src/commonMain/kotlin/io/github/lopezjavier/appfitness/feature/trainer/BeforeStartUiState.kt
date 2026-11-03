@@ -66,9 +66,6 @@ sealed interface BeforeStartUiState {
 
         val canCreate: Boolean get() = !hasBlocking && !creating && !savingLevel
 
-        /** "Tengo poco tiempo" exists only when creating a block. */
-        val canCreateMinimal: Boolean get() = mode == BeforeStartMode.Block && canCreate
-
         /** The plan the new one would replace; only a plan creation replaces something. */
         val replaces: CurrentPlan? get() = if (mode == BeforeStartMode.Plan) inputs.currentPlan else null
     }
@@ -95,19 +92,12 @@ sealed interface BeforeStartEvent {
 
     /** The pinned footer: confirms the shown provisional values (if any) and moves on. */
     data object Create : BeforeStartEvent
-
-    /** "Tengo poco tiempo" (block mode only): same path as [Create], the block is requested as minimal. */
-    data object CreateMinimal : BeforeStartEvent
 }
 
 sealed interface BeforeStartEffect {
     /** Values confirmed (or nothing to confirm): navigate to the proposal or the block preview. */
-    data class Created(
-        val mode: BeforeStartMode,
-        val planId: String?,
-        val replacingPlanId: String?,
-        val minimal: Boolean = false,
-    ) : BeforeStartEffect
+    data class Created(val mode: BeforeStartMode, val planId: String?, val replacingPlanId: String?) :
+        BeforeStartEffect
 
     /** Confirming failed (from the footer or the sheet); nothing changed. [offline] picks the offline hint. */
     data class CreateFailed(val offline: Boolean) : BeforeStartEffect

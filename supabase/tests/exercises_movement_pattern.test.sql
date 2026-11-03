@@ -3,7 +3,7 @@ begin;
 create extension if not exists pgtap with schema extensions;
 set local search_path = extensions, public;
 
-select plan(21);
+select plan(25);
 
 insert into auth.users (id, email) values
   ('11111111-1111-4111-8111-111111111111', 'ana@example.com'),
@@ -19,8 +19,8 @@ update public.exercises set movement_pattern = 'carry' where id = 'b8000000-0000
 -- ---------------------------------------------------------------------------
 select enum_has_labels('public', 'movement_pattern',
   array['squat', 'hinge', 'lunge', 'horizontal_push', 'vertical_push', 'horizontal_pull', 'vertical_pull', 'carry',
-        'core', 'isolation', 'cardio', 'other'],
-  'movement_pattern has the 12 labels');
+        'core', 'isolation', 'cardio', 'other', 'shoulder_abduction'],
+  'movement_pattern has the 13 labels');
 select col_type_is('public', 'exercises', 'movement_pattern', 'public.movement_pattern', 'column uses the enum');
 select col_is_null('public', 'exercises', 'movement_pattern', 'movement_pattern is nullable');
 select is((select count(*)::int from public.exercises where not is_custom and movement_pattern is null), 0,
@@ -79,6 +79,20 @@ select throws_ok(
   $$insert into public.exercises (key, muscle_group, equipment, is_custom, movement_pattern)
     values ('mi-catalogo', 'chest', 'barbell', false, 'core')$$,
   '42501', null, 'a user cannot insert a catalogue (is_custom = false) row');
+
+-- T-205: the 7 lateral-raise keys are shoulder_abduction and no other row is; hinges always list hamstrings.
+select is((select array_agg(key order by key) from public.exercises where movement_pattern = 'shoulder_abduction'),
+  array['band-long-cable-lateral-raise', 'bodyweight-lateral-raise', 'cable-lateral-raise', 'lateral-raise', 'plate-loaded-lateral-raise',
+        'seated-dumbbell-lateral-raise', 'side-lying-lateral-raise', 'single-arm-plate-loaded-lateral-raise'],
+  'exactly the 7 lateral-raise keys and the band-long copy of the cable one are shoulder_abduction');
+select is((select count(*)::int from public.exercises where not is_custom and key like '%lateral-raise'
+           and movement_pattern = 'isolation'), 0, 'no lateral raise is left as isolation');
+select is((select count(*)::int from public.exercises
+           where not is_custom and movement_pattern = 'hinge' and muscle_group <> 'hamstrings'
+             and not ('hamstrings' = any (secondary_muscles))), 0,
+  'every catalogue hinge has hamstrings as primary or secondary');
+select is((select secondary_muscles from public.exercises where key = 'deadlift'), array['hamstrings']::public.muscle_group[],
+  'the deadlift lists hamstrings as its only secondary muscle');
 
 select * from finish();
 rollback;

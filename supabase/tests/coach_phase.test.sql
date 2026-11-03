@@ -1,10 +1,10 @@
--- pgTAP: phases of the coach plan (T-187, US-82 data side, US-69 deficit cap, US-88 minimal).
+-- pgTAP: phases of the coach plan (T-187, US-82 data side, US-69 deficit cap; the minimal phase was removed in T-205).
 -- Rules: planning/07 sections 3, 4 and 12.3; planning/04 sections 8.2, 8.9 and 9.3.
 begin;
 create extension if not exists pgtap with schema extensions;
 set local search_path = extensions, public;
 
-select plan(103);
+select plan(90);
 
 -- ---------------------------------------------------------------------------
 -- Fixture helpers
@@ -103,8 +103,8 @@ update public.profiles set birth_date = (pg_temp.d0() - interval '65 years')::da
 -- ---------------------------------------------------------------------------
 -- Structure, defaults and constraints
 -- ---------------------------------------------------------------------------
-select enum_has_labels('public', 'coach_phase', array['cut', 'gain', 'maintenance', 'recomposition', 'minimal'],
-  'the coach_phase enum has the five phases, without regain');
+select enum_has_labels('public', 'coach_phase', array['cut', 'gain', 'maintenance', 'recomposition'],
+  'the coach_phase enum has the four phases, without regain and minimal');
 select col_not_null('public', 'coach_plans', 'phase', 'coach_plans.phase is not null');
 select ok(
   (select relrowsecurity and relforcerowsecurity from pg_class where oid = 'public.coach_plans'::regclass),
@@ -192,7 +192,7 @@ select throws_ok(
   $$select public.propose_coach_plan(pg_temp.d0(), 'fat_loss', pg_temp.nut(2500, -500, 0.568, 'cut', 'deficit_cap') || '{"phase_reason":"returning_break"}', '[]', '{}', '{}')$$,
   '22023', 'plan invariant: phase_reason', 'the retired returning_break reason is rejected');
 
--- Maintenance, recomposition and minimal: the no-change range (220 + 10 kcal at 80 kg).
+-- Maintenance and recomposition: the no-change range (220 + 10 kcal at 80 kg).
 select lives_ok(
   $$select public.propose_coach_plan(pg_temp.d0(), 'maintenance', pg_temp.nut(3200, 200, 0.23, 'maintenance'), '[]', '{}', '{}')$$,
   'maintenance inside the no-change range is accepted');
@@ -257,7 +257,7 @@ set local role authenticated;
 select pg_temp.as_user(2);
 select is((select count(*)::int from public.coach_plans where user_id = pg_temp.u(1)), 0,
   'user B cannot read the plans (and the new columns) of user A');
-select throws_ok($$update public.coach_plans set phase = 'minimal'$$, '42501', null,
+select throws_ok($$update public.coach_plans set phase = 'maintenance'$$, '42501', null,
   'the owner cannot write the phase directly');
 
 select pg_temp.as_user(1);
@@ -368,16 +368,16 @@ select is((public.apply_coach_diet_break(pg_temp.d0()))->>'applied', 'false', 'a
 -- coach_phase_history (users 10-12)
 -- ---------------------------------------------------------------------------
 reset role;
--- 10: four consecutive cut blocks (the two newest planned as minimal blocks; calories stay cut), one with a diet break.
+-- 10: four consecutive cut blocks, one with a diet break.
 insert into public.coach_plans (id, user_id, block_start, intention, nutrition, status, phase, phase_options, training)
 values (pg_temp.pid(21), pg_temp.u(10), pg_temp.d0() - 84, 'fat_loss', pg_temp.nut(2500, -500, 0.568, 'cut', 'deficit_cap'),
         'superseded', 'cut', default, '{"weekly_sets":{"quads":10}}'),
        (pg_temp.pid(22), pg_temp.u(10), pg_temp.d0() - 56, 'fat_loss', pg_temp.nut(2500, -500, 0.568, 'cut', 'deficit_cap', true),
         'superseded', 'cut', '{"cut_rate_pct":0.5,"diet_break":true}', '{"weekly_sets":{"quads":10}}'),
        (pg_temp.pid(23), pg_temp.u(10), pg_temp.d0() - 28, 'fat_loss', pg_temp.nut(2500, -500, 0.568, 'cut', 'deficit_cap'),
-        'superseded', 'minimal', default, '{"weekly_sets":{"quads":2}}'),
+        'superseded', 'cut', default, '{"weekly_sets":{"quads":2}}'),
        (pg_temp.pid(24), pg_temp.u(10), pg_temp.d0(), 'fat_loss', pg_temp.nut(2500, -500, 0.568, 'cut', 'deficit_cap'),
-        'accepted', 'minimal', default, '{"weekly_sets":{"quads":2}}'),
+        'accepted', 'cut', default, '{"weekly_sets":{"quads":2}}'),
 -- 11: one maintenance block followed by a proposed plan that must not count.
        (pg_temp.pid(25), pg_temp.u(11), pg_temp.d0() - 28, 'maintenance', pg_temp.nut(3000, 0, 0, 'maintenance'),
         'accepted', 'maintenance', default, '{"weekly_sets":{"chest":10,"quads":10}}'),
@@ -395,8 +395,9 @@ cross join generate_series(1, 2) s;
 
 set local role authenticated;
 select pg_temp.as_user(10);
-select is((public.coach_phase_history(pg_temp.d0()))->'previous'->>'phase', 'minimal', 'the previous block is the newest saved one');
-select is((public.coach_phase_history(pg_temp.d0()))->>'minimal_blocks_in_a_row', '2', 'two minimal blocks in a row');
+select is((public.coach_phase_history(pg_temp.d0()))->'previous'->>'phase', 'cut', 'the previous block is the newest saved one');
+select is((public.coach_phase_history(pg_temp.d0()))->>'minimal_blocks_in_a_row', '0',
+  'the legacy minimal counter stays at 0 for old clients');
 select is((public.coach_phase_history(pg_temp.d0()))->>'deficit_weeks_done', '15',
   'deficit weeks: 4 per cut block, 3 with a diet break (4 + 3 + 4 + 4)');
 select is((public.coach_phase_history(pg_temp.d0()))->'previous'->'sets_per_group', '{"quads": 2}'::jsonb,
@@ -411,13 +412,12 @@ select is((public.coach_phase_history(pg_temp.d0()))->'previous'->'rep_ranges'->
 select pg_temp.as_user(11);
 select is((public.coach_phase_history(pg_temp.d0()))->'previous'->>'phase', 'maintenance', 'a proposed plan is not history');
 select is((public.coach_phase_history(pg_temp.d0()))->>'deficit_weeks_done', '0', 'no cut, no deficit weeks');
-select is((public.coach_phase_history(pg_temp.d0()))->>'minimal_blocks_in_a_row', '0', 'and no minimal blocks');
 select pg_temp.as_user(12);
 select is(public.coach_phase_history(pg_temp.d0()), '{"previous": null, "minimal_blocks_in_a_row": 0, "deficit_weeks_done": 0}'::jsonb,
   'a user without blocks has no history (and sees none of the others'' blocks)');
 
 -- ---------------------------------------------------------------------------
--- attach_coach_block: the minimal phase (users 1 (30 y), 13 (65 y), 14 (64 y 364 d))
+-- attach_coach_block without the minimal phase (users 1 and 14)
 -- ---------------------------------------------------------------------------
 reset role;
 delete from public.coach_plans where user_id in (pg_temp.u(1), pg_temp.u(13), pg_temp.u(14));
@@ -426,7 +426,7 @@ select pg_temp.pid(n), pg_temp.u(n), pg_temp.d0(), 'fat_loss',
        pg_temp.nut(2500, -500, 0.568, 'cut', 'deficit_cap', false,
          '{"activity":{"cardio_min_week":150,"cardio_edited":false,"cardio_band":[150,300],"steps_day":7000,"steps_basis":"floor","steps_avg":null}}'),
        'proposed'
-from unnest(array[1, 13, 14]) n;
+from unnest(array[1, 14]) n;
 
 set local role authenticated;
 select pg_temp.as_user(1);
@@ -434,58 +434,29 @@ select throws_ok(
   $$select pg_temp.attach(pg_temp.pid(1), pg_temp.tr(1, 'bogus'), pg_temp.ses(1, 1))$$,
   '22023', 'block invariant: phase', 'an unknown block phase is rejected');
 select throws_ok(
-  $$select pg_temp.attach(pg_temp.pid(1), pg_temp.tr(2, 'minimal'), pg_temp.ses(2, 1))$$,
-  '22023', 'block invariant: minimal_sessions', 'a minimal block under 65 has one session');
-select throws_ok(
-  $$select pg_temp.attach(pg_temp.pid(1), pg_temp.tr(1, 'minimal'), pg_temp.ses(1, 2))$$,
-  '22023', 'block invariant: minimal_sets', 'a minimal block under 65 has one set per slot');
-select throws_ok(
-  $$select pg_temp.attach(pg_temp.pid(1), pg_temp.tr(1, 'minimal'), pg_temp.ses(1, 1, true))$$,
-  '22023', 'block invariant: minimal_main_only', 'a minimal block has main lifts only');
-select throws_ok(
-  $$select pg_temp.attach(pg_temp.pid(1), pg_temp.tr(1, 'minimal', 100, array[60]), pg_temp.ses(1, 1, false, 60))$$,
-  '22023', 'block invariant: cardio_total', 'a minimal routine cannot carry more than 30 minutes of cardio');
-select lives_ok(
-  $$select pg_temp.attach(pg_temp.pid(1), pg_temp.tr(1, 'minimal', 100, array[30]), pg_temp.ses(1, 1, false, 30))$$,
-  'a minimal block with one session, one set and 30 + 70 minutes of cardio is accepted');
-select is((select phase::text from public.coach_plans where id = pg_temp.pid(1)), 'minimal', 'the plan phase becomes minimal');
-select is((select phase_reason from public.coach_plans where id = pg_temp.pid(1)), 'user_busy', 'with the reason user_busy');
-select is((select nutrition->>'target_kcal' from public.coach_plans where id = pg_temp.pid(1)), '2500',
-  'and the calories of the plan are untouched');
-select is((select nutrition->'activity'->>'cardio_min_week' from public.coach_plans where id = pg_temp.pid(1)), '100',
-  'the plan''s cardio target follows the block (100 minutes)');
-select is((select nutrition->>'phase' from public.coach_plans where id = pg_temp.pid(1)), 'cut',
-  'while the nutrition JSON keeps its own phase');
+  $$select pg_temp.attach(pg_temp.pid(1), pg_temp.tr(1, 'minimal'), pg_temp.ses(1, 1))$$,
+  '22023', 'block invariant: phase', 'the removed minimal phase is rejected');
 select lives_ok(
   $$select pg_temp.attach(pg_temp.pid(1), pg_temp.tr(2, null, 150, array[60, 60]), pg_temp.ses(2, 3, true, 60))$$,
-  'a normal block can replace the minimal one while unsaved');
-select is((select phase::text from public.coach_plans where id = pg_temp.pid(1)), 'cut', 'the phase of the plan is restored');
+  'a block without a phase key is accepted');
+select is((select phase::text from public.coach_plans where id = pg_temp.pid(1)), 'cut', 'the phase of the plan is kept');
 select is((select phase_reason from public.coach_plans where id = pg_temp.pid(1)), 'intention', 'and its reason');
 select is((select nutrition->'activity'->>'cardio_min_week' from public.coach_plans where id = pg_temp.pid(1)), '150',
-  'and the cardio target');
-
-select pg_temp.as_user(13);
-select lives_ok(
-  $$select pg_temp.attach(pg_temp.pid(13), pg_temp.tr(2, 'minimal', 100, array[30, 30]), pg_temp.ses(2, 2, false, 30))$$,
-  'from 65 a minimal block has two sessions and two sets');
-select throws_ok(
-  $$select pg_temp.attach(pg_temp.pid(13), pg_temp.tr(1, 'minimal'), pg_temp.ses(1, 2))$$,
-  '22023', 'block invariant: minimal_sessions', 'from 65 one session is not enough');
-select throws_ok(
-  $$select pg_temp.attach(pg_temp.pid(13), pg_temp.tr(2, 'minimal'), pg_temp.ses(2, 1))$$,
-  '22023', 'block invariant: minimal_sets', 'from 65 one set is not enough');
-select pg_temp.as_user(14);
-select throws_ok(
-  $$select pg_temp.attach(pg_temp.pid(14), pg_temp.tr(2, 'minimal'), pg_temp.ses(2, 1))$$,
-  '22023', 'block invariant: minimal_sessions', 'one day before the 65th birthday the young rule applies');
-select lives_ok(
-  $$select pg_temp.attach(pg_temp.pid(14), pg_temp.tr(1, 'minimal'), pg_temp.ses(1, 1))$$,
-  'and one session with one set is accepted');
+  'and the cardio target follows the block');
 
 select pg_temp.as_user(2);
 select throws_ok(
-  $$select pg_temp.attach(pg_temp.pid(14), pg_temp.tr(1, 'minimal'), pg_temp.ses(1, 1))$$,
+  $$select pg_temp.attach(pg_temp.pid(14), pg_temp.tr(1), pg_temp.ses(1, 1))$$,
   'P0002', null, 'user B cannot attach a block to the plan of user A');
+
+reset role;
+select throws_ok(
+  $$insert into public.coach_plans (user_id, block_start, intention, nutrition, status, phase)
+    values (pg_temp.u(15), pg_temp.d0() + 400, 'fat_loss', '{}', 'discarded', 'minimal')$$,
+  '22P02', null, 'a plan cannot store the minimal phase');
+select is((select count(*)::int from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+           where n.nspname = 'public' and p.proname <> 'coach_phase_history' and p.prosrc ilike '%minimal%'), 0,
+  'no public function mentions the minimal phase (only coach_phase_history keeps the legacy counter field)');
 
 select * from finish();
 rollback;

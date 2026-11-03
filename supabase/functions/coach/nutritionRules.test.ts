@@ -396,8 +396,8 @@ Deno.test("the cut rate 1.0 and 0.5 are accepted; 1.2 and 0.4 are refused defens
     }
 });
 
-Deno.test("maintenance, recomposition and minimal use rate 0", () => {
-    for (const phase of ["maintenance", "recomposition", "minimal"] as const) {
+Deno.test("maintenance and recomposition use rate 0", () => {
+    for (const phase of ["maintenance", "recomposition"] as const) {
         const n = plan({ phase });
         assertEquals(n.calorie_adjustment, 0);
         assertEquals(n.target_rate_pct, 0);
@@ -461,7 +461,6 @@ Deno.test("intake range by phase class: a maintenance plan of a fat-loss user us
 Deno.test("intake range by phase class: a maintenance user does not get the gain range", () => {
     assertEquals(rangeClass("maintenance"), "nochange");
     assertEquals(rangeClass("recomposition"), "nochange");
-    assertEquals(rangeClass("minimal"), "nochange");
     assertEquals(rangeClass("cut"), "loss");
     assertEquals(rangeClass("gain"), "gain");
     const n = plan({

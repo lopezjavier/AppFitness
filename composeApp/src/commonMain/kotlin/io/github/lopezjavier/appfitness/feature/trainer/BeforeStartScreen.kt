@@ -41,8 +41,6 @@ import io.github.lopezjavier.appfitness.composeapp.resources.before_start_fix_pe
 import io.github.lopezjavier.appfitness.composeapp.resources.before_start_fix_preferences
 import io.github.lopezjavier.appfitness.composeapp.resources.before_start_fix_weight
 import io.github.lopezjavier.appfitness.composeapp.resources.before_start_flag
-import io.github.lopezjavier.appfitness.composeapp.resources.before_start_minimal
-import io.github.lopezjavier.appfitness.composeapp.resources.before_start_minimal_helper
 import io.github.lopezjavier.appfitness.composeapp.resources.before_start_note_missing
 import io.github.lopezjavier.appfitness.composeapp.resources.before_start_note_replace_accepted
 import io.github.lopezjavier.appfitness.composeapp.resources.before_start_note_replace_proposed
@@ -70,7 +68,6 @@ import io.github.lopezjavier.appfitness.designsystem.NavigationRow
 import io.github.lopezjavier.appfitness.designsystem.OfflineHint
 import io.github.lopezjavier.appfitness.designsystem.OfflineState
 import io.github.lopezjavier.appfitness.designsystem.PrimaryButton
-import io.github.lopezjavier.appfitness.designsystem.SecondaryButton
 import io.github.lopezjavier.appfitness.designsystem.SkeletonBox
 import io.github.lopezjavier.appfitness.designsystem.Spacing
 import io.github.lopezjavier.appfitness.designsystem.offlineHint
@@ -357,15 +354,6 @@ private fun BeforeStartFooter(
             enabled = state.canCreate && online,
             loading = state.creating,
         )
-        if (state.mode == BeforeStartMode.Block) {
-            SecondaryButton(
-                text = stringResource(Res.string.before_start_minimal),
-                onClick = { onEvent(BeforeStartEvent.CreateMinimal) },
-                modifier = Modifier.fillMaxWidth().testTag("before_start_create_minimal"),
-                enabled = state.canCreateMinimal && online,
-            )
-            InlineNote(text = stringResource(Res.string.before_start_minimal_helper))
-        }
         if (!online) {
             Box(Modifier.testTag("before_start_offline_hint")) {
                 OfflineHint(
