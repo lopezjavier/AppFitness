@@ -464,9 +464,16 @@ export function makePrepare() {
                     cardioExercise: cardioPlan.exercise,
                 });
                 assertBlockInvariants(block, prefs, catalog);
+                // The notes are stored with the block so the preview reloads them after process death (T-206).
+                const training = {
+                    ...block.training,
+                    split_reason: r.block!.split_reason,
+                    changes_vs_last_block: r.block!.changes_vs_last_block,
+                    notes: again.notes,
+                };
                 const saved = await ctx.attachBlock({
                     planId,
-                    training: block.training,
+                    training,
                     sessions: block.sessions,
                     method: {
                         model,
@@ -478,7 +485,7 @@ export function makePrepare() {
                 });
                 return {
                     plan_id: saved.plan_id,
-                    training: block.training,
+                    training,
                     sessions: block.sessions,
                     split_reason: r.block!.split_reason,
                     changes_vs_last_block: r.block!.changes_vs_last_block,

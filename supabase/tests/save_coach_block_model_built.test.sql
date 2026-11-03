@@ -4,7 +4,7 @@ begin;
 create extension if not exists pgtap with schema extensions;
 set local search_path = extensions, public;
 
-select plan(17);
+select plan(18);
 
 create function pg_temp.u(n int) returns uuid language sql as $$
   select ('d6000000-0000-4000-8000-0000000000' || lpad(n::text, 2, '0'))::uuid $$;
@@ -30,7 +30,8 @@ create function pg_temp.lift(p_id uuid, p_role text, p_extra jsonb default '{}')
     'reason', 'Buen ejercicio base para tu objetivo.') || p_extra $$;
 create function pg_temp.attach(p_plan uuid) returns jsonb language sql as $$
   select public.attach_coach_block(p_plan,
-    jsonb_build_object('days_per_week', 1, 'days_chosen', false, 'session_minutes', 60, 'block_weeks', 4, 'equipment', '[]'::jsonb),
+    jsonb_build_object('days_per_week', 1, 'days_chosen', false, 'session_minutes', 60, 'block_weeks', 4, 'equipment', '[]'::jsonb,
+      'split_reason', 'Encaja con tus días.', 'changes_vs_last_block', null::text, 'notes', jsonb_build_array('below_recommended')),
     jsonb_build_array(jsonb_build_object('session_index', 1, 'name', 'Torso', 'focus', jsonb_build_array('chest'),
       'exercises', jsonb_build_array(
         pg_temp.lift(pg_temp.press(), 'main', '{"target_rpe":7,"planned_weight_kg":62.5,"superset_group":1}'),
@@ -50,6 +51,8 @@ insert into public.coach_plans (id, user_id, block_start, intention, nutrition, 
 set local role authenticated;
 select pg_temp.as_user(1);
 select lives_ok($$select pg_temp.attach(pg_temp.p(1))$$, 'the model-built block is stored');
+select is((select training->'notes' from public.coach_plans where id = pg_temp.p(1)), '["below_recommended"]'::jsonb,
+  'the split reason, changes and notes keys are kept inside training');
 select lives_ok($$select public.save_coach_block(pg_temp.p(1), jsonb_build_array(
   jsonb_build_object('session_index', 1, 'position', 1, 'exercise_id', pg_temp.alt(pg_temp.press()))))$$,
   'it is saved with one replacement');

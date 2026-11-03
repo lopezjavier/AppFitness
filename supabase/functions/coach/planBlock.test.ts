@@ -203,6 +203,11 @@ Deno.test("4 days muscle, full gym: the model's block is checked, completed with
     assertEquals(t.attached.length, 1);
     assertEquals(t.attached[0].planId, PLAN_ID);
     assertEquals(t.attached[0].training, body.training);
+    // The notes of the generator are stored with the block so the preview reloads them (T-206).
+    const stored = t.attached[0].training as unknown as Record<string, unknown>;
+    assertEquals(stored.split_reason, body.split_reason);
+    assertEquals(stored.changes_vs_last_block, null);
+    assertEquals(stored.notes, body.notes);
     assertEquals(t.attached[0].method.attempts, 1);
     assertEquals(t.calls(), 1);
     assertEquals(t.records.length, 1);

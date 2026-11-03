@@ -10,7 +10,6 @@ import io.github.lopezjavier.appfitness.domain.model.CoachException
 import io.github.lopezjavier.appfitness.domain.model.CoachFailure
 import io.github.lopezjavier.appfitness.domain.model.Equipment
 import io.github.lopezjavier.appfitness.domain.model.ExerciseAlternative
-import io.github.lopezjavier.appfitness.domain.model.MissingField
 import io.github.lopezjavier.appfitness.domain.model.MuscleGroup
 import io.github.lopezjavier.appfitness.domain.model.TrainingPlace
 import io.github.lopezjavier.appfitness.domain.model.TrainingPreferences
@@ -19,7 +18,6 @@ import io.github.lopezjavier.appfitness.feature.exercises.FakeExerciseRepository
 import io.github.lopezjavier.appfitness.feature.exercises.FakeFavoriteExercisesRepository
 import io.github.lopezjavier.appfitness.feature.exercises.exerciseInfo
 import io.github.lopezjavier.appfitness.feature.exercises.exerciseRow
-import io.github.lopezjavier.appfitness.feature.workout.MutableClock
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -29,7 +27,6 @@ import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
-import kotlinx.datetime.LocalDate
 import kotlin.test.AfterTest
 import kotlin.test.BeforeTest
 import kotlin.test.Test
@@ -58,58 +55,22 @@ class BlockPreviewViewModelTest {
     fun tearDown() = Dispatchers.resetMain()
 
     private fun viewModel(saved: SavedStateHandle = SavedStateHandle()) =
-        BlockPreviewViewModel("plan-1", blocks, exercises, library, MutableClock(), prefs, favorites, saved)
+        BlockPreviewViewModel("plan-1", blocks, exercises, library, prefs, favorites, saved)
 
     private fun BlockPreviewViewModel.preview() = assertIs<BlockPreviewUiState.Preview>(uiState.value)
 
     private fun BlockPreviewViewModel.failure() = assertIs<BlockPreviewUiState.Failed>(uiState.value).kind
 
     @Test
-    fun request_sendsTheRecommendedSplit() = runTest(dispatcher) {
-        val model = viewModel()
-        advanceUntilIdle()
-
-        model.onEvent(BlockPreviewEvent.Request)
-        advanceUntilIdle()
-
-        assertEquals(listOf("b"), blocks.splitsSent.map { it.id })
-        model.preview()
-    }
-
-    @Test
-    fun request_withoutARecommendedOption_sendsTheFirst() = runTest(dispatcher) {
-        blocks.splitOptions = Result.success(blocks.splitOptions.getOrThrow().map { it.copy(recommended = false) })
-        val model = viewModel()
-        advanceUntilIdle()
-
-        model.onEvent(BlockPreviewEvent.Request)
-        advanceUntilIdle()
-
-        assertEquals(listOf("a"), blocks.splitsSent.map { it.id })
-    }
-
-    @Test
-    fun request_whenTheSplitOptionsFail_failsWithoutBuildingABlock() = runTest(dispatcher) {
-        blocks.splitOptions = Result.failure(AppException(AppError.Network))
-        val model = viewModel()
-        advanceUntilIdle()
-
-        model.onEvent(BlockPreviewEvent.Request)
-        advanceUntilIdle()
-
-        assertTrue(blocks.splitsSent.isEmpty())
-        assertEquals(PlanFailureKind.Offline, model.failure())
-    }
-
-    @Test
-    fun withoutAStoredBlock_theScreenStartsIdle_andDoesNotRequest() = runTest(dispatcher) {
+    fun withoutAStoredBlock_theScreenFailsAndNeverCallsTheCoach() = runTest(dispatcher) {
         val model = viewModel()
         assertEquals(BlockPreviewUiState.Loading, model.uiState.value)
 
         advanceUntilIdle()
 
-        assertEquals(BlockPreviewUiState.Idle, model.uiState.value)
+        assertEquals(PlanFailureKind.Interrupted, model.failure())
         assertTrue(blocks.requests.isEmpty())
+        assertEquals(0, blocks.splitRequests)
     }
 
     @Test
@@ -125,104 +86,32 @@ class BlockPreviewViewModelTest {
     }
 
     @Test
-    fun aRequestFlagWithNothingStored_isInterrupted_andNeverRequestsByItself() = runTest(dispatcher) {
-        val saved = SavedStateHandle(mapOf("block_requesting" to true))
-        val model = viewModel(saved)
-
-        advanceUntilIdle()
-
-        assertEquals(PlanFailureKind.Interrupted, model.failure())
-        assertTrue(blocks.requests.isEmpty())
-        assertNull(saved.get<Boolean>("block_requesting"))
-    }
-
-    @Test
-    fun aRequestFlagWithAStoredBlock_showsTheBlock() = runTest(dispatcher) {
-        blocks.current = Result.success(coachBlock())
-        val model = viewModel(SavedStateHandle(mapOf("block_requesting" to true)))
-
-        advanceUntilIdle()
-
-        assertEquals(coachBlock(), model.preview().block)
-    }
-
-    @Test
-    fun request_showsProgressThenThePreview_forTheOpenPlanAndUtcToday() = runTest(dispatcher) {
-        blocks.requestGate = CompletableDeferred()
-        val model = viewModel()
-        advanceUntilIdle()
-
-        model.onEvent(BlockPreviewEvent.Request)
-        advanceUntilIdle()
-        assertEquals(BlockPreviewUiState.Requesting, model.uiState.value)
-
-        blocks.requestGate!!.complete(Unit)
-        advanceUntilIdle()
-
-        assertEquals(coachBlock(), model.preview().block)
-        assertEquals(listOf("plan-1" to LocalDate(2026, 10, 19)), blocks.requests)
-    }
-
-    @Test
-    fun requestWhileRequesting_isIgnored() = runTest(dispatcher) {
-        blocks.requestGate = CompletableDeferred()
-        val model = viewModel()
-        advanceUntilIdle()
-
-        model.onEvent(BlockPreviewEvent.Request)
-        advanceUntilIdle()
-        model.onEvent(BlockPreviewEvent.Request)
-        blocks.requestGate!!.complete(Unit)
-        advanceUntilIdle()
-
-        assertEquals(1, blocks.requests.size)
-    }
-
-    @Test
-    fun requestFlag_isSetWhileInFlight_andClearedAfterwards() = runTest(dispatcher) {
-        blocks.requestGate = CompletableDeferred()
-        val saved = SavedStateHandle()
-        val model = viewModel(saved)
-        advanceUntilIdle()
-
-        model.onEvent(BlockPreviewEvent.Request)
-        advanceUntilIdle()
-        assertEquals(true, saved.get<Boolean>("block_requesting"))
-
-        blocks.requestGate!!.complete(Unit)
-        advanceUntilIdle()
-        assertNull(saved.get<Boolean>("block_requesting"))
-    }
-
-    private fun failingRequest(failure: Throwable): BlockPreviewViewModel {
-        blocks.request = Result.failure(failure)
-        return viewModel()
-    }
-
-    @Test
-    fun failures_mapToTheirKinds() = runTest(dispatcher) {
-        val cases = listOf(
-            CoachException(CoachFailure.LimitReached(CoachFailure.Scope.User)) to
-                PlanFailureKind.Limit(CoachFailure.Scope.User),
-            CoachException(CoachFailure.LimitReached(CoachFailure.Scope.Global)) to
-                PlanFailureKind.Limit(CoachFailure.Scope.Global),
-            CoachException(CoachFailure.NoCredit) to PlanFailureKind.NoCredit,
-            CoachException(CoachFailure.Timeout) to PlanFailureKind.Timeout,
-            CoachException(CoachFailure.Invalid) to PlanFailureKind.Invalid,
-            CoachException(CoachFailure.Missing(setOf(MissingField.Intention, MissingField.Place))) to
-                PlanFailureKind.Missing(setOf(MissingField.Intention, MissingField.Place)),
-            CoachException(CoachFailure.Infeasible) to PlanFailureKind.Infeasible,
-            CoachException(CoachFailure.Other) to PlanFailureKind.Other,
-            AppException(AppError.Network) to PlanFailureKind.Offline,
+    fun theNotesOfTheStoredBlock_areExposed() = runTest(dispatcher) {
+        val training = blockTraining().copy(
+            splitReason = "Encaja con tus dias.",
+            changesVsLastBlock = "Mas espalda.",
+            notes = listOf("below_recommended"),
         )
-        for ((failure, kind) in cases) {
-            val model = failingRequest(failure)
-            advanceUntilIdle()
-            model.onEvent(BlockPreviewEvent.Request)
-            advanceUntilIdle()
+        blocks.current = Result.success(coachBlock(training = training))
+        val model = viewModel()
 
-            assertEquals(kind, model.failure())
-        }
+        advanceUntilIdle()
+
+        assertEquals("Encaja con tus dias.", model.preview().splitReason)
+        assertEquals("Mas espalda.", model.preview().changesVsLastBlock)
+        assertTrue(model.preview().belowRecommended)
+    }
+
+    @Test
+    fun anOlderBlockWithoutNotes_exposesNone() = runTest(dispatcher) {
+        blocks.current = Result.success(coachBlock())
+        val model = viewModel()
+
+        advanceUntilIdle()
+
+        assertNull(model.preview().splitReason)
+        assertNull(model.preview().changesVsLastBlock)
+        assertFalse(model.preview().belowRecommended)
     }
 
     @Test
@@ -237,11 +126,8 @@ class BlockPreviewViewModelTest {
     }
 
     @Test
-    fun retry_showsABlockStoredMeanwhile_withoutAskingAgain() = runTest(dispatcher) {
-        blocks.request = Result.failure(CoachException(CoachFailure.Timeout))
+    fun retry_showsABlockStoredMeanwhile_withoutAskingTheCoach() = runTest(dispatcher) {
         val model = viewModel()
-        advanceUntilIdle()
-        model.onEvent(BlockPreviewEvent.Request)
         advanceUntilIdle()
         blocks.current = Result.success(coachBlock())
 
@@ -249,23 +135,20 @@ class BlockPreviewViewModelTest {
         advanceUntilIdle()
 
         assertEquals(coachBlock(), model.preview().block)
-        assertEquals(1, blocks.requests.size)
+        assertTrue(blocks.requests.isEmpty())
     }
 
     @Test
-    fun retry_withNothingStored_asksAgain() = runTest(dispatcher) {
-        blocks.request = Result.failure(CoachException(CoachFailure.Timeout))
+    fun retry_withNothingStored_failsAgainWithoutAskingTheCoach() = runTest(dispatcher) {
         val model = viewModel()
         advanceUntilIdle()
-        model.onEvent(BlockPreviewEvent.Request)
-        advanceUntilIdle()
-        blocks.request = Result.success(coachBlock())
 
         model.onEvent(BlockPreviewEvent.Retry)
         advanceUntilIdle()
 
-        assertEquals(coachBlock(), model.preview().block)
-        assertEquals(2, blocks.requests.size)
+        assertEquals(PlanFailureKind.Interrupted, model.failure())
+        assertTrue(blocks.requests.isEmpty())
+        assertEquals(0, blocks.splitRequests)
     }
 
     @Test
@@ -298,10 +181,8 @@ class BlockPreviewViewModelTest {
     @Test
     fun anUnreadableCatalog_failsOffline_andRetryShowsTheBlockWithoutAskingTheCoachAgain() = runTest(dispatcher) {
         exercises.failure = AppError.Network
-        blocks.request = Result.success(coachBlock())
+        blocks.current = Result.success(coachBlock())
         val model = viewModel()
-        advanceUntilIdle()
-        model.onEvent(BlockPreviewEvent.Request)
         advanceUntilIdle()
         assertEquals(PlanFailureKind.Offline, model.failure())
 
@@ -310,7 +191,7 @@ class BlockPreviewViewModelTest {
         advanceUntilIdle()
 
         assertEquals("Press banca", model.preview().exerciseNames["ex-1"])
-        assertEquals(1, blocks.requests.size)
+        assertTrue(blocks.requests.isEmpty())
     }
 
     @Test
@@ -760,21 +641,6 @@ class BlockPreviewViewModelTest {
         advanceUntilIdle()
 
         assertTrue(reloaded.preview().replacements.isEmpty())
-        assertNull(saved.get<String>("block_replacements"))
-    }
-
-    @Test
-    fun aNewRequest_clearsThePendingReplacements() = runTest(dispatcher) {
-        withAlternatives()
-        val saved = SavedStateHandle(mapOf("block_replacements" to "0|0|ex-3"))
-        blocks.current = Result.success(null)
-        val model = viewModel(saved)
-        advanceUntilIdle()
-
-        model.onEvent(BlockPreviewEvent.Request)
-        advanceUntilIdle()
-
-        assertTrue(model.preview().replacements.isEmpty())
         assertNull(saved.get<String>("block_replacements"))
     }
 

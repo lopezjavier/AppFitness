@@ -40,6 +40,12 @@ data class BlockTraining(
     val routineTotalMin: List<Int> = emptyList(),
     /** Training intention the block was built for; null for an older block. */
     val intention: String? = null,
+    /** Why this block fits the user; null for a block stored before the notes existed. */
+    val splitReason: String? = null,
+    /** What changed since the previous block; null when there was none. */
+    val changesVsLastBlock: String? = null,
+    /** Checker notes such as `below_recommended`. */
+    val notes: List<String> = emptyList(),
 )
 
 /** `coach_plans.training.cardio`: the weekly minutes, how the routines hold them and the pace. */
@@ -113,14 +119,6 @@ data class SplitOption(
 
 /** One session of a [SplitOption] and the muscle group keys it focuses on. */
 data class SplitSession(val name: String, val focus: List<String>)
-
-/** What the generator says about a block beyond its sessions (the `plan_block` response). */
-data class BlockNotes(
-    val splitReason: String = "",
-    val changesVsLastBlock: String = "",
-    /** Checker notes such as `below_recommended`. */
-    val notes: List<String> = emptyList(),
-)
 
 /**
  * A pending replacement applied by "Guardar bloque": the exercise at [position] (1-based) of workout [sessionIndex]

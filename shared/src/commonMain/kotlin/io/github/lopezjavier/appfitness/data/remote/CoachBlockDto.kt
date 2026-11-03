@@ -2,7 +2,6 @@ package io.github.lopezjavier.appfitness.data.remote
 
 import io.github.lopezjavier.appfitness.domain.model.BlockCardio
 import io.github.lopezjavier.appfitness.domain.model.BlockExercise
-import io.github.lopezjavier.appfitness.domain.model.BlockNotes
 import io.github.lopezjavier.appfitness.domain.model.BlockSaved
 import io.github.lopezjavier.appfitness.domain.model.BlockSession
 import io.github.lopezjavier.appfitness.domain.model.BlockSet
@@ -34,6 +33,9 @@ internal data class BlockTrainingDto(
     val cardio: BlockCardioDto? = null,
     @SerialName("routine_total_min") val routineTotalMin: List<Int> = emptyList(),
     val intention: String? = null,
+    @SerialName("split_reason") val splitReason: String? = null,
+    @SerialName("changes_vs_last_block") val changesVsLastBlock: String? = null,
+    val notes: List<String> = emptyList(),
 ) {
     fun toDomain() = BlockTraining(
         daysPerWeek = daysPerWeek,
@@ -47,6 +49,9 @@ internal data class BlockTrainingDto(
         cardio = cardio?.toDomain(),
         routineTotalMin = routineTotalMin,
         intention = intention,
+        splitReason = splitReason,
+        changesVsLastBlock = changesVsLastBlock,
+        notes = notes,
     )
 }
 
@@ -141,16 +146,6 @@ internal data class SplitOptionDto(
 /** Final payload of `block_splits`. */
 @Serializable
 internal data class SplitOptionsDto(val options: List<SplitOptionDto> = emptyList())
-
-/** The extras of the `plan_block` final payload that are not stored with the block. */
-@Serializable
-internal data class PlanBlockResponseDto(
-    @SerialName("split_reason") val splitReason: String = "",
-    @SerialName("changes_vs_last_block") val changesVsLastBlock: String = "",
-    val notes: List<String> = emptyList(),
-) {
-    fun toDomain() = BlockNotes(splitReason, changesVsLastBlock, notes)
-}
 
 /** Row of `coach_plan_sessions` (owner select). */
 @Serializable

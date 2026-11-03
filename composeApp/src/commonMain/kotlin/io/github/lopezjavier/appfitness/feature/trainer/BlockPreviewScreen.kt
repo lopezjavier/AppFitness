@@ -4,6 +4,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -18,16 +19,19 @@ import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.github.lopezjavier.appfitness.composeapp.resources.Res
+import io.github.lopezjavier.appfitness.composeapp.resources.block_below_recommended
+import io.github.lopezjavier.appfitness.composeapp.resources.block_below_recommended_help
+import io.github.lopezjavier.appfitness.composeapp.resources.block_below_recommended_help_cd
+import io.github.lopezjavier.appfitness.composeapp.resources.block_changes_header
 import io.github.lopezjavier.appfitness.composeapp.resources.block_days_week
 import io.github.lopezjavier.appfitness.composeapp.resources.block_frequency
 import io.github.lopezjavier.appfitness.composeapp.resources.block_frequency_chosen
 import io.github.lopezjavier.appfitness.composeapp.resources.block_preview_cardio_own
 import io.github.lopezjavier.appfitness.composeapp.resources.block_preview_error
 import io.github.lopezjavier.appfitness.composeapp.resources.block_preview_interrupted
-import io.github.lopezjavier.appfitness.composeapp.resources.block_preview_progress
-import io.github.lopezjavier.appfitness.composeapp.resources.block_preview_progress_cd
 import io.github.lopezjavier.appfitness.composeapp.resources.block_preview_title
 import io.github.lopezjavier.appfitness.composeapp.resources.block_replace_invalid
 import io.github.lopezjavier.appfitness.composeapp.resources.block_save
@@ -44,6 +48,8 @@ import io.github.lopezjavier.appfitness.designsystem.AppOption
 import io.github.lopezjavier.appfitness.designsystem.AppScreen
 import io.github.lopezjavier.appfitness.designsystem.AppTabRow
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
+import io.github.lopezjavier.appfitness.designsystem.HelpButton
+import io.github.lopezjavier.appfitness.designsystem.InlineNote
 import io.github.lopezjavier.appfitness.designsystem.ListSectionHeader
 import io.github.lopezjavier.appfitness.designsystem.LocalAppHaptics
 import io.github.lopezjavier.appfitness.designsystem.LocalAppMessages
@@ -64,6 +70,7 @@ import org.koin.core.parameter.parametersOf
 
 private const val TITLE_FRACTION = 0.4f
 private const val SKELETON_ROWS = 3
+private const val CHANGES_MAX_LINES = 4
 
 private val BlockFailureCopy = CoachFailureCopy(
     error = Res.string.block_preview_error,
@@ -71,7 +78,7 @@ private val BlockFailureCopy = CoachFailureCopy(
 )
 
 /**
- * Stateful block preview (US-72): asks the coach once when it opens with no stored block, plays the one-off effects
+ * Stateful block preview (US-72): reads the stored block, plays the one-off effects
  * (haptics, the saved message, leaving the screen) and connects [BlockPreviewViewModel] to [BlockPreviewScreen].
  */
 @Composable
@@ -92,9 +99,6 @@ fun BlockPreviewRoot(
     val saveError = stringResource(Res.string.block_save_error)
     val replaceInvalid = stringResource(Res.string.block_replace_invalid)
     val saveOffline = offlineHint(stringResource(Res.string.block_save_action)) + "."
-    LaunchedEffect(state) {
-        if (state == BlockPreviewUiState.Idle) viewModel.onEvent(BlockPreviewEvent.Request)
-    }
     LaunchedEffect(viewModel) {
         viewModel.effects.collect { effect ->
             when (effect) {
@@ -151,15 +155,7 @@ fun BlockPreviewScreen(
     ) {
         Box(Modifier.fillMaxSize().testTag("block_preview_screen")) {
             when (state) {
-                BlockPreviewUiState.Loading, BlockPreviewUiState.Idle, BlockPreviewUiState.Closed -> BlockSkeleton()
-
-                BlockPreviewUiState.Requesting -> Box(Modifier.fillMaxSize(), Alignment.Center) {
-                    StreamProgressState(
-                        message = stringResource(Res.string.block_preview_progress),
-                        stateDescription = stringResource(Res.string.block_preview_progress_cd),
-                        testTag = "block_preview_progress",
-                    )
-                }
+                BlockPreviewUiState.Loading, BlockPreviewUiState.Closed -> BlockSkeleton()
 
                 is BlockPreviewUiState.Failed -> Box(Modifier.fillMaxSize(), Alignment.Center) {
                     CoachFailureContent(state.kind, isOnline, BlockFailureCopy, "block_preview") {
@@ -190,6 +186,20 @@ private fun PreviewContent(
         verticalArrangement = Arrangement.spacedBy(Spacing.blockGap),
     ) {
         item(key = "frequency") { FrequencyLine(training) }
+        state.splitReason?.let { reason ->
+            item(key = "split_reason") {
+                Text(
+                    text = reason,
+                    style = AppTheme.typography.bodyMedium,
+                    color = AppTheme.colors.textPrimary,
+                    modifier = Modifier.testTag("block_preview_split_reason"),
+                )
+            }
+        }
+        if (state.belowRecommended) item(key = "below_recommended") { BelowRecommendedNote() }
+        state.changesVsLastBlock?.let { changes ->
+            item(key = "changes") { ChangesSection(changes) }
+        }
         if (training.weeklySets.isNotEmpty()) {
             item(key = "sets") { SetsSection(training.weeklySets, training.sessionsPerMuscle) }
         }
@@ -235,6 +245,43 @@ private fun PreviewContent(
             title = state.exerciseNames.getValue(exercise.exerciseId),
             reason = exercise.reason,
             onDismiss = { onEvent(BlockPreviewEvent.CloseReason) },
+        )
+    }
+}
+
+/** "Por debajo de lo recomendado" with its "?" (R-46): the block is still created. */
+@Composable
+private fun BelowRecommendedNote() {
+    Row(
+        Modifier.fillMaxWidth().testTag("block_preview_below_recommended"),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+    ) {
+        InlineNote(text = stringResource(Res.string.block_below_recommended), modifier = Modifier.weight(1f))
+        HelpButton(
+            contentDescription = stringResource(Res.string.block_below_recommended_help_cd),
+            title = stringResource(Res.string.block_below_recommended),
+            body = stringResource(Res.string.block_below_recommended_help),
+            testTag = "block_preview_below_recommended_help",
+        )
+    }
+}
+
+/** What changed since the previous block: a titled section, not collapsible (R-32). */
+@Composable
+private fun ChangesSection(changes: String) {
+    Column(Modifier.testTag("block_preview_changes")) {
+        ListSectionHeader(
+            stringResource(Res.string.block_changes_header),
+            Modifier.testTag("block_preview_changes_header"),
+        )
+        Text(
+            text = changes,
+            style = AppTheme.typography.bodyMedium,
+            color = AppTheme.colors.textPrimary,
+            maxLines = CHANGES_MAX_LINES,
+            overflow = TextOverflow.Ellipsis,
+            modifier = Modifier.testTag("block_preview_changes_text"),
         )
     }
 }

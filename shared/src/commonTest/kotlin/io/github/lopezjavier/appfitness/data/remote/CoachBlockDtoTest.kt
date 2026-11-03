@@ -1,6 +1,5 @@
 package io.github.lopezjavier.appfitness.data.remote
 
-import io.github.lopezjavier.appfitness.domain.model.BlockNotes
 import io.github.lopezjavier.appfitness.domain.model.BlockSetType
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -173,15 +172,30 @@ class CoachBlockDtoTest {
     }
 
     @Test
-    fun planBlockResponse_extrasDecodeAndAreOptional() {
-        val full = coachPlanJson.decodeFromString<PlanBlockResponseDto>(
-            """{"plan_id":"p1","split_reason":"Porque si","changes_vs_last_block":"Mas espalda",""" +
-                """"notes":["below_recommended"]}""",
-        ).toDomain()
-        val bare = coachPlanJson.decodeFromString<PlanBlockResponseDto>("""{"plan_id":"p1"}""").toDomain()
+    fun training_notesDecodeAndAreOptional() {
+        val extras = trainingJson(3, false).removeSuffix("}") +
+            ""","split_reason":"Porque si","changes_vs_last_block":"Mas espalda",""" +
+            """"notes":["below_recommended"],"stray":1}"""
+        val session = sessions(sessionJson(1, 0, "A", ""))
 
-        assertEquals(BlockNotes("Porque si", "Mas espalda", listOf("below_recommended")), full)
-        assertEquals(BlockNotes(), bare)
+        val full = assertNotNull(blockOf(plan(extras), session)).training
+        val bare = assertNotNull(blockOf(plan(trainingJson(3, false)), session)).training
+
+        assertEquals("Porque si", full.splitReason)
+        assertEquals("Mas espalda", full.changesVsLastBlock)
+        assertEquals(listOf("below_recommended"), full.notes)
+        assertNull(bare.splitReason)
+        assertNull(bare.changesVsLastBlock)
+        assertEquals(emptyList(), bare.notes)
+    }
+
+    @Test
+    fun training_nullChangesMeansNoPreviousBlock() {
+        val json = trainingJson(3, false).removeSuffix("}") + ""","changes_vs_last_block":null}"""
+
+        val training = assertNotNull(blockOf(plan(json), sessions(sessionJson(1, 0, "A", "")))).training
+
+        assertNull(training.changesVsLastBlock)
     }
 
     @Test

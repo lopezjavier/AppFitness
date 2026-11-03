@@ -13,7 +13,6 @@ import io.github.lopezjavier.appfitness.domain.model.CoachFailure
 import io.github.lopezjavier.appfitness.domain.model.Equipment
 import io.github.lopezjavier.appfitness.domain.model.ExerciseAlternative
 import io.github.lopezjavier.appfitness.domain.model.ExerciseNames
-import io.github.lopezjavier.appfitness.domain.port.Clock
 import io.github.lopezjavier.appfitness.domain.port.ExerciseLibrary
 import io.github.lopezjavier.appfitness.domain.repository.CoachBlockRepository
 import io.github.lopezjavier.appfitness.domain.repository.ExerciseRepository
@@ -35,11 +34,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-import kotlinx.datetime.LocalDate
-import kotlinx.datetime.TimeZone
-import kotlinx.datetime.toLocalDateTime
 
-private const val KEY_REQUESTING = "block_requesting"
 private const val KEY_WEEK = "block_week"
 private const val KEY_REASON = "block_reason_exercise"
 private const val KEY_REPLACEMENTS = "block_replacements"
@@ -48,9 +43,9 @@ private const val REPLACEMENT_PARTS = 3
 
 /**
  * The block preview (US-72). The proposal is always reloaded from the stored rows, so a finished stream survives
- * process death. [savedState] remembers that a request was in flight (a recreated model with no stored block shows
- * [PlanFailureKind.Interrupted] and never asks, and bills, again by itself), the selected week and the open reason
- * sheet. Leaving the screen saves nothing: only [BlockPreviewEvent.Save] does.
+ * process death. It never calls the coach: the paid calls belong to [BlockSplitsViewModel], and a preview with no
+ * stored block shows [BlockPreviewUiState.Failed]. [savedState] remembers the selected week, the open reason sheet
+ * and the pending swaps. Leaving the screen saves nothing: only [BlockPreviewEvent.Save] does.
  */
 @Suppress("LongParameterList", "TooManyFunctions", "ReturnCount") // One small guarded handler per event.
 class BlockPreviewViewModel(
@@ -58,7 +53,6 @@ class BlockPreviewViewModel(
     private val blocks: CoachBlockRepository,
     private val exercises: ExerciseRepository,
     private val library: ExerciseLibrary,
-    private val clock: Clock,
     private val preferences: TrainingPreferencesRepository,
     private val favorites: FavoriteExercisesRepository,
     private val savedState: SavedStateHandle = SavedStateHandle(),
@@ -80,19 +74,9 @@ class BlockPreviewViewModel(
     private val effectChannel = Channel<BlockPreviewEffect>(Channel.BUFFERED)
     val effects = effectChannel.receiveAsFlow()
 
-    // The server accepts a date within one day of UTC today, so it is the UTC date.
-    private fun today(): LocalDate = clock.now().toLocalDateTime(TimeZone.UTC).date
-
     init {
         viewModelScope.launch { exerciseNames.observeChanges().collect(::renameExercises) }
-        val wasRequesting = savedState.get<Boolean>(KEY_REQUESTING) == true
         viewModelScope.launch {
-            val missing = if (wasRequesting) {
-                savedState.remove<Boolean>(KEY_REQUESTING)
-                BlockPreviewUiState.Failed(PlanFailureKind.Interrupted)
-            } else {
-                BlockPreviewUiState.Idle
-            }
             val stored = blocks.currentBlock(planId)
             val block = stored.getOrNull()
             when {
@@ -102,14 +86,14 @@ class BlockPreviewViewModel(
 
                 block != null -> showBlock(block, restore = true)
 
-                else -> _uiState.value = missing
+                // No stored block: never asks (and bills) from here; Retry only reloads.
+                else -> _uiState.value = BlockPreviewUiState.Failed(PlanFailureKind.Interrupted)
             }
         }
     }
 
     fun onEvent(event: BlockPreviewEvent) {
         when (event) {
-            BlockPreviewEvent.Request -> if (_uiState.value == BlockPreviewUiState.Idle) request()
             BlockPreviewEvent.Retry -> if (_uiState.value is BlockPreviewUiState.Failed) retry()
             is BlockPreviewEvent.SelectWeek -> selectWeek(event.week)
             is BlockPreviewEvent.OpenReason -> setReason(event.key)
@@ -288,36 +272,21 @@ class BlockPreviewViewModel(
         return session to position
     }
 
-    private fun request() {
-        viewModelScope.launch { runRequest() }
-    }
-
-    private suspend fun runRequest() {
-        clearReplacementsState()
-        _uiState.value = BlockPreviewUiState.Requesting
-        savedState[KEY_REQUESTING] = true
-        // Interim until T-206 adds the split picker: the recommended option is sent.
-        val options = blocks.requestSplitOptions(today())
-        val split = options.getOrNull()?.let { list -> list.firstOrNull { it.recommended } ?: list.firstOrNull() }
-        val result = if (split != null) {
-            blocks.requestBlock(planId, today(), split)
-        } else {
-            Result.failure<CoachBlock>(options.exceptionOrNull() ?: CoachException(CoachFailure.Other))
-        }
-        savedState.remove<Boolean>(KEY_REQUESTING)
-        result.fold(
-            onSuccess = { showBlock(it, restore = false) },
-            onFailure = { _uiState.value = BlockPreviewUiState.Failed(planFailureKindOf(it)) },
-        )
-    }
-
     private fun retry() {
         clearReplacementsState()
         _uiState.value = BlockPreviewUiState.Loading
         viewModelScope.launch {
             unnamedBlock?.let { return@launch showBlock(it, restore = false) }
-            val block = blocks.currentBlock(planId).getOrNull()
-            if (block != null) showBlock(block, restore = true) else runRequest()
+            val stored = blocks.currentBlock(planId)
+            val block = stored.getOrNull()
+            when {
+                block != null -> showBlock(block, restore = true)
+
+                stored.isFailure ->
+                    _uiState.value = BlockPreviewUiState.Failed(planFailureKindOf(stored.exceptionOrNull()))
+
+                else -> _uiState.value = BlockPreviewUiState.Failed(PlanFailureKind.Interrupted)
+            }
         }
     }
 

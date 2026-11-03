@@ -27,7 +27,6 @@ import io.github.lopezjavier.appfitness.feature.exercises.FakeExerciseRepository
 import io.github.lopezjavier.appfitness.feature.exercises.FakeFavoriteExercisesRepository
 import io.github.lopezjavier.appfitness.feature.exercises.exerciseInfo
 import io.github.lopezjavier.appfitness.feature.exercises.exerciseRow
-import io.github.lopezjavier.appfitness.feature.workout.MutableClock
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.flowOf
@@ -205,7 +204,6 @@ class BlockPreviewScreenTest {
             FakeExerciseLibrary(
                 mapOf("bench" to exerciseInfo("bench", "Press banca"), "row" to exerciseInfo("row", "Remo")),
             ),
-            MutableClock(),
             FakeTrainingPreferencesRepository(),
             FakeFavoriteExercisesRepository(),
         )
@@ -231,14 +229,6 @@ class BlockPreviewScreenTest {
         assertEquals(listOf("plan-1"), blocks.saves)
         assertEquals(1, backs)
         assertEquals(listOf("Bloque guardado en Entreno."), shown)
-    }
-
-    @Test
-    fun requesting_showsTheProgress() {
-        show(BlockPreviewUiState.Requesting)
-
-        rule.onNodeWithTag("block_preview_progress").assertExists()
-        rule.onNodeWithText("Preparando tu bloque…").assertExists()
     }
 
     @Test

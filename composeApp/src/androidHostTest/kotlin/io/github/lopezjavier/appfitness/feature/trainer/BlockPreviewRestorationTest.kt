@@ -24,7 +24,6 @@ import io.github.lopezjavier.appfitness.feature.exercises.FakeExerciseRepository
 import io.github.lopezjavier.appfitness.feature.exercises.FakeFavoriteExercisesRepository
 import io.github.lopezjavier.appfitness.feature.exercises.exerciseInfo
 import io.github.lopezjavier.appfitness.feature.exercises.exerciseRow
-import io.github.lopezjavier.appfitness.feature.workout.MutableClock
 import kotlinx.coroutines.flow.flowOf
 import org.junit.Assert.assertEquals
 import org.junit.Rule
@@ -52,7 +51,6 @@ class BlockPreviewRestorationTest {
         FakeExerciseLibrary(
             mapOf("bench" to exerciseInfo("bench", "Press banca"), "row" to exerciseInfo("row", "Remo")),
         ),
-        MutableClock(),
         prefs,
         FakeFavoriteExercisesRepository(),
         handle,
@@ -167,7 +165,6 @@ class BlockPreviewRestorationTest {
                     "walk" to exerciseInfo("walk", "Caminar a paso ligero"),
                 ),
             ),
-            MutableClock(),
             prefs,
             FakeFavoriteExercisesRepository(),
             handle,
@@ -214,9 +211,9 @@ class BlockPreviewRestorationTest {
     }
 
     @Test
-    fun recreatedMidRequest_withNothingStored_isInterrupted_andNeverRequestsAgain() {
+    fun withNothingStored_isInterrupted_andNeverRequests() {
         blocks.current = Result.success(null)
-        val handle = SavedStateHandle(mapOf("block_requesting" to true))
+        val handle = SavedStateHandle()
         current = newModel(handle)
         showRoot()
 

@@ -35,6 +35,7 @@ import io.github.lopezjavier.appfitness.feature.templates.SaveTemplateRoot
 import io.github.lopezjavier.appfitness.feature.templates.TemplateDetailsRoot
 import io.github.lopezjavier.appfitness.feature.trainer.BeforeStartRoot
 import io.github.lopezjavier.appfitness.feature.trainer.BlockPreviewRoot
+import io.github.lopezjavier.appfitness.feature.trainer.BlockSplitsRoot
 import io.github.lopezjavier.appfitness.feature.trainer.CoachUsageRoot
 import io.github.lopezjavier.appfitness.feature.trainer.FreeTextLinesRoot
 import io.github.lopezjavier.appfitness.feature.trainer.IntakeRoot
@@ -105,6 +106,9 @@ fun AppRoot(
         freeTextLines = { linesModifier, onBack -> FreeTextLinesRoot(onBack, linesModifier) },
         blockPreview = { blockModifier, planId, onOpenExercise, onBack ->
             BlockPreviewRoot(planId, onBack, onOpenExercise, blockModifier)
+        },
+        blockSplits = { splitsModifier, planId, onBuilt, onBack ->
+            BlockSplitsRoot(planId, onBuilt, onBack, splitsModifier)
         },
         about = { aboutModifier, onBack -> AboutRoot(onBack, aboutModifier) },
         activity = { activityModifier, onBack -> ActivityRoot(onBack, activityModifier) },
