@@ -176,7 +176,7 @@ Each checkpoint also has "leave the app and come back: the same tab, screen and 
 - [x] T-204: Favourite exercises — M
 - [ ] T-205: The model builds the block; one routine checker; `shoulder_abduction` (backend) — L
 - [ ] T-206: Split options and the new block preview (UI) — L
-- [ ] T-207: Folder review and a block from a folder (backend) — L
+- [x] T-207: Folder review and a block from a folder (backend) — L
 - [ ] T-208: Folder review screen, start choice, block from a folder (UI) — L
   - **Checkpoint E13-H 👤 "Blocks built for you, from scratch or from your own folders" (7 items)** — one checkpoint by the user's decision (2026-11-03; E13-I merged into it)
 
