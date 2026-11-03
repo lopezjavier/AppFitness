@@ -34,7 +34,6 @@ import {
     MIN_FOLDERS_KEPT,
     MODEL_INPUT_MAX_BYTES,
     OUTPUT_TOKENS_MAX,
-    OUTPUT_TOKENS_PER_SECOND,
     parseInput,
     type PromptInput,
 } from "./planBlock.ts";
@@ -924,12 +923,9 @@ Deno.test("largest fixture (7 days, full gym, 8 weeks of history, 12 folders, 3 
     await res.text();
 });
 
-Deno.test("output time budget: the largest case (7 days x 8 exercises) fits the 150 s limit with room for the call", () => {
-    const tokens = maxTokensFor(7, 60);
-    assert(tokens <= OUTPUT_TOKENS_MAX);
-    // Generation time at the assumed speed must leave at least 50 s of the 150 s limit for input and the rest.
-    assert(tokens / OUTPUT_TOKENS_PER_SECOND <= 100, `${tokens} tokens`);
-    assertEquals(maxTokensFor(1, 30), 600 + 85 * 4);
+Deno.test("T-215: the output ceiling is flat", () => {
+    assertEquals(maxTokensFor(7, 60), OUTPUT_TOKENS_MAX);
+    assertEquals(maxTokensFor(1, 30), OUTPUT_TOKENS_MAX);
 });
 
 const promptInput = (over: Partial<PromptInput> = {}): PromptInput => ({

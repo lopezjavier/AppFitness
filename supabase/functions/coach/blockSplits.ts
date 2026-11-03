@@ -189,7 +189,7 @@ export async function prepare(
                 session_minutes: freq.session_minutes,
                 ...(freeText ? { [FREE_TEXT_KEY]: freeText } : {}),
             }),
-            maxTokens: 1500,
+            maxTokens: 10_000,
             schema: SPLIT_OUTPUT_SCHEMA,
         },
         validate: (text) => {
