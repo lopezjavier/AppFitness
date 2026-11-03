@@ -24,6 +24,7 @@ import io.github.lopezjavier.appfitness.domain.model.PlanInputSource
 import io.github.lopezjavier.appfitness.domain.model.PlanInputStatus
 import io.github.lopezjavier.appfitness.domain.model.PlanInputValue
 import io.github.lopezjavier.appfitness.domain.model.PlanInputs
+import io.github.lopezjavier.appfitness.feature.routines.FakeRoutineRepository
 import io.github.lopezjavier.appfitness.feature.workout.MutableClock
 import kotlinx.datetime.LocalDate
 import org.junit.Assert.assertEquals
@@ -87,6 +88,7 @@ class BeforeStartScreenTest {
                 repository,
                 intake,
                 MutableClock(),
+                FakeRoutineRepository(),
                 SavedStateHandle(args),
             )
         rule.setContent {

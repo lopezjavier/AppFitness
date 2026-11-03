@@ -11,6 +11,7 @@ import io.github.lopezjavier.appfitness.domain.model.PlanInputValue
 import io.github.lopezjavier.appfitness.domain.port.Clock
 import io.github.lopezjavier.appfitness.domain.repository.CoachIntakeRepository
 import io.github.lopezjavier.appfitness.domain.repository.CoachRepository
+import io.github.lopezjavier.appfitness.domain.repository.RoutineRepository
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -34,6 +35,7 @@ class BeforeStartViewModel(
     private val coach: CoachRepository,
     private val intakeRepo: CoachIntakeRepository,
     private val clock: Clock,
+    private val routines: RoutineRepository,
     private val savedState: SavedStateHandle = SavedStateHandle(),
 ) : ViewModel() {
     private val mode = BeforeStartMode.fromArgument(savedState.get<String>(KEY_MODE))
@@ -72,6 +74,10 @@ class BeforeStartViewModel(
             is BeforeStartEvent.PickLevel -> pickLevel(event.level)
             BeforeStartEvent.CloseSheet -> setDraft(null)
             BeforeStartEvent.Create -> create()
+            is BeforeStartEvent.PickStart -> pickStart(event.option)
+            is BeforeStartEvent.PickFolder -> pickFolder(event.folderId)
+            BeforeStartEvent.CloseChoice -> setChoice(StartChoiceStep.None)
+            BeforeStartEvent.RetryFolders -> loadFolders()
         }
     }
 
@@ -82,6 +88,7 @@ class BeforeStartViewModel(
         loadJob?.cancel()
         loadJob = viewModelScope.launch {
             _uiState.value = fetch()
+            if ((_uiState.value as? BeforeStartUiState.Content)?.startChoice == StartChoiceStep.Folders) loadFolders()
         }
     }
 
@@ -93,7 +100,13 @@ class BeforeStartViewModel(
             val fresh = fetch() as? BeforeStartUiState.Content ?: return@launch
             _uiState.update { state ->
                 if (state is BeforeStartUiState.Content) {
-                    fresh.copy(sheet = state.sheet, creating = state.creating, savingLevel = state.savingLevel)
+                    fresh.copy(
+                        sheet = state.sheet,
+                        creating = state.creating,
+                        savingLevel = state.savingLevel,
+                        startChoice = state.startChoice,
+                        folderPicker = state.folderPicker,
+                    )
                 } else {
                     state
                 }
@@ -114,6 +127,7 @@ class BeforeStartViewModel(
                     replacingPlanId,
                     sheet = restoredDraft(),
                     intake = IntakeSummary.of(intake),
+                    startChoice = restoredChoice(),
                 )
             },
             onFailure = {
@@ -132,9 +146,8 @@ class BeforeStartViewModel(
     private fun create() {
         val content = _uiState.value as? BeforeStartUiState.Content ?: return
         if (!content.canCreate) return
-        val created = BeforeStartEffect.Created(mode, planId, replacingPlanId)
         if (!content.hasProvisional) {
-            viewModelScope.launch { effectChannel.send(created) }
+            viewModelScope.launch { proceed() }
             return
         }
         _uiState.value = content.copy(creating = true)
@@ -143,15 +156,75 @@ class BeforeStartViewModel(
             _uiState.update { state ->
                 if (state is BeforeStartUiState.Content) state.copy(creating = false) else state
             }
-            effectChannel.send(
-                if (result.isSuccess) {
-                    created
-                } else {
-                    BeforeStartEffect.CreateFailed(result.appErrorOrNull() == AppError.Network)
-                },
-            )
+            if (result.isSuccess) {
+                proceed()
+            } else {
+                effectChannel.send(BeforeStartEffect.CreateFailed(result.appErrorOrNull() == AppError.Network))
+            }
         }
     }
+
+    /** A plan goes straight on; a block first asks how it starts (US-93). */
+    private suspend fun proceed() {
+        if (mode == BeforeStartMode.Block) {
+            setChoice(StartChoiceStep.Choice)
+        } else {
+            effectChannel.send(BeforeStartEffect.Created(mode, planId, replacingPlanId))
+        }
+    }
+
+    private fun pickStart(option: StartOption) {
+        if ((_uiState.value as? BeforeStartUiState.Content)?.startChoice != StartChoiceStep.Choice) return
+        when (option) {
+            StartOption.Scratch -> {
+                setChoice(StartChoiceStep.None)
+                effectChannel.trySend(BeforeStartEffect.Created(mode, planId, replacingPlanId))
+            }
+
+            StartOption.Folder -> {
+                setChoice(StartChoiceStep.Folders)
+                loadFolders()
+            }
+        }
+    }
+
+    private fun pickFolder(folderId: String) {
+        val picker = (_uiState.value as? BeforeStartUiState.Content)?.folderPicker as? FolderPickerState.Loaded
+        if (picker?.folders?.any { it.id == folderId } != true) return
+        effectChannel.trySend(BeforeStartEffect.OpenFolderReview(planId, folderId))
+    }
+
+    private fun setChoice(step: StartChoiceStep) {
+        if (step == StartChoiceStep.None) savedState.remove<String>(KEY_CHOICE) else savedState[KEY_CHOICE] = step.name
+        _uiState.update { state ->
+            if (state is BeforeStartUiState.Content) {
+                state.copy(startChoice = step, folderPicker = FolderPickerState.Loading)
+            } else {
+                state
+            }
+        }
+    }
+
+    private fun loadFolders() {
+        updateContent { it.copy(folderPicker = FolderPickerState.Loading) }
+        viewModelScope.launch {
+            val result = routines.listFolders()
+            val picker = result.fold(
+                onSuccess = { FolderPickerState.Loaded(it) },
+                onFailure = { FolderPickerState.Failed(result.appErrorOrNull() == AppError.Network) },
+            )
+            updateContent { it.copy(folderPicker = picker) }
+        }
+    }
+
+    private fun updateContent(transform: (BeforeStartUiState.Content) -> BeforeStartUiState.Content) {
+        _uiState.update { if (it is BeforeStartUiState.Content) transform(it) else it }
+    }
+
+    private fun restoredChoice(): StartChoiceStep = savedState.get<String>(KEY_CHOICE)
+        ?.let { name -> StartChoiceStep.entries.firstOrNull { it.name == name } }
+        ?.takeIf { mode == BeforeStartMode.Block }
+        ?: StartChoiceStep.None
 
     private fun restoredDraft(): ActivityLevel? = savedState.get<String>(KEY_DRAFT)
         ?.let { name -> ActivityLevel.entries.firstOrNull { it.name == name } }
@@ -202,5 +275,6 @@ class BeforeStartViewModel(
         const val KEY_PLAN_ID = "planId"
         const val KEY_REPLACING = "replacingPlanId"
         const val KEY_DRAFT = "before_start_activity_draft"
+        const val KEY_CHOICE = "before_start_start_choice"
     }
 }

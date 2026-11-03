@@ -5,6 +5,7 @@ import io.github.lopezjavier.appfitness.domain.model.CurrentPlan
 import io.github.lopezjavier.appfitness.domain.model.PlanInputKey
 import io.github.lopezjavier.appfitness.domain.model.PlanInputKind
 import io.github.lopezjavier.appfitness.domain.model.PlanInputs
+import io.github.lopezjavier.appfitness.domain.model.RoutineFolder
 
 /** What "Antes de empezar" is about to create; the route argument is [argument]. */
 enum class BeforeStartMode(val argument: String, val kind: PlanInputKind) {
@@ -16,6 +17,21 @@ enum class BeforeStartMode(val argument: String, val kind: PlanInputKind) {
         /** Unknown or missing arguments fall back to the plan. */
         fun fromArgument(argument: String?): BeforeStartMode = entries.firstOrNull { it.argument == argument } ?: Plan
     }
+}
+
+/** Which sheet of the block's start choice is open (US-93): none, "Desde cero / Desde una carpeta", or the folders. */
+enum class StartChoiceStep { None, Choice, Folders }
+
+/** How a block starts. */
+enum class StartOption { Scratch, Folder }
+
+/** The folders offered by the folder picker; an empty [Loaded] list is the empty state. */
+sealed interface FolderPickerState {
+    data object Loading : FolderPickerState
+
+    data class Loaded(val folders: List<RoutineFolder>) : FolderPickerState
+
+    data class Failed(val offline: Boolean) : FolderPickerState
 }
 
 sealed interface BeforeStartUiState {
@@ -35,6 +51,9 @@ sealed interface BeforeStartUiState {
         val savingLevel: Boolean = false,
         /** What the user said in "Para conocerte" (empty when nothing was saved). */
         val intake: IntakeSummary = IntakeSummary(),
+        /** The open sheet of the block's start choice (block mode only); survives recreation. */
+        val startChoice: StartChoiceStep = StartChoiceStep.None,
+        val folderPicker: FolderPickerState = FolderPickerState.Loading,
     ) : BeforeStartUiState {
         val rows: List<PlanInputRow> = inputs.rows()
 
@@ -92,6 +111,18 @@ sealed interface BeforeStartEvent {
 
     /** The pinned footer: confirms the shown provisional values (if any) and moves on. */
     data object Create : BeforeStartEvent
+
+    /** A row of the start choice sheet: "Desde cero" goes to the splits, "Desde una carpeta" lists the folders. */
+    data class PickStart(val option: StartOption) : BeforeStartEvent
+
+    /** A folder of the picker: opens its review for the block. */
+    data class PickFolder(val folderId: String) : BeforeStartEvent
+
+    /** Closes the start choice or the folder picker without choosing. */
+    data object CloseChoice : BeforeStartEvent
+
+    /** "Reintentar" of the folder picker. */
+    data object RetryFolders : BeforeStartEvent
 }
 
 sealed interface BeforeStartEffect {
@@ -101,4 +132,7 @@ sealed interface BeforeStartEffect {
 
     /** Confirming failed (from the footer or the sheet); nothing changed. [offline] picks the offline hint. */
     data class CreateFailed(val offline: Boolean) : BeforeStartEffect
+
+    /** A folder was picked to start the block: open its review (block purpose). */
+    data class OpenFolderReview(val planId: String?, val folderId: String) : BeforeStartEffect
 }

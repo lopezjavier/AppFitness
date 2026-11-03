@@ -16,6 +16,8 @@ import io.github.lopezjavier.appfitness.domain.model.PlanInputKind
 import io.github.lopezjavier.appfitness.domain.model.PlanInputStatus
 import io.github.lopezjavier.appfitness.domain.model.PlanInputValue
 import io.github.lopezjavier.appfitness.domain.model.PlanInputs
+import io.github.lopezjavier.appfitness.domain.model.RoutineFolder
+import io.github.lopezjavier.appfitness.feature.routines.FakeRoutineRepository
 import io.github.lopezjavier.appfitness.feature.workout.MutableClock
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
@@ -58,6 +60,7 @@ class BeforeStartRestorationTest {
                 repository,
                 FakeCoachIntakeRepository(),
                 MutableClock(),
+                FakeRoutineRepository(),
                 saved,
             ),
         )
@@ -83,13 +86,14 @@ class BeforeStartRestorationTest {
                 repository,
                 FakeCoachIntakeRepository(),
                 MutableClock(),
+                FakeRoutineRepository(),
                 saved,
             )
         rule.waitForIdle()
 
         rule.onNodeWithTag("before_start_activity_sheet_activity_moderate").assertIsSelected()
         assertTrue(repository.confirmCalls.isEmpty())
-        assertTrue(created.isEmpty())
+        assertEquals(0, created.size)
     }
 
     @Test
@@ -107,6 +111,7 @@ class BeforeStartRestorationTest {
                 repository,
                 FakeCoachIntakeRepository(),
                 MutableClock(),
+                FakeRoutineRepository(),
                 saved,
             ),
         )
@@ -129,6 +134,7 @@ class BeforeStartRestorationTest {
                 repository,
                 FakeCoachIntakeRepository(),
                 MutableClock(),
+                FakeRoutineRepository(),
                 saved,
             )
         rule.waitForIdle()
@@ -136,7 +142,9 @@ class BeforeStartRestorationTest {
         rule.onNodeWithTag("before_start_row_place", useUnmergedTree = true).assertExists()
         rule.onNodeWithTag("before_start_create").performClick()
         rule.waitForIdle()
-        assertEquals(listOf(BeforeStartEffect.Created(BeforeStartMode.Block, "plan-2", null)), created)
+        // A block first asks how it starts (US-93): no navigation yet, the choice is open (and persisted).
+        assertEquals(0, created.size)
+        assertEquals("Choice", saved.get<String>("before_start_start_choice"))
     }
 
     @Test
@@ -158,5 +166,46 @@ class BeforeStartRestorationTest {
 
         rule.onNodeWithTag("your_data_activity_sheet_activity_light").assertIsSelected()
         assertTrue(repository.confirmCalls.isEmpty())
+    }
+
+    @Test
+    fun recreatedBeforeStart_keepsTheFolderPickerOpen_withoutCreatingOrOpeningAReview() {
+        repository.inputs[PlanInputKind.Block] = Result.success(
+            PlanInputs(
+                PlanInputKind.Block,
+                null,
+                listOf(planInput(PlanInputKey.Place, value = PlanInputValue.Text("home"))),
+            ),
+        )
+        val routines = FakeRoutineRepository().apply { folders += RoutineFolder("f1", "Torso-pierna") }
+        val saved = SavedStateHandle(mapOf("mode" to "block", "planId" to "plan-2"))
+        fun newModel() = BeforeStartViewModel(repository, FakeCoachIntakeRepository(), MutableClock(), routines, saved)
+        var current by mutableStateOf(newModel())
+        val reviews = mutableListOf<BeforeStartEffect.OpenFolderReview>()
+        rule.setContent {
+            AppTheme {
+                BeforeStartRoot(
+                    onBack = {},
+                    onCreate = { created += it },
+                    onOpenYourData = {},
+                    onFix = {},
+                    viewModel = current,
+                    connectivity = FakeConnectivityObserver(),
+                    onOpenFolderReview = { reviews += it },
+                )
+            }
+        }
+        rule.waitForIdle()
+        rule.onNodeWithTag("before_start_create").performClick()
+        rule.waitForIdle()
+        rule.onNodeWithTag("block_start_option_folder").performClick()
+        rule.waitForIdle()
+
+        current = newModel()
+        rule.waitForIdle()
+
+        rule.onNodeWithTag("block_start_folder_f1").assertExists()
+        assertEquals(0, created.size)
+        assertTrue(reviews.isEmpty())
     }
 }

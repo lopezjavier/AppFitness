@@ -10,6 +10,7 @@ import io.github.lopezjavier.appfitness.composeapp.resources.action_cancel
 import io.github.lopezjavier.appfitness.composeapp.resources.action_delete
 import io.github.lopezjavier.appfitness.composeapp.resources.action_edit
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_add
+import io.github.lopezjavier.appfitness.composeapp.resources.ic_auto_awesome
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_delete
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_edit
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_label
@@ -17,6 +18,9 @@ import io.github.lopezjavier.appfitness.composeapp.resources.ic_star
 import io.github.lopezjavier.appfitness.composeapp.resources.routine_duplicate
 import io.github.lopezjavier.appfitness.composeapp.resources.routines_folder_delete_message
 import io.github.lopezjavier.appfitness.composeapp.resources.routines_folder_delete_title
+import io.github.lopezjavier.appfitness.composeapp.resources.routines_folder_menu_offline_reason
+import io.github.lopezjavier.appfitness.composeapp.resources.routines_folder_menu_rename
+import io.github.lopezjavier.appfitness.composeapp.resources.routines_folder_menu_review
 import io.github.lopezjavier.appfitness.composeapp.resources.routines_group_none
 import io.github.lopezjavier.appfitness.composeapp.resources.routines_move_sheet_title
 import io.github.lopezjavier.appfitness.composeapp.resources.routines_move_to_folder
@@ -30,6 +34,7 @@ import io.github.lopezjavier.appfitness.designsystem.AppSheetAction
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
 import io.github.lopezjavier.appfitness.designsystem.SheetActionRow
 import io.github.lopezjavier.appfitness.designsystem.Spacing
+import io.github.lopezjavier.appfitness.domain.model.RoutineFolder
 import io.github.lopezjavier.appfitness.domain.model.RoutineSummary
 import org.jetbrains.compose.resources.pluralStringResource
 import org.jetbrains.compose.resources.stringResource
@@ -38,6 +43,7 @@ import org.jetbrains.compose.resources.stringResource
 @Composable
 internal fun RoutinesDialogs(state: RoutinesUiState.Content, onEvent: (RoutinesEvent) -> Unit) {
     state.menuFor?.let { RoutineMenuSheet(it, state.isOnline, onEvent) }
+    state.folderMenuFor?.let { FolderMenuSheet(it, state.isOnline, onEvent) }
     state.moveFor?.let { MoveSheet(it, state, onEvent) }
     state.folderSheet?.let { FolderSheet(it, state.folders, state.folderSaving, state.isOnline, onEvent) }
     // The only confirmation here (R-08 #3): a folder that still holds routines; an empty one is deleted at once.
@@ -102,6 +108,44 @@ private fun RoutineMenuSheet(routine: RoutineSummary, isOnline: Boolean, onEvent
         title = routine.name,
         testTagPrefix = "routines_menu",
         notice = if (isOnline) null else ({ OfflineReason() }),
+    )
+}
+
+/**
+ * Actions of one folder (R-07): "Revisar con el entrenador" (a paid call) and "Renombrar". Both need the network, so
+ * offline they stay listed but disabled, with the reason under the title. Delete stays on the header icon (R-20).
+ */
+@Composable
+private fun FolderMenuSheet(folder: RoutineFolder, isOnline: Boolean, onEvent: (RoutinesEvent) -> Unit) {
+    AppActionSheet(
+        actions = listOf(
+            AppSheetAction(
+                icon = Res.drawable.ic_auto_awesome,
+                title = stringResource(Res.string.routines_folder_menu_review),
+                testTag = "routines_folder_menu_review",
+                enabled = isOnline,
+            ) { onEvent(RoutinesEvent.ReviewFolder(folder.id)) },
+            AppSheetAction(
+                icon = Res.drawable.ic_edit,
+                title = stringResource(Res.string.routines_folder_menu_rename),
+                testTag = "routines_folder_menu_rename",
+                enabled = isOnline,
+            ) { onEvent(RoutinesEvent.RenameFolder(folder.id)) },
+        ),
+        onDismiss = { onEvent(RoutinesEvent.DismissFolderMenu) },
+        title = folder.name,
+        testTagPrefix = "routines_folder_menu_sheet",
+        notice = if (isOnline) null else ({ FolderMenuOfflineReason() }),
+    )
+}
+
+@Composable
+private fun FolderMenuOfflineReason() {
+    Text(
+        text = stringResource(Res.string.routines_folder_menu_offline_reason),
+        style = AppTheme.typography.bodySmall,
+        color = AppTheme.colors.textSecondary,
+        modifier = Modifier.padding(horizontal = Spacing.screenMargin).testTag("routines_folder_menu_offline_reason"),
     )
 }
 

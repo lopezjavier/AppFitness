@@ -18,6 +18,7 @@ import androidx.navigation.compose.rememberNavController
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
 import io.github.lopezjavier.appfitness.domain.model.IntakeUpdate
 import io.github.lopezjavier.appfitness.domain.model.PlanInputKind
+import io.github.lopezjavier.appfitness.feature.routines.FakeRoutineRepository
 import io.github.lopezjavier.appfitness.feature.trainer.BeforeStartMode
 import io.github.lopezjavier.appfitness.feature.trainer.BeforeStartRoot
 import io.github.lopezjavier.appfitness.feature.trainer.BeforeStartViewModel
@@ -56,9 +57,15 @@ class IntakeFlowNavigationTest {
             )
         }
     }
-    private val beforeStartSlot: BeforeStartSlot = { modifier, onBack, onCreated, onOpenYourData, onFix ->
+    private val beforeStartSlot: BeforeStartSlot = { modifier, onBack, onCreated, onOpenYourData, onFix, _ ->
         val model = remember {
-            BeforeStartViewModel(coach, intake, MutableClock(), SavedStateHandle(mapOf("mode" to "plan")))
+            BeforeStartViewModel(
+                coach,
+                intake,
+                MutableClock(),
+                FakeRoutineRepository(),
+                SavedStateHandle(mapOf("mode" to "plan")),
+            )
         }
         BeforeStartRoot(onBack, onCreated, onOpenYourData, onFix, modifier, model, connectivity)
     }

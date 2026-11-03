@@ -140,8 +140,8 @@ class RoutinesFoldersScreenTest {
 
         rule.onNodeWithTag("routines_folder_toggle_f1").assertContentDescriptionEquals("Contraer carpeta Fuerza")
         rule.onNodeWithTag("routines_folder_toggle_f1").assertHeightIsAtLeast(48.dp).assertWidthIsAtLeast(48.dp)
-        rule.onNodeWithTag("routines_folder_rename_f1").assertContentDescriptionEquals("Renombrar carpeta Fuerza")
-        rule.onNodeWithTag("routines_folder_rename_f1").assertHeightIsAtLeast(48.dp).assertWidthIsAtLeast(48.dp)
+        rule.onNodeWithTag("routines_folder_menu_f1").assertContentDescriptionEquals("Más acciones de Fuerza")
+        rule.onNodeWithTag("routines_folder_menu_f1").assertHeightIsAtLeast(48.dp).assertWidthIsAtLeast(48.dp)
         rule.onNodeWithTag("routines_folder_delete_f1").assertContentDescriptionEquals("Eliminar carpeta Fuerza")
         rule.onNodeWithTag("routines_folder_delete_f1").assertHeightIsAtLeast(48.dp).assertWidthIsAtLeast(48.dp)
         rule.onNodeWithTag("routines_folder_toggle_f1").assert(stateIs("Expandida"))
@@ -190,7 +190,8 @@ class RoutinesFoldersScreenTest {
     @Test
     fun renamingAFolderToAnotherFoldersName_showsTheErrorAndDisablesGuardar() {
         show()
-        click("routines_folder_rename_f2")
+        click("routines_folder_menu_f2")
+        click("routines_folder_menu_rename")
         rule.onNodeWithTag("folder_sheet_input").performTextClearance()
         rule.onNodeWithTag("folder_sheet_input").performTextInput("Fuerza")
         rule.waitForIdle()
@@ -215,7 +216,8 @@ class RoutinesFoldersScreenTest {
     @Test
     fun renamingAFolder_prefillsTheNameAndSavesTheNewOne() {
         show()
-        click("routines_folder_rename_f1")
+        click("routines_folder_menu_f1")
+        click("routines_folder_menu_rename")
         rule.onNodeWithTag("folder_sheet_input").assertTextContains("Fuerza")
 
         rule.onNodeWithTag("folder_sheet_input").performTextInput(" 2")
@@ -365,9 +367,13 @@ class RoutinesFoldersScreenTest {
         connectivity.state.value = false
         rule.waitForIdle()
 
+        click("routines_folder_menu_f1")
+        rule.onNodeWithTag("routines_folder_menu_rename").assertIsNotEnabled()
+        rule.onNodeWithTag("routines_folder_menu_review").assertIsNotEnabled()
+        rule.onNodeWithTag("routines_folder_menu_offline_reason").assertExists()
+        click("routines_folder_menu_sheet_close")
         scrollToAddFolder()
         rule.onNodeWithTag("routines_add_folder").assertIsNotEnabled()
-        rule.onNodeWithTag("routines_folder_rename_f1").assertIsNotEnabled()
         rule.onNodeWithTag("routines_folder_delete_f1").assertIsNotEnabled()
         click("routines_folder_toggle_f1")
         openMenu("r4")

@@ -37,6 +37,7 @@ import io.github.lopezjavier.appfitness.feature.trainer.BeforeStartRoot
 import io.github.lopezjavier.appfitness.feature.trainer.BlockPreviewRoot
 import io.github.lopezjavier.appfitness.feature.trainer.BlockSplitsRoot
 import io.github.lopezjavier.appfitness.feature.trainer.CoachUsageRoot
+import io.github.lopezjavier.appfitness.feature.trainer.FolderReviewRoot
 import io.github.lopezjavier.appfitness.feature.trainer.FreeTextLinesRoot
 import io.github.lopezjavier.appfitness.feature.trainer.IntakeRoot
 import io.github.lopezjavier.appfitness.feature.trainer.PlanProposalRoot
@@ -98,14 +99,17 @@ fun AppRoot(
         planProposal = { planModifier, onBack, onOpenBeforeStart ->
             PlanProposalRoot(onBack, onOpenBeforeStart, planModifier)
         },
-        beforeStart = { startModifier, onBack, onCreated, onOpenYourData, onFix ->
-            BeforeStartRoot(onBack, onCreated, onOpenYourData, onFix, startModifier)
+        beforeStart = { startModifier, onBack, onCreated, onOpenYourData, onFix, onOpenReview ->
+            BeforeStartRoot(onBack, onCreated, onOpenYourData, onFix, startModifier, onOpenFolderReview = onOpenReview)
         },
         yourData = { dataModifier, onBack, onFix -> YourDataRoot(onBack, onFix, dataModifier) },
         intake = { intakeModifier, host -> IntakeRoot(host, intakeModifier) },
         freeTextLines = { linesModifier, onBack -> FreeTextLinesRoot(onBack, linesModifier) },
         blockPreview = { blockModifier, planId, onOpenExercise, onBack ->
             BlockPreviewRoot(planId, onBack, onOpenExercise, blockModifier)
+        },
+        folderReview = { reviewModifier, onApplied, onBlockReady, onBack ->
+            FolderReviewRoot(onApplied, onBlockReady, onBack, reviewModifier)
         },
         blockSplits = { splitsModifier, planId, onBuilt, onBack ->
             BlockSplitsRoot(planId, onBuilt, onBack, splitsModifier)
@@ -126,8 +130,15 @@ fun AppRoot(
                 onOpenExercise,
             )
         },
-        routines = { routinesModifier, onOpenBuilder, onOpenDetails, onOpenLive, onOpenHistory ->
-            WorkoutEntryRoot(onOpenBuilder, onOpenDetails, onOpenLive, onOpenHistory, routinesModifier)
+        routines = { routinesModifier, onOpenBuilder, onOpenDetails, onOpenLive, onOpenHistory, onOpenReview ->
+            WorkoutEntryRoot(
+                onOpenBuilder,
+                onOpenDetails,
+                onOpenLive,
+                onOpenHistory,
+                routinesModifier,
+                onOpenFolderReview = onOpenReview,
+            )
         },
         diary = { diaryModifier, onOpenPreferences, onAddFood, onSaveTemplate, edit, onBack ->
             DiaryRoot(

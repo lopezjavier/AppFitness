@@ -32,6 +32,7 @@ import io.github.lopezjavier.appfitness.domain.repository.CoachUsageRepository
 import io.github.lopezjavier.appfitness.domain.repository.DiscomfortRepository
 import io.github.lopezjavier.appfitness.domain.repository.ExerciseRepository
 import io.github.lopezjavier.appfitness.domain.repository.FavoriteExercisesRepository
+import io.github.lopezjavier.appfitness.domain.repository.FolderReviewRepository
 import io.github.lopezjavier.appfitness.domain.repository.FoodDiaryRepository
 import io.github.lopezjavier.appfitness.domain.repository.FoodPhotoRepository
 import io.github.lopezjavier.appfitness.domain.repository.FoodPreferencesRepository
@@ -60,6 +61,7 @@ import io.github.lopezjavier.appfitness.domain.usecase.CompleteOnboarding
 import io.github.lopezjavier.appfitness.domain.usecase.CookedItemNutrition
 import io.github.lopezjavier.appfitness.domain.usecase.DefaultMealSlot
 import io.github.lopezjavier.appfitness.domain.usecase.DeleteAccount
+import io.github.lopezjavier.appfitness.domain.usecase.ExerciseNameResolver
 import io.github.lopezjavier.appfitness.domain.usecase.GetAccountProtection
 import io.github.lopezjavier.appfitness.domain.usecase.GroupMealEntries
 import io.github.lopezjavier.appfitness.domain.usecase.HealthWriteBack
@@ -208,6 +210,8 @@ class AppModuleTest {
                 CoachPlanRepository::class,
                 CoachBlockRepository::class,
                 CoachIntakeRepository::class,
+                FolderReviewRepository::class,
+                ExerciseNameResolver::class,
                 ExerciseLibrary::class,
                 LoadExerciseCatalog::class,
                 SearchExercises::class,

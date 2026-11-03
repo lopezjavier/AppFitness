@@ -39,6 +39,7 @@ import io.github.lopezjavier.appfitness.feature.trainer.BeforeStartViewModel
 import io.github.lopezjavier.appfitness.feature.trainer.BlockPreviewViewModel
 import io.github.lopezjavier.appfitness.feature.trainer.BlockSplitsViewModel
 import io.github.lopezjavier.appfitness.feature.trainer.CoachUsageViewModel
+import io.github.lopezjavier.appfitness.feature.trainer.FolderReviewViewModel
 import io.github.lopezjavier.appfitness.feature.trainer.FreeTextLinesViewModel
 import io.github.lopezjavier.appfitness.feature.trainer.IntakeViewModel
 import io.github.lopezjavier.appfitness.feature.trainer.PlanProposalViewModel
@@ -443,7 +444,13 @@ val uiModule =
             )
         }
         viewModel {
-            BeforeStartViewModel(coach = get(), intakeRepo = get(), clock = get(), savedState = get())
+            BeforeStartViewModel(
+                coach = get(),
+                intakeRepo = get(),
+                clock = get(),
+                routines = get(),
+                savedState = get(),
+            )
         }
         viewModel { YourDataViewModel(coach = get(), intakeRepo = get(), clock = get(), savedState = get()) }
         viewModel { IntakeViewModel(repository = get(), savedState = get()) }
@@ -461,6 +468,16 @@ val uiModule =
                 favorites = get(),
                 savedState = get(),
                 exerciseNames = get(),
+            )
+        }
+        viewModel {
+            FolderReviewViewModel(
+                reviews = get(),
+                names = get(),
+                library = get(),
+                routines = get(),
+                clock = get(),
+                savedState = get(),
             )
         }
         viewModel { PlanProposalViewModel(plans = get(), coach = get(), clock = get(), savedState = get()) }
