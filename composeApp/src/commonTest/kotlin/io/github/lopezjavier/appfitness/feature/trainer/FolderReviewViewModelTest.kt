@@ -254,6 +254,25 @@ class FolderReviewViewModelTest {
     }
 
     @Test
+    fun apply_afterSuccessStaysWorkingSoASecondTapMakesNoSecondCopy() = runTest(dispatcher) {
+        given()
+        val model = viewModel()
+        model.start()
+
+        model.effects.test {
+            model.onEvent(FolderReviewEvent.Apply)
+            dispatcher.scheduler.advanceUntilIdle()
+            assertEquals(FolderReviewEffect.Applied("copy-1", "Mi carpeta (copia)"), awaitItem())
+            model.onEvent(FolderReviewEvent.Apply)
+            dispatcher.scheduler.advanceUntilIdle()
+            expectNoEvents()
+        }
+
+        assertTrue(model.content().working)
+        assertEquals(1, reviews.applied.size)
+    }
+
+    @Test
     fun apply_withNothingCheckedDoesNothing() = runTest(dispatcher) {
         given()
         val model = viewModel()

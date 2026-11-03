@@ -208,7 +208,7 @@ class FolderReviewViewModel(
             reviews.applyCopy(content.review.id, acceptedInOrder(content)).fold(
                 onSuccess = { copy ->
                     val name = routines.listFolders().getOrNull()?.firstOrNull { it.id == copy.folderId }?.name
-                    setWorking(false)
+                    // Stays working until the screen leaves: no second tap can make a second copy.
                     effectChannel.send(FolderReviewEffect.Applied(copy.folderId, name))
                 },
                 onFailure = { failed(it) },
@@ -224,7 +224,7 @@ class FolderReviewViewModel(
         viewModelScope.launch {
             reviews.blockFromReview(plan, today(), content.review.id, acceptedInOrder(content)).fold(
                 onSuccess = {
-                    setWorking(false)
+                    // Stays working until the screen leaves: no second tap can make a second block.
                     effectChannel.send(FolderReviewEffect.BlockReady)
                 },
                 onFailure = { failed(it) },
