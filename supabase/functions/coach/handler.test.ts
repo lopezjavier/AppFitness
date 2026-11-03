@@ -65,6 +65,9 @@ function setup(
             Promise.reject(new Error("unexpected loadPhaseHistory")),
         loadBlockModelInput: () =>
             Promise.reject(new Error("unexpected loadBlockModelInput")),
+        loadFolder: () => Promise.reject(new Error("unexpected loadFolder")),
+        saveReview: () => Promise.reject(new Error("unexpected saveReview")),
+        loadReview: () => Promise.reject(new Error("unexpected loadReview")),
         updatePlanOptions: () =>
             Promise.reject(new Error("unexpected updatePlanOptions")),
         now: () => NOW,

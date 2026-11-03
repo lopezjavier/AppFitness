@@ -1,12 +1,14 @@
 package io.github.lopezjavier.appfitness.data.remote
 
 import io.github.lopezjavier.appfitness.domain.model.CoachFailure
+import io.github.lopezjavier.appfitness.domain.model.FolderFalta
 import io.github.lopezjavier.appfitness.domain.model.MissingField
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.contentOrNull
+import kotlinx.serialization.json.decodeFromJsonElement
 import kotlinx.serialization.json.jsonObject
 
 /**
@@ -42,8 +44,14 @@ object CoachErrorParser {
 
             "coach_plan_infeasible" -> CoachFailure.Infeasible
 
+            "coach_block_needs_changes" -> CoachFailure.NeedsChanges(error.failures())
+
             else -> CoachFailure.Other
         }
+    }
+
+    private fun JsonObject.failures(): List<FolderFalta> = (get("failures") as? JsonArray).orEmpty().mapNotNull {
+        runCatching { coachPlanJson.decodeFromJsonElement<FolderFaltaDto>(it).toDomain() }.getOrNull()
     }
 
     private fun JsonObject.missingFields(): Set<MissingField> = (get("missing") as? JsonArray).orEmpty()

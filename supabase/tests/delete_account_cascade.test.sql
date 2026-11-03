@@ -3,7 +3,7 @@ begin;
 create extension if not exists pgtap with schema extensions;
 set local search_path = extensions, public;
 
-select plan(36);
+select plan(38);
 
 -- The on_auth_user_created trigger creates each profile.
 insert into auth.users (id, email) values
@@ -77,6 +77,14 @@ insert into public.coach_plan_sessions (plan_id, user_id, week, session_index, n
   ('d1000000-0000-4000-8000-0000000000b1', 'd1000000-0000-4000-8000-000000000001', 1, 1, 'Sesion', '[]'),
   ('d2000000-0000-4000-8000-0000000000b2', 'd2000000-0000-4000-8000-000000000002', 1, 1, 'Sesion', '[]');
 
+insert into public.routine_folders (id, user_id, name) values
+  ('d1000000-0000-4000-8000-0000000000c1', 'd1000000-0000-4000-8000-000000000001', 'Carpeta d1'),
+  ('d2000000-0000-4000-8000-0000000000c2', 'd2000000-0000-4000-8000-000000000002', 'Carpeta d2');
+insert into public.coach_folder_reviews (user_id, folder_id, purpose, plan_id, input_hash, result) values
+  ('d1000000-0000-4000-8000-000000000001', 'd1000000-0000-4000-8000-0000000000c1', 'block',
+   'd1000000-0000-4000-8000-0000000000b1', 'h', '{}'),
+  ('d2000000-0000-4000-8000-000000000002', 'd2000000-0000-4000-8000-0000000000c2', 'review', null, 'h', '{}');
+
 insert into public.coach_user_intake (user_id, training_years) values
   ('d1000000-0000-4000-8000-000000000001', 3), ('d2000000-0000-4000-8000-000000000002', 1);
 insert into public.coach_free_text_exclusions (user_id, kind, source_id) values
@@ -88,6 +96,11 @@ insert into public.exercise_favorites (user_id, exercise_id)
     ('d1000000-0000-4000-8000-000000000001', 'd2000000-0000-4000-8000-000000000002');
 
 delete from auth.users where id = 'd1000000-0000-4000-8000-000000000001';
+
+select is((select count(*)::int from public.coach_folder_reviews where user_id = 'd1000000-0000-4000-8000-000000000001'), 0,
+  'the deleted user''s coach_folder_reviews are gone');
+select is((select count(*)::int from public.coach_folder_reviews where user_id = 'd2000000-0000-4000-8000-000000000002'), 1,
+  'another user''s coach_folder_reviews are untouched');
 
 select is((select count(*)::int from public.exercise_favorites where user_id = 'd1000000-0000-4000-8000-000000000001'), 0,
   'the deleted user''s exercise_favorites are gone');

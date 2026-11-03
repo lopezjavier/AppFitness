@@ -13,7 +13,11 @@ import type {
     PlanState,
     PrepareContext,
     Prepared,
+    ReviewRow,
+    StoredReview,
 } from "./context.ts";
+import type { FolderForReview } from "./folderChanges.ts";
+import type { KindSpec } from "./router.ts";
 import { type CoachDeps, createCoachHandler } from "./handler.ts";
 import { blockInputs } from "./inputsFixtures.ts";
 import type { CatalogExercise } from "./schemas.ts";
@@ -21,6 +25,7 @@ import type { CatalogExercise } from "./schemas.ts";
 export const NOW = new Date("2026-10-30T12:00:00Z");
 export const PLAN_ID = "11111111-1111-4111-8111-111111111111";
 export const SECRET = "SECRET-PERSONAL-DATA";
+export const REVIEW_ID = "22222222-2222-4222-8222-222222222222";
 
 export const EMPTY_MODEL_INPUT: BlockModelInput = {
     folders: [],
@@ -56,6 +61,13 @@ export type HarnessOptions = {
     modelInput?: BlockModelInput;
     inputs?: unknown;
     attachFails?: boolean;
+    /** The folder `coach_folder_for_review` answers (null: not the caller's); absent: the loader is not expected. */
+    folder?: FolderForReview | null;
+    /** The stored review `loadReview` answers; absent: the loader is not expected. */
+    review?: StoredReview | null;
+    reviewId?: string;
+    /** Passed to the registered kind (a predicate for plan_block). */
+    deterministic?: KindSpec["deterministic"];
     spent?: number;
     timeoutMs?: number;
     slow?: boolean;
@@ -64,6 +76,7 @@ export type HarnessOptions = {
 export function harness(o: HarnessOptions) {
     const records: Parameters<CoachDeps["recordUsage"]>[0][] = [];
     const attached: BlockRow[] = [];
+    const reviews: ReviewRow[] = [];
     const requests: AnthropicRequest[] = [];
     let calls = 0;
     const client: AnthropicClient = {
@@ -107,6 +120,18 @@ export function harness(o: HarnessOptions) {
             Promise.resolve(o.modelInput ?? EMPTY_MODEL_INPUT),
         updatePlanOptions: () =>
             Promise.reject(new Error("unexpected updatePlanOptions")),
+        loadFolder: () =>
+            o.folder === undefined
+                ? Promise.reject(new Error("unexpected loadFolder"))
+                : Promise.resolve(o.folder),
+        saveReview: (_t, row) => {
+            reviews.push(row);
+            return Promise.resolve(o.reviewId ?? REVIEW_ID);
+        },
+        loadReview: () =>
+            o.review === undefined
+                ? Promise.reject(new Error("unexpected loadReview"))
+                : Promise.resolve(o.review),
         attachBlock: (_t, row) => {
             if (o.attachFails) return Promise.reject(new Error("db down"));
             attached.push(row);
@@ -122,6 +147,7 @@ export function harness(o: HarnessOptions) {
                 model: o.model,
                 available: true,
                 prepare: o.prepare,
+                deterministic: o.deterministic,
             },
         },
     };
@@ -129,6 +155,7 @@ export function harness(o: HarnessOptions) {
         handler: createCoachHandler(deps),
         records,
         attached,
+        reviews,
         requests,
         calls: () => calls,
     };

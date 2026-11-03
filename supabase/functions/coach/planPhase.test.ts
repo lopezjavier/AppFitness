@@ -104,6 +104,9 @@ function setup(o: SetupOptions = {}) {
             Promise.reject(new Error("unexpected loadPhaseHistory")),
         loadBlockModelInput: () =>
             Promise.reject(new Error("unexpected loadBlockModelInput")),
+        loadFolder: () => Promise.reject(new Error("unexpected loadFolder")),
+        saveReview: () => Promise.reject(new Error("unexpected saveReview")),
+        loadReview: () => Promise.reject(new Error("unexpected loadReview")),
         updatePlanOptions: (_t, row) => {
             if (o.updateFails) return Promise.reject(new Error("db down"));
             updates.push(row);
