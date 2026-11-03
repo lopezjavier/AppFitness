@@ -179,6 +179,13 @@ class BeforeStartScreenTest {
     }
 
     @Test
+    fun aBlock_doesNotOfferALowTimeShortcut() {
+        show(mode = "block", planId = "plan-2")
+
+        rule.onNodeWithText("Tengo poco tiempo").assertDoesNotExist()
+    }
+
+    @Test
     fun theFirstPlan_opensNothingOnItsOwn() {
         repository.inputs[PlanInputKind.Plan] = Result.success(planKeys())
 

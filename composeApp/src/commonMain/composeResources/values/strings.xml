@@ -1865,7 +1865,6 @@
     <string name="phase_label_gain">Volumen</string>
     <string name="phase_label_maintenance">Mantenimiento</string>
     <string name="phase_label_recomposition">Recomposición</string>
-    <string name="phase_label_minimal">Mínimo</string>
     <string name="phase_reason_cut">Tu objetivo es perder grasa.</string>
     <string name="phase_reason_gain">Tu objetivo es ganar músculo.</string>
     <string name="phase_reason_maintenance">Tu objetivo es mantener tu peso.</string>
@@ -1875,7 +1874,6 @@
     <string name="phase_help_gain">Comes algo más de lo que gastas para ganar músculo poco a poco, sin sumar grasa de más.</string>
     <string name="phase_help_maintenance">Comes lo que gastas para mantener tu peso y seguir entrenando.</string>
     <string name="phase_help_recomposition">Comes lo que gastas y entrenas subiendo el peso poco a poco. Así es posible ganar algo de músculo y perder algo de grasa a la vez, también si ya entrenabas.</string>
-    <string name="phase_help_minimal">Para épocas con poco tiempo: un entreno a la semana y una serie por ejercicio, con el mismo peso. Así se mantienen la fuerza y el músculo durante meses.</string>
     <string name="trainer_plan_phase_line">%1$s · %2$s</string>
     <string name="phase_help_cd">Ayuda: fase del plan</string>
     <string name="plan_proposal_cut_rate_label">Ritmo</string>
@@ -1886,9 +1884,6 @@
     <string name="plan_proposal_diet_break_help_cd">Ayuda: semana de descanso</string>
     <string name="plan_proposal_diet_break_offline">cambiar la semana de descanso</string>
     <string name="plan_proposal_options_progress_cd">Actualizando el plan</string>
-    <string name="before_start_minimal">Tengo poco tiempo</string>
-    <string name="before_start_minimal_helper">Un bloque mínimo, con lo esencial para no perder el hábito.</string>
-    <string name="block_preview_minimal_label">Mínimo</string>
     <string name="phase_diet_break_help">Opcional: la última semana de cada bloque comes lo que gastas. En los estudios se pierde la misma grasa y se pasa menos hambre, pero la definición dura más.</string>
     <string name="plan_activity_header">Actividad</string>
     <string name="plan_activity_cardio_row">Cardio · %1$s min por semana · ritmo suave</string>
@@ -2054,6 +2049,21 @@
     <string name="block_reps_range">%1$d×%2$d-%3$d reps</string>
     <string name="block_reps_single">%1$d×%2$d reps</string>
     <string name="block_exercise_detail">%1$s · %2$s</string>
+    <string name="block_rpe_detail">RPE %1$s</string>
+    <string name="block_planned_weight">%1$s kg</string>
+    <string name="block_drop_set">Última serie descendente</string>
+    <string name="block_below_recommended">Por debajo de lo recomendado</string>
+    <string name="block_below_recommended_help_cd">Ayuda: por debajo de lo recomendado</string>
+    <string name="block_below_recommended_help">Con los días y el tiempo que has indicado no se llega al volumen semanal recomendado para cada músculo. El bloque se crea igualmente. Si puedes añadir un día o más minutos por entreno, se acercará a lo recomendado.</string>
+    <string name="block_changes_header">Qué cambia respecto al bloque anterior</string>
+    <string name="block_splits_title">Tipo de rutina</string>
+    <string name="block_splits_recommended">Recomendada</string>
+    <string name="block_splits_create">Crear bloque</string>
+    <string name="block_splits_create_action">crear el bloque</string>
+    <string name="block_splits_progress">Pensando en cómo repartir tus días…</string>
+    <string name="block_splits_progress_cd">Pensando en cómo repartir tus días</string>
+    <string name="block_splits_error">No se pudieron preparar las opciones. Inténtalo de nuevo.</string>
+    <string name="block_splits_title_recommended">%1$s · %2$s</string>
     <string name="block_preview_cardio_detail">%1$s min · suave</string>
     <string name="block_preview_cardio_total">Tiempo total: %1$s</string>
     <string name="block_preview_cardio_own">Te faltan %1$d min de cardio a la semana: hazlos por tu cuenta.</string>

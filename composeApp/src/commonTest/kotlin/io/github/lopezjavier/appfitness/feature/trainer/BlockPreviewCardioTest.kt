@@ -12,7 +12,6 @@ import io.github.lopezjavier.appfitness.feature.exercises.FakeExerciseRepository
 import io.github.lopezjavier.appfitness.feature.exercises.FakeFavoriteExercisesRepository
 import io.github.lopezjavier.appfitness.feature.exercises.exerciseInfo
 import io.github.lopezjavier.appfitness.feature.exercises.exerciseRow
-import io.github.lopezjavier.appfitness.feature.workout.MutableClock
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.StandardTestDispatcher
@@ -101,7 +100,6 @@ class BlockPreviewCardioTest {
         blocks,
         exercises,
         library,
-        MutableClock(),
         FakeTrainingPreferencesRepository(),
         favorites,
         SavedStateHandle(),

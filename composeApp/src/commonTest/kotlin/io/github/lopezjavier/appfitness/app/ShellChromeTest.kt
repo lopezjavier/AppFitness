@@ -77,6 +77,7 @@ class ShellChromeTest {
                 IntakeRoute,
                 FreeTextLinesRoute,
                 BlockPreviewRoute::class,
+                BlockSplitsRoute::class,
                 NotificationCenterRoute,
                 CheckInRoute,
             ),

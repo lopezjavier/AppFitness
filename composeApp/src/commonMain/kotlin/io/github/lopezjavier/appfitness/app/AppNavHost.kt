@@ -91,6 +91,10 @@ internal typealias FreeTextLinesSlot = @Composable (modifier: Modifier, onBack: 
 internal typealias BlockPreviewSlot =
     @Composable (modifier: Modifier, planId: String, onOpenExercise: (String) -> Unit, onBack: () -> Unit) -> Unit
 
+/** Content of the split options: modifier (full-screen insets), plan id, how to go to the built block and to leave. */
+internal typealias BlockSplitsSlot =
+    @Composable (modifier: Modifier, planId: String, onBuilt: () -> Unit, onBack: () -> Unit) -> Unit
+
 internal typealias AboutSlot = @Composable (modifier: Modifier, onBack: () -> Unit) -> Unit
 
 /**
@@ -617,6 +621,11 @@ internal val DefaultBlockPreviewSlot: BlockPreviewSlot = { modifier, _, _, _ ->
     Box(modifier.fillMaxSize().testTag("block_preview_screen"))
 }
 
+/** Empty split options for previews and shell tests; the real one is wired by `AppRoot`. */
+internal val DefaultBlockSplitsSlot: BlockSplitsSlot = { modifier, _, _, _ ->
+    Box(modifier.fillMaxSize().testTag("block_splits_screen"))
+}
+
 /** Empty "Acerca de" for previews and shell tests; the real one is wired by `AppRoot`. */
 internal val DefaultAboutSlot: AboutSlot = { modifier, _ ->
     Box(modifier.fillMaxSize().testTag("about_screen"))
@@ -647,6 +656,7 @@ internal fun AppNavHost(
     intake: IntakeSlot = DefaultIntakeSlot,
     freeTextLines: FreeTextLinesSlot = DefaultFreeTextLinesSlot,
     blockPreview: BlockPreviewSlot = DefaultBlockPreviewSlot,
+    blockSplits: BlockSplitsSlot = DefaultBlockSplitsSlot,
     activity: ActivitySlot = DefaultActivitySlot,
     exercisePicker: ExercisePickerSlot = DefaultExercisePickerSlot,
     exerciseDetail: ExerciseDetailSlot = DefaultExerciseDetailSlot,
@@ -867,6 +877,14 @@ internal fun AppNavHost(
                 Modifier.padding(fullScreenPadding),
                 entry.toRoute<BlockPreviewRoute>().planId,
                 { navController.navigateToFullScreen(ExerciseDetailRoute(it, selectMode = false)) },
+                { navController.popFullScreen(entry) },
+            )
+        }
+        composable<BlockSplitsRoute> { entry ->
+            blockSplits(
+                Modifier.padding(fullScreenPadding),
+                entry.toRoute<BlockSplitsRoute>().planId,
+                { navController.openBuiltBlock(entry) },
                 { navController.popFullScreen(entry) },
             )
         }
@@ -1300,15 +1318,28 @@ internal fun NavController.navigateToFullScreen(route: AppRoute) {
 }
 
 /**
- * Leaves "Antes de empezar" for the proposal or the block preview. The "Antes de empezar" entry is popped so Back
- * returns to where the creation started; when it was opened from a proposal (the re-ask), that proposal goes too, as
- * the new one replaces it.
+ * Leaves the split options for the preview of the block just built. The split options entry is popped, so Back from
+ * the preview returns to the Trainer and never to a screen that bills.
+ */
+internal fun NavController.openBuiltBlock(entry: NavBackStackEntry) {
+    if (currentBackStackEntry?.id != entry.id) return
+    val planId = entry.toRoute<BlockSplitsRoute>().planId
+    navigate(BlockPreviewRoute(planId)) {
+        launchSingleTop = true
+        popUpTo<BlockSplitsRoute> { inclusive = true }
+    }
+}
+
+/**
+ * Leaves "Antes de empezar" for the proposal or the split options of a block. The "Antes de empezar" entry is popped so
+ * Back returns to where the creation started; when it was opened from a proposal (the re-ask), that proposal goes
+ * too, as the new one replaces it.
  */
 internal fun NavController.openCreated(entry: NavBackStackEntry, created: BeforeStartEffect.Created) {
     if (currentBackStackEntry?.id != entry.id) return
     val route: AppRoute = when (created.mode) {
         BeforeStartMode.Plan -> PlanProposalRoute(created.replacingPlanId)
-        BeforeStartMode.Block -> BlockPreviewRoute(created.planId.orEmpty())
+        BeforeStartMode.Block -> BlockSplitsRoute(created.planId.orEmpty())
     }
     val fromProposal = previousBackStackEntry?.destination?.hasRoute(PlanProposalRoute::class) == true
     navigate(route) {

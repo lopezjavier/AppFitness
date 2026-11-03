@@ -98,6 +98,10 @@ data object FreeTextLinesRoute : AppRoute
 @Serializable
 data class BlockPreviewRoute(val planId: String) : AppRoute
 
+/** "Tipo de rutina" (US-93): the split options and the block built on the picked one, before its preview. */
+@Serializable
+data class BlockSplitsRoute(val planId: String) : AppRoute
+
 /** "Acerca de": app name, version, credits and open-source licences, opened from the Perfil root (US-45). */
 @Serializable
 data object AboutRoute : AppRoute
@@ -403,6 +407,7 @@ object AppDestinations {
             IntakeRoute,
             FreeTextLinesRoute,
             BlockPreviewRoute(""),
+            BlockSplitsRoute(""),
             NotificationCenterRoute,
             CheckInRoute,
         )

@@ -30,15 +30,11 @@ sealed interface AlternativesState {
     data object Error : AlternativesState
 }
 
+internal const val BELOW_RECOMMENDED_NOTE = "below_recommended"
+
 sealed interface BlockPreviewUiState {
     /** Reading the stored block (R-31 skeleton). */
     data object Loading : BlockPreviewUiState
-
-    /** No stored block: the screen asks the coach once with [BlockPreviewEvent.Request]. */
-    data object Idle : BlockPreviewUiState
-
-    /** Waiting for the model (indeterminate progress). */
-    data object Requesting : BlockPreviewUiState
 
     /**
      * The stored [block]. [selectedWeek] is the open tab (one of the block's weeks), [reasonKey] the exercise whose
@@ -59,6 +55,15 @@ sealed interface BlockPreviewUiState {
         val alternatives: AlternativesState = AlternativesState.Loading,
         val swappable: Set<String>? = null,
     ) : BlockPreviewUiState {
+        /** Why the block fits the user; null for an older block. */
+        val splitReason: String? get() = block.training.splitReason?.takeIf { it.isNotBlank() }
+
+        /** What changed since the previous block; null when there was none. */
+        val changesVsLastBlock: String? get() = block.training.changesVsLastBlock?.takeIf { it.isNotBlank() }
+
+        /** True when the checker found the block below the recommended weekly volume. */
+        val belowRecommended: Boolean get() = BELOW_RECOMMENDED_NOTE in block.training.notes
+
         /**
          * Whether the swap button is drawn for the slot: hidden only when the alternatives are known and none fits.
          * While they load ([swappable] null) or when the read failed, the button stays so the sheet can retry.
@@ -116,10 +121,7 @@ sealed interface BlockPreviewUiState {
 }
 
 sealed interface BlockPreviewEvent {
-    /** Asks the coach for the block (costs money); ignored unless the state is [BlockPreviewUiState.Idle]. */
-    data object Request : BlockPreviewEvent
-
-    /** Reloads a block stored meanwhile, else asks the coach again. */
+    /** Reloads the stored block; never asks the coach. */
     data object Retry : BlockPreviewEvent
 
     data class SelectWeek(val week: Int) : BlockPreviewEvent

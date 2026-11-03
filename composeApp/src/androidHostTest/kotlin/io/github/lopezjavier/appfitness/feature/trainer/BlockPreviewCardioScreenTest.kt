@@ -25,7 +25,6 @@ import io.github.lopezjavier.appfitness.feature.exercises.LocalExerciseMediaUris
 import io.github.lopezjavier.appfitness.feature.exercises.RecordingMessages
 import io.github.lopezjavier.appfitness.feature.exercises.exerciseInfo
 import io.github.lopezjavier.appfitness.feature.exercises.exerciseRow
-import io.github.lopezjavier.appfitness.feature.workout.MutableClock
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -88,7 +87,6 @@ class BlockPreviewCardioScreenTest {
                     "walk" to exerciseInfo("walk", "Caminar a paso ligero"),
                 ),
             ),
-            MutableClock(),
             FakeTrainingPreferencesRepository(),
             FakeFavoriteExercisesRepository(),
             SavedStateHandle(),

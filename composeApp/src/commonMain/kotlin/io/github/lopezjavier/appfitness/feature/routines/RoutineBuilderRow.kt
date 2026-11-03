@@ -1,6 +1,5 @@
 package io.github.lopezjavier.appfitness.feature.routines
 
-import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.Orientation
 import androidx.compose.foundation.gestures.draggable
@@ -15,7 +14,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -42,7 +40,6 @@ import io.github.lopezjavier.appfitness.composeapp.resources.builder_rest_increa
 import io.github.lopezjavier.appfitness.composeapp.resources.builder_rest_unit
 import io.github.lopezjavier.appfitness.composeapp.resources.builder_row_cd_superset
 import io.github.lopezjavier.appfitness.composeapp.resources.builder_row_menu_cd
-import io.github.lopezjavier.appfitness.composeapp.resources.builder_superset_label
 import io.github.lopezjavier.appfitness.composeapp.resources.builder_ungroup
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_arrow_downward
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_arrow_upward
@@ -86,8 +83,11 @@ import io.github.lopezjavier.appfitness.designsystem.NumberStepper
 import io.github.lopezjavier.appfitness.designsystem.ReorderableItemScope
 import io.github.lopezjavier.appfitness.designsystem.RpeHelpButton
 import io.github.lopezjavier.appfitness.designsystem.Spacing
+import io.github.lopezjavier.appfitness.designsystem.SupersetAccent
+import io.github.lopezjavier.appfitness.designsystem.SupersetAccentWidth
 import io.github.lopezjavier.appfitness.designsystem.SwipeToDeleteRow
 import io.github.lopezjavier.appfitness.designsystem.exerciseNoteSummary
+import io.github.lopezjavier.appfitness.designsystem.supersetText
 import io.github.lopezjavier.appfitness.domain.model.Equipment
 import io.github.lopezjavier.appfitness.domain.model.RoutineBounds
 import io.github.lopezjavier.appfitness.domain.usecase.RpeScale
@@ -98,12 +98,9 @@ import io.github.lopezjavier.appfitness.feature.workout.restStateDescription
 import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.resources.stringResource
 
-private val AccentWidth = Spacing.xs
-
 /** "Superserie A1" of a superset member, or null. */
 @Composable
-internal fun BuilderRowUi.supersetText(): String? =
-    supersetLabel?.let { stringResource(Res.string.builder_superset_label, it.letter.toString(), it.number) }
+internal fun BuilderRowUi.supersetLabelText(): String? = supersetLabel?.let { supersetText(it) }
 
 /**
  * One exercise of the routine: drag handle, thumbnail, name, superset label and menu, then the planned sets and the
@@ -123,7 +120,7 @@ internal fun ReorderableItemScope.BuilderRow(
     modifier: Modifier = Modifier,
 ) {
     val name = row.name
-    val superset = row.supersetText()
+    val superset = row.supersetLabelText()
     val moveUp = stringResource(Res.string.builder_move_up)
     val moveDown = stringResource(Res.string.builder_move_down)
     val rowDescription = superset?.let { stringResource(Res.string.builder_row_cd_superset, name, it) } ?: name
@@ -154,7 +151,7 @@ internal fun ReorderableItemScope.BuilderRow(
             }
             .testTag("routine_builder_row_$index"),
     ) {
-        AppCard(Modifier.fillMaxWidth().padding(start = if (superset != null) AccentWidth else Spacing.none)) {
+        AppCard(Modifier.fillMaxWidth().padding(start = if (superset != null) SupersetAccentWidth else Spacing.none)) {
             RowHeader(row, index, superset, onEvent, onOpenMenu, onOpenExercise)
             exerciseNoteSummary(row.noteKind, row.notes)?.let {
                 InlineNote(
@@ -168,12 +165,10 @@ internal fun ReorderableItemScope.BuilderRow(
             Steppers(row, index, onEvent)
         }
         if (superset != null) {
-            Box(
+            SupersetAccent(
                 Modifier
                     .align(Alignment.CenterStart)
-                    .width(AccentWidth)
                     .fillMaxHeight()
-                    .background(AppTheme.colors.athleticCyan)
                     .testTag("routine_builder_superset_accent_$index"),
             )
         }

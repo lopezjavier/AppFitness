@@ -11,7 +11,6 @@ import io.github.lopezjavier.appfitness.feature.exercises.FakeFavoriteExercisesR
 import io.github.lopezjavier.appfitness.feature.exercises.SimilarExerciseRow
 import io.github.lopezjavier.appfitness.feature.exercises.exerciseInfo
 import io.github.lopezjavier.appfitness.feature.exercises.exerciseRow
-import io.github.lopezjavier.appfitness.feature.workout.MutableClock
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -64,7 +63,6 @@ class BlockPreviewSwappableTest {
         blocks,
         exercises,
         library,
-        MutableClock(),
         FakeTrainingPreferencesRepository(),
         favorites,
         saved,

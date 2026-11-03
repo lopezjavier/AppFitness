@@ -25,7 +25,6 @@ import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import io.github.lopezjavier.appfitness.composeapp.resources.Res
 import io.github.lopezjavier.appfitness.composeapp.resources.builder_exercise_open_cd
-import io.github.lopezjavier.appfitness.composeapp.resources.builder_superset_label
 import io.github.lopezjavier.appfitness.composeapp.resources.live_deload
 import io.github.lopezjavier.appfitness.composeapp.resources.live_deload_cd
 import io.github.lopezjavier.appfitness.composeapp.resources.live_deload_single
@@ -47,6 +46,7 @@ import io.github.lopezjavier.appfitness.designsystem.SetFieldSpec
 import io.github.lopezjavier.appfitness.designsystem.SetTableHeader
 import io.github.lopezjavier.appfitness.designsystem.Spacing
 import io.github.lopezjavier.appfitness.designsystem.exerciseNoteSummary
+import io.github.lopezjavier.appfitness.designsystem.supersetText
 import io.github.lopezjavier.appfitness.domain.model.DeloadExerciseSuggestion
 import io.github.lopezjavier.appfitness.domain.model.ProgressionSuggestion
 import io.github.lopezjavier.appfitness.feature.exercises.setFieldSpecs
@@ -245,7 +245,7 @@ private fun ExerciseHeading(
         Column(Modifier.semantics(mergeDescendants = true) { heading() }.testTag("live_exercise_$position")) {
             exercise.supersetLabel?.let {
                 Text(
-                    text = stringResource(Res.string.builder_superset_label, it.letter.toString(), it.number),
+                    text = supersetText(it),
                     style = AppTheme.typography.labelTechnical,
                     color = AppTheme.colors.athleticCyan,
                 )

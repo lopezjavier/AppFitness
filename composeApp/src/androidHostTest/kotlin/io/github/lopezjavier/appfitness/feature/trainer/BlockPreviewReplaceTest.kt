@@ -33,7 +33,6 @@ import io.github.lopezjavier.appfitness.feature.exercises.LocalExerciseMediaUris
 import io.github.lopezjavier.appfitness.feature.exercises.RecordingMessages
 import io.github.lopezjavier.appfitness.feature.exercises.exerciseInfo
 import io.github.lopezjavier.appfitness.feature.exercises.exerciseRow
-import io.github.lopezjavier.appfitness.feature.workout.MutableClock
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Rule
@@ -79,7 +78,6 @@ class BlockPreviewReplaceTest {
                 "walking" to exerciseInfo("walking", "Caminar"),
             ),
         ),
-        MutableClock(),
         prefs,
         favorites,
         handle,
