@@ -84,7 +84,7 @@ const handler = createCoachHandler({
         const { data, error } = await callerClient(token)
             .from("exercises")
             .select(
-                "id,key,name,muscle_group,secondary_muscles,equipment,movement_pattern,metric_type,is_custom",
+                "id,key,name,muscle_group,secondary_muscles,equipment,movement_pattern,metric_type,is_custom,counts_as_strength",
             );
         if (error || !data) throw new Error("catalog read failed");
         return data as CatalogExercise[];

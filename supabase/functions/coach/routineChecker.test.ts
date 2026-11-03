@@ -7,6 +7,7 @@ import {
     type CheckerRoutine,
     type CheckerSet,
     checkRoutines,
+    countsAsStrength,
     fractionalSets,
     isKneeExtensionKey,
     KNEE_EXTENSION_KEYS,
@@ -47,6 +48,7 @@ const ex = (
         secondary_muscles: [],
         pattern,
         equipment: "machine",
+        counts_as_strength: true,
         ...o,
         sets: o.sets ??
             Array.from({ length: o.n ?? 3 }, () => set({ ...base, ...o.set })),
@@ -118,6 +120,77 @@ Deno.test("fractional sets: a secondary equal to the primary or repeated counts 
     const c = fractionalSets([r]);
     assertEquals(c.get("back"), 2);
     assertEquals(c.get("biceps"), 1 + 2);
+});
+
+Deno.test("fractional sets: a non-strength exercise adds nothing to primary or secondaries, the same exercise as strength adds 3 and 1.5", () => {
+    const hold = (counts: boolean) =>
+        ex("deep-squat-hold", "quads", "squat", {
+            n: 3,
+            secondary_muscles: ["glutes"],
+            counts_as_strength: counts,
+        });
+    const off = fractionalSets([routine(hold(false))]);
+    assertEquals(off.get("quads"), undefined);
+    assertEquals(off.get("glutes"), undefined);
+    const on = fractionalSets([routine(hold(true))]);
+    assertEquals(on.get("quads"), 3);
+    assertEquals(on.get("glutes"), 1.5);
+});
+
+Deno.test("fractional sets: squat 3 sets plus a squat hold 3 sets gives quads 3, not 6", () => {
+    const c = fractionalSets([routine(
+        ex("squat", "quads", "squat", { n: 3 }),
+        ex("deep-squat-hold", "quads", "squat", {
+            n: 3,
+            counts_as_strength: false,
+        }),
+    )]);
+    assertEquals(c.get("quads"), 3);
+});
+
+Deno.test("H1: padding a group with holds does not reach the minimum, but the holds stay legal in the routine", () => {
+    const padded = input([
+        routine(
+            ex("press-a", "chest", "isolation", { n: 4 }),
+            ex("fly-hold", "chest", "isolation", {
+                n: 8,
+                counts_as_strength: false,
+            }),
+        ),
+        routine(ex("x", "core", "core")),
+    ]);
+    assertEquals(chestFailure(padded), "h1_volume_low"); // 4 counted, not 12
+});
+
+Deno.test("countsAsStrength: the catalogue flag, and custom rows by metric type", () => {
+    const row = (o: Record<string, unknown>) => ({
+        is_custom: false,
+        metric_type: "weight_reps",
+        ...o,
+    });
+    assertEquals(countsAsStrength(row({})), true);
+    assertEquals(countsAsStrength(row({ counts_as_strength: false })), false);
+    assertEquals(countsAsStrength(row({ metric_type: "duration" })), true); // catalogue: the flag decides
+    assertEquals(countsAsStrength(row({ is_custom: true })), true);
+    for (
+        const m of [
+            "duration",
+            "weight_duration",
+            "distance_duration",
+            "floors_duration",
+            "steps_duration",
+        ]
+    ) {
+        assertEquals(
+            countsAsStrength(row({ is_custom: true, metric_type: m })),
+            false,
+            m,
+        );
+    }
+    assertEquals(
+        countsAsStrength(row({ is_custom: true, metric_type: "reps_only" })),
+        true,
+    );
 });
 
 // --- H1 weekly sets -----------------------------------------------------------------------------------------------

@@ -3,7 +3,7 @@
 // 20261228100000_coach_folder_reviews.sql) does the same on the same jsonb; fixtures/folder_changes.json is run
 // against both. Pure: no I/O.
 import type { CatalogExercise, MuscleGroup } from "./schemas.ts";
-import type { CheckerRoutine } from "./routineChecker.ts";
+import { type CheckerRoutine, countsAsStrength } from "./routineChecker.ts";
 
 export type FolderSet = {
     reps: number | null;
@@ -264,6 +264,7 @@ export function toCheckerRoutines(
                 secondary_muscles: row.secondary_muscles ?? [],
                 pattern: row.movement_pattern,
                 equipment: row.equipment,
+                counts_as_strength: countsAsStrength(row),
                 superset_group: x.superset_group,
                 sets: x.sets.map((s) => ({
                     type: s.set_type as "working",

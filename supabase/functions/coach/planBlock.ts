@@ -315,7 +315,8 @@ const SYSTEM = [
         REST_MAIN[0]
     }-${REST_MAIN[1]} s, resto ${REST_ISOLATION[0]}-${REST_ISOLATION[1]} s.`,
     `Volumen semanal: de ${WEEKLY_SETS_MIN} a ${WEEKLY_SETS_MAX} series por grupo grande (chest, back, shoulders, quads, hamstrings,`,
-    "glutes), contando 1 por el músculo principal y 0,5 por cada músculo secundario distinto; cada grupo grande en al menos",
+    "glutes), contando 1 por el músculo principal y 0,5 por cada músculo secundario distinto, y solo de ejercicios de fuerza",
+    "con repeticiones (no suman estiramientos, movilidad, cardio, saltos ni isométricos por tiempo como planchas); cada grupo grande en al menos",
     "2 sesiones si hay 2 o más días. Salvo en strength y con 1 día, incluye al menos un ejercicio del patrón",
     "shoulder_abduction (deltoides lateral) y uno de aislamiento de quads (extensión de rodilla).",
     `Tiempo: la rutina cabe en session_minutes. Cada ejercicio cuesta ${SETUP_SECONDS} s + por serie (media de repeticiones`,

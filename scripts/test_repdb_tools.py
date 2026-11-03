@@ -216,6 +216,36 @@ class MovementPatternTest(unittest.TestCase):
                 self.assertIn("update public.exercises set movement_pattern", f.read())
 
 
+class StrengthFlagTest(unittest.TestCase):
+    def test_holds_cardio_stretches_and_impact_do_not_count(self):
+        for key, metric, pattern, equipment in (
+                ("wall-sit", "duration", "squat", "bodyweight"), ("plank", "duration", "core", "bodyweight"),
+                ("dumbbell-farmers-walk", "weight_duration", "carry", "dumbbell"),
+                ("stationary-bike", "distance_duration", "cardio", "cardio_machine"),
+                ("jump-squat", "reps_only", "squat", "bodyweight"), ("cat-cow", "reps_only", "other", "bodyweight")):
+            self.assertFalse(gen.counts_as_strength(key, metric, pattern, equipment), key)
+
+    def test_loaded_and_bodyweight_dynamic_work_counts(self):
+        for key, metric, pattern, equipment in (
+                ("squat", "weight_reps", "squat", "barbell"), ("push-ups", "bodyweight", "horizontal_push", "bodyweight"),
+                ("glute-bridge", "reps_only", "hinge", "bodyweight"), ("clamshells", "reps_only", "isolation", "band")):
+            self.assertTrue(gen.counts_as_strength(key, metric, pattern, equipment), key)
+
+    def test_rendered_sql_matches_the_live_migration(self):
+        path = os.path.join(os.path.dirname(__file__), "..", "supabase", "migrations",
+                            "20261229100400_exercises_counts_as_strength.sql")
+        with open(path, encoding="utf-8") as f:
+            self.assertIn(gen.render_strength_sql(), f.read())
+
+    def test_cli_writes_the_statement(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            out = os.path.join(tmp, "strength.sql")
+            self.assertEqual(gen.main(["--catalog-sql", CATALOG_SQL, "--metrics-out", os.path.join(tmp, "m.sql"),
+                                       "--strength-out", out]), 0)
+            with open(out, encoding="utf-8") as f:
+                self.assertEqual(f.read(), gen.render_strength_sql())
+
+
 class ImportTest(unittest.TestCase):
     def test_copies_images_and_trims_json(self):
         with tempfile.TemporaryDirectory() as tmp:

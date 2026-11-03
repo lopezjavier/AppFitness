@@ -453,6 +453,40 @@ def render_patterns_sql(pattern_rows):
     return "\n".join(lines) + "\n"
 
 
+# ---------------------------------------------------------------------------
+# Strength flag (T-211, 07 section 3 "What H1 counts"): exercises.counts_as_strength. False for timed or distance
+# metrics (holds, planks, stretches, carries, cardio), cardio-pattern or cardio-machine keys, and the reps-only
+# mobility, flow and impact keys below. Custom rows keep the default (the coach decides them by metric type).
+# ---------------------------------------------------------------------------
+NON_STRENGTH_METRICS = ("duration", "weight_duration", "distance_duration", "floors_duration", "steps_duration")
+NON_STRENGTH_KEYS = {
+    "battle-rope-double-slam", "bear-crawl", "box-jump", "burpees", "cat-cow", "downward-dog-knee-tuck",
+    "downward-dog-pedal", "downward-dog-to-knee-drive", "downward-dog-to-low-lunge", "downward-dog-to-plank",
+    "downward-dog-to-upward-dog", "half-kneeling-hip-flexor-rock", "heel-flicks", "heel-to-toe-walk", "high-knees",
+    "inchworm", "jump-squat", "lateral-leg-swing", "leg-swing-front-to-back", "plyo-lunge", "standing-side-bend",
+    "standing-side-bend-flow", "thoracic-bridge", "thread-the-needle-flow", "upward-dog",
+}
+
+
+def counts_as_strength(key, metric_type, movement_pattern, equipment):
+    """Whether a catalogue key's sets add to the coach's H1 weekly count."""
+    if metric_type in NON_STRENGTH_METRICS or movement_pattern == "cardio" or equipment in CARDIO_EQUIPMENT:
+        return False
+    return key not in NON_STRENGTH_KEYS
+
+
+def render_strength_sql():
+    """The update statement of the strength flag (same rule as counts_as_strength, evaluated in SQL)."""
+    metrics = ", ".join(f"'{m}'" for m in NON_STRENGTH_METRICS)
+    keys = ",\n".join(f"  '{k}'" for k in sorted(NON_STRENGTH_KEYS))
+    return (
+        "update public.exercises\nset counts_as_strength = false\nwhere not is_custom\n"
+        f"  and (metric_type in ({metrics})\n"
+        "       or movement_pattern = 'cardio'\n       or equipment = 'cardio_machine'\n"
+        f"       or key in (\n{keys}\n));\n"
+    )
+
+
 ROW_RE = re.compile(r"^\s*\('([^']+)', '([^']+)', '([^']+)', '[^']+', false, null\)")
 
 
@@ -473,6 +507,7 @@ def main(argv=None):
                                           "instead of the bundle (metrics mode only).")
     ap.add_argument("--patterns-csv", help="Reviewed key -> movement_pattern CSV (T-150).")
     ap.add_argument("--patterns-out", help="Movement-pattern update statements to write (needs --patterns-csv).")
+    ap.add_argument("--strength-out", help="Strength-flag update statement to write (T-211, counts_as_strength).")
     ap.add_argument("--metrics-table", help="Also write the key -> metric table (markdown) here.")
     ap.add_argument("--self-check", action="store_true", help="Assert the documented metric examples and exit.")
     args = ap.parse_args(argv)
@@ -509,6 +544,10 @@ def main(argv=None):
             with open(args.patterns_out, "w", encoding="utf-8", newline="\n") as f:
                 f.write(render_patterns_sql(pattern_rows))
             print(f"Wrote {len(pattern_rows)} movement patterns to {args.patterns_out}")
+        if args.strength_out:
+            with open(args.strength_out, "w", encoding="utf-8", newline="\n") as f:
+                f.write(render_strength_sql())
+            print(f"Wrote the strength flag statement to {args.strength_out}")
     except CatalogError as e:
         print(f"error: {e}", file=sys.stderr)
         return 1

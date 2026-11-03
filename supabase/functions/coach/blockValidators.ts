@@ -282,6 +282,7 @@ export function checkModelBlock(
                 secondary_muscles: row.secondary_muscles ?? [],
                 pattern: row.movement_pattern,
                 equipment: row.equipment,
+                counts_as_strength: countsAsStrength(row),
                 sets: x.sets,
                 superset_group: x.superset_group ?? null,
             });

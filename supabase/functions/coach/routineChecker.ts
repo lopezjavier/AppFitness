@@ -77,6 +77,8 @@ export type CheckerExercise = {
     /** movement_pattern of the catalogue row (null for a custom exercise without one). */
     pattern: string | null;
     equipment: string;
+    /** False when the sets do not add to H1 (stretch, mobility, cardio, impact, timed hold; 07 section 3). */
+    counts_as_strength: boolean;
     sets: CheckerSet[];
     /** Exercises of a superset share the number; absent otherwise. */
     superset_group?: number | null;
@@ -145,9 +147,34 @@ export type CheckerResult = {
 const isWorkLike = (s: CheckerSet): boolean =>
     s.type === "working" || s.type === "drop";
 
+const TIMED_METRICS = new Set([
+    "duration",
+    "weight_duration",
+    "distance_duration",
+    "floors_duration",
+    "steps_duration",
+]);
+
+/**
+ * Whether the sets of a catalogue or custom row add to H1 (07 section 3 "What H1 counts"): the stored flag for a
+ * catalogue row; a custom row counts unless its metric type is time- or distance-based.
+ */
+export const countsAsStrength = (
+    row: {
+        is_custom: boolean;
+        metric_type: string;
+        counts_as_strength?: boolean;
+    },
+): boolean =>
+    row.is_custom
+        ? !TIMED_METRICS.has(row.metric_type)
+        : row.counts_as_strength !== false;
+
 /**
  * Fractional weekly sets per group (planning/04 section 4): primary 1, each DISTINCT secondary 0.5 (a secondary equal to
- * the primary is ignored). Warm-up and failure sets do not count; a drop set counts as one working set.
+ * the primary is ignored). Warm-up and failure sets do not count; a drop set counts as one working set. Exercises
+ * that do not count as strength (stretches, mobility, cardio, impact moves, timed holds) add nothing (H1 only; they
+ * still take time and a slot).
  */
 export const fractionalSets = (
     routines: CheckerRoutine[],
@@ -157,6 +184,7 @@ export const fractionalSets = (
         total.set(g, (total.get(g) ?? 0) + n);
     for (const r of routines) {
         for (const ex of r.exercises) {
+            if (!ex.counts_as_strength) continue;
             const n = ex.sets.filter(isWorkLike).length;
             if (n === 0) continue;
             add(ex.muscle_group, n);
