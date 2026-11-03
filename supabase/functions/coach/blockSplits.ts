@@ -18,10 +18,10 @@ import {
     isRecord,
     mentionsCardioReduction,
     parseJson,
-    REASON_MAX,
     REASON_MIN,
     sameKeys,
 } from "./validators.ts";
+import { failureCodes } from "./debugLog.ts";
 import { buildPrefs, FREE_TEXT_KEY, freeTextBlock } from "./planBlock.ts";
 
 export const MIN_OPTIONS = 2;
@@ -53,7 +53,7 @@ export type SplitFailure = { code: string; option?: string };
 const GROUPS: readonly string[] = MUSCLE_GROUPS.filter((g) =>
     g !== "full_body" && g !== "adductors"
 );
-const validText = (v: unknown, min: number, max: number): v is string =>
+const validText = (v: unknown, min: number, max = Infinity): v is string =>
     typeof v === "string" && v.trim().length >= min && v.trim().length <= max;
 
 /**
@@ -108,7 +108,7 @@ export function validateSplits(
             failures.push({ code: "name_repeated", ...where });
         } else names.add(item.name.trim().toLowerCase());
         if (
-            !validText(item.reason, REASON_MIN, REASON_MAX) ||
+            !validText(item.reason, REASON_MIN) ||
             mentionsCardioReduction(item.reason)
         ) failures.push({ code: "reason", ...where });
         if (item.sessions.length !== days) {
@@ -153,7 +153,7 @@ const SYSTEM = [
     "Eres el entrenador de una app de fitness personal. Propón 2 o 3 formas de repartir la semana de entrenamiento",
     "(splits) para los días por semana y la duración de sesión del usuario.",
     "Cada opción tiene: id corto distinto (a, b, c), nombre en español, recommended (true en exactamente UNA opción),",
-    "una razón breve en español (10 a 300 caracteres) basada en el objetivo, los días y el tiempo, y sus sesiones.",
+    "una razón breve en español (al menos 10 caracteres) basada en el objetivo, los días y el tiempo, y sus sesiones.",
     "Cada opción tiene EXACTAMENTE tantas sesiones como días por semana; cada sesión tiene un nombre y los grupos",
     "musculares que trabaja (focus), solo de: chest, back, shoulders, biceps, triceps, forearms, quads, hamstrings,",
     "glutes, calves, core. Con 2 o más días, cada grupo grande (chest, back, shoulders, quads, hamstrings, glutes)",
@@ -198,6 +198,8 @@ export async function prepare(
             return r.options;
         },
         retry: {
+            failureCodes: () =>
+                failureCodes(failures as unknown as Record<string, unknown>[]),
             feedback: () =>
                 failures.length === 0
                     ? null

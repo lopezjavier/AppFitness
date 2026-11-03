@@ -1,6 +1,7 @@
 package io.github.lopezjavier.appfitness.feature.trainer
 
 import androidx.compose.ui.test.assertCountEquals
+import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithTag
@@ -13,6 +14,7 @@ import io.github.lopezjavier.appfitness.domain.model.BlockSet
 import io.github.lopezjavier.appfitness.domain.model.BlockSetType
 import io.github.lopezjavier.appfitness.domain.model.CoachBlock
 import kotlinx.coroutines.flow.flowOf
+import org.junit.Assert.assertEquals
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -128,6 +130,20 @@ class BlockPreviewDetailScreenTest {
         rule.onNodeWithTag("block_preview_changes").assertExists()
         rule.onNodeWithText("Qué cambia respecto al bloque anterior").assertExists()
         rule.onNodeWithText("Subes el pecho a 12 series.").assertExists()
+    }
+
+    @Test
+    fun aLongChangesText_isShownWholeWithoutClamping() {
+        val long = "Cambio de volumen. ".repeat(32).trim().take(600)
+        show(blockWith(listOf(blockExercise()), blockTraining().copy(changesVsLastBlock = long)))
+
+        val node = rule.onNodeWithTag("block_preview_changes_text").fetchSemanticsNode()
+        val layouts = mutableListOf<androidx.compose.ui.text.TextLayoutResult>()
+        node.config[androidx.compose.ui.semantics.SemanticsActions.GetTextLayoutResult].action?.invoke(layouts)
+        rule.onNodeWithTag("block_preview_changes_text").assertTextEquals(long)
+        val layout = layouts.single()
+        assertEquals(Int.MAX_VALUE, layout.layoutInput.maxLines)
+        assertEquals(false, layout.layoutInput.overflow == androidx.compose.ui.text.style.TextOverflow.Ellipsis)
     }
 
     @Test

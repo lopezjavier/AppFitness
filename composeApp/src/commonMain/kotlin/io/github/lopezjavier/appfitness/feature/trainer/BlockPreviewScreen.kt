@@ -19,7 +19,6 @@ import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.github.lopezjavier.appfitness.composeapp.resources.Res
 import io.github.lopezjavier.appfitness.composeapp.resources.block_below_recommended
@@ -70,7 +69,6 @@ import org.koin.core.parameter.parametersOf
 
 private const val TITLE_FRACTION = 0.4f
 private const val SKELETON_ROWS = 3
-private const val CHANGES_MAX_LINES = 4
 
 private val BlockFailureCopy = CoachFailureCopy(
     error = Res.string.block_preview_error,
@@ -279,8 +277,6 @@ private fun ChangesSection(changes: String) {
             text = changes,
             style = AppTheme.typography.bodyMedium,
             color = AppTheme.colors.textPrimary,
-            maxLines = CHANGES_MAX_LINES,
-            overflow = TextOverflow.Ellipsis,
             modifier = Modifier.testTag("block_preview_changes_text"),
         )
     }

@@ -175,7 +175,15 @@ Deno.test("one technique note at most, and only on an exercise the user has no h
     assertEquals(codes(known), ["technique_note"]);
 });
 
-Deno.test("reasons: 10 to 300 characters and never less cardio or fewer steps", () => {
+Deno.test("reasons: at least 10 characters (no upper cap) and never less cardio or fewer steps", () => {
+    assertEquals(
+        codes(
+            run((b) =>
+                void (b.sessions[0].exercises[0].reason = "r".repeat(600))
+            ),
+        ),
+        [],
+    );
     assertEquals(
         codes(run((b) => void (b.sessions[0].exercises[0].reason = "corta"))),
         ["reason"],

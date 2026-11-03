@@ -52,10 +52,8 @@ import {
     type MuscleGroup,
     type Phase,
 } from "./schemas.ts";
-import { isRecord, REASON_MAX, REASON_MIN, sameKeys } from "./validators.ts";
+import { isRecord, REASON_MIN, sameKeys } from "./validators.ts";
 
-/** Exercise reasons of a block are at most this long (the prompt of the model-built block asks the same). */
-const EXERCISE_REASON_MAX = 160;
 const CARDIO_REASON =
     "Cardio suave para llegar a tu objetivo semanal de cardio.";
 const NO_CHANGES = "Sin cambios respecto a tu carpeta.";
@@ -121,9 +119,9 @@ export function parseFolderStartInput(input: unknown): {
     };
 }
 
-const inRange = (s: string, min: number, max: number): boolean => {
+const longEnough = (s: string, min: number): boolean => {
     const t = s.trim();
-    return t.length >= min && t.length <= max && !mentionsCardioReduction(t);
+    return t.length >= min && !mentionsCardioReduction(t);
 };
 
 /** The failures the client shows: the checker's plus the structure the block needs. */
@@ -294,11 +292,11 @@ export async function prepareFromFolder(
         }
     }
     const reasonOf = (key: string, note: string | null): string => {
-        if (note && inRange(note, REASON_MIN, EXERCISE_REASON_MAX)) {
+        if (note && longEnough(note, REASON_MIN)) {
             return note.trim();
         }
         const comment = comments.get(key);
-        if (comment && inRange(comment, REASON_MIN, EXERCISE_REASON_MAX)) {
+        if (comment && longEnough(comment, REASON_MIN)) {
             return comment.trim();
         }
         return `Tu ejercicio de la carpeta «${folder.name.slice(0, 100)}»`;
@@ -345,11 +343,11 @@ export async function prepareFromFolder(
             ) + "."
             : NO_CHANGES,
     };
-    if (!inRange(model.split_reason, REASON_MIN, REASON_MAX)) {
+    if (!longEnough(model.split_reason, REASON_MIN)) {
         model.split_reason = "Tus rutinas con los cambios aceptados.";
     }
     if (
-        !inRange(model.changes_vs_last_block ?? "", REASON_MIN, REASON_MAX)
+        !longEnough(model.changes_vs_last_block ?? "", REASON_MIN)
     ) model.changes_vs_last_block = NO_CHANGES;
 
     const cardioPlan = cardioSlots(catalog, prefs, days);

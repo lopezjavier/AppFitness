@@ -5,7 +5,7 @@ begin;
 create extension if not exists pgtap with schema extensions;
 set local search_path = extensions, public;
 
-select plan(57);
+select plan(59);
 
 create function pg_temp.u(n int) returns uuid language sql as $$
   select ('d5000000-0000-4000-8000-0000000000' || lpad(n::text, 2, '0'))::uuid $$;
@@ -165,6 +165,13 @@ select lives_ok($$select pg_temp.attach(pg_temp.p(1), jsonb_build_array(
   'a block with RPE, a planned weight, a shoulder_abduction exercise as isolation and a final drop set is accepted');
 select is((select exercises->1->>'exercise_key' from public.coach_plan_sessions where plan_id = pg_temp.p(1) and week = 1),
   'k', 'and it is stored with its exercise JSON');
+
+select lives_ok($$select pg_temp.attach(pg_temp.p(1), jsonb_build_array(
+    pg_temp.lift(pg_temp.main('horizontal_push'), 'main',
+      jsonb_build_object('reason', repeat('r', 600), 'technique_note', repeat('t', 600)))))$$,
+  'T-212: a 600-character reason and technique note are accepted (no upper cap)');
+select is((select length(exercises->0->>'reason') from public.coach_plan_sessions where plan_id = pg_temp.p(1) and week = 1),
+  600, 'and the long reason is stored whole');
 
 select throws_ok($$select pg_temp.attach(pg_temp.p(1), jsonb_build_array(pg_temp.lift(pg_temp.main('horizontal_push'), 'main',
   '{"rep_min":3,"rep_max":5}')), '{"intention":"muscle"}')$$,

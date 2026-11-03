@@ -3,7 +3,7 @@ begin;
 create extension if not exists pgtap with schema extensions;
 set local search_path = extensions, public;
 
-select plan(96);
+select plan(97);
 
 -- ---------------------------------------------------------------------------
 -- Fixture helpers (run as the migration owner)
@@ -272,6 +272,12 @@ select throws_ok(
   $$select public.propose_coach_plan(pg_temp.d0(), 'fat_loss', pg_temp.nut(2200, -400, -0.4, 1500),
       jsonb_build_array(jsonb_build_object('reason', 'short', 'deadline', (pg_temp.d0() + 14)::text)), '{}', '{}')$$,
   '22023', 'plan invariant: outcome_reason', 'a forged outcome with a too short reason is rejected');
+select throws_ok(
+  $$select public.propose_coach_plan(pg_temp.d0(), 'fat_loss', pg_temp.nut(2200, -400, -0.4, 1500),
+      jsonb_build_array(jsonb_build_object('reason', repeat('long ', 200), 'deadline', (pg_temp.d0() + 90)::text)),
+      '{}', '{}')$$,
+  '22023', 'plan invariant: outcome_deadline',
+  'T-212: a 1000-character outcome reason passes the reason check (only the deadline is rejected)');
 select throws_ok(
   $$select public.propose_coach_plan(pg_temp.d0(), 'fat_loss', pg_temp.nut(2200, -400, -0.4, 1500),
       jsonb_build_array(jsonb_build_object('reason', 'A reason long enough', 'deadline', (pg_temp.d0() + 90)::text)),

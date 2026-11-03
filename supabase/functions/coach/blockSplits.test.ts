@@ -163,6 +163,14 @@ Deno.test("two recommended or none, a wrong session count, repeated ids or names
         ]),
         ["reason"],
     );
+    assertEquals(
+        codes([
+            option("a", 4),
+            option("b", 4, { reason: "r".repeat(2000), recommended: false }),
+        ]),
+        [],
+        "T-212: a long split reason has no upper cap",
+    );
     const badFocus = option("b", 4, { recommended: false });
     badFocus.sessions[0].focus = ["full_body"];
     assertEquals(codes([option("a", 4), badFocus]), ["session"]);

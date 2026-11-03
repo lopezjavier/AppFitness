@@ -48,7 +48,6 @@ import {
     isRecord,
     mentionsCardioReduction,
     parseJson,
-    REASON_MAX,
     REASON_MIN,
     sameKeys,
 } from "./validators.ts";
@@ -59,12 +58,9 @@ export { mentionsCardioReduction };
 const validReason = (r: unknown): r is string => {
     if (typeof r !== "string") return false;
     const t = r.trim();
-    return t.length >= REASON_MIN && t.length <= REASON_MAX &&
-        !mentionsCardioReduction(t);
+    return t.length >= REASON_MIN && !mentionsCardioReduction(t);
 };
 
-/** One reason of the model's block; the prompt asks for 160 characters, the validator accepts the stored bound. */
-export const TECHNIQUE_NOTE_MAX = 200;
 export const SUPERSET_GROUP_MAX = 20;
 export const PLANNED_WEIGHT_MAX_KG = 1000;
 
@@ -272,7 +268,7 @@ export function checkModelBlock(
                 notes++;
                 const t = x.technique_note.trim();
                 if (
-                    t.length < 1 || t.length > TECHNIQUE_NOTE_MAX ||
+                    t.length < 1 ||
                     ctx.history.has(x.exercise_key)
                 ) failures.push({ code: "technique_note", ...where });
             }
