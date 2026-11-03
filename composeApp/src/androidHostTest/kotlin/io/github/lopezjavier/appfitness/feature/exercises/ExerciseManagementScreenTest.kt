@@ -14,6 +14,7 @@ import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.assertIsOff
 import androidx.compose.ui.test.assertIsOn
+import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.assertTextContains
 import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.getUnclippedBoundsInRoot
@@ -171,6 +172,16 @@ class ExerciseManagementScreenTest {
 
         assertEquals(1, repository.createCalls)
         assertEquals(true, repository.lastCreatedPerHand)
+    }
+
+    @Test
+    fun theCreateSheet_offersAductoresAsAMuscleOption() {
+        showPicker()
+        rule.onNodeWithTag("exercise_picker_search").performTextInput("Aduccion propia")
+        rule.onNodeWithTag("exercise_picker_create_button").performClick()
+
+        rule.onNodeWithTag("exercise_create_muscle_adductors").performScrollTo().assertExists().performClick()
+        rule.onNodeWithTag("exercise_create_muscle_adductors").assertIsSelected()
     }
 
     @Test

@@ -14,6 +14,7 @@ import {
     validateSplits,
 } from "./blockSplits.ts";
 import { CoachInputError } from "./context.ts";
+import { MUSCLE_GROUPS } from "./schemas.ts";
 import { KINDS } from "./router.ts";
 import { blockInputs, MISSING } from "./inputsFixtures.ts";
 import { FREE_TEXT_KEY } from "./planBlock.ts";
@@ -169,6 +170,18 @@ Deno.test("two recommended or none, a wrong session count, repeated ids or names
     empty.sessions[1].focus = [];
     assertEquals(codes([option("a", 4), empty]), ["session"]);
     assertEquals(validateSplits("not json", 4).failures, [{ code: "shape" }]);
+});
+
+Deno.test("adductors is a muscle group the schema knows but a split session never targets it", () => {
+    assert(MUSCLE_GROUPS.includes("adductors"));
+    const adductors = option("b", 4, { recommended: false });
+    adductors.sessions[0].focus = ["adductors"];
+    assertEquals(
+        validateSplits(answerOf([option("a", 4), adductors]), 4).failures.map((
+            f,
+        ) => f.code),
+        ["session"],
+    );
 });
 
 Deno.test("an invalid first answer is retried once with the failure codes in the prompt, usage summed", async () => {

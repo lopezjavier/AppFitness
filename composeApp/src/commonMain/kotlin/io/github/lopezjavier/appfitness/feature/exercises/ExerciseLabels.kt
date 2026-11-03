@@ -25,6 +25,7 @@ import io.github.lopezjavier.appfitness.composeapp.resources.movement_pattern_sh
 import io.github.lopezjavier.appfitness.composeapp.resources.movement_pattern_squat
 import io.github.lopezjavier.appfitness.composeapp.resources.movement_pattern_vertical_pull
 import io.github.lopezjavier.appfitness.composeapp.resources.movement_pattern_vertical_push
+import io.github.lopezjavier.appfitness.composeapp.resources.muscle_adductors
 import io.github.lopezjavier.appfitness.composeapp.resources.muscle_back
 import io.github.lopezjavier.appfitness.composeapp.resources.muscle_biceps
 import io.github.lopezjavier.appfitness.composeapp.resources.muscle_calves
@@ -62,6 +63,7 @@ internal val MuscleGroup.label: StringResource
             MuscleGroup.Glutes -> Res.string.muscle_glutes
             MuscleGroup.Calves -> Res.string.muscle_calves
             MuscleGroup.Core -> Res.string.muscle_core
+            MuscleGroup.Adductors -> Res.string.muscle_adductors
             MuscleGroup.FullBody -> Res.string.muscle_full_body
         }
 

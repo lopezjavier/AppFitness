@@ -416,6 +416,20 @@ class TrainingStatsViewModelTest {
     }
 
     @Test
+    fun recreatedFromTheSameSavedStateKeepsTheOpenAdductorsMuscle() = runTest(dispatcher) {
+        val saved = SavedStateHandle()
+        val first = viewModel(saved)
+        advanceUntilIdle()
+        first.onEvent(TrainingStatsEvent.OpenMuscle(MuscleGroup.Adductors))
+        advanceUntilIdle()
+
+        val second = viewModel(saved)
+        advanceUntilIdle()
+
+        assertEquals(MuscleGroup.Adductors, second.uiState.value.openMuscle)
+    }
+
+    @Test
     fun recreatedFromTheSameSavedStateKeepsTheFrameAndTheOpenMuscle() = runTest(dispatcher) {
         val saved = SavedStateHandle()
         val first = viewModel(saved)

@@ -40,6 +40,8 @@ import {
     type CheckerInput,
     type CheckerRoutine,
     checkRoutines,
+    countsAsStrength,
+    isKneeExtensionKey,
     MAX_SETS_PER_EXERCISE,
 } from "./routineChecker.ts";
 import {
@@ -312,7 +314,7 @@ export function checkModelBlock(
                 e.movement_pattern === "shoulder_abduction"
             ),
             knee_extension_available: ctx.eligible.exercises.some((e) =>
-                e.movement_pattern === "isolation" && e.muscle_group === "quads"
+                isKneeExtensionKey(candidateKey(e))
             ),
         };
         const r = checkRoutines(input);

@@ -73,6 +73,13 @@ class BodyHeatmapTest {
     }
 
     @Test
+    fun adductors_haveNoMapRegion_soQuadsStayTappable() {
+        listOf(BodyView.Front, BodyView.Back).forEach {
+            assertEquals(false, BodyMapPaths.regions(it).containsKey(MuscleGroup.Adductors))
+        }
+    }
+
+    @Test
     fun captions_nameEachSilhouette_andKeepTheRegionsTappable() {
         showWithCaptions()
 

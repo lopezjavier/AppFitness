@@ -8,6 +8,8 @@ import {
     type CheckerSet,
     checkRoutines,
     fractionalSets,
+    isKneeExtensionKey,
+    KNEE_EXTENSION_KEYS,
     routineSeconds,
 } from "./routineChecker.ts";
 import { isMainLift } from "./blockRules.ts";
@@ -247,6 +249,58 @@ Deno.test("H3b: a quads isolation exercise is required under the same conditions
         has(input(torsoLeg([legExtension()])), "h3b_knee_extension"),
         false,
     );
+});
+
+Deno.test("H3b: each of the four knee-extension keys satisfies it", () => {
+    assertEquals([...KNEE_EXTENSION_KEYS].sort(), [
+        "banded-terminal-knee-extension",
+        "leg-extension",
+        "reverse-nordic-curl",
+        "single-leg-extension",
+    ]);
+    for (const key of KNEE_EXTENSION_KEYS) {
+        const i = input(torsoLeg([ex(key, "quads", "isolation", { n: 2 })]));
+        assertEquals(has(i, "h3b_knee_extension"), false, key);
+    }
+});
+
+Deno.test("H3b: hip adduction, clamshell and fire hydrant isolation do not satisfy it", () => {
+    const others: [string, MuscleGroup][] = [
+        ["hip-adduction-machine", "adductors"],
+        ["hip-adduction", "adductors"],
+        ["clamshells", "glutes"],
+        ["fire-hydrant", "glutes"],
+        ["side-lying-hip-abduction", "glutes"],
+    ];
+    for (const [key, group] of others) {
+        assertEquals(isKneeExtensionKey(key), false, key);
+        const i = input(torsoLeg([ex(key, group, "isolation", { n: 3 })]));
+        assertEquals(has(i, "h3b_knee_extension"), true, key);
+    }
+});
+
+Deno.test("fractional sets: a squat adds quads sets and glutes at half weight; a sit-up adds no quads", () => {
+    const squatSets = ex("squat", "quads", "squat", {
+        n: 4,
+        secondary_muscles: ["glutes"],
+    });
+    const sitUp = ex("sit-ups", "core", "core", { n: 3 });
+    const c = fractionalSets([routine(squatSets, sitUp)]);
+    assertEquals(c.get("quads"), 4);
+    assertEquals(c.get("glutes"), 2);
+    assertEquals(c.get("core"), 3);
+    assertEquals(c.has("adductors"), false);
+});
+
+Deno.test("H1 ignores adductors: a plan with only adductor sets is not judged on them", () => {
+    const i = input([
+        routine(ex("hip-adduction", "adductors", "isolation", { n: 3 })),
+    ]);
+    const failing = checkRoutines(i).failures.filter((f) =>
+        (f.data as { muscle_group?: string } | undefined)?.muscle_group ===
+            "adductors"
+    );
+    assertEquals(failing.length, 0);
 });
 
 Deno.test("H3 and H3b are only a note for strength, one day, or no candidate inside the equipment", () => {

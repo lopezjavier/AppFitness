@@ -127,7 +127,7 @@ export function parseInput(
 
     const s = i.split;
     const groups: readonly string[] = MUSCLE_GROUPS.filter((g) =>
-        g !== "full_body"
+        g !== "full_body" && g !== "adductors"
     );
     if (
         !isRecord(s) || !sameKeys(s, ["name", "sessions"]) ||

@@ -51,7 +51,7 @@ export function parseInput(input: unknown): { today: string } {
 export type SplitFailure = { code: string; option?: string };
 
 const GROUPS: readonly string[] = MUSCLE_GROUPS.filter((g) =>
-    g !== "full_body"
+    g !== "full_body" && g !== "adductors"
 );
 const validText = (v: unknown, min: number, max: number): v is string =>
     typeof v === "string" && v.trim().length >= min && v.trim().length <= max;

@@ -144,6 +144,7 @@ export type MuscleGroup =
     | "glutes"
     | "calves"
     | "core"
+    | "adductors"
     | "full_body";
 
 export type MovementPattern =
@@ -337,6 +338,7 @@ export const MUSCLE_GROUPS: readonly MuscleGroup[] = [
     "glutes",
     "calves",
     "core",
+    "adductors",
     "full_body",
 ];
 

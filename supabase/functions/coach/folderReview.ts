@@ -45,6 +45,7 @@ import {
     type CheckerInput,
     type CheckerRoutine,
     checkRoutines,
+    isKneeExtensionKey,
     MAX_SETS_PER_EXERCISE,
     REPS_GENERAL,
     REPS_STRENGTH_MAIN,
@@ -129,7 +130,7 @@ export function checkerInputFor(
             e.movement_pattern === "shoulder_abduction"
         ),
         knee_extension_available: c.eligible.exercises.some((e) =>
-            e.movement_pattern === "isolation" && e.muscle_group === "quads"
+            isKneeExtensionKey(candidateKey(e))
         ),
     };
 }

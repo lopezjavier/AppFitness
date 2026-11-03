@@ -179,6 +179,50 @@ class ExercisePickerScreenTest {
     }
 
     @Test
+    fun adductorsChip_filtersTheCatalogueToAdductorExercises() {
+        val adductorRepository = FakeExerciseRepository(
+            listOf(
+                exerciseRow("bench", "bench", MuscleGroup.Chest, Equipment.Barbell),
+                exerciseRow("adduct", "adduct", MuscleGroup.Adductors, Equipment.Machine),
+            ),
+        )
+        val vm = ExercisePickerViewModel(
+            LoadExerciseCatalog(
+                adductorRepository,
+                FakeExerciseLibrary(
+                    mapOf(
+                        "bench" to exerciseInfo("bench", "Press de banca con barra"),
+                        "adduct" to exerciseInfo("adduct", "Aducción en máquina"),
+                    ),
+                ),
+            ),
+            SearchExercises(),
+            adductorRepository,
+            FakeFavoriteExercisesRepository(),
+            connectivity,
+            false,
+        )
+        rule.setContent {
+            AppTheme {
+                val state by vm.uiState.collectAsState()
+                CompositionLocalProvider(LocalExerciseMediaUris provides FakeExerciseMediaUris) {
+                    ExercisePickerScreen(state, vm::onEvent)
+                }
+            }
+        }
+        rule.waitForIdle()
+
+        rule.onNodeWithTag(
+            "exercise_picker_muscle_chip_adductors",
+        ).performScrollTo().assertTextEquals("Aductores").performClick()
+        rule.waitForIdle()
+
+        rule.onNodeWithTag("exercise_picker_muscle_chip_adductors").assertIsSelected()
+        rule.onNodeWithTag("exercise_picker_row_adduct").assertExists()
+        rule.onNodeWithTag("exercise_picker_row_bench").assertDoesNotExist()
+    }
+
+    @Test
     fun equipmentFilter_showsOnlyDumbbellExercises() {
         show()
         rule.onNodeWithTag("exercise_picker_equipment_chip_dumbbell").performClick()

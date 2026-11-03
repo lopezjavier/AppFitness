@@ -37,4 +37,19 @@ class TrainingStatsRestorationTest {
         rule.onNodeWithTag("stats_range_sixmonths").assertIsSelected()
         rule.onNodeWithTag("stats_muscle_sheet_title").assertTextEquals("Tríceps")
     }
+
+    @Test
+    fun openAdductorsSheet_survivesRecreation() {
+        val detail = MuscleDetail(MuscleGroup.Adductors, 0.0, emptyList())
+        val state = TrainingStatsUiState(
+            openMuscle = MuscleGroup.Adductors,
+            muscleDetail = SectionState.Content(detail),
+        )
+        val restoration = StateRestorationTester(rule)
+        restoration.setContent { AppTheme { TrainingStatsScreen(state, {}, {}, {}) } }
+
+        restoration.emulateSavedInstanceStateRestore()
+
+        rule.onNodeWithTag("stats_muscle_sheet_title").assertTextEquals("Aductores")
+    }
 }

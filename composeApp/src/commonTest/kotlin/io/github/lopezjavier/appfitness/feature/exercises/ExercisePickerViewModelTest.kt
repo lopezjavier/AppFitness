@@ -304,6 +304,17 @@ class ExercisePickerViewModelTest {
     // -- T-050: drafts survive process death --------------------------------------------------------------------
 
     @Test
+    fun adductorsFilter_survivesARecreatedViewModel() = runTest {
+        val handle = SavedStateHandle()
+        val first = viewModel(savedState = handle).also { advanceUntilIdle() }
+        first.onEvent(ExercisePickerEvent.SelectMuscleGroup(MuscleGroup.Adductors))
+
+        val second = viewModel(savedState = handle).also { advanceUntilIdle() }
+
+        assertEquals(MuscleGroup.Adductors, second.content().muscleGroup)
+    }
+
+    @Test
     fun searchAndFilters_surviveARecreatedViewModel() = runTest {
         val handle = SavedStateHandle()
         val first = viewModel(savedState = handle).also { advanceUntilIdle() }

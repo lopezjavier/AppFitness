@@ -31,6 +31,20 @@ export const WEEKLY_SETS_MAX = 20;
 /** "Mantener": at least 4 weekly sets, 6 from 65 (07 H1). */
 export const MAINTAIN_MIN = 4;
 export const MAINTAIN_MIN_65 = 6;
+/**
+ * The exercises that satisfy H3b (07 section 3 "Taxonomy"): knee extension only. Hip abduction and adduction, clamshells
+ * and the like are isolation work on other muscles and do not count. The one shared check for the routine checker, the
+ * block validator and the folder review.
+ */
+export const KNEE_EXTENSION_KEYS: readonly string[] = [
+    "leg-extension",
+    "single-leg-extension",
+    "banded-terminal-knee-extension",
+    "reverse-nordic-curl",
+];
+export const isKneeExtensionKey = (key: string): boolean =>
+    KNEE_EXTENSION_KEYS.includes(key);
+
 /** The groups H1 counts. */
 export const H1_GROUPS: readonly MuscleGroup[] = [
     "chest",
@@ -406,7 +420,7 @@ export const checkRoutines = (input: CheckerInput): CheckerResult => {
         e.pattern === "shoulder_abduction" && hasWork(e)
     );
     const kneeExt = all.some((e) =>
-        e.pattern === "isolation" && e.muscle_group === "quads" && hasWork(e)
+        isKneeExtensionKey(e.exercise_key) && hasWork(e)
     );
     const common = days >= 2 && !strength;
     if (common && (input.side_delta_available ?? true)) {

@@ -35,9 +35,9 @@ MUSCLE_TO_GROUP = {
     "forearm_extensors": "forearms",
     "brachioradialis": "forearms",
     "quadriceps": "quads",
-    "hip_flexors": "quads",
-    "adductors": "quads",
-    "abductors": "quads",
+    "hip_flexors": "core",
+    "adductors": "adductors",
+    "abductors": "glutes",
     "hamstrings": "hamstrings",
     "gluteus_maximus": "glutes",
     "gluteus_medius": "glutes",
@@ -105,9 +105,53 @@ KEY_EQUIPMENT_OVERRIDES = {
     "t-bar-row": "other", "hex-bar-deadlift": "other",
     "behind-the-neck-lat-pulldown": "cable", "v-bar-lat-pulldown": "cable",
 }
+# T-211 (07 section 3 "Taxonomy" > "Lower-body filing"): the bundle files squats and lunges under glutes, and hip
+# abduction, hip flexion and hip adduction under quads. The rule re-files them; migration
+# 20261229100100_catalogue_leg_muscle_groups.sql applies the same lists to the live database.
+KNEE_DOMINANT_KEYS = {
+    "banded-squat", "barbell-bulgarian-split-squat", "barbell-lunge", "barbell-reverse-lunge",
+    "bodyweight-reverse-lunge", "bodyweight-squat", "box-jump", "box-squat", "bulgarian-split-squat",
+    "close-stance-leg-press", "cossack-squat", "db-lunge", "db-somersault-squat", "db-squat", "db-sumo-squat",
+    "deep-squat-hold", "dumbbell-front-squat", "dumbbell-pistol-squat", "dumbbell-split-squat", "front-squat",
+    "goblet-squat", "hack-squat", "heel-elevated-squat", "high-foot-leg-press", "horizontal-leg-press",
+    "jump-squat", "kettlebell-bulgarian-split-squat", "kettlebell-goblet-lunge", "kettlebell-pistol-squat",
+    "kettlebell-reverse-lunge", "kettlebell-rotational-lunge", "kettlebell-squat", "leg-press", "lunge",
+    "one-arm-kettlebell-front-squat", "overhead-squat", "pause-squat", "pistol-squat", "plyo-lunge",
+    "reverse-lunge", "side-lunge", "single-leg-press", "smith-machine-bulgarian-split",
+    "smith-machine-front-squat", "smith-machine-reverse-lunge", "smith-machine-split-squat",
+    "smith-machine-squat", "split-squat", "squat", "squat-hold", "squat-pulse", "stability-ball-wall-squat",
+    "step-ups", "sumo-squat", "trx-lunge", "trx-pistol-squat", "trx-squat", "walking-lunge", "wall-sit",
+    "wide-stance-leg-press", "zercher-squat",
+}
+HIP_ABDUCTION_KEYS = {
+    "hip-abduction", "banded-clamshell", "banded-fire-hydrant", "banded-seated-hip-abduction",
+    "banded-standing-hip-abduction", "clamshells", "clamshells-hold", "fire-hydrant",
+    "side-lying-hip-abduction", "side-lying-hip-abduction-hold",
+}
+HIP_FLEXION_KEYS = {
+    "captains-chair-knee-raise", "captains-chair-leg-raise", "hanging-knee-raise", "hanging-l-sit",
+    "hanging-leg-raise", "hanging-tuck-hold", "lying-leg-raise", "ring-l-sit", "v-sit", "l-sit", "sit-ups",
+    "v-ups", "toes-to-bar", "flutter-kicks", "scissor-kicks", "bench-hollow-hold", "hollow-body-hold",
+    "boat-pose", "six-inch-hold", "plank-knee-tuck", "stability-ball-knee-tuck", "bench-leg-pull-in",
+    "mountain-climbers", "pilates-side-bend", "downward-dog-to-knee-drive", "downward-dog-knee-tuck",
+}
+HIP_ADDUCTION_KEYS = {
+    "hip-adduction", "banded-standing-hip-adduction", "side-lying-hip-adduction",
+    "side-lying-hip-adduction-hold", "banded-adductor-stretch", "bench-adductor-stretch", "butterfly-stretch",
+    "seated-straddle-stretch", "lateral-leg-swing", "happy-baby", "garland-pose",
+}
+# Single keys filed by the joint action (07 section 3 "Keys, not names"), with the secondary they gain.
+KEY_ONLY_GROUPS = {"kettlebell-sumo-high-pull": "glutes", "wide-legged-forward-fold": "hamstrings"}
 KEY_GROUP_OVERRIDES = {
     "ez-bar-reverse-grip-row": "back", "smith-machine-reverse-grip-bent-over-row": "back",
+    **{k: "quads" for k in KNEE_DOMINANT_KEYS},
+    **{k: "glutes" for k in HIP_ABDUCTION_KEYS},
+    **{k: "core" for k in HIP_FLEXION_KEYS},
+    **{k: "adductors" for k in HIP_ADDUCTION_KEYS},
+    **KEY_ONLY_GROUPS,
 }
+# Secondary muscles the catalogue migrations add on top of the bundle (rendered by render_patterns_sql).
+KEY_SECONDARY_OVERRIDES = {**{k: ["glutes"] for k in KNEE_DOMINANT_KEYS}, "kettlebell-sumo-high-pull": ["hamstrings"]}
 
 
 class CatalogError(Exception):
@@ -399,6 +443,13 @@ def render_patterns_sql(pattern_rows):
     lines += ["", "update public.exercises set secondary_muscles = secondary_muscles || array['hamstrings']::public.muscle_group[]",
               "where not is_custom and movement_pattern = 'hinge' and muscle_group <> 'hamstrings'",
               "  and not ('hamstrings' = any (secondary_muscles));"]
+    # T-211: knee-dominant compounds list glutes as secondary (quads primary, see KEY_SECONDARY_OVERRIDES).
+    for secondary in sorted({g for gs in KEY_SECONDARY_OVERRIDES.values() for g in gs}):
+        keys = sorted(k for k, gs in KEY_SECONDARY_OVERRIDES.items() if secondary in gs)
+        lines += ["", f"update public.exercises set secondary_muscles = secondary_muscles || array['{secondary}']::public.muscle_group[]",
+                  "where not is_custom and key in ("]
+        lines.append(",\n".join(f"  '{k}'" for k in keys))
+        lines.append(f") and not ('{secondary}' = any (secondary_muscles));")
     return "\n".join(lines) + "\n"
 
 
