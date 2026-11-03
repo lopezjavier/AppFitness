@@ -144,6 +144,7 @@ export type MuscleGroup =
     | "glutes"
     | "calves"
     | "core"
+    | "adductors"
     | "full_body";
 
 export type MovementPattern =
@@ -175,6 +176,8 @@ export type CatalogExercise = {
     movement_pattern: MovementPattern | null;
     metric_type: string;
     is_custom: boolean;
+    /** False for stretches, mobility, cardio, impact and timed holds (07 section 3 "What H1 counts"); absent = true. */
+    counts_as_strength?: boolean;
     /** Present when read, but a per-hand weight does not matter for a routine. */
     per_hand?: boolean;
 };
@@ -337,6 +340,7 @@ export const MUSCLE_GROUPS: readonly MuscleGroup[] = [
     "glutes",
     "calves",
     "core",
+    "adductors",
     "full_body",
 ];
 

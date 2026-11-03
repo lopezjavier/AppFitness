@@ -39,6 +39,9 @@ enum class MuscleGroup {
     @SerialName("core")
     Core,
 
+    @SerialName("adductors")
+    Adductors,
+
     @SerialName("full_body")
     FullBody,
 }

@@ -1,6 +1,7 @@
 import importlib.util
 import json
 import os
+import re
 import tempfile
 import unittest
 
@@ -50,7 +51,7 @@ class MappingTest(unittest.TestCase):
             "erector_spinae": "back", "anterior_deltoid": "shoulders", "lateral_deltoid": "shoulders",
             "posterior_deltoid": "shoulders", "biceps_brachii": "biceps", "brachialis": "biceps",
             "triceps_brachii": "triceps", "forearm_flexors": "forearms", "brachioradialis": "forearms",
-            "quadriceps": "quads", "hip_flexors": "quads", "adductors": "quads", "abductors": "quads",
+            "quadriceps": "quads", "hip_flexors": "core", "adductors": "adductors", "abductors": "glutes",
             "hamstrings": "hamstrings", "gluteus_maximus": "glutes", "gluteus_medius": "glutes",
             "gastrocnemius": "calves", "soleus": "calves", "tibialis_anterior": "calves",
             "rectus_abdominis": "core", "obliques": "core", "transverse_abdominis": "core",
@@ -91,7 +92,7 @@ class MappingTest(unittest.TestCase):
 
     def test_every_mapped_value_is_a_valid_enum_label(self):
         groups = {"chest", "back", "shoulders", "biceps", "triceps", "forearms", "quads", "hamstrings",
-                  "glutes", "calves", "core", "full_body"}
+                  "glutes", "calves", "core", "full_body", "adductors"}
         equipment = {"barbell", "dumbbell", "machine", "cable", "bodyweight", "kettlebell", "band", "other", "ez_bar",
                      "cardio_machine"}
         self.assertLessEqual(set(gen.MUSCLE_TO_GROUP.values()) | set(gen.BODY_PART_TO_GROUP.values()), groups)
@@ -215,6 +216,36 @@ class MovementPatternTest(unittest.TestCase):
                 self.assertIn("update public.exercises set movement_pattern", f.read())
 
 
+class StrengthFlagTest(unittest.TestCase):
+    def test_holds_cardio_stretches_and_impact_do_not_count(self):
+        for key, metric, pattern, equipment in (
+                ("wall-sit", "duration", "squat", "bodyweight"), ("plank", "duration", "core", "bodyweight"),
+                ("dumbbell-farmers-walk", "weight_duration", "carry", "dumbbell"),
+                ("stationary-bike", "distance_duration", "cardio", "cardio_machine"),
+                ("jump-squat", "reps_only", "squat", "bodyweight"), ("cat-cow", "reps_only", "other", "bodyweight")):
+            self.assertFalse(gen.counts_as_strength(key, metric, pattern, equipment), key)
+
+    def test_loaded_and_bodyweight_dynamic_work_counts(self):
+        for key, metric, pattern, equipment in (
+                ("squat", "weight_reps", "squat", "barbell"), ("push-ups", "bodyweight", "horizontal_push", "bodyweight"),
+                ("glute-bridge", "reps_only", "hinge", "bodyweight"), ("clamshells", "reps_only", "isolation", "band")):
+            self.assertTrue(gen.counts_as_strength(key, metric, pattern, equipment), key)
+
+    def test_rendered_sql_matches_the_live_migration(self):
+        path = os.path.join(os.path.dirname(__file__), "..", "supabase", "migrations",
+                            "20261229100400_exercises_counts_as_strength.sql")
+        with open(path, encoding="utf-8") as f:
+            self.assertIn(gen.render_strength_sql(), f.read())
+
+    def test_cli_writes_the_statement(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            out = os.path.join(tmp, "strength.sql")
+            self.assertEqual(gen.main(["--catalog-sql", CATALOG_SQL, "--metrics-out", os.path.join(tmp, "m.sql"),
+                                       "--strength-out", out]), 0)
+            with open(out, encoding="utf-8") as f:
+                self.assertEqual(f.read(), gen.render_strength_sql())
+
+
 class ImportTest(unittest.TestCase):
     def test_copies_images_and_trims_json(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -284,6 +315,45 @@ class EquipmentMappingTest(unittest.TestCase):
         self.assertEqual(rows["v-bar-lat-pulldown"][1], "cable")
         self.assertEqual(rows["human-flag"][1], "other")
         self.assertEqual(rows["smith-machine-reverse-grip-bent-over-row"][0], "back")
+
+    def test_leg_filing_overrides_map_each_list_to_its_group(self):
+        expected = {"squat": "quads", "walking-lunge": "quads", "leg-press": "quads", "step-ups": "quads",
+                    "clamshells": "glutes", "fire-hydrant": "glutes", "side-lying-hip-abduction": "glutes",
+                    "hip-adduction": "adductors", "banded-adductor-stretch": "adductors",
+                    "sit-ups": "core", "hanging-leg-raise": "core", "mountain-climbers": "core",
+                    "pilates-side-bend": "core", "happy-baby": "adductors",
+                    "garland-pose": "adductors", "seated-straddle-stretch": "adductors",
+                    "lateral-leg-swing": "adductors", "downward-dog-knee-tuck": "core",
+                    "downward-dog-to-knee-drive": "core", "kettlebell-sumo-high-pull": "glutes",
+                    "wide-legged-forward-fold": "hamstrings"}
+        # The bundle files these under glutes, quads (abductors, adductors, hip flexors) or core.
+        rows = {k: g for k, g, _ in self._rows(*((k, None) for k in expected))}
+        self.assertEqual(rows, expected)
+        for keys, group in ((gen.KNEE_DOMINANT_KEYS, "quads"), (gen.HIP_ABDUCTION_KEYS, "glutes"),
+                            (gen.HIP_FLEXION_KEYS, "core"), (gen.HIP_ADDUCTION_KEYS, "adductors")):
+            self.assertEqual(len(gen.HIP_ADDUCTION_KEYS), 11)
+            self.assertEqual(len(gen.HIP_FLEXION_KEYS), 26)
+            for key in keys:
+                self.assertEqual(gen.KEY_GROUP_OVERRIDES[key], group, key)
+
+    def test_leg_key_lists_are_disjoint_and_match_the_live_migration(self):
+        lists = [gen.KNEE_DOMINANT_KEYS, gen.HIP_ABDUCTION_KEYS, gen.HIP_FLEXION_KEYS, gen.HIP_ADDUCTION_KEYS]
+        self.assertEqual(sum(len(x) for x in lists), len(set().union(*lists)))
+        path = os.path.join(os.path.dirname(__file__), "..", "supabase", "migrations",
+                            "20261229100100_catalogue_leg_muscle_groups.sql")
+        with open(path, encoding="utf-8") as f:
+            blocks = re.findall(r"key in \((.*?)\)\s*;", f.read(), re.S)
+        self.assertEqual([set(re.findall(r"'([^']+)'", b)) for b in blocks[:4]], lists)
+
+    def test_knee_dominant_keys_get_glutes_as_secondary_in_the_rendered_sql(self):
+        sql = gen.render_patterns_sql([("alfa", "core")])
+        self.assertIn("set secondary_muscles = secondary_muscles || array['glutes']::public.muscle_group[]", sql)
+        self.assertIn("  'walking-lunge'", sql)
+        self.assertIn("  'squat'", sql)
+        self.assertNotIn("  'sit-ups'", sql)
+        self.assertEqual(set(gen.KEY_SECONDARY_OVERRIDES), gen.KNEE_DOMINANT_KEYS | {"kettlebell-sumo-high-pull"})
+        self.assertEqual(gen.KEY_SECONDARY_OVERRIDES["kettlebell-sumo-high-pull"], ["hamstrings"])
+        self.assertIn("array['hamstrings']::public.muscle_group[]\nwhere not is_custom and key in (\n  'kettlebell-sumo-high-pull'", sql)
 
     def test_no_old_cardio_value_is_produced(self):
         old = {"cardio_bike", "treadmill", "elliptical", "rower", "cardio_other"}

@@ -139,6 +139,8 @@ class TrainingStatsScreenTest {
         assertRow("stats_muscle_row_triceps", "Tríceps: 1,5 series")
         assertRow("stats_muscle_row_chest", "Pecho: 3 series")
         assertRow("stats_muscle_row_quads", "Cuádriceps: 0 series")
+        scrollTo("stats_muscle_row_adductors")
+        assertRow("stats_muscle_row_adductors", "Aductores: 0 series")
         rule.onNodeWithTag("stats_muscle_row_full_body").assertExists()
     }
 

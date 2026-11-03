@@ -6,7 +6,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import io.github.lopezjavier.appfitness.composeapp.resources.Res
-import io.github.lopezjavier.appfitness.composeapp.resources.action_cancel
 import io.github.lopezjavier.appfitness.composeapp.resources.action_delete
 import io.github.lopezjavier.appfitness.composeapp.resources.action_edit
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_add
@@ -16,8 +15,6 @@ import io.github.lopezjavier.appfitness.composeapp.resources.ic_edit
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_label
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_star
 import io.github.lopezjavier.appfitness.composeapp.resources.routine_duplicate
-import io.github.lopezjavier.appfitness.composeapp.resources.routines_folder_delete_message
-import io.github.lopezjavier.appfitness.composeapp.resources.routines_folder_delete_title
 import io.github.lopezjavier.appfitness.composeapp.resources.routines_folder_menu_offline_reason
 import io.github.lopezjavier.appfitness.composeapp.resources.routines_folder_menu_rename
 import io.github.lopezjavier.appfitness.composeapp.resources.routines_folder_menu_review
@@ -28,7 +25,6 @@ import io.github.lopezjavier.appfitness.composeapp.resources.routines_next_clear
 import io.github.lopezjavier.appfitness.composeapp.resources.routines_next_set
 import io.github.lopezjavier.appfitness.composeapp.resources.routines_offline_reason
 import io.github.lopezjavier.appfitness.designsystem.AppActionSheet
-import io.github.lopezjavier.appfitness.designsystem.AppConfirmDialog
 import io.github.lopezjavier.appfitness.designsystem.AppPickerSheet
 import io.github.lopezjavier.appfitness.designsystem.AppSheetAction
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
@@ -36,7 +32,6 @@ import io.github.lopezjavier.appfitness.designsystem.SheetActionRow
 import io.github.lopezjavier.appfitness.designsystem.Spacing
 import io.github.lopezjavier.appfitness.domain.model.RoutineFolder
 import io.github.lopezjavier.appfitness.domain.model.RoutineSummary
-import org.jetbrains.compose.resources.pluralStringResource
 import org.jetbrains.compose.resources.stringResource
 
 /** Every sheet and dialog of the routines list: routine actions, folder picker, folder name and the folder delete. */
@@ -46,21 +41,6 @@ internal fun RoutinesDialogs(state: RoutinesUiState.Content, onEvent: (RoutinesE
     state.folderMenuFor?.let { FolderMenuSheet(it, state.isOnline, onEvent) }
     state.moveFor?.let { MoveSheet(it, state, onEvent) }
     state.folderSheet?.let { FolderSheet(it, state.folders, state.folderSaving, state.isOnline, onEvent) }
-    // The only confirmation here (R-08 #3): a folder that still holds routines; an empty one is deleted at once.
-    state.deleteFolderFor?.let { folder ->
-        val count = state.deleteFolderRoutineCount
-        AppConfirmDialog(
-            title = stringResource(Res.string.routines_folder_delete_title, folder.name),
-            message = pluralStringResource(Res.plurals.routines_folder_delete_message, count, count),
-            confirmLabel = stringResource(Res.string.action_delete),
-            cancelLabel = stringResource(Res.string.action_cancel),
-            onConfirm = { onEvent(RoutinesEvent.ConfirmDeleteFolder) },
-            onDismiss = { onEvent(RoutinesEvent.DismissDeleteFolder) },
-            testTagPrefix = "routines_folder_delete_dialog",
-            confirmTestTag = "routines_folder_delete_confirm",
-            cancelTestTag = "routines_folder_delete_cancel",
-        )
-    }
 }
 
 /**

@@ -40,13 +40,14 @@ import {
     type CheckerInput,
     type CheckerRoutine,
     checkRoutines,
+    countsAsStrength,
+    isKneeExtensionKey,
     MAX_SETS_PER_EXERCISE,
 } from "./routineChecker.ts";
 import {
     isRecord,
     mentionsCardioReduction,
     parseJson,
-    REASON_MAX,
     REASON_MIN,
     sameKeys,
 } from "./validators.ts";
@@ -57,12 +58,9 @@ export { mentionsCardioReduction };
 const validReason = (r: unknown): r is string => {
     if (typeof r !== "string") return false;
     const t = r.trim();
-    return t.length >= REASON_MIN && t.length <= REASON_MAX &&
-        !mentionsCardioReduction(t);
+    return t.length >= REASON_MIN && !mentionsCardioReduction(t);
 };
 
-/** One reason of the model's block; the prompt asks for 160 characters, the validator accepts the stored bound. */
-export const TECHNIQUE_NOTE_MAX = 200;
 export const SUPERSET_GROUP_MAX = 20;
 export const PLANNED_WEIGHT_MAX_KG = 1000;
 
@@ -270,7 +268,7 @@ export function checkModelBlock(
                 notes++;
                 const t = x.technique_note.trim();
                 if (
-                    t.length < 1 || t.length > TECHNIQUE_NOTE_MAX ||
+                    t.length < 1 ||
                     ctx.history.has(x.exercise_key)
                 ) failures.push({ code: "technique_note", ...where });
             }
@@ -284,6 +282,7 @@ export function checkModelBlock(
                 secondary_muscles: row.secondary_muscles ?? [],
                 pattern: row.movement_pattern,
                 equipment: row.equipment,
+                counts_as_strength: countsAsStrength(row),
                 sets: x.sets,
                 superset_group: x.superset_group ?? null,
             });
@@ -312,7 +311,7 @@ export function checkModelBlock(
                 e.movement_pattern === "shoulder_abduction"
             ),
             knee_extension_available: ctx.eligible.exercises.some((e) =>
-                e.movement_pattern === "isolation" && e.muscle_group === "quads"
+                isKneeExtensionKey(candidateKey(e))
             ),
         };
         const r = checkRoutines(input);

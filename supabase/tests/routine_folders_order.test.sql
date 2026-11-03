@@ -3,7 +3,7 @@ begin;
 create extension if not exists pgtap with schema extensions;
 set local search_path = extensions, public;
 
-select plan(34);
+select plan(37);
 
 insert into auth.users (id, email) values
   ('11111111-1111-4111-8111-111111111111', 'ana@example.com'),
@@ -106,7 +106,7 @@ select public.set_next_routine(null);
 select is((select count(*)::int from public.routines where is_next), 0, 'null clears the next routine');
 select is((select count(*)::int from public.routine_exercises), 0, 'A sees no exercises yet');
 
--- Delete folder f1: its two routines go; the no-folder routine survives; a session keeps its data.
+-- Delete folder f1 (ADR-95: only once empty); the no-folder routine survives; a session keeps its data.
 reset role;
 insert into public.routine_exercises (routine_id, exercise_id, position, target_sets, target_reps)
   values ('a1000000-0000-4000-8000-000000000001', (select id from cat), 0, 3, 8);
@@ -117,15 +117,37 @@ set local role authenticated;
 select set_config('request.jwt.claims',
   '{"sub":"11111111-1111-4111-8111-111111111111","role":"authenticated"}', true);
 
-select is(public.delete_routine_folder((select v from ids where k = 'f1')), 2,
-  'delete_routine_folder returns the number of routines deleted');
-select results_eq($$select name from public.routines order by name$$, $$values ('Apple')$$,
-  'only the folder''s routines are deleted');
+-- ADR-95: a folder with non-archived routines cannot be deleted.
+select throws_ok($$select public.delete_routine_folder((select v from ids where k = 'f1'))$$, '23503', null,
+  'a folder with routines cannot be deleted');
+select is((select count(*)::int from public.routines where folder_id = (select v from ids where k = 'f1')), 2,
+  'the refused delete leaves the routines intact');
+select is((select count(*)::int from public.routine_folders where id = (select v from ids where k = 'f1')), 1,
+  'the refused delete leaves the folder intact');
+
+-- Once the routines are gone the folder deletes; an empty folder returns 0.
+delete from public.routines where folder_id = (select v from ids where k = 'f1');
+select is(public.delete_routine_folder((select v from ids where k = 'f1')), 0, 'an emptied folder deletes with count 0');
 select is((select count(*)::int from public.routine_folders where id = (select v from ids where k = 'f1')), 0,
-  'the folder is gone');
-select is((select count(*)::int from public.routine_folders where id = (select v from ids where k = 'f2')), 1,
-  'another folder is untouched');
-select is(public.delete_routine_folder((select v from ids where k = 'f2')), 0, 'an empty folder deletes with count 0');
+  'the emptied folder is gone');
+
+-- Archived routines do not block and go with the folder; a linked block plan keeps its row (folder_id null).
+reset role;
+insert into public.routines (id, user_id, name, folder_id, archived) values
+  ('a1000000-0000-4000-8000-000000000004', '11111111-1111-4111-8111-111111111111', 'Archivada',
+   (select v from ids where k = 'f2'), true);
+insert into public.coach_plans (id, user_id, block_start, intention, nutrition, status, training, folder_id)
+  values ('c1000000-0000-4000-8000-000000000001', '11111111-1111-4111-8111-111111111111', current_date - 60,
+          'muscle', '{}', 'superseded', '{"days_per_week":2}', (select v from ids where k = 'f2'));
+set local role authenticated;
+select set_config('request.jwt.claims',
+  '{"sub":"11111111-1111-4111-8111-111111111111","role":"authenticated"}', true);
+select is(public.delete_routine_folder((select v from ids where k = 'f2')), 1,
+  'a folder with only archived routines deletes and reports them');
+select results_eq($$select name from public.routines order by name$$, $$values ('Apple')$$,
+  'only Apple remains (archived routine deleted with the folder)');
+select is((select folder_id from public.coach_plans where id = 'c1000000-0000-4000-8000-000000000001'), null,
+  'the block plan survives with folder_id null');
 
 -- ---------------------------------------------------------------------------
 -- As postgres: side effects and B untouched

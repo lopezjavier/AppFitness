@@ -225,6 +225,15 @@ Deno.test("the exercise reason is the user's own note when it fits, else a fixed
     );
 });
 
+Deno.test("a long note of the user is kept whole as the exercise reason (T-212: no upper cap)", async () => {
+    const folder = goodFolder(catalog);
+    const note = "Nota larga de técnica. ".repeat(40);
+    folder.routines[0].exercises[0].notes = note;
+    const t = await setup({ folder });
+    const body = await bodyOf(await run(t));
+    assertEquals(body.sessions[0].exercises[0].reason, note.trim());
+});
+
 // --- a folder that needs changes -------------------------------------------------------------------------------
 
 Deno.test("a folder with a hard failure is refused with coach_block_needs_changes and nothing is stored", async () => {

@@ -430,6 +430,25 @@ Deno.test("validateReview refuses unknown ops, extra keys, bad reasons and a com
         validateReview(JSON.stringify({ ...ok, ...o }), v).failures.length > 0;
     assertEquals(fails({}), false);
     assert(fails({ message: "corto" }));
+    // T-212: no upper cap on the model's texts.
+    assertEquals(fails({ message: "m".repeat(2000) }), false);
+    assertEquals(
+        fails({ comments: [{ text: "c".repeat(2000), exercise_key: "a" }] }),
+        false,
+    );
+    assertEquals(
+        fails({
+            changes: [
+                change({
+                    op: "set_rpe",
+                    position: 1,
+                    rpe: 9,
+                    reason: "r".repeat(2000),
+                }),
+            ],
+        }),
+        false,
+    );
     assert(fails({ extra: 1 }));
     assert(fails({ changes: [change({ op: "teleport", position: 1 })] }));
     assert(

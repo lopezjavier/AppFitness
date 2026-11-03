@@ -1,4 +1,4 @@
-import { assertEquals, assertThrows } from "jsr:@std/assert@1.0.19";
+import { assert, assertEquals, assertThrows } from "jsr:@std/assert@1.0.19";
 import {
     computeNutrition,
     intakeRangeViolation,
@@ -78,12 +78,15 @@ Deno.test("extra keys are rejected, whether a figure or a nutrition field", () =
     );
 });
 
-Deno.test("a reason outside 10..300 characters is invalid", () => {
+Deno.test("a reason shorter than 10 characters is invalid and any longer one is kept whole", () => {
     assertEquals(check(text([item({ reason: "corto" })])), null);
     assertEquals(check(text([item({ reason: "x".repeat(9) })])), null);
     assertEquals(check(text([item({ reason: "x".repeat(10) })]))?.length, 1);
     assertEquals(check(text([item({ reason: "x".repeat(300) })]))?.length, 1);
-    assertEquals(check(text([item({ reason: "x".repeat(301) })])), null);
+    for (const n of [301, 500, 5000]) {
+        const long = "x".repeat(n);
+        assertEquals(check(text([item({ reason: long })]))?.[0].reason, long);
+    }
     assertEquals(check(text([item({ reason: 12 })])), null);
 });
 
@@ -459,4 +462,18 @@ Deno.test("cardio: 150 minutes in every phase, anything else is rejected", () =>
         () => assertActivityInvariants({ ...a150, cardio_min_week: 100 }, null),
         NutritionInvariantError,
     );
+});
+
+Deno.test("no prompt promises a text length cap the validators no longer enforce (T-212)", async () => {
+    for (
+        const f of [
+            "blockSplits.ts",
+            "folderReview.ts",
+            "planNutrition.ts",
+            "planBlock.ts",
+        ]
+    ) {
+        const src = await Deno.readTextFile(new URL(f, import.meta.url));
+        assert(!/\b(300|160) caracteres|10 a (300|160)/.test(src), f);
+    }
 });

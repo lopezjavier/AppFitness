@@ -19,7 +19,7 @@ insert into public.exercises (id, name, muscle_group, equipment, is_custom, crea
 -- Schema
 -- ---------------------------------------------------------------------------
 select enum_has_labels('public', 'muscle_group', array['chest', 'back', 'shoulders', 'biceps', 'triceps',
-  'forearms', 'quads', 'hamstrings', 'glutes', 'calves', 'core', 'full_body'], 'muscle_group enum labels');
+  'forearms', 'quads', 'hamstrings', 'glutes', 'calves', 'core', 'full_body', 'adductors'], 'muscle_group enum labels');
 select enum_has_labels('public', 'equipment', array['barbell', 'dumbbell', 'machine', 'cable', 'bodyweight',
   'kettlebell', 'band', 'other', 'band_long', 'cardio_bike', 'treadmill', 'elliptical', 'rower', 'cardio_other', 'ez_bar', 'cardio_machine'],
   'equipment enum labels');
@@ -28,7 +28,7 @@ select enum_has_labels('public', 'exercise_metric_type', array['weight_reps', 'r
   'floors_duration'], 'exercise_metric_type enum labels');
 select columns_are('public', 'exercises', array[
   'id', 'name', 'key', 'muscle_group', 'secondary_muscles', 'equipment', 'metric_type', 'is_custom',
-  'created_by', 'created_at', 'per_hand', 'movement_pattern'
+  'created_by', 'created_at', 'per_hand', 'movement_pattern', 'counts_as_strength'
 ], 'exercises has exactly the planned columns');
 select fk_ok('public', 'exercises', 'created_by', 'auth', 'users', 'id', 'created_by references auth.users.id');
 select has_index('public', 'exercises', 'exercises_created_by_idx', 'index on created_by exists');

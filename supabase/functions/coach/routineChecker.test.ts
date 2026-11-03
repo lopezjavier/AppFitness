@@ -7,7 +7,10 @@ import {
     type CheckerRoutine,
     type CheckerSet,
     checkRoutines,
+    countsAsStrength,
     fractionalSets,
+    isKneeExtensionKey,
+    KNEE_EXTENSION_KEYS,
     routineSeconds,
 } from "./routineChecker.ts";
 import { isMainLift } from "./blockRules.ts";
@@ -45,6 +48,7 @@ const ex = (
         secondary_muscles: [],
         pattern,
         equipment: "machine",
+        counts_as_strength: true,
         ...o,
         sets: o.sets ??
             Array.from({ length: o.n ?? 3 }, () => set({ ...base, ...o.set })),
@@ -116,6 +120,77 @@ Deno.test("fractional sets: a secondary equal to the primary or repeated counts 
     const c = fractionalSets([r]);
     assertEquals(c.get("back"), 2);
     assertEquals(c.get("biceps"), 1 + 2);
+});
+
+Deno.test("fractional sets: a non-strength exercise adds nothing to primary or secondaries, the same exercise as strength adds 3 and 1.5", () => {
+    const hold = (counts: boolean) =>
+        ex("deep-squat-hold", "quads", "squat", {
+            n: 3,
+            secondary_muscles: ["glutes"],
+            counts_as_strength: counts,
+        });
+    const off = fractionalSets([routine(hold(false))]);
+    assertEquals(off.get("quads"), undefined);
+    assertEquals(off.get("glutes"), undefined);
+    const on = fractionalSets([routine(hold(true))]);
+    assertEquals(on.get("quads"), 3);
+    assertEquals(on.get("glutes"), 1.5);
+});
+
+Deno.test("fractional sets: squat 3 sets plus a squat hold 3 sets gives quads 3, not 6", () => {
+    const c = fractionalSets([routine(
+        ex("squat", "quads", "squat", { n: 3 }),
+        ex("deep-squat-hold", "quads", "squat", {
+            n: 3,
+            counts_as_strength: false,
+        }),
+    )]);
+    assertEquals(c.get("quads"), 3);
+});
+
+Deno.test("H1: padding a group with holds does not reach the minimum, but the holds stay legal in the routine", () => {
+    const padded = input([
+        routine(
+            ex("press-a", "chest", "isolation", { n: 4 }),
+            ex("fly-hold", "chest", "isolation", {
+                n: 8,
+                counts_as_strength: false,
+            }),
+        ),
+        routine(ex("x", "core", "core")),
+    ]);
+    assertEquals(chestFailure(padded), "h1_volume_low"); // 4 counted, not 12
+});
+
+Deno.test("countsAsStrength: the catalogue flag, and custom rows by metric type", () => {
+    const row = (o: Record<string, unknown>) => ({
+        is_custom: false,
+        metric_type: "weight_reps",
+        ...o,
+    });
+    assertEquals(countsAsStrength(row({})), true);
+    assertEquals(countsAsStrength(row({ counts_as_strength: false })), false);
+    assertEquals(countsAsStrength(row({ metric_type: "duration" })), true); // catalogue: the flag decides
+    assertEquals(countsAsStrength(row({ is_custom: true })), true);
+    for (
+        const m of [
+            "duration",
+            "weight_duration",
+            "distance_duration",
+            "floors_duration",
+            "steps_duration",
+        ]
+    ) {
+        assertEquals(
+            countsAsStrength(row({ is_custom: true, metric_type: m })),
+            false,
+            m,
+        );
+    }
+    assertEquals(
+        countsAsStrength(row({ is_custom: true, metric_type: "reps_only" })),
+        true,
+    );
 });
 
 // --- H1 weekly sets -----------------------------------------------------------------------------------------------
@@ -247,6 +322,58 @@ Deno.test("H3b: a quads isolation exercise is required under the same conditions
         has(input(torsoLeg([legExtension()])), "h3b_knee_extension"),
         false,
     );
+});
+
+Deno.test("H3b: each of the four knee-extension keys satisfies it", () => {
+    assertEquals([...KNEE_EXTENSION_KEYS].sort(), [
+        "banded-terminal-knee-extension",
+        "leg-extension",
+        "reverse-nordic-curl",
+        "single-leg-extension",
+    ]);
+    for (const key of KNEE_EXTENSION_KEYS) {
+        const i = input(torsoLeg([ex(key, "quads", "isolation", { n: 2 })]));
+        assertEquals(has(i, "h3b_knee_extension"), false, key);
+    }
+});
+
+Deno.test("H3b: hip adduction, clamshell and fire hydrant isolation do not satisfy it", () => {
+    const others: [string, MuscleGroup][] = [
+        ["hip-adduction-machine", "adductors"],
+        ["hip-adduction", "adductors"],
+        ["clamshells", "glutes"],
+        ["fire-hydrant", "glutes"],
+        ["side-lying-hip-abduction", "glutes"],
+    ];
+    for (const [key, group] of others) {
+        assertEquals(isKneeExtensionKey(key), false, key);
+        const i = input(torsoLeg([ex(key, group, "isolation", { n: 3 })]));
+        assertEquals(has(i, "h3b_knee_extension"), true, key);
+    }
+});
+
+Deno.test("fractional sets: a squat adds quads sets and glutes at half weight; a sit-up adds no quads", () => {
+    const squatSets = ex("squat", "quads", "squat", {
+        n: 4,
+        secondary_muscles: ["glutes"],
+    });
+    const sitUp = ex("sit-ups", "core", "core", { n: 3 });
+    const c = fractionalSets([routine(squatSets, sitUp)]);
+    assertEquals(c.get("quads"), 4);
+    assertEquals(c.get("glutes"), 2);
+    assertEquals(c.get("core"), 3);
+    assertEquals(c.has("adductors"), false);
+});
+
+Deno.test("H1 ignores adductors: a plan with only adductor sets is not judged on them", () => {
+    const i = input([
+        routine(ex("hip-adduction", "adductors", "isolation", { n: 3 })),
+    ]);
+    const failing = checkRoutines(i).failures.filter((f) =>
+        (f.data as { muscle_group?: string } | undefined)?.muscle_group ===
+            "adductors"
+    );
+    assertEquals(failing.length, 0);
 });
 
 Deno.test("H3 and H3b are only a note for strength, one day, or no candidate inside the equipment", () => {

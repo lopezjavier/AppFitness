@@ -1,4 +1,5 @@
 // Shared builders for the block tests (no tests here, so importing it never re-runs a suite).
+import { KNEE_EXTENSION_KEYS } from "./routineChecker.ts";
 import type {
     BlockPrefs,
     CatalogExercise,
@@ -111,6 +112,8 @@ export const fullCatalog = (): CatalogExercise[] => {
                     ? "shoulder_abduction"
                     : "isolation",
                 secondary_muscles: [],
+                // The quads isolations are real knee extensions: H3b counts them by key (07 section 3).
+                ...(g === "quads" ? { key: KNEE_EXTENSION_KEYS[i] } : {}),
             }));
         }
     }

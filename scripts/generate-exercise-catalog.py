@@ -35,9 +35,9 @@ MUSCLE_TO_GROUP = {
     "forearm_extensors": "forearms",
     "brachioradialis": "forearms",
     "quadriceps": "quads",
-    "hip_flexors": "quads",
-    "adductors": "quads",
-    "abductors": "quads",
+    "hip_flexors": "core",
+    "adductors": "adductors",
+    "abductors": "glutes",
     "hamstrings": "hamstrings",
     "gluteus_maximus": "glutes",
     "gluteus_medius": "glutes",
@@ -105,9 +105,53 @@ KEY_EQUIPMENT_OVERRIDES = {
     "t-bar-row": "other", "hex-bar-deadlift": "other",
     "behind-the-neck-lat-pulldown": "cable", "v-bar-lat-pulldown": "cable",
 }
+# T-211 (07 section 3 "Taxonomy" > "Lower-body filing"): the bundle files squats and lunges under glutes, and hip
+# abduction, hip flexion and hip adduction under quads. The rule re-files them; migration
+# 20261229100100_catalogue_leg_muscle_groups.sql applies the same lists to the live database.
+KNEE_DOMINANT_KEYS = {
+    "banded-squat", "barbell-bulgarian-split-squat", "barbell-lunge", "barbell-reverse-lunge",
+    "bodyweight-reverse-lunge", "bodyweight-squat", "box-jump", "box-squat", "bulgarian-split-squat",
+    "close-stance-leg-press", "cossack-squat", "db-lunge", "db-somersault-squat", "db-squat", "db-sumo-squat",
+    "deep-squat-hold", "dumbbell-front-squat", "dumbbell-pistol-squat", "dumbbell-split-squat", "front-squat",
+    "goblet-squat", "hack-squat", "heel-elevated-squat", "high-foot-leg-press", "horizontal-leg-press",
+    "jump-squat", "kettlebell-bulgarian-split-squat", "kettlebell-goblet-lunge", "kettlebell-pistol-squat",
+    "kettlebell-reverse-lunge", "kettlebell-rotational-lunge", "kettlebell-squat", "leg-press", "lunge",
+    "one-arm-kettlebell-front-squat", "overhead-squat", "pause-squat", "pistol-squat", "plyo-lunge",
+    "reverse-lunge", "side-lunge", "single-leg-press", "smith-machine-bulgarian-split",
+    "smith-machine-front-squat", "smith-machine-reverse-lunge", "smith-machine-split-squat",
+    "smith-machine-squat", "split-squat", "squat", "squat-hold", "squat-pulse", "stability-ball-wall-squat",
+    "step-ups", "sumo-squat", "trx-lunge", "trx-pistol-squat", "trx-squat", "walking-lunge", "wall-sit",
+    "wide-stance-leg-press", "zercher-squat",
+}
+HIP_ABDUCTION_KEYS = {
+    "hip-abduction", "banded-clamshell", "banded-fire-hydrant", "banded-seated-hip-abduction",
+    "banded-standing-hip-abduction", "clamshells", "clamshells-hold", "fire-hydrant",
+    "side-lying-hip-abduction", "side-lying-hip-abduction-hold",
+}
+HIP_FLEXION_KEYS = {
+    "captains-chair-knee-raise", "captains-chair-leg-raise", "hanging-knee-raise", "hanging-l-sit",
+    "hanging-leg-raise", "hanging-tuck-hold", "lying-leg-raise", "ring-l-sit", "v-sit", "l-sit", "sit-ups",
+    "v-ups", "toes-to-bar", "flutter-kicks", "scissor-kicks", "bench-hollow-hold", "hollow-body-hold",
+    "boat-pose", "six-inch-hold", "plank-knee-tuck", "stability-ball-knee-tuck", "bench-leg-pull-in",
+    "mountain-climbers", "pilates-side-bend", "downward-dog-to-knee-drive", "downward-dog-knee-tuck",
+}
+HIP_ADDUCTION_KEYS = {
+    "hip-adduction", "banded-standing-hip-adduction", "side-lying-hip-adduction",
+    "side-lying-hip-adduction-hold", "banded-adductor-stretch", "bench-adductor-stretch", "butterfly-stretch",
+    "seated-straddle-stretch", "lateral-leg-swing", "happy-baby", "garland-pose",
+}
+# Single keys filed by the joint action (07 section 3 "Keys, not names"), with the secondary they gain.
+KEY_ONLY_GROUPS = {"kettlebell-sumo-high-pull": "glutes", "wide-legged-forward-fold": "hamstrings"}
 KEY_GROUP_OVERRIDES = {
     "ez-bar-reverse-grip-row": "back", "smith-machine-reverse-grip-bent-over-row": "back",
+    **{k: "quads" for k in KNEE_DOMINANT_KEYS},
+    **{k: "glutes" for k in HIP_ABDUCTION_KEYS},
+    **{k: "core" for k in HIP_FLEXION_KEYS},
+    **{k: "adductors" for k in HIP_ADDUCTION_KEYS},
+    **KEY_ONLY_GROUPS,
 }
+# Secondary muscles the catalogue migrations add on top of the bundle (rendered by render_patterns_sql).
+KEY_SECONDARY_OVERRIDES = {**{k: ["glutes"] for k in KNEE_DOMINANT_KEYS}, "kettlebell-sumo-high-pull": ["hamstrings"]}
 
 
 class CatalogError(Exception):
@@ -399,7 +443,48 @@ def render_patterns_sql(pattern_rows):
     lines += ["", "update public.exercises set secondary_muscles = secondary_muscles || array['hamstrings']::public.muscle_group[]",
               "where not is_custom and movement_pattern = 'hinge' and muscle_group <> 'hamstrings'",
               "  and not ('hamstrings' = any (secondary_muscles));"]
+    # T-211: knee-dominant compounds list glutes as secondary (quads primary, see KEY_SECONDARY_OVERRIDES).
+    for secondary in sorted({g for gs in KEY_SECONDARY_OVERRIDES.values() for g in gs}):
+        keys = sorted(k for k, gs in KEY_SECONDARY_OVERRIDES.items() if secondary in gs)
+        lines += ["", f"update public.exercises set secondary_muscles = secondary_muscles || array['{secondary}']::public.muscle_group[]",
+                  "where not is_custom and key in ("]
+        lines.append(",\n".join(f"  '{k}'" for k in keys))
+        lines.append(f") and not ('{secondary}' = any (secondary_muscles));")
     return "\n".join(lines) + "\n"
+
+
+# ---------------------------------------------------------------------------
+# Strength flag (T-211, 07 section 3 "What H1 counts"): exercises.counts_as_strength. False for timed or distance
+# metrics (holds, planks, stretches, carries, cardio), cardio-pattern or cardio-machine keys, and the reps-only
+# mobility, flow and impact keys below. Custom rows keep the default (the coach decides them by metric type).
+# ---------------------------------------------------------------------------
+NON_STRENGTH_METRICS = ("duration", "weight_duration", "distance_duration", "floors_duration", "steps_duration")
+NON_STRENGTH_KEYS = {
+    "battle-rope-double-slam", "bear-crawl", "box-jump", "burpees", "cat-cow", "downward-dog-knee-tuck",
+    "downward-dog-pedal", "downward-dog-to-knee-drive", "downward-dog-to-low-lunge", "downward-dog-to-plank",
+    "downward-dog-to-upward-dog", "half-kneeling-hip-flexor-rock", "heel-flicks", "heel-to-toe-walk", "high-knees",
+    "inchworm", "jump-squat", "lateral-leg-swing", "leg-swing-front-to-back", "plyo-lunge", "standing-side-bend",
+    "standing-side-bend-flow", "thoracic-bridge", "thread-the-needle-flow", "upward-dog",
+}
+
+
+def counts_as_strength(key, metric_type, movement_pattern, equipment):
+    """Whether a catalogue key's sets add to the coach's H1 weekly count."""
+    if metric_type in NON_STRENGTH_METRICS or movement_pattern == "cardio" or equipment in CARDIO_EQUIPMENT:
+        return False
+    return key not in NON_STRENGTH_KEYS
+
+
+def render_strength_sql():
+    """The update statement of the strength flag (same rule as counts_as_strength, evaluated in SQL)."""
+    metrics = ", ".join(f"'{m}'" for m in NON_STRENGTH_METRICS)
+    keys = ",\n".join(f"  '{k}'" for k in sorted(NON_STRENGTH_KEYS))
+    return (
+        "update public.exercises\nset counts_as_strength = false\nwhere not is_custom\n"
+        f"  and (metric_type in ({metrics})\n"
+        "       or movement_pattern = 'cardio'\n       or equipment = 'cardio_machine'\n"
+        f"       or key in (\n{keys}\n));\n"
+    )
 
 
 ROW_RE = re.compile(r"^\s*\('([^']+)', '([^']+)', '([^']+)', '[^']+', false, null\)")
@@ -422,6 +507,7 @@ def main(argv=None):
                                           "instead of the bundle (metrics mode only).")
     ap.add_argument("--patterns-csv", help="Reviewed key -> movement_pattern CSV (T-150).")
     ap.add_argument("--patterns-out", help="Movement-pattern update statements to write (needs --patterns-csv).")
+    ap.add_argument("--strength-out", help="Strength-flag update statement to write (T-211, counts_as_strength).")
     ap.add_argument("--metrics-table", help="Also write the key -> metric table (markdown) here.")
     ap.add_argument("--self-check", action="store_true", help="Assert the documented metric examples and exit.")
     args = ap.parse_args(argv)
@@ -458,6 +544,10 @@ def main(argv=None):
             with open(args.patterns_out, "w", encoding="utf-8", newline="\n") as f:
                 f.write(render_patterns_sql(pattern_rows))
             print(f"Wrote {len(pattern_rows)} movement patterns to {args.patterns_out}")
+        if args.strength_out:
+            with open(args.strength_out, "w", encoding="utf-8", newline="\n") as f:
+                f.write(render_strength_sql())
+            print(f"Wrote the strength flag statement to {args.strength_out}")
     except CatalogError as e:
         print(f"error: {e}", file=sys.stderr)
         return 1

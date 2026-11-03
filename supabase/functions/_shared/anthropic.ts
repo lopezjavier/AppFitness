@@ -31,8 +31,8 @@ export const NO_USAGE: AnthropicUsage = {
 
 export type AnthropicEvent =
     | { type: "delta"; text: string }
-    /** Final usage of the call, emitted once before `done`. */
-    | { type: "usage"; usage: AnthropicUsage }
+    /** Final usage of the call, emitted once before `done`; `stopReason` is the provider's `stop_reason`. */
+    | { type: "usage"; usage: AnthropicUsage; stopReason?: string }
     | { type: "done" };
 
 export interface AnthropicClient {
@@ -62,7 +62,11 @@ export class ProviderCreditError extends Error {
 
 /** The output failed validation twice. Carries the usage of every attempt so it is still charged. */
 export class InvalidOutputError extends Error {
-    constructor(readonly usage: AnthropicUsage) {
+    constructor(
+        readonly usage: AnthropicUsage,
+        /** `stop_reason` of the last attempt, for diagnostics only. */
+        readonly stopReason?: string,
+    ) {
         super("anthropic invalid output");
         this.name = "InvalidOutputError";
     }
@@ -127,6 +131,7 @@ export async function* toAnthropicEvents(
     messages: AsyncIterable<SseMessage>,
 ): AsyncGenerator<AnthropicEvent> {
     let usage = NO_USAGE;
+    let stopReason: string | undefined;
     for await (const { data } of messages) {
         // deno-lint-ignore no-explicit-any
         let payload: Record<string, any>;
@@ -161,9 +166,12 @@ export async function* toAnthropicEvents(
                     outputTokens: num(payload.usage?.output_tokens) ||
                         usage.outputTokens,
                 };
+                if (typeof payload.delta?.stop_reason === "string") {
+                    stopReason = payload.delta.stop_reason;
+                }
                 break;
             case "message_stop":
-                yield { type: "usage", usage };
+                yield { type: "usage", usage, stopReason };
                 yield { type: "done" };
                 return;
             case "error":
@@ -270,7 +278,12 @@ function buildBody(request: AnthropicRequest): Record<string, unknown> {
 
 // --- complete() -------------------------------------------------------------------------------------
 
-export type Completion = { text: string; usage: AnthropicUsage };
+export type Completion = {
+    text: string;
+    usage: AnthropicUsage;
+    /** The provider's `stop_reason` (e.g. `end_turn`, `max_tokens`), when reported. */
+    stopReason?: string;
+};
 
 /** Runs one call to the end and returns the whole text and the usage reported by the API. */
 export async function complete(
@@ -280,11 +293,15 @@ export async function complete(
 ): Promise<Completion> {
     let text = "";
     let usage = NO_USAGE;
+    let stopReason: string | undefined;
     for await (const event of client.stream(request, signal)) {
         if (event.type === "delta") text += event.text;
-        else if (event.type === "usage") usage = event.usage;
+        else if (event.type === "usage") {
+            usage = event.usage;
+            stopReason = event.stopReason;
+        }
     }
-    return { text, usage };
+    return { text, usage, stopReason };
 }
 
 export type Validated<T> = { value: T; text: string; usage: AnthropicUsage };
@@ -299,6 +316,18 @@ export type RetryOptions = {
     /** The retry starts only if the first attempt took less than this many milliseconds. */
     maxRetryStartMs?: number;
     now?: () => number;
+    /** Enumerated codes of why the last answer was rejected (no model text), for the debug log. */
+    failureCodes?: () => string[];
+    /** Called after each attempt with diagnostics only: never the prompt or the model text. */
+    onAttempt?: (info: AttemptInfo) => void;
+};
+
+export type AttemptInfo = {
+    attempt: number;
+    stopReason?: string;
+    outputTokens: number;
+    valid: boolean;
+    codes: string[];
 };
 
 export async function completeValidated<T>(
@@ -312,10 +341,25 @@ export async function completeValidated<T>(
     const now = retry.now ?? Date.now;
     const started = now();
     let current = request;
+    let lastStop: string | undefined;
     for (let attempt = 0; attempt < 2; attempt++) {
-        const { text, usage } = await complete(client, current, signal);
+        const { text, usage, stopReason } = await complete(
+            client,
+            current,
+            signal,
+        );
+        lastStop = stopReason;
         total = addUsage(total, usage);
         const value = validate(text);
+        if (retry.onAttempt) {
+            retry.onAttempt({
+                attempt: attempt + 1,
+                stopReason,
+                outputTokens: usage.outputTokens,
+                valid: value !== null,
+                codes: value !== null ? [] : rejectionCodes(text, retry),
+            });
+        }
         if (value !== null) return { value, text, usage: total };
         if (
             retry.maxRetryStartMs !== undefined &&
@@ -329,5 +373,14 @@ export async function completeValidated<T>(
             };
         }
     }
-    throw new InvalidOutputError(total);
+    throw new InvalidOutputError(total, lastStop);
+}
+
+function rejectionCodes(text: string, retry: RetryOptions): string[] {
+    try {
+        JSON.parse(text);
+    } catch {
+        return ["json_parse"];
+    }
+    return retry.failureCodes?.() ?? [];
 }

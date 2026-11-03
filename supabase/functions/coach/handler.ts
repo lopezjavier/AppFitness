@@ -37,10 +37,13 @@ import {
 } from "./context.ts";
 import type { FolderForReview } from "./folderChanges.ts";
 import { type CoachModel, costEur, parseCoachModel } from "./prices.ts";
+import { envDebug, withDebug } from "./debugLog.ts";
 import { KINDS, type KindSpec } from "./router.ts";
 import type { CatalogExercise, PhaseHistory } from "./schemas.ts";
 
 export type CoachDeps = {
+    /** COACH_DEBUG diagnostics (codes and stop_reason only); defaults to the env var, read per request. */
+    debug?: boolean | (() => boolean);
     /** User id of an access token, or null when invalid. */
     authenticate: (token: string) => Promise<string | null>;
     /** Euros the caller spent in `month` (read with the caller's own token, through RLS). */
@@ -328,6 +331,9 @@ export function createCoachHandler(
             const request = prepared?.request ??
                 spec.buildRequest?.(body.input, model);
             const validate = prepared?.validate ?? spec.validate;
+            const debug = typeof deps.debug === "function"
+                ? deps.debug()
+                : deps.debug ?? envDebug();
             const deadline = new Deadline(deps.timeoutMs ?? COACH_TIMEOUT_MS);
             const record = async (usage: AnthropicUsage) => {
                 const cost = costEur(model, usage);
@@ -364,7 +370,11 @@ export function createCoachHandler(
                                     p.request,
                                     p.validate,
                                     signal,
-                                    p.retry,
+                                    withDebug(
+                                        String(body.kind),
+                                        p.retry,
+                                        debug,
+                                    ),
                                 )
                             ),
                         ),
@@ -408,7 +418,16 @@ export function createCoachHandler(
                         frame("done", { usage }),
                     ]);
                 } catch (e) {
-                    if (e instanceof InvalidOutputError) await record(e.usage);
+                    if (e instanceof InvalidOutputError) {
+                        if (debug) {
+                            console.warn("coach: debug", {
+                                kind: String(body.kind),
+                                result: "coach_invalid_output",
+                                stop_reason: e.stopReason ?? null,
+                            });
+                        }
+                        await record(e.usage);
+                    }
                     return failure(e);
                 } finally {
                     deadline.clear();
@@ -424,7 +443,11 @@ export function createCoachHandler(
                             request!,
                             validate,
                             deadline.controller.signal,
-                            prepared?.retry,
+                            withDebug(
+                                String(body.kind),
+                                prepared?.retry,
+                                debug,
+                            ),
                         ),
                     );
                     const usage = await record(result.usage);
@@ -449,7 +472,16 @@ export function createCoachHandler(
                         frame("done", { usage }),
                     ]);
                 } catch (e) {
-                    if (e instanceof InvalidOutputError) await record(e.usage);
+                    if (e instanceof InvalidOutputError) {
+                        if (debug) {
+                            console.warn("coach: debug", {
+                                kind: String(body.kind),
+                                result: "coach_invalid_output",
+                                stop_reason: e.stopReason ?? null,
+                            });
+                        }
+                        await record(e.usage);
+                    }
                     return failure(e);
                 } finally {
                     deadline.clear();

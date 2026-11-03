@@ -70,6 +70,7 @@ Deno.test("stream parses deltas, usage and done from a chunked SSE body", async 
                 cacheReadTokens: 3,
                 cacheWriteTokens: 4,
             },
+            stopReason: "end_turn",
         },
         { type: "done" },
     ]);
@@ -82,6 +83,16 @@ Deno.test("complete concatenates the text and returns the reported usage", async
     );
     assertEquals(result.text, "ok");
     assertEquals(result.usage.outputTokens, 7);
+    assertEquals(result.stopReason, "end_turn");
+});
+
+Deno.test("complete exposes stop_reason max_tokens from message_delta", async () => {
+    const truncated = STREAM.replace("end_turn", "max_tokens");
+    const result = await complete(
+        clientFor(() => new Response(sse(truncated))),
+        REQUEST,
+    );
+    assertEquals(result.stopReason, "max_tokens");
 });
 
 Deno.test("the request carries the key, version, stream flag and schema", async () => {
@@ -228,6 +239,48 @@ Deno.test("completeValidated gives InvalidOutputError after the retry, with both
     );
     assertEquals(calls(), 2);
     assertEquals(err.usage.outputTokens, 10);
+});
+
+Deno.test("completeValidated reports each attempt with codes and no text", async () => {
+    const { client } = textClient(["nope CANARY", '{"a":2}']);
+    const seen: unknown[] = [];
+    await completeValidated(client, REQUEST, parseJson, undefined, {
+        onAttempt: (i) => seen.push(i),
+    });
+    assertEquals(seen, [
+        {
+            attempt: 1,
+            stopReason: undefined,
+            outputTokens: 5,
+            valid: false,
+            codes: ["json_parse"],
+        },
+        {
+            attempt: 2,
+            stopReason: undefined,
+            outputTokens: 5,
+            valid: true,
+            codes: [],
+        },
+    ]);
+    assert(!JSON.stringify(seen).includes("CANARY"));
+});
+
+Deno.test("completeValidated uses the validator failure codes for well-formed rejected JSON", async () => {
+    const { client } = textClient(['{"a":1}', '{"a":1}']);
+    const seen: { codes: string[] }[] = [];
+    const err = await assertRejects(
+        () =>
+            completeValidated(client, REQUEST, () => null, undefined, {
+                failureCodes: () => ["reason@routine=2"],
+                onAttempt: (i) => seen.push(i),
+            }),
+        InvalidOutputError,
+    );
+    assertEquals(seen.map((s) => s.codes), [["reason@routine=2"], [
+        "reason@routine=2",
+    ]]);
+    assertEquals(err.stopReason, undefined);
 });
 
 Deno.test("completeValidated appends the feedback to the prompt of the retry only", async () => {

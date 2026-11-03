@@ -9,7 +9,8 @@ enum class BodyView { Front, Back }
 /**
  * In-house vector silhouettes of [BodyHeatmap] (no external asset): polygons in a 100 x 200 unit space. Muscle
  * regions of a symmetric group come as several polygons (the first one is on the viewer's left). [MuscleGroup.FullBody]
- * has no region.
+ * and [MuscleGroup.Adductors] have no region: the inner thigh is too narrow for a 48 dp hit box that does not cover
+ * Quads, so Adductors appear only in the stats rows.
  */
 object BodyMapPaths {
     const val WIDTH = 100f

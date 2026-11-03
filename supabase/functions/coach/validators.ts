@@ -30,7 +30,6 @@ import type { ModelOutcome, Nutrition, Phase } from "./schemas.ts";
 
 export const MAX_OUTCOMES = 4;
 export const REASON_MIN = 10;
-export const REASON_MAX = 300;
 export const DEADLINE_MIN_DAYS = 7;
 export const DEADLINE_MAX_DAYS = 28;
 
@@ -100,7 +99,7 @@ export function validateOutcomesText(
         ) return null;
         if (!ids.has(candidate_id) || seen.has(candidate_id)) return null;
         const trimmed = reason.trim();
-        if (trimmed.length < REASON_MIN || trimmed.length > REASON_MAX) {
+        if (trimmed.length < REASON_MIN) {
             return null;
         }
         if (mentionsCardioReduction(trimmed)) return null;

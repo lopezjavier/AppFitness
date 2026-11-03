@@ -4,7 +4,7 @@ Live index of every closed decision, with the numbers frozen in Phase 1. The ful
 
 ## New ADRs go here
 
-Phase 2 ADRs continue the numbering (next: **ADR-93**) and are written **in full** in this file (context, decision, consequences, approval), below the index. Add their one-line row to the table too. Format: context -> decision -> consequences. A new decision also updates the affected live docs.
+Phase 2 ADRs continue the numbering (next: **ADR-96**) and are written **in full** in this file (context, decision, consequences, approval), below the index. Add their one-line row to the table too. Format: context -> decision -> consequences. A new decision also updates the affected live docs.
 
 ## Index (Phase 1, ADR-01..72)
 
@@ -60,7 +60,7 @@ Phase 2 ADRs continue the numbering (next: **ADR-93**) and are written **in full
 | 48 | Drop "Comparar"; "Peso actual" box opens the composition; pencil edits today's weight | |
 | 49 | Weight trend line and weekly pace work with sparse weigh-ins (MA7 over >= 1 day, last two weigh-in days) | |
 | 50 | Routines planned set by set; planned values are placeholders; target RPE per exercise | |
-| 51 | Deleting a routine folder deletes its routines, after a confirmation | |
+| 51 | Deleting a routine folder deletes its routines, after a confirmation | Superseded by 95 |
 | 52 | E6 scope cuts and defaults (live PR notification, calendar streaks, workout copy deferred; calculator defaults) | |
 | 53 | Only manual foods are editable; edits apply to future entries; full label nutrients | |
 | 54 | Planned sets table `routine_exercise_sets` and `training_preferences` (E6 schema exceptions) | |
@@ -109,6 +109,7 @@ Phase 2 ADRs continue the numbering (next: **ADR-93**) and are written **in full
 | 90 | The per-user monthly AI cap rises from 2 € to 3 €; the 5 € global total stays | Amends 77 |
 | 91 | Minimal intake (years, maintenance, free text) and no "Recuperar" (deferred to Phase 3); no field extraction | Amends 86, 87 |
 | 92 | Equipment split: "Barra Z" is the only new item, every other implement is "Otro"; one "Máquina de cardio"; same barbell / EZ bar / dumbbell exercise is a 1.00 alternative both ways; no alternative below 0.90 | Amends 83, 85 |
+| 95 | A routine folder with routines cannot be deleted: the user moves or deletes the routines first; no dialog | Supersedes 51; amends 45, 69 (R-08) |
 
 ## Phase 2 ADRs (full text)
 
@@ -335,3 +336,14 @@ Phase 2 ADRs continue the numbering (next: **ADR-93**) and are written **in full
   - **No memory of swapped-out exercises** (`07` §12.8 row 11): the next block does not avoid an exercise the user swapped out; favourites and the user's folders carry his preferences.
 - **Consequences:** `04` §9.7, §9.7b, §9.9, new §9.15; `03` (`exercise_favorites`, the block removal RPC); `05` §10 glossary ("Desde cero", "Desde una carpeta", "Eliminar bloque", "Favorito"); E13 US-72 amended, new US-93, US-94 (remove a block), US-96 (favourites); US-92 "My swaps stay" void; tasks T-203 (remove a block), T-204 (favourites), T-206/T-208 (start choice).
 - **Approval:** user decisions 2026-11-03 (chat, T-202 checkpoint; E13 Q54 and Q57 answered the same day); the wording waits for the user's OK on the breakdown PR.
+
+### ADR-95 — A routine folder with routines cannot be deleted (T-211; supersedes ADR-51, amends ADR-45 and ADR-69's R-08)
+- **Context:** ADR-51 made "delete folder" remove the folder and all its routines after a confirmation dialog (the one R-08 dialog for "many records at once"). The user (chat, 2026-11-03, with T-211) no longer wants a single tap to be able to erase routines through their folder.
+- **Decision:**
+  - A folder that holds at least one non-archived routine cannot be deleted. Tapping its delete icon changes nothing and shows an app-level message (R-28, Reject haptic, no action button): «Mueve o elimina las rutinas de la carpeta para poder eliminarla.» The user deletes the routines one by one (swipe or sheet) or moves them with the existing "Mover a carpeta" (routine sheet, one routine at a time).
+  - An empty folder is deleted at once, with no dialog (R-20, trash icon in the row).
+  - The server enforces it: `delete_routine_folder` raises `23503` when a non-archived routine remains. Archived routines are not listed anywhere, so they never block and are deleted with the folder (otherwise a folder could become undeletable). The UI also checks the loaded list first, so the normal path needs no round trip.
+  - Block folders (ADR-94) are normal folders: same rule. "Eliminar bloque" keeps the folder and its routines; deleting the routines later detaches them from the plan weeks as before (`coach_plan_sessions.routine_id` set null).
+  - R-08 loses the "delete many records at once" dialog; the allow-list is: delete the account, sign out, discard a live workout, remove a training block, discard unsaved changes.
+- **Consequences:** `04` §4.15; `03` (`delete_routine_folder`); `05` R-08 and §10 glossary; E6 US-35 scenarios replaced; code in T-211: new migration, `RoutinesViewModel`/`RoutinesSheets`/strings, guard G5 allow-list without `RoutinesSheets.kt`. Phase 1 text (`phase1/`) stays frozen.
+- **Approval:** user decision 2026-11-03 (chat).

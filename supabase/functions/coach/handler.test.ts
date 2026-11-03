@@ -310,6 +310,57 @@ Deno.test("two invalid outputs give 502 coach_invalid_output and still record th
     assertEquals(records[0].inputTokens, 200);
 });
 
+// --- COACH_DEBUG (T-212) ---
+
+async function debugRun(debug: boolean) {
+    const v = validatedKinds(["bad CANARY-OUT", "worse CANARY-OUT"]);
+    const events = async function* () {
+        yield { type: "delta", text: "bad CANARY-OUT" } as AnthropicEvent;
+        yield {
+            type: "usage",
+            usage: { ...NO_USAGE, inputTokens: 100, outputTokens: 10 },
+            stopReason: "max_tokens",
+        } as AnthropicEvent;
+        yield { type: "done" } as AnthropicEvent;
+    };
+    const { handler } = setup({ kinds: v.kinds, events, debug });
+    const warnings: unknown[][] = [];
+    const original = console.warn;
+    console.warn = (...args: unknown[]) => void warnings.push(args);
+    try {
+        const res = await handler(
+            post({ kind: "v", input: { x: "CANARY-IN" } }),
+        );
+        assertEquals(res.status, 502);
+    } finally {
+        console.warn = original;
+    }
+    return warnings;
+}
+
+Deno.test("debug off: no extra console output for an invalid answer", async () => {
+    assertEquals(await debugRun(false), []);
+});
+
+Deno.test("debug on: one line per attempt with stop_reason and codes, and no text leaks", async () => {
+    const warnings = await debugRun(true);
+    const attempts = warnings.filter((w) => w[0] === "coach: debug");
+    assertEquals(attempts.length, 3); // two attempts and the final invalid-output line
+    assertEquals(
+        (attempts[0][1] as Record<string, unknown>).stop_reason,
+        "max_tokens",
+    );
+    assertEquals((attempts[0][1] as Record<string, unknown>).codes, [
+        "json_parse",
+    ]);
+    assertEquals(
+        (attempts[2][1] as Record<string, unknown>).result,
+        "coach_invalid_output",
+    );
+    const dump = JSON.stringify(warnings);
+    assert(!dump.includes("CANARY"));
+});
+
 // --- privacy and config ---
 
 Deno.test("prompts, inputs and outputs never reach the console", async () => {
