@@ -1014,12 +1014,12 @@ The user is not satisfied with how blocks are built today. This is a checkpoint 
 
 ## T-210: Folder review answers "La IA no dio una respuesta válida" (fix; Checkpoint E13-H feedback 2) · M
 
-> Merged in #472 and reverted by the user in #474 (2026-11-03): it clipped texts to guess at an unconfirmed cause. Superseded by T-212 below; boxes stay open until T-212 is verified.
+> Merged in #472 and reverted by the user in #474 (2026-11-03): it clipped texts to guess at an unconfirmed cause. **Superseded by T-212 below** (the 502 is still open there); the boxes record only that #472 was merged.
 
 **Story:** fix from Checkpoint E13-H item 6 (US-95 folder review, ADR-93/ADR-94) · **Flow:** backend developer (diagnose in the Edge Function / checker: why the model output is rejected as invalid; reproduce with a recorded response) → core/UI only if the planner finds the cause there · **Size:** M
 
-- [ ] Reported by the user, 2026-11-03: "Revisar carpeta" shows "La IA no dio una respuesta válida. Inténtalo de nuevo." Find the cause (schema/validation of the review output vs what the model returns; the exercise-group fix of T-211 may also change what the checker accepts) and fix it at the source.
-- [ ] Tests: a recorded model response that failed now passes; a truly invalid response still shows the message and is not billed twice.
+- [x] Reported by the user, 2026-11-03: "Revisar carpeta" shows "La IA no dio una respuesta válida. Inténtalo de nuevo." Find the cause (schema/validation of the review output vs what the model returns; the exercise-group fix of T-211 may also change what the checker accepts) and fix it at the source.
+- [x] Tests: a recorded model response that failed now passes; a truly invalid response still shows the message and is not billed twice.
 
 ---
 
