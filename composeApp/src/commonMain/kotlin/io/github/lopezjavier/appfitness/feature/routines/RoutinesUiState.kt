@@ -28,9 +28,7 @@ sealed interface RoutinesUiState {
      *
      * [routines] is the FULL list in manual order (position) and [folders] the folders in order. [groups] is the
      * grouped view (folders first, the no-folder group last). [collapsedFolderIds] survives leaving the app,
-     * [folderSheet] is the create/rename sheet (null = closed), [deleteFolderFor] the folder waiting for the delete
-     * confirmation (its routine count is [deleteFolderRoutineCount], taken from the full list) and [moveFor] the
-     * routine whose folder picker is open.
+     * [folderSheet] is the create/rename sheet (null = closed) and [moveFor] the routine whose folder picker is open.
      */
     data class Content(
         val routines: List<RoutineSummary>,
@@ -40,7 +38,6 @@ sealed interface RoutinesUiState {
         val folders: List<RoutineFolder> = emptyList(),
         val collapsedFolderIds: Set<String> = emptySet(),
         val folderSheet: FolderSheetState? = null,
-        val deleteFolderFor: RoutineFolder? = null,
         val moveFor: RoutineSummary? = null,
         /** The folder whose actions sheet (review with the coach, rename) is open; survives recreation. */
         val folderMenuFor: RoutineFolder? = null,
@@ -51,9 +48,6 @@ sealed interface RoutinesUiState {
         val isEmpty: Boolean get() = routines.isEmpty() && folders.isEmpty()
 
         val groups: List<RoutineGroup> get() = groupRoutines(folders, routines)
-
-        val deleteFolderRoutineCount: Int
-            get() = deleteFolderFor?.let { folder -> routines.count { it.folderId == folder.id } } ?: 0
     }
 }
 
@@ -91,12 +85,11 @@ sealed interface RoutinesEvent {
 
     data object DismissFolderSheet : RoutinesEvent
 
-    /** Delete icon of a folder: an empty folder is deleted at once, otherwise the confirmation opens. */
+    /**
+     * Delete icon of a folder: an empty folder is deleted at once, a folder with routines is refused with
+     * [RoutinesEffect.FolderNotEmpty] (ADR-95).
+     */
     data class RequestDeleteFolder(val id: String) : RoutinesEvent
-
-    data object ConfirmDeleteFolder : RoutinesEvent
-
-    data object DismissDeleteFolder : RoutinesEvent
 
     /** "Mover a carpeta" row of the routine sheet: opens the folder picker. */
     data class OpenMove(val routineId: String) : RoutinesEvent
@@ -139,6 +132,13 @@ sealed interface RoutinesEffect {
 
     /** A write (duplicate, delete, folders, order, next) failed; the list shows the server state again. */
     data object ActionFailed : RoutinesEffect
+
+    /**
+     * A folder delete was refused because the folder still holds routines. The UI shows the app message
+     * `routines_folder_not_empty` ("Mueve o elimina las rutinas de la carpeta para poder eliminarla.") with the
+     * Reject haptic; the list is reloaded when the refusal came from the server.
+     */
+    data object FolderNotEmpty : RoutinesEffect
 
     /** A delete was refused because there is no connection (nothing changed). */
     data object OfflineRefused : RoutinesEffect

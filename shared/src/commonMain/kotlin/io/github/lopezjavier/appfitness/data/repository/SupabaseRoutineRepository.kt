@@ -35,6 +35,9 @@ private const val MAX_COPY_ATTEMPTS = 20
 // Raised by the unique index `routines_user_name_key`.
 private const val UNIQUE_VIOLATION = "23505"
 
+// Raised by `delete_routine_folder` when the folder still holds a non-archived routine (ADR-95).
+private const val FOREIGN_KEY_VIOLATION = "23503"
+
 /** Routines of the signed-in user (RLS scopes every query). Writes go through the atomic `save_routine` RPC. */
 @Suppress("TooManyFunctions") // One method per port operation.
 class SupabaseRoutineRepository(private val auth: Auth, private val postgrest: Postgrest) : RoutineRepository {
@@ -109,6 +112,9 @@ class SupabaseRoutineRepository(private val auth: Auth, private val postgrest: P
 
     override suspend fun deleteFolder(id: String): Result<Int> = auth.ownRow {
         postgrest.rpc("delete_routine_folder", DeleteRoutineFolderParams(id)).decodeAs<Int>()
+    }.recoverCatching { failure ->
+        val cause = (failure as? AppException)?.cause as? PostgrestRestException ?: throw failure
+        if (cause.code == FOREIGN_KEY_VIOLATION) throw AppException(AppError.FolderNotEmpty, cause) else throw failure
     }
 
     override suspend fun moveToFolder(routineId: String, folderId: String?): Result<Unit> = auth.ownRow {

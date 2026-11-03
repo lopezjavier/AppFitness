@@ -179,63 +179,61 @@ class RoutinesFoldersViewModelTest {
     // ---- Deleting a folder ----
 
     @Test
-    fun deletingAFolderWithThreeRoutines_confirmsWithTheCount_thenDeletesAllOfThem() = runTest {
+    fun deletingAFolderWithRoutines_isRefusedWithAMessage_andCallsNoRepository() = runTest {
         withFolder("f1", "Pierna", "r1", "r2", "r3")
-        withFolder("f2", "Empuje", "r4")
-        val vm = started()
-        vm.onEvent(RoutinesEvent.ToggleFolder("f1")) // collapsed: its routines are not on screen
-
-        vm.onEvent(RoutinesEvent.RequestDeleteFolder("f1"))
-        assertEquals("f1", vm.content().deleteFolderFor?.id)
-        assertEquals(3, vm.content().deleteFolderRoutineCount)
-        assertTrue(repository.deletedFolders.isEmpty())
-
-        vm.onEvent(RoutinesEvent.ConfirmDeleteFolder)
-        advanceUntilIdle()
-
-        assertEquals(listOf("f1"), repository.deletedFolders)
-        assertEquals(listOf("f2"), vm.content().folders.map { it.id })
-        assertEquals(listOf("r4"), vm.content().routines.map { it.id })
-        assertNull(vm.content().deleteFolderFor)
-        assertTrue(vm.content().collapsedFolderIds.isEmpty())
-    }
-
-    @Test
-    fun cancellingTheFolderDeletion_deletesNothing() = runTest {
-        withFolder("f1", "Pierna", "r1", "r2")
         val vm = started()
 
-        vm.onEvent(RoutinesEvent.RequestDeleteFolder("f1"))
-        vm.onEvent(RoutinesEvent.DismissDeleteFolder)
-        advanceUntilIdle()
+        vm.effects.test {
+            vm.onEvent(RoutinesEvent.RequestDeleteFolder("f1"))
+            advanceUntilIdle()
+            assertEquals(RoutinesEffect.FolderNotEmpty, awaitItem())
+        }
 
         assertTrue(repository.deletedFolders.isEmpty())
-        assertNull(vm.content().deleteFolderFor)
+        assertEquals(listOf("f1"), vm.content().folders.map { it.id })
         assertEquals(4, vm.content().routines.size)
     }
 
     @Test
     fun anEmptyFolder_isDeletedAtOnceWithoutConfirmation() = runTest {
         withFolder("f1", "Vacía")
+        withFolder("f2", "Otra", "r4")
         val vm = started()
+        vm.onEvent(RoutinesEvent.ToggleFolder("f1"))
 
         vm.onEvent(RoutinesEvent.RequestDeleteFolder("f1"))
         advanceUntilIdle()
 
-        assertNull(vm.content().deleteFolderFor)
         assertEquals(listOf("f1"), repository.deletedFolders)
-        assertTrue(vm.content().folders.isEmpty())
+        assertEquals(listOf("f2"), vm.content().folders.map { it.id })
+        assertTrue(vm.content().collapsedFolderIds.isEmpty())
+    }
+
+    @Test
+    fun aStaleListWhereTheServerSaysNotEmpty_sendsTheMessage_andReloads() = runTest {
+        withFolder("f1", "Vacía")
+        val vm = started()
+        val loadsBefore = repository.listCalls
+        repository.saveFailure = AppError.FolderNotEmpty
+
+        vm.effects.test {
+            vm.onEvent(RoutinesEvent.RequestDeleteFolder("f1"))
+            advanceUntilIdle()
+            assertEquals(RoutinesEffect.FolderNotEmpty, awaitItem())
+        }
+
+        assertTrue(repository.listCalls > loadsBefore)
+        assertEquals(1, vm.content().folders.size)
     }
 
     @Test
     fun aFolderDeletionFailure_keepsEverything_andSendsAMessage() = runTest {
-        withFolder("f1", "Pierna", "r1")
+        withFolder("f1", "Vacía")
         val vm = started()
-        vm.onEvent(RoutinesEvent.RequestDeleteFolder("f1"))
         repository.saveFailure = AppError.Network
 
         vm.effects.test {
-            vm.onEvent(RoutinesEvent.ConfirmDeleteFolder)
+            vm.onEvent(RoutinesEvent.RequestDeleteFolder("f1"))
             advanceUntilIdle()
             assertEquals(RoutinesEffect.ActionFailed, awaitItem())
         }
@@ -406,7 +404,6 @@ class RoutinesFoldersViewModelTest {
 
         val content = vm.content()
         assertNull(content.folderSheet)
-        assertNull(content.deleteFolderFor)
         assertNull(content.moveFor)
         assertTrue(repository.deletedFolders.isEmpty())
         assertTrue(repository.movedToFolder.isEmpty())

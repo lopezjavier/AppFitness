@@ -4,6 +4,8 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import io.github.lopezjavier.appfitness.designsystem.NameSheetDefaults
+import io.github.lopezjavier.appfitness.domain.AppError
+import io.github.lopezjavier.appfitness.domain.AppException
 import io.github.lopezjavier.appfitness.domain.model.RoutineFolder
 import io.github.lopezjavier.appfitness.domain.model.RoutineSummary
 import io.github.lopezjavier.appfitness.domain.port.ConnectivityObserver
@@ -103,11 +105,6 @@ class RoutinesViewModel(
             RoutinesEvent.DismissFolderSheet -> closeSheet()
 
             is RoutinesEvent.RequestDeleteFolder -> requestDeleteFolder(event.id)
-
-            RoutinesEvent.ConfirmDeleteFolder ->
-                (_uiState.value as? RoutinesUiState.Content)?.deleteFolderFor?.let { deleteFolder(it.id) }
-
-            RoutinesEvent.DismissDeleteFolder -> updateContent { it.copy(deleteFolderFor = null) }
 
             is RoutinesEvent.OpenMove ->
                 updateContent { content ->
@@ -241,14 +238,11 @@ class RoutinesViewModel(
         if (content.routines.none { it.folderId == id }) {
             deleteFolder(id)
         } else {
-            updateContent {
-                it.copy(deleteFolderFor = folder)
-            }
+            effectChannel.trySend(RoutinesEffect.FolderNotEmpty)
         }
     }
 
     private fun deleteFolder(id: String) {
-        updateContent { it.copy(deleteFolderFor = null) }
         if (!online) return
         viewModelScope.launch {
             repository.deleteFolder(id).fold(
@@ -262,7 +256,15 @@ class RoutinesViewModel(
                     }
                     persistCollapsed()
                 },
-                onFailure = { effectChannel.trySend(RoutinesEffect.ActionFailed) },
+                onFailure = { failure ->
+                    if ((failure as? AppException)?.error == AppError.FolderNotEmpty) {
+                        // Stale list: the server still has routines in the folder.
+                        effectChannel.trySend(RoutinesEffect.FolderNotEmpty)
+                        load(showLoading = false)
+                    } else {
+                        effectChannel.trySend(RoutinesEffect.ActionFailed)
+                    }
+                },
             )
         }
     }

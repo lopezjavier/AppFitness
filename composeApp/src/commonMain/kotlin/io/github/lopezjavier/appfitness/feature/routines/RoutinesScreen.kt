@@ -26,6 +26,7 @@ import io.github.lopezjavier.appfitness.composeapp.resources.routines_action_fai
 import io.github.lopezjavier.appfitness.composeapp.resources.routines_empty
 import io.github.lopezjavier.appfitness.composeapp.resources.routines_empty_title
 import io.github.lopezjavier.appfitness.composeapp.resources.routines_error
+import io.github.lopezjavier.appfitness.composeapp.resources.routines_folder_not_empty
 import io.github.lopezjavier.appfitness.composeapp.resources.workout_already_in_progress
 import io.github.lopezjavier.appfitness.designsystem.AddItemButton
 import io.github.lopezjavier.appfitness.designsystem.AppShapes
@@ -65,6 +66,7 @@ fun RoutinesRoot(
     val currentOpenLive by rememberUpdatedState(onOpenLiveSession)
     val currentOpenReview by rememberUpdatedState(onOpenFolderReview)
     val failed = stringResource(Res.string.routines_action_failed)
+    val folderNotEmpty = stringResource(Res.string.routines_folder_not_empty)
     val deleteOffline = stringResource(Res.string.delete_offline)
     val inProgress = stringResource(Res.string.workout_already_in_progress)
     LaunchedEffect(viewModel) {
@@ -81,6 +83,11 @@ fun RoutinesRoot(
                 RoutinesEffect.ActionFailed -> {
                     haptics.reject()
                     messages.show(failed)
+                }
+
+                RoutinesEffect.FolderNotEmpty -> {
+                    haptics.reject()
+                    messages.show(folderNotEmpty)
                 }
 
                 RoutinesEffect.StartFailed -> {

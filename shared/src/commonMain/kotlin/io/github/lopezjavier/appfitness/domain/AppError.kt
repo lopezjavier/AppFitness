@@ -32,6 +32,9 @@ sealed interface AppError {
 
     /** A custom exercise cannot be deleted while [sets] logged sets or [routines] routine entries reference it. */
     data class InUse(val sets: Int, val routines: Int) : AppError
+
+    /** A routine folder cannot be deleted while it still holds routines (ADR-95; PostgREST 23503). */
+    data object FolderNotEmpty : AppError
 }
 
 /** Throwable carrier of an [AppError], used as the failure of a [Result]. */

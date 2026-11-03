@@ -1,7 +1,6 @@
 package io.github.lopezjavier.appfitness.feature.routines
 
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.semantics.CustomAccessibilityAction
 import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.semantics.SemanticsNode
@@ -29,6 +28,10 @@ import androidx.compose.ui.test.performTextInput
 import androidx.compose.ui.unit.dp
 import io.github.lopezjavier.appfitness.app.FakeConnectivityObserver
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
+import io.github.lopezjavier.appfitness.designsystem.HapticEvent
+import io.github.lopezjavier.appfitness.designsystem.LocalAppHaptics
+import io.github.lopezjavier.appfitness.designsystem.LocalAppMessages
+import io.github.lopezjavier.appfitness.designsystem.RecordingAppHaptics
 import io.github.lopezjavier.appfitness.domain.model.RoutineFolder
 import io.github.lopezjavier.appfitness.feature.workout.FakeWorkoutSessionRepository
 import org.junit.Assert.assertEquals
@@ -64,12 +67,14 @@ class RoutinesFoldersScreenTest {
         }
     private val connectivity = FakeConnectivityObserver()
 
+    private val messages = RecordingMessages()
+    private val haptics = RecordingAppHaptics()
+
     private fun show() {
         val vm = RoutinesViewModel(repository, FakeWorkoutSessionRepository(), connectivity)
         rule.setContent {
-            AppTheme {
-                val state by vm.uiState.collectAsState()
-                RoutinesScreen(state, vm::onEvent)
+            CompositionLocalProvider(LocalAppHaptics provides haptics, LocalAppMessages provides messages) {
+                AppTheme { RoutinesRoot({}, {}, {}, viewModel = vm) }
             }
         }
         rule.waitForIdle()
@@ -228,45 +233,15 @@ class RoutinesFoldersScreenTest {
     }
 
     @Test
-    fun deletingAFolderWithThreeRoutines_asksWithThePluralCount_andDeletesThem() {
-        show()
-        click("routines_folder_toggle_f1")
-
-        click("routines_folder_delete_f1")
-
-        rule.onNodeWithText("¿Eliminar la carpeta «Fuerza»?").assertExists()
-        rule.onNodeWithText(
-            "Se eliminarán la carpeta y sus 3 rutinas. Los entrenos que ya hiciste no cambian.",
-        ).assertExists()
-        click("routines_folder_delete_confirm")
-
-        assertEquals(listOf("f1"), repository.deletedFolders)
-        rule.onNodeWithTag("routines_folder_f1").assertDoesNotExist()
-        rule.onNodeWithTag("routines_row_r4").assertExists()
-    }
-
-    @Test
-    fun deletingAFolderWithOneRoutine_usesTheSingular() {
-        repository.folderOf["r2"] = null
-        repository.folderOf["r3"] = null
+    fun deletingAFolderWithRoutines_showsTheBlockedMessage_andKeepsTheFolderAndItsRows() {
         show()
 
         click("routines_folder_delete_f1")
 
-        rule.onNodeWithText(
-            "Se eliminarán la carpeta y su rutina. Los entrenos que ya hiciste no cambian.",
-        ).assertExists()
-    }
-
-    @Test
-    fun cancellingTheFolderDeletion_keepsEverything() {
-        show()
-        click("routines_folder_delete_f1")
-
-        click("routines_folder_delete_cancel")
-
+        assertEquals(listOf("Mueve o elimina las rutinas de la carpeta para poder eliminarla."), messages.shown)
+        assertEquals(listOf(HapticEvent.Reject), haptics.calls)
         assertTrue(repository.deletedFolders.isEmpty())
-        rule.onNodeWithTag("routines_folder_delete_dialog").assertDoesNotExist()
+        rule.onNodeWithTag("routines_folder_f1").assertExists()
         rule.onNodeWithTag("routines_row_r1").assertExists()
     }
 
@@ -276,7 +251,6 @@ class RoutinesFoldersScreenTest {
 
         click("routines_folder_delete_f2")
 
-        rule.onNodeWithTag("routines_folder_delete_dialog").assertDoesNotExist()
         assertEquals(listOf("f2"), repository.deletedFolders)
         rule.onNodeWithTag("routines_folder_f2").assertDoesNotExist()
     }

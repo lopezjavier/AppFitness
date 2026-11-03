@@ -53,6 +53,9 @@ class SupabaseRoutineRepositoryTest {
     /** The next [conflicts] writes to a name-checked RPC answer 23505 (name already used). */
     private var conflicts = 0
 
+    /** Every RPC answers 23503 (folder not empty). */
+    private var notEmpty = false
+
     private fun client(engine: MockEngine) = SupabaseClientFactory.create(
         AppConfig("http://localhost:54321", "sb_publishable_test", "", isLocal = true),
         engine,
@@ -68,6 +71,9 @@ class SupabaseRoutineRepositoryTest {
                     request.url.encodedPath.contains("/auth/") -> respond(SESSION, HttpStatusCode.OK, headers)
 
                     failing -> throw IOException("offline")
+
+                    request.url.encodedPath.contains("/rpc/") && notEmpty ->
+                        respond("""{"code":"23503","message":"folder not empty"}""", HttpStatusCode.Conflict, headers)
 
                     request.url.encodedPath.contains("/rpc/") && conflicts > 0 -> {
                         conflicts--
@@ -402,6 +408,14 @@ class SupabaseRoutineRepositoryTest {
         assertEquals("/rest/v1/rpc/delete_routine_folder", call.url.encodedPath)
         assertEquals("""{"p_id":"f1"}""", body(call))
         assertEquals(3, count)
+    }
+
+    @Test
+    fun deleteFolder_foreignKeyViolation_isFolderNotEmpty() = runTest {
+        val repo = signedIn()
+        notEmpty = true
+
+        assertEquals(AppError.FolderNotEmpty, repo.deleteFolder("f1").appErrorOrNull())
     }
 
     @Test
