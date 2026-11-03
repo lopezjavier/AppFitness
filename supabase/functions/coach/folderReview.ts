@@ -251,19 +251,11 @@ const FIELDS: Record<ChangeOp, string[]> = {
 const isInt = (v: unknown): v is number =>
     typeof v === "number" && Number.isInteger(v);
 
-/** Trims and cuts to REASON_MAX at a word boundary (a long Spanish sentence is repaired, not rejected). */
-export function clipReason(r: string): string {
+const validReason = (r: unknown): r is string => {
+    if (typeof r !== "string") return false;
     const t = r.trim();
-    if (t.length <= REASON_MAX) return t;
-    const cut = t.slice(0, REASON_MAX);
-    const space = cut.lastIndexOf(" ");
-    return (space >= REASON_MIN ? cut.slice(0, space) : cut).trim();
-}
-
-/** The clipped text of a comment or reason, or null when it is too short or advises less cardio (item dropped). */
-const softReason = (r: string): string | null => {
-    const t = clipReason(r);
-    return t.length >= REASON_MIN && !mentionsCardioReduction(t) ? t : null;
+    return t.length >= REASON_MIN && t.length <= REASON_MAX &&
+        !mentionsCardioReduction(t);
 };
 
 function parseSets(raw: unknown): SetSpec[] | null {
@@ -308,8 +300,6 @@ export function validateReview(
     text: string,
     v: { folderKeys: Set<string>; catalogKeys: Set<string> },
 ): { review: ModelReview | null; failures: Failure[] } {
-    // FATAL failures (unusable answer) make `review` null and trigger the one retry. SOFT failures drop or repair one
-    // item and are only reported: the review is advisory and the server re-checks every change alone.
     const failures: Failure[] = [];
     const shape = (path: string) => failures.push({ code: "shape", path });
     const parsed = parseJson(text);
@@ -319,32 +309,47 @@ export function validateReview(
         !Array.isArray(parsed.comments) || !Array.isArray(parsed.changes) ||
         typeof parsed.message !== "string"
     ) return { review: null, failures: [{ code: "shape", path: "root" }] };
-    const message = clipReason(parsed.message);
-    if (message.length < REASON_MIN || mentionsCardioReduction(message)) {
-        failures.push({ code: "message" });
-    }
+    if (!validReason(parsed.message)) failures.push({ code: "message" });
     if (parsed.comments.length > MAX_COMMENTS) shape("comments");
     if (parsed.changes.length > MAX_CHANGES) shape("changes");
-    if (failures.length > 0) return { review: null, failures };
+    if (failures.some((f) => f.code === "shape")) {
+        return { review: null, failures };
+    }
 
     const comments: ReviewComment[] = [];
     parsed.comments.forEach((c, i) => {
         const at = `comments[${i}]`;
-        if (!isRecord(c) || typeof c.text !== "string") return shape(at);
-        const textOk = softReason(c.text);
-        if (textOk === null) {
-            return failures.push({ code: "reason", path: at });
+        if (
+            !isRecord(c) || !Object.keys(c).every((k) =>
+                k === "text" || k === "exercise_key"
+            ) ||
+            typeof c.text !== "string"
+        ) {
+            return shape(at);
         }
-        const key = typeof c.exercise_key === "string" &&
-                v.folderKeys.has(c.exercise_key)
-            ? c.exercise_key
-            : undefined;
-        if (c.exercise_key !== undefined && key === undefined) {
-            failures.push({ code: "unknown_exercise", path: at });
+        if (!validReason(c.text)) {
+            return failures.push({
+                code: "reason",
+                path: at,
+            });
+        }
+        if (c.exercise_key !== undefined) {
+            if (typeof c.exercise_key !== "string") {
+                return shape(at);
+            }
+            if (!v.folderKeys.has(c.exercise_key)) {
+                return failures.push({
+                    code: "unknown_exercise",
+                    path: at,
+                    exercise_key: c.exercise_key,
+                });
+            }
         }
         comments.push({
-            text: textOk,
-            ...(key !== undefined ? { exercise_key: key } : {}),
+            text: c.text.trim(),
+            ...(c.exercise_key !== undefined
+                ? { exercise_key: c.exercise_key as string }
+                : {}),
         });
     });
 
@@ -355,25 +360,31 @@ export function validateReview(
             return shape(at);
         }
         const op = c.op as ChangeOp;
-        // Fields that do not belong to the op are ignored, not rejected.
+        const allowed = [
+            "op",
+            "routine_index",
+            "reason",
+            "fixes",
+            ...FIELDS[op],
+        ];
         if (
+            !Object.keys(c).every((k) => allowed.includes(k)) ||
             !FIELDS[op].every((k) => k in c) ||
             !isInt(c.routine_index) || c.routine_index < 1 ||
-            ("position" in c && (!isInt(c.position) || c.position < 1))
+            ("position" in c && (!isInt(c.position) || c.position < 1)) ||
+            ("fixes" in c && typeof c.fixes !== "string")
         ) return shape(at);
-        const reason = typeof c.reason === "string"
-            ? softReason(c.reason)
-            : null;
-        if (reason === null) {
+        if (!validReason(c.reason)) {
             return failures.push({ code: "reason", path: at });
         }
-        c.reason = reason;
         if ("exercise_key" in c) {
-            if (
-                typeof c.exercise_key !== "string" ||
-                !v.catalogKeys.has(c.exercise_key)
-            ) {
-                return failures.push({ code: "unknown_exercise", path: at });
+            if (typeof c.exercise_key !== "string") return shape(at);
+            if (!v.catalogKeys.has(c.exercise_key)) {
+                return failures.push({
+                    code: "unknown_exercise",
+                    path: at,
+                    exercise_key: c.exercise_key,
+                });
             }
         }
         const base = {
@@ -433,7 +444,10 @@ export function validateReview(
                 break;
         }
     });
-    return { review: { message, comments, changes }, failures };
+    return failures.length > 0 ? { review: null, failures } : {
+        review: { message: parsed.message.trim(), comments, changes },
+        failures,
+    };
 }
 
 // --- The server re-check -----------------------------------------------------------------------------------------
@@ -659,17 +673,6 @@ export function makePrepare() {
             validate: (text) => {
                 const r = validateReview(text, { folderKeys, catalogKeys });
                 lastFailures = r.failures;
-                if (r.failures.length > 0) {
-                    // Codes and paths only: never values, prompts or model text.
-                    console.warn("coach: review rejected", {
-                        kind: r.review ? "items_dropped" : "invalid",
-                        codes: r.failures.slice(0, 30).map((f) =>
-                            `${f.code}${
-                                typeof f.path === "string" ? `@${f.path}` : ""
-                            }`
-                        ),
-                    });
-                }
                 return r.review;
             },
             retry: {
