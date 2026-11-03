@@ -43,8 +43,8 @@ select is((select count(*)::int from public.exercises
 
 -- Hip extension is untouched: hinges stay glutes with hamstrings secondary.
 select is(pg_temp.grp('hip-thrust'), 'glutes', 'hip-thrust stays glutes');
-select ok((select 'hamstrings' = any (secondary_muscles) from public.exercises where key = 'romanian-deadlift'),
-  'a hinge still lists hamstrings as secondary');
+select ok((select 'hamstrings' = any (secondary_muscles) from public.exercises where key = 'deadlift'),
+  'a bent-knee hinge still lists hamstrings as secondary');
 
 -- Hip abduction: glutes.
 select is(pg_temp.grp('clamshells'), 'glutes', 'clamshells is glutes');

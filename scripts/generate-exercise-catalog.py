@@ -140,6 +140,15 @@ HIP_ADDUCTION_KEYS = {
     "side-lying-hip-adduction-hold", "banded-adductor-stretch", "bench-adductor-stretch", "butterfly-stretch",
     "seated-straddle-stretch", "lateral-leg-swing", "happy-baby", "garland-pose",
 }
+# Straight-knee hinges (T-213, 07 section 3): hamstrings primary, glutes secondary. Bent-knee deadlifts are not here.
+STRAIGHT_KNEE_HINGE_KEYS = {
+    "romanian-deadlift", "ez-bar-romanian-deadlift", "dumbbell-romanian-deadlift", "banded-romanian-deadlift",
+    "smith-machine-rdl", "stiff-leg-deadlift", "single-leg-romanian-deadlift",
+    "one-arm-single-leg-dumbbell-romanian-deadlift", "one-arm-single-leg-kettlebell-romanian-deadlift",
+    "kettlebell-single-leg-deadlift", "single-leg-rdl-hold", "db-kickstand-deadlift",
+    "double-db-kickstand-deadlift", "kettlebell-kickstand-deadlift", "good-morning", "banded-good-morning",
+    "bodyweight-good-morning", "smith-machine-good-morning",
+}
 # Single keys filed by the joint action (07 section 3 "Keys, not names"), with the secondary they gain.
 KEY_ONLY_GROUPS = {"kettlebell-sumo-high-pull": "glutes", "wide-legged-forward-fold": "hamstrings"}
 KEY_GROUP_OVERRIDES = {
@@ -148,10 +157,15 @@ KEY_GROUP_OVERRIDES = {
     **{k: "glutes" for k in HIP_ABDUCTION_KEYS},
     **{k: "core" for k in HIP_FLEXION_KEYS},
     **{k: "adductors" for k in HIP_ADDUCTION_KEYS},
+    **{k: "hamstrings" for k in STRAIGHT_KNEE_HINGE_KEYS},
     **KEY_ONLY_GROUPS,
 }
 # Secondary muscles the catalogue migrations add on top of the bundle (rendered by render_patterns_sql).
-KEY_SECONDARY_OVERRIDES = {**{k: ["glutes"] for k in KNEE_DOMINANT_KEYS}, "kettlebell-sumo-high-pull": ["hamstrings"]}
+KEY_SECONDARY_OVERRIDES = {
+    **{k: ["glutes"] for k in KNEE_DOMINANT_KEYS},
+    **{k: ["glutes"] for k in STRAIGHT_KNEE_HINGE_KEYS},
+    "kettlebell-sumo-high-pull": ["hamstrings"],
+}
 
 
 class CatalogError(Exception):
