@@ -45,7 +45,6 @@ internal fun LazyListScope.routineGroups(state: RoutinesUiState.Content, onEvent
                         folder = folder,
                         routineCount = group.routines.size,
                         expanded = expanded,
-                        canWrite = state.isOnline,
                         onEvent = onEvent,
                     )
 

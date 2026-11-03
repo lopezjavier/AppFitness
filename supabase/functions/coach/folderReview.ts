@@ -74,10 +74,15 @@ export type ReviewPurpose = "review" | "block";
 /** Changes a review may carry, and comments, at most. */
 export const MAX_CHANGES = 40;
 export const MAX_COMMENTS = 12;
-/** Output budget: `min(MAX, BASE + PER_EXERCISE x exercises)` tokens. */
-export const OUTPUT_TOKENS_MAX = 5000;
-export const OUTPUT_TOKENS_BASE = 1500;
-export const OUTPUT_TOKENS_PER_EXERCISE = 60;
+/**
+ * Output budget: `min(MAX, BASE + PER_EXERCISE x exercises)` tokens. T-213: a 21-exercise folder hit
+ * `stop_reason = max_tokens` at 2760 tokens (the old 1500 + 60 x 21) and the JSON came back truncated. The ceiling is
+ * 8000, far above a real answer (about 2-5k): only a runaway guard, since billing is on tokens produced, not on the
+ * limit. The 120 s call timeout stays the wall-clock guard.
+ */
+export const OUTPUT_TOKENS_MAX = 8000;
+export const OUTPUT_TOKENS_BASE = 2000;
+export const OUTPUT_TOKENS_PER_EXERCISE = 150;
 
 export const maxTokensFor = (exercises: number): number =>
     Math.min(

@@ -10,7 +10,9 @@ import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.assertContentDescriptionEquals
 import androidx.compose.ui.test.assertCountEquals
+import androidx.compose.ui.test.assertHasClickAction
 import androidx.compose.ui.test.assertHeightIsAtLeast
+import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.assertTextContains
 import androidx.compose.ui.test.assertTextEquals
@@ -147,9 +149,15 @@ class RoutinesFoldersScreenTest {
         rule.onNodeWithTag("routines_folder_toggle_f1").assertHeightIsAtLeast(48.dp).assertWidthIsAtLeast(48.dp)
         rule.onNodeWithTag("routines_folder_menu_f1").assertContentDescriptionEquals("Más acciones de Fuerza")
         rule.onNodeWithTag("routines_folder_menu_f1").assertHeightIsAtLeast(48.dp).assertWidthIsAtLeast(48.dp)
-        rule.onNodeWithTag("routines_folder_delete_f1").assertContentDescriptionEquals("Eliminar carpeta Fuerza")
-        rule.onNodeWithTag("routines_folder_delete_f1").assertHeightIsAtLeast(48.dp).assertWidthIsAtLeast(48.dp)
         rule.onNodeWithTag("routines_folder_toggle_f1").assert(stateIs("Expandida"))
+    }
+
+    @Test
+    fun folderHeader_hasNoTrashIcon_deleteLivesInTheMenu() {
+        show()
+
+        rule.onNodeWithTag("routines_folder_delete_f1").assertDoesNotExist()
+        rule.onNodeWithTag("routines_folder_delete_f2").assertDoesNotExist()
     }
 
     @Test
@@ -235,8 +243,11 @@ class RoutinesFoldersScreenTest {
     @Test
     fun deletingAFolderWithRoutines_showsTheBlockedMessage_andKeepsTheFolderAndItsRows() {
         show()
+        click("routines_folder_menu_f1")
+        rule.onNodeWithTag("routines_folder_menu_delete").assertHasClickAction().assert(isDisabledForTalkBack())
+        rule.onNodeWithTag("routines_folder_menu_delete").assert(stateIs("No disponible: la carpeta tiene rutinas"))
 
-        click("routines_folder_delete_f1")
+        click("routines_folder_menu_delete")
 
         assertEquals(listOf("Mueve o elimina las rutinas de la carpeta para poder eliminarla."), messages.shown)
         assertEquals(listOf(HapticEvent.Reject), haptics.calls)
@@ -249,10 +260,16 @@ class RoutinesFoldersScreenTest {
     fun anEmptyFolder_isDeletedAtOnceWithoutDialog() {
         show()
 
-        click("routines_folder_delete_f2")
+        click("routines_folder_menu_f2")
+        rule.onNodeWithTag("routines_folder_menu_delete").assertIsEnabled()
+        rule.onNodeWithTag("routines_folder_menu_delete").assert(isNotBlocked())
+
+        click("routines_folder_menu_delete")
 
         assertEquals(listOf("f2"), repository.deletedFolders)
         rule.onNodeWithTag("routines_folder_f2").assertDoesNotExist()
+        rule.onNodeWithTag("routines_folder_menu_delete").assertDoesNotExist()
+        assertTrue(messages.shown.isEmpty())
     }
 
     @Test
@@ -344,15 +361,23 @@ class RoutinesFoldersScreenTest {
         click("routines_folder_menu_f1")
         rule.onNodeWithTag("routines_folder_menu_rename").assertIsNotEnabled()
         rule.onNodeWithTag("routines_folder_menu_review").assertIsNotEnabled()
+        rule.onNodeWithTag("routines_folder_menu_delete").assertIsNotEnabled()
         rule.onNodeWithTag("routines_folder_menu_offline_reason").assertExists()
         click("routines_folder_menu_sheet_close")
         scrollToAddFolder()
         rule.onNodeWithTag("routines_add_folder").assertIsNotEnabled()
-        rule.onNodeWithTag("routines_folder_delete_f1").assertIsNotEnabled()
         click("routines_folder_toggle_f1")
         openMenu("r4")
         rule.onAllNodesWithText("Mover a carpeta").assertCountEquals(0)
         rule.onAllNodesWithText("Siguiente entreno").assertCountEquals(0)
+    }
+
+    private fun isDisabledForTalkBack() = SemanticsMatcher("has the disabled semantics") {
+        SemanticsProperties.Disabled in it.config
+    }
+
+    private fun isNotBlocked() = SemanticsMatcher("has no disabled semantics") {
+        SemanticsProperties.Disabled !in it.config
     }
 
     private fun stateIs(expected: String) = SemanticsMatcher("state description is $expected") {

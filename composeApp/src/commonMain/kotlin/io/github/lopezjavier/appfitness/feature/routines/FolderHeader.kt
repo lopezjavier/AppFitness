@@ -20,13 +20,11 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.style.TextOverflow
 import io.github.lopezjavier.appfitness.composeapp.resources.Res
-import io.github.lopezjavier.appfitness.composeapp.resources.ic_delete
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_expand_more
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_more_vert
 import io.github.lopezjavier.appfitness.composeapp.resources.routines_folder_collapse_cd
 import io.github.lopezjavier.appfitness.composeapp.resources.routines_folder_collapsed
 import io.github.lopezjavier.appfitness.composeapp.resources.routines_folder_count
-import io.github.lopezjavier.appfitness.composeapp.resources.routines_folder_delete_cd
 import io.github.lopezjavier.appfitness.composeapp.resources.routines_folder_expand_cd
 import io.github.lopezjavier.appfitness.composeapp.resources.routines_folder_expanded
 import io.github.lopezjavier.appfitness.composeapp.resources.routines_folder_menu_cd
@@ -42,14 +40,13 @@ private const val CHEVRON_EXPANDED_DEGREES = 180f
 
 /**
  * Header of a folder section: chevron toggle, name, routine count and the actions menu (review with the coach,
- * rename) and the delete icon button. Delete is a write, so it needs [canWrite]; the menu entries check the network.
+ * rename, delete; the menu entries check the network and the folder's routines).
  */
 @Composable
 internal fun FolderHeader(
     folder: RoutineFolder,
     routineCount: Int,
     expanded: Boolean,
-    canWrite: Boolean,
     onEvent: (RoutinesEvent) -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -81,13 +78,6 @@ internal fun FolderHeader(
             icon = Res.drawable.ic_more_vert,
             testTag = "routines_folder_menu_${folder.id}",
             onClick = { onEvent(RoutinesEvent.OpenFolderMenu(folder.id)) },
-        )
-        AppIconButton(
-            contentDescription = stringResource(Res.string.routines_folder_delete_cd, folder.name),
-            icon = Res.drawable.ic_delete,
-            testTag = "routines_folder_delete_${folder.id}",
-            onClick = { onEvent(RoutinesEvent.RequestDeleteFolder(folder.id)) },
-            enabled = canWrite,
         )
     }
 }

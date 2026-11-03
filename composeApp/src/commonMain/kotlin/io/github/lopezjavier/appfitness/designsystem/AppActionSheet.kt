@@ -14,7 +14,9 @@ import org.jetbrains.compose.resources.DrawableResource
 
 /**
  * One row of an [AppActionSheet]: decorative [icon], [title] and an optional one-line [hint]. [testTag] overrides
- * the generated `<prefix>_row_<n>` tag; a disabled row is dimmed and inert (say why in [hint]).
+ * the generated `<prefix>_row_<n>` tag; a disabled row is dimmed and inert (say why in [hint]); a [blocked] row is
+ * dimmed but still clickable, so the tap can explain the refusal, and is announced as unavailable with
+ * [blockedDescription].
  */
 @Immutable
 data class AppSheetAction(
@@ -23,6 +25,8 @@ data class AppSheetAction(
     val hint: String? = null,
     val testTag: String? = null,
     val enabled: Boolean = true,
+    val blocked: Boolean = false,
+    val blockedDescription: String? = null,
     val onClick: () -> Unit,
 )
 
@@ -73,6 +77,8 @@ fun AppActionSheet(
                 onClick = { closeThen(scope, sheetState, onDismiss, action.onClick) },
                 testTag = action.testTag ?: AppActionSheetDefaults.rowTag(index + 1, testTagPrefix),
                 enabled = action.enabled,
+                blocked = action.blocked,
+                blockedDescription = action.blockedDescription,
             )
         }
         Spacer(Modifier.height(Spacing.lg))

@@ -56,15 +56,16 @@ class RoutinesFolderMenuTest {
     }
 
     @Test
-    fun theOverflowButton_opensTheFolderActions_withoutADeleteEntry() {
+    fun theOverflowButton_opensTheFolderActions_withDeleteLast() {
         show()
 
         click("routines_folder_menu_f1")
 
-        rule.onNodeWithText("Revisar con el entrenador").assertExists()
+        rule.onNodeWithText("Revisar tus rutinas").assertExists()
         rule.onNodeWithText("Renombrar").assertExists()
-        rule.onAllNodesWithTag("routines_folder_menu_delete").assertCountEquals(0)
-        rule.onNodeWithTag("routines_folder_delete_f1").assertExists()
+        rule.onNodeWithText("Borrar carpeta").assertExists()
+        rule.onAllNodesWithTag("routines_folder_menu_delete").assertCountEquals(1)
+        rule.onNodeWithTag("routines_folder_delete_f1").assertDoesNotExist()
     }
 
     @Test
@@ -100,6 +101,7 @@ class RoutinesFolderMenuTest {
         rule.waitForIdle()
 
         rule.onNodeWithTag("routines_folder_menu_review").assertExists()
+        rule.onNodeWithTag("routines_folder_menu_delete").assertExists()
         assertTrue(reviewed.isEmpty())
     }
 }

@@ -241,6 +241,29 @@ Deno.test("completeValidated gives InvalidOutputError after the retry, with both
     assertEquals(err.usage.outputTokens, 10);
 });
 
+Deno.test("completeValidated does not retry a max_tokens stop at the same limit and keeps its usage", async () => {
+    let calls = 0;
+    const client: AnthropicClient = {
+        async *stream() {
+            calls++;
+            yield { type: "delta", text: '{"a":' };
+            yield {
+                type: "usage",
+                usage: { ...NO_USAGE, inputTokens: 10, outputTokens: 5 },
+                stopReason: "max_tokens",
+            };
+            yield { type: "done" };
+        },
+    };
+    const err = await assertRejects(
+        () => completeValidated(client, REQUEST, parseJson),
+        InvalidOutputError,
+    );
+    assertEquals(calls, 1);
+    assertEquals(err.stopReason, "max_tokens");
+    assertEquals(err.usage.outputTokens, 5);
+});
+
 Deno.test("completeValidated reports each attempt with codes and no text", async () => {
     const { client } = textClient(["nope CANARY", '{"a":2}']);
     const seen: unknown[] = [];

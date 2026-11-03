@@ -351,9 +351,25 @@ class EquipmentMappingTest(unittest.TestCase):
         self.assertIn("  'walking-lunge'", sql)
         self.assertIn("  'squat'", sql)
         self.assertNotIn("  'sit-ups'", sql)
-        self.assertEqual(set(gen.KEY_SECONDARY_OVERRIDES), gen.KNEE_DOMINANT_KEYS | {"kettlebell-sumo-high-pull"})
+        self.assertEqual(set(gen.KEY_SECONDARY_OVERRIDES),
+                         gen.KNEE_DOMINANT_KEYS | gen.STRAIGHT_KNEE_HINGE_KEYS | {"kettlebell-sumo-high-pull"})
         self.assertEqual(gen.KEY_SECONDARY_OVERRIDES["kettlebell-sumo-high-pull"], ["hamstrings"])
         self.assertIn("array['hamstrings']::public.muscle_group[]\nwhere not is_custom and key in (\n  'kettlebell-sumo-high-pull'", sql)
+
+    def test_straight_knee_hinges_are_hamstrings_with_glutes_secondary_and_match_the_migration(self):
+        keys = gen.STRAIGHT_KNEE_HINGE_KEYS
+        self.assertEqual(len(keys), 18)
+        for key in keys:
+            self.assertEqual(gen.KEY_GROUP_OVERRIDES[key], "hamstrings", key)
+            self.assertEqual(gen.KEY_SECONDARY_OVERRIDES[key], ["glutes"], key)
+        for bent in ("deadlift", "sumo-deadlift", "hex-bar-deadlift", "deficit-deadlift", "pause-deadlift"):
+            self.assertNotIn(bent, gen.KEY_GROUP_OVERRIDES)
+        self.assertTrue(keys.isdisjoint(gen.KNEE_DOMINANT_KEYS | gen.HIP_FLEXION_KEYS | gen.HIP_ABDUCTION_KEYS))
+        path = os.path.join(os.path.dirname(__file__), "..", "supabase", "migrations",
+                            "20261229100500_catalogue_straight_knee_hinge.sql")
+        with open(path, encoding="utf-8") as f:
+            block = re.search(r"key in \((.*?)\)\s*;", f.read(), re.S).group(1)
+        self.assertEqual(set(re.findall(r"'([^']+)'", block)), keys)
 
     def test_no_old_cardio_value_is_produced(self):
         old = {"cardio_bike", "treadmill", "elliptical", "rower", "cardio_other"}

@@ -45,7 +45,7 @@ import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 
-/** US-95 and US-93: "Revisar carpeta", from the stateless screen to the root with a real model over fakes. */
+/** US-95 and US-93: "Revisar tus rutinas", from the stateless screen to the root with a real model over fakes. */
 @RunWith(RobolectricTestRunner::class)
 @Config(qualifiers = "w360dp-h2400dp-xxhdpi")
 @Suppress("TooManyFunctions") // One method per Gherkin scenario.
@@ -103,7 +103,7 @@ class FolderReviewScreenTest {
             ),
         )
 
-        rule.onNodeWithText("Revisar carpeta").assertExists()
+        rule.onNodeWithText("Revisar tus rutinas").assertExists()
         assertTrue(top("folder_review_message") < top("folder_review_section_falta"))
         assertTrue(top("folder_review_section_falta") < top("folder_review_section_comments"))
         assertTrue(top("folder_review_section_comments") < top("folder_review_section_changes"))
@@ -211,14 +211,14 @@ class FolderReviewScreenTest {
         show(FolderReviewUiState.Requesting)
 
         rule.onNodeWithTag("folder_review_progress").assertExists()
-        rule.onNodeWithText("Revisando tu carpeta…").assertExists()
+        rule.onNodeWithText("Revisando tus rutinas…").assertExists()
     }
 
     @Test
     fun aFailure_offersReintentar_andRetrySendsTheEvent() {
         show(FolderReviewUiState.Failed(PlanFailureKind.Other))
 
-        rule.onNodeWithText("No se pudo revisar la carpeta. Inténtalo de nuevo.").assertExists()
+        rule.onNodeWithText("No se pudo revisar tus rutinas. Inténtalo de nuevo.").assertExists()
         rule.onNodeWithTag("folder_review_retry").performClick()
 
         assertEquals(listOf<FolderReviewEvent>(FolderReviewEvent.Retry), events)

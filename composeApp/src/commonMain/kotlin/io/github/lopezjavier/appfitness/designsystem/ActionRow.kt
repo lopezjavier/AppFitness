@@ -18,7 +18,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.disabled
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -39,7 +41,8 @@ object ActionRowDefaults {
  * Tappable row of a choice sheet: decorative [icon], [title] (`titleMedium`) and an optional one-line [hint]
  * (`bodyMedium`, `textSecondary`; null for a title-only row). At least 48 dp tall, `Role.Button`, and read as one
  * node ("title, hint"). [testTag] lands on the row. A disabled ([enabled] false) row is dimmed and inert; its
- * [hint] should say why.
+ * [hint] should say why. A [blocked] row is dimmed like a disabled one but stays clickable (the tap explains the
+ * refusal) and is announced as unavailable, with [blockedDescription] as its state description.
  */
 @Composable
 fun ActionRow(
@@ -50,15 +53,22 @@ fun ActionRow(
     testTag: String,
     modifier: Modifier = Modifier,
     enabled: Boolean = true,
+    blocked: Boolean = false,
+    blockedDescription: String? = null,
 ) {
-    val contentColor = if (enabled) AppTheme.colors.textPrimary else AppTheme.colors.ghostData
+    val contentColor = if (enabled && !blocked) AppTheme.colors.textPrimary else AppTheme.colors.ghostData
     Row(
         modifier = modifier
             .fillMaxWidth()
             .heightIn(min = ActionRowDefaults.MinHeight)
             .clickable(enabled = enabled, role = Role.Button, onClick = onClick)
             .padding(horizontal = Spacing.screenMargin, vertical = ActionRowDefaults.VerticalPadding)
-            .semantics(mergeDescendants = true) {}
+            .semantics(mergeDescendants = true) {
+                if (blocked) {
+                    disabled()
+                    if (blockedDescription != null) stateDescription = blockedDescription
+                }
+            }
             .testTag(testTag),
         horizontalArrangement = Arrangement.spacedBy(ActionRowDefaults.IconTextGap),
         verticalAlignment = Alignment.CenterVertically,

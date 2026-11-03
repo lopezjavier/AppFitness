@@ -77,8 +77,8 @@ class GlossaryStringsTest {
     }
 
     @Test
-    fun borrar_isOnlyUsedForTheAccountAndTheSearchField() {
-        val allowed = setOf("Borrar cuenta", "Borrar búsqueda")
+    fun borrar_isOnlyUsedForTheAccountTheSearchFieldAndTheRoutineFolder() {
+        val allowed = setOf("Borrar cuenta", "Borrar búsqueda", "Borrar carpeta")
         val stray = valuesWith { it.startsWith("Borrar") && it !in allowed }
 
         assertTrue(stray.isEmpty(), "Delete a saved record is Eliminar: $stray")

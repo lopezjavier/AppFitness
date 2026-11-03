@@ -24,7 +24,7 @@ import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 
-/** ADR-40: "Revisar carpeta" keeps the review and the unchecked changes, and never bills or writes again by itself. */
+/** ADR-40: "Revisar tus rutinas" keeps the review and the unchecked changes, and never bills or writes by itself. */
 @RunWith(RobolectricTestRunner::class)
 @Config(qualifiers = "w360dp-h2400dp-xxhdpi")
 class FolderReviewRestorationTest {

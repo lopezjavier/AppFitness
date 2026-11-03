@@ -103,7 +103,7 @@ data class BlockPreviewRoute(val planId: String) : AppRoute
 data class BlockSplitsRoute(val planId: String) : AppRoute
 
 /**
- * "Revisar carpeta" (US-95, US-93): the coach's review of the folder [folderId]. [purpose] is `review` (Entreno) or
+ * "Revisar tus rutinas" (US-95, US-93): the coach's review of the folder [folderId]. [purpose] is `review` (Entreno) or
  * `block` (a block started from the folder, for plan [planId]). The model reads the three from its saved state.
  */
 @Serializable
