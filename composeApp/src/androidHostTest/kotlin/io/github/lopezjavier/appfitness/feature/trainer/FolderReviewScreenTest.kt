@@ -45,7 +45,7 @@ import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 
-/** US-95 and US-93: "Revisar carpeta", from the stateless screen to the root with a real model over fakes. */
+/** US-95 and US-93: "Revisar tus rutinas", from the stateless screen to the root with a real model over fakes. */
 @RunWith(RobolectricTestRunner::class)
 @Config(qualifiers = "w360dp-h2400dp-xxhdpi")
 @Suppress("TooManyFunctions") // One method per Gherkin scenario.

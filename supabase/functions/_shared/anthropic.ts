@@ -307,7 +307,7 @@ export async function complete(
 export type Validated<T> = { value: T; text: string; usage: AnthropicUsage };
 
 /**
- * Completes and validates; an invalid output gets one retry, then InvalidOutputError (carrying the usage of
+ * Completes and validates; an invalid output gets one retry (none after a max_tokens stop), then InvalidOutputError (carrying the usage of
  * both attempts). `validate` returns the parsed value or null when invalid.
  */
 export type RetryOptions = {

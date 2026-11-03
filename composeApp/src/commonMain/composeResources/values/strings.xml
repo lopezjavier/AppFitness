@@ -2136,7 +2136,7 @@
     <string name="routines_folder_menu_cd">Más acciones de %1$s</string>
     <string name="routines_folder_menu_review">Revisar tus rutinas</string>
     <string name="routines_folder_menu_rename">Renombrar</string>
-    <string name="routines_folder_menu_offline_reason">Sin conexión: no se puede revisar ni renombrar la carpeta</string>
+    <string name="routines_folder_menu_offline_reason">Sin conexión: no se puede revisar, renombrar ni borrar la carpeta</string>
     <string name="routines_folder_review_action">revisar tus rutinas</string>
     <string name="block_start_title">¿Cómo quieres empezar?</string>
     <string name="block_start_scratch">Desde cero</string>

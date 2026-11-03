@@ -77,7 +77,7 @@ private val ChangedFailureCopy = CoachFailureCopy(
 )
 
 /**
- * Stateful "Revisar carpeta" (US-95, US-93): asks the coach once when it opens (a paid call, never again by itself
+ * Stateful "Revisar tus rutinas" (US-95, US-93): asks the coach once when it opens (a paid call, never again by itself
  * after a recreation) and plays the one-off results: the confirmation of the copy (a message and a Confirm haptic)
  * before leaving through [onFinishCopy], the failure message with a Reject haptic, and [onFinishBlock] once the block
  * is stored.
@@ -141,7 +141,7 @@ fun FolderReviewRoot(
 }
 
 /**
- * "Revisar carpeta" on [AppScreen] with back: the coach's message, "Falta", the comments and the checklist of proposed
+ * "Revisar tus rutinas" on [AppScreen] with back: the coach's message, "Falta", the comments and the checklist of proposed
  * changes (all checked), with a pinned footer: "Aplicar en una copia" (review) or "Crear bloque" (block). Waiting is a
  * [StreamProgressState]; a failure is [CoachFailureContent] with "Reintentar" (R-31). Leaving writes nothing.
  */
