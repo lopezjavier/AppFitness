@@ -18,4 +18,6 @@ class UnconfiguredCoachBlockRepository : CoachBlockRepository {
 
     override suspend fun saveBlock(planId: String, edits: List<BlockEdit>): Result<BlockSaved> =
         Result.failure(AppException(AppError.Unknown))
+
+    override suspend fun removeBlock(planId: String): Result<Unit> = Result.failure(AppException(AppError.Unknown))
 }

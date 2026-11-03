@@ -15,6 +15,7 @@ import io.github.lopezjavier.appfitness.data.remote.BlockSessionDto
 import io.github.lopezjavier.appfitness.data.remote.CoachBlockPlanDto
 import io.github.lopezjavier.appfitness.data.remote.CoachErrorParser
 import io.github.lopezjavier.appfitness.data.remote.CoachStreamParser
+import io.github.lopezjavier.appfitness.data.remote.RemoveBlockParams
 import io.github.lopezjavier.appfitness.data.remote.SaveBlockParams
 import io.github.lopezjavier.appfitness.data.remote.SaveBlockResultDto
 import io.github.lopezjavier.appfitness.data.remote.blockOf
@@ -93,6 +94,11 @@ class SupabaseCoachBlockRepository internal constructor(
         postgrest.rpc("save_coach_block", params).decodeAs<SaveBlockResultDto>().toDomain()
     }.mapSaveErrors()
 
+    override suspend fun removeBlock(planId: String): Result<Unit> = auth.ownRow {
+        postgrest.rpc("remove_coach_block", RemoveBlockParams(planId))
+        Unit
+    }.mapRemoveErrors()
+
     /** A finished stream whose block cannot be read back is [CoachFailure.Other]. */
     private suspend fun storedBlockOrOther(planId: String): Result<CoachBlock> {
         val block = loadBlock(planId)
@@ -112,6 +118,12 @@ class SupabaseCoachBlockRepository internal constructor(
             }
             .decodeList<BlockSessionDto>()
         return blockOf(plan, sessions)
+    }
+
+    /** SQLSTATE 55000: the plan is no longer open. */
+    private fun <T> Result<T>.mapRemoveErrors(): Result<T> = recoverCatching { failure ->
+        val cause = (failure as? AppException)?.cause as? PostgrestRestException ?: throw failure
+        if (cause.code == WRONG_OBJECT_STATE) throw CoachException(CoachFailure.Conflict) else throw failure
     }
 
     /** SQLSTATE 55000: the plan is no longer open or has no block to save. */
