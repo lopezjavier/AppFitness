@@ -2128,7 +2128,7 @@
     <string name="folder_review_falta_h6_equipment">Un ejercicio usa material que no tienes</string>
     <string name="folder_review_falta_h6_excluded_discomfort">Un ejercicio choca con una molestia que indicaste</string>
     <string name="folder_review_falta_h6_sessions">Las rutinas no coinciden con tus días de entreno</string>
-    <string name="folder_review_falta_h6_time">Una rutina dura más que tu tiempo por sesión</string>
+    <string name="folder_review_falta_h6_time">Una rutina dura más que tu tiempo por entreno</string>
     <string name="folder_review_falta_h6_sets_per_exercise">Un ejercicio tiene un número de series fuera de 1 a 10</string>
     <string name="folder_review_falta_h6_rest">Un ejercicio tiene un descanso fuera de lo recomendado</string>
     <string name="folder_review_falta_h7_order">Los ejercicios principales deben ir primero</string>

@@ -1,6 +1,7 @@
 package io.github.lopezjavier.appfitness.feature.trainer
 
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
@@ -304,6 +305,7 @@ class FolderReviewScreenTest {
     }
 
     @Test
+    @OptIn(ExperimentalTestApi::class)
     fun applyingInACopy_sendsOnlyTheCheckedChanges_confirmsAndShowsTheServerName() {
         givenReview()
         showRoot(viewModel())
@@ -311,6 +313,7 @@ class FolderReviewScreenTest {
 
         rule.onNodeWithTag("folder_review_apply").performClick()
         rule.waitForIdle()
+        rule.waitUntil(timeoutMillis = 5_000) { shown.isNotEmpty() }
 
         assertEquals(listOf("rev-1" to listOf("c1")), reviews.applied)
         assertEquals(listOf("Carpeta «Mi carpeta (revisada)» creada."), shown)
