@@ -236,6 +236,7 @@ class RoutinesViewModel(
         val folder = content.folders.firstOrNull { it.id == id }
         if (!online || folder == null) return
         if (content.routines.none { it.folderId == id }) {
+            setFolderMenu(null)
             deleteFolder(id)
         } else {
             effectChannel.trySend(RoutinesEffect.FolderNotEmpty)

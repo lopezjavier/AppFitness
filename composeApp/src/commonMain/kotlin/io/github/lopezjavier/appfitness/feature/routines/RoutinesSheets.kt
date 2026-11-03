@@ -15,6 +15,8 @@ import io.github.lopezjavier.appfitness.composeapp.resources.ic_edit
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_label
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_star
 import io.github.lopezjavier.appfitness.composeapp.resources.routine_duplicate
+import io.github.lopezjavier.appfitness.composeapp.resources.routines_folder_menu_delete
+import io.github.lopezjavier.appfitness.composeapp.resources.routines_folder_menu_delete_blocked_cd
 import io.github.lopezjavier.appfitness.composeapp.resources.routines_folder_menu_offline_reason
 import io.github.lopezjavier.appfitness.composeapp.resources.routines_folder_menu_rename
 import io.github.lopezjavier.appfitness.composeapp.resources.routines_folder_menu_review
@@ -38,7 +40,9 @@ import org.jetbrains.compose.resources.stringResource
 @Composable
 internal fun RoutinesDialogs(state: RoutinesUiState.Content, onEvent: (RoutinesEvent) -> Unit) {
     state.menuFor?.let { RoutineMenuSheet(it, state.isOnline, onEvent) }
-    state.folderMenuFor?.let { FolderMenuSheet(it, state.isOnline, onEvent) }
+    state.folderMenuFor?.let { folder ->
+        FolderMenuSheet(folder, state.isOnline, state.routines.any { it.folderId == folder.id }, onEvent)
+    }
     state.moveFor?.let { MoveSheet(it, state, onEvent) }
     state.folderSheet?.let { FolderSheet(it, state.folders, state.folderSaving, state.isOnline, onEvent) }
 }
@@ -92,11 +96,17 @@ private fun RoutineMenuSheet(routine: RoutineSummary, isOnline: Boolean, onEvent
 }
 
 /**
- * Actions of one folder (R-07): "Revisar con el entrenador" (a paid call) and "Renombrar". Both need the network, so
- * offline they stay listed but disabled, with the reason under the title. Delete stays on the header icon (R-20).
+ * Actions of one folder (R-07): "Revisar tus rutinas" (a paid call), "Renombrar" and "Borrar carpeta" (last, no
+ * dialog). All need the network, so offline they stay listed but disabled, with the reason under the title. With
+ * routines inside, delete is [AppSheetAction.blocked]: dimmed, but the tap explains the refusal (R-20, R-28).
  */
 @Composable
-private fun FolderMenuSheet(folder: RoutineFolder, isOnline: Boolean, onEvent: (RoutinesEvent) -> Unit) {
+private fun FolderMenuSheet(
+    folder: RoutineFolder,
+    isOnline: Boolean,
+    hasRoutines: Boolean,
+    onEvent: (RoutinesEvent) -> Unit,
+) {
     AppActionSheet(
         actions = listOf(
             AppSheetAction(
@@ -111,6 +121,14 @@ private fun FolderMenuSheet(folder: RoutineFolder, isOnline: Boolean, onEvent: (
                 testTag = "routines_folder_menu_rename",
                 enabled = isOnline,
             ) { onEvent(RoutinesEvent.RenameFolder(folder.id)) },
+            AppSheetAction(
+                icon = Res.drawable.ic_delete,
+                title = stringResource(Res.string.routines_folder_menu_delete),
+                testTag = "routines_folder_menu_delete",
+                enabled = isOnline,
+                blocked = hasRoutines,
+                blockedDescription = stringResource(Res.string.routines_folder_menu_delete_blocked_cd),
+            ) { onEvent(RoutinesEvent.RequestDeleteFolder(folder.id)) },
         ),
         onDismiss = { onEvent(RoutinesEvent.DismissFolderMenu) },
         title = folder.name,

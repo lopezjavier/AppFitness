@@ -210,6 +210,19 @@ class RoutinesFoldersViewModelTest {
     }
 
     @Test
+    fun deletingAnEmptyFolderFromItsMenu_dismissesTheMenu() = runTest {
+        withFolder("f1", "Vacía")
+        val vm = started()
+        vm.onEvent(RoutinesEvent.OpenFolderMenu("f1"))
+
+        vm.onEvent(RoutinesEvent.RequestDeleteFolder("f1"))
+        advanceUntilIdle()
+
+        assertNull(vm.content().folderMenuFor)
+        assertEquals(listOf("f1"), repository.deletedFolders)
+    }
+
+    @Test
     fun aStaleListWhereTheServerSaysNotEmpty_sendsTheMessage_andReloads() = runTest {
         withFolder("f1", "Vacía")
         val vm = started()

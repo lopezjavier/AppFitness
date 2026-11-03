@@ -234,7 +234,6 @@ class RoutinesScreenTest {
         assertEquals(listOf("r1"), repository.deletedIds)
         rule.onNodeWithTag("routines_row_r1").assertDoesNotExist()
         rule.onNodeWithTag("routines_row_r2").assertExists()
-        rule.onNodeWithTag("routines_folder_delete_dialog").assertDoesNotExist()
     }
 
     @Test
