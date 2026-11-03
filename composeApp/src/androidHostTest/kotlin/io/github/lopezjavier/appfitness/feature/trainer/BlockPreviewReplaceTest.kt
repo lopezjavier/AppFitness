@@ -12,6 +12,7 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.lifecycle.SavedStateHandle
 import io.github.lopezjavier.appfitness.app.FakeConnectivityObserver
+import io.github.lopezjavier.appfitness.app.FakeTrainingPreferencesRepository
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
 import io.github.lopezjavier.appfitness.designsystem.LocalAppMessages
 import io.github.lopezjavier.appfitness.domain.AppError
@@ -20,6 +21,7 @@ import io.github.lopezjavier.appfitness.domain.model.CoachException
 import io.github.lopezjavier.appfitness.domain.model.CoachFailure
 import io.github.lopezjavier.appfitness.domain.model.Equipment
 import io.github.lopezjavier.appfitness.domain.model.ExerciseAlternative
+import io.github.lopezjavier.appfitness.domain.model.TrainingPreferences
 import io.github.lopezjavier.appfitness.feature.exercises.FakeExerciseLibrary
 import io.github.lopezjavier.appfitness.feature.exercises.FakeExerciseMediaUris
 import io.github.lopezjavier.appfitness.feature.exercises.FakeExerciseRepository
@@ -52,6 +54,7 @@ class BlockPreviewReplaceTest {
         alternativesById = mapOf("ex-1" to listOf(ExerciseAlternative(fly, 0.87)))
     }
     private val messages = RecordingMessages()
+    private val prefs = FakeTrainingPreferencesRepository()
     private val saved = SavedStateHandle()
     private var backs = 0
 
@@ -64,9 +67,15 @@ class BlockPreviewReplaceTest {
                 "bench" to exerciseInfo("bench", "Press banca"),
                 "row" to exerciseInfo("row", "Remo"),
                 "fly" to exerciseInfo("fly", "Aperturas con banda"),
+                "cable-fly" to exerciseInfo("cable-fly", "Aperturas en polea"),
+                "ez-curl" to exerciseInfo("ez-curl", "Curl con barra Z"),
+                "chest-press" to exerciseInfo("chest-press", "Press en maquina"),
+                "push-up" to exerciseInfo("push-up", "Flexiones"),
+                "walking" to exerciseInfo("walking", "Caminar"),
             ),
         ),
         MutableClock(),
+        prefs,
         handle,
     )
 
@@ -112,6 +121,59 @@ class BlockPreviewReplaceTest {
         rule.onNodeWithTag("block_preview_replace_option_row").assertDoesNotExist()
         rule.onNodeWithTag("block_preview_replace_reset").assertDoesNotExist()
         assertEquals(listOf("ex-1"), repository.alternativesCalls)
+    }
+
+    private fun withEquipmentAlternatives(vararg selected: Equipment) {
+        val extra = listOf(
+            exerciseRow("ex-4", "cable-fly", equipment = Equipment.Cable),
+            exerciseRow("ex-5", "ez-curl", equipment = Equipment.EzBar),
+            exerciseRow("ex-6", "chest-press", equipment = Equipment.Machine),
+            exerciseRow("ex-7", "push-up", equipment = Equipment.Bodyweight),
+            exerciseRow("ex-8", "walking", equipment = Equipment.CardioMachine),
+        )
+        repository.rows = repository.rows + extra
+        repository.alternativesById = mapOf("ex-1" to (listOf(fly) + extra).map { ExerciseAlternative(it, 0.8) })
+        prefs.result = Result.success(TrainingPreferences(equipment = selected.toSet()))
+        current = newModel(SavedStateHandle())
+    }
+
+    @Test
+    fun withDumbbellOnly_theSheetHidesPoleaBarraZAndMaquina_butKeepsBodyweightAndWalking() {
+        withEquipmentAlternatives(Equipment.Dumbbell)
+        show()
+
+        tap("block_preview_replace_1_0_0")
+
+        rule.onNodeWithTag("block_preview_replace_option_cable-fly").assertDoesNotExist()
+        rule.onNodeWithTag("block_preview_replace_option_ez-curl").assertDoesNotExist()
+        rule.onNodeWithTag("block_preview_replace_option_chest-press").assertDoesNotExist()
+        rule.onNodeWithTag("block_preview_replace_option_fly").assertDoesNotExist()
+        rule.onNodeWithTag("block_preview_replace_option_push-up").assertExists()
+        rule.onNodeWithTag("block_preview_replace_option_walking").assertExists()
+    }
+
+    @Test
+    fun withNoEquipmentSelected_theSheetOffersEverything() {
+        withEquipmentAlternatives()
+        show()
+
+        tap("block_preview_replace_1_0_0")
+
+        listOf("fly", "cable-fly", "ez-curl", "chest-press", "push-up", "walking").forEach {
+            rule.onNodeWithTag("block_preview_replace_option_$it").assertExists()
+        }
+    }
+
+    @Test
+    fun withPoleaSelected_onlyThatRowAppearsBesidesTheAlwaysAllowedOnes() {
+        withEquipmentAlternatives(Equipment.Cable)
+        show()
+
+        tap("block_preview_replace_1_0_0")
+
+        rule.onNodeWithTag("block_preview_replace_option_cable-fly").assertExists()
+        rule.onNodeWithTag("block_preview_replace_option_ez-curl").assertDoesNotExist()
+        rule.onNodeWithTag("block_preview_replace_option_chest-press").assertDoesNotExist()
     }
 
     @Test

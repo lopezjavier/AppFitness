@@ -451,6 +451,7 @@ val uiModule =
                 exercises = get(),
                 library = get(),
                 clock = get(),
+                preferences = get(),
                 savedState = get(),
                 exerciseNames = get(),
             )

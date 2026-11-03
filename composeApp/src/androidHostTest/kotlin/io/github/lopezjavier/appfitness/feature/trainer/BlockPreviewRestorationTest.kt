@@ -13,6 +13,7 @@ import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
 import androidx.lifecycle.SavedStateHandle
 import io.github.lopezjavier.appfitness.app.FakeConnectivityObserver
+import io.github.lopezjavier.appfitness.app.FakeTrainingPreferencesRepository
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
 import io.github.lopezjavier.appfitness.domain.model.BlockCardio
 import io.github.lopezjavier.appfitness.domain.model.BlockExercise
@@ -40,6 +41,7 @@ class BlockPreviewRestorationTest {
     val rule = createComposeRule()
 
     private val blocks = FakeCoachBlockRepository().apply { current = Result.success(coachBlock(sessionsPerWeek = 4)) }
+    private val prefs = FakeTrainingPreferencesRepository()
     private val saved = SavedStateHandle()
 
     private fun newModel(handle: SavedStateHandle = saved) = BlockPreviewViewModel(
@@ -50,6 +52,7 @@ class BlockPreviewRestorationTest {
             mapOf("bench" to exerciseInfo("bench", "Press banca"), "row" to exerciseInfo("row", "Remo")),
         ),
         MutableClock(),
+        prefs,
         handle,
     )
 
@@ -163,6 +166,7 @@ class BlockPreviewRestorationTest {
                 ),
             ),
             MutableClock(),
+            prefs,
             handle,
         )
     }

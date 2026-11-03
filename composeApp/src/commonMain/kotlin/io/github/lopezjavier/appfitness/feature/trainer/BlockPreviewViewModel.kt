@@ -4,17 +4,21 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import io.github.lopezjavier.appfitness.domain.AppError
+import io.github.lopezjavier.appfitness.domain.AppException
 import io.github.lopezjavier.appfitness.domain.appErrorOrNull
 import io.github.lopezjavier.appfitness.domain.model.BlockEdit
 import io.github.lopezjavier.appfitness.domain.model.CoachBlock
 import io.github.lopezjavier.appfitness.domain.model.CoachException
 import io.github.lopezjavier.appfitness.domain.model.CoachFailure
+import io.github.lopezjavier.appfitness.domain.model.Equipment
 import io.github.lopezjavier.appfitness.domain.model.ExerciseAlternative
 import io.github.lopezjavier.appfitness.domain.model.ExerciseNames
 import io.github.lopezjavier.appfitness.domain.port.Clock
 import io.github.lopezjavier.appfitness.domain.port.ExerciseLibrary
 import io.github.lopezjavier.appfitness.domain.repository.CoachBlockRepository
 import io.github.lopezjavier.appfitness.domain.repository.ExerciseRepository
+import io.github.lopezjavier.appfitness.domain.repository.TrainingPreferencesRepository
+import io.github.lopezjavier.appfitness.domain.usecase.EquipmentFilter
 import io.github.lopezjavier.appfitness.domain.usecase.ExerciseNameResolver
 import io.github.lopezjavier.appfitness.domain.usecase.LoadExerciseCatalog
 import io.github.lopezjavier.appfitness.feature.exercises.SimilarExerciseRow
@@ -54,6 +58,7 @@ class BlockPreviewViewModel(
     private val exercises: ExerciseRepository,
     private val library: ExerciseLibrary,
     private val clock: Clock,
+    private val preferences: TrainingPreferencesRepository,
     private val savedState: SavedStateHandle = SavedStateHandle(),
     private val exerciseNames: ExerciseNameResolver = ExerciseNameResolver(exercises, library),
 ) : ViewModel() {
@@ -148,19 +153,20 @@ class BlockPreviewViewModel(
         _uiState.value = preview.copy(alternatives = AlternativesState.Loading)
         alternativesJob?.cancel()
         alternativesJob = viewModelScope.launch {
-            val result = exercises.alternatives(original.exerciseId)
-            val state = result.fold(
-                onSuccess = { alternativesState(it, slot) },
-                onFailure = {
-                    if (result.appErrorOrNull() ==
-                        AppError.Network
-                    ) {
-                        AlternativesState.Offline
-                    } else {
-                        AlternativesState.Error
-                    }
-                },
-            )
+            // Preferences are read on every open (never cached), so a change in "Mi entrenamiento" applies at once.
+            val selection = selectedEquipment()
+            val result = if (selection.isSuccess) exercises.alternatives(original.exerciseId) else null
+            val failure = selection.exceptionOrNull() ?: result?.exceptionOrNull()
+            val state = if (failure != null) {
+                if ((failure as? AppException)?.error == AppError.Network) {
+                    AlternativesState.Offline
+                } else {
+                    AlternativesState.Error
+                }
+            } else {
+                val allowed = EquipmentFilter.filter(result?.getOrNull().orEmpty(), selection.getOrNull())
+                alternativesState(allowed, slot)
+            }
             _uiState.update { current ->
                 if (current is BlockPreviewUiState.Preview &&
                     current.replaceSlot == replaceSlotKey(slot.first, slot.second)
@@ -172,6 +178,10 @@ class BlockPreviewViewModel(
             }
         }
     }
+
+    /** The user's current equipment (null = everything), read fresh from the preferences. */
+    private suspend fun selectedEquipment(): Result<Set<Equipment>?> =
+        preferences.get().map { EquipmentFilter.selectedFrom(it) }
 
     /** Named alternatives that are not already elsewhere in the workout (the server refuses duplicates). */
     private suspend fun alternativesState(
@@ -252,13 +262,16 @@ class BlockPreviewViewModel(
         val stored = savedState.get<String>(KEY_REPLACEMENTS)?.split(',').orEmpty().filter { it.isNotEmpty() }
         if (stored.isEmpty()) return emptyMap()
         val byId = exercises.getAll().getOrNull().orEmpty().associateBy { it.id }
+        // A swap whose equipment is no longer selected is dropped; unreadable preferences keep it (the server checks).
+        val selected = selectedEquipment().getOrNull()
         val restored = stored.mapNotNull { entry ->
             val (session, position, id) = entry.split('|').takeIf { it.size == REPLACEMENT_PARTS }
                 ?: return@mapNotNull null
             val sessionIndex = session.toIntOrNull() ?: return@mapNotNull null
             val index = position.toIntOrNull() ?: return@mapNotNull null
             val fits = block.sessions.any { it.sessionIndex == sessionIndex && index in it.exercises.indices }
-            val exercise = byId[id]?.takeIf { fits && id in names } ?: return@mapNotNull null
+            val exercise = byId[id]?.takeIf { fits && id in names && EquipmentFilter.allows(it, selected) }
+                ?: return@mapNotNull null
             replaceSlotKey(sessionIndex, index) to Replacement(exercise.id, exercise.key, exercise.equipment)
         }.toMap()
         saveReplacementsState(restored, savedState.get<String>(KEY_REPLACE_SLOT))
@@ -359,9 +372,18 @@ class BlockPreviewViewModel(
         prefetched = false
         prefetchJob = viewModelScope.launch {
             val ids = block.sessions.flatMap { session -> session.exercises.map { it.exerciseId } }.distinct()
-            val results = coroutineScope { ids.map { id -> async { id to exercises.alternatives(id) } }.awaitAll() }
+            // Without readable preferences nothing is cached: every button stays and the sheet shows the retry.
+            val selection = selectedEquipment()
+            val results = if (selection.isSuccess) {
+                coroutineScope { ids.map { id -> async { id to exercises.alternatives(id) } }.awaitAll() }
+            } else {
+                emptyList()
+            }
             results.forEach { (id, result) ->
-                result.getOrNull()?.let { list -> alternativeIds[id] = list.map { it.exercise.id }.toSet() }
+                result.getOrNull()?.let { list ->
+                    val allowed = EquipmentFilter.filter(list, selection.getOrNull())
+                    alternativeIds[id] = allowed.map { it.exercise.id }.toSet()
+                }
             }
             prefetched = true
             _uiState.update { state ->

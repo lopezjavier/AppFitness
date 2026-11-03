@@ -10,6 +10,7 @@ import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
 import androidx.lifecycle.SavedStateHandle
 import io.github.lopezjavier.appfitness.app.FakeConnectivityObserver
+import io.github.lopezjavier.appfitness.app.FakeTrainingPreferencesRepository
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
 import io.github.lopezjavier.appfitness.designsystem.LocalAppMessages
 import io.github.lopezjavier.appfitness.domain.model.BlockCardio
@@ -87,6 +88,7 @@ class BlockPreviewCardioScreenTest {
                 ),
             ),
             MutableClock(),
+            FakeTrainingPreferencesRepository(),
             SavedStateHandle(),
         )
         rule.setContent {

@@ -1,6 +1,7 @@
 package io.github.lopezjavier.appfitness.feature.trainer
 
 import androidx.lifecycle.SavedStateHandle
+import io.github.lopezjavier.appfitness.app.FakeTrainingPreferencesRepository
 import io.github.lopezjavier.appfitness.domain.AppError
 import io.github.lopezjavier.appfitness.domain.model.Equipment
 import io.github.lopezjavier.appfitness.domain.model.ExerciseAlternative
@@ -55,8 +56,15 @@ class BlockPreviewSwappableTest {
     @AfterTest
     fun tearDown() = Dispatchers.resetMain()
 
-    private fun viewModel(saved: SavedStateHandle = SavedStateHandle()) =
-        BlockPreviewViewModel("plan-1", blocks, exercises, library, MutableClock(), saved)
+    private fun viewModel(saved: SavedStateHandle = SavedStateHandle()) = BlockPreviewViewModel(
+        "plan-1",
+        blocks,
+        exercises,
+        library,
+        MutableClock(),
+        FakeTrainingPreferencesRepository(),
+        saved,
+    )
 
     private fun BlockPreviewViewModel.preview() = assertIs<BlockPreviewUiState.Preview>(uiState.value)
 

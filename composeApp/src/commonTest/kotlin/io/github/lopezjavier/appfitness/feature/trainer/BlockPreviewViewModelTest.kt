@@ -2,6 +2,7 @@ package io.github.lopezjavier.appfitness.feature.trainer
 
 import androidx.lifecycle.SavedStateHandle
 import app.cash.turbine.test
+import io.github.lopezjavier.appfitness.app.FakeTrainingPreferencesRepository
 import io.github.lopezjavier.appfitness.domain.AppError
 import io.github.lopezjavier.appfitness.domain.AppException
 import io.github.lopezjavier.appfitness.domain.model.BlockEdit
@@ -11,6 +12,8 @@ import io.github.lopezjavier.appfitness.domain.model.Equipment
 import io.github.lopezjavier.appfitness.domain.model.ExerciseAlternative
 import io.github.lopezjavier.appfitness.domain.model.MissingField
 import io.github.lopezjavier.appfitness.domain.model.MuscleGroup
+import io.github.lopezjavier.appfitness.domain.model.TrainingPlace
+import io.github.lopezjavier.appfitness.domain.model.TrainingPreferences
 import io.github.lopezjavier.appfitness.feature.exercises.FakeExerciseLibrary
 import io.github.lopezjavier.appfitness.feature.exercises.FakeExerciseRepository
 import io.github.lopezjavier.appfitness.feature.exercises.exerciseInfo
@@ -40,6 +43,7 @@ import kotlin.test.assertTrue
 class BlockPreviewViewModelTest {
     private val dispatcher = StandardTestDispatcher()
     private val blocks = FakeCoachBlockRepository()
+    private val prefs = FakeTrainingPreferencesRepository()
     private val exercises = FakeExerciseRepository(listOf(exerciseRow("ex-1", "bench"), exerciseRow("ex-2", "row")))
     private val library = FakeExerciseLibrary(
         mapOf("bench" to exerciseInfo("bench", "Press banca"), "row" to exerciseInfo("row", "Remo")),
@@ -52,7 +56,7 @@ class BlockPreviewViewModelTest {
     fun tearDown() = Dispatchers.resetMain()
 
     private fun viewModel(saved: SavedStateHandle = SavedStateHandle()) =
-        BlockPreviewViewModel("plan-1", blocks, exercises, library, MutableClock(), saved)
+        BlockPreviewViewModel("plan-1", blocks, exercises, library, MutableClock(), prefs, saved)
 
     private fun BlockPreviewViewModel.preview() = assertIs<BlockPreviewUiState.Preview>(uiState.value)
 
@@ -786,6 +790,151 @@ class BlockPreviewViewModelTest {
 
         assertTrue(model.preview().replacements.isEmpty())
         assertNull(saved.get<String>("block_replacements"))
+    }
+
+    // Equipment filter (T-209)
+
+    private fun withMixedEquipmentAlternatives() {
+        exercises.rows = listOf(
+            exerciseRow("ex-1", "bench"),
+            exerciseRow("ex-2", "row"),
+            exerciseRow("ex-3", "fly", equipment = Equipment.Cable),
+            exerciseRow("ex-4", "ez-curl", equipment = Equipment.EzBar),
+            exerciseRow("ex-5", "chest-press", equipment = Equipment.Machine),
+            exerciseRow("ex-6", "db-press", equipment = Equipment.Dumbbell),
+            exerciseRow("ex-7", "push-up", equipment = Equipment.Bodyweight),
+            exerciseRow("ex-8", "walking", equipment = Equipment.CardioMachine),
+            exerciseRow("ex-9", "running", equipment = Equipment.CardioMachine),
+            exerciseRow("ex-10", "stationary-bike", equipment = Equipment.CardioMachine),
+        )
+        library.entries = exercises.rows.associate { it.key!! to exerciseInfo(it.key!!, "Name ${it.key}") }
+        exercises.alternativesById = mapOf("ex-1" to exercises.rows.drop(2).map { ExerciseAlternative(it, 0.9) })
+        blocks.current = Result.success(coachBlock())
+    }
+
+    private fun setEquipment(vararg equipment: Equipment, place: TrainingPlace? = null) {
+        prefs.result = Result.success(TrainingPreferences(place = place, equipment = equipment.toSet()))
+    }
+
+    private fun BlockPreviewViewModel.offeredIds() = alternatives().toSet()
+
+    @Test
+    fun openReplace_withDumbbellOnly_hidesCableEzBarMachineAndOtherCardio() = runTest(dispatcher) {
+        withMixedEquipmentAlternatives()
+        setEquipment(Equipment.Dumbbell)
+        val model = viewModel()
+        advanceUntilIdle()
+
+        openedPicker(model)
+
+        assertEquals(setOf("ex-6", "ex-7", "ex-8", "ex-9"), model.offeredIds())
+    }
+
+    @Test
+    fun openReplace_withNoEquipmentAtTheGym_offersEverything() = runTest(dispatcher) {
+        withMixedEquipmentAlternatives()
+        setEquipment(place = TrainingPlace.Gym)
+        val model = viewModel()
+        advanceUntilIdle()
+
+        openedPicker(model)
+
+        assertEquals(exercises.rows.drop(2).map { it.id }.toSet(), model.offeredIds())
+    }
+
+    @Test
+    fun openReplace_withNoEquipmentAtHome_offersBodyweightAndWalkingRunningOnly() = runTest(dispatcher) {
+        withMixedEquipmentAlternatives()
+        setEquipment(place = TrainingPlace.Home)
+        val model = viewModel()
+        advanceUntilIdle()
+
+        openedPicker(model)
+
+        assertEquals(setOf("ex-7", "ex-8", "ex-9"), model.offeredIds())
+    }
+
+    @Test
+    fun openReplace_withTheCardioMachineSelected_offersOtherCardioMachines() = runTest(dispatcher) {
+        withMixedEquipmentAlternatives()
+        setEquipment(Equipment.CardioMachine)
+        val model = viewModel()
+        advanceUntilIdle()
+
+        openedPicker(model)
+
+        assertEquals(setOf("ex-7", "ex-8", "ex-9", "ex-10"), model.offeredIds())
+    }
+
+    @Test
+    fun openReplace_readsThePreferencesAgainOnEveryOpen() = runTest(dispatcher) {
+        withMixedEquipmentAlternatives()
+        setEquipment(Equipment.Dumbbell)
+        val model = viewModel()
+        advanceUntilIdle()
+        openedPicker(model)
+        assertFalse("ex-3" in model.offeredIds())
+        model.onEvent(BlockPreviewEvent.CloseReplace)
+
+        setEquipment(Equipment.Dumbbell, Equipment.Cable)
+        openedPicker(model)
+
+        assertTrue("ex-3" in model.offeredIds())
+    }
+
+    @Test
+    fun openReplace_whenEverythingIsFilteredOut_isEmptyAndTheSlotCannotBeSwapped() = runTest(dispatcher) {
+        withMixedEquipmentAlternatives()
+        exercises.alternativesById = mapOf("ex-1" to listOf(ExerciseAlternative(exercises.rows[2], 0.9)))
+        setEquipment(Equipment.Dumbbell)
+        val model = viewModel()
+        advanceUntilIdle()
+
+        openedPicker(model)
+
+        assertEquals(AlternativesState.Empty, model.preview().alternatives)
+        assertFalse(model.preview().canSwap(0, 0))
+    }
+
+    @Test
+    fun openReplace_whenThePreferencesCannotBeRead_isAnErrorAndRetryWorks() = runTest(dispatcher) {
+        withMixedEquipmentAlternatives()
+        val model = viewModel()
+        advanceUntilIdle()
+        prefs.result = Result.failure(AppException(AppError.Unknown))
+
+        openedPicker(model)
+        assertEquals(AlternativesState.Error, model.preview().alternatives)
+
+        setEquipment(Equipment.Cable)
+        model.onEvent(BlockPreviewEvent.LoadAlternatives)
+        advanceUntilIdle()
+
+        assertTrue("ex-3" in model.offeredIds())
+        assertFalse("ex-4" in model.offeredIds())
+    }
+
+    @Test
+    fun aPendingSwapOutsideTheCurrentEquipment_isDroppedWhenRestored() = runTest(dispatcher) {
+        withMixedEquipmentAlternatives()
+        val saved = SavedStateHandle(mapOf("block_replacements" to "0|0|ex-3,1|0|ex-6"))
+        setEquipment(Equipment.Dumbbell)
+        val model = viewModel(saved)
+        advanceUntilIdle()
+
+        assertEquals(setOf(replaceSlotKey(1, 0)), model.preview().replacements.keys)
+        assertEquals("1|0|ex-6", saved.get<String>("block_replacements"))
+    }
+
+    @Test
+    fun anOpenPickerRestoredWithNarrowedEquipment_reloadsFiltered() = runTest(dispatcher) {
+        withMixedEquipmentAlternatives()
+        val saved = SavedStateHandle(mapOf("block_replace_slot" to replaceSlotKey(0, 0)))
+        setEquipment(Equipment.Dumbbell)
+        val model = viewModel(saved)
+        advanceUntilIdle()
+
+        assertEquals(setOf("ex-6", "ex-7", "ex-8", "ex-9"), model.offeredIds())
     }
 
     @Test
