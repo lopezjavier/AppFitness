@@ -110,6 +110,7 @@ Phase 2 ADRs continue the numbering (next: **ADR-96**) and are written **in full
 | 91 | Minimal intake (years, maintenance, free text) and no "Recuperar" (deferred to Phase 3); no field extraction | Amends 86, 87 |
 | 92 | Equipment split: "Barra Z" is the only new item, every other implement is "Otro"; one "Máquina de cardio"; same barbell / EZ bar / dumbbell exercise is a 1.00 alternative both ways; no alternative below 0.90 | Amends 83, 85 |
 | 95 | A routine folder with routines cannot be deleted: the user moves or deletes the routines first; no dialog | Supersedes 51; amends 45, 69 (R-08) |
+| 96 | The coach never refuses a call because of money: no per-user or total cap; `coach_usage` records the spend and one non-blocking notice shows when the month passes 5 € | Supersedes 77's cap and 90 |
 
 ## Phase 2 ADRs (full text)
 
@@ -340,10 +341,21 @@ Phase 2 ADRs continue the numbering (next: **ADR-96**) and are written **in full
 ### ADR-95 — A routine folder with routines cannot be deleted (T-211; supersedes ADR-51, amends ADR-45 and ADR-69's R-08)
 - **Context:** ADR-51 made "delete folder" remove the folder and all its routines after a confirmation dialog (the one R-08 dialog for "many records at once"). The user (chat, 2026-11-03, with T-211) no longer wants a single tap to be able to erase routines through their folder.
 - **Decision:**
-  - A folder that holds at least one non-archived routine cannot be deleted. Its "Borrar carpeta" item in the folder's ⋮ menu is disabled; tapping it changes nothing (amended 2026-11-03, T-214: no trash icon in the row) and shows an app-level message (R-28, Reject haptic, no action button): «Mueve o elimina las rutinas de la carpeta para poder eliminarla.» The user deletes the routines one by one (swipe or sheet) or moves them with the existing "Mover a carpeta" (routine sheet, one routine at a time).
+  - A folder that holds at least one non-archived routine cannot be deleted. Its "Borrar carpeta" item in the folder's ⋮ menu is disabled; tapping it changes nothing (amended 2026-11-03, T-213: no trash icon in the row) and shows an app-level message (R-28, Reject haptic, no action button): «Mueve o elimina las rutinas de la carpeta para poder eliminarla.» The user deletes the routines one by one (swipe or sheet) or moves them with the existing "Mover a carpeta" (routine sheet, one routine at a time).
   - An empty folder is deleted at once, with no dialog (R-20, "Borrar carpeta" in the ⋮ menu).
   - The server enforces it: `delete_routine_folder` raises `23503` when a non-archived routine remains. Archived routines are not listed anywhere, so they never block and are deleted with the folder (otherwise a folder could become undeletable). The UI also checks the loaded list first, so the normal path needs no round trip.
   - Block folders (ADR-94) are normal folders: same rule. "Eliminar bloque" keeps the folder and its routines; deleting the routines later detaches them from the plan weeks as before (`coach_plan_sessions.routine_id` set null).
   - R-08 loses the "delete many records at once" dialog; the allow-list is: delete the account, sign out, discard a live workout, remove a training block, discard unsaved changes.
 - **Consequences:** `04` §4.15; `03` (`delete_routine_folder`); `05` R-08 and §10 glossary; E6 US-35 scenarios replaced; code in T-211: new migration, `RoutinesViewModel`/`RoutinesSheets`/strings, guard G5 allow-list without `RoutinesSheets.kt`. Phase 1 text (`phase1/`) stays frozen.
 - **Approval:** user decision 2026-11-03 (chat).
+
+### ADR-96 — The coach never stops because of money; spend is recorded and shown (T-214; supersedes the cap of ADR-77 and ADR-90)
+- **Context:** ADR-77 and ADR-90 refuse a model call when the month's spend reaches 3 € for the user or 5 € in total (`budget.ts`, `coach_limit_reached`, `coach_no_credit`). The app has one real user, who runs the paid flows to test them. On 2026-11-04, with the month's spend about 1 € on the 3rd (calls that failed for our own reasons, for example the T-213 `max_tokens` truncation), the user ruled that the app must never stop working because it was used a lot ("it's my app, I want it to work well").
+- **Decision:**
+  - No call is refused because of money: the per-user cap and the total cap are removed, with the refusal check, the codes `coach_limit_reached` and `coach_no_credit` raised by the budget, and the "Reintentar after limit" screens that only exist for them.
+  - `coach_usage` keeps recording the real cost of every finished call; "Uso de IA" keeps showing the month's total.
+  - When the month's total passes **5 €**, the app shows one notice per month that never blocks and can be dismissed ("Este mes llevas gastados X € en IA"; exact Spanish copy and place decided by ux-reviewer).
+  - The Anthropic account's own spending limit is the user's console setting; it is not part of the repo.
+  - A failed or truncated call is not retried when a retry cannot help (T-213: no retry after `max_tokens`).
+- **Consequences:** `01-scope.md` NFR-02 and §4; `07` §8, §11; `02` and `03` lines about the cap; E13 US-76; code (`budget.ts`, `CoachUsage.kt`, `CoachUsageScreen.kt`, the limit screens and their tests) in T-214.
+- **Approval:** user, 2026-11-04 (chat: "agreed this as a new task, also remove the complexity of 3€ per user and 5€ total").
