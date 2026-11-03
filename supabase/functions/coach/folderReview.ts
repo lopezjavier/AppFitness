@@ -75,15 +75,11 @@ export type ReviewPurpose = "review" | "block";
 export const MAX_CHANGES = 40;
 export const MAX_COMMENTS = 12;
 /**
- * Output ceiling: a flat 7000 tokens, what fits in the wall clock (60 tokens/s x about 117 s, the same figure as the
- * block plan; the Edge Function dies at 150 s). T-213/T-215: a 21-exercise folder was cut off at 2760 and then at 5150
- * tokens (`stop_reason = max_tokens`, truncated JSON), so no size computed from the exercise count is safe. The answer
- * is kept small instead: the prompt asks for at most PROMPT_MAX_CHANGES changes and PROMPT_MAX_COMMENTS comments
- * (about 2-3k tokens); the validator limits above stay as the hard bound.
+ * Output ceiling: a flat 100 000 tokens (user decision, 2026-11-04). Two size-based budgets (2760, then 5150 tokens)
+ * truncated a 21-exercise folder. The ceiling is not a cost control: billing is on tokens produced, and the call
+ * timeout is the real guard. The tokens actually spent are logged per call (`coach: usage`).
  */
-export const OUTPUT_TOKENS_MAX = 7000;
-export const PROMPT_MAX_CHANGES = 15;
-export const PROMPT_MAX_COMMENTS = 6;
+export const OUTPUT_TOKENS_MAX = 100_000;
 
 export const maxTokensFor = (_exercises: number): number => OUTPUT_TOKENS_MAX;
 
@@ -530,7 +526,7 @@ const SYSTEM = [
     "(NUNCA los uses), history y catalogue ({grupo:{patrón:[exercise_key]}}: usa SOLO esas claves).",
     "message (breve, en español, al menos 10 caracteres): resumen breve de la revisión. Si la carpeta cumple todo, dilo.",
     "comments: observaciones suaves sobre lo que ya hace el usuario (nunca bloquean nada); text breve (al menos 10 caracteres),",
-    `exercise_key opcional y solo de la carpeta. Como máximo ${PROMPT_MAX_COMMENTS} comentarios. changes: como máximo ${PROMPT_MAX_CHANGES} cambios (los más importantes), cada uno con op y routine_index`,
+    "exercise_key opcional y solo de la carpeta. changes: como máximo 40 cambios, cada uno con op y routine_index",
     "(1 = primera rutina) y reason breve en español (al menos 10 caracteres):",
     "add_exercise {exercise_key, sets:[{n,type,rep_min,rep_max,rpe,rest_seconds}]} (se añade al final de la rutina);",
     "replace_exercise {position, exercise_key}; remove_exercise {position}; set_sets {position, n}; set_rep_range",
