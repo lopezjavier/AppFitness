@@ -127,9 +127,13 @@ printf 'G16 .*\n' > "$work/listed-g16.txt"
 run "$(mk16 g "$kt16" 'val n = exercise.name ?: stringResource(Res.string.x)')" "$work/listed-g16.txt"
 expect "G16 violation in a listed path warns and passes (parser accepts G16)" 0 WARN
 
-# The folder-delete dialog of the routines list is on the R-08 allow-list (G5).
+# Profile dialogs are on the R-08 allow-list (G5).
 run "$here/ux-conventions/g5-allowed" "$empty"
-expect "G5 routines folder-delete dialog is allowed" 0 NOWARN
+expect "G5 profile dialog is allowed" 0 NOWARN
+
+# ADR-95 removed the routines folder-delete dialog: RoutinesSheets.kt is no longer allowed.
+run "$here/ux-conventions/g5-routines" "$empty"
+expect "G5 routines dialog is no longer allowed" 1 G5
 
 # ADR-80: dismissOnClickOutside = true is allowed in the designsystem archetypes, never in feature code.
 run "$here/ux-conventions/g11-allowed" "$empty"
