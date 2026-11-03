@@ -43,6 +43,7 @@ class ExercisePickerViewModelTest {
                 exerciseRow("3", "row", MuscleGroup.Back, Equipment.Barbell),
             ),
         )
+    private val favorites = FakeFavoriteExercisesRepository()
     private val connectivity = FakeConnectivityObserver()
 
     @BeforeTest
@@ -60,6 +61,7 @@ class ExercisePickerViewModelTest {
             LoadExerciseCatalog(repository, library),
             SearchExercises(),
             repository,
+            favorites,
             connectivity,
             selectMode,
             savedState,
@@ -98,6 +100,52 @@ class ExercisePickerViewModelTest {
 
         vm.onEvent(ExercisePickerEvent.SelectMuscleGroup(null))
         assertEquals(2, vm.content().visible.size)
+    }
+
+    @Test
+    fun favourites_areListedFirst_thenTheNameOrder() = runTest {
+        favorites.set(setOf("3"))
+
+        val vm = loaded()
+
+        assertEquals(
+            listOf("Remo con barra", "Press de banca", "Press inclinado con mancuernas"),
+            vm.content().visible.map { it.name },
+        )
+        assertEquals(setOf("3"), vm.content().favoriteIds)
+    }
+
+    @Test
+    fun favourites_stayFirstUnderQueryAndFilters_andOneOutsideTheFilterIsNotShown() = runTest {
+        favorites.set(setOf("2", "3"))
+        val vm = loaded()
+
+        vm.onEvent(ExercisePickerEvent.SelectMuscleGroup(MuscleGroup.Chest))
+        assertEquals(listOf("2", "1"), vm.content().visible.map { it.id })
+
+        vm.onEvent(ExercisePickerEvent.SetQuery("banca"))
+        assertEquals(listOf("1"), vm.content().visible.map { it.id })
+    }
+
+    @Test
+    fun aChangeInTheFavouriteSet_resortsTheList() = runTest {
+        val vm = loaded()
+        assertEquals(listOf("1", "2", "3"), vm.content().visible.map { it.id })
+
+        favorites.set(setOf("3"))
+        advanceUntilIdle()
+
+        assertEquals(listOf("3", "1", "2"), vm.content().visible.map { it.id })
+    }
+
+    @Test
+    fun whenTheFavouritesCannotBeRead_theListIsStillShownByName() = runTest {
+        favorites.failure = AppError.Network
+
+        val vm = loaded()
+
+        assertEquals(listOf("1", "2", "3"), vm.content().visible.map { it.id })
+        assertTrue(vm.content().favoriteIds.isEmpty())
     }
 
     @Test

@@ -40,6 +40,8 @@ sealed interface ExercisePickerUiState {
         val equipment: Equipment? = null,
         val isOnline: Boolean = true,
         val createForm: CreateExerciseForm? = null,
+        /** Ids of the starred exercises; [visible] already lists them first and rows show a marker. */
+        val favoriteIds: Set<String> = emptySet(),
     ) : ExercisePickerUiState {
         val canCreate: Boolean get() = isOnline
     }

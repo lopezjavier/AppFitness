@@ -16,6 +16,7 @@ import io.github.lopezjavier.appfitness.domain.model.TrainingPlace
 import io.github.lopezjavier.appfitness.domain.model.TrainingPreferences
 import io.github.lopezjavier.appfitness.feature.exercises.FakeExerciseLibrary
 import io.github.lopezjavier.appfitness.feature.exercises.FakeExerciseRepository
+import io.github.lopezjavier.appfitness.feature.exercises.FakeFavoriteExercisesRepository
 import io.github.lopezjavier.appfitness.feature.exercises.exerciseInfo
 import io.github.lopezjavier.appfitness.feature.exercises.exerciseRow
 import io.github.lopezjavier.appfitness.feature.workout.MutableClock
@@ -41,6 +42,7 @@ import kotlin.test.assertTrue
 @Suppress("LargeClass") // One class per ViewModel.
 @OptIn(ExperimentalCoroutinesApi::class)
 class BlockPreviewViewModelTest {
+    private val favorites = FakeFavoriteExercisesRepository()
     private val dispatcher = StandardTestDispatcher()
     private val blocks = FakeCoachBlockRepository()
     private val prefs = FakeTrainingPreferencesRepository()
@@ -56,7 +58,7 @@ class BlockPreviewViewModelTest {
     fun tearDown() = Dispatchers.resetMain()
 
     private fun viewModel(saved: SavedStateHandle = SavedStateHandle()) =
-        BlockPreviewViewModel("plan-1", blocks, exercises, library, MutableClock(), prefs, saved)
+        BlockPreviewViewModel("plan-1", blocks, exercises, library, MutableClock(), prefs, favorites, saved)
 
     private fun BlockPreviewViewModel.preview() = assertIs<BlockPreviewUiState.Preview>(uiState.value)
 

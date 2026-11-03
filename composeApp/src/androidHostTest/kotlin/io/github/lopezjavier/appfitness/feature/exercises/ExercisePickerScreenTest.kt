@@ -109,6 +109,7 @@ class ExercisePickerScreenTest {
                 LoadExerciseCatalog(repository, library),
                 SearchExercises(),
                 repository,
+                FakeFavoriteExercisesRepository(),
                 connectivity,
                 selectMode,
             )
@@ -135,6 +136,7 @@ class ExercisePickerScreenTest {
                 LoadExerciseCatalog(repository, library),
                 SearchExercises(),
                 repository,
+                FakeFavoriteExercisesRepository(),
                 connectivity,
                 selectMode,
             )

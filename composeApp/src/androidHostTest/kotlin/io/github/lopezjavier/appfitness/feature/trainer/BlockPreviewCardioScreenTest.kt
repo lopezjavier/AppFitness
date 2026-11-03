@@ -20,6 +20,7 @@ import io.github.lopezjavier.appfitness.domain.model.ExerciseAlternative
 import io.github.lopezjavier.appfitness.feature.exercises.FakeExerciseLibrary
 import io.github.lopezjavier.appfitness.feature.exercises.FakeExerciseMediaUris
 import io.github.lopezjavier.appfitness.feature.exercises.FakeExerciseRepository
+import io.github.lopezjavier.appfitness.feature.exercises.FakeFavoriteExercisesRepository
 import io.github.lopezjavier.appfitness.feature.exercises.LocalExerciseMediaUris
 import io.github.lopezjavier.appfitness.feature.exercises.RecordingMessages
 import io.github.lopezjavier.appfitness.feature.exercises.exerciseInfo
@@ -89,6 +90,7 @@ class BlockPreviewCardioScreenTest {
             ),
             MutableClock(),
             FakeTrainingPreferencesRepository(),
+            FakeFavoriteExercisesRepository(),
             SavedStateHandle(),
         )
         rule.setContent {

@@ -58,6 +58,7 @@ import io.github.lopezjavier.appfitness.feature.exercises.ExercisePickerViewMode
 import io.github.lopezjavier.appfitness.feature.exercises.FakeExerciseLibrary
 import io.github.lopezjavier.appfitness.feature.exercises.FakeExerciseMediaUris
 import io.github.lopezjavier.appfitness.feature.exercises.FakeExerciseRepository
+import io.github.lopezjavier.appfitness.feature.exercises.FakeFavoriteExercisesRepository
 import io.github.lopezjavier.appfitness.feature.exercises.LocalExerciseMediaUris
 import io.github.lopezjavier.appfitness.feature.exercises.exerciseInfo
 import io.github.lopezjavier.appfitness.feature.exercises.exerciseRow
@@ -264,6 +265,7 @@ class DraftRestorationTest {
                                 LoadExerciseCatalog(exercises, library),
                                 SearchExercises(),
                                 exercises,
+                                FakeFavoriteExercisesRepository(),
                                 connectivity,
                                 true,
                                 handle,
@@ -352,6 +354,7 @@ class DraftRestorationTest {
                                 LoadExerciseCatalog(exercises, library),
                                 exercises,
                                 FakeWorkoutSessionRepository(),
+                                FakeFavoriteExercisesRepository(),
                                 FakeConnectivityObserver(),
                                 handle,
                             )

@@ -108,6 +108,7 @@ Generic rules cited by number; ux-reviewer rejects plans and diffs that break on
 - **R-38** A picker, read-only sheet or action menu (calendar, day, metric and range pickers, info sheets, action menus) closes with its X, system back or an outside tap (ADR-80). A sheet with editable input or unsaved changes (R-11) closes only with its X, system back or "Cancelar" (ADR-71). Drag-down never closes a sheet and no sheet shows a drag handle.
 - **R-39** Where an icon clearly represents an action (photo, add, remove, retry, scan) the control is an icon with a `contentDescription`; text buttons are for actions with no clear icon (ADR-71).
 - **R-41** A quality/confidence level is never colour alone: a colour from the design-system scale plus text ("Confianza 7/10"), with the same text as `contentDescription`/`stateDescription` (ADR-72).
+- **R-56 Favourites are marked by shape plus text (T-204).** The star toggle (`AppTopBarAction(toggled=)` in a top bar, `FavouriteToggle` in a row) is the only place a favourite changes; its `contentDescription` says the action ("Añadir a favoritos" / "Quitar de favoritos") and its `stateDescription` the state ("Favorito" / "No es favorito"). In lists a favourite shows a small filled star after the name and ", favorito" in the row description, never colour alone; favourites sort first, with no "Favoritos" sub-header.
 - **R-52 No generic health disclaimers (T-188).** A health line appears only when it comes from the user's own data and is tied to a decision the app takes (`07` section 7). No "consulta con tu médico", "no es un dispositivo médico" or similar app-wide; `HealthDisclaimerSweepTest` scans `strings.xml` (empty allow-list until the persistent-discomfort note, T-194).
 ### Wording
 - **R-35** The glossary (§10) is binding: one label per concept and one concept per label.
@@ -148,6 +149,7 @@ Uses `SwipeToDeleteRow` only (guard G7) · right-to-left, "Eliminar"/"Quitar" ·
 | Search screen title | "Añadir al desayuno" / "Añadir a <comida>" (same as the opening button) | "Añadir comida" | Choosing a food for a comida: "Añadir alimento" |
 | Delete a saved record | "Eliminar" | "Borrar", "Archivar" | Immediate; no "Deshacer" |
 | Remove the saved training block from "Tu plan" (T-203) | "Eliminar bloque"; dialog "¿Eliminar el bloque?", confirm "Eliminar" | "Borrar bloque", "Quitar bloque" | Routines and folder stay in Entreno; the only confirmation of a Trainer action (R-08) |
+| A starred food or exercise (T-204) | "Favorito" / "favoritos" (the star; "Añadir a favoritos", "Quitar de favoritos", state "Favorito" / "No es favorito") | "Destacado", "Me gusta", "Guardado" | Favourite exercises list first in the picker and the swap list (R-56) |
 | Take out of a draft/container | "Quitar" | "Eliminar" | Comida item, routine exercise, portion |
 | Abandon unsaved work or a live workout | "Descartar" | "Cancelar" | "¿Descartar los cambios?" [Descartar] [Seguir editando] |
 | Delete the account | "Borrar cuenta" (ADR-29) | - | Only other "Borrar": clearing text ("Borrar búsqueda") |

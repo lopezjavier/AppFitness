@@ -222,7 +222,7 @@ private fun PickerList(
             fullSpanItem("empty") { PickerEmpty(state) }
         } else {
             items(state.visible, key = { it.id }) { item ->
-                PickerRow(item, selectMode, mediaUris, onEvent, appAnimateItem())
+                PickerRow(item, selectMode, item.id in state.favoriteIds, mediaUris, onEvent, appAnimateItem())
             }
         }
         fullSpanItem("attribution") {

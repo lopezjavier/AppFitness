@@ -17,9 +17,11 @@ import io.github.lopezjavier.appfitness.domain.port.Clock
 import io.github.lopezjavier.appfitness.domain.port.ExerciseLibrary
 import io.github.lopezjavier.appfitness.domain.repository.CoachBlockRepository
 import io.github.lopezjavier.appfitness.domain.repository.ExerciseRepository
+import io.github.lopezjavier.appfitness.domain.repository.FavoriteExercisesRepository
 import io.github.lopezjavier.appfitness.domain.repository.TrainingPreferencesRepository
 import io.github.lopezjavier.appfitness.domain.usecase.EquipmentFilter
 import io.github.lopezjavier.appfitness.domain.usecase.ExerciseNameResolver
+import io.github.lopezjavier.appfitness.domain.usecase.FavoritesFirst
 import io.github.lopezjavier.appfitness.domain.usecase.LoadExerciseCatalog
 import io.github.lopezjavier.appfitness.feature.exercises.SimilarExerciseRow
 import kotlinx.coroutines.Job
@@ -59,6 +61,7 @@ class BlockPreviewViewModel(
     private val library: ExerciseLibrary,
     private val clock: Clock,
     private val preferences: TrainingPreferencesRepository,
+    private val favorites: FavoriteExercisesRepository,
     private val savedState: SavedStateHandle = SavedStateHandle(),
     private val exerciseNames: ExerciseNameResolver = ExerciseNameResolver(exercises, library),
 ) : ViewModel() {
@@ -154,6 +157,8 @@ class BlockPreviewViewModel(
         alternativesJob?.cancel()
         alternativesJob = viewModelScope.launch {
             // Preferences are read on every open (never cached), so a change in "Mi entrenamiento" applies at once.
+            // Best effort: when offline the last known favourites apply.
+            favorites.refresh()
             val selection = selectedEquipment()
             val result = if (selection.isSuccess) exercises.alternatives(original.exerciseId) else null
             val failure = selection.exceptionOrNull() ?: result?.exceptionOrNull()
@@ -195,8 +200,9 @@ class BlockPreviewViewModel(
         val candidates = alternatives.filter { it.exercise.id !in others }
         if (candidates.isEmpty()) return AlternativesState.Empty
         val named = catalog().getOrElse { return AlternativesState.Error }.associateBy { it.id }
-        val rows = candidates.mapNotNull { alt ->
-            named[alt.exercise.id]?.let { SimilarExerciseRow(it, alt.similarity) }
+        val starred = favorites.favoriteIds.value
+        val ranked = candidates.mapNotNull { alt ->
+            named[alt.exercise.id]?.let { SimilarExerciseRow(it, alt.similarity, it.id in starred) }
         }
             .sortedWith(
                 // Any cardio counts the same minutes: no ranking, alphabetical.
@@ -206,6 +212,7 @@ class BlockPreviewViewModel(
                     compareByDescending<SimilarExerciseRow> { it.similarity }.thenBy { it.exercise.name }
                 },
             )
+        val rows = FavoritesFirst(ranked, starred) { it.exercise.id }
         return if (rows.isEmpty()) AlternativesState.Empty else AlternativesState.Content(rows)
     }
 

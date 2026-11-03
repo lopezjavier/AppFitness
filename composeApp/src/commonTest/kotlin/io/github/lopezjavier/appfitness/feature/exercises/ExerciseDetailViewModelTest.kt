@@ -21,6 +21,7 @@ import io.github.lopezjavier.appfitness.domain.usecase.LoadExerciseCatalog
 import io.github.lopezjavier.appfitness.feature.workout.FakeWorkoutSessionRepository
 import io.github.lopezjavier.appfitness.feature.workout.SESSION_START
 import io.github.lopezjavier.appfitness.feature.workout.doneSet
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.TestScope
@@ -44,6 +45,7 @@ class ExerciseDetailViewModelTest {
     private val library = FakeExerciseLibrary(mapOf("bench" to exerciseInfo("bench", "Press de banca")))
     private val sessions = FakeWorkoutSessionRepository()
     private var savedState = SavedStateHandle()
+    private val favorites = FakeFavoriteExercisesRepository()
     private val connectivity = FakeConnectivityObserver()
 
     @BeforeTest
@@ -61,6 +63,7 @@ class ExerciseDetailViewModelTest {
         LoadExerciseCatalog(repository, library),
         repository,
         sessions,
+        favorites,
         connectivity,
         savedState,
     )
@@ -919,6 +922,85 @@ class ExerciseDetailViewModelTest {
 
         assertFalse(loaded(vm).isOnline)
         assertEquals(0, repository.deleteCalls)
+    }
+
+    @Test
+    fun favourite_startsAsStoredAndTogglesOnThenOff() = runTest {
+        val vm = viewModel()
+        assertFalse(loaded(vm).isFavorite)
+
+        vm.toggleFavorite()
+        advanceUntilIdle()
+        assertTrue(loaded(vm).isFavorite)
+
+        vm.toggleFavorite()
+        advanceUntilIdle()
+        assertFalse(loaded(vm).isFavorite)
+        assertEquals(listOf("1" to true, "1" to false), favorites.setCalls)
+    }
+
+    @Test
+    fun favourite_alreadyStarred_startsFavourite() = runTest {
+        favorites.set(setOf("1"))
+
+        assertTrue(loaded(viewModel()).isFavorite)
+    }
+
+    @Test
+    fun favourite_onACustomExercise_toggles() = runTest {
+        custom()
+        val vm = viewModel("c1")
+        advanceUntilIdle()
+
+        vm.toggleFavorite()
+        advanceUntilIdle()
+
+        assertTrue(loaded(vm).isFavorite)
+        assertEquals(setOf("c1"), favorites.favoriteIds.value)
+    }
+
+    @Test
+    fun favourite_failure_sendsTheEffectAndKeepsTheStar() = runTest {
+        val vm = viewModel()
+        advanceUntilIdle()
+        favorites.failure = AppError.Network
+
+        vm.effects.test {
+            vm.toggleFavorite()
+            advanceUntilIdle()
+            assertEquals(ExerciseDetailEffect.FavoriteFailed, awaitItem())
+        }
+        assertFalse(loaded(vm).isFavorite)
+        assertFalse(loaded(vm).isTogglingFavorite)
+    }
+
+    @Test
+    fun favourite_offline_isIgnored() = runTest {
+        connectivity.state.value = false
+        val vm = viewModel()
+        advanceUntilIdle()
+
+        vm.toggleFavorite()
+        advanceUntilIdle()
+
+        assertTrue(favorites.setCalls.isEmpty())
+    }
+
+    @Test
+    fun favourite_doubleTapWhileInFlight_sendsOnce() = runTest {
+        val vm = viewModel()
+        advanceUntilIdle()
+        favorites.setGate = CompletableDeferred()
+
+        vm.toggleFavorite()
+        advanceUntilIdle()
+        assertTrue(loaded(vm).isTogglingFavorite)
+        vm.toggleFavorite()
+        favorites.setGate?.complete(Unit)
+        advanceUntilIdle()
+
+        assertEquals(1, favorites.setCalls.size)
+        assertTrue(loaded(vm).isFavorite)
     }
 
     @Test

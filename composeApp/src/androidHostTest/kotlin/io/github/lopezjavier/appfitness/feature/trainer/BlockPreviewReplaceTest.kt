@@ -4,8 +4,11 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.assertContentDescriptionEquals
 import androidx.compose.ui.test.assertTextContains
+import androidx.compose.ui.test.getUnclippedBoundsInRoot
+import androidx.compose.ui.test.hasContentDescription
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
@@ -25,6 +28,7 @@ import io.github.lopezjavier.appfitness.domain.model.TrainingPreferences
 import io.github.lopezjavier.appfitness.feature.exercises.FakeExerciseLibrary
 import io.github.lopezjavier.appfitness.feature.exercises.FakeExerciseMediaUris
 import io.github.lopezjavier.appfitness.feature.exercises.FakeExerciseRepository
+import io.github.lopezjavier.appfitness.feature.exercises.FakeFavoriteExercisesRepository
 import io.github.lopezjavier.appfitness.feature.exercises.LocalExerciseMediaUris
 import io.github.lopezjavier.appfitness.feature.exercises.RecordingMessages
 import io.github.lopezjavier.appfitness.feature.exercises.exerciseInfo
@@ -55,6 +59,7 @@ class BlockPreviewReplaceTest {
     }
     private val messages = RecordingMessages()
     private val prefs = FakeTrainingPreferencesRepository()
+    private val favorites = FakeFavoriteExercisesRepository()
     private val saved = SavedStateHandle()
     private var backs = 0
 
@@ -76,6 +81,7 @@ class BlockPreviewReplaceTest {
         ),
         MutableClock(),
         prefs,
+        favorites,
         handle,
     )
 
@@ -135,6 +141,24 @@ class BlockPreviewReplaceTest {
         repository.alternativesById = mapOf("ex-1" to (listOf(fly) + extra).map { ExerciseAlternative(it, 0.8) })
         prefs.result = Result.success(TrainingPreferences(equipment = selected.toSet()))
         current = newModel(SavedStateHandle())
+    }
+
+    @Test
+    fun aFavouriteAlternative_isListedFirst_withTheMarker_andTheOthersKeepTheirOrder() {
+        withEquipmentAlternatives()
+        favorites.set(setOf("ex-7"))
+        show()
+
+        tap("block_preview_replace_1_0_0")
+
+        val tops = listOf("push-up", "fly", "cable-fly").map {
+            rule.onNodeWithTag("block_preview_replace_option_$it").getUnclippedBoundsInRoot().top
+        }
+        assertEquals(tops.sorted(), tops)
+        rule.onNodeWithTag("block_preview_replace_favorite_push-up", useUnmergedTree = true)
+            .assertContentDescriptionEquals("Favorito")
+        rule.onNodeWithTag("block_preview_replace_favorite_fly", useUnmergedTree = true).assertDoesNotExist()
+        rule.onNodeWithTag("block_preview_replace_option_push-up").assert(hasContentDescription("Favorito"))
     }
 
     @Test

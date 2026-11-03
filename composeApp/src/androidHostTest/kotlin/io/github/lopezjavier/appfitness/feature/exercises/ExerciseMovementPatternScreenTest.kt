@@ -74,6 +74,7 @@ class ExerciseMovementPatternScreenTest {
             LoadExerciseCatalog(repository, library),
             repository,
             FakeWorkoutSessionRepository(),
+            FakeFavoriteExercisesRepository(),
             FakeConnectivityObserver(),
         )
         rule.setContent {
@@ -97,6 +98,7 @@ class ExerciseMovementPatternScreenTest {
             LoadExerciseCatalog(repository, library),
             SearchExercises(),
             repository,
+            FakeFavoriteExercisesRepository(),
             FakeConnectivityObserver(),
             false,
         )

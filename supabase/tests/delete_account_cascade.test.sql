@@ -3,7 +3,7 @@ begin;
 create extension if not exists pgtap with schema extensions;
 set local search_path = extensions, public;
 
-select plan(34);
+select plan(36);
 
 -- The on_auth_user_created trigger creates each profile.
 insert into auth.users (id, email) values
@@ -82,7 +82,17 @@ insert into public.coach_user_intake (user_id, training_years) values
 insert into public.coach_free_text_exclusions (user_id, kind, source_id) values
   ('d1000000-0000-4000-8000-000000000001', 'intake', 'intake'), ('d2000000-0000-4000-8000-000000000002', 'intake', 'intake');
 
+insert into public.exercise_favorites (user_id, exercise_id)
+  select u.id, (select id from public.exercises where not is_custom order by key limit 1)
+  from auth.users u where u.id in
+    ('d1000000-0000-4000-8000-000000000001', 'd2000000-0000-4000-8000-000000000002');
+
 delete from auth.users where id = 'd1000000-0000-4000-8000-000000000001';
+
+select is((select count(*)::int from public.exercise_favorites where user_id = 'd1000000-0000-4000-8000-000000000001'), 0,
+  'the deleted user''s exercise_favorites are gone');
+select is((select count(*)::int from public.exercise_favorites where user_id = 'd2000000-0000-4000-8000-000000000002'), 1,
+  'another user''s exercise_favorites are untouched');
 
 select is(
   (select count(*)::int from public.coach_confirmed_values where user_id = 'd1000000-0000-4000-8000-000000000001'),

@@ -9,6 +9,7 @@ import io.github.lopezjavier.appfitness.domain.model.CoachBlock
 import io.github.lopezjavier.appfitness.domain.model.ExerciseAlternative
 import io.github.lopezjavier.appfitness.feature.exercises.FakeExerciseLibrary
 import io.github.lopezjavier.appfitness.feature.exercises.FakeExerciseRepository
+import io.github.lopezjavier.appfitness.feature.exercises.FakeFavoriteExercisesRepository
 import io.github.lopezjavier.appfitness.feature.exercises.exerciseInfo
 import io.github.lopezjavier.appfitness.feature.exercises.exerciseRow
 import io.github.lopezjavier.appfitness.feature.workout.MutableClock
@@ -45,6 +46,7 @@ private fun cardioExercise(id: String, minutes: Int = 50) = BlockExercise(
 /** T-183: every workout is [ex-1 (lifting), bike (cardio)]; 300 min a week means 60 each plus 120 on your own. */
 @OptIn(ExperimentalCoroutinesApi::class)
 class BlockPreviewCardioTest {
+    private val favorites = FakeFavoriteExercisesRepository()
     private val dispatcher = StandardTestDispatcher()
     private val blocks = FakeCoachBlockRepository()
     private val exercises = FakeExerciseRepository(
@@ -101,6 +103,7 @@ class BlockPreviewCardioTest {
         library,
         MutableClock(),
         FakeTrainingPreferencesRepository(),
+        favorites,
         SavedStateHandle(),
     )
 

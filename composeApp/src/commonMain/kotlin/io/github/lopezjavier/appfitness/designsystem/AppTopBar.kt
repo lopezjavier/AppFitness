@@ -100,7 +100,9 @@ data class AppTopBarButton(val contentDescription: String, val onClick: () -> Un
  * [onClick]. [testTag] overrides the generated `<prefix>_action_<n>` tag; in the overflow sheet the description is
  * the row title. A disabled ([enabled] false) inline action keeps its description and is dimmed (for example a write
  * action offline); the overflow sheet does not dim it. [badgeCount] above zero draws a count badge on the inline
- * icon (no number at zero, "9+" past nine); the caller words the exact count in [contentDescription].
+ * icon (no number at zero, "9+" past nine); the caller words the exact count in [contentDescription]. A non-null
+ * [toggled] makes it the favourite star (T-204): the icon, tint and toggle semantics come from the bar
+ * (the [icon] argument is then ignored).
  */
 @Immutable
 data class AppTopBarAction(
@@ -110,6 +112,7 @@ data class AppTopBarAction(
     val testTag: String? = null,
     val enabled: Boolean = true,
     val badgeCount: Int = 0,
+    val toggled: Boolean? = null,
 )
 
 /**
@@ -201,6 +204,7 @@ private fun TopBarActions(actions: List<AppTopBarAction>, prefix: String) {
             onClick = action.onClick,
             enabled = action.enabled,
             badgeCount = action.badgeCount,
+            toggled = action.toggled,
         )
     }
     if (overflow.isNotEmpty()) {
@@ -214,7 +218,12 @@ private fun TopBarActions(actions: List<AppTopBarAction>, prefix: String) {
         if (open) {
             AppActionSheet(
                 actions = overflow.map {
-                    AppSheetAction(it.icon, it.contentDescription, enabled = it.enabled, onClick = it.onClick)
+                    AppSheetAction(
+                        it.toggled?.let(FavouriteToggleDefaults::icon) ?: it.icon,
+                        it.contentDescription,
+                        enabled = it.enabled,
+                        onClick = it.onClick,
+                    )
                 },
                 onDismiss = { open = false },
             )

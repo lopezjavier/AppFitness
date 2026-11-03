@@ -31,6 +31,7 @@ import io.github.lopezjavier.appfitness.domain.repository.CoachRepository
 import io.github.lopezjavier.appfitness.domain.repository.CoachUsageRepository
 import io.github.lopezjavier.appfitness.domain.repository.DiscomfortRepository
 import io.github.lopezjavier.appfitness.domain.repository.ExerciseRepository
+import io.github.lopezjavier.appfitness.domain.repository.FavoriteExercisesRepository
 import io.github.lopezjavier.appfitness.domain.repository.FoodDiaryRepository
 import io.github.lopezjavier.appfitness.domain.repository.FoodPhotoRepository
 import io.github.lopezjavier.appfitness.domain.repository.FoodPreferencesRepository
@@ -196,6 +197,7 @@ class AppModuleTest {
                 TimeZone::class,
                 SavedStateHandle::class,
                 ExerciseRepository::class,
+                FavoriteExercisesRepository::class,
                 RoutineRepository::class,
                 WorkoutSessionRepository::class,
                 StrengthRepository::class,

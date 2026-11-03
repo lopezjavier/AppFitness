@@ -31,6 +31,7 @@ import io.github.lopezjavier.appfitness.composeapp.resources.exercise_detail_edi
 import io.github.lopezjavier.appfitness.composeapp.resources.exercise_detail_select
 import io.github.lopezjavier.appfitness.composeapp.resources.exercise_detail_title
 import io.github.lopezjavier.appfitness.composeapp.resources.exercise_error_message
+import io.github.lopezjavier.appfitness.composeapp.resources.exercise_favourite_failed
 import io.github.lopezjavier.appfitness.composeapp.resources.exercise_in_use_message
 import io.github.lopezjavier.appfitness.composeapp.resources.exercise_in_use_routines
 import io.github.lopezjavier.appfitness.composeapp.resources.exercise_in_use_sets
@@ -39,8 +40,11 @@ import io.github.lopezjavier.appfitness.composeapp.resources.exercise_tab_histor
 import io.github.lopezjavier.appfitness.composeapp.resources.exercise_tab_how_to
 import io.github.lopezjavier.appfitness.composeapp.resources.exercise_tab_similar
 import io.github.lopezjavier.appfitness.composeapp.resources.exercise_tab_summary
+import io.github.lopezjavier.appfitness.composeapp.resources.favourite_add_cd
+import io.github.lopezjavier.appfitness.composeapp.resources.favourite_remove_cd
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_delete
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_edit
+import io.github.lopezjavier.appfitness.composeapp.resources.ic_star
 import io.github.lopezjavier.appfitness.designsystem.AppOption
 import io.github.lopezjavier.appfitness.designsystem.AppScreen
 import io.github.lopezjavier.appfitness.designsystem.AppStateAction
@@ -86,6 +90,7 @@ class ExerciseDetailActions(
     val onEditMovementPattern: (MovementPattern?) -> Unit = {},
     val onSubmitEdit: () -> Unit = {},
     val onDelete: () -> Unit = {},
+    val onToggleFavorite: () -> Unit = {},
 )
 
 /** Stateful detail: connects [ExerciseDetailViewModel] to the stateless [ExerciseDetailScreen]. */
@@ -129,6 +134,13 @@ fun ExerciseDetailRoot(
                 // The sheet already closed and the new values are visible: no message (R-13).
                 ExerciseDetailEffect.Saved -> haptics.confirm()
 
+                ExerciseDetailEffect.FavoriteChanged -> haptics.confirm()
+
+                ExerciseDetailEffect.FavoriteFailed -> {
+                    haptics.reject()
+                    messages.show(getString(Res.string.exercise_favourite_failed))
+                }
+
                 ExerciseDetailEffect.SaveFailed -> {
                     haptics.reject()
                     messages.show(getString(Res.string.exercise_save_failed))
@@ -155,6 +167,7 @@ fun ExerciseDetailRoot(
             onEditMovementPattern = viewModel::setEditMovementPattern,
             onSubmitEdit = viewModel::submitEdit,
             onDelete = viewModel::delete,
+            onToggleFavorite = viewModel::toggleFavorite,
         )
     }
     ExerciseDetailScreen(
@@ -240,7 +253,7 @@ fun ExerciseDetailScreen(
     }
 }
 
-/** Edit and delete for a manual exercise, disabled (keeping their descriptions) offline or while deleting. */
+/** The favourite star, plus edit and delete for a manual exercise; disabled offline or while busy. */
 @Composable
 private fun manageActions(
     loaded: ExerciseDetailUiState.Loaded?,
@@ -249,24 +262,41 @@ private fun manageActions(
 ): List<AppTopBarAction> {
     val editDescription = stringResource(Res.string.exercise_detail_edit_cd, title)
     val deleteDescription = stringResource(Res.string.exercise_detail_delete_cd, title)
-    if (loaded == null || !loaded.canManage) return emptyList()
-    val enabled = loaded.isOnline && !loaded.isDeleting
-    return listOf(
-        AppTopBarAction(
-            Res.drawable.ic_edit,
-            editDescription,
-            actions.onOpenEdit,
-            testTag = "exercise_detail_edit",
-            enabled = enabled,
-        ),
-        AppTopBarAction(
-            Res.drawable.ic_delete,
-            deleteDescription,
-            actions.onDelete,
-            testTag = "exercise_detail_delete",
-            enabled = enabled,
-        ),
+    val favouriteDescription = stringResource(
+        if (loaded?.isFavorite == true) Res.string.favourite_remove_cd else Res.string.favourite_add_cd,
     )
+    if (loaded == null) return emptyList()
+    val enabled = loaded.isOnline && !loaded.isDeleting
+    // The star comes first so that edit and delete (own exercises) never push it into the overflow.
+    val star = AppTopBarAction(
+        Res.drawable.ic_star,
+        favouriteDescription,
+        actions.onToggleFavorite,
+        testTag = "exercise_detail_favorite",
+        enabled = loaded.isOnline && !loaded.isTogglingFavorite,
+        toggled = loaded.isFavorite,
+    )
+    val manage = if (loaded.canManage) {
+        listOf(
+            AppTopBarAction(
+                Res.drawable.ic_edit,
+                editDescription,
+                actions.onOpenEdit,
+                testTag = "exercise_detail_edit",
+                enabled = enabled,
+            ),
+            AppTopBarAction(
+                Res.drawable.ic_delete,
+                deleteDescription,
+                actions.onDelete,
+                testTag = "exercise_detail_delete",
+                enabled = enabled,
+            ),
+        )
+    } else {
+        emptyList()
+    }
+    return listOf(star) + manage
 }
 
 private fun ExerciseDetailActions.toFormActions() = ExerciseFormActions(

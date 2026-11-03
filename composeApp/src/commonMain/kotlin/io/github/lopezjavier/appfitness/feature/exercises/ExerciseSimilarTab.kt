@@ -93,6 +93,7 @@ internal fun ExerciseSimilarTab(
                             row = row,
                             rowTag = "exercise_detail_similar_row_${row.tagKey}",
                             percentTag = "exercise_detail_similar_percent_${row.tagKey}",
+                            favoriteTag = "exercise_similar_favorite_${row.tagKey}",
                             onOpen = { onOpenExercise(row.exercise.id) },
                             modifier = appAnimateItem(),
                         )
@@ -127,6 +128,7 @@ internal fun SimilarExerciseItem(
     modifier: Modifier = Modifier,
     onSelect: (() -> Unit)? = null,
     showPercent: Boolean = true,
+    favoriteTag: String? = null,
 ) {
     val exercise = row.exercise.exercise
     val mediaKey = exercise.key
@@ -155,6 +157,8 @@ internal fun SimilarExerciseItem(
             null
         },
         onSelect = onSelect,
+        favorite = row.isFavorite,
+        favoriteTestTag = favoriteTag,
     )
 }
 

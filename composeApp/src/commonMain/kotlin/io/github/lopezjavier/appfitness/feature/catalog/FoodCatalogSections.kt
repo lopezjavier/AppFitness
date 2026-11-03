@@ -18,8 +18,8 @@ import io.github.lopezjavier.appfitness.composeapp.resources.catalog_section_coo
 import io.github.lopezjavier.appfitness.composeapp.resources.catalog_section_favourite_toggle
 import io.github.lopezjavier.appfitness.composeapp.resources.catalog_section_portion_selector
 import io.github.lopezjavier.appfitness.composeapp.resources.catalog_section_weekday_selector
-import io.github.lopezjavier.appfitness.composeapp.resources.food_favourite_add_cd
-import io.github.lopezjavier.appfitness.composeapp.resources.food_favourite_remove_cd
+import io.github.lopezjavier.appfitness.composeapp.resources.favourite_add_cd
+import io.github.lopezjavier.appfitness.composeapp.resources.favourite_remove_cd
 import io.github.lopezjavier.appfitness.designsystem.CookingMethodSelector
 import io.github.lopezjavier.appfitness.designsystem.FavouriteToggle
 import io.github.lopezjavier.appfitness.designsystem.PortionOption
@@ -39,8 +39,8 @@ internal fun LazyListScope.foodItems() {
 @Composable
 private fun FavouriteToggleSection() {
     var selected by rememberSaveable { mutableStateOf(false) }
-    val add = stringResource(Res.string.food_favourite_add_cd)
-    val remove = stringResource(Res.string.food_favourite_remove_cd)
+    val add = stringResource(Res.string.favourite_add_cd)
+    val remove = stringResource(Res.string.favourite_remove_cd)
     CatalogSection(
         stringResource(Res.string.catalog_section_favourite_toggle),
         "catalog_section_favourite_toggle",
