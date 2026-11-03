@@ -315,16 +315,19 @@ Feature: Folders and next workout
     When the user creates "Push/Pull/Legs" and moves routines into it
     Then "Mis rutinas" groups them by folder
 
-  Scenario: Deleting a folder
+  # Replaced 2026-11-03 by ADR-95 (T-211): the former "delete folder with its routines after a confirmation" and
+  # "cancelling a folder deletion" scenarios (ADR-51) no longer exist.
+  Scenario: A folder with routines cannot be deleted
     Given the folder "Push/Pull/Legs" holds 3 routines
-    When the user deletes the folder
-    Then a confirmation says the folder and its 3 routines will be deleted
-    And on confirming, the folder and its 3 routines are deleted
-    And the past workouts of those routines stay in the history
+    When the user taps the delete icon of the folder
+    Then a message says to move or delete the routines first
+    And the folder and its 3 routines are unchanged
 
-  Scenario: Cancelling a folder deletion
-    When the user deletes a folder and cancels the confirmation
-    Then nothing is deleted
+  Scenario: Deleting an empty folder
+    Given the folder "Push/Pull/Legs" holds no routines
+    When the user taps the delete icon of the folder
+    Then the folder is deleted at once
+    And the past workouts of its former routines stay in the history
 
   Scenario: Next workout
     When the user sets "Torso fuerza" as the next workout
@@ -340,7 +343,8 @@ Feature: Folders and next workout
 **Technical notes**
 - `routine_folders` and `routines.folder_id`/`is_next` (`03-data-model.md` §5).
 - Manual order needs a new `routines.position` column (new migration + pgTAP, an exception to the forward-compatible schema of ADR-30); drag-to-reorder reuses the routine-builder pattern. Replaces the A→Z sort of T-051.
-- Deleting a folder deletes its routines (user decision 2026-10-22, ADR-51). It is the one training delete with a confirmation dialog, an explicit exception to ADR-45 because it removes many routines at once; the dialog names how many routines will be deleted (wording by ux-reviewer, e.g. "Se eliminarán la carpeta y sus 3 rutinas"). Past sessions keep their data (`workout_sessions.routine_id` is set null, as for a single routine delete). Assumption: an empty folder is deleted at once without the dialog (ADR-45), confirmed at the checkpoint. This supersedes the earlier "its routines move to Mis rutinas".
+- **Superseded 2026-11-03 by ADR-95:** a folder with routines cannot be deleted (move or delete the routines first); no dialog. The rest of this note is the history of ADR-51.
+- History (ADR-51, void): deleting a folder deletes its routines (user decision 2026-10-22). It is the one training delete with a confirmation dialog, an explicit exception to ADR-45 because it removes many routines at once; the dialog names how many routines will be deleted (wording by ux-reviewer, e.g. "Se eliminarán la carpeta y sus 3 rutinas"). Past sessions keep their data (`workout_sessions.routine_id` is set null, as for a single routine delete). Assumption: an empty folder is deleted at once without the dialog (ADR-45), confirmed at the checkpoint. This supersedes the earlier "its routines move to Mis rutinas".
 
 ---
 

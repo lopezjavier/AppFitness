@@ -63,7 +63,7 @@ Generic rules cited by number; ux-reviewer rejects plans and diffs that break on
 ### Templates
 - **R-06** Every screen is built on `AppScreen` (read) or `AppEditorScreen` (edit); none draws its own top bar, footer, message host or offline banner.
 - **R-07** Every bottom sheet is one of four archetypes: Edit (form + pinned footer), Picker (one choice applied on tap, no footer), Actions (menu), Info (help/read-only). A plain single-choice Picker list uses `OptionPickerSheet` (`designsystem/`, R-39). Each has a header (title, optional "?", close X "Cerrar"), scrolling body, optional pinned footer.
-- **R-08 Dialogs** only to: delete the account; sign out; delete many records at once (a folder with its routines); discard an in-progress workout; remove a training block (keeps its routines); discard unsaved changes (R-14). Nothing else.
+- **R-08 Dialogs** only to: delete the account; sign out; discard an in-progress workout; remove a training block (keeps its routines); discard unsaved changes (R-14). Nothing else.
 - **R-09** The primary action of a sheet or editor is pinned and always visible.
 ### Editing
 - **R-10** Every edit surface has an explicit "Guardar"; closing (X, back) never applies anything.
@@ -152,6 +152,7 @@ Uses `SwipeToDeleteRow` only (guard G7) · right-to-left, "Eliminar"/"Quitar" ·
 | Delete a saved record | "Eliminar" | "Borrar", "Archivar" | Immediate; no "Deshacer" |
 | Remove the saved training block from "Tu plan" (T-203) | "Eliminar bloque"; dialog "¿Eliminar el bloque?", confirm "Eliminar" | "Borrar bloque", "Quitar bloque" | Routines and folder stay in Entreno; the only confirmation of a Trainer action (R-08) |
 | A starred food or exercise (T-204) | "Favorito" / "favoritos" (the star; "Añadir a favoritos", "Quitar de favoritos", state "Favorito" / "No es favorito") | "Destacado", "Me gusta", "Guardado" | Favourite exercises list first in the picker and the swap list (R-56) |
+| Delete a routine folder (T-211, ADR-95) | Only when empty; with routines the trash icon shows the message «Mueve o elimina las rutinas de la carpeta para poder eliminarla.» (Reject haptic, R-28) | "Se eliminarán la carpeta y sus rutinas", a dialog | Move a routine with "Mover a carpeta"; supersedes ADR-51 |
 | Take out of a draft/container | "Quitar" | "Eliminar" | Comida item, routine exercise, portion |
 | Abandon unsaved work or a live workout | "Descartar" | "Cancelar" | "¿Descartar los cambios?" [Descartar] [Seguir editando] |
 | Delete the account | "Borrar cuenta" (ADR-29) | - | Only other "Borrar": clearing text ("Borrar búsqueda") |
