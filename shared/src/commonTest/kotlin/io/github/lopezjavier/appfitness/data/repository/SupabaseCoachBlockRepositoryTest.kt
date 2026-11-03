@@ -379,4 +379,52 @@ class SupabaseCoachBlockRepositoryTest {
 
         assertEquals(AppError.Network, repository.saveBlock("p1").appErrorOrNull())
     }
+
+    @Test
+    fun removeBlock_callsTheRpcWithThePlanId() = runTest {
+        val repository = repo { HttpStatusCode.OK to "" }
+
+        assertTrue(repository.removeBlock("p1").isSuccess)
+
+        val call = rest().single()
+        assertTrue(call.url.encodedPath.endsWith("/rest/v1/rpc/remove_coach_block"), call.url.toString())
+        assertEquals("""{"p_plan_id":"p1"}""", (call.body as TextContent).text)
+    }
+
+    @Test
+    fun removeBlock_planNotOpen_isConflict() = runTest {
+        val repository = repo {
+            HttpStatusCode.BadRequest to """{"code":"55000","message":"plan is not open","details":null,"hint":null}"""
+        }
+
+        assertEquals(CoachFailure.Conflict, failureOf(repository.removeBlock("p1")))
+    }
+
+    @Test
+    fun removeBlock_planNotFound_staysAnUnmappedError() = runTest {
+        val repository = repo {
+            HttpStatusCode.BadRequest to """{"code":"22023","message":"plan not found","details":null,"hint":null}"""
+        }
+
+        val result = repository.removeBlock("p1")
+
+        assertTrue(result.isFailure)
+        assertFalse(result.exceptionOrNull() is CoachException)
+    }
+
+    @Test
+    fun removeBlock_offline_isNetworkError() = runTest {
+        val repository = repo { HttpStatusCode.OK to "" }
+        offline = true
+
+        assertEquals(AppError.Network, repository.removeBlock("p1").appErrorOrNull())
+    }
+
+    @Test
+    fun removeBlock_signedOut_isUnauthorizedWithoutRequests() = runTest {
+        val repository = repo(signIn = false) { HttpStatusCode.OK to "" }
+
+        assertEquals(AppError.Unauthorized, repository.removeBlock("p1").appErrorOrNull())
+        assertTrue(rest().isEmpty())
+    }
 }

@@ -25,4 +25,11 @@ interface CoachBlockRepository {
      * [io.github.lopezjavier.appfitness.domain.model.CoachFailure.InvalidReplacement] and saves nothing.
      */
     suspend fun saveBlock(planId: String, edits: List<BlockEdit> = emptyList()): Result<BlockSaved>
+
+    /**
+     * Removes the saved block of [planId] (its weeks and the plan's folder link) and keeps the plan, the folder and
+     * the routines in Entreno (idempotent). A plan that is no longer open fails with
+     * [io.github.lopezjavier.appfitness.domain.model.CoachFailure.Conflict].
+     */
+    suspend fun removeBlock(planId: String): Result<Unit>
 }

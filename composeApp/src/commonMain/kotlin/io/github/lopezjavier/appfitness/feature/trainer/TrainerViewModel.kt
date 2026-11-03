@@ -25,6 +25,8 @@ import kotlinx.datetime.LocalDate
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
 
+private const val KEY_REMOVE_BLOCK_CONFIRM = "remove_block_confirm"
+
 /** The stored block of an open plan; a failed read means none, like the plan entry itself. */
 private suspend fun CoachBlockRepository?.summaryFor(plan: PlanSummary): BlockSummary {
     val planId = when (plan) {
@@ -61,7 +63,7 @@ class TrainerViewModel(
     private val plans: CoachPlanRepository? = null,
     private val blocks: CoachBlockRepository? = null,
     private val coachWeeks: CoachWeeksRepository? = null,
-    savedState: SavedStateHandle = SavedStateHandle(),
+    private val savedState: SavedStateHandle = SavedStateHandle(),
 ) : ViewModel() {
     private val cardioEdit = CardioEditState(savedState)
 
@@ -90,6 +92,58 @@ class TrainerViewModel(
             is TrainerEvent.CardioMinutesChanged -> changeCardio(event.minutes)
             TrainerEvent.SaveCardio -> saveCardio()
             TrainerEvent.DismissCardioEdit -> dismissCardioEdit()
+            TrainerEvent.RequestRemoveBlock -> requestRemoveBlock()
+            TrainerEvent.ConfirmRemoveBlock -> confirmRemoveBlock()
+            TrainerEvent.DismissRemoveBlock -> dismissRemoveBlock()
+        }
+    }
+
+    private fun requestRemoveBlock() {
+        val content = _uiState.value as? TrainerUiState.Content ?: return
+        if (content.block !is BlockSummary.Saved) return
+        savedState[KEY_REMOVE_BLOCK_CONFIRM] = true
+        _uiState.value = content.copy(removeBlockConfirm = true)
+    }
+
+    private fun dismissRemoveBlock() {
+        val content = _uiState.value as? TrainerUiState.Content ?: return
+        if (content.removingBlock) return
+        savedState.remove<Boolean>(KEY_REMOVE_BLOCK_CONFIRM)
+        _uiState.value = content.copy(removeBlockConfirm = false)
+    }
+
+    @Suppress("ReturnCount") // Guards for a closed dialog, a missing repository or plan, or a removal in flight.
+    private fun confirmRemoveBlock() {
+        val content = _uiState.value as? TrainerUiState.Content ?: return
+        if (!content.removeBlockConfirm || content.removingBlock) return
+        val repository = blocks ?: return
+        val planId = when (val plan = content.plan) {
+            is PlanSummary.Accepted -> plan.plan.id
+            is PlanSummary.Proposed -> plan.plan.id
+            PlanSummary.None -> return
+        }
+        _uiState.value = content.copy(removingBlock = true)
+        viewModelScope.launch {
+            val result = repository.removeBlock(planId)
+            savedState.remove<Boolean>(KEY_REMOVE_BLOCK_CONFIRM)
+            if (result.isSuccess) {
+                // The weeks, deload card and block entry all derive from the block: reload the hub.
+                loadJob?.cancel()
+                val fresh = fetch()
+                _uiState.value = fresh
+                effectChannel.send(TrainerEffect.BlockRemoved)
+            } else {
+                _uiState.update { state ->
+                    if (state is TrainerUiState.Content) {
+                        state.copy(removeBlockConfirm = false, removingBlock = false)
+                    } else {
+                        state
+                    }
+                }
+                effectChannel.send(
+                    TrainerEffect.RemoveBlockFailed(offline = result.appErrorOrNull() == AppError.Network),
+                )
+            }
         }
     }
 
@@ -200,6 +254,7 @@ class TrainerViewModel(
                         decidingChange = state.decidingChange,
                         decidingDeload = state.decidingDeload,
                         cardioEdit = state.cardioEdit,
+                        removingBlock = state.removingBlock,
                         provisionalCount = fresh.provisionalCount ?: state.provisionalCount,
                     )
                 } else {
@@ -222,6 +277,9 @@ class TrainerViewModel(
         val savedPlanId = (plan as? PlanSummary.Accepted)?.plan?.id?.takeIf { block is BlockSummary.Saved }
         val deload = savedPlanId?.let { coachWeeks?.pendingDeload(today())?.getOrNull() }
         val planWeeks = savedPlanId?.let { coachWeeks?.weeks(it, today())?.getOrNull() }.orEmpty()
+        // A restored confirmation only makes sense while the block is still saved.
+        val confirmRemove = savedState.get<Boolean>(KEY_REMOVE_BLOCK_CONFIRM) == true
+        if (confirmRemove && block !is BlockSummary.Saved) savedState.remove<Boolean>(KEY_REMOVE_BLOCK_CONFIRM)
         return TrainerUiState.Content(
             plan = plan,
             calorieChange = change,
@@ -230,6 +288,7 @@ class TrainerViewModel(
             deload = deload,
             provisionalCount = provisional,
             cardioEdit = cardioEdit.current((plan as? PlanSummary.Accepted)?.plan?.cardioMinutes()),
+            removeBlockConfirm = confirmRemove && block is BlockSummary.Saved,
         )
     }
 

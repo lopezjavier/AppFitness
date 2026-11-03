@@ -70,6 +70,12 @@ internal class FakeCoachBlockRepository : CoachBlockRepository {
     /** When set, [saveBlock] suspends until completed. */
     var saveGate: CompletableDeferred<Unit>? = null
 
+    var removeResult: Result<Unit> = Result.success(Unit)
+
+    /** When set, [removeBlock] suspends until completed. */
+    var removeGate: CompletableDeferred<Unit>? = null
+
+    val removals = mutableListOf<String>()
     val requests = mutableListOf<Pair<String, LocalDate>>()
     val reads = mutableListOf<String>()
     val saves = mutableListOf<String>()
@@ -97,5 +103,14 @@ internal class FakeCoachBlockRepository : CoachBlockRepository {
         saveEdits += edits
         saveGate?.await()
         return saveResult
+    }
+
+    override suspend fun removeBlock(planId: String): Result<Unit> {
+        removals += planId
+        removeGate?.await()
+        val result = removeResult
+        // A removed block reads as none, like the server after the RPC.
+        if (result.isSuccess) current = Result.success(null)
+        return result
     }
 }

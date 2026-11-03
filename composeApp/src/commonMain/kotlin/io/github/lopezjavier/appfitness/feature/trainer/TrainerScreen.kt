@@ -41,6 +41,8 @@ import io.github.lopezjavier.appfitness.composeapp.resources.deload_discard_offl
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_info
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_more_vert
 import io.github.lopezjavier.appfitness.composeapp.resources.topbar_more_cd
+import io.github.lopezjavier.appfitness.composeapp.resources.trainer_block_remove_action
+import io.github.lopezjavier.appfitness.composeapp.resources.trainer_block_remove_error
 import io.github.lopezjavier.appfitness.composeapp.resources.trainer_free_text_row
 import io.github.lopezjavier.appfitness.composeapp.resources.trainer_title
 import io.github.lopezjavier.appfitness.composeapp.resources.trainer_your_data_row
@@ -84,6 +86,7 @@ data class TrainerActions(
 )
 
 /** Stateful Trainer tab root: connects [TrainerViewModel] to [TrainerScreen] and plays its one-off effects. */
+@Suppress("LongMethod") // One failure message per effect, wired in one place.
 @Composable
 fun TrainerRoute(
     modifier: Modifier = Modifier,
@@ -104,12 +107,20 @@ fun TrainerRoute(
     val deloadDiscardOffline = offlineHint(stringResource(Res.string.deload_discard_offline)) + "."
     val cardioError = stringResource(Res.string.cardio_save_error)
     val cardioOffline = offlineHint(stringResource(Res.string.cardio_save_offline)) + "."
+    val removeBlock = listOf(
+        stringResource(Res.string.trainer_block_remove_error),
+        offlineHint(stringResource(Res.string.trainer_block_remove_action)) + ".",
+    )
     val latestHaptics by rememberUpdatedState(haptics)
     LifecycleEventEffect(Lifecycle.Event.ON_RESUME) { viewModel.onEvent(TrainerEvent.Refresh) }
     LaunchedEffect(viewModel) {
         viewModel.effects.collect { effect ->
             when (effect) {
-                is TrainerEffect.CalorieChangeDecided -> latestHaptics.confirm()
+                is TrainerEffect.CalorieChangeDecided,
+                is TrainerEffect.DeloadDecided,
+                TrainerEffect.CardioSaved,
+                TrainerEffect.BlockRemoved,
+                -> latestHaptics.confirm()
 
                 is TrainerEffect.CalorieChangeFailed -> {
                     latestHaptics.reject()
@@ -122,9 +133,10 @@ fun TrainerRoute(
                     )
                 }
 
-                is TrainerEffect.DeloadDecided -> latestHaptics.confirm()
-
-                TrainerEffect.CardioSaved -> latestHaptics.confirm()
+                is TrainerEffect.RemoveBlockFailed -> {
+                    latestHaptics.reject()
+                    messages.show(removeBlock[if (effect.offline) 1 else 0])
+                }
 
                 is TrainerEffect.CardioFailed -> {
                     latestHaptics.reject()
@@ -200,7 +212,15 @@ private fun TrainerContent(
         state.deload?.let { DeloadCard(it, state.decidingDeload, online, onEvent) }
         state.calorieChange?.let { CalorieChangeCard(it, state.decidingChange, online, onEvent) }
         PlanSection(state.plan, online, actions.onOpenProposal, actions.onOpenBeforeStart, state.cardioEdit, onEvent)
-        BlockSection(state.plan, state.block, online, actions.onOpenBlock, actions.onOpenBeforeStart)
+        BlockSection(
+            state.plan,
+            state.block,
+            online,
+            actions.onOpenBlock,
+            actions.onOpenBeforeStart,
+            state.removeBlockConfirm,
+            onEvent,
+        )
         PlanWeeksSection(state.weeks)
         YourDataEntry(state.provisionalCount, actions.onOpenYourData)
         NavigationRow(

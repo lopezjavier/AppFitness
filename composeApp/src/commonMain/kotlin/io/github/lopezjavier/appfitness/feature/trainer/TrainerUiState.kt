@@ -48,6 +48,10 @@ sealed interface TrainerUiState {
         val provisionalCount: Int? = null,
         /** The open cardio-minutes sheet of the accepted plan ("Tu plan"); null when closed. */
         val cardioEdit: CardioEdit? = null,
+        /** The "Eliminar bloque" confirmation is open; only ever true while the block is saved. */
+        val removeBlockConfirm: Boolean = false,
+        /** The block removal is in flight: the dialog stays open with its confirm action disabled. */
+        val removingBlock: Boolean = false,
     ) : TrainerUiState {
         private val accepted: CoachPlan? get() = (plan as? PlanSummary.Accepted)?.plan
 
@@ -81,6 +85,15 @@ sealed interface TrainerEvent {
 
     /** X, back or "Cancelar": closes the sheet and drops the draft. */
     data object DismissCardioEdit : TrainerEvent
+
+    /** "Eliminar bloque": opens the confirmation; ignored without a saved block. */
+    data object RequestRemoveBlock : TrainerEvent
+
+    /** "Eliminar" in the confirmation; ignored when it is not open or a removal is already in flight. */
+    data object ConfirmRemoveBlock : TrainerEvent
+
+    /** "Cancelar", back or scrim: closes the confirmation and changes nothing (ignored while removing). */
+    data object DismissRemoveBlock : TrainerEvent
 }
 
 /** One-off effects; the UI shows the message and fires the haptics. */
@@ -102,4 +115,10 @@ sealed interface TrainerEffect {
 
     /** Saving the cardio failed; the sheet stays open. [offline] picks the offline hint. */
     data class CardioFailed(val offline: Boolean) : TrainerEffect
+
+    /** The block was removed and the hub reloaded: confirm haptic, no message (the outcome is visible). */
+    data object BlockRemoved : TrainerEffect
+
+    /** Removing the block failed; the dialog is closed and the block stays. [offline] picks the offline hint. */
+    data class RemoveBlockFailed(val offline: Boolean) : TrainerEffect
 }

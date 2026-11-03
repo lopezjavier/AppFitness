@@ -123,6 +123,9 @@ internal data class BlockRequestInput(
 )
 
 @Serializable
+internal data class RemoveBlockParams(@SerialName("p_plan_id") val planId: String)
+
+@Serializable
 internal data class SaveBlockParams(
     @SerialName("p_plan_id") val planId: String,
     @SerialName("p_edits") val edits: List<BlockEditDto>,
