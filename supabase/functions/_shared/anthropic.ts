@@ -361,6 +361,8 @@ export async function completeValidated<T>(
             });
         }
         if (value !== null) return { value, text, usage: total };
+        // A truncated answer would be cut at the same limit again: fail at once instead of paying twice (T-213).
+        if (stopReason === "max_tokens") break;
         if (
             retry.maxRetryStartMs !== undefined &&
             now() - started >= retry.maxRetryStartMs

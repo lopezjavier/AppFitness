@@ -567,3 +567,22 @@ Deno.test("the output budget grows with the folder and is capped", () => {
     assert(maxTokensFor(10) < maxTokensFor(30));
     assertEquals(maxTokensFor(1000), OUTPUT_TOKENS_MAX);
 });
+
+Deno.test("T-213: a 21-exercise folder gets more than the 2760 tokens that truncated the answer", () => {
+    assert(maxTokensFor(21) > 2760);
+});
+
+Deno.test("T-213: a complete answer is accepted and the same answer cut by max_tokens is a shape failure", () => {
+    const complete = JSON.stringify({
+        message: "Tu carpeta cumple casi todo, hay un ajuste.",
+        comments: [{ text: "Buen reparto de ejercicios por grupo." }],
+        changes: [],
+    });
+    const v = { folderKeys: new Set<string>(), catalogKeys: new Set<string>() };
+    const ok = validateReview(complete, v);
+    assertEquals(ok.failures, []);
+    assert(ok.review !== null);
+    const truncated = validateReview(complete.slice(0, -25), v);
+    assertEquals(truncated.review, null);
+    assertEquals(truncated.failures, [{ code: "shape", path: "root" }]);
+});

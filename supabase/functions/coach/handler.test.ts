@@ -319,7 +319,7 @@ async function debugRun(debug: boolean) {
         yield {
             type: "usage",
             usage: { ...NO_USAGE, inputTokens: 100, outputTokens: 10 },
-            stopReason: "max_tokens",
+            stopReason: "end_turn",
         } as AnthropicEvent;
         yield { type: "done" } as AnthropicEvent;
     };
@@ -348,7 +348,7 @@ Deno.test("debug on: one line per attempt with stop_reason and codes, and no tex
     assertEquals(attempts.length, 3); // two attempts and the final invalid-output line
     assertEquals(
         (attempts[0][1] as Record<string, unknown>).stop_reason,
-        "max_tokens",
+        "end_turn",
     );
     assertEquals((attempts[0][1] as Record<string, unknown>).codes, [
         "json_parse",
