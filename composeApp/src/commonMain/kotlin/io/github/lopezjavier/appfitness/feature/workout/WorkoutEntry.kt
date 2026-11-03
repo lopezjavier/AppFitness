@@ -62,6 +62,7 @@ fun WorkoutEntryRoot(
     onOpenHistory: () -> Unit,
     modifier: Modifier = Modifier,
     viewModel: WorkoutEntryViewModel = koinViewModel(),
+    onOpenFolderReview: (folderId: String) -> Unit = {},
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     val discardAsked by viewModel.discardAsked.collectAsStateWithLifecycle()
@@ -92,7 +93,7 @@ fun WorkoutEntryRoot(
         isOnline = isOnline,
         onEvent = viewModel::onEvent,
     ) { routinesModifier, openLive ->
-        RoutinesRoot(onOpenBuilder, onOpenDetails, openLive, routinesModifier)
+        RoutinesRoot(onOpenBuilder, onOpenDetails, openLive, routinesModifier, onOpenFolderReview = onOpenFolderReview)
     }
 }
 

@@ -1,8 +1,10 @@
 package io.github.lopezjavier.appfitness.feature.routines
 
+import androidx.lifecycle.SavedStateHandle
 import app.cash.turbine.test
 import io.github.lopezjavier.appfitness.app.FakeConnectivityObserver
 import io.github.lopezjavier.appfitness.domain.AppError
+import io.github.lopezjavier.appfitness.domain.model.RoutineFolder
 import io.github.lopezjavier.appfitness.feature.workout.FakeWorkoutSessionRepository
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.test.StandardTestDispatcher
@@ -36,7 +38,8 @@ class RoutinesViewModelTest {
         Dispatchers.resetMain()
     }
 
-    private fun viewModel() = RoutinesViewModel(repository, sessions, connectivity)
+    private fun viewModel(saved: SavedStateHandle = SavedStateHandle()) =
+        RoutinesViewModel(repository, sessions, connectivity, saved)
 
     private fun RoutinesViewModel.content() = assertIs<RoutinesUiState.Content>(uiState.value)
 
@@ -318,5 +321,92 @@ class RoutinesViewModelTest {
         advanceUntilIdle()
 
         assertEquals(listOf("r1"), sessions.startedRoutines)
+    }
+
+    // ---- Folder review and its menu (US-95) ----
+
+    private fun withFolder() {
+        repository.folders += RoutineFolder("f1", "Torso")
+    }
+
+    @Test
+    fun reviewFolder_opensTheReviewAndClosesTheMenu() = runTest {
+        withFolder()
+        val vm = viewModel()
+        advanceUntilIdle()
+        vm.onEvent(RoutinesEvent.OpenFolderMenu("f1"))
+
+        vm.effects.test {
+            vm.onEvent(RoutinesEvent.ReviewFolder("f1"))
+            advanceUntilIdle()
+            assertEquals(RoutinesEffect.OpenFolderReview("f1"), awaitItem())
+        }
+
+        assertNull(vm.content().folderMenuFor)
+    }
+
+    @Test
+    fun reviewFolder_offline_isRefusedAndOpensNothing() = runTest {
+        withFolder()
+        val vm = viewModel()
+        advanceUntilIdle()
+        connectivity.state.value = false
+        advanceUntilIdle()
+
+        vm.effects.test {
+            vm.onEvent(RoutinesEvent.ReviewFolder("f1"))
+            advanceUntilIdle()
+            assertEquals(RoutinesEffect.OfflineRefused, awaitItem())
+        }
+    }
+
+    @Test
+    fun folderMenu_opensAndDismisses() = runTest {
+        withFolder()
+        val vm = viewModel()
+        advanceUntilIdle()
+
+        vm.onEvent(RoutinesEvent.OpenFolderMenu("f1"))
+        assertEquals("f1", vm.content().folderMenuFor?.id)
+        vm.onEvent(RoutinesEvent.DismissFolderMenu)
+
+        assertNull(vm.content().folderMenuFor)
+    }
+
+    @Test
+    fun folderMenu_ofAnUnknownFolderStaysClosed() = runTest {
+        val vm = viewModel()
+        advanceUntilIdle()
+
+        vm.onEvent(RoutinesEvent.OpenFolderMenu("zzz"))
+
+        assertNull(vm.content().folderMenuFor)
+    }
+
+    @Test
+    fun folderMenu_survivesRecreation() = runTest {
+        withFolder()
+        val saved = SavedStateHandle()
+        val first = viewModel(saved)
+        advanceUntilIdle()
+        first.onEvent(RoutinesEvent.OpenFolderMenu("f1"))
+
+        val second = viewModel(saved)
+        advanceUntilIdle()
+
+        assertEquals("f1", second.content().folderMenuFor?.id)
+    }
+
+    @Test
+    fun rename_fromTheMenuClosesItAndOpensTheNameSheet() = runTest {
+        withFolder()
+        val vm = viewModel()
+        advanceUntilIdle()
+        vm.onEvent(RoutinesEvent.OpenFolderMenu("f1"))
+
+        vm.onEvent(RoutinesEvent.RenameFolder("f1"))
+
+        assertNull(vm.content().folderMenuFor)
+        assertEquals(FolderSheetMode.Rename, vm.content().folderSheet?.mode)
     }
 }

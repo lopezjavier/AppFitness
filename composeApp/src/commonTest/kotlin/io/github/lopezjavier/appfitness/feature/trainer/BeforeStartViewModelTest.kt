@@ -17,6 +17,8 @@ import io.github.lopezjavier.appfitness.domain.model.PlanInputSource
 import io.github.lopezjavier.appfitness.domain.model.PlanInputStatus
 import io.github.lopezjavier.appfitness.domain.model.PlanInputValue
 import io.github.lopezjavier.appfitness.domain.model.PlanInputs
+import io.github.lopezjavier.appfitness.domain.model.RoutineFolder
+import io.github.lopezjavier.appfitness.feature.routines.FakeRoutineRepository
 import io.github.lopezjavier.appfitness.feature.workout.MutableClock
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
@@ -43,6 +45,7 @@ class BeforeStartViewModelTest {
     private val dispatcher = StandardTestDispatcher()
     private val coach = FakeCoachRepository()
     private val intake = FakeCoachIntakeRepository()
+    private val routines = FakeRoutineRepository()
 
     @BeforeTest
     fun setUp() = Dispatchers.setMain(dispatcher)
@@ -67,7 +70,8 @@ class BeforeStartViewModelTest {
             replacing?.let { set("replacingPlanId", it) }
         }
 
-    private fun viewModel(saved: SavedStateHandle = args()) = BeforeStartViewModel(coach, intake, MutableClock(), saved)
+    private fun viewModel(saved: SavedStateHandle = args()) =
+        BeforeStartViewModel(coach, intake, MutableClock(), routines, saved)
 
     private fun BeforeStartViewModel.content() = assertIs<BeforeStartUiState.Content>(uiState.value)
 
@@ -226,21 +230,169 @@ class BeforeStartViewModelTest {
         assertTrue(coach.confirmCalls.isEmpty())
     }
 
+    private fun givenBlock(provisional: Boolean = true) {
+        val rows = if (provisional) listOf(planInput(PlanInputKey.Place, PlanInputStatus.Provisional)) else emptyList()
+        coach.inputs[PlanInputKind.Block] = Result.success(PlanInputs(PlanInputKind.Block, null, rows))
+    }
+
+    private suspend fun BeforeStartViewModel.createBlock() {
+        onEvent(BeforeStartEvent.Create)
+        dispatcher.scheduler.advanceUntilIdle()
+    }
+
     @Test
-    fun blockCreate_usesTheSameRule_andCarriesThePlanId() = runTest(dispatcher) {
-        coach.inputs[PlanInputKind.Block] = Result.success(
-            PlanInputs(PlanInputKind.Block, null, listOf(planInput(PlanInputKey.Place, PlanInputStatus.Provisional))),
+    fun blockCreate_confirmsThenOpensTheStartChoiceInsteadOfNavigating() = runTest(dispatcher) {
+        givenBlock()
+        val model = viewModel(args("block", planId = "plan-1"))
+        advanceUntilIdle()
+
+        model.effects.test {
+            model.createBlock()
+            expectNoEvents()
+        }
+
+        assertEquals(1, coach.confirmCalls.size)
+        assertEquals(StartChoiceStep.Choice, model.content().startChoice)
+    }
+
+    @Test
+    fun planCreate_neverOpensTheStartChoice() = runTest(dispatcher) {
+        givenPlan(completePlan())
+        val model = viewModel()
+        advanceUntilIdle()
+
+        model.createBlock()
+
+        assertEquals(StartChoiceStep.None, model.content().startChoice)
+    }
+
+    @Test
+    fun pickScratch_emitsCreatedForTheSplitsAndClosesTheChoice() = runTest(dispatcher) {
+        givenBlock(provisional = false)
+        val model = viewModel(args("block", planId = "plan-1"))
+        advanceUntilIdle()
+        model.createBlock()
+
+        model.effects.test {
+            model.onEvent(BeforeStartEvent.PickStart(StartOption.Scratch))
+            advanceUntilIdle()
+            assertEquals(BeforeStartEffect.Created(BeforeStartMode.Block, "plan-1", null), awaitItem())
+        }
+
+        assertEquals(StartChoiceStep.None, model.content().startChoice)
+    }
+
+    @Test
+    fun pickFolder_listsTheFolders() = runTest(dispatcher) {
+        routines.folders += RoutineFolder("f1", "Torso")
+        givenBlock(provisional = false)
+        val model = viewModel(args("block", planId = "plan-1"))
+        advanceUntilIdle()
+        model.createBlock()
+
+        model.onEvent(BeforeStartEvent.PickStart(StartOption.Folder))
+        advanceUntilIdle()
+
+        assertEquals(StartChoiceStep.Folders, model.content().startChoice)
+        assertEquals(
+            FolderPickerState.Loaded(listOf(RoutineFolder("f1", "Torso"))),
+            model.content().folderPicker,
         )
+    }
+
+    @Test
+    fun pickFolder_withNoFoldersIsAnEmptyList() = runTest(dispatcher) {
+        givenBlock(provisional = false)
+        val model = viewModel(args("block", planId = "plan-1"))
+        advanceUntilIdle()
+        model.createBlock()
+
+        model.onEvent(BeforeStartEvent.PickStart(StartOption.Folder))
+        advanceUntilIdle()
+
+        assertEquals(FolderPickerState.Loaded(emptyList()), model.content().folderPicker)
+    }
+
+    @Test
+    fun folderListFailure_isAnErrorAndRetryReloads() = runTest(dispatcher) {
+        routines.folders += RoutineFolder("f1", "Torso")
+        routines.failure = AppError.Network
+        givenBlock(provisional = false)
+        val model = viewModel(args("block", planId = "plan-1"))
+        advanceUntilIdle()
+        model.createBlock()
+
+        model.onEvent(BeforeStartEvent.PickStart(StartOption.Folder))
+        advanceUntilIdle()
+        assertEquals(FolderPickerState.Failed(offline = true), model.content().folderPicker)
+        routines.failure = null
+        model.onEvent(BeforeStartEvent.RetryFolders)
+        advanceUntilIdle()
+
+        assertEquals(FolderPickerState.Loaded(listOf(RoutineFolder("f1", "Torso"))), model.content().folderPicker)
+    }
+
+    @Test
+    fun folderTap_emitsOpenFolderReviewWithThePlan() = runTest(dispatcher) {
+        routines.folders += RoutineFolder("f1", "Torso")
+        givenBlock(provisional = false)
+        val model = viewModel(args("block", planId = "plan-1"))
+        advanceUntilIdle()
+        model.createBlock()
+        model.onEvent(BeforeStartEvent.PickStart(StartOption.Folder))
+        advanceUntilIdle()
+
+        model.effects.test {
+            model.onEvent(BeforeStartEvent.PickFolder("f1"))
+            advanceUntilIdle()
+            assertEquals(BeforeStartEffect.OpenFolderReview("plan-1", "f1"), awaitItem())
+        }
+    }
+
+    @Test
+    fun closeChoice_clearsTheSheet() = runTest(dispatcher) {
+        givenBlock(provisional = false)
+        val model = viewModel(args("block", planId = "plan-1"))
+        advanceUntilIdle()
+        model.createBlock()
+
+        model.onEvent(BeforeStartEvent.CloseChoice)
+
+        assertEquals(StartChoiceStep.None, model.content().startChoice)
+    }
+
+    @Test
+    fun startChoice_survivesRecreationAndReloadsTheFolders() = runTest(dispatcher) {
+        routines.folders += RoutineFolder("f1", "Torso")
+        givenBlock(provisional = false)
+        val saved = args("block", planId = "plan-1")
+        val first = viewModel(saved)
+        advanceUntilIdle()
+        first.createBlock()
+        first.onEvent(BeforeStartEvent.PickStart(StartOption.Folder))
+        advanceUntilIdle()
+
+        val second = viewModel(saved)
+        advanceUntilIdle()
+
+        assertEquals(StartChoiceStep.Folders, second.content().startChoice)
+        assertEquals(FolderPickerState.Loaded(listOf(RoutineFolder("f1", "Torso"))), second.content().folderPicker)
+    }
+
+    @Test
+    fun blockConfirmFailure_keepsCreateFailedAndNoChoice() = runTest(dispatcher) {
+        givenBlock()
+        coach.confirmResult = { Result.failure<CoachDerivedValues>(AppException(AppError.Unknown)) }
         val model = viewModel(args("block", planId = "plan-1"))
         advanceUntilIdle()
 
         model.effects.test {
             model.onEvent(BeforeStartEvent.Create)
             advanceUntilIdle()
-            assertEquals(BeforeStartEffect.Created(BeforeStartMode.Block, "plan-1", null), awaitItem())
+            assertEquals(BeforeStartEffect.CreateFailed(offline = false), awaitItem())
         }
 
-        assertEquals(1, coach.confirmCalls.size)
+        assertEquals(StartChoiceStep.None, model.content().startChoice)
     }
 
     @Test

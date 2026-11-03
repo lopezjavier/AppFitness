@@ -21,6 +21,7 @@ import io.github.lopezjavier.appfitness.domain.model.CoachIntake
 import io.github.lopezjavier.appfitness.domain.model.IntakeUpdate
 import io.github.lopezjavier.appfitness.domain.model.PlanFixTarget
 import io.github.lopezjavier.appfitness.domain.model.PlanInputKind
+import io.github.lopezjavier.appfitness.feature.routines.FakeRoutineRepository
 import io.github.lopezjavier.appfitness.feature.workout.MutableClock
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
@@ -47,6 +48,7 @@ class IntakeRowSheetsTest {
             coach,
             intake,
             MutableClock(),
+            FakeRoutineRepository(),
             SavedStateHandle(mapOf("mode" to "plan")),
         )
         rule.setContent {

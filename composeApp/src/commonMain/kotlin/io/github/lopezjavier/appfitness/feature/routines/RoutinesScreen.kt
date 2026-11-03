@@ -55,6 +55,7 @@ fun RoutinesRoot(
     onOpenLiveSession: () -> Unit,
     modifier: Modifier = Modifier,
     viewModel: RoutinesViewModel = koinViewModel(),
+    onOpenFolderReview: (folderId: String) -> Unit = {},
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val messages = LocalAppMessages.current
@@ -62,6 +63,7 @@ fun RoutinesRoot(
     val currentOpenBuilder by rememberUpdatedState(onOpenBuilder)
     val currentOpenDetails by rememberUpdatedState(onOpenDetails)
     val currentOpenLive by rememberUpdatedState(onOpenLiveSession)
+    val currentOpenReview by rememberUpdatedState(onOpenFolderReview)
     val failed = stringResource(Res.string.routines_action_failed)
     val deleteOffline = stringResource(Res.string.delete_offline)
     val inProgress = stringResource(Res.string.workout_already_in_progress)
@@ -73,6 +75,8 @@ fun RoutinesRoot(
                 is RoutinesEffect.OpenDetails -> currentOpenDetails(effect.routineId)
 
                 RoutinesEffect.OpenLiveSession -> currentOpenLive()
+
+                is RoutinesEffect.OpenFolderReview -> currentOpenReview(effect.folderId)
 
                 RoutinesEffect.ActionFailed -> {
                     haptics.reject()

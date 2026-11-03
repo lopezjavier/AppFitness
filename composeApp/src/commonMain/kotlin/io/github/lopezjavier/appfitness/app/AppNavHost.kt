@@ -72,6 +72,7 @@ internal typealias BeforeStartSlot =
         onCreated: (BeforeStartEffect.Created) -> Unit,
         onOpenYourData: () -> Unit,
         onFix: (PlanFixTarget) -> Unit,
+        onOpenFolderReview: (BeforeStartEffect.OpenFolderReview) -> Unit,
     ) -> Unit
 
 /** Content of "Tus datos": modifier (full-screen insets), how to leave and the editor opener of an input. */
@@ -90,6 +91,10 @@ internal typealias FreeTextLinesSlot = @Composable (modifier: Modifier, onBack: 
 /** Content of the block preview: modifier (full-screen insets), plan id, exercise opener and how to leave. */
 internal typealias BlockPreviewSlot =
     @Composable (modifier: Modifier, planId: String, onOpenExercise: (String) -> Unit, onBack: () -> Unit) -> Unit
+
+/** Content of the folder review: modifier (full-screen insets), how to leave after a copy, after a block, and back. */
+internal typealias FolderReviewSlot =
+    @Composable (modifier: Modifier, onApplied: () -> Unit, onBlockReady: () -> Unit, onBack: () -> Unit) -> Unit
 
 /** Content of the split options: modifier (full-screen insets), plan id, how to go to the built block and to leave. */
 internal typealias BlockSplitsSlot =
@@ -148,6 +153,7 @@ internal typealias RoutinesSlot =
         onOpenDetails: (String) -> Unit,
         onOpenLiveSession: () -> Unit,
         onOpenHistory: () -> Unit,
+        onOpenFolderReview: (String) -> Unit,
     ) -> Unit
 
 /**
@@ -446,7 +452,7 @@ internal val DefaultExerciseDetailSlot: ExerciseDetailSlot = { modifier, _, _, _
 }
 
 /** Empty "Mis rutinas" for previews and shell tests; the real one is wired by `AppRoot`. */
-internal val DefaultRoutinesSlot: RoutinesSlot = { modifier, _, _, _, _ ->
+internal val DefaultRoutinesSlot: RoutinesSlot = { modifier, _, _, _, _, _ ->
     Box(modifier.fillMaxSize().testTag("routines_screen"))
 }
 
@@ -597,7 +603,7 @@ internal val DefaultPlanProposalSlot: PlanProposalSlot = { modifier, _, _ ->
 }
 
 /** Empty "Antes de empezar" for previews and shell tests; the real one is wired by `AppRoot`. */
-internal val DefaultBeforeStartSlot: BeforeStartSlot = { modifier, _, _, _, _ ->
+internal val DefaultBeforeStartSlot: BeforeStartSlot = { modifier, _, _, _, _, _ ->
     Box(modifier.fillMaxSize().testTag("before_start_screen"))
 }
 
@@ -619,6 +625,11 @@ internal val DefaultFreeTextLinesSlot: FreeTextLinesSlot = { modifier, _ ->
 /** Empty block preview for previews and shell tests; the real one is wired by `AppRoot`. */
 internal val DefaultBlockPreviewSlot: BlockPreviewSlot = { modifier, _, _, _ ->
     Box(modifier.fillMaxSize().testTag("block_preview_screen"))
+}
+
+/** Empty folder review for previews and shell tests; the real one is wired by `AppRoot`. */
+internal val DefaultFolderReviewSlot: FolderReviewSlot = { modifier, _, _, _ ->
+    Box(modifier.fillMaxSize().testTag("folder_review_screen"))
 }
 
 /** Empty split options for previews and shell tests; the real one is wired by `AppRoot`. */
@@ -657,6 +668,7 @@ internal fun AppNavHost(
     freeTextLines: FreeTextLinesSlot = DefaultFreeTextLinesSlot,
     blockPreview: BlockPreviewSlot = DefaultBlockPreviewSlot,
     blockSplits: BlockSplitsSlot = DefaultBlockSplitsSlot,
+    folderReview: FolderReviewSlot = DefaultFolderReviewSlot,
     activity: ActivitySlot = DefaultActivitySlot,
     exercisePicker: ExercisePickerSlot = DefaultExercisePickerSlot,
     exerciseDetail: ExerciseDetailSlot = DefaultExerciseDetailSlot,
@@ -807,7 +819,13 @@ internal fun AppNavHost(
         }
         navigation<WorkoutGraph>(startDestination = TopLevelTab.Workout.startRoute) {
             composable<WorkoutHome> {
-                routines(Modifier.padding(tabPadding), openBuilder, openDetails, openLiveSession, openHistory)
+                routines(
+                    Modifier.padding(tabPadding),
+                    openBuilder,
+                    openDetails,
+                    openLiveSession,
+                    openHistory,
+                ) { folderId -> navController.navigateToFullScreen(FolderReviewRoute(REVIEW_PURPOSE, folderId)) }
             }
         }
         navigation<TrainerGraph>(startDestination = TopLevelTab.Trainer.startRoute) {
@@ -855,6 +873,14 @@ internal fun AppNavHost(
                 { created -> navController.openCreated(entry, created) },
                 openYourData,
                 openFix,
+            ) { review -> navController.openFolderReview(review) }
+        }
+        composable<FolderReviewRoute> { entry ->
+            folderReview(
+                Modifier.padding(fullScreenPadding),
+                { navController.popFullScreen(entry) },
+                { navController.openBuiltBlockFromReview(entry) },
+                { navController.popFullScreen(entry) },
             )
         }
         composable<IntakeRoute> { entry ->
@@ -1327,6 +1353,24 @@ internal fun NavController.openBuiltBlock(entry: NavBackStackEntry) {
     navigate(BlockPreviewRoute(planId)) {
         launchSingleTop = true
         popUpTo<BlockSplitsRoute> { inclusive = true }
+    }
+}
+
+/** Opens the review of the folder picked to start a block; "Antes de empezar" stays below so Back returns to it. */
+internal fun NavController.openFolderReview(review: BeforeStartEffect.OpenFolderReview) {
+    navigateToFullScreen(FolderReviewRoute(BLOCK_PURPOSE, review.folderId, review.planId))
+}
+
+/**
+ * Leaves the folder review for the preview of the block just built. The review and "Antes de empezar" are popped, so
+ * Back from the preview returns to where the creation started and never to a screen that bills.
+ */
+internal fun NavController.openBuiltBlockFromReview(entry: NavBackStackEntry) {
+    if (currentBackStackEntry?.id != entry.id) return
+    val planId = entry.toRoute<FolderReviewRoute>().planId.orEmpty()
+    navigate(BlockPreviewRoute(planId)) {
+        launchSingleTop = true
+        popUpTo<BeforeStartRoute> { inclusive = true }
     }
 }
 

@@ -42,6 +42,8 @@ sealed interface RoutinesUiState {
         val folderSheet: FolderSheetState? = null,
         val deleteFolderFor: RoutineFolder? = null,
         val moveFor: RoutineSummary? = null,
+        /** The folder whose actions sheet (review with the coach, rename) is open; survives recreation. */
+        val folderMenuFor: RoutineFolder? = null,
         /** True while the folder sheet's create/rename call runs (the sheet shows its saving state). */
         val folderSaving: Boolean = false,
     ) : RoutinesUiState {
@@ -117,6 +119,14 @@ sealed interface RoutinesEvent {
     data class MoveDown(val id: String) : RoutinesEvent
 
     data class ToggleFolder(val id: String) : RoutinesEvent
+
+    /** The overflow icon of a folder header: opens its actions sheet. */
+    data class OpenFolderMenu(val id: String) : RoutinesEvent
+
+    data object DismissFolderMenu : RoutinesEvent
+
+    /** "Revisar con el entrenador": opens the folder review (a paid call, so it needs the network). */
+    data class ReviewFolder(val id: String) : RoutinesEvent
 }
 
 /** One-off results of "Mis rutinas". */
@@ -132,6 +142,9 @@ sealed interface RoutinesEffect {
 
     /** A delete was refused because there is no connection (nothing changed). */
     data object OfflineRefused : RoutinesEffect
+
+    /** Open the coach's review of this folder. */
+    data class OpenFolderReview(val folderId: String) : RoutinesEffect
 
     /** A session was started; open the live screen. */
     data object OpenLiveSession : RoutinesEffect

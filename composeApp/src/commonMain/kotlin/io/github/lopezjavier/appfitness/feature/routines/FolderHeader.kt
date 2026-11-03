@@ -21,15 +21,15 @@ import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.style.TextOverflow
 import io.github.lopezjavier.appfitness.composeapp.resources.Res
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_delete
-import io.github.lopezjavier.appfitness.composeapp.resources.ic_edit
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_expand_more
+import io.github.lopezjavier.appfitness.composeapp.resources.ic_more_vert
 import io.github.lopezjavier.appfitness.composeapp.resources.routines_folder_collapse_cd
 import io.github.lopezjavier.appfitness.composeapp.resources.routines_folder_collapsed
 import io.github.lopezjavier.appfitness.composeapp.resources.routines_folder_count
 import io.github.lopezjavier.appfitness.composeapp.resources.routines_folder_delete_cd
 import io.github.lopezjavier.appfitness.composeapp.resources.routines_folder_expand_cd
 import io.github.lopezjavier.appfitness.composeapp.resources.routines_folder_expanded
-import io.github.lopezjavier.appfitness.composeapp.resources.routines_folder_rename_cd
+import io.github.lopezjavier.appfitness.composeapp.resources.routines_folder_menu_cd
 import io.github.lopezjavier.appfitness.designsystem.AppIconButton
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
 import io.github.lopezjavier.appfitness.designsystem.Spacing
@@ -41,8 +41,8 @@ import org.jetbrains.compose.resources.stringResource
 private const val CHEVRON_EXPANDED_DEGREES = 180f
 
 /**
- * Header of a folder section: chevron toggle, name, routine count and the rename / delete icon buttons. Rename and
- * delete are writes, so they need [canWrite].
+ * Header of a folder section: chevron toggle, name, routine count and the actions menu (review with the coach,
+ * rename) and the delete icon button. Delete is a write, so it needs [canWrite]; the menu entries check the network.
  */
 @Composable
 internal fun FolderHeader(
@@ -77,11 +77,10 @@ internal fun FolderHeader(
             )
         }
         AppIconButton(
-            contentDescription = stringResource(Res.string.routines_folder_rename_cd, folder.name),
-            icon = Res.drawable.ic_edit,
-            testTag = "routines_folder_rename_${folder.id}",
-            onClick = { onEvent(RoutinesEvent.RenameFolder(folder.id)) },
-            enabled = canWrite,
+            contentDescription = stringResource(Res.string.routines_folder_menu_cd, folder.name),
+            icon = Res.drawable.ic_more_vert,
+            testTag = "routines_folder_menu_${folder.id}",
+            onClick = { onEvent(RoutinesEvent.OpenFolderMenu(folder.id)) },
         )
         AppIconButton(
             contentDescription = stringResource(Res.string.routines_folder_delete_cd, folder.name),

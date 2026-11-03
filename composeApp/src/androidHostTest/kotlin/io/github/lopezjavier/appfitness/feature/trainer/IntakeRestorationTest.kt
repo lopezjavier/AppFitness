@@ -16,6 +16,7 @@ import io.github.lopezjavier.appfitness.app.IntakeHost
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
 import io.github.lopezjavier.appfitness.domain.model.CoachIntake
 import io.github.lopezjavier.appfitness.domain.model.PlanInputKind
+import io.github.lopezjavier.appfitness.feature.routines.FakeRoutineRepository
 import io.github.lopezjavier.appfitness.feature.workout.MutableClock
 import org.junit.Assert.assertNotSame
 import org.junit.Rule
@@ -44,7 +45,7 @@ class IntakeRestorationTest {
     }
 
     private fun beforeStartModel(handle: SavedStateHandle) =
-        BeforeStartViewModel(coach, repository, MutableClock(), handle)
+        BeforeStartViewModel(coach, repository, MutableClock(), FakeRoutineRepository(), handle)
 
     private fun yourDataModel(handle: SavedStateHandle) = YourDataViewModel(coach, repository, MutableClock(), handle)
 

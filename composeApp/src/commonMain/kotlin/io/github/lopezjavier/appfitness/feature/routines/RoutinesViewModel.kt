@@ -4,6 +4,7 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import io.github.lopezjavier.appfitness.designsystem.NameSheetDefaults
+import io.github.lopezjavier.appfitness.domain.model.RoutineFolder
 import io.github.lopezjavier.appfitness.domain.model.RoutineSummary
 import io.github.lopezjavier.appfitness.domain.port.ConnectivityObserver
 import io.github.lopezjavier.appfitness.domain.repository.RoutineRepository
@@ -21,6 +22,7 @@ import kotlinx.coroutines.launch
 private const val KEY_COLLAPSED = "routines_collapsed_folders"
 private const val KEY_SHEET_MODE = "routines_folder_sheet_mode"
 private const val KEY_SHEET_FOLDER = "routines_folder_sheet_folder"
+private const val KEY_FOLDER_MENU = "routines_folder_menu"
 private const val ID_SEPARATOR = ","
 
 /**
@@ -92,6 +94,7 @@ class RoutinesViewModel(
 
             is RoutinesEvent.RenameFolder ->
                 (_uiState.value as? RoutinesUiState.Content)?.folders?.firstOrNull { it.id == event.id }?.let {
+                    setFolderMenu(null)
                     if (online) openSheet(FolderSheetState(FolderSheetMode.Rename, it.id))
                 }
 
@@ -127,6 +130,12 @@ class RoutinesViewModel(
 
             is RoutinesEvent.ToggleFolder -> toggleFolder(event.id)
 
+            is RoutinesEvent.OpenFolderMenu -> openFolderMenu(event.id)
+
+            RoutinesEvent.DismissFolderMenu -> setFolderMenu(null)
+
+            is RoutinesEvent.ReviewFolder -> reviewFolder(event.id)
+
             else -> Unit
         }
     }
@@ -151,6 +160,8 @@ class RoutinesViewModel(
                         folders = folderList,
                         collapsedFolderIds = restoredCollapsed(),
                         folderSheet = restoredSheet(),
+                        folderMenuFor = savedState.get<String>(KEY_FOLDER_MENU)
+                            ?.let { id -> folderList.firstOrNull { it.id == id } },
                     )
             }
         }
@@ -273,6 +284,21 @@ class RoutinesViewModel(
                 onFailure = { effectChannel.trySend(RoutinesEffect.ActionFailed) },
             )
         }
+    }
+
+    private fun openFolderMenu(id: String) {
+        val folder = (_uiState.value as? RoutinesUiState.Content)?.folders?.firstOrNull { it.id == id } ?: return
+        setFolderMenu(folder)
+    }
+
+    private fun setFolderMenu(folder: RoutineFolder?) {
+        updateContent { it.copy(folderMenuFor = folder) }
+        savedState[KEY_FOLDER_MENU] = folder?.id
+    }
+
+    private fun reviewFolder(id: String) {
+        setFolderMenu(null)
+        effectChannel.trySend(if (online) RoutinesEffect.OpenFolderReview(id) else RoutinesEffect.OfflineRefused)
     }
 
     // ---- Next workout and order (optimistic, reverted on failure) ----

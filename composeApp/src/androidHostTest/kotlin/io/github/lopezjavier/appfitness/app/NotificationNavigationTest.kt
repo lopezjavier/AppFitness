@@ -43,7 +43,7 @@ class NotificationNavigationTest {
     val rule = createComposeRule()
 
     private val diarySlot: DiarySlot = { modifier, _, _, _, _, _ -> DiaryScreen(DiaryUiState.Loading, {}, modifier) }
-    private val routinesSlot: RoutinesSlot = { modifier, _, _, _, _ ->
+    private val routinesSlot: RoutinesSlot = { modifier, _, _, _, _, _ ->
         WorkoutEntryHost(WorkoutEntryState.Routines, {}, {}, modifier, routines = { _, _ -> })
     }
     private val profileSlot: ProfileSlot = { modifier, _ ->
