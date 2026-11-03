@@ -436,3 +436,86 @@ export const BLOCK_OUTPUT_SCHEMA: Record<string, unknown> = {
         changes_vs_last_block: { type: "string" },
     },
 };
+
+/**
+ * Folder review output (T-207): a message, comments and typed changes. One flat change object for the closed set of ops
+ * (the validator checks which fields each op needs and refuses the rest); ids are server-generated.
+ */
+export const FOLDER_REVIEW_OUTPUT_SCHEMA: Record<string, unknown> = {
+    type: "object",
+    additionalProperties: false,
+    required: ["message", "comments", "changes"],
+    properties: {
+        message: { type: "string" },
+        comments: {
+            type: "array",
+            items: {
+                type: "object",
+                additionalProperties: false,
+                required: ["text"],
+                properties: {
+                    text: { type: "string" },
+                    exercise_key: { type: "string" },
+                },
+            },
+        },
+        changes: {
+            type: "array",
+            items: {
+                type: "object",
+                additionalProperties: false,
+                required: ["op", "routine_index", "reason"],
+                properties: {
+                    op: {
+                        type: "string",
+                        enum: [
+                            "add_exercise",
+                            "replace_exercise",
+                            "remove_exercise",
+                            "set_sets",
+                            "set_rep_range",
+                            "set_rpe",
+                            "set_rest",
+                        ],
+                    },
+                    routine_index: { type: "integer" },
+                    position: { type: "integer" },
+                    exercise_key: { type: "string" },
+                    sets: {
+                        type: "array",
+                        items: {
+                            type: "object",
+                            additionalProperties: false,
+                            required: [
+                                "n",
+                                "type",
+                                "rep_min",
+                                "rep_max",
+                                "rpe",
+                                "rest_seconds",
+                            ],
+                            properties: {
+                                n: { type: "integer" },
+                                type: {
+                                    type: "string",
+                                    enum: ["working", "drop"],
+                                },
+                                rep_min: { type: "integer" },
+                                rep_max: { type: "integer" },
+                                rpe: { type: "integer" },
+                                rest_seconds: { type: "integer" },
+                            },
+                        },
+                    },
+                    n: { type: "integer" },
+                    rep_min: { type: "integer" },
+                    rep_max: { type: "integer" },
+                    rpe: { type: "integer" },
+                    rest_seconds: { type: "integer" },
+                    reason: { type: "string" },
+                    fixes: { type: "string" },
+                },
+            },
+        },
+    },
+};

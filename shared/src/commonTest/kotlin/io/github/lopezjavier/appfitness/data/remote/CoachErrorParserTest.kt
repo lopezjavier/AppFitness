@@ -1,6 +1,7 @@
 package io.github.lopezjavier.appfitness.data.remote
 
 import io.github.lopezjavier.appfitness.domain.model.CoachFailure
+import io.github.lopezjavier.appfitness.domain.model.FolderFalta
 import io.github.lopezjavier.appfitness.domain.model.MissingField
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -27,6 +28,28 @@ class CoachErrorParserTest {
     fun limitReached_withoutScope_isUser() = assertEquals(
         CoachFailure.LimitReached(CoachFailure.Scope.User),
         CoachErrorParser.parse(error("coach_limit_reached")),
+    )
+
+    @Test
+    fun needsChanges_carriesTheFailuresWithTheirRefs() {
+        val body = """{"error":{"code":"coach_block_needs_changes","message":"m","failures":[""" +
+            """{"code":"H3","routine_index":2,"exercise_key":"k","data":{"min":6}},{"code":"H5","data":{}}]}}"""
+
+        assertEquals(
+            CoachFailure.NeedsChanges(
+                listOf(
+                    FolderFalta("H3", 2, "k", mapOf("min" to "6")),
+                    FolderFalta("H5", null, null, emptyMap()),
+                ),
+            ),
+            CoachErrorParser.parse(body),
+        )
+    }
+
+    @Test
+    fun needsChanges_withoutFailures_isEmpty() = assertEquals(
+        CoachFailure.NeedsChanges(emptyList()),
+        CoachErrorParser.parse(error("coach_block_needs_changes")),
     )
 
     @Test

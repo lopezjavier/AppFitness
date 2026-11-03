@@ -30,9 +30,12 @@ import {
     type PlanState,
     type PrepareContext,
     type Prepared,
+    type ReviewRow,
     type SavedPlan,
+    type StoredReview,
     type UpdatedPlan,
 } from "./context.ts";
+import type { FolderForReview } from "./folderChanges.ts";
 import { type CoachModel, costEur, parseCoachModel } from "./prices.ts";
 import { KINDS, type KindSpec } from "./router.ts";
 import type { CatalogExercise, PhaseHistory } from "./schemas.ts";
@@ -83,6 +86,18 @@ export type CoachDeps = {
         token: string,
         today: string,
     ) => Promise<BlockModelInput>;
+    /** `coach_folder_for_review` of the caller, read with their own token (T-207). */
+    loadFolder: (
+        token: string,
+        folderId: string,
+    ) => Promise<FolderForReview | null>;
+    /** Stores a folder review through `save_folder_review`, with the caller's own token (T-207). */
+    saveReview: (token: string, row: ReviewRow) => Promise<string>;
+    /** A stored review of the caller, read with their own token (T-207). */
+    loadReview: (
+        token: string,
+        reviewId: string,
+    ) => Promise<StoredReview | null>;
     now: () => Date;
     timeoutMs?: number;
     kinds?: Record<string, KindSpec>;
@@ -119,7 +134,14 @@ async function runPrepare(
             return errorResponse(
                 e.code,
                 e.message,
-                e.missing ? { extra: { missing: e.missing } } : {},
+                e.missing || e.extra
+                    ? {
+                        extra: {
+                            ...(e.missing ? { missing: e.missing } : {}),
+                            ...(e.extra ?? {}),
+                        },
+                    }
+                    : {},
             );
         }
         throw e;
@@ -231,10 +253,16 @@ export function createCoachHandler(
                 updatePlanOptions: (row) => deps.updatePlanOptions(token, row),
                 loadBlockModelInput: (today) =>
                     deps.loadBlockModelInput(token, today),
+                loadFolder: (id) => deps.loadFolder(token, id),
+                saveReview: (row) => deps.saveReview(token, row),
+                loadReview: (id) => deps.loadReview(token, id),
             };
 
             // A deterministic kind needs no provider, no budget and leaves no usage row (T-187 `plan_recompute`).
-            if (spec.deterministic) {
+            const deterministic = typeof spec.deterministic === "function"
+                ? spec.deterministic(body.input)
+                : spec.deterministic === true;
+            if (deterministic) {
                 if (!spec.prepare) {
                     return errorResponse("INTERNAL", "Unexpected error");
                 }
