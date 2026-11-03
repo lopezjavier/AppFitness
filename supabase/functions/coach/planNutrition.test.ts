@@ -80,6 +80,8 @@ function setup(
         attachBlock: () => Promise.reject(new Error("unexpected attachBlock")),
         loadPhaseHistory: () =>
             Promise.reject(new Error("unexpected loadPhaseHistory")),
+        loadBlockModelInput: () =>
+            Promise.reject(new Error("unexpected loadBlockModelInput")),
         updatePlanOptions: () =>
             Promise.reject(new Error("unexpected updatePlanOptions")),
         client: o.client === undefined ? client : o.client,

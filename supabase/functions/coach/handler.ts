@@ -22,6 +22,7 @@ import {
 import { checkBudget, monthKey } from "./budget.ts";
 import {
     type AttachedBlock,
+    type BlockModelInput,
     type BlockRow,
     CoachInputError,
     type OptionsRow,
@@ -77,6 +78,11 @@ export type CoachDeps = {
         token: string,
         row: OptionsRow,
     ) => Promise<UpdatedPlan>;
+    /** `coach_block_model_input` of the caller, read with their own token (T-205). */
+    loadBlockModelInput: (
+        token: string,
+        today: string,
+    ) => Promise<BlockModelInput>;
     now: () => Date;
     timeoutMs?: number;
     kinds?: Record<string, KindSpec>;
@@ -223,6 +229,8 @@ export function createCoachHandler(
                 loadPhaseHistory: (today) =>
                     deps.loadPhaseHistory(token, today),
                 updatePlanOptions: (row) => deps.updatePlanOptions(token, row),
+                loadBlockModelInput: (today) =>
+                    deps.loadBlockModelInput(token, today),
             };
 
             // A deterministic kind needs no provider, no budget and leaves no usage row (T-187 `plan_recompute`).
@@ -328,6 +336,7 @@ export function createCoachHandler(
                                     p.request,
                                     p.validate,
                                     signal,
+                                    p.retry,
                                 )
                             ),
                         ),
@@ -387,6 +396,7 @@ export function createCoachHandler(
                             request!,
                             validate,
                             deadline.controller.signal,
+                            prepared?.retry,
                         ),
                     );
                     const usage = await record(result.usage);

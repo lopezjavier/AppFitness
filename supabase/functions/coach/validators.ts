@@ -3,7 +3,6 @@
 import {
     type Activity,
     CARDIO_MIN_WEEK,
-    CARDIO_MIN_WEEK_MINIMAL,
     STEPS_FLOOR,
     STEPS_STEP,
 } from "./cardioRules.ts";
@@ -119,16 +118,13 @@ export function validateOutcomesText(
 export function assertActivityInvariants(
     a: Activity,
     stepsAvg: number | null,
-    phase: Phase = "maintenance",
+    _phase: Phase = "maintenance",
 ): void {
     const fail = (rule: string): never => {
         throw new NutritionInvariantError(rule);
     };
-    // 150 min in every phase, 100 only in the minimal phase (07 section 3 "Cardio by phase").
-    const expectedCardio = phase === "minimal"
-        ? CARDIO_MIN_WEEK_MINIMAL
-        : CARDIO_MIN_WEEK;
-    if (a.cardio_min_week !== expectedCardio) fail("cardio_minutes");
+    // 150 min in every phase (07 section 3 "Cardio by phase").
+    if (a.cardio_min_week !== CARDIO_MIN_WEEK) fail("cardio_minutes");
     if (a.steps_day < STEPS_FLOOR) fail("steps_below_floor");
     if (a.steps_day % STEPS_STEP !== 0) fail("steps_not_multiple");
     if (
@@ -212,7 +208,7 @@ export function assertNutritionInvariants(n: Nutrition): void {
         if (n.rate_pct_week > max + RATE_TOLERANCE_PCT) fail("gain_rate_max");
         if (n.rate_pct_week < min && !limited) fail("gain_rate_min");
     } else if (
-        // Maintenance, recomposition, minimal: the no-change range of 04 section 8.7 on the adjustment.
+        // Maintenance, recomposition: the no-change range of 04 section 8.7 on the adjustment.
         Math.abs(n.calorie_adjustment) >
             rateKcal(GAIN_RATE_RANGE[0], w) + ROUNDING_KCAL
     ) {

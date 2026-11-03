@@ -102,6 +102,8 @@ function setup(o: SetupOptions = {}) {
         attachBlock: () => Promise.reject(new Error("unexpected attachBlock")),
         loadPhaseHistory: () =>
             Promise.reject(new Error("unexpected loadPhaseHistory")),
+        loadBlockModelInput: () =>
+            Promise.reject(new Error("unexpected loadBlockModelInput")),
         updatePlanOptions: (_t, row) => {
             if (o.updateFails) return Promise.reject(new Error("db down"));
             updates.push(row);

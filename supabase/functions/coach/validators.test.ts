@@ -4,7 +4,7 @@ import {
     intakeRangeViolation,
     type NutritionInput,
 } from "./nutritionRules.ts";
-import { CARDIO_MIN_WEEK_MINIMAL, computeActivity } from "./cardioRules.ts";
+import { CARDIO_MIN_WEEK, computeActivity } from "./cardioRules.ts";
 import type { Candidate } from "./outcomes.ts";
 import type { Nutrition } from "./schemas.ts";
 import {
@@ -397,8 +397,8 @@ Deno.test("the deficit_cap flag needs a cut and a deficit of exactly 500", () =>
     );
 });
 
-Deno.test("maintenance, recomposition and minimal stay inside the no-change range", () => {
-    for (const phase of ["maintenance", "recomposition", "minimal"] as const) {
+Deno.test("maintenance and recomposition stay inside the no-change range", () => {
+    for (const phase of ["maintenance", "recomposition"] as const) {
         assertNutritionInvariants(good({ phase }));
         broken("no_change_range", (x) => {
             x.target_kcal = 2900;
@@ -444,29 +444,19 @@ Deno.test("a plan stored before T-187 (no phase keys) is judged by its intention
     assertNutritionInvariants(n as unknown as Nutrition);
 });
 
-Deno.test("cardio: 150 everywhere but the minimal phase, where only 100 passes", () => {
+Deno.test("cardio: 150 minutes in every phase, anything else is rejected", () => {
     const a150 = computeActivity({
         intention: "maintenance",
         stepsAvg28: null,
     });
-    const a100 = computeActivity({
-        intention: "maintenance",
-        stepsAvg28: null,
-        phase: "minimal",
-    });
-    assertEquals(a100.cardio_min_week, CARDIO_MIN_WEEK_MINIMAL);
-    assertActivityInvariants(a150, null, "maintenance");
-    assertActivityInvariants(a100, null, "minimal");
+    assertEquals(a150.cardio_min_week, CARDIO_MIN_WEEK);
+    for (
+        const phase of ["cut", "gain", "maintenance", "recomposition"] as const
+    ) {
+        assertActivityInvariants(a150, null, phase);
+    }
     assertThrows(
-        () => assertActivityInvariants(a150, null, "minimal"),
-        NutritionInvariantError,
-    );
-    assertThrows(
-        () => assertActivityInvariants(a100, null, "cut"),
-        NutritionInvariantError,
-    );
-    assertThrows(
-        () => assertActivityInvariants(a100, null),
+        () => assertActivityInvariants({ ...a150, cardio_min_week: 100 }, null),
         NutritionInvariantError,
     );
 });

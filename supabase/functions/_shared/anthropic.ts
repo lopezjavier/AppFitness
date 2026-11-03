@@ -293,18 +293,41 @@ export type Validated<T> = { value: T; text: string; usage: AnthropicUsage };
  * Completes and validates; an invalid output gets one retry, then InvalidOutputError (carrying the usage of
  * both attempts). `validate` returns the parsed value or null when invalid.
  */
+export type RetryOptions = {
+    /** Text appended to the prompt of the retry (what was wrong with the first answer); null for the same prompt. */
+    feedback?: () => string | null;
+    /** The retry starts only if the first attempt took less than this many milliseconds. */
+    maxRetryStartMs?: number;
+    now?: () => number;
+};
+
 export async function completeValidated<T>(
     client: AnthropicClient,
     request: AnthropicRequest,
     validate: (text: string) => T | null,
     signal?: AbortSignal,
+    retry: RetryOptions = {},
 ): Promise<Validated<T>> {
     let total = NO_USAGE;
+    const now = retry.now ?? Date.now;
+    const started = now();
+    let current = request;
     for (let attempt = 0; attempt < 2; attempt++) {
-        const { text, usage } = await complete(client, request, signal);
+        const { text, usage } = await complete(client, current, signal);
         total = addUsage(total, usage);
         const value = validate(text);
         if (value !== null) return { value, text, usage: total };
+        if (
+            retry.maxRetryStartMs !== undefined &&
+            now() - started >= retry.maxRetryStartMs
+        ) break;
+        const feedback = retry.feedback?.();
+        if (feedback) {
+            current = {
+                ...request,
+                prompt: `${request.prompt}\n\n${feedback}`,
+            };
+        }
     }
     throw new InvalidOutputError(total);
 }
