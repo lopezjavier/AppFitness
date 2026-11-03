@@ -141,7 +141,7 @@ fun FolderReviewRoot(
 }
 
 /**
- * "Revisar tus rutinas" on [AppScreen] with back: the coach's message, "Falta", the comments and the checklist of proposed
+ * "Revisar tus rutinas" on [AppScreen] with back: the coach's message, "Falta", the comments and the checklist of
  * changes (all checked), with a pinned footer: "Aplicar en una copia" (review) or "Crear bloque" (block). Waiting is a
  * [StreamProgressState]; a failure is [CoachFailureContent] with "Reintentar" (R-31). Leaving writes nothing.
  */
