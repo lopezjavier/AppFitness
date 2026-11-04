@@ -68,6 +68,16 @@ class AppColors(
     }
 
     /**
+     * §2.5 Score ramp for a score 0 to 10 (clamped, any decimals): 0 = red end, 10 = green end of the RPE ramp,
+     * interpolated. Reinforcement only: the number and the band label are always written as text.
+     */
+    fun scoreScale(score: Double): Color {
+        val position = (score.coerceIn(0.0, SCORE_RAMP_MAX) / SCORE_RAMP_MAX * RpeRamp.lastIndex).toFloat()
+        val lower = position.toInt().coerceAtMost(RpeRamp.lastIndex - 1)
+        return lerp(RpeRamp[RpeRamp.lastIndex - lower], RpeRamp[RpeRamp.lastIndex - lower - 1], position - lower)
+    }
+
+    /**
      * §2.6 Discomfort scale: five ordered stops from greenish yellow to red, taken from the RPE ramp without its lime
      * (the primary colour). Marker bar / dot only; the label is always text in `textPrimary`.
      */
@@ -77,6 +87,7 @@ class AppColors(
 /** Indexes of [RpeRamp] used by the five discomfort levels. */
 private val DiscomfortRampIndexes = listOf(3, 4, 5, 6, 8)
 
+private const val SCORE_RAMP_MAX = 10.0
 private const val CONFIDENCE_MIN = 1
 private const val CONFIDENCE_MAX = 10
 

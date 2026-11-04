@@ -1,5 +1,5 @@
 {
-  "comment": "Shared by folderChanges.test.ts (applyChange) and supabase/tests/coach_folder_reviews.test.sql (coach_apply_change). Sets in projections are [reps, set_type, weight_kg]. A case without `after` leaves the routine unchanged.",
+  "comment": "Used by folderChanges.test.ts (applyChange). Sets in projections are [reps, set_type, weight_kg]. A case without `after` leaves the routine unchanged.",
   "routine": {
     "id": "00000000-0000-4000-8000-0000000000f1",
     "name": "Torso",

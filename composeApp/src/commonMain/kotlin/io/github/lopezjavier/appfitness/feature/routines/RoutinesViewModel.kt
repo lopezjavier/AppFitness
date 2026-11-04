@@ -301,7 +301,8 @@ class RoutinesViewModel(
 
     private fun reviewFolder(id: String) {
         setFolderMenu(null)
-        effectChannel.trySend(if (online) RoutinesEffect.OpenFolderReview(id) else RoutinesEffect.OfflineRefused)
+        // The review is computed on the device, so it opens offline too.
+        effectChannel.trySend(RoutinesEffect.OpenFolderReview(id))
     }
 
     // ---- Next workout and order (optimistic, reverted on failure) ----

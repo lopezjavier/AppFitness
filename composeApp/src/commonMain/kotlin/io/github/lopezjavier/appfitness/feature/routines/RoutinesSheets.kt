@@ -9,7 +9,7 @@ import io.github.lopezjavier.appfitness.composeapp.resources.Res
 import io.github.lopezjavier.appfitness.composeapp.resources.action_delete
 import io.github.lopezjavier.appfitness.composeapp.resources.action_edit
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_add
-import io.github.lopezjavier.appfitness.composeapp.resources.ic_auto_awesome
+import io.github.lopezjavier.appfitness.composeapp.resources.ic_check
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_delete
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_edit
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_label
@@ -96,9 +96,10 @@ private fun RoutineMenuSheet(routine: RoutineSummary, isOnline: Boolean, onEvent
 }
 
 /**
- * Actions of one folder (R-07): "Revisar tus rutinas" (a paid call), "Renombrar" and "Borrar carpeta" (last, no
- * dialog). All need the network, so offline they stay listed but disabled, with the reason under the title. With
- * routines inside, delete is [AppSheetAction.blocked]: dimmed, but the tap explains the refusal (R-20, R-28).
+ * Actions of one folder (R-07): "Revisar tus rutinas" (computed on the device, so it works offline), "Renombrar" and
+ * "Borrar carpeta" (last, no dialog). Rename and delete need the network, so offline they stay listed but disabled,
+ * with the reason under the title. With routines inside, delete is [AppSheetAction.blocked]: dimmed, but the tap
+ * explains the refusal (R-20, R-28).
  */
 @Composable
 private fun FolderMenuSheet(
@@ -110,10 +111,9 @@ private fun FolderMenuSheet(
     AppActionSheet(
         actions = listOf(
             AppSheetAction(
-                icon = Res.drawable.ic_auto_awesome,
+                icon = Res.drawable.ic_check,
                 title = stringResource(Res.string.routines_folder_menu_review),
                 testTag = "routines_folder_menu_review",
-                enabled = isOnline,
             ) { onEvent(RoutinesEvent.ReviewFolder(folder.id)) },
             AppSheetAction(
                 icon = Res.drawable.ic_edit,

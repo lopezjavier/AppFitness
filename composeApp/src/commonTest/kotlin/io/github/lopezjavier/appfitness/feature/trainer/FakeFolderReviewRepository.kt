@@ -1,7 +1,6 @@
 package io.github.lopezjavier.appfitness.feature.trainer
 
 import io.github.lopezjavier.appfitness.domain.model.CoachBlock
-import io.github.lopezjavier.appfitness.domain.model.FolderCopy
 import io.github.lopezjavier.appfitness.domain.model.FolderReview
 import io.github.lopezjavier.appfitness.domain.model.ReviewPurpose
 import io.github.lopezjavier.appfitness.domain.repository.FolderReviewRepository
@@ -12,7 +11,6 @@ import kotlinx.datetime.LocalDate
 internal class FakeFolderReviewRepository : FolderReviewRepository {
     var reviewResult: Result<FolderReview> = Result.success(review())
     var storedResult: Result<FolderReview?> = Result.success(null)
-    var applyResult: Result<FolderCopy> = Result.success(FolderCopy("copy-1", listOf("r1")))
     var blockResult: Result<CoachBlock> = Result.success(coachBlock())
 
     /** When set, [review] suspends until completed (the coach is thinking). */
@@ -22,7 +20,6 @@ internal class FakeFolderReviewRepository : FolderReviewRepository {
     var reviewCalls = 0
     val reviewArgs = mutableListOf<Triple<String, ReviewPurpose, String?>>()
     val storedReads = mutableListOf<String>()
-    val applied = mutableListOf<Pair<String, List<String>>>()
     val blocks = mutableListOf<List<String>>()
     val blockDates = mutableListOf<LocalDate>()
     val blockPlans = mutableListOf<String>()
@@ -42,11 +39,6 @@ internal class FakeFolderReviewRepository : FolderReviewRepository {
     override suspend fun stored(reviewId: String): Result<FolderReview?> {
         storedReads += reviewId
         return storedResult
-    }
-
-    override suspend fun applyCopy(reviewId: String, changeIds: List<String>): Result<FolderCopy> {
-        applied += reviewId to changeIds
-        return applyResult
     }
 
     override suspend fun blockFromReview(

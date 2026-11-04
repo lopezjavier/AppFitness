@@ -10,7 +10,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
@@ -19,21 +18,18 @@ import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.semantics.contentDescription
-import androidx.compose.ui.semantics.semantics
 import io.github.lopezjavier.appfitness.composeapp.resources.Res
 import io.github.lopezjavier.appfitness.composeapp.resources.action_retry
 import io.github.lopezjavier.appfitness.composeapp.resources.exercise_similar_empty
 import io.github.lopezjavier.appfitness.composeapp.resources.exercise_similar_error
-import io.github.lopezjavier.appfitness.composeapp.resources.exercise_similar_percent
 import io.github.lopezjavier.appfitness.composeapp.resources.exercise_similar_percent_cd
 import io.github.lopezjavier.appfitness.designsystem.AppStateAction
-import io.github.lopezjavier.appfitness.designsystem.AppTheme
 import io.github.lopezjavier.appfitness.designsystem.EmptyState
 import io.github.lopezjavier.appfitness.designsystem.ErrorState
 import io.github.lopezjavier.appfitness.designsystem.ExerciseLayoutDefaults
 import io.github.lopezjavier.appfitness.designsystem.ExerciseRow
 import io.github.lopezjavier.appfitness.designsystem.OfflineState
+import io.github.lopezjavier.appfitness.designsystem.PercentRing
 import io.github.lopezjavier.appfitness.designsystem.SkeletonBox
 import io.github.lopezjavier.appfitness.designsystem.Spacing
 import io.github.lopezjavier.appfitness.designsystem.appAnimateItem
@@ -115,9 +111,9 @@ private fun SimilarLoading() {
 }
 
 /**
- * One alternative as an [ExerciseRow]: thumbnail, name, equipment and the whole-number percentage ("87 %", with a
- * no-break space) read as "87 por ciento de similitud". Tagged [rowTag] and [percentTag]. With [onSelect] the
- * row body picks and the thumbnail opens the details (R-17). [showPercent] false hides the percentage (cardio swap).
+ * One alternative as an [ExerciseRow]: thumbnail, name, equipment and the similarity as a [PercentRing] (the whole
+ * number inside) read as "87 por ciento de similitud". Tagged [rowTag] and [percentTag]. With [onSelect] the
+ * row body picks and the thumbnail opens the details (R-17). [showPercent] false hides the ring (cardio swap).
  */
 @Composable
 internal fun SimilarExerciseItem(
@@ -133,7 +129,6 @@ internal fun SimilarExerciseItem(
     val exercise = row.exercise.exercise
     val mediaKey = exercise.key
     val percent = row.percent.toString()
-    val percentText = stringResource(Res.string.exercise_similar_percent, percent)
     val percentDescription = stringResource(Res.string.exercise_similar_percent_cd, percent)
     ExerciseRow(
         name = row.exercise.name,
@@ -143,16 +138,7 @@ internal fun SimilarExerciseItem(
         modifier = modifier,
         imageUri = mediaKey?.takeIf { row.exercise.hasMedia }?.let { LocalExerciseMediaUris.current.start(it) },
         trailing = if (showPercent) {
-            {
-                Text(
-                    text = percentText,
-                    style = AppTheme.typography.bodyLarge,
-                    color = AppTheme.colors.textSecondary,
-                    modifier = Modifier
-                        .testTag(percentTag)
-                        .semantics { contentDescription = percentDescription },
-                )
-            }
+            { PercentRing(row.percent, percentDescription, Modifier.testTag(percentTag)) }
         } else {
             null
         },

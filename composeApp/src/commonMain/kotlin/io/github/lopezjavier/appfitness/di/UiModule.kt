@@ -4,6 +4,7 @@ import io.github.lopezjavier.appfitness.app.AppViewModel
 import io.github.lopezjavier.appfitness.app.HealthSyncCoordinator
 import io.github.lopezjavier.appfitness.app.ReminderCoordinator
 import io.github.lopezjavier.appfitness.domain.port.ExerciseLibrary
+import io.github.lopezjavier.appfitness.domain.usecase.ReviewFolderUseCase
 import io.github.lopezjavier.appfitness.feature.about.AboutViewModel
 import io.github.lopezjavier.appfitness.feature.activity.ActivityViewModel
 import io.github.lopezjavier.appfitness.feature.analytics.ExerciseProgressViewModel
@@ -39,6 +40,7 @@ import io.github.lopezjavier.appfitness.feature.trainer.BeforeStartViewModel
 import io.github.lopezjavier.appfitness.feature.trainer.BlockPreviewViewModel
 import io.github.lopezjavier.appfitness.feature.trainer.BlockSplitsViewModel
 import io.github.lopezjavier.appfitness.feature.trainer.CoachUsageViewModel
+import io.github.lopezjavier.appfitness.feature.trainer.FolderReviewResultViewModel
 import io.github.lopezjavier.appfitness.feature.trainer.FolderReviewViewModel
 import io.github.lopezjavier.appfitness.feature.trainer.FreeTextLinesViewModel
 import io.github.lopezjavier.appfitness.feature.trainer.IntakeViewModel
@@ -477,6 +479,15 @@ val uiModule =
                 library = get(),
                 routines = get(),
                 clock = get(),
+                savedState = get(),
+            )
+        }
+        viewModel {
+            val reviewFolder: ReviewFolderUseCase = get()
+            FolderReviewResultViewModel(
+                review = { reviewFolder(it) },
+                names = get(),
+                routines = get(),
                 savedState = get(),
             )
         }

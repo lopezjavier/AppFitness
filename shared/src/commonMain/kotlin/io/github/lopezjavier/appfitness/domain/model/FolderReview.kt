@@ -63,6 +63,3 @@ data class FolderReview(
     val comments: List<ReviewComment>,
     val changes: List<FolderChange>,
 )
-
-/** The copy made by applying a review. */
-data class FolderCopy(val folderId: String, val routineIds: List<String>)

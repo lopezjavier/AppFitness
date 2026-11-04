@@ -142,6 +142,8 @@ data class Exercise(
     /** The logged weight is per hand/side: volume counts it twice (1RM is never doubled, 04 §4.7). */
     val perHand: Boolean = false,
     val movementPattern: MovementPattern? = null,
+    /** False for work that cannot carry a strength set (mat Pilates, bird dog): H1 and the folder review skip it. */
+    val countsAsStrength: Boolean = true,
 )
 
 /** Client library entry of one catalog exercise (Spanish texts from the RepDB bundle). */

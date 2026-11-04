@@ -3,7 +3,6 @@ package io.github.lopezjavier.appfitness.data.repository
 import io.github.lopezjavier.appfitness.domain.AppError
 import io.github.lopezjavier.appfitness.domain.AppException
 import io.github.lopezjavier.appfitness.domain.model.CoachBlock
-import io.github.lopezjavier.appfitness.domain.model.FolderCopy
 import io.github.lopezjavier.appfitness.domain.model.FolderReview
 import io.github.lopezjavier.appfitness.domain.model.ReviewPurpose
 import io.github.lopezjavier.appfitness.domain.repository.FolderReviewRepository
@@ -19,9 +18,6 @@ class UnconfiguredFolderReviewRepository : FolderReviewRepository {
     ): Result<FolderReview> = Result.failure(AppException(AppError.Unknown))
 
     override suspend fun stored(reviewId: String): Result<FolderReview?> =
-        Result.failure(AppException(AppError.Unknown))
-
-    override suspend fun applyCopy(reviewId: String, changeIds: List<String>): Result<FolderCopy> =
         Result.failure(AppException(AppError.Unknown))
 
     override suspend fun blockFromReview(

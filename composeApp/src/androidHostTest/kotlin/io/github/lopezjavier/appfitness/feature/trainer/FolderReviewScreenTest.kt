@@ -1,7 +1,6 @@
 package io.github.lopezjavier.appfitness.feature.trainer
 
 import androidx.compose.runtime.CompositionLocalProvider
-import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
@@ -25,7 +24,6 @@ import io.github.lopezjavier.appfitness.domain.model.CoachFailure
 import io.github.lopezjavier.appfitness.domain.model.FolderOp
 import io.github.lopezjavier.appfitness.domain.model.ReviewComment
 import io.github.lopezjavier.appfitness.domain.model.ReviewPurpose
-import io.github.lopezjavier.appfitness.domain.model.RoutineFolder
 import io.github.lopezjavier.appfitness.domain.usecase.ExerciseNameResolver
 import io.github.lopezjavier.appfitness.feature.exercises.FakeExerciseLibrary
 import io.github.lopezjavier.appfitness.feature.exercises.FakeExerciseRepository
@@ -68,7 +66,7 @@ class FolderReviewScreenTest {
     )
 
     private fun content(
-        purpose: ReviewPurpose = ReviewPurpose.Review,
+        purpose: ReviewPurpose = ReviewPurpose.Block,
         rows: List<ChangeRow> = listOf(removeRow, setsRow),
         falta: List<FaltaItem> = emptyList(),
         accepted: Set<String> = rows.filter { it.checked }.map { it.id }.toSet(),
@@ -125,44 +123,18 @@ class FolderReviewScreenTest {
     }
 
     @Test
-    fun aGoodFolder_hasNoFaltaSectionAndNoFooter() {
+    fun aGoodFolder_hasNoFaltaSectionAndNoChangesSection() {
         show(content(rows = emptyList(), comments = listOf(ReviewComment("Todo bien.", null))))
 
         rule.onAllNodesWithTag("folder_review_section_falta").assertCountEquals(0)
         rule.onAllNodesWithTag("folder_review_section_changes").assertCountEquals(0)
         rule.onNodeWithText("Todo bien.").assertExists()
-        rule.onAllNodesWithTag("folder_review_apply").assertCountEquals(0)
-        rule.onAllNodesWithTag("folder_review_create_block").assertCountEquals(0)
-    }
-
-    @Test
-    fun reviewFooter_isAplicarEnUnaCopia_andSendsApply() {
-        show(content())
-
-        rule.onNodeWithTag("folder_review_apply").assertTextContains("Aplicar en una copia").performClick()
-
-        assertEquals(listOf<FolderReviewEvent>(FolderReviewEvent.Apply), events)
-    }
-
-    @Test
-    fun reviewFooter_isDisabledWhenNothingIsChecked() {
-        show(content(rows = listOf(removeRow.copy(checked = false)), accepted = emptySet()))
-
-        rule.onNodeWithTag("folder_review_apply").assertIsNotEnabled()
-    }
-
-    @Test
-    fun nothingIsBlocked_aReviewWithAnOpenFaltaStillOffersTheCopy() {
-        show(content(falta = listOf(faltaLow), accepted = emptySet(), rows = listOf(setsRow.copy(checked = false))))
-
-        rule.onNodeWithText("Algún músculo tiene pocas series a la semana").assertExists()
-        rule.onAllNodesWithTag("folder_review_disabled_reason").assertCountEquals(0)
-        rule.onNodeWithTag("folder_review_apply").assertExists()
+        rule.onNodeWithTag("folder_review_create_block").assertIsEnabled()
     }
 
     @Test
     fun blockFooter_withAnOpenFalta_isDisabledAndSaysWhy() {
-        show(content(purpose = ReviewPurpose.Block, falta = listOf(faltaLow), accepted = emptySet()))
+        show(content(falta = listOf(faltaLow), accepted = emptySet()))
 
         rule.onNodeWithTag("folder_review_create_block").assertTextContains("Crear bloque").assertIsNotEnabled()
         rule.onNodeWithTag("folder_review_disabled_reason")
@@ -173,7 +145,7 @@ class FolderReviewScreenTest {
     @Test
     fun blockFooter_withAFaltaNoChangeFixes_explainsTheRoutinesMustBeEdited() {
         val unfixable = FaltaItem(falta("h6_equipment", routine = 1, key = "bench"), "Torso", "Press banca")
-        show(content(purpose = ReviewPurpose.Block, falta = listOf(unfixable), rows = listOf(removeRow)))
+        show(content(falta = listOf(unfixable), rows = listOf(removeRow)))
 
         rule.onNodeWithTag("folder_review_disabled_reason")
             .assertTextContains("Falta algo que esta carpeta no puede arreglar. Edita tus rutinas y vuelve a revisar.")
@@ -182,7 +154,7 @@ class FolderReviewScreenTest {
 
     @Test
     fun blockFooter_withNoFalta_isEnabledAndSendsContinue() {
-        show(content(purpose = ReviewPurpose.Block))
+        show(content())
 
         rule.onNodeWithTag("folder_review_create_block").assertIsEnabled().performClick()
 
@@ -192,7 +164,7 @@ class FolderReviewScreenTest {
 
     @Test
     fun whenTheServerRefusesTheBlock_itsFaltaListAndAnInlineNoteAreShown() {
-        show(content(purpose = ReviewPurpose.Block, blocked = listOf(faltaLow)))
+        show(content(blocked = listOf(faltaLow)))
 
         rule.onNodeWithText("Aún falta algo para crear el bloque.").assertExists()
         rule.onNodeWithTag("folder_review_falta_1").assertExists()
@@ -202,8 +174,8 @@ class FolderReviewScreenTest {
     fun offline_disablesTheFooterAndSaysWhatItNeedsTheNetworkFor() {
         show(content(), online = false)
 
-        rule.onNodeWithTag("folder_review_apply").assertIsNotEnabled()
-        rule.onNodeWithText("Sin conexión: no se puede crear la copia").assertExists()
+        rule.onNodeWithTag("folder_review_create_block").assertIsNotEnabled()
+        rule.onNodeWithText("Sin conexión: no se puede crear el bloque").assertExists()
     }
 
     @Test
@@ -250,14 +222,12 @@ class FolderReviewScreenTest {
     ).apply {
         folderOf["r1"] = "folder-1"
         folderOf["r2"] = "folder-1"
-        folders += RoutineFolder("copy-1", "Mi carpeta (revisada)")
     }
     private val haptics = RecordingAppHaptics()
     private val shown = mutableListOf<String>()
-    private var applied = 0
     private var blockReady = 0
 
-    private fun viewModel(purpose: String = "review") = folderReviewModel(
+    private fun viewModel(purpose: String = "block") = folderReviewModel(
         reviews,
         routines,
         SavedStateHandle(mapOf("folderId" to "folder-1", "purpose" to purpose, "planId" to "plan-1")),
@@ -269,7 +239,6 @@ class FolderReviewScreenTest {
             CompositionLocalProvider(LocalAppHaptics provides haptics, LocalAppMessages provides messages) {
                 AppTheme {
                     FolderReviewRoot(
-                        onFinishCopy = { applied++ },
                         onFinishBlock = { blockReady++ },
                         onBack = { backs++ },
                         viewModel = model,
@@ -281,7 +250,7 @@ class FolderReviewScreenTest {
         rule.waitForIdle()
     }
 
-    private fun givenReview(purpose: ReviewPurpose = ReviewPurpose.Review) {
+    private fun givenReview(purpose: ReviewPurpose = ReviewPurpose.Block) {
         reviews.reviewResult = Result.success(
             review(
                 listOf(
@@ -305,47 +274,29 @@ class FolderReviewScreenTest {
     }
 
     @Test
-    @OptIn(ExperimentalTestApi::class)
-    fun applyingInACopy_sendsOnlyTheCheckedChanges_confirmsAndShowsTheServerName() {
-        givenReview()
-        showRoot(viewModel())
-        rule.onNodeWithTag("folder_review_change_c2").performClick()
-
-        rule.onNodeWithTag("folder_review_apply").performClick()
-        rule.waitForIdle()
-        rule.waitUntil(timeoutMillis = 5_000) { shown.isNotEmpty() }
-
-        assertEquals(listOf("rev-1" to listOf("c1")), reviews.applied)
-        assertEquals(listOf("Carpeta «Mi carpeta (revisada)» creada."), shown)
-        assertEquals(listOf(HapticEvent.Confirm), haptics.calls)
-        assertEquals(1, applied)
-    }
-
-    @Test
-    fun leavingWithoutApplying_createsNothing() {
+    fun leavingWithoutCreatingTheBlock_createsNothing() {
         givenReview()
         showRoot(viewModel())
 
         rule.onNodeWithTag("folder_review_back").performClick()
 
         assertEquals(1, backs)
-        assertTrue(reviews.applied.isEmpty())
         assertTrue(reviews.blocks.isEmpty())
     }
 
     @Test
-    fun applyFailing_showsTheFailureMessageAndKeepsTheChecklist() {
+    fun blockFailing_showsTheFailureMessageAndKeepsTheChecklist() {
         givenReview()
-        reviews.applyResult = Result.failure(IllegalStateException("boom"))
+        reviews.blockResult = Result.failure(IllegalStateException("boom"))
         showRoot(viewModel())
 
-        rule.onNodeWithTag("folder_review_apply").performClick()
+        rule.onNodeWithTag("folder_review_create_block").performClick()
         rule.waitForIdle()
 
-        assertEquals(listOf("No se pudo crear la copia. Inténtalo de nuevo."), shown)
+        assertEquals(listOf("No se pudo crear el bloque. Inténtalo de nuevo."), shown)
         assertEquals(listOf(HapticEvent.Reject), haptics.calls)
         rule.onNodeWithTag("folder_review_change_c1").assertExists()
-        assertEquals(0, applied)
+        assertEquals(0, blockReady)
     }
 
     @Test
@@ -357,7 +308,7 @@ class FolderReviewScreenTest {
                 ReviewPurpose.Block,
             ),
         )
-        showRoot(viewModel("block"))
+        showRoot(viewModel())
         rule.onNodeWithTag("folder_review_create_block").assertIsEnabled().performClick()
         rule.waitForIdle()
 

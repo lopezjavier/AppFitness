@@ -42,18 +42,6 @@ internal data class FolderBlockRequestInput(
 internal data class FolderBlockRequestBody(val kind: String, val input: FolderBlockRequestInput)
 
 @Serializable
-internal data class ApplyFolderCopyParams(
-    @SerialName("p_review") val review: String,
-    @SerialName("p_change_ids") val changeIds: List<String>,
-)
-
-@Serializable
-internal data class FolderCopyDto(
-    @SerialName("folder_id") val folderId: String,
-    @SerialName("routine_ids") val routineIds: List<String> = emptyList(),
-)
-
-@Serializable
 internal data class FolderFaltaDto(
     val code: String,
     @SerialName("routine_index") val routineIndex: Int? = null,

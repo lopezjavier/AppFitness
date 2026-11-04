@@ -91,8 +91,9 @@ select is((select count(*)::int from public.exercises
            where not is_custom and movement_pattern = 'hinge' and muscle_group <> 'hamstrings'
              and not ('hamstrings' = any (secondary_muscles))), 0,
   'every catalogue hinge has hamstrings as primary or secondary');
-select is((select secondary_muscles from public.exercises where key = 'deadlift'), array['hamstrings']::public.muscle_group[],
-  'the deadlift lists hamstrings as its only secondary muscle');
+-- T-216 catalogue corrections: the deadlift also trains glutes and quads (07 section 3 "Catalogue facts the review reads").
+select is((select array_agg(g::text order by g::text) from public.exercises, unnest(secondary_muscles) g where key = 'deadlift'),
+  array['glutes', 'hamstrings', 'quads'], 'the deadlift lists hamstrings, glutes and quads as secondary muscles');
 
 select * from finish();
 rollback;

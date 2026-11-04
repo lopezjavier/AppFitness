@@ -5,6 +5,15 @@ import kotlin.test.assertEquals
 
 class AppNumberFormatTest {
     @Test
+    fun oneDecimal_alwaysShowsOneDecimalWithAComma() {
+        assertEquals("7,5", AppNumberFormat.oneDecimal(7.5))
+        assertEquals("10,0", AppNumberFormat.oneDecimal(10.0))
+        assertEquals("0,0", AppNumberFormat.oneDecimal(0.0))
+        assertEquals("6,0", AppNumberFormat.oneDecimal(5.96))
+        assertEquals("0,0", AppNumberFormat.oneDecimal(Double.NaN))
+    }
+
+    @Test
     fun integer_zero() = assertEquals("0", AppNumberFormat.integer(0))
 
     @Test

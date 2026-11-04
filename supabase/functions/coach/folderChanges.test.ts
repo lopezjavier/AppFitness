@@ -10,10 +10,6 @@ import {
 import { ex } from "./blockFixtures.ts";
 
 const FIXTURE_PATH = new URL("./fixtures/folder_changes.json", import.meta.url);
-const SQL_TEST_PATH = new URL(
-    "../../tests/coach_apply_change.test.sql",
-    import.meta.url,
-);
 const fixtureText = Deno.readTextFileSync(FIXTURE_PATH);
 const fixture = JSON.parse(fixtureText) as {
     routine: FolderRoutine;
@@ -44,14 +40,6 @@ for (const c of fixture.cases) {
         assertEquals(project(out), c.after ?? fixture.base);
     });
 }
-
-Deno.test("the shared fixture is embedded verbatim in the pgTAP test of coach_apply_change", () => {
-    const sql = Deno.readTextFileSync(SQL_TEST_PATH);
-    assert(
-        sql.includes(fixtureText),
-        "run scripts/gen-apply-change-test.sh after editing fixtures/folder_changes.json",
-    );
-});
 
 Deno.test("applyChange does not mutate its input", () => {
     const before = JSON.stringify(fixture.routine);
