@@ -100,6 +100,46 @@ class SlotEligibilityTest {
     }
 
     @Test
+    fun repeatInTheSameRoutine_carriesTheAlreadyInRoutineReason() {
+        val cat = listOf(exercise("a", MuscleGroup.Chest), exercise("b", MuscleGroup.Chest))
+        val entries = SlotEligibility.picker(standard, cat, context(), setOf("a"))
+        assertEquals(
+            listOf(PickerDisabledReason.AlreadyInRoutine, null),
+            entries.map { it.disabledReason },
+        )
+    }
+
+    @Test
+    fun noMovementPattern_isListedDisabledWithReason_forEveryNonMainSlotKind() {
+        val cat = listOf(
+            exercise("mine", MuscleGroup.Chest, null, custom = true),
+            exercise("ok", MuscleGroup.Chest),
+        )
+        val accessory = Slot(MuscleGroup.Chest, SlotKind.Accessory, 3, 6, 8, 120)
+        val extra = SectionPrescription.extraSlot(MuscleGroup.Chest, null)
+        listOf(standard, accessory, extra).forEach { slot ->
+            val entries = SlotEligibility.picker(slot, cat, context(), emptySet())
+            val mine = entries.first { it.exercise.id == "mine" }
+            assertEquals(PickerDisabledReason.NoMovementPattern, mine.disabledReason, "slot ${slot.kind}")
+            assertTrue(mine.disabled)
+            assertFalse(entries.first { it.exercise.id == "ok" }.disabled)
+        }
+    }
+
+    @Test
+    fun noMovementPattern_neverHidesTheRow() {
+        val cat = listOf(exercise("mine", MuscleGroup.Chest, null, custom = true))
+        assertEquals(listOf("mine"), ids(standard, cat))
+    }
+
+    @Test
+    fun noMovementPattern_winsOverAlreadyInRoutine() {
+        val cat = listOf(exercise("mine", MuscleGroup.Chest, null, custom = true))
+        val entry = SlotEligibility.picker(standard, cat, context(), setOf("mine")).single()
+        assertEquals(PickerDisabledReason.NoMovementPattern, entry.disabledReason)
+    }
+
+    @Test
     fun extraAcceptsAnyGroup_exceptCardio() {
         val extra = SectionPrescription.extraSlot(MuscleGroup.Biceps, null)
         val cat = listOf(
