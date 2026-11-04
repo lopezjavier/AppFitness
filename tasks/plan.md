@@ -192,7 +192,7 @@ Each checkpoint also has "leave the app and come back: the same tab, screen and 
 
 ### Phase 2c'': The deterministic block builder (ADR-99; US-72, US-93 rewritten, US-87 scenario, US-95 R-57; breakdown 2026-11-04, proposed)
 - [ ] 👤 The user's OK on the breakdown (ADR-99, T-221…T-225, one Checkpoint E13-K). *(R-57 sweep scope resolved by the user 2026-11-04: option B, T-225; single checkpoint at the end, user 2026-11-04.)*
-- [ ] T-221: Block builder core: splits, per-slot prescription, time fit, score, "Desde una carpeta" check, saving; stories rewritten first — L (core + backend)
+- [x] T-221: Block builder core: splits, per-slot prescription, time fit, score, "Desde una carpeta" check, saving; stories rewritten first — L (core + backend)
 - [ ] T-222: Builder screens "Desde cero": split, type per day, the builder, "Guardar bloque"; retires the client model flow — L (UI)
 - [ ] T-223: "Desde una carpeta" in the builder (refusal, fix on a copy, new folder) + R-57 `?` on the folder-review rows only; retires the client `purpose: block` — M (UI)
 - [ ] T-224: Remove the model-built block from the server; final docs sweep — M (backend)
