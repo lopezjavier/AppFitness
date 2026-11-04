@@ -141,6 +141,7 @@ Phase 2 ADRs continue the numbering (next: **ADR-98**) and are written **in full
 - **Approval:** 2026-10-28, user (chat).
 
 ### ADR-76 · Evidence-based coach (E13; supersedes the assistant part of ADR-09)
+- **Amended 2026-11-04 (ADR-99):** the `block_splits` and `plan_block` model calls are dropped (block creation is deterministic); the rest of this ADR stands.
 - **Context:** ADR-09 deferred the AI assistant. The coach must be trustworthy: no invented figures, no change without consent, rules backed by evidence.
 - **Decision:**
   - Rules, figures and sources live in `07-coach-design.md`; every number is sourced, common practice or labelled a design decision.
@@ -316,6 +317,7 @@ Phase 2 ADRs continue the numbering (next: **ADR-98**) and are written **in full
 - **Approval:** user, 2026-11-02 (chat, after the fitness-scientist proposal and three rounds of corrections).
 
 ### ADR-93 — The model builds the training block; one routine checker validates blocks and reviews folders (T-202; amends ADR-76, ADR-83, ADR-86) · PROPOSED
+- **Superseded 2026-11-04 by ADR-99** for block creation: the model builds neither the block nor the split, and the routine checker (H1-H7) no longer validates a model block; the model-input, discomfort-exclusion, H3/H3b and model-change-proposal parts below are void. Kept as history.
 - **Context:** T-202 decision checkpoint (user, 2026-11-02/03): blocks always come out the same (4 days ⇒ always "Torso/Pierna" A/B with the same exercises), with no lateral raise, worse than the user's own routine. Audit (HEAD 3e485a2f): the server builds the whole skeleton (`blockRules.ts` split lookup by days, `floor(minutes / 12)` exercises, a fixed group cycle that makes A/B sessions identical, 10 sets per group, fixed rep bands and rests), `candidates.ts` ranks deterministically and caps at 12, and the model only picks one exercise per slot. The model never sees the user's routines, logged history, previous blocks or open discomforts; `save_coach_block` rejects RPE keys; the `movement_pattern` enum lumps lateral raises into `isolation`. Science: `07` §1 "Division of work", §3 "Complete routine", §9 (fitness-scientist, sources §10 71-83).
 - **Decision:**
   - **The model builds the whole block:** split, exercises, sets, rep ranges, a target RPE of 7-9 on every working set, rests, and supersets or drop sets only when the routine cannot otherwise fit "Duración de la sesión" (`07` §3 "Routine tools the coach sets"). Planned weights come only from the user's own history. It also writes a reason per split and per exercise and a "what changed versus the last block and why" field. Cardio stays computed by the server (ADR-85) and is appended unchanged. **The minimal phase "Mínimo" and its "Tengo poco tiempo" input are removed** (user, 2026-11-03, E13 Q56; amends ADR-86): no minimal block, phase calories, cardio (100/30) or exceptions; stored "Mínimo" plans become "Mantenimiento" with their calories unchanged; the Postgres enum value stays unused.
@@ -382,3 +384,15 @@ Phase 2 ADRs continue the numbering (next: **ADR-98**) and are written **in full
 - **Consequences:** `07` §4, §9, §10, §11 (cost row), `04` §8, `03` line of the `coach` function; code in T-218.
 - **Approval:** user, 2026-11-04 (chat: "agree with the plan, make sure we drop the model and we get the exact outcome by the deterministic flow").
 - **Amended T-220 (user, 2026-11-04):** protein is no longer the bold headline macro (the three macros are equal rows); the protein-distribution banner is removed.
+
+### ADR-99 — Block creation is deterministic: a builder with no model call (T-219; supersedes the model-built block of ADR-93 and the `block_splits` / `plan_block` / `folder_review purpose: block` calls of ADR-76) · PROPOSED
+- **Context:** the model-built block (ADR-93) costs about $0.15-0.20 per block, adds latency, retries and the failure modes of T-210/T-213/T-215, and its remaining contribution is the pick among rule-valid candidates and prose (`07` §3 "Block builder", fitness-scientist, 2026-11-04; model-written plans rated weak by coaches, Havers 2025a/b). The folder review (ADR-97) and the nutrition plan (ADR-98) are already deterministic.
+- **Decision:**
+  - No model call in block creation. The user picks a split for the days per week, then a routine type per day (one marked "Recomendado"), then fills the slots of a routine builder; the app computes sets, reps, RPE and rest per section (`07` §3 "Block builder" (a)-(b)). "Guardar bloque" is enabled only at a score of 100 % (every required slot filled; (c)).
+  - Discomfort is not an input of the builder; lateral raise (H3) and knee extension (H3b) are no special case. Discomfort keeps acting inside a saved block as in `07` §7.
+  - "Desde una carpeta" needs the same 100 % (folder review at 10,0), is fixed on a copy in the builder screen and saves a **new folder**; the original is never modified (`07` §3 (h)).
+  - A folder whose lifting-routine count differs from "Días por semana" is **refused** until the two match (Q-B5).
+  - Q-B1 (1 day: Cuerpo completo x1) and Q-B2 ("Continuar" disabled when 2 sets per slot do not fit the session length) as written in `07` §3 "Block builder".
+  - Superseded: the `block_splits` and `plan_block` model calls, `folder_review purpose: block`, the model input and model change proposals, the routine checker H1-H7 as a validator of a model block, H3/H3b as hard checks, the discomfort exclusion from the proposal (ADR-76 and ADR-93 marked accordingly). Cardio, weeks, deloads, saving and lifecycle (ADR-94) are unchanged.
+- **Consequences:** `02` (Coach AI paragraph), `03` (`coach` function line), `04` §9, `05` (builder UI spec pending), `09`, E13/E14 marked; `07` §11 cost rows; implementation in a later task (the built flow is unchanged until then).
+- **Approval:** proposed; user decision 2026-11-04 (chat: deterministic builder, split and type per day, 100 % gate, "Desde una carpeta" at the same bar, Q-B5 refused until matching). Becomes final when the PM records the ADR PR as approved.
