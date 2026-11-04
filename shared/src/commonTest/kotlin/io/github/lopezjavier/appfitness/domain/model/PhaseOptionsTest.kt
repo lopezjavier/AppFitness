@@ -34,6 +34,7 @@ class PhaseOptionsTest {
         assertEquals(null, storedPhaseOrNull(null))
         assertEquals(PhaseReason.Intention, phaseReasonOf("returning_break"))
         assertEquals(PhaseReason.UserBusy, phaseReasonOf("user_busy"))
+        assertEquals(PhaseReason.Underweight, phaseReasonOf("underweight"))
         assertEquals(PhaseReason.Intention, phaseReasonOf(null))
     }
 }

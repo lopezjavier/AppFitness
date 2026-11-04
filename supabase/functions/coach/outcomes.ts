@@ -24,6 +24,8 @@ export type Candidate = {
     unit: "kg";
     default_deadline: string;
     basis: OutcomeBasis;
+    /** Logged sessions of the lift (e1RM candidates only), the second ordering key of the outcomes. */
+    sessions?: number;
 };
 
 const round1 = (x: number) => Math.round((x + Number.EPSILON) * 10) / 10 + 0;
@@ -100,6 +102,9 @@ export function buildCandidates(
                 last_e1rm: last,
                 slope_kg_week: Math.round(s * 100) / 100,
             },
+            ...(typeof lift.sessions === "number"
+                ? { sessions: lift.sessions }
+                : {}),
         });
     }
     return out;

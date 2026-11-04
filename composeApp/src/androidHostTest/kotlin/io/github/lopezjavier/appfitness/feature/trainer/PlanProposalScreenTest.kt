@@ -66,9 +66,9 @@ class PlanProposalScreenTest {
 
         rule.onNodeWithText("2.000 kcal al día").assertExists()
         rule.onNodeWithTag("plan_proposal_macro_protein").assertExists()
-        rule.onNodeWithText("150 g").assertExists()
-        rule.onNodeWithText("200 g").assertExists()
-        rule.onNodeWithText("60 g").assertExists()
+        rule.onNodeWithText("Proteína: 150 g").assertExists()
+        rule.onNodeWithText("Carbohidratos: el resto, 200 g").assertExists()
+        rule.onNodeWithText("Grasa: 60 g (mínimo 45 g)").assertExists()
         rule.onNodeWithText("−0,4 kg/sem").assertExists()
         rule.onNodeWithTag("trainer_card").assertDoesNotExist()
     }

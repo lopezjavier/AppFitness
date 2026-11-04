@@ -25,13 +25,9 @@ import {
     ROUNDING_KCAL,
     SURPLUS_CAP,
 } from "./nutritionRules.ts";
-import { addDays, type Candidate } from "./outcomes.ts";
-import type { ModelOutcome, Nutrition, Phase } from "./schemas.ts";
+import type { Nutrition, Phase } from "./schemas.ts";
 
-export const MAX_OUTCOMES = 4;
 export const REASON_MIN = 10;
-export const DEADLINE_MIN_DAYS = 7;
-export const DEADLINE_MAX_DAYS = 28;
 
 export const isRecord = (v: unknown): v is Record<string, unknown> =>
     typeof v === "object" && v !== null && !Array.isArray(v);
@@ -63,55 +59,6 @@ const CARDIO_REDUCTION: RegExp[] = [
 ];
 export const mentionsCardioReduction = (text: string): boolean =>
     CARDIO_REDUCTION.some((re) => re.test(text));
-
-const DATE = /^\d{4}-\d{2}-\d{2}$/;
-function isRealDate(s: string): boolean {
-    if (!DATE.test(s)) return false;
-    const d = new Date(`${s}T00:00:00Z`);
-    return !Number.isNaN(d.getTime()) && d.toISOString().slice(0, 10) === s;
-}
-
-/** The parsed outcomes, or null when the text breaks any rule (which triggers the single retry). */
-export function validateOutcomesText(
-    text: string,
-    candidates: Candidate[],
-    blockStart: string,
-): ModelOutcome[] | null {
-    const parsed = parseJson(text);
-    if (!isRecord(parsed) || !sameKeys(parsed, ["outcomes"])) return null;
-    const list = parsed.outcomes;
-    if (!Array.isArray(list) || list.length > MAX_OUTCOMES) return null;
-
-    const ids = new Set(candidates.map((c) => c.id));
-    const seen = new Set<string>();
-    const earliest = addDays(blockStart, DEADLINE_MIN_DAYS);
-    const latest = addDays(blockStart, DEADLINE_MAX_DAYS);
-    const out: ModelOutcome[] = [];
-    for (const item of list) {
-        if (
-            !isRecord(item) ||
-            !sameKeys(item, ["candidate_id", "reason", "deadline"])
-        ) return null;
-        const { candidate_id, reason, deadline } = item;
-        if (
-            typeof candidate_id !== "string" || typeof reason !== "string" ||
-            typeof deadline !== "string"
-        ) return null;
-        if (!ids.has(candidate_id) || seen.has(candidate_id)) return null;
-        const trimmed = reason.trim();
-        if (trimmed.length < REASON_MIN) {
-            return null;
-        }
-        if (mentionsCardioReduction(trimmed)) return null;
-        // ISO dates compare correctly as strings.
-        if (!isRealDate(deadline) || deadline < earliest || deadline > latest) {
-            return null;
-        }
-        seen.add(candidate_id);
-        out.push({ candidate_id, reason: trimmed, deadline });
-    }
-    return out;
-}
 
 /** Final check of the activity targets before they are stored; throws on the first broken rule. */
 export function assertActivityInvariants(

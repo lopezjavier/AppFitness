@@ -7,12 +7,20 @@ import io.github.lopezjavier.appfitness.domain.AppError
 import io.github.lopezjavier.appfitness.domain.appErrorOrNull
 import io.github.lopezjavier.appfitness.domain.model.CoachDerivedValues
 import io.github.lopezjavier.appfitness.domain.model.CoachPlan
+import io.github.lopezjavier.appfitness.domain.model.MacroSplit
+import io.github.lopezjavier.appfitness.domain.model.Macronutrient
 import io.github.lopezjavier.appfitness.domain.model.PlanStatus
 import io.github.lopezjavier.appfitness.domain.port.Clock
+import io.github.lopezjavier.appfitness.domain.repository.BodyMeasurementRepository
 import io.github.lopezjavier.appfitness.domain.repository.CoachBlockRepository
 import io.github.lopezjavier.appfitness.domain.repository.CoachPlanRepository
 import io.github.lopezjavier.appfitness.domain.repository.CoachRepository
 import io.github.lopezjavier.appfitness.domain.repository.CoachWeeksRepository
+import io.github.lopezjavier.appfitness.domain.repository.NutritionGoalsRepository
+import io.github.lopezjavier.appfitness.domain.repository.ProfileRepository
+import io.github.lopezjavier.appfitness.domain.usecase.GoalChecklist
+import io.github.lopezjavier.appfitness.domain.usecase.GoalTargets
+import io.github.lopezjavier.appfitness.domain.usecase.NutritionGoalsChecklist
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -24,8 +32,10 @@ import kotlinx.coroutines.launch
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
+import kotlin.math.roundToInt
 
 private const val KEY_REMOVE_BLOCK_CONFIRM = "remove_block_confirm"
+private const val PERCENT = 100.0
 
 /** The stored block of an open plan; a failed read means none, like the plan entry itself. */
 private suspend fun CoachBlockRepository?.summaryFor(plan: PlanSummary): BlockSummary {
@@ -64,6 +74,9 @@ class TrainerViewModel(
     private val blocks: CoachBlockRepository? = null,
     private val coachWeeks: CoachWeeksRepository? = null,
     private val savedState: SavedStateHandle = SavedStateHandle(),
+    private val goals: NutritionGoalsRepository? = null,
+    private val profile: ProfileRepository? = null,
+    private val measurements: BodyMeasurementRepository? = null,
 ) : ViewModel() {
     private val cardioEdit = CardioEditState(savedState)
 
@@ -287,10 +300,36 @@ class TrainerViewModel(
             weeks = planWeeks,
             deload = deload,
             provisionalCount = provisional,
+            goalsChecklist = goalsChecklistFor(plan),
             cardioEdit = cardioEdit.current((plan as? PlanSummary.Accepted)?.plan?.cardioMinutes()),
             removeBlockConfirm = confirmRemove && block is BlockSummary.Saved,
         )
     }
+
+    /** N1-N4 on the Diario goals in use: only for an accepted plan with edited goals, null when an input is missing. */
+    @Suppress("ReturnCount") // Guards: not edited, a repository, or an input is missing.
+    private suspend fun goalsChecklistFor(plan: PlanSummary): GoalChecklist? {
+        val accepted = (plan as? PlanSummary.Accepted)?.plan ?: return null
+        if (!accepted.nutrition.editedByUser) return null
+        val saved = goals?.getOwn()?.getOrNull() ?: return null
+        val sex = profile?.getBiometrics()?.getOrNull()?.sex ?: return null
+        val weightKg = measurements?.getLatestWeight()?.getOrNull()?.weightKg ?: return null
+        val kcal = saved.targetKcal
+        return NutritionGoalsChecklist(
+            targets = GoalTargets(
+                targetKcal = kcal,
+                proteinG = gramsOf(kcal, saved.split, Macronutrient.Protein),
+                fatG = gramsOf(kcal, saved.split, Macronutrient.Fat),
+            ),
+            weightKg = weightKg,
+            sex = sex,
+            phase = accepted.phase,
+            expenditureKcal = accepted.nutrition.expenditureKcal,
+        )
+    }
+
+    private fun gramsOf(kcal: Int, split: MacroSplit, macro: Macronutrient): Int =
+        (kcal * split[macro] / PERCENT / macro.kcalPerGram.toDouble()).roundToInt()
 
     private suspend fun readPlan(): PlanSummary {
         val plan = plans?.currentPlan()?.getOrNull() ?: return PlanSummary.None

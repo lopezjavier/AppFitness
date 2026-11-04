@@ -211,7 +211,15 @@ private fun TrainerContent(
     ) {
         state.deload?.let { DeloadCard(it, state.decidingDeload, online, onEvent) }
         state.calorieChange?.let { CalorieChangeCard(it, state.decidingChange, online, onEvent) }
-        PlanSection(state.plan, online, actions.onOpenProposal, actions.onOpenBeforeStart, state.cardioEdit, onEvent)
+        PlanSection(
+            state.plan,
+            online,
+            actions.onOpenProposal,
+            actions.onOpenBeforeStart,
+            state.cardioEdit,
+            onEvent,
+            state.goalsChecklist,
+        )
         BlockSection(
             state.plan,
             state.block,

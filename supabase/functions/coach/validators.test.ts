@@ -5,110 +5,13 @@ import {
     type NutritionInput,
 } from "./nutritionRules.ts";
 import { CARDIO_MIN_WEEK, computeActivity } from "./cardioRules.ts";
-import type { Candidate } from "./outcomes.ts";
 import type { Nutrition } from "./schemas.ts";
 import {
     assertActivityInvariants,
     assertNutritionInvariants,
     NutritionInvariantError,
     unconfirmedKeys,
-    validateOutcomesText,
 } from "./validators.ts";
-
-const START = "2026-11-02";
-const cand = (id: string): Candidate => ({
-    id,
-    kind: id === "weight" ? "weight" : "e1rm",
-    key: id,
-    target_value: 78,
-    unit: "kg",
-    default_deadline: "2026-11-30",
-    basis: {},
-});
-const CANDS = [cand("weight"), cand("e1rm:squat")];
-const REASON = "Tu peso baja de forma constante.";
-const item = (o: Record<string, unknown> = {}) => ({
-    candidate_id: "weight",
-    reason: REASON,
-    deadline: "2026-11-30",
-    ...o,
-});
-const text = (outcomes: unknown[], extra: Record<string, unknown> = {}) =>
-    JSON.stringify({ outcomes, ...extra });
-const check = (t: string) => validateOutcomesText(t, CANDS, START);
-
-Deno.test("an empty outcome list is valid", () => {
-    assertEquals(check(text([])), []);
-});
-
-Deno.test("a valid choice is returned with the reason trimmed", () => {
-    const out = check(text([item({ reason: `  ${REASON} ` })]));
-    assertEquals(out, [{
-        candidate_id: "weight",
-        reason: REASON,
-        deadline: "2026-11-30",
-    }]);
-});
-
-Deno.test("fenced JSON is accepted", () => {
-    assertEquals(check("```json\n" + text([item()]) + "\n```")?.length, 1);
-    assertEquals(check("```\n" + text([]) + "\n```"), []);
-});
-
-Deno.test("text that is not JSON, or not an object, is invalid", () => {
-    assertEquals(check("hola"), null);
-    assertEquals(check("[]"), null);
-    assertEquals(check("null"), null);
-    assertEquals(check(""), null);
-});
-
-Deno.test("an unknown or duplicate candidate id is invalid", () => {
-    assertEquals(check(text([item({ candidate_id: "bench" })])), null);
-    assertEquals(check(text([item(), item()])), null);
-});
-
-Deno.test("extra keys are rejected, whether a figure or a nutrition field", () => {
-    assertEquals(check(text([item({ target_value: 70 })])), null);
-    assertEquals(check(text([item()], { target_kcal: 1800 })), null);
-    assertEquals(check(text([item()], { nutrition: {} })), null);
-    assertEquals(check(JSON.stringify({})), null);
-    assertEquals(
-        check(text([{ candidate_id: "weight", reason: REASON }])),
-        null,
-    );
-});
-
-Deno.test("a reason shorter than 10 characters is invalid and any longer one is kept whole", () => {
-    assertEquals(check(text([item({ reason: "corto" })])), null);
-    assertEquals(check(text([item({ reason: "x".repeat(9) })])), null);
-    assertEquals(check(text([item({ reason: "x".repeat(10) })]))?.length, 1);
-    assertEquals(check(text([item({ reason: "x".repeat(300) })]))?.length, 1);
-    for (const n of [301, 500, 5000]) {
-        const long = "x".repeat(n);
-        assertEquals(check(text([item({ reason: long })]))?.[0].reason, long);
-    }
-    assertEquals(check(text([item({ reason: 12 })])), null);
-});
-
-Deno.test("a deadline outside the window or not a real date is invalid", () => {
-    assertEquals(check(text([item({ deadline: "2026-11-08" })])), null); // day 6
-    assertEquals(check(text([item({ deadline: "2026-11-09" })]))?.length, 1); // day 7
-    assertEquals(check(text([item({ deadline: "2026-11-30" })]))?.length, 1); // day 28
-    assertEquals(check(text([item({ deadline: "2026-12-01" })])), null); // day 29
-    assertEquals(check(text([item({ deadline: "2026-02-30" })])), null);
-    assertEquals(check(text([item({ deadline: "30/11/2026" })])), null);
-    assertEquals(check(text([item({ deadline: 20261130 })])), null);
-});
-
-Deno.test("more than 4 outcomes are invalid", () => {
-    const many = Array.from({ length: 5 }, (_, i) => cand(`e1rm:l${i}`));
-    const items = many.map((c) => item({ candidate_id: c.id }));
-    assertEquals(validateOutcomesText(text(items), many, START), null);
-    assertEquals(
-        validateOutcomesText(text(items.slice(0, 4)), many, START)?.length,
-        4,
-    );
-});
 
 // --- nutrition invariants ---
 

@@ -4,7 +4,7 @@ begin;
 create extension if not exists pgtap with schema extensions;
 set local search_path = extensions, public;
 
-select plan(90);
+select plan(92);
 
 -- ---------------------------------------------------------------------------
 -- Fixture helpers
@@ -136,7 +136,9 @@ select throws_ok($$update public.coach_plans set phase_options = '{"cut_rate_pct
 select throws_ok($$update public.coach_plans set phase_options = '[]' where user_id = pg_temp.u(15)$$,
   '23514', null, 'phase_options must be an object');
 select throws_ok($$update public.coach_plans set phase_reason = 'bogus' where user_id = pg_temp.u(15)$$,
-  '23514', null, 'a phase reason outside the four codes is rejected');
+  '23514', null, 'a phase reason outside the known codes is rejected');
+select lives_ok($$update public.coach_plans set phase_reason = 'underweight' where user_id = pg_temp.u(15)$$,
+  'the underweight phase reason is accepted by the column');
 
 -- Function privileges.
 select ok(not has_function_privilege('anon', 'public.update_coach_plan_options(uuid,jsonb,numeric,boolean)', 'execute'),
@@ -191,6 +193,9 @@ select throws_ok(
 select throws_ok(
   $$select public.propose_coach_plan(pg_temp.d0(), 'fat_loss', pg_temp.nut(2500, -500, 0.568, 'cut', 'deficit_cap') || '{"phase_reason":"returning_break"}', '[]', '{}', '{}')$$,
   '22023', 'plan invariant: phase_reason', 'the retired returning_break reason is rejected');
+select lives_ok(
+  $$select public.propose_coach_plan(pg_temp.d0(), 'fat_loss', pg_temp.nut(2500, 0, 0, 'maintenance') || '{"phase_reason":"underweight"}', '[]', '{}', '{}')$$,
+  'an underweight maintenance plan of a fat-loss user is accepted');
 
 -- Maintenance and recomposition: the no-change range (220 + 10 kcal at 80 kg).
 select lives_ok(

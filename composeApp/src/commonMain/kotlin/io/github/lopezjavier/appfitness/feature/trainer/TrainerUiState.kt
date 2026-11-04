@@ -7,6 +7,7 @@ import io.github.lopezjavier.appfitness.domain.model.DeloadProposal
 import io.github.lopezjavier.appfitness.domain.model.Phase
 import io.github.lopezjavier.appfitness.domain.model.PhaseReason
 import io.github.lopezjavier.appfitness.domain.model.PlanWeek
+import io.github.lopezjavier.appfitness.domain.usecase.GoalChecklist
 
 /** The plan entry of the Trainer tab: no plan, a proposal waiting for a decision, or the active plan. */
 sealed interface PlanSummary {
@@ -52,6 +53,8 @@ sealed interface TrainerUiState {
         val removeBlockConfirm: Boolean = false,
         /** The block removal is in flight: the dialog stays open with its confirm action disabled. */
         val removingBlock: Boolean = false,
+        /** N1-N4 on the Diario goals in use; null until the core supplies it. Shown only for an edited plan. */
+        val goalsChecklist: GoalChecklist? = null,
     ) : TrainerUiState {
         private val accepted: CoachPlan? get() = (plan as? PlanSummary.Accepted)?.plan
 

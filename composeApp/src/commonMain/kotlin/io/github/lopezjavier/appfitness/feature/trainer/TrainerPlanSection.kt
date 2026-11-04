@@ -70,6 +70,7 @@ import io.github.lopezjavier.appfitness.designsystem.StatusTone
 import io.github.lopezjavier.appfitness.domain.model.CalorieChange
 import io.github.lopezjavier.appfitness.domain.model.CoachPlan
 import io.github.lopezjavier.appfitness.domain.model.DeloadProposal
+import io.github.lopezjavier.appfitness.domain.usecase.GoalChecklist
 import io.github.lopezjavier.appfitness.feature.weight.signedTenths
 import org.jetbrains.compose.resources.pluralStringResource
 import org.jetbrains.compose.resources.stringResource
@@ -167,6 +168,7 @@ internal fun PlanSection(
     onOpenBeforeStart: (BeforeStartMode, String?, String?) -> Unit,
     cardioEdit: CardioEdit? = null,
     onEvent: (TrainerEvent) -> Unit = {},
+    goalsChecklist: GoalChecklist? = null,
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
         ListSectionHeader(stringResource(Res.string.trainer_plan_section))
@@ -203,6 +205,7 @@ internal fun PlanSection(
 
             is PlanSummary.Accepted -> {
                 ActivePlanCard(plan.plan, onEditCardio = { onEvent(TrainerEvent.OpenCardioEdit) })
+                if (plan.plan.nutrition.editedByUser && goalsChecklist != null) GoalsChecklistSection(goalsChecklist)
                 cardioEdit?.let {
                     CardioMinutesSheet(
                         edit = it,
