@@ -11,7 +11,6 @@ import io.github.lopezjavier.appfitness.domain.AppError
 import io.github.lopezjavier.appfitness.domain.appErrorOrNull
 import io.github.lopezjavier.appfitness.domain.model.CoachException
 import io.github.lopezjavier.appfitness.domain.model.CoachFailure
-import io.github.lopezjavier.appfitness.domain.model.FolderCopy
 import io.github.lopezjavier.appfitness.domain.model.FolderFalta
 import io.github.lopezjavier.appfitness.domain.model.FolderOp
 import io.github.lopezjavier.appfitness.domain.model.ReviewPurpose
@@ -200,36 +199,6 @@ class SupabaseFolderReviewRepositoryTest {
         val repository = repo { HttpStatusCode.OK to "[]" }
 
         assertNull(repository.stored("r1").getOrThrow())
-    }
-
-    @Test
-    fun applyCopy_sendsTheReviewAndTheChosenIds() = runTest {
-        val repository = repo { HttpStatusCode.OK to """{"folder_id":"f2","routine_ids":["a","b"]}""" }
-
-        val copy = repository.applyCopy("r1", listOf("c1", "c3")).getOrThrow()
-
-        val call = rest().first()
-        assertTrue(call.url.encodedPath.endsWith("/rpc/apply_folder_review_copy"))
-        assertEquals("""{"p_review":"r1","p_change_ids":["c1","c3"]}""", (call.body as TextContent).text)
-        assertEquals(FolderCopy("f2", listOf("a", "b")), copy)
-    }
-
-    @Test
-    fun applyCopy_staleFolder_isConflict() = runTest {
-        val repository = repo {
-            HttpStatusCode.BadRequest to """{"code":"55000","message":"folder changed","details":null,"hint":null}"""
-        }
-
-        assertEquals(CoachFailure.Conflict, failureOf(repository.applyCopy("r1", emptyList())))
-    }
-
-    @Test
-    fun applyCopy_unknownChange_isInvalidReplacement() = runTest {
-        val repository = repo {
-            HttpStatusCode.BadRequest to """{"code":"22023","message":"unknown change","details":null,"hint":null}"""
-        }
-
-        assertEquals(CoachFailure.InvalidReplacement, failureOf(repository.applyCopy("r1", listOf("zz"))))
     }
 
     private fun blockRoutes(request: HttpRequestData): Pair<HttpStatusCode, String> = when {

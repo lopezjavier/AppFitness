@@ -21,14 +21,17 @@ internal data class ExerciseDto(
     @SerialName("is_custom") val isCustom: Boolean = false,
     @SerialName("per_hand") val perHand: Boolean = false,
     @SerialName("movement_pattern") val movementPattern: MovementPattern? = null,
+    @SerialName("counts_as_strength") val countsAsStrength: Boolean = true,
 ) {
     fun toDomain(): Exercise = Exercise(
         id, key, name, muscleGroup, secondaryMuscles, equipment, metricType, isCustom, perHand, movementPattern,
+        countsAsStrength,
     )
 
     companion object {
         const val COLUMNS =
-            "id,key,name,muscle_group,secondary_muscles,equipment,metric_type,is_custom,per_hand,movement_pattern"
+            "id,key,name,muscle_group,secondary_muscles,equipment,metric_type,is_custom,per_hand," +
+                "movement_pattern,counts_as_strength"
     }
 }
 

@@ -142,6 +142,7 @@ import io.github.lopezjavier.appfitness.domain.usecase.MeasurementsByDay
 import io.github.lopezjavier.appfitness.domain.usecase.RecalculateEntry
 import io.github.lopezjavier.appfitness.domain.usecase.ResolveCheckInDay
 import io.github.lopezjavier.appfitness.domain.usecase.ResolvePortion
+import io.github.lopezjavier.appfitness.domain.usecase.ReviewFolderUseCase
 import io.github.lopezjavier.appfitness.domain.usecase.SaveBodyMeasurement
 import io.github.lopezjavier.appfitness.domain.usecase.SavePreferences
 import io.github.lopezjavier.appfitness.domain.usecase.ScaleNutrition
@@ -463,6 +464,7 @@ val sharedModule =
         factory { LoadExerciseCatalog(get(), get()) }
         single { ExerciseNameResolver(get(), get()) }
         factory { SearchExercises() }
+        factory { ReviewFolderUseCase(get(), get(), get()) }
         factory { ValidateBodyMeasurement() }
         factory { ValidateCircumference() }
         factory { WaistHipRatio() }
