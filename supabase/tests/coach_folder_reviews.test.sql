@@ -1,10 +1,10 @@
--- pgTAP: coach_folder_reviews, save_folder_review, coach_folder_for_review, coach_apply_change and
--- apply_folder_review_copy (T-207, US-95 and US-93 "from a folder").
+-- pgTAP: coach_folder_reviews, save_folder_review and coach_folder_for_review (T-207, US-93 "from a folder").
+-- The apply functions were dropped in T-216 (ADR-97).
 begin;
 create extension if not exists pgtap with schema extensions;
 set local search_path = extensions, public;
 
-select plan(45);
+select plan(30);
 
 create function pg_temp.u(n int) returns uuid language sql as $$
   select ('d7000000-0000-4000-8000-0000000000' || lpad(n::text, 2, '0'))::uuid $$;
@@ -24,16 +24,6 @@ create function pg_temp.changes() returns jsonb language sql as $$
     jsonb_build_object('id', 'c3', 'op', 'add_exercise', 'routine_index', 2, 'exercise_key', 'lateral-raise',
       'sets', jsonb_build_array(jsonb_build_object('n', 2, 'type', 'working', 'rep_min', 10, 'rep_max', 15, 'rpe', 8, 'rest_seconds', 90)),
       'reason', 'Falta deltoides lateral.')) $$;
--- Snapshot of every row of the folder's routines (exercises and sets included).
-create function pg_temp.snap(p_folder uuid) returns jsonb language sql as $$
-  select jsonb_build_object(
-    'routines', (select jsonb_agg(to_jsonb(r) order by r.id) from public.routines r where r.folder_id = p_folder),
-    'exercises', (select jsonb_agg(to_jsonb(re) order by re.id) from public.routine_exercises re
-                  join public.routines r on r.id = re.routine_id where r.folder_id = p_folder),
-    'sets', (select jsonb_agg(to_jsonb(s) order by s.id) from public.routine_exercise_sets s
-             join public.routine_exercises re on re.id = s.routine_exercise_id
-             join public.routines r on r.id = re.routine_id where r.folder_id = p_folder)) $$;
-
 grant execute on all functions in schema pg_temp to authenticated;
 
 insert into auth.users (id, email) select pg_temp.u(n), 'fr' || n || '@example.com' from generate_series(1, 3) n;
@@ -51,7 +41,8 @@ select table_privs_are('public', 'coach_folder_reviews', 'authenticated', array[
 select fk_ok('public', 'coach_folder_reviews', 'user_id', 'auth', 'users', 'id', 'user_id references auth.users');
 select fk_ok('public', 'coach_folder_reviews', 'folder_id', 'public', 'routine_folders', 'id', 'folder_id references routine_folders');
 select fk_ok('public', 'coach_folder_reviews', 'plan_id', 'public', 'coach_plans', 'id', 'plan_id references coach_plans');
-select ok(not has_function_privilege('anon', 'public.apply_folder_review_copy(uuid,text[])', 'execute'), 'anon cannot apply a copy');
+select hasnt_function('public', 'apply_folder_review_copy', 'apply_folder_review_copy is gone (T-216, ADR-97)');
+select hasnt_function('public', 'coach_apply_change', 'coach_apply_change is gone (T-216, ADR-97)');
 
 -- ---------------------------------------------------------------------------
 -- A folder of user 1: Torso (press, row as a superset, lateral raise) and Pierna (leg extension)
@@ -108,61 +99,13 @@ select throws_ok($$insert into public.coach_folder_reviews (folder_id, purpose, 
 select throws_ok($$insert into public.coach_folder_reviews (user_id, folder_id, purpose, input_hash, result)
   values ('d7000000-0000-4000-8000-000000000001', (select folder from fx), 'review', 'h', '{}'::jsonb)$$, '42501', null,
   'nor impersonate A');
-select throws_ok($$select public.apply_folder_review_copy((select review from fx), array['c1'])$$, '55000', null,
-  'user B cannot apply A''s review');
 delete from public.coach_folder_reviews;
 select pg_temp.as_user(1);
 select is((select count(*)::int from public.coach_folder_reviews), 2, 'user B''s delete removed nothing of A''s');
 
--- ---------------------------------------------------------------------------
--- apply_folder_review_copy
--- ---------------------------------------------------------------------------
-create temp table before_snap as select pg_temp.snap((select folder from fx)) as s;
-grant select on before_snap to authenticated;
-update fx set copy = (public.apply_folder_review_copy(review, array['c1', 'c3']) ->> 'folder_id')::uuid;
-
-select is((select name from public.routine_folders where id = (select copy from fx)), 'Mi carpeta (revisada)',
-  'the copy folder is named after the source');
-select is((select count(*)::int from public.routines where folder_id = (select copy from fx)), 2, 'it holds both routines');
-select is((select count(*)::int from public.routine_exercises re join public.routines r on r.id = re.routine_id
-           where r.folder_id = (select copy from fx) and r.name like 'Torso%'), 3,
-  'the rejected removal (c2) is not applied');
-select is((select re.target_rpe from public.routine_exercises re join public.routines r on r.id = re.routine_id
-           where r.folder_id = (select copy from fx) and r.name like 'Torso%' and re.position = 2), 9::numeric,
-  'the accepted RPE change (c1) is applied to the third exercise');
-select is((select re.target_rpe from public.routine_exercises re join public.routines r on r.id = re.routine_id
-           where r.folder_id = (select copy from fx) and r.name like 'Torso%' and re.position = 0), 8::numeric,
-  'and the others keep theirs');
-select is((select array_agg(x.k order by x.position) from (
-             select re.position, e.key as k from public.routine_exercises re
-             join public.routines r on r.id = re.routine_id join public.exercises e on e.id = re.exercise_id
-             where r.folder_id = (select copy from fx) and r.name like 'Pierna%') x),
-  array['leg-extension', 'lateral-raise'], 'the accepted addition (c3) is appended to the second routine');
-select is((select count(*)::int from public.routine_exercise_sets s join public.routine_exercises re on re.id = s.routine_exercise_id
-           join public.routines r on r.id = re.routine_id join public.exercises e on e.id = re.exercise_id
-           where r.folder_id = (select copy from fx) and r.name like 'Pierna%' and e.key = 'lateral-raise'), 2, 'with its two sets');
-select is((select re.notes from public.routine_exercises re join public.routines r on r.id = re.routine_id
-           where r.folder_id = (select copy from fx) and r.name like 'Torso%' and re.position = 0), 'nota lateral-raise',
-  'notes are copied');
-select is(pg_temp.snap((select folder from fx)), (select s from before_snap),
-  'the source folder rows (routines, exercises, sets, updated_at) are identical after the copy');
-
-select is((select count(*)::int from public.routines r join fx on r.id = fx.torso where r.folder_id = fx.folder), 1,
-  'the source routines stay in the source folder');
-select is(public.apply_folder_review_copy((select review from fx), array[]::text[]) ->> 'folder_id' is not null, true,
-  'an empty list makes a plain copy');
-select ok((select count(*) from public.routine_folders where name = 'Mi carpeta (revisada) 2') = 1,
-  'the second copy is named with a number');
-select throws_ok($$select public.apply_folder_review_copy((select review from fx), array['c9'])$$, '22023', null,
-  'an unknown change id is refused');
-select throws_ok($$select public.apply_folder_review_copy((select block_review from fx), array[]::text[])$$, '55000', null,
-  'a block review cannot be applied as a copy');
-
 -- A folder edited after the review is stale; a fresh read shows the edit.
 select public.save_routine(jsonb_build_object('id', (select torso from fx), 'name', 'Torso', 'track_as_routine', true,
   'exercises', jsonb_build_array(pg_temp.ex('lateral-raise', 4))));
-select throws_ok($$select public.apply_folder_review_copy((select review from fx), array['c1'])$$, '55000', null,
-  'a folder edited since the review is refused');
 select is(jsonb_array_length(public.coach_folder_for_review((select folder from fx)) #> '{routines,0,exercises}'), 1,
   'and coach_folder_for_review returns the edited routine');
 

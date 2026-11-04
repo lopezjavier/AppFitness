@@ -11,7 +11,7 @@ back-lever,core
 ball-leg-curl,isolation
 ball-pike,core
 band-assisted-pull-ups,vertical_pull
-band-pull-apart,horizontal_pull
+band-pull-apart,isolation
 banded-adductor-stretch,other
 banded-ankle-stretch,other
 banded-calf-stretch,other
@@ -47,7 +47,7 @@ barbell-glute-bridge,hinge
 barbell-lunge,lunge
 barbell-overhead-extension,isolation
 barbell-preacher-curl,isolation
-barbell-pullover,vertical_pull
+barbell-pullover,isolation
 barbell-rear-delt-row,horizontal_pull
 barbell-reverse-lunge,lunge
 barbell-row,horizontal_pull
@@ -75,8 +75,8 @@ bench-lat-stretch,other
 bench-leg-pull-in,core
 bench-press,horizontal_push
 bench-pull,horizontal_pull
-bent-arm-barbell-pullover,vertical_pull
-bent-arm-ez-bar-pullover,vertical_pull
+bent-arm-barbell-pullover,isolation
+bent-arm-ez-bar-pullover,isolation
 bent-over-db-row,horizontal_pull
 bent-over-ez-bar-row,horizontal_pull
 bicep-curl,isolation
@@ -163,7 +163,7 @@ db-kickstand-deadlift,hinge
 db-lunge,lunge
 db-overhead-carry,carry
 db-preacher-curl,isolation
-db-pullover,vertical_pull
+db-pullover,isolation
 db-reverse-curl,isolation
 db-reverse-wrist-curl,isolation
 db-shrug,isolation
@@ -171,7 +171,7 @@ db-skull-crusher,isolation
 db-somersault-squat,squat
 db-squat,squat
 db-sumo-squat,squat
-db-svend-press,horizontal_push
+db-svend-press,isolation
 dead-bug,core
 dead-bug-hold,core
 dead-hang,vertical_pull
@@ -219,7 +219,7 @@ dumbbell-calf-raise,isolation
 dumbbell-clean-and-press,vertical_push
 dumbbell-curl-and-press,vertical_push
 dumbbell-deadlift,hinge
-dumbbell-face-pull,horizontal_pull
+dumbbell-face-pull,isolation
 dumbbell-farmers-walk,carry
 dumbbell-floor-press,horizontal_push
 dumbbell-front-raise,isolation
@@ -246,7 +246,7 @@ ez-bar-curl,isolation
 ez-bar-front-raise,isolation
 ez-bar-lying-tricep-extension,isolation
 ez-bar-overhead-extension,isolation
-ez-bar-pullover,vertical_pull
+ez-bar-pullover,isolation
 ez-bar-reverse-curl,isolation
 ez-bar-reverse-grip-row,horizontal_pull
 ez-bar-romanian-deadlift,hinge
@@ -254,12 +254,12 @@ ez-bar-shrug,isolation
 ez-bar-spider-curl,isolation
 ez-bar-upright-row,vertical_pull
 ez-bar-wrist-curl,isolation
-face-pull,horizontal_pull
+face-pull,isolation
 fire-hydrant,isolation
 fish-pose,other
 flexed-arm-hang,vertical_pull
 floor-ez-bar-press,horizontal_push
-floor-kettlebell-pullover,vertical_pull
+floor-kettlebell-pullover,isolation
 floor-press,horizontal_push
 flutter-kicks,core
 front-lever,core
@@ -315,7 +315,7 @@ incline-treadmill-walk,cardio
 inverted-row,horizontal_pull
 isometric-neck-side,isolation
 jackknife-sit-up,core
-jefferson-curl,hinge
+jefferson-curl,other
 jump-rope,cardio
 jump-squat,squat
 jumping-jacks,cardio
@@ -330,12 +330,12 @@ kettlebell-halo,isolation
 kettlebell-hammer-curl,isolation
 kettlebell-hip-thrust,hinge
 kettlebell-kickstand-deadlift,hinge
-kettlebell-lunge-press,vertical_push
+kettlebell-lunge-press,lunge
 kettlebell-offset-reverse-lunge-and-press,lunge
 kettlebell-overhead-carry,carry
 kettlebell-overhead-tricep-extension,isolation
 kettlebell-pistol-squat,squat
-kettlebell-pullover,vertical_pull
+kettlebell-pullover,isolation
 kettlebell-reverse-lunge,lunge
 kettlebell-reverse-wrist-curl,isolation
 kettlebell-rotational-lunge,lunge
@@ -345,8 +345,8 @@ kettlebell-single-leg-deadlift,hinge
 kettlebell-skull-crusher,isolation
 kettlebell-squat,squat
 kettlebell-sumo-deadlift,hinge
-kettlebell-sumo-high-pull,vertical_pull
-kettlebell-svend-press,horizontal_push
+kettlebell-sumo-high-pull,hinge
+kettlebell-svend-press,isolation
 kettlebell-swing,hinge
 kettlebell-swing-clean,hinge
 kettlebell-tibialis-raise,isolation
@@ -445,7 +445,7 @@ plate-loaded-lateral-raise,shoulder_abduction
 plate-loaded-seated-dip-machine,vertical_push
 plate-loaded-shrug,isolation
 plate-pinch,isolation
-plate-pullover,vertical_pull
+plate-pullover,isolation
 plow-pose,other
 plyo-lunge,lunge
 plyo-push-up,horizontal_push
@@ -475,7 +475,7 @@ revolved-chair-pose,other
 revolved-crescent-lunge,other
 ring-dead-hang,vertical_pull
 ring-dips,vertical_push
-ring-face-pull,horizontal_pull
+ring-face-pull,isolation
 ring-l-sit,core
 ring-muscle-up,vertical_pull
 ring-plank,core
@@ -488,7 +488,7 @@ rowing-machine,cardio
 running,cardio
 russian-twist,core
 savasana,other
-scapular-pull-ups,vertical_pull
+scapular-pull-ups,isolation
 scissor-kicks,core
 seated-barbell-overhead-press,vertical_push
 seated-cable-row,horizontal_pull
@@ -521,7 +521,7 @@ single-arm-hammer-curl,isolation
 single-arm-machine-shoulder-press,vertical_push
 single-arm-plate-loaded-lateral-raise,shoulder_abduction
 single-arm-tricep-pushdown,isolation
-single-db-svend-press,horizontal_push
+single-db-svend-press,isolation
 single-leg-calf-raise,isolation
 single-leg-extension,isolation
 single-leg-glute-bridge,hinge
@@ -579,7 +579,7 @@ standing-split,other
 stationary-bike,cardio
 step-ups,lunge
 stiff-leg-deadlift,hinge
-straight-arm-pulldown,vertical_pull
+straight-arm-pulldown,isolation
 straight-bar-cable-front-raise,isolation
 straight-bar-dips,vertical_push
 strict-curl,isolation
@@ -590,7 +590,7 @@ superman,core
 supine-spinal-twist,other
 supine-windshield-wipers,core
 supported-shoulderstand,other
-svend-press,horizontal_push
+svend-press,isolation
 t-bar-row,horizontal_pull
 thoracic-bridge,other
 thread-the-needle,other
@@ -606,7 +606,7 @@ tricep-kickback,isolation
 tricep-pushdown,isolation
 trx-bicep-curl,isolation
 trx-chest-press,horizontal_push
-trx-face-pull,horizontal_pull
+trx-face-pull,isolation
 trx-hamstring-curl,isolation
 trx-lunge,lunge
 trx-pistol-squat,squat
