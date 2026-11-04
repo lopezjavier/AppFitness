@@ -9,14 +9,21 @@ import io.github.lopezjavier.appfitness.data.InMemoryCoachModelPreference
 import io.github.lopezjavier.appfitness.data.remote.SupabaseClientFactory
 import io.github.lopezjavier.appfitness.domain.AppError
 import io.github.lopezjavier.appfitness.domain.appErrorOrNull
+import io.github.lopezjavier.appfitness.domain.coach.builder.BuiltBlock
+import io.github.lopezjavier.appfitness.domain.coach.builder.BuiltExercise
+import io.github.lopezjavier.appfitness.domain.coach.builder.BuiltSession
+import io.github.lopezjavier.appfitness.domain.coach.builder.CardioPlan
+import io.github.lopezjavier.appfitness.domain.coach.builder.ExerciseHistory
 import io.github.lopezjavier.appfitness.domain.model.BlockEdit
 import io.github.lopezjavier.appfitness.domain.model.CoachException
 import io.github.lopezjavier.appfitness.domain.model.CoachFailure
 import io.github.lopezjavier.appfitness.domain.model.CoachModelChoice
+import io.github.lopezjavier.appfitness.domain.model.Equipment
 import io.github.lopezjavier.appfitness.domain.model.MissingField
 import io.github.lopezjavier.appfitness.domain.model.SplitOption
 import io.github.lopezjavier.appfitness.domain.model.SplitSession
 import io.github.lopezjavier.appfitness.domain.model.TestLoginCredentials
+import io.github.lopezjavier.appfitness.domain.model.TrainingIntention
 import io.ktor.client.engine.mock.MockEngine
 import io.ktor.client.engine.mock.respond
 import io.ktor.client.request.HttpRequestData
@@ -29,8 +36,14 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.test.runTest
 import kotlinx.datetime.LocalDate
 import kotlinx.io.IOException
+import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.serialization.json.double
+import kotlinx.serialization.json.int
+import kotlinx.serialization.json.jsonArray
+import kotlinx.serialization.json.jsonObject
+import kotlinx.serialization.json.jsonPrimitive
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
@@ -465,5 +478,144 @@ class SupabaseCoachBlockRepositoryTest {
 
         assertEquals(AppError.Unauthorized, repository.removeBlock("p1").appErrorOrNull())
         assertTrue(rest().isEmpty())
+    }
+
+    private fun builtBlock() = BuiltBlock(
+        daysPerWeek = 1,
+        intention = TrainingIntention.Muscle,
+        equipment = listOf(Equipment.Barbell),
+        sessionMinutes = 60,
+        routineTotalMin = listOf(100),
+        cardio = CardioPlan.of(150, 1).copy(perRoutineMin = listOf(40)),
+        source = BuiltBlock.SOURCE_BUILDER,
+        sessions = listOf(
+            BuiltSession(
+                "Cuerpo completo",
+                listOf("chest"),
+                listOf(
+                    BuiltExercise("main", "e1", 3, 8, 12, 120, 8, 62.5, 1, null, null),
+                    BuiltExercise("isolation", "e2", 3, 8, 12, 120, 8, null, null, null, null),
+                    BuiltExercise.cardio("c1", 40),
+                ),
+            ),
+        ),
+    )
+
+    @Test
+    fun saveBuiltBlock_callsTheRpcWithTrainingSessionsAndFolderName_omittingAbsentValues() = runTest {
+        val repository = repo { HttpStatusCode.OK to """{"folder_id":"f1","routine_ids":["r1"]}""" }
+
+        val saved = repository.saveBuiltBlock("p1", builtBlock(), "Mi bloque").getOrThrow()
+
+        val call = rest().single()
+        assertTrue(call.url.encodedPath.endsWith("/rest/v1/rpc/save_built_coach_block"), call.url.toString())
+        val body = Json.parseToJsonElement((call.body as TextContent).text).jsonObject
+        assertEquals("p1", body.getValue("p_plan_id").jsonPrimitive.content)
+        assertEquals("Mi bloque", body.getValue("p_folder_name").jsonPrimitive.content)
+        val training = body.getValue("p_training").jsonObject
+        assertEquals("builder", training.getValue("source").jsonPrimitive.content)
+        assertEquals("muscle", training.getValue("intention").jsonPrimitive.content)
+        assertEquals(4, training.getValue("block_weeks").jsonPrimitive.int)
+        assertEquals("barbell", training.getValue("equipment").jsonArray.single().jsonPrimitive.content)
+        assertEquals("suave", training.getValue("cardio").jsonObject.getValue("pace").jsonPrimitive.content)
+        val exercises = body.getValue("p_sessions").jsonArray.single().jsonObject.getValue("exercises").jsonArray
+        val first = exercises[0].jsonObject
+        assertEquals(62.5, first.getValue("planned_weight_kg").jsonPrimitive.double)
+        assertEquals(1, first.getValue("superset_group").jsonPrimitive.int)
+        assertEquals(8, first.getValue("target_rpe").jsonPrimitive.int)
+        val second = exercises[1].jsonObject
+        assertFalse("planned_weight_kg" in second)
+        assertFalse("superset_group" in second)
+        val cardio = exercises[2].jsonObject
+        assertEquals(40, cardio.getValue("duration_min").jsonPrimitive.int)
+        assertFalse("rep_min" in cardio)
+        assertEquals("f1", saved.folderId)
+    }
+
+    @Test
+    fun saveBuiltBlock_withoutFolderName_omitsTheParameter() = runTest {
+        val repository = repo { HttpStatusCode.OK to """{"folder_id":"f1","routine_ids":[]}""" }
+
+        repository.saveBuiltBlock("p1", builtBlock()).getOrThrow()
+
+        val body = Json.parseToJsonElement((rest().single().body as TextContent).text).jsonObject
+        assertFalse("p_folder_name" in body)
+    }
+
+    @Test
+    fun saveBuiltBlock_planNotOpen_isConflict() = runTest {
+        val repository = repo {
+            HttpStatusCode.BadRequest to """{"code":"55000","message":"plan is not open","details":null,"hint":null}"""
+        }
+
+        assertEquals(CoachFailure.Conflict, failureOf(repository.saveBuiltBlock("p1", builtBlock())))
+    }
+
+    @Test
+    fun saveBuiltBlock_invariantRefused_isInvalidBlock() = runTest {
+        val repository = repo {
+            HttpStatusCode.BadRequest to
+                """{"code":"22023","message":"block invariant: h6_equipment","details":null,"hint":null}"""
+        }
+
+        assertEquals(CoachFailure.InvalidBlock, failureOf(repository.saveBuiltBlock("p1", builtBlock())))
+    }
+
+    @Test
+    fun saveBuiltBlock_otherServerError_staysAnUnmappedError() = runTest {
+        val repository = repo {
+            HttpStatusCode.BadRequest to """{"code":"P0002","message":"plan not found","details":null,"hint":null}"""
+        }
+
+        val result = repository.saveBuiltBlock("p1", builtBlock())
+
+        assertTrue(result.isFailure)
+        assertFalse(result.exceptionOrNull() is CoachException)
+    }
+
+    @Test
+    fun saveBuiltBlock_offline_isNetworkError() = runTest {
+        val repository = repo { HttpStatusCode.OK to "{}" }
+        offline = true
+
+        assertEquals(AppError.Network, repository.saveBuiltBlock("p1", builtBlock()).appErrorOrNull())
+    }
+
+    @Test
+    fun loadBuilderInputs_decodesHistoryCardioOptionsAndDefault() = runTest {
+        val repository = repo {
+            HttpStatusCode.OK to
+                """{"history":[{"exercise_id":"e1","sessions_8w":3,"last_weight_kg":60.5,"last_reps":9},""" +
+                """{"exercise_id":"e2","sessions_8w":1,"last_weight_kg":null,"last_reps":null,"extra":1}],""" +
+                """"cardio_options":["c1","c2"],"cardio_default":"c2"}"""
+        }
+
+        val inputs = repository.loadBuilderInputs(today).getOrThrow()
+
+        val call = rest().single()
+        assertTrue(call.url.encodedPath.endsWith("/rest/v1/rpc/coach_builder_inputs"), call.url.toString())
+        assertEquals("""{"p_today":"2026-10-29"}""", (call.body as TextContent).text)
+        assertEquals(ExerciseHistory(3, 60.5, 9), inputs.history["e1"])
+        assertEquals(ExerciseHistory(1, null, null), inputs.history["e2"])
+        assertEquals(listOf("c1", "c2"), inputs.cardioOptions)
+        assertEquals("c2", inputs.cardioDefault)
+    }
+
+    @Test
+    fun loadBuilderInputs_emptyAnswer_isEmptyInputs() = runTest {
+        val repository = repo { HttpStatusCode.OK to """{"history":[],"cardio_options":[],"cardio_default":null}""" }
+
+        val inputs = repository.loadBuilderInputs(today).getOrThrow()
+
+        assertTrue(inputs.history.isEmpty())
+        assertNull(inputs.cardioDefault)
+    }
+
+    @Test
+    fun loadBuilderInputs_offline_isNetworkError() = runTest {
+        val repository = repo { HttpStatusCode.OK to "{}" }
+        offline = true
+
+        assertEquals(AppError.Network, repository.loadBuilderInputs(today).appErrorOrNull())
     }
 }

@@ -1,5 +1,7 @@
 package io.github.lopezjavier.appfitness.domain.repository
 
+import io.github.lopezjavier.appfitness.domain.coach.builder.BuilderInputs
+import io.github.lopezjavier.appfitness.domain.coach.builder.BuiltBlock
 import io.github.lopezjavier.appfitness.domain.model.BlockEdit
 import io.github.lopezjavier.appfitness.domain.model.BlockSaved
 import io.github.lopezjavier.appfitness.domain.model.CoachBlock
@@ -19,6 +21,17 @@ interface CoachBlockRepository {
      * proposal. Costs money.
      */
     suspend fun requestBlock(planId: String, today: LocalDate, split: SplitOption): Result<CoachBlock>
+
+    /** The 8-week history per exercise, the cardio options and the default cardio exercise for the block builder. */
+    suspend fun loadBuilderInputs(today: LocalDate): Result<BuilderInputs>
+
+    /**
+     * Stores a block built on the device and saves it as a new folder (named [folderName], else "Bloque dd/mm/aaaa") in
+     * one transaction. A plan that is no longer open fails with
+     * [io.github.lopezjavier.appfitness.domain.model.CoachFailure.Conflict]; a block the server refuses fails with
+     * [io.github.lopezjavier.appfitness.domain.model.CoachFailure.InvalidBlock] and saves nothing.
+     */
+    suspend fun saveBuiltBlock(planId: String, block: BuiltBlock, folderName: String? = null): Result<BlockSaved>
 
     /** The stored block of [planId], or null when the coach has not proposed one. Used to reload and reopen. */
     suspend fun currentBlock(planId: String): Result<CoachBlock?>

@@ -117,7 +117,8 @@ object FolderReviewCalculator {
         MuscleGroup.Glutes,
     )
 
-    private val MAIN_PATTERNS = setOf(
+    /** The main-lift patterns (07 section 3 "Main lifts"); also read by the block builder. */
+    val MAIN_PATTERNS = setOf(
         MovementPattern.Squat,
         MovementPattern.Hinge,
         MovementPattern.Lunge,

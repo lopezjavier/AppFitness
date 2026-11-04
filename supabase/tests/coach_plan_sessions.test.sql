@@ -70,7 +70,7 @@ select ok(not has_table_privilege('authenticated', 'public.coach_plan_sessions',
 select ok(not has_table_privilege('anon', 'public.coach_plan_sessions', 'select'), 'anon cannot read sessions');
 select ok(not has_function_privilege('anon', 'public.attach_coach_block(uuid,jsonb,jsonb,jsonb,jsonb)', 'execute'),
   'anon cannot execute attach_coach_block');
-select ok(not has_function_privilege('anon', 'public.save_coach_block(uuid,jsonb)', 'execute'), 'anon cannot execute save_coach_block');
+select ok(not has_function_privilege('anon', 'public.save_coach_block(uuid,jsonb,text)', 'execute'), 'anon cannot execute save_coach_block');
 select ok(not has_function_privilege('authenticated', 'public.coach_assert_block(uuid,jsonb,jsonb)', 'execute'),
   'coach_assert_block is internal');
 select throws_ok(

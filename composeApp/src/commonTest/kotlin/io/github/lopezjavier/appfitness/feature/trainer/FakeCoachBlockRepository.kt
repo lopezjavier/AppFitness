@@ -1,5 +1,7 @@
 package io.github.lopezjavier.appfitness.feature.trainer
 
+import io.github.lopezjavier.appfitness.domain.coach.builder.BuilderInputs
+import io.github.lopezjavier.appfitness.domain.coach.builder.BuiltBlock
 import io.github.lopezjavier.appfitness.domain.model.BlockEdit
 import io.github.lopezjavier.appfitness.domain.model.BlockExercise
 import io.github.lopezjavier.appfitness.domain.model.BlockSaved
@@ -115,6 +117,22 @@ internal class FakeCoachBlockRepository : CoachBlockRepository {
         splitsSent += split
         requestGate?.await()
         return request
+    }
+
+    /** What [loadBuilderInputs] answers. */
+    var builderInputs: Result<BuilderInputs> = Result.success(BuilderInputs(emptyMap(), emptyList(), null))
+
+    /** What [saveBuiltBlock] answers. */
+    var builtSaveResult: Result<BlockSaved> = Result.success(BlockSaved("folder-built", listOf("routine-0")))
+
+    /** The blocks and folder names sent to [saveBuiltBlock], in call order. */
+    val builtSaves = mutableListOf<Triple<String, BuiltBlock, String?>>()
+
+    override suspend fun loadBuilderInputs(today: LocalDate): Result<BuilderInputs> = builderInputs
+
+    override suspend fun saveBuiltBlock(planId: String, block: BuiltBlock, folderName: String?): Result<BlockSaved> {
+        builtSaves += Triple(planId, block, folderName)
+        return builtSaveResult
     }
 
     override suspend fun currentBlock(planId: String): Result<CoachBlock?> {

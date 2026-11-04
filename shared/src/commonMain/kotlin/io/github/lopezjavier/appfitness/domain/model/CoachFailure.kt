@@ -29,6 +29,9 @@ sealed interface CoachFailure {
     /** A block edit named a replacement that is not an alternative of its exercise (SQLSTATE 22023, ADR-83). */
     data object InvalidReplacement : CoachFailure
 
+    /** A device-built block broke a server invariant (SQLSTATE 22023, `block invariant: <code>`); nothing was saved. */
+    data object InvalidBlock : CoachFailure
+
     /** `coach_block_needs_changes`: the folder still breaks hard rules, so no block was built. */
     data class NeedsChanges(val failures: List<FolderFalta>) : CoachFailure
 

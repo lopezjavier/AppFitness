@@ -121,6 +121,7 @@ import io.github.lopezjavier.appfitness.domain.repository.WorkoutSessionReposito
 import io.github.lopezjavier.appfitness.domain.usecase.AddTemplateToDiary
 import io.github.lopezjavier.appfitness.domain.usecase.AutoSyncHealth
 import io.github.lopezjavier.appfitness.domain.usecase.Bmi
+import io.github.lopezjavier.appfitness.domain.usecase.BuildBlockUseCase
 import io.github.lopezjavier.appfitness.domain.usecase.BuildCookedEntries
 import io.github.lopezjavier.appfitness.domain.usecase.BuildDiaryDay
 import io.github.lopezjavier.appfitness.domain.usecase.BuildTemplateItems
@@ -465,6 +466,7 @@ val sharedModule =
         single { ExerciseNameResolver(get(), get()) }
         factory { SearchExercises() }
         factory { ReviewFolderUseCase(get(), get(), get()) }
+        factory { BuildBlockUseCase(get()) }
         factory { ValidateBodyMeasurement() }
         factory { ValidateCircumference() }
         factory { WaistHipRatio() }
