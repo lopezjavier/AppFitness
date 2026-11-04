@@ -307,7 +307,9 @@ Feature: Progression suggestion
 - **Discomfort (E13 Q1, user 2026-10-29; ADR-81):** levels 1-3 block load increases only (the reps rule and the 5 % drop still apply) and the reason states it neutrally; levels 4-5 give no suggestion. No health message (except the persistent-discomfort note of US-90, ADR-89).
 - **Amended 2026-11-01 (ADR-88):** "the suggestion never rewrites the routine" now holds only outside an accepted block. Inside one, the change is written to the next session of that exercise (E13 Q44 recommendation A: the block routine's planned sets, marked with the reason) and "Deshacer" restores the previous values; ADR-70 is unchanged for the user's own edits. The 14-day return rule is `07` §12.2.
 
-## US-71 · Weekly coach report
+## US-71 · Weekly coach report → E14 (backlog)
+
+> **Moved to E14 (user, 2026-11-04):** the weekly report, with its US-76 "User budget reached" report fallback, the US-90 note in the report and E13 Q49, leaves E13 like the other follow-ups (task T-166, E14 backlog). The Gherkin below is kept unaligned for the E14 re-plan (it still assumes a model-written report).
 **As** a user
 **I want** a weekly report that reads my week
 **So that** I understand what happened.
@@ -658,7 +660,9 @@ Feature: Plan adherence
 **Technical notes**
 - **Amended 2026-11-01 (ADR-86):** the earlier rule "week `n` = days `block_start + 7(n-1)` to `+6`" (T-165) is replaced: plan week `n` is the `n`-th calendar week with a completed session since `block_start` (`04` §9.9). The end-of-block review (US-83) and the deload evaluation (US-75, US-86) use these weeks.
 
-## US-74 · Recommendation history, outcome and deletion
+## US-74 · Recommendation history, outcome and deletion → E14 (backlog)
+
+> **Moved to E14 (user, 2026-11-04):** E13 ends at Checkpoint E13-K; the history and its deletion (T-167) are re-planned in E14. Gherkin kept unaligned.
 **As** a user
 **I want** to see whether the coach's proposals worked, and to delete that history
 **So that** I trust it and control my data.
@@ -756,7 +760,9 @@ Feature: Monthly AI budget
 - Cost is computed from the usage returned by the API and the price table in the function; dollars are counted as euros (conservative).
 - The Anthropic account spending limit is the backstop (👤).
 
-## US-77 · Coach chat with tools (last, after the evaluation)
+## US-77 · Coach chat with tools (last, after the evaluation) → E14 (backlog)
+
+> **Moved to E14 (user, 2026-11-04):** with the evaluation and the history (T-169); the user evaluates the future of the AI trainer there. Re-plan note: the shared grounding validator was to come from T-166 (also E14). Gherkin kept unaligned.
 **As** a user
 **I want** to ask the coach about my data
 **So that** I understand my progress.
@@ -1838,7 +1844,9 @@ Feature: Favourite exercises
     Then it is a favourite like any other
 ```
 
-## Evaluation (not a user story)
+## Evaluation (not a user story) → E14 (backlog)
+
+> **Moved to E14 (user, 2026-11-04):** T-168 is re-planned in E14. Re-plan note: plans (ADR-98), blocks (ADR-99) and the folder review (ADR-97) are deterministic, so the evaluation mainly gates the chat. Kept unaligned.
 - Cases written by the user, each with its correct answer: a plan for each intention, one training day, limited equipment, discomfort, missing data, rate inside and outside range, calorie floor, invented figure in a report.
 - Acceptance criteria:
   - 100 % of discomfort cases: no load increase.
