@@ -1733,44 +1733,64 @@ Feature: Removing a block
 - One RPC removes the block from the plan (plan weeks and links deleted, folder kept; E13 Q54, user 2026-11-03). Without a block: no deload and no end-of-block review; calories and the weekly report keep running (E13 Q58 recommendation). A plan with a saved block offers "Eliminar bloque" instead of "Crear bloque" (`04` §9.15). Destructive dialog per R-08; ux-reviewer finalises the copy ("Tus rutinas se quedan en Entreno").
 
 ## US-95 · Reviewing a routine folder with the coach
-*Added 2026-11-03 (T-202, user UX decision 2; ADR-93; `07` §3 "Complete routine"). Tasks T-207 (backend), T-208 (UI).*
+*Added 2026-11-03 (T-202, ADR-93); **rewritten 2026-11-04 (T-216, ADR-97, user feedback 4 of Checkpoint E13-H):** the review is deterministic and runs on the device; definition in `07` §3 "Folder review". Tasks T-207/T-208 built the old model review (still used only by "a block from a folder"); T-216 replaces the review screen.*
 
 **As** a user with my own routines
-**I want** the coach to check a folder and tell me what is missing
-**So that** I can improve my routine without giving it up.
+**I want** a quick score and checklist of my routine folder
+**So that** I see what is missing in the big picture without giving up my routine.
 
 ```gherkin
 Feature: Folder review
 
   Scenario: Reviewing a folder
     Given I have a routine folder "Mi rutina"
-    When I open its menu in Entreno and choose to review it with the coach
-    Then a message shows what is missing ("Falta") and the coach's comments, each with its reason
-    And each proposed change is listed
+    When I open its menu in Entreno and choose "Revisar tus rutinas"
+    Then I see the "Puntuación" out of 10, for example "7,5 / 10"
+    And one row for each of chest, back, shoulders, quads, hamstrings and glutes with its "Series a la semana"
+    And a row with my training days
+
+  Scenario: An unmet row explains what to do
+    Given my folder has 6 weekly sets of quads
+    When the review opens
+    Then the row "Cuádriceps" is marked "Por mejorar"
+    And it says how many sets to add
+
+  Scenario: A group with no sets limits the score
+    Given my folder has no sets for a main group
+    When the review opens
+    Then the score is at most "6,0 / 10"
+    And that group says it has no weekly sets
+
+  Scenario: Strength rows
+    Given my intention is "Ganar fuerza"
+    When the review opens
+    Then there are also rows for heavy repetitions and for main lifts first
+    And the exercises that break them are named
 
   Scenario: A good folder
-    Given my folder meets every hard requirement
+    Given every group has 10 or more weekly sets and I have 2 or more training days
     When the review opens
-    Then there is nothing under "Falta"
-    And only comments are shown
+    Then every row is "Cumplido"
+    And the score is "10,0 / 10"
 
-  Scenario: Applying the changes in a copy
-    Given the review proposes changes
-    When I keep the ones I want and tap "Aplicar en una copia"
-    Then a new folder holds my routines with those changes
-    And "Mi rutina" does not change
-
-  Scenario: Nothing is blocked
+  Scenario: Nothing is written or blocked
     When I leave the review
     Then nothing changes in my folders
+    And there is no action to apply changes or to add exercises
 
-  Scenario: The proposed changes are checked
-    When the review lists a proposed change
-    Then the change does not break any hard requirement
+  Scenario: Without a connection
+    Given I am offline
+    When I choose "Revisar tus rutinas"
+    Then the review opens and shows its result
+
+  Scenario: Coming back to the app
+    Given the review is open
+    When I leave the app and come back
+    Then the review shows the same result
 ```
 
 **Technical notes**
-- The checker uses the intention, days and minutes from "Mi entrenamiento"; the review is a paid call; "Aplicar en una copia" uses the existing save procedure (`04` §9.14). Copy of the action name and the copy folder's name: ux-reviewer.
+- Computed on the device (no model, no cost) from the folder's routines, catalogue facts and the intention in "Mi entrenamiento"; the rep range falls back to the planned reps; the Spanish copy and testTags are the T-216 UX notes. "A block from a folder" is not part of this story's rewrite (US-93, ADR-94) and keeps its model review.
 
 ## US-96 · Favourite exercises
 *Added 2026-11-03 (T-202, user UX decision 5; ADR-94; `07` §3 "Favourites"). Task T-204; the coach reads favourites from T-205.*
