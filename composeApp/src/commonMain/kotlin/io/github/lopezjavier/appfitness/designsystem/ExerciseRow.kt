@@ -24,7 +24,8 @@ import org.jetbrains.compose.resources.stringResource
  * [supporting] line, on an [AppListRow]. By default tapping the thumbnail or the name calls [onOpen] (the exercise
  * details). With [onSelect] (a picker that chooses an exercise, R-17) the row body calls [onSelect] and the thumbnail
  * becomes its own target (at least 48 dp, "Ver detalle de <name>", tag `<tagPrefix>_thumbnail`) that calls [onOpen].
- * [supportingTestTag] tags the supporting line. [trailing] is a separate slot for the caller's own controls.
+ * [supportingTestTag] tags the supporting line. With [enabled] false the row body does nothing (the caller says why in
+ * [supporting]); the thumbnail still opens the details. [trailing] is a separate slot for the caller's own controls.
  * [favorite] draws the filled star marker inline right after the name, through `AppListRow.headlineTrailing`, so
  * [trailing] stays free (R-56, T-204; tagged [favoriteTestTag]) and adds "Favorito"
  * to the row description. The row is tagged [tagPrefix]; the thumbnail
@@ -43,6 +44,7 @@ fun ExerciseRow(
     supportingTestTag: String? = null,
     favorite: Boolean = false,
     favoriteTestTag: String? = null,
+    enabled: Boolean = true,
 ) {
     val thumbnail: @Composable () -> Unit = {
         ExerciseThumbnail(
@@ -78,6 +80,7 @@ fun ExerciseRow(
         },
         supportingTestTag = supportingTestTag,
         onClick = onSelect ?: onOpen,
+        enabled = enabled,
     )
 }
 

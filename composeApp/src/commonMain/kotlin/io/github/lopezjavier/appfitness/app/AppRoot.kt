@@ -34,8 +34,8 @@ import io.github.lopezjavier.appfitness.feature.routines.RoutineDetailsRoot
 import io.github.lopezjavier.appfitness.feature.templates.SaveTemplateRoot
 import io.github.lopezjavier.appfitness.feature.templates.TemplateDetailsRoot
 import io.github.lopezjavier.appfitness.feature.trainer.BeforeStartRoot
+import io.github.lopezjavier.appfitness.feature.trainer.BlockBuilderRoot
 import io.github.lopezjavier.appfitness.feature.trainer.BlockPreviewRoot
-import io.github.lopezjavier.appfitness.feature.trainer.BlockSplitsRoot
 import io.github.lopezjavier.appfitness.feature.trainer.CoachUsageRoot
 import io.github.lopezjavier.appfitness.feature.trainer.FolderReviewResultRoot
 import io.github.lopezjavier.appfitness.feature.trainer.FolderReviewRoot
@@ -113,8 +113,8 @@ fun AppRoot(
             FolderReviewRoot(onBlockReady, onBack, reviewModifier)
         },
         folderReviewResult = { resultModifier, onBack -> FolderReviewResultRoot(onBack, resultModifier) },
-        blockSplits = { splitsModifier, planId, onBuilt, onBack ->
-            BlockSplitsRoot(planId, onBuilt, onBack, splitsModifier)
+        blockBuilder = { builderModifier, planId, onSaved, onClose, onOpenExercise ->
+            BlockBuilderRoot(planId, onSaved, onClose, onOpenExercise, builderModifier)
         },
         about = { aboutModifier, onBack -> AboutRoot(onBack, aboutModifier) },
         activity = { activityModifier, onBack -> ActivityRoot(onBack, activityModifier) },

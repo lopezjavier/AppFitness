@@ -99,9 +99,18 @@ internal typealias FolderReviewSlot =
 /** Content of the score and checklist review of a folder (US-95): modifier (full-screen insets) and back. */
 internal typealias FolderReviewResultSlot = @Composable (modifier: Modifier, onBack: () -> Unit) -> Unit
 
-/** Content of the split options: modifier (full-screen insets), plan id, how to go to the built block and to leave. */
-internal typealias BlockSplitsSlot =
-    @Composable (modifier: Modifier, planId: String, onBuilt: () -> Unit, onBack: () -> Unit) -> Unit
+/**
+ * Content of the block builder ("Desde cero"): modifier (full-screen insets), plan id, how to leave after saving, how
+ * to leave without saving and how to open an exercise.
+ */
+internal typealias BlockBuilderSlot =
+    @Composable (
+        modifier: Modifier,
+        planId: String,
+        onSaved: () -> Unit,
+        onClose: () -> Unit,
+        onOpenExercise: (String) -> Unit,
+    ) -> Unit
 
 internal typealias AboutSlot = @Composable (modifier: Modifier, onBack: () -> Unit) -> Unit
 
@@ -640,9 +649,9 @@ internal val DefaultFolderReviewResultSlot: FolderReviewResultSlot = { modifier,
     Box(modifier.fillMaxSize().testTag("folder_review_result_screen"))
 }
 
-/** Empty split options for previews and shell tests; the real one is wired by `AppRoot`. */
-internal val DefaultBlockSplitsSlot: BlockSplitsSlot = { modifier, _, _, _ ->
-    Box(modifier.fillMaxSize().testTag("block_splits_screen"))
+/** Empty block builder for previews and shell tests; the real one is wired by `AppRoot`. */
+internal val DefaultBlockBuilderSlot: BlockBuilderSlot = { modifier, _, _, _, _ ->
+    Box(modifier.fillMaxSize().testTag("block_builder_screen"))
 }
 
 /** Empty "Acerca de" for previews and shell tests; the real one is wired by `AppRoot`. */
@@ -675,7 +684,7 @@ internal fun AppNavHost(
     intake: IntakeSlot = DefaultIntakeSlot,
     freeTextLines: FreeTextLinesSlot = DefaultFreeTextLinesSlot,
     blockPreview: BlockPreviewSlot = DefaultBlockPreviewSlot,
-    blockSplits: BlockSplitsSlot = DefaultBlockSplitsSlot,
+    blockBuilder: BlockBuilderSlot = DefaultBlockBuilderSlot,
     folderReview: FolderReviewSlot = DefaultFolderReviewSlot,
     folderReviewResult: FolderReviewResultSlot = DefaultFolderReviewResultSlot,
     activity: ActivitySlot = DefaultActivitySlot,
@@ -917,12 +926,13 @@ internal fun AppNavHost(
                 { navController.popFullScreen(entry) },
             )
         }
-        composable<BlockSplitsRoute> { entry ->
-            blockSplits(
+        composable<BlockBuilderRoute> { entry ->
+            blockBuilder(
                 Modifier.padding(fullScreenPadding),
-                entry.toRoute<BlockSplitsRoute>().planId,
-                { navController.openBuiltBlock(entry) },
+                entry.toRoute<BlockBuilderRoute>().planId,
                 { navController.popFullScreen(entry) },
+                { navController.popFullScreen(entry) },
+                { navController.navigateToFullScreen(ExerciseDetailRoute(it, selectMode = false)) },
             )
         }
         composable<AboutRoute> { entry ->
@@ -1354,19 +1364,6 @@ internal fun NavController.navigateToFullScreen(route: AppRoute) {
     navigate(route) { launchSingleTop = true }
 }
 
-/**
- * Leaves the split options for the preview of the block just built. The split options entry is popped, so Back from
- * the preview returns to the Trainer and never to a screen that bills.
- */
-internal fun NavController.openBuiltBlock(entry: NavBackStackEntry) {
-    if (currentBackStackEntry?.id != entry.id) return
-    val planId = entry.toRoute<BlockSplitsRoute>().planId
-    navigate(BlockPreviewRoute(planId)) {
-        launchSingleTop = true
-        popUpTo<BlockSplitsRoute> { inclusive = true }
-    }
-}
-
 /** Opens the review of the folder picked to start a block; "Antes de empezar" stays below so Back returns to it. */
 internal fun NavController.openFolderReview(review: BeforeStartEffect.OpenFolderReview) {
     navigateToFullScreen(FolderReviewRoute(BLOCK_PURPOSE, review.folderId, review.planId))
@@ -1394,7 +1391,7 @@ internal fun NavController.openCreated(entry: NavBackStackEntry, created: Before
     if (currentBackStackEntry?.id != entry.id) return
     val route: AppRoute = when (created.mode) {
         BeforeStartMode.Plan -> PlanProposalRoute(created.replacingPlanId)
-        BeforeStartMode.Block -> BlockSplitsRoute(created.planId.orEmpty())
+        BeforeStartMode.Block -> BlockBuilderRoute(created.planId.orEmpty())
     }
     val fromProposal = previousBackStackEntry?.destination?.hasRoute(PlanProposalRoute::class) == true
     navigate(route) {

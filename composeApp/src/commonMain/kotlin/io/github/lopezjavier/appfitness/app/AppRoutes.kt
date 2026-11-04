@@ -98,9 +98,9 @@ data object FreeTextLinesRoute : AppRoute
 @Serializable
 data class BlockPreviewRoute(val planId: String) : AppRoute
 
-/** "Tipo de rutina" (US-93): the split options and the block built on the picked one, before its preview. */
+/** "Desde cero" (US-72, US-93): split, type per day and the block builder for the plan [planId]; no AI call. */
 @Serializable
-data class BlockSplitsRoute(val planId: String) : AppRoute
+data class BlockBuilderRoute(val planId: String) : AppRoute
 
 /**
  * The coach's review of the folder [folderId] for a block started from it (US-93), for plan [planId]. [purpose] is
@@ -421,7 +421,7 @@ object AppDestinations {
             IntakeRoute,
             FreeTextLinesRoute,
             BlockPreviewRoute(""),
-            BlockSplitsRoute(""),
+            BlockBuilderRoute(""),
             FolderReviewRoute("", ""),
             FolderReviewResultRoute(""),
             NotificationCenterRoute,

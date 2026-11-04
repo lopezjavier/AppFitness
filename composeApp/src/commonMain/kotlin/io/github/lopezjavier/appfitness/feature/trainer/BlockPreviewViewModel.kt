@@ -43,7 +43,7 @@ private const val REPLACEMENT_PARTS = 3
 
 /**
  * The block preview (US-72). The proposal is always reloaded from the stored rows, so a finished stream survives
- * process death. It never calls the coach: the paid calls belong to [BlockSplitsViewModel], and a preview with no
+ * process death. It never calls the coach: the model flow is retired (ADR-99), and a preview with no
  * stored block shows [BlockPreviewUiState.Failed]. [savedState] remembers the selected week, the open reason sheet
  * and the pending swaps. Leaving the screen saves nothing: only [BlockPreviewEvent.Save] does.
  */

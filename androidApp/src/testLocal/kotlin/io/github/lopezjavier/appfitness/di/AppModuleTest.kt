@@ -55,6 +55,7 @@ import io.github.lopezjavier.appfitness.domain.repository.WorkoutSessionReposito
 import io.github.lopezjavier.appfitness.domain.usecase.AddTemplateToDiary
 import io.github.lopezjavier.appfitness.domain.usecase.AutoSyncHealth
 import io.github.lopezjavier.appfitness.domain.usecase.Bmi
+import io.github.lopezjavier.appfitness.domain.usecase.BuildBlockUseCase
 import io.github.lopezjavier.appfitness.domain.usecase.BuildDiaryDay
 import io.github.lopezjavier.appfitness.domain.usecase.BuildTemplateItems
 import io.github.lopezjavier.appfitness.domain.usecase.CompleteOnboarding
@@ -182,6 +183,7 @@ class AppModuleTest {
                 FoodDiaryRepository::class,
                 FoodRepository::class,
                 BuildDiaryDay::class,
+                BuildBlockUseCase::class,
                 GroupMealEntries::class,
                 ResolvePortion::class,
                 RecalculateEntry::class,

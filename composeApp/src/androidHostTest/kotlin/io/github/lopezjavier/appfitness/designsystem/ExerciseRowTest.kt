@@ -180,4 +180,41 @@ class ExerciseRowTest {
             },
         )
     }
+
+    @Test
+    fun aSelectableRow_byDefault_selectsOnBodyTap_andOpensOnTheThumbnail() {
+        var selected = 0
+        var opened = 0
+        rule.setContent {
+            AppTheme {
+                ExerciseRow("Remo", null, { opened++ }, "row", onSelect = { selected++ })
+            }
+        }
+
+        rule.onNodeWithText("Remo").performClick()
+        rule.onNodeWithTag("row_thumbnail").performClick()
+
+        assertEquals(1, selected)
+        assertEquals(1, opened)
+    }
+
+    @Test
+    fun aDisabledSelectableRow_doesNotSelect_butTheThumbnailStillOpensTheDetails() {
+        var selected = 0
+        var opened = 0
+        rule.setContent {
+            AppTheme {
+                ExerciseRow("Remo", "Ya está en esta rutina", {
+                    opened++
+                }, "row", onSelect = { selected++ }, enabled = false)
+            }
+        }
+
+        rule.onNodeWithText("Remo").performClick()
+        rule.onNodeWithTag("row_thumbnail").performClick()
+
+        assertEquals(0, selected)
+        assertEquals(1, opened)
+        rule.onNodeWithText("Ya está en esta rutina").assertIsDisplayed()
+    }
 }
