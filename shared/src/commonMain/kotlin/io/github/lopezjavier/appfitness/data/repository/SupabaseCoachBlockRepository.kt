@@ -9,6 +9,9 @@ import io.github.lopezjavier.appfitness.data.remote.BlockEditDto
 import io.github.lopezjavier.appfitness.data.remote.BlockRequestBody
 import io.github.lopezjavier.appfitness.data.remote.BlockRequestInput
 import io.github.lopezjavier.appfitness.data.remote.BlockSplitInput
+import io.github.lopezjavier.appfitness.data.remote.BuilderInputsDto
+import io.github.lopezjavier.appfitness.data.remote.BuilderInputsParams
+import io.github.lopezjavier.appfitness.data.remote.BuiltBlockParams
 import io.github.lopezjavier.appfitness.data.remote.RemoveBlockParams
 import io.github.lopezjavier.appfitness.data.remote.SaveBlockParams
 import io.github.lopezjavier.appfitness.data.remote.SaveBlockResultDto
@@ -19,6 +22,8 @@ import io.github.lopezjavier.appfitness.data.remote.SplitRequestInput
 import io.github.lopezjavier.appfitness.data.remote.SplitSessionDto
 import io.github.lopezjavier.appfitness.data.remote.coachPlanJson
 import io.github.lopezjavier.appfitness.domain.AppException
+import io.github.lopezjavier.appfitness.domain.coach.builder.BuilderInputs
+import io.github.lopezjavier.appfitness.domain.coach.builder.BuiltBlock
 import io.github.lopezjavier.appfitness.domain.model.BlockEdit
 import io.github.lopezjavier.appfitness.domain.model.BlockSaved
 import io.github.lopezjavier.appfitness.domain.model.CoachBlock
@@ -38,6 +43,7 @@ private const val INVALID_PARAMETER = "22023"
  * Training blocks through the `coach` function (`plan_block`, whole SSE body read as text) and the
  * `save_coach_block` RPC; reads go through the owner-select RLS of `coach_plans` and `coach_plan_sessions`.
  */
+@Suppress("TooManyFunctions") // One small function per block operation of the interface.
 class SupabaseCoachBlockRepository internal constructor(
     private val auth: Auth,
     private val postgrest: Postgrest,
@@ -82,6 +88,16 @@ class SupabaseCoachBlockRepository internal constructor(
         postgrest.rpc("save_coach_block", params).decodeAs<SaveBlockResultDto>().toDomain()
     }.mapSaveErrors()
 
+    override suspend fun loadBuilderInputs(today: LocalDate): Result<BuilderInputs> = auth.ownRow {
+        postgrest.rpc("coach_builder_inputs", BuilderInputsParams(today)).decodeAs<BuilderInputsDto>().toDomain()
+    }
+
+    override suspend fun saveBuiltBlock(planId: String, block: BuiltBlock, folderName: String?): Result<BlockSaved> =
+        auth.ownRow {
+            postgrest.rpc("save_built_coach_block", BuiltBlockParams(planId, block, folderName).toJson())
+                .decodeAs<SaveBlockResultDto>().toDomain()
+        }.mapBuiltSaveErrors()
+
     override suspend fun removeBlock(planId: String): Result<Unit> = auth.ownRow {
         postgrest.rpc("remove_coach_block", RemoveBlockParams(planId))
         Unit
@@ -99,6 +115,16 @@ class SupabaseCoachBlockRepository internal constructor(
     private fun <T> Result<T>.mapRemoveErrors(): Result<T> = recoverCatching { failure ->
         val cause = (failure as? AppException)?.cause as? PostgrestRestException ?: throw failure
         if (cause.code == WRONG_OBJECT_STATE) throw CoachException(CoachFailure.Conflict) else throw failure
+    }
+
+    /** SQLSTATE 55000: the plan is no longer open; 22023: the server refused a block invariant. */
+    private fun <T> Result<T>.mapBuiltSaveErrors(): Result<T> = recoverCatching { failure ->
+        val cause = (failure as? AppException)?.cause as? PostgrestRestException ?: throw failure
+        when (cause.code) {
+            WRONG_OBJECT_STATE -> throw CoachException(CoachFailure.Conflict)
+            INVALID_PARAMETER -> throw CoachException(CoachFailure.InvalidBlock)
+            else -> throw failure
+        }
     }
 
     /** SQLSTATE 55000: the plan is no longer open or has no block to save. */

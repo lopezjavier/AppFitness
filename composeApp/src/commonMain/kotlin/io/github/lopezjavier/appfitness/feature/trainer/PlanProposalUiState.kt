@@ -51,6 +51,7 @@ internal fun planFailureKindOf(failure: Throwable?): PlanFailureKind = when {
         CoachFailure.NeedsConfirmation,
         CoachFailure.Conflict,
         CoachFailure.InvalidReplacement,
+        CoachFailure.InvalidBlock,
         is CoachFailure.NeedsChanges,
         CoachFailure.Other,
         -> PlanFailureKind.Other

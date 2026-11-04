@@ -199,8 +199,8 @@ select throws_ok($$select pg_temp.attach(pg_temp.p(1), jsonb_build_array(pg_temp
   '{"sets":[{"type":"working"},{"type":"failure"}]}')))$$, '22023', 'block invariant: h5_set_type', 'a failure set is rejected');
 select throws_ok($$select pg_temp.attach(pg_temp.p(1), jsonb_build_array(pg_temp.lift(pg_temp.main('horizontal_push'), 'main')),
   '{"equipment":["dumbbell"]}')$$, '22023', 'block invariant: h6_equipment', 'an exercise outside the equipment is rejected');
-select throws_ok($$select pg_temp.attach(pg_temp.p(1), jsonb_build_array(pg_temp.lift((select squat from cat), 'main')))$$,
-  '22023', 'block invariant: h6_excluded_discomfort', 'an exercise with an unresolved level 4-5 discomfort is rejected');
+select lives_ok($$select pg_temp.attach(pg_temp.p(1), jsonb_build_array(pg_temp.lift((select squat from cat), 'main')))$$,
+  'an exercise with an unresolved level 4-5 discomfort is accepted (ADR-99, T-221)');
 select lives_ok($$select pg_temp.attach(pg_temp.p(1), jsonb_build_array(pg_temp.lift((select bench from cat), 'main')))$$,
   'a level 3 discomfort does not exclude the exercise');
 select throws_ok($$select public.attach_coach_block(pg_temp.p(1),

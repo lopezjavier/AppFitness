@@ -40,6 +40,7 @@ internal fun coachFailureMessage(failure: CoachFailure): StringResource = when (
     CoachFailure.NeedsConfirmation,
     CoachFailure.Conflict,
     CoachFailure.InvalidReplacement,
+    CoachFailure.InvalidBlock,
     is CoachFailure.NeedsChanges,
     CoachFailure.Other,
     -> Res.string.coach_error

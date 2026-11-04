@@ -394,127 +394,137 @@ Feature: Weekly coach report
 - **Amended 2026-11-01:** the report shows the weekly average weight and trend against the target rate, logged diary days, sessions done against planned, open discomforts and the loads changed automatically that week (`07` §12.6). Its text reads the free-text block (US-89) and is grounded (ADR-87): every figure is in the summary, every feature it names exists. The "one change" is chosen among server-built candidates (E13 Q49 recommendation).
 
 ## US-72 · Block creator
-> **Superseded 2026-11-04 (ADR-99, T-219, user):** the coach no longer builds the block; the user picks the split and a routine type per day and fills slots in a builder until 100 % (`07` §3 "Block builder"). Scenarios below that rely on a model-built block (what changed since the last block, exercises left out for discomfort, reasons per exercise, lateral raise or knee extension as required, the checker retry) are void once the builder task merges; cardio, planned weights from history, no warm-up and saving stand. Gherkin to be rewritten by the epic-planner with the builder task.
+> **Rewritten 2026-11-04 (T-221, ADR-99, user):** the app builds no block with a model. The user picks a split for the days per week, a routine type per day, and an exercise per slot of a builder whose sets, reps, RPE and rest are computed (`07` §3 "Block builder" (a)-(g)); "Guardar bloque" needs 100 %. Cardio, no warm-up and planned weights from history stand. Tasks: T-221 (rules, save), T-222 (screens). Starting from a folder: US-93.
 **As** a user
-**I want** the coach to create my four-week block from my intention and preferences
-**So that** I do not build routines by hand.
+**I want** to build my four-week block from my intention and preferences, with the sets, reps and rests worked out for me
+**So that** I choose my exercises and the week still adds up to what I need.
 
 ```gherkin
-Feature: Block creator
+Feature: Block builder
 
-  Scenario: Preview before saving
-    Given the intention is "Ganar musculatura" and the place is "Gimnasio"
-    When the coach proposes a four-week block
-    Then the user sees each week with its routines and the exercises' reasons
+  Scenario: A split for my days
+    Given I train 4 days a week
+    When I choose "Desde cero"
+    Then I see the splits for 4 days with "Torso / Pierna / Torso / Pierna" first and marked "Recomendado"
+    And each split shows its reason
+    And choosing one needs no internet connection and no AI call
 
-  # Amended 2026-11-03 (T-202, ADR-93): per-muscle frequency is soft; H2 and H1 are the hard rules.
-  Scenario: Frequency and volume are shown
-    Given the user trains 3 days a week
-    When the block is shown
-    Then the week has at least 2 lifting routines
-    And the weekly sets per muscle group are shown
-    And chest, back, shoulders, quads, hamstrings and glutes each have 10 to 20 weekly sets
+  Scenario: One day a week
+    Given I train 1 day a week
+    When I choose "Desde cero"
+    Then the only split is "Cuerpo completo ×1"
+    And the types that would leave a muscle without a day are not offered
 
-  Scenario: One training day
-    Given the user set 1 day per week
-    When the block is shown
-    Then the week has one full-body routine
+  Scenario: A routine type per day
+    Given I picked a split
+    When I open a day
+    Then I can pick Cuerpo completo, Torso, Pierna, Empuje or Tirón
+    And the type of the split is marked "Recomendado"
 
-  Scenario: Frequency chosen by the coach
-    Given the user did not set days or session length
-    When the block is shown
-    Then the plan shows the frequency it chose
+  Scenario: A type that leaves a muscle without a day is disabled
+    Given I train 2 days a week and day 1 is "Torso"
+    When I open day 2
+    Then "Torso" is disabled with the reason "Dejaría los cuádriceps sin entrenar"
 
-  Scenario: Only available equipment
+  Scenario: Strength wants two days per muscle
+    Given the intention is "Ganar fuerza"
+    When my types train a muscle on only 1 day
+    Then a note says "Para ganar fuerza conviene entrenar cada músculo al menos 2 días"
+    And I can still continue
+
+  Scenario: Each section shows its sets, reps, RPE and rest
+    Given the intention is "Ganar musculatura" and I train 4 days as Torso / Pierna / Torso / Pierna
+    When I open the first Torso
+    Then "Pecho" shows 5 series, 8-12 repeticiones, RPE 8 and descanso 2 min
+    And "Espalda" and "Hombros" show the same
+    And the second Torso shows the same values
+
+  Scenario: Sets are shared over the days
+    Given I train 6 days as Torso / Pierna three times
+    Then each muscle shows 4 sets on the first day and 3 on each of the others
+
+  Scenario: Strength starts with the main lift
+    Given the intention is "Ganar fuerza" and a muscle gets 5 sets in a routine
+    Then its first slot is "Básico" with 3 series of 4-6 repeticiones and descanso 3 min
+    And its second slot has 2 series of 6-8 repeticiones and descanso 2 min
+    And the "Básico" slots of the routine come before the others
+
+  Scenario: The session does not fit
+    Given "Duración de la sesión" is 30 minutes
+    When the routine takes longer
+    Then, in this order, the rest of the "Básico" slots drops from 3 to 2 minutes, slots with equal sets of different muscles become supersets, and then sets are removed one at a time, never below 2 per slot
+    And the time line says how long the routine takes
+    And if sets were removed it says "Por debajo de lo recomendado"
+    And "Ganar fuerza" has no supersets
+
+  Scenario: It does not fit even at 2 sets
+    Given "Duración de la sesión" is too short for 2 sets in every slot
+    Then "Continuar" is disabled
+    And it says "No cabe en 20 min: sube la duración, los días o cambia la división."
+
+  Scenario: Only exercises of the section's muscle inside my equipment
     Given the equipment is "Mancuernas" and "Peso corporal"
-    When the block is shown
-    Then every exercise uses only that equipment
+    When I open the "Pecho" slot
+    Then I see only exercises whose main muscle is chest and use that equipment
+    And my favourites come first, then the ones I trained most in the last 8 weeks
+    And no exercise is hidden or marked for a discomfort
 
-  Scenario: Rest between sets
-    When the block is shown
-    Then the main multi-joint lifts rest 2 to 3 minutes
-    And the isolation exercises rest 1 to 2 minutes
-    And the saved routines keep those rests
+  Scenario: Strength main slot with no main lift
+    Given the intention is "Ganar fuerza" and my equipment has no main lift for a muscle
+    Then that slot becomes a normal slot of 6-8 repeticiones with a line saying why
 
-  # Amended 2026-11-03 (T-202, ADR-93, `07` §3 H7): main lifts first only for "Ganar fuerza".
-  Scenario: Exercise order
-    Given the intention is "Ganar fuerza"
-    When the block is shown
-    Then each session starts with its priority multi-joint lifts
+  Scenario: No repeat in a routine
+    Given "Press banca" is picked in a routine
+    When I open another slot of that routine
+    Then "Press banca" is disabled
+    And the same exercise can be picked on another day
 
-  # Void 2026-11-03 (T-202, ADR-93): "Undulating periodization for strength" (now an option the model may use,
-  # never required) and "One rep range for other intentions" (the model chooses ranges within H4) are removed.
+  Scenario: Picking raises the score
+    Given a routine is empty
+    When I pick an exercise for a slot
+    Then "Rutina completa al X %" rises
+    And clearing or swapping it updates the number
 
-  # Scenarios below added 2026-11-03 (T-202, ADR-93; `07` §3 "Complete routine"). Tasks T-205 (backend), T-206 (UI).
-  Scenario: The block fits me, not a template
-    Given two users with 4 days a week and different routines, history and favourites
-    When the coach builds each block
-    Then the splits and exercises can differ
-    And each split and each exercise has its reason
+  Scenario: Save only at 100 %
+    Given some slot is empty
+    Then "Guardar bloque" is disabled with "Elige un ejercicio en cada hueco para guardar."
+    When every slot of every routine is filled
+    Then the score is 100 % and "Guardar bloque" is enabled
 
-  Scenario: Side deltoid and knee extension
-    Given the intention is "Ganar musculatura" and I train 2 or more days a week
-    And my equipment allows a lateral raise and a knee extension
-    When the block is shown
-    Then the week has at least one lateral raise exercise
-    And at least one knee extension exercise
+  Scenario: Extra exercises do not change the score
+    When I tap "Añadir ejercicio" in "Extra (opcional)" and pick any exercise
+    Then it has 2 sets and the routine's accessory values
+    And the score does not change
+    And if it makes the routine longer than my session the time line says by how much
 
-  Scenario: Rep ranges and target effort
-    Given the intention is "Ganar musculatura"
-    When the block is shown
-    Then every rep range is between 6 and 20
-    And every exercise shows a target RPE of 7, 8 or 9
-    And no set is planned to failure
+  Scenario: Cardio is last and swappable
+    Given the plan has a weekly cardio target
+    Then each routine ends with its cardio exercise, pre-filled, outside the score and the session length
+    And I can swap it for another cardio exercise with the same minutes
 
-  Scenario: Strength rep ranges
-    Given the intention is "Ganar fuerza"
-    When the block is shown
-    Then the main lifts use ranges between 3 and 8 reps
-    And the other exercises use ranges between 6 and 20
+  Scenario: Planned weight from my history
+    Given I trained "Press banca" with 60 kg for 10 reps in the last 8 weeks
+    When I pick "Press banca" in a slot of 8-12 repeticiones
+    Then its planned weight is 60 kg and its planned reps 8
+    And an exercise I never trained, or trained outside the slot's range, has no planned weight
 
-  Scenario: Supersets and drop sets only when time is short
-    Given "Duración de la sesión" fits the routine without them
-    When the block is shown
-    Then no routine has supersets or drop sets
-    Given "Duración de la sesión" is too short for the planned sets
-    When the block is shown
-    Then supersets pair exercises of different muscles
-    And a drop set is only the last set of an isolation exercise
+  Scenario: Same inputs, same block
+    Given the same preferences and the same picks
+    Then the block is the same
 
-  Scenario: Every routine fits the session time
-    Given "Duración de la sesión" is 60 minutes
-    When the block is shown
-    Then the lifting of each routine, with its sets, reps and rests, fits in 60 minutes
+  Scenario: The saved review agrees
+    Given I save a block of 2 or more days with no sets removed for time
+    When I open "Revisar tus rutinas" on its folder
+    Then the score is 10,0
 
-  Scenario: Not enough time for the minimum volume
-    Given I train 1 day a week for 45 minutes
-    When the block is shown
-    Then it says "Por debajo de lo recomendado"
-    And the block is still created
+  # Void 2026-11-03 (T-202, ADR-93): "Undulating periodization for strength" and "One rep range for other intentions" are removed.
+  # Void 2026-11-04 (T-221, ADR-99): preview, reasons per exercise, "what changed since my last block", the model checker
+  # (lateral raise, knee extension, retry), the frequency chosen by the coach and the supersets "only when time is short" by a model.
 
-  Scenario: A block that breaks a hard rule is never shown
-    Given the coach's first answer has no lateral raise where one is required
-    When the server checks it
-    Then the coach is asked once more
-    And if it fails again the user sees an error with "Reintentar" and nothing is stored
-
-  Scenario: Planned weights come from my history
-    Given I trained "Press banca" with 60 kg last week
-    When the block includes "Press banca"
-    Then its planned weight comes from my own sets
-    And an exercise I never trained has no planned weight
-
-  # Superseded 2026-11-04 (ADR-99): no model prose; the builder shows no "changes vs last block".
-  Scenario: What changed since my last block
-    Given I had a block before
-    When the new block is shown
-    Then it says what changed against the last block and why
-
-  # Superseded 2026-11-04 (ADR-99, user): discomfort is not an input of block creation.
-  Scenario: Exercises with a severe discomfort are left out
+  Scenario: Discomfort is not an input
     Given "Press militar" has an unresolved level 4 discomfort
-    When the block is shown
-    Then "Press militar" is not in the block
+    When I open a "Hombros" slot
+    Then "Press militar" is listed like any other exercise, with no marker
 
   Scenario: Cardio is not reduced
     Given the user logs cardio sessions or steps
@@ -581,25 +591,32 @@ Feature: Block creator
     Then no routine has a warm-up exercise or warm-up sets
 
   Scenario: Saving creates routines
-    When the user taps "Guardar bloque"
+    When the user taps "Guardar bloque" at 100 %
     Then the routines are created with the existing save procedure in one folder for the block
-    And each exercise keeps its rep range and rest
+    And each exercise keeps its sets, rep range, target RPE, rest, planned weight and superset pair
+    And in "Ganar fuerza" the main lifts of each routine come first
     And each cardio exercise keeps its planned minutes
     And the plan is linked to them
 
-  Scenario: Nothing is saved without confirmation
-    When the user leaves the preview
-    Then no routine is created
+  Scenario: Training the saved block
+    Given I saved a block
+    When I train one of its routines
+    Then "Objetivo RPE" shows 8
+    And the cardio is last with its minutes
+
+  Scenario: Nothing is saved without "Guardar bloque"
+    When the user leaves the builder before "Guardar bloque"
+    Then no routine and no block are created
 ```
 
 **Technical notes**
 - Range of motion stays a technique note in the exercise's reason (full range by default, `07` §3), not a computed rule.
 - Main multi-joint lifts = exercises whose `movement_pattern` is squat, hinge, lunge, horizontal or vertical push or pull (Q3, user 2026-10-29).
-- Leaving the preview keeps the proposal as `proposed`; it can be reopened from Trainer until a new one supersedes it; no discard dialog (Q10, user 2026-10-29).
+- Leaving the builder stores nothing (Q10 amended 2026-11-04, ADR-99: no stored proposal); the builder state survives background and process death (ADR-40, T-222).
 - **Cardio (2026-11-01, ADR-85 proposed; E13 Q26-Q30):** the block reads the plan's weekly cardio target (US-79) and splits it evenly across the week's routines in whole 5-minute units (remainder to the first routines), at most 60 min per routine, the excess shown as "por tu cuenta". Cardio is the last exercise of every lifting routine; there are no cardio-only routines. It comes from the catalogue's `cardio` pattern within place and equipment, default bike, elliptical, incline treadmill walk, rower with machines and brisk walking without ("Caminar a paso ligero"), never running, air bike, ski erg, stair climber or burpee-style moves by default, and the most-logged cardio of the last 8 weeks when it fits the equipment; continuous "suave" only. Cardio candidates use the cardio equipment values of US-80. The cardio swap is any-to-any (user requirement, 2026-11-01): every cardio exercise timed in minutes within the user's cardio equipment, plus walking and running always, is an alternative of every other one at the same minutes, in every week of the routine; the alternatives are derived from category and equipment, never from the T-179 pairs table or a per-exercise list (`07` §3, Q28b). Cardio is outside "Duración de la sesión" (no lifting slot is removed); the preview shows each routine's total time. A cardio exercise has one planned set of minutes only (no reps, no RPE, no rest timer), stored in a new nullable planned duration on planned sets and shown with the existing duration metric types and set rows.
 - **No warm-up (E13 Q27, user):** the coach does not plan, generate or mention warm-ups; the user adds warm-up sets himself.
-- **Amended 2026-11-01 (ADR-86, ADR-89):** the first block follows the cold-start rules of `07` §12.2 and its phase (US-82); every later block is proposed by the end-of-block review (US-83) with the volume and priority rules of `07` §12.4 (US-84); exercises flagged at level 4-5, or loading the intake's injured area, are left out and can be put back (US-87). "Guardar bloque" of a new block ends the previous one.
-- **Amended 2026-11-03 (T-202, ADR-93, ADR-94):** *(Superseded 2026-11-04, ADR-99, T-219, user: block creation is deterministic with no model call; see `07` §3 "Block builder".)* the model builds the whole block (split, exercises, sets, rep ranges, target RPE, rests, supersets and drop sets under time conditions) and the routine checker (`04` §9.6, hard H1-H7) validates it; the server keeps cardio (§9.11, unchanged by the model) and the minimal-phase block (§9.3). The intake injured area no longer exists (ADR-91): exclusions come from unresolved level 4-5 discomforts. The block starts from scratch or from a folder (US-93). Preview swaps stay limited to alternatives, with favourites first (US-96).
+- **Amended 2026-11-01 (ADR-86, ADR-89):** the first block follows the cold-start rules of `07` §12.2 and its phase (US-82); every later block is offered by the end-of-block review (US-83) as "Bloque nuevo", which opens this builder (the volume and priority rules of `07` §12.4 are E14); *(Superseded 2026-11-04, ADR-99: exercises flagged at level 4-5 are no longer left out of a new block.)* "Guardar bloque" of a new block ends the previous one.
+- **Amended 2026-11-03 (T-202, ADR-93, ADR-94):** *(Superseded 2026-11-04, ADR-99, T-221: the model no longer builds the block, the routine checker H1-H7 no longer validates it, there are no preview swaps and no discomfort exclusions.)* Now: the device computes the block (`07` §3 "Block builder"); the server keeps validating the saved shape (equipment, no repeat, rep and rest bounds, cardio §9.11). The block starts from scratch or from a folder (US-93). Favourites (US-96) order the slot picker.
 
 ## US-73 · Plan adherence
 **As** a user
@@ -1373,21 +1390,15 @@ Feature: Injury follow-up
   # Amended 2026-11-02 (user, Checkpoint E13-D: the intake has no injured area any more, T-198). The former scenario
   # "Given 'Para conocerte' says I have a shoulder injury … the exercises that load the shoulder are left out" is void.
   # Training around an injury comes from logged discomforts only. E13 Q52: the fitness-scientist confirms `07` §7 before T-194.
-  Scenario: Training around a severe discomfort
-    Given "Press militar" has an unresolved discomfort of level 4 or 5
-    When the coach proposes my block
-    Then "Press militar" is left out
-    And the preview lists it under "Fuera del bloque por tu lesión" with "Volver a incluir"
+  # Superseded 2026-11-04 (T-221, ADR-99, user): "Fuera del bloque por tu lesión" and "Volver a incluir" are void;
+  # the builder does not read discomfort. Training around an injury happens inside the saved block (Step 1 below).
 
-  Scenario: Putting an exercise back
-    When I tap "Volver a incluir" on "Press militar"
-    Then "Press militar" is in the block
-
-  # Superseded 2026-11-04 (ADR-99, user): block creation ignores discomfort; the rest of US-87 (load blocks, graded return) is unchanged.
-  Scenario: A severe discomfort leaves the next block
+  # Rewritten 2026-11-04 (T-221, ADR-99, user): block creation ignores discomfort; the rest of US-87 (load blocks, graded return) is unchanged.
+  Scenario: A severe discomfort does not change the next block
     Given "Press banca" has a discomfort of level 4 or 5
-    When the coach prepares the next block
-    Then "Press banca" is left out and a similar exercise I have not flagged replaces it
+    When I build my next block, from scratch or from a folder
+    Then "Press banca" is listed and can be picked like any other exercise
+    And nothing is hidden, marked or replaced
 
   # Amended 2026-11-02 (`07` §12.8 row 7): the swap is offered, applied on my tap. The offer's pattern and copy need ux-reviewer (T-194).
   Scenario: Step 1 inside my block
@@ -1402,7 +1413,7 @@ Feature: Injury follow-up
     Given I logged a level 4 discomfort on "Press banca" 20 days ago
     And I did not tap "Ya no me molesta" or finish step 3
     Then it is still shown on "Press banca" with "Ya no me molesta"
-    And "Press banca" stays out of the next block
+    And load increases on "Press banca" stay blocked
 
   Scenario: The next step is offered, I decide
     Given "Press banca" is in step 1 for at least a week with no new discomfort on it
@@ -1644,7 +1655,7 @@ Feature: Life changes
 - Goal reached and empty weeks are report rules (US-71); coming back after weeks off is US-88 / US-70; a new injury mid-block is US-87.
 
 ## US-93 · Starting a block from scratch or from my folder
-> **Superseded 2026-11-04 (ADR-99, T-219, user):** both starts are deterministic. "Desde cero": split, type per day, slots, 100 %. "Desde una carpeta": the same 100 % (folder review at 10,0), fixed on a copy, saved as a new folder, original untouched; refused when its routine count differs from "Días por semana" (`07` §3 (h)). The scenarios "From scratch, I pick the type of routine", "From my folder" and "A missing requirement must be fixed" (model checks, accept or reject proposed changes, lateral raise) are void once the builder task merges; the others stand. Gherkin to be rewritten by the epic-planner.
+> **Rewritten 2026-11-04 (T-221, ADR-99, user):** both starts are deterministic. "Desde cero": split, type per day, slots, 100 % (US-72). "Desde una carpeta": the same 100 % (folder review at 10,0), fixed on a copy, saved as a new folder, original untouched; refused when its lifting-routine count differs from "Días por semana" (`07` §3 (h)). The model scenarios are replaced below.
 *Added 2026-11-03 (T-202, user UX decisions 1 and 4; ADR-93, ADR-94; `07` §3 "Starting points"). Tasks T-205 (from scratch, backend), T-206 (from scratch, UI), T-207 (from a folder, backend), T-208 (from a folder and the start choice, UI).*
 
 **As** a user creating a block
@@ -1659,31 +1670,53 @@ Feature: Starting a block
     When I tap "Crear bloque"
     Then I can choose "Desde cero" or "Desde una carpeta"
 
-  # Superseded 2026-11-04 (ADR-99): see the note above.
-  Scenario: From scratch, I pick the type of routine
+  Scenario: From scratch
     When I choose "Desde cero"
-    Then the coach proposes 2 or 3 types of routine for my days and session time
-    And one is marked "Recomendada" with its reason
-    When I pick one
-    Then the coach builds the block with that type of routine
-    And the block preview opens
+    Then the split choice of US-72 opens with no AI call
 
-  # Superseded 2026-11-04 (ADR-99): see the note above.
-  Scenario: From my folder
-    Given I have a routine folder "Mi rutina"
+  Scenario: A folder at 100 % is saved as a new folder
+    Given "Mi rutina" has as many lifting routines as my "Días por semana" and its review score is 10,0
     When I choose "Desde una carpeta" and pick "Mi rutina"
-    Then the coach checks it and lists what is missing and the changes it proposes, each with its reason
-    And I can accept or reject each change
-    When I continue
-    Then the block preview shows my routines with the accepted changes
-    And "Mi rutina" itself does not change
+    Then "Rutina completa al 100 %" is shown and "Guardar bloque" is enabled
+    When I tap "Guardar bloque"
+    Then a new folder "Mi rutina · bloque" holds the routines with the cardio last
+    And "Mi rutina" is exactly as before
 
-  # Superseded 2026-11-04 (ADR-99): H3 is no special case; see the note above.
-  Scenario: A missing requirement must be fixed
-    Given my folder has no lateral raise where one is required
-    When I reject the change that adds one
-    Then the block is not created
-    And it shows what is missing
+  Scenario: A folder whose routine count differs from "Días por semana" is refused
+    Given "Mi rutina" has 3 lifting routines and I train 4 days a week
+    When I pick "Mi rutina"
+    Then one line names both numbers and says to change "Días por semana" or the folder
+    And "Guardar bloque" is disabled
+    When I set 3 days a week
+    Then the folder opens
+
+  Scenario: A one-routine folder with 2 or more days
+    Given "Mi rutina" has 1 routine and I train 2 days a week
+    When I pick "Mi rutina"
+    Then it says "Añade una segunda rutina a la carpeta o empieza desde cero."
+
+  Scenario: Fixing a folder on a copy
+    Given "Mi rutina" is at 80 % because it has 4 sets of hamstrings
+    When I add a hamstring exercise in the "Isquios" section with the sets still needed, at least 2 and at most 5
+    Then the new exercise has the builder values for my intention and the % rises
+    And I can swap any exercise for another of the same muscle inside my equipment, keeping its sets, reps, RPE and rest
+    And I can remove what I added
+    And I cannot delete my exercises or edit sets, rest or RPE here
+
+  Scenario: Strength rep fix on a main lift
+    Given the intention is "Ganar fuerza" and a main lift has 8-12 repeticiones
+    Then a row offers "Cambiar a 6-8 repeticiones"
+    When I apply it
+    Then the main lift keeps its sets and the % rises
+
+  Scenario: Strength order fixed at save
+    Given the intention is "Ganar fuerza" and a main lift comes after an accessory
+    When I save at 100 %
+    Then the main lifts of that routine come first and the rest keeps its order
+
+  Scenario: My folder never changes
+    When I save, fix or leave
+    Then the routines, exercises, sets and order of "Mi rutina" are unchanged
 
   Scenario: My edits reach the next block
     Given I saved a block and later edited its routines in Entreno
@@ -1701,7 +1734,7 @@ Feature: Starting a block
 ```
 
 **Technical notes**
-- *(Superseded 2026-11-04, ADR-99, T-219, user: block creation is deterministic with no model call; see `07` §3 "Block builder".)* From scratch is two paid calls (split options, then the block); from a folder is one review call plus the block save (`04` §9.14). Both pass the hard checks before the block is stored. Now: no call; the builder gate is 100 % and a folder whose routine count differs from "Días por semana" is refused.
+- *(Superseded 2026-11-04, ADR-99, T-221: the two paid calls (split options, block) and the folder review call with its hard checks.)* Now: no call; the gate is 100 % and a folder whose lifting-routine count differs from "Días por semana" is refused. Core in T-221, screens in T-222 (from scratch) and T-223 (from a folder).
 - "Tengo poco tiempo" and the minimal phase are removed (user, 2026-11-03, E13 Q56): T-205 drops the backend path, T-206 the option and its strings.
 - The start choice ships with T-208; until then "Crear bloque" goes straight to the split options (T-206).
 

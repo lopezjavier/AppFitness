@@ -1,5 +1,10 @@
 package io.github.lopezjavier.appfitness.data.remote
 
+import io.github.lopezjavier.appfitness.domain.coach.builder.BuilderInputs
+import io.github.lopezjavier.appfitness.domain.coach.builder.BuiltBlock
+import io.github.lopezjavier.appfitness.domain.coach.builder.BuiltExercise
+import io.github.lopezjavier.appfitness.domain.coach.builder.BuiltSession
+import io.github.lopezjavier.appfitness.domain.coach.builder.ExerciseHistory
 import io.github.lopezjavier.appfitness.domain.model.BlockCardio
 import io.github.lopezjavier.appfitness.domain.model.BlockExercise
 import io.github.lopezjavier.appfitness.domain.model.BlockSaved
@@ -10,14 +15,19 @@ import io.github.lopezjavier.appfitness.domain.model.BlockTraining
 import io.github.lopezjavier.appfitness.domain.model.CoachBlock
 import io.github.lopezjavier.appfitness.domain.model.SplitOption
 import io.github.lopezjavier.appfitness.domain.model.SplitSession
+import io.github.lopezjavier.appfitness.domain.model.TrainingIntention
 import kotlinx.datetime.LocalDate
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonElement
+import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.serialization.json.buildJsonArray
+import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.decodeFromJsonElement
 import kotlinx.serialization.json.intOrNull
+import kotlinx.serialization.json.put
 
 /** `coach_plans.training` (shape in planning/03-data-model.md). */
 @Serializable
@@ -222,4 +232,97 @@ internal data class SaveBlockResultDto(
     @SerialName("routine_ids") val routineIds: List<String> = emptyList(),
 ) {
     fun toDomain() = BlockSaved(folderId, routineIds)
+}
+
+@Serializable
+internal data class BuilderInputsParams(@SerialName("p_today") val today: LocalDate)
+
+/** Answer of `coach_builder_inputs`. */
+@Serializable
+internal data class BuilderInputsDto(
+    val history: List<BuilderHistoryDto> = emptyList(),
+    @SerialName("cardio_options") val cardioOptions: List<String> = emptyList(),
+    @SerialName("cardio_default") val cardioDefault: String? = null,
+) {
+    fun toDomain() = BuilderInputs(
+        history = history.associate { it.exerciseId to ExerciseHistory(it.sessions8w, it.lastWeightKg, it.lastReps) },
+        cardioOptions = cardioOptions,
+        cardioDefault = cardioDefault,
+    )
+}
+
+@Serializable
+internal data class BuilderHistoryDto(
+    @SerialName("exercise_id") val exerciseId: String,
+    @SerialName("sessions_8w") val sessions8w: Int = 0,
+    @SerialName("last_weight_kg") val lastWeightKg: Double? = null,
+    @SerialName("last_reps") val lastReps: Int? = null,
+)
+
+private fun TrainingIntention.wire() = when (this) {
+    TrainingIntention.Strength -> "strength"
+    TrainingIntention.Muscle -> "muscle"
+    TrainingIntention.FatLoss -> "fat_loss"
+    TrainingIntention.Recomposition -> "recomposition"
+    TrainingIntention.Maintenance -> "maintenance"
+}
+
+/**
+ * Parameters of `save_built_coach_block`, built as JSON by hand: the server validates a key's type when the key is
+ * present, so absent values (no planned weight, no superset) are left out instead of sent as null.
+ */
+internal class BuiltBlockParams(
+    private val planId: String,
+    private val block: BuiltBlock,
+    private val folderName: String?,
+) {
+    fun toJson(): JsonObject = buildJsonObject {
+        put("p_plan_id", planId)
+        put("p_training", training())
+        put("p_sessions", buildJsonArray { block.sessions.forEach { add(session(it)) } })
+        if (folderName != null) put("p_folder_name", folderName)
+    }
+
+    private fun training() = buildJsonObject {
+        put("days_per_week", block.daysPerWeek)
+        put("block_weeks", BuiltBlock.BLOCK_WEEKS)
+        block.intention?.let { put("intention", it.wire()) }
+        put("equipment", buildJsonArray { block.equipment.forEach { add(JsonPrimitive(it.wire)) } })
+        put("session_minutes", block.sessionMinutes)
+        put("routine_total_min", buildJsonArray { block.routineTotalMin.forEach { add(JsonPrimitive(it)) } })
+        put(
+            "cardio",
+            buildJsonObject {
+                put("target_min_week", block.cardio.targetMinWeek)
+                put("planned_min_week", block.cardio.plannedMinWeek)
+                put("on_your_own_min", block.cardio.onYourOwnMin)
+                put("per_routine_min", buildJsonArray { block.cardio.perRoutineMin.forEach { add(JsonPrimitive(it)) } })
+                put("pace", BuiltExercise.PACE)
+            },
+        )
+        put("source", block.source)
+    }
+
+    private fun session(s: BuiltSession) = buildJsonObject {
+        put("name", s.name)
+        put("focus", buildJsonArray { s.focus.forEach { add(JsonPrimitive(it)) } })
+        put("exercises", buildJsonArray { s.exercises.forEach { add(exercise(it)) } })
+    }
+
+    private fun exercise(e: BuiltExercise) = buildJsonObject {
+        put("role", e.role)
+        put("exercise_id", e.exerciseId)
+        put("sets", e.sets)
+        if (e.role == BuiltExercise.ROLE_CARDIO) {
+            e.durationMin?.let { put("duration_min", it) }
+            e.pace?.let { put("pace", it) }
+        } else {
+            put("rep_min", e.repMin)
+            put("rep_max", e.repMax)
+            put("rest_seconds", e.restSeconds)
+            put("target_rpe", e.targetRpe)
+            e.plannedWeightKg?.let { put("planned_weight_kg", it) }
+            e.supersetGroup?.let { put("superset_group", it) }
+        }
+    }
 }
