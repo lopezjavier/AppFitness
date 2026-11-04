@@ -360,7 +360,7 @@ class RoutinesFoldersScreenTest {
 
         click("routines_folder_menu_f1")
         rule.onNodeWithTag("routines_folder_menu_rename").assertIsNotEnabled()
-        rule.onNodeWithTag("routines_folder_menu_review").assertIsNotEnabled()
+        rule.onNodeWithTag("routines_folder_menu_review").assertIsEnabled()
         rule.onNodeWithTag("routines_folder_menu_delete").assertIsNotEnabled()
         rule.onNodeWithTag("routines_folder_menu_offline_reason").assertExists()
         click("routines_folder_menu_sheet_close")
