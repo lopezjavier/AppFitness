@@ -1,6 +1,10 @@
 package io.github.lopezjavier.appfitness.feature.exercises
 
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.ui.semantics.ProgressBarRangeInfo
+import androidx.compose.ui.semantics.SemanticsProperties
+import androidx.compose.ui.test.SemanticsMatcher
+import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.assertContentDescriptionEquals
 import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.junit4.v2.createComposeRule
@@ -72,11 +76,13 @@ class ExerciseSimilarTabTest {
     }
 
     @Test
-    fun percentage_showsASingleSign_withNoBreakSpace() {
-        show(SimilarState.Content(listOf(similar("2", "band-long-bench", "Press con banda", 1.0))))
+    fun percentage_isACompactRing_withTheNumberInside_andTheFractionAsProgress() {
+        show(SimilarState.Content(listOf(similar("3", "fly", "Aperturas", 0.87))))
 
-        rule.onNodeWithText("100 %", useUnmergedTree = true).assertExists()
-        rule.onNodeWithText("100 %%", useUnmergedTree = true).assertDoesNotExist()
+        rule.onNodeWithTag("exercise_detail_similar_percent_fly", useUnmergedTree = true).assert(
+            SemanticsMatcher.expectValue(SemanticsProperties.ProgressBarRangeInfo, ProgressBarRangeInfo(0.87f, 0f..1f)),
+        )
+        rule.onNodeWithText("87", useUnmergedTree = true).assertExists()
     }
 
     @Test

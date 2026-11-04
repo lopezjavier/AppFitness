@@ -4,6 +4,9 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.semantics.ProgressBarRangeInfo
+import androidx.compose.ui.semantics.SemanticsProperties
+import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.assertContentDescriptionEquals
 import androidx.compose.ui.test.assertTextContains
@@ -122,6 +125,9 @@ class BlockPreviewReplaceTest {
         rule.onNodeWithTag("block_preview_replace_option_fly").assertExists()
         rule.onNodeWithTag("block_preview_replace_percent_fly", useUnmergedTree = true)
             .assertContentDescriptionEquals("87 por ciento de similitud")
+        rule.onNodeWithTag("block_preview_replace_percent_fly", useUnmergedTree = true).assert(
+            SemanticsMatcher.expectValue(SemanticsProperties.ProgressBarRangeInfo, ProgressBarRangeInfo(0.87f, 0f..1f)),
+        )
         rule.onNodeWithTag("block_preview_replace_option_row").assertDoesNotExist()
         rule.onNodeWithTag("block_preview_replace_reset").assertDoesNotExist()
         assertEquals(listOf("ex-1"), repository.alternativesCalls)

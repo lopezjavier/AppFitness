@@ -50,6 +50,12 @@ object AppNumberFormat {
         return if (value < 0) "$MINUS$text" else text
     }
 
+    /** [value] rounded half-up to exactly one decimal, comma separator, no grouping: "7,5", "10,0", "0,0". */
+    fun oneDecimal(value: Double): String {
+        val tenths = if (value.isFinite() && value > 0) floor(minOf(value * TEN, MAX_SCALED) + HALF).toLong() else 0L
+        return "${tenths / TEN},${tenths % TEN}"
+    }
+
     /** An amount in euros with always two decimals and a space before the symbol: "0,42 €", "2,00 €". */
     fun euro(value: Double): String {
         val cents = if (value.isFinite()) floor(abs(value) * CENTS + HALF).toLong() else 0L

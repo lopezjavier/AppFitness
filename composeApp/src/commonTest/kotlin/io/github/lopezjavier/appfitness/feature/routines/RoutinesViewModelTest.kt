@@ -346,7 +346,7 @@ class RoutinesViewModelTest {
     }
 
     @Test
-    fun reviewFolder_offline_isRefusedAndOpensNothing() = runTest {
+    fun reviewFolder_offline_stillOpensTheReview() = runTest {
         withFolder()
         val vm = viewModel()
         advanceUntilIdle()
@@ -356,7 +356,7 @@ class RoutinesViewModelTest {
         vm.effects.test {
             vm.onEvent(RoutinesEvent.ReviewFolder("f1"))
             advanceUntilIdle()
-            assertEquals(RoutinesEffect.OfflineRefused, awaitItem())
+            assertEquals(RoutinesEffect.OpenFolderReview("f1"), awaitItem())
         }
     }
 

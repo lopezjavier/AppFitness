@@ -21,11 +21,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.github.lopezjavier.appfitness.composeapp.resources.Res
-import io.github.lopezjavier.appfitness.composeapp.resources.folder_review_applied
-import io.github.lopezjavier.appfitness.composeapp.resources.folder_review_applied_unnamed
-import io.github.lopezjavier.appfitness.composeapp.resources.folder_review_apply
-import io.github.lopezjavier.appfitness.composeapp.resources.folder_review_apply_action
-import io.github.lopezjavier.appfitness.composeapp.resources.folder_review_apply_failed
 import io.github.lopezjavier.appfitness.composeapp.resources.folder_review_block_failed
 import io.github.lopezjavier.appfitness.composeapp.resources.folder_review_changed
 import io.github.lopezjavier.appfitness.composeapp.resources.folder_review_create_block
@@ -57,10 +52,8 @@ import io.github.lopezjavier.appfitness.designsystem.Spacing
 import io.github.lopezjavier.appfitness.designsystem.StreamProgressState
 import io.github.lopezjavier.appfitness.designsystem.WindowWidthClassDefaults
 import io.github.lopezjavier.appfitness.designsystem.offlineHint
-import io.github.lopezjavier.appfitness.domain.model.ReviewPurpose
 import io.github.lopezjavier.appfitness.domain.port.ConnectivityObserver
 import kotlinx.coroutines.flow.Flow
-import org.jetbrains.compose.resources.getString
 import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.koinInject
@@ -77,14 +70,12 @@ private val ChangedFailureCopy = CoachFailureCopy(
 )
 
 /**
- * Stateful "Revisar tus rutinas" (US-95, US-93): asks the coach once when it opens (a paid call, never again by itself
- * after a recreation) and plays the one-off results: the confirmation of the copy (a message and a Confirm haptic)
- * before leaving through [onFinishCopy], the failure message with a Reject haptic, and [onFinishBlock] once the block
- * is stored.
+ * Stateful review of a folder for the block start (US-93): asks the coach once when it opens (a paid call, never
+ * again by itself after a recreation) and plays the one-off results: the failure message with a Reject haptic, and
+ * [onFinishBlock] once the block is stored.
  */
 @Composable
 fun FolderReviewRoot(
-    onFinishCopy: () -> Unit,
     onFinishBlock: () -> Unit,
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
@@ -94,24 +85,13 @@ fun FolderReviewRoot(
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val haptics = LocalAppHaptics.current
     val messages = LocalAppMessages.current
-    val latestOnFinishCopy by rememberUpdatedState(onFinishCopy)
     val latestOnFinishBlock by rememberUpdatedState(onFinishBlock)
-    val block = (state as? FolderReviewUiState.Content)?.purpose == ReviewPurpose.Block
-    val applyFailed = stringResource(Res.string.folder_review_apply_failed)
     val blockFailed = stringResource(Res.string.folder_review_block_failed)
-    val applyOffline = offlineHint(stringResource(Res.string.folder_review_apply_action)) + "."
     val blockOffline = offlineHint(stringResource(Res.string.folder_review_create_block_action)) + "."
-    val unnamed = stringResource(Res.string.folder_review_applied_unnamed)
     LaunchedEffect(viewModel) { viewModel.onEvent(FolderReviewEvent.Request) }
     LaunchedEffect(viewModel) {
         viewModel.effects.collect { effect ->
             when (effect) {
-                is FolderReviewEffect.Applied -> {
-                    haptics.confirm()
-                    messages.show(effect.folderName?.let { getString(Res.string.folder_review_applied, it) } ?: unnamed)
-                    latestOnFinishCopy()
-                }
-
                 FolderReviewEffect.BlockReady -> {
                     haptics.confirm()
                     latestOnFinishBlock()
@@ -119,14 +99,7 @@ fun FolderReviewRoot(
 
                 is FolderReviewEffect.ActionFailed -> {
                     haptics.reject()
-                    messages.show(
-                        when {
-                            effect.offline && block -> blockOffline
-                            effect.offline -> applyOffline
-                            block -> blockFailed
-                            else -> applyFailed
-                        },
-                    )
+                    messages.show(if (effect.offline) blockOffline else blockFailed)
                 }
             }
         }
@@ -141,8 +114,8 @@ fun FolderReviewRoot(
 }
 
 /**
- * "Revisar tus rutinas" on [AppScreen] with back: the coach's message, "Falta", the comments and the checklist of
- * changes (all checked), with a pinned footer: "Aplicar en una copia" (review) or "Crear bloque" (block). Waiting is a
+ * Block-start review on [AppScreen] with back: the coach's message, "Falta", the comments and the checklist of
+ * changes (all checked), with a pinned "Crear bloque" footer. Waiting is a
  * [StreamProgressState]; a failure is [CoachFailureContent] with "Reintentar" (R-31). Leaving writes nothing.
  */
 @Composable
@@ -280,15 +253,14 @@ private fun ChangesSection(state: FolderReviewUiState.Content, onEvent: (FolderR
     }
 }
 
-/** Pinned footer: the action of the purpose, why it is disabled (block with an open Falta) and the offline hint. */
+/** Pinned footer: "Crear bloque", why it is disabled (an open Falta) and the offline hint. */
 @Composable
 private fun ReviewFooter(state: FolderReviewUiState.Content, online: Boolean, onEvent: (FolderReviewEvent) -> Unit) {
-    val block = state.purpose == ReviewPurpose.Block
     Column(
         Modifier.fillMaxWidth().padding(Spacing.screenMargin),
         verticalArrangement = Arrangement.spacedBy(Spacing.sm),
     ) {
-        if (block && state.falta.isNotEmpty()) {
+        if (state.falta.isNotEmpty()) {
             Text(
                 text = stringResource(
                     if (state.hasUnfixableFalta) {
@@ -303,21 +275,12 @@ private fun ReviewFooter(state: FolderReviewUiState.Content, online: Boolean, on
             )
         }
         PrimaryButton(
-            text = stringResource(
-                if (block) Res.string.folder_review_create_block else Res.string.folder_review_apply,
-            ),
-            onClick = { onEvent(if (block) FolderReviewEvent.Continue else FolderReviewEvent.Apply) },
-            modifier = Modifier.fillMaxWidth()
-                .testTag(if (block) "folder_review_create_block" else "folder_review_apply"),
-            enabled = online && (if (block) state.canCreateBlock else state.canApply),
+            text = stringResource(Res.string.folder_review_create_block),
+            onClick = { onEvent(FolderReviewEvent.Continue) },
+            modifier = Modifier.fillMaxWidth().testTag("folder_review_create_block"),
+            enabled = online && state.canCreateBlock,
             loading = state.working,
         )
-        if (!online) {
-            OfflineHint(
-                stringResource(
-                    if (block) Res.string.folder_review_create_block_action else Res.string.folder_review_apply_action,
-                ),
-            )
-        }
+        if (!online) OfflineHint(stringResource(Res.string.folder_review_create_block_action))
     }
 }

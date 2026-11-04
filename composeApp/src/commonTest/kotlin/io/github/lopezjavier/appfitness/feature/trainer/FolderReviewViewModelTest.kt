@@ -8,7 +8,6 @@ import io.github.lopezjavier.appfitness.domain.model.CoachException
 import io.github.lopezjavier.appfitness.domain.model.CoachFailure
 import io.github.lopezjavier.appfitness.domain.model.FolderOp
 import io.github.lopezjavier.appfitness.domain.model.ReviewPurpose
-import io.github.lopezjavier.appfitness.domain.model.RoutineFolder
 import io.github.lopezjavier.appfitness.domain.usecase.ExerciseNameResolver
 import io.github.lopezjavier.appfitness.feature.exercises.FakeExerciseLibrary
 import io.github.lopezjavier.appfitness.feature.exercises.FakeExerciseRepository
@@ -43,7 +42,6 @@ class FolderReviewViewModelTest {
     ).apply {
         folderOf["r1"] = "folder-1"
         folderOf["r2"] = "folder-1"
-        folders += RoutineFolder("copy-1", "Mi carpeta (copia)")
     }
     private val exercises = FakeExerciseRepository(
         listOf(exerciseRow("id-bench", "bench"), exerciseRow("id-row", "row"), exerciseRow("id-squat", "squat")),
@@ -63,7 +61,7 @@ class FolderReviewViewModelTest {
     @AfterTest
     fun tearDown() = Dispatchers.resetMain()
 
-    private fun args(purpose: String = "review", planId: String? = null) = SavedStateHandle().apply {
+    private fun args(purpose: String = "block", planId: String? = null) = SavedStateHandle().apply {
         set("folderId", "folder-1")
         set("purpose", purpose)
         planId?.let { set("planId", it) }
@@ -85,7 +83,7 @@ class FolderReviewViewModelTest {
         dispatcher.scheduler.advanceUntilIdle()
     }
 
-    private fun given(purpose: ReviewPurpose = ReviewPurpose.Review, withFalta: Boolean = false) {
+    private fun given(purpose: ReviewPurpose = ReviewPurpose.Block, withFalta: Boolean = false) {
         reviews.reviewResult = Result.success(
             review(
                 purpose = purpose,
@@ -220,131 +218,6 @@ class FolderReviewViewModelTest {
         assertFalse(model.content().canCreateBlock)
     }
 
-    @Test
-    fun goodFolder_hasNoFaltaAndNoFooterInReviewPurpose() = runTest(dispatcher) {
-        reviews.reviewResult = Result.success(review())
-        val model = viewModel()
-        model.start()
-
-        assertTrue(model.content().allFalta.isEmpty())
-        assertFalse(model.content().showsFooter)
-    }
-
-    // ---- Review purpose: apply ----
-
-    @Test
-    fun apply_sendsOnlyTheCheckedIdsInReviewOrderAndEmitsApplied() = runTest(dispatcher) {
-        given()
-        val model = viewModel()
-        model.start()
-        model.onEvent(FolderReviewEvent.Toggle("c1"))
-        model.onEvent(FolderReviewEvent.Toggle("c1"))
-        model.onEvent(FolderReviewEvent.Toggle("c1"))
-        model.onEvent(FolderReviewEvent.Toggle("c2"))
-        model.onEvent(FolderReviewEvent.Toggle("c2"))
-
-        model.effects.test {
-            model.onEvent(FolderReviewEvent.Apply)
-            dispatcher.scheduler.advanceUntilIdle()
-            assertEquals(FolderReviewEffect.Applied("copy-1", "Mi carpeta (copia)"), awaitItem())
-        }
-
-        assertEquals(listOf("rev-1" to listOf("c2")), reviews.applied)
-        assertEquals(0, reviews.blocks.size)
-    }
-
-    @Test
-    fun apply_afterSuccessStaysWorkingSoASecondTapMakesNoSecondCopy() = runTest(dispatcher) {
-        given()
-        val model = viewModel()
-        model.start()
-
-        model.effects.test {
-            model.onEvent(FolderReviewEvent.Apply)
-            dispatcher.scheduler.advanceUntilIdle()
-            assertEquals(FolderReviewEffect.Applied("copy-1", "Mi carpeta (copia)"), awaitItem())
-            model.onEvent(FolderReviewEvent.Apply)
-            dispatcher.scheduler.advanceUntilIdle()
-            expectNoEvents()
-        }
-
-        assertTrue(model.content().working)
-        assertEquals(1, reviews.applied.size)
-    }
-
-    @Test
-    fun apply_withNothingCheckedDoesNothing() = runTest(dispatcher) {
-        given()
-        val model = viewModel()
-        model.start()
-        model.onEvent(FolderReviewEvent.Toggle("c1"))
-        model.onEvent(FolderReviewEvent.Toggle("c2"))
-        assertFalse(model.content().canApply)
-
-        model.onEvent(FolderReviewEvent.Apply)
-        dispatcher.scheduler.advanceUntilIdle()
-
-        assertTrue(reviews.applied.isEmpty())
-    }
-
-    @Test
-    fun apply_conflictAsksToReviewAgain() = runTest(dispatcher) {
-        given()
-        reviews.applyResult = failure(CoachFailure.Conflict)
-        val model = viewModel()
-        model.start()
-
-        model.onEvent(FolderReviewEvent.Apply)
-        dispatcher.scheduler.advanceUntilIdle()
-
-        assertEquals(FolderReviewUiState.Failed(PlanFailureKind.Other, changed = true), model.uiState.value)
-    }
-
-    @Test
-    fun apply_invalidReplacementIsTreatedAsAChangedFolder() = runTest(dispatcher) {
-        given()
-        reviews.applyResult = failure(CoachFailure.InvalidReplacement)
-        val model = viewModel()
-        model.start()
-
-        model.onEvent(FolderReviewEvent.Apply)
-        dispatcher.scheduler.advanceUntilIdle()
-
-        assertEquals(FolderReviewUiState.Failed(PlanFailureKind.Other, changed = true), model.uiState.value)
-    }
-
-    @Test
-    fun retryAfterAConflict_reviewsTheFolderAgain() = runTest(dispatcher) {
-        given()
-        reviews.applyResult = failure(CoachFailure.Conflict)
-        val model = viewModel()
-        model.start()
-        model.onEvent(FolderReviewEvent.Apply)
-        dispatcher.scheduler.advanceUntilIdle()
-
-        model.onEvent(FolderReviewEvent.Retry)
-        dispatcher.scheduler.advanceUntilIdle()
-
-        assertEquals(2, reviews.reviewCalls)
-        model.content()
-    }
-
-    @Test
-    fun apply_offlineFailureKeepsTheContentAndEmitsActionFailed() = runTest(dispatcher) {
-        given()
-        reviews.applyResult = Result.failure(AppException(AppError.Network))
-        val model = viewModel()
-        model.start()
-
-        model.effects.test {
-            model.onEvent(FolderReviewEvent.Apply)
-            dispatcher.scheduler.advanceUntilIdle()
-            assertEquals(FolderReviewEffect.ActionFailed(offline = true), awaitItem())
-        }
-
-        assertFalse(model.content().working)
-    }
-
     // ---- Block purpose ----
 
     @Test
@@ -460,7 +333,6 @@ class FolderReviewViewModelTest {
         model.start()
         model.onEvent(FolderReviewEvent.Toggle("c1"))
 
-        assertTrue(reviews.applied.isEmpty())
         assertTrue(reviews.blocks.isEmpty())
         assertEquals(1, reviews.reviewCalls)
     }
@@ -497,21 +369,5 @@ class FolderReviewViewModelTest {
 
         assertEquals(FolderReviewUiState.Failed(PlanFailureKind.Interrupted), second.uiState.value)
         assertEquals(1, reviews.reviewCalls)
-    }
-
-    @Test
-    fun recreated_doesNotRepeatTheApply() = runTest(dispatcher) {
-        given()
-        val saved = args()
-        val first = viewModel(saved)
-        first.start()
-        first.onEvent(FolderReviewEvent.Apply)
-        dispatcher.scheduler.advanceUntilIdle()
-        reviews.storedResult = reviews.reviewResult.map { it }
-
-        viewModel(saved)
-        dispatcher.scheduler.advanceUntilIdle()
-
-        assertEquals(1, reviews.applied.size)
     }
 }

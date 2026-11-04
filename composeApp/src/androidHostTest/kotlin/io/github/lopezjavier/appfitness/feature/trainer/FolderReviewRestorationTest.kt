@@ -17,14 +17,13 @@ import io.github.lopezjavier.appfitness.domain.model.ReviewPurpose
 import io.github.lopezjavier.appfitness.feature.routines.FakeRoutineRepository
 import io.github.lopezjavier.appfitness.feature.routines.routineOf
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 
-/** ADR-40: "Revisar tus rutinas" keeps the review and the unchecked changes, and never bills or writes by itself. */
+/** ADR-40: the block-start review keeps the review and the unchecked changes, and never bills or writes by itself. */
 @RunWith(RobolectricTestRunner::class)
 @Config(qualifiers = "w360dp-h2400dp-xxhdpi")
 class FolderReviewRestorationTest {
@@ -38,7 +37,7 @@ class FolderReviewRestorationTest {
         folderOf["r1"] = "folder-1"
         folderOf["r2"] = "folder-1"
     }
-    private val saved = SavedStateHandle(mapOf("folderId" to "folder-1", "purpose" to "review"))
+    private val saved = SavedStateHandle(mapOf("folderId" to "folder-1", "purpose" to "block", "planId" to "plan-1"))
 
     private fun newModel(handle: SavedStateHandle = saved) = folderReviewModel(reviews, routines, handle)
 
@@ -47,7 +46,7 @@ class FolderReviewRestorationTest {
     private fun givenReview() {
         val review = review(
             listOf(change("c1", FolderOp.SetSets(1, 1, 4)), change("c2", FolderOp.RemoveExercise(1, 2))),
-            purpose = ReviewPurpose.Review,
+            purpose = ReviewPurpose.Block,
         )
         reviews.reviewResult = Result.success(review)
         reviews.storedResult = Result.success(review)
@@ -56,7 +55,7 @@ class FolderReviewRestorationTest {
     private fun showRoot() {
         rule.setContent {
             AppTheme {
-                FolderReviewRoot({}, {}, {}, viewModel = current, connectivity = FakeConnectivityObserver())
+                FolderReviewRoot({}, {}, viewModel = current, connectivity = FakeConnectivityObserver())
             }
         }
         rule.waitForIdle()
@@ -88,7 +87,8 @@ class FolderReviewRestorationTest {
         val handle = SavedStateHandle(
             mapOf(
                 "folderId" to "folder-1",
-                "purpose" to "review",
+                "purpose" to "block",
+                "planId" to "plan-1",
                 "folder_review_pending" to true,
             ),
         )
@@ -101,16 +101,15 @@ class FolderReviewRestorationTest {
     }
 
     @Test
-    fun recreation_neverRepeatsTheCopy() {
+    fun recreation_neverRepeatsTheBlock() {
         givenReview()
         showRoot()
-        rule.onNodeWithTag("folder_review_apply").performClick()
+        rule.onNodeWithTag("folder_review_create_block").performClick()
         rule.waitForIdle()
-        assertEquals(1, reviews.applied.size)
+        assertEquals(1, reviews.blocks.size)
 
         recreate()
 
-        assertEquals(1, reviews.applied.size)
-        assertTrue(reviews.blocks.isEmpty())
+        assertEquals(1, reviews.blocks.size)
     }
 }

@@ -4,7 +4,9 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.test.assertCountEquals
+import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
+import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithTag
@@ -23,7 +25,7 @@ import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 
-/** US-95: the folder's actions menu (review with the coach, rename) and its restoration (ADR-40). */
+/** US-95: the folder's actions menu (review the routines, rename) and its restoration (ADR-40). */
 @RunWith(RobolectricTestRunner::class)
 @Config(qualifiers = "w360dp-h800dp-xxhdpi")
 class RoutinesFolderMenuTest {
@@ -79,17 +81,23 @@ class RoutinesFolderMenuTest {
     }
 
     @Test
-    fun offline_bothEntriesStayListedButDisabled_withTheReason() {
+    fun offline_reviewStaysEnabledAndOpens_renameAndDeleteAreDisabledWithTheReason() {
         show()
         connectivity.state.value = false
         rule.waitForIdle()
 
         click("routines_folder_menu_f1")
 
-        rule.onNodeWithTag("routines_folder_menu_review").assertIsNotEnabled()
+        rule.onNodeWithTag("routines_folder_menu_review").assertIsEnabled()
         rule.onNodeWithTag("routines_folder_menu_rename").assertIsNotEnabled()
-        rule.onNodeWithTag("routines_folder_menu_offline_reason").assertExists()
+        rule.onNodeWithTag("routines_folder_menu_delete").assertIsNotEnabled()
+        rule.onNodeWithTag("routines_folder_menu_offline_reason")
+            .assertTextEquals("Sin conexión: no se puede renombrar ni borrar la carpeta")
         assertTrue(reviewed.isEmpty())
+
+        click("routines_folder_menu_review")
+
+        assertEquals(listOf("f1"), reviewed)
     }
 
     @Test

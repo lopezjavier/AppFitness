@@ -23,7 +23,7 @@ sealed interface FolderReviewUiState {
 
     /**
      * The review of the folder. [accepted] are the checked change ids; [allFalta] has every hard failure of the
-     * folder and [falta] only those no accepted change fixes. [working] is true while the copy or the block is made.
+     * folder and [falta] only those no accepted change fixes. [working] is true while the block is made.
      * [blockedFalta] is the list the server returned when it refused the block (empty otherwise); it clears on the
      * next toggle.
      */
@@ -44,11 +44,8 @@ sealed interface FolderReviewUiState {
         val hasUnfixableFalta: Boolean
             get() = falta.any { item -> review.changes.none { it.fixes == item.falta.code } }
 
-        /** The footer exists: the apply copy needs changes to offer; the block can always be asked. */
-        val showsFooter: Boolean get() = purpose == ReviewPurpose.Block || review.changes.isNotEmpty()
-
-        val canApply: Boolean
-            get() = purpose == ReviewPurpose.Review && accepted.isNotEmpty() && !working
+        /** The footer ("Crear bloque") exists for the block purpose only. */
+        val showsFooter: Boolean get() = purpose == ReviewPurpose.Block
 
         val canCreateBlock: Boolean
             get() = purpose == ReviewPurpose.Block && falta.isEmpty() && !working
@@ -64,10 +61,7 @@ sealed interface FolderReviewEvent {
 
     data class Toggle(val id: String) : FolderReviewEvent
 
-    /** "Aplicar en una copia" (review purpose). */
-    data object Apply : FolderReviewEvent
-
-    /** "Crear bloque" (block purpose). */
+    /** "Crear bloque". */
     data object Continue : FolderReviewEvent
 
     /** "Reintentar": shows the kept review again, or asks for a new one when there is none. */
@@ -75,12 +69,9 @@ sealed interface FolderReviewEvent {
 }
 
 sealed interface FolderReviewEffect {
-    /** The copy exists; [folderName] is its name when it could be read. */
-    data class Applied(val folderId: String, val folderName: String?) : FolderReviewEffect
-
     /** The block is stored: navigate to its preview. */
     data object BlockReady : FolderReviewEffect
 
-    /** Applying or creating failed; nothing changed. [offline] picks the offline hint. */
+    /** Creating the block failed; nothing changed. [offline] picks the offline hint. */
     data class ActionFailed(val offline: Boolean) : FolderReviewEffect
 }

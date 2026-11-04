@@ -25,6 +25,8 @@ import io.github.lopezjavier.appfitness.composeapp.resources.catalog_ring_empty
 import io.github.lopezjavier.appfitness.composeapp.resources.catalog_ring_full
 import io.github.lopezjavier.appfitness.composeapp.resources.catalog_ring_normal
 import io.github.lopezjavier.appfitness.composeapp.resources.catalog_ring_over
+import io.github.lopezjavier.appfitness.composeapp.resources.catalog_ring_percent
+import io.github.lopezjavier.appfitness.composeapp.resources.catalog_ring_score
 import io.github.lopezjavier.appfitness.composeapp.resources.catalog_section_bar_chart
 import io.github.lopezjavier.appfitness.composeapp.resources.catalog_section_body_heatmap
 import io.github.lopezjavier.appfitness.composeapp.resources.catalog_section_line_chart
@@ -42,6 +44,8 @@ import io.github.lopezjavier.appfitness.composeapp.resources.catalog_trend_cauti
 import io.github.lopezjavier.appfitness.composeapp.resources.catalog_trend_favorable
 import io.github.lopezjavier.appfitness.composeapp.resources.catalog_trend_unfavorable
 import io.github.lopezjavier.appfitness.composeapp.resources.exercise_progress_record_legend
+import io.github.lopezjavier.appfitness.composeapp.resources.folder_review_result_band_fair
+import io.github.lopezjavier.appfitness.composeapp.resources.folder_review_result_score_label
 import io.github.lopezjavier.appfitness.composeapp.resources.macro_carbs
 import io.github.lopezjavier.appfitness.composeapp.resources.macro_fat
 import io.github.lopezjavier.appfitness.composeapp.resources.macro_protein
@@ -65,9 +69,11 @@ import io.github.lopezjavier.appfitness.designsystem.MacroSlider
 import io.github.lopezjavier.appfitness.designsystem.MacroSliderDefaults
 import io.github.lopezjavier.appfitness.designsystem.MacroStackedBar
 import io.github.lopezjavier.appfitness.designsystem.MetricTile
+import io.github.lopezjavier.appfitness.designsystem.PercentRing
 import io.github.lopezjavier.appfitness.designsystem.ProgressRing
 import io.github.lopezjavier.appfitness.designsystem.RadarChart
 import io.github.lopezjavier.appfitness.designsystem.RadarLegend
+import io.github.lopezjavier.appfitness.designsystem.ScoreRing
 import io.github.lopezjavier.appfitness.designsystem.SleepStageKind
 import io.github.lopezjavier.appfitness.designsystem.SleepStageSegment
 import io.github.lopezjavier.appfitness.designsystem.SleepStagesBar
@@ -83,6 +89,8 @@ import kotlin.math.roundToInt
 private const val DEMO_TARGET_KCAL = 2400
 private const val RING_NORMAL_KCAL = 1840
 private const val RING_OVER_KCAL = 2520
+private const val DEMO_SCORE = 7.5
+private const val DEMO_PERCENT = 87
 private const val DEFAULT_PROTEIN_PERCENT = 30
 private const val DEFAULT_CARBS_PERCENT = 45
 private const val DEFAULT_FAT_PERCENT = 25
@@ -136,6 +144,16 @@ private fun RingSection() {
                     VariantCaption(stringResource(caption))
                     ProgressRing(consumed, DEMO_TARGET_KCAL, Modifier.testTag(tag))
                 }
+                VariantCaption(stringResource(Res.string.catalog_ring_score))
+                ScoreRing(
+                    score = DEMO_SCORE,
+                    bandLabel = stringResource(Res.string.folder_review_result_band_fair),
+                    description = stringResource(Res.string.folder_review_result_score_label),
+                    stateText = stringResource(Res.string.folder_review_result_score_label),
+                    modifier = Modifier.testTag("catalog_ring_score"),
+                )
+                VariantCaption(stringResource(Res.string.catalog_ring_percent))
+                PercentRing(DEMO_PERCENT, DEMO_PERCENT.toString(), Modifier.testTag("catalog_ring_percent"))
             }
         }
     }

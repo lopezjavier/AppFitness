@@ -37,6 +37,7 @@ import io.github.lopezjavier.appfitness.feature.trainer.BeforeStartRoot
 import io.github.lopezjavier.appfitness.feature.trainer.BlockPreviewRoot
 import io.github.lopezjavier.appfitness.feature.trainer.BlockSplitsRoot
 import io.github.lopezjavier.appfitness.feature.trainer.CoachUsageRoot
+import io.github.lopezjavier.appfitness.feature.trainer.FolderReviewResultRoot
 import io.github.lopezjavier.appfitness.feature.trainer.FolderReviewRoot
 import io.github.lopezjavier.appfitness.feature.trainer.FreeTextLinesRoot
 import io.github.lopezjavier.appfitness.feature.trainer.IntakeRoot
@@ -108,9 +109,10 @@ fun AppRoot(
         blockPreview = { blockModifier, planId, onOpenExercise, onBack ->
             BlockPreviewRoot(planId, onBack, onOpenExercise, blockModifier)
         },
-        folderReview = { reviewModifier, onApplied, onBlockReady, onBack ->
-            FolderReviewRoot(onApplied, onBlockReady, onBack, reviewModifier)
+        folderReview = { reviewModifier, onBlockReady, onBack ->
+            FolderReviewRoot(onBlockReady, onBack, reviewModifier)
         },
+        folderReviewResult = { resultModifier, onBack -> FolderReviewResultRoot(onBack, resultModifier) },
         blockSplits = { splitsModifier, planId, onBuilt, onBack ->
             BlockSplitsRoot(planId, onBuilt, onBack, splitsModifier)
         },

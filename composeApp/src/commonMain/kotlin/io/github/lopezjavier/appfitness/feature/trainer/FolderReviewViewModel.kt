@@ -37,12 +37,12 @@ private const val KEY_PENDING = "folder_review_pending"
 private const val PURPOSE_BLOCK = "block"
 
 /**
- * Reviews a routine folder with the coach (US-95) and, for the block purpose, builds the block from it (US-93). The
- * route arguments (`folderId`, `purpose` = `review|block`, `planId`) come from [savedState]. The review is a paid
- * call: it is asked only by [FolderReviewEvent.Request] or [FolderReviewEvent.Retry], never by creation. The review
- * id, the checked ids and an in-flight flag live in [savedState]; a recreated model reads the stored review (free)
- * or, with a call in flight and nothing stored, shows [PlanFailureKind.Interrupted] and never asks by itself.
- * Nothing is written until "Aplicar en una copia" or "Crear bloque".
+ * Reviews a routine folder with the coach and builds the block from it (US-93, "Desde una carpeta"). The route
+ * arguments (`folderId`, `purpose`, `planId`) come from [savedState]. The review is a paid call: it is asked only by
+ * [FolderReviewEvent.Request] or [FolderReviewEvent.Retry], never by creation. The review id, the checked ids and an
+ * in-flight flag live in [savedState]; a recreated model reads the stored review (free) or, with a call in flight and
+ * nothing stored, shows [PlanFailureKind.Interrupted] and never asks by itself. Nothing is written until
+ * "Crear bloque". The score and checklist review of US-95 is [FolderReviewResultViewModel].
  */
 @Suppress("TooManyFunctions", "LongParameterList") // One small handler per event.
 class FolderReviewViewModel(
@@ -91,7 +91,6 @@ class FolderReviewViewModel(
         when (event) {
             FolderReviewEvent.Request -> if (_uiState.value == FolderReviewUiState.Idle) request()
             is FolderReviewEvent.Toggle -> toggle(event.id)
-            FolderReviewEvent.Apply -> apply()
             FolderReviewEvent.Continue -> createBlock()
             FolderReviewEvent.Retry -> retry()
         }
@@ -199,22 +198,6 @@ class FolderReviewViewModel(
 
     private fun acceptedInOrder(content: FolderReviewUiState.Content): List<String> =
         content.review.changes.map { it.id }.filter { it in content.accepted }
-
-    private fun apply() {
-        val content = content() ?: return
-        if (!content.canApply) return
-        setWorking(true)
-        viewModelScope.launch {
-            reviews.applyCopy(content.review.id, acceptedInOrder(content)).fold(
-                onSuccess = { copy ->
-                    val name = routines.listFolders().getOrNull()?.firstOrNull { it.id == copy.folderId }?.name
-                    // Stays working until the screen leaves: no second tap can make a second copy.
-                    effectChannel.send(FolderReviewEffect.Applied(copy.folderId, name))
-                },
-                onFailure = { failed(it) },
-            )
-        }
-    }
 
     private fun createBlock() {
         val content = content() ?: return

@@ -92,9 +92,12 @@ internal typealias FreeTextLinesSlot = @Composable (modifier: Modifier, onBack: 
 internal typealias BlockPreviewSlot =
     @Composable (modifier: Modifier, planId: String, onOpenExercise: (String) -> Unit, onBack: () -> Unit) -> Unit
 
-/** Content of the folder review: modifier (full-screen insets), how to leave after a copy, after a block, and back. */
+/** Content of the block-start folder review: modifier (full-screen insets), how to leave after a block, and back. */
 internal typealias FolderReviewSlot =
-    @Composable (modifier: Modifier, onApplied: () -> Unit, onBlockReady: () -> Unit, onBack: () -> Unit) -> Unit
+    @Composable (modifier: Modifier, onBlockReady: () -> Unit, onBack: () -> Unit) -> Unit
+
+/** Content of the score and checklist review of a folder (US-95): modifier (full-screen insets) and back. */
+internal typealias FolderReviewResultSlot = @Composable (modifier: Modifier, onBack: () -> Unit) -> Unit
 
 /** Content of the split options: modifier (full-screen insets), plan id, how to go to the built block and to leave. */
 internal typealias BlockSplitsSlot =
@@ -628,8 +631,13 @@ internal val DefaultBlockPreviewSlot: BlockPreviewSlot = { modifier, _, _, _ ->
 }
 
 /** Empty folder review for previews and shell tests; the real one is wired by `AppRoot`. */
-internal val DefaultFolderReviewSlot: FolderReviewSlot = { modifier, _, _, _ ->
+internal val DefaultFolderReviewSlot: FolderReviewSlot = { modifier, _, _ ->
     Box(modifier.fillMaxSize().testTag("folder_review_screen"))
+}
+
+/** Empty folder review result for previews and shell tests; the real one is wired by `AppRoot`. */
+internal val DefaultFolderReviewResultSlot: FolderReviewResultSlot = { modifier, _ ->
+    Box(modifier.fillMaxSize().testTag("folder_review_result_screen"))
 }
 
 /** Empty split options for previews and shell tests; the real one is wired by `AppRoot`. */
@@ -669,6 +677,7 @@ internal fun AppNavHost(
     blockPreview: BlockPreviewSlot = DefaultBlockPreviewSlot,
     blockSplits: BlockSplitsSlot = DefaultBlockSplitsSlot,
     folderReview: FolderReviewSlot = DefaultFolderReviewSlot,
+    folderReviewResult: FolderReviewResultSlot = DefaultFolderReviewResultSlot,
     activity: ActivitySlot = DefaultActivitySlot,
     exercisePicker: ExercisePickerSlot = DefaultExercisePickerSlot,
     exerciseDetail: ExerciseDetailSlot = DefaultExerciseDetailSlot,
@@ -825,7 +834,7 @@ internal fun AppNavHost(
                     openDetails,
                     openLiveSession,
                     openHistory,
-                ) { folderId -> navController.navigateToFullScreen(FolderReviewRoute(REVIEW_PURPOSE, folderId)) }
+                ) { folderId -> navController.navigateToFullScreen(FolderReviewResultRoute(folderId)) }
             }
         }
         navigation<TrainerGraph>(startDestination = TopLevelTab.Trainer.startRoute) {
@@ -878,10 +887,12 @@ internal fun AppNavHost(
         composable<FolderReviewRoute> { entry ->
             folderReview(
                 Modifier.padding(fullScreenPadding),
-                { navController.popFullScreen(entry) },
                 { navController.openBuiltBlockFromReview(entry) },
                 { navController.popFullScreen(entry) },
             )
+        }
+        composable<FolderReviewResultRoute> { entry ->
+            folderReviewResult(Modifier.padding(fullScreenPadding)) { navController.popFullScreen(entry) }
         }
         composable<IntakeRoute> { entry ->
             intake(

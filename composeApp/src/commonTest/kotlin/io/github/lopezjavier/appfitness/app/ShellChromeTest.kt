@@ -79,6 +79,7 @@ class ShellChromeTest {
                 BlockPreviewRoute::class,
                 BlockSplitsRoute::class,
                 FolderReviewRoute::class,
+                FolderReviewResultRoute::class,
                 NotificationCenterRoute,
                 CheckInRoute,
             ),

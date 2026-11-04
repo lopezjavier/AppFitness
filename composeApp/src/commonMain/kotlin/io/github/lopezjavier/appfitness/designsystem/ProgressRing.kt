@@ -2,7 +2,6 @@ package io.github.lopezjavier.appfitness.designsystem
 
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
-import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -15,11 +14,7 @@ import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.StrokeCap
-import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.semantics.ProgressBarRangeInfo
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
@@ -64,6 +59,10 @@ object ProgressRingDefaults {
     /** Inner diameter 152 dp leaves room for `displayHero` at 130% font scale. */
     val Size: Dp = 176.dp
     val StrokeWidth: Dp = 12.dp
+
+    /** [PercentRing]: fits a list row's trailing slot. */
+    val CompactSize: Dp = 40.dp
+    val CompactStroke: Dp = 4.dp
     const val START_ANGLE = -90f
     const val FULL_SWEEP = 360f
     internal const val ANIMATION_MILLIS = 700
@@ -150,33 +149,14 @@ fun ProgressRing(consumedKcal: Double, targetKcal: Int, modifier: Modifier = Mod
 
 @Composable
 private fun RingBody(sweep: Float, colors: ProgressRingColors, consumedText: String, targetText: String) {
-    val strokeWidth = ProgressRingDefaults.StrokeWidth
     Box(Modifier.size(ProgressRingDefaults.Size), contentAlignment = Alignment.Center) {
-        Canvas(Modifier.size(ProgressRingDefaults.Size)) {
-            val stroke = Stroke(width = strokeWidth.toPx(), cap = StrokeCap.Round)
-            val inset = strokeWidth.toPx() / 2
-            val arcSize = Size(size.width - strokeWidth.toPx(), size.height - strokeWidth.toPx())
-            drawArc(
-                color = colors.track,
-                startAngle = 0f,
-                sweepAngle = ProgressRingDefaults.FULL_SWEEP,
-                useCenter = false,
-                topLeft = Offset(inset, inset),
-                size = arcSize,
-                style = stroke,
-            )
-            if (sweep > 0f) {
-                drawArc(
-                    color = colors.progress,
-                    startAngle = ProgressRingDefaults.START_ANGLE,
-                    sweepAngle = sweep,
-                    useCenter = false,
-                    topLeft = Offset(inset, inset),
-                    size = arcSize,
-                    style = stroke,
-                )
-            }
-        }
+        RingArc(
+            sweep = sweep,
+            track = colors.track,
+            progress = colors.progress,
+            size = ProgressRingDefaults.Size,
+            strokeWidth = ProgressRingDefaults.StrokeWidth,
+        )
         Column(
             modifier = Modifier.clearAndSetSemantics {},
             horizontalAlignment = Alignment.CenterHorizontally,
