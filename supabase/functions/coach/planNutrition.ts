@@ -39,7 +39,7 @@ import {
     validateOutcomesText,
 } from "./validators.ts";
 
-export const PLAN_NUTRITION_MAX_TOKENS = 1200;
+export const PLAN_NUTRITION_MAX_TOKENS = 10_000;
 
 const INTENTIONS: Intention[] = [
     "strength",

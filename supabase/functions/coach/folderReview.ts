@@ -75,20 +75,13 @@ export type ReviewPurpose = "review" | "block";
 export const MAX_CHANGES = 40;
 export const MAX_COMMENTS = 12;
 /**
- * Output budget: `min(MAX, BASE + PER_EXERCISE x exercises)` tokens. T-213: a 21-exercise folder hit
- * `stop_reason = max_tokens` at 2760 tokens (the old 1500 + 60 x 21) and the JSON came back truncated. The ceiling is
- * 8000, far above a real answer (about 2-5k): only a runaway guard, since billing is on tokens produced, not on the
- * limit. The 120 s call timeout stays the wall-clock guard.
+ * Output ceiling: a flat 100 000 tokens (user decision, 2026-11-04). Two size-based budgets (2760, then 5150 tokens)
+ * truncated a 21-exercise folder. The ceiling is not a cost control: billing is on tokens produced, and the call
+ * timeout is the real guard. The tokens actually spent are logged per call (`coach: usage`).
  */
-export const OUTPUT_TOKENS_MAX = 8000;
-export const OUTPUT_TOKENS_BASE = 2000;
-export const OUTPUT_TOKENS_PER_EXERCISE = 150;
+export const OUTPUT_TOKENS_MAX = 100_000;
 
-export const maxTokensFor = (exercises: number): number =>
-    Math.min(
-        OUTPUT_TOKENS_MAX,
-        OUTPUT_TOKENS_BASE + OUTPUT_TOKENS_PER_EXERCISE * exercises,
-    );
+export const maxTokensFor = (_exercises: number): number => OUTPUT_TOKENS_MAX;
 
 /** A hard failure of the checker as the client shows it ("Falta"). `data` never carries the routine or the key. */
 export type Falta = {

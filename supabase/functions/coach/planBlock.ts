@@ -77,26 +77,13 @@ const intOrNull = (v: unknown): number | null =>
 
 /** The model input (the prompt JSON) is capped at this many UTF-8 bytes (about 14-16k tokens). */
 export const MODEL_INPUT_MAX_BYTES = 48_000;
-/** Output budget: `min(MAX, BASE + PER_EXERCISE x exercises)` tokens; one call, no parts. */
-export const OUTPUT_TOKENS_MAX = 7000;
-export const OUTPUT_TOKENS_BASE = 600;
-export const OUTPUT_TOKENS_PER_EXERCISE = 85;
-/** Output speed assumed for the time budget (tokens per second) and the share of the 150 s limit it may use. */
-export const OUTPUT_TOKENS_PER_SECOND = 60;
+/** Output ceiling: a flat 100 000 tokens (user decision, 2026-11-04): size-based budgets truncated answers. Not a cost control. */
+export const OUTPUT_TOKENS_MAX = 100_000;
 /** The retry starts only if the first attempt took less than this. */
 export const RETRY_START_LIMIT_MS = 40_000;
 
-/** Exercises a routine of this length holds, for the output budget only (the checker decides the real count). */
-export const exercisesPerRoutine = (sessionMinutes: number): number =>
-    Math.min(8, Math.max(3, Math.ceil(sessionMinutes / 8)));
-
-export const maxTokensFor = (days: number, sessionMinutes: number): number =>
-    Math.min(
-        OUTPUT_TOKENS_MAX,
-        OUTPUT_TOKENS_BASE +
-            OUTPUT_TOKENS_PER_EXERCISE * days *
-                exercisesPerRoutine(sessionMinutes),
-    );
+export const maxTokensFor = (_days: number, _sessionMinutes: number): number =>
+    OUTPUT_TOKENS_MAX;
 
 const NAME_MAX = 60;
 

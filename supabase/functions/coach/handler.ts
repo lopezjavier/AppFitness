@@ -339,6 +339,13 @@ export function createCoachHandler(
                 const cost = costEur(model, usage);
                 const inputTokens = usage.inputTokens + usage.cacheReadTokens +
                     usage.cacheWriteTokens;
+                // Always on, numbers only: what each call really spent (never the prompt or the text).
+                console.log("coach: usage", {
+                    kind: typeof kindName === "string" ? kindName : null,
+                    input_tokens: inputTokens,
+                    output_tokens: usage.outputTokens,
+                    cost_eur: cost,
+                });
                 try {
                     await deps.recordUsage({
                         userId,

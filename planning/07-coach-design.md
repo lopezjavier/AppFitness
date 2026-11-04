@@ -397,7 +397,7 @@ Prices re-checked on the Anthropic price list on 2026-11-01: Opus 5.5 $4 / $20, 
 |---|---|---|---|---|
 | Split options (`block_splits`, T-205) | Sonnet 5.5 | 2k in, 1k out | ≈ $0.02 | ≈ $0.04 |
 | Block plan (`plan_block`, T-205: the model builds the whole block) | Opus 5.5 | about 15k in (cap 48 000 bytes), up to 7k out; 2 per month; a failed retry doubles the call, every attempt is charged | ≈ $0.15-0.20 (retry ≈ $0.35) | ≈ $0.40 |
-| Folder review (`folder_review`, T-207) | Sonnet 5.5 | about 8-14k in (folder + eligible catalogue), about 2-5k out (the `max_tokens` ceiling is a runaway guard of 8k since T-213, the old 5k truncated a 21-exercise folder; billing is on tokens produced; a `max_tokens` stop is not retried); a few per month | ≈ $0.04-0.08 (estimate; confirm with the first measured call) | ≈ $0.15 |
+| Folder review (`folder_review`, T-207) | Sonnet 5.5 | about 8-14k in (folder + eligible catalogue), about 2-6k out (the `max_tokens` ceiling is a flat 100k since T-215, user decision: the old size-based budgets truncated a 21-exercise folder twice; the real tokens are logged per call as `coach: usage`; billing is on tokens produced; a `max_tokens` stop is not retried); a few per month | ≈ $0.04-0.08 (estimate; confirm with the first measured call) | ≈ $0.15 |
 | Weekly report | Sonnet 5.5 | 20k in, 5k out; up to 8 per month | ≈ $0.09 | ≈ $0.70 |
 | Chat | Sonnet 5.5 | 15k in (12k cached), 1.5k out; 60 messages | ≈ $0.024 | ≈ $1.45 |
 | Intake extraction (T-185, removed by T-198) | — | no model call | — | — |
