@@ -88,6 +88,19 @@ class FolderReviewResultViewModelTest {
     }
 
     @Test
+    fun over_isMappedFromTheGroupRow() = runTest(dispatcher) {
+        answer = Result.success(
+            result(rows = listOf(GroupRow(MuscleGroup.Back, 25.0), GroupRow(MuscleGroup.Chest, 12.0))),
+        )
+        val model = viewModel()
+        dispatcher.scheduler.advanceUntilIdle()
+
+        val (back, chest) = model.content().items.map { it as ReviewItem.Group }
+        assertEquals(true, back.over)
+        assertEquals(false, chest.over)
+    }
+
+    @Test
     fun anUnmetGroup_carriesTheSetsAndTheMissingAmount() = runTest(dispatcher) {
         answer =
             Result.success(result(rows = listOf(GroupRow(MuscleGroup.Back, 7.5), GroupRow(MuscleGroup.Chest, 0.0))))

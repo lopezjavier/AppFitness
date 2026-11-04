@@ -39,7 +39,6 @@ import io.github.lopezjavier.appfitness.composeapp.resources.plan_proposal_calor
 import io.github.lopezjavier.appfitness.composeapp.resources.plan_proposal_carbs_rest
 import io.github.lopezjavier.appfitness.composeapp.resources.plan_proposal_discard_error
 import io.github.lopezjavier.appfitness.composeapp.resources.plan_proposal_discard_offline
-import io.github.lopezjavier.appfitness.composeapp.resources.plan_proposal_distribution
 import io.github.lopezjavier.appfitness.composeapp.resources.plan_proposal_error
 import io.github.lopezjavier.appfitness.composeapp.resources.plan_proposal_fat_min
 import io.github.lopezjavier.appfitness.composeapp.resources.plan_proposal_floor_note
@@ -262,12 +261,6 @@ private fun ProposalContent(
                 testTag = "plan_proposal_underweight_note",
             )
         }
-        nutrition.distribution?.let {
-            InlineNote(
-                text = stringResource(Res.string.plan_proposal_distribution, it.perMealG, it.minMeals),
-                testTag = "plan_proposal_distribution",
-            )
-        }
         nutrition.activity?.let {
             ActivityCard(it, state.plan.intention, enabled = !state.busy) { onEvent(PlanProposalEvent.OpenCardioEdit) }
         }
@@ -304,7 +297,6 @@ private fun NutritionCard(state: PlanProposalUiState.Proposal) {
             Macro.Protein,
             stringResource(Res.string.plan_proposal_protein_headline, AppNumberFormat.integer(nutrition.proteinG)),
             "plan_proposal_macro_protein",
-            headline = true,
         )
         MacroRow(
             Macro.Fat,
@@ -342,9 +334,9 @@ private fun NutritionCard(state: PlanProposalUiState.Proposal) {
     }
 }
 
-/** One macro sentence with its colour dot; the protein [headline] row is the largest (ADR-98). */
+/** One macro sentence with its colour dot; the three macros are equal rows (ADR-98, amended T-220). */
 @Composable
-private fun MacroRow(macro: Macro, text: String, tag: String, headline: Boolean = false) {
+private fun MacroRow(macro: Macro, text: String, tag: String) {
     Row(
         modifier = Modifier.fillMaxWidth().heightIn(min = Spacing.minTouchTarget).testTag(tag),
         verticalAlignment = Alignment.CenterVertically,
@@ -353,7 +345,7 @@ private fun MacroRow(macro: Macro, text: String, tag: String, headline: Boolean 
         Box(Modifier.size(Spacing.sm).background(MacroDefaults.color(macro, AppTheme.colors), AppShapes.full))
         Text(
             text = text,
-            style = if (headline) AppTheme.typography.titleMedium else AppTheme.typography.bodyLarge,
+            style = AppTheme.typography.bodyLarge,
             color = AppTheme.colors.textPrimary,
         )
     }

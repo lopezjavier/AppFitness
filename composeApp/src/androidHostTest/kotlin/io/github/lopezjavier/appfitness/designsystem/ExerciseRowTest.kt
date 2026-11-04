@@ -1,6 +1,12 @@
 package io.github.lopezjavier.appfitness.designsystem
 
 import androidx.compose.material3.Text
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.semantics.SemanticsProperties
+import androidx.compose.ui.semantics.getOrNull
+import androidx.compose.ui.test.SemanticsMatcher
+import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.assertContentDescriptionEquals
 import androidx.compose.ui.test.assertHeightIsAtLeast
 import androidx.compose.ui.test.assertIsDisplayed
@@ -11,6 +17,7 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.unit.dp
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -20,6 +27,7 @@ import org.robolectric.annotation.Config
 /** R-16 / R-18: the shared exercise row (thumbnail + name opens the details, optional supporting line). */
 @RunWith(RobolectricTestRunner::class)
 @Config(qualifiers = "w360dp-h800dp-xxhdpi")
+@Suppress("TooManyFunctions") // One behaviour per test.
 class ExerciseRowTest {
     @get:Rule
     val rule = createComposeRule()
@@ -118,5 +126,58 @@ class ExerciseRowTest {
         }
 
         rule.onNodeWithTag("row_thumbnail").assertDoesNotExist()
+    }
+
+    @Test
+    fun headlineTrailing_rendersRightAfterTheHeadline_onTheSameLine() {
+        rule.setContent {
+            AppTheme {
+                AppListRow(
+                    headline = "Remo",
+                    headlineTrailing = { Text("*", Modifier.testTag("mark")) },
+                    trailing = { Text("fin", Modifier.testTag("end")) },
+                )
+            }
+        }
+
+        val name = rule.onNodeWithText("Remo").fetchSemanticsNode().boundsInRoot
+        val mark = rule.onNodeWithTag("mark").fetchSemanticsNode().boundsInRoot
+        val end = rule.onNodeWithTag("end").fetchSemanticsNode().boundsInRoot
+        assertTrue(mark.left >= name.right)
+        assertTrue(mark.top < name.bottom && mark.bottom > name.top)
+        assertTrue(mark.right <= end.left)
+    }
+
+    @Test
+    fun withoutHeadlineTrailing_theHeadlineIsAloneInItsColumn() {
+        rule.setContent { AppTheme { AppListRow(headline = "Remo", supporting = "3 x 8") } }
+
+        rule.onNodeWithText("Remo").assertIsDisplayed()
+        rule.onNodeWithText("3 x 8").assertIsDisplayed()
+    }
+
+    @Test
+    fun aFavouriteRow_keepsTheStarTagAndReadsFavorito() {
+        rule.setContent {
+            AppTheme {
+                ExerciseRow(
+                    name = "Remo",
+                    supporting = null,
+                    onOpen = {},
+                    tagPrefix = "row",
+                    trailing = { Text("fin") },
+                    favorite = true,
+                    favoriteTestTag = "row_star",
+                )
+            }
+        }
+
+        rule.onNodeWithTag("row_star", useUnmergedTree = true).assertContentDescriptionEquals("Favorito")
+        rule.onNodeWithText("fin").assertIsDisplayed()
+        rule.onNodeWithTag("row").assert(
+            SemanticsMatcher("row reads Favorito") {
+                it.config.getOrNull(SemanticsProperties.ContentDescription)?.contains("Favorito") == true
+            },
+        )
     }
 }

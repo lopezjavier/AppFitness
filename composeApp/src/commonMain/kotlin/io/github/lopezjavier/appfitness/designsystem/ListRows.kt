@@ -35,7 +35,8 @@ object NavigationRowDefaults {
  * [supporting] line (`bodyMedium`, `textSecondary`). At least 48 dp high. With [onClick] the whole row is one
  * `Role.Button` target that reads as a single node; without it the row is plain content. The caller owns the
  * tag (pass it in [modifier]); [supportingTestTag] tags the supporting line;
- * [onClickLabel] is what a screen reader announces for the tap.
+ * [onClickLabel] is what a screen reader announces for the tap. [headlineTrailing] (default none) sits in the same
+ * line right after the headline text, which shrinks first (an inline marker such as a favourite star).
  */
 @Composable
 fun AppListRow(
@@ -48,6 +49,7 @@ fun AppListRow(
     supportingTestTag: String? = null,
     enabled: Boolean = true,
     onClickLabel: String? = null,
+    headlineTrailing: (@Composable () -> Unit)? = null,
 ) {
     val clickable =
         if (onClick != null) {
@@ -66,13 +68,27 @@ fun AppListRow(
     ) {
         leading?.invoke()
         Column(Modifier.weight(1f)) {
-            Text(
-                text = headline,
-                style = AppTheme.typography.bodyLarge,
-                color = AppTheme.colors.textPrimary,
-                maxLines = HEADLINE_MAX_LINES,
-                overflow = TextOverflow.Ellipsis,
-            )
+            val headlineText: @Composable (Modifier) -> Unit = { textModifier ->
+                Text(
+                    text = headline,
+                    style = AppTheme.typography.bodyLarge,
+                    color = AppTheme.colors.textPrimary,
+                    maxLines = HEADLINE_MAX_LINES,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = textModifier,
+                )
+            }
+            if (headlineTrailing == null) {
+                headlineText(Modifier)
+            } else {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(Spacing.xs),
+                ) {
+                    headlineText(Modifier.weight(1f, fill = false))
+                    headlineTrailing()
+                }
+            }
             if (supporting != null) {
                 Text(
                     text = supporting,

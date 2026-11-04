@@ -17,6 +17,7 @@ import io.github.lopezjavier.appfitness.domain.model.Equipment
 import io.github.lopezjavier.appfitness.domain.model.ExerciseDetail
 import kotlinx.datetime.LocalDate
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -83,6 +84,24 @@ class ExerciseSimilarTabTest {
             SemanticsMatcher.expectValue(SemanticsProperties.ProgressBarRangeInfo, ProgressBarRangeInfo(0.87f, 0f..1f)),
         )
         rule.onNodeWithText("87", useUnmergedTree = true).assertExists()
+    }
+
+    @Test
+    fun favoriteStar_isInlineAfterTheName_andTheRingIsTheOnlyTrailing() {
+        val starred = similar("3", "fly", "Aperturas", 0.87).copy(isFavorite = true)
+        show(SimilarState.Content(listOf(starred)))
+
+        val name = rule.onNodeWithText("Aperturas", useUnmergedTree = true).fetchSemanticsNode().boundsInRoot
+        val star = rule.onNodeWithTag("exercise_similar_favorite_fly", useUnmergedTree = true)
+            .fetchSemanticsNode().boundsInRoot
+        val ring = rule.onNodeWithTag("exercise_detail_similar_percent_fly", useUnmergedTree = true)
+            .fetchSemanticsNode().boundsInRoot
+        assertTrue(star.left > name.left)
+        assertTrue(star.left >= name.right)
+        assertTrue(star.top < name.bottom && star.bottom > name.top)
+        assertTrue(star.right <= ring.left)
+        rule.onNodeWithTag("exercise_detail_similar_percent_fly", useUnmergedTree = true)
+            .assertContentDescriptionEquals("87 por ciento de similitud")
     }
 
     @Test

@@ -132,11 +132,24 @@ class PlanProposalScreenTest {
     }
 
     @Test
-    fun proteinDistribution_isShownAsGuidance() {
+    fun proteinDistribution_isNotShown() {
         show(proposal())
 
-        rule.onNodeWithTag("plan_proposal_distribution").assertExists()
-        rule.onNodeWithText("Reparte la proteína: unos 30 g por comida, en 4 comidas o más.").assertExists()
+        rule.onNodeWithTag("plan_proposal_distribution").assertDoesNotExist()
+        rule.onNodeWithText("Reparte la proteína", substring = true).assertDoesNotExist()
+    }
+
+    @Test
+    fun macros_areThreeEqualRows_proteinFirst() {
+        show(proposal())
+
+        val bounds = listOf("protein", "fat", "carbs").map {
+            rule.onNodeWithTag("plan_proposal_macro_$it").fetchSemanticsNode().boundsInRoot
+        }
+        assertTrue(bounds[0].top < bounds[1].top && bounds[1].top < bounds[2].top)
+        assertEquals(bounds[0].height, bounds[1].height, 0.5f)
+        assertEquals(bounds[0].height, bounds[2].height, 0.5f)
+        rule.onNodeWithText("Proteína: 150 g").assertExists()
     }
 
     @Test

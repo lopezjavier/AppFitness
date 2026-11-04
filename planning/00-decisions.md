@@ -381,3 +381,4 @@ Phase 2 ADRs continue the numbering (next: **ADR-98**) and are written **in full
   - Not changed: `food-photo`, `plan_block`, `block_splits`, the report and the chat.
 - **Consequences:** `07` §4, §9, §10, §11 (cost row), `04` §8, `03` line of the `coach` function; code in T-218.
 - **Approval:** user, 2026-11-04 (chat: "agree with the plan, make sure we drop the model and we get the exact outcome by the deterministic flow").
+- **Amended T-220 (user, 2026-11-04):** protein is no longer the bold headline macro (the three macros are equal rows); the protein-distribution banner is removed.
