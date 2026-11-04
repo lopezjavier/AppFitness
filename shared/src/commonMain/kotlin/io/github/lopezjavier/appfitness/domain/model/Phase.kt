@@ -4,7 +4,7 @@ package io.github.lopezjavier.appfitness.domain.model
 enum class Phase { Cut, Gain, Maintenance, Recomposition }
 
 /** Why the plan is in its phase; the Spanish text belongs to the UI. */
-enum class PhaseReason { Intention, UserBusy }
+enum class PhaseReason { Intention, UserBusy, Underweight }
 
 /** User-chosen options of a plan: how fast to cut (percent of body weight per week) and the optional diet break. */
 data class PhaseOptions(val cutRatePct: Double = CutRate.DEFAULT, val dietBreak: Boolean = false)
@@ -44,5 +44,6 @@ fun storedPhaseOrNull(code: String?): Phase? = code?.let { phaseOrNull(it) ?: Ph
 /** Maps a stored reason code; an unknown, retired (`returning_*`) or missing one is [PhaseReason.Intention]. */
 fun phaseReasonOf(code: String?): PhaseReason = when (code) {
     "user_busy" -> PhaseReason.UserBusy
+    "underweight" -> PhaseReason.Underweight
     else -> PhaseReason.Intention
 }

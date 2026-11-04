@@ -24,7 +24,7 @@ export type Phase =
 /** Why the plan is in that phase; the Spanish text lives in the client. */
 export type PhaseReason =
     | "intention"
-    | "user_busy";
+    | "underweight";
 export type PhaseOptions = { cut_rate_pct: number; diet_break: boolean };
 
 /** The maintenance week (week 4) of a cut with a diet break. */
@@ -96,38 +96,11 @@ export type Outcome = {
 };
 
 export type Method = {
-    model: string;
+    /** Null for a model-free plan (plan_nutrition, ADR-98). */
+    model: string | null;
     attempts: number;
     cost_eur: number;
     constants_version: number;
-};
-
-/** What the model returns: only a choice among server-built candidates, a reason and a deadline. */
-export type ModelOutcome = {
-    candidate_id: string;
-    reason: string;
-    deadline: string;
-};
-
-export const MODEL_OUTPUT_SCHEMA: Record<string, unknown> = {
-    type: "object",
-    additionalProperties: false,
-    required: ["outcomes"],
-    properties: {
-        outcomes: {
-            type: "array",
-            items: {
-                type: "object",
-                additionalProperties: false,
-                required: ["candidate_id", "reason", "deadline"],
-                properties: {
-                    candidate_id: { type: "string" },
-                    reason: { type: "string" },
-                    deadline: { type: "string" },
-                },
-            },
-        },
-    },
 };
 
 // --- Training block (T-163) ---------------------------------------------------------------------------------

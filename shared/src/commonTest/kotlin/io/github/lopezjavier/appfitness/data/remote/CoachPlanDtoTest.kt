@@ -114,6 +114,16 @@ class CoachPlanDtoTest {
     }
 
     @Test
+    fun underweightReason_isMapped() {
+        val nutrition = decode(
+            plan(nutritionWith(""""phase":"maintenance","phase_reason":"underweight""""), "[]"),
+        ).nutrition
+
+        assertEquals(Phase.Maintenance, nutrition.phase)
+        assertEquals(PhaseReason.Underweight, nutrition.phaseReason)
+    }
+
+    @Test
     fun legacyRegainPhase_readsAsMaintenanceWithIntentionReason() {
         val nutrition = decode(
             plan(nutritionWith(""""phase":"regain","phase_reason":"returning_break""""), "[]"),

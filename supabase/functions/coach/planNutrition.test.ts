@@ -1,5 +1,6 @@
+// plan_nutrition is model-free (ADR-98): same input, same output; no provider call, no budget read, no usage row.
 import { assert, assertEquals } from "jsr:@std/assert@1.0.19";
-import { type AnthropicClient, NO_USAGE } from "../_shared/anthropic.ts";
+import type { AnthropicClient } from "../_shared/anthropic.ts";
 import type { PlanRow } from "./context.ts";
 import { type CoachDeps, createCoachHandler } from "./handler.ts";
 import { MISSING, planInputs } from "./inputsFixtures.ts";
@@ -26,53 +27,57 @@ const summary = (over: Record<string, unknown> = {}) => ({
     weeks: [],
     ...over,
 });
-
-const GOOD = JSON.stringify({
-    outcomes: [{
-        candidate_id: "weight",
-        reason: "Tu peso baja de forma constante hacia el objetivo.",
-        deadline: "2026-11-27",
-    }],
-});
+const withProfile = (profile: Record<string, unknown>, over = {}) =>
+    summary({
+        profile: {
+            sex: "male",
+            weight_kg: 80,
+            age: 30,
+            height_cm: 180,
+            ...profile,
+        },
+        ...over,
+    });
+const lifts = (n: number) =>
+    Array.from({ length: n }, (_, i) => ({
+        exercise: `lift_${i}`,
+        sessions: 10 - i,
+        weekly_e1rm: [100, 102, 104, 106].map((v) => v + i),
+    }));
 
 function setup(
     o: {
-        texts?: string[];
         summary?: unknown;
         inputs?: unknown;
-        spent?: number;
-        globalTotal?: number;
         saveFails?: boolean;
-        client?: AnthropicClient | null;
+        spent?: number;
     } = {},
 ) {
-    const texts = o.texts ?? [GOOD];
-    let calls = 0;
+    let providerCalls = 0;
+    let budgetReads = 0;
     let loads = 0;
-    const models: string[] = [];
-    const systems: string[] = [];
     const saved: PlanRow[] = [];
-    const records: Parameters<CoachDeps["recordUsage"]>[0][] = [];
+    const usage: unknown[] = [];
+    // A provider that must never be reached.
     const client: AnthropicClient = {
-        stream: async function* (request) {
-            models.push(request.model);
-            systems.push(request.system ?? "");
-            const text = texts[Math.min(calls, texts.length - 1)];
-            calls++;
-            yield { type: "delta", text };
-            yield {
-                type: "usage",
-                usage: { ...NO_USAGE, inputTokens: 1000, outputTokens: 100 },
-            };
-            yield { type: "done" };
+        // deno-lint-ignore require-yield
+        stream: async function* () {
+            providerCalls++;
+            throw new Error("the provider must not be called");
         },
     };
     const deps: CoachDeps = {
         authenticate: (t) => Promise.resolve(t === "good" ? "user-1" : null),
-        userSpent: () => Promise.resolve(o.spent ?? 0),
-        globalSpent: () => Promise.resolve(o.globalTotal ?? 0),
+        userSpent: () => {
+            budgetReads++;
+            return Promise.resolve(o.spent ?? 0);
+        },
+        globalSpent: () => {
+            budgetReads++;
+            return Promise.resolve(0);
+        },
         recordUsage: (r) => {
-            records.push(r);
+            usage.push(r);
             return Promise.resolve();
         },
         loadCatalog: () => Promise.reject(new Error("unexpected loadCatalog")),
@@ -87,7 +92,7 @@ function setup(
         loadReview: () => Promise.reject(new Error("unexpected loadReview")),
         updatePlanOptions: () =>
             Promise.reject(new Error("unexpected updatePlanOptions")),
-        client: o.client === undefined ? client : o.client,
+        client,
         loadInputs: () => Promise.resolve(o.inputs ?? planInputs()),
         loadContext: () => {
             loads++;
@@ -106,10 +111,9 @@ function setup(
     return {
         handler: createCoachHandler(deps),
         saved,
-        records,
-        modelCalls: () => calls,
-        models,
-        systems,
+        usage,
+        providerCalls: () => providerCalls,
+        budgetReads: () => budgetReads,
         loads: () => loads,
     };
 }
@@ -117,11 +121,10 @@ function setup(
 const post = (
     input: unknown = { today: TODAY },
     token: string | null = "good",
-    model?: unknown,
 ) => new Request("http://x/coach", {
     method: "POST",
     headers: token ? { authorization: `Bearer ${token}` } : {},
-    body: JSON.stringify({ kind: "plan_nutrition", input, model }),
+    body: JSON.stringify({ kind: "plan_nutrition", input }),
 });
 
 const planOf = async (res: Response) => {
@@ -131,13 +134,14 @@ const planOf = async (res: Response) => {
     return JSON.parse(JSON.parse(m![1]).text);
 };
 
-Deno.test("success streams one delta with the plan, then done, and saves the proposed plan", async () => {
-    const { handler, saved, records } = setup();
-    const res = await handler(post());
+Deno.test("success answers one delta with the plan and zero usage, saves the plan, and never touches the provider, the budget or usage", async () => {
+    const t = setup();
+    const res = await t.handler(post());
     assertEquals(res.status, 200);
     const body = await res.clone().text();
     assertEquals(body.match(/event: delta/g)?.length, 1);
     assert(body.indexOf("event: delta") < body.indexOf("event: done"));
+    assert(body.includes('"cost_eur":0'));
     const plan = await planOf(res);
     assertEquals(plan.plan_id, "plan-1");
     assertEquals(plan.nutrition.target_kcal, 2160);
@@ -145,59 +149,83 @@ Deno.test("success streams one delta with the plan, then done, and saves the pro
     assertEquals(plan.outcomes.length, 1);
     assertEquals(plan.outcomes[0].kind, "weight");
     assertEquals(plan.outcomes[0].target_value, 78.4);
-    assertEquals(saved.length, 1);
-    assertEquals(saved[0].blockStart, TODAY);
-    assertEquals(saved[0].intention, "fat_loss");
-    assertEquals(saved[0].method.attempts, 1);
-    assertEquals(saved[0].method.model, "claude-opus-5-5");
-    assertEquals(records.length, 1);
+    assertEquals(t.saved.length, 1);
+    assertEquals(t.saved[0].blockStart, TODAY);
+    assertEquals(t.saved[0].intention, "fat_loss");
+    assertEquals(t.providerCalls(), 0);
+    assertEquals(t.budgetReads(), 0);
+    assertEquals(t.usage.length, 0);
 });
 
-Deno.test("an invalid first output is retried once and the usage of both is recorded once", async () => {
-    const { handler, saved, records, modelCalls } = setup({
-        texts: ["no json", GOOD],
+Deno.test("the method of a saved plan carries no model and no cost", async () => {
+    const t = setup();
+    await (await t.handler(post())).text();
+    assertEquals(t.saved[0].method, {
+        model: null,
+        attempts: 0,
+        cost_eur: 0,
+        constants_version: 1,
     });
-    const res = await handler(post());
+});
+
+Deno.test("an exhausted budget does not matter: the kind is answered before the budget check", async () => {
+    const t = setup({ spent: 999 });
+    const res = await t.handler(post());
     assertEquals(res.status, 200);
     await res.text();
-    assertEquals(modelCalls(), 2);
-    assertEquals(records.length, 1);
-    assertEquals(records[0].inputTokens, 2000);
-    assertEquals(saved[0].method.attempts, 2);
+    assertEquals(t.saved.length, 1);
 });
 
-Deno.test("two invalid outputs are coach_invalid_output, charged, and nothing is saved", async () => {
-    const bad = JSON.stringify({ outcomes: [], target_kcal: 1000 });
-    const { handler, saved, records } = setup({ texts: [bad, bad] });
-    const res = await handler(post());
-    assertEquals(res.status, 502);
-    assertEquals((await res.json()).error.code, "coach_invalid_output");
-    assertEquals(saved.length, 0);
-    assertEquals(records.length, 1);
+Deno.test("the same input twice gives the same plan, outcomes and saved row", async () => {
+    const s = summary({ main_lifts: lifts(5) });
+    const a = setup({ summary: s });
+    const b = setup({ summary: s });
+    const planA = await planOf(await a.handler(post()));
+    const planB = await planOf(await b.handler(post()));
+    assertEquals(planA, planB);
+    assertEquals(a.saved, b.saved);
 });
 
-Deno.test("a model that picks an unknown candidate fails validation", async () => {
-    const wrong = JSON.stringify({
-        outcomes: [{
-            candidate_id: "e1rm:squat",
-            reason: "Tu sentadilla sube cada semana.",
-            deadline: "2026-11-27",
-        }],
+Deno.test("outcomes are the weight and at most 3 e1RM lifts, each with a deadline 28 days out and a Spanish template reason", async () => {
+    const t = setup({ summary: summary({ main_lifts: lifts(5) }) });
+    const plan = await planOf(await t.handler(post()));
+    assertEquals(plan.outcomes.length, 4);
+    assertEquals(plan.outcomes[0].key, "weight");
+    assertEquals(
+        plan.outcomes[0].reason,
+        "Perdiendo unos 0,4 kg por semana, en 4 semanas llegarías a 78,4 kg.",
+    );
+    // Same weeks of data: the one with more sessions first.
+    assertEquals(
+        plan.outcomes.slice(1).map((o: { key: string }) => o.key),
+        ["lift_0", "lift_1", "lift_2"],
+    );
+    for (const o of plan.outcomes) assertEquals(o.deadline, "2026-11-27");
+    assertEquals(t.saved[0].outcomes, plan.outcomes);
+});
+
+Deno.test("maintenance has no weight outcome and a lift with fewer than 3 weeks of data gives none", async () => {
+    const t = setup({
+        summary: summary({
+            training_preferences: { intention: "maintenance" },
+            main_lifts: [{
+                exercise: "short",
+                sessions: 3,
+                weekly_e1rm: [100, null, 105],
+            }],
+        }),
     });
-    const { handler, saved } = setup({ texts: [wrong, wrong] });
-    assertEquals((await handler(post())).status, 502);
-    assertEquals(saved.length, 0);
+    const plan = await planOf(await t.handler(post()));
+    assertEquals(plan.outcomes, []);
 });
 
-Deno.test("the budget refusal happens before the context is loaded", async () => {
-    for (const o of [{ spent: 3 }, { globalTotal: 5 }]) {
-        const { handler, loads, modelCalls } = setup(o);
-        const res = await handler(post());
-        assertEquals(res.status, 429);
-        assertEquals((await res.json()).error.code, "coach_limit_reached");
-        assertEquals(loads(), 0);
-        assertEquals(modelCalls(), 0);
-    }
+Deno.test("a muscle plan gets a weight gain outcome with the gain template", async () => {
+    const t = setup({
+        summary: summary({ training_preferences: { intention: "muscle" } }),
+    });
+    const plan = await planOf(await t.handler(post()));
+    assertEquals(plan.outcomes[0].key, "weight");
+    assert(plan.outcomes[0].reason.startsWith("Ganando unos "));
 });
 
 Deno.test("an unauthenticated call is 401 and loads nothing", async () => {
@@ -207,14 +235,7 @@ Deno.test("an unauthenticated call is 401 and loads nothing", async () => {
     assertEquals(loads(), 0);
 });
 
-Deno.test("a missing provider client is 503 NOT_CONFIGURED", async () => {
-    const { handler } = setup({ client: null });
-    const res = await handler(post());
-    assertEquals(res.status, 503);
-    assertEquals((await res.json()).error.code, "NOT_CONFIGURED");
-});
-
-Deno.test("a bad today is 400 INVALID_INPUT before any model call", async () => {
+Deno.test("a bad today is 400 INVALID_INPUT before anything is loaded", async () => {
     for (
         const input of [
             {},
@@ -225,16 +246,16 @@ Deno.test("a bad today is 400 INVALID_INPUT before any model call", async () => 
             null,
         ]
     ) {
-        const { handler, modelCalls, records } = setup();
-        const res = await handler(post(input));
+        const t = setup();
+        const res = await t.handler(post(input));
         assertEquals(res.status, 400);
         assertEquals((await res.json()).error.code, "INVALID_INPUT");
-        assertEquals(modelCalls(), 0);
-        assertEquals(records.length, 0);
+        assertEquals(t.loads(), 0);
+        assertEquals(t.saved.length, 0);
     }
 });
 
-Deno.test("missing sex, weight, expenditure or intention is coach_missing_data without a model call", async () => {
+Deno.test("missing sex, weight, expenditure or intention is coach_missing_data and saves nothing", async () => {
     const noExpenditure = {
         total_expenditure: { value: null, provisional: true },
     };
@@ -256,18 +277,62 @@ Deno.test("missing sex, weight, expenditure or intention is coach_missing_data w
         ],
     ];
     for (const [s, missing] of cases) {
-        const { handler, modelCalls, records } = setup({ summary: s });
-        const res = await handler(post());
+        const t = setup({ summary: s });
+        const res = await t.handler(post());
         assertEquals(res.status, 422);
         const error = (await res.json()).error;
         assertEquals(error.code, "coach_missing_data");
         assertEquals(error.missing, missing);
-        assertEquals(modelCalls(), 0);
-        assertEquals(records.length, 0);
+        assertEquals(t.saved.length, 0);
     }
 });
 
-Deno.test("the shared list refuses with its own keys and no model call", async () => {
+Deno.test("age, height and weight outside the plausibility bounds count as missing, and the edges are accepted", async () => {
+    const cases: [Record<string, unknown>, string | null][] = [
+        [{ age: 17 }, "age"],
+        [{ age: 18 }, null],
+        [{ age: 100 }, null],
+        [{ age: 101 }, "age"],
+        [{ height_cm: 119 }, "height"],
+        [{ height_cm: 120 }, null],
+        [{ height_cm: 230 }, null],
+        [{ height_cm: 231 }, "height"],
+        [{ weight_kg: 29 }, "weight"],
+        [{ weight_kg: 30 }, null],
+        [{ weight_kg: 300 }, null],
+        [{ weight_kg: 301 }, "weight"],
+    ];
+    for (const [profile, missing] of cases) {
+        // A 2600 kcal expenditure keeps the plan feasible at every weight; a tall user keeps BMI above the stop.
+        const t = setup({
+            summary: withProfile({ height_cm: 200, ...profile }, {
+                training_preferences: { intention: "maintenance" },
+            }),
+        });
+        const res = await t.handler(post());
+        const label = JSON.stringify(profile);
+        if (missing === null) {
+            assertEquals(res.status, 200, label);
+            await res.text();
+        } else {
+            assertEquals(res.status, 422, label);
+            const error = (await res.json()).error;
+            assertEquals(error.code, "coach_missing_data", label);
+            assertEquals(error.missing, [missing], label);
+        }
+    }
+});
+
+Deno.test("an absent age or height is not refused by the server (the list decides)", async () => {
+    const t = setup({
+        summary: withProfile({ age: null, height_cm: null }),
+    });
+    const res = await t.handler(post());
+    assertEquals(res.status, 200);
+    await res.text();
+});
+
+Deno.test("the shared list refuses with its own keys and saves nothing", async () => {
     const cases: [Record<string, Partial<typeof MISSING>>, string[]][] = [
         [{ intention: MISSING }, ["intention"]],
         [{ sex: MISSING }, ["sex"]],
@@ -280,16 +345,13 @@ Deno.test("the shared list refuses with its own keys and no model call", async (
         ]],
     ];
     for (const [over, missing] of cases) {
-        const { handler, modelCalls, records } = setup({
-            inputs: planInputs(over),
-        });
-        const res = await handler(post());
+        const t = setup({ inputs: planInputs(over) });
+        const res = await t.handler(post());
         assertEquals(res.status, 422);
         const error = (await res.json()).error;
         assertEquals(error.code, "coach_missing_data");
         assertEquals(error.missing, missing);
-        assertEquals(modelCalls(), 0);
-        assertEquals(records.length, 0);
+        assertEquals(t.saved.length, 0);
     }
 });
 
@@ -331,16 +393,8 @@ Deno.test("a rejected input logs kind, code and field names but never values", a
     assert(!JSON.stringify(logged).includes("81.7"));
 });
 
-Deno.test("two invalid model outputs are 502 coach_invalid_output", async () => {
-    const { handler, modelCalls } = setup({ texts: ["nope", "still nope"] });
-    const res = await handler(post());
-    assertEquals(res.status, 502);
-    assertEquals((await res.json()).error.code, "coach_invalid_output");
-    assertEquals(modelCalls(), 2);
-});
-
 Deno.test("an infeasible plan is 422 coach_plan_infeasible", async () => {
-    const { handler, modelCalls } = setup({
+    const t = setup({
         summary: summary({
             profile: { sex: "male", weight_kg: 70 },
             estimates: {
@@ -353,10 +407,28 @@ Deno.test("an infeasible plan is 422 coach_plan_infeasible", async () => {
             },
         }),
     });
-    const res = await handler(post());
+    const res = await t.handler(post());
     assertEquals(res.status, 422);
     assertEquals((await res.json()).error.code, "coach_plan_infeasible");
-    assertEquals(modelCalls(), 0);
+    assertEquals(t.saved.length, 0);
+});
+
+Deno.test("a floor-limited cut keeps the floor flag", async () => {
+    const t = setup({
+        summary: summary({
+            estimates: {
+                ...summary().estimates,
+                total_expenditure: {
+                    value: 1700,
+                    source: "formula",
+                    provisional: false,
+                },
+            },
+        }),
+    });
+    const plan = await planOf(await t.handler(post()));
+    assertEquals(plan.nutrition.limited_by, "floor");
+    assertEquals(plan.nutrition.target_kcal, 1500);
 });
 
 Deno.test("unconfirmed values still produce a proposed plan flagged requires_confirmation", async () => {
@@ -383,15 +455,15 @@ Deno.test("unconfirmed values still produce a proposed plan flagged requires_con
     assertEquals(saved.length, 1);
 });
 
-Deno.test("a persistence failure is INTERNAL and the usage stays charged", async () => {
-    const { handler, records } = setup({ saveFails: true });
-    const res = await handler(post());
+Deno.test("a persistence failure is INTERNAL and leaves no usage", async () => {
+    const t = setup({ saveFails: true });
+    const res = await t.handler(post());
     assertEquals(res.status, 500);
     assertEquals((await res.json()).error.code, "INTERNAL");
-    assertEquals(records.length, 1);
+    assertEquals(t.usage.length, 0);
 });
 
-Deno.test("the summary is sent to the model and saved with the plan", async () => {
+Deno.test("the summary is saved with the plan", async () => {
     const { handler, saved } = setup();
     await (await handler(post())).text();
     assertEquals(
@@ -414,28 +486,6 @@ Deno.test("other kinds are still not available", async () => {
 
 Deno.test("parseInput accepts only a real date", () => {
     assertEquals(parseInput({ today: TODAY }), { today: TODAY });
-});
-
-Deno.test("no model: the call uses Opus and is priced with the Opus table", async () => {
-    const { handler, models, records } = setup();
-    await (await handler(post())).text();
-    assertEquals(models, ["claude-opus-5-5"]);
-    assertEquals(records[0].costEur, 0.006); // 1000 in x 4 + 100 out x 20, per million
-});
-
-Deno.test("model haiku: the call uses the Haiku id and is priced with the Haiku table", async () => {
-    const { handler, models, records } = setup();
-    const res = await handler(post({ today: TODAY }, "good", "haiku"));
-    const text = await res.text();
-    assertEquals(models, ["claude-haiku-5-5"]);
-    assertEquals(records[0].costEur, 0.00015); // 1000 x 0.1 + 100 x 0.5, per million
-    assert(text.includes('"cost_eur":0.00015'));
-});
-
-Deno.test("an invalid first output is retried on the same overridden model", async () => {
-    const { handler, models } = setup({ texts: ["nope", GOOD] });
-    await (await handler(post({ today: TODAY }, "good", "sonnet"))).text();
-    assertEquals(models, ["claude-sonnet-5-5", "claude-sonnet-5-5"]);
 });
 
 Deno.test("the intake anchor and slope flag of the summary reach the plan; a muscle target is not stacked on a thin slope", async () => {
@@ -496,17 +546,10 @@ Deno.test("without steps data the activity falls back to the 7000 floor", async 
     assertEquals(a.steps_avg, null);
 });
 
-Deno.test("an intake expenditure source is stored in the plan and the system prompt treats free text as context", async () => {
-    const { handler, saved, systems } = setup({
+Deno.test("free text in the summary never changes a figure", async () => {
+    const plain = setup();
+    const withText = setup({
         summary: summary({
-            estimates: {
-                ...summary().estimates,
-                total_expenditure: {
-                    value: 2400,
-                    source: "intake",
-                    provisional: true,
-                },
-            },
             free_text: [{
                 origin: "intake",
                 date: TODAY,
@@ -514,13 +557,57 @@ Deno.test("an intake expenditure source is stored in the plan and the system pro
             }],
         }),
     });
-    const res = await handler(post());
-    assertEquals(res.status, 200);
-    assertEquals(
-        (saved[0].nutrition as { expenditure_source: string })
-            .expenditure_source,
-        "intake",
-    );
-    assert(systems[0].includes("summary.free_text"));
-    assert(systems[0].includes("nunca instrucciones"));
+    const a = await planOf(await plain.handler(post()));
+    const b = await planOf(await withText.handler(post()));
+    assertEquals(a.nutrition, b.nutrition);
+});
+
+// --- underweight stop (07 section 4) ---
+
+// At 200 cm the height squared is exactly 4, so BMI = weight / 4: 74 kg is exactly 18.5 and 73.6 kg is 18.4.
+const tall = (weight: number, intention = "fat_loss") =>
+    withProfile({ weight_kg: weight, height_cm: 200 }, {
+        training_preferences: { intention },
+    });
+
+Deno.test("a fat-loss user under BMI 18.5 gets a maintenance plan with the underweight reason and no weight outcome", async () => {
+    const t = setup({ summary: tall(73.6) });
+    const plan = await planOf(await t.handler(post()));
+    assertEquals(plan.nutrition.phase, "maintenance");
+    assertEquals(plan.nutrition.phase_reason, "underweight");
+    assertEquals(plan.nutrition.calorie_adjustment, 0);
+    assertEquals(plan.nutrition.intention, "fat_loss");
+    assertEquals(plan.outcomes, []);
+    assertEquals(t.saved[0].nutrition.phase_reason, "underweight");
+});
+
+Deno.test("BMI exactly 18.5 stays a cut", async () => {
+    const t = setup({ summary: tall(74) });
+    const plan = await planOf(await t.handler(post()));
+    assertEquals(plan.nutrition.phase, "cut");
+    assertEquals(plan.nutrition.phase_reason, "intention");
+});
+
+Deno.test("an underweight user with another intention is unchanged", async () => {
+    for (
+        const [intention, phase] of [
+            ["muscle", "gain"],
+            ["maintenance", "maintenance"],
+            ["recomposition", "recomposition"],
+            ["strength", "maintenance"],
+        ]
+    ) {
+        const t = setup({ summary: tall(68, intention) }); // BMI 17
+        const plan = await planOf(await t.handler(post()));
+        assertEquals(plan.nutrition.phase, phase, intention);
+        assertEquals(plan.nutrition.phase_reason, "intention", intention);
+    }
+});
+
+Deno.test("without a height the BMI is skipped and the cut stays", async () => {
+    const t = setup({
+        summary: withProfile({ weight_kg: 50, height_cm: null }),
+    });
+    const plan = await planOf(await t.handler(post()));
+    assertEquals(plan.nutrition.phase, "cut");
 });

@@ -153,8 +153,8 @@ Deno.test("report and chat answer 501 coach_kind_not_available without calling t
     }
 });
 
-Deno.test("plan kinds use Opus and report/chat use Sonnet", () => {
-    assertEquals(KINDS.plan_nutrition.model, "opus");
+Deno.test("plan_block uses Opus, plan_nutrition is model-free and report/chat use Sonnet", () => {
+    assertEquals(KINDS.plan_nutrition.deterministic, true);
     assertEquals(KINDS.plan_block.model, "opus");
     assertEquals(KINDS.report.model, "sonnet");
     assertEquals(KINDS.chat.model, "sonnet");

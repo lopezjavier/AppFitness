@@ -1,5 +1,6 @@
 package io.github.lopezjavier.appfitness.feature.trainer
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -7,7 +8,9 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Text
@@ -26,9 +29,6 @@ import io.github.lopezjavier.appfitness.composeapp.resources.action_accept
 import io.github.lopezjavier.appfitness.composeapp.resources.action_discard
 import io.github.lopezjavier.appfitness.composeapp.resources.cardio_save_error
 import io.github.lopezjavier.appfitness.composeapp.resources.cardio_save_offline
-import io.github.lopezjavier.appfitness.composeapp.resources.macro_carbs
-import io.github.lopezjavier.appfitness.composeapp.resources.macro_fat
-import io.github.lopezjavier.appfitness.composeapp.resources.macro_protein
 import io.github.lopezjavier.appfitness.composeapp.resources.plan_outcome_deadline
 import io.github.lopezjavier.appfitness.composeapp.resources.plan_outcome_help_cd
 import io.github.lopezjavier.appfitness.composeapp.resources.plan_outcome_help_title
@@ -36,12 +36,13 @@ import io.github.lopezjavier.appfitness.composeapp.resources.plan_proposal_accep
 import io.github.lopezjavier.appfitness.composeapp.resources.plan_proposal_accept_offline
 import io.github.lopezjavier.appfitness.composeapp.resources.plan_proposal_accepted
 import io.github.lopezjavier.appfitness.composeapp.resources.plan_proposal_calories
+import io.github.lopezjavier.appfitness.composeapp.resources.plan_proposal_carbs_rest
 import io.github.lopezjavier.appfitness.composeapp.resources.plan_proposal_discard_error
 import io.github.lopezjavier.appfitness.composeapp.resources.plan_proposal_discard_offline
 import io.github.lopezjavier.appfitness.composeapp.resources.plan_proposal_distribution
 import io.github.lopezjavier.appfitness.composeapp.resources.plan_proposal_error
+import io.github.lopezjavier.appfitness.composeapp.resources.plan_proposal_fat_min
 import io.github.lopezjavier.appfitness.composeapp.resources.plan_proposal_floor_note
-import io.github.lopezjavier.appfitness.composeapp.resources.plan_proposal_grams
 import io.github.lopezjavier.appfitness.composeapp.resources.plan_proposal_interrupted
 import io.github.lopezjavier.appfitness.composeapp.resources.plan_proposal_kcal_day
 import io.github.lopezjavier.appfitness.composeapp.resources.plan_proposal_open_before_start
@@ -52,17 +53,20 @@ import io.github.lopezjavier.appfitness.composeapp.resources.plan_proposal_outco
 import io.github.lopezjavier.appfitness.composeapp.resources.plan_proposal_outcomes_header
 import io.github.lopezjavier.appfitness.composeapp.resources.plan_proposal_progress
 import io.github.lopezjavier.appfitness.composeapp.resources.plan_proposal_progress_cd
+import io.github.lopezjavier.appfitness.composeapp.resources.plan_proposal_protein_headline
 import io.github.lopezjavier.appfitness.composeapp.resources.plan_proposal_rate
 import io.github.lopezjavier.appfitness.composeapp.resources.plan_proposal_rate_help_body
 import io.github.lopezjavier.appfitness.composeapp.resources.plan_proposal_rate_help_cd
 import io.github.lopezjavier.appfitness.composeapp.resources.plan_proposal_rate_value
 import io.github.lopezjavier.appfitness.composeapp.resources.plan_proposal_reask_note
 import io.github.lopezjavier.appfitness.composeapp.resources.plan_proposal_title
+import io.github.lopezjavier.appfitness.composeapp.resources.plan_proposal_underweight_note
 import io.github.lopezjavier.appfitness.designsystem.AppCard
 import io.github.lopezjavier.appfitness.designsystem.AppDateFormat
 import io.github.lopezjavier.appfitness.designsystem.AppListRow
 import io.github.lopezjavier.appfitness.designsystem.AppNumberFormat
 import io.github.lopezjavier.appfitness.designsystem.AppScreen
+import io.github.lopezjavier.appfitness.designsystem.AppShapes
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
 import io.github.lopezjavier.appfitness.designsystem.GhostButton
 import io.github.lopezjavier.appfitness.designsystem.GhostTone
@@ -81,13 +85,14 @@ import io.github.lopezjavier.appfitness.designsystem.Spacing
 import io.github.lopezjavier.appfitness.designsystem.StreamProgressState
 import io.github.lopezjavier.appfitness.designsystem.offlineHint
 import io.github.lopezjavier.appfitness.domain.model.OutcomeKind
+import io.github.lopezjavier.appfitness.domain.model.PhaseReason
 import io.github.lopezjavier.appfitness.domain.model.PlanLimit
 import io.github.lopezjavier.appfitness.domain.model.PlanOutcome
 import io.github.lopezjavier.appfitness.domain.port.ConnectivityObserver
+import io.github.lopezjavier.appfitness.domain.usecase.NutritionGoalsChecklist
 import io.github.lopezjavier.appfitness.feature.weight.decimalText
 import io.github.lopezjavier.appfitness.feature.weight.signedTenths
 import kotlinx.coroutines.flow.Flow
-import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.koinInject
 import org.koin.compose.viewmodel.koinViewModel
@@ -251,6 +256,12 @@ private fun ProposalContent(
                 testTag = "plan_proposal_floor_note",
             )
         }
+        if (nutrition.phaseReason == PhaseReason.Underweight) {
+            InlineNote(
+                text = stringResource(Res.string.plan_proposal_underweight_note),
+                testTag = "plan_proposal_underweight_note",
+            )
+        }
         nutrition.distribution?.let {
             InlineNote(
                 text = stringResource(Res.string.plan_proposal_distribution, it.perMealG, it.minMeals),
@@ -289,9 +300,26 @@ private fun NutritionCard(state: PlanProposalUiState.Proposal) {
             color = AppTheme.colors.textPrimary,
             modifier = Modifier.testTag("plan_proposal_kcal"),
         )
-        MacroRow(Macro.Protein, Res.string.macro_protein, nutrition.proteinG, "plan_proposal_macro_protein")
-        MacroRow(Macro.Carbs, Res.string.macro_carbs, nutrition.carbsG, "plan_proposal_macro_carbs")
-        MacroRow(Macro.Fat, Res.string.macro_fat, nutrition.fatG, "plan_proposal_macro_fat")
+        MacroRow(
+            Macro.Protein,
+            stringResource(Res.string.plan_proposal_protein_headline, AppNumberFormat.integer(nutrition.proteinG)),
+            "plan_proposal_macro_protein",
+            headline = true,
+        )
+        MacroRow(
+            Macro.Fat,
+            stringResource(
+                Res.string.plan_proposal_fat_min,
+                AppNumberFormat.integer(nutrition.fatG),
+                AppNumberFormat.integer(NutritionGoalsChecklist.minFatG(nutrition.targetKcal)),
+            ),
+            "plan_proposal_macro_fat",
+        )
+        MacroRow(
+            Macro.Carbs,
+            stringResource(Res.string.plan_proposal_carbs_rest, AppNumberFormat.integer(nutrition.carbsG)),
+            "plan_proposal_macro_carbs",
+        )
         AppListRow(
             headline = stringResource(Res.string.plan_proposal_rate),
             modifier = Modifier.testTag("plan_proposal_rate"),
@@ -314,19 +342,21 @@ private fun NutritionCard(state: PlanProposalUiState.Proposal) {
     }
 }
 
+/** One macro sentence with its colour dot; the protein [headline] row is the largest (ADR-98). */
 @Composable
-private fun MacroRow(macro: Macro, label: StringResource, grams: Int, tag: String) {
-    AppListRow(
-        headline = stringResource(label),
-        modifier = Modifier.testTag(tag),
-        trailing = {
-            Text(
-                text = stringResource(Res.string.plan_proposal_grams, AppNumberFormat.integer(grams)),
-                style = AppTheme.typography.bodyLarge,
-                color = MacroDefaults.color(macro, AppTheme.colors),
-            )
-        },
-    )
+private fun MacroRow(macro: Macro, text: String, tag: String, headline: Boolean = false) {
+    Row(
+        modifier = Modifier.fillMaxWidth().heightIn(min = Spacing.minTouchTarget).testTag(tag),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+    ) {
+        Box(Modifier.size(Spacing.sm).background(MacroDefaults.color(macro, AppTheme.colors), AppShapes.full))
+        Text(
+            text = text,
+            style = if (headline) AppTheme.typography.titleMedium else AppTheme.typography.bodyLarge,
+            color = AppTheme.colors.textPrimary,
+        )
+    }
 }
 
 @Composable

@@ -443,6 +443,9 @@ val uiModule =
                 blocks = get(),
                 coachWeeks = get(),
                 savedState = get(),
+                goals = get(),
+                profile = get(),
+                measurements = get(),
             )
         }
         viewModel {

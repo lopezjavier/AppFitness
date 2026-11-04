@@ -5,7 +5,6 @@ import type { Intention } from "./schemas.ts";
 import {
     assertActivityInvariants,
     NutritionInvariantError,
-    validateOutcomesText,
 } from "./validators.ts";
 
 const INTENTIONS: Intention[] = [
@@ -92,24 +91,4 @@ Deno.test("calories do not depend on the activity", () => {
     const stored = { ...computeNutrition(input), activity: steps(11000) };
     const { activity: _a, ...rest } = stored;
     assertEquals(rest, base);
-});
-
-Deno.test("the outcome text validator rejects advice to do fewer steps", () => {
-    const cands = [{
-        id: "weight",
-        kind: "weight" as const,
-        key: "weight",
-        target_value: 78,
-        unit: "kg" as const,
-        default_deadline: "2026-11-30",
-        basis: {},
-    }];
-    const t = JSON.stringify({
-        outcomes: [{
-            candidate_id: "weight",
-            reason: "Conviene dar menos pasos esta semana.",
-            deadline: "2026-11-30",
-        }],
-    });
-    assertEquals(validateOutcomesText(t, cands, "2026-11-02"), null);
 });

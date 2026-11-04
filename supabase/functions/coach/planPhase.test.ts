@@ -173,7 +173,7 @@ Deno.test("T-198: a summary that still carries a situation starts from the inten
     }
 });
 
-Deno.test("strength and maintenance start in maintenance, with the same model call as before", async () => {
+Deno.test("strength and maintenance start in maintenance, with no model call", async () => {
     for (const intention of ["strength", "maintenance"]) {
         const t = setup({ summary: summary({ intention }) });
         const res = await t.handler(post("plan_nutrition", { today: TODAY }));
@@ -181,7 +181,7 @@ Deno.test("strength and maintenance start in maintenance, with the same model ca
         await res.text();
         assertEquals(t.saved[0].nutrition.phase, "maintenance");
         assertEquals(t.saved[0].nutrition.calorie_adjustment, 0);
-        assertEquals(t.modelCalls(), 1);
+        assertEquals(t.modelCalls(), 0);
     }
 });
 

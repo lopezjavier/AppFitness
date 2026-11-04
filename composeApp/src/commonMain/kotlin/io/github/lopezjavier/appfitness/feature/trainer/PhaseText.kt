@@ -13,6 +13,7 @@ import io.github.lopezjavier.appfitness.composeapp.resources.phase_reason_cut
 import io.github.lopezjavier.appfitness.composeapp.resources.phase_reason_gain
 import io.github.lopezjavier.appfitness.composeapp.resources.phase_reason_maintenance
 import io.github.lopezjavier.appfitness.composeapp.resources.phase_reason_recomposition
+import io.github.lopezjavier.appfitness.composeapp.resources.phase_reason_underweight
 import io.github.lopezjavier.appfitness.composeapp.resources.phase_reason_user_busy
 import io.github.lopezjavier.appfitness.domain.model.CutRate
 import io.github.lopezjavier.appfitness.domain.model.Phase
@@ -35,6 +36,8 @@ internal object PhaseText {
      */
     fun reason(phase: Phase, reason: PhaseReason): StringResource = when (reason) {
         PhaseReason.UserBusy -> Res.string.phase_reason_user_busy
+
+        PhaseReason.Underweight -> Res.string.phase_reason_underweight
 
         PhaseReason.Intention -> when (phase) {
             Phase.Cut -> Res.string.phase_reason_cut
