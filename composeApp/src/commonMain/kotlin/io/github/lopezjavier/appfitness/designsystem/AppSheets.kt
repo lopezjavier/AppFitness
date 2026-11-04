@@ -142,7 +142,8 @@ fun AppEditSheet(
 
 /**
  * Picker archetype (R-07): header and a scrolling body without a footer. The content applies on tap and the caller
- * removes the sheet; closing only calls [onDismiss]. [help] draws a "?" left of the X.
+ * removes the sheet; closing only calls [onDismiss]. [help] draws a "?" left of the X. [footer] pins an action under
+ * the scrolling list (R-48, "Añadir ... propio").
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -152,8 +153,9 @@ fun AppPickerSheet(
     modifier: Modifier = Modifier,
     help: (@Composable () -> Unit)? = null,
     testTagPrefix: String = "picker_sheet",
+    footer: (@Composable ColumnScope.() -> Unit)? = null,
     content: @Composable ColumnScope.() -> Unit,
-) = ReadOnlySheet(title, onDismiss, help, testTagPrefix, modifier, content)
+) = ReadOnlySheet(title, onDismiss, help, testTagPrefix, modifier, footer, content)
 
 /** Info archetype (R-07): header and a scrolling read-only body without a footer (help, explanations). */
 @OptIn(ExperimentalMaterial3Api::class)
@@ -164,7 +166,7 @@ fun AppInfoSheet(
     modifier: Modifier = Modifier,
     testTagPrefix: String = "info_sheet",
     content: @Composable ColumnScope.() -> Unit,
-) = ReadOnlySheet(title, onDismiss, null, testTagPrefix, modifier, content)
+) = ReadOnlySheet(title, onDismiss, null, testTagPrefix, modifier, content = content)
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Suppress("LongParameterList") // Shared body of the picker and info archetypes.
@@ -175,6 +177,7 @@ private fun ReadOnlySheet(
     help: (@Composable () -> Unit)?,
     testTagPrefix: String,
     modifier: Modifier = Modifier,
+    footer: (@Composable ColumnScope.() -> Unit)? = null,
     content: @Composable ColumnScope.() -> Unit,
 ) {
     val sheetState = rememberAppSheetState()
@@ -188,7 +191,7 @@ private fun ReadOnlySheet(
     ) {
         AppSheetLayout(
             header = { AppSheetHeader(title, { closeThen(scope, sheetState, onDismiss) }, testTagPrefix, help) },
-            footer = null,
+            footer = footer,
             body = content,
         )
     }

@@ -37,8 +37,8 @@ import io.github.lopezjavier.appfitness.feature.routines.RoutinesViewModel
 import io.github.lopezjavier.appfitness.feature.templates.SaveTemplateViewModel
 import io.github.lopezjavier.appfitness.feature.templates.TemplateDetailsViewModel
 import io.github.lopezjavier.appfitness.feature.trainer.BeforeStartViewModel
+import io.github.lopezjavier.appfitness.feature.trainer.BlockBuilderViewModel
 import io.github.lopezjavier.appfitness.feature.trainer.BlockPreviewViewModel
-import io.github.lopezjavier.appfitness.feature.trainer.BlockSplitsViewModel
 import io.github.lopezjavier.appfitness.feature.trainer.CoachUsageViewModel
 import io.github.lopezjavier.appfitness.feature.trainer.FolderReviewResultViewModel
 import io.github.lopezjavier.appfitness.feature.trainer.FolderReviewViewModel
@@ -461,7 +461,17 @@ val uiModule =
         viewModel { IntakeViewModel(repository = get(), savedState = get()) }
         viewModel { FreeTextLinesViewModel(repository = get(), clock = get()) }
         viewModel { params ->
-            BlockSplitsViewModel(planId = params.get(), blocks = get(), clock = get(), savedState = get())
+            BlockBuilderViewModel(
+                planId = params.get(),
+                builder = get(),
+                catalog = get(),
+                favourites = get(),
+                exercises = get(),
+                preferences = get(),
+                plans = get(),
+                clock = get(),
+                savedState = get(),
+            )
         }
         viewModel { params ->
             BlockPreviewViewModel(

@@ -66,9 +66,9 @@ class BeforeStartNavigationTest {
     private val blockSlot: BlockPreviewSlot = { modifier, planId, _, onBack ->
         AppScreen("Bloque", modifier.testTag("block_preview_screen_$planId"), onBack = onBack, testTagPrefix = "bp") {}
     }
-    private val splitsSlot: BlockSplitsSlot = { modifier, planId, onBuilt, onBack ->
-        AppScreen("Tipo", modifier.testTag("block_splits_screen_$planId"), onBack = onBack, testTagPrefix = "bsp") {
-            Box(Modifier.size(48.dp).testTag("bsp_built").clickable(onClick = onBuilt))
+    private val builderSlot: BlockBuilderSlot = { modifier, planId, onSaved, onClose, _ ->
+        AppScreen("Bloque", modifier.testTag("block_builder_screen_$planId"), onBack = onClose, testTagPrefix = "bsp") {
+            Box(Modifier.size(48.dp).testTag("bsp_saved").clickable(onClick = onSaved))
         }
     }
     private val yourDataSlot: YourDataSlot = { modifier, onBack, _ ->
@@ -84,7 +84,7 @@ class BeforeStartNavigationTest {
                     beforeStart = beforeStartSlot,
                     planProposal = proposalSlot,
                     blockPreview = blockSlot,
-                    blockSplits = splitsSlot,
+                    blockBuilder = builderSlot,
                     yourData = yourDataSlot,
                 )
             }
@@ -113,19 +113,19 @@ class BeforeStartNavigationTest {
     }
 
     @Test
-    fun creatingABlock_opensTheSplitOptionsForThatPlan_notThePreview() {
+    fun creatingABlock_opensTheBuilderForThatPlan_notThePreview() {
         show()
         tap("t_block")
 
         tap("bs_create_block")
 
-        rule.onNodeWithTag("block_splits_screen_plan-4").assertExists()
+        rule.onNodeWithTag("block_builder_screen_plan-4").assertExists()
         rule.onNodeWithTag("before_start_screen").assertDoesNotExist()
         rule.onNodeWithTag("block_preview_screen_plan-4").assertDoesNotExist()
     }
 
     @Test
-    fun backFromTheSplitOptions_returnsToTheTrainer() {
+    fun backFromTheBuilder_returnsToTheTrainer() {
         show()
         tap("t_block")
         tap("bs_create_block")
@@ -136,17 +136,16 @@ class BeforeStartNavigationTest {
     }
 
     @Test
-    fun afterTheBlockIsBuilt_thePreviewReplacesTheSplits_andBackReturnsToTheTrainer() {
+    fun afterSaving_theBuilderClosesAndTheTrainerShowsTheSavedBlock() {
         show()
         tap("t_block")
         tap("bs_create_block")
 
-        tap("bsp_built")
-        rule.onNodeWithTag("block_preview_screen_plan-4").assertExists()
-        rule.onNodeWithTag("block_splits_screen_plan-4").assertDoesNotExist()
-        tap("bp_back")
+        tap("bsp_saved")
 
         rule.onNodeWithTag("trainer_screen").assertExists()
+        rule.onNodeWithTag("block_builder_screen_plan-4").assertDoesNotExist()
+        rule.onNodeWithTag("block_preview_screen_plan-4").assertDoesNotExist()
     }
 
     @Test

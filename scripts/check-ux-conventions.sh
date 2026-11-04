@@ -121,7 +121,7 @@ scan G4 "OfflineBanner outside the shell (use OfflineState or OfflineHint)" '\bO
   '.*/app/(AppScaffold|App)\.kt|.*/feature/catalog/[^:]*' "${kotlin_feature[@]}"
 # G5: confirmation dialogs only for the allow-listed destructive cases (R-08).
 scan G5 "AppConfirmDialog outside the R-08 allow-list" '\bAppConfirmDialog\(' \
-  '.*/feature/profile/ProfileDialogs\.kt|.*/feature/workout/LiveSessionDialogs\.kt|.*/feature/workout/WorkoutEntry\.kt|.*/feature/trainer/TrainerPlanSection\.kt|.*/feature/catalog/[^:]*' \
+  '.*/feature/profile/ProfileDialogs\.kt|.*/feature/workout/LiveSessionDialogs\.kt|.*/feature/workout/WorkoutEntry\.kt|.*/feature/trainer/TrainerPlanSection\.kt|.*/feature/trainer/BlockBuilderScreen\.kt|.*/feature/catalog/[^:]*' \
   "${kotlin_feature[@]}"
 # G6..G8: single owners of help icon, swipe-to-delete and drag reordering.
 scan G6 "ic_help outside HelpButton" '\bic_help\b' '' "${kotlin_feature[@]}"
@@ -171,10 +171,10 @@ done
 
 # G14: AppEditSheet( (a Save/Apply footer) only in the files below, all multi-field or stepper/wheel editors
 # (T-171 sweep). A single choice from a list applies on tap in AppPickerSheet (R-12). A new file using it fails:
-# use the Picker archetype, or add the file here with a one-line reason (trainer/ReplacePlanSheet: confirm footer "Crear plan", retired by T-176; trainer/ActivityUi: cardio-minutes stepper with a Save footer, T-181; trainer/IntakeFields: years stepper and maintenance kcal field with a Guardar footer, T-198).
+# use the Picker archetype, or add the file here with a one-line reason (trainer/ReplacePlanSheet: confirm footer "Crear plan", retired by T-176; trainer/ActivityUi: cardio-minutes stepper with a Save footer, T-181; trainer/IntakeFields: years stepper and maintenance kcal field with a Guardar footer, T-198; trainer/BuilderCreateExerciseSheet: name, equipment, pattern and switch form with an Añadir footer, T-222).
 scan G14 "AppEditSheet outside the multi-field allow-list (R-12: a single choice uses AppPickerSheet)" \
   '\bAppEditSheet\(' \
-  '.*/feature/(catalog/OverlayCatalogSections|exercises/ExerciseFormSheet|meals/defaults/MealDefaultsSheets|profile/PersonalDataCard|trainer/(ReplacePlanSheet|ActivityUi|IntakeFields)|weight/(CircumferenceSheet|GoalSheets|WeightDaySheet)|workout/(DiscomfortSheet|ExerciseMenu|FinishSessionSheet|UpdateRoutineSheet|VolumeOptionsSheets|WarmUpCalculatorSheet))\.kt' \
+  '.*/feature/(catalog/OverlayCatalogSections|exercises/ExerciseFormSheet|meals/defaults/MealDefaultsSheets|profile/PersonalDataCard|trainer/(ReplacePlanSheet|ActivityUi|IntakeFields|BuilderCreateExerciseSheet)|weight/(CircumferenceSheet|GoalSheets|WeightDaySheet)|workout/(DiscomfortSheet|ExerciseMenu|FinishSessionSheet|UpdateRoutineSheet|VolumeOptionsSheets|WarmUpCalculatorSheet))\.kt' \
   "${kotlin_feature[@]}"
 
 # G15: R-51 the live exercise card shows its per-exercise information as status rows; no "?" help buttons there

@@ -24,8 +24,13 @@ data class PickerContext(
     val favouriteIds: Set<String>,
 )
 
-/** One row of a slot's picker; [disabled] when the exercise is already used in the same routine. */
-data class PickerEntry(val exercise: CatalogExercise, val disabled: Boolean)
+/** Why a listed exercise cannot be picked; the server refuses a pick without a pattern (`role_pattern`). */
+enum class PickerDisabledReason { AlreadyInRoutine, NoMovementPattern }
+
+/** One row of a slot's picker; [disabledReason] is set when the row cannot be picked (it stays listed). */
+data class PickerEntry(val exercise: CatalogExercise, val disabledReason: PickerDisabledReason? = null) {
+    val disabled: Boolean get() = disabledReason != null
+}
 
 /** Which exercises a slot accepts and in which order (07 (d)); pure. Discomfort is not an input. */
 object SlotEligibility {
@@ -40,6 +45,14 @@ object SlotEligibility {
         val x = e.exercise
         return x.muscleGroup == group && x.countsForVolume() && insideEquipment(e, ctx) &&
             (kind != SlotKind.Main || x.movementPattern in FolderReviewCalculator.MAIN_PATTERNS)
+    }
+
+    /**
+     * The movement patterns a custom exercise created for a slot of [kind] may have: a main slot needs a main lift;
+     * any other slot takes every pattern but cardio (the server derives the role from the pattern).
+     */
+    fun validPatterns(kind: SlotKind): List<MovementPattern> = MovementPattern.entries.filter {
+        if (kind == SlotKind.Main) it in FolderReviewCalculator.MAIN_PATTERNS else it != MovementPattern.Cardio
     }
 
     /**
@@ -67,5 +80,12 @@ object SlotEligibility {
                 .thenBy { it.name.lowercase() }
                 .thenBy { it.id },
         )
-        .map { PickerEntry(it, it.id in usedInRoutine) }
+        .map { e ->
+            val reason = when {
+                e.exercise.movementPattern == null -> PickerDisabledReason.NoMovementPattern
+                e.id in usedInRoutine -> PickerDisabledReason.AlreadyInRoutine
+                else -> null
+            }
+            PickerEntry(e, reason)
+        }
 }
