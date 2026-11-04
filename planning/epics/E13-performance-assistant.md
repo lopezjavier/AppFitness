@@ -564,7 +564,7 @@ Feature: Block builder
     Given a routine ends with "Bicicleta estática · 50 min · suave"
     When the user swaps it
     Then the list shows only cardio exercises timed in minutes that fit the user's cardio equipment, plus walking and running
-    And under the list it says "Cuentan los mismos minutos con cualquier cardio, a ritmo suave."
+    And behind the cardio row's "?" it says "Cuentan los mismos minutos con cualquier cardio, a ritmo suave."
     When the user picks "Caminar a paso ligero"
     Then the routine ends with "Caminar a paso ligero · 50 min · suave" in every week
 
