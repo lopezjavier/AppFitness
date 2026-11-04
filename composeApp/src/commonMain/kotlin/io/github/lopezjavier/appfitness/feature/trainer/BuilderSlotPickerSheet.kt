@@ -77,7 +77,15 @@ internal fun BuilderSlotPickerSheet(
             )
         }
         Column {
-            entries.forEach { PickerRow(it, it.exercise.id in state.favouriteIds, onEvent, onOpenExercise) }
+            entries.forEach {
+                PickerRow(
+                    entry = it,
+                    favourite = it.exercise.id in state.favouriteIds,
+                    tagPrefix = "block_builder_pick",
+                    onSelect = { onEvent(BlockBuilderEvent.PickExercise(it.exercise.id)) },
+                    onOpenExercise = onOpenExercise,
+                )
+            }
         }
     }
     if (creating) {
@@ -91,11 +99,13 @@ internal fun BuilderSlotPickerSheet(
     }
 }
 
+/** One exercise of a picker: tap picks it, the thumbnail opens its details; shared by the builder and the folder. */
 @Composable
-private fun PickerRow(
+internal fun PickerRow(
     entry: PickerEntry,
     favourite: Boolean,
-    onEvent: (BlockBuilderEvent) -> Unit,
+    tagPrefix: String,
+    onSelect: () -> Unit,
     onOpenExercise: (String) -> Unit,
 ) {
     val item = entry.exercise
@@ -108,12 +118,12 @@ private fun PickerRow(
         name = item.name,
         supporting = supporting,
         onOpen = { onOpenExercise(item.id) },
-        tagPrefix = "block_builder_pick_${item.id}",
+        tagPrefix = "${tagPrefix}_${item.id}",
         imageUri = item.rowImageUri(),
-        onSelect = { onEvent(BlockBuilderEvent.PickExercise(item.id)) },
+        onSelect = onSelect,
         enabled = !entry.disabled,
         favorite = favourite,
-        favoriteTestTag = "block_builder_pick_favorite_${item.id}",
+        favoriteTestTag = "${tagPrefix}_favorite_${item.id}",
     )
 }
 

@@ -134,5 +134,5 @@ sealed interface BeforeStartEffect {
     data class CreateFailed(val offline: Boolean) : BeforeStartEffect
 
     /** A folder was picked to start the block: open its review (block purpose). */
-    data class OpenFolderReview(val planId: String?, val folderId: String) : BeforeStartEffect
+    data class OpenFolderBlock(val planId: String?, val folderId: String) : BeforeStartEffect
 }

@@ -102,15 +102,9 @@ data class BlockPreviewRoute(val planId: String) : AppRoute
 @Serializable
 data class BlockBuilderRoute(val planId: String) : AppRoute
 
-/**
- * The coach's review of the folder [folderId] for a block started from it (US-93), for plan [planId]. [purpose] is
- * always `block` now; the argument stays so a restored back stack still resolves. The model reads the three from its
- * saved state.
- */
+/** "Desde una carpeta" (US-93): the deterministic block review of the folder [folderId] for plan [planId]. */
 @Serializable
-data class FolderReviewRoute(val purpose: String, val folderId: String, val planId: String? = null) : AppRoute
-
-const val BLOCK_PURPOSE = "block"
+data class FolderBlockRoute(val planId: String, val folderId: String) : AppRoute
 
 /** "Revisar tus rutinas" (US-95): the score and checklist of the folder [folderId], computed on the device. */
 @Serializable
@@ -422,7 +416,7 @@ object AppDestinations {
             FreeTextLinesRoute,
             BlockPreviewRoute(""),
             BlockBuilderRoute(""),
-            FolderReviewRoute("", ""),
+            FolderBlockRoute("", ""),
             FolderReviewResultRoute(""),
             NotificationCenterRoute,
             CheckInRoute,

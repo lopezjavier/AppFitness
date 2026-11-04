@@ -98,7 +98,7 @@ fun BeforeStartRoot(
     modifier: Modifier = Modifier,
     viewModel: BeforeStartViewModel = koinViewModel(),
     connectivity: ConnectivityObserver = koinInject(),
-    onOpenFolderReview: (BeforeStartEffect.OpenFolderReview) -> Unit = {},
+    onOpenFolderBlock: (BeforeStartEffect.OpenFolderBlock) -> Unit = {},
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val editor by viewModel.editor.collectAsStateWithLifecycle()
@@ -106,7 +106,7 @@ fun BeforeStartRoot(
     val messages = LocalAppMessages.current
     val latestHaptics by rememberUpdatedState(haptics)
     val latestOnCreate by rememberUpdatedState(onCreate)
-    val latestOnOpenReview by rememberUpdatedState(onOpenFolderReview)
+    val latestOnOpenBlock by rememberUpdatedState(onOpenFolderBlock)
     val failed = stringResource(Res.string.before_start_confirm_error)
     val offline = offlineHint(stringResource(Res.string.before_start_confirm_action)) + "."
     LifecycleEventEffect(Lifecycle.Event.ON_RESUME) { viewModel.onEvent(BeforeStartEvent.Refresh) }
@@ -118,7 +118,7 @@ fun BeforeStartRoot(
                     latestOnCreate(effect)
                 }
 
-                is BeforeStartEffect.OpenFolderReview -> latestOnOpenReview(effect)
+                is BeforeStartEffect.OpenFolderBlock -> latestOnOpenBlock(effect)
 
                 is BeforeStartEffect.CreateFailed -> {
                     latestHaptics.reject()

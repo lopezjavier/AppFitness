@@ -78,7 +78,7 @@ class ShellChromeTest {
                 FreeTextLinesRoute,
                 BlockPreviewRoute::class,
                 BlockBuilderRoute::class,
-                FolderReviewRoute::class,
+                FolderBlockRoute::class,
                 FolderReviewResultRoute::class,
                 NotificationCenterRoute,
                 CheckInRoute,

@@ -19,11 +19,7 @@ import androidx.navigationevent.NavigationEventInfo
 import androidx.navigationevent.compose.NavigationBackHandler
 import androidx.navigationevent.compose.rememberNavigationEventState
 import io.github.lopezjavier.appfitness.composeapp.resources.Res
-import io.github.lopezjavier.appfitness.composeapp.resources.action_discard
-import io.github.lopezjavier.appfitness.composeapp.resources.action_keep_editing
 import io.github.lopezjavier.appfitness.composeapp.resources.action_save
-import io.github.lopezjavier.appfitness.composeapp.resources.discard_changes_message
-import io.github.lopezjavier.appfitness.composeapp.resources.discard_changes_title
 import org.jetbrains.compose.resources.stringResource
 
 /** The optional destructive button of an [AppEditorScreen] (for example "Eliminar"), under "Guardar". */
@@ -134,11 +130,7 @@ fun AppEditorScreen(
         content = content,
     )
     if (state.showDiscardDialog) {
-        AppConfirmDialog(
-            title = stringResource(Res.string.discard_changes_title),
-            message = stringResource(Res.string.discard_changes_message),
-            confirmLabel = stringResource(Res.string.action_discard),
-            cancelLabel = stringResource(Res.string.action_keep_editing),
+        DiscardChangesDialog(
             onConfirm = {
                 state.confirmDiscard()
                 currentOnClose.value()

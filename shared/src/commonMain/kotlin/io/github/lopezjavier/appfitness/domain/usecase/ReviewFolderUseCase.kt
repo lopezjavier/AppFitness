@@ -19,19 +19,10 @@ class ReviewFolderUseCase(
 ) {
     @Suppress("ReturnCount") // Early exits on a failed read keep the happy path flat.
     suspend operator fun invoke(folderId: String): Result<FolderReviewResult> {
-        val loaded = loadRoutines(folderId).getOrElse { return Result.failure(it) }
+        val loaded = loadFolderRoutines(routines, folderId).getOrElse { return Result.failure(it) }
         val catalogue = exercises.getAll().getOrElse { return Result.failure(it) }.associateBy { it.id }
         val intention = preferences.get().getOrNull()?.intention
         return Result.success(FolderReviewCalculator.compute(loaded.map { toReview(it, catalogue) }, intention))
-    }
-
-    @Suppress("ReturnCount")
-    private suspend fun loadRoutines(folderId: String): Result<List<Routine>> {
-        val summaries = routines.listActive().getOrElse { return Result.failure(it) }
-        val loaded = summaries.filter { it.folderId == folderId }.map { summary ->
-            routines.get(summary.id).getOrElse { return Result.failure(it) }
-        }
-        return Result.success(loaded)
     }
 
     private fun toReview(routine: Routine, catalogue: Map<String, Exercise>) = ReviewRoutine(
@@ -51,4 +42,14 @@ class ReviewFolderUseCase(
             )
         },
     )
+}
+
+/** The routines of a folder, in the order of "Mis rutinas"; the first failed read fails the whole list. */
+@Suppress("ReturnCount") // An early exit on a failed read keeps the happy path flat.
+internal suspend fun loadFolderRoutines(routines: RoutineRepository, folderId: String): Result<List<Routine>> {
+    val summaries = routines.listActive().getOrElse { return Result.failure(it) }
+    val loaded = summaries.filter { it.folderId == folderId }.map { summary ->
+        routines.get(summary.id).getOrElse { return Result.failure(it) }
+    }
+    return Result.success(loaded)
 }

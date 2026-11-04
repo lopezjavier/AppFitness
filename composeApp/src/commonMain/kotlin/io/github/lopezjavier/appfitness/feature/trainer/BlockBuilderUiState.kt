@@ -1,11 +1,15 @@
 package io.github.lopezjavier.appfitness.feature.trainer
 
+import io.github.lopezjavier.appfitness.domain.AppError
+import io.github.lopezjavier.appfitness.domain.appErrorOrNull
 import io.github.lopezjavier.appfitness.domain.coach.builder.BuilderState
 import io.github.lopezjavier.appfitness.domain.coach.builder.DayTypeOption
 import io.github.lopezjavier.appfitness.domain.coach.builder.PickerEntry
 import io.github.lopezjavier.appfitness.domain.coach.builder.RoutineType
 import io.github.lopezjavier.appfitness.domain.coach.builder.Split
 import io.github.lopezjavier.appfitness.domain.model.CatalogExercise
+import io.github.lopezjavier.appfitness.domain.model.CoachException
+import io.github.lopezjavier.appfitness.domain.model.CoachFailure
 import io.github.lopezjavier.appfitness.domain.model.Equipment
 import io.github.lopezjavier.appfitness.domain.model.MovementPattern
 import io.github.lopezjavier.appfitness.domain.model.MuscleGroup
@@ -18,6 +22,15 @@ data class NoFitInfo(val day: Int, val neededMinutes: Int, val limitMinutes: Int
 
 /** Why "Guardar bloque" failed; nothing is saved in any case. */
 enum class BuilderSaveError { Generic, PlanClosed, Offline }
+
+/** Maps a failed block save to its [BuilderSaveError]; shared by both builders. */
+internal fun Throwable.toBuilderSaveError(): BuilderSaveError = when {
+    (this as? CoachException)?.failure == CoachFailure.Conflict -> BuilderSaveError.PlanClosed
+    isOfflineFailure() -> BuilderSaveError.Offline
+    else -> BuilderSaveError.Generic
+}
+
+internal fun Throwable.isOfflineFailure(): Boolean = Result.failure<Unit>(this).appErrorOrNull() == AppError.Network
 
 /** "Bloque de entrenamiento" (US-72/US-93, "Desde cero"): steps `Splits`, `Types`, `Builder`; no AI call. */
 sealed interface BlockBuilderUiState {

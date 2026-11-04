@@ -37,8 +37,8 @@ import io.github.lopezjavier.appfitness.feature.trainer.BeforeStartRoot
 import io.github.lopezjavier.appfitness.feature.trainer.BlockBuilderRoot
 import io.github.lopezjavier.appfitness.feature.trainer.BlockPreviewRoot
 import io.github.lopezjavier.appfitness.feature.trainer.CoachUsageRoot
+import io.github.lopezjavier.appfitness.feature.trainer.FolderBlockRoot
 import io.github.lopezjavier.appfitness.feature.trainer.FolderReviewResultRoot
-import io.github.lopezjavier.appfitness.feature.trainer.FolderReviewRoot
 import io.github.lopezjavier.appfitness.feature.trainer.FreeTextLinesRoot
 import io.github.lopezjavier.appfitness.feature.trainer.IntakeRoot
 import io.github.lopezjavier.appfitness.feature.trainer.PlanProposalRoot
@@ -101,7 +101,7 @@ fun AppRoot(
             PlanProposalRoot(onBack, onOpenBeforeStart, planModifier)
         },
         beforeStart = { startModifier, onBack, onCreated, onOpenYourData, onFix, onOpenReview ->
-            BeforeStartRoot(onBack, onCreated, onOpenYourData, onFix, startModifier, onOpenFolderReview = onOpenReview)
+            BeforeStartRoot(onBack, onCreated, onOpenYourData, onFix, startModifier, onOpenFolderBlock = onOpenReview)
         },
         yourData = { dataModifier, onBack, onFix -> YourDataRoot(onBack, onFix, dataModifier) },
         intake = { intakeModifier, host -> IntakeRoot(host, intakeModifier) },
@@ -109,8 +109,8 @@ fun AppRoot(
         blockPreview = { blockModifier, planId, onOpenExercise, onBack ->
             BlockPreviewRoot(planId, onBack, onOpenExercise, blockModifier)
         },
-        folderReview = { reviewModifier, onBlockReady, onBack ->
-            FolderReviewRoot(onBlockReady, onBack, reviewModifier)
+        folderBlock = { blockModifier, planId, folderId, onSaved, onClose, onOpenExercise ->
+            FolderBlockRoot(planId, folderId, onSaved, onClose, onOpenExercise, blockModifier)
         },
         folderReviewResult = { resultModifier, onBack -> FolderReviewResultRoot(onBack, resultModifier) },
         blockBuilder = { builderModifier, planId, onSaved, onClose, onOpenExercise ->
