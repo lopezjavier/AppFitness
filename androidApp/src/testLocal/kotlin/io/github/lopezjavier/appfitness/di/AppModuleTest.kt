@@ -164,6 +164,7 @@ class AppModuleTest {
             listOf(
                 ConnectivityObserver::class,
                 Haptics::class,
+                Function2::class,
                 BarcodeScanner::class,
                 PhotoCapture::class,
                 FoodPhotoRepository::class,
