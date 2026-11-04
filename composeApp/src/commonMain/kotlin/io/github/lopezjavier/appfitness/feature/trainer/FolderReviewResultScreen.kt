@@ -31,13 +31,13 @@ import io.github.lopezjavier.appfitness.composeapp.resources.folder_review_resul
 import io.github.lopezjavier.appfitness.composeapp.resources.folder_review_result_empty_title
 import io.github.lopezjavier.appfitness.composeapp.resources.folder_review_result_help_body
 import io.github.lopezjavier.appfitness.composeapp.resources.folder_review_result_help_cd
+import io.github.lopezjavier.appfitness.composeapp.resources.folder_review_result_help_strength
 import io.github.lopezjavier.appfitness.composeapp.resources.folder_review_result_help_title
 import io.github.lopezjavier.appfitness.composeapp.resources.folder_review_result_met
 import io.github.lopezjavier.appfitness.composeapp.resources.folder_review_result_score_label
 import io.github.lopezjavier.appfitness.composeapp.resources.folder_review_result_score_state
-import io.github.lopezjavier.appfitness.composeapp.resources.folder_review_result_summary
-import io.github.lopezjavier.appfitness.composeapp.resources.folder_review_result_summary_plain
 import io.github.lopezjavier.appfitness.composeapp.resources.folder_review_result_title
+import io.github.lopezjavier.appfitness.composeapp.resources.folder_review_result_title_plain
 import io.github.lopezjavier.appfitness.composeapp.resources.folder_review_result_unmet
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_check
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_warning
@@ -84,7 +84,9 @@ fun FolderReviewResultScreen(
     modifier: Modifier = Modifier,
 ) {
     AppScreen(
-        title = stringResource(Res.string.folder_review_result_title),
+        title = (state as? FolderReviewResultUiState.Content)?.folderName
+            ?.let { stringResource(Res.string.folder_review_result_title, it) }
+            ?: stringResource(Res.string.folder_review_result_title_plain),
         modifier = modifier,
         onBack = onBack,
         testTagPrefix = "folder_review_result",
@@ -145,7 +147,7 @@ private fun ScoreCard(state: FolderReviewResultUiState.Content) {
             HelpButton(
                 contentDescription = stringResource(Res.string.folder_review_result_help_cd),
                 title = stringResource(Res.string.folder_review_result_help_title),
-                body = stringResource(Res.string.folder_review_result_help_body),
+                body = helpBody(state.strength),
                 testTag = "folder_review_result_score_help",
                 modifier = Modifier.align(Alignment.TopEnd),
             )
@@ -163,32 +165,32 @@ private fun ScoreCard(state: FolderReviewResultUiState.Content) {
                     valueTag = "folder_review_result_score_value",
                     bandTag = "folder_review_result_score_band",
                 )
-                Text(
-                    text = summary(state),
-                    style = AppTheme.typography.bodyMedium,
-                    color = AppTheme.colors.textSecondary,
-                    textAlign = TextAlign.Center,
-                    modifier = Modifier
-                        .padding(top = Spacing.md)
-                        .testTag(
-                            if (state.complete) "folder_review_result_complete" else "folder_review_result_summary",
-                        ),
-                )
+                if (state.complete) {
+                    Text(
+                        text = completeText(state),
+                        style = AppTheme.typography.bodyMedium,
+                        color = AppTheme.colors.textSecondary,
+                        textAlign = TextAlign.Center,
+                        modifier = Modifier
+                            .padding(top = Spacing.md)
+                            .testTag("folder_review_result_complete"),
+                    )
+                }
             }
         }
     }
 }
 
 @Composable
-private fun summary(state: FolderReviewResultUiState.Content): String = when {
-    state.complete -> {
-        val base = stringResource(Res.string.folder_review_result_complete, state.liftingRoutines)
-        if (state.strength) base + " " + stringResource(Res.string.folder_review_result_complete_strength) else base
-    }
+private fun completeText(state: FolderReviewResultUiState.Content): String {
+    val base = stringResource(Res.string.folder_review_result_complete, state.liftingRoutines)
+    return if (state.strength) base + " " + stringResource(Res.string.folder_review_result_complete_strength) else base
+}
 
-    state.folderName != null -> stringResource(Res.string.folder_review_result_summary, state.folderName)
-
-    else -> stringResource(Res.string.folder_review_result_summary_plain)
+@Composable
+private fun helpBody(strength: Boolean): String {
+    val base = stringResource(Res.string.folder_review_result_help_body)
+    return if (strength) base + " " + stringResource(Res.string.folder_review_result_help_strength) else base
 }
 
 /** A read-only row: lime check when met, error warning when not; its state is spoken ("Cumplido" / "Por mejorar"). */

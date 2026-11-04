@@ -42,7 +42,7 @@ class FolderReviewResultScreenTest {
         MuscleGroup.Glutes,
     )
 
-    private fun metItems() = groups.map { ReviewItem.Group(it, 12.0, 0, none = false, met = true) } +
+    private fun metItems() = groups.map { ReviewItem.Group(it, 12.0, 0, none = false, over = false, met = true) } +
         ReviewItem.Days(3, met = true)
 
     private fun content(
@@ -72,14 +72,22 @@ class FolderReviewResultScreenTest {
     )
 
     private fun unmetGroup(group: MuscleGroup, sets: Double, missing: Int) =
-        ReviewItem.Group(group, sets, missing, none = sets == 0.0, met = false)
+        ReviewItem.Group(group, sets, missing, none = sets == 0.0, over = false, met = false)
+
+    private fun metGroup(group: MuscleGroup, sets: Double) =
+        ReviewItem.Group(group, sets, 0, none = false, over = sets > 20.0, met = true)
+
+    private fun withGroup(item: ReviewItem.Group) = metItems().map {
+        if ((it as? ReviewItem.Group)?.group == item.group) item else it
+    }
+
+    private fun hasText(text: String) = rule.onNodeWithText(text, substring = true)
 
     @Test
     fun reviewing_showsTheScoreAndOneRowPerGroupThenTheDays_inOrder() {
-        val items = listOf(unmetGroup(MuscleGroup.Chest, 7.5, 3)) + metItems().drop(1)
+        val items = withGroup(unmetGroup(MuscleGroup.Chest, 7.5, 3))
         show(content(score = 7.5, items = items))
 
-        rule.onNodeWithText("Revisar tus rutinas").assertExists()
         rule.onNodeWithTag("folder_review_result_score", useUnmergedTree = true).assert(fraction(0.75f))
         rule.onNodeWithTag("folder_review_result_score_value", useUnmergedTree = true).assertTextEquals("7,5")
         rule.onNodeWithTag("folder_review_result_score_band", useUnmergedTree = true).assertTextEquals("Aceptable")
@@ -88,8 +96,30 @@ class FolderReviewResultScreenTest {
         }
         rule.onAllNodesWithTag("folder_review_result_row_reps").assertCountEquals(0)
         rule.onAllNodesWithTag("folder_review_result_row_order").assertCountEquals(0)
-        rule.onNodeWithTag("folder_review_result_summary")
-            .assertTextEquals("Carpeta «Fuerza». Es una guía: no cambia ni bloquea tus rutinas.")
+    }
+
+    @Test
+    fun theTitle_carriesTheFolderName() {
+        show(content(folderName = "Fuerza"))
+
+        rule.onNodeWithText("Revisión de «Fuerza»").assertExists()
+    }
+
+    @Test
+    fun withoutAFolderName_theTitleIsThePlainFallback() {
+        show(content(folderName = null))
+
+        rule.onNodeWithText("Revisión de la carpeta").assertExists()
+    }
+
+    @Test
+    fun noSummaryLine_andTheWordPatronAppearsNowhere() {
+        show(content(items = withGroup(unmetGroup(MuscleGroup.Back, 4.0, 6)), strength = true))
+
+        rule.onAllNodesWithTag("folder_review_result_summary").assertCountEquals(0)
+        rule.onAllNodesWithText("Es una guía", substring = true).assertCountEquals(0)
+        rule.onAllNodesWithText("Carpeta «Fuerza»", substring = true).assertCountEquals(0)
+        rule.onAllNodesWithText("patrón", substring = true, ignoreCase = true).assertCountEquals(0)
     }
 
     @Test
@@ -101,37 +131,92 @@ class FolderReviewResultScreenTest {
         rule.onNodeWithTag("folder_review_result_score_band", useUnmergedTree = true).assertTextEquals("Completa")
         rule.onNodeWithTag("folder_review_result_complete")
             .assertTextEquals("Todos los grupos principales tienen 10 o más series a la semana en 3 días.")
-        rule.onAllNodesWithTag("folder_review_result_summary").assertCountEquals(0)
-        rule.onAllNodesWithText("12 series a la semana.").assertCountEquals(6)
+        rule.onAllNodesWithText("12 series (se recomiendan al menos 10)", substring = true).assertCountEquals(6)
+        rule.onAllNodesWithText("Añade", substring = true).assertCountEquals(0)
+        rule.onAllNodesWithText("Por ejemplo", substring = true).assertCountEquals(0)
     }
 
     @Test
-    fun anUnmetRow_showsItsShortRecommendation_andNothingIsTappable() {
-        val items = metItems().map {
-            if ((it as? ReviewItem.Group)?.group ==
-                MuscleGroup.Back
-            ) {
-                unmetGroup(MuscleGroup.Back, 7.5, 3)
-            } else {
-                it
-            }
-        }
-        show(content(score = 9.0, items = items))
+    fun aNotCompleteFolder_hasNoCompleteLine() {
+        show(content(score = 9.0, items = withGroup(unmetGroup(MuscleGroup.Back, 7.5, 3))))
 
-        rule.onNodeWithText("7,5 de 10 series a la semana. Añade 3 más.").assertExists()
+        rule.onAllNodesWithTag("folder_review_result_complete").assertCountEquals(0)
+    }
+
+    @Test
+    fun aMetGroup_showsItsFigureWithADecimalComma() {
+        show(content(items = withGroup(metGroup(MuscleGroup.Chest, 10.5))))
+
+        hasText("10,5 series (se recomiendan al menos 10)").assertExists()
+    }
+
+    @Test
+    fun aGroupWithOneSet_usesTheSingular() {
+        show(content(score = 9.0, items = withGroup(unmetGroup(MuscleGroup.Chest, 1.0, 9))))
+
+        hasText("1 serie (se recomiendan al menos 10)").assertExists()
+        hasText("Añade 9 series de ejercicios donde sea el músculo principal").assertExists()
+    }
+
+    @Test
+    fun anUnmetGroup_showsTheFigureTheAddLineAndItsExample_andNothingIsTappable() {
+        show(content(score = 9.0, items = withGroup(unmetGroup(MuscleGroup.Back, 4.0, 6))))
+
+        hasText("4 series (se recomiendan al menos 10)").assertExists()
+        hasText(
+            "Añade 6 series de ejercicios donde sea el músculo principal; donde solo ayuda cuentan la mitad.",
+        ).assertExists()
+        hasText("Por ejemplo: remos, jalones al pecho, dominadas.").assertExists()
         rule.onNodeWithTag("folder_review_result_row_back").assertHasNoClickAction()
         rule.onNodeWithTag("folder_review_result_row_chest").assertHasNoClickAction()
     }
 
     @Test
+    fun everyOtherGroup_hasItsOwnExampleLineWhenUnmet() {
+        val expected = listOf(
+            "Por ejemplo: press de banca, fondos, aperturas.",
+            "Por ejemplo: press militar, elevaciones laterales (el press de banca cuenta la mitad).",
+            "Por ejemplo: sentadillas, zancadas, prensa de piernas, extensión de piernas.",
+            "Por ejemplo: peso muerto rumano, curl de piernas (el empuje de cadera cuenta la mitad).",
+            "Por ejemplo: empuje de cadera, puente de glúteos (sentadillas y zancadas cuentan la mitad).",
+        )
+        val items = metItems().map { item ->
+            (item as? ReviewItem.Group)?.let { unmetGroup(it.group, 4.0, 6) } ?: item
+        }
+        show(content(score = 5.0, items = items))
+
+        expected.forEach { hasText(it).assertExists() }
+    }
+
+    @Test
     fun aGroupWithNoSets_isRecommendedAtLeastTenAndTheScoreIsCapped() {
-        val items = listOf(unmetGroup(MuscleGroup.Glutes, 0.0, 10)) + metItems().dropLast(2) + ReviewItem.Days(3, true)
+        val items = withGroup(unmetGroup(MuscleGroup.Glutes, 0.0, 10))
         show(content(score = 6.0, items = items))
 
         rule.onNodeWithTag("folder_review_result_score", useUnmergedTree = true).assert(fraction(0.6f))
         rule.onNodeWithTag("folder_review_result_score_value", useUnmergedTree = true).assertTextEquals("6,0")
         rule.onNodeWithTag("folder_review_result_score_band", useUnmergedTree = true).assertTextEquals("Aceptable")
-        rule.onNodeWithText("Sin series a la semana. Añade al menos 10 a la semana.").assertExists()
+        hasText("Sin series (se recomiendan al menos 10)").assertExists()
+        hasText("Añade al menos 10 series de ejercicios donde sea el músculo principal").assertExists()
+    }
+
+    @Test
+    fun moreThanTwentySets_keepTheRowMetWithANeutralNote() {
+        show(content(items = withGroup(metGroup(MuscleGroup.Chest, 25.0))))
+
+        hasText("25 series (se recomiendan al menos 10)").assertExists()
+        hasText("Más de 20 series a la semana: por encima de unas 20, añadir más series aporta poco.").assertExists()
+        rule.onNodeWithTag("folder_review_result_row_chest").assert(
+            SemanticsMatcher.expectValue(SemanticsProperties.StateDescription, "Cumplido"),
+        )
+        rule.onNodeWithTag("folder_review_result_complete").assertExists()
+    }
+
+    @Test
+    fun exactlyTwentySets_showNoNote() {
+        show(content(items = withGroup(metGroup(MuscleGroup.Chest, 20.0))))
+
+        rule.onAllNodesWithText("Más de 20 series", substring = true).assertCountEquals(0)
     }
 
     @Test
@@ -169,13 +254,26 @@ class FolderReviewResultScreenTest {
     }
 
     @Test
-    fun helpButton_opensTheExplanationOfTheScore() {
+    fun helpButton_forAnotherIntention_explainsTheChecksWithoutTheStrengthSentence() {
         show(content())
 
         rule.onNodeWithTag("folder_review_result_score_help").performClick()
         rule.waitForIdle()
 
         rule.onNodeWithText("Cómo se calcula").assertExists()
+        hasText("con al menos 10 cada uno").assertExists()
+        hasText("Por encima de 20 series en un grupo solo se avisa, sin restar nota.").assertExists()
+        rule.onAllNodesWithText("Como buscas fuerza", substring = true).assertCountEquals(0)
+    }
+
+    @Test
+    fun helpButton_forStrength_appendsTheStrengthSentence() {
+        show(content(strength = true))
+
+        rule.onNodeWithTag("folder_review_result_score_help").performClick()
+        rule.waitForIdle()
+
+        hasText("Como buscas fuerza, también revisa que los ejercicios principales").assertExists()
     }
 
     @Test

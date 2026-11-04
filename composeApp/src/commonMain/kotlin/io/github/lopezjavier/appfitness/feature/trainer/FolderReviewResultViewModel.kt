@@ -71,7 +71,7 @@ class FolderReviewResultViewModel(
 
     /** Null when a name the row needs is unknown. */
     private fun ChecklistRow.toItem(names: ExerciseNames): ReviewItem? = when (this) {
-        is GroupRow -> ReviewItem.Group(group, sets, missingSets, isMissing, met)
+        is GroupRow -> ReviewItem.Group(group, sets, missingSets, isMissing, over, met)
 
         is DaysRow -> ReviewItem.Days(liftingRoutines, met)
 

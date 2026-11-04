@@ -2,7 +2,6 @@ package io.github.lopezjavier.appfitness.designsystem
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.size
 import androidx.compose.material3.Icon
@@ -26,7 +25,8 @@ import org.jetbrains.compose.resources.stringResource
  * details). With [onSelect] (a picker that chooses an exercise, R-17) the row body calls [onSelect] and the thumbnail
  * becomes its own target (at least 48 dp, "Ver detalle de <name>", tag `<tagPrefix>_thumbnail`) that calls [onOpen].
  * [supportingTestTag] tags the supporting line. [trailing] is a separate slot for the caller's own controls.
- * [favorite] draws the filled star marker after the name (R-56, T-204; tagged [favoriteTestTag]) and adds "Favorito"
+ * [favorite] draws the filled star marker inline right after the name, through `AppListRow.headlineTrailing`, so
+ * [trailing] stays free (R-56, T-204; tagged [favoriteTestTag]) and adds "Favorito"
  * to the row description. The row is tagged [tagPrefix]; the thumbnail
  * children are `<tagPrefix>_thumbnail_image` and `<tagPrefix>_thumbnail_placeholder`.
  */
@@ -70,15 +70,11 @@ fun ExerciseRow(
                 ) { thumbnail() }
             }
         },
-        trailing = if (favorite) {
-            {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    FavoriteMarker(favoriteTestTag)
-                    trailing?.invoke()
-                }
-            }
+        trailing = trailing,
+        headlineTrailing = if (favorite) {
+            { FavoriteMarker(favoriteTestTag) }
         } else {
-            trailing
+            null
         },
         supportingTestTag = supportingTestTag,
         onClick = onSelect ?: onOpen,

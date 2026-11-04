@@ -18,6 +18,7 @@ sealed interface ReviewItem {
         val sets: Double,
         val missing: Int,
         val none: Boolean,
+        val over: Boolean,
         override val met: Boolean,
     ) : ReviewItem
 

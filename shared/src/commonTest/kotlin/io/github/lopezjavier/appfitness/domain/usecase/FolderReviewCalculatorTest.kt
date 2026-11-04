@@ -160,6 +160,48 @@ class FolderReviewCalculatorTest {
     }
 
     @Test
+    fun over_isFalseAtExactly20_andTrueAbove() {
+        assertFalse(GroupRow(MuscleGroup.Chest, 20.0).over)
+        assertTrue(GroupRow(MuscleGroup.Chest, 20.5).over)
+        assertTrue(GroupRow(MuscleGroup.Chest, 25.0).over)
+        assertFalse(GroupRow(MuscleGroup.Chest, 12.0).over)
+    }
+
+    @Test
+    fun groupMetAndMissing_atTheBoundaries() {
+        assertTrue(GroupRow(MuscleGroup.Back, 10.0).met)
+        assertTrue(GroupRow(MuscleGroup.Back, 12.0).met)
+        val low = GroupRow(MuscleGroup.Back, 9.5)
+        assertFalse(low.met)
+        assertEquals(1, low.missingSets)
+        assertTrue(GroupRow(MuscleGroup.Back, 0.0).isMissing)
+    }
+
+    @Test
+    fun groupRows_areTheSameForEveryIntention() {
+        val folder = listOf(routine("A", iso(MuscleGroup.Chest, 4), iso(MuscleGroup.Back, 25)))
+        val reference = compute(folder, TrainingIntention.Muscle).rows.filterIsInstance<GroupRow>()
+        TrainingIntention.entries.forEach {
+            assertEquals(reference, compute(folder, it).rows.filterIsInstance<GroupRow>())
+        }
+    }
+
+    @Test
+    fun setsAbove20_doNotChangeScoreFindingsOrComplete() {
+        val at20 = compute(
+            listOf(routine("A", iso(MuscleGroup.Chest, 20)), routine("B", iso(MuscleGroup.Back, 10))) +
+                fullFolder().drop(0),
+        )
+        val at30 = compute(
+            listOf(routine("A", iso(MuscleGroup.Chest, 30)), routine("B", iso(MuscleGroup.Back, 10))) +
+                fullFolder().drop(0),
+        )
+        assertEquals(at20.score, at30.score)
+        assertEquals(at20.findings.size, at30.findings.size)
+        assertEquals(at20.complete, at30.complete)
+    }
+
+    @Test
     fun missingSets_roundsUp() {
         val row = compute(listOf(routine("A", iso(MuscleGroup.Chest, 7)))).rows.filterIsInstance<GroupRow>().first()
 

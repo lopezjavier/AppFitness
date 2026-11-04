@@ -37,6 +37,9 @@ sealed interface ChecklistRow {
 data class GroupRow(val group: MuscleGroup, val sets: Double) : ChecklistRow {
     override val met: Boolean get() = sets >= FolderReviewCalculator.TARGET_SETS
 
+    /** More than [FolderReviewCalculator.OVER_SETS] sets: only a neutral note, never a finding or a score effect. */
+    val over: Boolean get() = sets > FolderReviewCalculator.OVER_SETS
+
     /** C2: the group has no sets at all. */
     val isMissing: Boolean get() = sets == 0.0
 
@@ -91,6 +94,7 @@ data class FolderReviewResult(
 /** Deterministic folder review (07 section 3 "Folder review"); pure, no model, no network. */
 object FolderReviewCalculator {
     const val TARGET_SETS = 10
+    const val OVER_SETS = 20
     const val MIN_DAYS = 2
     const val MAX_HEAVY_REPS = 8
     const val CAP_SCORE = 6.0

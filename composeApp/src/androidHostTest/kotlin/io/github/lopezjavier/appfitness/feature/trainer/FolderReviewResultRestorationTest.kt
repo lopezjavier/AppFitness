@@ -71,7 +71,8 @@ class FolderReviewResultRestorationTest {
     fun aRecreatedModel_restoresTheFolder_andRecomputesFromTheCurrentRoutines() {
         rule.setContent { AppTheme { FolderReviewResultRoot(onBack = {}, viewModel = current) } }
         rule.waitForIdle()
-        rule.onNodeWithText("8 de 10 series a la semana. Añade 2 más.").assertExists()
+        rule.onNodeWithText("8 series (se recomiendan al menos 10)", substring = true).assertExists()
+        rule.onNodeWithText("Añade 2 series de ejercicios", substring = true).assertExists()
         assertEquals(listOf("folder-1"), computed)
 
         chestSets = 12.0
@@ -79,6 +80,13 @@ class FolderReviewResultRestorationTest {
         rule.waitForIdle()
 
         assertEquals(listOf("folder-1", "folder-1"), computed)
-        rule.onNodeWithText("12 series a la semana.").assertExists()
+        rule.onNodeWithText("12 series (se recomiendan al menos 10)", substring = true).assertExists()
+
+        chestSets = 25.0
+        current = newModel()
+        rule.waitForIdle()
+
+        rule.onNodeWithText("Más de 20 series a la semana", substring = true).assertExists()
+        rule.onNodeWithTag("folder_review_result_row_chest").assertExists()
     }
 }

@@ -114,6 +114,8 @@ private fun SimilarLoading() {
  * One alternative as an [ExerciseRow]: thumbnail, name, equipment and the similarity as a [PercentRing] (the whole
  * number inside) read as "87 por ciento de similitud". Tagged [rowTag] and [percentTag]. With [onSelect] the
  * row body picks and the thumbnail opens the details (R-17). [showPercent] false hides the ring (cardio swap).
+ * A favourite shows its star inline after the name; the ring is the only trailing content. The ring keeps its default
+ * cyan on purpose: similarity is neutral and never on the score colour ramp (05 section 8).
  */
 @Composable
 internal fun SimilarExerciseItem(
