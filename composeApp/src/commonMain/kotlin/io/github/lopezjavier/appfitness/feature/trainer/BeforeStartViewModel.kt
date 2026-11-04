@@ -191,7 +191,7 @@ class BeforeStartViewModel(
     private fun pickFolder(folderId: String) {
         val picker = (_uiState.value as? BeforeStartUiState.Content)?.folderPicker as? FolderPickerState.Loaded
         if (picker?.folders?.any { it.id == folderId } != true) return
-        effectChannel.trySend(BeforeStartEffect.OpenFolderReview(planId, folderId))
+        effectChannel.trySend(BeforeStartEffect.OpenFolderBlock(planId, folderId))
     }
 
     private fun setChoice(step: StartChoiceStep) {

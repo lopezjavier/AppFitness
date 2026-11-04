@@ -25,7 +25,6 @@ import io.github.lopezjavier.appfitness.data.repository.SupabaseDeloadRepository
 import io.github.lopezjavier.appfitness.data.repository.SupabaseDiscomfortRepository
 import io.github.lopezjavier.appfitness.data.repository.SupabaseExerciseRepository
 import io.github.lopezjavier.appfitness.data.repository.SupabaseFavoriteExercisesRepository
-import io.github.lopezjavier.appfitness.data.repository.SupabaseFolderReviewRepository
 import io.github.lopezjavier.appfitness.data.repository.SupabaseFoodDiaryRepository
 import io.github.lopezjavier.appfitness.data.repository.SupabaseFoodPhotoRepository
 import io.github.lopezjavier.appfitness.data.repository.SupabaseFoodPreferencesRepository
@@ -59,7 +58,6 @@ import io.github.lopezjavier.appfitness.data.repository.UnconfiguredDeloadReposi
 import io.github.lopezjavier.appfitness.data.repository.UnconfiguredDiscomfortRepository
 import io.github.lopezjavier.appfitness.data.repository.UnconfiguredExerciseRepository
 import io.github.lopezjavier.appfitness.data.repository.UnconfiguredFavoriteExercisesRepository
-import io.github.lopezjavier.appfitness.data.repository.UnconfiguredFolderReviewRepository
 import io.github.lopezjavier.appfitness.data.repository.UnconfiguredFoodDiaryRepository
 import io.github.lopezjavier.appfitness.data.repository.UnconfiguredFoodPhotoRepository
 import io.github.lopezjavier.appfitness.data.repository.UnconfiguredFoodPreferencesRepository
@@ -97,7 +95,6 @@ import io.github.lopezjavier.appfitness.domain.repository.DeloadRepository
 import io.github.lopezjavier.appfitness.domain.repository.DiscomfortRepository
 import io.github.lopezjavier.appfitness.domain.repository.ExerciseRepository
 import io.github.lopezjavier.appfitness.domain.repository.FavoriteExercisesRepository
-import io.github.lopezjavier.appfitness.domain.repository.FolderReviewRepository
 import io.github.lopezjavier.appfitness.domain.repository.FoodDiaryRepository
 import io.github.lopezjavier.appfitness.domain.repository.FoodPhotoRepository
 import io.github.lopezjavier.appfitness.domain.repository.FoodPreferencesRepository
@@ -138,6 +135,7 @@ import io.github.lopezjavier.appfitness.domain.usecase.HealthWriteBack
 import io.github.lopezjavier.appfitness.domain.usecase.InterpretMetric
 import io.github.lopezjavier.appfitness.domain.usecase.LoadCheckInSummary
 import io.github.lopezjavier.appfitness.domain.usecase.LoadExerciseCatalog
+import io.github.lopezjavier.appfitness.domain.usecase.LoadFolderBlockUseCase
 import io.github.lopezjavier.appfitness.domain.usecase.LoadReminders
 import io.github.lopezjavier.appfitness.domain.usecase.MeasurementsByDay
 import io.github.lopezjavier.appfitness.domain.usecase.RecalculateEntry
@@ -351,14 +349,6 @@ val sharedModule =
                 UnconfiguredCoachBlockRepository()
             }
         }
-        single<FolderReviewRepository> {
-            if (get<AppConfig>().isSupabaseConfigured) {
-                val client = get<SupabaseClient>()
-                SupabaseFolderReviewRepository(client.auth, client.postgrest, client.functions, get())
-            } else {
-                UnconfiguredFolderReviewRepository()
-            }
-        }
         single<CoachUsageRepository> {
             if (get<AppConfig>().isSupabaseConfigured) {
                 val client = get<SupabaseClient>()
@@ -466,7 +456,8 @@ val sharedModule =
         single { ExerciseNameResolver(get(), get()) }
         factory { SearchExercises() }
         factory { ReviewFolderUseCase(get(), get(), get()) }
-        factory { BuildBlockUseCase(get()) }
+        factory { LoadFolderBlockUseCase(get(), get(), get()) }
+        factory { BuildBlockUseCase(get(), get()) }
         factory { ValidateBodyMeasurement() }
         factory { ValidateCircumference() }
         factory { WaistHipRatio() }

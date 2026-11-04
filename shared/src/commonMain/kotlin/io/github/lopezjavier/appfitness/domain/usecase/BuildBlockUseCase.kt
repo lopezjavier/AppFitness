@@ -33,7 +33,7 @@ import kotlinx.datetime.LocalDate
  * the device; only [loadInputs] and [save] reach the repository. Nothing is stored until [save].
  */
 @Suppress("TooManyFunctions") // One method per step of the builder.
-class BuildBlockUseCase(private val blocks: CoachBlockRepository) {
+class BuildBlockUseCase(private val blocks: CoachBlockRepository, private val folders: LoadFolderBlockUseCase) {
     fun splitsFor(days: Int): List<Split> = SplitCatalog.splitsFor(days)
 
     fun dayOptions(
@@ -84,6 +84,9 @@ class BuildBlockUseCase(private val blocks: CoachBlockRepository) {
     fun score(state: BuilderState): BuilderScoreResult = BuilderScore.score(state.days, state.intention)
 
     fun checkFolder(draft: FolderBlockDraft): FolderBlockStatus = draft.status()
+
+    /** Reads a folder as an editable copy (nothing is written). */
+    suspend fun loadFolder(folderId: String): Result<FolderBlockSource> = folders(folderId)
 
     suspend fun loadInputs(today: LocalDate): Result<BuilderInputs> = blocks.loadBuilderInputs(today)
 

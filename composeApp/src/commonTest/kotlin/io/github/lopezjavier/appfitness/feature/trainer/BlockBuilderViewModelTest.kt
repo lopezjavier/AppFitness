@@ -23,11 +23,13 @@ import io.github.lopezjavier.appfitness.domain.model.TrainingIntention
 import io.github.lopezjavier.appfitness.domain.model.TrainingPreferences
 import io.github.lopezjavier.appfitness.domain.usecase.BuildBlockUseCase
 import io.github.lopezjavier.appfitness.domain.usecase.LoadExerciseCatalog
+import io.github.lopezjavier.appfitness.domain.usecase.LoadFolderBlockUseCase
 import io.github.lopezjavier.appfitness.feature.exercises.FakeExerciseLibrary
 import io.github.lopezjavier.appfitness.feature.exercises.FakeExerciseRepository
 import io.github.lopezjavier.appfitness.feature.exercises.FakeFavoriteExercisesRepository
 import io.github.lopezjavier.appfitness.feature.exercises.exerciseInfo
 import io.github.lopezjavier.appfitness.feature.exercises.exerciseRow
+import io.github.lopezjavier.appfitness.feature.routines.FakeRoutineRepository
 import io.github.lopezjavier.appfitness.feature.workout.MutableClock
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -119,7 +121,10 @@ class BlockBuilderViewModelTest {
     private fun TestScope.viewModel(saved: SavedStateHandle = SavedStateHandle()): BlockBuilderViewModel {
         val model = BlockBuilderViewModel(
             planId = "plan-1",
-            builder = BuildBlockUseCase(blocks),
+            builder = BuildBlockUseCase(
+                blocks,
+                LoadFolderBlockUseCase(FakeRoutineRepository(), exerciseRepository, prefs),
+            ),
             catalog = LoadExerciseCatalog(exerciseRepository, library),
             favourites = favourites,
             exercises = exerciseRepository,

@@ -38,7 +38,7 @@ class BlockStartChoiceScreenTest {
         folders += RoutineFolder("f2", "Fuerza")
     }
     private val created = mutableListOf<BeforeStartEffect.Created>()
-    private val reviews = mutableListOf<BeforeStartEffect.OpenFolderReview>()
+    private val reviews = mutableListOf<BeforeStartEffect.OpenFolderBlock>()
 
     private fun show(mode: String = "block", saved: Map<String, Any?> = emptyMap()) {
         repository.inputs[PlanInputKind.Block] = Result.success(
@@ -64,7 +64,7 @@ class BlockStartChoiceScreenTest {
                     onFix = {},
                     viewModel = model,
                     connectivity = FakeConnectivityObserver(),
-                    onOpenFolderReview = { reviews += it },
+                    onOpenFolderBlock = { reviews += it },
                 )
             }
         }
@@ -113,7 +113,7 @@ class BlockStartChoiceScreenTest {
         rule.onNodeWithText("Torso-pierna").assertExists()
         tap("block_start_folder_f2")
 
-        assertEquals(listOf(BeforeStartEffect.OpenFolderReview("plan-9", "f2")), reviews)
+        assertEquals(listOf(BeforeStartEffect.OpenFolderBlock("plan-9", "f2")), reviews)
         assertTrue(created.isEmpty())
     }
 

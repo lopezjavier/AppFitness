@@ -40,8 +40,8 @@ import io.github.lopezjavier.appfitness.feature.trainer.BeforeStartViewModel
 import io.github.lopezjavier.appfitness.feature.trainer.BlockBuilderViewModel
 import io.github.lopezjavier.appfitness.feature.trainer.BlockPreviewViewModel
 import io.github.lopezjavier.appfitness.feature.trainer.CoachUsageViewModel
+import io.github.lopezjavier.appfitness.feature.trainer.FolderBlockViewModel
 import io.github.lopezjavier.appfitness.feature.trainer.FolderReviewResultViewModel
-import io.github.lopezjavier.appfitness.feature.trainer.FolderReviewViewModel
 import io.github.lopezjavier.appfitness.feature.trainer.FreeTextLinesViewModel
 import io.github.lopezjavier.appfitness.feature.trainer.IntakeViewModel
 import io.github.lopezjavier.appfitness.feature.trainer.PlanProposalViewModel
@@ -485,12 +485,14 @@ val uiModule =
                 exerciseNames = get(),
             )
         }
-        viewModel {
-            FolderReviewViewModel(
-                reviews = get(),
-                names = get(),
-                library = get(),
-                routines = get(),
+        viewModel { params ->
+            FolderBlockViewModel(
+                planId = params.get(0),
+                folderId = params.get(1),
+                buildBlock = get(),
+                catalog = get(),
+                favourites = get(),
+                plans = get(),
                 clock = get(),
                 savedState = get(),
             )

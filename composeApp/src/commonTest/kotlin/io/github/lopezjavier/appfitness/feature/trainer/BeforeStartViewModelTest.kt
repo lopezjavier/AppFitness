@@ -333,7 +333,7 @@ class BeforeStartViewModelTest {
     }
 
     @Test
-    fun folderTap_emitsOpenFolderReviewWithThePlan() = runTest(dispatcher) {
+    fun folderTap_emitsOpenFolderBlockWithThePlan() = runTest(dispatcher) {
         routines.folders += RoutineFolder("f1", "Torso")
         givenBlock(provisional = false)
         val model = viewModel(args("block", planId = "plan-1"))
@@ -345,7 +345,7 @@ class BeforeStartViewModelTest {
         model.effects.test {
             model.onEvent(BeforeStartEvent.PickFolder("f1"))
             advanceUntilIdle()
-            assertEquals(BeforeStartEffect.OpenFolderReview("plan-1", "f1"), awaitItem())
+            assertEquals(BeforeStartEffect.OpenFolderBlock("plan-1", "f1"), awaitItem())
         }
     }
 

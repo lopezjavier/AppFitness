@@ -18,12 +18,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.semantics.stateDescription
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.github.lopezjavier.appfitness.composeapp.resources.Res
-import io.github.lopezjavier.appfitness.composeapp.resources.action_cancel
-import io.github.lopezjavier.appfitness.composeapp.resources.action_discard
 import io.github.lopezjavier.appfitness.composeapp.resources.action_retry
 import io.github.lopezjavier.appfitness.composeapp.resources.block_below_recommended
 import io.github.lopezjavier.appfitness.composeapp.resources.block_below_recommended_help
@@ -45,7 +41,6 @@ import io.github.lopezjavier.appfitness.composeapp.resources.block_builder_plan_
 import io.github.lopezjavier.appfitness.composeapp.resources.block_builder_save
 import io.github.lopezjavier.appfitness.composeapp.resources.block_builder_save_action
 import io.github.lopezjavier.appfitness.composeapp.resources.block_builder_save_error
-import io.github.lopezjavier.appfitness.composeapp.resources.block_builder_score
 import io.github.lopezjavier.appfitness.composeapp.resources.block_builder_section_help_body
 import io.github.lopezjavier.appfitness.composeapp.resources.block_builder_section_help_cd
 import io.github.lopezjavier.appfitness.composeapp.resources.block_builder_section_help_strength
@@ -54,15 +49,11 @@ import io.github.lopezjavier.appfitness.composeapp.resources.block_builder_slot_
 import io.github.lopezjavier.appfitness.composeapp.resources.block_builder_slot_supporting
 import io.github.lopezjavier.appfitness.composeapp.resources.block_builder_slot_swap_cd
 import io.github.lopezjavier.appfitness.composeapp.resources.block_builder_title
-import io.github.lopezjavier.appfitness.composeapp.resources.discard_changes_message
-import io.github.lopezjavier.appfitness.composeapp.resources.discard_changes_title
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_add
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_close
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_swap
 import io.github.lopezjavier.appfitness.designsystem.AddItemButton
-import io.github.lopezjavier.appfitness.designsystem.AppConfirmDialog
 import io.github.lopezjavier.appfitness.designsystem.AppIconButton
-import io.github.lopezjavier.appfitness.designsystem.AppLinearProgress
 import io.github.lopezjavier.appfitness.designsystem.AppListRow
 import io.github.lopezjavier.appfitness.designsystem.AppOption
 import io.github.lopezjavier.appfitness.designsystem.AppPickerSheet
@@ -70,6 +61,7 @@ import io.github.lopezjavier.appfitness.designsystem.AppScreen
 import io.github.lopezjavier.appfitness.designsystem.AppStateAction
 import io.github.lopezjavier.appfitness.designsystem.AppTabRow
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
+import io.github.lopezjavier.appfitness.designsystem.DiscardChangesDialog
 import io.github.lopezjavier.appfitness.designsystem.ErrorState
 import io.github.lopezjavier.appfitness.designsystem.ExerciseRow
 import io.github.lopezjavier.appfitness.designsystem.HelpButton
@@ -92,9 +84,6 @@ import io.github.lopezjavier.appfitness.feature.exercises.LocalExerciseMediaUris
 import kotlinx.coroutines.flow.Flow
 import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.resources.stringResource
-
-/** Fraction of the full score bar. */
-private const val FULL_PERCENT = 100f
 
 /**
  * "Desde cero" (US-72, US-93): the three steps (`Splits`, `Types`, `Builder`) of one flow, chosen by [state]. It only
@@ -192,11 +181,7 @@ private fun BlockBuilderContent(
     }
     state.openSlot?.let { BuilderSlotPickerSheet(state, it, onEvent, onOpenExercise, online) }
     if (state.discardDialog) {
-        AppConfirmDialog(
-            title = stringResource(Res.string.discard_changes_title),
-            message = stringResource(Res.string.discard_changes_message),
-            confirmLabel = stringResource(Res.string.action_discard),
-            cancelLabel = stringResource(Res.string.action_cancel),
+        DiscardChangesDialog(
             onConfirm = { onEvent(BlockBuilderEvent.ConfirmDiscard) },
             onDismiss = { onEvent(BlockBuilderEvent.CancelDiscard) },
             testTagPrefix = "block_builder_discard",
@@ -429,19 +414,11 @@ private fun CardioSection(ui: BlockBuilderUiState.Builder, dayIndex: Int, minute
 /** The score bar with its text, the notes and "Guardar bloque" (R-09: one pinned footer for the whole block). */
 @Composable
 private fun BuilderFooter(state: BlockBuilderUiState.Builder, online: Boolean, onEvent: (BlockBuilderEvent) -> Unit) {
-    val percent = state.state.score.percent
-    val scoreText = stringResource(Res.string.block_builder_score, percent)
     Column(
         Modifier.fillMaxWidth().padding(Spacing.screenMargin),
         verticalArrangement = Arrangement.spacedBy(Spacing.sm),
     ) {
-        androidx.compose.material3.Text(
-            text = scoreText,
-            style = AppTheme.typography.titleMedium,
-            color = AppTheme.colors.textPrimary,
-            modifier = Modifier.testTag("block_builder_score").semantics { stateDescription = scoreText },
-        )
-        AppLinearProgress(percent / FULL_PERCENT, scoreText)
+        BuilderScoreBar(state.state.score.percent, "block_builder_score")
         if (state.state.days.any { it.cutSets }) {
             Row(
                 verticalAlignment = Alignment.CenterVertically,

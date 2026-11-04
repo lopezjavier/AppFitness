@@ -181,7 +181,7 @@ class BeforeStartRestorationTest {
         val saved = SavedStateHandle(mapOf("mode" to "block", "planId" to "plan-2"))
         fun newModel() = BeforeStartViewModel(repository, FakeCoachIntakeRepository(), MutableClock(), routines, saved)
         var current by mutableStateOf(newModel())
-        val reviews = mutableListOf<BeforeStartEffect.OpenFolderReview>()
+        val reviews = mutableListOf<BeforeStartEffect.OpenFolderBlock>()
         rule.setContent {
             AppTheme {
                 BeforeStartRoot(
@@ -191,7 +191,7 @@ class BeforeStartRestorationTest {
                     onFix = {},
                     viewModel = current,
                     connectivity = FakeConnectivityObserver(),
-                    onOpenFolderReview = { reviews += it },
+                    onOpenFolderBlock = { reviews += it },
                 )
             }
         }

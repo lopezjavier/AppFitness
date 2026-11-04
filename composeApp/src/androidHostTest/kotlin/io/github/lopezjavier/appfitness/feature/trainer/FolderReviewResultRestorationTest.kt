@@ -72,6 +72,8 @@ class FolderReviewResultRestorationTest {
         rule.setContent { AppTheme { FolderReviewResultRoot(onBack = {}, viewModel = current) } }
         rule.waitForIdle()
         rule.onNodeWithText("8 series (se recomiendan al menos 10)", substring = true).assertExists()
+        rule.onNodeWithTag("folder_review_result_row_chest_help").performClick()
+        rule.waitForIdle()
         rule.onNodeWithText("Añade 2 series de ejercicios", substring = true).assertExists()
         assertEquals(listOf("folder-1"), computed)
 
@@ -86,6 +88,8 @@ class FolderReviewResultRestorationTest {
         current = newModel()
         rule.waitForIdle()
 
+        rule.onNodeWithTag("folder_review_result_row_chest_help").performClick()
+        rule.waitForIdle()
         rule.onNodeWithText("Más de 20 series a la semana", substring = true).assertExists()
         rule.onNodeWithTag("folder_review_result_row_chest").assertExists()
     }

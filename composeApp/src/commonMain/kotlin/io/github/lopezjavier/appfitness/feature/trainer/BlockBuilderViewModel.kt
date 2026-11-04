@@ -3,8 +3,6 @@ package io.github.lopezjavier.appfitness.feature.trainer
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import io.github.lopezjavier.appfitness.domain.AppError
-import io.github.lopezjavier.appfitness.domain.appErrorOrNull
 import io.github.lopezjavier.appfitness.domain.coach.builder.BuilderInputs
 import io.github.lopezjavier.appfitness.domain.coach.builder.BuilderStart
 import io.github.lopezjavier.appfitness.domain.coach.builder.BuilderState
@@ -19,8 +17,6 @@ import io.github.lopezjavier.appfitness.domain.coach.builder.Slot
 import io.github.lopezjavier.appfitness.domain.coach.builder.SlotEligibility
 import io.github.lopezjavier.appfitness.domain.coach.builder.SplitCatalog
 import io.github.lopezjavier.appfitness.domain.model.CatalogExercise
-import io.github.lopezjavier.appfitness.domain.model.CoachException
-import io.github.lopezjavier.appfitness.domain.model.CoachFailure
 import io.github.lopezjavier.appfitness.domain.model.Equipment
 import io.github.lopezjavier.appfitness.domain.model.Exercise
 import io.github.lopezjavier.appfitness.domain.model.TrainingIntention
@@ -57,12 +53,12 @@ private const val STEP_BUILDER = "builder"
 
 /** What the builder reads once: the user's training choices, the catalogue, the history and the cardio target. */
 @Suppress("LongParameterList") // Everything the builder reads once.
-private class Inputs(
+private data class Inputs(
     val days: Int,
     val intention: TrainingIntention?,
     val sessionMinutes: Int,
     val equipment: List<Equipment>,
-    var catalogue: List<CatalogExercise>,
+    val catalogue: List<CatalogExercise>,
     val favouriteIds: Set<String>,
     val builder: BuilderInputs,
     val cardioTargetMinWeek: Int,
@@ -132,12 +128,10 @@ class BlockBuilderViewModel(
                 inputs = it
                 _uiState.value = restore(it)
             }.onFailure {
-                _uiState.value = BlockBuilderUiState.Failed(offline = it.isOffline())
+                _uiState.value = BlockBuilderUiState.Failed(offline = it.isOfflineFailure())
             }
         }
     }
-
-    private fun Throwable.isOffline() = Result.failure<Unit>(this).appErrorOrNull() == AppError.Network
 
     @Suppress("ReturnCount") // One early exit per failed read.
     private suspend fun readInputs(): Result<Inputs> {
@@ -379,7 +373,7 @@ class BlockBuilderViewModel(
                 set(after.copy(createFailed = exercise == null))
                 return@launch
             }
-            reloaded?.let { checkNotNull(inputs).catalogue = it }
+            reloaded?.let { list -> inputs = inputs?.copy(catalogue = list) }
             applyPick(builderUi(after.state, after.selectedDay, ref, after), ref, exercise)
         }
     }
@@ -400,17 +394,17 @@ class BlockBuilderViewModel(
         if (!current.canSave) return
         set(current.copy(saving = true, saveError = null))
         viewModelScope.launch {
-            val result = builder.save(planId, current.state) ?: return@launch
+            val result = builder.save(planId, current.state)
+            if (result == null) {
+                updateBuilder { it.copy(saving = false) }
+                return@launch
+            }
             result.onSuccess {
                 updateBuilder { it.copy(saving = false) }
                 effectChannel.send(BlockBuilderEffect.Confirm)
                 effectChannel.send(BlockBuilderEffect.Saved)
             }.onFailure { failure ->
-                val error = when {
-                    (failure as? CoachException)?.failure == CoachFailure.Conflict -> BuilderSaveError.PlanClosed
-                    failure.isOffline() -> BuilderSaveError.Offline
-                    else -> BuilderSaveError.Generic
-                }
+                val error = failure.toBuilderSaveError()
                 updateBuilder { it.copy(saving = false, saveError = error) }
                 effectChannel.send(BlockBuilderEffect.Reject)
             }
@@ -480,6 +474,8 @@ class BlockBuilderViewModel(
         }
     }
 
+    // A saved name that is not a RoutineType (a renamed type after an app update) decodes to null, so restore falls
+    // back to the splits step instead of crashing on a stale saved state.
     private fun decodeTypes(raw: String): List<RoutineType>? = runCatching {
         raw.split(",").map { name -> RoutineType.valueOf(name) }
     }.getOrNull()

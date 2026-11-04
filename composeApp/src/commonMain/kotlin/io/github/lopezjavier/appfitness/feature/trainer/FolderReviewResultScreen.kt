@@ -7,19 +7,15 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.style.TextAlign
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.github.lopezjavier.appfitness.composeapp.resources.Res
@@ -33,14 +29,10 @@ import io.github.lopezjavier.appfitness.composeapp.resources.folder_review_resul
 import io.github.lopezjavier.appfitness.composeapp.resources.folder_review_result_help_cd
 import io.github.lopezjavier.appfitness.composeapp.resources.folder_review_result_help_strength
 import io.github.lopezjavier.appfitness.composeapp.resources.folder_review_result_help_title
-import io.github.lopezjavier.appfitness.composeapp.resources.folder_review_result_met
 import io.github.lopezjavier.appfitness.composeapp.resources.folder_review_result_score_label
 import io.github.lopezjavier.appfitness.composeapp.resources.folder_review_result_score_state
 import io.github.lopezjavier.appfitness.composeapp.resources.folder_review_result_title
 import io.github.lopezjavier.appfitness.composeapp.resources.folder_review_result_title_plain
-import io.github.lopezjavier.appfitness.composeapp.resources.folder_review_result_unmet
-import io.github.lopezjavier.appfitness.composeapp.resources.ic_check
-import io.github.lopezjavier.appfitness.composeapp.resources.ic_warning
 import io.github.lopezjavier.appfitness.designsystem.AppCard
 import io.github.lopezjavier.appfitness.designsystem.AppListRow
 import io.github.lopezjavier.appfitness.designsystem.AppNumberFormat
@@ -54,7 +46,6 @@ import io.github.lopezjavier.appfitness.designsystem.ScoreRing
 import io.github.lopezjavier.appfitness.designsystem.SkeletonBox
 import io.github.lopezjavier.appfitness.designsystem.Spacing
 import io.github.lopezjavier.appfitness.designsystem.WindowWidthClassDefaults
-import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
 
@@ -133,7 +124,7 @@ private fun ResultContent(state: FolderReviewResultUiState.Content) {
         ) {
             ScoreCard(state)
             Column(Modifier.testTag("folder_review_result_rows")) {
-                state.items.forEach { item -> ReviewRow(item) }
+                state.items.forEach { item -> ReviewListRow(item, "folder_review_result_row_") }
             }
         }
     }
@@ -191,29 +182,6 @@ private fun completeText(state: FolderReviewResultUiState.Content): String {
 private fun helpBody(strength: Boolean): String {
     val base = stringResource(Res.string.folder_review_result_help_body)
     return if (strength) base + " " + stringResource(Res.string.folder_review_result_help_strength) else base
-}
-
-/** A read-only row: lime check when met, error warning when not; its state is spoken ("Cumplido" / "Por mejorar"). */
-@Composable
-private fun ReviewRow(item: ReviewItem) {
-    val stateText = stringResource(
-        if (item.met) Res.string.folder_review_result_met else Res.string.folder_review_result_unmet,
-    )
-    AppListRow(
-        headline = item.headline(),
-        supporting = item.supporting(),
-        leading = {
-            Icon(
-                painter = painterResource(if (item.met) Res.drawable.ic_check else Res.drawable.ic_warning),
-                contentDescription = null,
-                tint = if (item.met) AppTheme.colors.neonLime else AppTheme.colors.error,
-                modifier = Modifier.size(Spacing.xl),
-            )
-        },
-        modifier = Modifier
-            .testTag("folder_review_result_row_${item.tagSuffix}")
-            .semantics { stateDescription = stateText },
-    )
 }
 
 @Composable

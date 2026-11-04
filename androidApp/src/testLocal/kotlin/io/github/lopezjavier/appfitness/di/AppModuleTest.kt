@@ -32,7 +32,6 @@ import io.github.lopezjavier.appfitness.domain.repository.CoachUsageRepository
 import io.github.lopezjavier.appfitness.domain.repository.DiscomfortRepository
 import io.github.lopezjavier.appfitness.domain.repository.ExerciseRepository
 import io.github.lopezjavier.appfitness.domain.repository.FavoriteExercisesRepository
-import io.github.lopezjavier.appfitness.domain.repository.FolderReviewRepository
 import io.github.lopezjavier.appfitness.domain.repository.FoodDiaryRepository
 import io.github.lopezjavier.appfitness.domain.repository.FoodPhotoRepository
 import io.github.lopezjavier.appfitness.domain.repository.FoodPreferencesRepository
@@ -213,7 +212,6 @@ class AppModuleTest {
                 CoachPlanRepository::class,
                 CoachBlockRepository::class,
                 CoachIntakeRepository::class,
-                FolderReviewRepository::class,
                 ExerciseNameResolver::class,
                 ExerciseLibrary::class,
                 LoadExerciseCatalog::class,

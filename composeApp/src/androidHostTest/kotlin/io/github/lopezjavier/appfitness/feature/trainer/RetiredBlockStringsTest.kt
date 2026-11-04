@@ -5,8 +5,8 @@ import org.junit.Test
 import java.io.File
 
 /**
- * T-222 (ADR-99): the model "Desde cero" flow is gone, so its strings stay gone. Keys the folder review still uses
- * ("Falta", "Cambios propuestos", the saved-block `block_preview_*` ones) are not banned: T-223 and T-224 own them.
+ * T-222/T-223 (ADR-99): the model "Desde cero" flow and the model folder review are gone, so their strings stay
+ * gone. The saved-block `block_preview_*` keys are not banned: T-224 owns them.
  */
 class RetiredBlockStringsTest {
     private val text = File("src/commonMain/composeResources/values/strings.xml").readText(Charsets.UTF_8)
@@ -30,10 +30,34 @@ class RetiredBlockStringsTest {
     }
 
     @Test
+    fun stringsXml_hasNoModelFolderReviewKeys() {
+        val keep = setOf("folder_review_error")
+        val keys = entry.findAll(text).map { it.groupValues[1] }
+            .filter { it.startsWith("folder_review_") && !it.startsWith("folder_review_result_") && it !in keep }
+            .toList()
+
+        assertEquals(emptyList<String>(), keys)
+    }
+
+    @Test
     fun stringsXml_saysRecomendado_neverRecomendada() {
         val values = entry.findAll(text).filter { it.groupValues[2].contains("Recomendada") }.map { it.groupValues[1] }
 
         assertEquals(emptyList<String>(), values.toList())
+    }
+
+    @Test
+    fun theSourceHasNoModelFolderReviewLeftOver() {
+        val leftovers = File("src/commonMain/kotlin").walkTopDown()
+            .filter { it.isFile && it.extension == "kt" }
+            .filter {
+                Regex("""\bFolderReview(ViewModel|UiState|Screen|Root|Repository)\b""")
+                    .containsMatchIn(it.readText(Charsets.UTF_8))
+            }
+            .map { it.name }
+            .toList()
+
+        assertEquals(emptyList<String>(), leftovers)
     }
 
     @Test

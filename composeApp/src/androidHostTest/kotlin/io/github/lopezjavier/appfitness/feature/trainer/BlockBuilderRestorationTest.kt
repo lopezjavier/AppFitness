@@ -27,11 +27,13 @@ import io.github.lopezjavier.appfitness.domain.model.TrainingIntention
 import io.github.lopezjavier.appfitness.domain.model.TrainingPreferences
 import io.github.lopezjavier.appfitness.domain.usecase.BuildBlockUseCase
 import io.github.lopezjavier.appfitness.domain.usecase.LoadExerciseCatalog
+import io.github.lopezjavier.appfitness.domain.usecase.LoadFolderBlockUseCase
 import io.github.lopezjavier.appfitness.feature.exercises.FakeExerciseLibrary
 import io.github.lopezjavier.appfitness.feature.exercises.FakeExerciseRepository
 import io.github.lopezjavier.appfitness.feature.exercises.FakeFavoriteExercisesRepository
 import io.github.lopezjavier.appfitness.feature.exercises.exerciseInfo
 import io.github.lopezjavier.appfitness.feature.exercises.exerciseRow
+import io.github.lopezjavier.appfitness.feature.routines.FakeRoutineRepository
 import io.github.lopezjavier.appfitness.feature.workout.MutableClock
 import org.junit.Assert.assertEquals
 import org.junit.Rule
@@ -85,7 +87,7 @@ class BlockBuilderRestorationTest {
         val repository = FakeExerciseRepository(all)
         return BlockBuilderViewModel(
             planId = "plan-1",
-            builder = BuildBlockUseCase(blocks),
+            builder = BuildBlockUseCase(blocks, LoadFolderBlockUseCase(FakeRoutineRepository(), repository, prefs)),
             catalog = LoadExerciseCatalog(
                 repository,
                 FakeExerciseLibrary(all.associate { it.key!! to exerciseInfo(it.key!!, "Nombre ${it.key}") }),

@@ -71,6 +71,9 @@ sealed interface GateIssue {
     data class OutsideEquipment(val routineIndex: Int, val exerciseId: String) : GateIssue
 
     data class RepeatInRoutine(val routineIndex: Int, val exerciseId: String) : GateIssue
+
+    /** The exercise has more than 10 working sets (the server bound is 1..10); swapping it does not clear this. */
+    data class SetsOverLimit(val routineIndex: Int, val exerciseId: String) : GateIssue
 }
 
 /** The "strength_reps" proposal for a main lift: "Cambiar a {newMin}-{newMax} repeticiones". */
@@ -87,6 +90,8 @@ data class FolderBlockStatus(
     /** The folder has a main lift after another exercise; saving moves the main lifts first (C4b). */
     val orderFixedAtSave: Boolean,
     val canSave: Boolean,
+    /** Names of the routines with no lifting exercise: they are not block days and are not saved. */
+    val leftOutRoutines: List<String> = emptyList(),
 )
 
 /**
@@ -136,7 +141,42 @@ data class FolderBlockDraft(
             repFixes = repFixes(),
             orderFixedAtSave = orderFixedAtSave,
             canSave = days == DaysCheck.Ok && gate.isEmpty() && reviewOk,
+            leftOutRoutines = routines.filter { !it.lifting }.map { it.name },
         )
+    }
+
+    /** The unmet muscle groups of the review (missing or low), each with the sets it still needs. */
+    fun addableGroups(): List<GroupRow> = status().review.rows.filterIsInstance<GroupRow>().filter { !it.met }
+
+    /** The slot the exercise picker filters for when adding a [group] exercise to routine [routineIndex]. */
+    fun pickerSlot(group: MuscleGroup, routineIndex: Int): Slot? {
+        if (routineIndex !in routines.indices) return null
+        val needed = addableGroups().firstOrNull { it.group == group }?.missingSets ?: 0
+        // Whether the pick is a heavy main lift depends on the exercise chosen; the picker only filters by group.
+        return addSlot(group, needed.coerceIn(MIN_ADD_SETS, SectionPrescription.MAX_SETS_PER_SLOT), onlyMain = false)
+    }
+
+    /** The slot the picker filters for when swapping the row [exerciseIndex] of routine [routineIndex]. */
+    fun swapSlot(routineIndex: Int, exerciseIndex: Int): Slot? {
+        val old = routines.getOrNull(routineIndex)?.exercises?.getOrNull(exerciseIndex) ?: return null
+        return Slot(
+            old.muscleGroup,
+            SlotKind.Standard,
+            old.sets,
+            old.repMin ?: DEFAULT_REPS,
+            old.repMax ?: DEFAULT_REPS,
+            old.restSeconds ?: STANDARD_REST,
+        )
+    }
+
+    private fun addSlot(group: MuscleGroup, sets: Int, onlyMain: Boolean): Slot {
+        val heavy = strength && onlyMain
+        val (min, max, rest) = when {
+            !strength -> Triple(HYPERTROPHY_MIN, HYPERTROPHY_MAX, STANDARD_REST)
+            heavy -> Triple(HEAVY_MIN, HEAVY_MAX, HEAVY_REST)
+            else -> Triple(ACCESSORY_MIN, ACCESSORY_MAX, STANDARD_REST)
+        }
+        return Slot(group, SlotKind.Standard, sets, min, max, rest)
     }
 
     private fun reviewRoutines(list: List<FolderBlockRoutine>) =
@@ -151,7 +191,8 @@ data class FolderBlockDraft(
             .map { GateIssue.OutsideEquipment(ri, it.id) }
         val repeats = r.exercises.groupBy { it.id }.filter { it.value.size > 1 }.keys
             .map { GateIssue.RepeatInRoutine(ri, it) }
-        outside + repeats
+        val over = r.exercises.filter { it.sets > MAX_SETS }.map { GateIssue.SetsOverLimit(ri, it.id) }
+        outside + repeats + over
     }
 
     private fun repFixes(): List<RepFix> = if (!strength) {
@@ -186,13 +227,10 @@ data class FolderBlockDraft(
         val sets = needed.coerceIn(MIN_ADD_SETS, SectionPrescription.MAX_SETS_PER_SLOT)
         val main = x.movementPattern in FolderReviewCalculator.MAIN_PATTERNS
         val onlyMain = main && routine.exercises.none { it.isMain && it.muscleGroup == group }
-        val heavy = strength && onlyMain
-        val (min, max, rest) = when {
-            !strength -> Triple(HYPERTROPHY_MIN, HYPERTROPHY_MAX, STANDARD_REST)
-            heavy -> Triple(HEAVY_MIN, HEAVY_MAX, HEAVY_REST)
-            else -> Triple(ACCESSORY_MIN, ACCESSORY_MAX, STANDARD_REST)
-        }
-        val slot = Slot(group, SlotKind.Standard, sets, min, max, rest)
+        val slot = addSlot(group, sets, onlyMain)
+        val min = slot.repMin
+        val max = slot.repMax
+        val rest = slot.restSeconds
         val added = FolderBlockExercise(
             id = x.id,
             muscleGroup = group,
@@ -375,5 +413,6 @@ data class FolderBlockDraft(
         const val DEFAULT_REPS = 10
         const val RPE_MIN = 7
         const val RPE_MAX = 9
+        const val MAX_SETS = 10
     }
 }

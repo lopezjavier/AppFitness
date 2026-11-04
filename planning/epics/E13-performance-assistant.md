@@ -1714,6 +1714,23 @@ Feature: Starting a block
     When I save at 100 %
     Then the main lifts of that routine come first and the rest keeps its order
 
+  Scenario: A folder exercise over 10 sets blocks the save
+    Given "Mi rutina" has an exercise with 12 working sets
+    Then one line says "Tiene más de 10 series: edítalo en la carpeta."
+    And "Guardar bloque" is disabled even at 100 %
+
+  Scenario: Routines without lifting exercises are left out of the block, with a note
+    Given "Mi rutina" has 3 lifting routines, a stretching-only routine and I train 3 days a week
+    When I pick "Mi rutina" and save at 100 %
+    Then the block holds the 3 lifting routines
+    And a note says the stretching routine is left out because it has no strength exercises
+    And "Mi rutina" is exactly as before
+
+  Scenario: Folder name already in use
+    Given a folder "Mi rutina · bloque" already exists
+    When I save "Mi rutina" at 100 %
+    Then the new folder is named "Mi rutina · bloque 2"
+
   Scenario: My folder never changes
     When I save, fix or leave
     Then the routines, exercises, sets and order of "Mi rutina" are unchanged
@@ -1799,8 +1816,9 @@ Feature: Folder review
   Scenario: An unmet row explains what to do
     Given my folder has 6 weekly sets of quads
     When the review opens
-    Then the row "Cuádriceps" is marked "Por mejorar"
-    And it says how many sets to add
+    Then the row "Cuádriceps" is marked "Por mejorar" and reads "6 series (se recomiendan al menos 10)"
+    When I tap the "?" of the row
+    Then it says how many sets to add, with an example and the note for more than 20 sets
 
   Scenario: A group with no sets limits the score
     Given my folder has no sets for a main group
@@ -1837,7 +1855,7 @@ Feature: Folder review
 ```
 
 **Technical notes**
-- Computed on the device (no model, no cost) from the folder's routines, catalogue facts and the intention in "Mi entrenamiento"; the rep range falls back to the planned reps; the Spanish copy and testTags are the T-216 UX notes. "A block from a folder" is not part of this story's rewrite (US-93, ADR-94) and keeps its model review.
+- Computed on the device (no model, no cost) from the folder's routines, catalogue facts and the intention in "Mi entrenamiento"; the rep range falls back to the planned reps; the Spanish copy and testTags are the T-216 UX notes. "A block from a folder" is not part of this story's rewrite (US-93, ADR-94) and has no model call either (ADR-99, T-223).
 
 ## US-96 · Favourite exercises
 *Added 2026-11-03 (T-202, user UX decision 5; ADR-94; `07` §3 "Favourites"). Task T-204; the coach reads favourites from T-205.*

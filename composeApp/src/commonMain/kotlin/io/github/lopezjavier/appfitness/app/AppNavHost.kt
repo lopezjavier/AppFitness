@@ -72,7 +72,7 @@ internal typealias BeforeStartSlot =
         onCreated: (BeforeStartEffect.Created) -> Unit,
         onOpenYourData: () -> Unit,
         onFix: (PlanFixTarget) -> Unit,
-        onOpenFolderReview: (BeforeStartEffect.OpenFolderReview) -> Unit,
+        onOpenFolderBlock: (BeforeStartEffect.OpenFolderBlock) -> Unit,
     ) -> Unit
 
 /** Content of "Tus datos": modifier (full-screen insets), how to leave and the editor opener of an input. */
@@ -92,9 +92,19 @@ internal typealias FreeTextLinesSlot = @Composable (modifier: Modifier, onBack: 
 internal typealias BlockPreviewSlot =
     @Composable (modifier: Modifier, planId: String, onOpenExercise: (String) -> Unit, onBack: () -> Unit) -> Unit
 
-/** Content of the block-start folder review: modifier (full-screen insets), how to leave after a block, and back. */
-internal typealias FolderReviewSlot =
-    @Composable (modifier: Modifier, onBlockReady: () -> Unit, onBack: () -> Unit) -> Unit
+/**
+ * Content of "Desde una carpeta" (US-93): modifier (full-screen insets), plan id, folder id, how to leave after a
+ * save, how to leave without saving and the exercise-details opener.
+ */
+internal typealias FolderBlockSlot =
+    @Composable (
+        modifier: Modifier,
+        planId: String,
+        folderId: String,
+        onSaved: () -> Unit,
+        onClose: () -> Unit,
+        onOpenExercise: (String) -> Unit,
+    ) -> Unit
 
 /** Content of the score and checklist review of a folder (US-95): modifier (full-screen insets) and back. */
 internal typealias FolderReviewResultSlot = @Composable (modifier: Modifier, onBack: () -> Unit) -> Unit
@@ -639,9 +649,9 @@ internal val DefaultBlockPreviewSlot: BlockPreviewSlot = { modifier, _, _, _ ->
     Box(modifier.fillMaxSize().testTag("block_preview_screen"))
 }
 
-/** Empty folder review for previews and shell tests; the real one is wired by `AppRoot`. */
-internal val DefaultFolderReviewSlot: FolderReviewSlot = { modifier, _, _ ->
-    Box(modifier.fillMaxSize().testTag("folder_review_screen"))
+/** Empty folder block for previews and shell tests; the real one is wired by `AppRoot`. */
+internal val DefaultFolderBlockSlot: FolderBlockSlot = { modifier, _, _, _, _, _ ->
+    Box(modifier.fillMaxSize().testTag("folder_block_screen"))
 }
 
 /** Empty folder review result for previews and shell tests; the real one is wired by `AppRoot`. */
@@ -685,7 +695,7 @@ internal fun AppNavHost(
     freeTextLines: FreeTextLinesSlot = DefaultFreeTextLinesSlot,
     blockPreview: BlockPreviewSlot = DefaultBlockPreviewSlot,
     blockBuilder: BlockBuilderSlot = DefaultBlockBuilderSlot,
-    folderReview: FolderReviewSlot = DefaultFolderReviewSlot,
+    folderBlock: FolderBlockSlot = DefaultFolderBlockSlot,
     folderReviewResult: FolderReviewResultSlot = DefaultFolderReviewResultSlot,
     activity: ActivitySlot = DefaultActivitySlot,
     exercisePicker: ExercisePickerSlot = DefaultExercisePickerSlot,
@@ -891,13 +901,17 @@ internal fun AppNavHost(
                 { created -> navController.openCreated(entry, created) },
                 openYourData,
                 openFix,
-            ) { review -> navController.openFolderReview(review) }
+            ) { review -> navController.openFolderBlock(review) }
         }
-        composable<FolderReviewRoute> { entry ->
-            folderReview(
+        composable<FolderBlockRoute> { entry ->
+            val route = entry.toRoute<FolderBlockRoute>()
+            folderBlock(
                 Modifier.padding(fullScreenPadding),
-                { navController.openBuiltBlockFromReview(entry) },
+                route.planId,
+                route.folderId,
                 { navController.popFullScreen(entry) },
+                { navController.popFullScreen(entry) },
+                { navController.navigateToFullScreen(ExerciseDetailRoute(it, selectMode = false)) },
             )
         }
         composable<FolderReviewResultRoute> { entry ->
@@ -1364,22 +1378,9 @@ internal fun NavController.navigateToFullScreen(route: AppRoute) {
     navigate(route) { launchSingleTop = true }
 }
 
-/** Opens the review of the folder picked to start a block; "Antes de empezar" stays below so Back returns to it. */
-internal fun NavController.openFolderReview(review: BeforeStartEffect.OpenFolderReview) {
-    navigateToFullScreen(FolderReviewRoute(BLOCK_PURPOSE, review.folderId, review.planId))
-}
-
-/**
- * Leaves the folder review for the preview of the block just built. The review and "Antes de empezar" are popped, so
- * Back from the preview returns to where the creation started and never to a screen that bills.
- */
-internal fun NavController.openBuiltBlockFromReview(entry: NavBackStackEntry) {
-    if (currentBackStackEntry?.id != entry.id) return
-    val planId = entry.toRoute<FolderReviewRoute>().planId.orEmpty()
-    navigate(BlockPreviewRoute(planId)) {
-        launchSingleTop = true
-        popUpTo<BeforeStartRoute> { inclusive = true }
-    }
+/** Opens "Desde una carpeta" for the folder picked to start a block; "Antes de empezar" stays below for Back. */
+internal fun NavController.openFolderBlock(block: BeforeStartEffect.OpenFolderBlock) {
+    navigateToFullScreen(FolderBlockRoute(block.planId.orEmpty(), block.folderId))
 }
 
 /**
