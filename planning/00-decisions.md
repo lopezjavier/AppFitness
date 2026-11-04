@@ -370,3 +370,14 @@ Phase 2 ADRs continue the numbering (next: **ADR-98**) and are written **in full
   - **Not changed:** "a block from a folder" (ADR-94 "Desde una carpeta", T-207/T-208) keeps its model review, stored review and accept/reject changes until its own task; so the Edge Function `folder_review` call, prompt, schema, validators and `coach_folder_reviews` stay. Only code exclusive to the review screen is removed (apply path, its UI, strings, tags, tests, and the SQL apply functions if no other caller exists).
 - **Consequences:** `04` §9.14, `03` (`apply_folder_review_copy` dropped), `07` §3 and §11 (cost row split), `05` §10 glossary; US-95 rewritten; ADR-93 is superseded only in its "Folder review" bullet (its checker for the block stays); ADR-94 and ADR-95 unaffected; ADR-96 unaffected.
 - **Approval:** user, 2026-11-04 (chat: deterministic score and checklist, no model).
+
+### ADR-98 — The nutrition plan is deterministic: `plan_nutrition` drops the model (T-217; supersedes the model call of ADR-76 for the nutrition plan)
+- **Context:** `plan_nutrition` is the only model call in the nutrition plan. It picks 0-4 outcomes from candidates the server already computes and writes their reasons; it adds no figure and no judgement (`07` §4 "Nutrition plan evaluation", fitness-scientist, 2026-11-04). Calories and macros are already computed by rules, shared with `plan_recompute`, which is model-free.
+- **Decision:**
+  - `plan_nutrition` becomes `deterministic: true` like `plan_recompute`: no model, no provider, no usage row, no cost. The outcomes, deadlines and reasons are chosen by the rules and Spanish templates in `07` §4 (input contract, output contract, outcome rules). The same input always gives the same plan.
+  - Checks N1-N4 (calorie floor, rate inside the phase range with a deficit of at most 500 kcal, protein at least 1.6 g/kg, fat at least 20 %) show on the plan only after the user edits the goals; no score.
+  - With BMI under 18.5, "Perder grasa" starts in maintenance. The 750 kcal gain cap stays as a labelled design bound.
+  - Plausibility bounds (age 18-100, height 120-230 cm, weight 30-300 kg): outside them a value counts as missing.
+  - Not changed: `food-photo`, `plan_block`, `block_splits`, the report and the chat.
+- **Consequences:** `07` §4, §9, §10, §11 (cost row), `04` §8, `03` line of the `coach` function; code in T-218.
+- **Approval:** user, 2026-11-04 (chat: "agree with the plan, make sure we drop the model and we get the exact outcome by the deterministic flow").
