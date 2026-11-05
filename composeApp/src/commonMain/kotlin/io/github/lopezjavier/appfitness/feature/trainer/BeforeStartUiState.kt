@@ -133,6 +133,6 @@ sealed interface BeforeStartEffect {
     /** Confirming failed (from the footer or the sheet); nothing changed. [offline] picks the offline hint. */
     data class CreateFailed(val offline: Boolean) : BeforeStartEffect
 
-    /** A folder was picked to start the block: open its review (block purpose). */
+    /** A folder was picked to start the block: open its review. */
     data class OpenFolderBlock(val planId: String?, val folderId: String) : BeforeStartEffect
 }

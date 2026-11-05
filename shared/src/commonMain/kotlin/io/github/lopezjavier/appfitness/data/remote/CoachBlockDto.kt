@@ -13,8 +13,6 @@ import io.github.lopezjavier.appfitness.domain.model.BlockSet
 import io.github.lopezjavier.appfitness.domain.model.BlockSetType
 import io.github.lopezjavier.appfitness.domain.model.BlockTraining
 import io.github.lopezjavier.appfitness.domain.model.CoachBlock
-import io.github.lopezjavier.appfitness.domain.model.SplitOption
-import io.github.lopezjavier.appfitness.domain.model.SplitSession
 import io.github.lopezjavier.appfitness.domain.model.TrainingIntention
 import kotlinx.datetime.LocalDate
 import kotlinx.serialization.SerialName
@@ -137,26 +135,6 @@ internal data class BlockSetDto(
     )
 }
 
-@Serializable
-internal data class SplitSessionDto(val name: String = "", val focus: List<String> = emptyList()) {
-    fun toDomain() = SplitSession(name, focus)
-}
-
-@Serializable
-internal data class SplitOptionDto(
-    val id: String,
-    val name: String = "",
-    val recommended: Boolean = false,
-    val reason: String = "",
-    val sessions: List<SplitSessionDto> = emptyList(),
-) {
-    fun toDomain() = SplitOption(id, name, recommended, reason, sessions.map(SplitSessionDto::toDomain))
-}
-
-/** Final payload of `block_splits`. */
-@Serializable
-internal data class SplitOptionsDto(val options: List<SplitOptionDto> = emptyList())
-
 /** Row of `coach_plan_sessions` (owner select). */
 @Serializable
 internal data class BlockSessionDto(
@@ -189,26 +167,6 @@ internal fun blockOf(plan: CoachBlockPlanDto, sessions: List<BlockSessionDto>): 
         saved = plan.folderId != null || sessions.any { it.routineId != null },
     )
 }
-
-@Serializable
-internal data class BlockRequestBody(val kind: String, val input: BlockRequestInput, val model: String? = null)
-
-@Serializable
-internal data class BlockRequestInput(
-    val today: LocalDate,
-    @SerialName("plan_id") val planId: String,
-    val split: BlockSplitInput,
-)
-
-/** The chosen split sent to `plan_block`: its name and sessions (the server stores nothing about the options). */
-@Serializable
-internal data class BlockSplitInput(val name: String, val sessions: List<SplitSessionDto>)
-
-@Serializable
-internal data class SplitRequestBody(val kind: String, val input: SplitRequestInput, val model: String? = null)
-
-@Serializable
-internal data class SplitRequestInput(val today: LocalDate)
 
 @Serializable
 internal data class RemoveBlockParams(@SerialName("p_plan_id") val planId: String)

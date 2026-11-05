@@ -7,8 +7,6 @@ import {
     authenticate,
     callerClient,
 } from "../_shared/food-store.ts";
-import type { BlockModelInput, StoredReview } from "./context.ts";
-import type { FolderForReview } from "./folderChanges.ts";
 import { createCoachHandler } from "./handler.ts";
 import type { CatalogExercise, Nutrition, PhaseHistory } from "./schemas.ts";
 
@@ -134,49 +132,6 @@ const handler = createCoachHandler({
         );
         if (error || data == null) throw new Error("phase history read failed");
         return data as PhaseHistory;
-    },
-    loadBlockModelInput: async (token, today) => {
-        const { data, error } = await callerClient(token).rpc(
-            "coach_block_model_input",
-            { p_today: today },
-        );
-        if (error || data == null) {
-            throw new Error("block model input read failed");
-        }
-        return data as BlockModelInput;
-    },
-    loadFolder: async (token, folderId) => {
-        const { data, error } = await callerClient(token).rpc(
-            "coach_folder_for_review",
-            { p_folder: folderId },
-        );
-        if (error) throw new Error("folder read failed");
-        return (data ?? null) as FolderForReview | null;
-    },
-    saveReview: async (token, row) => {
-        const { data, error } = await callerClient(token).rpc(
-            "save_folder_review",
-            {
-                p_folder: row.folderId,
-                p_purpose: row.purpose,
-                p_plan: row.planId,
-                p_hash: row.inputHash,
-                p_result: row.result,
-            },
-        );
-        if (error || typeof data !== "string") {
-            throw new Error("review write failed");
-        }
-        return data;
-    },
-    loadReview: async (token, reviewId) => {
-        const { data, error } = await callerClient(token)
-            .from("coach_folder_reviews")
-            .select("id,folder_id,purpose,plan_id,input_hash,result")
-            .eq("id", reviewId)
-            .maybeSingle();
-        if (error) throw new Error("review read failed");
-        return (data ?? null) as StoredReview | null;
     },
     updatePlanOptions: async (token, row) => {
         const { data, error } = await callerClient(token).rpc(

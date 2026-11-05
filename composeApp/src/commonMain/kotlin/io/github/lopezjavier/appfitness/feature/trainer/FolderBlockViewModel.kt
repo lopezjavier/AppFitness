@@ -345,9 +345,8 @@ class FolderBlockViewModel(
                 render()
                 return@launch
             }
+            // `saving` stays on after a success: the screen closes on `Saved`, and a second Save must not repeat it.
             result.onSuccess {
-                saving = false
-                render()
                 effectChannel.send(FolderBlockEffect.Confirm)
                 effectChannel.send(FolderBlockEffect.Saved)
             }.onFailure { failure ->

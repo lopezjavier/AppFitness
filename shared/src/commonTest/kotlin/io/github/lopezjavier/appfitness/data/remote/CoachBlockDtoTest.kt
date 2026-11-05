@@ -160,18 +160,6 @@ class CoachBlockDtoTest {
     }
 
     @Test
-    fun splitOptions_decodeWithTheirSessions() {
-        val json = """{"options":[{"id":"a","name":"Torso-pierna","recommended":true,"reason":"Encaja",""" +
-            """"sessions":[{"name":"Torso","focus":["chest","back"]},{"name":"Pierna","focus":["quads"]}]}]}"""
-
-        val option = coachPlanJson.decodeFromString<SplitOptionsDto>(json).options.single().toDomain()
-
-        assertTrue(option.recommended)
-        assertEquals(listOf("Torso", "Pierna"), option.sessions.map { it.name })
-        assertEquals(listOf("quads"), option.sessions.last().focus)
-    }
-
-    @Test
     fun training_notesDecodeAndAreOptional() {
         val extras = trainingJson(3, false).removeSuffix("}") +
             ""","split_reason":"Porque si","changes_vs_last_block":"Mas espalda",""" +

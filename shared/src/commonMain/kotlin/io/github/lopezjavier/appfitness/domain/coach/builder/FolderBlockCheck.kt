@@ -111,7 +111,12 @@ data class FolderBlockDraft(
     private val liftingRoutines: List<Pair<Int, FolderBlockRoutine>>
         get() = routines.withIndex().filter { it.value.lifting }.map { it.index to it.value }
 
-    fun status(): FolderBlockStatus {
+    private val computedStatus: FolderBlockStatus by lazy { computeStatus() }
+
+    /** The live state of this draft; computed once, since the draft is immutable. */
+    fun status(): FolderBlockStatus = computedStatus
+
+    private fun computeStatus(): FolderBlockStatus {
         val asFound = FolderReviewCalculator.compute(reviewRoutines(routines), intention)
         // The order is fixed at save (07 (h)), so the score is read on the order the block will have.
         val review = if (strength) {
@@ -254,12 +259,7 @@ data class FolderBlockDraft(
         val target = routines.getOrNull(routineIndex)?.exercises?.getOrNull(exerciseIndex) ?: return this
         if (!target.added) return this
         return replaceRoutine(routineIndex) { r ->
-            r.copy(
-                exercises = r.exercises.filterIndexed { i, _ ->
-                    i !=
-                        exerciseIndex
-                },
-            )
+            r.copy(exercises = r.exercises.filterIndexed { i, _ -> i != exerciseIndex })
         }
     }
 
@@ -306,13 +306,7 @@ data class FolderBlockDraft(
         return replaceRoutine(routineIndex) { r ->
             r.copy(
                 exercises = r.exercises.mapIndexed { i, e ->
-                    if (i ==
-                        exerciseIndex
-                    ) {
-                        e.copy(repMin = fix.newMin, repMax = fix.newMax)
-                    } else {
-                        e
-                    }
+                    if (i == exerciseIndex) e.copy(repMin = fix.newMin, repMax = fix.newMax) else e
                 },
             )
         }
@@ -373,9 +367,7 @@ data class FolderBlockDraft(
             if (w != null && w > 0 && r != null && r in min..max) w else null
         }
         return BuiltExercise(
-            role = if (movementPattern in
-                FolderReviewCalculator.MAIN_PATTERNS
-            ) {
+            role = if (movementPattern in FolderReviewCalculator.MAIN_PATTERNS) {
                 BuiltExercise.ROLE_MAIN
             } else {
                 BuiltExercise.ROLE_ISOLATION

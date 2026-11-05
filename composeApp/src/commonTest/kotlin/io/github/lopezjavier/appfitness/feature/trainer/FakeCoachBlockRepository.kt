@@ -8,8 +8,6 @@ import io.github.lopezjavier.appfitness.domain.model.BlockSaved
 import io.github.lopezjavier.appfitness.domain.model.BlockSession
 import io.github.lopezjavier.appfitness.domain.model.BlockTraining
 import io.github.lopezjavier.appfitness.domain.model.CoachBlock
-import io.github.lopezjavier.appfitness.domain.model.SplitOption
-import io.github.lopezjavier.appfitness.domain.model.SplitSession
 import io.github.lopezjavier.appfitness.domain.repository.CoachBlockRepository
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.datetime.LocalDate
@@ -64,12 +62,8 @@ internal fun coachBlock(
 
 /** Test double of [CoachBlockRepository]; every call is recorded and each answer is a settable result. */
 internal class FakeCoachBlockRepository : CoachBlockRepository {
-    var request: Result<CoachBlock> = Result.success(coachBlock())
     var current: Result<CoachBlock?> = Result.success(null)
     var saveResult: Result<BlockSaved> = Result.success(BlockSaved("folder-1", listOf("routine-0", "routine-1")))
-
-    /** When set, [requestBlock] suspends until completed (a block being prepared). */
-    var requestGate: CompletableDeferred<Unit>? = null
 
     /** When set, [saveBlock] suspends until completed. */
     var saveGate: CompletableDeferred<Unit>? = null
@@ -80,44 +74,11 @@ internal class FakeCoachBlockRepository : CoachBlockRepository {
     var removeGate: CompletableDeferred<Unit>? = null
 
     val removals = mutableListOf<String>()
-    val requests = mutableListOf<Pair<String, LocalDate>>()
     val reads = mutableListOf<String>()
     val saves = mutableListOf<String>()
 
     /** The edits sent with each save, in call order. */
     val saveEdits = mutableListOf<List<BlockEdit>>()
-
-    /** What [requestSplitOptions] answers. */
-    var splitOptions: Result<List<SplitOption>> = Result.success(
-        listOf(
-            SplitOption("a", "Cuerpo completo", false, "Alternativa", listOf(SplitSession("Todo", listOf("chest")))),
-            SplitOption(
-                "b",
-                "Torso-pierna",
-                true,
-                "Encaja con tus dias",
-                listOf(SplitSession("Torso", listOf("chest"))),
-            ),
-        ),
-    )
-
-    /** Number of [requestSplitOptions] calls. */
-    var splitRequests = 0
-
-    /** The split sent with each block request, in call order. */
-    val splitsSent = mutableListOf<SplitOption>()
-
-    override suspend fun requestSplitOptions(today: LocalDate): Result<List<SplitOption>> {
-        splitRequests++
-        return splitOptions
-    }
-
-    override suspend fun requestBlock(planId: String, today: LocalDate, split: SplitOption): Result<CoachBlock> {
-        requests += planId to today
-        splitsSent += split
-        requestGate?.await()
-        return request
-    }
 
     /** What [loadBuilderInputs] answers. */
     var builderInputs: Result<BuilderInputs> = Result.success(BuilderInputs(emptyMap(), emptyList(), null))

@@ -368,14 +368,7 @@ Deno.test("cardio: 150 minutes in every phase, anything else is rejected", () =>
 });
 
 Deno.test("no prompt promises a text length cap the validators no longer enforce (T-212)", async () => {
-    for (
-        const f of [
-            "blockSplits.ts",
-            "folderReview.ts",
-            "planNutrition.ts",
-            "planBlock.ts",
-        ]
-    ) {
+    for (const f of ["planNutrition.ts"]) {
         const src = await Deno.readTextFile(new URL(f, import.meta.url));
         assert(!/\b(300|160) caracteres|10 a (300|160)/.test(src), f);
     }

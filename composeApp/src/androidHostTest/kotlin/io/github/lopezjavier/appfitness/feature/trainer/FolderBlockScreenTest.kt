@@ -117,6 +117,7 @@ class FolderBlockScreenTest {
         show()
 
         rule.onNodeWithTag("folder_block_intro").assertTextContains("Tu carpeta está al ", substring = true)
+        rule.onNodeWithTag("folder_block_intro").assertTextContains(" %. Complétala para guardarla", substring = true)
         rule.onNodeWithTag("folder_block_save").assertIsNotEnabled()
         rule.onNodeWithTag("folder_block_save_helper").assertTextContains("al 100 %", substring = true)
         rule.onNodeWithTag("folder_block_missing_row_hamstrings").assertExists()
@@ -193,7 +194,7 @@ class FolderBlockScreenTest {
         show()
 
         rule.onNodeWithTag("folder_block_sets_over_note")
-            .assertTextContains("Tiene más de 10 series: edítalo en la carpeta.", substring = true)
+            .assertTextContains("Tiene más de 10 series: quita series o el ejercicio en la carpeta.", substring = true)
         rule.onNodeWithTag("folder_block_save").assertIsNotEnabled()
     }
 

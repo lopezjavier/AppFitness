@@ -344,7 +344,7 @@ val sharedModule =
         single<CoachBlockRepository> {
             if (get<AppConfig>().isSupabaseConfigured) {
                 val client = get<SupabaseClient>()
-                SupabaseCoachBlockRepository(client.auth, client.postgrest, client.functions, get())
+                SupabaseCoachBlockRepository(client.auth, client.postgrest)
             } else {
                 UnconfiguredCoachBlockRepository()
             }

@@ -1,12 +1,9 @@
 // Kinds of coach calls and the model each one uses (planning/07 section 11).
-// `ping` (T-160), `block_splits` and `plan_block` (T-163, T-205), `folder_review` (T-207) and the model-free
+// `ping` (T-160) and the model-free
 // `plan_nutrition` (T-161, ADR-98) and `plan_recompute` (T-187) are callable; `report` and `chat` answer
 // coach_kind_not_available until their tasks.
 import type { AnthropicRequest } from "../_shared/anthropic.ts";
 import type { PrepareContext, Prepared } from "./context.ts";
-import { prepare as prepareSplits } from "./blockSplits.ts";
-import { prepare as prepareFolderReview } from "./folderReview.ts";
-import { isFolderStart, prepareBlock } from "./blockFromFolder.ts";
 import { prepare as prepareNutrition } from "./planNutrition.ts";
 import { prepare as prepareRecompute } from "./planRecompute.ts";
 import { type CoachModel, MODEL_IDS } from "./prices.ts";
@@ -29,10 +26,9 @@ export type KindSpec = {
     prepare?: (input: unknown, ctx: PrepareContext) => Promise<Prepared>;
     /**
      * No model call: the handler answers it before the provider and budget checks, records no usage and sends the
-     * result of `finalize` with zero usage (T-187 `plan_recompute`). `model` is irrelevant. A predicate decides per
-     * request from the raw input (T-207 `plan_block` is deterministic only when it starts from a folder).
+     * result of `finalize` with zero usage (T-187 `plan_recompute`). `model` is irrelevant.
      */
-    deterministic?: boolean | ((input: unknown) => boolean);
+    deterministic?: boolean;
 };
 
 export const PING_PROMPT = "Responde: ok";
@@ -53,22 +49,6 @@ export const KINDS: Record<string, KindSpec> = {
         available: true,
         deterministic: true,
         prepare: prepareNutrition,
-    },
-    block_splits: {
-        model: "sonnet",
-        available: true,
-        prepare: prepareSplits,
-    },
-    plan_block: {
-        model: "opus",
-        available: true,
-        deterministic: isFolderStart,
-        prepare: prepareBlock,
-    },
-    folder_review: {
-        model: "sonnet",
-        available: true,
-        prepare: prepareFolderReview,
     },
     plan_recompute: {
         model: "sonnet",

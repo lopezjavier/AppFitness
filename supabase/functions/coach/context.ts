@@ -1,7 +1,6 @@
 // Types shared by the handler and the kinds that prepare their own request (T-161).
 import type { AnthropicRequest, RetryOptions } from "../_shared/anthropic.ts";
 import type { ErrorCode } from "../_shared/errors.ts";
-import type { FolderForReview } from "./folderChanges.ts";
 import type { CoachModel } from "./prices.ts";
 import type {
     CatalogExercise,
@@ -79,44 +78,6 @@ export type PrepareContext = {
     loadPhaseHistory: (today: string) => Promise<PhaseHistory>;
     /** Rewrites the options of a proposed cut through update_coach_plan_options, with the caller's own token. */
     updatePlanOptions: (row: OptionsRow) => Promise<UpdatedPlan>;
-    /** `coach_block_model_input` of the caller (folders, history, previous blocks, favourites), own token (T-205). */
-    loadBlockModelInput: (today: string) => Promise<BlockModelInput>;
-    /** `coach_folder_for_review`: the caller's folder with its current routines; null when it is not theirs (T-207). */
-    loadFolder: (folderId: string) => Promise<FolderForReview | null>;
-    /** Stores a folder review through `save_folder_review` and answers its id (T-207). */
-    saveReview: (row: ReviewRow) => Promise<string>;
-    /** A stored review of the caller (RLS), or null (T-207). */
-    loadReview: (reviewId: string) => Promise<StoredReview | null>;
-};
-
-/** Row sent to save_folder_review. */
-export type ReviewRow = {
-    folderId: string;
-    purpose: "review" | "block";
-    planId: string | null;
-    inputHash: string;
-    result: unknown;
-};
-
-/** A row of coach_folder_reviews. */
-export type StoredReview = {
-    id: string;
-    folder_id: string;
-    purpose: string;
-    plan_id: string | null;
-    input_hash: string;
-    result: Record<string, unknown>;
-};
-
-/** What `coach_block_model_input` answers (planning/03 section 6). Every list may be empty. */
-export type BlockModelInput = {
-    folders: unknown[];
-    history: { exercise: string; [k: string]: unknown }[];
-    previous_blocks: unknown[];
-    /** Exercise keys (or ids of custom exercises) the user starred. */
-    favourites: string[];
-    /** Exercise ids with an unresolved level 4-5 discomfort. */
-    unresolved_exercise_ids: string[];
 };
 
 /** One independently validated model call of a multi-part kind. */

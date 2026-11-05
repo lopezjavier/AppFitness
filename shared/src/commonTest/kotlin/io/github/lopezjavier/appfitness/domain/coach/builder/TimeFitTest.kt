@@ -18,7 +18,7 @@ class TimeFitTest {
         kind: SlotKind = SlotKind.Standard,
     ) = Slot(group, kind, sets, min, max, rest)
 
-    // Golden values copied from routineChecker.test.ts (routineSeconds).
+    // Golden values copied from the former server routineSeconds test (removed in T-224).
     @Test
     fun seconds_sixIsolations_matchesTheTypeScriptEstimate() {
         val slots = List(6) { slot(MuscleGroup.Biceps, 3) }
