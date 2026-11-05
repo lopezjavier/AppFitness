@@ -43,6 +43,7 @@ import io.github.lopezjavier.appfitness.domain.port.NotificationPermission
 import io.github.lopezjavier.appfitness.domain.port.RestAlertPreferences
 import io.github.lopezjavier.appfitness.domain.port.RestAlertScheduler
 import io.github.lopezjavier.appfitness.domain.repository.BodyMeasurementRepository
+import io.github.lopezjavier.appfitness.domain.repository.CoachChangesRepository
 import io.github.lopezjavier.appfitness.domain.repository.DeloadRepository
 import io.github.lopezjavier.appfitness.domain.repository.DiscomfortRepository
 import io.github.lopezjavier.appfitness.domain.repository.ExerciseRepository
@@ -52,6 +53,7 @@ import io.github.lopezjavier.appfitness.domain.repository.TrainingPreferencesRep
 import io.github.lopezjavier.appfitness.domain.repository.WorkoutSessionRepository
 import io.github.lopezjavier.appfitness.domain.repository.autoUpdateRoutineOrDefault
 import io.github.lopezjavier.appfitness.domain.repository.warmUpIncludedOrDefault
+import io.github.lopezjavier.appfitness.domain.usecase.ApplyCoachProgressionUseCase
 import io.github.lopezjavier.appfitness.domain.usecase.BestPastWeight
 import io.github.lopezjavier.appfitness.domain.usecase.BuildSessionSummary
 import io.github.lopezjavier.appfitness.domain.usecase.DiscomfortStatus
@@ -74,8 +76,10 @@ import io.github.lopezjavier.appfitness.domain.usecase.perHandIdsOrDefault
 import io.github.lopezjavier.appfitness.domain.usecase.resolveRest
 import io.github.lopezjavier.appfitness.domain.usecase.routineDiff
 import io.github.lopezjavier.appfitness.domain.usecase.supersetLabels
+import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.channels.Channel
@@ -95,6 +99,7 @@ import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
+import kotlinx.coroutines.withContext
 import kotlinx.datetime.DateTimeUnit
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.atStartOfDayIn
@@ -239,6 +244,7 @@ class LiveSessionViewModel(
     private val discomfortRepository: DiscomfortRepository = NoDiscomforts,
     private val progressionRepository: ProgressionRepository = NoProgression,
     private val deloadRepository: DeloadRepository = NoDeload,
+    coachChanges: CoachChangesRepository = NoCoachChanges,
     private val exerciseNames: ExerciseNameResolver = ExerciseNameResolver(exerciseRepository, exerciseLibrary),
 ) : ViewModel() {
     private var session: SessionState? = null
@@ -251,6 +257,8 @@ class LiveSessionViewModel(
 
     /** Position of the exercise whose "Sugerencia" help sheet is open; mirrored in [savedState] (ADR-40). */
     private var progressionHelp: Int? = savedState.get<Int>(KEY_PROGRESSION_HELP)
+
+    private val applyCoachProgression = ApplyCoachProgressionUseCase(coachChanges)
 
     private val logDiscomfort = LogDiscomfort(discomfortRepository)
     private val resolveDiscomfort = ResolveDiscomfort(discomfortRepository, clock)
@@ -1373,6 +1381,7 @@ class LiveSessionViewModel(
             val endedAt = clock.now()
             val finished = current.toWorkoutSession(endedAt)
             val sheet = routineUpdateSheet(finished)
+            if (sheet == null) applyProgressionInBackground(finished.id)
             val named = namedByPosition(current.exercises.associate { it.position to it.exerciseId })
             val summary = LiveSummary(buildSummary(finished, endedAt), named)
             busy = false
@@ -1446,16 +1455,32 @@ class LiveSessionViewModel(
             val routineId = routineRepository.updateFromSession(sheet.sessionId).getOrNull()
             val failed = routineId == null || !applyRoutineNotes(routineId)
             terminal = finished.copy(updateRoutineSheet = if (failed) sheet.copy(failed = true) else null)
-            if (!failed) clearRoutineNoteEdits()
+            if (!failed) {
+                clearRoutineNoteEdits()
+                applyProgressionInBackground(sheet.sessionId)
+            }
             publish()
+        }
+    }
+
+    /**
+     * Once the "update the routine?" question is resolved the server applies the coach's load change on top of it
+     * (ADR-70 runs first). Best effort: the result is ignored and a failure never changes the finish screen.
+     * It starts eagerly and is non-cancellable so leaving the screen cannot drop the call.
+     */
+    private fun applyProgressionInBackground(sessionId: String) {
+        viewModelScope.launch(start = CoroutineStart.UNDISPATCHED) {
+            withContext(NonCancellable) { applyCoachProgression(sessionId) }
         }
     }
 
     private fun keepRoutine() {
         val finished = terminal as? LiveSessionUiState.Finished ?: return
         if (finished.updateRoutineSheet?.loading != false) return
+        val sessionId = finished.updateRoutineSheet.sessionId
         terminal = finished.copy(updateRoutineSheet = null)
         clearRoutineNoteEdits()
+        applyProgressionInBackground(sessionId)
         publish()
     }
 

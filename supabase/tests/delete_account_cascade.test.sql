@@ -3,7 +3,7 @@ begin;
 create extension if not exists pgtap with schema extensions;
 set local search_path = extensions, public;
 
-select plan(36);
+select plan(38);
 
 -- The on_auth_user_created trigger creates each profile.
 insert into auth.users (id, email) values
@@ -72,6 +72,12 @@ insert into public.coach_plans (id, user_id, block_start, intention, nutrition) 
 insert into public.coach_recommendations (user_id, plan_id, kind, payload, input_summary) values
   ('d1000000-0000-4000-8000-000000000001', 'd1000000-0000-4000-8000-0000000000b1', 'plan', '{}', '{}'),
   ('d2000000-0000-4000-8000-000000000002', 'd2000000-0000-4000-8000-0000000000b2', 'plan', '{}', '{}');
+
+insert into public.coach_changes (user_id, plan_id, kind, exercise_id, reason, status)
+  select p.user_id, p.id, 'load_kept', (select id from public.exercises where not is_custom order by key limit 1),
+         'kept_discomfort', 'applied'
+  from public.coach_plans p where p.id in
+    ('d1000000-0000-4000-8000-0000000000b1', 'd2000000-0000-4000-8000-0000000000b2');
 
 insert into public.coach_plan_sessions (plan_id, user_id, week, session_index, name, exercises) values
   ('d1000000-0000-4000-8000-0000000000b1', 'd1000000-0000-4000-8000-000000000001', 1, 1, 'Sesion', '[]'),
@@ -187,6 +193,12 @@ select is(
 select is(
   (select count(*)::int from public.coach_recommendations where user_id = 'd1000000-0000-4000-8000-000000000001'),
   0, 'the deleted user''s coach_recommendations are gone');
+select is(
+  (select count(*)::int from public.coach_changes where user_id = 'd1000000-0000-4000-8000-000000000001'),
+  0, 'the deleted user''s coach_changes are gone');
+select is(
+  (select count(*)::int from public.coach_changes where user_id = 'd2000000-0000-4000-8000-000000000002'),
+  1, 'another user''s coach_changes are untouched');
 select is(
   (select count(*)::int from public.coach_plans where user_id = 'd2000000-0000-4000-8000-000000000002'),
   1, 'another user''s coach_plans are untouched');

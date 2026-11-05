@@ -2,13 +2,19 @@ package io.github.lopezjavier.appfitness.feature.workout
 
 import io.github.lopezjavier.appfitness.domain.AppError
 import io.github.lopezjavier.appfitness.domain.AppException
+import io.github.lopezjavier.appfitness.domain.model.CoachChange
+import io.github.lopezjavier.appfitness.domain.model.CoachChangeStatus
 import io.github.lopezjavier.appfitness.domain.model.DeloadExerciseSuggestion
 import io.github.lopezjavier.appfitness.domain.model.Discomfort
 import io.github.lopezjavier.appfitness.domain.model.DiscomfortLevel
+import io.github.lopezjavier.appfitness.domain.model.FlagDecisionResult
+import io.github.lopezjavier.appfitness.domain.model.ProgressionFlagDecision
 import io.github.lopezjavier.appfitness.domain.model.ProgressionSuggestion
+import io.github.lopezjavier.appfitness.domain.model.UndoResult
 import io.github.lopezjavier.appfitness.domain.port.NotificationPermission
 import io.github.lopezjavier.appfitness.domain.port.RestAlertPreferences
 import io.github.lopezjavier.appfitness.domain.port.RestAlertScheduler
+import io.github.lopezjavier.appfitness.domain.repository.CoachChangesRepository
 import io.github.lopezjavier.appfitness.domain.repository.DeloadRepository
 import io.github.lopezjavier.appfitness.domain.repository.DiscomfortRepository
 import io.github.lopezjavier.appfitness.domain.repository.ProgressionRepository
@@ -45,6 +51,19 @@ internal object NoDiscomforts : DiscomfortRepository {
 internal object NoProgression : ProgressionRepository {
     override suspend fun suggestionsFor(sessionId: String): Result<List<ProgressionSuggestion>> =
         Result.success(emptyList())
+}
+
+/** No coach changes: applying a session's progression does nothing. */
+internal object NoCoachChanges : CoachChangesRepository {
+    override suspend fun apply(sessionId: String): Result<List<CoachChange>> = Result.success(emptyList())
+
+    override suspend fun list(planId: String?, statuses: Set<CoachChangeStatus>): Result<List<CoachChange>> =
+        Result.success(emptyList())
+
+    override suspend fun undo(id: String): Result<UndoResult> = Result.failure(AppException(AppError.Unknown))
+
+    override suspend fun decide(id: String, decision: ProgressionFlagDecision): Result<FlagDecisionResult> =
+        Result.failure(AppException(AppError.Unknown))
 }
 
 /** No deload lines: the default of [LiveSessionViewModel] for callers ignoring T-165. */
