@@ -51,7 +51,7 @@ The journeys a checkpoint would have covered (session to session, the week, the 
 ### Phase 1: Session to session (US-97, US-104)
 - [ ] 👤 The user's OK on this breakdown (stories, tasks)
 - [ ] T-227: Load progression on its own and the flagged progression (backend) — L
-- [ ] T-228: Load changes and flags in the app — L
+- [x] T-228: Load changes and flags in the app — L
 
 ### Phase 2: The week (US-99, US-100, US-98, US-105)
 - [ ] T-229: Calorie proposals — M
