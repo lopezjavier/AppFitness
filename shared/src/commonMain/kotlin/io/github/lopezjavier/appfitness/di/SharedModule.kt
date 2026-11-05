@@ -16,6 +16,7 @@ import io.github.lopezjavier.appfitness.data.repository.SupabaseAuthRepository
 import io.github.lopezjavier.appfitness.data.repository.SupabaseBodyMeasurementRepository
 import io.github.lopezjavier.appfitness.data.repository.SupabaseCircumferenceRepository
 import io.github.lopezjavier.appfitness.data.repository.SupabaseCoachBlockRepository
+import io.github.lopezjavier.appfitness.data.repository.SupabaseCoachChangesRepository
 import io.github.lopezjavier.appfitness.data.repository.SupabaseCoachIntakeRepository
 import io.github.lopezjavier.appfitness.data.repository.SupabaseCoachPlanRepository
 import io.github.lopezjavier.appfitness.data.repository.SupabaseCoachRepository
@@ -49,6 +50,7 @@ import io.github.lopezjavier.appfitness.data.repository.UnconfiguredAuthReposito
 import io.github.lopezjavier.appfitness.data.repository.UnconfiguredBodyMeasurementRepository
 import io.github.lopezjavier.appfitness.data.repository.UnconfiguredCircumferenceRepository
 import io.github.lopezjavier.appfitness.data.repository.UnconfiguredCoachBlockRepository
+import io.github.lopezjavier.appfitness.data.repository.UnconfiguredCoachChangesRepository
 import io.github.lopezjavier.appfitness.data.repository.UnconfiguredCoachIntakeRepository
 import io.github.lopezjavier.appfitness.data.repository.UnconfiguredCoachPlanRepository
 import io.github.lopezjavier.appfitness.data.repository.UnconfiguredCoachRepository
@@ -86,6 +88,7 @@ import io.github.lopezjavier.appfitness.domain.repository.AuthRepository
 import io.github.lopezjavier.appfitness.domain.repository.BodyMeasurementRepository
 import io.github.lopezjavier.appfitness.domain.repository.CircumferenceRepository
 import io.github.lopezjavier.appfitness.domain.repository.CoachBlockRepository
+import io.github.lopezjavier.appfitness.domain.repository.CoachChangesRepository
 import io.github.lopezjavier.appfitness.domain.repository.CoachIntakeRepository
 import io.github.lopezjavier.appfitness.domain.repository.CoachPlanRepository
 import io.github.lopezjavier.appfitness.domain.repository.CoachRepository
@@ -116,6 +119,7 @@ import io.github.lopezjavier.appfitness.domain.repository.WeeklyCheckInRepositor
 import io.github.lopezjavier.appfitness.domain.repository.WeightChartPreferences
 import io.github.lopezjavier.appfitness.domain.repository.WorkoutSessionRepository
 import io.github.lopezjavier.appfitness.domain.usecase.AddTemplateToDiary
+import io.github.lopezjavier.appfitness.domain.usecase.ApplyCoachProgressionUseCase
 import io.github.lopezjavier.appfitness.domain.usecase.AutoSyncHealth
 import io.github.lopezjavier.appfitness.domain.usecase.Bmi
 import io.github.lopezjavier.appfitness.domain.usecase.BuildBlockUseCase
@@ -126,6 +130,7 @@ import io.github.lopezjavier.appfitness.domain.usecase.CompleteOnboarding
 import io.github.lopezjavier.appfitness.domain.usecase.ComputeReminders
 import io.github.lopezjavier.appfitness.domain.usecase.CookedItemNutrition
 import io.github.lopezjavier.appfitness.domain.usecase.CurrentWeight
+import io.github.lopezjavier.appfitness.domain.usecase.DecideProgressionFlagUseCase
 import io.github.lopezjavier.appfitness.domain.usecase.DefaultMealSlot
 import io.github.lopezjavier.appfitness.domain.usecase.DeleteAccount
 import io.github.lopezjavier.appfitness.domain.usecase.ExerciseNameResolver
@@ -133,6 +138,7 @@ import io.github.lopezjavier.appfitness.domain.usecase.GetAccountProtection
 import io.github.lopezjavier.appfitness.domain.usecase.GroupMealEntries
 import io.github.lopezjavier.appfitness.domain.usecase.HealthWriteBack
 import io.github.lopezjavier.appfitness.domain.usecase.InterpretMetric
+import io.github.lopezjavier.appfitness.domain.usecase.ListCoachChangesUseCase
 import io.github.lopezjavier.appfitness.domain.usecase.LoadCheckInSummary
 import io.github.lopezjavier.appfitness.domain.usecase.LoadExerciseCatalog
 import io.github.lopezjavier.appfitness.domain.usecase.LoadFolderBlockUseCase
@@ -149,6 +155,7 @@ import io.github.lopezjavier.appfitness.domain.usecase.SearchExercises
 import io.github.lopezjavier.appfitness.domain.usecase.SignInWithGoogle
 import io.github.lopezjavier.appfitness.domain.usecase.SyncHealthData
 import io.github.lopezjavier.appfitness.domain.usecase.SyncHealthMeasurements
+import io.github.lopezjavier.appfitness.domain.usecase.UndoCoachChangeUseCase
 import io.github.lopezjavier.appfitness.domain.usecase.ValidateBodyMeasurement
 import io.github.lopezjavier.appfitness.domain.usecase.ValidateCircumference
 import io.github.lopezjavier.appfitness.domain.usecase.ValidateMealSlots
@@ -381,6 +388,18 @@ val sharedModule =
                 UnconfiguredDeloadRepository()
             }
         }
+        single<CoachChangesRepository> {
+            if (get<AppConfig>().isSupabaseConfigured) {
+                val client = get<SupabaseClient>()
+                SupabaseCoachChangesRepository(client.auth, client.postgrest)
+            } else {
+                UnconfiguredCoachChangesRepository()
+            }
+        }
+        factory { ApplyCoachProgressionUseCase(get()) }
+        factory { ListCoachChangesUseCase(get()) }
+        factory { UndoCoachChangeUseCase(get()) }
+        factory { DecideProgressionFlagUseCase(get()) }
         single<MealSlotRepository> {
             if (get<AppConfig>().isSupabaseConfigured) {
                 val client = get<SupabaseClient>()

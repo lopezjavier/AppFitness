@@ -369,6 +369,7 @@ val uiModule =
                 discomfortRepository = get(),
                 progressionRepository = get(),
                 deloadRepository = get(),
+                coachChanges = get(),
                 exerciseNames = get(),
             )
         }

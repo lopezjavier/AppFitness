@@ -6,15 +6,21 @@ import io.github.lopezjavier.appfitness.app.FakeDiscomfortRepository
 import io.github.lopezjavier.appfitness.app.FakeTrainingPreferencesRepository
 import io.github.lopezjavier.appfitness.domain.AppError
 import io.github.lopezjavier.appfitness.domain.AppException
+import io.github.lopezjavier.appfitness.domain.model.CoachChange
+import io.github.lopezjavier.appfitness.domain.model.CoachChangeStatus
 import io.github.lopezjavier.appfitness.domain.model.DiscomfortLevel
 import io.github.lopezjavier.appfitness.domain.model.ExerciseNoteKind
+import io.github.lopezjavier.appfitness.domain.model.FlagDecisionResult
 import io.github.lopezjavier.appfitness.domain.model.PlannedSet
+import io.github.lopezjavier.appfitness.domain.model.ProgressionFlagDecision
 import io.github.lopezjavier.appfitness.domain.model.Routine
 import io.github.lopezjavier.appfitness.domain.model.RoutineExercise
 import io.github.lopezjavier.appfitness.domain.model.SessionExercise
 import io.github.lopezjavier.appfitness.domain.model.SessionStatus
 import io.github.lopezjavier.appfitness.domain.model.SetNoteKind
 import io.github.lopezjavier.appfitness.domain.model.TrainingPreferences
+import io.github.lopezjavier.appfitness.domain.model.UndoResult
+import io.github.lopezjavier.appfitness.domain.repository.CoachChangesRepository
 import io.github.lopezjavier.appfitness.domain.usecase.SaveBodyMeasurement
 import io.github.lopezjavier.appfitness.feature.exercises.FakeExerciseRepository
 import io.github.lopezjavier.appfitness.feature.exercises.benchSquatLibrary
@@ -47,6 +53,7 @@ class LiveSessionRoutineUpdateViewModelTest {
     private val clock = MutableClock()
     private val trainingPreferences = FakeTrainingPreferencesRepository()
     private val bodyMeasurements = FakeWeightRepository()
+    private val coachChanges = RecordingCoachChanges()
     private var created: LiveSessionViewModel? = null
 
     private fun newViewModel(savedState: SavedStateHandle = SavedStateHandle()) = LiveSessionViewModel(
@@ -64,6 +71,7 @@ class LiveSessionRoutineUpdateViewModelTest {
         TimeZone.UTC,
         savedState,
         discomfortRepository = FakeDiscomfortRepository(now = { clock.current }),
+        coachChanges = coachChanges,
     ).also { created = it }
 
     private fun runSessionTest(body: suspend TestScope.() -> Unit) = runTest {
@@ -453,6 +461,108 @@ class LiveSessionRoutineUpdateViewModelTest {
             ExerciseNoteKind.WeightDown,
             assertIs<LiveSessionUiState.Active>(second.uiState.value).exercises[0].routineNoteKind,
         )
+    }
+
+    @Test
+    fun finishingWithNothingToAsk_appliesTheCoachProgressionOnce() = runSessionTest {
+        val vm = loaded()
+        logAsPlanned(vm)
+
+        finish(vm)
+
+        assertEquals(listOf("s1"), coachChanges.applied)
+        assertNull(vm.finished().updateRoutineSheet)
+    }
+
+    @Test
+    fun withAutoUpdateOn_theCoachProgressionRunsAfterTheRoutineUpdate() = runSessionTest {
+        trainingPreferences.result = Result.success(TrainingPreferences(autoUpdateRoutine = true))
+        val vm = loaded()
+        logAsPlanned(vm)
+        vm.onEvent(LiveSessionEvent.SetExerciseRest(0, 30))
+        runCurrent()
+
+        finish(vm)
+
+        assertEquals(listOf("s1"), coachChanges.applied)
+        assertEquals(listOf("s1"), coachChanges.routineUpdatesSeenAtApply)
+    }
+
+    @Test
+    fun withTheSheetOpen_theCoachProgressionWaitsUntilUpdatingTheRoutine() = runSessionTest {
+        val vm = loaded()
+        logAsPlanned(vm)
+        vm.onEvent(LiveSessionEvent.SetExerciseRest(0, 30))
+        runCurrent()
+        finish(vm)
+        assertTrue(coachChanges.applied.isEmpty())
+
+        vm.onEvent(LiveSessionEvent.UpdateRoutine)
+        advanceUntilIdle()
+
+        assertEquals(listOf("s1"), coachChanges.applied)
+        assertEquals(listOf("s1"), coachChanges.routineUpdatesSeenAtApply)
+    }
+
+    @Test
+    fun withTheSheetOpen_keepingTheRoutineAppliesTheCoachProgression() = runSessionTest {
+        val vm = loaded()
+        logAsPlanned(vm)
+        vm.onEvent(LiveSessionEvent.SetExerciseRest(0, 30))
+        runCurrent()
+        finish(vm)
+
+        vm.onEvent(LiveSessionEvent.KeepRoutine)
+        advanceUntilIdle()
+
+        assertEquals(listOf("s1"), coachChanges.applied)
+    }
+
+    @Test
+    fun aFailedRoutineUpdate_doesNotApplyTheCoachProgressionYet() = runSessionTest {
+        val vm = loaded()
+        logAsPlanned(vm)
+        vm.onEvent(LiveSessionEvent.SetExerciseRest(0, 30))
+        runCurrent()
+        finish(vm)
+        routines.updateFailure = AppError.Network
+
+        vm.onEvent(LiveSessionEvent.UpdateRoutine)
+        advanceUntilIdle()
+
+        assertTrue(coachChanges.applied.isEmpty())
+    }
+
+    @Test
+    fun aFailingCoachProgression_doesNotChangeTheFinishScreen() = runSessionTest {
+        coachChanges.failure = AppException(AppError.Network)
+        val vm = loaded()
+        logAsPlanned(vm)
+
+        finish(vm)
+
+        assertEquals(listOf("s1"), coachChanges.applied)
+        assertNull(vm.finished().updateRoutineSheet)
+    }
+
+    private inner class RecordingCoachChanges : CoachChangesRepository {
+        val applied = mutableListOf<String>()
+        val routineUpdatesSeenAtApply = mutableListOf<String>()
+        var failure: Throwable? = null
+
+        override suspend fun apply(sessionId: String): Result<List<CoachChange>> {
+            applied += sessionId
+            routineUpdatesSeenAtApply += routines.updatedFromSession
+            return failure?.let { Result.failure(it) } ?: Result.success(emptyList())
+        }
+
+        override suspend fun list(planId: String?, statuses: Set<CoachChangeStatus>) =
+            Result.success(emptyList<CoachChange>())
+
+        override suspend fun undo(id: String): Result<UndoResult> = Result.failure(AppException(AppError.Unknown))
+
+        override suspend fun decide(id: String, decision: ProgressionFlagDecision): Result<FlagDecisionResult> =
+            Result.failure(AppException(AppError.Unknown))
     }
 
     private companion object {
