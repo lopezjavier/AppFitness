@@ -56,7 +56,23 @@ enum class SplitReason {
 }
 
 /** One way to spread the routine types over the days; [reason] is set on the recommended split only. */
-data class Split(val types: List<RoutineType>, val recommended: Boolean, val reason: SplitReason?)
+data class Split(
+    val types: List<RoutineType>,
+    val recommended: Boolean,
+    val reason: SplitReason?,
+    val family: SplitFamily,
+) {
+    /** True for the extra "Cuerpo completo" day of a Torso-Pierna / Empuje-Tirón week (3 and 5 days). */
+    val hasFullBodyDay: Boolean
+        get() = family != SplitFamily.FullBody && RoutineType.FullBody in types
+}
+
+/** The family of a split; a day may only take a type of its split's family (07 "Split names and day types"). */
+enum class SplitFamily(val allowedTypes: Set<RoutineType>) {
+    FullBody(setOf(RoutineType.FullBody)),
+    UpperLower(setOf(RoutineType.Upper, RoutineType.Lower, RoutineType.FullBody)),
+    PushPull(setOf(RoutineType.Push, RoutineType.Pull, RoutineType.FullBody)),
+}
 
 /** Why a routine type is disabled for a day. */
 sealed interface DisabledReason {
@@ -108,23 +124,29 @@ object SplitCatalog {
 
     /** The splits for [days], the recommended one first. Empty outside 1-6. */
     fun splitsFor(days: Int): List<Split> = table[days].orEmpty().mapIndexed { i, types ->
-        Split(types, recommended = i == 0, reason = if (i == 0) reasons[days] else null)
+        Split(types, recommended = i == 0, reason = if (i == 0) reasons[days] else null, family = familyOf(types))
+    }
+
+    private fun familyOf(types: List<RoutineType>): SplitFamily = when {
+        types.any { it == up || it == lo } -> SplitFamily.UpperLower
+        types.any { it == pu || it == pl } -> SplitFamily.PushPull
+        else -> SplitFamily.FullBody
     }
 
     /** Days a group is trained in [types]. */
     fun frequency(types: List<RoutineType>, group: MuscleGroup): Int = types.count { group in it.groups }
 
     /**
-     * The five types for day [dayIndex] of [chosen] (the types currently picked for every day), the split's own type
-     * marked recommended. A type is disabled when swapping it in would leave a group untrained or train one on all six
-     * days.
+     * The family's types for day [dayIndex] of [chosen] (the types currently picked for every day), the split's own
+     * type marked recommended. A type is disabled when swapping it in would leave a group untrained or train one on
+     * all six days.
      */
     fun dayOptions(
         split: Split,
         chosen: List<RoutineType>,
         dayIndex: Int,
         intention: TrainingIntention?,
-    ): List<DayTypeOption> = RoutineType.entries.map { type ->
+    ): List<DayTypeOption> = RoutineType.entries.filter { offered(split, dayIndex, it) }.map { type ->
         val result = chosen.toMutableList().also { it[dayIndex] = type }
         val frequencies = ALL_GROUPS.associateWith { frequency(result, it) }
         val untrained = ALL_GROUPS.firstOrNull { frequencies.getValue(it) == 0 }
@@ -140,6 +162,12 @@ object SplitCatalog {
             disabledReason = reason,
             strengthNote = intention == TrainingIntention.Strength && frequencies.values.any { it == 1 },
         )
+    }
+
+    /** A day offers the family's types; "Cuerpo completo" only where the split already has it, never on a Torso day. */
+    private fun offered(split: Split, dayIndex: Int, type: RoutineType): Boolean {
+        val fullBodyDay = split.types[dayIndex] == fb
+        return type in split.family.allowedTypes && (type == fb) == fullBodyDay
     }
 
     /** The six H1 groups in the review's order. */

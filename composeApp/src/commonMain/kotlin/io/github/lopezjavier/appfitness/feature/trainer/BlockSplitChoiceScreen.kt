@@ -63,7 +63,7 @@ internal fun BlockSplitChoiceScreen(
 
 @Composable
 private fun SplitCard(split: Split, selected: Boolean, index: Int, onEvent: (BlockBuilderEvent) -> Unit) {
-    val name = split.types.joinToString(" / ") { it.displayName }
+    val name = splitNameText(split)
     val title = if (split.recommended) {
         stringResource(
             Res.string.block_split_name_recommended,
@@ -77,7 +77,8 @@ private fun SplitCard(split: Split, selected: Boolean, index: Int, onEvent: (Blo
         title = title,
         selected = selected,
         onClick = { onEvent(BlockBuilderEvent.PickSplit(index)) },
-        description = split.reason?.let { splitReasonText(it) }.orEmpty(),
+        description = listOfNotNull(splitDaysText(split), split.reason?.let { splitReasonText(it) })
+            .joinToString("\n"),
         modifier = Modifier.testTag("block_split_card_$index"),
     )
 }

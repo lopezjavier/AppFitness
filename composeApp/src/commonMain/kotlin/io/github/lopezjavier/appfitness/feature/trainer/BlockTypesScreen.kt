@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -20,9 +21,12 @@ import io.github.lopezjavier.appfitness.composeapp.resources.block_types_day
 import io.github.lopezjavier.appfitness.composeapp.resources.block_types_day_value_recommended
 import io.github.lopezjavier.appfitness.composeapp.resources.block_types_no_fit
 import io.github.lopezjavier.appfitness.composeapp.resources.block_types_title
+import io.github.lopezjavier.appfitness.designsystem.AppListRow
 import io.github.lopezjavier.appfitness.designsystem.AppScreen
+import io.github.lopezjavier.appfitness.designsystem.AppTheme
 import io.github.lopezjavier.appfitness.designsystem.HelpButton
 import io.github.lopezjavier.appfitness.designsystem.InlineNote
+import io.github.lopezjavier.appfitness.designsystem.ListSectionHeader
 import io.github.lopezjavier.appfitness.designsystem.NavigationRow
 import io.github.lopezjavier.appfitness.designsystem.PrimaryButton
 import io.github.lopezjavier.appfitness.designsystem.Spacing
@@ -51,6 +55,10 @@ internal fun BlockTypesScreen(
                 .testTag("block_types_screen"),
             verticalArrangement = Arrangement.spacedBy(Spacing.xs),
         ) {
+            ListSectionHeader(
+                title = splitNameText(state.split),
+                modifier = Modifier.testTag("block_types_split_name"),
+            )
             state.chosen.forEachIndexed { day, type ->
                 DayTypeRow(state, day, type, onEvent)
             }
@@ -83,12 +91,26 @@ private fun DayTypeRow(
     }
     val label = stringResource(Res.string.block_types_day, day + 1)
     Row(verticalAlignment = Alignment.CenterVertically) {
-        NavigationRow(
-            label = label,
-            value = value,
-            onClick = { onEvent(BlockBuilderEvent.OpenDay(day)) },
-            modifier = Modifier.weight(1f).testTag("block_types_day_$day"),
-        )
+        if (state.options[day].size > 1) {
+            NavigationRow(
+                label = label,
+                value = value,
+                onClick = { onEvent(BlockBuilderEvent.OpenDay(day)) },
+                modifier = Modifier.weight(1f).testTag("block_types_day_$day"),
+            )
+        } else {
+            AppListRow(
+                headline = label,
+                trailing = {
+                    Text(
+                        type.displayName,
+                        style = AppTheme.typography.bodyMedium,
+                        color = AppTheme.colors.textSecondary,
+                    )
+                },
+                modifier = Modifier.weight(1f).testTag("block_types_day_$day"),
+            )
+        }
         if (option?.strengthNote == true) {
             HelpButton(
                 contentDescription = stringResource(Res.string.block_type_help_cd, label),

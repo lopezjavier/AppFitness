@@ -14,6 +14,12 @@ import io.github.lopezjavier.appfitness.composeapp.resources.block_builder_rest_
 import io.github.lopezjavier.appfitness.composeapp.resources.block_builder_section_header
 import io.github.lopezjavier.appfitness.composeapp.resources.block_builder_section_main
 import io.github.lopezjavier.appfitness.composeapp.resources.block_sets_count
+import io.github.lopezjavier.appfitness.composeapp.resources.block_split_days_repeated
+import io.github.lopezjavier.appfitness.composeapp.resources.block_split_family_full_body
+import io.github.lopezjavier.appfitness.composeapp.resources.block_split_family_push_pull
+import io.github.lopezjavier.appfitness.composeapp.resources.block_split_family_push_pull_extra
+import io.github.lopezjavier.appfitness.composeapp.resources.block_split_family_upper_lower
+import io.github.lopezjavier.appfitness.composeapp.resources.block_split_family_upper_lower_extra
 import io.github.lopezjavier.appfitness.composeapp.resources.block_split_reason_only_routine
 import io.github.lopezjavier.appfitness.composeapp.resources.block_split_reason_three_times
 import io.github.lopezjavier.appfitness.composeapp.resources.block_split_reason_three_times_short
@@ -28,14 +34,22 @@ import io.github.lopezjavier.appfitness.composeapp.resources.block_type_group_ha
 import io.github.lopezjavier.appfitness.composeapp.resources.block_type_group_other
 import io.github.lopezjavier.appfitness.composeapp.resources.block_type_group_quads
 import io.github.lopezjavier.appfitness.composeapp.resources.block_type_group_shoulders
+import io.github.lopezjavier.appfitness.composeapp.resources.block_type_groups_full_body
+import io.github.lopezjavier.appfitness.composeapp.resources.block_type_groups_lower
+import io.github.lopezjavier.appfitness.composeapp.resources.block_type_groups_pull
+import io.github.lopezjavier.appfitness.composeapp.resources.block_type_groups_push
+import io.github.lopezjavier.appfitness.composeapp.resources.block_type_groups_upper
 import io.github.lopezjavier.appfitness.composeapp.resources.block_type_leaves_untrained
 import io.github.lopezjavier.appfitness.designsystem.AppNumberFormat
 import io.github.lopezjavier.appfitness.domain.coach.builder.BuilderDay
 import io.github.lopezjavier.appfitness.domain.coach.builder.DisabledReason
 import io.github.lopezjavier.appfitness.domain.coach.builder.FilledSlot
 import io.github.lopezjavier.appfitness.domain.coach.builder.PickerDisabledReason
+import io.github.lopezjavier.appfitness.domain.coach.builder.RoutineType
 import io.github.lopezjavier.appfitness.domain.coach.builder.Slot
 import io.github.lopezjavier.appfitness.domain.coach.builder.SlotKind
+import io.github.lopezjavier.appfitness.domain.coach.builder.Split
+import io.github.lopezjavier.appfitness.domain.coach.builder.SplitFamily
 import io.github.lopezjavier.appfitness.domain.coach.builder.SplitReason
 import io.github.lopezjavier.appfitness.domain.model.MuscleGroup
 import io.github.lopezjavier.appfitness.feature.exercises.label
@@ -128,6 +142,55 @@ internal fun splitReasonText(reason: SplitReason): String = stringResource(
         SplitReason.EveryMuscleTwiceThreeExercises -> Res.string.block_split_reason_twice_three_exercises
         SplitReason.EveryMuscleThreeTimes -> Res.string.block_split_reason_three_times
         SplitReason.EveryMuscleThreeTimesShortSessions -> Res.string.block_split_reason_three_times_short
+    },
+)
+
+/** "Torso-Pierna", "Empuje-Tirón + Cuerpo completo", "Cuerpo completo": the split's name. */
+@Composable
+internal fun splitNameText(split: Split): String {
+    val extra = split.hasFullBodyDay
+    return stringResource(
+        when (split.family) {
+            SplitFamily.FullBody -> Res.string.block_split_family_full_body
+
+            SplitFamily.UpperLower ->
+                if (extra) {
+                    Res.string.block_split_family_upper_lower_extra
+                } else {
+                    Res.string.block_split_family_upper_lower
+                }
+
+            SplitFamily.PushPull ->
+                if (extra) {
+                    Res.string.block_split_family_push_pull_extra
+                } else {
+                    Res.string.block_split_family_push_pull
+                }
+        },
+    )
+}
+
+/** "Torso, Pierna, Torso, Pierna"; "Cuerpo completo ×3" when every day is the same type. */
+@Composable
+internal fun splitDaysText(split: Split): String {
+    val names = split.types.map { it.displayName }
+    val first = names.first()
+    return when {
+        names.size == 1 -> first
+        names.all { it == first } -> stringResource(Res.string.block_split_days_repeated, first, names.size)
+        else -> names.joinToString(", ")
+    }
+}
+
+/** The muscle groups of a day type ("Pecho, hombros y cuádriceps"). */
+@Composable
+internal fun routineGroupsText(type: RoutineType): String = stringResource(
+    when (type) {
+        RoutineType.FullBody -> Res.string.block_type_groups_full_body
+        RoutineType.Upper -> Res.string.block_type_groups_upper
+        RoutineType.Lower -> Res.string.block_type_groups_lower
+        RoutineType.Push -> Res.string.block_type_groups_push
+        RoutineType.Pull -> Res.string.block_type_groups_pull
     },
 )
 

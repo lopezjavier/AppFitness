@@ -405,8 +405,8 @@ Feature: Block builder
   Scenario: A split for my days
     Given I train 4 days a week
     When I choose "Desde cero"
-    Then I see the splits for 4 days with "Torso / Pierna / Torso / Pierna" first and marked "Recomendado"
-    And each split shows its reason
+    Then I see the splits for 4 days with "Torso-Pierna" first and marked "Recomendado"
+    And each split shows its name, its days ("Torso, Pierna, Torso, Pierna") and its reason
     And choosing one needs no internet connection and no AI call
 
   Scenario: One day a week
@@ -418,8 +418,15 @@ Feature: Block builder
   Scenario: A routine type per day
     Given I picked a split
     When I open a day
-    Then I can pick Cuerpo completo, Torso, Pierna, Empuje or Tirón
+    Then I can pick only the types of the split's family (Torso-Pierna: Torso and Pierna; Empuje-Tirón: Empuje and Tirón)
+    And each type shows its muscle groups under its name
     And the type of the split is marked "Recomendado"
+
+  Scenario: A Torso-Pierna week offers no Empuje or Tirón
+    Given I chose the 3-day split "Torso-Pierna + Cuerpo completo"
+    When I open a day
+    Then I see Torso and Pierna and not Empuje or Tirón
+    And the "Cuerpo completo" day has no type to choose
 
   Scenario: A type that leaves a muscle without a day is disabled
     Given I train 2 days a week and day 1 is "Torso"

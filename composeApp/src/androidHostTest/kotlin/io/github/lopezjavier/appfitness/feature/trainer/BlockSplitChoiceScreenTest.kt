@@ -33,9 +33,20 @@ class BlockSplitChoiceScreenTest {
 
         rule.onNodeWithText("Tipo de rutina").assertExists()
         rule.onNodeWithTag("block_split_card_0").assertIsSelected()
-        rule.onNodeWithText("Torso / Pierna / Torso / Pierna · Recomendado").assertExists()
+        rule.onNodeWithText("Torso-Pierna · Recomendado").assertExists()
+        rule.onNodeWithText("Torso, Pierna, Torso, Pierna", substring = true).assertExists()
+        rule.onNodeWithText("Torso / Pierna", substring = true).assertDoesNotExist()
         rule.onNodeWithText("Entrenas cada músculo dos veces por semana", substring = true).assertExists()
         rule.onNodeWithTag("block_split_card_1").assertExists()
+    }
+
+    @Test
+    fun threeDays_showTheExtraCuerpoCompletoSplitsByName_andARepeatedDayAsTimes() {
+        show(BlockBuilderTestData.splits(days = 3))
+
+        rule.onNodeWithText("Cuerpo completo ×3", substring = true).assertExists()
+        rule.onNodeWithText("Torso-Pierna + Cuerpo completo").assertExists()
+        rule.onNodeWithText("Empuje-Tirón + Cuerpo completo").assertExists()
     }
 
     @Test
