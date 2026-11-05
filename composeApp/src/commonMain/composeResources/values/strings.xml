@@ -2084,6 +2084,17 @@
     <string name="block_split_title">Tipo de rutina</string>
     <string name="block_split_recommended">Recomendado</string>
     <string name="block_split_name_recommended">%1$s · %2$s</string>
+    <string name="block_split_family_full_body">Cuerpo completo</string>
+    <string name="block_split_family_upper_lower">Torso-Pierna</string>
+    <string name="block_split_family_push_pull">Empuje-Tirón</string>
+    <string name="block_split_family_upper_lower_extra">Torso-Pierna + Cuerpo completo</string>
+    <string name="block_split_family_push_pull_extra">Empuje-Tirón + Cuerpo completo</string>
+    <string name="block_split_days_repeated">%1$s ×%2$d</string>
+    <string name="block_type_groups_full_body">Todo el cuerpo</string>
+    <string name="block_type_groups_upper">Pecho, espalda y hombros</string>
+    <string name="block_type_groups_lower">Cuádriceps, isquiotibiales y glúteos</string>
+    <string name="block_type_groups_push">Pecho, hombros y cuádriceps</string>
+    <string name="block_type_groups_pull">Espalda, isquiotibiales y glúteos</string>
     <string name="block_split_reason_only_routine">Es la única rutina que entrena todos tus músculos.</string>
     <string name="block_split_reason_twice_a_week">Entrenas cada músculo dos veces por semana.</string>
     <string name="block_split_reason_three_times_similar">Entrenas cada músculo tres veces por semana, con entrenos de duración parecida.</string>

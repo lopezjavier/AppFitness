@@ -235,10 +235,22 @@ class BlockBuilderViewModelTest {
         send(model, BlockBuilderEvent.Continue, BlockBuilderEvent.OpenDay(0))
         assertEquals(0, model.types().openDay)
 
+        send(model, BlockBuilderEvent.PickType(RoutineType.Lower))
+
+        assertEquals(RoutineType.Lower, model.types().chosen[0])
+        assertNull(model.types().openDay)
+    }
+
+    @Test
+    fun pickType_outsideTheSplitFamily_isIgnored() = runTest(dispatcher) {
+        val model = viewModel()
+        send(model, BlockBuilderEvent.Continue, BlockBuilderEvent.OpenDay(0))
+
+        send(model, BlockBuilderEvent.PickType(RoutineType.Push))
         send(model, BlockBuilderEvent.PickType(RoutineType.FullBody))
 
-        assertEquals(RoutineType.FullBody, model.types().chosen[0])
-        assertNull(model.types().openDay)
+        assertEquals(RoutineType.Upper, model.types().chosen[0])
+        assertEquals(0, model.types().openDay)
     }
 
     @Test
@@ -660,7 +672,7 @@ class BlockBuilderViewModelTest {
             model,
             BlockBuilderEvent.Continue,
             BlockBuilderEvent.OpenDay(0),
-            BlockBuilderEvent.PickType(RoutineType.FullBody),
+            BlockBuilderEvent.PickType(RoutineType.Lower),
             BlockBuilderEvent.OpenDay(2),
         )
 
@@ -668,6 +680,15 @@ class BlockBuilderViewModelTest {
 
         assertEquals(model.types(), restored)
         assertEquals(2, restored.openDay)
+    }
+
+    @Test
+    fun restoration_typesOutsideTheSplitFamily_goBackToTheSplitsStep() = runTest(dispatcher) {
+        val saved = SavedStateHandle()
+        send(viewModel(saved), BlockBuilderEvent.Continue)
+        saved["block_builder_types"] = "Push,Pull,Push,Pull"
+
+        assertIs<BlockBuilderUiState.Splits>(viewModel(saved).uiState.value)
     }
 
     @Test

@@ -1,5 +1,7 @@
 package io.github.lopezjavier.appfitness.feature.trainer
 
+import androidx.compose.ui.test.assertHasClickAction
+import androidx.compose.ui.test.assertHasNoClickAction
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.assertTextContains
@@ -20,6 +22,7 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 
 /** US-72 "A routine type per day", "A type that leaves a muscle without a day is disabled", strength advice. */
+@Suppress("TooManyFunctions") // One method per scenario.
 @RunWith(RobolectricTestRunner::class)
 @Config(qualifiers = "w360dp-h2400dp-xxhdpi")
 class DayTypeSheetTest {
@@ -33,8 +36,9 @@ class DayTypeSheetTest {
         openDay: Int? = null,
         intention: TrainingIntention? = TrainingIntention.Muscle,
         noFit: NoFitInfo? = null,
+        splitIndex: Int = 0,
     ): BlockBuilderUiState.Types {
-        val split = SplitCatalog.splitsFor(chosen.size).first()
+        val split = SplitCatalog.splitsFor(chosen.size)[splitIndex]
         val options = chosen.indices.map { SplitCatalog.dayOptions(split, chosen, it, intention) }
         return BlockBuilderUiState.Types(split, chosen, options, openDay, noFit)
     }
@@ -64,21 +68,75 @@ class DayTypeSheetTest {
     }
 
     @Test
-    fun theSheet_listsTheFiveTypes_andATapAppliesIt() {
+    fun theSheet_listsOnlyTheTypesOfTheSplitFamily_andATapAppliesIt() {
         show(typesState(openDay = 0))
 
-        RoutineType.entries.forEach { rule.onNodeWithTag("block_type_option_${it.name}").assertExists() }
-        rule.onNodeWithTag("block_type_option_FullBody").performClick()
+        listOf("Upper", "Lower").forEach { rule.onNodeWithTag("block_type_option_$it").assertExists() }
+        listOf("Push", "Pull", "FullBody").forEach { rule.onNodeWithTag("block_type_option_$it").assertDoesNotExist() }
+        rule.onNodeWithText("Empuje").assertDoesNotExist()
+        rule.onNodeWithText("Tirón").assertDoesNotExist()
+        rule.onNodeWithTag("block_type_option_Lower").performClick()
 
-        assertEquals(listOf<BlockBuilderEvent>(BlockBuilderEvent.PickType(RoutineType.FullBody)), events)
+        assertEquals(listOf<BlockBuilderEvent>(BlockBuilderEvent.PickType(RoutineType.Lower)), events)
+    }
+
+    @Test
+    fun eachTypeShowsItsMuscleGroupsUnderItsName() {
+        show(typesState(openDay = 0))
+
+        rule.onNodeWithText("Pecho, espalda y hombros").assertExists()
+        rule.onNodeWithText("Cuádriceps, isquiotibiales y glúteos").assertExists()
+    }
+
+    @Test
+    fun anEmpujeTironWeek_showsEmpujeWithItsGroups() {
+        show(
+            typesState(
+                chosen = listOf(RoutineType.Push, RoutineType.Pull, RoutineType.Push, RoutineType.Pull),
+                openDay = 0,
+                splitIndex = 1,
+            ),
+        )
+
+        rule.onNodeWithText("Pecho, hombros y cuádriceps").assertExists()
+        rule.onNodeWithText("Espalda, isquiotibiales y glúteos").assertExists()
+        rule.onNodeWithTag("block_type_option_Upper").assertDoesNotExist()
+    }
+
+    @Test
+    fun theTypesStep_showsTheSplitNameAsAHeader() {
+        show(typesState())
+
+        rule.onNodeWithTag("block_types_split_name").assertTextContains("Torso-Pierna")
+    }
+
+    @Test
+    fun theLoneCuerpoCompletoDayOfAThreeDayWeek_isAPlainRow_andTheOthersAreTappable() {
+        val chosen = SplitCatalog.splitsFor(3)[1].types
+        show(typesState(chosen = chosen, splitIndex = 1))
+
+        rule.onNodeWithTag("block_types_split_name").assertTextContains("Torso-Pierna + Cuerpo completo")
+        rule.onNodeWithTag("block_types_day_0").assertHasClickAction()
+        val fbDay = chosen.indexOf(RoutineType.FullBody)
+        rule.onNodeWithTag("block_types_day_$fbDay").assertHasNoClickAction()
+        rule.onNodeWithText("Cuerpo completo").assertExists()
+    }
+
+    @Test
+    fun aCuerpoCompletoSplit_hasNoTappableDay() {
+        val chosen = SplitCatalog.splitsFor(3)[0].types
+        show(typesState(chosen = chosen))
+
+        rule.onNodeWithTag("block_types_split_name").assertTextContains("Cuerpo completo")
+        chosen.indices.forEach { rule.onNodeWithTag("block_types_day_$it").assertHasNoClickAction() }
     }
 
     @Test
     fun aTypeThatLeavesAMuscleWithoutADay_isDisabledWithItsReason() {
-        show(typesState(chosen = listOf(RoutineType.Upper, RoutineType.Lower), openDay = 1))
+        show(typesState(chosen = listOf(RoutineType.Upper, RoutineType.Lower), splitIndex = 1, openDay = 1))
 
         rule.onNodeWithTag("block_type_option_Upper").assertIsNotEnabled().performClick()
-        rule.onNodeWithTag("block_type_option_FullBody").assertIsEnabled()
+        rule.onNodeWithTag("block_type_option_Lower").assertIsEnabled()
 
         assertEquals(emptyList<BlockBuilderEvent>(), events)
         rule.onAllNodesWithText("Dejaría los cuádriceps sin entrenar")[0].assertExists()
@@ -107,6 +165,7 @@ class DayTypeSheetTest {
         val state = typesState(
             chosen = listOf(RoutineType.Upper, RoutineType.Lower),
             intention = TrainingIntention.Strength,
+            splitIndex = 1,
         )
         show(state)
 

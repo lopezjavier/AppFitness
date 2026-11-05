@@ -165,6 +165,7 @@ class BlockBuilderViewModel(
         val splitIndex = (savedState.get<Int>(KEY_SPLIT) ?: 0).coerceIn(0, splits.lastIndex)
         val types = savedState.get<String>(KEY_TYPES)?.let(::decodeTypes)
             ?.takeIf { it.size == inputs.days }
+            ?.takeIf { saved -> saved.all { it in splits[splitIndex].family.allowedTypes } }
         val saved = savedState.get<String>(KEY_STATE)?.let(BuilderStateCodec::decode)
         return when {
             savedState.get<String>(KEY_STEP) == STEP_BUILDER && saved != null ->

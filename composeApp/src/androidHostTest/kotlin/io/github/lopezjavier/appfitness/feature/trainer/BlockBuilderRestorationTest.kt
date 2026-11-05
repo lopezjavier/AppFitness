@@ -148,11 +148,25 @@ class BlockBuilderRestorationTest {
         showRoot()
         tap("block_split_continue")
         tap("block_types_day_0")
-        tap("block_type_option_FullBody")
+        tap("block_type_option_Lower")
 
         recreate()
 
-        rule.onNodeWithTag("block_types_day_0").assertTextContains("Cuerpo completo", substring = true)
+        rule.onNodeWithTag("block_types_day_0").assertTextContains("Pierna", substring = true)
+    }
+
+    @Test
+    fun theOpenDaySheet_ofATorsoPiernaWeek_survivesRecreation_stillFilteredToTheFamily() {
+        showRoot()
+        tap("block_split_continue")
+        tap("block_types_day_1")
+
+        recreate()
+
+        rule.onNodeWithTag("block_types_split_name").assertTextContains("Torso-Pierna")
+        rule.onNodeWithTag("block_type_option_Upper").assertExists()
+        rule.onNodeWithTag("block_type_option_Push").assertDoesNotExist()
+        rule.onNodeWithTag("block_type_option_FullBody").assertDoesNotExist()
     }
 
     @Test

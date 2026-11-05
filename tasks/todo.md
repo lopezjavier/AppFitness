@@ -1509,6 +1509,27 @@ Not split further: T-221 (about 15 files) and T-222 (about 15 new files plus del
 
 ---
 
+## T-226: fix from Checkpoint E13-K feedback 1: named splits and day types per split (US-72, US-93; Q-B6, Q-B7) · M
+
+**Story:** US-72 and US-93 amended (split choice shows the split name with its days; a day offers only the types of its split's family, each type with its muscle groups under its name) · **Flow:** planner → ux-reviewer (plan pass: pattern map, Spanish copy, `?` rules) → kotlin-core-developer → compose-ui-developer → pr-creator → pr-reviewer ∥ ux-reviewer (diff) · **Size:** M
+**Scope:** `shared` `SplitCatalog` (`SplitFamily`, split names, `dayOptions` filtered to the family), `BlockBuilderViewModel` guard for a stale type outside the family, the block builder screens "Tipo de rutina" and "Rutina de cada día" and their sheet, strings, tests. No backend, migration, RPC or Edge Function change. Q-B8 and Q-B9: no rule change (`07`, fitness-scientist, 2026-11-05).
+**Description — templates and patterns:** split cards keep `SelectableCard` (title = split name, "Recomendado" after it, description = days line and reason); the Types screen shows the split name as a `ListSectionHeader`; day rows with 2+ options keep `NavigationRow`; a day with one option (FullBody family, or the lone Cuerpo completo day) is a plain `AppListRow` without tap or chevron; the type sheet keeps `AppPickerSheet` + `AppListRow` with the groups as supporting text (a disabled row shows only its reason). Helper text stays behind `?` (R-57). Sweep: the split is shown in the split step, the Types step and the sheet only; saved blocks and the builder tabs keep routine names.
+**Acceptance criteria:**
+- [ ] "Tipo de rutina" shows each split by its name ("Cuerpo completo", "Torso-Pierna", "Empuje-Tirón", "Torso-Pierna + Cuerpo completo", "Empuje-Tirón + Cuerpo completo") with the days below it; the recommended card says "Recomendado" with its reason.
+- [ ] A day's sheet lists only the types of the chosen split's family: a Torso-Pierna week never offers "Empuje" or "Tirón", an Empuje-Tirón week never offers "Torso" or "Pierna".
+- [ ] "Cuerpo completo" is offered only on the day that already is a full-body day of a Torso-Pierna or Empuje-Tirón split (3 and 5 days); a Cuerpo completo split has no per-day choice.
+- [ ] Every type shows its muscle groups under its name; a type that would leave a group untrained or train one on six days stays disabled with its reason, inside the family.
+- [ ] A saved type outside the chosen family returns to the split step (no crash); state survives leaving the app (ADR-40).
+**Host and unit tests:** `SplitCatalogTest` (every day count 1-6 and split: each type in `split.types` belongs to `family.allowedTypes`; the five names; the 3- and 5-day "+ Cuerpo completo" only on the full-body day; FullBody family returns one option; the recommended flag stays on the split's own type); `BlockBuilderViewModelTest` (type outside the family ignored; stale saved type goes back to Splits); `BlockSplitChoiceScreenTest`, `DayTypeSheetTest` (no "Empuje"/"Tirón" nodes in a Torso-Pierna week; groups under the name); types-step test for a FullBody split (no tappable row) and the split name header; `BlockBuilderRestorationTest` (Types step with the sheet open, ViewModel recreated: split name, types and open day restored).
+**Verification:**
+- [ ] lint (`check-design-tokens.sh`, `check-ux-conventions.sh`, ktlint, detekt) + `:shared:allTests` + `testLocalDebugUnitTest` green; PR CI green.
+**Agent runs:** planner, ux-reviewer (plan), kotlin-core-developer, compose-ui-developer, pr-creator, pr-reviewer ∥ ux-reviewer (diff) = 7 (developers already ran the unit and host tests). About 15 files.
+**Dependencies:** T-225 merged (#504), Checkpoint E13-K open.
+**Files likely touched:** `shared/.../domain/coach/builder/SplitCatalog.kt` and its test; `composeApp/.../feature/trainer/` (`BlockBuilderViewModel.kt`, `BlockBuilderText.kt`, `BlockSplitChoiceScreen.kt`, `BlockTypesScreen.kt`, `DayTypeSheet.kt`); `composeApp/src/commonMain/composeResources/values/strings.xml`; host tests in `androidHostTest` and `commonTest`; `planning/05-design-system.md` (§8 lines on the split card and day types); `planning/epics/` E13 (US-72, US-93 amendments).
+**Estimated scope:** M
+
+---
+
 ### Checkpoint E13-K — Blocks you build yourself, from scratch or from your folder, help behind `?`, and the final E13 regression 👤 (9 items + leave and come back) *(proposed by the epic-planner 2026-11-04; one checkpoint after the last task by the user's decision the same day (E13-J merged into it); more than 7 items by that decision; the last E13 checkpoint (user 2026-11-04: E13 ends here); replaces the postponed E13-H items 3, 4, 5 and 7, closes E13-H, releases the closure T-170)*
 Journey: choose your days and a routine per day, see what each muscle asks, pick your exercises until the block is complete, save, train and edit it; start a block from one of your folders, complete it on a copy; find every explanation behind its `?`; check that block creation no longer uses AI and that the rest of the coach works as before. Why here: right after T-225, the last E13 implementation task, so it is also the final E13 regression; its approval releases T-170. T-221…T-224 merge with no checkpoint after them.
 - [x] T-221…T-225 merged, CI green, `deploy-supabase` green after T-221 (if it has a migration) and T-224 (data intact: your plan, block, plan weeks and folders), every reported bug fixed.

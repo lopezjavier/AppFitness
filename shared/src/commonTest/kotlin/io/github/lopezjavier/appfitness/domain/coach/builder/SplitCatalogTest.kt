@@ -67,30 +67,85 @@ class SplitCatalogTest {
     }
 
     @Test
-    fun oneDay_onlyFullBodyIsEnabled() {
-        val split = SplitCatalog.splitsFor(1).single()
-        val options = SplitCatalog.dayOptions(split, split.types, 0, TrainingIntention.Muscle)
-        assertEquals(RoutineType.entries, options.map { it.type })
-        assertEquals(listOf(FullBody), options.filter { it.enabled }.map { it.type })
-        assertEquals(listOf(FullBody), options.filter { it.recommended }.map { it.type })
+    fun everySplit_hasAFamily_andItsTypesBelongToIt() {
+        for (days in 1..6) {
+            for (split in SplitCatalog.splitsFor(days)) {
+                assertTrue(split.types.all { it in split.family.allowedTypes }, "days $days ${split.types}")
+            }
+        }
+        assertEquals(SplitFamily.FullBody, SplitCatalog.splitsFor(1).single().family)
         assertEquals(
-            DisabledReason.LeavesGroupUntrained(MuscleGroup.Quads),
-            options.first { it.type == Upper }.disabledReason,
+            listOf(SplitFamily.FullBody, SplitFamily.UpperLower, SplitFamily.PushPull),
+            SplitCatalog.splitsFor(2).map { it.family },
         )
     }
 
     @Test
-    fun sixDays_aGroupOnEverySixDaysIsDisabled() {
+    fun hasFullBodyDay_onlyForTheExtraDayOfThreeAndFiveDaySplits() {
+        assertEquals(listOf(false, true, true), SplitCatalog.splitsFor(3).map { it.hasFullBodyDay })
+        assertEquals(listOf(true, true, false), SplitCatalog.splitsFor(5).map { it.hasFullBodyDay })
+        assertEquals(listOf(false, false), SplitCatalog.splitsFor(6).map { it.hasFullBodyDay })
+        assertFalse(SplitCatalog.splitsFor(1).single().hasFullBodyDay)
+    }
+
+    @Test
+    fun oneDay_fullBodyFamily_offersOnlyFullBody() {
+        val split = SplitCatalog.splitsFor(1).single()
+        val options = SplitCatalog.dayOptions(split, split.types, 0, TrainingIntention.Muscle)
+        assertEquals(listOf(FullBody), options.map { it.type })
+        assertTrue(options.single().enabled)
+        assertTrue(options.single().recommended)
+    }
+
+    @Test
+    fun threeDayTorsoLeg_offersTorsoAndLegOnDaysOneAndTwo_andFullBodyOnlyOnDayThree() {
+        val split = SplitCatalog.splitsFor(3)[1]
+        fun types(day: Int) = SplitCatalog.dayOptions(split, split.types, day, TrainingIntention.Muscle).map { it.type }
+        assertEquals(listOf(Upper, Lower), types(0))
+        assertEquals(listOf(Upper, Lower), types(1))
+        assertEquals(listOf(FullBody), types(2))
+    }
+
+    @Test
+    fun noOptionsOfAnotherFamily() {
+        for (days in 1..6) {
+            for (split in SplitCatalog.splitsFor(days)) {
+                val types = split.types.indices.flatMap { day ->
+                    SplitCatalog.dayOptions(split, split.types, day, null).map { it.type }
+                }
+                assertTrue(types.all { it in split.family.allowedTypes }, "days $days")
+                if (split.family == SplitFamily.UpperLower) assertTrue(Push !in types && Pull !in types)
+                if (split.family == SplitFamily.PushPull) assertTrue(Upper !in types && Lower !in types)
+            }
+        }
+    }
+
+    @Test
+    fun recommendedOption_isTheSplitsOwnType_andStaysResolvableForTheChosenType() {
+        val split = SplitCatalog.splitsFor(4).first()
+        val options = SplitCatalog.dayOptions(split, split.types, 1, TrainingIntention.Muscle)
+        assertEquals(listOf(Lower), options.filter { it.recommended }.map { it.type })
+        assertNull(options.first { it.type == Lower }.disabledReason)
+    }
+
+    @Test
+    fun sixDays_swappingToTheOtherTypeOfTheFamily_neverTrainsAGroupEverySixDays() {
         val split = SplitCatalog.splitsFor(6).first()
-        val options = SplitCatalog.dayOptions(split, List(6) { FullBody }, 0, TrainingIntention.Muscle)
+        val options = SplitCatalog.dayOptions(split, split.types, 0, TrainingIntention.Muscle)
+        assertEquals(listOf(Upper, Lower), options.map { it.type })
+        assertTrue(options.all { it.enabled })
+    }
+
+    @Test
+    fun sixDays_swappingTheOnlyLowerDayToUpper_leavesLegsUntrained() {
+        val split = SplitCatalog.splitsFor(6).first()
+        val chosen = listOf(Upper, Upper, Upper, Upper, Upper, Lower)
+        val options = SplitCatalog.dayOptions(split, chosen, 5, TrainingIntention.Muscle)
         assertEquals(
-            DisabledReason.GroupEveryDay(MuscleGroup.Chest),
-            options.first {
-                it.type == FullBody
-            }.disabledReason,
+            DisabledReason.LeavesGroupUntrained(MuscleGroup.Quads),
+            options.first { it.type == Upper }.disabledReason,
         )
-        assertEquals(DisabledReason.GroupEveryDay(MuscleGroup.Chest), options.first { it.type == Upper }.disabledReason)
-        assertEquals(DisabledReason.GroupEveryDay(MuscleGroup.Quads), options.first { it.type == Lower }.disabledReason)
+        assertTrue(options.first { it.type == Lower }.enabled)
     }
 
     @Test
