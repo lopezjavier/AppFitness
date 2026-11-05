@@ -207,6 +207,8 @@ Each checkpoint also has "leave the app and come back: the same tab, screen and 
 
 **Sizing and checkpoint grouping:** one task per story slice; US-72 + US-93 is about 45 files with core rules, a save path, two screen modes and the removals, so core → "Desde cero" UI → "Desde una carpeta" UI → server removal. T-223 is M (it reuses T-222's screen; the R-57 row fix is folded in, same screen family). T-224 is M (deletions and one drop migration; merged into T-223 it would mix a heavy backend removal with UI). T-225 is M (the sweep of the ux-reviewer's list plus a guard; other domains than the block, so its own task, user option B). Collected test items (13), one checkpoint by the user's decision, condensed by journey: split and type per day 1, section values and time fit 1, picking and the score 1, save, train and edit 1, folder at 100 % and days refused 1, fix on a copy 1, strength fixes 1, review rows and sweep `?` 1, no-AI regression and data intact 1 → E13-K (9). Internal milestones (not 👤): `deploy-supabase` green after T-221 (if it has a migration) and T-224, data intact.
 
+> **DISCARDED (user, 2026-11-05):** the E14 backlog items below (T-166…T-169, T-189…T-194, T-196, T-197 and Checkpoints E13-C, E13-E and E13-F) will not be done. E14 restarted from scratch ([`planning/epics/E14-block-follow-up.md`](../planning/epics/E14-block-follow-up.md)).
+>
 > **Phases 2d and 2e and the life-change part of Phase 3 moved to the E14 backlog (user, 2026-11-03).** Kept below for the E14 re-plan; not E13 work, their checkpoints are not gates. E13 continues after E13-H with T-166, T-167, T-168, T-169, Checkpoint E13-C (5 items) and T-170.
 
 ### Phase 2d → E14 backlog: The end-of-block review (US-73 am., US-83, US-84, US-88)
