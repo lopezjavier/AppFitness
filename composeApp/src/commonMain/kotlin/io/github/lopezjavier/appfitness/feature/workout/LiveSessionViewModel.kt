@@ -76,8 +76,10 @@ import io.github.lopezjavier.appfitness.domain.usecase.perHandIdsOrDefault
 import io.github.lopezjavier.appfitness.domain.usecase.resolveRest
 import io.github.lopezjavier.appfitness.domain.usecase.routineDiff
 import io.github.lopezjavier.appfitness.domain.usecase.supersetLabels
+import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.channels.Channel
@@ -97,6 +99,7 @@ import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
+import kotlinx.coroutines.withContext
 import kotlinx.datetime.DateTimeUnit
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.atStartOfDayIn
@@ -1463,9 +1466,12 @@ class LiveSessionViewModel(
     /**
      * Once the "update the routine?" question is resolved the server applies the coach's load change on top of it
      * (ADR-70 runs first). Best effort: the result is ignored and a failure never changes the finish screen.
+     * It starts eagerly and is non-cancellable so leaving the screen cannot drop the call.
      */
     private fun applyProgressionInBackground(sessionId: String) {
-        viewModelScope.launch { applyCoachProgression(sessionId) }
+        viewModelScope.launch(start = CoroutineStart.UNDISPATCHED) {
+            withContext(NonCancellable) { applyCoachProgression(sessionId) }
+        }
     }
 
     private fun keepRoutine() {

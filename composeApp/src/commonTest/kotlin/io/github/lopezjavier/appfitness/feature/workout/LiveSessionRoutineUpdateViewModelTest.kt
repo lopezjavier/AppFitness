@@ -1,6 +1,7 @@
 package io.github.lopezjavier.appfitness.feature.workout
 
 import androidx.lifecycle.SavedStateHandle
+import androidx.lifecycle.viewModelScope
 import io.github.lopezjavier.appfitness.app.FakeConnectivityObserver
 import io.github.lopezjavier.appfitness.app.FakeDiscomfortRepository
 import io.github.lopezjavier.appfitness.app.FakeTrainingPreferencesRepository
@@ -27,7 +28,9 @@ import io.github.lopezjavier.appfitness.feature.exercises.benchSquatLibrary
 import io.github.lopezjavier.appfitness.feature.exercises.exerciseRow
 import io.github.lopezjavier.appfitness.feature.routines.FakeRoutineRepository
 import io.github.lopezjavier.appfitness.feature.weight.FakeWeightRepository
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.cancel
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.advanceUntilIdle
@@ -534,6 +537,22 @@ class LiveSessionRoutineUpdateViewModelTest {
     }
 
     @Test
+    fun leavingTheScreenMidCall_stillCompletesTheCoachProgression() = runSessionTest {
+        val gate = CompletableDeferred<Unit>()
+        coachChanges.gate = gate
+        val vm = loaded()
+        logAsPlanned(vm)
+        finish(vm)
+        assertEquals(listOf("s1"), coachChanges.applied)
+
+        vm.viewModelScope.cancel()
+        gate.complete(Unit)
+        advanceUntilIdle()
+
+        assertEquals(listOf("s1"), coachChanges.completed)
+    }
+
+    @Test
     fun aFailingCoachProgression_doesNotChangeTheFinishScreen() = runSessionTest {
         coachChanges.failure = AppException(AppError.Network)
         val vm = loaded()
@@ -548,10 +567,14 @@ class LiveSessionRoutineUpdateViewModelTest {
     private inner class RecordingCoachChanges : CoachChangesRepository {
         val applied = mutableListOf<String>()
         val routineUpdatesSeenAtApply = mutableListOf<String>()
+        val completed = mutableListOf<String>()
+        var gate: CompletableDeferred<Unit>? = null
         var failure: Throwable? = null
 
         override suspend fun apply(sessionId: String): Result<List<CoachChange>> {
             applied += sessionId
+            gate?.await()
+            completed += sessionId
             routineUpdatesSeenAtApply += routines.updatedFromSession
             return failure?.let { Result.failure(it) } ?: Result.success(emptyList())
         }
