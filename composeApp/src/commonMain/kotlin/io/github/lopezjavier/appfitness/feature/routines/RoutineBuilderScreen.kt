@@ -8,6 +8,8 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.relocation.BringIntoViewRequester
+import androidx.compose.foundation.relocation.bringIntoViewRequester
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Text
@@ -15,6 +17,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
@@ -71,7 +74,10 @@ fun RoutineBuilderRoot(
     onOpenExercise: (String) -> Unit,
     onClose: () -> Unit,
     modifier: Modifier = Modifier,
-    viewModel: RoutineBuilderViewModel = koinViewModel(parameters = { parametersOf(routineId.orEmpty()) }),
+    focusExerciseId: String? = null,
+    viewModel: RoutineBuilderViewModel = koinViewModel(
+        parameters = { parametersOf(routineId.orEmpty(), focusExerciseId.orEmpty()) },
+    ),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val currentConsumed by rememberUpdatedState(onConsumeSelection)
@@ -137,6 +143,14 @@ fun RoutineBuilderScreen(
     }
 }
 
+/** "Añadir un rango" (T-228): the row of the focused exercise scrolls into view once it is shown. */
+@Composable
+private fun Modifier.bringIntoViewWhen(focused: Boolean, key: Long): Modifier {
+    val requester = remember { BringIntoViewRequester() }
+    if (focused) LaunchedEffect(key) { requester.bringIntoView() }
+    return bringIntoViewRequester(requester)
+}
+
 @Composable
 private fun BuilderForm(
     state: RoutineBuilderUiState.Editing,
@@ -188,7 +202,10 @@ private fun BuilderForm(
                     onOpenMenu = { menuRowId = row.rowId },
                     onOpenExercise = { onOpenExercise(row.exerciseId) },
                     onEditNote = { noteRowId = row.rowId },
-                    modifier = Modifier.padding(top = if (index > 0 && !continuesGroup) Spacing.xs else Spacing.none),
+                    modifier = Modifier
+                        .padding(top = if (index > 0 && !continuesGroup) Spacing.xs else Spacing.none)
+                        .bringIntoViewWhen(row.exerciseId == state.focusRangeExerciseId, row.rowId),
+                    coachMarker = state.coachMarkers[row.exerciseId],
                 )
             }
         }

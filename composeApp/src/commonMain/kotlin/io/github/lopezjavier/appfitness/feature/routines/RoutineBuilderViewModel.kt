@@ -13,6 +13,7 @@ import io.github.lopezjavier.appfitness.domain.model.RoutineBounds
 import io.github.lopezjavier.appfitness.domain.model.SetType
 import io.github.lopezjavier.appfitness.domain.model.TrainingPreferences
 import io.github.lopezjavier.appfitness.domain.port.ConnectivityObserver
+import io.github.lopezjavier.appfitness.domain.repository.CoachChangesRepository
 import io.github.lopezjavier.appfitness.domain.repository.RoutineRepository
 import io.github.lopezjavier.appfitness.domain.repository.TrainingPreferencesRepository
 import io.github.lopezjavier.appfitness.domain.usecase.LoadExerciseCatalog
@@ -20,6 +21,9 @@ import io.github.lopezjavier.appfitness.domain.usecase.WarmUpCalculator
 import io.github.lopezjavier.appfitness.domain.usecase.groupWithNext
 import io.github.lopezjavier.appfitness.domain.usecase.supersetLabels
 import io.github.lopezjavier.appfitness.domain.usecase.ungroup
+import io.github.lopezjavier.appfitness.feature.trainer.CoachChangeMarker
+import io.github.lopezjavier.appfitness.feature.trainer.ShownCoachChangeStatuses
+import io.github.lopezjavier.appfitness.feature.trainer.toMarkers
 import io.github.lopezjavier.appfitness.feature.workout.CalculatorDraft
 import io.github.lopezjavier.appfitness.feature.workout.CalculatorKind
 import io.github.lopezjavier.appfitness.feature.workout.calculatorUiState
@@ -37,6 +41,7 @@ import kotlinx.coroutines.launch
 private const val KEY_DRAFT = "builder_draft"
 private const val KEY_BASELINE = "builder_baseline"
 private const val KEY_PICKER = "builder_type_picker"
+private const val KEY_FOCUS_RANGE = "builder_focus_range_exercise"
 
 /**
  * Routine builder (US-10, US-29): name, exercises with per-set weight, reps and type, rest, reorder (drag or move
@@ -55,7 +60,19 @@ class RoutineBuilderViewModel(
     private val loadCatalog: LoadExerciseCatalog,
     connectivity: ConnectivityObserver,
     private val preferences: TrainingPreferencesRepository,
+    /** Exercise whose rep range the user was sent to add ("Añadir un rango" in the Trainer tab); T-228. */
+    focusExerciseId: String? = null,
+    private val coachChanges: CoachChangesRepository? = null,
 ) : ViewModel() {
+    /** Row whose range control is shown and scrolled into view; restored with the draft (ADR-40). */
+    private val focusRangeExerciseId: String? = listOfNotNull(
+        savedState.get<String>(KEY_FOCUS_RANGE),
+        focusExerciseId,
+    ).firstOrNull()
+
+    /** `?` markers by exercise id: the applied or pending coach changes of this routine; empty when unreadable. */
+    private var coachMarkers: Map<String, CoachChangeMarker> = emptyMap()
+
     private val restored = savedState.get<String>(KEY_DRAFT)?.let { decode(it) }
     private var draft: RoutineDraft = restored ?: RoutineDraft()
     private var baseline: RoutineDraft =
@@ -94,6 +111,7 @@ class RoutineBuilderViewModel(
         if (routineId == null && savedState.get<String>(KEY_BASELINE) == null) {
             savedState[KEY_BASELINE] = encode(RoutineDraft())
         }
+        savedState[KEY_FOCUS_RANGE] = focusRangeExerciseId
     }
 
     private val _uiState = MutableStateFlow<RoutineBuilderUiState>(render())
@@ -115,6 +133,18 @@ class RoutineBuilderViewModel(
         if (phase == Phase.Loading) loadRoutine() else loadNames()
         loadSheetData()
         loadOtherNames()
+        loadCoachMarkers()
+    }
+
+    /** A failed read just means no markers; the editor never depends on it. */
+    private fun loadCoachMarkers() {
+        val id = routineId ?: return
+        val repository = coachChanges ?: return
+        viewModelScope.launch {
+            val list = repository.list(statuses = ShownCoachChangeStatuses).getOrNull() ?: return@launch
+            coachMarkers = list.toMarkers(id)
+            publish()
+        }
     }
 
     @Suppress("CyclomaticComplexMethod") // A flat dispatch over the events.
@@ -488,6 +518,8 @@ class RoutineBuilderViewModel(
                 nameTaken = isNameTaken(),
                 saved = saved,
                 typePicker = renderPicker(),
+                focusRangeExerciseId = focusRangeExerciseId,
+                coachMarkers = coachMarkers,
                 calculator = calculator,
                 warmUpBlockedByCap = calculator != null && calculator.draft.kind == CalculatorKind.WarmUp &&
                     !draft.canAddWarmUps(calculator.draft.position, calculator.warmUp.size.coerceAtLeast(1)),

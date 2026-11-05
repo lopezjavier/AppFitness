@@ -2255,4 +2255,38 @@
     <string name="block_start_folders_empty_reason">Crea una en Entreno y añade tus rutinas.</string>
     <string name="block_start_folders_error">No se pudieron cargar las carpetas. Inténtalo de nuevo.</string>
     <string name="block_start_folders_offline">Sin conexión: no se pueden cargar las carpetas.</string>
+    <!-- Coach load changes (T-228, ADR-88) -->
+    <string name="coach_changes_header">Cambios del entrenador</string>
+    <string name="coach_change_undo">Deshacer</string>
+    <string name="coach_change_undo_cd">Deshacer el cambio de %1$s</string>
+    <string name="coach_change_status_undone">Deshecho</string>
+    <string name="coach_change_undone_line">Vuelve a %1$s kg.</string>
+    <string name="coach_change_decided_raise">Subida aceptada</string>
+    <string name="coach_change_decided_keep">Peso mantenido</string>
+    <string name="coach_change_decided_range">Rango añadido</string>
+    <string name="coach_change_reason_raise">Subida de %1$s kg a %2$s kg: completaste todas las series en el máximo del rango con RPE %3$s o menos.</string>
+    <string name="coach_change_reason_raise_plain">Subida de %1$s kg a %2$s kg: completaste todas las series en el máximo del rango.</string>
+    <plurals name="coach_change_reason_drop">
+        <item quantity="one">Bajada del 5 % de %1$s kg a %2$s kg: %3$d sesión sin llegar al mínimo del rango.</item>
+        <item quantity="other">Bajada del 5 % de %1$s kg a %2$s kg: %3$d sesiones seguidas sin llegar al mínimo del rango.</item>
+    </plurals>
+    <string name="coach_change_reason_kept">El peso se mantiene mientras tengas una molestia abierta en este ejercicio.</string>
+    <string name="coach_change_reason_flag">La siguiente subida es de %1$s kg (+%2$s %), más de lo recomendable de una vez. Puedes subir igualmente o mantener el peso y sumar repeticiones.</string>
+    <string name="coach_change_reason_no_range">Este ejercicio no tiene un rango de repeticiones, así que el entrenador no puede subirlo solo.</string>
+    <string name="coach_change_flag_raise">Subir a %1$s kg</string>
+    <string name="coach_change_flag_keep">Mantener y sumar repeticiones</string>
+    <string name="coach_change_add_range">Añadir un rango</string>
+    <string name="coach_change_marker_cd">Por qué cambió el peso: %1$s</string>
+    <string name="coach_change_marker_title">Cambio del entrenador</string>
+    <plurals name="coach_change_undone_skipped">
+        <item quantity="one">Deshecho, salvo en %1$d rutina que ya habías editado.</item>
+        <item quantity="other">Deshecho, salvo en %1$d rutinas que ya habías editado.</item>
+    </plurals>
+    <string name="coach_change_undo_conflict">Ya no se puede deshacer: has cambiado esa rutina.</string>
+    <string name="coach_change_undo_not_found">Ese cambio ya no existe.</string>
+    <string name="coach_change_undo_error">No se pudo deshacer el cambio. Inténtalo de nuevo.</string>
+    <string name="coach_change_undo_offline">deshacer el cambio</string>
+    <string name="coach_change_decide_error">No se pudo guardar tu elección. Inténtalo de nuevo.</string>
+    <string name="coach_change_decide_not_pending">Ya habías elegido una opción para este ejercicio.</string>
+    <string name="coach_change_decide_offline">guardar tu elección</string>
 </resources>

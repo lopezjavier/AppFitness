@@ -371,6 +371,8 @@ val uiModule =
                 deloadRepository = get(),
                 coachChanges = get(),
                 exerciseNames = get(),
+                coachPlans = get(),
+                coachBlocks = get(),
             )
         }
         viewModelOf(::HistoryViewModel)
@@ -447,6 +449,7 @@ val uiModule =
                 goals = get(),
                 profile = get(),
                 measurements = get(),
+                coachChanges = get(),
             )
         }
         viewModel {
@@ -540,15 +543,18 @@ val uiModule =
                 connectivity = get(),
             )
         }
-        // A blank routineId means a new routine (Koin parameters cannot be null).
-        viewModel { (routineId: String) ->
+        // A blank routineId means a new routine (Koin parameters cannot be null). The optional second parameter is
+        // the exercise whose rep range gets the focus (blank or missing = none).
+        viewModel { params ->
             RoutineBuilderViewModel(
-                routineId = routineId.ifBlank { null },
+                routineId = params.get<String>(0).ifBlank { null },
                 savedState = get(),
                 repository = get(),
                 loadCatalog = get(),
                 connectivity = get(),
                 preferences = get(),
+                focusExerciseId = (params.values.getOrNull(1) as? String)?.ifBlank { null },
+                coachChanges = get(),
             )
         }
     }

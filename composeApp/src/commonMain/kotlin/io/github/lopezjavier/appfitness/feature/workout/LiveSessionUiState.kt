@@ -14,6 +14,7 @@ import io.github.lopezjavier.appfitness.domain.model.SetType
 import io.github.lopezjavier.appfitness.domain.model.WarmUpSet
 import io.github.lopezjavier.appfitness.domain.usecase.SessionSummary
 import io.github.lopezjavier.appfitness.domain.usecase.SupersetLabel
+import io.github.lopezjavier.appfitness.feature.trainer.CoachChangeMarker
 import kotlin.time.Duration
 import kotlin.time.Instant
 
@@ -72,6 +73,8 @@ data class LiveExercise(
      * When present, [suggestion] is null for this exercise. Read-only: routines and set rows are never rewritten.
      */
     val deload: DeloadExerciseSuggestion? = null,
+    /** The `?` marker when the coach changed this exercise's load or flagged it (T-228); null otherwise. */
+    val coachMarker: CoachChangeMarker? = null,
     /** What each set of this exercise measures; decides the fields of its rows. */
     val metricType: ExerciseMetricType = ExerciseMetricType.WeightReps,
     /** Decides the hint of the weight field; null when unknown. */

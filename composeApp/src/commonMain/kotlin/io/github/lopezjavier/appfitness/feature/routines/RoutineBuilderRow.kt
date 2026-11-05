@@ -92,6 +92,8 @@ import io.github.lopezjavier.appfitness.domain.model.Equipment
 import io.github.lopezjavier.appfitness.domain.model.RoutineBounds
 import io.github.lopezjavier.appfitness.domain.usecase.RpeScale
 import io.github.lopezjavier.appfitness.feature.exercises.LocalExerciseMediaUris
+import io.github.lopezjavier.appfitness.feature.trainer.CoachChangeMarker
+import io.github.lopezjavier.appfitness.feature.trainer.CoachChangeMarkerButton
 import io.github.lopezjavier.appfitness.feature.workout.CalculatorKind
 import io.github.lopezjavier.appfitness.feature.workout.restDurationText
 import io.github.lopezjavier.appfitness.feature.workout.restStateDescription
@@ -118,6 +120,7 @@ internal fun ReorderableItemScope.BuilderRow(
     onOpenExercise: () -> Unit,
     onEditNote: () -> Unit,
     modifier: Modifier = Modifier,
+    coachMarker: CoachChangeMarker? = null,
 ) {
     val name = row.name
     val superset = row.supersetLabelText()
@@ -152,7 +155,7 @@ internal fun ReorderableItemScope.BuilderRow(
             .testTag("routine_builder_row_$index"),
     ) {
         AppCard(Modifier.fillMaxWidth().padding(start = if (superset != null) SupersetAccentWidth else Spacing.none)) {
-            RowHeader(row, index, superset, onEvent, onOpenMenu, onOpenExercise)
+            RowHeader(row, index, superset, onEvent, onOpenMenu, onOpenExercise, coachMarker)
             exerciseNoteSummary(row.noteKind, row.notes)?.let {
                 InlineNote(
                     text = it,
@@ -184,6 +187,7 @@ private fun ReorderableItemScope.RowHeader(
     onEvent: (RoutineBuilderEvent) -> Unit,
     onOpenMenu: () -> Unit,
     onOpenExercise: () -> Unit,
+    coachMarker: CoachChangeMarker?,
 ) {
     val name = row.name
     val menuLabel = stringResource(Res.string.builder_row_menu_cd, name)
@@ -206,6 +210,7 @@ private fun ReorderableItemScope.RowHeader(
                     .testTag("routine_builder_drag_handle_$index"),
             )
             RowIdentity(row, index, name, superset, onOpenExercise, Modifier.weight(1f))
+            coachMarker?.let { CoachChangeMarkerButton(name, it, "routine_builder_coach_marker_${row.exerciseId}") }
             Box(
                 Modifier
                     .size(Spacing.minTouchTarget)

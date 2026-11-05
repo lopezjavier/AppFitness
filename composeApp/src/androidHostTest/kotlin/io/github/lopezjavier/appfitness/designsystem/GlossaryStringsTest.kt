@@ -72,7 +72,11 @@ class GlossaryStringsTest {
             assertTrue(stray.isEmpty(), "\"$word\" must not be a value: $stray")
         }
         assertEquals("Aceptar", value("action_accept"))
-        assertTrue(valuesWith { it.contains("Deshacer") }.isEmpty(), "No Deshacer")
+        // The only "Deshacer" undoes an applied coach load change (ADR-88, T-228).
+        val undoKeys = setOf("coach_change_undo", "coach_change_undo_cd")
+        val strayUndo = strings.filter { (key, text) -> text.contains("Deshacer") && key !in undoKeys }
+        assertTrue(strayUndo.isEmpty(), "No Deshacer outside the coach change undo: $strayUndo")
+        assertEquals("Deshacer", value("coach_change_undo"))
         assertTrue(valuesWith { it.contains("Tasa metabólica") }.isEmpty(), "Use Metabolismo basal")
     }
 

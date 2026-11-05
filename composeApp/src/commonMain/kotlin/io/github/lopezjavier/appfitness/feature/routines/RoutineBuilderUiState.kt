@@ -7,6 +7,7 @@ import io.github.lopezjavier.appfitness.domain.model.RoutineBounds
 import io.github.lopezjavier.appfitness.domain.model.SetType
 import io.github.lopezjavier.appfitness.domain.model.WarmUpSet
 import io.github.lopezjavier.appfitness.domain.usecase.SupersetLabel
+import io.github.lopezjavier.appfitness.feature.trainer.CoachChangeMarker
 import io.github.lopezjavier.appfitness.feature.workout.CalculatorKind
 import io.github.lopezjavier.appfitness.feature.workout.CalculatorUiState
 
@@ -89,6 +90,10 @@ sealed interface RoutineBuilderUiState {
         val calculator: CalculatorUiState? = null,
         /** True when inserting the calculator's warm-ups would exceed the sets cap (the action is disabled). */
         val warmUpBlockedByCap: Boolean = false,
+        /** Exercise whose rep range the user came to add: its row is scrolled into view with the range shown. */
+        val focusRangeExerciseId: String? = null,
+        /** `?` markers by exercise id: coach changes of this routine (applied or waiting for the user). */
+        val coachMarkers: Map<String, CoachChangeMarker> = emptyMap(),
     ) : RoutineBuilderUiState {
         val canSave: Boolean
             get() = name.isNotBlank() && !nameTaken && rows.isNotEmpty() && isOnline && !isSaving &&

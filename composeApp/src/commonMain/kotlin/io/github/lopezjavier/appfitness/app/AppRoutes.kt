@@ -122,9 +122,12 @@ data class ExercisePickerRoute(val selectMode: Boolean = false) : AppRoute
 @Serializable
 data class ExerciseDetailRoute(val exerciseId: String, val selectMode: Boolean = false) : AppRoute
 
-/** Routine builder (US-10): a new routine when [routineId] is null, otherwise the edit of that routine. */
+/**
+ * Routine builder (US-10): a new routine when [routineId] is null, otherwise the edit of that routine. With
+ * [focusExerciseId] (T-228, "Añadir un rango") the row of that exercise is scrolled into view with its range shown.
+ */
 @Serializable
-data class RoutineBuilderRoute(val routineId: String? = null) : AppRoute
+data class RoutineBuilderRoute(val routineId: String? = null, val focusExerciseId: String? = null) : AppRoute
 
 /** Details of one routine (T-124): its exercises, last time done, start, edit and delete. */
 @Serializable
