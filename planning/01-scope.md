@@ -13,9 +13,9 @@ An evidence-based performance assistant (coach) that plans four-week training an
 | E11 | [E11-health-connect-daily-sync.md](epics/E11-health-connect-daily-sync.md) | Daily automatic Health Connect sync; sleep, steps, calories and resting heart rate |
 | E12 | [E12-training-data-and-preferences.md](epics/E12-training-data-and-preferences.md) | Rest alert with the screen off, intention and preferences, notes, discomfort log, movement pattern |
 | E13 | [E13-performance-assistant.md](epics/E13-performance-assistant.md) | Coach: intake, derived values, nutrition plan and phase, progression suggestions, the block creator (model-built block, routine checker, folder review, favourites, removing a block), adherence, report, history, AI budget, chat |
-| E14 | [E14-block-follow-up.md](epics/E14-block-follow-up.md) | Block follow-up (backlog, re-planned after the user approves the new block): plan weeks that follow the training, end-of-block review and phase changes, automatic progression, calories and deloads, injury and graded return, life changes |
+| E14 | [E14-block-follow-up.md](epics/E14-block-follow-up.md) | Block follow-up, happy path only, fully deterministic (no model; user, 2026-11-05): load progression on its own with "Deshacer" and the flagged progression, a weekly summary from fixed templates, calorie changes proposed for the user's approval, triggered and scheduled deloads, the end-of-block review with a phase change offered, the next block pre-filled from the last one, and "¿Por qué no progreso?". Breaks, injuries, life changes and the model-based features are later epics |
 
-**Order:** E10 → E11 → E12 → E13 → E14. E13 depends on the other three; E14 on E13's block (user, 2026-11-03: the block follow-ups moved out of E13). Design base of the coach: [`07-coach-design.md`](07-coach-design.md). Stories US-57..US-96 (US-83…US-88, US-90…US-92 and the follow-up parts of US-69, US-70, US-73, US-75 belong to E14).
+**Order:** E10 → E11 → E12 → E13 → E14. E13 depends on the other three; E14 on E13's block (user, 2026-11-03: the block follow-ups moved out of E13). Design base of the coach: [`07-coach-design.md`](07-coach-design.md). Stories US-57..US-105 (E14: US-97…US-105; the old E14 backlog stories US-83…US-88, US-90…US-92 were discarded by the user on 2026-11-05).
 
 ## 3. Requirement changes
 
