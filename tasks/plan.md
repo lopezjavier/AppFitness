@@ -195,7 +195,7 @@ Each checkpoint also has "leave the app and come back: the same tab, screen and 
 - [x] T-221: Block builder core: splits, per-slot prescription, time fit, score, "Desde una carpeta" check, saving; stories rewritten first — L (core + backend)
 - [ ] T-222: Builder screens "Desde cero": split, type per day, the builder, "Guardar bloque"; retires the client model flow — L (UI)
 - [x] T-223: "Desde una carpeta" in the builder (refusal, fix on a copy, new folder) + R-57 `?` on the folder-review rows only; retires the client `purpose: block` — M (UI)
-- [ ] T-224: Remove the model-built block from the server; final docs sweep — M (backend)
+- [x] T-224: Remove the model-built block from the server; final docs sweep — M (backend)
 - [ ] T-225: R-57 sweep of the inline helper lines on the other screens (the ux-reviewer's list) + a `check-ux-conventions.sh` guard — M (UI)
   - **Checkpoint E13-K 👤 "Blocks you build yourself, from scratch or from your folder, help behind `?`, and the block rework regression" (9 items, the only checkpoint)** — proposed; the last E13 checkpoint and final regression; closes E13-H (replaces its items 3, 4, 5, 7); releases the closure T-170 (T-166…T-169 moved to E14)
 
