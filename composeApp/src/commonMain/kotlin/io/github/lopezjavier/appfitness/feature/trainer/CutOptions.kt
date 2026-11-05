@@ -19,7 +19,6 @@ import io.github.lopezjavier.appfitness.composeapp.resources.plan_proposal_cut_r
 import io.github.lopezjavier.appfitness.composeapp.resources.plan_proposal_cut_rate_offline
 import io.github.lopezjavier.appfitness.composeapp.resources.plan_proposal_cut_rate_option_cd
 import io.github.lopezjavier.appfitness.composeapp.resources.plan_proposal_diet_break_help_cd
-import io.github.lopezjavier.appfitness.composeapp.resources.plan_proposal_diet_break_helper
 import io.github.lopezjavier.appfitness.composeapp.resources.plan_proposal_diet_break_label
 import io.github.lopezjavier.appfitness.composeapp.resources.plan_proposal_diet_break_offline
 import io.github.lopezjavier.appfitness.composeapp.resources.plan_proposal_options_progress_cd
@@ -27,7 +26,7 @@ import io.github.lopezjavier.appfitness.designsystem.AppNumberFormat
 import io.github.lopezjavier.appfitness.designsystem.AppOption
 import io.github.lopezjavier.appfitness.designsystem.AppSwitchRow
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
-import io.github.lopezjavier.appfitness.designsystem.HelpButton
+import io.github.lopezjavier.appfitness.designsystem.HelpContent
 import io.github.lopezjavier.appfitness.designsystem.OfflineHint
 import io.github.lopezjavier.appfitness.designsystem.SegmentedSelector
 import io.github.lopezjavier.appfitness.designsystem.Spacing
@@ -86,22 +85,16 @@ internal fun CutOptions(
             enabled = enabled,
         )
         if (!online) OfflineHint(stringResource(Res.string.plan_proposal_cut_rate_offline))
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            AppSwitchRow(
-                label = stringResource(Res.string.plan_proposal_diet_break_label),
-                helper = stringResource(Res.string.plan_proposal_diet_break_helper),
-                checked = options.dietBreak,
-                onCheckedChange = onDietBreak,
-                modifier = Modifier.weight(1f).testTag("plan_proposal_diet_break_switch"),
-                enabled = enabled,
-            )
-            HelpButton(
-                contentDescription = stringResource(Res.string.plan_proposal_diet_break_help_cd),
-                title = stringResource(Res.string.plan_proposal_diet_break_label),
-                body = stringResource(Res.string.phase_diet_break_help),
-                testTag = "plan_proposal_diet_break_help",
-            )
-        }
+        AppSwitchRow(
+            label = stringResource(Res.string.plan_proposal_diet_break_label),
+            checked = options.dietBreak,
+            onCheckedChange = onDietBreak,
+            modifier = Modifier.testTag("plan_proposal_diet_break_switch"),
+            enabled = enabled,
+            help = HelpContent.fromBody(stringResource(Res.string.phase_diet_break_help)),
+            helpContentDescription = stringResource(Res.string.plan_proposal_diet_break_help_cd),
+            helpTestTag = "plan_proposal_diet_break_help",
+        )
         if (!online) OfflineHint(stringResource(Res.string.plan_proposal_diet_break_offline))
     }
 }

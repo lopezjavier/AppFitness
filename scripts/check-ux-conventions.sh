@@ -1,10 +1,13 @@
 #!/usr/bin/env bash
 # UX conventions guard (T-118, planning/phase1/ux-audit-2026-10.md section 10, planning/05-design-system.md).
-# Features must reuse the design-system templates instead of reinventing them (guards G1..G16).
+# Features must reuse the design-system templates instead of reinventing them (guards G1..G18).
 #
-# Usage: check-ux-conventions.sh [root-dir] [warnings-file]
-#   root-dir       tree to scan (default: repository root). Tests pass a fixture tree.
-#   warnings-file  per-guard, per-path warning list (default: scripts/ux-conventions-warnings.txt).
+# Usage: check-ux-conventions.sh [root-dir] [warnings-file] [allowlist-file]
+#   root-dir        tree to scan (default: repository root). Tests pass a fixture tree.
+#   warnings-file   per-guard, per-path warning list (default: scripts/ux-conventions-warnings.txt).
+#   allowlist-file  G18 inline-text allow-list (default: scripts/ux-inline-text-allowlist.txt): one string
+#                   key per line (`key  # reason`, trailing `*` wildcard allowed). Not a warn-list: a
+#                   matching key not listed fails, and a listed entry matching no key fails (no rot).
 #
 # A hit in a path listed for that guard in the warnings file prints WARN and does not fail; any other
 # hit prints and exits 1. Each listed path is migration debt with an owning task; removing a line
@@ -15,10 +18,15 @@ set -euo pipefail
 script_dir="$(cd "$(dirname "$0")" && pwd)"
 root="${1:-$script_dir/..}"
 warnings_file="${2:-$script_dir/ux-conventions-warnings.txt}"
+allowlist_file="${3:-$script_dir/ux-inline-text-allowlist.txt}"
 cd "$root"
 
 if [ ! -f "$warnings_file" ]; then
   echo "UX conventions guard ERROR: warnings file not found: $warnings_file" >&2
+  exit 2
+fi
+if [ ! -f "$allowlist_file" ]; then
+  echo "UX conventions guard ERROR: allow-list file not found: $allowlist_file" >&2
   exit 2
 fi
 
@@ -29,7 +37,7 @@ while IFS= read -r raw || [ -n "$raw" ]; do
   line="${raw%%#*}"
   line="$(printf '%s' "$line" | sed -E 's/^[[:space:]]+//; s/[[:space:]]+$//')"
   [ -z "$line" ] && continue
-  if ! printf '%s' "$line" | grep -qE '^G([1-9]|1[0-6]) [^ ]+$'; then
+  if ! printf '%s' "$line" | grep -qE '^G([1-9]|1[0-8]) [^ ]+$'; then
     echo "UX conventions guard ERROR: malformed warnings line: $raw" >&2
     exit 2
   fi
@@ -48,6 +56,28 @@ is_warned() { # guard path
       echo "UX conventions guard ERROR: invalid regex in warnings file: ${warn_paths[$i]}" >&2
       exit 2
     fi
+  done
+  return 1
+}
+
+# --- G18 allow-list: string-key globs (trailing * wildcard) -----------------------------------
+allow_keys=()
+while IFS= read -r raw || [ -n "$raw" ]; do
+  line="${raw%%#*}"
+  line="$(printf '%s' "$line" | sed -E 's/^[[:space:]]+//; s/[[:space:]]+$//')"
+  [ -z "$line" ] && continue
+  if ! printf '%s' "$line" | grep -qE '^[a-z0-9_]+\*?[a-z0-9_]*$'; then
+    echo "UX conventions guard ERROR: malformed allow-list line: $raw" >&2
+    exit 2
+  fi
+  allow_keys+=("$line")
+done < "$allowlist_file"
+
+is_allowed_key() { # key
+  local entry
+  for entry in "${allow_keys[@]+"${allow_keys[@]}"}"; do
+    # shellcheck disable=SC2254
+    case "$1" in $entry) return 0 ;; esac
   done
   return 1
 }
@@ -136,7 +166,7 @@ scan G11 "shouldDismissOnClickOutside = true (R-38, ADR-80: use AppBottomSheet(d
 scan G11 "dismissOnClickOutside = true outside the picker/info/action archetypes and the calendar (R-38, ADR-80)" \
   '\bdismissOnClickOutside = true' \
   '.*/designsystem/(AppSheets|AppActionSheet|AppDatePickerDialog)\.kt' "${kotlin_all[@]}"
-scan G11 "rememberModalBottomSheetState outside AppBottomSheet.kt (use rememberAppSheetState)" 'rememberModalBottomSheetState\(' '.*/designsystem/AppBottomSheet\.kt' "${kotlin_all[@]}"
+scan G11 "rememberModalBottomSheetState outside AppBottomSheet.kt (use rememberAppSheetState)" 'brememberModalBottomSheetState\(' '.*/designsystem/AppBottomSheet\.kt' "${kotlin_all[@]}"
 
 # G12: R-50 set tables size header columns from the shared column spec (SetRowDefaults), never a literal
 # 48 dp spacer, and the live SetRow draws no per-set number.
@@ -255,6 +285,46 @@ if [ -f "$strings_file" ]; then
       exit "$rc"
     fi
     [ "$rc" -eq 0 ] && report G16 "generic exercise label in strings.xml (R-54: resolve the name through ExerciseNameResolver)" "$hits"
+  fi
+fi
+
+# G18: R-57 inline text under a row that explains or advises lives behind the row's "?" (HelpButton). A string
+# key named *_helper/_hint/_example/_advice/_tip must be allow-listed (one short fact, disabled reason, empty
+# state, option descriptor); so must the key behind a Helper(...) / helper = ... call in feature code.
+# Limitation: advice under other key names (e.g. folder_review_result_*) is covered by review, not by this guard.
+if [ -f "$strings_file" ]; then
+  all_keys=$(grep -oE 'name="[^"]+"' "$strings_file" | sed -E 's/^name="//; s/"$//' || true)
+  while IFS= read -r key; do
+    [ -z "$key" ] && continue
+    if printf '%s' "$key" | grep -qE '_(helper|hint|example|advice|tip)$' && ! is_allowed_key "$key"; then
+      report G18 "inline helper/hint string not allow-listed (R-57: put it behind a HelpButton)" "$strings_file:1:$key"
+    fi
+  done <<< "$all_keys"
+  for entry in "${allow_keys[@]+"${allow_keys[@]}"}"; do
+    matched=0
+    while IFS= read -r key; do
+      [ -z "$key" ] && continue
+      # shellcheck disable=SC2254
+      case "$key" in $entry) matched=1; break ;; esac
+    done <<< "$all_keys"
+    if [ "$matched" -eq 0 ]; then
+      report G18 "stale allow-list entry matches no string key" "$allowlist_file:1:$entry"
+    fi
+  done
+fi
+if [ "${#kotlin_feature[@]}" -gt 0 ]; then
+  rc=0
+  hits=$(grep -HnE '(\bHelper\(|\bhelper = )[^)]*Res\.string\.[a-z0-9_]+' "${kotlin_feature[@]}") || rc=$?
+  if [ "$rc" -ge 2 ]; then
+    echo "UX conventions guard ERROR: grep failed with exit code $rc (G18)." >&2
+    exit "$rc"
+  fi
+  if [ "$rc" -eq 0 ]; then
+    while IFS= read -r hit; do
+      [ -z "$hit" ] && continue
+      key=$(printf '%s' "$hit" | grep -oE 'Res\.string\.[a-z0-9_]+' | head -n 1 | sed 's/^Res\.string\.//')
+      is_allowed_key "$key" || report G18 "Helper(...)/helper = with a non-allow-listed string (R-57: put it behind a HelpButton)" "$hit"
+    done <<< "$hits"
   fi
 fi
 

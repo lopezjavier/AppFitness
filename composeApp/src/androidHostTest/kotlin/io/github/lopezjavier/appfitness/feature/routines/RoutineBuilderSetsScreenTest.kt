@@ -6,9 +6,11 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.assertIsSelected
+import androidx.compose.ui.test.assertTextContains
 import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.hasAnyAncestor
 import androidx.compose.ui.test.hasTestTag
@@ -287,7 +289,11 @@ class RoutineBuilderSetsScreenTest {
 
         rule.onNodeWithTag("routine_builder_set_row_0_3").assertExists()
         rule.onNodeWithTag("routine_builder_set_row_1_3").assertExists()
-        rule.onNodeWithTag("routine_builder_superset_sets_hint_0").assertExists()
+        rule.onNodeWithText("Las series se añaden y quitan en toda la superserie.").assertDoesNotExist()
+        rule.onAllNodesWithTag("routine_builder_superset_sets_help_0").assertCountEquals(1)
+        rule.onNodeWithTag("routine_builder_superset_sets_help_0").performClick()
+        rule.onNodeWithTag("routine_builder_superset_sets_help_0_sheet_body")
+            .assertTextContains("Las series se añaden y quitan en toda la superserie.", substring = true)
     }
 
     @Test

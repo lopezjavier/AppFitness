@@ -4,16 +4,21 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.semantics.getOrNull
+import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertHeightIsAtLeast
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
+import androidx.compose.ui.test.assertTextContains
 import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.getUnclippedBoundsInRoot
 import androidx.compose.ui.test.hasAnyAncestor
 import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.hasText
+import androidx.compose.ui.test.junit4.StateRestorationTester
 import androidx.compose.ui.test.junit4.v2.createComposeRule
+import androidx.compose.ui.test.onAllNodesWithTag
+import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
@@ -478,5 +483,30 @@ class DiaryScreenTest {
 
         rule.onNodeWithTag("diary_entry_d1").assertIsDisplayed()
         rule.onNodeWithText("Desayuno A", substring = true).assertExists()
+    }
+
+    @Test
+    fun goalsPrompt_hasItsExplanationBehindOneQuestionMark_andTheCardStillOpensGoals() {
+        show(content(goals = DiaryGoalsState.NotSet))
+        val text = "Define tus calorías y macros para ver tu progreso diario."
+
+        rule.onNodeWithText(text, useUnmergedTree = true).assertDoesNotExist()
+        rule.onAllNodesWithTag("diary_goals_prompt_help", useUnmergedTree = true).assertCountEquals(1)
+        rule.onNodeWithContentDescription("Ayuda: objetivos", useUnmergedTree = true).assertExists()
+        rule.onNodeWithTag("diary_goals_prompt_help", useUnmergedTree = true).performClick()
+        rule.onNodeWithTag("diary_goals_prompt_help_sheet_body").assertTextContains(text, substring = true)
+        assertEquals(emptyList<DiaryEvent>(), events)
+    }
+
+    @Test
+    fun anOpenGoalsPromptHelp_survivesRecreation() {
+        val tester = StateRestorationTester(rule)
+        tester.setContent { AppTheme { DiaryScreen(content(goals = DiaryGoalsState.NotSet), {}) } }
+        rule.onNodeWithTag("diary_goals_prompt_help", useUnmergedTree = true).performClick()
+
+        tester.emulateSavedInstanceStateRestore()
+        rule.waitForIdle()
+
+        rule.onNodeWithTag("diary_goals_prompt_help_sheet_body").assertExists()
     }
 }

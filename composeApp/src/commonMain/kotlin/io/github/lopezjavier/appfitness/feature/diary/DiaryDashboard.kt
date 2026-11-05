@@ -3,6 +3,7 @@ package io.github.lopezjavier.appfitness.feature.diary
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.material3.Text
@@ -12,13 +13,15 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.Role
 import io.github.lopezjavier.appfitness.composeapp.resources.Res
-import io.github.lopezjavier.appfitness.composeapp.resources.diary_goals_prompt_hint
+import io.github.lopezjavier.appfitness.composeapp.resources.diary_goals_prompt_help_body
+import io.github.lopezjavier.appfitness.composeapp.resources.diary_goals_prompt_help_cd
 import io.github.lopezjavier.appfitness.composeapp.resources.diary_goals_prompt_title
 import io.github.lopezjavier.appfitness.composeapp.resources.macro_carbs
 import io.github.lopezjavier.appfitness.composeapp.resources.macro_fat
 import io.github.lopezjavier.appfitness.composeapp.resources.macro_protein
 import io.github.lopezjavier.appfitness.designsystem.AppCard
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
+import io.github.lopezjavier.appfitness.designsystem.HelpButton
 import io.github.lopezjavier.appfitness.designsystem.Macro
 import io.github.lopezjavier.appfitness.designsystem.MacroProgressBar
 import io.github.lopezjavier.appfitness.designsystem.ProgressRing
@@ -70,15 +73,19 @@ private fun GoalsPrompt(onClick: () -> Unit, modifier: Modifier = Modifier) {
             .clickable(role = Role.Button, onClick = onClick)
             .testTag("diary_goals_prompt"),
     ) {
-        Text(
-            text = stringResource(Res.string.diary_goals_prompt_title),
-            style = AppTheme.typography.titleMedium,
-            color = AppTheme.colors.textPrimary,
-        )
-        Text(
-            text = stringResource(Res.string.diary_goals_prompt_hint),
-            style = AppTheme.typography.bodyMedium,
-            color = AppTheme.colors.textSecondary,
-        )
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text(
+                text = stringResource(Res.string.diary_goals_prompt_title),
+                style = AppTheme.typography.titleMedium,
+                color = AppTheme.colors.textPrimary,
+                modifier = Modifier.weight(1f),
+            )
+            HelpButton(
+                contentDescription = stringResource(Res.string.diary_goals_prompt_help_cd),
+                title = stringResource(Res.string.diary_goals_prompt_title),
+                body = stringResource(Res.string.diary_goals_prompt_help_body),
+                testTag = "diary_goals_prompt_help",
+            )
+        }
     }
 }

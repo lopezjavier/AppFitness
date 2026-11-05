@@ -2,25 +2,28 @@ package io.github.lopezjavier.appfitness.feature.profile
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.size
 import androidx.compose.material3.Icon
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
 import io.github.lopezjavier.appfitness.composeapp.resources.Res
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_check
-import io.github.lopezjavier.appfitness.composeapp.resources.preferences_checkin_day_helper
+import io.github.lopezjavier.appfitness.composeapp.resources.preferences_checkin_day_help_body
+import io.github.lopezjavier.appfitness.composeapp.resources.preferences_checkin_day_help_cd
 import io.github.lopezjavier.appfitness.composeapp.resources.preferences_checkin_day_row
 import io.github.lopezjavier.appfitness.composeapp.resources.preferences_reminders_checkin
-import io.github.lopezjavier.appfitness.composeapp.resources.preferences_reminders_checkin_helper
+import io.github.lopezjavier.appfitness.composeapp.resources.preferences_reminders_checkin_help_body
+import io.github.lopezjavier.appfitness.composeapp.resources.preferences_reminders_checkin_help_cd
 import io.github.lopezjavier.appfitness.composeapp.resources.preferences_reminders_circumference
 import io.github.lopezjavier.appfitness.composeapp.resources.preferences_reminders_circumference_helper
 import io.github.lopezjavier.appfitness.composeapp.resources.preferences_reminders_weight
@@ -30,6 +33,8 @@ import io.github.lopezjavier.appfitness.designsystem.AppListRow
 import io.github.lopezjavier.appfitness.designsystem.AppPickerSheet
 import io.github.lopezjavier.appfitness.designsystem.AppSwitchRow
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
+import io.github.lopezjavier.appfitness.designsystem.HelpButton
+import io.github.lopezjavier.appfitness.designsystem.HelpContent
 import io.github.lopezjavier.appfitness.designsystem.NavigationRow
 import io.github.lopezjavier.appfitness.designsystem.Spacing
 import io.github.lopezjavier.appfitness.designsystem.weekdayName
@@ -67,22 +72,27 @@ internal fun RemindersSection(form: PreferencesForm, onEvent: (PreferencesEvent)
             )
             AppSwitchRow(
                 label = stringResource(Res.string.preferences_reminders_checkin),
-                helper = stringResource(Res.string.preferences_reminders_checkin_helper),
                 checked = form.checkInReminder,
                 onCheckedChange = { onEvent(PreferencesEvent.SetReminderEnabled(NotificationKind.WeeklyCheckIn, it)) },
                 modifier = Modifier.testTag("preferences_reminders_switch_checkin"),
+                help = HelpContent.fromBody(stringResource(Res.string.preferences_reminders_checkin_help_body)),
+                helpContentDescription = stringResource(Res.string.preferences_reminders_checkin_help_cd),
+                helpTestTag = "preferences_reminders_checkin_help",
             )
-            NavigationRow(
-                label = dayLabel,
-                onClick = { picking = true },
-                modifier = Modifier.testTag("preferences_checkin_weekday_row"),
-                value = weekdayName(weekday).lowercase(),
-            )
-            Text(
-                text = stringResource(Res.string.preferences_checkin_day_helper),
-                style = AppTheme.typography.bodySmall,
-                color = AppTheme.colors.textSecondary,
-            )
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                NavigationRow(
+                    label = dayLabel,
+                    onClick = { picking = true },
+                    modifier = Modifier.weight(1f).testTag("preferences_checkin_weekday_row"),
+                    value = weekdayName(weekday).lowercase(),
+                )
+                HelpButton(
+                    contentDescription = stringResource(Res.string.preferences_checkin_day_help_cd),
+                    title = dayLabel,
+                    body = stringResource(Res.string.preferences_checkin_day_help_body),
+                    testTag = "preferences_checkin_day_help",
+                )
+            }
         }
     }
     if (picking) {
