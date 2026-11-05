@@ -239,7 +239,7 @@ class CoachPlanDtoTest {
     }
 
     @Test
-    fun recommendationRow_mapsToCalorieChange() {
+    fun recommendationRow_mapsToCalorieProposal() {
         val row = coachPlanJson.decodeFromString<CoachRecommendationDto>(
             """{"id":"c1","plan_id":"p1","kind":"calorie_change","reason":"rate_outside_interval",""" +
                 """"status":"pending","payload":{"from_kcal":2000,"to_kcal":2100,"change_kcal":100,""" +
@@ -247,12 +247,39 @@ class CoachPlanDtoTest {
                 """"slope_kg_week":-0.1,"interval_low":-0.2,"interval_high":0,"rate_kg_week":-0.4}}""",
         )
 
-        val change = row.toCalorieChange()
+        val change = row.toCalorieProposal()
 
         assertEquals(2000, change.fromKcal)
         assertEquals(2100, change.toKcal)
         assertEquals(5.0, change.changePct)
         assertEquals("rate_outside_interval", change.reasonCode)
         assertEquals(-0.1, change.slopeKgWeek)
+        assertEquals(-0.4, change.rateKgWeek)
+        assertEquals(2, change.weeks)
+    }
+
+    @Test
+    fun recommendationRow_withTheNewPayloadFields_readsThem() {
+        val row = coachPlanJson.decodeFromString<CoachRecommendationDto>(
+            """{"id":"c2","reason":"rate_outside_interval","payload":{"from_kcal":2200,"to_kcal":1980,""" +
+                """"rate_kg_week":-0.5,"base_kcal":2200,"band_used_kcal":0,"weeks":2}}""",
+        )
+
+        val proposal = row.toCalorieProposal()
+
+        assertEquals(-0.5, proposal.rateKgWeek)
+        assertEquals(2, proposal.weeks)
+    }
+
+    @Test
+    fun recommendationRow_withoutTheNewPayloadFields_decodesWithDefaults() {
+        val row = coachPlanJson.decodeFromString<CoachRecommendationDto>(
+            """{"id":"c3","payload":{"from_kcal":2000,"to_kcal":2100}}""",
+        )
+
+        val proposal = row.toCalorieProposal()
+
+        assertNull(proposal.rateKgWeek)
+        assertEquals(2, proposal.weeks)
     }
 }

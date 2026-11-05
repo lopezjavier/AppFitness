@@ -1,6 +1,6 @@
 package io.github.lopezjavier.appfitness.feature.trainer
 
-import io.github.lopezjavier.appfitness.domain.model.CalorieChange
+import io.github.lopezjavier.appfitness.domain.model.CalorieProposal
 import io.github.lopezjavier.appfitness.domain.model.CoachBlock
 import io.github.lopezjavier.appfitness.domain.model.CoachPlan
 import io.github.lopezjavier.appfitness.domain.model.DeloadProposal
@@ -32,13 +32,13 @@ sealed interface TrainerUiState {
     data object Loading : TrainerUiState
 
     /**
-     * The plan hub. [plan], [calorieChange], [block], [weeks] and [deload] degrade to none when their reads fail.
+     * The plan hub. [plan], [calorieProposal], [block], [weeks] and [deload] degrade to none when their reads fail.
      * [provisionalCount] feeds the "Tus datos" row; null when the read failed (the row then shows no count).
      * [decidingChange] / [decidingDeload] are true while a decision is in flight.
      */
     data class Content(
         val plan: PlanSummary = PlanSummary.None,
-        val calorieChange: CalorieChange? = null,
+        val calorieProposal: CalorieProposal? = null,
         val decidingChange: Boolean = false,
         /** The training block of the open [plan]; [BlockSummary.None] when there is no plan or the read failed. */
         val block: BlockSummary = BlockSummary.None,
@@ -76,8 +76,11 @@ sealed interface TrainerEvent {
     /** The tab came back to the foreground: silent reload that keeps the shown content (T-177). */
     data object Refresh : TrainerEvent
 
-    /** "Aceptar" / "Descartar" on the calorie-change card. */
-    data class DecideCalorieChange(val accept: Boolean) : TrainerEvent
+    /** "Aplicar" on the calorie proposal card. */
+    data object ApplyCalorieProposal : TrainerEvent
+
+    /** "Ahora no" on the calorie proposal card. */
+    data object DeclineCalorieProposal : TrainerEvent
 
     /** "Aceptar" / "Descartar" on the deload card. */
     data class DecideDeload(val accept: Boolean) : TrainerEvent
@@ -118,11 +121,14 @@ enum class CoachChangeUndoFailure { Conflict, NotFound, Other }
 
 /** One-off effects; the UI shows the message and fires the haptics. */
 sealed interface TrainerEffect {
-    /** The calorie change was accepted or discarded ([accepted]); accepting changes the Diario targets. */
-    data class CalorieChangeDecided(val accepted: Boolean) : TrainerEffect
+    /** The calorie proposal was applied; the Diario targets changed. */
+    data object CalorieProposalApplied : TrainerEffect
 
-    /** The decision failed; [accept] says which action, [offline] picks the offline hint. */
-    data class CalorieChangeFailed(val accept: Boolean, val offline: Boolean) : TrainerEffect
+    /** The calorie proposal was declined ("Ahora no"); nothing changed. */
+    data object CalorieProposalDeclined : TrainerEffect
+
+    /** The decision failed; [apply] says which action, [offline] picks the offline hint. */
+    data class CalorieProposalFailed(val apply: Boolean, val offline: Boolean) : TrainerEffect
 
     /** The deload was accepted or discarded ([accepted]). */
     data class DeloadDecided(val accepted: Boolean) : TrainerEffect

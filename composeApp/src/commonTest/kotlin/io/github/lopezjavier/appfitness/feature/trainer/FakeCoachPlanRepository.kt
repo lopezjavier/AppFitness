@@ -1,6 +1,6 @@
 package io.github.lopezjavier.appfitness.feature.trainer
 
-import io.github.lopezjavier.appfitness.domain.model.CalorieChange
+import io.github.lopezjavier.appfitness.domain.model.CalorieProposal
 import io.github.lopezjavier.appfitness.domain.model.CoachPlan
 import io.github.lopezjavier.appfitness.domain.model.DietBreakApplication
 import io.github.lopezjavier.appfitness.domain.model.GoalStrategy
@@ -73,7 +73,7 @@ internal val defaultActivity = PlanActivity(
     stepsBasis = StepsBasis.Floor,
 )
 
-internal fun calorieChange(id: String = "change-1") = CalorieChange(
+internal fun calorieProposal(id: String = "change-1") = CalorieProposal(
     id = id,
     planId = "plan-1",
     fromKcal = 2000,
@@ -83,6 +83,7 @@ internal fun calorieChange(id: String = "change-1") = CalorieChange(
     slopeKgWeek = -0.1,
     intervalLow = -0.2,
     intervalHigh = 0.0,
+    rateKgWeek = -0.5,
 )
 
 /** Test double of [CoachPlanRepository]; every call is recorded and each answer is a settable result. */
@@ -92,7 +93,7 @@ internal class FakeCoachPlanRepository : CoachPlanRepository {
     var accepted: Result<CoachPlan?> = Result.success(null)
     var acceptResult: Result<CoachPlan> = Result.success(coachPlan(status = PlanStatus.Accepted))
     var discardResult: Result<Unit> = Result.success(Unit)
-    var pending: Result<CalorieChange?> = Result.success(null)
+    var pending: Result<CalorieProposal?> = Result.success(null)
     var decideResult: Result<Unit> = Result.success(Unit)
 
     /** Answer of [setCardioMinutes]; null echoes a fat-loss plan with the requested minutes. */
@@ -167,13 +168,13 @@ internal class FakeCoachPlanRepository : CoachPlanRepository {
         return dietBreakResult
     }
 
-    override suspend fun pendingCalorieChange(today: LocalDate): Result<CalorieChange?> {
+    override suspend fun pendingCalorieProposal(today: LocalDate): Result<CalorieProposal?> {
         pendingReads++
         return pending
     }
 
-    override suspend fun decideCalorieChange(id: String, accept: Boolean, today: LocalDate): Result<Unit> {
-        decisions += id to accept
+    override suspend fun decideCalorieProposal(id: String, apply: Boolean, today: LocalDate): Result<Unit> {
+        decisions += id to apply
         return decideResult
     }
 }

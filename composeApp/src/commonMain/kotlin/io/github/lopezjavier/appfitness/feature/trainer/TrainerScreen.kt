@@ -28,10 +28,9 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.github.lopezjavier.appfitness.composeapp.resources.Res
-import io.github.lopezjavier.appfitness.composeapp.resources.calorie_change_accept_error
-import io.github.lopezjavier.appfitness.composeapp.resources.calorie_change_accept_offline
-import io.github.lopezjavier.appfitness.composeapp.resources.calorie_change_discard_error
-import io.github.lopezjavier.appfitness.composeapp.resources.calorie_change_discard_offline
+import io.github.lopezjavier.appfitness.composeapp.resources.calorie_proposal_apply_error
+import io.github.lopezjavier.appfitness.composeapp.resources.calorie_proposal_decline_error
+import io.github.lopezjavier.appfitness.composeapp.resources.calorie_proposal_offline
 import io.github.lopezjavier.appfitness.composeapp.resources.cardio_save_error
 import io.github.lopezjavier.appfitness.composeapp.resources.cardio_save_offline
 import io.github.lopezjavier.appfitness.composeapp.resources.coach_change_decide_error
@@ -111,10 +110,10 @@ fun TrainerRoute(
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val haptics = LocalAppHaptics.current
     val messages = LocalAppMessages.current
-    val acceptChangeError = stringResource(Res.string.calorie_change_accept_error)
-    val discardChangeError = stringResource(Res.string.calorie_change_discard_error)
-    val acceptOffline = offlineHint(stringResource(Res.string.calorie_change_accept_offline)) + "."
-    val discardOffline = offlineHint(stringResource(Res.string.calorie_change_discard_offline)) + "."
+    val acceptChangeError = stringResource(Res.string.calorie_proposal_apply_error)
+    val discardChangeError = stringResource(Res.string.calorie_proposal_decline_error)
+    val acceptOffline = offlineHint(stringResource(Res.string.calorie_proposal_offline)) + "."
+    val discardOffline = offlineHint(stringResource(Res.string.calorie_proposal_offline)) + "."
     val acceptDeloadError = stringResource(Res.string.deload_accept_error)
     val discardDeloadError = stringResource(Res.string.deload_discard_error)
     val deloadAcceptOffline = offlineHint(stringResource(Res.string.deload_accept_offline)) + "."
@@ -139,18 +138,19 @@ fun TrainerRoute(
     LaunchedEffect(viewModel) {
         viewModel.effects.collect { effect ->
             when (effect) {
-                is TrainerEffect.CalorieChangeDecided,
+                TrainerEffect.CalorieProposalApplied,
+                TrainerEffect.CalorieProposalDeclined,
                 is TrainerEffect.DeloadDecided,
                 TrainerEffect.CardioSaved,
                 TrainerEffect.BlockRemoved,
                 -> latestHaptics.confirm()
 
-                is TrainerEffect.CalorieChangeFailed -> {
+                is TrainerEffect.CalorieProposalFailed -> {
                     latestHaptics.reject()
                     messages.show(
                         when {
-                            effect.offline -> if (effect.accept) acceptOffline else discardOffline
-                            effect.accept -> acceptChangeError
+                            effect.offline -> if (effect.apply) acceptOffline else discardOffline
+                            effect.apply -> acceptChangeError
                             else -> discardChangeError
                         },
                     )
@@ -287,7 +287,7 @@ private fun TrainerContent(
         verticalArrangement = Arrangement.spacedBy(Spacing.blockGap),
     ) {
         state.deload?.let { DeloadCard(it, state.decidingDeload, online, onEvent) }
-        state.calorieChange?.let { CalorieChangeCard(it, state.decidingChange, online, onEvent) }
+        state.calorieProposal?.let { CalorieProposalCard(it, state.decidingChange, online, onEvent) }
         CoachChangesSection(state, exerciseNames, online, onEvent, actions.onOpenExercise)
         PlanSection(
             state.plan,

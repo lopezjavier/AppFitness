@@ -11,6 +11,8 @@ import io.github.lopezjavier.appfitness.domain.model.CoachChangeFailure
 import io.github.lopezjavier.appfitness.domain.model.CoachChangeKind
 import io.github.lopezjavier.appfitness.domain.model.CoachChangeStatus
 import io.github.lopezjavier.appfitness.domain.model.CoachDerivedValues
+import io.github.lopezjavier.appfitness.domain.model.CoachException
+import io.github.lopezjavier.appfitness.domain.model.CoachFailure
 import io.github.lopezjavier.appfitness.domain.model.CoachPlan
 import io.github.lopezjavier.appfitness.domain.model.MacroSplit
 import io.github.lopezjavier.appfitness.domain.model.Macronutrient
@@ -25,6 +27,7 @@ import io.github.lopezjavier.appfitness.domain.repository.CoachRepository
 import io.github.lopezjavier.appfitness.domain.repository.CoachWeeksRepository
 import io.github.lopezjavier.appfitness.domain.repository.NutritionGoalsRepository
 import io.github.lopezjavier.appfitness.domain.repository.ProfileRepository
+import io.github.lopezjavier.appfitness.domain.usecase.DecideCalorieProposalUseCase
 import io.github.lopezjavier.appfitness.domain.usecase.GoalChecklist
 import io.github.lopezjavier.appfitness.domain.usecase.GoalTargets
 import io.github.lopezjavier.appfitness.domain.usecase.NutritionGoalsChecklist
@@ -87,6 +90,7 @@ class TrainerViewModel(
     private val profile: ProfileRepository? = null,
     private val measurements: BodyMeasurementRepository? = null,
     private val coachChanges: CoachChangesRepository? = null,
+    private val decideProposal: DecideCalorieProposalUseCase? = plans?.let { DecideCalorieProposalUseCase(it) },
 ) : ViewModel() {
     private val cardioEdit = CardioEditState(savedState)
 
@@ -110,7 +114,8 @@ class TrainerViewModel(
         when (event) {
             TrainerEvent.Load -> load()
             TrainerEvent.Refresh -> refresh()
-            is TrainerEvent.DecideCalorieChange -> decideCalorieChange(event.accept)
+            TrainerEvent.ApplyCalorieProposal -> decideCalorieProposal(apply = true)
+            TrainerEvent.DeclineCalorieProposal -> decideCalorieProposal(apply = false)
             is TrainerEvent.DecideDeload -> decideDeload(event.accept)
             TrainerEvent.OpenCardioEdit -> openCardioEdit()
             is TrainerEvent.CardioMinutesChanged -> changeCardio(event.minutes)
@@ -391,7 +396,7 @@ class TrainerViewModel(
         val plan = readPlan()
         // A diet-break plan switches the Diario target by plan week; a failure is swallowed like its siblings.
         if (plan is PlanSummary.Accepted) plans?.applyDietBreak(today())
-        val change = if (plan is PlanSummary.Accepted) plans?.pendingCalorieChange(today())?.getOrNull() else null
+        val proposal = if (plan is PlanSummary.Accepted) plans?.pendingCalorieProposal(today())?.getOrNull() else null
         val block = blocks.summaryFor(plan)
         // Weeks and the deload card need an accepted plan with a saved block; failed reads mean none.
         val savedPlanId = (plan as? PlanSummary.Accepted)?.plan?.id?.takeIf { block is BlockSummary.Saved }
@@ -404,7 +409,7 @@ class TrainerViewModel(
         if (confirmRemove && block !is BlockSummary.Saved) savedState.remove<Boolean>(KEY_REMOVE_BLOCK_CONFIRM)
         return TrainerUiState.Content(
             plan = plan,
-            calorieChange = change,
+            calorieProposal = proposal,
             block = block,
             weeks = planWeeks,
             deload = deload,
@@ -446,33 +451,41 @@ class TrainerViewModel(
         return if (plan.status == PlanStatus.Accepted) PlanSummary.Accepted(plan) else PlanSummary.Proposed(plan)
     }
 
-    @Suppress("ReturnCount") // Guards for a missing card, repository or an in-flight decision.
-    private fun decideCalorieChange(accept: Boolean) {
+    @Suppress("ReturnCount") // Guards for a missing card, use case or an in-flight decision.
+    private fun decideCalorieProposal(apply: Boolean) {
         val content = _uiState.value as? TrainerUiState.Content ?: return
-        val change = content.calorieChange ?: return
-        val repository = plans ?: return
+        val proposal = content.calorieProposal ?: return
+        val decide = decideProposal ?: return
         if (content.decidingChange) return
         _uiState.value = content.copy(decidingChange = true)
         viewModelScope.launch {
-            val result = repository.decideCalorieChange(change.id, accept, today())
+            val result = if (apply) decide.apply(proposal.id, today()) else decide.notNow(proposal.id, today())
             if (result.isSuccess) {
-                // Accepting changes the plan's calories: reload the summary.
+                // Applying changes the plan's calories: reload the summary.
                 val plan = readPlan()
                 _uiState.update { state ->
                     if (state is TrainerUiState.Content) {
                         val kept = if (plan is PlanSummary.None) state.plan else plan
-                        state.copy(calorieChange = null, decidingChange = false, plan = kept)
+                        state.copy(calorieProposal = null, decidingChange = false, plan = kept)
                     } else {
                         state
                     }
                 }
-                effectChannel.send(TrainerEffect.CalorieChangeDecided(accept))
+                effectChannel.send(
+                    if (apply) TrainerEffect.CalorieProposalApplied else TrainerEffect.CalorieProposalDeclined,
+                )
             } else {
-                _uiState.update { state ->
-                    if (state is TrainerUiState.Content) state.copy(decidingChange = false) else state
+                if ((result.exceptionOrNull() as? CoachException)?.failure == CoachFailure.Conflict) {
+                    // Already decided elsewhere (55000): show what the server holds now.
+                    loadJob?.cancel()
+                    _uiState.value = fetch()
+                } else {
+                    _uiState.update { state ->
+                        if (state is TrainerUiState.Content) state.copy(decidingChange = false) else state
+                    }
                 }
                 effectChannel.send(
-                    TrainerEffect.CalorieChangeFailed(accept, offline = result.appErrorOrNull() == AppError.Network),
+                    TrainerEffect.CalorieProposalFailed(apply, offline = result.appErrorOrNull() == AppError.Network),
                 )
             }
         }

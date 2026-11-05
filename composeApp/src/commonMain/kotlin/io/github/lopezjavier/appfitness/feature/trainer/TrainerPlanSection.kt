@@ -15,16 +15,22 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.Role
 import io.github.lopezjavier.appfitness.composeapp.resources.Res
 import io.github.lopezjavier.appfitness.composeapp.resources.action_accept
+import io.github.lopezjavier.appfitness.composeapp.resources.action_apply
 import io.github.lopezjavier.appfitness.composeapp.resources.action_cancel
 import io.github.lopezjavier.appfitness.composeapp.resources.action_delete
 import io.github.lopezjavier.appfitness.composeapp.resources.action_discard
-import io.github.lopezjavier.appfitness.composeapp.resources.calorie_change_accept_offline
+import io.github.lopezjavier.appfitness.composeapp.resources.action_not_now
 import io.github.lopezjavier.appfitness.composeapp.resources.calorie_change_data
 import io.github.lopezjavier.appfitness.composeapp.resources.calorie_change_data_short
 import io.github.lopezjavier.appfitness.composeapp.resources.calorie_change_payload
-import io.github.lopezjavier.appfitness.composeapp.resources.calorie_change_reason_faster
-import io.github.lopezjavier.appfitness.composeapp.resources.calorie_change_reason_slower
 import io.github.lopezjavier.appfitness.composeapp.resources.calorie_change_title
+import io.github.lopezjavier.appfitness.composeapp.resources.calorie_proposal_cut_lower
+import io.github.lopezjavier.appfitness.composeapp.resources.calorie_proposal_cut_raise
+import io.github.lopezjavier.appfitness.composeapp.resources.calorie_proposal_gain_lower
+import io.github.lopezjavier.appfitness.composeapp.resources.calorie_proposal_gain_raise
+import io.github.lopezjavier.appfitness.composeapp.resources.calorie_proposal_hold_lower
+import io.github.lopezjavier.appfitness.composeapp.resources.calorie_proposal_hold_raise
+import io.github.lopezjavier.appfitness.composeapp.resources.calorie_proposal_offline
 import io.github.lopezjavier.appfitness.composeapp.resources.deload_accept_offline
 import io.github.lopezjavier.appfitness.composeapp.resources.phase_help_cd
 import io.github.lopezjavier.appfitness.composeapp.resources.trainer_block_create
@@ -67,11 +73,12 @@ import io.github.lopezjavier.appfitness.designsystem.PrimaryButton
 import io.github.lopezjavier.appfitness.designsystem.Spacing
 import io.github.lopezjavier.appfitness.designsystem.StatusChip
 import io.github.lopezjavier.appfitness.designsystem.StatusTone
-import io.github.lopezjavier.appfitness.domain.model.CalorieChange
+import io.github.lopezjavier.appfitness.domain.model.CalorieProposal
 import io.github.lopezjavier.appfitness.domain.model.CoachPlan
 import io.github.lopezjavier.appfitness.domain.model.DeloadProposal
 import io.github.lopezjavier.appfitness.domain.usecase.GoalChecklist
 import io.github.lopezjavier.appfitness.feature.weight.signedTenths
+import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.pluralStringResource
 import org.jetbrains.compose.resources.stringResource
 import kotlin.math.abs
@@ -337,10 +344,21 @@ internal fun DeloadCard(deload: DeloadProposal, deciding: Boolean, online: Boole
     )
 }
 
-/** The in-block calorie change waiting for a decision (US-69), on the shared [CoachProposalCard]. */
+/** Copy variant of a calorie proposal, chosen by the direction of the change and the sign of the plan's rate. */
+internal fun calorieProposalReason(proposal: CalorieProposal): StringResource {
+    val raise = proposal.toKcal > proposal.fromKcal
+    val rate = proposal.rateKgWeek ?: 0.0
+    return when {
+        rate < 0.0 -> if (raise) Res.string.calorie_proposal_cut_raise else Res.string.calorie_proposal_cut_lower
+        rate > 0.0 -> if (raise) Res.string.calorie_proposal_gain_raise else Res.string.calorie_proposal_gain_lower
+        else -> if (raise) Res.string.calorie_proposal_hold_raise else Res.string.calorie_proposal_hold_lower
+    }
+}
+
+/** The in-block calorie proposal waiting for "Aplicar" or "Ahora no" (US-99), on the shared [CoachProposalCard]. */
 @Composable
-internal fun CalorieChangeCard(
-    change: CalorieChange,
+internal fun CalorieProposalCard(
+    change: CalorieProposal,
     deciding: Boolean,
     online: Boolean,
     onEvent: (TrainerEvent) -> Unit,
@@ -348,12 +366,7 @@ internal fun CalorieChangeCard(
     val slope = change.slopeKgWeek
     val low = change.intervalLow
     val high = change.intervalHigh
-    // Calories go up when the weight drops faster than planned, down when it drops slower.
-    val reason = if (change.toKcal > change.fromKcal) {
-        Res.string.calorie_change_reason_faster
-    } else {
-        Res.string.calorie_change_reason_slower
-    }
+    val reason = calorieProposalReason(change)
     val data = when {
         slope != null && low != null && high != null ->
             stringResource(
@@ -373,15 +386,15 @@ internal fun CalorieChangeCard(
             AppNumberFormat.integer(change.fromKcal),
             AppNumberFormat.integer(change.toKcal),
         ),
-        reason = stringResource(reason),
+        reason = stringResource(reason, AppNumberFormat.integer(abs(change.toKcal - change.fromKcal))),
         dataUsed = data,
-        acceptText = stringResource(Res.string.action_accept),
-        discardText = stringResource(Res.string.action_discard),
-        onAccept = { onEvent(TrainerEvent.DecideCalorieChange(accept = true)) },
-        onDiscard = { onEvent(TrainerEvent.DecideCalorieChange(accept = false)) },
+        acceptText = stringResource(Res.string.action_apply),
+        discardText = stringResource(Res.string.action_not_now),
+        onAccept = { onEvent(TrainerEvent.ApplyCalorieProposal) },
+        onDiscard = { onEvent(TrainerEvent.DeclineCalorieProposal) },
         testTagPrefix = "trainer_calorie_card",
         busy = deciding,
         acceptEnabled = online,
-        footer = if (online) null else ({ OfflineHint(stringResource(Res.string.calorie_change_accept_offline)) }),
+        footer = if (online) null else ({ OfflineHint(stringResource(Res.string.calorie_proposal_offline)) }),
     )
 }

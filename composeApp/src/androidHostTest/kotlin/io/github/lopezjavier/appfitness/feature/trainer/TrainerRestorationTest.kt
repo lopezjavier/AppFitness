@@ -121,7 +121,7 @@ class TrainerRestorationTest {
     fun recreatedViewModel_keepsThePlanSectionAndTheCalorieCard() {
         val plans = FakeCoachPlanRepository()
         plans.current = Result.success(coachPlan(status = PlanStatus.Accepted))
-        plans.pending = Result.success(calorieChange())
+        plans.pending = Result.success(calorieProposal())
         val repository = FakeCoachRepository()
         var current by mutableStateOf(TrainerViewModel(repository, MutableClock(), plans = plans))
         val connectivity = FakeConnectivityObserver()

@@ -94,7 +94,7 @@ class TrainerFlowTest {
     @Test
     fun root_listsProposalsThenPlanThenBlockThenTusDatos() {
         plans.current = Result.success(coachPlan(status = PlanStatus.Accepted))
-        plans.pending = Result.success(calorieChange())
+        plans.pending = Result.success(calorieProposal())
 
         show()
 

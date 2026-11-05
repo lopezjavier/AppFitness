@@ -13,9 +13,10 @@ import androidx.compose.ui.semantics.semantics
 
 /**
  * A coach proposal waiting for a decision (E13 Q5): [title], the [payload] it would apply, the [reason] in plain
- * words and the [dataUsed] line, then "Aceptar" ([acceptText], primary) and "Descartar" ([discardText], ghost) side by
- * side. Both buttons are disabled while [busy] (the accepted one shows the progress); [acceptEnabled] lets a caller
- * block only "Aceptar", for example offline, and [footer] holds the hint that explains why.
+ * words and the [dataUsed] line, then the accept ([acceptText], primary) and discard ([discardText], ghost) buttons
+ * side by side, labelled by the caller ("Aplicar" / "Ahora no" for calories, "Aceptar" / "Descartar" for plans).
+ * Both buttons are disabled while [busy] (the accepted one shows the progress); [acceptEnabled] lets a caller block
+ * only the accept button, for example offline, and [footer] holds the hint that explains why.
  * Tags: the card is [testTagPrefix], the buttons `<testTagPrefix>_accept` and `<testTagPrefix>_discard`.
  */
 @Composable

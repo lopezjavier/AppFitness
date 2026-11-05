@@ -130,6 +130,7 @@ import io.github.lopezjavier.appfitness.domain.usecase.CompleteOnboarding
 import io.github.lopezjavier.appfitness.domain.usecase.ComputeReminders
 import io.github.lopezjavier.appfitness.domain.usecase.CookedItemNutrition
 import io.github.lopezjavier.appfitness.domain.usecase.CurrentWeight
+import io.github.lopezjavier.appfitness.domain.usecase.DecideCalorieProposalUseCase
 import io.github.lopezjavier.appfitness.domain.usecase.DecideProgressionFlagUseCase
 import io.github.lopezjavier.appfitness.domain.usecase.DefaultMealSlot
 import io.github.lopezjavier.appfitness.domain.usecase.DeleteAccount
@@ -400,6 +401,7 @@ val sharedModule =
         factory { ListCoachChangesUseCase(get()) }
         factory { UndoCoachChangeUseCase(get()) }
         factory { DecideProgressionFlagUseCase(get()) }
+        factory { DecideCalorieProposalUseCase(get()) }
         single<MealSlotRepository> {
             if (get<AppConfig>().isSupabaseConfigured) {
                 val client = get<SupabaseClient>()

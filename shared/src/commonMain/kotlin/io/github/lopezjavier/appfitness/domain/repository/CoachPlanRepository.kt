@@ -1,6 +1,6 @@
 package io.github.lopezjavier.appfitness.domain.repository
 
-import io.github.lopezjavier.appfitness.domain.model.CalorieChange
+import io.github.lopezjavier.appfitness.domain.model.CalorieProposal
 import io.github.lopezjavier.appfitness.domain.model.CoachPlan
 import io.github.lopezjavier.appfitness.domain.model.CutRate
 import io.github.lopezjavier.appfitness.domain.model.DietBreakApplication
@@ -49,9 +49,9 @@ interface CoachPlanRepository {
      */
     suspend fun applyDietBreak(today: LocalDate): Result<DietBreakApplication>
 
-    /** Evaluates the in-block calorie change (idempotent) and returns the pending one, if any. */
-    suspend fun pendingCalorieChange(today: LocalDate): Result<CalorieChange?>
+    /** Evaluates the calorie proposal (idempotent) and returns the pending one, if any. */
+    suspend fun pendingCalorieProposal(today: LocalDate): Result<CalorieProposal?>
 
-    /** Accepts or discards a pending calorie change. */
-    suspend fun decideCalorieChange(id: String, accept: Boolean, today: LocalDate): Result<Unit>
+    /** Applies the pending calorie proposal ([apply] true) or declines it ("Ahora no", false). */
+    suspend fun decideCalorieProposal(id: String, apply: Boolean, today: LocalDate): Result<Unit>
 }

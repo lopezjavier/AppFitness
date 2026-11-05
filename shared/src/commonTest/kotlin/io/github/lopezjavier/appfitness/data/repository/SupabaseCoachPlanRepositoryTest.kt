@@ -449,7 +449,7 @@ class SupabaseCoachPlanRepositoryTest {
     }
 
     @Test
-    fun pendingCalorieChange_evaluatesThenReadsThePendingRow() = runTest {
+    fun pendingCalorieProposal_evaluatesThenReadsThePendingRow() = runTest {
         val repository = repo { request ->
             if (request.url.encodedPath.contains("/rpc/")) {
                 HttpStatusCode.OK to
@@ -459,7 +459,7 @@ class SupabaseCoachPlanRepositoryTest {
             }
         }
 
-        val change = repository.pendingCalorieChange(today).getOrThrow()
+        val change = repository.pendingCalorieProposal(today).getOrThrow()
 
         val (rpc, read) = rest()
         assertTrue(rpc.url.encodedPath.endsWith("/rest/v1/rpc/evaluate_coach_calorie_change"))
@@ -474,7 +474,7 @@ class SupabaseCoachPlanRepositoryTest {
     }
 
     @Test
-    fun pendingCalorieChange_isNullWhenNothingIsPending() = runTest {
+    fun pendingCalorieProposal_isNullWhenNothingIsPending() = runTest {
         val repository = repo { request ->
             if (request.url.encodedPath.contains("/rpc/")) {
                 HttpStatusCode.OK to """{"status":"none","reason":"inside_interval"}"""
@@ -483,26 +483,26 @@ class SupabaseCoachPlanRepositoryTest {
             }
         }
 
-        assertNull(repository.pendingCalorieChange(today).getOrThrow())
+        assertNull(repository.pendingCalorieProposal(today).getOrThrow())
     }
 
     @Test
-    fun decideCalorieChange_accept_sendsAccepted() = runTest {
+    fun decideCalorieProposal_apply_sendsApplyTrue() = runTest {
         val repository = repo { HttpStatusCode.OK to "{}" }
 
-        assertTrue(repository.decideCalorieChange("c1", accept = true, today = today).isSuccess)
+        assertTrue(repository.decideCalorieProposal("c1", apply = true, today = today).isSuccess)
 
         val call = rest().single()
-        assertTrue(call.url.encodedPath.endsWith("/rest/v1/rpc/decide_recommendation"), call.url.toString())
-        assertEquals("""{"p_id":"c1","p_status":"accepted","p_today":"2026-10-29"}""", bodyOf(call))
+        assertTrue(call.url.encodedPath.endsWith("/rest/v1/rpc/decide_calorie_proposal"), call.url.toString())
+        assertEquals("""{"p_id":"c1","p_apply":true,"p_today":"2026-10-29"}""", bodyOf(call))
     }
 
     @Test
-    fun decideCalorieChange_discard_sendsDiscarded() = runTest {
+    fun decideCalorieProposal_notNow_sendsApplyFalse() = runTest {
         val repository = repo { HttpStatusCode.OK to "{}" }
 
-        assertTrue(repository.decideCalorieChange("c1", accept = false, today = today).isSuccess)
+        assertTrue(repository.decideCalorieProposal("c1", apply = false, today = today).isSuccess)
 
-        assertEquals("""{"p_id":"c1","p_status":"discarded","p_today":"2026-10-29"}""", bodyOf(rest().single()))
+        assertEquals("""{"p_id":"c1","p_apply":false,"p_today":"2026-10-29"}""", bodyOf(rest().single()))
     }
 }
