@@ -1,5 +1,5 @@
 // Server-side arithmetic of the training block (planning/04 section 9): frequency, cardio split and small helpers.
-// The routine itself is built by the model and judged by routineChecker.ts; nothing here chooses exercises.
+// The routine itself is built by the deterministic builder on the device (ADR-99); nothing here chooses exercises.
 // Pure: no I/O.
 import { CARDIO_MIN_WEEK } from "./cardioRules.ts";
 import type { BlockPrefs, Phase } from "./schemas.ts";

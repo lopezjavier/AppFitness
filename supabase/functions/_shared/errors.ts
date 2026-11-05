@@ -19,7 +19,6 @@ export type ErrorCode =
     | "coach_kind_not_available"
     | "coach_missing_data"
     | "coach_plan_infeasible"
-    | "coach_block_needs_changes"
     | "INTERNAL";
 
 const STATUS: Record<ErrorCode, number> = {
@@ -40,7 +39,6 @@ const STATUS: Record<ErrorCode, number> = {
     coach_kind_not_available: 501,
     coach_missing_data: 422,
     coach_plan_infeasible: 422,
-    coach_block_needs_changes: 422,
     INTERNAL: 500,
 };
 

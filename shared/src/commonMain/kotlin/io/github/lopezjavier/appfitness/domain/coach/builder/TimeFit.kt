@@ -16,7 +16,7 @@ data class DoesNotFit(val limitMinutes: Int, val minutesNeeded: Int) : FitResult
 
 /**
  * Time fit of one routine (07 section 3 "Block builder" (b)); port of `routineSeconds` of
- * `supabase/functions/coach/routineChecker.ts` (04 section 9.6) with the slot values instead of picked exercises.
+ * the former server routine checker (04 section 9.6, removed in T-224) with the slot values instead of picked exercises.
  * A cut on a superset slot also cuts its partner so the pair keeps equal sets (the server refuses a mismatch).
  */
 object TimeFit {

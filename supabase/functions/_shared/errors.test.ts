@@ -37,7 +37,6 @@ Deno.test("coach error codes map to their HTTP status", () => {
         coach_timeout: 504,
         coach_invalid_output: 502,
         coach_kind_not_available: 501,
-        coach_block_needs_changes: 422,
     } as const;
     for (const [code, status] of Object.entries(expected)) {
         assertEquals(
