@@ -538,15 +538,13 @@ class TrainerViewModelTest {
         plans.current = Result.success(coachPlan(status = PlanStatus.Accepted))
         blocks.current = Result.success(coachBlock(saved = false))
         weeks.weeksResult = Result.success(listOf(planWeek()))
-        weeks.pending = Result.success(deloadProposal())
         val model = viewModel()
 
         advanceUntilIdle()
 
         assertTrue(model.content().weeks.isEmpty())
-        assertNull(model.content().deload)
         assertTrue(weeks.weeksReads.isEmpty())
-        assertEquals(0, weeks.pendingReads)
+        assertEquals(0, weeks.evaluations)
     }
 
     @Test
@@ -558,160 +556,30 @@ class TrainerViewModelTest {
         advanceUntilIdle()
 
         assertTrue(model.content().weeks.isEmpty())
-        assertEquals(0, weeks.pendingReads)
+        assertEquals(0, weeks.evaluations)
     }
 
     @Test
-    fun pendingDeload_isShownAsTheCard() = runTest(dispatcher) {
+    fun savedBlock_evaluatesTheDeloadRuleOnce() = runTest(dispatcher) {
         openSavedBlock()
-        weeks.pending = Result.success(deloadProposal())
-        val model = viewModel()
+        viewModel()
 
         advanceUntilIdle()
 
-        assertEquals(deloadProposal(), model.content().deload)
-    }
-
-    @Test
-    fun noPendingDeload_hasNoCard() = runTest(dispatcher) {
-        openSavedBlock()
-        val model = viewModel()
-
-        advanceUntilIdle()
-
-        assertNull(model.content().deload)
-        assertEquals(1, weeks.pendingReads)
+        assertEquals(1, weeks.evaluations)
     }
 
     @Test
     fun weeksAndDeloadReadFailures_neverBlockTheDerivedValues() = runTest(dispatcher) {
         openSavedBlock()
         weeks.weeksResult = Result.failure(AppException(AppError.Network))
-        weeks.pending = Result.failure(AppException(AppError.Network))
+        weeks.evaluation = Result.failure(AppException(AppError.Network))
         val model = viewModel()
 
         advanceUntilIdle()
 
         assertTrue(model.content().weeks.isEmpty())
-        assertNull(model.content().deload)
         assertEquals(PlanSummary.Accepted(coachPlan(status = PlanStatus.Accepted)), model.content().plan)
-    }
-
-    @Test
-    fun acceptingTheDeload_sendsTheDecision_clearsTheCard_reloadsTheWeeks_andEmitsTheEffect() = runTest(dispatcher) {
-        openSavedBlock()
-        weeks.pending = Result.success(deloadProposal())
-        val model = viewModel()
-        advanceUntilIdle()
-        weeks.weeksResult = Result.success(listOf(planWeek(4, WeekPhase.Upcoming, deload = true)))
-
-        model.effects.test {
-            model.onEvent(TrainerEvent.DecideDeload(accept = true))
-            advanceUntilIdle()
-            assertEquals(TrainerEffect.DeloadDecided(accepted = true), awaitItem())
-        }
-
-        assertEquals(listOf("deload-1" to true), weeks.decisions)
-        assertNull(model.content().deload)
-        assertFalse(model.content().decidingDeload)
-        assertTrue(model.content().weeks.single().deload)
-    }
-
-    @Test
-    fun discardingTheDeload_sendsTheDiscard_andLeavesTheWeeksAsTheyWere() = runTest(dispatcher) {
-        openSavedBlock()
-        weeks.pending = Result.success(deloadProposal())
-        weeks.weeksResult = Result.success(listOf(planWeek(4, WeekPhase.Upcoming)))
-        val model = viewModel()
-        advanceUntilIdle()
-
-        model.effects.test {
-            model.onEvent(TrainerEvent.DecideDeload(accept = false))
-            advanceUntilIdle()
-            assertEquals(TrainerEffect.DeloadDecided(accepted = false), awaitItem())
-        }
-
-        assertEquals(listOf("deload-1" to false), weeks.decisions)
-        assertNull(model.content().deload)
-        assertFalse(model.content().weeks.single().deload)
-    }
-
-    @Test
-    fun failedDeloadDecision_keepsTheCard_andEmitsTheFailure() = runTest(dispatcher) {
-        openSavedBlock()
-        weeks.pending = Result.success(deloadProposal())
-        weeks.decideResult = Result.failure(AppException(AppError.Unknown))
-        val model = viewModel()
-        advanceUntilIdle()
-
-        model.effects.test {
-            model.onEvent(TrainerEvent.DecideDeload(accept = true))
-            advanceUntilIdle()
-            assertEquals(TrainerEffect.DeloadFailed(accept = true, offline = false), awaitItem())
-        }
-
-        assertEquals(deloadProposal(), model.content().deload)
-        assertFalse(model.content().decidingDeload)
-    }
-
-    @Test
-    fun offlineDeloadDecision_flagsOffline() = runTest(dispatcher) {
-        openSavedBlock()
-        weeks.pending = Result.success(deloadProposal())
-        weeks.decideResult = Result.failure(AppException(AppError.Network))
-        val model = viewModel()
-        advanceUntilIdle()
-
-        model.effects.test {
-            model.onEvent(TrainerEvent.DecideDeload(accept = false))
-            advanceUntilIdle()
-            assertEquals(TrainerEffect.DeloadFailed(accept = false, offline = true), awaitItem())
-        }
-    }
-
-    @Test
-    fun doubleTapOnTheDeloadCard_sendsOneDecision() = runTest(dispatcher) {
-        openSavedBlock()
-        weeks.pending = Result.success(deloadProposal())
-        weeks.decideGate = CompletableDeferred()
-        val model = viewModel()
-        advanceUntilIdle()
-
-        model.onEvent(TrainerEvent.DecideDeload(accept = true))
-        model.onEvent(TrainerEvent.DecideDeload(accept = true))
-        advanceUntilIdle()
-
-        assertEquals(1, weeks.decisions.size)
-        assertTrue(model.content().decidingDeload)
-        weeks.decideGate?.complete(Unit)
-    }
-
-    @Test
-    fun decidingTheDeloadWithoutACard_isIgnored() = runTest(dispatcher) {
-        val model = viewModel()
-        advanceUntilIdle()
-
-        model.onEvent(TrainerEvent.DecideDeload(accept = true))
-        advanceUntilIdle()
-
-        assertTrue(weeks.decisions.isEmpty())
-    }
-
-    @Test
-    fun recreatedViewModel_reloadsWeeksAndPendingDeloadFromTheServer() = runTest(dispatcher) {
-        openSavedBlock()
-        weeks.weeksResult = Result.success(listOf(planWeek()))
-        weeks.pending = Result.success(deloadProposal())
-
-        viewModel()
-        advanceUntilIdle()
-
-        val recreated = viewModel()
-        advanceUntilIdle()
-
-        assertEquals(deloadProposal(), recreated.content().deload)
-        assertEquals(1, recreated.content().weeks.size)
-        assertFalse(recreated.content().decidingDeload)
     }
 
     private fun acceptedWithActivity(minutes: Int = 120) {

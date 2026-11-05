@@ -14,11 +14,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.Role
 import io.github.lopezjavier.appfitness.composeapp.resources.Res
-import io.github.lopezjavier.appfitness.composeapp.resources.action_accept
 import io.github.lopezjavier.appfitness.composeapp.resources.action_apply
 import io.github.lopezjavier.appfitness.composeapp.resources.action_cancel
 import io.github.lopezjavier.appfitness.composeapp.resources.action_delete
-import io.github.lopezjavier.appfitness.composeapp.resources.action_discard
 import io.github.lopezjavier.appfitness.composeapp.resources.action_not_now
 import io.github.lopezjavier.appfitness.composeapp.resources.calorie_change_data
 import io.github.lopezjavier.appfitness.composeapp.resources.calorie_change_data_short
@@ -31,7 +29,6 @@ import io.github.lopezjavier.appfitness.composeapp.resources.calorie_proposal_ga
 import io.github.lopezjavier.appfitness.composeapp.resources.calorie_proposal_hold_lower
 import io.github.lopezjavier.appfitness.composeapp.resources.calorie_proposal_hold_raise
 import io.github.lopezjavier.appfitness.composeapp.resources.calorie_proposal_offline
-import io.github.lopezjavier.appfitness.composeapp.resources.deload_accept_offline
 import io.github.lopezjavier.appfitness.composeapp.resources.phase_help_cd
 import io.github.lopezjavier.appfitness.composeapp.resources.trainer_block_create
 import io.github.lopezjavier.appfitness.composeapp.resources.trainer_block_create_action
@@ -42,10 +39,6 @@ import io.github.lopezjavier.appfitness.composeapp.resources.trainer_block_remov
 import io.github.lopezjavier.appfitness.composeapp.resources.trainer_block_remove_message
 import io.github.lopezjavier.appfitness.composeapp.resources.trainer_block_remove_title
 import io.github.lopezjavier.appfitness.composeapp.resources.trainer_block_saved_title
-import io.github.lopezjavier.appfitness.composeapp.resources.trainer_deload_data
-import io.github.lopezjavier.appfitness.composeapp.resources.trainer_deload_payload
-import io.github.lopezjavier.appfitness.composeapp.resources.trainer_deload_reason
-import io.github.lopezjavier.appfitness.composeapp.resources.trainer_deload_title
 import io.github.lopezjavier.appfitness.composeapp.resources.trainer_plan_active_line
 import io.github.lopezjavier.appfitness.composeapp.resources.trainer_plan_active_title
 import io.github.lopezjavier.appfitness.composeapp.resources.trainer_plan_activity
@@ -75,7 +68,6 @@ import io.github.lopezjavier.appfitness.designsystem.StatusChip
 import io.github.lopezjavier.appfitness.designsystem.StatusTone
 import io.github.lopezjavier.appfitness.domain.model.CalorieProposal
 import io.github.lopezjavier.appfitness.domain.model.CoachPlan
-import io.github.lopezjavier.appfitness.domain.model.DeloadProposal
 import io.github.lopezjavier.appfitness.domain.usecase.GoalChecklist
 import io.github.lopezjavier.appfitness.feature.weight.signedTenths
 import org.jetbrains.compose.resources.StringResource
@@ -323,25 +315,6 @@ private fun PhaseLine(plan: CoachPlan) {
             testTag = "trainer_plan_phase_help",
         )
     }
-}
-
-/** The easier-week suggestion waiting for a decision (US-75), on the shared [CoachProposalCard]. */
-@Composable
-internal fun DeloadCard(deload: DeloadProposal, deciding: Boolean, online: Boolean, onEvent: (TrainerEvent) -> Unit) {
-    CoachProposalCard(
-        title = stringResource(Res.string.trainer_deload_title),
-        payload = stringResource(Res.string.trainer_deload_payload, deload.week),
-        reason = stringResource(Res.string.trainer_deload_reason),
-        dataUsed = stringResource(Res.string.trainer_deload_data),
-        acceptText = stringResource(Res.string.action_accept),
-        discardText = stringResource(Res.string.action_discard),
-        onAccept = { onEvent(TrainerEvent.DecideDeload(accept = true)) },
-        onDiscard = { onEvent(TrainerEvent.DecideDeload(accept = false)) },
-        testTagPrefix = "trainer_deload_card",
-        busy = deciding,
-        acceptEnabled = online,
-        footer = if (online) null else ({ OfflineHint(stringResource(Res.string.deload_accept_offline)) }),
-    )
 }
 
 /** Copy variant of a calorie proposal, chosen by the direction of the change and the sign of the plan's rate. */

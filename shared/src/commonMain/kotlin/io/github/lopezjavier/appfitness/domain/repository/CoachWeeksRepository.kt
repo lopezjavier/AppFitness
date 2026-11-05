@@ -1,16 +1,22 @@
 package io.github.lopezjavier.appfitness.domain.repository
 
-import io.github.lopezjavier.appfitness.domain.model.DeloadProposal
+import io.github.lopezjavier.appfitness.domain.model.CoachChange
 import io.github.lopezjavier.appfitness.domain.model.PlanWeek
 import kotlinx.datetime.LocalDate
 
-/** Weeks of the saved block with their adherence, and the deload suggestion (T-165). */
+/**
+ * Weeks of the saved block with their adherence, and the deload week (T-165, T-230). A deload applies on its own and is
+ * a [CoachChange] without exercise. Refusals fail with a `CoachChangeException`.
+ */
 interface CoachWeeksRepository {
     suspend fun weeks(planId: String, today: LocalDate): Result<List<PlanWeek>>
 
-    /** Evaluates the rule (idempotent) and returns the pending proposal, or null when there is none. */
-    suspend fun pendingDeload(today: LocalDate): Result<DeloadProposal?>
+    /** Evaluates the rule (idempotent): the deload it applied (or applied before) in plan week 4, or null. */
+    suspend fun evaluateDeload(today: LocalDate): Result<CoachChange?>
 
-    /** Accepting marks the proposal's week as a deload week; discarding changes nothing else. */
-    suspend fun decideDeload(id: String, accept: Boolean): Result<Unit>
+    /** "Hacer descarga la próxima semana": fails with `DeloadNotAvailable` when one is planned or ran in the block. */
+    suspend fun requestDeload(): Result<CoachChange>
+
+    /** "Cancelar descarga": the week goes back to normal; a second cancel fails with `NotUndoable`. */
+    suspend fun cancelDeload(changeId: String): Result<CoachChange>
 }

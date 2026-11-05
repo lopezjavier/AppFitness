@@ -1,7 +1,7 @@
 package io.github.lopezjavier.appfitness.data.remote
 
+import io.github.lopezjavier.appfitness.domain.model.CoachChange
 import io.github.lopezjavier.appfitness.domain.model.DeloadExerciseSuggestion
-import io.github.lopezjavier.appfitness.domain.model.DeloadProposal
 import io.github.lopezjavier.appfitness.domain.model.PlanWeek
 import io.github.lopezjavier.appfitness.domain.model.PlanWeekSession
 import io.github.lopezjavier.appfitness.domain.model.WeekPhase
@@ -9,6 +9,7 @@ import kotlinx.datetime.LocalDate
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.JsonElement
+import kotlinx.serialization.json.JsonNull
 import kotlinx.serialization.json.JsonObject
 
 @Serializable
@@ -21,7 +22,7 @@ internal data class PlanWeeksParams(
 internal data class EvaluateDeloadParams(@SerialName("p_today") val today: LocalDate)
 
 @Serializable
-internal data class DecideDeloadParams(@SerialName("p_id") val id: String, @SerialName("p_accept") val accept: Boolean)
+internal data class CancelDeloadParams(@SerialName("p_change_id") val changeId: String)
 
 @Serializable
 internal data class DeloadSuggestionsParams(@SerialName("p_session_id") val sessionId: String)
@@ -80,24 +81,22 @@ private val PHASES = mapOf(
     "upcoming" to WeekPhase.Upcoming,
 )
 
-/** Result of `evaluate_coach_deload`: only `created` and `pending` carry a proposal. */
+/** Result of `evaluate_coach_deload`: only `applied` carries the deload change. */
 @Serializable
 internal data class EvaluateDeloadResultDto(
     val status: String,
     val reason: String? = null,
-    @SerialName("recommendation_id") val recommendationId: String? = null,
-    @SerialName("plan_id") val planId: String? = null,
     val week: Int? = null,
+    val change: JsonElement? = null,
 ) {
-    fun toProposal(): DeloadProposal? = if (status == "created" || status == "pending") {
-        if (recommendationId != null && planId != null && week != null) {
-            DeloadProposal(recommendationId, planId, week)
-        } else {
-            null
-        }
-    } else {
-        null
-    }
+    fun toChange(): CoachChange? = if (status == "applied") change.toCoachChange() else null
+}
+
+/** One change object (`request_coach_deload`, `cancel_coach_deload`, the `change` of the evaluation). */
+internal fun JsonElement?.toCoachChange(): CoachChange? = if (this == null || this is JsonNull) {
+    null
+} else {
+    runCatching { coachPlanJson.decodeFromJsonElement(CoachChangeDto.serializer(), this).toDomain() }.getOrNull()
 }
 
 @Serializable

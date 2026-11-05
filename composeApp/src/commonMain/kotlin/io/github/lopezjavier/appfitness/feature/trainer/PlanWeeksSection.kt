@@ -12,6 +12,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import io.github.lopezjavier.appfitness.composeapp.resources.Res
+import io.github.lopezjavier.appfitness.composeapp.resources.coach_deload_request
+import io.github.lopezjavier.appfitness.composeapp.resources.coach_deload_request_offline
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_check
 import io.github.lopezjavier.appfitness.composeapp.resources.plan_week_cardio
 import io.github.lopezjavier.appfitness.composeapp.resources.plan_week_steps
@@ -32,7 +34,10 @@ import io.github.lopezjavier.appfitness.designsystem.AppLinearProgress
 import io.github.lopezjavier.appfitness.designsystem.AppListRow
 import io.github.lopezjavier.appfitness.designsystem.AppNumberFormat
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
+import io.github.lopezjavier.appfitness.designsystem.GhostButton
+import io.github.lopezjavier.appfitness.designsystem.GhostTone
 import io.github.lopezjavier.appfitness.designsystem.ListSectionHeader
+import io.github.lopezjavier.appfitness.designsystem.OfflineHint
 import io.github.lopezjavier.appfitness.designsystem.Spacing
 import io.github.lopezjavier.appfitness.designsystem.StatusChip
 import io.github.lopezjavier.appfitness.designsystem.StatusTone
@@ -48,13 +53,32 @@ import org.jetbrains.compose.resources.stringResource
  * chips, "3 de 4 entrenos · 75 %" and one status row per planned routine. Absent when there are no weeks.
  */
 @Composable
-internal fun PlanWeeksSection(weeks: List<PlanWeek>) {
+internal fun PlanWeeksSection(weeks: List<PlanWeek>, request: DeloadRequestUi = DeloadRequestUi()) {
     if (weeks.isEmpty()) return
     Column(Modifier.testTag("trainer_weeks_section"), verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
         ListSectionHeader(stringResource(Res.string.trainer_weeks_header))
         weeks.forEach { WeekCard(it) }
+        if (request.available) {
+            GhostButton(
+                text = stringResource(Res.string.coach_deload_request),
+                onClick = request.onRequest,
+                modifier = Modifier.testTag("trainer_deload_request"),
+                enabled = request.online && !request.busy,
+                tone = GhostTone.Neutral,
+                loading = request.busy,
+            )
+            if (!request.online) OfflineHint(stringResource(Res.string.coach_deload_request_offline))
+        }
     }
 }
+
+/** State of "Hacer descarga la próxima semana": shown only when [available]; disabled offline or while [busy]. */
+internal data class DeloadRequestUi(
+    val available: Boolean = false,
+    val busy: Boolean = false,
+    val online: Boolean = true,
+    val onRequest: () -> Unit = {},
+)
 
 @Composable
 private fun WeekCard(week: PlanWeek) {

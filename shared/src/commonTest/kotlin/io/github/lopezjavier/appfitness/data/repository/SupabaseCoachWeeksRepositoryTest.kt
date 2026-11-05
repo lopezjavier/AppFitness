@@ -7,9 +7,10 @@ import io.github.lopezjavier.appfitness.config.AppConfig
 import io.github.lopezjavier.appfitness.data.remote.SupabaseClientFactory
 import io.github.lopezjavier.appfitness.domain.AppError
 import io.github.lopezjavier.appfitness.domain.appErrorOrNull
-import io.github.lopezjavier.appfitness.domain.model.CoachException
-import io.github.lopezjavier.appfitness.domain.model.CoachFailure
-import io.github.lopezjavier.appfitness.domain.model.DeloadProposal
+import io.github.lopezjavier.appfitness.domain.model.CoachChangeException
+import io.github.lopezjavier.appfitness.domain.model.CoachChangeFailure
+import io.github.lopezjavier.appfitness.domain.model.CoachChangeKind
+import io.github.lopezjavier.appfitness.domain.model.CoachChangeStatus
 import io.github.lopezjavier.appfitness.domain.model.TestLoginCredentials
 import io.github.lopezjavier.appfitness.domain.model.WeekPhase
 import io.ktor.client.engine.mock.MockEngine
@@ -119,75 +120,139 @@ class SupabaseCoachWeeksRepositoryTest {
         assertEquals(AppError.Network, repository.weeks("p1", today).appErrorOrNull())
     }
 
+    private fun changeJson(kind: String, reason: String, week: Int = 4) =
+        """{"id":"c1","kind":"$kind","exercise_id":null,"status":"applied","reason":"$reason",""" +
+            """"figures":{"week":$week},"before_values":null,"after_values":null,"decision":null}"""
+
     @Test
-    fun pendingDeload_createdAndPendingMapToAProposal() = runTest {
-        for (status in listOf("created", "pending")) {
-            val repository = repo {
-                HttpStatusCode.OK to
-                    """{"status":"$status","reason":"no_e1rm_improvement","recommendation_id":"d1",""" +
-                    """"plan_id":"p1","week":4,"unknown":true}"""
-            }
-
-            val proposal = repository.pendingDeload(today).getOrThrow()
-
-            assertEquals(DeloadProposal("d1", "p1", 4), proposal)
+    fun evaluateDeload_applied_returnsTheDeloadChangeWithoutAnExercise() = runTest {
+        val repository = repo {
+            HttpStatusCode.OK to
+                """{"status":"applied","reason":"no_e1rm_improvement","week":4,""" +
+                """"change":${changeJson("deload_triggered", "no_e1rm_improvement")}}"""
         }
+
+        val change = repository.evaluateDeload(today).getOrThrow()
+
+        assertEquals("c1", change?.id)
+        assertEquals(CoachChangeKind.DeloadTriggered, change?.kind)
+        assertNull(change?.exerciseId)
+        assertEquals(CoachChangeStatus.Applied, change?.status)
+        assertEquals(4, change?.figures?.week)
         assertEquals("""{"p_today":"2026-10-29"}""", bodyOf(rest().first()))
         assertTrue(rest().first().url.encodedPath.endsWith("/rest/v1/rpc/evaluate_coach_deload"))
     }
 
     @Test
-    fun pendingDeload_noneIsNull() = runTest {
-        val repository = repo { HttpStatusCode.OK to """{"status":"none","reason":"improved"}""" }
+    fun evaluateDeload_scheduledKindIsMapped() = runTest {
+        val repository = repo {
+            HttpStatusCode.OK to
+                """{"status":"applied","week":4,"change":${changeJson(
+                    "deload_scheduled",
+                    "seven_weeks_without_deload",
+                )}}"""
+        }
 
-        assertNull(repository.pendingDeload(today).getOrThrow())
+        assertEquals(CoachChangeKind.DeloadScheduled, repository.evaluateDeload(today).getOrThrow()?.kind)
     }
 
     @Test
-    fun pendingDeload_signedOut_isUnauthorizedWithoutRequests() = runTest {
+    fun evaluateDeload_noneIsNull() = runTest {
+        val repository = repo { HttpStatusCode.OK to """{"status":"none","reason":"improved"}""" }
+
+        assertNull(repository.evaluateDeload(today).getOrThrow())
+    }
+
+    @Test
+    fun evaluateDeload_signedOut_isUnauthorizedWithoutRequests() = runTest {
         val repository = repo(signIn = false) { HttpStatusCode.OK to "{}" }
 
-        assertEquals(AppError.Unauthorized, repository.pendingDeload(today).appErrorOrNull())
+        assertEquals(AppError.Unauthorized, repository.evaluateDeload(today).appErrorOrNull())
         assertTrue(rest().isEmpty())
     }
 
     @Test
-    fun pendingDeload_offline_isNetworkError() = runTest {
+    fun evaluateDeload_offline_isNetworkError() = runTest {
         val repository = repo { HttpStatusCode.OK to "{}" }
         offline = true
 
-        assertEquals(AppError.Network, repository.pendingDeload(today).appErrorOrNull())
+        assertEquals(AppError.Network, repository.evaluateDeload(today).appErrorOrNull())
     }
 
     @Test
-    fun decideDeload_sendsIdAndChoice() = runTest {
-        val repository = repo { HttpStatusCode.OK to """{"status":"accepted","week":4}""" }
+    fun requestDeload_callsTheRpcAndReturnsTheUserDeload() = runTest {
+        val repository = repo { HttpStatusCode.OK to changeJson("deload_user", "user_request", week = 2) }
 
-        repository.decideDeload("d1", accept = true).getOrThrow()
+        val change = repository.requestDeload().getOrThrow()
 
-        val request = rest().single()
-        assertTrue(request.url.encodedPath.endsWith("/rest/v1/rpc/decide_coach_deload"))
-        assertEquals("""{"p_id":"d1","p_accept":true}""", bodyOf(request))
+        assertEquals(CoachChangeKind.DeloadUser, change.kind)
+        assertEquals(2, change.figures.week)
+        assertTrue(rest().single().url.encodedPath.endsWith("/rest/v1/rpc/request_coach_deload"))
     }
 
     @Test
-    fun decideDeload_alreadyDecided_isConflict() = runTest {
+    fun requestDeload_refusedByTheServer_isDeloadNotAvailable() = runTest {
         val repository = repo {
             HttpStatusCode.BadRequest to
-                """{"code":"55000","message":"recommendation already decided","details":null,"hint":null}"""
+                """{"code":"P0001","message":"coach_deload_not_available","details":null,"hint":null}"""
         }
 
-        val exception = repository.decideDeload("d1", accept = false).exceptionOrNull()
+        val exception = repository.requestDeload().exceptionOrNull()
 
-        assertIs<CoachException>(exception)
-        assertEquals(CoachFailure.Conflict, exception.failure)
+        assertIs<CoachChangeException>(exception)
+        assertEquals(CoachChangeFailure.DeloadNotAvailable, exception.failure)
     }
 
     @Test
-    fun decideDeload_offline_isNetworkError() = runTest {
+    fun requestDeload_offline_isNetworkError() = runTest {
         val repository = repo { HttpStatusCode.OK to "{}" }
         offline = true
 
-        assertEquals(AppError.Network, repository.decideDeload("d1", accept = true).appErrorOrNull())
+        assertEquals(AppError.Network, repository.requestDeload().appErrorOrNull())
+    }
+
+    @Test
+    fun cancelDeload_sendsTheChangeIdAndReturnsTheUndoneChange() = runTest {
+        val repository = repo {
+            HttpStatusCode.OK to changeJson("deload_triggered", "no_e1rm_improvement").replace("applied", "undone")
+        }
+
+        val change = repository.cancelDeload("c1").getOrThrow()
+
+        assertEquals(CoachChangeStatus.Undone, change.status)
+        val request = rest().single()
+        assertTrue(request.url.encodedPath.endsWith("/rest/v1/rpc/cancel_coach_deload"))
+        assertEquals("""{"p_change_id":"c1"}""", bodyOf(request))
+    }
+
+    @Test
+    fun cancelDeload_secondCancel_isNotUndoable() = runTest {
+        val repository = repo {
+            HttpStatusCode.BadRequest to
+                """{"code":"P0001","message":"coach_change_not_undoable","details":null,"hint":null}"""
+        }
+
+        val exception = repository.cancelDeload("c1").exceptionOrNull()
+
+        assertIs<CoachChangeException>(exception)
+        assertEquals(CoachChangeFailure.NotUndoable, exception.failure)
+    }
+
+    @Test
+    fun cancelDeload_unknownChange_isNotFound() = runTest {
+        val repository = repo {
+            HttpStatusCode.BadRequest to
+                """{"code":"P0002","message":"coach change not found","details":null,"hint":null}"""
+        }
+
+        assertEquals(AppError.NotFound, repository.cancelDeload("c1").appErrorOrNull())
+    }
+
+    @Test
+    fun cancelDeload_offline_isNetworkError() = runTest {
+        val repository = repo { HttpStatusCode.OK to "{}" }
+        offline = true
+
+        assertEquals(AppError.Network, repository.cancelDeload("c1").appErrorOrNull())
     }
 }

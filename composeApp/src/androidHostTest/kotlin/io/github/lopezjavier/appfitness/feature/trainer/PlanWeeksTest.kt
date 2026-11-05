@@ -1,28 +1,21 @@
 package io.github.lopezjavier.appfitness.feature.trainer
 
-import androidx.compose.ui.test.assertIsEnabled
-import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
-import androidx.compose.ui.test.performClick
-import io.github.lopezjavier.appfitness.app.FakeConnectivityObserver
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
-import io.github.lopezjavier.appfitness.domain.model.DeloadProposal
 import io.github.lopezjavier.appfitness.domain.model.PlanStatus
 import io.github.lopezjavier.appfitness.domain.model.PlanWeek
 import io.github.lopezjavier.appfitness.domain.model.PlanWeekSession
 import io.github.lopezjavier.appfitness.domain.model.WeekPhase
-import io.github.lopezjavier.appfitness.feature.workout.MutableClock
 import kotlinx.coroutines.flow.flowOf
-import org.junit.Assert.assertEquals
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 
-/** US-73 and US-75: the week list and the deload card on the Trainer tab. */
+/** US-73: the week list on the Trainer tab (T-230 UI adds the deload request action tests). */
 @RunWith(RobolectricTestRunner::class)
 @Config(qualifiers = "w360dp-h2400dp-xxhdpi")
 @Suppress("TooManyFunctions") // One method per Gherkin scenario.
@@ -32,22 +25,16 @@ class PlanWeeksTest {
 
     private val events = mutableListOf<TrainerEvent>()
 
-    private fun content(weeks: List<PlanWeek> = emptyList(), deload: DeloadProposal? = null) = TrainerUiState.Content(
+    private fun content(weeks: List<PlanWeek> = emptyList()) = TrainerUiState.Content(
         plan = PlanSummary.Accepted(coachPlan(status = PlanStatus.Accepted)),
         block = BlockSummary.Saved(coachBlock(saved = true)),
         weeks = weeks,
-        deload = deload,
     )
 
     private fun show(state: TrainerUiState, online: Boolean = true) {
         rule.setContent {
             AppTheme { TrainerScreen(state, flowOf(online), { events += it }) }
         }
-        rule.waitForIdle()
-    }
-
-    private fun tap(tag: String) {
-        rule.onNodeWithTag(tag).performClick()
         rule.waitForIdle()
     }
 
@@ -97,101 +84,5 @@ class PlanWeeksTest {
         show(content())
 
         rule.onNodeWithTag("trainer_weeks_section").assertDoesNotExist()
-    }
-
-    @Test
-    fun deloadCard_showsTheSuggestionItsReasonAndTheData() {
-        show(content(deload = deloadProposal(week = 4)))
-
-        rule.onNodeWithTag("trainer_deload_card").assertExists()
-        rule.onNodeWithText("Semana de descarga").assertExists()
-        rule.onNodeWithText("Semana 4: mismo peso, 40 % menos de series").assertExists()
-        rule.onNodeWithText(
-            "Ninguno de tus ejercicios principales ha mejorado su 1RM estimado en tres semanas.",
-        ).assertExists()
-    }
-
-    @Test
-    fun deloadCard_isAbsentWithoutASuggestion() {
-        show(content())
-
-        rule.onNodeWithTag("trainer_deload_card").assertDoesNotExist()
-    }
-
-    @Test
-    fun aceptarAndDescartar_sendTheirDecision() {
-        show(content(deload = deloadProposal()))
-
-        rule.onNodeWithTag("trainer_deload_card_accept").assertIsEnabled()
-        tap("trainer_deload_card_accept")
-        tap("trainer_deload_card_discard")
-
-        assertEquals(
-            listOf<TrainerEvent>(TrainerEvent.DecideDeload(true), TrainerEvent.DecideDeload(false)),
-            events,
-        )
-    }
-
-    @Test
-    fun offline_aceptarIsDisabledWithTheHint() {
-        show(content(deload = deloadProposal()), online = false)
-
-        rule.onNodeWithTag("trainer_deload_card_accept").assertIsNotEnabled()
-        rule.onNodeWithText("Sin conexión: no se puede aceptar la descarga").assertExists()
-    }
-
-    private fun route(weeks: FakeCoachWeeksRepository): TrainerViewModel {
-        val plans = FakeCoachPlanRepository()
-        plans.current = Result.success(coachPlan(status = PlanStatus.Accepted))
-        val blocks = FakeCoachBlockRepository()
-        blocks.current = Result.success(coachBlock(saved = true))
-        return TrainerViewModel(
-            FakeCoachRepository(),
-            MutableClock(),
-            plans = plans,
-            blocks = blocks,
-            coachWeeks = weeks,
-        )
-    }
-
-    @Test
-    fun accepting_removesTheCard_andMarksTheNextWeek() {
-        val weeks = FakeCoachWeeksRepository()
-        weeks.weeksResult = Result.success(listOf(planWeek(week = 3), planWeek(week = 4, phase = WeekPhase.Upcoming)))
-        weeks.pending = Result.success(deloadProposal(week = 4))
-        val model = route(weeks)
-        rule.setContent {
-            AppTheme { TrainerRoute(viewModel = model, connectivity = FakeConnectivityObserver()) }
-        }
-        rule.waitForIdle()
-        rule.onNodeWithTag("trainer_deload_card").assertExists()
-        rule.onNodeWithTag("trainer_week_4_deload").assertDoesNotExist()
-
-        weeks.weeksResult = Result.success(
-            listOf(planWeek(week = 3), planWeek(week = 4, phase = WeekPhase.Upcoming, deload = true)),
-        )
-        tap("trainer_deload_card_accept")
-
-        assertEquals(listOf("deload-1" to true), weeks.decisions)
-        rule.onNodeWithTag("trainer_deload_card").assertDoesNotExist()
-        rule.onNodeWithTag("trainer_week_4_deload").assertExists()
-    }
-
-    @Test
-    fun discarding_removesTheCard_andLeavesTheWeeksUnchanged() {
-        val weeks = FakeCoachWeeksRepository()
-        weeks.weeksResult = Result.success(listOf(planWeek(week = 3), planWeek(week = 4, phase = WeekPhase.Upcoming)))
-        weeks.pending = Result.success(deloadProposal(week = 4))
-        val model = route(weeks)
-        rule.setContent {
-            AppTheme { TrainerRoute(viewModel = model, connectivity = FakeConnectivityObserver()) }
-        }
-        rule.waitForIdle()
-
-        tap("trainer_deload_card_discard")
-
-        assertEquals(listOf("deload-1" to false), weeks.decisions)
-        rule.onNodeWithTag("trainer_deload_card").assertDoesNotExist()
-        rule.onNodeWithTag("trainer_week_4_deload").assertDoesNotExist()
     }
 }

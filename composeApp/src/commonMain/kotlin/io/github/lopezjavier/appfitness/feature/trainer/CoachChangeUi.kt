@@ -25,7 +25,8 @@ data class CoachChangeRowUi(
     val id: String,
     val kind: CoachChangeKind,
     val status: CoachChangeStatus,
-    val exerciseId: String,
+    /** Null for a deload, which is plan-level. */
+    val exerciseId: String?,
     val routineIds: List<String>,
     val figures: CoachChangeFigures,
     val reason: String,
@@ -35,6 +36,10 @@ data class CoachChangeRowUi(
     val undoable: Boolean
         get() = status == CoachChangeStatus.Applied &&
             (kind == CoachChangeKind.LoadRaise || kind == CoachChangeKind.LoadDrop)
+
+    /** "Cancelar descarga": an applied deload (T-230); a cancelled one shows as [CoachChangeStatus.Undone]. */
+    val cancellable: Boolean
+        get() = status == CoachChangeStatus.Applied && kind.isDeload
 
     /** Waiting for the user: a flagged raise (two options) or a missing rep range. */
     val pending: Boolean
@@ -75,5 +80,6 @@ internal fun List<CoachChange>.toCoachChangeRows(): List<CoachChangeRowUi> = fil
 internal fun List<CoachChange>.toMarkers(routineId: String? = null): Map<String, CoachChangeMarker> =
     filter { it.isKnown() && (routineId == null || routineId in it.routineIds()) }
         .filter { it.status == CoachChangeStatus.Applied || it.status == CoachChangeStatus.Pending }
+        .filter { it.exerciseId != null }
         .distinctBy { it.exerciseId }
-        .associate { it.exerciseId to CoachChangeMarker(it.kind, it.figures, it.reason) }
+        .associate { it.exerciseId.orEmpty() to CoachChangeMarker(it.kind, it.figures, it.reason) }

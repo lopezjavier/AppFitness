@@ -150,6 +150,7 @@ No "Notes for later epics" item targets E14 (the Phase 3 "Recuperar" note stays 
 - [ ] "Cancelar descarga" restores the normal sets for that week; "Hacer descarga la próxima semana" makes the next plan week a deload, offered only when no deload is planned or ran in the block.
 - [ ] The live session in a deload week shows the reduced sets at the planned weights; no accept-first deload card remains.
 - [ ] The Trainer tab with a deload row survives background and process death (ADR-40).
+- [ ] Separate part (user, 2026-11-05): searching my own foods ignores accents and case in both directions: "platano" finds "Plátano", "PLÁTANO" and "plátano" find "platano"; a query with no match still shows the empty state.
 **Host tests:** pgTAP `coach_deload_auto.test.sql` (trigger, schedule across two blocks, one per block, cancel, user start, set counts 1-10, RLS); ViewModel tests (cancel, start, error, offline, restoration); Robolectric (row copy for each kind, start action visibility, live session reduced sets).
 **Verification:**
 - [ ] `npx supabase db reset && npx supabase db lint && npx supabase test db`, lint + `testLocalDebugUnitTest` green; `deploy-supabase` green on `main` after the merge with data intact. No model call.

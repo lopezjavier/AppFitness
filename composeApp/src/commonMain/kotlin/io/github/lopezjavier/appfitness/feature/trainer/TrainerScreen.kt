@@ -41,11 +41,12 @@ import io.github.lopezjavier.appfitness.composeapp.resources.coach_change_undo_e
 import io.github.lopezjavier.appfitness.composeapp.resources.coach_change_undo_not_found
 import io.github.lopezjavier.appfitness.composeapp.resources.coach_change_undo_offline
 import io.github.lopezjavier.appfitness.composeapp.resources.coach_change_undone_skipped
+import io.github.lopezjavier.appfitness.composeapp.resources.coach_deload_cancel_error
+import io.github.lopezjavier.appfitness.composeapp.resources.coach_deload_cancel_offline
+import io.github.lopezjavier.appfitness.composeapp.resources.coach_deload_request_error
+import io.github.lopezjavier.appfitness.composeapp.resources.coach_deload_request_not_available
+import io.github.lopezjavier.appfitness.composeapp.resources.coach_deload_request_offline
 import io.github.lopezjavier.appfitness.composeapp.resources.coach_usage_title
-import io.github.lopezjavier.appfitness.composeapp.resources.deload_accept_error
-import io.github.lopezjavier.appfitness.composeapp.resources.deload_accept_offline
-import io.github.lopezjavier.appfitness.composeapp.resources.deload_discard_error
-import io.github.lopezjavier.appfitness.composeapp.resources.deload_discard_offline
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_info
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_more_vert
 import io.github.lopezjavier.appfitness.composeapp.resources.topbar_more_cd
@@ -114,10 +115,6 @@ fun TrainerRoute(
     val discardChangeError = stringResource(Res.string.calorie_proposal_decline_error)
     val acceptOffline = offlineHint(stringResource(Res.string.calorie_proposal_offline)) + "."
     val discardOffline = offlineHint(stringResource(Res.string.calorie_proposal_offline)) + "."
-    val acceptDeloadError = stringResource(Res.string.deload_accept_error)
-    val discardDeloadError = stringResource(Res.string.deload_discard_error)
-    val deloadAcceptOffline = offlineHint(stringResource(Res.string.deload_accept_offline)) + "."
-    val deloadDiscardOffline = offlineHint(stringResource(Res.string.deload_discard_offline)) + "."
     val cardioError = stringResource(Res.string.cardio_save_error)
     val cardioOffline = offlineHint(stringResource(Res.string.cardio_save_offline)) + "."
     val removeBlock = listOf(
@@ -131,6 +128,11 @@ fun TrainerRoute(
     val decideOffline = offlineHint(stringResource(Res.string.coach_change_decide_offline)) + "."
     val decideNotPending = stringResource(Res.string.coach_change_decide_not_pending)
     val decideError = stringResource(Res.string.coach_change_decide_error)
+    val cancelDeloadOffline = offlineHint(stringResource(Res.string.coach_deload_cancel_offline)) + "."
+    val cancelDeloadError = stringResource(Res.string.coach_deload_cancel_error)
+    val requestDeloadOffline = offlineHint(stringResource(Res.string.coach_deload_request_offline)) + "."
+    val requestDeloadError = stringResource(Res.string.coach_deload_request_error)
+    val requestDeloadNotAvailable = stringResource(Res.string.coach_deload_request_not_available)
     val latestHaptics by rememberUpdatedState(haptics)
     val latestActions by rememberUpdatedState(actions)
     val exerciseNames = rememberExerciseNames(state, nameResolver)
@@ -140,7 +142,8 @@ fun TrainerRoute(
             when (effect) {
                 TrainerEffect.CalorieProposalApplied,
                 TrainerEffect.CalorieProposalDeclined,
-                is TrainerEffect.DeloadDecided,
+                TrainerEffect.DeloadCancelled,
+                TrainerEffect.DeloadRequested,
                 TrainerEffect.CardioSaved,
                 TrainerEffect.BlockRemoved,
                 -> latestHaptics.confirm()
@@ -204,14 +207,19 @@ fun TrainerRoute(
                 is TrainerEffect.OpenRoutineRange ->
                     latestActions.onOpenRoutineRange(effect.routineId, effect.exerciseId)
 
-                is TrainerEffect.DeloadFailed -> {
+                is TrainerEffect.DeloadCancelFailed -> {
+                    latestHaptics.reject()
+                    messages.show(if (effect.offline) cancelDeloadOffline else cancelDeloadError)
+                }
+
+                is TrainerEffect.DeloadRequestFailed -> {
                     latestHaptics.reject()
                     messages.show(
-                        decisionMessage(
-                            effect.accept,
-                            effect.offline,
-                            listOf(acceptDeloadError, discardDeloadError, deloadAcceptOffline, deloadDiscardOffline),
-                        ),
+                        when {
+                            effect.offline -> requestDeloadOffline
+                            effect.notAvailable -> requestDeloadNotAvailable
+                            else -> requestDeloadError
+                        },
                     )
                 }
             }
@@ -239,10 +247,6 @@ private fun rememberExerciseNames(state: TrainerUiState, resolver: ExerciseNameR
     }
     return names
 }
-
-/** Picks the failure message from `[acceptError, discardError, acceptOffline, discardOffline]`. */
-private fun decisionMessage(accept: Boolean, offline: Boolean, texts: List<String>): String =
-    texts[(if (offline) 2 else 0) + (if (accept) 0 else 1)]
 
 /**
  * The Trainer tab root (US-68, US-69, US-78) on [AppScreen] with the compact header: the pending suggestions, "Tu
@@ -286,7 +290,6 @@ private fun TrainerContent(
         Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(Spacing.screenMargin),
         verticalArrangement = Arrangement.spacedBy(Spacing.blockGap),
     ) {
-        state.deload?.let { DeloadCard(it, state.decidingDeload, online, onEvent) }
         state.calorieProposal?.let { CalorieProposalCard(it, state.decidingChange, online, onEvent) }
         CoachChangesSection(state, exerciseNames, online, onEvent, actions.onOpenExercise)
         PlanSection(
@@ -307,7 +310,15 @@ private fun TrainerContent(
             state.removeBlockConfirm,
             onEvent,
         )
-        PlanWeeksSection(state.weeks)
+        PlanWeeksSection(
+            state.weeks,
+            DeloadRequestUi(
+                available = state.canRequestDeload,
+                busy = state.requestingDeload || state.busyChangeId != null,
+                online = online,
+                onRequest = { onEvent(TrainerEvent.RequestDeload) },
+            ),
+        )
         YourDataEntry(state.provisionalCount, actions.onOpenYourData)
         NavigationRow(
             label = stringResource(Res.string.trainer_free_text_row),
