@@ -22,7 +22,6 @@ import {
 import { checkBudget, monthKey } from "./budget.ts";
 import {
     type AttachedBlock,
-    type BlockModelInput,
     type BlockRow,
     CoachInputError,
     type OptionsRow,
@@ -30,12 +29,9 @@ import {
     type PlanState,
     type PrepareContext,
     type Prepared,
-    type ReviewRow,
     type SavedPlan,
-    type StoredReview,
     type UpdatedPlan,
 } from "./context.ts";
-import type { FolderForReview } from "./folderChanges.ts";
 import { type CoachModel, costEur, parseCoachModel } from "./prices.ts";
 import { envDebug, withDebug } from "./debugLog.ts";
 import { KINDS, type KindSpec } from "./router.ts";
@@ -84,23 +80,6 @@ export type CoachDeps = {
         token: string,
         row: OptionsRow,
     ) => Promise<UpdatedPlan>;
-    /** `coach_block_model_input` of the caller, read with their own token (T-205). */
-    loadBlockModelInput: (
-        token: string,
-        today: string,
-    ) => Promise<BlockModelInput>;
-    /** `coach_folder_for_review` of the caller, read with their own token (T-207). */
-    loadFolder: (
-        token: string,
-        folderId: string,
-    ) => Promise<FolderForReview | null>;
-    /** Stores a folder review through `save_folder_review`, with the caller's own token (T-207). */
-    saveReview: (token: string, row: ReviewRow) => Promise<string>;
-    /** A stored review of the caller, read with their own token (T-207). */
-    loadReview: (
-        token: string,
-        reviewId: string,
-    ) => Promise<StoredReview | null>;
     now: () => Date;
     timeoutMs?: number;
     kinds?: Record<string, KindSpec>;
@@ -254,18 +233,10 @@ export function createCoachHandler(
                 loadPhaseHistory: (today) =>
                     deps.loadPhaseHistory(token, today),
                 updatePlanOptions: (row) => deps.updatePlanOptions(token, row),
-                loadBlockModelInput: (today) =>
-                    deps.loadBlockModelInput(token, today),
-                loadFolder: (id) => deps.loadFolder(token, id),
-                saveReview: (row) => deps.saveReview(token, row),
-                loadReview: (id) => deps.loadReview(token, id),
             };
 
             // A deterministic kind needs no provider, no budget and leaves no usage row (T-187 `plan_recompute`).
-            const deterministic = typeof spec.deterministic === "function"
-                ? spec.deterministic(body.input)
-                : spec.deterministic === true;
-            if (deterministic) {
+            if (spec.deterministic === true) {
                 if (!spec.prepare) {
                     return errorResponse("INTERNAL", "Unexpected error");
                 }

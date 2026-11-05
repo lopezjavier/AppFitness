@@ -9,27 +9,6 @@ export function envDebug(): boolean {
     return (Deno.env.get("COACH_DEBUG") ?? "").trim() !== "";
 }
 
-const SAFE_CODE = /^[a-z0-9_]+$/;
-
-/**
- * Failure objects (`{code, routine?, position?, ...}`) as short codes such as `h3b_knee_extension` or
- * `reason@routine=2,position=1`. Only a safe `code` and numeric fields are kept, so no text can leak.
- */
-export function failureCodes(
-    failures: readonly Record<string, unknown>[],
-    max = 30,
-): string[] {
-    return failures.slice(0, max).map((f) => {
-        const code = typeof f.code === "string" && SAFE_CODE.test(f.code)
-            ? f.code
-            : "unknown";
-        const path = Object.entries(f)
-            .filter(([k, v]) => k !== "code" && typeof v === "number")
-            .map(([k, v]) => `${k}=${v}`);
-        return path.length ? `${code}@${path.join(",")}` : code;
-    });
-}
-
 /** Adds one `coach: debug` warning per attempt to a retry config; a no-op when debug is off. */
 export function withDebug(
     kind: string,

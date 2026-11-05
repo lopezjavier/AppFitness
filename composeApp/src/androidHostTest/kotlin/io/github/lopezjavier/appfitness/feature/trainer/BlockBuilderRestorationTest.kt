@@ -35,7 +35,6 @@ import io.github.lopezjavier.appfitness.feature.exercises.exerciseInfo
 import io.github.lopezjavier.appfitness.feature.exercises.exerciseRow
 import io.github.lopezjavier.appfitness.feature.routines.FakeRoutineRepository
 import io.github.lopezjavier.appfitness.feature.workout.MutableClock
-import org.junit.Assert.assertEquals
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -212,9 +211,6 @@ class BlockBuilderRestorationTest {
         toBuilder()
 
         recreate()
-
-        assertEquals(0, blocks.splitRequests)
-        assertEquals(0, blocks.requests.size)
     }
 
     @Test

@@ -11,6 +11,7 @@ import kotlin.test.assertFalse
 import kotlin.test.assertIs
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
+import kotlin.test.assertSame
 import kotlin.test.assertTrue
 
 class FolderBlockCheckTest {
@@ -52,6 +53,13 @@ class FolderBlockCheckTest {
         assertEquals(listOf("R1", "R2"), block.sessions.map { it.name })
         assertEquals(6, block.sessions[0].exercises.count { it.role != BuiltExercise.ROLE_CARDIO })
         assertEquals(BuiltExercise.ROLE_CARDIO, block.sessions[0].exercises.last().role)
+    }
+
+    @Test
+    fun status_isComputedOncePerDraft() {
+        val draft = full()
+
+        assertSame(draft.status(), draft.status())
     }
 
     @Test

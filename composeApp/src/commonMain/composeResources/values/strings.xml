@@ -2208,7 +2208,7 @@
     <string name="folder_block_refused_one">Tu carpeta tiene 1 rutina de fuerza y entrenas %1$d días a la semana. Añade otra rutina a la carpeta o empieza desde cero.</string>
     <string name="folder_block_empty_body">Añade rutinas a la carpeta o empieza desde cero.</string>
     <string name="folder_block_left_out">Estas rutinas no entran en el bloque porque no tienen ejercicios de fuerza: %1$s.</string>
-    <string name="folder_block_sets_over">Tiene más de 10 series: edítalo en la carpeta.</string>
+    <string name="folder_block_sets_over">Tiene más de 10 series: quita series o el ejercicio en la carpeta.</string>
     <string name="folder_block_row_supporting">%1$s · %2$s</string>
     <string name="folder_block_missing_title">Qué falta</string>
     <string name="folder_block_group_title">Grupo muscular</string>

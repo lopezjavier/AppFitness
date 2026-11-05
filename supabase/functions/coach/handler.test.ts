@@ -63,11 +63,6 @@ function setup(
         attachBlock: () => Promise.reject(new Error("unexpected attachBlock")),
         loadPhaseHistory: () =>
             Promise.reject(new Error("unexpected loadPhaseHistory")),
-        loadBlockModelInput: () =>
-            Promise.reject(new Error("unexpected loadBlockModelInput")),
-        loadFolder: () => Promise.reject(new Error("unexpected loadFolder")),
-        saveReview: () => Promise.reject(new Error("unexpected saveReview")),
-        loadReview: () => Promise.reject(new Error("unexpected loadReview")),
         updatePlanOptions: () =>
             Promise.reject(new Error("unexpected updatePlanOptions")),
         now: () => NOW,
@@ -153,9 +148,18 @@ Deno.test("report and chat answer 501 coach_kind_not_available without calling t
     }
 });
 
-Deno.test("plan_block uses Opus, plan_nutrition is model-free and report/chat use Sonnet", () => {
+Deno.test("the removed block kinds answer the unknown-kind error, not a 5xx", async () => {
+    for (const kind of ["block_splits", "plan_block", "folder_review"]) {
+        const { handler, clientCalls } = setup();
+        const res = await handler(post({ kind, input: {} }));
+        assertEquals(res.status, 400);
+        assertEquals((await res.json()).error.message, "Unknown kind");
+        assertEquals(clientCalls(), 0);
+    }
+});
+
+Deno.test("plan_nutrition is model-free and report/chat use Sonnet", () => {
     assertEquals(KINDS.plan_nutrition.deterministic, true);
-    assertEquals(KINDS.plan_block.model, "opus");
     assertEquals(KINDS.report.model, "sonnet");
     assertEquals(KINDS.chat.model, "sonnet");
     assertEquals(KINDS.ping.model, "sonnet");

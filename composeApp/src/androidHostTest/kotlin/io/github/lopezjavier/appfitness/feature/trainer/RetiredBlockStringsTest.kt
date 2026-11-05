@@ -5,7 +5,7 @@ import org.junit.Test
 import java.io.File
 
 /**
- * T-222/T-223 (ADR-99): the model "Desde cero" flow and the model folder review are gone, so their strings stay
+ * T-222/T-223/T-224 (ADR-99): the model "Desde cero" flow and the model folder review are gone, so their strings stay
  * gone. The saved-block `block_preview_*` keys are not banned: T-224 owns them.
  */
 class RetiredBlockStringsTest {
@@ -56,6 +56,18 @@ class RetiredBlockStringsTest {
             }
             .map { it.name }
             .toList()
+
+        assertEquals(emptyList<String>(), leftovers)
+    }
+
+    @Test
+    fun theSourceHasNoModelBlockCallLeftOver() {
+        val retired = Regex("""\b(requestSplitOptions|requestBlock|SplitOption\w*|FolderFalta\w*|NeedsChanges)\b""")
+        val leftovers = listOf("src/commonMain/kotlin", "../shared/src/commonMain/kotlin")
+            .flatMap { File(it).walkTopDown().toList() }
+            .filter { it.isFile && it.extension == "kt" }
+            .filter { retired.containsMatchIn(it.readText(Charsets.UTF_8)) }
+            .map { it.name }
 
         assertEquals(emptyList<String>(), leftovers)
     }

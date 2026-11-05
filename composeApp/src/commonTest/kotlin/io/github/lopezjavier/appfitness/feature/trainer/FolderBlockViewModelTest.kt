@@ -183,7 +183,18 @@ class FolderBlockViewModelTest {
         assertEquals("Fuerza · bloque 2", name)
         assertEquals(2, block.daysPerWeek)
         assertTrue(routines.saved.isEmpty() && routines.createdFolders.isEmpty())
-        assertFalse(model.content().saving)
+    }
+
+    @Test
+    fun twoSavesInARow_saveTheBlockOnce_andSavingStaysOnAfterSuccess() = runTest(dispatcher) {
+        folder()
+        val model = viewModel()
+
+        send(model, FolderBlockEvent.Save)
+        send(model, FolderBlockEvent.Save)
+
+        assertEquals(1, blocks.builtSaves.size)
+        assertTrue(model.content().saving)
     }
 
     @Test

@@ -2,10 +2,8 @@ package io.github.lopezjavier.appfitness.data.repository
 
 import io.github.jan.supabase.auth.MemorySessionManager
 import io.github.jan.supabase.auth.auth
-import io.github.jan.supabase.functions.functions
 import io.github.jan.supabase.postgrest.postgrest
 import io.github.lopezjavier.appfitness.config.AppConfig
-import io.github.lopezjavier.appfitness.data.InMemoryCoachModelPreference
 import io.github.lopezjavier.appfitness.data.remote.SupabaseClientFactory
 import io.github.lopezjavier.appfitness.domain.AppError
 import io.github.lopezjavier.appfitness.domain.appErrorOrNull
@@ -17,28 +15,20 @@ import io.github.lopezjavier.appfitness.domain.coach.builder.ExerciseHistory
 import io.github.lopezjavier.appfitness.domain.model.BlockEdit
 import io.github.lopezjavier.appfitness.domain.model.CoachException
 import io.github.lopezjavier.appfitness.domain.model.CoachFailure
-import io.github.lopezjavier.appfitness.domain.model.CoachModelChoice
 import io.github.lopezjavier.appfitness.domain.model.Equipment
-import io.github.lopezjavier.appfitness.domain.model.MissingField
-import io.github.lopezjavier.appfitness.domain.model.SplitOption
-import io.github.lopezjavier.appfitness.domain.model.SplitSession
 import io.github.lopezjavier.appfitness.domain.model.TestLoginCredentials
 import io.github.lopezjavier.appfitness.domain.model.TrainingIntention
 import io.ktor.client.engine.mock.MockEngine
 import io.ktor.client.engine.mock.respond
 import io.ktor.client.request.HttpRequestData
 import io.ktor.http.HttpHeaders
-import io.ktor.http.HttpMethod
 import io.ktor.http.HttpStatusCode
 import io.ktor.http.content.TextContent
 import io.ktor.http.headersOf
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.test.runTest
 import kotlinx.datetime.LocalDate
 import kotlinx.io.IOException
 import kotlinx.serialization.json.Json
-import kotlinx.serialization.json.JsonObject
-import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.double
 import kotlinx.serialization.json.int
 import kotlinx.serialization.json.jsonArray
@@ -50,9 +40,6 @@ import kotlin.test.assertFalse
 import kotlin.test.assertIs
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
-import kotlin.time.Duration
-import kotlin.time.Duration.Companion.milliseconds
-import kotlin.time.Duration.Companion.seconds
 
 private const val SESSION =
     """{"access_token":"access","token_type":"bearer","expires_in":3600,"refresh_token":"refresh",""" +
@@ -72,32 +59,17 @@ private const val EXERCISE =
 private fun sessionRows(routine: String = "null") =
     """[{"week":1,"session_index":0,"name":"A","focus":["chest"],"exercises":[$EXERCISE],"routine_id":$routine}]"""
 
-private val SPLIT = SplitOption(
-    id = "a",
-    name = "Torso-pierna",
-    recommended = true,
-    reason = "Encaja con tus dias",
-    sessions = listOf(SplitSession("Torso", listOf("chest", "back"))),
-)
-
-private fun deltaFrame(text: String) =
-    "event: delta\ndata: " + JsonObject(mapOf("text" to JsonPrimitive(text))) + "\n\nevent: done\ndata: {}\n\n"
-
 class SupabaseCoachBlockRepositoryTest {
     private val requests = mutableListOf<HttpRequestData>()
     private var offline = false
     private val today = LocalDate(2026, 10, 29)
-    private val preference = InMemoryCoachModelPreference()
 
     private suspend fun repo(
         signIn: Boolean = true,
-        responseDelayMs: Long = 0,
-        requestTimeout: Duration = COACH_CLIENT_TIMEOUT,
         respond: (HttpRequestData) -> Pair<HttpStatusCode, String>,
     ): SupabaseCoachBlockRepository {
         val engine = MockEngine { request ->
             requests += request
-            if (responseDelayMs > 0 && request.url.encodedPath.contains("/functions/")) delay(responseDelayMs)
             val json = headersOf(HttpHeaders.ContentType, "application/json")
             when {
                 request.url.encodedPath.contains("/auth/") -> respond(SESSION, HttpStatusCode.OK, json)
@@ -106,12 +78,7 @@ class SupabaseCoachBlockRepositoryTest {
 
                 else -> {
                     val (status, body) = respond(request)
-                    val type = if (request.url.encodedPath.contains("/functions/") && status == HttpStatusCode.OK) {
-                        "text/event-stream"
-                    } else {
-                        "application/json"
-                    }
-                    respond(body, status, headersOf(HttpHeaders.ContentType, type))
+                    respond(body, status, json)
                 }
             }
         }
@@ -121,31 +88,7 @@ class SupabaseCoachBlockRepositoryTest {
             MemorySessionManager(),
         )
         if (signIn) SupabaseAuthRepository(client.auth).signInWithPassword(TestLoginCredentials("a@b.c", "pw"))
-        return SupabaseCoachBlockRepository(client.auth, client.postgrest, client.functions, preference, requestTimeout)
-    }
-
-    @Test
-    fun requestBlock_sendsTheModelKeyOfTheSelectedNonDefaultChoice() = runTest {
-        val repository = repo(respond = ::blockRoutes)
-        preference.select(CoachModelChoice.Haiku)
-
-        repository.requestBlock("p1", today, SPLIT).getOrThrow()
-
-        val body = (rest().first().body as TextContent).text
-        assertTrue(body.endsWith(""","model":"haiku"}"""), body)
-    }
-
-    @Test
-    fun requestBlock_omitsTheModelForTheDefaultAndHonoursASelectionChangedBetweenCalls() = runTest {
-        val repository = repo(respond = ::blockRoutes)
-        repository.requestBlock("p1", today, SPLIT)
-        preference.select(CoachModelChoice.Sonnet)
-        repository.requestBlock("p1", today, SPLIT)
-
-        val bodies = rest().filter { it.url.encodedPath.contains("/functions/") }.map { (it.body as TextContent).text }
-
-        assertTrue("model" !in bodies.first(), bodies.first())
-        assertTrue(bodies.last().endsWith(""","model":"sonnet"}"""), bodies.last())
+        return SupabaseCoachBlockRepository(client.auth, client.postgrest)
     }
 
     private fun rest() = requests.filter { !it.url.encodedPath.contains("/auth/") }
@@ -157,165 +100,8 @@ class SupabaseCoachBlockRepositoryTest {
     }
 
     private fun blockRoutes(request: HttpRequestData): Pair<HttpStatusCode, String> = when {
-        request.url.encodedPath.contains("/functions/") ->
-            HttpStatusCode.OK to deltaFrame("""{"plan_id":"p1","sessions":["s1"]}""")
-
         request.url.encodedPath.endsWith("/coach_plan_sessions") -> HttpStatusCode.OK to sessionRows()
-
         else -> HttpStatusCode.OK to planRow()
-    }
-
-    @Test
-    fun requestBlock_succeedsWhenTheAnswerIsSlowerThanTheClientDefaultButWithinTheConfiguredTimeout() = runTest {
-        val repository = repo(responseDelayMs = 300L, requestTimeout = 5.seconds, respond = ::blockRoutes)
-
-        assertTrue(repository.requestBlock("p1", today, SPLIT).isSuccess)
-    }
-
-    @Test
-    fun requestBlock_failsWithTimeoutNotNetworkWhenSlowerThanTheConfiguredTimeout() = runTest {
-        val repository = repo(responseDelayMs = 3_000L, requestTimeout = 200.milliseconds, respond = ::blockRoutes)
-
-        assertEquals(CoachFailure.Timeout, failureOf(repository.requestBlock("p1", today, SPLIT)))
-    }
-
-    @Test
-    fun coachClientTimeout_isLongerThanTheFunctionsOwnTimeout() {
-        assertTrue(COACH_CLIENT_TIMEOUT > 120.seconds)
-    }
-
-    @Test
-    fun requestBlock_postsKindTodayPlanIdAndSplit_thenReloadsFromTables() = runTest {
-        val repository = repo(respond = ::blockRoutes)
-
-        val block = repository.requestBlock("p1", today, SPLIT).getOrThrow()
-
-        val call = rest().first()
-        assertEquals(HttpMethod.Post, call.method)
-        assertTrue(call.url.encodedPath.endsWith("/functions/v1/coach"), call.url.toString())
-        assertEquals(
-            """{"kind":"plan_block","input":{"today":"2026-10-29","plan_id":"p1","split":""" +
-                """{"name":"Torso-pierna","sessions":[{"name":"Torso","focus":["chest","back"]}]}}}""",
-            (call.body as TextContent).text,
-        )
-        assertEquals("p1", block.planId)
-        assertEquals(3, block.training.daysPerWeek)
-        assertEquals("A", block.sessions.single().name)
-        assertFalse(block.saved)
-    }
-
-    @Test
-    fun requestSplitOptions_postsBlockSplitsAndDecodesTheOptions() = runTest {
-        val options = """{"options":[{"id":"a","name":"Torso-pierna","recommended":true,"reason":"Encaja",""" +
-            """"sessions":[{"name":"Torso","focus":["chest","back"]}]},{"id":"b","name":"Cuerpo completo",""" +
-            """"recommended":false,"reason":"Alternativa","sessions":[{"name":"Todo","focus":["chest"]}]}]}"""
-        val repository = repo { HttpStatusCode.OK to deltaFrame(options) }
-
-        val result = repository.requestSplitOptions(today).getOrThrow()
-
-        assertEquals(
-            """{"kind":"block_splits","input":{"today":"2026-10-29"}}""",
-            (rest().first().body as TextContent).text,
-        )
-        assertEquals(listOf("a", "b"), result.map { it.id })
-        assertEquals(listOf(true, false), result.map { it.recommended })
-        assertEquals(listOf("chest", "back"), result.first().sessions.single().focus)
-    }
-
-    @Test
-    fun requestSplitOptions_withoutOptions_failsAsOther() = runTest {
-        val repository = repo { HttpStatusCode.OK to deltaFrame("""{"options":[]}""") }
-
-        assertEquals(CoachFailure.Other, failureOf(repository.requestSplitOptions(today)))
-    }
-
-    @Test
-    fun requestBlock_sendsTheChosenSplitAndNoMinimalFlag() = runTest {
-        val repository = repo(respond = ::blockRoutes)
-
-        repository.requestBlock("p1", today, SPLIT).getOrThrow()
-
-        val body = (rest().first().body as TextContent).text
-        assertEquals(
-            """{"kind":"plan_block","input":{"today":"2026-10-29","plan_id":"p1","split":""" +
-                """{"name":"Torso-pierna","sessions":[{"name":"Torso","focus":["chest","back"]}]}}}""",
-            body,
-        )
-        assertFalse("minimal" in body)
-    }
-
-    @Test
-    fun requestBlock_userLimit_isMappedWithItsScope() = runTest {
-        val repository = repo {
-            HttpStatusCode.TooManyRequests to """{"error":{"code":"coach_limit_reached","scope":"user"}}"""
-        }
-
-        assertEquals(
-            CoachFailure.LimitReached(CoachFailure.Scope.User),
-            failureOf(repository.requestBlock("p1", today, SPLIT)),
-        )
-    }
-
-    @Test
-    fun requestBlock_globalLimit_isMappedWithItsScope() = runTest {
-        val repository = repo {
-            HttpStatusCode.TooManyRequests to """{"error":{"code":"coach_limit_reached","scope":"global"}}"""
-        }
-
-        assertEquals(
-            CoachFailure.LimitReached(CoachFailure.Scope.Global),
-            failureOf(repository.requestBlock("p1", today, SPLIT)),
-        )
-    }
-
-    @Test
-    fun requestBlock_noCredit_isMapped() = runTest {
-        val repository = repo { HttpStatusCode.PaymentRequired to """{"error":{"code":"coach_no_credit"}}""" }
-
-        assertEquals(CoachFailure.NoCredit, failureOf(repository.requestBlock("p1", today, SPLIT)))
-    }
-
-    @Test
-    fun requestBlock_invalidOutput_isMapped() = runTest {
-        val repository = repo { HttpStatusCode.BadGateway to """{"error":{"code":"coach_invalid_output"}}""" }
-
-        assertEquals(CoachFailure.Invalid, failureOf(repository.requestBlock("p1", today, SPLIT)))
-    }
-
-    @Test
-    fun requestBlock_missingData_isMapped() = runTest {
-        val repository = repo {
-            HttpStatusCode.UnprocessableEntity to
-                """{"error":{"code":"coach_missing_data","missing":["intention","place"]}}"""
-        }
-
-        assertEquals(
-            CoachFailure.Missing(setOf(MissingField.Intention, MissingField.Place)),
-            failureOf(repository.requestBlock("p1", today, SPLIT)),
-        )
-    }
-
-    @Test
-    fun requestBlock_cutStream_isOther() = runTest {
-        val repository = repo { HttpStatusCode.OK to "event: delta\ndata: {\"text\":\"{\"}\n\n" }
-
-        assertEquals(CoachFailure.Other, failureOf(repository.requestBlock("p1", today, SPLIT)))
-    }
-
-    @Test
-    fun requestBlock_offline_isNetworkError() = runTest {
-        val repository = repo(respond = ::blockRoutes)
-        offline = true
-
-        assertEquals(AppError.Network, repository.requestBlock("p1", today, SPLIT).appErrorOrNull())
-    }
-
-    @Test
-    fun requestBlock_signedOut_isUnauthorizedWithoutRequests() = runTest {
-        val repository = repo(signIn = false, respond = ::blockRoutes)
-
-        assertEquals(AppError.Unauthorized, repository.requestBlock("p1", today, SPLIT).appErrorOrNull())
-        assertTrue(rest().isEmpty())
     }
 
     @Test

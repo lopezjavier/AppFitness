@@ -69,8 +69,6 @@ class BlockPreviewViewModelTest {
         advanceUntilIdle()
 
         assertEquals(PlanFailureKind.Interrupted, model.failure())
-        assertTrue(blocks.requests.isEmpty())
-        assertEquals(0, blocks.splitRequests)
     }
 
     @Test
@@ -82,7 +80,6 @@ class BlockPreviewViewModelTest {
 
         assertEquals(coachBlock(), model.preview().block)
         assertEquals(1, model.preview().selectedWeek)
-        assertTrue(blocks.requests.isEmpty())
     }
 
     @Test
@@ -122,7 +119,6 @@ class BlockPreviewViewModelTest {
         advanceUntilIdle()
 
         assertEquals(PlanFailureKind.Offline, model.failure())
-        assertTrue(blocks.requests.isEmpty())
     }
 
     @Test
@@ -135,7 +131,6 @@ class BlockPreviewViewModelTest {
         advanceUntilIdle()
 
         assertEquals(coachBlock(), model.preview().block)
-        assertTrue(blocks.requests.isEmpty())
     }
 
     @Test
@@ -147,8 +142,6 @@ class BlockPreviewViewModelTest {
         advanceUntilIdle()
 
         assertEquals(PlanFailureKind.Interrupted, model.failure())
-        assertTrue(blocks.requests.isEmpty())
-        assertEquals(0, blocks.splitRequests)
     }
 
     @Test
@@ -191,7 +184,6 @@ class BlockPreviewViewModelTest {
         advanceUntilIdle()
 
         assertEquals("Press banca", model.preview().exerciseNames["ex-1"])
-        assertTrue(blocks.requests.isEmpty())
     }
 
     @Test
@@ -498,7 +490,6 @@ class BlockPreviewViewModelTest {
         advanceUntilIdle()
 
         assertTrue(blocks.saves.isEmpty())
-        assertTrue(blocks.requests.isEmpty())
     }
 
     @Test
@@ -610,7 +601,6 @@ class BlockPreviewViewModelTest {
         assertEquals(replaceSlotKey(2, 0), preview.replaceSlot)
         assertEquals(listOf("ex-4", "ex-3"), second.alternatives())
         assertTrue(blocks.saves.isEmpty())
-        assertTrue(blocks.requests.isEmpty())
     }
 
     @Test

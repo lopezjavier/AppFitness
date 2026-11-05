@@ -32,9 +32,6 @@ sealed interface CoachFailure {
     /** A device-built block broke a server invariant (SQLSTATE 22023, `block invariant: <code>`); nothing was saved. */
     data object InvalidBlock : CoachFailure
 
-    /** `coach_block_needs_changes`: the folder still breaks hard rules, so no block was built. */
-    data class NeedsChanges(val failures: List<FolderFalta>) : CoachFailure
-
     /** Any other or unreadable error. */
     data object Other : CoachFailure
 

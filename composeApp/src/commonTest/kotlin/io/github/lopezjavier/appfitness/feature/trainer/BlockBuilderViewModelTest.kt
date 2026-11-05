@@ -295,8 +295,6 @@ class BlockBuilderViewModelTest {
         assertEquals(0, state.state.score.percent)
         assertFalse(state.canSave)
         assertTrue(blocks.builtSaves.isEmpty())
-        assertEquals(0, blocks.splitRequests)
-        assertTrue(blocks.requests.isEmpty())
     }
 
     @Test
@@ -688,8 +686,6 @@ class BlockBuilderViewModelTest {
 
         assertEquals(before, restored)
         assertEquals(1, restored.selectedDay)
-        assertEquals(0, blocks.splitRequests)
-        assertTrue(blocks.requests.isEmpty())
         assertTrue(blocks.builtSaves.isEmpty())
     }
 

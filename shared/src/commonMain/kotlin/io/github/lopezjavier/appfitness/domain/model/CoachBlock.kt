@@ -108,18 +108,6 @@ enum class BlockSetType { Working, Drop }
 /** One planned set of a lifting exercise. */
 data class BlockSet(val type: BlockSetType, val repMin: Int, val repMax: Int, val rpe: Double?, val restSeconds: Int)
 
-/** A way to split the training days into sessions, offered before the block is built (`block_splits`). */
-data class SplitOption(
-    val id: String,
-    val name: String,
-    val recommended: Boolean,
-    val reason: String,
-    val sessions: List<SplitSession>,
-)
-
-/** One session of a [SplitOption] and the muscle group keys it focuses on. */
-data class SplitSession(val name: String, val focus: List<String>)
-
 /**
  * A pending replacement applied by "Guardar bloque": the exercise at [position] (1-based) of workout [sessionIndex]
  * becomes [exerciseId] in every week.

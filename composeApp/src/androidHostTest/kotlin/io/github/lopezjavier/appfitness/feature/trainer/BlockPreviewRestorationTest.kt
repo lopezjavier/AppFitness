@@ -218,6 +218,5 @@ class BlockPreviewRestorationTest {
         showRoot()
 
         rule.onNodeWithText("No se recibió el bloque. Inténtalo de nuevo.").assertExists()
-        assertEquals(0, blocks.requests.size)
     }
 }

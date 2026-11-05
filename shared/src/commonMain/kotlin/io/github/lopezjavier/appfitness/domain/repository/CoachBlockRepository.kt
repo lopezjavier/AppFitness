@@ -5,7 +5,6 @@ import io.github.lopezjavier.appfitness.domain.coach.builder.BuiltBlock
 import io.github.lopezjavier.appfitness.domain.model.BlockEdit
 import io.github.lopezjavier.appfitness.domain.model.BlockSaved
 import io.github.lopezjavier.appfitness.domain.model.CoachBlock
-import io.github.lopezjavier.appfitness.domain.model.SplitOption
 import kotlinx.datetime.LocalDate
 
 /**
@@ -13,15 +12,6 @@ import kotlinx.datetime.LocalDate
  * [io.github.lopezjavier.appfitness.domain.model.CoachException].
  */
 interface CoachBlockRepository {
-    /** Asks the coach for 2-3 ways to split the training days (exactly one is recommended). Costs money. */
-    suspend fun requestSplitOptions(today: LocalDate): Result<List<SplitOption>>
-
-    /**
-     * Asks the coach to build the block of [planId] as of [today] on the chosen [split] and returns the stored
-     * proposal. Costs money.
-     */
-    suspend fun requestBlock(planId: String, today: LocalDate, split: SplitOption): Result<CoachBlock>
-
     /** The 8-week history per exercise, the cardio options and the default cardio exercise for the block builder. */
     suspend fun loadBuilderInputs(today: LocalDate): Result<BuilderInputs>
 
