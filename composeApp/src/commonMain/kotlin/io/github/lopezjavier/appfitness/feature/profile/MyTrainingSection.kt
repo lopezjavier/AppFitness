@@ -16,7 +16,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import io.github.lopezjavier.appfitness.composeapp.resources.Res
-import io.github.lopezjavier.appfitness.composeapp.resources.my_training_cardio_helper
+import io.github.lopezjavier.appfitness.composeapp.resources.my_training_cardio_help_body
+import io.github.lopezjavier.appfitness.composeapp.resources.my_training_cardio_help_cd
 import io.github.lopezjavier.appfitness.composeapp.resources.my_training_cardio_label
 import io.github.lopezjavier.appfitness.composeapp.resources.my_training_equipment_label
 import io.github.lopezjavier.appfitness.composeapp.resources.my_training_intention_fat_loss
@@ -25,17 +26,18 @@ import io.github.lopezjavier.appfitness.composeapp.resources.my_training_intenti
 import io.github.lopezjavier.appfitness.composeapp.resources.my_training_intention_help_intro
 import io.github.lopezjavier.appfitness.composeapp.resources.my_training_intention_help_maintenance
 import io.github.lopezjavier.appfitness.composeapp.resources.my_training_intention_help_muscle
+import io.github.lopezjavier.appfitness.composeapp.resources.my_training_intention_help_note
 import io.github.lopezjavier.appfitness.composeapp.resources.my_training_intention_help_recomposition
 import io.github.lopezjavier.appfitness.composeapp.resources.my_training_intention_help_strength
 import io.github.lopezjavier.appfitness.composeapp.resources.my_training_intention_help_title
-import io.github.lopezjavier.appfitness.composeapp.resources.my_training_intention_helper
 import io.github.lopezjavier.appfitness.composeapp.resources.my_training_intention_label
 import io.github.lopezjavier.appfitness.composeapp.resources.my_training_intention_maintenance
 import io.github.lopezjavier.appfitness.composeapp.resources.my_training_intention_muscle
 import io.github.lopezjavier.appfitness.composeapp.resources.my_training_intention_recomposition
 import io.github.lopezjavier.appfitness.composeapp.resources.my_training_intention_strength
 import io.github.lopezjavier.appfitness.composeapp.resources.my_training_place_gym
-import io.github.lopezjavier.appfitness.composeapp.resources.my_training_place_helper
+import io.github.lopezjavier.appfitness.composeapp.resources.my_training_place_help_body
+import io.github.lopezjavier.appfitness.composeapp.resources.my_training_place_help_cd
 import io.github.lopezjavier.appfitness.composeapp.resources.my_training_place_home
 import io.github.lopezjavier.appfitness.composeapp.resources.my_training_place_label
 import io.github.lopezjavier.appfitness.composeapp.resources.my_training_place_other
@@ -89,8 +91,12 @@ internal fun MyTrainingSection(form: PreferencesForm, onEvent: (PreferencesEvent
     AppCard(Modifier.fillMaxWidth()) {
         Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
             IntentionRow(form.intention, unset) { pickerOpen = true }
-            Helper(stringResource(Res.string.my_training_intention_helper))
-            Label(stringResource(Res.string.my_training_place_label))
+            LabelWithHelp(
+                text = stringResource(Res.string.my_training_place_label),
+                helpContentDescription = stringResource(Res.string.my_training_place_help_cd),
+                helpBody = stringResource(Res.string.my_training_place_help_body),
+                helpTestTag = "preferences_place_help",
+            )
             val places = TrainingPlace.entries
             SegmentedSelector(
                 options = places.map {
@@ -100,7 +106,6 @@ internal fun MyTrainingSection(form: PreferencesForm, onEvent: (PreferencesEvent
                 onSelect = { onEvent(PreferencesEvent.SetPlace(places[it])) },
                 modifier = Modifier.testTag("preferences_place_selector"),
             )
-            Helper(stringResource(Res.string.my_training_place_helper))
             Label(stringResource(Res.string.my_training_equipment_label))
             FlowRow(
                 horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
@@ -110,7 +115,12 @@ internal fun MyTrainingSection(form: PreferencesForm, onEvent: (PreferencesEvent
                     EquipmentChip(equipment, form.equipment, onEvent)
                 }
             }
-            Label(stringResource(Res.string.my_training_cardio_label))
+            LabelWithHelp(
+                text = stringResource(Res.string.my_training_cardio_label),
+                helpContentDescription = stringResource(Res.string.my_training_cardio_help_cd),
+                helpBody = stringResource(Res.string.my_training_cardio_help_body),
+                helpTestTag = "preferences_cardio_help",
+            )
             FlowRow(
                 horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
                 verticalArrangement = Arrangement.spacedBy(Spacing.sm),
@@ -119,7 +129,6 @@ internal fun MyTrainingSection(form: PreferencesForm, onEvent: (PreferencesEvent
                     EquipmentChip(equipment, form.equipment, onEvent)
                 }
             }
-            Helper(stringResource(Res.string.my_training_cardio_helper))
             DaysRow(form.daysPerWeek, unset) { onEvent(PreferencesEvent.SetDaysPerWeek(it)) }
             SessionRow(form.sessionMinutes, unset) { onEvent(PreferencesEvent.SetSessionMinutes(it)) }
         }
@@ -141,7 +150,10 @@ private fun IntentionRow(intention: TrainingIntention?, unset: String, onClick: 
             contentDescription = stringResource(Res.string.my_training_intention_help_cd),
             title = stringResource(Res.string.my_training_intention_help_title),
             content = HelpContent(
-                paragraphs = listOf(stringResource(Res.string.my_training_intention_help_intro)),
+                paragraphs = listOf(
+                    stringResource(Res.string.my_training_intention_help_intro),
+                    stringResource(Res.string.my_training_intention_help_note),
+                ),
                 bullets = listOf(
                     stringResource(Res.string.my_training_intention_help_strength),
                     stringResource(Res.string.my_training_intention_help_muscle),
@@ -156,8 +168,26 @@ private fun IntentionRow(intention: TrainingIntention?, unset: String, onClick: 
 }
 
 @Composable
-private fun Label(text: String) =
-    Text(text = text, style = AppTheme.typography.bodyMedium, color = AppTheme.colors.textSecondary)
+private fun Label(text: String, modifier: Modifier = Modifier) = Text(
+    text = text,
+    style = AppTheme.typography.bodyMedium,
+    color = AppTheme.colors.textSecondary,
+    modifier = modifier,
+)
+
+/** A group label with its "?" help (R-57): the explanation lives in the sheet, not under the row. */
+@Composable
+private fun LabelWithHelp(text: String, helpContentDescription: String, helpBody: String, helpTestTag: String) {
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        Label(text, Modifier.weight(1f))
+        HelpButton(
+            contentDescription = helpContentDescription,
+            title = text,
+            body = helpBody,
+            testTag = helpTestTag,
+        )
+    }
+}
 
 @Composable
 private fun EquipmentChip(equipment: Equipment, selected: Set<Equipment>, onEvent: (PreferencesEvent) -> Unit) =
@@ -167,10 +197,6 @@ private fun EquipmentChip(equipment: Equipment, selected: Set<Equipment>, onEven
         onCheckedChange = { onEvent(PreferencesEvent.SetEquipment(equipment, it)) },
         modifier = Modifier.testTag("preferences_equipment_${equipment.tagName()}"),
     )
-
-@Composable
-private fun Helper(text: String) =
-    Text(text = text, style = AppTheme.typography.bodySmall, color = AppTheme.colors.textSecondary)
 
 @Composable
 private fun IntentionPicker(current: TrainingIntention?, onEvent: (PreferencesEvent) -> Unit, onClose: () -> Unit) {

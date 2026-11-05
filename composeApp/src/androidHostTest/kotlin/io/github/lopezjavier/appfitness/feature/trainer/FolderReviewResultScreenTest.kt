@@ -6,6 +6,7 @@ import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertHasNoClickAction
+import androidx.compose.ui.test.assertTextContains
 import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithTag
@@ -256,9 +257,12 @@ class FolderReviewResultScreenTest {
     fun fewDays_areRecommendedToBeSplit() {
         show(content(score = 7.5, items = metItems().dropLast(1) + ReviewItem.Days(1, met = false)))
 
-        rule.onNodeWithText(
-            "Solo 1 día de entreno; se recomiendan al menos 2. Si puedes, reparte este trabajo en 2 rutinas.",
-        ).assertExists()
+        rule.onNodeWithText("Solo 1 día de entreno; se recomiendan al menos 2.").assertExists()
+        rule.onAllNodesWithText("Si puedes", substring = true).assertCountEquals(0)
+        rule.onAllNodesWithTag("folder_review_result_row_days_help").assertCountEquals(1)
+        rule.onNodeWithTag("folder_review_result_row_days_help").performClick()
+        rule.onNodeWithTag("folder_review_result_row_days_help_sheet_body")
+            .assertTextContains("Si puedes, reparte este trabajo en 2 rutinas.", substring = true)
     }
 
     @Test
@@ -269,9 +273,20 @@ class FolderReviewResultScreenTest {
 
         rule.onNodeWithTag("folder_review_result_row_reps").assertExists()
         rule.onNodeWithTag("folder_review_result_row_order").assertExists()
-        rule.onNodeWithText("Press banca (Torso): 10-12 repeticiones; para fuerza, hasta 8. Cámbialo a 6-8.")
-            .assertExists()
-        rule.onNodeWithText("Torso: Press banca va después de Curl. Pon primero Press banca.").assertExists()
+        rule.onNodeWithText("Press banca (Torso): 10-12 repeticiones; para fuerza, hasta 8.").assertExists()
+        rule.onNodeWithText("Torso: Press banca va después de Curl.").assertExists()
+        rule.onAllNodesWithText("Cámbialo", substring = true, ignoreCase = true).assertCountEquals(0)
+        rule.onAllNodesWithText("Pon primero", substring = true, ignoreCase = true).assertCountEquals(0)
+        rule.onAllNodesWithTag("folder_review_result_row_reps_help").assertCountEquals(1)
+        rule.onAllNodesWithTag("folder_review_result_row_order_help").assertCountEquals(1)
+        rule.onNodeWithTag("folder_review_result_row_reps_help").performClick()
+        rule.onNodeWithTag("folder_review_result_row_reps_help_sheet_body")
+            .assertTextContains("Press banca: cámbialo a 6-8.", substring = true)
+        rule.onNodeWithTag("folder_review_result_row_reps_help_sheet_close").performClick()
+        rule.waitForIdle()
+        rule.onNodeWithTag("folder_review_result_row_order_help").performClick()
+        rule.onNodeWithTag("folder_review_result_row_order_help_sheet_body")
+            .assertTextContains("Torso: pon primero Press banca.", substring = true)
     }
 
     @Test

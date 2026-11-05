@@ -1,5 +1,6 @@
 package io.github.lopezjavier.appfitness.feature.trainer
 
+import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.assertTextContains
@@ -7,8 +8,12 @@ import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.hasAnyAncestor
 import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.hasText
+import androidx.compose.ui.test.junit4.StateRestorationTester
 import androidx.compose.ui.test.junit4.v2.createComposeRule
+import androidx.compose.ui.test.onAllNodesWithTag
+import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
+import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTextClearance
 import androidx.compose.ui.test.performTextInput
@@ -311,5 +316,59 @@ class IntakeRowSheetsTest {
         tap("your_data_row_free_text")
 
         assertEquals(listOf(PlanFixTarget.FreeText), fixed)
+    }
+
+    @Test
+    fun theYearsAndMaintenanceRows_haveTheirAdviceBehindOneQuestionMarkEach() {
+        showBeforeStart()
+        val years = "Años entrenando con regularidad. Si tu historial en la app es mayor, el entrenador usa el mayor."
+        val maintenance = "Si ya lo conoces, el entrenador lo usa hasta tener datos tuyos suficientes."
+
+        rule.onNodeWithText(years).assertDoesNotExist()
+        rule.onNodeWithText(maintenance).assertDoesNotExist()
+        rule.onAllNodesWithTag("before_start_row_training_years_help").assertCountEquals(1)
+        rule.onAllNodesWithTag("before_start_row_maintenance_help").assertCountEquals(1)
+        rule.onNodeWithContentDescription("Ayuda: tiempo entrenando").assertExists()
+        rule.onNodeWithContentDescription("Ayuda: calorías de mantenimiento").assertExists()
+        tap("before_start_row_training_years_help")
+        rule.onNodeWithTag(
+            "before_start_row_training_years_help_sheet_body",
+        ).assertTextContains(years, substring = true)
+        tap("before_start_row_training_years_help_sheet_close")
+        tap("before_start_row_maintenance_help")
+        rule.onNodeWithTag("before_start_row_maintenance_help_sheet_body")
+            .assertTextContains(maintenance, substring = true)
+        rule.onNodeWithTag("intake_years_sheet").assertDoesNotExist()
+    }
+
+    @Test
+    fun anOpenIntakeHelp_survivesRecreation() {
+        val model = BeforeStartViewModel(
+            coach,
+            intake,
+            MutableClock(),
+            FakeRoutineRepository(),
+            SavedStateHandle(mapOf("mode" to "plan")),
+        )
+        val tester = StateRestorationTester(rule)
+        tester.setContent {
+            AppTheme {
+                BeforeStartRoot(
+                    onBack = {},
+                    onCreate = {},
+                    onOpenYourData = {},
+                    onFix = {},
+                    viewModel = model,
+                    connectivity = FakeConnectivityObserver(),
+                )
+            }
+        }
+        rule.waitForIdle()
+        tap("before_start_row_training_years_help")
+
+        tester.emulateSavedInstanceStateRestore()
+        rule.waitForIdle()
+
+        rule.onNodeWithTag("before_start_row_training_years_help_sheet_body").assertExists()
     }
 }

@@ -7,12 +7,15 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.assertTextContains
 import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.junit4.StateRestorationTester
 import androidx.compose.ui.test.junit4.v2.createComposeRule
+import androidx.compose.ui.test.onAllNodesWithTag
+import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
@@ -301,6 +304,36 @@ class LiveSessionVolumeOptionsScreenTest {
 
     private fun measurement(id: String, at: String, source: MeasurementSource) =
         BodyMeasurement(id, Instant.parse(at), 74.0, source)
+
+    @Test
+    fun bodyWeightSheet_hasItsAdviceBehindOneQuestionMark() {
+        show()
+        val advice = "Se guarda como tu peso de hoy y se usa para calcular el volumen."
+
+        openMenu(PULL_UPS)
+        tap("live_exercise_0_menu_body_weight")
+
+        rule.onNodeWithText(advice).assertDoesNotExist()
+        rule.onAllNodesWithTag("live_exercise_0_body_weight_help").assertCountEquals(1)
+        rule.onNodeWithContentDescription("Ayuda: peso corporal").assertExists()
+        tap("live_exercise_0_body_weight_help")
+        rule.onNodeWithTag("live_exercise_0_body_weight_help_sheet_body").assertTextContains(advice, substring = true)
+    }
+
+    @Test
+    fun restSheet_hasItsCaveatBehindOneQuestionMark() {
+        show()
+        val caveat = "Solo en este entreno; la rutina no cambia."
+
+        openMenu(PULL_UPS)
+        tap("live_exercise_0_menu_rest")
+
+        rule.onNodeWithText(caveat).assertDoesNotExist()
+        rule.onAllNodesWithTag("live_exercise_0_rest_help").assertCountEquals(1)
+        rule.onNodeWithContentDescription("Ayuda: descanso").assertExists()
+        tap("live_exercise_0_rest_help")
+        rule.onNodeWithTag("live_exercise_0_rest_help_sheet_body").assertTextContains(caveat, substring = true)
+    }
 }
 
 private fun doneBodyweight(reps: Int) = WorkoutSet(1, SetType.Working, SetEntry.Bodyweight(0.0, reps), SESSION_START)

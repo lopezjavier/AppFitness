@@ -8,6 +8,7 @@ import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.assert
+import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
@@ -17,6 +18,8 @@ import androidx.compose.ui.test.assertTextContains
 import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.getUnclippedBoundsInRoot
 import androidx.compose.ui.test.junit4.v2.createComposeRule
+import androidx.compose.ui.test.onAllNodesWithTag
+import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
@@ -378,7 +381,18 @@ class PreferencesSectionScreenTest {
         rule.onNodeWithTag("preferences_reminders_switch_circumference").assertIsOff()
         rule.onNodeWithTag("preferences_reminders_switch_checkin").assertIsOn()
         rule.onNodeWithText("Recordatorio de peso").assertIsDisplayed()
-        rule.onNodeWithText("Se avisa el día elegido abajo, si aún no lo has respondido.").assertIsDisplayed()
+        rule.onNodeWithText("Si pasan 2 días sin pesarte.").assertIsDisplayed()
+        rule.onNodeWithText("Si pasan 2 semanas sin medirte.").assertIsDisplayed()
+        rule.onNodeWithText("Se avisa el día elegido abajo, si aún no lo has respondido.").assertDoesNotExist()
+        rule.onNodeWithText("Tu resumen semanal usa la semana de lunes a domingo que incluye ese día.")
+            .assertDoesNotExist()
+        rule.onAllNodesWithTag("preferences_reminders_checkin_help").assertCountEquals(1)
+        rule.onAllNodesWithTag("preferences_checkin_day_help").assertCountEquals(1)
+        rule.onNodeWithContentDescription("Ayuda: check-in semanal").assertExists()
+        rule.onNodeWithContentDescription("Ayuda: día del check-in").assertExists()
+        rule.onNodeWithTag("preferences_reminders_checkin_help").performClick()
+        rule.onNodeWithTag("preferences_reminders_checkin_help_sheet_body")
+            .assertTextContains("Se avisa el día elegido abajo, si aún no lo has respondido.", substring = true)
     }
 
     @Test

@@ -6,15 +6,19 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.semantics.SemanticsProperties
+import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertHeightIsAtLeast
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.assertIsOff
 import androidx.compose.ui.test.assertIsOn
 import androidx.compose.ui.test.assertIsSelected
+import androidx.compose.ui.test.assertTextContains
 import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.junit4.StateRestorationTester
 import androidx.compose.ui.test.junit4.v2.createComposeRule
+import androidx.compose.ui.test.onAllNodesWithTag
+import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
@@ -78,7 +82,12 @@ class PreferencesTrainingCardTest {
         rule.onNodeWithTag("preferences_training_card").performScrollTo()
         rule.onNodeWithText("Entrenamiento").assertExists()
         rule.onNodeWithText("Incluir calentamiento").assertExists()
-        rule.onNodeWithText("Las series de calentamiento cuentan en volumen, 1RM y récords.").assertExists()
+        rule.onNodeWithText("Las series de calentamiento cuentan en volumen, 1RM y récords.").assertDoesNotExist()
+        rule.onAllNodesWithTag("preferences_warm_up_help").assertCountEquals(1)
+        rule.onNodeWithContentDescription("Ayuda: calentamiento").assertExists()
+        rule.onNodeWithTag("preferences_warm_up_help").performClick()
+        rule.onNodeWithTag("preferences_warm_up_help_sheet_body")
+            .assertTextContains("Las series de calentamiento cuentan en volumen, 1RM y récords.", substring = true)
         rule.onNodeWithTag("preferences_warm_up_switch").assertIsOff()
         rule.onNodeWithTag("preferences_training_save").assertIsNotEnabled()
     }

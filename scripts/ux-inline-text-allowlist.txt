@@ -1,0 +1,39 @@
+# G18 allow-list (T-225, R-57): inline text under a row stays only when it is state, not advice.
+# One string key per line, `key  # reason`; a trailing or inner `*` is a wildcard. Not a warn-list: a
+# *_helper/_hint/_example/_advice/_tip key that is not listed fails, and an entry matching no key fails.
+# Anything that explains, advises or gives examples goes behind the row's "?" (HelpButton) instead.
+
+# One short fact of the row (a trigger, a figure, a range)
+preferences_reminders_weight_helper
+preferences_reminders_circumference_helper
+diary_remaining_hint
+session_cardio_minutes_hint
+circumference_range_hint
+
+# Reason a primary action or control is disabled (05 section 6.1: disabled and says why)
+block_builder_helper
+folder_block_save_helper
+meal_defaults_open_hint
+builder_warm_up_cap_hint
+meals_last_meal_hint
+meals_hint_has_entries
+
+# Empty states
+food_empty_search_hint
+food_templates_empty_hint
+default_picker_empty_hint
+exercise_empty_hint
+add_food_no_meal_hint
+onboarding_offline_hint
+catalog_swipe_hint
+
+# Option descriptors that name the option, not advice
+metric_type_*_hint
+food_photo_mode_*_hint
+food_photo_source_*_hint
+catalog_action_row_hint
+block_start_scratch_hint
+block_start_folder_hint
+
+# Picker instruction
+rpe_picker_hint

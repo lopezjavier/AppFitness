@@ -4,7 +4,6 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
@@ -13,18 +12,21 @@ import androidx.compose.ui.platform.testTag
 import io.github.lopezjavier.appfitness.composeapp.resources.Res
 import io.github.lopezjavier.appfitness.composeapp.resources.intake_kcal_range
 import io.github.lopezjavier.appfitness.composeapp.resources.intake_maintenance_field
-import io.github.lopezjavier.appfitness.composeapp.resources.intake_maintenance_hint
+import io.github.lopezjavier.appfitness.composeapp.resources.intake_maintenance_help_body
+import io.github.lopezjavier.appfitness.composeapp.resources.intake_maintenance_help_cd
 import io.github.lopezjavier.appfitness.composeapp.resources.intake_maintenance_label
 import io.github.lopezjavier.appfitness.composeapp.resources.intake_save_action
 import io.github.lopezjavier.appfitness.composeapp.resources.intake_save_failed
 import io.github.lopezjavier.appfitness.composeapp.resources.intake_unset
-import io.github.lopezjavier.appfitness.composeapp.resources.intake_years_hint
+import io.github.lopezjavier.appfitness.composeapp.resources.intake_years_help_body
+import io.github.lopezjavier.appfitness.composeapp.resources.intake_years_help_cd
 import io.github.lopezjavier.appfitness.composeapp.resources.intake_years_label
 import io.github.lopezjavier.appfitness.composeapp.resources.intake_years_less
 import io.github.lopezjavier.appfitness.composeapp.resources.intake_years_more
 import io.github.lopezjavier.appfitness.composeapp.resources.trainer_provisional
 import io.github.lopezjavier.appfitness.designsystem.AppEditSheet
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
+import io.github.lopezjavier.appfitness.designsystem.HelpButton
 import io.github.lopezjavier.appfitness.designsystem.LocalAppHaptics
 import io.github.lopezjavier.appfitness.designsystem.NavigationRow
 import io.github.lopezjavier.appfitness.designsystem.NumberInput
@@ -35,9 +37,22 @@ import io.github.lopezjavier.appfitness.designsystem.StatusChip
 import io.github.lopezjavier.appfitness.designsystem.StatusTone
 import io.github.lopezjavier.appfitness.designsystem.offlineHint
 import io.github.lopezjavier.appfitness.domain.model.PlanFixTarget
+import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.stringResource
 
 private const val MAX_KCAL_DIGITS = 4
+
+/** The "?" help of an intake row (R-57): the explanation of the row lives in a sheet, not under it. */
+private class RowHelp(val contentDescription: StringResource, val body: StringResource)
+
+private fun IntakeRowKind.help(): RowHelp? = when (this) {
+    IntakeRowKind.TrainingYears -> RowHelp(Res.string.intake_years_help_cd, Res.string.intake_years_help_body)
+
+    IntakeRowKind.Maintenance ->
+        RowHelp(Res.string.intake_maintenance_help_cd, Res.string.intake_maintenance_help_body)
+
+    else -> null
+}
 
 /**
  * The intake rows of [kinds] (R-55): value or "Sin indicar", a "Provisional" chip for a stated number, and a tap that
@@ -55,12 +70,23 @@ internal fun IntakeRows(
     Column(modifier) {
         kinds.forEach { kind ->
             val tag = kind.rowTag(screen)
-            NavigationRow(
-                label = stringResource(kind.intakeLabel()),
-                value = kind.valueText(intake) ?: unset,
-                onClick = { onOpen(kind) },
-                modifier = Modifier.testTag(tag),
-            )
+            val help = kind.help()
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                NavigationRow(
+                    label = stringResource(kind.intakeLabel()),
+                    value = kind.valueText(intake) ?: unset,
+                    onClick = { onOpen(kind) },
+                    modifier = Modifier.weight(1f).testTag(tag),
+                )
+                if (help != null) {
+                    HelpButton(
+                        contentDescription = stringResource(help.contentDescription),
+                        title = stringResource(kind.intakeLabel()),
+                        body = stringResource(help.body),
+                        testTag = "${tag}_help",
+                    )
+                }
+            }
             if (kind != IntakeRowKind.FreeText && intake.isProvisional(kind)) {
                 StatusChip(
                     text = stringResource(Res.string.trainer_provisional),
@@ -115,11 +141,6 @@ private fun YearsSheet(
         commitHint = hint,
         testTagPrefix = "intake_years_sheet",
     ) {
-        Text(
-            text = stringResource(Res.string.intake_years_hint),
-            style = AppTheme.typography.bodyMedium,
-            color = AppTheme.colors.textSecondary,
-        )
         Row(
             Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically,
@@ -166,11 +187,6 @@ private fun MaintenanceSheet(
         commitHint = hint,
         testTagPrefix = "intake_maintenance_sheet",
     ) {
-        Text(
-            text = stringResource(Res.string.intake_maintenance_hint),
-            style = AppTheme.typography.bodyMedium,
-            color = AppTheme.colors.textSecondary,
-        )
         NumberInput(
             value = sheet.text,
             onValueChange = { onEvent(IntakeRowEvent.EditMaintenance(it)) },

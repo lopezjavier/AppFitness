@@ -2,7 +2,7 @@ package io.github.lopezjavier.appfitness.feature.workout
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.Row
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -11,16 +11,19 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import io.github.lopezjavier.appfitness.composeapp.resources.Res
 import io.github.lopezjavier.appfitness.composeapp.resources.live_body_weight_error
 import io.github.lopezjavier.appfitness.composeapp.resources.live_body_weight_field_label
-import io.github.lopezjavier.appfitness.composeapp.resources.live_body_weight_hint
+import io.github.lopezjavier.appfitness.composeapp.resources.live_body_weight_help_body
+import io.github.lopezjavier.appfitness.composeapp.resources.live_body_weight_help_cd
 import io.github.lopezjavier.appfitness.composeapp.resources.live_body_weight_title
 import io.github.lopezjavier.appfitness.composeapp.resources.live_options_save_error
 import io.github.lopezjavier.appfitness.designsystem.AppEditSheet
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
+import io.github.lopezjavier.appfitness.designsystem.HelpButton
 import io.github.lopezjavier.appfitness.designsystem.NumberInput
 import io.github.lopezjavier.appfitness.designsystem.NumberInputDefaults
 import io.github.lopezjavier.appfitness.designsystem.SheetCommit
@@ -88,22 +91,25 @@ internal fun BodyWeightSheet(
             onClose()
         },
     ) {
-        NumberInput(
-            value = text,
-            onValueChange = {
-                text = it
-                onEvent(LiveSessionEvent.BodyWeightDraftChanged(it))
-            },
-            label = label,
-            modifier = Modifier.fillMaxWidth().testTag("${tag}_field"),
-            maxDecimals = WEIGHT_MAX_DECIMALS,
-            maxIntegerDigits = WEIGHT_MAX_INTEGER_DIGITS,
-        )
-        Text(
-            text = stringResource(Res.string.live_body_weight_hint),
-            style = AppTheme.typography.bodySmall,
-            color = AppTheme.colors.textSecondary,
-        )
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            NumberInput(
+                value = text,
+                onValueChange = {
+                    text = it
+                    onEvent(LiveSessionEvent.BodyWeightDraftChanged(it))
+                },
+                label = label,
+                modifier = Modifier.weight(1f).testTag("${tag}_field"),
+                maxDecimals = WEIGHT_MAX_DECIMALS,
+                maxIntegerDigits = WEIGHT_MAX_INTEGER_DIGITS,
+            )
+            HelpButton(
+                contentDescription = stringResource(Res.string.live_body_weight_help_cd),
+                title = stringResource(Res.string.live_body_weight_title),
+                body = stringResource(Res.string.live_body_weight_help_body),
+                testTag = "${tag}_help",
+            )
+        }
     }
 }
 

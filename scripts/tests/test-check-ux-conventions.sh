@@ -16,9 +16,9 @@ trap 'rm -rf "$work"' EXIT
 failures=0
 cases=0
 
-run() { # tree warnings-file -> sets rc and out
+run() { # tree warnings-file [allowlist-file] -> sets rc and out (the allow-list defaults to an empty one)
   rc=0
-  out=$(bash "$guard" "$1" "$2" 2>&1) || rc=$?
+  out=$(bash "$guard" "$1" "$2" "${3:-$work/empty.txt}" 2>&1) || rc=$?
 }
 
 expect() { # name expected-rc [WARN|NOWARN]
@@ -145,6 +145,8 @@ printf '%s' "$out" | grep -q 'BadOutsideTap.kt' && printf '%s' "$out" | grep -q 
 
 # T-124b: the exercise screens are migrated, so the real warning list no longer excuses G2/G3/G5 there.
 real_list="$here/../ux-conventions-warnings.txt"
+real_allow="$here/../ux-inline-text-allowlist.txt"
+repo_root="$here/../.."
 for pair in "2:ExerciseFormSheet" "3:ExerciseDetailScreen" "3:ExercisePickerScreen" "5:ExerciseDetailScreen"; do
   n="${pair%%:*}"
   file="${pair##*:}"
@@ -207,6 +209,51 @@ expect "invalid regex in the list is a grep error" 2
 
 run "$here/ux-conventions/g2" "$work/missing.txt"
 expect "missing warning list is an error" 2
+
+# G18 (R-57): inline helper/hint text must be allow-listed; the allow-list cannot rot.
+xml18="composeApp/src/commonMain/composeResources/values/strings.xml"
+kt18="composeApp/src/commonMain/kotlin/demo/feature/profile/Row.kt"
+mk18() { # name file-path content
+  local d="$work/g18-$1"
+  mkdir -p "$d/$(dirname "$2")"
+  printf '%s
+' "$3" > "$d/$2"
+  echo "$d"
+}
+bad18='<string name="x_helper">Añade 3 series para progresar</string>'
+run "$(mk18 a "$xml18" "$bad18")" "$empty"
+expect "G18 unlisted _helper key fails" 1
+printf '%s' "$out" | grep -q 'G18' && echo "ok   G18 is named in the output"   || { echo "FAIL G18 not named in the output"; failures=$((failures + 1)); }
+printf 'x_helper  # one short fact
+' > "$work/allow-x.txt"
+run "$(mk18 b "$xml18" "$bad18")" "$empty" "$work/allow-x.txt"
+expect "G18 allow-listed _helper key passes" 0 NOWARN
+printf 'x_*  # wildcard
+' > "$work/allow-wild.txt"
+run "$(mk18 c "$xml18" "$bad18")" "$empty" "$work/allow-wild.txt"
+expect "G18 wildcard entry allow-lists the key" 0 NOWARN
+run "$(mk18 d "$xml18" '<string name="x_title">Titulo</string>')" "$empty"
+expect "G18 a key without a helper/hint suffix passes" 0 NOWARN
+run "$(mk18 e "$xml18" '<string name="x_title">Titulo</string>')" "$empty" "$work/allow-x.txt"
+expect "G18 stale allow-list entry fails" 1
+run "$(mk18 f "$kt18" 'AppSwitchRow(helper = stringResource(Res.string.y_note))')" "$empty"
+expect "G18 helper = stringResource in feature code fails" 1
+run "$(mk18 g "$kt18" 'Helper(stringResource(Res.string.y_note))')" "$empty"
+expect "G18 Helper(stringResource) in feature code fails" 1
+printf 'y_note
+' > "$work/allow-y.txt"
+run "$(mk18 h "$kt18" 'AppSwitchRow(helper = stringResource(Res.string.y_note))')" "$empty" "$work/allow-y.txt"
+expect "G18 allow-listed key in a helper = argument passes" 0 NOWARN
+printf 'Not A Key
+' > "$work/allow-bad.txt"
+run "$(mk18 i "$xml18" "$bad18")" "$empty" "$work/allow-bad.txt"
+expect "G18 malformed allow-list line is an error" 2
+printf 'G18 .*
+' > "$work/listed-g18.txt"
+run "$(mk18 j "$xml18" "$bad18")" "$work/listed-g18.txt"
+expect "G18 violation in a listed path warns and passes (parser accepts G18)" 0 WARN
+run "$repo_root" "$real_list" "$real_allow"
+expect "the real tree passes with the real allow-list" 0
 
 echo "$cases cases, $failures failure(s)"
 [ "$failures" -eq 0 ]

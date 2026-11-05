@@ -1,10 +1,14 @@
 package io.github.lopezjavier.appfitness.feature.profile
 
+import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.assertIsOff
 import androidx.compose.ui.test.assertIsOn
+import androidx.compose.ui.test.assertTextContains
 import androidx.compose.ui.test.junit4.v2.createComposeRule
+import androidx.compose.ui.test.onAllNodesWithTag
+import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
@@ -73,13 +77,20 @@ class PreferencesAutoUpdateTest {
     }
 
     @Test
-    fun theSwitch_isInTheTrainingCard_withItsHelper_andOffByDefault() {
+    fun theSwitch_isInTheTrainingCard_withItsHelpBehindAQuestionMark_andOffByDefault() {
         show()
 
         rule.onNodeWithTag("preferences_auto_update_switch").performScrollTo().assertIsOff()
         rule.onNodeWithText("Actualizar automáticamente").assertExists()
-        rule.onNodeWithText("Al terminar un entreno de una rutina, la rutina se actualiza sin preguntar.")
-            .assertExists()
+        val text = "Al terminar un entreno de una rutina, la rutina se actualiza sin preguntar."
+        rule.onNodeWithText(text).assertDoesNotExist()
+        rule.onAllNodesWithTag("preferences_auto_update_help").assertCountEquals(1)
+        rule.onNodeWithContentDescription("Ayuda: actualizar rutina").assertExists()
+        rule.onNodeWithTag("preferences_auto_update_help").performScrollTo().performClick()
+        rule.onNodeWithTag("preferences_auto_update_help_sheet_body").assertTextContains(text, substring = true)
+        rule.onNodeWithTag("preferences_auto_update_help_sheet_close").performClick()
+        rule.waitForIdle()
+        rule.onNodeWithTag("preferences_auto_update_help_sheet_body").assertDoesNotExist()
         rule.onNodeWithTag("preferences_training_save").assertIsNotEnabled()
     }
 

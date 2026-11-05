@@ -4,10 +4,10 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.size
 import androidx.compose.material3.Icon
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
@@ -37,7 +37,8 @@ import io.github.lopezjavier.appfitness.composeapp.resources.live_exercise_menu_
 import io.github.lopezjavier.appfitness.composeapp.resources.live_exercise_menu_routine_note
 import io.github.lopezjavier.appfitness.composeapp.resources.live_exercise_menu_title
 import io.github.lopezjavier.appfitness.composeapp.resources.live_exercise_menu_warm_up_calc
-import io.github.lopezjavier.appfitness.composeapp.resources.live_rest_sheet_hint
+import io.github.lopezjavier.appfitness.composeapp.resources.live_rest_help_body
+import io.github.lopezjavier.appfitness.composeapp.resources.live_rest_help_cd
 import io.github.lopezjavier.appfitness.composeapp.resources.live_rest_sheet_title
 import io.github.lopezjavier.appfitness.composeapp.resources.weight_hc_note
 import io.github.lopezjavier.appfitness.designsystem.AppActionSheet
@@ -46,6 +47,7 @@ import io.github.lopezjavier.appfitness.designsystem.AppShapes
 import io.github.lopezjavier.appfitness.designsystem.AppSheetAction
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
 import io.github.lopezjavier.appfitness.designsystem.AppTopBarDefaults
+import io.github.lopezjavier.appfitness.designsystem.HelpButton
 import io.github.lopezjavier.appfitness.designsystem.NumberStepper
 import io.github.lopezjavier.appfitness.designsystem.SheetCommit
 import io.github.lopezjavier.appfitness.designsystem.Spacing
@@ -188,22 +190,25 @@ internal fun ExerciseRestSheet(position: Int, currentSeconds: Int, onSave: (Int)
             verticalArrangement = Arrangement.spacedBy(Spacing.md),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
-            NumberStepper(
-                valueText = restDurationText(seconds),
-                onDecrement = { seconds = (seconds - RoutineBounds.REST_STEP_SECONDS).coerceAtLeast(MIN) },
-                onIncrement = { seconds = (seconds + RoutineBounds.REST_STEP_SECONDS).coerceAtMost(MAX) },
-                decrementEnabled = seconds > MIN,
-                incrementEnabled = seconds < MAX,
-                decrementContentDescription = stringResource(Res.string.builder_rest_decrease_cd),
-                incrementContentDescription = stringResource(Res.string.builder_rest_increase_cd),
-                stateDescription = restStateDescription(seconds),
-                testTagPrefix = tag,
-            )
-            Text(
-                text = stringResource(Res.string.live_rest_sheet_hint),
-                style = AppTheme.typography.bodySmall,
-                color = AppTheme.colors.textSecondary,
-            )
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                NumberStepper(
+                    valueText = restDurationText(seconds),
+                    onDecrement = { seconds = (seconds - RoutineBounds.REST_STEP_SECONDS).coerceAtLeast(MIN) },
+                    onIncrement = { seconds = (seconds + RoutineBounds.REST_STEP_SECONDS).coerceAtMost(MAX) },
+                    decrementEnabled = seconds > MIN,
+                    incrementEnabled = seconds < MAX,
+                    decrementContentDescription = stringResource(Res.string.builder_rest_decrease_cd),
+                    incrementContentDescription = stringResource(Res.string.builder_rest_increase_cd),
+                    stateDescription = restStateDescription(seconds),
+                    testTagPrefix = tag,
+                )
+                HelpButton(
+                    contentDescription = stringResource(Res.string.live_rest_help_cd),
+                    title = stringResource(Res.string.live_rest_sheet_title),
+                    body = stringResource(Res.string.live_rest_help_body),
+                    testTag = "${tag}_help",
+                )
+            }
         }
     }
 }

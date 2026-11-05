@@ -12,6 +12,7 @@ import io.github.lopezjavier.appfitness.composeapp.resources.folder_review_resul
 import io.github.lopezjavier.appfitness.composeapp.resources.folder_review_result_band_fair
 import io.github.lopezjavier.appfitness.composeapp.resources.folder_review_result_band_good
 import io.github.lopezjavier.appfitness.composeapp.resources.folder_review_result_band_poor
+import io.github.lopezjavier.appfitness.composeapp.resources.folder_review_result_days_help
 import io.github.lopezjavier.appfitness.composeapp.resources.folder_review_result_days_met
 import io.github.lopezjavier.appfitness.composeapp.resources.folder_review_result_days_one
 import io.github.lopezjavier.appfitness.composeapp.resources.folder_review_result_days_other
@@ -30,9 +31,11 @@ import io.github.lopezjavier.appfitness.composeapp.resources.folder_review_resul
 import io.github.lopezjavier.appfitness.composeapp.resources.folder_review_result_group_sets_one
 import io.github.lopezjavier.appfitness.composeapp.resources.folder_review_result_group_sets_other
 import io.github.lopezjavier.appfitness.composeapp.resources.folder_review_result_met
+import io.github.lopezjavier.appfitness.composeapp.resources.folder_review_result_order_help
 import io.github.lopezjavier.appfitness.composeapp.resources.folder_review_result_order_line
 import io.github.lopezjavier.appfitness.composeapp.resources.folder_review_result_order_met
 import io.github.lopezjavier.appfitness.composeapp.resources.folder_review_result_order_title
+import io.github.lopezjavier.appfitness.composeapp.resources.folder_review_result_reps_help
 import io.github.lopezjavier.appfitness.composeapp.resources.folder_review_result_reps_line
 import io.github.lopezjavier.appfitness.composeapp.resources.folder_review_result_reps_met
 import io.github.lopezjavier.appfitness.composeapp.resources.folder_review_result_reps_title
@@ -107,13 +110,11 @@ internal fun ReviewItem.supporting(): String = when (this) {
     } else {
         lines.map { line ->
             val range = if (line.repMin == line.repMax) "${line.repMin}" else "${line.repMin}-${line.repMax}"
-            val target = minOf(line.repMin, HEAVY_REPS_SUGGESTION_CAP).toString()
             stringResource(
                 Res.string.folder_review_result_reps_line,
                 line.exerciseName,
                 line.routineName,
                 range,
-                target,
             )
         }.joinToString("\n")
     }
@@ -145,11 +146,31 @@ private fun ReviewItem.Group.groupLines(): List<String> = listOf(
 
 /**
  * The text behind a row's `?` (R-57), or null when the row has none: for a group, if unmet what to add and an example,
- * then the over-20 note. One function for "Revisar tus rutinas" and the folder block's "Qué falta".
+ * then the over-20 note; for days, reps and order, the advice of each offender. One function for "Revisar tus
+ * rutinas" and the folder block's "Qué falta".
  */
 @Composable
-internal fun ReviewItem.helpText(): String? {
-    if (this !is ReviewItem.Group) return null
+internal fun ReviewItem.helpText(): String? = when (this) {
+    is ReviewItem.Group -> groupHelpText()
+
+    is ReviewItem.Days -> if (met) null else stringResource(Res.string.folder_review_result_days_help)
+
+    is ReviewItem.Reps -> lines.map { line ->
+        val target = minOf(line.repMin, HEAVY_REPS_SUGGESTION_CAP).toString()
+        stringResource(Res.string.folder_review_result_reps_help, line.exerciseName, target)
+    }.takeIf { it.isNotEmpty() }?.joinToString("\n")
+
+    is ReviewItem.Order -> lines.map { line ->
+        stringResource(
+            Res.string.folder_review_result_order_help,
+            line.routineName,
+            line.mainLifts.joinToString(", "),
+        )
+    }.takeIf { it.isNotEmpty() }?.joinToString("\n")
+}
+
+@Composable
+private fun ReviewItem.Group.groupHelpText(): String? {
     val lines = buildList {
         if (!met) {
             add(

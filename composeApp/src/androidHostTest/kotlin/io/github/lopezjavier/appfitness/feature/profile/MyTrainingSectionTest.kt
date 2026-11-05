@@ -2,6 +2,7 @@ package io.github.lopezjavier.appfitness.feature.profile
 
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.remember
+import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
@@ -10,6 +11,8 @@ import androidx.compose.ui.test.assertIsOn
 import androidx.compose.ui.test.assertTextContains
 import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.junit4.v2.createComposeRule
+import androidx.compose.ui.test.onAllNodesWithTag
+import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
@@ -186,7 +189,7 @@ class MyTrainingSectionTest {
     }
 
     @Test
-    fun cardioGroup_showsTheSingleMachineChip_andTheWalkingHelper() {
+    fun cardioGroup_showsTheSingleMachineChip_andTheWalkingAdviceBehindItsHelp() {
         show()
         rule.onNodeWithText("Cardio").performScrollTo().assertIsDisplayed()
         mapOf(
@@ -195,9 +198,33 @@ class MyTrainingSectionTest {
         ).forEach { (tag, label) ->
             rule.onNodeWithTag("preferences_equipment_$tag").performScrollTo().assertTextContains(label)
         }
-        rule.onNodeWithText("Sin máquinas de cardio, el entrenador te propone caminar a paso ligero.")
-            .performScrollTo()
-            .assertIsDisplayed()
+        val advice = "Sin máquinas de cardio, el entrenador te propone caminar a paso ligero."
+        rule.onNodeWithText(advice).assertDoesNotExist()
+        rule.onAllNodesWithTag("preferences_cardio_help").assertCountEquals(1)
+        rule.onNodeWithContentDescription("Ayuda: cardio").assertExists()
+        tap("preferences_cardio_help")
+        rule.onNodeWithTag("preferences_cardio_help_sheet_body").assertTextContains(advice, substring = true)
+    }
+
+    @Test
+    fun placeLabel_hasOneHelp_andItsAdviceIsNotInline() {
+        show()
+        val advice = "Al elegir un lugar se preselecciona el equipamiento; puedes cambiarlo."
+        rule.onNodeWithText(advice).assertDoesNotExist()
+        rule.onAllNodesWithTag("preferences_place_help").assertCountEquals(1)
+        rule.onNodeWithContentDescription("Ayuda: lugar").assertExists()
+        tap("preferences_place_help")
+        rule.onNodeWithTag("preferences_place_help_sheet_body").assertTextContains(advice, substring = true)
+    }
+
+    @Test
+    fun intentionHelp_mergesTheOldAdviceAsAnExtraParagraph_withoutASecondQuestionMark() {
+        show()
+        val note = "Tu objetivo orienta las sugerencias del entrenador. No cambia tu objetivo calórico."
+        rule.onNodeWithText(note).assertDoesNotExist()
+        rule.onAllNodesWithTag("preferences_intention_help").assertCountEquals(1)
+        tap("preferences_intention_help")
+        rule.onNodeWithTag("preferences_intention_help_sheet_body").assertTextContains(note, substring = true)
     }
 
     @Test

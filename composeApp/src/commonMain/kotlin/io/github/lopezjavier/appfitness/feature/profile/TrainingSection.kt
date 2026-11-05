@@ -12,17 +12,20 @@ import androidx.compose.ui.platform.testTag
 import io.github.lopezjavier.appfitness.composeapp.resources.Res
 import io.github.lopezjavier.appfitness.composeapp.resources.help_previous_mode_body
 import io.github.lopezjavier.appfitness.composeapp.resources.help_previous_mode_cd
-import io.github.lopezjavier.appfitness.composeapp.resources.preferences_auto_update_helper
+import io.github.lopezjavier.appfitness.composeapp.resources.preferences_auto_update_help_body
+import io.github.lopezjavier.appfitness.composeapp.resources.preferences_auto_update_help_cd
 import io.github.lopezjavier.appfitness.composeapp.resources.preferences_auto_update_label
 import io.github.lopezjavier.appfitness.composeapp.resources.preferences_previous_mode_overall
 import io.github.lopezjavier.appfitness.composeapp.resources.preferences_previous_mode_routine
 import io.github.lopezjavier.appfitness.composeapp.resources.preferences_previous_values_title
-import io.github.lopezjavier.appfitness.composeapp.resources.preferences_warm_up_helper
+import io.github.lopezjavier.appfitness.composeapp.resources.preferences_warm_up_help_body
+import io.github.lopezjavier.appfitness.composeapp.resources.preferences_warm_up_help_cd
 import io.github.lopezjavier.appfitness.composeapp.resources.preferences_warm_up_label
 import io.github.lopezjavier.appfitness.designsystem.AppOption
 import io.github.lopezjavier.appfitness.designsystem.AppSwitchRow
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
 import io.github.lopezjavier.appfitness.designsystem.HelpButton
+import io.github.lopezjavier.appfitness.designsystem.HelpContent
 import io.github.lopezjavier.appfitness.designsystem.SegmentedSelector
 import io.github.lopezjavier.appfitness.designsystem.Spacing
 import io.github.lopezjavier.appfitness.domain.model.CalculatorSettings
@@ -56,17 +59,21 @@ internal fun TrainingSection(
         ) {
             AppSwitchRow(
                 label = stringResource(Res.string.preferences_warm_up_label),
-                helper = stringResource(Res.string.preferences_warm_up_helper),
                 checked = warmUpIncluded,
                 onCheckedChange = onChange,
                 modifier = Modifier.testTag("preferences_warm_up_switch"),
+                help = HelpContent.fromBody(stringResource(Res.string.preferences_warm_up_help_body)),
+                helpContentDescription = stringResource(Res.string.preferences_warm_up_help_cd),
+                helpTestTag = "preferences_warm_up_help",
             )
             AppSwitchRow(
                 label = stringResource(Res.string.preferences_auto_update_label),
-                helper = stringResource(Res.string.preferences_auto_update_helper),
                 checked = autoUpdateRoutine,
                 onCheckedChange = onAutoUpdateRoutine,
                 modifier = Modifier.testTag("preferences_auto_update_switch"),
+                help = HelpContent.fromBody(stringResource(Res.string.preferences_auto_update_help_body)),
+                helpContentDescription = stringResource(Res.string.preferences_auto_update_help_cd),
+                helpTestTag = "preferences_auto_update_help",
             )
             PreviousValuesSelector(previousValuesMode, onPreviousValuesMode)
             CalculatorsBlock(calculators, platesError, onEvent)

@@ -1,9 +1,12 @@
 package io.github.lopezjavier.appfitness.feature.profile
 
+import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.assertTextContains
 import androidx.compose.ui.test.junit4.v2.createComposeRule
+import androidx.compose.ui.test.onAllNodesWithTag
+import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
@@ -90,7 +93,12 @@ class PreferencesCookingTest {
         rule.onNodeWithText("Del peso crudo. Por defecto 1 %").assertExists()
         rule.onNodeWithText("Del peso crudo. Por defecto 2 %").assertExists()
         rule.onNodeWithText("Del peso crudo. Por defecto 8 %").assertExists()
-        rule.onNodeWithText("Porcentaje del peso crudo que se añade como grasa.").assertExists()
+        rule.onNodeWithText("Porcentaje del peso crudo que se añade como grasa.").assertDoesNotExist()
+        rule.onAllNodesWithTag("preferences_cooking_help").assertCountEquals(1)
+        rule.onNodeWithContentDescription("Ayuda: cocinado").assertExists()
+        rule.onNodeWithTag("preferences_cooking_help").performClick()
+        rule.onNodeWithTag("preferences_cooking_help_sheet_body")
+            .assertTextContains("Porcentaje del peso crudo que se añade como grasa.", substring = true)
         rule.onNodeWithTag("preferences_cooking_save").assertIsNotEnabled()
     }
 
