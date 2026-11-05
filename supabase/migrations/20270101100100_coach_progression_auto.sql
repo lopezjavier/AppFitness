@@ -1,6 +1,8 @@
 -- T-227 (E14, US-97/US-104): the coach applies the double progression on its own inside an accepted block.
 -- Rules: planning/04-business-rules.md section 4.14. Everything here is security invoker and filtered by
--- auth.uid() through RLS; there is no security definer.
+-- auth.uid() through RLS, except the three RPCs that write coach_changes (apply_coach_progression, undo_coach_change,
+-- decide_progression_flag): those are security definer with a fixed search_path and scope every statement to
+-- auth.uid(), because clients have no write privilege on coach_changes (its rows are trusted by undo).
 --
 -- Trigger: the client calls apply_coach_progression(session) once the "update the routine?" question (ADR-70) is
 -- resolved, so the coach's write always lands on top of update_routine_from_session. Calling it before that update
@@ -366,7 +368,7 @@ create function public.apply_coach_progression(p_session_id uuid)
 returns jsonb
 language plpgsql
 volatile
-security invoker
+security definer
 set search_path = ''
 as $$
 declare
@@ -450,6 +452,10 @@ begin
           on conflict do nothing;
         else
           v_new := v_base + v_step;
+          -- The user already planned this weight or more: the coach never lowers a plan on a raise.
+          if (select max(public.coach_top_weight(b)) from jsonb_array_elements(v_before) b) >= v_new then
+            continue;
+          end if;
           perform public.coach_write_load(v_uid, v_plan.folder_id, v_exid, v_rmin, v_rmax, v_new, true);
           v_after := public.coach_targets_snapshot(v_uid, v_plan.folder_id, v_exid, v_rmin, v_rmax);
           insert into public.coach_changes
@@ -526,7 +532,7 @@ create function public.undo_coach_change(p_id uuid)
 returns jsonb
 language plpgsql
 volatile
-security invoker
+security definer
 set search_path = ''
 as $$
 declare
@@ -592,7 +598,7 @@ create function public.decide_progression_flag(p_id uuid, p_decision text)
 returns jsonb
 language plpgsql
 volatile
-security invoker
+security definer
 set search_path = ''
 as $$
 declare

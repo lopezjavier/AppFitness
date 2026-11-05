@@ -1,7 +1,8 @@
 -- T-227 (E14, US-97/US-104): changes the coach applies on its own (load progression) and the flagged progression.
 -- Rules: planning/04-business-rules.md section 4.14, planning/07-coach-design.md section 3.
--- One row per applied change or per flag, so it can be listed and undone. Written only by the security invoker RPCs
--- of the next migration; the owner policies below are what lets those RPCs write, there is no delete policy.
+-- One row per applied change or per flag, so it can be listed and undone. Clients can only read their own rows: the
+-- rows are written solely by the security definer RPCs of the next migration (undo trusts after_values, so a client
+-- must never be able to forge or edit one). There is no insert, update or delete policy or privilege.
 
 create table public.coach_changes (
   id                uuid primary key default gen_random_uuid(),
@@ -45,20 +46,10 @@ create unique index coach_changes_one_pending_flag
   on public.coach_changes (user_id, plan_id, exercise_id) where kind in ('load_flag', 'no_range_flag') and status = 'pending';
 
 alter table public.coach_changes enable row level security;
-alter table public.coach_changes force row level security;
 
 create policy coach_changes_select_own on public.coach_changes
   for select to authenticated
   using (user_id = (select auth.uid()));
 
-create policy coach_changes_insert_own on public.coach_changes
-  for insert to authenticated
-  with check (user_id = (select auth.uid()));
-
-create policy coach_changes_update_own on public.coach_changes
-  for update to authenticated
-  using (user_id = (select auth.uid()))
-  with check (user_id = (select auth.uid()));
-
 revoke all on table public.coach_changes from anon, authenticated;
-grant select, insert, update on table public.coach_changes to authenticated;
+grant select on table public.coach_changes to authenticated;

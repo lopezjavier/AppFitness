@@ -4,7 +4,7 @@ begin;
 create extension if not exists pgtap with schema extensions;
 set local search_path = extensions, public;
 
-select plan(120);
+select plan(126);
 
 create function pg_temp.u(n int) returns uuid language sql as $$
   select ('c2700000-0000-4000-8000-0000000000' || lpad(n::text, 2, '0'))::uuid $$;
@@ -126,8 +126,15 @@ create temp table res (k text primary key, v jsonb);
 -- Security and constraints
 -- ---------------------------------------------------------------------------
 select ok(not has_table_privilege('anon', 'public.coach_changes', 'select'), 'anon cannot read coach_changes');
-select ok((select relrowsecurity and relforcerowsecurity from pg_class where oid = 'public.coach_changes'::regclass),
-  'RLS is enabled and forced on coach_changes');
+select ok((select relrowsecurity from pg_class where oid = 'public.coach_changes'::regclass),
+  'RLS is enabled on coach_changes');
+select ok(not has_table_privilege('authenticated', 'public.coach_changes', 'insert'),
+  'authenticated cannot insert coach_changes rows');
+select ok(not has_table_privilege('authenticated', 'public.coach_changes', 'update'),
+  'authenticated cannot update coach_changes rows');
+select throws_ok($$insert into public.coach_changes (user_id, kind, exercise_id, reason, status, after_values)
+  values (pg_temp.u(1), 'load_raise', pg_temp.bx(1), 'x', 'applied', '[]')$$,
+  '42501', null, 'a client cannot forge its own coach_changes row');
 select ok(not has_table_privilege('authenticated', 'public.coach_changes', 'delete'),
   'authenticated cannot delete coach_changes rows');
 select function_privs_are('public', 'apply_coach_progression', array['uuid'], 'anon', array[]::text[],
@@ -136,12 +143,16 @@ select function_privs_are('public', 'undo_coach_change', array['uuid'], 'anon', 
   'anon cannot execute undo_coach_change');
 select function_privs_are('public', 'decide_progression_flag', array['uuid', 'text'], 'anon', array[]::text[],
   'anon cannot execute decide_progression_flag');
-select throws_ok($$insert into public.coach_changes (kind, exercise_id, reason, status)
-  values ('bogus', pg_temp.bx(1), 'x', 'applied')$$, '23514', null, 'an unknown kind is rejected');
-select throws_ok($$insert into public.coach_changes (kind, exercise_id, reason, status)
-  values ('load_raise', pg_temp.bx(1), 'x', 'undone')$$, '23514', null, 'an undone row needs decided_at');
-select throws_ok($$insert into public.coach_changes (kind, exercise_id, reason, status, decided_at)
-  values ('load_raise', pg_temp.bx(1), 'x', 'applied', now())$$, '23514', null, 'an applied row has no decided_at');
+-- Constraints are checked as the table owner, since clients cannot write the table.
+reset role;
+select throws_ok($$insert into public.coach_changes (user_id, kind, exercise_id, reason, status)
+  values (pg_temp.u(1), 'bogus', pg_temp.bx(1), 'x', 'applied')$$, '23514', null, 'an unknown kind is rejected');
+select throws_ok($$insert into public.coach_changes (user_id, kind, exercise_id, reason, status)
+  values (pg_temp.u(1), 'load_raise', pg_temp.bx(1), 'x', 'undone')$$, '23514', null, 'an undone row needs decided_at');
+select throws_ok($$insert into public.coach_changes (user_id, kind, exercise_id, reason, status, decided_at)
+  values (pg_temp.u(1), 'load_raise', pg_temp.bx(1), 'x', 'applied', now())$$, '23514', null, 'an applied row has no decided_at');
+set local role authenticated;
+select pg_temp.as_user(1);
 
 -- ---------------------------------------------------------------------------
 -- 1. A raise: 60 -> 62,5 kg, reps to rep_min, both block routines, warm-up and drop sets untouched
@@ -176,6 +187,18 @@ select is((select count(*)::int from public.coach_changes where exercise_id = pg
   'a second call creates no duplicate');
 select is(pg_temp.sig(1, pg_temp.bx(1)), 'warm_up:30x10,working:62.5x8,working:62.5x8,working:62.5x8,drop:48x10',
   'a second call writes nothing');
+
+select throws_ok($$update public.coach_changes set after_values = '[]' where exercise_id = pg_temp.bx(1)$$,
+  '42501', null, 'a client cannot rewrite the after_values that undo trusts');
+
+-- A planned weight already above the raise is never lowered: nothing is written and no row is created.
+select pg_temp.block(pg_temp.bx(26), 6, 8, 40);
+select pg_temp.set_working(1, pg_temp.bx(26), 45);
+select is(pg_temp.ap(pg_temp.hist(pg_temp.bx(26), 3, 6, 8, 40, array[8, 8, 8])), '[]'::jsonb,
+  'a raise below the weight the user already planned creates no change');
+select is(pg_temp.sig(1, pg_temp.bx(26)) || ' | ' || pg_temp.sig(2, pg_temp.bx(26)),
+  'warm_up:20x10,working:45x8,working:45x8,working:45x8,drop:32x10 | warm_up:20x10,working:40x8,working:40x8,working:40x8,drop:32x10',
+  'the higher planned weight is kept and the other routine is not touched');
 
 -- ---------------------------------------------------------------------------
 -- 2. Hold, boundary RPE and the 04 examples
