@@ -14,12 +14,14 @@ import io.github.lopezjavier.appfitness.data.remote.FavoriteFoodDto
 import io.github.lopezjavier.appfitness.data.remote.FavoriteInsertDto
 import io.github.lopezjavier.appfitness.data.remote.FoodBarcodeResponseDto
 import io.github.lopezjavier.appfitness.data.remote.FoodDto
+import io.github.lopezjavier.appfitness.data.remote.FoodIdDto
 import io.github.lopezjavier.appfitness.data.remote.FoodMicronutrientsDto
 import io.github.lopezjavier.appfitness.data.remote.FoodSearchResponseDto
 import io.github.lopezjavier.appfitness.data.remote.LoggedFoodDto
 import io.github.lopezjavier.appfitness.data.remote.MostEatenDto
 import io.github.lopezjavier.appfitness.data.remote.MostEatenParams
 import io.github.lopezjavier.appfitness.data.remote.PersonalFoodInUseParams
+import io.github.lopezjavier.appfitness.data.remote.SearchUserFoodsParams
 import io.github.lopezjavier.appfitness.data.remote.UpdateFoodParams
 import io.github.lopezjavier.appfitness.domain.AppError
 import io.github.lopezjavier.appfitness.domain.AppException
@@ -47,9 +49,6 @@ private const val NO_DATA_FOUND = "P0002"
 private const val CHECK_VIOLATION = "23514"
 private const val RECENT_ENTRIES_LIMIT = 200
 private const val RECENT_FOODS_LIMIT = 30
-
-/** Escapes the LIKE wildcards (and the escape character) so the query matches literally. */
-private fun String.escapeLike(): String = replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
 
 /**
  * Food catalogue over `food-search` (text search), `foods` (read through RLS) and the signed-in user's
@@ -83,18 +82,14 @@ class SupabaseFoodRepository(
     }
 
     override suspend fun searchManual(query: String): Result<List<Food>> = auth.ownRow {
-        postgrest.from("foods")
-            .select(Columns.raw(FoodDto.COLUMNS)) {
-                filter {
-                    eq("source", "user")
-                    ilike("name", "%${query.escapeLike()}%")
-                }
-                order("name", Order.ASCENDING)
-                limit(FoodRepository.MANUAL_SEARCH_LIMIT.toLong())
-            }
-            .decodeList<FoodDto>()
-            .map { it.toDomain() }
-            .remembered()
+        // The RPC matches ignoring case and accents (substring); the raw query goes as typed.
+        val ids = postgrest.rpc(
+            "search_user_food_ids",
+            SearchUserFoodsParams(query, FoodRepository.MANUAL_SEARCH_LIMIT),
+        )
+            .decodeList<FoodIdDto>()
+            .map { it.foodId }
+        foodsInOrder(ids)
     }
 
     override suspend fun recent(days: Int): Result<List<Food>> = auth.ownRow {

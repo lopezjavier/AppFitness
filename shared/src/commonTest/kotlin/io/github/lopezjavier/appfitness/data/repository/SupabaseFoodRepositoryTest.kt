@@ -111,27 +111,34 @@ class SupabaseFoodRepositoryTest {
     }
 
     @Test
-    fun searchManual_readsOnlyTheUsersFoodsByNameAndMapsThem() = runTest {
-        val repo = signedIn { "[$EGG]" }
+    fun searchManual_asksTheRpcWithTheRawQueryThenFetchesTheFoodsKeepingTheRpcOrder() = runTest {
+        val repo = signedIn { request ->
+            if (request.url.encodedPath.endsWith("/rpc/search_user_food_ids")) {
+                """[{"food_id":"f3"},{"food_id":"f1"}]"""
+            } else {
+                "[$EGG,$MILK]"
+            }
+        }
 
-        val foods = repo.searchManual("huevo").getOrThrow()
+        val foods = repo.searchManual("PLÁTANO_%").getOrThrow()
 
-        assertEquals(listOf("f1"), foods.map { it.id })
-        assertEquals(listOf("p1", "p2"), foods.single().portions.map { it.id })
-        val url = requests.last().url
-        assertTrue(url.encodedPath.endsWith("/rest/v1/foods"), url.toString())
-        assertEquals("eq.user", url.parameters["source"])
-        assertEquals("ilike.%huevo%", url.parameters["name"])
-        assertEquals("20", url.parameters["limit"])
+        assertEquals(listOf("f3", "f1"), foods.map { it.id })
+        assertEquals(listOf("p1", "p2"), foods.last().portions.map { it.id })
+        val rpc = requests.first { it.url.encodedPath.endsWith("/rpc/search_user_food_ids") }
+        assertEquals(HttpMethod.Post, rpc.method)
+        val body = bodies.first { it.contains("p_query") }
+        assertTrue(body.contains("\"p_query\":\"PLÁTANO_%\""), body)
+        assertTrue(body.contains("\"p_limit\":20"), body)
+        assertTrue(requests.last().url.encodedPath.endsWith("/rest/v1/foods"), requests.last().url.toString())
     }
 
     @Test
-    fun searchManual_escapesLikeWildcardsInTheQuery() = runTest {
+    fun searchManual_withNoMatch_isEmptyWithoutASecondRequest() = runTest {
         val repo = signedIn { "[]" }
 
-        repo.searchManual("100%_a").getOrThrow()
+        assertEquals(emptyList(), repo.searchManual("zzz").getOrThrow())
 
-        assertEquals("""ilike.%100\%\_a%""", requests.last().url.parameters["name"])
+        assertTrue(requests.last().url.encodedPath.endsWith("/rpc/search_user_food_ids"))
     }
 
     @Test

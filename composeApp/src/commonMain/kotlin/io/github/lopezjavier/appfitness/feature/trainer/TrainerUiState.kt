@@ -3,11 +3,11 @@ package io.github.lopezjavier.appfitness.feature.trainer
 import io.github.lopezjavier.appfitness.domain.model.CalorieProposal
 import io.github.lopezjavier.appfitness.domain.model.CoachBlock
 import io.github.lopezjavier.appfitness.domain.model.CoachPlan
-import io.github.lopezjavier.appfitness.domain.model.DeloadProposal
 import io.github.lopezjavier.appfitness.domain.model.Phase
 import io.github.lopezjavier.appfitness.domain.model.PhaseReason
 import io.github.lopezjavier.appfitness.domain.model.PlanWeek
 import io.github.lopezjavier.appfitness.domain.model.ProgressionFlagDecision
+import io.github.lopezjavier.appfitness.domain.model.WeekPhase
 import io.github.lopezjavier.appfitness.domain.usecase.GoalChecklist
 
 /** The plan entry of the Trainer tab: no plan, a proposal waiting for a decision, or the active plan. */
@@ -32,9 +32,9 @@ sealed interface TrainerUiState {
     data object Loading : TrainerUiState
 
     /**
-     * The plan hub. [plan], [calorieProposal], [block], [weeks] and [deload] degrade to none when their reads fail.
+     * The plan hub. [plan], [calorieProposal], [block], [weeks] degrade to none when their reads fail.
      * [provisionalCount] feeds the "Tus datos" row; null when the read failed (the row then shows no count).
-     * [decidingChange] / [decidingDeload] are true while a decision is in flight.
+     * [decidingChange] / [requestingDeload] are true while a decision is in flight.
      */
     data class Content(
         val plan: PlanSummary = PlanSummary.None,
@@ -44,9 +44,8 @@ sealed interface TrainerUiState {
         val block: BlockSummary = BlockSummary.None,
         /** Weeks of the saved block with their adherence; empty without a saved block or when the read failed. */
         val weeks: List<PlanWeek> = emptyList(),
-        /** The pending easier-week suggestion; null when none or when the read failed. */
-        val deload: DeloadProposal? = null,
-        val decidingDeload: Boolean = false,
+        /** "Hacer descarga la próxima semana" is in flight. */
+        val requestingDeload: Boolean = false,
         val provisionalCount: Int? = null,
         /** The open cardio-minutes sheet of the accepted plan ("Tu plan"); null when closed. */
         val cardioEdit: CardioEdit? = null,
@@ -67,6 +66,19 @@ sealed interface TrainerUiState {
         val planPhase: Phase? get() = accepted?.phase
 
         val planPhaseReason: PhaseReason? get() = accepted?.nutrition?.phaseReason
+
+        /**
+         * "Hacer descarga la próxima semana" is offered: a saved block, no deload planned or ran in it, and a next
+         * week to put it in (the current week + 1, or week 1 before the block starts).
+         */
+        val canRequestDeload: Boolean
+            get() {
+                if (block !is BlockSummary.Saved || weeks.isEmpty() || weeks.any { it.deload }) return false
+                val current = weeks.firstOrNull { it.phase == WeekPhase.Current }
+                val next = if (current != null) current.week + 1 else weeks.minOf { it.week }
+                val blockRunningOrNotStarted = current != null || weeks.all { it.phase == WeekPhase.Upcoming }
+                return blockRunningOrNotStarted && weeks.any { it.week == next && it.phase == WeekPhase.Upcoming }
+            }
     }
 }
 
@@ -82,8 +94,11 @@ sealed interface TrainerEvent {
     /** "Ahora no" on the calorie proposal card. */
     data object DeclineCalorieProposal : TrainerEvent
 
-    /** "Aceptar" / "Descartar" on the deload card. */
-    data class DecideDeload(val accept: Boolean) : TrainerEvent
+    /** "Cancelar descarga" on an applied deload row; ignored for any other row or while another action is busy. */
+    data class CancelDeload(val id: String) : TrainerEvent
+
+    /** "Hacer descarga la próxima semana"; ignored unless [TrainerUiState.Content.canRequestDeload]. */
+    data object RequestDeload : TrainerEvent
 
     /** Opens the cardio-minutes sheet of the accepted plan; ignored without an accepted plan with activity targets. */
     data object OpenCardioEdit : TrainerEvent
@@ -130,11 +145,17 @@ sealed interface TrainerEffect {
     /** The decision failed; [apply] says which action, [offline] picks the offline hint. */
     data class CalorieProposalFailed(val apply: Boolean, val offline: Boolean) : TrainerEffect
 
-    /** The deload was accepted or discarded ([accepted]). */
-    data class DeloadDecided(val accepted: Boolean) : TrainerEffect
+    /** The deload was cancelled (confirm haptic, no message: the row changes). */
+    data object DeloadCancelled : TrainerEffect
 
-    /** The deload decision failed; [accept] says which action, [offline] picks the offline hint. */
-    data class DeloadFailed(val accept: Boolean, val offline: Boolean) : TrainerEffect
+    /** Cancelling failed (reject haptic and message); the list was reloaded when the server said it was stale. */
+    data class DeloadCancelFailed(val offline: Boolean) : TrainerEffect
+
+    /** The deload was requested (confirm haptic, no message: a row appears and the week chip changes). */
+    data object DeloadRequested : TrainerEffect
+
+    /** Requesting failed; [notAvailable] means one is already planned or ran (the weeks were reloaded). */
+    data class DeloadRequestFailed(val offline: Boolean, val notAvailable: Boolean) : TrainerEffect
 
     /** The cardio minutes were stored and the sheet closed: confirm haptic, no message. */
     data object CardioSaved : TrainerEffect

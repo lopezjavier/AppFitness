@@ -138,14 +138,13 @@ class TrainerRestorationTest {
     }
 
     @Test
-    fun recreatedViewModel_reloadsTheWeeksAndThePendingDeloadFromTheServer() {
+    fun recreatedViewModel_reloadsTheWeeksFromTheServer() {
         val plans = FakeCoachPlanRepository()
         plans.current = Result.success(coachPlan(status = PlanStatus.Accepted))
         val blocks = FakeCoachBlockRepository()
         blocks.current = Result.success(coachBlock(saved = true))
         val weeks = FakeCoachWeeksRepository()
         weeks.weeksResult = Result.success(listOf(planWeek(week = 1), planWeek(week = 2)))
-        weeks.pending = Result.success(deloadProposal())
         val repository = FakeCoachRepository()
         fun model() = TrainerViewModel(
             repository,
@@ -158,26 +157,22 @@ class TrainerRestorationTest {
         val connectivity = FakeConnectivityObserver()
         rule.setContent { AppTheme { TrainerRoute(viewModel = current, connectivity = connectivity) } }
         rule.waitForIdle()
-        rule.onNodeWithTag("trainer_deload_card").assertExists()
 
         // A new view model over the same saved state, as after process death: nothing is kept only in memory.
         current = model()
         rule.waitForIdle()
 
-        rule.onNodeWithTag("trainer_deload_card").assertExists()
-        rule.onNodeWithTag("trainer_deload_card_accept").assertIsEnabled()
         rule.onNodeWithTag("trainer_week_2").assertExists()
     }
 
     @Test
-    fun recreation_keepsTheWeekListAndTheDeloadCard() {
+    fun recreation_keepsTheWeekList() {
         val plans = FakeCoachPlanRepository()
         plans.current = Result.success(coachPlan(status = PlanStatus.Accepted))
         val blocks = FakeCoachBlockRepository()
         blocks.current = Result.success(coachBlock(saved = true))
         val weeks = FakeCoachWeeksRepository()
         weeks.weeksResult = Result.success(listOf(planWeek(week = 1), planWeek(week = 2)))
-        weeks.pending = Result.success(deloadProposal())
         val model = TrainerViewModel(
             FakeCoachRepository(),
             MutableClock(),
@@ -193,8 +188,6 @@ class TrainerRestorationTest {
         tester.emulateSavedInstanceStateRestore()
         rule.waitForIdle()
 
-        rule.onNodeWithTag("trainer_deload_card").assertExists()
-        rule.onNodeWithTag("trainer_deload_card_accept").assertIsEnabled()
         rule.onNodeWithTag("trainer_weeks_section").assertExists()
     }
 

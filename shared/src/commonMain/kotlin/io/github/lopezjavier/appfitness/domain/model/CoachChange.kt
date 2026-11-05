@@ -3,7 +3,22 @@ package io.github.lopezjavier.appfitness.domain.model
 import kotlinx.datetime.Instant
 
 /** Kind of an automatic coach change (T-227). [Unknown] covers kinds added by a newer server. */
-enum class CoachChangeKind { LoadRaise, LoadDrop, LoadKept, LoadFlag, NoRangeFlag, Unknown }
+enum class CoachChangeKind {
+    LoadRaise,
+    LoadDrop,
+    LoadKept,
+    LoadFlag,
+    NoRangeFlag,
+
+    /** T-230: a plan-level deload week (no exercise): the coach's triggers or the user's request. */
+    DeloadTriggered,
+    DeloadScheduled,
+    DeloadUser,
+    Unknown,
+    ;
+
+    val isDeload: Boolean get() = this == DeloadTriggered || this == DeloadScheduled || this == DeloadUser
+}
 
 /** Lifecycle of a [CoachChange]: applied or undone changes, pending or decided flags. */
 enum class CoachChangeStatus { Applied, Undone, Pending, Decided, Unknown }
@@ -30,6 +45,8 @@ data class CoachChangeFigures(
     val sessions: Int? = null,
     val repMin: Int? = null,
     val repMax: Int? = null,
+    /** Plan week of a deload change (1-based). */
+    val week: Int? = null,
 )
 
 /** One planned set inside a [PlannedRoutineValues] snapshot. */
@@ -49,7 +66,8 @@ data class CoachChange(
     val id: String,
     val planId: String?,
     val kind: CoachChangeKind,
-    val exerciseId: String,
+    /** Null for a deload, which belongs to the plan and not to an exercise. */
+    val exerciseId: String?,
     val status: CoachChangeStatus,
     val reason: String,
     val figures: CoachChangeFigures,
@@ -76,6 +94,9 @@ sealed interface CoachChangeFailure {
 
     /** `coach_change_not_pending`: the flag was already decided. */
     data object NotPending : CoachChangeFailure
+
+    /** `coach_deload_*`: a deload is already planned or ran in the block, or there is no block or next week. */
+    data object DeloadNotAvailable : CoachChangeFailure
 }
 
 /** Failure carrier of [CoachChangeFailure] in a [Result]. */

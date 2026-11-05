@@ -116,7 +116,8 @@ class TrainerViewModel(
             TrainerEvent.Refresh -> refresh()
             TrainerEvent.ApplyCalorieProposal -> decideCalorieProposal(apply = true)
             TrainerEvent.DeclineCalorieProposal -> decideCalorieProposal(apply = false)
-            is TrainerEvent.DecideDeload -> decideDeload(event.accept)
+            is TrainerEvent.CancelDeload -> cancelDeload(event.id)
+            TrainerEvent.RequestDeload -> requestDeload()
             TrainerEvent.OpenCardioEdit -> openCardioEdit()
             is TrainerEvent.CardioMinutesChanged -> changeCardio(event.minutes)
             TrainerEvent.SaveCardio -> saveCardio()
@@ -219,7 +220,8 @@ class TrainerViewModel(
         val row = (_uiState.value as? TrainerUiState.Content)?.coachChanges?.firstOrNull { it.id == id } ?: return
         if (row.kind != CoachChangeKind.NoRangeFlag || row.status != CoachChangeStatus.Pending) return
         val routineId = row.routineIds.firstOrNull() ?: return
-        viewModelScope.launch { effectChannel.send(TrainerEffect.OpenRoutineRange(routineId, row.exerciseId)) }
+        val exerciseId = row.exerciseId ?: return
+        viewModelScope.launch { effectChannel.send(TrainerEffect.OpenRoutineRange(routineId, exerciseId)) }
     }
 
     private fun requestRemoveBlock() {
@@ -251,7 +253,7 @@ class TrainerViewModel(
             val result = repository.removeBlock(planId)
             savedState.remove<Boolean>(KEY_REMOVE_BLOCK_CONFIRM)
             if (result.isSuccess) {
-                // The weeks, deload card and block entry all derive from the block: reload the hub.
+                // The weeks, deload rows and block entry all derive from the block: reload the hub.
                 loadJob?.cancel()
                 val fresh = fetch()
                 _uiState.value = fresh
@@ -325,35 +327,75 @@ class TrainerViewModel(
         }
     }
 
-    @Suppress("ReturnCount") // Guards for a missing card, repository or an in-flight decision.
-    private fun decideDeload(accept: Boolean) {
-        val content = _uiState.value as? TrainerUiState.Content ?: return
-        val proposal = content.deload ?: return
+    @Suppress("ReturnCount") // Guards for a busy or missing row, repository or a row that is not an applied deload.
+    private fun cancelDeload(id: String) {
+        val (content, row) = idleRow(id) ?: return
         val repository = coachWeeks ?: return
-        if (content.decidingDeload) return
-        _uiState.value = content.copy(decidingDeload = true)
+        if (!row.cancellable || content.requestingDeload) return
+        setBusy(id)
         viewModelScope.launch {
-            val result = repository.decideDeload(proposal.id, accept)
+            val result = repository.cancelDeload(id)
             if (result.isSuccess) {
-                // Accepting marks next week: reload the list; a failed reload keeps the weeks already shown.
-                val reloaded = repository.weeks(proposal.planId, today()).getOrNull()
-                _uiState.update { state ->
-                    if (state is TrainerUiState.Content) {
-                        state.copy(deload = null, decidingDeload = false, weeks = reloaded ?: state.weeks)
-                    } else {
-                        state
-                    }
-                }
-                effectChannel.send(TrainerEffect.DeloadDecided(accept))
+                reloadDeloadState()
+                setBusy(null)
+                effectChannel.send(TrainerEffect.DeloadCancelled)
             } else {
-                _uiState.update { state ->
-                    if (state is TrainerUiState.Content) state.copy(decidingDeload = false) else state
-                }
+                // A stale row (cancelled elsewhere, or gone) is replaced by what the server holds now.
+                if (result.appErrorOrNull() != AppError.Network) reloadDeloadState()
+                setBusy(null)
                 effectChannel.send(
-                    TrainerEffect.DeloadFailed(accept, offline = result.appErrorOrNull() == AppError.Network),
+                    TrainerEffect.DeloadCancelFailed(
+                        offline =
+                        result.appErrorOrNull() == AppError.Network,
+                    ),
                 )
             }
         }
+    }
+
+    @Suppress("ReturnCount") // Guards for a missing repository, a disallowed request or one already in flight.
+    private fun requestDeload() {
+        val content = _uiState.value as? TrainerUiState.Content ?: return
+        val repository = coachWeeks ?: return
+        if (!content.canRequestDeload || content.requestingDeload || content.busyChangeId != null) return
+        _uiState.value = content.copy(requestingDeload = true)
+        viewModelScope.launch {
+            val result = repository.requestDeload()
+            if (result.isSuccess) {
+                reloadDeloadState()
+                setRequesting(false)
+                effectChannel.send(TrainerEffect.DeloadRequested)
+            } else {
+                val error = result.exceptionOrNull()
+                val notAvailable =
+                    error is CoachChangeException && error.failure == CoachChangeFailure.DeloadNotAvailable
+                if (notAvailable) reloadDeloadState()
+                setRequesting(false)
+                effectChannel.send(
+                    TrainerEffect.DeloadRequestFailed(
+                        offline = result.appErrorOrNull() == AppError.Network,
+                        notAvailable = notAvailable,
+                    ),
+                )
+            }
+        }
+    }
+
+    private fun setRequesting(requesting: Boolean) {
+        _uiState.update { state ->
+            if (state is TrainerUiState.Content) state.copy(requestingDeload = requesting) else state
+        }
+    }
+
+    /** Fresh read of the weeks and the change rows after a deload action; a failed read keeps what is shown. */
+    private suspend fun reloadDeloadState() {
+        val content = _uiState.value as? TrainerUiState.Content ?: return
+        val planId = (content.plan as? PlanSummary.Accepted)?.plan?.id
+        val fresh = planId?.let { coachWeeks?.weeks(it, today())?.getOrNull() }
+        _uiState.update { state ->
+            if (state is TrainerUiState.Content) state.copy(weeks = fresh ?: state.weeks) else state
+        }
+        reloadCoachChanges()
     }
 
     private fun load() {
@@ -376,7 +418,7 @@ class TrainerViewModel(
                 if (state is TrainerUiState.Content) {
                     fresh.copy(
                         decidingChange = state.decidingChange,
-                        decidingDeload = state.decidingDeload,
+                        requestingDeload = state.requestingDeload,
                         busyChangeId = state.busyChangeId,
                         cardioEdit = state.cardioEdit,
                         removingBlock = state.removingBlock,
@@ -398,9 +440,10 @@ class TrainerViewModel(
         if (plan is PlanSummary.Accepted) plans?.applyDietBreak(today())
         val proposal = if (plan is PlanSummary.Accepted) plans?.pendingCalorieProposal(today())?.getOrNull() else null
         val block = blocks.summaryFor(plan)
-        // Weeks and the deload card need an accepted plan with a saved block; failed reads mean none.
+        // Weeks and the deload rule need an accepted plan with a saved block; failed reads mean none. The rule applies
+        // a deload on its own (plan week 4), so it runs before the change rows are read.
         val savedPlanId = (plan as? PlanSummary.Accepted)?.plan?.id?.takeIf { block is BlockSummary.Saved }
-        val deload = savedPlanId?.let { coachWeeks?.pendingDeload(today())?.getOrNull() }
+        savedPlanId?.let { coachWeeks?.evaluateDeload(today()) }
         val planWeeks = savedPlanId?.let { coachWeeks?.weeks(it, today())?.getOrNull() }.orEmpty()
         // The coach changes of the open plan; a failed read hides the section like its siblings.
         val changeRows = plan.id()?.let { readCoachChanges(it) }.orEmpty()
@@ -412,7 +455,6 @@ class TrainerViewModel(
             calorieProposal = proposal,
             block = block,
             weeks = planWeeks,
-            deload = deload,
             coachChanges = changeRows,
             provisionalCount = provisional,
             goalsChecklist = goalsChecklistFor(plan),

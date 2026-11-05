@@ -28,8 +28,5 @@ data class PlanWeek(
     val stepsTarget: Int? = null,
 )
 
-/** A pending coach suggestion to make [week] of plan [planId] easier (same weights, 40 % fewer working sets). */
-data class DeloadProposal(val id: String, val planId: String, val week: Int)
-
 /** Working sets of an exercise in a deload week: [deloadSets] of the [plannedSets] the routine prefilled. */
 data class DeloadExerciseSuggestion(val exerciseId: String, val plannedSets: Int, val deloadSets: Int)

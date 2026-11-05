@@ -21,6 +21,12 @@ import io.github.lopezjavier.appfitness.composeapp.resources.coach_change_undo_c
 import io.github.lopezjavier.appfitness.composeapp.resources.coach_change_undo_offline
 import io.github.lopezjavier.appfitness.composeapp.resources.coach_change_undone_line
 import io.github.lopezjavier.appfitness.composeapp.resources.coach_changes_header
+import io.github.lopezjavier.appfitness.composeapp.resources.coach_deload_cancel
+import io.github.lopezjavier.appfitness.composeapp.resources.coach_deload_cancel_cd
+import io.github.lopezjavier.appfitness.composeapp.resources.coach_deload_cancel_cd_plain
+import io.github.lopezjavier.appfitness.composeapp.resources.coach_deload_cancel_offline
+import io.github.lopezjavier.appfitness.composeapp.resources.coach_deload_headline
+import io.github.lopezjavier.appfitness.composeapp.resources.coach_deload_status_cancelled
 import io.github.lopezjavier.appfitness.designsystem.CoachChangeRow
 import io.github.lopezjavier.appfitness.designsystem.CoachChangeRowAction
 import io.github.lopezjavier.appfitness.designsystem.CoachChangeRowState
@@ -50,15 +56,59 @@ internal fun CoachChangesSection(
     onEvent: (TrainerEvent) -> Unit,
     onOpenExercise: (String) -> Unit,
 ) {
-    val named = state.coachChanges.filter { it.exerciseId in names }
-    if (named.isEmpty()) return
+    // A deload is plan-level and needs no exercise name; every other row waits for its name.
+    val shown = state.coachChanges.filter { it.kind.isDeload || (it.exerciseId != null && it.exerciseId in names) }
+    if (shown.isEmpty()) return
     val context = CoachChangeContext(state.busyChangeId, online)
     Column(Modifier.testTag("trainer_coach_changes_section"), verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
         ListSectionHeader(stringResource(Res.string.coach_changes_header))
-        named.forEach { row ->
-            names[row.exerciseId]?.let { CoachChangeItem(row, it, context, onEvent, onOpenExercise) }
+        shown.forEach { row ->
+            if (row.kind.isDeload) {
+                DeloadItem(row, context, state.requestingDeload, onEvent)
+            } else {
+                names[row.exerciseId.orEmpty()]?.let { CoachChangeItem(row, it, context, onEvent, onOpenExercise) }
+            }
         }
     }
+}
+
+/** The plan-level deload row (US-100): "Semana de descarga" with "Cancelar descarga" while it is applied. */
+@Composable
+private fun DeloadItem(
+    row: CoachChangeRowUi,
+    context: CoachChangeContext,
+    requesting: Boolean,
+    onEvent: (TrainerEvent) -> Unit,
+) {
+    val cancelled = row.status == CoachChangeStatus.Undone
+    val cancelCd = row.figures.week?.let { stringResource(Res.string.coach_deload_cancel_cd, it) }
+        ?: stringResource(Res.string.coach_deload_cancel_cd_plain)
+    CoachChangeRow(
+        headline = stringResource(Res.string.coach_deload_headline),
+        reason = coachChangeReasonText(row.kind, row.figures),
+        state = if (cancelled) CoachChangeRowState.Undone else CoachChangeRowState.Applied,
+        testTagPrefix = "trainer_coach_change_row_${row.id}",
+        statusText = if (cancelled) stringResource(Res.string.coach_deload_status_cancelled) else null,
+        actions = if (row.cancellable) {
+            listOf(
+                CoachChangeRowAction(
+                    text = stringResource(Res.string.coach_deload_cancel),
+                    testTag = "trainer_deload_cancel_${row.id}",
+                    onClick = { onEvent(TrainerEvent.CancelDeload(row.id)) },
+                    loading = context.busyId == row.id,
+                    contentDescription = cancelCd,
+                ),
+            )
+        } else {
+            emptyList()
+        },
+        enabled = context.busyId == null && !requesting && (context.online || !row.cancellable),
+        footer = if (!context.online && row.cancellable) {
+            { OfflineHint(stringResource(Res.string.coach_deload_cancel_offline)) }
+        } else {
+            null
+        },
+    )
 }
 
 @Composable
@@ -84,7 +134,7 @@ private fun CoachChangeItem(
         statusText = statusText(row),
         actions = coachChangeActions(row, name, context.busyId == row.id, onEvent),
         enabled = context.busyId == null && (context.online || !needsConnection),
-        onHeadlineClick = { onOpenExercise(row.exerciseId) },
+        onHeadlineClick = { onOpenExercise(row.exerciseId.orEmpty()) },
         footer = if (!context.online && needsConnection) {
             { OfflineHint(stringResource(offlineAction)) }
         } else {

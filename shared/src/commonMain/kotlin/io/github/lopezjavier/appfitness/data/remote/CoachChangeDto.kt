@@ -59,7 +59,7 @@ internal data class CoachChangeDto(
     val id: String,
     @SerialName("plan_id") val planId: String? = null,
     val kind: String,
-    @SerialName("exercise_id") val exerciseId: String,
+    @SerialName("exercise_id") val exerciseId: String? = null,
     val status: String,
     val reason: String = "",
     val figures: JsonElement? = null,
@@ -91,6 +91,9 @@ internal data class CoachChangeDto(
             "load_kept" to CoachChangeKind.LoadKept,
             "load_flag" to CoachChangeKind.LoadFlag,
             "no_range_flag" to CoachChangeKind.NoRangeFlag,
+            "deload_triggered" to CoachChangeKind.DeloadTriggered,
+            "deload_scheduled" to CoachChangeKind.DeloadScheduled,
+            "deload_user" to CoachChangeKind.DeloadUser,
         )
         val STATUSES = mapOf(
             "applied" to CoachChangeStatus.Applied,
@@ -123,6 +126,7 @@ private fun JsonObject?.toFigures() = CoachChangeFigures(
     sessions = whole("sessions"),
     repMin = whole("rep_min"),
     repMax = whole("rep_max"),
+    week = whole("week"),
 )
 
 @Serializable
