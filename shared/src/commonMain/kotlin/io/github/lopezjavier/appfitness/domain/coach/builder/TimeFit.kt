@@ -15,8 +15,8 @@ data class Fit(val slots: List<Slot>, val supersets: List<SupersetPair>, val cut
 data class DoesNotFit(val limitMinutes: Int, val minutesNeeded: Int) : FitResult
 
 /**
- * Time fit of one routine (07 section 3 "Block builder" (b)); port of `routineSeconds` of
- * the former server routine checker (04 section 9.6, removed in T-224) with the slot values instead of picked exercises.
+ * Time fit of one routine (07 section 3 "Block builder" (b)); port of `routineSeconds` of the former
+ * server routine checker (04 section 9.6, removed in T-224) with the slot values, not picked exercises.
  * A cut on a superset slot also cuts its partner so the pair keeps equal sets (the server refuses a mismatch).
  */
 object TimeFit {
