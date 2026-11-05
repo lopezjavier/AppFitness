@@ -219,6 +219,16 @@ internal data class MostEatenDto(
 @Serializable
 internal data class MostEatenParams(@SerialName("p_limit") val limit: Int)
 
+@Serializable
+internal data class SearchUserFoodsParams(
+    @SerialName("p_query") val query: String,
+    @SerialName("p_limit") val limit: Int,
+)
+
+/** Row of `search_user_food_ids`. */
+@Serializable
+internal data class FoodIdDto(@SerialName("food_id") val foodId: String)
+
 /** Row of `food_diary_summary`: the totals of one day with entries. */
 @Serializable
 internal data class DiaryDaySummaryDto(
