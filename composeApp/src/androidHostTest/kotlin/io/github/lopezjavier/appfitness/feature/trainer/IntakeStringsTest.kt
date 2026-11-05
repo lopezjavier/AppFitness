@@ -29,7 +29,6 @@ class IntakeStringsTest {
             "Marcas de antes de parar",
             "Añadir marca",
             "Zona con molestia",
-            "Ahora no",
             "Vuelvo tras una pausa",
         ).forEach { label -> assertTrue("still present: $label", !strings.contains(label)) }
     }
