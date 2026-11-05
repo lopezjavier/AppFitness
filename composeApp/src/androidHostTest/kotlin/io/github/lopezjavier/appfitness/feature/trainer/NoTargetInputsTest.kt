@@ -81,7 +81,7 @@ class NoTargetInputsTest {
         TrainerScreen(
             state = TrainerUiState.Content(
                 plan = PlanSummary.Accepted(coachPlan(status = PlanStatus.Accepted)),
-                calorieChange = calorieChange(),
+                calorieProposal = calorieProposal(),
             ),
             isOnline = flowOf(true),
             onEvent = {},

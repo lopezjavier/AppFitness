@@ -2,7 +2,7 @@ package io.github.lopezjavier.appfitness.data.repository
 
 import io.github.lopezjavier.appfitness.domain.AppError
 import io.github.lopezjavier.appfitness.domain.AppException
-import io.github.lopezjavier.appfitness.domain.model.CalorieChange
+import io.github.lopezjavier.appfitness.domain.model.CalorieProposal
 import io.github.lopezjavier.appfitness.domain.model.CoachPlan
 import io.github.lopezjavier.appfitness.domain.model.DietBreakApplication
 import io.github.lopezjavier.appfitness.domain.repository.CoachPlanRepository
@@ -35,9 +35,9 @@ class UnconfiguredCoachPlanRepository : CoachPlanRepository {
     override suspend fun applyDietBreak(today: LocalDate): Result<DietBreakApplication> =
         Result.failure(AppException(AppError.Unknown))
 
-    override suspend fun pendingCalorieChange(today: LocalDate): Result<CalorieChange?> =
+    override suspend fun pendingCalorieProposal(today: LocalDate): Result<CalorieProposal?> =
         Result.failure(AppException(AppError.Unknown))
 
-    override suspend fun decideCalorieChange(id: String, accept: Boolean, today: LocalDate): Result<Unit> =
+    override suspend fun decideCalorieProposal(id: String, apply: Boolean, today: LocalDate): Result<Unit> =
         Result.failure(AppException(AppError.Unknown))
 }

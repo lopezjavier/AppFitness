@@ -8,7 +8,7 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import io.github.lopezjavier.appfitness.app.FakeConnectivityObserver
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
-import io.github.lopezjavier.appfitness.domain.model.CalorieChange
+import io.github.lopezjavier.appfitness.domain.model.CalorieProposal
 import io.github.lopezjavier.appfitness.domain.model.PlanStatus
 import io.github.lopezjavier.appfitness.feature.workout.MutableClock
 import kotlinx.coroutines.flow.flowOf
@@ -34,8 +34,8 @@ class TrainerPlanEntryTest {
     private val openedBlocks = mutableListOf<String>()
     private val starts = mutableListOf<Triple<BeforeStartMode, String?, String?>>()
 
-    private fun content(plan: PlanSummary, change: CalorieChange? = null, block: BlockSummary = BlockSummary.None) =
-        TrainerUiState.Content(plan = plan, calorieChange = change, block = block)
+    private fun content(plan: PlanSummary, change: CalorieProposal? = null, block: BlockSummary = BlockSummary.None) =
+        TrainerUiState.Content(plan = plan, calorieProposal = change, block = block)
 
     private fun show(state: TrainerUiState, online: Boolean = true) {
         rule.setContent {
@@ -109,55 +109,57 @@ class TrainerPlanEntryTest {
     }
 
     @Test
-    fun calorieChangeCard_showsTheChangeItsReasonAndTheDataUsed() {
-        show(content(PlanSummary.Accepted(coachPlan(status = PlanStatus.Accepted)), calorieChange()))
+    fun calorieProposalCard_showsTheChangeItsReasonAndTheDataUsed() {
+        show(content(PlanSummary.Accepted(coachPlan(status = PlanStatus.Accepted)), calorieProposal()))
 
         rule.onNodeWithTag("trainer_calorie_card").assertExists()
         rule.onNodeWithText("Ajuste de calorías").assertExists()
         rule.onNodeWithText("De 2.000 a 2.100 kcal al día").assertExists()
-        rule.onNodeWithText("Tu peso baja más rápido de lo previsto.").assertExists()
+        rule.onNodeWithText(
+            "Te proponemos subir 100 kcal: en las últimas 2 semanas tu peso ha bajado más de lo previsto.",
+        ).assertExists()
         rule.onNodeWithText("Según tu tendencia: −0,1 kg/sem (margen ±0,1)").assertExists()
     }
 
     @Test
-    fun calorieChangeCard_isHiddenWithoutAPendingChange() {
+    fun calorieProposalCard_isHiddenWithoutAPendingChange() {
         show(content(PlanSummary.Accepted(coachPlan(status = PlanStatus.Accepted))))
 
         rule.onNodeWithTag("trainer_calorie_card").assertDoesNotExist()
     }
 
     @Test
-    fun aceptar_onTheCalorieCard_sendsTheDecision() {
-        show(content(PlanSummary.Accepted(coachPlan(status = PlanStatus.Accepted)), calorieChange()))
+    fun aplicar_onTheCalorieCard_sendsTheDecision() {
+        show(content(PlanSummary.Accepted(coachPlan(status = PlanStatus.Accepted)), calorieProposal()))
 
         rule.onNodeWithTag("trainer_calorie_card_accept").assertIsEnabled()
         tap("trainer_calorie_card_accept")
 
-        assertEquals(listOf<TrainerEvent>(TrainerEvent.DecideCalorieChange(accept = true)), events)
+        assertEquals(listOf<TrainerEvent>(TrainerEvent.ApplyCalorieProposal), events)
     }
 
     @Test
-    fun descartar_onTheCalorieCard_sendsTheDiscard() {
-        show(content(PlanSummary.Accepted(coachPlan(status = PlanStatus.Accepted)), calorieChange()))
+    fun ahoraNo_onTheCalorieCard_sendsTheDiscard() {
+        show(content(PlanSummary.Accepted(coachPlan(status = PlanStatus.Accepted)), calorieProposal()))
 
         tap("trainer_calorie_card_discard")
 
-        assertEquals(listOf<TrainerEvent>(TrainerEvent.DecideCalorieChange(accept = false)), events)
+        assertEquals(listOf<TrainerEvent>(TrainerEvent.DeclineCalorieProposal), events)
     }
 
     @Test
-    fun aceptar_offline_isDisabledWithTheHint() {
-        show(content(PlanSummary.Accepted(coachPlan(status = PlanStatus.Accepted)), calorieChange()), online = false)
+    fun aplicar_offline_isDisabledWithTheHint() {
+        show(content(PlanSummary.Accepted(coachPlan(status = PlanStatus.Accepted)), calorieProposal()), online = false)
 
         rule.onNodeWithTag("trainer_calorie_card_accept").assertIsNotEnabled()
-        rule.onNodeWithText("Sin conexión: no se puede aceptar el cambio").assertExists()
+        rule.onNodeWithText("Sin conexión: no se puede aplicar el cambio o guardar tu decisión").assertExists()
     }
 
     @Test
     fun acceptingTheCalorieChange_throughTheRoute_sendsItAndRemovesTheCard() {
         val plans = FakeCoachPlanRepository()
         plans.current = Result.success(coachPlan(status = PlanStatus.Accepted))
-        plans.pending = Result.success(calorieChange())
+        plans.pending = Result.success(calorieProposal())
         val model = TrainerViewModel(
             FakeCoachRepository(),
             MutableClock(),

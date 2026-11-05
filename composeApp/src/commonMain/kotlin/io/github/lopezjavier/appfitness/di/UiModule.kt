@@ -450,6 +450,7 @@ val uiModule =
                 profile = get(),
                 measurements = get(),
                 coachChanges = get(),
+                decideProposal = get(),
             )
         }
         viewModel {

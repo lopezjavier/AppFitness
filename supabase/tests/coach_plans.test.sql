@@ -3,7 +3,7 @@ begin;
 create extension if not exists pgtap with schema extensions;
 set local search_path = extensions, public;
 
-select plan(97);
+select plan(91);
 
 -- ---------------------------------------------------------------------------
 -- Fixture helpers (run as the migration owner)
@@ -39,12 +39,19 @@ begin
   end loop;
 end $$;
 
-create function pg_temp.diary(n int, days int) returns void language sql as $$
+create function pg_temp.diary(n int, days int, kcal numeric default 2000) returns void language sql as $$
   insert into public.food_log_entries (user_id, log_date, meal_slot_id, food_id, amount, food_name, kcal, protein_g, carbs_g, fat_g)
   select pg_temp.u(n), pg_temp.d0() - i,
          (select id from public.meal_slots where user_id = pg_temp.u(n) and code = 'breakfast'),
-         '0ff00000-0000-4000-8000-0000000000c9', 100, 'Alimento', 2000, 10, 10, 10
+         '0ff00000-0000-4000-8000-0000000000c9', 100, 'Alimento', kcal, 10, 10, 10
   from generate_series(0, days - 1) i $$;
+
+-- Daily weigh-ins (same weight) over the last 15 days, not before the first weekly weigh-in; T-229 weekly data gate.
+create function pg_temp.daily_weigh(n int, weeks int, kg numeric) returns void language sql as $$
+  insert into public.body_measurements (user_id, weight_kg, source, measured_at)
+  select pg_temp.u(n), kg, 'manual', ((pg_temp.d0() - i)::timestamp + interval '45 minutes') at time zone 'UTC'
+  from generate_series(0, 14) i
+  where pg_temp.d0() - i >= pg_temp.d0() - (extract(isodow from pg_temp.d0())::int - 1) - 7 * (weeks - 1) $$;
 
 -- Persisted nutrition JSON (data_version 1); rate is the signed expected kg per week (loss negative).
 create function pg_temp.nut(target int, adj int, rate numeric, floor int, edited boolean default false) returns jsonb
@@ -62,12 +69,15 @@ language sql as $$
 
 -- A user with an accepted plan, a goal equal to it, flat weight for 8 weeks and diary_days of food.
 create function pg_temp.mk(n int, diary_days int, rate numeric, target int default 2200, flr int default 1500,
-                           edited boolean default false, adj int default -400, weeks int default 8)
+                           edited boolean default false, adj int default -400, weeks int default 8,
+                           diary_kcal numeric default null)
 returns void language plpgsql as $$
 begin
   perform pg_temp.profile(n);
   perform pg_temp.weights(n, array_fill(80::numeric, array[weeks]));
-  perform pg_temp.diary(n, diary_days);
+  perform pg_temp.daily_weigh(n, weeks, 80);
+  -- The diary matches the plan's expenditure (target - adjustment), so the coach's expenditure in use is that figure.
+  perform pg_temp.diary(n, diary_days, coalesce(diary_kcal, target - adj));
   insert into public.nutrition_goals (user_id, strategy, calorie_adjustment, target_kcal, protein_pct, carbs_pct, fat_pct)
   values (pg_temp.u(n), (case when adj < 0 then 'deficit' else 'surplus' end)::public.goal_strategy, adj, target, 33, 42, 25);
   insert into public.coach_plans (user_id, block_start, intention, nutrition, status, accepted_at)
@@ -105,7 +115,7 @@ values ('b0000000-0000-4000-8000-0000000000a2', pg_temp.u(2), 'b0000000-0000-400
 select pg_temp.profile(3);
 select pg_temp.weights(3, array[80]);
 -- 4 (D): main evaluation user (20 diary days, plan rate -0.4 while the weight is flat).
-select pg_temp.mk(4, 20, -0.4);
+select pg_temp.mk(4, 20, -0.4, adj => -250);
 -- 5 (E): 17 of 28 diary days. 6 (F): only 3 weeks of weights. 7 (G): rate on the interval edge. 8 (H): edited plan.
 select pg_temp.mk(5, 17, -0.4);
 select pg_temp.mk(6, 20, -0.4, weeks => 3);
@@ -114,9 +124,9 @@ select pg_temp.mk(8, 20, -0.4, edited => true);
 -- 9 (I): the change would go under the floor. 10 (J): out of the adjustment range. 11 (K): gain direction.
 select pg_temp.mk(9, 20, -0.4, target => 1520, flr => 1500);
 select pg_temp.mk(10, 20, -0.4, adj => -950, flr => 1000);
-select pg_temp.mk(11, 20, 0.4, adj => 300);
+select pg_temp.mk(11, 20, 0.4, adj => 300, diary_kcal => 2100);
 -- 12 (L): edited and discarded decisions. 13 (M): no accepted plan.
-select pg_temp.mk(12, 20, -0.4);
+select pg_temp.mk(12, 20, -0.4, adj => -250);
 select pg_temp.profile(13);
 
 -- ---------------------------------------------------------------------------
@@ -200,7 +210,7 @@ select throws_ok(
   $$select public.discard_coach_plan('b0000000-0000-4000-8000-000000000001')$$,
   'P0002', null, 'discarding another user''s plan is not found');
 select throws_ok(
-  $$select public.decide_recommendation('b0000000-0000-4000-8000-0000000000a2', 'accepted')$$,
+  $$select public.decide_calorie_proposal('b0000000-0000-4000-8000-0000000000a2', true)$$,
   'P0002', null, 'deciding another user''s recommendation is not found');
 
 -- ---------------------------------------------------------------------------
@@ -220,14 +230,14 @@ select throws_ok(
   $$select public.evaluate_coach_calorie_change(pg_temp.d0())$$,
   '28000', null, 'evaluate_coach_calorie_change rejects an unauthenticated caller');
 select throws_ok(
-  $$select public.decide_recommendation(gen_random_uuid(), 'discarded')$$,
-  '28000', null, 'decide_recommendation rejects an unauthenticated caller');
+  $$select public.decide_calorie_proposal(gen_random_uuid(), false)$$,
+  '28000', null, 'decide_calorie_proposal rejects an unauthenticated caller');
 reset role;
 
 select ok(not has_function_privilege('anon', 'public.propose_coach_plan(date,public.training_intention,jsonb,jsonb,jsonb,jsonb)', 'execute'),
   'anon cannot execute propose_coach_plan');
-select ok(not has_function_privilege('anon', 'public.decide_recommendation(uuid,text,jsonb,date)', 'execute'),
-  'anon cannot execute decide_recommendation');
+select ok(not has_function_privilege('anon', 'public.decide_calorie_proposal(uuid,boolean,date)', 'execute'),
+  'anon cannot execute decide_calorie_proposal');
 select ok(has_function_privilege('authenticated', 'public.accept_coach_plan(uuid,date)', 'execute'),
   'authenticated can execute accept_coach_plan');
 
@@ -415,8 +425,8 @@ select pg_temp.as_user(9);
 select is(public.evaluate_coach_calorie_change(pg_temp.d0())->>'reason', 'floor',
   'a change under the calorie floor is not proposed');
 select pg_temp.as_user(10);
-select is(public.evaluate_coach_calorie_change(pg_temp.d0())->>'reason', 'range',
-  'a change outside the adjustment range is not proposed');
+select is(public.evaluate_coach_calorie_change(pg_temp.d0())->>'reason', 'deficit_cap',
+  'a change that deepens the deficit beyond 500 kcal is not proposed');
 
 select pg_temp.as_user(11);
 select public.evaluate_coach_calorie_change(pg_temp.d0());
@@ -435,22 +445,22 @@ select is(
   (select (payload->>'from_kcal', payload->>'to_kcal', payload->>'change_kcal', payload->>'change_pct')::text
    from public.coach_recommendations where kind = 'calorie_change'),
   '(2200,1980,-220,-10.0)', 'the change is capped at 10 percent and rounded to 10 kcal');
-select is(public.evaluate_coach_calorie_change(pg_temp.d0())->>'reason', 'recent_change',
-  'a pending calorie change blocks a new one (idempotent)');
+select is(public.evaluate_coach_calorie_change(pg_temp.d0())->>'reason', 'already_pending_this_week',
+  'a pending calorie change of this week is returned again (idempotent)');
 select is((select count(*)::int from public.coach_recommendations where kind = 'calorie_change'), 1,
   'evaluating twice creates a single recommendation');
 
 -- ---------------------------------------------------------------------------
--- decide_recommendation
+-- decide_calorie_proposal
 -- ---------------------------------------------------------------------------
 select throws_ok(
-  $$select public.decide_recommendation((select id from public.coach_recommendations where kind = 'calorie_change'), 'maybe')$$,
-  '22023', null, 'an unknown decision is rejected');
+  $$select public.decide_calorie_proposal((select id from public.coach_recommendations where kind = 'calorie_change'), null)$$,
+  '22023', null, 'a decision without p_apply is rejected');
 
-select public.decide_recommendation((select id from public.coach_recommendations where kind = 'calorie_change'), 'accepted');
+select public.decide_calorie_proposal((select id from public.coach_recommendations where kind = 'calorie_change'), true);
 select is(
   (select (target_kcal, calorie_adjustment, strategy, protein_pct, carbs_pct, fat_pct)::text from public.nutrition_goals),
-  '(1980,-620,deficit,36,39,25)', 'accepting writes the new target and keeps the protein grams and the fat share');
+  '(1980,-470,deficit,36,39,25)', 'applying writes the new target and keeps the protein grams and the fat share');
 select is(
   (select (nutrition->>'target_kcal', nutrition->>'protein_g', nutrition->>'protein_pct', nutrition->>'calorie_changes')::text
    from public.coach_plans where status = 'accepted'),
@@ -460,7 +470,7 @@ select is(
   (select (status, decided_at is not null)::text from public.coach_recommendations where kind = 'calorie_change'),
   '(accepted,t)', 'the recommendation is stored as accepted');
 select throws_ok(
-  $$select public.decide_recommendation((select id from public.coach_recommendations where kind = 'calorie_change'), 'discarded')$$,
+  $$select public.decide_calorie_proposal((select id from public.coach_recommendations where kind = 'calorie_change'), false)$$,
   '55000', null, 'a decided recommendation cannot be decided again');
 select is(public.evaluate_coach_calorie_change(pg_temp.d0())->>'reason', 'recent_change',
   'a new change waits 14 days after a decision');
@@ -469,31 +479,13 @@ reset role;
 update public.coach_recommendations set decided_at = now() - interval '15 days' where user_id = pg_temp.u(4);
 set local role authenticated;
 select pg_temp.as_user(4);
-select is(public.evaluate_coach_calorie_change(pg_temp.d0())->>'status', 'created',
-  'after 14 days a new change can be proposed');
-select is(
-  (select (payload->>'from_kcal', payload->>'to_kcal')::text from public.coach_recommendations where status = 'pending'),
-  '(1980,1790)', 'the next change starts from the applied target (10 percent of 1980 is rounded down to 190)');
-select throws_ok(
-  $$select public.decide_recommendation((select id from public.coach_recommendations where status = 'pending'), 'edited',
-      '{"target_kcal": 1700}')$$,
-  '22023', null, 'an edited value beyond 10 percent is rejected');
-select throws_ok(
-  $$select public.decide_recommendation((select id from public.coach_recommendations where status = 'pending'), 'edited', '{}')$$,
-  '22023', null, 'an edited decision needs target_kcal');
-select public.decide_recommendation((select id from public.coach_recommendations where status = 'pending'), 'edited',
-  '{"target_kcal": 1800}');
-select is(
-  (select (status, payload->'edited'->>'target_kcal')::text from public.coach_recommendations
-   where decided_at > now() - interval '1 minute'),
-  '(edited,1800)', 'an edited decision stores the user''s value');
-select is((select target_kcal from public.nutrition_goals), 1800, 'an edited decision writes the user''s target');
-select is(pg_temp.edited_flag(4), false, 'applying an edited calorie change does not count as a manual edit');
+select is(public.evaluate_coach_calorie_change(pg_temp.d0())->>'reason', 'deficit_cap',
+  'after 14 days the 500 kcal adjustment limit still blocks a deeper deficit');
 
 -- Discard changes nothing; a plan recommendation cannot be decided here.
 select pg_temp.as_user(12);
 select public.evaluate_coach_calorie_change(pg_temp.d0());
-select public.decide_recommendation((select id from public.coach_recommendations where status = 'pending'), 'discarded');
+select public.decide_calorie_proposal((select id from public.coach_recommendations where status = 'pending'), false);
 select is(
   (select (status, decided_at is not null)::text from public.coach_recommendations where kind = 'calorie_change'),
   '(discarded,t)', 'discarding stores the decision');
@@ -506,7 +498,7 @@ values ('b0000000-0000-4000-8000-0000000000a3', pg_temp.u(2), 'b0000000-0000-400
 set local role authenticated;
 select pg_temp.as_user(2);
 select throws_ok(
-  $$select public.decide_recommendation('b0000000-0000-4000-8000-0000000000a3', 'accepted')$$,
+  $$select public.decide_calorie_proposal('b0000000-0000-4000-8000-0000000000a3', true)$$,
   '22023', null, 'a plan recommendation is decided through accept_coach_plan, not here');
 
 reset role;

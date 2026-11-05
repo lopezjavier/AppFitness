@@ -1792,6 +1792,8 @@
 
     <!-- T-162: nutrition plan proposal, plan entry on the Trainer tab, calorie-change card, Weight plan outcome. -->
     <string name="action_accept">Aceptar</string>
+    <string name="action_apply">Aplicar</string>
+    <string name="action_not_now">Ahora no</string>
     <string name="trainer_plan_section">Tu plan</string>
     <string name="trainer_plan_create">Crear plan</string>
     <string name="trainer_plan_create_action">crear el plan</string>
@@ -1806,14 +1808,17 @@
     </plurals>
     <string name="calorie_change_title">Ajuste de calorías</string>
     <string name="calorie_change_payload">De %1$s a %2$s kcal al día</string>
-    <string name="calorie_change_reason_faster">Tu peso baja más rápido de lo previsto.</string>
-    <string name="calorie_change_reason_slower">Tu peso baja más despacio de lo previsto.</string>
+    <string name="calorie_proposal_cut_lower">Te proponemos bajar %1$s kcal: en las últimas 2 semanas tu peso ha bajado menos de lo previsto.</string>
+    <string name="calorie_proposal_cut_raise">Te proponemos subir %1$s kcal: en las últimas 2 semanas tu peso ha bajado más de lo previsto.</string>
+    <string name="calorie_proposal_gain_lower">Te proponemos bajar %1$s kcal: en las últimas 2 semanas tu peso ha subido más de lo previsto.</string>
+    <string name="calorie_proposal_gain_raise">Te proponemos subir %1$s kcal: en las últimas 2 semanas tu peso ha subido menos de lo previsto.</string>
+    <string name="calorie_proposal_hold_lower">Te proponemos bajar %1$s kcal: en las últimas 2 semanas tu peso ha subido y tu objetivo es mantenerlo.</string>
+    <string name="calorie_proposal_hold_raise">Te proponemos subir %1$s kcal: en las últimas 2 semanas tu peso ha bajado y tu objetivo es mantenerlo.</string>
     <string name="calorie_change_data">Según tu tendencia: %1$s kg/sem (margen ±%2$s)</string>
     <string name="calorie_change_data_short">Según tu tendencia: %1$s kg/sem</string>
-    <string name="calorie_change_accept_error">No se pudo aceptar el cambio. Inténtalo de nuevo.</string>
-    <string name="calorie_change_discard_error">No se pudo descartar el cambio. Inténtalo de nuevo.</string>
-    <string name="calorie_change_accept_offline">aceptar el cambio</string>
-    <string name="calorie_change_discard_offline">descartar el cambio</string>
+    <string name="calorie_proposal_apply_error">No se pudo aplicar el cambio. Inténtalo de nuevo.</string>
+    <string name="calorie_proposal_decline_error">No se pudo guardar tu decisión. Inténtalo de nuevo.</string>
+    <string name="calorie_proposal_offline">aplicar el cambio o guardar tu decisión</string>
     <string name="trainer_deload_title">Semana de descarga</string>
     <string name="trainer_deload_payload">Semana %1$d: mismo peso, 40 % menos de series</string>
     <string name="trainer_deload_reason">Ninguno de tus ejercicios principales ha mejorado su 1RM estimado en tres semanas.</string>

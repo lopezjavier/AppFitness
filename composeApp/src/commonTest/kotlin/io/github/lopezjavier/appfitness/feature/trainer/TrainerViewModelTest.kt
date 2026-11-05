@@ -7,6 +7,8 @@ import io.github.lopezjavier.appfitness.domain.AppException
 import io.github.lopezjavier.appfitness.domain.model.ActivityLevel
 import io.github.lopezjavier.appfitness.domain.model.ActivitySources
 import io.github.lopezjavier.appfitness.domain.model.CoachDerivedValues
+import io.github.lopezjavier.appfitness.domain.model.CoachException
+import io.github.lopezjavier.appfitness.domain.model.CoachFailure
 import io.github.lopezjavier.appfitness.domain.model.DerivedActivityLevel
 import io.github.lopezjavier.appfitness.domain.model.DerivedExperienceValue
 import io.github.lopezjavier.appfitness.domain.model.DerivedIntake
@@ -266,7 +268,7 @@ class TrainerViewModelTest {
         advanceUntilIdle()
 
         assertEquals(PlanSummary.None, model.content().plan)
-        assertNull(model.content().calorieChange)
+        assertNull(model.content().calorieProposal)
         assertEquals(0, plans.pendingReads)
     }
 
@@ -299,13 +301,13 @@ class TrainerViewModelTest {
     fun acceptedPlan_isSummarised_andItsPendingCalorieChangeIsShown() = runTest(dispatcher) {
         val accepted = coachPlan(status = PlanStatus.Accepted)
         plans.current = Result.success(accepted)
-        plans.pending = Result.success(calorieChange())
+        plans.pending = Result.success(calorieProposal())
         val model = viewModel()
 
         advanceUntilIdle()
 
         assertEquals(PlanSummary.Accepted(accepted), model.content().plan)
-        assertEquals(calorieChange(), model.content().calorieChange)
+        assertEquals(calorieProposal(), model.content().calorieProposal)
     }
 
     @Test
@@ -342,7 +344,7 @@ class TrainerViewModelTest {
     }
 
     @Test
-    fun calorieChangeFailure_degradesToNoCard() = runTest(dispatcher) {
+    fun calorieProposalFailure_degradesToNoCard() = runTest(dispatcher) {
         plans.current = Result.success(coachPlan(status = PlanStatus.Accepted))
         plans.pending = Result.failure(AppException(AppError.Unknown))
         val model = viewModel()
@@ -350,25 +352,25 @@ class TrainerViewModelTest {
         advanceUntilIdle()
 
         assertIs<PlanSummary.Accepted>(model.content().plan)
-        assertNull(model.content().calorieChange)
+        assertNull(model.content().calorieProposal)
     }
 
     @Test
     fun acceptingTheCalorieChange_sendsTheDecision_hidesTheCard_andReloadsThePlan() = runTest(dispatcher) {
         plans.current = Result.success(coachPlan(status = PlanStatus.Accepted))
-        plans.pending = Result.success(calorieChange())
+        plans.pending = Result.success(calorieProposal())
         val model = viewModel()
         advanceUntilIdle()
         val readsBefore = plans.currentReads
 
         model.effects.test {
-            model.onEvent(TrainerEvent.DecideCalorieChange(accept = true))
+            model.onEvent(TrainerEvent.ApplyCalorieProposal)
             advanceUntilIdle()
-            assertEquals(TrainerEffect.CalorieChangeDecided(accepted = true), awaitItem())
+            assertEquals(TrainerEffect.CalorieProposalApplied, awaitItem())
         }
 
         assertEquals(listOf("change-1" to true), plans.decisions)
-        assertNull(model.content().calorieChange)
+        assertNull(model.content().calorieProposal)
         assertFalse(model.content().decidingChange)
         assertEquals(readsBefore + 1, plans.currentReads)
     }
@@ -376,44 +378,121 @@ class TrainerViewModelTest {
     @Test
     fun discardingTheCalorieChange_sendsTheDiscard() = runTest(dispatcher) {
         plans.current = Result.success(coachPlan(status = PlanStatus.Accepted))
-        plans.pending = Result.success(calorieChange())
+        plans.pending = Result.success(calorieProposal())
         val model = viewModel()
         advanceUntilIdle()
 
         model.effects.test {
-            model.onEvent(TrainerEvent.DecideCalorieChange(accept = false))
+            model.onEvent(TrainerEvent.DeclineCalorieProposal)
             advanceUntilIdle()
-            assertEquals(TrainerEffect.CalorieChangeDecided(accepted = false), awaitItem())
+            assertEquals(TrainerEffect.CalorieProposalDeclined, awaitItem())
         }
 
         assertEquals(listOf("change-1" to false), plans.decisions)
-        assertNull(model.content().calorieChange)
+        assertNull(model.content().calorieProposal)
     }
 
     @Test
     fun failedCalorieDecision_keepsTheCard_andEmitsTheFailure() = runTest(dispatcher) {
         plans.current = Result.success(coachPlan(status = PlanStatus.Accepted))
-        plans.pending = Result.success(calorieChange())
+        plans.pending = Result.success(calorieProposal())
         plans.decideResult = Result.failure(AppException(AppError.Network))
         val model = viewModel()
         advanceUntilIdle()
 
         model.effects.test {
-            model.onEvent(TrainerEvent.DecideCalorieChange(accept = true))
+            model.onEvent(TrainerEvent.ApplyCalorieProposal)
             advanceUntilIdle()
-            assertEquals(TrainerEffect.CalorieChangeFailed(accept = true, offline = true), awaitItem())
+            assertEquals(TrainerEffect.CalorieProposalFailed(apply = true, offline = true), awaitItem())
         }
 
-        assertEquals(calorieChange(), model.content().calorieChange)
+        assertEquals(calorieProposal(), model.content().calorieProposal)
         assertFalse(model.content().decidingChange)
     }
+
+    @Test
+    fun decliningTheProposal_keepsThePlanUnchanged() = runTest(dispatcher) {
+        val accepted = coachPlan(status = PlanStatus.Accepted)
+        plans.current = Result.success(accepted)
+        plans.pending = Result.success(calorieProposal())
+        val model = viewModel()
+        advanceUntilIdle()
+
+        model.onEvent(TrainerEvent.DeclineCalorieProposal)
+        advanceUntilIdle()
+
+        assertEquals(PlanSummary.Accepted(accepted), model.content().plan)
+    }
+
+    @Test
+    fun aSecondTapWhileDeciding_isIgnored() = runTest(dispatcher) {
+        plans.current = Result.success(coachPlan(status = PlanStatus.Accepted))
+        plans.pending = Result.success(calorieProposal())
+        val model = viewModel()
+        advanceUntilIdle()
+
+        model.onEvent(TrainerEvent.ApplyCalorieProposal)
+        model.onEvent(TrainerEvent.ApplyCalorieProposal)
+        model.onEvent(TrainerEvent.DeclineCalorieProposal)
+        advanceUntilIdle()
+
+        assertEquals(listOf("change-1" to true), plans.decisions)
+    }
+
+    @Test
+    fun aProposalAlreadyDecided_reloadsAndHidesTheCard() = runTest(dispatcher) {
+        plans.current = Result.success(coachPlan(status = PlanStatus.Accepted))
+        plans.pending = Result.success(calorieProposal())
+        plans.decideResult = Result.failure(CoachException(CoachFailure.Conflict))
+        val model = viewModel()
+        advanceUntilIdle()
+        plans.pending = Result.success(null)
+
+        model.effects.test {
+            model.onEvent(TrainerEvent.ApplyCalorieProposal)
+            advanceUntilIdle()
+            assertEquals(TrainerEffect.CalorieProposalFailed(apply = true, offline = false), awaitItem())
+        }
+
+        assertNull(model.content().calorieProposal)
+        assertFalse(model.content().decidingChange)
+    }
+
+    @Test
+    fun noProposalIsRead_forAProposedPlan() = runTest(dispatcher) {
+        plans.current = Result.success(coachPlan(status = PlanStatus.Proposed))
+        plans.pending = Result.success(calorieProposal())
+        val model = viewModel()
+        advanceUntilIdle()
+
+        assertNull(model.content().calorieProposal)
+        assertEquals(0, plans.pendingReads)
+    }
+
+    @Test
+    fun recreatedViewModel_onTheSameSavedState_showsTheProposalAgainAndKeepsTheRemoveConfirmation() =
+        runTest(dispatcher) {
+            plans.current = Result.success(coachPlan(status = PlanStatus.Accepted))
+            plans.pending = Result.success(calorieProposal())
+            blocks.current = Result.success(coachBlock(saved = true))
+            val saved = SavedStateHandle()
+            val first = viewModelWith(saved)
+            advanceUntilIdle()
+            first.onEvent(TrainerEvent.RequestRemoveBlock)
+
+            val second = viewModelWith(saved)
+            advanceUntilIdle()
+
+            assertEquals(calorieProposal(), second.content().calorieProposal)
+            assertTrue(second.content().removeBlockConfirm)
+        }
 
     @Test
     fun decidingWithoutACard_isIgnored() = runTest(dispatcher) {
         val model = viewModel()
         advanceUntilIdle()
 
-        model.onEvent(TrainerEvent.DecideCalorieChange(accept = true))
+        model.onEvent(TrainerEvent.ApplyCalorieProposal)
         advanceUntilIdle()
 
         assertTrue(plans.decisions.isEmpty())

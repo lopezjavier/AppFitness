@@ -15,7 +15,7 @@ import io.github.lopezjavier.appfitness.data.remote.CoachErrorParser
 import io.github.lopezjavier.appfitness.data.remote.CoachPlanDto
 import io.github.lopezjavier.appfitness.data.remote.CoachRecommendationDto
 import io.github.lopezjavier.appfitness.data.remote.CoachStreamParser
-import io.github.lopezjavier.appfitness.data.remote.DecideRecommendationParams
+import io.github.lopezjavier.appfitness.data.remote.DecideCalorieProposalParams
 import io.github.lopezjavier.appfitness.data.remote.DiscardPlanParams
 import io.github.lopezjavier.appfitness.data.remote.EvaluateCalorieParams
 import io.github.lopezjavier.appfitness.data.remote.PlanEventDto
@@ -27,7 +27,7 @@ import io.github.lopezjavier.appfitness.data.remote.SetCardioParams
 import io.github.lopezjavier.appfitness.data.remote.coachPlanJson
 import io.github.lopezjavier.appfitness.domain.AppError
 import io.github.lopezjavier.appfitness.domain.AppException
-import io.github.lopezjavier.appfitness.domain.model.CalorieChange
+import io.github.lopezjavier.appfitness.domain.model.CalorieProposal
 import io.github.lopezjavier.appfitness.domain.model.CoachException
 import io.github.lopezjavier.appfitness.domain.model.CoachFailure
 import io.github.lopezjavier.appfitness.domain.model.CoachPlan
@@ -167,7 +167,7 @@ class SupabaseCoachPlanRepository internal constructor(
         loadPlan(planId) ?: throw CoachException(CoachFailure.Other)
     }.mapPlanErrors()
 
-    override suspend fun pendingCalorieChange(today: LocalDate): Result<CalorieChange?> = auth.ownRow {
+    override suspend fun pendingCalorieProposal(today: LocalDate): Result<CalorieProposal?> = auth.ownRow {
         postgrest.rpc("evaluate_coach_calorie_change", EvaluateCalorieParams(today))
         postgrest.from("coach_recommendations")
             .select {
@@ -178,14 +178,14 @@ class SupabaseCoachPlanRepository internal constructor(
                 order("created_at", Order.DESCENDING)
             }
             .decodeList<CoachRecommendationDto>()
-            .firstOrNull()?.toCalorieChange()
+            .firstOrNull()?.toCalorieProposal()
     }
 
-    override suspend fun decideCalorieChange(id: String, accept: Boolean, today: LocalDate): Result<Unit> =
+    override suspend fun decideCalorieProposal(id: String, apply: Boolean, today: LocalDate): Result<Unit> =
         auth.ownRow {
             postgrest.rpc(
-                "decide_recommendation",
-                DecideRecommendationParams(id, if (accept) "accepted" else "discarded", today),
+                "decide_calorie_proposal",
+                DecideCalorieProposalParams(id, apply, today),
             )
             Unit
         }.mapPlanErrors()

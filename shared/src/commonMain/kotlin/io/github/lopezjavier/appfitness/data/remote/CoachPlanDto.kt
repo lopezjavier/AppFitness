@@ -1,6 +1,6 @@
 package io.github.lopezjavier.appfitness.data.remote
 
-import io.github.lopezjavier.appfitness.domain.model.CalorieChange
+import io.github.lopezjavier.appfitness.domain.model.CalorieProposal
 import io.github.lopezjavier.appfitness.domain.model.CoachPlan
 import io.github.lopezjavier.appfitness.domain.model.CutRate
 import io.github.lopezjavier.appfitness.domain.model.DietBreakWeek
@@ -212,13 +212,15 @@ internal data class PlanEventDto(
 )
 
 @Serializable
-internal data class CalorieChangePayloadDto(
+internal data class CalorieProposalPayloadDto(
     @SerialName("from_kcal") val fromKcal: Double,
     @SerialName("to_kcal") val toKcal: Double,
     @SerialName("change_pct") val changePct: Double = 0.0,
     @SerialName("slope_kg_week") val slopeKgWeek: Double? = null,
     @SerialName("interval_low") val intervalLow: Double? = null,
     @SerialName("interval_high") val intervalHigh: Double? = null,
+    @SerialName("rate_kg_week") val rateKgWeek: Double? = null,
+    val weeks: Int = 2,
 )
 
 /** Row of `coach_recommendations` (owner select). */
@@ -227,9 +229,9 @@ internal data class CoachRecommendationDto(
     val id: String,
     @SerialName("plan_id") val planId: String? = null,
     val reason: String? = null,
-    val payload: CalorieChangePayloadDto,
+    val payload: CalorieProposalPayloadDto,
 ) {
-    fun toCalorieChange(): CalorieChange = CalorieChange(
+    fun toCalorieProposal(): CalorieProposal = CalorieProposal(
         id = id,
         planId = planId,
         fromKcal = payload.fromKcal.roundToInt(),
@@ -239,6 +241,8 @@ internal data class CoachRecommendationDto(
         slopeKgWeek = payload.slopeKgWeek,
         intervalLow = payload.intervalLow,
         intervalHigh = payload.intervalHigh,
+        rateKgWeek = payload.rateKgWeek,
+        weeks = payload.weeks,
     )
 }
 
@@ -297,8 +301,8 @@ internal data class ApplyDietBreakResultDto(
 )
 
 @Serializable
-internal data class DecideRecommendationParams(
+internal data class DecideCalorieProposalParams(
     @SerialName("p_id") val id: String,
-    @SerialName("p_status") val status: String,
+    @SerialName("p_apply") val apply: Boolean,
     @SerialName("p_today") val today: LocalDate,
 )

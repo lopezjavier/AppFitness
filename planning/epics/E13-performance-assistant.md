@@ -34,7 +34,7 @@ The coach has its own tab "Trainer" between "Entreno" and "Perfil" (ADR-79), add
 - `coach_derived_values` (`user_id`, `key`, `value`, `uncertainty`, `source` jsonb, `confirmed` boolean, `confirmed_at`).
 - `coach_plans` (`user_id`, `block_start`, `block_weeks` = 4, `intention`, `nutrition` jsonb, `outcomes` jsonb, `method` jsonb, `status` = proposed | accepted | superseded | discarded, `data_version`).
 - `coach_plan_sessions` (`plan_id`, `week` 1-4, `routine_id`, `session_id` nullable, `deload` boolean).
-- `coach_recommendations` (`user_id`, `plan_id` nullable, `kind`, `payload` jsonb, `reason`, `input_summary` jsonb, `status` = pending | accepted | edited | discarded, `created_at`, `decided_at`).
+- `coach_recommendations` (`user_id`, `plan_id` nullable, `kind`, `payload` jsonb, `reason`, `input_summary` jsonb, `status` = pending | accepted | discarded | superseded (T-229: `edited` removed, `04` §8.5), `created_at`, `decided_at`).
 - `coach_outcomes` (`recommendation_id`, `measured_at`, `weight_kg`, `e1rm_kg`, `adherence_pct`).
 - `coach_reports` (`user_id`, `week_start`, `generated_on`, `figures` jsonb, `text` nullable).
 - `coach_usage` (`user_id`, `month`, `input_tokens`, `output_tokens`, `cost_eur`).
