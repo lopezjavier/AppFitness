@@ -54,7 +54,7 @@ The journeys a checkpoint would have covered (session to session, the week, the 
 - [x] T-228: Load changes and flags in the app — L
 
 ### Phase 2: The week (US-99, US-100, US-98, US-105)
-- [ ] T-229: Calorie proposals — M
+- [x] T-229: Calorie proposals — M
 - [ ] T-230: Deloads — M
 - [ ] T-231: The weekly summary — L
 - [ ] T-232: "¿Por qué no progreso?" — M
