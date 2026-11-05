@@ -15,6 +15,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.produceState
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
@@ -33,6 +34,14 @@ import io.github.lopezjavier.appfitness.composeapp.resources.calorie_change_disc
 import io.github.lopezjavier.appfitness.composeapp.resources.calorie_change_discard_offline
 import io.github.lopezjavier.appfitness.composeapp.resources.cardio_save_error
 import io.github.lopezjavier.appfitness.composeapp.resources.cardio_save_offline
+import io.github.lopezjavier.appfitness.composeapp.resources.coach_change_decide_error
+import io.github.lopezjavier.appfitness.composeapp.resources.coach_change_decide_not_pending
+import io.github.lopezjavier.appfitness.composeapp.resources.coach_change_decide_offline
+import io.github.lopezjavier.appfitness.composeapp.resources.coach_change_undo_conflict
+import io.github.lopezjavier.appfitness.composeapp.resources.coach_change_undo_error
+import io.github.lopezjavier.appfitness.composeapp.resources.coach_change_undo_not_found
+import io.github.lopezjavier.appfitness.composeapp.resources.coach_change_undo_offline
+import io.github.lopezjavier.appfitness.composeapp.resources.coach_change_undone_skipped
 import io.github.lopezjavier.appfitness.composeapp.resources.coach_usage_title
 import io.github.lopezjavier.appfitness.composeapp.resources.deload_accept_error
 import io.github.lopezjavier.appfitness.composeapp.resources.deload_accept_offline
@@ -61,8 +70,10 @@ import io.github.lopezjavier.appfitness.designsystem.SkeletonBox
 import io.github.lopezjavier.appfitness.designsystem.Spacing
 import io.github.lopezjavier.appfitness.designsystem.offlineHint
 import io.github.lopezjavier.appfitness.domain.port.ConnectivityObserver
+import io.github.lopezjavier.appfitness.domain.usecase.ExerciseNameResolver
 import io.github.lopezjavier.appfitness.feature.notifications.NotificationsBell
 import kotlinx.coroutines.flow.Flow
+import org.jetbrains.compose.resources.getPluralString
 import org.jetbrains.compose.resources.pluralStringResource
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.koinInject
@@ -83,16 +94,19 @@ data class TrainerActions(
     val onOpenBeforeStart: (mode: BeforeStartMode, planId: String?, replacingPlanId: String?) -> Unit = { _, _, _ -> },
     val onOpenYourData: () -> Unit = {},
     val onOpenFreeText: () -> Unit = {},
+    val onOpenExercise: (exerciseId: String) -> Unit = {},
+    val onOpenRoutineRange: (routineId: String, exerciseId: String) -> Unit = { _, _ -> },
 )
 
 /** Stateful Trainer tab root: connects [TrainerViewModel] to [TrainerScreen] and plays its one-off effects. */
-@Suppress("LongMethod") // One failure message per effect, wired in one place.
+@Suppress("LongMethod", "CyclomaticComplexMethod") // One failure message per effect, wired in one place.
 @Composable
 fun TrainerRoute(
     modifier: Modifier = Modifier,
     actions: TrainerActions = TrainerActions(),
     viewModel: TrainerViewModel = koinViewModel(),
     connectivity: ConnectivityObserver = koinInject(),
+    nameResolver: ExerciseNameResolver? = null,
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val haptics = LocalAppHaptics.current
@@ -111,7 +125,16 @@ fun TrainerRoute(
         stringResource(Res.string.trainer_block_remove_error),
         offlineHint(stringResource(Res.string.trainer_block_remove_action)) + ".",
     )
+    val undoOffline = offlineHint(stringResource(Res.string.coach_change_undo_offline)) + "."
+    val undoConflict = stringResource(Res.string.coach_change_undo_conflict)
+    val undoNotFound = stringResource(Res.string.coach_change_undo_not_found)
+    val undoError = stringResource(Res.string.coach_change_undo_error)
+    val decideOffline = offlineHint(stringResource(Res.string.coach_change_decide_offline)) + "."
+    val decideNotPending = stringResource(Res.string.coach_change_decide_not_pending)
+    val decideError = stringResource(Res.string.coach_change_decide_error)
     val latestHaptics by rememberUpdatedState(haptics)
+    val latestActions by rememberUpdatedState(actions)
+    val exerciseNames = rememberExerciseNames(state, nameResolver)
     LifecycleEventEffect(Lifecycle.Event.ON_RESUME) { viewModel.onEvent(TrainerEvent.Refresh) }
     LaunchedEffect(viewModel) {
         viewModel.effects.collect { effect ->
@@ -143,6 +166,44 @@ fun TrainerRoute(
                     messages.show(if (effect.offline) cardioOffline else cardioError)
                 }
 
+                is TrainerEffect.FlagDecided -> latestHaptics.confirm()
+
+                // The row turns "Deshecho" by itself; only routines edited since need a message (R-13).
+                is TrainerEffect.CoachChangeUndone -> {
+                    latestHaptics.confirm()
+                    if (effect.skipped > 0) {
+                        messages.show(
+                            getPluralString(Res.plurals.coach_change_undone_skipped, effect.skipped, effect.skipped),
+                        )
+                    }
+                }
+
+                is TrainerEffect.CoachChangeUndoFailed -> {
+                    latestHaptics.reject()
+                    messages.show(
+                        when {
+                            effect.offline -> undoOffline
+                            effect.kind == CoachChangeUndoFailure.Conflict -> undoConflict
+                            effect.kind == CoachChangeUndoFailure.NotFound -> undoNotFound
+                            else -> undoError
+                        },
+                    )
+                }
+
+                is TrainerEffect.FlagDecideFailed -> {
+                    latestHaptics.reject()
+                    messages.show(
+                        when {
+                            effect.offline -> decideOffline
+                            effect.notPending -> decideNotPending
+                            else -> decideError
+                        },
+                    )
+                }
+
+                is TrainerEffect.OpenRoutineRange ->
+                    latestActions.onOpenRoutineRange(effect.routineId, effect.exerciseId)
+
                 is TrainerEffect.DeloadFailed -> {
                     latestHaptics.reject()
                     messages.show(
@@ -162,7 +223,21 @@ fun TrainerRoute(
         onEvent = viewModel::onEvent,
         modifier = modifier,
         actions = actions,
+        exerciseNames = exerciseNames,
     )
+}
+
+/**
+ * Exercise names by id for the coach-change rows (R-54): the shared resolver, read again when the rows change. Empty
+ * when the [resolver] is not available or the read fails (a row then shows its reason without a name).
+ */
+@Composable
+private fun rememberExerciseNames(state: TrainerUiState, resolver: ExerciseNameResolver?): Map<String, String> {
+    val rows = (state as? TrainerUiState.Content)?.coachChanges.orEmpty()
+    val names by produceState(emptyMap<String, String>(), resolver, rows.map { it.exerciseId }) {
+        if (resolver != null && rows.isNotEmpty()) value = resolver.resolve().getOrNull()?.byId.orEmpty()
+    }
+    return names
 }
 
 /** Picks the failure message from `[acceptError, discardError, acceptOffline, discardOffline]`. */
@@ -180,6 +255,7 @@ fun TrainerScreen(
     onEvent: (TrainerEvent) -> Unit,
     modifier: Modifier = Modifier,
     actions: TrainerActions = TrainerActions(),
+    exerciseNames: Map<String, String> = emptyMap(),
 ) {
     val title = stringResource(Res.string.trainer_title)
     val online by isOnline.collectAsStateWithLifecycle(initialValue = true)
@@ -192,7 +268,7 @@ fun TrainerScreen(
         Box(Modifier.fillMaxSize().testTag("trainer_screen")) {
             when (state) {
                 TrainerUiState.Loading -> TrainerSkeleton()
-                is TrainerUiState.Content -> TrainerContent(state, online, onEvent, actions)
+                is TrainerUiState.Content -> TrainerContent(state, online, onEvent, actions, exerciseNames)
             }
         }
     }
@@ -204,6 +280,7 @@ private fun TrainerContent(
     online: Boolean,
     onEvent: (TrainerEvent) -> Unit,
     actions: TrainerActions,
+    exerciseNames: Map<String, String>,
 ) {
     Column(
         Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(Spacing.screenMargin),
@@ -211,6 +288,7 @@ private fun TrainerContent(
     ) {
         state.deload?.let { DeloadCard(it, state.decidingDeload, online, onEvent) }
         state.calorieChange?.let { CalorieChangeCard(it, state.decidingChange, online, onEvent) }
+        CoachChangesSection(state, exerciseNames, online, onEvent, actions.onOpenExercise)
         PlanSection(
             state.plan,
             online,

@@ -7,6 +7,7 @@ import io.github.lopezjavier.appfitness.domain.model.DeloadProposal
 import io.github.lopezjavier.appfitness.domain.model.Phase
 import io.github.lopezjavier.appfitness.domain.model.PhaseReason
 import io.github.lopezjavier.appfitness.domain.model.PlanWeek
+import io.github.lopezjavier.appfitness.domain.model.ProgressionFlagDecision
 import io.github.lopezjavier.appfitness.domain.usecase.GoalChecklist
 
 /** The plan entry of the Trainer tab: no plan, a proposal waiting for a decision, or the active plan. */
@@ -55,6 +56,10 @@ sealed interface TrainerUiState {
         val removingBlock: Boolean = false,
         /** N1-N4 on the Diario goals in use; null until the core supplies it. Shown only for an edited plan. */
         val goalsChecklist: GoalChecklist? = null,
+        /** "Cambios del entrenador": pending flags first, then the latest changes; empty hides the section. */
+        val coachChanges: List<CoachChangeRowUi> = emptyList(),
+        /** Id of the change whose undo or decision is in flight; the other rows' actions are disabled meanwhile. */
+        val busyChangeId: String? = null,
     ) : TrainerUiState {
         private val accepted: CoachPlan? get() = (plan as? PlanSummary.Accepted)?.plan
 
@@ -97,7 +102,19 @@ sealed interface TrainerEvent {
 
     /** "Cancelar", back or scrim: closes the confirmation and changes nothing (ignored while removing). */
     data object DismissRemoveBlock : TrainerEvent
+
+    /** "Deshacer" on an applied weight change; ignored while another change is busy. */
+    data class UndoCoachChange(val id: String) : TrainerEvent
+
+    /** A one-tap option of a flagged raise; ignored while another change is busy. */
+    data class DecideFlag(val id: String, val decision: ProgressionFlagDecision) : TrainerEvent
+
+    /** "Añadir un rango" on a no-range flag: asks the screen to open the routine editor on that exercise. */
+    data class OpenRange(val id: String) : TrainerEvent
 }
+
+/** Why an undo was refused or failed. */
+enum class CoachChangeUndoFailure { Conflict, NotFound, Other }
 
 /** One-off effects; the UI shows the message and fires the haptics. */
 sealed interface TrainerEffect {
@@ -124,4 +141,19 @@ sealed interface TrainerEffect {
 
     /** Removing the block failed; the dialog is closed and the block stays. [offline] picks the offline hint. */
     data class RemoveBlockFailed(val offline: Boolean) : TrainerEffect
+
+    /** The change was undone (confirm haptic); [skipped] > 0 routines were edited since and kept (show a message). */
+    data class CoachChangeUndone(val skipped: Int) : TrainerEffect
+
+    /** The undo failed (reject haptic and message, no action button); the row stays as it was. */
+    data class CoachChangeUndoFailed(val kind: CoachChangeUndoFailure, val offline: Boolean) : TrainerEffect
+
+    /** The flag was decided (confirm haptic, no message: the row changes). */
+    data class FlagDecided(val decision: ProgressionFlagDecision) : TrainerEffect
+
+    /** The decision failed; [notPending] means it was already decided (the list was reloaded). */
+    data class FlagDecideFailed(val offline: Boolean, val notPending: Boolean) : TrainerEffect
+
+    /** Navigate to the editor of [routineId] with the range of [exerciseId] in focus. */
+    data class OpenRoutineRange(val routineId: String, val exerciseId: String) : TrainerEffect
 }

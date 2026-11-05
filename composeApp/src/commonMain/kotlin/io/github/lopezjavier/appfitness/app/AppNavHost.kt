@@ -420,6 +420,7 @@ internal typealias LiveSessionSlot = @Composable (modifier: Modifier, host: Live
  */
 class RoutineBuilderHost(
     val routineId: String?,
+    val focusExerciseId: String? = null,
     val selectedExerciseId: String?,
     val onConsumeSelection: () -> Unit,
     val onAddExercise: () -> Unit,
@@ -760,6 +761,10 @@ internal fun AppNavHost(
             },
             onOpenYourData = { navController.navigateToFullScreen(YourDataRoute) },
             onOpenFreeText = { navController.navigateToFullScreen(FreeTextLinesRoute) },
+            onOpenExercise = { navController.navigateToFullScreen(ExerciseDetailRoute(it, selectMode = false)) },
+            onOpenRoutineRange = { routineId, exerciseId ->
+                navController.navigateToFullScreen(RoutineBuilderRoute(routineId, exerciseId))
+            },
         )
     }
     val openYourData = remember(navController) { { navController.navigateToFullScreen(YourDataRoute) } }
@@ -1025,6 +1030,7 @@ internal fun AppNavHost(
                 Modifier.padding(fullScreenPadding),
                 RoutineBuilderHost(
                     routineId = entry.toRoute<RoutineBuilderRoute>().routineId,
+                    focusExerciseId = entry.toRoute<RoutineBuilderRoute>().focusExerciseId,
                     selectedExerciseId = selected,
                     onConsumeSelection = { handle[SELECTED_EXERCISE_KEY] = null },
                     onAddExercise = { navController.navigateToFullScreen(ExercisePickerRoute(selectMode = true)) },

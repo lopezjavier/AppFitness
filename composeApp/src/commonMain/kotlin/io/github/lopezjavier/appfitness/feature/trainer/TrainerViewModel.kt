@@ -4,15 +4,22 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import io.github.lopezjavier.appfitness.domain.AppError
+import io.github.lopezjavier.appfitness.domain.AppException
 import io.github.lopezjavier.appfitness.domain.appErrorOrNull
+import io.github.lopezjavier.appfitness.domain.model.CoachChangeException
+import io.github.lopezjavier.appfitness.domain.model.CoachChangeFailure
+import io.github.lopezjavier.appfitness.domain.model.CoachChangeKind
+import io.github.lopezjavier.appfitness.domain.model.CoachChangeStatus
 import io.github.lopezjavier.appfitness.domain.model.CoachDerivedValues
 import io.github.lopezjavier.appfitness.domain.model.CoachPlan
 import io.github.lopezjavier.appfitness.domain.model.MacroSplit
 import io.github.lopezjavier.appfitness.domain.model.Macronutrient
 import io.github.lopezjavier.appfitness.domain.model.PlanStatus
+import io.github.lopezjavier.appfitness.domain.model.ProgressionFlagDecision
 import io.github.lopezjavier.appfitness.domain.port.Clock
 import io.github.lopezjavier.appfitness.domain.repository.BodyMeasurementRepository
 import io.github.lopezjavier.appfitness.domain.repository.CoachBlockRepository
+import io.github.lopezjavier.appfitness.domain.repository.CoachChangesRepository
 import io.github.lopezjavier.appfitness.domain.repository.CoachPlanRepository
 import io.github.lopezjavier.appfitness.domain.repository.CoachRepository
 import io.github.lopezjavier.appfitness.domain.repository.CoachWeeksRepository
@@ -37,13 +44,15 @@ import kotlin.math.roundToInt
 private const val KEY_REMOVE_BLOCK_CONFIRM = "remove_block_confirm"
 private const val PERCENT = 100.0
 
+private fun PlanSummary.id(): String? = when (this) {
+    is PlanSummary.Proposed -> plan.id
+    is PlanSummary.Accepted -> plan.id
+    PlanSummary.None -> null
+}
+
 /** The stored block of an open plan; a failed read means none, like the plan entry itself. */
 private suspend fun CoachBlockRepository?.summaryFor(plan: PlanSummary): BlockSummary {
-    val planId = when (plan) {
-        is PlanSummary.Proposed -> plan.plan.id
-        is PlanSummary.Accepted -> plan.plan.id
-        PlanSummary.None -> null
-    }
+    val planId = plan.id()
     val block = planId?.let { this?.currentBlock(it)?.getOrNull() }
     return when {
         block == null -> BlockSummary.None
@@ -77,6 +86,7 @@ class TrainerViewModel(
     private val goals: NutritionGoalsRepository? = null,
     private val profile: ProfileRepository? = null,
     private val measurements: BodyMeasurementRepository? = null,
+    private val coachChanges: CoachChangesRepository? = null,
 ) : ViewModel() {
     private val cardioEdit = CardioEditState(savedState)
 
@@ -95,6 +105,7 @@ class TrainerViewModel(
         load()
     }
 
+    @Suppress("CyclomaticComplexMethod") // A flat dispatch over the events.
     fun onEvent(event: TrainerEvent) {
         when (event) {
             TrainerEvent.Load -> load()
@@ -108,7 +119,102 @@ class TrainerViewModel(
             TrainerEvent.RequestRemoveBlock -> requestRemoveBlock()
             TrainerEvent.ConfirmRemoveBlock -> confirmRemoveBlock()
             TrainerEvent.DismissRemoveBlock -> dismissRemoveBlock()
+            is TrainerEvent.UndoCoachChange -> undoCoachChange(event.id)
+            is TrainerEvent.DecideFlag -> decideFlag(event.id, event.decision)
+            is TrainerEvent.OpenRange -> openRange(event.id)
         }
+    }
+
+    /** The row to act on, or null when the tab is not showing content, another change is busy or it is not there. */
+    @Suppress("ReturnCount") // Guards: no content, busy, or no such row.
+    private fun idleRow(id: String): Pair<TrainerUiState.Content, CoachChangeRowUi>? {
+        val content = _uiState.value as? TrainerUiState.Content ?: return null
+        if (content.busyChangeId != null) return null
+        val row = content.coachChanges.firstOrNull { it.id == id } ?: return null
+        return content to row
+    }
+
+    private fun setBusy(id: String?) {
+        _uiState.update { state -> if (state is TrainerUiState.Content) state.copy(busyChangeId = id) else state }
+    }
+
+    /** Fresh read of the list after an action; a failed read keeps the rows already shown. */
+    private suspend fun reloadCoachChanges() {
+        val planId = (_uiState.value as? TrainerUiState.Content)?.plan?.id() ?: return
+        val fresh = readCoachChanges(planId) ?: return
+        _uiState.update { state -> if (state is TrainerUiState.Content) state.copy(coachChanges = fresh) else state }
+    }
+
+    private suspend fun readCoachChanges(planId: String): List<CoachChangeRowUi>? =
+        coachChanges?.list(planId, ShownCoachChangeStatuses)?.getOrNull()?.toCoachChangeRows()
+
+    @Suppress("ReturnCount") // Guards for a busy or missing row, repository or a change that is not undoable.
+    private fun undoCoachChange(id: String) {
+        val (_, row) = idleRow(id) ?: return
+        val repository = coachChanges ?: return
+        if (!row.undoable) return
+        setBusy(id)
+        viewModelScope.launch {
+            val result = repository.undo(id)
+            val undone = result.getOrNull()
+            if (undone != null) {
+                reloadCoachChanges()
+                setBusy(null)
+                effectChannel.send(TrainerEffect.CoachChangeUndone(undone.skipped))
+            } else {
+                val failure = undoFailureOf(result.exceptionOrNull())
+                if (failure == CoachChangeUndoFailure.NotFound) reloadCoachChanges()
+                setBusy(null)
+                effectChannel.send(
+                    TrainerEffect.CoachChangeUndoFailed(failure, offline = result.appErrorOrNull() == AppError.Network),
+                )
+            }
+        }
+    }
+
+    private fun undoFailureOf(error: Throwable?): CoachChangeUndoFailure = when {
+        error is CoachChangeException &&
+            (error.failure == CoachChangeFailure.Conflict || error.failure == CoachChangeFailure.NotUndoable) ->
+            CoachChangeUndoFailure.Conflict
+
+        error is AppException && error.error == AppError.NotFound -> CoachChangeUndoFailure.NotFound
+
+        else -> CoachChangeUndoFailure.Other
+    }
+
+    @Suppress("ReturnCount") // Guards for a busy or missing row, repository or a row that is not a pending flag.
+    private fun decideFlag(id: String, decision: ProgressionFlagDecision) {
+        val (_, row) = idleRow(id) ?: return
+        val repository = coachChanges ?: return
+        if (row.kind != CoachChangeKind.LoadFlag || row.status != CoachChangeStatus.Pending) return
+        setBusy(id)
+        viewModelScope.launch {
+            val result = repository.decide(id, decision)
+            if (result.isSuccess) {
+                reloadCoachChanges()
+                setBusy(null)
+                effectChannel.send(TrainerEffect.FlagDecided(decision))
+            } else {
+                val error = result.exceptionOrNull()
+                val notPending = error is CoachChangeException && error.failure == CoachChangeFailure.NotPending
+                if (notPending || undoFailureOf(error) == CoachChangeUndoFailure.NotFound) reloadCoachChanges()
+                setBusy(null)
+                effectChannel.send(
+                    TrainerEffect.FlagDecideFailed(
+                        offline = result.appErrorOrNull() == AppError.Network,
+                        notPending = notPending,
+                    ),
+                )
+            }
+        }
+    }
+
+    @Suppress("ReturnCount") // Guards for a missing row or one that is not a no-range flag.
+    private fun openRange(id: String) {
+        val row = (_uiState.value as? TrainerUiState.Content)?.coachChanges?.firstOrNull { it.id == id } ?: return
+        if (row.kind != CoachChangeKind.NoRangeFlag || row.status != CoachChangeStatus.Pending) return
+        val routineId = row.routineIds.firstOrNull() ?: return
+        viewModelScope.launch { effectChannel.send(TrainerEffect.OpenRoutineRange(routineId, row.exerciseId)) }
     }
 
     private fun requestRemoveBlock() {
@@ -266,6 +372,7 @@ class TrainerViewModel(
                     fresh.copy(
                         decidingChange = state.decidingChange,
                         decidingDeload = state.decidingDeload,
+                        busyChangeId = state.busyChangeId,
                         cardioEdit = state.cardioEdit,
                         removingBlock = state.removingBlock,
                         provisionalCount = fresh.provisionalCount ?: state.provisionalCount,
@@ -290,6 +397,8 @@ class TrainerViewModel(
         val savedPlanId = (plan as? PlanSummary.Accepted)?.plan?.id?.takeIf { block is BlockSummary.Saved }
         val deload = savedPlanId?.let { coachWeeks?.pendingDeload(today())?.getOrNull() }
         val planWeeks = savedPlanId?.let { coachWeeks?.weeks(it, today())?.getOrNull() }.orEmpty()
+        // The coach changes of the open plan; a failed read hides the section like its siblings.
+        val changeRows = plan.id()?.let { readCoachChanges(it) }.orEmpty()
         // A restored confirmation only makes sense while the block is still saved.
         val confirmRemove = savedState.get<Boolean>(KEY_REMOVE_BLOCK_CONFIRM) == true
         if (confirmRemove && block !is BlockSummary.Saved) savedState.remove<Boolean>(KEY_REMOVE_BLOCK_CONFIRM)
@@ -299,6 +408,7 @@ class TrainerViewModel(
             block = block,
             weeks = planWeeks,
             deload = deload,
+            coachChanges = changeRows,
             provisionalCount = provisional,
             goalsChecklist = goalsChecklistFor(plan),
             cardioEdit = cardioEdit.current((plan as? PlanSummary.Accepted)?.plan?.cardioMinutes()),

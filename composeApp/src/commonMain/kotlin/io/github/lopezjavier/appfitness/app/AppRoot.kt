@@ -53,6 +53,7 @@ import io.github.lopezjavier.appfitness.feature.workout.SessionDetailRoot
 import io.github.lopezjavier.appfitness.feature.workout.WorkoutCalendarRoot
 import io.github.lopezjavier.appfitness.feature.workout.WorkoutEntryRoot
 import kotlinx.datetime.LocalDate
+import org.koin.compose.koinInject
 import org.koin.compose.viewmodel.koinViewModel
 
 /** Stateful entry point: connects [AppViewModel], the Perfil root and Preferencias to the stateless [App]. */
@@ -75,7 +76,9 @@ fun AppRoot(
         rootRoute = state.rootRoute,
         onRetryProfile = { viewModel.onEvent(AppEvent.RetryProfile) },
         profile = { profileModifier, actions -> ProfileRootRoute(profileModifier, actions) },
-        trainer = { trainerModifier, actions -> TrainerRoute(trainerModifier, actions) },
+        trainer = { trainerModifier, actions ->
+            TrainerRoute(trainerModifier, actions, nameResolver = koinInject())
+        },
         strength = { strengthModifier, onOpenExercise, onOpenMuscleVolume, onStartWorkout, onBack ->
             StrengthRoot(onOpenExercise, onOpenMuscleVolume, onStartWorkout, onBack, strengthModifier)
         },
@@ -256,6 +259,7 @@ fun AppRoot(
         routineBuilder = { builderModifier, host ->
             RoutineBuilderRoot(
                 routineId = host.routineId,
+                focusExerciseId = host.focusExerciseId,
                 selectedExerciseId = host.selectedExerciseId,
                 onConsumeSelection = host.onConsumeSelection,
                 onAddExercise = host.onAddExercise,

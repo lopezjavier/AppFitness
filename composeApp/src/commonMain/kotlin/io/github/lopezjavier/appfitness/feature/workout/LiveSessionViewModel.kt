@@ -17,6 +17,7 @@ import io.github.lopezjavier.appfitness.domain.model.ExerciseSessionRecords
 import io.github.lopezjavier.appfitness.domain.model.MovementPattern
 import io.github.lopezjavier.appfitness.domain.model.Note
 import io.github.lopezjavier.appfitness.domain.model.NoteText
+import io.github.lopezjavier.appfitness.domain.model.PlanStatus
 import io.github.lopezjavier.appfitness.domain.model.PlannedSet
 import io.github.lopezjavier.appfitness.domain.model.PreviousSet
 import io.github.lopezjavier.appfitness.domain.model.ProgressionSuggestion
@@ -43,7 +44,9 @@ import io.github.lopezjavier.appfitness.domain.port.NotificationPermission
 import io.github.lopezjavier.appfitness.domain.port.RestAlertPreferences
 import io.github.lopezjavier.appfitness.domain.port.RestAlertScheduler
 import io.github.lopezjavier.appfitness.domain.repository.BodyMeasurementRepository
+import io.github.lopezjavier.appfitness.domain.repository.CoachBlockRepository
 import io.github.lopezjavier.appfitness.domain.repository.CoachChangesRepository
+import io.github.lopezjavier.appfitness.domain.repository.CoachPlanRepository
 import io.github.lopezjavier.appfitness.domain.repository.DeloadRepository
 import io.github.lopezjavier.appfitness.domain.repository.DiscomfortRepository
 import io.github.lopezjavier.appfitness.domain.repository.ExerciseRepository
@@ -76,6 +79,9 @@ import io.github.lopezjavier.appfitness.domain.usecase.perHandIdsOrDefault
 import io.github.lopezjavier.appfitness.domain.usecase.resolveRest
 import io.github.lopezjavier.appfitness.domain.usecase.routineDiff
 import io.github.lopezjavier.appfitness.domain.usecase.supersetLabels
+import io.github.lopezjavier.appfitness.feature.trainer.CoachChangeMarker
+import io.github.lopezjavier.appfitness.feature.trainer.ShownCoachChangeStatuses
+import io.github.lopezjavier.appfitness.feature.trainer.toMarkers
 import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.Job
@@ -244,10 +250,19 @@ class LiveSessionViewModel(
     private val discomfortRepository: DiscomfortRepository = NoDiscomforts,
     private val progressionRepository: ProgressionRepository = NoProgression,
     private val deloadRepository: DeloadRepository = NoDeload,
-    coachChanges: CoachChangesRepository = NoCoachChanges,
+    private val coachChanges: CoachChangesRepository = NoCoachChanges,
     private val exerciseNames: ExerciseNameResolver = ExerciseNameResolver(exerciseRepository, exerciseLibrary),
+    /** With [coachBlocks]: tells whether the routine belongs to the saved block of the accepted plan (T-228). */
+    private val coachPlans: CoachPlanRepository? = null,
+    private val coachBlocks: CoachBlockRepository? = null,
 ) : ViewModel() {
     private var session: SessionState? = null
+
+    /** The session's routine is part of the saved block of the accepted plan: the coach owns the load there. */
+    private var insideBlock = false
+
+    /** `?` markers by exercise id: applied or pending coach changes; empty on error or offline. */
+    private var coachMarkers: Map<String, CoachChangeMarker> = emptyMap()
 
     /** Deload lines by exercise id (T-165); empty outside a deload week, on error or offline. */
     private var deloads: Map<String, DeloadExerciseSuggestion> = emptyMap()
@@ -697,7 +712,7 @@ class LiveSessionViewModel(
                         discomforts = emptyMap()
                         discomfortUnread = emptySet()
                         loadDiscomforts(loaded.exercises.map { it.exerciseId }.toSet())
-                        loadSuggestions(loaded.id)
+                        loadSuggestions(loaded.id, loaded.routineId)
                         coroutineScope {
                             loaded.exercises.map { it.exerciseId }.distinct().map { async { loadGhost(it) } }.awaitAll()
                         }
@@ -711,11 +726,27 @@ class LiveSessionViewModel(
     }
 
     /** A failed read (offline, error) just means no suggestion line; it never blocks the session (US-70). */
-    private suspend fun loadSuggestions(sessionId: String) {
+    private suspend fun loadSuggestions(sessionId: String, routineId: String?) {
         suggestions =
             progressionRepository.suggestionsFor(sessionId).getOrNull().orEmpty().associateBy { it.exerciseId }
         deloads = deloadRepository.suggestionsFor(sessionId).getOrNull().orEmpty().associateBy { it.exerciseId }
+        insideBlock = isInsideSavedBlock(routineId)
+        coachMarkers = coachChanges.list(statuses = ShownCoachChangeStatuses).getOrNull().orEmpty()
+            .toMarkers(routineId)
         progressionHelp = progressionHelp?.takeIf { suggestionFor(it) != null }
+    }
+
+    /** True when [routineId] is a routine of the saved block of the accepted plan; any failed read means no. */
+    private suspend fun isInsideSavedBlock(routineId: String?): Boolean {
+        val plan = coachPlans?.currentPlan()?.getOrNull()?.takeIf { it.status == PlanStatus.Accepted }
+        val block = plan?.let { coachBlocks?.currentBlock(it.id)?.getOrNull() }?.takeIf { it.saved }
+        return routineId != null && block != null && block.sessions.any { it.routineId == routineId }
+    }
+
+    /** The `?` marker of the exercise at [position]; null when the coach changed nothing there. */
+    fun coachMarkerFor(position: Int): CoachChangeMarker? {
+        val exerciseId = session?.exercises?.firstOrNull { it.position == position }?.exerciseId
+        return exerciseId?.let { coachMarkers[it] }
     }
 
     /** The deload line of the exercise at [position]; null outside a deload week or when the read failed. */
@@ -726,10 +757,12 @@ class LiveSessionViewModel(
 
     /**
      * The suggestion of the exercise at [position] with the weight change applied (plates or dumbbell handle). An
-     * exercise with a deload line has none: "raise the weight" contradicts "same weights".
+     * exercise with a deload line has none: "raise the weight" contradicts "same weights". Inside a saved block there
+     * is none either: the coach applies the progression after the session (T-228).
      */
     private fun suggestionFor(position: Int): ProgressionSuggestion? {
         val exerciseId = session?.exercises?.firstOrNull { it.position == position }?.exerciseId
+            ?.takeUnless { insideBlock }
         val base = exerciseId?.takeIf { it !in deloads }?.let { suggestions[it] } ?: return null
         return ProgressionWeight.apply(base, traits[base.exerciseId]?.equipment, trainingPreferences.calculators)
     }
@@ -1905,6 +1938,7 @@ class LiveSessionViewModel(
                     targetRpeText = targetRpes[exercise.position]?.let(RpeScale::text),
                     suggestion = suggestionFor(exercise.position),
                     deload = deloadFor(exercise.position),
+                    coachMarker = coachMarkerFor(exercise.position),
                     routineNote = currentRoutineNote(exercise.position)?.text,
                     routineNoteKind = currentRoutineNote(exercise.position)?.kind,
                     routineNoteEditable = exercise.position in routineNotePositions,

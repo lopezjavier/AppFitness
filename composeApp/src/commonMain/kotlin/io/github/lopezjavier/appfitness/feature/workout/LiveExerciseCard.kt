@@ -50,6 +50,7 @@ import io.github.lopezjavier.appfitness.designsystem.supersetText
 import io.github.lopezjavier.appfitness.domain.model.DeloadExerciseSuggestion
 import io.github.lopezjavier.appfitness.domain.model.ProgressionSuggestion
 import io.github.lopezjavier.appfitness.feature.exercises.setFieldSpecs
+import io.github.lopezjavier.appfitness.feature.trainer.CoachChangeMarkerButton
 import io.github.lopezjavier.appfitness.feature.weight.decimalText
 import org.jetbrains.compose.resources.stringResource
 
@@ -77,6 +78,7 @@ internal fun LiveExerciseCard(
         Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 ExerciseHeading(exercise, name, onOpenExercise, Modifier.weight(1f))
+                exercise.coachMarker?.let { CoachChangeMarkerButton(name, it, "live_exercise_coach_marker_$position") }
                 ExerciseMenuButton(name, position, onClick = { sheet = ExerciseSheet.Menu })
             }
             exercise.targetRpeText?.let {

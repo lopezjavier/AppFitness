@@ -260,6 +260,16 @@ if [ -f "$strings_file" ]; then
     echo "UX conventions guard ERROR: grep failed with exit code $rc (G10)." >&2
     exit "$rc"
   fi
+  if [ "$rc" -eq 0 ]; then
+    # The only "Deshacer" is the undo of an applied coach load change (ADR-88, T-228).
+    rc=0
+    hits=$(printf '%s
+' "$hits" | grep -vE 'name="coach_change_undo(_cd)?"') || rc=$?
+    if [ "$rc" -ge 2 ]; then
+      echo "UX conventions guard ERROR: grep failed with exit code $rc (G10 filter)." >&2
+      exit "$rc"
+    fi
+  fi
   [ "$rc" -eq 0 ] && report G10 "three dots or 'Deshacer' in strings.xml (use the ellipsis character)" "$hits"
   # G17: Compose resources do not collapse %%, so a doubled sign prints twice (T-201). Use a single %.
   rc=0
