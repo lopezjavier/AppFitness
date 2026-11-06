@@ -878,7 +878,11 @@ The weekly report shows the weekly average weight and trend against the target r
   - Recomposition: "Comes lo que gastas y entrenas subiendo el peso poco a poco. Así es posible ganar algo de músculo y perder algo de grasa a la vez, también si ya entrenabas." [Barakat 2020: recomposition in "resistance-trained individuals" with "progressive resistance training coupled with evidence-based nutritional strategies"; *moderate*, narrative review: "es posible" and "algo", never a promise]
 - Cut length: "Llevas 12 semanas de definición. Te proponemos 4 semanas comiendo lo que gastas antes de seguir."
 - Diet break: "Opcional: la última semana de cada bloque comes lo que gastas. En los estudios se pierde la misma grasa y se pasa menos hambre, pero la definición dura más."
-- Phase proposal: the reason in one sentence from the user's own data, then "Aceptar" / "Seguir como estoy".
+- Phase proposal: the reason in one sentence from the user's own data, then "Aceptar" / "Seguir como estoy". Reasons (T-234; the rules are §12.3's cut and maintenance exits, *design decisions* inside Helms 2014's span; figures from the T-233 proposal `figures`):
+  - `cut_length` (`deficit_weeks`): "Llevas {deficit_weeks} semanas de definición. Te proponemos 4 semanas comiendo lo que gastas antes de seguir."
+  - `floor_limited`, when `slope_kg_week` < 0 (both figures shown as absolute values, kg, one decimal; `target_rate_kg_week` is the plan's rate): "Tu plan ya está en el mínimo de calorías y pierdes {|slope_kg_week|} kg por semana, menos de la mitad de lo previsto ({|target_rate_kg_week|} kg). Te proponemos pasar a mantenimiento." The trigger is "slower than half the target rate" (§12.3), so "menos de la mitad" states the rule exactly; signed values ("cambia −0,2 kg") are not shown.
+  - `floor_limited`, when `slope_kg_week` ≥ 0 or missing (weight stable or rising: "pierdes" would be false): "Tu plan ya está en el mínimo de calorías y tu peso no baja como estaba previsto. Te proponemos pasar a mantenimiento."
+  - `back_to_goal` (`blocks_in_maintenance` is not interpolated: it is usually 1 and the sentence needs no plural form): "Ya has hecho mantenimiento después de la definición. Te proponemos volver a tu objetivo."
 
 - Calorie proposal (E14, user 2026-11-05): "Te proponemos bajar 150 kcal: llevas 2 semanas perdiendo menos de lo previsto." with "Aplicar" / "Ahora no". *Superseded:* "Bajamos 150 kcal … " with "Deshacer".
 - Priority: "Priorizar" adds series to that muscle each block; "Mantener" keeps it with fewer series, enough to not lose it.
