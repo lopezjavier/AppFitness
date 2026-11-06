@@ -244,6 +244,23 @@ class BlockBuilderRestorationTest {
     }
 
     @Test
+    fun theExtraPickerMuscleFilter_survivesStateRestoration() {
+        val tester = StateRestorationTester(rule)
+        val entries = listOf(PickerEntry(BlockBuilderTestData.bench), PickerEntry(BlockBuilderTestData.row))
+        val state = BlockBuilderTestData.builderUi(openSlot = SlotRef(0, 0, extra = true), pickerEntries = entries)
+        tester.setContent {
+            AppTheme { BlockBuilderScreen(state, FakeConnectivityObserver().isOnline, {}, {}) }
+        }
+        rule.onNodeWithTag("block_builder_picker_muscle_chip_back").performClick()
+
+        tester.emulateSavedInstanceStateRestore()
+
+        rule.onNodeWithTag("block_builder_pick_bench").assertDoesNotExist()
+        rule.onNodeWithTag("block_builder_pick_row").assertExists()
+        rule.onNodeWithTag("block_builder_picker_muscle_chip_back").assertIsSelected()
+    }
+
+    @Test
     fun theCardioSwapSheet_survivesStateRestoration() {
         val tester = StateRestorationTester(rule)
         tester.setContent {

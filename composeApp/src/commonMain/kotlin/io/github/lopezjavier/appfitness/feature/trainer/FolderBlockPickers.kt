@@ -26,6 +26,7 @@ import io.github.lopezjavier.appfitness.designsystem.AppTheme
 import io.github.lopezjavier.appfitness.designsystem.SheetActionRow
 import io.github.lopezjavier.appfitness.designsystem.Spacing
 import io.github.lopezjavier.appfitness.domain.model.MuscleGroup
+import io.github.lopezjavier.appfitness.domain.usecase.normalizeText
 import io.github.lopezjavier.appfitness.feature.exercises.label
 import org.jetbrains.compose.resources.stringResource
 
@@ -90,7 +91,7 @@ private fun ExercisePicker(
     onOpenExercise: (String) -> Unit,
 ) {
     var query by rememberSaveable { mutableStateOf("") }
-    val entries = state.pickerEntries.filter { it.exercise.name.contains(query.trim(), ignoreCase = true) }
+    val entries = state.pickerEntries.filter { normalizeText(it.exercise.name).contains(normalizeText(query)) }
     AppPickerSheet(
         title = stringResource(
             if (change) Res.string.block_builder_pick_title_change else Res.string.block_builder_pick_title,
