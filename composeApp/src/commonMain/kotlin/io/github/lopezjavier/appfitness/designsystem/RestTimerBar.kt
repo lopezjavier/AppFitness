@@ -5,6 +5,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -14,7 +15,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.sizeIn
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.Immutable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -24,10 +24,8 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
-import androidx.compose.ui.unit.Dp
-import androidx.compose.ui.unit.dp
 import io.github.lopezjavier.appfitness.composeapp.resources.Res
 import io.github.lopezjavier.appfitness.composeapp.resources.rest_timer_add
 import io.github.lopezjavier.appfitness.composeapp.resources.rest_timer_add_cd
@@ -42,86 +40,12 @@ import org.jetbrains.compose.resources.stringResource
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.seconds
 
-/** Remaining and total rest time; [total] only grows when the rest is extended. */
-@Immutable
-data class RestCountdown(val remaining: Duration, val total: Duration)
-
-/** Colours of [RestTimerBar]. */
-@Immutable
-data class RestTimerBarColors(
-    val container: Color,
-    val countdown: Color,
-    val progress: Color,
-    val progressTrack: Color,
-    val actionContainer: Color,
-    val addContent: Color,
-    val skipContent: Color,
-)
-
-object RestTimerBarDefaults {
-    val MinHeight: Dp = 48.dp
-    val ProgressHeight: Dp = Spacing.xs
-    val Shape = AppShapes.md
-    val HorizontalPadding: Dp = Spacing.md
-    val ActionMinTouch: Dp = 48.dp
-    val ActionVisualHeight: Dp = 40.dp
-    val ActionShape = AppShapes.base
-    val ActionHorizontalPadding: Dp = Spacing.md
-    val Extension: Duration = 30.seconds
-    private const val SECONDS_PER_MINUTE = 60
-    private const val NANOS_PER_SECOND = 1_000_000_000L
-    private const val MINUTE_PAD = 2
-
-    /** Whole seconds, rounded up, so "00:01" stays until the time really reaches 0. */
-    private fun ceilSeconds(remaining: Duration): Long {
-        val nanos = remaining.inWholeNanoseconds
-        return if (nanos <= 0L) 0L else (nanos + NANOS_PER_SECOND - 1) / NANOS_PER_SECOND
-    }
-
-    /** "mm:ss" with the seconds rounded up; 100 minutes or more are not padded; zero or less is "00:00". */
-    fun countdownText(remaining: Duration): String {
-        val (minutes, seconds) = spokenParts(remaining)
-        return "${minutes.toString().padStart(MINUTE_PAD, '0')}:${seconds.toString().padStart(MINUTE_PAD, '0')}"
-    }
-
-    /** remaining / total, coerced to 0..1; a total of zero or less gives 0. */
-    fun progress(remaining: Duration, total: Duration): Float =
-        if (total <= Duration.ZERO) 0f else (remaining / total).toFloat().coerceIn(0f, 1f)
-
-    /** "+30s": the remaining time (at least 0) plus [Extension]; the total grows if it is exceeded. */
-    fun extend(countdown: RestCountdown): RestCountdown {
-        val remaining = maxOf(countdown.remaining, Duration.ZERO) + Extension
-        return RestCountdown(remaining, maxOf(countdown.total, remaining))
-    }
-
-    /** Whole minutes and seconds (rounded up) of the remaining time: 72 s is (1, 12). */
-    fun spokenParts(remaining: Duration): Pair<Int, Int> {
-        val total = ceilSeconds(remaining)
-        return (total / SECONDS_PER_MINUTE).toInt() to (total % SECONDS_PER_MINUTE).toInt()
-    }
-
-    /** Under a minute the spoken text omits the minutes ("30 s", not "0 min 30 s"). */
-    fun speaksSecondsOnly(remaining: Duration): Boolean = spokenParts(remaining).first == 0
-
-    fun colors(appColors: AppColors): RestTimerBarColors = RestTimerBarColors(
-        container = appColors.surfaceOverlay,
-        countdown = appColors.athleticCyan,
-        progress = appColors.athleticCyan,
-        progressTrack = appColors.surfaceBase,
-        actionContainer = appColors.surfaceRaised,
-        addContent = appColors.textPrimary,
-        skipContent = appColors.textSecondary,
-    )
-
-    fun countdownStyle(typography: AppTypography): TextStyle = typography.headlineMetric
-
-    fun actionStyle(typography: AppTypography): TextStyle = typography.titleMedium
-}
-
 /**
  * Stateless rest-timer bar: cyan countdown, "+30s" and "Omitir" actions and a thin progress line at the
  * bottom. The caller owns the time and removes the bar on skip or at zero. The caller's [modifier] lands
- * on the bar; with [testTagPrefix] the children are tagged `_countdown`, `_add` and `_skip`.
+ * on the bar; with [testTagPrefix] the children are tagged `_countdown`, `_label`, `_add` and `_skip`. The optional
+ * [label] (the "Descanso" tag) takes the spare width and ends in an ellipsis; the time never truncates.
+ * The cardio run uses the same slot through [CardioTimerBar].
  */
 @Composable
 fun RestTimerBar(
@@ -133,10 +57,55 @@ fun RestTimerBar(
     testTagPrefix: String? = null,
     paused: Boolean = false,
     pausedTestTag: String? = null,
+    label: String? = null,
 ) {
     val colors = RestTimerBarDefaults.colors(AppTheme.colors)
     val spoken = spokenCountdown(remaining, paused)
-    fun tag(part: String): Modifier = testTagPrefix?.let { Modifier.testTag("${it}_$part") } ?: Modifier
+    TimerBarSurface(
+        progress = RestTimerBarDefaults.progress(remaining, total),
+        colors = colors,
+        modifier = modifier,
+    ) {
+        Text(
+            text = RestTimerBarDefaults.countdownText(remaining),
+            style = RestTimerBarDefaults.countdownStyle(AppTheme.typography),
+            color = colors.countdown,
+            maxLines = 1,
+            softWrap = false,
+            modifier = Modifier.then(timerTag(testTagPrefix, "countdown")).semantics { contentDescription = spoken },
+        )
+        if (paused) PausedText(pausedTestTag?.let { Modifier.testTag(it) } ?: Modifier)
+        TimerBarLabel(label, testTagPrefix, Modifier.weight(1f))
+        RestTimerAction(
+            text = stringResource(Res.string.rest_timer_add),
+            contentDescription = stringResource(Res.string.rest_timer_add_cd),
+            containerColor = colors.actionContainer,
+            contentColor = colors.addContent,
+            onClick = onAddTime,
+            modifier = timerTag(testTagPrefix, "add"),
+        )
+        RestTimerAction(
+            text = stringResource(Res.string.rest_timer_skip),
+            contentDescription = stringResource(Res.string.rest_timer_skip_cd),
+            containerColor = colors.actionContainer,
+            contentColor = colors.skipContent,
+            onClick = onSkip,
+            modifier = timerTag(testTagPrefix, "skip"),
+        )
+    }
+}
+
+internal fun timerTag(prefix: String?, part: String): Modifier =
+    prefix?.let { Modifier.testTag("${it}_$part") } ?: Modifier
+
+/** The bar shell shared by the rest and the cardio variants: rounded overlay, content row and progress line. */
+@Composable
+internal fun TimerBarSurface(
+    progress: Float,
+    colors: RestTimerBarColors,
+    modifier: Modifier = Modifier,
+    content: @Composable RowScope.() -> Unit,
+) {
     Box(
         modifier =
         modifier
@@ -149,47 +118,38 @@ fun RestTimerBar(
             modifier = Modifier.fillMaxWidth().padding(horizontal = RestTimerBarDefaults.HorizontalPadding),
             horizontalArrangement = Arrangement.spacedBy(Spacing.xs),
             verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Text(
-                text = RestTimerBarDefaults.countdownText(remaining),
-                style = RestTimerBarDefaults.countdownStyle(AppTheme.typography),
-                color = colors.countdown,
-                maxLines = 1,
-                modifier = Modifier.then(tag("countdown")).semantics { contentDescription = spoken },
-            )
-            if (paused) {
-                Text(
-                    text = stringResource(Res.string.rest_timer_paused),
-                    style = AppTheme.typography.bodyMedium,
-                    color = AppTheme.colors.textSecondary,
-                    maxLines = 1,
-                    modifier = pausedTestTag?.let { Modifier.testTag(it) } ?: Modifier,
-                )
-            }
-            Spacer(Modifier.weight(1f))
-            RestTimerAction(
-                text = stringResource(Res.string.rest_timer_add),
-                contentDescription = stringResource(Res.string.rest_timer_add_cd),
-                containerColor = colors.actionContainer,
-                contentColor = colors.addContent,
-                onClick = onAddTime,
-                modifier = tag("add"),
-            )
-            RestTimerAction(
-                text = stringResource(Res.string.rest_timer_skip),
-                contentDescription = stringResource(Res.string.rest_timer_skip_cd),
-                containerColor = colors.actionContainer,
-                contentColor = colors.skipContent,
-                onClick = onSkip,
-                modifier = tag("skip"),
-            )
-        }
-        ProgressLine(
-            progress = RestTimerBarDefaults.progress(remaining, total),
-            colors = colors,
-            modifier = Modifier.align(Alignment.BottomStart),
+            content = content,
         )
+        ProgressLine(progress = progress, colors = colors, modifier = Modifier.align(Alignment.BottomStart))
     }
+}
+
+@Composable
+internal fun PausedText(modifier: Modifier = Modifier) {
+    Text(
+        text = stringResource(Res.string.rest_timer_paused),
+        style = AppTheme.typography.bodyMedium,
+        color = AppTheme.colors.textSecondary,
+        maxLines = 1,
+        modifier = modifier,
+    )
+}
+
+/** The tag of the bar: spare width, one line, ellipsis; without text it is a spacer that keeps the actions right. */
+@Composable
+internal fun TimerBarLabel(label: String?, testTagPrefix: String?, modifier: Modifier = Modifier) {
+    if (label == null) {
+        Spacer(modifier)
+        return
+    }
+    Text(
+        text = label,
+        style = AppTheme.typography.bodySmall,
+        color = AppTheme.colors.textSecondary,
+        maxLines = 1,
+        overflow = TextOverflow.Ellipsis,
+        modifier = modifier.then(timerTag(testTagPrefix, "label")),
+    )
 }
 
 @Composable
@@ -206,7 +166,7 @@ private fun spokenCountdown(remaining: Duration, paused: Boolean): String {
 
 /** Decorative progress line: the countdown already carries the information, so it has no semantics. */
 @Composable
-private fun ProgressLine(progress: Float, colors: RestTimerBarColors, modifier: Modifier = Modifier) {
+internal fun ProgressLine(progress: Float, colors: RestTimerBarColors, modifier: Modifier = Modifier) {
     Box(
         modifier =
         modifier
@@ -221,7 +181,7 @@ private fun ProgressLine(progress: Float, colors: RestTimerBarColors, modifier: 
 
 /** Compact action pill: 40 dp visual inside a 48 dp touch target (stock buttons are too tall for the bar). */
 @Composable
-private fun RestTimerAction(
+internal fun RestTimerAction(
     text: String,
     contentDescription: String,
     containerColor: Color,

@@ -149,7 +149,7 @@ fun StopwatchField(
 }
 
 @Composable
-private fun InvalidTimeMessage(modifier: Modifier = Modifier) {
+internal fun InvalidTimeMessage(modifier: Modifier = Modifier) {
     Text(
         text = stringResource(Res.string.stopwatch_invalid),
         style = AppTheme.typography.bodySmall,
@@ -203,7 +203,7 @@ private fun TimeText(
 }
 
 @Composable
-private fun TimeInput(value: String, onChange: (String) -> Unit, onDone: () -> Unit, modifier: Modifier = Modifier) {
+internal fun TimeInput(value: String, onChange: (String) -> Unit, onDone: () -> Unit, modifier: Modifier = Modifier) {
     val interaction = remember { MutableInteractionSource() }
     val focused by interaction.collectIsFocusedAsState()
     val focus = remember { FocusRequester() }

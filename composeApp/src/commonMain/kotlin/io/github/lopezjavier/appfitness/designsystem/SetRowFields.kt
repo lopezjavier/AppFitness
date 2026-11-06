@@ -105,7 +105,7 @@ data class SetRowFieldActions(
 /** Column weights of the input cells of a set row. */
 internal object SetRowFieldLayout {
     /** The classic KG | REPS split keeps its own widths; every other spec flexes inside the same total. */
-    fun weights(fields: List<SetFieldSpec>, withRpe: Boolean): List<Float> {
+    fun weights(fields: List<SetFieldSpec>, withRpe: Boolean, cardioTime: Boolean = false): List<Float> {
         val total = SetRowDefaults.kgWeight(withRpe) + SetRowDefaults.repsWeight(withRpe)
         val kinds = fields.map { it.kind }
         return when {
@@ -113,6 +113,17 @@ internal object SetRowFieldLayout {
                 listOf(SetRowDefaults.kgWeight(withRpe), SetRowDefaults.repsWeight(withRpe))
 
             kinds.size == 1 -> listOf(total)
+
+            // The cardio TIEMPO cell holds the time and a 48 dp start button: the kilometres keep the narrow share.
+            cardioTime && kinds.size == 2 -> kinds.map {
+                if (it ==
+                    SetFieldKind.Duration
+                ) {
+                    total - CARDIO_KM
+                } else {
+                    CARDIO_KM
+                }
+            }
 
             // The stopwatch needs room for its time and toggle: the other field keeps a fixed share.
             SetFieldKind.Duration in kinds -> kinds.map {
@@ -130,4 +141,5 @@ internal object SetRowFieldLayout {
     }
 
     private const val SECONDARY = 2f
+    private const val CARDIO_KM = 1.6f
 }

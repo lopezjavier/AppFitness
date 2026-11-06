@@ -41,6 +41,7 @@ import io.github.lopezjavier.appfitness.domain.port.ConnectivityObserver
 import io.github.lopezjavier.appfitness.domain.port.ExerciseLibrary
 import io.github.lopezjavier.appfitness.domain.port.Haptics
 import io.github.lopezjavier.appfitness.domain.port.NotificationPermission
+import io.github.lopezjavier.appfitness.domain.port.RestAlertKind
 import io.github.lopezjavier.appfitness.domain.port.RestAlertPreferences
 import io.github.lopezjavier.appfitness.domain.port.RestAlertScheduler
 import io.github.lopezjavier.appfitness.domain.repository.BodyMeasurementRepository
@@ -59,6 +60,7 @@ import io.github.lopezjavier.appfitness.domain.repository.warmUpIncludedOrDefaul
 import io.github.lopezjavier.appfitness.domain.usecase.ApplyCoachProgressionUseCase
 import io.github.lopezjavier.appfitness.domain.usecase.BestPastWeight
 import io.github.lopezjavier.appfitness.domain.usecase.BuildSessionSummary
+import io.github.lopezjavier.appfitness.domain.usecase.CardioRun
 import io.github.lopezjavier.appfitness.domain.usecase.DiscomfortStatus
 import io.github.lopezjavier.appfitness.domain.usecase.ExerciseNameResolver
 import io.github.lopezjavier.appfitness.domain.usecase.GhostData
@@ -112,6 +114,7 @@ import kotlinx.datetime.atStartOfDayIn
 import kotlinx.datetime.plus
 import kotlinx.datetime.toLocalDateTime
 import kotlin.time.Duration.Companion.milliseconds
+import kotlin.time.Duration.Companion.seconds
 import kotlin.time.Instant
 
 private const val TICK_MILLIS = 1000L
@@ -139,6 +142,9 @@ private const val KEY_PAUSE_KNOWN = "live_pause_known"
 private const val KEY_PAUSED_AT = "live_paused_at"
 private const val KEY_PAUSED_TOTAL = "live_paused_total"
 private const val KEY_REST_PAUSED_REMAINING = "live_rest_paused_remaining"
+private const val KEY_CARDIO_ACTIVE = "live_cardio_active"
+private const val KEY_CARDIO_ALERT_FIRED = "live_cardio_alert_fired"
+private const val KEY_CARDIO_FROZEN = "live_cardio_frozen"
 private const val KEY_REST_PERMISSION_ASKED = "live_rest_permission_asked"
 private const val KEY_REST_PAUSED_TOTAL = "live_rest_paused_total"
 private const val KEY_BODY_WEIGHT_DRAFT = "live_body_weight_draft"
@@ -312,6 +318,19 @@ class LiveSessionViewModel(
     /** Last performance per exercise id; a missing key means no ghost. */
     private var ghosts: MutableMap<String, List<PreviousSet>> = mutableMapOf()
     private var restTimer: RestTimer? = null
+
+    /**
+     * The set (position, setIndex) whose stopwatch is the cardio run shown in the shared timer bar; null when none.
+     * One slot (R-58): if a rest starts while a cardio run is active, the rest takes the bar and the run keeps
+     * counting in its set; the bar and the target alert come back when the rest ends. Mirrored in [savedState].
+     */
+    private var cardioActive: Pair<Int, Int>? = restoredCardioActive()
+
+    /** The target alert of the current cardio run already fired (in-app or scheduled); mirrored in [savedState]. */
+    private var cardioAlertFired: Boolean = savedState.get<Boolean>(KEY_CARDIO_ALERT_FIRED) == true
+
+    /** The cardio run was stopped by pausing the session and starts again when the session resumes. */
+    private var cardioFrozenBySession: Boolean = savedState.get<Boolean>(KEY_CARDIO_FROZEN) == true
     private var tickerJob: Job? = null
 
     /** False while the screen is in the background: the rest still resolves, but without sound or vibration. */
@@ -707,6 +726,7 @@ class LiveSessionViewModel(
                         rpePicker = rpePicker?.takeIf { findSet(it.position, it.setIndex) != null }
                         noteSheet = noteSheet?.takeIf { findSet(it.position, it.setIndex) != null }
                         loadRests(loaded)
+                        restoreCardioRun()
                         ensureStopwatchTicker()
                         ghosts = mutableMapOf()
                         discomforts = emptyMap()
@@ -867,12 +887,92 @@ class LiveSessionViewModel(
 
     /** Starts the set's stopwatch, or stops it keeping the time; the ticker republishes while one runs. */
     private fun toggleStopwatch(position: Int, setIndex: Int) {
+        val set = findSet(position, setIndex)
+        if (set == null || set.completedAt != null) return
+        if (isCardio(position)) {
+            toggleCardio(position, setIndex, set)
+            return
+        }
         val now = clock.now()
         editSet(position, setIndex) {
             val next = if (it.stopwatch.isRunning) it.stopwatch.stop(now) else it.stopwatch.start(now)
             it.copy(stopwatch = next, invalid = false)
         }
         ensureStopwatchTicker()
+    }
+
+    private fun isCardio(position: Int): Boolean = traits[exerciseIdAt(position)]?.cardio == true
+
+    /** The cardio run of a set: its stopwatch against the planned time (null when the set has no plan). */
+    private fun cardioRunOf(position: Int, setIndex: Int, stopwatch: Stopwatch) =
+        CardioRun(stopwatch, planned[position to setIndex]?.durationS?.seconds)
+
+    private fun activeCardioRun(): CardioRun? = cardioActive?.let { (position, setIndex) ->
+        findSet(position, setIndex)?.let { cardioRunOf(position, setIndex, it.stopwatch) }
+    }
+
+    /**
+     * Start, pause or resume of the cardio run of a set. Starting takes the single timer slot: a running rest is
+     * dropped and any other cardio run is paused. The target alert is scheduled with what is left of the target.
+     */
+    private fun toggleCardio(position: Int, setIndex: Int, set: SetState) {
+        val now = clock.now()
+        if (set.stopwatch.isRunning) {
+            updateSet(position, setIndex) { it.copy(stopwatch = it.stopwatch.stop(now), invalid = false) }
+            if (restTimer == null) restAlertScheduler.cancel()
+            publish()
+            return
+        }
+        cardioActive?.takeIf { it != position to setIndex }?.let { (otherPosition, otherSet) ->
+            updateSet(otherPosition, otherSet) { it.copy(stopwatch = it.stopwatch.stop(now)) }
+        }
+        if (restTimer != null) stopRest()
+        cardioActive = position to setIndex
+        cardioFrozenBySession = false
+        updateSet(position, setIndex) { it.copy(stopwatch = it.stopwatch.start(now), invalid = false) }
+        // A run resumed past its target does not alert again.
+        cardioAlertFired = activeCardioRun()?.targetReached(now) == true
+        scheduleCardioAlert()
+        askNotificationPermissionOnce()
+        publish()
+        ensureStopwatchTicker()
+    }
+
+    /** Schedules the target alert of the running cardio run, unless it fired, has no target or a rest owns the slot. */
+    private fun scheduleCardioAlert() {
+        val run = activeCardioRun()?.takeIf { it.stopwatch.isRunning && !cardioAlertFired } ?: return
+        if (restTimer != null) return
+        run.alertAt(clock.now())?.let { restAlertScheduler.schedule(it, RestAlertKind.Cardio) }
+    }
+
+    /**
+     * Once per run: when the running cardio reaches its target the in-app alert fires (foreground) and the run keeps
+     * counting. In the background the scheduled alert fires it instead.
+     */
+    private fun checkCardioTarget() {
+        val run = activeCardioRun()?.takeIf { it.stopwatch.isRunning && !cardioAlertFired }
+        if (run?.targetReached(clock.now()) != true) return
+        cardioAlertFired = true
+        if (visible) {
+            if (restTimer == null) restAlertScheduler.cancel()
+            haptics.alert()
+            alertSound.play()
+        }
+    }
+
+    /** A set removed: its cardio run ends, and the run of a later set of the exercise moves down with its set. */
+    private fun shiftCardio(position: Int, setIndex: Int) {
+        releaseCardio(position, setIndex)
+        cardioActive = cardioActive?.let { shiftedBy(it, position, setIndex) }
+    }
+
+    /** Clears the cardio run when it belongs to the set that was just completed or removed. */
+    private fun releaseCardio(position: Int, setIndex: Int) {
+        if (cardioActive != position to setIndex) return
+        cardioActive = null
+        cardioAlertFired = false
+        cardioFrozenBySession = false
+        if (restTimer == null) restAlertScheduler.cancel()
     }
 
     private fun anyStopwatchRunning() =
@@ -884,9 +984,57 @@ class LiveSessionViewModel(
         stopwatchJob = viewModelScope.launch {
             while (anyStopwatchRunning()) {
                 delay(TICK_MILLIS)
+                checkCardioTarget()
                 publish()
             }
         }
+    }
+
+    /** The shared bar: a rest wins the slot over a cardio run that keeps counting underneath. */
+    private fun timerBarUi(): TimerBarUi? {
+        val now = clock.now()
+        val rest = restTimer
+        val (position, setIndex) = cardioActive ?: (-1 to -1)
+        val set = findSet(position, setIndex)
+        return when {
+            rest != null -> TimerBarUi.Rest(rest.remaining(now), rest.total, rest.isPaused)
+
+            set != null -> {
+                val run = cardioRunOf(position, setIndex, set.stopwatch)
+                TimerBarUi.Cardio(
+                    position = position,
+                    setIndex = setIndex,
+                    exerciseName = names.getValue(exerciseIdAt(position)),
+                    elapsed = run.elapsed(now),
+                    target = run.target,
+                    paused = !set.stopwatch.isRunning,
+                )
+            }
+
+            else -> null
+        }
+    }
+
+    /**
+     * After a restore (ADR-40) the stopwatch fields are back, so elapsed and paused state follow from the clock; the
+     * run is dropped if its set is gone or done, and the target alert is scheduled again for a running one.
+     */
+    private fun restoreCardioRun() {
+        val (position, setIndex) = cardioActive ?: return
+        if (findSet(position, setIndex)?.takeIf { it.completedAt == null } == null) {
+            cardioActive = null
+            cardioAlertFired = false
+            cardioFrozenBySession = false
+            return
+        }
+        scheduleCardioAlert()
+    }
+
+    private fun restoredCardioActive(): Pair<Int, Int>? {
+        val parts = savedState.get<String>(KEY_CARDIO_ACTIVE)?.split(':') ?: return null
+        val position = parts.getOrNull(0)?.toIntOrNull()
+        val setIndex = parts.getOrNull(1)?.toIntOrNull()
+        return if (position != null && setIndex != null) position to setIndex else null
     }
 
     private fun startRest(position: Int) {
@@ -936,6 +1084,8 @@ class LiveSessionViewModel(
                 haptics.alert()
                 alertSound.play()
             }
+            // A cardio run that kept counting under the rest gets its target alert back.
+            scheduleCardioAlert()
         }
         publish()
     }
@@ -951,6 +1101,7 @@ class LiveSessionViewModel(
         restTimer = null
         restAlertScheduler.cancel()
         tickerJob?.cancel()
+        scheduleCardioAlert()
         publish()
     }
 
@@ -1010,6 +1161,8 @@ class LiveSessionViewModel(
         updateSet(position, setIndex) {
             it.copy(completedAt = now, invalid = false, stopwatch = it.stopwatch.stop(now))
         }
+        // LISTO is the finish of a cardio run: the stopwatch is banked above, the bar and its alert go away.
+        releaseCardio(position, setIndex)
         write(position, setIndex)
         // Marking a set "Listo" while paused resumes the session and its countdown (ADR-56).
         if (session?.pausedAt != null) resumeSession()
@@ -1229,6 +1382,8 @@ class LiveSessionViewModel(
         session = current.copy(pausedAt = at)
         restTimer = running?.pause(at)
         tickerJob?.cancel()
+        val cardioBefore = cardioActive?.let { (p, s) -> findSet(p, s)?.stopwatch }?.takeIf { it.isRunning }
+        freezeCardio(at)
         publish()
         viewModelScope.launch {
             if (repository.pause(current.id, at).isFailure) {
@@ -1238,6 +1393,7 @@ class LiveSessionViewModel(
                     restTimer = running
                     startRestTicker()
                 }
+                if (reverted && cardioBefore != null) restoreCardio(cardioBefore)
                 fail()
             }
         }
@@ -1263,11 +1419,13 @@ class LiveSessionViewModel(
             restAlertScheduler.schedule(resumedTimer.endsAt)
             startRestTicker()
         }
+        thawCardio(at)
         publish()
         viewModelScope.launch {
             if (repository.resume(current.id, at).isFailure) {
                 if (session == resumed) {
                     session = current
+                    freezeCardio(clock.now())
                     // A rest started after the resume (a set marked done) stays, frozen with the session.
                     restTimer = if (restTimer === resumedTimer) frozen else restTimer?.pause(clock.now())
                     tickerJob?.cancel()
@@ -1275,6 +1433,34 @@ class LiveSessionViewModel(
                 fail()
             }
         }
+    }
+
+    /** Pausing the session stops the running cardio run (like the rest countdown) and remembers to restart it. */
+    private fun freezeCardio(at: Instant) {
+        val (position, setIndex) = cardioActive ?: return
+        if (findSet(position, setIndex)?.stopwatch?.isRunning != true) return
+        updateSet(position, setIndex) { it.copy(stopwatch = it.stopwatch.stop(at)) }
+        cardioFrozenBySession = true
+        if (restTimer == null) restAlertScheduler.cancel()
+    }
+
+    /** Resuming the session restarts a cardio run that its pause had stopped, with the target alert. */
+    private fun thawCardio(at: Instant) {
+        val (position, setIndex) = cardioActive?.takeIf { cardioFrozenBySession } ?: return
+        cardioFrozenBySession = false
+        updateSet(position, setIndex) { it.copy(stopwatch = it.stopwatch.start(at)) }
+        scheduleCardioAlert()
+        ensureStopwatchTicker()
+    }
+
+    /** The server refused the pause: the cardio run goes on as if nothing happened. */
+    private fun restoreCardio(stopwatch: Stopwatch) {
+        val (position, setIndex) = cardioActive ?: return
+        cardioFrozenBySession = false
+        updateSet(position, setIndex) { it.copy(stopwatch = stopwatch) }
+        scheduleCardioAlert()
+        ensureStopwatchTicker()
+        publish()
     }
 
     /** A countdown frozen by a pause made before the screen was recreated comes back frozen (ADR-40). */
@@ -1293,6 +1479,7 @@ class LiveSessionViewModel(
     private fun deleteSet(position: Int, setIndex: Int) {
         val current = session ?: return
         if (busy || terminal != null || findSet(position, setIndex) == null) return
+        shiftCardio(position, setIndex)
         replaceExercise(position) { exercise ->
             exercise.copy(
                 sets = exercise.sets.filter { it.setIndex != setIndex }
@@ -1420,6 +1607,7 @@ class LiveSessionViewModel(
             busy = false
             finishSheet = null
             restTimer = null
+            cardioActive = null
             restAlertScheduler.cancel()
             tickerJob?.cancel()
             terminal = LiveSessionUiState.Finished(summary, sheet)
@@ -1538,6 +1726,7 @@ class LiveSessionViewModel(
             busy = false
             discardAsked = false
             restTimer = null
+            cardioActive = null
             restAlertScheduler.cancel()
             tickerJob?.cancel()
             publish()
@@ -1802,6 +1991,9 @@ class LiveSessionViewModel(
             val frozen = restTimer?.takeIf { timer -> timer.isPaused }
             savedState[KEY_REST_PAUSED_REMAINING] = frozen?.pausedRemaining?.inWholeMilliseconds
             savedState[KEY_REST_PAUSED_TOTAL] = frozen?.total?.inWholeMilliseconds
+            savedState[KEY_CARDIO_ACTIVE] = cardioActive?.let { (p, s) -> "$p:$s" }
+            savedState[KEY_CARDIO_ALERT_FIRED] = cardioAlertFired
+            savedState[KEY_CARDIO_FROZEN] = cardioFrozenBySession
         }
         if (terminal != null) return
         val drafts = session?.exercises.orEmpty().flatMap { exercise ->
@@ -1850,6 +2042,9 @@ class LiveSessionViewModel(
         savedState.remove<Long>(KEY_PAUSED_TOTAL)
         savedState.remove<Long>(KEY_REST_PAUSED_REMAINING)
         savedState.remove<Long>(KEY_REST_PAUSED_TOTAL)
+        savedState.remove<String>(KEY_CARDIO_ACTIVE)
+        savedState.remove<Boolean>(KEY_CARDIO_ALERT_FIRED)
+        savedState.remove<Boolean>(KEY_CARDIO_FROZEN)
     }
 
     /** A pause made before the screen was recreated wins over the loaded row (the server call may be in flight). */
@@ -1908,6 +2103,7 @@ class LiveSessionViewModel(
                     supersetLabel = labels[index],
                     metricType = metricOf(exercise.exerciseId),
                     equipment = traits[exercise.exerciseId]?.equipment,
+                    cardio = traits[exercise.exerciseId]?.cardio == true,
                     sets = exercise.sets.map { set ->
                         val ghost = ghostFor(exercise.exerciseId, set.setIndex)
                         val now = clock.now()
@@ -1947,7 +2143,7 @@ class LiveSessionViewModel(
                         ?.let { LiveDiscomfort(it, exercise.exerciseId in discomfortResolving) },
                 )
             },
-            restTimer = restTimer?.let { RestTimerUi(it.remaining(clock.now()), it.total, it.isPaused) },
+            timerBar = timerBarUi(),
             isOnline = online,
             progressionHelpPosition = progressionHelp,
             discomfortSaving = discomfortSaving,

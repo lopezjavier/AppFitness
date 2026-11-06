@@ -5,6 +5,7 @@ import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
 import android.os.Build
+import io.github.lopezjavier.appfitness.domain.port.RestAlertKind
 import io.github.lopezjavier.appfitness.domain.port.RestAlertScheduler
 import kotlin.time.Instant
 
@@ -16,9 +17,9 @@ import kotlin.time.Instant
 class AndroidRestAlertScheduler(private val context: Context) : RestAlertScheduler {
     private val alarms: AlarmManager = context.getSystemService(AlarmManager::class.java)
 
-    override fun schedule(endsAt: Instant) {
+    override fun schedule(endsAt: Instant, kind: RestAlertKind) {
         val millis = endsAt.toEpochMilliseconds()
-        val pending = pendingIntent(millis)
+        val pending = pendingIntent(millis, kind)
         val canBeExact = Build.VERSION.SDK_INT < Build.VERSION_CODES.S || alarms.canScheduleExactAlarms()
         runCatching {
             if (canBeExact) {
@@ -30,14 +31,14 @@ class AndroidRestAlertScheduler(private val context: Context) : RestAlertSchedul
     }
 
     override fun cancel() {
-        alarms.cancel(pendingIntent(0L))
+        alarms.cancel(pendingIntent(0L, RestAlertKind.Rest))
     }
 
-    private fun pendingIntent(endsAtEpochMs: Long): PendingIntent {
+    private fun pendingIntent(endsAtEpochMs: Long, kind: RestAlertKind): PendingIntent {
         val intent = Intent(
             context,
             RestAlertReceiver::class.java,
-        ).putExtra(RestAlertReceiver.EXTRA_ENDS_AT, endsAtEpochMs)
+        ).putExtra(RestAlertReceiver.EXTRA_ENDS_AT, endsAtEpochMs).putExtra(RestAlertReceiver.EXTRA_KIND, kind.name)
         return PendingIntent.getBroadcast(
             context,
             REQUEST_CODE,

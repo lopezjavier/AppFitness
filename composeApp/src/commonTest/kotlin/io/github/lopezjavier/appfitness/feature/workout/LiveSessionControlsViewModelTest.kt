@@ -241,7 +241,7 @@ class LiveSessionControlsViewModelTest {
         advanceTimeBy(5000)
         runCurrent()
 
-        assertEquals(RestTimerUi(50.seconds, 120.seconds, paused = true), vm.active().restTimer)
+        assertEquals(TimerBarUi.Rest(50.seconds, 120.seconds, paused = true), vm.active().restTimer)
     }
 
     @Test
@@ -254,7 +254,7 @@ class LiveSessionControlsViewModelTest {
         clock.advance(10.seconds)
         advanceTimeBy(1001)
 
-        assertEquals(RestTimerUi(40.seconds, 120.seconds), vm.active().restTimer)
+        assertEquals(TimerBarUi.Rest(40.seconds, 120.seconds), vm.active().restTimer)
     }
 
     @Test
@@ -268,7 +268,7 @@ class LiveSessionControlsViewModelTest {
 
         assertNull(vm.active().pausedAt)
         assertEquals(30L, vm.active().pausedTotalSeconds)
-        assertEquals(RestTimerUi(120.seconds, 120.seconds), vm.active().restTimer)
+        assertEquals(TimerBarUi.Rest(120.seconds, 120.seconds), vm.active().restTimer)
         assertEquals(1, repository.resumes.size)
     }
 
@@ -284,7 +284,7 @@ class LiveSessionControlsViewModelTest {
         advanceTimeBy(2000)
 
         assertTrue(vm.active().isPaused)
-        assertEquals(RestTimerUi(50.seconds, 120.seconds, paused = true), vm.active().restTimer)
+        assertEquals(TimerBarUi.Rest(50.seconds, 120.seconds, paused = true), vm.active().restTimer)
     }
 
     @Test
@@ -301,7 +301,7 @@ class LiveSessionControlsViewModelTest {
 
         assertTrue(vm.active().isPaused)
         assertTrue(vm.row(0, 2).completed)
-        assertEquals(RestTimerUi(50.seconds, 120.seconds, paused = true), vm.active().restTimer)
+        assertEquals(TimerBarUi.Rest(50.seconds, 120.seconds, paused = true), vm.active().restTimer)
     }
 
     @Test
@@ -316,7 +316,7 @@ class LiveSessionControlsViewModelTest {
         advanceUntilIdle()
 
         assertTrue(vm.active().isPaused)
-        assertEquals(RestTimerUi(120.seconds, 120.seconds, paused = true), vm.active().restTimer)
+        assertEquals(TimerBarUi.Rest(120.seconds, 120.seconds, paused = true), vm.active().restTimer)
     }
 
     @Test
@@ -329,7 +329,7 @@ class LiveSessionControlsViewModelTest {
         advanceTimeBy(1001)
 
         assertFalse(vm.active().isPaused)
-        assertEquals(RestTimerUi(40.seconds, 120.seconds), vm.active().restTimer)
+        assertEquals(TimerBarUi.Rest(40.seconds, 120.seconds), vm.active().restTimer)
     }
 
     @Test
@@ -355,7 +355,7 @@ class LiveSessionControlsViewModelTest {
         advanceTimeBy(5000)
 
         assertTrue(second.active().isPaused)
-        assertEquals(RestTimerUi(50.seconds, 120.seconds, paused = true), second.active().restTimer)
+        assertEquals(TimerBarUi.Rest(50.seconds, 120.seconds, paused = true), second.active().restTimer)
         assertEquals(50_000L, handle.get<Long>("live_rest_paused_remaining"))
     }
 

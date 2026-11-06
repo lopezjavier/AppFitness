@@ -5,6 +5,7 @@ import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.content.Context
 import androidx.test.core.app.ApplicationProvider
+import io.github.lopezjavier.appfitness.domain.port.RestAlertKind
 import kotlinx.coroutines.runBlocking
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -66,6 +67,17 @@ class RestAlertNotifierTest {
         assertTrue(notification.flags and Notification.FLAG_AUTO_CANCEL != 0)
         assertEquals(Notification.CATEGORY_ALARM, notification.category)
         assertEquals(Notification.VISIBILITY_PUBLIC, notification.visibility)
+    }
+
+    @Test
+    fun handle_forACardioTarget_postsObjetivoDeCardioAlcanzadoOnTheSameChannel() = runBlocking {
+        val posted = handler.handle(endsAtEpochMs = now, kind = RestAlertKind.Cardio)
+
+        assertTrue(posted)
+        val notification = lastNotification()
+        assertEquals("rest_alert_chime", notification.channelId)
+        assertEquals("Objetivo de cardio alcanzado", notification.extras.getString(Notification.EXTRA_TITLE))
+        assertEquals("Termina la serie cuando quieras.", notification.extras.getString(Notification.EXTRA_TEXT))
     }
 
     @Test

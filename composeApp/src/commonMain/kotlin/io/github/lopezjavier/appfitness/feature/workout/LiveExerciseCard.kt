@@ -93,7 +93,8 @@ internal fun LiveExerciseCard(
             val fields = setFieldSpecs(exercise.metricType, exercise.equipment)
             // A cardio exercise planned in minutes has no RPE column.
             val timed = exercise.sets.isNotEmpty() && exercise.sets.all { it.plannedDurationMinutes != null }
-            LiveSetTableHeader(fields, showRpe = !timed)
+            val cardio = exercise.cardio || timed
+            LiveSetTableHeader(fields, showRpe = !timed, cardio = cardio)
             exercise.sets.forEach {
                 SessionSetRow(
                     position,
@@ -103,6 +104,7 @@ internal fun LiveExerciseCard(
                     equipment = exercise.equipment,
                     deleteEnabled = deleteEnabled,
                     showRpe = !timed,
+                    cardio = cardio,
                 )
             }
             AddItemButton(
@@ -200,13 +202,14 @@ private fun SuggestionRow(position: Int, suggestion: ProgressionSuggestion, onEv
 }
 
 @Composable
-private fun LiveSetTableHeader(fields: List<SetFieldSpec>, showRpe: Boolean) {
+private fun LiveSetTableHeader(fields: List<SetFieldSpec>, showRpe: Boolean, cardio: Boolean) {
     SetTableHeader(
         showRpe = showRpe,
         fields = fields,
         showNote = true,
         showPrevious = false,
         testTagPrefix = "live_set_header",
+        cardioTime = cardio,
     )
 }
 
