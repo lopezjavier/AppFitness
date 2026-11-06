@@ -1,5 +1,7 @@
 # Environment and prerequisites
 
+Phase 2 archive (full text as it was when Phase 2 closed): [`phase2/08-environment-setup.md`](phase2/08-environment-setup.md).
+
 Steps marked with 👤 are done by the user (accounts, credentials, consoles). Full original text: [`phase1/08-environment-setup.md`](phase1/08-environment-setup.md).
 
 ## 1. Local tools (Windows 11)

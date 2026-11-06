@@ -1,5 +1,7 @@
 # Design System - Kinetic Dark (Compose implementation)
 
+Phase 2 archive (full text as it was when Phase 2 closed): [`phase2/05-design-system.md`](phase2/05-design-system.md).
+
 Live summary of what is built in `composeApp/.../designsystem/`; full tables, component specs and swipe/haptics details are in [`phase1/05-design-system.md`](phase1/05-design-system.md) (frozen). §8 (rules), §9 (templates) and §10 (glossary) are the UX rulebook (ADR-69) and prevail. The Stitch mockups (style reference only) were removed after Phase 1; they exist in git history only. Section numbers are cited by code; do not renumber.
 
 ## 1. Principles
