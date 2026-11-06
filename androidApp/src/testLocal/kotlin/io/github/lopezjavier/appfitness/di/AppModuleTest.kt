@@ -28,6 +28,7 @@ import io.github.lopezjavier.appfitness.domain.repository.CoachBlockRepository
 import io.github.lopezjavier.appfitness.domain.repository.CoachIntakeRepository
 import io.github.lopezjavier.appfitness.domain.repository.CoachPlanRepository
 import io.github.lopezjavier.appfitness.domain.repository.CoachRepository
+import io.github.lopezjavier.appfitness.domain.repository.CoachSummaryRepository
 import io.github.lopezjavier.appfitness.domain.repository.CoachUsageRepository
 import io.github.lopezjavier.appfitness.domain.repository.DiscomfortRepository
 import io.github.lopezjavier.appfitness.domain.repository.ExerciseRepository
@@ -69,6 +70,7 @@ import io.github.lopezjavier.appfitness.domain.usecase.InterpretMetric
 import io.github.lopezjavier.appfitness.domain.usecase.LoadCheckInSummary
 import io.github.lopezjavier.appfitness.domain.usecase.LoadExerciseCatalog
 import io.github.lopezjavier.appfitness.domain.usecase.LoadReminders
+import io.github.lopezjavier.appfitness.domain.usecase.MarkWeekSummarySeen
 import io.github.lopezjavier.appfitness.domain.usecase.MeasurementsByDay
 import io.github.lopezjavier.appfitness.domain.usecase.RecalculateEntry
 import io.github.lopezjavier.appfitness.domain.usecase.ResolvePortion
@@ -173,6 +175,7 @@ class AppModuleTest {
                 NotificationPermission::class,
                 RestAlertPreferences::class,
                 AuthRepository::class,
+                CoachSummaryRepository::class,
                 ProfileRepository::class,
                 BodyMeasurementRepository::class,
                 NutritionGoalsRepository::class,
@@ -239,6 +242,7 @@ class AppModuleTest {
                 WeeklyCheckInRepository::class,
                 DiscomfortRepository::class,
                 LoadCheckInSummary::class,
+                MarkWeekSummarySeen::class,
                 LoadReminders::class,
                 CoroutineScope::class,
                 ValidateCircumference::class,
