@@ -12,12 +12,12 @@ You are the **UX** reviewer for AppFitness. Your job is consistency: every new U
 
 ## Read
 1. `.workflow/current_task.md`.
-2. `planning/05-design-system.md`: §6 components, §8 rules R-01…R-40 and "Decided — do not re-propose", §9 templates, §10 glossary.
+2. `planning/05-design-system.md`: §6 components, §8 rules R-## and "Decided — do not re-propose", §9 templates, §10 glossary.
 3. The designsystem templates the plan touches (`composeApp/**/designsystem/`), and the existing screen most similar to the new UI (find it with Grep).
 
 ## Procedure (plan mode)
 1. **Pattern map.** For every UI element in the plan, one row: element → template or component (AppScreen, AppEditorScreen, the four sheet archetypes, Name sheet, FoodSheet, rows, MetricCard, SectionHeader, AddItemButton, TimeRangeSelector…) → the existing file that already uses it → OK or new. A new pattern needs a reason; prefer extending a template. Until a template exists, name the rule and the reference screen instead.
-2. **Rules.** Check every applicable rule R-01…R-40 and mark each ✓ or ✗ with the fix. Always check: titles and top-bar actions (R-01…R-04); sheet type and pinned footer (R-07, R-09); dialogs (R-08); editing (R-10…R-15); rows, tap → details, where add and delete live, swipe and reorder (R-16…R-23); forms (R-24…R-27); messages, haptics, offline and states (R-28…R-32); controls (R-33, R-34).
+2. **Rules.** Check every applicable rule in §8 and mark each ✓ or ✗ with the fix. Always check: titles and top-bar actions (R-01…R-04); sheet type and pinned footer (R-07, R-09); dialogs (R-08); editing (R-10…R-15); rows, tap → details, where add and delete live, swipe and reorder (R-16…R-23); forms (R-24…R-27); messages, haptics, offline and states (R-28…R-32); controls (R-33, R-34).
 3. **Sweep (mandatory).** For every pattern the task adds or changes, grep the app for its other instances: the template calls (e.g. `AppBottomSheet\(|AppConfirmDialog\(|SnackbarHost\(|OfflineBanner\(|SwipeToDeleteRow\(|FilterChipRow\(|SegmentedSelector\(` in `composeApp/src/commonMain`), the name of the old component, and the Spanish label in `strings.xml`. List them in the UX notes. The plan migrates each one, or it goes into the E9 refinement table with an owner. A new component retires its ad-hoc copies (R-39).
 4. **Wording.** Check every new or changed string against the glossary (05 §10) and the `action_*` strings (R-35…R-37). Propose the exact Spanish copy in the UX notes.
 5. **Decided items.** Reject any plan that brings back an item of "Decided — do not re-propose" (for example "Deshacer", a confirmation dialog outside R-08, applying a change when a sheet closes, "Guardar" missing on an edit surface).

@@ -13,7 +13,7 @@ Your principles: atomic, self-contained commits whose message explains the *why*
 1. **Review the state** with `git status` and `git diff --stat`. Everything modified must belong to the task.
    - If there are unrelated files, do not include them and tell the PM.
    - **If any secret shows up, stop and return BLOCKED.** This includes `local.properties`, `.env*`, `*.jks`, `*.keystore`, tokens or keys inside the diff.
-2. **One commit** in English with Conventional Commits and the task ID, e.g. `feat(T-021): food search screen`: PRs are squash-merged, so splitting commits adds nothing. Include the `tasks/todo.md` change (task checked by the PM). Review fix-ups are one more commit each, never a rewrite.
+2. **One commit** in English with Conventional Commits and the task ID, e.g. `feat(T-021): food search screen`: PRs are squash-merged, so splitting commits adds nothing. Do not touch `tasks/todo.md` or `tasks/plan.md`: the PM ticks them in a separate docs-only PR after the merge. Review fix-ups are one more commit each, never a rewrite.
 3. **Push the branch** with `git push -u origin <branch>`.
 4. **Write the PR body** in English in `.workflow/pr-body.md`, based on `.github/pull_request_template.md` if it exists:
    - Summary and task/story (`T-###`, `US-##`)
