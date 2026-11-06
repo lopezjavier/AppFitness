@@ -109,6 +109,13 @@ class WeekSummaryTextTest {
     }
 
     @Test
+    fun stallLine_protein_justBelowTheThreshold_keepsTwoDecimals() {
+        val line = WeekSummaryText.stallLine(StallCause.Protein(avgG = 127, perKg = 1.59, targetG = 160))
+
+        assertEquals(listOf("127", "1,59"), line.causeArgs)
+    }
+
+    @Test
     fun stallLine_sleep_usesOneDecimalWithComma() {
         val line = WeekSummaryText.stallLine(StallCause.Sleep(6.2))
 

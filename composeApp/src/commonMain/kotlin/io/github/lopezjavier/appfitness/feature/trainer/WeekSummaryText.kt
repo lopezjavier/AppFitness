@@ -71,7 +71,7 @@ internal object WeekSummaryText {
 
         is StallCause.Protein -> StallLine(
             cause = Res.string.week_summary_stall_protein_cause,
-            causeArgs = listOf(AppNumberFormat.integer(cause.avgG), AppNumberFormat.decimal(cause.perKg, 1)),
+            causeArgs = listOf(AppNumberFormat.integer(cause.avgG), AppNumberFormat.decimal(cause.perKg, 2)),
             action = Res.string.week_summary_stall_protein_action,
             actionArgs = listOf(AppNumberFormat.integer(cause.targetG)),
         )
