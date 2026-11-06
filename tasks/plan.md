@@ -56,7 +56,7 @@ The journeys a checkpoint would have covered (session to session, the week, the 
 ### Phase 2: The week (US-99, US-100, US-98, US-105)
 - [x] T-229: Calorie proposals — M
 - [ ] T-230: Deloads — M
-- [ ] T-231: The weekly summary — L
+- [x] T-231: The weekly summary — L
 - [ ] T-232: "¿Por qué no progreso?" — M
 
 ### Phase 3: The end of the block (US-101, US-103, US-102) and closure
