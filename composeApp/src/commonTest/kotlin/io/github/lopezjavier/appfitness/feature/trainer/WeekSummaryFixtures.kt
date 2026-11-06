@@ -5,6 +5,7 @@ import io.github.lopezjavier.appfitness.domain.model.CoachChange
 import io.github.lopezjavier.appfitness.domain.model.GroupSets
 import io.github.lopezjavier.appfitness.domain.model.MuscleGroup
 import io.github.lopezjavier.appfitness.domain.model.ProposalStatus
+import io.github.lopezjavier.appfitness.domain.model.StallDiagnosis
 import io.github.lopezjavier.appfitness.domain.model.WeekSummary
 import io.github.lopezjavier.appfitness.domain.model.WeekSummaryProposal
 import io.github.lopezjavier.appfitness.domain.model.WeekSummaryWeight
@@ -24,6 +25,7 @@ internal fun weekSummary(
     changes: List<CoachChange> = emptyList(),
     calorieProposal: WeekSummaryProposal? = null,
     deload: Boolean = false,
+    stalls: List<StallDiagnosis> = emptyList(),
 ) = WeekSummary(
     planId = "plan-1",
     week = 2,
@@ -40,6 +42,7 @@ internal fun weekSummary(
     changes = changes,
     calorieProposal = calorieProposal,
     deload = deload,
+    stalls = stalls,
 )
 
 internal fun weekProposal(status: ProposalStatus = ProposalStatus.Applied) = WeekSummaryProposal(

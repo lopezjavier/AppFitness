@@ -40,6 +40,7 @@ data class WeekSummary(
     val changes: List<CoachChange>,
     val calorieProposal: WeekSummaryProposal?,
     val deload: Boolean,
+    val stalls: List<StallDiagnosis> = emptyList(),
 ) {
     /** The unseen-notice view of this summary, or null when it was already opened. */
     fun toNotice(): WeekSummaryNotice? = if (seen) null else WeekSummaryNotice(planId, week, endDate)

@@ -21,6 +21,8 @@ import io.github.lopezjavier.appfitness.domain.model.GroupSets
 import io.github.lopezjavier.appfitness.domain.model.MuscleGroup
 import io.github.lopezjavier.appfitness.domain.model.ProposalStatus
 import io.github.lopezjavier.appfitness.domain.model.ReminderKind
+import io.github.lopezjavier.appfitness.domain.model.StallCause
+import io.github.lopezjavier.appfitness.domain.model.StallDiagnosis
 import io.github.lopezjavier.appfitness.domain.model.WeekSummary
 import io.github.lopezjavier.appfitness.domain.usecase.ExerciseNameResolver
 import io.github.lopezjavier.appfitness.domain.usecase.MarkWeekSummarySeen
@@ -123,6 +125,128 @@ class WeekSummaryScreenTest {
 
         rule.onNode(hasContentDescription("Tríceps, 2,5 series"))
             .assertIsDisplayed()
+    }
+
+    private fun stalled(cause: StallCause) = content(weekSummary(stalls = listOf(StallDiagnosis("id-bench", cause))))
+
+    private fun assertStall(cause: String, action: String) {
+        rule.onNodeWithTag("week_summary_section_stalls").performScrollTo().assertIsDisplayed()
+        rule.onNodeWithTag("week_summary_stall_id-bench_name", useUnmergedTree = true).assertTextEquals("Press banca")
+        rule.onNodeWithTag("week_summary_stall_id-bench_cause", useUnmergedTree = true).assertTextEquals(cause)
+        rule.onNodeWithTag("week_summary_stall_id-bench_action", useUnmergedTree = true).assertTextEquals(action)
+    }
+
+    @Test
+    fun stall_fewSessions_showsTheSessionsCauseAndAction() {
+        show(stalled(StallCause.Sessions(1.5, planDays = 3)))
+
+        assertStall(
+            "Entrenaste de media 1,5 días por semana. La fuerza mejora con al menos 2.",
+            "Intenta entrenar al menos 2 días por semana.",
+        )
+    }
+
+    @Test
+    fun stall_fewSessionsOnAOneDayPlan_suggestsTwoDaysNextBlock() {
+        show(stalled(StallCause.Sessions(1.0, planDays = 1)))
+
+        rule.onNodeWithTag("week_summary_stall_id-bench_action", useUnmergedTree = true)
+            .assertTextEquals("En el próximo bloque puedes elegir 2 días.")
+    }
+
+    @Test
+    fun stall_fewSets_namesTheGroupInLowercase() {
+        show(stalled(StallCause.Sets(7.0, MuscleGroup.Chest)))
+
+        assertStall(
+            "Hiciste de media 7 series semanales de pecho; para ganar músculo se recomiendan al menos 10.",
+            "Completa las series del plan.",
+        )
+    }
+
+    @Test
+    fun stall_groupOnMaintain_saysSoAndSuggestsPrioritising() {
+        show(stalled(StallCause.GroupOnMaintain(MuscleGroup.Chest)))
+
+        assertStall(
+            "Pecho está en Mantener: con menos series es normal no progresar.",
+            "Elige Priorizar en el próximo bloque si quieres progresar aquí.",
+        )
+    }
+
+    @Test
+    fun stall_lowProtein_showsWhatWasLoggedAndTheTarget() {
+        show(stalled(StallCause.Protein(avgG = 120, perKg = 1.4, targetG = 160)))
+
+        assertStall(
+            "Registraste de media 120 g de proteína al día (1,4 g por kg). " +
+                "Por debajo de 1,6 g por kg se gana menos músculo y fuerza.",
+            "Tu objetivo es 160 g al día.",
+        )
+    }
+
+    @Test
+    fun stall_shortSleep_showsTheAverageHours() {
+        show(stalled(StallCause.Sleep(6.2)))
+
+        assertStall(
+            "Dormiste de media 6,2 h. Dormir menos de 7 horas se asocia con rendir peor.",
+            "Intenta dormir al menos 7 horas.",
+        )
+    }
+
+    @Test
+    fun stall_noClearCause_withFoodGate_addsTheMissingFoodLine() {
+        show(stalled(StallCause.NoClearCause(proteinGateMissing = true)))
+
+        assertStall("En tus datos no vemos una causa clara.", "En el próximo bloque puedes cambiar este ejercicio.")
+        rule.onNodeWithTag("week_summary_stall_id-bench_missing_food", useUnmergedTree = true)
+            .assertTextEquals("Faltan registros de comida para valorar la proteína.")
+    }
+
+    @Test
+    fun stall_noClearCause_withoutGate_hasNoMissingFoodLine() {
+        show(stalled(StallCause.NoClearCause(proteinGateMissing = false)))
+
+        rule.onAllNodesWithTag("week_summary_stall_id-bench_missing_food", useUnmergedTree = true).assertCountEquals(0)
+    }
+
+    @Test
+    fun noStalls_hideTheSection() {
+        show(content())
+
+        rule.onAllNodesWithTag("week_summary_section_stalls").assertCountEquals(0)
+    }
+
+    @Test
+    fun stall_withoutAResolvedExerciseName_isSkipped() {
+        show(WeekSummaryUiState.Content(stalled(StallCause.Sleep(6.2)).summary, emptyMap()))
+
+        rule.onAllNodesWithTag("week_summary_section_stalls").assertCountEquals(0)
+    }
+
+    @Test
+    fun stall_help_opensTheRuleExplanation() {
+        show(stalled(StallCause.Sleep(6.2)))
+
+        rule.onNodeWithTag("week_summary_stall_help").performScrollTo().performClick()
+
+        rule.onNodeWithTag("week_summary_stall_help_sheet_body").assertTextContains("3 semanas", substring = true)
+    }
+
+    /** Stalls belong to the summary only: the notice in Centro de avisos keeps its single week line. */
+    @Test
+    fun stalls_doNotAddRemindersOrChangeTheNotice() {
+        val env = ReminderEnv(LocalDate(2026, 11, 10))
+        val summaries: FakeCoachSummaryRepository = env.summaries
+        summaries.latest = Result.success(
+            weekSummary(seen = false, stalls = listOf(StallDiagnosis("id-bench", StallCause.Sleep(6.2)))),
+        )
+        val coordinator = ReminderCoordinator(env.load, CoroutineScope(Dispatchers.Unconfined))
+        runBlocking { coordinator.refresh() }
+
+        assertEquals(listOf(ReminderKind.WeekSummary), coordinator.reminders.value.map { it.kind })
+        assertEquals(2, coordinator.reminders.value.single().week)
     }
 
     @Test

@@ -8,6 +8,7 @@ import io.github.lopezjavier.appfitness.data.remote.SupabaseClientFactory
 import io.github.lopezjavier.appfitness.domain.model.CoachChangeKind
 import io.github.lopezjavier.appfitness.domain.model.MuscleGroup
 import io.github.lopezjavier.appfitness.domain.model.ProposalStatus
+import io.github.lopezjavier.appfitness.domain.model.StallCause
 import io.github.lopezjavier.appfitness.domain.model.TestLoginCredentials
 import io.ktor.client.engine.mock.MockEngine
 import io.ktor.client.engine.mock.respond
@@ -154,6 +155,58 @@ class SupabaseCoachSummaryRepositoryTest {
 
             assertEquals(expected, proposal.status)
         }
+    }
+
+    private fun withStalls(stalls: String) =
+        """{"plan_id":"p1","week":3,"start_date":"2027-01-04","end_date":"2027-01-10","stalls":$stalls}"""
+
+    @Test
+    fun getLatest_mapsEveryStallCause() = runTest {
+        body = withStalls(
+            """[{"exercise_id":"e1","cause":"sessions","avg_sessions":1.5,"plan_days":1},""" +
+                """{"exercise_id":"e2","cause":"sets","avg_sets":7.0,"group":"chest"},""" +
+                """{"exercise_id":"e3","cause":"maintain","group":"back"},""" +
+                """{"exercise_id":"e4","cause":"protein","avg_protein_g":120,""" +
+                """"protein_g_per_kg":1.4,"target_g":160},""" +
+                """{"exercise_id":"e5","cause":"sleep","avg_sleep_h":6.2},""" +
+                """{"exercise_id":"e6","cause":"none","protein_gate_missing":true}]""",
+        )
+
+        val stalls = assertNotNull(repo().getLatest(today).getOrThrow()).stalls
+
+        assertEquals(
+            listOf(
+                "e1" to StallCause.Sessions(1.5, 1),
+                "e2" to StallCause.Sets(7.0, MuscleGroup.Chest),
+                "e3" to StallCause.GroupOnMaintain(MuscleGroup.Back),
+                "e4" to StallCause.Protein(120, 1.4, 160),
+                "e5" to StallCause.Sleep(6.2),
+                "e6" to StallCause.NoClearCause(true),
+            ),
+            stalls.map { it.exerciseId to it.cause },
+        )
+    }
+
+    @Test
+    fun getLatest_missingOrNullStallsIsEmpty() = runTest {
+        val repo = repo()
+        for (json in listOf(FULL_SUMMARY, withStalls("null"))) {
+            body = json
+
+            assertTrue(assertNotNull(repo.getLatest(today).getOrThrow()).stalls.isEmpty())
+        }
+    }
+
+    @Test
+    fun getLatest_dropsStallsWithUnknownCauseOrMissingFigures() = runTest {
+        body = withStalls(
+            """[{"exercise_id":"e1","cause":"mystery"},{"exercise_id":"e2","cause":"sets","avg_sets":7.0},""" +
+                """{"cause":"sleep","avg_sleep_h":6.0},{"exercise_id":"e3","cause":"sleep","avg_sleep_h":6.5}]""",
+        )
+
+        val stalls = assertNotNull(repo().getLatest(today).getOrThrow()).stalls
+
+        assertEquals(listOf("e3"), stalls.map { it.exerciseId })
     }
 
     @Test
