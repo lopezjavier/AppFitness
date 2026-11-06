@@ -1,5 +1,7 @@
 # Data model (Supabase Postgres) - current state
 
+Phase 2 archive (full text as it was when Phase 2 closed): [`phase2/03-data-model.md`](phase2/03-data-model.md).
+
 Compact summary; full column tables, constraints and RPC contracts are in [`phase1/03-data-model.md`](phase1/03-data-model.md) (frozen). The authoritative schema is `supabase/migrations/`. New schema decisions: a new ADR in `00-decisions.md`, then update this summary.
 
 ## Conventions

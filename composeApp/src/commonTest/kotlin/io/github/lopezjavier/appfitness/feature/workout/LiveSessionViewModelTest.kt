@@ -1054,7 +1054,7 @@ class LiveSessionViewModelTest {
 
         check(vm, 0, 1)
 
-        assertEquals(RestTimerUi(90.seconds, 90.seconds), vm.active().restTimer)
+        assertEquals(TimerBarUi.Rest(90.seconds, 90.seconds), vm.active().restTimer)
         assertEquals(listOf(90, 120), vm.active().exercises.map { it.restSeconds })
     }
 
@@ -1097,9 +1097,9 @@ class LiveSessionViewModelTest {
 
         vm.onEvent(LiveSessionEvent.RestAdd30)
 
-        assertEquals(RestTimerUi(50.seconds, 60.seconds), vm.active().restTimer)
+        assertEquals(TimerBarUi.Rest(50.seconds, 60.seconds), vm.active().restTimer)
         vm.onEvent(LiveSessionEvent.RestAdd30)
-        assertEquals(RestTimerUi(80.seconds, 80.seconds), vm.active().restTimer)
+        assertEquals(TimerBarUi.Rest(80.seconds, 80.seconds), vm.active().restTimer)
     }
 
     @Test
@@ -1376,7 +1376,7 @@ class LiveSessionViewModelTest {
 
         check(vm, 1, 1)
 
-        assertEquals(RestTimerUi(90.seconds, 90.seconds), vm.active().restTimer)
+        assertEquals(TimerBarUi.Rest(90.seconds, 90.seconds), vm.active().restTimer)
     }
 
     @Test
@@ -1757,7 +1757,7 @@ class LiveSessionViewModelTest {
         assertEquals(8.0, write.rpe)
         assertEquals(SetEntry.WeightReps(60.0, 12), write.entry)
         assertNotNull(write.completedAt)
-        assertEquals(RestTimerUi(90.seconds, 90.seconds), vm.active().restTimer)
+        assertEquals(TimerBarUi.Rest(90.seconds, 90.seconds), vm.active().restTimer)
         assertEquals(0, haptics.alerts)
     }
 

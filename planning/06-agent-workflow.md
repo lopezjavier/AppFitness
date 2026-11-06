@@ -1,5 +1,7 @@
 # Claude Code workflow and subagents
 
+Phase 2 archive (full text as it was when Phase 2 closed): [`phase2/06-agent-workflow.md`](phase2/06-agent-workflow.md).
+
 `CLAUDE.md` holds the PM's always-on rules; this document holds the detail; the subagents are defined in `.claude/agents/*.md`. If they disagree, `CLAUDE.md` wins. History and the original wording: [`phase1/06-agent-workflow.md`](phase1/06-agent-workflow.md).
 
 ## 1. Principles
@@ -21,7 +23,7 @@
         REJECTED -> planner fixes the plan
   -> kotlin-core-developer, then compose-ui-developer (L tasks: one run per slice), and/or backend-developer
 [PM] marks the task in tasks/todo.md on the branch
-  -> pr-creator         commit(s), push, gh pr create
+  -> pr-creator         verify-local gate (Kotlin changes only), commit(s), push, gh pr create
   -> pr-reviewer + ux-reviewer (diff, only if files under feature/, designsystem/ or composeResources/ changed), in parallel
         a finding -> developer, one combined fix round
 [PM] green CI -> gh pr merge --squash --delete-branch -> COMPLETED; hand off, next task in a fresh session (/clear)
@@ -33,6 +35,8 @@ PM start -> planner -> backend-developer (pgTAP / deno test / local CI) -> pr-cr
 Planner optional (short plan in the PR); the rest follows the applicable flow.
 ### 2.4 Why the task is marked on the branch
 `main` is protected: the checkbox in `tasks/todo.md` is updated on the feature branch and takes effect with the merge. The handoff pointer is a separate docs-only PR (see `CLAUDE.md`). `.workflow/` is local and unversioned.
+### 2.5 Product definition
+When the user asks, the `product-owner` skill runs in the main session: brainstorm, create or update a phase or epic. An approved epic then goes to `epic-planner` in a fresh session.
 
 ## 3. Logging (`.workflow/execution.log`, local)
 `[YYYY-MM-DD HH:mm:ss] [<AGENT>] [<TASK_ID>] [<STATUS>] <message>`
@@ -71,7 +75,7 @@ Planner optional (short plan in the PR); the rest follows the applicable flow.
 | `kotlin-core-developer` | Domain, data, DI, ViewModels + unit tests |
 | `compose-ui-developer` | Screens, designsystem, navigation, Robolectric tests; starts from the core |
 | `backend-developer` | Migrations, RLS, pgTAP, Edge Functions + `deno test` |
-| `pr-creator` | Commits, push, PR; never re-encodes files; stops on any secret |
+| `pr-creator` | Runs verify-local.sh as the gate when Kotlin changed; commits, push, PR; never re-encodes files; stops on any secret |
 | `pr-reviewer` | Verdict as a review comment (`--comment`) |
 
 Models are the `model:` line of each agent file and are the user's decision. Each agent is self-contained. Only `pr-creator` commits; no agent other than the PM edits `tasks/`.

@@ -1,0 +1,81 @@
+# Phase 2 scope
+
+Approved by the user on 2026-10-28. Nothing outside this document is in scope without asking (see `../CLAUDE.md`). Phase 1 scope (frozen): [`phase1/01-phase1-scope.md`](phase1/01-phase1-scope.md).
+
+## 1. Goal
+An evidence-based performance assistant (coach) that plans four-week training and nutrition blocks from the user's intention and preferences and adjusts them with the user's data, plus the data it needs: reminders, watch data, training preferences, notes and discomfort.
+
+## 2. Epics
+
+| Epic | File | Content |
+|---|---|---|
+| E10 | [E10-reminders-and-check-in.md](epics/E10-reminders-and-check-in.md) | In-app notification center, weight and circumference reminders, weekly check-in |
+| E11 | [E11-health-connect-daily-sync.md](epics/E11-health-connect-daily-sync.md) | Daily automatic Health Connect sync; sleep, steps, calories and resting heart rate |
+| E12 | [E12-training-data-and-preferences.md](epics/E12-training-data-and-preferences.md) | Rest alert with the screen off, intention and preferences, notes, discomfort log, movement pattern |
+| E13 | [E13-performance-assistant.md](epics/E13-performance-assistant.md) | Coach: intake, derived values, nutrition plan and phase, progression suggestions, the block creator (model-built block, routine checker, folder review, favourites, removing a block), adherence, report, history, AI budget, chat |
+| E14 | [E14-block-follow-up.md](epics/E14-block-follow-up.md) | Block follow-up, happy path only, fully deterministic (no model; user, 2026-11-05): load progression on its own with "Deshacer" and the flagged progression, a weekly summary from fixed templates, calorie changes proposed for the user's approval, triggered and scheduled deloads, the end-of-block review with a phase change offered, the next block pre-filled from the last one, and "¿Por qué no progreso?". Breaks, injuries, life changes and the model-based features are later epics |
+
+**Order:** E10 → E11 → E12 → E13 → E14. E13 depends on the other three; E14 on E13's block (user, 2026-11-03: the block follow-ups moved out of E13). Design base of the coach: [`07-coach-design.md`](07-coach-design.md). Stories US-57..US-105 (E14: US-97…US-105; the old E14 backlog stories US-83…US-88, US-90…US-92 were discarded by the user on 2026-11-05).
+
+## 3. Requirement changes
+
+| ID | Change |
+|---|---|
+| NFR-02 | "100 % free" becomes: free except the coach's AI calls (Anthropic API), accepted up to 5 € per month in total, capped by the app (3 € per user and month, ADR-90) and by the Anthropic account spending limit (ADR-77). Supabase, GitHub, Open Food Facts, Health Connect and the Gemini free tier stay free |
+
+## 4. Decisions (user, 2026-10-28)
+
+| Topic | Decision | ADR |
+|---|---|---|
+| Reminders | In the app only; computed on open; listed in "Centro de avisos"; no time window and no system notifications | 73 |
+| Weight reminder | After 2 days in a row without a weigh-in | 73 |
+| Circumference reminder | After 14 days without measuring (design decision) | 73 |
+| Muscle soreness | Not collected (poor recovery signal) | 73, 76 |
+| Weekly check-in | Returns (energy and notes, with the weekly summary); the streak stays deferred | 73 |
+| Health Connect | Automatic sync on the first open of the day for every type; the "Sincronizar" button stays; no background sync | 74 |
+| Health Connect data | Sleep, steps, active and total calories, resting heart rate; writes stay weight and body fat | 74 |
+| Rest alert | Works with the screen off; new alert sound chosen among the E9 point 16 candidates | 75 |
+| Intention | Ganar fuerza, Ganar musculatura, Perder grasa, Recomposición, Mantenimiento | 78 |
+| Static preferences | Place (home, gym, other), equipment, optional days and session length | 78 |
+| RIR | No field; derived from RPE (10 − RPE) | 76 |
+| Activity level | `profiles.activity_level` stays as the starting factor; the coach proposes changes | 78 |
+| Target weight | No longer a user input; the coach sets outcomes (E13) | 76, 78 |
+| Derived values | Shown with their source and confirmed before use; intake answers are provisional priors replaced by measured data; experience = the higher of self-reported and app history (2026-11-01) | 76, 86 |
+| Plan | 4-week blocks, reviewed at the end of each block | 76 |
+| Long-term follow-up (2026-11-01) | Intake "Para conocerte" (fields + free text, extracted by the model, confirmed field by field); one phase per block (cut, gain, maintenance, recomposition, regain, minimal); a returning lifter starts in regain at maintenance; phase changes proposed only at the end-of-block review ("¿Cómo te ha ido?" + data, optional "Priorizar" / "Mantener"); the user accepts phase changes and new blocks; breaks pause the block; life changes mid-block offer "Revisar el bloque" ("Adaptar el bloque", "Bloque nuevo", "Solo unos días") | 86 |
+| Coach autonomy (2026-11-01) | One behaviour "Entrenador", no mode selector: inside an accepted block, load progression, calorie changes in the safe band and deloads (triggered or scheduled) apply on their own with "Deshacer" / cancel | 88 |
+| Free text and grounding (2026-11-01) | The user's free text reaches the model verbatim, capped, visible, lines excludable; the model only describes features and data that exist | 87 |
+| Health messages and injury (2026-11-01) | No generic disclaimers; one note when a level 4-5 discomfort persists; train around an injured area; graded return in 3 steps paced by the user | 89 |
+| Cardio (2026-11-01) | The plan sets a weekly cardio target (150 min, editable) and a daily steps target (never below the current average, floor 7 000); the block puts cardio as the last exercise of every routine (minutes only, swappable any-to-any, no warm-up planned); cardio machines are their own equipment group | 85 |
+| AI provider | Claude: Opus 5.5 for the block plan, Sonnet 5.5 for report and chat; Gemini stays only for food photos | 77 |
+| AI cost | Monthly budget: 3 € per user (2 € until 2026-11-02), 5 € in total; estimate ≈ $1-3,1 per user and month (`07-coach-design.md` §11) | 77, 90 |
+| Prior consent | Not required while the app is personal; written condition before distributing it | 76 |
+| Coach navigation | New tab "Trainer" between Entreno and Perfil | 79 |
+| Water and voice | Phase 3 | — |
+
+## 5. Out of Phase 2 scope
+- Background sync and system notifications for reminders (only the rest-end alert posts a notification).
+- Writing food or training to Health Connect.
+- Water tracking and voice control (Phase 3).
+- Training streak and rewards (still deferred, `09-open-questions.md`); Monthly Report and Year in Review (ADR-66).
+- Meal plans, medical advice, video analysis.
+- Web client and whole-meal photo estimation (Phase 1 "deferred to Phase 2" items not taken up).
+
+## 6. Amendments to frozen Phase 1 planning
+The Phase 1 epic files are frozen; these amendments are recorded here and in the ADRs:
+
+| Where | Change | ADR |
+|---|---|---|
+| E3 US-13 (rest timer) | The end-of-rest alert also works in the background and with the screen off (E12 US-64) | 75 |
+| E5 scope line | Steps, sleep, calories and heart rate enter through E11; background sync stays out | 74 |
+| E5 US-26 (manual sync) | The button stays; a daily automatic sync is added (E11 US-60) | 74 |
+| E5 target weight | Target weight and distance to the goal become the coach's block outcome (E13 US-69) | 78 |
+| E5 chart | Unchanged (MA7 line); the coach trend uses the slope of weekly averages | 76 |
+| E8 US-44, ADR-66 | The weekly check-in returns (E10 US-59); the streak stays deferred | 73 |
+| E9 points 15-16 (T-059) | The alert sound choice is reopened (E12 US-64) | 75 |
+
+## 7. Pending before implementing
+- E11: a spike (the first E11 task) checks `READ_HEALTH_DATA_HISTORY` on the user's device; its result decides whether the first read covers 90 days or about 30 (user decision, 2026-10-28).
+- E12: verify screen-off alert behaviour on Android 17.
+- E13: verify the sources marked *verify* in `07-coach-design.md` §10, the Anthropic API data policy and current prices; 👤 Anthropic account, spending limit and `ANTHROPIC_API_KEY` secret.
+- Release version of each epic (`v1.x` for now).

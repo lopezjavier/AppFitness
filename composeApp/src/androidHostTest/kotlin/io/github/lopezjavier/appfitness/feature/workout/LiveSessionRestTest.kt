@@ -38,7 +38,7 @@ private fun ghostRow(index: Int, previous: String?, done: Boolean = false) = Liv
 )
 
 private fun session(
-    rest: RestTimerUi? = null,
+    rest: TimerBarUi? = null,
     restSeconds: Int = 120,
     rows: List<LiveSetRow> =
         listOf(ghostRow(1, "80 kg × 10", done = true), ghostRow(2, "85 kg × 8"), ghostRow(3, null)),
@@ -46,7 +46,7 @@ private fun session(
     name = "Torso",
     startedAt = SESSION_START,
     exercises = listOf(LiveExercise(0, "e1", "Press banca", null, rows, restSeconds)),
-    restTimer = rest,
+    timerBar = rest,
 )
 
 /** US-12 ghost data and US-13 rest timer as the live screen renders them. */
@@ -79,7 +79,7 @@ class LiveSessionRestTest {
 
     @Test
     fun restBar_showsTheCountdownAndSendsAddAndSkip() {
-        show(session(rest = RestTimerUi(120.seconds, 120.seconds)))
+        show(session(rest = TimerBarUi.Rest(120.seconds, 120.seconds)))
 
         rule.onNodeWithTag("live_rest_countdown").assertTextContains("02:00")
         rule.onNodeWithTag("live_rest_add").assertTextContains("+30s")
@@ -130,7 +130,7 @@ class LiveSessionRestTest {
 
     @Test
     fun restBar_isTheFooter_pinnedBelowTheList_andNeverOverlapsIt() {
-        show(session(rest = RestTimerUi(72.seconds, 120.seconds)))
+        show(session(rest = TimerBarUi.Rest(72.seconds, 120.seconds)))
 
         val footer = rule.onNodeWithTag("live_footer").getUnclippedBoundsInRoot()
         val bar = rule.onNodeWithTag("live_rest_countdown").getUnclippedBoundsInRoot()
@@ -141,7 +141,7 @@ class LiveSessionRestTest {
 
     @Test
     fun restBar_skipAndAddThirtyFireTheirEvents_with48dpTargets() {
-        show(session(rest = RestTimerUi(72.seconds, 120.seconds)))
+        show(session(rest = TimerBarUi.Rest(72.seconds, 120.seconds)))
 
         rule.onNodeWithTag("live_rest_add").assertHeightIsAtLeast(48.dp).performClick()
         rule.onNodeWithTag("live_rest_skip").assertHeightIsAtLeast(48.dp).performClick()
@@ -151,7 +151,7 @@ class LiveSessionRestTest {
 
     @Test
     fun restBar_staysPinnedWhileTheListScrolls() {
-        show(session(rest = RestTimerUi(72.seconds, 120.seconds)))
+        show(session(rest = TimerBarUi.Rest(72.seconds, 120.seconds)))
         val before = rule.onNodeWithTag("live_rest_countdown").getUnclippedBoundsInRoot()
 
         rule.onNode(hasScrollAction()).performScrollToNode(hasTestTag("live_add_exercise"))
