@@ -7,6 +7,8 @@ import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performScrollTo
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
+import io.github.lopezjavier.appfitness.domain.model.StallCause
+import io.github.lopezjavier.appfitness.domain.model.StallDiagnosis
 import kotlinx.coroutines.flow.flowOf
 import org.junit.Rule
 import org.junit.Test
@@ -22,8 +24,12 @@ class WeekSummaryRestorationTest {
     val rule = createComposeRule()
 
     private val state = WeekSummaryUiState.Content(
-        weekSummary(deload = true, calorieProposal = weekProposal()),
-        emptyMap(),
+        weekSummary(
+            deload = true,
+            calorieProposal = weekProposal(),
+            stalls = listOf(StallDiagnosis("id-bench", StallCause.NoClearCause(proteinGateMissing = true))),
+        ),
+        mapOf("id-bench" to "Press banca"),
     )
 
     @Test

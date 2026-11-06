@@ -7,6 +7,8 @@ import io.github.lopezjavier.appfitness.app.ReminderEnv
 import io.github.lopezjavier.appfitness.domain.AppError
 import io.github.lopezjavier.appfitness.domain.AppException
 import io.github.lopezjavier.appfitness.domain.model.ReminderKind
+import io.github.lopezjavier.appfitness.domain.model.StallCause
+import io.github.lopezjavier.appfitness.domain.model.StallDiagnosis
 import io.github.lopezjavier.appfitness.domain.usecase.ExerciseNameResolver
 import io.github.lopezjavier.appfitness.domain.usecase.MarkWeekSummarySeen
 import io.github.lopezjavier.appfitness.feature.exercises.FakeExerciseLibrary
@@ -65,6 +67,19 @@ class WeekSummaryViewModelTest {
 
         val content = assertIs<WeekSummaryUiState.Content>(model.uiState.value)
         assertEquals(3, content.summary.sessionsDone)
+        assertEquals("Press banca", content.exerciseNames["id-bench"])
+    }
+
+    @Test
+    fun load_passesTheStallsThroughWithTheirNames() = runTest(dispatcher) {
+        val stall = StallDiagnosis("id-bench", StallCause.Sleep(6.2))
+        summaries.latest = Result.success(weekSummary(stalls = listOf(stall)))
+        val model = viewModel()
+
+        advanceUntilIdle()
+
+        val content = assertIs<WeekSummaryUiState.Content>(model.uiState.value)
+        assertEquals(listOf(stall), content.summary.stalls)
         assertEquals("Press banca", content.exerciseNames["id-bench"])
     }
 

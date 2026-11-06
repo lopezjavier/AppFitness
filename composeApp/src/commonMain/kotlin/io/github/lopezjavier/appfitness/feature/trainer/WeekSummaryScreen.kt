@@ -168,7 +168,7 @@ private fun SummaryContent(state: WeekSummaryUiState.Content) {
             )
         }
         ChangesSection(state)
-        // Reserved position for the "¿Por qué no progreso?" lines (T-232); nothing is drawn here yet.
+        StallCard(state)
         ProposalCard(summary)
         if (WeekSummaryText.showsSeparateDeload(summary)) {
             SummaryCard("week_summary_section_deload") {
