@@ -73,6 +73,7 @@ import io.github.lopezjavier.appfitness.domain.usecase.InterpretMetric
 import io.github.lopezjavier.appfitness.domain.usecase.LoadBlockReviewUseCase
 import io.github.lopezjavier.appfitness.domain.usecase.LoadCheckInSummary
 import io.github.lopezjavier.appfitness.domain.usecase.LoadExerciseCatalog
+import io.github.lopezjavier.appfitness.domain.usecase.LoadNextBlockContextUseCase
 import io.github.lopezjavier.appfitness.domain.usecase.LoadReminders
 import io.github.lopezjavier.appfitness.domain.usecase.MarkWeekSummarySeen
 import io.github.lopezjavier.appfitness.domain.usecase.MeasurementsByDay
@@ -194,6 +195,7 @@ class AppModuleTest {
                 FoodRepository::class,
                 BuildDiaryDay::class,
                 BuildBlockUseCase::class,
+                LoadNextBlockContextUseCase::class,
                 GroupMealEntries::class,
                 ResolvePortion::class,
                 RecalculateEntry::class,

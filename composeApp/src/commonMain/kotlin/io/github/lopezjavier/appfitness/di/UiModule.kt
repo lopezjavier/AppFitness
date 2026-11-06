@@ -501,6 +501,8 @@ val uiModule =
                 preferences = get(),
                 plans = get(),
                 clock = get(),
+                previousPlanId = params.values.getOrNull(1) as? String,
+                nextBlock = get(),
                 savedState = get(),
             )
         }

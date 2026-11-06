@@ -277,7 +277,7 @@ class BlockReviewScreenTest {
         assertTrue("nothing starts on its own", started.isEmpty())
         rule.onNodeWithTag("block_review_next_block").performClick()
 
-        assertEquals(listOf(Triple(BeforeStartMode.Block, "plan-1", null)), started)
+        assertEquals(listOf(Triple(BeforeStartMode.Block, "plan-1", "plan-1")), started)
     }
 
     @Test
@@ -286,7 +286,7 @@ class BlockReviewScreenTest {
 
         rule.onNodeWithTag("block_review_next_block").performClick()
 
-        assertEquals(listOf(Triple(BeforeStartMode.Block, "plan-2", null)), started)
+        assertEquals(listOf(Triple(BeforeStartMode.Block, "plan-2", "plan-1")), started)
     }
 
     @Test

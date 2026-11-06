@@ -8,6 +8,10 @@ import io.github.lopezjavier.appfitness.domain.coach.builder.BuilderStart
 import io.github.lopezjavier.appfitness.domain.coach.builder.BuilderState
 import io.github.lopezjavier.appfitness.domain.coach.builder.BuilderStateCodec
 import io.github.lopezjavier.appfitness.domain.coach.builder.CardioTargets
+import io.github.lopezjavier.appfitness.domain.coach.builder.GroupPriority
+import io.github.lopezjavier.appfitness.domain.coach.builder.NextBlockContext
+import io.github.lopezjavier.appfitness.domain.coach.builder.NextBlockSeed
+import io.github.lopezjavier.appfitness.domain.coach.builder.NextBlockTargets
 import io.github.lopezjavier.appfitness.domain.coach.builder.Pick
 import io.github.lopezjavier.appfitness.domain.coach.builder.PickerContext
 import io.github.lopezjavier.appfitness.domain.coach.builder.PickerEntry
@@ -19,6 +23,7 @@ import io.github.lopezjavier.appfitness.domain.coach.builder.SplitCatalog
 import io.github.lopezjavier.appfitness.domain.model.CatalogExercise
 import io.github.lopezjavier.appfitness.domain.model.Equipment
 import io.github.lopezjavier.appfitness.domain.model.Exercise
+import io.github.lopezjavier.appfitness.domain.model.MuscleGroup
 import io.github.lopezjavier.appfitness.domain.model.TrainingIntention
 import io.github.lopezjavier.appfitness.domain.port.Clock
 import io.github.lopezjavier.appfitness.domain.repository.CoachPlanRepository
@@ -27,6 +32,7 @@ import io.github.lopezjavier.appfitness.domain.repository.FavoriteExercisesRepos
 import io.github.lopezjavier.appfitness.domain.repository.TrainingPreferencesRepository
 import io.github.lopezjavier.appfitness.domain.usecase.BuildBlockUseCase
 import io.github.lopezjavier.appfitness.domain.usecase.LoadExerciseCatalog
+import io.github.lopezjavier.appfitness.domain.usecase.LoadNextBlockContextUseCase
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -45,11 +51,16 @@ private const val KEY_STATE = "block_builder_state"
 private const val KEY_SELECTED_DAY = "block_builder_selected_day"
 private const val KEY_OPEN_SLOT = "block_builder_open_slot"
 private const val KEY_DISCARD = "block_builder_discard"
+private const val KEY_NEXT_MODE = "block_builder_next_mode"
+private const val KEY_PRIORITIES = "block_builder_priorities"
+private const val KEY_SUGGESTIONS = "block_builder_suggestions"
 
 private const val SLOT_PARTS = 3
 private const val STEP_SPLITS = "splits"
 private const val STEP_TYPES = "types"
 private const val STEP_BUILDER = "builder"
+private const val STEP_TARGETS = "targets"
+private const val PRIORITY_PARTS = 2
 
 /** What the builder reads once: the user's training choices, the catalogue, the history and the cardio target. */
 @Suppress("LongParameterList") // Everything the builder reads once.
@@ -78,6 +89,9 @@ class BlockBuilderViewModel(
     private val preferences: TrainingPreferencesRepository,
     private val plans: CoachPlanRepository,
     private val clock: Clock,
+    /** The plan whose review just closed: with [nextBlock] the builder opens in next-block mode (US-102). */
+    private val previousPlanId: String? = null,
+    private val nextBlock: LoadNextBlockContextUseCase? = null,
     private val savedState: SavedStateHandle = SavedStateHandle(),
 ) : ViewModel() {
     private val _uiState = MutableStateFlow<BlockBuilderUiState>(BlockBuilderUiState.Loading)
@@ -87,6 +101,13 @@ class BlockBuilderViewModel(
     val effects = effectChannel.receiveAsFlow()
 
     private var inputs: Inputs? = null
+
+    private val nextMode = previousPlanId != null && nextBlock != null
+    private var context: NextBlockContext? = null
+    private var choices: Map<MuscleGroup, GroupPriority> =
+        savedState.get<String>(KEY_PRIORITIES)?.let(::decodeChoices).orEmpty()
+    private var accepted: Set<MuscleGroup> =
+        savedState.get<String>(KEY_SUGGESTIONS)?.let(::decodeGroups).orEmpty()
 
     // The server accepts a date within one day of UTC today, so it is the UTC date.
     private fun today(): LocalDate = clock.now().toLocalDateTime(TimeZone.UTC).date
@@ -102,6 +123,9 @@ class BlockBuilderViewModel(
             is BlockBuilderEvent.OpenDay -> openDay(event.day)
             is BlockBuilderEvent.PickType -> pickType(event.type)
             BlockBuilderEvent.Continue -> next()
+            is BlockBuilderEvent.SetPriority -> setPriority(event.group, event.priority)
+            is BlockBuilderEvent.ApplySuggestion -> applySuggestion(event.group)
+            BlockBuilderEvent.ContinueFromTargets -> continueFromTargets()
             is BlockBuilderEvent.SelectDay -> selectDay(event.day)
             is BlockBuilderEvent.OpenSlot -> openSlot(event.slot)
             is BlockBuilderEvent.PickExercise -> pickExercise(event.exerciseId)
@@ -146,6 +170,9 @@ class BlockBuilderViewModel(
         favourites.refresh()
         val built = builder.loadInputs(today()).getOrElse { return Result.failure(it) }
         val plan = plans.currentPlan().getOrElse { return Result.failure(it) }
+        if (previousPlanId != null && nextBlock != null) {
+            context = nextBlock(previousPlanId).getOrElse { return Result.failure(it) }
+        }
         return Result.success(
             Inputs(
                 days = days,
@@ -177,6 +204,9 @@ class BlockBuilderViewModel(
 
             savedState.get<String>(KEY_STEP) == STEP_TYPES && types != null ->
                 typesUi(splitIndex, types, savedState.get<Int>(KEY_OPEN_DAY)?.takeIf { it in types.indices })
+
+            nextMode && context != null && savedState.get<String>(KEY_STEP).let { it == null || it == STEP_TARGETS } ->
+                targetsUi()
 
             else -> BlockBuilderUiState.Splits(inputs.days, splits, splitIndex)
         }.also { persist(it) }
@@ -211,7 +241,82 @@ class BlockBuilderViewModel(
         data.cardioTargetMinWeek,
         data.builder,
         data.catalogue,
+        currentTargets(),
     )
+
+    // region next block
+
+    private fun targetResult(): NextBlockTargets.Result? = context?.let {
+        NextBlockTargets.compute(it.baseSets, choices, it.adherencePct, it.cut, it.age, accepted)
+    }
+
+    private fun currentTargets(): Map<MuscleGroup, Int> = targetResult()?.targets.orEmpty()
+
+    private fun targetsUi(): BlockBuilderUiState.Targets {
+        val ctx = checkNotNull(context)
+        val result = checkNotNull(targetResult())
+        val rows = result.rows.map { row ->
+            val applied = row.group in accepted
+            val offered = !applied && row.choice != GroupPriority.Maintain && ctx.suggestion(row.group, row.after)
+            val suggestion = when {
+                applied -> SuggestionState.Applied
+                offered -> SuggestionState.Offered
+                else -> null
+            }
+            GroupTargetRow(row.group, row.choice, row.before, row.after, row.blocked, suggestion)
+        }
+        val seeded = NextBlockSeed.types(ctx.previousBlock)
+        val noFit = seeded?.let { startBuilder(checkNotNull(inputs), it) as? BuilderStart.NoFit }?.let {
+            NoFitInfo(it.dayIndex, it.fit.minutesNeeded, it.fit.limitMinutes)
+        }
+        return BlockBuilderUiState.Targets(rows, ctx.adherencePct, ctx.cut, noFit)
+    }
+
+    @Suppress("ReturnCount") // Guards for another step, an unknown group or a fourth "Priorizar".
+    private fun setPriority(group: MuscleGroup, priority: GroupPriority) {
+        val state = _uiState.value as? BlockBuilderUiState.Targets ?: return
+        val row = state.rows.firstOrNull { it.group == group } ?: return
+        val fourth = priority == GroupPriority.Prioritise && row.choice != GroupPriority.Prioritise &&
+            state.prioritisedCount >= NextBlockTargets.MAX_PRIORITISED
+        if (fourth) return
+        if (priority == GroupPriority.Maintain) accepted = accepted - group
+        choices = if (priority == GroupPriority.None) choices - group else choices + (group to priority)
+        set(targetsUi())
+    }
+
+    private fun applySuggestion(group: MuscleGroup) {
+        val state = _uiState.value as? BlockBuilderUiState.Targets ?: return
+        when (state.rows.firstOrNull { it.group == group }?.suggestion) {
+            SuggestionState.Applied -> accepted = accepted - group
+
+            SuggestionState.Offered -> {
+                accepted = accepted + group
+                effectChannel.trySend(BlockBuilderEffect.Confirm)
+            }
+
+            null -> return
+        }
+        set(targetsUi())
+    }
+
+    @Suppress("ReturnCount") // Guards for another step, a routine that does not fit or missing inputs.
+    private fun continueFromTargets() {
+        val state = _uiState.value as? BlockBuilderUiState.Targets ?: return
+        if (!state.canContinue) return
+        val data = inputs ?: return
+        val ctx = context ?: return
+        val types = NextBlockSeed.types(ctx.previousBlock)
+        if (types == null) {
+            set(BlockBuilderUiState.Splits(data.days, builder.splitsFor(data.days), 0))
+            return
+        }
+        val start = startBuilder(data, types) as? BuilderStart.Ready ?: return
+        val pickerContext = PickerContext(data.equipment.toSet(), data.builder.history, favourites.favoriteIds.value)
+        val seeded = NextBlockSeed.apply(start.state, ctx.previousBlock, data.catalogue, pickerContext)
+        set(builderUi(seeded, 0, null))
+    }
+
+    // endregion
 
     private fun openDay(day: Int?) {
         val state = _uiState.value as? BlockBuilderUiState.Types ?: return
@@ -276,6 +381,8 @@ class BlockBuilderViewModel(
             saveError = previous?.saveError,
             discardDialog = previous?.discardDialog ?: false,
             favouriteIds = favourites.favoriteIds.value,
+            stalledExerciseIds = context?.stalledLifts.orEmpty(),
+            savedPlanId = previous?.savedPlanId,
             validPatterns = slot?.let { slotOf(state, it) }?.let { SlotEligibility.validPatterns(it.kind) }.orEmpty(),
         )
     }
@@ -395,13 +502,13 @@ class BlockBuilderViewModel(
         if (!current.canSave) return
         set(current.copy(saving = true, saveError = null))
         viewModelScope.launch {
-            val result = builder.save(planId, current.state)
+            val result = builder.save(planId, current.state, previousPlanId = previousPlanId)
             if (result == null) {
                 updateBuilder { it.copy(saving = false) }
                 return@launch
             }
-            result.onSuccess {
-                updateBuilder { it.copy(saving = false) }
+            result.onSuccess { saved ->
+                updateBuilder { it.copy(saving = false, savedPlanId = saved.planId ?: planId) }
                 effectChannel.send(BlockBuilderEffect.Confirm)
                 effectChannel.send(BlockBuilderEffect.Saved)
             }.onFailure { failure ->
@@ -421,6 +528,7 @@ class BlockBuilderViewModel(
                 state.discardDialog -> set(state.copy(discardDialog = false))
                 state.openSlot != null -> set(builderUi(state.state, state.selectedDay, null, state))
                 hasPicks(state.state) -> set(state.copy(discardDialog = true))
+                nextMode && context != null -> set(targetsUi())
                 else -> set(typesUi(savedState.get<Int>(KEY_SPLIT) ?: 0, state.state.days.map { it.type }, null))
             }
 
@@ -450,7 +558,14 @@ class BlockBuilderViewModel(
         savedState.remove<String>(KEY_OPEN_SLOT)
         savedState.remove<Int>(KEY_OPEN_DAY)
         savedState.remove<Boolean>(KEY_DISCARD)
+        if (nextMode) {
+            savedState[KEY_NEXT_MODE] = true
+            savedState[KEY_PRIORITIES] = choices.entries.joinToString(",") { "${it.key.name}:${it.value.name}" }
+            savedState[KEY_SUGGESTIONS] = accepted.joinToString(",") { it.name }
+        }
         when (state) {
+            is BlockBuilderUiState.Targets -> savedState[KEY_STEP] = STEP_TARGETS
+
             is BlockBuilderUiState.Splits -> {
                 savedState[KEY_STEP] = STEP_SPLITS
                 savedState[KEY_SPLIT] = state.selectedIndex
@@ -480,6 +595,17 @@ class BlockBuilderViewModel(
     private fun decodeTypes(raw: String): List<RoutineType>? = runCatching {
         raw.split(",").map { name -> RoutineType.valueOf(name) }
     }.getOrNull()
+
+    // A saved group or priority that no longer exists decodes to nothing, like a stale type above.
+    private fun decodeChoices(raw: String): Map<MuscleGroup, GroupPriority> = raw.split(",").mapNotNull { part ->
+        val bits = part.split(":").takeIf { it.size == PRIORITY_PARTS } ?: return@mapNotNull null
+        val group = MuscleGroup.entries.firstOrNull { it.name == bits[0] }
+        val priority = GroupPriority.entries.firstOrNull { it.name == bits[1] && it != GroupPriority.None }
+        if (group == null || priority == null) null else group to priority
+    }.toMap()
+
+    private fun decodeGroups(raw: String): Set<MuscleGroup> =
+        raw.split(",").mapNotNull { name -> MuscleGroup.entries.firstOrNull { it.name == name } }.toSet()
 
     private fun decodeSlot(raw: String?): SlotRef? = raw?.split(":")?.takeIf { it.size == SLOT_PARTS }?.let {
         val day = it[0].toIntOrNull()

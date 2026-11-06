@@ -91,8 +91,17 @@ internal class FakeCoachBlockRepository : CoachBlockRepository {
 
     override suspend fun loadBuilderInputs(today: LocalDate): Result<BuilderInputs> = builderInputs
 
-    override suspend fun saveBuiltBlock(planId: String, block: BuiltBlock, folderName: String?): Result<BlockSaved> {
+    /** The previous plan id sent with each [saveBuiltBlock], in call order (null for a first block). */
+    val builtSavePreviousPlanIds = mutableListOf<String?>()
+
+    override suspend fun saveBuiltBlock(
+        planId: String,
+        block: BuiltBlock,
+        folderName: String?,
+        previousPlanId: String?,
+    ): Result<BlockSaved> {
         builtSaves += Triple(planId, block, folderName)
+        builtSavePreviousPlanIds += previousPlanId
         return builtSaveResult
     }
 

@@ -4,6 +4,8 @@ import io.github.lopezjavier.appfitness.domain.AppError
 import io.github.lopezjavier.appfitness.domain.appErrorOrNull
 import io.github.lopezjavier.appfitness.domain.coach.builder.BuilderState
 import io.github.lopezjavier.appfitness.domain.coach.builder.DayTypeOption
+import io.github.lopezjavier.appfitness.domain.coach.builder.GroupPriority
+import io.github.lopezjavier.appfitness.domain.coach.builder.NextBlockTargets
 import io.github.lopezjavier.appfitness.domain.coach.builder.PickerEntry
 import io.github.lopezjavier.appfitness.domain.coach.builder.RoutineType
 import io.github.lopezjavier.appfitness.domain.coach.builder.Split
@@ -32,6 +34,20 @@ internal fun Throwable.toBuilderSaveError(): BuilderSaveError = when {
 
 internal fun Throwable.isOfflineFailure(): Boolean = Result.failure<Unit>(this).appErrorOrNull() == AppError.Network
 
+/** "Sugerencia: +2 series" on a [GroupTargetRow]: offered, or applied (a second tap undoes it). */
+enum class SuggestionState { Offered, Applied }
+
+/** One group of the targets step: [before] is the previous block's weekly sets, [after] the next block's. */
+data class GroupTargetRow(
+    val group: MuscleGroup,
+    val choice: GroupPriority,
+    val before: Int,
+    val after: Int,
+    /** Why "Priorizar" gives no own gain or cannot be chosen (the UI decides what to disable); null when it can. */
+    val blocked: NextBlockTargets.Blocked?,
+    val suggestion: SuggestionState?,
+)
+
 /** "Bloque de entrenamiento" (US-72/US-93, "Desde cero"): steps `Splits`, `Types`, `Builder`; no AI call. */
 sealed interface BlockBuilderUiState {
     data object Loading : BlockBuilderUiState
@@ -58,6 +74,20 @@ sealed interface BlockBuilderUiState {
     }
 
     /**
+     * First step of the next block (US-102): one row per H1 group with the user's choice and the sets it gives.
+     * [noFit] disables "Continuar" while the raised targets do not fit the session length.
+     */
+    data class Targets(
+        val rows: List<GroupTargetRow>,
+        val adherencePct: Int?,
+        val cut: Boolean,
+        val noFit: NoFitInfo?,
+    ) : BlockBuilderUiState {
+        val prioritisedCount: Int get() = rows.count { it.choice == GroupPriority.Prioritise }
+        val canContinue: Boolean get() = noFit == null
+    }
+
+    /**
      * Step 3: the builder. [pickerEntries] are the rows of the open slot picker (empty when [openSlot] is null);
      * [cardioOptions] the exercises the cardio row can swap to. [score] text and bar come from `state.score`.
      */
@@ -79,6 +109,10 @@ sealed interface BlockBuilderUiState {
         val validPatterns: List<MovementPattern> = emptyList(),
         /** The last [BlockBuilderEvent.CreateCustomExercise] failed; cleared on the next attempt or slot change. */
         val createFailed: Boolean = false,
+        /** Main lifts that stalled in the previous block ("puedes cambiarlo"); empty outside the next block. */
+        val stalledExerciseIds: Set<String> = emptySet(),
+        /** The plan the block was saved under (the server's `plan_id`), set once the save succeeded. */
+        val savedPlanId: String? = null,
     ) : BlockBuilderUiState {
         /** "Guardar bloque" is enabled: 100 % and no save in flight (a plan-closed error also blocks it). */
         val canSave: Boolean get() = state.canSave && !saving && saveError != BuilderSaveError.PlanClosed
@@ -95,6 +129,15 @@ sealed interface BlockBuilderEvent {
     data class PickType(val type: RoutineType) : BlockBuilderEvent
 
     data object Continue : BlockBuilderEvent
+
+    /** Next block: sets the choice of [group]; a fourth "Priorizar" is ignored. */
+    data class SetPriority(val group: MuscleGroup, val priority: GroupPriority) : BlockBuilderEvent
+
+    /** Next block: applies "Sugerencia: +2 series" on [group]; tapping it again undoes it. */
+    data class ApplySuggestion(val group: MuscleGroup) : BlockBuilderEvent
+
+    /** Next block: leaves the targets step for the builder with the previous picks. */
+    data object ContinueFromTargets : BlockBuilderEvent
 
     data class SelectDay(val day: Int) : BlockBuilderEvent
 

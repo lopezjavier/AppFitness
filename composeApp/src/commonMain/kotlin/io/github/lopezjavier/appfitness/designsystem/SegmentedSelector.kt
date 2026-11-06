@@ -106,7 +106,8 @@ object SegmentedSelectorDefaults {
  * [SegmentedSelectorDefaults.MinLabelFontSize] labels wrap to two lines (hyphenated on API 33+) and the segments
  * grow together; a label is never clipped. [selectedIndex] is null (no segment active) or valid for [options];
  * tapping the active segment does not call
- * [onSelect].
+ * [onSelect]. [disabledIndices] dims and disables single segments while the others stay tappable (the caller shows
+ * why as visible text).
  *
  * Restriction: the control is built on `BoxWithConstraints` (it needs the available width to pick the label
  * size), which does not support intrinsic measurements. Do not place it inside a parent that queries
@@ -119,6 +120,7 @@ fun SegmentedSelector(
     onSelect: (Int) -> Unit,
     modifier: Modifier = Modifier,
     enabled: Boolean = true,
+    disabledIndices: Set<Int> = emptySet(),
 ) {
     SingleSelection.requireValid(selectedIndex, options.size)
     val track = SegmentedSelectorDefaults.colors(selected = false, appColors = AppTheme.colors).track
@@ -168,7 +170,8 @@ fun SegmentedSelector(
                     option = option,
                     selected = index == selectedIndex,
                     labelSize = labelSize,
-                    enabled = enabled,
+                    enabled = enabled && index !in disabledIndices,
+                    dimmed = enabled && index in disabledIndices,
                     onClick = { SingleSelection.onTap(selectedIndex, index)?.let(onSelect) },
                 )
             }
@@ -176,12 +179,14 @@ fun SegmentedSelector(
     }
 }
 
+@Suppress("LongParameterList") // Look and state of one segment.
 @Composable
 private fun RowScope.Segment(
     option: AppOption,
     selected: Boolean,
     labelSize: TextUnit?,
     enabled: Boolean,
+    dimmed: Boolean,
     onClick: () -> Unit,
 ) {
     val colors = SegmentedSelectorDefaults.colors(selected, AppTheme.colors)
@@ -193,6 +198,7 @@ private fun RowScope.Segment(
             .heightIn(min = SegmentedSelectorDefaults.SegmentMinHeight)
             .clip(SegmentedSelectorDefaults.SegmentShape)
             .background(colors.segment)
+            .alpha(if (dimmed) SegmentedSelectorDefaults.DISABLED_ALPHA else 1f)
             .testTag(option.testTag)
             .semantics { option.contentDescription?.let { contentDescription = it } }
             .selectable(selected = selected, enabled = enabled, role = Role.RadioButton, onClick = onClick)

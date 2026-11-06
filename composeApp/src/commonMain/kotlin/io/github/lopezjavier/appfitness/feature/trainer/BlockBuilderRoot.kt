@@ -27,7 +27,8 @@ fun BlockBuilderRoot(
     onClose: () -> Unit,
     onOpenExercise: (String) -> Unit,
     modifier: Modifier = Modifier,
-    viewModel: BlockBuilderViewModel = koinViewModel { parametersOf(planId) },
+    previousPlanId: String? = null,
+    viewModel: BlockBuilderViewModel = koinViewModel { parametersOf(planId, previousPlanId) },
     connectivity: ConnectivityObserver = koinInject(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()

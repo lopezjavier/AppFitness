@@ -59,6 +59,7 @@ internal object BlockBuilderTestData {
         favouriteIds: Set<String> = emptySet(),
         validPatterns: List<MovementPattern> = emptyList(),
         createFailed: Boolean = false,
+        stalledExerciseIds: Set<String> = emptySet(),
     ) = BlockBuilderUiState.Builder(
         state = state,
         selectedDay = selectedDay,
@@ -73,6 +74,7 @@ internal object BlockBuilderTestData {
         favouriteIds = favouriteIds,
         validPatterns = validPatterns,
         createFailed = createFailed,
+        stalledExerciseIds = stalledExerciseIds,
     )
 
     fun splits(days: Int = 4) = BlockBuilderUiState.Splits(days, SplitCatalog.splitsFor(days), 0)

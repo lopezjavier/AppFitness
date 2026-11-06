@@ -1,3 +1,5 @@
+@file:Suppress("TooManyFunctions") // One small composable per builder element.
+
 package io.github.lopezjavier.appfitness.feature.trainer
 
 import androidx.compose.foundation.layout.Arrangement
@@ -48,6 +50,9 @@ import io.github.lopezjavier.appfitness.composeapp.resources.block_builder_slot_
 import io.github.lopezjavier.appfitness.composeapp.resources.block_builder_slot_empty
 import io.github.lopezjavier.appfitness.composeapp.resources.block_builder_slot_supporting
 import io.github.lopezjavier.appfitness.composeapp.resources.block_builder_slot_swap_cd
+import io.github.lopezjavier.appfitness.composeapp.resources.block_builder_swap_help_body
+import io.github.lopezjavier.appfitness.composeapp.resources.block_builder_swap_help_cd
+import io.github.lopezjavier.appfitness.composeapp.resources.block_builder_swap_marker
 import io.github.lopezjavier.appfitness.composeapp.resources.block_builder_title
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_add
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_close
@@ -103,6 +108,8 @@ internal fun BlockBuilderScreen(
         is BlockBuilderUiState.Types -> BlockTypesScreen(state, onEvent, modifier)
 
         is BlockBuilderUiState.Builder -> BlockBuilderContent(state, isOnline, onEvent, onOpenExercise, modifier)
+
+        is BlockBuilderUiState.Targets -> BlockTargetsScreen(state, onEvent, modifier)
 
         BlockBuilderUiState.Loading, is BlockBuilderUiState.Failed ->
             BuilderPlaceholderScreen(state, isOnline, onEvent, modifier)
@@ -319,31 +326,54 @@ private fun SlotRow(
     }
     val base = weight ?: setsText(filled.slot.sets)
     val supporting = if (superset != null) "${supersetText(superset)} · $base" else base
+    val stalled = pick.exerciseId in ui.stalledExerciseIds
+    val swapMarker = stringResource(Res.string.block_builder_swap_marker)
     ExerciseRow(
         name = name,
         supporting = supporting,
         onOpen = { onOpenExercise(pick.exerciseId) },
         tagPrefix = tag,
         imageUri = exercise.rowImageUri(),
-        trailing = {
-            Row {
-                AppIconButton(
-                    contentDescription = stringResource(Res.string.block_builder_slot_swap_cd, name),
-                    icon = Res.drawable.ic_swap,
-                    testTag = "block_builder_slot_swap_${dayIndex}_$index",
-                    onClick = open,
-                    tint = AppTheme.colors.textSecondary,
-                )
-                AppIconButton(
-                    contentDescription = stringResource(Res.string.block_builder_slot_clear_cd, name),
-                    icon = Res.drawable.ic_close,
-                    testTag = "block_builder_slot_clear_${dayIndex}_$index",
-                    onClick = { onEvent(BlockBuilderEvent.ClearSlot(dayIndex, index)) },
-                    tint = AppTheme.colors.textSecondary,
-                )
-            }
-        },
+        trailing = { SlotActions(name, tag, dayIndex, index, stalled, open, onEvent) },
     )
+    if (stalled) Text(swapMarker, Modifier.padding(start = Spacing.screenMargin).testTag("${tag}_swap_marker"))
+}
+
+@Suppress("LongParameterList") // The actions of one filled slot.
+@Composable
+private fun SlotActions(
+    name: String,
+    tag: String,
+    dayIndex: Int,
+    index: Int,
+    stalled: Boolean,
+    open: () -> Unit,
+    onEvent: (BlockBuilderEvent) -> Unit,
+) {
+    Row {
+        if (stalled) {
+            HelpButton(
+                contentDescription = stringResource(Res.string.block_builder_swap_help_cd),
+                title = stringResource(Res.string.block_builder_swap_marker),
+                body = stringResource(Res.string.block_builder_swap_help_body),
+                testTag = "${tag}_swap_help",
+            )
+        }
+        AppIconButton(
+            contentDescription = stringResource(Res.string.block_builder_slot_swap_cd, name),
+            icon = Res.drawable.ic_swap,
+            testTag = "block_builder_slot_swap_${dayIndex}_$index",
+            onClick = open,
+            tint = AppTheme.colors.textSecondary,
+        )
+        AppIconButton(
+            contentDescription = stringResource(Res.string.block_builder_slot_clear_cd, name),
+            icon = Res.drawable.ic_close,
+            testTag = "block_builder_slot_clear_${dayIndex}_$index",
+            onClick = { onEvent(BlockBuilderEvent.ClearSlot(dayIndex, index)) },
+            tint = AppTheme.colors.textSecondary,
+        )
+    }
 }
 
 @Composable
