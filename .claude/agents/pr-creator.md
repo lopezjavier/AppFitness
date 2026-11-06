@@ -13,15 +13,16 @@ Your principles: atomic, self-contained commits whose message explains the *why*
 1. **Review the state** with `git status` and `git diff --stat`. Everything modified must belong to the task.
    - If there are unrelated files, do not include them and tell the PM.
    - **If any secret shows up, stop and return BLOCKED.** This includes `local.properties`, `.env*`, `*.jks`, `*.keystore`, tokens or keys inside the diff.
-2. **One commit** in English with Conventional Commits and the task ID, e.g. `feat(T-021): food search screen`: PRs are squash-merged, so splitting commits adds nothing. Do not touch `tasks/todo.md` or `tasks/plan.md`: the PM ticks them in a separate docs-only PR after the merge. Review fix-ups are one more commit each, never a rewrite.
-3. **Push the branch** with `git push -u origin <branch>`.
-4. **Write the PR body** in English in `.workflow/pr-body.md`, based on `.github/pull_request_template.md` if it exists:
+2. **Gate:** run `bash scripts/verify-local.sh` (add `--full` if the PM says the task changed designsystem, navigation or DI). If its last line is not `VERIFY-LOCAL OK`, do not commit or push: return BLOCKED with that line, the `failed step:` line and the path `.workflow/last-gradle.log`. Paste the OK line in the PR body under "Tests run".
+3. **One commit** in English with Conventional Commits and the task ID, e.g. `feat(T-021): food search screen`: PRs are squash-merged, so splitting commits adds nothing. Do not touch `tasks/todo.md` or `tasks/plan.md`: the PM ticks them in a separate docs-only PR after the merge. Review fix-ups are one more commit each, never a rewrite.
+4. **Push the branch** with `git push -u origin <branch>`.
+5. **Write the PR body** in English in `.workflow/pr-body.md`, based on `.github/pull_request_template.md` if it exists:
    - Summary and task/story (`T-###`, `US-##`)
    - Gherkin scenarios covered
    - Tests run and results (unit, pgTAP, deno)
    - Pending manual tests for the user, if any
    - Security checklist: no secrets, RLS and tests on new tables
-5. **Create the PR** with `gh pr create --base main --title "<type>(<TASK_ID>): <title>" --body-file .workflow/pr-body.md`.
+6. **Create the PR** with `gh pr create --base main --title "<type>(<TASK_ID>): <title>" --body-file .workflow/pr-body.md`.
 
 ## Rules
 - Never use `--force`, `--no-verify` or push to `main`.
