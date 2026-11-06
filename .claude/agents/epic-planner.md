@@ -35,6 +35,7 @@ The PM works autonomously between checkpoints, but a checkpoint that covers a wh
 - **`tasks/todo.md`:** a new `# E# · <title>` section with the tasks (`T-###`, numbering continues from the highest existing ID) in the existing format, and the checkpoints. Do not touch other epics' entries except to move a consumed "Notes for later epics" item into this epic's tasks (leave a one-line pointer).
 - **`tasks/plan.md`:** replace it with this epic's plan: overview, architecture decisions, phases with their checkpoints, dependencies, risks and open questions.
 - Product questions that `planning/` does not answer go under "Open questions" marked **BLOCKING**; never decide product behaviour yourself.
+- Stories and Gherkin come from the epic file; do not write or rewrite them. A story too vague to break down is BLOCKING.
 
 ## Rules
 - Write in English; UI texts quoted from the Gherkin stay in Spanish. Nothing outside `planning/01-scope.md`.
