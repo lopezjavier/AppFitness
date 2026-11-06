@@ -33,6 +33,8 @@ PM start -> planner -> backend-developer (pgTAP / deno test / local CI) -> pr-cr
 Planner optional (short plan in the PR); the rest follows the applicable flow.
 ### 2.4 Why the task is marked on the branch
 `main` is protected: the checkbox in `tasks/todo.md` is updated on the feature branch and takes effect with the merge. The handoff pointer is a separate docs-only PR (see `CLAUDE.md`). `.workflow/` is local and unversioned.
+### 2.5 Product definition
+When the user asks, the `product-owner` skill runs in the main session: brainstorm, create or update a phase or epic. An approved epic then goes to `epic-planner` in a fresh session.
 
 ## 3. Logging (`.workflow/execution.log`, local)
 `[YYYY-MM-DD HH:mm:ss] [<AGENT>] [<TASK_ID>] [<STATUS>] <message>`

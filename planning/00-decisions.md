@@ -112,6 +112,7 @@ Phase 2 ADRs continue the numbering (next: **ADR-98**) and are written **in full
 | 95 | A routine folder with routines cannot be deleted: the user moves or deletes the routines first; no dialog | Supersedes 51; amends 45, 69 (R-08) |
 | 96 | The coach never refuses a call because of money: no per-user or total cap; `coach_usage` records the spend and one non-blocking notice shows when the month passes 5 € | Supersedes 77's cap and 90 |
 | 97 | The folder review is deterministic and runs on the device: a 0-10 score and a checklist, no model call, no "Aplicar en una copia"; "a block from a folder" keeps its model review | Supersedes 93's folder-review bullet; 94 and 95 unaffected |
+| 100 | Product definition is a user-invoked `product-owner` skill; `epic-planner` no longer writes stories | — |
 
 ## Phase 2 ADRs (full text)
 
@@ -397,3 +398,7 @@ Phase 2 ADRs continue the numbering (next: **ADR-98**) and are written **in full
   - Superseded: the `block_splits` and `plan_block` model calls, `folder_review purpose: block`, the model input and model change proposals, the routine checker H1-H7 as a validator of a model block, H3/H3b as hard checks, the discomfort exclusion from the proposal (ADR-76 and ADR-93 marked accordingly). Cardio, weeks, deloads, saving and lifecycle (ADR-94) are unchanged.
 - **Consequences:** `02` (Coach AI paragraph), `03` (`coach` function line), `04` §9, `05` (builder UI spec pending), `09`, E13/E14 marked; `07` §11 cost rows. **Implemented:** the builder in T-221 to T-223; the server removal in T-224 (kinds `block_splits`, `plan_block`, `folder_review` and their code deleted; migration `20261231100000_drop_model_block.sql` drops `coach_block_model_input`, `save_folder_review`, `coach_folder_for_review` and `coach_folder_reviews`; `coach_assert_block`, `coach_block_rep_ok` and `unresolved_severe_discomforts` stay; the error `coach_block_needs_changes` is no longer emitted).
 - **Approval:** proposed; user decision 2026-11-04 (chat: deterministic builder, split and type per day, 100 % gate, "Desde una carpeta" at the same bar, Q-B5 refused until matching). Becomes final when the PM records the ADR PR as approved.
+
+### ADR-100 — Product definition is a user-invoked `product-owner` skill
+- **Decision:** phases and epics are brainstormed, created and updated through the `product-owner` skill, in the main session and only when the user asks. `epic-planner` no longer writes stories.
+- **Approval:** user, 2026-11-06 (chat).

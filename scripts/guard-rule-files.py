@@ -3,7 +3,7 @@ import json
 import re
 import sys
 
-PROTECTED = re.compile(r"(^|/)(CLAUDE\.md|\.claude/(agents|rules)/[^/]+)$")
+PROTECTED = re.compile(r"(^|/)(CLAUDE\.md|\.claude/(agents/[^/]+|rules/[^/]+|skills/.+))$")
 
 path = json.load(sys.stdin).get("tool_input", {}).get("file_path", "").replace("\\", "/")
 if PROTECTED.search(path):
