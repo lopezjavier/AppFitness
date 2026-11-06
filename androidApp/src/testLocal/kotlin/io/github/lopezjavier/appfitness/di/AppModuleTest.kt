@@ -61,6 +61,8 @@ import io.github.lopezjavier.appfitness.domain.usecase.BuildDiaryDay
 import io.github.lopezjavier.appfitness.domain.usecase.BuildTemplateItems
 import io.github.lopezjavier.appfitness.domain.usecase.CompleteOnboarding
 import io.github.lopezjavier.appfitness.domain.usecase.CookedItemNutrition
+import io.github.lopezjavier.appfitness.domain.usecase.DecideCalorieProposalUseCase
+import io.github.lopezjavier.appfitness.domain.usecase.DecidePhaseChangeUseCase
 import io.github.lopezjavier.appfitness.domain.usecase.DefaultMealSlot
 import io.github.lopezjavier.appfitness.domain.usecase.DeleteAccount
 import io.github.lopezjavier.appfitness.domain.usecase.ExerciseNameResolver
@@ -68,6 +70,7 @@ import io.github.lopezjavier.appfitness.domain.usecase.GetAccountProtection
 import io.github.lopezjavier.appfitness.domain.usecase.GroupMealEntries
 import io.github.lopezjavier.appfitness.domain.usecase.HealthWriteBack
 import io.github.lopezjavier.appfitness.domain.usecase.InterpretMetric
+import io.github.lopezjavier.appfitness.domain.usecase.LoadBlockReviewUseCase
 import io.github.lopezjavier.appfitness.domain.usecase.LoadCheckInSummary
 import io.github.lopezjavier.appfitness.domain.usecase.LoadExerciseCatalog
 import io.github.lopezjavier.appfitness.domain.usecase.LoadReminders
@@ -178,6 +181,9 @@ class AppModuleTest {
                 AuthRepository::class,
                 CoachSummaryRepository::class,
                 CoachReviewRepository::class,
+                LoadBlockReviewUseCase::class,
+                DecideCalorieProposalUseCase::class,
+                DecidePhaseChangeUseCase::class,
                 ProfileRepository::class,
                 BodyMeasurementRepository::class,
                 NutritionGoalsRepository::class,

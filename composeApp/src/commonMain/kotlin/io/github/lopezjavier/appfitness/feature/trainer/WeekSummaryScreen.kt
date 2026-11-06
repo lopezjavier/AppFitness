@@ -57,6 +57,7 @@ import io.github.lopezjavier.appfitness.designsystem.OfflineState
 import io.github.lopezjavier.appfitness.designsystem.SkeletonBox
 import io.github.lopezjavier.appfitness.designsystem.Spacing
 import io.github.lopezjavier.appfitness.domain.model.CoachChangeStatus
+import io.github.lopezjavier.appfitness.domain.model.GroupSets
 import io.github.lopezjavier.appfitness.domain.model.ProposalStatus
 import io.github.lopezjavier.appfitness.domain.model.WeekSummary
 import io.github.lopezjavier.appfitness.domain.port.ConnectivityObserver
@@ -156,7 +157,7 @@ private fun SummaryContent(state: WeekSummaryUiState.Content) {
                 stringResource(Res.string.week_summary_sessions, summary.sessionsDone, summary.sessionsPlanned),
             )
         }
-        GroupsCard(summary)
+        GroupsCard(summary.groups, "week_summary", stringResource(Res.string.week_summary_groups_header))
         WeightCard(summary)
         SummaryCard("week_summary_section_records") {
             SummaryLine(
@@ -168,7 +169,7 @@ private fun SummaryContent(state: WeekSummaryUiState.Content) {
             )
         }
         ChangesSection(state)
-        StallCard(state)
+        StallCard(state.summary.stalls, state.exerciseNames)
         ProposalCard(summary)
         if (WeekSummaryText.showsSeparateDeload(summary)) {
             SummaryCard("week_summary_section_deload") {
@@ -179,14 +180,14 @@ private fun SummaryContent(state: WeekSummaryUiState.Content) {
 }
 
 @Composable
-private fun SummaryCard(tag: String, content: @Composable () -> Unit) {
+internal fun SummaryCard(tag: String, content: @Composable () -> Unit) {
     AppCard(Modifier.fillMaxWidth().testTag(tag)) {
         Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) { content() }
     }
 }
 
 @Composable
-private fun SummaryLine(text: String, modifier: Modifier = Modifier) {
+internal fun SummaryLine(text: String, modifier: Modifier = Modifier) {
     Text(
         text = text,
         style = AppTheme.typography.bodyLarge,
@@ -195,9 +196,10 @@ private fun SummaryLine(text: String, modifier: Modifier = Modifier) {
     )
 }
 
+/** The sets per muscle group as one spoken line; shared with the end-of-block review. */
 @Composable
-private fun GroupsCard(summary: WeekSummary) {
-    val groups = WeekSummaryText.visibleGroups(summary.groups)
+internal fun GroupsCard(allGroups: List<GroupSets>, tagPrefix: String, header: String) {
+    val groups = WeekSummaryText.visibleGroups(allGroups)
     if (groups.isEmpty()) return
     val labels = groups.map { stringResource(it.muscleGroup.label) }
     val line = groups.indices.map { i ->
@@ -212,9 +214,9 @@ private fun GroupsCard(summary: WeekSummary) {
             stringResource(Res.string.week_summary_group_cd_other, labels[i], WeekSummaryText.sets(sets))
         }
     }.joinToString(". ")
-    SummaryCard("week_summary_section_groups") {
-        ListSectionHeader(stringResource(Res.string.week_summary_groups_header))
-        SummaryLine(line, Modifier.testTag("week_summary_groups_line").semantics { contentDescription = spoken })
+    SummaryCard("${tagPrefix}_section_groups") {
+        ListSectionHeader(header)
+        SummaryLine(line, Modifier.testTag("${tagPrefix}_groups_line").semantics { contentDescription = spoken })
     }
 }
 

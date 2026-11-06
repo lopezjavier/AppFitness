@@ -217,6 +217,14 @@ internal typealias CheckInSlot = @Composable (modifier: Modifier, onClose: () ->
 /** Weekly summary content (US-98): modifier (full-screen insets) and back. */
 internal typealias WeekSummarySlot = @Composable (modifier: Modifier, onBack: () -> Unit) -> Unit
 
+/** End-of-block review content (US-101): modifier, back and "Antes de empezar" (mode, plan id, replaced plan id). */
+internal typealias BlockReviewSlot =
+    @Composable (
+        modifier: Modifier,
+        onBack: () -> Unit,
+        onOpenBeforeStart: (BeforeStartMode, String?, String?) -> Unit,
+    ) -> Unit
+
 /** Weight history content: modifier (full-screen insets) and the back arrow. */
 internal typealias WeightHistorySlot = @Composable (modifier: Modifier, onBack: () -> Unit) -> Unit
 
@@ -527,6 +535,11 @@ internal val DefaultWeekSummarySlot: WeekSummarySlot = { modifier, _ ->
     Box(modifier.fillMaxSize().testTag("week_summary_screen"))
 }
 
+/** Empty block review for previews and shell tests; the real one is wired by `AppRoot`. */
+internal val DefaultBlockReviewSlot: BlockReviewSlot = { modifier, _, _ ->
+    Box(modifier.fillMaxSize().testTag("block_review_screen"))
+}
+
 /** Empty weight history for previews and shell tests; the real one is wired by `AppRoot`. */
 internal val DefaultWeightHistorySlot: WeightHistorySlot = { modifier, _ ->
     Box(modifier.fillMaxSize().testTag("weight_history_screen"))
@@ -736,6 +749,7 @@ internal fun AppNavHost(
     notificationCenter: NotificationCenterSlot = DefaultNotificationCenterSlot,
     checkIn: CheckInSlot = DefaultCheckInSlot,
     weekSummary: WeekSummarySlot = DefaultWeekSummarySlot,
+    blockReview: BlockReviewSlot = DefaultBlockReviewSlot,
 ) {
     val catalogAvailable = features.isAvailable(CatalogRoute)
     val openCatalog = remember(navController) { { navController.navigateToFullScreen(CatalogRoute) } }
@@ -771,6 +785,7 @@ internal fun AppNavHost(
             onOpenYourData = { navController.navigateToFullScreen(YourDataRoute) },
             onOpenFreeText = { navController.navigateToFullScreen(FreeTextLinesRoute) },
             onOpenWeekSummary = { navController.navigateToFullScreen(WeekSummaryRoute) },
+            onOpenBlockReview = { navController.navigateToFullScreen(BlockReviewRoute) },
             onOpenExercise = { navController.navigateToFullScreen(ExerciseDetailRoute(it, selectMode = false)) },
             onOpenRoutineRange = { routineId, exerciseId ->
                 navController.navigateToFullScreen(RoutineBuilderRoute(routineId, exerciseId))
@@ -998,6 +1013,15 @@ internal fun AppNavHost(
         }
         composable<WeekSummaryRoute> { entry ->
             weekSummary(Modifier.padding(fullScreenPadding)) { navController.popFullScreen(entry) }
+        }
+        composable<BlockReviewRoute> { entry ->
+            blockReview(
+                Modifier.padding(fullScreenPadding),
+                { navController.popFullScreen(entry) },
+                { mode, planId, replacingPlanId ->
+                    navController.navigateToFullScreen(BeforeStartRoute(mode.argument, planId, replacingPlanId))
+                },
+            )
         }
         composable<WeightHistoryRoute> { entry ->
             weightHistory(Modifier.padding(fullScreenPadding)) { navController.popFullScreen(entry) }

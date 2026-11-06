@@ -36,6 +36,7 @@ import io.github.lopezjavier.appfitness.feature.templates.TemplateDetailsRoot
 import io.github.lopezjavier.appfitness.feature.trainer.BeforeStartRoot
 import io.github.lopezjavier.appfitness.feature.trainer.BlockBuilderRoot
 import io.github.lopezjavier.appfitness.feature.trainer.BlockPreviewRoot
+import io.github.lopezjavier.appfitness.feature.trainer.BlockReviewRoot
 import io.github.lopezjavier.appfitness.feature.trainer.CoachUsageRoot
 import io.github.lopezjavier.appfitness.feature.trainer.FolderBlockRoot
 import io.github.lopezjavier.appfitness.feature.trainer.FolderReviewResultRoot
@@ -171,6 +172,9 @@ fun AppRoot(
         },
         checkIn = { checkInModifier, onClose -> CheckInRoot(onClose, checkInModifier) },
         weekSummary = { summaryModifier, onBack -> WeekSummaryRoot(onBack, summaryModifier) },
+        blockReview = { reviewModifier, onBack, onOpenBeforeStart ->
+            BlockReviewRoot(onBack, onOpenBeforeStart, reviewModifier)
+        },
         weightHistory = { historyModifier, onBack ->
             WeightHistoryRoot(onBack, historyModifier, onRemindersChange = refreshReminders)
         },

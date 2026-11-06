@@ -61,6 +61,8 @@ sealed interface TrainerUiState {
         val busyChangeId: String? = null,
         /** The latest finished plan week has a summary: shows the "Resumen semanal" row. */
         val hasWeekSummary: Boolean = false,
+        /** The block has ended and its review is open: shows "Revisión del bloque" and hides "Crear bloque". */
+        val blockReviewDue: Boolean = false,
     ) : TrainerUiState {
         private val accepted: CoachPlan? get() = (plan as? PlanSummary.Accepted)?.plan
 

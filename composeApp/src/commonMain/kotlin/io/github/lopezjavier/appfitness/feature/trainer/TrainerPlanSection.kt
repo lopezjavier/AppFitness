@@ -18,6 +18,8 @@ import io.github.lopezjavier.appfitness.composeapp.resources.action_apply
 import io.github.lopezjavier.appfitness.composeapp.resources.action_cancel
 import io.github.lopezjavier.appfitness.composeapp.resources.action_delete
 import io.github.lopezjavier.appfitness.composeapp.resources.action_not_now
+import io.github.lopezjavier.appfitness.composeapp.resources.block_review_card_supporting
+import io.github.lopezjavier.appfitness.composeapp.resources.block_review_title
 import io.github.lopezjavier.appfitness.composeapp.resources.calorie_change_data
 import io.github.lopezjavier.appfitness.composeapp.resources.calorie_change_data_short
 import io.github.lopezjavier.appfitness.composeapp.resources.calorie_change_payload
@@ -87,6 +89,7 @@ internal fun BlockSection(
     onOpenBeforeStart: (BeforeStartMode, String?, String?) -> Unit,
     removeBlockConfirm: Boolean = false,
     onEvent: (TrainerEvent) -> Unit = {},
+    reviewDue: Boolean = false,
 ) {
     val planId = when (plan) {
         is PlanSummary.Proposed -> plan.plan.id
@@ -94,7 +97,8 @@ internal fun BlockSection(
         PlanSummary.None -> return
     }
     when (block) {
-        BlockSummary.None -> {
+        // The review footer ("Crear el siguiente bloque") replaces the button while the review is due.
+        BlockSummary.None -> if (!reviewDue) {
             PrimaryButton(
                 text = stringResource(Res.string.trainer_block_create),
                 onClick = { onOpenBeforeStart(BeforeStartMode.Block, planId, null) },
@@ -131,6 +135,27 @@ internal fun BlockSection(
             }
             SavedBlockActions(online, removeBlockConfirm, onEvent)
         }
+    }
+}
+
+/** The end-of-block card (US-101): opens "Revisión del bloque"; the title equals the screen title (R-04). */
+@Composable
+internal fun BlockReviewEntry(onOpen: () -> Unit) {
+    AppCard(
+        Modifier.fillMaxWidth()
+            .testTag("trainer_review_card")
+            .clickable(role = Role.Button, onClick = onOpen),
+    ) {
+        Text(
+            text = stringResource(Res.string.block_review_title),
+            style = AppTheme.typography.titleMedium,
+            color = AppTheme.colors.textPrimary,
+        )
+        Text(
+            text = stringResource(Res.string.block_review_card_supporting),
+            style = AppTheme.typography.bodyMedium,
+            color = AppTheme.colors.textSecondary,
+        )
     }
 }
 
@@ -335,6 +360,28 @@ internal fun CalorieProposalCard(
     deciding: Boolean,
     online: Boolean,
     onEvent: (TrainerEvent) -> Unit,
+) = CalorieProposalCard(
+    change = change,
+    deciding = deciding,
+    online = online,
+    onApply = { onEvent(TrainerEvent.ApplyCalorieProposal) },
+    onNotNow = { onEvent(TrainerEvent.DeclineCalorieProposal) },
+)
+
+/**
+ * The same card with its own actions and tag prefix (the end-of-block review reuses it with `block_review_calorie`);
+ * [failure] is drawn under the buttons, after the offline hint.
+ */
+@Composable
+@Suppress("LongParameterList") // Proposal, state, two actions and the host's tag prefix and failure slot.
+internal fun CalorieProposalCard(
+    change: CalorieProposal,
+    deciding: Boolean,
+    online: Boolean,
+    onApply: () -> Unit,
+    onNotNow: () -> Unit,
+    testTagPrefix: String = "trainer_calorie_card",
+    failure: (@Composable () -> Unit)? = null,
 ) {
     val slope = change.slopeKgWeek
     val low = change.intervalLow
@@ -363,11 +410,18 @@ internal fun CalorieProposalCard(
         dataUsed = data,
         acceptText = stringResource(Res.string.action_apply),
         discardText = stringResource(Res.string.action_not_now),
-        onAccept = { onEvent(TrainerEvent.ApplyCalorieProposal) },
-        onDiscard = { onEvent(TrainerEvent.DeclineCalorieProposal) },
-        testTagPrefix = "trainer_calorie_card",
+        onAccept = onApply,
+        onDiscard = onNotNow,
+        testTagPrefix = testTagPrefix,
         busy = deciding,
         acceptEnabled = online,
-        footer = if (online) null else ({ OfflineHint(stringResource(Res.string.calorie_proposal_offline)) }),
+        footer = if (online && failure == null) {
+            null
+        } else {
+            {
+                if (!online) OfflineHint(stringResource(Res.string.calorie_proposal_offline))
+                failure?.invoke()
+            }
+        },
     )
 }

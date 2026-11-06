@@ -31,6 +31,7 @@ import io.github.lopezjavier.appfitness.domain.repository.ProfileRepository
 import io.github.lopezjavier.appfitness.domain.usecase.DecideCalorieProposalUseCase
 import io.github.lopezjavier.appfitness.domain.usecase.GoalChecklist
 import io.github.lopezjavier.appfitness.domain.usecase.GoalTargets
+import io.github.lopezjavier.appfitness.domain.usecase.LoadBlockReviewUseCase
 import io.github.lopezjavier.appfitness.domain.usecase.NutritionGoalsChecklist
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.channels.Channel
@@ -93,6 +94,7 @@ class TrainerViewModel(
     private val coachChanges: CoachChangesRepository? = null,
     private val decideProposal: DecideCalorieProposalUseCase? = plans?.let { DecideCalorieProposalUseCase(it) },
     private val summaries: CoachSummaryRepository? = null,
+    private val loadBlockReview: LoadBlockReviewUseCase? = null,
 ) : ViewModel() {
     private val cardioEdit = CardioEditState(savedState)
 
@@ -461,6 +463,8 @@ class TrainerViewModel(
             provisionalCount = provisional,
             // One more read; a failed one just hides the "Resumen semanal" row.
             hasWeekSummary = summaries?.getLatest(today())?.getOrNull() != null,
+            // The review opens (idempotently) once the block's last day has passed; a failed read hides the card.
+            blockReviewDue = loadBlockReview?.invoke(today())?.getOrNull() != null,
             goalsChecklist = goalsChecklistFor(plan),
             cardioEdit = cardioEdit.current((plan as? PlanSummary.Accepted)?.plan?.cardioMinutes()),
             removeBlockConfirm = confirmRemove && block is BlockSummary.Saved,

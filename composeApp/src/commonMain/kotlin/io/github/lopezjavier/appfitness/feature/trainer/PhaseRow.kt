@@ -27,28 +27,33 @@ import org.jetbrains.compose.resources.stringResource
  */
 @Composable
 internal fun PhaseRow(phase: Phase, reason: PhaseReason, testTagPrefix: String, modifier: Modifier = Modifier) {
-    val label = stringResource(PhaseText.label(phase))
     AppCard(modifier.fillMaxWidth().testTag("${testTagPrefix}_phase_row")) {
-        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.xs)) {
-            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
-                Text(
-                    text = label,
-                    style = AppTheme.typography.titleMedium,
-                    color = AppTheme.colors.textPrimary,
-                    modifier = Modifier.semantics { heading() },
-                )
-                Text(
-                    text = stringResource(PhaseText.reason(phase, reason)),
-                    style = AppTheme.typography.bodyMedium,
-                    color = AppTheme.colors.textSecondary,
-                )
-            }
-            HelpButton(
-                contentDescription = stringResource(Res.string.phase_help_cd),
-                title = label,
-                body = stringResource(PhaseText.help(phase)),
-                testTag = "${testTagPrefix}_phase_help",
+        PhaseRowContent(phase, stringResource(PhaseText.reason(phase, reason)), testTagPrefix)
+    }
+}
+
+/**
+ * The phase label, [reasonText] and "?" without a card around them, for hosts that already draw one (the end-of-block
+ * proposal card, T-234). The help is tagged `<testTagPrefix>_phase_help`.
+ */
+@Composable
+internal fun PhaseRowContent(phase: Phase, reasonText: String, testTagPrefix: String) {
+    val label = stringResource(PhaseText.label(phase))
+    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.xs)) {
+        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
+            Text(
+                text = label,
+                style = AppTheme.typography.titleMedium,
+                color = AppTheme.colors.textPrimary,
+                modifier = Modifier.semantics { heading() },
             )
+            Text(text = reasonText, style = AppTheme.typography.bodyMedium, color = AppTheme.colors.textSecondary)
         }
+        HelpButton(
+            contentDescription = stringResource(Res.string.phase_help_cd),
+            title = label,
+            body = stringResource(PhaseText.help(phase)),
+            testTag = "${testTagPrefix}_phase_help",
+        )
     }
 }

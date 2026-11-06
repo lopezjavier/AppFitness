@@ -35,5 +35,5 @@ fun AppFeatures.isAvailable(route: AppRoute): Boolean = when (route) {
     is SaveTemplateRoute -> true
     is TemplateDetailsRoute -> true
     DiaryHistoryRoute, is DiaryDayRoute, is WeightRoute, WeightHistoryRoute -> true
-    NotificationCenterRoute, CheckInRoute, WeekSummaryRoute -> true
+    NotificationCenterRoute, CheckInRoute, WeekSummaryRoute, BlockReviewRoute -> true
 }
