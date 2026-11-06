@@ -10,6 +10,7 @@ import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performTextInput
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
 import io.github.lopezjavier.appfitness.domain.coach.builder.Pick
@@ -309,7 +310,7 @@ class BlockBuilderScreenTest {
     fun extraPicker_muscleWithNoExercises_showsEmptyText() {
         showExtraPicker()
 
-        rule.onNodeWithTag("block_builder_picker_muscle_chip_calves").performClick()
+        rule.onNodeWithTag("block_builder_picker_muscle_chip_calves").performScrollTo().performClick()
 
         rule.onNodeWithTag("block_builder_pick_empty").assertExists()
     }
