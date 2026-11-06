@@ -41,9 +41,12 @@ object SectionPrescription {
     private const val ACCESSORY_MIN = 6
     private const val ACCESSORY_MAX = 8
 
-    /** Sets on the [position]th (0-based) training day of a group trained [frequency] days: floor(10/f) + rest. */
-    fun setsPerSession(frequency: Int, position: Int): Int =
-        WEEKLY_SETS / frequency + if (position < WEEKLY_SETS % frequency) 1 else 0
+    /**
+     * Sets on the [position]th (0-based) training day of a group trained [frequency] days: floor(t/f) + rest, with
+     * t = [weeklySets] (10 unless the next-block builder raises or lowers the group's target).
+     */
+    fun setsPerSession(frequency: Int, position: Int, weeklySets: Int = WEEKLY_SETS): Int =
+        weeklySets / frequency + if (position < weeklySets % frequency) 1 else 0
 
     /** [total] sets in as few slots as the 5-set cap allows, as even as possible, larger first. */
     fun distribute(total: Int): List<Int> {
@@ -54,18 +57,21 @@ object SectionPrescription {
 
     /**
      * The routines of [types] with their slots before any pick. [hasMainLift] says whether the equipment offers a main
-     * lift for a group; a strength main slot without one becomes an accessory slot.
+     * lift for a group; a strength main slot without one becomes an accessory slot. [targets] are the weekly sets per
+     * group; a group without an entry keeps 10.
      */
     fun prescribe(
         types: List<RoutineType>,
         intention: TrainingIntention?,
+        targets: Map<MuscleGroup, Int> = emptyMap(),
         hasMainLift: (MuscleGroup) -> Boolean = { true },
     ): List<RoutinePlan> {
         val strength = intention == TrainingIntention.Strength
         return types.mapIndexed { day, type ->
             val sections = type.groups.map { group ->
                 val position = types.take(day).count { group in it.groups }
-                val sets = setsPerSession(SplitCatalog.frequency(types, group), position)
+                val weekly = targets[group] ?: WEEKLY_SETS
+                val sets = setsPerSession(SplitCatalog.frequency(types, group), position, weekly)
                 if (strength) strengthSlots(group, sets, hasMainLift(group)) else standardSlots(group, sets)
             }
             val slots = if (strength) {

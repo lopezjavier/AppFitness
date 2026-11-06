@@ -20,8 +20,16 @@ interface CoachBlockRepository {
      * one transaction. A plan that is no longer open fails with
      * [io.github.lopezjavier.appfitness.domain.model.CoachFailure.Conflict]; a block the server refuses fails with
      * [io.github.lopezjavier.appfitness.domain.model.CoachFailure.InvalidBlock] and saves nothing.
+     * With [previousPlanId] (the next block after a review) the server ends that block, makes the new plan the
+     * accepted one and answers its id in [BlockSaved.planId]; a previous block that is not the accepted one fails
+     * with [io.github.lopezjavier.appfitness.domain.model.CoachFailure.Conflict].
      */
-    suspend fun saveBuiltBlock(planId: String, block: BuiltBlock, folderName: String? = null): Result<BlockSaved>
+    suspend fun saveBuiltBlock(
+        planId: String,
+        block: BuiltBlock,
+        folderName: String? = null,
+        previousPlanId: String? = null,
+    ): Result<BlockSaved>
 
     /** The stored block of [planId], or null when the coach has not proposed one. Used to reload and reopen. */
     suspend fun currentBlock(planId: String): Result<CoachBlock?>

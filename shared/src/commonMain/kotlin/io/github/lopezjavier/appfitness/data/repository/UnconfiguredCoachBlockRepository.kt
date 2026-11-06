@@ -15,8 +15,12 @@ class UnconfiguredCoachBlockRepository : CoachBlockRepository {
     override suspend fun loadBuilderInputs(today: LocalDate): Result<BuilderInputs> =
         Result.failure(AppException(AppError.Unknown))
 
-    override suspend fun saveBuiltBlock(planId: String, block: BuiltBlock, folderName: String?): Result<BlockSaved> =
-        Result.failure(AppException(AppError.Unknown))
+    override suspend fun saveBuiltBlock(
+        planId: String,
+        block: BuiltBlock,
+        folderName: String?,
+        previousPlanId: String?,
+    ): Result<BlockSaved> = Result.failure(AppException(AppError.Unknown))
 
     override suspend fun currentBlock(planId: String): Result<CoachBlock?> =
         Result.failure(AppException(AppError.Unknown))

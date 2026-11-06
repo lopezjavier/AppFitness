@@ -151,6 +151,7 @@ import io.github.lopezjavier.appfitness.domain.usecase.LoadBlockReviewUseCase
 import io.github.lopezjavier.appfitness.domain.usecase.LoadCheckInSummary
 import io.github.lopezjavier.appfitness.domain.usecase.LoadExerciseCatalog
 import io.github.lopezjavier.appfitness.domain.usecase.LoadFolderBlockUseCase
+import io.github.lopezjavier.appfitness.domain.usecase.LoadNextBlockContextUseCase
 import io.github.lopezjavier.appfitness.domain.usecase.LoadReminders
 import io.github.lopezjavier.appfitness.domain.usecase.MarkWeekSummarySeen
 import io.github.lopezjavier.appfitness.domain.usecase.MeasurementsByDay
@@ -520,6 +521,7 @@ val sharedModule =
             }
         }
         factory { LoadBlockReviewUseCase(get()) }
+        factory { LoadNextBlockContextUseCase(get(), get(), get(), get(), get(), get()) }
         factory { DecidePhaseChangeUseCase(get()) }
         factory { MarkWeekSummarySeen(get()) }
         factory {

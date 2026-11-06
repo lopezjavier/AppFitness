@@ -46,8 +46,9 @@ class BuildBlockUseCase(private val blocks: CoachBlockRepository, private val fo
     fun prescribe(
         types: List<RoutineType>,
         intention: TrainingIntention?,
+        targets: Map<MuscleGroup, Int> = emptyMap(),
         hasMainLift: (MuscleGroup) -> Boolean = { true },
-    ): List<RoutinePlan> = SectionPrescription.prescribe(types, intention, hasMainLift)
+    ): List<RoutinePlan> = SectionPrescription.prescribe(types, intention, targets, hasMainLift)
 
     fun fit(plan: RoutinePlan, intention: TrainingIntention?, sessionMinutes: Int): FitResult =
         TimeFit.fit(plan, intention, sessionMinutes)
@@ -62,6 +63,7 @@ class BuildBlockUseCase(private val blocks: CoachBlockRepository, private val fo
         cardioTargetMinWeek: Int,
         inputs: BuilderInputs,
         catalogue: List<CatalogExercise>,
+        targets: Map<MuscleGroup, Int> = emptyMap(),
     ): BuilderStart {
         val ctx = PickerContext(equipment.toSet(), inputs.history, emptySet())
         return BuilderState.start(
@@ -71,6 +73,7 @@ class BuildBlockUseCase(private val blocks: CoachBlockRepository, private val fo
             equipment,
             cardioTargetMinWeek,
             inputs.cardioDefault,
+            targets,
         ) { group -> SlotEligibility.hasMainLift(group, catalogue, ctx) }
     }
 
@@ -91,8 +94,12 @@ class BuildBlockUseCase(private val blocks: CoachBlockRepository, private val fo
     suspend fun loadInputs(today: LocalDate): Result<BuilderInputs> = blocks.loadBuilderInputs(today)
 
     /** Saves a builder block as a new folder; the server re-checks the structural rules. */
-    suspend fun save(planId: String, state: BuilderState, folderName: String? = null): Result<BlockSaved>? =
-        state.toBuiltBlock()?.let { blocks.saveBuiltBlock(planId, it, folderName) }
+    suspend fun save(
+        planId: String,
+        state: BuilderState,
+        folderName: String? = null,
+        previousPlanId: String? = null,
+    ): Result<BlockSaved>? = state.toBuiltBlock()?.let { blocks.saveBuiltBlock(planId, it, folderName, previousPlanId) }
 
     /** Saves a block built from a folder (the copy), or null while the folder is not at 100 %. */
     @Suppress("LongParameterList") // The preferences and inputs the block is built from.

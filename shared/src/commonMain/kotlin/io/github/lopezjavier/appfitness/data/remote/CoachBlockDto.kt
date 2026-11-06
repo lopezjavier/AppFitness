@@ -188,8 +188,9 @@ internal data class BlockEditDto(
 internal data class SaveBlockResultDto(
     @SerialName("folder_id") val folderId: String,
     @SerialName("routine_ids") val routineIds: List<String> = emptyList(),
+    @SerialName("plan_id") val planId: String? = null,
 ) {
-    fun toDomain() = BlockSaved(folderId, routineIds)
+    fun toDomain() = BlockSaved(folderId, routineIds, planId)
 }
 
 @Serializable
@@ -233,12 +234,14 @@ internal class BuiltBlockParams(
     private val planId: String,
     private val block: BuiltBlock,
     private val folderName: String?,
+    private val previousPlanId: String? = null,
 ) {
     fun toJson(): JsonObject = buildJsonObject {
         put("p_plan_id", planId)
         put("p_training", training())
         put("p_sessions", buildJsonArray { block.sessions.forEach { add(session(it)) } })
         if (folderName != null) put("p_folder_name", folderName)
+        if (previousPlanId != null) put("p_previous_plan_id", previousPlanId)
     }
 
     private fun training() = buildJsonObject {
