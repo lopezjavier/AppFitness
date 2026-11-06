@@ -229,8 +229,8 @@ No "Notes for later epics" item targets E14 (the Phase 3 "Recuperar" note stays 
 **Description — templates and patterns:** **Trainer root:** a card "Tu bloque ha terminado: revísalo" (the existing Trainer card pattern; it stays until the next block is saved; no early review, E14 Q1) opening the review. **Review screen:** an `AppScreen` with sections (`ListSectionHeader`): "Sesiones" (completed of planned), "Básicos" (one `AppListRow` per main lift with the e1RM trend and, when stalled, the T-232 line; lift names via R-54), "Series por grupo", "Peso" (trend vs target), "Objetivos" (reached / not reached; R-41 never colour alone), each figure's method behind a `?` (R-57). **Phase proposal:** the existing `CoachProposalCard` with the `07` §12.7 copy and "Aceptar" / "Seguir como estoy"; the out-of-band calorie change (T-233 (4)) as a second proposal card with "Aplicar" / "Ahora no". A pinned footer `PrimaryButton` to start the next block (label by ux-reviewer; it opens the T-235 builder; until T-235 merges it opens today's "Crear bloque" start sheet). No "Bloque nuevo" early entry (E14 Q1).
 **Acceptance criteria:**
 - [ ] The card appears only after the block's last week; the review shows every T-233 figure; the stalled lifts show their line.
-- [ ] "Aceptar" / "Seguir como estoy" and the calorie card store the decision and update the screen; errors keep the choice and offer "Reintentar".
-- [ ] The review screen survives background and process death (ADR-40).
+- [x] "Aceptar" / "Seguir como estoy" and the calorie card store the decision and update the screen; errors keep the choice and offer "Reintentar".
+- [x] The review screen survives background and process death (ADR-40).
 **Host tests:** ViewModel tests (load, each decision, error, offline, restoration); Robolectric (card visibility before/after the end, sections, stalled line, phase card, footer).
 **Verification:**
 - [ ] lint + `testLocalDebugUnitTest` green. No model call.
