@@ -13,6 +13,7 @@ import io.github.lopezjavier.appfitness.domain.model.SessionExercise
 import io.github.lopezjavier.appfitness.domain.model.SetEntry
 import io.github.lopezjavier.appfitness.domain.model.SetType
 import io.github.lopezjavier.appfitness.domain.model.WorkoutSet
+import io.github.lopezjavier.appfitness.domain.port.RestAlertKind
 import io.github.lopezjavier.appfitness.domain.usecase.SaveBodyMeasurement
 import io.github.lopezjavier.appfitness.feature.exercises.FakeExerciseLibrary
 import io.github.lopezjavier.appfitness.feature.exercises.FakeExerciseRepository
@@ -23,6 +24,7 @@ import io.github.lopezjavier.appfitness.feature.weight.FakeWeightRepository
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.TestScope
+import kotlinx.coroutines.test.advanceTimeBy
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runCurrent
@@ -33,10 +35,14 @@ import kotlin.test.AfterTest
 import kotlin.test.BeforeTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
 import kotlin.test.assertIs
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
+import kotlin.time.Duration
+import kotlin.time.Duration.Companion.minutes
+import kotlin.time.Duration.Companion.seconds
 
 /** T-183: the cardio set of a routine is planned in minutes, shown as a placeholder, and starts no rest timer. */
 class LiveSessionCardioViewModelTest {
@@ -67,7 +73,7 @@ class LiveSessionCardioViewModelTest {
         mapOf("bench" to exerciseInfo("bench", "Press banca"), "bike" to exerciseInfo("bike", "Bicicleta")),
     )
     private val clock = MutableClock()
-    private val routines = FakeRoutineRepository(
+    private var routines = FakeRoutineRepository(
         listOf(
             Routine(
                 id = "r1",
@@ -81,7 +87,11 @@ class LiveSessionCardioViewModelTest {
             ),
         ),
     )
-    private var created: LiveSessionViewModel? = null
+    private val created = mutableListOf<LiveSessionViewModel>()
+    private val scheduler = FakeRestAlertScheduler()
+    private val haptics = FakeHaptics()
+    private val sound = FakeAlertSound()
+    private val savedState = SavedStateHandle()
 
     @BeforeTest
     fun setUp() = Dispatchers.setMain(StandardTestDispatcher())
@@ -89,7 +99,7 @@ class LiveSessionCardioViewModelTest {
     @AfterTest
     fun tearDown() = Dispatchers.resetMain()
 
-    private fun TestScope.loaded(): LiveSessionViewModel {
+    private fun TestScope.loaded(handle: SavedStateHandle = savedState): LiveSessionViewModel {
         val bodyMeasurements = FakeWeightRepository()
         val vm = LiveSessionViewModel(
             repository,
@@ -97,20 +107,21 @@ class LiveSessionCardioViewModelTest {
             library,
             FakeConnectivityObserver(),
             clock,
-            FakeHaptics(),
+            haptics,
             routines,
-            FakeAlertSound(),
+            sound,
             FakeTrainingPreferencesRepository(),
             bodyMeasurements,
             SaveBodyMeasurement(bodyMeasurements, clock, TimeZone.UTC),
             TimeZone.UTC,
-            SavedStateHandle(),
-            FakeRestAlertScheduler(),
+            handle,
+            scheduler,
             FakeNotificationPermission(),
             FakeRestAlertPreferences(),
         )
-        created = vm
-        advanceUntilIdle()
+        // A second view model is loaded while the first one's running ticker never idles: only run what is due.
+        if (created.isEmpty()) advanceUntilIdle() else runCurrent()
+        created += vm
         return vm
     }
 
@@ -118,7 +129,13 @@ class LiveSessionCardioViewModelTest {
 
     private fun runSessionTest(body: suspend TestScope.() -> Unit) = runTest {
         body()
-        created?.onEvent(LiveSessionEvent.RestSkip)
+        // A running ticker never idles, and runTest waits for that: leave no rest or stopwatch running.
+        created.forEach { vm ->
+            vm.onEvent(LiveSessionEvent.RestSkip)
+            (vm.uiState.value as? LiveSessionUiState.Active)?.timerBar
+                ?.let { it as? TimerBarUi.Cardio }?.takeUnless { it.paused }
+                ?.let { vm.onEvent(LiveSessionEvent.StopwatchToggled(it.position, it.setIndex)) }
+        }
         runCurrent()
     }
 
@@ -158,5 +175,225 @@ class LiveSessionCardioViewModelTest {
         runCurrent()
 
         assertNotNull(vm.active().restTimer)
+    }
+
+    private fun TestScope.elapse(by: Duration) {
+        clock.advance(by)
+        advanceTimeBy(by)
+        runCurrent()
+    }
+
+    private fun LiveSessionViewModel.toggleBike() = onEvent(LiveSessionEvent.StopwatchToggled(1, 1))
+
+    private fun LiveSessionViewModel.cardioBar() = assertIs<TimerBarUi.Cardio>(active().timerBar)
+
+    private fun LiveSessionViewModel.startRestOnBench() {
+        onEvent(LiveSessionEvent.WeightChanged(0, 1, "60"))
+        onEvent(LiveSessionEvent.RepsChanged(0, 1, "8"))
+        onEvent(LiveSessionEvent.SetChecked(0, 1, true))
+        onEvent(LiveSessionEvent.SetRpeChosen(0, 1, 8.0))
+    }
+
+    @Test
+    fun startingTheRun_showsACardioBar_andSchedulesTheAlertAtTheTarget() = runSessionTest {
+        val vm = loaded()
+        val start = clock.current
+
+        vm.toggleBike()
+        runCurrent()
+
+        val bar = vm.cardioBar()
+        assertEquals(Duration.ZERO, bar.elapsed)
+        assertEquals(50.minutes, bar.target)
+        assertEquals("Bicicleta", bar.exerciseName)
+        assertFalse(bar.paused)
+        assertEquals(start + 50.minutes, scheduler.scheduled)
+        assertEquals(RestAlertKind.Cardio, scheduler.scheduledKind)
+    }
+
+    @Test
+    fun startingTheRun_dropsARunningRest() = runSessionTest {
+        val vm = loaded()
+        vm.startRestOnBench()
+        runCurrent()
+        assertIs<TimerBarUi.Rest>(vm.active().timerBar)
+
+        vm.toggleBike()
+        runCurrent()
+
+        assertIs<TimerBarUi.Cardio>(vm.active().timerBar)
+        assertEquals(clock.current + 50.minutes, scheduler.scheduled)
+    }
+
+    @Test
+    fun pausing_freezesElapsed_cancelsTheAlert_andResumingReschedulesWithWhatIsLeft() = runSessionTest {
+        val vm = loaded()
+        vm.toggleBike()
+        elapse(10.minutes)
+
+        vm.toggleBike()
+        runCurrent()
+        elapse(5.minutes)
+
+        assertEquals(
+            TimerBarUi.Cardio(1, 1, "Bicicleta", 10.minutes, 50.minutes, paused = true),
+            vm.active().timerBar,
+        )
+        assertNull(scheduler.scheduled)
+
+        vm.toggleBike()
+        runCurrent()
+
+        assertFalse(vm.cardioBar().paused)
+        assertEquals(clock.current + 40.minutes, scheduler.scheduled)
+    }
+
+    @Test
+    fun targetReachedInTheForeground_alertsOnce_andKeepsCounting() = runSessionTest {
+        val vm = loaded()
+        vm.toggleBike()
+
+        elapse(51.minutes)
+
+        assertEquals(1, haptics.alerts)
+        assertEquals(1, sound.plays)
+        assertNull(scheduler.scheduled)
+        assertEquals(51.minutes, vm.cardioBar().elapsed)
+        assertFalse(vm.cardioBar().paused)
+    }
+
+    @Test
+    fun targetReachedInTheBackground_playsNothingLocally_andTheScheduledAlertIsTheTarget() = runSessionTest {
+        val vm = loaded()
+        val start = clock.current
+        vm.toggleBike()
+        vm.onEvent(LiveSessionEvent.Pause)
+
+        elapse(51.minutes)
+
+        assertEquals(0, haptics.alerts)
+        assertEquals(0, sound.plays)
+        assertEquals(start + 50.minutes, scheduler.scheduled)
+
+        vm.onEvent(LiveSessionEvent.Resume)
+        elapse(1.minutes)
+        assertEquals(0, haptics.alerts)
+    }
+
+    @Test
+    fun listo_savesTheElapsedTimeWithoutPausedTime_cancelsTheAlert_clearsTheBar_andStartsNoRest() = runSessionTest {
+        val vm = loaded()
+        vm.toggleBike()
+        elapse(20.minutes)
+        vm.toggleBike()
+        runCurrent()
+        elapse(10.minutes)
+        vm.toggleBike()
+        runCurrent()
+        elapse(5.minutes)
+
+        vm.onEvent(LiveSessionEvent.SetChecked(1, 1, true))
+        runCurrent()
+
+        val row = vm.active().exercises[1].sets.single()
+        assertTrue(row.completed)
+        assertEquals(25 * 60, row.durationSeconds)
+        assertNull(vm.active().timerBar)
+        assertNull(scheduler.scheduled)
+    }
+
+    @Test
+    fun aRestTakesTheBar_andTheRunReturnsWithItsAlertWhenTheRestIsSkipped() = runSessionTest {
+        val vm = loaded()
+        vm.toggleBike()
+        elapse(10.minutes)
+
+        vm.startRestOnBench()
+        runCurrent()
+        assertIs<TimerBarUi.Rest>(vm.active().timerBar)
+        assertEquals(clock.current + 90.seconds, scheduler.scheduled)
+
+        vm.onEvent(LiveSessionEvent.RestSkip)
+        runCurrent()
+
+        assertEquals(10.minutes, vm.cardioBar().elapsed)
+        assertEquals(clock.current + 40.minutes, scheduler.scheduled)
+    }
+
+    @Test
+    fun withoutAPlannedTarget_noAlertIsScheduled_andTheBarHasNoTarget() = runSessionTest {
+        routines = FakeRoutineRepository(emptyList())
+        val vm = loaded()
+
+        vm.toggleBike()
+        elapse(60.minutes)
+
+        assertNull(scheduler.scheduled)
+        assertNull(vm.cardioBar().target)
+        assertEquals(0, haptics.alerts)
+    }
+
+    @Test
+    fun pausingTheSession_freezesTheRun_andResumingRestartsIt() = runSessionTest {
+        val vm = loaded()
+        vm.toggleBike()
+        elapse(10.minutes)
+
+        vm.onEvent(LiveSessionEvent.PauseSession)
+        runCurrent()
+        elapse(30.minutes)
+
+        assertEquals(
+            TimerBarUi.Cardio(1, 1, "Bicicleta", 10.minutes, 50.minutes, paused = true),
+            vm.active().timerBar,
+        )
+        assertNull(scheduler.scheduled)
+
+        vm.onEvent(LiveSessionEvent.ResumeSession)
+        runCurrent()
+        elapse(5.minutes)
+
+        assertEquals(15.minutes, vm.cardioBar().elapsed)
+        assertFalse(vm.cardioBar().paused)
+        assertEquals(clock.current + 35.minutes, scheduler.scheduled)
+    }
+
+    @Test
+    fun aRecreatedViewModel_restoresTheRunPausedStateAndTheFiredFlag() = runSessionTest {
+        val first = loaded()
+        first.toggleBike()
+        elapse(51.minutes)
+        first.toggleBike()
+        runCurrent()
+        assertEquals(1, haptics.alerts)
+
+        val second = loaded(savedState)
+        elapse(1.minutes)
+
+        val bar = second.cardioBar()
+        assertEquals(51.minutes, bar.elapsed)
+        assertTrue(bar.paused)
+        assertEquals(1 to 1, bar.position to bar.setIndex)
+
+        second.toggleBike()
+        runCurrent()
+        elapse(1.minutes)
+
+        assertEquals(1, haptics.alerts)
+        assertEquals(52.minutes, second.cardioBar().elapsed)
+    }
+
+    @Test
+    fun aRecreatedViewModel_withARunningRun_keepsCountingAndReschedulesTheAlert() = runSessionTest {
+        val first = loaded()
+        first.toggleBike()
+        elapse(10.minutes)
+
+        val second = loaded(savedState)
+        runCurrent()
+
+        assertEquals(10.minutes, second.cardioBar().elapsed)
+        assertFalse(second.cardioBar().paused)
+        assertEquals(clock.current + 40.minutes, scheduler.scheduled)
     }
 }

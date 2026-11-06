@@ -92,7 +92,7 @@ class LiveSessionControlsScreenTest {
 
     @Test
     fun pausedRest_showsTheFrozenTimeWithTheCue_andSpeaksIt() {
-        show(controlsState(pausedAt = SESSION_START).copy(restTimer = RestTimerUi(50.seconds, 90.seconds, true)))
+        show(controlsState(pausedAt = SESSION_START).copy(timerBar = TimerBarUi.Rest(50.seconds, 90.seconds, true)))
 
         rule.onNodeWithTag("live_rest_countdown").assertTextEquals("00:50")
         rule.onNodeWithTag("live_rest_timer_paused").assertTextEquals("En pausa")
@@ -101,7 +101,7 @@ class LiveSessionControlsScreenTest {
 
     @Test
     fun runningRest_hasNoPausedCue() {
-        show(controlsState().copy(restTimer = RestTimerUi(50.seconds, 90.seconds, false)))
+        show(controlsState().copy(timerBar = TimerBarUi.Rest(50.seconds, 90.seconds, false)))
 
         rule.onNodeWithTag("live_rest_countdown").assertContentDescriptionEquals("Descanso: 50 s")
         rule.onNodeWithTag("live_rest_timer_paused").assertDoesNotExist()

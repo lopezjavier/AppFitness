@@ -19,6 +19,7 @@ import io.github.lopezjavier.appfitness.domain.port.AlertSound
 import io.github.lopezjavier.appfitness.domain.port.Clock
 import io.github.lopezjavier.appfitness.domain.port.Haptics
 import io.github.lopezjavier.appfitness.domain.port.NotificationPermission
+import io.github.lopezjavier.appfitness.domain.port.RestAlertKind
 import io.github.lopezjavier.appfitness.domain.port.RestAlertPreferences
 import io.github.lopezjavier.appfitness.domain.port.RestAlertScheduler
 import io.github.lopezjavier.appfitness.domain.repository.WorkoutSessionRepository
@@ -49,12 +50,14 @@ internal class FakeAlertSound : AlertSound {
 /** Records the scheduled end-of-rest alert: [scheduled] is the pending alarm (null when none). */
 internal class FakeRestAlertScheduler : RestAlertScheduler {
     var scheduled: Instant? = null
+    var scheduledKind: RestAlertKind? = null
     var scheduleCalls = 0
     var cancelCalls = 0
 
-    override fun schedule(endsAt: Instant) {
+    override fun schedule(endsAt: Instant, kind: RestAlertKind) {
         scheduleCalls++
         scheduled = endsAt
+        scheduledKind = kind
     }
 
     override fun cancel() {

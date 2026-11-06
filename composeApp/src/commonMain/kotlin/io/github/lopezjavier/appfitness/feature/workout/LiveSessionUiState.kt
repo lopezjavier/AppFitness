@@ -79,6 +79,8 @@ data class LiveExercise(
     val metricType: ExerciseMetricType = ExerciseMetricType.WeightReps,
     /** Decides the hint of the weight field; null when unknown. */
     val equipment: Equipment? = null,
+    /** A cardio exercise: its timed sets run in the shared timer bar (R-58), not inline in the row. */
+    val cardio: Boolean = false,
     /** The open discomfort of this exercise, shown with its level; null when none (US-67). */
     val discomfort: LiveDiscomfort? = null,
     /** The optional text of the routine's note for this exercise; null when none. */
@@ -96,7 +98,26 @@ data class LiveDiscomfort(val level: DiscomfortLevel, val resolving: Boolean = f
  * The rest countdown: [remaining] of [total] (the total grows when time is added past it); [paused] while the session
  * is paused, when [remaining] stays frozen.
  */
-data class RestTimerUi(val remaining: Duration, val total: Duration, val paused: Boolean = false)
+sealed interface TimerBarUi {
+    /**
+     * The rest countdown: [remaining] of [total] (the total grows when time is added past it); [paused] while the
+     * session is paused, when [remaining] stays frozen.
+     */
+    data class Rest(val remaining: Duration, val total: Duration, val paused: Boolean = false) : TimerBarUi
+
+    /**
+     * The cardio run of the set ([position], [setIndex]): [elapsed] counts up towards [target] (null = no target);
+     * [paused] when its stopwatch is stopped (by the user or by pausing the session). [elapsed] may exceed [target].
+     */
+    data class Cardio(
+        val position: Int,
+        val setIndex: Int,
+        val exerciseName: String,
+        val elapsed: Duration,
+        val target: Duration?,
+        val paused: Boolean,
+    ) : TimerBarUi
+}
 
 /** The set (exercise [position], [setIndex]) whose type picker is open. */
 data class TypePickerTarget(val position: Int, val setIndex: Int)
@@ -205,8 +226,8 @@ sealed interface LiveSessionUiState {
         val finishSheet: FinishSheet? = null,
         val discardConfirm: Boolean = false,
         val busy: Boolean = false,
-        /** Null when no rest is running. */
-        val restTimer: RestTimerUi? = null,
+        /** The one timer slot (R-58): a rest or a cardio run; null when neither is active. */
+        val timerBar: TimerBarUi? = null,
         /** The set whose type picker is open; null when closed. Survives process death (ADR-40). */
         val typePicker: TypePickerTarget? = null,
         /** The set whose RPE picker is open; null when closed. Survives process death (ADR-40). */
@@ -239,6 +260,9 @@ sealed interface LiveSessionUiState {
         val discomfortLogs: Int = 0,
     ) : LiveSessionUiState {
         val isPaused: Boolean get() = pausedAt != null
+
+        /** The rest in the slot, or null when the slot is empty or shows a cardio run. */
+        val restTimer: TimerBarUi.Rest? get() = timerBar as? TimerBarUi.Rest
 
         /** "Finalizar entreno" needs at least one completed set (of any type). */
         val canFinish: Boolean get() = exercises.any { exercise -> exercise.sets.any { it.completed } }

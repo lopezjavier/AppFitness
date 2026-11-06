@@ -12,6 +12,7 @@ import io.github.lopezjavier.appfitness.domain.model.ProgressionFlagDecision
 import io.github.lopezjavier.appfitness.domain.model.ProgressionSuggestion
 import io.github.lopezjavier.appfitness.domain.model.UndoResult
 import io.github.lopezjavier.appfitness.domain.port.NotificationPermission
+import io.github.lopezjavier.appfitness.domain.port.RestAlertKind
 import io.github.lopezjavier.appfitness.domain.port.RestAlertPreferences
 import io.github.lopezjavier.appfitness.domain.port.RestAlertScheduler
 import io.github.lopezjavier.appfitness.domain.repository.CoachChangesRepository
@@ -25,7 +26,7 @@ import kotlin.time.Instant
  * outside the app (most view model tests). The app always injects the real ones (see `UiModule`).
  */
 internal object NoRestAlertScheduler : RestAlertScheduler {
-    override fun schedule(endsAt: Instant) = Unit
+    override fun schedule(endsAt: Instant, kind: RestAlertKind) = Unit
 
     override fun cancel() = Unit
 }

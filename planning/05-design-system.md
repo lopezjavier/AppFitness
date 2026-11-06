@@ -1,5 +1,7 @@
 # Design System - Kinetic Dark (Compose implementation)
 
+Phase 2 archive (full text as it was when Phase 2 closed): [`phase2/05-design-system.md`](phase2/05-design-system.md).
+
 Live summary of what is built in `composeApp/.../designsystem/`; full tables, component specs and swipe/haptics details are in [`phase1/05-design-system.md`](phase1/05-design-system.md) (frozen). §8 (rules), §9 (templates) and §10 (glossary) are the UX rulebook (ADR-69) and prevail. The Stitch mockups (style reference only) were removed after Phase 1; they exist in git history only. Section numbers are cited by code; do not renumber.
 
 ## 1. Principles
@@ -133,6 +135,7 @@ Generic rules cited by number; ux-reviewer rejects plans and diffs that break on
 - **R-36** Generic actions use the shared `action_*` strings (Guardar, Cancelar, Cerrar, Eliminar, Quitar, Añadir, Editar, Listo, Descartar, Aplicar, Ahora no, Seguir editando, Reintentar).
 - **R-37** Messages follow fixed templates (§10): errors "No se pudo <acción>. Inténtalo de nuevo."; offline "Sin conexión: no se puede <acción>". Sentences end with a period; titles and buttons do not; use "…" not "..."; titles capitalize the first word only.
 - **R-44 Dates and numbers:** dates via `AppDateFormat` (list "Hoy"/"Ayer"/"lun, 24 oct"; title "24 de octubre"; month "octubre 2026"); numbers via `AppNumberFormat`; macro grams are whole numbers outside nutrition tables.
+- **R-58 Timer slot and set-row columns (T-238):** the live session has ONE timer slot, `RestTimerBar`, which shows either the rest countdown or the cardio count-up; it carries a tag (rest: "Descanso"; cardio: the exercise name, one line, ellipsis) and never changes type with its content otherwise. Rest keeps cyan (`athleticCyan`) and its "+30s"/"Omitir"; cardio uses `neonLime`, shows elapsed "mm:ss", has only "Pausar"/"Reanudar" (finishing is the LISTO tick; there is no discard) and turns `energyAmber` with "+mm:ss" once over target (same over-target tone as `ProgressRing`); the colour never carries the meaning alone (tag and text do). A running timer is never drawn inside a set row: the row only has its start control. In any set row the column headers (TIPO, KM, TIEMPO, LISTO...) are centred over their controls and take their widths from one shared constant set used by the header row and the set row; every control has the same minimum height (48 dp, `heightIn`, never a fixed height, so large fonts grow); a planned target is the dim placeholder inside its field, never loose text under another control.
 ### Process
 - **R-39 Sweep.** A task that adds or changes a pattern updates every other instance (found by search) or records each in the E9 table with an owning task; a new designsystem component retires its ad-hoc copies within the same epic.
 - **R-40 Guards.** `scripts/check-ux-conventions.sh` passes (CI).
@@ -166,6 +169,7 @@ Uses `SwipeToDeleteRow` only (guard G7) · right-to-left, "Eliminar"/"Quitar" ·
 | A catalogue food | "Alimento" | "Comida" | "Crear alimento", "Editar alimento" |
 | Search screen title | "Añadir al desayuno" / "Añadir a <comida>" (same as the opening button) | "Añadir comida" | Choosing a food for a comida: "Añadir alimento" |
 | Delete a saved record | "Eliminar" | "Borrar", "Archivar" | Immediate; no "Deshacer" |
+| Timer bar of the live session (T-238, R-58) | Rest: tag "Descanso", "+30s", "Omitir", "En pausa"; cardio: tag = exercise name, "Pausar" / "Reanudar", "En pausa", over target "+mm:ss"; row start control "Iniciar"; alert "Objetivo de cardio alcanzado" | "Cronómetro" for the cardio run in the bar, "Detener", a stop square, a second bar | One slot; rest alert stays "Descanso terminado" |
 | Coach-applied load change (T-228, ADR-88) | Section "Cambios del entrenador"; action "Deshacer"; state "Deshecho"; flag actions "Subir a {x} kg" / "Mantener y sumar repeticiones"; "Añadir un rango" | "Revertir", "Anular", "Cancelar cambio", "Deshacer" for deletes | Only coach load changes are undoable; deleting records never is (R-20) |
 | Choice per muscle group at the end of a block (T-235) | "Priorizar" (+2 series) / "Mantener" (4, 6 desde 65), `SegmentedSelector` with neither selected by default, "Quitar la elección" icon; step title "Objetivo por grupo"; line "Pecho: 10 → 12 series" | "Aumentar", "Reducir", dropdown or ad-hoc chips | A blocked option is dimmed (`disabledIndices`) and the reason is visible text under the row |
 | A stalled main lift in the next block (T-235) | Marker "puedes cambiarlo" + `?` ("Este ejercicio no ha progresado en el bloque. Puedes cambiarlo por otro del mismo grupo.") | "Estancado", "Cámbialo ya" | Never forced; the user decides |

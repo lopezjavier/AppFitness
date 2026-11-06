@@ -9,10 +9,12 @@ import android.content.Context
 import android.media.AudioAttributes
 import android.net.Uri
 import io.github.lopezjavier.appfitness.composeapp.R
+import io.github.lopezjavier.appfitness.domain.port.RestAlertKind
 
 /**
- * Posts the "Descanso terminado" notification and owns its channel. Android 17 blocks audio played by an app in the
- * background (also from an exact-alarm receiver), so the sound and the vibration come from the notification channel,
+ * Posts the "Descanso terminado" (or the cardio target) notification and owns its channel. Android 17 blocks audio
+ * played by an app in the background (also from an exact-alarm receiver), so the sound and the vibration come from
+ * the notification channel,
  * which the system plays. There is one high-importance channel with the bundled "Campana suave"; a channel's sound is
  * frozen once created, and this id already carries the chime on the devices that used it.
  */
@@ -37,7 +39,7 @@ class RestAlertNotifier(private val context: Context) {
     }
 
     /** Posts (or replaces) the notification; false when the user turned notifications off. */
-    fun post(): Boolean {
+    fun post(kind: RestAlertKind = RestAlertKind.Rest): Boolean {
         if (!manager.areNotificationsEnabled()) return false
         createChannels()
         val launch = context.packageManager.getLaunchIntentForPackage(context.packageName)
@@ -46,8 +48,28 @@ class RestAlertNotifier(private val context: Context) {
         }
         val notification = Notification.Builder(context, CHANNEL_ID)
             .setSmallIcon(android.R.drawable.ic_lock_idle_alarm)
-            .setContentTitle(context.getString(R.string.rest_alert_title))
-            .setContentText(context.getString(R.string.rest_alert_body))
+            .setContentTitle(
+                context.getString(
+                    if (kind ==
+                        RestAlertKind.Cardio
+                    ) {
+                        R.string.cardio_alert_title
+                    } else {
+                        R.string.rest_alert_title
+                    },
+                ),
+            )
+            .setContentText(
+                context.getString(
+                    if (kind ==
+                        RestAlertKind.Cardio
+                    ) {
+                        R.string.cardio_alert_body
+                    } else {
+                        R.string.rest_alert_body
+                    },
+                ),
+            )
             .setCategory(Notification.CATEGORY_ALARM)
             .setVisibility(Notification.VISIBILITY_PUBLIC)
             .setAutoCancel(true)
