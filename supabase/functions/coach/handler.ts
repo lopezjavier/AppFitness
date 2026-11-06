@@ -25,10 +25,13 @@ import {
     type BlockRow,
     CoachInputError,
     type OptionsRow,
+    type PhaseChanged,
+    type PhaseChangeRow,
     type PlanRow,
     type PlanState,
     type PrepareContext,
     type Prepared,
+    type ReviewState,
     type SavedPlan,
     type UpdatedPlan,
 } from "./context.ts";
@@ -80,6 +83,16 @@ export type CoachDeps = {
         token: string,
         row: OptionsRow,
     ) => Promise<UpdatedPlan>;
+    /** One of the caller's block reviews with its plan's intention (T-233), read with their own token. */
+    loadReview: (
+        token: string,
+        reviewId: string,
+    ) => Promise<ReviewState | null>;
+    /** Stores the accepted phase change through `accept_coach_phase`, with the caller's own token. */
+    applyPhaseChange: (
+        token: string,
+        row: PhaseChangeRow,
+    ) => Promise<PhaseChanged>;
     now: () => Date;
     timeoutMs?: number;
     kinds?: Record<string, KindSpec>;
@@ -233,6 +246,8 @@ export function createCoachHandler(
                 loadPhaseHistory: (today) =>
                     deps.loadPhaseHistory(token, today),
                 updatePlanOptions: (row) => deps.updatePlanOptions(token, row),
+                loadReview: (id) => deps.loadReview(token, id),
+                applyPhaseChange: (row) => deps.applyPhaseChange(token, row),
             };
 
             // A deterministic kind needs no provider, no budget and leaves no usage row (T-187 `plan_recompute`).

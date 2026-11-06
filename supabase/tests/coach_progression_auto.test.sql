@@ -100,9 +100,9 @@ select pg_temp.u(n), 'auto' || n || '@example.com' from generate_series(1, 3) n;
 insert into public.routine_folders (id, user_id, name) values
   ('c2720000-0000-4000-8000-000000000001', pg_temp.u(1), 'Bloque'),
   ('c2720000-0000-4000-8000-000000000003', pg_temp.u(3), 'Bloque 3');
--- Block started 28 days ago: week 3 (days 14 to 8 ago) is a deload week of routine 1.
+-- Block started 21 days ago (4 weeks, so today is inside it): week 2 (days 14 to 8 ago) is a deload week of routine 1.
 insert into public.coach_plans (id, user_id, block_start, intention, nutrition, status, folder_id) values
-  ('c2730000-0000-4000-8000-000000000001', pg_temp.u(1), (now() at time zone 'utc')::date - 28, 'muscle', '{}',
+  ('c2730000-0000-4000-8000-000000000001', pg_temp.u(1), (now() at time zone 'utc')::date - 21, 'muscle', '{}',
    'accepted', 'c2720000-0000-4000-8000-000000000001'),
   ('c2730000-0000-4000-8000-000000000003', pg_temp.u(3), (now() at time zone 'utc')::date - 28, 'muscle', '{}',
    'proposed', 'c2720000-0000-4000-8000-000000000003');
@@ -114,7 +114,10 @@ insert into public.routines (id, user_id, name, folder_id) values
   (pg_temp.r(5), pg_temp.u(1), 'R5', 'c2720000-0000-4000-8000-000000000001'),
   (pg_temp.r(6), pg_temp.u(3), 'R6', 'c2720000-0000-4000-8000-000000000003');
 insert into public.coach_plan_sessions (plan_id, user_id, week, session_index, name, exercises, routine_id, deload) values
-  ('c2730000-0000-4000-8000-000000000001', pg_temp.u(1), 3, 1, 'Sesion 1', '[]', pg_temp.r(1), true);
+  ('c2730000-0000-4000-8000-000000000001', pg_temp.u(1), 1, 1, 'Sesion 1', '[]', pg_temp.r(1), false),
+  ('c2730000-0000-4000-8000-000000000001', pg_temp.u(1), 2, 1, 'Sesion 1', '[]', pg_temp.r(1), true),
+  ('c2730000-0000-4000-8000-000000000001', pg_temp.u(1), 3, 1, 'Sesion 1', '[]', pg_temp.r(1), false),
+  ('c2730000-0000-4000-8000-000000000001', pg_temp.u(1), 4, 1, 'Sesion 1', '[]', pg_temp.r(1), false);
 
 grant execute on all functions in schema pg_temp to authenticated;
 set local role authenticated;

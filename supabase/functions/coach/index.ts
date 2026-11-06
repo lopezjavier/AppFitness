@@ -152,6 +152,38 @@ const handler = createCoachHandler({
             outcomes: data.outcomes ?? [],
         };
     },
+    loadReview: async (token, reviewId) => {
+        const { data, error } = await callerClient(token)
+            .from("coach_block_reviews")
+            .select("phase_proposal,phase_decision,plan:plan_id(intention)")
+            .eq("id", reviewId)
+            .maybeSingle();
+        if (error) throw new Error("review read failed");
+        if (!data) return null;
+        const plan = Array.isArray(data.plan) ? data.plan[0] : data.plan;
+        return {
+            phase_proposal: data.phase_proposal ?? null,
+            phase_decision: data.phase_decision ?? null,
+            intention: typeof plan?.intention === "string"
+                ? plan.intention
+                : null,
+        };
+    },
+    applyPhaseChange: async (token, row) => {
+        const { data, error } = await callerClient(token).rpc(
+            "accept_coach_phase",
+            {
+                p_review_id: row.reviewId,
+                p_nutrition: row.nutrition,
+                p_outcomes: row.outcomes,
+                p_method: row.method,
+                p_input_summary: row.inputSummary,
+                p_block_start: row.blockStart,
+            },
+        );
+        if (error || !data?.plan_id) throw new Error("phase change failed");
+        return { plan_id: String(data.plan_id) };
+    },
     client: apiKey
         ? createAnthropicClient({ fetch: (u, i) => fetch(u, i), apiKey })
         : null,

@@ -27,7 +27,7 @@ internal data class MarkWeekSummarySeenParams(
     @SerialName("p_week") val week: Int,
 )
 
-private fun groupsOf(element: JsonElement?): List<GroupSets> =
+internal fun groupsOf(element: JsonElement?): List<GroupSets> =
     ((element as? JsonArray) ?: emptyList<JsonElement>()).mapNotNull { item ->
         val obj = item.obj()
         val group = obj?.text("muscle_group")?.let { code ->
@@ -63,7 +63,9 @@ private fun weightOf(obj: JsonObject?): WeekSummaryWeight? = obj?.let {
     )
 }
 
-private fun JsonObject.day(key: String): LocalDate? = text(key)?.let { runCatching { LocalDate.parse(it) }.getOrNull() }
+internal fun JsonObject.day(key: String): LocalDate? = text(key)?.let {
+    runCatching { LocalDate.parse(it) }.getOrNull()
+}
 
 /**
  * Reads the `coach_week_summary` answer tolerantly: JSON null, a non-object body or a missing identity key
@@ -127,7 +129,7 @@ private fun proteinCauseOf(obj: JsonObject): StallCause? {
 }
 
 /** Stalls of an old row (no key) or with an unknown cause or missing figures are dropped, never an error. */
-private fun stallsOf(element: JsonElement?): List<StallDiagnosis> =
+internal fun stallsOf(element: JsonElement?): List<StallDiagnosis> =
     ((element as? JsonArray) ?: emptyList<JsonElement>()).mapNotNull { item ->
         val obj = item.obj()
         val id = obj?.text("exercise_id")

@@ -113,6 +113,9 @@ function setup(o: SetupOptions = {}) {
                 },
             );
         },
+        loadReview: () => Promise.reject(new Error("unexpected loadReview")),
+        applyPhaseChange: () =>
+            Promise.reject(new Error("unexpected applyPhaseChange")),
         now: () => NOW,
     };
     return {

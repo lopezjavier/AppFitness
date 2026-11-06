@@ -60,6 +60,26 @@ export type UpdatedPlan = {
     outcomes: Outcome[];
 };
 
+/** A block review of the caller with its plan's intention (T-233); null when it is not theirs. */
+export type ReviewState = {
+    phase_proposal: { to_phase?: string; reason?: string } | null;
+    phase_decision: string | null;
+    intention: string | null;
+};
+
+/** Row sent to accept_coach_phase (T-233). */
+export type PhaseChangeRow = {
+    reviewId: string;
+    blockStart: string;
+    nutrition: Nutrition;
+    outcomes: Outcome[];
+    method: Method;
+    inputSummary: unknown;
+};
+
+/** What of accept_coach_phase the coach function needs back: the new proposed plan. */
+export type PhaseChanged = { plan_id: string };
+
 /** What a kind needs from the outside world; built by the handler for the caller's token. */
 export type PrepareContext = {
     /** The model resolved for this request (client override or the kind's default). */
@@ -78,6 +98,10 @@ export type PrepareContext = {
     loadPhaseHistory: (today: string) => Promise<PhaseHistory>;
     /** Rewrites the options of a proposed cut through update_coach_plan_options, with the caller's own token. */
     updatePlanOptions: (row: OptionsRow) => Promise<UpdatedPlan>;
+    /** One of the caller's block reviews (T-233), read with their own token. */
+    loadReview: (reviewId: string) => Promise<ReviewState | null>;
+    /** Stores the accepted phase change through accept_coach_phase, with the caller's own token. */
+    applyPhaseChange: (row: PhaseChangeRow) => Promise<PhaseChanged>;
 };
 
 /** One independently validated model call of a multi-part kind. */

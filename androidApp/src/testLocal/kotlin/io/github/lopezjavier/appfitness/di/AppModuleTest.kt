@@ -28,6 +28,7 @@ import io.github.lopezjavier.appfitness.domain.repository.CoachBlockRepository
 import io.github.lopezjavier.appfitness.domain.repository.CoachIntakeRepository
 import io.github.lopezjavier.appfitness.domain.repository.CoachPlanRepository
 import io.github.lopezjavier.appfitness.domain.repository.CoachRepository
+import io.github.lopezjavier.appfitness.domain.repository.CoachReviewRepository
 import io.github.lopezjavier.appfitness.domain.repository.CoachSummaryRepository
 import io.github.lopezjavier.appfitness.domain.repository.CoachUsageRepository
 import io.github.lopezjavier.appfitness.domain.repository.DiscomfortRepository
@@ -176,6 +177,7 @@ class AppModuleTest {
                 RestAlertPreferences::class,
                 AuthRepository::class,
                 CoachSummaryRepository::class,
+                CoachReviewRepository::class,
                 ProfileRepository::class,
                 BodyMeasurementRepository::class,
                 NutritionGoalsRepository::class,
