@@ -148,11 +148,6 @@ fun ExercisePickerScreen(
 @Composable
 private fun PickerFilters(state: ExercisePickerUiState.Content, onEvent: (ExercisePickerEvent) -> Unit) {
     val all = stringResource(Res.string.exercise_filter_all)
-    val muscleOptions =
-        listOf(AppOption(all, "exercise_picker_muscle_chip_all")) +
-            MuscleGroup.entries.map {
-                AppOption(stringResource(it.label), "exercise_picker_muscle_chip_${it.tagName()}")
-            }
     val equipmentOptions =
         listOf(AppOption(all, "exercise_picker_equipment_chip_all")) +
             Equipment.entries.map {
@@ -167,13 +162,11 @@ private fun PickerFilters(state: ExercisePickerUiState.Content, onEvent: (Exerci
             onQueryChange = { onEvent(ExercisePickerEvent.SetQuery(it)) },
             modifier = Modifier.padding(horizontal = Spacing.screenMargin),
         )
-        FilterChipRow(
-            options = muscleOptions,
-            selectedIndex = state.muscleGroup?.let { it.ordinal + 1 } ?: 0,
-            onSelect = { index ->
-                onEvent(ExercisePickerEvent.SelectMuscleGroup(MuscleGroup.entries.getOrNull(index - 1)))
-            },
-            modifier = Modifier.padding(horizontal = Spacing.screenMargin).testTag("exercise_picker_muscle_chips"),
+        MuscleChipRow(
+            selected = state.muscleGroup,
+            onSelect = { onEvent(ExercisePickerEvent.SelectMuscleGroup(it)) },
+            tagPrefix = "exercise_picker",
+            modifier = Modifier.padding(horizontal = Spacing.screenMargin),
         )
         FilterChipRow(
             options = equipmentOptions,
@@ -184,6 +177,24 @@ private fun PickerFilters(state: ExercisePickerUiState.Content, onEvent: (Exerci
             modifier = Modifier.padding(horizontal = Spacing.screenMargin).testTag("exercise_picker_equipment_chips"),
         )
     }
+}
+
+/** Single-select muscle filter: "Todos" (null) plus every [MuscleGroup]; tags `<tagPrefix>_muscle_chip(s)_*`. */
+@Composable
+internal fun MuscleChipRow(
+    selected: MuscleGroup?,
+    onSelect: (MuscleGroup?) -> Unit,
+    tagPrefix: String,
+    modifier: Modifier = Modifier,
+) {
+    val options = listOf(AppOption(stringResource(Res.string.exercise_filter_all), "${tagPrefix}_muscle_chip_all")) +
+        MuscleGroup.entries.map { AppOption(stringResource(it.label), "${tagPrefix}_muscle_chip_${it.tagName()}") }
+    FilterChipRow(
+        options = options,
+        selectedIndex = selected?.let { it.ordinal + 1 } ?: 0,
+        onSelect = { onSelect(MuscleGroup.entries.getOrNull(it - 1)) },
+        modifier = modifier.testTag("${tagPrefix}_muscle_chips"),
+    )
 }
 
 @Composable

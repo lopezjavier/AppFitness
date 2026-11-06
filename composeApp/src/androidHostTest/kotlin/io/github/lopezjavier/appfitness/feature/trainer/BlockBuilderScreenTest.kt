@@ -3,12 +3,14 @@ package io.github.lopezjavier.appfitness.feature.trainer
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
+import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.assertTextContains
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performTextInput
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
 import io.github.lopezjavier.appfitness.domain.coach.builder.Pick
@@ -258,6 +260,84 @@ class BlockBuilderScreenTest {
 
         rule.onNodeWithTag("block_builder_picker_search").performTextInput("aper")
 
+        rule.onNodeWithTag("block_builder_pick_bench").assertDoesNotExist()
+        rule.onNodeWithTag("block_builder_pick_fly").assertExists()
+    }
+
+    private val extraEntries get() = listOf(PickerEntry(Data.bench), PickerEntry(Data.row))
+
+    private fun showExtraPicker() =
+        show(Data.builderUi(openSlot = SlotRef(0, 0, extra = true), pickerEntries = extraEntries))
+
+    @Test
+    fun extraPicker_showsMuscleChips_withTodosSelectedAndAllRows() {
+        showExtraPicker()
+
+        rule.onNodeWithTag("block_builder_picker_muscle_chips").assertExists()
+        rule.onNodeWithTag("block_builder_picker_muscle_chip_all").assertIsSelected()
+        rule.onNodeWithTag("block_builder_pick_bench").assertExists()
+        rule.onNodeWithTag("block_builder_pick_row").assertExists()
+    }
+
+    @Test
+    fun extraPicker_tapMuscleChip_listsOnlyThatMuscle() {
+        showExtraPicker()
+
+        rule.onNodeWithTag("block_builder_picker_muscle_chip_back").performClick()
+
+        rule.onNodeWithTag("block_builder_pick_row").assertExists()
+        rule.onNodeWithTag("block_builder_pick_bench").assertDoesNotExist()
+    }
+
+    @Test
+    fun extraPicker_muscleChipPlusSearch_combine() {
+        show(
+            Data.builderUi(
+                openSlot = SlotRef(0, 0, extra = true),
+                pickerEntries = extraEntries + PickerEntry(Data.fly),
+            ),
+        )
+
+        rule.onNodeWithTag("block_builder_picker_muscle_chip_chest").performClick()
+        rule.onNodeWithTag("block_builder_picker_search").performTextInput("aper")
+
+        rule.onNodeWithTag("block_builder_pick_fly").assertExists()
+        rule.onNodeWithTag("block_builder_pick_bench").assertDoesNotExist()
+        rule.onNodeWithTag("block_builder_pick_row").assertDoesNotExist()
+    }
+
+    @Test
+    fun extraPicker_muscleWithNoExercises_showsEmptyText() {
+        showExtraPicker()
+
+        rule.onNodeWithTag("block_builder_picker_muscle_chip_calves").performScrollTo().performClick()
+
+        rule.onNodeWithTag("block_builder_pick_empty").assertExists()
+    }
+
+    @Test
+    fun extraPicker_tappingAFilteredRow_picksIt() {
+        showExtraPicker()
+
+        rule.onNodeWithTag("block_builder_picker_muscle_chip_back").performClick()
+        rule.onNodeWithTag("block_builder_pick_row").performClick()
+
+        assertEquals(listOf<BlockBuilderEvent>(BlockBuilderEvent.PickExercise("row")), events)
+    }
+
+    @Test
+    fun requiredSlotPicker_hasNoMuscleChips() {
+        show(Data.builderUi(openSlot = SlotRef(0, 0), pickerEntries = extraEntries))
+
+        rule.onNodeWithTag("block_builder_picker_muscle_chips").assertDoesNotExist()
+    }
+
+    @Test
+    fun theSearch_ignoresAccentsAndCase() {
+        val entries = listOf(PickerEntry(Data.bench), PickerEntry(Data.fly))
+        show(Data.builderUi(openSlot = SlotRef(0, 0), pickerEntries = entries))
+
+        rule.onNodeWithTag("block_builder_picker_search").performTextInput("ÁPERTURAS")
         rule.onNodeWithTag("block_builder_pick_bench").assertDoesNotExist()
         rule.onNodeWithTag("block_builder_pick_fly").assertExists()
     }
