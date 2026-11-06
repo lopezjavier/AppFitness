@@ -115,4 +115,9 @@ data class BlockSet(val type: BlockSetType, val repMin: Int, val repMax: Int, va
 data class BlockEdit(val sessionIndex: Int, val position: Int, val exerciseId: String)
 
 /** What `save_coach_block` created in Entreno. */
-data class BlockSaved(val folderId: String, val routineIds: List<String>)
+data class BlockSaved(
+    val folderId: String,
+    val routineIds: List<String>,
+    /** The plan the block now belongs to (`save_built_coach_block`); null for the other save paths. */
+    val planId: String? = null,
+)

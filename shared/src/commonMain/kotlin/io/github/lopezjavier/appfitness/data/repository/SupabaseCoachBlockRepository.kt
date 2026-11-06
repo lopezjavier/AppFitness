@@ -42,11 +42,18 @@ class SupabaseCoachBlockRepository(private val auth: Auth, private val postgrest
         postgrest.rpc("coach_builder_inputs", BuilderInputsParams(today)).decodeAs<BuilderInputsDto>().toDomain()
     }
 
-    override suspend fun saveBuiltBlock(planId: String, block: BuiltBlock, folderName: String?): Result<BlockSaved> =
-        auth.ownRow {
-            postgrest.rpc("save_built_coach_block", BuiltBlockParams(planId, block, folderName).toJson())
-                .decodeAs<SaveBlockResultDto>().toDomain()
-        }.mapBuiltSaveErrors()
+    override suspend fun saveBuiltBlock(
+        planId: String,
+        block: BuiltBlock,
+        folderName: String?,
+        previousPlanId: String?,
+    ): Result<BlockSaved> = auth.ownRow {
+        postgrest.rpc(
+            "save_built_coach_block",
+            BuiltBlockParams(planId, block, folderName, previousPlanId).toJson(),
+        )
+            .decodeAs<SaveBlockResultDto>().toDomain()
+    }.mapBuiltSaveErrors()
 
     override suspend fun removeBlock(planId: String): Result<Unit> = auth.ownRow {
         postgrest.rpc("remove_coach_block", RemoveBlockParams(planId))
@@ -61,12 +68,22 @@ class SupabaseCoachBlockRepository(private val auth: Auth, private val postgrest
         if (cause.code == WRONG_OBJECT_STATE) throw CoachException(CoachFailure.Conflict) else throw failure
     }
 
-    /** SQLSTATE 55000: the plan is no longer open; 22023: the server refused a block invariant. */
+    /**
+     * SQLSTATE 55000: the plan or the previous block is no longer in the expected state, or accepting the next plan
+     * found a derived value unconfirmed; 22023: the server refused a block invariant.
+     */
     private fun <T> Result<T>.mapBuiltSaveErrors(): Result<T> = recoverCatching { failure ->
         val cause = (failure as? AppException)?.cause as? PostgrestRestException ?: throw failure
         when (cause.code) {
-            WRONG_OBJECT_STATE -> throw CoachException(CoachFailure.Conflict)
+            WRONG_OBJECT_STATE -> {
+                val text = listOfNotNull(cause.error, cause.description, cause.message).joinToString(" ")
+                throw CoachException(
+                    if (text.contains("unconfirmed")) CoachFailure.NeedsConfirmation else CoachFailure.Conflict,
+                )
+            }
+
             INVALID_PARAMETER -> throw CoachException(CoachFailure.InvalidBlock)
+
             else -> throw failure
         }
     }

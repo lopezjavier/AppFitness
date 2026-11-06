@@ -151,7 +151,9 @@ private fun ReviewFooter(
     Column(verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
         PrimaryButton(
             text = stringResource(Res.string.block_review_next_block),
-            onClick = { onOpenBeforeStart(BeforeStartMode.Block, state.nextPlanId ?: state.review.planId, null) },
+            onClick = {
+                onOpenBeforeStart(BeforeStartMode.Block, state.nextPlanId ?: state.review.planId, state.review.planId)
+            },
             modifier = Modifier.fillMaxWidth().testTag("block_review_next_block"),
             enabled = online,
         )

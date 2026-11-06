@@ -151,9 +151,10 @@ data class BuilderState(
             equipment: List<Equipment>,
             cardioTargetMinWeek: Int,
             cardioExerciseId: String?,
+            targets: Map<MuscleGroup, Int> = emptyMap(),
             hasMainLift: (MuscleGroup) -> Boolean = { true },
         ): BuilderStart {
-            val plans = SectionPrescription.prescribe(types, intention, hasMainLift)
+            val plans = SectionPrescription.prescribe(types, intention, targets, hasMainLift)
             val names = routineNames(types)
             val days = plans.mapIndexed { i, plan ->
                 when (val fit = TimeFit.fit(plan, intention, sessionMinutes)) {

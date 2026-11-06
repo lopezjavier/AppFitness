@@ -118,8 +118,8 @@ fun AppRoot(
             FolderBlockRoot(planId, folderId, onSaved, onClose, onOpenExercise, blockModifier)
         },
         folderReviewResult = { resultModifier, onBack -> FolderReviewResultRoot(onBack, resultModifier) },
-        blockBuilder = { builderModifier, planId, onSaved, onClose, onOpenExercise ->
-            BlockBuilderRoot(planId, onSaved, onClose, onOpenExercise, builderModifier)
+        blockBuilder = { builderModifier, planId, previousPlanId, onSaved, onClose, onOpenExercise ->
+            BlockBuilderRoot(planId, onSaved, onClose, onOpenExercise, builderModifier, previousPlanId)
         },
         about = { aboutModifier, onBack -> AboutRoot(onBack, aboutModifier) },
         activity = { activityModifier, onBack -> ActivityRoot(onBack, activityModifier) },

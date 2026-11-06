@@ -100,7 +100,7 @@ data class BlockPreviewRoute(val planId: String) : AppRoute
 
 /** "Desde cero" (US-72, US-93): split, type per day and the block builder for the plan [planId]; no AI call. */
 @Serializable
-data class BlockBuilderRoute(val planId: String) : AppRoute
+data class BlockBuilderRoute(val planId: String, val previousPlanId: String? = null) : AppRoute
 
 /** "Desde una carpeta" (US-93): the deterministic block review of the folder [folderId] for plan [planId]. */
 @Serializable

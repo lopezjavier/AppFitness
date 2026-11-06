@@ -110,13 +110,15 @@ internal typealias FolderBlockSlot =
 internal typealias FolderReviewResultSlot = @Composable (modifier: Modifier, onBack: () -> Unit) -> Unit
 
 /**
- * Content of the block builder ("Desde cero"): modifier (full-screen insets), plan id, how to leave after saving, how
- * to leave without saving and how to open an exercise.
+ * Content of the block builder ("Desde cero" or the next block): modifier (full-screen insets), plan id, the plan of
+ * the finished block (null outside the next block), how to leave after saving, how to leave without saving and how to
+ * open an exercise.
  */
 internal typealias BlockBuilderSlot =
     @Composable (
         modifier: Modifier,
         planId: String,
+        previousPlanId: String?,
         onSaved: () -> Unit,
         onClose: () -> Unit,
         onOpenExercise: (String) -> Unit,
@@ -682,7 +684,7 @@ internal val DefaultFolderReviewResultSlot: FolderReviewResultSlot = { modifier,
 }
 
 /** Empty block builder for previews and shell tests; the real one is wired by `AppRoot`. */
-internal val DefaultBlockBuilderSlot: BlockBuilderSlot = { modifier, _, _, _, _ ->
+internal val DefaultBlockBuilderSlot: BlockBuilderSlot = { modifier, _, _, _, _, _ ->
     Box(modifier.fillMaxSize().testTag("block_builder_screen"))
 }
 
@@ -971,9 +973,11 @@ internal fun AppNavHost(
             )
         }
         composable<BlockBuilderRoute> { entry ->
+            val route = entry.toRoute<BlockBuilderRoute>()
             blockBuilder(
                 Modifier.padding(fullScreenPadding),
-                entry.toRoute<BlockBuilderRoute>().planId,
+                route.planId,
+                route.previousPlanId,
                 { navController.popFullScreen(entry) },
                 { navController.popFullScreen(entry) },
                 { navController.navigateToFullScreen(ExerciseDetailRoute(it, selectMode = false)) },
@@ -1437,7 +1441,7 @@ internal fun NavController.openCreated(entry: NavBackStackEntry, created: Before
     if (currentBackStackEntry?.id != entry.id) return
     val route: AppRoute = when (created.mode) {
         BeforeStartMode.Plan -> PlanProposalRoute(created.replacingPlanId)
-        BeforeStartMode.Block -> BlockBuilderRoute(created.planId.orEmpty())
+        BeforeStartMode.Block -> BlockBuilderRoute(created.planId.orEmpty(), created.replacingPlanId)
     }
     val fromProposal = previousBackStackEntry?.destination?.hasRoute(PlanProposalRoute::class) == true
     navigate(route) {

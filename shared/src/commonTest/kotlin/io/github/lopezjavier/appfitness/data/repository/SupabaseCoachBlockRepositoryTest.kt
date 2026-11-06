@@ -326,6 +326,30 @@ class SupabaseCoachBlockRepositoryTest {
 
         val body = Json.parseToJsonElement((rest().single().body as TextContent).text).jsonObject
         assertFalse("p_folder_name" in body)
+        assertFalse("p_previous_plan_id" in body)
+    }
+
+    @Test
+    fun saveBuiltBlock_nextBlock_sendsThePreviousPlanAndReadsTheNewPlanId() = runTest {
+        val repository = repo { HttpStatusCode.OK to """{"folder_id":"f1","routine_ids":["r1"],"plan_id":"p2"}""" }
+
+        val saved = repository.saveBuiltBlock("p1", builtBlock(), previousPlanId = "p0").getOrThrow()
+
+        val body = Json.parseToJsonElement((rest().single().body as TextContent).text).jsonObject
+        assertEquals("p0", body.getValue("p_previous_plan_id").jsonPrimitive.content)
+        assertEquals("p2", saved.planId)
+    }
+
+    @Test
+    fun saveBuiltBlock_previousBlockNotAccepted_isConflict() = runTest {
+        val repository = repo {
+            HttpStatusCode.BadRequest to
+                """{"code":"55000","message":"previous block is not the accepted block","details":null,"hint":null}"""
+        }
+
+        val result = repository.saveBuiltBlock("p1", builtBlock(), previousPlanId = "p0")
+
+        assertEquals(CoachFailure.Conflict, failureOf(result))
     }
 
     @Test
@@ -335,6 +359,18 @@ class SupabaseCoachBlockRepositoryTest {
         }
 
         assertEquals(CoachFailure.Conflict, failureOf(repository.saveBuiltBlock("p1", builtBlock())))
+    }
+
+    @Test
+    fun saveBuiltBlock_derivedValuesUnconfirmed_needsConfirmation() = runTest {
+        val repository = repo {
+            HttpStatusCode.BadRequest to
+                """{"code":"55000","message":"derived values unconfirmed","details":null,"hint":null}"""
+        }
+
+        val result = repository.saveBuiltBlock("p2", builtBlock(), previousPlanId = "p1")
+
+        assertEquals(CoachFailure.NeedsConfirmation, failureOf(result))
     }
 
     @Test
