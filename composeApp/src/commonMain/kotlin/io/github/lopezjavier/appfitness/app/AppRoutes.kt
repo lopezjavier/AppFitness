@@ -278,6 +278,10 @@ data object CheckInRoute : AppRoute
 @Serializable
 data object WeekSummaryRoute : AppRoute
 
+/** "Revisión del bloque" (US-101, US-103): the end-of-block review, opened from the Trainer tab card. */
+@Serializable
+data object BlockReviewRoute : AppRoute
+
 /** "Historial de peso": the measurement calendar, opened from the calendar action of [WeightRoute]. */
 @Serializable
 data object WeightHistoryRoute : AppRoute
@@ -428,5 +432,6 @@ object AppDestinations {
             NotificationCenterRoute,
             CheckInRoute,
             WeekSummaryRoute,
+            BlockReviewRoute,
         )
 }

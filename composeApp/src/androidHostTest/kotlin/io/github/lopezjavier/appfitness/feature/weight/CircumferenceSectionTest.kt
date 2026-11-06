@@ -230,7 +230,9 @@ class CircumferenceSectionTest {
         tap("circumference_add_button")
 
         tap("circumference_sheet_help_waist")
-        rule.onNodeWithTag("circumference_sheet_help_waist_sheet_body").assertTextContains("ombligo", substring = true)
+        rule.onNodeWithTag(
+            "circumference_sheet_help_waist_sheet_body",
+        ).assertTextContains("a medio camino", substring = true)
         tap("circumference_sheet_help_waist_sheet_close")
 
         rule.onNodeWithTag("circumference_sheet_help_waist_sheet_body").assertDoesNotExist()

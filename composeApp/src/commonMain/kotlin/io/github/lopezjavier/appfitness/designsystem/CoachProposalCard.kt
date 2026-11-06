@@ -17,36 +17,43 @@ import androidx.compose.ui.semantics.semantics
  * side by side, labelled by the caller ("Aplicar" / "Ahora no" for calories, "Aceptar" / "Descartar" for plans).
  * Both buttons are disabled while [busy] (the accepted one shows the progress); [acceptEnabled] lets a caller block
  * only the accept button, for example offline, and [footer] holds the hint that explains why.
+ * When [content] is set it replaces the title, payload, reason and data lines (for example the phase row of the
+ * end-of-block review, 05 section 9.1).
  * Tags: the card is [testTagPrefix], the buttons `<testTagPrefix>_accept` and `<testTagPrefix>_discard`.
  */
 @Composable
 @Suppress("LongParameterList") // Slots fixed by the proposal contract: copy, state and the two actions.
 fun CoachProposalCard(
-    title: String,
-    payload: String,
-    reason: String,
-    dataUsed: String,
     acceptText: String,
     discardText: String,
     onAccept: () -> Unit,
     onDiscard: () -> Unit,
     testTagPrefix: String,
     modifier: Modifier = Modifier,
+    title: String = "",
+    payload: String = "",
+    reason: String = "",
+    dataUsed: String = "",
     busy: Boolean = false,
     acceptEnabled: Boolean = true,
     footer: (@Composable () -> Unit)? = null,
+    content: (@Composable () -> Unit)? = null,
 ) {
     AppCard(modifier.fillMaxWidth().testTag(testTagPrefix)) {
-        Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-            Text(
-                text = title,
-                style = AppTheme.typography.titleMedium,
-                color = AppTheme.colors.textPrimary,
-                modifier = Modifier.semantics { heading() },
-            )
-            Text(text = payload, style = AppTheme.typography.titleLarge, color = AppTheme.colors.textPrimary)
-            Text(text = reason, style = AppTheme.typography.bodyLarge, color = AppTheme.colors.textPrimary)
-            Text(text = dataUsed, style = AppTheme.typography.bodyMedium, color = AppTheme.colors.textSecondary)
+        if (content != null) {
+            content()
+        } else {
+            Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+                Text(
+                    text = title,
+                    style = AppTheme.typography.titleMedium,
+                    color = AppTheme.colors.textPrimary,
+                    modifier = Modifier.semantics { heading() },
+                )
+                Text(text = payload, style = AppTheme.typography.titleLarge, color = AppTheme.colors.textPrimary)
+                Text(text = reason, style = AppTheme.typography.bodyLarge, color = AppTheme.colors.textPrimary)
+                Text(text = dataUsed, style = AppTheme.typography.bodyMedium, color = AppTheme.colors.textSecondary)
+            }
         }
         Row(horizontalArrangement = Arrangement.spacedBy(Spacing.md)) {
             GhostButton(

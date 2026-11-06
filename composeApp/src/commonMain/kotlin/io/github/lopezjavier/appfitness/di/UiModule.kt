@@ -40,6 +40,7 @@ import io.github.lopezjavier.appfitness.feature.templates.TemplateDetailsViewMod
 import io.github.lopezjavier.appfitness.feature.trainer.BeforeStartViewModel
 import io.github.lopezjavier.appfitness.feature.trainer.BlockBuilderViewModel
 import io.github.lopezjavier.appfitness.feature.trainer.BlockPreviewViewModel
+import io.github.lopezjavier.appfitness.feature.trainer.BlockReviewViewModel
 import io.github.lopezjavier.appfitness.feature.trainer.CoachUsageViewModel
 import io.github.lopezjavier.appfitness.feature.trainer.FolderBlockViewModel
 import io.github.lopezjavier.appfitness.feature.trainer.FolderReviewResultViewModel
@@ -464,6 +465,18 @@ val uiModule =
                 coachChanges = get(),
                 decideProposal = get(),
                 summaries = get(),
+                loadBlockReview = get(),
+            )
+        }
+        viewModel {
+            BlockReviewViewModel(
+                loadReview = get(),
+                decidePhase = get(),
+                plans = get(),
+                decideCalorie = get(),
+                names = get(),
+                clock = get(),
+                savedState = get(),
             )
         }
         viewModel {

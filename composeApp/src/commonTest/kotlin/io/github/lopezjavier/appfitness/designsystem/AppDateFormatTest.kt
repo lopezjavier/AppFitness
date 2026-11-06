@@ -10,6 +10,13 @@ class AppDateFormatTest {
     private val today = LocalDate(2026, 10, 26)
 
     @Test
+    fun shortDate_hasDayAndShortMonth() = assertEquals("24 oct", AppDateFormat.shortDate(LocalDate(2026, 10, 24)))
+
+    @Test
+    fun shortRange_joinsTwoShortDates() =
+        assertEquals("24 oct - 21 nov", AppDateFormat.shortRange(LocalDate(2026, 10, 24), LocalDate(2026, 11, 21)))
+
+    @Test
     fun list_today_isHoy() = assertEquals("Hoy", AppDateFormat.list(today, today))
 
     @Test

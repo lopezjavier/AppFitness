@@ -96,6 +96,7 @@ data class TrainerActions(
     val onOpenYourData: () -> Unit = {},
     val onOpenFreeText: () -> Unit = {},
     val onOpenWeekSummary: () -> Unit = {},
+    val onOpenBlockReview: () -> Unit = {},
     val onOpenExercise: (exerciseId: String) -> Unit = {},
     val onOpenRoutineRange: (routineId: String, exerciseId: String) -> Unit = { _, _ -> },
 )
@@ -294,6 +295,7 @@ private fun TrainerContent(
     ) {
         state.calorieProposal?.let { CalorieProposalCard(it, state.decidingChange, online, onEvent) }
         CoachChangesSection(state, exerciseNames, online, onEvent, actions.onOpenExercise)
+        if (state.blockReviewDue) BlockReviewEntry(actions.onOpenBlockReview)
         PlanSection(
             state.plan,
             online,
@@ -311,6 +313,7 @@ private fun TrainerContent(
             actions.onOpenBeforeStart,
             state.removeBlockConfirm,
             onEvent,
+            state.blockReviewDue,
         )
         PlanWeeksSection(
             state.weeks,

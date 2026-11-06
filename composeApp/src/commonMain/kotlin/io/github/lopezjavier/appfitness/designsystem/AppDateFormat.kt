@@ -43,6 +43,12 @@ object AppDateFormat {
         "${from.day} ${MONTHS_SHORT[from.month.ordinal]} al ${to.day} ${MONTHS_SHORT[to.month.ordinal]}"
     }
 
-    /** Month headers: "octubre 2026". */
+    /** A day without weekday or year: "24 oct". */
+    fun shortDate(date: LocalDate): String = "${date.day} ${MONTHS_SHORT[date.month.ordinal]}"
+
+    /** A span of days for subtitles: "24 oct - 21 nov". */
+    fun shortRange(from: LocalDate, to: LocalDate): String = "${shortDate(from)} - ${shortDate(to)}"
+
+    /** Month headers:"octubre 2026". */
     fun month(date: LocalDate): String = "${MONTHS[date.month.ordinal]} ${date.year}"
 }
