@@ -117,6 +117,37 @@ class NotificationCenterViewModelTest {
     }
 
     @Test
+    fun anUnseenWeekSummary_isListedOnce() = runTest {
+        val env = ReminderEnv(TODAY).apply {
+            summaries.latest = Result.success(
+                io.github.lopezjavier.appfitness.feature.trainer.weekSummary(seen = false),
+            )
+        }
+        val f = fixture(env)
+
+        f.viewModel.uiState.test {
+            assertEquals(listOf(ReminderKind.WeekSummary), content().reminders.map { it.kind })
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
+    fun aSilencedWeekSummary_isNotListed() = runTest {
+        val env = ReminderEnv(TODAY).apply {
+            summaries.latest = Result.success(
+                io.github.lopezjavier.appfitness.feature.trainer.weekSummary(seen = false),
+            )
+            settings.values[NotificationKind.WeekSummary] = false
+        }
+        val f = fixture(env)
+
+        f.viewModel.uiState.test {
+            assertTrue(content().reminders.isEmpty())
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
     fun silencedCheckIn_hidesTheReminderAndTheAnsweredRow() = runTest {
         val env = checkInEnv().apply { settings.values[NotificationKind.WeeklyCheckIn] = false }
         env.checkIns.rows[LocalDate(2026, 10, 19)] = CheckIn(LocalDate(2026, 10, 19), 4, "ok")

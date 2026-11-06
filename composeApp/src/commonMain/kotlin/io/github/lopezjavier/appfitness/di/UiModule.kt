@@ -4,6 +4,7 @@ import io.github.lopezjavier.appfitness.app.AppViewModel
 import io.github.lopezjavier.appfitness.app.HealthSyncCoordinator
 import io.github.lopezjavier.appfitness.app.ReminderCoordinator
 import io.github.lopezjavier.appfitness.domain.port.ExerciseLibrary
+import io.github.lopezjavier.appfitness.domain.usecase.MarkWeekSummarySeen
 import io.github.lopezjavier.appfitness.domain.usecase.ReviewFolderUseCase
 import io.github.lopezjavier.appfitness.feature.about.AboutViewModel
 import io.github.lopezjavier.appfitness.feature.activity.ActivityViewModel
@@ -46,6 +47,7 @@ import io.github.lopezjavier.appfitness.feature.trainer.FreeTextLinesViewModel
 import io.github.lopezjavier.appfitness.feature.trainer.IntakeViewModel
 import io.github.lopezjavier.appfitness.feature.trainer.PlanProposalViewModel
 import io.github.lopezjavier.appfitness.feature.trainer.TrainerViewModel
+import io.github.lopezjavier.appfitness.feature.trainer.WeekSummaryViewModel
 import io.github.lopezjavier.appfitness.feature.trainer.YourDataViewModel
 import io.github.lopezjavier.appfitness.feature.weight.CircumferencesViewModel
 import io.github.lopezjavier.appfitness.feature.weight.GoalViewModel
@@ -437,6 +439,16 @@ val uiModule =
         viewModelOf(::StrengthViewModel)
         viewModel { ActivityViewModel(get(), get(), TimeZone.currentSystemDefault(), get(), get()) }
         viewModelOf(::MuscleVolumeViewModel)
+        viewModel {
+            WeekSummaryViewModel(
+                summaries = get(),
+                markSeen = MarkWeekSummarySeen(get()),
+                reminders = get(),
+                names = get(),
+                clock = get(),
+                savedState = get(),
+            )
+        }
         viewModel { CoachUsageViewModel(repository = get(), clock = get(), modelPreference = get()) }
         viewModel {
             TrainerViewModel(
@@ -451,6 +463,7 @@ val uiModule =
                 measurements = get(),
                 coachChanges = get(),
                 decideProposal = get(),
+                summaries = get(),
             )
         }
         viewModel {

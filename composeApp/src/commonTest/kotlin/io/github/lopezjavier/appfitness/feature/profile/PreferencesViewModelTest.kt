@@ -1416,6 +1416,19 @@ class PreferencesViewModelTest {
     }
 
     @Test
+    fun reminders_weekSummarySwitch_isOnByDefault_andSavesWhenTurnedOff() = runTest {
+        val (viewModel, state) = loaded(PreferencesSection.Reminders)
+        assertEquals(true, state().form.weekSummaryReminder)
+
+        viewModel.onEvent(PreferencesEvent.SetReminderEnabled(NotificationKind.WeekSummary, enabled = false))
+        viewModel.onEvent(PreferencesEvent.Save)
+        advanceUntilIdle()
+
+        assertEquals(listOf(NotificationKind.WeekSummary to false), settings.writes)
+        assertEquals(false, state().saved.weekSummaryReminder)
+    }
+
+    @Test
     fun reminders_saveWritesOnlyTheChangedKinds_andNotTheUnchangedWeekday() = runTest {
         val (viewModel, state) = loaded(PreferencesSection.Reminders)
 

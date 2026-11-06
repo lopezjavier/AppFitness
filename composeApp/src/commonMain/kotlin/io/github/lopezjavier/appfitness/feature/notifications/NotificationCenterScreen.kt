@@ -30,9 +30,12 @@ import io.github.lopezjavier.appfitness.composeapp.resources.notifications_pendi
 import io.github.lopezjavier.appfitness.composeapp.resources.notifications_reminder_checkin
 import io.github.lopezjavier.appfitness.composeapp.resources.notifications_reminder_open_checkin
 import io.github.lopezjavier.appfitness.composeapp.resources.notifications_reminder_open_circumference
+import io.github.lopezjavier.appfitness.composeapp.resources.notifications_reminder_open_week_summary
 import io.github.lopezjavier.appfitness.composeapp.resources.notifications_reminder_open_weight
 import io.github.lopezjavier.appfitness.composeapp.resources.notifications_this_week_section
 import io.github.lopezjavier.appfitness.composeapp.resources.notifications_title
+import io.github.lopezjavier.appfitness.composeapp.resources.notifications_week_summary_title
+import io.github.lopezjavier.appfitness.composeapp.resources.notifications_week_summary_week
 import io.github.lopezjavier.appfitness.composeapp.resources.notifications_weight_reminder
 import io.github.lopezjavier.appfitness.composeapp.resources.root_error_message
 import io.github.lopezjavier.appfitness.designsystem.AppDateFormat
@@ -164,6 +167,13 @@ private fun ReminderRow(
             label = stringResource(Res.string.notifications_reminder_open_checkin)
             tag = "notifications_reminder_checkin"
             state.checkIn?.let { supporting = stringResource(Res.string.notifications_checkin_week, it.weekRange()) }
+        }
+
+        ReminderKind.WeekSummary -> {
+            headline = stringResource(Res.string.notifications_week_summary_title)
+            label = stringResource(Res.string.notifications_reminder_open_week_summary)
+            tag = "notification_center_row_week_summary"
+            reminder.week?.let { supporting = stringResource(Res.string.notifications_week_summary_week, it) }
         }
     }
     AppListRow(

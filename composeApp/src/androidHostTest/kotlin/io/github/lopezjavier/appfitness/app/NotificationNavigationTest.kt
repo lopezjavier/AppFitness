@@ -38,6 +38,7 @@ import org.robolectric.annotation.Config
 /** US-57: the bell on the three tab roots shows the pending count and opens the center; a reminder opens its entry. */
 @RunWith(RobolectricTestRunner::class)
 @Config(qualifiers = "w360dp-h800dp-xxhdpi")
+@Suppress("TooManyFunctions") // One method per navigation scenario.
 class NotificationNavigationTest {
     @get:Rule
     val rule = createComposeRule()
@@ -55,6 +56,7 @@ class NotificationNavigationTest {
             Reminder(ReminderKind.Weight, LocalDate(2026, 10, 24), 4),
             Reminder(ReminderKind.Circumference, LocalDate(2026, 10, 14), 14),
             Reminder(ReminderKind.CheckIn, LocalDate(2026, 10, 25), 0),
+            Reminder(ReminderKind.WeekSummary, LocalDate(2026, 10, 25), 0),
         ),
         today = today,
         checkIn = CheckInDay(LocalDate(2026, 10, 25), LocalDate(2026, 10, 19), answer = null),
@@ -72,6 +74,12 @@ class NotificationNavigationTest {
         }
     }
 
+    private val summarySlot: WeekSummarySlot = { modifier, onBack ->
+        Box(modifier.fillMaxSize().testTag("week_summary_screen")) {
+            Text("back", Modifier.testTag("week_summary_back").clickable(onClick = onBack))
+        }
+    }
+
     private fun open(pending: Int) {
         rule.setContent {
             AppTheme {
@@ -84,6 +92,7 @@ class NotificationNavigationTest {
                     notificationCenter = centerSlot,
                     weight = weightSlot,
                     checkIn = checkInSlot,
+                    weekSummary = summarySlot,
                 )
             }
         }
@@ -166,6 +175,45 @@ class NotificationNavigationTest {
         tap("checkin_close")
 
         rule.onNodeWithTag("notifications_screen").assertIsDisplayed()
+    }
+
+    @Test
+    fun tappingTheWeekSummaryNotice_opensTheSummary_andBackReturnsToTheCenter() {
+        open(pending = 1)
+        tap("diary_action_notifications")
+
+        tap("notification_center_row_week_summary")
+        rule.onNodeWithTag("week_summary_screen").assertIsDisplayed()
+        tap("week_summary_back")
+
+        rule.onNodeWithTag("notifications_screen").assertIsDisplayed()
+    }
+
+    @Test
+    fun weekSummaryRoute_isRestoredAfterRecreation() {
+        val tester = androidx.compose.ui.test.junit4.StateRestorationTester(rule)
+        tester.setContent {
+            AppTheme {
+                AppScaffold(
+                    navController = rememberNavController(),
+                    pendingReminders = 1,
+                    diary = diarySlot,
+                    routines = routinesSlot,
+                    profile = profileSlot,
+                    notificationCenter = centerSlot,
+                    weekSummary = summarySlot,
+                )
+            }
+        }
+        rule.waitForIdle()
+        tap("diary_action_notifications")
+        tap("notification_center_row_week_summary")
+        rule.onNodeWithTag("week_summary_screen").assertIsDisplayed()
+
+        tester.emulateSavedInstanceStateRestore()
+        rule.waitForIdle()
+
+        rule.onNodeWithTag("week_summary_screen").assertIsDisplayed()
     }
 
     @Test

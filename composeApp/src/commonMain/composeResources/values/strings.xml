@@ -1701,7 +1701,7 @@
     <string name="preferences_reminders_checkin_help_body">Se avisa el día elegido abajo, si aún no lo has respondido.</string>
     <string name="preferences_reminders_checkin_help_cd">Ayuda: check-in semanal</string>
     <string name="preferences_checkin_day_row">Día del check-in</string>
-    <string name="preferences_checkin_day_help_body">Tu resumen semanal usa la semana de lunes a domingo que incluye ese día.</string>
+    <string name="preferences_checkin_day_help_body">Tu check-in usa la semana de lunes a domingo que incluye ese día.</string>
     <string name="preferences_checkin_day_help_cd">Ayuda: día del check-in</string>
     <string name="checkin_title">Check-in semanal</string>
     <string name="checkin_summary_header">Resumen de la semana</string>
@@ -2300,4 +2300,32 @@
     <string name="coach_change_decide_error">No se pudo guardar tu elección. Inténtalo de nuevo.</string>
     <string name="coach_change_decide_not_pending">Ya habías elegido una opción para este ejercicio.</string>
     <string name="coach_change_decide_offline">guardar tu elección</string>
+    <!-- Weekly summary (T-231, US-98) -->
+    <string name="week_summary_title">Resumen semanal</string>
+    <string name="week_summary_subtitle">Semana %1$d · %2$s</string>
+    <string name="week_summary_sessions">Esta semana: %1$d de %2$d entrenos.</string>
+    <string name="week_summary_groups_header">Series por grupo muscular</string>
+    <string name="week_summary_group_line">%1$s %2$s</string>
+    <string name="week_summary_group_cd_one">%1$s, 1 serie</string>
+    <string name="week_summary_group_cd_other">%1$s, %2$s series</string>
+    <string name="week_summary_weight">Peso medio %1$s kg (%2$s kg/semana; objetivo %3$s kg/semana).</string>
+    <string name="week_summary_weight_no_target">Peso medio %1$s kg (%2$s kg/semana).</string>
+    <string name="week_summary_weight_avg_only">Peso medio %1$s kg.</string>
+    <string name="week_summary_weight_none">Esta semana no hay datos de peso suficientes.</string>
+    <string name="week_summary_records">Registros: %1$d de 7 diarios completos · %2$s.</string>
+    <plurals name="week_summary_weigh_ins">
+        <item quantity="one">%1$d pesaje</item>
+        <item quantity="other">%1$d pesajes</item>
+    </plurals>
+    <string name="week_summary_proposal">Propuesta de calorías: %1$s kcal · %2$s</string>
+    <string name="week_summary_proposal_applied">Aplicada</string>
+    <string name="week_summary_proposal_pending">Pendiente</string>
+    <string name="week_summary_proposal_declined">Pospuesta</string>
+    <string name="week_summary_missing_records">Esta semana faltan registros: no cambiamos tus calorías.</string>
+    <string name="week_summary_empty">Aún no hay resumen semanal.</string>
+    <string name="week_summary_error">No se pudo cargar el resumen semanal. Inténtalo de nuevo.</string>
+    <string name="notifications_week_summary_title">Tu resumen semanal está listo</string>
+    <string name="notifications_week_summary_week">Semana %1$d</string>
+    <string name="notifications_reminder_open_week_summary">Abrir el resumen</string>
+    <string name="preferences_reminders_week_summary">Resumen semanal</string>
 </resources>
