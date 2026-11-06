@@ -5,6 +5,7 @@ import io.github.lopezjavier.appfitness.domain.model.CheckInDay
 import io.github.lopezjavier.appfitness.domain.model.NotificationKind
 import io.github.lopezjavier.appfitness.domain.model.Reminder
 import io.github.lopezjavier.appfitness.domain.model.ReminderKind
+import io.github.lopezjavier.appfitness.domain.model.WeekSummaryNotice
 import kotlinx.datetime.LocalDate
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -22,6 +23,34 @@ class ComputeRemindersTest {
         first: LocalDate? = null,
         silenced: Set<NotificationKind> = emptySet(),
     ) = compute(today, lastWeight, lastCircumference, first, silenced)
+
+    private val notice = WeekSummaryNotice("p1", 3, LocalDate(2026, 10, 25))
+
+    @Test
+    fun weekSummaryNotice_isListedOnceDueOnTheWeekEnd() {
+        val result = compute(today, today, today, null, emptySet(), weekSummary = notice)
+
+        assertEquals(listOf(Reminder(ReminderKind.WeekSummary, LocalDate(2026, 10, 25), 0, week = 3)), result)
+    }
+
+    @Test
+    fun weekSummaryNotice_silencedIsSkipped() {
+        val result = compute(today, today, today, null, setOf(NotificationKind.WeekSummary), weekSummary = notice)
+
+        assertTrue(result.isEmpty())
+    }
+
+    @Test
+    fun weekSummaryNotice_sortsNewestDueDateFirstAmongOtherKinds() {
+        val result = compute(today, daysAgo(5), today, null, emptySet(), weekSummary = notice)
+
+        assertEquals(listOf(ReminderKind.Weight, ReminderKind.WeekSummary), result.map { it.kind })
+    }
+
+    @Test
+    fun withoutWeekSummaryNotice_otherRemindersAreUnchanged() {
+        assertEquals(listOf(Reminder(ReminderKind.Weight, today, 2)), run(lastWeight = daysAgo(2)))
+    }
 
     @Test
     fun weighedYesterday_hasNoWeightReminder() {

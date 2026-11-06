@@ -55,6 +55,18 @@ class SupabaseNotificationSettingsRepositoryTest {
     }
 
     @Test
+    fun weekSummaryKind_mapsToWeekSummaryValueBothWays() = runTest {
+        val repo = signedIn("""[{"kind":"week_summary","enabled":false}]""")
+
+        assertEquals(mapOf(NotificationKind.WeekSummary to false), repo.getAll().getOrThrow())
+
+        repo.setEnabled(NotificationKind.WeekSummary, true).getOrThrow()
+
+        val body = (requests.last { it.method == HttpMethod.Post }.body as TextContent).text
+        assertTrue(""""kind":"week_summary"""" in body, body)
+    }
+
+    @Test
     fun getAll_withoutRows_isEmptyMeaningEnabled() = runTest {
         assertTrue(signedIn().getAll().getOrThrow().isEmpty())
     }
