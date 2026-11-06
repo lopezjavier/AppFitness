@@ -69,6 +69,19 @@ class NotificationCenterScreenTest {
     }
 
     @Test
+    fun weekSummaryNotice_isListedWithItsTitleAndOpensTheSummary() {
+        val opened = mutableListOf<ReminderKind>()
+        val notice = Reminder(ReminderKind.WeekSummary, LocalDate(2026, 10, 25), days = 0, week = 3)
+        show(content(reminders = listOf(notice)), opened = opened)
+
+        rule.onNodeWithText("Tu resumen semanal está listo").assertIsDisplayed()
+        rule.onNodeWithTag("notification_center_row_week_summary").assertTextContains("Semana 3", substring = true)
+        rule.onNodeWithTag("notification_center_row_week_summary").performClick()
+
+        assertEquals(listOf(ReminderKind.WeekSummary), opened)
+    }
+
+    @Test
     fun tappingAReminder_asksToOpenItsKind() {
         val opened = mutableListOf<ReminderKind>()
         show(content(), opened = opened)

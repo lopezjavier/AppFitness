@@ -16,8 +16,8 @@ insert into public.notification_settings (user_id, kind, enabled) values
 
 -- Schema and security
 select has_table('public', 'notification_settings', 'public.notification_settings exists');
-select enum_has_labels('public', 'notification_kind', array['weight', 'circumference', 'weekly_check_in'],
-  'notification_kind has the three planned values');
+select enum_has_labels('public', 'notification_kind', array['weight', 'circumference', 'weekly_check_in', 'week_summary'],
+  'notification_kind has the four planned values');
 select ok(
   (select relrowsecurity and relforcerowsecurity from pg_class where oid = 'public.notification_settings'::regclass),
   'RLS is enabled and forced on notification_settings');

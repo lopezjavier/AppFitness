@@ -384,7 +384,7 @@ class PreferencesSectionScreenTest {
         rule.onNodeWithText("Si pasan 2 días sin pesarte.").assertIsDisplayed()
         rule.onNodeWithText("Si pasan 2 semanas sin medirte.").assertIsDisplayed()
         rule.onNodeWithText("Se avisa el día elegido abajo, si aún no lo has respondido.").assertDoesNotExist()
-        rule.onNodeWithText("Tu resumen semanal usa la semana de lunes a domingo que incluye ese día.")
+        rule.onNodeWithText("Tu check-in usa la semana de lunes a domingo que incluye ese día.")
             .assertDoesNotExist()
         rule.onAllNodesWithTag("preferences_reminders_checkin_help").assertCountEquals(1)
         rule.onAllNodesWithTag("preferences_checkin_day_help").assertCountEquals(1)
@@ -393,6 +393,20 @@ class PreferencesSectionScreenTest {
         rule.onNodeWithTag("preferences_reminders_checkin_help").performClick()
         rule.onNodeWithTag("preferences_reminders_checkin_help_sheet_body")
             .assertTextContains("Se avisa el día elegido abajo, si aún no lo has respondido.", substring = true)
+    }
+
+    @Test
+    fun reminders_weekSummarySwitch_isOnAndSendsItsKind() {
+        show(PreferencesSection.Reminders)
+
+        rule.onNodeWithTag("preferences_switch_week_summary").assertIsOn()
+        rule.onNodeWithText("Resumen semanal").assertIsDisplayed()
+        rule.onNodeWithTag("preferences_switch_week_summary").performClick()
+
+        assertEquals(
+            listOf<PreferencesEvent>(PreferencesEvent.SetReminderEnabled(NotificationKind.WeekSummary, false)),
+            events,
+        )
     }
 
     @Test

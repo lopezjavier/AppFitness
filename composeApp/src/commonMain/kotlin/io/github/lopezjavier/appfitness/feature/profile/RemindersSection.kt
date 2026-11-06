@@ -26,6 +26,7 @@ import io.github.lopezjavier.appfitness.composeapp.resources.preferences_reminde
 import io.github.lopezjavier.appfitness.composeapp.resources.preferences_reminders_checkin_help_cd
 import io.github.lopezjavier.appfitness.composeapp.resources.preferences_reminders_circumference
 import io.github.lopezjavier.appfitness.composeapp.resources.preferences_reminders_circumference_helper
+import io.github.lopezjavier.appfitness.composeapp.resources.preferences_reminders_week_summary
 import io.github.lopezjavier.appfitness.composeapp.resources.preferences_reminders_weight
 import io.github.lopezjavier.appfitness.composeapp.resources.preferences_reminders_weight_helper
 import io.github.lopezjavier.appfitness.designsystem.AppCard
@@ -78,6 +79,12 @@ internal fun RemindersSection(form: PreferencesForm, onEvent: (PreferencesEvent)
                 help = HelpContent.fromBody(stringResource(Res.string.preferences_reminders_checkin_help_body)),
                 helpContentDescription = stringResource(Res.string.preferences_reminders_checkin_help_cd),
                 helpTestTag = "preferences_reminders_checkin_help",
+            )
+            AppSwitchRow(
+                label = stringResource(Res.string.preferences_reminders_week_summary),
+                checked = form.weekSummaryReminder,
+                onCheckedChange = { onEvent(PreferencesEvent.SetReminderEnabled(NotificationKind.WeekSummary, it)) },
+                modifier = Modifier.testTag("preferences_switch_week_summary"),
             )
             Row(verticalAlignment = Alignment.CenterVertically) {
                 NavigationRow(

@@ -55,6 +55,7 @@ import io.github.lopezjavier.appfitness.composeapp.resources.trainer_block_remov
 import io.github.lopezjavier.appfitness.composeapp.resources.trainer_free_text_row
 import io.github.lopezjavier.appfitness.composeapp.resources.trainer_title
 import io.github.lopezjavier.appfitness.composeapp.resources.trainer_your_data_row
+import io.github.lopezjavier.appfitness.composeapp.resources.week_summary_title
 import io.github.lopezjavier.appfitness.composeapp.resources.your_data_provisional_count
 import io.github.lopezjavier.appfitness.designsystem.AppActionSheet
 import io.github.lopezjavier.appfitness.designsystem.AppCard
@@ -94,6 +95,7 @@ data class TrainerActions(
     val onOpenBeforeStart: (mode: BeforeStartMode, planId: String?, replacingPlanId: String?) -> Unit = { _, _, _ -> },
     val onOpenYourData: () -> Unit = {},
     val onOpenFreeText: () -> Unit = {},
+    val onOpenWeekSummary: () -> Unit = {},
     val onOpenExercise: (exerciseId: String) -> Unit = {},
     val onOpenRoutineRange: (routineId: String, exerciseId: String) -> Unit = { _, _ -> },
 )
@@ -319,6 +321,13 @@ private fun TrainerContent(
                 onRequest = { onEvent(TrainerEvent.RequestDeload) },
             ),
         )
+        if (state.hasWeekSummary) {
+            NavigationRow(
+                label = stringResource(Res.string.week_summary_title),
+                onClick = actions.onOpenWeekSummary,
+                modifier = Modifier.testTag("trainer_row_week_summary"),
+            )
+        }
         YourDataEntry(state.provisionalCount, actions.onOpenYourData)
         NavigationRow(
             label = stringResource(Res.string.trainer_free_text_row),

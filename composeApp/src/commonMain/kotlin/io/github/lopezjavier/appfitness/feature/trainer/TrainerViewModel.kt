@@ -24,6 +24,7 @@ import io.github.lopezjavier.appfitness.domain.repository.CoachBlockRepository
 import io.github.lopezjavier.appfitness.domain.repository.CoachChangesRepository
 import io.github.lopezjavier.appfitness.domain.repository.CoachPlanRepository
 import io.github.lopezjavier.appfitness.domain.repository.CoachRepository
+import io.github.lopezjavier.appfitness.domain.repository.CoachSummaryRepository
 import io.github.lopezjavier.appfitness.domain.repository.CoachWeeksRepository
 import io.github.lopezjavier.appfitness.domain.repository.NutritionGoalsRepository
 import io.github.lopezjavier.appfitness.domain.repository.ProfileRepository
@@ -91,6 +92,7 @@ class TrainerViewModel(
     private val measurements: BodyMeasurementRepository? = null,
     private val coachChanges: CoachChangesRepository? = null,
     private val decideProposal: DecideCalorieProposalUseCase? = plans?.let { DecideCalorieProposalUseCase(it) },
+    private val summaries: CoachSummaryRepository? = null,
 ) : ViewModel() {
     private val cardioEdit = CardioEditState(savedState)
 
@@ -457,6 +459,8 @@ class TrainerViewModel(
             weeks = planWeeks,
             coachChanges = changeRows,
             provisionalCount = provisional,
+            // One more read; a failed one just hides the "Resumen semanal" row.
+            hasWeekSummary = summaries?.getLatest(today())?.getOrNull() != null,
             goalsChecklist = goalsChecklistFor(plan),
             cardioEdit = cardioEdit.current((plan as? PlanSummary.Accepted)?.plan?.cardioMinutes()),
             removeBlockConfirm = confirmRemove && block is BlockSummary.Saved,

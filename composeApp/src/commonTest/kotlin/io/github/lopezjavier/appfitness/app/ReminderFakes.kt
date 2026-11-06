@@ -5,7 +5,9 @@ import io.github.lopezjavier.appfitness.domain.AppException
 import io.github.lopezjavier.appfitness.domain.model.CheckIn
 import io.github.lopezjavier.appfitness.domain.model.NotificationKind
 import io.github.lopezjavier.appfitness.domain.model.ProfileSummary
+import io.github.lopezjavier.appfitness.domain.model.WeekSummary
 import io.github.lopezjavier.appfitness.domain.port.Clock
+import io.github.lopezjavier.appfitness.domain.repository.CoachSummaryRepository
 import io.github.lopezjavier.appfitness.domain.repository.NotificationSettingsRepository
 import io.github.lopezjavier.appfitness.domain.repository.WeeklyCheckInRepository
 import io.github.lopezjavier.appfitness.domain.usecase.ComputeReminders
@@ -83,5 +85,31 @@ internal class ReminderEnv(today: LocalDate, val timeZone: TimeZone = TimeZone.U
     val profile = FakeProfileRepository(Result.success(ProfileSummary(null, null, onboardingCompleted = true)))
     val checkIns = FakeWeeklyCheckInRepository()
     val clock = ReminderClock(today)
-    val load = LoadReminders(weight, circumferences, settings, profile, checkIns, clock, timeZone, ComputeReminders())
+    val summaries = FakeCoachSummaryRepository()
+    val load = LoadReminders(
+        weight,
+        circumferences,
+        settings,
+        profile,
+        checkIns,
+        clock,
+        timeZone,
+        ComputeReminders(),
+        summaries = summaries,
+    )
+}
+
+/** Weekly summary fake: [latest] is returned by every read, [seen] records the mark-seen calls. */
+internal class FakeCoachSummaryRepository(var latest: Result<WeekSummary?> = Result.success(null)) :
+    CoachSummaryRepository {
+    val seen = mutableListOf<Pair<String, Int>>()
+
+    override suspend fun getLatest(today: LocalDate): Result<WeekSummary?> = latest
+
+    override suspend fun markSeen(planId: String, week: Int): Result<Unit> {
+        seen += planId to week
+        // Like the server: the summary reads as seen from now on.
+        latest = latest.map { it?.copy(seen = true) }
+        return Result.success(Unit)
+    }
 }

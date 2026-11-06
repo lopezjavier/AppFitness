@@ -176,6 +176,7 @@ class PreferencesViewModel(
                     NotificationKind.Weight -> it.copy(weightReminder = event.enabled)
                     NotificationKind.Circumference -> it.copy(circumferenceReminder = event.enabled)
                     NotificationKind.WeeklyCheckIn -> it.copy(checkInReminder = event.enabled)
+                    NotificationKind.WeekSummary -> it.copy(weekSummaryReminder = event.enabled)
                 }
             }
 
@@ -337,6 +338,7 @@ class PreferencesViewModel(
             weightReminder = switches[NotificationKind.Weight] ?: true,
             circumferenceReminder = switches[NotificationKind.Circumference] ?: true,
             checkInReminder = switches[NotificationKind.WeeklyCheckIn] ?: true,
+            weekSummaryReminder = switches[NotificationKind.WeekSummary] ?: true,
             intention = training.intention,
             place = training.place,
             equipment = training.equipment,
@@ -450,6 +452,13 @@ class PreferencesViewModel(
         }
     }
 
+    private fun PreferencesForm.withReminder(kind: NotificationKind, enabled: Boolean): PreferencesForm = when (kind) {
+        NotificationKind.Weight -> copy(weightReminder = enabled)
+        NotificationKind.Circumference -> copy(circumferenceReminder = enabled)
+        NotificationKind.WeeklyCheckIn -> copy(checkInReminder = enabled)
+        NotificationKind.WeekSummary -> copy(weekSummaryReminder = enabled)
+    }
+
     /**
      * "Avisos" lives in other tables than the preferences RPC: one write per changed switch, then the check-in day.
      * There is no transaction (accepted for three rows): a failure keeps the parts already written as saved and the
@@ -462,16 +471,13 @@ class PreferencesViewModel(
             Triple(NotificationKind.Weight, source.weightReminder, state.saved.weightReminder),
             Triple(NotificationKind.Circumference, source.circumferenceReminder, state.saved.circumferenceReminder),
             Triple(NotificationKind.WeeklyCheckIn, source.checkInReminder, state.saved.checkInReminder),
+            Triple(NotificationKind.WeekSummary, source.weekSummaryReminder, state.saved.weekSummaryReminder),
         )
         for ((kind, wanted, current) in switches) {
             if (failure != null || wanted == current) continue
             val result = notificationSettings.setEnabled(kind, wanted)
             if (result.isSuccess) {
-                written = when (kind) {
-                    NotificationKind.Weight -> written.copy(weightReminder = wanted)
-                    NotificationKind.Circumference -> written.copy(circumferenceReminder = wanted)
-                    NotificationKind.WeeklyCheckIn -> written.copy(checkInReminder = wanted)
-                }
+                written = written.withReminder(kind, wanted)
             } else {
                 failure = result
             }

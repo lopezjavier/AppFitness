@@ -274,6 +274,10 @@ data object NotificationCenterRoute : AppRoute
 @Serializable
 data object CheckInRoute : AppRoute
 
+/** "Resumen semanal" (US-98): the latest finished plan week, opened from the Trainer tab or its notice. */
+@Serializable
+data object WeekSummaryRoute : AppRoute
+
 /** "Historial de peso": the measurement calendar, opened from the calendar action of [WeightRoute]. */
 @Serializable
 data object WeightHistoryRoute : AppRoute
@@ -423,5 +427,6 @@ object AppDestinations {
             FolderReviewResultRoute(""),
             NotificationCenterRoute,
             CheckInRoute,
+            WeekSummaryRoute,
         )
 }

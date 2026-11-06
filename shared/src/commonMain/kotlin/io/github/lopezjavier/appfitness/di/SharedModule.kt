@@ -20,6 +20,7 @@ import io.github.lopezjavier.appfitness.data.repository.SupabaseCoachChangesRepo
 import io.github.lopezjavier.appfitness.data.repository.SupabaseCoachIntakeRepository
 import io.github.lopezjavier.appfitness.data.repository.SupabaseCoachPlanRepository
 import io.github.lopezjavier.appfitness.data.repository.SupabaseCoachRepository
+import io.github.lopezjavier.appfitness.data.repository.SupabaseCoachSummaryRepository
 import io.github.lopezjavier.appfitness.data.repository.SupabaseCoachUsageRepository
 import io.github.lopezjavier.appfitness.data.repository.SupabaseCoachWeeksRepository
 import io.github.lopezjavier.appfitness.data.repository.SupabaseDeloadRepository
@@ -54,6 +55,7 @@ import io.github.lopezjavier.appfitness.data.repository.UnconfiguredCoachChanges
 import io.github.lopezjavier.appfitness.data.repository.UnconfiguredCoachIntakeRepository
 import io.github.lopezjavier.appfitness.data.repository.UnconfiguredCoachPlanRepository
 import io.github.lopezjavier.appfitness.data.repository.UnconfiguredCoachRepository
+import io.github.lopezjavier.appfitness.data.repository.UnconfiguredCoachSummaryRepository
 import io.github.lopezjavier.appfitness.data.repository.UnconfiguredCoachUsageRepository
 import io.github.lopezjavier.appfitness.data.repository.UnconfiguredCoachWeeksRepository
 import io.github.lopezjavier.appfitness.data.repository.UnconfiguredDeloadRepository
@@ -92,6 +94,7 @@ import io.github.lopezjavier.appfitness.domain.repository.CoachChangesRepository
 import io.github.lopezjavier.appfitness.domain.repository.CoachIntakeRepository
 import io.github.lopezjavier.appfitness.domain.repository.CoachPlanRepository
 import io.github.lopezjavier.appfitness.domain.repository.CoachRepository
+import io.github.lopezjavier.appfitness.domain.repository.CoachSummaryRepository
 import io.github.lopezjavier.appfitness.domain.repository.CoachUsageRepository
 import io.github.lopezjavier.appfitness.domain.repository.CoachWeeksRepository
 import io.github.lopezjavier.appfitness.domain.repository.DeloadRepository
@@ -144,6 +147,7 @@ import io.github.lopezjavier.appfitness.domain.usecase.LoadCheckInSummary
 import io.github.lopezjavier.appfitness.domain.usecase.LoadExerciseCatalog
 import io.github.lopezjavier.appfitness.domain.usecase.LoadFolderBlockUseCase
 import io.github.lopezjavier.appfitness.domain.usecase.LoadReminders
+import io.github.lopezjavier.appfitness.domain.usecase.MarkWeekSummarySeen
 import io.github.lopezjavier.appfitness.domain.usecase.MeasurementsByDay
 import io.github.lopezjavier.appfitness.domain.usecase.RecalculateEntry
 import io.github.lopezjavier.appfitness.domain.usecase.ResolveCheckInDay
@@ -494,7 +498,28 @@ val sharedModule =
         factory { AutoSyncHealth(get(), get(), get(), get(), get(), TimeZone.currentSystemDefault()) }
         factory { ComputeReminders() }
         factory { ResolveCheckInDay() }
-        factory { LoadReminders(get(), get(), get(), get(), get(), get(), TimeZone.currentSystemDefault(), get()) }
+        single<CoachSummaryRepository> {
+            if (get<AppConfig>().isSupabaseConfigured) {
+                val client = get<SupabaseClient>()
+                SupabaseCoachSummaryRepository(client.auth, client.postgrest)
+            } else {
+                UnconfiguredCoachSummaryRepository()
+            }
+        }
+        factory { MarkWeekSummarySeen(get()) }
+        factory {
+            LoadReminders(
+                get(),
+                get(),
+                get(),
+                get(),
+                get(),
+                get(),
+                TimeZone.currentSystemDefault(),
+                get(),
+                summaries = get(),
+            )
+        }
         factory { LoadCheckInSummary(get(), get(), TimeZone.currentSystemDefault()) }
         factory { SaveBodyMeasurement(get(), get(), TimeZone.currentSystemDefault(), get(), get()) }
     }

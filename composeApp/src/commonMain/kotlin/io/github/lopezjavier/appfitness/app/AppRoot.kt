@@ -43,6 +43,7 @@ import io.github.lopezjavier.appfitness.feature.trainer.FreeTextLinesRoot
 import io.github.lopezjavier.appfitness.feature.trainer.IntakeRoot
 import io.github.lopezjavier.appfitness.feature.trainer.PlanProposalRoot
 import io.github.lopezjavier.appfitness.feature.trainer.TrainerRoute
+import io.github.lopezjavier.appfitness.feature.trainer.WeekSummaryRoot
 import io.github.lopezjavier.appfitness.feature.trainer.YourDataRoot
 import io.github.lopezjavier.appfitness.feature.weight.WeightHistoryRoot
 import io.github.lopezjavier.appfitness.feature.weight.WeightRoot
@@ -169,6 +170,7 @@ fun AppRoot(
             NotificationCenterRoot(onOpenReminder, onBack, centerModifier)
         },
         checkIn = { checkInModifier, onClose -> CheckInRoot(onClose, checkInModifier) },
+        weekSummary = { summaryModifier, onBack -> WeekSummaryRoot(onBack, summaryModifier) },
         weightHistory = { historyModifier, onBack ->
             WeightHistoryRoot(onBack, historyModifier, onRemindersChange = refreshReminders)
         },

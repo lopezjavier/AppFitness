@@ -59,6 +59,8 @@ sealed interface TrainerUiState {
         val coachChanges: List<CoachChangeRowUi> = emptyList(),
         /** Id of the change whose undo or decision is in flight; the other rows' actions are disabled meanwhile. */
         val busyChangeId: String? = null,
+        /** The latest finished plan week has a summary: shows the "Resumen semanal" row. */
+        val hasWeekSummary: Boolean = false,
     ) : TrainerUiState {
         private val accepted: CoachPlan? get() = (plan as? PlanSummary.Accepted)?.plan
 

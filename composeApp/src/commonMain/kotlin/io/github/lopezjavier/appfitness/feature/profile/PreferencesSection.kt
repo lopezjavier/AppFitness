@@ -50,7 +50,7 @@ private fun PreferencesForm.ownedFields(section: PreferencesSection): List<Any> 
     PreferencesSection.Training -> listOf(warmUpIncluded, previousValuesMode, calculators, autoUpdateRoutine)
 
     PreferencesSection.Reminders ->
-        listOf(weightReminder, circumferenceReminder, checkInReminder, checkInWeekday)
+        listOf(weightReminder, circumferenceReminder, checkInReminder, weekSummaryReminder, checkInWeekday)
 
     PreferencesSection.MyTraining ->
         listOf(intention ?: NONE, place ?: NONE, equipment, daysPerWeek ?: NONE, sessionMinutes ?: NONE)
@@ -88,6 +88,7 @@ fun PreferencesForm.withSectionFrom(section: PreferencesSection, other: Preferen
             weightReminder = other.weightReminder,
             circumferenceReminder = other.circumferenceReminder,
             checkInReminder = other.checkInReminder,
+            weekSummaryReminder = other.weekSummaryReminder,
             checkInWeekday = other.checkInWeekday,
         )
 

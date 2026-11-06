@@ -144,12 +144,12 @@ private fun CoachChangeItem(
 }
 
 @Composable
-private fun undoneLine(row: CoachChangeRowUi): String? =
+internal fun undoneLine(row: CoachChangeRowUi): String? =
     row.figures.weightFromKg?.takeIf { row.status == CoachChangeStatus.Undone }
         ?.let { stringResource(Res.string.coach_change_undone_line, coachWeightText(it)) }
 
 @Composable
-private fun statusText(row: CoachChangeRowUi): String? = when (row.status) {
+internal fun statusText(row: CoachChangeRowUi): String? = when (row.status) {
     CoachChangeStatus.Undone -> stringResource(Res.string.coach_change_status_undone)
     CoachChangeStatus.Decided -> decidedText(row.decision)
     else -> null
@@ -198,7 +198,7 @@ private fun coachChangeActions(
     else -> emptyList()
 }
 
-private fun rowState(row: CoachChangeRowUi): CoachChangeRowState = when {
+internal fun rowState(row: CoachChangeRowUi): CoachChangeRowState = when {
     row.status == CoachChangeStatus.Undone -> CoachChangeRowState.Undone
     row.status == CoachChangeStatus.Decided -> CoachChangeRowState.Decided
     row.kind == CoachChangeKind.NoRangeFlag -> CoachChangeRowState.NoRange

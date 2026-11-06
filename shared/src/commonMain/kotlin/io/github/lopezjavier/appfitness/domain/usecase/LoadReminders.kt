@@ -5,6 +5,7 @@ import io.github.lopezjavier.appfitness.domain.model.ReminderSnapshot
 import io.github.lopezjavier.appfitness.domain.port.Clock
 import io.github.lopezjavier.appfitness.domain.repository.BodyMeasurementRepository
 import io.github.lopezjavier.appfitness.domain.repository.CircumferenceRepository
+import io.github.lopezjavier.appfitness.domain.repository.CoachSummaryRepository
 import io.github.lopezjavier.appfitness.domain.repository.NotificationSettingsRepository
 import io.github.lopezjavier.appfitness.domain.repository.ProfileRepository
 import io.github.lopezjavier.appfitness.domain.repository.WeeklyCheckInRepository
@@ -14,8 +15,8 @@ import kotlinx.datetime.toLocalDateTime
 /**
  * Reads the last weigh-in (any source), the last circumference, the onboarding weight day, the check-in weekday and
  * the stored check-in of the open window, plus the silenced kinds, and derives the pending reminders and the check-in
- * window. Days are local to [timeZone]. Any failed read fails the whole call, so a failure is never shown as
- * "no reminders".
+ * window, plus the unseen weekly summary notice when a [summaries] repository is given. Days are local to
+ * [timeZone]. Any failed read fails the whole call, so a failure is never shown as "no reminders".
  */
 @Suppress("LongParameterList") // One port per read.
 class LoadReminders(
@@ -28,6 +29,7 @@ class LoadReminders(
     private val timeZone: TimeZone,
     private val compute: ComputeReminders,
     private val resolveCheckInDay: ResolveCheckInDay = ResolveCheckInDay(),
+    private val summaries: CoachSummaryRepository? = null,
 ) {
     suspend operator fun invoke(): Result<ReminderSnapshot> = runCatching {
         val today = clock.today()
@@ -41,6 +43,8 @@ class LoadReminders(
         val window = resolveCheckInDay(today, weekday, firstDay)
             ?.takeIf { NotificationKind.WeeklyCheckIn !in silenced }
             ?.let { day -> day.copy(answer = checkIns.get(day.weekStart).getOrThrow()) }
+        val notice = summaries?.takeIf { NotificationKind.WeekSummary !in silenced }
+            ?.getLatest(today)?.getOrThrow()?.toNotice()
         val reminders = compute(
             today = today,
             lastWeightDay = latestWeight?.measuredAt?.toLocalDateTime(timeZone)?.date,
@@ -49,6 +53,7 @@ class LoadReminders(
             firstDay = firstDay,
             silenced = silenced,
             checkIn = window,
+            weekSummary = notice,
         )
         ReminderSnapshot(reminders, window)
     }

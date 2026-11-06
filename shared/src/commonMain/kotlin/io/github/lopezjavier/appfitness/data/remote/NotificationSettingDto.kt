@@ -15,6 +15,9 @@ internal enum class NotificationKindDto(val domain: NotificationKind) {
 
     @SerialName("weekly_check_in")
     WeeklyCheckIn(NotificationKind.WeeklyCheckIn),
+
+    @SerialName("week_summary")
+    WeekSummary(NotificationKind.WeekSummary),
     ;
 
     companion object {

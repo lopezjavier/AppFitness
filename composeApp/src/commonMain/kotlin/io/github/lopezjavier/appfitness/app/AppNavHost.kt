@@ -214,6 +214,9 @@ internal typealias NotificationCenterSlot =
 /** Weekly check-in content: modifier (full-screen insets) and how to close it. */
 internal typealias CheckInSlot = @Composable (modifier: Modifier, onClose: () -> Unit) -> Unit
 
+/** Weekly summary content (US-98): modifier (full-screen insets) and back. */
+internal typealias WeekSummarySlot = @Composable (modifier: Modifier, onBack: () -> Unit) -> Unit
+
 /** Weight history content: modifier (full-screen insets) and the back arrow. */
 internal typealias WeightHistorySlot = @Composable (modifier: Modifier, onBack: () -> Unit) -> Unit
 
@@ -519,6 +522,11 @@ internal val DefaultCheckInSlot: CheckInSlot = { modifier, _ ->
     Box(modifier.fillMaxSize().testTag("checkin_screen"))
 }
 
+/** Empty weekly summary for previews and shell tests; the real one is wired by `AppRoot`. */
+internal val DefaultWeekSummarySlot: WeekSummarySlot = { modifier, _ ->
+    Box(modifier.fillMaxSize().testTag("week_summary_screen"))
+}
+
 /** Empty weight history for previews and shell tests; the real one is wired by `AppRoot`. */
 internal val DefaultWeightHistorySlot: WeightHistorySlot = { modifier, _ ->
     Box(modifier.fillMaxSize().testTag("weight_history_screen"))
@@ -727,6 +735,7 @@ internal fun AppNavHost(
     weightHistory: WeightHistorySlot = DefaultWeightHistorySlot,
     notificationCenter: NotificationCenterSlot = DefaultNotificationCenterSlot,
     checkIn: CheckInSlot = DefaultCheckInSlot,
+    weekSummary: WeekSummarySlot = DefaultWeekSummarySlot,
 ) {
     val catalogAvailable = features.isAvailable(CatalogRoute)
     val openCatalog = remember(navController) { { navController.navigateToFullScreen(CatalogRoute) } }
@@ -761,6 +770,7 @@ internal fun AppNavHost(
             },
             onOpenYourData = { navController.navigateToFullScreen(YourDataRoute) },
             onOpenFreeText = { navController.navigateToFullScreen(FreeTextLinesRoute) },
+            onOpenWeekSummary = { navController.navigateToFullScreen(WeekSummaryRoute) },
             onOpenExercise = { navController.navigateToFullScreen(ExerciseDetailRoute(it, selectMode = false)) },
             onOpenRoutineRange = { routineId, exerciseId ->
                 navController.navigateToFullScreen(RoutineBuilderRoute(routineId, exerciseId))
@@ -976,6 +986,8 @@ internal fun AppNavHost(
                             navController.navigateToFullScreen(WeightRoute(WeightEntryTarget.Circumference))
 
                         ReminderKind.CheckIn -> navController.navigateToFullScreen(CheckInRoute)
+
+                        ReminderKind.WeekSummary -> navController.navigateToFullScreen(WeekSummaryRoute)
                     }
                 },
                 { navController.popFullScreen(entry) },
@@ -983,6 +995,9 @@ internal fun AppNavHost(
         }
         composable<CheckInRoute> { entry ->
             checkIn(Modifier.padding(fullScreenPadding)) { navController.popFullScreen(entry) }
+        }
+        composable<WeekSummaryRoute> { entry ->
+            weekSummary(Modifier.padding(fullScreenPadding)) { navController.popFullScreen(entry) }
         }
         composable<WeightHistoryRoute> { entry ->
             weightHistory(Modifier.padding(fullScreenPadding)) { navController.popFullScreen(entry) }

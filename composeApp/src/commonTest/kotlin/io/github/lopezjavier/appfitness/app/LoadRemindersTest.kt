@@ -10,6 +10,7 @@ import io.github.lopezjavier.appfitness.domain.model.CircumferenceSite
 import io.github.lopezjavier.appfitness.domain.model.MeasurementSource
 import io.github.lopezjavier.appfitness.domain.model.NotificationKind
 import io.github.lopezjavier.appfitness.domain.model.ReminderKind
+import io.github.lopezjavier.appfitness.domain.model.WeekSummary
 import kotlinx.coroutines.test.runTest
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.TimeZone
@@ -188,6 +189,67 @@ class LoadRemindersTest {
 
         assertNull(snapshot.checkIn)
         assertTrue(snapshot.reminders.isEmpty())
+    }
+
+    private fun summary(seen: Boolean = false) = WeekSummary(
+        planId = "p1",
+        week = 3,
+        startDate = LocalDate(2026, 10, 19),
+        endDate = LocalDate(2026, 10, 25),
+        seen = seen,
+        sessionsDone = 3,
+        sessionsPlanned = 4,
+        groups = emptyList(),
+        weight = null,
+        completeDays = 5,
+        weighInDays = 3,
+        missingRecords = false,
+        changes = emptyList(),
+        calorieProposal = null,
+        deload = false,
+    )
+
+    private suspend fun weekSummaryReminders(env: ReminderEnv) =
+        env.load().getOrThrow().reminders.filter { it.kind == ReminderKind.WeekSummary }
+
+    @Test
+    fun unseenWeekSummary_isListedDueOnTheWeekEnd() = runTest {
+        val env = ReminderEnv(today).apply { summaries.latest = Result.success(summary()) }
+
+        val reminder = weekSummaryReminders(env).single()
+
+        assertEquals(LocalDate(2026, 10, 25), reminder.dueDate)
+    }
+
+    @Test
+    fun seenWeekSummary_isNotListed() = runTest {
+        val env = ReminderEnv(today).apply { summaries.latest = Result.success(summary(seen = true)) }
+
+        assertTrue(weekSummaryReminders(env).isEmpty())
+    }
+
+    @Test
+    fun silencedWeekSummary_isNotListed() = runTest {
+        val env = ReminderEnv(today).apply {
+            summaries.latest = Result.success(summary())
+            settings.values[NotificationKind.WeekSummary] = false
+        }
+
+        assertTrue(weekSummaryReminders(env).isEmpty())
+    }
+
+    @Test
+    fun noWeekSummary_isNotListed() = runTest {
+        assertTrue(weekSummaryReminders(ReminderEnv(today)).isEmpty())
+    }
+
+    @Test
+    fun failedWeekSummaryRead_returnsFailure() = runTest {
+        val env = ReminderEnv(today).apply {
+            summaries.latest = Result.failure(AppException(AppError.Network))
+        }
+
+        assertTrue(env.load().isFailure)
     }
 
     @Test
