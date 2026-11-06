@@ -83,6 +83,7 @@ class ShellChromeTest {
                 NotificationCenterRoute,
                 CheckInRoute,
                 WeekSummaryRoute,
+                BlockReviewRoute,
             ),
             AppDestinations.fullScreenRoutes.map {
                 if (it is CatalogRoute ||
@@ -104,7 +105,8 @@ class ShellChromeTest {
                     it is FreeTextLinesRoute ||
                     it is NotificationCenterRoute ||
                     it is CheckInRoute ||
-                    it is WeekSummaryRoute
+                    it is WeekSummaryRoute ||
+                    it is BlockReviewRoute
                 ) {
                     it
                 } else {
