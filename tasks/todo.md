@@ -279,6 +279,23 @@ No "Notes for later epics" item targets E14 (the Phase 3 "Recuperar" note stays 
 
 ---
 
+## T-237: Muscle filter in the builder's exercise picker · post-E14 enhancement (user request, 2026-11-06)
+
+**Story:** US-102 (builder) · **Flow:** planner → compose-ui-developer (kotlin-core-developer only if the ViewModel needs it) → pr-creator → pr-reviewer + ux-reviewer.
+**Description:** When the user builds a block from scratch and adds an extra exercise, the picker lists the exercises of every muscle together. Add a muscle filter like the routine builder's picker (`ExercisePickerScreen.kt` `PickerFilters`: `FilterChipRow` with "Todos" + one chip per `MuscleGroup`), reusing that designsystem component, in `BuilderSlotPickerSheet` for extra exercises. A slot tied to one muscle keeps its fixed list. Also folds in the carried follow-up: the picker search is accent-insensitive (`normalizeText`, as `SearchExercises` does) instead of `contains(ignoreCase = true)` (`BuilderSlotPickerSheet.kt:55`, and `FolderBlockPickers.kt:93`).
+**Acceptance criteria:**
+- [ ] Given I add an extra exercise in the block builder, when the picker opens, then I see the muscle chips ("Todos" selected) above the list, and picking a chip lists only that muscle's exercises, combined with the search text.
+- [ ] Given a muscle with no matching exercise, then the picker shows the empty message, never a blank list.
+- [ ] The selected chip survives leaving the app and coming back (ADR-40); chips have snake_case testTags; Spanish copy reuses `exercise_filter_all` and the muscle labels.
+- [ ] Search matches regardless of accents and case.
+**Verification:**
+- [ ] lint + `testLocalDebugUnitTest` green; Robolectric tests for chip filter, chip + search, empty state and restoration. No SQL, no model call.
+**Dependencies:** none (E14 closed, `v1.5.0`).
+**Files likely touched:** `feature/trainer/{BuilderSlotPickerSheet,FolderBlockPickers}.kt`, `strings.xml` (if new copy), tests
+**Estimated scope:** S/M (UI only)
+
+---
+
 # E13 · Performance assistant → `v1.x` (proposed `v1.4.0`)
 
 Stories: `planning/epics/E13-performance-assistant.md` (US-68…US-90 + the evaluation; US-81…US-90 and the trainer-journey amendments added by the replan of 2026-11-01, see "E13 replan: the trainer journey" right above T-166; ADR-86…ADR-89). Plan: [tasks/plan.md](plan.md). Decisions: ADR-76 (coach rules), ADR-77 (provider, cost cap; NFR-02), ADR-78 (target weight retired, `activity_level` starting factor), ADR-79 (Trainer tab), ADR-81 (discomfort level, no message), ADR-82 (note kind), ADR-25 (calorie floor), ADR-29 (cascade), ADR-40 (restoration), ADR-73 (no background job). Rules: `planning/07-coach-design.md` §2-§9 (every figure), §11 (prices, 150 s wall clock), `04` §1, §3, §4.1, §4.9, §4.12, §6.6, `05` §8-§10.
