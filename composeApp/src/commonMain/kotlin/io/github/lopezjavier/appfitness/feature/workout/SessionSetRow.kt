@@ -27,6 +27,7 @@ import io.github.lopezjavier.appfitness.composeapp.resources.live_set_delete_cd
 import io.github.lopezjavier.appfitness.composeapp.resources.note_edit
 import io.github.lopezjavier.appfitness.composeapp.resources.session_cardio_minutes_cd
 import io.github.lopezjavier.appfitness.composeapp.resources.session_cardio_minutes_hint
+import io.github.lopezjavier.appfitness.composeapp.resources.set_header_time_cd
 import io.github.lopezjavier.appfitness.designsystem.AppNumberFormat
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
 import io.github.lopezjavier.appfitness.designsystem.InlineNote
@@ -41,12 +42,18 @@ import io.github.lopezjavier.appfitness.designsystem.SwipeToDeleteRow
 import io.github.lopezjavier.appfitness.designsystem.setNoteSummary
 import io.github.lopezjavier.appfitness.domain.model.Equipment
 import io.github.lopezjavier.appfitness.domain.model.ExerciseMetricType
+import io.github.lopezjavier.appfitness.domain.usecase.DurationFormat
 import io.github.lopezjavier.appfitness.feature.exercises.setFieldSpecs
 import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.resources.stringResource
 
 /** Maps a live domain row to the values of a [SetRow]. The single place to extend for other set entry types. */
-internal fun LiveSetRow.toSetRowValues() = SetRowValues(
+internal fun LiveSetRow.toSetRowValues(
+    cardio: Boolean = false,
+    position: Int = 0,
+    placeholder: String = "",
+    placeholderDescription: String = "",
+) = SetRowValues(
     index = setIndex,
     previous = previous,
     weight = weight,
@@ -61,6 +68,10 @@ internal fun LiveSetRow.toSetRowValues() = SetRowValues(
     floors = floors,
     durationSeconds = durationSeconds,
     stopwatchRunning = stopwatchRunning,
+    cardioPlaceholder = placeholder.takeIf { cardio },
+    cardioPlaceholderDescription = placeholderDescription,
+    cardioStartTag = "session_cardio_start_${position}_$setIndex".takeIf { cardio },
+    cardioPlaceholderTag = "session_cardio_minutes_field_${position}_$setIndex".takeIf { cardio },
 )
 
 /**
@@ -78,7 +89,9 @@ internal fun SessionSetRow(
     equipment: Equipment? = null,
     deleteEnabled: Boolean = true,
     showRpe: Boolean = true,
+    cardio: Boolean = false,
 ) {
+    val cardioRow = cardio || row.plannedDurationMinutes != null
     val tag = "live_set_${position}_${row.setIndex}"
     val noteText = setNoteSummary(row.noteKind, row.notes)
     val openNote = { onEvent(LiveSessionEvent.OpenSetNote(position, row.setIndex)) }
@@ -91,7 +104,12 @@ internal fun SessionSetRow(
     ) {
         Column {
             SetRow(
-                values = row.toSetRowValues(),
+                values = row.toSetRowValues(
+                    cardio = cardioRow,
+                    position = position,
+                    placeholder = cardioPlaceholder(row.plannedDurationMinutes),
+                    placeholderDescription = cardioPlaceholderDescription(row.plannedDurationMinutes),
+                ),
                 onWeightChange = { onEvent(LiveSessionEvent.WeightChanged(position, row.setIndex, it)) },
                 onRepsChange = { onEvent(LiveSessionEvent.RepsChanged(position, row.setIndex, it)) },
                 onCompletedChange = { onEvent(LiveSessionEvent.SetChecked(position, row.setIndex, it)) },
@@ -129,7 +147,6 @@ internal fun SessionSetRow(
                     )
                 },
             )
-            row.plannedDurationMinutes?.let { PlannedMinutesHint(position, row.setIndex, it) }
             if (row.pendingSave) PendingSaveLabel(Modifier.testTag("${tag}_pending"))
             noteText?.let {
                 InlineNote(
@@ -190,16 +207,19 @@ private fun PendingSaveLabel(modifier: Modifier = Modifier) {
     }
 }
 
-/** The planned minutes of a cardio set as a dim placeholder under the row (04 4.3 ghost pattern, no tap-to-fill). */
+/** The planned minutes ("40 min") are the dim placeholder of the TIEMPO field (04 4.3 ghost pattern). */
 @Composable
-private fun PlannedMinutesHint(position: Int, setIndex: Int, minutes: Int) {
-    val description = stringResource(Res.string.session_cardio_minutes_cd, minutes)
-    Text(
-        text = stringResource(Res.string.session_cardio_minutes_hint, minutes),
-        style = AppTheme.typography.bodySmall,
-        color = AppTheme.colors.ghostData,
-        modifier = Modifier.padding(start = Spacing.xl)
-            .semantics { contentDescription = description }
-            .testTag("session_cardio_minutes_field_${position}_$setIndex"),
-    )
+private fun cardioPlaceholder(minutes: Int?): String = if (minutes !=
+    null
+) {
+    stringResource(Res.string.session_cardio_minutes_hint, minutes)
+} else {
+    DurationFormat.formatMmSs(0)
+}
+
+@Composable
+private fun cardioPlaceholderDescription(minutes: Int?): String = if (minutes != null) {
+    stringResource(Res.string.session_cardio_minutes_cd, minutes)
+} else {
+    stringResource(Res.string.set_header_time_cd)
 }

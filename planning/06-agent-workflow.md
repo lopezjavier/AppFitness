@@ -21,7 +21,7 @@
         REJECTED -> planner fixes the plan
   -> kotlin-core-developer, then compose-ui-developer (L tasks: one run per slice), and/or backend-developer
 [PM] marks the task in tasks/todo.md on the branch
-  -> pr-creator         commit(s), push, gh pr create
+  -> pr-creator         verify-local gate (Kotlin changes only), commit(s), push, gh pr create
   -> pr-reviewer + ux-reviewer (diff, only if files under feature/, designsystem/ or composeResources/ changed), in parallel
         a finding -> developer, one combined fix round
 [PM] green CI -> gh pr merge --squash --delete-branch -> COMPLETED; hand off, next task in a fresh session (/clear)
@@ -73,7 +73,7 @@ When the user asks, the `product-owner` skill runs in the main session: brainsto
 | `kotlin-core-developer` | Domain, data, DI, ViewModels + unit tests |
 | `compose-ui-developer` | Screens, designsystem, navigation, Robolectric tests; starts from the core |
 | `backend-developer` | Migrations, RLS, pgTAP, Edge Functions + `deno test` |
-| `pr-creator` | Commits, push, PR; never re-encodes files; stops on any secret |
+| `pr-creator` | Runs verify-local.sh as the gate when Kotlin changed; commits, push, PR; never re-encodes files; stops on any secret |
 | `pr-reviewer` | Verdict as a review comment (`--comment`) |
 
 Models are the `model:` line of each agent file and are the user's decision. Each agent is self-contained. Only `pr-creator` commits; no agent other than the PM edits `tasks/`.

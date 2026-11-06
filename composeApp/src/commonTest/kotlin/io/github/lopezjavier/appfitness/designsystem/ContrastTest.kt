@@ -54,6 +54,13 @@ class ContrastTest {
     }
 
     @Test
+    fun cardioTimerBar_limeAndAmberOnOverlay_areAa() {
+        assertAa(c.neonLime, c.surfaceOverlay, "lime/surfaceOverlay")
+        assertAa(c.energyAmber, c.surfaceOverlay, "amber/surfaceOverlay")
+        assertAa(c.textSecondary, c.surfaceOverlay, "textSecondary/surfaceOverlay")
+    }
+
+    @Test
     fun activeChip_cyanOnOverlay_isAa() {
         assertAa(c.athleticCyan, c.surfaceOverlay, "cyan/surfaceOverlay")
     }
