@@ -4,7 +4,7 @@ begin;
 create extension if not exists pgtap with schema extensions;
 set local search_path = extensions, public;
 
-select plan(39);
+select plan(59);
 
 create function pg_temp.u(n int) returns uuid language sql as $$
   select ('d7000000-0000-4000-8000-0000000000' || lpad(n::text, 2, '0'))::uuid $$;
@@ -53,12 +53,31 @@ exception when others then
   return sqlstate || ' ' || sqlerrm;
 end $$;
 
+-- T-235: the next block built from the review (p_previous_plan_id).
+create function pg_temp.nextsave(p_n int, p_prev int, p_exercises jsonb) returns jsonb language sql as $$
+  select public.save_built_coach_block(pg_temp.p(p_n), pg_temp.tr(), pg_temp.sess(p_exercises), null, pg_temp.p(p_prev)) $$;
+create function pg_temp.nextcode(p_n int, p_prev int, p_exercises jsonb) returns text language plpgsql as $$
+begin
+  perform pg_temp.nextsave(p_n, p_prev, p_exercises);
+  return 'saved';
+exception when others then
+  return sqlstate || ' ' || sqlerrm;
+end $$;
+
 grant execute on all functions in schema pg_temp to authenticated;
 
-insert into auth.users (id, email) select pg_temp.u(n), 'builtsave' || n || '@example.com' from generate_series(1, 8) n;
+insert into auth.users (id, email) select pg_temp.u(n), 'builtsave' || n || '@example.com' from generate_series(1, 11) n;
 insert into public.coach_plans (id, user_id, block_start, intention, nutrition, status)
 select pg_temp.p(n), pg_temp.u(n), current_date, 'muscle', '{}', case when n = 6 then 'superseded' else 'proposed' end
 from generate_series(1, 8) n;
+-- T-235 plans: user 9 finished an accepted block started 40 days ago; user 10 has a superseded and an accepted plan;
+-- user 11 has an accepted plan and a proposed one whose nutrition cannot be accepted.
+insert into public.coach_plans (id, user_id, block_start, intention, nutrition, status, accepted_at) values
+  (pg_temp.p(9), pg_temp.u(9), current_date - 40, 'muscle', '{"target_kcal":2500}', 'accepted', now()),
+  (pg_temp.p(11), pg_temp.u(10), current_date - 40, 'muscle', '{}', 'superseded', null),
+  (pg_temp.p(12), pg_temp.u(10), current_date, 'muscle', '{}', 'accepted', now()),
+  (pg_temp.p(13), pg_temp.u(11), current_date - 40, 'muscle', '{}', 'accepted', now()),
+  (pg_temp.p(14), pg_temp.u(11), current_date, 'muscle', '{}', 'proposed', null);
 -- Open level 4 discomfort on the machine press (user 4).
 insert into public.exercise_discomforts (user_id, exercise_id, level, note) values (pg_temp.u(4), pg_temp.press(), 4, 'hombro');
 -- History for user 7 (builder inputs) and a victim row for user 2.
@@ -78,7 +97,7 @@ values
 insert into public.exercise_favorites (user_id, exercise_id) values (pg_temp.u(7), pg_temp.k('leg-extension'));
 
 -- (h) a table and function tour first: privileges.
-select is((select has_function_privilege('anon', 'public.save_built_coach_block(uuid,jsonb,jsonb,text)', 'execute')), false,
+select is((select has_function_privilege('anon', 'public.save_built_coach_block(uuid,jsonb,jsonb,text,uuid)', 'execute')), false,
   'anon cannot call save_built_coach_block');
 select is((select has_function_privilege('anon', 'public.coach_builder_inputs(date)', 'execute')), false,
   'anon cannot call coach_builder_inputs');
@@ -179,7 +198,60 @@ select throws_ok($$select public.save_built_coach_block(pg_temp.p(7), pg_temp.tr
 select pg_temp.as_user(7);
 select is((select count(*)::int from public.coach_plan_sessions where plan_id = pg_temp.p(7)), 0, 'and A''s plan has no rows');
 
+-- (i) T-235: saving the next block starts it and ends the previous one.
+-- "Seguir como estoy": no new plan exists, the accepted plan is continued by a new accepted plan.
+select pg_temp.as_user(9);
+select lives_ok($$select pg_temp.save(9, pg_temp.tr(), pg_temp.std())$$, 'user 9 saved the first block of the accepted plan');
+select throws_ok($$select public.coach_begin_next_block(pg_temp.p(9), pg_temp.p(9))$$, '42501',
+  'coach_begin_next_block is internal', 'the helper cannot be called directly');
+create temp table rk as select pg_temp.nextsave(9, 9, pg_temp.std()) as res;
+grant select on rk to authenticated;
+select is((select status from public.coach_plans where id = pg_temp.p(9)), 'superseded', 'the previous plan ends');
+select is((select count(*)::int from public.coach_plans where user_id = pg_temp.u(9) and status = 'accepted'), 1,
+  'exactly one plan is accepted');
+select is((select p.status || '/' || (p.folder_id = (rk.res->>'folder_id')::uuid)::text
+           from public.coach_plans p, rk where p.id = (rk.res->>'plan_id')::uuid),
+  'accepted/true', 'the new plan is the accepted one and holds the saved folder');
+select is((select p.training_start from public.coach_plans p, rk where p.id = (rk.res->>'plan_id')::uuid),
+  pg_temp.today(), 'week 1 of the new block starts the day it is saved');
+select is((select p.block_start from public.coach_plans p, rk where p.id = (rk.res->>'plan_id')::uuid),
+  pg_temp.today(), 'and the new plan starts that day');
+select is((select p.nutrition = o.nutrition from public.coach_plans p, rk, public.coach_plans o
+           where p.id = (rk.res->>'plan_id')::uuid and o.id = pg_temp.p(9)),
+  true, 'the nutrition part is carried over unchanged');
+select is((select count(*)::int from public.coach_plan_sessions s, rk
+           where s.plan_id = (rk.res->>'plan_id')::uuid and s.routine_id is not null), 4,
+  'all four weeks of the new block are linked to routines');
+select is((select count(*)::int from public.coach_plans where user_id = pg_temp.u(9)), 2,
+  'the previous plan stays as history');
+select throws_ok($$select pg_temp.nextsave(9, 9, pg_temp.std())$$, '55000', 'previous block is not the accepted block',
+  'repeating the call after the previous block ended is refused');
+select pg_temp.as_user(2);
+select throws_ok($$select pg_temp.nextsave(9, 9, pg_temp.std())$$, 'P0002', 'plan not found',
+  'user B cannot end user A''s block');
+select pg_temp.as_user(9);
+select is((select status from public.coach_plans where id = pg_temp.p(9)), 'superseded', 'and A''s previous plan is untouched by B');
+
+-- A different plan already accepted (the review phase plan accepted before the builder): only the week anchor is set.
+select pg_temp.as_user(10);
+create temp table rd as select pg_temp.nextsave(12, 11, pg_temp.std()) as res;
+grant select on rd to authenticated;
+select is((select res->>'plan_id' from rd), pg_temp.p(12)::text, 'the block is saved in the given plan');
+select is((select status || '/' || training_start::text from public.coach_plans where id = pg_temp.p(12)),
+  'accepted/' || pg_temp.today()::text, 'which stays accepted and starts today');
+select is(pg_temp.nextsave(12, 11, pg_temp.std()), (select res from rd), 'a repeated call returns the saved folder');
+select is((select count(*)::int from public.coach_plan_sessions where plan_id = pg_temp.p(12) and week = 1), 1,
+  'and creates nothing');
+
+-- A proposed plan goes through accept_coach_plan: one that cannot be accepted stores nothing and ends nothing.
+select pg_temp.as_user(11);
+select pg_temp.save(13, pg_temp.tr(), pg_temp.std());
+select isnt(pg_temp.nextcode(14, 13, pg_temp.std()), 'saved', 'a proposed plan that cannot be accepted is refused');
+select is((select status from public.coach_plans where id = pg_temp.p(13)), 'accepted', 'the previous plan is still accepted');
+select is((select count(*)::int from public.coach_plan_sessions where plan_id = pg_temp.p(14)), 0, 'and the refused plan holds no block');
+
 -- coach_builder_inputs.
+select pg_temp.as_user(7);
 select is((select jsonb_array_length(public.coach_builder_inputs(pg_temp.today())->'history')), 2,
   'history: only the caller''s lifts of the last 8 weeks (press, cable row; not another user''s leg extension)');
 select is((select h->>'sessions_8w' from jsonb_array_elements(public.coach_builder_inputs(pg_temp.today())->'history') h
