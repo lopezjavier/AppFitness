@@ -1,5 +1,7 @@
 # Business rules and formulas (current)
 
+Phase 2 archive (full text as it was when Phase 2 closed): [`phase2/04-business-rules.md`](phase2/04-business-rules.md).
+
 Implemented as pure functions in `shared/domain/usecase/` with unit tests that include the examples below. Full prose, extra examples and history: [`phase1/04-business-rules.md`](phase1/04-business-rules.md). Section numbers are cited by code; do not renumber.
 
 ## 1. Energy and macros

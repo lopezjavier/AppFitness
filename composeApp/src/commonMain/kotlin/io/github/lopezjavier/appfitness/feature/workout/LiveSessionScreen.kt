@@ -38,11 +38,13 @@ import io.github.lopezjavier.appfitness.composeapp.resources.live_pause
 import io.github.lopezjavier.appfitness.composeapp.resources.live_resume
 import io.github.lopezjavier.appfitness.composeapp.resources.live_title_fallback
 import io.github.lopezjavier.appfitness.composeapp.resources.rest_sound_permission_note
+import io.github.lopezjavier.appfitness.composeapp.resources.rest_timer_label
 import io.github.lopezjavier.appfitness.designsystem.AppScreen
 import io.github.lopezjavier.appfitness.designsystem.AppShapes
 import io.github.lopezjavier.appfitness.designsystem.AppStateAction
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
 import io.github.lopezjavier.appfitness.designsystem.AppTopBarAction
+import io.github.lopezjavier.appfitness.designsystem.CardioTimerBar
 import io.github.lopezjavier.appfitness.designsystem.ErrorState
 import io.github.lopezjavier.appfitness.designsystem.LocalAppHaptics
 import io.github.lopezjavier.appfitness.designsystem.LocalAppMessages
@@ -236,7 +238,7 @@ private fun LiveActive(
     var menuOpen by rememberSaveable { mutableStateOf(false) }
     KeepScreenOn()
     val subtitle = liveSubtitle(elapsedSeconds, state.isPaused)
-    val timer = state.restTimer
+    val timer = state.timerBar
     BoxWithConstraints(Modifier.fillMaxSize()) {
         val wide = windowWidthClassFor(maxWidth) == WindowWidthClass.Wide
         AppScreen(
@@ -245,7 +247,7 @@ private fun LiveActive(
             subtitleSemantics = subtitle.semantics,
             onBack = onBack,
             actions = liveActions(state, onEvent, onMenu = { menuOpen = true }),
-            footer = timer?.let { { RestFooter(it, onEvent) } },
+            footer = timer?.let { { TimerFooter(it, onEvent) } },
             maxContentWidth = if (wide) {
                 WindowWidthClassDefaults.TwoColumnContentMaxWidth
             } else {
@@ -299,18 +301,30 @@ private fun liveActions(
     }
 }
 
-/** The running rest, pinned as the screen footer (above the bottom inset; messages float above it). */
+/** The one timer slot (R-58), pinned as the screen footer: a rest or the cardio run (messages float above it). */
 @Composable
-private fun RestFooter(timer: RestTimerUi, onEvent: (LiveSessionEvent) -> Unit) {
-    RestTimerBar(
-        remaining = timer.remaining,
-        total = timer.total,
-        onAddTime = { onEvent(LiveSessionEvent.RestAdd30) },
-        onSkip = { onEvent(LiveSessionEvent.RestSkip) },
-        testTagPrefix = "live_rest",
-        paused = timer.paused,
-        pausedTestTag = "live_rest_timer_paused",
-    )
+private fun TimerFooter(timer: TimerBarUi, onEvent: (LiveSessionEvent) -> Unit) {
+    when (timer) {
+        is TimerBarUi.Rest -> RestTimerBar(
+            remaining = timer.remaining,
+            total = timer.total,
+            onAddTime = { onEvent(LiveSessionEvent.RestAdd30) },
+            onSkip = { onEvent(LiveSessionEvent.RestSkip) },
+            testTagPrefix = "live_rest",
+            paused = timer.paused,
+            pausedTestTag = "live_rest_timer_paused",
+            label = stringResource(Res.string.rest_timer_label),
+        )
+
+        is TimerBarUi.Cardio -> CardioTimerBar(
+            label = timer.exerciseName,
+            elapsed = timer.elapsed,
+            target = timer.target,
+            paused = timer.paused,
+            onToggle = { onEvent(LiveSessionEvent.StopwatchToggled(timer.position, timer.setIndex)) },
+            testTagPrefix = "live_cardio_timer",
+        )
+    }
 }
 
 /** The open warm-up or plate calculator sheet; its draft lives in the view model (survives process death). */

@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
@@ -28,6 +29,9 @@ import io.github.lopezjavier.appfitness.designsystem.ExerciseRow
 import io.github.lopezjavier.appfitness.designsystem.OfflineHint
 import io.github.lopezjavier.appfitness.designsystem.Spacing
 import io.github.lopezjavier.appfitness.domain.coach.builder.PickerEntry
+import io.github.lopezjavier.appfitness.domain.model.MuscleGroup
+import io.github.lopezjavier.appfitness.domain.usecase.normalizeText
+import io.github.lopezjavier.appfitness.feature.exercises.MuscleChipRow
 import io.github.lopezjavier.appfitness.feature.exercises.label
 import org.jetbrains.compose.resources.stringResource
 
@@ -46,13 +50,19 @@ internal fun BuilderSlotPickerSheet(
 ) {
     var query by rememberSaveable { mutableStateOf("") }
     var creating by rememberSaveable { mutableStateOf(false) }
+    var muscleIndex by rememberSaveable { mutableIntStateOf(0) } // 0 = Todos, n = MuscleGroup.entries[n - 1]
     val filled = !slot.extra && state.state.days[slot.day].slots.getOrNull(slot.index)?.pick != null
     val title = if (filled) {
         stringResource(Res.string.block_builder_pick_title_change)
     } else {
         stringResource(Res.string.block_builder_pick_title)
     }
-    val entries = state.pickerEntries.filter { it.exercise.name.contains(query.trim(), ignoreCase = true) }
+    val muscle = MuscleGroup.entries.getOrNull(muscleIndex - 1).takeIf { slot.extra }
+    val needle = normalizeText(query)
+    val entries = state.pickerEntries.filter {
+        normalizeText(it.exercise.name).contains(needle) &&
+            (muscle == null || it.exercise.exercise.muscleGroup == muscle)
+    }
     AppPickerSheet(
         title = title,
         onDismiss = { onEvent(BlockBuilderEvent.OpenSlot(null)) },
@@ -68,25 +78,15 @@ internal fun BuilderSlotPickerSheet(
             testTagPrefix = "block_builder_picker_search",
             modifier = Modifier.fillMaxWidth().padding(horizontal = Spacing.screenMargin),
         )
-        if (entries.isEmpty()) {
-            Text(
-                text = stringResource(Res.string.block_builder_pick_empty),
-                style = AppTheme.typography.bodyMedium,
-                color = AppTheme.colors.textSecondary,
-                modifier = Modifier.padding(Spacing.screenMargin).testTag("block_builder_pick_empty"),
+        if (slot.extra) {
+            MuscleChipRow(
+                selected = muscle,
+                onSelect = { muscleIndex = (it?.ordinal ?: -1) + 1 },
+                tagPrefix = "block_builder_picker",
+                modifier = Modifier.padding(horizontal = Spacing.screenMargin, vertical = Spacing.sm),
             )
         }
-        Column {
-            entries.forEach {
-                PickerRow(
-                    entry = it,
-                    favourite = it.exercise.id in state.favouriteIds,
-                    tagPrefix = "block_builder_pick",
-                    onSelect = { onEvent(BlockBuilderEvent.PickExercise(it.exercise.id)) },
-                    onOpenExercise = onOpenExercise,
-                )
-            }
-        }
+        BuilderPickerEntries(entries, state.favouriteIds, onEvent, onOpenExercise)
     }
     if (creating) {
         BuilderCreateExerciseSheet(
@@ -96,6 +96,34 @@ internal fun BuilderSlotPickerSheet(
             onEvent = onEvent,
             onDismiss = { creating = false },
         )
+    }
+}
+
+@Composable
+private fun BuilderPickerEntries(
+    entries: List<PickerEntry>,
+    favouriteIds: Set<String>,
+    onEvent: (BlockBuilderEvent) -> Unit,
+    onOpenExercise: (String) -> Unit,
+) {
+    Column {
+        if (entries.isEmpty()) {
+            Text(
+                text = stringResource(Res.string.block_builder_pick_empty),
+                style = AppTheme.typography.bodyMedium,
+                color = AppTheme.colors.textSecondary,
+                modifier = Modifier.padding(Spacing.screenMargin).testTag("block_builder_pick_empty"),
+            )
+        }
+        entries.forEach {
+            PickerRow(
+                entry = it,
+                favourite = it.exercise.id in favouriteIds,
+                tagPrefix = "block_builder_pick",
+                onSelect = { onEvent(BlockBuilderEvent.PickExercise(it.exercise.id)) },
+                onOpenExercise = onOpenExercise,
+            )
+        }
     }
 }
 

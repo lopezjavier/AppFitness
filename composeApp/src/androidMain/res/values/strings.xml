@@ -2,5 +2,7 @@
 <resources>
     <string name="rest_alert_title">Descanso terminado</string>
     <string name="rest_alert_body">Vuelve a tu entrenamiento.</string>
-    <string name="rest_alert_channel_chime">Fin de descanso</string>
+    <string name="cardio_alert_title">Objetivo de cardio alcanzado</string>
+    <string name="cardio_alert_body">Termina la serie cuando quieras.</string>
+    <string name="rest_alert_channel_chime">Fin de descanso y de cardio</string>
 </resources>

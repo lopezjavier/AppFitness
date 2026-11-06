@@ -21,6 +21,7 @@ internal object BlockBuilderTestData {
 
     val bench = catalog("bench", "Press banca", MuscleGroup.Chest, MovementPattern.HorizontalPush)
     val fly = catalog("fly", "Aperturas", MuscleGroup.Chest, MovementPattern.Isolation)
+    val row = catalog("row", "Remo con barra", MuscleGroup.Back, MovementPattern.HorizontalPull)
     val bike = CatalogExercise(
         exerciseRow("bike", "bike", MuscleGroup.FullBody, metric = ExerciseMetricType.Duration),
         "Bicicleta estática",

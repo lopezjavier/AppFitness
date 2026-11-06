@@ -8,6 +8,7 @@ import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.milliseconds
+import kotlin.time.Duration.Companion.minutes
 import kotlin.time.Duration.Companion.seconds
 
 class RestTimerBarTest {
@@ -126,4 +127,42 @@ class RestTimerBarTest {
 
     @Test
     fun actionStyle_isTitleMedium() = assertEquals(typography.titleMedium, RestTimerBarDefaults.actionStyle(typography))
+
+    @Test
+    fun elapsedText_countsUpAndTruncatesSeconds() {
+        assertEquals("12:05", CardioTimerBarDefaults.elapsedText(12.minutes + 5.seconds + 900.milliseconds, 40.minutes))
+        assertEquals("00:00", CardioTimerBarDefaults.elapsedText(Duration.ZERO, null))
+    }
+
+    @Test
+    fun elapsedText_overTargetShowsThePlusExcess() {
+        assertEquals("+01:30", CardioTimerBarDefaults.elapsedText(41.minutes + 30.seconds, 40.minutes))
+        assertEquals("40:00", CardioTimerBarDefaults.elapsedText(40.minutes, 40.minutes))
+    }
+
+    @Test
+    fun isOverTarget_neverWithoutATarget() {
+        assertFalse(CardioTimerBarDefaults.isOverTarget(5.minutes, null))
+        assertFalse(CardioTimerBarDefaults.isOverTarget(40.minutes, 40.minutes))
+        assertTrue(CardioTimerBarDefaults.isOverTarget(40.minutes + 1.seconds, 40.minutes))
+    }
+
+    @Test
+    fun cardioProgress_isElapsedOverTargetCoercedTo01() {
+        assertEquals(0.5f, CardioTimerBarDefaults.cardioProgress(20.minutes, 40.minutes))
+        assertEquals(1f, CardioTimerBarDefaults.cardioProgress(50.minutes, 40.minutes))
+        assertEquals(0f, CardioTimerBarDefaults.cardioProgress(5.minutes, null))
+    }
+
+    @Test
+    fun cardioColors_limeThenAmberOverTarget_restKeepsCyan() {
+        assertEquals(c.neonLime, CardioTimerBarDefaults.cardioColors(c, overTarget = false).countdown)
+        assertEquals(c.energyAmber, CardioTimerBarDefaults.cardioColors(c, overTarget = true).progress)
+        assertEquals(c.athleticCyan, RestTimerBarDefaults.colors(c).countdown)
+    }
+
+    @Test
+    fun elapsedParts_truncate() {
+        assertEquals(12 to 5, CardioTimerBarDefaults.elapsedParts(12.minutes + 5.seconds + 999.milliseconds))
+    }
 }

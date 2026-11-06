@@ -14,12 +14,16 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import io.github.lopezjavier.appfitness.composeapp.resources.Res
+import io.github.lopezjavier.appfitness.composeapp.resources.catalog_cardio_timer_over
+import io.github.lopezjavier.appfitness.composeapp.resources.catalog_cardio_timer_paused
+import io.github.lopezjavier.appfitness.composeapp.resources.catalog_cardio_timer_running
 import io.github.lopezjavier.appfitness.composeapp.resources.catalog_rest_live
 import io.github.lopezjavier.appfitness.composeapp.resources.catalog_rest_reset
 import io.github.lopezjavier.appfitness.composeapp.resources.catalog_rest_start
 import io.github.lopezjavier.appfitness.composeapp.resources.catalog_rest_static
 import io.github.lopezjavier.appfitness.composeapp.resources.catalog_section_rest_timer
 import io.github.lopezjavier.appfitness.designsystem.AppCard
+import io.github.lopezjavier.appfitness.designsystem.CardioTimerBar
 import io.github.lopezjavier.appfitness.designsystem.GhostButton
 import io.github.lopezjavier.appfitness.designsystem.RestCountdown
 import io.github.lopezjavier.appfitness.designsystem.RestTimerBar
@@ -38,6 +42,10 @@ private const val STATIC_REMAINING_SECONDS = 72
 private const val STATIC_TOTAL_SECONDS = 120
 private const val LIVE_TICK_MILLIS = 200L
 private val LIVE_REST = 2.minutes
+private val CARDIO_DEMO_TARGET = 40.minutes
+private val CARDIO_DEMO_OVER = 90.seconds
+private val CARDIO_DEMO_ELAPSED = 12.minutes + 5.seconds
+private const val CARDIO_DEMO_NAME = "Bicicleta Estática"
 
 /** Catalog section of the rest timer bar (T-025): a deterministic demo and a real countdown. */
 internal fun LazyListScope.restTimerItems() {
@@ -54,6 +62,7 @@ private fun RestTimerSection() {
             Column(verticalArrangement = Arrangement.spacedBy(Spacing.lg)) {
                 StaticRestDemo()
                 LiveRestDemo()
+                CardioBarDemo()
             }
         }
     }
@@ -90,6 +99,41 @@ private fun StaticRestDemo() {
                 visible = true
             },
             modifier = Modifier.fillMaxWidth().testTag("catalog_rest_timer_reset"),
+        )
+    }
+}
+
+/** The cardio variant of the bar (R-58): running, paused and over the target, with a working pause/resume. */
+@Composable
+private fun CardioBarDemo() {
+    var paused by rememberSaveable { mutableStateOf(false) }
+    Column(verticalArrangement = Arrangement.spacedBy(Spacing.md)) {
+        VariantCaption(stringResource(Res.string.catalog_cardio_timer_running))
+        CardioTimerBar(
+            label = CARDIO_DEMO_NAME,
+            elapsed = CARDIO_DEMO_ELAPSED,
+            target = CARDIO_DEMO_TARGET,
+            paused = paused,
+            onToggle = { paused = !paused },
+            testTagPrefix = "catalog_cardio_timer",
+        )
+        VariantCaption(stringResource(Res.string.catalog_cardio_timer_paused))
+        CardioTimerBar(
+            label = CARDIO_DEMO_NAME,
+            elapsed = CARDIO_DEMO_ELAPSED,
+            target = CARDIO_DEMO_TARGET,
+            paused = true,
+            onToggle = {},
+            testTagPrefix = "catalog_cardio_timer_paused",
+        )
+        VariantCaption(stringResource(Res.string.catalog_cardio_timer_over))
+        CardioTimerBar(
+            label = CARDIO_DEMO_NAME,
+            elapsed = CARDIO_DEMO_TARGET + CARDIO_DEMO_OVER,
+            target = CARDIO_DEMO_TARGET,
+            paused = false,
+            onToggle = {},
+            testTagPrefix = "catalog_cardio_timer_over",
         )
     }
 }

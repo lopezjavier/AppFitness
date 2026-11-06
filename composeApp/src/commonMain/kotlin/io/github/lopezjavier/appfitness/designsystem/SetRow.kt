@@ -61,6 +61,14 @@ data class SetRowValues(
     /** Elapsed time shown by a [SetFieldKind.Duration] field (the stopwatch). */
     val durationSeconds: Int = 0,
     val stopwatchRunning: Boolean = false,
+    /**
+     * Non-null makes the duration field the cardio TIEMPO cell (R-58): the planned time as its dim placeholder and a
+     * start button; the running time lives in the shared timer bar, not in the row. Null keeps the inline stopwatch.
+     */
+    val cardioPlaceholder: String? = null,
+    val cardioPlaceholderDescription: String = "",
+    val cardioStartTag: String? = null,
+    val cardioPlaceholderTag: String? = null,
 ) {
     internal fun textOf(kind: SetFieldKind): String = when (kind) {
         SetFieldKind.Weight, SetFieldKind.AddedWeight, SetFieldKind.AssistWeight -> weight
@@ -230,10 +238,24 @@ private fun RowScope.SetFieldCells(
     testTagPrefix: String?,
 ) {
     val number = AppNumberFormat.integer(values.index)
-    val weights = SetRowFieldLayout.weights(fields, withRpe)
+    val weights = SetRowFieldLayout.weights(fields, withRpe, cardioTime = values.cardioPlaceholder != null)
     fields.forEachIndexed { position, spec ->
         val cellModifier = Modifier.weight(weights[position]).tag(testTagPrefix, spec.kind.tagPart)
-        if (spec.kind == SetFieldKind.Duration) {
+        if (spec.kind == SetFieldKind.Duration && values.cardioPlaceholder != null) {
+            CardioTimeCell(
+                elapsedSeconds = values.durationSeconds,
+                placeholder = values.cardioPlaceholder,
+                placeholderDescription = values.cardioPlaceholderDescription,
+                timerInBar = values.stopwatchRunning,
+                readOnly = values.completed,
+                onStart = handlers.actions.onStopwatchToggle,
+                onManualEntry = handlers.actions.onDurationEdit,
+                modifier = Modifier.weight(weights[position]),
+                testTagPrefix = SetRowDefaults.childTag(testTagPrefix, "stopwatch"),
+                startTestTag = values.cardioStartTag,
+                placeholderTestTag = values.cardioPlaceholderTag,
+            )
+        } else if (spec.kind == SetFieldKind.Duration) {
             StopwatchField(
                 elapsedSeconds = values.durationSeconds,
                 running = values.stopwatchRunning,
@@ -328,6 +350,7 @@ fun SetTableHeader(
     showNote: Boolean = false,
     showPrevious: Boolean = true,
     testTagPrefix: String? = null,
+    cardioTime: Boolean = false,
 ) {
     Row(
         modifier = modifier.fillMaxWidth(),
@@ -336,7 +359,7 @@ fun SetTableHeader(
     ) {
         HeaderText(
             text = stringResource(Res.string.set_header_type),
-            modifier = Modifier.width(SetRowDefaults.TypeColumnWidth).tag(testTagPrefix, "type"),
+            modifier = Modifier.width(SetRowDefaults.TypeColumnWidth).headerTag(testTagPrefix, "type", cardioTime),
             spoken = stringResource(Res.string.set_header_type_cd),
             centered = true,
         )
@@ -346,11 +369,11 @@ fun SetTableHeader(
                 Modifier.weight(SetRowDefaults.previousWeight(showRpe)).tag(testTagPrefix, "previous"),
             )
         }
-        val weights = SetRowFieldLayout.weights(fields, showRpe)
+        val weights = SetRowFieldLayout.weights(fields, showRpe, cardioTime)
         fields.forEachIndexed { position, spec ->
             HeaderText(
                 text = stringResource(spec.kind.header),
-                modifier = Modifier.weight(weights[position]).tag(testTagPrefix, spec.kind.tagPart),
+                modifier = Modifier.weight(weights[position]).headerTag(testTagPrefix, spec.kind.tagPart, cardioTime),
                 spoken = stringResource(spec.kind.headerDescription),
                 centered = true,
             )
@@ -365,11 +388,24 @@ fun SetTableHeader(
         }
         HeaderText(
             text = stringResource(Res.string.action_done),
-            modifier = Modifier.width(SetRowDefaults.FixedCellWidth).tag(testTagPrefix, "check"),
+            modifier = Modifier.width(SetRowDefaults.FixedCellWidth).headerTag(testTagPrefix, "check", cardioTime),
             centered = true,
         )
         if (showNote) Spacer(Modifier.width(SetRowDefaults.FixedCellWidth))
     }
+}
+
+/** Header tags: a cardio table names its columns (`session_cardio_header_tipo|km|tiempo|listo`) for layout tests. */
+private fun Modifier.headerTag(prefix: String?, part: String, cardio: Boolean): Modifier {
+    if (!cardio) return tag(prefix, part)
+    val name = when (part) {
+        "type" -> "tipo"
+        "distance" -> "km"
+        "duration" -> "tiempo"
+        "check" -> "listo"
+        else -> part
+    }
+    return testTag("session_cardio_header_$name")
 }
 
 @Composable
