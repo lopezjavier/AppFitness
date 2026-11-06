@@ -1,5 +1,7 @@
 # Claude Code workflow and subagents
 
+Phase 2 archive (full text as it was when Phase 2 closed): [`phase2/06-agent-workflow.md`](phase2/06-agent-workflow.md).
+
 `CLAUDE.md` holds the PM's always-on rules; this document holds the detail; the subagents are defined in `.claude/agents/*.md`. If they disagree, `CLAUDE.md` wins. History and the original wording: [`phase1/06-agent-workflow.md`](phase1/06-agent-workflow.md).
 
 ## 1. Principles

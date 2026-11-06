@@ -1,5 +1,7 @@
 # Architecture (current state)
 
+Phase 2 archive (full text as it was when Phase 2 closed): [`phase2/02-architecture.md`](phase2/02-architecture.md).
+
 Compact live copy; detail and history in [`phase1/02-architecture.md`](phase1/02-architecture.md).
 
 ## 1. Overview
