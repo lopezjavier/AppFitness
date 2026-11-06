@@ -60,7 +60,7 @@ The journeys a checkpoint would have covered (session to session, the week, the 
 - [x] T-232: "¿Por qué no progreso?" — M
 
 ### Phase 3: The end of the block (US-101, US-103, US-102) and closure
-- [ ] T-233: End-of-block review and the phase change (backend) — L
+- [x] T-233: End-of-block review and the phase change (backend) — L
 - [ ] T-234: Review screen and the phase proposal — M
 - [ ] T-235: The next block in the builder — L
 - [ ] T-236: E14 closure — PM closure step, after the last task merges and the user confirms the closure (epic closure is always the user's)
