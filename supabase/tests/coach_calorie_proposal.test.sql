@@ -99,6 +99,30 @@ create function pg_temp.rec(n int, st text, change int, created_ago int, decided
 create function pg_temp.reason(n int) returns text language sql as $$
   select public.evaluate_coach_calorie_change(pg_temp.d0())->>'reason' $$;
 
+-- The adaptive expenditure depends on the weekday of today, so the cut range maximum boundary is located per run:
+-- sets the daily diary of user n to the lowest kcal whose raise is still allowed (plus offset_kcal, -1 = one kcal under).
+create function pg_temp.pin_cut_max(n int, offset_kcal int) returns void language plpgsql as $$
+declare
+  lo int := 1000;
+  hi int := 4000;
+  mid int;
+  r text;
+begin
+  perform pg_temp.as_user(n);
+  while lo < hi loop
+    mid := (lo + hi) / 2;
+    begin
+      update public.food_log_entries set kcal = mid where user_id = pg_temp.u(n);
+      r := pg_temp.reason(n);
+      raise exception 'probe';
+    exception when raise_exception then
+      null; -- rolls the probe back
+    end;
+    if r = 'rate_range' then lo := mid + 1; else hi := mid; end if;
+  end loop;
+  update public.food_log_entries set kcal = lo + offset_kcal where user_id = pg_temp.u(n);
+end $$;
+
 grant execute on all functions in schema pg_temp to authenticated;
 
 -- ---------------------------------------------------------------------------
@@ -142,7 +166,10 @@ select pg_temp.mk(22, -0.4, adj => -100, diary_kcal => 2871);        -- one kcal
 select pg_temp.mk(23, -0.4, adj => -100, diary_kcal => 2870);        -- exactly the cut range minimum
 select pg_temp.mk(24, -0.4, diary_kcal => 2124, wts => array[84, 83.4, 82.8, 82.2, 81.6, 81, 80.4, 79.8]); -- losing fast: raise ends 1 kcal over the cut range maximum
 select pg_temp.mk(25, -0.4, diary_kcal => 2125, wts => array[84, 83.4, 82.8, 82.2, 81.6, 81, 80.4, 79.8]); -- exactly the cut range maximum
-select pg_temp.mk(26, 0.4, adj => 300, diary_kcal => 1969);          -- one kcal over the gain range maximum
+-- The adaptive expenditure also depends on the weekday of today, so pin the expenditure of users 24 and 25 to the boundary.
+select pg_temp.pin_cut_max(24, -1);
+select pg_temp.pin_cut_max(25, 0);
+select pg_temp.mk(26, 0.4, adj => 300, diary_kcal => 1969);         -- one kcal over the gain range maximum
 select pg_temp.mk(27, 0.4, adj => 300, diary_kcal => 1970);          -- exactly the gain range maximum
 select pg_temp.mk(28, 0, target => 2450, adj => 0, wts => array[78, 78.5, 79, 79.5, 80, 80.5, 81, 81.5]); -- gaining maintenance
 select pg_temp.mk(29, -0.4, block_off => 30);                        -- an applied change in the block: band exceeded
