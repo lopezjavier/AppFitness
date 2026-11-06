@@ -422,6 +422,7 @@ Covers the nine features of `epics/E14-block-follow-up.md` and the user's decisi
 |---|---|---|---|---|
 | `plan_nutrition` (Opus, `planNutrition.ts`) | the computed plan JSON, the outcome candidates (`outcomes.ts`) and the whole coach summary, free text included | 0-4 `candidate_id`s, each with a Spanish reason and a deadline inside block start +7..+28 days (`validateOutcomesText`) | a choice among figures the server already built, and prose | **Replace by rules and templates (below); the kind becomes `deterministic: true`**, no model, no budget check, no usage row, like `plan_recompute` |
 | `plan_recompute` | — | — | already model-free | keep |
+| `plan_phase_change` (T-233) | — | — | model-free from the start (0 EUR): "Aceptar" at the end-of-block review | keep |
 | `report`, `chat` | — | — | not built (`router.ts` `available: false`) | out of scope for now |
 | `food-photo` (Gemini) | a food photo or label | diary food estimates | reads images (a real gap) | unchanged; diary, not the plan |
 

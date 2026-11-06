@@ -87,6 +87,9 @@ function setup(
             Promise.reject(new Error("unexpected loadPhaseHistory")),
         updatePlanOptions: () =>
             Promise.reject(new Error("unexpected updatePlanOptions")),
+        loadReview: () => Promise.reject(new Error("unexpected loadReview")),
+        applyPhaseChange: () =>
+            Promise.reject(new Error("unexpected applyPhaseChange")),
         client,
         loadInputs: () => Promise.resolve(o.inputs ?? planInputs()),
         loadContext: () => {
