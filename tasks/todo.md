@@ -6,9 +6,9 @@ Operating instructions: [`CLAUDE.md`](../CLAUDE.md). Phase 1 history (frozen): [
 Legend: **👤** = done by the user (accounts, web consoles, secrets) · **PM** = done by Claude Code.
 Secrets rule: never pasted in the chat or in versioned files. The user enters them in their terminal or in the consoles, and Claude only verifies that they exist.
 
-Last task ID used: T-244 (T-239…T-244 reserved by the E15 breakdown)
+Last task ID used: T-245 (T-239…T-244 reserved by the E15 breakdown)
 
-**Next:** 👤 Checkpoint E15-A is open (T-240 merged in #551, CI green; no migration, so no deploy to wait for). After the user's feedback or approval: T-241. Follow-ups from T-240 (no task yet): (1) SQL `app.coach_next_plan` reset with `''` instead of `'off'` (needs a migration; fold into the next backend task or T-242); (2) `LiveSessionViewModel:761` reads `currentPlan()` and sees no plan during a goal switch, it should use `acceptedPlan()`; (3) ux-reviewer notes: check the offline hint wording for "Mi entrenamiento" (disabled offline but the hint names only the new block) and the `CreateFailed` offline snackbar text in the new-block flow. No task is active.
+**Next:** fix **T-245** (bug reported at Checkpoint E15-A, see its entry; other E15-A items still to be tested by the user, the checkpoint stays open until the user approves it after the fix). Then T-241. Context: 👤 Checkpoint E15-A is open (T-240 merged in #551, CI green; no migration, so no deploy to wait for). After the user's feedback or approval: T-241. Follow-ups from T-240 (no task yet): (1) SQL `app.coach_next_plan` reset with `''` instead of `'off'` (needs a migration; fold into the next backend task or T-242); (2) `LiveSessionViewModel:761` reads `currentPlan()` and sees no plan during a goal switch, it should use `acceptedPlan()`; (3) ux-reviewer notes: check the offline hint wording for "Mi entrenamiento" (disabled offline but the hint names only the new block) and the `CreateFailed` offline snackbar text in the new-block flow. No task is active.
 
 ## Open follow-ups carried into Phase 3
 
@@ -94,6 +94,20 @@ The user does not force time-based triggers. These items are covered by host tes
 **Dependencies:** the breakdown approved by the user; `fitness-scientist` has recorded the goal-switching evidence in `07`.
 **Files likely touched:** `supabase/migrations/<ts>_coach_block_new.sql`, `supabase/tests/coach_block_new.test.sql`, `supabase/tests/delete_account_cascade.test.sql`, `supabase/functions/coach/` (deterministic preview kind and its test), `shared/…/data/repository/SupabaseCoachReviewRepository.kt`, `shared/…/data/remote/*Dto.kt`, `shared/…/domain/usecase/{OpenNewBlock,PreviewGoalSwitch}UseCase.kt` (names by the planner), `planning/03-data-model.md`, `planning/04-business-rules.md` §8.5, §8.10, §9.15-§9.17, tests
 **Estimated scope:** L
+
+---
+
+## T-245: fix(T-245): a plan proposal blocked by unconfirmed values says which value and lets the user fix it (bug, Checkpoint E15-A feedback, user 2026-11-08) · M
+
+**Report (user, test account, creating a nutrition plan):** the proposal shows "Hay valores sin confirmar. Revísalos y vuelve a crear el plan para poder aceptar." The user cannot see which value is unconfirmed nor where to fix it: "this is a terrible UX and must be fixed".
+**Where:** string `plan_proposal_reask_note` (`strings.xml`), `PlanProposalScreen`/`PlanProposalUiState`, `05` §8 R-58 (new, written with this entry), `05` §10 glossary row "A coach value not yet confirmed".
+**Flow:** planner → ux-reviewer (plan) → kotlin-core-developer → compose-ui-developer → (pr-reviewer ∥ ux-reviewer) → pr-creator. The planner first finds why a fresh plan in the test account has unconfirmed values (a data problem or a missing path) and fixes the cause, not only the copy.
+**Acceptance criteria:**
+- [ ] The proposal names each unconfirmed value (for example the weight or the activity level) and each has a tap target that opens the editor of that value (R-55); after fixing it the user comes back and can accept without re-creating the plan from scratch.
+- [ ] No state of this screen blocks acceptance without a visible fix (R-58); sweep the other blocking notes of the Trainer and Diario goals.
+- [ ] The test account's case is reproduced in a host test; lint + `testLocalDebugUnitTest` green.
+**Dependencies:** Checkpoint E15-A feedback released by the user. Not started: a fresh session is needed (`/clear`).
+**Estimated scope:** M
 
 ---
 
