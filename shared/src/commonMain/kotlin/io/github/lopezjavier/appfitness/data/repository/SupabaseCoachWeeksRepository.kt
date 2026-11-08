@@ -4,6 +4,7 @@ import io.github.jan.supabase.auth.Auth
 import io.github.jan.supabase.postgrest.Postgrest
 import io.github.jan.supabase.postgrest.exception.PostgrestRestException
 import io.github.jan.supabase.postgrest.rpc
+import io.github.lopezjavier.appfitness.data.remote.BlockPauseDto
 import io.github.lopezjavier.appfitness.data.remote.CancelDeloadParams
 import io.github.lopezjavier.appfitness.data.remote.EvaluateDeloadParams
 import io.github.lopezjavier.appfitness.data.remote.EvaluateDeloadResultDto
@@ -12,6 +13,7 @@ import io.github.lopezjavier.appfitness.data.remote.PlanWeeksParams
 import io.github.lopezjavier.appfitness.data.remote.toCoachChange
 import io.github.lopezjavier.appfitness.domain.AppError
 import io.github.lopezjavier.appfitness.domain.AppException
+import io.github.lopezjavier.appfitness.domain.model.BlockPause
 import io.github.lopezjavier.appfitness.domain.model.CoachChange
 import io.github.lopezjavier.appfitness.domain.model.CoachChangeException
 import io.github.lopezjavier.appfitness.domain.model.CoachChangeFailure
@@ -29,6 +31,10 @@ class SupabaseCoachWeeksRepository(private val auth: Auth, private val postgrest
             .decodeList<PlanWeekDto>()
             .mapNotNull { it.toDomain() }
             .sortedBy { it.week }
+    }
+
+    override suspend fun blockPause(planId: String, today: LocalDate): Result<BlockPause> = auth.ownRow {
+        postgrest.rpc("coach_block_pause", PlanWeeksParams(planId, today)).decodeAs<BlockPauseDto>().toDomain()
     }
 
     override suspend fun evaluateDeload(today: LocalDate): Result<CoachChange?> = auth.ownRow {

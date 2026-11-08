@@ -3,7 +3,7 @@ begin;
 create extension if not exists pgtap with schema extensions;
 set local search_path = extensions, public;
 
-select plan(35);
+select plan(36);
 
 create function pg_temp.u(n int) returns uuid language sql as $$
   select ('c9000000-0000-4000-8000-0000000000' || lpad(n::text, 2, '0'))::uuid $$;
@@ -120,9 +120,12 @@ select is((select count(*)::int from public.coach_plan_sessions where plan_id = 
 reset role;
 select pg_temp.wk(1, null, pg_temp.at(pg_temp.b() + 5));
 select pg_temp.wk(1, pg_temp.rid(1, 1), pg_temp.at(pg_temp.b() - 1));
+select is((select count(*)::int from public.coach_plan_sessions where plan_id = (select id from plans where u = 1) and session_id is not null),
+  2, 'no routine and before the block link nothing');
+-- T-242: three empty windows are paused weeks, so a workout in the fifth window is plan week 2 and links to it.
 select pg_temp.wk(1, pg_temp.rid(1, 1), pg_temp.at(pg_temp.b() + 28));
 select is((select count(*)::int from public.coach_plan_sessions where plan_id = (select id from plans where u = 1) and session_id is not null),
-  2, 'no routine, before the block and after week 4 link nothing');
+  3, 'a workout after empty windows links to the next plan week');
 
 -- Boundary days: day 7 (b + 6) belongs to week 1, day 8 (b + 7) to week 2.
 select pg_temp.wk(4, pg_temp.rid(4, 1), pg_temp.at(pg_temp.b() + 6, 23));

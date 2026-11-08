@@ -12,12 +12,14 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import io.github.lopezjavier.appfitness.composeapp.resources.Res
+import io.github.lopezjavier.appfitness.composeapp.resources.block_week_paused
 import io.github.lopezjavier.appfitness.composeapp.resources.coach_deload_request
 import io.github.lopezjavier.appfitness.composeapp.resources.coach_deload_request_offline
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_check
 import io.github.lopezjavier.appfitness.composeapp.resources.plan_week_cardio
 import io.github.lopezjavier.appfitness.composeapp.resources.plan_week_steps
 import io.github.lopezjavier.appfitness.composeapp.resources.plan_week_steps_none
+import io.github.lopezjavier.appfitness.composeapp.resources.trainer_block_end
 import io.github.lopezjavier.appfitness.composeapp.resources.trainer_week_chip_current
 import io.github.lopezjavier.appfitness.composeapp.resources.trainer_week_chip_deload
 import io.github.lopezjavier.appfitness.composeapp.resources.trainer_week_planned
@@ -41,6 +43,7 @@ import io.github.lopezjavier.appfitness.designsystem.OfflineHint
 import io.github.lopezjavier.appfitness.designsystem.Spacing
 import io.github.lopezjavier.appfitness.designsystem.StatusChip
 import io.github.lopezjavier.appfitness.designsystem.StatusTone
+import io.github.lopezjavier.appfitness.domain.model.BlockPause
 import io.github.lopezjavier.appfitness.domain.model.PlanWeek
 import io.github.lopezjavier.appfitness.domain.model.PlanWeekSession
 import io.github.lopezjavier.appfitness.domain.model.WeekPhase
@@ -53,10 +56,15 @@ import org.jetbrains.compose.resources.stringResource
  * chips, "3 de 4 entrenos · 75 %" and one status row per planned routine. Absent when there are no weeks.
  */
 @Composable
-internal fun PlanWeeksSection(weeks: List<PlanWeek>, request: DeloadRequestUi = DeloadRequestUi()) {
+internal fun PlanWeeksSection(
+    weeks: List<PlanWeek>,
+    request: DeloadRequestUi = DeloadRequestUi(),
+    pause: BlockPause? = null,
+) {
     if (weeks.isEmpty()) return
     Column(Modifier.testTag("trainer_weeks_section"), verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
         ListSectionHeader(stringResource(Res.string.trainer_weeks_header))
+        BlockPauseLines(pause)
         weeks.forEach { WeekCard(it) }
         if (request.available) {
             GhostButton(
@@ -68,6 +76,32 @@ internal fun PlanWeeksSection(weeks: List<PlanWeek>, request: DeloadRequestUi = 
                 loading = request.busy,
             )
             if (!request.online) OfflineHint(stringResource(Res.string.coach_deload_request_offline))
+        }
+    }
+}
+
+/** "Semana en pausa" while the block is paused and, once any week was paused, the moved end date (US-106). */
+@Composable
+private fun BlockPauseLines(pause: BlockPause?) {
+    if (pause == null) return
+    val end = pause.blockEnd
+    Column(verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
+        if (pause.paused) {
+            Row {
+                StatusChip(
+                    stringResource(Res.string.block_week_paused),
+                    StatusTone.Caution,
+                    Modifier.testTag("trainer_block_paused"),
+                )
+            }
+        }
+        if (pause.pausedWeeks > 0 && end != null) {
+            Text(
+                text = stringResource(Res.string.trainer_block_end, AppDateFormat.title(end)),
+                style = AppTheme.typography.bodySmall,
+                color = AppTheme.colors.textSecondary,
+                modifier = Modifier.testTag("trainer_block_end"),
+            )
         }
     }
 }

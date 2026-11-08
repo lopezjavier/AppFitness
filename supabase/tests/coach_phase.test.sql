@@ -329,6 +329,11 @@ values (pg_temp.pid(5), pg_temp.u(5), pg_temp.d0() - 14, 'fat_loss', pg_temp.nut
         'accepted', now(), default, pg_temp.pid(7)),
        (pg_temp.pid(8), pg_temp.u(8), pg_temp.d0() - 21, 'fat_loss', pg_temp.nut(2500, -500, 0.568, 'cut', 'deficit_cap', true),
         'accepted', now(), '{"cut_rate_pct":0.5,"diet_break":true}', null);
+-- T-242: plan weeks are the windows with a workout. User 5 trains every week (routine-less workouts), so the block
+-- start moves below keep the calendar numbering (week 3, 4 and 5 today).
+insert into public.workout_sessions (user_id, name, status, started_at, ended_at)
+select pg_temp.u(5), 'Filler', 'completed', pg_temp.d0() - d, pg_temp.d0() - d + interval '1 hour'
+from unnest(array[27, 20, 13, 6]) d;
 
 set local role authenticated;
 select pg_temp.as_user(5);
@@ -397,6 +402,11 @@ from (values (pg_temp.pid(21), pg_temp.u(10)), (pg_temp.pid(22), pg_temp.u(10)),
              (pg_temp.pid(24), pg_temp.u(10)), (pg_temp.pid(25), pg_temp.u(11)), (pg_temp.pid(26), pg_temp.u(11))) t(p, u)
 cross join generate_series(1, 4) w
 cross join generate_series(1, 2) s;
+-- T-242: users 10 and 11 train every week since their first block (routine-less workouts), so the weeks lived per
+-- block keep the calendar numbering.
+insert into public.workout_sessions (user_id, name, status, started_at, ended_at)
+select pg_temp.u(u), 'Filler', 'completed', pg_temp.d0() - 105 + 7 * i + 1, pg_temp.d0() - 105 + 7 * i + 1 + interval '1 hour'
+from generate_series(10, 11) u cross join generate_series(0, 14) i;
 
 set local role authenticated;
 select pg_temp.as_user(10);

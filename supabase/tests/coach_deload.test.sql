@@ -47,6 +47,12 @@ grant select on plans to authenticated;
 insert into plans values (1, pg_temp.mkplan(1, pg_temp.today() - 14));
 update public.coach_plan_sessions set deload = true where plan_id = (select id from plans where u = 1) and week = 4;
 
+-- T-242: plan weeks are the windows with a workout; routine-less workouts in windows 1 and 2 keep the numbering of the
+-- calendar (week 3 = window 3, week 4 = window 4) for the fixtures below.
+insert into public.workout_sessions (user_id, name, status, started_at, ended_at)
+select pg_temp.u(1), 'Filler', 'completed', pg_temp.at(pg_temp.today() - 14 + d), pg_temp.at(pg_temp.today() - 14 + d, 11)
+from unnest(array[1, 8]) d;
+
 select ok(not has_function_privilege('anon', 'public.deload_suggestions(uuid)', 'execute'), 'anon cannot read suggestions');
 select ok(not exists (select 1 from pg_proc where proname = 'decide_coach_deload'), 'the accept / decline RPC is gone');
 

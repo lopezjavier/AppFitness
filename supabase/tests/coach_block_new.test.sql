@@ -61,6 +61,12 @@ begin
     values (v_plan, pg_temp.u(u), w, 1, 'Sesion',
             jsonb_build_array(jsonb_build_object('exercise_id', pg_temp.sq(), 'role', 'main', 'sets', 3)), v_r);
   end loop;
+  -- T-242: plan weeks are the windows with a workout. The user trained in every window of the block so far
+  -- (routine-less workouts), so the calendar numbering of the fixtures holds.
+  insert into public.workout_sessions (user_id, name, status, started_at, ended_at)
+  select pg_temp.u(u), 'Filler', 'completed', (p_start + 7 * k + 1 + make_interval(hours => 10)) at time zone 'utc',
+         (p_start + 7 * k + 1 + make_interval(hours => 11)) at time zone 'utc'
+  from generate_series(0, greatest((pg_temp.d0() - p_start) / 7, 0) - 1) k;
   return v_plan;
 end $$;
 

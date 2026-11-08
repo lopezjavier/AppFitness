@@ -222,6 +222,15 @@ class LoadRemindersTest {
     }
 
     @Test
+    fun pausedWeekSummary_isNotListedEvenWhenUnseen() = runTest {
+        val paused = summary().copy(paused = true, seen = false)
+        val env = ReminderEnv(today).apply { summaries.latest = Result.success(paused) }
+
+        assertTrue(weekSummaryReminders(env).isEmpty())
+        assertNull(paused.toNotice())
+    }
+
+    @Test
     fun seenWeekSummary_isNotListed() = runTest {
         val env = ReminderEnv(today).apply { summaries.latest = Result.success(summary(seen = true)) }
 

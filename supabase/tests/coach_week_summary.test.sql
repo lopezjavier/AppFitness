@@ -36,6 +36,12 @@ begin
       end loop;
     end loop;
   end if;
+  -- T-242: a window without a workout is a paused week. These fixtures train in every window of the block so far
+  -- (routine-less workouts that link to nothing); the paused summary is covered by coach_plan_weeks_pause.test.sql.
+  insert into public.workout_sessions (user_id, name, status, started_at, ended_at)
+  select pg_temp.u(n), 'Filler', 'completed', ((pg_temp.d0() - start_off + 7 * k + 1)::timestamp + interval '15 hours') at time zone 'UTC',
+         ((pg_temp.d0() - start_off + 7 * k + 1)::timestamp + interval '16 hours') at time zone 'UTC'
+  from generate_series(0, start_off / 7 - 1) k;
   insert into public.food_log_entries (user_id, log_date, meal_slot_id, food_id, amount, food_name, kcal, protein_g, carbs_g, fat_g)
   select pg_temp.u(n), pg_temp.d0() - o,
          (select id from public.meal_slots where user_id = pg_temp.u(n) and code = 'breakfast'),

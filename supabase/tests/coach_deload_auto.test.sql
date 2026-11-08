@@ -85,6 +85,12 @@ select pg_temp.mkplan(n, 'accepted', pg_temp.today() - 21) from unnest(array[1, 
 select pg_temp.mkplan(7, 'accepted', pg_temp.today() - 28);    -- week 5
 select pg_temp.mkplan(10, 'accepted', pg_temp.today() - 7);    -- week 2
 select pg_temp.mkplan(12, 'accepted', pg_temp.today() - 14);   -- week 3
+-- T-242: plan weeks are the windows with a workout. Users 6, 7, 10 and 12 have no other history, so routine-less
+-- workouts in each earlier window keep the calendar numbering of the comments above.
+insert into public.workout_sessions (user_id, name, status, started_at, ended_at)
+select pg_temp.u(t.u), 'Filler', 'completed', pg_temp.at(pg_temp.today() - d), pg_temp.at(pg_temp.today() - d, 11)
+from (values (6, array[20, 13, 6]), (7, array[27, 20, 13, 6]), (10, array[6]), (12, array[13, 6])) t(u, ds)
+cross join lateral unnest(t.ds) d;
 
 -- 1: no main lift improved (a tie is not an improvement): triggered. 14: same plus 7 training weeks: triggered wins.
 select pg_temp.weeks3(1, 100, 100, 100);

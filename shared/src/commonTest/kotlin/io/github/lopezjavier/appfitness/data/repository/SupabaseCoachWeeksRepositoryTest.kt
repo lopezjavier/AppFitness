@@ -7,6 +7,7 @@ import io.github.lopezjavier.appfitness.config.AppConfig
 import io.github.lopezjavier.appfitness.data.remote.SupabaseClientFactory
 import io.github.lopezjavier.appfitness.domain.AppError
 import io.github.lopezjavier.appfitness.domain.appErrorOrNull
+import io.github.lopezjavier.appfitness.domain.model.BlockPause
 import io.github.lopezjavier.appfitness.domain.model.CoachChangeException
 import io.github.lopezjavier.appfitness.domain.model.CoachChangeFailure
 import io.github.lopezjavier.appfitness.domain.model.CoachChangeKind
@@ -102,6 +103,48 @@ class SupabaseCoachWeeksRepositoryTest {
     @Test
     fun weeks_emptyArrayIsAnEmptyList() = runTest {
         assertEquals(emptyList(), repo { HttpStatusCode.OK to "[]" }.weeks("p1", today).getOrThrow())
+    }
+
+    @Test
+    fun blockPause_sendsPlanAndDateAndMapsThePausedBlock() = runTest {
+        val repository = repo {
+            HttpStatusCode.OK to """{"paused":true,"paused_weeks":2,"block_end":"2026-12-06"}"""
+        }
+
+        val pause = repository.blockPause("p1", today).getOrThrow()
+
+        val request = rest().single()
+        assertTrue(request.url.encodedPath.endsWith("/rest/v1/rpc/coach_block_pause"))
+        assertEquals("""{"p_plan_id":"p1","p_today":"2026-10-29"}""", bodyOf(request))
+        assertTrue(pause.paused)
+        assertEquals(2, pause.pausedWeeks)
+        assertEquals(LocalDate(2026, 12, 6), pause.blockEnd)
+    }
+
+    @Test
+    fun blockPause_nullBlockEndAndMissingKeysReadAsNotPaused() = runTest {
+        val nullEnd = repo { HttpStatusCode.OK to """{"paused":false,"paused_weeks":0,"block_end":null}""" }
+            .blockPause("p1", today).getOrThrow()
+        assertEquals(BlockPause(paused = false, pausedWeeks = 0, blockEnd = null), nullEnd)
+
+        val empty = repo { HttpStatusCode.OK to "{}" }.blockPause("p1", today).getOrThrow()
+        assertEquals(BlockPause(paused = false, pausedWeeks = 0, blockEnd = null), empty)
+    }
+
+    @Test
+    fun blockPause_resumedBlockKeepsThePausedWeeks() = runTest {
+        val pause = repo { HttpStatusCode.OK to """{"paused":false,"paused_weeks":1,"block_end":"2026-12-06"}""" }
+            .blockPause("p1", today).getOrThrow()
+
+        assertEquals(BlockPause(paused = false, pausedWeeks = 1, blockEnd = LocalDate(2026, 12, 6)), pause)
+    }
+
+    @Test
+    fun blockPause_offline_isNetworkError() = runTest {
+        val repository = repo { HttpStatusCode.OK to "{}" }
+        offline = true
+
+        assertEquals(AppError.Network, repository.blockPause("p1", today).appErrorOrNull())
     }
 
     @Test

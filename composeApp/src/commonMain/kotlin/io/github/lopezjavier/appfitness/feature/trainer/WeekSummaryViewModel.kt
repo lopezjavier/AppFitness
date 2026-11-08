@@ -34,6 +34,7 @@ class WeekSummaryViewModel(
     private val names: ExerciseNameResolver,
     private val clock: Clock,
     private val savedState: SavedStateHandle = SavedStateHandle(),
+    private val timeZone: TimeZone = TimeZone.UTC,
 ) : ViewModel() {
     private val _uiState = MutableStateFlow<WeekSummaryUiState>(WeekSummaryUiState.Loading)
     val uiState: StateFlow<WeekSummaryUiState> = _uiState.asStateFlow()
@@ -48,8 +49,8 @@ class WeekSummaryViewModel(
         }
     }
 
-    // The week boundaries are UTC dates, like the rest of the coach SQL.
-    private fun today(): LocalDate = clock.now().toLocalDateTime(TimeZone.UTC).date
+    // The user's local day, like LoadReminders, so the summary and the notice agree on "today".
+    private fun today(): LocalDate = clock.now().toLocalDateTime(timeZone).date
 
     private fun load() {
         _uiState.value = WeekSummaryUiState.Loading
@@ -78,6 +79,7 @@ class WeekSummaryViewModel(
     }
 
     private suspend fun markAsSeen(summary: WeekSummary) {
+        if (summary.paused) return // A paused week is never marked seen: it has no week number and no notice.
         val key = "${summary.planId}:${summary.week}"
         if (summary.seen || savedState.get<String>(KEY_MARKED) == key) return
         if (markSeen(summary.planId, summary.week).isSuccess) {

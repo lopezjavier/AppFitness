@@ -1,5 +1,6 @@
 package io.github.lopezjavier.appfitness.data.remote
 
+import io.github.lopezjavier.appfitness.domain.model.BlockPause
 import io.github.lopezjavier.appfitness.domain.model.CoachChange
 import io.github.lopezjavier.appfitness.domain.model.DeloadExerciseSuggestion
 import io.github.lopezjavier.appfitness.domain.model.PlanWeek
@@ -36,6 +37,16 @@ internal data class PlanWeekSessionDto(
     val done: Boolean = false,
 ) {
     fun toDomain() = PlanWeekSession(sessionIndex, name.orEmpty(), routineId, done)
+}
+
+/** Result of `coach_block_pause`; a missing key reads as "not paused, nothing moved". */
+@Serializable
+internal data class BlockPauseDto(
+    val paused: Boolean = false,
+    @SerialName("paused_weeks") val pausedWeeks: Int = 0,
+    @SerialName("block_end") val blockEnd: LocalDate? = null,
+) {
+    fun toDomain() = BlockPause(paused, pausedWeeks, blockEnd)
 }
 
 /** One element of the `coach_plan_weeks` array. An unknown phase code drops the week. */
