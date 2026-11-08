@@ -3,6 +3,7 @@ package io.github.lopezjavier.appfitness.feature.trainer
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.test.assertCountEquals
+import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.assertTextEquals
@@ -14,10 +15,15 @@ import androidx.compose.ui.test.performClick
 import androidx.lifecycle.SavedStateHandle
 import io.github.lopezjavier.appfitness.app.FakeConnectivityObserver
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
+import io.github.lopezjavier.appfitness.domain.model.ActivityLevel
 import io.github.lopezjavier.appfitness.domain.model.CoachFailure
 import io.github.lopezjavier.appfitness.domain.model.CoachPlan
 import io.github.lopezjavier.appfitness.domain.model.MissingField
 import io.github.lopezjavier.appfitness.domain.model.OutcomeKind
+import io.github.lopezjavier.appfitness.domain.model.PlanFixTarget
+import io.github.lopezjavier.appfitness.domain.model.PlanInput
+import io.github.lopezjavier.appfitness.domain.model.PlanInputKey
+import io.github.lopezjavier.appfitness.domain.model.PlanInputStatus
 import io.github.lopezjavier.appfitness.domain.model.PlanLimit
 import io.github.lopezjavier.appfitness.domain.model.PlanOutcome
 import io.github.lopezjavier.appfitness.feature.workout.MutableClock
@@ -42,14 +48,37 @@ class PlanProposalScreenTest {
     private val events = mutableListOf<PlanProposalEvent>()
     private var backs = 0
     private val startsFor = mutableListOf<String>()
+    private val fixes = mutableListOf<PlanFixTarget>()
 
-    private fun proposal(confirmed: Boolean = true, plan: CoachPlan = coachPlan(), dataChanged: Boolean = false) =
-        PlanProposalUiState.Proposal(plan, unconfirmed = !confirmed, dataChanged = dataChanged)
+    private fun proposal(
+        confirmed: Boolean = true,
+        plan: CoachPlan = coachPlan(),
+        dataChanged: Boolean = false,
+        rows: List<PlanInput> = if (confirmed) {
+            emptyList()
+        } else {
+            listOf(
+                planInput(
+                    PlanInputKey.ActivityLevel,
+                    PlanInputStatus.Provisional,
+                    fixTarget = PlanFixTarget.ActivitySheet,
+                    blocksAccept = true,
+                ),
+            )
+        },
+    ) = PlanProposalUiState.Proposal(plan, unconfirmedValues = rows.map { it.toRow() }, dataChanged = dataChanged)
 
     private fun show(state: PlanProposalUiState, online: Boolean = true) {
         rule.setContent {
             AppTheme {
-                PlanProposalScreen(state, flowOf(online), { events += it }, { backs++ }, { startsFor += it })
+                PlanProposalScreen(
+                    state,
+                    flowOf(online),
+                    { events += it },
+                    { backs++ },
+                    { startsFor += it },
+                    onFix = { fixes += it },
+                )
             }
         }
         rule.waitForIdle()
@@ -153,24 +182,96 @@ class PlanProposalScreenTest {
     }
 
     @Test
-    fun withUnconfirmedValues_acceptIsDisabled_andOneNoteSaysToReviewAndCreateAgain() {
+    fun withAnUnconfirmedValue_itIsNamedAtTheTopWithItsChip_andAcceptIsDisabledWithOneNoteNamingIt() {
         show(proposal(confirmed = false))
 
+        rule.onNodeWithTag("plan_proposal_unconfirmed_section").assertIsDisplayed()
+        rule.onNodeWithTag("plan_proposal_unconfirmed_activity_level").assertExists()
+        rule.onNodeWithTag("plan_proposal_unconfirmed_activity_level_chip").assertExists()
         rule.onNodeWithTag("plan_proposal_accept").assertIsNotEnabled()
-        rule.onNodeWithTag("plan_proposal_reask_note").assertTextEquals(
-            "Hay valores sin confirmar. Revísalos y vuelve a crear el plan para poder aceptar.",
+        rule.onNodeWithTag("plan_proposal_unconfirmed_note").assertTextEquals(
+            "Confirma para poder aceptar: Nivel de actividad.",
         )
-        rule.onNodeWithTag("trainer_confirm_button").assertDoesNotExist()
+        rule.onNodeWithTag("plan_proposal_confirm_values").assertDoesNotExist()
+        rule.onNodeWithTag("plan_proposal_open_your_data").assertDoesNotExist()
+        rule.onNodeWithTag("plan_proposal_reask_note").assertDoesNotExist()
     }
 
     @Test
-    fun theReaskLink_opensAntesDeEmpezarWithTheProposalAsTheReplacedPlan() {
-        show(proposal(confirmed = false, plan = coachPlan(id = "plan-5")))
+    fun tappingTheActivityRow_sendsOpenActivitySheet() {
+        show(proposal(confirmed = false))
 
-        rule.onNodeWithText("Antes de empezar").assertExists()
-        tap("plan_proposal_open_your_data")
+        tap("plan_proposal_unconfirmed_activity_level")
 
-        assertEquals(listOf("plan-5"), startsFor)
+        assertEquals(listOf<PlanProposalEvent>(PlanProposalEvent.OpenActivitySheet), events)
+    }
+
+    @Test
+    fun theOpenActivitySheet_isShownOverTheProposalWithItsOwnNote() {
+        show(proposal(confirmed = false).copy(activitySheet = ActivityLevel.Moderate))
+
+        rule.onNodeWithTag("trainer_sheet_note").assertExists()
+        rule.onNodeWithTag("plan_proposal_unconfirmed_activity_level").assertExists()
+    }
+
+    @Test
+    fun aValueWithoutAnEditor_hasNoTap_saysWhy_andOneSecondaryButtonConfirmsIt() {
+        show(
+            proposal(
+                rows = listOf(
+                    planInput(PlanInputKey.TotalExpenditure, PlanInputStatus.Provisional, blocksAccept = true),
+                ),
+            ),
+        )
+
+        rule.onNodeWithText("Se calcula con tus datos. Confírmalo tal como está.").assertExists()
+        rule.onNodeWithTag("plan_proposal_unconfirmed_total_expenditure_chip").assertExists()
+        tap("plan_proposal_confirm_values")
+
+        assertEquals(listOf<PlanProposalEvent>(PlanProposalEvent.ConfirmValues), events)
+        assertTrue(fixes.isEmpty())
+    }
+
+    @Test
+    fun confirmValues_isDisabledOfflineWithTheStandardHint_andWhileBusy() {
+        val noEditor =
+            listOf(planInput(PlanInputKey.TotalExpenditure, PlanInputStatus.Provisional, blocksAccept = true))
+        show(proposal(rows = noEditor), online = false)
+
+        rule.onNodeWithTag("plan_proposal_confirm_values").assertIsNotEnabled()
+        rule.onNodeWithText("Sin conexión: no se puede confirmar los valores", substring = true).assertExists()
+    }
+
+    @Test
+    fun confirmValues_isNotShownWhenEveryValueHasAnEditor() {
+        show(proposal(confirmed = false))
+
+        rule.onNodeWithTag("plan_proposal_confirm_values").assertDoesNotExist()
+    }
+
+    @Test
+    fun aRowWithAFixOutsideTheScreen_opensItWithoutLeavingTheProposal() {
+        val weight = planInput(
+            PlanInputKey.Weight,
+            PlanInputStatus.Provisional,
+            fixTarget = PlanFixTarget.Weight,
+            blocksAccept = true,
+        )
+        show(proposal(rows = listOf(weight)))
+
+        tap("plan_proposal_unconfirmed_weight")
+
+        assertEquals(listOf(PlanFixTarget.Weight), fixes)
+        assertEquals(0, backs)
+    }
+
+    @Test
+    fun theTestAccountCase_noUnconfirmedValues_showsNoBlockAndAcceptIsEnabled() {
+        show(proposal(confirmed = true))
+
+        rule.onNodeWithTag("plan_proposal_unconfirmed_section").assertDoesNotExist()
+        rule.onNodeWithTag("plan_proposal_unconfirmed_note").assertDoesNotExist()
+        rule.onNodeWithTag("plan_proposal_accept").assertIsEnabled()
     }
 
     @Test
@@ -178,17 +279,34 @@ class PlanProposalScreenTest {
         show(proposal(confirmed = true))
 
         rule.onNodeWithTag("plan_proposal_accept").assertIsEnabled()
-        rule.onNodeWithTag("plan_proposal_reask_note").assertDoesNotExist()
         rule.onNodeWithTag("plan_proposal_open_your_data").assertDoesNotExist()
+        rule.onNodeWithTag("plan_proposal_stale_note").assertDoesNotExist()
     }
 
     @Test
-    fun whenTheServerRefusedForChangedData_theSameNoteAndLinkAreShown() {
-        show(proposal(confirmed = false, dataChanged = true))
+    fun whenTheServerRefusedAndTheListIsUnknown_theGenericNoteAndTheAntesDeEmpezarLinkAreShown() {
+        show(proposal(confirmed = true, dataChanged = true, plan = coachPlan(id = "plan-5")))
 
-        rule.onNodeWithTag("plan_proposal_reask_note").assertExists()
-        rule.onNodeWithTag("plan_proposal_open_your_data").assertExists()
+        rule.onNodeWithTag("plan_proposal_unconfirmed_note").assertTextEquals(
+            "Hay valores sin confirmar. Confírmalos en \"Antes de empezar\" para poder aceptar.",
+        )
         rule.onNodeWithTag("plan_proposal_accept").assertIsNotEnabled()
+        tap("plan_proposal_open_your_data")
+
+        assertEquals(listOf("plan-5"), startsFor)
+    }
+
+    @Test
+    fun whenTheActivityLevelChanged_aStaleNoteOffersToCreateThePlanAgain_andAcceptIsDisabled() {
+        show(proposal(confirmed = true, plan = coachPlan(id = "plan-7")).copy(stale = true))
+
+        rule.onNodeWithTag("plan_proposal_stale_note").assertTextEquals(
+            "Cambiaste tu nivel de actividad y el plan ya no lo usa. Créalo de nuevo para poder aceptar.",
+        )
+        rule.onNodeWithTag("plan_proposal_accept").assertIsNotEnabled()
+        tap("plan_proposal_open_your_data")
+
+        assertEquals(listOf("plan-7"), startsFor)
     }
 
     @Test
@@ -260,6 +378,33 @@ class PlanProposalScreenTest {
             "Elige tu objetivo de entrenamiento en Perfil, dentro de Mi entrenamiento, para crear el plan.",
         ).assertExists()
         rule.onNodeWithTag("plan_proposal_retry").assertExists()
+    }
+
+    @Test
+    fun missingIntention_offersTheTapThatOpensMyTraining() {
+        show(PlanProposalUiState.Failed(PlanFailureKind.Missing(setOf(MissingField.Intention))))
+
+        tap("plan_proposal_fix")
+
+        assertEquals(listOf(PlanFixTarget.MyTraining), fixes)
+    }
+
+    @Test
+    fun missingProfileData_offersTheTapThatOpensPersonalData() {
+        show(PlanProposalUiState.Failed(PlanFailureKind.Missing(setOf(MissingField.Sex))))
+
+        tap("plan_proposal_fix")
+
+        assertEquals(listOf(PlanFixTarget.PersonalData), fixes)
+    }
+
+    @Test
+    fun infeasible_offersTheTapThatOpensPersonalData() {
+        show(PlanProposalUiState.Failed(PlanFailureKind.Infeasible))
+
+        tap("plan_proposal_fix")
+
+        assertEquals(listOf(PlanFixTarget.PersonalData), fixes)
     }
 
     @Test
@@ -337,7 +482,7 @@ class PlanProposalScreenTest {
             AppTheme {
                 PlanProposalRoot(onBack = {
                     backs++
-                }, onOpenBeforeStart = {}, viewModel = model, connectivity = FakeConnectivityObserver())
+                }, onOpenBeforeStart = {}, onFix = {}, viewModel = model, connectivity = FakeConnectivityObserver())
             }
         }
         rule.waitForIdle()
@@ -369,7 +514,7 @@ class PlanProposalScreenTest {
         rule.setContent {
             AppTheme {
                 PlanProposalRoot(onBack = {
-                }, onOpenBeforeStart = {}, viewModel = model, connectivity = FakeConnectivityObserver())
+                }, onOpenBeforeStart = {}, onFix = {}, viewModel = model, connectivity = FakeConnectivityObserver())
             }
         }
         rule.waitForIdle()

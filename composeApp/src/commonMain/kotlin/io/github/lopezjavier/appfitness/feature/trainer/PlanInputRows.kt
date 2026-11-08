@@ -44,6 +44,8 @@ data class PlanInputRow(
     val fixTarget: PlanFixTarget?,
     /** Date of the last weigh-in; only the weight row has one. */
     val date: LocalDate?,
+    /** True when the server refuses to accept a plan while this input is provisional. */
+    val blocksAccept: Boolean = false,
 ) {
     val isFlag: Boolean get() = marker == PlanInputMarker.Flag
     val isProvisional: Boolean get() = marker == PlanInputMarker.Provisional
@@ -65,6 +67,7 @@ fun PlanInput.toRow(): PlanInputRow = PlanInputRow(
     marker = markerOf(),
     fixTarget = fixTarget,
     date = date,
+    blocksAccept = blocksAccept,
 )
 
 private fun PlanInput.markerOf(): PlanInputMarker = when (status) {

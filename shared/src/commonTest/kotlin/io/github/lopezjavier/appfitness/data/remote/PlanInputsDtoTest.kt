@@ -33,6 +33,26 @@ class PlanInputsDtoTest {
         """{"kind":"plan","as_of":"2026-10-29"$current,"inputs":[${entries.joinToString(",")}]}"""
 
     @Test
+    fun blocksAccept_isParsed_andAbsentMeansFalse() {
+        val result = decode(
+            list(
+                entry(key = "activity_level", status = "provisional", extra = ""","blocks_accept":true"""),
+                entry(key = "diary", status = "provisional", extra = ""","blocks_accept":false"""),
+                entry(key = "weight_trend", status = "provisional"),
+            ),
+        )
+
+        assertEquals(listOf(true, false, false), result.inputs.map { it.blocksAccept })
+    }
+
+    @Test
+    fun experienceFromTheIntake_opensTheTrainingYearsEditor() {
+        val result = decode(list(entry(key = "experience", source = "coach_estimate", fix = "\"intake\"")))
+
+        assertEquals(PlanFixTarget.TrainingYears, result.inputs.single().fixTarget)
+    }
+
+    @Test
     fun allStatuses_areMapped() {
         val statuses = listOf("ok", "missing", "unset_optional", "provisional", "stale")
 

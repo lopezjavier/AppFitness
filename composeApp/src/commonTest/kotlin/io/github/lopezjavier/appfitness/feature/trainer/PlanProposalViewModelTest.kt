@@ -7,9 +7,12 @@ import io.github.lopezjavier.appfitness.domain.AppException
 import io.github.lopezjavier.appfitness.domain.model.CoachException
 import io.github.lopezjavier.appfitness.domain.model.CoachFailure
 import io.github.lopezjavier.appfitness.domain.model.MissingField
+import io.github.lopezjavier.appfitness.domain.model.PlanFixTarget
 import io.github.lopezjavier.appfitness.domain.model.PlanInputKey
 import io.github.lopezjavier.appfitness.domain.model.PlanInputKind
+import io.github.lopezjavier.appfitness.domain.model.PlanInputSource
 import io.github.lopezjavier.appfitness.domain.model.PlanInputStatus
+import io.github.lopezjavier.appfitness.domain.model.PlanInputValue
 import io.github.lopezjavier.appfitness.domain.model.PlanInputs
 import io.github.lopezjavier.appfitness.domain.model.PlanStatus
 import io.github.lopezjavier.appfitness.feature.workout.MutableClock
@@ -219,7 +222,20 @@ class PlanProposalViewModelTest {
 
     private fun givenInputs(status: PlanInputStatus) {
         coach.inputs[PlanInputKind.Plan] = Result.success(
-            PlanInputs(PlanInputKind.Plan, null, listOf(planInput(PlanInputKey.ActivityLevel, status))),
+            PlanInputs(
+                PlanInputKind.Plan,
+                null,
+                listOf(
+                    planInput(
+                        PlanInputKey.ActivityLevel,
+                        status,
+                        value = PlanInputValue.Text("moderate"),
+                        source = PlanInputSource.CoachEstimate,
+                        fixTarget = PlanFixTarget.ActivitySheet,
+                        blocksAccept = true,
+                    ),
+                ),
+            ),
         )
     }
 

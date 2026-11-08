@@ -542,7 +542,9 @@ val uiModule =
                 savedState = get(),
             )
         }
-        viewModel { PlanProposalViewModel(plans = get(), coach = get(), clock = get(), savedState = get()) }
+        viewModel {
+            PlanProposalViewModel(plans = get(), coach = get(), clock = get(), savedState = get(), intakeRepo = get())
+        }
         viewModel {
             TrainingStatsViewModel(
                 stats = get(),

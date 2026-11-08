@@ -15,6 +15,12 @@ import androidx.compose.ui.test.performScrollTo
 import androidx.lifecycle.SavedStateHandle
 import io.github.lopezjavier.appfitness.app.FakeConnectivityObserver
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
+import io.github.lopezjavier.appfitness.domain.model.PlanFixTarget
+import io.github.lopezjavier.appfitness.domain.model.PlanInputKey
+import io.github.lopezjavier.appfitness.domain.model.PlanInputKind
+import io.github.lopezjavier.appfitness.domain.model.PlanInputStatus
+import io.github.lopezjavier.appfitness.domain.model.PlanInputValue
+import io.github.lopezjavier.appfitness.domain.model.PlanInputs
 import io.github.lopezjavier.appfitness.feature.workout.MutableClock
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.flow.flowOf
@@ -83,7 +89,7 @@ class PlanProposalRestorationTest {
         rule.setContent {
             AppTheme {
                 PlanProposalRoot(onBack = {
-                }, onOpenBeforeStart = {}, viewModel = current, connectivity = FakeConnectivityObserver())
+                }, onOpenBeforeStart = {}, onFix = {}, viewModel = current, connectivity = FakeConnectivityObserver())
             }
         }
         rule.waitForIdle()
@@ -147,7 +153,7 @@ class PlanProposalRestorationTest {
         rule.setContent {
             AppTheme {
                 PlanProposalRoot(onBack = {
-                }, onOpenBeforeStart = {}, viewModel = current, connectivity = FakeConnectivityObserver())
+                }, onOpenBeforeStart = {}, onFix = {}, viewModel = current, connectivity = FakeConnectivityObserver())
             }
         }
         rule.waitForIdle()
@@ -162,5 +168,43 @@ class PlanProposalRestorationTest {
 
         rule.onNodeWithTag("cardio_sheet_stepper_value").assertTextEquals("145 min")
         rule.onNodeWithTag("cardio_sheet_commit").assertIsEnabled()
+    }
+
+    @Test
+    fun recreatedViewModel_rereadsTheBlockedValuesAndKeepsTheActivitySheetOpen() {
+        plans.current = Result.success(coachPlan())
+        coach.inputs[PlanInputKind.Plan] = Result.success(
+            PlanInputs(
+                PlanInputKind.Plan,
+                null,
+                listOf(
+                    planInput(
+                        PlanInputKey.ActivityLevel,
+                        PlanInputStatus.Provisional,
+                        value = PlanInputValue.Text("moderate"),
+                        fixTarget = PlanFixTarget.ActivitySheet,
+                        blocksAccept = true,
+                    ),
+                ),
+            ),
+        )
+        current = PlanProposalViewModel(plans, coach, MutableClock(), saved)
+        rule.setContent {
+            AppTheme {
+                PlanProposalRoot(onBack = {
+                }, onOpenBeforeStart = {}, onFix = {}, viewModel = current, connectivity = FakeConnectivityObserver())
+            }
+        }
+        rule.waitForIdle()
+        rule.onNodeWithTag("plan_proposal_unconfirmed_activity_level").performClick()
+        rule.waitForIdle()
+        rule.onNodeWithTag("trainer_sheet_note").assertExists()
+
+        // A new view model over the same saved state, as after process death.
+        current = PlanProposalViewModel(plans, coach, MutableClock(), saved)
+        rule.waitForIdle()
+
+        rule.onNodeWithTag("plan_proposal_unconfirmed_activity_level").assertExists()
+        rule.onNodeWithTag("trainer_sheet_note").assertExists()
     }
 }

@@ -247,6 +247,10 @@ class GlossaryStringsTest {
             value("before_start_note_replace_accepted"),
         )
         assertEquals("Antes de empezar", value("plan_proposal_open_before_start"))
+        assertEquals("Confirma para poder aceptar: %1\$s.", value("plan_proposal_unconfirmed_note"))
+        assertEquals("Valores por confirmar", value("plan_proposal_unconfirmed_header"))
+        assertEquals("Confirmar valores", value("plan_proposal_confirm_values"))
+        assertTrue(strings.values.none { "vuelve a crear el plan" in it })
     }
 
     @Test

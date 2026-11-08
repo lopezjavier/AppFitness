@@ -14,6 +14,8 @@ import io.github.lopezjavier.appfitness.designsystem.ErrorState
 import io.github.lopezjavier.appfitness.designsystem.OfflineState
 import io.github.lopezjavier.appfitness.designsystem.Spacing
 import io.github.lopezjavier.appfitness.domain.model.CoachFailure
+import io.github.lopezjavier.appfitness.domain.model.MissingField
+import io.github.lopezjavier.appfitness.domain.model.PlanFixTarget
 import kotlinx.coroutines.flow.Flow
 import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.stringResource
@@ -31,16 +33,30 @@ internal fun CoachFailureContent(
     isOnline: Flow<Boolean>,
     copy: CoachFailureCopy,
     tagPrefix: String,
+    onFix: ((PlanFixTarget) -> Unit)? = null,
     onRetry: () -> Unit,
 ) {
     val retry = AppStateAction(stringResource(Res.string.action_retry), onRetry)
     val errorMessage: @Composable (StringResource) -> Unit = { message ->
-        ErrorState(
-            message = stringResource(message),
-            action = retry,
-            testTagPrefix = "${tagPrefix}_error",
-            actionTestTag = "${tagPrefix}_retry",
-        )
+        // A missing or infeasible input fails again on retry: the screen that fixes it comes first (R-59).
+        val target = if (onFix != null) kind.fixTarget() else null
+        if (target != null && onFix != null) {
+            ErrorState(
+                message = stringResource(message),
+                action = AppStateAction(stringResource(target.destinationLabel())) { onFix(target) },
+                testTagPrefix = "${tagPrefix}_error",
+                secondaryAction = retry,
+                actionTestTag = "${tagPrefix}_fix",
+                secondaryActionTestTag = "${tagPrefix}_retry",
+            )
+        } else {
+            ErrorState(
+                message = stringResource(message),
+                action = retry,
+                testTagPrefix = "${tagPrefix}_error",
+                actionTestTag = "${tagPrefix}_retry",
+            )
+        }
     }
     when (kind) {
         is PlanFailureKind.Limit -> CoachLimitMessage(
@@ -70,6 +86,20 @@ internal fun CoachFailureContent(
 
         PlanFailureKind.Other -> errorMessage(copy.error)
     }
+}
+
+/** Where the input a failed call lacks is fixed; null when no screen fixes it (R-59). */
+private fun PlanFailureKind.fixTarget(): PlanFixTarget? = when (this) {
+    is PlanFailureKind.Missing ->
+        if (fields.any { it == MissingField.Intention || it == MissingField.Place }) {
+            PlanFixTarget.MyTraining
+        } else {
+            PlanFixTarget.PersonalData
+        }
+
+    PlanFailureKind.Infeasible -> PlanFixTarget.PersonalData
+
+    else -> null
 }
 
 private fun PlanFailureKind.toCoachFailure(): CoachFailure = when (this) {

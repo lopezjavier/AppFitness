@@ -102,8 +102,8 @@ fun AppRoot(
         },
         preferencesSection = { sectionModifier, onClose -> PreferencesSectionRoot(onClose, sectionModifier) },
         coachUsage = { usageModifier, onBack -> CoachUsageRoot(onBack, usageModifier) },
-        planProposal = { planModifier, onBack, onOpenBeforeStart ->
-            PlanProposalRoot(onBack, onOpenBeforeStart, planModifier)
+        planProposal = { planModifier, onBack, onOpenBeforeStart, onFix ->
+            PlanProposalRoot(onBack, onOpenBeforeStart, onFix, planModifier)
         },
         beforeStart = { startModifier, onBack, onCreated, onOpenYourData, onFix, onOpenReview ->
             BeforeStartRoot(onBack, onCreated, onOpenYourData, onFix, startModifier, onOpenFolderBlock = onOpenReview)
