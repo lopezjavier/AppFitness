@@ -13,17 +13,16 @@ Finish the app. Close the gaps that matter in real use, then leave it in mainten
 
 | Epic | Content |
 |---|---|
-| E15 Real life | The coach copes with missed weeks (the block pauses), a "welcome back" notice after a break and a logged discomfort, using the existing 14-day return rule; no new phase |
-| E16 Nutrition follow-up | A nutrition section in the weekly summary, an adherence diagnosis, a plateau explanation and a diet-break proposal inside the cut-phase proposal; deterministic, no model |
-| E17 Goal switching | Changing the goal mid-block offers "Bloque nuevo"; figures are recomputed from the new goal, the proposal counters restart, a confirmation line shows the calorie change; no forced bridge |
-| E18 Food data quality | A deterministic check that macros match kcal when a food is created, edited or estimated by AI; an audit of existing foods fixed from a list; Open Food Facts as a fallback that copies into editable personal foods |
-| E19 UI review | Diario, Entreno, Trainer and Perfil improved without changing the style; the Trainer is compact, with the nutrition plan and the block on a Details screen; a magnifier search icon in Diario and Entreno; favourites first in food search |
-| E20 Closure | Supabase keep-alive, secured data export of the user's own data, repository made private, project retro for future apps |
+| [E15 Real life and goal switching](epics/E15-real-life-and-goal-switching.md) | A missed week pauses the block, a "welcome back" notice after a break, a discomfort follow-up with the existing rules, a block-end alert in "Centro de avisos", and goal switching with "Bloque nuevo" (US-106…US-111) |
+| [E16 Nutrition follow-up](epics/E16-nutrition-follow-up.md) | A nutrition section in the weekly summary, a nutrition "¿Por qué no avanzo?", a plateau explanation and a diet-break proposal; deterministic (US-112…US-115) |
+| [E17 Food data quality](epics/E17-food-data-quality.md) | A macro/kcal check, an audit of existing foods, and Open Food Facts as a fallback that copies into editable personal foods (US-116…US-119) |
+| [E18 UI review](epics/E18-ui-review.md) | A compact Trainer with a Details screen, a quick-search icon in Diario and Entreno, favourites first in food search, and a review of Diario, Entreno and Perfil (US-120…US-123) |
+| [E19 Closure](epics/E19-closure.md) | Supabase keep-alive, a secured data export, a private repository and a project retro (US-124…US-127) |
 
-Each epic's Intent is agreed with the user before its file and stories are written.
+Intents and stories approved by the user on 2026-11-08; the `epic-planner` breaks them into tasks.
 
 ## 3. Rules for every epic
-- Screens are built from the existing design-system components, so E19 can review them in one pass.
+- Screens are built from the existing design-system components, so E18 can review them in one pass.
 - Any sports-science rule (for example the macro/kcal tolerance) goes through `fitness-scientist` first and is recorded in `07`.
 - Security and data protection are explicit requirements wherever personal data is copied, exported or stored.
 
