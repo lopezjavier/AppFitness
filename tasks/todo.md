@@ -8,7 +8,7 @@ Secrets rule: never pasted in the chat or in versioned files. The user enters th
 
 Last task ID used: T-238
 
-**Next:** Phase 3 is defined in `planning/01-scope.md` (E15 Real life → E20 Closure); the Intent of E15 is agreed with the user next with the product-owner skill; no task is active.
+**Next:** Phase 3 is defined in `planning/01-scope.md` (E15 Real life and goal switching → E19 Closure, epic files written 2026-11-08). The `epic-planner` breaks E15 into tasks in a fresh session; no task is active.
 
 ## Open follow-ups carried into Phase 3
 
