@@ -2444,5 +2444,5 @@
     <string name="notifications_reminder_open_block_review">Abrir la revisión del bloque</string>
     <string name="preferences_reminders_block_end">Bloque terminado</string>
     <string name="trainer_welcome_back_title">Bienvenido de nuevo</string>
-    <string name="trainer_welcome_back_line">Tu primera sesión no subirá las cargas.</string>
+    <string name="trainer_welcome_back_line">Tu primer entreno no subirá las cargas.</string>
 </resources>

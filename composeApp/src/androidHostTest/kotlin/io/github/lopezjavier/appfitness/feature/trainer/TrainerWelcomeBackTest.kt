@@ -62,7 +62,7 @@ class TrainerWelcomeBackTest {
 
         rule.onNodeWithTag("trainer_welcome_back_card").assertIsDisplayed()
         rule.onNodeWithText("Bienvenido de nuevo").assertIsDisplayed()
-        rule.onNodeWithText("Tu primera sesión no subirá las cargas.").assertIsDisplayed()
+        rule.onNodeWithText("Tu primer entreno no subirá las cargas.").assertIsDisplayed()
         rule.onNodeWithTag("trainer_welcome_back_new_block").assertIsDisplayed()
     }
 
