@@ -5,7 +5,7 @@ Collect what the coach cannot derive from the data, and make the rest-end alert 
 
 ## Scope
 - Includes: rest-end alert with the screen off (with the new alert sound), training intention, static training preferences (place, equipment, optional days per week and session length), notes per set and per routine exercise, discomfort log per exercise with the fixed safety message, movement pattern in the exercise catalogue.
-- Out of scope: the coach itself and the training plan storage (E13), an RIR field (derived from RPE, ADR-76), removal of the target weight (E13, ADR-78), water and voice (Phase 3).
+- Out of scope: the coach itself and the training plan storage (E13), an RIR field (derived from RPE, ADR-76), removal of the target weight (E13, ADR-78), water and voice (out of scope for the app, ADR-101).
 
 ## Decisions
 ADR-75 (rest alert), ADR-76 (RIR derived from RPE; discomfort rule), ADR-78 (preferences, intention, `movement_pattern`; `activity_level` kept). Amends E3 US-13: its "End of rest" scenario (foreground only) and its note "no foreground service or notifications in Phase 1". Reopens the alert sound choice of E9 (points 15 and 16, T-059).

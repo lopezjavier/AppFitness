@@ -6,8 +6,8 @@ A coach the user can trust for years, like a real trainer: it gets to know the u
 ## Scope
 > **Moved to E14 (user, 2026-11-03: "we don't have a proper block yet"):** the block follow-ups — plan weeks that follow the training, the end-of-block review and phase changes, the automatic changes ("Entrenador"), injury follow-up and the health note, life changes (US-83…US-88 follow-up parts, US-90, US-91, US-92 and the automatic parts of US-69, US-70, US-73, US-75). Their headings below say "→ E14 (backlog)"; [E14-block-follow-up.md](E14-block-follow-up.md) holds the backlog. E13 finishes with the block (US-72, US-93…US-96), the report (US-71), history (US-74), the evaluation and the chat (US-77). **Removed 2026-11-03 (user, E13 Q56):** the minimal phase "Mínimo" and "Tengo poco tiempo".
 
-- Includes: intake "Para conocerte" and the free text the coach reads (US-81, US-89); confirmation of derived values; calorie and macro plan with outcomes; phases over the year (cut, gain, maintenance, recomposition, minimal; US-82; regain removed 2026-11-02, deferred to Phase 3); the end-of-block review and the next block, with optional per-muscle priorities (US-83, US-84); one "Entrenador" behaviour: progression, calorie changes in the safe band and deloads applied on their own with "Deshacer" (US-85, US-86); progression per exercise; weekly report; block creator with plan storage and adherence; breaks, the minimal plan and coming back (US-88); training around an injury, graded return and one data-triggered health note (US-87, US-90); life changes mid-block: "Revisar el bloque" with "Adaptar el bloque", "Bloque nuevo" or "Solo unos días", goal change, new exercises, kept swaps, turning 65 (US-91, US-92, `07` §12.8); recommendation history with outcome and deletion; monthly AI budget; chat with tools (last, gated by the evaluation); weekly cardio and daily steps in the plan, and cardio as the last exercise of every routine of the block (US-79, ADR-85; the coach plans no warm-up, E13 Q27); cardio machines as their own equipment group (US-80). **Added 2026-11-03 (T-202, ADR-93, ADR-94):** the model builds the whole block and one routine checker validates it (US-72 amended); starting a block from scratch (2-3 split options) or from a routine folder (US-93); removing a block without a new plan (US-94); reviewing any routine folder with the coach (US-95); favourite exercises (US-96).
-- Out of scope: medical advice, diagnosis or treatment, generic health disclaimers, video analysis, meal plans, reverse dieting and refeeds (`07` §4), soreness, pump or readiness questionnaires, illness rules (`07` §12.5), a coaching-mode selector (ADR-88), water and voice (Phase 3).
+- Includes: intake "Para conocerte" and the free text the coach reads (US-81, US-89); confirmation of derived values; calorie and macro plan with outcomes; phases over the year (cut, gain, maintenance, recomposition, minimal; US-82; regain removed 2026-11-02, out of scope for the app (ADR-101)); the end-of-block review and the next block, with optional per-muscle priorities (US-83, US-84); one "Entrenador" behaviour: progression, calorie changes in the safe band and deloads applied on their own with "Deshacer" (US-85, US-86); progression per exercise; weekly report; block creator with plan storage and adherence; breaks, the minimal plan and coming back (US-88); training around an injury, graded return and one data-triggered health note (US-87, US-90); life changes mid-block: "Revisar el bloque" with "Adaptar el bloque", "Bloque nuevo" or "Solo unos días", goal change, new exercises, kept swaps, turning 65 (US-91, US-92, `07` §12.8); recommendation history with outcome and deletion; monthly AI budget; chat with tools (last, gated by the evaluation); weekly cardio and daily steps in the plan, and cardio as the last exercise of every routine of the block (US-79, ADR-85; the coach plans no warm-up, E13 Q27); cardio machines as their own equipment group (US-80). **Added 2026-11-03 (T-202, ADR-93, ADR-94):** the model builds the whole block and one routine checker validates it (US-72 amended); starting a block from scratch (2-3 split options) or from a routine folder (US-93); removing a block without a new plan (US-94); reviewing any routine folder with the coach (US-95); favourite exercises (US-96).
+- Out of scope: medical advice, diagnosis or treatment, generic health disclaimers, video analysis, meal plans, reverse dieting and refeeds (`07` §4), soreness, pump or readiness questionnaires, illness rules (`07` §12.5), a coaching-mode selector (ADR-88), water and voice (out of scope for the app, ADR-101).
 
 ## Decisions
 Base: `07-coach-design.md`. ADR-76 (coach rules), ADR-77 (provider and cost; changes NFR-02), ADR-78 (target weight retired as a user input; `activity_level` is the starting factor). ADR-79 (own tab). ADR-81 (discomfort level), ADR-84 (expenditure anchor), ADR-85 (cardio). **2026-11-01:** ADR-86 (intake, phases, end-of-block review, breaks), ADR-87 (free text to the model, grounding), ADR-88 ("Entrenador": automatic changes with "Deshacer"; amends ADR-76), ADR-89 (no generic disclaimers, persistent-discomfort note, injury follow-up; amends ADR-81 and ADR-85). **2026-11-02:** ADR-90 (per-user AI cap 3 €; amends ADR-77), ADR-91 (minimal intake, no "Recuperar"), ADR-92 (equipment split, alternatives). **2026-11-03 (T-202, proposed):** ADR-93 (the model builds the block; one routine checker; folder review), ADR-94 (block lifecycle: two starting points, transparent block, "Eliminar bloque", favourites). Amends ADR-09 (AI assistant no longer deferred), ADR-37 (tab set) and E5 (the target weight and distance to the goal become the coach's block outcome). User decisions E13 Q32-Q43 (`09-open-questions.md`).
@@ -113,7 +113,7 @@ Feature: Confirmation of derived values
 - **Amended 2026-10-30 (user, E13 Q15/Q21, US-78):** the values are reviewed and confirmed in "Antes de empezar" (its "Crear plan" confirms them); the "Tus valores" card leaves the Trainer root and the plan proposal, and "Tus datos" (Trainer root row) shows them.
 - **Labels (Q5):** "Confirmar" (accept the coach's derived values) and "Aceptar" / "Descartar" (decide on a coach proposal) get their own glossary entries in `05` §10; they are distinct from "Guardar" (commit an edit).
 - **Amended 2026-11-01 (ADR-86, `07` §2):** intake answers are provisional priors shown as "Según lo que nos contaste (provisional)" until measured data replaces them; a returning lifter keeps the experience class; the self-reported classes are under 6 months beginner, 6 months to under 2 years intermediate, 2 years or more advanced; known cutting calories are context only, never used in a calculation. A new "Situación" value (first time, continuous, returning after a break, returning after an injury) is shown in "Tus datos"; the app sets "returning after a break" after 28 days without a completed session.
-- **Amended 2026-11-02 (user, Checkpoint E13-D feedback; T-198, R-53):** the intake keeps only what changes a figure or reaches the model: training years ("Tiempo entrenando"), the known maintenance ("Calorías de mantenimiento") and the free text. The situation (with "Recuperar", deferred to Phase 3), cutting calories, the injured area and the pre-break bests are removed; the scenarios above are unchanged.
+- **Amended 2026-11-02 (user, Checkpoint E13-D feedback; T-198, R-53):** the intake keeps only what changes a figure or reaches the model: training years ("Tiempo entrenando"), the known maintenance ("Calorías de mantenimiento") and the free text. The situation (with "Recuperar", out of scope for the app (ADR-101)), cutting calories, the injured area and the pre-break bests are removed; the scenarios above are unchanged.
 
 ## US-69 · Plan calories, macros and outcomes
 
@@ -1055,7 +1055,7 @@ Feature: Getting to know the user
     Then only that value's editor opens
     And every value is optional
 
-  # "Situación" (returning after a break) was removed with "Recuperar" on 2026-11-02 (user; deferred to Phase 3).
+  # "Situación" (returning after a break) was removed with "Recuperar" on 2026-11-02 (user; out of scope for the app (ADR-101)).
   Scenario: Only questions that change something
     Then the coach asks only my time training, my maintenance calories if I know them, and a free text
     And it asks nothing that no figure or coach request uses
@@ -1083,7 +1083,7 @@ Feature: Getting to know the user
 ```
 
 **Technical notes**
-- **Rewritten 2026-11-02 (user):** nothing is extracted from the text by a model (the `intake_extract` kind is removed); the user types the values. Three inputs and what they change: training years → the experience class (max with the history, `07` §2: gain rate, days); known maintenance → the expenditure prior until the measured value qualifies, then the handover note (US-68); the free text → sent verbatim, as context, with the plan and block requests (US-89). Removed: the situation (with "Recuperar", deferred to Phase 3), injured area, pre-break bests, cutting calories (R-53).
+- **Rewritten 2026-11-02 (user):** nothing is extracted from the text by a model (the `intake_extract` kind is removed); the user types the values. Three inputs and what they change: training years → the experience class (max with the history, `07` §2: gain rate, days); known maintenance → the expenditure prior until the measured value qualifies, then the handover note (US-68); the free text → sent verbatim, as context, with the plan and block requests (US-89). Removed: the situation (with "Recuperar", out of scope for the app (ADR-101)), injured area, pre-break bests, cutting calories (R-53).
 - *(Superseded 2026-11-02:)* ~~One model call (`intake` kind, ADR-77 budget) extracts the structured profile from the free text as JSON; the server validates allowed values, plausible ranges and catalogue lifts and returns a form; the user confirms.~~ ~~The extraction costs about 0,01-0,03 € once per intake edit.~~
 
 ## US-82 · Phases over the year
@@ -1097,7 +1097,7 @@ Feature: Getting to know the user
 Feature: Phases
 
   Scenario Outline: First phase from the intention
-    # Amended 2026-11-02 (user: "Recuperar" removed, deferred to Phase 3; T-198, T-200): "and I am not returning after a break" dropped.
+    # Amended 2026-11-02 (user: "Recuperar" removed, out of scope for the app (ADR-101); T-198, T-200): "and I am not returning after a break" dropped.
     Given my intention is "<intention>"
     When the coach proposes my first plan
     Then the phase is "<phase>"
@@ -1110,7 +1110,7 @@ Feature: Phases
       | Mantenimiento      | Mantenimiento  |
       | Ganar fuerza       | Mantenimiento  |
 
-  # Void 2026-11-02 (user: "Recuperar" removed entirely, deferred to Phase 3; T-200): the scenarios
+  # Void 2026-11-02 (user: "Recuperar" removed entirely, out of scope for the app (ADR-101); T-200): the scenarios
   # "Returning after a break starts with 'Recuperar' at maintenance" and "Regain with a muscle goal" are removed
   # (2026-11-01 text in git history, #433).
 
@@ -1160,7 +1160,7 @@ Feature: Phases
 
 **Technical notes**
 - Phase calories and training: `07` §4, §12.3 (cut volume kept at the previous block's). The phase is stored on the plan; the Spanish labels are finalised by ux-reviewer within the glossary ("Definición", "Volumen", "Mantenimiento", "Recomposición"; "Mínimo" removed 2026-11-03, E13 Q56).
-- **Amended 2026-11-02 (user):** "Recuperar" (regain) is removed entirely and deferred to Phase 3; T-200 removes the phase and moves any stored regain plan to "Mantenimiento" with its calories unchanged.
+- **Amended 2026-11-02 (user):** "Recuperar" (regain) is removed entirely and out of scope for the app (ADR-101); T-200 removes the phase and moves any stored regain plan to "Mantenimiento" with its calories unchanged.
 - Phase triggers (when a change is proposed) belong to the end-of-block review (US-83).
 
 ## US-83 · End-of-block review and the next block → E14 (backlog)
@@ -1208,7 +1208,7 @@ Feature: End-of-block review
     Then the next block keeps the current phase
     And the proposal comes back at the next review
 
-  # Void 2026-11-02 (user: "Recuperar" removed entirely, deferred to Phase 3; T-200). The scenario
+  # Void 2026-11-02 (user: "Recuperar" removed entirely, out of scope for the app (ADR-101); T-200). The scenario
   # "Regain ends when I am back" is removed (E13 Q51 resolved by the removal).
 
   Scenario: Long gain asks before going on
@@ -1282,7 +1282,7 @@ Feature: Per-muscle priority
     When I try to mark a fourth
     Then the app says that at most 3 groups can be prioritised
 
-  # Amended 2026-11-02: "or a regain" / "or 'Recuperar'" dropped ("Recuperar" removed, deferred to Phase 3).
+  # Amended 2026-11-02: "or a regain" / "or 'Recuperar'" dropped ("Recuperar" removed, out of scope for the app (ADR-101)).
   Scenario: No extra volume in a cut
     Given the phase of the next block is "Definición"
     When I prioritise a group
@@ -1458,7 +1458,7 @@ Feature: Injury follow-up
 - **Unresolved (`07` §7, 2026-11-02):** a level 4-5 discomfort is unresolved, whatever its age, until "Ya no me molesta" or step 3; the 7-day "open" window governs only the load block of levels 1-3. E13 Q45 is settled by `07` §12.8 row 7: the step-1 swap is offered, not automatic.
 
 ## US-88 · Breaks, busy periods and coming back → E14 (backlog; the minimal phase built by T-187 is removed by T-205/T-206, E13 Q56: its scenarios here are void for the E14 re-plan)
-*Tasks T-189 (block pause), ~~T-185 (returning after 28 days)~~, T-187/T-188 (minimal), ~~T-190 (regain proposal)~~, T-192 (loads after 14 days); "returning" and regain removed 2026-11-02 (T-198, T-200; Phase 3). ADR-86, E13 Q40. Rules: `07` §12.5. Week counting scenarios in US-73; return loads in US-70.*
+*Tasks T-189 (block pause), ~~T-185 (returning after 28 days)~~, T-187/T-188 (minimal), ~~T-190 (regain proposal)~~, T-192 (loads after 14 days); "returning" and regain removed 2026-11-02 (T-198, T-200; out of scope for the app, ADR-101). ADR-86, E13 Q40. Rules: `07` §12.5. Week counting scenarios in US-73; return loads in US-70.*
 
 **As** a user whose life gets in the way
 **I want** the plan to wait for me and pick up sensibly when I come back
@@ -1467,7 +1467,7 @@ Feature: Injury follow-up
 ```gherkin
 Feature: Breaks and coming back
 
-  # Amended 2026-11-02 (user: "Recuperar" and the "returning" situation removed, deferred to Phase 3; T-198, T-200).
+  # Amended 2026-11-02 (user: "Recuperar" and the "returning" situation removed, out of scope for the app (ADR-101); T-198, T-200).
   # "A long break makes me 'returning'" keeps only its pause part; "The review after a long break proposes regain" is void.
   Scenario: A long break pauses my block
     Given I completed no session for 28 days

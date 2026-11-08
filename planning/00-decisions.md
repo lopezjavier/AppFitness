@@ -120,11 +120,22 @@ The rows of ADR-93, 94, 98 and 99 are added here: the Phase 2 archive index lack
 
 ## Index (Phase 3, ADR-101..)
 
-No Phase 3 ADR yet. The first one will be ADR-101 and its row goes here.
-
 | ADR | Decision (one line) | Status |
 |---|---|---|
+| 101 | Phase 3 is the last phase: personal-use scope (one person plus an optional test account), items left out are out of scope for the app, Open Food Facts becomes a fallback that copies into editable personal foods, then maintenance mode | Amends 53, 90 |
 
 ## Phase 3 ADRs (full text)
 
-None yet: Phase 3 has no ADR. Older ADRs: [`phase2/00-decisions.md`](phase2/00-decisions.md) (73-100) and [`phase1/00-decisions.md`](phase1/00-decisions.md) (01-72).
+### ADR-101 — Phase 3 is the last phase; personal-use scope; OFF as a fallback that copies into personal foods (amends ADR-53 and the user count of ADR-90)
+- **Context:** the app is close to finished. The user wants a closing phase with real-impact work only, and a clear end state.
+- **Decision:**
+  - Phase 3 is the last phase. Epics E15 Real life, E16 Nutrition follow-up, E17 Goal switching, E18 Food data quality, E19 UI review, E20 Closure, in that order (`01-scope.md`). After E20 the app is in maintenance mode: only bugfixes and user feedback create tasks.
+  - Scope is personal use: one person, with a second account allowed for testing. This replaces "1-5 users" (ADR-90 text stays as history).
+  - Everything listed under "Out of scope for the app" in `01-scope.md` is final, not deferred; this includes the former "Phase 3" items (water, voice, "Recuperar").
+  - Open Food Facts is a fallback for finding foods. Adding an OFF food creates the user's personal copy (no duplicate per barcode or OFF id), found first in later searches and editable like a manual food. This amends ADR-53 (only manual foods editable). Existing OFF foods in the diary are converted to personal copies in E18.
+  - Macros are checked against kcal deterministically when a food is created, edited or estimated by AI (tolerance owned by `fitness-scientist` in `07`); existing foods are audited and fixed by the user from a list.
+  - Closure (E20): Supabase keep-alive, secured data export of the user's own rows, repository made private, project retro.
+- **Consequences:** `01-scope.md` rewritten, `CLAUDE.md` line 3, "Phase 3" references in `05`, `07`, E10-E13 and `tasks/todo.md` now say out of scope for the app. E15 Intent is agreed next.
+- **Approval:** user, 2026-11-08 (chat).
+
+Older ADRs: [`phase2/00-decisions.md`](phase2/00-decisions.md) (73-100) and [`phase1/00-decisions.md`](phase1/00-decisions.md) (01-72).
