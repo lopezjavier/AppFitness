@@ -8,7 +8,7 @@ Secrets rule: never pasted in the chat or in versioned files. The user enters th
 
 Last task ID used: T-245 (T-239…T-244 reserved by the E15 breakdown)
 
-**Next:** fix **T-245** (bug reported at Checkpoint E15-A, see its entry; other E15-A items still to be tested by the user, the checkpoint stays open until the user approves it after the fix). Then T-241. Context: 👤 Checkpoint E15-A is open (T-240 merged in #551, CI green; no migration, so no deploy to wait for). After the user's feedback or approval: T-241. Follow-ups from T-240 (no task yet): (1) SQL `app.coach_next_plan` reset with `''` instead of `'off'` (needs a migration; fold into the next backend task or T-242); (2) `LiveSessionViewModel:761` reads `currentPlan()` and sees no plan during a goal switch, it should use `acceptedPlan()`; (3) ux-reviewer notes: check the offline hint wording for "Mi entrenamiento" (disabled offline but the hint names only the new block) and the `CreateFailed` offline snackbar text in the new-block flow. No task is active.
+**Next:** 👤 Checkpoint E15-A is open and is a hard gate: T-245 is merged (#554, CI green, `deploy-supabase` green), so the user re-tests the plan proposal (unconfirmed values named with a tap target, "Confirmar valores", accept without re-creating) together with the other E15-A items, with an APK built after the deploy. Only the user's feedback or approval releases it (fixes first); then T-241. Follow-ups from T-240 (no task yet): (1) SQL `app.coach_next_plan` reset with `''` instead of `'off'` (needs a migration; fold into the next backend task or T-242); (2) `LiveSessionViewModel:761` reads `currentPlan()` and sees no plan during a goal switch, it should use `acceptedPlan()`; (3) ux-reviewer notes: offline hint wording for "Mi entrenamiento" and the `CreateFailed` offline snackbar text in the new-block flow. T-245 follow-ups: Q2 stale baseline is the in-session activity level (a fully reliable version needs the level stored in the plan JSON, an edge-function change); `block_types_no_fit` has no tap (see Notes). No task is active.
 
 ## Open follow-ups carried into Phase 3
 
@@ -104,9 +104,9 @@ The user does not force time-based triggers. These items are covered by host tes
 **Where:** string `plan_proposal_reask_note` (`strings.xml`), `PlanProposalScreen`/`PlanProposalUiState`, `05` §8 R-59 (new, written with this entry), `05` §10 glossary row "A coach value not yet confirmed".
 **Flow:** planner → ux-reviewer (plan) → kotlin-core-developer → compose-ui-developer → (pr-reviewer ∥ ux-reviewer) → pr-creator. The planner first finds why a fresh plan in the test account has unconfirmed values (a data problem or a missing path) and fixes the cause, not only the copy.
 **Acceptance criteria:**
-- [ ] The proposal names each unconfirmed value (for example the weight or the activity level) and each has a tap target that opens the editor of that value (R-55); after fixing it the user comes back and can accept without re-creating the plan from scratch.
-- [ ] No state of this screen blocks acceptance without a visible fix (R-59); sweep the other blocking notes of the Trainer and Diario goals.
-- [ ] The test account's case is reproduced in a host test; lint + `testLocalDebugUnitTest` green.
+- [x] The proposal names each unconfirmed value (for example the weight or the activity level) and each has a tap target that opens the editor of that value (R-55); after fixing it the user comes back and can accept without re-creating the plan from scratch.
+- [x] No state of this screen blocks acceptance without a visible fix (R-59); sweep the other blocking notes of the Trainer and Diario goals.
+- [x] The test account's case is reproduced in a host test; lint + `testLocalDebugUnitTest` green.
 **Dependencies:** Checkpoint E15-A feedback released by the user. Not started: a fresh session is needed (`/clear`).
 **Estimated scope:** M
 
