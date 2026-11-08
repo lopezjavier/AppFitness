@@ -202,17 +202,20 @@ class TrainerWelcomeBackViewModelTest {
     }
 
     @Test
-    fun whileTheReviewIsDue_theCardStaysBecauseNewBlockIsAlreadyOffered() = runTest(dispatcher) {
+    fun whileTheReviewIsDue_openNewBlockIsIgnored_becauseTheReviewFooterIsTheOnlyWayOn() = runTest(dispatcher) {
         openSavedBlock()
         sessions.completed += session(daysAgo(20))
         reviews.review = Result.success(blockReview())
         val model = viewModel()
-
         advanceUntilIdle()
 
         assertTrue(model.content().blockReviewDue)
-        assertTrue(model.content().welcomeBack)
-        assertTrue(model.content().canStartNewBlock)
+        model.effects.test {
+            model.onEvent(TrainerEvent.OpenNewBlock)
+            advanceUntilIdle()
+
+            expectNoEvents()
+        }
     }
 
     @Test

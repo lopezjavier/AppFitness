@@ -143,7 +143,8 @@ class TrainerViewModel(
 
     private fun openNewBlock() {
         val content = _uiState.value as? TrainerUiState.Content ?: return
-        val planId = (content.plan as? PlanSummary.Accepted)?.plan?.id?.takeIf { content.canStartNewBlock } ?: return
+        val allowed = content.canStartNewBlock && !content.blockReviewDue
+        val planId = (content.plan as? PlanSummary.Accepted)?.plan?.id?.takeIf { allowed } ?: return
         viewModelScope.launch { effectChannel.send(TrainerEffect.OpenNewBlock(planId)) }
     }
 

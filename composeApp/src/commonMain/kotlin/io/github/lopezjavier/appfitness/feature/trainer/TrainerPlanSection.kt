@@ -196,6 +196,7 @@ internal fun PlanSection(
     goalsChecklist: GoalChecklist? = null,
     canStartNewBlock: Boolean = false,
     weeksInPhase: PhaseWeeks? = null,
+    reviewDue: Boolean = false,
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
         ListSectionHeader(stringResource(Res.string.trainer_plan_section))
@@ -242,8 +243,9 @@ internal fun PlanSection(
                         onDismiss = { onEvent(TrainerEvent.DismissCardioEdit) },
                     )
                 }
+                // While the review is due its footer is the only way on: no "Bloque nuevo" entry here.
                 if (canStartNewBlock) {
-                    NewBlockEntries(online, onEvent)
+                    if (!reviewDue) NewBlockEntries(online, onEvent)
                 } else {
                     ReplacePlanEntry(plan.plan.id, online, onOpenBeforeStart)
                 }
