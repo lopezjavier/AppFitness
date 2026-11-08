@@ -16,6 +16,9 @@ export const PROMPTS: Record<FoodPhotoMode, string> = {
     dish:
         `${COMMON} The photo shows a prepared dish or food. Identify it, estimate its typical nutrition per 100 g, ` +
         "set estimated_grams to the estimated weight in grams of the whole portion shown, and set confidence. " +
+        "The nutrition values per 100 g and estimated_grams must describe the food exactly as shown in the photo: " +
+        "when it looks cooked, use the cooked values and the cooked weight, never the raw or dry values. " +
+        "The user note, when present, can refine this (for example the cooking method or the raw weight). " +
         "Use 0 only for values that are really zero; use null for values you cannot determine.",
     label:
         `${COMMON} The photo shows a nutrition facts label. Transcribe the values printed on it, converted to per 100 g ` +
