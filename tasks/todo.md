@@ -39,6 +39,7 @@ E15 (epic-planner, 2026-11-08, after the user's Q1-Q5 answers; needs the user's 
 
 - **Out of scope (user, 2026-11-08, ADR-101):** "Recuperar" / returning after a break (regain phase) is out of scope for the app; the 14-day return rule stays as the only break rule.
 - **R-59 sweep leftover (T-245):** `block_types_no_fit` (`BlockTypesScreen`, `BlockTargetsScreen`) names the three levers but has no tap to "Mi entrenamiento"; needs a route through the block builder slots and `AppRoot`. Owning task: to be added by the PM at the next epic planning.
+- **UI review epic (user, 2026-11-08):** "Lo que el entrenador sabe de ti" (`free_text_*`, `trainer_free_text_row`) and the "Para conocerte" help text say the coach reads those notes when preparing the plan and blocks, but the coach is deterministic (ADR-97…99; `plan_*` kinds have `deterministic: true`, `report` and `chat` are unavailable, and no coach code reads the free text), so the "Enviar al entrenador" switches control nothing. The user will raise it in the detailed UI review epic (remove, hide until a model feature exists, or fix the copy).
 - **E13 backlog (user request, 2026-10-30): consumed.** Items 1 → T-179, 2 → T-181…T-184, 3 and 4 → T-205/T-206. Nothing from it is open.
 
 ## Reminders
