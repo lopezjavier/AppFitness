@@ -38,6 +38,8 @@ private val PHASES = mapOf(
     "recomposition" to Phase.Recomposition,
 )
 
+internal fun phaseNamed(name: String?): Phase? = PHASES[name]
+
 private val REASONS = mapOf(
     "cut_length" to PhaseChangeReason.CutLength,
     "floor_limited" to PhaseChangeReason.FloorLimited,
@@ -126,10 +128,15 @@ private fun proposalOf(obj: JsonObject?): PhaseProposal? {
  */
 internal fun blockReviewOf(element: JsonElement): BlockReview? {
     val obj = element.obj() ?: JsonObject(emptyMap()) // Without identity keys it yields null below.
+    return if (obj.text("id") == null) null else reviewBodyOf(obj)
+}
+
+/** Like [blockReviewOf] but the id may be null (the early review of "Bloque nuevo" is not stored). */
+internal fun reviewBodyOf(obj: JsonObject): BlockReview? {
     val id = obj.text("id")
     val planId = obj.text("plan_id")
     val endedOn = obj.day("ended_on")
-    if (id == null || planId == null || endedOn == null) return null
+    if (planId == null || endedOn == null) return null
     val inputs = obj["inputs"].obj()
     return BlockReview(
         id = id,
@@ -144,5 +151,6 @@ internal fun blockReviewOf(element: JsonElement): BlockReview? {
         stalls = stallsOf(inputs?.get("stalls")),
         phaseProposal = proposalOf(obj["phase_proposal"].obj()),
         phaseDecision = obj.text("phase_decision")?.let(DECISIONS::get),
+        early = obj.truth("early"),
     )
 }

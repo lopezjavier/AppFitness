@@ -95,11 +95,12 @@ class BlockReviewViewModel(
     }
 
     private fun decide(decision: PhaseDecision) {
-        val current = content() ?: return
-        if (current.deciding != null || !current.phaseDecidable) return
+        val current = content()
+        val reviewId = current?.review?.id // The early review is not stored: nothing to decide.
+        if (current == null || reviewId == null || !current.canDecide()) return
         _uiState.value = current.copy(deciding = decision, decisionFailed = null)
         viewModelScope.launch {
-            when (val result = decidePhase(current.review.id, decision, today())) {
+            when (val result = decidePhase(reviewId, decision, today())) {
                 is PhaseChangeResult.Done -> {
                     result.nextPlanId?.let { savedState[KEY_NEXT_PLAN_ID] = it }
                     // The stored decision comes from the server; if that read fails, the choice just made stands.
@@ -150,3 +151,5 @@ class BlockReviewViewModel(
         }
     }
 }
+
+private fun BlockReviewUiState.Content.canDecide() = deciding == null && phaseDecidable

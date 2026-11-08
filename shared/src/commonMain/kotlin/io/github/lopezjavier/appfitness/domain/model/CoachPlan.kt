@@ -97,6 +97,7 @@ data class CoachPlan(
     val nutrition: PlanNutrition,
     val outcomes: List<PlanOutcome>,
     val acceptedAt: Instant?,
+    val fromGoalSwitch: Boolean = false,
 ) {
     val phase: Phase get() = nutrition.phase
 

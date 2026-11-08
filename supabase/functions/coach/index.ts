@@ -7,6 +7,7 @@ import {
     authenticate,
     callerClient,
 } from "../_shared/food-store.ts";
+import { CoachInputError } from "./context.ts";
 import { createCoachHandler } from "./handler.ts";
 import type { CatalogExercise, Nutrition, PhaseHistory } from "./schemas.ts";
 
@@ -71,6 +72,12 @@ const handler = createCoachHandler({
                 p_input_summary: row.inputSummary,
             },
         );
+        if (error?.message?.includes("coach_block_in_progress")) {
+            throw new CoachInputError(
+                "coach_block_in_progress",
+                "A block is in progress: use Bloque nuevo",
+            );
+        }
         if (error || !data?.plan_id) throw new Error("plan write failed");
         return {
             plan_id: String(data.plan_id),
@@ -183,6 +190,27 @@ const handler = createCoachHandler({
         );
         if (error || !data?.plan_id) throw new Error("phase change failed");
         return { plan_id: String(data.plan_id) };
+    },
+    applyGoalSwitch: async (token, row) => {
+        const { data, error } = await callerClient(token).rpc(
+            "propose_goal_switch",
+            {
+                p_today: row.today,
+                p_nutrition: row.nutrition,
+                p_outcomes: row.outcomes,
+                p_method: row.method,
+                p_input_summary: row.inputSummary,
+            },
+        );
+        if (error || !data?.plan_id) throw new Error("goal switch failed");
+        return {
+            plan_id: String(data.plan_id),
+            current_kcal: typeof data.current_kcal === "number"
+                ? data.current_kcal
+                : null,
+            new_kcal: Number(data.new_kcal),
+            phase: String(data.phase),
+        };
     },
     client: apiKey
         ? createAnthropicClient({ fetch: (u, i) => fetch(u, i), apiKey })

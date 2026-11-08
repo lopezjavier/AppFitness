@@ -46,6 +46,7 @@ class CoachErrorParserTest {
         assertEquals(CoachFailure.Invalid, CoachErrorParser.parse(error("coach_invalid_output")))
         assertEquals(CoachFailure.Missing(emptySet()), CoachErrorParser.parse(error("coach_missing_data")))
         assertEquals(CoachFailure.Infeasible, CoachErrorParser.parse(error("coach_plan_infeasible")))
+        assertEquals(CoachFailure.BlockInProgress, CoachErrorParser.parse(error("coach_block_in_progress")))
     }
 
     @Test

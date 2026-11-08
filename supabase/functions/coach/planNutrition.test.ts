@@ -90,6 +90,8 @@ function setup(
         loadReview: () => Promise.reject(new Error("unexpected loadReview")),
         applyPhaseChange: () =>
             Promise.reject(new Error("unexpected applyPhaseChange")),
+        applyGoalSwitch: () =>
+            Promise.reject(new Error("unexpected applyGoalSwitch")),
         client,
         loadInputs: () => Promise.resolve(o.inputs ?? planInputs()),
         loadContext: () => {

@@ -249,7 +249,7 @@ select ok(not has_function_privilege('anon', 'public.open_coach_block_review(dat
 select ok(not has_function_privilege('anon', 'public.keep_coach_phase(uuid)', 'execute'), 'anon cannot keep the phase');
 select ok(not has_function_privilege('anon', 'public.accept_coach_phase(uuid,jsonb,jsonb,jsonb,jsonb,date)', 'execute'),
   'anon cannot accept the phase');
-select ok(not has_function_privilege('authenticated', 'public.coach_block_review_build(uuid,date)', 'execute'),
+select ok(not has_function_privilege('authenticated', 'public.coach_block_review_build(uuid,date,date)', 'execute'),
   'the inputs builder is internal');
 select throws_ok($$select public.open_coach_block_review(current_date)$$, '28000', null, 'opening needs a signed-in user');
 select throws_ok($$select public.keep_coach_phase(gen_random_uuid())$$, '28000', null, 'keeping needs a signed-in user');

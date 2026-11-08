@@ -24,6 +24,8 @@ import {
     type AttachedBlock,
     type BlockRow,
     CoachInputError,
+    type GoalSwitched,
+    type GoalSwitchRow,
     type OptionsRow,
     type PhaseChanged,
     type PhaseChangeRow,
@@ -93,6 +95,11 @@ export type CoachDeps = {
         token: string,
         row: PhaseChangeRow,
     ) => Promise<PhaseChanged>;
+    /** Stores the goal-switch proposal through `propose_goal_switch`, with the caller's own token. */
+    applyGoalSwitch: (
+        token: string,
+        row: GoalSwitchRow,
+    ) => Promise<GoalSwitched>;
     now: () => Date;
     timeoutMs?: number;
     kinds?: Record<string, KindSpec>;
@@ -248,6 +255,7 @@ export function createCoachHandler(
                 updatePlanOptions: (row) => deps.updatePlanOptions(token, row),
                 loadReview: (id) => deps.loadReview(token, id),
                 applyPhaseChange: (row) => deps.applyPhaseChange(token, row),
+                applyGoalSwitch: (row) => deps.applyGoalSwitch(token, row),
             };
 
             // A deterministic kind needs no provider, no budget and leaves no usage row (T-187 `plan_recompute`).
@@ -267,7 +275,11 @@ export function createCoachHandler(
                     text = JSON.stringify(
                         await ready.finalize(null, { costEur: 0 }),
                     );
-                } catch {
+                } catch (e) {
+                    // A refusal the client can understand (e.g. coach_block_in_progress); anything else is internal.
+                    if (e instanceof CoachInputError) {
+                        return errorResponse(e.code, e.message);
+                    }
                     return errorResponse("INTERNAL", "Unexpected error");
                 }
                 return sse([

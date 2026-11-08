@@ -7,18 +7,28 @@ import io.github.jan.supabase.postgrest.Postgrest
 import io.github.jan.supabase.postgrest.rpc
 import io.github.lopezjavier.appfitness.data.remote.CoachErrorParser
 import io.github.lopezjavier.appfitness.data.remote.CoachStreamParser
+import io.github.lopezjavier.appfitness.data.remote.GoalSwitchRequestBody
+import io.github.lopezjavier.appfitness.data.remote.GoalSwitchRequestInput
 import io.github.lopezjavier.appfitness.data.remote.KeepPhaseParams
+import io.github.lopezjavier.appfitness.data.remote.OpenBlockNewParams
 import io.github.lopezjavier.appfitness.data.remote.OpenBlockReviewParams
 import io.github.lopezjavier.appfitness.data.remote.PhaseChangeRequestBody
 import io.github.lopezjavier.appfitness.data.remote.PhaseChangeRequestInput
 import io.github.lopezjavier.appfitness.data.remote.PlanEventDto
+import io.github.lopezjavier.appfitness.data.remote.WeeksInPhaseParams
 import io.github.lopezjavier.appfitness.data.remote.blockReviewOf
 import io.github.lopezjavier.appfitness.data.remote.coachPlanJson
+import io.github.lopezjavier.appfitness.data.remote.goalSwitchPreviewOf
+import io.github.lopezjavier.appfitness.data.remote.newBlockEntryOf
+import io.github.lopezjavier.appfitness.data.remote.phaseWeeksOf
 import io.github.lopezjavier.appfitness.domain.AppError
 import io.github.lopezjavier.appfitness.domain.AppException
 import io.github.lopezjavier.appfitness.domain.model.BlockReview
 import io.github.lopezjavier.appfitness.domain.model.CoachException
 import io.github.lopezjavier.appfitness.domain.model.CoachFailure
+import io.github.lopezjavier.appfitness.domain.model.GoalSwitchPreview
+import io.github.lopezjavier.appfitness.domain.model.NewBlockEntry
+import io.github.lopezjavier.appfitness.domain.model.PhaseWeeks
 import io.github.lopezjavier.appfitness.domain.repository.CoachReviewRepository
 import io.ktor.client.plugins.HttpRequestTimeoutException
 import io.ktor.client.request.setBody
@@ -53,13 +63,32 @@ class SupabaseCoachReviewRepository internal constructor(
         Unit
     }
 
+    override suspend fun acceptPhase(reviewId: String, today: LocalDate): Result<String> = callCoach(
+        coachPlanJson.encodeToString(
+            PhaseChangeRequestBody("plan_phase_change", PhaseChangeRequestInput(today, reviewId)),
+        ),
+    ) { text -> planIdOf(text) }
+
+    override suspend fun openNewBlock(today: LocalDate): Result<NewBlockEntry?> = auth.ownRow {
+        newBlockEntryOf(postgrest.rpc("open_coach_block_new", OpenBlockNewParams(today)).decodeAs<JsonElement>())
+    }
+
+    override suspend fun previewGoalSwitch(today: LocalDate): Result<GoalSwitchPreview> = callCoach(
+        coachPlanJson.encodeToString(GoalSwitchRequestBody("plan_goal_switch", GoalSwitchRequestInput(today))),
+    ) { text ->
+        val preview = runCatching { coachPlanJson.parseToJsonElement(text) }.getOrNull()?.let(::goalSwitchPreviewOf)
+        if (preview != null) Result.success(preview) else Result.failure(CoachException(CoachFailure.Other))
+    }
+
+    override suspend fun weeksInPhase(today: LocalDate): Result<PhaseWeeks?> = auth.ownRow {
+        phaseWeeksOf(postgrest.rpc("coach_weeks_in_phase", WeeksInPhaseParams(today)).decodeAs<JsonElement>())
+    }
+
+    /** Posts [body] to the `coach` function and reads the single plan event with [parse]. */
     @Suppress("TooGenericExceptionCaught")
-    override suspend fun acceptPhase(reviewId: String, today: LocalDate): Result<String> {
+    private suspend fun <T> callCoach(body: String, parse: (String) -> Result<T>): Result<T> {
         if (auth.currentUserOrNull() == null) return Result.failure(AppException(AppError.Unauthorized))
         return try {
-            val body = coachPlanJson.encodeToString(
-                PhaseChangeRequestBody("plan_phase_change", PhaseChangeRequestInput(today, reviewId)),
-            )
             val stream = functions.invoke("coach") {
                 method = HttpMethod.Post
                 contentType(ContentType.Application.Json)
@@ -67,7 +96,7 @@ class SupabaseCoachReviewRepository internal constructor(
                 coachTimeout(requestTimeout)
             }.bodyAsText()
             CoachStreamParser.parse(stream).fold(
-                onSuccess = { text -> planIdOf(text) },
+                onSuccess = parse,
                 onFailure = { Result.failure(it) },
             )
         } catch (cancellation: CancellationException) {

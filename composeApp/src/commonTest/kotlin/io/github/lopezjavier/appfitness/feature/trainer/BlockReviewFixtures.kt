@@ -7,12 +7,15 @@ import io.github.lopezjavier.appfitness.domain.model.BlockOutcome
 import io.github.lopezjavier.appfitness.domain.model.BlockReview
 import io.github.lopezjavier.appfitness.domain.model.BlockWaist
 import io.github.lopezjavier.appfitness.domain.model.BlockWeight
+import io.github.lopezjavier.appfitness.domain.model.GoalSwitchPreview
 import io.github.lopezjavier.appfitness.domain.model.GroupSets
 import io.github.lopezjavier.appfitness.domain.model.MuscleGroup
+import io.github.lopezjavier.appfitness.domain.model.NewBlockEntry
 import io.github.lopezjavier.appfitness.domain.model.Phase
 import io.github.lopezjavier.appfitness.domain.model.PhaseChangeReason
 import io.github.lopezjavier.appfitness.domain.model.PhaseDecision
 import io.github.lopezjavier.appfitness.domain.model.PhaseProposal
+import io.github.lopezjavier.appfitness.domain.model.PhaseWeeks
 import io.github.lopezjavier.appfitness.domain.model.StallDiagnosis
 import io.github.lopezjavier.appfitness.domain.repository.CoachReviewRepository
 import kotlinx.datetime.LocalDate
@@ -85,4 +88,11 @@ internal class FakeCoachReviewRepository(var review: Result<BlockReview?> = Resu
         if (acceptResult.isSuccess) review = review.map { it?.copy(phaseDecision = PhaseDecision.Accepted) }
         return acceptResult
     }
+
+    override suspend fun openNewBlock(today: LocalDate): Result<NewBlockEntry?> = Result.success(null)
+
+    override suspend fun previewGoalSwitch(today: LocalDate): Result<GoalSwitchPreview> =
+        Result.failure(UnsupportedOperationException())
+
+    override suspend fun weeksInPhase(today: LocalDate): Result<PhaseWeeks?> = Result.success(null)
 }

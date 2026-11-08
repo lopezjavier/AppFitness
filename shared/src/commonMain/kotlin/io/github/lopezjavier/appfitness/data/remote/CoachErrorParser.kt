@@ -42,6 +42,8 @@ object CoachErrorParser {
 
             "coach_plan_infeasible" -> CoachFailure.Infeasible
 
+            "coach_block_in_progress" -> CoachFailure.BlockInProgress
+
             else -> CoachFailure.Other
         }
     }

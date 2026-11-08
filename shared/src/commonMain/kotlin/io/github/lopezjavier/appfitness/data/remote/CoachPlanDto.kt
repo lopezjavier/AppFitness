@@ -22,6 +22,8 @@ import kotlinx.datetime.LocalDate
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonElement
+import kotlinx.serialization.json.JsonObject
 import kotlin.math.roundToInt
 
 /** Tolerant reader for the jsonb the function and the table share: `data_version` can add keys. */
@@ -184,6 +186,7 @@ internal data class CoachPlanDto(
     val phase: String? = null,
     @SerialName("phase_reason") val phaseReason: String? = null,
     @SerialName("phase_options") val phaseOptions: PhaseOptionsDto? = null,
+    val method: JsonElement? = null,
 ) {
     fun toDomain(): CoachPlan = CoachPlan(
         id = id,
@@ -199,6 +202,7 @@ internal data class CoachPlanDto(
         nutrition = nutrition.toDomain(intention, PlanRowPhase(phase, phaseReason, phaseOptions)),
         outcomes = outcomes.mapNotNull(PlanOutcomeDto::toDomain),
         acceptedAt = acceptedAt,
+        fromGoalSwitch = (method as? JsonObject)?.text("source") == "goal_switch",
     )
 }
 

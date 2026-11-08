@@ -56,7 +56,7 @@ enum class PhaseDecision { Accepted, Kept }
  * user's [phaseDecision] once taken.
  */
 data class BlockReview(
-    val id: String,
+    val id: String?,
     val planId: String,
     val endedOn: LocalDate,
     val adherence: BlockAdherence,
@@ -68,4 +68,5 @@ data class BlockReview(
     val stalls: List<StallDiagnosis>,
     val phaseProposal: PhaseProposal?,
     val phaseDecision: PhaseDecision?,
+    val early: Boolean = false,
 )
