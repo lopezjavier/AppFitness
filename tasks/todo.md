@@ -8,7 +8,7 @@ Secrets rule: never pasted in the chat or in versioned files. The user enters th
 
 Last task ID used: T-245 (T-239…T-244 reserved by the E15 breakdown)
 
-**Next:** **T-244** (E15 closure, PM step; fresh session). 👤 Checkpoint E15-B approved by the user on 2026-11-08 without testing (discomfort items deferred to real use). T-241 merged in #562 (`deploy-supabase` green on `main`, data intact), the last E15 implementation task. 👤 Checkpoint E15-A was approved by the user on 2026-11-08 after T-245 (#554) fixed the plan proposal; the help feedback ("?" on "Objetivo por grupo" and on "Hacer descarga la próxima semana", `05` R-46 extended to actions and step titles) is folded into T-241, no new task. Follow-ups from T-240 (no task yet): (1) SQL `app.coach_next_plan` reset with `''` instead of `'off'` (needs a migration; fold into the next backend task or T-242); (2) `LiveSessionViewModel:761` reads `currentPlan()` and sees no plan during a goal switch, it should use `acceptedPlan()`; (3) ux-reviewer notes: offline hint wording for "Mi entrenamiento" and the `CreateFailed` offline snackbar text in the new-block flow. T-245 follow-ups: Q2 stale baseline is the in-session activity level (a fully reliable version needs the level stored in the plan JSON, an edge-function change); `block_types_no_fit` has no tap (see Notes). T-242 follow-ups (pr-reviewer, non-blocking; no task yet): revoke the grants of `coach_week_summary_week`; `TrainerViewModel.today()` still uses UTC while `WeekSummaryViewModel` uses the local zone; add ViewModel-recreation cases to `WeekSummaryRestorationTest`/`TrainerRestorationTest`; the one-argument `coach_block_end` (used by `open_coach_block_review`, `open_coach_block_new`, the calorie evaluation and `apply_coach_progression`) reads the UTC date; drop the user UUID from the re-derive `raise notice`; a block with nothing trained never ends (its end date moves every week), relevant to T-243. No task is active. T-241 follow-ups (pr-reviewer, non-blocking; no task yet): the swap rewrites `exercise_id` in every week of `coach_plan_sessions`, past weeks included (confirm against `coach_apply_block_edits`); a repeated swap returns `routines_changed` 0 whenever the new exercise is already in the block; `TrainerDiscomfortController.act` rollback restores the whole list instead of the affected row; `04` §4.12 should say the offer follows the newest unresolved level 4-5 row; no dedicated host test for `InlineNote` with `onDismiss`; offer and note testTags carry no exercise id.
+**Next:** E15 is closed (`v1.6.0`, tag `v1.6.0`, `retrospectives/E15.md`). No task is active. The user tests with real data and reports errors; each report becomes the next `fix(T-###)`. The "Pending natural-trigger feedback (E15)" items and the follow-ups of T-240, T-241, T-242 and T-245 listed in the E15 breakdown stay open for real use. Next epic: E16, broken down by `epic-planner` in a fresh session.
 
 ## Open follow-ups carried into Phase 3
 
@@ -234,12 +234,12 @@ Out of scope here: every time-based item (paused week, welcome back, block-end n
 **Story:** E15 Definition of Done · **Flow:** PM closure step after Checkpoint E15-B is approved (its approval releases this step; no checkpoint of its own). No developer agent, no size class; it cannot merge into a task because it waits for the checkpoint approval.
 **Description:** Version bump (`versionName`/`versionCode`, minor per epic, proposed `1.6.0`), tag, retrospective `retrospectives/E15.md`, archive of the E15 log lines; `09-open-questions.md` records E15 Q1-Q5 with their answers; `01-scope.md` E15 row marked done. The "Pending natural-trigger feedback (E15)" items do not gate the closure (Q5); any still unchecked stay listed for real use, and each report becomes a `fix(T-###)` task.
 **Acceptance criteria:**
-- [ ] T-239…T-243 (and any fix tasks) merged with green CI; `deploy-supabase` green after each migration.
-- [ ] ux-reviewer ran in plan and diff mode on every UI task; `check-ux-conventions.sh` passes.
-- [ ] `03`, `04`, `05`, `07` and the epic file are current; Checkpoints E15-A and E15-B approved by the user.
-- [ ] Version bumped; `tasks/todo.md` pointer updated through a PR.
+- [x] T-239…T-243 (and any fix tasks) merged with green CI; `deploy-supabase` green after each migration.
+- [x] ux-reviewer ran in plan and diff mode on every UI task; `check-ux-conventions.sh` passes.
+- [x] `03`, `04`, `05`, `07` and the epic file are current; Checkpoints E15-A and E15-B approved by the user.
+- [x] Version bumped; `tasks/todo.md` pointer updated through a PR.
 **Verification:**
-- [ ] `git tag` lists the E15 tag.
+- [x] `git tag` lists the E15 tag.
 **Dependencies:** Checkpoint E15-B approved.
 **Files likely touched:** `androidApp/build.gradle.kts`, `tasks/todo.md`, `tasks/plan.md`, `planning/09-open-questions.md`, `planning/01-scope.md`, `retrospectives/E15.md`
 **Estimated scope:** closure step (PM)
