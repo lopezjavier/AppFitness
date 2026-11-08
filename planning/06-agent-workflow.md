@@ -10,7 +10,7 @@ Phase 2 archive (full text as it was when Phase 2 closed): [`phase2/06-agent-wor
 3. A task is not closed with unit tests, pgTAP or CI red. UI scenarios are covered by host (Robolectric) tests; the user verifies by hand at checkpoints with the delivered APK (ADR-27).
 4. Conventional Commits in English with the task ID (`feat(T-021): ...`).
 5. Remote operations only through `gh`.
-6. Merging is gated by required CI checks (ruleset); pr-reviewer posts a verdict as a comment (it cannot approve the user's own PR).
+6. Merging is gated by required CI checks (ruleset); pr-reviewer returns its verdict to the PM, before the PR exists.
 7. Only the PM writes `.workflow/execution.log`; subagents return a summary.
 8. Missing information or a product decision not in `planning/`: log `BLOCKED` and ask the user.
 
@@ -23,14 +23,18 @@ Phase 2 archive (full text as it was when Phase 2 closed): [`phase2/06-agent-wor
         REJECTED -> planner fixes the plan
   -> kotlin-core-developer, then compose-ui-developer (L tasks: one run per slice), and/or backend-developer
 [PM] marks the task in tasks/todo.md on the branch
-  -> pr-creator         verify-local gate (Kotlin changes only), commit(s), push, gh pr create
-  -> pr-reviewer + ux-reviewer (diff, only if files under feature/, designsystem/ or composeResources/ changed), in parallel
+  -> pr-reviewer + ux-reviewer (diff of the working tree vs main; ux-reviewer only if files under feature/, designsystem/ or composeResources/ changed), in parallel
         a finding -> developer, one combined fix round
+  -> pr-creator         verify-local gate (Kotlin changes only); if green: commit(s), push, gh pr create
+        red gate -> pr-creator stops and returns the failure to the PM; no PR is created
+[PM] on a red gate: resumes the developer who owns the failing area and reads the developer's report.
+     Fix changed production behaviour -> PM re-runs the affected reviewer(s) before pr-creator.
+     Fix touched only tests, lint or formatting -> PM sends pr-creator again, no re-review.
 [PM] green CI -> gh pr merge --squash --delete-branch -> COMPLETED; hand off, next task in a fresh session (/clear)
 ```
 pr-reviewer is skipped for PRs that only touch docs or task files; the ux-reviewer diff pass is skipped for minor corrective tasks (§2.3).
 ### 2.2 Infrastructure / backend task without UI
-PM start -> planner -> backend-developer (pgTAP / deno test / local CI) -> pr-creator -> pr-reviewer -> green CI -> merge. A user-reported bug becomes the next `fix(T-###)` task. L tasks run as slices. The implementing developer stays resumable (SendMessage) from the first commit until the PR is merged, and is used again for CI failures, review findings and re-tests; it is stopped after the merge, and before asking the user for `/clear` the PM runs `ListAgents`, stops every agent of the finished task that is still running, and says so in the handoff message. pr-reviewer and ux-reviewer are always fresh agents.
+PM start -> planner -> backend-developer (pgTAP / deno test / local CI) -> pr-reviewer -> pr-creator -> green CI -> merge. A user-reported bug becomes the next `fix(T-###)` task. L tasks run as slices. The implementing developer stays resumable (SendMessage) from the first commit until the PR is merged, and is used again for CI failures, review findings and re-tests; it is stopped after the merge, and before asking the user for `/clear` the PM runs `ListAgents`, stops every agent of the finished task that is still running, and says so in the handoff message. pr-reviewer and ux-reviewer are always fresh agents.
 ### 2.3 Minor corrective task (< ~50 lines)
 Planner optional (short plan in the PR); the rest follows the applicable flow.
 ### 2.4 Why the task is marked on the branch
@@ -71,12 +75,12 @@ When the user asks, the `product-owner` skill runs in the main session: brainsto
 |---|---|
 | `epic-planner` | `tasks/todo.md` + `tasks/plan.md` for one epic: one task per story, one 👤 checkpoint per functionality |
 | `planner` | `.workflow/current_task.md` (contracts, tests, testTags, implementation order) |
-| `ux-reviewer` | "UX notes" in the plan + PASSED/REJECTED; diff review in parallel with pr-reviewer |
+| `ux-reviewer` | "UX notes" in the plan + PASSED/REJECTED; diff review in parallel with pr-reviewer, before pr-creator |
 | `kotlin-core-developer` | Domain, data, DI, ViewModels + unit tests |
 | `compose-ui-developer` | Screens, designsystem, navigation, Robolectric tests; starts from the core |
 | `backend-developer` | Migrations, RLS, pgTAP, Edge Functions + `deno test` |
 | `pr-creator` | Runs verify-local.sh as the gate when Kotlin changed; commits, push, PR; never re-encodes files; stops on any secret |
-| `pr-reviewer` | Verdict as a review comment (`--comment`) |
+| `pr-reviewer` | Verdict returned to the PM (diff of the working tree vs main) |
 
 Models are the `model:` line of each agent file and are the user's decision. Each agent is self-contained. Only `pr-creator` commits; no agent other than the PM edits `tasks/`.
 

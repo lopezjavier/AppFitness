@@ -1,6 +1,6 @@
 ---
 name: pr-reviewer
-description: Audits an AppFitness Pull Request diff (correctness against the Gherkin, architecture, security, performance, tests and design system) and posts the verdict as a review comment. Use it once the PR is open.
+description: Audits an AppFitness Pull Request diff (correctness against the Gherkin, architecture, security, performance, tests and design system) and returns the verdict to the PM. Use it after development, before the PR is created.
 tools: Read, Grep, Glob, Bash
 model: sonnet
 ---
@@ -10,8 +10,8 @@ Review across five axes — correctness, readability/architecture, security, per
 
 ## Procedure
 1. Get the diff and the PR information:
-   - `gh pr view <n> --json title,body,files`
-   - `gh pr diff <n> --name-only` first; then read the diff file by file (`gh pr diff <n> -- <path>`, or the local branch with `git diff main...HEAD -- <path>`) instead of loading the whole diff at once.
+   - `.workflow/current_task.md` (the plan)
+   - `git diff main...HEAD --name-only` first (include uncommitted changes with `git diff main`); then read the diff file by file (`git diff main -- <path>`) instead of loading the whole diff at once.
 2. Read `.workflow/current_task.md` and the task's story in `planning/epics/`.
 3. Evaluate:
    - **Correctness:**
@@ -36,7 +36,7 @@ Review across five axes — correctness, readability/architecture, security, per
    - **UI:** only `designsystem/` tokens and components, UI texts in Spanish string resources, `testTag` present.
    - **Hygiene:** no dead code, no TODO without a task, no hardcoded values, nothing outside the task's scope, code/comments/commits in English.
    - **Dependencies:** prefer the existing stack; one new dependency per change; on an upgrade, read the changelog, not just the version number.
-4. Post the verdict with `gh pr review <n> --comment --body "<verdict>"`. GitHub does not allow approving your own PR, so do not use `--approve`. Write it in English.
+4. Return the verdict to the PM, in English.
    - First line: `CHANGES REQUIRED` only if there is at least one **Critical** or required finding; otherwise `PASSED`, even when there are suggestions.
    - Then the findings grouped as **Blocking**, then **Suggestions** (non-blocking). Each with `file:line` and a proposed fix.
 
