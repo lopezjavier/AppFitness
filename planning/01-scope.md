@@ -13,7 +13,7 @@ Finish the app. Close the gaps that matter in real use, then leave it in mainten
 
 | Epic | Content |
 |---|---|
-| [E15 Real life and goal switching](epics/E15-real-life-and-goal-switching.md) | A missed week pauses the block, a "welcome back" notice after a break, a discomfort follow-up with the existing rules, a block-end alert in "Centro de avisos", and goal switching with "Bloque nuevo" (US-106…US-111) |
+| [E15 Real life and goal switching](epics/E15-real-life-and-goal-switching.md) | A missed week pauses the block, a "welcome back" notice after a break, a discomfort follow-up with the existing rules, a block-end alert in "Centro de avisos", and goal switching with "Bloque nuevo" (US-106…US-111). **Done, `v1.6.0`.** |
 | [E16 Nutrition follow-up](epics/E16-nutrition-follow-up.md) | A nutrition section in the weekly summary, a nutrition "¿Por qué no avanzo?", a plateau explanation and a diet-break proposal; deterministic (US-112…US-115) |
 | [E17 Food data quality](epics/E17-food-data-quality.md) | A macro/kcal check, an audit of existing foods, and Open Food Facts as a fallback that copies into editable personal foods (US-116…US-119) |
 | [E18 UI review](epics/E18-ui-review.md) | A compact Trainer with a Details screen, a quick-search icon in Diario and Entreno, favourites first in food search, and a review of Diario, Entreno and Perfil (US-120…US-123) |
