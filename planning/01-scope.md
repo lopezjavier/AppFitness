@@ -35,6 +35,7 @@ Final, not deferred. New items come only through bugfixes or the user's feedback
 - A calendar-style long-term plan and an event date.
 - "Recuperar" and any maintenance bridge between phases.
 - Meal plans, refeeds and reverse dieting; medical advice; video analysis.
+- "Eliminar historial del entrenador" and "Adaptar el bloque" (life changes use "Bloque nuevo").
 - Training streak and rewards; monthly report and year in review (ADR-66); web client.
 
 ## 5. Open product questions
