@@ -159,6 +159,20 @@ const handler = createCoachHandler({
             outcomes: data.outcomes ?? [],
         };
     },
+    setDietBreak: async (token, row) => {
+        const { data, error } = await callerClient(token).rpc(
+            "set_coach_plan_diet_break",
+            {
+                p_plan_id: row.planId,
+                p_diet_break: row.dietBreak,
+                p_week: row.week,
+            },
+        );
+        if (error || !data?.plan_id) {
+            throw new Error("diet break write failed");
+        }
+        return { plan_id: String(data.plan_id), nutrition: data.nutrition };
+    },
     loadReview: async (token, reviewId) => {
         const { data, error } = await callerClient(token)
             .from("coach_block_reviews")

@@ -4,6 +4,7 @@
 // coach_kind_not_available until their tasks.
 import type { AnthropicRequest } from "../_shared/anthropic.ts";
 import type { PrepareContext, Prepared } from "./context.ts";
+import { prepare as prepareDietBreak } from "./planDietBreak.ts";
 import { prepare as prepareGoalSwitch } from "./planGoalSwitch.ts";
 import { prepare as prepareNutrition } from "./planNutrition.ts";
 import { prepare as preparePhaseChange } from "./planPhaseChange.ts";
@@ -57,6 +58,12 @@ export const KINDS: Record<string, KindSpec> = {
         available: true,
         deterministic: true,
         prepare: prepareRecompute,
+    },
+    plan_diet_break: {
+        model: "sonnet",
+        available: true,
+        deterministic: true,
+        prepare: prepareDietBreak,
     },
     plan_phase_change: {
         model: "sonnet",

@@ -4,6 +4,7 @@ import type { ErrorCode } from "../_shared/errors.ts";
 import type { CoachModel } from "./prices.ts";
 import type {
     CatalogExercise,
+    DietBreakWeek,
     Intention,
     Method,
     Nutrition,
@@ -97,6 +98,16 @@ export type GoalSwitched = {
     phase: string;
 };
 
+/** Row sent to set_coach_plan_diet_break (T-248): the week-4 figures, null when the break is turned off. */
+export type DietBreakRow = {
+    planId: string;
+    dietBreak: boolean;
+    week: DietBreakWeek | null;
+};
+
+/** What set_coach_plan_diet_break answers: the plan id and its nutrition with the new break. */
+export type DietBreakSet = { plan_id: string; nutrition: Nutrition };
+
 /** What a kind needs from the outside world; built by the handler for the caller's token. */
 export type PrepareContext = {
     /** The model resolved for this request (client override or the kind's default). */
@@ -115,6 +126,8 @@ export type PrepareContext = {
     loadPhaseHistory: (today: string) => Promise<PhaseHistory>;
     /** Rewrites the options of a proposed cut through update_coach_plan_options, with the caller's own token. */
     updatePlanOptions: (row: OptionsRow) => Promise<UpdatedPlan>;
+    /** Switches the diet break of an accepted cut through set_coach_plan_diet_break, with the caller's own token. */
+    setDietBreak: (row: DietBreakRow) => Promise<DietBreakSet>;
     /** One of the caller's block reviews (T-233), read with their own token. */
     loadReview: (reviewId: string) => Promise<ReviewState | null>;
     /** Stores the accepted phase change through accept_coach_phase, with the caller's own token. */

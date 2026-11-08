@@ -74,6 +74,8 @@ function setup(
             Promise.reject(new Error("unexpected loadPhaseHistory")),
         updatePlanOptions: () =>
             Promise.reject(new Error("unexpected updatePlanOptions")),
+        setDietBreak: () =>
+            Promise.reject(new Error("unexpected setDietBreak")),
         loadReview: () =>
             Promise.resolve(o.review === undefined ? null : o.review),
         applyPhaseChange: (_t, row) => {
