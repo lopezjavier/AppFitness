@@ -4,6 +4,7 @@ import io.github.lopezjavier.appfitness.domain.model.BlockPause
 import io.github.lopezjavier.appfitness.domain.model.CalorieProposal
 import io.github.lopezjavier.appfitness.domain.model.CoachBlock
 import io.github.lopezjavier.appfitness.domain.model.CoachPlan
+import io.github.lopezjavier.appfitness.domain.model.DiscomfortNoteReason
 import io.github.lopezjavier.appfitness.domain.model.Phase
 import io.github.lopezjavier.appfitness.domain.model.PhaseReason
 import io.github.lopezjavier.appfitness.domain.model.PhaseWeeks
@@ -29,6 +30,29 @@ sealed interface BlockSummary {
 
     data class Saved(val block: CoachBlock) : BlockSummary
 }
+
+/**
+ * A persistent level 4-5 discomfort of one exercise (US-108): [offerSwap] shows the swap offer, [showNote] the one-time
+ * health note whose text follows [noteReason]. [exerciseName] is resolved in the view model (R-54).
+ */
+data class DiscomfortFollowUpUi(
+    val exerciseId: String,
+    val exerciseName: String,
+    val offerSwap: Boolean,
+    val showNote: Boolean,
+    val noteReason: DiscomfortNoteReason? = null,
+)
+
+/** A replacement in the swap picker; the order is the server's (favourites first). */
+data class SwapCandidateUi(val exerciseId: String, val name: String, val isFavorite: Boolean)
+
+/** The open swap picker of the flagged exercise [exerciseId]; [loading] until the candidates arrive. */
+data class SwapPickerUi(
+    val exerciseId: String,
+    val exerciseName: String,
+    val candidates: List<SwapCandidateUi> = emptyList(),
+    val loading: Boolean = true,
+)
 
 sealed interface TrainerUiState {
     data object Loading : TrainerUiState
@@ -77,6 +101,12 @@ sealed interface TrainerUiState {
         val welcomeBack: Boolean = false,
         /** Weeks started in the current calorie phase ("Llevas n semanas en esta fase"); null hides the line. */
         val weeksInPhase: PhaseWeeks? = null,
+        /** Swap offers and health notes of unresolved level 4-5 discomforts, one per exercise (US-108). */
+        val discomfortFollowUps: List<DiscomfortFollowUpUi> = emptyList(),
+        /** The open swap picker; null when closed. Rebuilt from its exercise id after recreation (ADR-40). */
+        val swapPicker: SwapPickerUi? = null,
+        /** Exercise whose swap is in flight: the picker ignores further taps meanwhile. */
+        val busyFollowUpExerciseId: String? = null,
     ) : TrainerUiState {
         private val accepted: CoachPlan? get() = (plan as? PlanSummary.Accepted)?.plan
 
@@ -156,6 +186,21 @@ sealed interface TrainerEvent {
 
     /** "Mi entrenamiento": opens the training goal and preferences screen. */
     data object OpenMyTraining : TrainerEvent
+
+    /** "Cambiar ejercicio" on the swap offer: opens the picker and loads its candidates. */
+    data class OpenSwapPicker(val exerciseId: String) : TrainerEvent
+
+    /** X, back or outside: closes the picker without changing anything. */
+    data object DismissSwapPicker : TrainerEvent
+
+    /** A candidate was tapped: swaps it in for the flagged exercise in every routine of the block. */
+    data class PickSwap(val newExerciseId: String) : TrainerEvent
+
+    /** "Ahora no" on the swap offer. */
+    data class DeclineSwap(val exerciseId: String) : TrainerEvent
+
+    /** Close on the health note. */
+    data class DismissDiscomfortNote(val exerciseId: String) : TrainerEvent
 }
 
 /** Why an undo was refused or failed. */
@@ -216,4 +261,13 @@ sealed interface TrainerEffect {
 
     /** Navigate to "Mi entrenamiento". */
     data object OpenMyTraining : TrainerEffect
+
+    /** The swap was applied to the block (confirm haptic, R-12) and the hub reloaded. */
+    data object SwapApplied : TrainerEffect
+
+    /** Loading the candidates or applying the swap failed; the picker stays open when it was already showing. */
+    data class SwapFailed(val offline: Boolean) : TrainerEffect
+
+    /** "Ahora no" or closing the note could not be saved; the item is back. [offline] picks the offline hint. */
+    data class FollowUpActionFailed(val offline: Boolean) : TrainerEffect
 }

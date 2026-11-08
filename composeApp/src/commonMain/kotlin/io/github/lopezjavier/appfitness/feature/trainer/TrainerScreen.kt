@@ -28,6 +28,7 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.github.lopezjavier.appfitness.composeapp.resources.Res
+import io.github.lopezjavier.appfitness.composeapp.resources.block_replace_invalid
 import io.github.lopezjavier.appfitness.composeapp.resources.calorie_proposal_apply_error
 import io.github.lopezjavier.appfitness.composeapp.resources.calorie_proposal_decline_error
 import io.github.lopezjavier.appfitness.composeapp.resources.calorie_proposal_offline
@@ -52,7 +53,11 @@ import io.github.lopezjavier.appfitness.composeapp.resources.ic_more_vert
 import io.github.lopezjavier.appfitness.composeapp.resources.topbar_more_cd
 import io.github.lopezjavier.appfitness.composeapp.resources.trainer_block_remove_action
 import io.github.lopezjavier.appfitness.composeapp.resources.trainer_block_remove_error
+import io.github.lopezjavier.appfitness.composeapp.resources.trainer_discomfort_change_action
+import io.github.lopezjavier.appfitness.composeapp.resources.trainer_discomfort_save_action
+import io.github.lopezjavier.appfitness.composeapp.resources.trainer_discomfort_save_error
 import io.github.lopezjavier.appfitness.composeapp.resources.trainer_free_text_row
+import io.github.lopezjavier.appfitness.composeapp.resources.trainer_swap_applied
 import io.github.lopezjavier.appfitness.composeapp.resources.trainer_title
 import io.github.lopezjavier.appfitness.composeapp.resources.trainer_your_data_row
 import io.github.lopezjavier.appfitness.composeapp.resources.week_summary_title
@@ -137,6 +142,11 @@ fun TrainerRoute(
     val requestDeloadOffline = offlineHint(stringResource(Res.string.coach_deload_request_offline)) + "."
     val requestDeloadError = stringResource(Res.string.coach_deload_request_error)
     val requestDeloadNotAvailable = stringResource(Res.string.coach_deload_request_not_available)
+    val swapApplied = stringResource(Res.string.trainer_swap_applied)
+    val swapError = stringResource(Res.string.block_replace_invalid)
+    val swapOffline = offlineHint(stringResource(Res.string.trainer_discomfort_change_action)) + "."
+    val saveError = stringResource(Res.string.trainer_discomfort_save_error)
+    val saveOffline = offlineHint(stringResource(Res.string.trainer_discomfort_save_action)) + "."
     val latestHaptics by rememberUpdatedState(haptics)
     val latestActions by rememberUpdatedState(actions)
     val exerciseNames = rememberExerciseNames(state, nameResolver)
@@ -215,6 +225,21 @@ fun TrainerRoute(
                     latestActions.onOpenBeforeStart(BeforeStartMode.NewBlock, effect.planId, null)
 
                 TrainerEffect.OpenMyTraining -> latestActions.onOpenMyTraining()
+
+                TrainerEffect.SwapApplied -> {
+                    latestHaptics.confirm()
+                    messages.show(swapApplied)
+                }
+
+                is TrainerEffect.SwapFailed -> {
+                    latestHaptics.reject()
+                    messages.show(if (effect.offline) swapOffline else swapError)
+                }
+
+                is TrainerEffect.FollowUpActionFailed -> {
+                    latestHaptics.reject()
+                    messages.show(if (effect.offline) saveOffline else saveError)
+                }
 
                 is TrainerEffect.DeloadCancelFailed -> {
                     latestHaptics.reject()
@@ -303,6 +328,7 @@ private fun TrainerContent(
         CoachChangesSection(state, exerciseNames, online, onEvent, actions.onOpenExercise)
         if (state.blockReviewDue) BlockReviewEntry(actions.onOpenBlockReview)
         if (state.welcomeBack && !state.blockReviewDue) WelcomeBackCard(online, onEvent)
+        DiscomfortFollowUpsSection(state, online, onEvent, actions.onOpenExercise)
         PlanSection(
             state.plan,
             online,

@@ -81,6 +81,12 @@ class FollowUpFlowsNeverCallTheCoachTest {
         blocks.saveBuiltBlock("p2", nextBlock(), "Bloque", previousPlanId = "p1")
         SupabaseDiscomfortRepository(client.auth, client.postgrest).unresolved(setOf("e1"))
         SupabaseProfileRepository(client.auth, client.postgrest).getBiometrics()
+        val followUps = SupabaseDiscomfortFollowUpRepository(client.auth, client.postgrest)
+        followUps.followUps()
+        followUps.swapCandidates("e1")
+        followUps.swap("e1", "e2")
+        followUps.declineSwap("e1")
+        followUps.dismissNote("e1")
 
         val calls = requests.filter { !it.url.encodedPath.contains("/auth/") }
         assertTrue(calls.isNotEmpty())

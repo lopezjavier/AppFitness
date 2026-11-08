@@ -18,6 +18,8 @@ import io.github.lopezjavier.appfitness.composeapp.resources.Res
 import io.github.lopezjavier.appfitness.composeapp.resources.block_builder_continue
 import io.github.lopezjavier.appfitness.composeapp.resources.block_targets_choice_none
 import io.github.lopezjavier.appfitness.composeapp.resources.block_targets_clear_cd
+import io.github.lopezjavier.appfitness.composeapp.resources.block_targets_help_body
+import io.github.lopezjavier.appfitness.composeapp.resources.block_targets_help_cd
 import io.github.lopezjavier.appfitness.composeapp.resources.block_targets_line
 import io.github.lopezjavier.appfitness.composeapp.resources.block_targets_maintain
 import io.github.lopezjavier.appfitness.composeapp.resources.block_targets_prioritise
@@ -38,6 +40,7 @@ import io.github.lopezjavier.appfitness.designsystem.AppOption
 import io.github.lopezjavier.appfitness.designsystem.AppScreen
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
 import io.github.lopezjavier.appfitness.designsystem.AppToggleChip
+import io.github.lopezjavier.appfitness.designsystem.HelpButton
 import io.github.lopezjavier.appfitness.designsystem.InlineNote
 import io.github.lopezjavier.appfitness.designsystem.PrimaryButton
 import io.github.lopezjavier.appfitness.designsystem.SegmentedSelector
@@ -75,6 +78,14 @@ internal fun BlockTargetsScreen(
                 .testTag("block_builder_targets_screen"),
             verticalArrangement = Arrangement.spacedBy(Spacing.md),
         ) {
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
+                HelpButton(
+                    contentDescription = stringResource(Res.string.block_targets_help_cd),
+                    title = stringResource(Res.string.block_targets_title),
+                    body = stringResource(Res.string.block_targets_help_body),
+                    testTag = "block_targets_help",
+                )
+            }
             state.rows.forEach { TargetRow(it, onEvent) }
         }
     }

@@ -37,3 +37,6 @@ block_start_folder_hint
 
 # Picker instruction
 rpe_picker_hint
+
+# Consequence of a tap that applies at once (picker without a confirm dialog, R-08): what it will change (T-241)
+trainer_swap_picker_hint

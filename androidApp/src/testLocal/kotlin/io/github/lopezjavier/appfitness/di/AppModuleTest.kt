@@ -31,6 +31,7 @@ import io.github.lopezjavier.appfitness.domain.repository.CoachRepository
 import io.github.lopezjavier.appfitness.domain.repository.CoachReviewRepository
 import io.github.lopezjavier.appfitness.domain.repository.CoachSummaryRepository
 import io.github.lopezjavier.appfitness.domain.repository.CoachUsageRepository
+import io.github.lopezjavier.appfitness.domain.repository.DiscomfortFollowUpRepository
 import io.github.lopezjavier.appfitness.domain.repository.DiscomfortRepository
 import io.github.lopezjavier.appfitness.domain.repository.ExerciseRepository
 import io.github.lopezjavier.appfitness.domain.repository.FavoriteExercisesRepository
@@ -258,6 +259,7 @@ class AppModuleTest {
                 NotificationSettingsRepository::class,
                 WeeklyCheckInRepository::class,
                 DiscomfortRepository::class,
+                DiscomfortFollowUpRepository::class,
                 LoadCheckInSummary::class,
                 MarkWeekSummarySeen::class,
                 LoadReminders::class,
