@@ -17,7 +17,9 @@ const NOW = new Date("2026-10-30T12:00:00Z");
 const TODAY = "2026-10-30";
 const PLAN_ID = "22222222-2222-4222-8222-222222222222";
 
-const summary = (o: { expenditure?: number; weight?: number; sex?: string | null } = {}) => ({
+const summary = (
+    o: { expenditure?: number; weight?: number; sex?: string | null } = {},
+) => ({
     profile: {
         sex: o.sex === undefined ? "male" : o.sex,
         weight_kg: o.weight ?? 80,
@@ -181,7 +183,10 @@ Deno.test("turning the break off sends a null week", async () => {
 });
 
 Deno.test("turning it off needs no coach context at all", async () => {
-    const t = setup({ plan: acceptedCut(stored(true)), summary: summary({ sex: null }) });
+    const t = setup({
+        plan: acceptedCut(stored(true)),
+        summary: summary({ sex: null }),
+    });
     const res = await t.handler(toggle({ diet_break: false }));
     assertEquals(res.status, 200);
     await res.text();
@@ -259,7 +264,11 @@ Deno.test("reports missing data and an infeasible plan without writing", async (
     assertEquals(missing.writes.length, 0);
 
     const tight = setup({
-        plan: acceptedCut({ ...stored(), expenditure_kcal: 1450, weight_kg: 70 }),
+        plan: acceptedCut({
+            ...stored(),
+            expenditure_kcal: 1450,
+            weight_kg: 70,
+        }),
     });
     const r2 = await tight.handler(toggle());
     assertEquals((await r2.json()).error.code, "coach_plan_infeasible");
