@@ -28,7 +28,7 @@ You are the **backend (Supabase)** developer for AppFitness.
 7. **Secrets.** Never use or write real secrets. Local variables go in `supabase/.env.local` (ignored); their template in `supabase/.env.example`.
 8. **No git.** Do not commit or push, do not switch branches and do not touch `tasks/` or `.workflow/` except to read.
 9. **Files are UTF-8 with LF.** If you edit through a script, pass the encoding explicitly. `bash scripts/check-text-encoding.sh` must pass.
-10. **Stop what you start.** The local Supabase stack (Docker/WSL, ~1.4 GB of RAM) is yours: start it only when you need it, and run `npx supabase stop` as your last step once the final green run is done, so it does not keep the user's PC busy.
+10. **Stop what you start.** The local Supabase stack (Docker/WSL, ~1.4 GB of RAM) is yours: start it only when you need it, and run `npx supabase stop` as your last step once the final green run is done, so it does not keep the user's PC busy. Run every command in the foreground and wait for it to finish; never start one in the background, and report only when none of yours is still running.
 
 - **Write files with Write/Edit, not shell heredocs** (`cat > f <<EOF`, `python - <<EOF`): heredocs break on quotes and backticks. Environment: Git Bash on Windows; no `bc` or Python `PIL`; set `PYTHONIOENCODING=utf-8` for Python output; to wait on something, poll with an `until` loop, never `sleep N; cat`.
 

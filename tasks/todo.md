@@ -6,7 +6,9 @@ Operating instructions: [`CLAUDE.md`](../CLAUDE.md). Phase 1 history (frozen): [
 Legend: **👤** = done by the user (accounts, web consoles, secrets) · **PM** = done by Claude Code.
 Secrets rule: never pasted in the chat or in versioned files. The user enters them in their terminal or in the consoles, and Claude only verifies that they exist.
 
-Last task ID used: T-249 (T-246…T-249 reserved by the E16 breakdown; T-239…T-244 by E15)
+Last task ID used: T-250 (T-246…T-249 reserved by the E16 breakdown; T-239…T-244 by E15; T-250 = user-reported fix below)
+
+**Done in the T-246 branch (user report, 2026-11-08; the user ordered it into the current branch, so it ships in T-246's PR as a separate `fix(T-250)` commit):** `fix(T-250)`: the `food-photo` dish prompt (`supabase/functions/food-photo/prompts.ts`) never says whether the per-100 g values are for the food as served; a 400 g cooked plate came back with raw-food kcal/100 g. Fix: the dish prompt states that values and `estimated_grams` describe the food as shown in the photo (cooked when cooked), with a handler/prompt test and a redeploy of `food-photo`. Backend only, no model-call change elsewhere.
 
 **Next:** E15 is closed (`v1.6.0`, tag `v1.6.0`, `retrospectives/E15.md`). No task is active. The user tests with real data and reports errors; each report becomes the next `fix(T-###)`. The "Pending natural-trigger feedback (E15)" items and the follow-ups of T-240, T-241, T-242 and T-245 listed in the E15 breakdown stay open for real use. Next epic: E16, broken down by `epic-planner` in a fresh session.
 
@@ -144,7 +146,7 @@ The user does not force time-based triggers. These items are covered by host tes
 
 After T-248 merges (the last implementation task), CI green, `deploy-supabase` green with data intact (T-246, T-247, and T-248 if it changed SQL). Everything here can be tried at once with the data each account already has; the branches that need two real weeks stay in "Pending natural-trigger feedback (E16)", outside this gate. Use the **test account** for the plan items (accepting a new cut plan changes that account's calories). What to try on the phone (`python scripts/deliver-apk.py`):
 - [ ] 1. Main account, Trainer → "Resumen semanal" of the last week: the nutrition section shows your logged days, average kcal and protein against your goals, and your weight trend against the target rate, inside the same summary (no second screen, no new item in "Centro de avisos").
-- [ ] 2. Test account (few diary days last week): the section says "Faltan registros: {n} de 7 días completos. Con menos de 5 no sacamos conclusiones sobre tus calorías." and shows no averages.
+- [ ] 2. Test account (few diary days last week): the section says "Faltan registros: solo {n} de 7 días completos. Con menos de 5 no sacamos conclusiones sobre tus calorías." and shows no averages.
 - [ ] 3. Read the diagnosis card your data gives on each account (logging or calorie cause with one action, "Meseta", "Sin causa clara", or nothing when the weight is on target): one result at most, no medical wording, and "Uso de IA" did not change during E16.
 - [ ] 4. Test account, create a "Perder grasa" plan: "Descanso de dieta" is off, and its `?` is one sentence (less hunger, fat is not lost faster).
 - [ ] 5. Turn it on and accept: "Tu plan" and the plan weeks show week 4 at maintenance calories; turn it off in "Tu plan": the week-4 break is gone and nothing else changes.
