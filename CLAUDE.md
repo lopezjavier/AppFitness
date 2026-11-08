@@ -1,6 +1,6 @@
 # AppFitness — Claude Code instructions
 
-Personal-use Android fitness app (1–5 users): Kotlin Multiplatform + Compose Multiplatform (Android only in Phase 1), Supabase backend (Postgres + RLS, Google Auth, Edge Functions). 100% free. Public repo.
+Personal-use Android fitness app (one person; a second account is allowed for testing): Kotlin Multiplatform + Compose Multiplatform (Android only in Phase 1), Supabase backend (Postgres + RLS, Google Auth, Edge Functions). 100% free. Public repo.
 
 Everything in the repository (docs, code, comments, commits, PRs, tasks) is in English. The app UI is in Spanish (string resources); UI literals quoted in Gherkin stay in Spanish (ADR-16).
 

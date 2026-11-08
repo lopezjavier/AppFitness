@@ -8,7 +8,7 @@ Secrets rule: never pasted in the chat or in versioned files. The user enters th
 
 Last task ID used: T-238
 
-**Next:** Phase 3 starts with the product-owner skill (scope and epic breakdown), not yet run; no task is active.
+**Next:** Phase 3 is defined in `planning/01-scope.md` (E15 Real life → E20 Closure); the Intent of E15 is agreed with the user next with the product-owner skill; no task is active.
 
 ## Open follow-ups carried into Phase 3
 
@@ -37,7 +37,7 @@ No open 👤 checkpoints (Phase 2 checkpoints are in tasks/phase2/todo.md)
 
 ## Notes for later epics
 
-- **Phase 3 (user, 2026-11-02):** "Recuperar" / returning after a break (regain phase at maintenance, its exit triggers and the "Situación" intake question) was removed from E13 by T-198/T-200; to be re-planned as a Phase 3 follow-up.
+- **Out of scope (user, 2026-11-08, ADR-101):** "Recuperar" / returning after a break (regain phase) is out of scope for the app; the 14-day return rule stays as the only break rule.
 - **E13 backlog (user request, 2026-10-30): consumed.** Items 1 → T-179, 2 → T-181…T-184, 3 and 4 → T-205/T-206. Nothing from it is open.
 
 ## Reminders

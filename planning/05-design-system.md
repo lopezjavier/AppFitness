@@ -208,7 +208,7 @@ Uses `SwipeToDeleteRow` only (guard G7) · right-to-left, "Eliminar"/"Quitar" ·
 | What the coach reads (T-186) | "Lo que el entrenador sabe de ti" (Trainer row and title) | "Notas", "Historial de texto" | Switch "Enviar al entrenador" per line |
 | ~~Fill the form from the free text (T-186)~~ | Retired 2026-11-02 (user): no extraction; "Rellenar con mi texto", "Rellenado desde tu texto. Revísalo." and "Leyendo lo que nos cuentas…" are removed by T-198 | "Rellenar con mi texto", "Autocompletar" | Nothing is filled from the text by a model |
 | Not stated (T-186) | "Sin indicar" | "Desconocido", "Ninguno" | Lowest step of the years stepper and first option of the pickers |
-| ~~Training situation (T-186)~~ | Retired 2026-11-02 (user): "Situación" and its options, and the area "Zona con molestia", are removed by T-198 ("Recuperar" deferred to Phase 3; R-53) | "Situación", "Estado" | |
+| ~~Training situation (T-186)~~ | Retired 2026-11-02 (user): "Situación" and its options, and the area "Zona con molestia", are removed by T-198 ("Recuperar" out of scope for the app (ADR-101); R-53) | "Situación", "Estado" | |
 | ~~Skip the intake (T-186)~~ | Retired 2026-11-02 (user): "Ahora no" goes with the automatic opening (R-55) | "Omitir", "Saltar" | |
 | Answers not from data (T-186) | "Provisional"; "Según lo que nos contaste (provisional). Lo cambiaremos por tus datos reales cuando haya suficientes." | "Estimado" | Chip plus supporting text |
 | A coach value not yet confirmed | "Provisional" (`StatusChip` Caution, announced "Valor provisional") | "Pendiente", "Sin confirmar" | A re-asked value shows the same chip; the proposal says "Hay valores sin confirmar. Revísalos y vuelve a crear el plan para poder aceptar." |

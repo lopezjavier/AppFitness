@@ -5,7 +5,7 @@ Remind the user, inside the app, to log what the coach needs (weight and circumf
 
 ## Scope
 - Includes: in-app notification center ("Centro de avisos"), weight and circumference reminders, silencing a reminder type, weekly check-in with the deterministic weekly summary (reactivates part of E8 US-44).
-- Out of scope: Android system notifications for reminders (reminders appear the next time the user opens the app; there is no time window), muscle soreness prompts (ADR-73, `07-coach-design.md` §7), the training streak (still deferred, `09-open-questions.md`), water and voice (Phase 3).
+- Out of scope: Android system notifications for reminders (reminders appear the next time the user opens the app; there is no time window), muscle soreness prompts (ADR-73, `07-coach-design.md` §7), the training streak (still deferred, `09-open-questions.md`), water and voice (out of scope for the app, ADR-101).
 
 ## Decisions
 ADR-73. Amends ADR-66 (weekly check-in returns) and E8 US-44 (the check-in part).

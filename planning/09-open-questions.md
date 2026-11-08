@@ -1,6 +1,6 @@
 # Open questions (Phase 3)
 
-Phase 3 product questions are not written yet; the `product-owner` skill raises them with the user while it writes the Phase 3 scope. Earlier questions and their resolutions: Phase 2 in [`phase2/09-open-questions.md`](phase2/09-open-questions.md), Phase 1 in [`phase1/09-open-questions.md`](phase1/09-open-questions.md).
+The Phase 3 scope was settled in chat on 2026-11-08 (ADR-101, `01-scope.md`); each epic's questions are added here as its Intent is agreed. Earlier questions and their resolutions: Phase 2 in [`phase2/09-open-questions.md`](phase2/09-open-questions.md), Phase 1 in [`phase1/09-open-questions.md`](phase1/09-open-questions.md).
 
 ## Carried over from Phase 2 (still marked open there, not resolved)
 
