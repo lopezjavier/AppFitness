@@ -10,7 +10,7 @@ Last task ID used: T-250 (T-246…T-249 reserved by the E16 breakdown; T-239…T
 
 **Done in the T-246 branch (user report, 2026-11-08; the user ordered it into the current branch, so it ships in T-246's PR as a separate `fix(T-250)` commit):** `fix(T-250)`: the `food-photo` dish prompt (`supabase/functions/food-photo/prompts.ts`) never says whether the per-100 g values are for the food as served; a 400 g cooked plate came back with raw-food kcal/100 g. Fix: the dish prompt states that values and `estimated_grams` describe the food as shown in the photo (cooked when cooked), with a handler/prompt test and a redeploy of `food-photo`. Backend only, no model-call change elsewhere.
 
-**Next:** T-246 is merged (#568, `deploy-supabase` green; `fix(T-250)` rode in the same PR, and the same run deployed the `food-photo` function). Next task: **T-247** (plateau and diagnosis), in a fresh session. No 👤 checkpoint is open: the only E16 checkpoint comes after T-248.
+**Next:** T-247 is merged (#570, `deploy-supabase` green, data intact). Next task: **T-248** (diet break and R-59 route), in a fresh session. No 👤 checkpoint is open: the only E16 checkpoint comes after T-248.
 
 ## Open follow-ups carried into Phase 3
 
@@ -72,8 +72,8 @@ Rules: `07` §4 "Nutrition follow-up (E16)" (a)-(d) (the source for every E16 fi
 
 The user does not force time-based triggers. These items are covered by host tests and pgTAP in their tasks; the user reports on them from the main account when each one happens in real use, and each report becomes a `fix(T-###)` task. They block no checkpoint and no closure.
 - [x] T-246: in a week when a calorie change was applied or proposed, the nutrition section lists it with its reason.
-- [ ] T-247: after two weeks with the target rate outside the weight trend's interval, the summary shows only the first cause that applies (logging, then average calories with its weekend variant) and one action line; with the calorie cause, no calorie proposal that week; with none, "Sin causa clara" and the action (the calorie proposal when one is made, else "Sigue con el plan: lo revisamos la semana que viene.").
-- [ ] T-247: after two flat weeks with 6 or more complete days each and no cause, "Meseta" with the trend, its range and "No es un fracaso", and the calorie proposal (when made) as its action; with fewer logged days, the logging cause instead.
+- [x] T-247: after two weeks with the target rate outside the weight trend's interval, the summary shows only the first cause that applies (logging, then average calories with its weekend variant) and one action line; with the calorie cause, no calorie proposal that week; with none, "Sin causa clara" and the action (the calorie proposal when one is made, else "Sigue con el plan: lo revisamos la semana que viene.").
+- [x] T-247: after two flat weeks with 6 or more complete days each and no cause, "Meseta" with the trend, its range and "No es un fracaso", and the calorie proposal (when made) as its action; with fewer logged days, the logging cause instead.
 - [ ] T-248: with "Descanso de dieta" on, when week 4 of the cut block arrives the Diario goals move to maintenance calories, and back in week 1 of the next block.
 
 ---
@@ -112,7 +112,7 @@ The user does not force time-based triggers. These items are covered by host tes
 - [ ] The summary with the card survives background and process death (ADR-40); `check-ux-conventions.sh` passes.
 **Host tests:** pgTAP `coach_nutrition_diagnosis.test.sql` (trigger on one and two weeks, diet-break window, logging day and weigh-in variants, calorie cause at and under the half-gap threshold in both directions, weekend variant at and under half the excess, logging and calorie cause together (only logging), calorie cause with a flat trend (cause wins), plateau with 6/6, 6/5 and 5/6 days, rate-0 phase, paused week, no proposal in a calorie-cause week and the clock untouched, proposal as the Meseta action, RLS); repository and DTO tests; text tests for every cause, plateau and none; ViewModel and Robolectric tests (card per kind, restoration).
 **Verification:**
-- [ ] `npx supabase db reset && npx supabase db lint && npx supabase test db`, lint + `testLocalDebugUnitTest` green; after the merge `deploy-supabase` green on `main` with data intact. No model call.
+- [x] `npx supabase db reset && npx supabase db lint && npx supabase test db`, lint + `testLocalDebugUnitTest` green; after the merge `deploy-supabase` green on `main` with data intact. No model call.
 **Agent runs:** 8. About 13 files.
 **Dependencies:** T-246 merged and deployed.
 **Files likely touched:** `supabase/migrations/<ts>_coach_nutrition_diagnosis.sql` (with the `evaluate_coach_calorie_change` amendment), `supabase/tests/coach_nutrition_diagnosis.test.sql`, `shared/…/domain/model/{WeekSummary,NutritionDiagnosis}.kt`, `shared/…/data/remote/*Dto.kt`, `shared/…/data/repository/SupabaseCoachSummaryRepository.kt`, `feature/trainer/{WeekSummaryScreen,WeekSummaryText,WeekSummaryStallCard}.kt` (or a sibling card), `HealthDisclaimerSweepTest.kt`, `strings.xml`, `planning/04-business-rules.md` §6.10, `planning/05-design-system.md` §10, tests
