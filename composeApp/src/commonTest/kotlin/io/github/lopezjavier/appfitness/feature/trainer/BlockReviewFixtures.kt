@@ -7,6 +7,7 @@ import io.github.lopezjavier.appfitness.domain.model.BlockOutcome
 import io.github.lopezjavier.appfitness.domain.model.BlockReview
 import io.github.lopezjavier.appfitness.domain.model.BlockWaist
 import io.github.lopezjavier.appfitness.domain.model.BlockWeight
+import io.github.lopezjavier.appfitness.domain.model.GoalChange
 import io.github.lopezjavier.appfitness.domain.model.GoalSwitchPreview
 import io.github.lopezjavier.appfitness.domain.model.GroupSets
 import io.github.lopezjavier.appfitness.domain.model.MuscleGroup
@@ -89,10 +90,35 @@ internal class FakeCoachReviewRepository(var review: Result<BlockReview?> = Resu
         return acceptResult
     }
 
-    override suspend fun openNewBlock(today: LocalDate): Result<NewBlockEntry?> = Result.success(null)
+    var newBlock: Result<NewBlockEntry?> = Result.success(null)
+    var preview: Result<GoalSwitchPreview> = Result.failure(UnsupportedOperationException())
+    var weeks: Result<PhaseWeeks?> = Result.success(null)
+    var newBlockCalls = 0
+    var previewCalls = 0
+    var weeksCalls = 0
 
-    override suspend fun previewGoalSwitch(today: LocalDate): Result<GoalSwitchPreview> =
-        Result.failure(UnsupportedOperationException())
+    override suspend fun openNewBlock(today: LocalDate): Result<NewBlockEntry?> {
+        newBlockCalls++
+        return newBlock
+    }
 
-    override suspend fun weeksInPhase(today: LocalDate): Result<PhaseWeeks?> = Result.success(null)
+    override suspend fun previewGoalSwitch(today: LocalDate): Result<GoalSwitchPreview> {
+        previewCalls++
+        return preview
+    }
+
+    override suspend fun weeksInPhase(today: LocalDate): Result<PhaseWeeks?> {
+        weeksCalls++
+        return weeks
+    }
 }
+
+internal fun newBlockEntry(
+    changed: Boolean = false,
+    planIntention: String? = "muscle",
+    savedIntention: String? = if (changed) "fat_loss" else "muscle",
+    currentKcal: Int? = 2800,
+) = NewBlockEntry(
+    review = blockReview(id = "x", planId = "plan-1").copy(id = null, early = true),
+    goal = GoalChange(changed, planIntention, savedIntention, currentKcal),
+)

@@ -50,6 +50,9 @@ import io.github.lopezjavier.appfitness.composeapp.resources.before_start_reason
 import io.github.lopezjavier.appfitness.composeapp.resources.before_start_summary_chevron_cd
 import io.github.lopezjavier.appfitness.composeapp.resources.before_start_title
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_chevron_right
+import io.github.lopezjavier.appfitness.composeapp.resources.new_block_goal_change
+import io.github.lopezjavier.appfitness.composeapp.resources.new_block_goal_change_no_figures
+import io.github.lopezjavier.appfitness.composeapp.resources.new_block_prepare_failed
 import io.github.lopezjavier.appfitness.composeapp.resources.trainer_block_create
 import io.github.lopezjavier.appfitness.composeapp.resources.trainer_block_create_action
 import io.github.lopezjavier.appfitness.composeapp.resources.trainer_plan_create
@@ -57,6 +60,7 @@ import io.github.lopezjavier.appfitness.composeapp.resources.trainer_plan_create
 import io.github.lopezjavier.appfitness.composeapp.resources.your_data_title
 import io.github.lopezjavier.appfitness.designsystem.AppCard
 import io.github.lopezjavier.appfitness.designsystem.AppDateFormat
+import io.github.lopezjavier.appfitness.designsystem.AppNumberFormat
 import io.github.lopezjavier.appfitness.designsystem.AppScreen
 import io.github.lopezjavier.appfitness.designsystem.AppStateAction
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
@@ -106,8 +110,10 @@ fun BeforeStartRoot(
     val messages = LocalAppMessages.current
     val latestHaptics by rememberUpdatedState(haptics)
     val latestOnCreate by rememberUpdatedState(onCreate)
+    val latestOnBack by rememberUpdatedState(onBack)
     val latestOnOpenBlock by rememberUpdatedState(onOpenFolderBlock)
     val failed = stringResource(Res.string.before_start_confirm_error)
+    val prepareFailed = stringResource(Res.string.new_block_prepare_failed)
     val offline = offlineHint(stringResource(Res.string.before_start_confirm_action)) + "."
     LifecycleEventEffect(Lifecycle.Event.ON_RESUME) { viewModel.onEvent(BeforeStartEvent.Refresh) }
     LaunchedEffect(viewModel) {
@@ -123,6 +129,13 @@ fun BeforeStartRoot(
                 is BeforeStartEffect.CreateFailed -> {
                     latestHaptics.reject()
                     messages.show(if (effect.offline) offline else failed)
+                }
+
+                BeforeStartEffect.Close -> latestOnBack()
+
+                is BeforeStartEffect.NewBlockPrepareFailed -> {
+                    latestHaptics.reject()
+                    messages.show(prepareFailed)
                 }
             }
         }
@@ -254,18 +267,8 @@ private fun BeforeStartContent(
                 testTag = "before_start_note_stale_weight",
             )
         }
-        state.replaces?.let { current ->
-            InlineNote(
-                text = stringResource(
-                    if (current == CurrentPlan.Accepted) {
-                        Res.string.before_start_note_replace_accepted
-                    } else {
-                        Res.string.before_start_note_replace_proposed
-                    },
-                ),
-                testTag = "before_start_note_replace",
-            )
-        }
+        state.replaces?.let { ReplacesInlineNote(it) }
+        state.goalChange?.let { GoalChangeInlineNote(it) }
         SummaryCard(state, onOpenYourData)
         if (state.intakeRows.isNotEmpty()) {
             // Never a flag, "Sin indicar" when nothing was said; each row opens only its own editor (R-55).
@@ -278,6 +281,37 @@ private fun BeforeStartContent(
             )
         }
     }
+}
+
+@Composable
+private fun ReplacesInlineNote(current: CurrentPlan) {
+    InlineNote(
+        text = stringResource(
+            if (current == CurrentPlan.Accepted) {
+                Res.string.before_start_note_replace_accepted
+            } else {
+                Res.string.before_start_note_replace_proposed
+            },
+        ),
+        testTag = "before_start_note_replace",
+    )
+}
+
+/** "Tus calorías pasan de {a} a {b} kcal: {fase}": plain wording when a figure is missing, never "null". */
+@Composable
+private fun GoalChangeInlineNote(change: GoalChangeNote) {
+    val phase = change.phase
+    val text = if (change.currentKcal != null && change.newKcal != null && phase != null) {
+        stringResource(
+            Res.string.new_block_goal_change,
+            AppNumberFormat.integer(change.currentKcal),
+            AppNumberFormat.integer(change.newKcal),
+            stringResource(PhaseText.label(phase)),
+        )
+    } else {
+        stringResource(Res.string.new_block_goal_change_no_figures)
+    }
+    InlineNote(text = text, testTag = "before_start_note_goal_change")
 }
 
 @Composable

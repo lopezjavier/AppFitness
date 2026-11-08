@@ -189,9 +189,12 @@ class PlanProposalViewModel(
         }
     }
 
-    /** The stored proposed plan, except the one the user is replacing (it must not be re-shown nor re-billed). */
-    private fun Result<CoachPlan?>.proposedToShow(): CoachPlan? =
-        getOrNull()?.takeIf { it.status == PlanStatus.Proposed && it.id != replacingPlanId }
+    /**
+     * The stored proposed plan, except the one the user is replacing (it must not be re-shown nor re-billed) and a
+     * goal-switch proposal, which belongs to "Bloque nuevo" and has no accept/discard card.
+     */
+    private fun Result<CoachPlan?>.proposedToShow(): CoachPlan? = getOrNull()
+        ?.takeIf { it.status == PlanStatus.Proposed && it.id != replacingPlanId && !it.fromGoalSwitch }
 
     private suspend fun showProposal(plan: CoachPlan) {
         _uiState.value = unconfirmedInputs().fold(

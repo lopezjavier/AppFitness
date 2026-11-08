@@ -12,6 +12,8 @@ import io.github.lopezjavier.appfitness.domain.port.Clock
 import io.github.lopezjavier.appfitness.domain.repository.CoachIntakeRepository
 import io.github.lopezjavier.appfitness.domain.repository.CoachRepository
 import io.github.lopezjavier.appfitness.domain.repository.RoutineRepository
+import io.github.lopezjavier.appfitness.domain.usecase.OpenNewBlockUseCase
+import io.github.lopezjavier.appfitness.domain.usecase.PreviewGoalSwitchUseCase
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -37,6 +39,8 @@ class BeforeStartViewModel(
     private val clock: Clock,
     private val routines: RoutineRepository,
     private val savedState: SavedStateHandle = SavedStateHandle(),
+    private val openNewBlock: OpenNewBlockUseCase? = null,
+    private val previewGoalSwitch: PreviewGoalSwitchUseCase? = null,
 ) : ViewModel() {
     private val mode = BeforeStartMode.fromArgument(savedState.get<String>(KEY_MODE))
     private val planId: String? = savedState.get<String>(KEY_PLAN_ID)
@@ -115,6 +119,63 @@ class BeforeStartViewModel(
     }
 
     private suspend fun fetch(): BeforeStartUiState {
+        if (mode != BeforeStartMode.NewBlock) return readInputs()
+        return when (val prepared = prepareNewBlock()) {
+            is NewBlockPrep.Ready -> when (val inputs = readInputs()) {
+                is BeforeStartUiState.Content ->
+                    inputs.copy(goalChange = prepared.note, previewPlanId = prepared.planId)
+
+                else -> inputs
+            }
+
+            is NewBlockPrep.Stop -> prepared.state
+        }
+    }
+
+    /** What "Bloque nuevo" reads before the inputs: the entry, then (goal changed) the goal-switch preview. */
+    private sealed interface NewBlockPrep {
+        data class Ready(val note: GoalChangeNote?, val planId: String?) : NewBlockPrep
+
+        data class Stop(val state: BeforeStartUiState) : NewBlockPrep
+    }
+
+    private suspend fun prepareNewBlock(): NewBlockPrep {
+        val opened = openNewBlock?.invoke(today())
+            ?: return NewBlockPrep.Stop(BeforeStartUiState.Error)
+        val entry = opened.getOrNull()
+        return when {
+            opened.isFailure -> NewBlockPrep.Stop(failedState(opened.appErrorOrNull()))
+
+            entry == null -> {
+                // No saved block: nothing to start.
+                effectChannel.send(BeforeStartEffect.Close)
+                NewBlockPrep.Stop(BeforeStartUiState.Loading)
+            }
+
+            !entry.goal.changed -> NewBlockPrep.Ready(null, null)
+
+            else -> previewGoal(entry.goal.currentKcal)
+        }
+    }
+
+    private suspend fun previewGoal(entryKcal: Int?): NewBlockPrep {
+        val result = previewGoalSwitch?.invoke(today()) ?: Result.failure(IllegalStateException("No preview"))
+        val preview = result.getOrNull()
+        if (preview == null) {
+            val offline = result.appErrorOrNull() == AppError.Network
+            effectChannel.send(BeforeStartEffect.NewBlockPrepareFailed(offline))
+            return NewBlockPrep.Stop(failedState(result.appErrorOrNull()))
+        }
+        return NewBlockPrep.Ready(
+            GoalChangeNote(preview.currentKcal ?: entryKcal, preview.newKcal, preview.phase),
+            preview.planId,
+        )
+    }
+
+    private fun failedState(error: AppError?): BeforeStartUiState =
+        if (error == AppError.Network) BeforeStartUiState.Offline else BeforeStartUiState.Error
+
+    private suspend fun readInputs(): BeforeStartUiState {
         val result = coach.planInputs(mode.kind, today())
         return result.fold(
             onSuccess = {
@@ -130,15 +191,7 @@ class BeforeStartViewModel(
                     startChoice = restoredChoice(),
                 )
             },
-            onFailure = {
-                if (result.appErrorOrNull() ==
-                    AppError.Network
-                ) {
-                    BeforeStartUiState.Offline
-                } else {
-                    BeforeStartUiState.Error
-                }
-            },
+            onFailure = { failedState(result.appErrorOrNull()) },
         )
     }
 
@@ -164,12 +217,20 @@ class BeforeStartViewModel(
         }
     }
 
-    /** A plan goes straight on; a block first asks how it starts (US-93). */
+    /**
+     * A plan goes straight on; a block first asks how it starts (US-93); "Bloque nuevo" opens the next-block builder
+     * on the goal-switch plan (else the accepted one), with the accepted plan as the previous block.
+     */
     private suspend fun proceed() {
-        if (mode == BeforeStartMode.Block) {
-            setChoice(StartChoiceStep.Choice)
-        } else {
-            effectChannel.send(BeforeStartEffect.Created(mode, planId, replacingPlanId))
+        when (mode) {
+            BeforeStartMode.Block -> setChoice(StartChoiceStep.Choice)
+
+            BeforeStartMode.NewBlock -> {
+                val preview = (_uiState.value as? BeforeStartUiState.Content)?.previewPlanId
+                effectChannel.send(BeforeStartEffect.Created(mode, preview ?: planId, planId))
+            }
+
+            BeforeStartMode.Plan -> effectChannel.send(BeforeStartEffect.Created(mode, planId, replacingPlanId))
         }
     }
 

@@ -151,6 +151,7 @@ class PlanProposalViewModelTest {
                 PlanFailureKind.Missing(setOf(MissingField.Sex, MissingField.Weight)),
             CoachFailure.Infeasible to PlanFailureKind.Infeasible,
             CoachFailure.Other to PlanFailureKind.Other,
+            CoachFailure.BlockInProgress to PlanFailureKind.BlockInProgress,
         )
         for ((failure, kind) in cases) {
             plans.request = Result.failure(CoachException(failure))
@@ -160,6 +161,16 @@ class PlanProposalViewModelTest {
             advanceUntilIdle()
             assertEquals(kind, model.failure(), failure.toString())
         }
+    }
+
+    @Test
+    fun aStoredGoalSwitchProposal_isNotShownAsAProposal() = runTest(dispatcher) {
+        plans.current = Result.success(coachPlan(id = "plan-2", fromGoalSwitch = true))
+        val model = viewModel()
+
+        advanceUntilIdle()
+
+        assertEquals(PlanProposalUiState.Idle, model.uiState.value)
     }
 
     @Test

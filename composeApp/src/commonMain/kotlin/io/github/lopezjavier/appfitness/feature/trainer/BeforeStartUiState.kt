@@ -2,6 +2,7 @@ package io.github.lopezjavier.appfitness.feature.trainer
 
 import io.github.lopezjavier.appfitness.domain.model.ActivityLevel
 import io.github.lopezjavier.appfitness.domain.model.CurrentPlan
+import io.github.lopezjavier.appfitness.domain.model.Phase
 import io.github.lopezjavier.appfitness.domain.model.PlanInputKey
 import io.github.lopezjavier.appfitness.domain.model.PlanInputKind
 import io.github.lopezjavier.appfitness.domain.model.PlanInputs
@@ -11,6 +12,9 @@ import io.github.lopezjavier.appfitness.domain.model.RoutineFolder
 enum class BeforeStartMode(val argument: String, val kind: PlanInputKind) {
     Plan("plan", PlanInputKind.Plan),
     Block("block", PlanInputKind.Block),
+
+    /** "Bloque nuevo" during a saved block (T-240): reads the block inputs, then opens the next-block builder. */
+    NewBlock("new_block", PlanInputKind.Block),
     ;
 
     companion object {
@@ -18,6 +22,12 @@ enum class BeforeStartMode(val argument: String, val kind: PlanInputKind) {
         fun fromArgument(argument: String?): BeforeStartMode = entries.firstOrNull { it.argument == argument } ?: Plan
     }
 }
+
+/**
+ * The goal-change line of "Bloque nuevo": today's calories, the new goal's calories and its phase. Any of them may be
+ * null (the UI then shows the line without figures).
+ */
+data class GoalChangeNote(val currentKcal: Int?, val newKcal: Int?, val phase: Phase?)
 
 /** Which sheet of the block's start choice is open (US-93): none, "Desde cero / Desde una carpeta", or the folders. */
 enum class StartChoiceStep { None, Choice, Folders }
@@ -54,6 +64,10 @@ sealed interface BeforeStartUiState {
         /** The open sheet of the block's start choice (block mode only); survives recreation. */
         val startChoice: StartChoiceStep = StartChoiceStep.None,
         val folderPicker: FolderPickerState = FolderPickerState.Loading,
+        /** New-block mode only: set when the saved goal differs from the plan's; null shows no note. */
+        val goalChange: GoalChangeNote? = null,
+        /** New-block mode only: the stored goal-switch plan the builder saves on; null when the goal did not change. */
+        val previewPlanId: String? = null,
     ) : BeforeStartUiState {
         val rows: List<PlanInputRow> = inputs.rows()
 
@@ -135,4 +149,10 @@ sealed interface BeforeStartEffect {
 
     /** A folder was picked to start the block: open its review. */
     data class OpenFolderBlock(val planId: String?, val folderId: String) : BeforeStartEffect
+
+    /** New-block mode without a saved block: nothing to start, close the screen. */
+    data object Close : BeforeStartEffect
+
+    /** The goal-switch figures could not be prepared (reject haptic, message); [offline] picks the offline hint. */
+    data class NewBlockPrepareFailed(val offline: Boolean) : BeforeStartEffect
 }

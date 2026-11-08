@@ -466,6 +466,7 @@ val uiModule =
                 decideProposal = get(),
                 summaries = get(),
                 loadBlockReview = get(),
+                loadWeeksInPhase = get(),
             )
         }
         viewModel {
@@ -486,6 +487,8 @@ val uiModule =
                 clock = get(),
                 routines = get(),
                 savedState = get(),
+                openNewBlock = get(),
+                previewGoalSwitch = get(),
             )
         }
         viewModel { YourDataViewModel(coach = get(), intakeRepo = get(), clock = get(), savedState = get()) }

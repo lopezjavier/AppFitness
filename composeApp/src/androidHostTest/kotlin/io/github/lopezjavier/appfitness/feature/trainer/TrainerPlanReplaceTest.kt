@@ -58,6 +58,14 @@ class TrainerPlanReplaceTest {
     }
 
     @Test
+    fun withASavedBlock_crearPlanNuevoIsGone() {
+        show(TrainerUiState.Content(plan = accepted, block = BlockSummary.Saved(coachBlock(saved = true))))
+
+        rule.onNodeWithTag("trainer_create_plan_new").assertDoesNotExist()
+        rule.onNodeWithText("Crear plan nuevo").assertDoesNotExist()
+    }
+
+    @Test
     fun withAPendingPlan_crearPlanNuevoIsShown() {
         show(content(pending))
 

@@ -236,6 +236,20 @@ class BlockBuilderNextBlockViewModelTest {
     }
 
     @Test
+    fun aDaysPerWeekChange_offersTheSplitsOfTheNewDays_insteadOfSeedingTheOldSessions() = runTest(dispatcher) {
+        prefs.result = Result.success(
+            TrainingPreferences(intention = TrainingIntention.Muscle, daysPerWeek = 3, sessionMinutes = 180),
+        )
+        val model = viewModel()
+
+        toBuilder(model)
+
+        val splits = assertIs<BlockBuilderUiState.Splits>(model.uiState.value)
+        assertEquals(3, splits.days)
+        assertTrue(splits.splits.all { it.types.size == 3 })
+    }
+
+    @Test
     fun prioritiseShowsTheBeforeAfterLine() = runTest(dispatcher) {
         val model = viewModel()
         send(model, BlockBuilderEvent.SetPriority(MuscleGroup.Shoulders, GroupPriority.Prioritise))

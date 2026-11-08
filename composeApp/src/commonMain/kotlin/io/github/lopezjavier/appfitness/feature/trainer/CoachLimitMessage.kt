@@ -4,6 +4,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import io.github.lopezjavier.appfitness.composeapp.resources.Res
 import io.github.lopezjavier.appfitness.composeapp.resources.coach_error
+import io.github.lopezjavier.appfitness.composeapp.resources.coach_failure_block_in_progress
 import io.github.lopezjavier.appfitness.composeapp.resources.coach_failure_infeasible
 import io.github.lopezjavier.appfitness.composeapp.resources.coach_failure_invalid
 import io.github.lopezjavier.appfitness.composeapp.resources.coach_failure_missing_generic
@@ -41,9 +42,10 @@ internal fun coachFailureMessage(failure: CoachFailure): StringResource = when (
     CoachFailure.Conflict,
     CoachFailure.InvalidReplacement,
     CoachFailure.InvalidBlock,
-    CoachFailure.BlockInProgress,
     CoachFailure.Other,
     -> Res.string.coach_error
+
+    CoachFailure.BlockInProgress -> Res.string.coach_failure_block_in_progress
 }
 
 /** Names where to fix what is missing: the profile data first, then the training intention, then the place. */

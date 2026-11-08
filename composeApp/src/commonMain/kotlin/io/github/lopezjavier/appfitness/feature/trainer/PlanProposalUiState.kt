@@ -25,6 +25,9 @@ sealed interface PlanFailureKind {
     /** No safe plan fits the user's numbers. */
     data object Infeasible : PlanFailureKind
 
+    /** A saved block exists: "Crear plan nuevo" is closed, "Bloque nuevo" starts another one. */
+    data object BlockInProgress : PlanFailureKind
+
     data object Offline : PlanFailureKind
 
     /** The screen was recreated mid-request and no plan was stored: the call may have been cut. */
@@ -52,9 +55,10 @@ internal fun planFailureKindOf(failure: Throwable?): PlanFailureKind = when {
         CoachFailure.Conflict,
         CoachFailure.InvalidReplacement,
         CoachFailure.InvalidBlock,
-        CoachFailure.BlockInProgress,
         CoachFailure.Other,
         -> PlanFailureKind.Other
+
+        CoachFailure.BlockInProgress -> PlanFailureKind.BlockInProgress
     }
 
     (failure as? AppException)?.error == AppError.Network -> PlanFailureKind.Offline

@@ -1800,6 +1800,7 @@
     <string name="coach_failure_missing_profile">Faltan datos para calcular tu plan. Completa tu perfil y registra tu peso.</string>
     <string name="coach_failure_missing_generic">Faltan datos para crear el plan. Completa tu perfil e inténtalo de nuevo.</string>
     <string name="coach_failure_infeasible">No hay un plan seguro con tus datos actuales. Revisa tu peso y tu perfil.</string>
+    <string name="coach_failure_block_in_progress">Ya tienes un bloque en marcha. Usa «Bloque nuevo» para empezar otro.</string>
     <string name="coach_failure_invalid">La IA no dio una respuesta válida. Inténtalo de nuevo.</string>
 
     <!-- TEMPORARY (T-146, removed by T-148): end-of-rest sound chooser and the notification-permission message. -->
@@ -1813,6 +1814,13 @@
     <string name="trainer_plan_create">Crear plan</string>
     <string name="trainer_plan_create_action">crear el plan</string>
     <string name="trainer_plan_replace">Crear plan nuevo</string>
+    <string name="trainer_new_block">Bloque nuevo</string>
+    <string name="trainer_new_block_action">crear un bloque nuevo</string>
+    <string name="trainer_my_training">Mi entrenamiento</string>
+    <plurals name="trainer_plan_weeks_in_phase">
+        <item quantity="one">Llevas %1$d semana en esta fase</item>
+        <item quantity="other">Llevas %1$d semanas en esta fase</item>
+    </plurals>
     <string name="trainer_plan_pending_title">Plan pendiente</string>
     <string name="trainer_plan_pending_supporting">Revísalo y acepta o descarta.</string>
     <string name="trainer_plan_active_title">Plan activo</string>
@@ -1979,6 +1987,9 @@
     <string name="before_start_reason_block">Completa los datos marcados con «Falta:» para crear el bloque.</string>
     <string name="before_start_confirm_error">No se pudo confirmar. Inténtalo de nuevo.</string>
     <string name="before_start_confirm_action">confirmar los valores</string>
+    <string name="new_block_prepare_failed">No se pudo preparar el bloque nuevo. Inténtalo de nuevo.</string>
+    <string name="new_block_goal_change">Tus calorías pasan de %1$s a %2$s kcal: %3$s. El bloque actual sigue hasta que guardes el nuevo.</string>
+    <string name="new_block_goal_change_no_figures">Tu objetivo ha cambiado. El bloque actual sigue hasta que guardes el nuevo.</string>
     <string name="before_start_error">No se pudieron cargar tus datos.</string>
     <string name="before_start_line_sex_age">Sexo y edad</string>
     <string name="before_start_line_height_weight">Altura y peso</string>

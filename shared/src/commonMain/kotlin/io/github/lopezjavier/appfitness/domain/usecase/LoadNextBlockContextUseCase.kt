@@ -32,7 +32,10 @@ class LoadNextBlockContextUseCase(
     private val discomforts: DiscomfortRepository,
     private val clock: Clock,
 ) {
-    /** [previousPlanId] must be the plan of the review that just closed; any other fails with `Conflict`. */
+    /**
+     * [previousPlanId] must be the plan of the review that just closed, or of the early review of "Bloque nuevo" when
+     * none is stored yet; any other fails with `Conflict`.
+     */
     @Suppress("TooGenericExceptionCaught") // Every failed read becomes the Result; cancellation is rethrown.
     suspend operator fun invoke(previousPlanId: String): Result<NextBlockContext> = try {
         Result.success(load(previousPlanId))
@@ -44,7 +47,8 @@ class LoadNextBlockContextUseCase(
 
     private suspend fun load(previousPlanId: String): NextBlockContext {
         val today = clock.today()
-        val review = reviews.openReview(today).getOrThrow()
+        // Mid-block there is no stored review yet: "Bloque nuevo" reads the early one (computed, null id).
+        val review = reviews.openReview(today).getOrThrow() ?: reviews.openNewBlock(today).getOrThrow()?.review
         if (review == null || review.planId != previousPlanId) throw CoachException(CoachFailure.Conflict)
         val block = blocks.currentBlock(previousPlanId).getOrThrow() ?: throw CoachException(CoachFailure.Conflict)
         val nextPhase = nextPhase(review).getOrThrow()

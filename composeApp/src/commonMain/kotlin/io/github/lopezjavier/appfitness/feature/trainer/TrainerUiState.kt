@@ -5,6 +5,7 @@ import io.github.lopezjavier.appfitness.domain.model.CoachBlock
 import io.github.lopezjavier.appfitness.domain.model.CoachPlan
 import io.github.lopezjavier.appfitness.domain.model.Phase
 import io.github.lopezjavier.appfitness.domain.model.PhaseReason
+import io.github.lopezjavier.appfitness.domain.model.PhaseWeeks
 import io.github.lopezjavier.appfitness.domain.model.PlanWeek
 import io.github.lopezjavier.appfitness.domain.model.ProgressionFlagDecision
 import io.github.lopezjavier.appfitness.domain.model.WeekPhase
@@ -63,8 +64,13 @@ sealed interface TrainerUiState {
         val hasWeekSummary: Boolean = false,
         /** The block has ended and its review is open: shows "Revisión del bloque" and hides "Crear bloque". */
         val blockReviewDue: Boolean = false,
+        /** Weeks started in the current calorie phase ("Llevas n semanas en esta fase"); null hides the line. */
+        val weeksInPhase: PhaseWeeks? = null,
     ) : TrainerUiState {
         private val accepted: CoachPlan? get() = (plan as? PlanSummary.Accepted)?.plan
+
+        /** "Bloque nuevo" replaces "Crear plan nuevo": an accepted plan with its block already saved. */
+        val canStartNewBlock: Boolean get() = plan is PlanSummary.Accepted && block is BlockSummary.Saved
 
         /** The accepted plan's phase for the "Tu plan" line; null without an accepted plan. */
         val planPhase: Phase? get() = accepted?.phase
@@ -133,6 +139,12 @@ sealed interface TrainerEvent {
 
     /** "Añadir un rango" on a no-range flag: asks the screen to open the routine editor on that exercise. */
     data class OpenRange(val id: String) : TrainerEvent
+
+    /** "Bloque nuevo": opens "Antes de empezar"; ignored unless [TrainerUiState.Content.canStartNewBlock]. */
+    data object OpenNewBlock : TrainerEvent
+
+    /** "Mi entrenamiento": opens the training goal and preferences screen. */
+    data object OpenMyTraining : TrainerEvent
 }
 
 /** Why an undo was refused or failed. */
@@ -187,4 +199,10 @@ sealed interface TrainerEffect {
 
     /** Navigate to the editor of [routineId] with the range of [exerciseId] in focus. */
     data class OpenRoutineRange(val routineId: String, val exerciseId: String) : TrainerEffect
+
+    /** Navigate to "Antes de empezar" in new-block mode for the accepted plan [planId]. */
+    data class OpenNewBlock(val planId: String) : TrainerEffect
+
+    /** Navigate to "Mi entrenamiento". */
+    data object OpenMyTraining : TrainerEffect
 }

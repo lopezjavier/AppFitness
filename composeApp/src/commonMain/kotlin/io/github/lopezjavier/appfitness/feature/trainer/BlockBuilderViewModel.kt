@@ -252,6 +252,13 @@ class BlockBuilderViewModel(
 
     private fun currentTargets(): Map<MuscleGroup, Int> = targetResult()?.targets.orEmpty()
 
+    /**
+     * The previous block's day types, only while the saved days per week still match them: after a change of days the
+     * builder offers the split options of the new days instead of seeding the old sessions (07 section 12.8).
+     */
+    private fun seedTypes(ctx: NextBlockContext): List<RoutineType>? =
+        NextBlockSeed.types(ctx.previousBlock)?.takeIf { it.size == inputs?.days }
+
     private fun targetsUi(): BlockBuilderUiState.Targets {
         val ctx = checkNotNull(context)
         val result = checkNotNull(targetResult())
@@ -265,8 +272,7 @@ class BlockBuilderViewModel(
             }
             GroupTargetRow(row.group, row.choice, row.before, row.after, row.blocked, suggestion)
         }
-        val seeded = NextBlockSeed.types(ctx.previousBlock)
-        val noFit = seeded?.let { startBuilder(checkNotNull(inputs), it) as? BuilderStart.NoFit }?.let {
+        val noFit = seedTypes(ctx)?.let { startBuilder(checkNotNull(inputs), it) as? BuilderStart.NoFit }?.let {
             NoFitInfo(it.dayIndex, it.fit.minutesNeeded, it.fit.limitMinutes)
         }
         return BlockBuilderUiState.Targets(rows, ctx.adherencePct, ctx.cut, noFit)
@@ -305,7 +311,7 @@ class BlockBuilderViewModel(
         if (!state.canContinue) return
         val data = inputs ?: return
         val ctx = context ?: return
-        val types = NextBlockSeed.types(ctx.previousBlock)
+        val types = seedTypes(ctx)
         if (types == null) {
             set(BlockBuilderUiState.Splits(data.days, builder.splitsFor(data.days), 0))
             return

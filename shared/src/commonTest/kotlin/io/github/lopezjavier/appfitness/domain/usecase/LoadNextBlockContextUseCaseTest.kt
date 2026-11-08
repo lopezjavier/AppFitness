@@ -19,9 +19,11 @@ import io.github.lopezjavier.appfitness.domain.model.CoachFailure
 import io.github.lopezjavier.appfitness.domain.model.CoachPlan
 import io.github.lopezjavier.appfitness.domain.model.Discomfort
 import io.github.lopezjavier.appfitness.domain.model.DiscomfortLevel
+import io.github.lopezjavier.appfitness.domain.model.GoalChange
 import io.github.lopezjavier.appfitness.domain.model.GoalStrategy
 import io.github.lopezjavier.appfitness.domain.model.GroupSets
 import io.github.lopezjavier.appfitness.domain.model.MuscleGroup
+import io.github.lopezjavier.appfitness.domain.model.NewBlockEntry
 import io.github.lopezjavier.appfitness.domain.model.Phase
 import io.github.lopezjavier.appfitness.domain.model.PhaseChangeReason
 import io.github.lopezjavier.appfitness.domain.model.PhaseDecision
@@ -135,9 +137,12 @@ class LoadNextBlockContextUseCaseTest {
         plan: Result<CoachPlan?> = Result.success(plan(Phase.Maintenance)),
         birthDate: LocalDate? = LocalDate(1990, 5, 1),
         discomforts: List<Discomfort> = emptyList(),
+        early: Result<NewBlockEntry?> = Result.success(null),
     ): LoadNextBlockContextUseCase {
         val reviews = object : CoachReviewRepository by UnconfiguredCoachReviewRepository() {
             override suspend fun openReview(today: LocalDate) = review
+
+            override suspend fun openNewBlock(today: LocalDate) = early
         }
         val blocks = object : CoachBlockRepository by UnconfiguredCoachBlockRepository() {
             override suspend fun currentBlock(planId: String) = current
@@ -245,6 +250,42 @@ class LoadNextBlockContextUseCaseTest {
 
         assertEquals(CoachFailure.Conflict, (other.exceptionOrNull() as CoachException).failure)
         assertIs<CoachException>(none.exceptionOrNull())
+    }
+
+    private fun entry(planId: String = "p1") = NewBlockEntry(
+        review = review(planId = planId, pct = 75).copy(id = null, early = true),
+        goal = GoalChange(changed = false, planIntention = null, savedIntention = null, currentKcal = null),
+    )
+
+    @Test
+    fun `mid-block the early review (null id) feeds the context`() = runTest {
+        val context = useCase(review = Result.success(null), early = Result.success(entry())).invoke("p1")
+            .getOrThrow()
+
+        assertEquals(75, context.adherencePct)
+        assertEquals("p1", context.previousPlanId)
+    }
+
+    @Test
+    fun `the end-of-block review wins over the early one`() = runTest {
+        val context = useCase(early = Result.success(entry())).invoke("p1").getOrThrow()
+
+        assertEquals(90, context.adherencePct)
+    }
+
+    @Test
+    fun `an early review of another plan is a conflict`() = runTest {
+        val result = useCase(review = Result.success(null), early = Result.success(entry("other"))).invoke("p1")
+
+        assertEquals(CoachFailure.Conflict, (result.exceptionOrNull() as CoachException).failure)
+    }
+
+    @Test
+    fun `a failed early read is passed through`() = runTest {
+        val result = useCase(review = Result.success(null), early = Result.failure(AppException(AppError.Network)))
+            .invoke("p1")
+
+        assertEquals(AppError.Network, (result.exceptionOrNull() as AppException).error)
     }
 
     @Test
