@@ -92,6 +92,20 @@ class CoachPlanDtoTest {
         assertEquals(false, activity?.cardioEdited)
     }
 
+    private fun planWithMethod(method: String) = plan(NUTRITION_FREE, "[]").removeSuffix("}") + ""","method":$method}"""
+
+    @Test
+    fun methodSourceGoalSwitch_isFlagged() {
+        assertTrue(decode(planWithMethod("""{"source":"goal_switch","x":1}""")).fromGoalSwitch)
+    }
+
+    @Test
+    fun otherOrMissingMethodSource_isNotAGoalSwitch() {
+        assertEquals(false, decode(planWithMethod("""{"source":"review"}""")).fromGoalSwitch)
+        assertEquals(false, decode(planWithMethod("null")).fromGoalSwitch)
+        assertEquals(false, decode(plan(NUTRITION_FREE, "[]")).fromGoalSwitch)
+    }
+
     private fun nutritionWith(extra: String) = NUTRITION_FREE.removeSuffix("}") + ",$extra}"
 
     @Test

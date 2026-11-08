@@ -41,6 +41,7 @@ internal fun coachFailureMessage(failure: CoachFailure): StringResource = when (
     CoachFailure.Conflict,
     CoachFailure.InvalidReplacement,
     CoachFailure.InvalidBlock,
+    CoachFailure.BlockInProgress,
     CoachFailure.Other,
     -> Res.string.coach_error
 }

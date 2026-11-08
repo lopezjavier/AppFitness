@@ -4,7 +4,11 @@ import io.github.lopezjavier.appfitness.domain.AppError
 import io.github.lopezjavier.appfitness.domain.AppException
 import io.github.lopezjavier.appfitness.domain.model.BlockAdherence
 import io.github.lopezjavier.appfitness.domain.model.BlockReview
+import io.github.lopezjavier.appfitness.domain.model.GoalSwitchPreview
+import io.github.lopezjavier.appfitness.domain.model.NewBlockEntry
+import io.github.lopezjavier.appfitness.domain.model.Phase
 import io.github.lopezjavier.appfitness.domain.model.PhaseDecision
+import io.github.lopezjavier.appfitness.domain.model.PhaseWeeks
 import io.github.lopezjavier.appfitness.domain.repository.CoachReviewRepository
 import kotlinx.coroutines.test.runTest
 import kotlinx.datetime.LocalDate
@@ -34,6 +38,9 @@ private class FakeReviewRepository(
     private val review: Result<BlockReview?> = Result.success(null),
     private val accept: Result<String> = Result.success("p2"),
     private val keep: Result<Unit> = Result.success(Unit),
+    private val newBlock: Result<NewBlockEntry?> = Result.success(null),
+    private val preview: Result<GoalSwitchPreview> = Result.success(GoalSwitchPreview("p3", 2400, 3000, Phase.Gain)),
+    private val weeks: Result<PhaseWeeks?> = Result.success(null),
 ) : CoachReviewRepository {
     val calls = mutableListOf<String>()
 
@@ -50,6 +57,21 @@ private class FakeReviewRepository(
     override suspend fun acceptPhase(reviewId: String, today: LocalDate): Result<String> {
         calls += "accept:$reviewId:$today"
         return accept
+    }
+
+    override suspend fun openNewBlock(today: LocalDate): Result<NewBlockEntry?> {
+        calls += "new:$today"
+        return newBlock
+    }
+
+    override suspend fun previewGoalSwitch(today: LocalDate): Result<GoalSwitchPreview> {
+        calls += "preview:$today"
+        return preview
+    }
+
+    override suspend fun weeksInPhase(today: LocalDate): Result<PhaseWeeks?> {
+        calls += "weeks:$today"
+        return weeks
     }
 }
 

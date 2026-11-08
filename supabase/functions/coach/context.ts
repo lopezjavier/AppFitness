@@ -80,6 +80,23 @@ export type PhaseChangeRow = {
 /** What of accept_coach_phase the coach function needs back: the new proposed plan. */
 export type PhaseChanged = { plan_id: string };
 
+/** Row sent to propose_goal_switch (T-239). */
+export type GoalSwitchRow = {
+    today: string;
+    nutrition: Nutrition;
+    outcomes: Outcome[];
+    method: Method;
+    inputSummary: unknown;
+};
+
+/** What propose_goal_switch answers: the new proposed plan and the calories before and after. */
+export type GoalSwitched = {
+    plan_id: string;
+    current_kcal: number | null;
+    new_kcal: number;
+    phase: string;
+};
+
 /** What a kind needs from the outside world; built by the handler for the caller's token. */
 export type PrepareContext = {
     /** The model resolved for this request (client override or the kind's default). */
@@ -102,6 +119,8 @@ export type PrepareContext = {
     loadReview: (reviewId: string) => Promise<ReviewState | null>;
     /** Stores the accepted phase change through accept_coach_phase, with the caller's own token. */
     applyPhaseChange: (row: PhaseChangeRow) => Promise<PhaseChanged>;
+    /** Stores the goal-switch proposal through propose_goal_switch, with the caller's own token (T-239). */
+    applyGoalSwitch: (row: GoalSwitchRow) => Promise<GoalSwitched>;
 };
 
 /** One independently validated model call of a multi-part kind. */

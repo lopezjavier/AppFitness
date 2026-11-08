@@ -1,9 +1,10 @@
 // Kinds of coach calls and the model each one uses (planning/07 section 11).
 // `ping` (T-160) and the model-free
-// `plan_nutrition` (T-161, ADR-98) and `plan_recompute` (T-187) and `plan_phase_change` (T-233) are callable; `report` and `chat` answer
+// `plan_nutrition` (T-161, ADR-98) and `plan_recompute` (T-187) and `plan_phase_change` (T-233) and `plan_goal_switch` (T-239) are callable; `report` and `chat` answer
 // coach_kind_not_available until their tasks.
 import type { AnthropicRequest } from "../_shared/anthropic.ts";
 import type { PrepareContext, Prepared } from "./context.ts";
+import { prepare as prepareGoalSwitch } from "./planGoalSwitch.ts";
 import { prepare as prepareNutrition } from "./planNutrition.ts";
 import { prepare as preparePhaseChange } from "./planPhaseChange.ts";
 import { prepare as prepareRecompute } from "./planRecompute.ts";
@@ -62,6 +63,12 @@ export const KINDS: Record<string, KindSpec> = {
         available: true,
         deterministic: true,
         prepare: preparePhaseChange,
+    },
+    plan_goal_switch: {
+        model: "sonnet",
+        available: true,
+        deterministic: true,
+        prepare: prepareGoalSwitch,
     },
     report: { model: "sonnet", available: false },
     chat: { model: "sonnet", available: false },

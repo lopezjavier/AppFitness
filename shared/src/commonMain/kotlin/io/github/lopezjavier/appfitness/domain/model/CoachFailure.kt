@@ -32,6 +32,9 @@ sealed interface CoachFailure {
     /** A device-built block broke a server invariant (SQLSTATE 22023, `block invariant: <code>`); nothing was saved. */
     data object InvalidBlock : CoachFailure
 
+    /** `coach_block_in_progress`: "Crear plan nuevo" is closed while a saved block exists (SQLSTATE 55000). */
+    data object BlockInProgress : CoachFailure
+
     /** Any other or unreadable error. */
     data object Other : CoachFailure
 

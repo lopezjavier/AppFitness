@@ -80,6 +80,8 @@ function setup(
             applied.push(row);
             return Promise.resolve({ plan_id: "plan-new" });
         },
+        applyGoalSwitch: () =>
+            Promise.reject(new Error("unexpected applyGoalSwitch")),
         now: () => NOW,
     };
     return {

@@ -373,15 +373,15 @@ select is((public.apply_coach_diet_break(pg_temp.d0()))->>'applied', 'false', 'a
 -- coach_phase_history (users 10-12)
 -- ---------------------------------------------------------------------------
 reset role;
--- 10: four consecutive cut blocks, one with a diet break.
+-- 10: four consecutive cut blocks of four weeks (the last one in its fourth week), one with a diet break.
 insert into public.coach_plans (id, user_id, block_start, intention, nutrition, status, phase, phase_options, training)
-values (pg_temp.pid(21), pg_temp.u(10), pg_temp.d0() - 84, 'fat_loss', pg_temp.nut(2500, -500, 0.568, 'cut', 'deficit_cap'),
+values (pg_temp.pid(21), pg_temp.u(10), pg_temp.d0() - 105, 'fat_loss', pg_temp.nut(2500, -500, 0.568, 'cut', 'deficit_cap'),
         'superseded', 'cut', default, '{"weekly_sets":{"quads":10}}'),
-       (pg_temp.pid(22), pg_temp.u(10), pg_temp.d0() - 56, 'fat_loss', pg_temp.nut(2500, -500, 0.568, 'cut', 'deficit_cap', true),
+       (pg_temp.pid(22), pg_temp.u(10), pg_temp.d0() - 77, 'fat_loss', pg_temp.nut(2500, -500, 0.568, 'cut', 'deficit_cap', true),
         'superseded', 'cut', '{"cut_rate_pct":0.5,"diet_break":true}', '{"weekly_sets":{"quads":10}}'),
-       (pg_temp.pid(23), pg_temp.u(10), pg_temp.d0() - 28, 'fat_loss', pg_temp.nut(2500, -500, 0.568, 'cut', 'deficit_cap'),
+       (pg_temp.pid(23), pg_temp.u(10), pg_temp.d0() - 49, 'fat_loss', pg_temp.nut(2500, -500, 0.568, 'cut', 'deficit_cap'),
         'superseded', 'cut', default, '{"weekly_sets":{"quads":2}}'),
-       (pg_temp.pid(24), pg_temp.u(10), pg_temp.d0(), 'fat_loss', pg_temp.nut(2500, -500, 0.568, 'cut', 'deficit_cap'),
+       (pg_temp.pid(24), pg_temp.u(10), pg_temp.d0() - 21, 'fat_loss', pg_temp.nut(2500, -500, 0.568, 'cut', 'deficit_cap'),
         'accepted', 'cut', default, '{"weekly_sets":{"quads":2}}'),
 -- 11: one maintenance block followed by a proposed plan that must not count.
        (pg_temp.pid(25), pg_temp.u(11), pg_temp.d0() - 28, 'maintenance', pg_temp.nut(3000, 0, 0, 'maintenance'),
@@ -395,7 +395,7 @@ select p, u, w, s, 'Sesion ' || s, '{quads}',
          || case when w = 1 and s = 2 then jsonb_build_array(pg_temp.lift(pg_temp.ex('squat', 0), 'main', 4, 3, 5)) else '[]'::jsonb end
 from (values (pg_temp.pid(21), pg_temp.u(10)), (pg_temp.pid(22), pg_temp.u(10)), (pg_temp.pid(23), pg_temp.u(10)),
              (pg_temp.pid(24), pg_temp.u(10)), (pg_temp.pid(25), pg_temp.u(11)), (pg_temp.pid(26), pg_temp.u(11))) t(p, u)
-cross join generate_series(1, 2) w
+cross join generate_series(1, 4) w
 cross join generate_series(1, 2) s;
 
 set local role authenticated;
@@ -404,7 +404,7 @@ select is((public.coach_phase_history(pg_temp.d0()))->'previous'->>'phase', 'cut
 select is((public.coach_phase_history(pg_temp.d0()))->>'minimal_blocks_in_a_row', '0',
   'the legacy minimal counter stays at 0 for old clients');
 select is((public.coach_phase_history(pg_temp.d0()))->>'deficit_weeks_done', '15',
-  'deficit weeks: 4 per cut block, 3 with a diet break (4 + 3 + 4 + 4)');
+  'deficit weeks: the weeks lived per cut block, minus the diet-break week (4 + 3 + 4 + week 4 of the current block)');
 select is((public.coach_phase_history(pg_temp.d0()))->'previous'->'sets_per_group', '{"quads": 2}'::jsonb,
   'the previous sets per group come from the block');
 select is((public.coach_phase_history(pg_temp.d0()))->'previous'->'main_lifts',

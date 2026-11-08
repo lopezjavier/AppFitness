@@ -10,9 +10,11 @@ import io.github.lopezjavier.appfitness.domain.AppError
 import io.github.lopezjavier.appfitness.domain.appErrorOrNull
 import io.github.lopezjavier.appfitness.domain.model.CoachException
 import io.github.lopezjavier.appfitness.domain.model.CoachFailure
+import io.github.lopezjavier.appfitness.domain.model.Phase
 import io.github.lopezjavier.appfitness.domain.model.TestLoginCredentials
 import io.ktor.client.engine.mock.MockEngine
 import io.ktor.client.engine.mock.respond
+import io.ktor.client.plugins.HttpRequestTimeoutException
 import io.ktor.client.request.HttpRequestData
 import io.ktor.http.HttpHeaders
 import io.ktor.http.HttpMethod
@@ -21,6 +23,7 @@ import io.ktor.http.content.TextContent
 import io.ktor.http.headersOf
 import kotlinx.coroutines.test.runTest
 import kotlinx.datetime.LocalDate
+import kotlinx.io.IOException
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertIs
@@ -158,5 +161,136 @@ class SupabaseCoachReviewRepositoryTest {
         val repository = repo(signIn = false) { HttpStatusCode.OK to frame("{}") }
 
         assertEquals(AppError.Unauthorized, repository.acceptPhase("r1", today).appErrorOrNull())
+    }
+
+    @Test
+    fun openNewBlock_callsTheRpcWithToday_andMapsTheEntry() = runTest {
+        val repository = repo {
+            HttpStatusCode.OK to
+                """{"review":{"id":null,"plan_id":"p1","ended_on":"2027-01-06","early":true},""" +
+                """"goal":{"changed":true,"plan_intention":"fat_loss","saved_intention":"muscle_gain",""" +
+                """"current_kcal":2200}}"""
+        }
+
+        val entry = assertNotNull(repository.openNewBlock(today).getOrThrow())
+
+        val call = rest().single()
+        assertTrue(call.url.encodedPath.endsWith("/rest/v1/rpc/open_coach_block_new"), call.url.toString())
+        assertEquals("""{"p_today":"2027-01-06"}""", bodyOf(call))
+        assertTrue(entry.review.early)
+        assertNull(entry.review.id)
+        assertTrue(entry.goal.changed)
+    }
+
+    @Test
+    fun openNewBlock_nullAnswer_isNoBlock() = runTest {
+        assertNull(repo { HttpStatusCode.OK to "null" }.openNewBlock(today).getOrThrow())
+    }
+
+    @Test
+    fun openNewBlock_signedOut_isUnauthorized() = runTest {
+        val repository = repo(signIn = false) { HttpStatusCode.OK to "null" }
+
+        assertEquals(AppError.Unauthorized, repository.openNewBlock(today).appErrorOrNull())
+        assertTrue(rest().isEmpty())
+    }
+
+    @Test
+    fun openNewBlock_offline_isAnAppError() = runTest {
+        val repository = repo { throw IOException("offline") }
+
+        assertEquals(AppError.Network, repository.openNewBlock(today).appErrorOrNull())
+    }
+
+    @Test
+    fun weeksInPhase_callsTheRpcWithToday_andMapsTheWeeks() = runTest {
+        val repository = repo { HttpStatusCode.OK to """{"phase":"cut","weeks":7}""" }
+
+        val weeks = assertNotNull(repository.weeksInPhase(today).getOrThrow())
+
+        val call = rest().single()
+        assertTrue(call.url.encodedPath.endsWith("/rest/v1/rpc/coach_weeks_in_phase"), call.url.toString())
+        assertEquals("""{"p_today":"2027-01-06"}""", bodyOf(call))
+        assertEquals(Phase.Cut, weeks.phase)
+        assertEquals(7, weeks.weeks)
+    }
+
+    @Test
+    fun weeksInPhase_nullAnswer_isNull() = runTest {
+        assertNull(repo { HttpStatusCode.OK to "null" }.weeksInPhase(today).getOrThrow())
+    }
+
+    @Test
+    fun weeksInPhase_offline_isAnAppError() = runTest {
+        val repository = repo { throw IOException("offline") }
+
+        assertEquals(AppError.Network, repository.weeksInPhase(today).appErrorOrNull())
+    }
+
+    @Test
+    fun previewGoalSwitch_postsTheKindWithToday_andMapsThePreview() = runTest {
+        val repository = repo {
+            HttpStatusCode.OK to
+                frame(
+                    """{"plan_id":"p3","nutrition":{},"outcomes":[],""" +
+                        """"preview":{"current_kcal":2200,"new_kcal":2800,"phase":"gain"}}""",
+                )
+        }
+
+        val preview = repository.previewGoalSwitch(today).getOrThrow()
+
+        val call = rest().single()
+        assertEquals(HttpMethod.Post, call.method)
+        assertTrue(call.url.encodedPath.endsWith("/functions/v1/coach"), call.url.toString())
+        assertEquals("""{"kind":"plan_goal_switch","input":{"today":"2027-01-06"}}""", bodyOf(call))
+        assertEquals("p3", preview.planId)
+        assertEquals(2200, preview.currentKcal)
+        assertEquals(2800, preview.newKcal)
+        assertEquals(Phase.Gain, preview.phase)
+    }
+
+    @Test
+    fun previewGoalSwitch_blockInProgressError_isACoachFailure() = runTest {
+        val repository = repo { HttpStatusCode.Conflict to """{"error":{"code":"coach_block_in_progress"}}""" }
+
+        val failure = repository.previewGoalSwitch(today).exceptionOrNull()
+
+        assertIs<CoachException>(failure)
+        assertEquals(CoachFailure.BlockInProgress, failure.failure)
+    }
+
+    @Test
+    fun previewGoalSwitch_streamWithoutPlanId_isOther() = runTest {
+        val repository = repo { HttpStatusCode.OK to frame("{}") }
+
+        val failure = repository.previewGoalSwitch(today).exceptionOrNull()
+
+        assertIs<CoachException>(failure)
+        assertEquals(CoachFailure.Other, failure.failure)
+    }
+
+    @Test
+    fun previewGoalSwitch_timeout_isACoachTimeout() = runTest {
+        val repository = repo { throw HttpRequestTimeoutException("http://localhost", 1L) }
+
+        val failure = repository.previewGoalSwitch(today).exceptionOrNull()
+
+        assertIs<CoachException>(failure)
+        assertEquals(CoachFailure.Timeout, failure.failure)
+    }
+
+    @Test
+    fun previewGoalSwitch_offline_isAnAppError() = runTest {
+        val repository = repo { throw IOException("offline") }
+
+        assertEquals(AppError.Network, repository.previewGoalSwitch(today).appErrorOrNull())
+    }
+
+    @Test
+    fun previewGoalSwitch_signedOut_isUnauthorized() = runTest {
+        val repository = repo(signIn = false) { HttpStatusCode.OK to frame("{}") }
+
+        assertEquals(AppError.Unauthorized, repository.previewGoalSwitch(today).appErrorOrNull())
+        assertTrue(rest().isEmpty())
     }
 }
