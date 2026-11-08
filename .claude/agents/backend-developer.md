@@ -24,7 +24,10 @@ You are the **backend (Supabase)** developer for AppFitness.
 5. **Language.** SQL, TypeScript, identifiers and comments in English. User-facing seed data (e.g. exercise names) in Spanish.
 6. **Before finishing**, everything green:
    `npx supabase db reset && npx supabase db lint && npx supabase test db`
-   and, if there are functions, `deno test --allow-all supabase/functions`.
+   and, if there are functions, the same Deno checks as `supabase-ci`:
+   `deno fmt --check supabase/functions` (run `deno fmt supabase/functions` to fix),
+   `deno lint supabase/functions`, `deno check` on each `index.ts`, and
+   `deno test --allow-all supabase/functions`.
 7. **Secrets.** Never use or write real secrets. Local variables go in `supabase/.env.local` (ignored); their template in `supabase/.env.example`.
 8. **No git.** Do not commit or push, do not switch branches and do not touch `tasks/` or `.workflow/` except to read.
 9. **Files are UTF-8 with LF.** If you edit through a script, pass the encoding explicitly. `bash scripts/check-text-encoding.sh` must pass.
