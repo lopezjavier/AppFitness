@@ -175,9 +175,13 @@ Feature: Clean restart
     Given I saved a new block with a new goal
     Then the calorie-proposal band, the 14-day clock and the "Ahora no" count start from zero
 
-  Scenario: Only consecutive cut blocks count towards the cut limit
-    Given I cut, then gained, then started a cut
+  Scenario: The deficit-week count restarts after 4 consecutive non-deficit weeks
+    Given I cut, then spent 4 or more consecutive counted weeks in a non-cut block, then started a cut
     Then the deficit-week count starts again at the new cut
+
+  Scenario: A short break from the cut only pauses the deficit-week count
+    Given I cut, then spent fewer than 4 consecutive counted weeks in a non-cut block, then started a cut
+    Then the deficit-week count continues from where it was (07 §12.9)
 
   Scenario: Weeks in the current phase
     When I open the plan details
