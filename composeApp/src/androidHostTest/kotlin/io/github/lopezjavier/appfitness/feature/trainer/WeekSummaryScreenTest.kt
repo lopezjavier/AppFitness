@@ -7,6 +7,7 @@ import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.hasContentDescription
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithTag
+import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
@@ -63,15 +64,13 @@ class WeekSummaryScreenTest {
 
     @Test
     fun finishedWeek_showsEverySectionWithItsFigures() {
-        show(content(weekSummary(calorieProposal = weekProposal(ProposalStatus.Applied))))
+        show(content())
 
         rule.onNodeWithTag("week_summary_title").assertTextEquals("Resumen semanal")
         rule.onNodeWithTag("week_summary_subtitle").assertTextContains("Semana 2", substring = true)
         rule.onNodeWithText("Esta semana: 3 de 4 entrenos.").assertIsDisplayed()
         rule.onNodeWithText("Peso medio 80,2 kg (−0,3 kg/semana; objetivo −0,4 kg/semana).")
             .assertIsDisplayed()
-        rule.onNodeWithText("Registros: 5 de 7 diarios completos · 3 pesajes.").assertIsDisplayed()
-        rule.onNodeWithText("Propuesta de calorías: +100 kcal · Aplicada").assertIsDisplayed()
     }
 
     @Test
@@ -84,13 +83,96 @@ class WeekSummaryScreenTest {
     }
 
     @Test
-    fun missingRecords_replaceTheCalorieLineButKeepWeightAndRecords() {
-        show(content(weekSummary(missingRecords = true, calorieProposal = weekProposal())))
+    fun fiveCompleteDays_showTheThreeFiguresAndTheWeightLine() {
+        show(content())
 
-        rule.onNodeWithText("Esta semana faltan registros: no cambiamos tus calorías.").assertIsDisplayed()
-        rule.onAllNodesWithTag("week_summary_section_weight").assertCountEquals(1)
-        rule.onAllNodesWithTag("week_summary_section_records").assertCountEquals(1)
-        rule.onNodeWithText("Propuesta de calorías: +100 kcal · Aplicada").assertDoesNotExist()
+        rule.onNodeWithTag("week_summary_section_nutrition").assertIsDisplayed()
+        rule.onNodeWithText("Nutrición").assertIsDisplayed()
+        rule.onNodeWithTag("week_summary_nutrition_days").assertTextEquals("Días completos: 5 de 7")
+        rule.onNodeWithTag("week_summary_nutrition_kcal")
+            .assertTextEquals("Calorías: 2.310 kcal de media (−90 respecto a tu objetivo de 2.400).")
+        rule.onNodeWithTag("week_summary_nutrition_protein")
+            .assertTextEquals("Proteína: 149 g de media (1,8 g por kg; objetivo 150 g).")
+        rule.onNodeWithTag("week_summary_nutrition_weight")
+            .assertTextEquals("Peso medio 80,2 kg (−0,3 kg/semana; objetivo −0,4 kg/semana).")
+        rule.onNodeWithTag("week_summary_nutrition_weigh_ins").assertTextEquals("Registraste 3 pesajes.")
+        rule.onAllNodesWithTag("week_summary_nutrition_missing").assertCountEquals(0)
+    }
+
+    @Test
+    fun proteinWithoutPerKg_dropsTheClause() {
+        show(content(weekSummary(nutrition = weekNutrition(proteinGPerKg = null))))
+
+        rule.onNodeWithTag("week_summary_nutrition_protein")
+            .assertTextEquals("Proteína: 149 g de media (objetivo 150 g).")
+    }
+
+    @Test
+    fun fourCompleteDays_showTheMissingLineAndNoAverages() {
+        show(content(weekSummary(nutrition = weekNutrition(completeDays = 4))))
+
+        rule.onNodeWithTag("week_summary_nutrition_missing").assertTextEquals(
+            "Faltan registros: solo 4 de 7 días completos. " +
+                "Con menos de 5 no sacamos conclusiones sobre tus calorías.",
+        )
+        rule.onAllNodesWithTag("week_summary_nutrition_days").assertCountEquals(0)
+        rule.onAllNodesWithTag("week_summary_nutrition_kcal").assertCountEquals(0)
+        rule.onAllNodesWithTag("week_summary_nutrition_protein").assertCountEquals(0)
+        rule.onNodeWithTag("week_summary_nutrition_weight").assertIsDisplayed()
+    }
+
+    @Test
+    fun decisions_showTheirReasonAndStatus() {
+        val decisions = listOf(
+            weekDecision(ProposalStatus.Applied, "a"),
+            weekDecision(ProposalStatus.Declined, "d"),
+            weekDecision(ProposalStatus.Pending, "p"),
+        )
+        show(content(weekSummary(nutrition = weekNutrition(decisions = decisions))))
+
+        val reason = "Te proponemos subir 100 kcal: en las últimas 2 semanas tu peso ha bajado más de lo previsto."
+        rule.onNodeWithTag("week_summary_nutrition_decision_a")
+            .assertTextEquals("Calorías: +100 kcal · Aplicada. $reason")
+        rule.onNodeWithTag("week_summary_nutrition_decision_d")
+            .assertTextEquals("Calorías: +100 kcal · Pospuesta. $reason")
+        rule.onNodeWithTag("week_summary_nutrition_decision_p")
+            .assertTextEquals("Calorías: +100 kcal · Pendiente. $reason")
+        rule.onAllNodesWithText("Aplicar").assertCountEquals(0)
+    }
+
+    @Test
+    fun noDecisions_showNoDecisionLine() {
+        show(content())
+
+        rule.onAllNodesWithTag("week_summary_nutrition_decision_prop-1").assertCountEquals(0)
+    }
+
+    @Test
+    fun nutrition_livesInsideTheSummaryScreenAsOneCard() {
+        show(content())
+
+        rule.onNodeWithTag("week_summary_screen").assertIsDisplayed()
+        rule.onAllNodesWithTag("week_summary_section_nutrition").assertCountEquals(1)
+        rule.onAllNodesWithTag("week_summary_section_weight").assertCountEquals(0)
+        rule.onAllNodesWithTag("week_summary_section_records").assertCountEquals(0)
+        rule.onAllNodesWithTag("week_summary_section_proposal").assertCountEquals(0)
+    }
+
+    @Test
+    fun summaryFromBeforeTheMigration_hidesTheSection() {
+        show(content(weekSummary(nutrition = null)))
+
+        rule.onAllNodesWithTag("week_summary_section_nutrition").assertCountEquals(0)
+        rule.onNodeWithText("Esta semana: 3 de 4 entrenos.").assertIsDisplayed()
+    }
+
+    @Test
+    fun pausedWeek_showsOnlyItsLabel() {
+        val paused = WeekSummary.pausedWeek("plan-1", LocalDate(2026, 11, 3), LocalDate(2026, 11, 9))
+        show(content(paused))
+
+        rule.onNodeWithTag("week_summary_paused").assertIsDisplayed()
+        rule.onAllNodesWithTag("week_summary_section_nutrition").assertCountEquals(0)
     }
 
     @Test

@@ -26,11 +26,26 @@ class WeekSummaryRestorationTest {
     private val state = WeekSummaryUiState.Content(
         weekSummary(
             deload = true,
-            calorieProposal = weekProposal(),
+            nutrition = weekNutrition(decisions = listOf(weekDecision())),
             stalls = listOf(StallDiagnosis("id-bench", StallCause.NoClearCause(proteinGateMissing = true))),
         ),
         mapOf("id-bench" to "Press banca"),
     )
+
+    @Test
+    fun recreation_keepsTheNutritionSectionOpen() {
+        val restoration = StateRestorationTester(rule)
+        restoration.setContent {
+            AppTheme { WeekSummaryScreen(state, flowOf(true), {}, {}) }
+        }
+        rule.onNodeWithTag("week_summary_nutrition_kcal").performScrollTo().assertIsDisplayed()
+
+        restoration.emulateSavedInstanceStateRestore()
+        rule.waitForIdle()
+
+        rule.onNodeWithTag("week_summary_section_nutrition").assertIsDisplayed()
+        rule.onNodeWithTag("week_summary_nutrition_kcal").assertIsDisplayed()
+    }
 
     @Test
     fun recreation_keepsTheSummaryAndTheScrollPosition() {

@@ -2362,16 +2362,23 @@
     <string name="week_summary_weight_no_target">Peso medio %1$s kg (%2$s kg/semana).</string>
     <string name="week_summary_weight_avg_only">Peso medio %1$s kg.</string>
     <string name="week_summary_weight_none">Esta semana no hay datos de peso suficientes.</string>
-    <string name="week_summary_records">Registros: %1$d de 7 diarios completos · %2$s.</string>
+    <string name="week_summary_nutrition_header">Nutrición</string>
+    <string name="week_summary_nutrition_days">Días completos: %1$d de 7</string>
+    <string name="week_summary_nutrition_missing">Faltan registros: solo %1$d de 7 días completos. Con menos de 5 no sacamos conclusiones sobre tus calorías.</string>
+    <string name="week_summary_nutrition_kcal">Calorías: %1$s kcal de media (%2$s respecto a tu objetivo de %3$s).</string>
+    <string name="week_summary_nutrition_kcal_avg_only">Calorías: %1$s kcal de media.</string>
+    <string name="week_summary_nutrition_protein">Proteína: %1$s g de media (%2$s g por kg; objetivo %3$s g).</string>
+    <string name="week_summary_nutrition_protein_no_kg">Proteína: %1$s g de media (objetivo %2$s g).</string>
+    <string name="week_summary_nutrition_protein_avg_only">Proteína: %1$s g de media.</string>
+    <string name="week_summary_nutrition_weigh_ins">Registraste %1$s.</string>
+    <string name="week_summary_decision">Calorías: %1$s kcal · %2$s. %3$s</string>
     <plurals name="week_summary_weigh_ins">
         <item quantity="one">%1$d pesaje</item>
         <item quantity="other">%1$d pesajes</item>
     </plurals>
-    <string name="week_summary_proposal">Propuesta de calorías: %1$s kcal · %2$s</string>
     <string name="week_summary_proposal_applied">Aplicada</string>
     <string name="week_summary_proposal_pending">Pendiente</string>
     <string name="week_summary_proposal_declined">Pospuesta</string>
-    <string name="week_summary_missing_records">Esta semana faltan registros: no cambiamos tus calorías.</string>
     <string name="week_summary_stall_header">¿Por qué no progreso?</string>
     <string name="week_summary_stall_help_cd">Ayuda: ¿Por qué no progreso?</string>
     <string name="week_summary_stall_help_body">Un ejercicio principal se da por estancado si su mejor marca estimada no mejora en las últimas 3 semanas del plan. El entrenador revisa en este orden: días entrenados, series, proteína y sueño, y te muestra solo la primera causa que encuentra.</string>

@@ -22,11 +22,13 @@ import io.github.lopezjavier.appfitness.domain.model.MuscleGroup
 import io.github.lopezjavier.appfitness.domain.model.StallCause
 import io.github.lopezjavier.appfitness.domain.model.WeekSummary
 import org.jetbrains.compose.resources.StringResource
+import kotlin.math.roundToInt
 
 /**
  * The figures of the weekly summary as the copy shows them (04 section 5): decimal comma, the real minus sign, one
  * decimal for kilograms and for sets ("10" or "2,5"), integers for counts. The sentences live in `strings.xml`.
  */
+@Suppress("TooManyFunctions") // One formatter per figure of the summary.
 internal object WeekSummaryText {
     /**
      * The "¿Por qué no progreso?" line of one stalled lift (07 section 3 (7)): the cause and action string resources
@@ -105,6 +107,15 @@ internal object WeekSummaryText {
     /** The calorie change of a proposal with its sign: "+100", "−150". */
     fun kcalDelta(proposal: CalorieProposal): String =
         AppNumberFormat.signedInteger(proposal.toKcal - proposal.fromKcal)
+
+    /** The average against the goal with its sign: "−90", "+120", "0". */
+    fun kcalDifference(avgKcal: Int, targetKcal: Int): String = AppNumberFormat.signedInteger(avgKcal - targetKcal)
+
+    /** Whole grams of protein: "148". */
+    fun proteinGrams(grams: Double): String = AppNumberFormat.integer(grams.roundToInt())
+
+    /** Grams of protein per kilogram of body weight, up to two decimals: "1,8". */
+    fun perKg(value: Double): String = AppNumberFormat.decimal(value, maxDecimals = 2)
 
     /** Groups with at least some sets; a group with 0 is omitted. */
     fun visibleGroups(groups: List<GroupSets>): List<GroupSets> = groups.filter { it.sets > 0 }

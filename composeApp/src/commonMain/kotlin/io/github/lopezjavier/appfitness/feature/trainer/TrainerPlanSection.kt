@@ -366,12 +366,12 @@ internal fun calorieProposalReason(proposal: CalorieProposal): StringResource {
 /** The in-block calorie proposal waiting for "Aplicar" or "Ahora no" (US-99), on the shared [CoachProposalCard]. */
 @Composable
 internal fun CalorieProposalCard(
-    change: CalorieProposal,
+    proposal: CalorieProposal,
     deciding: Boolean,
     online: Boolean,
     onEvent: (TrainerEvent) -> Unit,
 ) = CalorieProposalCard(
-    change = change,
+    proposal = proposal,
     deciding = deciding,
     online = online,
     onApply = { onEvent(TrainerEvent.ApplyCalorieProposal) },
@@ -385,7 +385,7 @@ internal fun CalorieProposalCard(
 @Composable
 @Suppress("LongParameterList") // Proposal, state, two actions and the host's tag prefix and failure slot.
 internal fun CalorieProposalCard(
-    change: CalorieProposal,
+    proposal: CalorieProposal,
     deciding: Boolean,
     online: Boolean,
     onApply: () -> Unit,
@@ -393,10 +393,10 @@ internal fun CalorieProposalCard(
     testTagPrefix: String = "trainer_calorie_card",
     failure: (@Composable () -> Unit)? = null,
 ) {
-    val slope = change.slopeKgWeek
-    val low = change.intervalLow
-    val high = change.intervalHigh
-    val reason = calorieProposalReason(change)
+    val slope = proposal.slopeKgWeek
+    val low = proposal.intervalLow
+    val high = proposal.intervalHigh
+    val reason = calorieProposalReason(proposal)
     val data = when {
         slope != null && low != null && high != null ->
             stringResource(
@@ -413,10 +413,10 @@ internal fun CalorieProposalCard(
         title = stringResource(Res.string.calorie_change_title),
         payload = stringResource(
             Res.string.calorie_change_payload,
-            AppNumberFormat.integer(change.fromKcal),
-            AppNumberFormat.integer(change.toKcal),
+            AppNumberFormat.integer(proposal.fromKcal),
+            AppNumberFormat.integer(proposal.toKcal),
         ),
-        reason = stringResource(reason, AppNumberFormat.integer(abs(change.toKcal - change.fromKcal))),
+        reason = stringResource(reason, AppNumberFormat.integer(abs(proposal.toKcal - proposal.fromKcal))),
         dataUsed = data,
         acceptText = stringResource(Res.string.action_apply),
         discardText = stringResource(Res.string.action_not_now),

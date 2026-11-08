@@ -7,7 +7,8 @@ import io.github.lopezjavier.appfitness.domain.model.MuscleGroup
 import io.github.lopezjavier.appfitness.domain.model.ProposalStatus
 import io.github.lopezjavier.appfitness.domain.model.StallDiagnosis
 import io.github.lopezjavier.appfitness.domain.model.WeekSummary
-import io.github.lopezjavier.appfitness.domain.model.WeekSummaryProposal
+import io.github.lopezjavier.appfitness.domain.model.WeekSummaryDecision
+import io.github.lopezjavier.appfitness.domain.model.WeekSummaryNutrition
 import io.github.lopezjavier.appfitness.domain.model.WeekSummaryWeight
 import kotlinx.datetime.LocalDate
 
@@ -21,9 +22,8 @@ internal fun weekSummary(
         GroupSets(MuscleGroup.Calves, 0.0),
     ),
     weight: WeekSummaryWeight? = WeekSummaryWeight(80.2, -0.3, -0.5, 0.0, -0.4),
-    missingRecords: Boolean = false,
+    nutrition: WeekSummaryNutrition? = weekNutrition(),
     changes: List<CoachChange> = emptyList(),
-    calorieProposal: WeekSummaryProposal? = null,
     deload: Boolean = false,
     stalls: List<StallDiagnosis> = emptyList(),
 ) = WeekSummary(
@@ -36,16 +36,36 @@ internal fun weekSummary(
     sessionsPlanned = 4,
     groups = groups,
     weight = weight,
-    completeDays = if (missingRecords) 4 else 5,
-    weighInDays = if (missingRecords) 1 else 3,
-    missingRecords = missingRecords,
+    completeDays = nutrition?.completeDays ?: 0,
+    weighInDays = 3,
     changes = changes,
-    calorieProposal = calorieProposal,
     deload = deload,
     stalls = stalls,
+    nutrition = nutrition,
 )
 
-internal fun weekProposal(status: ProposalStatus = ProposalStatus.Applied) = WeekSummaryProposal(
-    CalorieProposal("prop-1", "plan-1", 2400, 2500, 4.0, "rate_outside_interval", -0.3, -0.5, 0.0, -0.4),
+/** The nutrition section of a week with 5 complete days (gate on) by default. */
+internal fun weekNutrition(
+    completeDays: Int = 5,
+    gateOk: Boolean = completeDays >= 5,
+    avgKcal: Int? = if (gateOk) 2310 else null,
+    avgProteinG: Double? = if (gateOk) 148.5 else null,
+    targetKcal: Int? = if (gateOk) 2400 else null,
+    targetProteinG: Int? = if (gateOk) 150 else null,
+    proteinGPerKg: Double? = if (gateOk) 1.8 else null,
+    decisions: List<WeekSummaryDecision> = emptyList(),
+) = WeekSummaryNutrition(
+    completeDays = completeDays,
+    gateOk = gateOk,
+    avgKcal = avgKcal,
+    avgProteinG = avgProteinG,
+    targetKcal = targetKcal,
+    targetProteinG = targetProteinG,
+    proteinGPerKg = proteinGPerKg,
+    decisions = decisions,
+)
+
+internal fun weekDecision(status: ProposalStatus = ProposalStatus.Applied, id: String = "prop-1") = WeekSummaryDecision(
+    CalorieProposal(id, "plan-1", 2400, 2500, 4.0, "rate_outside_interval", -0.3, -0.5, 0.0, -0.4),
     status,
 )

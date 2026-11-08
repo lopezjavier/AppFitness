@@ -81,7 +81,7 @@ class BlockPauseScreenTest {
         rule.onNodeWithTag("week_summary_paused").assertTextEquals("Semana en pausa")
         rule.onNodeWithTag("week_summary_subtitle").assertTextEquals("3 al 9 nov")
         rule.onNodeWithTag("week_summary_section_sessions").assertDoesNotExist()
-        rule.onNodeWithTag("week_summary_section_weight").assertDoesNotExist()
+        rule.onNodeWithTag("week_summary_section_nutrition").assertDoesNotExist()
         rule.onNodeWithTag("week_summary_section_proposal").assertDoesNotExist()
     }
 

@@ -383,6 +383,18 @@ Deno.test("weight prompt always asks for an estimate and defines the 1-10 scale"
     assert(prompt.includes("10 = near certain"));
 });
 
+Deno.test("dish prompt asks for values of the food as shown, cooked when it looks cooked", async () => {
+    const { call, sent } = setup({ body: fixtureText("dish-tortilla") });
+    await call({ image_base64: IMAGE, mode: "dish" });
+    const prompt = (sent[0].body.systemInstruction as {
+        parts: { text: string }[];
+    }).parts[0].text;
+    assert(prompt.includes("exactly as shown in the photo"));
+    assert(prompt.includes("estimated_grams"));
+    assert(prompt.includes("never the raw or dry values"));
+    assert(prompt.includes("user note"));
+});
+
 Deno.test("dish, label and barcode prompts and schemas are unchanged by the weight work", async () => {
     for (const mode of ["dish", "label", "barcode"]) {
         const { call, sent } = setup({ body: fixtureText("dish-tortilla") });
