@@ -43,6 +43,21 @@ class HealthDisclaimerSweepTest {
     }
 
     @Test
+    fun diagnosisCardStrings_haveNoMedicalWords() {
+        val medical = listOf("metabolismo", "hormona", "trastorno", "comiste")
+        val strings = Regex("""<string name="(week_summary_diagnosis_[^"]+)"[^>]*>(.*?)</string>""")
+            .findAll(stringsFile().readText(Charsets.UTF_8))
+            .toList()
+
+        assertTrue(strings.isNotEmpty())
+        assertEquals(
+            emptyList<String>(),
+            strings.filter { m -> medical.any { m.groupValues[2].contains(it, ignoreCase = true) } }
+                .map { it.groupValues[1] },
+        )
+    }
+
+    @Test
     fun aPlantedDisclaimer_isFlagged() {
         val fixture = """<string name="planted">Si te preocupa, consulta con un profesional.</string>"""
 

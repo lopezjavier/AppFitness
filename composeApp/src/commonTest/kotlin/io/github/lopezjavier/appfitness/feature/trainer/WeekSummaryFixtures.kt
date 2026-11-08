@@ -4,6 +4,7 @@ import io.github.lopezjavier.appfitness.domain.model.CalorieProposal
 import io.github.lopezjavier.appfitness.domain.model.CoachChange
 import io.github.lopezjavier.appfitness.domain.model.GroupSets
 import io.github.lopezjavier.appfitness.domain.model.MuscleGroup
+import io.github.lopezjavier.appfitness.domain.model.NutritionDiagnosis
 import io.github.lopezjavier.appfitness.domain.model.ProposalStatus
 import io.github.lopezjavier.appfitness.domain.model.StallDiagnosis
 import io.github.lopezjavier.appfitness.domain.model.WeekSummary
@@ -54,7 +55,9 @@ internal fun weekNutrition(
     targetProteinG: Int? = if (gateOk) 150 else null,
     proteinGPerKg: Double? = if (gateOk) 1.8 else null,
     decisions: List<WeekSummaryDecision> = emptyList(),
+    diagnosis: NutritionDiagnosis? = null,
 ) = WeekSummaryNutrition(
+    diagnosis = diagnosis,
     completeDays = completeDays,
     gateOk = gateOk,
     avgKcal = avgKcal,

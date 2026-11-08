@@ -1,6 +1,18 @@
 package io.github.lopezjavier.appfitness.feature.trainer
 
 import io.github.lopezjavier.appfitness.composeapp.resources.Res
+import io.github.lopezjavier.appfitness.composeapp.resources.week_summary_diagnosis_calories_above_cause
+import io.github.lopezjavier.appfitness.composeapp.resources.week_summary_diagnosis_calories_action
+import io.github.lopezjavier.appfitness.composeapp.resources.week_summary_diagnosis_calories_below_cause
+import io.github.lopezjavier.appfitness.composeapp.resources.week_summary_diagnosis_food_action
+import io.github.lopezjavier.appfitness.composeapp.resources.week_summary_diagnosis_food_cause
+import io.github.lopezjavier.appfitness.composeapp.resources.week_summary_diagnosis_keep_plan_action
+import io.github.lopezjavier.appfitness.composeapp.resources.week_summary_diagnosis_plateau_cause
+import io.github.lopezjavier.appfitness.composeapp.resources.week_summary_diagnosis_proposal_action
+import io.github.lopezjavier.appfitness.composeapp.resources.week_summary_diagnosis_weekend_action
+import io.github.lopezjavier.appfitness.composeapp.resources.week_summary_diagnosis_weekend_note
+import io.github.lopezjavier.appfitness.composeapp.resources.week_summary_diagnosis_weigh_in_action
+import io.github.lopezjavier.appfitness.composeapp.resources.week_summary_diagnosis_weigh_in_cause
 import io.github.lopezjavier.appfitness.composeapp.resources.week_summary_stall_maintain_action
 import io.github.lopezjavier.appfitness.composeapp.resources.week_summary_stall_maintain_cause
 import io.github.lopezjavier.appfitness.composeapp.resources.week_summary_stall_none_action
@@ -17,13 +29,112 @@ import io.github.lopezjavier.appfitness.composeapp.resources.week_summary_stall_
 import io.github.lopezjavier.appfitness.domain.model.CoachChangeKind
 import io.github.lopezjavier.appfitness.domain.model.GroupSets
 import io.github.lopezjavier.appfitness.domain.model.MuscleGroup
+import io.github.lopezjavier.appfitness.domain.model.NutritionDiagnosis
 import io.github.lopezjavier.appfitness.domain.model.StallCause
+import kotlinx.datetime.LocalDate
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
+import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 class WeekSummaryTextTest {
+    private val weekStart = LocalDate(2027, 1, 4)
+
+    @Test
+    fun diagnosisLine_loggingFood_carriesTheCountAndTheWeekDate() {
+        val line = WeekSummaryText.diagnosisLine(NutritionDiagnosis.LoggingFood(3, weekStart), hasProposal = true)
+
+        assertEquals(Res.string.week_summary_diagnosis_food_cause, line.cause)
+        assertEquals(listOf("3", "4 ene"), line.causeArgs)
+        assertEquals(Res.string.week_summary_diagnosis_food_action, line.action)
+        assertNull(line.note)
+    }
+
+    @Test
+    fun diagnosisLine_loggingWeighIn_carriesTheCountAndTheWeekDate() {
+        val line = WeekSummaryText.diagnosisLine(NutritionDiagnosis.LoggingWeighIn(2, weekStart), hasProposal = false)
+
+        assertEquals(Res.string.week_summary_diagnosis_weigh_in_cause, line.cause)
+        assertEquals(listOf("2", "4 ene"), line.causeArgs)
+        assertEquals(Res.string.week_summary_diagnosis_weigh_in_action, line.action)
+    }
+
+    @Test
+    fun diagnosisLine_caloriesAbove_usesTheGroupedFiguresAndTheGoalAction() {
+        val line = WeekSummaryText.diagnosisLine(
+            NutritionDiagnosis.Calories(2350, 2000, 350, above = true, weekend = false),
+            hasProposal = true,
+        )
+
+        assertEquals(Res.string.week_summary_diagnosis_calories_above_cause, line.cause)
+        assertEquals(listOf("2.350", "350"), line.causeArgs)
+        assertEquals(Res.string.week_summary_diagnosis_calories_action, line.action)
+        assertEquals(listOf("2.000"), line.actionArgs)
+        assertNull(line.note)
+    }
+
+    @Test
+    fun diagnosisLine_caloriesBelow_usesTheLessThanWording() {
+        val line = WeekSummaryText.diagnosisLine(
+            NutritionDiagnosis.Calories(1700, 2000, 300, above = false, weekend = false),
+            hasProposal = false,
+        )
+
+        assertEquals(Res.string.week_summary_diagnosis_calories_below_cause, line.cause)
+        assertEquals(listOf("1.700", "300"), line.causeArgs)
+    }
+
+    @Test
+    fun diagnosisLine_caloriesWeekend_addsTheNoteAndTheWeekendAction() {
+        val line = WeekSummaryText.diagnosisLine(
+            NutritionDiagnosis.Calories(2350, 2000, 350, above = true, weekend = true),
+            hasProposal = false,
+        )
+
+        assertEquals(Res.string.week_summary_diagnosis_weekend_note, line.note)
+        assertEquals(Res.string.week_summary_diagnosis_weekend_action, line.action)
+        assertTrue(line.actionArgs.isEmpty())
+    }
+
+    @Test
+    fun diagnosisLine_plateau_showsTheTrendAndRangeWithTwoDecimals() {
+        val line = WeekSummaryText.diagnosisLine(NutritionDiagnosis.Plateau(-0.02, -0.12, 0.09), hasProposal = false)
+
+        assertEquals(Res.string.week_summary_diagnosis_plateau_cause, line.cause)
+        assertEquals(listOf("−0,02", "−0,12", "0,09"), line.causeArgs)
+    }
+
+    @Test
+    fun diagnosisLine_plateauAndNoCause_pointToTheProposalOrKeepThePlan() {
+        val plateau = NutritionDiagnosis.Plateau(0.0, -0.1, 0.1)
+
+        assertEquals(
+            Res.string.week_summary_diagnosis_proposal_action,
+            WeekSummaryText.diagnosisLine(plateau, hasProposal = true).action,
+        )
+        assertEquals(
+            Res.string.week_summary_diagnosis_keep_plan_action,
+            WeekSummaryText.diagnosisLine(plateau, hasProposal = false).action,
+        )
+        assertEquals(
+            Res.string.week_summary_diagnosis_proposal_action,
+            WeekSummaryText.diagnosisLine(NutritionDiagnosis.NoCause, hasProposal = true).action,
+        )
+        assertEquals(
+            Res.string.week_summary_diagnosis_keep_plan_action,
+            WeekSummaryText.diagnosisLine(NutritionDiagnosis.NoCause, hasProposal = false).action,
+        )
+    }
+
+    @Test
+    fun diagnosisLine_noCause_reusesTheStallNoCauseSentence() {
+        val line = WeekSummaryText.diagnosisLine(NutritionDiagnosis.NoCause, hasProposal = false)
+
+        assertEquals(Res.string.week_summary_stall_none_cause, line.cause)
+        assertTrue(line.causeArgs.isEmpty())
+    }
+
     @Test
     fun sets_showWholeNumbersAndHalvesWithDecimalComma() {
         assertEquals("10", WeekSummaryText.sets(10.0))
