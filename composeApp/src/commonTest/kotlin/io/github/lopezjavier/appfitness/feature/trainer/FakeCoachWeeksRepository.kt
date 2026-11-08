@@ -1,5 +1,6 @@
 package io.github.lopezjavier.appfitness.feature.trainer
 
+import io.github.lopezjavier.appfitness.domain.model.BlockPause
 import io.github.lopezjavier.appfitness.domain.model.CoachChange
 import io.github.lopezjavier.appfitness.domain.model.CoachChangeFigures
 import io.github.lopezjavier.appfitness.domain.model.CoachChangeKind
@@ -75,6 +76,9 @@ internal class FakeCoachWeeksRepository : CoachWeeksRepository {
     /** Run when the rule is evaluated: mimics the server writing the deload row. */
     var onEvaluate: () -> Unit = {}
 
+    var pauseResult: Result<BlockPause> = Result.success(BlockPause(paused = false, pausedWeeks = 0, blockEnd = null))
+
+    val pauseReads = mutableListOf<Pair<String, LocalDate>>()
     val weeksReads = mutableListOf<Pair<String, LocalDate>>()
     var evaluations = 0
     var requests = 0
@@ -83,6 +87,11 @@ internal class FakeCoachWeeksRepository : CoachWeeksRepository {
     override suspend fun weeks(planId: String, today: LocalDate): Result<List<PlanWeek>> {
         weeksReads += planId to today
         return weeksResult
+    }
+
+    override suspend fun blockPause(planId: String, today: LocalDate): Result<BlockPause> {
+        pauseReads += planId to today
+        return pauseResult
     }
 
     override suspend fun evaluateDeload(today: LocalDate): Result<CoachChange?> {

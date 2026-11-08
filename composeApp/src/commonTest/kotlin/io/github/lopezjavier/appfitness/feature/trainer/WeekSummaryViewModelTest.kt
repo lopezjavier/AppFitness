@@ -9,12 +9,15 @@ import io.github.lopezjavier.appfitness.domain.AppException
 import io.github.lopezjavier.appfitness.domain.model.ReminderKind
 import io.github.lopezjavier.appfitness.domain.model.StallCause
 import io.github.lopezjavier.appfitness.domain.model.StallDiagnosis
+import io.github.lopezjavier.appfitness.domain.model.WeekSummary
+import io.github.lopezjavier.appfitness.domain.port.Clock
 import io.github.lopezjavier.appfitness.domain.usecase.ExerciseNameResolver
 import io.github.lopezjavier.appfitness.domain.usecase.MarkWeekSummarySeen
 import io.github.lopezjavier.appfitness.feature.exercises.FakeExerciseLibrary
 import io.github.lopezjavier.appfitness.feature.exercises.FakeExerciseRepository
 import io.github.lopezjavier.appfitness.feature.exercises.exerciseInfo
 import io.github.lopezjavier.appfitness.feature.exercises.exerciseRow
+import io.github.lopezjavier.appfitness.feature.workout.MutableClock
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.StandardTestDispatcher
@@ -24,16 +27,20 @@ import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
 import kotlinx.datetime.LocalDate
+import kotlinx.datetime.TimeZone
 import kotlin.test.AfterTest
 import kotlin.test.BeforeTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertIs
+import kotlin.test.assertNull
 import kotlin.test.assertTrue
+import kotlin.time.Instant
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class WeekSummaryViewModelTest {
     private val dispatcher = StandardTestDispatcher()
+    private val plusTwo = TimeZone.of("+02:00")
     private val env = ReminderEnv(LocalDate(2026, 11, 10))
     private val summaries: FakeCoachSummaryRepository get() = env.summaries
     private val exercises = FakeExerciseRepository(listOf(exerciseRow("id-bench", "bench")))
@@ -48,14 +55,66 @@ class WeekSummaryViewModelTest {
     private fun TestScope.viewModel(
         saved: SavedStateHandle = SavedStateHandle(),
         coordinator: ReminderCoordinator = ReminderCoordinator(env.load, backgroundScope),
+        timeZone: TimeZone = TimeZone.UTC,
+        clock: Clock = env.clock,
     ) = WeekSummaryViewModel(
         summaries = summaries,
         markSeen = MarkWeekSummarySeen(summaries),
         reminders = coordinator,
         names = ExerciseNameResolver(exercises, library),
-        clock = env.clock,
+        clock = clock,
         savedState = saved,
+        timeZone = timeZone,
     )
+
+    private fun pausedSummary() =
+        WeekSummary.pausedWeek("plan-1", LocalDate(2026, 11, 3), LocalDate(2026, 11, 9)).copy(seen = false)
+
+    @Test
+    fun pausedSummary_isContentAndNeverMarkedSeen() = runTest(dispatcher) {
+        summaries.latest = Result.success(pausedSummary())
+        val model = viewModel()
+
+        advanceUntilIdle()
+
+        val content = assertIs<WeekSummaryUiState.Content>(model.uiState.value)
+        assertTrue(content.summary.paused)
+        assertTrue(summaries.seen.isEmpty())
+    }
+
+    @Test
+    fun pausedSummary_survivesARecreatedModelOverTheSameHandle() = runTest(dispatcher) {
+        summaries.latest = Result.success(pausedSummary())
+        val saved = SavedStateHandle()
+        viewModel(saved)
+        advanceUntilIdle()
+
+        val recreated = viewModel(saved)
+        advanceUntilIdle()
+
+        assertTrue(assertIs<WeekSummaryUiState.Content>(recreated.uiState.value).summary.paused)
+        assertTrue(summaries.seen.isEmpty())
+        assertNull(saved.get<String>("week_summary_marked"))
+    }
+
+    // 22:30 UTC on 9 Nov is already 10 Nov at +02:00.
+    private val boundary = MutableClock(Instant.parse("2026-11-09T22:30:00Z"))
+
+    @Test
+    fun today_isTheLocalDayNotTheUtcDay() = runTest(dispatcher) {
+        viewModel(timeZone = plusTwo, clock = boundary)
+        advanceUntilIdle()
+
+        assertEquals(listOf(LocalDate(2026, 11, 10)), summaries.reads)
+    }
+
+    @Test
+    fun today_followsTheInjectedZone() = runTest(dispatcher) {
+        viewModel(timeZone = TimeZone.UTC, clock = boundary)
+        advanceUntilIdle()
+
+        assertEquals(listOf(LocalDate(2026, 11, 9)), summaries.reads)
+    }
 
     @Test
     fun load_showsTheLatestSummaryWithTheResolvedNames() = runTest(dispatcher) {

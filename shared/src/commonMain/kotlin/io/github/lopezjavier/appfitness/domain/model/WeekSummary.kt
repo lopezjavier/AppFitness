@@ -41,9 +41,36 @@ data class WeekSummary(
     val calorieProposal: WeekSummaryProposal?,
     val deload: Boolean,
     val stalls: List<StallDiagnosis> = emptyList(),
+    /**
+     * The week that just ended had no completed workout (US-106): only [planId], [startDate] and [endDate] are
+     * meaningful, [week] is 0 and every other field is empty.
+     */
+    val paused: Boolean = false,
 ) {
-    /** The unseen-notice view of this summary, or null when it was already opened. */
-    fun toNotice(): WeekSummaryNotice? = if (seen) null else WeekSummaryNotice(planId, week, endDate)
+    /** The unseen-notice view of this summary, or null when it was already opened or the week is paused. */
+    fun toNotice(): WeekSummaryNotice? = if (seen || paused) null else WeekSummaryNotice(planId, week, endDate)
+
+    companion object {
+        /** The summary of a paused week: it is never marked seen and never a notice. */
+        fun pausedWeek(planId: String, startDate: LocalDate, endDate: LocalDate) = WeekSummary(
+            planId = planId,
+            week = 0,
+            startDate = startDate,
+            endDate = endDate,
+            seen = true,
+            sessionsDone = 0,
+            sessionsPlanned = 0,
+            groups = emptyList(),
+            weight = null,
+            completeDays = 0,
+            weighInDays = 0,
+            missingRecords = false,
+            changes = emptyList(),
+            calorieProposal = null,
+            deload = false,
+            paused = true,
+        )
+    }
 }
 
 /** What the notification center needs of an unseen summary. */

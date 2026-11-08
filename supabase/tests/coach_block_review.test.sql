@@ -65,6 +65,11 @@ begin
       values (v_plan, pg_temp.u(u), w, 1, 'Sesion',
               jsonb_build_array(jsonb_build_object('exercise_id', pg_temp.sq(), 'role', 'main', 'sets', 3)), v_r);
     end loop;
+    -- T-242: plan weeks are the windows with a workout. The user trained in every window of the block so far
+    -- (routine-less workouts), so the calendar numbering of the fixtures holds.
+    insert into public.workout_sessions (user_id, name, status, started_at, ended_at)
+    select pg_temp.u(u), 'Filler', 'completed', pg_temp.at(p_start + 7 * k + 1), pg_temp.at(p_start + 7 * k + 1, 11)
+    from generate_series(0, greatest((pg_temp.d0() - p_start) / 7, 0) - 1) k;
   end if;
   return v_plan;
 end $$;
@@ -379,7 +384,7 @@ select is(pg_temp.snap(17), (select s from s17), 'a reached weight outcome in we
 -- ---------------------------------------------------------------------------
 select pg_temp.as_user(18);
 select is(public.evaluate_coach_calorie_change(pg_temp.d0())->>'reason', 'block_ended', 'no calorie proposal after the last day');
-select is(public.apply_coach_progression((select id from public.workout_sessions where user_id = pg_temp.u(18))), '[]'::jsonb,
+select is(public.apply_coach_progression((select id from public.workout_sessions where user_id = pg_temp.u(18) and name = 'F')), '[]'::jsonb,
   'a session after the last day writes no progression');
 select is((select count(*)::int from public.coach_changes where user_id = pg_temp.u(18)), 0, 'and creates no change row');
 select is(public.evaluate_coach_deload(pg_temp.d0())->>'status', 'none', 'no deload is applied after the last day');
@@ -390,7 +395,7 @@ select is((select target_kcal from public.nutrition_goals where user_id = pg_tem
 
 select pg_temp.as_user(19);
 select isnt(public.evaluate_coach_calorie_change(pg_temp.d0())->>'reason', 'block_ended', 'inside the block the calorie evaluation is not blocked');
-select is(jsonb_array_length(public.apply_coach_progression((select id from public.workout_sessions where user_id = pg_temp.u(19)))), 1,
+select is(jsonb_array_length(public.apply_coach_progression((select id from public.workout_sessions where user_id = pg_temp.u(19) and name = 'F'))), 1,
   'inside the block a session still writes its change (the no-range flag)');
 select is(public.apply_coach_diet_break(pg_temp.d0())->>'applied', 'true', 'inside the block the diet break still applies');
 

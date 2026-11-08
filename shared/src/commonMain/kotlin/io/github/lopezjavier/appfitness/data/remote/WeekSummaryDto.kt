@@ -73,28 +73,35 @@ internal fun JsonObject.day(key: String): LocalDate? = text(key)?.let {
  */
 internal fun weekSummaryOf(element: JsonElement): WeekSummary? {
     val obj = element.obj() ?: JsonObject(emptyMap()) // Without identity keys it yields null below.
-    val key = obj.text("plan_id")?.let { id -> obj.int("week")?.let { id to it } }
+    val planId = obj.text("plan_id")
     val start = obj.day("start_date")
     val end = obj.day("end_date")
-    if (key == null || start == null || end == null) return null
-    return WeekSummary(
-        planId = key.first,
-        week = key.second,
-        startDate = start,
-        endDate = end,
-        seen = obj.truth("seen"),
-        sessionsDone = obj.count("sessions_done"),
-        sessionsPlanned = obj.count("sessions_planned"),
-        groups = groupsOf(obj["groups"]),
-        weight = weightOf(obj["weight"].obj()),
-        completeDays = obj.count("complete_days"),
-        weighInDays = obj.count("weigh_in_days"),
-        missingRecords = obj.truth("missing_records"),
-        changes = coachChangesOf(obj["changes"] ?: JsonNull),
-        calorieProposal = proposalOf(obj["calorie_proposal"].obj()),
-        deload = obj.truth("deload"),
-        stalls = stallsOf(obj["stalls"]),
-    )
+    if (planId == null || start == null || end == null) return null
+    // A paused week (`{plan_id, paused:true, start_date, end_date}`) carries no week number or figures.
+    return if (obj.truth("paused")) {
+        WeekSummary.pausedWeek(planId, start, end)
+    } else {
+        obj.int("week")?.let { week ->
+            WeekSummary(
+                planId = planId,
+                week = week,
+                startDate = start,
+                endDate = end,
+                seen = obj.truth("seen"),
+                sessionsDone = obj.count("sessions_done"),
+                sessionsPlanned = obj.count("sessions_planned"),
+                groups = groupsOf(obj["groups"]),
+                weight = weightOf(obj["weight"].obj()),
+                completeDays = obj.count("complete_days"),
+                weighInDays = obj.count("weigh_in_days"),
+                missingRecords = obj.truth("missing_records"),
+                changes = coachChangesOf(obj["changes"] ?: JsonNull),
+                calorieProposal = proposalOf(obj["calorie_proposal"].obj()),
+                deload = obj.truth("deload"),
+                stalls = stallsOf(obj["stalls"]),
+            )
+        }
+    }
 }
 
 private fun muscleGroupOf(code: String?): MuscleGroup? = code?.let {

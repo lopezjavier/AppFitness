@@ -459,6 +459,8 @@ class TrainerViewModel(
         val savedPlanId = (plan as? PlanSummary.Accepted)?.plan?.id?.takeIf { block is BlockSummary.Saved }
         savedPlanId?.let { coachWeeks?.evaluateDeload(today()) }
         val planWeeks = savedPlanId?.let { coachWeeks?.weeks(it, today())?.getOrNull() }.orEmpty()
+        // The pause and the moved end date; a failed read hides them without hiding the weeks.
+        val pause = savedPlanId?.let { coachWeeks?.blockPause(it, today())?.getOrNull() }
         // The coach changes of the open plan; a failed read hides the section like its siblings.
         val changeRows = plan.id()?.let { readCoachChanges(it) }.orEmpty()
         // A restored confirmation only makes sense while the block is still saved.
@@ -469,6 +471,7 @@ class TrainerViewModel(
             calorieProposal = proposal,
             block = block,
             weeks = planWeeks,
+            pause = pause,
             coachChanges = changeRows,
             provisionalCount = provisional,
             // One more read; a failed one just hides the "Resumen semanal" row.

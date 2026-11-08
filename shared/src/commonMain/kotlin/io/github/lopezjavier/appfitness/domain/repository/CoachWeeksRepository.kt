@@ -1,5 +1,6 @@
 package io.github.lopezjavier.appfitness.domain.repository
 
+import io.github.lopezjavier.appfitness.domain.model.BlockPause
 import io.github.lopezjavier.appfitness.domain.model.CoachChange
 import io.github.lopezjavier.appfitness.domain.model.PlanWeek
 import kotlinx.datetime.LocalDate
@@ -10,6 +11,9 @@ import kotlinx.datetime.LocalDate
  */
 interface CoachWeeksRepository {
     suspend fun weeks(planId: String, today: LocalDate): Result<List<PlanWeek>>
+
+    /** Whether the block is paused by an empty week and where its (moved) last day falls (US-106). */
+    suspend fun blockPause(planId: String, today: LocalDate): Result<BlockPause>
 
     /** Evaluates the rule (idempotent): the deload it applied (or applied before) in plan week 4, or null. */
     suspend fun evaluateDeload(today: LocalDate): Result<CoachChange?>

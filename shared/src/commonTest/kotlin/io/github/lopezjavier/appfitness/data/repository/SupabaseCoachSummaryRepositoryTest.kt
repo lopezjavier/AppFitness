@@ -234,6 +234,38 @@ class SupabaseCoachSummaryRepositoryTest {
     }
 
     @Test
+    fun getLatest_pausedShapeIsAPausedSummaryWithOnlyTheDates() = runTest {
+        body = """{"plan_id":"p1","paused":true,"start_date":"2027-01-04","end_date":"2027-01-10"}"""
+
+        val summary = assertNotNull(repo().getLatest(today).getOrThrow())
+
+        assertTrue(summary.paused)
+        assertEquals("p1", summary.planId)
+        assertEquals(LocalDate(2027, 1, 4), summary.startDate)
+        assertEquals(LocalDate(2027, 1, 10), summary.endDate)
+        assertEquals(0, summary.sessionsDone)
+        assertTrue(summary.groups.isEmpty())
+        assertNull(summary.weight)
+        assertNull(summary.toNotice())
+    }
+
+    @Test
+    fun getLatest_pausedWithoutDatesIsNoSummary() = runTest {
+        body = """{"plan_id":"p1","paused":true}"""
+
+        assertNull(repo().getLatest(today).getOrThrow())
+    }
+
+    @Test
+    fun getLatest_explicitNotPausedAndMissingPausedKeyAreNormalSummaries() = runTest {
+        body = FULL_SUMMARY.replace("\"seen\":false", "\"seen\":false,\"paused\":false")
+        assertFalse(assertNotNull(repo().getLatest(today).getOrThrow()).paused)
+
+        body = FULL_SUMMARY
+        assertFalse(assertNotNull(repo().getLatest(today).getOrThrow()).paused)
+    }
+
+    @Test
     fun getLatest_withoutIdentityKeysIsNoSummary() = runTest {
         body = """{"week":2,"seen":false}"""
 

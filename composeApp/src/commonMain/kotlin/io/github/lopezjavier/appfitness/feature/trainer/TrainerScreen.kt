@@ -331,6 +331,7 @@ private fun TrainerContent(
                 online = online,
                 onRequest = { onEvent(TrainerEvent.RequestDeload) },
             ),
+            state.pause,
         )
         if (state.hasWeekSummary) {
             NavigationRow(

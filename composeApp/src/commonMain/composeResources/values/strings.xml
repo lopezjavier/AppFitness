@@ -1857,6 +1857,8 @@
     <string name="coach_deload_request_error">No se pudo pedir la descarga. Inténtalo de nuevo.</string>
     <string name="coach_deload_request_not_available">Ya hay una descarga en este bloque.</string>
     <string name="trainer_weeks_header">Semanas del bloque</string>
+    <string name="block_week_paused">Semana en pausa</string>
+    <string name="trainer_block_end">El bloque termina el %1$s</string>
     <string name="trainer_week_title">Semana %1$d</string>
     <string name="trainer_week_chip_current">Actual</string>
     <string name="trainer_week_chip_deload">Descarga</string>

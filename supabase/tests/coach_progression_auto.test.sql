@@ -118,6 +118,11 @@ insert into public.coach_plan_sessions (plan_id, user_id, week, session_index, n
   ('c2730000-0000-4000-8000-000000000001', pg_temp.u(1), 2, 1, 'Sesion 1', '[]', pg_temp.r(1), true),
   ('c2730000-0000-4000-8000-000000000001', pg_temp.u(1), 3, 1, 'Sesion 1', '[]', pg_temp.r(1), false),
   ('c2730000-0000-4000-8000-000000000001', pg_temp.u(1), 4, 1, 'Sesion 1', '[]', pg_temp.r(1), false);
+-- T-242: plan weeks are the windows with a workout; routine-less workouts in windows 0 and 1 keep the days 14 to 8 ago
+-- as week 2 (the deload week).
+insert into public.workout_sessions (user_id, name, status, started_at, ended_at)
+select pg_temp.u(1), 'Filler', 'completed', now() - make_interval(days => d), now() - make_interval(days => d) + interval '1 hour'
+from unnest(array[15, 9]) d;
 
 grant execute on all functions in schema pg_temp to authenticated;
 set local role authenticated;

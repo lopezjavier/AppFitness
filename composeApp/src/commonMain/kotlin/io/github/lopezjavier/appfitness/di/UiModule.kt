@@ -448,6 +448,7 @@ val uiModule =
                 names = get(),
                 clock = get(),
                 savedState = get(),
+                timeZone = TimeZone.currentSystemDefault(),
             )
         }
         viewModel { CoachUsageViewModel(repository = get(), clock = get(), modelPreference = get()) }

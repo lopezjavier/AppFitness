@@ -1,5 +1,6 @@
 package io.github.lopezjavier.appfitness.feature.trainer
 
+import io.github.lopezjavier.appfitness.domain.model.BlockPause
 import io.github.lopezjavier.appfitness.domain.model.CalorieProposal
 import io.github.lopezjavier.appfitness.domain.model.CoachBlock
 import io.github.lopezjavier.appfitness.domain.model.CoachPlan
@@ -45,6 +46,11 @@ sealed interface TrainerUiState {
         val block: BlockSummary = BlockSummary.None,
         /** Weeks of the saved block with their adherence; empty without a saved block or when the read failed. */
         val weeks: List<PlanWeek> = emptyList(),
+        /**
+         * Pause of the saved block (US-106): [BlockPause.paused] shows "Semana en pausa", [BlockPause.pausedWeeks] > 0
+         * shows the moved end date. Null without a saved block or when the read failed.
+         */
+        val pause: BlockPause? = null,
         /** "Hacer descarga la próxima semana" is in flight. */
         val requestingDeload: Boolean = false,
         val provisionalCount: Int? = null,

@@ -112,6 +112,11 @@ select is(public.coach_plan_weeks((select id from plans where u = 1), pg_temp.to
 select is((select block_start from public.coach_plans where id = (select id from plans where u = 1)), pg_temp.today() - 14,
   'block_start (nutrition phase anchor) is not shifted');
 select pg_temp.as_user(3);
+-- T-242: a window without a workout is a paused week; two routine-less workouts keep windows 0 and 1 as weeks 1 and 2.
+insert into public.workout_sessions (user_id, name, status, started_at, ended_at)
+select pg_temp.u(3), 'Filler', 'completed', (pg_temp.today() - 14 + d)::timestamp at time zone 'utc' + interval '10 hours',
+       (pg_temp.today() - 14 + d)::timestamp at time zone 'utc' + interval '11 hours'
+from unnest(array[1, 8]) d;
 select is(public.coach_plan_weeks((select id from plans where u = 3), pg_temp.today())->0->>'start_date', (pg_temp.today() - 14)::text,
   'a plan whose block was never removed keeps its weeks at block_start');
 select pg_temp.as_user(1);

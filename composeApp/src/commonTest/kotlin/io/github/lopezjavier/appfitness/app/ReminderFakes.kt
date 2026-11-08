@@ -104,7 +104,13 @@ internal class FakeCoachSummaryRepository(var latest: Result<WeekSummary?> = Res
     CoachSummaryRepository {
     val seen = mutableListOf<Pair<String, Int>>()
 
-    override suspend fun getLatest(today: LocalDate): Result<WeekSummary?> = latest
+    /** The `today` of every read, in order. */
+    val reads = mutableListOf<LocalDate>()
+
+    override suspend fun getLatest(today: LocalDate): Result<WeekSummary?> {
+        reads += today
+        return latest
+    }
 
     override suspend fun markSeen(planId: String, week: Int): Result<Unit> {
         seen += planId to week

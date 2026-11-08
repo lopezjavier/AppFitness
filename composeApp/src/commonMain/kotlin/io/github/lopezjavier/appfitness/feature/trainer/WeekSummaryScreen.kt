@@ -20,6 +20,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.github.lopezjavier.appfitness.composeapp.resources.Res
 import io.github.lopezjavier.appfitness.composeapp.resources.action_retry
+import io.github.lopezjavier.appfitness.composeapp.resources.block_week_paused
 import io.github.lopezjavier.appfitness.composeapp.resources.coach_changes_header
 import io.github.lopezjavier.appfitness.composeapp.resources.coach_deload_headline
 import io.github.lopezjavier.appfitness.composeapp.resources.coach_deload_status_cancelled
@@ -101,11 +102,8 @@ fun WeekSummaryScreen(
         title = stringResource(Res.string.week_summary_title),
         modifier = modifier,
         subtitle = summary?.let {
-            stringResource(
-                Res.string.week_summary_subtitle,
-                it.week,
-                AppDateFormat.dayRange(it.startDate, it.endDate),
-            )
+            val range = AppDateFormat.dayRange(it.startDate, it.endDate)
+            if (it.paused) range else stringResource(Res.string.week_summary_subtitle, it.week, range)
         },
         onBack = onBack,
         testTagPrefix = "week_summary",
@@ -152,6 +150,16 @@ private fun SummaryContent(state: WeekSummaryUiState.Content) {
         Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(Spacing.screenMargin),
         verticalArrangement = Arrangement.spacedBy(Spacing.blockGap),
     ) {
+        if (summary.paused) {
+            // A paused week (US-106) has nothing to summarise: only its label.
+            Text(
+                text = stringResource(Res.string.block_week_paused),
+                style = AppTheme.typography.titleMedium,
+                color = AppTheme.colors.textPrimary,
+                modifier = Modifier.testTag("week_summary_paused"),
+            )
+            return@Column
+        }
         SummaryCard("week_summary_section_sessions") {
             SummaryLine(
                 stringResource(Res.string.week_summary_sessions, summary.sessionsDone, summary.sessionsPlanned),
