@@ -33,6 +33,8 @@ data class WeekSummaryNutrition(
     val targetProteinG: Int?,
     val proteinGPerKg: Double?,
     val decisions: List<WeekSummaryDecision>,
+    /** The "why is my weight not moving" cause (US-113/114), or null when the trigger does not hold. */
+    val diagnosis: NutritionDiagnosis? = null,
 )
 
 /**

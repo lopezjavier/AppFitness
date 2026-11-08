@@ -48,6 +48,7 @@ import io.github.lopezjavier.appfitness.designsystem.SkeletonBox
 import io.github.lopezjavier.appfitness.designsystem.Spacing
 import io.github.lopezjavier.appfitness.domain.model.CoachChangeStatus
 import io.github.lopezjavier.appfitness.domain.model.GroupSets
+import io.github.lopezjavier.appfitness.domain.model.ProposalStatus
 import io.github.lopezjavier.appfitness.domain.port.ConnectivityObserver
 import io.github.lopezjavier.appfitness.feature.exercises.label
 import kotlinx.coroutines.flow.Flow
@@ -153,6 +154,17 @@ private fun SummaryContent(state: WeekSummaryUiState.Content) {
         }
         GroupsCard(summary.groups, "week_summary", stringResource(Res.string.week_summary_groups_header))
         NutritionSection(summary)
+        summary.nutrition?.let { nutrition ->
+            nutrition.diagnosis?.let {
+                DiagnosisCard(
+                    it,
+                    hasProposal = nutrition.decisions.any { d ->
+                        d.status ==
+                            ProposalStatus.Pending
+                    },
+                )
+            }
+        }
         ChangesSection(state)
         StallCard(state.summary.stalls, state.exerciseNames)
         if (WeekSummaryText.showsSeparateDeload(summary)) {

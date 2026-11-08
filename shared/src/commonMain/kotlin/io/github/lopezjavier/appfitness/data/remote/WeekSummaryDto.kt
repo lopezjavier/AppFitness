@@ -2,6 +2,7 @@ package io.github.lopezjavier.appfitness.data.remote
 
 import io.github.lopezjavier.appfitness.domain.model.GroupSets
 import io.github.lopezjavier.appfitness.domain.model.MuscleGroup
+import io.github.lopezjavier.appfitness.domain.model.NutritionDiagnosis
 import io.github.lopezjavier.appfitness.domain.model.ProposalStatus
 import io.github.lopezjavier.appfitness.domain.model.WeekSummary
 import io.github.lopezjavier.appfitness.domain.model.WeekSummaryDecision
@@ -55,6 +56,45 @@ private fun decisionOf(obj: JsonObject?): WeekSummaryDecision? {
 private fun decisionsOf(element: JsonElement?): List<WeekSummaryDecision> =
     ((element as? JsonArray) ?: emptyList<JsonElement>()).mapNotNull { decisionOf(it.obj()) }
 
+/** An unknown kind or a missing figure yields null (no card), never a guess. */
+internal fun diagnosisOf(obj: JsonObject?): NutritionDiagnosis? = if (obj == null) null else diagnosisOfKind(obj)
+
+private fun diagnosisOfKind(obj: JsonObject): NutritionDiagnosis? = when (obj.text("kind")) {
+    "logging_food" -> obj.int("n")?.let { n -> obj.day("week_start")?.let { NutritionDiagnosis.LoggingFood(n, it) } }
+
+    "logging_weigh_in" ->
+        obj.int("n")?.let { n -> obj.day("week_start")?.let { NutritionDiagnosis.LoggingWeighIn(n, it) } }
+
+    "calories" -> caloriesOf(obj)
+
+    "plateau" -> {
+        val slope = obj.number("slope")
+        val low = obj.number("low")
+        val high = obj.number("high")
+        if (slope == null || low == null || high == null) null else NutritionDiagnosis.Plateau(slope, low, high)
+    }
+
+    "none" -> NutritionDiagnosis.NoCause
+
+    else -> null
+}
+
+private fun caloriesOf(obj: JsonObject): NutritionDiagnosis.Calories? {
+    val avg = obj.number("avg_kcal")?.roundToInt()
+    val goal = obj.number("goal_kcal")?.roundToInt()
+    val diff = obj.number("diff_kcal")?.roundToInt()
+    val above = when (obj.text("direction")) {
+        "above" -> true
+        "below" -> false
+        else -> null
+    }
+    return if (avg == null || goal == null || diff == null) {
+        null
+    } else {
+        above?.let { NutritionDiagnosis.Calories(avg, goal, diff, it, weekend = obj.truth("weekend")) }
+    }
+}
+
 /** A missing key (a summary from before the migration) yields null; missing figures are null. */
 internal fun nutritionOf(obj: JsonObject?): WeekSummaryNutrition? = obj?.let {
     WeekSummaryNutrition(
@@ -66,6 +106,7 @@ internal fun nutritionOf(obj: JsonObject?): WeekSummaryNutrition? = obj?.let {
         targetProteinG = it.number("target_protein_g")?.roundToInt(),
         proteinGPerKg = it.number("protein_g_per_kg"),
         decisions = decisionsOf(it["decisions"]),
+        diagnosis = diagnosisOf(it["diagnosis"].obj()),
     )
 }
 

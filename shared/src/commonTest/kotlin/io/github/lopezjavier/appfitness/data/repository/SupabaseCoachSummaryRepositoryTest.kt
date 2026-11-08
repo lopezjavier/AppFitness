@@ -7,6 +7,7 @@ import io.github.lopezjavier.appfitness.config.AppConfig
 import io.github.lopezjavier.appfitness.data.remote.SupabaseClientFactory
 import io.github.lopezjavier.appfitness.domain.model.CoachChangeKind
 import io.github.lopezjavier.appfitness.domain.model.MuscleGroup
+import io.github.lopezjavier.appfitness.domain.model.NutritionDiagnosis
 import io.github.lopezjavier.appfitness.domain.model.ProposalStatus
 import io.github.lopezjavier.appfitness.domain.model.StallCause
 import io.github.lopezjavier.appfitness.domain.model.TestLoginCredentials
@@ -292,6 +293,60 @@ class SupabaseCoachSummaryRepositoryTest {
         assertNull(nutrition.targetProteinG)
         assertNull(nutrition.proteinGPerKg)
         assertTrue(nutrition.decisions.isEmpty())
+    }
+
+    private suspend fun diagnosisOf(json: String?): NutritionDiagnosis? {
+        val key = if (json == null) "" else ""","diagnosis":$json"""
+        body = withNutrition("""{"complete_days":5,"gate_ok":true$key}""")
+        return assertNotNull(assertNotNull(repo().getLatest(today).getOrThrow()).nutrition).diagnosis
+    }
+
+    @Test
+    fun getLatest_mapsEveryDiagnosisKind() = runTest {
+        val start = LocalDate(2027, 1, 4)
+
+        assertEquals(
+            NutritionDiagnosis.LoggingFood(3, start),
+            diagnosisOf("""{"kind":"logging_food","n":3,"week_start":"2027-01-04"}"""),
+        )
+        assertEquals(
+            NutritionDiagnosis.LoggingWeighIn(2, start),
+            diagnosisOf("""{"kind":"logging_weigh_in","n":2,"week_start":"2027-01-04"}"""),
+        )
+        assertEquals(
+            NutritionDiagnosis.Calories(2350, 2000, 350, above = true, weekend = true),
+            diagnosisOf(
+                """{"kind":"calories","avg_kcal":2350,"goal_kcal":2000,"diff_kcal":350,""" +
+                    """"direction":"above","weekend":true}""",
+            ),
+        )
+        assertEquals(
+            NutritionDiagnosis.Calories(1700, 2000, 300, above = false, weekend = false),
+            diagnosisOf(
+                """{"kind":"calories","avg_kcal":1700,"goal_kcal":2000,"diff_kcal":300,"direction":"below"}""",
+            ),
+        )
+        assertEquals(
+            NutritionDiagnosis.Plateau(-0.02, -0.12, 0.09),
+            diagnosisOf("""{"kind":"plateau","slope":-0.02,"low":-0.12,"high":0.09}"""),
+        )
+        assertEquals(NutritionDiagnosis.NoCause, diagnosisOf("""{"kind":"none"}"""))
+    }
+
+    @Test
+    fun getLatest_diagnosisAbsentNullUnknownOrMalformedIsNull() = runTest {
+        assertNull(diagnosisOf(null))
+        assertNull(diagnosisOf("null"))
+        assertNull(diagnosisOf("""{"kind":"mystery"}"""))
+        assertNull(diagnosisOf("""{"n":3}"""))
+        assertNull(diagnosisOf(""""none""""))
+        assertNull(diagnosisOf("""{"kind":"logging_food","n":3}"""))
+        assertNull(diagnosisOf("""{"kind":"logging_food","n":3,"week_start":"not-a-date"}"""))
+        assertNull(diagnosisOf("""{"kind":"calories","avg_kcal":2350,"goal_kcal":2000,"diff_kcal":350}"""))
+        assertNull(
+            diagnosisOf("""{"kind":"calories","avg_kcal":2350,"goal_kcal":2000,"diff_kcal":350,"direction":"x"}"""),
+        )
+        assertNull(diagnosisOf("""{"kind":"plateau","slope":-0.02,"low":-0.12}"""))
     }
 
     @Test
