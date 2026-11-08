@@ -70,6 +70,7 @@ import io.github.lopezjavier.appfitness.designsystem.StatusChip
 import io.github.lopezjavier.appfitness.designsystem.StatusTone
 import io.github.lopezjavier.appfitness.domain.model.CalorieProposal
 import io.github.lopezjavier.appfitness.domain.model.CoachPlan
+import io.github.lopezjavier.appfitness.domain.model.PhaseWeeks
 import io.github.lopezjavier.appfitness.domain.usecase.GoalChecklist
 import io.github.lopezjavier.appfitness.feature.weight.signedTenths
 import org.jetbrains.compose.resources.StringResource
@@ -193,6 +194,8 @@ internal fun PlanSection(
     cardioEdit: CardioEdit? = null,
     onEvent: (TrainerEvent) -> Unit = {},
     goalsChecklist: GoalChecklist? = null,
+    canStartNewBlock: Boolean = false,
+    weeksInPhase: PhaseWeeks? = null,
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
         ListSectionHeader(stringResource(Res.string.trainer_plan_section))
@@ -228,7 +231,7 @@ internal fun PlanSection(
             }
 
             is PlanSummary.Accepted -> {
-                ActivePlanCard(plan.plan, onEditCardio = { onEvent(TrainerEvent.OpenCardioEdit) })
+                ActivePlanCard(plan.plan, weeksInPhase, onEditCardio = { onEvent(TrainerEvent.OpenCardioEdit) })
                 if (plan.plan.nutrition.editedByUser && goalsChecklist != null) GoalsChecklistSection(goalsChecklist)
                 cardioEdit?.let {
                     CardioMinutesSheet(
@@ -239,7 +242,11 @@ internal fun PlanSection(
                         onDismiss = { onEvent(TrainerEvent.DismissCardioEdit) },
                     )
                 }
-                ReplacePlanEntry(plan.plan.id, online, onOpenBeforeStart)
+                if (canStartNewBlock) {
+                    NewBlockEntries(online, onEvent)
+                } else {
+                    ReplacePlanEntry(plan.plan.id, online, onOpenBeforeStart)
+                }
             }
         }
     }
@@ -263,7 +270,7 @@ private fun ReplacePlanEntry(
 }
 
 @Composable
-private fun ActivePlanCard(plan: CoachPlan, onEditCardio: () -> Unit) {
+private fun ActivePlanCard(plan: CoachPlan, weeksInPhase: PhaseWeeks?, onEditCardio: () -> Unit) {
     val nutrition = plan.nutrition
     AppCard(Modifier.fillMaxWidth().testTag("trainer_plan_card")) {
         Text(
@@ -281,6 +288,7 @@ private fun ActivePlanCard(plan: CoachPlan, onEditCardio: () -> Unit) {
             color = AppTheme.colors.textPrimary,
         )
         PhaseLine(plan)
+        weeksInPhase?.let { WeeksInPhaseLine(it) }
         nutrition.activity?.let { activity ->
             Box(
                 Modifier.fillMaxWidth()

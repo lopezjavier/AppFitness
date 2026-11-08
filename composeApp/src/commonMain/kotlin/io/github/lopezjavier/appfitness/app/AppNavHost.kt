@@ -792,6 +792,9 @@ internal fun AppNavHost(
             onOpenRoutineRange = { routineId, exerciseId ->
                 navController.navigateToFullScreen(RoutineBuilderRoute(routineId, exerciseId))
             },
+            onOpenMyTraining = {
+                navController.navigateToFullScreen(PreferencesSectionRoute(PreferencesSection.MyTraining.key))
+            },
         )
     }
     val openYourData = remember(navController) { { navController.navigateToFullScreen(YourDataRoute) } }
@@ -1441,7 +1444,9 @@ internal fun NavController.openCreated(entry: NavBackStackEntry, created: Before
     if (currentBackStackEntry?.id != entry.id) return
     val route: AppRoute = when (created.mode) {
         BeforeStartMode.Plan -> PlanProposalRoute(created.replacingPlanId)
-        BeforeStartMode.Block -> BlockBuilderRoute(created.planId.orEmpty(), created.replacingPlanId)
+
+        BeforeStartMode.Block, BeforeStartMode.NewBlock ->
+            BlockBuilderRoute(created.planId.orEmpty(), created.replacingPlanId)
     }
     val fromProposal = previousBackStackEntry?.destination?.hasRoute(PlanProposalRoute::class) == true
     navigate(route) {

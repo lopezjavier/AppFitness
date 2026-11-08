@@ -99,6 +99,7 @@ data class TrainerActions(
     val onOpenBlockReview: () -> Unit = {},
     val onOpenExercise: (exerciseId: String) -> Unit = {},
     val onOpenRoutineRange: (routineId: String, exerciseId: String) -> Unit = { _, _ -> },
+    val onOpenMyTraining: () -> Unit = {},
 )
 
 /** Stateful Trainer tab root: connects [TrainerViewModel] to [TrainerScreen] and plays its one-off effects. */
@@ -210,6 +211,11 @@ fun TrainerRoute(
                 is TrainerEffect.OpenRoutineRange ->
                     latestActions.onOpenRoutineRange(effect.routineId, effect.exerciseId)
 
+                is TrainerEffect.OpenNewBlock ->
+                    latestActions.onOpenBeforeStart(BeforeStartMode.NewBlock, effect.planId, null)
+
+                TrainerEffect.OpenMyTraining -> latestActions.onOpenMyTraining()
+
                 is TrainerEffect.DeloadCancelFailed -> {
                     latestHaptics.reject()
                     messages.show(if (effect.offline) cancelDeloadOffline else cancelDeloadError)
@@ -304,6 +310,8 @@ private fun TrainerContent(
             state.cardioEdit,
             onEvent,
             state.goalsChecklist,
+            state.canStartNewBlock,
+            state.weeksInPhase,
         )
         BlockSection(
             state.plan,

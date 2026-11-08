@@ -32,6 +32,7 @@ import io.github.lopezjavier.appfitness.domain.usecase.DecideCalorieProposalUseC
 import io.github.lopezjavier.appfitness.domain.usecase.GoalChecklist
 import io.github.lopezjavier.appfitness.domain.usecase.GoalTargets
 import io.github.lopezjavier.appfitness.domain.usecase.LoadBlockReviewUseCase
+import io.github.lopezjavier.appfitness.domain.usecase.LoadWeeksInPhaseUseCase
 import io.github.lopezjavier.appfitness.domain.usecase.NutritionGoalsChecklist
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.channels.Channel
@@ -95,6 +96,7 @@ class TrainerViewModel(
     private val decideProposal: DecideCalorieProposalUseCase? = plans?.let { DecideCalorieProposalUseCase(it) },
     private val summaries: CoachSummaryRepository? = null,
     private val loadBlockReview: LoadBlockReviewUseCase? = null,
+    private val loadWeeksInPhase: LoadWeeksInPhaseUseCase? = null,
 ) : ViewModel() {
     private val cardioEdit = CardioEditState(savedState)
 
@@ -132,7 +134,15 @@ class TrainerViewModel(
             is TrainerEvent.UndoCoachChange -> undoCoachChange(event.id)
             is TrainerEvent.DecideFlag -> decideFlag(event.id, event.decision)
             is TrainerEvent.OpenRange -> openRange(event.id)
+            TrainerEvent.OpenNewBlock -> openNewBlock()
+            TrainerEvent.OpenMyTraining -> viewModelScope.launch { effectChannel.send(TrainerEffect.OpenMyTraining) }
         }
+    }
+
+    private fun openNewBlock() {
+        val content = _uiState.value as? TrainerUiState.Content ?: return
+        val planId = (content.plan as? PlanSummary.Accepted)?.plan?.id?.takeIf { content.canStartNewBlock } ?: return
+        viewModelScope.launch { effectChannel.send(TrainerEffect.OpenNewBlock(planId)) }
     }
 
     /** The row to act on, or null when the tab is not showing content, another change is busy or it is not there. */
@@ -468,6 +478,8 @@ class TrainerViewModel(
             goalsChecklist = goalsChecklistFor(plan),
             cardioEdit = cardioEdit.current((plan as? PlanSummary.Accepted)?.plan?.cardioMinutes()),
             removeBlockConfirm = confirmRemove && block is BlockSummary.Saved,
+            // A failed read hides the line ("Llevas n semanas en esta fase"), never "0 semanas".
+            weeksInPhase = if (plan is PlanSummary.Accepted) loadWeeksInPhase?.invoke(today())?.getOrNull() else null,
         )
     }
 
@@ -496,9 +508,18 @@ class TrainerViewModel(
     private fun gramsOf(kcal: Int, split: MacroSplit, macro: Macronutrient): Int =
         (kcal * split[macro] / PERCENT / macro.kcalPerGram.toDouble()).roundToInt()
 
+    /**
+     * A goal-switch proposal (stored by "Bloque nuevo" until the new block is saved) is never the plan entry: the hub
+     * keeps showing the accepted plan, and no proposal card appears.
+     */
     private suspend fun readPlan(): PlanSummary {
-        val plan = plans?.currentPlan()?.getOrNull() ?: return PlanSummary.None
-        return if (plan.status == PlanStatus.Accepted) PlanSummary.Accepted(plan) else PlanSummary.Proposed(plan)
+        val current = plans?.currentPlan()?.getOrNull() ?: return PlanSummary.None
+        val plan = if (current.fromGoalSwitch) plans?.acceptedPlan()?.getOrNull() else current
+        return when {
+            plan == null -> PlanSummary.None
+            plan.status == PlanStatus.Accepted -> PlanSummary.Accepted(plan)
+            else -> PlanSummary.Proposed(plan)
+        }
     }
 
     @Suppress("ReturnCount") // Guards for a missing card, use case or an in-flight decision.

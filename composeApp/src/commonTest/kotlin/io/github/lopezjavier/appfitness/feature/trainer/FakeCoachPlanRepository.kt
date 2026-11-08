@@ -30,6 +30,7 @@ internal fun coachPlan(
     phase: Phase = Phase.Cut,
     phaseOptions: PhaseOptions = PhaseOptions(),
     phaseReason: PhaseReason = PhaseReason.Intention,
+    fromGoalSwitch: Boolean = false,
 ) = CoachPlan(
     id = id,
     blockStart = LocalDate(2026, 10, 19),
@@ -63,6 +64,7 @@ internal fun coachPlan(
         },
     ),
     acceptedAt = null,
+    fromGoalSwitch = fromGoalSwitch,
 )
 
 /** The activity block of a fresh fat-loss plan: 150 min of cardio, 7 000 steps from the floor. */
