@@ -2,11 +2,9 @@ package io.github.lopezjavier.appfitness.feature.trainer
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.heightIn
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -43,10 +41,9 @@ import io.github.lopezjavier.appfitness.composeapp.resources.trainer_block_remov
 import io.github.lopezjavier.appfitness.composeapp.resources.trainer_block_saved_title
 import io.github.lopezjavier.appfitness.composeapp.resources.trainer_plan_active_line
 import io.github.lopezjavier.appfitness.composeapp.resources.trainer_plan_active_title
-import io.github.lopezjavier.appfitness.composeapp.resources.trainer_plan_activity
-import io.github.lopezjavier.appfitness.composeapp.resources.trainer_plan_cardio_edit_label
 import io.github.lopezjavier.appfitness.composeapp.resources.trainer_plan_create
 import io.github.lopezjavier.appfitness.composeapp.resources.trainer_plan_create_action
+import io.github.lopezjavier.appfitness.composeapp.resources.trainer_plan_diet_break
 import io.github.lopezjavier.appfitness.composeapp.resources.trainer_plan_outcomes
 import io.github.lopezjavier.appfitness.composeapp.resources.trainer_plan_pending_supporting
 import io.github.lopezjavier.appfitness.composeapp.resources.trainer_plan_pending_title
@@ -197,6 +194,7 @@ internal fun PlanSection(
     canStartNewBlock: Boolean = false,
     weeksInPhase: PhaseWeeks? = null,
     reviewDue: Boolean = false,
+    dietBreakSaving: Boolean = false,
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
         ListSectionHeader(stringResource(Res.string.trainer_plan_section))
@@ -232,7 +230,9 @@ internal fun PlanSection(
             }
 
             is PlanSummary.Accepted -> {
-                ActivePlanCard(plan.plan, weeksInPhase, onEditCardio = { onEvent(TrainerEvent.OpenCardioEdit) })
+                ActivePlanCard(plan.plan, weeksInPhase, onEditCardio = { onEvent(TrainerEvent.OpenCardioEdit) }) {
+                    DietBreakToggle(plan.plan, online, dietBreakSaving) { onEvent(TrainerEvent.ToggleDietBreak(it)) }
+                }
                 if (plan.plan.nutrition.editedByUser && goalsChecklist != null) GoalsChecklistSection(goalsChecklist)
                 cardioEdit?.let {
                     CardioMinutesSheet(
@@ -272,7 +272,12 @@ private fun ReplacePlanEntry(
 }
 
 @Composable
-private fun ActivePlanCard(plan: CoachPlan, weeksInPhase: PhaseWeeks?, onEditCardio: () -> Unit) {
+private fun ActivePlanCard(
+    plan: CoachPlan,
+    weeksInPhase: PhaseWeeks?,
+    onEditCardio: () -> Unit,
+    dietBreakRow: @Composable () -> Unit,
+) {
     val nutrition = plan.nutrition
     AppCard(Modifier.fillMaxWidth().testTag("trainer_plan_card")) {
         Text(
@@ -290,31 +295,17 @@ private fun ActivePlanCard(plan: CoachPlan, weeksInPhase: PhaseWeeks?, onEditCar
             color = AppTheme.colors.textPrimary,
         )
         PhaseLine(plan)
-        weeksInPhase?.let { WeeksInPhaseLine(it) }
-        nutrition.activity?.let { activity ->
-            Box(
-                Modifier.fillMaxWidth()
-                    .heightIn(min = Spacing.minTouchTarget)
-                    .testTag("trainer_plan_cardio_row")
-                    .clickable(
-                        onClickLabel = stringResource(Res.string.trainer_plan_cardio_edit_label),
-                        role = Role.Button,
-                        onClick = onEditCardio,
-                    ),
-                contentAlignment = Alignment.CenterStart,
-            ) {
-                Text(
-                    text = stringResource(
-                        Res.string.trainer_plan_activity,
-                        AppNumberFormat.integer(activity.cardioMinWeek),
-                        AppNumberFormat.integer(activity.stepsDay),
-                    ),
-                    style = AppTheme.typography.bodyMedium,
-                    color = AppTheme.colors.textPrimary,
-                    modifier = Modifier.testTag("trainer_plan_activity"),
-                )
-            }
+        nutrition.dietBreak?.let { week ->
+            Text(
+                text = stringResource(Res.string.trainer_plan_diet_break, AppNumberFormat.integer(week.targetKcal)),
+                style = AppTheme.typography.bodyMedium,
+                color = AppTheme.colors.textSecondary,
+                modifier = Modifier.testTag("trainer_plan_diet_break"),
+            )
         }
+        weeksInPhase?.let { WeeksInPhaseLine(it) }
+        dietBreakRow()
+        nutrition.activity?.let { PlanCardioRow(it, onEditCardio) }
         if (plan.outcomes.isNotEmpty()) {
             Text(
                 text = pluralStringResource(Res.plurals.trainer_plan_outcomes, plan.outcomes.size, plan.outcomes.size),

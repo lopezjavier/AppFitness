@@ -33,6 +33,7 @@ import io.github.lopezjavier.appfitness.composeapp.resources.block_targets_sugge
 import io.github.lopezjavier.appfitness.composeapp.resources.block_targets_suggestion_cd
 import io.github.lopezjavier.appfitness.composeapp.resources.block_targets_title
 import io.github.lopezjavier.appfitness.composeapp.resources.block_types_no_fit
+import io.github.lopezjavier.appfitness.composeapp.resources.block_types_no_fit_action
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_close
 import io.github.lopezjavier.appfitness.designsystem.AppIconButton
 import io.github.lopezjavier.appfitness.designsystem.AppNumberFormat
@@ -207,8 +208,11 @@ private fun TargetsFooter(state: BlockBuilderUiState.Targets, onEvent: (BlockBui
     ) {
         state.noFit?.let {
             InlineNote(
-                text = stringResource(Res.string.block_types_no_fit, it.limitMinutes),
+                text = stringResource(Res.string.block_types_no_fit, it.limitMinutes) + "\n" +
+                    stringResource(Res.string.block_types_no_fit_action),
                 modifier = Modifier.testTag("block_builder_targets_no_fit"),
+                onClick = { onEvent(BlockBuilderEvent.OpenMyTraining) },
+                onClickLabel = stringResource(Res.string.block_types_no_fit_action),
             )
         }
         PrimaryButton(

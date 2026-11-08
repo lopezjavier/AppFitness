@@ -16,6 +16,7 @@ import io.github.lopezjavier.appfitness.domain.model.CoachFailure
 import io.github.lopezjavier.appfitness.domain.model.CoachPlan
 import io.github.lopezjavier.appfitness.domain.model.MacroSplit
 import io.github.lopezjavier.appfitness.domain.model.Macronutrient
+import io.github.lopezjavier.appfitness.domain.model.Phase
 import io.github.lopezjavier.appfitness.domain.model.PlanStatus
 import io.github.lopezjavier.appfitness.domain.model.ProgressionFlagDecision
 import io.github.lopezjavier.appfitness.domain.port.Clock
@@ -150,6 +151,7 @@ class TrainerViewModel(
             TrainerEvent.RequestDeload -> requestDeload()
             TrainerEvent.OpenCardioEdit -> openCardioEdit()
             is TrainerEvent.CardioMinutesChanged -> changeCardio(event.minutes)
+            is TrainerEvent.ToggleDietBreak -> toggleDietBreak(event.on)
             TrainerEvent.SaveCardio -> saveCardio()
             TrainerEvent.DismissCardioEdit -> dismissCardioEdit()
             TrainerEvent.RequestRemoveBlock -> requestRemoveBlock()
@@ -371,6 +373,35 @@ class TrainerViewModel(
         }
     }
 
+    /** Live switch of "Tu plan": only an accepted cut the user did not edit; the stored plan value is the truth. */
+    @Suppress("ReturnCount") // Guards: no content, already saving, no repository, not an editable accepted cut.
+    private fun toggleDietBreak(on: Boolean) {
+        val content = _uiState.value as? TrainerUiState.Content ?: return
+        if (content.dietBreakSaving) return
+        val repository = plans ?: return
+        val plan = (content.plan as? PlanSummary.Accepted)?.plan ?: return
+        if (plan.phase != Phase.Cut || plan.nutrition.editedByUser) return
+        _uiState.value = content.copy(dietBreakSaving = true)
+        viewModelScope.launch {
+            val result = repository.setDietBreak(plan.id, today(), on)
+            val updated = result.getOrNull()
+            _uiState.update { state ->
+                when {
+                    state !is TrainerUiState.Content -> state
+                    updated != null -> state.copy(plan = PlanSummary.Accepted(updated), dietBreakSaving = false)
+                    else -> state.copy(dietBreakSaving = false)
+                }
+            }
+            if (updated != null) {
+                // Inside week 4 the Diario target follows the option at once; a failure is swallowed like on open.
+                repository.applyDietBreak(today())
+                effectChannel.send(TrainerEffect.DietBreakSaved)
+            } else {
+                effectChannel.send(TrainerEffect.DietBreakFailed(offline = result.appErrorOrNull() == AppError.Network))
+            }
+        }
+    }
+
     @Suppress("ReturnCount") // Guards for a busy or missing row, repository or a row that is not an applied deload.
     private fun cancelDeload(id: String) {
         val (content, row) = idleRow(id) ?: return
@@ -466,6 +497,7 @@ class TrainerViewModel(
                         busyChangeId = state.busyChangeId,
                         busyFollowUpExerciseId = state.busyFollowUpExerciseId,
                         cardioEdit = state.cardioEdit,
+                        dietBreakSaving = state.dietBreakSaving,
                         removingBlock = state.removingBlock,
                         provisionalCount = fresh.provisionalCount ?: state.provisionalCount,
                     )

@@ -37,10 +37,11 @@ class DayTypeSheetTest {
         intention: TrainingIntention? = TrainingIntention.Muscle,
         noFit: NoFitInfo? = null,
         splitIndex: Int = 0,
+        daysChanged: Boolean = false,
     ): BlockBuilderUiState.Types {
         val split = SplitCatalog.splitsFor(chosen.size)[splitIndex]
         val options = chosen.indices.map { SplitCatalog.dayOptions(split, chosen, it, intention) }
-        return BlockBuilderUiState.Types(split, chosen, options, openDay, noFit)
+        return BlockBuilderUiState.Types(split, chosen, options, openDay, noFit, daysChanged)
     }
 
     private fun show(state: BlockBuilderUiState.Types) {
@@ -147,7 +148,33 @@ class DayTypeSheetTest {
         show(typesState(noFit = NoFitInfo(day = 1, neededMinutes = 95, limitMinutes = 45)))
 
         rule.onNodeWithTag("block_types_continue").assertIsNotEnabled()
-        rule.onNodeWithText("No cabe en 45 min: sube la duración, los días o cambia la división.").assertExists()
+        rule.onNodeWithText("No cabe en 45 min: sube la duración, los días o cambia la división.", substring = true)
+            .assertExists()
+    }
+
+    @Test
+    fun theNoFitNote_isATapToMiEntrenamientoWithAVisibleAction() {
+        show(typesState(noFit = NoFitInfo(day = 1, neededMinutes = 95, limitMinutes = 45)))
+
+        rule.onNodeWithText("Cambiar en Mi entrenamiento", substring = true).assertExists()
+        rule.onNodeWithTag("block_types_no_fit").assertHasClickAction().performClick()
+
+        assertEquals(listOf<BlockBuilderEvent>(BlockBuilderEvent.OpenMyTraining), events)
+    }
+
+    @Test
+    fun afterTheDaysChanged_theScreenSaysToReviewTheTypes() {
+        show(typesState(daysChanged = true))
+
+        rule.onNodeWithTag("block_builder_days_changed_note").assertExists()
+        rule.onNodeWithText("Has cambiado los días: revisa el tipo de cada día.").assertExists()
+    }
+
+    @Test
+    fun withoutAChangeOfDays_thereIsNoReviewNote() {
+        show(typesState())
+
+        rule.onNodeWithTag("block_builder_days_changed_note").assertDoesNotExist()
     }
 
     @Test

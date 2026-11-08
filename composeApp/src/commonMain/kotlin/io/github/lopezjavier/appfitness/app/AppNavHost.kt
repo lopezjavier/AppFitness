@@ -117,7 +117,7 @@ internal typealias FolderReviewResultSlot = @Composable (modifier: Modifier, onB
 /**
  * Content of the block builder ("Desde cero" or the next block): modifier (full-screen insets), plan id, the plan of
  * the finished block (null outside the next block), how to leave after saving, how to leave without saving and how to
- * open an exercise.
+ * open an exercise and how to open "Mi entrenamiento" (R-59).
  */
 internal typealias BlockBuilderSlot =
     @Composable (
@@ -127,6 +127,7 @@ internal typealias BlockBuilderSlot =
         onSaved: () -> Unit,
         onClose: () -> Unit,
         onOpenExercise: (String) -> Unit,
+        onOpenMyTraining: () -> Unit,
     ) -> Unit
 
 internal typealias AboutSlot = @Composable (modifier: Modifier, onBack: () -> Unit) -> Unit
@@ -689,7 +690,7 @@ internal val DefaultFolderReviewResultSlot: FolderReviewResultSlot = { modifier,
 }
 
 /** Empty block builder for previews and shell tests; the real one is wired by `AppRoot`. */
-internal val DefaultBlockBuilderSlot: BlockBuilderSlot = { modifier, _, _, _, _, _ ->
+internal val DefaultBlockBuilderSlot: BlockBuilderSlot = { modifier, _, _, _, _, _, _ ->
     Box(modifier.fillMaxSize().testTag("block_builder_screen"))
 }
 
@@ -991,6 +992,7 @@ internal fun AppNavHost(
                 { navController.popFullScreen(entry) },
                 { navController.popFullScreen(entry) },
                 { navController.navigateToFullScreen(ExerciseDetailRoute(it, selectMode = false)) },
+                openMyTraining,
             )
         }
         composable<AboutRoute> { entry ->

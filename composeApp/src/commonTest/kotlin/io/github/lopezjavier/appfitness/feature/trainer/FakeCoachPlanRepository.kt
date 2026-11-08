@@ -3,6 +3,7 @@ package io.github.lopezjavier.appfitness.feature.trainer
 import io.github.lopezjavier.appfitness.domain.model.CalorieProposal
 import io.github.lopezjavier.appfitness.domain.model.CoachPlan
 import io.github.lopezjavier.appfitness.domain.model.DietBreakApplication
+import io.github.lopezjavier.appfitness.domain.model.DietBreakWeek
 import io.github.lopezjavier.appfitness.domain.model.GoalStrategy
 import io.github.lopezjavier.appfitness.domain.model.OutcomeKind
 import io.github.lopezjavier.appfitness.domain.model.Phase
@@ -31,6 +32,7 @@ internal fun coachPlan(
     phaseOptions: PhaseOptions = PhaseOptions(),
     phaseReason: PhaseReason = PhaseReason.Intention,
     fromGoalSwitch: Boolean = false,
+    dietBreakWeek: DietBreakWeek? = null,
 ) = CoachPlan(
     id = id,
     blockStart = LocalDate(2026, 10, 19),
@@ -57,6 +59,7 @@ internal fun coachPlan(
         phase = phase,
         phaseReason = phaseReason,
         phaseOptions = phaseOptions,
+        dietBreak = dietBreakWeek,
     ),
     outcomes = listOfNotNull(
         weightTarget?.let {
@@ -162,6 +165,26 @@ internal class FakeCoachPlanRepository : CoachPlanRepository {
         optionsGate?.await()
         return optionsResult ?: Result.success(
             coachPlan(id = planId, phaseOptions = PhaseOptions(cutRatePct, dietBreak)),
+        )
+    }
+
+    /** Answer of [setDietBreak]; null echoes an accepted cut with the requested option (and week 4 when on). */
+    var setDietBreakResult: Result<CoachPlan>? = null
+    val setDietBreakCalls = mutableListOf<Pair<String, Boolean>>()
+
+    /** When set, [setDietBreak] suspends until completed. */
+    var setDietBreakGate: CompletableDeferred<Unit>? = null
+
+    override suspend fun setDietBreak(planId: String, today: LocalDate, dietBreak: Boolean): Result<CoachPlan> {
+        setDietBreakCalls += planId to dietBreak
+        setDietBreakGate?.await()
+        return setDietBreakResult ?: Result.success(
+            coachPlan(
+                id = planId,
+                status = PlanStatus.Accepted,
+                phaseOptions = PhaseOptions(dietBreak = dietBreak),
+                dietBreakWeek = if (dietBreak) DietBreakWeek(2400, 160, 280, 70) else null,
+            ),
         )
     }
 

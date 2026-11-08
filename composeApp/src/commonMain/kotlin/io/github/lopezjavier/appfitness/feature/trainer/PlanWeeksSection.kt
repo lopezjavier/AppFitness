@@ -25,6 +25,7 @@ import io.github.lopezjavier.appfitness.composeapp.resources.plan_week_steps_non
 import io.github.lopezjavier.appfitness.composeapp.resources.trainer_block_end
 import io.github.lopezjavier.appfitness.composeapp.resources.trainer_week_chip_current
 import io.github.lopezjavier.appfitness.composeapp.resources.trainer_week_chip_deload
+import io.github.lopezjavier.appfitness.composeapp.resources.trainer_week_chip_diet_break
 import io.github.lopezjavier.appfitness.composeapp.resources.trainer_week_planned
 import io.github.lopezjavier.appfitness.composeapp.resources.trainer_week_progress
 import io.github.lopezjavier.appfitness.composeapp.resources.trainer_week_session_done
@@ -64,12 +65,13 @@ internal fun PlanWeeksSection(
     weeks: List<PlanWeek>,
     request: DeloadRequestUi = DeloadRequestUi(),
     pause: BlockPause? = null,
+    dietBreakWeek: Int? = null,
 ) {
     if (weeks.isEmpty()) return
     Column(Modifier.testTag("trainer_weeks_section"), verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
         ListSectionHeader(stringResource(Res.string.trainer_weeks_header))
         BlockPauseLines(pause)
-        weeks.forEach { WeekCard(it) }
+        weeks.forEach { WeekCard(it, dietBreak = it.week == dietBreakWeek) }
         if (request.available) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 GhostButton(
@@ -127,7 +129,7 @@ internal data class DeloadRequestUi(
 )
 
 @Composable
-private fun WeekCard(week: PlanWeek) {
+private fun WeekCard(week: PlanWeek, dietBreak: Boolean) {
     AppCard(Modifier.fillMaxWidth().testTag("trainer_week_${week.week}")) {
         Column(verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
             Row(
@@ -144,6 +146,13 @@ private fun WeekCard(week: PlanWeek) {
                         stringResource(Res.string.trainer_week_chip_current),
                         StatusTone.Good,
                         Modifier.testTag("trainer_week_${week.week}_current"),
+                    )
+                }
+                if (dietBreak) {
+                    StatusChip(
+                        stringResource(Res.string.trainer_week_chip_diet_break),
+                        StatusTone.Good,
+                        Modifier.testTag("trainer_block_week_diet_break"),
                     )
                 }
                 if (week.deload) {

@@ -31,6 +31,8 @@ import io.github.lopezjavier.appfitness.feature.exercises.FakeExerciseRepository
 import io.github.lopezjavier.appfitness.feature.exercises.FakeFavoriteExercisesRepository
 import io.github.lopezjavier.appfitness.feature.routines.FakeRoutineRepository
 import io.github.lopezjavier.appfitness.feature.workout.MutableClock
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
@@ -89,6 +91,38 @@ class BlockBuilderNewBlockRestorationTest {
     }
 
     private var current by mutableStateOf(newModel())
+
+    @Test
+    fun theTargetsStepWaitingForMiEntrenamiento_survivesRecreationAndRereadsOnReturn() {
+        prefs.result = Result.success(
+            TrainingPreferences(intention = TrainingIntention.Muscle, daysPerWeek = 4, sessionMinutes = 10),
+        )
+        current = newModel()
+        rule.setContent {
+            AppTheme {
+                BlockBuilderRoot("plan-2", {}, {}, {}, viewModel = current, connectivity = FakeConnectivityObserver())
+            }
+        }
+        rule.waitForIdle()
+        rule.onNodeWithTag("block_builder_targets_group_chest_prioritise").performClick()
+        rule.waitForIdle()
+        // The sample catalogue is empty, so nothing "does not fit": the flag stands for a tap on the note.
+        saved["block_builder_awaiting_inputs"] = true
+
+        current = newModel()
+        rule.waitForIdle()
+
+        rule.onNodeWithTag("block_builder_targets_group_chest_clear").assertIsEnabled()
+        assertEquals(true, saved.get<Boolean>("block_builder_awaiting_inputs"))
+        prefs.result = Result.success(
+            TrainingPreferences(intention = TrainingIntention.Muscle, daysPerWeek = 4, sessionMinutes = 180),
+        )
+        current.onEvent(BlockBuilderEvent.InputsMayHaveChanged)
+        rule.waitForIdle()
+
+        assertNull(saved.get<Boolean>("block_builder_awaiting_inputs"))
+        rule.onNodeWithTag("block_builder_targets_group_chest_clear").assertIsEnabled()
+    }
 
     @Test
     fun theTargetChoices_openedFromBloqueNuevo_surviveRecreation() {

@@ -69,6 +69,8 @@ sealed interface BlockBuilderUiState {
         val options: List<List<DayTypeOption>>,
         val openDay: Int?,
         val noFit: NoFitInfo?,
+        /** The days per week changed in "Mi entrenamiento": the day types were re-seeded; the screen says so. */
+        val daysChanged: Boolean = false,
     ) : BlockBuilderUiState {
         val canContinue: Boolean get() = noFit == null
     }
@@ -178,6 +180,12 @@ sealed interface BlockBuilderEvent {
     data object CancelDiscard : BlockBuilderEvent
 
     data object Retry : BlockBuilderEvent
+
+    /** The "no fit" note was tapped (Types or Targets): the screen opens "Mi entrenamiento" (R-59). */
+    data object OpenMyTraining : BlockBuilderEvent
+
+    /** The screen resumed: re-reads the training inputs, but only after [OpenMyTraining] (otherwise ignored). */
+    data object InputsMayHaveChanged : BlockBuilderEvent
 }
 
 sealed interface BlockBuilderEffect {
@@ -192,4 +200,7 @@ sealed interface BlockBuilderEffect {
 
     /** Reject haptic (a save failure). */
     data object Reject : BlockBuilderEffect
+
+    /** Navigate to "Mi entrenamiento"; the builder stays in the back stack with its draft (R-59, ADR-40). */
+    data object OpenMyTraining : BlockBuilderEffect
 }

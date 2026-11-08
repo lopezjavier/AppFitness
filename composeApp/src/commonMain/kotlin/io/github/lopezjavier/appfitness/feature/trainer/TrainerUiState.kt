@@ -80,6 +80,8 @@ sealed interface TrainerUiState {
         val provisionalCount: Int? = null,
         /** The open cardio-minutes sheet of the accepted plan ("Tu plan"); null when closed. */
         val cardioEdit: CardioEdit? = null,
+        /** The diet-break switch of "Tu plan" is saving: shown pending, further taps are ignored. */
+        val dietBreakSaving: Boolean = false,
         /** The "Eliminar bloque" confirmation is open; only ever true while the block is saved. */
         val removeBlockConfirm: Boolean = false,
         /** The block removal is in flight: the dialog stays open with its confirm action disabled. */
@@ -157,6 +159,9 @@ sealed interface TrainerEvent {
     /** The stepper moved: [minutes] is clamped to 0..600 in steps of 5. */
     data class CardioMinutesChanged(val minutes: Int) : TrainerEvent
 
+    /** The "Descanso de dieta" switch of "Tu plan" (accepted cut, not edited): saves live; ignored while saving. */
+    data class ToggleDietBreak(val on: Boolean) : TrainerEvent
+
     /** "Guardar" in the sheet; ignored while the draft equals the saved value. */
     data object SaveCardio : TrainerEvent
 
@@ -231,6 +236,12 @@ sealed interface TrainerEffect {
 
     /** The cardio minutes were stored and the sheet closed: confirm haptic, no message. */
     data object CardioSaved : TrainerEffect
+
+    /** The diet break was saved: confirm haptic. */
+    data object DietBreakSaved : TrainerEffect
+
+    /** Saving the diet break failed and the switch snapped back: reject haptic; [offline] picks the offline hint. */
+    data class DietBreakFailed(val offline: Boolean) : TrainerEffect
 
     /** Saving the cardio failed; the sheet stays open. [offline] picks the offline hint. */
     data class CardioFailed(val offline: Boolean) : TrainerEffect

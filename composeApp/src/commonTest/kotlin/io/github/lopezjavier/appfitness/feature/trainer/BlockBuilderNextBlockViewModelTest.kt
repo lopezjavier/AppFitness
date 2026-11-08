@@ -1,6 +1,7 @@
 package io.github.lopezjavier.appfitness.feature.trainer
 
 import androidx.lifecycle.SavedStateHandle
+import app.cash.turbine.test
 import io.github.lopezjavier.appfitness.app.FakeTrainingPreferencesRepository
 import io.github.lopezjavier.appfitness.data.repository.UnconfiguredCoachPlanRepository
 import io.github.lopezjavier.appfitness.data.repository.UnconfiguredCoachReviewRepository
@@ -233,6 +234,43 @@ class BlockBuilderNextBlockViewModelTest {
         assertEquals(groups, state.rows.map { it.group })
         assertTrue(state.rows.all { it.before == 10 && it.after == 10 && it.choice == GroupPriority.None })
         assertEquals(90, state.adherencePct)
+    }
+
+    @Test
+    fun targetsNoFit_openMyTraining_setsTheFlagAndEmitsTheEffect_andReturnRereadsKeepingTheDraft() =
+        runTest(dispatcher) {
+            prefs.result = Result.success(
+                TrainingPreferences(intention = TrainingIntention.Muscle, daysPerWeek = 4, sessionMinutes = 10),
+            )
+            val saved = SavedStateHandle()
+            val model = viewModel(saved)
+            send(model, BlockBuilderEvent.SetPriority(MuscleGroup.Chest, GroupPriority.Prioritise))
+            assertTrue(model.targets().noFit != null)
+
+            model.effects.test {
+                send(model, BlockBuilderEvent.OpenMyTraining)
+                assertEquals(BlockBuilderEffect.OpenMyTraining, awaitItem())
+            }
+            assertEquals(true, saved.get<Boolean>("block_builder_awaiting_inputs"))
+
+            prefs.result = Result.success(
+                TrainingPreferences(intention = TrainingIntention.Muscle, daysPerWeek = 4, sessionMinutes = 180),
+            )
+            send(model, BlockBuilderEvent.InputsMayHaveChanged)
+
+            assertNull(model.targets().noFit)
+            assertEquals(GroupPriority.Prioritise, model.targets().row(MuscleGroup.Chest).choice)
+            assertNull(saved.get<Boolean>("block_builder_awaiting_inputs"))
+        }
+
+    @Test
+    fun inputsMayHaveChanged_withoutTheFlag_doesNotReread() = runTest(dispatcher) {
+        val model = viewModel()
+        val reads = prefs.reads
+
+        send(model, BlockBuilderEvent.InputsMayHaveChanged)
+
+        assertEquals(reads, prefs.reads)
     }
 
     @Test

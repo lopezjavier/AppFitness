@@ -100,6 +100,14 @@ class BlockReviewScreenTest {
     }
 
     @Test
+    fun theReview_hasNoDietBreakSwitch() {
+        show(content())
+
+        rule.onNodeWithTag("trainer_plan_diet_break_switch").assertDoesNotExist()
+        rule.onNodeWithTag("plan_proposal_diet_break_switch").assertDoesNotExist()
+    }
+
+    @Test
     fun mainLift_showsItsTrendLine() {
         show(content())
 
