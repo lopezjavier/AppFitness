@@ -2,8 +2,10 @@ package io.github.lopezjavier.appfitness.feature.trainer
 
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.test.assertTextContains
+import androidx.compose.ui.test.junit4.StateRestorationTester
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
@@ -20,6 +22,7 @@ import io.github.lopezjavier.appfitness.domain.usecase.PreviewGoalSwitchUseCase
 import io.github.lopezjavier.appfitness.feature.routines.FakeRoutineRepository
 import io.github.lopezjavier.appfitness.feature.workout.MutableClock
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
@@ -136,5 +139,34 @@ class BeforeStartNewBlockScreenTest {
         rule.onNodeWithTag("before_start_create").performClick()
         rule.waitForIdle()
         assertEquals("plan-2", created.single().planId)
+    }
+
+    @Test
+    fun stateRestoration_rebuildsTheNote_andTheFooterStillOpensThePreviewPlan() {
+        val saved = args()
+        val tester = StateRestorationTester(rule)
+        tester.setContent {
+            val model = remember { newModel(saved) }
+            AppTheme {
+                BeforeStartRoot(
+                    onBack = {},
+                    onCreate = { created += it },
+                    onOpenYourData = {},
+                    onFix = {},
+                    viewModel = model,
+                    connectivity = FakeConnectivityObserver(),
+                )
+            }
+        }
+        rule.waitForIdle()
+
+        tester.emulateSavedInstanceStateRestore()
+        rule.waitForIdle()
+
+        rule.onNodeWithTag("before_start_note_goal_change").assertTextContains("Definición", substring = true)
+        rule.onNodeWithTag("before_start_create").performClick()
+        rule.waitForIdle()
+        assertEquals("plan-2", created.single().planId)
+        assertTrue(reviews.previewCalls >= 2)
     }
 }

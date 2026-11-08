@@ -152,10 +152,7 @@ class BeforeStartViewModel(
                 NewBlockPrep.Stop(BeforeStartUiState.Loading)
             }
 
-            !entry.goal.changed -> {
-                savedState.remove<String>(KEY_PREVIEW_PLAN_ID)
-                NewBlockPrep.Ready(null, null)
-            }
+            !entry.goal.changed -> NewBlockPrep.Ready(null, null)
 
             else -> previewGoal(entry.goal.currentKcal)
         }
@@ -169,7 +166,6 @@ class BeforeStartViewModel(
             effectChannel.send(BeforeStartEffect.NewBlockPrepareFailed(offline))
             return NewBlockPrep.Stop(failedState(result.appErrorOrNull()))
         }
-        savedState[KEY_PREVIEW_PLAN_ID] = preview.planId
         return NewBlockPrep.Ready(
             GoalChangeNote(preview.currentKcal ?: entryKcal, preview.newKcal, preview.phase),
             preview.planId,
@@ -341,6 +337,5 @@ class BeforeStartViewModel(
         const val KEY_REPLACING = "replacingPlanId"
         const val KEY_DRAFT = "before_start_activity_draft"
         const val KEY_CHOICE = "before_start_start_choice"
-        const val KEY_PREVIEW_PLAN_ID = "before_start_preview_plan_id"
     }
 }

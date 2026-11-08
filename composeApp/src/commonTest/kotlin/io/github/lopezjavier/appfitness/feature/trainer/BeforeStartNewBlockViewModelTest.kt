@@ -224,23 +224,22 @@ class BeforeStartNewBlockViewModelTest {
     }
 
     @Test
-    fun aNewInstanceOnTheSameHandle_restoresThePreviewPlanId() = runTest(dispatcher) {
+    fun aNewInstanceOnTheSameHandle_refetchesThePreviewAndGetsTheSameFigures() = runTest(dispatcher) {
         val saved = args()
         viewModel(saved)
         advanceUntilIdle()
-        assertEquals("plan-2", saved.get<String>("before_start_preview_plan_id"))
 
         val restored = viewModel(saved)
         advanceUntilIdle()
 
         assertEquals("plan-2", restored.content().previewPlanId)
         assertEquals(GoalChangeNote(2800, 2300, Phase.Cut), restored.content().goalChange)
+        assertEquals(2, reviews.previewCalls)
     }
 
     @Test
-    fun whenTheGoalIsNoLongerChanged_theStoredPreviewIdIsForgotten() = runTest(dispatcher) {
-        val saved = args()
-        val model = viewModel(saved)
+    fun whenTheGoalIsNoLongerChanged_thePreviewIdIsDropped() = runTest(dispatcher) {
+        val model = viewModel()
         advanceUntilIdle()
 
         reviews.newBlock = Result.success(newBlockEntry(changed = false))
@@ -248,6 +247,5 @@ class BeforeStartNewBlockViewModelTest {
         advanceUntilIdle()
 
         assertNull(model.content().previewPlanId)
-        assertNull(saved.get<String>("before_start_preview_plan_id"))
     }
 }
