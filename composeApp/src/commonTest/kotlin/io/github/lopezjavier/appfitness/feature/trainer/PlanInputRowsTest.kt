@@ -21,7 +21,8 @@ internal fun planInput(
     blocking: Boolean = false,
     fixTarget: PlanFixTarget? = null,
     date: LocalDate? = null,
-) = PlanInput(key, value, source, status, blocking, fixTarget, date)
+    blocksAccept: Boolean = false,
+) = PlanInput(key, value, source, status, blocking, fixTarget, date, blocksAccept)
 
 class PlanInputRowsTest {
     private fun markerOf(status: PlanInputStatus, blocking: Boolean = false) =

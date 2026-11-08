@@ -171,6 +171,7 @@ class PlanProposalPhaseTest {
                 PlanProposalRoot(
                     onBack = {},
                     onOpenBeforeStart = {},
+                    onFix = {},
                     viewModel = model,
                     connectivity = FakeConnectivityObserver(),
                 )
@@ -202,6 +203,7 @@ class PlanProposalPhaseTest {
                 PlanProposalRoot(
                     onBack = {},
                     onOpenBeforeStart = {},
+                    onFix = {},
                     viewModel = model,
                     connectivity = FakeConnectivityObserver(),
                 )

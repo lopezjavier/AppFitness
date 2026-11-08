@@ -23,10 +23,13 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.github.lopezjavier.appfitness.composeapp.resources.Res
 import io.github.lopezjavier.appfitness.composeapp.resources.action_accept
 import io.github.lopezjavier.appfitness.composeapp.resources.action_discard
+import io.github.lopezjavier.appfitness.composeapp.resources.before_start_confirm_error
 import io.github.lopezjavier.appfitness.composeapp.resources.cardio_save_error
 import io.github.lopezjavier.appfitness.composeapp.resources.cardio_save_offline
 import io.github.lopezjavier.appfitness.composeapp.resources.plan_outcome_deadline
@@ -57,8 +60,10 @@ import io.github.lopezjavier.appfitness.composeapp.resources.plan_proposal_rate
 import io.github.lopezjavier.appfitness.composeapp.resources.plan_proposal_rate_help_body
 import io.github.lopezjavier.appfitness.composeapp.resources.plan_proposal_rate_help_cd
 import io.github.lopezjavier.appfitness.composeapp.resources.plan_proposal_rate_value
-import io.github.lopezjavier.appfitness.composeapp.resources.plan_proposal_reask_note
+import io.github.lopezjavier.appfitness.composeapp.resources.plan_proposal_stale_note
 import io.github.lopezjavier.appfitness.composeapp.resources.plan_proposal_title
+import io.github.lopezjavier.appfitness.composeapp.resources.plan_proposal_unconfirmed_fallback
+import io.github.lopezjavier.appfitness.composeapp.resources.plan_proposal_unconfirmed_note
 import io.github.lopezjavier.appfitness.composeapp.resources.plan_proposal_underweight_note
 import io.github.lopezjavier.appfitness.designsystem.AppCard
 import io.github.lopezjavier.appfitness.designsystem.AppDateFormat
@@ -85,6 +90,7 @@ import io.github.lopezjavier.appfitness.designsystem.StreamProgressState
 import io.github.lopezjavier.appfitness.designsystem.offlineHint
 import io.github.lopezjavier.appfitness.domain.model.OutcomeKind
 import io.github.lopezjavier.appfitness.domain.model.PhaseReason
+import io.github.lopezjavier.appfitness.domain.model.PlanFixTarget
 import io.github.lopezjavier.appfitness.domain.model.PlanLimit
 import io.github.lopezjavier.appfitness.domain.model.PlanOutcome
 import io.github.lopezjavier.appfitness.domain.port.ConnectivityObserver
@@ -103,15 +109,18 @@ private const val SKELETON_ROWS = 3
  * Stateful plan proposal (US-69): asks the coach once when it opens with no stored plan, plays the one-off effects
  * (haptics, the accept message, leaving the screen) and connects [PlanProposalViewModel] to [PlanProposalScreen].
  */
+@Suppress("CyclomaticComplexMethod", "LongMethod") // One branch per effect and per failed action.
 @Composable
 fun PlanProposalRoot(
     onBack: () -> Unit,
     onOpenBeforeStart: (replacingPlanId: String) -> Unit,
+    onFix: (PlanFixTarget) -> Unit,
     modifier: Modifier = Modifier,
     viewModel: PlanProposalViewModel = koinViewModel(),
     connectivity: ConnectivityObserver = koinInject(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
+    val editor by viewModel.editor.collectAsStateWithLifecycle()
     val haptics = LocalAppHaptics.current
     val messages = LocalAppMessages.current
     val latestHaptics by rememberUpdatedState(haptics)
@@ -123,8 +132,11 @@ fun PlanProposalRoot(
     val discardOffline = offlineHint(stringResource(Res.string.plan_proposal_discard_offline)) + "."
     val cardioError = stringResource(Res.string.cardio_save_error)
     val cardioOffline = offlineHint(stringResource(Res.string.cardio_save_offline)) + "."
+    val confirmError = stringResource(Res.string.before_start_confirm_error)
     val optionsError = stringResource(Res.string.plan_proposal_options_error)
     val optionsOffline = offlineHint(stringResource(Res.string.plan_proposal_options_offline)) + "."
+    // Back from an editor: re-read which values still block.
+    LifecycleEventEffect(Lifecycle.Event.ON_RESUME) { viewModel.onEvent(PlanProposalEvent.Refresh) }
     LaunchedEffect(state) {
         if (state == PlanProposalUiState.Idle) viewModel.onEvent(PlanProposalEvent.Request)
     }
@@ -137,7 +149,7 @@ fun PlanProposalRoot(
                     latestOnBack()
                 }
 
-                PlanProposalEffect.CardioSaved -> latestHaptics.confirm()
+                PlanProposalEffect.CardioSaved, PlanProposalEffect.ValuesConfirmed -> latestHaptics.confirm()
 
                 PlanProposalEffect.Discarded -> {
                     latestHaptics.confirm()
@@ -152,6 +164,7 @@ fun PlanProposalRoot(
                             PlanAction.Discard -> if (effect.offline) discardOffline else discardError
                             PlanAction.Cardio -> if (effect.offline) cardioOffline else cardioError
                             PlanAction.Options -> if (effect.offline) optionsOffline else optionsError
+                            PlanAction.Confirm -> confirmError
                         },
                     )
                 }
@@ -165,6 +178,9 @@ fun PlanProposalRoot(
         onBack = onBack,
         onOpenBeforeStart = onOpenBeforeStart,
         modifier = modifier,
+        onFix = onFix,
+        editor = editor,
+        onEditorEvent = viewModel::onEditorEvent,
     )
 }
 
@@ -174,6 +190,7 @@ fun PlanProposalRoot(
  * plan is read-only: the user never enters a target number (ADR-78). Loading the stored plan is a skeleton, waiting
  * for the model is a [StreamProgressState] (R-31).
  */
+@Suppress("LongParameterList") // State, events and the ways out of the screen.
 @Composable
 fun PlanProposalScreen(
     state: PlanProposalUiState,
@@ -182,6 +199,9 @@ fun PlanProposalScreen(
     onBack: () -> Unit,
     onOpenBeforeStart: (replacingPlanId: String) -> Unit,
     modifier: Modifier = Modifier,
+    onFix: (PlanFixTarget) -> Unit = {},
+    editor: IntakeRowEditorState = IntakeRowEditorState(),
+    onEditorEvent: (IntakeRowEvent) -> Unit = {},
 ) {
     val online by isOnline.collectAsStateWithLifecycle(initialValue = true)
     AppScreen(
@@ -206,11 +226,12 @@ fun PlanProposalScreen(
                 }
 
                 is PlanProposalUiState.Failed -> Box(Modifier.fillMaxSize(), Alignment.Center) {
-                    FailedContent(state.kind, isOnline, onEvent)
+                    FailedContent(state.kind, isOnline, onEvent, onFix)
                 }
 
-                is PlanProposalUiState.Proposal -> ProposalContent(state, online, onEvent)
+                is PlanProposalUiState.Proposal -> ProposalContent(state, online, onEvent, onFix, onEditorEvent)
             }
+            if (state is PlanProposalUiState.Proposal) IntakeRowSheetHost(editor, online, onEditorEvent)
         }
     }
 }
@@ -221,14 +242,20 @@ private val PlanFailureCopy = CoachFailureCopy(
 )
 
 @Composable
-private fun FailedContent(kind: PlanFailureKind, isOnline: Flow<Boolean>, onEvent: (PlanProposalEvent) -> Unit) =
-    CoachFailureContent(kind, isOnline, PlanFailureCopy, "plan_proposal") { onEvent(PlanProposalEvent.Retry) }
+private fun FailedContent(
+    kind: PlanFailureKind,
+    isOnline: Flow<Boolean>,
+    onEvent: (PlanProposalEvent) -> Unit,
+    onFix: (PlanFixTarget) -> Unit,
+) = CoachFailureContent(kind, isOnline, PlanFailureCopy, "plan_proposal", onFix) { onEvent(PlanProposalEvent.Retry) }
 
 @Composable
 private fun ProposalContent(
     state: PlanProposalUiState.Proposal,
     online: Boolean,
     onEvent: (PlanProposalEvent) -> Unit,
+    onFix: (PlanFixTarget) -> Unit,
+    onEditorEvent: (IntakeRowEvent) -> Unit,
 ) {
     val nutrition = state.plan.nutrition
     Column(
@@ -236,6 +263,7 @@ private fun ProposalContent(
         verticalArrangement = Arrangement.spacedBy(Spacing.blockGap),
     ) {
         PhaseRow(state.plan.phase, nutrition.phaseReason, "plan_proposal")
+        if (state.unconfirmedValues.isNotEmpty()) UnconfirmedSection(state, online, onEvent, onFix, onEditorEvent)
         NutritionCard(state)
         if (state.hasCutOptions) {
             CutOptions(
@@ -265,6 +293,16 @@ private fun ProposalContent(
             ActivityCard(it, state.plan.intention, enabled = !state.busy) { onEvent(PlanProposalEvent.OpenCardioEdit) }
         }
         if (state.plan.outcomes.isNotEmpty()) OutcomesSection(state.plan.outcomes)
+    }
+    state.activitySheet?.let { level ->
+        ActivityLevelSheet(
+            selected = level,
+            saving = state.savingLevel,
+            online = online,
+            onDismiss = { onEvent(PlanProposalEvent.CloseActivitySheet) },
+            onPick = { onEvent(PlanProposalEvent.PickActivityLevel(it)) },
+            testTagPrefix = "plan_proposal_activity_sheet",
+        )
     }
     state.cardioEdit?.let {
         CardioMinutesSheet(
@@ -381,7 +419,10 @@ private fun OutcomesSection(outcomes: List<PlanOutcome>) {
     }
 }
 
-/** Pinned footer: why "Aceptar" is blocked and the way to "Antes de empezar" (if it is), then the decisions. */
+/**
+ * Pinned footer: a one-line reason "Aceptar" is blocked (it names the values), the way to "Antes de empezar" when the
+ * plan must be created again or the values are unknown, then the decisions. The fixes live in the body (R-09, R-59).
+ */
 @Composable
 private fun ProposalFooter(
     state: PlanProposalUiState.Proposal,
@@ -393,16 +434,31 @@ private fun ProposalFooter(
         Modifier.fillMaxWidth().padding(Spacing.screenMargin),
         verticalArrangement = Arrangement.spacedBy(Spacing.sm),
     ) {
-        if (state.acceptBlockedReason != null) {
-            InlineNote(
-                text = stringResource(Res.string.plan_proposal_reask_note),
-                testTag = "plan_proposal_reask_note",
+        when {
+            state.unconfirmedValues.isNotEmpty() -> InlineNote(
+                text = stringResource(
+                    Res.string.plan_proposal_unconfirmed_note,
+                    state.unconfirmedValues.map { it.labelText() }.joinToString(", "),
+                ),
+                testTag = "plan_proposal_unconfirmed_note",
             )
-            NavigationRow(
-                label = stringResource(Res.string.plan_proposal_open_before_start),
-                onClick = { onOpenBeforeStart(state.plan.id) },
-                modifier = Modifier.testTag("plan_proposal_open_your_data"),
-            )
+
+            state.unconfirmed -> {
+                // The server refused and the list is unknown: still one visible way out.
+                InlineNote(
+                    text = stringResource(Res.string.plan_proposal_unconfirmed_fallback),
+                    testTag = "plan_proposal_unconfirmed_note",
+                )
+                BeforeStartRow(state, onOpenBeforeStart)
+            }
+
+            state.stale -> {
+                InlineNote(
+                    text = stringResource(Res.string.plan_proposal_stale_note),
+                    testTag = "plan_proposal_stale_note",
+                )
+                BeforeStartRow(state, onOpenBeforeStart)
+            }
         }
         PrimaryButton(
             text = stringResource(Res.string.action_accept),
@@ -421,6 +477,15 @@ private fun ProposalFooter(
             loading = state.discarding,
         )
     }
+}
+
+@Composable
+private fun BeforeStartRow(state: PlanProposalUiState.Proposal, onOpenBeforeStart: (replacingPlanId: String) -> Unit) {
+    NavigationRow(
+        label = stringResource(Res.string.plan_proposal_open_before_start),
+        onClick = { onOpenBeforeStart(state.plan.id) },
+        modifier = Modifier.testTag("plan_proposal_open_your_data"),
+    )
 }
 
 /** Card-shaped placeholder while the stored plan loads (R-31): the values card and the nutrition card. */

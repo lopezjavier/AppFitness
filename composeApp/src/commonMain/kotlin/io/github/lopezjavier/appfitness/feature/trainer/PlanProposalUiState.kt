@@ -2,6 +2,7 @@ package io.github.lopezjavier.appfitness.feature.trainer
 
 import io.github.lopezjavier.appfitness.domain.AppError
 import io.github.lopezjavier.appfitness.domain.AppException
+import io.github.lopezjavier.appfitness.domain.model.ActivityLevel
 import io.github.lopezjavier.appfitness.domain.model.CoachException
 import io.github.lopezjavier.appfitness.domain.model.CoachFailure
 import io.github.lopezjavier.appfitness.domain.model.CoachPlan
@@ -73,6 +74,9 @@ enum class AcceptBlockedReason {
 
     /** The data changed since the user confirmed (re-ask, or the server refused): confirm again. */
     DataChanged,
+
+    /** The activity level changed after the plan was made: the plan must be created again. */
+    Stale,
 }
 
 sealed interface PlanProposalUiState {
@@ -86,13 +90,23 @@ sealed interface PlanProposalUiState {
     data object Requesting : PlanProposalUiState
 
     /**
-     * A proposed [plan]. [unconfirmed] is true while some input the plan reads is still provisional (the re-ask): the
-     * user confirms it in "Antes de empezar", which requests the plan again. [accepting] and [discarding] are true
-     * while that call is in flight. [dataChanged] is set when the server refused the plan for unconfirmed values.
+     * A proposed [plan]. [unconfirmedValues] are the inputs the server would refuse the plan for (`blocksAccept` and
+     * provisional): the user edits or confirms them here and accepts without creating the plan again (R-59).
+     * [accepting] and [discarding] are true while that call is in flight. [dataChanged] is set when the server refused
+     * the plan for unconfirmed values (the list may then be empty: the screen falls back to a generic note). [stale] is
+     * true when the activity level changed after the plan was made: the plan must be created again.
      */
     data class Proposal(
         val plan: CoachPlan,
-        val unconfirmed: Boolean = false,
+        val unconfirmedValues: List<PlanInputRow> = emptyList(),
+        val stale: Boolean = false,
+        /** True while "Confirmar valores" is being stored. */
+        val confirming: Boolean = false,
+        /** The open activity-level sheet (its draft); null when closed. */
+        val activitySheet: ActivityLevel? = null,
+        val savingLevel: Boolean = false,
+        /** What the user stated, the starting point of the years sheet. */
+        val intake: IntakeSummary = IntakeSummary(),
         val accepting: Boolean = false,
         val discarding: Boolean = false,
         val dataChanged: Boolean = false,
@@ -101,19 +115,24 @@ sealed interface PlanProposalUiState {
         /** True while the cut rate or the diet break is being stored and the plan recomputed. */
         val optionsSaving: Boolean = false,
     ) : PlanProposalUiState {
-        val busy: Boolean get() = accepting || discarding || optionsSaving || cardioEdit?.saving == true
+        val busy: Boolean
+            get() = accepting || discarding || optionsSaving || confirming || savingLevel || cardioEdit?.saving == true
 
         /** The rate selector and the diet-break switch exist only on a cut plan. */
         val hasCutOptions: Boolean get() = plan.phase == Phase.Cut
 
-        /** US-68 gate: nothing provisional and no call in flight. */
-        val canAccept: Boolean get() = !unconfirmed && !busy
+        /** True while a value blocks the acceptance: a listed one, or the server said so and the list is empty. */
+        val unconfirmed: Boolean get() = unconfirmedValues.isNotEmpty() || dataChanged
+
+        /** US-68 gate: nothing blocking, not stale and no call in flight. */
+        val canAccept: Boolean get() = !unconfirmed && !stale && !busy
 
         val acceptBlockedReason: AcceptBlockedReason?
             get() = when {
-                !unconfirmed -> null
                 dataChanged -> AcceptBlockedReason.DataChanged
-                else -> AcceptBlockedReason.Unconfirmed
+                unconfirmed -> AcceptBlockedReason.Unconfirmed
+                stale -> AcceptBlockedReason.Stale
+                else -> null
             }
     }
 
@@ -123,7 +142,7 @@ sealed interface PlanProposalUiState {
     data object Closed : PlanProposalUiState
 }
 
-enum class PlanAction { Accept, Discard, Cardio, Options }
+enum class PlanAction { Accept, Discard, Cardio, Options, Confirm }
 
 sealed interface PlanProposalEvent {
     /** Asks the coach for a plan (costs money); ignored unless the state is [PlanProposalUiState.Idle]. */
@@ -153,6 +172,21 @@ sealed interface PlanProposalEvent {
 
     /** The "Con semana de descanso" switch changed on a cut plan. */
     data class DietBreakToggled(val on: Boolean) : PlanProposalEvent
+
+    /** The screen resumed (for example after an editor): re-reads the blocking values; never requests a plan. */
+    data object Refresh : PlanProposalEvent
+
+    /** "Confirmar valores": confirms the estimates as shown and re-reads; never requests (nor bills) a plan. */
+    data object ConfirmValues : PlanProposalEvent
+
+    /** The activity-level row was tapped: opens its sheet (R-55). */
+    data object OpenActivitySheet : PlanProposalEvent
+
+    /** "Guardar" in the sheet: confirms the values with [level]; never requests a plan. */
+    data class PickActivityLevel(val level: ActivityLevel) : PlanProposalEvent
+
+    /** X, back or "Cancelar": closes the sheet and drops the draft. */
+    data object CloseActivitySheet : PlanProposalEvent
 }
 
 sealed interface PlanProposalEffect {
@@ -164,6 +198,9 @@ sealed interface PlanProposalEffect {
 
     /** The cardio minutes were stored and the sheet closed: confirm haptic, no message. */
     data object CardioSaved : PlanProposalEffect
+
+    /** The estimates were confirmed: confirm haptic, no message. */
+    data object ValuesConfirmed : PlanProposalEffect
 
     data class ActionFailed(val action: PlanAction, val offline: Boolean) : PlanProposalEffect
 }

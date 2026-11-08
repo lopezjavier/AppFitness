@@ -137,17 +137,17 @@ select throws_ok(format($$select public.coach_plan_inputs('block', %L)$$, (now()
 -- Plan: complete user
 -- ---------------------------------------------------------------------------
 select is(pg_temp.keys(pg_temp.inp(1, 'plan')),
-  array['intention', 'sex', 'age', 'height', 'weight', 'activity_level', 'total_expenditure', 'weight_trend', 'diary', 'training_years', 'known_maintenance', 'free_text'],
-  'plan lists its twelve inputs in display order');
+  array['intention', 'sex', 'age', 'height', 'weight', 'activity_level', 'total_expenditure', 'weight_trend', 'diary', 'experience', 'training_years', 'known_maintenance', 'free_text'],
+  'plan lists its thirteen inputs in display order (T-245: experience, which the server checks, is listed)');
 select is(pg_temp.inp(1, 'plan')->>'kind', 'plan', 'the kind is echoed');
 select is(pg_temp.inp(1, 'plan')->>'as_of', pg_temp.d0()::text, 'as_of is p_today');
 select ok(not (pg_temp.inp(1, 'plan') ? 'current_plan'), 'current_plan is absent when the user has no plan');
 select is(pg_temp.col(pg_temp.inp(1, 'plan'), 'status'),
-  array['ok', 'ok', 'ok', 'ok', 'ok', 'provisional', 'provisional', 'provisional', 'provisional', 'unset_optional', 'unset_optional', 'unset_optional'],
+  array['ok', 'ok', 'ok', 'ok', 'ok', 'provisional', 'provisional', 'provisional', 'provisional', 'provisional', 'unset_optional', 'unset_optional', 'unset_optional'],
   'a complete profile is ok, unconfirmed estimates are provisional');
 select is(pg_temp.col(pg_temp.inp(1, 'plan'), 'source'),
   array['my_training', 'profile', 'profile', 'profile', 'weigh_in', 'coach_estimate', 'coach_estimate',
-        'coach_estimate', 'coach_estimate', 'intake', 'intake', 'intake'],
+        'coach_estimate', 'coach_estimate', 'coach_estimate', 'intake', 'intake', 'intake'],
   'each input names its source');
 select is(array_position(pg_temp.col(pg_temp.inp(1, 'plan'), 'blocking'), 'true'), null, 'nothing blocks a complete profile');
 select is(pg_temp.ent(pg_temp.inp(1, 'plan'), 'intention')->>'value', 'fat_loss', 'the intention value is returned');

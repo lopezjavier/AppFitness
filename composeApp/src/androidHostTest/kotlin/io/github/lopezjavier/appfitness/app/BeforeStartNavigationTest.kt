@@ -60,7 +60,7 @@ class BeforeStartNavigationTest {
             }
         }
     }
-    private val proposalSlot: PlanProposalSlot = { modifier, onBack, _ ->
+    private val proposalSlot: PlanProposalSlot = { modifier, onBack, _, _ ->
         AppScreen("Plan", modifier.testTag("plan_proposal_screen"), onBack = onBack, testTagPrefix = "pp") {}
     }
     private val blockSlot: BlockPreviewSlot = { modifier, planId, _, onBack ->

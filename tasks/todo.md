@@ -38,6 +38,7 @@ E15 (epic-planner, 2026-11-08, after the user's Q1-Q5 answers; needs the user's 
 ## Notes for later epics
 
 - **Out of scope (user, 2026-11-08, ADR-101):** "Recuperar" / returning after a break (regain phase) is out of scope for the app; the 14-day return rule stays as the only break rule.
+- **R-59 sweep leftover (T-245):** `block_types_no_fit` (`BlockTypesScreen`, `BlockTargetsScreen`) names the three levers but has no tap to "Mi entrenamiento"; needs a route through the block builder slots and `AppRoot`. Owning task: to be added by the PM at the next epic planning.
 - **E13 backlog (user request, 2026-10-30): consumed.** Items 1 → T-179, 2 → T-181…T-184, 3 and 4 → T-205/T-206. Nothing from it is open.
 
 ## Reminders
@@ -100,11 +101,11 @@ The user does not force time-based triggers. These items are covered by host tes
 ## T-245: fix(T-245): a plan proposal blocked by unconfirmed values says which value and lets the user fix it (bug, Checkpoint E15-A feedback, user 2026-11-08) · M
 
 **Report (user, test account, creating a nutrition plan):** the proposal shows "Hay valores sin confirmar. Revísalos y vuelve a crear el plan para poder aceptar." The user cannot see which value is unconfirmed nor where to fix it: "this is a terrible UX and must be fixed".
-**Where:** string `plan_proposal_reask_note` (`strings.xml`), `PlanProposalScreen`/`PlanProposalUiState`, `05` §8 R-58 (new, written with this entry), `05` §10 glossary row "A coach value not yet confirmed".
+**Where:** string `plan_proposal_reask_note` (`strings.xml`), `PlanProposalScreen`/`PlanProposalUiState`, `05` §8 R-59 (new, written with this entry), `05` §10 glossary row "A coach value not yet confirmed".
 **Flow:** planner → ux-reviewer (plan) → kotlin-core-developer → compose-ui-developer → (pr-reviewer ∥ ux-reviewer) → pr-creator. The planner first finds why a fresh plan in the test account has unconfirmed values (a data problem or a missing path) and fixes the cause, not only the copy.
 **Acceptance criteria:**
 - [ ] The proposal names each unconfirmed value (for example the weight or the activity level) and each has a tap target that opens the editor of that value (R-55); after fixing it the user comes back and can accept without re-creating the plan from scratch.
-- [ ] No state of this screen blocks acceptance without a visible fix (R-58); sweep the other blocking notes of the Trainer and Diario goals.
+- [ ] No state of this screen blocks acceptance without a visible fix (R-59); sweep the other blocking notes of the Trainer and Diario goals.
 - [ ] The test account's case is reproduced in a host test; lint + `testLocalDebugUnitTest` green.
 **Dependencies:** Checkpoint E15-A feedback released by the user. Not started: a fresh session is needed (`/clear`).
 **Estimated scope:** M

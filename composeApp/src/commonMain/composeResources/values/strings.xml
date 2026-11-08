@@ -2070,7 +2070,12 @@
     <string name="free_text_toggle_action">cambiar esta frase</string>
     <string name="your_data_intake_provisional">Según lo que nos contaste (provisional). Lo cambiaremos por tus datos reales cuando haya suficientes.</string>
     <string name="your_data_handover_note">Ahora usamos tus datos reales: tu gasto medido es de %1$s kcal.</string>
-    <string name="plan_proposal_reask_note">Hay valores sin confirmar. Revísalos y vuelve a crear el plan para poder aceptar.</string>
+    <string name="plan_proposal_unconfirmed_header">Valores por confirmar</string>
+    <string name="plan_proposal_unconfirmed_note">Confirma para poder aceptar: %1$s.</string>
+    <string name="plan_proposal_unconfirmed_fallback">Hay valores sin confirmar. Confírmalos en "Antes de empezar" para poder aceptar.</string>
+    <string name="plan_proposal_unconfirmed_no_editor">Se calcula con tus datos. Confírmalo tal como está.</string>
+    <string name="plan_proposal_confirm_values">Confirmar valores</string>
+    <string name="plan_proposal_stale_note">Cambiaste tu nivel de actividad y el plan ya no lo usa. Créalo de nuevo para poder aceptar.</string>
     <string name="plan_proposal_open_before_start">Antes de empezar</string>
 
     <!-- T-164: training block preview (US-72) and its Trainer entry. -->

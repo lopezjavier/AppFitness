@@ -78,6 +78,8 @@ data class PlanInput(
     val fixTarget: PlanFixTarget?,
     /** Date of the last weigh-in; only the weight input has one. */
     val date: LocalDate?,
+    /** True when the server refuses to accept a plan while this input is provisional (plan kind only). */
+    val blocksAccept: Boolean = false,
 )
 
 data class PlanInputs(val kind: PlanInputKind, val currentPlan: CurrentPlan?, val inputs: List<PlanInput>) {

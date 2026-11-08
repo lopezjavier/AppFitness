@@ -58,7 +58,12 @@ internal typealias CoachUsageSlot = @Composable (modifier: Modifier, onBack: () 
 
 /** Content of the plan proposal: its modifier (full-screen insets), how to leave and the "Antes de empezar" opener. */
 internal typealias PlanProposalSlot =
-    @Composable (modifier: Modifier, onBack: () -> Unit, onOpenBeforeStart: (replacingPlanId: String) -> Unit) -> Unit
+    @Composable (
+        modifier: Modifier,
+        onBack: () -> Unit,
+        onOpenBeforeStart: (replacingPlanId: String) -> Unit,
+        onFix: (PlanFixTarget) -> Unit,
+    ) -> Unit
 
 /**
  * Content of "Antes de empezar": modifier (full-screen insets), how to leave, what to do once the creation is
@@ -644,7 +649,7 @@ internal val DefaultCoachUsageSlot: CoachUsageSlot = { modifier, _ ->
 }
 
 /** Empty plan proposal for previews and shell tests; the real one is wired by `AppRoot`. */
-internal val DefaultPlanProposalSlot: PlanProposalSlot = { modifier, _, _ ->
+internal val DefaultPlanProposalSlot: PlanProposalSlot = { modifier, _, _, _ ->
     Box(modifier.fillMaxSize().testTag("plan_proposal_screen"))
 }
 
@@ -927,6 +932,8 @@ internal fun AppNavHost(
                         BeforeStartRoute(BeforeStartMode.Plan.argument, replacingPlanId = replacingPlanId),
                     )
                 },
+                // The editor opens over the proposal: it is not popped, and the screen refreshes on resume.
+                openFix,
             )
         }
         composable<BeforeStartRoute> { entry ->

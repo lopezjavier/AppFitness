@@ -58,6 +58,7 @@ internal data class PlanInputDto(
     val blocking: Boolean = false,
     @SerialName("fix_target") val fixTarget: String? = null,
     val date: LocalDate? = null,
+    @SerialName("blocks_accept") val blocksAccept: Boolean = false,
 ) {
     fun toDomain() = PlanInput(
         key = KEYS[key] ?: PlanInputKey.Unknown,
@@ -67,6 +68,7 @@ internal data class PlanInputDto(
         blocking = blocking,
         fixTarget = if (fixTarget == "intake") INTAKE_FIX_BY_KEY[key] else FIX_TARGETS[fixTarget],
         date = date,
+        blocksAccept = blocksAccept,
     )
 
     private companion object {
@@ -114,6 +116,7 @@ internal data class PlanInputDto(
         // The server marks the three intake entries with the same fix target; each one opens its own editor.
         val INTAKE_FIX_BY_KEY = mapOf(
             "training_years" to PlanFixTarget.TrainingYears,
+            "experience" to PlanFixTarget.TrainingYears,
             "known_maintenance" to PlanFixTarget.Maintenance,
             "free_text" to PlanFixTarget.FreeText,
         )
