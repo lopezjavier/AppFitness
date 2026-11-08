@@ -3,10 +3,9 @@ package io.github.lopezjavier.appfitness.data.remote
 import io.github.lopezjavier.appfitness.domain.model.GroupSets
 import io.github.lopezjavier.appfitness.domain.model.MuscleGroup
 import io.github.lopezjavier.appfitness.domain.model.ProposalStatus
-import io.github.lopezjavier.appfitness.domain.model.StallCause
-import io.github.lopezjavier.appfitness.domain.model.StallDiagnosis
 import io.github.lopezjavier.appfitness.domain.model.WeekSummary
-import io.github.lopezjavier.appfitness.domain.model.WeekSummaryProposal
+import io.github.lopezjavier.appfitness.domain.model.WeekSummaryDecision
+import io.github.lopezjavier.appfitness.domain.model.WeekSummaryNutrition
 import io.github.lopezjavier.appfitness.domain.model.WeekSummaryWeight
 import kotlinx.datetime.LocalDate
 import kotlinx.serialization.SerialName
@@ -45,12 +44,29 @@ private val PROPOSAL_STATUSES = mapOf(
     "discarded" to ProposalStatus.Declined,
 )
 
-private fun proposalOf(obj: JsonObject?): WeekSummaryProposal? {
+private fun decisionOf(obj: JsonObject?): WeekSummaryDecision? {
     val status = obj?.text("status")?.let(PROPOSAL_STATUSES::get)
     val row = obj?.let {
         runCatching { coachPlanJson.decodeFromJsonElement(CoachRecommendationDto.serializer(), it) }.getOrNull()
     }
-    return if (status == null || row == null) null else WeekSummaryProposal(row.toCalorieProposal(), status)
+    return if (status == null || row == null) null else WeekSummaryDecision(row.toCalorieProposal(), status)
+}
+
+private fun decisionsOf(element: JsonElement?): List<WeekSummaryDecision> =
+    ((element as? JsonArray) ?: emptyList<JsonElement>()).mapNotNull { decisionOf(it.obj()) }
+
+/** A missing key (a summary from before the migration) yields null; missing figures are null. */
+internal fun nutritionOf(obj: JsonObject?): WeekSummaryNutrition? = obj?.let {
+    WeekSummaryNutrition(
+        completeDays = it.count("complete_days"),
+        gateOk = it.truth("gate_ok"),
+        avgKcal = it.number("avg_kcal")?.roundToInt(),
+        avgProteinG = it.number("avg_protein_g"),
+        targetKcal = it.number("target_kcal")?.roundToInt(),
+        targetProteinG = it.number("target_protein_g")?.roundToInt(),
+        proteinGPerKg = it.number("protein_g_per_kg"),
+        decisions = decisionsOf(it["decisions"]),
+    )
 }
 
 private fun weightOf(obj: JsonObject?): WeekSummaryWeight? = obj?.let {
@@ -94,52 +110,11 @@ internal fun weekSummaryOf(element: JsonElement): WeekSummary? {
                 weight = weightOf(obj["weight"].obj()),
                 completeDays = obj.count("complete_days"),
                 weighInDays = obj.count("weigh_in_days"),
-                missingRecords = obj.truth("missing_records"),
                 changes = coachChangesOf(obj["changes"] ?: JsonNull),
-                calorieProposal = proposalOf(obj["calorie_proposal"].obj()),
                 deload = obj.truth("deload"),
                 stalls = stallsOf(obj["stalls"]),
+                nutrition = nutritionOf(obj["nutrition"].obj()),
             )
         }
     }
 }
-
-private fun muscleGroupOf(code: String?): MuscleGroup? = code?.let {
-    runCatching { coachPlanJson.decodeFromJsonElement(MuscleGroup.serializer(), JsonPrimitive(it)) }.getOrNull()
-}
-
-private fun causeOf(obj: JsonObject): StallCause? = when (obj.text("cause")) {
-    "sessions" -> obj.number("avg_sessions")?.let { StallCause.Sessions(it, obj.count("plan_days")) }
-    "sets" -> setsCauseOf(obj)
-    "maintain" -> muscleGroupOf(obj.text("group"))?.let { StallCause.GroupOnMaintain(it) }
-    "protein" -> proteinCauseOf(obj)
-    "sleep" -> obj.number("avg_sleep_h")?.let { StallCause.Sleep(it) }
-    "none" -> StallCause.NoClearCause(obj.truth("protein_gate_missing"))
-    else -> null
-}
-
-private fun setsCauseOf(obj: JsonObject): StallCause? {
-    val avg = obj.number("avg_sets")
-    val group = muscleGroupOf(obj.text("group"))
-    return if (avg == null || group == null) null else StallCause.Sets(avg, group)
-}
-
-private fun proteinCauseOf(obj: JsonObject): StallCause? {
-    val grams = obj.number("avg_protein_g")
-    val perKg = obj.number("protein_g_per_kg")
-    val target = obj.number("target_g")
-    return if (grams == null || perKg == null || target == null) {
-        null
-    } else {
-        StallCause.Protein(grams.roundToInt(), perKg, target.roundToInt())
-    }
-}
-
-/** Stalls of an old row (no key) or with an unknown cause or missing figures are dropped, never an error. */
-internal fun stallsOf(element: JsonElement?): List<StallDiagnosis> =
-    ((element as? JsonArray) ?: emptyList<JsonElement>()).mapNotNull { item ->
-        val obj = item.obj()
-        val id = obj?.text("exercise_id")
-        val cause = obj?.let(::causeOf)
-        if (id == null || cause == null) null else StallDiagnosis(id, cause)
-    }

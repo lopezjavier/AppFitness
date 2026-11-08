@@ -30,20 +30,9 @@ import io.github.lopezjavier.appfitness.composeapp.resources.week_summary_group_
 import io.github.lopezjavier.appfitness.composeapp.resources.week_summary_group_cd_other
 import io.github.lopezjavier.appfitness.composeapp.resources.week_summary_group_line
 import io.github.lopezjavier.appfitness.composeapp.resources.week_summary_groups_header
-import io.github.lopezjavier.appfitness.composeapp.resources.week_summary_missing_records
-import io.github.lopezjavier.appfitness.composeapp.resources.week_summary_proposal
-import io.github.lopezjavier.appfitness.composeapp.resources.week_summary_proposal_applied
-import io.github.lopezjavier.appfitness.composeapp.resources.week_summary_proposal_declined
-import io.github.lopezjavier.appfitness.composeapp.resources.week_summary_proposal_pending
-import io.github.lopezjavier.appfitness.composeapp.resources.week_summary_records
 import io.github.lopezjavier.appfitness.composeapp.resources.week_summary_sessions
 import io.github.lopezjavier.appfitness.composeapp.resources.week_summary_subtitle
 import io.github.lopezjavier.appfitness.composeapp.resources.week_summary_title
-import io.github.lopezjavier.appfitness.composeapp.resources.week_summary_weigh_ins
-import io.github.lopezjavier.appfitness.composeapp.resources.week_summary_weight
-import io.github.lopezjavier.appfitness.composeapp.resources.week_summary_weight_avg_only
-import io.github.lopezjavier.appfitness.composeapp.resources.week_summary_weight_no_target
-import io.github.lopezjavier.appfitness.composeapp.resources.week_summary_weight_none
 import io.github.lopezjavier.appfitness.designsystem.AppCard
 import io.github.lopezjavier.appfitness.designsystem.AppDateFormat
 import io.github.lopezjavier.appfitness.designsystem.AppScreen
@@ -59,12 +48,9 @@ import io.github.lopezjavier.appfitness.designsystem.SkeletonBox
 import io.github.lopezjavier.appfitness.designsystem.Spacing
 import io.github.lopezjavier.appfitness.domain.model.CoachChangeStatus
 import io.github.lopezjavier.appfitness.domain.model.GroupSets
-import io.github.lopezjavier.appfitness.domain.model.ProposalStatus
-import io.github.lopezjavier.appfitness.domain.model.WeekSummary
 import io.github.lopezjavier.appfitness.domain.port.ConnectivityObserver
 import io.github.lopezjavier.appfitness.feature.exercises.label
 import kotlinx.coroutines.flow.Flow
-import org.jetbrains.compose.resources.pluralStringResource
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.koinInject
 import org.koin.compose.viewmodel.koinViewModel
@@ -86,7 +72,7 @@ fun WeekSummaryRoot(
 
 /**
  * "Resumen semanal" on [AppScreen] with back: read-only [AppCard] sections in one column (workouts, sets per muscle
- * group, weight, records, the coach changes, the calorie proposal and the deload). Loading is a skeleton, no summary
+ * group, nutrition, the coach changes and the deload). Loading is a skeleton, no summary
  * an [EmptyState], a failed load an [ErrorState] with "Reintentar" and no connection the offline state (R-31).
  */
 @Composable
@@ -166,19 +152,9 @@ private fun SummaryContent(state: WeekSummaryUiState.Content) {
             )
         }
         GroupsCard(summary.groups, "week_summary", stringResource(Res.string.week_summary_groups_header))
-        WeightCard(summary)
-        SummaryCard("week_summary_section_records") {
-            SummaryLine(
-                stringResource(
-                    Res.string.week_summary_records,
-                    summary.completeDays,
-                    pluralStringResource(Res.plurals.week_summary_weigh_ins, summary.weighInDays, summary.weighInDays),
-                ),
-            )
-        }
+        NutritionSection(summary)
         ChangesSection(state)
         StallCard(state.summary.stalls, state.exerciseNames)
-        ProposalCard(summary)
         if (WeekSummaryText.showsSeparateDeload(summary)) {
             SummaryCard("week_summary_section_deload") {
                 SummaryLine(stringResource(Res.string.coach_deload_headline))
@@ -228,33 +204,6 @@ internal fun GroupsCard(allGroups: List<GroupSets>, tagPrefix: String, header: S
     }
 }
 
-@Composable
-private fun WeightCard(summary: WeekSummary) {
-    val weight = summary.weight
-    val avg = weight?.avgKg
-    val slope = weight?.slopeKgWeek
-    val target = weight?.targetRateKgWeek
-    val text = when {
-        avg == null -> stringResource(Res.string.week_summary_weight_none)
-
-        slope == null -> stringResource(Res.string.week_summary_weight_avg_only, WeekSummaryText.kg(avg))
-
-        target == null -> stringResource(
-            Res.string.week_summary_weight_no_target,
-            WeekSummaryText.kg(avg),
-            WeekSummaryText.signedKg(slope),
-        )
-
-        else -> stringResource(
-            Res.string.week_summary_weight,
-            WeekSummaryText.kg(avg),
-            WeekSummaryText.signedKg(slope),
-            WeekSummaryText.signedKg(target),
-        )
-    }
-    SummaryCard("week_summary_section_weight") { SummaryLine(text) }
-}
-
 /** The coach's changes of the week, read-only: the shared row without actions, pending flags as plain status text. */
 @Composable
 private fun ChangesSection(state: WeekSummaryUiState.Content) {
@@ -291,30 +240,6 @@ private fun ChangesSection(state: WeekSummaryUiState.Content) {
             }
         }
     }
-}
-
-/** The calorie proposal of the week, or the gate message when records are missing (the proposal line is replaced). */
-@Composable
-private fun ProposalCard(summary: WeekSummary) {
-    val proposal = summary.calorieProposal
-    val text = when {
-        summary.missingRecords -> stringResource(Res.string.week_summary_missing_records)
-
-        proposal != null -> stringResource(
-            Res.string.week_summary_proposal,
-            WeekSummaryText.kcalDelta(proposal.proposal),
-            stringResource(
-                when (proposal.status) {
-                    ProposalStatus.Pending -> Res.string.week_summary_proposal_pending
-                    ProposalStatus.Applied -> Res.string.week_summary_proposal_applied
-                    ProposalStatus.Declined -> Res.string.week_summary_proposal_declined
-                },
-            ),
-        )
-
-        else -> null
-    }
-    if (text != null) SummaryCard("week_summary_section_proposal") { SummaryLine(text) }
 }
 
 /** Card-shaped placeholders while the summary loads (R-31). */

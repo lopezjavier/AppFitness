@@ -100,7 +100,6 @@ class SupabaseCoachSummaryRepositoryTest {
         assertEquals(4, summary.sessionsPlanned)
         assertEquals(5, summary.completeDays)
         assertEquals(3, summary.weighInDays)
-        assertFalse(summary.missingRecords)
         assertTrue(summary.deload)
         assertEquals(80.2, summary.weight?.avgKg)
         assertEquals(-0.3, summary.weight?.slopeKgWeek)
@@ -130,31 +129,6 @@ class SupabaseCoachSummaryRepositoryTest {
 
         assertEquals(listOf("c2", "c1"), changes.map { it.id })
         assertEquals(CoachChangeKind.DeloadScheduled, changes.last().kind)
-    }
-
-    @Test
-    fun getLatest_mapsTheCalorieProposalWithItsStatus() = runTest {
-        body = FULL_SUMMARY
-
-        val proposal = assertNotNull(assertNotNull(repo().getLatest(today).getOrThrow()).calorieProposal)
-
-        assertEquals(ProposalStatus.Applied, proposal.status)
-        assertEquals(2400, proposal.proposal.fromKcal)
-        assertEquals(2500, proposal.proposal.toKcal)
-        assertEquals("rate_outside_interval", proposal.proposal.reasonCode)
-    }
-
-    @Test
-    fun getLatest_pendingAndDiscardedProposalStatuses() = runTest {
-        val statuses = listOf("pending" to ProposalStatus.Pending, "discarded" to ProposalStatus.Declined)
-        val repo = repo()
-        for ((code, expected) in statuses) {
-            body = FULL_SUMMARY.replace("\"status\":\"accepted\"", "\"status\":\"$code\"")
-
-            val proposal = assertNotNull(repo.getLatest(today).getOrThrow()?.calorieProposal)
-
-            assertEquals(expected, proposal.status)
-        }
     }
 
     private fun withStalls(stalls: String) =
@@ -228,7 +202,6 @@ class SupabaseCoachSummaryRepositoryTest {
         assertEquals(0, summary.sessionsDone)
         assertTrue(summary.groups.isEmpty())
         assertTrue(summary.changes.isEmpty())
-        assertNull(summary.calorieProposal)
         assertNull(summary.weight?.avgKg)
         assertFalse(summary.deload)
     }
@@ -263,6 +236,101 @@ class SupabaseCoachSummaryRepositoryTest {
 
         body = FULL_SUMMARY
         assertFalse(assertNotNull(repo().getLatest(today).getOrThrow()).paused)
+    }
+
+    private fun withNutrition(json: String) =
+        FULL_SUMMARY.replace("\"deload\":true", "\"deload\":true,\"nutrition\":$json")
+
+    private fun decision(id: String, status: String, from: Int, to: Int) =
+        """{"id":"$id","status":"$status","from_kcal":$from,"to_kcal":$to,""" +
+            """"payload":{"from_kcal":$from,"to_kcal":$to,"change_pct":-6.3},"reason":"rate_outside_interval",""" +
+            """"created_at":"2027-01-08T10:00:00+00:00","decided_at":null}"""
+
+    @Test
+    fun getLatest_mapsTheFullNutritionObject() = runTest {
+        body = withNutrition(
+            """{"complete_days":5,"gate_ok":true,"avg_kcal":2310,"avg_protein_g":148.5,"target_kcal":2400,""" +
+                """"target_protein_g":150,"protein_g_per_kg":1.8,"decisions":[${decision(
+                    "d2",
+                    "accepted",
+                    2400,
+                    2250,
+                )},""" +
+                """${decision("d1", "pending", 2250, 2100)},${decision("d0", "discarded", 2100, 2000)}]}""",
+        )
+
+        val nutrition = assertNotNull(assertNotNull(repo().getLatest(today).getOrThrow()).nutrition)
+
+        assertEquals(5, nutrition.completeDays)
+        assertTrue(nutrition.gateOk)
+        assertEquals(2310, nutrition.avgKcal)
+        assertEquals(148.5, nutrition.avgProteinG)
+        assertEquals(2400, nutrition.targetKcal)
+        assertEquals(150, nutrition.targetProteinG)
+        assertEquals(1.8, nutrition.proteinGPerKg)
+        assertEquals(listOf("d2", "d1", "d0"), nutrition.decisions.map { it.proposal.id })
+        assertEquals(
+            listOf(ProposalStatus.Applied, ProposalStatus.Pending, ProposalStatus.Declined),
+            nutrition.decisions.map { it.status },
+        )
+        assertEquals(2400, nutrition.decisions.first().proposal.fromKcal)
+        assertEquals(2250, nutrition.decisions.first().proposal.toKcal)
+        assertEquals("rate_outside_interval", nutrition.decisions.first().proposal.reasonCode)
+    }
+
+    @Test
+    fun getLatest_gateOffNutritionHasNoFigures() = runTest {
+        body = withNutrition("""{"complete_days":4,"gate_ok":false,"decisions":[]}""")
+
+        val nutrition = assertNotNull(assertNotNull(repo().getLatest(today).getOrThrow()).nutrition)
+
+        assertEquals(4, nutrition.completeDays)
+        assertFalse(nutrition.gateOk)
+        assertNull(nutrition.avgKcal)
+        assertNull(nutrition.avgProteinG)
+        assertNull(nutrition.targetKcal)
+        assertNull(nutrition.targetProteinG)
+        assertNull(nutrition.proteinGPerKg)
+        assertTrue(nutrition.decisions.isEmpty())
+    }
+
+    @Test
+    fun getLatest_summaryWithoutNutritionKeyHasNullNutrition() = runTest {
+        body = FULL_SUMMARY
+
+        assertNull(assertNotNull(repo().getLatest(today).getOrThrow()).nutrition)
+    }
+
+    @Test
+    fun getLatest_nutritionDropsUnknownStatusDecisions() = runTest {
+        body = withNutrition(
+            """{"complete_days":5,"gate_ok":true,"decisions":[${decision("d1", "mystery", 2400, 2250)},""" +
+                """${decision("d2", "accepted", 2400, 2250)}]}""",
+        )
+
+        val nutrition = assertNotNull(assertNotNull(repo().getLatest(today).getOrThrow()).nutrition)
+
+        assertEquals(listOf("d2"), nutrition.decisions.map { it.proposal.id })
+    }
+
+    @Test
+    fun getLatest_nutritionMissingFiguresAreNull() = runTest {
+        body = withNutrition("""{"complete_days":6,"gate_ok":true}""")
+
+        val nutrition = assertNotNull(assertNotNull(repo().getLatest(today).getOrThrow()).nutrition)
+
+        assertEquals(6, nutrition.completeDays)
+        assertNull(nutrition.avgKcal)
+        assertNull(nutrition.targetKcal)
+        assertNull(nutrition.proteinGPerKg)
+        assertTrue(nutrition.decisions.isEmpty())
+    }
+
+    @Test
+    fun getLatest_pausedSummaryHasNullNutrition() = runTest {
+        body = """{"plan_id":"p1","paused":true,"start_date":"2027-01-04","end_date":"2027-01-10"}"""
+
+        assertNull(assertNotNull(repo().getLatest(today).getOrThrow()).nutrition)
     }
 
     @Test

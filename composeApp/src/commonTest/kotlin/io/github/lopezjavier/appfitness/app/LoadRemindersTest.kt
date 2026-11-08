@@ -206,9 +206,7 @@ class LoadRemindersTest {
         weight = null,
         completeDays = 5,
         weighInDays = 3,
-        missingRecords = false,
         changes = emptyList(),
-        calorieProposal = null,
         deload = false,
     )
 

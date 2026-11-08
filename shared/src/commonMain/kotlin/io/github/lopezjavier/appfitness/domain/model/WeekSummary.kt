@@ -17,12 +17,27 @@ data class WeekSummaryWeight(
 /** Decision state of a calorie proposal (`coach_recommendations.status`). */
 enum class ProposalStatus { Pending, Applied, Declined }
 
-/** The calorie proposal created within the week, with its current [status]. */
-data class WeekSummaryProposal(val proposal: CalorieProposal, val status: ProposalStatus)
+/** A calorie decision of the week (created or decided inside it) with its current [status]. */
+data class WeekSummaryDecision(val proposal: CalorieProposal, val status: ProposalStatus)
+
+/**
+ * Nutrition section of the week (07 section 4 (a)). Below 5 [completeDays] ([gateOk] false) every figure is null.
+ * [decisions] are newest first.
+ */
+data class WeekSummaryNutrition(
+    val completeDays: Int,
+    val gateOk: Boolean,
+    val avgKcal: Int?,
+    val avgProteinG: Double?,
+    val targetKcal: Int?,
+    val targetProteinG: Int?,
+    val proteinGPerKg: Double?,
+    val decisions: List<WeekSummaryDecision>,
+)
 
 /**
  * The weekly summary of the latest finished plan week (US-98), built from recorded numbers only. [seen] is stored per
- * user, plan and week. [missingRecords] is true below the data gate (04 section 8.5); [changes] are newest first.
+ * user, plan and week. [changes] are newest first.
  */
 data class WeekSummary(
     val planId: String,
@@ -36,11 +51,11 @@ data class WeekSummary(
     val weight: WeekSummaryWeight?,
     val completeDays: Int,
     val weighInDays: Int,
-    val missingRecords: Boolean,
     val changes: List<CoachChange>,
-    val calorieProposal: WeekSummaryProposal?,
     val deload: Boolean,
     val stalls: List<StallDiagnosis> = emptyList(),
+    /** Null for a paused week and for a summary built before the nutrition section existed. */
+    val nutrition: WeekSummaryNutrition? = null,
     /**
      * The week that just ended had no completed workout (US-106): only [planId], [startDate] and [endDate] are
      * meaningful, [week] is 0 and every other field is empty.
@@ -64,9 +79,7 @@ data class WeekSummary(
             weight = null,
             completeDays = 0,
             weighInDays = 0,
-            missingRecords = false,
             changes = emptyList(),
-            calorieProposal = null,
             deload = false,
             paused = true,
         )

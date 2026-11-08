@@ -234,7 +234,7 @@ private fun StatusCard(text: String) {
 private fun CalorieSection(state: BlockReviewUiState.Content, online: Boolean, onEvent: (BlockReviewEvent) -> Unit) {
     val proposal = state.calorieProposal ?: return
     CalorieProposalCard(
-        change = proposal,
+        proposal = proposal,
         deciding = state.decidingCalorie,
         online = online,
         onApply = { onEvent(BlockReviewEvent.ApplyCalorie) },

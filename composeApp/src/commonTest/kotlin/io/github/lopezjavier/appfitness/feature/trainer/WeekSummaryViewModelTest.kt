@@ -97,6 +97,17 @@ class WeekSummaryViewModelTest {
         assertNull(saved.get<String>("week_summary_marked"))
     }
 
+    @Test
+    fun summaryWithNutrition_flowsToContentUnchanged() = runTest(dispatcher) {
+        val summary = weekSummary(nutrition = weekNutrition(decisions = listOf(weekDecision())))
+        summaries.latest = Result.success(summary)
+        val model = viewModel()
+
+        advanceUntilIdle()
+
+        assertEquals(summary.nutrition, assertIs<WeekSummaryUiState.Content>(model.uiState.value).summary.nutrition)
+    }
+
     // 22:30 UTC on 9 Nov is already 10 Nov at +02:00.
     private val boundary = MutableClock(Instant.parse("2026-11-09T22:30:00Z"))
 

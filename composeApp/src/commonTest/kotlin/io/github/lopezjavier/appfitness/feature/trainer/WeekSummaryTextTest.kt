@@ -44,7 +44,26 @@ class WeekSummaryTextTest {
 
     @Test
     fun kcalDelta_carriesItsSign() {
-        assertEquals("+100", WeekSummaryText.kcalDelta(weekProposal().proposal))
+        assertEquals("+100", WeekSummaryText.kcalDelta(weekDecision().proposal))
+    }
+
+    @Test
+    fun kcalDifference_carriesItsSignWithTheRealMinus() {
+        assertEquals("−90", WeekSummaryText.kcalDifference(2310, 2400))
+        assertEquals("+120", WeekSummaryText.kcalDifference(2520, 2400))
+        assertEquals("0", WeekSummaryText.kcalDifference(2400, 2400))
+    }
+
+    @Test
+    fun proteinGrams_areWholeNumbers() {
+        assertEquals("149", WeekSummaryText.proteinGrams(148.5))
+        assertEquals("1.200", WeekSummaryText.proteinGrams(1200.0))
+    }
+
+    @Test
+    fun perKg_usesDecimalComma() {
+        assertEquals("1,8", WeekSummaryText.perKg(1.8))
+        assertEquals("1,85", WeekSummaryText.perKg(1.85))
     }
 
     @Test
