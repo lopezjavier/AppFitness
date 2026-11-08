@@ -9,6 +9,7 @@ import io.github.lopezjavier.appfitness.domain.repository.CoachPlanRepository
 import kotlinx.datetime.LocalDate
 
 /** Used when Supabase is not configured: every call fails. */
+@Suppress("TooManyFunctions") // Mirrors the interface: one failing method per plan operation.
 class UnconfiguredCoachPlanRepository : CoachPlanRepository {
     override suspend fun requestPlan(today: LocalDate): Result<CoachPlan> =
         Result.failure(AppException(AppError.Unknown))
@@ -31,6 +32,9 @@ class UnconfiguredCoachPlanRepository : CoachPlanRepository {
         cutRatePct: Double,
         dietBreak: Boolean,
     ): Result<CoachPlan> = Result.failure(AppException(AppError.Unknown))
+
+    override suspend fun setDietBreak(planId: String, today: LocalDate, dietBreak: Boolean): Result<CoachPlan> =
+        Result.failure(AppException(AppError.Unknown))
 
     override suspend fun applyDietBreak(today: LocalDate): Result<DietBreakApplication> =
         Result.failure(AppException(AppError.Unknown))

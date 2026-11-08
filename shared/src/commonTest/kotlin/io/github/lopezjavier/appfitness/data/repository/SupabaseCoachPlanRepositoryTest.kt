@@ -411,6 +411,40 @@ class SupabaseCoachPlanRepositoryTest {
     }
 
     @Test
+    fun setDietBreak_postsPlanDietBreakWithoutModel_thenReloadsThePlan() = runTest {
+        val repository = repo(respond = ::planRoutes)
+        preference.select(CoachModelChoice.Haiku)
+
+        val plan = repository.setDietBreak("p1", today, true).getOrThrow()
+
+        val call = rest().first()
+        assertTrue(call.url.encodedPath.endsWith("/functions/v1/coach"), call.url.toString())
+        assertEquals(
+            """{"kind":"plan_diet_break","input":{"today":"2026-10-29","plan_id":"p1","diet_break":true}}""",
+            bodyOf(call),
+        )
+        assertTrue(rest().last().url.toString().contains("id=eq.p1"))
+        assertEquals("p1", plan.id)
+    }
+
+    @Test
+    fun setDietBreak_invalidInput_isMapped() = runTest {
+        val repository = repo {
+            HttpStatusCode.BadRequest to """{"error":{"code":"INVALID_INPUT"}}"""
+        }
+
+        assertTrue(repository.setDietBreak("p1", today, false).isFailure)
+    }
+
+    @Test
+    fun setDietBreak_offline_isNetworkError() = runTest {
+        val repository = repo(respond = ::planRoutes)
+        offline = true
+
+        assertEquals(AppError.Network, repository.setDietBreak("p1", today, false).appErrorOrNull())
+    }
+
+    @Test
     fun applyDietBreak_callsTheRpcWithTodayAndMapsTheResult() = runTest {
         val repository = repo { HttpStatusCode.OK to """{"applied":true,"week":4,"target_kcal":2600}""" }
 
