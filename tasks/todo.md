@@ -8,7 +8,7 @@ Secrets rule: never pasted in the chat or in versioned files. The user enters th
 
 Last task ID used: T-245 (T-239…T-244 reserved by the E15 breakdown)
 
-**Next:** 👤 Checkpoint E15-A is open and is a hard gate: T-245 is merged (#554, CI green, `deploy-supabase` green), so the user re-tests the plan proposal (unconfirmed values named with a tap target, "Confirmar valores", accept without re-creating) together with the other E15-A items, with an APK built after the deploy. Only the user's feedback or approval releases it (fixes first); then T-241. Follow-ups from T-240 (no task yet): (1) SQL `app.coach_next_plan` reset with `''` instead of `'off'` (needs a migration; fold into the next backend task or T-242); (2) `LiveSessionViewModel:761` reads `currentPlan()` and sees no plan during a goal switch, it should use `acceptedPlan()`; (3) ux-reviewer notes: offline hint wording for "Mi entrenamiento" and the `CreateFailed` offline snackbar text in the new-block flow. T-245 follow-ups: Q2 stale baseline is the in-session activity level (a fully reliable version needs the level stored in the plan JSON, an edge-function change); `block_types_no_fit` has no tap (see Notes). No task is active.
+**Next:** **T-241** (fresh session). 👤 Checkpoint E15-A was approved by the user on 2026-11-08 after T-245 (#554) fixed the plan proposal; the help feedback ("?" on "Objetivo por grupo" and on "Hacer descarga la próxima semana", `05` R-46 extended to actions and step titles) is folded into T-241, no new task. Follow-ups from T-240 (no task yet): (1) SQL `app.coach_next_plan` reset with `''` instead of `'off'` (needs a migration; fold into the next backend task or T-242); (2) `LiveSessionViewModel:761` reads `currentPlan()` and sees no plan during a goal switch, it should use `acceptedPlan()`; (3) ux-reviewer notes: offline hint wording for "Mi entrenamiento" and the `CreateFailed` offline snackbar text in the new-block flow. T-245 follow-ups: Q2 stale baseline is the in-session activity level (a fully reliable version needs the level stored in the plan JSON, an edge-function change); `block_types_no_fit` has no tap (see Notes). No task is active.
 
 ## Open follow-ups carried into Phase 3
 
@@ -137,12 +137,12 @@ The user does not force time-based triggers. These items are covered by host tes
 ### Checkpoint E15-A — "Bloque nuevo" and switching goal 👤 (6 items, leave and come back included) *(epic-planner, 2026-11-08, after the user's Q1-Q5 answers; needs the user's OK)*
 
 After T-240 merges, CI green, `deploy-supabase` green with data intact (T-239). Everything here can be tried at once; nothing waits for time to pass (Q5). What to try on the phone (`python scripts/deliver-apk.py`):
-- [ ] 1. On Trainer, during your block: "Bloque nuevo" is there and "Crear plan nuevo" is gone; the goal button opens "Mi entrenamiento".
-- [ ] 2. Change your goal there (for example "Perder grasa" → "Ganar musculatura"), save, back on Trainer tap "Bloque nuevo": you read "Tus calorías pasan de {a} a {b} kcal: {fase}. El bloque actual sigue hasta que guardes el nuevo."; go back without saving and check the block, calories and Diario goals did not change.
-- [ ] 3. Do it again and save the new block: "Tu plan" shows the new phase, calories, protein and outcomes; from a cut to a gain the calories jump in one step, and no maintenance block is asked or offered.
-- [ ] 4. Change only your days per week, tap "Bloque nuevo": the builder opens pre-filled with the split options for the new days.
-- [ ] 5. "Tu plan" shows "Llevas {n} semanas en esta fase", with no warning.
-- [ ] 6. Leave the app and come back (and after the system kills it) with the goal confirmation or the builder half done: the same tab, screen and draft are restored.
+- [x] 1. On Trainer, during your block: "Bloque nuevo" is there and "Crear plan nuevo" is gone; the goal button opens "Mi entrenamiento".
+- [x] 2. Change your goal there (for example "Perder grasa" → "Ganar musculatura"), save, back on Trainer tap "Bloque nuevo": you read "Tus calorías pasan de {a} a {b} kcal: {fase}. El bloque actual sigue hasta que guardes el nuevo."; go back without saving and check the block, calories and Diario goals did not change.
+- [x] 3. Do it again and save the new block: "Tu plan" shows the new phase, calories, protein and outcomes; from a cut to a gain the calories jump in one step, and no maintenance block is asked or offered.
+- [x] 4. Change only your days per week, tap "Bloque nuevo": the builder opens pre-filled with the split options for the new days.
+- [x] 5. "Tu plan" shows "Llevas {n} semanas en esta fase", with no warning.
+- [x] 6. Leave the app and come back (and after the system kills it) with the goal confirmation or the builder half done: the same tab, screen and draft are restored.
 Out of scope here: the discomfort follow-up (Checkpoint E15-B) and every time-based item ("Pending natural-trigger feedback (E15)").
 
 ---
@@ -200,6 +200,7 @@ Out of scope here: the discomfort follow-up (Checkpoint E15-B) and every time-ba
 - [ ] A level 4-5 discomfort unresolved for 14 days (or logged at level 4-5 in 3 sessions) shows the note once; closing it keeps it closed on every device; "Ya no me molesta" removes the offer and the note.
 - [ ] The Trainer with the offer and the picker open survives background and process death (ADR-40); offline disables "Cambiar" with the standard hint.
 - [ ] RLS on every new table or column (pgTAP); `HealthDisclaimerSweepTest` and `check-ux-conventions.sh` pass.
+- [ ] Checkpoint E15-A feedback (user, 2026-11-08; `05` R-46 now covers action buttons and step titles): a `?` (`HelpButton`, Info sheet in Spanish for a user with no training knowledge) on the "Objetivo por grupo" step (what the groups and "Priorizar" / "Mantener" do) and on the "Hacer descarga la próxima semana" button (what a deload week is, when to use it and when not); sweep every Trainer screen for other action buttons, step titles and sections with training jargon and give each a `?` or record it in the task PR.
 - [ ] Final E15 regression (folded from the closure): the E15 flows (pause, welcome back, block-end notice, "Bloque nuevo", goal switch, swap, note) make no `coach` model call and leave "Uso de IA" unchanged.
 **Host tests:** pgTAP `coach_discomfort_followup.test.sql` (candidates by pattern, equipment and flagged exercises, swap across routines, outside a block, decline, note trigger at 13/14 days and at 3 sessions, dismissal, "Ya no me molesta", RLS, cascade); ViewModel tests (offer, picker, apply, decline, note dismiss, error, offline, restoration); Robolectric (card copy, picker states, note row); a no-model regression test over the E15 repositories (fake `coach` client asserts zero model calls).
 **Verification:**
