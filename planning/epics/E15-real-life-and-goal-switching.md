@@ -57,7 +57,7 @@ Feature: Welcome back
   Scenario: The notice after 14 days
     Given I did no session for 14 days or more
     When I open the Trainer tab
-    Then I see "Bienvenido de nuevo" with one line explaining that the first loads are lighter
+    Then I see "Bienvenido de nuevo" with one line explaining that the first session does not raise the loads
     And I see the action "Bloque nuevo"
 
   Scenario: Loads follow the existing return rule

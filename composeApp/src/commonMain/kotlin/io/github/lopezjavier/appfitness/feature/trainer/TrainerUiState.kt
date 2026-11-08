@@ -70,6 +70,11 @@ sealed interface TrainerUiState {
         val hasWeekSummary: Boolean = false,
         /** The block has ended and its review is open: shows "Revisión del bloque" and hides "Crear bloque". */
         val blockReviewDue: Boolean = false,
+        /**
+         * "Bienvenido de nuevo" (US-107): the latest session is 14+ days old and no session or block was saved since.
+         * Hidden while [blockReviewDue]: the review footer is the only way on then (like `NewBlockEntries`).
+         */
+        val welcomeBack: Boolean = false,
         /** Weeks started in the current calorie phase ("Llevas n semanas en esta fase"); null hides the line. */
         val weeksInPhase: PhaseWeeks? = null,
     ) : TrainerUiState {

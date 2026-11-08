@@ -20,6 +20,7 @@ import io.github.lopezjavier.appfitness.composeapp.resources.Res
 import io.github.lopezjavier.appfitness.composeapp.resources.action_retry
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_chevron_right
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_notifications
+import io.github.lopezjavier.appfitness.composeapp.resources.notifications_block_end_title
 import io.github.lopezjavier.appfitness.composeapp.resources.notifications_checkin_answered_supporting
 import io.github.lopezjavier.appfitness.composeapp.resources.notifications_checkin_answered_title
 import io.github.lopezjavier.appfitness.composeapp.resources.notifications_checkin_week
@@ -28,6 +29,7 @@ import io.github.lopezjavier.appfitness.composeapp.resources.notifications_empty
 import io.github.lopezjavier.appfitness.composeapp.resources.notifications_empty_title
 import io.github.lopezjavier.appfitness.composeapp.resources.notifications_pending_section
 import io.github.lopezjavier.appfitness.composeapp.resources.notifications_reminder_checkin
+import io.github.lopezjavier.appfitness.composeapp.resources.notifications_reminder_open_block_review
 import io.github.lopezjavier.appfitness.composeapp.resources.notifications_reminder_open_checkin
 import io.github.lopezjavier.appfitness.composeapp.resources.notifications_reminder_open_circumference
 import io.github.lopezjavier.appfitness.composeapp.resources.notifications_reminder_open_week_summary
@@ -174,6 +176,12 @@ private fun ReminderRow(
             label = stringResource(Res.string.notifications_reminder_open_week_summary)
             tag = "notification_center_row_week_summary"
             reminder.week?.let { supporting = stringResource(Res.string.notifications_week_summary_week, it) }
+        }
+
+        ReminderKind.BlockEnd -> {
+            headline = stringResource(Res.string.notifications_block_end_title)
+            label = stringResource(Res.string.notifications_reminder_open_block_review)
+            tag = "notification_center_row_block_end"
         }
     }
     AppListRow(

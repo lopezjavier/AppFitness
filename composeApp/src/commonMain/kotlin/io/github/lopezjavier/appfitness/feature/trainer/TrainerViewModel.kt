@@ -33,6 +33,7 @@ import io.github.lopezjavier.appfitness.domain.usecase.GoalChecklist
 import io.github.lopezjavier.appfitness.domain.usecase.GoalTargets
 import io.github.lopezjavier.appfitness.domain.usecase.LoadBlockReviewUseCase
 import io.github.lopezjavier.appfitness.domain.usecase.LoadWeeksInPhaseUseCase
+import io.github.lopezjavier.appfitness.domain.usecase.LoadWelcomeBack
 import io.github.lopezjavier.appfitness.domain.usecase.NutritionGoalsChecklist
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.channels.Channel
@@ -97,6 +98,7 @@ class TrainerViewModel(
     private val summaries: CoachSummaryRepository? = null,
     private val loadBlockReview: LoadBlockReviewUseCase? = null,
     private val loadWeeksInPhase: LoadWeeksInPhaseUseCase? = null,
+    private val loadWelcomeBack: LoadWelcomeBack? = null,
 ) : ViewModel() {
     private val cardioEdit = CardioEditState(savedState)
 
@@ -141,7 +143,8 @@ class TrainerViewModel(
 
     private fun openNewBlock() {
         val content = _uiState.value as? TrainerUiState.Content ?: return
-        val planId = (content.plan as? PlanSummary.Accepted)?.plan?.id?.takeIf { content.canStartNewBlock } ?: return
+        val allowed = content.canStartNewBlock && !content.blockReviewDue
+        val planId = (content.plan as? PlanSummary.Accepted)?.plan?.id?.takeIf { allowed } ?: return
         viewModelScope.launch { effectChannel.send(TrainerEffect.OpenNewBlock(planId)) }
     }
 
@@ -478,12 +481,19 @@ class TrainerViewModel(
             hasWeekSummary = summaries?.getLatest(today())?.getOrNull() != null,
             // The review opens (idempotently) once the block's last day has passed; a failed read hides the card.
             blockReviewDue = loadBlockReview?.invoke(today())?.getOrNull() != null,
+            // The welcome-back card needs the accepted plan with a saved block; a failed read hides it.
+            welcomeBack = welcomeBackFor(plan, block),
             goalsChecklist = goalsChecklistFor(plan),
             cardioEdit = cardioEdit.current((plan as? PlanSummary.Accepted)?.plan?.cardioMinutes()),
             removeBlockConfirm = confirmRemove && block is BlockSummary.Saved,
             // A failed read hides the line ("Llevas n semanas en esta fase"), never "0 semanas".
             weeksInPhase = if (plan is PlanSummary.Accepted) loadWeeksInPhase?.invoke(today())?.getOrNull() else null,
         )
+    }
+
+    private suspend fun welcomeBackFor(plan: PlanSummary, block: BlockSummary): Boolean {
+        val accepted = (plan as? PlanSummary.Accepted)?.plan?.takeIf { block is BlockSummary.Saved } ?: return false
+        return loadWelcomeBack?.invoke(accepted)?.getOrNull() == true
     }
 
     /** N1-N4 on the Diario goals in use: only for an accepted plan with edited goals, null when an input is missing. */

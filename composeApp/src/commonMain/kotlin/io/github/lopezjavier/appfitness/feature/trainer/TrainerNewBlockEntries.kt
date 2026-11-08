@@ -12,6 +12,9 @@ import io.github.lopezjavier.appfitness.composeapp.resources.trainer_my_training
 import io.github.lopezjavier.appfitness.composeapp.resources.trainer_new_block
 import io.github.lopezjavier.appfitness.composeapp.resources.trainer_new_block_action
 import io.github.lopezjavier.appfitness.composeapp.resources.trainer_plan_weeks_in_phase
+import io.github.lopezjavier.appfitness.composeapp.resources.trainer_welcome_back_line
+import io.github.lopezjavier.appfitness.composeapp.resources.trainer_welcome_back_title
+import io.github.lopezjavier.appfitness.designsystem.AppCard
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
 import io.github.lopezjavier.appfitness.designsystem.GhostButton
 import io.github.lopezjavier.appfitness.designsystem.GhostTone
@@ -40,6 +43,31 @@ internal fun NewBlockEntries(online: Boolean, onEvent: (TrainerEvent) -> Unit) {
             enabled = online,
             tone = GhostTone.Neutral,
         )
+    }
+}
+
+/** "Bienvenido de nuevo" after a break of 14+ days (US-107): one line and the "Bloque nuevo" action. */
+@Composable
+internal fun WelcomeBackCard(online: Boolean, onEvent: (TrainerEvent) -> Unit) {
+    AppCard(Modifier.fillMaxWidth().testTag("trainer_welcome_back_card")) {
+        Text(
+            text = stringResource(Res.string.trainer_welcome_back_title),
+            style = AppTheme.typography.titleMedium,
+            color = AppTheme.colors.textPrimary,
+        )
+        Text(
+            text = stringResource(Res.string.trainer_welcome_back_line),
+            style = AppTheme.typography.bodyMedium,
+            color = AppTheme.colors.textSecondary,
+        )
+        GhostButton(
+            text = stringResource(Res.string.trainer_new_block),
+            onClick = { onEvent(TrainerEvent.OpenNewBlock) },
+            modifier = Modifier.fillMaxWidth().testTag("trainer_welcome_back_new_block"),
+            enabled = online,
+            tone = GhostTone.Neutral,
+        )
+        if (!online) OfflineHint(stringResource(Res.string.trainer_new_block_action))
     }
 }
 

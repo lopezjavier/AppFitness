@@ -82,6 +82,31 @@ class NotificationCenterScreenTest {
     }
 
     @Test
+    fun blockEndNotice_isListedWithItsTitleAndOpensTheReview() {
+        val opened = mutableListOf<ReminderKind>()
+        val notice = Reminder(ReminderKind.BlockEnd, LocalDate(2026, 10, 26), days = 0)
+        show(content(reminders = listOf(notice)), opened = opened)
+
+        rule.onNodeWithText("Tu bloque ha terminado: revísalo").assertIsDisplayed()
+        rule.onNodeWithTag("notification_center_row_block_end").assertTextContains("lun, 26 oct", substring = true)
+        rule.onNodeWithTag("notification_center_row_block_end").performClick()
+
+        assertEquals(listOf(ReminderKind.BlockEnd), opened)
+    }
+
+    @Test
+    fun blockEndNotice_recreation_keepsTheRow() {
+        val tester = StateRestorationTester(rule)
+        val notice = Reminder(ReminderKind.BlockEnd, LocalDate(2026, 10, 26), days = 0)
+        tester.setContent {
+            AppTheme { NotificationCenterScreen(content(reminders = listOf(notice)), {}, {}, onBack = {}) }
+        }
+        tester.emulateSavedInstanceStateRestore()
+
+        rule.onNodeWithTag("notification_center_row_block_end").assertIsDisplayed()
+    }
+
+    @Test
     fun tappingAReminder_asksToOpenItsKind() {
         val opened = mutableListOf<ReminderKind>()
         show(content(), opened = opened)

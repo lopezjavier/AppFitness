@@ -11,10 +11,13 @@ import io.github.lopezjavier.appfitness.domain.model.MeasurementSource
 import io.github.lopezjavier.appfitness.domain.model.NotificationKind
 import io.github.lopezjavier.appfitness.domain.model.ReminderKind
 import io.github.lopezjavier.appfitness.domain.model.WeekSummary
+import io.github.lopezjavier.appfitness.feature.trainer.blockReview
 import kotlinx.coroutines.test.runTest
+import kotlinx.datetime.DatePeriod
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.atTime
+import kotlinx.datetime.plus
 import kotlinx.datetime.toInstant
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -259,6 +262,59 @@ class LoadRemindersTest {
         }
 
         assertTrue(env.load().isFailure)
+    }
+
+    private suspend fun blockEndReminders(env: ReminderEnv) =
+        env.load().getOrThrow().reminders.filter { it.kind == ReminderKind.BlockEnd }
+
+    @Test
+    fun openBlockReview_isListedDueTheDayAfterTheLastDay() = runTest {
+        val env = ReminderEnv(today).apply { reviews.review = Result.success(blockReview()) }
+
+        val reminder = blockEndReminders(env).single()
+
+        assertEquals(blockReview().endedOn.plus(DatePeriod(days = 1)), reminder.dueDate)
+    }
+
+    @Test
+    fun noOpenBlockReview_isNotListed() = runTest {
+        assertTrue(blockEndReminders(ReminderEnv(today)).isEmpty())
+    }
+
+    @Test
+    fun silencedBlockEnd_isNotListedAndTheReviewIsNotOpened() = runTest {
+        val env = ReminderEnv(today).apply {
+            reviews.review = Result.success(blockReview())
+            settings.values[NotificationKind.BlockEnd] = false
+        }
+
+        assertTrue(blockEndReminders(env).isEmpty())
+        assertEquals(0, env.reviews.opens)
+    }
+
+    @Test
+    fun failedBlockReviewRead_hidesOnlyTheBlockEndItem() = runTest {
+        val env = ReminderEnv(today).apply {
+            reviews.review = Result.failure(AppException(AppError.Network))
+            weight.rows += weightAtInstant(utc(LocalDate(2026, 10, 20), 10, 0))
+        }
+
+        val result = env.load()
+
+        assertTrue(result.isSuccess)
+        assertEquals(listOf(ReminderKind.Weight), result.getOrThrow().reminders.map { it.kind })
+    }
+
+    @Test
+    fun blockEnd_staysListedOnALaterDayAndLeavesOnceTheReviewIsClosed() = runTest {
+        val env = ReminderEnv(today).apply { reviews.review = Result.success(blockReview()) }
+        assertEquals(1, blockEndReminders(env).size)
+
+        env.clock.day = today.plus(DatePeriod(days = 3))
+        assertEquals(1, blockEndReminders(env).size)
+
+        env.reviews.review = Result.success(null)
+        assertTrue(blockEndReminders(env).isEmpty())
     }
 
     @Test

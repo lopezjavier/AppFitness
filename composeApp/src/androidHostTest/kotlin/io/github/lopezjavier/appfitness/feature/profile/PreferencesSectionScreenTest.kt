@@ -410,6 +410,20 @@ class PreferencesSectionScreenTest {
     }
 
     @Test
+    fun reminders_blockEndSwitch_isOnAndSendsItsKind() {
+        show(PreferencesSection.Reminders)
+
+        rule.onNodeWithTag("preferences_switch_block_end").performScrollTo().assertIsOn()
+        rule.onNodeWithText("Bloque terminado").assertIsDisplayed()
+        rule.onNodeWithTag("preferences_switch_block_end").performClick()
+
+        assertEquals(
+            listOf<PreferencesEvent>(PreferencesEvent.SetReminderEnabled(NotificationKind.BlockEnd, false)),
+            events,
+        )
+    }
+
+    @Test
     fun reminders_togglingASwitch_sendsSetReminderEnabled_withoutSaving() {
         show(PreferencesSection.Reminders)
 

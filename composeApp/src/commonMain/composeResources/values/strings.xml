@@ -2440,4 +2440,9 @@
     <string name="notifications_week_summary_week">Semana %1$d</string>
     <string name="notifications_reminder_open_week_summary">Abrir el resumen</string>
     <string name="preferences_reminders_week_summary">Resumen semanal</string>
+    <string name="notifications_block_end_title">Tu bloque ha terminado: revísalo</string>
+    <string name="notifications_reminder_open_block_review">Abrir la revisión del bloque</string>
+    <string name="preferences_reminders_block_end">Bloque terminado</string>
+    <string name="trainer_welcome_back_title">Bienvenido de nuevo</string>
+    <string name="trainer_welcome_back_line">Tu primer entreno no subirá las cargas.</string>
 </resources>

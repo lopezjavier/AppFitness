@@ -18,6 +18,9 @@ internal enum class NotificationKindDto(val domain: NotificationKind) {
 
     @SerialName("week_summary")
     WeekSummary(NotificationKind.WeekSummary),
+
+    @SerialName("block_end")
+    BlockEnd(NotificationKind.BlockEnd),
     ;
 
     companion object {

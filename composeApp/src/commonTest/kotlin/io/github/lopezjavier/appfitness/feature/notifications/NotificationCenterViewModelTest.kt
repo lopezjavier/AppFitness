@@ -132,6 +132,33 @@ class NotificationCenterViewModelTest {
     }
 
     @Test
+    fun anOpenBlockReview_isListedAsBlockEnd() = runTest {
+        val env = ReminderEnv(TODAY).apply {
+            reviews.review = Result.success(io.github.lopezjavier.appfitness.feature.trainer.blockReview())
+        }
+        val f = fixture(env)
+
+        f.viewModel.uiState.test {
+            assertEquals(listOf(ReminderKind.BlockEnd), content().reminders.map { it.kind })
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
+    fun aSilencedBlockEnd_isNotListed() = runTest {
+        val env = ReminderEnv(TODAY).apply {
+            reviews.review = Result.success(io.github.lopezjavier.appfitness.feature.trainer.blockReview())
+            settings.values[NotificationKind.BlockEnd] = false
+        }
+        val f = fixture(env)
+
+        f.viewModel.uiState.test {
+            assertTrue(content().reminders.isEmpty())
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
     fun aSilencedWeekSummary_isNotListed() = runTest {
         val env = ReminderEnv(TODAY).apply {
             summaries.latest = Result.success(

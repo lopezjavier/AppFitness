@@ -177,6 +177,7 @@ class PreferencesViewModel(
                     NotificationKind.Circumference -> it.copy(circumferenceReminder = event.enabled)
                     NotificationKind.WeeklyCheckIn -> it.copy(checkInReminder = event.enabled)
                     NotificationKind.WeekSummary -> it.copy(weekSummaryReminder = event.enabled)
+                    NotificationKind.BlockEnd -> it.copy(blockEndReminder = event.enabled)
                 }
             }
 
@@ -339,6 +340,7 @@ class PreferencesViewModel(
             circumferenceReminder = switches[NotificationKind.Circumference] ?: true,
             checkInReminder = switches[NotificationKind.WeeklyCheckIn] ?: true,
             weekSummaryReminder = switches[NotificationKind.WeekSummary] ?: true,
+            blockEndReminder = switches[NotificationKind.BlockEnd] ?: true,
             intention = training.intention,
             place = training.place,
             equipment = training.equipment,
@@ -457,6 +459,7 @@ class PreferencesViewModel(
         NotificationKind.Circumference -> copy(circumferenceReminder = enabled)
         NotificationKind.WeeklyCheckIn -> copy(checkInReminder = enabled)
         NotificationKind.WeekSummary -> copy(weekSummaryReminder = enabled)
+        NotificationKind.BlockEnd -> copy(blockEndReminder = enabled)
     }
 
     /**
@@ -472,6 +475,7 @@ class PreferencesViewModel(
             Triple(NotificationKind.Circumference, source.circumferenceReminder, state.saved.circumferenceReminder),
             Triple(NotificationKind.WeeklyCheckIn, source.checkInReminder, state.saved.checkInReminder),
             Triple(NotificationKind.WeekSummary, source.weekSummaryReminder, state.saved.weekSummaryReminder),
+            Triple(NotificationKind.BlockEnd, source.blockEndReminder, state.saved.blockEndReminder),
         )
         for ((kind, wanted, current) in switches) {
             if (failure != null || wanted == current) continue

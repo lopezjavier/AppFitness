@@ -1,5 +1,6 @@
 package io.github.lopezjavier.appfitness.domain.usecase
 
+import io.github.lopezjavier.appfitness.domain.model.BlockEndNotice
 import io.github.lopezjavier.appfitness.domain.model.CheckIn
 import io.github.lopezjavier.appfitness.domain.model.CheckInDay
 import io.github.lopezjavier.appfitness.domain.model.NotificationKind
@@ -25,6 +26,37 @@ class ComputeRemindersTest {
     ) = compute(today, lastWeight, lastCircumference, first, silenced)
 
     private val notice = WeekSummaryNotice("p1", 3, LocalDate(2026, 10, 25))
+
+    private val blockEnd = BlockEndNotice(LocalDate(2026, 10, 25))
+
+    @Test
+    fun blockEndNotice_isListedDueTheDayAfterTheLastDay() {
+        val result = compute(today, today, today, null, emptySet(), blockEnd = blockEnd)
+
+        assertEquals(listOf(Reminder(ReminderKind.BlockEnd, LocalDate(2026, 10, 26), 0)), result)
+    }
+
+    @Test
+    fun blockEndNotice_silencedIsSkipped() {
+        val result = compute(today, today, today, null, setOf(NotificationKind.BlockEnd), blockEnd = blockEnd)
+
+        assertTrue(result.isEmpty())
+    }
+
+    @Test
+    fun blockEndNotice_sortsByDueDateAmongOtherKinds() {
+        val result = compute(today, daysAgo(2), today, null, emptySet(), weekSummary = notice, blockEnd = blockEnd)
+
+        assertEquals(
+            listOf(ReminderKind.Weight, ReminderKind.BlockEnd, ReminderKind.WeekSummary),
+            result.map { it.kind },
+        )
+    }
+
+    @Test
+    fun withoutBlockEndNotice_noBlockEndReminder() {
+        assertTrue(run().none { it.kind == ReminderKind.BlockEnd })
+    }
 
     @Test
     fun weekSummaryNotice_isListedOnceDueOnTheWeekEnd() {

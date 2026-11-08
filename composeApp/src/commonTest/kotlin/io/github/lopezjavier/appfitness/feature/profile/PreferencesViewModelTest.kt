@@ -1416,6 +1416,20 @@ class PreferencesViewModelTest {
     }
 
     @Test
+    fun reminders_blockEndSwitch_isOnByDefault_andSavesWhenTurnedOff() = runTest {
+        val (viewModel, state) = loaded(PreferencesSection.Reminders)
+        assertEquals(true, state().form.blockEndReminder)
+
+        viewModel.onEvent(PreferencesEvent.SetReminderEnabled(NotificationKind.BlockEnd, enabled = false))
+        assertEquals(true, state().saved.blockEndReminder)
+        viewModel.onEvent(PreferencesEvent.Save)
+        advanceUntilIdle()
+
+        assertEquals(listOf(NotificationKind.BlockEnd to false), settings.writes)
+        assertEquals(false, state().saved.blockEndReminder)
+    }
+
+    @Test
     fun reminders_weekSummarySwitch_isOnByDefault_andSavesWhenTurnedOff() = runTest {
         val (viewModel, state) = loaded(PreferencesSection.Reminders)
         assertEquals(true, state().form.weekSummaryReminder)

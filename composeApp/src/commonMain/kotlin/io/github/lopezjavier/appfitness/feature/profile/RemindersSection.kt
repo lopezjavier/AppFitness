@@ -21,6 +21,7 @@ import io.github.lopezjavier.appfitness.composeapp.resources.ic_check
 import io.github.lopezjavier.appfitness.composeapp.resources.preferences_checkin_day_help_body
 import io.github.lopezjavier.appfitness.composeapp.resources.preferences_checkin_day_help_cd
 import io.github.lopezjavier.appfitness.composeapp.resources.preferences_checkin_day_row
+import io.github.lopezjavier.appfitness.composeapp.resources.preferences_reminders_block_end
 import io.github.lopezjavier.appfitness.composeapp.resources.preferences_reminders_checkin
 import io.github.lopezjavier.appfitness.composeapp.resources.preferences_reminders_checkin_help_body
 import io.github.lopezjavier.appfitness.composeapp.resources.preferences_reminders_checkin_help_cd
@@ -80,12 +81,7 @@ internal fun RemindersSection(form: PreferencesForm, onEvent: (PreferencesEvent)
                 helpContentDescription = stringResource(Res.string.preferences_reminders_checkin_help_cd),
                 helpTestTag = "preferences_reminders_checkin_help",
             )
-            AppSwitchRow(
-                label = stringResource(Res.string.preferences_reminders_week_summary),
-                checked = form.weekSummaryReminder,
-                onCheckedChange = { onEvent(PreferencesEvent.SetReminderEnabled(NotificationKind.WeekSummary, it)) },
-                modifier = Modifier.testTag("preferences_switch_week_summary"),
-            )
+            NoticeSwitches(form, onEvent)
             Row(verticalAlignment = Alignment.CenterVertically) {
                 NavigationRow(
                     label = dayLabel,
@@ -104,6 +100,25 @@ internal fun RemindersSection(form: PreferencesForm, onEvent: (PreferencesEvent)
     }
     if (picking) {
         WeekdayPicker(dayLabel, weekday, onEvent) { picking = false }
+    }
+}
+
+/** The two "Centro de avisos" notice switches: the weekly summary and the end of the block (T-243). */
+@Composable
+private fun NoticeSwitches(form: PreferencesForm, onEvent: (PreferencesEvent) -> Unit) {
+    Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+        AppSwitchRow(
+            label = stringResource(Res.string.preferences_reminders_week_summary),
+            checked = form.weekSummaryReminder,
+            onCheckedChange = { onEvent(PreferencesEvent.SetReminderEnabled(NotificationKind.WeekSummary, it)) },
+            modifier = Modifier.testTag("preferences_switch_week_summary"),
+        )
+        AppSwitchRow(
+            label = stringResource(Res.string.preferences_reminders_block_end),
+            checked = form.blockEndReminder,
+            onCheckedChange = { onEvent(PreferencesEvent.SetReminderEnabled(NotificationKind.BlockEnd, it)) },
+            modifier = Modifier.testTag("preferences_switch_block_end"),
+        )
     }
 }
 
