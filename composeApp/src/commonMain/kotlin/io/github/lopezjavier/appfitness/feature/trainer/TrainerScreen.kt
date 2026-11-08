@@ -302,6 +302,7 @@ private fun TrainerContent(
         state.calorieProposal?.let { CalorieProposalCard(it, state.decidingChange, online, onEvent) }
         CoachChangesSection(state, exerciseNames, online, onEvent, actions.onOpenExercise)
         if (state.blockReviewDue) BlockReviewEntry(actions.onOpenBlockReview)
+        if (state.welcomeBack) WelcomeBackCard(online, onEvent)
         PlanSection(
             state.plan,
             online,

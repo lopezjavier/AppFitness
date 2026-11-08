@@ -52,6 +52,7 @@ internal data class PreferencesDraft(
     val circumferenceReminder: Boolean? = null,
     val checkInReminder: Boolean? = null,
     val weekSummaryReminder: Boolean? = null,
+    val blockEndReminder: Boolean? = null,
     /** "Mi entrenamiento": enums by name, equipment as names; absent in drafts saved by older versions. */
     val intention: String? = null,
     val place: String? = null,
@@ -88,6 +89,7 @@ internal fun PreferencesForm.encodeDraft(): String = Json.encodeToString(
         circumferenceReminder = circumferenceReminder,
         checkInReminder = checkInReminder,
         weekSummaryReminder = weekSummaryReminder,
+        blockEndReminder = blockEndReminder,
         intention = intention?.name,
         place = place?.name,
         equipment = equipment.map { it.name },
@@ -130,6 +132,7 @@ internal fun decodeDraft(json: String, saved: PreferencesForm? = null): Preferen
         circumferenceReminder = draft.circumferenceReminder ?: saved?.circumferenceReminder ?: true,
         checkInReminder = draft.checkInReminder ?: saved?.checkInReminder ?: true,
         weekSummaryReminder = draft.weekSummaryReminder ?: saved?.weekSummaryReminder ?: true,
+        blockEndReminder = draft.blockEndReminder ?: saved?.blockEndReminder ?: true,
         intention = draft.intention?.let(TrainingIntention::valueOf),
         place = draft.place?.let(TrainingPlace::valueOf),
         equipment = draft.equipment.mapNotNull(::equipmentOfDraftName).toSet(),

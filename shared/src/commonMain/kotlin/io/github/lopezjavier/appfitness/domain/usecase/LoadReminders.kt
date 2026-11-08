@@ -1,5 +1,6 @@
 package io.github.lopezjavier.appfitness.domain.usecase
 
+import io.github.lopezjavier.appfitness.domain.model.BlockEndNotice
 import io.github.lopezjavier.appfitness.domain.model.NotificationKind
 import io.github.lopezjavier.appfitness.domain.model.ReminderSnapshot
 import io.github.lopezjavier.appfitness.domain.port.Clock
@@ -15,8 +16,10 @@ import kotlinx.datetime.toLocalDateTime
 /**
  * Reads the last weigh-in (any source), the last circumference, the onboarding weight day, the check-in weekday and
  * the stored check-in of the open window, plus the silenced kinds, and derives the pending reminders and the check-in
- * window, plus the unseen weekly summary notice when a [summaries] repository is given. Days are local to
- * [timeZone]. Any failed read fails the whole call, so a failure is never shown as "no reminders".
+ * window, plus the unseen weekly summary notice when a [summaries] repository is given and the block-end notice when
+ * [blockReview] is given. Days are local to [timeZone]. Any failed read fails the whole call, so a failure is never
+ * shown as "no reminders"; the exception is the block-end read, derived and also shown by the Trainer: a failure
+ * hides only that item.
  */
 @Suppress("LongParameterList") // One port per read.
 class LoadReminders(
@@ -30,6 +33,7 @@ class LoadReminders(
     private val compute: ComputeReminders,
     private val resolveCheckInDay: ResolveCheckInDay = ResolveCheckInDay(),
     private val summaries: CoachSummaryRepository? = null,
+    private val blockReview: LoadBlockReviewUseCase? = null,
 ) {
     suspend operator fun invoke(): Result<ReminderSnapshot> = runCatching {
         val today = clock.today()
@@ -45,6 +49,8 @@ class LoadReminders(
             ?.let { day -> day.copy(answer = checkIns.get(day.weekStart).getOrThrow()) }
         val notice = summaries?.takeIf { NotificationKind.WeekSummary !in silenced }
             ?.getLatest(today)?.getOrThrow()?.toNotice()
+        val blockEnd = blockReview?.takeIf { NotificationKind.BlockEnd !in silenced }
+            ?.invoke(today)?.getOrNull()?.let { BlockEndNotice(it.endedOn) }
         val reminders = compute(
             today = today,
             lastWeightDay = latestWeight?.measuredAt?.toLocalDateTime(timeZone)?.date,
@@ -54,6 +60,7 @@ class LoadReminders(
             silenced = silenced,
             checkIn = window,
             weekSummary = notice,
+            blockEnd = blockEnd,
         )
         ReminderSnapshot(reminders, window)
     }

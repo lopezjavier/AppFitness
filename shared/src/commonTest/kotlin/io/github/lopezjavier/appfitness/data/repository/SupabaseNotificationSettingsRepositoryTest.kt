@@ -67,6 +67,18 @@ class SupabaseNotificationSettingsRepositoryTest {
     }
 
     @Test
+    fun blockEndKind_mapsToBlockEndValueBothWays() = runTest {
+        val repo = signedIn("""[{"kind":"block_end","enabled":false}]""")
+
+        assertEquals(mapOf(NotificationKind.BlockEnd to false), repo.getAll().getOrThrow())
+
+        repo.setEnabled(NotificationKind.BlockEnd, true).getOrThrow()
+
+        val body = (requests.last { it.method == HttpMethod.Post }.body as TextContent).text
+        assertTrue(""""kind":"block_end"""" in body, body)
+    }
+
+    @Test
     fun getAll_withoutRows_isEmptyMeaningEnabled() = runTest {
         assertTrue(signedIn().getAll().getOrThrow().isEmpty())
     }

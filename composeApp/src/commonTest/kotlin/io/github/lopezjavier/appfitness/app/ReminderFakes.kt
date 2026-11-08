@@ -11,7 +11,9 @@ import io.github.lopezjavier.appfitness.domain.repository.CoachSummaryRepository
 import io.github.lopezjavier.appfitness.domain.repository.NotificationSettingsRepository
 import io.github.lopezjavier.appfitness.domain.repository.WeeklyCheckInRepository
 import io.github.lopezjavier.appfitness.domain.usecase.ComputeReminders
+import io.github.lopezjavier.appfitness.domain.usecase.LoadBlockReviewUseCase
 import io.github.lopezjavier.appfitness.domain.usecase.LoadReminders
+import io.github.lopezjavier.appfitness.feature.trainer.FakeCoachReviewRepository
 import io.github.lopezjavier.appfitness.feature.weight.FakeCircumferenceRepository
 import io.github.lopezjavier.appfitness.feature.weight.FakeWeightRepository
 import kotlinx.coroutines.CoroutineScope
@@ -86,6 +88,7 @@ internal class ReminderEnv(today: LocalDate, val timeZone: TimeZone = TimeZone.U
     val checkIns = FakeWeeklyCheckInRepository()
     val clock = ReminderClock(today)
     val summaries = FakeCoachSummaryRepository()
+    val reviews = FakeCoachReviewRepository()
     val load = LoadReminders(
         weight,
         circumferences,
@@ -96,6 +99,7 @@ internal class ReminderEnv(today: LocalDate, val timeZone: TimeZone = TimeZone.U
         timeZone,
         ComputeReminders(),
         summaries = summaries,
+        blockReview = LoadBlockReviewUseCase(reviews),
     )
 }
 

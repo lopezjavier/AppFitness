@@ -50,6 +50,7 @@ class NotificationCenterViewModel(
                                 ReminderKind.Circumference -> circumference
                                 ReminderKind.CheckIn -> checkInEnabled
                                 ReminderKind.WeekSummary -> stored.isEnabled(NotificationKind.WeekSummary)
+                                ReminderKind.BlockEnd -> stored.isEnabled(NotificationKind.BlockEnd)
                             }
                         },
                         today = clock.today(),

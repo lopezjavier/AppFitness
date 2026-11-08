@@ -154,6 +154,7 @@ import io.github.lopezjavier.appfitness.domain.usecase.LoadFolderBlockUseCase
 import io.github.lopezjavier.appfitness.domain.usecase.LoadNextBlockContextUseCase
 import io.github.lopezjavier.appfitness.domain.usecase.LoadReminders
 import io.github.lopezjavier.appfitness.domain.usecase.LoadWeeksInPhaseUseCase
+import io.github.lopezjavier.appfitness.domain.usecase.LoadWelcomeBack
 import io.github.lopezjavier.appfitness.domain.usecase.MarkWeekSummarySeen
 import io.github.lopezjavier.appfitness.domain.usecase.MeasurementsByDay
 import io.github.lopezjavier.appfitness.domain.usecase.OpenNewBlockUseCase
@@ -541,8 +542,10 @@ val sharedModule =
                 TimeZone.currentSystemDefault(),
                 get(),
                 summaries = get(),
+                blockReview = get(),
             )
         }
+        factory { LoadWelcomeBack(get(), get(), TimeZone.currentSystemDefault()) }
         factory { LoadCheckInSummary(get(), get(), TimeZone.currentSystemDefault()) }
         factory { SaveBodyMeasurement(get(), get(), TimeZone.currentSystemDefault(), get(), get()) }
     }

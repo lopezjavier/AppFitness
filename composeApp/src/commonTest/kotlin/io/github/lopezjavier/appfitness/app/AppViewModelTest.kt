@@ -70,6 +70,22 @@ class AppViewModelTest {
     }
 
     @Test
+    fun anOpenBlockReview_countsInTheBadge() = runTest {
+        val env = ReminderEnv(LocalDate(2026, 10, 28)).apply {
+            reviews.review = Result.success(io.github.lopezjavier.appfitness.feature.trainer.blockReview())
+        }
+        val coordinator = ReminderCoordinator(env.load, backgroundScope)
+        val viewModel = viewModel(auth = FakeAuthRepository(AuthState.SignedIn("u1")), reminders = coordinator)
+
+        viewModel.uiState.test {
+            var last = awaitItem()
+            while (last.pendingReminders != 1) last = awaitItem()
+            assertEquals(1, last.pendingReminders)
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
     fun refreshEvent_afterAWrite_lowersTheCount() = runTest {
         val env = reminderEnv()
         val coordinator = ReminderCoordinator(env.load, backgroundScope)

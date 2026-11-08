@@ -1007,18 +1007,7 @@ internal fun AppNavHost(
         composable<NotificationCenterRoute> { entry ->
             notificationCenter(
                 Modifier.padding(fullScreenPadding),
-                { kind ->
-                    when (kind) {
-                        ReminderKind.Weight -> navController.navigateToFullScreen(WeightRoute())
-
-                        ReminderKind.Circumference ->
-                            navController.navigateToFullScreen(WeightRoute(WeightEntryTarget.Circumference))
-
-                        ReminderKind.CheckIn -> navController.navigateToFullScreen(CheckInRoute)
-
-                        ReminderKind.WeekSummary -> navController.navigateToFullScreen(WeekSummaryRoute)
-                    }
-                },
+                { kind -> navController.openReminder(kind) },
                 { navController.popFullScreen(entry) },
             )
         }
@@ -1348,6 +1337,17 @@ private fun NavGraphBuilder.workoutFormDestinations(
             route.date,
             entry.workoutFormHost(navController),
         )
+    }
+}
+
+/** Opens the screen a "Centro de avisos" reminder points to. */
+private fun NavHostController.openReminder(kind: ReminderKind) {
+    when (kind) {
+        ReminderKind.Weight -> navigateToFullScreen(WeightRoute())
+        ReminderKind.Circumference -> navigateToFullScreen(WeightRoute(WeightEntryTarget.Circumference))
+        ReminderKind.CheckIn -> navigateToFullScreen(CheckInRoute)
+        ReminderKind.WeekSummary -> navigateToFullScreen(WeekSummaryRoute)
+        ReminderKind.BlockEnd -> navigateToFullScreen(BlockReviewRoute)
     }
 }
 

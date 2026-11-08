@@ -76,6 +76,7 @@ import io.github.lopezjavier.appfitness.domain.usecase.LoadExerciseCatalog
 import io.github.lopezjavier.appfitness.domain.usecase.LoadNextBlockContextUseCase
 import io.github.lopezjavier.appfitness.domain.usecase.LoadReminders
 import io.github.lopezjavier.appfitness.domain.usecase.LoadWeeksInPhaseUseCase
+import io.github.lopezjavier.appfitness.domain.usecase.LoadWelcomeBack
 import io.github.lopezjavier.appfitness.domain.usecase.MarkWeekSummarySeen
 import io.github.lopezjavier.appfitness.domain.usecase.MeasurementsByDay
 import io.github.lopezjavier.appfitness.domain.usecase.OpenNewBlockUseCase
@@ -260,6 +261,7 @@ class AppModuleTest {
                 LoadCheckInSummary::class,
                 MarkWeekSummarySeen::class,
                 LoadReminders::class,
+                LoadWelcomeBack::class,
                 CoroutineScope::class,
                 ValidateCircumference::class,
                 WaistHipRatio::class,

@@ -3,7 +3,7 @@ begin;
 create extension if not exists pgtap with schema extensions;
 set local search_path = extensions, public;
 
-select plan(17);
+select plan(21);
 
 insert into auth.users (id, email) values
   ('11111111-1111-4111-8111-111111111111', 'ana@example.com'),
@@ -12,12 +12,13 @@ insert into auth.users (id, email) values
 
 insert into public.notification_settings (user_id, kind, enabled) values
   ('22222222-2222-4222-8222-222222222222', 'weight', false),
+  ('22222222-2222-4222-8222-222222222222', 'block_end', false),
   ('33333333-3333-4333-8333-333333333333', 'weight', true);
 
 -- Schema and security
 select has_table('public', 'notification_settings', 'public.notification_settings exists');
-select enum_has_labels('public', 'notification_kind', array['weight', 'circumference', 'weekly_check_in', 'week_summary'],
-  'notification_kind has the four planned values');
+select enum_has_labels('public', 'notification_kind', array['weight', 'circumference', 'weekly_check_in', 'week_summary', 'block_end'],
+  'notification_kind has the five planned values');
 select ok(
   (select relrowsecurity and relforcerowsecurity from pg_class where oid = 'public.notification_settings'::regclass),
   'RLS is enabled and forced on notification_settings');
@@ -65,10 +66,28 @@ select throws_ok(
   $$insert into public.notification_settings (kind, enabled) values ('other', true)$$,
   '22P02', null, 'an unknown kind is rejected');
 
+-- block_end (T-243, US-109)
+select lives_ok(
+  $$insert into public.notification_settings (kind, enabled) values ('block_end', true)
+    on conflict (user_id, kind) do update set enabled = excluded.enabled$$,
+  'A upserts the block_end kind');
+select is(
+  (select enabled from public.notification_settings
+    where kind = 'block_end' and user_id = '11111111-1111-4111-8111-111111111111'),
+  true, 'A''s block_end row holds the saved value');
+select is(
+  (select count(*)::int from public.notification_settings where kind = 'block_end'),
+  1, 'A sees only their own block_end row, not B''s');
+
 reset role;
 select is(
-  (select enabled from public.notification_settings where user_id = '22222222-2222-4222-8222-222222222222'),
+  (select enabled from public.notification_settings
+    where user_id = '22222222-2222-4222-8222-222222222222' and kind = 'weight'),
   false, 'B''s row is untouched');
+select is(
+  (select enabled from public.notification_settings
+    where user_id = '22222222-2222-4222-8222-222222222222' and kind = 'block_end'),
+  false, 'B''s block_end row is untouched by A''s upsert');
 
 -- Cascade
 delete from auth.users where id = '33333333-3333-4333-8333-333333333333';

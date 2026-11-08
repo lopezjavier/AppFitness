@@ -216,6 +216,18 @@ class PreferencesRestorationTest {
     }
 
     @Test
+    fun reminders_keepTheBlockEndSwitchDraft_unsaved_afterRecreation() {
+        val tester = StateRestorationTester(rule)
+        show(tester, "avisos")
+        send(PreferencesEvent.SetReminderEnabled(NotificationKind.BlockEnd, false))
+
+        recreate(tester)
+
+        rule.onNodeWithTag("preferences_switch_block_end").performScrollTo().assertIsOff()
+        rule.onNodeWithTag("preferences_avisos_save").assertIsEnabled()
+    }
+
+    @Test
     fun myTraining_keepsTheDraft_andTheOpenIntentionPicker_afterRecreation() {
         val tester = StateRestorationTester(rule)
         show(tester, "mi_entrenamiento")

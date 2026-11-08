@@ -468,6 +468,7 @@ val uiModule =
                 summaries = get(),
                 loadBlockReview = get(),
                 loadWeeksInPhase = get(),
+                loadWelcomeBack = get(),
             )
         }
         viewModel {

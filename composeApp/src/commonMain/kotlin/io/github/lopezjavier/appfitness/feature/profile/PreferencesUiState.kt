@@ -58,6 +58,8 @@ data class PreferencesForm(
     val checkInReminder: Boolean = true,
     /** "Resumen semanal" notice (T-231). */
     val weekSummaryReminder: Boolean = true,
+    /** "Bloque terminado" notice (T-243). */
+    val blockEndReminder: Boolean = true,
     /** "Mi entrenamiento" (US-65): intention, place, equipment, days per week and session length. */
     val intention: TrainingIntention? = null,
     val place: TrainingPlace? = null,
