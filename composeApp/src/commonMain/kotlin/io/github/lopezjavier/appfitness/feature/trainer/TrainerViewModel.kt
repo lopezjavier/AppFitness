@@ -26,9 +26,11 @@ import io.github.lopezjavier.appfitness.domain.repository.CoachPlanRepository
 import io.github.lopezjavier.appfitness.domain.repository.CoachRepository
 import io.github.lopezjavier.appfitness.domain.repository.CoachSummaryRepository
 import io.github.lopezjavier.appfitness.domain.repository.CoachWeeksRepository
+import io.github.lopezjavier.appfitness.domain.repository.DiscomfortFollowUpRepository
 import io.github.lopezjavier.appfitness.domain.repository.NutritionGoalsRepository
 import io.github.lopezjavier.appfitness.domain.repository.ProfileRepository
 import io.github.lopezjavier.appfitness.domain.usecase.DecideCalorieProposalUseCase
+import io.github.lopezjavier.appfitness.domain.usecase.ExerciseNameResolver
 import io.github.lopezjavier.appfitness.domain.usecase.GoalChecklist
 import io.github.lopezjavier.appfitness.domain.usecase.GoalTargets
 import io.github.lopezjavier.appfitness.domain.usecase.LoadBlockReviewUseCase
@@ -99,6 +101,8 @@ class TrainerViewModel(
     private val loadBlockReview: LoadBlockReviewUseCase? = null,
     private val loadWeeksInPhase: LoadWeeksInPhaseUseCase? = null,
     private val loadWelcomeBack: LoadWelcomeBack? = null,
+    discomfortFollowUps: DiscomfortFollowUpRepository? = null,
+    exerciseNames: ExerciseNameResolver? = null,
 ) : ViewModel() {
     private val cardioEdit = CardioEditState(savedState)
 
@@ -109,6 +113,24 @@ class TrainerViewModel(
     val effects = effectChannel.receiveAsFlow()
 
     private var loadJob: Job? = null
+
+    private val discomfort = discomfortFollowUps?.let {
+        TrainerDiscomfortController(
+            repository = it,
+            names = exerciseNames,
+            state = _uiState,
+            savedState = savedState,
+            scope = viewModelScope,
+            send = effectChannel::send,
+            reloadHub = ::reloadHub,
+        )
+    }
+
+    /** Fresh read of the whole hub after the swap changed the block's routines. */
+    private suspend fun reloadHub() {
+        loadJob?.cancel()
+        _uiState.value = fetch()
+    }
 
     // The server accepts a date within one day of UTC today, so it is the UTC date.
     private fun today(): LocalDate = clock.now().toLocalDateTime(TimeZone.UTC).date
@@ -138,6 +160,11 @@ class TrainerViewModel(
             is TrainerEvent.OpenRange -> openRange(event.id)
             TrainerEvent.OpenNewBlock -> openNewBlock()
             TrainerEvent.OpenMyTraining -> viewModelScope.launch { effectChannel.send(TrainerEffect.OpenMyTraining) }
+            is TrainerEvent.OpenSwapPicker -> discomfort?.openPicker(event.exerciseId)
+            TrainerEvent.DismissSwapPicker -> discomfort?.dismissPicker()
+            is TrainerEvent.PickSwap -> discomfort?.pick(event.newExerciseId)
+            is TrainerEvent.DeclineSwap -> discomfort?.decline(event.exerciseId)
+            is TrainerEvent.DismissDiscomfortNote -> discomfort?.dismissNote(event.exerciseId)
         }
     }
 
@@ -437,6 +464,7 @@ class TrainerViewModel(
                         decidingChange = state.decidingChange,
                         requestingDeload = state.requestingDeload,
                         busyChangeId = state.busyChangeId,
+                        busyFollowUpExerciseId = state.busyFollowUpExerciseId,
                         cardioEdit = state.cardioEdit,
                         removingBlock = state.removingBlock,
                         provisionalCount = fresh.provisionalCount ?: state.provisionalCount,
@@ -469,6 +497,8 @@ class TrainerViewModel(
         // A restored confirmation only makes sense while the block is still saved.
         val confirmRemove = savedState.get<Boolean>(KEY_REMOVE_BLOCK_CONFIRM) == true
         if (confirmRemove && block !is BlockSummary.Saved) savedState.remove<Boolean>(KEY_REMOVE_BLOCK_CONFIRM)
+        // The swap offer and the health note; a failed read hides them. A saved picker is rebuilt from its exercise id.
+        val followUps = discomfort?.followUps().orEmpty()
         return TrainerUiState.Content(
             plan = plan,
             calorieProposal = proposal,
@@ -488,6 +518,8 @@ class TrainerViewModel(
             removeBlockConfirm = confirmRemove && block is BlockSummary.Saved,
             // A failed read hides the line ("Llevas n semanas en esta fase"), never "0 semanas".
             weeksInPhase = if (plan is PlanSummary.Accepted) loadWeeksInPhase?.invoke(today())?.getOrNull() else null,
+            discomfortFollowUps = followUps,
+            swapPicker = discomfort?.restoredPicker(followUps),
         )
     }
 

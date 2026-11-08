@@ -2445,4 +2445,20 @@
     <string name="preferences_reminders_block_end">Bloque terminado</string>
     <string name="trainer_welcome_back_title">Bienvenido de nuevo</string>
     <string name="trainer_welcome_back_line">Tu primer entreno no subirá las cargas.</string>
+    <string name="trainer_discomfort_offer_title">Molestia fuerte en %1$s</string>
+    <string name="trainer_discomfort_offer_reason">¿Cambiamos %1$s por otro del mismo movimiento hasta que acabe el bloque?</string>
+    <string name="trainer_discomfort_offer_change">Cambiar ejercicio</string>
+    <string name="trainer_discomfort_change_action">cambiar el ejercicio</string>
+    <string name="trainer_discomfort_save_action">guardar</string>
+    <string name="trainer_discomfort_save_error">No se pudo guardar. Inténtalo de nuevo.</string>
+    <string name="trainer_swap_picker_hint">Se cambiará en todas las rutinas del bloque.</string>
+    <string name="trainer_swap_picker_empty">No hay otro ejercicio del mismo movimiento con tu material.</string>
+    <string name="trainer_swap_applied">Ejercicio cambiado en todo el bloque.</string>
+    <string name="trainer_discomfort_note_days14">Esta molestia fuerte en %1$s sigue ahí desde hace 14 días. Seguimos entrenando el resto y no subimos el peso en %1$s. Puede merecer la pena que te lo revise un profesional.</string>
+    <string name="trainer_discomfort_note_sessions3">Has notado una molestia fuerte en %1$s en 3 sesiones. Seguimos entrenando el resto y no subimos el peso en %1$s. Puede merecer la pena que te lo revise un profesional.</string>
+    <string name="block_targets_help_cd">Ayuda: objetivo por grupo</string>
+    <string name="block_targets_help_body">Cada grupo muscular tiene una cantidad de series a la semana. “Priorizar” sube esa cantidad para que ese grupo progrese más rápido. “Mantener” la deja como está para conservar lo que ya tienes. Prioriza pocos grupos a la vez.</string>
+    <string name="coach_deload_help_cd">Ayuda: descarga</string>
+    <string name="coach_deload_help_title">¿Qué es una descarga?</string>
+    <string name="coach_deload_help_body">Una semana de descarga es una semana más ligera: menos series y menos peso. Sirve para recuperarte cuando llevas semanas cansado o con poco progreso. No la uses si te encuentras bien: perderías una semana de progreso.</string>
 </resources>

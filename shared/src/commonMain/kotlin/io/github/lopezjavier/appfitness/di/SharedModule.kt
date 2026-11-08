@@ -25,6 +25,7 @@ import io.github.lopezjavier.appfitness.data.repository.SupabaseCoachSummaryRepo
 import io.github.lopezjavier.appfitness.data.repository.SupabaseCoachUsageRepository
 import io.github.lopezjavier.appfitness.data.repository.SupabaseCoachWeeksRepository
 import io.github.lopezjavier.appfitness.data.repository.SupabaseDeloadRepository
+import io.github.lopezjavier.appfitness.data.repository.SupabaseDiscomfortFollowUpRepository
 import io.github.lopezjavier.appfitness.data.repository.SupabaseDiscomfortRepository
 import io.github.lopezjavier.appfitness.data.repository.SupabaseExerciseRepository
 import io.github.lopezjavier.appfitness.data.repository.SupabaseFavoriteExercisesRepository
@@ -61,6 +62,7 @@ import io.github.lopezjavier.appfitness.data.repository.UnconfiguredCoachSummary
 import io.github.lopezjavier.appfitness.data.repository.UnconfiguredCoachUsageRepository
 import io.github.lopezjavier.appfitness.data.repository.UnconfiguredCoachWeeksRepository
 import io.github.lopezjavier.appfitness.data.repository.UnconfiguredDeloadRepository
+import io.github.lopezjavier.appfitness.data.repository.UnconfiguredDiscomfortFollowUpRepository
 import io.github.lopezjavier.appfitness.data.repository.UnconfiguredDiscomfortRepository
 import io.github.lopezjavier.appfitness.data.repository.UnconfiguredExerciseRepository
 import io.github.lopezjavier.appfitness.data.repository.UnconfiguredFavoriteExercisesRepository
@@ -101,6 +103,7 @@ import io.github.lopezjavier.appfitness.domain.repository.CoachSummaryRepository
 import io.github.lopezjavier.appfitness.domain.repository.CoachUsageRepository
 import io.github.lopezjavier.appfitness.domain.repository.CoachWeeksRepository
 import io.github.lopezjavier.appfitness.domain.repository.DeloadRepository
+import io.github.lopezjavier.appfitness.domain.repository.DiscomfortFollowUpRepository
 import io.github.lopezjavier.appfitness.domain.repository.DiscomfortRepository
 import io.github.lopezjavier.appfitness.domain.repository.ExerciseRepository
 import io.github.lopezjavier.appfitness.domain.repository.FavoriteExercisesRepository
@@ -328,6 +331,14 @@ val sharedModule =
                 SupabaseDiscomfortRepository(client.auth, client.postgrest)
             } else {
                 UnconfiguredDiscomfortRepository()
+            }
+        }
+        single<DiscomfortFollowUpRepository> {
+            if (get<AppConfig>().isSupabaseConfigured) {
+                val client = get<SupabaseClient>()
+                SupabaseDiscomfortFollowUpRepository(client.auth, client.postgrest)
+            } else {
+                UnconfiguredDiscomfortFollowUpRepository()
             }
         }
         single<TrainingStatsRepository> {

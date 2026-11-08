@@ -13,6 +13,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import io.github.lopezjavier.appfitness.composeapp.resources.Res
 import io.github.lopezjavier.appfitness.composeapp.resources.block_week_paused
+import io.github.lopezjavier.appfitness.composeapp.resources.coach_deload_help_body
+import io.github.lopezjavier.appfitness.composeapp.resources.coach_deload_help_cd
+import io.github.lopezjavier.appfitness.composeapp.resources.coach_deload_help_title
 import io.github.lopezjavier.appfitness.composeapp.resources.coach_deload_request
 import io.github.lopezjavier.appfitness.composeapp.resources.coach_deload_request_offline
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_check
@@ -38,6 +41,7 @@ import io.github.lopezjavier.appfitness.designsystem.AppNumberFormat
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
 import io.github.lopezjavier.appfitness.designsystem.GhostButton
 import io.github.lopezjavier.appfitness.designsystem.GhostTone
+import io.github.lopezjavier.appfitness.designsystem.HelpButton
 import io.github.lopezjavier.appfitness.designsystem.ListSectionHeader
 import io.github.lopezjavier.appfitness.designsystem.OfflineHint
 import io.github.lopezjavier.appfitness.designsystem.Spacing
@@ -67,14 +71,22 @@ internal fun PlanWeeksSection(
         BlockPauseLines(pause)
         weeks.forEach { WeekCard(it) }
         if (request.available) {
-            GhostButton(
-                text = stringResource(Res.string.coach_deload_request),
-                onClick = request.onRequest,
-                modifier = Modifier.testTag("trainer_deload_request"),
-                enabled = request.online && !request.busy,
-                tone = GhostTone.Neutral,
-                loading = request.busy,
-            )
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                GhostButton(
+                    text = stringResource(Res.string.coach_deload_request),
+                    onClick = request.onRequest,
+                    modifier = Modifier.weight(1f).testTag("trainer_deload_request"),
+                    enabled = request.online && !request.busy,
+                    tone = GhostTone.Neutral,
+                    loading = request.busy,
+                )
+                HelpButton(
+                    contentDescription = stringResource(Res.string.coach_deload_help_cd),
+                    title = stringResource(Res.string.coach_deload_help_title),
+                    body = stringResource(Res.string.coach_deload_help_body),
+                    testTag = "trainer_deload_help",
+                )
+            }
             if (!request.online) OfflineHint(stringResource(Res.string.coach_deload_request_offline))
         }
     }
