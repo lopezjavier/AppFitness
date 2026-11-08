@@ -10,7 +10,7 @@
 
 **Non-goals.** Meal plans; refeeds; reverse dieting; medical advice or diagnosis; fibre, alcohol and micronutrient targets; a fifth tab or a second weekly summary; any model call.
 
-**Approach chosen and why.** Extend the E14 weekly summary (US-98) and the "¿Por qué no progreso?" engine (US-105) with a nutrition variant, instead of building a parallel screen. The diet break is a proposal inside the cut plan, off by default, never automatic (`07` §4; Poon 2025 meta-analysis: same fat loss and lean mass, less hunger). Rules that `07` does not hold are recorded there by `fitness-scientist` first.
+**Approach chosen and why.** Extend the E14 weekly summary (US-98) and the "¿Por qué no progreso?" engine (US-105) with a nutrition variant, instead of building a parallel screen. The diet break is a proposal inside the cut plan, off by default, never automatic (`07` §4: same fat loss in the Poon 2025 meta-analysis; same lean mass and less hunger in the Peos 2021 RCT). Rules that `07` does not hold are recorded there by `fitness-scientist` first.
 
 ## Rules
 `07` §4, §12.3; `04` §8; E14 US-98, US-99, US-105; ADR-98.
@@ -51,8 +51,10 @@ Feature: Why am I not progressing (nutrition)
 
   Scenario: The first cause only
     Given my weight trend is outside the target rate range for two weeks
-    Then I see only the first cause that applies, in this order: logging, average calories, protein, weekend pattern, sleep or steps
+    Then I see only the first result that applies, in this order: logging, average calories (with its weekend variant), "Meseta" (US-114), "Sin causa clara"
     And one line with one action
+    # Amended 2026-11-08 (fitness-scientist, `07` §4 "Nutrition follow-up (E16)" (b)): protein, sleep and steps are dropped
+    # (no evidence-backed threshold for a weight-trend miss); the weekend pattern is a variant of the calorie cause.
 
   Scenario: No clear cause
     Given none of the checks applies
@@ -72,6 +74,7 @@ Feature: Plateau explanation
 
   Scenario: Two stable weeks with good logging
     Given my weight trend was flat for two weeks and I logged 6 or more days each week
+    And no cause of US-113 applies
     Then I see "Meseta" with the trend and its uncertainty range
     And the text says it is not a failure
 
