@@ -6,11 +6,11 @@ Operating instructions: [`CLAUDE.md`](../CLAUDE.md). Phase 1 history (frozen): [
 Legend: **👤** = done by the user (accounts, web consoles, secrets) · **PM** = done by Claude Code.
 Secrets rule: never pasted in the chat or in versioned files. The user enters them in their terminal or in the consoles, and Claude only verifies that they exist.
 
-Last task ID used: T-256 (T-251…T-256 reserved by the E17 breakdown; T-246…T-249 by E16; T-239…T-244 by E15; T-250 = user-reported fix below)
+Last task ID used: T-259 (T-257…T-259 = ADR-104 hard energy check, Checkpoint E17 feedback; T-251…T-256 reserved by the E17 breakdown; T-246…T-249 by E16; T-239…T-244 by E15; T-250 = user-reported fix below)
 
 **Done in the T-246 branch (user report, 2026-11-08; the user ordered it into the current branch, so it ships in T-246's PR as a separate `fix(T-250)` commit):** `fix(T-250)`: the `food-photo` dish prompt (`supabase/functions/food-photo/prompts.ts`) never says whether the per-100 g values are for the food as served; a 400 g cooked plate came back with raw-food kcal/100 g. Fix: the dish prompt states that values and `estimated_grams` describe the food as shown in the photo (cooked when cooked), with a handler/prompt test and a redeploy of `food-photo`. Backend only, no model-call change elsewhere.
 
-**Next:** T-255 merged (PR #585, CI green; the last E17 implementation task). Nothing else starts: **Checkpoint E17** (10 items, under the E17 section) is open and its approval releases T-256. T-255 notes: for an OFF food the energy warning offers "Ahora no" (closes it) and "Añadir igualmente" (copies, flags, adds) instead of "Corregir"/"Guardar igualmente", because no editor exists before the copy (the copy is made on add, favourite star or comida item, never on viewing); the star on an OFF row turns it into the copy in place. Accepted gaps: no `BarcodeScanFlowTest` case, no copy-editor restoration test, no explicit no-coach/AI-usage assertion (E20 closure check). Optional pr-reviewer leftovers: `FoodSearchViewModel.emitTextSearch` sorts favourites first only from the favourites already loaded; `AddFoodViewModel.addOff` waits on `energyCheck.first { it != null }` with no timeout.
+**Next (2026-11-09, ADR-104):** Checkpoint E17 feedback received: items 6-10 approved, items 1-5 superseded. Next task: **T-257** (hard energy check: backend and AI prompt), then T-258, T-259 and **Checkpoint E17-fix**; T-256 waits for it. (Previous pointer follows.) T-255 merged (PR #585, CI green; the last E17 implementation task). Nothing else starts: **Checkpoint E17** (10 items, under the E17 section) is open and its approval releases T-256. T-255 notes: for an OFF food the energy warning offers "Ahora no" (closes it) and "Añadir igualmente" (copies, flags, adds) instead of "Corregir"/"Guardar igualmente", because no editor exists before the copy (the copy is made on add, favourite star or comida item, never on viewing); the star on an OFF row turns it into the copy in place. Accepted gaps: no `BarcodeScanFlowTest` case, no copy-editor restoration test, no explicit no-coach/AI-usage assertion (E20 closure check). Optional pr-reviewer leftovers: `FoodSearchViewModel.emitTextSearch` sorts favourites first only from the favourites already loaded; `AddFoodViewModel.addOff` waits on `energyCheck.first { it != null }` with no timeout.
 
 ## Open follow-ups carried into Phase 3
 
@@ -200,6 +200,51 @@ Out of scope here (host tests and pgTAP only): no other account's data is read o
 
 ---
 
+## Follow-up to Checkpoint E17: hard energy check (ADR-104) *(user feedback at Checkpoint E17, 2026-11-09)*
+
+The user approved the rest of Checkpoint E17 (items 6-10 and the OFF copy flow); items 1-5 are superseded by ADR-104. Order: T-257 → T-258 → T-259 → **👤 Checkpoint E17-fix** → T-256 (closure). Each is a separate session (`/clear` between them).
+
+## T-257: Energy check as a hard block: backend and AI prompt (ADR-104) · M
+
+**Story:** US-116/US-117 amended (ADR-104) · **Flow:** fitness-scientist (confirms `07` section 4: blocking level, flag and audit removed, retry contract) → planner → backend-developer → pr-reviewer → pr-creator · **Size:** M
+**Description:** Migration: `create_personal_food`, `update_personal_food` and `copy_off_food` reject a food that fails `food_energy_check` (error code for the app); drop `energy_check_saved_anyway`, trigger `foods_energy_flag`, the `p_saved_anyway` parameters and `food_energy_audit()`. `food-photo`: dish and label prompts require consistent kcal and macros; the handler runs the check and returns the issue (declared kcal, macro kcal, gap) when it still fails; it accepts the previous estimate and the failure reason to retry. Update `03`, `04` section 2, `07` section 4 and the tests (pgTAP, Deno).
+**Acceptance criteria:**
+- [ ] No RPC stores or updates a failing food; existing failing rows and diary snapshots are untouched.
+- [ ] The flag, trigger, parameters and audit RPC no longer exist; `food_energy_check` is unchanged.
+- [ ] A `food-photo` response that fails the check carries the issue; a retry call with the previous estimate and the reason is accepted and the prompt includes both.
+- [ ] `deploy-supabase` green on `main`; `food-photo`, `food-search`, `food-barcode` redeployed.
+**Dependencies:** none (T-255 merged). **Estimated scope:** M
+
+## T-258: Energy check as a hard block: app, AI retry, audit UI removed (ADR-104) · M
+
+**Story:** US-116/US-117 amended (ADR-104) · **Flow:** planner → ux-reviewer (plan) → kotlin-core-developer → compose-ui-developer → pr-reviewer ∥ ux-reviewer (diff) → pr-creator · **Size:** M
+**Description:** Remove the audit (screen, route, hub row "Revisar alimentos", strings, tests, `05` section 10 entry) and "Guardar igualmente"/the flag from every form. Every path (manual, edit, AI dish, label scan, OFF product) shows the issue and blocks saving until consistent; an OFF product is corrected before its copy is created. AI forms show the issue with a retry icon button that re-calls the estimate with the previous estimate and the reason. Update `05` section 8/10.
+**Acceptance criteria:**
+- [ ] A failing food cannot be saved from any form; the warning shows declared kcal, macro kcal and the gap, and no button saves it.
+- [ ] An AI estimate that fails shows the issue and the retry button; retry sends the previous estimate and the reason and fills the form with the new result.
+- [ ] "Revisar alimentos" and "Guardar igualmente" appear nowhere; `check-ux-conventions.sh` passes.
+- [ ] The form, the issue and the retry state survive background and process death (ADR-40).
+**Dependencies:** T-257 merged and deployed. **Estimated scope:** M
+
+## T-259: Fix the user's existing wrong foods (ADR-104) · S (backend-developer, data)
+
+**Flow:** backend-developer lists the user's failing foods read-only (`food_energy_check`), proposes a correction for each from the label/portion data and sources; the PM asks the user for the ones that cannot be derived; the approved corrections are applied by a one-off script (no personal data in the repo; the user enters any credential); a final read shows none fails and diary totals did not change (snapshots untouched).
+**Acceptance criteria:**
+- [ ] Every food of the user passes `food_energy_check`; nothing else changed; the PR body records counts only.
+**Dependencies:** T-258 merged. **Estimated scope:** S
+
+### Checkpoint E17-fix — Hard energy check 👤 (7 items, leave and come back included) *(only these tests; its approval releases T-256)*
+
+- [ ] 1. Create a food with 500 kcal and 10/30/10 g: "Guardar" is blocked, the issue shows 500 vs 250 kcal and there is no "Guardar igualmente"; correct it and it saves.
+- [ ] 2. Edit an existing food into a mismatch: blocked. A red wine without "Alcohol (g)" is blocked; with 9,5 g it saves. A black coffee saves.
+- [ ] 3. Add a food from a dish photo and from a label photo: the form arrives consistent, or shows the issue with a retry icon button; tap it and the estimate is redone and corrected.
+- [ ] 4. An Open Food Facts product whose numbers do not match cannot be added until you correct it.
+- [ ] 5. "Revisar alimentos" is gone from Preferencias; none of your foods fails; the Diario totals of past days are unchanged.
+- [ ] 6. The foods the PM asked you about are as you told them.
+- [ ] 7. Leave the app and come back (and after the system kills it) with a blocked form and with the retry state open: the same screen and draft are restored.
+
+---
+
 ## T-256: E17 closure → `v1.x` · closure step (PM only, not a developer task)
 
 **Story:** E17 Definition of Done · **Flow:** PM closure step after Checkpoint E17 is approved (its approval releases this step; no checkpoint of its own). No developer agent, no size class; it cannot merge into a task because it waits for the checkpoint approval.
@@ -211,7 +256,7 @@ Out of scope here (host tests and pgTAP only): no other account's data is read o
 - [ ] Version bumped; `tasks/todo.md` pointer updated through a PR.
 **Verification:**
 - [ ] `git tag` lists the E17 tag.
-**Dependencies:** Checkpoint E17 approved.
+**Dependencies:** Checkpoint E17 approved (done, items 6-10) and Checkpoint E17-fix approved.
 **Files likely touched:** `androidApp/build.gradle.kts`, `tasks/todo.md`, `tasks/plan.md`, `planning/09-open-questions.md`, `planning/01-scope.md`, `planning/epics/E17-food-data-quality.md`, `retrospectives/E17.md`
 **Estimated scope:** closure step (PM)
 

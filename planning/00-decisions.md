@@ -4,7 +4,7 @@ Live index of every closed decision, one line per ADR, with the numbers kept sin
 
 ## New ADRs go here
 
-Phase 3 ADRs continue the numbering (next: **ADR-103**) and are written **in full** in this file, below the index, with their one-line row in the index. Format: context -> decision -> consequences. A new decision also updates the affected live docs.
+Phase 3 ADRs continue the numbering (next: **ADR-105**) and are written **in full** in this file, below the index, with their one-line row in the index. Format: context -> decision -> consequences. A new decision also updates the affected live docs.
 
 ## Index (Phase 1, ADR-01..72)
 
@@ -125,6 +125,7 @@ The rows of ADR-93, 94, 98 and 99 are added here: the Phase 2 archive index lack
 | 101 | Phase 3 is the last phase: personal-use scope (one person plus an optional test account), items left out are out of scope for the app, Open Food Facts becomes a fallback that copies into editable personal foods, then maintenance mode | Amends 53, 90 |
 | 103 | Phase 3 epics re-split: E18 functional improvements, E19 UI review, E20 Closure; Anthropic removed (restores "100 % free"), reports stored, a Gemini exercise chat | Supersedes 77, 90 (cost caps); amends 101 |
 | 102 | Food energy check (E17): optional `alcohol_g_100` in grams per 100 base units, per-food "saved anyway" flag cleared by a trigger when an input changes, one SQL check function and an owner-scoped audit RPC (rule in `07` section 4) | — |
+| 104 | Food energy check becomes a hard block (E17 checkpoint feedback): a food whose kcal and macros disagree cannot be saved by any path (manual, edit, AI photo, OFF copy); the AI estimate must be consistent or the app shows the issue with a retry that feeds the failed estimate back; the "saved anyway" flag, "Guardar igualmente" and the food audit are removed | Supersedes parts of 102 |
 
 ## Phase 3 ADRs (full text)
 
@@ -161,3 +162,14 @@ The rows of ADR-93, 94, 98 and 99 are added here: the Phase 2 archive index lack
 - **Approval:** user, 2026-11-09 (chat).
 
 Older ADRs: [`phase2/00-decisions.md`](phase2/00-decisions.md) (73-100) and [`phase1/00-decisions.md`](phase1/00-decisions.md) (01-72).
+
+### ADR-104 — Food energy check is a hard block; AI estimates are validated and retried; no "saved anyway", no audit UI (supersedes parts of ADR-102)
+- **Context:** at Checkpoint E17 (2026-11-09) the user found about 10 AI-estimated foods in their account whose kcal and macros disagree, the audit screen is a chore they do not want, and a warning that can be ignored lets wrong foods in. The root cause is the `food-photo` prompt, which never required the estimate to be self-consistent.
+- **Decision (user, 2026-11-09):**
+  - **No incorrect food, by any path.** A food that fails the energy check (`mismatch` level of `07` section 4, unless `fitness-scientist` justifies another level in T-257) cannot be created or edited into that state: manual create, edit, AI dish estimate, label scan and the OFF copy. The form shows the issue and blocks "Guardar"; there is no "Guardar igualmente".
+  - **AI estimates.** The `food-photo` prompts state that kcal must agree with the macros, fibre, polyols and alcohol (the `07` formula) and that an inconsistent estimate is not allowed. The Edge Function runs the check on the result; when it still fails, the app shows the warning with the issue (declared kcal, macro kcal, gap) and a retry button with an icon. Retry re-calls the model with the previous estimate and the reason it failed appended to the prompt.
+  - **Removed:** `foods.energy_check_saved_anyway`, trigger `foods_energy_flag`, the `p_saved_anyway` parameters, `food_energy_audit()` and the audit UI (route, "Revisar alimentos" hub row, screen, strings, tests). `food_energy_check` stays and becomes the enforcement function (`create_personal_food`, `update_personal_food`, `copy_off_food` reject a failing food).
+  - **Existing wrong foods** are fixed by the PM through a backend-developer task (one-off, nothing personal committed); foods whose true values cannot be derived are asked about to the user.
+  - **Open Food Facts product that fails the check (PM recommendation, recorded in the PR):** it is not added as is; the user corrects it first, and the copy is created only with consistent values.
+- **Consequences:** a CHECK constraint is not used, so existing rows and diary snapshots stay readable; the rule is enforced on write. Redeploy `food-photo`, `food-search` and `food-barcode` with the migration. Docs `03`, `04` section 2, `05` section 8 and 10, `07` section 4 and the E17 epic are updated in T-257/T-258.
+- **Approval:** user, 2026-11-09 (chat, Checkpoint E17 feedback).
