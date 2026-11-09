@@ -3,7 +3,7 @@ begin;
 create extension if not exists pgtap with schema extensions;
 set local search_path = extensions, public;
 
-select plan(26);
+select plan(23);
 
 insert into auth.users (id, email) values
   ('11111111-1111-4111-8111-111111111111', 'ana@example.com'),
@@ -11,7 +11,7 @@ insert into auth.users (id, email) values
 
 insert into public.foods (id, source, barcode, name, brand, base_unit, kcal_100, protein_100, carbs_100, fat_100,
                           alcohol_g_100, serving_label, serving_amount, image_url, off_data) values
-  ('0ff00000-0000-4000-8000-000000000001', 'off', '1000000000001', 'Galletas OFF', 'Marca', 'g', 500, 10, 30, 10,
+  ('0ff00000-0000-4000-8000-000000000001', 'off', '1000000000001', 'Galletas OFF', 'Marca', 'g', 275, 10, 30, 10,
    4.5, '1 galleta', 12.5, 'https://img.example/1.jpg',
    '{"nutriments":{"fiber_100g":2.5,"salt_100g":"0.5","vitamin-c_100ml":0.01,"iron_100g":10000,"zinc_100g":"abc","calcium_100g":-1,"sugars_100g":3.25}}'),
   ('0ff00000-0000-4000-8000-000000000002', 'off', '1000000000002', 'Bebida OFF', null, 'ml', 40, 1, 8, 0.5,
@@ -37,7 +37,7 @@ grant all on snap to authenticated;
 select ok(not has_function_privilege('anon', 'public.copy_off_food(uuid)', 'execute'), 'anon cannot execute copy_off_food');
 select ok(has_function_privilege('authenticated', 'public.copy_off_food(uuid)', 'execute'),
   'authenticated can execute copy_off_food');
-select ok(not has_function_privilege('authenticated', 'public.copy_off_food_core(uuid, uuid)', 'execute'),
+select ok(not has_function_privilege('authenticated', 'public.copy_off_food_core(uuid, uuid, boolean)', 'execute'),
   'authenticated cannot execute the core (a user cannot copy for someone else)');
 
 -- off_micronutrients
@@ -68,14 +68,14 @@ select results_eq(
   $$ select name, brand, barcode, base_unit::text, kcal_100, protein_100, carbs_100, fat_100, alcohol_g_100,
             serving_label, serving_amount, image_url
      from public.foods where id = (select id from ids where k = 'a1') $$,
-  $$ values ('Galletas OFF'::text, 'Marca'::text, '1000000000001'::text, 'g'::text, 500::numeric, 10::numeric,
+  $$ values ('Galletas OFF'::text, 'Marca'::text, '1000000000001'::text, 'g'::text, 275::numeric, 10::numeric,
              30::numeric, 10::numeric, 4.5::numeric, '1 galleta'::text, 12.5::numeric, 'https://img.example/1.jpg'::text) $$,
   'the copy carries name, brand, barcode, macros, alcohol, serving and image');
 select results_eq(
-  $$ select source::text, created_by, energy_check_saved_anyway, off_data, off_id
+  $$ select source::text, created_by, off_data, off_id
      from public.foods where id = (select id from ids where k = 'a1') $$,
-  $$ values ('user'::text, '11111111-1111-4111-8111-111111111111'::uuid, false, null::jsonb, null::text) $$,
-  'the copy is a personal food of Ana, flag false, without off_data or off_id');
+  $$ values ('user'::text, '11111111-1111-4111-8111-111111111111'::uuid, null::jsonb, null::text) $$,
+  'the copy is a personal food of Ana, without off_data or off_id');
 select is((select micronutrients from public.foods where id = (select id from ids where k = 'a1')),
   '{"fiber_100g":2.5,"salt_100g":0.5,"vitamin-c_100g":0.01,"sugars_100g":3.25}'::jsonb,
   'the copy carries the mapped micronutrients');
@@ -100,17 +100,11 @@ select throws_ok($$ select public.copy_off_food('99999999-9999-4999-8999-9999999
   'an unknown id is rejected');
 select throws_ok($$ select public.copy_off_food(null) $$, 'P0002', 'food not found', 'a null id is rejected');
 
--- Editable and audited
-select is((select count(*) from public.food_energy_audit() where food_id = (select id from ids where k = 'a1')), 1::bigint,
-  'a copy that fails the energy check shows up in the audit');
-select is((select count(*) from public.foods where id = (select id from ids where k = 'a3') and energy_check_saved_anyway),
-  0::bigint, 'a copy is never created flagged');
+-- Editable
 select lives_ok(
   $$ select public.update_personal_food((select id from ids where k = 'a1'), 'Galletas', 'Marca', 250, 10, 30, 10,
        '[]'::jsonb, '{"fiber_100g":2.5}'::jsonb) $$,
   'the copy is editable with update_personal_food');
-select is((select count(*) from public.food_energy_audit() where food_id = (select id from ids where k = 'a1')), 0::bigint,
-  'the corrected copy leaves the audit');
 
 -- Bea
 select set_config('request.jwt.claims',

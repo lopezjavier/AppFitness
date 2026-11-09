@@ -146,14 +146,14 @@ select set_config('request.jwt.claims',
 create temp table result (k text, id uuid);
 grant all on result to authenticated;
 
-insert into result select 'full', public.create_personal_food('Con etiqueta RPC', null, 'g', 100, 1, 2, 3, null, '[]'::jsonb,
+insert into result select 'full', public.create_personal_food('Con etiqueta RPC', null, 'g', 39, 1, 2, 3, null, '[]'::jsonb,
   '{"saturated-fat_100g":1.5,"sugars_100g":4,"fiber_100g":0,"salt_100g":0.5}'::jsonb);
 select is(
   (select micronutrients from public.foods where id = (select id from result where k = 'full')),
   '{"saturated-fat_100g":1.5,"sugars_100g":4,"fiber_100g":0,"salt_100g":0.5}'::jsonb,
   'the RPC stores the four label values');
 
-insert into result select 'empty', public.create_personal_food('Etiqueta vacia', null, 'g', 100, 1, 2, 3, null, '[]'::jsonb, '{}'::jsonb);
+insert into result select 'empty', public.create_personal_food('Etiqueta vacia', null, 'g', 39, 1, 2, 3, null, '[]'::jsonb, '{}'::jsonb);
 select is((select micronutrients from public.foods where id = (select id from result where k = 'empty')), null,
   'an empty object is stored as null');
 
@@ -162,7 +162,7 @@ insert into result select 'partial', public.create_personal_food('Solo fibra', n
 select is((select micronutrients from public.foods where id = (select id from result where k = 'partial')),
   '{"fiber_100g":3}'::jsonb, 'a single typed value is stored alone');
 
-insert into result select 'legacy', public.create_personal_food('Sin argumento', null, 'g', 100, 1, 2, 3, null, '[]'::jsonb);
+insert into result select 'legacy', public.create_personal_food('Sin argumento', null, 'g', 39, 1, 2, 3, null, '[]'::jsonb);
 select is((select micronutrients from public.foods where id = (select id from result where k = 'legacy')), null,
   'the legacy 9-argument call still works and stores null');
 

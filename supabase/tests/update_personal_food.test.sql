@@ -53,7 +53,7 @@ insert into snap select 'before', md5(string_agg(to_jsonb(e)::text, '|' order by
 grant all on snap to authenticated;
 
 select has_function('public', 'update_personal_food',
-  array['uuid', 'text', 'text', 'numeric', 'numeric', 'numeric', 'numeric', 'jsonb', 'jsonb', 'text', 'numeric', 'boolean'], 'update_personal_food exists');
+  array['uuid', 'text', 'text', 'numeric', 'numeric', 'numeric', 'numeric', 'jsonb', 'jsonb', 'text', 'numeric'], 'update_personal_food exists');
 select hasnt_function('public', 'update_personal_food',
   array['uuid', 'text', 'text', 'numeric', 'numeric', 'numeric', 'numeric', 'jsonb', 'jsonb', 'text'], 'the 10-argument version is gone');
 select has_function('public', 'personal_food_in_use', array['uuid'], 'personal_food_in_use exists');
@@ -99,10 +99,10 @@ select is((select h from snap where k = 'after2'), (select h from snap where k =
   'log entries are unchanged after removing a portion');
 
 -- Atomicity -----------------------------------------------------------------
-select public.update_personal_food('aaaaaaaa-0000-4000-8000-000000000001', 'Estable', null, 10, 1, 1, 1,
+select public.update_personal_food('aaaaaaaa-0000-4000-8000-000000000001', 'Estable', null, 10, 1, 1, 0,
   '[{"label":"A","amount":1}]'::jsonb, '{"salt_100g":1}'::jsonb);
 select throws_ok(
-  $$select public.update_personal_food('aaaaaaaa-0000-4000-8000-000000000001', 'Roto', null, 99, 9, 9, 9,
+  $$select public.update_personal_food('aaaaaaaa-0000-4000-8000-000000000001', 'Roto', null, 150, 9, 9, 9,
       '[{"label":"B","amount":2},{"label":"C","amount":0}]'::jsonb, null)$$,
   '22023', 'invalid portion', 'an invalid second portion raises');
 select is((select name || kcal_100::int::text from public.foods where id = 'aaaaaaaa-0000-4000-8000-000000000001'), 'Estable10',
@@ -110,11 +110,11 @@ select is((select name || kcal_100::int::text from public.foods where id = 'aaaa
 select is((select string_agg(label, ',') from public.food_portions where food_id = 'aaaaaaaa-0000-4000-8000-000000000001'), 'A',
   'the portions keep their previous values after a failed edit');
 select throws_ok(
-  $$select public.update_personal_food('aaaaaaaa-0000-4000-8000-000000000001', 'X', null, 1, 1, 1, 1,
+  $$select public.update_personal_food('aaaaaaaa-0000-4000-8000-000000000001', 'X', null, 8, 1, 1, 0,
       '[{"label":"","amount":1}]'::jsonb, null)$$,
   '22023', 'invalid portion', 'an empty portion label raises');
 select throws_ok(
-  format($$select public.update_personal_food('aaaaaaaa-0000-4000-8000-000000000001', 'X', null, 1, 1, 1, 1, %L::jsonb, null)$$,
+  format($$select public.update_personal_food('aaaaaaaa-0000-4000-8000-000000000001', 'X', null, 8, 1, 1, 0, %L::jsonb, null)$$,
     (select jsonb_agg(jsonb_build_object('label', 'p' || i, 'amount', 1))::text from generate_series(1, 11) i)),
   '22023', 'invalid portions', '11 portions raise');
 select is((select name from public.foods where id = 'aaaaaaaa-0000-4000-8000-000000000001'), 'Estable', 'still unchanged after the rejected calls');
@@ -169,7 +169,7 @@ select lives_ok(
 
 -- Unit change (US-52) -------------------------------------------------------------
 select lives_ok(
-  $$select public.update_personal_food('aaaaaaaa-0000-4000-8000-000000000002', 'Sin uso', null, 100, 1, 2, 3,
+  $$select public.update_personal_food('aaaaaaaa-0000-4000-8000-000000000002', 'Sin uso', null, 40, 1, 2, 3,
       '[{"label":"1 unidad","amount":40}]'::jsonb, null, 'ml')$$,
   'an unreferenced food changes g to ml');
 select is((select base_unit::text from public.foods where id = 'aaaaaaaa-0000-4000-8000-000000000002'), 'ml', 'the new unit is stored');
@@ -177,17 +177,17 @@ select is(
   (select kcal_100::int || '|' || protein_100::int || '|' || carbs_100::int || '|' || fat_100::int || '|'
      || (select string_agg(label || amount::int, ',') from public.food_portions where food_id = f.id)
    from public.foods f where f.id = 'aaaaaaaa-0000-4000-8000-000000000002'),
-  '100|1|2|3|1 unidad40', 'values and portions are kept as sent when the unit changes');
+  '40|1|2|3|1 unidad40', 'values and portions are kept as sent when the unit changes');
 select lives_ok(
-  $$select public.update_personal_food('aaaaaaaa-0000-4000-8000-000000000002', 'Sin uso', null, 100, 1, 2, 3, '[]'::jsonb, null, null)$$,
+  $$select public.update_personal_food('aaaaaaaa-0000-4000-8000-000000000002', 'Sin uso', null, 40, 1, 2, 3, '[]'::jsonb, null, null)$$,
   'a null unit is accepted');
 select is((select base_unit::text from public.foods where id = 'aaaaaaaa-0000-4000-8000-000000000002'), 'ml', 'a null unit keeps the stored one');
 select lives_ok(
-  $$select public.update_personal_food('aaaaaaaa-0000-4000-8000-000000000002', 'Sin uso', null, 100, 1, 2, 3, '[]'::jsonb, null, 'g')$$,
+  $$select public.update_personal_food('aaaaaaaa-0000-4000-8000-000000000002', 'Sin uso', null, 40, 1, 2, 3, '[]'::jsonb, null, 'g')$$,
   'an unreferenced food changes ml to g');
 select is((select base_unit::text from public.foods where id = 'aaaaaaaa-0000-4000-8000-000000000002'), 'g', 'ml to g is stored');
 select lives_ok(
-  $$select public.update_personal_food('aaaaaaaa-0000-4000-8000-000000000004', 'Solo favorito', null, 100, 1, 2, 3, '[]'::jsonb, null, 'g')$$,
+  $$select public.update_personal_food('aaaaaaaa-0000-4000-8000-000000000004', 'Solo favorito', null, 40, 1, 2, 3, '[]'::jsonb, null, 'g')$$,
   'a favourite-only food changes its unit');
 select is((select base_unit::text from public.foods where id = 'aaaaaaaa-0000-4000-8000-000000000004'), 'g', 'favourites do not block the unit');
 
