@@ -37,12 +37,21 @@ import io.github.lopezjavier.appfitness.feature.auth.WelcomeRoute
 import io.github.lopezjavier.appfitness.feature.onboarding.OnboardingRoute
 
 /**
+ * Version of the saved navigation state: raise it whenever a destination is removed, so a back stack saved by an
+ * older build is dropped instead of failing to restore. 1 is the first build without the AI usage screen (T-260).
+ */
+internal const val NAV_STATE_VERSION = 1
+private const val EPOCHS_PER_NAV_STATE_VERSION = 1000
+
+/**
  * Root composable: theme plus the destination chosen by [rootRoute]. [modifier] reaches the root layout;
  * [isOffline] shows the "Sin conexión" banner on every destination;
  * [pendingReminders] is the count on the bell of the tab roots;
  * [onRetryProfile] and [onOnboardingComplete] are the root actions. [profile], [preferences], [welcome] and
  * [onboarding] are the Perfil root, Preferencias, Welcome and Onboarding destinations (stateful in `AppRoot`, empty or
  * stubbed in tests).
+ *
+ * [navStateVersion] is [NAV_STATE_VERSION] (tests pass another to emulate a stack saved by an older build).
  *
  * The default [rootRoute] is [RootRoute.Main], so previews and shell tests need no session.
  */
@@ -54,6 +63,7 @@ fun App(
     isOffline: Boolean = false,
     pendingReminders: Int = 0,
     rootRoute: RootRoute = RootRoute.Main,
+    navStateVersion: Int = NAV_STATE_VERSION,
     onRetryProfile: () -> Unit = {},
     onOnboardingComplete: () -> Unit = {},
     profile: ProfileSlot = DefaultProfileSlot,
@@ -61,7 +71,6 @@ fun App(
     preferences: PreferencesSlot = DefaultPreferencesSlot,
     preferencesSection: PreferencesSectionSlot = DefaultPreferencesSectionSlot,
     about: AboutSlot = DefaultAboutSlot,
-    coachUsage: CoachUsageSlot = DefaultCoachUsageSlot,
     planProposal: PlanProposalSlot = DefaultPlanProposalSlot,
     beforeStart: BeforeStartSlot = DefaultBeforeStartSlot,
     yourData: YourDataSlot = DefaultYourDataSlot,
@@ -110,7 +119,12 @@ fun App(
         AppTheme(typeScale = widthClass.typeScale) {
             // The controller lives above the route branch, so a transient Loading frame (or recreation) does not lose
             // the back stack. Reaching Welcome (sign-out) starts a new epoch: the next user never inherits a stack.
-            var epoch by rememberSaveable { mutableIntStateOf(0) }
+            // The saved epoch is keyed by [navStateVersion] and starts at a value no earlier version used, so the
+            // back stack saved by a build with other destinations is never read (ADR-40: a removed route would crash
+            // the restore).
+            var epoch by rememberSaveable(key = "nav_epoch_v$navStateVersion") {
+                mutableIntStateOf(navStateVersion * EPOCHS_PER_NAV_STATE_VERSION)
+            }
             LaunchedEffect(rootRoute == RootRoute.Welcome) {
                 if (rootRoute == RootRoute.Welcome) epoch++
             }
@@ -129,7 +143,6 @@ fun App(
                         preferences = preferences,
                         preferencesSection = preferencesSection,
                         about = about,
-                        coachUsage = coachUsage,
                         planProposal = planProposal,
                         beforeStart = beforeStart,
                         yourData = yourData,

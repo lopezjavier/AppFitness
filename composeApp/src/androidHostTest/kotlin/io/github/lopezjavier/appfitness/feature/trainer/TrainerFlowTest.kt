@@ -12,13 +12,10 @@ import io.github.lopezjavier.appfitness.app.RootRoute
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
 import io.github.lopezjavier.appfitness.domain.AppError
 import io.github.lopezjavier.appfitness.domain.AppException
-import io.github.lopezjavier.appfitness.domain.model.CoachUsage
 import io.github.lopezjavier.appfitness.domain.model.PlanStatus
 import io.github.lopezjavier.appfitness.feature.notifications.LocalNotificationsEntry
 import io.github.lopezjavier.appfitness.feature.notifications.NotificationsEntry
 import io.github.lopezjavier.appfitness.feature.workout.MutableClock
-import kotlinx.coroutines.flow.flowOf
-import kotlinx.datetime.LocalDate
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Rule
@@ -175,49 +172,13 @@ class TrainerFlowTest {
     }
 
     @Test
-    fun overflow_opensTheSheetWithUsoDeIa_andOpensTheUsageScreen() {
-        var opened = 0
+    fun header_hasNoOverflowAndNoUsoDeIa() {
+        showWithBell(NotificationsEntry(count = 0, onOpen = {}))
 
-        show(TrainerActions(onOpenCoachUsage = { opened++ }))
-        tap("trainer_overflow")
-        rule.onNodeWithText("Uso de IA").assertExists()
-        tap("trainer_action_coach_usage")
-
-        assertEquals(1, opened)
-    }
-
-    @Test
-    fun overflow_isShownWhenTheDerivedReadFails() {
-        repository.loaded = Result.failure(AppException(AppError.Network))
-
-        show()
-
-        rule.onNodeWithTag("trainer_overflow").assertExists()
-    }
-
-    @Test
-    fun usageScreen_opensFromTheTrainerOverflow_andBackReturns() {
-        val model = model()
-        val usage = CoachUsage(LocalDate(2026, 11, 1), 0, 0, 0.42)
-        rule.setContent {
-            App(
-                rootRoute = RootRoute.Main,
-                trainer = { modifier, actions ->
-                    TrainerRoute(modifier, actions, viewModel = model, connectivity = connectivity)
-                },
-                coachUsage = { modifier, onBack ->
-                    CoachUsageScreen(CoachUsageUiState.Content(usage), flowOf(true), {}, onBack, modifier)
-                },
-            )
-        }
-        tap("nav_tab_trainer")
-
-        tap("trainer_overflow")
-        tap("trainer_action_coach_usage")
-        rule.onNodeWithTag("coach_usage_screen").assertExists()
-        tap("coach_usage_back")
-
-        rule.onNodeWithTag("trainer_screen").assertExists()
+        rule.onNodeWithTag("trainer_action_notifications").assertExists()
+        rule.onNodeWithTag("trainer_overflow").assertDoesNotExist()
+        rule.onNodeWithTag("trainer_action_coach_usage").assertDoesNotExist()
+        rule.onNodeWithText("Uso de IA").assertDoesNotExist()
     }
 
     @Test

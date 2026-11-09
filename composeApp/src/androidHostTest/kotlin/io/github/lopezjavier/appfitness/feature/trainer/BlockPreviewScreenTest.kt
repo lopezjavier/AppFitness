@@ -20,7 +20,6 @@ import io.github.lopezjavier.appfitness.designsystem.AppTheme
 import io.github.lopezjavier.appfitness.designsystem.LocalAppMessages
 import io.github.lopezjavier.appfitness.domain.model.BlockSession
 import io.github.lopezjavier.appfitness.domain.model.CoachBlock
-import io.github.lopezjavier.appfitness.domain.model.CoachFailure
 import io.github.lopezjavier.appfitness.domain.model.MissingField
 import io.github.lopezjavier.appfitness.feature.exercises.FakeExerciseLibrary
 import io.github.lopezjavier.appfitness.feature.exercises.FakeExerciseRepository
@@ -262,13 +261,6 @@ class BlockPreviewScreenTest {
         show(BlockPreviewUiState.Failed(PlanFailureKind.Interrupted))
 
         rule.onNodeWithText("No se recibió el bloque. Inténtalo de nuevo.").assertExists()
-    }
-
-    @Test
-    fun limit_showsTheLimitMessage() {
-        show(BlockPreviewUiState.Failed(PlanFailureKind.Limit(CoachFailure.Scope.User)))
-
-        rule.onNodeWithTag("block_preview_limit").assertExists()
     }
 
     @Test

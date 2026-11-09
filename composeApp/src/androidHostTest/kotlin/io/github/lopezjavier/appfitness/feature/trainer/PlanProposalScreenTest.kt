@@ -16,7 +16,6 @@ import androidx.lifecycle.SavedStateHandle
 import io.github.lopezjavier.appfitness.app.FakeConnectivityObserver
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
 import io.github.lopezjavier.appfitness.domain.model.ActivityLevel
-import io.github.lopezjavier.appfitness.domain.model.CoachFailure
 import io.github.lopezjavier.appfitness.domain.model.CoachPlan
 import io.github.lopezjavier.appfitness.domain.model.MissingField
 import io.github.lopezjavier.appfitness.domain.model.OutcomeKind
@@ -349,15 +348,6 @@ class PlanProposalScreenTest {
 
         rule.onNodeWithTag("plan_proposal_loading").assertExists()
         rule.onNodeWithTag("plan_proposal_progress").assertDoesNotExist()
-    }
-
-    @Test
-    fun monthlyLimit_showsTheLimitMessageAndNoProposal() {
-        show(PlanProposalUiState.Failed(PlanFailureKind.Limit(CoachFailure.Scope.User)))
-
-        rule.onNodeWithTag("plan_proposal_limit").assertExists()
-        rule.onNodeWithText("Has alcanzado el límite mensual de IA. Vuelve a probar el mes que viene.").assertExists()
-        rule.onNodeWithTag("plan_proposal_accept").assertDoesNotExist()
     }
 
     @Test

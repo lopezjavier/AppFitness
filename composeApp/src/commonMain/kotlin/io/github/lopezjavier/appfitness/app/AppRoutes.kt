@@ -62,10 +62,6 @@ data object PreferencesRoute : AppRoute
 @Serializable
 data class PreferencesSectionRoute(val section: String) : AppRoute
 
-/** "Uso de IA": this month's AI spending against the monthly limit, opened from the Trainer overflow (US-76). */
-@Serializable
-data object CoachUsageRoute : AppRoute
-
 /**
  * The nutrition plan proposal (US-69): request, review and accept or discard, opened from the Trainer tab.
  * [replacingPlanId] is the plan the user is replacing: the proposal screen ignores it and asks for a new plan.
@@ -422,7 +418,6 @@ object AppDestinations {
             WeightRoute(),
             WeightHistoryRoute,
             AboutRoute,
-            CoachUsageRoute,
             PlanProposalRoute(),
             BeforeStartRoute(""),
             YourDataRoute,

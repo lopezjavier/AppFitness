@@ -16,11 +16,8 @@ import io.github.lopezjavier.appfitness.app.App
 import io.github.lopezjavier.appfitness.app.FakeConnectivityObserver
 import io.github.lopezjavier.appfitness.app.RootRoute
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
-import io.github.lopezjavier.appfitness.domain.model.CoachUsage
 import io.github.lopezjavier.appfitness.domain.model.PlanStatus
 import io.github.lopezjavier.appfitness.feature.workout.MutableClock
-import kotlinx.coroutines.flow.flowOf
-import kotlinx.datetime.LocalDate
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
@@ -28,7 +25,7 @@ import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 
-/** ADR-40: the Trainer tab, its overflow sheet, the usage screen, the plan section and the weeks survive recreation. */
+/** ADR-40: the Trainer tab, the plan section and the weeks survive recreation. */
 @RunWith(RobolectricTestRunner::class)
 @Config(qualifiers = "w360dp-h2400dp-xxhdpi")
 class TrainerRestorationTest {
@@ -64,57 +61,6 @@ class TrainerRestorationTest {
         rule.onNodeWithTag("trainer_your_data").assertExists()
         rule.onNodeWithTag("activity_level_sheet_activity_light").assertDoesNotExist()
         assertTrue(repository.confirmCalls.isEmpty())
-    }
-
-    private fun StateRestorationTester.setTrainerApp() {
-        val usage = CoachUsage(LocalDate(2026, 11, 1), 0, 0, 0.42)
-        val connectivity = FakeConnectivityObserver()
-        setContent {
-            App(
-                rootRoute = RootRoute.Main,
-                trainer = { modifier, actions ->
-                    TrainerRoute(
-                        modifier,
-                        actions,
-                        viewModel = TrainerViewModel(FakeCoachRepository(), MutableClock()),
-                        connectivity = connectivity,
-                    )
-                },
-                coachUsage = { modifier, onBack ->
-                    CoachUsageScreen(CoachUsageUiState.Content(usage), flowOf(true), {}, onBack, modifier)
-                },
-            )
-        }
-    }
-
-    @Test
-    fun recreation_keepsTheOverflowSheetOpen() {
-        val tester = StateRestorationTester(rule)
-        tester.setTrainerApp()
-        rule.onNodeWithTag("nav_tab_trainer").performClick()
-        rule.onNodeWithTag("trainer_overflow").performClick()
-        rule.waitForIdle()
-
-        tester.emulateSavedInstanceStateRestore()
-        rule.waitForIdle()
-
-        rule.onNodeWithTag("trainer_action_coach_usage").assertExists()
-    }
-
-    @Test
-    fun recreation_keepsTheUsageScreenOpen() {
-        val tester = StateRestorationTester(rule)
-        tester.setTrainerApp()
-        rule.onNodeWithTag("nav_tab_trainer").performClick()
-        rule.onNodeWithTag("trainer_overflow").performClick()
-        rule.waitForIdle()
-        rule.onNodeWithTag("trainer_action_coach_usage").performClick()
-        rule.waitForIdle()
-
-        tester.emulateSavedInstanceStateRestore()
-        rule.waitForIdle()
-
-        rule.onNodeWithTag("coach_usage_figure").assertExists()
     }
 
     @Test

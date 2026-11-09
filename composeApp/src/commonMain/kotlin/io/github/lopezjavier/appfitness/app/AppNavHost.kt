@@ -53,9 +53,6 @@ internal typealias ProfileSlot = @Composable (modifier: Modifier, actions: Profi
 /** Content of "Actividad": its modifier (full-screen insets), the Peso opener (empty state) and how to leave. */
 internal typealias ActivitySlot = @Composable (modifier: Modifier, onBack: () -> Unit) -> Unit
 
-/** Content of "Acerca de": its modifier (full-screen insets) and how to leave. */
-internal typealias CoachUsageSlot = @Composable (modifier: Modifier, onBack: () -> Unit) -> Unit
-
 /** Content of the plan proposal: its modifier (full-screen insets), how to leave and the "Antes de empezar" opener. */
 internal typealias PlanProposalSlot =
     @Composable (
@@ -647,11 +644,6 @@ internal val DefaultActivitySlot: ActivitySlot = { modifier, _ ->
     Box(modifier.fillMaxSize().testTag("activity_screen"))
 }
 
-/** Empty "Uso de IA" for previews and shell tests; the real one is wired by `AppRoot`. */
-internal val DefaultCoachUsageSlot: CoachUsageSlot = { modifier, _ ->
-    Box(modifier.fillMaxSize().testTag("coach_usage_screen"))
-}
-
 /** Empty plan proposal for previews and shell tests; the real one is wired by `AppRoot`. */
 internal val DefaultPlanProposalSlot: PlanProposalSlot = { modifier, _, _, _ ->
     Box(modifier.fillMaxSize().testTag("plan_proposal_screen"))
@@ -720,7 +712,6 @@ internal fun AppNavHost(
     preferences: PreferencesSlot = DefaultPreferencesSlot,
     preferencesSection: PreferencesSectionSlot = DefaultPreferencesSectionSlot,
     about: AboutSlot = DefaultAboutSlot,
-    coachUsage: CoachUsageSlot = DefaultCoachUsageSlot,
     planProposal: PlanProposalSlot = DefaultPlanProposalSlot,
     beforeStart: BeforeStartSlot = DefaultBeforeStartSlot,
     yourData: YourDataSlot = DefaultYourDataSlot,
@@ -784,10 +775,8 @@ internal fun AppNavHost(
     val openTrainingStats = remember(navController) { { navController.navigateToFullScreen(StatsRoute) } }
     val openActivity = remember(navController) { { navController.navigateToFullScreen(ActivityRoute) } }
     val openAbout = remember(navController) { { navController.navigateToFullScreen(AboutRoute) } }
-    val openCoachUsage = remember(navController) { { navController.navigateToFullScreen(CoachUsageRoute) } }
-    val trainerActions = remember(navController, openCoachUsage) {
+    val trainerActions = remember(navController) {
         TrainerActions(
-            onOpenCoachUsage = openCoachUsage,
             onOpenProposal = { navController.navigateToFullScreen(PlanProposalRoute()) },
             onOpenBlock = { planId -> navController.navigateToFullScreen(BlockPreviewRoute(planId)) },
             onOpenBeforeStart = { mode, planId, replacingPlanId ->
@@ -923,9 +912,6 @@ internal fun AppNavHost(
         }
         composable<ActivityRoute> { entry ->
             activity(Modifier.padding(fullScreenPadding)) { navController.popFullScreen(entry) }
-        }
-        composable<CoachUsageRoute> { entry ->
-            coachUsage(Modifier.padding(fullScreenPadding)) { navController.popFullScreen(entry) }
         }
         composable<PlanProposalRoute> { entry ->
             planProposal(

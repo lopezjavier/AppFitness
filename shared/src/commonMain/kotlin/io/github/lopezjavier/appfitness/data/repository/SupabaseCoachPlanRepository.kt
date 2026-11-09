@@ -36,8 +36,6 @@ import io.github.lopezjavier.appfitness.domain.model.CoachPlan
 import io.github.lopezjavier.appfitness.domain.model.CutRate
 import io.github.lopezjavier.appfitness.domain.model.DietBreakApplication
 import io.github.lopezjavier.appfitness.domain.model.PlanStatus
-import io.github.lopezjavier.appfitness.domain.model.requestKey
-import io.github.lopezjavier.appfitness.domain.port.CoachModelPreference
 import io.github.lopezjavier.appfitness.domain.repository.CoachPlanRepository
 import io.ktor.client.plugins.HttpRequestTimeoutException
 import io.ktor.client.request.setBody
@@ -61,17 +59,14 @@ class SupabaseCoachPlanRepository internal constructor(
     private val auth: Auth,
     private val postgrest: Postgrest,
     private val functions: Functions,
-    private val modelPreference: CoachModelPreference,
     private val requestTimeout: Duration,
 ) : CoachPlanRepository {
-    constructor(auth: Auth, postgrest: Postgrest, functions: Functions, modelPreference: CoachModelPreference) :
-        this(auth, postgrest, functions, modelPreference, COACH_CLIENT_TIMEOUT)
+    constructor(auth: Auth, postgrest: Postgrest, functions: Functions) :
+        this(auth, postgrest, functions, COACH_CLIENT_TIMEOUT)
 
     override suspend fun requestPlan(today: LocalDate): Result<CoachPlan> = callCoach(
         encodeBody = {
-            coachPlanJson.encodeToString(
-                PlanRequestBody("plan_nutrition", PlanRequestInput(today), modelPreference.selected.value.requestKey()),
-            )
+            coachPlanJson.encodeToString(PlanRequestBody("plan_nutrition", PlanRequestInput(today)))
         },
         onStream = { text -> storedPlanOf(text) },
     )

@@ -258,7 +258,7 @@ internal data class CalorieEvaluationDto(
 )
 
 @Serializable
-internal data class PlanRequestBody(val kind: String, val input: PlanRequestInput, val model: String? = null)
+internal data class PlanRequestBody(val kind: String, val input: PlanRequestInput)
 
 @Serializable
 internal data class PlanRequestInput(val today: LocalDate)

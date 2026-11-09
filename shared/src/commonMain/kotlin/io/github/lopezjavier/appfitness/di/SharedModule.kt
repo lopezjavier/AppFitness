@@ -5,7 +5,6 @@ import io.github.jan.supabase.auth.auth
 import io.github.jan.supabase.functions.functions
 import io.github.jan.supabase.postgrest.postgrest
 import io.github.lopezjavier.appfitness.config.AppConfig
-import io.github.lopezjavier.appfitness.data.InMemoryCoachModelPreference
 import io.github.lopezjavier.appfitness.data.SystemClock
 import io.github.lopezjavier.appfitness.data.local.DataStoreRestAlertPreferences
 import io.github.lopezjavier.appfitness.data.local.DataStoreWatchSeedStore
@@ -22,7 +21,6 @@ import io.github.lopezjavier.appfitness.data.repository.SupabaseCoachPlanReposit
 import io.github.lopezjavier.appfitness.data.repository.SupabaseCoachRepository
 import io.github.lopezjavier.appfitness.data.repository.SupabaseCoachReviewRepository
 import io.github.lopezjavier.appfitness.data.repository.SupabaseCoachSummaryRepository
-import io.github.lopezjavier.appfitness.data.repository.SupabaseCoachUsageRepository
 import io.github.lopezjavier.appfitness.data.repository.SupabaseCoachWeeksRepository
 import io.github.lopezjavier.appfitness.data.repository.SupabaseDeloadRepository
 import io.github.lopezjavier.appfitness.data.repository.SupabaseDiscomfortFollowUpRepository
@@ -59,7 +57,6 @@ import io.github.lopezjavier.appfitness.data.repository.UnconfiguredCoachPlanRep
 import io.github.lopezjavier.appfitness.data.repository.UnconfiguredCoachRepository
 import io.github.lopezjavier.appfitness.data.repository.UnconfiguredCoachReviewRepository
 import io.github.lopezjavier.appfitness.data.repository.UnconfiguredCoachSummaryRepository
-import io.github.lopezjavier.appfitness.data.repository.UnconfiguredCoachUsageRepository
 import io.github.lopezjavier.appfitness.data.repository.UnconfiguredCoachWeeksRepository
 import io.github.lopezjavier.appfitness.data.repository.UnconfiguredDeloadRepository
 import io.github.lopezjavier.appfitness.data.repository.UnconfiguredDiscomfortFollowUpRepository
@@ -86,7 +83,6 @@ import io.github.lopezjavier.appfitness.data.repository.UnconfiguredTrainingStat
 import io.github.lopezjavier.appfitness.data.repository.UnconfiguredWeeklyCheckInRepository
 import io.github.lopezjavier.appfitness.data.repository.UnconfiguredWorkoutSessionRepository
 import io.github.lopezjavier.appfitness.domain.port.Clock
-import io.github.lopezjavier.appfitness.domain.port.CoachModelPreference
 import io.github.lopezjavier.appfitness.domain.port.RestAlertPreferences
 import io.github.lopezjavier.appfitness.domain.port.WatchSeedStore
 import io.github.lopezjavier.appfitness.domain.repository.AccountRepository
@@ -100,7 +96,6 @@ import io.github.lopezjavier.appfitness.domain.repository.CoachPlanRepository
 import io.github.lopezjavier.appfitness.domain.repository.CoachRepository
 import io.github.lopezjavier.appfitness.domain.repository.CoachReviewRepository
 import io.github.lopezjavier.appfitness.domain.repository.CoachSummaryRepository
-import io.github.lopezjavier.appfitness.domain.repository.CoachUsageRepository
 import io.github.lopezjavier.appfitness.domain.repository.CoachWeeksRepository
 import io.github.lopezjavier.appfitness.domain.repository.DeloadRepository
 import io.github.lopezjavier.appfitness.domain.repository.DiscomfortFollowUpRepository
@@ -357,11 +352,10 @@ val sharedModule =
                 UnconfiguredCoachRepository()
             }
         }
-        single<CoachModelPreference> { InMemoryCoachModelPreference() }
         single<CoachPlanRepository> {
             if (get<AppConfig>().isSupabaseConfigured) {
                 val client = get<SupabaseClient>()
-                SupabaseCoachPlanRepository(client.auth, client.postgrest, client.functions, get())
+                SupabaseCoachPlanRepository(client.auth, client.postgrest, client.functions)
             } else {
                 UnconfiguredCoachPlanRepository()
             }
@@ -380,14 +374,6 @@ val sharedModule =
                 SupabaseCoachBlockRepository(client.auth, client.postgrest)
             } else {
                 UnconfiguredCoachBlockRepository()
-            }
-        }
-        single<CoachUsageRepository> {
-            if (get<AppConfig>().isSupabaseConfigured) {
-                val client = get<SupabaseClient>()
-                SupabaseCoachUsageRepository(client.auth, client.postgrest)
-            } else {
-                UnconfiguredCoachUsageRepository()
             }
         }
         single<ProgressionRepository> {

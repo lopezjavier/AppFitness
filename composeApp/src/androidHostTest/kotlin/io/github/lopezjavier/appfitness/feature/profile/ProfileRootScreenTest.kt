@@ -8,6 +8,7 @@ import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.getUnclippedBoundsInRoot
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
+import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.height
@@ -224,6 +225,13 @@ class ProfileRootScreenTest {
         show(ProfileRootUiState.LoadFailed)
         rule.onNodeWithTag("profile_root_error_action").assertTextEquals("Reintentar").performClick()
         assertEquals(listOf<ProfileRootEvent>(ProfileRootEvent.Retry), events)
+    }
+
+    @Test
+    fun noRowOrTextOffersUsoDeIa() {
+        show(withCatalog = true)
+
+        rule.onNodeWithText("Uso de IA").assertDoesNotExist()
     }
 
     // -- tablet ---------------------------------------------------------------------------------------------------

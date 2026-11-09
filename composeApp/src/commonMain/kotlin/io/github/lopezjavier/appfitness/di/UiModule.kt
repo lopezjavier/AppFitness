@@ -42,7 +42,6 @@ import io.github.lopezjavier.appfitness.feature.trainer.BeforeStartViewModel
 import io.github.lopezjavier.appfitness.feature.trainer.BlockBuilderViewModel
 import io.github.lopezjavier.appfitness.feature.trainer.BlockPreviewViewModel
 import io.github.lopezjavier.appfitness.feature.trainer.BlockReviewViewModel
-import io.github.lopezjavier.appfitness.feature.trainer.CoachUsageViewModel
 import io.github.lopezjavier.appfitness.feature.trainer.FolderBlockViewModel
 import io.github.lopezjavier.appfitness.feature.trainer.FolderReviewResultViewModel
 import io.github.lopezjavier.appfitness.feature.trainer.FreeTextLinesViewModel
@@ -459,7 +458,6 @@ val uiModule =
                 timeZone = TimeZone.currentSystemDefault(),
             )
         }
-        viewModel { CoachUsageViewModel(repository = get(), clock = get(), modelPreference = get()) }
         viewModel {
             TrainerViewModel(
                 repository = get(),

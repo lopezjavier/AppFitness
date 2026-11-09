@@ -5,7 +5,6 @@ import io.github.jan.supabase.auth.auth
 import io.github.jan.supabase.functions.functions
 import io.github.jan.supabase.postgrest.postgrest
 import io.github.lopezjavier.appfitness.config.AppConfig
-import io.github.lopezjavier.appfitness.data.InMemoryCoachModelPreference
 import io.github.lopezjavier.appfitness.data.remote.SupabaseClientFactory
 import io.github.lopezjavier.appfitness.domain.coach.builder.BuiltBlock
 import io.github.lopezjavier.appfitness.domain.coach.builder.BuiltExercise
@@ -56,7 +55,7 @@ class FollowUpFlowsNeverCallTheCoachTest {
         SupabaseAuthRepository(client.auth).signInWithPassword(TestLoginCredentials("a@b.c", "pw"))
         val changes = SupabaseCoachChangesRepository(client.auth, client.postgrest)
         val plans =
-            SupabaseCoachPlanRepository(client.auth, client.postgrest, client.functions, InMemoryCoachModelPreference())
+            SupabaseCoachPlanRepository(client.auth, client.postgrest, client.functions)
         val weeks = SupabaseCoachWeeksRepository(client.auth, client.postgrest)
         val summary = SupabaseCoachSummaryRepository(client.auth, client.postgrest)
         val review = SupabaseCoachReviewRepository(client.auth, client.postgrest, client.functions)

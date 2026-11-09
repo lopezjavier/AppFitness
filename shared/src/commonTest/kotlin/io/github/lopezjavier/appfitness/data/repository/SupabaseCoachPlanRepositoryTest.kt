@@ -5,13 +5,11 @@ import io.github.jan.supabase.auth.auth
 import io.github.jan.supabase.functions.functions
 import io.github.jan.supabase.postgrest.postgrest
 import io.github.lopezjavier.appfitness.config.AppConfig
-import io.github.lopezjavier.appfitness.data.InMemoryCoachModelPreference
 import io.github.lopezjavier.appfitness.data.remote.SupabaseClientFactory
 import io.github.lopezjavier.appfitness.domain.AppError
 import io.github.lopezjavier.appfitness.domain.appErrorOrNull
 import io.github.lopezjavier.appfitness.domain.model.CoachException
 import io.github.lopezjavier.appfitness.domain.model.CoachFailure
-import io.github.lopezjavier.appfitness.domain.model.CoachModelChoice
 import io.github.lopezjavier.appfitness.domain.model.DietBreakApplication
 import io.github.lopezjavier.appfitness.domain.model.MissingField
 import io.github.lopezjavier.appfitness.domain.model.OutcomeKind
@@ -71,7 +69,6 @@ class SupabaseCoachPlanRepositoryTest {
     private val requests = mutableListOf<HttpRequestData>()
     private var offline = false
     private val today = LocalDate(2026, 10, 29)
-    private val preference = InMemoryCoachModelPreference()
 
     private suspend fun repo(
         signIn: Boolean = true,
@@ -105,31 +102,17 @@ class SupabaseCoachPlanRepositoryTest {
             MemorySessionManager(),
         )
         if (signIn) SupabaseAuthRepository(client.auth).signInWithPassword(TestLoginCredentials("a@b.c", "pw"))
-        return SupabaseCoachPlanRepository(client.auth, client.postgrest, client.functions, preference, requestTimeout)
+        return SupabaseCoachPlanRepository(client.auth, client.postgrest, client.functions, requestTimeout)
     }
 
     @Test
-    fun requestPlan_sendsTheModelKeyOfTheSelectedNonDefaultChoice() = runTest {
+    fun requestPlan_postedBodyHasNoModelKey() = runTest {
         val repository = repo(respond = ::planRoutes)
-        preference.select(CoachModelChoice.Haiku)
 
         repository.requestPlan(today).getOrThrow()
 
         val body = (rest().first().body as TextContent).text
-        assertTrue(body.endsWith(""","model":"haiku"}"""), body)
-    }
-
-    @Test
-    fun requestPlan_omitsTheModelForTheDefaultAndHonoursASelectionChangedBetweenCalls() = runTest {
-        val repository = repo(respond = ::planRoutes)
-        repository.requestPlan(today)
-        preference.select(CoachModelChoice.Sonnet)
-        repository.requestPlan(today)
-
-        val bodies = rest().filter { it.url.encodedPath.contains("/functions/") }.map { (it.body as TextContent).text }
-
-        assertTrue("model" !in bodies.first(), bodies.first())
-        assertTrue(bodies.last().endsWith(""","model":"sonnet"}"""), bodies.last())
+        assertTrue("\"model\"" !in body, body)
     }
 
     private fun rest() = requests.filter { !it.url.encodedPath.contains("/auth/") }
@@ -181,34 +164,12 @@ class SupabaseCoachPlanRepositoryTest {
     }
 
     @Test
-    fun requestPlan_userLimit_isMappedWithItsScope() = runTest {
+    fun requestPlan_formerLimitBody_isMappedToOther() = runTest {
         val repository = repo {
             HttpStatusCode.TooManyRequests to """{"error":{"code":"coach_limit_reached","scope":"user"}}"""
         }
 
-        assertEquals(
-            CoachFailure.LimitReached(CoachFailure.Scope.User),
-            failureOf(repository.requestPlan(today)),
-        )
-    }
-
-    @Test
-    fun requestPlan_globalLimit_isMappedWithItsScope() = runTest {
-        val repository = repo {
-            HttpStatusCode.TooManyRequests to """{"error":{"code":"coach_limit_reached","scope":"global"}}"""
-        }
-
-        assertEquals(
-            CoachFailure.LimitReached(CoachFailure.Scope.Global),
-            failureOf(repository.requestPlan(today)),
-        )
-    }
-
-    @Test
-    fun requestPlan_noCredit_isMapped() = runTest {
-        val repository = repo { HttpStatusCode.PaymentRequired to """{"error":{"code":"coach_no_credit"}}""" }
-
-        assertEquals(CoachFailure.NoCredit, failureOf(repository.requestPlan(today)))
+        assertEquals(CoachFailure.Other, failureOf(repository.requestPlan(today)))
     }
 
     @Test
@@ -369,7 +330,6 @@ class SupabaseCoachPlanRepositoryTest {
     @Test
     fun updatePlanOptions_postsPlanRecomputeWithoutModel_thenReloadsThePlan() = runTest {
         val repository = repo(respond = ::planRoutes)
-        preference.select(CoachModelChoice.Haiku)
 
         val plan = repository.updatePlanOptions("p1", today, 0.8, true).getOrThrow()
 
@@ -413,7 +373,6 @@ class SupabaseCoachPlanRepositoryTest {
     @Test
     fun setDietBreak_postsPlanDietBreakWithoutModel_thenReloadsThePlan() = runTest {
         val repository = repo(respond = ::planRoutes)
-        preference.select(CoachModelChoice.Haiku)
 
         val plan = repository.setDietBreak("p1", today, true).getOrThrow()
 

@@ -11,9 +11,7 @@ import io.github.lopezjavier.appfitness.composeapp.resources.coach_failure_missi
 import io.github.lopezjavier.appfitness.composeapp.resources.coach_failure_missing_intention
 import io.github.lopezjavier.appfitness.composeapp.resources.coach_failure_missing_place
 import io.github.lopezjavier.appfitness.composeapp.resources.coach_failure_missing_profile
-import io.github.lopezjavier.appfitness.composeapp.resources.coach_limit_user
 import io.github.lopezjavier.appfitness.composeapp.resources.coach_timeout
-import io.github.lopezjavier.appfitness.composeapp.resources.coach_unavailable
 import io.github.lopezjavier.appfitness.designsystem.InlineNote
 import io.github.lopezjavier.appfitness.domain.model.CoachFailure
 import io.github.lopezjavier.appfitness.domain.model.MissingField
@@ -21,15 +19,10 @@ import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.stringResource
 
 /**
- * The Spanish message of a failed AI call. The user can do nothing about the global limit or a missing provider
- * balance, so both read as "not available now"; only their own monthly limit is worded as such.
+ * The Spanish message of a failed AI call: a timeout, an invalid answer, missing data or an infeasible plan get their
+ * own copy; every other failure reads as a generic "could not use the AI, try again".
  */
 internal fun coachFailureMessage(failure: CoachFailure): StringResource = when (failure) {
-    is CoachFailure.LimitReached ->
-        if (failure.scope == CoachFailure.Scope.User) Res.string.coach_limit_user else Res.string.coach_unavailable
-
-    CoachFailure.NoCredit -> Res.string.coach_unavailable
-
     CoachFailure.Timeout -> Res.string.coach_timeout
 
     CoachFailure.Invalid -> Res.string.coach_failure_invalid

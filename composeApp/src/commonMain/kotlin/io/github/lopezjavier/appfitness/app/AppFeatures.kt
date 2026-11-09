@@ -24,7 +24,7 @@ fun AppFeatures.isAvailable(route: AppRoute): Boolean = when (route) {
 
     CatalogRoute -> componentCatalog
 
-    PreferencesRoute, is PreferencesSectionRoute, AboutRoute, CoachUsageRoute -> true
+    PreferencesRoute, is PreferencesSectionRoute, AboutRoute -> true
 
     is PlanProposalRoute, is BeforeStartRoute, YourDataRoute, IntakeRoute, FreeTextLinesRoute -> true
 

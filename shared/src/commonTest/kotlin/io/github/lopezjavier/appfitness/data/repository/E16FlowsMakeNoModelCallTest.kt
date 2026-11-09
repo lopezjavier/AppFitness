@@ -5,9 +5,7 @@ import io.github.jan.supabase.auth.auth
 import io.github.jan.supabase.functions.functions
 import io.github.jan.supabase.postgrest.postgrest
 import io.github.lopezjavier.appfitness.config.AppConfig
-import io.github.lopezjavier.appfitness.data.InMemoryCoachModelPreference
 import io.github.lopezjavier.appfitness.data.remote.SupabaseClientFactory
-import io.github.lopezjavier.appfitness.domain.model.CoachModelChoice
 import io.github.lopezjavier.appfitness.domain.model.TestLoginCredentials
 import io.ktor.client.engine.mock.MockEngine
 import io.ktor.client.engine.mock.respond
@@ -29,8 +27,7 @@ private const val SESSION =
 /**
  * E16 acceptance criterion 6: the weekly summary with its nutrition diagnosis and plateau, and the diet-break toggle,
  * make no model call. The summary is a table read; the toggle may reach the `coach` function only as the deterministic
- * `plan_diet_break` kind, never with a model key (the function records no usage row for it), even when a paid model is
- * selected.
+ * `plan_diet_break` kind, never with a model key.
  */
 class E16FlowsMakeNoModelCallTest {
     private val requests = mutableListOf<HttpRequestData>()
@@ -49,8 +46,7 @@ class E16FlowsMakeNoModelCallTest {
             MemorySessionManager(),
         )
         SupabaseAuthRepository(client.auth).signInWithPassword(TestLoginCredentials("a@b.c", "pw"))
-        val preference = InMemoryCoachModelPreference().also { it.select(CoachModelChoice.Sonnet) }
-        val plans = SupabaseCoachPlanRepository(client.auth, client.postgrest, client.functions, preference)
+        val plans = SupabaseCoachPlanRepository(client.auth, client.postgrest, client.functions)
         val summary = SupabaseCoachSummaryRepository(client.auth, client.postgrest)
 
         summary.getLatest(today)

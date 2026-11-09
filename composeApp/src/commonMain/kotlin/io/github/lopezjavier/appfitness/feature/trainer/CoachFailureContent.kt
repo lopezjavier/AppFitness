@@ -3,7 +3,6 @@
 package io.github.lopezjavier.appfitness.feature.trainer
 
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
@@ -12,7 +11,6 @@ import io.github.lopezjavier.appfitness.composeapp.resources.action_retry
 import io.github.lopezjavier.appfitness.designsystem.AppStateAction
 import io.github.lopezjavier.appfitness.designsystem.ErrorState
 import io.github.lopezjavier.appfitness.designsystem.OfflineState
-import io.github.lopezjavier.appfitness.designsystem.Spacing
 import io.github.lopezjavier.appfitness.domain.model.CoachFailure
 import io.github.lopezjavier.appfitness.domain.model.MissingField
 import io.github.lopezjavier.appfitness.domain.model.PlanFixTarget
@@ -24,8 +22,8 @@ import org.jetbrains.compose.resources.stringResource
 internal class CoachFailureCopy(val error: StringResource, val interrupted: StringResource)
 
 /**
- * The state of a failed AI call (R-31) shared by the coach proposal screens: the limit message, the offline state or
- * an error with "Reintentar". Tags are `<tagPrefix>_limit`, `_offline`, `_error*` and `_retry`.
+ * The state of a failed AI call (R-31) shared by the coach proposal screens: the offline state or
+ * an error with "Reintentar". Tags are `<tagPrefix>_offline`, `_error*` and `_retry`.
  */
 @Composable
 internal fun CoachFailureContent(
@@ -59,18 +57,6 @@ internal fun CoachFailureContent(
         }
     }
     when (kind) {
-        is PlanFailureKind.Limit -> CoachLimitMessage(
-            failure = CoachFailure.LimitReached(kind.scope),
-            modifier = Modifier.padding(Spacing.screenMargin),
-            testTag = "${tagPrefix}_limit",
-        )
-
-        PlanFailureKind.NoCredit -> CoachLimitMessage(
-            failure = CoachFailure.NoCredit,
-            modifier = Modifier.padding(Spacing.screenMargin),
-            testTag = "${tagPrefix}_limit",
-        )
-
         PlanFailureKind.Offline -> Box(Modifier.testTag("${tagPrefix}_offline")) {
             OfflineState(isOnline = isOnline, onReload = onRetry)
         }
