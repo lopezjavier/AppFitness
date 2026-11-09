@@ -9,7 +9,9 @@ const COMMON = [
     "All nutrition values are per 100 g (base_unit g) or per 100 ml (base_unit ml), not per serving.",
     "kcal is energy in kcal; protein_g, carbs_g and fat_g are grams.",
     "Micronutrients are grams per 100 base units under the keys of the schema (convert mg and ug to grams).",
-    "Use null for any value you cannot determine; never invent values.",
+    "alcohol_g is the grams of alcohol per 100 base units (never % vol): 0 when the dish or drink has no alcohol, " +
+    "never null and never omitted.",
+    "Use null for any value you cannot determine, except alcohol_g; never invent values.",
 ].join(" ");
 
 export const PROMPTS: Record<FoodPhotoMode, string> = {
@@ -19,10 +21,12 @@ export const PROMPTS: Record<FoodPhotoMode, string> = {
         "The nutrition values per 100 g and estimated_grams must describe the food exactly as shown in the photo: " +
         "when it looks cooked, use the cooked values and the cooked weight, never the raw or dry values. " +
         "The user note, when present, can refine this (for example the cooking method or the raw weight). " +
-        "Use 0 only for values that are really zero; use null for values you cannot determine.",
+        "Use 0 only for values that are really zero; use null for values you cannot determine, except alcohol_g, which is always a number.",
     label:
         `${COMMON} The photo shows a nutrition facts label. Transcribe the values printed on it, converted to per 100 g ` +
-        "or per 100 ml (use the per-100 column when present). Leave null every value that is not printed. " +
+        "or per 100 ml (use the per-100 column when present). Leave null every value that is not printed, except alcohol_g, " +
+        "which is 0 unless the label shows alcohol: convert a % vol printed on a drink label to grams per 100 ml " +
+        "(% vol x 0.789). " +
         "Use the product name printed on the package, or a short generic name. Set estimated_grams to null.",
     barcode:
         `${COMMON} The photo shows a product barcode, usually on its package. Identify the product from the package ` +

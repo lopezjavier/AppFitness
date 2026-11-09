@@ -15,6 +15,8 @@ export type NormalizedFood = {
     protein_100: number;
     carbs_100: number;
     fat_100: number;
+    /** Grams of alcohol per 100 base units (OFF `% vol` x 0.789), null when OFF has none. */
+    alcohol_100: number | null;
     serving_label: string | null;
     serving_amount: number | null;
     image_url: string | null;
@@ -68,6 +70,20 @@ function readNumber(v: unknown): number | undefined | "invalid" {
 }
 
 const round2 = (n: number) => Math.round(n * 100) / 100;
+const round1 = (n: number) => Math.round(n * 10) / 10;
+
+/** Ethanol density (g/cm3) used to turn OFF's `% vol` into grams per 100 base units (07 section 4). */
+const ETHANOL_DENSITY = 0.789;
+
+/** Alcohol in grams per 100 base units from OFF's `% vol`; null when absent or invalid (never rejects the product). */
+function alcoholGrams(n: Record<string, unknown>, sfx: string): number | null {
+    for (const key of [`alcohol_${sfx}`, "alcohol"]) {
+        const v = readNumber(n[key]);
+        if (v === undefined || v === "invalid") continue;
+        return Math.min(100, round1(v * ETHANOL_DENSITY));
+    }
+    return null;
+}
 
 function text(v: unknown, max: number): string | null {
     if (typeof v !== "string") return null;
@@ -174,6 +190,7 @@ export function normalizeProduct(raw: unknown): NormalizedFood | null {
             protein_100: protein ?? 0,
             carbs_100: carbs ?? 0,
             fat_100: fat ?? 0,
+            alcohol_100: alcoholGrams(n, sfx),
             serving_label: serving?.label ?? null,
             serving_amount: serving?.amount ?? null,
             image_url: text(p.image_front_small_url, 2048),

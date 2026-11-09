@@ -5,7 +5,7 @@
         "role": "model",
         "parts": [
           {
-            "text": "{\"name\":\"Tortilla de patatas sin cebolla\",\"brand\":null,\"base_unit\":\"g\",\"nutrition\":{\"kcal\":175,\"protein_g\":6,\"carbs_g\":14,\"fat_g\":10},\"micronutrients\":{},\"estimated_grams\":180,\"confidence\":\"medium\"}"
+            "text": "{\"name\":\"Tortilla de patatas sin cebolla\",\"brand\":null,\"base_unit\":\"g\",\"nutrition\":{\"alcohol_g\":0,\"kcal\":175,\"protein_g\":6,\"carbs_g\":14,\"fat_g\":10},\"micronutrients\":{},\"estimated_grams\":180,\"confidence\":\"medium\"}"
           }
         ]
       },
