@@ -1,12 +1,12 @@
 # Tasks — Phase 3
 
-Plan of the current epic: [tasks/plan.md](plan.md) (E15) · Planning: [planning/](../planning/README.md)
+Plan of the current epic: [tasks/plan.md](plan.md) (E18) · Planning: [planning/](../planning/README.md)
 Operating instructions: [`CLAUDE.md`](../CLAUDE.md). Phase 1 history (frozen): [tasks/phase1/](phase1/todo.md). Phase 2 history (frozen, with the full per-task log T-134…T-238): [tasks/phase2/](phase2/todo.md).
 
 Legend: **👤** = done by the user (accounts, web consoles, secrets) · **PM** = done by Claude Code.
 Secrets rule: never pasted in the chat or in versioned files. The user enters them in their terminal or in the consoles, and Claude only verifies that they exist.
 
-Last task ID used: T-258 (T-257…T-258 = ADR-104 hard energy check, Checkpoint E17 feedback; T-251…T-256 reserved by the E17 breakdown; T-246…T-249 by E16; T-239…T-244 by E15; T-250 = user-reported fix below)
+Last task ID used: T-267 (T-259…T-267 reserved by the E18 breakdown; T-257…T-258 = ADR-104 hard energy check, Checkpoint E17 feedback; T-251…T-256 reserved by the E17 breakdown; T-246…T-249 by E16; T-239…T-244 by E15; T-250 = user-reported fix below)
 
 **Done in the T-246 branch (user report, 2026-11-08; the user ordered it into the current branch, so it ships in T-246's PR as a separate `fix(T-250)` commit):** `fix(T-250)`: the `food-photo` dish prompt (`supabase/functions/food-photo/prompts.ts`) never says whether the per-100 g values are for the food as served; a 400 g cooked plate came back with raw-food kcal/100 g. Fix: the dish prompt states that values and `estimated_grams` describe the food as shown in the photo (cooked when cooked), with a handler/prompt test and a redeploy of `food-photo`. Backend only, no model-call change elsewhere.
 
@@ -35,6 +35,8 @@ Rule: every CI failure that passes on re-run is logged here with date, run URL a
 
 ## 👤 Checkpoints
 
+E18 (epic-planner, 2026-11-09; one checkpoint only, user decision 2026-11-09): **Checkpoint E18** after T-266, the last implementation task ("Uso de IA" gone, past reports in "Informes", quick search and my foods at once, the compact Trainer, the exercise chat, plus the final E18 regression; 16 items grouped by functionality; its approval releases the closure T-267). The 👤 **Gemini terms check** (a decision, not a test) gates T-265. Details under the E18 section.
+
 E17 (epic-planner, 2026-11-09; one checkpoint only, user decision 2026-11-09): **Checkpoint E17** after T-255, the last implementation task (the kcal/macro warning, "Alcohol (g)", the food audit, Open Food Facts copies and the conversion, plus the final E17 regression; 10 items; its approval releases the closure T-256). Details under the E17 section.
 
 E16 (epic-planner, 2026-11-08; one checkpoint only, user decision 2026-11-08): **Checkpoint E16** after T-248, the last implementation task (the nutrition section of "Resumen semanal", "Descanso de dieta" and the final E16 regression; 7 items; its approval releases the closure T-249). As in E15 (Q5), only items the user can try right away are checkpoint items; the diagnosis branches that need two real weeks of data are in "Pending natural-trigger feedback (E16)" under the E16 section, outside the gate. Details under the E16 section.
@@ -51,6 +53,252 @@ E15 (epic-planner, 2026-11-08, after the user's Q1-Q5 answers; needs the user's 
 ## Reminders
 
 - Delete `design/reported/live-session-cardio-row-layout.png` once the user confirms the cardio fix (T-238).
+
+---
+
+# E18 · Functional improvements → `v1.x` (proposed `v1.9.0`)
+
+Epic: [`planning/epics/E18-functional-improvements.md`](../planning/epics/E18-functional-improvements.md) (stories US-128, US-129, US-130, US-120…US-122). Plan: [tasks/plan.md](plan.md).
+Rules: ADR-103 (Anthropic removed, reports stored, the Gemini exercise chat), ADR-17 (keys server-side), ADR-59 (`food-photo`, Gemini), ADR-66 (no monthly report), ADR-98 (no model in the numbers), ADR-101, ADR-104; `04` §6.1 (reminders computed, never stored), §6.7 (weekly summary notice), §6.9 (block-end notice); `03` §3 `coach_block_reviews`, `coach_week_summary_seen`; `05` §8-§10 (R-02, R-04, R-06, R-07, R-26, R-30, R-31, R-33, R-52, R-56, R-57); `01` §4 (no medical advice, the only chat is US-130); ADR-27, ADR-40, ADR-80.
+"Notes for later epics": no item targets E18 (the "Recuperar" note is a non-goal; the "Lo que el entrenador sabe de ti" note targets E19 UI review; T-259 must not change that copy). Nothing moved. Carried follow-ups folded in (the list above is left as is; the PM ticks them when the task merges): `CalorieChoice.toEvent()` extraction and the missing review subtitle of `BlockReviewScreen` (T-234) → T-262; renaming the `change` parameter of `CalorieProposalCard` and merging `acceptOffline`/`discardOffline` in `TrainerScreen.kt` (#522) → T-264; the T-255 leftover "`FoodSearchViewModel.emitTextSearch` sorts favourites first only from the favourites already loaded" → T-263 (it is US-122).
+
+**Status (epic-planner, 2026-11-09; updated the same day with the user's feedback): PROPOSED, needs the user's OK on the breakdown PR; one checkpoint only, at the end (user decision 2026-11-09).** Q1 and Q2 are resolved by the user (2026-11-09, below and in `tasks/plan.md` "Decisions"). The only open user item is the 👤 **Gemini terms check** (free or paid tier, epic and ADR-103), which gates T-265.
+
+**User decisions (2026-11-09):**
+- **Q1 · Report history (T-261, T-262).** (a) No backfill: only the summaries produced from T-261 on are stored; older weeks are not rebuilt. (b) The block-end notice is a report notice: opening it from Centro de avisos clears it there and the review is kept in "Informes" (`04` §6.9 "opening never clears it" is amended by T-261). (c) A past report opened from "Informes" is read only: it shows the figures and the decision taken as text, with no buttons to decide again; the current report opened from its notice keeps its buttons. (d) A paused week ("Semana en pausa") is listed in "Informes" only if its summary was actually produced and shown to the user; a paused week nobody opened leaves no report.
+- **Q2 · Exercise chat (T-265, T-266).** (a) No follow-up context: each question is answered on its own and sends only the exercise (name, muscles, instructions) and that question, as the Gherkin says. Multi-turn context is an idea for a later epic, not E18. (b) "Daily limit" means only Gemini's own quota: the Edge Function catches the quota or provider error and the app shows a short reason; there is no app-side cap or counter.
+
+**Order and sizing (every task pays 6-8 hand-offs; no S task):**
+1. **T-259** · **Size M** · backend: US-128 backend. US-128 is about 45 files (Edge Function, shared client, migration, pgTAP, docs, then the app's screen, models, repository and tests), so it is split backend then app. Goes first because it drops data in production (epic).
+2. **T-260** · **Size M** · core + UI: US-128 in the app: "Uso de IA", the monthly limit and the model selector removed.
+3. **T-261** · **Size M** · backend: US-129 backend: report snapshots and the list. Split from the UI because the story is about 20 files (migration, RPCs, pgTAP, then repository, list, read-only viewer of two report types, Centro de avisos entry, routes, tests).
+4. **T-262** · **Size M** · core + UI: US-129 in the app: "Informes" and the past-report viewer. No checkpoint here (user decision: one checkpoint at the end).
+5. **T-263** · **Size M** · core + UI: US-121 + US-122. US-122 alone is S (T-255 already orders the list; the story adds the immediate local block), and it is the same food-search screen and ViewModel as US-121's Diario path, so they are one task.
+6. **T-264** · **Size M** · UI + core: US-120, the compact Trainer and "Detalles".
+7. 👤 **Gemini terms check** (user decision, not a task, no size): free tier or paid tier with a low limit, for the chat and `food-photo`. Can be done any time before T-265 (for example while T-263 or T-264 runs), so T-265 does not wait.
+8. **T-265** · **Size M** · backend: US-130 backend: the `exercise-chat` Edge Function. Split from the UI because together they are about 16 files and the backend (prompt, Gemini call, error mapping, data minimisation) is reviewed apart from the chat tab.
+9. **T-266** · **Size M** · core + UI: US-130 in the app: the chat tab. Last implementation task. → **👤 Checkpoint E18** (the only one; final regression).
+10. **T-267** · closure step (PM, no size class; it waits for the checkpoint approval, so it cannot merge into a task): E18 closure.
+
+---
+
+## T-259: Anthropic removed: Edge Functions, `coach_usage` dropped, decisions updated (US-128 backend) · M
+
+**Story:** US-128 (backend and docs) · **Flow:** planner → backend-developer → pr-reviewer → pr-creator (§2.2, no UI) · **Size:** M
+**Scenarios:** US-128 The key is gone (repository and Edge Functions); Usage data is dropped; Nothing I use changes (server side: every deterministic `coach` kind, `food-photo`); The decisions say so.
+**Description:** **Edge Functions:** delete `_shared/anthropic.ts` (+ test), `coach/budget.ts`, `coach/prices.ts` (+ tests) and the streaming/model path of `coach/handler.ts`, `index.ts`, `context.ts`, `router.ts`, `debugLog.ts`; every remaining kind is deterministic (`plan_nutrition`, `plan_recompute`, `plan_diet_break`, `plan_goal_switch`, `plan_phase_change` and the rest the planner lists from `router.ts`) and keeps its exact response; kinds that needed a model (`report`, `chat`, any other) are removed. An old installed app still sends `model` in the body: the handler ignores the field (no `INVALID_INPUT`), so the Trainer keeps working until T-260's APK. Errors tied to the budget or the provider (`_shared/errors.ts`) go. `supabase/.env.example` loses `ANTHROPIC_API_KEY`. **Migration:** drop `coach_usage` (table, policies, functions or views that read it) and any other budget-only object the planner finds; no other table is touched; pgTAP: `coach_usage.test.sql` removed, `delete_account_cascade.test.sql` and the `coach_*` tests that mention it updated; a check that the other tables' row counts are unchanged (T-242 precedent). **Docs ("The decisions say so"):** ADR-77 and ADR-90 marked superseded by ADR-103 in their index rows (`phase2/00-decisions.md`) and the Phase 2 NFR-02 restored to "100 % free" (`phase2/01-scope.md`, as ADR-103 asks); `07` §8 "Data, privacy and cost" and §11 "Cost estimate" rows updated (no Anthropic, no caps; Gemini only for `food-photo` and the chat); `02` (providers, secrets), `03` (`coach_usage` gone), `08-environment-setup.md` (Anthropic account and key steps removed). The "Lo que el entrenador sabe de ti" copy is not changed (E19 note). **👤 step after the merge:** the user removes the secret (`npx supabase secrets unset ANTHROPIC_API_KEY`) and revokes the key in the Anthropic console; the PM only verifies that the name is gone from `npx supabase secrets list` (through a subagent).
+**Acceptance criteria:**
+- [ ] No file in the repository references Anthropic, `ANTHROPIC_API_KEY`, prices or the monthly budget (outside frozen history: `planning/phase1/`, `planning/phase2/` text kept as history, `tasks/phase*/`, retrospectives); `rg -i anthropic supabase/` is empty.
+- [ ] Every deterministic `coach` kind returns the same response as before for the same input (Deno tests unchanged or adapted, none deleted except model/budget ones); a body with `model` is accepted and the field ignored.
+- [ ] `coach_usage` no longer exists after the migration; every other table keeps its rows (migration self-check).
+- [ ] ADR-77 and ADR-90 read "Superseded by ADR-103"; NFR-02 reads "100 % free"; `07` §8/§11 show no paid provider.
+**Host tests:** Deno tests for `coach` (each deterministic kind, `model` ignored, removed kinds answer the existing unknown-kind error); pgTAP (`coach_usage` absent, `delete_account_cascade` without it, row counts unchanged).
+**Verification:**
+- [ ] `npx supabase db reset && npx supabase db lint && npx supabase test db` and `deno test --allow-all supabase/functions` green; after the merge `deploy-supabase` green on `main` with data intact and `coach` redeployed.
+- [ ] 👤 `ANTHROPIC_API_KEY` unset and the key revoked by the user; the PM confirms the secret name is absent.
+**Agent runs:** 5. About 22 files (half deletions).
+**Dependencies:** the breakdown approved by the user.
+**Files likely touched:** `supabase/functions/_shared/{anthropic,anthropic.test,errors}.ts`, `supabase/functions/coach/{handler,index,context,router,debugLog,budget,prices}.ts` (+ tests), `supabase/migrations/<ts>_drop_coach_usage.sql`, `supabase/tests/{coach_usage,delete_account_cascade,coach_*}.test.sql`, `supabase/.env.example`, `planning/{02-architecture,03-data-model,07-coach-design,08-environment-setup}.md`, `planning/phase2/{00-decisions,01-scope}.md`
+**Estimated scope:** M
+
+---
+
+## T-260: "Uso de IA", the monthly limit and the model selector removed from the app (US-128) · M
+
+**Story:** US-128 · **Flow:** planner → ux-reviewer (plan) → kotlin-core-developer → compose-ui-developer → pr-reviewer ∥ ux-reviewer (diff) → pr-creator · **Size:** M
+**Scenarios:** US-128 The cost screen is gone; The key is gone (the app contains no Anthropic client); Nothing I use changes (app side); plus "leave the app and come back on the Trainer and Perfil".
+**Description:** **Core:** delete `CoachUsage`, `CoachBudget`, `CoachModelChoice`, the `CoachModelPreference` port and its implementation, `CoachUsageDto`, `SupabaseCoachUsageRepository` and their DI bindings and tests; `CoachFailure` loses the budget and provider variants (keep the ones the deterministic kinds still return); the coach client stops sending `model`; `CoachClientTimeout` and any streaming-only code are kept only if a deterministic kind still uses them (planner checks; dead code goes). **UI — templates and patterns:** `CoachUsageScreen`/`ViewModel`/`UiState` and their route in `AppRoutes`/`AppNavHost` deleted; the Trainer header ⋮ action sheet (R-02, Actions archetype) loses "Uso de IA" (if the menu is left with no item, the ⋮ goes and the header keeps only the bell, R-04/G13); any Perfil or Preferencias row to it removed; strings of the screen, the limit and the model selector removed; a progress text that names the AI on a deterministic path ("Preparando tu plan…", `StreamProgressState`) is checked by ux-reviewer and kept only if still accurate. Glossary §10 rows for "Uso de IA", the limit and the model selector removed; `05` §6/§8 references updated. A restored back stack that pointed to the removed route lands on the Trainer root (ADR-40).
+**Acceptance criteria:**
+- [ ] Perfil and the Trainer show no "Uso de IA", no monthly limit and no model selector; no string, route or class for them remains.
+- [ ] The plan proposal, "Bloque nuevo", the block builder, the folder review and the weekly summary behave as before (existing host tests green, none deleted except usage/selector ones).
+- [ ] `rg -i "anthropic|coach_usage|CoachBudget|CoachModel" shared composeApp androidApp` is empty.
+- [ ] Leaving the app and coming back (and process death) on the Trainer and Perfil restores them; `check-ux-conventions.sh` passes.
+**Host tests:** coach client tests (no `model` field); `TrainerFlowTest`/`TrainerRestorationTest` adapted (no ⋮ entry); deleted: `CoachUsageScreenTest`, `CoachUsageRestorationTest`, `CoachUsageModelSelectorTest`, `CoachBudgetTest`, `SupabaseCoachUsageRepositoryTest`; a restoration test from a saved stack with the removed route.
+**Verification:**
+- [ ] lint + `testLocalDebugUnitTest` green. No backend change.
+**Agent runs:** 7. About 20 files (mostly deletions).
+**Dependencies:** T-259 merged and deployed.
+**Files likely touched:** `shared/…/domain/model/{CoachUsage,CoachBudget,CoachModelChoice,CoachFailure}.kt`, `shared/…/domain/port/CoachModelPreference.kt`, `shared/…/data/remote/CoachUsageDto.kt`, `shared/…/data/repository/{SupabaseCoachUsageRepository,CoachClientTimeout}.kt` and the coach client, DI module, `feature/trainer/{CoachUsageScreen,CoachUsageUiState,CoachUsageViewModel,TrainerScreen,PlanProposalUiState}.kt`, `app/{AppRoutes,AppNavHost}.kt`, `strings.xml`, `planning/05-design-system.md`, tests
+**Estimated scope:** M
+
+---
+
+## T-261: Reports are stored: weekly and block summary snapshots and their list (US-129 backend) · M
+
+**Story:** US-129 (backend) · **Flow:** planner → backend-developer → pr-reviewer → pr-creator (§2.2, no UI) · **Size:** M
+**Scenarios:** US-129 A report is kept; Opening past reports (server: list newest first, one report by id, exactly the stored figures); Reminders are not stored; Opening a report removes its notice (server side, both notices, Q1(b)).
+**Description:** **User decisions Q1 (2026-11-09) apply.** A new owner-scoped table (e.g. `coach_reports`: `id`, `user_id` cascade, `kind` `week_summary | block_review`, `plan_id`, `week` (null for a block), `period_start`, `period_end`, `snapshot jsonb` = the exact JSON the screen rendered, `created_at`; unique `(user_id, kind, plan_id, week)`; RLS enabled and forced, owner select only, no client write). **Weekly summary:** stored when it is produced, i.e. the first time the app builds the summary of a finished week (`coach_week_summary` path; a security definer writer, idempotent, as `open_coach_block_review`); once stored, later reads of that week return the stored snapshot (same figures as the list). **No backfill (Q1(a)):** nothing is rebuilt for weeks before T-261 is deployed, and no week is built later just to fill a gap. **Paused weeks (Q1(d)):** a "Semana en pausa" summary is stored only when it was actually produced and shown to the user; one nobody opened leaves no report. **Block summary:** `coach_block_reviews` already freezes `inputs` when the review opens; the list includes those rows (view or one-time copy, planner's choice) with the decision taken. Reviews stored before T-261 are listed because they were frozen when shown, not rebuilt (not a backfill). RPCs: `list_coach_reports()` (id, kind, period, newest first) and `get_coach_report(id)` (snapshot), invoker, `authenticated` only, `anon` revoked. **Block-end notice (Q1(b)):** it is a report notice: a `seen` mark on the review (e.g. `coach_block_reviews.seen_at` + `mark_coach_block_review_seen`) clears the Centro de avisos item "Tu bloque ha terminado: revísalo" once it is opened, and the review stays in "Informes". The Trainer's "Revisión del bloque" card and the review footer are not changed by this (they still follow `04` §6.9 until the next block is saved). `04` §6.9 "opening never clears it" is amended. Reminders (weight, circumference, check-in, welcome back) get no row (`04` §6.1). **Docs:** `03` §3 (table, RPCs, `seen_at`), `04` §6.7/§6.9 (stored reports, the amended notice rule) and a new `04` §6 paragraph "Informes"; ADR-103 consequence line for the §6.9 change.
+**Acceptance criteria:**
+- [ ] Building a finished week's summary stores one snapshot; reading it again returns the same snapshot even after the underlying diary or weights change; a second build stores nothing new; no week before the deploy is stored.
+- [ ] The list returns the caller's weekly and block reports newest first; a report of another user is neither listed nor readable.
+- [ ] No reminder kind is ever stored; a paused week is stored only once its summary was produced and shown.
+- [ ] Opening the block-end notice marks the review seen: the notice is no longer listed, the review is in the list, and the Trainer card still shows while the review is due.
+**Host tests:** pgTAP `coach_reports.test.sql` (store on first build, idempotent, frozen after data changes, nothing stored for earlier weeks, paused week only when built, block reviews listed with their decision, order, RLS with two users, no reminder rows) and the block-end seen mark (notice gone, Trainer review due unchanged).
+**Verification:**
+- [ ] `npx supabase db reset && npx supabase db lint && npx supabase test db` green; after the merge `deploy-supabase` green on `main` with data intact.
+**Agent runs:** 5. About 8 files.
+**Dependencies:** T-260 merged (Q1 resolved by the user, 2026-11-09).
+**Files likely touched:** `supabase/migrations/<ts>_coach_reports.sql`, `supabase/tests/{coach_reports,coach_summary,coach_block_review}.test.sql`, `planning/03-data-model.md`, `planning/04-business-rules.md` §6
+**Estimated scope:** M
+
+---
+
+## T-262: "Informes": past reports reopened from Centro de avisos (US-129) · M
+
+**Story:** US-129 · **Flow:** planner → ux-reviewer (plan) → kotlin-core-developer → compose-ui-developer → pr-reviewer ∥ ux-reviewer (diff) → pr-creator · **Size:** M
+**Scenarios:** US-129 Opening past reports; One after another; Reminders are not stored (no reminder in the list); Opening a report removes its notice; State survives leaving the app.
+**Description:** **Core:** `ReportRepository` over T-261's RPCs, a report-list ViewModel and a past-report ViewModel that renders a stored snapshot through the same mappers as `WeekSummaryViewModel` and `BlockReviewViewModel` (one mapper per report type, no second copy of the rendering); opening a report notice marks it seen: the weekly summary per `04` §6.7, the block-end notice through T-261's seen mark (Q1(b)). **UI — templates and patterns:** "Informes" entry in Centro de avisos (`NotificationCenterRoot`): a `NavigationRow` labelled "Informes" (R-03/R-04: the screen title equals the label), placement by ux-reviewer (top or bottom of the notice list, always visible, also when no notice is active); the list is a pushed `AppScreen` (R-06) with rows "Resumen semanal" / "Revisión del bloque" and the period via `AppDateFormat` (R-44), newest first, lazy (R-23), `EmptyState` when none, skeleton, `ErrorState` with "Reintentar", `OfflineState` (R-30/R-31); a row opens the report on a pushed `AppScreen` that reuses the existing `WeekSummaryScreen` and `BlockReviewScreen` content composables in a read-only mode (Q1(c): no "Aplicar"/"Ahora no", "Aceptar"/"Seguir como estoy" or "Crear el siguiente bloque"; the decision taken shown as text); back returns to the list at its scroll position. The current report opened from its notice keeps today's screen and actions. Folded follow-ups (T-234): extract `CalorieChoice.toEvent()` in `BlockReviewScreen.kt`; add the review subtitle (the block's date range, now available from the report period). Glossary §10: "Informes" (the glossary lists "Informe" as a forbidden alternative for the weekly summary: ux-reviewer amends that row so "Informes" names the list only). Docs: `05` §8/§10.
+**Acceptance criteria:**
+- [ ] "Informes" opens from Centro de avisos and lists my weekly and block reports newest first; no reminder appears in it.
+- [ ] A past report shows exactly the stored figures (same text as when it was first shown), read-only with the decision as text (Q1(c)); back returns to the list and another opens.
+- [ ] Opening a report notice (the weekly summary or the block-end notice, Q1(b)) removes it from the active list and the report stays in "Informes".
+- [ ] The list and an open report survive background and process death (ADR-40); offline shows the standard state (R-30); `check-ux-conventions.sh` passes.
+**Host tests:** repository/DTO tests; ViewModel tests (order, empty, error and retry, offline, snapshot → same UI model as the live mapper for the same JSON, notice marked seen); Robolectric (entry row in Centro de avisos, list rows and copy, read-only report without actions, back to list, restoration with `StateRestorationTester`).
+**Verification:**
+- [ ] lint + `testLocalDebugUnitTest` green. No backend change.
+**Agent runs:** 7. About 14 files.
+**Dependencies:** T-261 merged and deployed.
+**Files likely touched:** `shared/…/domain/{model/Report,repository/ReportRepository}.kt`, `shared/…/data/{remote/ReportDto,repository/SupabaseReportRepository}.kt`, `feature/notifications/{NotificationCenterRoot,NotificationCenterUiState}.kt`, `feature/trainer/{ReportsScreen,ReportsViewModel,ReportsUiState,PastReportScreen,PastReportViewModel,WeekSummaryScreen,BlockReviewScreen,BlockReviewSections}.kt`, `app/{AppRoutes,AppNavHost}.kt`, `strings.xml`, `planning/05-design-system.md` §10, tests
+**Estimated scope:** M
+
+---
+
+## T-263: Quick search in Diario and Entreno, and my foods at once (US-121, US-122) · M
+
+**Story:** US-121, US-122 · **Flow:** planner → ux-reviewer (plan) → kotlin-core-developer → compose-ui-developer → pr-reviewer ∥ ux-reviewer (diff) → pr-creator · **Size:** M (upper end)
+**Scenarios:** US-121 The icon in Diario; The icon in Entreno; View only · US-122 Favourites and my foods appear at once; Open Food Facts follows; plus "leave and come back with a quick search typed and a result open".
+**Description:** **Core:** `FoodSearchViewModel` emits the matching favourites and my foods first from my data (`search_user_food_ids`/own foods and the favourites, local or one fast query; no wait for `food-search`), then appends the `food-search` OFF rows below when they arrive (deduped by id; the server already hides copied OFF rows, T-254); the T-255 leftover (favourites sorted first only from the favourites already loaded) is fixed here; a slow or failed OFF call leaves my block on screen with the existing error/offline handling for the OFF part. A view-only mode flag for the food search and the exercise search (no target meal, no workout). **UI — templates and patterns:** Diario header (tab root, R-01/R-04): a magnifier `AppTopBarAction` "Buscar alimento" at the top right, left of the calendar icon, bell kept (G13); ux-reviewer checks the R-02 icon count for a tab root header with bell + calendar + magnifier. Entreno header: the same icon "Buscar ejercicio", same position rule. The food search opened from it is the existing `FoodSearchScreen` (`AppSearchField`, R-26; `FoodSearchTemplates` rows; favourites star R-56) in view-only mode: tapping a result opens the existing food details sheet (Info archetype in view-only, R-07) with no "Añadir" footer (barcode and photo entries per ux-reviewer: hidden in view-only since they lead to adding). The exercise search is the existing exercise library/picker list in view-only mode: a row opens the existing exercise details screen (tabs Resumen, Similares, Historial, Cómo hacerlo) without "Añadir". Back returns to the search with the query. Sweep: every caller of the food search and exercise picker keeps its add flow unchanged. Glossary §10 rows for the two icons' descriptions. Docs: `05` §8/§10.
+**Acceptance criteria:**
+- [ ] Diario shows a magnifier at the top right, left of the calendar; it opens the food search. Entreno shows the same icon; it opens the exercise search.
+- [ ] A result opened from a quick search shows its details and no "Añadir"; the same screens opened from a meal or a workout still add.
+- [ ] Typing in the food search lists matching favourites and my foods before any OFF response (a test with a delayed `food-search`); OFF results are appended afterwards; with no own match, OFF results appear.
+- [ ] The quick searches with their query and an open result survive background and process death (ADR-40); offline keeps the standard behaviour (R-30); `check-ux-conventions.sh` passes.
+**Host tests:** `FoodSearchViewModelTest` (own block emitted before a delayed OFF response, favourites not yet loaded, dedupe, OFF failure keeps own results, view-only mode); exercise search ViewModel (view-only); Robolectric (Diario and Entreno header icon order and descriptions, details without "Añadir" in view-only, with "Añadir" from a meal, back keeps the query, restoration).
+**Verification:**
+- [ ] lint + `testLocalDebugUnitTest` green. No backend change (if the immediate block needs an RPC, pgTAP and `deploy-supabase` apply).
+**Agent runs:** 7. About 14 files.
+**Dependencies:** T-262 merged (no build dependency).
+**Files likely touched:** `feature/diary/{DiaryScreen,DiaryDateHeader}.kt`, the Entreno root screen, `feature/food/{FoodSearchViewModel,FoodSearchScreen,FoodSearchTemplates,AddFoodSheet,AddFoodUiState}.kt`, the exercise picker/library screen and ViewModel, `feature/exercises/` details entry, `app/{AppRoutes,AppNavHost}.kt`, `strings.xml`, `planning/05-design-system.md` §10, tests
+**Estimated scope:** M
+
+---
+
+## T-264: A compact Trainer with "Detalles" (US-120) · M
+
+**Story:** US-120 · **Flow:** planner → ux-reviewer (plan) → kotlin-core-developer → compose-ui-developer → pr-reviewer ∥ ux-reviewer (diff) → pr-creator · **Size:** M
+**Scenarios:** US-120 The Trainer shows the essentials; Details hold the plan and the block; Nothing is lost; State survives leaving the app.
+**Description:** **Content map (ux-reviewer in the plan, from today's `TrainerContent`):** the Trainer root keeps the current block status (block, current week, its adherence line), the weekly summary entry, and every pending notice that asks for a decision or a look (calorie proposal, coach changes to undo, block review due, welcome back, discomfort follow-ups); "Detalles" holds the nutrition plan (`PlanSection` with its targets, cardio, diet break, weeks in phase) and the block with its full content (`BlockSection`, `PlanWeeksSection` with deload request and pause); the "Tus datos" and "Lo que el entrenador sabe de ti" rows and the "Bloque nuevo"/"Crear plan nuevo" actions are placed by ux-reviewer on one of the two (each stays exactly where one tap from the Trainer reaches it). The plan lists every figure and action shown today and where it lands ("Nothing is lost" is checked against that list). **UI — templates and patterns:** Trainer stays a tab root with its header and bell (R-01/R-04, G13); "Detalles" is a `NavigationRow` (R-03; label = the pushed screen's title "Detalles") opening a pushed `AppScreen` (R-06) with back (R-05); cards and rows move unchanged (no new component); live switches keep R-42; R-57 unchanged. Both screens share `TrainerViewModel` state or a split ViewModel (planner), with one load. Folded follow-ups (#522): rename `CalorieProposalCard`'s `change` parameter to `proposal`; merge `acceptOffline`/`discardOffline` in `TrainerScreen.kt`. Glossary §10: "Detalles". Docs: `05` §8/§10.
+**Acceptance criteria:**
+- [ ] The Trainer shows the block status, the weekly summary and any pending notice, without the plan and block bodies.
+- [ ] "Detalles" shows the nutrition plan and the block with their full content and actions.
+- [ ] Every figure and action listed in the plan's content map is on the Trainer or in "Detalles" (a host test per figure group).
+- [ ] "Detalles" survives background and process death (ADR-40); offline and error states as today; `check-ux-conventions.sh` passes.
+**Host tests:** `TrainerViewModelTest` adapted; Robolectric `TrainerFlowTest` (root content, each notice type, "Detalles" navigation, every figure group reachable), `TrainerRestorationTest` (Detalles open, process death), existing plan/block action tests moved to "Detalles".
+**Verification:**
+- [ ] lint + `testLocalDebugUnitTest` green. No backend change.
+**Agent runs:** 7. About 10 files.
+**Dependencies:** T-263 merged.
+**Files likely touched:** `feature/trainer/{TrainerScreen,TrainerUiState,TrainerViewModel,TrainerPlanSection,PlanWeeksSection,TrainerDetailsScreen}.kt`, `app/{AppRoutes,AppNavHost}.kt`, `strings.xml`, `planning/05-design-system.md` §10, tests
+**Estimated scope:** M
+
+---
+
+### 👤 Gemini terms check (decision gate for T-265; not a test checkpoint; the only open user item of E18) *(epic US-130, ADR-103)*
+
+- [ ] **Decision (user, 2026-11-09): free tier** (about one question a month; no reason to pay). **RESOLVED, no check needed:** `food-photo` already runs on the free tier from the user's account and works, so the chat uses the same key and tier; the Spain/EEA terms check below is dropped and T-265 no longer waits on it. (Old text, superseded:) The user checks Google's current Gemini API terms for Spain/EEA (whether the free tier may be used there or paid services are required) and decides: free tier, or paid tier with a low spending limit (money, the user's console). The same answer applies to `food-photo` (ADR-59); a change of tier for `food-photo` is a user action in the console, not a task, unless the key or model changes. The PM records the decision in `09-open-questions.md` and ADR-103's consequences (docs PR). It can be done any time before T-265 starts.
+
+---
+
+## T-265: The exercise chat Edge Function (US-130 backend) · M
+
+**Story:** US-130 (backend) · **Flow:** planner → backend-developer → pr-reviewer → pr-creator (§2.2, no UI) · **Size:** M
+**Scenarios:** US-130 Asking a question (server: a trainer-expert answer); Only the exercise is shared; The app takes no actions; No answer (busy, daily limit: distinct error codes); The key stays server-side; No history (nothing stored).
+**Description:** **Needs the Gemini gate decided; user decisions Q2 (2026-11-09) apply.** New Edge Function `exercise-chat` (auth required, `authenticated` users only): input `{exercise: {name, muscles, instructions}, question}` and nothing else. Each question is answered on its own: no earlier questions or answers are sent (Q2(a); multi-turn context is a possible later-epic idea, not E18). Strict schema with length caps, unknown fields rejected; calls Gemini with `GEMINI_API_KEY` (server-side, ADR-17) through a shared client extracted from `food-photo` into `_shared/gemini.ts` (`food-photo` migrated to it, its tests unchanged: sweep R-39 analogue); a system prompt that answers as a trainer expert on that exercise, in Spanish, only about the exercise (technique, muscles, variations, common mistakes), declines medical diagnosis (`01` §4) without a generic disclaimer (R-52, epic non-goal), and has no tools/function calling, so it cannot read or change anything; no database read or write besides auth, no logging of the question or the answer (ADR-59 precedent). Errors mapped to stable codes the app shows: provider busy/overloaded, Gemini's own quota or daily limit reached (`429`/`RESOURCE_EXHAUSTED`), invalid input, timeout. "Daily limit" means only Gemini's quota (Q2(b)): no app-side cap, counter or usage table. `fitness-scientist` reviews the system prompt's scope wording (PM step, no new `07` rule unless it asks for one). **Docs:** `02` (the function, providers), `03` §7 (contract), ADR-103 consequence line; `supabase/config.toml` entry; deploy workflow includes the function.
+**Acceptance criteria:**
+- [ ] A valid request returns an answer; the Gemini request body carries only the exercise's name, muscles, instructions and that one question (no earlier turns), and no tools.
+- [ ] Extra fields (diary, weight, health, account, earlier turns) are rejected; nothing is stored, counted or logged.
+- [ ] Busy, daily limit, timeout and invalid input return their own codes; no key in the response or the repository.
+- [ ] `food-photo` behaves exactly as before on the shared client.
+**Host tests:** Deno tests for `exercise-chat` (schema, extra fields rejected, request body contents, no tools, error mapping per provider status, auth required, no logging of content) and `food-photo` on the shared client.
+**Verification:**
+- [ ] `deno test --allow-all supabase/functions` green; after the merge `deploy-supabase` green on `main`, `exercise-chat` and `food-photo` deployed.
+**Agent runs:** 6 (incl. `fitness-scientist` prompt review). About 9 files.
+**Dependencies:** T-264 merged; 👤 Gemini terms check decided (Q2 resolved by the user, 2026-11-09).
+**Files likely touched:** `supabase/functions/exercise-chat/{index,handler,prompt,schema}.ts` (+ tests), `supabase/functions/_shared/gemini.ts` (+ test), `supabase/functions/food-photo/handler.ts`, `supabase/config.toml`, `.github/workflows/deploy-supabase.yml`, `planning/{02-architecture,03-data-model}.md`
+**Estimated scope:** M
+
+---
+
+## T-266: Ask about an exercise: the chat tab (US-130) · M
+
+**Story:** US-130 · **Flow:** planner → ux-reviewer (plan) → kotlin-core-developer → compose-ui-developer → pr-reviewer ∥ ux-reviewer (diff) → pr-creator · **Size:** M
+**Scenarios:** US-130 The chat is next to "Cómo hacerlo"; Asking a question; Only the exercise is shared (app side); No history; The app takes no actions; No answer; The key stays server-side (app side); plus "leave the app and come back with a question typed and an answer shown".
+**Description:** **Core:** `ExerciseChatRepository` over `exercise-chat` (sends the exercise's resolved name, R-54, muscles and instructions from the catalogue or the custom exercise, and the current question; never earlier questions or answers, Q2(a)); a chat ViewModel holding the conversation in memory and `SavedStateHandle` only (restored after background and process death, ADR-40; cleared when the user leaves the exercise, "No history"; never persisted); offline detected before sending. **UI — templates and patterns:** a new tab in the exercise details `AppTabRow` (R-33) right after "Cómo hacerlo" (label by ux-reviewer, glossary §10); the tab is a message list (lazy, R-23; question and answer bubbles from design-system tokens; a shared component only if ux-reviewer asks, built in `designsystem/` with a catalog entry) with an input field pinned at the bottom (R-24, keyboard "Enviar") and a send icon button (R-39, `contentDescription`); "Respondiendo…" style progress while waiting (R-31, copy by ux-reviewer); no answer: one short message in the conversation naming why (busy, Gemini's daily limit, offline per R-37 "Sin conexión: no se puede …"; no app-side counter, Q2(b)) with "Reintentar" where retry makes sense; empty state with one line on what to ask (R-57 checked); no disclaimer (R-52). The rest of the details screen is unchanged. Docs: `05` §8/§10.
+**Acceptance criteria:**
+- [ ] The exercise details show the chat tab next to "Cómo hacerlo"; a question gets an answer in the tab.
+- [ ] The request carries only the exercise's name, muscles, instructions and the question (repository test).
+- [ ] Leaving the exercise and opening it again starts an empty conversation; leaving the app and coming back (and process death) keeps it.
+- [ ] Busy, daily limit and offline each show their short message and the rest of the app works; no key in the app.
+- [ ] `check-ux-conventions.sh` passes.
+**Host tests:** repository/DTO tests (body contents, error codes); ViewModel tests (send, answer, each error, offline, cleared on leaving, restored from `SavedStateHandle`); Robolectric (tab order, send, progress, messages per error, empty state, restoration with `StateRestorationTester`, empty after leaving and reopening).
+**Verification:**
+- [ ] lint + `testLocalDebugUnitTest` green. No backend change.
+**Agent runs:** 7. About 10 files.
+**Dependencies:** T-265 merged and deployed.
+**Files likely touched:** `shared/…/domain/{model/ExerciseChat,repository/ExerciseChatRepository}.kt`, `shared/…/data/{remote/ExerciseChatDto,repository/SupabaseExerciseChatRepository}.kt`, DI, `feature/exercises/{ExerciseChatTab,ExerciseChatViewModel,ExerciseChatUiState}.kt` and the details screen with its tabs, `strings.xml`, `planning/05-design-system.md` §10, tests
+**Estimated scope:** M
+
+---
+
+### Checkpoint E18 — Functional improvements, with the final E18 regression 👤 (16 items, leave and come back included) *(epic-planner, 2026-11-09; the only E18 checkpoint, user decision 2026-11-09; its approval releases T-267)*
+
+After T-266 merges (the last implementation task), CI green, `deploy-supabase` green on `main` after T-259, T-261 and T-265 with data intact, `coach`, `exercise-chat` and `food-photo` deployed, `ANTHROPIC_API_KEY` unset. Main account. **Before installing, take screenshots of your Trainer** (for item 12). What to try on the phone (`python scripts/deliver-apk.py`):
+
+*Anthropic removed (T-259, T-260):*
+- [ ] 1. Open Perfil and the Trainer (and its ⋮ menu, if any): there is no "Uso de IA", no monthly limit and no model selector.
+- [ ] 2. Everything you use works as before: your nutrition plan and block, the block builder and the folder review (without saving), the weekly summary, a food from a photo; past Diario days and your history are intact.
+
+*Past reports (T-261, T-262):*
+- [ ] 3. Centro de avisos → "Informes": your weekly summaries and block reviews, newest first (only the ones produced since the update, plus the block reviews already stored); open one: the same figures as when you first saw it, and no buttons to decide again.
+- [ ] 4. Go back from a report: you are on the list where you left it; open another.
+- [ ] 5. With a report notice listed ("Tu resumen semanal está listo" or "Tu bloque ha terminado: revísalo"), open it: it leaves the active list and is in "Informes". (If no report notice is pending that day, this item moves to "Pending natural-trigger feedback", as in E15.)
+- [ ] 6. Weight, measurement and check-in reminders still appear in Centro de avisos when due and never appear in "Informes".
+
+*Quick search and my foods at once (T-263):*
+- [ ] 7. Diario: a magnifier at the top right, left of the calendar icon, opens the food search; in Entreno the same icon opens the exercise search.
+- [ ] 8. Open a food and an exercise from these searches: their details with no "Añadir"; back returns to the search with your text. Adding from a meal or a workout still works.
+- [ ] 9. Type the name of a favourite or one of your foods (from the quick search and when adding to a meal): yours appear at once and Open Food Facts results are added below afterwards; a name you never added shows OFF results.
+
+*Compact Trainer (T-264):*
+- [ ] 10. Open the Trainer: the block status, the weekly summary and any pending notice are at the top without a long scroll.
+- [ ] 11. Tap "Detalles": the nutrition plan and the block with their full content and actions.
+- [ ] 12. Compare with your screenshots: every figure is on the Trainer or in "Detalles".
+
+*Ask about an exercise (T-265, T-266):*
+- [ ] 13. Open an exercise's details: a chat tab next to "Cómo hacerlo"; ask about the exercise (technique, muscles, a common mistake): the answer reads as a trainer expert on that exercise, with no disclaimer. Each question is answered on its own.
+- [ ] 14. Ask it to change your routine or to tell you your weight: it only answers; nothing in the app changed.
+- [ ] 15. Turn on airplane mode and ask: a short message says why there is no answer and Diario and Entreno still work; leave the exercise and open it again: the conversation is empty.
+
+*Leave and come back (final regression):*
+- [ ] 16. Leave the app and come back (and after the system kills it) with a past report open, with "Detalles" open, with a quick search typed and a result open, and with a question typed and an answer shown in the chat: the same tab, screen and draft are restored each time.
+Out of scope here (pgTAP, Deno and host tests only): no Anthropic code or key remains; `coach_usage` is gone; another account's reports are not readable; only the exercise and the question are sent; the busy and Gemini daily-limit messages.
+
+---
+
+## T-267: E18 closure → `v1.x` · closure step (PM only, not a developer task)
+
+**Story:** E18 Definition of Done · **Flow:** PM closure step after Checkpoint E18 is approved (its approval releases this step; no checkpoint of its own). No developer agent, no size class; it cannot merge into a task because it waits for the checkpoint approval.
+**Description:** Version bump (`versionName`/`versionCode`, minor per epic, proposed `1.9.0`), tag, retrospective `retrospectives/E18.md`, archive of the E18 log lines; `09-open-questions.md` records Q1, Q2 (user, 2026-11-09) and the Gemini terms decision with their answers; `01-scope.md` E18 row marked done; the epic status set to done.
+**Acceptance criteria:**
+- [ ] T-259…T-266 (and any fix tasks) merged with green CI; `deploy-supabase` green after each migration and function change.
+- [ ] ux-reviewer ran in plan and diff mode on every UI task; `check-ux-conventions.sh` passes.
+- [ ] `00`, `02`, `03`, `04`, `05`, `07`, `phase2/01-scope.md` NFR-02 and the epic file are current; Checkpoint E18 approved by the user.
+- [ ] Version bumped; `tasks/todo.md` pointer updated through a PR.
+**Verification:**
+- [ ] `git tag` lists the E18 tag.
+**Dependencies:** Checkpoint E18 approved.
+**Files likely touched:** `androidApp/build.gradle.kts`, `tasks/todo.md`, `tasks/plan.md`, `planning/09-open-questions.md`, `planning/01-scope.md`, `planning/epics/E18-functional-improvements.md`, `retrospectives/E18.md`
+**Estimated scope:** closure step (PM)
 
 ---
 
