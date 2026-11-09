@@ -33,6 +33,8 @@ Integer percentages each in [5, 90], summing to 100; default P 30 / C 45 / F 25.
 - Macro progress `round(consumed_g / target_g × 100)` %; bar capped at 100, text shows the real value.
 - Example (target 2400; 180/270/67 g): consumed 142/210/48 g = 1840 kcal -> "1.840 / 2.400 kcal", P 79 %, C 78 %, F 72 %.
 
+- Food energy check (E17, ADR-102): a food's declared kcal is compared with the kcal its macros, fibre, polyols and alcohol imply, in SQL (`food_energy_check`) and on the device with the same result. Factors, thresholds (`mismatch`, `clearly_wrong`, skip) and the "saved anyway" flag rule: [coach design](07-coach-design.md) §4 "Food energy check". It only warns and lists; it never changes stored numbers or past diary entries.
+
 ### 2.1 Diary history (US-24)
 Per-day summary = day totals. Weekly average = mean of day totals over logged days in the last 7 days. Monthly total = sum in the calendar month; its average uses logged days only.
 

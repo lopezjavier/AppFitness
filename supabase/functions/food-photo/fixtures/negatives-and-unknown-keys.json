@@ -5,7 +5,7 @@
         "role": "model",
         "parts": [
           {
-            "text": "{\"name\":\"  Plato raro  \",\"brand\":\"  \",\"base_unit\":\"kg\",\"nutrition\":{\"kcal\":-5,\"protein_g\":10,\"carbs_g\":\"12\",\"fat_g\":3},\"micronutrients\":{\"iron_100g\":-0.001,\"made-up_100g\":5,\"calcium_100g\":\"lots\",\"zinc\":1},\"estimated_grams\":0,\"confidence\":\"certain\"}"
+            "text": "{\"name\":\"  Plato raro  \",\"brand\":\"  \",\"base_unit\":\"kg\",\"nutrition\":{\"alcohol_g\":-2,\"kcal\":-5,\"protein_g\":10,\"carbs_g\":\"12\",\"fat_g\":3},\"micronutrients\":{\"iron_100g\":-0.001,\"made-up_100g\":5,\"calcium_100g\":\"lots\",\"zinc\":1},\"estimated_grams\":0,\"confidence\":\"certain\"}"
           }
         ]
       },

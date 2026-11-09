@@ -1,5 +1,11 @@
 import { assert, assertEquals } from "jsr:@std/assert@1.0.19";
-import { findByBarcode, offRow, searchLocal, toFood } from "./food-store.ts";
+import {
+    COLUMNS,
+    findByBarcode,
+    offRow,
+    searchLocal,
+    toFood,
+} from "./food-store.ts";
 import { normalizeProduct } from "./off-client.ts";
 
 function fullProduct() {
@@ -101,4 +107,30 @@ Deno.test("findByBarcode reports whether the row already has off_data", async ()
     );
     assertEquals(withData?.hasOffData, true);
     assertEquals("off_data" in withData!.food, false);
+});
+
+Deno.test("offRow writes alcohol_g_100 from the normalised food", () => {
+    const food = { ...fullProduct(), alcohol_100: 9.5 };
+    assertEquals(offRow(food, "2026-10-21T10:00:00Z").alcohol_g_100, 9.5);
+    assertEquals(
+        offRow({ ...food, alcohol_100: null }, "2026-10-21T10:00:00Z")
+            .alcohol_g_100,
+        null,
+    );
+});
+
+Deno.test("toFood maps alcohol_g_100 to alcohol_100 and keeps null", () => {
+    assertEquals(toFood({ ...dbRow, alcohol_g_100: "9.5" }).alcohol_100, 9.5);
+    assertEquals(toFood({ ...dbRow, alcohol_g_100: null }).alcohol_100, null);
+    assertEquals(toFood(dbRow).alcohol_100, null);
+});
+
+Deno.test("COLUMNS includes alcohol_g_100 but the view select does not (foods_searchable has no such column)", async () => {
+    assert(COLUMNS.split(",").includes("alcohol_g_100"));
+    const { client, seen } = fakeClient([dbRow]);
+    await searchLocal(client, "avena", 20);
+    assert(!seen.select.includes("alcohol_g_100"));
+    const barcode = fakeClient([dbRow]);
+    await findByBarcode(barcode.client, "8410000810004");
+    assert(barcode.seen.select.includes("alcohol_g_100"));
 });

@@ -53,9 +53,9 @@ insert into snap select 'before', md5(string_agg(to_jsonb(e)::text, '|' order by
 grant all on snap to authenticated;
 
 select has_function('public', 'update_personal_food',
-  array['uuid', 'text', 'text', 'numeric', 'numeric', 'numeric', 'numeric', 'jsonb', 'jsonb', 'text'], 'update_personal_food exists');
+  array['uuid', 'text', 'text', 'numeric', 'numeric', 'numeric', 'numeric', 'jsonb', 'jsonb', 'text', 'numeric', 'boolean'], 'update_personal_food exists');
 select hasnt_function('public', 'update_personal_food',
-  array['uuid', 'text', 'text', 'numeric', 'numeric', 'numeric', 'numeric', 'jsonb', 'jsonb'], 'the 9-argument version is gone');
+  array['uuid', 'text', 'text', 'numeric', 'numeric', 'numeric', 'numeric', 'jsonb', 'jsonb', 'text'], 'the 10-argument version is gone');
 select has_function('public', 'personal_food_in_use', array['uuid'], 'personal_food_in_use exists');
 
 set local role authenticated;

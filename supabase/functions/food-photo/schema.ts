@@ -69,6 +69,8 @@ export type FoodDraft = {
         protein_g: number | null;
         carbs_g: number | null;
         fat_g: number | null;
+        /** Grams of alcohol per 100 base units; always a number >= 0 for dish, label and barcode. */
+        alcohol_g: number | null;
     };
     micronutrients: Record<string, number>;
     estimated_grams: number | null;
@@ -91,7 +93,10 @@ export const GEMINI_RESPONSE_SCHEMA = {
                 protein_g: num,
                 carbs_g: num,
                 fat_g: num,
+                // Never null in practice: 0 when there is no alcohol (07 section 4); the normalizer rejects a missing value.
+                alcohol_g: { type: "NUMBER" },
             },
+            required: ["alcohol_g"],
         },
         micronutrients: {
             type: "OBJECT",
@@ -199,6 +204,8 @@ export function normalizeWeight(
  * keys are dropped; `estimated_grams` is only kept for dish and only when > 0.
  * Absent values: label and barcode keep them null (macros) or omitted (micronutrients); dish (ADR-64) zero-fills
  * them: every macro is a number and all micronutrient keys are present, after the "no usable food" check.
+ * Alcohol is the one value never defaulted in any mode (07 section 4 "AI photo estimate"): a missing, null or
+ * non-numeric `alcohol_g` makes the output unusable (null, answered as 422 NO_FOOD_RECOGNIZED).
  */
 export function normalizeDraft(
     raw: unknown,
@@ -216,6 +223,8 @@ export function normalizeDraft(
         fat_g: amount(n.fat_g),
     };
     if (Object.values(nutrition).every((v) => v === null)) return null;
+    const alcohol = amount(n.alcohol_g);
+    if (alcohol === null) return null;
 
     const micronutrients: Record<string, number> = {};
     if (mode === "dish") {
@@ -240,8 +249,9 @@ export function normalizeDraft(
                 protein_g: nutrition.protein_g ?? 0,
                 carbs_g: nutrition.carbs_g ?? 0,
                 fat_g: nutrition.fat_g ?? 0,
+                alcohol_g: alcohol,
             }
-            : nutrition,
+            : { ...nutrition, alcohol_g: alcohol },
         micronutrients,
         estimated_grams: mode === "dish" && grams !== null && grams > 0
             ? grams

@@ -8,10 +8,13 @@ import { secretKey } from "./secret-key.ts";
 
 const REQUEST_TIMEOUT_MS = 8000;
 // Explicit columns: `off_data` (the full OFF product) must never travel with search results.
-const COLUMNS =
+// `foods_searchable` does not expose `alcohol_g_100` (T-251), so the view select has no alcohol and `toFood` maps it to null.
+const VIEW_COLUMNS =
     "id,source,barcode,name,brand,base_unit,kcal_100,protein_100,carbs_100,fat_100,serving_label,serving_amount,image_url,fetched_at";
+export const COLUMNS = `${VIEW_COLUMNS},alcohol_g_100`;
 const PORTIONS = "food_portions(id,label,amount,position)";
 const SELECT = `${COLUMNS}, ${PORTIONS}`;
+const VIEW_SELECT = `${VIEW_COLUMNS}, ${PORTIONS}`;
 
 // deno-lint-ignore no-explicit-any
 type Client = SupabaseClient<any, "public", any>;
@@ -96,6 +99,9 @@ export function toFood(row: any): Food {
         protein_100: Number(row.protein_100),
         carbs_100: Number(row.carbs_100),
         fat_100: Number(row.fat_100),
+        alcohol_100: row.alcohol_g_100 == null
+            ? null
+            : Number(row.alcohol_g_100),
         serving_label: row.serving_label,
         serving_amount: row.serving_amount === null
             ? null
@@ -116,7 +122,7 @@ export async function searchLocal(
 ): Promise<Food[]> {
     const { data, error } = await client
         .from("foods_searchable")
-        .select(SELECT)
+        .select(VIEW_SELECT)
         .textSearch("search_vector", unaccent(q), {
             type: "websearch",
             config: "spanish",
@@ -160,6 +166,7 @@ export function offRow(f: NormalizedFood, fetchedAt: string) {
         protein_100: f.protein_100,
         carbs_100: f.carbs_100,
         fat_100: f.fat_100,
+        alcohol_g_100: f.alcohol_100,
         serving_label: f.serving_label,
         serving_amount: f.serving_amount,
         image_url: f.image_url,

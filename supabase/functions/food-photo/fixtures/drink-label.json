@@ -1,0 +1,15 @@
+{
+  "candidates": [
+    {
+      "content": {
+        "role": "model",
+        "parts": [
+          {
+            "text": "{\"name\":\"Vino tinto\",\"brand\":\"Marca Ejemplo\",\"base_unit\":\"ml\",\"nutrition\":{\"alcohol_g\":9.5,\"kcal\":83,\"protein_g\":0.1,\"carbs_g\":2.6,\"fat_g\":0},\"micronutrients\":{},\"estimated_grams\":null,\"confidence\":\"medium\"}"
+          }
+        ]
+      },
+      "finishReason": "STOP"
+    }
+  ]
+}

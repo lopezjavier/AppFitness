@@ -495,3 +495,62 @@ Deno.test("fetchOffProduct: barcode lookup does not apply the Spain filter", asy
     );
     assertEquals(found?.name, "Flocons");
 });
+
+// ---- alcohol (T-251): OFF stores % vol; the import stores grams = % vol x 0.789 ----
+
+function withNutriments(extra: Record<string, unknown>, per = "100g") {
+    const base = fixture("product-8410000810004").product as Record<
+        string,
+        unknown
+    >;
+    return {
+        ...base,
+        nutrition_data_per: per,
+        nutriments: {
+            ...(base.nutriments as Record<string, unknown>),
+            ...extra,
+        },
+    };
+}
+
+Deno.test("normalizeProduct: 12 % vol becomes 9.5 g of alcohol", () => {
+    const food = normalizeProduct(withNutriments({ alcohol_100g: 12 }))!;
+    assertEquals(food.alcohol_100, 9.5);
+});
+
+Deno.test("normalizeProduct: a 100ml product reads alcohol_100ml and a bare alcohol key is the fallback", () => {
+    const ml = normalizeProduct(
+        withNutriments({
+            "energy-kcal_100ml": 83,
+            alcohol_100ml: 12,
+        }, "100ml"),
+    )!;
+    assertEquals(ml.base_unit, "ml");
+    assertEquals(ml.alcohol_100, 9.5);
+    assertEquals(
+        normalizeProduct(withNutriments({ alcohol: "5" }))!.alcohol_100,
+        3.9,
+    );
+});
+
+Deno.test("normalizeProduct: absent alcohol is null", () => {
+    assertEquals(
+        normalizeProduct(fixture("product-8410000810004").product)!.alcohol_100,
+        null,
+    );
+});
+
+Deno.test("normalizeProduct: invalid alcohol is null and the product is still normalised", () => {
+    for (const bad of ["abc", -3, {}]) {
+        const food = normalizeProduct(withNutriments({ alcohol_100g: bad }))!;
+        assertEquals(food.alcohol_100, null, String(bad));
+        assertEquals(food.kcal_100, 372);
+    }
+});
+
+Deno.test("normalizeProduct: alcohol is capped at 100 g", () => {
+    assertEquals(
+        normalizeProduct(withNutriments({ alcohol_100g: 200 }))!.alcohol_100,
+        100,
+    );
+});

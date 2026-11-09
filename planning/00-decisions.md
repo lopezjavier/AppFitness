@@ -4,7 +4,7 @@ Live index of every closed decision, one line per ADR, with the numbers kept sin
 
 ## New ADRs go here
 
-Phase 3 ADRs continue the numbering (next: **ADR-101**) and are written **in full** in this file, below the index, with their one-line row in the index. Format: context -> decision -> consequences. A new decision also updates the affected live docs.
+Phase 3 ADRs continue the numbering (next: **ADR-103**) and are written **in full** in this file, below the index, with their one-line row in the index. Format: context -> decision -> consequences. A new decision also updates the affected live docs.
 
 ## Index (Phase 1, ADR-01..72)
 
@@ -123,6 +123,7 @@ The rows of ADR-93, 94, 98 and 99 are added here: the Phase 2 archive index lack
 | ADR | Decision (one line) | Status |
 |---|---|---|
 | 101 | Phase 3 is the last phase: personal-use scope (one person plus an optional test account), items left out are out of scope for the app, Open Food Facts becomes a fallback that copies into editable personal foods, then maintenance mode | Amends 53, 90 |
+| 102 | Food energy check (E17): optional `alcohol_g_100` in grams per 100 base units, per-food "saved anyway" flag cleared by a trigger when an input changes, one SQL check function and an owner-scoped audit RPC (rule in `07` section 4) | — |
 
 ## Phase 3 ADRs (full text)
 
@@ -137,5 +138,14 @@ The rows of ADR-93, 94, 98 and 99 are added here: the Phase 2 archive index lack
   - Closure (E19): Supabase keep-alive, secured data export of the user's own rows, repository made private, project retro.
 - **Consequences:** `01-scope.md` rewritten, `CLAUDE.md` line 3, "Phase 3" references in `05`, `07`, E10-E13 and `tasks/todo.md` now say out of scope for the app. Epic files E15-E19 written 2026-11-08; no Android system notifications (ADR-73 stays), a block-end alert is added to "Centro de avisos".
 - **Approval:** user, 2026-11-08 (chat).
+
+### ADR-102 — Food energy check: alcohol field, "saved anyway" flag, SQL check function and audit RPC
+- **Context:** E17 (US-116, US-117) warns when a food's declared kcal and its macros disagree and lists the foods that fail. The rule, factors, thresholds and sources are owned by `fitness-scientist` in `07-coach-design.md` section 4 "Food energy check".
+- **Decision:**
+  - `foods.alcohol_g_100 numeric(5,1)` (null, 0-100): grams of alcohol per 100 base units, never % vol; allowed on `user` and `off` rows. The OFF import and a backfill of cached OFF rows store `% vol x 0.789`. The `food-photo` estimate returns `nutrition.alcohol_g` (always a number, `0` when none) and a response without it is rejected as `422 NO_FOOD_RECOGNIZED`.
+  - `foods.energy_check_saved_anyway boolean not null default false`: the user kept a failing food as entered. Trigger `foods_energy_flag` clears it whenever kcal, protein, carbs, fat, alcohol, fibre or polyols change in a write that does not change the flag itself. `create_personal_food` and `update_personal_food` take `p_alcohol` and `p_saved_anyway` and store the flag only on a food that fails the check. On update, a null `p_alcohol` clears the column (the form sends the full state).
+  - `public.food_energy_check(kcal, protein, carbs, fat, fibre, polyols, alcohol)` is the single SQL implementation (immutable, invoker); `public.food_energy_audit()` lists the caller's own failing, unflagged foods, `clearly_wrong` first. The audit writes nothing.
+- **Consequences:** `foods_searchable` is unchanged (alcohol is not in search results; the personal-copy function of T-254/T-255 reads `foods`). The Kotlin check (T-252) must give the same result as the SQL function. Redeploy `food-photo`, `food-search` and `food-barcode` with the migration.
+- **Approval:** user decisions Q-E17-1 and Q-E17-2, 2026-11-09 (chat).
 
 Older ADRs: [`phase2/00-decisions.md`](phase2/00-decisions.md) (73-100) and [`phase1/00-decisions.md`](phase1/00-decisions.md) (01-72).

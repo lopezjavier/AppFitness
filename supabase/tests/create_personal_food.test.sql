@@ -14,12 +14,12 @@ insert into auth.users (id, email) values
 -- ---------------------------------------------------------------------------
 select ok(
   has_function_privilege('authenticated',
-    'public.create_personal_food(text,text,public.food_base_unit,numeric,numeric,numeric,numeric,text,jsonb,jsonb)',
+    'public.create_personal_food(text,text,public.food_base_unit,numeric,numeric,numeric,numeric,text,jsonb,jsonb,numeric,boolean)',
     'execute'),
   'authenticated can execute create_personal_food');
 select ok(
   not has_function_privilege('anon',
-    'public.create_personal_food(text,text,public.food_base_unit,numeric,numeric,numeric,numeric,text,jsonb,jsonb)',
+    'public.create_personal_food(text,text,public.food_base_unit,numeric,numeric,numeric,numeric,text,jsonb,jsonb,numeric,boolean)',
     'execute'),
   'anon cannot execute create_personal_food');
 select ok(

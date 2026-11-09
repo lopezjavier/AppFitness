@@ -86,6 +86,7 @@ Deno.test("dish: returns the normalized draft with grams and macros per 100 g", 
         protein_g: 6,
         carbs_g: 15,
         fat_g: 10,
+        alcohol_g: 0,
     });
     assertEquals(draft.estimated_grams, 250);
     assertEquals(draft.confidence, "medium");
@@ -126,6 +127,7 @@ Deno.test("label: absent values stay null and no grams are returned", async () =
         protein_g: 3.5,
         carbs_g: null,
         fat_g: null,
+        alcohol_g: 0,
     });
     assertEquals(draft.estimated_grams, null);
     assertEquals(draft.brand, "Marca Ejemplo");
@@ -184,6 +186,7 @@ Deno.test("negatives clamp to 0, unknown or non-numeric values are dropped", asy
         protein_g: 10,
         carbs_g: 0,
         fat_g: 3,
+        alcohol_g: 0,
     });
     assertEquals(draft.micronutrients["iron_100g"], 0);
     assertEquals(draft.micronutrients["calcium_100g"], 0);
@@ -203,6 +206,7 @@ Deno.test("dish: missing values become 0 and all 36 micronutrient keys are prese
         protein_g: 0,
         carbs_g: 0,
         fat_g: 0,
+        alcohol_g: 0,
     });
     assertEquals(Object.keys(draft.micronutrients).length, 36);
     assertEquals(draft.micronutrients["sugars_100g"], 0);
@@ -228,6 +232,98 @@ Deno.test("label and barcode: micronutrients are not zero-filled", async () => {
         .json();
     assertEquals(draft.nutrition.protein_g, null);
     assertEquals(draft.micronutrients, {});
+});
+
+// ---- alcohol (T-251, 07 section 4 "AI photo estimate") ----
+
+function withNutrition(nutrition: Record<string, unknown>): string {
+    const body = JSON.parse(fixtureText("dish-tortilla"));
+    body.candidates[0].content.parts[0].text = JSON.stringify({
+        name: "Algo",
+        base_unit: "g",
+        nutrition,
+    });
+    return JSON.stringify(body);
+}
+
+Deno.test("alcohol: a positive value is returned in every draft mode", async () => {
+    for (const mode of ["dish", "label", "barcode"]) {
+        const { call } = setup({ body: fixtureText("drink-label") });
+        const res = await call({ image_base64: IMAGE, mode });
+        assertEquals(res.status, 200, mode);
+        const { draft } = await res.json();
+        assertEquals(draft.nutrition.alcohol_g, 9.5, mode);
+        assertEquals(draft.base_unit, "ml", mode);
+    }
+});
+
+Deno.test("alcohol: 0 is returned in every draft mode", async () => {
+    for (const mode of ["dish", "label", "barcode"]) {
+        const { call } = setup({ body: fixtureText("dish-tortilla") });
+        const { draft } = await (await call({ image_base64: IMAGE, mode }))
+            .json();
+        assertEquals(draft.nutrition.alcohol_g, 0, mode);
+    }
+});
+
+Deno.test("alcohol: missing, null or non-numeric gives 422 NO_FOOD_RECOGNIZED in every draft mode", async () => {
+    const bad = [
+        { kcal: 100, protein_g: 5 },
+        { kcal: 100, protein_g: 5, alcohol_g: null },
+        { kcal: 100, protein_g: 5, alcohol_g: "9.5" },
+    ];
+    for (const mode of ["dish", "label", "barcode"]) {
+        for (const nutrition of bad) {
+            const { call } = setup({ body: withNutrition(nutrition) });
+            const res = await call({ image_base64: IMAGE, mode });
+            assertEquals(
+                res.status,
+                422,
+                `${mode} ${JSON.stringify(nutrition)}`,
+            );
+            assertEquals((await errorOf(res)).code, "NO_FOOD_RECOGNIZED");
+        }
+    }
+});
+
+Deno.test("alcohol: a negative value clamps to 0", async () => {
+    const { call } = setup({
+        body: withNutrition({ kcal: 100, protein_g: 5, alcohol_g: -3 }),
+    });
+    const { draft } = await (await call({ image_base64: IMAGE, mode: "label" }))
+        .json();
+    assertEquals(draft.nutrition.alcohol_g, 0);
+});
+
+Deno.test("alcohol: the schema sent to Gemini requires alcohol_g and the prompts state the rule", async () => {
+    for (const mode of ["dish", "label", "barcode"]) {
+        const { call, sent } = setup({ body: fixtureText("dish-tortilla") });
+        await call({ image_base64: IMAGE, mode });
+        const body = sent[0].body as {
+            systemInstruction: { parts: { text: string }[] };
+            generationConfig: {
+                responseSchema: {
+                    properties: {
+                        nutrition: {
+                            required: string[];
+                            properties: Record<string, { type: string }>;
+                        };
+                    };
+                };
+            };
+        };
+        const nutrition = body.generationConfig.responseSchema.properties
+            .nutrition;
+        assertEquals(nutrition.required, ["alcohol_g"]);
+        assertEquals(nutrition.properties.alcohol_g.type, "NUMBER");
+        const prompt = body.systemInstruction.parts[0].text;
+        assert(
+            prompt.includes("alcohol_g is the grams of alcohol per 100"),
+            mode,
+        );
+        assert(prompt.includes("never % vol"), mode);
+        assertEquals(prompt.includes("% vol x 0.789"), mode === "label");
+    }
 });
 
 // ---- weight mode ----
@@ -413,6 +509,12 @@ Deno.test("dish, label and barcode prompts and schemas are unchanged by the weig
         assert(!prompt.includes("integer from 1 to 10"));
         const schema = body.generationConfig.responseSchema;
         assertEquals(schema.required, ["name", "base_unit", "nutrition"]);
+        assertEquals(
+            (schema.properties as unknown as {
+                nutrition: { required: string[] };
+            }).nutrition.required,
+            ["alcohol_g"],
+        );
         assertEquals(schema.properties.confidence.enum, [
             "low",
             "medium",

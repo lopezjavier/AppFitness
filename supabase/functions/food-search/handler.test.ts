@@ -42,6 +42,7 @@ function food(
         protein_100: 1,
         carbs_100: 1,
         fat_100: 1,
+        alcohol_100: null,
         serving_label: null,
         serving_amount: null,
         image_url: null,
