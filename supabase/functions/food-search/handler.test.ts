@@ -55,6 +55,7 @@ type Store = Array<Food & { owner?: string }>;
 function setup(opts: {
     store?: Store;
     off?: "ok" | "timeout" | "down";
+    favorites?: string[];
 } = {}) {
     const store = opts.store ?? [];
     const calls = { off: [] as string[], upserted: [] as NormalizedFood[][] };
@@ -64,15 +65,18 @@ function setup(opts: {
                 t === "token-a" ? "user-a" : t === "token-b" ? "user-b" : null,
             ),
         // Models RLS: OFF rows plus the caller's own foods.
-        searchLocal: (q, userId) =>
-            Promise.resolve(
-                store
-                    .filter((f) => f.source === "off" || f.owner === userId)
-                    .filter((f) =>
-                        f.name.toLowerCase().includes(q.toLowerCase())
-                    )
-                    .map(({ owner: _o, ...f }) => f),
-            ),
+        // The real store lists own foods first, each source capped at 20.
+        searchLocal: (q, userId) => {
+            const match = store
+                .filter((f) => f.source === "off" || f.owner === userId)
+                .filter((f) => f.name.toLowerCase().includes(q.toLowerCase()))
+                .map(({ owner: _o, ...f }) => f);
+            return Promise.resolve([
+                ...match.filter((f) => f.source === "user").slice(0, 20),
+                ...match.filter((f) => f.source === "off").slice(0, 20),
+            ]);
+        },
+        favoriteIds: () => Promise.resolve(new Set(opts.favorites ?? [])),
         searchOff: (q) => {
             calls.off.push(q);
             if (opts.off === "timeout") {
@@ -231,4 +235,102 @@ Deno.test("search responses never carry off_data or micronutrients", async () =>
         assertEquals("off_data" in f, false);
         assertEquals("micronutrients" in f, false);
     }
+});
+
+Deno.test("own foods come before OFF foods", async () => {
+    const store = [
+        food("off1", "Avena OFF"),
+        food("mine", "Avena mia", "user", "user-a"),
+    ];
+    const { call } = setup({ store, off: "down" });
+    const body = await (await call("?q=avena")).json();
+    assertEquals(body.results.map((f: Food) => f.id), ["mine", "off1"]);
+});
+
+Deno.test("favourites come before other own foods, which come before OFF", async () => {
+    const store = [
+        food("off1", "Avena OFF"),
+        food("own1", "Avena uno", "user", "user-a"),
+        food("own2", "Avena dos", "user", "user-a"),
+        food("fav-off", "Avena favorita OFF"),
+    ];
+    const { call } = setup({
+        store,
+        off: "down",
+        favorites: ["own2", "fav-off"],
+    });
+    const body = await (await call("?q=avena")).json();
+    assertEquals(
+        body.results.map((f: Food) => f.id),
+        ["own2", "fav-off", "own1", "off1"],
+    );
+});
+
+Deno.test("an OFF row with the barcode of an own food is dropped from local results", async () => {
+    const store = [
+        food("off1", "Avena OFF", "off", undefined, "111"),
+        food("mine", "Avena mia", "user", "user-a", "111"),
+        food("off2", "Avena otra OFF", "off", undefined, "222"),
+    ];
+    const { call } = setup({ store, off: "down" });
+    const body = await (await call("?q=avena")).json();
+    assertEquals(body.results.map((f: Food) => f.id), ["mine", "off2"]);
+});
+
+Deno.test("an OFF product fetched with the barcode of an own food is dropped", async () => {
+    const own = food("mine", "Avena mia", "user", "user-a", "8410000810004");
+    const { call } = setup({ store: [own] });
+    const body = await (await call("?q=avena")).json();
+    assertEquals(body.source, "off");
+    assertEquals(
+        body.results.filter((f: Food) => f.barcode === "8410000810004").length,
+        1,
+    );
+    assertEquals(body.results[0].id, "mine");
+});
+
+Deno.test("with no own match the OFF results are returned as before", async () => {
+    const { call, calls } = setup();
+    const body = await (await call("?q=avena")).json();
+    assertEquals(body.source, "off");
+    assertEquals(calls.off, ["avena"]);
+    assertEquals(body.results.length, 2);
+});
+
+Deno.test("own and favourite foods stay inside the 20 cap with 25 OFF rows", async () => {
+    const store = [
+        ...Array.from({ length: 25 }, (_, i) => food(`o${i}`, `Avena ${i}`)),
+        food("mine", "Avena mia", "user", "user-a"),
+        food("fav", "Avena fav", "user", "user-a"),
+    ];
+    const { call, calls } = setup({ store, favorites: ["fav"] });
+    const body = await (await call("?q=avena")).json();
+    assertEquals(body.results.length, 20);
+    assertEquals(body.results[0].id, "fav");
+    assertEquals(body.results[1].id, "mine");
+    assertEquals(calls.off, []);
+});
+
+Deno.test("10 own foods answer the search without querying OFF", async () => {
+    const store = Array.from(
+        { length: 10 },
+        (_, i) => food(`m${i}`, `Avena ${i}`, "user", "user-a"),
+    );
+    const { call, calls } = setup({ store });
+    const body = await (await call("?q=avena")).json();
+    assertEquals(body.source, "cache");
+    assertEquals(calls.off, []);
+});
+
+Deno.test("OFF unavailable with own results returns them", async () => {
+    const { call } = setup({
+        store: [food("mine", "Avena mia", "user", "user-a")],
+        off: "down",
+    });
+    const res = await call("?q=avena");
+    assertEquals(res.status, 200);
+    assertEquals(
+        (await res.json()).results.map((f: Food) => f.id),
+        ["mine"],
+    );
 });

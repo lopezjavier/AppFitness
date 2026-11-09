@@ -269,3 +269,15 @@ Deno.test("a personal food without off_data is never refetched", async () => {
     await call("?code=8410000810004");
     assertEquals(calls.off, 0);
 });
+
+Deno.test("the own copy is returned without calling OFF even when the cached OFF row is stale", async () => {
+    const own = { ...stored("user"), id: "my-copy" };
+    const { call, calls } = setup({
+        local: { food: own, fetchedAt: new Date(NOW.getTime() - 90 * DAY) },
+        off: "found",
+    });
+    const body = await (await call("?code=8410000810004")).json();
+    assertEquals(body.food.id, "my-copy");
+    assertEquals(calls.off, 0);
+    assertEquals(calls.upsert, 0);
+});

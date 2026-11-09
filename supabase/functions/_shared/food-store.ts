@@ -114,22 +114,37 @@ export function toFood(row: any): Food {
 /**
  * Reads the `foods_searchable` view (ADR-46): personal foods plus OFF foods sold in Spain with a Spanish name.
  * The rule lives in SQL (`is_spain_off_food`); barcode scans may have cached other OFF rows, which stay hidden.
+ * Two queries (own, then OFF), each with its own limit, so cached OFF rows can never crowd the caller's foods out.
+ * The result lists own foods first.
  */
 export async function searchLocal(
     client: Client,
     q: string,
     limit: number,
 ): Promise<Food[]> {
-    const { data, error } = await client
-        .from("foods_searchable")
-        .select(VIEW_SELECT)
-        .textSearch("search_vector", unaccent(q), {
-            type: "websearch",
-            config: "spanish",
-        })
-        .limit(limit);
+    const query = (source: "user" | "off") =>
+        client
+            .from("foods_searchable")
+            .select(VIEW_SELECT)
+            .eq("source", source)
+            .textSearch("search_vector", unaccent(q), {
+                type: "websearch",
+                config: "spanish",
+            })
+            .limit(limit);
+    const [own, off] = await Promise.all([query("user"), query("off")]);
+    if (own.error) throw own.error;
+    if (off.error) throw off.error;
+    return [...(own.data ?? []), ...(off.data ?? [])].map(toFood);
+}
+
+/** Ids of the caller's favourite foods (RLS limits `favorite_foods` to their own rows). */
+export async function favoriteFoodIds(client: Client): Promise<Set<string>> {
+    const { data, error } = await client.from("favorite_foods").select(
+        "food_id",
+    );
     if (error) throw error;
-    return (data ?? []).map(toFood);
+    return new Set((data ?? []).map((r) => r.food_id as string));
 }
 
 export async function findByBarcode(
@@ -141,10 +156,11 @@ export async function findByBarcode(
     const { data, error } = await client
         .from("foods")
         .select(`${SELECT}, off_data`)
-        .eq("barcode", code);
+        .eq("barcode", code)
+        .order("created_at", { ascending: true });
     if (error) throw error;
     const rows = data ?? [];
-    // RLS exposes OFF rows and the caller's own foods; the personal food wins.
+    // RLS exposes OFF rows and the caller's own foods; the oldest personal food wins (same as copy_off_food).
     const row = rows.find((r) => r.source === "user") ?? rows[0];
     return row
         ? {
