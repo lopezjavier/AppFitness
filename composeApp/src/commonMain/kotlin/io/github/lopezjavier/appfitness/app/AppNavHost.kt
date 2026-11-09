@@ -181,13 +181,15 @@ internal typealias RoutinesSlot =
         onOpenLiveSession: () -> Unit,
         onOpenHistory: () -> Unit,
         onOpenFolderReview: (String) -> Unit,
+        onOpenExerciseSearch: () -> Unit,
     ) -> Unit
 
 /**
  * The Diario tab; [onOpenPreferences] leads the "set your goal" prompt to Preferencias, [onAddFood] opens the food
  * search for a day (the meal is null for the Diary-level add action), [edit] the edit sheet of an entry
  * (and brings back an entry the sheet asked to delete). The same slot renders a past day ([DiaryDayRoute]), where
- * [onBack] is the back arrow of its header (null on the tab root).
+ * [onBack] is the back arrow of its header (null on the tab root). [onQuickSearch] opens the view-only food search
+ * (the magnifier of the tab root) with today's date.
  */
 internal typealias DiarySlot =
     @Composable (
@@ -197,6 +199,7 @@ internal typealias DiarySlot =
         onSaveTemplate: (slotId: String, date: LocalDate) -> Unit,
         edit: DiaryEditHost,
         onBack: (() -> Unit)?,
+        onQuickSearch: (today: LocalDate) -> Unit,
     ) -> Unit
 
 /** Diary history content: modifier (full-screen insets), the opener of the Diary of a day and the back arrow. */
@@ -265,7 +268,7 @@ internal typealias EditEntrySlot =
  * preselected, [date] ISO), the opener of the add-food sheet (by food id), the opener of the create-food form
  * (scanned barcode, typed name and/or the JSON `NewFoodDraft` of an AI photo estimate) and [onOpenTemplate], the
  * opener of the details of a comida (by id).
- * With [pick] the search chooses a food for a comida draft.
+ * With [pick] the search chooses a food for a comida draft; with [viewOnly] (quick search) it only shows details.
  */
 internal typealias FoodSearchSlot =
     @Composable (
@@ -276,6 +279,7 @@ internal typealias FoodSearchSlot =
         onCreateFood: (barcode: String?, name: String?, prefill: String?, retryToken: String?) -> Unit,
         onOpenTemplate: (String) -> Unit,
         pick: Boolean,
+        viewOnly: Boolean,
         onBack: () -> Unit,
     ) -> Unit
 
@@ -316,19 +320,17 @@ internal typealias CreateFoodSlot =
     ) -> Unit
 
 /**
- * Add-food sheet content for a food, the meal tapped in the Diary (or null) and the ISO day; [onAdded] runs once the
+ * Add-food sheet content for the [route] (food, the meal tapped in the Diary or null, ISO day); [onAdded] runs once the
  * entry is logged, [onDismiss] when the sheet is dismissed and [onEdit] when "Editar" (manual foods) is tapped. With
- * [pick] nothing is logged: [onPick] receives the food id, the base-unit amount and the portion label instead.
+ * `route.pick` nothing is logged: [onPick] receives the food id, the base-unit amount and the portion label instead.
+ * With `route.viewOnly` only the details are shown (no amount, meal or "Añadir").
  */
 internal typealias AddFoodSlot =
     @Composable (
-        foodId: String,
-        slotId: String?,
-        date: String,
+        route: AddFoodRoute,
         onAdded: () -> Unit,
         onDismiss: () -> Unit,
         onEdit: () -> Unit,
-        pick: Boolean,
         onPick: (foodId: String, amount: Double, portionLabel: String?) -> Unit,
         onCorrectOff: (prefill: String, barcode: String?) -> Unit,
     ) -> Unit
@@ -505,7 +507,7 @@ internal val DefaultExerciseDetailSlot: ExerciseDetailSlot = { modifier, _, _, _
 }
 
 /** Empty "Mis rutinas" for previews and shell tests; the real one is wired by `AppRoot`. */
-internal val DefaultRoutinesSlot: RoutinesSlot = { modifier, _, _, _, _, _ ->
+internal val DefaultRoutinesSlot: RoutinesSlot = { modifier, _, _, _, _, _, _ ->
     Box(modifier.fillMaxSize().testTag("routines_screen"))
 }
 
@@ -525,7 +527,7 @@ internal val DefaultLiveSessionSlot: LiveSessionSlot = { modifier, _ ->
 }
 
 /** Empty diary for previews and shell tests; the real one is wired by `AppRoot`. */
-internal val DefaultDiarySlot: DiarySlot = { modifier, _, _, _, _, _ ->
+internal val DefaultDiarySlot: DiarySlot = { modifier, _, _, _, _, _, _ ->
     Box(modifier.fillMaxSize().testTag("diary_screen"))
 }
 
@@ -575,7 +577,7 @@ internal val DefaultWeightHistorySlot: WeightHistorySlot = { modifier, _ ->
 }
 
 /** Empty food search for previews and shell tests; the real one is wired by `AppRoot`. */
-internal val DefaultFoodSearchSlot: FoodSearchSlot = { modifier, _, _, _, _, _, _, _ ->
+internal val DefaultFoodSearchSlot: FoodSearchSlot = { modifier, _, _, _, _, _, _, _, _ ->
     Box(modifier.fillMaxSize().testTag("food_search_screen"))
 }
 
@@ -600,7 +602,7 @@ internal val DefaultTemplateDetailsSlot: TemplateDetailsSlot = { modifier, _, _,
 }
 
 /** No sheet for previews and shell tests; the real one is wired by `AppRoot`. */
-internal val DefaultAddFoodSlot: AddFoodSlot = { _, _, _, _, _, _, _, _, _ -> }
+internal val DefaultAddFoodSlot: AddFoodSlot = { _, _, _, _, _, _ -> }
 
 /** No sheet for previews and shell tests; the real one is wired by `AppRoot`. */
 internal val DefaultEditEntrySlot: EditEntrySlot = { _, _, _, _, _ -> }
@@ -785,6 +787,15 @@ internal fun AppNavHost(
         remember(navController) {
             { slotId, date -> navController.navigateToFullScreen(FoodSearchRoute(slotId, date.toString())) }
         }
+    val openQuickFoodSearch: (LocalDate) -> Unit =
+        remember(navController) {
+            { today ->
+                navController.navigateToFullScreen(FoodSearchRoute(null, today.toString(), viewOnly = true))
+            }
+        }
+    val openExerciseSearch = remember(navController) {
+        { navController.navigateToFullScreen(ExercisePickerRoute(selectMode = false)) }
+    }
     val openSaveTemplate: (String, LocalDate) -> Unit = remember(navController) {
         { slotId, date -> navController.navigate(SaveTemplateRoute(slotId, date.toString())) }
     }
@@ -856,6 +867,7 @@ internal fun AppNavHost(
                     openPreferences,
                     openFoodSearch,
                     openSaveTemplate,
+                    openQuickFoodSearch,
                     destinationModifier,
                     onBack = null,
                 )
@@ -870,6 +882,7 @@ internal fun AppNavHost(
                 openPreferences,
                 openFoodSearch,
                 openSaveTemplate,
+                openQuickFoodSearch,
                 destinationModifier,
                 onBack = { navController.popFullScreen(entry) },
             )
@@ -909,7 +922,9 @@ internal fun AppNavHost(
                     openDetails,
                     openLiveSession,
                     openHistory,
-                ) { folderId -> navController.navigateToFullScreen(FolderReviewResultRoute(folderId)) }
+                    { folderId -> navController.navigateToFullScreen(FolderReviewResultRoute(folderId)) },
+                    openExerciseSearch,
+                )
             }
         }
         navigation<TrainerGraph>(startDestination = TopLevelTab.Trainer.startRoute) {
@@ -1161,6 +1176,7 @@ private fun DiaryDestination(
     openPreferences: () -> Unit,
     openFoodSearch: (String?, LocalDate) -> Unit,
     openSaveTemplate: (String, LocalDate) -> Unit,
+    openQuickFoodSearch: (LocalDate) -> Unit,
     modifier: Modifier = Modifier,
     onBack: (() -> Unit)?,
 ) {
@@ -1177,6 +1193,7 @@ private fun DiaryDestination(
             onConsumeDelete = { handle[DELETED_ENTRY_KEY] = null },
         ),
         onBack,
+        openQuickFoodSearch,
     )
 }
 
@@ -1193,7 +1210,7 @@ private fun NavGraphBuilder.foodSearchDestination(
             route.slotId,
             route.date,
             {
-                navController.navigate(AddFoodRoute(it, route.slotId, route.date, route.pick)) {
+                navController.navigate(AddFoodRoute(it, route.slotId, route.date, route.pick, route.viewOnly)) {
                     launchSingleTop = true
                 }
             },
@@ -1210,6 +1227,7 @@ private fun NavGraphBuilder.foodSearchDestination(
                 }
             },
             route.pick,
+            route.viewOnly,
             { navController.popFullScreen(entry) },
         )
     }
@@ -1263,16 +1281,13 @@ private fun NavGraphBuilder.foodDestinations(
     dialog<AddFoodRoute>(dialogProperties = DialogProperties(usePlatformDefaultWidth = false)) { entry ->
         val route = entry.toRoute<AddFoodRoute>()
         addFood(
-            route.foodId,
-            route.slotId,
-            route.date,
+            route,
             { navController.popToDiary() },
             { navController.popBackStack() },
             {
                 val edit = EditFoodRoute(route.foodId, route.slotId, route.date, route.pick)
                 navController.navigate(edit) { launchSingleTop = true }
             },
-            route.pick,
             { foodId, amount, label -> navController.returnPickedFood(pickedFoodResult(foodId, amount, label)) },
             { prefill, barcode ->
                 // The failing Open Food Facts food is corrected in the create form; saving reopens the sheet.

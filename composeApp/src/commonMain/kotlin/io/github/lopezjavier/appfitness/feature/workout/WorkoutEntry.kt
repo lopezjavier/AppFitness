@@ -28,12 +28,14 @@ import io.github.lopezjavier.appfitness.composeapp.resources.action_discard
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_calendar
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_delete
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_play_arrow
+import io.github.lopezjavier.appfitness.composeapp.resources.ic_search
 import io.github.lopezjavier.appfitness.composeapp.resources.live_discard_message
 import io.github.lopezjavier.appfitness.composeapp.resources.live_discard_title
 import io.github.lopezjavier.appfitness.composeapp.resources.routines_action_failed
 import io.github.lopezjavier.appfitness.composeapp.resources.workout_continue_cd
 import io.github.lopezjavier.appfitness.composeapp.resources.workout_discard_cd
 import io.github.lopezjavier.appfitness.composeapp.resources.workout_entry_history_cd
+import io.github.lopezjavier.appfitness.composeapp.resources.workout_entry_search_cd
 import io.github.lopezjavier.appfitness.composeapp.resources.workout_entry_title
 import io.github.lopezjavier.appfitness.composeapp.resources.workout_in_progress
 import io.github.lopezjavier.appfitness.designsystem.AppCard
@@ -63,6 +65,7 @@ fun WorkoutEntryRoot(
     modifier: Modifier = Modifier,
     viewModel: WorkoutEntryViewModel = koinViewModel(),
     onOpenFolderReview: (folderId: String) -> Unit = {},
+    onOpenSearch: () -> Unit = {},
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     val discardAsked by viewModel.discardAsked.collectAsStateWithLifecycle()
@@ -92,6 +95,7 @@ fun WorkoutEntryRoot(
         discarding = discarding,
         isOnline = isOnline,
         onEvent = viewModel::onEvent,
+        onOpenSearch = onOpenSearch,
     ) { routinesModifier, openLive ->
         RoutinesRoot(onOpenBuilder, onOpenDetails, openLive, routinesModifier, onOpenFolderReview = onOpenFolderReview)
     }
@@ -115,6 +119,7 @@ fun WorkoutEntryHost(
     discarding: Boolean = false,
     isOnline: Boolean = true,
     onEvent: (WorkoutEntryEvent) -> Unit = {},
+    onOpenSearch: () -> Unit = {},
     routines: @Composable (modifier: Modifier, onOpenLiveSession: () -> Unit) -> Unit,
 ) {
     var opened by rememberSaveable { mutableStateOf(false) }
@@ -137,7 +142,7 @@ fun WorkoutEntryHost(
     AppScreen(
         title = title,
         modifier = modifier,
-        header = { EntryHeader(title, onOpenHistory) },
+        header = { EntryHeader(title, onOpenHistory, onOpenSearch) },
         testTagPrefix = "workout_entry",
     ) {
         Column(Modifier.fillMaxSize()) {
@@ -166,7 +171,7 @@ fun WorkoutEntryHost(
 
 /** The tab heading (equal to the bottom-bar label, R-04) and the one history action (R-03). */
 @Composable
-private fun EntryHeader(title: String, onOpenHistory: () -> Unit) {
+private fun EntryHeader(title: String, onOpenHistory: () -> Unit, onOpenSearch: () -> Unit) {
     Row(
         Modifier.fillMaxWidth().padding(start = Spacing.screenMargin, end = Spacing.xs),
         verticalAlignment = Alignment.CenterVertically,
@@ -176,6 +181,12 @@ private fun EntryHeader(title: String, onOpenHistory: () -> Unit) {
             style = AppTheme.typography.titleLarge,
             color = AppTheme.colors.textPrimary,
             modifier = Modifier.weight(1f).semantics { heading() },
+        )
+        AppIconButton(
+            contentDescription = stringResource(Res.string.workout_entry_search_cd),
+            icon = Res.drawable.ic_search,
+            testTag = "workout_entry_search",
+            onClick = onOpenSearch,
         )
         AppIconButton(
             contentDescription = stringResource(Res.string.workout_entry_history_cd),

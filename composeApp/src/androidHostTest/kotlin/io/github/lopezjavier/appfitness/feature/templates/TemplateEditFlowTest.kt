@@ -103,7 +103,7 @@ class TemplateEditFlowTest {
             }
         }
     }
-    private val searchSlot: FoodSearchSlot = { modifier, _, _, onOpenFood, _, onOpenTemplate, pick, _ ->
+    private val searchSlot: FoodSearchSlot = { modifier, _, _, onOpenFood, _, onOpenTemplate, pick, _, _ ->
         Column(modifier.fillMaxSize().testTag("food_search_screen")) {
             Text("pick=$pick", Modifier.testTag("search_pick_flag"))
             Box(Modifier.size(48.dp).testTag("search_rice").clickable { onOpenFood("rice") })
@@ -111,10 +111,10 @@ class TemplateEditFlowTest {
         }
     }
     private val diary = FakeFoodDiaryRepository()
-    private val addFoodSlot: AddFoodSlot = { foodId, _, _, _, _, _, pick, onPick, _ ->
+    private val addFoodSlot: AddFoodSlot = { route, _, _, _, onPick, _ ->
         Column(Modifier.testTag("food_sheet")) {
-            Text("$foodId|pick=$pick", Modifier.testTag("sheet_args"))
-            Box(Modifier.size(48.dp).testTag("sheet_pick").clickable { onPick(foodId, 150.0, null) })
+            Text("${route.foodId}|pick=${route.pick}", Modifier.testTag("sheet_args"))
+            Box(Modifier.size(48.dp).testTag("sheet_pick").clickable { onPick(route.foodId, 150.0, null) })
         }
     }
 

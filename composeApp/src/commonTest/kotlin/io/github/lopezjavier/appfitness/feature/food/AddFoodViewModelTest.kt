@@ -83,8 +83,10 @@ class AddFoodViewModelTest {
         initialSlotId: String? = null,
         state: SavedStateHandle = savedState,
         pick: Boolean = false,
+        viewOnly: Boolean = false,
     ) = AddFoodViewModel(
         pick = pick,
+        viewOnly = viewOnly,
         foodId = foodId,
         initialSlotId = initialSlotId,
         date = today,
@@ -370,6 +372,22 @@ class AddFoodViewModelTest {
             advanceUntilIdle()
 
             assertEquals(AddFoodEffect.Picked("egg", 110.0, "2 × huevo"), awaitItem())
+        }
+        assertTrue(diary.added.isEmpty())
+    }
+
+    @Test
+    fun viewOnly_flagsTheContent_andSubmitNeverLogsOrPicks() = runTest(dispatcher) {
+        withFood(food("rice"))
+        val model = viewModel("rice", viewOnly = true)
+        advanceUntilIdle()
+
+        assertTrue(model.content().viewOnly)
+        assertFalse(model.content().canSubmit)
+        model.effects.test {
+            model.onEvent(AddFoodEvent.Submit)
+            advanceUntilIdle()
+            expectNoEvents()
         }
         assertTrue(diary.added.isEmpty())
     }

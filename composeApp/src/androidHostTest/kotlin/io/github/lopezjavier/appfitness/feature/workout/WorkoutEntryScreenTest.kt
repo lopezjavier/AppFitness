@@ -7,6 +7,7 @@ import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.getUnclippedBoundsInRoot
 import androidx.compose.ui.test.hasContentDescription
 import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.hasText
@@ -17,6 +18,7 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -31,6 +33,7 @@ class WorkoutEntryScreenTest {
     val rule = createComposeRule()
 
     private var openedHistory = 0
+    private var openedSearch = 0
 
     private fun show() {
         rule.setContent {
@@ -39,6 +42,7 @@ class WorkoutEntryScreenTest {
                     state = WorkoutEntryState.Routines,
                     onOpenLiveSession = {},
                     onOpenHistory = { openedHistory++ },
+                    onOpenSearch = { openedSearch++ },
                 ) { modifier, _ -> Box(modifier.fillMaxSize()) }
             }
         }
@@ -61,6 +65,19 @@ class WorkoutEntryScreenTest {
         rule.onNodeWithTag("workout_entry_history").performClick()
 
         assertEquals(1, openedHistory)
+    }
+
+    @Test
+    fun magnifier_isDescribedAsBuscarEjercicio_sitsLeftOfTheCalendar_andOpensTheSearch() {
+        show()
+
+        rule.onNodeWithTag("workout_entry_search").assert(hasContentDescription("Buscar ejercicio"))
+        val search = rule.onNodeWithTag("workout_entry_search").getUnclippedBoundsInRoot()
+        val history = rule.onNodeWithTag("workout_entry_history").getUnclippedBoundsInRoot()
+        assertTrue(search.right <= history.left)
+        rule.onNodeWithTag("workout_entry_search").performClick()
+
+        assertEquals(1, openedSearch)
     }
 
     @Test

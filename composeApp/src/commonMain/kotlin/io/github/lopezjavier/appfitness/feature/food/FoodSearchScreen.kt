@@ -23,6 +23,7 @@ import io.github.lopezjavier.appfitness.composeapp.resources.Res
 import io.github.lopezjavier.appfitness.composeapp.resources.action_retry
 import io.github.lopezjavier.appfitness.composeapp.resources.add_food_sheet_title
 import io.github.lopezjavier.appfitness.composeapp.resources.add_item
+import io.github.lopezjavier.appfitness.composeapp.resources.diary_quick_search_cd
 import io.github.lopezjavier.appfitness.composeapp.resources.favourite_add_cd
 import io.github.lopezjavier.appfitness.composeapp.resources.favourite_remove_cd
 import io.github.lopezjavier.appfitness.composeapp.resources.food_create_action
@@ -105,7 +106,7 @@ fun FoodSearchScreen(
             ) {
                 SearchRow(state, onEvent, onPhotoClick)
                 if (scanFailed) ScanError()
-                state.notFoundBarcode?.let { NotFoundCard(it, onEvent) }
+                if (!state.viewOnly) state.notFoundBarcode?.let { NotFoundCard(it, onEvent) }
                 if (state.query.isBlank()) Tabs(state, onEvent)
             }
             Box(Modifier.weight(1f).fillMaxWidth()) {
@@ -123,7 +124,9 @@ fun FoodSearchScreen(
 @Composable
 private fun titleOf(state: FoodSearchUiState): String {
     val slot = state.mealSlot
-    return if (state.pick || slot == null) {
+    return if (state.viewOnly) {
+        stringResource(Res.string.diary_quick_search_cd)
+    } else if (state.pick || slot == null) {
         stringResource(Res.string.add_food_sheet_title)
     } else {
         stringResource(Res.string.add_item, addObjectLabel(slot))
@@ -160,30 +163,33 @@ private fun SearchRow(
             testTagPrefix = "${TAG}_field",
             clearTestTag = "${TAG}_clear",
         )
-        AppIconButton(
-            contentDescription = stringResource(Res.string.food_search_scan_description),
-            icon = Res.drawable.ic_barcode_scanner,
-            testTag = "${TAG}_action_scan",
-            onClick = { onEvent(FoodSearchEvent.ScanClicked) },
-            modifier = offline,
-            enabled = !state.isOffline,
-        )
-        AppIconButton(
-            contentDescription = stringResource(Res.string.food_search_photo_description),
-            icon = Res.drawable.ic_photo_camera,
-            testTag = "${TAG}_action_photo",
-            onClick = onPhotoClick,
-            modifier = offline,
-            enabled = !state.isOffline,
-        )
-        AppIconButton(
-            contentDescription = stringResource(Res.string.food_create_action),
-            icon = Res.drawable.ic_add,
-            testTag = "${TAG}_action_create",
-            onClick = { onEvent(FoodSearchEvent.CreateFromEmpty) },
-            modifier = offline,
-            enabled = !state.isOffline,
-        )
+        // The quick search only looks foods up: every action here ends in logging or creating one.
+        if (!state.viewOnly) {
+            AppIconButton(
+                contentDescription = stringResource(Res.string.food_search_scan_description),
+                icon = Res.drawable.ic_barcode_scanner,
+                testTag = "${TAG}_action_scan",
+                onClick = { onEvent(FoodSearchEvent.ScanClicked) },
+                modifier = offline,
+                enabled = !state.isOffline,
+            )
+            AppIconButton(
+                contentDescription = stringResource(Res.string.food_search_photo_description),
+                icon = Res.drawable.ic_photo_camera,
+                testTag = "${TAG}_action_photo",
+                onClick = onPhotoClick,
+                modifier = offline,
+                enabled = !state.isOffline,
+            )
+            AppIconButton(
+                contentDescription = stringResource(Res.string.food_create_action),
+                icon = Res.drawable.ic_add,
+                testTag = "${TAG}_action_create",
+                onClick = { onEvent(FoodSearchEvent.CreateFromEmpty) },
+                modifier = offline,
+                enabled = !state.isOffline,
+            )
+        }
     }
 }
 
@@ -195,7 +201,7 @@ private fun Tabs(state: FoodSearchUiState, onEvent: (FoodSearchEvent) -> Unit) {
         AppOption(stringResource(Res.string.food_tab_recent), "${TAG}_tab_recent"),
         AppOption(stringResource(Res.string.food_tab_most_eaten), "${TAG}_tab_most_eaten"),
         AppOption(stringResource(Res.string.food_tab_favourites), "${TAG}_tab_favourites"),
-    ) + listOfNotNull(templatesTab.takeUnless { state.pick })
+    ) + listOfNotNull(templatesTab.takeUnless { state.pick || state.viewOnly })
     AppTabRow(
         options = options,
         selectedIndex = state.tab.ordinal.coerceAtMost(options.lastIndex),
@@ -245,7 +251,7 @@ private fun EmptyResults(state: FoodSearchUiState, onEvent: (FoodSearchEvent) ->
             title = if (searching) message else null,
             testTagPrefix = "${TAG}_empty",
         )
-        if (searching) {
+        if (searching && !state.viewOnly) {
             PrimaryButton(
                 text = stringResource(Res.string.food_create_action),
                 onClick = { onEvent(FoodSearchEvent.CreateFromEmpty) },

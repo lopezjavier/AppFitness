@@ -143,6 +143,10 @@ private fun AddFoodContentSheet(
 ) {
     // Hoisted above the sheet window: state declared inside a sheet is not restored.
     var microExpanded by rememberSaveable { mutableStateOf(false) }
+    if (content.viewOnly) {
+        ViewOnlySheet(content, microExpanded, { microExpanded = it }, onDismiss, modifier)
+        return
+    }
     FoodSheet(
         name = content.food.name,
         brand = content.food.brand,
@@ -180,6 +184,36 @@ private fun AddFoodContentSheet(
         editFoodEnabled = content.canEdit,
         testTagPrefix = SHEET_PREFIX,
     )
+}
+
+/** Quick search details: the Info archetype with the food's label only (no amount, meal, "Editar" or "Añadir"). */
+@Composable
+private fun ViewOnlySheet(
+    content: AddFoodContent,
+    microExpanded: Boolean,
+    onMicroExpandedChange: (Boolean) -> Unit,
+    onDismiss: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val brand = content.food.brand
+    AppInfoSheet(
+        title = content.food.name,
+        onDismiss = onDismiss,
+        modifier = modifier,
+        testTagPrefix = SHEET_PREFIX,
+    ) {
+        Column(verticalArrangement = Arrangement.spacedBy(Spacing.lg)) {
+            if (!brand.isNullOrBlank()) {
+                Text(
+                    text = brand,
+                    style = AppTheme.typography.bodyMedium,
+                    color = AppTheme.colors.textSecondary,
+                    modifier = Modifier.testTag("${SHEET_PREFIX}_brand"),
+                )
+            }
+            LabelNutrientsCard(content.labelNutrients, content.food.baseUnit, microExpanded, onMicroExpandedChange)
+        }
+    }
 }
 
 /** The energy warning of an Open Food Facts food: "Añadir" is blocked until the user corrects their own copy. */

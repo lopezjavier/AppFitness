@@ -93,7 +93,7 @@ class PreferencesNavigationTest {
         )
     }
     private val mealSlotsSlot: MealSlotsSlot = { modifier, _, _ -> Box(modifier.fillMaxSize().testTag("meals_stub")) }
-    private val diarySlot: DiarySlot = { modifier, onOpenPreferences, _, _, _, _ ->
+    private val diarySlot: DiarySlot = { modifier, onOpenPreferences, _, _, _, _, _ ->
         Box(modifier.fillMaxSize().testTag("diary_screen")) {
             Box(Modifier.fillMaxSize().clickable(onClick = onOpenPreferences).testTag("diary_goal_prompt"))
         }

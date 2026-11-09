@@ -116,7 +116,11 @@ internal class FakeFoodRepository : FoodRepository {
 
     override suspend fun mostEaten(limit: Int): Result<List<Food>> = mostEatenFoods
 
+    /** When set, [favourites] suspends until it completes (the favourite ids are not loaded yet). */
+    var favouritesGate: CompletableDeferred<Unit>? = null
+
     override suspend fun favourites(): Result<List<Food>> {
+        favouritesGate?.await()
         favouriteFoods.getOrNull()?.let { foods -> ids.value = foods.mapTo(mutableSetOf()) { it.id } }
         return favouriteFoods
     }
@@ -306,8 +310,10 @@ internal fun foodSearchModel(
     preferences: FoodPreferencesRepository = FakeFoodPreferencesRepository(),
     slotId: String? = null,
     mealSlots: MealSlotRepository? = null,
+    viewOnly: Boolean = false,
 ) = FoodSearchViewModel(
     pick = pick,
+    viewOnly = viewOnly,
     slotId = slotId,
     mealSlots = mealSlots,
     foodRepository = repository,

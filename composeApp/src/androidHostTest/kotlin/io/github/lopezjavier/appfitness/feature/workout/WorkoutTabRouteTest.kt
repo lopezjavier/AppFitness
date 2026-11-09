@@ -37,7 +37,7 @@ class WorkoutTabRouteTest {
     private var openedHistory = 0
     private lateinit var nav: NavHostController
 
-    private val routinesSlot: RoutinesSlot = { modifier, _, _, onOpenLive, onOpenHistory, _ ->
+    private val routinesSlot: RoutinesSlot = { modifier, _, _, onOpenLive, onOpenHistory, _, _ ->
         WorkoutEntryHost(entry, onOpenLive, onOpenHistory, modifier) { routinesModifier, openLive ->
             Box(routinesModifier.fillMaxSize().testTag("routines_screen")) {
                 Box(Modifier.size(48.dp).testTag("routines_start_stub").clickable(onClick = openLive))
@@ -51,14 +51,14 @@ class WorkoutTabRouteTest {
                 nav = rememberNavController()
                 AppScaffold(
                     navController = nav,
-                    routines = { modifier, builder, details, live, history, review ->
+                    routines = { modifier, builder, details, live, history, review, search ->
                         routinesSlot(modifier, builder, details, {
                             openedLive++
                             live()
                         }, {
                             openedHistory++
                             history()
-                        }, review)
+                        }, review, search)
                     },
                     history = { modifier, _, _, _ -> Box(modifier.fillMaxSize().testTag("history_screen")) },
                     liveSession = { modifier, host ->
