@@ -85,7 +85,7 @@ Items to test in the epic, collected first: (1) no "Uso de IA", limit or model s
 - **A late checkpoint (one at the end).** Feedback on T-259…T-264 arrives after the chat is built. Mitigation: those tasks touch different screens from the chat, so fixes do not rework it.
 
 ## Open questions
-- **👤 Gemini terms check (the only open user item; gate before T-265; epic and ADR-103):** the user checks Google's current Gemini API terms for Spain/EEA and decides free tier or paid tier with a low spending limit, for the chat and `food-photo`.
+- **👤 Gemini terms check: RESOLVED (user, 2026-11-09): free tier, same as `food-photo`, which already works on it; no check, T-265 does not wait. No open user item remains. (Superseded text:)** the user checks Google's current Gemini API terms for Spain/EEA and decides free tier or paid tier with a low spending limit, for the chat and `food-photo`.
 - **Q1 · RESOLVED (user, 2026-11-09):** see "Decisions" (no backfill; the block-end notice is a report; past reports read only; paused weeks only when shown). Recorded in `09-open-questions.md` by the closure T-267 (not tracked there today).
 - **Q2 · RESOLVED (user, 2026-11-09):** see "Decisions" (single-turn; Gemini's quota only). Multi-turn chat is a possible later-epic idea. Recorded in `09-open-questions.md` by T-267.
 - **Q3 (non-blocking, delegated to ux-reviewer):** the chat tab label, the "Informes" entry position in Centro de avisos, the Trainer/"Detalles" content map (where "Tus datos", "Lo que el entrenador sabe de ti" and "Bloque nuevo" land), and the glossary row that lists "Informe" as a forbidden word for the weekly summary (amended so "Informes" names the list).
