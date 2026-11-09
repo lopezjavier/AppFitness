@@ -7,6 +7,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.assertContentDescriptionEquals
@@ -43,6 +44,7 @@ import io.github.lopezjavier.appfitness.feature.food.photo.FakePhotoCapture
 import io.github.lopezjavier.appfitness.feature.food.photo.FoodPhotoEffect
 import io.github.lopezjavier.appfitness.feature.food.photo.FoodPhotoEvent
 import io.github.lopezjavier.appfitness.feature.food.photo.FoodPhotoFlow
+import io.github.lopezjavier.appfitness.feature.food.photo.FoodPhotoRetryStore
 import io.github.lopezjavier.appfitness.feature.food.photo.FoodPhotoViewModel
 import io.github.lopezjavier.appfitness.feature.food.photo.foodPhotoModel
 import io.github.lopezjavier.appfitness.feature.workout.MutableClock
@@ -70,11 +72,12 @@ class FoodPhotoFlowTest {
     private val scanner = FakeBarcodeScanner()
     private val capture = FakePhotoCapture()
     private val photoRepo = FakeFoodPhotoRepository()
+    private val retryStore = FoodPhotoRetryStore(capture)
     private val backInterceptor = BackInterceptor()
 
     private fun start() {
         val searchModel = foodSearchModel(foods, connectivity, scanner, SavedStateHandle())
-        val photoModel = foodPhotoModel(photoRepo, capture, connectivity)
+        val photoModel = foodPhotoModel(photoRepo, capture, connectivity, retryStore = retryStore)
         rule.setContent { Flow(searchModel, photoModel) }
         rule.waitForIdle()
     }
@@ -83,6 +86,7 @@ class FoodPhotoFlowTest {
     @Suppress("ViewModelForwarding") // Test host: the flow takes the view models the test built.
     private fun Flow(searchModel: FoodSearchViewModel, photoModel: FoodPhotoViewModel) {
         var form by remember { mutableStateOf<NewFoodDraft?>(null) }
+        var retryToken by remember { mutableStateOf<String?>(null) }
         var formOpen by remember { mutableStateOf(false) }
         var openFoodId by remember { mutableStateOf<String?>(null) }
         val searchState by searchModel.uiState.collectAsState()
@@ -92,6 +96,7 @@ class FoodPhotoFlowTest {
                 when (it) {
                     is FoodPhotoEffect.OpenPrefilledForm -> {
                         form = it.draft
+                        retryToken = it.retryToken
                         formOpen = true
                     }
 
@@ -113,29 +118,37 @@ class FoodPhotoFlowTest {
                     )
                     FoodPhotoFlow(photoState, photoModel::onEvent, capture::readJpeg)
                 } else {
-                    val model = remember {
-                        CreateFoodViewModel(
-                            null,
-                            null,
-                            foods,
-                            connectivity,
-                            prefill = form?.let(NewFoodDraftCodec::encode),
-                        )
+                    Form(form, retryToken) {
+                        openFoodId = it
+                        formOpen = false
                     }
-                    val createState by model.uiState.collectAsState()
-                    LaunchedEffect(model) {
-                        model.effects.collect {
-                            if (it is CreateFoodEffect.Saved) {
-                                openFoodId = it.foodId
-                                formOpen = false
-                            }
-                        }
-                    }
-                    CreateFoodScreen(createState, model::onEvent, {})
                 }
                 openFoodId?.let { id -> Sheet(id) { openFoodId = null } }
             }
         }
+    }
+
+    @Composable
+    private fun Form(draft: NewFoodDraft?, retryToken: String?, onSave: (String) -> Unit) {
+        val currentOnSave by rememberUpdatedState(onSave)
+        val model = remember {
+            CreateFoodViewModel(
+                null,
+                null,
+                foods,
+                connectivity,
+                prefill = draft?.let(NewFoodDraftCodec::encode),
+                retryToken = retryToken,
+                photoRepository = photoRepo,
+                photoCapture = capture,
+                retryStore = retryStore,
+            )
+        }
+        val createState by model.uiState.collectAsState()
+        LaunchedEffect(model) {
+            model.effects.collect { if (it is CreateFoodEffect.Saved) currentOnSave(it.foodId) }
+        }
+        CreateFoodScreen(createState, model::onEvent, {})
     }
 
     @Composable
@@ -357,9 +370,31 @@ class FoodPhotoFlowTest {
         tap("create_food_alcohol_help")
         tap("create_food_alcohol_help_sheet_close")
         rule.onNodeWithTag("create_food_alcohol_field").performTextReplacement("")
-        tap("create_food_save")
+        rule.waitForIdle()
 
         exists("create_food_energy_warning")
+        rule.onNodeWithTag("create_food_save").assertIsNotEnabled()
+    }
+
+    @Test
+    fun failingEstimate_opensTheFormBlocked_andTheRetryIconCorrectsIt() {
+        val failing = FakeFoodPhotoRepository.lentils.copy(kcal = 500.0, protein = 10.0, carbs = 30.0, fat = 10.0)
+        photoRepo.results += Result.success(failing)
+        photoRepo.results += Result.success(failing.copy(kcal = 250.0))
+        start()
+        toPreview("photo_mode_row_1")
+        tap("food_photo_preview_use")
+
+        exists("create_food_energy_warning")
+        rule.onNodeWithTag("create_food_save").assertIsNotEnabled()
+        rule.onNodeWithTag("create_food_energy_retry").assertContentDescriptionEquals("Repetir la estimación")
+        tap("create_food_energy_retry")
+
+        absent("create_food_energy_warning")
+        absent("create_food_energy_retry")
+        rule.onNodeWithTag("create_food_kcal_field").assertTextContains("250")
+        rule.onNodeWithTag("create_food_save").assertIsEnabled()
+        assertEquals(2, photoRepo.calls.size)
     }
 
     @Test

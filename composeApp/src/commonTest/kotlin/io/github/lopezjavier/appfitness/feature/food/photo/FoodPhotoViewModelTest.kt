@@ -27,6 +27,7 @@ import kotlin.test.BeforeTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
+import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
@@ -44,8 +45,10 @@ class FoodPhotoViewModelTest {
     @AfterTest
     fun tearDown() = Dispatchers.resetMain()
 
+    private val retryStore = FoodPhotoRetryStore(capture)
+
     private fun viewModel(state: SavedStateHandle = savedState) =
-        FoodPhotoViewModel(photos, capture, connectivity, state)
+        FoodPhotoViewModel(photos, capture, connectivity, state, retryStore)
 
     private fun FoodPhotoViewModel.step() = uiState.value.step
 
@@ -191,6 +194,68 @@ class FoodPhotoViewModelTest {
             assertEquals(listOf(NewPortion("1 ración", 250.0)), draft.portions)
         }
         assertEquals(FoodPhotoStep.Closed, model.step())
+        assertEquals(listOf("photo-1"), capture.discarded)
+    }
+
+    private val failing = FakeFoodPhotoRepository.lentils.copy(kcal = 500.0, protein = 10.0, carbs = 30.0, fat = 10.0)
+
+    @Test
+    fun failingDraft_handsThePhotoToTheRetryStoreWithATokenAndDoesNotDiscardIt() = runTest(dispatcher) {
+        photos.result = Result.success(failing)
+        val model = viewModel()
+        toPreview(model)
+
+        model.effects.test {
+            model.onEvent(FoodPhotoEvent.UsePhoto)
+            advanceUntilIdle()
+            val effect = awaitItem() as FoodPhotoEffect.OpenPrefilledForm
+            val token = assertNotNull(effect.retryToken)
+            assertEquals(RetryPhoto("photo-1", FoodPhotoMode.Dish, null), retryStore.get(token))
+        }
+        assertTrue(capture.discarded.isEmpty())
+        assertEquals(FoodPhotoStep.Closed, model.step())
+    }
+
+    @Test
+    fun failingLabelDraft_alsoKeepsThePhoto_andClearingTheModelDoesNotDiscardIt() = runTest(dispatcher) {
+        photos.result = Result.success(failing)
+        val model = viewModel()
+        toPreview(model, FoodPhotoMode.Label)
+
+        model.effects.test {
+            model.onEvent(FoodPhotoEvent.UsePhoto)
+            advanceUntilIdle()
+            assertNotNull((awaitItem() as FoodPhotoEffect.OpenPrefilledForm).retryToken)
+        }
+        model.release()
+
+        assertTrue(capture.discarded.isEmpty())
+    }
+
+    @Test
+    fun passingDraft_discardsThePhotoAndHasNoToken() = runTest(dispatcher) {
+        val model = viewModel()
+        toPreview(model)
+
+        model.effects.test {
+            model.onEvent(FoodPhotoEvent.UsePhoto)
+            advanceUntilIdle()
+            assertNull((awaitItem() as FoodPhotoEffect.OpenPrefilledForm).retryToken)
+        }
+        assertEquals(listOf("photo-1"), capture.discarded)
+    }
+
+    @Test
+    fun draftWithoutKcal_isNotRetryable() = runTest(dispatcher) {
+        photos.result = Result.success(failing.copy(kcal = null))
+        val model = viewModel()
+        toPreview(model, FoodPhotoMode.Label)
+
+        model.effects.test {
+            model.onEvent(FoodPhotoEvent.UsePhoto)
+            advanceUntilIdle()
+            assertNull((awaitItem() as FoodPhotoEffect.OpenPrefilledForm).retryToken)
+        }
         assertEquals(listOf("photo-1"), capture.discarded)
     }
 

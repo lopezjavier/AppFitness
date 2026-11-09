@@ -189,15 +189,13 @@ class FoodRestorationTest {
         tester.setContent { SheetHost(addModel(saved)) }
         rule.waitForIdle()
         rule.onNodeWithTag("food_sheet_amount").performTextReplacement("150")
-        rule.onNodeWithTag("food_sheet_commit").performClick()
-        rule.waitForIdle()
-        rule.onNodeWithTag("create_food_energy_warning").assertExists()
+        rule.onNodeWithTag("add_food_energy_warning").assertExists()
 
         tester.emulateSavedInstanceStateRestore()
         rule.waitForIdle()
 
-        rule.onNodeWithTag("create_food_energy_warning").assertExists()
-        rule.onNodeWithTag("add_food_add_anyway").assertExists()
+        rule.onNodeWithTag("add_food_energy_warning").assertExists()
+        rule.onNodeWithTag("add_food_energy_fix").assertExists()
         rule.onNodeWithTag("food_sheet_amount").assertTextContains("150")
         assertEquals(emptyList<String>(), diary.added.map { it.foodId })
     }

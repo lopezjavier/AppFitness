@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.selection.toggleable
 import androidx.compose.material3.Badge
 import androidx.compose.material3.BadgedBox
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.PlainTooltip
@@ -49,6 +50,24 @@ internal fun badgeLabel(count: Int, overflow: String): String =
 /** Tag of the count badge of an [AppIconButton]. */
 const val ICON_BUTTON_BADGE_TAG = "icon_button_badge"
 
+/** The icon of an [AppIconButton], or a progress ring while [busy]. */
+@Composable
+private fun IconGlyph(icon: DrawableResource, tint: Color, busy: Boolean) {
+    if (busy) {
+        CircularProgressIndicator(
+            color = AppTheme.colors.neonLime,
+            modifier = Modifier.size(AppTopBarDefaults.NavigationIconSize),
+        )
+    } else {
+        Icon(
+            painter = painterResource(icon),
+            contentDescription = null,
+            tint = tint,
+            modifier = Modifier.size(AppTopBarDefaults.NavigationIconSize),
+        )
+    }
+}
+
 @Composable
 private fun CountBadge(count: Int) {
     val text = badgeLabel(count, stringResource(Res.string.notifications_badge_overflow))
@@ -66,6 +85,8 @@ private fun CountBadge(count: Int) {
  * caller puts the exact count in [contentDescription], the badge itself is hidden from accessibility.
  * A non-null [toggled] makes it the favourite star (T-204): checkbox semantics with the state "Favorito" /
  * "No es favorito", the star icon of [FavouriteToggleDefaults] and its tint; [icon] and [tint] are then ignored.
+ * A non-null [busyDescription] swaps the icon for a progress ring and exposes it as the state (R-31); the caller
+ * also disables the button while busy.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -79,6 +100,7 @@ fun AppIconButton(
     tint: Color = AppTheme.colors.textPrimary,
     badgeCount: Int = 0,
     toggled: Boolean? = null,
+    busyDescription: String? = null,
 ) {
     val glyphIcon = if (toggled != null) FavouriteToggleDefaults.icon(toggled) else icon
     val glyphTint = if (toggled != null) FavouriteToggleDefaults.tint(toggled, enabled, AppTheme.colors) else tint
@@ -99,18 +121,13 @@ fun AppIconButton(
                 }
                 .semantics {
                     this.contentDescription = contentDescription
-                    stateText?.let { stateDescription = it }
+                    (busyDescription ?: stateText)?.let { stateDescription = it }
                 }
                 .testTag(testTag),
             contentAlignment = Alignment.Center,
         ) {
             val glyph: @Composable () -> Unit = {
-                Icon(
-                    painter = painterResource(glyphIcon),
-                    contentDescription = null,
-                    tint = if (enabled) glyphTint else AppTheme.colors.ghostData,
-                    modifier = Modifier.size(AppTopBarDefaults.NavigationIconSize),
-                )
+                IconGlyph(glyphIcon, if (enabled) glyphTint else AppTheme.colors.ghostData, busyDescription != null)
             }
             if (badgeCount > 0) {
                 BadgedBox(badge = { CountBadge(badgeCount) }, content = { glyph() })

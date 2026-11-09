@@ -1,6 +1,7 @@
 package io.github.lopezjavier.appfitness.feature.food
 
 import androidx.lifecycle.SavedStateHandle
+import app.cash.turbine.test
 import io.github.lopezjavier.appfitness.app.FakeConnectivityObserver
 import io.github.lopezjavier.appfitness.domain.AppError
 import io.github.lopezjavier.appfitness.domain.AppException
@@ -81,24 +82,24 @@ class CreateFoodEnergyCheckTest {
         if (polyols.isNotEmpty()) onEvent(CreateFoodEvent.NutrientChanged(MicronutrientKind.Polyols, polyols))
     }
 
-    private fun TestScope.save(model: CreateFoodViewModel, event: CreateFoodEvent = CreateFoodEvent.Save) {
-        model.onEvent(event)
+    private fun TestScope.save(model: CreateFoodViewModel) {
+        model.onEvent(CreateFoodEvent.Save)
         advanceUntilIdle()
     }
 
     // ---- pass / skip
 
     @Test
-    fun consistentFood_savesWithFlagFalseAndNoWarning() = runTest(dispatcher) {
+    fun consistentFood_savesAndShowsNoWarning() = runTest(dispatcher) {
         val model = createModel()
         model.fill("100", "5", "10", "3")
         advanceUntilIdle()
 
+        assertTrue(model.uiState.value.canSave)
         save(model)
 
         assertNull(model.uiState.value.energyWarning)
         assertEquals(1, repository.created.size)
-        assertFalse(repository.created.single().savedAnyway)
     }
 
     @Test
@@ -111,6 +112,17 @@ class CreateFoodEnergyCheckTest {
 
         assertEquals(1, repository.created.size)
         assertNull(model.uiState.value.energyWarning)
+    }
+
+    @Test
+    fun blackCoffeeWithZeroKcal_saves() = runTest(dispatcher) {
+        val model = createModel()
+        model.fill("0", "0", "0", "0")
+        advanceUntilIdle()
+
+        save(model)
+
+        assertEquals(1, repository.created.size)
     }
 
     @Test
@@ -140,20 +152,55 @@ class CreateFoodEnergyCheckTest {
         assertEquals(0.0, repository.created[1].alcoholG)
     }
 
-    // ---- warnings
+    // ---- hard block
 
     @Test
-    fun redWineWithoutAlcohol_warnsWithNegativeGap_andDoesNotSave() = runTest(dispatcher) {
+    fun epicCase_blocksSaveAndExposesTheWarning500Versus250_withoutAnyEvent() = runTest(dispatcher) {
+        val model = createModel()
+        model.fill("500", "10", "30", "10")
+        advanceUntilIdle()
+
+        val state = model.uiState.value
+        val warning = assertNotNull(state.energyWarning)
+        assertEquals(500.0, warning.kcal, 1e-9)
+        assertEquals(250.0, warning.computedKcal, 1e-9)
+        assertTrue(warning.clearlyWrong)
+        assertFalse(state.canSave)
+        save(model)
+        assertTrue(repository.created.isEmpty())
+    }
+
+    @Test
+    fun fixingTheValues_clearsTheWarningAndEnablesSave() = runTest(dispatcher) {
+        val model = createModel()
+        model.fill("500", "10", "30", "10")
+        advanceUntilIdle()
+
+        model.type(CreateFoodField.Kcal, "250")
+        advanceUntilIdle()
+        assertNull(model.uiState.value.energyWarning)
+        assertTrue(model.uiState.value.canSave)
+        save(model)
+
+        assertEquals(250.0, repository.created.single().nutrition.kcal)
+    }
+
+    @Test
+    fun redWineWithoutAlcohol_blocksWithNegativeGap_andAddingItEnablesSave() = runTest(dispatcher) {
         val model = createModel()
         model.fill("83", "0,1", "2,6", "0")
         advanceUntilIdle()
 
-        save(model)
-
         val warning = assertNotNull(model.uiState.value.energyWarning)
         assertEquals(EnergyCheckLevel.ClearlyWrong, warning.level)
         assertTrue(warning.gap < 0)
-        assertTrue(repository.created.isEmpty())
+        assertFalse(model.uiState.value.canSave)
+
+        model.type(CreateFoodField.Alcohol, "9,5")
+        advanceUntilIdle()
+
+        assertNull(model.uiState.value.energyWarning)
+        assertTrue(model.uiState.value.canSave)
     }
 
     @Test
@@ -162,36 +209,30 @@ class CreateFoodEnergyCheckTest {
         model.fill("240", "0", "95", "0")
         advanceUntilIdle()
 
-        save(model)
-
-        val warning = assertNotNull(model.uiState.value.energyWarning)
-        assertTrue(warning.gap > 0)
+        assertTrue(assertNotNull(model.uiState.value.energyWarning).gap > 0)
     }
 
     @Test
-    fun epicCase_warnsWithTheTypedKcalAndTheComputedOne() = runTest(dispatcher) {
-        val model = createModel()
-        model.fill("500", "10", "30", "10")
-        advanceUntilIdle()
-
-        save(model)
-
-        val warning = assertNotNull(model.uiState.value.energyWarning)
-        assertEquals(500.0, warning.kcal, 1e-9)
-        assertEquals(250.0, warning.computedKcal, 1e-9)
-        assertTrue(warning.clearlyWrong)
-        assertTrue(repository.created.isEmpty())
-    }
-
-    @Test
-    fun mismatch_isNotClearlyWrong() = runTest(dispatcher) {
+    fun mismatch_isNotClearlyWrong_butStillBlocks() = runTest(dispatcher) {
         val model = createModel()
         model.fill("350", "12", "45", "6")
         advanceUntilIdle()
 
-        save(model)
-
         assertFalse(assertNotNull(model.uiState.value.energyWarning).clearlyWrong)
+        assertFalse(model.uiState.value.canSave)
+    }
+
+    @Test
+    fun tolerance_boundaryIsFifteenPercentPlusFive() = runTest(dispatcher) {
+        // Declared 100 kcal: the band is 0.15 * 100 + 5 = 20 kcal. 30 g protein = 120 kcal is exactly on it.
+        val atLimit = createModel()
+        atLimit.fill("100", "30", "0", "0")
+        val beyond = createModel()
+        beyond.fill("100", "31", "0", "0")
+        advanceUntilIdle()
+
+        assertNull(atLimit.uiState.value.energyWarning)
+        assertNotNull(beyond.uiState.value.energyWarning)
     }
 
     @Test
@@ -200,88 +241,15 @@ class CreateFoodEnergyCheckTest {
         model.fill("350", "12", "45", "6", fibre = "30")
         advanceUntilIdle()
 
-        save(model)
-
-        assertEquals(1, repository.created.size)
-    }
-
-    @Test
-    fun dismissWarning_closesItAndKeepsEveryField() = runTest(dispatcher) {
-        val model = createModel()
-        model.fill("500", "10", "30", "10", alcohol = "1")
-        advanceUntilIdle()
-        save(model)
-
-        save(model, CreateFoodEvent.DismissWarning)
-
-        val state = model.uiState.value
-        assertNull(state.energyWarning)
-        assertEquals("500", state.kcal)
-        assertEquals("10", state.protein)
-        assertEquals("30", state.carbs)
-        assertEquals("10", state.fat)
-        assertEquals("1", state.alcohol)
-        assertTrue(repository.created.isEmpty())
-    }
-
-    @Test
-    fun saveAnyway_savesOnceExactlyAsTypedWithTheFlag() = runTest(dispatcher) {
-        val model = createModel()
-        model.fill("500", "10", "30", "10")
-        advanceUntilIdle()
-        save(model)
-
-        save(model, CreateFoodEvent.SaveAnyway)
-
-        val created = repository.created.single()
-        assertTrue(created.savedAnyway)
-        assertEquals(NutritionPer100(500.0, 10.0, 30.0, 10.0), created.nutrition)
         assertNull(model.uiState.value.energyWarning)
-    }
-
-    @Test
-    fun saveAnyway_withoutAnOpenWarning_doesNothing() = runTest(dispatcher) {
-        val model = createModel()
-        model.fill("500", "10", "30", "10")
-        advanceUntilIdle()
-
-        save(model, CreateFoodEvent.SaveAnyway)
-
-        assertTrue(repository.created.isEmpty())
-    }
-
-    @Test
-    fun editingACheckInput_closesTheWarning() = runTest(dispatcher) {
-        val edits = listOf<(CreateFoodViewModel) -> Unit>(
-            { it.type(CreateFoodField.Kcal, "501") },
-            { it.type(CreateFoodField.Protein, "11") },
-            { it.type(CreateFoodField.Carbs, "31") },
-            { it.type(CreateFoodField.Fat, "11") },
-            { it.type(CreateFoodField.Alcohol, "2") },
-            { it.onEvent(CreateFoodEvent.NutrientChanged(MicronutrientKind.Fiber, "1")) },
-            { it.onEvent(CreateFoodEvent.NutrientChanged(MicronutrientKind.Polyols, "1")) },
-        )
-        edits.forEach { edit ->
-            val model = createModel()
-            model.fill("500", "10", "30", "10")
-            advanceUntilIdle()
-            save(model)
-            assertNotNull(model.uiState.value.energyWarning)
-
-            edit(model)
-            advanceUntilIdle()
-
-            assertNull(model.uiState.value.energyWarning)
-        }
+        save(model)
+        assertEquals(1, repository.created.size)
     }
 
     @Test
     fun editingNameBrandOrPortions_keepsTheWarning() = runTest(dispatcher) {
         val model = createModel()
         model.fill("500", "10", "30", "10")
-        advanceUntilIdle()
-        save(model)
-
         model.type(CreateFoodField.Name, "Otro")
         model.type(CreateFoodField.Brand, "Marca")
         model.onEvent(CreateFoodEvent.AddPortion)
@@ -291,32 +259,69 @@ class CreateFoodEnergyCheckTest {
     }
 
     @Test
-    fun failedSaveAfterSaveAnyway_closesTheWarningKeepsValuesAndFails() = runTest(dispatcher) {
-        repository.createFailure = AppException(AppError.Network)
+    fun blankKcal_hasNoWarningYet() = runTest(dispatcher) {
         val model = createModel()
-        model.fill("500", "10", "30", "10")
+        model.type(CreateFoodField.Protein, "10")
         advanceUntilIdle()
-        save(model)
 
-        save(model, CreateFoodEvent.SaveAnyway)
-
-        val state = model.uiState.value
-        assertTrue(state.saveFailed)
-        assertNull(state.energyWarning)
-        assertEquals("500", state.kcal)
+        assertNull(model.uiState.value.energyWarning)
     }
 
     @Test
-    fun offline_cannotSaveAndShowsNoWarning() = runTest(dispatcher) {
+    fun theSectionHoldingPolyols_isExpandedWhileTheWarningShows() = runTest(dispatcher) {
         val model = createModel()
         model.fill("500", "10", "30", "10")
+        advanceUntilIdle()
+        assertTrue(CreateFoodSection.Fats in model.uiState.value.expandedSections)
+
+        model.type(CreateFoodField.Kcal, "250")
+        advanceUntilIdle()
+
+        assertFalse(CreateFoodSection.Fats in model.uiState.value.expandedSections)
+    }
+
+    @Test
+    fun serverEnergyCheckFailure_isNotASaveFailure_andKeepsTheDraft() = runTest(dispatcher) {
+        repository.createFailure = AppException(AppError.FoodEnergyCheckFailed)
+        val model = createModel()
+        model.fill("100", "5", "10", "3")
+        advanceUntilIdle()
+
+        model.effects.test {
+            save(model)
+            expectNoEvents()
+        }
+
+        val state = model.uiState.value
+        assertFalse(state.saveFailed)
+        assertFalse(state.isSaving)
+        assertEquals("100", state.kcal)
+    }
+
+    @Test
+    fun failedSave_keepsValuesAndFails() = runTest(dispatcher) {
+        repository.createFailure = AppException(AppError.Network)
+        val model = createModel()
+        model.fill("100", "5", "10", "3")
+        advanceUntilIdle()
+
+        save(model)
+
+        val state = model.uiState.value
+        assertTrue(state.saveFailed)
+        assertEquals("100", state.kcal)
+    }
+
+    @Test
+    fun offline_cannotSave() = runTest(dispatcher) {
+        val model = createModel()
+        model.fill("100", "5", "10", "3")
         connectivity.state.value = false
         advanceUntilIdle()
 
         save(model)
 
         assertFalse(model.uiState.value.canSave)
-        assertNull(model.uiState.value.energyWarning)
         assertTrue(repository.created.isEmpty())
     }
 
@@ -358,27 +363,35 @@ class CreateFoodEnergyCheckTest {
     }
 
     @Test
-    fun aiDraftWithoutAlcohol_stillRunsTheCheck() = runTest(dispatcher) {
+    fun aiDraftWithoutAlcohol_isBlockedWithTheWarningAtOnce() = runTest(dispatcher) {
         val model = createModel(prefill = dishDraft.copy(alcohol = 0.0))
+        advanceUntilIdle()
+
+        assertNotNull(model.uiState.value.energyWarning)
+        save(model)
+        assertTrue(repository.created.isEmpty())
+    }
+
+    @Test
+    fun correctedOffFoodDraft_carriesTheBarcodeAndSavesAsCreate() = runTest(dispatcher) {
+        val model = createModel(prefill = dishDraft.copy(barcode = "8410000000001"))
         advanceUntilIdle()
 
         save(model)
 
-        assertNotNull(model.uiState.value.energyWarning)
-        assertTrue(repository.created.isEmpty())
+        assertEquals("8410000000001", repository.created.single().barcode)
     }
 
     // ---- edit mode
 
-    private fun storeFood(kcal: Double, protein: Double, carbs: Double, fat: Double, flagged: Boolean) {
+    private fun storeFood(kcal: Double, protein: Double, carbs: Double, fat: Double) {
         repository.known["f1"] =
             food("f1", isManual = true).copy(nutrition = NutritionPer100(kcal, protein, carbs, fat))
-        if (flagged) repository.storedSavedAnyway += "f1"
     }
 
     @Test
     fun edit_loadsAlcohol() = runTest(dispatcher) {
-        storeFood(83.0, 0.1, 2.6, 0.0, flagged = false)
+        storeFood(83.0, 0.1, 2.6, 0.0)
         repository.storedAlcohol["f1"] = 9.5
         val model = editModel()
         advanceUntilIdle()
@@ -387,86 +400,60 @@ class CreateFoodEnergyCheckTest {
     }
 
     @Test
-    fun flaggedFoodEditedByNameOnly_savesWithNoWarningAndFlagTrue() = runTest(dispatcher) {
-        storeFood(500.0, 10.0, 30.0, 10.0, flagged = true)
+    fun edit_ofAFailingStoredFood_showsTheWarningAtOnceAndBlocksSave() = runTest(dispatcher) {
+        storeFood(500.0, 10.0, 30.0, 10.0)
         val model = editModel()
         advanceUntilIdle()
         model.type(CreateFoodField.Name, "Nuevo nombre")
 
-        save(model)
-
-        assertNull(model.uiState.value.energyWarning)
-        assertTrue(repository.updates.single().savedAnyway)
-    }
-
-    @Test
-    fun flaggedEditByNameOnly_stillSkipsTheWarningAfterRecreation() = runTest(dispatcher) {
-        storeFood(500.0, 10.0, 30.0, 10.0, flagged = true)
-        val state = SavedStateHandle()
-        editModel(state)
-        advanceUntilIdle()
-        val restored = editModel(state)
-        restored.type(CreateFoodField.Name, "Nuevo nombre")
-        advanceUntilIdle()
-
-        save(restored)
-
-        assertTrue(repository.updates.single().savedAnyway)
-    }
-
-    @Test
-    fun flaggedFoodWithChangedKcalThatStillFails_warnsAgain() = runTest(dispatcher) {
-        storeFood(500.0, 10.0, 30.0, 10.0, flagged = true)
-        val model = editModel()
-        advanceUntilIdle()
-        model.type(CreateFoodField.Kcal, "480")
-
-        save(model)
-
         assertNotNull(model.uiState.value.energyWarning)
+        assertFalse(model.uiState.value.canSave)
+        save(model)
         assertTrue(repository.updates.isEmpty())
     }
 
     @Test
-    fun flaggedFoodFixedSoItPasses_savesWithFlagFalse() = runTest(dispatcher) {
-        storeFood(500.0, 10.0, 30.0, 10.0, flagged = true)
+    fun edit_fixedSoItPasses_savesTheUpdate() = runTest(dispatcher) {
+        storeFood(500.0, 10.0, 30.0, 10.0)
         val model = editModel()
         advanceUntilIdle()
+
         model.type(CreateFoodField.Kcal, "250")
-
+        advanceUntilIdle()
         save(model)
 
         assertNull(model.uiState.value.energyWarning)
-        assertFalse(repository.updates.single().savedAnyway)
+        assertEquals(250.0, repository.updates.single().nutrition.kcal)
     }
 
     @Test
-    fun unflaggedFailingFoodEditedInNameOnly_warns() = runTest(dispatcher) {
-        storeFood(500.0, 10.0, 30.0, 10.0, flagged = false)
+    fun edit_serverEnergyCheckFailure_isNotASaveFailure() = runTest(dispatcher) {
+        storeFood(100.0, 5.0, 10.0, 3.0)
+        repository.updateFailure = AppException(AppError.FoodEnergyCheckFailed)
         val model = editModel()
         advanceUntilIdle()
         model.type(CreateFoodField.Name, "Nuevo nombre")
 
         save(model)
 
-        assertNotNull(model.uiState.value.energyWarning)
-        assertTrue(repository.updates.isEmpty())
+        assertFalse(model.uiState.value.saveFailed)
     }
 
     // ---- restoration
 
     @Test
-    fun openWarning_survivesRecreationFromTheSameSavedState() = runTest(dispatcher) {
+    fun blockedDraft_restoresWithTheWarningAndSaveDisabled() = runTest(dispatcher) {
         val state = SavedStateHandle()
         val model = createModel(state)
         model.fill("500", "10", "30", "10", alcohol = "1")
         advanceUntilIdle()
-        save(model)
 
         val restored = createModel(state)
         advanceUntilIdle()
 
         assertNotNull(restored.uiState.value.energyWarning)
+        assertFalse(restored.uiState.value.canSave)
+        assertTrue(CreateFoodSection.Fats in restored.uiState.value.expandedSections)
         assertEquals("1", restored.uiState.value.alcohol)
     }
 }

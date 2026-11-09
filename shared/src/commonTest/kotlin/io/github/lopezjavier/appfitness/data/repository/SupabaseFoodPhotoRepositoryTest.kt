@@ -8,12 +8,15 @@ import io.github.lopezjavier.appfitness.data.remote.SupabaseClientFactory
 import io.github.lopezjavier.appfitness.domain.AppError
 import io.github.lopezjavier.appfitness.domain.appErrorOrNull
 import io.github.lopezjavier.appfitness.domain.model.AmountEstimate
+import io.github.lopezjavier.appfitness.domain.model.EnergyIssue
 import io.github.lopezjavier.appfitness.domain.model.Food
 import io.github.lopezjavier.appfitness.domain.model.FoodPhotoConfidence
 import io.github.lopezjavier.appfitness.domain.model.FoodPhotoDraft
 import io.github.lopezjavier.appfitness.domain.model.FoodPhotoMode
 import io.github.lopezjavier.appfitness.domain.model.NutritionPer100
+import io.github.lopezjavier.appfitness.domain.model.PreviousEstimate
 import io.github.lopezjavier.appfitness.domain.model.TestLoginCredentials
+import io.github.lopezjavier.appfitness.domain.usecase.EnergyCheckLevel
 import io.ktor.client.engine.mock.MockEngine
 import io.ktor.client.engine.mock.respond
 import io.ktor.client.engine.mock.toByteArray
@@ -82,6 +85,44 @@ class SupabaseFoodPhotoRepositoryTest {
         val client = SupabaseClientFactory.create(config, engine, MemorySessionManager())
         SupabaseAuthRepository(client.auth).signInWithPassword(TestLoginCredentials("a@b.c", "pw"))
         return SupabaseFoodPhotoRepository(client.auth, client.functions, requestTimeout)
+    }
+
+    private val failedEstimate = PreviousEstimate(
+        name = "Vino tinto",
+        baseUnit = "ml",
+        kcal = 500.0,
+        protein = 10.0,
+        carbs = 30.0,
+        fat = 10.0,
+        alcohol = null,
+        fibre = 1.5,
+        polyols = null,
+        reason = EnergyIssue(EnergyCheckLevel.ClearlyWrong, 500.0, 250.0, -250.0),
+    )
+
+    @Test
+    fun estimate_sendsThePreviousEstimateWithItsReasonForDishAndLabel() = runTest {
+        val repo = signedIn()
+
+        repo.estimate(FoodPhotoMode.Dish, "QUJD", null, failedEstimate).getOrThrow()
+        repo.estimate(FoodPhotoMode.Label, "QUJD", null, failedEstimate).getOrThrow()
+
+        val expected =
+            """"previous":{"estimate":{"name":"Vino tinto","base_unit":"ml","nutrition":{"kcal":500.0,""" +
+                """"protein_g":10.0,"carbs_g":30.0,"fat_g":10.0,"alcohol_g":0.0},""" +
+                """"micronutrients":{"fiber_100g":1.5}},"reason":{"result":"clearly_wrong","kcal":500.0,""" +
+                """"computed":250.0,"gap":-250.0}}"""
+        bodies.forEach { assertTrue(it.contains(expected), it) }
+    }
+
+    @Test
+    fun estimate_omitsThePreviousEstimateForABarcodeAndWhenThereIsNone() = runTest {
+        val repo = signedIn()
+
+        repo.estimate(FoodPhotoMode.Barcode, "QUJD", null, failedEstimate).getOrThrow()
+        repo.estimate(FoodPhotoMode.Dish, "QUJD", null).getOrThrow()
+
+        bodies.forEach { assertFalse(it.contains("previous"), it) }
     }
 
     @Test

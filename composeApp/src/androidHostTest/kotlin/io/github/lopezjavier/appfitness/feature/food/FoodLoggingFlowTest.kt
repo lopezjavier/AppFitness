@@ -7,12 +7,14 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.assertTextContains
 import androidx.compose.ui.test.hasAnyAncestor
 import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
+import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTextInput
 import androidx.compose.ui.test.performTextReplacement
@@ -88,6 +90,7 @@ class FoodLoggingFlowTest {
     private fun Flow(diaryModel: DiaryViewModel, searchModel: FoodSearchViewModel, slotId: String?) {
         var searching by remember { mutableStateOf(false) }
         var openFoodId by remember { mutableStateOf<String?>(null) }
+        var correction by remember { mutableStateOf<AddFoodEffect.CorrectOffFood?>(null) }
         val diaryState by diaryModel.uiState.collectAsState()
         val searchState by searchModel.uiState.collectAsState()
         LaunchedEffect(searchModel) {
@@ -111,9 +114,20 @@ class FoodLoggingFlowTest {
                                 searching = false
                                 openFoodId = null
                             }
+                            if (it is AddFoodEffect.CorrectOffFood) {
+                                correction = it
+                                openFoodId = null
+                            }
                         }
                     }
                     AddFoodSheet(addState, addModel::onEvent, { openFoodId = null })
+                }
+                correction?.let { fix ->
+                    val form = remember(fix) {
+                        CreateFoodViewModel(fix.barcode, null, foods, connectivity, prefill = fix.prefill)
+                    }
+                    val formState by form.uiState.collectAsState()
+                    CreateFoodScreen(formState, form::onEvent, { correction = null })
                 }
             }
         }
@@ -190,22 +204,23 @@ class FoodLoggingFlowTest {
     }
 
     @Test
-    fun offFood_failingTheEnergyCheck_warnsAndLogsNothingUntilAddAnyway() {
+    fun offFood_failingTheEnergyCheck_blocksAddingAndOffersTheCorrection() {
         val off = food("off1", "Galletas", kcal = 500.0, protein = 10.0, carbs = 30.0, fat = 10.0, isOff = true)
         start(off)
 
         openSearchAndPick("off1")
-        tap("food_sheet_commit")
 
-        rule.onNodeWithTag("create_food_energy_warning").assertExists()
+        rule.onNodeWithTag("add_food_energy_warning").assertExists()
+        rule.onNodeWithTag("food_sheet_commit").assertIsNotEnabled()
+        rule.onNodeWithText("Añadir igualmente").assertDoesNotExist()
         assertEquals(emptyList<String>(), diary.added.map { it.foodId })
         assertEquals(emptyList<String>(), foods.copyCalls)
 
-        tap("add_food_add_anyway")
+        tap("add_food_energy_fix")
 
-        assertEquals(listOf("copy-off1"), diary.added.map { it.foodId })
-        assertEquals(1, foods.updates.size)
-        rule.onNodeWithTag("diary_screen").assertExists()
+        rule.onNodeWithTag("create_food_screen").assertExists()
+        rule.onNodeWithTag("create_food_name_field").assertTextContains("Galletas")
+        assertEquals(emptyList<String>(), diary.added.map { it.foodId })
     }
 
     @Test

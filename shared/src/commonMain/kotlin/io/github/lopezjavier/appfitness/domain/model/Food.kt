@@ -28,6 +28,8 @@ data class Food(
     val isManual: Boolean = false,
     /** True for an Open Food Facts product: adding it to the app first makes a personal copy. */
     val isOff: Boolean = false,
+    /** The product barcode when the source provides it (only used to carry it into a corrected copy of an OFF food). */
+    val barcode: String? = null,
 )
 
 /** The comida group (ADR-68) that entries added together share: one [id] per application, [name] of the comida. */

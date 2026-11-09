@@ -5,7 +5,6 @@ import io.github.lopezjavier.appfitness.domain.AppError
 import io.github.lopezjavier.appfitness.domain.AppException
 import io.github.lopezjavier.appfitness.domain.model.EditableFood
 import io.github.lopezjavier.appfitness.domain.model.Food
-import io.github.lopezjavier.appfitness.domain.model.FoodAuditRow
 import io.github.lopezjavier.appfitness.domain.model.FoodPortion
 import io.github.lopezjavier.appfitness.domain.model.FoodPreferences
 import io.github.lopezjavier.appfitness.domain.model.MicronutrientKind
@@ -211,7 +210,6 @@ internal class FakeFoodRepository : FoodRepository {
                     storedMicronutrients[id].orEmpty(),
                     id in inUse,
                     storedAlcohol[id],
-                    id in storedSavedAnyway,
                 ),
             )
         }
@@ -219,9 +217,6 @@ internal class FakeFoodRepository : FoodRepository {
 
     /** Alcohol (g per 100) stored per food id, for [editableFood]. */
     val storedAlcohol = mutableMapOf<String, Double>()
-
-    /** Ids of foods stored with the saved-anyway flag, for [editableFood]. */
-    val storedSavedAnyway = mutableSetOf<String>()
 
     /** The foods passed to [updateFood]. */
     val updates = mutableListOf<UpdatedFood>()
@@ -291,19 +286,6 @@ internal class FakeFoodRepository : FoodRepository {
         alcoholReads += foodId
         alcoholFailure?.let { return Result.failure(it) }
         return Result.success(offAlcohol[foodId])
-    }
-
-    /** What [foodEnergyAudit] answers (the server order); change it between calls to simulate edits. */
-    var auditResult: Result<List<FoodAuditRow>> = Result.success(emptyList())
-
-    /** When set, [foodEnergyAudit] suspends until it completes. */
-    var auditGate: CompletableDeferred<Unit>? = null
-    var auditCalls = 0
-
-    override suspend fun foodEnergyAudit(): Result<List<FoodAuditRow>> {
-        auditCalls++
-        auditGate?.await()
-        return auditResult
     }
 
     fun failSearch(query: String) {

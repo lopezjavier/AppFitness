@@ -25,55 +25,55 @@
 
 > **Amended by ADR-104 (2026-11-09):** US-116's warning becomes a block (no "Guardar igualmente"), US-117's audit UI and the flag are removed; scenarios on them are superseded by T-257/T-258.
 
-## US-116 · A food whose macros do not match its kcal is flagged
+## US-116 · A food whose macros do not match its kcal cannot be saved
 **As** a user adding a food
-**I want** a warning before saving
-**So that** I do not log wrong data.
+**I want** a failing food blocked, with the reason
+**So that** I never store wrong data.
 
 ```gherkin
 Feature: Macro and kcal check
 
-  Scenario: A mismatch warns before saving
-    Given I create a food with 500 kcal and macros that add up to about 200 kcal
-    When I save
-    Then I see a warning that the kcal and the macros do not match
-    And I can fix the numbers or save anyway
+  Scenario: A mismatch blocks saving
+    Given I create a food with 500 kcal and macros that add up to about 250 kcal
+    Then I see "Las calorías y los macros no cuadran: 500 kcal declaradas, los macros suman 250 kcal."
+    And "Guardar" is disabled
+    And there is no way to save the food as it is
+
+  Scenario: Fixing the numbers enables saving
+    Given the warning is shown
+    When I correct the kcal or the macros so the check passes
+    Then the warning disappears and "Guardar" is enabled
+
+  Scenario: Red wine needs its alcohol
+    Given I create a red wine with kcal and no alcohol
+    Then the check blocks it until I fill "Alcohol (g)"
+
+  Scenario: Black coffee saves
+    Given I create a food with 0 kcal and no macros
+    Then no warning is shown and I can save
 
   Scenario: The check covers every way a food is created
-    Then it applies to manual foods, edits, AI dish estimates, label scans and OFF copies
+    Then it applies to manual foods, edits, AI dish and label estimates and OFF copies
 
   Scenario: A small gap is accepted
     Given the gap is within the tolerance (alcohol or fibre can explain it)
     Then no warning is shown
 
-  Scenario: Saving anyway is allowed
-    When I choose to save despite the warning
-    Then the food is saved as I entered it
+  Scenario: An Open Food Facts food that fails is corrected before my copy
+    Given an Open Food Facts food fails the check
+    Then "Añadir" is disabled
+    And "Corregir y guardar mi copia" opens the create form prefilled with its values
+
+  Scenario: An AI estimate that fails shows the issue and a retry
+    Given an AI estimate fails the check
+    Then the form shows the warning and a "Repetir la estimación" icon
+    When I tap it
+    Then the estimate is repeated with the previous values and the reason
+    And only the nutrition fields change
 ```
 
-## US-117 · An audit of the foods I already have
-**As** a user with many foods
-**I want** a list of the ones that look wrong
-**So that** I fix them once.
-
-```gherkin
-Feature: Food audit
-
-  Scenario: The list shows foods that fail the check
-    When I open the food audit
-    Then I see my foods whose macros and kcal do not match, with the gap
-
-  Scenario: Each food opens its editor
-    When I tap a food in the list
-    Then its editor opens with the numbers
-
-  Scenario: Nothing changes on its own
-    Then no food is modified until I save an edit
-
-  Scenario: A fixed food leaves the list
-    When I save a corrected food
-    Then it is no longer listed
-```
+## US-117 · Removed by ADR-104
+The food audit ("Revisar alimentos"), "Guardar igualmente" and the saved-anyway flag no longer exist: no failing food can be stored (US-116), and the foods that failed were fixed in T-257.
 
 ## US-118 · An OFF food becomes my food
 **As** a user adding a food found in Open Food Facts

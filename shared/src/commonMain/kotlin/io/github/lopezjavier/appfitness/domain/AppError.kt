@@ -21,6 +21,9 @@ sealed interface AppError {
     /** A food's unit cannot change while a diary entry or a comida references it (check violation on the server). */
     data object FoodInUse : AppError
 
+    /** The server refused a food whose kcal and macros do not add up (SQLSTATE `FD001`, ADR-104). */
+    data object FoodEnergyCheckFailed : AppError
+
     /** The photo did not show a recognisable food or readable nutrition values (`food-photo` 422). */
     data object PhotoNotRecognized : AppError
 

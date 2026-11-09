@@ -16,13 +16,18 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import io.github.lopezjavier.appfitness.composeapp.resources.Res
 import io.github.lopezjavier.appfitness.composeapp.resources.add_food_energy_help_off
-import io.github.lopezjavier.appfitness.composeapp.resources.create_food_energy_fix
 import io.github.lopezjavier.appfitness.composeapp.resources.create_food_energy_help_cd
 import io.github.lopezjavier.appfitness.composeapp.resources.create_food_energy_help_fibre_alcohol
 import io.github.lopezjavier.appfitness.composeapp.resources.create_food_energy_help_polyols
 import io.github.lopezjavier.appfitness.composeapp.resources.create_food_energy_help_title
 import io.github.lopezjavier.appfitness.composeapp.resources.create_food_energy_warning
 import io.github.lopezjavier.appfitness.composeapp.resources.create_food_energy_warning_wrong
+import io.github.lopezjavier.appfitness.composeapp.resources.create_food_retry_cd
+import io.github.lopezjavier.appfitness.composeapp.resources.create_food_retry_offline_action
+import io.github.lopezjavier.appfitness.composeapp.resources.create_food_retry_photo_gone
+import io.github.lopezjavier.appfitness.composeapp.resources.create_food_retry_running
+import io.github.lopezjavier.appfitness.composeapp.resources.ic_retry
+import io.github.lopezjavier.appfitness.designsystem.AppIconButton
 import io.github.lopezjavier.appfitness.designsystem.AppNumberFormat
 import io.github.lopezjavier.appfitness.designsystem.AppShapes
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
@@ -30,40 +35,32 @@ import io.github.lopezjavier.appfitness.designsystem.GhostButton
 import io.github.lopezjavier.appfitness.designsystem.GhostTone
 import io.github.lopezjavier.appfitness.designsystem.HelpButton
 import io.github.lopezjavier.appfitness.designsystem.HelpContent
+import io.github.lopezjavier.appfitness.designsystem.OfflineHint
 import io.github.lopezjavier.appfitness.designsystem.Spacing
+import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.stringResource
 
 private val MaxNoticeHeight = Spacing.xl * 8
 
 /**
- * The energy-check warning (07 section 4) shown in the pinned footer of a food form: the facts, a "?" whose sheet
- * holds the sign-dependent advice (R-57) and "Corregir", which only closes the warning. Shared by every form that
- * runs the check (create / edit, audit editor, add sheet). With [offProduct] (an Open Food Facts food the user did not
- * type) the help body is OFF-specific and [fixLabel] is "Ahora no". Not a failure: no error colour, no haptic.
+ * The energy-check block (07 section 4, ADR-104) shown in the pinned footer of a food form: the facts, an optional
+ * "Repetir la estimación" icon ([onRetry], AI estimates) and a "?" whose sheet holds the sign-dependent advice (R-57).
+ * Shared by the create / edit form and the add sheet. With [offProduct] (an Open Food Facts food the user did not
+ * type) the help body is OFF-specific and [onFix] / [fixLabel] open the corrected copy. Tags derive from
+ * [testTagPrefix]. Not a failure: no error colour, no haptic.
  */
 @Composable
 internal fun EnergyWarningNotice(
     warning: EnergyWarning,
-    onFix: () -> Unit,
     modifier: Modifier = Modifier,
-    fixLabel: String = stringResource(Res.string.create_food_energy_fix),
+    onFix: (() -> Unit)? = null,
+    fixLabel: String? = null,
     offProduct: Boolean = false,
+    testTagPrefix: String = "create_food_energy",
+    retryState: RetryState = RetryState.None,
+    isOffline: Boolean = false,
+    onRetry: (() -> Unit)? = null,
 ) {
-    val facts = stringResource(
-        Res.string.create_food_energy_warning,
-        AppNumberFormat.decimal(warning.kcal, maxDecimals = 0),
-        AppNumberFormat.decimal(warning.computedKcal, maxDecimals = 0),
-    )
-    val text = if (warning.clearlyWrong) stringResource(Res.string.create_food_energy_warning_wrong, facts) else facts
-    val advice = stringResource(
-        if (offProduct) {
-            Res.string.add_food_energy_help_off
-        } else if (warning.gap < 0) {
-            Res.string.create_food_energy_help_fibre_alcohol
-        } else {
-            Res.string.create_food_energy_help_polyols
-        },
-    )
     Column(
         modifier
             .fillMaxWidth()
@@ -71,28 +68,75 @@ internal fun EnergyWarningNotice(
             .background(AppTheme.colors.surfaceOverlay, AppShapes.md)
             .verticalScroll(rememberScrollState())
             .padding(Spacing.md)
-            .testTag("create_food_energy_warning"),
+            .testTag("${testTagPrefix}_warning"),
         verticalArrangement = Arrangement.spacedBy(Spacing.sm),
     ) {
         Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm), verticalAlignment = Alignment.CenterVertically) {
             Text(
-                text = text,
+                text = warningText(warning),
                 style = AppTheme.typography.bodyMedium,
                 color = AppTheme.colors.energyAmber,
                 modifier = Modifier.weight(1f),
             )
+            if (onRetry != null && (retryState == RetryState.Available || retryState == RetryState.Running)) {
+                RetryButton(retryState == RetryState.Running, isOffline, "${testTagPrefix}_retry", onRetry)
+            }
             HelpButton(
                 contentDescription = stringResource(Res.string.create_food_energy_help_cd),
                 title = stringResource(Res.string.create_food_energy_help_title),
-                content = HelpContent(listOf(advice)),
-                testTag = "create_food_energy_warning_help",
+                content = HelpContent(listOf(stringResource(adviceOf(warning, offProduct)))),
+                testTag = "${testTagPrefix}_warning_help",
             )
         }
-        GhostButton(
-            text = fixLabel,
-            onClick = onFix,
-            modifier = Modifier.fillMaxWidth().testTag("create_food_energy_fix"),
-            tone = GhostTone.Action,
-        )
+        if (retryState == RetryState.PhotoGone) {
+            Text(
+                text = stringResource(Res.string.create_food_retry_photo_gone),
+                style = AppTheme.typography.bodySmall,
+                color = AppTheme.colors.textSecondary,
+                modifier = Modifier.testTag("create_food_retry_photo_gone"),
+            )
+        }
+        if (onRetry != null && isOffline && retryState == RetryState.Available) {
+            OfflineHint(stringResource(Res.string.create_food_retry_offline_action))
+        }
+        if (onFix != null && fixLabel != null) {
+            GhostButton(
+                text = fixLabel,
+                onClick = onFix,
+                modifier = Modifier.fillMaxWidth().testTag("${testTagPrefix}_fix"),
+                tone = GhostTone.Action,
+            )
+        }
     }
+}
+
+/** The facts of [warning], with the "Parece un error" prefix when it is clearly wrong. */
+@Composable
+private fun warningText(warning: EnergyWarning): String {
+    val facts = stringResource(
+        Res.string.create_food_energy_warning,
+        AppNumberFormat.decimal(warning.kcal, maxDecimals = 0),
+        AppNumberFormat.decimal(warning.computedKcal, maxDecimals = 0),
+    )
+    return if (warning.clearlyWrong) stringResource(Res.string.create_food_energy_warning_wrong, facts) else facts
+}
+
+/** The advice behind the "?": the Open Food Facts one, or the one for the sign of the gap. */
+private fun adviceOf(warning: EnergyWarning, offProduct: Boolean): StringResource = when {
+    offProduct -> Res.string.add_food_energy_help_off
+    warning.gap < 0 -> Res.string.create_food_energy_help_fibre_alcohol
+    else -> Res.string.create_food_energy_help_polyols
+}
+
+/** "Repetir la estimación": disabled while [running] (progress ring) or [offline]. */
+@Composable
+private fun RetryButton(running: Boolean, offline: Boolean, testTag: String, onClick: () -> Unit) {
+    AppIconButton(
+        contentDescription = stringResource(Res.string.create_food_retry_cd),
+        icon = Res.drawable.ic_retry,
+        testTag = testTag,
+        onClick = onClick,
+        enabled = !running && !offline,
+        busyDescription = if (running) stringResource(Res.string.create_food_retry_running) else null,
+    )
 }

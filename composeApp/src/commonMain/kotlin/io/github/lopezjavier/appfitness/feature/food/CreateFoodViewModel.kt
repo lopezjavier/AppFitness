@@ -3,17 +3,25 @@ package io.github.lopezjavier.appfitness.feature.food
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import io.github.lopezjavier.appfitness.data.repository.UnconfiguredFoodPhotoRepository
 import io.github.lopezjavier.appfitness.domain.AppError
 import io.github.lopezjavier.appfitness.domain.AppException
 import io.github.lopezjavier.appfitness.domain.model.Food
+import io.github.lopezjavier.appfitness.domain.model.FoodPhotoDraft
+import io.github.lopezjavier.appfitness.domain.model.FoodPhotoMode
 import io.github.lopezjavier.appfitness.domain.model.MicronutrientKind
 import io.github.lopezjavier.appfitness.domain.model.NewFoodDraftCodec
 import io.github.lopezjavier.appfitness.domain.model.NewFoodError
 import io.github.lopezjavier.appfitness.domain.model.NewFoodErrors
 import io.github.lopezjavier.appfitness.domain.model.NewFoodValidation
+import io.github.lopezjavier.appfitness.domain.model.toNewFoodDraft
 import io.github.lopezjavier.appfitness.domain.port.ConnectivityObserver
+import io.github.lopezjavier.appfitness.domain.port.PhotoCapture
+import io.github.lopezjavier.appfitness.domain.port.UnconfiguredPhotoCapture
+import io.github.lopezjavier.appfitness.domain.repository.FoodPhotoRepository
 import io.github.lopezjavier.appfitness.domain.repository.FoodRepository
-import io.github.lopezjavier.appfitness.domain.usecase.EnergyCheckLevel
+import io.github.lopezjavier.appfitness.feature.food.photo.FoodPhotoRetryStore
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -23,6 +31,8 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import kotlin.io.encoding.Base64
+import kotlin.io.encoding.ExperimentalEncodingApi
 
 private const val KEY_AI_NOTE = "create_food_ai_note"
 private const val KEY_STARTED = "create_food_started"
@@ -34,22 +44,14 @@ private const val KEY_UNIT_REFUSED = "create_food_unit_refused"
 private const val KEY_TOUCHED = "create_food_touched"
 private const val KEY_PORTIONS = "create_food_portions"
 private const val KEY_SECTIONS = "create_food_sections"
-private const val KEY_ENERGY_WARNING = "create_food_energy_warning"
-private const val KEY_FLAGGED = "create_food_flagged"
-private const val KEY_ORIGINAL_CHECK = "create_food_original_check"
+private const val KEY_RETRY_TOKEN = "create_food_retry_token"
+private const val KEY_RETRY_MODE = "create_food_retry_mode"
 private const val KEY_FIELD_PREFIX = "create_food_field_"
 private const val MAX_PORTIONS = 10
 private val UNITS = setOf("g", "ml")
 
-/** The inputs of the energy check: editing any of them closes the warning. */
-private val CHECK_FIELDS = setOf(
-    CreateFoodField.Kcal,
-    CreateFoodField.Protein,
-    CreateFoodField.Carbs,
-    CreateFoodField.Fat,
-    CreateFoodField.Alcohol,
-)
-private val CHECK_KINDS = setOf(MicronutrientKind.Fiber, MicronutrientKind.Polyols)
+/** The collapsible section that holds the polyols field; expanded while the energy warning shows. */
+private val SECTION_OF_CHECK_FIELDS = CreateFoodSection.Fats
 
 /** Where the edit-mode read of the food stands; create mode is always [Idle]. */
 private enum class LoadState { Idle, Loading, Failed }
@@ -63,8 +65,13 @@ private enum class LoadState { Idle, Loading, Failed }
  * lives in [savedState] (ADR-40) and is prefilled (from [barcode] / [name] or from the stored food) only the first
  * time. Blank protein, carbs and fat count as 0; kcal is required. Saving needs the server, so
  * [CreateFoodUiState.canSave] is false offline.
+ *
+ * The energy check is a hard block (ADR-104): [CreateFoodUiState.energyWarning] is derived from the draft, so it shows
+ * live, survives process death by itself and disables "Guardar" while the values fail. A form that came from a failing
+ * AI estimate ([retryToken]) can repeat it from [CreateFoodEvent.RetryEstimate]; the photo stays in memory in
+ * [retryStore] and is released when the form is saved, closed, or the retry produces values that pass.
  */
-@Suppress("TooManyFunctions") // One function per step of the form.
+@Suppress("TooManyFunctions", "LongParameterList") // One function per step of the form; one dependency per port.
 class CreateFoodViewModel(
     barcode: String?,
     name: String?,
@@ -73,6 +80,10 @@ class CreateFoodViewModel(
     private val savedState: SavedStateHandle = SavedStateHandle(),
     private val editFoodId: String? = null,
     prefill: String? = null,
+    retryToken: String? = null,
+    private val photoRepository: FoodPhotoRepository = UnconfiguredFoodPhotoRepository(),
+    private val photoCapture: PhotoCapture = UnconfiguredPhotoCapture(),
+    private val retryStore: FoodPhotoRetryStore = FoodPhotoRetryStore(photoCapture),
 ) : ViewModel() {
     /**
      * What the form held when the user started (the prefill, or the stored food once read): the edit is "dirty" only
@@ -84,11 +95,11 @@ class CreateFoodViewModel(
     private val online = MutableStateFlow(true)
     private val saving = MutableStateFlow(false)
     private val saveFailed = MutableStateFlow(false)
-    private val warningOpen = MutableStateFlow(savedState.get<Boolean>(KEY_ENERGY_WARNING) == true)
 
-    /** Edit mode: the stored food carries the "saved anyway" flag; [originalCheck] are its check inputs (ADR-40). */
-    private var flagged: Boolean = savedState.get<Boolean>(KEY_FLAGGED) == true
-    private var originalCheck: List<String>? = savedState.get<List<String>>(KEY_ORIGINAL_CHECK)
+    /** The token of the photo kept for a retry (create mode only); null once released or when there is none. */
+    private var photoToken: String? =
+        if (editFoodId == null) retryToken ?: savedState.get<String>(KEY_RETRY_TOKEN) else null
+    private val retryState = MutableStateFlow(initialRetryState())
 
     /** The unit as stored (edit mode); the unit goes back to it when the server refuses a change. */
     private var originalUnit: String? = savedState.get<String>(KEY_ORIGINAL_UNIT)
@@ -108,27 +119,46 @@ class CreateFoodViewModel(
 
     val uiState: StateFlow<CreateFoodUiState> =
         combine(draft, online, saving, saveFailed, loadState, ::buildState)
-            .combine(sections) { state, expanded -> state.copy(expandedSections = expanded) }
+            .combine(sections) { state, expanded -> state.copy(expandedSections = expandedWith(expanded, state)) }
             .combine(unitLocked) { state, locked -> state.copy(unitLocked = locked) }
             .combine(unitRefused) { state, refused -> state.copy(unitRefused = refused) }
             .combine(aiNote) { state, note -> state.copy(aiEstimateNote = note) }
-            .combine(warningOpen) { state, open -> state.copy(energyWarning = warningFor(open)) }
+            .combine(retryState) { state, retry ->
+                state.copy(retryState = retry, canSave = state.canSave && retry != RetryState.Running)
+            }
             .stateIn(
                 viewModelScope,
                 SharingStarted.Eagerly,
-                buildState(draft.value, true, false, false, loadState.value).copy(
-                    expandedSections = sections.value,
-                    unitLocked = unitLocked.value,
-                    unitRefused = unitRefused.value,
-                    aiEstimateNote = aiNote.value,
-                    energyWarning = warningFor(warningOpen.value),
-                ),
+                buildState(draft.value, true, false, false, loadState.value).let { initial ->
+                    initial.copy(
+                        expandedSections = expandedWith(sections.value, initial),
+                        unitLocked = unitLocked.value,
+                        unitRefused = unitRefused.value,
+                        aiEstimateNote = aiNote.value,
+                        retryState = retryState.value,
+                        canSave = initial.canSave && retryState.value != RetryState.Running,
+                    )
+                },
             )
 
     init {
+        photoToken?.let { token ->
+            savedState[KEY_RETRY_TOKEN] = token
+            retryStore.get(token)?.let { savedState[KEY_RETRY_MODE] = it.mode.name }
+        }
         viewModelScope.launch { connectivity.isOnline.collect { online.value = it } }
         if (loadState.value == LoadState.Loading) load()
     }
+
+    /** Available while the photo is in memory; after process death the store is empty, so the retry is gone. */
+    private fun initialRetryState(): RetryState = when (val token = photoToken) {
+        null -> RetryState.None
+        else -> if (retryStore.has(token)) RetryState.Available else RetryState.PhotoGone
+    }
+
+    /** The section of the polyols field is shown while the warning needs the user to look at it (R-59). */
+    private fun expandedWith(expanded: Set<CreateFoodSection>, state: CreateFoodUiState): Set<CreateFoodSection> =
+        if (state.energyWarning != null) expanded + SECTION_OF_CHECK_FIELDS else expanded
 
     fun onEvent(event: CreateFoodEvent) {
         when (event) {
@@ -165,23 +195,19 @@ class CreateFoodViewModel(
 
             CreateFoodEvent.Save -> save()
 
-            CreateFoodEvent.SaveAnyway -> saveAnyway()
-
-            CreateFoodEvent.DismissWarning -> closeWarning()
+            CreateFoodEvent.RetryEstimate -> retryEstimate()
 
             CreateFoodEvent.Retry -> retry()
         }
     }
 
     private fun changeField(event: CreateFoodEvent.FieldChanged) {
-        if (event.field in CHECK_FIELDS) closeWarning()
         update {
             it.copy(fields = it.fields + (event.field to event.text), touched = it.touched + event.field.name)
         }
     }
 
     private fun changeNutrient(event: CreateFoodEvent.NutrientChanged) {
-        if (event.kind in CHECK_KINDS) closeWarning()
         update {
             it.copy(nutrients = it.nutrients + (event.kind to event.text), touched = it.touched + event.kind.name)
         }
@@ -212,10 +238,6 @@ class CreateFoodViewModel(
                             unitLocked.value = it.inUse
                             savedState[KEY_ORIGINAL_UNIT] = prefilled.baseUnit
                             savedState[KEY_UNIT_LOCKED] = it.inUse
-                            flagged = it.savedAnyway
-                            originalCheck = prefilled.checkInputTexts()
-                            savedState[KEY_FLAGGED] = flagged
-                            savedState[KEY_ORIGINAL_CHECK] = ArrayList(originalCheck.orEmpty())
                             persist(prefilled)
                         }
                     }
@@ -252,68 +274,113 @@ class CreateFoodViewModel(
 
     private fun save() {
         val current = draft.value
-        if (saving.value || loadState.value != LoadState.Idle || !isSavable(current, online.value)) return
-        when {
-            // A flagged food whose check inputs did not change keeps its flag: nothing new to warn about.
-            flagged && originalCheck == current.checkInputTexts() -> persistSave(current, savedAnyway = true)
-
-            current.energyCheck()?.level.isFailing() -> setWarning(open = true)
-
-            else -> persistSave(current, savedAnyway = false)
+        val busy = saving.value || retryState.value == RetryState.Running
+        if (busy || loadState.value != LoadState.Idle || !isSavable(current, online.value)) return
+        saving.value = true
+        saveFailed.value = false
+        clearUnitRefusal()
+        viewModelScope.launch {
+            val result: Result<Food> = if (editFoodId != null) {
+                foodRepository.updateFood(current.toUpdatedFood(editFoodId))
+            } else {
+                foodRepository.createFood(current.toNewFood())
+            }
+            saving.value = false
+            result.fold(
+                onSuccess = {
+                    releasePhoto()
+                    effectChannel.send(CreateFoodEffect.Saved(it.id))
+                },
+                onFailure = { onSaveFailed(it) },
+            )
         }
     }
 
-    private fun EnergyCheckLevel?.isFailing() =
-        this == EnergyCheckLevel.Mismatch || this == EnergyCheckLevel.ClearlyWrong
+    private suspend fun onSaveFailed(failure: Throwable) {
+        when ((failure as? AppException)?.error) {
+            AppError.FoodInUse -> refuseUnitChange()
 
-    private fun setWarning(open: Boolean) {
-        warningOpen.value = open
-        savedState[KEY_ENERGY_WARNING] = open
+            // The warning derived from the draft already says why: no failure message.
+            AppError.FoodEnergyCheckFailed -> Unit
+
+            else -> {
+                saveFailed.value = true
+                effectChannel.send(CreateFoodEffect.SaveFailed)
+            }
+        }
     }
 
     private fun retry() {
         if (loadState.value == LoadState.Failed) load()
     }
 
-    private fun saveAnyway() {
-        if (warningOpen.value) persistSave(draft.value, savedAnyway = true)
+    /** Releases the kept photo (file included) and forgets the retry; called on save, close and a passing retry. */
+    private fun releasePhoto() {
+        photoToken?.let(retryStore::release)
+        photoToken = null
+        savedState.remove<String>(KEY_RETRY_TOKEN)
+        savedState.remove<String>(KEY_RETRY_MODE)
+        retryState.value = RetryState.None
     }
 
-    private fun closeWarning() = setWarning(open = false)
+    /** Releases the kept photo; called when the ViewModel is cleared. */
+    internal fun release() = releasePhoto()
 
-    private fun warningFor(open: Boolean): EnergyWarning? {
-        val value = draft.value
-        val result = value.energyCheck()?.takeIf { open && it.level.isFailing() }
-        return result?.let {
-            EnergyWarning(it.level, value.toNutrition().kcal, it.computed, it.gap)
+    override fun onCleared() = release()
+
+    /**
+     * Asks the AI again with the current values and why they fail. Only the nutrition fields are replaced; when the
+     * new values pass, the photo is released and the retry goes away, otherwise it stays available.
+     */
+    @OptIn(ExperimentalEncodingApi::class)
+    private fun retryEstimate() {
+        val token = photoToken
+        val previous = draft.value.toPreviousEstimate()
+        if (retryState.value != RetryState.Available || previous == null || !online.value) return
+        val kept = token?.let(retryStore::get)
+        if (token == null || kept == null) {
+            retryState.value = RetryState.PhotoGone
+            return
         }
-    }
-
-    private fun persistSave(current: FormDraft, savedAnyway: Boolean) {
-        if (saving.value || !isSavable(current, online.value)) return
-        closeWarning()
-        saving.value = true
-        saveFailed.value = false
-        clearUnitRefusal()
+        retryState.value = RetryState.Running
         viewModelScope.launch {
-            val result: Result<Food> = if (editFoodId != null) {
-                foodRepository.updateFood(current.toUpdatedFood(editFoodId, savedAnyway))
-            } else {
-                foodRepository.createFood(current.toNewFood(savedAnyway))
+            val outcome: Result<FoodPhotoDraft> = try {
+                val encoded = Base64.encode(photoCapture.readJpeg(kept.handle))
+                photoRepository.estimate(kept.mode, encoded, kept.comment, previous)
+            } catch (cancelled: CancellationException) {
+                throw cancelled
+            } catch (_: Exception) {
+                // The reason is deliberately dropped: nothing about the photo or the response is kept.
+                Result.failure(IllegalStateException("estimate failed"))
             }
-            saving.value = false
-            result.fold(
-                onSuccess = { effectChannel.send(CreateFoodEffect.Saved(it.id)) },
+            outcome.fold(
+                onSuccess = { applyEstimate(it, kept.mode) },
                 onFailure = {
-                    if ((it as? AppException)?.error == AppError.FoodInUse) {
-                        refuseUnitChange()
-                    } else {
-                        saveFailed.value = true
-                        effectChannel.send(CreateFoodEffect.SaveFailed)
-                    }
+                    retryState.value = RetryState.Available
+                    effectChannel.send(CreateFoodEffect.RetryFailed)
                 },
             )
         }
+    }
+
+    private fun applyEstimate(estimate: FoodPhotoDraft, mode: FoodPhotoMode) {
+        val corrected = draft.value.withEstimate(FormDraft.from(estimate.toNewFoodDraft(mode)))
+        update { corrected }
+        // The values are the AI's again, until the user edits something.
+        aiNote.value = true
+        savedState[KEY_AI_NOTE] = true
+        if (corrected.text(MicronutrientKind.Polyols).isNotBlank()) toggleSectionOn(SECTION_OF_CHECK_FIELDS)
+        if (corrected.energyIssue() == null) releasePhoto() else retryState.value = RetryState.Available
+    }
+
+    private fun toggleSectionOn(section: CreateFoodSection) {
+        val expanded = sections.value + section
+        sections.value = expanded
+        savedState[KEY_SECTIONS] = ArrayList(expanded.map { it.name })
+    }
+
+    private fun warningOf(value: FormDraft): EnergyWarning? = value.energyIssue()?.let {
+        EnergyWarning(it.result, it.kcal, it.computed, it.gap)
     }
 
     /** The server found the food referenced: back to the stored unit, locked, with the rest of the draft intact. */
@@ -402,6 +469,7 @@ class CreateFoodViewModel(
             portions = value.portions.map { PortionDraft(it.label, it.amount) },
             errors = errors,
             canSave = !saving && load == LoadState.Idle && isSavable(value, online),
+            energyWarning = warningOf(value),
             canAddPortion = value.portions.size < MAX_PORTIONS,
             isSaving = saving,
             isOffline = !online,
@@ -413,7 +481,9 @@ class CreateFoodViewModel(
         )
     }
 
-    private fun isSavable(value: FormDraft, online: Boolean) = online && validate(value).isValid
+    /** Valid, online and not failing the energy check: the hard block of ADR-104. */
+    private fun isSavable(value: FormDraft, online: Boolean) =
+        online && validate(value).isValid && value.energyIssue() == null
 
     /** The validation result, where a blank kcal is [NewFoodError.Required] instead of "not a number". */
     private fun validate(value: FormDraft): NewFoodErrors {

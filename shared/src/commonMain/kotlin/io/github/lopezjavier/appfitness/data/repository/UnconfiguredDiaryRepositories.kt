@@ -6,7 +6,6 @@ import io.github.lopezjavier.appfitness.domain.model.AmountEstimate
 import io.github.lopezjavier.appfitness.domain.model.DiaryDaySummary
 import io.github.lopezjavier.appfitness.domain.model.EditableFood
 import io.github.lopezjavier.appfitness.domain.model.Food
-import io.github.lopezjavier.appfitness.domain.model.FoodAuditRow
 import io.github.lopezjavier.appfitness.domain.model.FoodLogEntry
 import io.github.lopezjavier.appfitness.domain.model.FoodPhotoDraft
 import io.github.lopezjavier.appfitness.domain.model.FoodPhotoMode
@@ -19,6 +18,7 @@ import io.github.lopezjavier.appfitness.domain.model.Micronutrients
 import io.github.lopezjavier.appfitness.domain.model.NewFood
 import io.github.lopezjavier.appfitness.domain.model.NewFoodEntry
 import io.github.lopezjavier.appfitness.domain.model.NewTemplateItem
+import io.github.lopezjavier.appfitness.domain.model.PreviousEstimate
 import io.github.lopezjavier.appfitness.domain.model.UpdatedFood
 import io.github.lopezjavier.appfitness.domain.model.UpdatedFoodEntry
 import io.github.lopezjavier.appfitness.domain.repository.FoodDiaryRepository
@@ -136,14 +136,16 @@ class UnconfiguredFoodRepository : FoodRepository {
     override suspend fun copyOffFood(foodId: String): Result<Food> = failure()
 
     override suspend fun offAlcoholPer100(foodId: String): Result<Double?> = failure()
-
-    override suspend fun foodEnergyAudit(): Result<List<FoodAuditRow>> = failure()
 }
 
 /** Used when Supabase is not configured: every estimate fails. */
 class UnconfiguredFoodPhotoRepository : FoodPhotoRepository {
-    override suspend fun estimate(mode: FoodPhotoMode, imageBase64: String, comment: String?): Result<FoodPhotoDraft> =
-        Result.failure(AppException(AppError.Unknown))
+    override suspend fun estimate(
+        mode: FoodPhotoMode,
+        imageBase64: String,
+        comment: String?,
+        previous: PreviousEstimate?,
+    ): Result<FoodPhotoDraft> = Result.failure(AppException(AppError.Unknown))
 
     override suspend fun estimateAmount(food: Food, imageBase64: String): Result<AmountEstimate> =
         Result.failure(AppException(AppError.Unknown))

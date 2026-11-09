@@ -3,6 +3,7 @@ package io.github.lopezjavier.appfitness.feature.food
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import io.github.lopezjavier.appfitness.domain.AppError
 import io.github.lopezjavier.appfitness.domain.appErrorOrNull
 import io.github.lopezjavier.appfitness.domain.model.CookingMethod
 import io.github.lopezjavier.appfitness.domain.model.Food
@@ -11,8 +12,9 @@ import io.github.lopezjavier.appfitness.domain.model.FoodPreferences
 import io.github.lopezjavier.appfitness.domain.model.MealSlot
 import io.github.lopezjavier.appfitness.domain.model.MicronutrientKind
 import io.github.lopezjavier.appfitness.domain.model.Micronutrients
+import io.github.lopezjavier.appfitness.domain.model.NewFoodDraft
+import io.github.lopezjavier.appfitness.domain.model.NewFoodDraftCodec
 import io.github.lopezjavier.appfitness.domain.model.NewFoodEntry
-import io.github.lopezjavier.appfitness.domain.model.asUpdated
 import io.github.lopezjavier.appfitness.domain.port.Clock
 import io.github.lopezjavier.appfitness.domain.port.ConnectivityObserver
 import io.github.lopezjavier.appfitness.domain.repository.FoodDiaryRepository
@@ -23,6 +25,7 @@ import io.github.lopezjavier.appfitness.domain.usecase.CookingImpact
 import io.github.lopezjavier.appfitness.domain.usecase.DefaultMealSlot
 import io.github.lopezjavier.appfitness.domain.usecase.EnergyCheckLevel
 import io.github.lopezjavier.appfitness.domain.usecase.FoodEnergyCheck
+import io.github.lopezjavier.appfitness.domain.usecase.OffFoodToNewFoodDraft
 import io.github.lopezjavier.appfitness.domain.usecase.QuantityCheck
 import io.github.lopezjavier.appfitness.domain.usecase.ResolvePortion
 import io.github.lopezjavier.appfitness.domain.usecase.ScaleNutrition
@@ -49,7 +52,6 @@ private const val KEY_PORTION = "add_food_portion"
 private const val KEY_SLOT = "add_food_slot"
 private const val KEY_COOKING = "add_food_cooking"
 private const val KEY_CONFIDENCE = "add_food_estimate_confidence"
-private const val KEY_ENERGY_WARNING = "add_food_energy_warning"
 private const val MAX_CONFIDENCE = 10
 private const val DEFAULT_AMOUNT = 100.0
 private const val SINGLE = 1.0
@@ -70,8 +72,11 @@ private sealed interface Loaded {
 /** The sources of the sheet state besides the extras. */
 private class Base(val loaded: Loaded, val draft: Draft?, val online: Boolean, val submitting: Boolean)
 
-/** The energy check of the loaded food: [warning] is null when the values agree (or could not be checked). */
-private class EnergyCheck(val warning: EnergyWarning?)
+/**
+ * The energy check of the loaded food: [warning] is null when the values agree (or could not be checked); [correction]
+ * is the form prefill of a failing OFF food. Both are derived on every load, never persisted.
+ */
+private class EnergyCheck(val warning: EnergyWarning?, val correction: NewFoodDraft? = null)
 
 /** The user's input: [portionId] is "" for the raw base unit (a saved state cannot hold null reliably). */
 private data class Draft(
@@ -116,7 +121,6 @@ class AddFoodViewModel(
 
     /** The energy check of an OFF food: null while it is being computed, then the warning it raises (or none). */
     private val energyCheck = MutableStateFlow<EnergyCheck?>(null)
-    private val warningOpen = MutableStateFlow(savedState.get<Boolean>(KEY_ENERGY_WARNING) ?: false)
 
     private val effectChannel = Channel<AddFoodEffect>(Channel.BUFFERED)
     val effects: Flow<AddFoodEffect> = effectChannel.receiveAsFlow()
@@ -124,9 +128,7 @@ class AddFoodViewModel(
     val uiState: StateFlow<AddFoodUiState> =
         combine(
             combine(loaded, draft, online, submitting, ::Base),
-            combine(micronutrients, energyCheck, warningOpen) { micro, check, open ->
-                micro to check?.warning?.takeIf { open }
-            },
+            combine(micronutrients, energyCheck) { micro, check -> micro to check?.warning },
             ::buildState,
         )
             .stateIn(viewModelScope, SharingStarted.Eagerly, AddFoodUiState.Loading)
@@ -149,11 +151,9 @@ class AddFoodViewModel(
 
             is AddFoodEvent.CookingMethodSelected -> selectCooking(event.method)
 
-            AddFoodEvent.Submit -> submit(anyway = false)
+            AddFoodEvent.Submit -> submit()
 
-            AddFoodEvent.SaveAnyway -> submit(anyway = true)
-
-            AddFoodEvent.EnergyWarningFix -> setWarning(false)
+            AddFoodEvent.CorrectOff -> correctOff()
 
             AddFoodEvent.Retry -> load()
 
@@ -192,10 +192,7 @@ class AddFoodViewModel(
             }
             loaded.value = Loaded.Ready(Setup(loadedFood, loadedSlots, prefs))
             val extras = loadMicronutrients(loadedFood)
-            val warning = if (loadedFood.isOff) energyWarningOf(loadedFood, extras) else null
-            energyCheck.value = EnergyCheck(warning)
-            // A restored open warning that the check no longer raises must not linger and block "Anadir".
-            if (warning == null && warningOpen.value) setWarning(false)
+            energyCheck.value = if (loadedFood.isOff) energyCheckOf(loadedFood, extras) else EnergyCheck(null)
         }
     }
 
@@ -229,13 +226,12 @@ class AddFoodViewModel(
      * The check of an OFF food (07 section 4) on its own values; fibre and polyols come from the extras, alcohol from
      * the catalogue (none = 0 g). Any failed read means no warning: it is optional info and never blocks.
      */
-    private suspend fun energyWarningOf(food: Food, extras: Micronutrients?): EnergyWarning? {
+    private suspend fun energyCheckOf(food: Food, extras: Micronutrients?): EnergyCheck {
         val alcohol = extras?.let { foodRepository.offAlcoholPer100(food.id) }
-        return if (extras == null || alcohol == null || alcohol.isFailure) {
-            null
-        } else {
-            warningFor(food, extras, alcohol.getOrNull())
-        }
+        if (extras == null || alcohol == null || alcohol.isFailure) return EnergyCheck(null)
+        val per100 = alcohol.getOrNull()
+        val warning = warningFor(food, extras, per100)
+        return EnergyCheck(warning, warning?.let { OffFoodToNewFoodDraft(food, extras, per100) })
     }
 
     private fun warningFor(food: Food, extras: Micronutrients, alcohol: Double?): EnergyWarning? {
@@ -256,9 +252,9 @@ class AddFoodViewModel(
         return if (failing) EnergyWarning(result.level, n.kcal, result.computed, result.gap) else null
     }
 
-    private fun setWarning(open: Boolean) {
-        warningOpen.value = open
-        savedState[KEY_ENERGY_WARNING] = open
+    private fun correctOff() {
+        val correction = energyCheck.value?.correction ?: return
+        effectChannel.trySend(AddFoodEffect.CorrectOffFood(NewFoodDraftCodec.encode(correction), correction.barcode))
     }
 
     private fun initialDraft(food: Food, slots: List<MealSlot>): Draft {
@@ -311,12 +307,14 @@ class AddFoodViewModel(
         savedState[KEY_CONFIDENCE] = updated.estimateConfidence
     }
 
-    private fun submit(anyway: Boolean) {
+    private fun submit() {
         val ready = (loaded.value as? Loaded.Ready)?.setup ?: return
         if (ready.food.isOff) {
-            submitOff(ready, anyway)
-        } else if (!anyway) {
-            if (pick) pickFood(ready) else logEntry(ready)
+            submitOff(ready)
+        } else if (pick) {
+            pickFood(ready)
+        } else {
+            logEntry(ready)
         }
     }
 
@@ -349,36 +347,32 @@ class AddFoodViewModel(
     }
 
     /**
-     * Adds an Open Food Facts food: once the energy warning is settled the personal copy is made (or reused), the
-     * entry (or the pick) refers to the copy, and [anyway] also flags the copy as saved anyway. The snapshot keeps the
-     * OFF values, which are the copy's values.
+     * Adds an Open Food Facts food that passes the energy check: the personal copy is made (or reused), the entry (or
+     * the pick) refers to the copy. The snapshot keeps the OFF values, which are the copy's values. A failing food
+     * never gets here: [AddFoodContent.canSubmit] is false and the user corrects it first.
      */
-    private fun submitOff(setup: Setup, anyway: Boolean) {
-        val current = draft.value
-        // A second tap on "Anadir" while the warning is open changes nothing; "Anadir igualmente" needs the warning.
-        val shown = warningOpen.value && energyCheck.value?.warning != null
-        if (current == null || anyway != shown) return
+    private fun submitOff(setup: Setup) {
+        val current = draft.value ?: return
         val entry = if (pick) null else newEntry(setup, current)
         val picked = if (pick) pickedOf(setup, current) else null
         if (entry == null && picked == null) return
         submitting.value = true
         viewModelScope.launch {
-            val effect = addOff(setup.food.id, anyway, entry, picked)
+            val effect = addOff(setup.food.id, entry, picked)
             submitting.value = false
             effect?.let { effectChannel.send(it) }
         }
     }
 
-    /** The effect of adding the OFF food [offId], or null when the energy warning opened instead. */
-    private suspend fun addOff(offId: String, anyway: Boolean, entry: NewFoodEntry?, picked: AddFoodEffect.Picked?) =
-        energyCheck.first { it != null }?.warning.let { warning ->
-            if (!anyway && warning != null) {
-                setWarning(true)
-                null
-            } else {
-                settle(commitCopy(offId, flag = anyway && warning != null), entry, picked)
-            }
-        }
+    /** The effect of adding the OFF food [offId]; null when it is blocked (the check failed) or the server refused. */
+    private suspend fun addOff(offId: String, entry: NewFoodEntry?, picked: AddFoodEffect.Picked?): AddFoodEffect? {
+        val blocked = energyCheck.first { it != null }?.warning != null
+        val outcome = if (blocked) null else foodRepository.copyOffFood(offId).map { it.id }
+        val refused = outcome?.appErrorOrNull() == AppError.FoodEnergyCheckFailed
+        // The server found what the client did not: reload so the sheet shows the state of the catalogue.
+        if (refused) load(silent = true)
+        return if (outcome == null || refused) null else settle(outcome, entry, picked)
+    }
 
     private suspend fun settle(outcome: Result<String>, entry: NewFoodEntry?, picked: AddFoodEffect.Picked?) =
         when (val copyId = outcome.getOrNull()) {
@@ -391,17 +385,6 @@ class AddFoodViewModel(
         val added = result != null && result.isSuccess
         return if (added) AddFoodEffect.Added else AddFoodEffect.SubmitFailed(result?.appErrorOrNull())
     }
-
-    /** The id of my copy of the OFF food [offId]; with [flag] the copy is also marked as saved anyway. */
-    private suspend fun commitCopy(offId: String, flag: Boolean): Result<String> {
-        val copy = foodRepository.copyOffFood(offId)
-        return if (copy.isFailure || !flag) copy.map { it.id } else flagged(copy.getOrThrow().id)
-    }
-
-    private suspend fun flagged(copyId: String): Result<String> = foodRepository.editableFood(copyId).fold(
-        onSuccess = { foodRepository.updateFood(it.asUpdated(savedAnyway = true)).map { copyId } },
-        onFailure = { Result.failure(it) },
-    )
 
     /** The entry to log for [current], or null when the sheet cannot be submitted now. */
     private fun newEntry(setup: Setup, current: Draft): NewFoodEntry? {

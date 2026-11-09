@@ -4,6 +4,7 @@ import io.github.lopezjavier.appfitness.domain.model.AmountEstimate
 import io.github.lopezjavier.appfitness.domain.model.Food
 import io.github.lopezjavier.appfitness.domain.model.FoodPhotoDraft
 import io.github.lopezjavier.appfitness.domain.model.FoodPhotoMode
+import io.github.lopezjavier.appfitness.domain.model.PreviousEstimate
 import io.github.lopezjavier.appfitness.domain.port.CaptureResult
 import io.github.lopezjavier.appfitness.domain.port.PhotoCapture
 import io.github.lopezjavier.appfitness.domain.port.PhotoSource
@@ -45,7 +46,12 @@ internal class FakePhotoCapture : PhotoCapture {
 }
 
 /** One recorded call of [FakeFoodPhotoRepository.estimate]. */
-internal data class EstimateCall(val mode: FoodPhotoMode, val imageBase64: String, val comment: String?)
+internal data class EstimateCall(
+    val mode: FoodPhotoMode,
+    val imageBase64: String,
+    val comment: String?,
+    val previous: PreviousEstimate? = null,
+)
 
 /** Test double of [FoodPhotoRepository]: answers [result]; records the calls. */
 internal class FakeFoodPhotoRepository(var result: Result<FoodPhotoDraft> = Result.success(lentils)) :
@@ -55,10 +61,18 @@ internal class FakeFoodPhotoRepository(var result: Result<FoodPhotoDraft> = Resu
     /** When set, [estimate] suspends until it completes. */
     var gate: CompletableDeferred<Unit>? = null
 
-    override suspend fun estimate(mode: FoodPhotoMode, imageBase64: String, comment: String?): Result<FoodPhotoDraft> {
-        calls += EstimateCall(mode, imageBase64, comment)
+    /** Answers of the next estimates, before [result]; lets a test script a retry. */
+    val results = ArrayDeque<Result<FoodPhotoDraft>>()
+
+    override suspend fun estimate(
+        mode: FoodPhotoMode,
+        imageBase64: String,
+        comment: String?,
+        previous: PreviousEstimate?,
+    ): Result<FoodPhotoDraft> {
+        calls += EstimateCall(mode, imageBase64, comment, previous)
         gate?.await()
-        return result
+        return results.removeFirstOrNull() ?: result
     }
 
     /** Answer of [estimateAmount]. */
@@ -98,4 +112,5 @@ internal fun foodPhotoModel(
     connectivity: io.github.lopezjavier.appfitness.domain.port.ConnectivityObserver =
         io.github.lopezjavier.appfitness.app.FakeConnectivityObserver(),
     state: androidx.lifecycle.SavedStateHandle = androidx.lifecycle.SavedStateHandle(),
-) = FoodPhotoViewModel(repository, capture, connectivity, state)
+    retryStore: FoodPhotoRetryStore = FoodPhotoRetryStore(capture),
+) = FoodPhotoViewModel(repository, capture, connectivity, state, retryStore)

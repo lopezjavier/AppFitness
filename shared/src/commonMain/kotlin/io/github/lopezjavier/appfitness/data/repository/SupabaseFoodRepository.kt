@@ -14,7 +14,6 @@ import io.github.lopezjavier.appfitness.data.remote.CreateFoodParams
 import io.github.lopezjavier.appfitness.data.remote.FavoriteFoodDto
 import io.github.lopezjavier.appfitness.data.remote.FavoriteInsertDto
 import io.github.lopezjavier.appfitness.data.remote.FoodAlcoholDto
-import io.github.lopezjavier.appfitness.data.remote.FoodAuditDto
 import io.github.lopezjavier.appfitness.data.remote.FoodBarcodeResponseDto
 import io.github.lopezjavier.appfitness.data.remote.FoodDto
 import io.github.lopezjavier.appfitness.data.remote.FoodIdDto
@@ -31,7 +30,6 @@ import io.github.lopezjavier.appfitness.domain.AppException
 import io.github.lopezjavier.appfitness.domain.OffMicronutrientsMapper
 import io.github.lopezjavier.appfitness.domain.model.EditableFood
 import io.github.lopezjavier.appfitness.domain.model.Food
-import io.github.lopezjavier.appfitness.domain.model.FoodAuditRow
 import io.github.lopezjavier.appfitness.domain.model.Micronutrients
 import io.github.lopezjavier.appfitness.domain.model.NewFood
 import io.github.lopezjavier.appfitness.domain.model.UpdatedFood
@@ -51,6 +49,7 @@ import kotlinx.serialization.json.Json
 private const val INVALID_PARAMETER = "22023"
 private const val NO_DATA_FOUND = "P0002"
 private const val CHECK_VIOLATION = "23514"
+private const val ENERGY_CHECK_FAILED = "FD001"
 private const val RECENT_ENTRIES_LIMIT = 200
 private const val RECENT_FOODS_LIMIT = 30
 
@@ -183,9 +182,15 @@ class SupabaseFoodRepository(
     }
 
     override suspend fun createFood(food: NewFood): Result<Food> = auth.ownRow {
-        val id = json.decodeFromString<String>(
-            postgrest.rpc("create_personal_food", CreateFoodParams.from(food)).data,
-        )
+        val id = try {
+            json.decodeFromString<String>(postgrest.rpc("create_personal_food", CreateFoodParams.from(food)).data)
+        } catch (failure: PostgrestRestException) {
+            throw if (failure.code == ENERGY_CHECK_FAILED) {
+                AppException(AppError.FoodEnergyCheckFailed, failure)
+            } else {
+                failure
+            }
+        }
         // Read it back so the portions carry their server ids and no stale copy is cached.
         known.update { it - id }
         micronutrientsCache.update { it - id }
@@ -210,7 +215,6 @@ class SupabaseFoodRepository(
             micronutrients = row.typedMicronutrients(),
             inUse = inUse,
             alcoholG = row.alcoholG100,
-            savedAnyway = row.energyCheckSavedAnyway,
         )
     }
 
@@ -222,6 +226,7 @@ class SupabaseFoodRepository(
                 INVALID_PARAMETER -> AppException(AppError.Validation, failure)
                 NO_DATA_FOUND -> AppException(AppError.NotFound, failure)
                 CHECK_VIOLATION -> AppException(AppError.FoodInUse, failure)
+                ENERGY_CHECK_FAILED -> AppException(AppError.FoodEnergyCheckFailed, failure)
                 else -> failure
             }
         }
@@ -236,7 +241,11 @@ class SupabaseFoodRepository(
         val id = try {
             json.decodeFromString<String>(postgrest.rpc("copy_off_food", CopyOffFoodParams(foodId)).data)
         } catch (failure: PostgrestRestException) {
-            throw if (failure.code == NO_DATA_FOUND) AppException(AppError.NotFound, failure) else failure
+            throw when (failure.code) {
+                NO_DATA_FOUND -> AppException(AppError.NotFound, failure)
+                ENERGY_CHECK_FAILED -> AppException(AppError.FoodEnergyCheckFailed, failure)
+                else -> failure
+            }
         }
         // Read it back (as createFood does) so the portions carry their server ids and no stale copy is cached.
         known.update { it - id }
@@ -251,11 +260,6 @@ class SupabaseFoodRepository(
             .decodeList<FoodAlcoholDto>()
             .firstOrNull()
             ?.alcoholG100
-    }
-
-    // Read-only: the caches are left alone and the server order is kept.
-    override suspend fun foodEnergyAudit(): Result<List<FoodAuditRow>> = auth.ownRow {
-        postgrest.rpc("food_energy_audit").decodeList<FoodAuditDto>().map { it.toDomain() }
     }
 
     private suspend fun readFood(id: String, columns: String): FoodDto? = postgrest.from("foods")

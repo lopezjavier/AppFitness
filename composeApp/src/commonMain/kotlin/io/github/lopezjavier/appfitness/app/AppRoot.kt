@@ -21,7 +21,6 @@ import io.github.lopezjavier.appfitness.feature.exercises.ExercisePickerRoot
 import io.github.lopezjavier.appfitness.feature.food.AddFoodRoot
 import io.github.lopezjavier.appfitness.feature.food.CreateFoodRoot
 import io.github.lopezjavier.appfitness.feature.food.EditFoodRoot
-import io.github.lopezjavier.appfitness.feature.food.FoodAuditRoot
 import io.github.lopezjavier.appfitness.feature.food.FoodSearchRoot
 import io.github.lopezjavier.appfitness.feature.meals.MealSlotsRoot
 import io.github.lopezjavier.appfitness.feature.meals.defaults.MealDefaultsRoot
@@ -94,10 +93,10 @@ fun AppRoot(
         exerciseProgress = { progressModifier, exerciseId, onBack ->
             ExerciseProgressRoot(exerciseId, onBack, progressModifier)
         },
-        preferences = { hubModifier, onBack, onOpenSection, onOpenMeals, onOpenFoodAudit ->
+        preferences = { hubModifier, onBack, onOpenSection, onOpenMeals ->
             PreferencesHubRoot(
                 onBack = onBack,
-                actions = PreferencesHubActions({ onOpenSection(it.key) }, onOpenMeals, onOpenFoodAudit),
+                actions = PreferencesHubActions({ onOpenSection(it.key) }, onOpenMeals),
                 modifier = hubModifier,
             )
         },
@@ -189,21 +188,18 @@ fun AppRoot(
         },
         diaryHistory = { historyModifier, onOpenDay, onBack -> DiaryHistoryRoot(onOpenDay, onBack, historyModifier) },
         mealSlots = { mealsModifier, onClose, onOpenDefaults -> MealSlotsRoot(onClose, onOpenDefaults, mealsModifier) },
-        foodAudit = { auditModifier, edited, onEditedConsumed, onOpenEditor, onBack ->
-            FoodAuditRoot(edited, onEditedConsumed, onOpenEditor, onBack, auditModifier)
-        },
         mealDefaults = { defaultsModifier, onClose -> MealDefaultsRoot(onClose, defaultsModifier) },
         foodSearch = { searchModifier, slotId, date, onOpenFood, onCreateFood, onOpenTemplate, pick, onBack ->
             FoodSearchRoot(slotId, date, onOpenFood, onCreateFood, onOpenTemplate, onBack, searchModifier, pick)
         },
-        createFood = { formModifier, barcode, name, prefill, editFoodId, onBack, onSaved ->
+        createFood = { formModifier, barcode, name, prefill, retryToken, editFoodId, onBack, onSaved ->
             if (editFoodId != null) {
                 EditFoodRoot(editFoodId, onSaved, onBack, formModifier)
             } else {
-                CreateFoodRoot(barcode, name, onSaved, onBack, formModifier, prefill)
+                CreateFoodRoot(barcode, name, onSaved, onBack, formModifier, prefill, retryToken)
             }
         },
-        addFood = { foodId, slotId, date, onAdded, onDismiss, onEdit, pick, onPick ->
+        addFood = { foodId, slotId, date, onAdded, onDismiss, onEdit, pick, onPick, onCorrectOff ->
             AddFoodRoot(
                 foodId,
                 slotId,
@@ -213,6 +209,7 @@ fun AppRoot(
                 onEdit = onEdit,
                 pick = pick,
                 onPick = { onPick(it.foodId, it.amount, it.portionLabel) },
+                onCorrectOff = { onCorrectOff(it.prefill, it.barcode) },
             )
         },
         templateDetails = {

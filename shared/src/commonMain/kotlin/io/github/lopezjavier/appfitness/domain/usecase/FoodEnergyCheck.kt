@@ -1,5 +1,6 @@
 package io.github.lopezjavier.appfitness.domain.usecase
 
+import io.github.lopezjavier.appfitness.domain.model.EnergyIssue
 import kotlin.math.abs
 import kotlin.math.min
 import kotlin.math.round
@@ -51,6 +52,27 @@ object FoodEnergyCheck {
             else -> EnergyCheckLevel.Ok
         }
         return EnergyCheckResult(level, computed, gap)
+    }
+
+    /**
+     * The [EnergyIssue] of an estimate or draft whose values (grams per 100; [fibre] and [polyols] in grams) fail the
+     * check; null when it passes, was skipped, or has no [kcal] or a negative or non-finite value (nothing to check).
+     */
+    @Suppress("LongParameterList")
+    fun issue(
+        kcal: Double?,
+        protein: Double?,
+        carbs: Double?,
+        fat: Double?,
+        fibre: Double? = null,
+        polyols: Double? = null,
+        alcohol: Double? = null,
+    ): EnergyIssue? {
+        val values = listOf(kcal, protein, carbs, fat, fibre, polyols, alcohol)
+        val declared = kcal?.takeUnless { values.any { it != null && (!it.isFinite() || it < 0.0) } } ?: return null
+        val result = check(declared, protein ?: 0.0, carbs ?: 0.0, fat ?: 0.0, fibre, polyols, alcohol)
+        val failing = result.level == EnergyCheckLevel.Mismatch || result.level == EnergyCheckLevel.ClearlyWrong
+        return if (failing) EnergyIssue(result.level, declared, result.computed, result.gap) else null
     }
 
     private fun q(value: Double): Long = round(value * SCALE).toLong()

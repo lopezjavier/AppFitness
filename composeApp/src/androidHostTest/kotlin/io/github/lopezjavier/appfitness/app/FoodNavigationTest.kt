@@ -48,17 +48,21 @@ class FoodNavigationTest {
         Column(modifier.fillMaxSize().testTag("food_search_screen")) {
             Box(Modifier.size(48.dp).testTag("food_search_back").clickable(onClick = onBack))
             Box(Modifier.size(48.dp).testTag("search_pick").clickable { onOpenFood("chicken") })
-            Box(Modifier.size(48.dp).testTag("search_create").clickable { onCreateFood("8410", "Tortilla", null) })
+            Box(
+                Modifier.size(48.dp).testTag("search_create").clickable {
+                    onCreateFood("8410", "Tortilla", null, null)
+                },
+            )
         }
     }
-    private val createFoodSlot: CreateFoodSlot = { modifier, barcode, name, _, editFoodId, onBack, onSaved ->
+    private val createFoodSlot: CreateFoodSlot = { modifier, barcode, name, _, _, editFoodId, onBack, onSaved ->
         Column(modifier.fillMaxSize().testTag("create_food_screen")) {
             Box(Modifier.size(48.dp).testTag("edit_food_back").clickable(onClick = onBack))
             Text("$barcode|$name|$editFoodId", Modifier.testTag("create_args"))
             Box(Modifier.size(48.dp).testTag("create_save").clickable { onSaved(editFoodId ?: "new-1") })
         }
     }
-    private val addFoodSlot: AddFoodSlot = { foodId, slotId, date, onAdded, onDismiss, onEdit, _, _ ->
+    private val addFoodSlot: AddFoodSlot = { foodId, slotId, date, onAdded, onDismiss, onEdit, _, _, _ ->
         Column(Modifier.testTag("food_sheet")) {
             Box(Modifier.size(48.dp).testTag("sheet_edit").clickable(onClick = onEdit))
             Text("$foodId|$slotId|$date", Modifier.testTag("sheet_args"))

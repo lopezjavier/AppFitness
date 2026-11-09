@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # UX conventions guard (T-118, planning/phase1/ux-audit-2026-10.md section 10, planning/05-design-system.md).
-# Features must reuse the design-system templates instead of reinventing them (guards G1..G18).
+# Features must reuse the design-system templates instead of reinventing them (guards G1..G19).
 #
 # Usage: check-ux-conventions.sh [root-dir] [warnings-file] [allowlist-file]
 #   root-dir        tree to scan (default: repository root). Tests pass a fixture tree.
@@ -336,6 +336,20 @@ if [ "${#kotlin_feature[@]}" -gt 0 ]; then
       is_allowed_key "$key" || report G18 "Helper(...)/helper = with a non-allow-listed string (R-57: put it behind a HelpButton)" "$hit"
     done <<< "$hits"
   fi
+fi
+
+# G19 (ADR-104): the energy check is a hard block; "Guardar igualmente", "Añadir igualmente" and the food audit
+# ("Revisar alimentos") are gone and never come back. Scans strings.xml and every Kotlin file under the app sources.
+forbidden_files=("${kotlin_all[@]+"${kotlin_all[@]}"}")
+[ -f "$strings_file" ] && forbidden_files+=("$strings_file")
+if [ "${#forbidden_files[@]}" -gt 0 ]; then
+  rc=0
+  hits=$(grep -HnE 'Guardar igualmente|Añadir igualmente|Revisar alimentos' "${forbidden_files[@]}") || rc=$?
+  if [ "$rc" -ge 2 ]; then
+    echo "UX conventions guard ERROR: grep failed with exit code $rc (G19)." >&2
+    exit "$rc"
+  fi
+  [ "$rc" -eq 0 ] && report G19 "removed energy-check override or food audit text (ADR-104: a failing food cannot be saved)" "$hits"
 fi
 
 if [ "$violations" -gt 0 ]; then

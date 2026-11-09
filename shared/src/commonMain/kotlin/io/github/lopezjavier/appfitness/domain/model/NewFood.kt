@@ -24,8 +24,6 @@ data class NewFood(
     val micronutrients: NewMicronutrients = NewMicronutrients(),
     /** Grams of alcohol per 100 base units; null = not typed. */
     val alcoholG: Double? = null,
-    /** True when the user saved a food that fails the energy check anyway. */
-    val savedAnyway: Boolean = false,
 )
 
 /**
@@ -41,7 +39,6 @@ data class UpdatedFood(
     val micronutrients: NewMicronutrients = NewMicronutrients(),
     val baseUnit: String,
     val alcoholG: Double? = null,
-    val savedAnyway: Boolean = false,
 )
 
 /**
@@ -53,20 +50,6 @@ data class EditableFood(
     val micronutrients: Map<MicronutrientKind, Double>,
     val inUse: Boolean,
     val alcoholG: Double?,
-    val savedAnyway: Boolean,
-)
-
-/** The same values as an [UpdatedFood] with [savedAnyway] set: saving it changes nothing but the flag. */
-fun EditableFood.asUpdated(savedAnyway: Boolean): UpdatedFood = UpdatedFood(
-    id = food.id,
-    name = food.name,
-    brand = food.brand,
-    nutrition = food.nutrition,
-    portions = food.portions.map { NewPortion(it.label, it.amount) },
-    micronutrients = NewMicronutrients(micronutrients.mapValues { (kind, grams) -> kind.labelUnit.fromGrams(grams) }),
-    baseUnit = food.baseUnit,
-    alcoholG = alcoholG,
-    savedAnyway = savedAnyway,
 )
 
 /** Why a portion is invalid. */
