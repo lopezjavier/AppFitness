@@ -115,9 +115,9 @@ internal fun KindGrid(kinds: List<MicronutrientKind>, state: CreateFoodUiState, 
                     ),
                     decimals = LABEL_DECIMALS,
                 )
-                NutrientField(spec, state.nutrients[kind].orEmpty(), state.errors.nutrients[kind]) {
+                NutrientField(spec, state.nutrients[kind].orEmpty(), state.errors.nutrients[kind], onChange = {
                     onEvent(CreateFoodEvent.NutrientChanged(kind, it))
-                }
+                })
             }
         },
     )

@@ -21,6 +21,7 @@ data class FoodPhotoDraft(
     val carbs: Double?,
     val fat: Double?,
     val micronutrients: Map<String, Double>,
+    val alcohol: Double? = null,
     val estimatedGrams: Double?,
     val confidence: FoodPhotoConfidence?,
 )
@@ -39,6 +40,8 @@ data class NewFoodDraft(
     val portions: List<NewPortion>,
     /** Always null: a photo never provides a barcode to save. */
     val barcode: String? = null,
+    /** Grams of alcohol per 100 base units; null when unknown. */
+    val alcohol: Double? = null,
 )
 
 private const val DISH_PORTION_LABEL = "1 ración"
@@ -65,5 +68,6 @@ fun FoodPhotoDraft.toNewFoodDraft(mode: FoodPhotoMode): NewFoodDraft {
         fat = fat,
         micronutrients = NewMicronutrients(values),
         portions = listOfNotNull(portion?.let { NewPortion(DISH_PORTION_LABEL, it) }),
+        alcohol = alcohol?.takeIf { it.isFinite() && it >= 0.0 },
     )
 }

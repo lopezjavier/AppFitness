@@ -76,6 +76,30 @@ class CreateFoodRestorationTest {
     }
 
     @Test
+    fun alcoholAndOpenWarning_surviveRecreation() {
+        val saved = SavedStateHandle()
+        val tester = StateRestorationTester(rule)
+        tester.setContent { FormHost(CreateFoodViewModel(null, null, foods, connectivity, saved)) }
+        rule.waitForIdle()
+        rule.onNodeWithTag("create_food_name_field").performTextInput("Barrita")
+        rule.onNodeWithTag("create_food_kcal_field").performTextInput("500")
+        rule.onNodeWithTag("create_food_protein_field").performTextInput("10")
+        rule.onNodeWithTag("create_food_carbs_field").performTextInput("30")
+        rule.onNodeWithTag("create_food_fat_field").performTextInput("10")
+        rule.onNodeWithTag("create_food_alcohol_field").performTextInput("0")
+        rule.onNodeWithTag("create_food_save").performClick()
+        rule.waitForIdle()
+        rule.onNodeWithTag("create_food_energy_warning").assertExists()
+
+        tester.emulateSavedInstanceStateRestore()
+        rule.waitForIdle()
+
+        rule.onNodeWithTag("create_food_energy_warning").assertExists()
+        rule.onNodeWithTag("create_food_alcohol_field").assertTextContains("0")
+        rule.onNodeWithTag("create_food_save_anyway").assertExists()
+    }
+
+    @Test
     fun labelFields_surviveRecreation() {
         val saved = SavedStateHandle()
         val tester = StateRestorationTester(rule)
@@ -129,7 +153,8 @@ class CreateFoodRestorationTest {
 
     @Test
     fun editForm_keepsTheChangedUnitAndTheName_afterRecreation() {
-        foods.known["yogurt"] = food("yogurt", "Yogur casero", kcal = 60.0, isManual = true)
+        foods.known["yogurt"] =
+            food("yogurt", "Yogur casero", kcal = 60.0, isManual = true, protein = 3.0, carbs = 10.0, fat = 2.0)
         val saved = SavedStateHandle()
         val tester = StateRestorationTester(rule)
         tester.setContent { FormHost(CreateFoodViewModel(null, null, foods, connectivity, saved, "yogurt")) }
@@ -148,7 +173,8 @@ class CreateFoodRestorationTest {
 
     @Test
     fun editForm_keepsTheLockedUnitAndTheRefusal_afterRecreation() {
-        foods.known["yogurt"] = food("yogurt", "Yogur casero", kcal = 60.0, isManual = true)
+        foods.known["yogurt"] =
+            food("yogurt", "Yogur casero", kcal = 60.0, isManual = true, protein = 3.0, carbs = 10.0, fat = 2.0)
         val saved = SavedStateHandle()
         val tester = StateRestorationTester(rule)
         tester.setContent { FormHost(CreateFoodViewModel(null, null, foods, connectivity, saved, "yogurt")) }
@@ -169,7 +195,8 @@ class CreateFoodRestorationTest {
 
     @Test
     fun usedFood_staysLocked_afterRecreation() {
-        foods.known["yogurt"] = food("yogurt", "Yogur casero", kcal = 60.0, isManual = true)
+        foods.known["yogurt"] =
+            food("yogurt", "Yogur casero", kcal = 60.0, isManual = true, protein = 3.0, carbs = 10.0, fat = 2.0)
         foods.inUse += "yogurt"
         val saved = SavedStateHandle()
         val tester = StateRestorationTester(rule)

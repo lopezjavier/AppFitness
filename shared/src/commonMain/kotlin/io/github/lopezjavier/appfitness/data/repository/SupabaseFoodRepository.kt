@@ -201,7 +201,13 @@ class SupabaseFoodRepository(
         val inUse = json.decodeFromString<Boolean>(
             postgrest.rpc("personal_food_in_use", PersonalFoodInUseParams(id)).data,
         )
-        EditableFood(row.toDomain(), row.typedMicronutrients(), inUse)
+        EditableFood(
+            food = row.toDomain(),
+            micronutrients = row.typedMicronutrients(),
+            inUse = inUse,
+            alcoholG = row.alcoholG100,
+            savedAnyway = row.energyCheckSavedAnyway,
+        )
     }
 
     override suspend fun updateFood(food: UpdatedFood): Result<Food> = auth.ownRow {

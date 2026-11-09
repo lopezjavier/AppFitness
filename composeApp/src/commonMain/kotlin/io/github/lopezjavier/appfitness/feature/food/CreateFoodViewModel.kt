@@ -13,6 +13,7 @@ import io.github.lopezjavier.appfitness.domain.model.NewFoodErrors
 import io.github.lopezjavier.appfitness.domain.model.NewFoodValidation
 import io.github.lopezjavier.appfitness.domain.port.ConnectivityObserver
 import io.github.lopezjavier.appfitness.domain.repository.FoodRepository
+import io.github.lopezjavier.appfitness.domain.usecase.EnergyCheckLevel
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -33,9 +34,22 @@ private const val KEY_UNIT_REFUSED = "create_food_unit_refused"
 private const val KEY_TOUCHED = "create_food_touched"
 private const val KEY_PORTIONS = "create_food_portions"
 private const val KEY_SECTIONS = "create_food_sections"
+private const val KEY_ENERGY_WARNING = "create_food_energy_warning"
+private const val KEY_FLAGGED = "create_food_flagged"
+private const val KEY_ORIGINAL_CHECK = "create_food_original_check"
 private const val KEY_FIELD_PREFIX = "create_food_field_"
 private const val MAX_PORTIONS = 10
 private val UNITS = setOf("g", "ml")
+
+/** The inputs of the energy check: editing any of them closes the warning. */
+private val CHECK_FIELDS = setOf(
+    CreateFoodField.Kcal,
+    CreateFoodField.Protein,
+    CreateFoodField.Carbs,
+    CreateFoodField.Fat,
+    CreateFoodField.Alcohol,
+)
+private val CHECK_KINDS = setOf(MicronutrientKind.Fiber, MicronutrientKind.Polyols)
 
 /** Where the edit-mode read of the food stands; create mode is always [Idle]. */
 private enum class LoadState { Idle, Loading, Failed }
@@ -70,6 +84,11 @@ class CreateFoodViewModel(
     private val online = MutableStateFlow(true)
     private val saving = MutableStateFlow(false)
     private val saveFailed = MutableStateFlow(false)
+    private val warningOpen = MutableStateFlow(savedState.get<Boolean>(KEY_ENERGY_WARNING) == true)
+
+    /** Edit mode: the stored food carries the "saved anyway" flag; [originalCheck] are its check inputs (ADR-40). */
+    private var flagged: Boolean = savedState.get<Boolean>(KEY_FLAGGED) == true
+    private var originalCheck: List<String>? = savedState.get<List<String>>(KEY_ORIGINAL_CHECK)
 
     /** The unit as stored (edit mode); the unit goes back to it when the server refuses a change. */
     private var originalUnit: String? = savedState.get<String>(KEY_ORIGINAL_UNIT)
@@ -93,6 +112,7 @@ class CreateFoodViewModel(
             .combine(unitLocked) { state, locked -> state.copy(unitLocked = locked) }
             .combine(unitRefused) { state, refused -> state.copy(unitRefused = refused) }
             .combine(aiNote) { state, note -> state.copy(aiEstimateNote = note) }
+            .combine(warningOpen) { state, open -> state.copy(energyWarning = warningFor(open)) }
             .stateIn(
                 viewModelScope,
                 SharingStarted.Eagerly,
@@ -101,6 +121,7 @@ class CreateFoodViewModel(
                     unitLocked = unitLocked.value,
                     unitRefused = unitRefused.value,
                     aiEstimateNote = aiNote.value,
+                    energyWarning = warningFor(warningOpen.value),
                 ),
             )
 
@@ -111,19 +132,9 @@ class CreateFoodViewModel(
 
     fun onEvent(event: CreateFoodEvent) {
         when (event) {
-            is CreateFoodEvent.FieldChanged -> update {
-                it.copy(
-                    fields = it.fields + (event.field to event.text),
-                    touched = it.touched + event.field.name,
-                )
-            }
+            is CreateFoodEvent.FieldChanged -> changeField(event)
 
-            is CreateFoodEvent.NutrientChanged -> update {
-                it.copy(
-                    nutrients = it.nutrients + (event.kind to event.text),
-                    touched = it.touched + event.kind.name,
-                )
-            }
+            is CreateFoodEvent.NutrientChanged -> changeNutrient(event)
 
             // Only "g" and "ml" exist; the unit of a food that is in use never changes.
             is CreateFoodEvent.UnitSelected -> selectUnit(event.unit)
@@ -154,7 +165,25 @@ class CreateFoodViewModel(
 
             CreateFoodEvent.Save -> save()
 
-            CreateFoodEvent.Retry -> if (loadState.value == LoadState.Failed) load()
+            CreateFoodEvent.SaveAnyway -> saveAnyway()
+
+            CreateFoodEvent.DismissWarning -> closeWarning()
+
+            CreateFoodEvent.Retry -> retry()
+        }
+    }
+
+    private fun changeField(event: CreateFoodEvent.FieldChanged) {
+        if (event.field in CHECK_FIELDS) closeWarning()
+        update {
+            it.copy(fields = it.fields + (event.field to event.text), touched = it.touched + event.field.name)
+        }
+    }
+
+    private fun changeNutrient(event: CreateFoodEvent.NutrientChanged) {
+        if (event.kind in CHECK_KINDS) closeWarning()
+        update {
+            it.copy(nutrients = it.nutrients + (event.kind to event.text), touched = it.touched + event.kind.name)
         }
     }
 
@@ -183,6 +212,10 @@ class CreateFoodViewModel(
                             unitLocked.value = it.inUse
                             savedState[KEY_ORIGINAL_UNIT] = prefilled.baseUnit
                             savedState[KEY_UNIT_LOCKED] = it.inUse
+                            flagged = it.savedAnyway
+                            originalCheck = prefilled.checkInputTexts()
+                            savedState[KEY_FLAGGED] = flagged
+                            savedState[KEY_ORIGINAL_CHECK] = ArrayList(originalCheck.orEmpty())
                             persist(prefilled)
                         }
                     }
@@ -220,14 +253,53 @@ class CreateFoodViewModel(
     private fun save() {
         val current = draft.value
         if (saving.value || loadState.value != LoadState.Idle || !isSavable(current, online.value)) return
+        when {
+            // A flagged food whose check inputs did not change keeps its flag: nothing new to warn about.
+            flagged && originalCheck == current.checkInputTexts() -> persistSave(current, savedAnyway = true)
+
+            current.energyCheck()?.level.isFailing() -> setWarning(open = true)
+
+            else -> persistSave(current, savedAnyway = false)
+        }
+    }
+
+    private fun EnergyCheckLevel?.isFailing() =
+        this == EnergyCheckLevel.Mismatch || this == EnergyCheckLevel.ClearlyWrong
+
+    private fun setWarning(open: Boolean) {
+        warningOpen.value = open
+        savedState[KEY_ENERGY_WARNING] = open
+    }
+
+    private fun retry() {
+        if (loadState.value == LoadState.Failed) load()
+    }
+
+    private fun saveAnyway() {
+        if (warningOpen.value) persistSave(draft.value, savedAnyway = true)
+    }
+
+    private fun closeWarning() = setWarning(open = false)
+
+    private fun warningFor(open: Boolean): EnergyWarning? {
+        val value = draft.value
+        val result = value.energyCheck()?.takeIf { open && it.level.isFailing() }
+        return result?.let {
+            EnergyWarning(it.level, value.toNutrition().kcal, it.computed, it.gap)
+        }
+    }
+
+    private fun persistSave(current: FormDraft, savedAnyway: Boolean) {
+        if (saving.value || !isSavable(current, online.value)) return
+        closeWarning()
         saving.value = true
         saveFailed.value = false
         clearUnitRefusal()
         viewModelScope.launch {
             val result: Result<Food> = if (editFoodId != null) {
-                foodRepository.updateFood(current.toUpdatedFood(editFoodId))
+                foodRepository.updateFood(current.toUpdatedFood(editFoodId, savedAnyway))
             } else {
-                foodRepository.createFood(current.toNewFood())
+                foodRepository.createFood(current.toNewFood(savedAnyway))
             }
             saving.value = false
             result.fold(
@@ -312,6 +384,7 @@ class CreateFoodViewModel(
             protein = shown(CreateFoodField.Protein, all.protein),
             carbs = shown(CreateFoodField.Carbs, all.carbs),
             fat = shown(CreateFoodField.Fat, all.fat),
+            alcohol = shown(CreateFoodField.Alcohol, all.alcohol),
             portions = all.portions.filterKeys { value.portions[it].touched },
             nutrients = all.nutrients.filterKeys { it.name in value.touched },
         )
@@ -323,6 +396,7 @@ class CreateFoodViewModel(
             protein = value.text(CreateFoodField.Protein),
             carbs = value.text(CreateFoodField.Carbs),
             fat = value.text(CreateFoodField.Fat),
+            alcohol = value.text(CreateFoodField.Alcohol),
             nutrients = value.nutrients,
             barcode = value.barcode,
             portions = value.portions.map { PortionDraft(it.label, it.amount) },

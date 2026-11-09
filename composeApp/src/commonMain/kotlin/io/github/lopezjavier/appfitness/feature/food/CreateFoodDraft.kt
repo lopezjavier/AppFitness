@@ -8,6 +8,8 @@ import io.github.lopezjavier.appfitness.domain.model.NewMicronutrients
 import io.github.lopezjavier.appfitness.domain.model.NewPortion
 import io.github.lopezjavier.appfitness.domain.model.NutritionPer100
 import io.github.lopezjavier.appfitness.domain.model.UpdatedFood
+import io.github.lopezjavier.appfitness.domain.usecase.EnergyCheckResult
+import io.github.lopezjavier.appfitness.domain.usecase.FoodEnergyCheck
 import kotlin.math.roundToLong
 
 private const val ROW_SEPARATOR = '\u0001'
@@ -21,6 +23,7 @@ internal data class PortionRow(val label: String, val amount: String, val touche
  * Everything the user typed. [touched] holds the names of the [CreateFoodField]s and [MicronutrientKind]s already
  * edited (their names never clash).
  */
+@Suppress("TooManyFunctions") // Parsing helpers of the typed texts.
 internal data class FormDraft(
     val fields: Map<CreateFoodField, String>,
     val nutrients: Map<MicronutrientKind, String>,
@@ -43,7 +46,7 @@ internal data class FormDraft(
         return if (text.isEmpty() && blankIsZero) 0.0 else text.toDoubleOrNull() ?: Double.NaN
     }
 
-    private fun toNutrition() = NutritionPer100(
+    internal fun toNutrition() = NutritionPer100(
         kcal = number(CreateFoodField.Kcal, blankIsZero = false),
         proteinG = number(CreateFoodField.Protein, blankIsZero = true),
         carbsG = number(CreateFoodField.Carbs, blankIsZero = true),
@@ -62,7 +65,47 @@ internal data class FormDraft(
         }.toMap(),
     )
 
-    fun toNewFood() = NewFood(
+    /** Blank is "not typed" (null); anything else that is not a number becomes NaN so validation flags it. */
+    private fun optionalNumber(text: String): Double? {
+        val typed = text.trim().replace(',', '.')
+        return if (typed.isEmpty()) null else typed.toDoubleOrNull() ?: Double.NaN
+    }
+
+    private fun toAlcohol(): Double? = optionalNumber(text(CreateFoodField.Alcohol))
+
+    /** The trimmed texts of the seven inputs of the energy check (to tell whether any of them was edited). */
+    fun checkInputTexts(): List<String> = listOf(
+        text(CreateFoodField.Kcal),
+        text(CreateFoodField.Protein),
+        text(CreateFoodField.Carbs),
+        text(CreateFoodField.Fat),
+        text(MicronutrientKind.Fiber),
+        text(MicronutrientKind.Polyols),
+        text(CreateFoodField.Alcohol),
+    ).map { it.trim() }
+
+    private fun gramsOf(kind: MicronutrientKind): Double? =
+        optionalNumber(text(kind))?.let { kind.labelUnit.toGrams(it) }
+
+    /** The energy check of the typed values; null while any of its inputs is blank (kcal) or invalid. */
+    fun energyCheck(): EnergyCheckResult? {
+        val nutrition = toNutrition()
+        val optional = listOf(gramsOf(MicronutrientKind.Fiber), gramsOf(MicronutrientKind.Polyols), toAlcohol())
+        val values = listOf(nutrition.kcal, nutrition.proteinG, nutrition.carbsG, nutrition.fatG) +
+            optional.filterNotNull()
+        if (values.any { !it.isFinite() || it < 0.0 }) return null
+        return FoodEnergyCheck.check(
+            kcal = nutrition.kcal,
+            protein = nutrition.proteinG,
+            carbs = nutrition.carbsG,
+            fat = nutrition.fatG,
+            fibre = optional[0],
+            polyols = optional[1],
+            alcohol = optional[2],
+        )
+    }
+
+    fun toNewFood(savedAnyway: Boolean = false) = NewFood(
         name = text(CreateFoodField.Name).trim(),
         brand = text(CreateFoodField.Brand).trim().ifEmpty { null },
         baseUnit = baseUnit,
@@ -70,9 +113,11 @@ internal data class FormDraft(
         barcode = barcode,
         portions = toPortions(),
         micronutrients = toMicronutrients(),
+        alcoholG = toAlcohol(),
+        savedAnyway = savedAnyway,
     )
 
-    fun toUpdatedFood(id: String) = UpdatedFood(
+    fun toUpdatedFood(id: String, savedAnyway: Boolean = false) = UpdatedFood(
         id = id,
         name = text(CreateFoodField.Name).trim(),
         brand = text(CreateFoodField.Brand).trim().ifEmpty { null },
@@ -80,6 +125,8 @@ internal data class FormDraft(
         portions = toPortions(),
         micronutrients = toMicronutrients(),
         baseUnit = baseUnit,
+        alcoholG = toAlcohol(),
+        savedAnyway = savedAnyway,
     )
 
     companion object {
@@ -104,6 +151,7 @@ internal data class FormDraft(
                 CreateFoodField.Protein to draft.protein.asText(),
                 CreateFoodField.Carbs to draft.carbs.asText(),
                 CreateFoodField.Fat to draft.fat.asText(),
+                CreateFoodField.Alcohol to draft.alcohol.asText(),
             ),
             nutrients = MicronutrientKind.editableKinds.associateWith { draft.micronutrients.values[it].asText() },
             baseUnit = draft.baseUnit.takeIf { it == "g" || it == "ml" } ?: "g",
@@ -126,6 +174,7 @@ internal data class FormDraft(
                     CreateFoodField.Protein to formatEditable(nutrition.proteinG),
                     CreateFoodField.Carbs to formatEditable(nutrition.carbsG),
                     CreateFoodField.Fat to formatEditable(nutrition.fatG),
+                    CreateFoodField.Alcohol to editable.alcoholG?.let(::formatEditable).orEmpty(),
                 ),
                 nutrients = MicronutrientKind.editableKinds.associateWith { kind ->
                     editable.micronutrients[kind]?.let { formatEditable(kind.labelUnit.fromGrams(it)) }.orEmpty()

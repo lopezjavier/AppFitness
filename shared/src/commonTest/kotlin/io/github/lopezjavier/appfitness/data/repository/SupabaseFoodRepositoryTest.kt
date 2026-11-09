@@ -561,6 +561,71 @@ class SupabaseFoodRepositoryTest {
     }
 
     @Test
+    fun createFood_sendsAlcoholAndTheSavedAnywayFlag() = runTest {
+        val repo = signedIn { request ->
+            if (request.url.encodedPath.endsWith("/rpc/create_personal_food")) "\"f1\"" else "[$EGG]"
+        }
+
+        repo.createFood(
+            NewFood(
+                "x",
+                null,
+                "g",
+                NutritionPer100(83.0, 0.1, 2.6, 0.0),
+                null,
+                emptyList(),
+                alcoholG = 9.5,
+                savedAnyway = true,
+            ),
+        ).getOrThrow()
+
+        val rpcBody = bodies.first { it.contains("p_name") }
+        assertTrue(rpcBody.contains("\"p_alcohol\":9.5"), rpcBody)
+        assertTrue(rpcBody.contains("\"p_saved_anyway\":true"), rpcBody)
+    }
+
+    @Test
+    fun updateFood_sendsAlcoholAndTheFlag_andNullAlcoholMeansNoAlcohol() = runTest {
+        val repo = signedIn { request ->
+            if (request.url.encodedPath.endsWith("/rpc/update_personal_food")) "" else "[$EGG]"
+        }
+
+        repo.updateFood(updated.copy(alcoholG = 9.5, savedAnyway = true)).getOrThrow()
+        repo.updateFood(updated).getOrThrow()
+
+        val (with, without) = bodies.filter { it.contains("p_food_id") }
+        assertTrue(with.contains("\"p_alcohol\":9.5") && with.contains("\"p_saved_anyway\":true"), with)
+        assertTrue(!without.contains("p_alcohol\":") || without.contains("\"p_alcohol\":null"), without)
+        assertTrue(!without.contains("\"p_saved_anyway\":true"), without)
+    }
+
+    @Test
+    fun editableFood_mapsAlcoholAndTheFlag_andDefaultsWhenAbsent() = runTest {
+        val flagged = signedIn { request ->
+            if (request.url.encodedPath.endsWith("/rpc/personal_food_in_use")) {
+                "false"
+            } else {
+                "[${manualRow.replace(
+                    "\"source\":\"user\"",
+                    "\"source\":\"user\",\"alcohol_g_100\":9.5,\"energy_check_saved_anyway\":true",
+                )}]"
+            }
+        }.editableFood("f1").getOrThrow()
+        val plain = editableRepo().editableFood("f1").getOrThrow()
+
+        assertEquals(9.5, flagged.alcoholG)
+        assertTrue(flagged.savedAnyway)
+        assertEquals(null, plain.alcoholG)
+        assertTrue(!plain.savedAnyway)
+        assertTrue(
+            requests.any {
+                val select = it.url.parameters["select"].orEmpty()
+                select.contains("alcohol_g_100") && select.contains("energy_check_saved_anyway")
+            },
+        )
+    }
+
+    @Test
     fun updateFood_clearingEveryNutrientAndPortionSendsEmptyCollections() = runTest {
         val repo = signedIn { request ->
             if (request.url.encodedPath.endsWith("/rpc/update_personal_food")) "" else "[$EGG]"

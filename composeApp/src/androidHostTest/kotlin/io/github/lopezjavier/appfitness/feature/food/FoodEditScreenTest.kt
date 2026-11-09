@@ -54,7 +54,17 @@ class FoodEditScreenTest {
     private val tarrina = FoodPortion("p1", "1 tarrina", 125.0)
 
     private fun manualYogurt(portions: List<FoodPortion> = listOf(tarrina)) {
-        foods.known["yogurt"] = food("yogurt", "Yogur casero", kcal = 60.0, portions = portions, isManual = true)
+        foods.known["yogurt"] =
+            food(
+                "yogurt",
+                "Yogur casero",
+                kcal = 60.0,
+                portions = portions,
+                isManual = true,
+                protein = 3.0,
+                carbs = 10.0,
+                fat = 2.0,
+            )
     }
 
     private fun editModel() = CreateFoodViewModel(null, null, foods, connectivity, SavedStateHandle(), "yogurt")
@@ -319,7 +329,7 @@ class FoodEditScreenTest {
         manualYogurt()
         showForm()
 
-        replace("create_food_kcal_field", "99")
+        replace("create_food_kcal_field", "80")
 
         assertTrue(foods.updates.isEmpty())
         assertTrue(saved.isEmpty())
@@ -436,9 +446,35 @@ class FoodEditScreenTest {
         rule.waitForIdle()
 
         tap("food_sheet_edit_food")
-        replace("create_food_kcal_field", "99")
+        replace("create_food_kcal_field", "80")
 
         assertTrue(foods.updates.isEmpty())
         assertEquals(60.0, foods.known.getValue("yogurt").nutrition.kcal, 0.0)
+    }
+
+    @Test
+    fun flaggedFood_editedByNameOnly_savesWithoutWarning_andKeepsTheFlag() {
+        manualYogurt()
+        foods.storedSavedAnyway += "yogurt"
+        showForm()
+
+        replace("create_food_name_field", "Yogur casero 2")
+        tap("create_food_save")
+
+        rule.onNodeWithTag("create_food_energy_warning").assertDoesNotExist()
+        assertEquals(true, foods.updates.single().savedAnyway)
+    }
+
+    @Test
+    fun flaggedFood_withChangedKcalThatStillFails_warnsAgain() {
+        manualYogurt()
+        foods.storedSavedAnyway += "yogurt"
+        showForm()
+
+        replace("create_food_kcal_field", "500")
+        tap("create_food_save")
+
+        rule.onNodeWithTag("create_food_energy_warning").assertExists()
+        assertEquals(0, foods.updates.size)
     }
 }

@@ -19,6 +19,7 @@ import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTextInput
+import androidx.compose.ui.test.performTextReplacement
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.SavedStateHandle
 import io.github.lopezjavier.appfitness.app.BackInterceptor
@@ -334,6 +335,31 @@ class FoodPhotoFlowTest {
         absent("food_photo_preview_use")
         pressBack()
         exists("food_photo_estimating")
+    }
+
+    @Test
+    fun dishEstimateWithAlcohol_prefillsTheField_andTheEnergyCheckStillRuns() {
+        photoRepo.result = Result.success(
+            FakeFoodPhotoRepository.lentils.copy(
+                name = "Vino tinto",
+                kcal = 83.0,
+                protein = 0.1,
+                carbs = 2.6,
+                fat = 0.0,
+                alcohol = 9.5,
+            ),
+        )
+        start()
+        toPreview("photo_mode_row_1")
+        tap("food_photo_preview_use")
+
+        rule.onNodeWithTag("create_food_alcohol_field").assertTextContains("9,5")
+        tap("create_food_alcohol_help")
+        tap("create_food_alcohol_help_sheet_close")
+        rule.onNodeWithTag("create_food_alcohol_field").performTextReplacement("")
+        tap("create_food_save")
+
+        exists("create_food_energy_warning")
     }
 
     @Test

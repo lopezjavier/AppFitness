@@ -107,4 +107,17 @@ class FoodPhotoDraftMapperTest {
         assertEquals(setOf(MicronutrientKind.Iron), values.keys)
         assertEquals(2.0, values.getValue(MicronutrientKind.Iron), 1e-9)
     }
+
+    @Test
+    fun alcohol_isCopiedIncludingZero() {
+        assertEquals(9.5, tortilla.copy(alcohol = 9.5).toNewFoodDraft(FoodPhotoMode.Dish).alcohol)
+        assertEquals(0.0, tortilla.copy(alcohol = 0.0).toNewFoodDraft(FoodPhotoMode.Label).alcohol)
+        assertNull(tortilla.toNewFoodDraft(FoodPhotoMode.Dish).alcohol)
+    }
+
+    @Test
+    fun alcohol_negativeOrNonFiniteIsDropped() {
+        assertNull(tortilla.copy(alcohol = -1.0).toNewFoodDraft(FoodPhotoMode.Dish).alcohol)
+        assertNull(tortilla.copy(alcohol = Double.NaN).toNewFoodDraft(FoodPhotoMode.Dish).alcohol)
+    }
 }
