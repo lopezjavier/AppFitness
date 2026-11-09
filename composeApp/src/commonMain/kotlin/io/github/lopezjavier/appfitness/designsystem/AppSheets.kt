@@ -61,6 +61,7 @@ object AppSheetsDefaults {
  * line under the button, typically `offlineHint("guardar")` (R-30), tagged `<prefix>_commit_hint`.
  * [secondaryAction] is an optional slot between the button and the hint (e.g. a destructive "Eliminar").
  * [commitLabel] overrides the footer text for a confirmation that is none of the four (e.g. "Crear plan").
+ * [footerNotice] is an optional non-error message pinned above the button (e.g. the energy-check warning).
  *
  * Closing (X, back or Cancelar; an outside tap and a swipe do nothing, R-38) only calls [onDismiss] and never
  * [onCommit]: an edit is never applied silently (R-10, no dialog, R-08). The sheet draws no state of its own; the
@@ -89,6 +90,7 @@ fun AppEditSheet(
     secondaryAction: (@Composable () -> Unit)? = null,
     testTagPrefix: String = "edit_sheet",
     commitLabel: String? = null,
+    footerNotice: (@Composable () -> Unit)? = null,
     content: @Composable ColumnScope.() -> Unit,
 ) {
     val sheetState = rememberAppSheetState()
@@ -112,6 +114,9 @@ fun AppEditSheet(
                 AppSheetHeader(title, { closeThen(scope, sheetState, onDismiss) }, testTagPrefix, help)
             },
             footer = {
+                footerNotice?.let { notice ->
+                    Box(Modifier.fillMaxWidth().padding(bottom = Spacing.sm)) { notice() }
+                }
                 PrimaryButton(
                     text = label,
                     onClick = { if (commitEnabled && !saving) onCommit() },

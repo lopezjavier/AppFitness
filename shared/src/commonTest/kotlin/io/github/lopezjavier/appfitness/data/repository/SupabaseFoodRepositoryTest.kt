@@ -60,6 +60,7 @@ private class FixedClock : Clock {
     override fun now() = Instant.parse("2026-10-20T10:00:00Z")
 }
 
+@Suppress("LargeClass") // One method per scenario.
 class SupabaseFoodRepositoryTest {
     private val requests = mutableListOf<HttpRequestData>()
     private val bodies = mutableListOf<String>()
@@ -774,6 +775,87 @@ class SupabaseFoodRepositoryTest {
 
         assertEquals(AppError.Network, repo.recent().appErrorOrNull())
         assertEquals(AppError.Network, repo.search("x").appErrorOrNull())
+    }
+
+    private val offRow =
+        """{"id":"off1","name":"Vino tinto","base_unit":"ml","kcal_100":85,"source":"off","food_portions":[]}"""
+    private val copyRow =
+        """{"id":"copy1","name":"Vino tinto","base_unit":"ml","kcal_100":85,"source":"user","food_portions":[]}"""
+
+    @Test
+    fun isOff_isTrueOnlyForTheOffSource() = runTest {
+        val repo = signedIn {
+            """{"results":[$offRow,$copyRow,$RICE],"source":"cache"}"""
+        }
+
+        val foods = repo.search("vino").getOrThrow()
+
+        assertEquals(listOf(true, false, false), foods.map { it.isOff })
+        assertEquals(listOf(false, true, false), foods.map { it.isManual })
+    }
+
+    @Test
+    fun copyOffFood_callsTheRpcWithTheFoodIdAndReturnsTheStoredCopy() = runTest {
+        val repo = signedIn { request ->
+            if (request.url.encodedPath.endsWith("/rpc/copy_off_food")) "\"copy1\"" else "[$copyRow]"
+        }
+
+        val copy = repo.copyOffFood("off1").getOrThrow()
+
+        assertTrue(bodies.any { it.contains("\"p_food_id\":\"off1\"") }, bodies.toString())
+        assertEquals("copy1", copy.id)
+        assertTrue(copy.isManual)
+        assertEquals(false, copy.isOff)
+        assertEquals("eq.copy1", requests.last().url.parameters["id"])
+    }
+
+    @Test
+    fun copyOffFood_calledTwice_returnsTheSameCopy() = runTest {
+        val repo = signedIn { request ->
+            if (request.url.encodedPath.endsWith("/rpc/copy_off_food")) "\"copy1\"" else "[$copyRow]"
+        }
+
+        val first = repo.copyOffFood("off1").getOrThrow()
+        val second = repo.copyOffFood("off1").getOrThrow()
+
+        assertEquals(first.id, second.id)
+    }
+
+    @Test
+    fun copyOffFood_notAnOffFoodIsNotFound() = runTest {
+        val repo = signedIn { """{"code":"P0002","message":"not an off food","details":null,"hint":null}""" }
+        status = HttpStatusCode.BadRequest
+
+        assertEquals(AppError.NotFound, repo.copyOffFood("x").appErrorOrNull())
+    }
+
+    @Test
+    fun copyOffFood_networkFailureIsNetwork() = runTest {
+        val repo = signedIn { throw IOException("offline") }
+
+        assertEquals(AppError.Network, repo.copyOffFood("off1").appErrorOrNull())
+    }
+
+    @Test
+    fun offAlcoholPer100_readsTheColumnFromFoods() = runTest {
+        val repo = signedIn { """[{"alcohol_g_100":9.5}]""" }
+
+        assertEquals(9.5, repo.offAlcoholPer100("off1").getOrThrow())
+        assertEquals("eq.off1", requests.last().url.parameters["id"])
+        assertEquals("alcohol_g_100", requests.last().url.parameters["select"])
+    }
+
+    @Test
+    fun offAlcoholPer100_nullColumnOrNoRowIsNull() = runTest {
+        assertEquals(null, signedIn { """[{"alcohol_g_100":null}]""" }.offAlcoholPer100("a").getOrThrow())
+        assertEquals(null, signedIn { "[]" }.offAlcoholPer100("a").getOrThrow())
+    }
+
+    @Test
+    fun offAlcoholPer100_failureIsReported() = runTest {
+        val repo = signedIn { throw IOException("offline") }
+
+        assertEquals(AppError.Network, repo.offAlcoholPer100("off1").appErrorOrNull())
     }
 
     @Test

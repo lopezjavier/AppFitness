@@ -56,6 +56,19 @@ data class EditableFood(
     val savedAnyway: Boolean,
 )
 
+/** The same values as an [UpdatedFood] with [savedAnyway] set: saving it changes nothing but the flag. */
+fun EditableFood.asUpdated(savedAnyway: Boolean): UpdatedFood = UpdatedFood(
+    id = food.id,
+    name = food.name,
+    brand = food.brand,
+    nutrition = food.nutrition,
+    portions = food.portions.map { NewPortion(it.label, it.amount) },
+    micronutrients = NewMicronutrients(micronutrients.mapValues { (kind, grams) -> kind.labelUnit.fromGrams(grams) }),
+    baseUnit = food.baseUnit,
+    alcoholG = alcoholG,
+    savedAnyway = savedAnyway,
+)
+
 /** Why a portion is invalid. */
 enum class PortionError { LabelInvalid, AmountInvalid }
 

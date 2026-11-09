@@ -37,6 +37,7 @@ internal fun food(
     servingLabel: String? = null,
     portions: List<FoodPortion> = emptyList(),
     isManual: Boolean = false,
+    isOff: Boolean = false,
     protein: Double = 10.0,
     carbs: Double = 20.0,
     fat: Double = 5.0,
@@ -51,6 +52,7 @@ internal fun food(
     portions = portions,
     imageUrl = null,
     isManual = isManual,
+    isOff = isOff,
 )
 
 /** Test double of [BarcodeScanner]: answers [result] and counts the scans. */
@@ -250,6 +252,45 @@ internal class FakeFoodRepository : FoodRepository {
         storedMicronutrients[stored.id] =
             food.micronutrients.values.mapValues { (kind, v) -> kind.labelUnit.toGrams(v) }
         return Result.success(stored)
+    }
+
+    /** The OFF ids passed to [copyOffFood], one per call. */
+    val copyCalls = mutableListOf<String>()
+
+    /** When set, [copyOffFood] fails with it. */
+    var copyFailure: Throwable? = null
+
+    /** When set, [copyOffFood] suspends until it completes. */
+    var copyGate: CompletableDeferred<Unit>? = null
+    private val copies = mutableMapOf<String, Food>()
+
+    /** Like the real RPC: the first call makes the copy "copy-<offId>" (manual, not OFF), later calls reuse it. */
+    override suspend fun copyOffFood(foodId: String): Result<Food> {
+        copyCalls += foodId
+        copyGate?.await()
+        val listed = searchResults.values.flatMap { it.getOrNull().orEmpty() }
+        val off = (known[foodId] ?: listed.firstOrNull { it.id == foodId })?.takeIf { it.isOff }
+        val failure = copyFailure ?: if (off == null) AppException(AppError.NotFound) else null
+        return if (failure != null || off == null) {
+            Result.failure(failure ?: AppException(AppError.NotFound))
+        } else {
+            val copy = copies.getOrPut(foodId) { off.copy(id = "copy-$foodId", isManual = true, isOff = false) }
+            known[copy.id] = copy
+            Result.success(copy)
+        }
+    }
+
+    /** Alcohol (g per 100) of the OFF foods, by id; a food without an entry has none. */
+    val offAlcohol = mutableMapOf<String, Double>()
+
+    /** When set, [offAlcoholPer100] fails with it. */
+    var alcoholFailure: Throwable? = null
+    val alcoholReads = mutableListOf<String>()
+
+    override suspend fun offAlcoholPer100(foodId: String): Result<Double?> {
+        alcoholReads += foodId
+        alcoholFailure?.let { return Result.failure(it) }
+        return Result.success(offAlcohol[foodId])
     }
 
     /** What [foodEnergyAudit] answers (the server order); change it between calls to simulate edits. */

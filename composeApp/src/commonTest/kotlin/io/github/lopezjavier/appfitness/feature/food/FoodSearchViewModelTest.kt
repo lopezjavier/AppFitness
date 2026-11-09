@@ -27,6 +27,7 @@ import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 @OptIn(ExperimentalCoroutinesApi::class)
+@Suppress("LargeClass") // One method per scenario.
 class FoodSearchViewModelTest {
     private val dispatcher = StandardTestDispatcher()
     private val repository = FakeFoodRepository()
@@ -450,6 +451,210 @@ class FoodSearchViewModelTest {
             assertEquals(emptySet(), model.uiState.value.favouriteIds)
             assertEquals(FoodSearchEffect.FavouriteFailed, awaitItem())
         }
+    }
+
+    private val offWine = food("off-wine", "Vino tinto", kcal = 85.0, baseUnit = "ml", isOff = true)
+    private val myWine = food("my-wine", "Vino de la casa", kcal = 80.0, isManual = true)
+    private val myBeer = food("my-beer", "Cerveza casera", kcal = 40.0, isManual = true)
+
+    private fun FoodSearchViewModel.foodIds() = (uiState.value.results as FoodResults.Content).foods.map { it.id }
+
+    @Test
+    fun ownFoods_comeBeforeOpenFoodFactsRows() = runTest(dispatcher) {
+        repository.manualResults["vino"] = Result.success(listOf(myWine))
+        repository.searchResults["vino"] = Result.success(listOf(offWine))
+        val model = viewModel()
+        advanceUntilIdle()
+
+        search(model, "vino")
+        advanceUntilIdle()
+
+        assertEquals(listOf("my-wine", "off-wine"), model.foodIds())
+    }
+
+    @Test
+    fun favouritesComeFirstAmongTheOwnFoods_keepingTheServerOrderOtherwise() = runTest(dispatcher) {
+        repository.favouriteFoods = Result.success(listOf(myBeer))
+        repository.manualResults["c"] = Result.success(listOf(myWine, myBowl, myBeer))
+        repository.searchResults["c"] = Result.success(listOf(offWine))
+        val model = viewModel()
+        advanceUntilIdle()
+
+        search(model, "c")
+        advanceUntilIdle()
+
+        assertEquals(listOf("my-beer", "my-wine", "my-bowl", "off-wine"), model.foodIds())
+        assertEquals(3, (model.uiState.value.results as FoodResults.Content).manualCount)
+    }
+
+    @Test
+    fun noOwnMatch_listsTheOpenFoodFactsRows() = runTest(dispatcher) {
+        repository.searchResults["vino"] = Result.success(listOf(offWine))
+        val model = viewModel()
+        advanceUntilIdle()
+
+        search(model, "vino")
+        advanceUntilIdle()
+
+        assertEquals(FoodResults.Content(listOf(offWine)), model.uiState.value.results)
+    }
+
+    @Test
+    fun anOffSearchFailure_keepsTheOwnRows() = runTest(dispatcher) {
+        repository.manualResults["vino"] = Result.success(listOf(myWine))
+        repository.failSearch("vino")
+        val model = viewModel()
+        advanceUntilIdle()
+
+        search(model, "vino")
+        advanceUntilIdle()
+
+        assertEquals(
+            FoodResults.Content(listOf(myWine), manualCount = 1, remoteFailed = true),
+            model.uiState.value.results,
+        )
+    }
+
+    @Test
+    fun starOnAnOffRow_copiesIt_favouritesTheCopy_andReplacesTheRowInPlace() = runTest(dispatcher) {
+        repository.searchResults["vino"] = Result.success(listOf(chicken, offWine, rice))
+        val model = viewModel()
+        advanceUntilIdle()
+        search(model, "vino")
+        advanceUntilIdle()
+
+        model.onEvent(FoodSearchEvent.ToggleFavourite("off-wine"))
+        advanceUntilIdle()
+
+        assertEquals(listOf("off-wine"), repository.copyCalls)
+        assertEquals(listOf("copy-off-wine" to true), repository.favouriteCalls)
+        assertEquals(listOf("chicken", "copy-off-wine", "rice"), model.foodIds())
+        assertTrue((model.uiState.value.results as FoodResults.Content).foods[1].isManual)
+        assertEquals(setOf("copy-off-wine"), model.uiState.value.favouriteIds)
+    }
+
+    @Test
+    fun starOnAnOffRow_isOptimisticWhileTheCopyIsMade_andIgnoresASecondTap() = runTest(dispatcher) {
+        repository.searchResults["vino"] = Result.success(listOf(offWine))
+        val model = viewModel()
+        advanceUntilIdle()
+        search(model, "vino")
+        advanceUntilIdle()
+        val gate = CompletableDeferred<Unit>()
+        repository.copyGate = gate
+
+        model.onEvent(FoodSearchEvent.ToggleFavourite("off-wine"))
+        runCurrent()
+        model.onEvent(FoodSearchEvent.ToggleFavourite("off-wine"))
+        runCurrent()
+
+        assertEquals(setOf("off-wine"), model.uiState.value.favouriteIds)
+        gate.complete(Unit)
+        advanceUntilIdle()
+        assertEquals(listOf("off-wine"), repository.copyCalls)
+    }
+
+    @Test
+    fun starOnAnOffRow_whenTheCopyFails_rollsBackAndSaysSo() = runTest(dispatcher) {
+        repository.searchResults["vino"] = Result.success(listOf(offWine))
+        val model = viewModel()
+        advanceUntilIdle()
+        search(model, "vino")
+        advanceUntilIdle()
+        repository.copyFailure = AppException(AppError.Network)
+
+        model.effects.test {
+            model.onEvent(FoodSearchEvent.ToggleFavourite("off-wine"))
+            advanceUntilIdle()
+
+            assertEquals(FoodSearchEffect.FavouriteFailed, awaitItem())
+        }
+        assertEquals(emptySet(), model.uiState.value.favouriteIds)
+        assertEquals(FoodResults.Content(listOf(offWine)), model.uiState.value.results)
+        assertTrue(repository.favouriteCalls.isEmpty())
+    }
+
+    @Test
+    fun starOnAnOffRow_whenFavouritingFails_rollsBackAndKeepsTheOffRow() = runTest(dispatcher) {
+        repository.searchResults["vino"] = Result.success(listOf(offWine))
+        val model = viewModel()
+        advanceUntilIdle()
+        search(model, "vino")
+        advanceUntilIdle()
+        repository.setFavouriteResult = Result.failure(AppException(AppError.Network))
+
+        model.effects.test {
+            model.onEvent(FoodSearchEvent.ToggleFavourite("off-wine"))
+            advanceUntilIdle()
+
+            assertEquals(FoodSearchEffect.FavouriteFailed, awaitItem())
+        }
+        assertEquals(emptySet(), model.uiState.value.favouriteIds)
+        assertEquals(FoodResults.Content(listOf(offWine)), model.uiState.value.results)
+    }
+
+    @Test
+    fun starOnAnOwnFood_neverCopies() = runTest(dispatcher) {
+        repository.manualResults["vino"] = Result.success(listOf(myWine))
+        val model = viewModel()
+        advanceUntilIdle()
+        search(model, "vino")
+        advanceUntilIdle()
+
+        model.onEvent(FoodSearchEvent.ToggleFavourite("my-wine"))
+        advanceUntilIdle()
+
+        assertTrue(repository.copyCalls.isEmpty())
+        assertEquals(listOf("my-wine" to true), repository.favouriteCalls)
+    }
+
+    @Test
+    fun aReplacedRow_isTheCopy_soSelectingItOpensTheCopy() = runTest(dispatcher) {
+        repository.searchResults["vino"] = Result.success(listOf(offWine))
+        val model = viewModel()
+        advanceUntilIdle()
+        search(model, "vino")
+        advanceUntilIdle()
+        model.onEvent(FoodSearchEvent.ToggleFavourite("off-wine"))
+        advanceUntilIdle()
+        val row = (model.uiState.value.results as FoodResults.Content).foods.single()
+
+        model.effects.test {
+            model.onEvent(FoodSearchEvent.SelectFood(row))
+            assertEquals(FoodSearchEffect.OpenFood(row), awaitItem())
+        }
+        assertEquals("copy-off-wine", row.id)
+    }
+
+    @Test
+    fun scan_ofOffProduct_opensItWithoutCopying() = runTest(dispatcher) {
+        scanner.result = ScanResult.Code("333")
+        repository.barcodeResults["333"] = Result.success(offWine)
+        val model = viewModel()
+        advanceUntilIdle()
+
+        model.effects.test {
+            model.onEvent(FoodSearchEvent.ScanClicked)
+            advanceUntilIdle()
+            assertEquals(FoodSearchEffect.OpenFood(offWine), awaitItem())
+        }
+        assertTrue(repository.copyCalls.isEmpty())
+    }
+
+    @Test
+    fun theSearch_isRestoredFromTheSameSavedState_ownFoodsFirst() = runTest(dispatcher) {
+        repository.manualResults["vino"] = Result.success(listOf(myWine))
+        repository.searchResults["vino"] = Result.success(listOf(offWine))
+        val first = viewModel()
+        advanceUntilIdle()
+        search(first, "vino")
+        advanceUntilIdle()
+
+        val restored = viewModel(savedState)
+        advanceUntilIdle()
+
+        assertEquals("vino", restored.uiState.value.query)
+        assertEquals(listOf("my-wine", "off-wine"), restored.foodIds())
     }
 
     @Test

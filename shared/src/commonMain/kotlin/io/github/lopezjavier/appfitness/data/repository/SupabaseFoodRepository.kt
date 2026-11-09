@@ -9,9 +9,11 @@ import io.github.jan.supabase.postgrest.from
 import io.github.jan.supabase.postgrest.query.Columns
 import io.github.jan.supabase.postgrest.query.Order
 import io.github.jan.supabase.postgrest.rpc
+import io.github.lopezjavier.appfitness.data.remote.CopyOffFoodParams
 import io.github.lopezjavier.appfitness.data.remote.CreateFoodParams
 import io.github.lopezjavier.appfitness.data.remote.FavoriteFoodDto
 import io.github.lopezjavier.appfitness.data.remote.FavoriteInsertDto
+import io.github.lopezjavier.appfitness.data.remote.FoodAlcoholDto
 import io.github.lopezjavier.appfitness.data.remote.FoodAuditDto
 import io.github.lopezjavier.appfitness.data.remote.FoodBarcodeResponseDto
 import io.github.lopezjavier.appfitness.data.remote.FoodDto
@@ -228,6 +230,27 @@ class SupabaseFoodRepository(
         micronutrientsCache.update { it - food.id }
         readFood(food.id, FoodDto.COLUMNS)?.toDomain()?.also { listOf(it).remembered() }
             ?: throw AppException(AppError.NotFound)
+    }
+
+    override suspend fun copyOffFood(foodId: String): Result<Food> = auth.ownRow {
+        val id = try {
+            json.decodeFromString<String>(postgrest.rpc("copy_off_food", CopyOffFoodParams(foodId)).data)
+        } catch (failure: PostgrestRestException) {
+            throw if (failure.code == NO_DATA_FOUND) AppException(AppError.NotFound, failure) else failure
+        }
+        // Read it back (as createFood does) so the portions carry their server ids and no stale copy is cached.
+        known.update { it - id }
+        micronutrientsCache.update { it - id }
+        readFood(id, FoodDto.COLUMNS)?.toDomain()?.also { listOf(it).remembered() }
+            ?: throw AppException(AppError.NotFound)
+    }
+
+    override suspend fun offAlcoholPer100(foodId: String): Result<Double?> = auth.ownRow {
+        postgrest.from("foods")
+            .select(Columns.raw("alcohol_g_100")) { filter { eq("id", foodId) } }
+            .decodeList<FoodAlcoholDto>()
+            .firstOrNull()
+            ?.alcoholG100
     }
 
     // Read-only: the caches are left alone and the server order is kept.

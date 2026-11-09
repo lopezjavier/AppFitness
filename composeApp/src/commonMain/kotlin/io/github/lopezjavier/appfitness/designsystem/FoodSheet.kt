@@ -74,8 +74,16 @@ sealed interface FoodSheetContext {
      * hint under the footer (null when online or when nothing is written, e.g. choosing a food for a comida).
      */
     @Immutable
-    data class Add(val canAdd: Boolean, val saving: Boolean, val onAdd: () -> Unit, val offlineHint: String?) :
-        FoodSheetContext
+    data class Add(
+        val canAdd: Boolean,
+        val saving: Boolean,
+        val onAdd: () -> Unit,
+        val offlineHint: String?,
+        /** A non-error message pinned above "Añadir" (the energy warning of an Open Food Facts food). */
+        val notice: (@Composable () -> Unit)? = null,
+        /** A ghost action under "Añadir" (for example "Añadir igualmente"). */
+        val secondary: (@Composable () -> Unit)? = null,
+    ) : FoodSheetContext
 
     /**
      * An item of a comida opened from the comida editor: "Listo" only applies to the staged draft (the editor's
@@ -128,6 +136,7 @@ fun FoodSheet(
         commitHint = footer.hint,
         help = headerActions(favourite, onEditFood, editFoodEnabled, testTagPrefix),
         secondaryAction = footer.secondary,
+        footerNotice = footer.notice,
         testTagPrefix = testTagPrefix,
     ) {
         Column(verticalArrangement = Arrangement.spacedBy(Spacing.lg)) {
@@ -155,6 +164,7 @@ private class SheetFooter(
     val saving: Boolean,
     val hint: String?,
     val secondary: (@Composable () -> Unit)?,
+    val notice: (@Composable () -> Unit)? = null,
 )
 
 private fun footerOf(context: FoodSheetContext, prefix: String): SheetFooter = when (context) {
@@ -181,7 +191,8 @@ private fun footerOf(context: FoodSheetContext, prefix: String): SheetFooter = w
         enabled = context.canAdd,
         saving = context.saving,
         hint = context.offlineHint,
-        secondary = null,
+        secondary = context.secondary,
+        notice = context.notice,
     )
 
     is FoodSheetContext.Comida -> SheetFooter(

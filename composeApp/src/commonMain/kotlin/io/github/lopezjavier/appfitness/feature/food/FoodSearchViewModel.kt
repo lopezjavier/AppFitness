@@ -78,6 +78,10 @@ class FoodSearchViewModel(
     private val notFoundBarcode = MutableStateFlow(savedState.get<String>(KEY_NOT_FOUND))
     private val templates = MutableStateFlow<TemplatesResults>(TemplatesResults.Loading)
     private val deleting = MutableStateFlow<Set<String>>(emptySet())
+
+    /** OFF rows already starred: the row is shown as my copy until the next reload (OFF id -> copy). */
+    private val copiedRows = MutableStateFlow<Map<String, Food>>(emptyMap())
+    private val copying = mutableSetOf<String>()
     private var scanning = false
 
     private val effectChannel = Channel<FoodSearchEffect>(Channel.BUFFERED)
@@ -102,10 +106,16 @@ class FoodSearchViewModel(
             combine(query, tab, results, favouriteIds, online) { q, t, r, f, o ->
                 FoodSearchUiState(query = q, tab = t, results = r, favouriteIds = f, isOffline = !o)
             },
-            combine(notFoundBarcode, mealSlot) { code, slot -> code to slot },
+            combine(notFoundBarcode, mealSlot, copiedRows) { code, slot, copied -> Triple(code, slot, copied) },
             combine(templates, deleting, ::withoutDeleting),
-        ) { state, (code, slot), rows ->
-            state.copy(notFoundBarcode = code, templates = rows, pick = pick, mealSlot = slot)
+        ) { state, (code, slot, copied), rows ->
+            state.copy(
+                results = state.results.withCopies(copied),
+                notFoundBarcode = code,
+                templates = rows,
+                pick = pick,
+                mealSlot = slot,
+            )
         }
             .stateIn(
                 viewModelScope,
@@ -272,7 +282,9 @@ class FoodSearchViewModel(
      * results are appended below them (deduped by id; the manual rows never move).
      */
     private suspend fun FlowCollector<FoodResults>.emitTextSearch(text: String) {
-        val manual = foodRepository.searchManual(text).getOrNull().orEmpty()
+        // Favourites first among my foods (stable: the server order is kept otherwise); fixed when the list loads.
+        val starred = favouriteIds.value
+        val manual = foodRepository.searchManual(text).getOrNull().orEmpty().sortedBy { it.id !in starred }
         if (manual.isNotEmpty()) {
             emit(FoodResults.Content(manual, manualCount = manual.size, remoteLoading = true))
         }
@@ -325,7 +337,37 @@ class FoodSearchViewModel(
             )
         }
 
+    private fun FoodResults.withCopies(copied: Map<String, Food>): FoodResults {
+        if (this !is FoodResults.Content || copied.isEmpty()) return this
+        return copy(foods = foods.map { copied[it.id] ?: it }.distinctBy { it.id })
+    }
+
+    /** The OFF row [foodId] in the current results, if that is what the star is on. */
+    private fun offRow(foodId: String): Food? =
+        (uiState.value.results as? FoodResults.Content)?.foods?.firstOrNull { it.id == foodId && it.isOff }
+
+    /** Starring an OFF row makes my copy first; the row then turns into the copy in place (no reload, no flicker). */
+    private fun starOffRow(row: Food) {
+        if (!copying.add(row.id)) return
+        favouriteIds.update { it + row.id }
+        viewModelScope.launch {
+            try {
+                val copy = foodRepository.copyOffFood(row.id).getOrNull()
+                val starred = copy != null && foodRepository.setFavourite(copy.id, true).isSuccess
+                favouriteIds.update { it - row.id }
+                if (copy != null && starred) {
+                    copiedRows.update { it + (row.id to copy) }
+                } else {
+                    effectChannel.trySend(FoodSearchEffect.FavouriteFailed)
+                }
+            } finally {
+                copying -= row.id
+            }
+        }
+    }
+
     private fun toggleFavourite(foodId: String) {
+        offRow(foodId)?.let { return starOffRow(it) }
         val wasFavourite = foodId in favouriteIds.value
         favouriteIds.update { if (wasFavourite) it - foodId else it + foodId }
         viewModelScope.launch {

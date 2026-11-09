@@ -133,6 +133,10 @@ class UnconfiguredFoodRepository : FoodRepository {
 
     override suspend fun createFood(food: NewFood): Result<Food> = failure()
 
+    override suspend fun copyOffFood(foodId: String): Result<Food> = failure()
+
+    override suspend fun offAlcoholPer100(foodId: String): Result<Double?> = failure()
+
     override suspend fun foodEnergyAudit(): Result<List<FoodAuditRow>> = failure()
 }
 
