@@ -2,8 +2,10 @@
 import {
     COMMENT_PREFIX,
     FOOD_CONTEXT_PREFIX,
+    PREVIOUS_ESTIMATE_PREFIX,
     PROMPTS,
 } from "../food-photo/prompts.ts";
+import type { PreviousEstimate } from "../food-photo/previous.ts";
 import {
     type FoodPhotoMode,
     GEMINI_RESPONSE_SCHEMA,
@@ -55,6 +57,8 @@ export type GenerateRequest = {
     mode: FoodPhotoMode;
     imageBase64: string;
     comment?: string | null;
+    /** Failed estimate to correct (retry of dish and label); sent as a data part. */
+    previous?: PreviousEstimate | null;
     /** Chosen food's identity (weight mode only); sent as a data part. No nutrition values (ADR-72). */
     food?: { name: string; brand: string | null; base_unit: "g" | "ml" } | null;
 };
@@ -74,6 +78,14 @@ export function buildBody(req: GenerateRequest) {
         },
     }];
     if (req.comment) parts.push({ text: COMMENT_PREFIX + req.comment });
+    if (req.previous) {
+        // Explicit fields: anything else a caller passes never reaches the model.
+        const { estimate, reason } = req.previous;
+        parts.push({
+            text: PREVIOUS_ESTIMATE_PREFIX +
+                JSON.stringify({ estimate, reason }),
+        });
+    }
     if (req.food) {
         // Explicit fields: anything else a caller passes never reaches the model.
         const { name, brand, base_unit } = req.food;

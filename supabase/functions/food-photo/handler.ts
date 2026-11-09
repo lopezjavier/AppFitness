@@ -10,7 +10,10 @@ import {
     unauthorized,
 } from "../_shared/errors.ts";
 import { GeminiError, resolveModel } from "../_shared/gemini-client.ts";
+import { foodEnergyCheck, isFailing } from "./energy-check.ts";
+import { parsePrevious, type PreviousEstimate } from "./previous.ts";
 import {
+    type FoodDraft,
     type FoodPhotoMode,
     MODES,
     normalizeDraft,
@@ -42,6 +45,8 @@ export type FoodPhotoDeps = {
             mode: FoodPhotoMode;
             imageBase64: string;
             comment: string | null;
+            /** Failed estimate to correct; set only for the retry of dish and label. */
+            previous: PreviousEstimate | null;
             /** Chosen food's details; set only for mode weight. */
             food: FoodContext | null;
         },
@@ -81,10 +86,11 @@ export function createFoodPhotoHandler(
             if (body === null || typeof body !== "object") {
                 return invalid("Body must be a JSON object");
             }
-            const { image_base64, mode, comment, food } = body as Record<
-                string,
-                unknown
-            >;
+            const { image_base64, mode, comment, food, previous } =
+                body as Record<
+                    string,
+                    unknown
+                >;
 
             if (!MODES.includes(mode as FoodPhotoMode)) {
                 return invalid("mode must be dish, label, barcode or weight");
@@ -127,11 +133,24 @@ export function createFoodPhotoHandler(
                 return invalid("food is only allowed with mode weight");
             }
 
+            let previousEstimate: PreviousEstimate | null = null;
+            if (previous !== undefined && previous !== null) {
+                if (mode !== "dish" && mode !== "label") {
+                    return invalid(
+                        "previous is only allowed with mode dish or label",
+                    );
+                }
+                const parsed = parsePrevious(previous);
+                if (typeof parsed === "string") return invalid(parsed);
+                previousEstimate = parsed;
+            }
+
             debugCtx = { mode: mode as string, started: Date.now() };
             const output = await deps.generate({
                 mode: mode as FoodPhotoMode,
                 imageBase64: image,
                 comment: note,
+                previous: previousEstimate,
                 food: foodContext,
             });
             const diag = (reason: string) => {
@@ -179,7 +198,8 @@ export function createFoodPhotoHandler(
                 );
             }
             diag("ok");
-            return jsonResponse(200, { draft });
+            const issue = energyIssue(draft);
+            return jsonResponse(200, issue ? { draft, issue } : { draft });
         } catch (err) {
             if (err instanceof GeminiError) {
                 if (isDebug(deps) && debugCtx) {
@@ -225,6 +245,27 @@ export function createFoodPhotoHandler(
             return errorResponse("INTERNAL", "Could not analyze the photo");
         }
     };
+}
+
+/**
+ * Energy check of a draft (07 section 4): the issue (declared kcal, macro kcal, gap) when it fails, else null.
+ * No check when kcal is null (nothing to compare). The user retries; the server never loops.
+ */
+function energyIssue(draft: FoodDraft) {
+    const n = draft.nutrition;
+    if (n.kcal === null) return null;
+    const c = foodEnergyCheck({
+        kcal: n.kcal,
+        protein: n.protein_g,
+        carbs: n.carbs_g,
+        fat: n.fat_g,
+        fibre: draft.micronutrients.fiber_100g,
+        polyols: draft.micronutrients.polyols_100g,
+        alcohol: n.alcohol_g,
+    });
+    return isFailing(c.result)
+        ? { result: c.result, kcal: n.kcal, computed: c.computed, gap: c.gap }
+        : null;
 }
 
 type FoodContext = {

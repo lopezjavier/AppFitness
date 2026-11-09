@@ -14,12 +14,12 @@ insert into auth.users (id, email) values
 -- ---------------------------------------------------------------------------
 select ok(
   has_function_privilege('authenticated',
-    'public.create_personal_food(text,text,public.food_base_unit,numeric,numeric,numeric,numeric,text,jsonb,jsonb,numeric,boolean)',
+    'public.create_personal_food(text,text,public.food_base_unit,numeric,numeric,numeric,numeric,text,jsonb,jsonb,numeric)',
     'execute'),
   'authenticated can execute create_personal_food');
 select ok(
   not has_function_privilege('anon',
-    'public.create_personal_food(text,text,public.food_base_unit,numeric,numeric,numeric,numeric,text,jsonb,jsonb,numeric,boolean)',
+    'public.create_personal_food(text,text,public.food_base_unit,numeric,numeric,numeric,numeric,text,jsonb,jsonb,numeric)',
     'execute'),
   'anon cannot execute create_personal_food');
 select ok(
@@ -69,17 +69,17 @@ select throws_ok(
   $$select public.create_personal_food('Negativo', null, 'g', -1, 0, 0, 0, null, '[]'::jsonb)$$,
   '22023', null, 'a negative kcal is rejected');
 select throws_ok(
-  $$select public.create_personal_food('Cero', null, 'g', 100, 0, 0, 0, null, '[{"label":"x","amount":0}]'::jsonb)$$,
+  $$select public.create_personal_food('Cero', null, 'g', 0, 0, 0, 0, null, '[{"label":"x","amount":0}]'::jsonb)$$,
   '22023', null, 'a zero portion amount is rejected');
 select throws_ok(
-  $$select public.create_personal_food('Etiqueta', null, 'g', 100, 0, 0, 0, null, '[{"label":"  ","amount":10}]'::jsonb)$$,
+  $$select public.create_personal_food('Etiqueta', null, 'g', 0, 0, 0, 0, null, '[{"label":"  ","amount":10}]'::jsonb)$$,
   '22023', null, 'a blank portion label is rejected');
 select throws_ok(
-  $$select public.create_personal_food('Muchas', null, 'g', 100, 0, 0, 0, null,
+  $$select public.create_personal_food('Muchas', null, 'g', 0, 0, 0, 0, null,
     (select jsonb_agg(jsonb_build_object('label', 'p' || i, 'amount', 10)) from generate_series(1, 11) i))$$,
   '22023', null, 'more than 10 portions are rejected');
 select throws_ok(
-  $$select public.create_personal_food('Atomica', null, 'g', 100, 0, 0, 0, null,
+  $$select public.create_personal_food('Atomica', null, 'g', 0, 0, 0, 0, null,
     '[{"label":"ok","amount":10},{"label":"mala","amount":-5}]'::jsonb)$$,
   '22023', null, 'a bad second portion is rejected');
 select is(
