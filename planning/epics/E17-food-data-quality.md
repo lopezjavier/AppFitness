@@ -1,6 +1,6 @@
 # E17 · Food data quality
 
-> **Status: DEFINED (product-owner, 2026-11-08, ADR-101); breakdown PROPOSED (epic-planner, 2026-11-09: T-251…T-256 in `tasks/todo.md`).** Stories US-116…US-119. The macro/kcal tolerance is recorded in `07` §4 "Food energy check" by `fitness-scientist` (2026-11-09).
+> **Status: DONE (`v1.8.0`, 2026-11-09). Was DEFINED (product-owner, 2026-11-08, ADR-101); breakdown PROPOSED (epic-planner, 2026-11-09: T-251…T-256 in `tasks/todo.md`).** Stories US-116…US-119. The macro/kcal tolerance is recorded in `07` §4 "Food energy check" by `fitness-scientist` (2026-11-09).
 
 ## Intent
 
