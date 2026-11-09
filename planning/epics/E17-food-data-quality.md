@@ -1,6 +1,6 @@
 # E17 · Food data quality
 
-> **Status: DEFINED (product-owner, 2026-11-08, ADR-101), not planned.** Stories US-116…US-119. The `epic-planner` breaks it into tasks. The macro/kcal tolerance is recorded in `07` by `fitness-scientist` before any task uses it.
+> **Status: DEFINED (product-owner, 2026-11-08, ADR-101); breakdown PROPOSED (epic-planner, 2026-11-09: T-251…T-256 in `tasks/todo.md`).** Stories US-116…US-119. The macro/kcal tolerance is recorded in `07` §4 "Food energy check" by `fitness-scientist` (2026-11-09).
 
 ## Intent
 
@@ -14,8 +14,13 @@
 
 **Security and data protection.** Copies carry only the food's nutrition data and the user's own ownership; no other user's data is read or written; RLS stays on.
 
+## Decisions (user, 2026-11-09)
+- **Q-E17-1 · Alcohol.** Foods get an optional "Alcohol (g)" field (grams per 100 g/ml, 7 kcal/g) that the energy check counts. The user types grams by hand; the AI photo estimate must return it (0 when there is none); the Open Food Facts import converts OFF's % vol into grams (× 0.789). Rule and figures: `07` §4 "Food energy check".
+- **Q-E17-2 · "Saved anyway".** A food saved with "Guardar igualmente" carries a per-food flag that keeps it out of the US-117 audit until its kcal, protein, carbohydrate, fat, fibre, polyols or alcohol change; the next save then checks it again. Rule: `07` §4 "Food energy check".
+- **Q-E17-3 · Every reference moves to the copy.** Diary entries, favourites and saved comida items (hence default comidas) point to the personal copy: in the US-119 conversion and for every new add from US-118 on (diary, favourite star, comida item, barcode scan). No new reference to a shared OFF row is written.
+
 ## Rules
-`07` (tolerance, to be recorded); `04` food rules; `03` `foods`; ADR-53 (amended by ADR-101), ADR-59.
+`07` §4 "Food energy check (E17, US-116/US-117)" (recorded 2026-11-09); `04` food rules; `03` `foods`; ADR-53 (amended by ADR-101), ADR-59.
 
 ## US-116 · A food whose macros do not match its kcal is flagged
 **As** a user adding a food
@@ -109,6 +114,7 @@ Feature: Existing OFF foods
     Given my diary has entries with OFF foods
     When the conversion runs
     Then each used OFF food has a personal copy and my entries point to it
+    And my favourites and saved comida items that used it point to the copy too (amended 2026-11-09, Q-E17-3)
 
   Scenario: Totals do not change
     Then the kcal and macros of every past day are the same as before

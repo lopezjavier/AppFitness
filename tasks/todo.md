@@ -6,11 +6,11 @@ Operating instructions: [`CLAUDE.md`](../CLAUDE.md). Phase 1 history (frozen): [
 Legend: **👤** = done by the user (accounts, web consoles, secrets) · **PM** = done by Claude Code.
 Secrets rule: never pasted in the chat or in versioned files. The user enters them in their terminal or in the consoles, and Claude only verifies that they exist.
 
-Last task ID used: T-250 (T-246…T-249 reserved by the E16 breakdown; T-239…T-244 by E15; T-250 = user-reported fix below)
+Last task ID used: T-256 (T-251…T-256 reserved by the E17 breakdown; T-246…T-249 by E16; T-239…T-244 by E15; T-250 = user-reported fix below)
 
 **Done in the T-246 branch (user report, 2026-11-08; the user ordered it into the current branch, so it ships in T-246's PR as a separate `fix(T-250)` commit):** `fix(T-250)`: the `food-photo` dish prompt (`supabase/functions/food-photo/prompts.ts`) never says whether the per-100 g values are for the food as served; a 400 g cooked plate came back with raw-food kcal/100 g. Fix: the dish prompt states that values and `estimated_grams` describe the food as shown in the photo (cooked when cooked), with a handler/prompt test and a redeploy of `food-photo`. Backend only, no model-call change elsewhere.
 
-**Next:** E16 is closed (`v1.7.0`, tag `v1.7.0`, `retrospectives/E16.md`); Checkpoint E16 approved by the user on 2026-11-09. No task is active. The user tests with real data and reports errors; each report becomes the next `fix(T-###)`. The "Pending natural-trigger feedback (E16)" items stay open for real use. Next epic: E17, broken down by `epic-planner` in a fresh session.
+**Next:** E16 is closed (`v1.7.0`, tag `v1.7.0`, `retrospectives/E16.md`); Checkpoint E16 approved by the user on 2026-11-09. No task is active. The user tests with real data and reports errors; each report becomes the next `fix(T-###)`. The "Pending natural-trigger feedback (E16)" items stay open for real use. Next epic: E17, breakdown PROPOSED by `epic-planner` (2026-11-09, section below); T-251 starts after the user's OK on the breakdown PR.
 
 ## Open follow-ups carried into Phase 3
 
@@ -35,6 +35,8 @@ Rule: every CI failure that passes on re-run is logged here with date, run URL a
 
 ## 👤 Checkpoints
 
+E17 (epic-planner, 2026-11-09; one checkpoint only, user decision 2026-11-09): **Checkpoint E17** after T-255, the last implementation task (the kcal/macro warning, "Alcohol (g)", the food audit, Open Food Facts copies and the conversion, plus the final E17 regression; 10 items; its approval releases the closure T-256). Details under the E17 section.
+
 E16 (epic-planner, 2026-11-08; one checkpoint only, user decision 2026-11-08): **Checkpoint E16** after T-248, the last implementation task (the nutrition section of "Resumen semanal", "Descanso de dieta" and the final E16 regression; 7 items; its approval releases the closure T-249). As in E15 (Q5), only items the user can try right away are checkpoint items; the diagnosis branches that need two real weeks of data are in "Pending natural-trigger feedback (E16)" under the E16 section, outside the gate. Details under the E16 section.
 
 E15 (epic-planner, 2026-11-08, after the user's Q1-Q5 answers; needs the user's OK): **Checkpoint E15-A** after T-240 ("Bloque nuevo" and switching goal; 6 items) and **Checkpoint E15-B** after T-241, the last implementation task ("Training around a discomfort", plus the final E15 regression; 6 items; its approval releases the closure T-244). **Only items the user can try right away are checkpoint items (user, 2026-11-08, E15 Q5):** paused weeks, welcome back, the block-end notice and the 14-day note fire only after real time passes, so they are in "Pending natural-trigger feedback (E15)" under the E15 section, not gates. Details under the E15 section. Phase 2 checkpoints are in tasks/phase2/todo.md.
@@ -49,6 +51,169 @@ E15 (epic-planner, 2026-11-08, after the user's Q1-Q5 answers; needs the user's 
 ## Reminders
 
 - Delete `design/reported/live-session-cardio-row-layout.png` once the user confirms the cardio fix (T-238).
+
+---
+
+# E17 · Food data quality → `v1.x` (proposed `v1.8.0`)
+
+Epic: [`planning/epics/E17-food-data-quality.md`](../planning/epics/E17-food-data-quality.md) (stories US-116…US-119, with "Decisions (user, 2026-11-09)"). Plan: [tasks/plan.md](plan.md).
+Rules: **`07` §4 "Food energy check (E17, US-116/US-117)"** (the source for every E17 factor, threshold, ordering and text: `computed = 4·protein + 4·(carbs − p) + 2.4·p + 9·fat + 2·fibre + 7·alcohol` with `p = min(polyols, carbs)`; skip when `kcal_100 ≤ 13` and `computed ≤ 13`; `mismatch` when `|gap| > 0.15 × kcal_100 + 5`; `clearly_wrong` when `|gap| > 0.30 × kcal_100 + 5`; the worked-examples table; the "saved anyway" flag; alcohol from manual entry, AI and OFF); `04` §2 (food rules, ADR-53 snapshots); `03` §3 `foods`, §6 Food RPCs, §7 `food-search` / `food-barcode` / `food-photo`; ADR-43, ADR-53 (amended by ADR-101), ADR-59, ADR-64, ADR-72, ADR-101; `05` §8-§10 (R-08: no dialog for the warning). Deterministic: the check is code, no extra model call; the only model change is the `food-photo` response schema (alcohol), "Uso de IA" is not involved (Gemini, ADR-59).
+**User decisions (2026-11-09, also in the epic file):** Q-E17-1 optional "Alcohol (g)" (7 kcal/g, grams per 100 g/ml): typed by hand, returned by the AI photo estimate (0 when none, never % vol, never omitted), converted by the OFF import from % vol × 0.789. Q-E17-2 a per-food "saved anyway" flag set by "Guardar igualmente", cleared whenever kcal, protein, carbs, fat, fibre, polyols or alcohol change; a flagged food is not in the US-117 audit; edits that touch none of those inputs keep it and show no warning. Both land in the T-251 migration (alcohol column + flag) with a new ADR (proposed ADR-102). Q-E17-3 every reference (diary entries, favourites, saved comida items) moves to the personal copy, in the T-254 conversion and for every new add in T-255.
+"Notes for later epics": no item targets E17 (the "Recuperar" note is a non-goal; the "Lo que el entrenador sabe de ti" note targets E18); nothing moved. No carried Phase 3 follow-up is about foods.
+
+**Status (epic-planner, 2026-11-09): PROPOSED, needs the user's OK on the breakdown PR; one checkpoint only, at the end (user decision 2026-11-09).** Q1 resolved by the user (2026-11-09, Q-E17-3 in the epic file; US-119 Gherkin amended): diary entries, favourites and saved comida items all move to the personal copy, in the conversion and for every new add. No question blocks a task. Overlap noted: E18 US-122 ("Favourites and my foods first", listed immediately) builds on T-255's ordering; T-255 orders the list, E18 adds the immediacy.
+
+**Order and sizing (every task pays 6-8 hand-offs; no S task):**
+1. **T-251** (M, backend): US-116 + US-117 backend. US-116 is split backend/UI because the whole story is about 28 files (migration, SQL check, audit RPC, `food-photo` schema and prompts, OFF import, then the shared Kotlin check and every form path). The audit RPC rides here: it is the same SQL function over the user's foods, and alone it would be S.
+2. **T-252** (M, UI + core): US-116 in the app: the shared Kotlin check, "Alcohol (g)" and the warning on every form path (manual, edit, AI dish, label scan).
+3. **T-253** (M, UI): US-117, the food audit screen. No checkpoint here (user decision: one checkpoint at the end).
+4. **T-254** (M, backend): US-118 + US-119 backend. The copy function is shared by "add an OFF food" (US-118) and the conversion (US-119); the conversion alone is S (one data migration), so both go in one backend task; split from the UI for the same size reason as US-116 (about 20 files together).
+5. **T-255** (M, UI + core): US-118 in the app: my foods and favourites first, adding an OFF food creates or reuses my copy, the copy is editable, the energy check on the copy. Last implementation task. → **Checkpoint E17** (the only one; final regression).
+6. **T-256**: E17 closure (PM closure step).
+
+---
+
+## T-251: Food energy check, "Alcohol (g)", the "saved anyway" flag and the audit: backend (US-116, US-117 backend) · M
+
+**Story:** US-116, US-117 (backend) · **Flow:** planner → backend-developer → pr-reviewer → pr-creator (§2.2, no UI) · **Size:** M
+**Scenarios:** US-116 The check covers every way a food is created (server side: the AI estimate returns alcohol; the OFF import stores grams); A small gap is accepted; Saving anyway is allowed (the flag) · US-117 The list shows foods that fail the check (RPC); Nothing changes on its own; A fixed food leaves the list (flag and recompute).
+**Description:** **Migration:** `foods` gains an optional alcohol column in grams per 100 base units (e.g. `alcohol_g_100 numeric(5,1) null`, check 0-100; never % vol) and the "saved anyway" flag (e.g. `energy_check_saved_anyway boolean not null default false`; names by the planner). A trigger (or the RPCs, planner's choice; a trigger is safer because it covers every write path) clears the flag whenever `kcal_100`, `protein_100`, `carbs_100`, `fat_100`, `micronutrients` fibre or polyols, or alcohol change, unless the same write sets it explicitly with "Guardar igualmente"; name, brand, portions and other micronutrients keep it (Q-E17-2). One deterministic SQL function `food_energy_check(kcal, protein, carbs, fat, fibre, polyols, alcohol)` → `{result: ok | skipped | mismatch | clearly_wrong, computed, gap}` exactly as `07` §4 "Food energy check" (factors, `p = min(polyols, carbs)`, the skip rule, 15 % + 5 and 30 % + 5; unrounded `computed`; missing fibre, polyols and alcohol count as 0). `create_personal_food` and `update_personal_food` accept the alcohol value and the flag. **Backfill:** OFF rows already cached get the alcohol in grams from `off_data` (`nutriments.alcohol` / `alcohol_100g` in % vol × 0.789), so T-254's copies carry it. RPC `food_energy_audit()` (invoker, `authenticated` only, owner-scoped: the caller's `source = 'user'` foods) lists foods with `mismatch` or `clearly_wrong` and no flag, `clearly_wrong` first, then by `|gap|` descending, with `kcal_100`, `computed` and `gap`; it writes nothing. **Edge Functions:** `food-photo` (`schema.ts`, `prompts.ts`, `handler.ts`): every draft mode (dish, label, barcode) must return alcohol in grams per the same base as the other macros, `0` when the dish or drink has none, never % vol and never omitted; a response without it is invalid (`07` §4 "AI photo estimate"); the prompt states it (label: convert the % vol printed on a drink label to grams, × 0.789). No other model call is added; redeploy `food-photo`. `_shared/off-client.ts` / `food-store.ts`: the OFF normalisation converts `alcohol` % vol × 0.789 into the grams column (a g-based food uses the same figure, `07` design decision). **Docs:** new ADR (proposed ADR-102: the alcohol field and the "saved anyway" flag, user decisions Q-E17-1/Q-E17-2), `03` §3 (`foods` columns), §6 (`food_energy_check`, `food_energy_audit`, the two RPC changes), §7 (`food-photo` alcohol); `04` §2 (a new "Food energy check" paragraph pointing to `07`).
+**Acceptance criteria:**
+- [ ] `food_energy_check` gives the results of every row of the `07` worked-examples table (500 kcal 10/30/10 → `clearly_wrong`, computed 250; 100 kcal 5/10/3 → ok; crispbread with and without fibre; sugar-free sweets with and without polyols; "0 kcal" with 20 g protein → `clearly_wrong`; black coffee → skipped; red wine 83 kcal with 9.5 g alcohol → ok, without → `clearly_wrong`) and the boundaries at exactly 15 % + 5 and 30 % + 5.
+- [ ] A food saved with the flag keeps it after a name, brand or portion edit and loses it after any change to kcal, protein, carbs, fat, fibre, polyols or alcohol; the stored numbers and past diary snapshots never change.
+- [ ] `food_energy_audit()` lists only the caller's failing, unflagged foods in the `07` order, and writes nothing.
+- [ ] `food-photo` returns alcohol in grams in every mode (0 when none) and rejects a model response without it; the OFF import and the backfill store `% vol × 0.789` grams.
+- [ ] RLS stays on; no other user's food is read or written.
+**Host tests:** pgTAP `food_energy_check.test.sql` (the `07` table, both boundaries, missing optionals as 0, polyols above carbs), `food_energy_flag.test.sql` (set by "save anyway", kept on name/brand/portion edits, cleared by each of the seven inputs, a passing food carries none), `food_energy_audit.test.sql` (order, flagged excluded, OFF rows and other users excluded, RLS), the backfill (a cached OFF wine row); Deno tests for `food-photo` schema/handler (alcohol present, 0, missing → invalid, per mode) and the OFF normaliser (12 % vol → 9.5 g; absent → null).
+**Verification:**
+- [ ] `npx supabase db reset && npx supabase db lint && npx supabase test db` and `deno test --allow-all supabase/functions` green; after the merge `deploy-supabase` green on `main` with data intact and `food-photo` redeployed.
+**Agent runs:** 5. About 13 files.
+**Dependencies:** the breakdown approved by the user (the `07` rule is recorded).
+**Files likely touched:** `supabase/migrations/<ts>_food_energy_check.sql`, `supabase/tests/food_energy_{check,flag,audit}.test.sql`, `supabase/functions/food-photo/{schema,prompts,handler}.ts` (+ tests), `supabase/functions/_shared/{off-client,food-store}.ts` (+ tests), `planning/00-decisions.md`, `planning/03-data-model.md`, `planning/04-business-rules.md` §2
+**Estimated scope:** M
+
+---
+
+## T-252: The kcal/macro warning and "Alcohol (g)" in every food form (US-116) · M
+
+**Story:** US-116 · **Flow:** planner → ux-reviewer (plan) → kotlin-core-developer → compose-ui-developer → pr-reviewer ∥ ux-reviewer (diff) → pr-creator · **Size:** M (upper end)
+**Scenarios:** US-116 A mismatch warns before saving; The check covers every way a food is created (manual, edit, AI dish estimate, label scan here; the OFF copy in T-255); A small gap is accepted; Saving anyway is allowed; plus "leave and come back with the form and the warning open".
+**Description:** **Core:** a shared Kotlin `FoodEnergyCheck` (domain use case) identical to the T-251 SQL function, tested with the same `07` table (the 1RM precedent: domain and pgTAP share the cases); `Food`, `NewFood`, `UpdatedFood`, `EditableFood`, the DTOs and `SupabaseFoodRepository` carry alcohol and the flag; `FoodPhotoDraft` / `toNewFoodDraft` carry the AI's alcohol into the prefilled form. `CreateFoodViewModel` runs the check on "Guardar" for a new food, an edit, an AI dish estimate and a label scan (all open `CreateFoodScreen`); a pass saves at once; a failure shows the warning instead of saving; "Corregir" returns to the form with every value kept; "Guardar igualmente" saves the food as entered with the flag. An edit of a flagged food that changes no check input saves with no warning (Q-E17-2). **UI — templates and patterns:** `CreateFoodScreen` / `CreateFoodSections`: "Alcohol (g)" as one more optional number field in the label-order nutrient section next to fibre and polyols (ux-reviewer places it; `04` §2 label order), with the one-line help "Si solo sabes los grados: alcohol (g) por 100 ml = grados × 0,79." (`07`; ux-reviewer finalises, `HelpButton` → Info sheet if it does not fit as a supporting line, R-57). The warning: **no dialog (R-08)**; ux-reviewer picks between an inline warning note above the form footer (the `InlineNote` pattern) with the two actions "Corregir" / "Guardar igualmente", or an action-archetype sheet; copy from `07`: "Las calorías y los macros no cuadran: {kcal} kcal declaradas, los macros suman {computed} kcal.", the `gap < 0` line "Si lleva fibra o alcohol, añádelos: también tienen calorías.", the `gap > 0` line "Si lleva polialcoholes (edulcorantes), añádelos: cuentan menos calorías.", and the `clearly_wrong` prefix "Parece un error:"; numbers via `AppNumberFormat` (R-44); text, not colour alone (R-41). The same component serves T-253 (editor opened from the audit) and T-255 (OFF copy); if it is a new designsystem component it is built here and any ad-hoc copy is retired (R-39). Glossary §10 rows: "Alcohol (g)", the warning, "Guardar igualmente". Docs: `05` §8/§10.
+**Acceptance criteria:**
+- [ ] A food with 500 kcal and 10/30/10 g shows "Parece un error:" with 500 and 250 kcal before saving; "Corregir" keeps every value; "Guardar igualmente" saves it exactly as entered.
+- [ ] 100 kcal with 5/10/3 g, black coffee and red wine (83 kcal, 9.5 g alcohol) save with no warning; the same wine without alcohol warns with the fibre/alcohol line; sugar-free sweets without polyols warn with the polyols line.
+- [ ] The check runs on a new food, an edit, an AI dish estimate and a label scan; the AI's alcohol appears pre-filled.
+- [ ] A flagged food edited only in name, brand or portions saves with no warning; changing its kcal warns again.
+- [ ] The form with values and the open warning survives background and process death (ADR-40); offline keeps the existing form behaviour; `check-ux-conventions.sh` passes.
+**Host tests:** `FoodEnergyCheckTest` (the `07` table and boundaries, shared with pgTAP); DTO/repository tests (alcohol, flag); `CreateFoodViewModelTest` (pass saves, fail shows the warning, correct keeps values, save anyway sets the flag, flagged edit without input change, each entry path: manual, edit, dish draft, label draft); Robolectric `CreateFoodScreen` tests (field, help, warning copy per sign and per level, actions, restoration with `StateRestorationTester`).
+**Verification:**
+- [ ] lint + `testLocalDebugUnitTest` green. No backend change.
+**Agent runs:** 7. About 15 files.
+**Dependencies:** T-251 merged and deployed.
+**Files likely touched:** `shared/…/domain/usecase/FoodEnergyCheck.kt`, `shared/…/domain/model/{Food,NewFood,EditableFood,FoodPhotoDraft}.kt`, `shared/…/data/remote/FoodDto.kt` (and the photo DTO), `shared/…/data/repository/{SupabaseFoodRepository,SupabaseFoodPhotoRepository}.kt`, `feature/food/{CreateFoodDraft,CreateFoodUiState,CreateFoodViewModel,CreateFoodScreen,CreateFoodSections}.kt`, maybe a `designsystem/` warning note, `strings.xml`, `planning/05-design-system.md` §10, tests
+**Estimated scope:** M
+
+---
+
+## T-253: The food audit (US-117) · M
+
+**Story:** US-117 · **Flow:** planner → ux-reviewer (plan) → kotlin-core-developer → compose-ui-developer → pr-reviewer ∥ ux-reviewer (diff) → pr-creator · **Size:** M
+**Scenarios:** US-117 The list shows foods that fail the check; Each food opens its editor; Nothing changes on its own; A fixed food leaves the list; plus "leave and come back with the audit open and with a food's editor open from it".
+**Description:** **Core:** repository method over `food_energy_audit()` (T-251), domain model of a row (`kcal`, `computed`, `gap`, level), an audit ViewModel that reloads when the user returns from the editor (a fixed or saved-anyway food leaves the list). **UI — templates and patterns:** a new pushed screen built from the standard list screen template (top bar with back, `ListSectionHeader` if two levels are grouped, list rows with the food name and the `07` line "{kcal} kcal declaradas, los macros suman {computed} kcal ({±gap} kcal)", `clearly_wrong` rows first with the "Parece un error" wording as text, R-41; numbers via `AppNumberFormat`); empty state when nothing fails (copy by ux-reviewer); a row tap opens the existing `CreateFoodScreen` in edit mode with its numbers (US-117 "Each food opens its editor"), where the T-252 warning and "Guardar igualmente" apply; no bulk action, no automatic fix (non-goal). **Entry point:** ux-reviewer picks it from the existing patterns (candidates: a row in Perfil → Preferencias next to the food preferences, or a row in the food search's "Mis alimentos" area) and records it in `05` §10; the screen name too (e.g. "Revisar alimentos"). Navigation routes in `AppRoutes`/`AppNavHost` with state restored (ADR-40). Docs: `05` §8/§10, `04` §2 (the audit).
+**Acceptance criteria:**
+- [ ] The audit lists my foods that fail the check, `clearly_wrong` first, then by gap, each with the declared kcal, the macro kcal and the gap; flagged and passing foods are not listed.
+- [ ] A row opens the food's editor with its numbers; saving a corrected food or "Guardar igualmente" removes it from the list on return.
+- [ ] Opening the audit changes no food (no write).
+- [ ] The audit and the editor opened from it survive background and process death (ADR-40); offline shows the standard hint (R-30); `check-ux-conventions.sh` passes.
+**Host tests:** repository/DTO tests; ViewModel tests (order, empty, reload after an edit, a flagged food gone, offline, error and retry); Robolectric (rows and copy, empty state, tap → editor event, entry row, restoration).
+**Verification:**
+- [ ] lint + `testLocalDebugUnitTest` green. No backend change (if the planner needs an RPC change, pgTAP and `deploy-supabase` apply).
+**Agent runs:** 7. About 10 files.
+**Dependencies:** T-252 merged.
+**Files likely touched:** `shared/…/domain/model/FoodAuditRow.kt`, `shared/…/domain/repository/FoodRepository.kt`, `shared/…/data/repository/SupabaseFoodRepository.kt`, `feature/food/{FoodAuditScreen,FoodAuditUiState,FoodAuditViewModel}.kt`, the entry screen (Preferencias or food search), `app/{AppRoutes,AppNavHost}.kt`, `strings.xml`, `planning/05-design-system.md` §10, tests
+**Estimated scope:** M
+
+---
+
+## T-254: Personal copies of Open Food Facts foods and the conversion of the ones I use: backend (US-118, US-119 backend) · M
+
+**Story:** US-118 (backend), US-119 · **Flow:** planner → backend-developer → pr-reviewer → pr-creator (§2.2, no UI) · **Size:** M
+**Scenarios:** US-118 My foods come first (server ordering); Open Food Facts is queried when my foods do not answer; Adding an OFF food creates my copy (RPC); No duplicate · US-119 Used OFF foods become personal copies; Totals do not change; Only my data is touched.
+**Description:** **Q-E17-3 (user, 2026-11-09):** every reference moves to the copy: diary entries, favourites and saved comida items (hence default comidas). **Copy RPC:** `copy_off_food(p_food_id) -> food_id` (name by the planner; `security definer` only if RLS on `foods` requires it, every statement scoped to `auth.uid()`): for an OFF row, returns the caller's existing copy when one has the same barcode or `off_id` (US-118 "No duplicate"; a partial unique index per user on barcode and on `off_id` for `source = 'user'`, planner checks existing manual duplicates before adding it), else inserts a `source = 'user'` row owned by the caller with name, brand, barcode, `off_id` (provenance), base unit, per-100 values, `micronutrients`, alcohol grams (T-251) and the OFF portions; never `off_data` beyond what the copy needs (epic security note); the "saved anyway" flag starts false. **Search and barcode:** `food-search` lists the caller's own foods (and favourites) before any OFF row and drops an OFF row the caller already has a copy of; it still queries OFF when the user's foods do not answer (the existing < 10 rule; planner keeps OFF results appended below own results when both exist unless Q2 says otherwise); `food-barcode` returns the caller's copy first when one has the code. **Conversion (US-119), one migration:** for each user with diary entries on OFF foods, create (or reuse) one copy per OFF food and repoint `food_log_entries.food_id`, `favorite_foods.food_id` and `meal_template_items.food_id` to it (Q-E17-3; an OFF food used only in a favourite or a comida also gets its copy; a favourite that would duplicate an existing one on the copy is merged); kcal/macro snapshots, `portion_label`, `group_id` are untouched, so every past day's totals are the same; per-user scoping, no cross-user read or write; the migration counts entries and the per-day kcal and macro sums before and after and aborts on any difference (T-242 precedent). The shared OFF cache rows stay (they serve searches). **Docs:** `03` §3 (copies, the unique indexes, OFF rows no longer referenced by the user's data), §6 (`copy_off_food`), §7 (`food-search`, `food-barcode` ordering); `04` §2 (OFF as a fallback, ADR-101); ADR-53 consequence noted under ADR-101 if needed.
+**Acceptance criteria:**
+- [ ] `copy_off_food` creates one personal copy with name, brand, barcode, macros, micronutrients and alcohol, and returns the same copy on a second call or for another OFF row with the same barcode.
+- [ ] `food-search` returns my foods and favourites before OFF rows and never an OFF row I already copied; with no own match it returns OFF results; `food-barcode` returns my copy first.
+- [ ] After the conversion every diary entry, favourite and saved comida item that pointed to an OFF food points to my copy (no duplicate favourite); the kcal and macros of every past day are identical (migration self-check and pgTAP).
+- [ ] No other account's rows are read or changed; RLS stays on.
+**Host tests:** pgTAP `copy_off_food.test.sql` (copy fields, dedupe by barcode and by `off_id`, a manual food with the same barcode, foreign user, RLS), `off_food_conversion.test.sql` (two users, entries repointed, day totals before/after equal, a user without OFF entries untouched, favourites and comida items repointed, an OFF food used only in a comida, a favourite on both the OFF row and the copy); Deno tests for `food-search` (own first, copied OFF row hidden, OFF when no own match) and `food-barcode` (copy first).
+**Verification:**
+- [ ] `npx supabase db reset && npx supabase db lint && npx supabase test db` and `deno test --allow-all supabase/functions` green; after the merge `deploy-supabase` green on `main` and the production self-check passes with data intact (day totals unchanged); `food-search` and `food-barcode` redeployed.
+**Agent runs:** 5. About 12 files.
+**Dependencies:** T-253 merged (no build dependency beyond T-251; one task at a time).
+**Files likely touched:** `supabase/migrations/<ts>_off_personal_copies.sql`, `supabase/migrations/<ts>_convert_used_off_foods.sql`, `supabase/tests/{copy_off_food,off_food_conversion}.test.sql`, `supabase/functions/food-search/handler.ts` (+ test), `supabase/functions/food-barcode/handler.ts` (+ test), `supabase/functions/_shared/food-store.ts`, `planning/03-data-model.md`, `planning/04-business-rules.md` §2
+**Estimated scope:** M
+
+---
+
+## T-255: An Open Food Facts food becomes my food in the app (US-118) · M
+
+**Story:** US-118 (+ the US-116 OFF-copy path) · **Flow:** planner → ux-reviewer (plan) → kotlin-core-developer → compose-ui-developer → pr-reviewer ∥ ux-reviewer (diff) → pr-creator · **Size:** M
+**Scenarios:** US-118 My foods come first; Open Food Facts is queried when my foods do not answer; Adding an OFF food creates my copy; No duplicate; The copy is editable · US-116 The check covers … OFF copies; plus "leave and come back with the search and a copy's editor open".
+**Description:** **Core:** `FoodRepository.copyOffFood` over T-254's RPC; `FoodSearchViewModel.emitTextSearch` keeps own results first and adds the matching favourites in the first block (deduped by id), OFF results below (the server already hides copied OFF rows); `AddFoodViewModel` and every other path that stores a food reference (Q-E17-3: the favourite star, adding an item to a saved comida, the barcode scan result) resolve an OFF food to my copy before writing, so no new reference to a shared OFF row is written; the energy check (T-252's `FoodEnergyCheck`) runs on the copy: a failing OFF food shows the T-252 warning, "Corregir" opens the copy's editor, "Guardar igualmente" keeps it as it came from OFF with the flag. **UI — templates and patterns:** `FoodSearchScreen` / `FoodSearchTemplates` rows unchanged (an own copy is an own row; ux-reviewer checks whether OFF rows need their existing source marker and that a copy shows no OFF marker); the food details sheet of a copy offers the same "Editar" as a manual food and opens `CreateFoodScreen` in edit mode (ADR-53 amended by ADR-101: edits apply to future entries only); the warning component of T-252 (no dialog, R-08). Sweep: every place that hides "Editar" for `source = 'off'` (details, portions) is checked so a copy behaves exactly like a manual food. Glossary §10 if a label changes. Docs: `05` §8/§10.
+**Acceptance criteria:**
+- [ ] Searching shows my foods and favourites before any OFF result; with no own match, OFF results are listed.
+- [ ] Adding an OFF food to the diary, starring it or adding it to a saved comida creates (or reuses) my copy and stores the copy's id; the next search lists it among my foods and no OFF duplicate; adding the same product again (search or barcode) creates no second copy.
+- [ ] The copy opens with "Editar" like a manual food; an edit applies to future entries only.
+- [ ] An OFF food whose kcal and macros do not match shows the warning before it is added; "Guardar igualmente" keeps the OFF values.
+- [ ] The search with its query, and a copy's editor, survive background and process death (ADR-40); offline keeps the standard behaviour (R-30); `check-ux-conventions.sh` passes.
+- [ ] Final E17 regression (folded from the closure): the E17 flows make no `coach` model call and leave "Uso de IA" unchanged; `food-photo` is the only model call and is called once per photo.
+**Host tests:** repository tests (copy, reuse); `FoodSearchViewModelTest` (own + favourites first, dedupe, OFF below, no own match, restoration); `AddFoodViewModelTest` (OFF add → copy id written, second add reuses, warning on a failing copy, save anyway); favourite-star and comida-item tests (copy id stored); Robolectric (rows, "Editar" on a copy, warning, restoration).
+**Verification:**
+- [ ] lint + `testLocalDebugUnitTest` green. No backend change.
+**Agent runs:** 7. About 12 files.
+**Dependencies:** T-254 merged and deployed.
+**Files likely touched:** `shared/…/domain/repository/FoodRepository.kt`, `shared/…/data/repository/SupabaseFoodRepository.kt`, `feature/food/{FoodSearchViewModel,FoodSearchScreen,FoodSearchTemplates,AddFoodViewModel,AddFoodSheet,AddFoodUiState}.kt`, the barcode scan path, `strings.xml`, `planning/05-design-system.md` §10, tests
+**Estimated scope:** M
+
+---
+
+### Checkpoint E17 — Food data quality: wrong foods caught and audited, Open Food Facts foods become mine, with the final E17 regression 👤 (10 items, leave and come back included) *(epic-planner, 2026-11-09; the only E17 checkpoint, user decision 2026-11-09; its approval releases T-256)*
+
+After T-255 merges (the last implementation task), CI green, `deploy-supabase` green on `main` after T-251 and T-254 with the conversion self-check passed and data intact, `food-photo`, `food-search` and `food-barcode` redeployed. Everything is tried on the main account; delete the test foods you create afterwards. What to try on the phone (`python scripts/deliver-apk.py`):
+
+*Catching wrong foods (T-251…T-253):*
+- [ ] 1. Create a food with 500 kcal and 10 g protein, 30 g carbohydrate, 10 g fat, then "Guardar": a warning (no dialog) says "Parece un error:" with 500 kcal declared and 250 kcal from the macros; "Corregir" keeps every value.
+- [ ] 2. A food with 100 kcal and 5/10/3 g and a black coffee (2 kcal) save with no warning; a red wine (83 kcal, 0,1/2,6/0 g per 100 ml) without alcohol warns and suggests fibre or alcohol; read the "Alcohol (g)" help, enter 9,5 g: it saves with no warning.
+- [ ] 3. Save a failing food with "Guardar igualmente": it is saved exactly as typed; edit only its name: no warning; change its kcal: the warning comes back.
+- [ ] 4. Add a food from a dish photo and from a label photo: the form arrives pre-filled (alcohol included, 0 when none) and a mismatch warns before saving; "Uso de IA" did not change during E17.
+- [ ] 5. Open the food audit: your failing foods (converted OFF foods too) are listed with the gap, the clearly wrong ones first; tap one: its editor opens; fix it (or "Guardar igualmente"): back in the list it is gone; nothing else changed.
+
+*Open Food Facts foods become mine (T-254, T-255):*
+- [ ] 6. Open "Diario" on a few past days that had Open Food Facts foods: every day's kcal and macros are the same as before E17, and those foods (also in your favourites and saved comidas) now open with "Editar".
+- [ ] 7. Search a name that matches one of your foods or favourites and also OFF products: yours are listed first, OFF below; search something you never added: OFF results appear.
+- [ ] 8. Add an OFF product you never used: search it again: it is now one of your foods, with its name, brand, macros and micronutrients (a drink with alcohol shows its grams); scan its barcode or add it again: no second copy.
+- [ ] 9. Open the copy, "Editar", change a portion or a value and save: it behaves like a food you created and past entries keep their numbers; an OFF product whose kcal and macros do not match warns before it is added.
+
+*Leave and come back:*
+- [ ] 10. Leave the app and come back (and after the system kills it) with a food form and its warning open, with the audit and an editor opened from it, and with a search typed: the same tab, screen and draft are restored.
+Out of scope here (host tests and pgTAP only): no other account's data is read or changed by the conversion.
+
+---
+
+## T-256: E17 closure → `v1.x` · closure step (PM only, not a developer task)
+
+**Story:** E17 Definition of Done · **Flow:** PM closure step after Checkpoint E17 is approved (its approval releases this step; no checkpoint of its own). No developer agent, no size class; it cannot merge into a task because it waits for the checkpoint approval.
+**Description:** Version bump (`versionName`/`versionCode`, minor per epic, proposed `1.8.0`), tag, retrospective `retrospectives/E17.md`, archive of the E17 log lines; `09-open-questions.md` records Q-E17-1, Q-E17-2 (user, 2026-11-09) and the E17 plan questions with their answers; `01-scope.md` E17 row marked done; the epic status set to done.
+**Acceptance criteria:**
+- [ ] T-251…T-255 (and any fix tasks) merged with green CI; `deploy-supabase` green after each migration, the conversion self-check passed in production.
+- [ ] ux-reviewer ran in plan and diff mode on every UI task; `check-ux-conventions.sh` passes.
+- [ ] `00`, `03`, `04`, `05`, `07` and the epic file are current; Checkpoint E17 approved by the user.
+- [ ] Version bumped; `tasks/todo.md` pointer updated through a PR.
+**Verification:**
+- [ ] `git tag` lists the E17 tag.
+**Dependencies:** Checkpoint E17 approved.
+**Files likely touched:** `androidApp/build.gradle.kts`, `tasks/todo.md`, `tasks/plan.md`, `planning/09-open-questions.md`, `planning/01-scope.md`, `planning/epics/E17-food-data-quality.md`, `retrospectives/E17.md`
+**Estimated scope:** closure step (PM)
 
 ---
 
