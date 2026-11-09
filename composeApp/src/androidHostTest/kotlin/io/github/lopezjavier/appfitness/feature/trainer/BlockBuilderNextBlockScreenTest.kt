@@ -178,6 +178,16 @@ class BlockBuilderNextBlockScreenTest {
     }
 
     @Test
+    fun theNoFitNoteOfTheTargets_isATapToMiEntrenamiento() {
+        show(targets(listOf(row(MuscleGroup.Chest)), noFit = NoFitInfo(day = 0, neededMinutes = 80, limitMinutes = 60)))
+
+        rule.onNodeWithText("Cambiar en Mi entrenamiento", substring = true).assertExists()
+        rule.onNodeWithTag("block_builder_targets_no_fit").performClick()
+
+        assertEquals(listOf<BlockBuilderEvent>(BlockBuilderEvent.OpenMyTraining), events)
+    }
+
+    @Test
     fun aStalledLift_showsPuedesCambiarlo_andTheQuestionMarkExplainsIt() {
         val state = BlockBuilderTestData.start()
         val picked = state.pick(0, 0, Pick(BlockBuilderTestData.bench.id, MuscleGroup.Chest, null, 60.0))

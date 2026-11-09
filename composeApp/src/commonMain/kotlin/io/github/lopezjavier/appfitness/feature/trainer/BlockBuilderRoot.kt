@@ -5,6 +5,8 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Modifier
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigationevent.NavigationEventInfo
 import androidx.navigationevent.compose.NavigationBackHandler
@@ -18,7 +20,8 @@ import org.koin.core.parameter.parametersOf
 /**
  * Stateful "Desde cero" flow (US-72, US-93): split, type per day and builder over [BlockBuilderViewModel]. [onSave]
  * leaves for the Trainer root after "Guardar bloque"; [onClose] leaves without saving (back from the first step or a
- * confirmed discard). System back goes one step back, and asks R-14 only from the builder when it holds picks.
+ * confirmed discard); [onOpenMyTraining] opens "Mi entrenamiento" from a "no fit" note. System back goes one step
+ * back, and asks R-14 only from the builder when it holds picks.
  */
 @Composable
 fun BlockBuilderRoot(
@@ -28,6 +31,7 @@ fun BlockBuilderRoot(
     onOpenExercise: (String) -> Unit,
     modifier: Modifier = Modifier,
     previousPlanId: String? = null,
+    onOpenMyTraining: () -> Unit = {},
     viewModel: BlockBuilderViewModel = koinViewModel { parametersOf(planId, previousPlanId) },
     connectivity: ConnectivityObserver = koinInject(),
 ) {
@@ -36,6 +40,7 @@ fun BlockBuilderRoot(
     val latestHaptics by rememberUpdatedState(haptics)
     val latestOnSaved by rememberUpdatedState(onSave)
     val latestOnClose by rememberUpdatedState(onClose)
+    val latestOnOpenMyTraining by rememberUpdatedState(onOpenMyTraining)
     LaunchedEffect(viewModel) {
         viewModel.effects.collect { effect ->
             when (effect) {
@@ -43,9 +48,12 @@ fun BlockBuilderRoot(
                 BlockBuilderEffect.Reject -> latestHaptics.reject()
                 BlockBuilderEffect.Saved -> latestOnSaved()
                 BlockBuilderEffect.Close -> latestOnClose()
+                BlockBuilderEffect.OpenMyTraining -> latestOnOpenMyTraining()
             }
         }
     }
+    // Back from "Mi entrenamiento": the ViewModel re-reads only while it awaits the return (R-59).
+    LifecycleEventEffect(Lifecycle.Event.ON_RESUME) { viewModel.onEvent(BlockBuilderEvent.InputsMayHaveChanged) }
     NavigationBackHandler(
         state = rememberNavigationEventState(currentInfo = NavigationEventInfo.None),
         isBackEnabled = true,

@@ -4,7 +4,7 @@ begin;
 create extension if not exists pgtap with schema extensions;
 set local search_path = extensions, public;
 
-select plan(92);
+select plan(93);
 
 -- ---------------------------------------------------------------------------
 -- Fixture helpers
@@ -145,6 +145,8 @@ select ok(not has_function_privilege('anon', 'public.update_coach_plan_options(u
   'anon cannot execute update_coach_plan_options');
 select ok(not has_function_privilege('anon', 'public.apply_coach_diet_break(date)', 'execute'),
   'anon cannot execute apply_coach_diet_break');
+select ok(not has_function_privilege('anon', 'public.set_coach_plan_diet_break(uuid,boolean,jsonb)', 'execute'),
+  'anon cannot execute set_coach_plan_diet_break');
 select ok(not has_function_privilege('anon', 'public.coach_phase_history(date)', 'execute'),
   'anon cannot execute coach_phase_history');
 select ok(has_function_privilege('authenticated', 'public.coach_phase_history(date)', 'execute'),

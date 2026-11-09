@@ -156,6 +156,32 @@ class BlockBuilderRestorationTest {
     }
 
     @Test
+    fun theTypeStepWaitingForMiEntrenamiento_survivesRecreationAndRereadsOnReturn() {
+        prefs.result = Result.success(
+            TrainingPreferences(intention = TrainingIntention.Muscle, daysPerWeek = 4, sessionMinutes = 10),
+        )
+        current = newModel()
+        showRoot()
+        tap("block_split_continue")
+        tap("block_types_day_0")
+        tap("block_type_option_Lower")
+        tap("block_types_no_fit")
+
+        recreate()
+
+        rule.onNodeWithTag("block_types_day_0").assertTextContains("Pierna", substring = true)
+        rule.onNodeWithTag("block_types_no_fit").assertExists()
+        prefs.result = Result.success(
+            TrainingPreferences(intention = TrainingIntention.Muscle, daysPerWeek = 4, sessionMinutes = 180),
+        )
+        current.onEvent(BlockBuilderEvent.InputsMayHaveChanged)
+        rule.waitForIdle()
+
+        rule.onNodeWithTag("block_types_no_fit").assertDoesNotExist()
+        rule.onNodeWithTag("block_types_day_0").assertTextContains("Pierna", substring = true)
+    }
+
+    @Test
     fun theOpenDaySheet_ofATorsoPiernaWeek_survivesRecreation_stillFilteredToTheFamily() {
         showRoot()
         tap("block_split_continue")

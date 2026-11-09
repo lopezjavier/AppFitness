@@ -14,12 +14,14 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import io.github.lopezjavier.appfitness.composeapp.resources.Res
 import io.github.lopezjavier.appfitness.composeapp.resources.block_builder_continue
+import io.github.lopezjavier.appfitness.composeapp.resources.block_builder_days_changed_note
 import io.github.lopezjavier.appfitness.composeapp.resources.block_type_help_body
 import io.github.lopezjavier.appfitness.composeapp.resources.block_type_help_cd
 import io.github.lopezjavier.appfitness.composeapp.resources.block_type_help_title
 import io.github.lopezjavier.appfitness.composeapp.resources.block_types_day
 import io.github.lopezjavier.appfitness.composeapp.resources.block_types_day_value_recommended
 import io.github.lopezjavier.appfitness.composeapp.resources.block_types_no_fit
+import io.github.lopezjavier.appfitness.composeapp.resources.block_types_no_fit_action
 import io.github.lopezjavier.appfitness.composeapp.resources.block_types_title
 import io.github.lopezjavier.appfitness.designsystem.AppListRow
 import io.github.lopezjavier.appfitness.designsystem.AppScreen
@@ -128,10 +130,19 @@ private fun TypesFooter(state: BlockBuilderUiState.Types, onEvent: (BlockBuilder
         Modifier.fillMaxWidth().padding(Spacing.screenMargin),
         verticalArrangement = Arrangement.spacedBy(Spacing.sm),
     ) {
+        if (state.daysChanged) {
+            InlineNote(
+                text = stringResource(Res.string.block_builder_days_changed_note),
+                modifier = Modifier.testTag("block_builder_days_changed_note"),
+            )
+        }
         state.noFit?.let {
             InlineNote(
-                text = stringResource(Res.string.block_types_no_fit, it.limitMinutes),
+                text = stringResource(Res.string.block_types_no_fit, it.limitMinutes) + "\n" +
+                    stringResource(Res.string.block_types_no_fit_action),
                 modifier = Modifier.testTag("block_types_no_fit"),
+                onClick = { onEvent(BlockBuilderEvent.OpenMyTraining) },
+                onClickLabel = stringResource(Res.string.block_types_no_fit_action),
             )
         }
         PrimaryButton(

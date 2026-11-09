@@ -50,6 +50,7 @@ import io.github.lopezjavier.appfitness.composeapp.resources.coach_deload_reques
 import io.github.lopezjavier.appfitness.composeapp.resources.coach_usage_title
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_info
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_more_vert
+import io.github.lopezjavier.appfitness.composeapp.resources.plan_proposal_diet_break_offline
 import io.github.lopezjavier.appfitness.composeapp.resources.topbar_more_cd
 import io.github.lopezjavier.appfitness.composeapp.resources.trainer_block_remove_action
 import io.github.lopezjavier.appfitness.composeapp.resources.trainer_block_remove_error
@@ -57,6 +58,7 @@ import io.github.lopezjavier.appfitness.composeapp.resources.trainer_discomfort_
 import io.github.lopezjavier.appfitness.composeapp.resources.trainer_discomfort_save_action
 import io.github.lopezjavier.appfitness.composeapp.resources.trainer_discomfort_save_error
 import io.github.lopezjavier.appfitness.composeapp.resources.trainer_free_text_row
+import io.github.lopezjavier.appfitness.composeapp.resources.trainer_plan_diet_break_error
 import io.github.lopezjavier.appfitness.composeapp.resources.trainer_swap_applied
 import io.github.lopezjavier.appfitness.composeapp.resources.trainer_title
 import io.github.lopezjavier.appfitness.composeapp.resources.trainer_your_data_row
@@ -126,6 +128,8 @@ fun TrainerRoute(
     val discardOffline = offlineHint(stringResource(Res.string.calorie_proposal_offline)) + "."
     val cardioError = stringResource(Res.string.cardio_save_error)
     val cardioOffline = offlineHint(stringResource(Res.string.cardio_save_offline)) + "."
+    val dietBreakError = stringResource(Res.string.trainer_plan_diet_break_error)
+    val dietBreakOffline = offlineHint(stringResource(Res.string.plan_proposal_diet_break_offline)) + "."
     val removeBlock = listOf(
         stringResource(Res.string.trainer_block_remove_error),
         offlineHint(stringResource(Res.string.trainer_block_remove_action)) + ".",
@@ -159,8 +163,14 @@ fun TrainerRoute(
                 TrainerEffect.DeloadCancelled,
                 TrainerEffect.DeloadRequested,
                 TrainerEffect.CardioSaved,
+                TrainerEffect.DietBreakSaved,
                 TrainerEffect.BlockRemoved,
                 -> latestHaptics.confirm()
+
+                is TrainerEffect.DietBreakFailed -> {
+                    latestHaptics.reject()
+                    messages.show(if (effect.offline) dietBreakOffline else dietBreakError)
+                }
 
                 is TrainerEffect.CalorieProposalFailed -> {
                     latestHaptics.reject()
@@ -340,6 +350,7 @@ private fun TrainerContent(
             state.canStartNewBlock,
             state.weeksInPhase,
             state.blockReviewDue,
+            state.dietBreakSaving,
         )
         BlockSection(
             state.plan,
@@ -360,6 +371,7 @@ private fun TrainerContent(
                 onRequest = { onEvent(TrainerEvent.RequestDeload) },
             ),
             state.pause,
+            dietBreakWeek = (state.plan as? PlanSummary.Accepted)?.plan?.nutrition?.dietBreak?.week,
         )
         if (state.hasWeekSummary) {
             NavigationRow(

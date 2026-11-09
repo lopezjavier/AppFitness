@@ -293,6 +293,17 @@ internal data class RecomputeRequestInput(
     @SerialName("diet_break") val dietBreak: Boolean,
 )
 
+/** `plan_diet_break` call (accepted cut plan): deterministic, no model key, no usage. */
+@Serializable
+internal data class DietBreakRequestBody(val kind: String, val input: DietBreakRequestInput)
+
+@Serializable
+internal data class DietBreakRequestInput(
+    val today: LocalDate,
+    @SerialName("plan_id") val planId: String,
+    @SerialName("diet_break") val dietBreak: Boolean,
+)
+
 @Serializable
 internal data class ApplyDietBreakParams(@SerialName("p_today") val today: LocalDate)
 

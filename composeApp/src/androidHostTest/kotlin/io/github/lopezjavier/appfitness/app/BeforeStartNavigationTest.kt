@@ -66,7 +66,7 @@ class BeforeStartNavigationTest {
     private val blockSlot: BlockPreviewSlot = { modifier, planId, _, onBack ->
         AppScreen("Bloque", modifier.testTag("block_preview_screen_$planId"), onBack = onBack, testTagPrefix = "bp") {}
     }
-    private val builderSlot: BlockBuilderSlot = { modifier, planId, _, onSaved, onClose, _ ->
+    private val builderSlot: BlockBuilderSlot = { modifier, planId, _, onSaved, onClose, _, _ ->
         AppScreen("Bloque", modifier.testTag("block_builder_screen_$planId"), onBack = onClose, testTagPrefix = "bsp") {
             Box(Modifier.size(48.dp).testTag("bsp_saved").clickable(onClick = onSaved))
         }

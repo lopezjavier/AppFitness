@@ -113,6 +113,8 @@ function setup(o: SetupOptions = {}) {
                 },
             );
         },
+        setDietBreak: () =>
+            Promise.reject(new Error("unexpected setDietBreak")),
         loadReview: () => Promise.reject(new Error("unexpected loadReview")),
         applyPhaseChange: () =>
             Promise.reject(new Error("unexpected applyPhaseChange")),

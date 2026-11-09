@@ -54,6 +54,7 @@ private const val KEY_DISCARD = "block_builder_discard"
 private const val KEY_NEXT_MODE = "block_builder_next_mode"
 private const val KEY_PRIORITIES = "block_builder_priorities"
 private const val KEY_SUGGESTIONS = "block_builder_suggestions"
+private const val KEY_AWAITING_INPUTS = "block_builder_awaiting_inputs"
 
 private const val SLOT_PARTS = 3
 private const val STEP_SPLITS = "splits"
@@ -139,8 +140,54 @@ class BlockBuilderViewModel(
             BlockBuilderEvent.ConfirmDiscard -> effectChannel.trySend(BlockBuilderEffect.Close)
             BlockBuilderEvent.CancelDiscard -> updateBuilder { it.copy(discardDialog = false) }
             BlockBuilderEvent.Retry -> if (_uiState.value is BlockBuilderUiState.Failed) load()
+            BlockBuilderEvent.OpenMyTraining -> openMyTraining()
+            BlockBuilderEvent.InputsMayHaveChanged -> inputsMayHaveChanged()
         }
     }
+
+    // region round trip to "Mi entrenamiento" (R-59)
+
+    /** Only the two "no fit" notes lead out; the flag survives process death so the return still re-reads. */
+    private fun openMyTraining() {
+        val state = _uiState.value
+        if (state !is BlockBuilderUiState.Types && state !is BlockBuilderUiState.Targets) return
+        savedState[KEY_AWAITING_INPUTS] = true
+        effectChannel.trySend(BlockBuilderEffect.OpenMyTraining)
+    }
+
+    /**
+     * Back from "Mi entrenamiento": re-reads the inputs and keeps the draft (step, split, priorities, suggestions,
+     * types). If the days per week changed, only the day types are re-seeded for the new count (07 section 12.8).
+     */
+    private fun inputsMayHaveChanged() {
+        if (savedState.get<Boolean>(KEY_AWAITING_INPUTS) != true) return
+        // Still loading (e.g. after process death): keep the flag, the next resume re-reads.
+        val before = inputs ?: return
+        viewModelScope.launch {
+            // A failed read keeps the flag too, so the return is not lost.
+            val fresh = readInputs().getOrNull() ?: return@launch
+            savedState.remove<Boolean>(KEY_AWAITING_INPUTS)
+            inputs = fresh
+            when (val state = _uiState.value) {
+                is BlockBuilderUiState.Types -> set(refreshedTypes(state, before.days != fresh.days))
+                is BlockBuilderUiState.Targets -> set(targetsUi())
+                else -> Unit
+            }
+        }
+    }
+
+    private fun refreshedTypes(state: BlockBuilderUiState.Types, daysChanged: Boolean): BlockBuilderUiState.Types {
+        val data = checkNotNull(inputs)
+        if (!daysChanged) {
+            val index = builder.splitsFor(data.days).indexOf(state.split).coerceAtLeast(0)
+            return typesUi(index, state.chosen, state.openDay)
+        }
+        val splits = builder.splitsFor(data.days)
+        val index = splits.indexOf(state.split).takeIf { it >= 0 } ?: 0
+        return typesUi(index, splits[index].types, openDay = null).copy(daysChanged = true)
+    }
+
+    // endregion
 
     // region loading and restoring
 

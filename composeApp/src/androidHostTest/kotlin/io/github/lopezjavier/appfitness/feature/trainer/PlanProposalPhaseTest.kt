@@ -1,6 +1,7 @@
 package io.github.lopezjavier.appfitness.feature.trainer
 
 import androidx.compose.ui.test.assertIsNotEnabled
+import androidx.compose.ui.test.assertIsOff
 import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
@@ -96,6 +97,14 @@ class PlanProposalPhaseTest {
     }
 
     @Test
+    fun dietBreakSwitch_isLabelledDescansoDeDietaAndOffByDefault() {
+        show(coachPlan())
+
+        rule.onNodeWithText("Descanso de dieta").assertExists()
+        rule.onNodeWithTag("plan_proposal_diet_break_switch").assertIsOff()
+    }
+
+    @Test
     fun togglingTheDietBreak_sendsTheEvent() {
         show(coachPlan())
 
@@ -112,8 +121,8 @@ class PlanProposalPhaseTest {
         rule.waitForIdle()
 
         rule.onNodeWithText(
-            "Opcional: la última semana de cada bloque comes lo que gastas. En los estudios se pierde la misma " +
-                "grasa y se pasa menos hambre, pero la definición dura más.",
+            "Opcional: la semana 4 del bloque comes lo que gastas; en los estudios se pasa menos hambre, pero no " +
+                "se pierde grasa más rápido.",
         ).assertExists()
     }
 
@@ -133,7 +142,7 @@ class PlanProposalPhaseTest {
         rule.onNodeWithTag("plan_proposal_cut_rate_option_1.0").assertIsNotEnabled()
         rule.onNodeWithTag("plan_proposal_diet_break_switch").assertIsNotEnabled()
         rule.onNodeWithText("Sin conexión: no se puede cambiar el ritmo").assertExists()
-        rule.onNodeWithText("Sin conexión: no se puede cambiar la semana de descanso").assertExists()
+        rule.onNodeWithText("Sin conexión: no se puede cambiar el descanso de dieta").assertExists()
     }
 
     @Test

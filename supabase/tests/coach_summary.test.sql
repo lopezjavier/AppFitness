@@ -50,7 +50,7 @@ create temp table cat as
 grant select on cat to authenticated;
 
 insert into public.workout_sessions (id, user_id, name, status, started_at, ended_at, description) values
-  ('a5000000-0000-4000-8000-000000000001', pg_temp.u(1), 'now', 'completed', now() - interval '1 minute', now(), 'DESC_SECRETA'),
+  ('a5000000-0000-4000-8000-000000000001', pg_temp.u(1), 'now', 'completed', greatest(now() - interval '1 minute', pg_temp.d0()::timestamp at time zone 'utc'), now(), 'DESC_SECRETA'),
   ('a5000000-0000-4000-8000-000000000002', pg_temp.u(1), 'old', 'completed', now() - interval '70 days',
    now() - interval '70 days' + interval '1 hour', null);
 insert into public.workout_sets (session_id, exercise_id, exercise_position, set_index, set_type, weight_kg, reps, completed_at, duration_s, notes) values
@@ -75,7 +75,7 @@ values (pg_temp.u(1), pg_temp.d0(),
         '0ff00000-0000-4000-8000-0000000000c5', 100, 'COMIDA_SECRETA', 2000, 150, 200, 60);
 insert into public.daily_activity (user_id, day, steps, active_kcal) values (pg_temp.u(1), pg_temp.d0(), 8000, 450);
 insert into public.sleep_sessions (user_id, external_id, started_at, ended_at, minutes) values
-  (pg_temp.u(1), 's1', now() - interval '9 hours', now() - interval '1 hour', 420);
+  (pg_temp.u(1), 's1', pg_temp.d0()::timestamp at time zone 'utc' - interval '7 hours', pg_temp.d0()::timestamp at time zone 'utc', 420);
 insert into public.weekly_check_ins (user_id, week_start, energy, notes) values (pg_temp.u(1), pg_temp.mon0(), 4, 'CHECKIN_SECRETO');
 
 -- ---------------------------------------------------------------------------

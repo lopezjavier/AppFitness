@@ -24,6 +24,8 @@ import {
     type AttachedBlock,
     type BlockRow,
     CoachInputError,
+    type DietBreakRow,
+    type DietBreakSet,
     type GoalSwitched,
     type GoalSwitchRow,
     type OptionsRow,
@@ -85,6 +87,8 @@ export type CoachDeps = {
         token: string,
         row: OptionsRow,
     ) => Promise<UpdatedPlan>;
+    /** Switches the diet break of an accepted cut through `set_coach_plan_diet_break`, with the caller's own token. */
+    setDietBreak: (token: string, row: DietBreakRow) => Promise<DietBreakSet>;
     /** One of the caller's block reviews with its plan's intention (T-233), read with their own token. */
     loadReview: (
         token: string,
@@ -253,6 +257,7 @@ export function createCoachHandler(
                 loadPhaseHistory: (today) =>
                     deps.loadPhaseHistory(token, today),
                 updatePlanOptions: (row) => deps.updatePlanOptions(token, row),
+                setDietBreak: (row) => deps.setDietBreak(token, row),
                 loadReview: (id) => deps.loadReview(token, id),
                 applyPhaseChange: (row) => deps.applyPhaseChange(token, row),
                 applyGoalSwitch: (row) => deps.applyGoalSwitch(token, row),

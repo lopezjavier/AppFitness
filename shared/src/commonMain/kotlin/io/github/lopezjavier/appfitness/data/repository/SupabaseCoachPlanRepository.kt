@@ -16,6 +16,8 @@ import io.github.lopezjavier.appfitness.data.remote.CoachPlanDto
 import io.github.lopezjavier.appfitness.data.remote.CoachRecommendationDto
 import io.github.lopezjavier.appfitness.data.remote.CoachStreamParser
 import io.github.lopezjavier.appfitness.data.remote.DecideCalorieProposalParams
+import io.github.lopezjavier.appfitness.data.remote.DietBreakRequestBody
+import io.github.lopezjavier.appfitness.data.remote.DietBreakRequestInput
 import io.github.lopezjavier.appfitness.data.remote.DiscardPlanParams
 import io.github.lopezjavier.appfitness.data.remote.EvaluateCalorieParams
 import io.github.lopezjavier.appfitness.data.remote.PlanEventDto
@@ -93,6 +95,19 @@ class SupabaseCoachPlanRepository internal constructor(
             },
         )
     }
+
+    /** Deterministic toggle of the week-4 break on an accepted cut (`plan_diet_break`); the plan is re-read after. */
+    override suspend fun setDietBreak(planId: String, today: LocalDate, dietBreak: Boolean): Result<CoachPlan> =
+        callCoach(
+            encodeBody = {
+                coachPlanJson.encodeToString(
+                    DietBreakRequestBody("plan_diet_break", DietBreakRequestInput(today, planId, dietBreak)),
+                )
+            },
+            onStream = {
+                loadPlan(planId)?.let { Result.success(it) } ?: Result.failure(CoachException(CoachFailure.Other))
+            },
+        )
 
     override suspend fun applyDietBreak(today: LocalDate): Result<DietBreakApplication> = auth.ownRow {
         val result = postgrest.rpc("apply_coach_diet_break", ApplyDietBreakParams(today))

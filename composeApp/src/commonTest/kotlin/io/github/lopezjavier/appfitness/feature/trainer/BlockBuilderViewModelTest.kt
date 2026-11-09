@@ -49,6 +49,7 @@ import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
+@Suppress("LargeClass") // One flat suite over the shared builder fixtures.
 @OptIn(ExperimentalCoroutinesApi::class)
 class BlockBuilderViewModelTest {
     private val dispatcher = StandardTestDispatcher()
@@ -118,7 +119,10 @@ class BlockBuilderViewModelTest {
     @AfterTest
     fun tearDown() = Dispatchers.resetMain()
 
-    private fun TestScope.viewModel(saved: SavedStateHandle = SavedStateHandle()): BlockBuilderViewModel {
+    private fun TestScope.viewModel(
+        saved: SavedStateHandle = SavedStateHandle(),
+        settle: Boolean = true,
+    ): BlockBuilderViewModel {
         val model = BlockBuilderViewModel(
             planId = "plan-1",
             builder = BuildBlockUseCase(
@@ -133,7 +137,7 @@ class BlockBuilderViewModelTest {
             clock = MutableClock(),
             savedState = saved,
         )
-        advanceUntilIdle()
+        if (settle) advanceUntilIdle()
         return model
     }
 
@@ -227,6 +231,119 @@ class BlockBuilderViewModelTest {
         )
         assertEquals(4, model.types().options.size)
         assertTrue(model.types().canContinue)
+    }
+
+    @Test
+    fun typesNoFit_openMyTraining_emitsTheEffect_andReturnRereadsKeepingSplitAndTypes() = runTest(dispatcher) {
+        prefs.result = Result.success(TrainingPreferences(daysPerWeek = 4, sessionMinutes = 10))
+        val saved = SavedStateHandle()
+        val model = viewModel(saved)
+        send(model, BlockBuilderEvent.PickSplit(1), BlockBuilderEvent.Continue, BlockBuilderEvent.OpenDay(0))
+        send(model, BlockBuilderEvent.PickType(RoutineType.Pull))
+        val chosen = model.types().chosen
+        val split = model.types().split
+        assertNotNull(model.types().noFit)
+
+        model.effects.test {
+            send(model, BlockBuilderEvent.OpenMyTraining)
+            assertEquals(BlockBuilderEffect.OpenMyTraining, awaitItem())
+        }
+        assertEquals(true, saved.get<Boolean>("block_builder_awaiting_inputs"))
+
+        prefs.result = Result.success(TrainingPreferences(daysPerWeek = 4, sessionMinutes = 180))
+        send(model, BlockBuilderEvent.InputsMayHaveChanged)
+
+        assertNull(model.types().noFit)
+        assertEquals(chosen, model.types().chosen)
+        assertEquals(split, model.types().split)
+        assertFalse(model.types().daysChanged)
+        assertNull(saved.get<Boolean>("block_builder_awaiting_inputs"))
+    }
+
+    @Test
+    fun typesReturn_withChangedDays_reseedsOnlyTheTypesAndFlagsIt() = runTest(dispatcher) {
+        prefs.result = Result.success(TrainingPreferences(daysPerWeek = 4, sessionMinutes = 10))
+        val model = viewModel()
+        send(model, BlockBuilderEvent.Continue, BlockBuilderEvent.OpenMyTraining)
+
+        prefs.result = Result.success(TrainingPreferences(daysPerWeek = 3, sessionMinutes = 180))
+        send(model, BlockBuilderEvent.InputsMayHaveChanged)
+
+        assertEquals(3, model.types().chosen.size)
+        assertEquals(3, model.types().options.size)
+        assertTrue(model.types().daysChanged)
+        assertNull(model.types().noFit)
+    }
+
+    @Test
+    fun typesReturn_afterRecreation_stillRereadsAndKeepsTheDraft() = runTest(dispatcher) {
+        prefs.result = Result.success(TrainingPreferences(daysPerWeek = 4, sessionMinutes = 10))
+        val saved = SavedStateHandle()
+        val first = viewModel(saved)
+        send(first, BlockBuilderEvent.Continue, BlockBuilderEvent.OpenMyTraining)
+        val split = first.types().split
+
+        val second = viewModel(saved)
+        prefs.result = Result.success(TrainingPreferences(daysPerWeek = 4, sessionMinutes = 180))
+        send(second, BlockBuilderEvent.InputsMayHaveChanged)
+
+        assertEquals(split, second.types().split)
+        assertNull(second.types().noFit)
+        assertNull(saved.get<Boolean>("block_builder_awaiting_inputs"))
+    }
+
+    @Test
+    fun inputsMayHaveChanged_beforeTheInputsLoaded_keepsTheFlag() = runTest(dispatcher) {
+        val saved = SavedStateHandle()
+        saved["block_builder_awaiting_inputs"] = true
+        val model = viewModel(saved, settle = false)
+
+        model.onEvent(BlockBuilderEvent.InputsMayHaveChanged)
+        advanceUntilIdle()
+
+        assertEquals(true, saved.get<Boolean>("block_builder_awaiting_inputs"))
+        send(model, BlockBuilderEvent.InputsMayHaveChanged)
+        assertNull(saved.get<Boolean>("block_builder_awaiting_inputs"))
+    }
+
+    @Test
+    fun inputsMayHaveChanged_withAFailedRead_keepsTheFlagForTheNextResume() = runTest(dispatcher) {
+        prefs.result = Result.success(TrainingPreferences(daysPerWeek = 4, sessionMinutes = 10))
+        val saved = SavedStateHandle()
+        val model = viewModel(saved)
+        send(model, BlockBuilderEvent.Continue, BlockBuilderEvent.OpenMyTraining)
+
+        prefs.result = Result.failure(IllegalStateException("boom"))
+        send(model, BlockBuilderEvent.InputsMayHaveChanged)
+        assertEquals(true, saved.get<Boolean>("block_builder_awaiting_inputs"))
+
+        prefs.result = Result.success(TrainingPreferences(daysPerWeek = 4, sessionMinutes = 180))
+        send(model, BlockBuilderEvent.InputsMayHaveChanged)
+        assertNull(model.types().noFit)
+        assertNull(saved.get<Boolean>("block_builder_awaiting_inputs"))
+    }
+
+    @Test
+    fun inputsMayHaveChanged_withoutTheFlag_doesNotReread() = runTest(dispatcher) {
+        val model = viewModel()
+        send(model, BlockBuilderEvent.Continue)
+        val reads = prefs.reads
+
+        send(model, BlockBuilderEvent.InputsMayHaveChanged)
+
+        assertEquals(reads, prefs.reads)
+    }
+
+    @Test
+    fun openMyTraining_outsideTheNoFitSteps_isIgnored() = runTest(dispatcher) {
+        val saved = SavedStateHandle()
+        val model = viewModel(saved)
+
+        model.effects.test {
+            send(model, BlockBuilderEvent.OpenMyTraining)
+            expectNoEvents()
+        }
+        assertNull(saved.get<Boolean>("block_builder_awaiting_inputs"))
     }
 
     @Test

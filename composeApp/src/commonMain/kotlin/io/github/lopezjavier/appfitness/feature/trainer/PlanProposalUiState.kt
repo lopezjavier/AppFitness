@@ -170,7 +170,7 @@ sealed interface PlanProposalEvent {
     /** A weekly cut rate (percent of body weight, 0.5..1.0) picked on a cut plan; recomputed, never requested. */
     data class CutRatePicked(val pct: Double) : PlanProposalEvent
 
-    /** The "Con semana de descanso" switch changed on a cut plan. */
+    /** The "Descanso de dieta" switch changed on a cut plan. */
     data class DietBreakToggled(val on: Boolean) : PlanProposalEvent
 
     /** The screen resumed (for example after an editor): re-reads the blocking values; never requests a plan. */

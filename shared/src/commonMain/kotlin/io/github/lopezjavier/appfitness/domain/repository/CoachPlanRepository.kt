@@ -10,6 +10,7 @@ import kotlinx.datetime.LocalDate
  * Nutrition plans of the coach (US-69). Failures carry an [io.github.lopezjavier.appfitness.domain.AppException] or a
  * [io.github.lopezjavier.appfitness.domain.model.CoachException] (the function or a plan RPC refused the call).
  */
+@Suppress("TooManyFunctions") // One method per plan operation.
 interface CoachPlanRepository {
     /** Asks the coach for a nutrition plan as of [today] and returns the stored proposed plan. Costs money. */
     suspend fun requestPlan(today: LocalDate): Result<CoachPlan>
@@ -42,6 +43,12 @@ interface CoachPlanRepository {
         cutRatePct: Double,
         dietBreak: Boolean,
     ): Result<CoachPlan>
+
+    /**
+     * Turns the week-4 diet break of an accepted cut plan on or off and returns the re-read plan. Deterministic: no
+     * model call and no usage. Refused (Invalid) for a plan that is not an accepted cut or was edited by the user.
+     */
+    suspend fun setDietBreak(planId: String, today: LocalDate, dietBreak: Boolean): Result<CoachPlan>
 
     /**
      * Switches the Diario target to the diet-break week figures (plan week 4) or back to the base ones (idempotent).

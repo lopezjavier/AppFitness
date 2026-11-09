@@ -30,6 +30,8 @@ import io.github.lopezjavier.appfitness.designsystem.HelpContent
 import io.github.lopezjavier.appfitness.designsystem.OfflineHint
 import io.github.lopezjavier.appfitness.designsystem.SegmentedSelector
 import io.github.lopezjavier.appfitness.designsystem.Spacing
+import io.github.lopezjavier.appfitness.domain.model.CoachPlan
+import io.github.lopezjavier.appfitness.domain.model.Phase
 import io.github.lopezjavier.appfitness.domain.model.PhaseOptions
 import org.jetbrains.compose.resources.stringResource
 
@@ -85,16 +87,45 @@ internal fun CutOptions(
             enabled = enabled,
         )
         if (!online) OfflineHint(stringResource(Res.string.plan_proposal_cut_rate_offline))
+        DietBreakSwitchRow(options.dietBreak, onDietBreak, online, saving, "plan_proposal_diet_break")
+    }
+}
+
+/**
+ * The "Descanso de dieta" switch with its "?" and, offline, the standard hint (R-30). Shared by the plan proposal
+ * ([CutOptions]) and "Tu plan"; the row is inert while offline or [saving]; the tags are `<tagPrefix>_switch` and
+ * `<tagPrefix>_help`.
+ */
+@Composable
+internal fun DietBreakSwitchRow(
+    checked: Boolean,
+    onCheckedChange: (Boolean) -> Unit,
+    online: Boolean,
+    saving: Boolean,
+    tagPrefix: String,
+    modifier: Modifier = Modifier,
+) {
+    Column(modifier) {
         AppSwitchRow(
             label = stringResource(Res.string.plan_proposal_diet_break_label),
-            checked = options.dietBreak,
-            onCheckedChange = onDietBreak,
-            modifier = Modifier.testTag("plan_proposal_diet_break_switch"),
-            enabled = enabled,
+            checked = checked,
+            onCheckedChange = onCheckedChange,
+            modifier = Modifier.testTag("${tagPrefix}_switch"),
+            enabled = online && !saving,
             help = HelpContent.fromBody(stringResource(Res.string.phase_diet_break_help)),
             helpContentDescription = stringResource(Res.string.plan_proposal_diet_break_help_cd),
-            helpTestTag = "plan_proposal_diet_break_help",
+            helpTestTag = "${tagPrefix}_help",
         )
         if (!online) OfflineHint(stringResource(Res.string.plan_proposal_diet_break_offline))
     }
+}
+
+/**
+ * The "Descanso de dieta" switch of an accepted cut. Hidden for a plan the user edited: the break would never apply
+ * and nothing the user could do fixes it here.
+ */
+@Composable
+internal fun DietBreakToggle(plan: CoachPlan, online: Boolean, saving: Boolean, onToggle: (Boolean) -> Unit) {
+    if (plan.phase != Phase.Cut || plan.nutrition.editedByUser) return
+    DietBreakSwitchRow(plan.nutrition.dietBreak != null, onToggle, online, saving, "trainer_plan_diet_break")
 }
