@@ -1027,6 +1027,8 @@
     <string name="create_food_energy_help_polyols">Si lleva polialcoholes (edulcorantes), indícalos en «Grasas y otros»: aportan menos calorías.</string>
     <string name="create_food_energy_fix">Corregir</string>
     <string name="create_food_save_anyway">Guardar igualmente</string>
+    <string name="add_food_energy_help_off">Este dato viene de Open Food Facts y puede estar mal copiado. Compáralo con la etiqueta del envase. Si no coincide, añádelo igualmente y corrige tu copia con «Editar».</string>
+    <string name="add_food_add_anyway">Añadir igualmente</string>
     <string name="food_audit_title">Revisar alimentos</string>
     <string name="food_audit_help_cd">Ayuda: Revisar alimentos</string>
     <string name="food_audit_help_compare">Se comparan las calorías con las que salen de tus gramos de proteínas, hidratos, grasas y alcohol. La fibra y los polioles pueden explicar una pequeña diferencia.</string>

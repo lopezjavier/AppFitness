@@ -63,6 +63,15 @@ interface FoodRepository {
     suspend fun createFood(food: NewFood): Result<Food>
 
     /**
+     * Makes (or reuses, when the same barcode is already mine) the personal copy of the Open Food Facts food
+     * [foodId] and returns it as stored. Fails with `AppError.NotFound` when [foodId] is not an OFF food.
+     */
+    suspend fun copyOffFood(foodId: String): Result<Food>
+
+    /** Grams of alcohol per 100 of the OFF food [foodId]; null when it has none. Used only for the energy check. */
+    suspend fun offAlcoholPer100(foodId: String): Result<Double?>
+
+    /**
      * The user's own foods whose kcal and macros do not match (`food_energy_audit()`), worst first. Read-only; the
      * server order is the display order. An unknown result level fails with an `AppError`.
      */

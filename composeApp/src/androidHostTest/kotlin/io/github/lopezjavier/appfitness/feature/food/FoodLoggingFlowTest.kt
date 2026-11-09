@@ -175,6 +175,40 @@ class FoodLoggingFlowTest {
     }
 
     @Test
+    fun offFood_addedToTheDiary_logsMyCopy_andAddingAgainReusesIt() {
+        val off = food("off1", "Galletas", kcal = 100.0, protein = 5.0, carbs = 10.0, fat = 3.0, isOff = true)
+        start(off)
+
+        openSearchAndPick("off1")
+        tap("food_sheet_commit")
+        rule.onNodeWithTag("diary_screen").assertExists()
+        openSearchAndPick("off1")
+        tap("food_sheet_commit")
+
+        assertEquals(listOf("copy-off1", "copy-off1"), diary.added.map { it.foodId })
+        assertEquals(listOf("off1", "off1"), foods.copyCalls)
+    }
+
+    @Test
+    fun offFood_failingTheEnergyCheck_warnsAndLogsNothingUntilAddAnyway() {
+        val off = food("off1", "Galletas", kcal = 500.0, protein = 10.0, carbs = 30.0, fat = 10.0, isOff = true)
+        start(off)
+
+        openSearchAndPick("off1")
+        tap("food_sheet_commit")
+
+        rule.onNodeWithTag("create_food_energy_warning").assertExists()
+        assertEquals(emptyList<String>(), diary.added.map { it.foodId })
+        assertEquals(emptyList<String>(), foods.copyCalls)
+
+        tap("add_food_add_anyway")
+
+        assertEquals(listOf("copy-off1"), diary.added.map { it.foodId })
+        assertEquals(1, foods.updates.size)
+        rule.onNodeWithTag("diary_screen").assertExists()
+    }
+
+    @Test
     fun customAmount_180GramsOfRice_logs234Kcal() {
         start(Rice)
         openSearchAndPick("rice")

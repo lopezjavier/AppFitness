@@ -50,6 +50,8 @@ data class AddFoodContent(
     val cookingImpact: CookingImpactPreview? = null,
     /** Confidence 1..10 of the amount filled from a photo; null once the user edits the amount (or none was given). */
     val estimateConfidence: Int? = null,
+    /** Set while the energy check of an Open Food Facts food failed on "Añadir" and the user has not decided yet. */
+    val energyWarning: EnergyWarning? = null,
 ) {
     /** The "Editar" action is shown: only for the user's own manual foods, never for Open Food Facts ones. */
     val showEdit: Boolean get() = food.isManual
@@ -114,6 +116,12 @@ sealed interface AddFoodEvent {
     data object Submit : AddFoodEvent
 
     data object Retry : AddFoodEvent
+
+    /** Closes the energy warning, adding nothing; amount, portion and meal stay. */
+    data object EnergyWarningFix : AddFoodEvent
+
+    /** Adds the Open Food Facts food although the energy check failed: the copy is flagged as saved anyway. */
+    data object SaveAnyway : AddFoodEvent
 
     /** Reload the food without the loading state, e.g. after it was edited. */
     data object Refresh : AddFoodEvent

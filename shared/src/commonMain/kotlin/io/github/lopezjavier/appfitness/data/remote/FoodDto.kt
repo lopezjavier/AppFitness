@@ -61,6 +61,7 @@ internal data class FoodDto(
         portions = (portions + foodPortions).sortedBy { it.position }.map { FoodPortion(it.id, it.label, it.amount) },
         imageUrl = imageUrl,
         isManual = source == "user",
+        isOff = source == "off",
     )
 
     /** The typed label values of a personal food in grams per 100, exactly as stored; unknown keys are ignored. */
@@ -173,6 +174,14 @@ internal data class UpdateFoodParams(
         )
     }
 }
+
+/** Arguments of the `copy_off_food` function. */
+@Serializable
+internal data class CopyOffFoodParams(@SerialName("p_food_id") val foodId: String)
+
+/** Only the alcohol column of a `foods` row. */
+@Serializable
+internal data class FoodAlcoholDto(@SerialName("alcohol_g_100") val alcoholG100: Double? = null)
 
 /** Arguments of the `personal_food_in_use` function. */
 @Serializable

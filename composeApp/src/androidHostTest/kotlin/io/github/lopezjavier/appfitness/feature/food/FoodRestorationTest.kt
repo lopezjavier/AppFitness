@@ -40,6 +40,7 @@ import org.robolectric.annotation.Config
 /** ADR-40: the search box and the open add-food sheet survive recreation. */
 @RunWith(RobolectricTestRunner::class)
 @Config(qualifiers = "w360dp-h2400dp-xxhdpi")
+@Suppress("TooManyFunctions") // One method per restored screen state.
 class FoodRestorationTest {
     @get:Rule
     val rule = createComposeRule()
@@ -177,6 +178,28 @@ class FoodRestorationTest {
         rule.onNodeWithTag("food_sheet_details_toggle").performClick()
         rule.waitForIdle()
         rule.onNodeWithTag("add_food_label_row_fiber").assertExists()
+    }
+
+    @Test
+    fun offEnergyWarning_andTypedAmount_surviveRecreation_andNothingIsCopiedMeanwhile() {
+        foods.known["egg"] =
+            food("egg", "Galletas", kcal = 500.0, protein = 10.0, carbs = 30.0, fat = 10.0, isOff = true)
+        val saved = SavedStateHandle()
+        val tester = StateRestorationTester(rule)
+        tester.setContent { SheetHost(addModel(saved)) }
+        rule.waitForIdle()
+        rule.onNodeWithTag("food_sheet_amount").performTextReplacement("150")
+        rule.onNodeWithTag("food_sheet_commit").performClick()
+        rule.waitForIdle()
+        rule.onNodeWithTag("create_food_energy_warning").assertExists()
+
+        tester.emulateSavedInstanceStateRestore()
+        rule.waitForIdle()
+
+        rule.onNodeWithTag("create_food_energy_warning").assertExists()
+        rule.onNodeWithTag("add_food_add_anyway").assertExists()
+        rule.onNodeWithTag("food_sheet_amount").assertTextContains("150")
+        assertEquals(emptyList<String>(), diary.added.map { it.foodId })
     }
 
     @Test

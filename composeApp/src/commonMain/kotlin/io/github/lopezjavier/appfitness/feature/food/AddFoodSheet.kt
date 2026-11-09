@@ -14,7 +14,9 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import io.github.lopezjavier.appfitness.composeapp.resources.Res
+import io.github.lopezjavier.appfitness.composeapp.resources.action_not_now
 import io.github.lopezjavier.appfitness.composeapp.resources.action_retry
+import io.github.lopezjavier.appfitness.composeapp.resources.add_food_add_anyway
 import io.github.lopezjavier.appfitness.composeapp.resources.add_food_amount_label_g
 import io.github.lopezjavier.appfitness.composeapp.resources.add_food_amount_label_ml
 import io.github.lopezjavier.appfitness.composeapp.resources.add_food_load_error
@@ -43,6 +45,8 @@ import io.github.lopezjavier.appfitness.designsystem.FilterChipRow
 import io.github.lopezjavier.appfitness.designsystem.FoodSheet
 import io.github.lopezjavier.appfitness.designsystem.FoodSheetContext
 import io.github.lopezjavier.appfitness.designsystem.FoodSheetTotals
+import io.github.lopezjavier.appfitness.designsystem.GhostButton
+import io.github.lopezjavier.appfitness.designsystem.GhostTone
 import io.github.lopezjavier.appfitness.designsystem.Macro
 import io.github.lopezjavier.appfitness.designsystem.MacroDefaults
 import io.github.lopezjavier.appfitness.designsystem.PortionOption
@@ -171,12 +175,37 @@ private fun AddFoodContentSheet(
             saving = content.submitting,
             onAdd = { onEvent(AddFoodEvent.Submit) },
             offlineHint = if (content.isOffline && !content.pick) offlineHint(OFFLINE_ACTION) else null,
+            notice = content.energyWarning?.let { warning -> { OffWarningNotice(warning, onEvent) } },
+            secondary = content.energyWarning?.let { { AddAnywayButton(content, onEvent) } },
         ),
         onDismiss = onDismiss,
         modifier = modifier,
         onEditFood = if (content.showEdit) onEdit else null,
         editFoodEnabled = content.canEdit,
         testTagPrefix = SHEET_PREFIX,
+    )
+}
+
+/** The energy warning of an Open Food Facts food: "Ahora no" only closes it (the product has no editor yet). */
+@Composable
+private fun OffWarningNotice(warning: EnergyWarning, onEvent: (AddFoodEvent) -> Unit) {
+    EnergyWarningNotice(
+        warning = warning,
+        onFix = { onEvent(AddFoodEvent.EnergyWarningFix) },
+        fixLabel = stringResource(Res.string.action_not_now),
+        offProduct = true,
+    )
+}
+
+/** The secondary action while the warning is open: copy and add the food as it is. */
+@Composable
+private fun AddAnywayButton(content: AddFoodContent, onEvent: (AddFoodEvent) -> Unit) {
+    GhostButton(
+        text = stringResource(Res.string.add_food_add_anyway),
+        onClick = { onEvent(AddFoodEvent.SaveAnyway) },
+        enabled = !content.submitting && !content.isOffline,
+        tone = GhostTone.Action,
+        modifier = Modifier.fillMaxWidth().testTag("add_food_add_anyway"),
     )
 }
 

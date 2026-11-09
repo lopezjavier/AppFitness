@@ -15,6 +15,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import io.github.lopezjavier.appfitness.composeapp.resources.Res
+import io.github.lopezjavier.appfitness.composeapp.resources.add_food_energy_help_off
 import io.github.lopezjavier.appfitness.composeapp.resources.create_food_energy_fix
 import io.github.lopezjavier.appfitness.composeapp.resources.create_food_energy_help_cd
 import io.github.lopezjavier.appfitness.composeapp.resources.create_food_energy_help_fibre_alcohol
@@ -37,10 +38,17 @@ private val MaxNoticeHeight = Spacing.xl * 8
 /**
  * The energy-check warning (07 section 4) shown in the pinned footer of a food form: the facts, a "?" whose sheet
  * holds the sign-dependent advice (R-57) and "Corregir", which only closes the warning. Shared by every form that
- * runs the check (create / edit, audit editor, Open Food Facts copy). Not a failure: no error colour, no haptic.
+ * runs the check (create / edit, audit editor, add sheet). With [offProduct] (an Open Food Facts food the user did not
+ * type) the help body is OFF-specific and [fixLabel] is "Ahora no". Not a failure: no error colour, no haptic.
  */
 @Composable
-internal fun EnergyWarningNotice(warning: EnergyWarning, onFix: () -> Unit, modifier: Modifier = Modifier) {
+internal fun EnergyWarningNotice(
+    warning: EnergyWarning,
+    onFix: () -> Unit,
+    modifier: Modifier = Modifier,
+    fixLabel: String = stringResource(Res.string.create_food_energy_fix),
+    offProduct: Boolean = false,
+) {
     val facts = stringResource(
         Res.string.create_food_energy_warning,
         AppNumberFormat.decimal(warning.kcal, maxDecimals = 0),
@@ -48,7 +56,9 @@ internal fun EnergyWarningNotice(warning: EnergyWarning, onFix: () -> Unit, modi
     )
     val text = if (warning.clearlyWrong) stringResource(Res.string.create_food_energy_warning_wrong, facts) else facts
     val advice = stringResource(
-        if (warning.gap < 0) {
+        if (offProduct) {
+            Res.string.add_food_energy_help_off
+        } else if (warning.gap < 0) {
             Res.string.create_food_energy_help_fibre_alcohol
         } else {
             Res.string.create_food_energy_help_polyols
@@ -79,7 +89,7 @@ internal fun EnergyWarningNotice(warning: EnergyWarning, onFix: () -> Unit, modi
             )
         }
         GhostButton(
-            text = stringResource(Res.string.create_food_energy_fix),
+            text = fixLabel,
             onClick = onFix,
             modifier = Modifier.fillMaxWidth().testTag("create_food_energy_fix"),
             tone = GhostTone.Action,

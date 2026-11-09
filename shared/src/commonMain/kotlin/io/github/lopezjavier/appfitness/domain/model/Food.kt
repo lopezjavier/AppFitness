@@ -26,6 +26,8 @@ data class Food(
     val portions: List<FoodPortion>,
     val imageUrl: String?,
     val isManual: Boolean = false,
+    /** True for an Open Food Facts product: adding it to the app first makes a personal copy. */
+    val isOff: Boolean = false,
 )
 
 /** The comida group (ADR-68) that entries added together share: one [id] per application, [name] of the comida. */
