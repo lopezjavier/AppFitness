@@ -106,6 +106,7 @@ internal data class FoodPhotoNutritionDto(
     @SerialName("protein_g") val proteinG: Double? = null,
     @SerialName("carbs_g") val carbsG: Double? = null,
     @SerialName("fat_g") val fatG: Double? = null,
+    @SerialName("alcohol_g") val alcoholG: Double? = null,
 )
 
 @Serializable
@@ -127,6 +128,7 @@ internal data class FoodPhotoDraftDto(
         carbs = nutrition.carbsG,
         fat = nutrition.fatG,
         micronutrients = micronutrients,
+        alcohol = nutrition.alcoholG,
         estimatedGrams = estimatedGrams,
         confidence = confidence.toConfidence(),
     )

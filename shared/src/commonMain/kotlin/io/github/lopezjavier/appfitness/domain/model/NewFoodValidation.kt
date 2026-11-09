@@ -5,21 +5,24 @@ private const val MAX_LABEL = 100
 private const val MAX_NUTRIENT = 9999.99
 private const val MAX_PORTION_AMOUNT = 9999.9
 private const val MAX_PORTIONS = 10
+private const val MAX_ALCOHOL = 100.0
 
 /** Pure validation of a [NewFood] / [UpdatedFood] against the limits of the personal-food functions. */
 object NewFoodValidation {
     fun validate(food: NewFood): NewFoodErrors =
-        validate(food.name, food.brand, food.nutrition, food.portions, food.micronutrients)
+        validate(food.name, food.brand, food.nutrition, food.portions, food.micronutrients, food.alcoholG)
 
     fun validate(food: UpdatedFood): NewFoodErrors =
-        validate(food.name, food.brand, food.nutrition, food.portions, food.micronutrients)
+        validate(food.name, food.brand, food.nutrition, food.portions, food.micronutrients, food.alcoholG)
 
+    @Suppress("LongParameterList")
     private fun validate(
         name: String,
         brand: String?,
         nutrition: NutritionPer100,
         portions: List<NewPortion>,
         micronutrients: NewMicronutrients,
+        alcohol: Double?,
     ): NewFoodErrors = NewFoodErrors(
         name = text(name, required = true),
         brand = brand?.let { text(it, required = false) },
@@ -27,6 +30,7 @@ object NewFoodValidation {
         protein = nutrient(nutrition.proteinG),
         carbs = nutrient(nutrition.carbsG),
         fat = nutrient(nutrition.fatG),
+        alcohol = alcohol?.let { alcohol(it) },
         portions = portions.withIndex().mapNotNull { (i, p) -> portion(p)?.let { i to it } }.toMap(),
         tooManyPortions = portions.size > MAX_PORTIONS,
         nutrients = micronutrients.values.mapNotNull { (kind, typed) ->
@@ -45,6 +49,13 @@ object NewFoodValidation {
         !value.isFinite() -> NewFoodError.NotANumber
         value < 0.0 -> NewFoodError.Negative
         unit.toGrams(value) > MAX_NUTRIENT -> NewFoodError.TooLarge
+        else -> null
+    }
+
+    private fun alcohol(value: Double): NewFoodError? = when {
+        !value.isFinite() -> NewFoodError.NotANumber
+        value < 0.0 -> NewFoodError.Negative
+        value > MAX_ALCOHOL -> NewFoodError.TooLarge
         else -> null
     }
 

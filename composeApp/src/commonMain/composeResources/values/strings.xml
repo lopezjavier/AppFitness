@@ -1015,6 +1015,18 @@
     <string name="create_food_sugars_of">de los cuales azúcares</string>
     <string name="create_food_fiber">Fibra</string>
     <string name="create_food_salt">Sal</string>
+    <string name="create_food_alcohol">Alcohol (g)</string>
+    <string name="create_food_alcohol_help_cd">Ayuda: Alcohol (g)</string>
+    <string name="create_food_alcohol_help_title">Alcohol</string>
+    <string name="create_food_alcohol_help_body">Gramos de alcohol por 100 g o 100 ml. Si solo sabes los grados: alcohol (g) por 100 ml = grados × 0,79.</string>
+    <string name="create_food_energy_warning">Las calorías y los macros no cuadran: %1$s kcal declaradas, los macros suman %2$s kcal.</string>
+    <string name="create_food_energy_warning_wrong">Parece un error: %1$s</string>
+    <string name="create_food_energy_help_cd">Ayuda: Calorías y macros</string>
+    <string name="create_food_energy_help_title">Calorías y macros</string>
+    <string name="create_food_energy_help_fibre_alcohol">Si lleva fibra o alcohol, añádelos: aportan calorías que no cuentan los macros.</string>
+    <string name="create_food_energy_help_polyols">Si lleva polialcoholes (edulcorantes), indícalos en «Grasas y otros»: aportan menos calorías.</string>
+    <string name="create_food_energy_fix">Corregir</string>
+    <string name="create_food_save_anyway">Guardar igualmente</string>
     <string name="create_food_portions">Porciones</string>
     <string name="create_food_add_portion">Añadir porción</string>
     <string name="create_food_portion_label">Etiqueta</string>

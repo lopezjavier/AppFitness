@@ -240,7 +240,7 @@ class CreateFoodScreenTest {
     fun commaDecimals_areAccepted() {
         show()
         type("create_food_name_field", "Queso")
-        type("create_food_kcal_field", "250")
+        type("create_food_kcal_field", "30")
         type("create_food_protein_field", "7,5")
         tap("create_food_save")
 
@@ -311,5 +311,95 @@ class CreateFoodScreenTest {
         rule.onNodeWithTag("create_food_kcal_field").performImeAction()
         rule.waitForIdle()
         rule.onNodeWithTag("create_food_fat_field").assertIsFocused()
+    }
+
+    private fun fillMismatch() {
+        type("create_food_name_field", "Barrita")
+        type("create_food_kcal_field", "500")
+        type("create_food_protein_field", "10")
+        type("create_food_carbs_field", "30")
+        type("create_food_fat_field", "10")
+    }
+
+    @Test
+    fun alcoholField_isShownAfterFibre_andItsHelpOpens() {
+        show()
+
+        rule.onNodeWithTag("create_food_alcohol_field").assertExists()
+        tap("create_food_alcohol_help")
+        rule.onNodeWithTag("create_food_alcohol_help_sheet_body").assertExists()
+        rule.onNodeWithText("grados × 0,79", substring = true).assertExists()
+    }
+
+    @Test
+    fun mismatch_warnsInTheFooter_andDoesNotSave() {
+        show()
+        fillMismatch()
+        tap("create_food_save")
+
+        rule.onNodeWithTag("create_food_energy_warning").assertExists()
+        rule.onNodeWithText("Parece un error:", substring = true).assertExists()
+        rule.onNodeWithText("500 kcal declaradas", substring = true).assertExists()
+        rule.onNodeWithText("250 kcal", substring = true).assertExists()
+        rule.onNodeWithTag("create_food_save_anyway").assertExists()
+        assertEquals(0, foods.created.size)
+    }
+
+    @Test
+    fun fix_closesTheWarning_andKeepsEveryValue() {
+        show()
+        fillMismatch()
+        tap("create_food_save")
+        tap("create_food_energy_fix")
+
+        rule.onNodeWithTag("create_food_energy_warning").assertDoesNotExist()
+        rule.onNodeWithTag("create_food_kcal_field").assertTextContains("500")
+        rule.onNodeWithTag("create_food_name_field").assertTextContains("Barrita")
+    }
+
+    @Test
+    fun saveAnyway_savesTheFoodAsTyped() {
+        show()
+        fillMismatch()
+        tap("create_food_save")
+        tap("create_food_save_anyway")
+
+        assertEquals(500.0, foods.created.single().nutrition.kcal, 0.0)
+        assertEquals(listOf("new-1"), saved)
+    }
+
+    @Test
+    fun smallGap_savesWithoutWarning() {
+        show()
+        fillTortilla()
+        tap("create_food_save")
+
+        rule.onNodeWithTag("create_food_energy_warning").assertDoesNotExist()
+        assertEquals(1, foods.created.size)
+    }
+
+    @Test
+    fun missingEnergy_helpExplainsFibreAndAlcohol() {
+        show()
+        fillMismatch()
+        tap("create_food_save")
+        tap("create_food_energy_warning_help")
+
+        rule.onNodeWithText("Si lleva fibra o alcohol", substring = true).assertExists()
+    }
+
+    @Test
+    fun excessEnergy_helpExplainsPolyols_andNoPrefixOnAMismatch() {
+        show()
+        type("create_food_name_field", "Caramelos")
+        type("create_food_kcal_field", "240")
+        type("create_food_protein_field", "0")
+        type("create_food_carbs_field", "95")
+        type("create_food_fat_field", "0")
+        tap("create_food_save")
+        rule.onNodeWithText("Parece un error:", substring = true).assertExists()
+        tap("create_food_energy_warning_help")
+
+        rule.onNodeWithText("Si lleva polialcoholes", substring = true).assertExists()
     }
 }

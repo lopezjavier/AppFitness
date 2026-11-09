@@ -36,12 +36,15 @@ internal fun food(
     servingLabel: String? = null,
     portions: List<FoodPortion> = emptyList(),
     isManual: Boolean = false,
+    protein: Double = 10.0,
+    carbs: Double = 20.0,
+    fat: Double = 5.0,
 ) = Food(
     id = id,
     name = name,
     brand = null,
     baseUnit = baseUnit,
-    nutrition = NutritionPer100(kcal, 10.0, 20.0, 5.0),
+    nutrition = NutritionPer100(kcal, protein, carbs, fat),
     servingLabel = servingLabel,
     servingAmount = servingAmount,
     portions = portions,
@@ -199,9 +202,23 @@ internal class FakeFoodRepository : FoodRepository {
 
             manual == null -> Result.failure(AppException(AppError.NotFound))
 
-            else -> Result.success(EditableFood(manual, storedMicronutrients[id].orEmpty(), id in inUse))
+            else -> Result.success(
+                EditableFood(
+                    manual,
+                    storedMicronutrients[id].orEmpty(),
+                    id in inUse,
+                    storedAlcohol[id],
+                    id in storedSavedAnyway,
+                ),
+            )
         }
     }
+
+    /** Alcohol (g per 100) stored per food id, for [editableFood]. */
+    val storedAlcohol = mutableMapOf<String, Double>()
+
+    /** Ids of foods stored with the saved-anyway flag, for [editableFood]. */
+    val storedSavedAnyway = mutableSetOf<String>()
 
     /** The foods passed to [updateFood]. */
     val updates = mutableListOf<UpdatedFood>()

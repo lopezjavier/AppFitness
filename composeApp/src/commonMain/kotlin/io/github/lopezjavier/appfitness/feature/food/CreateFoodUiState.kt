@@ -2,6 +2,7 @@ package io.github.lopezjavier.appfitness.feature.food
 
 import io.github.lopezjavier.appfitness.domain.model.MicronutrientKind
 import io.github.lopezjavier.appfitness.domain.model.NewFoodErrors
+import io.github.lopezjavier.appfitness.domain.usecase.EnergyCheckLevel
 
 /** A portion row of the form; both values are the text the user typed. */
 data class PortionDraft(val label: String = "", val amount: String = "")
@@ -22,6 +23,8 @@ data class CreateFoodUiState(
     val protein: String = "",
     val carbs: String = "",
     val fat: String = "",
+    /** Grams of alcohol per 100 (text); blank means not typed. */
+    val alcohol: String = "",
     val nutrients: Map<MicronutrientKind, String> = emptyMap(),
     val barcode: String? = null,
     val portions: List<PortionDraft> = emptyList(),
@@ -42,7 +45,18 @@ data class CreateFoodUiState(
     val expandedSections: Set<CreateFoodSection> = emptySet(),
     /** The form was prefilled from an AI photo estimate and nothing was edited yet: show "Estimado por IA". */
     val aiEstimateNote: Boolean = false,
+    /** Set while the energy check failed on "Guardar" and the user has not corrected or confirmed yet. */
+    val energyWarning: EnergyWarning? = null,
 )
+
+/**
+ * The energy check warning (07 section 4): [level] is Mismatch or ClearlyWrong, [kcal] is the declared kcal
+ * the check used, [computedKcal] what the macros add up to and [gap] is `computed - declared` (< 0: fibre or
+ * alcohol may be missing; > 0: polyols may be missing).
+ */
+data class EnergyWarning(val level: EnergyCheckLevel, val kcal: Double, val computedKcal: Double, val gap: Double) {
+    val clearlyWrong: Boolean get() = level == EnergyCheckLevel.ClearlyWrong
+}
 
 /**
  * The optional collapsible groups of label nutrients (collapsed by default, also when editing); [kinds] are the
@@ -86,7 +100,7 @@ enum class CreateFoodSection(val id: String, val kinds: List<MicronutrientKind>)
 }
 
 /** The identity and macro fields; the label nutrients are keyed by [MicronutrientKind] (blank means not typed). */
-enum class CreateFoodField { Name, Brand, Kcal, Protein, Carbs, Fat }
+enum class CreateFoodField { Name, Brand, Kcal, Protein, Carbs, Fat, Alcohol }
 
 sealed interface CreateFoodEvent {
     data class FieldChanged(val field: CreateFoodField, val text: String) : CreateFoodEvent
@@ -106,6 +120,12 @@ sealed interface CreateFoodEvent {
     data class PortionAmountChanged(val index: Int, val text: String) : CreateFoodEvent
 
     data object Save : CreateFoodEvent
+
+    /** "Guardar igualmente": save a food that fails the energy check exactly as typed, flagged. */
+    data object SaveAnyway : CreateFoodEvent
+
+    /** "Corregir": close the energy warning keeping every value. */
+    data object DismissWarning : CreateFoodEvent
 
     /** Expand or collapse a group of label nutrients. */
     data class ToggleSection(val section: CreateFoodSection) : CreateFoodEvent

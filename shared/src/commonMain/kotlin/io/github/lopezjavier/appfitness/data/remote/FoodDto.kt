@@ -43,6 +43,8 @@ internal data class FoodDto(
     @SerialName("food_portions") val foodPortions: List<FoodPortionDto> = emptyList(),
     val source: String? = null,
     val micronutrients: JsonElement? = null,
+    @SerialName("alcohol_g_100") val alcoholG100: Double? = null,
+    @SerialName("energy_check_saved_anyway") val energyCheckSavedAnyway: Boolean = false,
 ) {
     fun toDomain(): Food = Food(
         id = id,
@@ -71,8 +73,8 @@ internal data class FoodDto(
             "id,name,brand,base_unit,kcal_100,protein_100,carbs_100,fat_100,serving_label,serving_amount,image_url," +
                 "source,food_portions(id,label,amount,position)"
 
-        /** [COLUMNS] plus the stored label values, to edit a personal food. */
-        const val EDIT_COLUMNS = "$COLUMNS,micronutrients"
+        /** [COLUMNS] plus the stored label values, alcohol and the saved-anyway flag, to edit a personal food. */
+        const val EDIT_COLUMNS = "$COLUMNS,micronutrients,alcohol_g_100,energy_check_saved_anyway"
     }
 }
 
@@ -100,6 +102,8 @@ internal data class CreateFoodParams(
     @SerialName("p_barcode") val barcode: String?,
     @SerialName("p_portions") val portions: List<CreateFoodPortionParam>,
     @SerialName("p_micronutrients") val micronutrients: Map<String, Double>? = null,
+    @SerialName("p_alcohol") val alcohol: Double? = null,
+    @SerialName("p_saved_anyway") val savedAnyway: Boolean = false,
 ) {
     companion object {
         fun from(food: NewFood) = CreateFoodParams(
@@ -113,6 +117,8 @@ internal data class CreateFoodParams(
             barcode = food.barcode?.trim()?.takeIf { it.isNotEmpty() },
             portions = food.portions.map { CreateFoodPortionParam(it.label.trim(), it.amount) },
             micronutrients = food.micronutrients.toParam(),
+            alcohol = food.alcoholG,
+            savedAnyway = food.savedAnyway,
         )
 
         /** Only the typed values, keyed like the `foods.micronutrients` column; null when none was typed. */
@@ -143,6 +149,8 @@ internal data class UpdateFoodParams(
     @SerialName("p_portions") val portions: List<CreateFoodPortionParam>,
     @SerialName("p_micronutrients") val micronutrients: Map<String, Double>,
     @SerialName("p_base_unit") val baseUnit: String,
+    @SerialName("p_alcohol") val alcohol: Double? = null,
+    @SerialName("p_saved_anyway") val savedAnyway: Boolean = false,
 ) {
     companion object {
         fun from(food: UpdatedFood) = UpdateFoodParams(
@@ -156,6 +164,8 @@ internal data class UpdateFoodParams(
             portions = food.portions.map { CreateFoodPortionParam(it.label.trim(), it.amount) },
             micronutrients = food.micronutrients.toGramsParam(),
             baseUnit = food.baseUnit,
+            alcohol = food.alcoholG,
+            savedAnyway = food.savedAnyway,
         )
     }
 }

@@ -183,4 +183,19 @@ class NewFoodValidationTest {
         assertTrue(NewFoodValidation.validate(food(portions = ten)).isValid)
         assertTrue(NewFoodValidation.validate(food(portions = ten + NewPortion("p", 1.0))).tooManyPortions)
     }
+
+    @Test
+    fun alcohol_blankIsOkAndZeroAnd100AreOk() {
+        assertNull(NewFoodValidation.validate(food()).alcohol)
+        assertNull(NewFoodValidation.validate(food().copy(alcoholG = 0.0)).alcohol)
+        assertNull(NewFoodValidation.validate(food().copy(alcoholG = 100.0)).alcohol)
+    }
+
+    @Test
+    fun alcohol_negativeTooLargeAndNotANumber() {
+        assertEquals(NewFoodError.Negative, NewFoodValidation.validate(food().copy(alcoholG = -1.0)).alcohol)
+        assertEquals(NewFoodError.TooLarge, NewFoodValidation.validate(food().copy(alcoholG = 100.1)).alcohol)
+        assertEquals(NewFoodError.NotANumber, NewFoodValidation.validate(food().copy(alcoholG = Double.NaN)).alcohol)
+        assertTrue(!NewFoodValidation.validate(food().copy(alcoholG = -1.0)).isValid)
+    }
 }

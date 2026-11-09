@@ -388,7 +388,7 @@ class CreateFoodViewModelTest {
         kcal = 60.0,
         portions = listOf(FoodPortion("p1", "1 tarrina", 125.0)),
         isManual = true,
-    )
+    ).copy(nutrition = NutritionPer100(60.0, 10.0, 5.0, 0.0))
 
     private fun editModel(state: SavedStateHandle = SavedStateHandle()) = CreateFoodViewModel(
         barcode = null,

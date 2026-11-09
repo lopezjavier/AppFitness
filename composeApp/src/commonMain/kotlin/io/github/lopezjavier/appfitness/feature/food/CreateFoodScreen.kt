@@ -16,6 +16,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
@@ -26,6 +27,10 @@ import androidx.compose.ui.text.input.ImeAction
 import io.github.lopezjavier.appfitness.composeapp.resources.Res
 import io.github.lopezjavier.appfitness.composeapp.resources.action_retry
 import io.github.lopezjavier.appfitness.composeapp.resources.create_food_ai_note
+import io.github.lopezjavier.appfitness.composeapp.resources.create_food_alcohol
+import io.github.lopezjavier.appfitness.composeapp.resources.create_food_alcohol_help_body
+import io.github.lopezjavier.appfitness.composeapp.resources.create_food_alcohol_help_cd
+import io.github.lopezjavier.appfitness.composeapp.resources.create_food_alcohol_help_title
 import io.github.lopezjavier.appfitness.composeapp.resources.create_food_barcode
 import io.github.lopezjavier.appfitness.composeapp.resources.create_food_brand
 import io.github.lopezjavier.appfitness.composeapp.resources.create_food_carbs_total
@@ -43,6 +48,7 @@ import io.github.lopezjavier.appfitness.composeapp.resources.create_food_name
 import io.github.lopezjavier.appfitness.composeapp.resources.create_food_protein
 import io.github.lopezjavier.appfitness.composeapp.resources.create_food_salt
 import io.github.lopezjavier.appfitness.composeapp.resources.create_food_saturated_of
+import io.github.lopezjavier.appfitness.composeapp.resources.create_food_save_anyway
 import io.github.lopezjavier.appfitness.composeapp.resources.create_food_sugars_of
 import io.github.lopezjavier.appfitness.composeapp.resources.create_food_title
 import io.github.lopezjavier.appfitness.composeapp.resources.create_food_unit
@@ -56,7 +62,9 @@ import io.github.lopezjavier.appfitness.designsystem.AppOption
 import io.github.lopezjavier.appfitness.designsystem.AppStateAction
 import io.github.lopezjavier.appfitness.designsystem.AppTextField
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
+import io.github.lopezjavier.appfitness.designsystem.EditorSecondaryAction
 import io.github.lopezjavier.appfitness.designsystem.ErrorState
+import io.github.lopezjavier.appfitness.designsystem.HelpButton
 import io.github.lopezjavier.appfitness.designsystem.InlineNote
 import io.github.lopezjavier.appfitness.designsystem.Macro
 import io.github.lopezjavier.appfitness.designsystem.MacroDefaults
@@ -71,6 +79,7 @@ import org.jetbrains.compose.resources.stringResource
 private const val MAX_NAME_LENGTH = 200
 private const val NUTRIENT_DECIMALS = 2
 private const val LABEL_DECIMALS = 4
+private const val ALCOHOL_DECIMALS = 1
 private const val GRID_COLUMNS = 2
 private const val LARGE_FONT_SCALE = 1.3f
 private const val SKELETON_ROWS = 4
@@ -102,6 +111,17 @@ fun CreateFoodScreen(
         saveEnabledWhenClean = !state.isEdit,
         canSave = state.canSave || state.isOffline,
         testTagPrefix = "create_food",
+        secondaryAction = state.energyWarning?.let {
+            EditorSecondaryAction(
+                label = stringResource(Res.string.create_food_save_anyway),
+                testTag = "create_food_save_anyway",
+                enabled = !state.isSaving && !state.isOffline,
+                onClick = { onEvent(CreateFoodEvent.SaveAnyway) },
+            )
+        },
+        footerNotice = state.energyWarning?.let { warning ->
+            { EnergyWarningNotice(warning, onFix = { onEvent(CreateFoodEvent.DismissWarning) }) }
+        },
     ) {
         when {
             state.loadFailed -> ErrorState(
@@ -246,9 +266,9 @@ private fun NutritionBlock(state: CreateFoodUiState, onEvent: (CreateFoodEvent) 
         val spec =
             NutrientSpec(label, macro, "create_food_nutrient_${micronutrientTag(kind)}", decimals = LABEL_DECIMALS)
         Box(if (indent) Modifier.padding(start = Spacing.lg) else Modifier) {
-            NutrientField(spec, state.nutrients[kind].orEmpty(), errors.nutrients[kind], imeAction) {
+            NutrientField(spec, state.nutrients[kind].orEmpty(), errors.nutrients[kind], onChange = {
                 onEvent(CreateFoodEvent.NutrientChanged(kind, it))
-            }
+            }, imeAction = imeAction)
         }
     }
     val kcalLabel = stringResource(
@@ -259,20 +279,40 @@ private fun NutritionBlock(state: CreateFoodUiState, onEvent: (CreateFoodEvent) 
             NutrientSpec(kcalLabel, null, "create_food_kcal_field"),
             state.kcal,
             errors.kcal,
-            ImeAction.Next,
             change(CreateFoodField.Kcal),
+            ImeAction.Next,
         )
         val fat = NutrientSpec(stringResource(Res.string.create_food_fat_total), Macro.Fat, "create_food_fat_field")
-        NutrientField(fat, state.fat, errors.fat, ImeAction.Next, change(CreateFoodField.Fat))
+        NutrientField(fat, state.fat, errors.fat, change(CreateFoodField.Fat), ImeAction.Next)
         KindField(MicronutrientKind.SaturatedFat, stringResource(Res.string.create_food_saturated_of), Macro.Fat, true)
         val carbs =
             NutrientSpec(stringResource(Res.string.create_food_carbs_total), Macro.Carbs, "create_food_carbs_field")
-        NutrientField(carbs, state.carbs, errors.carbs, ImeAction.Next, change(CreateFoodField.Carbs))
+        NutrientField(carbs, state.carbs, errors.carbs, change(CreateFoodField.Carbs), ImeAction.Next)
         KindField(MicronutrientKind.Sugars, stringResource(Res.string.create_food_sugars_of), Macro.Carbs, true)
         KindField(MicronutrientKind.Fiber, stringResource(Res.string.create_food_fiber), null)
+        NutrientField(
+            NutrientSpec(
+                stringResource(Res.string.create_food_alcohol),
+                null,
+                "create_food_alcohol_field",
+                decimals = ALCOHOL_DECIMALS,
+            ),
+            state.alcohol,
+            errors.alcohol,
+            onChange = change(CreateFoodField.Alcohol),
+            imeAction = ImeAction.Next,
+            help = {
+                HelpButton(
+                    contentDescription = stringResource(Res.string.create_food_alcohol_help_cd),
+                    title = stringResource(Res.string.create_food_alcohol_help_title),
+                    body = stringResource(Res.string.create_food_alcohol_help_body),
+                    testTag = "create_food_alcohol_help",
+                )
+            },
+        )
         val protein =
             NutrientSpec(stringResource(Res.string.create_food_protein), Macro.Protein, "create_food_protein_field")
-        NutrientField(protein, state.protein, errors.protein, ImeAction.Next, change(CreateFoodField.Protein))
+        NutrientField(protein, state.protein, errors.protein, change(CreateFoodField.Protein), ImeAction.Next)
         KindField(MicronutrientKind.Salt, stringResource(Res.string.create_food_salt), null, imeAction = ImeAction.Done)
     }
 }
@@ -297,15 +337,19 @@ internal fun NutrientField(
     spec: NutrientSpec,
     value: String,
     error: NewFoodError?,
-    imeAction: ImeAction = ImeAction.Done,
     onChange: (String) -> Unit,
+    imeAction: ImeAction = ImeAction.Done,
+    help: (@Composable () -> Unit)? = null,
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
-        Text(
-            text = spec.label,
-            style = AppTheme.typography.bodyMedium,
-            color = spec.macro?.let { MacroDefaults.color(it, AppTheme.colors) } ?: AppTheme.colors.textSecondary,
-        )
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text(
+                text = spec.label,
+                style = AppTheme.typography.bodyMedium,
+                color = spec.macro?.let { MacroDefaults.color(it, AppTheme.colors) } ?: AppTheme.colors.textSecondary,
+            )
+            help?.invoke()
+        }
         NumberInput(
             value = value,
             onValueChange = onChange,

@@ -135,6 +135,14 @@ class SupabaseFoodPhotoRepositoryTest {
     }
 
     @Test
+    fun estimate_mapsTheAlcoholOfTheDraft() = runTest {
+        val body = """{"draft":{"name":"Vino","base_unit":"ml","nutrition":{"kcal":83,"alcohol_g":9.5}}}"""
+        val repo = signedIn(body = body)
+
+        assertEquals(9.5, repo.estimate(FoodPhotoMode.Dish, "QUJD", null).getOrThrow().alcohol)
+    }
+
+    @Test
     fun estimate_omitsTheCommentWhenNull() = runTest {
         val repo = signedIn()
 
