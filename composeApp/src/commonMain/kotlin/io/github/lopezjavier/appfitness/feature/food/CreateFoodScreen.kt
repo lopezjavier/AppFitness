@@ -48,7 +48,6 @@ import io.github.lopezjavier.appfitness.composeapp.resources.create_food_name
 import io.github.lopezjavier.appfitness.composeapp.resources.create_food_protein
 import io.github.lopezjavier.appfitness.composeapp.resources.create_food_salt
 import io.github.lopezjavier.appfitness.composeapp.resources.create_food_saturated_of
-import io.github.lopezjavier.appfitness.composeapp.resources.create_food_save_anyway
 import io.github.lopezjavier.appfitness.composeapp.resources.create_food_sugars_of
 import io.github.lopezjavier.appfitness.composeapp.resources.create_food_title
 import io.github.lopezjavier.appfitness.composeapp.resources.create_food_unit
@@ -62,7 +61,6 @@ import io.github.lopezjavier.appfitness.designsystem.AppOption
 import io.github.lopezjavier.appfitness.designsystem.AppStateAction
 import io.github.lopezjavier.appfitness.designsystem.AppTextField
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
-import io.github.lopezjavier.appfitness.designsystem.EditorSecondaryAction
 import io.github.lopezjavier.appfitness.designsystem.ErrorState
 import io.github.lopezjavier.appfitness.designsystem.HelpButton
 import io.github.lopezjavier.appfitness.designsystem.InlineNote
@@ -111,16 +109,15 @@ fun CreateFoodScreen(
         saveEnabledWhenClean = !state.isEdit,
         canSave = state.canSave || state.isOffline,
         testTagPrefix = "create_food",
-        secondaryAction = state.energyWarning?.let {
-            EditorSecondaryAction(
-                label = stringResource(Res.string.create_food_save_anyway),
-                testTag = "create_food_save_anyway",
-                enabled = !state.isSaving && !state.isOffline,
-                onClick = { onEvent(CreateFoodEvent.SaveAnyway) },
-            )
-        },
         footerNotice = state.energyWarning?.let { warning ->
-            { EnergyWarningNotice(warning, onFix = { onEvent(CreateFoodEvent.DismissWarning) }) }
+            {
+                EnergyWarningNotice(
+                    warning = warning,
+                    retryState = state.retryState,
+                    isOffline = state.isOffline,
+                    onRetry = { onEvent(CreateFoodEvent.RetryEstimate) },
+                )
+            }
         },
     ) {
         when {

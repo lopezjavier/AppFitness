@@ -22,9 +22,9 @@ import io.github.lopezjavier.appfitness.feature.exercises.ExerciseDetailViewMode
 import io.github.lopezjavier.appfitness.feature.exercises.ExercisePickerViewModel
 import io.github.lopezjavier.appfitness.feature.food.AddFoodViewModel
 import io.github.lopezjavier.appfitness.feature.food.CreateFoodViewModel
-import io.github.lopezjavier.appfitness.feature.food.FoodAuditViewModel
 import io.github.lopezjavier.appfitness.feature.food.FoodSearchViewModel
 import io.github.lopezjavier.appfitness.feature.food.photo.AmountPhotoViewModel
+import io.github.lopezjavier.appfitness.feature.food.photo.FoodPhotoRetryStore
 import io.github.lopezjavier.appfitness.feature.food.photo.FoodPhotoViewModel
 import io.github.lopezjavier.appfitness.feature.meals.MealSlotsEditorViewModel
 import io.github.lopezjavier.appfitness.feature.meals.defaults.MealDefaultsViewModel
@@ -82,6 +82,7 @@ val uiModule =
     module {
         // App-wide singleton: the shell badge and the notification center read the same reminders.
         single { ReminderCoordinator(get(), CoroutineScope(SupervisorJob() + Dispatchers.Default)) }
+        single { FoodPhotoRetryStore(photoCapture = get()) }
         single {
             HealthSyncCoordinator(get(), get(), get(), get(), CoroutineScope(SupervisorJob() + Dispatchers.Default))
         }
@@ -223,7 +224,6 @@ val uiModule =
                 savedState = get(),
             )
         }
-        viewModel { FoodAuditViewModel(foodRepository = get(), connectivity = get()) }
         viewModel {
             MealSlotsEditorViewModel(
                 savedState = get(),
@@ -256,6 +256,7 @@ val uiModule =
                 photoCapture = get(),
                 connectivity = get(),
                 savedState = get(),
+                retryStore = get(),
             )
         }
         // Scoped to the add-food route; the food travels as a parameter (US-54).
@@ -334,6 +335,11 @@ val uiModule =
                 savedState = get(),
                 editFoodId = editFoodId.ifBlank { null },
                 prefill = params.get<String>(3).ifBlank { null },
+                // The fifth parameter is optional: the token of the photo kept for "Repetir la estimación".
+                retryToken = (params.values.getOrNull(4) as? String)?.ifBlank { null },
+                photoRepository = get(),
+                photoCapture = get(),
+                retryStore = get(),
             )
         }
         viewModelOf(::OnboardingViewModel)

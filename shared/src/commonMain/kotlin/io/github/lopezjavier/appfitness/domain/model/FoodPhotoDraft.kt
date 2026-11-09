@@ -1,5 +1,6 @@
 package io.github.lopezjavier.appfitness.domain.model
 
+import io.github.lopezjavier.appfitness.domain.usecase.EnergyCheckLevel
 import kotlinx.serialization.Serializable
 
 /** What the photo shows: a plated dish, a nutrition label or a barcode on a package. */
@@ -26,6 +27,26 @@ data class FoodPhotoDraft(
     val confidence: FoodPhotoConfidence?,
 )
 
+/** Why an estimate failed the energy check: [result] is the level, [computed] the kcal the macros add up to. */
+data class EnergyIssue(val result: EnergyCheckLevel, val kcal: Double, val computed: Double, val gap: Double)
+
+/**
+ * A failed estimate sent back to `food-photo` so the model corrects it (ADR-104). [fibre] and [polyols] are grams per
+ * 100 [baseUnit]; null macros stay null (not typed).
+ */
+data class PreviousEstimate(
+    val name: String,
+    val baseUnit: String,
+    val kcal: Double,
+    val protein: Double?,
+    val carbs: Double?,
+    val fat: Double?,
+    val alcohol: Double?,
+    val fibre: Double?,
+    val polyols: Double?,
+    val reason: EnergyIssue,
+)
+
 /** Prefill of the create-food form: nothing is saved until the user confirms it. */
 @Serializable
 data class NewFoodDraft(
@@ -38,7 +59,7 @@ data class NewFoodDraft(
     val fat: Double?,
     val micronutrients: NewMicronutrients,
     val portions: List<NewPortion>,
-    /** Always null: a photo never provides a barcode to save. */
+    /** Null for a photo; set only when an Open Food Facts food is corrected into the user's own copy. */
     val barcode: String? = null,
     /** Grams of alcohol per 100 base units; null when unknown. */
     val alcohol: Double? = null,

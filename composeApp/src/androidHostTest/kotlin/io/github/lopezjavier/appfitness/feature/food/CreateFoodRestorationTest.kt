@@ -10,14 +10,21 @@ import androidx.compose.ui.test.assertTextContains
 import androidx.compose.ui.test.junit4.StateRestorationTester
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
+import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTextInput
 import androidx.compose.ui.test.performTextReplacement
 import androidx.lifecycle.SavedStateHandle
 import io.github.lopezjavier.appfitness.app.FakeConnectivityObserver
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
+import io.github.lopezjavier.appfitness.domain.model.FoodPhotoMode
 import io.github.lopezjavier.appfitness.domain.model.FoodPortion
+import io.github.lopezjavier.appfitness.domain.model.NewFoodDraft
+import io.github.lopezjavier.appfitness.domain.model.NewFoodDraftCodec
+import io.github.lopezjavier.appfitness.domain.model.NewMicronutrients
 import io.github.lopezjavier.appfitness.domain.port.ScanResult
+import io.github.lopezjavier.appfitness.feature.food.photo.FakePhotoCapture
+import io.github.lopezjavier.appfitness.feature.food.photo.FoodPhotoRetryStore
 import org.junit.Assert.assertEquals
 import org.junit.Rule
 import org.junit.Test
@@ -30,6 +37,7 @@ private const val CODE = "8410000000017"
 /** ADR-40: the half-filled create-food form and the search's not-found card survive recreation. */
 @RunWith(RobolectricTestRunner::class)
 @Config(qualifiers = "w360dp-h2400dp-xxhdpi")
+@Suppress("TooManyFunctions") // One method per restoration scenario.
 class CreateFoodRestorationTest {
     @get:Rule
     val rule = createComposeRule()
@@ -87,7 +95,6 @@ class CreateFoodRestorationTest {
         rule.onNodeWithTag("create_food_carbs_field").performTextInput("30")
         rule.onNodeWithTag("create_food_fat_field").performTextInput("10")
         rule.onNodeWithTag("create_food_alcohol_field").performTextInput("0")
-        rule.onNodeWithTag("create_food_save").performClick()
         rule.waitForIdle()
         rule.onNodeWithTag("create_food_energy_warning").assertExists()
 
@@ -96,7 +103,75 @@ class CreateFoodRestorationTest {
 
         rule.onNodeWithTag("create_food_energy_warning").assertExists()
         rule.onNodeWithTag("create_food_alcohol_field").assertTextContains("0")
-        rule.onNodeWithTag("create_food_save_anyway").assertExists()
+        rule.onNodeWithTag("create_food_save").assertIsNotEnabled()
+    }
+
+    private val failingAiDraft = NewFoodDraft(
+        name = "Lentejas",
+        brand = null,
+        baseUnit = "g",
+        kcal = 500.0,
+        protein = 10.0,
+        carbs = 30.0,
+        fat = 10.0,
+        micronutrients = NewMicronutrients(),
+        portions = emptyList(),
+    )
+
+    private fun aiForm(store: FoodPhotoRetryStore, token: String?, saved: SavedStateHandle) = CreateFoodViewModel(
+        barcode = null,
+        name = null,
+        foodRepository = foods,
+        connectivity = connectivity,
+        savedState = saved,
+        prefill = NewFoodDraftCodec.encode(failingAiDraft),
+        retryToken = token,
+        retryStore = store,
+    )
+
+    @Test
+    fun aiDraftWithRetry_survivesRecreationInProcess_withTheIconAvailable() {
+        val store = FoodPhotoRetryStore(FakePhotoCapture())
+        val token = store.put("photo-1", FoodPhotoMode.Dish, null)
+        val saved = SavedStateHandle()
+        val tester = StateRestorationTester(rule)
+        tester.setContent { FormHost(aiForm(store, token, saved)) }
+        rule.waitForIdle()
+        rule.onNodeWithTag("create_food_energy_retry").assertExists()
+
+        tester.emulateSavedInstanceStateRestore()
+        rule.waitForIdle()
+
+        rule.onNodeWithTag("create_food_energy_warning").assertExists()
+        rule.onNodeWithTag("create_food_energy_retry").assertExists()
+        rule.onNodeWithTag("create_food_save").assertIsNotEnabled()
+    }
+
+    @Test
+    fun aiDraftRecreatedWithAnEmptyStore_keepsTheWarning_andSaysThePhotoIsGone() {
+        val store = FoodPhotoRetryStore(FakePhotoCapture())
+        val token = store.put("photo-1", FoodPhotoMode.Dish, null)
+        val saved = SavedStateHandle()
+        aiForm(store, token, saved)
+        rule.setContent { FormHost(aiForm(FoodPhotoRetryStore(FakePhotoCapture()), null, saved)) }
+        rule.waitForIdle()
+
+        rule.onNodeWithTag("create_food_energy_warning").assertExists()
+        rule.onNodeWithTag("create_food_retry_photo_gone").assertExists()
+        rule.onNodeWithTag("create_food_energy_retry").assertDoesNotExist()
+        rule.onNodeWithTag("create_food_save").assertIsNotEnabled()
+    }
+
+    @Test
+    fun retryOffline_isDisabled_withTheStandardHint() {
+        val store = FoodPhotoRetryStore(FakePhotoCapture())
+        val token = store.put("photo-1", FoodPhotoMode.Dish, null)
+        connectivity.state.value = false
+        rule.setContent { FormHost(aiForm(store, token, SavedStateHandle())) }
+        rule.waitForIdle()
+
+        rule.onNodeWithTag("create_food_energy_retry").assertIsNotEnabled()
+        rule.onNodeWithText("Sin conexión: no se puede repetir la estimación").assertExists()
     }
 
     @Test

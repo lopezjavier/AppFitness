@@ -23,7 +23,7 @@ import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 
-/** T-252: the energy warning keeps every footer action reachable at a large font and its targets are 48 dp. */
+/** T-252 / ADR-104: the energy block keeps the footer reachable at a large font and its targets are 48 dp. */
 @RunWith(RobolectricTestRunner::class)
 @Config(qualifiers = "w360dp-h640dp-xxhdpi")
 class CreateFoodEnergyWarningLayoutTest {
@@ -59,26 +59,23 @@ class CreateFoodEnergyWarningLayoutTest {
         type("create_food_protein_field", "10")
         type("create_food_carbs_field", "30")
         type("create_food_fat_field", "10")
-        rule.onNodeWithTag("create_food_save").performClick()
-        rule.waitForIdle()
     }
 
     @Test
-    fun largeFont_keepsSaveFixAndSaveAnywayDisplayed() {
+    fun largeFont_keepsTheBlockedSaveAndTheHelpDisplayed() {
         show(fontScale = 2f)
         openWarning()
 
         rule.onNodeWithTag("create_food_save").assertIsDisplayed()
-        rule.onNodeWithTag("create_food_save_anyway").assertIsDisplayed()
-        rule.onNodeWithTag("create_food_energy_fix").assertIsDisplayed()
+        rule.onNodeWithTag("create_food_energy_warning").assertIsDisplayed()
+        rule.onNodeWithTag("create_food_energy_warning_help").assertIsDisplayed()
     }
 
     @Test
-    fun fixAndHelp_areAtLeast48dp() {
+    fun help_isAtLeast48dp() {
         show()
         openWarning()
 
-        rule.onNodeWithTag("create_food_energy_fix").assertHeightIsAtLeast(48.dp)
         rule.onNodeWithTag("create_food_energy_warning_help").assertHeightIsAtLeast(48.dp)
         rule.onNodeWithTag("create_food_energy_warning_help").assertWidthIsAtLeast(48.dp)
     }

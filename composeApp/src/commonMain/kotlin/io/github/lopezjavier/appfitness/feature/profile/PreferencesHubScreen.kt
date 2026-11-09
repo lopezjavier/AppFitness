@@ -15,7 +15,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.github.lopezjavier.appfitness.composeapp.resources.Res
-import io.github.lopezjavier.appfitness.composeapp.resources.food_audit_title
 import io.github.lopezjavier.appfitness.composeapp.resources.preferences_cooking_title
 import io.github.lopezjavier.appfitness.composeapp.resources.preferences_energy_title
 import io.github.lopezjavier.appfitness.composeapp.resources.preferences_macros_title
@@ -35,11 +34,7 @@ import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
 
 /** The hub's destinations: the section editors and the meals editor (T-126). */
-class PreferencesHubActions(
-    val onOpenSection: (PreferencesSection) -> Unit = {},
-    val onOpenMeals: () -> Unit = {},
-    val onOpenFoodAudit: () -> Unit = {},
-)
+class PreferencesHubActions(val onOpenSection: (PreferencesSection) -> Unit = {}, val onOpenMeals: () -> Unit = {})
 
 /**
  * Preferencias hub (US-56): stateless groups of [NavigationRow]s, one per editor, on a full-screen [AppScreen]:
@@ -87,7 +82,6 @@ fun PreferencesHubScreen(
                 HubRow(Res.string.preferences_cooking_title, "cooking") {
                     actions.onOpenSection(PreferencesSection.Cooking)
                 }
-                HubRow(Res.string.food_audit_title, "food_audit") { actions.onOpenFoodAudit() }
             }
             HubGroup {
                 HubRow(Res.string.preferences_training_title, "training") {

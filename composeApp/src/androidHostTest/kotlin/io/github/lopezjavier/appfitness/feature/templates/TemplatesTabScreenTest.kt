@@ -132,7 +132,7 @@ class TemplatesTabScreenTest {
                 slotId = "lunch",
                 date = "2026-10-19",
                 onOpenFood = {},
-                onCreateFood = { _, _, _ -> },
+                onCreateFood = { _, _, _, _ -> },
                 onOpenTemplate = onOpenTemplate,
                 onBack = {},
                 viewModel = model,

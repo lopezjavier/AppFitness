@@ -5,6 +5,8 @@ import io.github.lopezjavier.appfitness.domain.model.Food
 import io.github.lopezjavier.appfitness.domain.model.FoodPhotoConfidence
 import io.github.lopezjavier.appfitness.domain.model.FoodPhotoDraft
 import io.github.lopezjavier.appfitness.domain.model.FoodPhotoMode
+import io.github.lopezjavier.appfitness.domain.model.PreviousEstimate
+import io.github.lopezjavier.appfitness.domain.usecase.EnergyCheckLevel
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.JsonElement
@@ -19,14 +21,19 @@ internal data class FoodPhotoRequestDto(
     @SerialName("image_base64") val imageBase64: String,
     val mode: String,
     val comment: String? = null,
+    val previous: PreviousDto? = null,
 ) {
     companion object {
-        fun from(mode: FoodPhotoMode, imageBase64: String, comment: String?) = FoodPhotoRequestDto(
-            imageBase64 = imageBase64,
-            mode = mode.wireName,
-            // The server only accepts a note for a dish.
-            comment = comment?.trim()?.takeIf { mode == FoodPhotoMode.Dish && it.isNotEmpty() },
-        )
+        fun from(mode: FoodPhotoMode, imageBase64: String, comment: String?, previous: PreviousEstimate? = null) =
+            FoodPhotoRequestDto(
+                imageBase64 = imageBase64,
+                mode = mode.wireName,
+                // The server only accepts a note for a dish.
+                comment = comment?.trim()?.takeIf { mode == FoodPhotoMode.Dish && it.isNotEmpty() },
+                // A retry only exists for a dish or a label.
+                previous = previous?.takeIf { mode == FoodPhotoMode.Dish || mode == FoodPhotoMode.Label }
+                    ?.let(PreviousDto::from),
+            )
 
         private val FoodPhotoMode.wireName: String
             get() = when (this) {
@@ -36,6 +43,59 @@ internal data class FoodPhotoRequestDto(
             }
     }
 }
+
+/** The failed estimate of a retry, as `food-photo` validates it (`previous.ts`); micronutrients in grams per 100. */
+@Serializable
+internal data class PreviousDto(val estimate: PreviousEstimateDto, val reason: PreviousReasonDto) {
+    companion object {
+        fun from(previous: PreviousEstimate) = PreviousDto(
+            estimate = PreviousEstimateDto(
+                name = previous.name,
+                baseUnit = previous.baseUnit,
+                nutrition = PreviousNutritionDto(
+                    kcal = previous.kcal,
+                    proteinG = previous.protein,
+                    carbsG = previous.carbs,
+                    fatG = previous.fat,
+                    alcoholG = previous.alcohol ?: 0.0,
+                ),
+                micronutrients = PreviousMicronutrientsDto(previous.fibre, previous.polyols),
+            ),
+            reason = PreviousReasonDto(
+                result = if (previous.reason.result == EnergyCheckLevel.ClearlyWrong) "clearly_wrong" else "mismatch",
+                kcal = previous.reason.kcal,
+                computed = previous.reason.computed,
+                gap = previous.reason.gap,
+            ),
+        )
+    }
+}
+
+@Serializable
+internal data class PreviousEstimateDto(
+    val name: String,
+    @SerialName("base_unit") val baseUnit: String,
+    val nutrition: PreviousNutritionDto,
+    val micronutrients: PreviousMicronutrientsDto,
+)
+
+@Serializable
+internal data class PreviousNutritionDto(
+    val kcal: Double,
+    @SerialName("protein_g") val proteinG: Double?,
+    @SerialName("carbs_g") val carbsG: Double?,
+    @SerialName("fat_g") val fatG: Double?,
+    @SerialName("alcohol_g") val alcoholG: Double,
+)
+
+@Serializable
+internal data class PreviousMicronutrientsDto(
+    @SerialName("fiber_100g") val fiber100g: Double? = null,
+    @SerialName("polyols_100g") val polyols100g: Double? = null,
+)
+
+@Serializable
+internal data class PreviousReasonDto(val result: String, val kcal: Double, val computed: Double, val gap: Double)
 
 /** The food already chosen, sent as data for a weight estimate (ADR-72: name, brand and base unit only). */
 @Serializable

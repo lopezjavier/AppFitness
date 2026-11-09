@@ -50,7 +50,10 @@ data class AddFoodContent(
     val cookingImpact: CookingImpactPreview? = null,
     /** Confidence 1..10 of the amount filled from a photo; null once the user edits the amount (or none was given). */
     val estimateConfidence: Int? = null,
-    /** Set while the energy check of an Open Food Facts food failed on "Añadir" and the user has not decided yet. */
+    /**
+     * Set while the energy check of an Open Food Facts food fails (ADR-104): "Añadir" is blocked until the user
+     * corrects the food into their own copy ([AddFoodEvent.CorrectOff]).
+     */
     val energyWarning: EnergyWarning? = null,
 ) {
     /** The "Editar" action is shown: only for the user's own manual foods, never for Open Food Facts ones. */
@@ -71,7 +74,7 @@ data class AddFoodContent(
      * nothing is logged.
      */
     val canSubmit: Boolean
-        get() = quantityError == null && resolvedAmount != null && !submitting &&
+        get() = quantityError == null && resolvedAmount != null && !submitting && energyWarning == null &&
             (pick || (selectedSlotId != null && !isOffline))
 }
 
@@ -117,11 +120,8 @@ sealed interface AddFoodEvent {
 
     data object Retry : AddFoodEvent
 
-    /** Closes the energy warning, adding nothing; amount, portion and meal stay. */
-    data object EnergyWarningFix : AddFoodEvent
-
-    /** Adds the Open Food Facts food although the energy check failed: the copy is flagged as saved anyway. */
-    data object SaveAnyway : AddFoodEvent
+    /** "Corregir y guardar mi copia": open the create form prefilled with the failing OFF food. */
+    data object CorrectOff : AddFoodEvent
 
     /** Reload the food without the loading state, e.g. after it was edited. */
     data object Refresh : AddFoodEvent
@@ -136,4 +136,10 @@ sealed interface AddFoodEffect {
 
     /** Logging failed; the sheet stays open with the user's input. */
     data class SubmitFailed(val error: AppError?) : AddFoodEffect
+
+    /**
+     * Open the create form to correct the failing OFF food: [prefill] is a `NewFoodDraftCodec` JSON of its values and
+     * [barcode] its barcode (null when unknown).
+     */
+    data class CorrectOffFood(val prefill: String, val barcode: String?) : AddFoodEffect
 }

@@ -1,14 +1,15 @@
 package io.github.lopezjavier.appfitness.feature.food
 
 import io.github.lopezjavier.appfitness.domain.model.EditableFood
+import io.github.lopezjavier.appfitness.domain.model.EnergyIssue
 import io.github.lopezjavier.appfitness.domain.model.MicronutrientKind
 import io.github.lopezjavier.appfitness.domain.model.NewFood
 import io.github.lopezjavier.appfitness.domain.model.NewFoodDraft
 import io.github.lopezjavier.appfitness.domain.model.NewMicronutrients
 import io.github.lopezjavier.appfitness.domain.model.NewPortion
 import io.github.lopezjavier.appfitness.domain.model.NutritionPer100
+import io.github.lopezjavier.appfitness.domain.model.PreviousEstimate
 import io.github.lopezjavier.appfitness.domain.model.UpdatedFood
-import io.github.lopezjavier.appfitness.domain.usecase.EnergyCheckResult
 import io.github.lopezjavier.appfitness.domain.usecase.FoodEnergyCheck
 import kotlin.math.roundToLong
 
@@ -73,39 +74,64 @@ internal data class FormDraft(
 
     private fun toAlcohol(): Double? = optionalNumber(text(CreateFoodField.Alcohol))
 
-    /** The trimmed texts of the seven inputs of the energy check (to tell whether any of them was edited). */
-    fun checkInputTexts(): List<String> = listOf(
-        text(CreateFoodField.Kcal),
-        text(CreateFoodField.Protein),
-        text(CreateFoodField.Carbs),
-        text(CreateFoodField.Fat),
-        text(MicronutrientKind.Fiber),
-        text(MicronutrientKind.Polyols),
-        text(CreateFoodField.Alcohol),
-    ).map { it.trim() }
-
     private fun gramsOf(kind: MicronutrientKind): Double? =
         optionalNumber(text(kind))?.let { kind.labelUnit.toGrams(it) }
 
-    /** The energy check of the typed values; null while any of its inputs is blank (kcal) or invalid. */
-    fun energyCheck(): EnergyCheckResult? {
+    /**
+     * Why the typed values fail the energy check (07 section 4), or null when they pass, were skipped, or any input
+     * is blank (kcal) or invalid. A blank macro counts as 0; fibre, polyols and alcohol as not typed.
+     */
+    fun energyIssue(): EnergyIssue? {
         val nutrition = toNutrition()
-        val optional = listOf(gramsOf(MicronutrientKind.Fiber), gramsOf(MicronutrientKind.Polyols), toAlcohol())
-        val values = listOf(nutrition.kcal, nutrition.proteinG, nutrition.carbsG, nutrition.fatG) +
-            optional.filterNotNull()
-        if (values.any { !it.isFinite() || it < 0.0 }) return null
-        return FoodEnergyCheck.check(
+        return FoodEnergyCheck.issue(
             kcal = nutrition.kcal,
             protein = nutrition.proteinG,
             carbs = nutrition.carbsG,
             fat = nutrition.fatG,
-            fibre = optional[0],
-            polyols = optional[1],
-            alcohol = optional[2],
+            fibre = gramsOf(MicronutrientKind.Fiber),
+            polyols = gramsOf(MicronutrientKind.Polyols),
+            alcohol = toAlcohol(),
         )
     }
 
-    fun toNewFood(savedAnyway: Boolean = false) = NewFood(
+    /** The values and the reason to send back to the AI for a retry; null while the check does not fail. */
+    fun toPreviousEstimate(): PreviousEstimate? {
+        val issue = energyIssue() ?: return null
+        return PreviousEstimate(
+            name = text(CreateFoodField.Name).trim(),
+            baseUnit = baseUnit,
+            kcal = toNutrition().kcal,
+            protein = optionalNumber(text(CreateFoodField.Protein)),
+            carbs = optionalNumber(text(CreateFoodField.Carbs)),
+            fat = optionalNumber(text(CreateFoodField.Fat)),
+            alcohol = toAlcohol(),
+            fibre = gramsOf(MicronutrientKind.Fiber),
+            polyols = gramsOf(MicronutrientKind.Polyols),
+            reason = issue,
+        )
+    }
+
+    /**
+     * This draft with the nutrition fields of [estimate] (kcal, macros, alcohol, fibre, polyols) in place of its own,
+     * all marked as touched; name, brand, unit, portions and the other nutrients stay.
+     */
+    fun withEstimate(estimate: FormDraft): FormDraft {
+        val fieldsToTake = listOf(
+            CreateFoodField.Kcal,
+            CreateFoodField.Protein,
+            CreateFoodField.Carbs,
+            CreateFoodField.Fat,
+            CreateFoodField.Alcohol,
+        )
+        val kindsToTake = listOf(MicronutrientKind.Fiber, MicronutrientKind.Polyols)
+        return copy(
+            fields = fields + fieldsToTake.associateWith { estimate.text(it) },
+            nutrients = nutrients + kindsToTake.associateWith { estimate.text(it) },
+            touched = touched + fieldsToTake.map { it.name } + kindsToTake.map { it.name },
+        )
+    }
+
+    fun toNewFood() = NewFood(
         name = text(CreateFoodField.Name).trim(),
         brand = text(CreateFoodField.Brand).trim().ifEmpty { null },
         baseUnit = baseUnit,
@@ -114,10 +140,9 @@ internal data class FormDraft(
         portions = toPortions(),
         micronutrients = toMicronutrients(),
         alcoholG = toAlcohol(),
-        savedAnyway = savedAnyway,
     )
 
-    fun toUpdatedFood(id: String, savedAnyway: Boolean = false) = UpdatedFood(
+    fun toUpdatedFood(id: String) = UpdatedFood(
         id = id,
         name = text(CreateFoodField.Name).trim(),
         brand = text(CreateFoodField.Brand).trim().ifEmpty { null },
@@ -126,7 +151,6 @@ internal data class FormDraft(
         micronutrients = toMicronutrients(),
         baseUnit = baseUnit,
         alcoholG = toAlcohol(),
-        savedAnyway = savedAnyway,
     )
 
     companion object {

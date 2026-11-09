@@ -86,7 +86,7 @@ sealed interface FoodPhotoEvent {
 
 sealed interface FoodPhotoEffect {
     /** Open the create-food form prefilled with the estimate. */
-    data class OpenPrefilledForm(val draft: NewFoodDraft) : FoodPhotoEffect
+    data class OpenPrefilledForm(val draft: NewFoodDraft, val retryToken: String? = null) : FoodPhotoEffect
 
     /** Open the create-food form empty ("Crear manualmente"). */
     data object OpenEmptyForm : FoodPhotoEffect

@@ -16,6 +16,7 @@ import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performImeAction
 import androidx.compose.ui.test.performTextClearance
 import androidx.compose.ui.test.performTextInput
+import androidx.compose.ui.test.performTextReplacement
 import io.github.lopezjavier.appfitness.app.FakeConnectivityObserver
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
 import io.github.lopezjavier.appfitness.domain.AppError
@@ -332,40 +333,49 @@ class CreateFoodScreenTest {
     }
 
     @Test
-    fun mismatch_warnsInTheFooter_andDoesNotSave() {
+    fun mismatch_warnsInTheFooter_andBlocksSaving() {
         show()
         fillMismatch()
-        tap("create_food_save")
 
         rule.onNodeWithTag("create_food_energy_warning").assertExists()
         rule.onNodeWithText("Parece un error:", substring = true).assertExists()
         rule.onNodeWithText("500 kcal declaradas", substring = true).assertExists()
         rule.onNodeWithText("250 kcal", substring = true).assertExists()
-        rule.onNodeWithTag("create_food_save_anyway").assertExists()
+        rule.onNodeWithTag("create_food_save").assertIsNotEnabled()
+        rule.onNodeWithText("Guardar igualmente").assertDoesNotExist()
         assertEquals(0, foods.created.size)
     }
 
     @Test
-    fun fix_closesTheWarning_andKeepsEveryValue() {
+    fun mismatch_showsTheFieldsToFix_withoutOpeningTheSection() {
         show()
         fillMismatch()
-        tap("create_food_save")
-        tap("create_food_energy_fix")
 
-        rule.onNodeWithTag("create_food_energy_warning").assertDoesNotExist()
-        rule.onNodeWithTag("create_food_kcal_field").assertTextContains("500")
-        rule.onNodeWithTag("create_food_name_field").assertTextContains("Barrita")
+        rule.onNodeWithTag("create_food_nutrient_polyols").assertExists()
     }
 
     @Test
-    fun saveAnyway_savesTheFoodAsTyped() {
+    fun fixingTheKcal_removesTheWarning_andEnablesSaving() {
         show()
         fillMismatch()
+        rule.onNodeWithTag("create_food_kcal_field").performTextReplacement("250")
+        rule.waitForIdle()
         tap("create_food_save")
-        tap("create_food_save_anyway")
 
-        assertEquals(500.0, foods.created.single().nutrition.kcal, 0.0)
+        rule.onNodeWithTag("create_food_energy_warning").assertDoesNotExist()
+        assertEquals(250.0, foods.created.single().nutrition.kcal, 0.0)
         assertEquals(listOf("new-1"), saved)
+    }
+
+    @Test
+    fun blackCoffee_withZeroKcalAndNoMacros_savesWithoutWarning() {
+        show()
+        type("create_food_name_field", "Café solo")
+        type("create_food_kcal_field", "0")
+        rule.onNodeWithTag("create_food_energy_warning").assertDoesNotExist()
+        tap("create_food_save")
+
+        assertEquals(1, foods.created.size)
     }
 
     @Test
@@ -382,7 +392,6 @@ class CreateFoodScreenTest {
     fun missingEnergy_helpExplainsFibreAndAlcohol() {
         show()
         fillMismatch()
-        tap("create_food_save")
         tap("create_food_energy_warning_help")
 
         rule.onNodeWithText("Si lleva fibra o alcohol", substring = true).assertExists()
@@ -396,10 +405,10 @@ class CreateFoodScreenTest {
         type("create_food_protein_field", "0")
         type("create_food_carbs_field", "95")
         type("create_food_fat_field", "0")
-        tap("create_food_save")
         rule.onNodeWithText("Parece un error:", substring = true).assertExists()
         tap("create_food_energy_warning_help")
 
-        rule.onNodeWithText("Si lleva polialcoholes", substring = true).assertExists()
+        rule.onNodeWithText("Si lleva edulcorantes con polialcoholes", substring = true).assertExists()
+        rule.onNodeWithText("El eritritol cuenta como polialcohol", substring = true).assertExists()
     }
 }

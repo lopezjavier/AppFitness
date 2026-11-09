@@ -13,6 +13,7 @@ import io.github.lopezjavier.appfitness.domain.model.AmountEstimate
 import io.github.lopezjavier.appfitness.domain.model.Food
 import io.github.lopezjavier.appfitness.domain.model.FoodPhotoDraft
 import io.github.lopezjavier.appfitness.domain.model.FoodPhotoMode
+import io.github.lopezjavier.appfitness.domain.model.PreviousEstimate
 import io.github.lopezjavier.appfitness.domain.repository.FoodPhotoRepository
 import io.ktor.client.plugins.HttpRequestTimeoutException
 import io.ktor.client.plugins.timeout
@@ -56,14 +57,18 @@ class SupabaseFoodPhotoRepository internal constructor(
         explicitNulls = false
     }
 
-    override suspend fun estimate(mode: FoodPhotoMode, imageBase64: String, comment: String?): Result<FoodPhotoDraft> =
-        auth.ownRow {
-            val body = json.encodeToString(
-                FoodPhotoRequestDto.serializer(),
-                FoodPhotoRequestDto.from(mode, imageBase64, comment),
-            )
-            decode(invoke(body)) { json.decodeFromString<FoodPhotoResponseDto>(it).draft.toDomain() }
-        }
+    override suspend fun estimate(
+        mode: FoodPhotoMode,
+        imageBase64: String,
+        comment: String?,
+        previous: PreviousEstimate?,
+    ): Result<FoodPhotoDraft> = auth.ownRow {
+        val body = json.encodeToString(
+            FoodPhotoRequestDto.serializer(),
+            FoodPhotoRequestDto.from(mode, imageBase64, comment, previous),
+        )
+        decode(invoke(body)) { json.decodeFromString<FoodPhotoResponseDto>(it).draft.toDomain() }
+    }
 
     override suspend fun estimateAmount(food: Food, imageBase64: String): Result<AmountEstimate> = auth.ownRow {
         val body = json.encodeToString(AmountRequestDto.serializer(), AmountRequestDto.from(food, imageBase64))

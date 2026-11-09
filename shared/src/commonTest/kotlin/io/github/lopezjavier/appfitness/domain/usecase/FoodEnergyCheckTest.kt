@@ -2,6 +2,7 @@ package io.github.lopezjavier.appfitness.domain.usecase
 
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertNull
 
 class FoodEnergyCheckTest {
     private fun check(
@@ -111,4 +112,34 @@ class FoodEnergyCheckTest {
 
     @Test
     fun computedIsNotRounded() = assertEquals(4.444, check(5.0, 1.111, 0.0, 0.0).computed, 1e-9)
+
+    @Test
+    fun issue_ofAFailingFoodCarriesLevelKcalComputedAndGap() {
+        val issue = FoodEnergyCheck.issue(kcal = 500.0, protein = 10.0, carbs = 30.0, fat = 10.0)
+
+        assertEquals(EnergyCheckLevel.ClearlyWrong, issue?.result)
+        assertEquals(500.0, issue?.kcal)
+        assertEquals(250.0, issue?.computed)
+        assertEquals(-250.0, issue?.gap)
+    }
+
+    @Test
+    fun issue_isNullWhenTheFoodPassesIsSkippedOrHasNoKcal() {
+        assertNull(FoodEnergyCheck.issue(kcal = 174.0, protein = 6.0, carbs = 15.0, fat = 10.0))
+        assertNull(FoodEnergyCheck.issue(kcal = 0.0, protein = 0.0, carbs = 0.0, fat = 0.0))
+        assertNull(FoodEnergyCheck.issue(kcal = null, protein = 10.0, carbs = 30.0, fat = 10.0))
+    }
+
+    @Test
+    fun issue_treatsNullMacrosAsZeroAndIgnoresInvalidValues() {
+        assertEquals(EnergyCheckLevel.ClearlyWrong, FoodEnergyCheck.issue(300.0, null, null, null)?.result)
+        assertNull(FoodEnergyCheck.issue(300.0, -1.0, 0.0, 0.0))
+        assertNull(FoodEnergyCheck.issue(300.0, Double.NaN, 0.0, 0.0))
+    }
+
+    @Test
+    fun issue_redWineNeedsItsAlcohol() {
+        assertEquals(EnergyCheckLevel.ClearlyWrong, FoodEnergyCheck.issue(83.0, 0.1, 2.6, 0.0)?.result)
+        assertNull(FoodEnergyCheck.issue(83.0, 0.1, 2.6, 0.0, alcohol = 9.5))
+    }
 }

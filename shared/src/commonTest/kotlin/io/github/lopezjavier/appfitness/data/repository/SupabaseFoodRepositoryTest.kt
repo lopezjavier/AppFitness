@@ -562,68 +562,109 @@ class SupabaseFoodRepositoryTest {
     }
 
     @Test
-    fun createFood_sendsAlcoholAndTheSavedAnywayFlag() = runTest {
+    fun createFood_sendsAlcohol_andNeverTheRemovedSavedAnywayFlag() = runTest {
         val repo = signedIn { request ->
             if (request.url.encodedPath.endsWith("/rpc/create_personal_food")) "\"f1\"" else "[$EGG]"
         }
 
         repo.createFood(
-            NewFood(
-                "x",
-                null,
-                "g",
-                NutritionPer100(83.0, 0.1, 2.6, 0.0),
-                null,
-                emptyList(),
-                alcoholG = 9.5,
-                savedAnyway = true,
-            ),
+            NewFood("x", null, "g", NutritionPer100(83.0, 0.1, 2.6, 0.0), null, emptyList(), alcoholG = 9.5),
         ).getOrThrow()
 
         val rpcBody = bodies.first { it.contains("p_name") }
         assertTrue(rpcBody.contains("\"p_alcohol\":9.5"), rpcBody)
-        assertTrue(rpcBody.contains("\"p_saved_anyway\":true"), rpcBody)
+        assertTrue(!rpcBody.contains("p_saved_anyway"), rpcBody)
     }
 
     @Test
-    fun updateFood_sendsAlcoholAndTheFlag_andNullAlcoholMeansNoAlcohol() = runTest {
+    fun updateFood_sendsAlcohol_andNullAlcoholMeansNoAlcohol() = runTest {
         val repo = signedIn { request ->
             if (request.url.encodedPath.endsWith("/rpc/update_personal_food")) "" else "[$EGG]"
         }
 
-        repo.updateFood(updated.copy(alcoholG = 9.5, savedAnyway = true)).getOrThrow()
+        repo.updateFood(updated.copy(alcoholG = 9.5)).getOrThrow()
         repo.updateFood(updated).getOrThrow()
 
         val (with, without) = bodies.filter { it.contains("p_food_id") }
-        assertTrue(with.contains("\"p_alcohol\":9.5") && with.contains("\"p_saved_anyway\":true"), with)
+        assertTrue(with.contains("\"p_alcohol\":9.5") && !with.contains("p_saved_anyway"), with)
         assertTrue(!without.contains("p_alcohol\":") || without.contains("\"p_alcohol\":null"), without)
-        assertTrue(!without.contains("\"p_saved_anyway\":true"), without)
     }
 
     @Test
-    fun editableFood_mapsAlcoholAndTheFlag_andDefaultsWhenAbsent() = runTest {
-        val flagged = signedIn { request ->
+    fun editableFood_mapsAlcohol_andDefaultsWhenAbsent() = runTest {
+        val withAlcohol = signedIn { request ->
             if (request.url.encodedPath.endsWith("/rpc/personal_food_in_use")) {
                 "false"
             } else {
-                "[${manualRow.replace(
-                    "\"source\":\"user\"",
-                    "\"source\":\"user\",\"alcohol_g_100\":9.5,\"energy_check_saved_anyway\":true",
-                )}]"
+                "[${manualRow.replace("\"source\":\"user\"", "\"source\":\"user\",\"alcohol_g_100\":9.5")}]"
             }
         }.editableFood("f1").getOrThrow()
         val plain = editableRepo().editableFood("f1").getOrThrow()
 
-        assertEquals(9.5, flagged.alcoholG)
-        assertTrue(flagged.savedAnyway)
+        assertEquals(9.5, withAlcohol.alcoholG)
         assertEquals(null, plain.alcoholG)
-        assertTrue(!plain.savedAnyway)
         assertTrue(
             requests.any {
                 val select = it.url.parameters["select"].orEmpty()
-                select.contains("alcohol_g_100") && select.contains("energy_check_saved_anyway")
+                select.contains("alcohol_g_100") && !select.contains("saved_anyway")
             },
         )
+    }
+
+    @Test
+    fun editableFood_selectsOnlyExistingColumns_theDroppedSavedAnywayColumnWouldFailEveryRead() = runTest {
+        editableRepo().editableFood("f1").getOrThrow()
+
+        val select = requests.first { it.url.parameters["select"] != null }.url.parameters["select"]
+        assertEquals(
+            "id,name,brand,base_unit,kcal_100,protein_100,carbs_100,fat_100,serving_label,serving_amount," +
+                "image_url,source,barcode,food_portions(id,label,amount,position),micronutrients,alcohol_g_100",
+            select,
+        )
+    }
+
+    @Test
+    fun editableFood_ofAnOffFood_isNotFound_notAnUnknownFailure() = runTest {
+        val repo = signedIn { request ->
+            if (request.url.encodedPath.endsWith("/rpc/personal_food_in_use")) {
+                "false"
+            } else {
+                "[${manualRow.replace("\"source\":\"user\"", "\"source\":\"off\"")}]"
+            }
+        }
+
+        assertEquals(AppError.NotFound, repo.editableFood("f1").appErrorOrNull())
+    }
+
+    private val energyCheckFailure =
+        """{"code":"FD001","message":"food energy check failed","details":"{}","hint":null}"""
+
+    @Test
+    fun createFood_energyCheckFailureIsFoodEnergyCheckFailed() = runTest {
+        val repo = signedIn { energyCheckFailure }
+        status = HttpStatusCode.BadRequest
+
+        val result = repo.createFood(
+            NewFood("x", null, "g", NutritionPer100(500.0, 10.0, 30.0, 10.0), null, emptyList()),
+        )
+
+        assertEquals(AppError.FoodEnergyCheckFailed, result.appErrorOrNull())
+    }
+
+    @Test
+    fun updateFood_energyCheckFailureIsFoodEnergyCheckFailed() = runTest {
+        val repo = signedIn { energyCheckFailure }
+        status = HttpStatusCode.BadRequest
+
+        assertEquals(AppError.FoodEnergyCheckFailed, repo.updateFood(updated).appErrorOrNull())
+    }
+
+    @Test
+    fun copyOffFood_energyCheckFailureIsFoodEnergyCheckFailed() = runTest {
+        val repo = signedIn { energyCheckFailure }
+        status = HttpStatusCode.BadRequest
+
+        assertEquals(AppError.FoodEnergyCheckFailed, repo.copyOffFood("off1").appErrorOrNull())
     }
 
     @Test

@@ -453,26 +453,11 @@ class FoodEditScreenTest {
     }
 
     @Test
-    fun flaggedFood_editedByNameOnly_savesWithoutWarning_andKeepsTheFlag() {
+    fun failingStoredFood_showsTheWarningAtOnce_andSaveStaysDisabled() {
         manualYogurt()
-        foods.storedSavedAnyway += "yogurt"
-        showForm()
-
-        replace("create_food_name_field", "Yogur casero 2")
-        tap("create_food_save")
-
-        rule.onNodeWithTag("create_food_energy_warning").assertDoesNotExist()
-        assertEquals(true, foods.updates.single().savedAnyway)
-    }
-
-    @Test
-    fun flaggedFood_withChangedKcalThatStillFails_warnsAgain() {
-        manualYogurt()
-        foods.storedSavedAnyway += "yogurt"
         showForm()
 
         replace("create_food_kcal_field", "500")
-        tap("create_food_save")
 
         rule.onNodeWithTag("create_food_energy_warning").assertExists()
         assertEquals(0, foods.updates.size)

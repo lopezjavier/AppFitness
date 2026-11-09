@@ -79,10 +79,8 @@ sealed interface FoodSheetContext {
         val saving: Boolean,
         val onAdd: () -> Unit,
         val offlineHint: String?,
-        /** A non-error message pinned above "Añadir" (the energy warning of an Open Food Facts food). */
+        /** A non-error message pinned above "Añadir" (the energy block of an Open Food Facts food). */
         val notice: (@Composable () -> Unit)? = null,
-        /** A ghost action under "Añadir" (for example "Añadir igualmente"). */
-        val secondary: (@Composable () -> Unit)? = null,
     ) : FoodSheetContext
 
     /**
@@ -191,7 +189,7 @@ private fun footerOf(context: FoodSheetContext, prefix: String): SheetFooter = w
         enabled = context.canAdd,
         saving = context.saving,
         hint = context.offlineHint,
-        secondary = context.secondary,
+        secondary = null,
         notice = context.notice,
     )
 

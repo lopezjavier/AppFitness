@@ -191,7 +191,9 @@ data class FoodSearchRoute(val slotId: String? = null, val date: String, val pic
 
 /**
  * Create-food form (US-18), opened from the search with the scanned [barcode] and/or the typed [name]; [slotId] and
- * [date] are carried on to the add-food sheet of the new food. [prefill] is a JSON `NewFoodDraft` (AI photo estimate).
+ * [date] are carried on to the add-food sheet of the new food. [prefill] is a JSON `NewFoodDraft` (AI photo estimate
+ * or a corrected Open Food Facts food); [retryToken] names the photo an AI estimate keeps in memory for "Repetir la
+ * estimación".
  */
 @Serializable
 data class CreateFoodRoute(
@@ -201,6 +203,7 @@ data class CreateFoodRoute(
     val date: String,
     val pick: Boolean = false,
     val prefill: String? = null,
+    val retryToken: String? = null,
 ) : AppRoute
 
 /**
@@ -240,17 +243,6 @@ data class TemplateDetailsRoute(val templateId: String, val slotId: String? = nu
 /** The meals editor (US-23), opened from Perfil -> Preferencias. */
 @Serializable
 data object MealSlotsRoute : AppRoute
-
-/** The food audit (US-117): the user's foods whose kcal and macros do not match, opened from Preferencias. */
-@Serializable
-data object FoodAuditRoute : AppRoute
-
-/**
- * The edit form of the food [foodId] opened from the [FoodAuditRoute] list. Not [EditFoodRoute]: its save must pop
- * back to the list (reporting the change) instead of reopening an add-food sheet.
- */
-@Serializable
-data class FoodAuditEditRoute(val foodId: String) : AppRoute
 
 /** The default comidas editor (US-51), opened from the meals editor. */
 @Serializable
@@ -424,8 +416,6 @@ object AppDestinations {
             EditFoodRoute("", null, ""),
             TemplateDetailsRoute("", null, ""),
             MealSlotsRoute,
-            FoodAuditRoute,
-            FoodAuditEditRoute(""),
             MealDefaultsRoute,
             DiaryHistoryRoute,
             DiaryDayRoute(""),

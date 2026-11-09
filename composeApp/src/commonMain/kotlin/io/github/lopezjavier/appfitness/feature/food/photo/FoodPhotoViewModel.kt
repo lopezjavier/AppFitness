@@ -5,6 +5,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import io.github.lopezjavier.appfitness.domain.AppError
 import io.github.lopezjavier.appfitness.domain.AppException
+import io.github.lopezjavier.appfitness.domain.model.FoodPhotoDraft
 import io.github.lopezjavier.appfitness.domain.model.FoodPhotoMode
 import io.github.lopezjavier.appfitness.domain.model.toNewFoodDraft
 import io.github.lopezjavier.appfitness.domain.port.CaptureResult
@@ -12,6 +13,7 @@ import io.github.lopezjavier.appfitness.domain.port.ConnectivityObserver
 import io.github.lopezjavier.appfitness.domain.port.PhotoCapture
 import io.github.lopezjavier.appfitness.domain.port.PhotoSource
 import io.github.lopezjavier.appfitness.domain.repository.FoodPhotoRepository
+import io.github.lopezjavier.appfitness.domain.usecase.FoodEnergyCheck
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.Flow
@@ -45,6 +47,7 @@ class FoodPhotoViewModel(
     private val photoCapture: PhotoCapture,
     connectivity: ConnectivityObserver,
     private val savedState: SavedStateHandle = SavedStateHandle(),
+    private val retryStore: FoodPhotoRetryStore = FoodPhotoRetryStore(photoCapture),
 ) : ViewModel() {
     private val _uiState = MutableStateFlow(restore())
     val uiState: StateFlow<FoodPhotoUiState> = _uiState.asStateFlow()
@@ -177,15 +180,28 @@ class FoodPhotoViewModel(
             if (handle != photo || step() != FoodPhotoStep.Estimating) return@launch
             outcome.fold(
                 onSuccess = {
-                    dropPhoto()
+                    // A failing dish or label estimate keeps its photo for the retry of the form (ADR-104).
+                    val token = if (it.failsEnergyCheck(mode)) retryStore.put(photo, mode, comment) else null
+                    if (token != null) handle = null else dropPhoto()
                     clearComment()
                     setStep(FoodPhotoStep.Closed)
-                    effectChannel.send(FoodPhotoEffect.OpenPrefilledForm(it.toNewFoodDraft(mode)))
+                    effectChannel.send(FoodPhotoEffect.OpenPrefilledForm(it.toNewFoodDraft(mode), token))
                 },
                 onFailure = { setStep(FoodPhotoStep.Error(kindOf(mode, (it as? AppException)?.error))) },
             )
         }
     }
+
+    private fun FoodPhotoDraft.failsEnergyCheck(mode: FoodPhotoMode): Boolean = mode != FoodPhotoMode.Barcode &&
+        FoodEnergyCheck.issue(
+            kcal = kcal,
+            protein = protein,
+            carbs = carbs,
+            fat = fat,
+            fibre = micronutrients["fiber_100g"],
+            polyols = micronutrients["polyols_100g"],
+            alcohol = alcohol,
+        ) != null
 
     private fun kindOf(mode: FoodPhotoMode, error: AppError?): FoodPhotoErrorKind = when (error) {
         AppError.PhotoNotRecognized ->

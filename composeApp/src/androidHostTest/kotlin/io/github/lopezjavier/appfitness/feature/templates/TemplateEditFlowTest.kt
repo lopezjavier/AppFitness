@@ -111,7 +111,7 @@ class TemplateEditFlowTest {
         }
     }
     private val diary = FakeFoodDiaryRepository()
-    private val addFoodSlot: AddFoodSlot = { foodId, _, _, _, _, _, pick, onPick ->
+    private val addFoodSlot: AddFoodSlot = { foodId, _, _, _, _, _, pick, onPick, _ ->
         Column(Modifier.testTag("food_sheet")) {
             Text("$foodId|pick=$pick", Modifier.testTag("sheet_args"))
             Box(Modifier.size(48.dp).testTag("sheet_pick").clickable { onPick(foodId, 150.0, null) })

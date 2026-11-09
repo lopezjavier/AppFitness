@@ -1,6 +1,5 @@
 package io.github.lopezjavier.appfitness.feature.food
 
-import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.getUnclippedBoundsInRoot
@@ -60,59 +59,42 @@ class AddFoodEnergyWarningSheetTest {
     }
 
     @Test
-    fun noWarning_showsNeitherNoticeNorSecondaryAction() {
+    fun noWarning_showsNoNotice() {
         show(warningState(warning = null))
 
-        rule.onNodeWithTag("create_food_energy_warning").assertDoesNotExist()
-        rule.onNodeWithTag("add_food_add_anyway").assertDoesNotExist()
+        rule.onNodeWithTag("add_food_energy_warning").assertDoesNotExist()
     }
 
     @Test
-    fun warning_showsFactsWithClearlyWrongPrefix_andKeepsAnadirVisible() {
+    fun warning_showsFactsWithClearlyWrongPrefix_andBlocksAnadir() {
         show(warningState())
 
-        rule.onNodeWithTag("create_food_energy_warning").assertExists()
+        rule.onNodeWithTag("add_food_energy_warning").assertExists()
         rule.onNodeWithText("Parece un error:", substring = true).assertExists()
         rule.onNodeWithText("500 kcal declaradas", substring = true).assertExists()
         rule.onNodeWithText("250 kcal", substring = true).assertExists()
-        rule.onNodeWithTag("food_sheet_commit").assertExists().assertIsEnabled()
+        rule.onNodeWithTag("food_sheet_commit").assertExists().assertIsNotEnabled()
+        rule.onNodeWithText("Añadir igualmente").assertDoesNotExist()
     }
 
     @Test
-    fun ahoraNo_sendsTheFixEvent_andIsLabelledAhoraNo() {
+    fun corregirYGuardar_sendsCorrectOff() {
         show(warningState())
 
-        rule.onNodeWithTag("create_food_energy_fix").assertTextEquals("Ahora no")
-        rule.onNodeWithTag("create_food_energy_fix").performClick()
+        rule.onNodeWithTag("add_food_energy_fix").assertTextEquals("Corregir y guardar mi copia")
+        rule.onNodeWithTag("add_food_energy_fix").performClick()
 
-        assertEquals(listOf<AddFoodEvent>(AddFoodEvent.EnergyWarningFix), events)
-    }
-
-    @Test
-    fun anadirIgualmente_sendsSaveAnyway() {
-        show(warningState())
-
-        rule.onNodeWithTag("add_food_add_anyway").assertTextEquals("Añadir igualmente")
-        rule.onNodeWithTag("add_food_add_anyway").performClick()
-
-        assertEquals(listOf<AddFoodEvent>(AddFoodEvent.SaveAnyway), events)
-    }
-
-    @Test
-    fun offline_disablesAnadirIgualmente() {
-        show(warningState(offline = true))
-
-        rule.onNodeWithTag("add_food_add_anyway").assertIsNotEnabled()
+        assertEquals(listOf<AddFoodEvent>(AddFoodEvent.CorrectOff), events)
     }
 
     @Test
     fun help_usesTheOffSpecificAdvice() {
         show(warningState())
 
-        rule.onNodeWithTag("create_food_energy_warning_help").performClick()
+        rule.onNodeWithTag("add_food_energy_warning_help").performClick()
         rule.waitForIdle()
 
-        rule.onNodeWithTag("create_food_energy_warning").assertExists()
+        rule.onNodeWithTag("add_food_energy_warning").assertExists()
         rule.onNodeWithText("Open Food Facts", substring = true).assertExists()
     }
 
@@ -130,12 +112,12 @@ class AddFoodEnergyWarningSheetTest {
 
     @Test
     @Config(qualifiers = "w360dp-h640dp-xxhdpi")
-    fun smallScreen_keepsAnadirAndAnadirIgualmenteOnScreen() {
+    fun smallScreen_keepsAnadirAndTheFixButtonOnScreen() {
         show(warningState())
 
         val commit = rule.onNodeWithTag("food_sheet_commit").getUnclippedBoundsInRoot()
-        val anyway = rule.onNodeWithTag("add_food_add_anyway").getUnclippedBoundsInRoot()
+        val fix = rule.onNodeWithTag("add_food_energy_fix").getUnclippedBoundsInRoot()
         assertTrue("commit within 640 dp: ${commit.bottom}", commit.bottom <= 640.dp)
-        assertTrue("secondary within 640 dp: ${anyway.bottom}", anyway.bottom <= 640.dp)
+        assertTrue("fix within 640 dp: ${fix.bottom}", fix.bottom <= 640.dp)
     }
 }

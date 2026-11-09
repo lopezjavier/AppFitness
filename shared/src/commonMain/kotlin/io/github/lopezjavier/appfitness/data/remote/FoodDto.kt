@@ -1,10 +1,7 @@
 package io.github.lopezjavier.appfitness.data.remote
 
-import io.github.lopezjavier.appfitness.domain.AppError
-import io.github.lopezjavier.appfitness.domain.AppException
 import io.github.lopezjavier.appfitness.domain.model.DiaryDaySummary
 import io.github.lopezjavier.appfitness.domain.model.Food
-import io.github.lopezjavier.appfitness.domain.model.FoodAuditRow
 import io.github.lopezjavier.appfitness.domain.model.FoodPortion
 import io.github.lopezjavier.appfitness.domain.model.MealTotals
 import io.github.lopezjavier.appfitness.domain.model.MicronutrientKind
@@ -14,7 +11,6 @@ import io.github.lopezjavier.appfitness.domain.model.NewMicronutrients
 import io.github.lopezjavier.appfitness.domain.model.NutritionPer100
 import io.github.lopezjavier.appfitness.domain.model.UpdatedFood
 import io.github.lopezjavier.appfitness.domain.model.UpdatedFoodEntry
-import io.github.lopezjavier.appfitness.domain.usecase.EnergyCheckLevel
 import kotlinx.datetime.LocalDate
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
@@ -48,7 +44,7 @@ internal data class FoodDto(
     val source: String? = null,
     val micronutrients: JsonElement? = null,
     @SerialName("alcohol_g_100") val alcoholG100: Double? = null,
-    @SerialName("energy_check_saved_anyway") val energyCheckSavedAnyway: Boolean = false,
+    val barcode: String? = null,
 ) {
     fun toDomain(): Food = Food(
         id = id,
@@ -62,6 +58,7 @@ internal data class FoodDto(
         imageUrl = imageUrl,
         isManual = source == "user",
         isOff = source == "off",
+        barcode = barcode?.takeIf { it.isNotBlank() },
     )
 
     /** The typed label values of a personal food in grams per 100, exactly as stored; unknown keys are ignored. */
@@ -76,10 +73,10 @@ internal data class FoodDto(
         /** PostgREST `select` of a food with its portions. */
         const val COLUMNS =
             "id,name,brand,base_unit,kcal_100,protein_100,carbs_100,fat_100,serving_label,serving_amount,image_url," +
-                "source,food_portions(id,label,amount,position)"
+                "source,barcode,food_portions(id,label,amount,position)"
 
-        /** [COLUMNS] plus the stored label values, alcohol and the saved-anyway flag, to edit a personal food. */
-        const val EDIT_COLUMNS = "$COLUMNS,micronutrients,alcohol_g_100,energy_check_saved_anyway"
+        /** [COLUMNS] plus the stored label values, and alcohol, to edit a personal food. */
+        const val EDIT_COLUMNS = "$COLUMNS,micronutrients,alcohol_g_100"
     }
 }
 
@@ -108,7 +105,6 @@ internal data class CreateFoodParams(
     @SerialName("p_portions") val portions: List<CreateFoodPortionParam>,
     @SerialName("p_micronutrients") val micronutrients: Map<String, Double>? = null,
     @SerialName("p_alcohol") val alcohol: Double? = null,
-    @SerialName("p_saved_anyway") val savedAnyway: Boolean = false,
 ) {
     companion object {
         fun from(food: NewFood) = CreateFoodParams(
@@ -123,7 +119,6 @@ internal data class CreateFoodParams(
             portions = food.portions.map { CreateFoodPortionParam(it.label.trim(), it.amount) },
             micronutrients = food.micronutrients.toParam(),
             alcohol = food.alcoholG,
-            savedAnyway = food.savedAnyway,
         )
 
         /** Only the typed values, keyed like the `foods.micronutrients` column; null when none was typed. */
@@ -155,7 +150,6 @@ internal data class UpdateFoodParams(
     @SerialName("p_micronutrients") val micronutrients: Map<String, Double>,
     @SerialName("p_base_unit") val baseUnit: String,
     @SerialName("p_alcohol") val alcohol: Double? = null,
-    @SerialName("p_saved_anyway") val savedAnyway: Boolean = false,
 ) {
     companion object {
         fun from(food: UpdatedFood) = UpdateFoodParams(
@@ -170,7 +164,6 @@ internal data class UpdateFoodParams(
             micronutrients = food.micronutrients.toGramsParam(),
             baseUnit = food.baseUnit,
             alcohol = food.alcoholG,
-            savedAnyway = food.savedAnyway,
         )
     }
 }
@@ -218,33 +211,6 @@ internal data class FoodMicronutrientsDto(
     companion object {
         const val COLUMNS = "source,micronutrients,nutriments:off_data->nutriments"
     }
-}
-
-/** Row of `food_energy_audit()`; [computed] and [gap] are unrounded. */
-@Serializable
-internal data class FoodAuditDto(
-    @SerialName("food_id") val foodId: String,
-    val name: String,
-    val brand: String? = null,
-    @SerialName("kcal_100") val kcal100: Double,
-    val computed: Double,
-    val gap: Double,
-    val result: String,
-) {
-    /** An unknown [result] is a decoding failure, never silently mapped. */
-    fun toDomain(): FoodAuditRow = FoodAuditRow(
-        foodId = foodId,
-        name = name,
-        brand = brand,
-        kcal = kcal100,
-        computedKcal = computed,
-        gap = gap,
-        level = when (result) {
-            "mismatch" -> EnergyCheckLevel.Mismatch
-            "clearly_wrong" -> EnergyCheckLevel.ClearlyWrong
-            else -> throw AppException(AppError.Unknown)
-        },
-    )
 }
 
 /** Row of `favorite_foods` with the food embedded. */

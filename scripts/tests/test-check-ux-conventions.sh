@@ -252,6 +252,23 @@ printf 'G18 .*
 ' > "$work/listed-g18.txt"
 run "$(mk18 j "$xml18" "$bad18")" "$work/listed-g18.txt"
 expect "G18 violation in a listed path warns and passes (parser accepts G18)" 0 WARN
+# G19 (ADR-104): no energy-check override or food audit text.
+mk19() { # name file-path content
+  local d="$work/g19-$1"
+  mkdir -p "$d/$(dirname "$2")"
+  printf '%s
+' "$3" > "$d/$2"
+  echo "$d"
+}
+run "$(mk19 a "composeApp/src/commonMain/composeResources/values/strings.xml" '<string name="x">Guardar igualmente</string>')" "$empty"
+expect "G19 Guardar igualmente in strings.xml fails" 1
+run "$(mk19 b "composeApp/src/commonMain/kotlin/demo/Sheet.kt" 'val t = "Añadir igualmente"')" "$empty"
+expect "G19 Añadir igualmente in Kotlin fails" 1
+run "$(mk19 c "composeApp/src/commonMain/composeResources/values/strings.xml" '<string name="x">Revisar alimentos</string>')" "$empty"
+expect "G19 Revisar alimentos fails" 1
+run "$(mk19 d "composeApp/src/commonMain/composeResources/values/strings.xml" '<string name="x">Nota</string>')" "$empty"
+expect "G19 an unrelated text passes" 0 NOWARN
+
 run "$repo_root" "$real_list" "$real_allow"
 expect "the real tree passes with the real allow-list" 0
 

@@ -13,11 +13,11 @@ import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.github.lopezjavier.appfitness.composeapp.resources.Res
 import io.github.lopezjavier.appfitness.composeapp.resources.add_food_submit_error
+import io.github.lopezjavier.appfitness.composeapp.resources.create_food_retry_failed
 import io.github.lopezjavier.appfitness.composeapp.resources.create_food_save_error
 import io.github.lopezjavier.appfitness.designsystem.LocalAppHaptics
 import io.github.lopezjavier.appfitness.designsystem.LocalAppMessages
 import io.github.lopezjavier.appfitness.domain.model.NewFoodDraftCodec
-import io.github.lopezjavier.appfitness.domain.port.ConnectivityObserver
 import io.github.lopezjavier.appfitness.domain.port.PhotoCapture
 import io.github.lopezjavier.appfitness.feature.food.photo.AmountPhotoEffect
 import io.github.lopezjavier.appfitness.feature.food.photo.AmountPhotoFlow
@@ -47,7 +47,7 @@ fun FoodSearchRoot(
     slotId: String?,
     date: String,
     onOpenFood: (foodId: String) -> Unit,
-    onCreateFood: (barcode: String?, name: String?, prefill: String?) -> Unit,
+    onCreateFood: (barcode: String?, name: String?, prefill: String?, retryToken: String?) -> Unit,
     onOpenTemplate: (templateId: String) -> Unit,
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
@@ -69,7 +69,7 @@ fun FoodSearchRoot(
             when (effect) {
                 is FoodSearchEffect.OpenFood -> currentOpenFood(effect.food.id)
 
-                is FoodSearchEffect.OpenCreateFood -> currentCreateFood(effect.barcode, effect.name, null)
+                is FoodSearchEffect.OpenCreateFood -> currentCreateFood(effect.barcode, effect.name, null, null)
 
                 FoodSearchEffect.ScanFailed -> scanFailed = true
 
@@ -86,9 +86,9 @@ fun FoodSearchRoot(
         photoViewModel.effects.collect { effect ->
             when (effect) {
                 is FoodPhotoEffect.OpenPrefilledForm ->
-                    currentCreateFood(null, null, NewFoodDraftCodec.encode(effect.draft))
+                    currentCreateFood(null, null, NewFoodDraftCodec.encode(effect.draft), effect.retryToken)
 
-                FoodPhotoEffect.OpenEmptyForm -> currentCreateFood(null, null, null)
+                FoodPhotoEffect.OpenEmptyForm -> currentCreateFood(null, null, null, null)
             }
         }
     }
@@ -110,7 +110,7 @@ fun FoodSearchRoot(
 
 /**
  * Stateful create-food form: connects [CreateFoodViewModel], prefilled with [barcode] and/or [name], or with the JSON
- * `NewFoodDraft` [prefill], the first time.
+ * `NewFoodDraft` [prefill], the first time; [retryToken] is the AI estimate's photo kept for "Repetir la estimación".
  * [onSave] receives the id of the new food (the add-food sheet opens for it).
  */
 @Composable
@@ -121,8 +121,13 @@ fun CreateFoodRoot(
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
     prefill: String? = null,
+    retryToken: String? = null,
     viewModel: CreateFoodViewModel =
-        koinViewModel(parameters = { parametersOf(barcode.orEmpty(), name.orEmpty(), "", prefill.orEmpty()) }),
+        koinViewModel(
+            parameters = {
+                parametersOf(barcode.orEmpty(), name.orEmpty(), "", prefill.orEmpty(), retryToken.orEmpty())
+            },
+        ),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     FoodFormEffects(viewModel.effects, onSave)
@@ -147,6 +152,7 @@ fun AddFoodRoot(
     onEdit: () -> Unit = {},
     pick: Boolean = false,
     onPick: (AddFoodEffect.Picked) -> Unit = {},
+    onCorrectOff: (AddFoodEffect.CorrectOffFood) -> Unit = {},
     viewModel: AddFoodViewModel =
         koinViewModel(parameters = { parametersOf(foodId, slotId.orEmpty(), date, pick) }),
     amountPhotoViewModel: AmountPhotoViewModel =
@@ -161,6 +167,7 @@ fun AddFoodRoot(
     val currentSubmitError by rememberUpdatedState(submitError)
     val currentOnAdded by rememberUpdatedState(onAdd)
     val currentOnPicked by rememberUpdatedState(onPick)
+    val currentOnCorrectOff by rememberUpdatedState(onCorrectOff)
     LaunchedEffect(viewModel) {
         viewModel.effects.collect { effect ->
             when (effect) {
@@ -175,6 +182,8 @@ fun AddFoodRoot(
                 }
 
                 is AddFoodEffect.Picked -> currentOnPicked(effect)
+
+                is AddFoodEffect.CorrectOffFood -> currentOnCorrectOff(effect)
             }
         }
     }
@@ -218,40 +227,6 @@ fun EditFoodRoot(
     CreateFoodScreen(state, viewModel::onEvent, onBack, modifier)
 }
 
-/**
- * Stateful food audit: connects [FoodAuditViewModel]. [edited] (a food was saved in the editor opened from the list)
- * reloads the list silently and is then cleared with [onConsumeEdit]; [onOpenEditor] receives the id of the tapped
- * food.
- */
-@Composable
-fun FoodAuditRoot(
-    edited: Boolean,
-    onConsumeEdit: () -> Unit,
-    onOpenEditor: (foodId: String) -> Unit,
-    onBack: () -> Unit,
-    modifier: Modifier = Modifier,
-    viewModel: FoodAuditViewModel = koinViewModel(),
-    connectivity: ConnectivityObserver = koinInject(),
-) {
-    val state by viewModel.uiState.collectAsStateWithLifecycle()
-    val currentOpenEditor by rememberUpdatedState(onOpenEditor)
-    val currentConsumed by rememberUpdatedState(onConsumeEdit)
-    LaunchedEffect(edited) {
-        if (edited) {
-            viewModel.onEvent(FoodAuditEvent.Refresh)
-            currentConsumed()
-        }
-    }
-    LaunchedEffect(viewModel) {
-        viewModel.effects.collect { effect ->
-            when (effect) {
-                is FoodAuditEffect.OpenEditor -> currentOpenEditor(effect.foodId)
-            }
-        }
-    }
-    FoodAuditScreen(state, connectivity.isOnline, viewModel::onEvent, onBack, modifier)
-}
-
 /** Saved opens the food's sheet; a failed save is a message and one Reject vibration (R-28, R-29). */
 @Composable
 private fun FoodFormEffects(effects: Flow<CreateFoodEffect>, onSave: (foodId: String) -> Unit) {
@@ -259,6 +234,8 @@ private fun FoodFormEffects(effects: Flow<CreateFoodEffect>, onSave: (foodId: St
     val messages = LocalAppMessages.current
     val failedText = stringResource(Res.string.create_food_save_error)
     val currentFailedText by rememberUpdatedState(failedText)
+    val retryFailedText = stringResource(Res.string.create_food_retry_failed)
+    val currentRetryFailedText by rememberUpdatedState(retryFailedText)
     val currentOnSaved by rememberUpdatedState(onSave)
     LaunchedEffect(effects) {
         effects.collect { effect ->
@@ -268,6 +245,11 @@ private fun FoodFormEffects(effects: Flow<CreateFoodEffect>, onSave: (foodId: St
                 CreateFoodEffect.SaveFailed -> {
                     haptic.reject()
                     messages.show(currentFailedText)
+                }
+
+                CreateFoodEffect.RetryFailed -> {
+                    haptic.reject()
+                    messages.show(currentRetryFailedText)
                 }
             }
         }

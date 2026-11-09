@@ -45,9 +45,22 @@ data class CreateFoodUiState(
     val expandedSections: Set<CreateFoodSection> = emptySet(),
     /** The form was prefilled from an AI photo estimate and nothing was edited yet: show "Estimado por IA". */
     val aiEstimateNote: Boolean = false,
-    /** Set while the energy check failed on "Guardar" and the user has not corrected or confirmed yet. */
+    /**
+     * Set whenever the typed values fail the energy check (ADR-104); derived from the draft, never stored. "Guardar" is
+     * blocked ([canSave] is false) until the values are corrected. The sections holding the fields to fix are expanded
+     * while it shows.
+     */
     val energyWarning: EnergyWarning? = null,
+    /** Whether the AI estimate this form came from can be repeated with the failing values. */
+    val retryState: RetryState = RetryState.None,
 )
+
+/**
+ * The "Repetir la estimación" action of the energy warning: [Available] while the photo of the AI estimate is still in
+ * memory, [Running] during the request, [PhotoGone] when it was lost (process death: the image is never stored) and
+ * [None] for a form without an AI estimate or once a retry produced values that pass.
+ */
+enum class RetryState { None, Available, Running, PhotoGone }
 
 /**
  * The energy check warning (07 section 4): [level] is Mismatch or ClearlyWrong, [kcal] is the declared kcal
@@ -121,11 +134,8 @@ sealed interface CreateFoodEvent {
 
     data object Save : CreateFoodEvent
 
-    /** "Guardar igualmente": save a food that fails the energy check exactly as typed, flagged. */
-    data object SaveAnyway : CreateFoodEvent
-
-    /** "Corregir": close the energy warning keeping every value. */
-    data object DismissWarning : CreateFoodEvent
+    /** "Repetir la estimación": ask the AI again with the current values and why they fail; ignored offline. */
+    data object RetryEstimate : CreateFoodEvent
 
     /** Expand or collapse a group of label nutrients. */
     data class ToggleSection(val section: CreateFoodSection) : CreateFoodEvent
@@ -139,4 +149,7 @@ sealed interface CreateFoodEffect {
     data class Saved(val foodId: String) : CreateFoodEffect
 
     data object SaveFailed : CreateFoodEffect
+
+    /** The AI estimate could not be repeated; the draft is untouched. */
+    data object RetryFailed : CreateFoodEffect
 }

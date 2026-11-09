@@ -10,6 +10,7 @@ import io.github.lopezjavier.appfitness.domain.model.Micronutrient
 import io.github.lopezjavier.appfitness.domain.model.MicronutrientKind
 import io.github.lopezjavier.appfitness.domain.model.MicronutrientUnit
 import io.github.lopezjavier.appfitness.domain.model.Micronutrients
+import io.github.lopezjavier.appfitness.domain.model.NewFoodDraftCodec
 import io.github.lopezjavier.appfitness.domain.usecase.DefaultMealSlot
 import io.github.lopezjavier.appfitness.domain.usecase.EnergyCheckLevel
 import io.github.lopezjavier.appfitness.domain.usecase.ResolvePortion
@@ -31,12 +32,14 @@ import kotlin.test.AfterTest
 import kotlin.test.BeforeTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
 import kotlin.test.assertIs
+import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
 import kotlin.time.Instant
 
-/** Adding an Open Food Facts food: the energy check, the personal copy and the saved-anyway flag (T-255). */
+/** Adding an Open Food Facts food: the energy check as a hard block, the correction and the personal copy. */
 @OptIn(ExperimentalCoroutinesApi::class)
 class AddFoodOffViewModelTest {
     private val dispatcher = StandardTestDispatcher()
@@ -135,96 +138,67 @@ class AddFoodOffViewModelTest {
     }
 
     @Test
-    fun aFailingCheck_opensTheWarning_andLogsNothing() = runTest(dispatcher) {
+    fun aFailingOffFood_showsTheWarningAtOnce_blocksSubmit_andLogsNothing() = runTest(dispatcher) {
         failing
         val model = viewModel("off1")
-        advanceUntilIdle()
-
-        model.onEvent(AddFoodEvent.Submit)
         advanceUntilIdle()
 
         val warning = assertIs<EnergyWarning>(model.content().energyWarning)
         assertEquals(EnergyCheckLevel.ClearlyWrong, warning.level)
         assertEquals(500.0, warning.kcal)
         assertEquals(250.0, warning.computedKcal)
-        assertTrue(diary.added.isEmpty())
-        assertTrue(foods.copyCalls.isEmpty())
-        assertEquals(true, savedState.get<Boolean>("add_food_energy_warning"))
-    }
-
-    @Test
-    fun aSecondAdd_whileTheWarningIsOpen_changesNothing() = runTest(dispatcher) {
-        failing
-        val model = viewModel("off1")
-        advanceUntilIdle()
-        model.onEvent(AddFoodEvent.Submit)
-        advanceUntilIdle()
+        assertFalse(model.content().canSubmit)
 
         model.onEvent(AddFoodEvent.Submit)
         advanceUntilIdle()
 
         assertTrue(diary.added.isEmpty())
         assertTrue(foods.copyCalls.isEmpty())
-        assertIs<EnergyWarning>(model.content().energyWarning)
+        assertTrue(foods.updates.isEmpty())
     }
 
     @Test
-    fun fix_closesTheWarning_keepingAmountAndMeal() = runTest(dispatcher) {
-        failing
-        val model = viewModel("off1")
-        advanceUntilIdle()
-        model.onEvent(AddFoodEvent.AmountChanged("180"))
-        model.onEvent(AddFoodEvent.SlotSelected("dinner"))
-        model.onEvent(AddFoodEvent.Submit)
-        advanceUntilIdle()
-
-        model.onEvent(AddFoodEvent.EnergyWarningFix)
-        advanceUntilIdle()
-
-        assertNull(model.content().energyWarning)
-        assertEquals("180", model.content().amountText)
-        assertEquals("dinner", model.content().selectedSlotId)
-        assertTrue(diary.added.isEmpty())
-        assertTrue(foods.copyCalls.isEmpty())
-    }
-
-    @Test
-    fun saveAnyway_copies_flagsTheCopy_andLogsIt() = runTest(dispatcher) {
-        failing
-        val model = viewModel("off1")
-        advanceUntilIdle()
-        model.onEvent(AddFoodEvent.Submit)
+    fun correctOff_emitsThePrefilledFormWithTheOffValuesAndBarcode() = runTest(dispatcher) {
+        off(500.0, 10.0, 30.0, 10.0).also { foods.known["off1"] = it.copy(barcode = "8410000000001") }
+        foods.offAlcohol["off1"] = 1.0
+        foods.micronutrientResults["off1"] =
+            Result.success(Micronutrients(listOf(Micronutrient(MicronutrientKind.Fiber, 2.0, MicronutrientUnit.G))))
+        val model = viewModel("off1", state = SavedStateHandle())
         advanceUntilIdle()
 
         model.effects.test {
-            model.onEvent(AddFoodEvent.SaveAnyway)
+            model.onEvent(AddFoodEvent.CorrectOff)
             advanceUntilIdle()
-            assertEquals(AddFoodEffect.Added, awaitItem())
+            val effect = assertIs<AddFoodEffect.CorrectOffFood>(awaitItem())
+            assertEquals("8410000000001", effect.barcode)
+            val draft = assertNotNull(NewFoodDraftCodec.decode(effect.prefill))
+            assertEquals("OFF off1", draft.name)
+            assertEquals(500.0, draft.kcal)
+            assertEquals(10.0, draft.protein)
+            assertEquals(30.0, draft.carbs)
+            assertEquals(10.0, draft.fat)
+            assertEquals(1.0, draft.alcohol)
+            assertEquals(mapOf(MicronutrientKind.Fiber to 2.0), draft.micronutrients.values)
+            assertEquals("8410000000001", draft.barcode)
         }
-
-        val update = foods.updates.single()
-        assertEquals("copy-off1", update.id)
-        assertTrue(update.savedAnyway)
-        assertEquals(500.0, update.nutrition.kcal)
-        assertEquals("copy-off1", diary.added.single().foodId)
-        assertEquals(500.0, diary.added.single().snapshot.kcal * 100 / 100.0)
-    }
-
-    @Test
-    fun saveAnyway_withoutAnOpenWarning_isIgnored() = runTest(dispatcher) {
-        failing
-        val model = viewModel("off1")
-        advanceUntilIdle()
-
-        model.onEvent(AddFoodEvent.SaveAnyway)
-        advanceUntilIdle()
-
-        assertTrue(diary.added.isEmpty())
         assertTrue(foods.copyCalls.isEmpty())
     }
 
     @Test
-    fun aPassingFood_addsWithoutWarning_andWithoutFlag() = runTest(dispatcher) {
+    fun correctOff_ofAPassingFood_emitsNothing() = runTest(dispatcher) {
+        passing
+        val model = viewModel("off1")
+        advanceUntilIdle()
+
+        model.effects.test {
+            model.onEvent(AddFoodEvent.CorrectOff)
+            advanceUntilIdle()
+            expectNoEvents()
+        }
+    }
+
+    @Test
+    fun aPassingFood_addsWithoutWarning_andWritesNoUpdate() = runTest(dispatcher) {
         passing
         val model = viewModel("off1")
         advanceUntilIdle()
@@ -250,15 +224,16 @@ class AddFoodOffViewModelTest {
     }
 
     @Test
-    fun theSameWineWithoutAlcohol_warns() = runTest(dispatcher) {
+    fun theSameWineWithoutAlcohol_isBlocked() = runTest(dispatcher) {
         off(85.0, 0.1, 2.6, 0.0, baseUnit = "ml")
         val model = viewModel("off1")
         advanceUntilIdle()
 
+        assertIs<EnergyWarning>(model.content().energyWarning)
+        assertFalse(model.content().canSubmit)
         model.onEvent(AddFoodEvent.Submit)
         advanceUntilIdle()
 
-        assertIs<EnergyWarning>(model.content().energyWarning)
         assertTrue(diary.added.isEmpty())
     }
 
@@ -335,20 +310,19 @@ class AddFoodOffViewModelTest {
     }
 
     @Test
-    fun aFlagFailure_isSubmitFailed_andLogsNothing() = runTest(dispatcher) {
-        failing
+    fun aServerEnergyCheckRefusal_isNotShownAsAFailure_andLogsNothing() = runTest(dispatcher) {
+        passing
+        foods.copyFailure = AppException(AppError.FoodEnergyCheckFailed)
         val model = viewModel("off1")
         advanceUntilIdle()
-        model.onEvent(AddFoodEvent.Submit)
-        advanceUntilIdle()
-        foods.updateFailure = AppException(AppError.Network)
 
         model.effects.test {
-            model.onEvent(AddFoodEvent.SaveAnyway)
+            model.onEvent(AddFoodEvent.Submit)
             advanceUntilIdle()
-            assertEquals(AddFoodEffect.SubmitFailed(AppError.Network), awaitItem())
+            expectNoEvents()
         }
         assertTrue(diary.added.isEmpty())
+        assertEquals(false, model.content().submitting)
     }
 
     @Test
@@ -368,7 +342,7 @@ class AddFoodOffViewModelTest {
     }
 
     @Test
-    fun pickMode_failingCheckWarnsBeforeCopying() = runTest(dispatcher) {
+    fun pickMode_failingCheckBlocksBeforeCopying() = runTest(dispatcher) {
         failing
         val model = viewModel("off1", pick = true)
         advanceUntilIdle()
@@ -377,6 +351,7 @@ class AddFoodOffViewModelTest {
         advanceUntilIdle()
 
         assertIs<EnergyWarning>(model.content().energyWarning)
+        assertFalse(model.content().canSubmit)
         assertTrue(foods.copyCalls.isEmpty())
     }
 
@@ -395,31 +370,26 @@ class AddFoodOffViewModelTest {
     }
 
     @Test
-    fun aRestoredWarning_thatTheCheckNoLongerRaises_doesNotBlockAdding() = runTest(dispatcher) {
+    fun theWarning_isRecomputedOnRecreate_notPersisted() = runTest(dispatcher) {
         failing
         val first = viewModel("off1")
         advanceUntilIdle()
-        first.onEvent(AddFoodEvent.Submit)
-        advanceUntilIdle()
+        assertIs<EnergyWarning>(first.content().energyWarning)
         foods.alcoholFailure = AppException(AppError.Network)
 
         val second = viewModel("off1", state = savedState)
         advanceUntilIdle()
-        assertNull(second.content().energyWarning)
-        second.onEvent(AddFoodEvent.Submit)
-        advanceUntilIdle()
 
-        assertEquals(1, diary.added.size)
+        assertNull(second.content().energyWarning)
+        assertNull(savedState.get<Boolean>("add_food_energy_warning"))
     }
 
     @Test
-    fun theOpenWarning_andTheAmount_surviveARecreatedViewModel() = runTest(dispatcher) {
+    fun theWarning_andTheAmount_surviveARecreatedViewModel() = runTest(dispatcher) {
         failing
         val first = viewModel("off1")
         advanceUntilIdle()
         first.onEvent(AddFoodEvent.AmountChanged("150"))
-        first.onEvent(AddFoodEvent.Submit)
-        advanceUntilIdle()
 
         val second = viewModel("off1", state = savedState)
         advanceUntilIdle()

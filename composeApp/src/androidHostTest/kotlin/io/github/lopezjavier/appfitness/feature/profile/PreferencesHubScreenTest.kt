@@ -27,18 +27,17 @@ class PreferencesHubScreenTest {
 
     private val sections = mutableListOf<PreferencesSection>()
     private var meals = 0
-    private var foodAudits = 0
     private var backs = 0
 
     private val keys =
-        listOf("personal", "energy", "macros", "meals", "cooking", "food_audit", "training", "avisos")
+        listOf("personal", "energy", "macros", "meals", "cooking", "training", "avisos")
 
     private fun show() {
         rule.setContent {
             AppTheme {
                 PreferencesHubScreen(
                     onBack = { backs++ },
-                    actions = PreferencesHubActions({ sections += it }, { meals++ }, { foodAudits++ }),
+                    actions = PreferencesHubActions({ sections += it }, { meals++ }),
                 )
             }
         }
@@ -54,15 +53,15 @@ class PreferencesHubScreenTest {
     }
 
     @Test
-    fun eightRows_readTheDestinationTitles_inOrder() {
+    fun sevenRows_readTheDestinationTitles_inOrder_andThereIsNoFoodAuditRow() {
         show()
+        rule.onNodeWithTag("preferences_row_food_audit").assertDoesNotExist()
         val labels = listOf(
             "Datos personales",
             "Objetivo calórico",
             "Macros",
             "Comidas del día",
             "Cocina",
-            "Revisar alimentos",
             "Entrenamiento",
             "Avisos",
         )
@@ -89,7 +88,6 @@ class PreferencesHubScreenTest {
             sections,
         )
         assertEquals(1, meals)
-        assertEquals(1, foodAudits)
     }
 
     @Test
