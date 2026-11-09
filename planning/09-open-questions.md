@@ -20,3 +20,8 @@ These three rows were still marked "open" in `phase2/09-open-questions.md` (froz
 | E16 Q2: order of the causes in the nutrition diagnosis | 2026-11-08 | **Resolved (experts, `07` (c))**; built in T-247 | The cause wins: logging > average calories > "Meseta" > "Sin causa clara"; protein, sleep and steps dropped (no evidence-backed threshold) |
 | E16 Q3: where "Descanso de dieta" is offered | 2026-11-08 | **Resolved (experts)**; built in T-248 | Only in the plan proposal's cut options, editable afterwards in "Tu plan"; no switch on the "Bloque nuevo" confirmation or the review sheet |
 | E16 checkpoints | 2026-11-08 | **Resolved (user)** | One checkpoint at the end; branches needing two real weeks stay in "Pending natural-trigger feedback (E16)" |
+| E17 Q-E17-1: alcohol | 2026-11-09 | **Resolved (user, 2026-11-09)**; built in T-251..T-255 | Optional "Alcohol (g)" field counted by the energy check (7 kcal/g); OFF % vol converted (× 0.789) |
+| E17 Q-E17-2: "saved anyway" | 2026-11-09 | **Resolved (user, 2026-11-09), superseded by Q-E17-4 (ADR-104)** | The flag and "Guardar igualmente" were removed in T-257/T-258 |
+| E17 Q-E17-3: references of OFF foods | 2026-11-09 | **Resolved (user, 2026-11-09)**; built in T-254/T-255 | Diary, favourites and comida items point to the personal copy |
+| E17 Q-E17-4: hard block | 2026-11-09 | **Resolved (user, 2026-11-09, ADR-104)**; built in T-257/T-258 | No failing food is saved by any path; the AI retry sends the previous estimate and the reason; the user's 10 wrong foods were fixed in production |
+| E17 checkpoints | 2026-11-09 | **Resolved (user)** | Checkpoint E17 (items 6-10 approved) and Checkpoint E17-fix (7 items) approved |

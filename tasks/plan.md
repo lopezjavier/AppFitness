@@ -1,6 +1,6 @@
 # Implementation Plan: E17 · Food data quality → `v1.x` (proposed `v1.8.0`)
 
-> **Status: PROPOSED by the epic-planner, 2026-11-09.** The task list (T-251…T-256) needs the user's OK on the breakdown PR; one checkpoint only, Checkpoint E17 at the end (user decision 2026-11-09). Q1 resolved by the user (2026-11-09); no question blocks a task. The E16 plan that lived here is in git history (E16 closed, `v1.7.0`; `tasks/todo.md` E16 section).
+> **Status: CLOSED (`v1.8.0`, 2026-11-09). Was PROPOSED by the epic-planner, 2026-11-09.** The task list (T-251…T-256) needs the user's OK on the breakdown PR; one checkpoint only, Checkpoint E17 at the end (user decision 2026-11-09). Q1 resolved by the user (2026-11-09); no question blocks a task. The E16 plan that lived here is in git history (E16 closed, `v1.7.0`; `tasks/todo.md` E16 section).
 
 ## Overview
 A food whose kcal do not match its own macros is caught before it is saved: a deterministic energy check (EU factors, with fibre, polyols and a new optional "Alcohol (g)") warns with "Corregir" / "Guardar igualmente" on every way a food is created (manual, edit, AI dish estimate, label scan, Open Food Facts copy). The foods already stored are listed in a food audit the user fixes by hand; a food saved anyway leaves the audit until its numbers change. Open Food Facts becomes a fallback: adding an OFF food creates the user's own editable copy (one per barcode or OFF id), found first in later searches, and the OFF foods already in the diary are converted to copies without changing any past total.
@@ -29,7 +29,7 @@ Every task pays 6-8 agent hand-offs, so stories stay whole unless one is too lar
 | 3 ✅ | T-253: The food audit | US-117 | core + UI | M | 7 |
 | 4 | T-254: OFF personal copies and the conversion: backend | US-118 (backend), US-119 | backend | M | 5 |
 | 5 | T-255: An OFF food becomes my food in the app | US-118 (+ US-116 OFF path) | core + UI | M | 7 |
-| 6 | T-256: E17 closure | DoD | PM | closure step | PM only |
+| 6 ✅ | T-256: E17 closure | DoD | PM | closure step | PM only |
 
 Why these splits and merges:
 - **US-116 → T-251 (backend) + T-252 (UI):** the whole story is about 28 files (migration, SQL check, `food-photo` schema and prompts, OFF import, the shared Kotlin check and every form path), so it is split backend then UI, not per component.
