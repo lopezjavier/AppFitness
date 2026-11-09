@@ -26,7 +26,7 @@ Every task pays 6-8 agent hand-offs, so stories stay whole unless one is too lar
 | 0 | PM step: `fitness-scientist` records the energy check in `07` §4 (**done** 2026-11-09) | — | PM | — | 1 |
 | 1 | T-251: Energy check, alcohol, flag and audit: backend | US-116, US-117 (backend) | backend | M | 5 |
 | 2 | T-252: The warning and "Alcohol (g)" in every food form | US-116 | core + UI | M | 7 |
-| 3 | T-253: The food audit | US-117 | core + UI | M | 7 |
+| 3 ✅ | T-253: The food audit | US-117 | core + UI | M | 7 |
 | 4 | T-254: OFF personal copies and the conversion: backend | US-118 (backend), US-119 | backend | M | 5 |
 | 5 | T-255: An OFF food becomes my food in the app | US-118 (+ US-116 OFF path) | core + UI | M | 7 |
 | 6 | T-256: E17 closure | DoD | PM | closure step | PM only |

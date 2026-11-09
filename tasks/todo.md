@@ -10,7 +10,7 @@ Last task ID used: T-256 (T-251…T-256 reserved by the E17 breakdown; T-246…T
 
 **Done in the T-246 branch (user report, 2026-11-08; the user ordered it into the current branch, so it ships in T-246's PR as a separate `fix(T-250)` commit):** `fix(T-250)`: the `food-photo` dish prompt (`supabase/functions/food-photo/prompts.ts`) never says whether the per-100 g values are for the food as served; a 400 g cooked plate came back with raw-food kcal/100 g. Fix: the dish prompt states that values and `estimated_grams` describe the food as shown in the photo (cooked when cooked), with a handler/prompt test and a redeploy of `food-photo`. Backend only, no model-call change elsewhere.
 
-**Next:** T-252 merged (PR #578). T-253 (E17 UI: the food audit screen) is the next task; it must reuse `EnergyWarningNotice` and the existing `create_food_*` tags. Notes for T-252/T-254: `foods_searchable` has no `alcohol_g_100` (search results return `alcohol_100: null` for OFF foods; T-254's copy function reads `foods` directly); the `07` §4 red-wine example computes 77.3, not 77.1 (`fitness-scientist` to correct; result stays `ok`).
+**Next:** T-253 merged (PR #580). T-254 (E17 backend: OFF personal copies and the conversion) is the next task. T-253 note: OFF foods appear in the audit only after T-254 converts them. Notes for T-252/T-254: `foods_searchable` has no `alcohol_g_100` (search results return `alcohol_100: null` for OFF foods; T-254's copy function reads `foods` directly); the `07` §4 red-wine example computes 77.3, not 77.1 (`fitness-scientist` to correct; result stays `ok`).
 
 ## Open follow-ups carried into Phase 3
 
@@ -66,7 +66,7 @@ Rules: **`07` §4 "Food energy check (E17, US-116/US-117)"** (the source for eve
 **Order and sizing (every task pays 6-8 hand-offs; no S task):**
 1. **T-251** (M, backend): US-116 + US-117 backend. US-116 is split backend/UI because the whole story is about 28 files (migration, SQL check, audit RPC, `food-photo` schema and prompts, OFF import, then the shared Kotlin check and every form path). The audit RPC rides here: it is the same SQL function over the user's foods, and alone it would be S.
 2. **T-252** (M, UI + core): US-116 in the app: the shared Kotlin check, "Alcohol (g)" and the warning on every form path (manual, edit, AI dish, label scan).
-3. **T-253** (M, UI): US-117, the food audit screen. No checkpoint here (user decision: one checkpoint at the end).
+3. ✅ **T-253** (M, UI): US-117, the food audit screen. No checkpoint here (user decision: one checkpoint at the end).
 4. **T-254** (M, backend): US-118 + US-119 backend. The copy function is shared by "add an OFF food" (US-118) and the conversion (US-119); the conversion alone is S (one data migration), so both go in one backend task; split from the UI for the same size reason as US-116 (about 20 files together).
 5. **T-255** (M, UI + core): US-118 in the app: my foods and favourites first, adding an OFF food creates or reuses my copy, the copy is editable, the energy check on the copy. Last implementation task. → **Checkpoint E17** (the only one; final regression).
 6. **T-256**: E17 closure (PM closure step).
@@ -115,19 +115,19 @@ Rules: **`07` §4 "Food energy check (E17, US-116/US-117)"** (the source for eve
 
 ---
 
-## T-253: The food audit (US-117) · M
+## T-253: The food audit (US-117) · M ✅ merged (#580)
 
 **Story:** US-117 · **Flow:** planner → ux-reviewer (plan) → kotlin-core-developer → compose-ui-developer → pr-reviewer ∥ ux-reviewer (diff) → pr-creator · **Size:** M
 **Scenarios:** US-117 The list shows foods that fail the check; Each food opens its editor; Nothing changes on its own; A fixed food leaves the list; plus "leave and come back with the audit open and with a food's editor open from it".
 **Description:** **Core:** repository method over `food_energy_audit()` (T-251), domain model of a row (`kcal`, `computed`, `gap`, level), an audit ViewModel that reloads when the user returns from the editor (a fixed or saved-anyway food leaves the list). **UI — templates and patterns:** a new pushed screen built from the standard list screen template (top bar with back, `ListSectionHeader` if two levels are grouped, list rows with the food name and the `07` line "{kcal} kcal declaradas, los macros suman {computed} kcal ({±gap} kcal)", `clearly_wrong` rows first with the "Parece un error" wording as text, R-41; numbers via `AppNumberFormat`); empty state when nothing fails (copy by ux-reviewer); a row tap opens the existing `CreateFoodScreen` in edit mode with its numbers (US-117 "Each food opens its editor"), where the T-252 warning and "Guardar igualmente" apply; no bulk action, no automatic fix (non-goal). **Entry point:** ux-reviewer picks it from the existing patterns (candidates: a row in Perfil → Preferencias next to the food preferences, or a row in the food search's "Mis alimentos" area) and records it in `05` §10; the screen name too (e.g. "Revisar alimentos"). Navigation routes in `AppRoutes`/`AppNavHost` with state restored (ADR-40). Docs: `05` §8/§10, `04` §2 (the audit).
 **Acceptance criteria:**
-- [ ] The audit lists my foods that fail the check, `clearly_wrong` first, then by gap, each with the declared kcal, the macro kcal and the gap; flagged and passing foods are not listed.
-- [ ] A row opens the food's editor with its numbers; saving a corrected food or "Guardar igualmente" removes it from the list on return.
-- [ ] Opening the audit changes no food (no write).
-- [ ] The audit and the editor opened from it survive background and process death (ADR-40); offline shows the standard hint (R-30); `check-ux-conventions.sh` passes.
+- [x] The audit lists my foods that fail the check, `clearly_wrong` first, then by gap, each with the declared kcal, the macro kcal and the gap; flagged and passing foods are not listed.
+- [x] A row opens the food's editor with its numbers; saving a corrected food or "Guardar igualmente" removes it from the list on return.
+- [x] Opening the audit changes no food (no write).
+- [x] The audit and the editor opened from it survive background and process death (ADR-40); offline shows the standard hint (R-30); `check-ux-conventions.sh` passes.
 **Host tests:** repository/DTO tests; ViewModel tests (order, empty, reload after an edit, a flagged food gone, offline, error and retry); Robolectric (rows and copy, empty state, tap → editor event, entry row, restoration).
 **Verification:**
-- [ ] lint + `testLocalDebugUnitTest` green. No backend change (if the planner needs an RPC change, pgTAP and `deploy-supabase` apply).
+- [x] lint + `testLocalDebugUnitTest` green. No backend change (if the planner needs an RPC change, pgTAP and `deploy-supabase` apply).
 **Agent runs:** 7. About 10 files.
 **Dependencies:** T-252 merged.
 **Files likely touched:** `shared/…/domain/model/FoodAuditRow.kt`, `shared/…/domain/repository/FoodRepository.kt`, `shared/…/data/repository/SupabaseFoodRepository.kt`, `feature/food/{FoodAuditScreen,FoodAuditUiState,FoodAuditViewModel}.kt`, the entry screen (Preferencias or food search), `app/{AppRoutes,AppNavHost}.kt`, `strings.xml`, `planning/05-design-system.md` §10, tests
