@@ -1,70 +1,91 @@
-# Implementation Plan: E17 · Food data quality → `v1.x` (proposed `v1.8.0`)
+# Implementation Plan: E18 · Functional improvements → `v1.x` (proposed `v1.9.0`)
 
-> **Status: CLOSED (`v1.8.0`, 2026-11-09). Was PROPOSED by the epic-planner, 2026-11-09.** The task list (T-251…T-256) needs the user's OK on the breakdown PR; one checkpoint only, Checkpoint E17 at the end (user decision 2026-11-09). Q1 resolved by the user (2026-11-09); no question blocks a task. The E16 plan that lived here is in git history (E16 closed, `v1.7.0`; `tasks/todo.md` E16 section).
+> **Status: PROPOSED by the epic-planner, 2026-11-09; updated the same day with the user's feedback.** The task list (T-259…T-267) needs the user's OK on the breakdown PR; one checkpoint only, Checkpoint E18 at the end (user decision 2026-11-09). Q1 and Q2 are resolved by the user (2026-11-09, "Decisions" below). The only open user item is the 👤 Gemini terms check, which gates T-265. The E17 plan that lived here is in git history (E17 closed, `v1.8.0`; `tasks/todo.md` E17 section).
 
 ## Overview
-A food whose kcal do not match its own macros is caught before it is saved: a deterministic energy check (EU factors, with fibre, polyols and a new optional "Alcohol (g)") warns with "Corregir" / "Guardar igualmente" on every way a food is created (manual, edit, AI dish estimate, label scan, Open Food Facts copy). The foods already stored are listed in a food audit the user fixes by hand; a food saved anyway leaves the audit until its numbers change. Open Food Facts becomes a fallback: adding an OFF food creates the user's own editable copy (one per barcode or OFF id), found first in later searches, and the OFF foods already in the diary are converted to copies without changing any past total.
+The app drops every trace of Anthropic (Edge Function code, key, `coach_usage`, "Uso de IA", the monthly limit, the model selector) and is "100 % free" again. Weekly summaries and block reviews are stored as snapshots from now on and reopened from "Informes" in Centro de avisos. Diario and Entreno get a magnifier that opens a view-only food or exercise search, and the food search lists favourites and my foods at once, with Open Food Facts after. The Trainer shows the essentials and moves the full nutrition plan and block into "Detalles". Last, an exercise's details get a chat tab where a Gemini trainer-expert answers single questions about that exercise only.
 
-Sources: `planning/epics/E17-food-data-quality.md` (intent, non-goals, US-116…US-119, "Decisions (user, 2026-11-09)"), **`07` §4 "Food energy check (E17, US-116/US-117)"** (every factor, threshold, ordering, worked example and text), `04` §2, `03` §3, §6, §7, ADR-43, ADR-53, ADR-59, ADR-64, ADR-72, ADR-101, `05` §8-§10. Tasks: `tasks/todo.md` (E17 section).
+Sources: `planning/epics/E18-functional-improvements.md` (intent, non-goals, US-128, US-129, US-130, US-120…US-122), ADR-103, ADR-17, ADR-59, ADR-66, ADR-98, ADR-101, ADR-104, `04` §6.1, §6.7, §6.9, `03` §3, §7, `05` §8-§10, `01` §4. Tasks: `tasks/todo.md` (E18 section).
 
-Out of scope (epic non-goals, `01-scope.md`): a verified or curated food database; changing the AI model; automatic corrections; changing past diary totals; alcohol, fibre or micronutrient targets.
+Out of scope (epic non-goals, `01-scope.md`): comparing reports; storing reminders; saving the chat; a chat disclaimer; chats outside an exercise; a monthly report (ADR-66); any model in the numbers (ADR-98); a new look (E19). Also out of E18 by user decision: rebuilding old reports, follow-up context in the chat, an app-side chat limit.
+
+## Decisions (user, 2026-11-09)
+In plain words:
+- **Old reports are not rebuilt (Q1(a)).** "Informes" starts with the weekly summaries produced after the update. Older weeks were never saved, and rebuilding them today could show different numbers, so they are not added. The block reviews already in the database are listed, because they were saved when they were shown.
+- **The block-end notice is a report (Q1(b)).** Opening "Tu bloque ha terminado: revísalo" from Centro de avisos removes it from the active list, and the review stays in "Informes". The Trainer's "Revisión del bloque" card still shows until the next block is saved. T-261 amends `04` §6.9 ("opening never clears it").
+- **Past reports are read only (Q1(c), the planner's default taken by the user).** A report opened from "Informes" shows its figures and the decision you took, as text. It has no buttons to decide again ("Aplicar", "Ahora no", "Aceptar", "Seguir como estoy", "Crear el siguiente bloque"). The current report opened from its notice keeps its buttons.
+- **Paused weeks (Q1(d), the planner's default taken by the user).** A "Semana en pausa" week appears in "Informes" only if its summary was actually produced and shown to you. A paused week nobody opened leaves no report.
+- **One question at a time in the chat (Q2(a)).** Each question is answered on its own: the app sends only the exercise (name, muscles, instructions) and that question, never the earlier questions or answers. This matches the Gherkin, and the chat empties when you leave the exercise anyway. A chat that remembers the conversation is a possible idea for a later epic.
+- **The daily limit is Gemini's (Q2(b)).** When Gemini says it is busy or its quota is used up, the Edge Function catches it and the app shows a short reason. The app keeps no count of questions and has no limit of its own.
 
 ## Architecture decisions
-- **One check, two implementations with shared cases.** `food_energy_check` in SQL (the audit) and `FoodEnergyCheck` in Kotlin (the forms) implement `07` §4 exactly: `computed = 4·protein + 4·(carbs − p) + 2.4·p + 9·fat + 2·fibre + 7·alcohol`, `p = min(polyols, carbs)`; skip when `kcal_100 ≤ 13` and `computed ≤ 13`; `mismatch` above `0.15 × kcal_100 + 5`, `clearly_wrong` above `0.30 × kcal_100 + 5`. pgTAP and `commonTest` share the `07` worked-examples table (the 1RM precedent). No model call.
-- **Alcohol is a column, in grams (Q-E17-1).** Optional, per 100 base units, never % vol. Manual entry types grams (help line with × 0,79); `food-photo` must return it in every mode (0 when none; a response without it is invalid); the OFF import and a backfill of the cached OFF rows convert % vol × 0.789.
-- **The "saved anyway" flag is enforced by the database (Q-E17-2).** A trigger clears it when any check input changes, so no write path can leave a stale flag; "Guardar igualmente" sets it. It never changes stored numbers or snapshots. New ADR (proposed ADR-102) in T-251.
-- **The warning is not a dialog (R-08).** ux-reviewer picks an inline warning note or an action-archetype sheet in T-252; the same component serves the audit's editor (T-253) and the OFF copy (T-255).
-- **Copies, not shared rows.** `copy_off_food` creates or reuses the caller's copy (unique per user on barcode and on `off_id`); from T-255 no new reference to a shared OFF row is written. The OFF cache rows stay for searching. The conversion (US-119) only repoints `food_id` in diary entries, favourites and saved comida items (Q-E17-3); snapshots are untouched, so totals cannot move, and the migration self-checks per-day sums before and after (T-242 precedent).
-- **Ordering lives in both layers.** `food-search` and `food-barcode` put the caller's foods (and copies) first and hide OFF rows already copied; `FoodSearchViewModel` keeps its own-first block and adds favourites to it. E18 US-122 later makes that block immediate.
-- **No new screen template.** The audit is a standard pushed list screen; its entry point and name are ux-reviewer's choice in T-253 (Preferencias or the food search), recorded in `05` §10.
+- **Anthropic goes backend first, then app.** T-259 removes the provider, budget and prices from the `coach` Edge Function and drops `coach_usage`. Every deterministic kind keeps its exact response, and the handler ignores a `model` field, so the installed app keeps working until T-260's APK. T-260 removes the app side. The user unsets the secret and revokes the key (👤); the PM only verifies that the name is gone.
+- **Reports are snapshots, written when produced.** A new owner-scoped table holds the exact JSON a weekly summary showed. It is stored the first time the app builds a finished week's summary (idempotent security definer writer, the `open_coach_block_review` precedent), and later reads return the stored snapshot. No backfill and no gap filling. Block reviews are already frozen in `coach_block_reviews`; they are listed from there and gain a seen mark for the block-end notice. Reminders are never stored (`04` §6.1).
+- **One renderer per report type.** A past report is drawn by the same mapper and content composables as the live `WeekSummaryScreen` and `BlockReviewScreen`, in a read-only mode, with no second copy of the layout.
+- **Quick search reuses the existing searches** in a view-only mode (no target meal or workout, no "Añadir"). The food search shows my block (favourites and my foods) before it waits for `food-search`.
+- **The compact Trainer moves cards; it does not rebuild them.** The cards and rows of `TrainerContent` move between the Trainer root and a pushed "Detalles" screen. ux-reviewer writes the content map in the plan, and "Nothing is lost" is tested against it.
+- **The chat is a thin, closed, single-turn Edge Function.** `exercise-chat` takes only the exercise's name, muscles, instructions and one question. It has no tools and no database access, stores, counts and logs nothing, and maps Gemini busy/quota/timeout errors to codes the app names. It shares a Gemini client extracted from `food-photo`. The app keeps the conversation only in memory and saved state: it survives leaving the app and is cleared when you leave the exercise.
 
 ## Ordering and sizing
-Every task pays 6-8 agent hand-offs, so stories stay whole unless one is too large for one PR; no S task.
+Every task pays 6-8 agent hand-offs, so stories stay whole unless one is too large for one PR. There is no S task.
 
-| Order | Task | Story | Flow | Size | Agent runs |
+| Order | Task | Size | Story | Flow | Agent runs |
 |---|---|---|---|---|---|
-| 0 | PM step: `fitness-scientist` records the energy check in `07` §4 (**done** 2026-11-09) | — | PM | — | 1 |
-| 1 | T-251: Energy check, alcohol, flag and audit: backend | US-116, US-117 (backend) | backend | M | 5 |
-| 2 | T-252: The warning and "Alcohol (g)" in every food form | US-116 | core + UI | M | 7 |
-| 3 ✅ | T-253: The food audit | US-117 | core + UI | M | 7 |
-| 4 | T-254: OFF personal copies and the conversion: backend | US-118 (backend), US-119 | backend | M | 5 |
-| 5 | T-255: An OFF food becomes my food in the app | US-118 (+ US-116 OFF path) | core + UI | M | 7 |
-| 6 ✅ | T-256: E17 closure | DoD | PM | closure step | PM only |
+| 1 | T-259 (**M**): Anthropic removed: Edge Functions, `coach_usage` dropped, decisions | **M** | US-128 (backend) | backend | 5 |
+| 2 | T-260 (**M**): "Uso de IA", the limit and the model selector removed from the app | **M** | US-128 | core + UI | 7 |
+| 3 | T-261 (**M**): Reports stored: snapshots, their list, the block-end seen mark | **M** | US-129 (backend) | backend | 5 |
+| 4 | T-262 (**M**): "Informes": past reports from Centro de avisos | **M** | US-129 | core + UI | 7 |
+| 5 | T-263 (**M**): Quick search in Diario and Entreno, and my foods at once | **M** | US-121, US-122 | core + UI | 7 |
+| 6 | T-264 (**M**): A compact Trainer with "Detalles" | **M** | US-120 | UI + core | 7 |
+| — | 👤 Gemini terms check (decision gate, any time before T-265) | — | US-130 | user | — |
+| 7 | T-265 (**M**): The exercise chat Edge Function | **M** | US-130 (backend) | backend | 6 |
+| 8 | T-266 (**M**): Ask about an exercise: the chat tab | **M** | US-130 | core + UI | 7 |
+| — | **👤 Checkpoint E18** (the only one; final regression) | — | | | |
+| 9 | T-267: E18 closure | closure step (no size class) | DoD | PM | PM only |
 
 Why these splits and merges:
-- **US-116 → T-251 (backend) + T-252 (UI):** the whole story is about 28 files (migration, SQL check, `food-photo` schema and prompts, OFF import, the shared Kotlin check and every form path), so it is split backend then UI, not per component.
-- **US-117's backend rides in T-251:** the audit RPC is the same SQL function over the user's foods; alone it would be S. Its UI (a new screen, route, entry and editor round trip, about 10 files) is T-253.
-- **US-118 + US-119 backend → T-254:** the conversion reuses the copy function and is one data migration (S alone), so both go together; the UI of US-118 is T-255 (together about 20 files, hence the split). US-119 has no UI of its own: converted foods are ordinary own foods.
-- **Closure T-256** is the PM closure step released by Checkpoint E17's approval; it has no checkpoint of its own.
+- **US-128 → T-259 + T-260:** about 45 files (Edge Function, shared client, migration, pgTAP, docs, then the app's screen, models, repository, DI and tests). Backend and app are reviewed apart, and the backend must land first (production data drop, epic order).
+- **US-129 → T-261 + T-262:** about 20 files (migration, RPCs, pgTAP, then repository, list, read-only viewer of two report types, Centro de avisos entry, routes, tests).
+- **US-121 + US-122 → T-263:** US-122 alone is S (T-255 already orders the list) and touches the same `FoodSearchViewModel`/`FoodSearchScreen` as US-121's Diario path.
+- **US-120 → T-264:** one UI task (cards move; about 10 files).
+- **US-130 → T-265 + T-266:** about 16 files. The closed backend (prompt, data minimisation, error mapping, the shared Gemini client and the `food-photo` sweep) is reviewed apart from the chat tab.
+- **Closure T-267** is released by Checkpoint E18's approval. It has no checkpoint of its own and no size class: it cannot merge into a task because it waits for the approval.
 
-## Phases and checkpoints
+## Phases and checkpoint
 
-Items to test in the epic, collected first: (1) the 500 kcal mismatch warning and "Corregir"; (2) small gap and near-zero foods pass; (3) wine without and with "Alcohol (g)" and its help; (4) "Guardar igualmente", a name-only edit and a kcal edit; (5) the AI dish and label paths with alcohol pre-filled; (6) the audit, open an editor, fix and leave the list; (7) past OFF days unchanged and editable; (8) my foods and favourites first, OFF when none; (9) adding an OFF food creates my copy; (10) no duplicate by search or barcode; (11) the copy edits like a manual food; (12) converted copies in the audit and the final regression; plus "leave the app and come back" in each group. **User decision (2026-11-09): one checkpoint only, at the end** (E16 precedent). The items are merged into 10, grouped by journey (catching wrong foods 5, OFF foods become mine 4, leave and come back 1). Not testable by hand (pgTAP only): "Only my data is touched".
+Items to test in the epic, collected first: (1) no "Uso de IA", limit or model selector; (2) the plan, block builder, folder review, weekly summary and food photo work as before, data intact; (3) "Informes" newest first, a report as it was shown, read only; (4) back and open another; (5) opening a report notice (weekly or block-end) clears it and it stays in "Informes"; (6) reminders never in "Informes"; (7) the Diario and Entreno magnifiers; (8) view-only details without "Añadir"; (9) favourites and my foods at once, OFF after; (10) Trainer essentials; (11) "Detalles" full content; (12) nothing lost against screenshots; (13) chat tab and a trainer-expert answer; (14) the chat takes no actions; (15) offline gives a short message and leaving the exercise empties the chat; (16) leave the app and come back on each new screen (final regression). Not testable by hand (pgTAP/Deno/host tests): no key or Anthropic code, `coach_usage` gone, another account's reports, only the exercise and one question sent, the busy and quota messages.
 
-### Phase 1: Catching wrong foods (US-116, US-117)
-- T-251 → T-252 → T-253. No checkpoint here (user decision); internal milestones (`deploy-supabase` green, `food-photo` redeployed, CI green) are verification items in T-251.
+**User decision (2026-11-09): one checkpoint only, at the end** (the E16/E17 precedent). The 16 items are kept grouped by functionality: Anthropic removed 2, past reports 4, quick search 3, compact Trainer 3, exercise chat 3, leave and come back 1.
 
-### Phase 2: Open Food Facts foods become mine (US-118, US-119), the checkpoint and closure
-- T-254 → T-255 → **👤 Checkpoint E17** → T-256. The T-254 conversion runs in production on merge; `deploy-supabase` green with its self-check is a T-254 verification item and a precondition of the checkpoint.
-- **👤 Checkpoint E17 — Food data quality, with the final E17 regression** (after T-255, the last implementation task; 10 items in `tasks/todo.md`; its approval releases T-256). Try: a 500 kcal food with 10/30/10 g shows "Parece un error:" (no dialog) and "Corregir" keeps the values; small-gap foods save silently, a red wine warns without alcohol and saves with 9,5 g; "Guardar igualmente", then a name edit (silent) and a kcal edit (warns again); dish and label photos arrive pre-filled and warn on a mismatch, "Uso de IA" unchanged; the food audit (converted copies included) opens editors and fixed foods leave it; past days with OFF foods keep their totals and those foods are editable; your foods and favourites come first, OFF when none match; a new OFF product becomes your food with no second copy on re-add or scan; the copy edits like a manual food and a mismatching OFF product warns; leave the app and come back.
+### Phase 1: Anthropic removed and past reports (US-128, US-129)
+- T-259 → T-260 → T-261 → T-262. No checkpoint here (user decision). `deploy-supabase` green after T-259 and T-261 and the 👤 secret removal are task verification items and preconditions of Checkpoint E18.
 
-### Follow-up (ADR-104, user feedback 2026-11-09)
-- Checkpoint E17: items 6-10 approved, items 1-5 superseded. T-257 → T-258 → **👤 Checkpoint E17-fix** (7 items in `tasks/todo.md`) → T-256.
+### Phase 2: Quick search and the compact Trainer (US-121, US-122, US-120)
+- T-263 → T-264. No checkpoint here.
+- **👤 Gemini terms check** (decision gate for T-265): can be done any time before T-265, for example while T-263 or T-264 runs.
+
+### Phase 3: Ask about an exercise, the checkpoint and closure (US-130)
+- T-265 → T-266 → **👤 Checkpoint E18** → T-267.
+- **👤 Checkpoint E18 — Functional improvements, with the final E18 regression** (after T-266, the last implementation task; 16 items in `tasks/todo.md`; its approval releases T-267). Take screenshots of the Trainer before installing. Try: no "Uso de IA", limit or model selector, and everything you use works as before; "Informes" from Centro de avisos lists your reports newest first, each read only as it was shown; back and open another; opening a report notice clears it; reminders never appear in "Informes"; the magnifiers in Diario and Entreno open searches whose results have no "Añadir"; your foods appear at once with OFF after; the Trainer shows its essentials, "Detalles" holds the full plan and block, and nothing is missing against the screenshots; the chat tab answers as a trainer expert, takes no actions, explains when there is no answer and empties when you leave the exercise; leave the app and come back on each new screen.
 
 ## Dependencies
-- **PM step (done 2026-11-09):** `fitness-scientist` recorded the rule in `07` §4 "Food energy check" (§10 refs 152-157).
-- T-251 needs the breakdown approved; T-252 needs T-251 merged and deployed (`food-photo` redeployed); T-253 needs T-252; T-254 needs T-253 merged (no build dependency beyond T-251); T-255 needs T-254 merged and deployed; T-256 needs Checkpoint E17 approved.
-- Built pieces E17 relies on: `create_personal_food` / `update_personal_food` and `CreateFoodScreen` (US-47, ADR-53), the `food-photo` prefilled form (ADR-59, ADR-64, ADR-72, T-250), `search_user_food_ids` and the own-first search block (T-230), `food-search` / `food-barcode` and the OFF cache with `off_data` (ADR-43, ADR-46), favourites and saved comidas.
+- T-259 needs the breakdown approved. T-260 needs T-259 merged and deployed. T-261 needs T-260 merged. T-262 needs T-261 merged and deployed. T-263 needs T-262 merged (no build dependency). T-264 needs T-263. T-265 needs T-264 merged and the **👤 Gemini terms check** decided. T-266 needs T-265 merged and deployed. T-267 needs Checkpoint E18 approved.
+- Built pieces E18 relies on: the deterministic `coach` kinds (ADR-97…99), `coach_week_summary`/`coach_week_summary_week` and `coach_week_summary_seen` (T-231, T-242, T-246, T-247), `coach_block_reviews` and `open_coach_block_review` (T-233, T-243), Centro de avisos (E10, T-231, T-243), the `FoodSearchViewModel` own-first block and the `food-search` ordering (T-230, T-254, T-255), the exercise details tabs (T-179), `food-photo` and `GEMINI_API_KEY` (ADR-59).
 
 ## Risks
-- **A production data migration (T-254).** Repointing diary entries must not lose or duplicate one. Mitigation: snapshots untouched, per-user counts and per-day sums checked before and after with an abort on any difference, pgTAP with two users, `deploy-supabase` confirmed with data intact before Checkpoint E17.
-- **Unique index on existing data (T-254).** The user may already have manual foods sharing a barcode (label scans). Mitigation: the planner checks for existing duplicates; the conversion reuses an existing own food with that barcode rather than failing.
-- **Flag and "save anyway" in one write (T-251).** A trigger that clears the flag on an input change must still let "Guardar igualmente" set it in the same update. Mitigation: pgTAP for each input, for the combined write and for edits that touch no input.
-- **AI schema change (T-251).** Making alcohol mandatory can turn valid responses into errors if the model omits it. Mitigation: the prompt states it explicitly per mode; Deno tests; a missing value is reported as the existing invalid-output error with "Reintentar", never a silent 0 (`07`: never omitted). If real use shows frequent omissions, a `fix(T-###)` revisits it.
-- **US labels (`07`).** A converted US label may warn within tolerance rules of its own country; "Guardar igualmente" covers it and the copy explains fibre, alcohol and polyols.
-- **Warning fatigue on OFF copies (T-255).** Many OFF products may fail; the warning is shown once per add and "Guardar igualmente" flags the copy so it is not asked again.
+- **Production drop of `coach_usage` (T-259).** Mitigation: drop only budget objects; row counts of every other table checked before and after; `deploy-supabase` confirmed with data intact before Checkpoint E18.
+- **Old installed app against the new backend (T-259 → T-266).** With one checkpoint, the phone keeps the E17 APK until the end of the epic, while each backend change deploys on merge. Mitigation: the `coach` handler ignores `model`; T-261 adds tables and RPCs without changing what the E17 app reads; only the old "Uso de IA" screen fails until the new APK. Every backend task checks that the E17 app's calls still work.
+- **Removing the streaming path breaks a deterministic kind (T-259).** Mitigation: every kind's Deno tests are kept; responses are compared before and after.
+- **Weeks that are never produced (T-261).** With no gap filling, a finished week whose summary the app never builds (for example, the app is not opened before the next week ends) leaves no report. This is accepted by Q1(a)/(d); the app builds the latest summary on every Trainer or Centro de avisos load, so this only happens after a long absence.
+- **Snapshot drift (T-262).** A later change of the summary JSON shape could break old snapshots. Mitigation: the mapper tolerates missing keys (the T-246 precedent: "a summary built before T-246 lacks the key"); a test renders an older snapshot.
+- **Tab-root header crowding (T-263).** Diario's header would hold the bell, the calendar and the magnifier, and R-02 caps object actions at 2 icons plus ⋮. Mitigation: ux-reviewer rules on it in the plan (the epic fixes the position).
+- **Trainer content regression (T-264).** Moving cards can drop a figure. Mitigation: the content map in the plan, one host test per figure group, and screenshots before the checkpoint.
+- **Gemini terms and quota (T-265).** The free tier may not be allowed in the EEA, or its daily quota may be low. Mitigation: the 👤 check before T-265; the paid tier with a low limit as fallback (user decision); the quota message in the app.
+- **Chat scope (T-265).** A model may drift into medical or unrelated advice. Mitigation: a scoped system prompt reviewed by `fitness-scientist`, no tools, no user data in the request.
+- **A late checkpoint (one at the end).** Feedback on T-259…T-264 arrives after the chat is built. Mitigation: those tasks touch different screens from the chat, so fixes do not rework it.
 
 ## Open questions
-- **Q1 · RESOLVED (user, 2026-11-09; Q-E17-3 in the epic file, US-119 Gherkin amended): every reference moves to the personal copy.** Diary entries, favourites and saved comida items (hence default comidas), in the T-254 conversion and for every new add from T-255 on (diary, favourite star, comida item, barcode scan).
-- **Q2 (non-blocking; assumption unless the user says otherwise): OFF results when my foods also match.** US-118 only says OFF is queried when none of my foods match. The planned behaviour keeps today's: OFF results are still appended below my foods when both match (the < 10 rule). E18 US-122 then makes my block appear at once.
-- **Q3 (non-blocking, delegated to ux-reviewer in T-253): where the food audit is opened and what it is called.** Candidates: a row in Perfil → Preferencias or in the food search; recorded in `05` §10.
+- **👤 Gemini terms check (the only open user item; gate before T-265; epic and ADR-103):** the user checks Google's current Gemini API terms for Spain/EEA and decides free tier or paid tier with a low spending limit, for the chat and `food-photo`.
+- **Q1 · RESOLVED (user, 2026-11-09):** see "Decisions" (no backfill; the block-end notice is a report; past reports read only; paused weeks only when shown). Recorded in `09-open-questions.md` by the closure T-267 (not tracked there today).
+- **Q2 · RESOLVED (user, 2026-11-09):** see "Decisions" (single-turn; Gemini's quota only). Multi-turn chat is a possible later-epic idea. Recorded in `09-open-questions.md` by T-267.
+- **Q3 (non-blocking, delegated to ux-reviewer):** the chat tab label, the "Informes" entry position in Centro de avisos, the Trainer/"Detalles" content map (where "Tus datos", "Lo que el entrenador sabe de ti" and "Bloque nuevo" land), and the glossary row that lists "Informe" as a forbidden word for the weekly summary (amended so "Informes" names the list).
