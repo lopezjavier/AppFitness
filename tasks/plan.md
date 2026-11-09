@@ -48,6 +48,9 @@ Items to test in the epic, collected first: (1) the 500 kcal mismatch warning an
 - T-254 → T-255 → **👤 Checkpoint E17** → T-256. The T-254 conversion runs in production on merge; `deploy-supabase` green with its self-check is a T-254 verification item and a precondition of the checkpoint.
 - **👤 Checkpoint E17 — Food data quality, with the final E17 regression** (after T-255, the last implementation task; 10 items in `tasks/todo.md`; its approval releases T-256). Try: a 500 kcal food with 10/30/10 g shows "Parece un error:" (no dialog) and "Corregir" keeps the values; small-gap foods save silently, a red wine warns without alcohol and saves with 9,5 g; "Guardar igualmente", then a name edit (silent) and a kcal edit (warns again); dish and label photos arrive pre-filled and warn on a mismatch, "Uso de IA" unchanged; the food audit (converted copies included) opens editors and fixed foods leave it; past days with OFF foods keep their totals and those foods are editable; your foods and favourites come first, OFF when none match; a new OFF product becomes your food with no second copy on re-add or scan; the copy edits like a manual food and a mismatching OFF product warns; leave the app and come back.
 
+### Follow-up (ADR-104, user feedback 2026-11-09)
+- Checkpoint E17: items 6-10 approved, items 1-5 superseded. T-257 → T-258 → **👤 Checkpoint E17-fix** (7 items in `tasks/todo.md`) → T-256.
+
 ## Dependencies
 - **PM step (done 2026-11-09):** `fitness-scientist` recorded the rule in `07` §4 "Food energy check" (§10 refs 152-157).
 - T-251 needs the breakdown approved; T-252 needs T-251 merged and deployed (`food-photo` redeployed); T-253 needs T-252; T-254 needs T-253 merged (no build dependency beyond T-251); T-255 needs T-254 merged and deployed; T-256 needs Checkpoint E17 approved.

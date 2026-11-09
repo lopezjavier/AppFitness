@@ -18,9 +18,12 @@
 - **Q-E17-1 · Alcohol.** Foods get an optional "Alcohol (g)" field (grams per 100 g/ml, 7 kcal/g) that the energy check counts. The user types grams by hand; the AI photo estimate must return it (0 when there is none); the Open Food Facts import converts OFF's % vol into grams (× 0.789). Rule and figures: `07` §4 "Food energy check".
 - **Q-E17-2 · "Saved anyway".** A food saved with "Guardar igualmente" carries a per-food flag that keeps it out of the US-117 audit until its kcal, protein, carbohydrate, fat, fibre, polyols or alcohol change; the next save then checks it again. Rule: `07` §4 "Food energy check".
 - **Q-E17-3 · Every reference moves to the copy.** Diary entries, favourites and saved comida items (hence default comidas) point to the personal copy: in the US-119 conversion and for every new add from US-118 on (diary, favourite star, comida item, barcode scan). No new reference to a shared OFF row is written.
+- **Q-E17-4 · Hard block (supersedes Q-E17-2 and the audit of US-117, ADR-104).** Checkpoint E17 feedback (2026-11-09): no failing food may be saved by any path; the "saved anyway" flag, "Guardar igualmente" and the audit UI are removed; the AI estimate must be consistent or show the issue with a retry that sends the previous estimate and the reason; the PM fixes the user's existing wrong foods (asking when unsure). Tasks T-257…T-258 and a follow-up checkpoint.
 
 ## Rules
 `07` §4 "Food energy check (E17, US-116/US-117)" (recorded 2026-11-09); `04` food rules; `03` `foods`; ADR-53 (amended by ADR-101), ADR-59.
+
+> **Amended by ADR-104 (2026-11-09):** US-116's warning becomes a block (no "Guardar igualmente"), US-117's audit UI and the flag are removed; scenarios on them are superseded by T-257/T-258.
 
 ## US-116 · A food whose macros do not match its kcal is flagged
 **As** a user adding a food
