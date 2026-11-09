@@ -1,60 +1,25 @@
 import { assert, assertEquals } from "jsr:@std/assert@1.0.19";
-import {
-    type AnthropicClient,
-    type AnthropicEvent,
-    NO_USAGE,
-    ProviderCreditError,
-    ProviderError,
-} from "../_shared/anthropic.ts";
+import { CoachInputError } from "./context.ts";
 import { type CoachDeps, createCoachHandler } from "./handler.ts";
-import { KINDS } from "./router.ts";
+import { KINDS, type KindSpec } from "./router.ts";
 
 const NOW = new Date("2026-10-30T12:00:00Z");
-const SECRET_PROMPT_WORD = "SECRET-INPUT-TEXT";
+const SECRET_INPUT_WORD = "SECRET-INPUT-TEXT";
 
-type Recorded = Parameters<CoachDeps["recordUsage"]>[0];
+/** A deterministic kind that echoes what it was given, so tests need no summary or database. */
+const echo: KindSpec = {
+    prepare: (input) =>
+        Promise.resolve({
+            finalize: () => Promise.resolve({ ok: true, input }),
+        }),
+};
 
 function setup(
-    overrides: Partial<CoachDeps> & {
-        events?: AnthropicEvent[] | (() => AsyncGenerator<AnthropicEvent>);
-        spent?: number;
-        globalTotal?: number;
-    } = {},
+    overrides: Partial<CoachDeps> = {},
+    kinds: Record<string, KindSpec> = { echo },
 ) {
-    const records: Recorded[] = [];
-    let clientCalls = 0;
-    const models: string[] = [];
-    const events: AnthropicEvent[] = Array.isArray(overrides.events)
-        ? overrides.events
-        : [
-            { type: "delta", text: "ok" },
-            {
-                type: "usage",
-                usage: { ...NO_USAGE, inputTokens: 1000, outputTokens: 5 },
-            },
-            { type: "done" },
-        ];
-    const makeStream = typeof overrides.events === "function"
-        ? overrides.events
-        : async function* () {
-            for (const e of events) yield e;
-        };
-    const client: AnthropicClient = {
-        stream: (request) => {
-            clientCalls++;
-            models.push(request.model);
-            return makeStream();
-        },
-    };
     const deps: CoachDeps = {
         authenticate: (t) => Promise.resolve(t === "good" ? "user-1" : null),
-        userSpent: () => Promise.resolve(overrides.spent ?? 0),
-        globalSpent: () => Promise.resolve(overrides.globalTotal ?? 0),
-        recordUsage: (r) => {
-            records.push(r);
-            return Promise.resolve();
-        },
-        client,
         loadContext: () => Promise.reject(new Error("unexpected loadContext")),
         loadInputs: () => Promise.reject(new Error("unexpected loadInputs")),
         savePlan: () => Promise.reject(new Error("unexpected savePlan")),
@@ -73,15 +38,10 @@ function setup(
         applyGoalSwitch: () =>
             Promise.reject(new Error("unexpected applyGoalSwitch")),
         now: () => NOW,
+        kinds,
         ...overrides,
     };
-    delete (deps as Record<string, unknown>).events;
-    return {
-        handler: createCoachHandler(deps),
-        records,
-        clientCalls: () => clientCalls,
-        models,
-    };
+    return { handler: createCoachHandler(deps) };
 }
 
 const post = (
@@ -94,23 +54,23 @@ const post = (
     body: method === "GET" ? undefined : JSON.stringify(body),
 });
 
-const ping = { kind: "ping", input: {} };
+const call = { kind: "echo", input: { a: 1 } };
 
 Deno.test("GET is 405", async () => {
     const { handler } = setup();
-    assertEquals((await handler(post(ping, "good", "GET"))).status, 405);
+    assertEquals((await handler(post(call, "good", "GET"))).status, 405);
 });
 
 Deno.test("no bearer is 401 UNAUTHORIZED", async () => {
     const { handler } = setup();
-    const res = await handler(post(ping, null));
+    const res = await handler(post(call, null));
     assertEquals(res.status, 401);
     assertEquals((await res.json()).error.code, "UNAUTHORIZED");
 });
 
 Deno.test("an invalid token is 401", async () => {
     const { handler } = setup();
-    assertEquals((await handler(post(ping, "bad"))).status, 401);
+    assertEquals((await handler(post(call, "bad"))).status, 401);
 });
 
 Deno.test("an unknown kind is 400 INVALID_INPUT", async () => {
@@ -120,8 +80,8 @@ Deno.test("an unknown kind is 400 INVALID_INPUT", async () => {
     assertEquals((await res.json()).error.code, "INVALID_INPUT");
 });
 
-Deno.test("T-198: the removed intake_extract kind is an unknown kind and records no usage", async () => {
-    const { handler } = setup();
+Deno.test("T-198: the removed intake_extract kind is an unknown kind", async () => {
+    const { handler } = setup({}, KINDS);
     const res = await handler(
         post({ kind: "intake_extract", input: { text: "hola" } }),
     );
@@ -145,236 +105,93 @@ Deno.test("a non-JSON body is 400", async () => {
     assertEquals((await handler(req)).status, 400);
 });
 
-Deno.test("report and chat answer 501 coach_kind_not_available without calling the model", async () => {
-    for (const kind of ["report", "chat"]) {
-        const { handler, clientCalls } = setup();
+Deno.test("ADR-103: ping, report and chat answer the unknown-kind error", async () => {
+    const { handler } = setup({}, KINDS);
+    for (const kind of ["ping", "report", "chat"]) {
         const res = await handler(post({ kind, input: {} }));
-        assertEquals(res.status, 501);
-        assertEquals((await res.json()).error.code, "coach_kind_not_available");
-        assertEquals(clientCalls(), 0);
+        assertEquals(res.status, 400);
+        const error = (await res.json()).error;
+        assertEquals(error.code, "INVALID_INPUT");
+        assertEquals(error.message, "Unknown kind");
     }
 });
 
 Deno.test("the removed block kinds answer the unknown-kind error, not a 5xx", async () => {
+    const { handler } = setup({}, KINDS);
     for (const kind of ["block_splits", "plan_block", "folder_review"]) {
-        const { handler, clientCalls } = setup();
         const res = await handler(post({ kind, input: {} }));
         assertEquals(res.status, 400);
         assertEquals((await res.json()).error.message, "Unknown kind");
-        assertEquals(clientCalls(), 0);
     }
 });
 
-Deno.test("plan_nutrition is model-free and report/chat use Sonnet", () => {
-    assertEquals(KINDS.plan_nutrition.deterministic, true);
-    assertEquals(KINDS.report.model, "sonnet");
-    assertEquals(KINDS.chat.model, "sonnet");
-    assertEquals(KINDS.ping.model, "sonnet");
+Deno.test("the callable kinds are the five deterministic plan kinds", () => {
+    assertEquals(Object.keys(KINDS).sort(), [
+        "plan_diet_break",
+        "plan_goal_switch",
+        "plan_nutrition",
+        "plan_phase_change",
+        "plan_recompute",
+    ]);
 });
 
-Deno.test("over the user limit is 429 scope user and the model is not called", async () => {
-    const { handler, clientCalls } = setup({ spent: 3 });
-    const res = await handler(post(ping));
-    assertEquals(res.status, 429);
-    const error = (await res.json()).error;
-    assertEquals(error.code, "coach_limit_reached");
-    assertEquals(error.scope, "user");
-    assertEquals(clientCalls(), 0);
-});
-
-Deno.test("over the global limit is 429 scope global while the user is under", async () => {
-    const { handler, clientCalls } = setup({ spent: 0.1, globalTotal: 5 });
-    const res = await handler(post(ping));
-    assertEquals(res.status, 429);
-    assertEquals((await res.json()).error.scope, "global");
-    assertEquals(clientCalls(), 0);
-});
-
-Deno.test("a missing provider key is 503 NOT_CONFIGURED", async () => {
-    const { handler } = setup({ client: null });
-    const res = await handler(post(ping));
-    assertEquals(res.status, 503);
-    assertEquals((await res.json()).error.code, "NOT_CONFIGURED");
-});
-
-Deno.test("a successful ping streams delta then done and records the returned usage", async () => {
-    const { handler, records } = setup();
-    const res = await handler(post(ping));
+Deno.test("a kind answers one delta then done with zero usage", async () => {
+    const { handler } = setup();
+    const res = await handler(post(call));
     assertEquals(res.status, 200);
     assertEquals(res.headers.get("content-type"), "text/event-stream");
-    const text = await res.text();
     assertEquals(
-        text,
-        'event: delta\ndata: {"text":"ok"}\n\n' +
-            'event: done\ndata: {"usage":{"input_tokens":1000,"output_tokens":5,"cost_eur":0.002050}}\n\n'
-                .replace("0.002050", "0.00205"),
+        await res.text(),
+        'event: delta\ndata: {"text":"{\\"ok\\":true,\\"input\\":{\\"a\\":1}}"}\n\n' +
+            'event: done\ndata: {"usage":{"input_tokens":0,"output_tokens":0,"cost_eur":0}}\n\n',
     );
-    assertEquals(records, [{
-        userId: "user-1",
-        month: "2026-10-01",
-        inputTokens: 1000,
-        outputTokens: 5,
-        costEur: 0.00205,
-    }]);
 });
 
-Deno.test("credit rejection is 402 coach_no_credit, one call, nothing recorded", async () => {
-    const { handler, records, clientCalls } = setup({
-        // deno-lint-ignore require-yield
-        events: async function* () {
-            throw new ProviderCreditError();
-        },
-    });
-    const res = await handler(post(ping));
-    assertEquals(res.status, 402);
-    assertEquals((await res.json()).error.code, "coach_no_credit");
-    assertEquals(clientCalls(), 1);
-    assertEquals(records.length, 0);
-});
-
-Deno.test("another provider failure is 502 PROVIDER_ERROR and records nothing", async () => {
-    const { handler, records } = setup({
-        // deno-lint-ignore require-yield
-        events: async function* () {
-            throw new ProviderError("provider", 529);
-        },
-    });
-    const res = await handler(post(ping));
-    assertEquals(res.status, 502);
-    assertEquals((await res.json()).error.code, "PROVIDER_ERROR");
-    assertEquals(records.length, 0);
-});
-
-Deno.test("a call that never answers is 504 coach_timeout and records nothing", async () => {
-    const { handler, records } = setup({
-        timeoutMs: 20,
-        // deno-lint-ignore require-yield
-        events: async function* () {
-            await new Promise(() => {}); // never resolves
-        },
-    });
-    const res = await handler(post(ping));
-    assertEquals(res.status, 504);
-    assertEquals((await res.json()).error.code, "coach_timeout");
-    assertEquals(records.length, 0);
-});
-
-Deno.test("a failure after streaming started becomes an error event and records nothing", async () => {
-    const { handler, records } = setup({
-        events: async function* () {
-            yield { type: "delta", text: "par" } as AnthropicEvent;
-            throw new ProviderError("provider");
-        },
-    });
-    const res = await handler(post(ping));
-    assertEquals(res.status, 200);
-    const text = await res.text();
-    assert(text.includes('event: delta\ndata: {"text":"par"}'));
-    assert(text.endsWith('event: error\ndata: {"code":"PROVIDER_ERROR"}\n\n'));
-    assertEquals(records.length, 0);
-});
-
-// --- validated kinds (injected, since no real kind validates yet) ---
-
-const validatedKinds = (texts: string[]) => {
-    let call = 0;
-    const kinds = {
-        v: {
-            model: "opus" as const,
-            available: true,
-            buildRequest: () => ({ model: "m", prompt: "p", maxTokens: 10 }),
-            validate: (t: string) => t.startsWith("{") ? t : null,
-        },
-    };
-    const events = async function* () {
-        yield { type: "delta", text: texts[call++] } as AnthropicEvent;
-        yield {
-            type: "usage",
-            usage: { ...NO_USAGE, inputTokens: 100, outputTokens: 10 },
-        } as AnthropicEvent;
-        yield { type: "done" } as AnthropicEvent;
-    };
-    return { kinds, events, calls: () => call };
-};
-
-Deno.test("an invalid output is retried once and both attempts are recorded", async () => {
-    const v = validatedKinds(["bad", "{}"]);
-    const { handler, records } = setup({ kinds: v.kinds, events: v.events });
-    const res = await handler(post({ kind: "v", input: {} }));
-    assertEquals(res.status, 200);
-    const text = await res.text();
-    assert(text.includes('event: delta\ndata: {"text":"{}"}'));
-    assertEquals(v.calls(), 2);
-    assertEquals(records.length, 1);
-    assertEquals(records[0].inputTokens, 200);
-    assertEquals(records[0].outputTokens, 20);
-});
-
-Deno.test("two invalid outputs give 502 coach_invalid_output and still record the spent usage", async () => {
-    const v = validatedKinds(["bad", "worse"]);
-    const { handler, records } = setup({ kinds: v.kinds, events: v.events });
-    const res = await handler(post({ kind: "v", input: {} }));
-    assertEquals(res.status, 502);
-    assertEquals((await res.json()).error.code, "coach_invalid_output");
-    assertEquals(v.calls(), 2);
-    assertEquals(records.length, 1);
-    assertEquals(records[0].inputTokens, 200);
-});
-
-// --- COACH_DEBUG (T-212) ---
-
-async function debugRun(debug: boolean) {
-    const v = validatedKinds(["bad CANARY-OUT", "worse CANARY-OUT"]);
-    const events = async function* () {
-        yield { type: "delta", text: "bad CANARY-OUT" } as AnthropicEvent;
-        yield {
-            type: "usage",
-            usage: { ...NO_USAGE, inputTokens: 100, outputTokens: 10 },
-            stopReason: "end_turn",
-        } as AnthropicEvent;
-        yield { type: "done" } as AnthropicEvent;
-    };
-    const { handler } = setup({ kinds: v.kinds, events, debug });
-    const warnings: unknown[][] = [];
-    const original = console.warn;
-    console.warn = (...args: unknown[]) => void warnings.push(args);
-    try {
-        const res = await handler(
-            post({ kind: "v", input: { x: "CANARY-IN" } }),
-        );
-        assertEquals(res.status, 502);
-    } finally {
-        console.warn = original;
+Deno.test("a body model of any value is ignored and the answer equals the one without it", async () => {
+    const { handler } = setup();
+    const plain = await (await handler(post(call))).text();
+    for (const model of ["opus", "gpt", 123]) {
+        const res = await handler(post({ ...call, model }));
+        assertEquals(res.status, 200);
+        assertEquals(await res.text(), plain);
     }
-    return warnings;
-}
-
-Deno.test("debug off: no extra console output for an invalid answer", async () => {
-    assertEquals(await debugRun(false), []);
 });
 
-Deno.test("debug on: one line per attempt with stop_reason and codes, and no text leaks", async () => {
-    const warnings = await debugRun(true);
-    const attempts = warnings.filter((w) => w[0] === "coach: debug");
-    assertEquals(attempts.length, 3); // two attempts and the final invalid-output line
-    assertEquals(
-        (attempts[0][1] as Record<string, unknown>).stop_reason,
-        "end_turn",
-    );
-    assertEquals((attempts[0][1] as Record<string, unknown>).codes, [
-        "json_parse",
-    ]);
-    assertEquals(
-        (attempts[2][1] as Record<string, unknown>).result,
-        "coach_invalid_output",
-    );
-    const dump = JSON.stringify(warnings);
-    assert(!dump.includes("CANARY"));
+Deno.test("a refusal the client can fix is its JSON error", async () => {
+    const { handler } = setup({}, {
+        echo: {
+            prepare: () =>
+                Promise.resolve({
+                    finalize: () =>
+                        Promise.reject(
+                            new CoachInputError(
+                                "coach_block_in_progress",
+                                "A block is in progress",
+                            ),
+                        ),
+                }),
+        },
+    });
+    const res = await handler(post(call));
+    assertEquals(res.status, 409);
+    assertEquals((await res.json()).error.code, "coach_block_in_progress");
 });
 
-// --- privacy and config ---
+Deno.test("a failure while finalizing is 500 INTERNAL", async () => {
+    const { handler } = setup({}, {
+        echo: {
+            prepare: () =>
+                Promise.resolve({
+                    finalize: () => Promise.reject(new Error("db down")),
+                }),
+        },
+    });
+    const res = await handler(post(call));
+    assertEquals(res.status, 500);
+    assertEquals((await res.json()).error.code, "INTERNAL");
+});
 
-Deno.test("prompts, inputs and outputs never reach the console", async () => {
+Deno.test("inputs never reach the console", async () => {
     const seen: string[] = [];
     const originals = {
         log: console.log,
@@ -386,34 +203,26 @@ Deno.test("prompts, inputs and outputs never reach the console", async () => {
         console[k] = (...a: unknown[]) => void seen.push(a.join(" "));
     }
     try {
-        const ok = setup({
-            events: [
-                { type: "delta", text: SECRET_PROMPT_WORD },
-                { type: "usage", usage: NO_USAGE },
-                { type: "done" },
-            ],
-        });
+        const ok = setup();
         await (await ok.handler(
-            post({ kind: "ping", input: { x: SECRET_PROMPT_WORD } }),
-        ))
-            .text();
-        const failing = setup({
-            recordUsage: () => Promise.reject(new Error(SECRET_PROMPT_WORD)),
-        });
-        await (await failing.handler(post(ping))).text();
-        const credit = setup({
-            // deno-lint-ignore require-yield
-            events: async function* () {
-                throw new ProviderCreditError();
+            post({ kind: "echo", input: { x: SECRET_INPUT_WORD } }),
+        )).text();
+        const failing = setup({}, {
+            echo: {
+                prepare: () =>
+                    Promise.resolve({
+                        finalize: () =>
+                            Promise.reject(new Error(SECRET_INPUT_WORD)),
+                    }),
             },
         });
-        await credit.handler(
-            post({ kind: "ping", input: { x: SECRET_PROMPT_WORD } }),
+        await failing.handler(
+            post({ kind: "echo", input: { x: SECRET_INPUT_WORD } }),
         );
     } finally {
         Object.assign(console, originals);
     }
-    assertEquals(seen.filter((l) => l.includes(SECRET_PROMPT_WORD)), []);
+    assertEquals(seen.filter((l) => l.includes(SECRET_INPUT_WORD)), []);
 });
 
 Deno.test("config.toml enables verify_jwt for coach", async () => {
@@ -421,101 +230,4 @@ Deno.test("config.toml enables verify_jwt for coach", async () => {
         new URL("../../config.toml", import.meta.url),
     );
     assert(/\[functions\.coach\]\s*\nverify_jwt = true/.test(toml));
-});
-
-Deno.test("a mid-stream failure after a usage event still records that usage", async () => {
-    const { handler, records } = setup({
-        events: async function* () {
-            yield { type: "delta", text: "par" } as AnthropicEvent;
-            yield {
-                type: "usage",
-                usage: { ...NO_USAGE, inputTokens: 500, outputTokens: 9 },
-            } as AnthropicEvent;
-            throw new ProviderError("provider");
-        },
-    });
-    const text = await (await handler(post(ping))).text();
-    assert(text.includes("event: error"));
-    assertEquals(records.length, 1);
-    assertEquals(records[0].inputTokens, 500);
-    assertEquals(records[0].outputTokens, 9);
-});
-
-Deno.test("a credit rejection after a usage event records nothing", async () => {
-    const { handler, records } = setup({
-        events: async function* () {
-            yield { type: "delta", text: "x" } as AnthropicEvent;
-            yield {
-                type: "usage",
-                usage: { ...NO_USAGE, inputTokens: 5 },
-            } as AnthropicEvent;
-            throw new ProviderCreditError();
-        },
-    });
-    await (await handler(post(ping))).text();
-    assertEquals(records.length, 0);
-});
-
-// --- per-request model override (T-178) ---
-
-Deno.test("no model: ping uses Sonnet and its default price", async () => {
-    const { handler, models, records } = setup();
-    await (await handler(post(ping))).text();
-    assertEquals(models, ["claude-sonnet-5-5"]);
-    assertEquals(records[0].costEur, 0.00205);
-});
-
-Deno.test("model opus overrides the Sonnet default of ping and is priced with Opus", async () => {
-    const { handler, models, records } = setup();
-    await (await handler(post({ ...ping, model: "opus" }))).text();
-    assertEquals(models, ["claude-opus-5-5"]);
-    assertEquals(records[0].costEur, 0.0041); // 1000 x 4 + 5 x 20, per million
-});
-
-Deno.test("model haiku on ping: Haiku id and Haiku price in the record and the done event", async () => {
-    const { handler, models, records } = setup();
-    const text = await (await handler(post({ ...ping, model: "haiku" })))
-        .text();
-    assertEquals(models, ["claude-haiku-5-5"]);
-    assertEquals(records[0].costEur, 0.000103); // 1000 x 0.1 + 5 x 0.5 = 102.5 millionths, rounded
-    assert(text.includes('"cost_eur":0.000103'));
-});
-
-Deno.test("the override works for any kind, e.g. a future report with a Sonnet default", async () => {
-    const kinds = {
-        report: {
-            model: "sonnet" as const,
-            available: true,
-            buildRequest: (
-                _i: unknown,
-                model: "opus" | "sonnet" | "haiku",
-            ) => ({
-                model: "id-" + model,
-                prompt: "p",
-                maxTokens: 10,
-            }),
-        },
-    };
-    const { handler, models } = setup({ kinds });
-    await (await handler(post({ kind: "report", input: {}, model: "haiku" })))
-        .text();
-    await (await handler(post({ kind: "report", input: {} }))).text();
-    assertEquals(models, ["id-haiku", "id-sonnet"]);
-});
-
-Deno.test("an unknown model is 400 INVALID_INPUT before auth, budget or any model call", async () => {
-    for (
-        const model of ["claude-3", "", null, 42, {}, "__proto__", "toString"]
-    ) {
-        const { handler, clientCalls, records } = setup({
-            userSpent: () => Promise.reject(new Error("budget read")),
-        });
-        const res = await handler(post({ ...ping, model }, "bad"));
-        assertEquals(res.status, 400, String(model));
-        const error = (await res.json()).error;
-        assertEquals(error.code, "INVALID_INPUT");
-        assertEquals(error.message, "Unknown model");
-        assertEquals(clientCalls(), 0);
-        assertEquals(records.length, 0);
-    }
 });

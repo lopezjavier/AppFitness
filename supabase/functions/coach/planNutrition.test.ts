@@ -1,6 +1,5 @@
 // plan_nutrition is model-free (ADR-98): same input, same output; no provider call, no budget read, no usage row.
 import { assert, assertEquals } from "jsr:@std/assert@1.0.19";
-import type { AnthropicClient } from "../_shared/anthropic.ts";
 import type { PlanRow } from "./context.ts";
 import { type CoachDeps, createCoachHandler } from "./handler.ts";
 import { MISSING, planInputs } from "./inputsFixtures.ts";
@@ -50,36 +49,12 @@ function setup(
         summary?: unknown;
         inputs?: unknown;
         saveFails?: boolean;
-        spent?: number;
     } = {},
 ) {
-    let providerCalls = 0;
-    let budgetReads = 0;
     let loads = 0;
     const saved: PlanRow[] = [];
-    const usage: unknown[] = [];
-    // A provider that must never be reached.
-    const client: AnthropicClient = {
-        // deno-lint-ignore require-yield
-        stream: async function* () {
-            providerCalls++;
-            throw new Error("the provider must not be called");
-        },
-    };
     const deps: CoachDeps = {
         authenticate: (t) => Promise.resolve(t === "good" ? "user-1" : null),
-        userSpent: () => {
-            budgetReads++;
-            return Promise.resolve(o.spent ?? 0);
-        },
-        globalSpent: () => {
-            budgetReads++;
-            return Promise.resolve(0);
-        },
-        recordUsage: (r) => {
-            usage.push(r);
-            return Promise.resolve();
-        },
         loadCatalog: () => Promise.reject(new Error("unexpected loadCatalog")),
         loadPlan: () => Promise.reject(new Error("unexpected loadPlan")),
         attachBlock: () => Promise.reject(new Error("unexpected attachBlock")),
@@ -94,7 +69,6 @@ function setup(
             Promise.reject(new Error("unexpected applyPhaseChange")),
         applyGoalSwitch: () =>
             Promise.reject(new Error("unexpected applyGoalSwitch")),
-        client,
         loadInputs: () => Promise.resolve(o.inputs ?? planInputs()),
         loadContext: () => {
             loads++;
@@ -113,9 +87,6 @@ function setup(
     return {
         handler: createCoachHandler(deps),
         saved,
-        usage,
-        providerCalls: () => providerCalls,
-        budgetReads: () => budgetReads,
         loads: () => loads,
     };
 }
@@ -154,9 +125,6 @@ Deno.test("success answers one delta with the plan and zero usage, saves the pla
     assertEquals(t.saved.length, 1);
     assertEquals(t.saved[0].blockStart, TODAY);
     assertEquals(t.saved[0].intention, "fat_loss");
-    assertEquals(t.providerCalls(), 0);
-    assertEquals(t.budgetReads(), 0);
-    assertEquals(t.usage.length, 0);
 });
 
 Deno.test("the method of a saved plan carries no model and no cost", async () => {
@@ -171,7 +139,7 @@ Deno.test("the method of a saved plan carries no model and no cost", async () =>
 });
 
 Deno.test("an exhausted budget does not matter: the kind is answered before the budget check", async () => {
-    const t = setup({ spent: 999 });
+    const t = setup();
     const res = await t.handler(post());
     assertEquals(res.status, 200);
     await res.text();
@@ -462,7 +430,6 @@ Deno.test("a persistence failure is INTERNAL and leaves no usage", async () => {
     const res = await t.handler(post());
     assertEquals(res.status, 500);
     assertEquals((await res.json()).error.code, "INTERNAL");
-    assertEquals(t.usage.length, 0);
 });
 
 Deno.test("the summary is saved with the plan", async () => {
@@ -474,7 +441,7 @@ Deno.test("the summary is saved with the plan", async () => {
     );
 });
 
-Deno.test("other kinds are still not available", async () => {
+Deno.test("a retired kind is an unknown kind", async () => {
     const { handler } = setup();
     const res = await handler(
         new Request("http://x/coach", {
@@ -483,7 +450,7 @@ Deno.test("other kinds are still not available", async () => {
             body: JSON.stringify({ kind: "report", input: {} }),
         }),
     );
-    assertEquals(res.status, 501);
+    assertEquals(res.status, 400);
 });
 
 Deno.test("parseInput accepts only a real date", () => {

@@ -1,7 +1,5 @@
 // Types shared by the handler and the kinds that prepare their own request (T-161).
-import type { AnthropicRequest, RetryOptions } from "../_shared/anthropic.ts";
 import type { ErrorCode } from "../_shared/errors.ts";
-import type { CoachModel } from "./prices.ts";
 import type {
     CatalogExercise,
     DietBreakWeek,
@@ -110,8 +108,6 @@ export type DietBreakSet = { plan_id: string; nutrition: Nutrition };
 
 /** What a kind needs from the outside world; built by the handler for the caller's token. */
 export type PrepareContext = {
-    /** The model resolved for this request (client override or the kind's default). */
-    model: CoachModel;
     /** The `coach_summary` of the caller (includes the derived estimates), read with their own token. */
     loadContext: (today: string) => Promise<unknown>;
     /** `coach_plan_inputs` of the caller: what a plan or a block reads and what is missing (see inputs.ts). */
@@ -136,26 +132,9 @@ export type PrepareContext = {
     applyGoalSwitch: (row: GoalSwitchRow) => Promise<GoalSwitched>;
 };
 
-/** One independently validated model call of a multi-part kind. */
-export type PreparedPart = {
-    request: AnthropicRequest;
-    validate: (text: string) => unknown | null;
-    retry?: RetryOptions;
-};
-
 export type Prepared = {
-    request?: AnthropicRequest;
-    /** Closure over the server-built candidates: parsed value, or null when the text is invalid. */
-    validate?: (text: string) => unknown | null;
-    /** Retry behaviour of `validate`: feedback for the second prompt and the latest moment to start it. */
-    retry?: RetryOptions;
-    /**
-     * Several calls in parallel (each validated and retried once on its own). When present, `request` and
-     * `validate` are ignored and `finalize` receives the array of validated values, in order.
-     */
-    parts?: PreparedPart[];
-    /** Runs after the validated model call: final checks, persistence, and the value sent to the client. */
-    finalize: (value: unknown, usage: { costEur: number }) => Promise<unknown>;
+    /** Runs after the checks: final checks, persistence, and the value sent to the client. */
+    finalize: () => Promise<unknown>;
 };
 
 /** An error the client caused or can fix; answered as JSON before any model call. */

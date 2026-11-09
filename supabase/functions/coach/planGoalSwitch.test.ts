@@ -1,7 +1,6 @@
 // T-239: the model-free plan_goal_switch (the preview of "Bloque nuevo" when the saved goal differs from the plan's):
 // no client, no budget, no usage; it only stores one proposed plan through applyGoalSwitch.
 import { assert, assertEquals } from "jsr:@std/assert@1.0.19";
-import type { AnthropicClient } from "../_shared/anthropic.ts";
 import { CoachInputError, type GoalSwitchRow } from "./context.ts";
 import { type CoachDeps, createCoachHandler } from "./handler.ts";
 import { planInputs } from "./inputsFixtures.ts";
@@ -39,30 +38,13 @@ const summaryOf = (
 function setup(
     o: {
         summary?: unknown;
-        client?: AnthropicClient | null;
-        spent?: number;
         apply?: () => Promise<never>;
     } = {},
 ) {
     const applied: GoalSwitchRow[] = [];
-    const usage: unknown[] = [];
-    let budgetReads = 0;
     const summary = o.summary ?? summaryOf("muscle");
     const deps: CoachDeps = {
         authenticate: (t) => Promise.resolve(t === "good" ? "user-1" : null),
-        userSpent: () => {
-            budgetReads++;
-            return Promise.resolve(o.spent ?? 0);
-        },
-        globalSpent: () => {
-            budgetReads++;
-            return Promise.resolve(0);
-        },
-        recordUsage: (r) => {
-            usage.push(r);
-            return Promise.resolve();
-        },
-        client: o.client === undefined ? null : o.client,
         loadContext: () => Promise.resolve(summary),
         loadInputs: () => Promise.resolve(planInputs()),
         savePlan: () => Promise.reject(new Error("unexpected savePlan")),
@@ -92,8 +74,6 @@ function setup(
     return {
         handler: createCoachHandler(deps),
         applied,
-        usage,
-        budgetReads: () => budgetReads,
     };
 }
 
@@ -204,8 +184,6 @@ Deno.test("the preview answers the calories before and after, with no model call
     assert(Array.isArray(body.outcomes));
     assertEquals(body.nutrition.phase, "gain");
     assert(body.nutrition.activity);
-    assertEquals(t.usage.length, 0);
-    assertEquals(t.budgetReads(), 0);
 });
 
 Deno.test("applyGoalSwitch gets today, the figures, a model-free method and the input summary", async () => {
@@ -227,12 +205,11 @@ Deno.test("the same input gives the same output", async () => {
 });
 
 Deno.test("works with the budget exhausted and without a provider key", async () => {
-    const t = setup({ spent: 99, client: null });
+    const t = setup();
     const res = await t.handler(post({ today: TODAY }));
     assertEquals(res.status, 200);
     await res.text();
     assertEquals(t.applied.length, 1);
-    assertEquals(t.budgetReads(), 0);
 });
 
 Deno.test("a user without a saved intention is refused as missing data and nothing is stored", async () => {
@@ -249,7 +226,6 @@ Deno.test("bad input is refused before anything is read", async () => {
     assertEquals(res.status, 400);
     assertEquals((await res.json()).error.code, "INVALID_INPUT");
     assertEquals(t.applied.length, 0);
-    assertEquals(t.usage.length, 0);
 });
 
 Deno.test("a request without a valid token is refused", async () => {

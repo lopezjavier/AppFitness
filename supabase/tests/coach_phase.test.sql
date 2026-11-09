@@ -4,7 +4,7 @@ begin;
 create extension if not exists pgtap with schema extensions;
 set local search_path = extensions, public;
 
-select plan(93);
+select plan(92);
 
 -- ---------------------------------------------------------------------------
 -- Fixture helpers
@@ -280,7 +280,6 @@ select is((select jsonb_array_length(outcomes) from public.coach_plans where sta
   'the weight outcome is dropped');
 select is((select outcomes->0->>'kind' from public.coach_plans where status = 'proposed'), 'e1rm',
   'and the strength outcome is kept');
-select is((select count(*)::int from public.coach_usage), 0, 'a recompute leaves no usage row');
 select is((select payload->'outcomes'->0->>'kind' from public.coach_recommendations
            where kind = 'plan' and status = 'pending'), 'e1rm', 'the pending recommendation follows the new plan');
 

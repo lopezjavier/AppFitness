@@ -30,27 +30,15 @@ Deno.test("photo error codes map to their HTTP status", () => {
     }
 });
 
-Deno.test("coach error codes map to their HTTP status", () => {
-    const expected = {
-        coach_limit_reached: 429,
-        coach_no_credit: 402,
-        coach_timeout: 504,
-        coach_invalid_output: 502,
-        coach_kind_not_available: 501,
-    } as const;
-    for (const [code, status] of Object.entries(expected)) {
-        assertEquals(
-            errorResponse(code as keyof typeof expected, "x").status,
-            status,
-        );
-    }
-});
-
 Deno.test("errorResponse merges extra fields into the error object", async () => {
-    const res = errorResponse("coach_limit_reached", "x", {
-        extra: { scope: "user" },
+    const res = errorResponse("coach_missing_data", "x", {
+        extra: { missing: ["weight"] },
     });
     assertEquals(await res.json(), {
-        error: { code: "coach_limit_reached", message: "x", scope: "user" },
+        error: {
+            code: "coach_missing_data",
+            message: "x",
+            missing: ["weight"],
+        },
     });
 });

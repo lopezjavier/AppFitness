@@ -1,17 +1,11 @@
 // T-248: plan_diet_break, the model-free switch of an accepted cut (no client, no budget, no usage).
 import { assert, assertEquals } from "jsr:@std/assert@1.0.19";
-import {
-    type AnthropicClient,
-    type AnthropicEvent,
-    NO_USAGE,
-} from "../_shared/anthropic.ts";
 import type { DietBreakRow, PlanState } from "./context.ts";
 import { type CoachDeps, createCoachHandler } from "./handler.ts";
 import { planInputs } from "./inputsFixtures.ts";
 import { computeActivity } from "./cardioRules.ts";
 import { computeNutrition } from "./nutritionRules.ts";
 import type { Nutrition } from "./schemas.ts";
-import { KINDS } from "./router.ts";
 
 const NOW = new Date("2026-10-30T12:00:00Z");
 const TODAY = "2026-10-30";
@@ -66,39 +60,13 @@ const acceptedCut = (nutrition: Nutrition = stored()): PlanState => ({
 type SetupOptions = {
     summary?: unknown;
     plan?: PlanState | null;
-    client?: AnthropicClient | null;
-    spent?: number;
     writeFails?: boolean;
 };
 
 function setup(o: SetupOptions = {}) {
-    let calls = 0;
     const writes: DietBreakRow[] = [];
-    const usage: unknown[] = [];
-    let budgetReads = 0;
-    const client: AnthropicClient = {
-        async *stream() {
-            calls++;
-            yield { type: "delta", text: "{}" } as AnthropicEvent;
-            yield { type: "usage", usage: { ...NO_USAGE } } as AnthropicEvent;
-            yield { type: "done" } as AnthropicEvent;
-        },
-    };
     const deps: CoachDeps = {
         authenticate: (t) => Promise.resolve(t === "good" ? "user-1" : null),
-        userSpent: () => {
-            budgetReads++;
-            return Promise.resolve(o.spent ?? 0);
-        },
-        globalSpent: () => {
-            budgetReads++;
-            return Promise.resolve(0);
-        },
-        recordUsage: (r) => {
-            usage.push(r);
-            return Promise.resolve();
-        },
-        client: o.client === undefined ? client : o.client,
         loadContext: () => Promise.resolve(o.summary ?? summary()),
         loadInputs: () => Promise.resolve(planInputs()),
         savePlan: () => Promise.reject(new Error("unexpected savePlan")),
@@ -127,9 +95,6 @@ function setup(o: SetupOptions = {}) {
     return {
         handler: createCoachHandler(deps),
         writes,
-        usage,
-        modelCalls: () => calls,
-        budgetReads: () => budgetReads,
     };
 }
 
@@ -149,11 +114,6 @@ const bodyOf = async (res: Response) => {
     return JSON.parse(JSON.parse(m![1]).text);
 };
 
-Deno.test("plan_diet_break is deterministic: it skips the provider and the budget", () => {
-    assertEquals(KINDS.plan_diet_break.deterministic, true);
-    assertEquals(KINDS.plan_diet_break.available, true);
-});
-
 Deno.test("turning the break on sends the maintenance week and nothing else, with no model call and no usage", async () => {
     const t = setup({ plan: acceptedCut() });
     const res = await t.handler(toggle());
@@ -161,8 +121,6 @@ Deno.test("turning the break on sends the maintenance week and nothing else, wit
     const text = await res.clone().text();
     assert(text.includes('"input_tokens":0,"output_tokens":0,"cost_eur":0'));
     assertEquals((await bodyOf(res)).plan_id, PLAN_ID);
-    assertEquals(t.modelCalls(), 0);
-    assertEquals(t.usage.length, 0);
     assertEquals(t.writes.length, 1);
     const w = t.writes[0];
     assertEquals([w.planId, w.dietBreak], [PLAN_ID, true]);
@@ -204,13 +162,11 @@ Deno.test("the week follows the plan's own expenditure even when the context mov
 });
 
 Deno.test("works with the budget exhausted and without a provider key", async () => {
-    const t = setup({ plan: acceptedCut(), spent: 99, client: null });
+    const t = setup({ plan: acceptedCut() });
     const res = await t.handler(toggle());
     assertEquals(res.status, 200);
     await res.text();
     assertEquals(t.writes.length, 1);
-    assertEquals(t.budgetReads(), 0);
-    assertEquals(t.usage.length, 0);
 });
 
 Deno.test("refuses a plan that is missing, proposed, not a cut or edited by the user", async () => {
@@ -230,7 +186,6 @@ Deno.test("refuses a plan that is missing, proposed, not a cut or edited by the 
         assertEquals(res.status, 400);
         assertEquals((await res.json()).error.code, "INVALID_INPUT");
         assertEquals(t.writes.length, 0);
-        assertEquals(t.modelCalls(), 0);
     }
 });
 
@@ -287,7 +242,6 @@ Deno.test("a failed write is INTERNAL and leaves no usage", async () => {
     const res = await t.handler(toggle());
     assertEquals(res.status, 500);
     assertEquals((await res.json()).error.code, "INTERNAL");
-    assertEquals(t.usage.length, 0);
 });
 
 Deno.test("needs a valid token", async () => {
