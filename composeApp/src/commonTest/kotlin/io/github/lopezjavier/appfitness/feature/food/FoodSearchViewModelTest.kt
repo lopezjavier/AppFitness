@@ -516,6 +516,144 @@ class FoodSearchViewModelTest {
     }
 
     @Test
+    fun ownBlock_isShownWhileOpenFoodFactsIsStillPending_thenOffRowsAreAppended() = runTest(dispatcher) {
+        repository.favouriteFoods = Result.success(listOf(myBeer))
+        repository.manualResults["c"] = Result.success(listOf(myWine, myBeer))
+        repository.searchResults["c"] = Result.success(listOf(offWine))
+        val gate = CompletableDeferred<Unit>()
+        repository.searchGate = gate
+        val model = viewModel()
+        advanceUntilIdle()
+
+        search(model, "c")
+
+        assertEquals(
+            FoodResults.Content(listOf(myBeer, myWine), manualCount = 2, remoteLoading = true),
+            model.uiState.value.results,
+        )
+        gate.complete(Unit)
+        advanceUntilIdle()
+        assertEquals(listOf("my-beer", "my-wine", "off-wine"), model.foodIds())
+    }
+
+    @Test
+    fun anOffRowWithAnIdOfTheOwnBlock_isDropped() = runTest(dispatcher) {
+        repository.manualResults["vino"] = Result.success(listOf(myWine))
+        repository.searchResults["vino"] = Result.success(listOf(offWine, myWine.copy(isOff = true)))
+        val model = viewModel()
+        advanceUntilIdle()
+
+        search(model, "vino")
+        advanceUntilIdle()
+
+        assertEquals(listOf("my-wine", "off-wine"), model.foodIds())
+    }
+
+    @Test
+    fun noOwnMatch_showsLoadingUntilOff_andEmptyWhenOffFindsNothing() = runTest(dispatcher) {
+        val gate = CompletableDeferred<Unit>()
+        repository.searchGate = gate
+        val model = viewModel()
+        advanceUntilIdle()
+
+        search(model, "zzz")
+        assertEquals(FoodResults.Loading, model.uiState.value.results)
+        gate.complete(Unit)
+        advanceUntilIdle()
+
+        assertEquals(FoodResults.Empty, model.uiState.value.results)
+    }
+
+    @Test
+    fun noOwnMatch_andOffFailure_isAnError() = runTest(dispatcher) {
+        repository.failSearch("vino")
+        val model = viewModel()
+        advanceUntilIdle()
+
+        search(model, "vino")
+        advanceUntilIdle()
+
+        assertEquals(FoodResults.Error, model.uiState.value.results)
+    }
+
+    @Test
+    fun favouriteIdsLoadedAfterTheSearchStarted_stillSortTheFavouriteFirst() = runTest(dispatcher) {
+        repository.favouriteFoods = Result.success(listOf(myBeer))
+        repository.manualResults["c"] = Result.success(listOf(myWine, myBowl, myBeer))
+        val gate = CompletableDeferred<Unit>()
+        repository.favouritesGate = gate
+        val model = viewModel()
+        advanceUntilIdle()
+
+        search(model, "c")
+        gate.complete(Unit)
+        advanceUntilIdle()
+
+        assertEquals(listOf("my-beer", "my-wine", "my-bowl"), model.foodIds())
+    }
+
+    @Test
+    fun favouritesThatFailToLoad_doNotHangTheSearch() = runTest(dispatcher) {
+        repository.favouriteFoods = Result.failure(AppException(AppError.Network))
+        repository.manualResults["c"] = Result.success(listOf(myWine, myBeer))
+        val model = viewModel()
+        advanceUntilIdle()
+
+        search(model, "c")
+        advanceUntilIdle()
+
+        assertEquals(listOf("my-wine", "my-beer"), model.foodIds())
+    }
+
+    @Test
+    fun aStarToggleAfterTheListIsShown_doesNotReorderTheRows() = runTest(dispatcher) {
+        repository.manualResults["c"] = Result.success(listOf(myWine, myBeer))
+        val model = viewModel()
+        advanceUntilIdle()
+        search(model, "c")
+        advanceUntilIdle()
+
+        model.onEvent(FoodSearchEvent.ToggleFavourite("my-beer"))
+        advanceUntilIdle()
+
+        assertEquals(listOf("my-wine", "my-beer"), model.foodIds())
+    }
+
+    @Test
+    fun viewOnly_flagsTheState_ignoresTheComidasTab_andRestoredTabFallsBack() = runTest(dispatcher) {
+        savedState["food_search_tab"] = FoodSearchTab.Templates.name
+        val model = foodSearchModel(repository, connectivity, scanner, savedState, viewOnly = true)
+        advanceUntilIdle()
+        assertTrue(model.uiState.value.viewOnly)
+        assertEquals(FoodSearchTab.Recent, model.uiState.value.tab)
+
+        model.onEvent(FoodSearchEvent.TabSelected(FoodSearchTab.Templates))
+        advanceUntilIdle()
+
+        assertEquals(FoodSearchTab.Recent, model.uiState.value.tab)
+    }
+
+    @Test
+    fun viewOnly_selectingAFoodStillOpensIt() = runTest(dispatcher) {
+        val model = foodSearchModel(repository, connectivity, scanner, viewOnly = true)
+        advanceUntilIdle()
+
+        model.effects.test {
+            model.onEvent(FoodSearchEvent.SelectFood(rice))
+            assertEquals(FoodSearchEffect.OpenFood(rice), awaitItem())
+        }
+    }
+
+    @Test
+    fun viewOnly_offlineIsAnError() = runTest(dispatcher) {
+        connectivity.state.value = false
+        val model = foodSearchModel(repository, connectivity, scanner, viewOnly = true)
+        advanceUntilIdle()
+
+        assertEquals(FoodResults.Error, model.uiState.value.results)
+    }
+
+    @Test
     fun starOnAnOffRow_copiesIt_favouritesTheCopy_andReplacesTheRowInPlace() = runTest(dispatcher) {
         repository.searchResults["vino"] = Result.success(listOf(chicken, offWine, rice))
         val model = viewModel()

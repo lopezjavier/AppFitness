@@ -145,7 +145,15 @@ fun AppRoot(
                 onOpenExercise,
             )
         },
-        routines = { routinesModifier, onOpenBuilder, onOpenDetails, onOpenLive, onOpenHistory, onOpenReview ->
+        routines = {
+                routinesModifier,
+                onOpenBuilder,
+                onOpenDetails,
+                onOpenLive,
+                onOpenHistory,
+                onOpenReview,
+                onSearch,
+            ->
             WorkoutEntryRoot(
                 onOpenBuilder,
                 onOpenDetails,
@@ -153,9 +161,10 @@ fun AppRoot(
                 onOpenHistory,
                 routinesModifier,
                 onOpenFolderReview = onOpenReview,
+                onOpenSearch = onSearch,
             )
         },
-        diary = { diaryModifier, onOpenPreferences, onAddFood, onSaveTemplate, edit, onBack ->
+        diary = { diaryModifier, onOpenPreferences, onAddFood, onSaveTemplate, edit, onBack, onQuickSearch ->
             DiaryRoot(
                 onOpenPreferences,
                 onAddFood,
@@ -164,6 +173,7 @@ fun AppRoot(
                 edit,
                 diaryModifier,
                 onBack,
+                onQuickSearch = onQuickSearch,
             )
         },
         weight = { weightModifier, openEntry, onOpenHistory, onBack ->
@@ -191,8 +201,18 @@ fun AppRoot(
         diaryHistory = { historyModifier, onOpenDay, onBack -> DiaryHistoryRoot(onOpenDay, onBack, historyModifier) },
         mealSlots = { mealsModifier, onClose, onOpenDefaults -> MealSlotsRoot(onClose, onOpenDefaults, mealsModifier) },
         mealDefaults = { defaultsModifier, onClose -> MealDefaultsRoot(onClose, defaultsModifier) },
-        foodSearch = { searchModifier, slotId, date, onOpenFood, onCreateFood, onOpenTemplate, pick, onBack ->
-            FoodSearchRoot(slotId, date, onOpenFood, onCreateFood, onOpenTemplate, onBack, searchModifier, pick)
+        foodSearch = { searchModifier, slotId, date, onOpenFood, onCreateFood, onOpenTemplate, pick, viewOnly, onBack ->
+            FoodSearchRoot(
+                slotId,
+                date,
+                onOpenFood,
+                onCreateFood,
+                onOpenTemplate,
+                onBack,
+                searchModifier,
+                pick,
+                viewOnly,
+            )
         },
         createFood = { formModifier, barcode, name, prefill, retryToken, editFoodId, onBack, onSaved ->
             if (editFoodId != null) {
@@ -201,15 +221,16 @@ fun AppRoot(
                 CreateFoodRoot(barcode, name, onSaved, onBack, formModifier, prefill, retryToken)
             }
         },
-        addFood = { foodId, slotId, date, onAdded, onDismiss, onEdit, pick, onPick, onCorrectOff ->
+        addFood = { route, onAdded, onDismiss, onEdit, onPick, onCorrectOff ->
             AddFoodRoot(
-                foodId,
-                slotId,
-                date,
+                route.foodId,
+                route.slotId,
+                route.date,
                 onAdded,
                 onDismiss,
                 onEdit = onEdit,
-                pick = pick,
+                pick = route.pick,
+                viewOnly = route.viewOnly,
                 onPick = { onPick(it.foodId, it.amount, it.portionLabel) },
                 onCorrectOff = { onCorrectOff(it.prefill, it.barcode) },
             )

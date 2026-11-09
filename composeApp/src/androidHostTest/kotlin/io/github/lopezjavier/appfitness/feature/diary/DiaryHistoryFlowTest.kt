@@ -63,7 +63,7 @@ class DiaryHistoryFlowTest {
         FakeNutritionGoalsRepository(NutritionGoals(GoalStrategy.Maintenance, 0, 2400, MacroSplit(30, 45, 25)))
     private val clock = MutableClock()
 
-    private val diarySlot: DiarySlot = { modifier, _, onAddFood, _, edit, onBack ->
+    private val diarySlot: DiarySlot = { modifier, _, onAddFood, _, edit, onBack, _ ->
         val model: DiaryViewModel = viewModel(
             factory = viewModelFactory {
                 initializer {
@@ -117,7 +117,7 @@ class DiaryHistoryFlowTest {
         }
     }
 
-    private val searchSlot: FoodSearchSlot = { modifier, _, _, _, _, onOpenTemplate, _, _ ->
+    private val searchSlot: FoodSearchSlot = { modifier, _, _, _, _, onOpenTemplate, _, _, _ ->
         Box(modifier.fillMaxSize().testTag("food_search_screen")) {
             Box(Modifier.size(48.dp).testTag("test_search_open").clickable { onOpenTemplate("t1") })
         }

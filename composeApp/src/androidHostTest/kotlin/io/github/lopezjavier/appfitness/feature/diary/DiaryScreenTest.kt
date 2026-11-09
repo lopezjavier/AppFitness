@@ -11,6 +11,7 @@ import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.assertTextContains
 import androidx.compose.ui.test.assertTextEquals
+import androidx.compose.ui.test.assertWidthIsAtLeast
 import androidx.compose.ui.test.getUnclippedBoundsInRoot
 import androidx.compose.ui.test.hasAnyAncestor
 import androidx.compose.ui.test.hasTestTag
@@ -31,6 +32,8 @@ import io.github.lopezjavier.appfitness.domain.model.FoodLogEntry
 import io.github.lopezjavier.appfitness.domain.model.MealCode
 import io.github.lopezjavier.appfitness.domain.model.MealSlot
 import io.github.lopezjavier.appfitness.domain.model.MealTotals
+import io.github.lopezjavier.appfitness.feature.notifications.LocalNotificationsEntry
+import io.github.lopezjavier.appfitness.feature.notifications.NotificationsEntry
 import io.github.lopezjavier.appfitness.feature.workout.DateLabel
 import kotlinx.datetime.LocalDate
 import org.junit.Assert.assertEquals
@@ -106,11 +109,18 @@ class DiaryScreenTest {
 
     private val events = mutableListOf<DiaryEvent>()
 
-    private fun show(state: DiaryUiState, fontScale: Float = 1f) {
+    private val searchedDays = mutableListOf<LocalDate>()
+
+    private fun show(state: DiaryUiState, fontScale: Float = 1f, onBack: (() -> Unit)? = null) {
         rule.setContent {
             val density = LocalDensity.current
-            CompositionLocalProvider(LocalDensity provides Density(density.density, fontScale)) {
-                AppTheme { DiaryScreen(state, { events += it }) }
+            CompositionLocalProvider(
+                LocalDensity provides Density(density.density, fontScale),
+                LocalNotificationsEntry provides NotificationsEntry(0) {},
+            ) {
+                AppTheme {
+                    DiaryScreen(state, { events += it }, onBack = onBack, onQuickSearch = { searchedDays += it })
+                }
             }
         }
         rule.waitForIdle()
@@ -343,6 +353,40 @@ class DiaryScreenTest {
 
         rule.onNodeWithTag("diary_day_picker_sheet").assertExists()
         rule.onNodeWithText("Calendario").assertExists()
+    }
+
+    @Test
+    fun quickSearchButton_sitsBeforeTheCalendar_andEmitsTodayWhenTapped() {
+        show(content(canGoNext = false))
+
+        assertTrue(left("diary_quick_search") > left("diary_date_next"))
+        assertTrue(left("diary_quick_search") < left("diary_day_picker_open"))
+        rule.onNodeWithTag("diary_quick_search").performClick()
+        assertEquals(listOf(Today), searchedDays)
+    }
+
+    @Test
+    fun quickSearchButton_isNotShownOnAPastDayRoute() {
+        show(content(canGoNext = true, date = LocalDate(2026, 10, 12)), onBack = {})
+
+        rule.onNodeWithTag("diary_back").assertExists()
+        rule.onAllNodesWithTag("diary_quick_search").assertCountEquals(0)
+    }
+
+    @Test
+    fun header_at360dpAndFontScale13_keepsTheLabelAndFiveTouchSizedButtonsOnScreen() {
+        show(content(canGoNext = true), fontScale = FONT_SCALE)
+
+        rule.onNodeWithTag("diary_date_label").assertIsDisplayed().assertWidthIsAtLeast(1.dp)
+        listOf(
+            "diary_date_prev",
+            "diary_date_next",
+            "diary_quick_search",
+            "diary_day_picker_open",
+            "diary_action_notifications",
+        ).forEach {
+            rule.onNodeWithTag(it).assertIsDisplayed().assertHeightIsAtLeast(48.dp).assertWidthIsAtLeast(48.dp)
+        }
     }
 
     @Test

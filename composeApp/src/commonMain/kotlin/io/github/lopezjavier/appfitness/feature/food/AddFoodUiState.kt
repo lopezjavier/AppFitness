@@ -40,6 +40,8 @@ data class AddFoodContent(
     val submitting: Boolean,
     val micronutrients: MicronutrientsState = MicronutrientsState.Loading,
     val pick: Boolean = false,
+    /** Quick search details: no amount, meal or add button; nothing can be submitted. */
+    val viewOnly: Boolean = false,
     /** The chosen method; always [CookingMethod.Raw] while [showCooking] is false. */
     val cookingMethod: CookingMethod = CookingMethod.Raw,
     /** The selector is shown: a food in grams, not in pick mode, with the preferences loaded. */
@@ -57,7 +59,7 @@ data class AddFoodContent(
     val energyWarning: EnergyWarning? = null,
 ) {
     /** The "Editar" action is shown: only for the user's own manual foods, never for Open Food Facts ones. */
-    val showEdit: Boolean get() = food.isManual
+    val showEdit: Boolean get() = food.isManual && !viewOnly
 
     /** The "Editar" action is enabled: saving an edit needs the server. */
     val canEdit: Boolean get() = showEdit && !isOffline
@@ -74,7 +76,7 @@ data class AddFoodContent(
      * nothing is logged.
      */
     val canSubmit: Boolean
-        get() = quantityError == null && resolvedAmount != null && !submitting && energyWarning == null &&
+        get() = !viewOnly && quantityError == null && resolvedAmount != null && !submitting && energyWarning == null &&
             (pick || (selectedSlotId != null && !isOffline))
 }
 

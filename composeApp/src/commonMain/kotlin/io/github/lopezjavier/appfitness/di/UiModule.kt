@@ -235,9 +235,12 @@ val uiModule =
         }
         // A blank slotId means no meal is preselected (Koin parameters cannot be null); date is an ISO yyyy-MM-dd.
         // An optional trailing Boolean parameter turns on pick mode (choosing a food for a comida draft, T-102b).
+        // The second optional Boolean turns on view-only mode (quick search, no "Añadir").
         viewModel { params ->
+            val flags = params.values.filterIsInstance<Boolean>()
             FoodSearchViewModel(
-                pick = params.getOrNull<Boolean>() ?: false,
+                pick = flags.getOrNull(0) ?: false,
+                viewOnly = flags.getOrNull(1) ?: false,
                 // FoodSearchRoot passes (slotId, date, pick): the first String is the meal the search adds to.
                 slotId = params.getOrNull<String>(),
                 mealSlots = get(),
@@ -307,8 +310,10 @@ val uiModule =
         // A blank slotId means no meal is preselected (Koin parameters cannot be null); date is an ISO yyyy-MM-dd.
         viewModel { params ->
             val (foodId: String, slotId: String, date: String) = params
+            val flags = params.values.filterIsInstance<Boolean>()
             AddFoodViewModel(
-                pick = params.getOrNull<Boolean>() ?: false,
+                pick = flags.getOrNull(0) ?: false,
+                viewOnly = flags.getOrNull(1) ?: false,
                 foodId = foodId,
                 initialSlotId = slotId.ifBlank { null },
                 date = LocalDate.parse(date.ifBlank { PICK_MODE_DATE }),

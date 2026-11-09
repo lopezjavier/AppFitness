@@ -60,6 +60,8 @@ data class FoodSearchUiState(
     val notFoundBarcode: String? = null,
     val templates: TemplatesResults = TemplatesResults.Loading,
     val pick: Boolean = false,
+    /** Quick search: results open their details without "Añadir"; no Comidas tab, scan, photo or create. */
+    val viewOnly: Boolean = false,
     /**
      * The meal the foods are added to (its [MealSlot.code] and label give the title "Añadir al desayuno"); null when
      * no meal was preselected, in [pick] mode, or while it is not known yet (the title then falls back to the

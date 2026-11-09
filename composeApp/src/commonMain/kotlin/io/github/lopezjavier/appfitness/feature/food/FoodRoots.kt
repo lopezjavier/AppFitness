@@ -52,7 +52,9 @@ fun FoodSearchRoot(
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
     pick: Boolean = false,
-    viewModel: FoodSearchViewModel = koinViewModel(parameters = { parametersOf(slotId.orEmpty(), date, pick) }),
+    viewOnly: Boolean = false,
+    viewModel: FoodSearchViewModel =
+        koinViewModel(parameters = { parametersOf(slotId.orEmpty(), date, pick, viewOnly) }),
     photoViewModel: FoodPhotoViewModel = koinViewModel(),
     photoCapture: PhotoCapture = koinInject(),
 ) {
@@ -151,10 +153,11 @@ fun AddFoodRoot(
     modifier: Modifier = Modifier,
     onEdit: () -> Unit = {},
     pick: Boolean = false,
+    viewOnly: Boolean = false,
     onPick: (AddFoodEffect.Picked) -> Unit = {},
     onCorrectOff: (AddFoodEffect.CorrectOffFood) -> Unit = {},
     viewModel: AddFoodViewModel =
-        koinViewModel(parameters = { parametersOf(foodId, slotId.orEmpty(), date, pick) }),
+        koinViewModel(parameters = { parametersOf(foodId, slotId.orEmpty(), date, pick, viewOnly) }),
     amountPhotoViewModel: AmountPhotoViewModel =
         koinViewModel(key = "amount_photo_$foodId", parameters = { parametersOf(foodId) }),
     photoCapture: PhotoCapture = koinInject(),

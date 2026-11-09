@@ -41,6 +41,7 @@ fun DiaryRoot(
     modifier: Modifier = Modifier,
     onBack: (() -> Unit)? = null,
     viewModel: DiaryViewModel = koinViewModel(),
+    onQuickSearch: (today: LocalDate) -> Unit = {},
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val currentOnAddToMeal by rememberUpdatedState(onAddToMeal)
@@ -84,5 +85,5 @@ fun DiaryRoot(
         }
     }
     LifecycleEventEffect(Lifecycle.Event.ON_RESUME) { viewModel.onEvent(DiaryEvent.Refresh) }
-    DiaryScreen(state, viewModel::onEvent, modifier, onBack)
+    DiaryScreen(state, viewModel::onEvent, modifier, onBack, onQuickSearch)
 }

@@ -51,6 +51,8 @@
     <string name="catalog_rows_add_object">elemento</string>
     <string name="workout_entry_title">Rutinas</string>
     <string name="workout_entry_history_cd">Historial de entrenos</string>
+    <string name="workout_entry_search_cd">Buscar ejercicio</string>
+    <string name="diary_quick_search_cd">Buscar alimento</string>
     <string name="routine_details_exercises">Ejercicios</string>
     <string name="routine_details_last_done">Última vez: %1$s</string>
     <string name="routine_details_never_done">Aún sin hacer</string>

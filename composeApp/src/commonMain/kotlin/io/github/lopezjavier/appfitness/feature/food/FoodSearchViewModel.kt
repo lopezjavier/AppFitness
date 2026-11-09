@@ -15,9 +15,12 @@ import io.github.lopezjavier.appfitness.domain.repository.FoodRepository
 import io.github.lopezjavier.appfitness.domain.repository.MealSlotRepository
 import io.github.lopezjavier.appfitness.domain.repository.MealTemplateRepository
 import io.github.lopezjavier.appfitness.domain.usecase.CookedItemNutrition
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.FlowPreview
+import kotlinx.coroutines.async
 import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.FlowCollector
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -64,16 +67,22 @@ class FoodSearchViewModel(
     private val pick: Boolean = false,
     private val slotId: String? = null,
     private val mealSlots: MealSlotRepository? = null,
+    private val viewOnly: Boolean = false,
 ) : ViewModel() {
+    /** Pick and view-only modes never log a food, so they have no Comidas tab, scan or create. */
+    private val noLogging = pick || viewOnly
     private val mealSlot = MutableStateFlow<MealSlot?>(null)
     private val query = MutableStateFlow(savedState.get<String>(KEY_QUERY).orEmpty())
     private val tab = MutableStateFlow(
         savedState.get<String>(KEY_TAB)?.let { name -> FoodSearchTab.entries.firstOrNull { it.name == name } }
-            ?.takeUnless { pick && it == FoodSearchTab.Templates }
+            ?.takeUnless { noLogging && it == FoodSearchTab.Templates }
             ?: FoodSearchTab.Recent,
     )
     private val attempt = MutableStateFlow(0)
     private val favouriteIds = MutableStateFlow<Set<String>>(emptySet())
+
+    /** Completed once the favourite ids are known (or their load failed): the text search sorts with them. */
+    private val favouritesSettled = CompletableDeferred<Unit>()
     private val online = MutableStateFlow(true)
     private val notFoundBarcode = MutableStateFlow(savedState.get<String>(KEY_NOT_FOUND))
     private val templates = MutableStateFlow<TemplatesResults>(TemplatesResults.Loading)
@@ -114,6 +123,7 @@ class FoodSearchViewModel(
                 notFoundBarcode = code,
                 templates = rows,
                 pick = pick,
+                viewOnly = viewOnly,
                 mealSlot = slot,
             )
         }
@@ -126,13 +136,20 @@ class FoodSearchViewModel(
                     notFoundBarcode = notFoundBarcode.value,
                     templates = templates.value,
                     pick = pick,
+                    viewOnly = viewOnly,
                 ),
             )
 
     init {
         viewModelScope.launch { connectivity.isOnline.collect { online.value = it } }
-        viewModelScope.launch { foodRepository.favouriteIds().collect { favouriteIds.value = it } }
-        viewModelScope.launch { foodRepository.favourites() }
+        viewModelScope.launch {
+            foodRepository.favouriteIds().collect {
+                favouriteIds.value = it
+                favouritesSettled.complete(Unit)
+            }
+        }
+        // A failed load never emits ids: settle anyway so the text search does not wait for ever.
+        viewModelScope.launch { foodRepository.favourites().onFailure { favouritesSettled.complete(Unit) } }
         if (tab.value == FoodSearchTab.Templates) loadTemplates()
         loadMealSlot()
     }
@@ -146,6 +163,7 @@ class FoodSearchViewModel(
         }
     }
 
+    @Suppress("CyclomaticComplexMethod") // One branch per event; the view-only guards add three.
     fun onEvent(event: FoodSearchEvent) {
         when (event) {
             is FoodSearchEvent.QueryChanged -> {
@@ -154,7 +172,7 @@ class FoodSearchViewModel(
                 setNotFound(null)
             }
 
-            is FoodSearchEvent.TabSelected -> if (!(pick && event.tab == FoodSearchTab.Templates)) {
+            is FoodSearchEvent.TabSelected -> if (!(noLogging && event.tab == FoodSearchTab.Templates)) {
                 tab.value = event.tab
                 savedState[KEY_TAB] = event.tab.name
                 if (event.tab == FoodSearchTab.Templates) loadTemplates()
@@ -169,14 +187,17 @@ class FoodSearchViewModel(
                 if (tab.value == FoodSearchTab.Templates) loadTemplates()
             }
 
-            FoodSearchEvent.ScanClicked -> scan()
+            FoodSearchEvent.ScanClicked -> if (!viewOnly) scan()
 
-            FoodSearchEvent.CreateFromNotFound ->
+            FoodSearchEvent.CreateFromNotFound -> if (!viewOnly) {
                 effectChannel.trySend(FoodSearchEffect.OpenCreateFood(barcode = notFoundBarcode.value, name = null))
+            }
 
-            FoodSearchEvent.CreateFromEmpty -> effectChannel.trySend(
-                FoodSearchEffect.OpenCreateFood(barcode = null, name = query.value.trim().ifEmpty { null }),
-            )
+            FoodSearchEvent.CreateFromEmpty -> if (!viewOnly) {
+                effectChannel.trySend(
+                    FoodSearchEffect.OpenCreateFood(barcode = null, name = query.value.trim().ifEmpty { null }),
+                )
+            }
 
             else -> onTemplateEvent(event)
         }
@@ -282,9 +303,15 @@ class FoodSearchViewModel(
      * results are appended below them (deduped by id; the manual rows never move).
      */
     private suspend fun FlowCollector<FoodResults>.emitTextSearch(text: String) {
+        // The favourite ids may still be loading: wait for them while the manual read runs (no added latency).
+        val found = coroutineScope {
+            val read = async { foodRepository.searchManual(text) }
+            favouritesSettled.await()
+            read.await()
+        }
         // Favourites first among my foods (stable: the server order is kept otherwise); fixed when the list loads.
         val starred = favouriteIds.value
-        val manual = foodRepository.searchManual(text).getOrNull().orEmpty().sortedBy { it.id !in starred }
+        val manual = found.getOrNull().orEmpty().sortedBy { it.id !in starred }
         if (manual.isNotEmpty()) {
             emit(FoodResults.Content(manual, manualCount = manual.size, remoteLoading = true))
         }

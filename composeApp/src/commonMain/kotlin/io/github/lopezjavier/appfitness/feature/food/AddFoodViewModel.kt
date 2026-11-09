@@ -112,6 +112,7 @@ class AddFoodViewModel(
     private val savedState: SavedStateHandle = SavedStateHandle(),
     private val timeZone: TimeZone = TimeZone.currentSystemDefault(),
     private val pick: Boolean = false,
+    private val viewOnly: Boolean = false,
 ) : ViewModel() {
     private val loaded = MutableStateFlow<Loaded>(Loaded.Loading)
     private val draft = MutableStateFlow<Draft?>(null)
@@ -308,6 +309,7 @@ class AddFoodViewModel(
     }
 
     private fun submit() {
+        if (viewOnly) return
         val ready = (loaded.value as? Loaded.Ready)?.setup ?: return
         if (ready.food.isOff) {
             submitOff(ready)
@@ -457,6 +459,7 @@ class AddFoodViewModel(
             micronutrients = micronutrients,
             energyWarning = energyWarning,
             pick = pick,
+            viewOnly = viewOnly,
             cookingMethod = method,
             estimateConfidence = draft.estimateConfidence.takeIf { it > 0 },
             showCooking = prefs != null,

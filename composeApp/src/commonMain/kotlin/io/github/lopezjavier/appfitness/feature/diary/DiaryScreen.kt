@@ -50,6 +50,7 @@ import io.github.lopezjavier.appfitness.designsystem.appAnimateItem
 import io.github.lopezjavier.appfitness.designsystem.windowWidthClassFor
 import io.github.lopezjavier.appfitness.feature.notifications.notificationsBarAction
 import io.github.lopezjavier.appfitness.feature.workout.text
+import kotlinx.datetime.LocalDate
 import org.jetbrains.compose.resources.stringResource
 
 private val SkeletonDashboardHeight = Spacing.xl * 9
@@ -67,6 +68,7 @@ fun DiaryScreen(
     onEvent: (DiaryEvent) -> Unit,
     modifier: Modifier = Modifier,
     onBack: (() -> Unit)? = null,
+    onQuickSearch: (today: LocalDate) -> Unit = {},
 ) {
     Box(modifier.fillMaxSize().testTag("diary_screen")) {
         when (state) {
@@ -82,7 +84,7 @@ fun DiaryScreen(
                 }
             }
 
-            is DiaryUiState.Content -> DiaryDay(state.content, onEvent, onBack)
+            is DiaryUiState.Content -> DiaryDay(state.content, onEvent, onBack, onQuickSearch)
         }
     }
 }
@@ -100,7 +102,12 @@ private fun PlainDiary(onBack: (() -> Unit)?, content: @Composable () -> Unit) {
 }
 
 @Composable
-private fun DiaryDay(content: DiaryContent, onEvent: (DiaryEvent) -> Unit, onBack: (() -> Unit)?) {
+private fun DiaryDay(
+    content: DiaryContent,
+    onEvent: (DiaryEvent) -> Unit,
+    onBack: (() -> Unit)?,
+    onQuickSearch: (LocalDate) -> Unit,
+) {
     var pickerOpen by rememberSaveable { mutableStateOf(false) }
     if (pickerOpen) {
         DayPickerSheet(
@@ -129,7 +136,14 @@ private fun DiaryDay(content: DiaryContent, onEvent: (DiaryEvent) -> Unit, onBac
         AppScreen(
             title = content.label.text(),
             header = {
-                DiaryDateHeader(content.label, content.canGoNext, onEvent, { pickerOpen = true }, onBack = onBack)
+                DiaryDateHeader(
+                    content.label,
+                    content.canGoNext,
+                    onEvent,
+                    { pickerOpen = true },
+                    onBack = onBack,
+                    onOpenSearch = { onQuickSearch(content.today) },
+                )
             },
             maxContentWidth = if (wide) {
                 WindowWidthClassDefaults.TwoColumnContentMaxWidth
