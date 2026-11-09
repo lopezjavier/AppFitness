@@ -64,10 +64,10 @@ class PreferencesNavigationTest {
             actions = actions,
         )
     }
-    private val hubSlot: PreferencesSlot = { modifier, onBack, onOpenSection, onOpenMeals ->
+    private val hubSlot: PreferencesSlot = { modifier, onBack, onOpenSection, onOpenMeals, onOpenFoodAudit ->
         PreferencesHubScreen(
             onBack = onBack,
-            actions = PreferencesHubActions({ onOpenSection(it.key) }, onOpenMeals),
+            actions = PreferencesHubActions({ onOpenSection(it.key) }, onOpenMeals, onOpenFoodAudit),
             modifier = modifier,
         )
     }

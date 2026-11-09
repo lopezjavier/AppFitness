@@ -17,6 +17,7 @@ import io.github.lopezjavier.appfitness.composeapp.resources.create_food_save_er
 import io.github.lopezjavier.appfitness.designsystem.LocalAppHaptics
 import io.github.lopezjavier.appfitness.designsystem.LocalAppMessages
 import io.github.lopezjavier.appfitness.domain.model.NewFoodDraftCodec
+import io.github.lopezjavier.appfitness.domain.port.ConnectivityObserver
 import io.github.lopezjavier.appfitness.domain.port.PhotoCapture
 import io.github.lopezjavier.appfitness.feature.food.photo.AmountPhotoEffect
 import io.github.lopezjavier.appfitness.feature.food.photo.AmountPhotoFlow
@@ -215,6 +216,40 @@ fun EditFoodRoot(
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     FoodFormEffects(viewModel.effects, onSave)
     CreateFoodScreen(state, viewModel::onEvent, onBack, modifier)
+}
+
+/**
+ * Stateful food audit: connects [FoodAuditViewModel]. [edited] (a food was saved in the editor opened from the list)
+ * reloads the list silently and is then cleared with [onConsumeEdit]; [onOpenEditor] receives the id of the tapped
+ * food.
+ */
+@Composable
+fun FoodAuditRoot(
+    edited: Boolean,
+    onConsumeEdit: () -> Unit,
+    onOpenEditor: (foodId: String) -> Unit,
+    onBack: () -> Unit,
+    modifier: Modifier = Modifier,
+    viewModel: FoodAuditViewModel = koinViewModel(),
+    connectivity: ConnectivityObserver = koinInject(),
+) {
+    val state by viewModel.uiState.collectAsStateWithLifecycle()
+    val currentOpenEditor by rememberUpdatedState(onOpenEditor)
+    val currentConsumed by rememberUpdatedState(onConsumeEdit)
+    LaunchedEffect(edited) {
+        if (edited) {
+            viewModel.onEvent(FoodAuditEvent.Refresh)
+            currentConsumed()
+        }
+    }
+    LaunchedEffect(viewModel) {
+        viewModel.effects.collect { effect ->
+            when (effect) {
+                is FoodAuditEffect.OpenEditor -> currentOpenEditor(effect.foodId)
+            }
+        }
+    }
+    FoodAuditScreen(state, connectivity.isOnline, viewModel::onEvent, onBack, modifier)
 }
 
 /** Saved opens the food's sheet; a failed save is a message and one Reject vibration (R-28, R-29). */

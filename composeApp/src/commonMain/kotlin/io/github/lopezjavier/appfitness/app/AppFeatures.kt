@@ -21,19 +21,36 @@ data class AppFeatures(val componentCatalog: Boolean = false, val testLogin: Tes
 @Suppress("CyclomaticComplexMethod") // One branch per route, on purpose.
 fun AppFeatures.isAvailable(route: AppRoute): Boolean = when (route) {
     is TabRoute -> true
+
     CatalogRoute -> componentCatalog
+
     PreferencesRoute, is PreferencesSectionRoute, AboutRoute, CoachUsageRoute -> true
+
     is PlanProposalRoute, is BeforeStartRoute, YourDataRoute, IntakeRoute, FreeTextLinesRoute -> true
+
     is BlockPreviewRoute, is BlockBuilderRoute, is FolderBlockRoute, is FolderReviewResultRoute -> true
+
     is ExercisePickerRoute, is ExerciseDetailRoute, is RoutineBuilderRoute, LiveSessionRoute -> true
+
     is RoutineDetailsRoute -> true
+
     HistoryRoute, is SessionDetailRoute -> true
+
     is EditWorkoutRoute, is PastWorkoutRoute -> true
+
     StrengthRoute, MuscleVolumeRoute, StatsRoute, ActivityRoute, is ExerciseProgressRoute -> true
-    is FoodSearchRoute, is AddFoodRoute, is CreateFoodRoute, is EditFoodRoute, MealSlotsRoute, is EditEntryRoute -> true
+
+    is FoodSearchRoute, is AddFoodRoute, is CreateFoodRoute, is EditFoodRoute, MealSlotsRoute, is EditEntryRoute,
+    FoodAuditRoute, is FoodAuditEditRoute,
+    -> true
+
     MealDefaultsRoute -> true
+
     is SaveTemplateRoute -> true
+
     is TemplateDetailsRoute -> true
+
     DiaryHistoryRoute, is DiaryDayRoute, is WeightRoute, WeightHistoryRoute -> true
+
     NotificationCenterRoute, CheckInRoute, WeekSummaryRoute, BlockReviewRoute -> true
 }

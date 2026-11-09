@@ -22,6 +22,7 @@ import io.github.lopezjavier.appfitness.feature.exercises.ExerciseDetailViewMode
 import io.github.lopezjavier.appfitness.feature.exercises.ExercisePickerViewModel
 import io.github.lopezjavier.appfitness.feature.food.AddFoodViewModel
 import io.github.lopezjavier.appfitness.feature.food.CreateFoodViewModel
+import io.github.lopezjavier.appfitness.feature.food.FoodAuditViewModel
 import io.github.lopezjavier.appfitness.feature.food.FoodSearchViewModel
 import io.github.lopezjavier.appfitness.feature.food.photo.AmountPhotoViewModel
 import io.github.lopezjavier.appfitness.feature.food.photo.FoodPhotoViewModel
@@ -222,6 +223,7 @@ val uiModule =
                 savedState = get(),
             )
         }
+        viewModel { FoodAuditViewModel(foodRepository = get(), connectivity = get()) }
         viewModel {
             MealSlotsEditorViewModel(
                 savedState = get(),

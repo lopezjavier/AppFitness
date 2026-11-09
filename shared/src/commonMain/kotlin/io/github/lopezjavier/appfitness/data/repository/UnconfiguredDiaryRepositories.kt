@@ -6,6 +6,7 @@ import io.github.lopezjavier.appfitness.domain.model.AmountEstimate
 import io.github.lopezjavier.appfitness.domain.model.DiaryDaySummary
 import io.github.lopezjavier.appfitness.domain.model.EditableFood
 import io.github.lopezjavier.appfitness.domain.model.Food
+import io.github.lopezjavier.appfitness.domain.model.FoodAuditRow
 import io.github.lopezjavier.appfitness.domain.model.FoodLogEntry
 import io.github.lopezjavier.appfitness.domain.model.FoodPhotoDraft
 import io.github.lopezjavier.appfitness.domain.model.FoodPhotoMode
@@ -131,6 +132,8 @@ class UnconfiguredFoodRepository : FoodRepository {
     override suspend fun updateFood(food: UpdatedFood): Result<Food> = failure()
 
     override suspend fun createFood(food: NewFood): Result<Food> = failure()
+
+    override suspend fun foodEnergyAudit(): Result<List<FoodAuditRow>> = failure()
 }
 
 /** Used when Supabase is not configured: every estimate fails. */

@@ -64,6 +64,8 @@ class ShellChromeTest {
                 EditFoodRoute::class,
                 TemplateDetailsRoute::class,
                 MealSlotsRoute,
+                FoodAuditRoute,
+                FoodAuditEditRoute::class,
                 MealDefaultsRoute,
                 DiaryHistoryRoute,
                 DiaryDayRoute::class,
@@ -89,6 +91,7 @@ class ShellChromeTest {
                 if (it is CatalogRoute ||
                     it is PreferencesRoute ||
                     it is MealSlotsRoute ||
+                    it is FoodAuditRoute ||
                     it is MealDefaultsRoute ||
                     it is LiveSessionRoute ||
                     it is HistoryRoute ||

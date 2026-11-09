@@ -241,6 +241,17 @@ data class TemplateDetailsRoute(val templateId: String, val slotId: String? = nu
 @Serializable
 data object MealSlotsRoute : AppRoute
 
+/** The food audit (US-117): the user's foods whose kcal and macros do not match, opened from Preferencias. */
+@Serializable
+data object FoodAuditRoute : AppRoute
+
+/**
+ * The edit form of the food [foodId] opened from the [FoodAuditRoute] list. Not [EditFoodRoute]: its save must pop
+ * back to the list (reporting the change) instead of reopening an add-food sheet.
+ */
+@Serializable
+data class FoodAuditEditRoute(val foodId: String) : AppRoute
+
 /** The default comidas editor (US-51), opened from the meals editor. */
 @Serializable
 data object MealDefaultsRoute : AppRoute
@@ -413,6 +424,8 @@ object AppDestinations {
             EditFoodRoute("", null, ""),
             TemplateDetailsRoute("", null, ""),
             MealSlotsRoute,
+            FoodAuditRoute,
+            FoodAuditEditRoute(""),
             MealDefaultsRoute,
             DiaryHistoryRoute,
             DiaryDayRoute(""),

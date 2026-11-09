@@ -2,6 +2,7 @@ package io.github.lopezjavier.appfitness.domain.repository
 
 import io.github.lopezjavier.appfitness.domain.model.EditableFood
 import io.github.lopezjavier.appfitness.domain.model.Food
+import io.github.lopezjavier.appfitness.domain.model.FoodAuditRow
 import io.github.lopezjavier.appfitness.domain.model.Micronutrients
 import io.github.lopezjavier.appfitness.domain.model.NewFood
 import io.github.lopezjavier.appfitness.domain.model.UpdatedFood
@@ -60,6 +61,12 @@ interface FoodRepository {
 
     /** Creates a personal food with its portions in one atomic call and returns it as stored. */
     suspend fun createFood(food: NewFood): Result<Food>
+
+    /**
+     * The user's own foods whose kcal and macros do not match (`food_energy_audit()`), worst first. Read-only; the
+     * server order is the display order. An unknown result level fails with an `AppError`.
+     */
+    suspend fun foodEnergyAudit(): Result<List<FoodAuditRow>>
 
     companion object {
         const val DEFAULT_RECENT_DAYS = 14
