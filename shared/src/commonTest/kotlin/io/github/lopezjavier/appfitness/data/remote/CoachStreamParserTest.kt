@@ -48,10 +48,10 @@ class CoachStreamParserTest {
     }
 
     @Test
-    fun limitErrorFrame_keepsItsScope() {
+    fun retiredLimitErrorFrame_isOther() {
         val body = "event: error\ndata: {\"code\":\"coach_limit_reached\",\"scope\":\"global\"}\n\n"
 
-        assertEquals(CoachFailure.LimitReached(CoachFailure.Scope.Global), failureOf(CoachStreamParser.parse(body)))
+        assertEquals(CoachFailure.Other, failureOf(CoachStreamParser.parse(body)))
     }
 
     @Test

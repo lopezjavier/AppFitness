@@ -6,8 +6,7 @@ import kotlin.time.Duration
 import kotlin.time.Duration.Companion.seconds
 
 /**
- * Client timeout for `coach` calls; above the 120 s `COACH_TIMEOUT_MS` of the function
- * (`supabase/functions/_shared/anthropic.ts`), so the function answers (or reports its own timeout) first.
+ * Client timeout for `coach` calls; generous so the function answers (or reports its own timeout) first.
  */
 internal val COACH_CLIENT_TIMEOUT: Duration = 130.seconds
 

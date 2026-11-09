@@ -121,33 +121,8 @@ class PlanProposalViewModelTest {
     }
 
     @Test
-    fun userLimit_isFailedWithItsScope_andNoProposal() = runTest(dispatcher) {
-        plans.request = Result.failure(CoachException(CoachFailure.LimitReached(CoachFailure.Scope.User)))
-        val model = viewModel()
-        advanceUntilIdle()
-
-        model.onEvent(PlanProposalEvent.Request)
-        advanceUntilIdle()
-
-        assertEquals(PlanFailureKind.Limit(CoachFailure.Scope.User), model.failure())
-    }
-
-    @Test
-    fun globalLimit_keepsTheGlobalScope() = runTest(dispatcher) {
-        plans.request = Result.failure(CoachException(CoachFailure.LimitReached(CoachFailure.Scope.Global)))
-        val model = viewModel()
-        advanceUntilIdle()
-
-        model.onEvent(PlanProposalEvent.Request)
-        advanceUntilIdle()
-
-        assertEquals(PlanFailureKind.Limit(CoachFailure.Scope.Global), model.failure())
-    }
-
-    @Test
     fun coachFailures_mapToTheirKinds() = runTest(dispatcher) {
         val cases = mapOf(
-            CoachFailure.NoCredit to PlanFailureKind.NoCredit,
             CoachFailure.Timeout to PlanFailureKind.Timeout,
             CoachFailure.Invalid to PlanFailureKind.Invalid,
             CoachFailure.Missing(setOf(MissingField.Sex, MissingField.Weight)) to

@@ -2,16 +2,10 @@ package io.github.lopezjavier.appfitness.domain.model
 
 /** Why a `coach` function call was refused or failed, parsed from its error body. */
 sealed interface CoachFailure {
-    /** `coach_limit_reached`; [scope] says whose budget ran out. */
-    data class LimitReached(val scope: Scope) : CoachFailure
-
-    /** `coach_no_credit`: the provider rejected the call for lack of balance. */
-    data object NoCredit : CoachFailure
-
-    /** `coach_timeout`. */
+    /** `coach_timeout`: the function did not answer in time. */
     data object Timeout : CoachFailure
 
-    /** `coach_invalid_output`: the model answered something the server could not validate. */
+    /** `coach_invalid_output`: the generated answer could not be validated by the server. */
     data object Invalid : CoachFailure
 
     /** `coach_missing_data`: the user lacks data the plan needs; [fields] names it (empty if none was sent). */
@@ -37,6 +31,4 @@ sealed interface CoachFailure {
 
     /** Any other or unreadable error. */
     data object Other : CoachFailure
-
-    enum class Scope { User, Global }
 }

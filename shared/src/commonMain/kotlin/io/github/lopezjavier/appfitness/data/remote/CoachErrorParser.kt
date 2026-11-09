@@ -10,7 +10,7 @@ import kotlinx.serialization.json.contentOrNull
 import kotlinx.serialization.json.jsonObject
 
 /**
- * Parses the `coach` function's error: the JSON body `{"error":{"code","scope"?,"missing"?}}` sent before
+ * Parses the `coach` function's error: the JSON body `{"error":{"code","missing"?}}` sent before
  * streaming, or the `{"code":...}` data of an SSE `error` event. Anything unreadable is [CoachFailure.Other].
  */
 object CoachErrorParser {
@@ -28,22 +28,11 @@ object CoachErrorParser {
         val root = runCatching { Json.parseToJsonElement(body).jsonObject }.getOrNull() ?: return CoachFailure.Other
         val error = root["error"] as? JsonObject ?: root
         return when (error.string("code")) {
-            "coach_limit_reached" -> CoachFailure.LimitReached(
-                if (error.string("scope") == "global") CoachFailure.Scope.Global else CoachFailure.Scope.User,
-            )
-
-            "coach_no_credit" -> CoachFailure.NoCredit
-
             "coach_timeout" -> CoachFailure.Timeout
-
             "coach_invalid_output" -> CoachFailure.Invalid
-
             "coach_missing_data" -> CoachFailure.Missing(error.missingFields())
-
             "coach_plan_infeasible" -> CoachFailure.Infeasible
-
             "coach_block_in_progress" -> CoachFailure.BlockInProgress
-
             else -> CoachFailure.Other
         }
     }

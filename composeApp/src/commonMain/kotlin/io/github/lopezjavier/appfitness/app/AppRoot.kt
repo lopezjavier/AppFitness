@@ -37,7 +37,6 @@ import io.github.lopezjavier.appfitness.feature.trainer.BeforeStartRoot
 import io.github.lopezjavier.appfitness.feature.trainer.BlockBuilderRoot
 import io.github.lopezjavier.appfitness.feature.trainer.BlockPreviewRoot
 import io.github.lopezjavier.appfitness.feature.trainer.BlockReviewRoot
-import io.github.lopezjavier.appfitness.feature.trainer.CoachUsageRoot
 import io.github.lopezjavier.appfitness.feature.trainer.FolderBlockRoot
 import io.github.lopezjavier.appfitness.feature.trainer.FolderReviewResultRoot
 import io.github.lopezjavier.appfitness.feature.trainer.FreeTextLinesRoot
@@ -101,7 +100,6 @@ fun AppRoot(
             )
         },
         preferencesSection = { sectionModifier, onClose -> PreferencesSectionRoot(onClose, sectionModifier) },
-        coachUsage = { usageModifier, onBack -> CoachUsageRoot(onBack, usageModifier) },
         planProposal = { planModifier, onBack, onOpenBeforeStart, onFix ->
             PlanProposalRoot(onBack, onOpenBeforeStart, onFix, planModifier)
         },

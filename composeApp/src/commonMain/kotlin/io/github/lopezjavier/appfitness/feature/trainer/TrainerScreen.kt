@@ -14,11 +14,8 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.produceState
 import androidx.compose.runtime.rememberUpdatedState
-import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
@@ -47,11 +44,7 @@ import io.github.lopezjavier.appfitness.composeapp.resources.coach_deload_cancel
 import io.github.lopezjavier.appfitness.composeapp.resources.coach_deload_request_error
 import io.github.lopezjavier.appfitness.composeapp.resources.coach_deload_request_not_available
 import io.github.lopezjavier.appfitness.composeapp.resources.coach_deload_request_offline
-import io.github.lopezjavier.appfitness.composeapp.resources.coach_usage_title
-import io.github.lopezjavier.appfitness.composeapp.resources.ic_info
-import io.github.lopezjavier.appfitness.composeapp.resources.ic_more_vert
 import io.github.lopezjavier.appfitness.composeapp.resources.plan_proposal_diet_break_offline
-import io.github.lopezjavier.appfitness.composeapp.resources.topbar_more_cd
 import io.github.lopezjavier.appfitness.composeapp.resources.trainer_block_remove_action
 import io.github.lopezjavier.appfitness.composeapp.resources.trainer_block_remove_error
 import io.github.lopezjavier.appfitness.composeapp.resources.trainer_discomfort_change_action
@@ -64,12 +57,9 @@ import io.github.lopezjavier.appfitness.composeapp.resources.trainer_title
 import io.github.lopezjavier.appfitness.composeapp.resources.trainer_your_data_row
 import io.github.lopezjavier.appfitness.composeapp.resources.week_summary_title
 import io.github.lopezjavier.appfitness.composeapp.resources.your_data_provisional_count
-import io.github.lopezjavier.appfitness.designsystem.AppActionSheet
 import io.github.lopezjavier.appfitness.designsystem.AppCard
-import io.github.lopezjavier.appfitness.designsystem.AppIconButton
 import io.github.lopezjavier.appfitness.designsystem.AppScreen
 import io.github.lopezjavier.appfitness.designsystem.AppShapes
-import io.github.lopezjavier.appfitness.designsystem.AppSheetAction
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
 import io.github.lopezjavier.appfitness.designsystem.LocalAppHaptics
 import io.github.lopezjavier.appfitness.designsystem.LocalAppMessages
@@ -91,12 +81,11 @@ private const val SKELETON_ROWS = 4
 private const val TITLE_FRACTION = 0.4f
 
 /**
- * Where the Trainer root goes: "Uso de IA", the pending plan proposal, a block preview ([onOpenBlock] takes the plan
+ * Where the Trainer root goes: the pending plan proposal, a block preview ([onOpenBlock] takes the plan
  * id), "Antes de empezar" ([onOpenBeforeStart] takes the mode, the plan id and the plan being replaced) and
  * "Tus datos" and "Lo que el entrenador sabe de ti".
  */
 data class TrainerActions(
-    val onOpenCoachUsage: () -> Unit = {},
     val onOpenProposal: () -> Unit = {},
     val onOpenBlock: (String) -> Unit = {},
     val onOpenBeforeStart: (mode: BeforeStartMode, planId: String?, replacingPlanId: String?) -> Unit = { _, _, _ -> },
@@ -310,7 +299,7 @@ fun TrainerScreen(
     AppScreen(
         title = title,
         modifier = modifier,
-        header = { TrainerHeader(title, actions.onOpenCoachUsage) },
+        header = { TrainerHeader(title) },
         testTagPrefix = "trainer",
     ) {
         Box(Modifier.fillMaxSize().testTag("trainer_screen")) {
@@ -403,8 +392,7 @@ private fun YourDataEntry(provisionalCount: Int?, onOpenYourData: () -> Unit) {
 
 /** The tab heading, equal to the bottom-bar label (R-04). */
 @Composable
-private fun TrainerHeader(title: String, onOpenCoachUsage: () -> Unit) {
-    var menuOpen by rememberSaveable { mutableStateOf(false) }
+private fun TrainerHeader(title: String) {
     Row(
         Modifier.fillMaxWidth().padding(start = Spacing.screenMargin, end = Spacing.xs),
         verticalAlignment = Alignment.CenterVertically,
@@ -416,27 +404,6 @@ private fun TrainerHeader(title: String, onOpenCoachUsage: () -> Unit) {
             modifier = Modifier.weight(1f).semantics { heading() },
         )
         NotificationsBell("trainer_action_notifications")
-        AppIconButton(
-            contentDescription = stringResource(Res.string.topbar_more_cd),
-            icon = Res.drawable.ic_more_vert,
-            testTag = "trainer_overflow",
-            onClick = { menuOpen = true },
-        )
-        if (menuOpen) {
-            val usageTitle = stringResource(Res.string.coach_usage_title)
-            AppActionSheet(
-                actions = listOf(
-                    AppSheetAction(
-                        icon = Res.drawable.ic_info,
-                        title = usageTitle,
-                        testTag = "trainer_action_coach_usage",
-                        onClick = onOpenCoachUsage,
-                    ),
-                ),
-                onDismiss = { menuOpen = false },
-                testTagPrefix = "trainer_overflow_sheet",
-            )
-        }
     }
 }
 

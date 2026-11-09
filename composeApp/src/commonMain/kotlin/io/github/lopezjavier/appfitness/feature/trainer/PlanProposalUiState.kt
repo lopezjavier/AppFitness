@@ -11,11 +11,6 @@ import io.github.lopezjavier.appfitness.domain.model.Phase
 
 /** Why a plan could not be shown; the UI picks the Spanish message and whether "Reintentar" makes sense. */
 sealed interface PlanFailureKind {
-    /** The monthly budget ran out; [scope] says whose (user or global). No proposal is shown. */
-    data class Limit(val scope: CoachFailure.Scope) : PlanFailureKind
-
-    data object NoCredit : PlanFailureKind
-
     data object Timeout : PlanFailureKind
 
     data object Invalid : PlanFailureKind
@@ -40,10 +35,6 @@ sealed interface PlanFailureKind {
 /** Maps a failed coach call to what the screen shows; shared by the plan and the block screens. */
 internal fun planFailureKindOf(failure: Throwable?): PlanFailureKind = when {
     failure is CoachException -> when (val coachFailure = failure.failure) {
-        is CoachFailure.LimitReached -> PlanFailureKind.Limit(coachFailure.scope)
-
-        CoachFailure.NoCredit -> PlanFailureKind.NoCredit
-
         CoachFailure.Timeout -> PlanFailureKind.Timeout
 
         CoachFailure.Invalid -> PlanFailureKind.Invalid

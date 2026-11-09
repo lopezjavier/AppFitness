@@ -12,21 +12,9 @@ class CoachErrorParserTest {
     }
 
     @Test
-    fun limitReached_userScope() = assertEquals(
-        CoachFailure.LimitReached(CoachFailure.Scope.User),
-        CoachErrorParser.parse(error("coach_limit_reached", "user")),
-    )
-
-    @Test
-    fun limitReached_globalScope() = assertEquals(
-        CoachFailure.LimitReached(CoachFailure.Scope.Global),
+    fun retiredLimitCode_fallsToOther() = assertEquals(
+        CoachFailure.Other,
         CoachErrorParser.parse(error("coach_limit_reached", "global")),
-    )
-
-    @Test
-    fun limitReached_withoutScope_isUser() = assertEquals(
-        CoachFailure.LimitReached(CoachFailure.Scope.User),
-        CoachErrorParser.parse(error("coach_limit_reached")),
     )
 
     @Test
@@ -36,7 +24,10 @@ class CoachErrorParserTest {
     )
 
     @Test
-    fun noCredit() = assertEquals(CoachFailure.NoCredit, CoachErrorParser.parse(error("coach_no_credit")))
+    fun retiredNoCreditCode_fallsToOther() = assertEquals(
+        CoachFailure.Other,
+        CoachErrorParser.parse(error("coach_no_credit")),
+    )
 
     @Test
     fun timeout() = assertEquals(CoachFailure.Timeout, CoachErrorParser.parse(error("coach_timeout")))
