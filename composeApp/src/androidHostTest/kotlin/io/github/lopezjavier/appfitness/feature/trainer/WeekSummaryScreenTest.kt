@@ -27,6 +27,7 @@ import io.github.lopezjavier.appfitness.domain.model.StallDiagnosis
 import io.github.lopezjavier.appfitness.domain.model.WeekSummary
 import io.github.lopezjavier.appfitness.domain.usecase.ExerciseNameResolver
 import io.github.lopezjavier.appfitness.domain.usecase.MarkWeekSummarySeen
+import io.github.lopezjavier.appfitness.domain.usecase.RecordPausedWeekReport
 import io.github.lopezjavier.appfitness.feature.exercises.FakeExerciseLibrary
 import io.github.lopezjavier.appfitness.feature.exercises.FakeExerciseRepository
 import kotlinx.coroutines.CoroutineScope
@@ -375,6 +376,7 @@ class WeekSummaryScreenTest {
         val model = WeekSummaryViewModel(
             summaries,
             MarkWeekSummarySeen(summaries),
+            RecordPausedWeekReport(FakeReportRepository()),
             coordinator,
             ExerciseNameResolver(FakeExerciseRepository(), FakeExerciseLibrary(emptyMap())),
             env.clock,

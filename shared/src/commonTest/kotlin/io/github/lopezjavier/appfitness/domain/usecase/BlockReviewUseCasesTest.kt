@@ -38,6 +38,7 @@ private class FakeReviewRepository(
     private val review: Result<BlockReview?> = Result.success(null),
     private val accept: Result<String> = Result.success("p2"),
     private val keep: Result<Unit> = Result.success(Unit),
+    private val seen: Result<Unit> = Result.success(Unit),
     private val newBlock: Result<NewBlockEntry?> = Result.success(null),
     private val preview: Result<GoalSwitchPreview> = Result.success(GoalSwitchPreview("p3", 2400, 3000, Phase.Gain)),
     private val weeks: Result<PhaseWeeks?> = Result.success(null),
@@ -52,6 +53,11 @@ private class FakeReviewRepository(
     override suspend fun keepPhase(reviewId: String): Result<Unit> {
         calls += "keep:$reviewId"
         return keep
+    }
+
+    override suspend fun markSeen(reviewId: String): Result<Unit> {
+        calls += "seen:$reviewId"
+        return seen
     }
 
     override suspend fun acceptPhase(reviewId: String, today: LocalDate): Result<String> {
@@ -72,6 +78,24 @@ private class FakeReviewRepository(
     override suspend fun weeksInPhase(today: LocalDate): Result<PhaseWeeks?> {
         calls += "weeks:$today"
         return weeks
+    }
+}
+
+class MarkBlockReviewSeenTest {
+    @Test
+    fun marksTheReview() = runTest {
+        val repository = FakeReviewRepository()
+
+        MarkBlockReviewSeen(repository)("r1").getOrThrow()
+
+        assertEquals(listOf("seen:r1"), repository.calls)
+    }
+
+    @Test
+    fun repositoryFailureIsPassedThrough() = runTest {
+        val repository = FakeReviewRepository(seen = Result.failure(AppException(AppError.Network)))
+
+        assertEquals(true, MarkBlockReviewSeen(repository)("r1").isFailure)
     }
 }
 

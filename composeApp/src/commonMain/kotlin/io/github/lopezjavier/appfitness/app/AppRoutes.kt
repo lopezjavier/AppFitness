@@ -281,6 +281,14 @@ data object WeekSummaryRoute : AppRoute
 @Serializable
 data object BlockReviewRoute : AppRoute
 
+/** "Informes" (US-129): the stored weekly summaries and block reviews, opened from the notification center. */
+@Serializable
+data object ReportsRoute : AppRoute
+
+/** One stored report opened read-only from "Informes". */
+@Serializable
+data class PastReportRoute(val reportId: String) : AppRoute
+
 /** "Historial de peso": the measurement calendar, opened from the calendar action of [WeightRoute]. */
 @Serializable
 data object WeightHistoryRoute : AppRoute
@@ -431,5 +439,7 @@ object AppDestinations {
             CheckInRoute,
             WeekSummaryRoute,
             BlockReviewRoute,
+            ReportsRoute,
+            PastReportRoute(""),
         )
 }

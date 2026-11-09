@@ -18,9 +18,10 @@ fun NotificationCenterRoot(
     onOpenReminder: (ReminderKind) -> Unit,
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
+    onOpenReports: () -> Unit = {},
     viewModel: NotificationCenterViewModel = koinViewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     LifecycleEventEffect(Lifecycle.Event.ON_RESUME) { viewModel.onEvent(NotificationCenterEvent.Refresh) }
-    NotificationCenterScreen(state, viewModel::onEvent, onOpenReminder, onBack, modifier)
+    NotificationCenterScreen(state, viewModel::onEvent, onOpenReminder, onBack, modifier, onOpenReports)
 }

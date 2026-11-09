@@ -41,7 +41,9 @@ import io.github.lopezjavier.appfitness.feature.trainer.FolderBlockRoot
 import io.github.lopezjavier.appfitness.feature.trainer.FolderReviewResultRoot
 import io.github.lopezjavier.appfitness.feature.trainer.FreeTextLinesRoot
 import io.github.lopezjavier.appfitness.feature.trainer.IntakeRoot
+import io.github.lopezjavier.appfitness.feature.trainer.PastReportRoot
 import io.github.lopezjavier.appfitness.feature.trainer.PlanProposalRoot
+import io.github.lopezjavier.appfitness.feature.trainer.ReportsRoot
 import io.github.lopezjavier.appfitness.feature.trainer.TrainerRoute
 import io.github.lopezjavier.appfitness.feature.trainer.WeekSummaryRoot
 import io.github.lopezjavier.appfitness.feature.trainer.YourDataRoot
@@ -173,9 +175,11 @@ fun AppRoot(
                 onRemindersChange = refreshReminders,
             )
         },
-        notificationCenter = { centerModifier, onOpenReminder, onBack ->
-            NotificationCenterRoot(onOpenReminder, onBack, centerModifier)
+        notificationCenter = { centerModifier, onOpenReminder, onOpenReports, onBack ->
+            NotificationCenterRoot(onOpenReminder, onBack, centerModifier, onOpenReports)
         },
+        reports = { reportsModifier, onOpen, onBack -> ReportsRoot(onOpen, onBack, reportsModifier) },
+        pastReport = { reportModifier, reportId, onBack -> PastReportRoot(reportId, onBack, reportModifier) },
         checkIn = { checkInModifier, onClose -> CheckInRoot(onClose, checkInModifier) },
         weekSummary = { summaryModifier, onBack -> WeekSummaryRoot(onBack, summaryModifier) },
         blockReview = { reviewModifier, onBack, onOpenBeforeStart ->

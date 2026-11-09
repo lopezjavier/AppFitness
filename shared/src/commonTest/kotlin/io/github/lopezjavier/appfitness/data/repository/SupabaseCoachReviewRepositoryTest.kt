@@ -121,6 +121,42 @@ class SupabaseCoachReviewRepositoryTest {
     }
 
     @Test
+    fun markSeen_callsTheRpcWithTheReviewId() = runTest {
+        val repository = repo { HttpStatusCode.OK to REVIEW_ROW }
+
+        repository.markSeen("r1").getOrThrow()
+
+        val call = rest().single()
+        assertTrue(call.url.encodedPath.endsWith("/rest/v1/rpc/mark_coach_block_review_seen"), call.url.toString())
+        assertEquals("""{"p_review_id":"r1"}""", bodyOf(call))
+    }
+
+    @Test
+    fun markSeen_notFound_isAFailure() = runTest {
+        val repository = repo {
+            HttpStatusCode.BadRequest to """{"code":"P0002","message":"not found","details":null,"hint":null}"""
+        }
+
+        assertTrue(repository.markSeen("r1").isFailure)
+    }
+
+    @Test
+    fun openReview_seenAtPresentIsSeen_nullOrAbsentIsNot() = runTest {
+        val seenAt = REVIEW_ROW.replace(
+            "\"next_plan_id\":null",
+            "\"next_plan_id\":null,\"seen_at\":\"2027-01-06T08:00:00+00:00\"",
+        )
+        val nullSeenAt = REVIEW_ROW.replace("\"next_plan_id\":null", "\"next_plan_id\":null,\"seen_at\":null")
+        val results = listOf(seenAt, nullSeenAt, REVIEW_ROW).map { row ->
+            val review = assertNotNull(repo { HttpStatusCode.OK to row }.openReview(today).getOrThrow())
+            review.seen to review.copy(seen = false)
+        }
+
+        assertEquals(listOf(true, false, false), results.map { it.first })
+        assertEquals(1, results.map { it.second }.toSet().size)
+    }
+
+    @Test
     fun acceptPhase_postsTheKindWithReviewIdAndToday_andReturnsThePlanId() = runTest {
         val repository = repo { HttpStatusCode.OK to frame("""{"plan_id":"p2","nutrition":{},"outcomes":[]}""") }
 

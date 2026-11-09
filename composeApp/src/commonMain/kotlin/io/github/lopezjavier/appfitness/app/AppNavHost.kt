@@ -214,13 +214,24 @@ internal typealias WeightSlot =
 
 /** Notification center content: modifier (full-screen insets), the opener of a reminder's entry and back. */
 internal typealias NotificationCenterSlot =
-    @Composable (modifier: Modifier, onOpenReminder: (ReminderKind) -> Unit, onBack: () -> Unit) -> Unit
+    @Composable (
+        modifier: Modifier,
+        onOpenReminder: (ReminderKind) -> Unit,
+        onOpenReports: () -> Unit,
+        onBack: () -> Unit,
+    ) -> Unit
 
 /** Weekly check-in content: modifier (full-screen insets) and how to close it. */
 internal typealias CheckInSlot = @Composable (modifier: Modifier, onClose: () -> Unit) -> Unit
 
 /** Weekly summary content (US-98): modifier (full-screen insets) and back. */
 internal typealias WeekSummarySlot = @Composable (modifier: Modifier, onBack: () -> Unit) -> Unit
+
+/** "Informes" content (US-129): modifier (full-screen insets), the opener of a report by id and back. */
+internal typealias ReportsSlot = @Composable (modifier: Modifier, onOpen: (String) -> Unit, onBack: () -> Unit) -> Unit
+
+/** One stored report read-only (US-129): modifier (full-screen insets), the report id and back. */
+internal typealias PastReportSlot = @Composable (modifier: Modifier, reportId: String, onBack: () -> Unit) -> Unit
 
 /** End-of-block review content (US-101): modifier, back and "Antes de empezar" (mode, plan id, replaced plan id). */
 internal typealias BlockReviewSlot =
@@ -529,7 +540,7 @@ internal val DefaultWeightSlot: WeightSlot = { modifier, _, _, _ ->
 }
 
 /** Empty notification center for previews and shell tests; the real one is wired by `AppRoot`. */
-internal val DefaultNotificationCenterSlot: NotificationCenterSlot = { modifier, _, _ ->
+internal val DefaultNotificationCenterSlot: NotificationCenterSlot = { modifier, _, _, _ ->
     Box(modifier.fillMaxSize().testTag("notifications_screen"))
 }
 
@@ -541,6 +552,16 @@ internal val DefaultCheckInSlot: CheckInSlot = { modifier, _ ->
 /** Empty weekly summary for previews and shell tests; the real one is wired by `AppRoot`. */
 internal val DefaultWeekSummarySlot: WeekSummarySlot = { modifier, _ ->
     Box(modifier.fillMaxSize().testTag("week_summary_screen"))
+}
+
+/** Empty "Informes" for previews and shell tests; the real one is wired by `AppRoot`. */
+internal val DefaultReportsSlot: ReportsSlot = { modifier, _, _ ->
+    Box(modifier.fillMaxSize().testTag("reports_screen"))
+}
+
+/** Empty stored report for previews and shell tests; the real one is wired by `AppRoot`. */
+internal val DefaultPastReportSlot: PastReportSlot = { modifier, _, _ ->
+    Box(modifier.fillMaxSize().testTag("past_report_screen"))
 }
 
 /** Empty block review for previews and shell tests; the real one is wired by `AppRoot`. */
@@ -752,6 +773,8 @@ internal fun AppNavHost(
     checkIn: CheckInSlot = DefaultCheckInSlot,
     weekSummary: WeekSummarySlot = DefaultWeekSummarySlot,
     blockReview: BlockReviewSlot = DefaultBlockReviewSlot,
+    reports: ReportsSlot = DefaultReportsSlot,
+    pastReport: PastReportSlot = DefaultPastReportSlot,
 ) {
     val catalogAvailable = features.isAvailable(CatalogRoute)
     val openCatalog = remember(navController) { { navController.navigateToFullScreen(CatalogRoute) } }
@@ -999,8 +1022,22 @@ internal fun AppNavHost(
             notificationCenter(
                 Modifier.padding(fullScreenPadding),
                 { kind -> navController.openReminder(kind) },
+                { navController.navigateToFullScreen(ReportsRoute) },
                 { navController.popFullScreen(entry) },
             )
+        }
+        composable<ReportsRoute> { entry ->
+            reports(
+                Modifier.padding(fullScreenPadding),
+                { id -> navController.navigateToFullScreen(PastReportRoute(id)) },
+                { navController.popFullScreen(entry) },
+            )
+        }
+        composable<PastReportRoute> { entry ->
+            pastReport(
+                Modifier.padding(fullScreenPadding),
+                entry.toRoute<PastReportRoute>().reportId,
+            ) { navController.popFullScreen(entry) }
         }
         composable<CheckInRoute> { entry ->
             checkIn(Modifier.padding(fullScreenPadding)) { navController.popFullScreen(entry) }

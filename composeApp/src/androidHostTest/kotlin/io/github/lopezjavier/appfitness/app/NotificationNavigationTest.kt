@@ -8,6 +8,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.hasContentDescription
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithTag
@@ -61,8 +62,8 @@ class NotificationNavigationTest {
         today = today,
         checkIn = CheckInDay(LocalDate(2026, 10, 25), LocalDate(2026, 10, 19), answer = null),
     )
-    private val centerSlot: NotificationCenterSlot = { modifier, onOpenReminder, onBack ->
-        NotificationCenterScreen(reminders, {}, onOpenReminder, onBack, modifier)
+    private val centerSlot: NotificationCenterSlot = { modifier, onOpenReminder, onOpenReports, onBack ->
+        NotificationCenterScreen(reminders, {}, onOpenReminder, onBack, modifier, onOpenReports)
     }
     private val weightSlot: WeightSlot = { modifier, openEntry, _, _ ->
         Box(modifier.fillMaxSize().testTag("weight_screen")) { Text("target=$openEntry") }
@@ -80,6 +81,21 @@ class NotificationNavigationTest {
         }
     }
 
+    private val reportsSlot: ReportsSlot = { modifier, onOpen, onBack ->
+        androidx.compose.foundation.layout.Column(modifier.fillMaxSize().testTag("reports_screen")) {
+            Text("a", Modifier.testTag("reports_row_a").clickable { onOpen("a") })
+            Text("b", Modifier.testTag("reports_row_b").clickable { onOpen("b") })
+            Text("back", Modifier.testTag("reports_back").clickable(onClick = onBack))
+        }
+    }
+
+    private val pastReportSlot: PastReportSlot = { modifier, reportId, onBack ->
+        androidx.compose.foundation.layout.Column(modifier.fillMaxSize().testTag("past_report_screen")) {
+            Text("report=$reportId", Modifier.testTag("past_report_id"))
+            Text("back", Modifier.testTag("past_report_back").clickable(onClick = onBack))
+        }
+    }
+
     private fun open(pending: Int) {
         rule.setContent {
             AppTheme {
@@ -93,6 +109,8 @@ class NotificationNavigationTest {
                     weight = weightSlot,
                     checkIn = checkInSlot,
                     weekSummary = summarySlot,
+                    reports = reportsSlot,
+                    pastReport = pastReportSlot,
                 )
             }
         }
@@ -202,6 +220,8 @@ class NotificationNavigationTest {
                     profile = profileSlot,
                     notificationCenter = centerSlot,
                     weekSummary = summarySlot,
+                    reports = reportsSlot,
+                    pastReport = pastReportSlot,
                 )
             }
         }
@@ -214,6 +234,50 @@ class NotificationNavigationTest {
         rule.waitForIdle()
 
         rule.onNodeWithTag("week_summary_screen").assertIsDisplayed()
+    }
+
+    @Test
+    fun informes_openAReport_backToTheList_thenAnotherReport() {
+        open(pending = 1)
+        tap("diary_action_notifications")
+
+        tap("notifications_reports")
+        rule.onNodeWithTag("reports_screen").assertIsDisplayed()
+        tap("reports_row_a")
+        rule.onNodeWithTag("past_report_id").assertTextEquals("report=a")
+        tap("past_report_back")
+        rule.onNodeWithTag("reports_screen").assertIsDisplayed()
+        tap("reports_row_b")
+
+        rule.onNodeWithTag("past_report_id").assertTextEquals("report=b")
+    }
+
+    @Test
+    fun pastReportRoute_isRestoredAfterRecreation_withItsId() {
+        val tester = androidx.compose.ui.test.junit4.StateRestorationTester(rule)
+        tester.setContent {
+            AppTheme {
+                AppScaffold(
+                    navController = rememberNavController(),
+                    pendingReminders = 1,
+                    diary = diarySlot,
+                    routines = routinesSlot,
+                    profile = profileSlot,
+                    notificationCenter = centerSlot,
+                    reports = reportsSlot,
+                    pastReport = pastReportSlot,
+                )
+            }
+        }
+        rule.waitForIdle()
+        tap("diary_action_notifications")
+        tap("notifications_reports")
+        tap("reports_row_b")
+
+        tester.emulateSavedInstanceStateRestore()
+        rule.waitForIdle()
+
+        rule.onNodeWithTag("past_report_id").assertTextEquals("report=b")
     }
 
     @Test

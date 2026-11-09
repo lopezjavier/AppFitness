@@ -2489,4 +2489,14 @@
     <string name="coach_deload_help_cd">Ayuda: descarga</string>
     <string name="coach_deload_help_title">¿Qué es una descarga?</string>
     <string name="coach_deload_help_body">Una semana de descarga es una semana más ligera: menos series y menos peso. Sirve para recuperarte cuando llevas semanas cansado o con poco progreso. No la uses si te encuentras bien: perderías una semana de progreso.</string>
+    <string name="reports_title">Informes</string>
+    <string name="reports_row_paused">%1$s · Semana en pausa</string>
+    <string name="reports_row_open_week">Abrir el resumen semanal</string>
+    <string name="reports_row_open_block">Abrir la revisión del bloque</string>
+    <string name="reports_empty_title">Aún no hay informes</string>
+    <string name="reports_empty_message">Tus resúmenes semanales y revisiones de bloque aparecerán aquí.</string>
+    <string name="reports_error">No se pudieron cargar los informes. Inténtalo de nuevo.</string>
+    <string name="reports_block_phase_kept">Seguiste como estabas.</string>
+    <string name="past_report_not_found">Ya no está disponible.</string>
+    <string name="past_report_error">No se pudo cargar. Inténtalo de nuevo.</string>
 </resources>

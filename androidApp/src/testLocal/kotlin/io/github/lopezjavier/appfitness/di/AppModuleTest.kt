@@ -73,14 +73,18 @@ import io.github.lopezjavier.appfitness.domain.usecase.LoadBlockReviewUseCase
 import io.github.lopezjavier.appfitness.domain.usecase.LoadCheckInSummary
 import io.github.lopezjavier.appfitness.domain.usecase.LoadExerciseCatalog
 import io.github.lopezjavier.appfitness.domain.usecase.LoadNextBlockContextUseCase
+import io.github.lopezjavier.appfitness.domain.usecase.LoadPastReport
 import io.github.lopezjavier.appfitness.domain.usecase.LoadReminders
+import io.github.lopezjavier.appfitness.domain.usecase.LoadReports
 import io.github.lopezjavier.appfitness.domain.usecase.LoadWeeksInPhaseUseCase
 import io.github.lopezjavier.appfitness.domain.usecase.LoadWelcomeBack
+import io.github.lopezjavier.appfitness.domain.usecase.MarkBlockReviewSeen
 import io.github.lopezjavier.appfitness.domain.usecase.MarkWeekSummarySeen
 import io.github.lopezjavier.appfitness.domain.usecase.MeasurementsByDay
 import io.github.lopezjavier.appfitness.domain.usecase.OpenNewBlockUseCase
 import io.github.lopezjavier.appfitness.domain.usecase.PreviewGoalSwitchUseCase
 import io.github.lopezjavier.appfitness.domain.usecase.RecalculateEntry
+import io.github.lopezjavier.appfitness.domain.usecase.RecordPausedWeekReport
 import io.github.lopezjavier.appfitness.domain.usecase.ResolvePortion
 import io.github.lopezjavier.appfitness.domain.usecase.SaveBodyMeasurement
 import io.github.lopezjavier.appfitness.domain.usecase.SavePreferences
@@ -258,6 +262,10 @@ class AppModuleTest {
                 DiscomfortFollowUpRepository::class,
                 LoadCheckInSummary::class,
                 MarkWeekSummarySeen::class,
+                MarkBlockReviewSeen::class,
+                RecordPausedWeekReport::class,
+                LoadReports::class,
+                LoadPastReport::class,
                 LoadReminders::class,
                 LoadWelcomeBack::class,
                 CoroutineScope::class,

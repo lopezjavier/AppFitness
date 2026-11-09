@@ -7,6 +7,8 @@ import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
 import io.github.lopezjavier.appfitness.app.FakeConnectivityObserver
+import io.github.lopezjavier.appfitness.app.ReminderCoordinator
+import io.github.lopezjavier.appfitness.app.ReminderEnv
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
 import io.github.lopezjavier.appfitness.designsystem.HapticEvent
 import io.github.lopezjavier.appfitness.designsystem.LocalAppHaptics
@@ -15,9 +17,13 @@ import io.github.lopezjavier.appfitness.domain.usecase.DecideCalorieProposalUseC
 import io.github.lopezjavier.appfitness.domain.usecase.DecidePhaseChangeUseCase
 import io.github.lopezjavier.appfitness.domain.usecase.ExerciseNameResolver
 import io.github.lopezjavier.appfitness.domain.usecase.LoadBlockReviewUseCase
+import io.github.lopezjavier.appfitness.domain.usecase.MarkBlockReviewSeen
 import io.github.lopezjavier.appfitness.feature.exercises.FakeExerciseLibrary
 import io.github.lopezjavier.appfitness.feature.exercises.FakeExerciseRepository
 import io.github.lopezjavier.appfitness.feature.workout.MutableClock
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.datetime.LocalDate
 import org.junit.Assert.assertEquals
 import org.junit.Rule
 import org.junit.Test
@@ -32,7 +38,8 @@ class BlockReviewHapticsTest {
     @get:Rule
     val rule = createComposeRule()
 
-    private val reviews = FakeCoachReviewRepository(Result.success(blockReview()))
+    private val env = ReminderEnv(LocalDate(2026, 10, 19))
+    private val reviews = env.reviews.apply { review = Result.success(blockReview()) }
     private val haptics = RecordingAppHaptics()
 
     private fun show() {
@@ -41,6 +48,8 @@ class BlockReviewHapticsTest {
             decidePhase = DecidePhaseChangeUseCase(reviews),
             plans = FakeCoachPlanRepository(),
             decideCalorie = DecideCalorieProposalUseCase(FakeCoachPlanRepository()),
+            markSeen = MarkBlockReviewSeen(reviews),
+            reminders = ReminderCoordinator(env.load, CoroutineScope(Dispatchers.Unconfined)),
             names = ExerciseNameResolver(FakeExerciseRepository(emptyList()), FakeExerciseLibrary(emptyMap())),
             clock = MutableClock(),
         )

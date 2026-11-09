@@ -16,6 +16,8 @@ class UnconfiguredCoachReviewRepository : CoachReviewRepository {
 
     override suspend fun keepPhase(reviewId: String): Result<Unit> = Result.failure(AppException(AppError.Unknown))
 
+    override suspend fun markSeen(reviewId: String): Result<Unit> = Result.failure(AppException(AppError.Unknown))
+
     override suspend fun acceptPhase(reviewId: String, today: LocalDate): Result<String> =
         Result.failure(AppException(AppError.Unknown))
 
