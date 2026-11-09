@@ -12,6 +12,7 @@ import io.github.jan.supabase.postgrest.rpc
 import io.github.lopezjavier.appfitness.data.remote.CreateFoodParams
 import io.github.lopezjavier.appfitness.data.remote.FavoriteFoodDto
 import io.github.lopezjavier.appfitness.data.remote.FavoriteInsertDto
+import io.github.lopezjavier.appfitness.data.remote.FoodAuditDto
 import io.github.lopezjavier.appfitness.data.remote.FoodBarcodeResponseDto
 import io.github.lopezjavier.appfitness.data.remote.FoodDto
 import io.github.lopezjavier.appfitness.data.remote.FoodIdDto
@@ -28,6 +29,7 @@ import io.github.lopezjavier.appfitness.domain.AppException
 import io.github.lopezjavier.appfitness.domain.OffMicronutrientsMapper
 import io.github.lopezjavier.appfitness.domain.model.EditableFood
 import io.github.lopezjavier.appfitness.domain.model.Food
+import io.github.lopezjavier.appfitness.domain.model.FoodAuditRow
 import io.github.lopezjavier.appfitness.domain.model.Micronutrients
 import io.github.lopezjavier.appfitness.domain.model.NewFood
 import io.github.lopezjavier.appfitness.domain.model.UpdatedFood
@@ -226,6 +228,11 @@ class SupabaseFoodRepository(
         micronutrientsCache.update { it - food.id }
         readFood(food.id, FoodDto.COLUMNS)?.toDomain()?.also { listOf(it).remembered() }
             ?: throw AppException(AppError.NotFound)
+    }
+
+    // Read-only: the caches are left alone and the server order is kept.
+    override suspend fun foodEnergyAudit(): Result<List<FoodAuditRow>> = auth.ownRow {
+        postgrest.rpc("food_energy_audit").decodeList<FoodAuditDto>().map { it.toDomain() }
     }
 
     private suspend fun readFood(id: String, columns: String): FoodDto? = postgrest.from("foods")

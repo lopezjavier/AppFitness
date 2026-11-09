@@ -21,6 +21,7 @@ import io.github.lopezjavier.appfitness.feature.exercises.ExercisePickerRoot
 import io.github.lopezjavier.appfitness.feature.food.AddFoodRoot
 import io.github.lopezjavier.appfitness.feature.food.CreateFoodRoot
 import io.github.lopezjavier.appfitness.feature.food.EditFoodRoot
+import io.github.lopezjavier.appfitness.feature.food.FoodAuditRoot
 import io.github.lopezjavier.appfitness.feature.food.FoodSearchRoot
 import io.github.lopezjavier.appfitness.feature.meals.MealSlotsRoot
 import io.github.lopezjavier.appfitness.feature.meals.defaults.MealDefaultsRoot
@@ -93,10 +94,10 @@ fun AppRoot(
         exerciseProgress = { progressModifier, exerciseId, onBack ->
             ExerciseProgressRoot(exerciseId, onBack, progressModifier)
         },
-        preferences = { hubModifier, onBack, onOpenSection, onOpenMeals ->
+        preferences = { hubModifier, onBack, onOpenSection, onOpenMeals, onOpenFoodAudit ->
             PreferencesHubRoot(
                 onBack = onBack,
-                actions = PreferencesHubActions({ onOpenSection(it.key) }, onOpenMeals),
+                actions = PreferencesHubActions({ onOpenSection(it.key) }, onOpenMeals, onOpenFoodAudit),
                 modifier = hubModifier,
             )
         },
@@ -188,6 +189,9 @@ fun AppRoot(
         },
         diaryHistory = { historyModifier, onOpenDay, onBack -> DiaryHistoryRoot(onOpenDay, onBack, historyModifier) },
         mealSlots = { mealsModifier, onClose, onOpenDefaults -> MealSlotsRoot(onClose, onOpenDefaults, mealsModifier) },
+        foodAudit = { auditModifier, edited, onEditedConsumed, onOpenEditor, onBack ->
+            FoodAuditRoot(edited, onEditedConsumed, onOpenEditor, onBack, auditModifier)
+        },
         mealDefaults = { defaultsModifier, onClose -> MealDefaultsRoot(onClose, defaultsModifier) },
         foodSearch = { searchModifier, slotId, date, onOpenFood, onCreateFood, onOpenTemplate, pick, onBack ->
             FoodSearchRoot(slotId, date, onOpenFood, onCreateFood, onOpenTemplate, onBack, searchModifier, pick)

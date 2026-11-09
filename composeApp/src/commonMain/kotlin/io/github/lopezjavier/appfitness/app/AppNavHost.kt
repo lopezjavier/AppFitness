@@ -31,6 +31,7 @@ import io.github.lopezjavier.appfitness.domain.model.PlanFixTarget
 import io.github.lopezjavier.appfitness.domain.model.ReminderKind
 import io.github.lopezjavier.appfitness.feature.catalog.ComponentCatalogScreen
 import io.github.lopezjavier.appfitness.feature.diary.DiaryEditHost
+import io.github.lopezjavier.appfitness.feature.food.FOOD_AUDIT_EDITED_KEY
 import io.github.lopezjavier.appfitness.feature.profile.PreferencesSection
 import io.github.lopezjavier.appfitness.feature.profile.ProfileRootActions
 import io.github.lopezjavier.appfitness.feature.templates.PICKED_FOOD_KEY
@@ -142,6 +143,7 @@ internal typealias PreferencesSlot =
         onBack: () -> Unit,
         onOpenSection: (String) -> Unit,
         onOpenMeals: () -> Unit,
+        onOpenFoodAudit: () -> Unit,
     ) -> Unit
 
 /** Content of one Preferencias editor: its modifier (full-screen insets) and how to leave (saved, discarded, back). */
@@ -286,6 +288,19 @@ internal typealias SaveTemplateSlot =
 /** Meals editor content: modifier (full-screen insets) and how to leave. */
 internal typealias MealSlotsSlot =
     @Composable (modifier: Modifier, onClose: () -> Unit, onOpenDefaults: () -> Unit) -> Unit
+
+/**
+ * Food audit content (US-117): modifier (full-screen insets), [edited] (a food was saved in the editor opened from
+ * the list, so the list reloads), [onConsumeEdit], the opener of a food's editor and how to leave.
+ */
+internal typealias FoodAuditSlot =
+    @Composable (
+        modifier: Modifier,
+        edited: Boolean,
+        onConsumeEdit: () -> Unit,
+        onOpenEditor: (String) -> Unit,
+        onBack: () -> Unit,
+    ) -> Unit
 
 /** Default comidas editor content (US-51): modifier (full-screen insets) and how to leave. */
 internal typealias MealDefaultsSlot = @Composable (modifier: Modifier, onClose: () -> Unit) -> Unit
@@ -568,6 +583,11 @@ internal val DefaultMealSlotsSlot: MealSlotsSlot = { modifier, _, _ ->
     Box(modifier.fillMaxSize().testTag("meals_screen"))
 }
 
+/** Empty food audit for previews and shell tests; the real one is wired by `AppRoot`. */
+internal val DefaultFoodAuditSlot: FoodAuditSlot = { modifier, _, _, _, _ ->
+    Box(modifier.fillMaxSize().testTag("food_audit_screen"))
+}
+
 /** Empty default comidas editor for previews and shell tests; the real one is wired by `AppRoot`. */
 internal val DefaultMealDefaultsSlot: MealDefaultsSlot = { modifier, _ ->
     Box(modifier.fillMaxSize().testTag("meal_defaults_screen"))
@@ -628,7 +648,7 @@ internal val DefaultExerciseProgressSlot: ExerciseProgressSlot = { modifier, _, 
 }
 
 /** Empty Preferencias for previews and shell tests; the real one is wired by `AppRoot`. */
-internal val DefaultPreferencesSlot: PreferencesSlot = { modifier, onBack, _, _ ->
+internal val DefaultPreferencesSlot: PreferencesSlot = { modifier, onBack, _, _, _ ->
     Box(modifier.fillMaxSize().testTag("preferences_screen")) {
         Box(Modifier.fillMaxSize().clickable(onClick = onBack).testTag("preferences_back"))
     }
@@ -743,6 +763,7 @@ internal fun AppNavHost(
     createFood: CreateFoodSlot = DefaultCreateFoodSlot,
     templateDetails: TemplateDetailsSlot = DefaultTemplateDetailsSlot,
     mealSlots: MealSlotsSlot = DefaultMealSlotsSlot,
+    foodAudit: FoodAuditSlot = DefaultFoodAuditSlot,
     mealDefaults: MealDefaultsSlot = DefaultMealDefaultsSlot,
     history: HistorySlot = DefaultHistorySlot,
     sessionDetail: SessionDetailSlot = DefaultSessionDetailSlot,
@@ -774,6 +795,7 @@ internal fun AppNavHost(
     val openDiaryHistory = remember(navController) { { navController.navigateToFullScreen(DiaryHistoryRoute) } }
     val openWeight = remember(navController) { { navController.navigateToFullScreen(WeightRoute()) } }
     val openMeals = remember(navController) { { navController.navigateToFullScreen(MealSlotsRoute) } }
+    val openFoodAudit = remember(navController) { { navController.navigateToFullScreen(FoodAuditRoute) } }
     val openMealDefaults = remember(navController) { { navController.navigateToFullScreen(MealDefaultsRoute) } }
     val openLiveSession = remember(navController) { { navController.navigateToFullScreen(LiveSessionRoute) } }
     val openHistory = remember(navController) { { navController.navigateToFullScreen(HistoryRoute) } }
@@ -1040,6 +1062,7 @@ internal fun AppNavHost(
                 { navController.popFullScreen(entry) },
                 { key -> navController.navigateToFullScreen(PreferencesSectionRoute(key)) },
                 openMeals,
+                openFoodAudit,
             )
         }
         composable<PreferencesSectionRoute> { entry ->
@@ -1104,6 +1127,7 @@ internal fun AppNavHost(
             addFood,
             createFood,
             templateDetails,
+            foodAudit,
         )
         composable<MealSlotsRoute> {
             mealSlots(Modifier.padding(fullScreenPadding), { navController.popBackStack() }, openMealDefaults)
@@ -1201,9 +1225,11 @@ private fun NavGraphBuilder.foodDestinations(
     addFood: AddFoodSlot,
     createFood: CreateFoodSlot,
     templateDetails: TemplateDetailsSlot,
+    foodAudit: FoodAuditSlot,
 ) {
     foodSearchDestination(navController, fullScreenPadding, foodSearch)
     templateDetailsDestination(navController, fullScreenPadding, templateDetails)
+    foodAuditDestinations(navController, fullScreenPadding, foodAudit, createFood)
     composable<CreateFoodRoute> { entry ->
         val route = entry.toRoute<CreateFoodRoute>()
         val onBack = { navController.popFullScreen(entry) }
@@ -1276,6 +1302,38 @@ private fun NavGraphBuilder.templateDetailsDestination(
             picked,
             { handle[PICKED_FOOD_KEY] = null },
         )
+    }
+}
+
+/**
+ * The food audit (US-117) and the editor of one of its foods. Saving in the editor (a fix or "Guardar igualmente")
+ * leaves [FOOD_AUDIT_EDITED_KEY] on the audit's entry and pops back, so the list reloads; leaving without saving
+ * leaves nothing and the list stays as it was.
+ */
+private fun NavGraphBuilder.foodAuditDestinations(
+    navController: NavHostController,
+    fullScreenPadding: PaddingValues,
+    foodAudit: FoodAuditSlot,
+    createFood: CreateFoodSlot,
+) {
+    composable<FoodAuditRoute> { entry ->
+        val handle = entry.savedStateHandle
+        val edited by handle.getStateFlow(FOOD_AUDIT_EDITED_KEY, false).collectAsState()
+        foodAudit(
+            Modifier.padding(fullScreenPadding),
+            edited,
+            { handle[FOOD_AUDIT_EDITED_KEY] = false },
+            { foodId -> navController.navigateToFullScreen(FoodAuditEditRoute(foodId)) },
+            { navController.popFullScreen(entry) },
+        )
+    }
+    composable<FoodAuditEditRoute> { entry ->
+        val route = entry.toRoute<FoodAuditEditRoute>()
+        val onBack = { navController.popFullScreen(entry) }
+        createFood(Modifier.padding(fullScreenPadding), null, null, null, route.foodId, onBack) {
+            navController.previousBackStackEntry?.savedStateHandle?.set(FOOD_AUDIT_EDITED_KEY, true)
+            navController.popFullScreen(entry)
+        }
     }
 }
 

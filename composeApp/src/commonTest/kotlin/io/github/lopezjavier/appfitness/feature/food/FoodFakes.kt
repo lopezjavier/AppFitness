@@ -5,6 +5,7 @@ import io.github.lopezjavier.appfitness.domain.AppError
 import io.github.lopezjavier.appfitness.domain.AppException
 import io.github.lopezjavier.appfitness.domain.model.EditableFood
 import io.github.lopezjavier.appfitness.domain.model.Food
+import io.github.lopezjavier.appfitness.domain.model.FoodAuditRow
 import io.github.lopezjavier.appfitness.domain.model.FoodPortion
 import io.github.lopezjavier.appfitness.domain.model.FoodPreferences
 import io.github.lopezjavier.appfitness.domain.model.MicronutrientKind
@@ -249,6 +250,19 @@ internal class FakeFoodRepository : FoodRepository {
         storedMicronutrients[stored.id] =
             food.micronutrients.values.mapValues { (kind, v) -> kind.labelUnit.toGrams(v) }
         return Result.success(stored)
+    }
+
+    /** What [foodEnergyAudit] answers (the server order); change it between calls to simulate edits. */
+    var auditResult: Result<List<FoodAuditRow>> = Result.success(emptyList())
+
+    /** When set, [foodEnergyAudit] suspends until it completes. */
+    var auditGate: CompletableDeferred<Unit>? = null
+    var auditCalls = 0
+
+    override suspend fun foodEnergyAudit(): Result<List<FoodAuditRow>> {
+        auditCalls++
+        auditGate?.await()
+        return auditResult
     }
 
     fun failSearch(query: String) {

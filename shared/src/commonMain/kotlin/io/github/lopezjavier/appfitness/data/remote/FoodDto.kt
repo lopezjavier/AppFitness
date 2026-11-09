@@ -1,7 +1,10 @@
 package io.github.lopezjavier.appfitness.data.remote
 
+import io.github.lopezjavier.appfitness.domain.AppError
+import io.github.lopezjavier.appfitness.domain.AppException
 import io.github.lopezjavier.appfitness.domain.model.DiaryDaySummary
 import io.github.lopezjavier.appfitness.domain.model.Food
+import io.github.lopezjavier.appfitness.domain.model.FoodAuditRow
 import io.github.lopezjavier.appfitness.domain.model.FoodPortion
 import io.github.lopezjavier.appfitness.domain.model.MealTotals
 import io.github.lopezjavier.appfitness.domain.model.MicronutrientKind
@@ -11,6 +14,7 @@ import io.github.lopezjavier.appfitness.domain.model.NewMicronutrients
 import io.github.lopezjavier.appfitness.domain.model.NutritionPer100
 import io.github.lopezjavier.appfitness.domain.model.UpdatedFood
 import io.github.lopezjavier.appfitness.domain.model.UpdatedFoodEntry
+import io.github.lopezjavier.appfitness.domain.usecase.EnergyCheckLevel
 import kotlinx.datetime.LocalDate
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
@@ -205,6 +209,33 @@ internal data class FoodMicronutrientsDto(
     companion object {
         const val COLUMNS = "source,micronutrients,nutriments:off_data->nutriments"
     }
+}
+
+/** Row of `food_energy_audit()`; [computed] and [gap] are unrounded. */
+@Serializable
+internal data class FoodAuditDto(
+    @SerialName("food_id") val foodId: String,
+    val name: String,
+    val brand: String? = null,
+    @SerialName("kcal_100") val kcal100: Double,
+    val computed: Double,
+    val gap: Double,
+    val result: String,
+) {
+    /** An unknown [result] is a decoding failure, never silently mapped. */
+    fun toDomain(): FoodAuditRow = FoodAuditRow(
+        foodId = foodId,
+        name = name,
+        brand = brand,
+        kcal = kcal100,
+        computedKcal = computed,
+        gap = gap,
+        level = when (result) {
+            "mismatch" -> EnergyCheckLevel.Mismatch
+            "clearly_wrong" -> EnergyCheckLevel.ClearlyWrong
+            else -> throw AppException(AppError.Unknown)
+        },
+    )
 }
 
 /** Row of `favorite_foods` with the food embedded. */
