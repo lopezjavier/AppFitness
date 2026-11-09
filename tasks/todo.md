@@ -10,7 +10,7 @@ Last task ID used: T-256 (T-251…T-256 reserved by the E17 breakdown; T-246…T
 
 **Done in the T-246 branch (user report, 2026-11-08; the user ordered it into the current branch, so it ships in T-246's PR as a separate `fix(T-250)` commit):** `fix(T-250)`: the `food-photo` dish prompt (`supabase/functions/food-photo/prompts.ts`) never says whether the per-100 g values are for the food as served; a 400 g cooked plate came back with raw-food kcal/100 g. Fix: the dish prompt states that values and `estimated_grams` describe the food as shown in the photo (cooked when cooked), with a handler/prompt test and a redeploy of `food-photo`. Backend only, no model-call change elsewhere.
 
-**Next:** T-254 merged (PR #582, `deploy-supabase` green on `main`, so the conversion self-check passed in production). T-255 (E17 UI + core: an OFF food becomes my food in the app) is the next task. T-254 notes: no unique index on barcode/`off_id` (production may hold same-barcode manual foods); `copy_off_food` dedupes with an advisory lock and reuses the oldest own food with that barcode; converted OFF foods that fail the energy check show up in the T-253 audit. Notes for T-252/T-255: `foods_searchable` has no `alcohol_g_100` (search results return `alcohol_100: null` for OFF foods; T-255 must read the copy from `foods`); the `07` §4 red-wine example computes 77.3, not 77.1 (`fitness-scientist` to correct; result stays `ok`).
+**Next:** T-255 merged (PR #585, CI green; the last E17 implementation task). Nothing else starts: **Checkpoint E17** (10 items, under the E17 section) is open and its approval releases T-256. T-255 notes: for an OFF food the energy warning offers "Ahora no" (closes it) and "Añadir igualmente" (copies, flags, adds) instead of "Corregir"/"Guardar igualmente", because no editor exists before the copy (the copy is made on add, favourite star or comida item, never on viewing); the star on an OFF row turns it into the copy in place. Accepted gaps: no `BarcodeScanFlowTest` case, no copy-editor restoration test, no explicit no-coach/AI-usage assertion (E20 closure check). Optional pr-reviewer leftovers: `FoodSearchViewModel.emitTextSearch` sorts favourites first only from the favourites already loaded; `AddFoodViewModel.addOff` waits on `energyCheck.first { it != null }` with no timeout.
 
 ## Open follow-ups carried into Phase 3
 
@@ -155,21 +155,21 @@ Rules: **`07` §4 "Food energy check (E17, US-116/US-117)"** (the source for eve
 
 ---
 
-## T-255: An Open Food Facts food becomes my food in the app (US-118) · M
+## T-255: An Open Food Facts food becomes my food in the app (US-118) · M ✅ merged (#585)
 
 **Story:** US-118 (+ the US-116 OFF-copy path) · **Flow:** planner → ux-reviewer (plan) → kotlin-core-developer → compose-ui-developer → pr-reviewer ∥ ux-reviewer (diff) → pr-creator · **Size:** M
 **Scenarios:** US-118 My foods come first; Open Food Facts is queried when my foods do not answer; Adding an OFF food creates my copy; No duplicate; The copy is editable · US-116 The check covers … OFF copies; plus "leave and come back with the search and a copy's editor open".
 **Description:** **Core:** `FoodRepository.copyOffFood` over T-254's RPC; `FoodSearchViewModel.emitTextSearch` keeps own results first and adds the matching favourites in the first block (deduped by id), OFF results below (the server already hides copied OFF rows); `AddFoodViewModel` and every other path that stores a food reference (Q-E17-3: the favourite star, adding an item to a saved comida, the barcode scan result) resolve an OFF food to my copy before writing, so no new reference to a shared OFF row is written; the energy check (T-252's `FoodEnergyCheck`) runs on the copy: a failing OFF food shows the T-252 warning, "Corregir" opens the copy's editor, "Guardar igualmente" keeps it as it came from OFF with the flag. **UI — templates and patterns:** `FoodSearchScreen` / `FoodSearchTemplates` rows unchanged (an own copy is an own row; ux-reviewer checks whether OFF rows need their existing source marker and that a copy shows no OFF marker); the food details sheet of a copy offers the same "Editar" as a manual food and opens `CreateFoodScreen` in edit mode (ADR-53 amended by ADR-101: edits apply to future entries only); the warning component of T-252 (no dialog, R-08). Sweep: every place that hides "Editar" for `source = 'off'` (details, portions) is checked so a copy behaves exactly like a manual food. Glossary §10 if a label changes. Docs: `05` §8/§10.
 **Acceptance criteria:**
-- [ ] Searching shows my foods and favourites before any OFF result; with no own match, OFF results are listed.
-- [ ] Adding an OFF food to the diary, starring it or adding it to a saved comida creates (or reuses) my copy and stores the copy's id; the next search lists it among my foods and no OFF duplicate; adding the same product again (search or barcode) creates no second copy.
-- [ ] The copy opens with "Editar" like a manual food; an edit applies to future entries only.
-- [ ] An OFF food whose kcal and macros do not match shows the warning before it is added; "Guardar igualmente" keeps the OFF values.
-- [ ] The search with its query, and a copy's editor, survive background and process death (ADR-40); offline keeps the standard behaviour (R-30); `check-ux-conventions.sh` passes.
-- [ ] Final E17 regression (folded from the closure): the E17 flows make no `coach` model call and leave "Uso de IA" unchanged; `food-photo` is the only model call and is called once per photo.
+- [x] Searching shows my foods and favourites before any OFF result; with no own match, OFF results are listed.
+- [x] Adding an OFF food to the diary, starring it or adding it to a saved comida creates (or reuses) my copy and stores the copy's id; the next search lists it among my foods and no OFF duplicate; adding the same product again (search or barcode) creates no second copy.
+- [x] The copy opens with "Editar" like a manual food; an edit applies to future entries only.
+- [x] An OFF food whose kcal and macros do not match shows the warning before it is added; "Guardar igualmente" keeps the OFF values.
+- [x] The search with its query, and a copy's editor, survive background and process death (ADR-40); offline keeps the standard behaviour (R-30); `check-ux-conventions.sh` passes.
+- [x] Final E17 regression (folded from the closure): the E17 flows make no `coach` model call and leave "Uso de IA" unchanged; `food-photo` is the only model call and is called once per photo.
 **Host tests:** repository tests (copy, reuse); `FoodSearchViewModelTest` (own + favourites first, dedupe, OFF below, no own match, restoration); `AddFoodViewModelTest` (OFF add → copy id written, second add reuses, warning on a failing copy, save anyway); favourite-star and comida-item tests (copy id stored); Robolectric (rows, "Editar" on a copy, warning, restoration).
 **Verification:**
-- [ ] lint + `testLocalDebugUnitTest` green. No backend change.
+- [x] lint + `testLocalDebugUnitTest` green. No backend change.
 **Agent runs:** 7. About 12 files.
 **Dependencies:** T-254 merged and deployed.
 **Files likely touched:** `shared/…/domain/repository/FoodRepository.kt`, `shared/…/data/repository/SupabaseFoodRepository.kt`, `feature/food/{FoodSearchViewModel,FoodSearchScreen,FoodSearchTemplates,AddFoodViewModel,AddFoodSheet,AddFoodUiState}.kt`, the barcode scan path, `strings.xml`, `planning/05-design-system.md` §10, tests
