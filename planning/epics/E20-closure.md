@@ -1,6 +1,6 @@
-# E19 · Closure
+# E20 · Closure
 
-> **Status: DEFINED (product-owner, 2026-11-08, ADR-101), not planned.** Stories US-124…US-127. The `epic-planner` breaks it into tasks. After E19 the app is in maintenance mode: only bugfixes and the user's feedback create tasks.
+> **Status: DEFINED (product-owner, 2026-11-08, ADR-101), not planned.** Stories US-124…US-127. The `epic-planner` breaks it into tasks. After E20 the app is in maintenance mode: only bugfixes and the user's feedback create tasks.
 
 ## Intent
 

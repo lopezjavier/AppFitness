@@ -123,6 +123,7 @@ The rows of ADR-93, 94, 98 and 99 are added here: the Phase 2 archive index lack
 | ADR | Decision (one line) | Status |
 |---|---|---|
 | 101 | Phase 3 is the last phase: personal-use scope (one person plus an optional test account), items left out are out of scope for the app, Open Food Facts becomes a fallback that copies into editable personal foods, then maintenance mode | Amends 53, 90 |
+| 103 | Phase 3 epics re-split: E18 functional improvements, E19 UI review, E20 Closure; Anthropic removed (restores "100 % free"), reports stored, a Gemini exercise chat | Supersedes 77, 90 (cost caps); amends 101 |
 | 102 | Food energy check (E17): optional `alcohol_g_100` in grams per 100 base units, per-food "saved anyway" flag cleared by a trigger when an input changes, one SQL check function and an owner-scoped audit RPC (rule in `07` section 4) | — |
 
 ## Phase 3 ADRs (full text)
@@ -130,12 +131,12 @@ The rows of ADR-93, 94, 98 and 99 are added here: the Phase 2 archive index lack
 ### ADR-101 — Phase 3 is the last phase; personal-use scope; OFF as a fallback that copies into personal foods (amends ADR-53 and the user count of ADR-90)
 - **Context:** the app is close to finished. The user wants a closing phase with real-impact work only, and a clear end state.
 - **Decision:**
-  - Phase 3 is the last phase. Epics E15 Real life and goal switching, E16 Nutrition follow-up, E17 Food data quality, E18 UI review, E19 Closure, in that order (`01-scope.md`). After E19 the app is in maintenance mode: only bugfixes and user feedback create tasks.
+  - Phase 3 is the last phase. Epics E15 Real life and goal switching, E16 Nutrition follow-up, E17 Food data quality, E18 UI review, E19 Closure, in that order (`01-scope.md`; re-split by ADR-103 into E18 Functional improvements, E19 UI review, E20 Closure). After E20 the app is in maintenance mode: only bugfixes and user feedback create tasks.
   - Scope is personal use: one person, with a second account allowed for testing. This replaces "1-5 users" (ADR-90 text stays as history).
   - Everything listed under "Out of scope for the app" in `01-scope.md` is final, not deferred; this includes the former "Phase 3" items (water, voice, "Recuperar").
   - Open Food Facts is a fallback for finding foods. Adding an OFF food creates the user's personal copy (no duplicate per barcode or OFF id), found first in later searches and editable like a manual food. This amends ADR-53 (only manual foods editable). Existing OFF foods in the diary are converted to personal copies in E17.
   - Macros are checked against kcal deterministically when a food is created, edited or estimated by AI (tolerance owned by `fitness-scientist` in `07`); existing foods are audited and fixed by the user from a list.
-  - Closure (E19): Supabase keep-alive, secured data export of the user's own rows, repository made private, project retro.
+  - Closure (E20): Supabase keep-alive, secured data export of the user's own rows, repository made private, project retro.
 - **Consequences:** `01-scope.md` rewritten, `CLAUDE.md` line 3, "Phase 3" references in `05`, `07`, E10-E13 and `tasks/todo.md` now say out of scope for the app. Epic files E15-E19 written 2026-11-08; no Android system notifications (ADR-73 stays), a block-end alert is added to "Centro de avisos".
 - **Approval:** user, 2026-11-08 (chat).
 
@@ -147,5 +148,16 @@ The rows of ADR-93, 94, 98 and 99 are added here: the Phase 2 archive index lack
   - `public.food_energy_check(kcal, protein, carbs, fat, fibre, polyols, alcohol)` is the single SQL implementation (immutable, invoker); `public.food_energy_audit()` lists the caller's own failing, unflagged foods, `clearly_wrong` first. The audit writes nothing.
 - **Consequences:** `foods_searchable` is unchanged (alcohol is not in search results; the personal-copy function of T-254/T-255 reads `foods`). The Kotlin check (T-252) must give the same result as the SQL function. Redeploy `food-photo`, `food-search` and `food-barcode` with the migration.
 - **Approval:** user decisions Q-E17-1 and Q-E17-2, 2026-11-09 (chat).
+
+### ADR-103 — Phase 3 epics re-split; Anthropic removed; reports stored; Gemini exercise chat (supersedes the cost caps of ADR-77 and ADR-90; amends ADR-101)
+- **Context:** the coach is deterministic (ADR-97..99) and `report` and `chat` were never built, so the Anthropic provider has no remaining use, yet its key, cost caps and "Uso de IA" screen remain. The user also wants past reports kept, an exercise chat, and a UI review that no longer needs an APK install each time.
+- **Decision:**
+  - Epics: E18 Functional improvements (US-128..130 plus US-120..122), E19 UI review (US-131, US-123), E20 Closure (the former E19). The UI review runs last-but-one so it covers the screens E18 adds.
+  - Anthropic is removed: client, `ANTHROPIC_API_KEY` secret, prices, budget code, `coach_usage` data, model selector and "Uso de IA". NFR-02 returns to "100 % free"; the 3 € / 5 € caps (ADR-77, ADR-90) are superseded. The drop of `coach_usage` is a production migration (`deploy-supabase` green before the next checkpoint).
+  - Reports (the weekly summary and the block summary) are stored as snapshots, kept without a limit, and listed in "Informes" from Centro de avisos. Reminders stay computed and are never stored (`04` §6.1 unchanged). No comparison view and no monthly report (ADR-66).
+  - The exercise chat (US-130) is the only chat: Gemini through an Edge Function, context limited to the exercise and the question, no actions, no history, no disclaimer, a plain message when there is no answer. Chats about the app or about the user's data are not built. The Gemini terms for Spain (the EEA may require paid services) are checked by the user before the chat is built; the same check covers `food-photo` (ADR-59).
+  - E19 starts with a spike on how to see UI without installing the APK (candidate: screenshots from the Robolectric tests; the emulator as fallback) and records its choice.
+- **Consequences:** `01-scope.md`, E18, E19, E20 (renumbered), `09-open-questions.md` and `tasks/todo.md` references; `phase2/01-scope.md` NFR-02 and the cost rows of `07` §11 are updated by the US-128 task.
+- **Approval:** user, 2026-11-09 (chat).
 
 Older ADRs: [`phase2/00-decisions.md`](phase2/00-decisions.md) (73-100) and [`phase1/00-decisions.md`](phase1/00-decisions.md) (01-72).
