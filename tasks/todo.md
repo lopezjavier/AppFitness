@@ -35,7 +35,7 @@ Rule: every CI failure that passes on re-run is logged here with date, run URL a
 
 ## 👤 Checkpoints
 
-E17 (epic-planner, 2026-11-09; proposed, needs the user's OK): **Checkpoint E17-A** after T-253 ("Foods whose kcal and macros do not match": the warning, "Alcohol (g)" and the food audit; 7 items) and **Checkpoint E17-B** after T-255, the last implementation task ("Open Food Facts foods become mine", plus the final E17 regression; 7 items; its approval releases the closure T-256). Details under the E17 section.
+E17 (epic-planner, 2026-11-09; one checkpoint only, user decision 2026-11-09): **Checkpoint E17** after T-255, the last implementation task (the kcal/macro warning, "Alcohol (g)", the food audit, Open Food Facts copies and the conversion, plus the final E17 regression; 10 items; its approval releases the closure T-256). Details under the E17 section.
 
 E16 (epic-planner, 2026-11-08; one checkpoint only, user decision 2026-11-08): **Checkpoint E16** after T-248, the last implementation task (the nutrition section of "Resumen semanal", "Descanso de dieta" and the final E16 regression; 7 items; its approval releases the closure T-249). As in E15 (Q5), only items the user can try right away are checkpoint items; the diagnosis branches that need two real weeks of data are in "Pending natural-trigger feedback (E16)" under the E16 section, outside the gate. Details under the E16 section.
 
@@ -61,14 +61,14 @@ Rules: **`07` §4 "Food energy check (E17, US-116/US-117)"** (the source for eve
 **User decisions (2026-11-09, also in the epic file):** Q-E17-1 optional "Alcohol (g)" (7 kcal/g, grams per 100 g/ml): typed by hand, returned by the AI photo estimate (0 when none, never % vol, never omitted), converted by the OFF import from % vol × 0.789. Q-E17-2 a per-food "saved anyway" flag set by "Guardar igualmente", cleared whenever kcal, protein, carbs, fat, fibre, polyols or alcohol change; a flagged food is not in the US-117 audit; edits that touch none of those inputs keep it and show no warning. Both land in the T-251 migration (alcohol column + flag) with a new ADR (proposed ADR-102). Q-E17-3 every reference (diary entries, favourites, saved comida items) moves to the personal copy, in the T-254 conversion and for every new add in T-255.
 "Notes for later epics": no item targets E17 (the "Recuperar" note is a non-goal; the "Lo que el entrenador sabe de ti" note targets E18); nothing moved. No carried Phase 3 follow-up is about foods.
 
-**Status (epic-planner, 2026-11-09): PROPOSED, needs the user's OK on the breakdown PR; the two checkpoints are proposed and need the user's OK.** Q1 resolved by the user (2026-11-09, Q-E17-3 in the epic file; US-119 Gherkin amended): diary entries, favourites and saved comida items all move to the personal copy, in the conversion and for every new add. No question blocks a task. Overlap noted: E18 US-122 ("Favourites and my foods first", listed immediately) builds on T-255's ordering; T-255 orders the list, E18 adds the immediacy.
+**Status (epic-planner, 2026-11-09): PROPOSED, needs the user's OK on the breakdown PR; one checkpoint only, at the end (user decision 2026-11-09).** Q1 resolved by the user (2026-11-09, Q-E17-3 in the epic file; US-119 Gherkin amended): diary entries, favourites and saved comida items all move to the personal copy, in the conversion and for every new add. No question blocks a task. Overlap noted: E18 US-122 ("Favourites and my foods first", listed immediately) builds on T-255's ordering; T-255 orders the list, E18 adds the immediacy.
 
 **Order and sizing (every task pays 6-8 hand-offs; no S task):**
 1. **T-251** (M, backend): US-116 + US-117 backend. US-116 is split backend/UI because the whole story is about 28 files (migration, SQL check, audit RPC, `food-photo` schema and prompts, OFF import, then the shared Kotlin check and every form path). The audit RPC rides here: it is the same SQL function over the user's foods, and alone it would be S.
 2. **T-252** (M, UI + core): US-116 in the app: the shared Kotlin check, "Alcohol (g)" and the warning on every form path (manual, edit, AI dish, label scan).
-3. **T-253** (M, UI): US-117, the food audit screen. → **Checkpoint E17-A.**
+3. **T-253** (M, UI): US-117, the food audit screen. No checkpoint here (user decision: one checkpoint at the end).
 4. **T-254** (M, backend): US-118 + US-119 backend. The copy function is shared by "add an OFF food" (US-118) and the conversion (US-119); the conversion alone is S (one data migration), so both go in one backend task; split from the UI for the same size reason as US-116 (about 20 files together).
-5. **T-255** (M, UI + core): US-118 in the app: my foods and favourites first, adding an OFF food creates or reuses my copy, the copy is editable, the energy check on the copy. Last implementation task. → **Checkpoint E17-B** (final regression).
+5. **T-255** (M, UI + core): US-118 in the app: my foods and favourites first, adding an OFF food creates or reuses my copy, the copy is editable, the energy check on the copy. Last implementation task. → **Checkpoint E17** (the only one; final regression).
 6. **T-256**: E17 closure (PM closure step).
 
 ---
@@ -135,20 +135,6 @@ Rules: **`07` §4 "Food energy check (E17, US-116/US-117)"** (the source for eve
 
 ---
 
-### Checkpoint E17-A — Foods whose kcal and macros do not match: the warning, "Alcohol (g)" and the audit 👤 (7 items, leave and come back included) *(epic-planner, 2026-11-09; proposed, needs the user's OK)*
-
-After T-253 merges, CI green, `deploy-supabase` green with data intact and `food-photo` redeployed (T-251). Everything can be tried at once on the main account with foods you create for the test (delete them afterwards). What to try on the phone (`python scripts/deliver-apk.py`):
-- [ ] 1. Create a food with 500 kcal and 10 g protein, 30 g carbohydrate, 10 g fat, then "Guardar": a warning (no dialog) says "Parece un error:" with 500 kcal declared and 250 kcal from the macros; "Corregir" keeps every value.
-- [ ] 2. Create a food with 100 kcal and 5/10/3 g, and a black coffee (2 kcal): both save with no warning.
-- [ ] 3. Create a red wine (83 kcal, 0,1/2,6/0 g per 100 ml) without alcohol: it warns and suggests adding fibre or alcohol; read the "Alcohol (g)" help, enter 9,5 g: it saves with no warning.
-- [ ] 4. Save a failing food with "Guardar igualmente": it is saved exactly as typed; edit only its name: no warning; change its kcal: the warning comes back.
-- [ ] 5. Add a food from a dish photo and from a label photo: the form arrives pre-filled (alcohol included, 0 when none) and a mismatch warns before saving.
-- [ ] 6. Open the food audit: your failing foods are listed with the gap, the clearly wrong ones first; tap one: its editor opens; fix it (or "Guardar igualmente"): back in the list it is gone; nothing else changed.
-- [ ] 7. Leave the app and come back (and after the system kills it) with the form and its warning open, and with the audit and an editor opened from it: the same tab, screen and draft are restored.
-Out of scope here: Open Food Facts foods (Checkpoint E17-B).
-
----
-
 ## T-254: Personal copies of Open Food Facts foods and the conversion of the ones I use: backend (US-118, US-119 backend) · M
 
 **Story:** US-118 (backend), US-119 · **Flow:** planner → backend-developer → pr-reviewer → pr-creator (§2.2, no UI) · **Size:** M
@@ -163,7 +149,7 @@ Out of scope here: Open Food Facts foods (Checkpoint E17-B).
 **Verification:**
 - [ ] `npx supabase db reset && npx supabase db lint && npx supabase test db` and `deno test --allow-all supabase/functions` green; after the merge `deploy-supabase` green on `main` and the production self-check passes with data intact (day totals unchanged); `food-search` and `food-barcode` redeployed.
 **Agent runs:** 5. About 12 files.
-**Dependencies:** T-253 merged (Checkpoint E17-A presented first; no build dependency beyond T-251).
+**Dependencies:** T-253 merged (no build dependency beyond T-251; one task at a time).
 **Files likely touched:** `supabase/migrations/<ts>_off_personal_copies.sql`, `supabase/migrations/<ts>_convert_used_off_foods.sql`, `supabase/tests/{copy_off_food,off_food_conversion}.test.sql`, `supabase/functions/food-search/handler.ts` (+ test), `supabase/functions/food-barcode/handler.ts` (+ test), `supabase/functions/_shared/food-store.ts`, `planning/03-data-model.md`, `planning/04-business-rules.md` §2
 **Estimated scope:** M
 
@@ -191,32 +177,41 @@ Out of scope here: Open Food Facts foods (Checkpoint E17-B).
 
 ---
 
-### Checkpoint E17-B — Open Food Facts foods become mine, with the final E17 regression 👤 (7 items, leave and come back included) *(epic-planner, 2026-11-09; proposed, needs the user's OK; its approval releases T-256)*
+### Checkpoint E17 — Food data quality: wrong foods caught and audited, Open Food Facts foods become mine, with the final E17 regression 👤 (10 items, leave and come back included) *(epic-planner, 2026-11-09; the only E17 checkpoint, user decision 2026-11-09; its approval releases T-256)*
 
-After T-255 merges (the last implementation task), CI green, `deploy-supabase` green on `main` with the T-254 conversion self-check passed and data intact. What to try on the phone (`python scripts/deliver-apk.py`), on the main account:
-- [ ] 1. Open "Diario" on a few past days that had Open Food Facts foods: every day's kcal and macros are the same as before E17, and those foods (also in your favourites and saved comidas) now open with "Editar".
-- [ ] 2. Search a name that matches one of your foods or favourites and also OFF products: yours are listed first, OFF below; search something you never added: OFF results appear.
-- [ ] 3. Add an OFF product you never used (by search): search it again: it is now one of your foods, with its name, brand, macros and micronutrients (a drink with alcohol shows its grams).
-- [ ] 4. Scan the barcode of that same product (or add it again from search): no second copy appears.
-- [ ] 5. Open the copy, "Editar", change a portion or a value and save: it behaves like a food you created; past entries keep their numbers.
-- [ ] 6. Open the food audit: converted OFF foods whose kcal and macros do not match are listed too; the E17-A flows (warning, "Guardar igualmente", the audit) still work, and "Uso de IA" did not change.
-- [ ] 7. Leave the app and come back (and after the system kills it) with a search typed and with a copy's editor open: the same tab, screen and draft are restored.
+After T-255 merges (the last implementation task), CI green, `deploy-supabase` green on `main` after T-251 and T-254 with the conversion self-check passed and data intact, `food-photo`, `food-search` and `food-barcode` redeployed. Everything is tried on the main account; delete the test foods you create afterwards. What to try on the phone (`python scripts/deliver-apk.py`):
+
+*Catching wrong foods (T-251…T-253):*
+- [ ] 1. Create a food with 500 kcal and 10 g protein, 30 g carbohydrate, 10 g fat, then "Guardar": a warning (no dialog) says "Parece un error:" with 500 kcal declared and 250 kcal from the macros; "Corregir" keeps every value.
+- [ ] 2. A food with 100 kcal and 5/10/3 g and a black coffee (2 kcal) save with no warning; a red wine (83 kcal, 0,1/2,6/0 g per 100 ml) without alcohol warns and suggests fibre or alcohol; read the "Alcohol (g)" help, enter 9,5 g: it saves with no warning.
+- [ ] 3. Save a failing food with "Guardar igualmente": it is saved exactly as typed; edit only its name: no warning; change its kcal: the warning comes back.
+- [ ] 4. Add a food from a dish photo and from a label photo: the form arrives pre-filled (alcohol included, 0 when none) and a mismatch warns before saving; "Uso de IA" did not change during E17.
+- [ ] 5. Open the food audit: your failing foods (converted OFF foods too) are listed with the gap, the clearly wrong ones first; tap one: its editor opens; fix it (or "Guardar igualmente"): back in the list it is gone; nothing else changed.
+
+*Open Food Facts foods become mine (T-254, T-255):*
+- [ ] 6. Open "Diario" on a few past days that had Open Food Facts foods: every day's kcal and macros are the same as before E17, and those foods (also in your favourites and saved comidas) now open with "Editar".
+- [ ] 7. Search a name that matches one of your foods or favourites and also OFF products: yours are listed first, OFF below; search something you never added: OFF results appear.
+- [ ] 8. Add an OFF product you never used: search it again: it is now one of your foods, with its name, brand, macros and micronutrients (a drink with alcohol shows its grams); scan its barcode or add it again: no second copy.
+- [ ] 9. Open the copy, "Editar", change a portion or a value and save: it behaves like a food you created and past entries keep their numbers; an OFF product whose kcal and macros do not match warns before it is added.
+
+*Leave and come back:*
+- [ ] 10. Leave the app and come back (and after the system kills it) with a food form and its warning open, with the audit and an editor opened from it, and with a search typed: the same tab, screen and draft are restored.
 Out of scope here (host tests and pgTAP only): no other account's data is read or changed by the conversion.
 
 ---
 
 ## T-256: E17 closure → `v1.x` · closure step (PM only, not a developer task)
 
-**Story:** E17 Definition of Done · **Flow:** PM closure step after Checkpoint E17-B is approved (its approval releases this step; no checkpoint of its own). No developer agent, no size class; it cannot merge into a task because it waits for the checkpoint approval.
+**Story:** E17 Definition of Done · **Flow:** PM closure step after Checkpoint E17 is approved (its approval releases this step; no checkpoint of its own). No developer agent, no size class; it cannot merge into a task because it waits for the checkpoint approval.
 **Description:** Version bump (`versionName`/`versionCode`, minor per epic, proposed `1.8.0`), tag, retrospective `retrospectives/E17.md`, archive of the E17 log lines; `09-open-questions.md` records Q-E17-1, Q-E17-2 (user, 2026-11-09) and the E17 plan questions with their answers; `01-scope.md` E17 row marked done; the epic status set to done.
 **Acceptance criteria:**
 - [ ] T-251…T-255 (and any fix tasks) merged with green CI; `deploy-supabase` green after each migration, the conversion self-check passed in production.
 - [ ] ux-reviewer ran in plan and diff mode on every UI task; `check-ux-conventions.sh` passes.
-- [ ] `00`, `03`, `04`, `05`, `07` and the epic file are current; Checkpoints E17-A and E17-B approved by the user.
+- [ ] `00`, `03`, `04`, `05`, `07` and the epic file are current; Checkpoint E17 approved by the user.
 - [ ] Version bumped; `tasks/todo.md` pointer updated through a PR.
 **Verification:**
 - [ ] `git tag` lists the E17 tag.
-**Dependencies:** Checkpoint E17-B approved.
+**Dependencies:** Checkpoint E17 approved.
 **Files likely touched:** `androidApp/build.gradle.kts`, `tasks/todo.md`, `tasks/plan.md`, `planning/09-open-questions.md`, `planning/01-scope.md`, `planning/epics/E17-food-data-quality.md`, `retrospectives/E17.md`
 **Estimated scope:** closure step (PM)
 
