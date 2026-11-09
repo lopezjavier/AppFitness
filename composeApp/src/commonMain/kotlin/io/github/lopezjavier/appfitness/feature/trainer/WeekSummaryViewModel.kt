@@ -11,6 +11,7 @@ import io.github.lopezjavier.appfitness.domain.port.Clock
 import io.github.lopezjavier.appfitness.domain.repository.CoachSummaryRepository
 import io.github.lopezjavier.appfitness.domain.usecase.ExerciseNameResolver
 import io.github.lopezjavier.appfitness.domain.usecase.MarkWeekSummarySeen
+import io.github.lopezjavier.appfitness.domain.usecase.RecordPausedWeekReport
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -20,6 +21,7 @@ import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
 
 private const val KEY_MARKED = "week_summary_marked"
+private const val KEY_PAUSED_RECORDED = "week_summary_paused_recorded"
 
 /**
  * "Resumen semanal" (US-98): the latest finished plan week, read-only and built from recorded numbers on the server.
@@ -30,6 +32,7 @@ private const val KEY_MARKED = "week_summary_marked"
 class WeekSummaryViewModel(
     private val summaries: CoachSummaryRepository,
     private val markSeen: MarkWeekSummarySeen,
+    private val recordPausedWeek: RecordPausedWeekReport,
     private val reminders: ReminderCoordinator,
     private val names: ExerciseNameResolver,
     private val clock: Clock,
@@ -74,17 +77,27 @@ class WeekSummaryViewModel(
             summary == null -> WeekSummaryUiState.Empty
 
             // A failed name read leaves the change rows out (R-54) instead of failing the whole summary.
-            else -> WeekSummaryUiState.Content(summary, names.resolve().getOrNull()?.byId.orEmpty())
+            else -> names.weekSummaryContent(summary)
         }
     }
 
     private suspend fun markAsSeen(summary: WeekSummary) {
-        if (summary.paused) return // A paused week is never marked seen: it has no week number and no notice.
+        if (summary.paused) {
+            recordPaused(summary)
+            return // A paused week is never marked seen: it has no week number and no notice.
+        }
         val key = "${summary.planId}:${summary.week}"
         if (summary.seen || savedState.get<String>(KEY_MARKED) == key) return
         if (markSeen(summary.planId, summary.week).isSuccess) {
             savedState[KEY_MARKED] = key
             reminders.refresh()
         }
+    }
+
+    // Stores the paused week once per open (US-129); a failure is silent and retried on the next open.
+    private suspend fun recordPaused(summary: WeekSummary) {
+        val key = "${summary.planId}:${summary.startDate}"
+        if (savedState.get<String>(KEY_PAUSED_RECORDED) == key) return
+        if (recordPausedWeek(today()).isSuccess) savedState[KEY_PAUSED_RECORDED] = key
     }
 }

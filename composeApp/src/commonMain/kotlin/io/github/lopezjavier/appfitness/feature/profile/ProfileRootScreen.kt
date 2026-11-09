@@ -5,7 +5,6 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
@@ -49,6 +48,7 @@ import io.github.lopezjavier.appfitness.designsystem.AppStateAction
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
 import io.github.lopezjavier.appfitness.designsystem.AppTopBarAction
 import io.github.lopezjavier.appfitness.designsystem.ErrorState
+import io.github.lopezjavier.appfitness.designsystem.ListRowSkeleton
 import io.github.lopezjavier.appfitness.designsystem.ListSectionHeader
 import io.github.lopezjavier.appfitness.designsystem.NavigationRow
 import io.github.lopezjavier.appfitness.designsystem.SecondaryButton
@@ -248,10 +248,6 @@ private fun RootSkeleton() {
     ) {
         SkeletonBox(Modifier.size(AppAvatarDefaults.RootSize), AppShapes.full)
         SkeletonBox(Modifier.size(Spacing.xl * NAME_SKELETON_WIDTH_UNITS, Spacing.xl), AppShapes.sm)
-        Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-            repeat(SKELETON_ROWS) {
-                SkeletonBox(Modifier.fillMaxWidth().height(Spacing.minTouchTarget), AppShapes.sm)
-            }
-        }
+        ListRowSkeleton(Modifier.fillMaxWidth(), rows = SKELETON_ROWS)
     }
 }

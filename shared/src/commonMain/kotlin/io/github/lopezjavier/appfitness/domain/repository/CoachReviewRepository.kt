@@ -14,6 +14,9 @@ interface CoachReviewRepository {
     /** "Seguir como estoy": stores the choice and builds no plan. */
     suspend fun keepPhase(reviewId: String): Result<Unit>
 
+    /** Marks the stored review as seen (opening it), so its block-end notice is no longer listed. */
+    suspend fun markSeen(reviewId: String): Result<Unit>
+
     /** "Aceptar": builds the proposed plan of the new phase (deterministic, no model); returns its id. */
     suspend fun acceptPhase(reviewId: String, today: LocalDate): Result<String>
 

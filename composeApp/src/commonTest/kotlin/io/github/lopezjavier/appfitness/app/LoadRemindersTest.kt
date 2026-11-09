@@ -275,6 +275,33 @@ class LoadRemindersTest {
     }
 
     @Test
+    fun seenBlockReview_isNotListed() = runTest {
+        val env = ReminderEnv(today).apply { reviews.review = Result.success(blockReview(seen = true)) }
+
+        assertTrue(blockEndReminders(env).isEmpty())
+    }
+
+    @Test
+    fun unseenBlockReview_isListedAndLeavesOnceMarkedSeen() = runTest {
+        val env = ReminderEnv(today).apply { reviews.review = Result.success(blockReview(seen = false)) }
+        assertEquals(1, blockEndReminders(env).size)
+
+        env.reviews.markSeen("review-1")
+
+        assertTrue(blockEndReminders(env).isEmpty())
+    }
+
+    @Test
+    fun seenBlockReview_doesNotHideTheOtherReminders() = runTest {
+        val env = ReminderEnv(today).apply {
+            reviews.review = Result.success(blockReview(seen = true))
+            weight.rows += weightAtInstant(utc(LocalDate(2026, 10, 20), 10, 0))
+        }
+
+        assertEquals(listOf(ReminderKind.Weight), env.load().getOrThrow().reminders.map { it.kind })
+    }
+
+    @Test
     fun noOpenBlockReview_isNotListed() = runTest {
         assertTrue(blockEndReminders(ReminderEnv(today)).isEmpty())
     }

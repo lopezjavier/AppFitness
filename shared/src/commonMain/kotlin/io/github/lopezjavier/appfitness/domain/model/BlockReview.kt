@@ -69,4 +69,6 @@ data class BlockReview(
     val phaseProposal: PhaseProposal?,
     val phaseDecision: PhaseDecision?,
     val early: Boolean = false,
+    /** True once the user opened the review (`seen_at` set): the block-end notice is no longer listed. */
+    val seen: Boolean = false,
 )

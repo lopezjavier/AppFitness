@@ -3,8 +3,10 @@ package io.github.lopezjavier.appfitness.feature.trainer
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import io.github.lopezjavier.appfitness.app.ReminderCoordinator
 import io.github.lopezjavier.appfitness.domain.AppError
 import io.github.lopezjavier.appfitness.domain.appErrorOrNull
+import io.github.lopezjavier.appfitness.domain.model.BlockReview
 import io.github.lopezjavier.appfitness.domain.model.PhaseDecision
 import io.github.lopezjavier.appfitness.domain.port.Clock
 import io.github.lopezjavier.appfitness.domain.repository.CoachPlanRepository
@@ -12,6 +14,7 @@ import io.github.lopezjavier.appfitness.domain.usecase.DecideCalorieProposalUseC
 import io.github.lopezjavier.appfitness.domain.usecase.DecidePhaseChangeUseCase
 import io.github.lopezjavier.appfitness.domain.usecase.ExerciseNameResolver
 import io.github.lopezjavier.appfitness.domain.usecase.LoadBlockReviewUseCase
+import io.github.lopezjavier.appfitness.domain.usecase.MarkBlockReviewSeen
 import io.github.lopezjavier.appfitness.domain.usecase.PhaseChangeResult
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -25,6 +28,7 @@ import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
 
 private const val KEY_NEXT_PLAN_ID = "block_review_next_plan_id"
+private const val KEY_MARKED = "block_review_marked"
 
 /**
  * "Revisión del bloque" (US-101, US-103): the read-only review of the block that ended, its phase proposal and a
@@ -32,11 +36,14 @@ private const val KEY_NEXT_PLAN_ID = "block_review_next_plan_id"
  * so the shown decision is the server's. The id of the plan "Aceptar" builds survives recreation in [savedState]; an
  * in-flight decision does not, because the screen re-reads the stored decision. Nothing here calls the coach model.
  */
+@Suppress("LongParameterList") // One port per use case, as the other trainer view models.
 class BlockReviewViewModel(
     private val loadReview: LoadBlockReviewUseCase,
     private val decidePhase: DecidePhaseChangeUseCase,
     private val plans: CoachPlanRepository,
     private val decideCalorie: DecideCalorieProposalUseCase,
+    private val markSeen: MarkBlockReviewSeen,
+    private val reminders: ReminderCoordinator,
     private val names: ExerciseNameResolver,
     private val clock: Clock,
     private val savedState: SavedStateHandle = SavedStateHandle(),
@@ -68,7 +75,21 @@ class BlockReviewViewModel(
 
     private fun load() {
         _uiState.value = BlockReviewUiState.Loading
-        viewModelScope.launch { _uiState.value = fetch() }
+        viewModelScope.launch {
+            val state = fetch()
+            _uiState.value = state
+            if (state is BlockReviewUiState.Content) markAsSeen(state.review)
+        }
+    }
+
+    // Opening the stored review clears its block-end notice: once per open, kept in [savedState]; a failure is silent.
+    private suspend fun markAsSeen(review: BlockReview) {
+        val id = review.id ?: return // The early review is not stored.
+        if (review.early || review.seen || savedState.get<String>(KEY_MARKED) == id) return
+        if (markSeen(id).isSuccess) {
+            savedState[KEY_MARKED] = id
+            reminders.refresh()
+        }
     }
 
     private suspend fun fetch(): BlockReviewUiState {
@@ -83,10 +104,8 @@ class BlockReviewViewModel(
 
             review == null -> BlockReviewUiState.Empty
 
-            else -> BlockReviewUiState.Content(
+            else -> names.blockReviewContent(
                 review = review,
-                // A failed name read leaves the lift rows out (R-54) instead of failing the whole review.
-                exerciseNames = names.resolve().getOrNull()?.byId.orEmpty(),
                 // A failed read means no calorie card.
                 calorieProposal = plans.pendingCalorieProposal(today()).getOrNull(),
                 nextPlanId = savedState.get<String>(KEY_NEXT_PLAN_ID),

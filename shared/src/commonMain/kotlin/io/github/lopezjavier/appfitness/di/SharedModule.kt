@@ -40,6 +40,7 @@ import io.github.lopezjavier.appfitness.data.repository.SupabaseNotificationSett
 import io.github.lopezjavier.appfitness.data.repository.SupabaseNutritionGoalsRepository
 import io.github.lopezjavier.appfitness.data.repository.SupabaseProfileRepository
 import io.github.lopezjavier.appfitness.data.repository.SupabaseProgressionRepository
+import io.github.lopezjavier.appfitness.data.repository.SupabaseReportRepository
 import io.github.lopezjavier.appfitness.data.repository.SupabaseRoutineRepository
 import io.github.lopezjavier.appfitness.data.repository.SupabaseStrengthRepository
 import io.github.lopezjavier.appfitness.data.repository.SupabaseTrainingPreferencesRepository
@@ -76,6 +77,7 @@ import io.github.lopezjavier.appfitness.data.repository.UnconfiguredNotification
 import io.github.lopezjavier.appfitness.data.repository.UnconfiguredNutritionGoalsRepository
 import io.github.lopezjavier.appfitness.data.repository.UnconfiguredProfileRepository
 import io.github.lopezjavier.appfitness.data.repository.UnconfiguredProgressionRepository
+import io.github.lopezjavier.appfitness.data.repository.UnconfiguredReportRepository
 import io.github.lopezjavier.appfitness.data.repository.UnconfiguredRoutineRepository
 import io.github.lopezjavier.appfitness.data.repository.UnconfiguredStrengthRepository
 import io.github.lopezjavier.appfitness.data.repository.UnconfiguredTrainingPreferencesRepository
@@ -115,6 +117,7 @@ import io.github.lopezjavier.appfitness.domain.repository.NotificationSettingsRe
 import io.github.lopezjavier.appfitness.domain.repository.NutritionGoalsRepository
 import io.github.lopezjavier.appfitness.domain.repository.ProfileRepository
 import io.github.lopezjavier.appfitness.domain.repository.ProgressionRepository
+import io.github.lopezjavier.appfitness.domain.repository.ReportRepository
 import io.github.lopezjavier.appfitness.domain.repository.RoutineRepository
 import io.github.lopezjavier.appfitness.domain.repository.StrengthRepository
 import io.github.lopezjavier.appfitness.domain.repository.TrainingPreferencesRepository
@@ -150,14 +153,18 @@ import io.github.lopezjavier.appfitness.domain.usecase.LoadCheckInSummary
 import io.github.lopezjavier.appfitness.domain.usecase.LoadExerciseCatalog
 import io.github.lopezjavier.appfitness.domain.usecase.LoadFolderBlockUseCase
 import io.github.lopezjavier.appfitness.domain.usecase.LoadNextBlockContextUseCase
+import io.github.lopezjavier.appfitness.domain.usecase.LoadPastReport
 import io.github.lopezjavier.appfitness.domain.usecase.LoadReminders
+import io.github.lopezjavier.appfitness.domain.usecase.LoadReports
 import io.github.lopezjavier.appfitness.domain.usecase.LoadWeeksInPhaseUseCase
 import io.github.lopezjavier.appfitness.domain.usecase.LoadWelcomeBack
+import io.github.lopezjavier.appfitness.domain.usecase.MarkBlockReviewSeen
 import io.github.lopezjavier.appfitness.domain.usecase.MarkWeekSummarySeen
 import io.github.lopezjavier.appfitness.domain.usecase.MeasurementsByDay
 import io.github.lopezjavier.appfitness.domain.usecase.OpenNewBlockUseCase
 import io.github.lopezjavier.appfitness.domain.usecase.PreviewGoalSwitchUseCase
 import io.github.lopezjavier.appfitness.domain.usecase.RecalculateEntry
+import io.github.lopezjavier.appfitness.domain.usecase.RecordPausedWeekReport
 import io.github.lopezjavier.appfitness.domain.usecase.ResolveCheckInDay
 import io.github.lopezjavier.appfitness.domain.usecase.ResolvePortion
 import io.github.lopezjavier.appfitness.domain.usecase.ReviewFolderUseCase
@@ -521,6 +528,18 @@ val sharedModule =
                 UnconfiguredCoachReviewRepository()
             }
         }
+        single<ReportRepository> {
+            if (get<AppConfig>().isSupabaseConfigured) {
+                val client = get<SupabaseClient>()
+                SupabaseReportRepository(client.auth, client.postgrest)
+            } else {
+                UnconfiguredReportRepository()
+            }
+        }
+        factory { LoadReports(get()) }
+        factory { LoadPastReport(get()) }
+        factory { RecordPausedWeekReport(get()) }
+        factory { MarkBlockReviewSeen(get()) }
         factory { LoadBlockReviewUseCase(get()) }
         factory { LoadNextBlockContextUseCase(get(), get(), get(), get(), get(), get()) }
         factory { OpenNewBlockUseCase(get()) }

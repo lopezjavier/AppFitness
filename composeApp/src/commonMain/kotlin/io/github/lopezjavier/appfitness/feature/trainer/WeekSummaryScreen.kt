@@ -131,7 +131,7 @@ fun WeekSummaryScreen(
 }
 
 @Composable
-private fun SummaryContent(state: WeekSummaryUiState.Content) {
+internal fun SummaryContent(state: WeekSummaryUiState.Content) {
     val summary = state.summary
     Column(
         Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(Spacing.screenMargin),

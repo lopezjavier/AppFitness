@@ -2,13 +2,17 @@ package io.github.lopezjavier.appfitness.feature.trainer
 
 import androidx.lifecycle.SavedStateHandle
 import app.cash.turbine.test
+import io.github.lopezjavier.appfitness.app.ReminderCoordinator
+import io.github.lopezjavier.appfitness.app.ReminderEnv
 import io.github.lopezjavier.appfitness.domain.AppError
 import io.github.lopezjavier.appfitness.domain.AppException
 import io.github.lopezjavier.appfitness.domain.model.PhaseDecision
+import io.github.lopezjavier.appfitness.domain.model.ReminderKind
 import io.github.lopezjavier.appfitness.domain.usecase.DecideCalorieProposalUseCase
 import io.github.lopezjavier.appfitness.domain.usecase.DecidePhaseChangeUseCase
 import io.github.lopezjavier.appfitness.domain.usecase.ExerciseNameResolver
 import io.github.lopezjavier.appfitness.domain.usecase.LoadBlockReviewUseCase
+import io.github.lopezjavier.appfitness.domain.usecase.MarkBlockReviewSeen
 import io.github.lopezjavier.appfitness.feature.exercises.FakeExerciseLibrary
 import io.github.lopezjavier.appfitness.feature.exercises.FakeExerciseRepository
 import io.github.lopezjavier.appfitness.feature.exercises.exerciseInfo
@@ -17,10 +21,12 @@ import io.github.lopezjavier.appfitness.feature.workout.MutableClock
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.StandardTestDispatcher
+import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
+import kotlinx.datetime.LocalDate
 import kotlin.test.AfterTest
 import kotlin.test.BeforeTest
 import kotlin.test.Test
@@ -32,7 +38,8 @@ import kotlin.test.assertTrue
 @OptIn(ExperimentalCoroutinesApi::class)
 class BlockReviewViewModelTest {
     private val dispatcher = StandardTestDispatcher()
-    private val reviews = FakeCoachReviewRepository(Result.success(blockReview()))
+    private val env = ReminderEnv(LocalDate(2026, 10, 19))
+    private val reviews = env.reviews.apply { review = Result.success(blockReview()) }
     private val plans = FakeCoachPlanRepository()
     private val exercises = FakeExerciseRepository(listOf(exerciseRow("id-bench", "bench")))
     private val library = FakeExerciseLibrary(mapOf("bench" to exerciseInfo("bench", "Press banca")))
@@ -43,11 +50,16 @@ class BlockReviewViewModelTest {
     @AfterTest
     fun tearDown() = Dispatchers.resetMain()
 
-    private fun viewModel(saved: SavedStateHandle = SavedStateHandle()) = BlockReviewViewModel(
+    private fun TestScope.viewModel(
+        saved: SavedStateHandle = SavedStateHandle(),
+        coordinator: ReminderCoordinator = ReminderCoordinator(env.load, backgroundScope),
+    ) = BlockReviewViewModel(
         loadReview = LoadBlockReviewUseCase(reviews),
         decidePhase = DecidePhaseChangeUseCase(reviews),
         plans = plans,
         decideCalorie = DecideCalorieProposalUseCase(plans),
+        markSeen = MarkBlockReviewSeen(reviews),
+        reminders = coordinator,
         names = ExerciseNameResolver(exercises, library),
         clock = MutableClock(),
         savedState = saved,
@@ -67,6 +79,63 @@ class BlockReviewViewModelTest {
         assertEquals("Press banca", content.exerciseNames["id-bench"])
         assertNull(content.calorieProposal)
         assertNull(content.nextPlanId)
+    }
+
+    @Test
+    fun unseenStoredReview_isMarkedSeenOnceAndItsNoticeClears() = runTest(dispatcher) {
+        val coordinator = ReminderCoordinator(env.load, backgroundScope)
+        coordinator.refresh()
+        assertEquals(listOf(ReminderKind.BlockEnd), coordinator.reminders.value.map { it.kind })
+
+        viewModel(coordinator = coordinator)
+        advanceUntilIdle()
+
+        assertEquals(listOf("review-1"), reviews.markedSeen)
+        assertTrue(coordinator.reminders.value.none { it.kind == ReminderKind.BlockEnd })
+    }
+
+    @Test
+    fun alreadySeenReview_isNotMarkedAgain() = runTest(dispatcher) {
+        reviews.review = Result.success(blockReview(seen = true))
+        viewModel()
+
+        advanceUntilIdle()
+
+        assertTrue(reviews.markedSeen.isEmpty())
+    }
+
+    @Test
+    fun earlyReviewWithoutId_isNeverMarked() = runTest(dispatcher) {
+        reviews.review = Result.success(blockReview().copy(id = null, early = true))
+        viewModel()
+
+        advanceUntilIdle()
+
+        assertTrue(reviews.markedSeen.isEmpty())
+    }
+
+    @Test
+    fun failedMark_isSilentAndTheContentStays() = runTest(dispatcher) {
+        reviews.markSeenResult = Result.failure(AppException(AppError.Network))
+        val model = viewModel()
+
+        advanceUntilIdle()
+
+        assertIs<BlockReviewUiState.Content>(model.uiState.value)
+        assertEquals(listOf("review-1"), reviews.markedSeen)
+    }
+
+    @Test
+    fun recreatedModelOverTheSameHandle_doesNotMarkAgain() = runTest(dispatcher) {
+        val saved = SavedStateHandle()
+        viewModel(saved)
+        advanceUntilIdle()
+        reviews.review = Result.success(blockReview(seen = false))
+
+        viewModel(saved)
+        advanceUntilIdle()
+
+        assertEquals(1, reviews.markedSeen.size)
     }
 
     @Test
@@ -286,5 +355,11 @@ class BlockReviewViewModelTest {
         advanceUntilIdle()
 
         assertTrue(plans.decisions.isEmpty())
+    }
+
+    @Test
+    fun calorieChoice_toEvent_mapsEachChoiceToItsEvent() {
+        assertEquals(BlockReviewEvent.ApplyCalorie, CalorieChoice.Apply.toEvent())
+        assertEquals(BlockReviewEvent.NotNowCalorie, CalorieChoice.NotNow.toEvent())
     }
 }

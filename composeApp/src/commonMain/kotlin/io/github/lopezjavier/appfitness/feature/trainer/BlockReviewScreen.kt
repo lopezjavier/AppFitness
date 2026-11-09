@@ -162,7 +162,12 @@ private fun ReviewFooter(
 }
 
 @Composable
-private fun ReviewContent(state: BlockReviewUiState.Content, online: Boolean, onEvent: (BlockReviewEvent) -> Unit) {
+internal fun ReviewContent(
+    state: BlockReviewUiState.Content,
+    online: Boolean,
+    onEvent: (BlockReviewEvent) -> Unit,
+    readOnly: Boolean = false,
+) {
     val review = state.review
     Column(
         Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(Spacing.screenMargin),
@@ -175,8 +180,10 @@ private fun ReviewContent(state: BlockReviewUiState.Content, online: Boolean, on
         WeightCard(state)
         OutcomesCard(state)
         WaistCard(state)
-        review.phaseProposal?.let { PhaseProposalSection(state, it, online, onEvent) }
-        state.calorieProposal?.let { CalorieSection(state, online, onEvent) }
+        review.phaseProposal?.let {
+            if (readOnly) StoredPhaseSection(state, it) else PhaseProposalSection(state, it, online, onEvent)
+        }
+        if (!readOnly) state.calorieProposal?.let { CalorieSection(state, online, onEvent) }
     }
 }
 
@@ -226,8 +233,8 @@ private fun PhaseProposalSection(
 }
 
 @Composable
-private fun StatusCard(text: String) {
-    SummaryCard("block_review_phase_status") { SummaryLine(text) }
+internal fun StatusCard(text: String, modifier: Modifier = Modifier) {
+    SummaryCard("block_review_phase_status") { SummaryLine(text, modifier) }
 }
 
 @Composable
@@ -241,21 +248,15 @@ private fun CalorieSection(state: BlockReviewUiState.Content, online: Boolean, o
         onNotNow = { onEvent(BlockReviewEvent.NotNowCalorie) },
         testTagPrefix = "block_review_calorie",
         failure = state.calorieFailed?.let { choice ->
-            {
-                DecisionFailure("block_review_calorie_retry") {
-                    onEvent(
-                        if (choice ==
-                            CalorieChoice.Apply
-                        ) {
-                            BlockReviewEvent.ApplyCalorie
-                        } else {
-                            BlockReviewEvent.NotNowCalorie
-                        },
-                    )
-                }
-            }
+            { DecisionFailure("block_review_calorie_retry") { onEvent(choice.toEvent()) } }
         },
     )
+}
+
+/** The event that repeats a failed calorie [CalorieChoice]. */
+internal fun CalorieChoice.toEvent(): BlockReviewEvent = when (this) {
+    CalorieChoice.Apply -> BlockReviewEvent.ApplyCalorie
+    CalorieChoice.NotNow -> BlockReviewEvent.NotNowCalorie
 }
 
 /** "No se pudo guardar tu decisión" with "Reintentar" inline in the card (R-37); the choice is kept in state. */

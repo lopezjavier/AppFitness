@@ -26,6 +26,9 @@ internal data class OpenBlockReviewParams(@SerialName("p_today") val today: Loca
 internal data class KeepPhaseParams(@SerialName("p_review_id") val reviewId: String)
 
 @Serializable
+internal data class MarkBlockReviewSeenParams(@SerialName("p_review_id") val reviewId: String)
+
+@Serializable
 internal data class PhaseChangeRequestBody(val kind: String, val input: PhaseChangeRequestInput)
 
 @Serializable
@@ -46,7 +49,7 @@ private val REASONS = mapOf(
     "back_to_goal" to PhaseChangeReason.BackToGoal,
 )
 
-private val DECISIONS = mapOf("accepted" to PhaseDecision.Accepted, "kept" to PhaseDecision.Kept)
+internal val DECISIONS = mapOf("accepted" to PhaseDecision.Accepted, "kept" to PhaseDecision.Kept)
 
 private val OUTCOME_KINDS = mapOf("weight" to OutcomeKind.Weight, "e1rm" to OutcomeKind.E1rm)
 
@@ -152,5 +155,6 @@ internal fun reviewBodyOf(obj: JsonObject): BlockReview? {
         phaseProposal = proposalOf(obj["phase_proposal"].obj()),
         phaseDecision = obj.text("phase_decision")?.let(DECISIONS::get),
         early = obj.truth("early"),
+        seen = obj.text("seen_at") != null,
     )
 }

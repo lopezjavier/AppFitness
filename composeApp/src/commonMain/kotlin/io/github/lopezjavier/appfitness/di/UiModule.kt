@@ -46,7 +46,9 @@ import io.github.lopezjavier.appfitness.feature.trainer.FolderBlockViewModel
 import io.github.lopezjavier.appfitness.feature.trainer.FolderReviewResultViewModel
 import io.github.lopezjavier.appfitness.feature.trainer.FreeTextLinesViewModel
 import io.github.lopezjavier.appfitness.feature.trainer.IntakeViewModel
+import io.github.lopezjavier.appfitness.feature.trainer.PastReportViewModel
 import io.github.lopezjavier.appfitness.feature.trainer.PlanProposalViewModel
+import io.github.lopezjavier.appfitness.feature.trainer.ReportsViewModel
 import io.github.lopezjavier.appfitness.feature.trainer.TrainerViewModel
 import io.github.lopezjavier.appfitness.feature.trainer.WeekSummaryViewModel
 import io.github.lopezjavier.appfitness.feature.trainer.YourDataViewModel
@@ -451,6 +453,7 @@ val uiModule =
             WeekSummaryViewModel(
                 summaries = get(),
                 markSeen = MarkWeekSummarySeen(get()),
+                recordPausedWeek = get(),
                 reminders = get(),
                 names = get(),
                 clock = get(),
@@ -458,6 +461,8 @@ val uiModule =
                 timeZone = TimeZone.currentSystemDefault(),
             )
         }
+        viewModel { ReportsViewModel(loadReports = get()) }
+        viewModel { params -> PastReportViewModel(reportId = params.get(), loadReport = get(), names = get()) }
         viewModel {
             TrainerViewModel(
                 repository = get(),
@@ -485,6 +490,8 @@ val uiModule =
                 decidePhase = get(),
                 plans = get(),
                 decideCalorie = get(),
+                markSeen = get(),
+                reminders = get(),
                 names = get(),
                 clock = get(),
                 savedState = get(),

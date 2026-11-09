@@ -13,6 +13,7 @@ import io.github.lopezjavier.appfitness.domain.model.WeekSummary
 import io.github.lopezjavier.appfitness.domain.port.Clock
 import io.github.lopezjavier.appfitness.domain.usecase.ExerciseNameResolver
 import io.github.lopezjavier.appfitness.domain.usecase.MarkWeekSummarySeen
+import io.github.lopezjavier.appfitness.domain.usecase.RecordPausedWeekReport
 import io.github.lopezjavier.appfitness.feature.exercises.FakeExerciseLibrary
 import io.github.lopezjavier.appfitness.feature.exercises.FakeExerciseRepository
 import io.github.lopezjavier.appfitness.feature.exercises.exerciseInfo
@@ -43,6 +44,7 @@ class WeekSummaryViewModelTest {
     private val plusTwo = TimeZone.of("+02:00")
     private val env = ReminderEnv(LocalDate(2026, 11, 10))
     private val summaries: FakeCoachSummaryRepository get() = env.summaries
+    private val reports = FakeReportRepository()
     private val exercises = FakeExerciseRepository(listOf(exerciseRow("id-bench", "bench")))
     private val library = FakeExerciseLibrary(mapOf("bench" to exerciseInfo("bench", "Press banca")))
 
@@ -60,6 +62,7 @@ class WeekSummaryViewModelTest {
     ) = WeekSummaryViewModel(
         summaries = summaries,
         markSeen = MarkWeekSummarySeen(summaries),
+        recordPausedWeek = RecordPausedWeekReport(reports),
         reminders = coordinator,
         names = ExerciseNameResolver(exercises, library),
         clock = clock,
@@ -95,6 +98,45 @@ class WeekSummaryViewModelTest {
         assertTrue(assertIs<WeekSummaryUiState.Content>(recreated.uiState.value).summary.paused)
         assertTrue(summaries.seen.isEmpty())
         assertNull(saved.get<String>("week_summary_marked"))
+    }
+
+    @Test
+    fun pausedSummary_isRecordedOnceWithTheLocalToday() = runTest(dispatcher) {
+        summaries.latest = Result.success(pausedSummary())
+        val saved = SavedStateHandle()
+        viewModel(saved)
+        advanceUntilIdle()
+
+        viewModel(saved)
+        advanceUntilIdle()
+
+        assertEquals(listOf(LocalDate(2026, 11, 10)), reports.recorded)
+    }
+
+    @Test
+    fun pausedSummary_failedRecordIsSilentAndRetriedOnTheNextOpen() = runTest(dispatcher) {
+        summaries.latest = Result.success(pausedSummary())
+        reports.recordResult = Result.failure(AppException(AppError.Network))
+        val saved = SavedStateHandle()
+        val model = viewModel(saved)
+        advanceUntilIdle()
+        assertTrue(model.uiState.value is WeekSummaryUiState.Content)
+
+        reports.recordResult = Result.success(Unit)
+        viewModel(saved)
+        advanceUntilIdle()
+
+        assertEquals(2, reports.recorded.size)
+    }
+
+    @Test
+    fun normalWeek_isNeverRecordedAsPaused() = runTest(dispatcher) {
+        summaries.latest = Result.success(weekSummary(seen = false))
+        viewModel()
+
+        advanceUntilIdle()
+
+        assertTrue(reports.recorded.isEmpty())
     }
 
     @Test

@@ -50,6 +50,7 @@ internal fun blockReview(
     stalls: List<StallDiagnosis> = emptyList(),
     phaseProposal: PhaseProposal? = cutLengthProposal(),
     phaseDecision: PhaseDecision? = null,
+    seen: Boolean = false,
 ) = BlockReview(
     id = id,
     planId = planId,
@@ -63,6 +64,7 @@ internal fun blockReview(
     stalls = stalls,
     phaseProposal = phaseProposal,
     phaseDecision = phaseDecision,
+    seen = seen,
 )
 
 /** Test double of [CoachReviewRepository]; an accepted or kept decision is stored like the server would. */
@@ -82,6 +84,17 @@ internal class FakeCoachReviewRepository(var review: Result<BlockReview?> = Resu
         calls += "keep:$reviewId"
         if (keepResult.isSuccess) review = review.map { it?.copy(phaseDecision = PhaseDecision.Kept) }
         return keepResult
+    }
+
+    var markSeenResult: Result<Unit> = Result.success(Unit)
+
+    /** The ids marked as seen, kept apart from [calls] (decisions). */
+    val markedSeen = mutableListOf<String>()
+
+    override suspend fun markSeen(reviewId: String): Result<Unit> {
+        markedSeen += reviewId
+        if (markSeenResult.isSuccess) review = review.map { it?.copy(seen = true) }
+        return markSeenResult
     }
 
     override suspend fun acceptPhase(reviewId: String, today: LocalDate): Result<String> {

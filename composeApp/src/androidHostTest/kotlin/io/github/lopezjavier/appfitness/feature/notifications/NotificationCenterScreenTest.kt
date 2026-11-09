@@ -51,9 +51,18 @@ class NotificationCenterScreenTest {
         state: NotificationCenterUiState,
         events: MutableList<NotificationCenterEvent> = mutableListOf(),
         opened: MutableList<ReminderKind> = mutableListOf(),
+        onOpenReports: () -> Unit = {},
     ) {
         rule.setContent {
-            AppTheme { NotificationCenterScreen(state, { events += it }, { opened += it }, onBack = {}) }
+            AppTheme {
+                NotificationCenterScreen(
+                    state,
+                    { events += it },
+                    { opened += it },
+                    onBack = {},
+                    onOpenReports = onOpenReports,
+                )
+            }
         }
     }
 
@@ -115,6 +124,32 @@ class NotificationCenterScreenTest {
         rule.onNodeWithTag("notifications_reminder_circumference").performClick()
 
         assertEquals(listOf(ReminderKind.Weight, ReminderKind.Circumference), opened)
+    }
+
+    @Test
+    fun informesEntry_isListedBelowTheNotices_andOpensTheReports() {
+        var opened = 0
+        show(content(), onOpenReports = { opened++ })
+
+        rule.onNodeWithTag("notifications_reports").assertIsDisplayed().assertTextContains("Informes")
+        rule.onNodeWithTag("notifications_reports").performClick()
+
+        assertEquals(1, opened)
+    }
+
+    @Test
+    fun informesEntry_isListedAlsoWhenNothingIsPending() {
+        show(content(reminders = emptyList()))
+
+        rule.onNodeWithTag("notifications_empty").assertIsDisplayed()
+        rule.onNodeWithTag("notifications_reports").assertIsDisplayed()
+    }
+
+    @Test
+    fun informesEntry_isNotShownWhileLoadingOrOnError() {
+        show(NotificationCenterUiState.Loading)
+
+        rule.onAllNodesWithTag("notifications_reports").assertCountEquals(0)
     }
 
     @Test

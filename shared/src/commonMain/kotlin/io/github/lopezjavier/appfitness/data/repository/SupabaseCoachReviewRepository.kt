@@ -10,6 +10,7 @@ import io.github.lopezjavier.appfitness.data.remote.CoachStreamParser
 import io.github.lopezjavier.appfitness.data.remote.GoalSwitchRequestBody
 import io.github.lopezjavier.appfitness.data.remote.GoalSwitchRequestInput
 import io.github.lopezjavier.appfitness.data.remote.KeepPhaseParams
+import io.github.lopezjavier.appfitness.data.remote.MarkBlockReviewSeenParams
 import io.github.lopezjavier.appfitness.data.remote.OpenBlockNewParams
 import io.github.lopezjavier.appfitness.data.remote.OpenBlockReviewParams
 import io.github.lopezjavier.appfitness.data.remote.PhaseChangeRequestBody
@@ -60,6 +61,11 @@ class SupabaseCoachReviewRepository internal constructor(
 
     override suspend fun keepPhase(reviewId: String): Result<Unit> = auth.ownRow {
         postgrest.rpc("keep_coach_phase", KeepPhaseParams(reviewId))
+        Unit
+    }
+
+    override suspend fun markSeen(reviewId: String): Result<Unit> = auth.ownRow {
+        postgrest.rpc("mark_coach_block_review_seen", MarkBlockReviewSeenParams(reviewId))
         Unit
     }
 

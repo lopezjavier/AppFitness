@@ -2,11 +2,9 @@ package io.github.lopezjavier.appfitness.feature.notifications
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
@@ -39,17 +37,18 @@ import io.github.lopezjavier.appfitness.composeapp.resources.notifications_title
 import io.github.lopezjavier.appfitness.composeapp.resources.notifications_week_summary_title
 import io.github.lopezjavier.appfitness.composeapp.resources.notifications_week_summary_week
 import io.github.lopezjavier.appfitness.composeapp.resources.notifications_weight_reminder
+import io.github.lopezjavier.appfitness.composeapp.resources.reports_title
 import io.github.lopezjavier.appfitness.composeapp.resources.root_error_message
 import io.github.lopezjavier.appfitness.designsystem.AppDateFormat
 import io.github.lopezjavier.appfitness.designsystem.AppListRow
 import io.github.lopezjavier.appfitness.designsystem.AppScreen
-import io.github.lopezjavier.appfitness.designsystem.AppShapes
 import io.github.lopezjavier.appfitness.designsystem.AppStateAction
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
 import io.github.lopezjavier.appfitness.designsystem.EmptyState
 import io.github.lopezjavier.appfitness.designsystem.ErrorState
+import io.github.lopezjavier.appfitness.designsystem.ListRowSkeleton
 import io.github.lopezjavier.appfitness.designsystem.ListSectionHeader
-import io.github.lopezjavier.appfitness.designsystem.SkeletonBox
+import io.github.lopezjavier.appfitness.designsystem.NavigationRow
 import io.github.lopezjavier.appfitness.designsystem.Spacing
 import io.github.lopezjavier.appfitness.designsystem.appAnimateItem
 import io.github.lopezjavier.appfitness.domain.model.CheckInDay
@@ -76,6 +75,7 @@ fun NotificationCenterScreen(
     onOpenReminder: (ReminderKind) -> Unit,
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
+    onOpenReports: () -> Unit = {},
 ) {
     AppScreen(
         title = stringResource(Res.string.notifications_title),
@@ -98,14 +98,18 @@ fun NotificationCenterScreen(
                     )
                 }
 
-                is NotificationCenterUiState.Content -> CenterContent(state, onOpenReminder)
+                is NotificationCenterUiState.Content -> CenterContent(state, onOpenReminder, onOpenReports)
             }
         }
     }
 }
 
 @Composable
-private fun CenterContent(state: NotificationCenterUiState.Content, onOpenReminder: (ReminderKind) -> Unit) {
+private fun CenterContent(
+    state: NotificationCenterUiState.Content,
+    onOpenReminder: (ReminderKind) -> Unit,
+    onOpenReports: () -> Unit,
+) {
     LazyColumn(
         Modifier.fillMaxSize(),
         contentPadding = PaddingValues(Spacing.screenMargin),
@@ -136,6 +140,14 @@ private fun CenterContent(state: NotificationCenterUiState.Content, onOpenRemind
                 )
             }
             item(key = "checkin_answered") { AnsweredCheckInRow(answered, onOpenReminder, appAnimateItem()) }
+        }
+        // The stored reports are a destination, not a notice: always last, never counted by the bell.
+        item(key = "reports_entry") {
+            NavigationRow(
+                label = stringResource(Res.string.reports_title),
+                onClick = onOpenReports,
+                modifier = Modifier.padding(top = Spacing.lg).testTag("notifications_reports"),
+            )
         }
     }
 }
@@ -227,12 +239,9 @@ private fun CheckInDay.weekRange(): String =
 
 @Composable
 private fun Skeleton() {
-    Column(
-        Modifier.fillMaxSize().padding(Spacing.screenMargin).testTag("notifications_loading"),
-        verticalArrangement = Arrangement.spacedBy(Spacing.sm),
-    ) {
-        repeat(SKELETON_ROWS) {
-            SkeletonBox(Modifier.fillMaxWidth().height(Spacing.minTouchTarget), AppShapes.sm)
-        }
-    }
+    ListRowSkeleton(
+        Modifier.fillMaxSize().padding(Spacing.screenMargin),
+        rows = SKELETON_ROWS,
+        testTag = "notifications_loading",
+    )
 }
