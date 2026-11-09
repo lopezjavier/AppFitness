@@ -10,7 +10,7 @@ Last task ID used: T-250 (T-246…T-249 reserved by the E16 breakdown; T-239…T
 
 **Done in the T-246 branch (user report, 2026-11-08; the user ordered it into the current branch, so it ships in T-246's PR as a separate `fix(T-250)` commit):** `fix(T-250)`: the `food-photo` dish prompt (`supabase/functions/food-photo/prompts.ts`) never says whether the per-100 g values are for the food as served; a 400 g cooked plate came back with raw-food kcal/100 g. Fix: the dish prompt states that values and `estimated_grams` describe the food as shown in the photo (cooked when cooked), with a handler/prompt test and a redeploy of `food-photo`. Backend only, no model-call change elsewhere.
 
-**Next:** T-248 is merged (#572, `deploy-supabase` green, migration only adds an RPC). **👤 Checkpoint E16 is open** and is a hard gate: present it before anything else; T-249 (closure) follows only after the user approves it, in a fresh session. User decision (2026-11-09): the test account is discarded, so the checkpoint is tried on the main account and nothing is accepted there (item 4 stops at the open proposal; items 2 and 5 are covered by host, pgTAP and Deno tests only). CI notes: the `coach_summary.test.sql` fixtures were midnight-fragile (fixed in #572); `backend-developer` now runs `deno fmt --check`, `deno lint` and `deno check` like `supabase-ci`. Follow-up suggestion: a Neutral `StatusTone` for the week-4 chip (E9 row; it uses `Good` now).
+**Next:** E16 is closed (`v1.7.0`, tag `v1.7.0`, `retrospectives/E16.md`); Checkpoint E16 approved by the user on 2026-11-09. No task is active. The user tests with real data and reports errors; each report becomes the next `fix(T-###)`. The "Pending natural-trigger feedback (E16)" items stay open for real use. Next epic: E17, broken down by `epic-planner` in a fresh session.
 
 ## Open follow-ups carried into Phase 3
 
@@ -145,13 +145,13 @@ The user does not force time-based triggers. These items are covered by host tes
 ### Checkpoint E16 — Nutrition follow-up: "Resumen semanal" and "Descanso de dieta", with the final E16 regression 👤 (7 items, leave and come back included) *(epic-planner, 2026-11-08; the only E16 checkpoint, user decision 2026-11-08; its approval releases T-249)*
 
 After T-248 merges (the last implementation task), CI green, `deploy-supabase` green with data intact (T-246, T-247, and T-248 if it changed SQL). Everything here can be tried at once with the data each account already has; the branches that need two real weeks stay in "Pending natural-trigger feedback (E16)", outside this gate. The test account is discarded (user, 2026-11-09): everything is tried on the **main account**, and nothing is accepted there (accepting a cut plan would change real calories). Items 2 and 5 cannot be tried by hand; they stay covered by host tests, pgTAP and Deno tests. What to try on the phone (`python scripts/deliver-apk.py`):
-- [ ] 1. Main account, Trainer → "Resumen semanal" of the last week: the nutrition section shows your logged days, average kcal and protein against your goals, and your weight trend against the target rate, inside the same summary (no second screen, no new item in "Centro de avisos").
-- [ ] 2. ~~Test account (few diary days last week)~~ not tried by hand (no test account; host-test covered): the section says "Faltan registros: solo {n} de 7 días completos. Con menos de 5 no sacamos conclusiones sobre tus calorías." and shows no averages.
-- [ ] 3. Read the diagnosis card your data gives on each account (logging or calorie cause with one action, "Meseta", "Sin causa clara", or nothing when the weight is on target): one result at most, no medical wording, and "Uso de IA" did not change during E16.
-- [ ] 4. Main account, open a "Perder grasa" plan proposal and do **not** accept it: "Descanso de dieta" is off, and its `?` is one sentence (less hunger, fat is not lost faster).
-- [ ] 5. ~~Turn it on and accept~~ not tried by hand (nothing is accepted on the main account; host-test covered): "Tu plan" and the plan weeks show week 4 at maintenance calories; turn it off in "Tu plan": the week-4 break is gone and nothing else changes.
-- [ ] 6. In the block builder, with more types than days, the "no fit" note opens "Mi entrenamiento"; change the days and come back to the same step with your choices kept.
-- [ ] 7. Leave the app and come back (and after the system kills it) with the summary open, with the proposal changed, and with the builder after the round trip: the same tab, screen and draft are restored.
+- [x] 1. Main account, Trainer → "Resumen semanal" of the last week: the nutrition section shows your logged days, average kcal and protein against your goals, and your weight trend against the target rate, inside the same summary (no second screen, no new item in "Centro de avisos").
+- [x] 2. ~~Test account (few diary days last week)~~ not tried by hand (no test account; host-test covered): the section says "Faltan registros: solo {n} de 7 días completos. Con menos de 5 no sacamos conclusiones sobre tus calorías." and shows no averages.
+- [x] 3. Read the diagnosis card your data gives on each account (logging or calorie cause with one action, "Meseta", "Sin causa clara", or nothing when the weight is on target): one result at most, no medical wording, and "Uso de IA" did not change during E16.
+- [x] 4. Main account, open a "Perder grasa" plan proposal and do **not** accept it: "Descanso de dieta" is off, and its `?` is one sentence (less hunger, fat is not lost faster).
+- [x] 5. ~~Turn it on and accept~~ not tried by hand (nothing is accepted on the main account; host-test covered): "Tu plan" and the plan weeks show week 4 at maintenance calories; turn it off in "Tu plan": the week-4 break is gone and nothing else changes.
+- [x] 6. In the block builder, with more types than days, the "no fit" note opens "Mi entrenamiento"; change the days and come back to the same step with your choices kept.
+- [x] 7. Leave the app and come back (and after the system kills it) with the summary open, with the proposal changed, and with the builder after the round trip: the same tab, screen and draft are restored.
 Out of scope here (natural triggers): the calorie change of a week listed with its reason, each diagnosis branch after two real weeks, and week 4 actually moving the Diario goals.
 
 ---
@@ -161,12 +161,12 @@ Out of scope here (natural triggers): the calorie change of a week listed with i
 **Story:** E16 Definition of Done · **Flow:** PM closure step after Checkpoint E16 is approved (its approval releases this step; no checkpoint of its own). No developer agent, no size class; it cannot merge into a task because it waits for the checkpoint approval.
 **Description:** Version bump (`versionName`/`versionCode`, minor per epic, proposed `1.7.0`), tag, retrospective `retrospectives/E16.md`, archive of the E16 log lines; `09-open-questions.md` records E16 Q1-Q3 with the experts' answers (`07` §4 "Nutrition follow-up (E16)" (c), user decision on one checkpoint); `01-scope.md` E16 row marked done. The "Pending natural-trigger feedback (E16)" items do not gate the closure; any still unchecked stay listed for real use.
 **Acceptance criteria:**
-- [ ] T-246…T-248 (and any fix tasks) merged with green CI; `deploy-supabase` green after each migration.
-- [ ] ux-reviewer ran in plan and diff mode on every UI task; `check-ux-conventions.sh` passes.
-- [ ] `03`, `04`, `05`, `07` and the epic file are current; Checkpoint E16 approved by the user.
-- [ ] Version bumped; `tasks/todo.md` pointer updated through a PR.
+- [x] T-246…T-248 (and any fix tasks) merged with green CI; `deploy-supabase` green after each migration.
+- [x] ux-reviewer ran in plan and diff mode on every UI task; `check-ux-conventions.sh` passes.
+- [x] `03`, `04`, `05`, `07` and the epic file are current; Checkpoint E16 approved by the user.
+- [x] Version bumped; `tasks/todo.md` pointer updated through a PR.
 **Verification:**
-- [ ] `git tag` lists the E16 tag.
+- [x] `git tag` lists the E16 tag.
 **Dependencies:** Checkpoint E16 approved.
 **Files likely touched:** `androidApp/build.gradle.kts`, `tasks/todo.md`, `tasks/plan.md`, `planning/09-open-questions.md`, `planning/01-scope.md`, `retrospectives/E16.md`
 **Estimated scope:** closure step (PM)
