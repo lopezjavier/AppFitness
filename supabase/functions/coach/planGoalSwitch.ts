@@ -1,6 +1,5 @@
 // Kind `plan_goal_switch` (T-239): the deterministic preview of "Bloque nuevo" when the saved goal differs from the plan's.
-// The figures come from the same pure rules as `plan_nutrition`, with the user's saved intention and no model call
-// (the handler answers it before the provider and budget checks, with zero usage). propose_goal_switch stores the result
+// The figures come from the same pure rules as `plan_nutrition`, with the user's saved intention and no model call. propose_goal_switch stores the result
 // as ONE proposed plan (the vehicle of the new block) and re-checks every invariant; nothing touches the accepted plan
 // or nutrition_goals until the new block is saved. After a cut the phase starts at the measured maintenance in one step
 // (07 section 4 "After a cut"): deriveNutrition prices every phase on the measured expenditure, never a reverse diet.

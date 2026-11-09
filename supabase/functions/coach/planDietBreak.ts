@@ -1,5 +1,5 @@
 // Kind `plan_diet_break` (T-248): the diet-break switch of an ACCEPTED cut ("Tu plan"), deterministic like
-// `plan_recompute` (no model call, no usage; the handler answers it before the provider and the budget checks).
+// `plan_recompute` (no model call).
 // Only `nutrition.diet_break` and `phase_options.diet_break` change: every other figure stays as stored.
 // set_coach_plan_diet_break re-checks the invariants and, when the break is turned off during week 4, restores the
 // base goals itself.

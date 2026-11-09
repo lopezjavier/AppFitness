@@ -12,11 +12,6 @@ export type ErrorCode =
     | "QUOTA_EXCEEDED"
     | "PROVIDER_ERROR"
     | "NOT_CONFIGURED"
-    | "coach_limit_reached"
-    | "coach_no_credit"
-    | "coach_timeout"
-    | "coach_invalid_output"
-    | "coach_kind_not_available"
     | "coach_missing_data"
     | "coach_plan_infeasible"
     | "coach_block_in_progress"
@@ -33,11 +28,6 @@ const STATUS: Record<ErrorCode, number> = {
     QUOTA_EXCEEDED: 429,
     PROVIDER_ERROR: 502,
     NOT_CONFIGURED: 503,
-    coach_limit_reached: 429,
-    coach_no_credit: 402,
-    coach_timeout: 504,
-    coach_invalid_output: 502,
-    coach_kind_not_available: 501,
     coach_missing_data: 422,
     coach_plan_infeasible: 422,
     coach_block_in_progress: 409,

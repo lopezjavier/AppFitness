@@ -1,82 +1,21 @@
-// Kinds of coach calls and the model each one uses (planning/07 section 11).
-// `ping` (T-160) and the model-free
-// `plan_nutrition` (T-161, ADR-98) and `plan_recompute` (T-187) and `plan_phase_change` (T-233) and `plan_goal_switch` (T-239) are callable; `report` and `chat` answer
-// coach_kind_not_available until their tasks.
-import type { AnthropicRequest } from "../_shared/anthropic.ts";
+// Kinds of coach calls (planning/07 section 11). Every kind is deterministic: no model call (ADR-103).
+// Any other kind (including the retired `ping`, `report` and `chat`) answers INVALID_INPUT "Unknown kind".
 import type { PrepareContext, Prepared } from "./context.ts";
 import { prepare as prepareDietBreak } from "./planDietBreak.ts";
 import { prepare as prepareGoalSwitch } from "./planGoalSwitch.ts";
 import { prepare as prepareNutrition } from "./planNutrition.ts";
 import { prepare as preparePhaseChange } from "./planPhaseChange.ts";
 import { prepare as prepareRecompute } from "./planRecompute.ts";
-import { type CoachModel, MODEL_IDS } from "./prices.ts";
 
 export type KindSpec = {
-    model: CoachModel;
-    /** False while the feature that owns the kind is not built yet. */
-    available: boolean;
-    /** Builds the provider request from the validated `input`. */
-    buildRequest?: (input: unknown, model: CoachModel) => AnthropicRequest;
-    /**
-     * Output validator: parsed value, or null when invalid. A kind with a validator is buffered (no partial
-     * deltas) and gets one retry before coach_invalid_output.
-     */
-    validate?: (text: string) => unknown | null;
-    /**
-     * Kinds that need context (summary, candidates) build their request, validator and `finalize` step here
-     * instead of `buildRequest`/`validate`; the validator is a closure over the server-built candidates.
-     */
-    prepare?: (input: unknown, ctx: PrepareContext) => Promise<Prepared>;
-    /**
-     * No model call: the handler answers it before the provider and budget checks, records no usage and sends the
-     * result of `finalize` with zero usage (T-187 `plan_recompute`). `model` is irrelevant.
-     */
-    deterministic?: boolean;
+    /** Validates the `input`, reads the context it needs and returns the `finalize` step that stores and answers. */
+    prepare: (input: unknown, ctx: PrepareContext) => Promise<Prepared>;
 };
 
-export const PING_PROMPT = "Responde: ok";
-export const PING_MAX_TOKENS = 16;
-
 export const KINDS: Record<string, KindSpec> = {
-    ping: {
-        model: "sonnet",
-        available: true,
-        buildRequest: (_input, model) => ({
-            model: MODEL_IDS[model],
-            prompt: PING_PROMPT,
-            maxTokens: PING_MAX_TOKENS,
-        }),
-    },
-    plan_nutrition: {
-        model: "opus",
-        available: true,
-        deterministic: true,
-        prepare: prepareNutrition,
-    },
-    plan_recompute: {
-        model: "sonnet",
-        available: true,
-        deterministic: true,
-        prepare: prepareRecompute,
-    },
-    plan_diet_break: {
-        model: "sonnet",
-        available: true,
-        deterministic: true,
-        prepare: prepareDietBreak,
-    },
-    plan_phase_change: {
-        model: "sonnet",
-        available: true,
-        deterministic: true,
-        prepare: preparePhaseChange,
-    },
-    plan_goal_switch: {
-        model: "sonnet",
-        available: true,
-        deterministic: true,
-        prepare: prepareGoalSwitch,
-    },
-    report: { model: "sonnet", available: false },
-    chat: { model: "sonnet", available: false },
+    plan_nutrition: { prepare: prepareNutrition },
+    plan_recompute: { prepare: prepareRecompute },
+    plan_diet_break: { prepare: prepareDietBreak },
+    plan_phase_change: { prepare: preparePhaseChange },
+    plan_goal_switch: { prepare: prepareGoalSwitch },
 };

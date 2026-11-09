@@ -1,6 +1,6 @@
 // Kind `plan_phase_change` (T-233): "Aceptar" at the end-of-block review. The new phase comes from the stored proposal
-// of the review; the calories and outcomes come from the same pure rules as `plan_nutrition`, with no model call and no
-// usage (the handler answers it before the provider and budget checks). accept_coach_phase stores the result as a
+// of the review; the calories and outcomes come from the same pure rules as `plan_nutrition`, with no model call.
+// accept_coach_phase stores the result as a
 // PROPOSED plan (the vehicle of the next block) and re-checks every invariant; nothing touches the current plan.
 import {
     CoachInputError,

@@ -1,5 +1,5 @@
 // Kind `plan_recompute` (T-187): the cut-rate choice and the diet-break switch of a proposed plan, recomputed by the
-// server with no model call and no usage (the handler answers it before the provider and the budget checks).
+// server with no model call.
 // Every figure comes from the same pure rules as `plan_nutrition`; update_coach_plan_options re-checks them and drops the
 // weight outcome (its target and reason cited the old rate).
 import {

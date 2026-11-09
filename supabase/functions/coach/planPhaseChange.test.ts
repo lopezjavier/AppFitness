@@ -1,6 +1,5 @@
 // T-233: the model-free plan_phase_change ("Aceptar" at the end-of-block review): no client, no budget, no usage.
 import { assert, assertEquals } from "jsr:@std/assert@1.0.19";
-import type { AnthropicClient } from "../_shared/anthropic.ts";
 import type { PhaseChangeRow, ReviewState } from "./context.ts";
 import { type CoachDeps, createCoachHandler } from "./handler.ts";
 import { planInputs } from "./inputsFixtures.ts";
@@ -42,28 +41,11 @@ const review = (
 function setup(
     o: {
         review?: ReviewState | null;
-        client?: AnthropicClient | null;
-        spent?: number;
     } = {},
 ) {
     const applied: PhaseChangeRow[] = [];
-    const usage: unknown[] = [];
-    let budgetReads = 0;
     const deps: CoachDeps = {
         authenticate: (t) => Promise.resolve(t === "good" ? "user-1" : null),
-        userSpent: () => {
-            budgetReads++;
-            return Promise.resolve(o.spent ?? 0);
-        },
-        globalSpent: () => {
-            budgetReads++;
-            return Promise.resolve(0);
-        },
-        recordUsage: (r) => {
-            usage.push(r);
-            return Promise.resolve();
-        },
-        client: o.client === undefined ? null : o.client,
         loadContext: () => Promise.resolve(summary),
         loadInputs: () => Promise.resolve(planInputs()),
         savePlan: () => Promise.reject(new Error("unexpected savePlan")),
@@ -89,8 +71,6 @@ function setup(
     return {
         handler: createCoachHandler(deps),
         applied,
-        usage,
-        budgetReads: () => budgetReads,
     };
 }
 
@@ -165,8 +145,6 @@ Deno.test("each target phase produces a valid nutrition with no model call and n
         assertEquals(row.nutrition.phase, phase);
         assertEquals(row.method.model, null);
         assertEquals(row.method.cost_eur, 0);
-        assertEquals(t.usage.length, 0);
-        assertEquals(t.budgetReads(), 0);
     }
 });
 
@@ -186,12 +164,11 @@ Deno.test("the same input gives the same output", async () => {
 });
 
 Deno.test("works with the budget exhausted and without a provider key", async () => {
-    const t = setup({ review: review("maintenance"), spent: 99, client: null });
+    const t = setup({ review: review("maintenance") });
     const res = await t.handler(post(valid()));
     assertEquals(res.status, 200);
     await res.text();
     assertEquals(t.applied.length, 1);
-    assertEquals(t.budgetReads(), 0);
 });
 
 Deno.test("an unknown review, no proposal, an already decided review and an unusable phase are refused", async () => {
@@ -209,7 +186,6 @@ Deno.test("an unknown review, no proposal, an already decided review and an unus
         assertEquals(res.status, 400);
         assertEquals((await res.json()).error.code, "INVALID_INPUT");
         assertEquals(t.applied.length, 0);
-        assertEquals(t.usage.length, 0);
     }
 });
 

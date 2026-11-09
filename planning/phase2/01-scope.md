@@ -21,7 +21,7 @@ An evidence-based performance assistant (coach) that plans four-week training an
 
 | ID | Change |
 |---|---|
-| NFR-02 | "100 % free" becomes: free except the coach's AI calls (Anthropic API), accepted up to 5 € per month in total, capped by the app (3 € per user and month, ADR-90) and by the Anthropic account spending limit (ADR-77). Supabase, GitHub, Open Food Facts, Health Connect and the Gemini free tier stay free |
+| NFR-02 | "100 % free" (restored by ADR-103: Anthropic and every paid AI provider are removed; Supabase, GitHub, Open Food Facts, Health Connect and the Gemini free tier stay free) |
 
 ## 4. Decisions (user, 2026-10-28)
 

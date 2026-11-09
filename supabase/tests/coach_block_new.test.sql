@@ -5,7 +5,7 @@ begin;
 create extension if not exists pgtap with schema extensions;
 set local search_path = extensions, public;
 
-select plan(86);
+select plan(85);
 
 -- ---------------------------------------------------------------------------
 -- Fixture helpers
@@ -306,7 +306,6 @@ select is((select p.status || '/' || p.intention || '/' || (p.method->>'source')
 select is((select md5((select to_jsonb(g)::text from public.nutrition_goals g where g.user_id = pg_temp.u(5)) ||
                       (select to_jsonb(p)::text from public.coach_plans p where p.id = pg_temp.plan_of(5)))),
   (select s from pre5), 'nutrition_goals and the accepted plan are untouched');
-select is((select count(*)::int from public.coach_usage where user_id = pg_temp.u(5)), 0, 'no model usage is recorded');
 create temp table sw5b as select pg_temp.switch(5) as r;
 grant select on sw5b to authenticated;
 select is((select count(*)::int from public.coach_plans where user_id = pg_temp.u(5) and status = 'proposed'), 1,

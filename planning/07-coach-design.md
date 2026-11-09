@@ -1,6 +1,6 @@
 # Coach design: evidence base and default rules
 
-Design base of the performance assistant (E13) and of the data it needs (E10-E12). Decisions: ADR-76 (coach), ADR-77 (AI provider and cost), ADR-78 (profile and catalogue).
+Design base of the performance assistant (E13) and of the data it needs (E10-E12). Decisions: ADR-76 (coach), ADR-77 (AI provider and cost; superseded by ADR-103: no paid provider), ADR-78 (profile and catalogue).
 
 **Principle:** every rule has a source, a common practice or a "design decision" label. No figure exists for convenience. Every source was checked before the E13 breakdown (2026-10-29, §10); the cardio and trainer-journey sources on 2026-11-01 (§10 29-66); the complete-routine sources on 2026-11-02/03 (§10 71-83, T-202).
 
@@ -422,10 +422,10 @@ Covers the nine features of `epics/E14-block-follow-up.md` and the user's decisi
 
 | Call | Input | Output | What it adds | Decision |
 |---|---|---|---|---|
-| `plan_nutrition` (Opus, `planNutrition.ts`) | the computed plan JSON, the outcome candidates (`outcomes.ts`) and the whole coach summary, free text included | 0-4 `candidate_id`s, each with a Spanish reason and a deadline inside block start +7..+28 days (`validateOutcomesText`) | a choice among figures the server already built, and prose | **Replace by rules and templates (below); the kind becomes `deterministic: true`**, no model, no budget check, no usage row, like `plan_recompute` |
+| `plan_nutrition` (was Opus, `planNutrition.ts`) | the computed plan JSON, the outcome candidates (`outcomes.ts`) and the whole coach summary, free text included | 0-4 `candidate_id`s, each with a Spanish reason and a deadline inside block start +7..+28 days (`validateOutcomesText`) | a choice among figures the server already built, and prose | **Replace by rules and templates (below); the kind becomes `deterministic: true`**, no model, no budget check, no usage row, like `plan_recompute` |
 | `plan_recompute` | — | — | already model-free | keep |
 | `plan_phase_change` (T-233) | — | — | model-free from the start (0 EUR): "Aceptar" at the end-of-block review | keep |
-| `report`, `chat` | — | — | not built (`router.ts` `available: false`) | out of scope for now |
+| `report`, `chat` | — | — | never built; removed with Anthropic (ADR-103, T-259) | out of scope; the only chat is the Gemini exercise chat (E18 US-130) |
 | `food-photo` (Gemini) | a food photo or label | diary food estimates | reads images (a real gap) | unchanged; diary, not the plan |
 
 Why no model: every figure is code (`04` §8), the candidates are code (`outcomes.ts`), and nothing left needs judgement. Chatbot diet plans deviated from the requested calories by more than 20 % in over half of one model's plans and scored lowest on macronutrient balance [Kaya Kaçar 2025, ref. 102; *weak*, chatbot benchmark, not people]; here the model never writes a figure, so its only contribution is prose, which templates give without cost, latency or the T-210/T-213/T-215 failure modes. The intake free text then no longer reaches the plan call; it never changed a figure (§7).
@@ -602,12 +602,12 @@ One table for every metric the app records (`03`: `body_measurements`, `body_cir
 - Free text (intake, check-in and discomfort notes, "¿Cómo te ha ido?") reaches the model as context (§8), shown to the user exactly as sent. It is **never matched against terms**, never triggers a health message (the note above is triggered by levels and dates only), never used to diagnose, and never changes a figure by itself: every number and trigger uses structured fields (no fields are extracted from the text, ADR-91).
 - Muscle soreness is not collected: it is a poor indicator of recovery or of adaptation [Schoenfeld, Contreras 2013; Nosaka et al. 2002].
 
-## 8. Data, privacy and cost
+## 8. Data and privacy
 
-- Personal use: no prior consent screen, by user decision. Before distributing the app to other people, each must accept the use of their data and the coach provider's terms; this condition is written, not implemented.
-- The `coach` Edge Function sends a compact summary (last 8 weeks at most), never raw tables or photos. `coach_summary` (`04` §7.8) caps it at 16 384 bytes (about 4 000 tokens) and excludes raw rows and photos; exercises go by catalogue key or custom id. **Free text (user decision 2026-11-01, reverses the earlier exclusion of all free text):** the summary carries one block "Lo que el entrenador sabe de ti": the intake free text (up to 500 characters), and the check-in notes, discomfort notes and "¿Cómo te ha ido?" answers of the last 8 weeks, newest first, verbatim, cut at 2 000 bytes in total (*design decision*). The user sees that block exactly as sent, in the Trainer tab, and can leave any line out of what is sent (the original note is kept). Set and routine notes, food names and custom exercise names stay excluded. Use limits in §7.
-- Cost control by money, not by calls (ADR-77, ADR-90): 3 € per user and 5 € in total per calendar month, plus a spending limit on the Anthropic account.
-- Deleting the account deletes the coach's plans, recommendations, outcomes, usage and conversations (ADR-29); "Eliminar historial del entrenador" deletes the plans, recommendations, outcomes, reports and conversations without deleting the account; the confirmed derived values and the AI usage stay (E13 Q5, Q13).
+- Personal use: no prior consent screen, by user decision. Before distributing the app to other people, each must accept the use of their data; this condition is written, not implemented.
+- The `coach` Edge Function is deterministic and calls no AI provider (ADR-103); the summary below is built for its rules and the Trainer screens. It reads a compact summary (last 8 weeks at most), never raw tables or photos. `coach_summary` (`04` §7.8) caps it at 16 384 bytes (about 4 000 tokens) and excludes raw rows and photos; exercises go by catalogue key or custom id. **Free text (user decision 2026-11-01, reverses the earlier exclusion of all free text):** the summary carries one block "Lo que el entrenador sabe de ti": the intake free text (up to 500 characters), and the check-in notes, discomfort notes and "¿Cómo te ha ido?" answers of the last 8 weeks, newest first, verbatim, cut at 2 000 bytes in total (*design decision*). The user sees that block exactly as sent, in the Trainer tab, and can leave any line out of what is sent (the original note is kept). Set and routine notes, food names and custom exercise names stay excluded. Use limits in §7.
+- No cost control is needed: the coach makes no paid call (ADR-103). The Gemini free tier serves `food-photo` and the exercise chat (E18 US-130).
+- Deleting the account deletes the coach's plans, recommendations, outcomes and conversations (ADR-29); "Eliminar historial del entrenador" deletes the plans, recommendations, outcomes, reports and conversations without deleting the account; the confirmed derived values stay (E13 Q5, Q13).
 
 ## 9. Design decisions without evidence backing
 
@@ -903,26 +903,20 @@ Not found (searched 2026-11-05, E14): a trial linking habitual sleep under 7 h t
 
 Not cited (could not be verified for a figure): the pain thresholds of Silbernagel et al. 2007 and Smith et al. 2017 (not in the abstracts; clinical populations under a clinician; Smith 2017's abstract finding is cited as ref. 144, its thresholds are not); "returning lifters recompose most easily" (secondary summaries only, not in Barakat's abstract); NSCA intake job-task analysis (403).
 
-## 11. Cost estimate (ADR-77)
+## 11. Cost (ADR-103)
 
-Prices re-checked on the Anthropic price list on 2026-11-01: Opus 5.5 $4 / $20, Sonnet 5.5 $2 / $10, Haiku 5.5 (`claude-haiku-5-5`) $0.10 / $0.50 per million input / output tokens; cache reads 0.05× input for Opus and Sonnet ($0.20 / $0.10) and 0.1× for Haiku ($0.01), 5-minute cache writes 1.25× input. Haiku 5.5 charges $0.50 / $2.50 for a request whose whole prompt (input + cache reads + cache writes) is over 100,000 tokens; the price table applies it. Haiku is a test aid (T-178: the client may send an optional `model` of `opus`, `sonnet` or `haiku` that overrides the kind's default and prices the usage with that model); it is not used by default and has no row in the cost table. US-only inference (`inference_geo`) would multiply every price by 1.1; it is not used. The function's price table (US-76) holds these figures.
+No coach call has a cost: every kind is deterministic (rules and Spanish templates), and Anthropic was removed in T-259 (ADR-103, which supersedes the cost caps of ADR-77 and ADR-90). NFR-02 is "100 % free". Gemini (free tier) is used only by `food-photo` and, from E18 US-130, by the exercise chat.
 
-**Data policy (checked 2026-10-29):** the Anthropic API deletes inputs and outputs within 30 days (longer only for Usage Policy enforcement or legal reasons) and does not use them for training by default.
+**Edge Function limit (checked 2026-10-29):** wall clock 150 s per invocation on the Supabase Free plan (400 s on paid), 2 s CPU (waiting for an external API does not count).
 
-**Edge Function limit (checked 2026-10-29):** wall clock 150 s per invocation on the Supabase Free plan (400 s on paid), 2 s CPU (waiting for the API does not count). The block plan call must finish within 150 s, or be streamed or split.
-
-| Use | Model | Assumption per call | Per call | Per user and month |
-|---|---|---|---|---|
-| Block builder, "Desde cero" and "Desde una carpeta" (T-219, user decision 2026-11-04; replaced the `block_splits`, `plan_block` and `folder_review purpose: block` rows, removed in T-224) | none: rules on the device or server, the user picks the exercises | 0 | $0 | $0 |
-| Nutrition plan (`plan_nutrition`, T-218, ADR-98) | none: rules and Spanish templates, no model call | 0 | $0 | $0 |
-| Folder review screen "Revisar tus rutinas" (T-216, ADR-97) | none: computed on the device, no model call | 0 | $0 | $0 |
-| Weekly summary (E14, D4: fixed templates, §3 "Block follow-up" (3)) | none | 0 | $0 | $0 |
-| Weekly report (model text; later epics only, not on the E14 happy path) | Sonnet 5.5 | 20k in, 5k out; up to 8 per month | ≈ $0.09 | ≈ $0.70 |
-| Chat | Sonnet 5.5 | 15k in (12k cached), 1.5k out; 60 messages | ≈ $0.024 | ≈ $1.45 |
-| Intake extraction (T-185, removed by T-198) | — | no model call | — | — |
-| Derived values, progression, deload, trend | none (deterministic) | | $0 | $0 |
-
-Heavy user ≈ $3 per month (≈ 3,1 € with the trainer-journey calls: intake extraction, one review per block, the free-text block), light user ≈ $1. The 3 € per-user cap (ADR-90) stops a heavy user's chat near the end of the month; the plan and the report are served first. The 5 € total binds first when more than one user is heavy.
+| Use | Model | Per user and month |
+|---|---|---|
+| Block builder, "Desde cero" and "Desde una carpeta" (T-219; replaced the `block_splits`, `plan_block` and `folder_review purpose: block` calls, removed in T-224) | none: rules on the device or server | $0 |
+| Nutrition plan (`plan_nutrition`, T-218, ADR-98), recompute, phase change, goal switch, diet break | none: rules and Spanish templates | $0 |
+| Folder review screen "Revisar tus rutinas" (T-216, ADR-97) | none: computed on the device | $0 |
+| Weekly summary (E14, D4: fixed templates, §3 "Block follow-up" (3)) | none | $0 |
+| Intake extraction (T-185, removed by T-198) | none | $0 |
+| Derived values, progression, deload, trend | none (deterministic) | $0 |
 
 ## 12. Long-term follow-up: the trainer journey
 
