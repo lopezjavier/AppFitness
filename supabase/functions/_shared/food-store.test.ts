@@ -1,6 +1,7 @@
 import { assert, assertEquals } from "jsr:@std/assert@1.0.19";
 import {
     COLUMNS,
+    favoriteFoodIds,
     findByBarcode,
     offRow,
     searchLocal,
@@ -17,24 +18,52 @@ function fullProduct() {
     return normalizeProduct(raw.product)!;
 }
 
-/** Fake PostgREST client that records the select string and answers with the given rows. */
-function fakeClient(rows: unknown[]) {
-    const seen = { select: "", from: "" };
-    // deno-lint-ignore no-explicit-any
-    const builder: any = {
-        select(s: string) {
-            seen.select = s;
-            return builder;
-        },
-        textSearch: () => builder,
-        limit: () => Promise.resolve({ data: rows, error: null }),
-        eq: () => Promise.resolve({ data: rows, error: null }),
+/** Fake PostgREST client: records the query and answers with the rows matching the `source` filter, if any. */
+function fakeClient(rows: Array<Record<string, unknown>>) {
+    const seen = {
+        select: "",
+        from: "",
+        sources: [] as string[],
+        limits: [] as number[],
+        orders: [] as string[],
     };
+    function chain() {
+        let source: string | undefined;
+        // deno-lint-ignore no-explicit-any
+        const builder: any = {
+            select(s: string) {
+                seen.select = s;
+                return builder;
+            },
+            textSearch: () => builder,
+            eq(column: string, value: string) {
+                if (column === "source") {
+                    source = value;
+                    seen.sources.push(value);
+                }
+                return builder;
+            },
+            order(column: string) {
+                seen.orders.push(column);
+                return builder;
+            },
+            limit(n: number) {
+                seen.limits.push(n);
+                return builder;
+            },
+            // deno-lint-ignore no-explicit-any
+            then(resolve: (v: any) => unknown) {
+                const data = rows.filter((r) => !source || r.source === source);
+                return Promise.resolve({ data, error: null }).then(resolve);
+            },
+        };
+        return builder;
+    }
     return {
         client: {
             from: (t: string) => {
                 seen.from = t;
-                return builder;
+                return chain();
             },
             // deno-lint-ignore no-explicit-any
         } as any,
@@ -133,4 +162,39 @@ Deno.test("COLUMNS includes alcohol_g_100 but the view select does not (foods_se
     const barcode = fakeClient([dbRow]);
     await findByBarcode(barcode.client, "8410000810004");
     assert(barcode.seen.select.includes("alcohol_g_100"));
+});
+
+Deno.test("searchLocal queries own foods and OFF separately, each with the limit, and lists own first", async () => {
+    const offRows = Array.from(
+        { length: 25 },
+        (_, i) => ({ ...dbRow, id: `off${i}`, source: "off" }),
+    );
+    const own = { ...dbRow, id: "mine", source: "user" };
+    const { client, seen } = fakeClient([...offRows, own]);
+    const foods = await searchLocal(client, "avena", 20);
+    assertEquals(seen.sources.sort(), ["off", "user"]);
+    assertEquals(seen.limits, [20, 20]);
+    assertEquals(foods[0].id, "mine");
+    assertEquals(foods.length, 26);
+});
+
+Deno.test("favoriteFoodIds returns the ids of the favourite foods", async () => {
+    const { client, seen } = fakeClient([
+        { food_id: "a" },
+        { food_id: "b" },
+    ]);
+    const ids = await favoriteFoodIds(client);
+    assertEquals(seen.from, "favorite_foods");
+    assertEquals([...ids].sort(), ["a", "b"]);
+});
+
+Deno.test("findByBarcode asks for the oldest first and the oldest own food wins", async () => {
+    const { client, seen } = fakeClient([
+        { ...dbRow, id: "off", source: "off", off_data: null },
+        { ...dbRow, id: "old-own", source: "user", off_data: null },
+        { ...dbRow, id: "new-own", source: "user", off_data: null },
+    ]);
+    const found = await findByBarcode(client, "8410000810004");
+    assertEquals(seen.orders, ["created_at"]);
+    assertEquals(found?.food.id, "old-own");
 });

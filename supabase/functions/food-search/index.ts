@@ -6,6 +6,7 @@ import {
     adminClient,
     authenticate,
     callerClient,
+    favoriteFoodIds,
     searchLocal,
     upsertOffFoods,
 } from "../_shared/food-store.ts";
@@ -23,6 +24,7 @@ Deno.serve((req) => {
     return createFoodSearchHandler({
         authenticate,
         searchLocal: (q) => searchLocal(callerClient(token), q, MAX_RESULTS),
+        favoriteIds: () => favoriteFoodIds(callerClient(token)),
         searchOff: (q, page) => searchOff(offDeps(), q, page),
         upsertOff: (foods) => upsertOffFoods(adminClient(), foods),
     })(req);

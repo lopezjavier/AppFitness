@@ -21,20 +21,41 @@ export type FoodSearchDeps = {
     authenticate: (token: string) => Promise<string | null>;
     /** Foods the caller may read (OFF + own personal foods) matching the query, with portions. */
     searchLocal: (q: string, userId: string) => Promise<Food[]>;
+    /** Ids of the caller's favourite foods. */
+    favoriteIds: (userId: string) => Promise<Set<string>>;
     /** Open Food Facts search; throws OffError when unreachable. */
     searchOff: (q: string, page: number) => Promise<NormalizedFood[]>;
     /** Stores OFF foods and their portions with the secret key; returns the stored foods. */
     upsertOff: (foods: NormalizedFood[]) => Promise<Food[]>;
 };
 
+/**
+ * Orders local results favourites, other own foods, OFF (stable inside each group) and drops any OFF row whose
+ * barcode an own food already has: the personal copy replaces it (US-118).
+ */
+function arrange(local: Food[], favorites: Set<string>): Food[] {
+    const ownBarcodes = new Set(
+        local.filter((f) => f.source === "user" && f.barcode).map((f) =>
+            f.barcode
+        ),
+    );
+    const rank = (f: Food) =>
+        favorites.has(f.id) ? 0 : f.source === "user" ? 1 : 2;
+    return local
+        .filter((f) =>
+            !(f.source === "off" && f.barcode && ownBarcodes.has(f.barcode))
+        )
+        .map((f, i) => ({ f, i }))
+        .sort((a, b) => rank(a.f) - rank(b.f) || a.i - b.i)
+        .map(({ f }) => f);
+}
+
+// Own foods come first in `local`, so the copy wins when a barcode repeats regardless of source.
 function merge(local: Food[], fromOff: Food[]): Food[] {
     const seen = new Set<string>();
     const out: Food[] = [];
     for (const f of [...local, ...fromOff]) {
-        const keys = [
-            `id:${f.id}`,
-            ...(f.barcode ? [`bc:${f.source}:${f.barcode}`] : []),
-        ];
+        const keys = [`id:${f.id}`, ...(f.barcode ? [`bc:${f.barcode}`] : [])];
         if (keys.some((k) => seen.has(k))) continue;
         keys.forEach((k) => seen.add(k));
         out.push(f);
@@ -60,7 +81,10 @@ export function createFoodSearchHandler(
             const page = parsePage(params.get("page"));
             if (!page.ok) return errorResponse("INVALID_INPUT", page.message);
 
-            const local = await deps.searchLocal(q.value, userId);
+            const local = arrange(
+                await deps.searchLocal(q.value, userId),
+                await deps.favoriteIds(userId),
+            );
             if (local.length >= MIN_LOCAL_RESULTS) {
                 return jsonResponse(200, {
                     results: local.slice(0, MAX_RESULTS),
