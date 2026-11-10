@@ -12,6 +12,8 @@ Last task ID used: T-270 (T-268, T-269, T-270 = Checkpoint E18 feedback fixes; T
 
 **Next (2026-11-10, E18, T-270):** T-269 merged (PR #619) and the Checkpoint E18 re-test is **approved by the user except one bug**: opening the Trainer and tapping "Tu plan" / "Tu bloque" each take 2-3 s of loading. Diagnosis (code read, nothing timed): our code, not Supabase. `TrainerViewModel.fetch()` runs ~18-22 sequential round trips on every open, and the box screens (T-268) get a new `TrainerViewModel` that repeats the whole fetch. Next is **T-270** (fix). After T-270 re-present only the Trainer open and the two boxes; its approval releases T-267 (closure). Follow-ups: chat has no follow-up context (each question stands alone; user may want a task); week-summary box has no date range; old non-cardio `no_range_flag` rows lack `figures.routine_id`; `BlockReviewEntry` hand-rolled clickable card; `WeekSummaryScreen` internal `SummaryCard` name clash; duplicate "Tu plan" header.
 
+**Added to E18 (product-owner, 2026-11-10, ADR-105), not yet broken down:** US-132 (meal from typed text) and US-133 (monthly `pg_cron` cleanup of unused personal foods). Run `epic-planner` for these two stories in a fresh session after Checkpoint E18 is approved and before T-267 (closure); the planner confirms `pg_cron` on the free plan, and `fitness-scientist` supplies the portion defaults in `07` first.
+
 ## Open follow-ups carried into Phase 3
 
 - T-238 (pr-reviewer, non-blocking): extract local vals for the ktlint-wrapped `kind == RestAlertKind.Cardio` in `RestAlertNotifier.post` and `minutes != null` in `SessionSetRow.cardioPlaceholder`.
