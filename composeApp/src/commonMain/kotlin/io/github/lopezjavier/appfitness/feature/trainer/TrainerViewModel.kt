@@ -6,6 +6,8 @@ import androidx.lifecycle.viewModelScope
 import io.github.lopezjavier.appfitness.domain.AppError
 import io.github.lopezjavier.appfitness.domain.AppException
 import io.github.lopezjavier.appfitness.domain.appErrorOrNull
+import io.github.lopezjavier.appfitness.domain.model.BlockPause
+import io.github.lopezjavier.appfitness.domain.model.CalorieProposal
 import io.github.lopezjavier.appfitness.domain.model.CoachChangeException
 import io.github.lopezjavier.appfitness.domain.model.CoachChangeFailure
 import io.github.lopezjavier.appfitness.domain.model.CoachChangeKind
@@ -18,6 +20,7 @@ import io.github.lopezjavier.appfitness.domain.model.MacroSplit
 import io.github.lopezjavier.appfitness.domain.model.Macronutrient
 import io.github.lopezjavier.appfitness.domain.model.Phase
 import io.github.lopezjavier.appfitness.domain.model.PlanStatus
+import io.github.lopezjavier.appfitness.domain.model.PlanWeek
 import io.github.lopezjavier.appfitness.domain.model.ProgressionFlagDecision
 import io.github.lopezjavier.appfitness.domain.port.Clock
 import io.github.lopezjavier.appfitness.domain.repository.BodyMeasurementRepository
@@ -38,14 +41,19 @@ import io.github.lopezjavier.appfitness.domain.usecase.LoadBlockReviewUseCase
 import io.github.lopezjavier.appfitness.domain.usecase.LoadWeeksInPhaseUseCase
 import io.github.lopezjavier.appfitness.domain.usecase.LoadWelcomeBack
 import io.github.lopezjavier.appfitness.domain.usecase.NutritionGoalsChecklist
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.async
 import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.supervisorScope
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
@@ -516,52 +524,79 @@ class TrainerViewModel(
         }
     }
 
-    private suspend fun fetch(): TrainerUiState.Content {
+    /**
+     * One read of the whole hub. The plan-dependent chain keeps its order (plan, diet break, proposal; block; deload
+     * evaluation; then weeks, pause and change rows); every read that does not depend on a previous answer runs beside
+     * it, so the screen waits for the longest chain, not for the sum. A failed read is a [Result.failure] that only
+     * hides its own piece; cancellation still propagates.
+     */
+    private suspend fun fetch(): TrainerUiState.Content = supervisorScope {
         // The count only feeds the "Tus datos" row: a failed read leaves the row without it.
-        val provisional = repository.derivedValues(today()).getOrNull()?.provisionalCount()
+        val provisional = async { repository.derivedValues(today()).getOrNull()?.provisionalCount() }
+        // A failed read just hides the "Resumen semanal" row.
+        val hasWeekSummary = async { summaries?.getLatest(today())?.getOrNull() != null }
+        // The review opens (idempotently) once the block's last day has passed; a failed read hides the card.
+        val blockReviewDue = async { loadBlockReview?.invoke(today())?.getOrNull() != null }
+        // The swap offer and the health note; a failed read hides them.
+        val followUps = async { discomfort?.followUps().orEmpty() }
         // The plan entry and the calorie card never block the screen: a failed read means none.
         val plan = readPlan()
-        // A diet-break plan switches the Diario target by plan week; a failure is swallowed like its siblings.
-        if (plan is PlanSummary.Accepted) plans?.applyDietBreak(today())
-        val proposal = if (plan is PlanSummary.Accepted) plans?.pendingCalorieProposal(today())?.getOrNull() else null
+        // A diet-break plan switches the Diario target by plan week, so it ends before anything reads that target.
+        val dietBreak = async { if (plan is PlanSummary.Accepted) plans?.applyDietBreak(today()) }
         val block = blocks.summaryFor(plan)
-        // Weeks and the deload rule need an accepted plan with a saved block; failed reads mean none. The rule applies
-        // a deload on its own (plan week 4), so it runs before the change rows are read.
-        val savedPlanId = (plan as? PlanSummary.Accepted)?.plan?.id?.takeIf { block is BlockSummary.Saved }
-        savedPlanId?.let { coachWeeks?.evaluateDeload(today()) }
-        val planWeeks = savedPlanId?.let { coachWeeks?.weeks(it, today())?.getOrNull() }.orEmpty()
-        // The pause and the moved end date; a failed read hides them without hiding the weeks.
-        val pause = savedPlanId?.let { coachWeeks?.blockPause(it, today())?.getOrNull() }
-        // The coach changes of the open plan; a failed read hides the section like its siblings.
-        val changeRows = plan.id()?.let { readCoachChanges(it) }.orEmpty()
+        dietBreak.await()
+        val proposal = async { proposalFor(plan) }
+        val checklist = goalsChecklistAsync(plan)
+        // A failed read hides the line ("Llevas n semanas en esta fase"), never "0 semanas".
+        val weeksInPhase = async {
+            if (plan is PlanSummary.Accepted) loadWeeksInPhase?.invoke(today())?.getOrNull() else null
+        }
+        val welcomeBack = async { welcomeBackFor(plan, block) }
+        // Assumption: the deload rule written by evaluateDeload does not change what welcomeBack and weeksInPhase read.
+        val hub = hubOf(plan, block)
         // A restored confirmation only makes sense while the block is still saved.
         val confirmRemove = savedState.get<Boolean>(KEY_REMOVE_BLOCK_CONFIRM) == true
         if (confirmRemove && block !is BlockSummary.Saved) savedState.remove<Boolean>(KEY_REMOVE_BLOCK_CONFIRM)
-        // The swap offer and the health note; a failed read hides them. A saved picker is rebuilt from its exercise id.
-        val followUps = discomfort?.followUps().orEmpty()
-        return TrainerUiState.Content(
+        val shownFollowUps = followUps.await()
+        TrainerUiState.Content(
             plan = plan,
-            calorieProposal = proposal,
+            calorieProposal = proposal.await(),
             block = block,
-            weeks = planWeeks,
-            pause = pause,
-            coachChanges = changeRows,
-            provisionalCount = provisional,
-            // One more read; a failed one just hides the "Resumen semanal" row.
-            hasWeekSummary = summaries?.getLatest(today())?.getOrNull() != null,
-            // The review opens (idempotently) once the block's last day has passed; a failed read hides the card.
-            blockReviewDue = loadBlockReview?.invoke(today())?.getOrNull() != null,
-            // The welcome-back card needs the accepted plan with a saved block; a failed read hides it.
-            welcomeBack = welcomeBackFor(plan, block),
-            goalsChecklist = goalsChecklistFor(plan),
+            weeks = hub.weeks,
+            pause = hub.pause,
+            coachChanges = hub.changes,
+            provisionalCount = provisional.await(),
+            hasWeekSummary = hasWeekSummary.await(),
+            blockReviewDue = blockReviewDue.await(),
+            welcomeBack = welcomeBack.await(),
+            goalsChecklist = checklist.await(),
             cardioEdit = cardioEdit.current((plan as? PlanSummary.Accepted)?.plan?.cardioMinutes()),
             removeBlockConfirm = confirmRemove && block is BlockSummary.Saved,
-            // A failed read hides the line ("Llevas n semanas en esta fase"), never "0 semanas".
-            weeksInPhase = if (plan is PlanSummary.Accepted) loadWeeksInPhase?.invoke(today())?.getOrNull() else null,
-            discomfortFollowUps = followUps,
-            swapPicker = discomfort?.restoredPicker(followUps),
+            weeksInPhase = weeksInPhase.await(),
+            discomfortFollowUps = shownFollowUps,
+            swapPicker = discomfort?.restoredPicker(shownFollowUps),
         )
     }
+
+    private class HubReads(val weeks: List<PlanWeek>, val pause: BlockPause?, val changes: List<CoachChangeRowUi>)
+
+    /**
+     * Weeks and the deload rule need an accepted plan with a saved block; failed reads mean none. The rule applies a
+     * deload on its own (plan week 4), so it runs before the weeks, the pause and the change rows are read.
+     */
+    private suspend fun hubOf(plan: PlanSummary, block: BlockSummary): HubReads = coroutineScope {
+        val savedPlanId = (plan as? PlanSummary.Accepted)?.plan?.id?.takeIf { block is BlockSummary.Saved }
+        savedPlanId?.let { coachWeeks?.evaluateDeload(today()) }
+        val weeks = async { savedPlanId?.let { coachWeeks?.weeks(it, today())?.getOrNull() }.orEmpty() }
+        // The pause and the moved end date; a failed read hides them without hiding the weeks.
+        val pause = async { savedPlanId?.let { coachWeeks?.blockPause(it, today())?.getOrNull() } }
+        // The coach changes of the open plan; a failed read hides the section like its siblings.
+        val changes = async { plan.id()?.let { readCoachChanges(it) }.orEmpty() }
+        HubReads(weeks.await(), pause.await(), changes.await())
+    }
+
+    private suspend fun proposalFor(plan: PlanSummary): CalorieProposal? =
+        if (plan is PlanSummary.Accepted) plans?.pendingCalorieProposal(today())?.getOrNull() else null
 
     private suspend fun welcomeBackFor(plan: PlanSummary, block: BlockSummary): Boolean {
         val accepted = (plan as? PlanSummary.Accepted)?.plan?.takeIf { block is BlockSummary.Saved } ?: return false
@@ -570,14 +605,17 @@ class TrainerViewModel(
 
     /** N1-N4 on the Diario goals in use: only for an accepted plan with edited goals, null when an input is missing. */
     @Suppress("ReturnCount") // Guards: not edited, a repository, or an input is missing.
-    private suspend fun goalsChecklistFor(plan: PlanSummary): GoalChecklist? {
-        val accepted = (plan as? PlanSummary.Accepted)?.plan ?: return null
-        if (!accepted.nutrition.editedByUser) return null
-        val saved = goals?.getOwn()?.getOrNull() ?: return null
-        val sex = profile?.getBiometrics()?.getOrNull()?.sex ?: return null
-        val weightKg = measurements?.getLatestWeight()?.getOrNull()?.weightKg ?: return null
+    private fun CoroutineScope.goalsChecklistAsync(plan: PlanSummary): Deferred<GoalChecklist?> = async {
+        val accepted = (plan as? PlanSummary.Accepted)?.plan ?: return@async null
+        if (!accepted.nutrition.editedByUser) return@async null
+        val savedRead = async { goals?.getOwn()?.getOrNull() }
+        val sexRead = async { profile?.getBiometrics()?.getOrNull()?.sex }
+        val weightRead = async { measurements?.getLatestWeight()?.getOrNull()?.weightKg }
+        val saved = savedRead.await() ?: return@async null
+        val sex = sexRead.await() ?: return@async null
+        val weightKg = weightRead.await() ?: return@async null
         val kcal = saved.targetKcal
-        return NutritionGoalsChecklist(
+        NutritionGoalsChecklist(
             targets = GoalTargets(
                 targetKcal = kcal,
                 proteinG = gramsOf(kcal, saved.split, Macronutrient.Protein),
