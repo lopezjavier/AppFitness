@@ -1,6 +1,6 @@
 # E18 · Functional improvements
 
-> **Status: DEFINED (product-owner, 2026-11-09, ADR-103), not planned.** Stories US-128, US-129, US-130, US-120…US-122 (moved from the former "E18 UI review"), and US-132 (added by product-owner, 2026-11-10, ADR-105); US-133 was added and then withdrawn by T-273 (user decision, 2026-11-10). The `epic-planner` breaks it into tasks. It runs before E19 (UI review), so the screens it adds are reviewed once.
+> **Status: DEFINED (product-owner, 2026-11-09, ADR-103), not planned.** Stories US-128, US-129, US-130, US-120…US-122 (moved from the former "E18 UI review"), US-132 (added by product-owner, 2026-11-10, ADR-105), and US-134 and US-135 (added by product-owner, 2026-11-10, ADR-106); US-133 was added and then withdrawn by T-273 (user decision, 2026-11-10). The `epic-planner` breaks it into tasks. It runs before E19 (UI review), so the screens it adds are reviewed once.
 
 ## Intent
 
@@ -21,7 +21,7 @@
 **Approach chosen and why.** Text reuses the photo flow: a new mode of the Gemini free-tier function returns one combined food as a draft in the usual form, with the energy check of ADR-104; the text is not stored or logged. The cleanup originally planned (US-133) was dropped by T-273. **Risk accepted:** Gemini estimates can be off (`07` ref 102), so the draft is always editable and shown as an estimate.
 
 ## Rules
-`04` §6.1 (reminders stay computed, never stored); ADR-17, ADR-59, ADR-66, ADR-98, ADR-101, ADR-103, ADR-104, ADR-105; `05` §8-§10; ADR-27, ADR-80.
+`04` §6.1 (reminders stay computed, never stored); ADR-17, ADR-59, ADR-66, ADR-98, ADR-101, ADR-103, ADR-104, ADR-105, ADR-106; `05` §8-§10; ADR-27, ADR-80.
 
 ## US-128 · The app no longer uses Anthropic
 **As** the user
@@ -266,4 +266,78 @@ Feature: Unused food cleanup
 
   Scenario: Other accounts are untouched
     Then each account's cleanup deletes only that account's own unused foods
+```
+
+## US-134 · Extend my block
+*Added by product-owner, 2026-11-10 (ADR-106). Reverses the "illness" non-goal of E15 for this one action; "Bloque nuevo" stays the way to change plan.*
+
+**As** a user who is ill or busy
+**I want** to say the day my block now ends
+**So that** I can finish my sessions without doubling up.
+
+Non-goals: pausing, back-dating, any change to loads, deloads or calories.
+
+```gherkin
+Feature: Extend the block
+
+  Scenario: Choosing the new last day
+    Given my block ends on 12 Nov
+    When I tap "Ampliar bloque" and pick 15 Nov
+    Then the Trainer shows the block ending on 15 Nov
+
+  Scenario: A session on the last day counts
+    Given I extended my block to 15 Nov
+    When I finish a session on 15 Nov
+    Then it counts in the block and in my week's adherence
+
+  Scenario: My sessions stay to do
+    Given my week has 4 sessions and I did 2
+    When I extend the block
+    Then the other 2 are still to do
+
+  Scenario: Later weeks and schedules move too
+    Given my block has weeks after the current one, a review or a next block planned
+    When I extend the block by 3 days
+    Then each of them moves 3 days later
+
+  Scenario: Changing my mind
+    Given I extended my block to 15 Nov
+    When I tap "Ampliar bloque" and pick 12 Nov
+    Then the block ends on 12 Nov again
+
+  Scenario: The extension survives leaving the app
+    Given I extended my block
+    When I close the app and open it again
+    Then the Trainer still shows the new end date
+
+  Scenario: No extension without a block
+    Given I have no active block
+    Then there is no "Ampliar bloque" action
+```
+
+## US-135 · Small corrections to the food forms
+*Added by product-owner, 2026-11-10 (ADR-106). Amends Q-E17-1 of E17 (alcohol typed in grams only).*
+
+```gherkin
+Feature: Food form corrections
+
+  Scenario: A simple example in "Qué has comido"
+    When I open "Describir comida"
+    Then the example reads "Ej.: pechuga de pollo con patatas fritas"
+
+  Scenario: Alcohol lives in its own section
+    When I open the form to create or edit a food
+    Then "Alcohol" is not between "Fibra" and "Proteínas"
+    And it is a collapsible section below "Minerales"
+
+  Scenario: Alcohol by volume, no formula
+    Given the food is measured in ml
+    When I open the Alcohol section
+    Then I can enter grams per 100 ml or "grados" (% vol)
+    And the app converts grados to grams (07 §4) and shows the result
+    And the help does not ask me to calculate anything
+
+  Scenario: A food measured in grams
+    Given the food is measured in g
+    Then Alcohol accepts grams only
 ```
