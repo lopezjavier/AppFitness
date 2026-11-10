@@ -11,6 +11,7 @@ export type ErrorCode =
     | "NO_FOOD_RECOGNIZED"
     | "QUOTA_EXCEEDED"
     | "PROVIDER_ERROR"
+    | "PROVIDER_TIMEOUT"
     | "NOT_CONFIGURED"
     | "coach_missing_data"
     | "coach_plan_infeasible"
@@ -27,6 +28,7 @@ const STATUS: Record<ErrorCode, number> = {
     NO_FOOD_RECOGNIZED: 422,
     QUOTA_EXCEEDED: 429,
     PROVIDER_ERROR: 502,
+    PROVIDER_TIMEOUT: 504,
     NOT_CONFIGURED: 503,
     coach_missing_data: 422,
     coach_plan_infeasible: 422,

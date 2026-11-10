@@ -76,6 +76,7 @@ jobs:
           deno check supabase/functions/food-barcode/index.ts
           deno check supabase/functions/food-photo/index.ts
           deno check supabase/functions/coach/index.ts
+          deno check supabase/functions/exercise-chat/index.ts
       - name: Deno tests (Edge Functions)
         run: deno test --allow-all supabase/functions
       - name: Start local Supabase
