@@ -250,6 +250,11 @@ Rules: ADR-103 (Anthropic removed, reports stored, the Gemini exercise chat), AD
 
 ---
 
+**Checkpoint E18 feedback (user, 2026-11-10; screenshots `design/reported/E18-trainer-cambios-del-entrenador.png`, `design/reported/E18-preguntar-useless-answer.png`; not yet planned, fixes first):**
+1. **Compact Trainer (T-264) is not what was asked.** The requirement was: a summary in a box on the Trainer, and tapping the box shows its information; not moving everything to a new "Detalles" section. The user misses plenty of information to understand what is going on.
+2. **"Cambios del entrenador" (Bicicleta Estática):** shows "Este ejercicio no tiene un rango de repeticiones, así que el entrenador no puede subirlo solo." for a cardio exercise: why would cardio need a rep range? And the "Añadir un rango" button does nothing when tapped (bug).
+3. **"Preguntar" chat (T-266) is of no value as built:** asked for safer replacement exercises for Hip thrust con barra (injury mentioned), the answer was only "Consulta con un profesional sanitario y, si te molesta en este ejercicio, puedes usar Registrar molestia en la app." The user asks why this chat is being built at all. Open product question for the user: keep, rework or drop US-130.
+
 ### Checkpoint E18 — Functional improvements, with the final E18 regression 👤 (16 items, leave and come back included) *(epic-planner, 2026-11-09; the only E18 checkpoint, user decision 2026-11-09; its approval releases T-267)*
 
 After T-266 merges (the last implementation task), CI green, `deploy-supabase` green on `main` after T-259, T-261 and T-265 with data intact, `coach`, `exercise-chat` and `food-photo` deployed, `ANTHROPIC_API_KEY` unset. Main account. **Before installing, take screenshots of your Trainer** (for item 12). What to try on the phone (`python scripts/deliver-apk.py`):
