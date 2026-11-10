@@ -12,6 +12,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import io.github.lopezjavier.appfitness.composeapp.resources.Res
+import io.github.lopezjavier.appfitness.composeapp.resources.action_cancel
+import io.github.lopezjavier.appfitness.composeapp.resources.action_done
 import io.github.lopezjavier.appfitness.composeapp.resources.block_week_paused
 import io.github.lopezjavier.appfitness.composeapp.resources.coach_deload_help_body
 import io.github.lopezjavier.appfitness.composeapp.resources.coach_deload_help_cd
@@ -19,10 +21,17 @@ import io.github.lopezjavier.appfitness.composeapp.resources.coach_deload_help_t
 import io.github.lopezjavier.appfitness.composeapp.resources.coach_deload_request
 import io.github.lopezjavier.appfitness.composeapp.resources.coach_deload_request_offline
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_check
+import io.github.lopezjavier.appfitness.composeapp.resources.ic_edit
 import io.github.lopezjavier.appfitness.composeapp.resources.plan_week_cardio
 import io.github.lopezjavier.appfitness.composeapp.resources.plan_week_steps
 import io.github.lopezjavier.appfitness.composeapp.resources.plan_week_steps_none
 import io.github.lopezjavier.appfitness.composeapp.resources.trainer_block_end
+import io.github.lopezjavier.appfitness.composeapp.resources.trainer_block_end_busy
+import io.github.lopezjavier.appfitness.composeapp.resources.trainer_block_end_edit_cd
+import io.github.lopezjavier.appfitness.composeapp.resources.trainer_block_end_help_body
+import io.github.lopezjavier.appfitness.composeapp.resources.trainer_block_end_help_cd
+import io.github.lopezjavier.appfitness.composeapp.resources.trainer_block_end_help_title
+import io.github.lopezjavier.appfitness.composeapp.resources.trainer_block_end_offline
 import io.github.lopezjavier.appfitness.composeapp.resources.trainer_week_chip_current
 import io.github.lopezjavier.appfitness.composeapp.resources.trainer_week_chip_deload
 import io.github.lopezjavier.appfitness.composeapp.resources.trainer_week_chip_diet_break
@@ -36,6 +45,8 @@ import io.github.lopezjavier.appfitness.composeapp.resources.trainer_week_title
 import io.github.lopezjavier.appfitness.composeapp.resources.trainer_weeks_header
 import io.github.lopezjavier.appfitness.designsystem.AppCard
 import io.github.lopezjavier.appfitness.designsystem.AppDateFormat
+import io.github.lopezjavier.appfitness.designsystem.AppDatePickerDialog
+import io.github.lopezjavier.appfitness.designsystem.AppIconButton
 import io.github.lopezjavier.appfitness.designsystem.AppLinearProgress
 import io.github.lopezjavier.appfitness.designsystem.AppListRow
 import io.github.lopezjavier.appfitness.designsystem.AppNumberFormat
@@ -52,6 +63,7 @@ import io.github.lopezjavier.appfitness.domain.model.BlockPause
 import io.github.lopezjavier.appfitness.domain.model.PlanWeek
 import io.github.lopezjavier.appfitness.domain.model.PlanWeekSession
 import io.github.lopezjavier.appfitness.domain.model.WeekPhase
+import kotlinx.datetime.LocalDate
 import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.resources.pluralStringResource
 import org.jetbrains.compose.resources.stringResource
@@ -66,11 +78,12 @@ internal fun PlanWeeksSection(
     request: DeloadRequestUi = DeloadRequestUi(),
     pause: BlockPause? = null,
     dietBreakWeek: Int? = null,
+    extend: ExtendBlockUi = ExtendBlockUi(),
 ) {
     if (weeks.isEmpty()) return
     Column(Modifier.testTag("trainer_weeks_section"), verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
         ListSectionHeader(stringResource(Res.string.trainer_weeks_header))
-        BlockPauseLines(pause)
+        BlockPauseLines(pause, extend)
         weeks.forEach { WeekCard(it, dietBreak = it.week == dietBreakWeek) }
         if (request.available) {
             Row(verticalAlignment = Alignment.CenterVertically) {
@@ -94,9 +107,12 @@ internal fun PlanWeeksSection(
     }
 }
 
-/** "Semana en pausa" while the block is paused and, once any week was paused, the moved end date (US-106). */
+/**
+ * "Semana en pausa" while the block is paused and the block's last day with its pencil (US-106, US-134): the pencil
+ * and its help show only while the block can still be changed; offline it is disabled with the standard hint.
+ */
 @Composable
-private fun BlockPauseLines(pause: BlockPause?) {
+private fun BlockPauseLines(pause: BlockPause?, extend: ExtendBlockUi) {
     if (pause == null) return
     val end = pause.blockEnd
     Column(verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
@@ -109,16 +125,61 @@ private fun BlockPauseLines(pause: BlockPause?) {
                 )
             }
         }
-        if (pause.pausedWeeks > 0 && end != null) {
-            Text(
-                text = stringResource(Res.string.trainer_block_end, AppDateFormat.title(end)),
-                style = AppTheme.typography.bodySmall,
-                color = AppTheme.colors.textSecondary,
-                modifier = Modifier.testTag("trainer_block_end"),
-            )
+        if (end != null) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    text = stringResource(Res.string.trainer_block_end, AppDateFormat.title(end)),
+                    style = AppTheme.typography.bodySmall,
+                    color = AppTheme.colors.textSecondary,
+                    modifier = Modifier.weight(1f).testTag("trainer_block_end"),
+                )
+                if (pause.extendable) {
+                    HelpButton(
+                        contentDescription = stringResource(Res.string.trainer_block_end_help_cd),
+                        title = stringResource(Res.string.trainer_block_end_help_title),
+                        body = stringResource(Res.string.trainer_block_end_help_body),
+                        testTag = "trainer_block_end_help",
+                    )
+                    AppIconButton(
+                        contentDescription = stringResource(Res.string.trainer_block_end_edit_cd),
+                        icon = Res.drawable.ic_edit,
+                        testTag = "trainer_block_end_edit",
+                        onClick = extend.onOpen,
+                        enabled = extend.online && !extend.busy,
+                        busyDescription = if (extend.busy) stringResource(Res.string.trainer_block_end_busy) else null,
+                    )
+                }
+            }
+            if (pause.extendable && !extend.online) OfflineHint(stringResource(Res.string.trainer_block_end_offline))
+            if (pause.extendable && extend.pickerOpen) ExtendBlockPicker(pause, extend)
         }
     }
 }
+
+/** The date picker of the block's last day: selectable from `minEnd` to `maxEnd`, starting on the current end. */
+@Composable
+private fun ExtendBlockPicker(pause: BlockPause, extend: ExtendBlockUi) {
+    AppDatePickerDialog(
+        selected = pause.blockEnd,
+        onConfirm = extend.onConfirm,
+        onDismiss = extend.onDismiss,
+        confirmLabel = stringResource(Res.string.action_done),
+        dismissLabel = stringResource(Res.string.action_cancel),
+        maxDate = pause.maxEnd,
+        minDate = pause.minEnd,
+        testTagPrefix = "trainer_block_end_picker",
+    )
+}
+
+/** State of the block's last-day pencil: the picker is [pickerOpen]; disabled offline or while [busy]. */
+internal data class ExtendBlockUi(
+    val pickerOpen: Boolean = false,
+    val busy: Boolean = false,
+    val online: Boolean = true,
+    val onOpen: () -> Unit = {},
+    val onDismiss: () -> Unit = {},
+    val onConfirm: (LocalDate) -> Unit = {},
+)
 
 /** State of "Hacer descarga la próxima semana": shown only when [available]; disabled offline or while [busy]. */
 internal data class DeloadRequestUi(

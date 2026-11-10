@@ -31,9 +31,18 @@ data class PlanWeek(
 /**
  * Pause state of the block (US-106): [paused] while the last finished 7-day window has no completed workout and none
  * was done yet in the current one; [pausedWeeks] stays after the block resumes (the end moved by that many weeks);
- * [blockEnd] is the moved last day, null when the block has no weeks.
+ * [blockEnd] is the moved last day, null when the block has no weeks. [extensionDays] is the total the user added with
+ * "Cambiar el último día" (US-134); [minEnd]..[maxEnd] bound the pickable last day (null unless [extendable]).
  */
-data class BlockPause(val paused: Boolean, val pausedWeeks: Int, val blockEnd: LocalDate?)
+data class BlockPause(
+    val paused: Boolean,
+    val pausedWeeks: Int,
+    val blockEnd: LocalDate?,
+    val extensionDays: Int = 0,
+    val minEnd: LocalDate? = null,
+    val maxEnd: LocalDate? = null,
+    val extendable: Boolean = false,
+)
 
 /** Working sets of an exercise in a deload week: [deloadSets] of the [plannedSets] the routine prefilled. */
 data class DeloadExerciseSuggestion(val exerciseId: String, val plannedSets: Int, val deloadSets: Int)

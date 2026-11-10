@@ -46,13 +46,27 @@ object AppDatePickerDialogDefaults {
 
     fun toDate(millis: Long): LocalDate = Instant.fromEpochMilliseconds(millis).toLocalDateTime(TimeZone.UTC).date
 
+    /** Days before [minDate] or after [maxDate] cannot be selected; a null bound leaves that side open. */
+    @OptIn(ExperimentalMaterial3Api::class)
+    fun selectableDates(minDate: LocalDate?, maxDate: LocalDate?): SelectableDates = object : SelectableDates {
+        override fun isSelectableDate(utcTimeMillis: Long): Boolean {
+            val date = toDate(utcTimeMillis)
+            return (minDate == null || date >= minDate) && (maxDate == null || date <= maxDate)
+        }
+
+        override fun isSelectableYear(year: Int): Boolean =
+            (minDate == null || year >= minDate.year) && (maxDate == null || year <= maxDate.year)
+    }
+
     /** Days after [maxDate] cannot be selected; a null [maxDate] allows every day. */
     @OptIn(ExperimentalMaterial3Api::class)
-    fun selectableDates(maxDate: LocalDate?): SelectableDates = object : SelectableDates {
-        override fun isSelectableDate(utcTimeMillis: Long): Boolean =
-            maxDate == null || toDate(utcTimeMillis) <= maxDate
+    fun selectableDates(maxDate: LocalDate?): SelectableDates = selectableDates(null, maxDate)
 
-        override fun isSelectableYear(year: Int): Boolean = maxDate == null || year <= maxDate.year
+    /** [date] moved into `minDate..maxDate` (a null bound is open). */
+    fun clamp(date: LocalDate, minDate: LocalDate?, maxDate: LocalDate?): LocalDate = when {
+        minDate != null && date < minDate -> minDate
+        maxDate != null && date > maxDate -> maxDate
+        else -> date
     }
 
     @OptIn(ExperimentalMaterial3Api::class)
@@ -99,11 +113,14 @@ fun AppDatePickerDialog(
     dismissLabel: String,
     modifier: Modifier = Modifier,
     maxDate: LocalDate? = null,
+    minDate: LocalDate? = null,
     testTagPrefix: String = "date_picker",
 ) {
     val state = rememberDatePickerState(
-        initialSelectedDateMillis = selected?.let(AppDatePickerDialogDefaults::toMillis),
-        selectableDates = AppDatePickerDialogDefaults.selectableDates(maxDate),
+        initialSelectedDateMillis = selected
+            ?.let { AppDatePickerDialogDefaults.clamp(it, minDate, maxDate) }
+            ?.let(AppDatePickerDialogDefaults::toMillis),
+        selectableDates = AppDatePickerDialogDefaults.selectableDates(minDate, maxDate),
     )
     val picked = state.selectedDateMillis?.let(AppDatePickerDialogDefaults::toDate)
     BasicAlertDialog(

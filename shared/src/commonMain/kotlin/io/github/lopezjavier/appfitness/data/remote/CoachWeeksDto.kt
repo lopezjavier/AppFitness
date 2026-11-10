@@ -45,9 +45,20 @@ internal data class BlockPauseDto(
     val paused: Boolean = false,
     @SerialName("paused_weeks") val pausedWeeks: Int = 0,
     @SerialName("block_end") val blockEnd: LocalDate? = null,
+    @SerialName("extension_days") val extensionDays: Int = 0,
+    @SerialName("min_end") val minEnd: LocalDate? = null,
+    @SerialName("max_end") val maxEnd: LocalDate? = null,
+    val extendable: Boolean = false,
 ) {
-    fun toDomain() = BlockPause(paused, pausedWeeks, blockEnd)
+    fun toDomain() = BlockPause(paused, pausedWeeks, blockEnd, extensionDays, minEnd, maxEnd, extendable)
 }
+
+@Serializable
+internal data class SetBlockEndParams(
+    @SerialName("p_plan_id") val planId: String,
+    @SerialName("p_last_day") val lastDay: LocalDate,
+    @SerialName("p_today") val today: LocalDate,
+)
 
 /** One element of the `coach_plan_weeks` array. An unknown phase code drops the week. */
 @Serializable

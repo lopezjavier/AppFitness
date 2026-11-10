@@ -94,6 +94,21 @@ internal class FakeCoachWeeksRepository : CoachWeeksRepository {
         return pauseResult
     }
 
+    /** Answer of [setBlockEnd]; on success [pauseResult] becomes the same value, like the server's next read. */
+    var setBlockEndResult: Result<BlockPause> = Result.success(BlockPause(false, 0, null))
+
+    /** When set, [setBlockEnd] suspends until completed. */
+    var blockEndGate: CompletableDeferred<Unit>? = null
+
+    val blockEndCalls = mutableListOf<Triple<String, LocalDate, LocalDate>>()
+
+    override suspend fun setBlockEnd(planId: String, lastDay: LocalDate, today: LocalDate): Result<BlockPause> {
+        blockEndCalls += Triple(planId, lastDay, today)
+        blockEndGate?.await()
+        setBlockEndResult.getOrNull()?.let { pauseResult = Result.success(it) }
+        return setBlockEndResult
+    }
+
     override suspend fun evaluateDeload(today: LocalDate): Result<CoachChange?> {
         evaluations++
         onEvaluate()

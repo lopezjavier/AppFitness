@@ -26,6 +26,7 @@ import kotlin.time.Clock
 
 @RunWith(RobolectricTestRunner::class)
 @Config(qualifiers = "w360dp-h800dp-xxhdpi")
+@Suppress("TooManyFunctions") // One test per scenario.
 class AppDatePickerDialogTest {
     @get:Rule
     val rule = createComposeRule()
@@ -36,7 +37,11 @@ class AppDatePickerDialogTest {
     // The cells are described by their full date (Robolectric runs in English).
     private fun day(number: Int) = rule.onNode(hasText("October $number, 2026", substring = true))
 
-    private fun show(selected: LocalDate? = LocalDate(2026, 10, 10), maxDate: LocalDate? = LocalDate(2026, 10, 20)) {
+    private fun show(
+        selected: LocalDate? = LocalDate(2026, 10, 10),
+        maxDate: LocalDate? = LocalDate(2026, 10, 20),
+        minDate: LocalDate? = null,
+    ) {
         rule.setContent {
             AppTheme {
                 AppDatePickerDialog(
@@ -46,6 +51,7 @@ class AppDatePickerDialogTest {
                     confirmLabel = "Listo",
                     dismissLabel = "Cancelar",
                     maxDate = maxDate,
+                    minDate = minDate,
                     testTagPrefix = "picker",
                 )
             }
@@ -70,6 +76,23 @@ class AppDatePickerDialogTest {
         rule.onNodeWithTag("picker_confirm").assertIsEnabled().performClick()
 
         assertEquals(LocalDate(2026, 10, 10), confirmed)
+    }
+
+    @Test
+    fun daysBeforeMinDateCannotBeSelected() {
+        show(selected = LocalDate(2026, 10, 12), minDate = LocalDate(2026, 10, 8))
+
+        day(7).assertIsNotEnabled()
+        day(8).assertIsEnabled()
+    }
+
+    @Test
+    fun aSelectionBeforeMinDate_isClampedToIt() {
+        show(selected = LocalDate(2026, 10, 2), minDate = LocalDate(2026, 10, 8))
+
+        rule.onNodeWithTag("picker_confirm").performClick()
+
+        assertEquals(LocalDate(2026, 10, 8), confirmed)
     }
 
     @Test

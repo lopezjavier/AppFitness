@@ -10,6 +10,7 @@ import io.github.lopezjavier.appfitness.data.remote.EvaluateDeloadParams
 import io.github.lopezjavier.appfitness.data.remote.EvaluateDeloadResultDto
 import io.github.lopezjavier.appfitness.data.remote.PlanWeekDto
 import io.github.lopezjavier.appfitness.data.remote.PlanWeeksParams
+import io.github.lopezjavier.appfitness.data.remote.SetBlockEndParams
 import io.github.lopezjavier.appfitness.data.remote.toCoachChange
 import io.github.lopezjavier.appfitness.domain.AppError
 import io.github.lopezjavier.appfitness.domain.AppException
@@ -36,6 +37,13 @@ class SupabaseCoachWeeksRepository(private val auth: Auth, private val postgrest
     override suspend fun blockPause(planId: String, today: LocalDate): Result<BlockPause> = auth.ownRow {
         postgrest.rpc("coach_block_pause", PlanWeeksParams(planId, today)).decodeAs<BlockPauseDto>().toDomain()
     }
+
+    override suspend fun setBlockEnd(planId: String, lastDay: LocalDate, today: LocalDate): Result<BlockPause> =
+        auth.ownRow {
+            postgrest.rpc("set_coach_block_end", SetBlockEndParams(planId, lastDay, today))
+                .decodeAs<BlockPauseDto>()
+                .toDomain()
+        }
 
     override suspend fun evaluateDeload(today: LocalDate): Result<CoachChange?> = auth.ownRow {
         postgrest.rpc("evaluate_coach_deload", EvaluateDeloadParams(today))
