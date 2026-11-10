@@ -1145,6 +1145,8 @@
     <string name="food_sheet_details_title">Información nutricional</string>
     <string name="edit_entry_title">Editar alimento</string>
     <string name="add_food_sheet_title">Añadir alimento</string>
+    <string name="edit_entry_removed_note">Este alimento ya no está en tu lista. Puedes ver el registro o eliminarlo.</string>
+    <string name="edit_entry_removed_meal">%1$s · %2$s</string>
     <string name="edit_entry_load_error">No se pudo cargar el alimento</string>
     <string name="edit_entry_save_error">No se pudo guardar. Inténtalo de nuevo.</string>
 

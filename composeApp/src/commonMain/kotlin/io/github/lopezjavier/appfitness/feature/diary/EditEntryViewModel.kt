@@ -67,6 +67,9 @@ class EditEntryViewModel(
         data object Failed : Loaded
 
         data class Ready(val setup: EditSetup) : Loaded
+
+        /** The entry's food no longer exists: view-only, [mealLabel] is the entry's meal name if known. */
+        data class Removed(val entry: FoodLogEntry, val mealLabel: String?) : Loaded
     }
 
     private val loaded = MutableStateFlow<Loaded>(Loaded.Loading)
@@ -101,8 +104,14 @@ class EditEntryViewModel(
         loaded.value = Loaded.Loading
         viewModelScope.launch {
             val entry = loadEntry()
+            val foodId = entry?.foodId
+            if (entry != null && foodId == null) {
+                val label = mealSlots.listAll().getOrNull()?.firstOrNull { it.id == entry.mealSlotId }?.label
+                loaded.value = Loaded.Removed(entry, label)
+                return@launch
+            }
             val (food, slots) = coroutineScope {
-                val food = async { entry?.let { foodRepository.getById(it.foodId) } }
+                val food = async { foodId?.let { foodRepository.getById(it) } }
                 val slots = async { mealSlots.listEnabled() }
                 food.await() to slots.await()
             }
@@ -188,7 +197,12 @@ class EditEntryViewModel(
     private fun buildState(loaded: Loaded, draft: EditDraft?, online: Boolean, saving: Boolean): EditEntryUiState =
         when {
             loaded == Loaded.Failed -> EditEntryUiState.Error
+
+            loaded is Loaded.Removed ->
+                EditEntryUiState.Removed(RemovedEntryContent(loaded.entry, loaded.mealLabel, !online))
+
             loaded !is Loaded.Ready || draft == null -> EditEntryUiState.Loading
+
             else -> EditEntryUiState.Content(buildContent(loaded.setup, draft, online, saving))
         }
 

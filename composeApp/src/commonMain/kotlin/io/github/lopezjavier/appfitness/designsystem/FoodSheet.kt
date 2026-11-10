@@ -52,7 +52,7 @@ data class FoodSheetTotals(val kcal: String, val proteinG: String, val carbsG: S
 
 /**
  * Footer of a [FoodSheet]: [Edit] a logged entry (T-121), [Add] a food to the diary and [Comida] an item of a comida
- * being edited (T-122).
+ * being edited (T-122); [Removed] is the view-only entry of a removed food (T-272).
  */
 sealed interface FoodSheetContext {
     /**
@@ -94,6 +94,14 @@ sealed interface FoodSheetContext {
         val canRemove: Boolean,
         val canDone: Boolean = true,
     ) : FoodSheetContext
+
+    /**
+     * A diary entry whose food was removed (ADR-105): a read-only surface, so there is no commit button ("Guardar"
+     * is absent because nothing can change, not because it is missing). The only action is the destructive
+     * "Eliminar" pinned in the footer (disabled while `!canDelete`); [offlineHint] is the shared hint under it.
+     */
+    @Immutable
+    data class Removed(val onDelete: () -> Unit, val canDelete: Boolean, val offlineHint: String?) : FoodSheetContext
 }
 
 /**
@@ -156,7 +164,7 @@ fun FoodSheet(
 
 /** What [AppEditSheet] needs from a [FoodSheetContext]. */
 private class SheetFooter(
-    val commit: SheetCommit,
+    val commit: SheetCommit?,
     val onCommit: () -> Unit,
     val enabled: Boolean,
     val saving: Boolean,
@@ -177,6 +185,23 @@ private fun footerOf(context: FoodSheetContext, prefix: String): SheetFooter = w
                 text = stringResource(Res.string.action_delete),
                 onClick = context.onDelete,
                 enabled = context.canDelete && !context.saving,
+                tone = GhostTone.Destructive,
+                modifier = Modifier.fillMaxWidth().testTag("${prefix}_delete"),
+            )
+        },
+    )
+
+    is FoodSheetContext.Removed -> SheetFooter(
+        commit = null,
+        onCommit = {},
+        enabled = false,
+        saving = false,
+        hint = context.offlineHint,
+        secondary = {
+            GhostButton(
+                text = stringResource(Res.string.action_delete),
+                onClick = context.onDelete,
+                enabled = context.canDelete,
                 tone = GhostTone.Destructive,
                 modifier = Modifier.fillMaxWidth().testTag("${prefix}_delete"),
             )
