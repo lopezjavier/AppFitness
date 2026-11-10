@@ -28,6 +28,8 @@ import io.github.lopezjavier.appfitness.composeapp.resources.coach_deload_reques
 import io.github.lopezjavier.appfitness.composeapp.resources.coach_deload_request_not_available
 import io.github.lopezjavier.appfitness.composeapp.resources.coach_deload_request_offline
 import io.github.lopezjavier.appfitness.composeapp.resources.plan_proposal_diet_break_offline
+import io.github.lopezjavier.appfitness.composeapp.resources.trainer_block_end_error
+import io.github.lopezjavier.appfitness.composeapp.resources.trainer_block_end_offline
 import io.github.lopezjavier.appfitness.composeapp.resources.trainer_block_remove_action
 import io.github.lopezjavier.appfitness.composeapp.resources.trainer_block_remove_error
 import io.github.lopezjavier.appfitness.composeapp.resources.trainer_discomfort_change_action
@@ -59,6 +61,8 @@ internal fun TrainerEffectsHost(effects: Flow<TrainerEffect>, onRefresh: () -> U
     val cardioOffline = offlineHint(stringResource(Res.string.cardio_save_offline)) + "."
     val dietBreakError = stringResource(Res.string.trainer_plan_diet_break_error)
     val dietBreakOffline = offlineHint(stringResource(Res.string.plan_proposal_diet_break_offline)) + "."
+    val blockEndError = stringResource(Res.string.trainer_block_end_error)
+    val blockEndOffline = offlineHint(stringResource(Res.string.trainer_block_end_offline)) + "."
     val removeBlock = listOf(
         stringResource(Res.string.trainer_block_remove_error),
         offlineHint(stringResource(Res.string.trainer_block_remove_action)) + ".",
@@ -95,7 +99,13 @@ internal fun TrainerEffectsHost(effects: Flow<TrainerEffect>, onRefresh: () -> U
                 TrainerEffect.CardioSaved,
                 TrainerEffect.DietBreakSaved,
                 TrainerEffect.BlockRemoved,
+                TrainerEffect.BlockEndChanged,
                 -> latestHaptics.confirm()
+
+                is TrainerEffect.BlockEndFailed -> {
+                    latestHaptics.reject()
+                    messages.show(if (effect.offline) blockEndOffline else blockEndError)
+                }
 
                 is TrainerEffect.DietBreakFailed -> {
                     latestHaptics.reject()

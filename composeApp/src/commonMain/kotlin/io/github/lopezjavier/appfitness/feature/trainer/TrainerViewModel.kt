@@ -60,6 +60,7 @@ import kotlinx.datetime.toLocalDateTime
 import kotlin.math.roundToInt
 
 private const val KEY_REMOVE_BLOCK_CONFIRM = "remove_block_confirm"
+private const val KEY_EXTEND_PICKER = "extend_block_picker"
 private const val PERCENT = 100.0
 
 private fun PlanSummary.id(): String? = when (this) {
@@ -157,6 +158,9 @@ class TrainerViewModel(
             TrainerEvent.DeclineCalorieProposal -> decideCalorieProposal(apply = false)
             is TrainerEvent.CancelDeload -> cancelDeload(event.id)
             TrainerEvent.RequestDeload -> requestDeload()
+            TrainerEvent.OpenExtendPicker -> openExtendPicker()
+            TrainerEvent.DismissExtendPicker -> dismissExtendPicker()
+            is TrainerEvent.ExtendBlock -> extendBlock(event.day)
             TrainerEvent.OpenCardioEdit -> openCardioEdit()
             is TrainerEvent.CardioMinutesChanged -> changeCardio(event.minutes)
             is TrainerEvent.ToggleDietBreak -> toggleDietBreak(event.on)
@@ -331,6 +335,58 @@ class TrainerViewModel(
                 effectChannel.send(
                     TrainerEffect.RemoveBlockFailed(offline = result.appErrorOrNull() == AppError.Network),
                 )
+            }
+        }
+    }
+
+    private fun openExtendPicker() {
+        val content = _uiState.value as? TrainerUiState.Content ?: return
+        if (content.pause?.extendable != true || content.extendingBlock) return
+        savedState[KEY_EXTEND_PICKER] = true
+        _uiState.value = content.copy(extendPickerOpen = true)
+    }
+
+    private fun dismissExtendPicker() {
+        val content = _uiState.value as? TrainerUiState.Content ?: return
+        savedState.remove<Boolean>(KEY_EXTEND_PICKER)
+        _uiState.value = content.copy(extendPickerOpen = false)
+    }
+
+    /** Sets the last day of the running block; the picker closes on confirm whatever the outcome. */
+    @Suppress("ReturnCount") // Guards: no content, busy, no repository or plan, not extendable, outside the limits.
+    private fun extendBlock(day: LocalDate) {
+        val content = _uiState.value as? TrainerUiState.Content ?: return
+        if (content.extendingBlock) return
+        savedState.remove<Boolean>(KEY_EXTEND_PICKER)
+        val pause = content.pause
+        val repository = coachWeeks
+        val planId = (content.plan as? PlanSummary.Accepted)?.plan?.id
+        val min = pause?.minEnd
+        val max = pause?.maxEnd
+        val allowed = pause?.extendable == true && min != null && max != null && day >= min && day <= max
+        if (repository == null || planId == null || !allowed) {
+            _uiState.value = content.copy(extendPickerOpen = false)
+            return
+        }
+        _uiState.value = content.copy(extendPickerOpen = false, extendingBlock = true)
+        viewModelScope.launch {
+            val result = repository.setBlockEnd(planId, day, today())
+            val updated = result.getOrNull()
+            if (updated != null) {
+                val weeks = repository.weeks(planId, today()).getOrNull()
+                _uiState.update { state ->
+                    if (state is TrainerUiState.Content) {
+                        state.copy(pause = updated, weeks = weeks ?: state.weeks, extendingBlock = false)
+                    } else {
+                        state
+                    }
+                }
+                effectChannel.send(TrainerEffect.BlockEndChanged)
+            } else {
+                _uiState.update { state ->
+                    if (state is TrainerUiState.Content) state.copy(extendingBlock = false) else state
+                }
+                effectChannel.send(TrainerEffect.BlockEndFailed(offline = result.appErrorOrNull() == AppError.Network))
             }
         }
     }
@@ -510,6 +566,8 @@ class TrainerViewModel(
                     fresh.copy(
                         decidingChange = state.decidingChange,
                         requestingDeload = state.requestingDeload,
+                        extendPickerOpen = state.extendPickerOpen && fresh.pause?.extendable == true,
+                        extendingBlock = state.extendingBlock,
                         busyChangeId = state.busyChangeId,
                         busyFollowUpExerciseId = state.busyFollowUpExerciseId,
                         cardioEdit = state.cardioEdit,
@@ -557,6 +615,9 @@ class TrainerViewModel(
         // A restored confirmation only makes sense while the block is still saved.
         val confirmRemove = savedState.get<Boolean>(KEY_REMOVE_BLOCK_CONFIRM) == true
         if (confirmRemove && block !is BlockSummary.Saved) savedState.remove<Boolean>(KEY_REMOVE_BLOCK_CONFIRM)
+        // Likewise a restored date picker only makes sense while the block can still be changed.
+        val extendPicker = savedState.get<Boolean>(KEY_EXTEND_PICKER) == true && hub.pause?.extendable == true
+        if (!extendPicker) savedState.remove<Boolean>(KEY_EXTEND_PICKER)
         val shownFollowUps = followUps.await()
         TrainerUiState.Content(
             plan = plan,
@@ -564,6 +625,7 @@ class TrainerViewModel(
             block = block,
             weeks = hub.weeks,
             pause = hub.pause,
+            extendPickerOpen = extendPicker,
             coachChanges = hub.changes,
             provisionalCount = provisional.await(),
             hasWeekSummary = hasWeekSummary.await(),

@@ -15,6 +15,12 @@ interface CoachWeeksRepository {
     /** Whether the block is paused by an empty week and where its (moved) last day falls (US-106). */
     suspend fun blockPause(planId: String, today: LocalDate): Result<BlockPause>
 
+    /**
+     * "Cambiar el último día del bloque" (US-134): the new last day of the running block, within the pause's
+     * `minEnd`..`maxEnd`; returns the block's new pause state. Picking the original end removes the extension.
+     */
+    suspend fun setBlockEnd(planId: String, lastDay: LocalDate, today: LocalDate): Result<BlockPause>
+
     /** Evaluates the rule (idempotent): the deload it applied (or applied before) in plan week 4, or null. */
     suspend fun evaluateDeload(today: LocalDate): Result<CoachChange?>
 

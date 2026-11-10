@@ -1887,6 +1887,13 @@
     <string name="trainer_weeks_header">Semanas del bloque</string>
     <string name="block_week_paused">Semana en pausa</string>
     <string name="trainer_block_end">El bloque termina el %1$s</string>
+    <string name="trainer_block_end_edit_cd">Cambiar el último día del bloque</string>
+    <string name="trainer_block_end_busy">Cambiando el último día…</string>
+    <string name="trainer_block_end_offline">cambiar el último día</string>
+    <string name="trainer_block_end_error">No se pudo cambiar el último día. Inténtalo de nuevo.</string>
+    <string name="trainer_block_end_help_cd">Ayuda: último día del bloque</string>
+    <string name="trainer_block_end_help_title">Último día del bloque</string>
+    <string name="trainer_block_end_help_body">Puedes alargar el bloque hasta 14 días más. Las semanas siguientes, la revisión y el aviso de fin de bloque se mueven los mismos días; tus entrenos y cargas no cambian.</string>
     <string name="trainer_week_title">Semana %1$d</string>
     <string name="trainer_week_chip_current">Actual</string>
     <string name="trainer_week_chip_deload">Descarga</string>

@@ -55,11 +55,11 @@ class BlockPauseScreenTest {
     }
 
     @Test
-    fun withoutPause_neitherLineShows() {
+    fun withoutPause_onlyTheEndLineShows() {
         showTrainer(trainer(BlockPause(paused = false, pausedWeeks = 0, blockEnd = end)))
 
         rule.onNodeWithTag("trainer_block_paused").assertDoesNotExist()
-        rule.onNodeWithTag("trainer_block_end").assertDoesNotExist()
+        rule.onNodeWithTag("trainer_block_end").assertExists()
     }
 
     @Test

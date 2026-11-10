@@ -13,6 +13,7 @@ import io.github.lopezjavier.appfitness.domain.model.PlanWeek
 import io.github.lopezjavier.appfitness.domain.model.ProgressionFlagDecision
 import io.github.lopezjavier.appfitness.domain.model.WeekPhase
 import io.github.lopezjavier.appfitness.domain.usecase.GoalChecklist
+import kotlinx.datetime.LocalDate
 
 /** The plan entry of the Trainer tab: no plan, a proposal waiting for a decision, or the active plan. */
 sealed interface PlanSummary {
@@ -78,6 +79,10 @@ sealed interface TrainerUiState {
         val pause: BlockPause? = null,
         /** "Hacer descarga la próxima semana" is in flight. */
         val requestingDeload: Boolean = false,
+        /** The "Cambiar el último día del bloque" picker is open; only true while [pause] is extendable. */
+        val extendPickerOpen: Boolean = false,
+        /** Changing the block's last day is in flight: the pencil shows progress and is disabled. */
+        val extendingBlock: Boolean = false,
         val provisionalCount: Int? = null,
         /** The open cardio-minutes sheet of the accepted plan ("Tu plan"); null when closed. */
         val cardioEdit: CardioEdit? = null,
@@ -165,6 +170,18 @@ sealed interface TrainerEvent {
     /** "Hacer descarga la próxima semana"; ignored unless [TrainerUiState.Content.canRequestDeload]. */
     data object RequestDeload : TrainerEvent
 
+    /** The pencil of the block's last day: opens the date picker; ignored unless the pause is extendable. */
+    data object OpenExtendPicker : TrainerEvent
+
+    /** X, back, outside or "Cancelar" of the picker: closes it and changes nothing. */
+    data object DismissExtendPicker : TrainerEvent
+
+    /**
+     * "Listo" in the picker: sets the block's last day to [day]. Closes the picker; a day outside the pause's
+     * `minEnd`..`maxEnd`, a non-extendable block or a change already in flight is ignored (nothing is sent).
+     */
+    data class ExtendBlock(val day: LocalDate) : TrainerEvent
+
     /** Opens the cardio-minutes sheet of the accepted plan; ignored without an accepted plan with activity targets. */
     data object OpenCardioEdit : TrainerEvent
 
@@ -245,6 +262,12 @@ sealed interface TrainerEffect {
 
     /** Requesting failed; [notAvailable] means one is already planned or ran (the weeks were reloaded). */
     data class DeloadRequestFailed(val offline: Boolean, val notAvailable: Boolean) : TrainerEffect
+
+    /** The block's last day changed (confirm haptic, no message: the end day updates in place). */
+    data object BlockEndChanged : TrainerEffect
+
+    /** Changing the last day failed (reject haptic and message); the old end stays. [offline] picks the hint. */
+    data class BlockEndFailed(val offline: Boolean) : TrainerEffect
 
     /** The cardio minutes were stored and the sheet closed: confirm haptic, no message. */
     data object CardioSaved : TrainerEffect

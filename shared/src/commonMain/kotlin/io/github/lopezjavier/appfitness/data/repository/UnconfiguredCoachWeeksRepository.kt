@@ -16,6 +16,9 @@ class UnconfiguredCoachWeeksRepository : CoachWeeksRepository {
     override suspend fun blockPause(planId: String, today: LocalDate): Result<BlockPause> =
         Result.failure(AppException(AppError.Unknown))
 
+    override suspend fun setBlockEnd(planId: String, lastDay: LocalDate, today: LocalDate): Result<BlockPause> =
+        Result.failure(AppException(AppError.Unknown))
+
     override suspend fun evaluateDeload(today: LocalDate): Result<CoachChange?> =
         Result.failure(AppException(AppError.Unknown))
 

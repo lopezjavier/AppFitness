@@ -140,6 +140,75 @@ class SupabaseCoachWeeksRepositoryTest {
     }
 
     @Test
+    fun blockPause_readsTheExtensionKeys() = runTest {
+        val pause = repo {
+            HttpStatusCode.OK to
+                """{"paused":false,"paused_weeks":0,"block_end":"2026-12-10","extension_days":3,""" +
+                """"min_end":"2026-11-10","max_end":"2026-12-21","extendable":true}"""
+        }.blockPause("p1", today).getOrThrow()
+
+        assertEquals(
+            BlockPause(
+                paused = false,
+                pausedWeeks = 0,
+                blockEnd = LocalDate(2026, 12, 10),
+                extensionDays = 3,
+                minEnd = LocalDate(2026, 11, 10),
+                maxEnd = LocalDate(2026, 12, 21),
+                extendable = true,
+            ),
+            pause,
+        )
+    }
+
+    @Test
+    fun blockPause_oldAnswerWithoutExtensionKeysDefaults() = runTest {
+        val pause = repo { HttpStatusCode.OK to """{"paused":false,"paused_weeks":0,"block_end":"2026-12-06"}""" }
+            .blockPause("p1", today).getOrThrow()
+
+        assertEquals(0, pause.extensionDays)
+        assertNull(pause.minEnd)
+        assertNull(pause.maxEnd)
+        assertEquals(false, pause.extendable)
+    }
+
+    @Test
+    fun setBlockEnd_sendsPlanLastDayAndTodayAndMapsThePause() = runTest {
+        val repository = repo {
+            HttpStatusCode.OK to
+                """{"paused":false,"paused_weeks":0,"block_end":"2026-12-10","extension_days":3,"extendable":true}"""
+        }
+
+        val pause = repository.setBlockEnd("p1", LocalDate(2026, 12, 10), today).getOrThrow()
+
+        val request = rest().single()
+        assertTrue(request.url.encodedPath.endsWith("/rest/v1/rpc/set_coach_block_end"))
+        assertEquals(
+            """{"p_plan_id":"p1","p_last_day":"2026-12-10","p_today":"2026-10-29"}""",
+            bodyOf(request),
+        )
+        assertEquals(LocalDate(2026, 12, 10), pause.blockEnd)
+        assertEquals(3, pause.extensionDays)
+    }
+
+    @Test
+    fun setBlockEnd_refusedByTheServer_isAFailure() = runTest {
+        val repository = repo {
+            HttpStatusCode.BadRequest to """{"code":"22023","message":"coach_block_end_out_of_limits"}"""
+        }
+
+        assertTrue(repository.setBlockEnd("p1", LocalDate(2027, 1, 1), today).isFailure)
+    }
+
+    @Test
+    fun setBlockEnd_offline_isNetworkError() = runTest {
+        val repository = repo { HttpStatusCode.OK to "{}" }
+        offline = true
+
+        assertEquals(AppError.Network, repository.setBlockEnd("p1", today, today).appErrorOrNull())
+    }
+
+    @Test
     fun blockPause_offline_isNetworkError() = runTest {
         val repository = repo { HttpStatusCode.OK to "{}" }
         offline = true

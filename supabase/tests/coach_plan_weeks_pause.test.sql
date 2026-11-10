@@ -197,7 +197,7 @@ select is(public.coach_plan_week(pg_temp.plan_of(1), pg_temp.d0()), 3, 'the curr
 select is(public.coach_plan_week_of_date(pg_temp.plan_of(1), pg_temp.d0() - 13), 2,
   'a date in the second trained window is plan week 2');
 select is(public.coach_plan_week_of_date(pg_temp.plan_of(1), pg_temp.d0() - 28 - 1), 0, 'a date before the start is week 0');
-select is(public.coach_block_pause(pg_temp.plan_of(1), pg_temp.d0()),
+select is(public.coach_block_pause(pg_temp.plan_of(1), pg_temp.d0()) - array['extension_days', 'min_end', 'max_end', 'extendable'],
   jsonb_build_object('paused', true, 'paused_weeks', 2, 'block_end', pg_temp.d0() + 13),
   'the block is paused, two weeks are paused and the end moved two weeks later');
 select is(public.coach_block_end(pg_temp.plan_of(1), pg_temp.d0()), pg_temp.d0() + 13, 'the block end is the end of the last plan week window');
@@ -210,18 +210,18 @@ select is(pg_temp.linked_weeks(1), '1,2', 'the workouts linked to the paused-adj
 
 -- No pause (user 2), resumed (user 3), before the start (user 4).
 select pg_temp.as_user(2);
-select is(public.coach_block_pause(pg_temp.plan_of(2), pg_temp.d0()),
+select is(public.coach_block_pause(pg_temp.plan_of(2), pg_temp.d0()) - array['extension_days', 'min_end', 'max_end', 'extendable'],
   jsonb_build_object('paused', false, 'paused_weeks', 0, 'block_end', pg_temp.d0() + 13),
   'a block trained every week is not paused and ends 4 weeks after the start');
 select is(public.coach_plan_week(pg_temp.plan_of(2), pg_temp.d0()), 3, 'user 2: week 3 today');
 select pg_temp.as_user(3);
-select is(public.coach_block_pause(pg_temp.plan_of(3), pg_temp.d0()),
+select is(public.coach_block_pause(pg_temp.plan_of(3), pg_temp.d0()) - array['extension_days', 'min_end', 'max_end', 'extendable'],
   jsonb_build_object('paused', false, 'paused_weeks', 1, 'block_end', pg_temp.d0() + 20),
   'a workout in the current window resumes the block; the paused week stays counted and the end stays moved');
 select is(pg_temp.linked_weeks(3), '1,2', 'the first workout after the pause continues from the paused week and links to it');
 select pg_temp.as_user(4);
 select is(public.coach_plan_week(pg_temp.plan_of(4), pg_temp.d0()), 0, 'before the block starts the plan week is 0');
-select is(public.coach_block_pause(pg_temp.plan_of(4), pg_temp.d0()),
+select is(public.coach_block_pause(pg_temp.plan_of(4), pg_temp.d0()) - array['extension_days', 'min_end', 'max_end', 'extendable'],
   jsonb_build_object('paused', false, 'paused_weeks', 0, 'block_end', pg_temp.d0() + 30),
   'before the start nothing is paused');
 select is(pg_temp.cal(4), '1:' || (pg_temp.d0() + 3) || ' 2:' || (pg_temp.d0() + 10) || ' 3:' || (pg_temp.d0() + 17) || ' 4:' || (pg_temp.d0() + 24),
