@@ -255,6 +255,11 @@ Rules: ADR-103 (Anthropic removed, reports stored, the Gemini exercise chat), AD
 2. **"Cambios del entrenador" (Bicicleta Estática):** shows "Este ejercicio no tiene un rango de repeticiones, así que el entrenador no puede subirlo solo." for a cardio exercise: why would cardio need a rep range? And the "Añadir un rango" button does nothing when tapped (bug).
 3. **"Preguntar" chat (T-266) is of no value as built:** asked for safer replacement exercises for Hip thrust con barra (injury mentioned), the answer was only "Consulta con un profesional sanitario y, si te molesta en este ejercicio, puedes usar Registrar molestia en la app." The user asks why this chat is being built at all. Open product question for the user: keep, rework or drop US-130.
 
+**User decisions on the feedback (2026-11-10):**
+- **Chat is kept and reworked (not dropped).** No "consult a professional" / health-professional message, and no bias, in the chat: it answers the question asked (e.g. safer replacement exercises for an injury) like an expert trainer. This includes the `Registrar molestia` pointer the T-265 prompt added to its medical line: remove it. `fitness-scientist` revises the prompt and `07` §3 for the chat; **the user reviews the exact prompt wording before it is implemented** (a hard gate in the fix task).
+- **Trainer rework goes through `ux-reviewer`** (plan and diff) to build a proper Trainer section: summary boxes on the Trainer that expand/open their information (feedback 1), a sensible "Cambios del entrenador" (no rep-range prompt for cardio; the "Añadir un rango" tap fixed).
+- Fix tasks (next sessions, one per session, `/clear` between): trainer layout and "Cambios del entrenador" first, chat prompt second; then Checkpoint E18 is re-presented.
+
 ### Checkpoint E18 — Functional improvements, with the final E18 regression 👤 (16 items, leave and come back included) *(epic-planner, 2026-11-09; the only E18 checkpoint, user decision 2026-11-09; its approval releases T-267)*
 
 After T-266 merges (the last implementation task), CI green, `deploy-supabase` green on `main` after T-259, T-261 and T-265 with data intact, `coach`, `exercise-chat` and `food-photo` deployed, `ANTHROPIC_API_KEY` unset. Main account. **Before installing, take screenshots of your Trainer** (for item 12). What to try on the phone (`python scripts/deliver-apk.py`):
