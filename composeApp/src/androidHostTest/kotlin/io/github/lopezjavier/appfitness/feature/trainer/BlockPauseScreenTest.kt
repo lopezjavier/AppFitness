@@ -31,8 +31,9 @@ class BlockPauseScreenTest {
     )
 
     private fun showTrainer(state: TrainerUiState) {
-        rule.setContent { AppTheme { TrainerScreen(state, flowOf(true), {}) } }
+        rule.setContent { AppTheme { TrainerWithDetails(state, flowOf(true), {}) } }
         rule.waitForIdle()
+        rule.openTrainerDetails()
     }
 
     private val end = LocalDate(2026, 10, 24)
@@ -89,7 +90,8 @@ class BlockPauseScreenTest {
     fun recreation_keepsThePausedChipAndEndLine() {
         val tester = StateRestorationTester(rule)
         val state = trainer(BlockPause(paused = true, pausedWeeks = 1, blockEnd = end))
-        tester.setContent { AppTheme { TrainerScreen(state, flowOf(true), {}) } }
+        tester.setContent { AppTheme { TrainerWithDetails(state, flowOf(true), {}) } }
+        rule.openTrainerDetails()
 
         tester.emulateSavedInstanceStateRestore()
         rule.waitForIdle()

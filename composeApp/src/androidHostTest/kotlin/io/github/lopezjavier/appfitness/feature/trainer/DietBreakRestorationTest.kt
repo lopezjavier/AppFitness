@@ -71,9 +71,10 @@ class DietBreakRestorationTest {
         val tester = StateRestorationTester(rule)
         tester.setContent {
             AppTheme {
-                TrainerScreen(TrainerUiState.Content(plan = PlanSummary.Accepted(plan)), flowOf(true), {})
+                TrainerWithDetails(TrainerUiState.Content(plan = PlanSummary.Accepted(plan)), flowOf(true), {})
             }
         }
+        rule.openTrainerDetails()
         rule.onNodeWithTag("trainer_plan_diet_break_switch").assertIsOn()
 
         tester.emulateSavedInstanceStateRestore()

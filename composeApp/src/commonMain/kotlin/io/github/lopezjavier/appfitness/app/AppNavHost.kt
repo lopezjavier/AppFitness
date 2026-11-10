@@ -77,6 +77,10 @@ internal typealias BeforeStartSlot =
         onOpenFolderBlock: (BeforeStartEffect.OpenFolderBlock) -> Unit,
     ) -> Unit
 
+/** Content of "Detalles": modifier (full-screen insets), where its entries go ([TrainerActions]) and how to leave. */
+internal typealias TrainerDetailsSlot =
+    @Composable (modifier: Modifier, actions: TrainerActions, onBack: () -> Unit) -> Unit
+
 /** Content of "Tus datos": modifier (full-screen insets), how to leave and the editor opener of an input. */
 internal typealias YourDataSlot =
     @Composable (modifier: Modifier, onBack: () -> Unit, onFix: (PlanFixTarget) -> Unit) -> Unit
@@ -677,6 +681,11 @@ internal val DefaultBeforeStartSlot: BeforeStartSlot = { modifier, _, _, _, _, _
     Box(modifier.fillMaxSize().testTag("before_start_screen"))
 }
 
+/** Empty "Detalles" for previews and shell tests; the real one is wired by `AppRoot`. */
+internal val DefaultTrainerDetailsSlot: TrainerDetailsSlot = { modifier, _, _ ->
+    Box(modifier.fillMaxSize().testTag("trainer_details_screen"))
+}
+
 /** Empty "Tus datos" for previews and shell tests; the real one is wired by `AppRoot`. */
 internal val DefaultYourDataSlot: YourDataSlot = { modifier, _, _ ->
     Box(modifier.fillMaxSize().testTag("your_data_screen"))
@@ -732,6 +741,7 @@ internal fun AppNavHost(
     modifier: Modifier = Modifier,
     profile: ProfileSlot = DefaultProfileSlot,
     trainer: TrainerSlot = DefaultTrainerSlot,
+    trainerDetails: TrainerDetailsSlot = DefaultTrainerDetailsSlot,
     preferences: PreferencesSlot = DefaultPreferencesSlot,
     preferencesSection: PreferencesSectionSlot = DefaultPreferencesSectionSlot,
     about: AboutSlot = DefaultAboutSlot,
@@ -817,6 +827,7 @@ internal fun AppNavHost(
                 navController.navigateToFullScreen(BeforeStartRoute(mode.argument, planId, replacingPlanId))
             },
             onOpenYourData = { navController.navigateToFullScreen(YourDataRoute) },
+            onOpenDetails = { navController.navigateToFullScreen(TrainerDetailsRoute) },
             onOpenFreeText = { navController.navigateToFullScreen(FreeTextLinesRoute) },
             onOpenWeekSummary = { navController.navigateToFullScreen(WeekSummaryRoute) },
             onOpenBlockReview = { navController.navigateToFullScreen(BlockReviewRoute) },
@@ -998,6 +1009,9 @@ internal fun AppNavHost(
         }
         composable<FreeTextLinesRoute> { entry ->
             freeTextLines(Modifier.padding(fullScreenPadding)) { navController.popFullScreen(entry) }
+        }
+        composable<TrainerDetailsRoute> { entry ->
+            trainerDetails(Modifier.padding(fullScreenPadding), trainerActions) { navController.popFullScreen(entry) }
         }
         composable<YourDataRoute> { entry ->
             yourData(Modifier.padding(fullScreenPadding), { navController.popFullScreen(entry) }, openFix)

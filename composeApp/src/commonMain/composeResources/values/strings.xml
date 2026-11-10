@@ -2092,6 +2092,12 @@
     <string name="trainer_block_proposed_title">Bloque propuesto</string>
     <string name="trainer_block_proposed_supporting">Revísalo y guárdalo en Entreno.</string>
     <string name="trainer_block_saved_title">Bloque guardado</string>
+    <string name="trainer_block_status_week">Semana %1$d de %2$d</string>
+    <string name="trainer_block_status_upcoming">Aún sin empezar</string>
+    <string name="trainer_block_status_ended">Bloque terminado</string>
+    <string name="trainer_details_row">Detalles</string>
+    <string name="trainer_details_title">Detalles</string>
+    <string name="trainer_details_empty">Todavía no hay nada que mostrar.</string>
     <string name="trainer_block_remove">Eliminar bloque</string>
     <string name="trainer_block_remove_action">eliminar el bloque</string>
     <string name="trainer_block_remove_title">¿Eliminar el bloque?</string>

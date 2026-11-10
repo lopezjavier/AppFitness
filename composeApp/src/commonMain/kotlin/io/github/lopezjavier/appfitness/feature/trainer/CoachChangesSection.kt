@@ -44,20 +44,23 @@ import org.jetbrains.compose.resources.stringResource
 private data class CoachChangeContext(val busyId: String?, val online: Boolean)
 
 /**
- * "Cambios del entrenador" (US-97, US-104): the load changes the coach applied or flagged, one [CoachChangeRow] each.
+ * "Cambios del entrenador" (US-97, US-104): the [rows] (the pending flags on the root, the applied changes in
+ * "Detalles"), one [CoachChangeRow] each.
  * [names] resolves the exercise names by id (R-54; a row waits for its name); `busyChangeId` is the change whose undo
  * or decision is in flight (its action shows progress, every other row's are disabled).
  */
 @Composable
+@Suppress("LongParameterList") // The state, the rows to show, their names, the connection and two callbacks.
 internal fun CoachChangesSection(
     state: TrainerUiState.Content,
+    rows: List<CoachChangeRowUi>,
     names: Map<String, String>,
     online: Boolean,
     onEvent: (TrainerEvent) -> Unit,
     onOpenExercise: (String) -> Unit,
 ) {
     // A deload is plan-level and needs no exercise name; every other row waits for its name.
-    val shown = state.coachChanges.filter { it.kind.isDeload || (it.exerciseId != null && it.exerciseId in names) }
+    val shown = rows.filter { it.kind.isDeload || (it.exerciseId != null && it.exerciseId in names) }
     if (shown.isEmpty()) return
     val context = CoachChangeContext(state.busyChangeId, online)
     Column(Modifier.testTag("trainer_coach_changes_section"), verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {

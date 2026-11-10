@@ -3,6 +3,7 @@ package io.github.lopezjavier.appfitness.feature.trainer
 import io.github.lopezjavier.appfitness.domain.model.BlockPause
 import io.github.lopezjavier.appfitness.domain.model.CalorieProposal
 import io.github.lopezjavier.appfitness.domain.model.CoachBlock
+import io.github.lopezjavier.appfitness.domain.model.CoachChangeStatus
 import io.github.lopezjavier.appfitness.domain.model.CoachPlan
 import io.github.lopezjavier.appfitness.domain.model.DiscomfortNoteReason
 import io.github.lopezjavier.appfitness.domain.model.Phase
@@ -111,6 +112,24 @@ sealed interface TrainerUiState {
         val busyFollowUpExerciseId: String? = null,
     ) : TrainerUiState {
         private val accepted: CoachPlan? get() = (plan as? PlanSummary.Accepted)?.plan
+
+        /** Compact block summary of the root's status card, derived from state already held here. */
+        val blockStatus: BlockStatus get() = blockStatus(block, weeks, pause, blockReviewDue)
+
+        /** Pending flags: the only coach changes the root keeps (with their actions). */
+        val pendingCoachChanges: List<CoachChangeRowUi>
+            get() = coachChanges.filter { it.status == CoachChangeStatus.Pending }
+
+        /** Applied (and undone) changes, the "Cambios del entrenador" list that lives in "Detalles". */
+        val appliedCoachChanges: List<CoachChangeRowUi>
+            get() = coachChanges.filter { it.status != CoachChangeStatus.Pending }
+
+        /**
+         * The root's "Detalles" row: a plan exists (proposed or accepted), a block is saved, or applied coach changes
+         * exist, so nothing held there is unreachable.
+         */
+        val hasDetails: Boolean
+            get() = plan !is PlanSummary.None || block is BlockSummary.Saved || appliedCoachChanges.isNotEmpty()
 
         /** "Bloque nuevo" replaces "Crear plan nuevo": an accepted plan with its block already saved. */
         val canStartNewBlock: Boolean get() = plan is PlanSummary.Accepted && block is BlockSummary.Saved

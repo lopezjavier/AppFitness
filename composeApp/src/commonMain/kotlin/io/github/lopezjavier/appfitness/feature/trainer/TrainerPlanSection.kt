@@ -13,11 +13,7 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.Role
 import io.github.lopezjavier.appfitness.composeapp.resources.Res
 import io.github.lopezjavier.appfitness.composeapp.resources.action_apply
-import io.github.lopezjavier.appfitness.composeapp.resources.action_cancel
-import io.github.lopezjavier.appfitness.composeapp.resources.action_delete
 import io.github.lopezjavier.appfitness.composeapp.resources.action_not_now
-import io.github.lopezjavier.appfitness.composeapp.resources.block_review_card_supporting
-import io.github.lopezjavier.appfitness.composeapp.resources.block_review_title
 import io.github.lopezjavier.appfitness.composeapp.resources.calorie_change_data
 import io.github.lopezjavier.appfitness.composeapp.resources.calorie_change_data_short
 import io.github.lopezjavier.appfitness.composeapp.resources.calorie_change_payload
@@ -30,15 +26,6 @@ import io.github.lopezjavier.appfitness.composeapp.resources.calorie_proposal_ho
 import io.github.lopezjavier.appfitness.composeapp.resources.calorie_proposal_hold_raise
 import io.github.lopezjavier.appfitness.composeapp.resources.calorie_proposal_offline
 import io.github.lopezjavier.appfitness.composeapp.resources.phase_help_cd
-import io.github.lopezjavier.appfitness.composeapp.resources.trainer_block_create
-import io.github.lopezjavier.appfitness.composeapp.resources.trainer_block_create_action
-import io.github.lopezjavier.appfitness.composeapp.resources.trainer_block_proposed_supporting
-import io.github.lopezjavier.appfitness.composeapp.resources.trainer_block_proposed_title
-import io.github.lopezjavier.appfitness.composeapp.resources.trainer_block_remove
-import io.github.lopezjavier.appfitness.composeapp.resources.trainer_block_remove_action
-import io.github.lopezjavier.appfitness.composeapp.resources.trainer_block_remove_message
-import io.github.lopezjavier.appfitness.composeapp.resources.trainer_block_remove_title
-import io.github.lopezjavier.appfitness.composeapp.resources.trainer_block_saved_title
 import io.github.lopezjavier.appfitness.composeapp.resources.trainer_plan_active_line
 import io.github.lopezjavier.appfitness.composeapp.resources.trainer_plan_active_title
 import io.github.lopezjavier.appfitness.composeapp.resources.trainer_plan_create
@@ -52,7 +39,6 @@ import io.github.lopezjavier.appfitness.composeapp.resources.trainer_plan_replac
 import io.github.lopezjavier.appfitness.composeapp.resources.trainer_plan_section
 import io.github.lopezjavier.appfitness.composeapp.resources.trainer_source_edited
 import io.github.lopezjavier.appfitness.designsystem.AppCard
-import io.github.lopezjavier.appfitness.designsystem.AppConfirmDialog
 import io.github.lopezjavier.appfitness.designsystem.AppNumberFormat
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
 import io.github.lopezjavier.appfitness.designsystem.CoachProposalCard
@@ -77,125 +63,15 @@ import kotlin.math.abs
 
 private const val HALF = 2
 
-/** The block entry under an open plan: "Crear bloque", the proposed block to review, or the saved one. */
+/** "Tu plan" on the Trainer root: "Crear plan" or the pending proposal (an accepted plan lives in Detalles). */
 @Composable
-internal fun BlockSection(
-    plan: PlanSummary,
-    block: BlockSummary,
-    online: Boolean,
-    onOpenBlock: (String) -> Unit,
-    onOpenBeforeStart: (BeforeStartMode, String?, String?) -> Unit,
-    removeBlockConfirm: Boolean = false,
-    onEvent: (TrainerEvent) -> Unit = {},
-    reviewDue: Boolean = false,
-) {
-    val planId = when (plan) {
-        is PlanSummary.Proposed -> plan.plan.id
-        is PlanSummary.Accepted -> plan.plan.id
-        PlanSummary.None -> return
-    }
-    when (block) {
-        // The review footer ("Crear el siguiente bloque") replaces the button while the review is due.
-        BlockSummary.None -> if (!reviewDue) {
-            PrimaryButton(
-                text = stringResource(Res.string.trainer_block_create),
-                onClick = { onOpenBeforeStart(BeforeStartMode.Block, planId, null) },
-                modifier = Modifier.fillMaxWidth().testTag("trainer_create_block"),
-                enabled = online,
-            )
-            if (!online) OfflineHint(stringResource(Res.string.trainer_block_create_action))
-        }
-
-        is BlockSummary.Proposed -> AppCard(
-            Modifier.fillMaxWidth()
-                .testTag("trainer_block_card")
-                .clickable(role = Role.Button) { onOpenBlock(planId) },
-        ) {
-            Text(
-                text = stringResource(Res.string.trainer_block_proposed_title),
-                style = AppTheme.typography.titleMedium,
-                color = AppTheme.colors.textPrimary,
-            )
-            Text(
-                text = stringResource(Res.string.trainer_block_proposed_supporting),
-                style = AppTheme.typography.bodyMedium,
-                color = AppTheme.colors.textSecondary,
-            )
-        }
-
-        is BlockSummary.Saved -> {
-            AppCard(Modifier.fillMaxWidth().testTag("trainer_block_card")) {
-                Text(
-                    text = stringResource(Res.string.trainer_block_saved_title),
-                    style = AppTheme.typography.titleMedium,
-                    color = AppTheme.colors.textPrimary,
-                )
-            }
-            SavedBlockActions(online, removeBlockConfirm, onEvent)
-        }
-    }
-}
-
-/** The end-of-block card (US-101): opens "Revisión del bloque"; the title equals the screen title (R-04). */
-@Composable
-internal fun BlockReviewEntry(onOpen: () -> Unit) {
-    AppCard(
-        Modifier.fillMaxWidth()
-            .testTag("trainer_review_card")
-            .clickable(role = Role.Button, onClick = onOpen),
-    ) {
-        Text(
-            text = stringResource(Res.string.block_review_title),
-            style = AppTheme.typography.titleMedium,
-            color = AppTheme.colors.textPrimary,
-        )
-        Text(
-            text = stringResource(Res.string.block_review_card_supporting),
-            style = AppTheme.typography.bodyMedium,
-            color = AppTheme.colors.textSecondary,
-        )
-    }
-}
-
-/** "Eliminar bloque" under the saved block card (R-19), with its confirmation (R-08). */
-@Composable
-private fun SavedBlockActions(online: Boolean, removeBlockConfirm: Boolean, onEvent: (TrainerEvent) -> Unit) {
-    GhostButton(
-        text = stringResource(Res.string.trainer_block_remove),
-        onClick = { onEvent(TrainerEvent.RequestRemoveBlock) },
-        modifier = Modifier.fillMaxWidth().testTag("trainer_remove_block"),
-        enabled = online,
-        tone = GhostTone.Destructive,
-    )
-    if (!online) OfflineHint(stringResource(Res.string.trainer_block_remove_action))
-    if (removeBlockConfirm) {
-        AppConfirmDialog(
-            title = stringResource(Res.string.trainer_block_remove_title),
-            message = stringResource(Res.string.trainer_block_remove_message),
-            confirmLabel = stringResource(Res.string.action_delete),
-            cancelLabel = stringResource(Res.string.action_cancel),
-            onConfirm = { onEvent(TrainerEvent.ConfirmRemoveBlock) },
-            onDismiss = { onEvent(TrainerEvent.DismissRemoveBlock) },
-            testTagPrefix = "trainer_remove_block_dialog",
-        )
-    }
-}
-
-/** "Tu plan" on the Trainer tab: create, review the pending proposal or see the active plan. */
-@Composable
-internal fun PlanSection(
+internal fun PlanEntrySection(
     plan: PlanSummary,
     online: Boolean,
     onOpenProposal: () -> Unit,
     onOpenBeforeStart: (BeforeStartMode, String?, String?) -> Unit,
-    cardioEdit: CardioEdit? = null,
-    onEvent: (TrainerEvent) -> Unit = {},
-    goalsChecklist: GoalChecklist? = null,
-    canStartNewBlock: Boolean = false,
-    weeksInPhase: PhaseWeeks? = null,
-    reviewDue: Boolean = false,
-    dietBreakSaving: Boolean = false,
 ) {
+    if (plan is PlanSummary.Accepted) return
     Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
         ListSectionHeader(stringResource(Res.string.trainer_plan_section))
         when (plan) {
@@ -209,25 +85,49 @@ internal fun PlanSection(
                 if (!online) OfflineHint(stringResource(Res.string.trainer_plan_create_action))
             }
 
-            is PlanSummary.Proposed -> {
-                AppCard(
-                    Modifier.fillMaxWidth()
-                        .testTag("trainer_plan_card")
-                        .clickable(role = Role.Button, onClick = onOpenProposal),
-                ) {
-                    Text(
-                        text = stringResource(Res.string.trainer_plan_pending_title),
-                        style = AppTheme.typography.titleMedium,
-                        color = AppTheme.colors.textPrimary,
-                    )
-                    Text(
-                        text = stringResource(Res.string.trainer_plan_pending_supporting),
-                        style = AppTheme.typography.bodyMedium,
-                        color = AppTheme.colors.textSecondary,
-                    )
-                }
-                ReplacePlanEntry(plan.plan.id, online, onOpenBeforeStart)
+            is PlanSummary.Proposed -> AppCard(
+                Modifier.fillMaxWidth()
+                    .testTag("trainer_plan_card")
+                    .clickable(role = Role.Button, onClick = onOpenProposal),
+            ) {
+                Text(
+                    text = stringResource(Res.string.trainer_plan_pending_title),
+                    style = AppTheme.typography.titleMedium,
+                    color = AppTheme.colors.textPrimary,
+                )
+                Text(
+                    text = stringResource(Res.string.trainer_plan_pending_supporting),
+                    style = AppTheme.typography.bodyMedium,
+                    color = AppTheme.colors.textSecondary,
+                )
             }
+
+            is PlanSummary.Accepted -> Unit
+        }
+    }
+}
+
+/** "Tu plan" in "Detalles": "Crear plan nuevo" under a proposal, or the active plan with everything around it. */
+@Composable
+internal fun PlanDetailsSection(
+    plan: PlanSummary,
+    online: Boolean,
+    onOpenBeforeStart: (BeforeStartMode, String?, String?) -> Unit,
+    cardioEdit: CardioEdit? = null,
+    onEvent: (TrainerEvent) -> Unit = {},
+    goalsChecklist: GoalChecklist? = null,
+    canStartNewBlock: Boolean = false,
+    weeksInPhase: PhaseWeeks? = null,
+    reviewDue: Boolean = false,
+    dietBreakSaving: Boolean = false,
+) {
+    if (plan is PlanSummary.None) return
+    Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+        ListSectionHeader(stringResource(Res.string.trainer_plan_section))
+        when (plan) {
+            PlanSummary.None -> Unit
+
+            is PlanSummary.Proposed -> ReplacePlanEntry(plan.plan.id, online, onOpenBeforeStart)
 
             is PlanSummary.Accepted -> {
                 ActivePlanCard(plan.plan, weeksInPhase, onEditCardio = { onEvent(TrainerEvent.OpenCardioEdit) }) {

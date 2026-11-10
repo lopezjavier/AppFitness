@@ -29,10 +29,10 @@ class TrainerPlanReplaceTest {
 
     private fun content(plan: PlanSummary) = TrainerUiState.Content(plan = plan)
 
-    private fun show(state: TrainerUiState, online: Boolean = true) {
+    private fun show(state: TrainerUiState, online: Boolean = true, details: Boolean = true) {
         rule.setContent {
             AppTheme {
-                TrainerScreen(
+                TrainerWithDetails(
                     state,
                     flowOf(online),
                     {},
@@ -41,6 +41,7 @@ class TrainerPlanReplaceTest {
             }
         }
         rule.waitForIdle()
+        if (details) rule.openTrainerDetails()
     }
 
     private fun tap(tag: String) {
@@ -75,8 +76,9 @@ class TrainerPlanReplaceTest {
 
     @Test
     fun withoutAPlan_thereIsNoCrearPlanNuevo() {
-        show(content(PlanSummary.None))
+        show(content(PlanSummary.None), details = false)
 
+        rule.onNodeWithTag("trainer_details_row").assertDoesNotExist()
         rule.onNodeWithTag("trainer_create_plan_new").assertDoesNotExist()
     }
 

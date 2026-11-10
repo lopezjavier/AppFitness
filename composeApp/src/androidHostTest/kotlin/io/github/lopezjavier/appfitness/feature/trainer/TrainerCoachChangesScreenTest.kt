@@ -64,7 +64,7 @@ class TrainerCoachChangesScreenTest {
     ) {
         rule.setContent {
             AppTheme {
-                TrainerScreen(
+                TrainerWithDetails(
                     state = TrainerUiState.Content(coachChanges = rows, busyChangeId = busyId),
                     isOnline = flowOf(online),
                     onEvent = { events += it },
@@ -74,21 +74,38 @@ class TrainerCoachChangesScreenTest {
             }
         }
         rule.waitForIdle()
+        // Pending flags stay on the root; the applied changes live in "Detalles".
+        if (rows.isNotEmpty() && rows.none { it.status == CoachChangeStatus.Pending }) rule.openTrainerDetails()
     }
 
-    private fun showRoute(model: TrainerViewModel, onRange: (String, String) -> Unit = { _, _ -> }) {
+    private fun showRoute(
+        model: TrainerViewModel,
+        details: Boolean = true,
+        onRange: (String, String) -> Unit = { _, _ -> },
+    ) {
+        val resolver = ExerciseNameResolver(
+            FakeExerciseRepository(listOf(exerciseRow("bench", "bench"))),
+            FakeExerciseLibrary(mapOf("bench" to exerciseInfo("bench", "Press de banca"))),
+        )
+        val actions = TrainerActions(onOpenRoutineRange = onRange)
         rule.setContent {
             AppTheme {
                 CompositionLocalProvider(LocalAppMessages provides messages) {
-                    TrainerRoute(
-                        viewModel = model,
-                        connectivity = FakeConnectivityObserver(),
-                        nameResolver = ExerciseNameResolver(
-                            FakeExerciseRepository(listOf(exerciseRow("bench", "bench"))),
-                            FakeExerciseLibrary(mapOf("bench" to exerciseInfo("bench", "Press de banca"))),
-                        ),
-                        actions = TrainerActions(onOpenRoutineRange = onRange),
-                    )
+                    if (details) {
+                        TrainerDetailsRoot(
+                            actions = actions,
+                            viewModel = model,
+                            connectivity = FakeConnectivityObserver(),
+                            nameResolver = resolver,
+                        )
+                    } else {
+                        TrainerRoute(
+                            viewModel = model,
+                            connectivity = FakeConnectivityObserver(),
+                            nameResolver = resolver,
+                            actions = actions,
+                        )
+                    }
                 }
             }
         }
@@ -306,7 +323,7 @@ class TrainerCoachChangesScreenTest {
             ),
         )
         changes.decideResult = Result.failure(AppException(AppError.Unknown))
-        showRoute(model())
+        showRoute(model(), details = false)
 
         rule.onNodeWithTag("trainer_coach_change_keep_c5").performClick()
         rule.waitForIdle()
@@ -328,7 +345,7 @@ class TrainerCoachChangesScreenTest {
             ),
         )
         val opened = mutableListOf<Pair<String, String>>()
-        showRoute(model()) { routineId, exerciseId -> opened += routineId to exerciseId }
+        showRoute(model(), details = false) { routineId, exerciseId -> opened += routineId to exerciseId }
 
         rule.onNodeWithTag("trainer_coach_change_add_range_c7").performClick()
         rule.waitForIdle()
