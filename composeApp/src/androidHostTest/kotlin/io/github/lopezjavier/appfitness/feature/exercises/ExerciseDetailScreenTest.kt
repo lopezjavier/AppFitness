@@ -1,11 +1,13 @@
 package io.github.lopezjavier.appfitness.feature.exercises
 
 import android.graphics.Color
+import androidx.compose.foundation.layout.Box
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.test.assertContentDescriptionEquals
 import androidx.compose.ui.test.assertHeightIsAtLeast
 import androidx.compose.ui.test.assertIsSelected
@@ -82,6 +84,7 @@ class ExerciseDetailScreenTest {
         onRetry: () -> Unit = {},
         onOpenProgress: () -> Unit = {},
         actions: ExerciseDetailActions = ExerciseDetailActions(),
+        chatTab: ChatTabSlot = { _, _, _ -> },
     ) {
         rule.setContent {
             AppTheme {
@@ -98,6 +101,7 @@ class ExerciseDetailScreenTest {
                         today,
                         onOpenProgress = onOpenProgress,
                         actions = actions,
+                        chatTab = chatTab,
                     )
                 }
             }
@@ -106,12 +110,40 @@ class ExerciseDetailScreenTest {
     }
 
     @Test
-    fun threeTabsAreShown_withSummarySelected() {
+    fun fiveTabsAreShown_withSummarySelected() {
         show(loaded())
 
         rule.onNodeWithTag("exercise_detail_tab_summary").assertIsSelected().assertTextContains("Resumen")
         rule.onNodeWithTag("exercise_detail_tab_history").assertTextContains("Historial")
         rule.onNodeWithTag("exercise_detail_tab_how_to").assertTextContains("Cómo hacerlo")
+        rule.onNodeWithTag("exercise_detail_tab_chat").assertTextContains("Preguntar")
+    }
+
+    @Test
+    fun theChatTab_comesRightAfterComoHacerlo_asTheLastTab() {
+        show(loaded())
+
+        val howTo = rule.onNodeWithTag("exercise_detail_tab_how_to").getUnclippedBoundsInRoot()
+        val chat = rule.onNodeWithTag("exercise_detail_tab_chat").getUnclippedBoundsInRoot()
+        assertTrue(chat.left >= howTo.right)
+        assertEquals(ExerciseDetailTab.Chat, ExerciseDetailTab.entries.last())
+        assertEquals(ExerciseDetailTab.HowTo, ExerciseDetailTab.entries[ExerciseDetailTab.Chat.ordinal - 1])
+    }
+
+    @Test
+    fun withTheChatTabSelected_itShowsTheChat_andTheOtherTabsStillWork() {
+        val asked = mutableListOf<ExerciseDetailTab>()
+        show(
+            loaded(tab = ExerciseDetailTab.Chat),
+            actions = ExerciseDetailActions(onSelectTab = { asked += it }),
+            chatTab = { _, _, modifier -> Box(modifier.testTag("chat_slot")) },
+        )
+
+        rule.onNodeWithTag("chat_slot").assertExists()
+        rule.onNodeWithTag("exercise_detail_tab_chat").assertIsSelected()
+        rule.onNodeWithTag("exercise_detail_tab_how_to").performClick()
+
+        assertEquals(listOf(ExerciseDetailTab.HowTo), asked)
     }
 
     @Test

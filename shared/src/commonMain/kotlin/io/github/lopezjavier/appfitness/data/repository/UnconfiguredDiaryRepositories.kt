@@ -5,6 +5,7 @@ import io.github.lopezjavier.appfitness.domain.AppException
 import io.github.lopezjavier.appfitness.domain.model.AmountEstimate
 import io.github.lopezjavier.appfitness.domain.model.DiaryDaySummary
 import io.github.lopezjavier.appfitness.domain.model.EditableFood
+import io.github.lopezjavier.appfitness.domain.model.ExerciseChatContext
 import io.github.lopezjavier.appfitness.domain.model.Food
 import io.github.lopezjavier.appfitness.domain.model.FoodLogEntry
 import io.github.lopezjavier.appfitness.domain.model.FoodPhotoDraft
@@ -21,6 +22,7 @@ import io.github.lopezjavier.appfitness.domain.model.NewTemplateItem
 import io.github.lopezjavier.appfitness.domain.model.PreviousEstimate
 import io.github.lopezjavier.appfitness.domain.model.UpdatedFood
 import io.github.lopezjavier.appfitness.domain.model.UpdatedFoodEntry
+import io.github.lopezjavier.appfitness.domain.repository.ExerciseChatRepository
 import io.github.lopezjavier.appfitness.domain.repository.FoodDiaryRepository
 import io.github.lopezjavier.appfitness.domain.repository.FoodPhotoRepository
 import io.github.lopezjavier.appfitness.domain.repository.FoodRepository
@@ -139,6 +141,11 @@ class UnconfiguredFoodRepository : FoodRepository {
 }
 
 /** Used when Supabase is not configured: every estimate fails. */
+class UnconfiguredExerciseChatRepository : ExerciseChatRepository {
+    override suspend fun ask(exercise: ExerciseChatContext, question: String): Result<String> =
+        Result.failure(AppException(AppError.Unknown))
+}
+
 class UnconfiguredFoodPhotoRepository : FoodPhotoRepository {
     override suspend fun estimate(
         mode: FoodPhotoMode,

@@ -25,6 +25,7 @@ import io.github.lopezjavier.appfitness.data.repository.SupabaseCoachWeeksReposi
 import io.github.lopezjavier.appfitness.data.repository.SupabaseDeloadRepository
 import io.github.lopezjavier.appfitness.data.repository.SupabaseDiscomfortFollowUpRepository
 import io.github.lopezjavier.appfitness.data.repository.SupabaseDiscomfortRepository
+import io.github.lopezjavier.appfitness.data.repository.SupabaseExerciseChatRepository
 import io.github.lopezjavier.appfitness.data.repository.SupabaseExerciseRepository
 import io.github.lopezjavier.appfitness.data.repository.SupabaseFavoriteExercisesRepository
 import io.github.lopezjavier.appfitness.data.repository.SupabaseFoodDiaryRepository
@@ -62,6 +63,7 @@ import io.github.lopezjavier.appfitness.data.repository.UnconfiguredCoachWeeksRe
 import io.github.lopezjavier.appfitness.data.repository.UnconfiguredDeloadRepository
 import io.github.lopezjavier.appfitness.data.repository.UnconfiguredDiscomfortFollowUpRepository
 import io.github.lopezjavier.appfitness.data.repository.UnconfiguredDiscomfortRepository
+import io.github.lopezjavier.appfitness.data.repository.UnconfiguredExerciseChatRepository
 import io.github.lopezjavier.appfitness.data.repository.UnconfiguredExerciseRepository
 import io.github.lopezjavier.appfitness.data.repository.UnconfiguredFavoriteExercisesRepository
 import io.github.lopezjavier.appfitness.data.repository.UnconfiguredFoodDiaryRepository
@@ -102,6 +104,7 @@ import io.github.lopezjavier.appfitness.domain.repository.CoachWeeksRepository
 import io.github.lopezjavier.appfitness.domain.repository.DeloadRepository
 import io.github.lopezjavier.appfitness.domain.repository.DiscomfortFollowUpRepository
 import io.github.lopezjavier.appfitness.domain.repository.DiscomfortRepository
+import io.github.lopezjavier.appfitness.domain.repository.ExerciseChatRepository
 import io.github.lopezjavier.appfitness.domain.repository.ExerciseRepository
 import io.github.lopezjavier.appfitness.domain.repository.FavoriteExercisesRepository
 import io.github.lopezjavier.appfitness.domain.repository.FoodDiaryRepository
@@ -466,6 +469,14 @@ val sharedModule =
                 SupabaseFoodPhotoRepository(client.auth, client.functions)
             } else {
                 UnconfiguredFoodPhotoRepository()
+            }
+        }
+        single<ExerciseChatRepository> {
+            if (get<AppConfig>().isSupabaseConfigured) {
+                val client = get<SupabaseClient>()
+                SupabaseExerciseChatRepository(client.auth, client.functions)
+            } else {
+                UnconfiguredExerciseChatRepository()
             }
         }
         single<Clock> { SystemClock() }

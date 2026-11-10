@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.runtime.Composable
@@ -36,6 +37,7 @@ import io.github.lopezjavier.appfitness.composeapp.resources.exercise_in_use_mes
 import io.github.lopezjavier.appfitness.composeapp.resources.exercise_in_use_routines
 import io.github.lopezjavier.appfitness.composeapp.resources.exercise_in_use_sets
 import io.github.lopezjavier.appfitness.composeapp.resources.exercise_save_failed
+import io.github.lopezjavier.appfitness.composeapp.resources.exercise_tab_chat
 import io.github.lopezjavier.appfitness.composeapp.resources.exercise_tab_history
 import io.github.lopezjavier.appfitness.composeapp.resources.exercise_tab_how_to
 import io.github.lopezjavier.appfitness.composeapp.resources.exercise_tab_similar
@@ -61,6 +63,7 @@ import io.github.lopezjavier.appfitness.designsystem.Spacing
 import io.github.lopezjavier.appfitness.designsystem.WindowWidthClass
 import io.github.lopezjavier.appfitness.designsystem.windowWidthClassFor
 import io.github.lopezjavier.appfitness.domain.model.Equipment
+import io.github.lopezjavier.appfitness.domain.model.ExerciseDetail
 import io.github.lopezjavier.appfitness.domain.model.MovementPattern
 import io.github.lopezjavier.appfitness.domain.model.MuscleGroup
 import io.github.lopezjavier.appfitness.domain.port.Clock
@@ -180,8 +183,14 @@ fun ExerciseDetailRoot(
         onOpenProgress = onOpenProgress,
         actions = actions,
         onClose = onClose,
+        chatTab = { detail, listState, tabModifier ->
+            ExerciseChatRoot(detail, listState, tabModifier)
+        },
     )
 }
+
+/** Content of the "Preguntar" tab: the exercise, the hoisted message list state and the modifier to fill the tab. */
+typealias ChatTabSlot = @Composable (ExerciseDetail, LazyListState, Modifier) -> Unit
 
 private suspend fun inUseMessage(effect: ExerciseDetailEffect.InUse): String = getString(
     Res.string.exercise_in_use_message,
@@ -191,10 +200,10 @@ private suspend fun inUseMessage(effect: ExerciseDetailEffect.InUse): String = g
 
 /**
  * Exercise detail (US-09, US-28) on [AppScreen]: the exercise name as title and, for a manual exercise, edit and
- * delete in the top bar on every tab (delete is immediate, no dialog). Four tabs, "Resumen" (demonstration, header,
+ * delete in the top bar on every tab (delete is immediate, no dialog). Five tabs, "Resumen" (demonstration, header,
  * progress link, records), "Similares" (curated alternatives, tap opens one), "Historial" (sessions that
- * contain the exercise) and "Cómo hacerlo" (steps, tips, RepDB
- * attribution). In [selectMode] a "Seleccionar" button is pinned at the bottom of every tab. [today] dates the
+ * contain the exercise), "Cómo hacerlo" (steps, tips, RepDB attribution) and "Preguntar" (the trainer chat, rendered
+ * by [chatTab]). In [selectMode] a "Seleccionar" button is pinned at the bottom of every tab. [today] dates the
  * history rows and the records.
  */
 @Composable
@@ -209,6 +218,7 @@ fun ExerciseDetailScreen(
     onOpenProgress: () -> Unit = {},
     actions: ExerciseDetailActions = ExerciseDetailActions(),
     onClose: () -> Unit = {},
+    chatTab: ChatTabSlot = { _, _, _ -> },
 ) {
     val loaded = state as? ExerciseDetailUiState.Loaded
     val title = loaded?.detail?.name ?: stringResource(Res.string.exercise_detail_title)
@@ -245,7 +255,7 @@ fun ExerciseDetailScreen(
                     }
 
                 is ExerciseDetailUiState.Loaded -> {
-                    DetailContent(state, today, onOpenProgress, actions)
+                    DetailContent(state, today, onOpenProgress, actions, chatTab)
                     state.editForm?.let { EditExerciseSheet(it, state.isOnline, actions.toFormActions()) }
                 }
             }
@@ -330,7 +340,9 @@ private fun DetailContent(
     today: LocalDate,
     onOpenProgress: () -> Unit,
     actions: ExerciseDetailActions,
+    chatTab: ChatTabSlot,
 ) {
+    val chatList = rememberLazyListState()
     // Each tab keeps its own scroll state; they are hoisted here so a tab change does not reset the others.
     val summaryScroll = rememberScrollState()
     val howToScroll = rememberScrollState()
@@ -390,6 +402,8 @@ private fun DetailContent(
                         modifier = Modifier.fillMaxSize(),
                         scrollState = howToScroll,
                     )
+
+                    ExerciseDetailTab.Chat -> chatTab(state.detail, chatList, Modifier.fillMaxSize())
                 }
             }
         }
@@ -402,12 +416,14 @@ private fun tabOptions(): List<AppOption> {
     val similar = stringResource(Res.string.exercise_tab_similar)
     val history = stringResource(Res.string.exercise_tab_history)
     val howTo = stringResource(Res.string.exercise_tab_how_to)
-    return remember(summary, similar, history, howTo) {
+    val chat = stringResource(Res.string.exercise_tab_chat)
+    return remember(summary, similar, history, howTo, chat) {
         listOf(
             AppOption(summary, "exercise_detail_tab_summary"),
             AppOption(similar, "exercise_detail_tab_similar"),
             AppOption(history, "exercise_detail_tab_history"),
             AppOption(howTo, "exercise_detail_tab_how_to"),
+            AppOption(chat, "exercise_detail_tab_chat"),
         )
     }
 }

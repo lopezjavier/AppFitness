@@ -31,6 +31,7 @@ import io.github.lopezjavier.appfitness.domain.repository.CoachReviewRepository
 import io.github.lopezjavier.appfitness.domain.repository.CoachSummaryRepository
 import io.github.lopezjavier.appfitness.domain.repository.DiscomfortFollowUpRepository
 import io.github.lopezjavier.appfitness.domain.repository.DiscomfortRepository
+import io.github.lopezjavier.appfitness.domain.repository.ExerciseChatRepository
 import io.github.lopezjavier.appfitness.domain.repository.ExerciseRepository
 import io.github.lopezjavier.appfitness.domain.repository.FavoriteExercisesRepository
 import io.github.lopezjavier.appfitness.domain.repository.FoodDiaryRepository
@@ -182,6 +183,7 @@ class AppModuleTest {
                 BarcodeScanner::class,
                 PhotoCapture::class,
                 FoodPhotoRepository::class,
+                ExerciseChatRepository::class,
                 AlertSound::class,
                 RestAlertScheduler::class,
                 NotificationPermission::class,

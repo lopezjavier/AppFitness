@@ -89,7 +89,7 @@ sealed interface ExerciseDetailEffect {
 }
 
 /** The tabs of the exercise detail; the selected one is kept in the saved state by name. */
-enum class ExerciseDetailTab { Summary, Similar, History, HowTo }
+enum class ExerciseDetailTab { Summary, Similar, History, HowTo, Chat }
 
 /** One row of the "Similares" tab: the [exercise] to list and how alike it is, in (0, 1]. */
 data class SimilarExerciseRow(

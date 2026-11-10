@@ -565,6 +565,17 @@
     <string name="exercise_tab_history">Historial</string>
     <string name="exercise_tab_how_to">Cómo hacerlo</string>
     <string name="exercise_tab_similar">Similares</string>
+    <string name="exercise_tab_chat">Preguntar</string>
+    <string name="exercise_chat_empty">Pregunta lo que quieras sobre este ejercicio.</string>
+    <string name="exercise_chat_input_label">Escribe tu pregunta</string>
+    <string name="exercise_chat_send_cd">Enviar pregunta</string>
+    <string name="exercise_chat_progress">Respondiendo…</string>
+    <string name="exercise_chat_failure_busy">No se pudo responder. Inténtalo de nuevo.</string>
+    <string name="exercise_chat_failure_daily_limit">Has llegado al límite de preguntas de hoy. Vuelve mañana.</string>
+    <string name="exercise_chat_failure_offline">Sin conexión: no se puede responder.</string>
+    <string name="exercise_chat_offline_action">preguntar</string>
+    <string name="catalog_chat_bubble_question">¿Cuántas series hago?</string>
+    <string name="catalog_chat_bubble_answer">Entre 3 y 4 series de 6 a 10 repeticiones.</string>
     <string name="exercise_similar_empty">Sin ejercicios similares</string>
     <string name="exercise_similar_error">No se pudieron cargar los ejercicios similares</string>
     <string name="exercise_similar_percent_cd">%1$s por ciento de similitud</string>
