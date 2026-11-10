@@ -26,7 +26,7 @@ Public repo `https://github.com/lopezjavier/AppFitness` (ADR-13); secret scannin
 | `GOOGLE_WEB_CLIENT_ID` | repository | `android-ci` |
 
 ### 2.2 Supabase (Free plan)
-Project `AppFitness` in `eu-west-3` (local CLI `project_id` `appfitness`). Auth: Google provider enabled, Email disabled (ADR-02). Edge Functions secrets (set with `npx supabase secrets set`, never in the repo or GitHub): `OFF_USER_AGENT`, `GEMINI_API_KEY` (free tier, `food-photo` only, ADR-59), `PROTECTED_EMAILS` (ADR-57). No other AI key exists (ADR-103: the coach calls no paid provider); the former coach key is unset in Supabase and revoked by the user.
+Project `AppFitness` in `eu-west-3` (local CLI `project_id` `appfitness`). Auth: Google provider enabled, Email disabled (ADR-02). Edge Functions secrets (set with `npx supabase secrets set`, never in the repo or GitHub): `OFF_USER_AGENT`, `GEMINI_API_KEY` (free tier, `food-photo` and `exercise-chat`, ADR-59, ADR-103), `PROTECTED_EMAILS` (ADR-57). No other AI key exists (ADR-103: the coach calls no paid provider); the former coach key is unset in Supabase and revoked by the user.
 ### 2.3 Google Cloud Console
 No billing or free trial. OAuth consent screen "External"/Testing with the app's users as test users; Web client `appfitness-web` (its Client ID is `GOOGLE_WEB_CLIENT_ID`; Supabase callback as redirect URI); two Android clients (ADR-14) `appfitness-android` and `appfitness-android-local` with the debug keystore SHA-1. No release SHA-1 (ADR-67).
 
