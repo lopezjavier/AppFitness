@@ -115,6 +115,21 @@ class SupabaseFoodDiaryRepositoryTest {
     }
 
     @Test
+    fun refresh_decodesAnEntryOfARemovedFoodWithNullFoodIdAndNoEmbeddedFood() = runTest {
+        val removed = ROW_ONE.replace(""""food_id":"f1"""", """"food_id":null""")
+            .replace(""""foods":{"base_unit":"g"}""", """"foods":null""")
+        val repo = signedInRepository { "[$removed]" }
+
+        repo.refresh(day).getOrThrow()
+
+        val entry = repo.entries(day).first().single()
+        assertEquals(null, entry.foodId)
+        assertEquals(null, entry.baseUnit)
+        assertEquals("Avena", entry.foodName)
+        assertEquals(151.2, entry.kcal)
+    }
+
+    @Test
     fun entries_emitNothingUntilTheDayIsLoadedAndThenEmitEachRefresh() = runTest {
         var body = "[]"
         val repo = signedInRepository { body }
