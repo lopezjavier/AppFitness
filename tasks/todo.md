@@ -10,7 +10,7 @@ Last task ID used: T-269 (T-268, T-269 = Checkpoint E18 feedback fixes; T-259…
 
 **Done in the T-246 branch (user report, 2026-11-08; the user ordered it into the current branch, so it ships in T-246's PR as a separate `fix(T-250)` commit):** `fix(T-250)`: the `food-photo` dish prompt (`supabase/functions/food-photo/prompts.ts`) never says whether the per-100 g values are for the food as served; a 400 g cooked plate came back with raw-food kcal/100 g. Fix: the dish prompt states that values and `estimated_grams` describe the food as shown in the photo (cooked when cooked), with a handler/prompt test and a redeploy of `food-photo`. Backend only, no model-call change elsewhere.
 
-**Next (2026-11-10, E18, T-266):** T-266 merged (PR #613, CI green; no backend change). All E18 implementation tasks are merged: next is the 👤 **Checkpoint E18** (16 items, below); present it before anything else. Before presenting: confirm `deploy-supabase` green on `main` with `exercise-chat` and `food-photo` deployed, and make one real `exercise-chat` call (`thinkingLevel: "minimal"` is unverified live). T-266 note: `AppTabRow` with 5+ tabs now uses bodyMedium and 2 dp padding (also BlockBuilder "Día N" / BlockPreview "Semana N" with 5+ entries); worth a look at the checkpoint. T-267 (closure) waits for the checkpoint's approval.
+**Next (2026-11-10, E18, T-269):** T-268 merged (PR #617, CI green; migration `20270124100000_coach_no_range_cardio.sql`, `deploy-supabase` must be green on `main` before Checkpoint E18 is re-presented). Next is **T-269** (exercise chat prompt rework): `fitness-scientist` revises the prompt and `07` §3, then **the user reviews the exact wording** before implementation. After T-269, re-present the 👤 **Checkpoint E18** (re-test: Trainer boxes "Tu plan"/"Tu bloque"/"Resumen semanal", "Cambios del entrenador" with no cardio and a working "Añadir un rango", the chat). T-268 follow-ups: week-summary box has no date range; old non-cardio `no_range_flag` rows lack `figures.routine_id`; `BlockReviewEntry` hand-rolled clickable card; `WeekSummaryScreen` internal `SummaryCard` name clash; duplicate "Tu plan" header. T-267 (closure) waits for the approval.
 
 ## Open follow-ups carried into Phase 3
 
@@ -300,9 +300,9 @@ Out of scope here (pgTAP, Deno and host tests only): no Anthropic code or key re
 **Story:** Checkpoint E18 feedback 1 and 2 (US-120 rework) · **Flow:** planner → ux-reviewer (plan) → kotlin-core-developer if needed → compose-ui-developer → pr-reviewer + ux-reviewer (diff) → pr-creator.
 **Description:** Replace the "Detalles" split of T-264: the Trainer shows summary boxes (nutrition plan, block, weekly summary, notices) and tapping a box expands or opens its full information, so nothing the user needs is hidden behind a new section. "Cambios del entrenador": no rep-range prompt for cardio exercises, and fix the "Añadir un rango" button that does nothing. Screenshot: `design/reported/E18-trainer-cambios-del-entrenador.png`.
 **Acceptance criteria:**
-- [ ] Each Trainer summary box opens its full information (all figures and actions that existed before T-264); the Trainer has no "Detalles" entry.
-- [ ] A cardio exercise never shows the rep-range message; "Añadir un rango" works for strength exercises.
-- [ ] Host tests cover both; state survives leaving the app; `check-ux-conventions.sh` passes; lint + tests green.
+- [x] Each Trainer summary box opens its full information (all figures and actions that existed before T-264); the Trainer has no "Detalles" entry.
+- [x] A cardio exercise never shows the rep-range message; "Añadir un rango" works for strength exercises.
+- [x] Host tests cover both; state survives leaving the app; `check-ux-conventions.sh` passes; lint + tests green.
 **Dependencies:** none (T-266 merged).
 
 ## T-269: fix(T-269) Exercise chat prompt rework · fix (backend + gate)
