@@ -22,6 +22,7 @@ import androidx.compose.ui.semantics.stateDescription
 import io.github.lopezjavier.appfitness.composeapp.resources.Res
 import io.github.lopezjavier.appfitness.composeapp.resources.create_food_nutrient_cd
 import io.github.lopezjavier.appfitness.composeapp.resources.create_food_nutrient_label
+import io.github.lopezjavier.appfitness.composeapp.resources.create_food_section_alcohol
 import io.github.lopezjavier.appfitness.composeapp.resources.create_food_section_fats
 import io.github.lopezjavier.appfitness.composeapp.resources.create_food_section_filled
 import io.github.lopezjavier.appfitness.composeapp.resources.create_food_section_minerals
@@ -46,12 +47,14 @@ private const val CHEVRON_EXPANDED_ROTATION = 180f
 @Composable
 internal fun SectionBlock(section: CreateFoodSection, state: CreateFoodUiState, onEvent: (CreateFoodEvent) -> Unit) {
     val expanded = section in state.expandedSections
-    val filled = section.kinds.count { state.nutrients[it].orEmpty().isNotBlank() }
+    val filled = section.kinds.count { state.nutrients[it].orEmpty().isNotBlank() } +
+        if (section == CreateFoodSection.Alcohol && state.alcohol.isNotBlank()) 1 else 0
     val title = stringResource(
         when (section) {
             CreateFoodSection.Fats -> Res.string.create_food_section_fats
             CreateFoodSection.Vitamins -> Res.string.create_food_section_vitamins
             CreateFoodSection.Minerals -> Res.string.create_food_section_minerals
+            CreateFoodSection.Alcohol -> Res.string.create_food_section_alcohol
         },
     )
     val stateText = stringResource(
@@ -90,7 +93,13 @@ internal fun SectionBlock(section: CreateFoodSection, state: CreateFoodUiState, 
                 modifier = Modifier.size(Spacing.xl).rotate(if (expanded) CHEVRON_EXPANDED_ROTATION else 0f),
             )
         }
-        if (expanded) KindGrid(section.kinds, state, onEvent)
+        if (expanded) {
+            if (section == CreateFoodSection.Alcohol) {
+                AlcoholSectionContent(state, onEvent)
+            } else {
+                KindGrid(section.kinds, state, onEvent)
+            }
+        }
     }
 }
 

@@ -94,6 +94,7 @@ class CreateFoodRestorationTest {
         rule.onNodeWithTag("create_food_protein_field").performTextInput("10")
         rule.onNodeWithTag("create_food_carbs_field").performTextInput("30")
         rule.onNodeWithTag("create_food_fat_field").performTextInput("10")
+        rule.onNodeWithTag("create_food_section_alcohol_toggle").performClick()
         rule.onNodeWithTag("create_food_alcohol_field").performTextInput("0")
         rule.waitForIdle()
         rule.onNodeWithTag("create_food_energy_warning").assertExists()
@@ -104,6 +105,41 @@ class CreateFoodRestorationTest {
         rule.onNodeWithTag("create_food_energy_warning").assertExists()
         rule.onNodeWithTag("create_food_alcohol_field").assertTextContains("0")
         rule.onNodeWithTag("create_food_save").assertIsNotEnabled()
+    }
+
+    @Test
+    fun alcoholSectionInGradosMode_survivesRecreation() {
+        val saved = SavedStateHandle()
+        val tester = StateRestorationTester(rule)
+        tester.setContent { FormHost(CreateFoodViewModel(null, null, foods, connectivity, saved)) }
+        rule.waitForIdle()
+        rule.onNodeWithTag("create_food_unit_ml").performClick()
+        rule.onNodeWithTag("create_food_section_alcohol_toggle").performClick()
+        rule.onNodeWithTag("create_food_alcohol_mode_abv").performClick()
+        rule.onNodeWithTag("create_food_alcohol_abv_field").performTextInput("5")
+        rule.waitForIdle()
+
+        tester.emulateSavedInstanceStateRestore()
+        rule.waitForIdle()
+
+        rule.onNodeWithTag("create_food_alcohol_mode_abv").assertIsSelected()
+        rule.onNodeWithTag("create_food_alcohol_abv_field").assertTextContains("5")
+        rule.onNodeWithTag("create_food_alcohol_converted").assertTextContains("3,9", substring = true)
+    }
+
+    @Test
+    fun viewModelRecreatedFromTheSameSavedState_restoresModeAbvAndGrams() {
+        val saved = SavedStateHandle()
+        val first = CreateFoodViewModel(null, null, foods, connectivity, saved)
+        first.onEvent(CreateFoodEvent.UnitSelected("ml"))
+        first.onEvent(CreateFoodEvent.AlcoholModeSelected(AlcoholMode.Grados))
+        first.onEvent(CreateFoodEvent.AlcoholAbvChanged("5"))
+
+        val restored = CreateFoodViewModel(null, null, foods, connectivity, saved).uiState.value
+
+        assertEquals(AlcoholMode.Grados, restored.alcoholMode)
+        assertEquals("5", restored.alcoholAbv)
+        assertEquals("3,9", restored.alcohol)
     }
 
     private val failingAiDraft = NewFoodDraft(

@@ -13,6 +13,8 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performTextInput
 import androidx.lifecycle.SavedStateHandle
 import io.github.lopezjavier.appfitness.app.LocalBackInterceptor
+import io.github.lopezjavier.appfitness.composeapp.resources.Res
+import io.github.lopezjavier.appfitness.composeapp.resources.food_photo_text_placeholder
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
 import io.github.lopezjavier.appfitness.domain.AppError
 import io.github.lopezjavier.appfitness.domain.AppException
@@ -23,6 +25,8 @@ import io.github.lopezjavier.appfitness.feature.food.photo.FoodPhotoFlow
 import io.github.lopezjavier.appfitness.feature.food.photo.FoodPhotoViewModel
 import io.github.lopezjavier.appfitness.feature.food.photo.foodPhotoModel
 import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.runBlocking
+import org.jetbrains.compose.resources.getString
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -62,6 +66,18 @@ class MealTextFlowTest : PhotoFlowHost() {
     }
 
     @Test
+    fun textStep_showsASimpleExampleAsPlaceholder() {
+        toInput()
+
+        // The ghost text is drawn without semantics (not spoken), so the copy is checked on the resource.
+        exists("food_photo_text_input")
+        assertEquals(
+            "Ej.: pechuga de pollo con patatas fritas",
+            runBlocking { getString(Res.string.food_photo_text_placeholder) },
+        )
+    }
+
+    @Test
     fun estimar_isDisabledWhileTheTextIsEmptyOrBlank() {
         toInput()
 
@@ -98,6 +114,7 @@ class MealTextFlowTest : PhotoFlowHost() {
         typeAndSend()
 
         rule.onNodeWithTag("create_food_name_field").assertTextContains("Pechuga, ensalada y 2 cervezas")
+        tap("create_food_section_alcohol_toggle")
         rule.onNodeWithTag("create_food_alcohol_field").assertTextContains("3")
         rule.onNodeWithTag("create_food_portion_label_0").assertTextContains("1 ración")
         rule.onNodeWithTag("create_food_ai_note").assertTextContains("Estimado por IA · revisa los valores")

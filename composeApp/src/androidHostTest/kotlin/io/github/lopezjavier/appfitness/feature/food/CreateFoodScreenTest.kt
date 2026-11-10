@@ -3,6 +3,7 @@ package io.github.lopezjavier.appfitness.feature.food
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.ui.layout.positionInRoot
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsFocused
 import androidx.compose.ui.test.assertIsNotEnabled
@@ -26,6 +27,7 @@ import io.github.lopezjavier.appfitness.domain.model.NewFoodError
 import io.github.lopezjavier.appfitness.domain.model.NewFoodErrors
 import io.github.lopezjavier.appfitness.domain.model.NewPortion
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -323,13 +325,56 @@ class CreateFoodScreenTest {
     }
 
     @Test
-    fun alcoholField_isShownAfterFibre_andItsHelpOpens() {
+    fun alcoholLivesInItsOwnCollapsedSection_afterMinerals_andItsHelpHasNoFormula() {
         show()
 
+        rule.onNodeWithTag("create_food_alcohol_field").assertDoesNotExist()
+        val minerals = rule.onNodeWithTag("create_food_section_minerals_toggle").fetchSemanticsNode().positionInRoot.y
+        val alcohol = rule.onNodeWithTag("create_food_section_alcohol_toggle").fetchSemanticsNode().positionInRoot.y
+        assertTrue(alcohol > minerals)
+        tap("create_food_section_alcohol_toggle")
         rule.onNodeWithTag("create_food_alcohol_field").assertExists()
         tap("create_food_alcohol_help")
         rule.onNodeWithTag("create_food_alcohol_help_sheet_body").assertExists()
-        rule.onNodeWithText("grados × 0,79", substring = true).assertExists()
+        rule.onNodeWithText("×", substring = true).assertDoesNotExist()
+        rule.onNodeWithText("la app los convierte", substring = true).assertExists()
+    }
+
+    @Test
+    fun gramsFood_showsNoModeSelector_andOnlyTheGramsField() {
+        show()
+        tap("create_food_section_alcohol_toggle")
+
+        rule.onNodeWithTag("create_food_alcohol_mode_g").assertDoesNotExist()
+        rule.onNodeWithTag("create_food_alcohol_mode_abv").assertDoesNotExist()
+        rule.onNodeWithTag("create_food_alcohol_field").assertExists()
+    }
+
+    @Test
+    fun mlFood_gradosMode_convertsTheTypedAbv_andSavesGrams() {
+        show()
+        fillTortilla()
+        tap("create_food_unit_ml")
+        tap("create_food_section_alcohol_toggle")
+        tap("create_food_alcohol_mode_abv")
+        type("create_food_alcohol_abv_field", "5")
+
+        rule.onNodeWithTag("create_food_alcohol_converted").assertTextContains("= 3,9 g por 100 ml")
+        rule.onNodeWithTag("create_food_section_alcohol_filled", useUnmergedTree = true).assertExists()
+        tap("create_food_save")
+        assertEquals(3.9, foods.created.single().alcoholG!!, 0.0001)
+    }
+
+    @Test
+    fun mlFood_switchingBackToGrams_keepsTheConvertedGrams() {
+        show()
+        tap("create_food_unit_ml")
+        tap("create_food_section_alcohol_toggle")
+        tap("create_food_alcohol_mode_abv")
+        type("create_food_alcohol_abv_field", "5")
+        tap("create_food_alcohol_mode_g")
+
+        rule.onNodeWithTag("create_food_alcohol_field").assertTextContains("3,9")
     }
 
     @Test

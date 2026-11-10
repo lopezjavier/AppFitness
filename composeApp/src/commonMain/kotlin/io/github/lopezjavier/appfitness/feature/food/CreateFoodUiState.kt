@@ -25,6 +25,12 @@ data class CreateFoodUiState(
     val fat: String = "",
     /** Grams of alcohol per 100 (text); blank means not typed. */
     val alcohol: String = "",
+    /** How an ml food's alcohol is typed; always [AlcoholMode.Grams] for a g food. */
+    val alcoholMode: AlcoholMode = AlcoholMode.Grams,
+    /** The typed % vol text in [AlcoholMode.Grados]; blank otherwise. Never stored on the food. */
+    val alcoholAbv: String = "",
+    /** The grams per 100 ml converted from [alcoholAbv] (shown text); null in grams mode or while blank. */
+    val alcoholConvertedG: String? = null,
     val nutrients: Map<MicronutrientKind, String> = emptyMap(),
     val barcode: String? = null,
     val portions: List<PortionDraft> = emptyList(),
@@ -101,6 +107,9 @@ enum class CreateFoodSection(val id: String, val kinds: List<MicronutrientKind>)
             MicronutrientKind.editableKinds.size,
         ),
     ),
+
+    /** Holds the alcohol field, not label nutrients: [kinds] is empty. Always the last section. */
+    Alcohol("alcohol", emptyList()),
     ;
 
     companion object {
@@ -114,6 +123,9 @@ enum class CreateFoodSection(val id: String, val kinds: List<MicronutrientKind>)
     }
 }
 
+/** Whether the alcohol of an ml food is typed as grams per 100 ml or as grados (% vol). */
+enum class AlcoholMode { Grams, Grados }
+
 /** The identity and macro fields; the label nutrients are keyed by [MicronutrientKind] (blank means not typed). */
 enum class CreateFoodField { Name, Brand, Kcal, Protein, Carbs, Fat, Alcohol }
 
@@ -125,6 +137,12 @@ sealed interface CreateFoodEvent {
 
     /** [unit] is "g" or "ml". */
     data class UnitSelected(val unit: String) : CreateFoodEvent
+
+    /** Only honoured for an ml food; switching keeps the grams. */
+    data class AlcoholModeSelected(val mode: AlcoholMode) : CreateFoodEvent
+
+    /** The % vol text; the Alcohol grams field is set to its conversion. */
+    data class AlcoholAbvChanged(val text: String) : CreateFoodEvent
 
     data object AddPortion : CreateFoodEvent
 

@@ -27,10 +27,6 @@ import androidx.compose.ui.text.input.ImeAction
 import io.github.lopezjavier.appfitness.composeapp.resources.Res
 import io.github.lopezjavier.appfitness.composeapp.resources.action_retry
 import io.github.lopezjavier.appfitness.composeapp.resources.create_food_ai_note
-import io.github.lopezjavier.appfitness.composeapp.resources.create_food_alcohol
-import io.github.lopezjavier.appfitness.composeapp.resources.create_food_alcohol_help_body
-import io.github.lopezjavier.appfitness.composeapp.resources.create_food_alcohol_help_cd
-import io.github.lopezjavier.appfitness.composeapp.resources.create_food_alcohol_help_title
 import io.github.lopezjavier.appfitness.composeapp.resources.create_food_barcode
 import io.github.lopezjavier.appfitness.composeapp.resources.create_food_brand
 import io.github.lopezjavier.appfitness.composeapp.resources.create_food_carbs_total
@@ -62,7 +58,6 @@ import io.github.lopezjavier.appfitness.designsystem.AppStateAction
 import io.github.lopezjavier.appfitness.designsystem.AppTextField
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
 import io.github.lopezjavier.appfitness.designsystem.ErrorState
-import io.github.lopezjavier.appfitness.designsystem.HelpButton
 import io.github.lopezjavier.appfitness.designsystem.InlineNote
 import io.github.lopezjavier.appfitness.designsystem.Macro
 import io.github.lopezjavier.appfitness.designsystem.MacroDefaults
@@ -77,7 +72,6 @@ import org.jetbrains.compose.resources.stringResource
 private const val MAX_NAME_LENGTH = 200
 private const val NUTRIENT_DECIMALS = 2
 private const val LABEL_DECIMALS = 4
-private const val ALCOHOL_DECIMALS = 1
 private const val GRID_COLUMNS = 2
 private const val LARGE_FONT_SCALE = 1.3f
 private const val SKELETON_ROWS = 4
@@ -245,8 +239,8 @@ internal class NutrientSpec(
 
 /**
  * The nutrients in one column, in label order (US-18, US-25): calories per 100, total fat with its saturated part
- * indented, carbohydrates with the sugars indented, fibre, protein and salt. Fat and saturated share the fat colour,
- * carbohydrates and sugars the carbs colour; fibre and salt are neutral.
+ * indented, carbohydrates with the sugars indented, fibre, protein and salt (alcohol has its own section). Fat and
+ * saturated share the fat colour, carbohydrates and sugars the carbs colour; fibre and salt are neutral.
  */
 @Composable
 private fun NutritionBlock(state: CreateFoodUiState, onEvent: (CreateFoodEvent) -> Unit) {
@@ -288,26 +282,6 @@ private fun NutritionBlock(state: CreateFoodUiState, onEvent: (CreateFoodEvent) 
         NutrientField(carbs, state.carbs, errors.carbs, change(CreateFoodField.Carbs), ImeAction.Next)
         KindField(MicronutrientKind.Sugars, stringResource(Res.string.create_food_sugars_of), Macro.Carbs, true)
         KindField(MicronutrientKind.Fiber, stringResource(Res.string.create_food_fiber), null)
-        NutrientField(
-            NutrientSpec(
-                stringResource(Res.string.create_food_alcohol),
-                null,
-                "create_food_alcohol_field",
-                decimals = ALCOHOL_DECIMALS,
-            ),
-            state.alcohol,
-            errors.alcohol,
-            onChange = change(CreateFoodField.Alcohol),
-            imeAction = ImeAction.Next,
-            help = {
-                HelpButton(
-                    contentDescription = stringResource(Res.string.create_food_alcohol_help_cd),
-                    title = stringResource(Res.string.create_food_alcohol_help_title),
-                    body = stringResource(Res.string.create_food_alcohol_help_body),
-                    testTag = "create_food_alcohol_help",
-                )
-            },
-        )
         val protein =
             NutrientSpec(stringResource(Res.string.create_food_protein), Macro.Protein, "create_food_protein_field")
         NutrientField(protein, state.protein, errors.protein, change(CreateFoodField.Protein), ImeAction.Next)
