@@ -183,8 +183,8 @@ class TrainerDiscomfortScreenTest {
                 planWeek(week = 2, phase = WeekPhase.Upcoming),
             ),
         )
-        rule.setContent { AppTheme { TrainerWithDetails(state, flowOf(true), {}) } }
-        rule.openTrainerDetails()
+        rule.setContent { AppTheme { TrainerWithBoxes(state, flowOf(true), {}) } }
+        rule.openTrainerBlock()
 
         rule.onNodeWithTag("trainer_deload_help").performClick()
         rule.waitForIdle()

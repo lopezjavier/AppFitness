@@ -6,7 +6,7 @@ Operating instructions: [`CLAUDE.md`](../CLAUDE.md). Phase 1 history (frozen): [
 Legend: **👤** = done by the user (accounts, web consoles, secrets) · **PM** = done by Claude Code.
 Secrets rule: never pasted in the chat or in versioned files. The user enters them in their terminal or in the consoles, and Claude only verifies that they exist.
 
-Last task ID used: T-267 (T-259…T-267 reserved by the E18 breakdown; T-257…T-258 = ADR-104 hard energy check, Checkpoint E17 feedback; T-251…T-256 reserved by the E17 breakdown; T-246…T-249 by E16; T-239…T-244 by E15; T-250 = user-reported fix below)
+Last task ID used: T-269 (T-268, T-269 = Checkpoint E18 feedback fixes; T-259…T-267 reserved by the E18 breakdown; T-257…T-258 = ADR-104 hard energy check, Checkpoint E17 feedback; T-251…T-256 reserved by the E17 breakdown; T-246…T-249 by E16; T-239…T-244 by E15; T-250 = user-reported fix below)
 
 **Done in the T-246 branch (user report, 2026-11-08; the user ordered it into the current branch, so it ships in T-246's PR as a separate `fix(T-250)` commit):** `fix(T-250)`: the `food-photo` dish prompt (`supabase/functions/food-photo/prompts.ts`) never says whether the per-100 g values are for the food as served; a 400 g cooked plate came back with raw-food kcal/100 g. Fix: the dish prompt states that values and `estimated_grams` describe the food as shown in the photo (cooked when cooked), with a handler/prompt test and a redeploy of `food-photo`. Backend only, no model-call change elsewhere.
 
@@ -292,6 +292,27 @@ After T-266 merges (the last implementation task), CI green, `deploy-supabase` g
 *Leave and come back (final regression):*
 - [ ] 16. Leave the app and come back (and after the system kills it) with a past report open, with "Detalles" open, with a quick search typed and a result open, and with a question typed and an answer shown in the chat: the same tab, screen and draft are restored each time.
 Out of scope here (pgTAP, Deno and host tests only): no Anthropic code or key remains; `coach_usage` is gone; another account's reports are not readable; only the exercise and the question are sent; the busy and Gemini daily-limit messages.
+
+---
+
+## T-268: fix(T-268) Trainer summary boxes and "Cambios del entrenador" · fix (UI)
+
+**Story:** Checkpoint E18 feedback 1 and 2 (US-120 rework) · **Flow:** planner → ux-reviewer (plan) → kotlin-core-developer if needed → compose-ui-developer → pr-reviewer + ux-reviewer (diff) → pr-creator.
+**Description:** Replace the "Detalles" split of T-264: the Trainer shows summary boxes (nutrition plan, block, weekly summary, notices) and tapping a box expands or opens its full information, so nothing the user needs is hidden behind a new section. "Cambios del entrenador": no rep-range prompt for cardio exercises, and fix the "Añadir un rango" button that does nothing. Screenshot: `design/reported/E18-trainer-cambios-del-entrenador.png`.
+**Acceptance criteria:**
+- [ ] Each Trainer summary box opens its full information (all figures and actions that existed before T-264); the Trainer has no "Detalles" entry.
+- [ ] A cardio exercise never shows the rep-range message; "Añadir un rango" works for strength exercises.
+- [ ] Host tests cover both; state survives leaving the app; `check-ux-conventions.sh` passes; lint + tests green.
+**Dependencies:** none (T-266 merged).
+
+## T-269: fix(T-269) Exercise chat prompt rework · fix (backend + gate)
+
+**Story:** Checkpoint E18 feedback 3 (US-130 rework) · **Flow:** fitness-scientist (prompt + `07` §3) → **user reviews the exact prompt wording** (hard gate) → backend-developer → pr-reviewer → pr-creator.
+**Description:** The chat answers the question asked like an expert trainer (e.g. safer replacement exercises for an injury): no "consult a professional" message, no bias, and remove the `Registrar molestia` pointer from the T-265 medical line. Screenshot: `design/reported/E18-preguntar-useless-answer.png`.
+**Acceptance criteria:**
+- [ ] `07` §3 and the prompt revised by `fitness-scientist`; the user approved the exact wording before implementation.
+- [ ] Handler/prompt tests updated; `exercise-chat` redeployed green on `main`.
+**Dependencies:** T-268 merged. Then Checkpoint E18 is re-presented.
 
 ---
 

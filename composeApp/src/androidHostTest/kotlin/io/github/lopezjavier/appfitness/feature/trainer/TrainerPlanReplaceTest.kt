@@ -32,7 +32,7 @@ class TrainerPlanReplaceTest {
     private fun show(state: TrainerUiState, online: Boolean = true, details: Boolean = true) {
         rule.setContent {
             AppTheme {
-                TrainerWithDetails(
+                TrainerWithBoxes(
                     state,
                     flowOf(online),
                     {},
@@ -41,7 +41,7 @@ class TrainerPlanReplaceTest {
             }
         }
         rule.waitForIdle()
-        if (details) rule.openTrainerDetails()
+        if (details) rule.openTrainerPlan()
     }
 
     private fun tap(tag: String) {
@@ -68,7 +68,7 @@ class TrainerPlanReplaceTest {
 
     @Test
     fun withAPendingPlan_crearPlanNuevoIsShown() {
-        show(content(pending))
+        show(content(pending), details = false)
 
         rule.onNodeWithTag("trainer_create_plan").assertDoesNotExist()
         rule.onNodeWithTag("trainer_create_plan_new").assertExists()
@@ -78,7 +78,7 @@ class TrainerPlanReplaceTest {
     fun withoutAPlan_thereIsNoCrearPlanNuevo() {
         show(content(PlanSummary.None), details = false)
 
-        rule.onNodeWithTag("trainer_details_row").assertDoesNotExist()
+        rule.onNodeWithTag("trainer_box_plan").assertDoesNotExist()
         rule.onNodeWithTag("trainer_create_plan_new").assertDoesNotExist()
     }
 
@@ -102,7 +102,7 @@ class TrainerPlanReplaceTest {
 
     @Test
     fun tappingIt_onAPendingPlan_replacesThePendingPlanId() {
-        show(content(pending))
+        show(content(pending), details = false)
 
         tap("trainer_create_plan_new")
 

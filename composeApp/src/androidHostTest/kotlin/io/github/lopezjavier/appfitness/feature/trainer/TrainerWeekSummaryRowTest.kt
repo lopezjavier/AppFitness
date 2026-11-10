@@ -43,8 +43,8 @@ class TrainerWeekSummaryRowTest {
     fun withASummary_theRowIsShownAndOpensIt() {
         show(hasSummary = true)
 
-        rule.onNodeWithTag("trainer_row_week_summary").performScrollTo().assertIsDisplayed()
-        rule.onNodeWithTag("trainer_row_week_summary").performClick()
+        rule.onNodeWithTag("trainer_box_week_summary").performScrollTo().assertIsDisplayed()
+        rule.onNodeWithTag("trainer_box_week_summary").performClick()
 
         assertEquals(1, opened)
     }
@@ -53,6 +53,6 @@ class TrainerWeekSummaryRowTest {
     fun withoutASummary_noRow() {
         show(hasSummary = false)
 
-        rule.onAllNodesWithTag("trainer_row_week_summary").assertCountEquals(0)
+        rule.onAllNodesWithTag("trainer_box_week_summary").assertCountEquals(0)
     }
 }

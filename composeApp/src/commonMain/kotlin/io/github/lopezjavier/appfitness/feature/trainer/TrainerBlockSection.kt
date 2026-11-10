@@ -9,8 +9,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.Role
-import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.semantics.stateDescription
 import io.github.lopezjavier.appfitness.composeapp.resources.Res
 import io.github.lopezjavier.appfitness.composeapp.resources.action_cancel
 import io.github.lopezjavier.appfitness.composeapp.resources.action_delete
@@ -29,6 +27,8 @@ import io.github.lopezjavier.appfitness.composeapp.resources.trainer_block_saved
 import io.github.lopezjavier.appfitness.composeapp.resources.trainer_block_status_ended
 import io.github.lopezjavier.appfitness.composeapp.resources.trainer_block_status_upcoming
 import io.github.lopezjavier.appfitness.composeapp.resources.trainer_block_status_week
+import io.github.lopezjavier.appfitness.composeapp.resources.trainer_block_title
+import io.github.lopezjavier.appfitness.composeapp.resources.trainer_box_block_deload
 import io.github.lopezjavier.appfitness.composeapp.resources.trainer_week_progress
 import io.github.lopezjavier.appfitness.designsystem.AppCard
 import io.github.lopezjavier.appfitness.designsystem.AppConfirmDialog
@@ -38,6 +38,7 @@ import io.github.lopezjavier.appfitness.designsystem.GhostTone
 import io.github.lopezjavier.appfitness.designsystem.OfflineHint
 import io.github.lopezjavier.appfitness.designsystem.PrimaryButton
 import io.github.lopezjavier.appfitness.designsystem.Spacing
+import io.github.lopezjavier.appfitness.designsystem.SummaryCard
 import io.github.lopezjavier.appfitness.domain.model.PlanWeek
 import org.jetbrains.compose.resources.stringResource
 
@@ -68,28 +69,18 @@ internal fun BlockEntrySection(
             if (!online) OfflineHint(stringResource(Res.string.trainer_block_create_action))
         }
 
-        is BlockSummary.Proposed -> AppCard(
-            Modifier.fillMaxWidth()
-                .testTag("trainer_block_card")
-                .clickable(role = Role.Button) { onOpenBlock(planId) },
-        ) {
-            Text(
-                text = stringResource(Res.string.trainer_block_proposed_title),
-                style = AppTheme.typography.titleMedium,
-                color = AppTheme.colors.textPrimary,
-            )
-            Text(
-                text = stringResource(Res.string.trainer_block_proposed_supporting),
-                style = AppTheme.typography.bodyMedium,
-                color = AppTheme.colors.textSecondary,
-            )
-        }
+        is BlockSummary.Proposed -> SummaryCard(
+            title = stringResource(Res.string.trainer_block_proposed_title),
+            lines = listOf(stringResource(Res.string.trainer_block_proposed_supporting)),
+            onClick = { onOpenBlock(planId) },
+            testTag = "trainer_block_card",
+        )
 
         is BlockSummary.Saved -> Unit
     }
 }
 
-/** The saved block in "Detalles": its card and "Eliminar bloque" with the confirmation. */
+/** The saved block on "Tu bloque": its card and "Eliminar bloque" with the confirmation. */
 @Composable
 internal fun BlockDetailsSection(
     block: BlockSummary,
@@ -111,13 +102,25 @@ internal fun BlockDetailsSection(
 }
 
 /**
- * The block summary on the Trainer root (US-120): facts only, derived from [status]. [currentWeek] only supplies the
- * numbers of the adherence line. Nothing is drawn without a saved block (the proposal has its own card).
+ * "Tu bloque" box on the Trainer root (US-120): facts only, derived from [status]; opens the block screen. [currentWeek]
+ * only supplies the numbers of the adherence line. Without a saved block it only shows while applied
+ * changes exist (the proposal has its own card).
  */
 @Composable
-internal fun BlockStatusCard(status: BlockStatus, currentWeek: PlanWeek?) {
-    if (status !is BlockStatus.Saved) return
-    val title = stringResource(Res.string.trainer_block_saved_title)
+internal fun BlockSummaryBox(
+    status: BlockStatus,
+    currentWeek: PlanWeek?,
+    deloadPlanned: Boolean,
+    hasAppliedChanges: Boolean,
+    onOpen: () -> Unit,
+) {
+    if (status !is BlockStatus.Saved) {
+        // Applied coach changes live on "Tu bloque": without a saved block the box still reaches them.
+        if (hasAppliedChanges) {
+            SummaryCard(stringResource(Res.string.trainer_block_title), emptyList(), onOpen, "trainer_box_block")
+        }
+        return
+    }
     val line = when {
         status.reviewDue -> stringResource(Res.string.trainer_block_status_ended)
         status.paused -> stringResource(Res.string.block_week_paused)
@@ -127,14 +130,13 @@ internal fun BlockStatusCard(status: BlockStatus, currentWeek: PlanWeek?) {
     val adherence = currentWeek?.takeIf { status.adherence != null }?.let {
         stringResource(Res.string.trainer_week_progress, it.completed, it.planned, it.adherencePct)
     }
-    val description = listOfNotNull(title, line, adherence).joinToString(", ")
-    AppCard(Modifier.fillMaxWidth().testTag("trainer_block_status").semantics { stateDescription = description }) {
-        Text(text = title, style = AppTheme.typography.titleMedium, color = AppTheme.colors.textPrimary)
-        Text(text = line, style = AppTheme.typography.bodyLarge, color = AppTheme.colors.textPrimary)
-        adherence?.let {
-            Text(text = it, style = AppTheme.typography.bodyMedium, color = AppTheme.colors.textSecondary)
-        }
-    }
+    val deload = if (deloadPlanned) stringResource(Res.string.trainer_box_block_deload) else null
+    SummaryCard(
+        title = stringResource(Res.string.trainer_block_title),
+        lines = listOfNotNull(line, adherence, deload),
+        onClick = onOpen,
+        testTag = "trainer_box_block",
+    )
 }
 
 /** The end-of-block card (US-101): opens "Revisión del bloque"; the title equals the screen title (R-04). */

@@ -1,6 +1,5 @@
 package io.github.lopezjavier.appfitness.feature.trainer
 
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -10,7 +9,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.semantics.Role
 import io.github.lopezjavier.appfitness.composeapp.resources.Res
 import io.github.lopezjavier.appfitness.composeapp.resources.action_apply
 import io.github.lopezjavier.appfitness.composeapp.resources.action_not_now
@@ -26,8 +24,10 @@ import io.github.lopezjavier.appfitness.composeapp.resources.calorie_proposal_ho
 import io.github.lopezjavier.appfitness.composeapp.resources.calorie_proposal_hold_raise
 import io.github.lopezjavier.appfitness.composeapp.resources.calorie_proposal_offline
 import io.github.lopezjavier.appfitness.composeapp.resources.phase_help_cd
+import io.github.lopezjavier.appfitness.composeapp.resources.trainer_box_plan_line
 import io.github.lopezjavier.appfitness.composeapp.resources.trainer_plan_active_line
 import io.github.lopezjavier.appfitness.composeapp.resources.trainer_plan_active_title
+import io.github.lopezjavier.appfitness.composeapp.resources.trainer_plan_activity
 import io.github.lopezjavier.appfitness.composeapp.resources.trainer_plan_create
 import io.github.lopezjavier.appfitness.composeapp.resources.trainer_plan_create_action
 import io.github.lopezjavier.appfitness.composeapp.resources.trainer_plan_diet_break
@@ -51,6 +51,7 @@ import io.github.lopezjavier.appfitness.designsystem.PrimaryButton
 import io.github.lopezjavier.appfitness.designsystem.Spacing
 import io.github.lopezjavier.appfitness.designsystem.StatusChip
 import io.github.lopezjavier.appfitness.designsystem.StatusTone
+import io.github.lopezjavier.appfitness.designsystem.SummaryCard
 import io.github.lopezjavier.appfitness.domain.model.CalorieProposal
 import io.github.lopezjavier.appfitness.domain.model.CoachPlan
 import io.github.lopezjavier.appfitness.domain.model.PhaseWeeks
@@ -63,51 +64,72 @@ import kotlin.math.abs
 
 private const val HALF = 2
 
-/** "Tu plan" on the Trainer root: "Crear plan" or the pending proposal (an accepted plan lives in Detalles). */
+/**
+ * "Tu plan" on the Trainer root: "Crear plan" without a plan, the pending proposal, or (accepted) the box whose lines
+ * carry the key figures and that opens "Tu plan".
+ */
 @Composable
 internal fun PlanEntrySection(
     plan: PlanSummary,
     online: Boolean,
     onOpenProposal: () -> Unit,
     onOpenBeforeStart: (BeforeStartMode, String?, String?) -> Unit,
+    onOpenPlan: () -> Unit = {},
 ) {
-    if (plan is PlanSummary.Accepted) return
-    Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-        ListSectionHeader(stringResource(Res.string.trainer_plan_section))
-        when (plan) {
-            PlanSummary.None -> {
-                PrimaryButton(
-                    text = stringResource(Res.string.trainer_plan_create),
-                    onClick = { onOpenBeforeStart(BeforeStartMode.Plan, null, null) },
-                    modifier = Modifier.fillMaxWidth().testTag("trainer_create_plan"),
-                    enabled = online,
-                )
-                if (!online) OfflineHint(stringResource(Res.string.trainer_plan_create_action))
-            }
-
-            is PlanSummary.Proposed -> AppCard(
-                Modifier.fillMaxWidth()
-                    .testTag("trainer_plan_card")
-                    .clickable(role = Role.Button, onClick = onOpenProposal),
-            ) {
-                Text(
-                    text = stringResource(Res.string.trainer_plan_pending_title),
-                    style = AppTheme.typography.titleMedium,
-                    color = AppTheme.colors.textPrimary,
-                )
-                Text(
-                    text = stringResource(Res.string.trainer_plan_pending_supporting),
-                    style = AppTheme.typography.bodyMedium,
-                    color = AppTheme.colors.textSecondary,
-                )
-            }
-
-            is PlanSummary.Accepted -> Unit
+    when (plan) {
+        PlanSummary.None -> Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+            ListSectionHeader(stringResource(Res.string.trainer_plan_section))
+            PrimaryButton(
+                text = stringResource(Res.string.trainer_plan_create),
+                onClick = { onOpenBeforeStart(BeforeStartMode.Plan, null, null) },
+                modifier = Modifier.fillMaxWidth().testTag("trainer_create_plan"),
+                enabled = online,
+            )
+            if (!online) OfflineHint(stringResource(Res.string.trainer_plan_create_action))
         }
+
+        is PlanSummary.Proposed -> Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+            SummaryCard(
+                title = stringResource(Res.string.trainer_plan_pending_title),
+                lines = listOf(stringResource(Res.string.trainer_plan_pending_supporting)),
+                onClick = onOpenProposal,
+                testTag = "trainer_plan_card",
+            )
+            ReplacePlanEntry(plan.plan.id, online, onOpenBeforeStart)
+        }
+
+        is PlanSummary.Accepted -> PlanSummaryBox(plan.plan, onOpenPlan)
     }
 }
 
-/** "Tu plan" in "Detalles": "Crear plan nuevo" under a proposal, or the active plan with everything around it. */
+/** The accepted plan's box: phase and calories, then the cardio minutes and the diet-break week when there are any. */
+@Composable
+private fun PlanSummaryBox(plan: CoachPlan, onOpen: () -> Unit) {
+    val nutrition = plan.nutrition
+    val headline = stringResource(
+        Res.string.trainer_box_plan_line,
+        stringResource(PhaseText.label(plan.phase)),
+        AppNumberFormat.integer(nutrition.targetKcal),
+    )
+    val cardio = nutrition.activity?.let {
+        stringResource(
+            Res.string.trainer_plan_activity,
+            AppNumberFormat.integer(it.cardioMinWeek),
+            AppNumberFormat.integer(it.stepsDay),
+        )
+    }
+    val dietBreak = nutrition.dietBreak?.let {
+        stringResource(Res.string.trainer_plan_diet_break, AppNumberFormat.integer(it.targetKcal))
+    }
+    SummaryCard(
+        title = stringResource(Res.string.trainer_plan_section),
+        lines = listOfNotNull(headline, cardio, dietBreak),
+        onClick = onOpen,
+        testTag = "trainer_box_plan",
+    )
+}
+
+/** "Tu plan" screen: the active plan with everything around it. */
 @Composable
 internal fun PlanDetailsSection(
     plan: PlanSummary,
@@ -127,7 +149,7 @@ internal fun PlanDetailsSection(
         when (plan) {
             PlanSummary.None -> Unit
 
-            is PlanSummary.Proposed -> ReplacePlanEntry(plan.plan.id, online, onOpenBeforeStart)
+            is PlanSummary.Proposed -> Unit
 
             is PlanSummary.Accepted -> {
                 ActivePlanCard(plan.plan, weeksInPhase, onEditCardio = { onEvent(TrainerEvent.OpenCardioEdit) }) {

@@ -5,6 +5,7 @@ import io.github.lopezjavier.appfitness.domain.AppError
 import io.github.lopezjavier.appfitness.domain.AppException
 import io.github.lopezjavier.appfitness.domain.model.CoachChangeException
 import io.github.lopezjavier.appfitness.domain.model.CoachChangeFailure
+import io.github.lopezjavier.appfitness.domain.model.CoachChangeFigures
 import io.github.lopezjavier.appfitness.domain.model.CoachChangeKind
 import io.github.lopezjavier.appfitness.domain.model.CoachChangeStatus
 import io.github.lopezjavier.appfitness.domain.model.PlanStatus
@@ -441,6 +442,42 @@ class TrainerCoachChangesViewModelTest {
             assertEquals(TrainerEffect.OpenRoutineRange("routine-7", "curl"), awaitItem())
         }
     }
+
+    @Test
+    fun openRange_onAServerShapedRowWithoutSnapshots_usesTheRoutineOfTheFigures() = runTest(dispatcher) {
+        changes.changes = Result.success(listOf(serverNoRangeFlag(CoachChangeFigures(routineId = "routine-9"))))
+        val model = viewModel()
+        advanceUntilIdle()
+
+        model.effects.test {
+            model.onEvent(TrainerEvent.OpenRange("n"))
+            advanceUntilIdle()
+
+            assertEquals(TrainerEffect.OpenRoutineRange("routine-9", "curl"), awaitItem())
+        }
+    }
+
+    @Test
+    fun openRange_withoutAnyRoutine_tellsTheUserInsteadOfReturningSilently() = runTest(dispatcher) {
+        changes.changes = Result.success(listOf(serverNoRangeFlag(CoachChangeFigures())))
+        val model = viewModel()
+        advanceUntilIdle()
+
+        model.effects.test {
+            model.onEvent(TrainerEvent.OpenRange("n"))
+            advanceUntilIdle()
+
+            assertEquals(TrainerEffect.RangeUnavailable, awaitItem())
+        }
+    }
+
+    private fun serverNoRangeFlag(figures: CoachChangeFigures) = coachChange(
+        id = "n",
+        kind = CoachChangeKind.NoRangeFlag,
+        status = CoachChangeStatus.Pending,
+        exerciseId = "curl",
+        figures = figures,
+    ).copy(before = null, after = null)
 
     @Test
     fun openRange_onAnotherKindOfRow_isIgnored() = runTest(dispatcher) {

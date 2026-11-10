@@ -4,7 +4,7 @@ begin;
 create extension if not exists pgtap with schema extensions;
 set local search_path = extensions, public;
 
-select plan(126);
+select plan(129);
 
 create function pg_temp.u(n int) returns uuid language sql as $$
   select ('c2700000-0000-4000-8000-0000000000' || lpad(n::text, 2, '0'))::uuid $$;
@@ -306,8 +306,20 @@ select is((select v -> 0 ->> 'kind' from res where k = 'c11'), 'no_range_flag', 
 select is((select v -> 0 ->> 'status' from res where k = 'c11'), 'pending', 'the no-range flag is pending');
 select is(pg_temp.sig(1, pg_temp.bx(11)), 'warm_up:25x10,working:50x10,working:50x10,working:50x10,drop:40x10',
   'a no-range flag writes nothing');
+select is((select v -> 0 -> 'figures' ->> 'routine_id' from res where k = 'c11'), pg_temp.r(1)::text,
+  'the no-range flag stores the routine of the exercise in its figures');
 select is(pg_temp.ap(pg_temp.hist(pg_temp.bx(11), 1, null, null, 50, array[12, 12, 12])), '[]'::jsonb,
   'a pending no-range flag is not duplicated');
+
+-- A cardio exercise has no rep range by nature: it is never flagged.
+create temp table cardio_ex as
+  select id from public.exercises where not is_custom and movement_pattern = 'cardio' order by key limit 1;
+grant select on cardio_ex to authenticated;
+select pg_temp.block((select id from cardio_ex), null, null, 0);
+select is(pg_temp.ap(pg_temp.hist((select id from cardio_ex), 2, null, null, 0, array[20])), '[]'::jsonb,
+  'a cardio exercise without a range gets no flag');
+select is((select count(*)::int from public.coach_changes where exercise_id = (select id from cardio_ex)), 0,
+  'no coach change row exists for a cardio exercise');
 update public.routine_exercises set rep_min = 8, rep_max = 12
 where routine_id = pg_temp.r(1) and exercise_id = pg_temp.bx(11);
 select pg_temp.ap(pg_temp.hist(pg_temp.bx(2), 0, 6, 8, 80, array[6, 6, 6]));

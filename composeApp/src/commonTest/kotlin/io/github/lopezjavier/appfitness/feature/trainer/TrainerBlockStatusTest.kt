@@ -97,32 +97,10 @@ class TrainerBlockStatusTest {
     private val pending = coachChange("p", status = CoachChangeStatus.Pending).toRowUi()
 
     @Test
-    fun rootKeepsPendingFlagsAndDetailsHoldTheAppliedChanges() {
+    fun rootKeepsPendingFlagsAndTuBloqueHoldsTheAppliedChanges() {
         val content = TrainerUiState.Content(coachChanges = listOf(pending, applied))
         assertEquals(listOf(pending), content.pendingCoachChanges)
         assertEquals(listOf(applied), content.appliedCoachChanges)
-    }
-
-    @Test
-    fun detailsRowIsHiddenWithoutPlanBlockOrAppliedChanges() {
-        assertEquals(false, TrainerUiState.Content().hasDetails)
-        assertEquals(false, TrainerUiState.Content(coachChanges = listOf(pending)).hasDetails)
-    }
-
-    @Test
-    fun detailsRowShowsForAProposedPlan() {
-        assertEquals(true, TrainerUiState.Content(plan = PlanSummary.Proposed(coachPlan())).hasDetails)
-    }
-
-    @Test
-    fun detailsRowShowsForASavedBlockWithoutPlan() {
-        val content = TrainerUiState.Content(block = BlockSummary.Saved(coachBlock(saved = true)))
-        assertEquals(true, content.hasDetails)
-    }
-
-    @Test
-    fun detailsRowShowsForAppliedChangesWithoutPlan() {
-        assertEquals(true, TrainerUiState.Content(coachChanges = listOf(applied)).hasDetails)
     }
 
     @Test

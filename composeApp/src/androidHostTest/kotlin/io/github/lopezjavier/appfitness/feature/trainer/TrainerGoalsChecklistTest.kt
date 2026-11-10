@@ -38,7 +38,7 @@ class TrainerGoalsChecklistTest {
         val plan = coachPlan(status = PlanStatus.Accepted, editedByUser = edited, phase = Phase.Maintenance)
         rule.setContent {
             AppTheme {
-                TrainerWithDetails(
+                TrainerWithBoxes(
                     TrainerUiState.Content(plan = PlanSummary.Accepted(plan), goalsChecklist = checklist),
                     flowOf(true),
                     {},
@@ -47,7 +47,7 @@ class TrainerGoalsChecklistTest {
             }
         }
         rule.waitForIdle()
-        rule.openTrainerDetails()
+        rule.openTrainerPlan()
     }
 
     @Test

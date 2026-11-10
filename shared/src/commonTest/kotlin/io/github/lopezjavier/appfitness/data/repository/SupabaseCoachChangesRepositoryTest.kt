@@ -97,6 +97,27 @@ class SupabaseCoachChangesRepositoryTest {
     }
 
     @Test
+    fun noRangeFlag_readsTheRoutineIdFromTheFiguresWithoutSnapshots() = runTest {
+        body = """[{"id":"n1","kind":"no_range_flag","exercise_id":"e1","status":"pending","reason":"x",""" +
+            """"figures":{"routine_id":"r9"}}]"""
+
+        val change = repo().apply("s1").getOrThrow().single()
+
+        assertEquals("r9", change.figures.routineId)
+        assertNull(change.before)
+    }
+
+    @Test
+    fun figures_withoutOrWithMistypedRoutineId_haveNullRoutineId() = runTest {
+        body = """[{"id":"a","kind":"load_flag","status":"pending","figures":{"routine_id":5}},""" +
+            """{"id":"b","kind":"load_flag","status":"pending","figures":{}}]"""
+
+        val changes = repo().apply("s1").getOrThrow()
+
+        assertEquals(listOf(null, null), changes.map { it.figures.routineId })
+    }
+
+    @Test
     fun apply_emptyArrayIsEmpty() = runTest {
         assertEquals(emptyList(), repo().apply("s1").getOrThrow())
     }

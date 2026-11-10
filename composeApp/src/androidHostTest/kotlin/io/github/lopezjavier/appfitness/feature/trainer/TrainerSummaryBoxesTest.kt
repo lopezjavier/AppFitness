@@ -26,11 +26,11 @@ import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 
-/** US-120: the compact Trainer root and "Detalles", which keeps the plan and the block with nothing lost. */
+/** US-120: the Trainer root's summary boxes and the "Tu plan" / "Tu bloque" screens they open, with nothing lost. */
 @RunWith(RobolectricTestRunner::class)
 @Config(qualifiers = "w360dp-h2400dp-xxhdpi")
 @Suppress("TooManyFunctions") // One method per Gherkin scenario.
-class TrainerDetailsScreenTest {
+class TrainerSummaryBoxesTest {
     @get:Rule
     val rule = createComposeRule()
 
@@ -40,7 +40,7 @@ class TrainerDetailsScreenTest {
 
     private fun show(state: TrainerUiState, actions: TrainerActions = TrainerActions(), online: Boolean = true) {
         rule.setContent {
-            AppTheme { TrainerWithDetails(state, flowOf(online), {}, actions = actions, exerciseNames = names) }
+            AppTheme { TrainerWithBoxes(state, flowOf(online), {}, actions = actions, exerciseNames = names) }
         }
         rule.waitForIdle()
     }
@@ -56,57 +56,57 @@ class TrainerDetailsScreenTest {
         rule.waitForIdle()
     }
 
-    // The root shows the essentials
+    // The root shows summary boxes
 
     @Test
-    fun withoutAPlan_theRootOffersCrearPlan_andNoDetallesRow() {
+    fun theRoot_hasNoDetallesEntry() {
+        show(savedState(listOf(planWeek(week = 1))))
+
+        rule.onNodeWithText("Detalles").assertDoesNotExist()
+    }
+
+    @Test
+    fun withoutAPlan_theRootOffersCrearPlan_andNoBoxes() {
         show(TrainerUiState.Content())
 
         rule.onNodeWithTag("trainer_create_plan").assertExists()
-        rule.onNodeWithTag("trainer_details_row").assertDoesNotExist()
-        rule.onNodeWithTag("trainer_block_status").assertDoesNotExist()
+        rule.onNodeWithTag("trainer_box_plan").assertDoesNotExist()
+        rule.onNodeWithTag("trainer_box_block").assertDoesNotExist()
     }
 
     @Test
-    fun withAProposedPlan_theRootKeepsThePendingCard_andOffersDetalles() {
+    fun withAProposedPlan_theRootKeepsThePendingCard_andCrearPlanNuevo() {
         show(TrainerUiState.Content(plan = PlanSummary.Proposed(coachPlan())))
 
         rule.onNodeWithTag("trainer_plan_card").assertExists()
-        rule.onNodeWithTag("trainer_create_plan_new").assertDoesNotExist()
-        rule.onNodeWithText("Detalles").assertExists()
+        rule.onNodeWithTag("trainer_create_plan_new").assertExists()
+        rule.onNodeWithTag("trainer_box_plan").assertDoesNotExist()
     }
 
     @Test
-    fun anAcceptedPlanWithoutABlock_theRootOffersCrearBloque_andHidesThePlanBody() {
+    fun anAcceptedPlan_theBoxCarriesTheKeyFigures_andHidesThePlanBody() {
         show(TrainerUiState.Content(plan = accepted))
 
+        rule.onNodeWithTag("trainer_box_plan").assertExists()
         rule.onNodeWithTag("trainer_create_block").assertExists()
         rule.onNodeWithTag("trainer_plan_phase").assertDoesNotExist()
         rule.onNodeWithTag("trainer_plan_card").assertDoesNotExist()
-        rule.onNodeWithTag("trainer_details_row").assertExists()
     }
 
     @Test
-    fun aSavedBlock_theRootShowsOnlyTheStatus_andNotTheWeeksNorTheRemoveAction() {
-        show(savedState(listOf(planWeek(week = 1), planWeek(week = 2, phase = WeekPhase.Upcoming))))
+    fun aSavedBlock_theBoxReadsTheCurrentWeekAndItsAdherence() {
+        show(savedState(listOf(planWeek(week = 1, phase = WeekPhase.Past), planWeek(week = 2), planWeek(week = 3))))
 
-        rule.onNodeWithTag("trainer_block_status").assertExists()
+        rule.onNodeWithTag("trainer_box_block").assertExists()
+        rule.onNodeWithText("Semana 2 de 3").assertExists()
+        rule.onNodeWithText("3 de 4 entrenos · 75 %").assertExists()
         rule.onNodeWithTag("trainer_week_1").assertDoesNotExist()
-        rule.onNodeWithTag("trainer_plan_phase").assertDoesNotExist()
         rule.onNodeWithTag("trainer_remove_block").assertDoesNotExist()
         rule.onNodeWithTag("trainer_create_block").assertDoesNotExist()
     }
 
     @Test
-    fun theStatusCard_readsTheCurrentWeekAndItsAdherence() {
-        show(savedState(listOf(planWeek(week = 1, phase = WeekPhase.Past), planWeek(week = 2), planWeek(week = 3))))
-
-        rule.onNodeWithText("Semana 2 de 3").assertExists()
-        rule.onNodeWithText("3 de 4 entrenos · 75 %").assertExists()
-    }
-
-    @Test
-    fun aPausedBlock_theStatusReadsSemanaEnPausa() {
+    fun aPausedBlock_theBoxReadsSemanaEnPausa() {
         val pause = BlockPause(paused = true, pausedWeeks = 1, blockEnd = LocalDate(2026, 11, 9))
         show(savedState(listOf(planWeek(week = 1)), pause))
 
@@ -114,14 +114,14 @@ class TrainerDetailsScreenTest {
     }
 
     @Test
-    fun aBlockNotStartedYet_theStatusReadsAunSinEmpezar() {
+    fun aBlockNotStartedYet_theBoxReadsAunSinEmpezar() {
         show(savedState(listOf(planWeek(week = 1, phase = WeekPhase.Upcoming))))
 
         rule.onNodeWithText("Aún sin empezar").assertExists()
     }
 
     @Test
-    fun aFinishedBlock_theStatusReadsBloqueTerminado_andCrearBloqueIsHidden() {
+    fun aFinishedBlock_theBoxReadsBloqueTerminado_andCrearBloqueIsHidden() {
         show(savedState(listOf(planWeek(week = 1, phase = WeekPhase.Past))).copy(blockReviewDue = true))
 
         rule.onNodeWithText("Bloque terminado").assertExists()
@@ -129,7 +129,20 @@ class TrainerDetailsScreenTest {
     }
 
     @Test
-    fun theRoot_keepsOnlyThePendingFlags_andTheAppliedChangesLiveInDetalles() {
+    fun theWeekSummaryBox_callsOnOpenWeekSummary() {
+        var opened = 0
+        show(
+            TrainerUiState.Content(plan = accepted, hasWeekSummary = true),
+            TrainerActions(onOpenWeekSummary = { opened++ }),
+        )
+
+        tap("trainer_box_week_summary")
+
+        assertEquals(1, opened)
+    }
+
+    @Test
+    fun theRoot_keepsOnlyThePendingFlags_andTheAppliedChangesLiveOnTuBloque() {
         val state = TrainerUiState.Content(
             plan = accepted,
             coachChanges = listOf(
@@ -141,30 +154,42 @@ class TrainerDetailsScreenTest {
 
         rule.onNodeWithTag("trainer_coach_change_row_flag").assertExists()
         rule.onNodeWithTag("trainer_coach_change_row_done").assertDoesNotExist()
-        rule.openTrainerDetails()
+        rule.openTrainerBlock()
         rule.onNodeWithTag("trainer_coach_change_row_done").assertExists()
         rule.onNodeWithTag("trainer_coach_change_row_flag").assertDoesNotExist()
     }
 
-    // Detalles holds everything else
+    // Each box opens its information
 
     @Test
-    fun detalles_opensFromTheRow_andBackReturnsToTheRoot() {
+    fun tuPlan_opensFromItsBox_andBackReturnsToTheRoot() {
         show(TrainerUiState.Content(plan = accepted))
 
-        rule.openTrainerDetails()
-        rule.onNodeWithTag("trainer_details_screen").assertExists()
+        rule.openTrainerPlan()
+        rule.onNodeWithTag("trainer_plan_screen").assertExists()
         rule.onNodeWithTag("trainer_screen").assertDoesNotExist()
-        tap("trainer_details_back")
+        tap("trainer_plan_back")
 
         rule.onNodeWithTag("trainer_screen").assertExists()
-        rule.onNodeWithTag("trainer_details_screen").assertDoesNotExist()
+        rule.onNodeWithTag("trainer_plan_screen").assertDoesNotExist()
     }
 
     @Test
-    fun detalles_holdsThePlanFiguresPhaseAndCardio() {
+    fun tuBloque_opensFromItsBox_andBackReturnsToTheRoot() {
+        show(savedState(listOf(planWeek(week = 1))))
+
+        rule.openTrainerBlock()
+        rule.onNodeWithTag("trainer_block_screen").assertExists()
+        tap("trainer_block_back")
+
+        rule.onNodeWithTag("trainer_screen").assertExists()
+        rule.onNodeWithTag("trainer_block_screen").assertDoesNotExist()
+    }
+
+    @Test
+    fun tuPlan_holdsThePlanFiguresPhaseAndCardio() {
         show(TrainerUiState.Content(plan = accepted))
-        rule.openTrainerDetails()
+        rule.openTrainerPlan()
 
         rule.onNodeWithTag("trainer_plan_card").assertExists()
         rule.onNodeWithTag("trainer_plan_phase").assertExists()
@@ -172,110 +197,118 @@ class TrainerDetailsScreenTest {
     }
 
     @Test
-    fun detalles_holdsTheSavedBlockWithItsWeeksAndRemoveAction() {
-        show(savedState(listOf(planWeek(week = 1), planWeek(week = 2, phase = WeekPhase.Upcoming))))
-        rule.openTrainerDetails()
+    fun tuPlan_withASavedBlock_offersBloqueNuevo() {
+        show(savedState(listOf(planWeek(week = 1))))
+        rule.openTrainerPlan()
 
-        rule.onNodeWithTag("trainer_block_card").assertExists()
-        rule.onNodeWithTag("trainer_remove_block").assertExists()
-        rule.onNodeWithTag("trainer_week_1").assertExists()
         rule.onNodeWithTag("trainer_new_block").assertExists()
     }
 
     @Test
-    fun aSavedBlockWithoutAPlan_stillReachesEliminarBloqueThroughDetalles() {
+    fun tuBloque_holdsTheSavedBlockWithItsWeeksAndRemoveAction() {
+        show(savedState(listOf(planWeek(week = 1), planWeek(week = 2, phase = WeekPhase.Upcoming))))
+        rule.openTrainerBlock()
+
+        rule.onNodeWithTag("trainer_block_card").assertExists()
+        rule.onNodeWithTag("trainer_remove_block").assertExists()
+        rule.onNodeWithTag("trainer_week_1").assertExists()
+    }
+
+    @Test
+    fun aSavedBlockWithoutAPlan_stillReachesEliminarBloqueThroughItsBox() {
         show(TrainerUiState.Content(block = savedBlock))
 
-        rule.onNodeWithTag("trainer_details_row").assertExists()
-        rule.openTrainerDetails()
+        rule.openTrainerBlock()
 
         rule.onNodeWithTag("trainer_remove_block").assertExists()
     }
 
     @Test
-    fun appliedChangesWithoutAPlan_stillReachTheirListThroughDetalles() {
+    fun appliedChangesWithoutABlock_stillReachTheirListThroughTuBloque() {
         show(
             TrainerUiState.Content(
                 coachChanges = listOf(row("done", CoachChangeKind.LoadRaise, CoachChangeStatus.Applied)),
             ),
         )
 
-        rule.onNodeWithTag("trainer_details_row").assertExists()
-        rule.openTrainerDetails()
+        rule.openTrainerBlock()
 
         rule.onNodeWithTag("trainer_coach_change_row_done").assertExists()
     }
 
     @Test
-    fun theDetallesRow_callsOnOpenDetails() {
-        var opened = 0
+    fun theBoxes_callTheirActions() {
+        var plan = 0
+        var block = 0
         rule.setContent {
             AppTheme {
                 TrainerScreen(
-                    TrainerUiState.Content(plan = accepted),
+                    savedState(listOf(planWeek(week = 1))),
                     flowOf(true),
                     {},
-                    actions = TrainerActions(onOpenDetails = { opened++ }),
+                    actions = TrainerActions(onOpenPlan = { plan++ }, onOpenBlockScreen = { block++ }),
                 )
             }
         }
 
-        tap("trainer_details_row")
+        tap("trainer_box_plan")
+        tap("trainer_box_block")
 
-        assertEquals(1, opened)
+        assertEquals(listOf(1, 1), listOf(plan, block))
     }
 
-    // States of Detalles
+    // States of the pushed screens
 
     @Test
-    fun whileLoading_detallesShowsItsSkeleton() {
-        rule.setContent { AppTheme { TrainerDetailsScreen(TrainerUiState.Loading, flowOf(true), {}, {}) } }
+    fun whileLoading_eachScreenShowsItsSkeleton() {
+        rule.setContent {
+            AppTheme { TrainerBoxScreen(TrainerBox.Plan, TrainerUiState.Loading, flowOf(true), {}, {}) }
+        }
 
-        rule.onNodeWithTag("trainer_details_loading").assertExists()
+        rule.onNodeWithTag("trainer_plan_loading").assertExists()
     }
 
     @Test
-    fun whenNothingIsLeft_detallesShowsTheEmptyState() {
-        rule.setContent { AppTheme { TrainerDetailsScreen(TrainerUiState.Content(), flowOf(true), {}, {}) } }
+    fun whenNothingIsLeft_theScreenShowsTheEmptyState() {
+        rule.setContent {
+            AppTheme { TrainerBoxScreen(TrainerBox.Block, TrainerUiState.Content(), flowOf(true), {}, {}) }
+        }
 
         rule.onNodeWithText("Todavía no hay nada que mostrar.").assertExists()
-        rule.onNodeWithTag("trainer_details_empty").assertExists()
+        rule.onNodeWithTag("trainer_block_empty").assertExists()
     }
 
     @Test
-    fun detallesTitle_equalsTheRowLabel() {
-        show(TrainerUiState.Content(plan = accepted))
-        rule.openTrainerDetails()
+    fun theScreenTitles_equalTheBoxTitles() {
+        show(savedState(listOf(planWeek(week = 1))))
 
-        rule.onNodeWithTag("trainer_details_title").assertTextContains("Detalles")
+        rule.openTrainerPlan()
+        rule.onNodeWithTag("trainer_plan_title").assertTextContains("Tu plan")
+        tap("trainer_plan_back")
+        rule.openTrainerBlock()
+        rule.onNodeWithTag("trainer_block_title").assertTextContains("Tu bloque")
     }
 
     // Effects and refresh across the two screens
 
     @Test
-    fun aFailedRemoval_showsItsMessageFromDetalles() {
+    fun aFailedRemoval_showsItsMessageFromTuBloque() {
         val plans = FakeCoachPlanRepository()
         plans.current = Result.success(coachPlan(id = "plan-7", status = PlanStatus.Accepted))
         val blocks = FakeCoachBlockRepository()
         blocks.current = Result.success(coachBlock(saved = true))
         blocks.removeResult = Result.failure(IllegalStateException("boom"))
-        val model = TrainerViewModel(
-            FakeCoachRepository(),
-            MutableClock(),
-            plans,
-            blocks,
-            FakeCoachWeeksRepository(),
-        )
+        val model = TrainerViewModel(FakeCoachRepository(), MutableClock(), plans, blocks, FakeCoachWeeksRepository())
         val messages = RecordingMessages()
         rule.setContent {
             AppTheme {
                 CompositionLocalProvider(LocalAppMessages provides messages) {
-                    TrainerRoutesWithDetails(model, FakeConnectivityObserver())
+                    TrainerRoutesWithBoxes(model, FakeConnectivityObserver())
                 }
             }
         }
         rule.waitForIdle()
-        rule.openTrainerDetails()
+        rule.openTrainerBlock()
 
         tap("trainer_remove_block")
         tap("trainer_remove_block_dialog_confirm")
@@ -284,22 +317,22 @@ class TrainerDetailsScreenTest {
     }
 
     @Test
-    fun removingTheBlockOnDetalles_andGoingBack_showsNoBlockOnTheRoot() {
+    fun removingTheBlockOnTuBloque_andGoingBack_showsNoBlockBoxOnTheRoot() {
         val plans = FakeCoachPlanRepository()
         plans.current = Result.success(coachPlan(id = "plan-7", status = PlanStatus.Accepted))
         val blocks = FakeCoachBlockRepository()
         blocks.current = Result.success(coachBlock(saved = true))
         val model = TrainerViewModel(FakeCoachRepository(), MutableClock(), plans, blocks, FakeCoachWeeksRepository())
-        rule.setContent { AppTheme { TrainerRoutesWithDetails(model, FakeConnectivityObserver()) } }
+        rule.setContent { AppTheme { TrainerRoutesWithBoxes(model, FakeConnectivityObserver()) } }
         rule.waitForIdle()
-        rule.onNodeWithTag("trainer_block_status").assertExists()
-        rule.openTrainerDetails()
+        rule.onNodeWithTag("trainer_box_block").assertExists()
+        rule.openTrainerBlock()
 
         tap("trainer_remove_block")
         tap("trainer_remove_block_dialog_confirm")
-        tap("trainer_details_back")
+        tap("trainer_block_back")
 
-        rule.onNodeWithTag("trainer_block_status").assertDoesNotExist()
+        rule.onNodeWithTag("trainer_box_block").assertDoesNotExist()
         rule.onNodeWithTag("trainer_create_block").assertExists()
     }
 }

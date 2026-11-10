@@ -64,7 +64,7 @@ class TrainerCoachChangesScreenTest {
     ) {
         rule.setContent {
             AppTheme {
-                TrainerWithDetails(
+                TrainerWithBoxes(
                     state = TrainerUiState.Content(coachChanges = rows, busyChangeId = busyId),
                     isOnline = flowOf(online),
                     onEvent = { events += it },
@@ -74,8 +74,8 @@ class TrainerCoachChangesScreenTest {
             }
         }
         rule.waitForIdle()
-        // Pending flags stay on the root; the applied changes live in "Detalles".
-        if (rows.isNotEmpty() && rows.none { it.status == CoachChangeStatus.Pending }) rule.openTrainerDetails()
+        // Pending flags stay on the root; the applied changes live in "Tu bloque".
+        if (rows.isNotEmpty() && rows.none { it.status == CoachChangeStatus.Pending }) rule.openTrainerBlock()
     }
 
     private fun showRoute(
@@ -92,7 +92,8 @@ class TrainerCoachChangesScreenTest {
             AppTheme {
                 CompositionLocalProvider(LocalAppMessages provides messages) {
                     if (details) {
-                        TrainerDetailsRoot(
+                        TrainerBoxRoot(
+                            box = TrainerBox.Block,
                             actions = actions,
                             viewModel = model,
                             connectivity = FakeConnectivityObserver(),

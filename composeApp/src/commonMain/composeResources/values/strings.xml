@@ -1637,6 +1637,9 @@
     <string name="food_photo_error_manual">Crear manualmente</string>
     <string name="create_food_ai_note">Estimado por IA · revisa los valores</string>
     <string name="catalog_section_action_row">Fila de acción y nota</string>
+    <string name="catalog_section_summary_card">Tarjeta de resumen</string>
+    <string name="catalog_summary_card_title">Tu plan</string>
+    <string name="catalog_summary_card_line">Definición · 2.100 kcal · 150 g de proteína</string>
     <string name="catalog_action_row_title">Hacer foto</string>
     <string name="catalog_action_row_hint">Usa la cámara</string>
     <string name="catalog_inline_note">Estimado por IA · revisa los valores</string>
@@ -2106,9 +2109,10 @@
     <string name="trainer_block_status_week">Semana %1$d de %2$d</string>
     <string name="trainer_block_status_upcoming">Aún sin empezar</string>
     <string name="trainer_block_status_ended">Bloque terminado</string>
-    <string name="trainer_details_row">Detalles</string>
-    <string name="trainer_details_title">Detalles</string>
-    <string name="trainer_details_empty">Todavía no hay nada que mostrar.</string>
+    <string name="trainer_block_title">Tu bloque</string>
+    <string name="trainer_box_plan_line">%1$s · %2$s kcal al día</string>
+    <string name="trainer_box_block_deload">Descarga planificada</string>
+    <string name="trainer_box_empty">Todavía no hay nada que mostrar.</string>
     <string name="trainer_block_remove">Eliminar bloque</string>
     <string name="trainer_block_remove_action">eliminar el bloque</string>
     <string name="trainer_block_remove_title">¿Eliminar el bloque?</string>
@@ -2374,6 +2378,7 @@
     <string name="coach_change_undo_offline">deshacer el cambio</string>
     <string name="coach_change_decide_error">No se pudo guardar tu elección. Inténtalo de nuevo.</string>
     <string name="coach_change_decide_not_pending">Ya habías elegido una opción para este ejercicio.</string>
+    <string name="coach_change_range_unavailable">No se encontró la rutina de este ejercicio. Ábrela desde Entreno para añadir el rango.</string>
     <string name="coach_change_decide_offline">guardar tu elección</string>
     <!-- Weekly summary (T-231, US-98) -->
     <string name="week_summary_title">Resumen semanal</string>

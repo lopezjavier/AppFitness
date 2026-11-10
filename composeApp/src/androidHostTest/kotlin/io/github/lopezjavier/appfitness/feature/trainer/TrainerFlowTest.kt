@@ -95,7 +95,7 @@ class TrainerFlowTest {
 
         show()
 
-        val order = listOf("trainer_calorie_card", "trainer_create_block", "trainer_details_row", "trainer_your_data")
+        val order = listOf("trainer_calorie_card", "trainer_box_plan", "trainer_create_block", "trainer_your_data")
         val tops = order.map { top(it) }
         assertEquals(tops.sorted(), tops)
     }

@@ -21,7 +21,6 @@ import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.github.lopezjavier.appfitness.composeapp.resources.Res
-import io.github.lopezjavier.appfitness.composeapp.resources.trainer_details_row
 import io.github.lopezjavier.appfitness.composeapp.resources.trainer_free_text_row
 import io.github.lopezjavier.appfitness.composeapp.resources.trainer_title
 import io.github.lopezjavier.appfitness.composeapp.resources.trainer_your_data_row
@@ -34,6 +33,7 @@ import io.github.lopezjavier.appfitness.designsystem.AppTheme
 import io.github.lopezjavier.appfitness.designsystem.NavigationRow
 import io.github.lopezjavier.appfitness.designsystem.SkeletonBox
 import io.github.lopezjavier.appfitness.designsystem.Spacing
+import io.github.lopezjavier.appfitness.designsystem.SummaryCard
 import io.github.lopezjavier.appfitness.domain.model.WeekPhase
 import io.github.lopezjavier.appfitness.domain.port.ConnectivityObserver
 import io.github.lopezjavier.appfitness.domain.usecase.ExerciseNameResolver
@@ -50,14 +50,15 @@ private const val TITLE_FRACTION = 0.4f
 /**
  * Where the Trainer root goes: the pending plan proposal, a block preview ([onOpenBlock] takes the plan
  * id), "Antes de empezar" ([onOpenBeforeStart] takes the mode, the plan id and the plan being replaced) and
- * "Tus datos", "Detalles" and "Lo que el entrenador sabe de ti".
+ * the "Tu plan" and "Tu bloque" boxes, "Tus datos" and "Lo que el entrenador sabe de ti".
  */
 data class TrainerActions(
     val onOpenProposal: () -> Unit = {},
     val onOpenBlock: (String) -> Unit = {},
     val onOpenBeforeStart: (mode: BeforeStartMode, planId: String?, replacingPlanId: String?) -> Unit = { _, _, _ -> },
     val onOpenYourData: () -> Unit = {},
-    val onOpenDetails: () -> Unit = {},
+    val onOpenPlan: () -> Unit = {},
+    val onOpenBlockScreen: () -> Unit = {},
     val onOpenFreeText: () -> Unit = {},
     val onOpenWeekSummary: () -> Unit = {},
     val onOpenBlockReview: () -> Unit = {},
@@ -148,28 +149,14 @@ private fun TrainerContent(
         if (state.blockReviewDue) BlockReviewEntry(actions.onOpenBlockReview)
         if (state.welcomeBack && !state.blockReviewDue) WelcomeBackCard(online, onEvent)
         DiscomfortFollowUpsSection(state, online, onEvent, actions.onOpenExercise)
-        PlanEntrySection(state.plan, online, actions.onOpenProposal, actions.onOpenBeforeStart)
-        BlockStatusCard(state.blockStatus, state.weeks.firstOrNull { it.phase == WeekPhase.Current })
-        BlockEntrySection(
-            state.plan,
-            state.block,
-            online,
-            actions.onOpenBlock,
-            actions.onOpenBeforeStart,
-            state.blockReviewDue,
-        )
-        if (state.hasDetails) {
-            NavigationRow(
-                label = stringResource(Res.string.trainer_details_row),
-                onClick = actions.onOpenDetails,
-                modifier = Modifier.testTag("trainer_details_row"),
-            )
-        }
+        PlanEntrySection(state.plan, online, actions.onOpenProposal, actions.onOpenBeforeStart, actions.onOpenPlan)
+        BlockBoxes(state, online, actions)
         if (state.hasWeekSummary) {
-            NavigationRow(
-                label = stringResource(Res.string.week_summary_title),
+            SummaryCard(
+                title = stringResource(Res.string.week_summary_title),
+                lines = emptyList(),
                 onClick = actions.onOpenWeekSummary,
-                modifier = Modifier.testTag("trainer_row_week_summary"),
+                testTag = "trainer_box_week_summary",
             )
         }
         YourDataEntry(state.provisionalCount, actions.onOpenYourData)
@@ -179,6 +166,26 @@ private fun TrainerContent(
             modifier = Modifier.testTag("trainer_free_text_row"),
         )
     }
+}
+
+/** The block entry ("Crear bloque" or the proposal) and, with a saved block, its box. */
+@Composable
+private fun BlockBoxes(state: TrainerUiState.Content, online: Boolean, actions: TrainerActions) {
+    BlockSummaryBox(
+        state.blockStatus,
+        state.weeks.firstOrNull { it.phase == WeekPhase.Current },
+        deloadPlanned = state.weeks.any { it.deload },
+        hasAppliedChanges = state.appliedCoachChanges.isNotEmpty(),
+        onOpen = actions.onOpenBlockScreen,
+    )
+    BlockEntrySection(
+        state.plan,
+        state.block,
+        online,
+        actions.onOpenBlock,
+        actions.onOpenBeforeStart,
+        state.blockReviewDue,
+    )
 }
 
 /** The "Tus datos" row at the end of the hub (R-03): its value is how many values are still provisional. */

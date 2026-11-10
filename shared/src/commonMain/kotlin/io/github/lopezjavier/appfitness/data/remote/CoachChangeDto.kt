@@ -127,6 +127,7 @@ private fun JsonObject?.toFigures() = CoachChangeFigures(
     repMin = whole("rep_min"),
     repMax = whole("rep_max"),
     week = whole("week"),
+    routineId = (this?.get("routine_id") as? JsonPrimitive)?.takeIf { it.isString }?.content,
 )
 
 @Serializable

@@ -37,10 +37,10 @@ class TrainerNewBlockScreenTest {
 
     private fun show(state: TrainerUiState, online: Boolean = true) {
         rule.setContent {
-            AppTheme { TrainerWithDetails(state, flowOf(online), { events += it }, actions = TrainerActions()) }
+            AppTheme { TrainerWithBoxes(state, flowOf(online), { events += it }, actions = TrainerActions()) }
         }
         rule.waitForIdle()
-        rule.openTrainerDetails()
+        rule.openTrainerPlan()
     }
 
     @Test
