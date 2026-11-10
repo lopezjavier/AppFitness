@@ -1,6 +1,7 @@
 # Implementation Plan: E18 · Functional improvements → `v1.x` (proposed `v1.9.0`)
 
 > **Status: PROPOSED by the epic-planner, 2026-11-09; updated the same day with the user's feedback.** The task list (T-259…T-267) needs the user's OK on the breakdown PR; one checkpoint only, Checkpoint E18 at the end (user decision 2026-11-09). Q1 and Q2 are resolved by the user (2026-11-09, "Decisions" below). The only open user item is the 👤 Gemini terms check, which gates T-265. The E17 plan that lived here is in git history (E17 closed, `v1.8.0`; `tasks/todo.md` E17 section).
+> **Extended 2026-11-10 (epic-planner) with US-132 and US-133 (ADR-105):** T-271, T-272 and **👤 Checkpoint E18-B**, after the T-268…T-270 fixes and before the closure T-267. Q-E18-3…Q-E18-5 are resolved (below).
 
 ## Overview
 The app drops every trace of Anthropic (Edge Function code, key, `coach_usage`, "Uso de IA", the monthly limit, the model selector) and is "100 % free" again. Weekly summaries and block reviews are stored as snapshots from now on and reopened from "Informes" in Centro de avisos. Diario and Entreno get a magnifier that opens a view-only food or exercise search, and the food search lists favourites and my foods at once, with Open Food Facts after. The Trainer shows the essentials and moves the full nutrition plan and block into "Detalles". Last, an exercise's details get a chat tab where a Gemini trainer-expert answers single questions about that exercise only.
@@ -40,8 +41,11 @@ Every task pays 6-8 agent hand-offs, so stories stay whole unless one is too lar
 | — | 👤 Gemini terms check (decision gate, any time before T-265) | — | US-130 | user | — |
 | 7 | T-265 (**M**): The exercise chat Edge Function | **M** | US-130 (backend) | backend | 6 |
 | 8 | T-266 (**M**): Ask about an exercise: the chat tab | **M** | US-130 | core + UI | 7 |
-| — | **👤 Checkpoint E18** (the only one; final regression) | — | | | |
-| 9 | T-267: E18 closure | closure step (no size class) | DoD | PM | PM only |
+| — | **👤 Checkpoint E18** (final regression; re-tested after the fixes T-268…T-270) | — | | | |
+| 9 | T-271 (**M**): Log a meal by typing it: `food-photo` text mode and "Describir comida" | **M** | US-132 | backend + core + UI | 8 |
+| 10 | T-272 (**M**, upper end): Unused personal foods clean themselves up (`pg_cron`) | **M** | US-133 | backend + core | 6-8 |
+| — | **👤 Checkpoint E18-B** (US-132 + US-133; 7 items) | — | | | |
+| 11 | T-267: E18 closure | closure step (no size class) | DoD | PM | PM only |
 
 Why these splits and merges:
 - **US-128 → T-259 + T-260:** about 45 files (Edge Function, shared client, migration, pgTAP, docs, then the app's screen, models, repository, DI and tests). Backend and app are reviewed apart, and the backend must land first (production data drop, epic order).
@@ -49,7 +53,9 @@ Why these splits and merges:
 - **US-121 + US-122 → T-263:** US-122 alone is S (T-255 already orders the list) and touches the same `FoodSearchViewModel`/`FoodSearchScreen` as US-121's Diario path.
 - **US-120 → T-264:** one UI task (cards move; about 10 files).
 - **US-130 → T-265 + T-266:** about 16 files. The closed backend (prompt, data minimisation, error mapping, the shared Gemini client and the `food-photo` sweep) is reviewed apart from the chat tab.
-- **Closure T-267** is released by Checkpoint E18's approval. It has no checkpoint of its own and no size class: it cannot merge into a task because it waits for the approval.
+- **US-132 → T-271 (one task):** the backend change is a mode of the existing `food-photo` dish flow (optional image for `text`, a higher comment cap for `text`, one prompt sentence; about 5 files, S alone), so it rides with the app entry and input (about 8 files). User decision 2026-11-10: no new function, schema or prompt file.
+- **US-133 → T-272 (one task):** the migration, the job and pgTAP are about 7 files and the app part (an entry whose food is gone opens from its snapshot) about 5; one vertical slice, split backend → app only if the planner counts more than ~15 files.
+- **Closure T-267** is released by Checkpoint E18-B's approval (before 2026-11-10 it was Checkpoint E18's). It has no checkpoint of its own and no size class: it cannot merge into a task because it waits for the approval.
 
 ## Phases and checkpoint
 
@@ -65,10 +71,18 @@ Items to test in the epic, collected first: (1) no "Uso de IA", limit or model s
 - **👤 Gemini terms check** (decision gate for T-265): can be done any time before T-265, for example while T-263 or T-264 runs.
 
 ### Phase 3: Ask about an exercise, the checkpoint and closure (US-130)
-- T-265 → T-266 → **👤 Checkpoint E18** → T-267.
+- T-265 → T-266 → **👤 Checkpoint E18** → fixes T-268 → T-269 → T-270 → Trainer re-test → Phase 4 → T-267.
 - **👤 Checkpoint E18 — Functional improvements, with the final E18 regression** (after T-266, the last implementation task; 16 items in `tasks/todo.md`; its approval releases T-267). Take screenshots of the Trainer before installing. Try: no "Uso de IA", limit or model selector, and everything you use works as before; "Informes" from Centro de avisos lists your reports newest first, each read only as it was shown; back and open another; opening a report notice clears it; reminders never appear in "Informes"; the magnifiers in Diario and Entreno open searches whose results have no "Añadir"; your foods appear at once with OFF after; the Trainer shows its essentials, "Detalles" holds the full plan and block, and nothing is missing against the screenshots; the chat tab answers as a trainer expert, takes no actions, explains when there is no answer and empties when you leave the exercise; leave the app and come back on each new screen.
 
+### Phase 4: Text meals and food cleanup (US-132, US-133, ADR-105; added 2026-11-10)
+- T-271 → T-272 → **👤 Checkpoint E18-B** → T-267 (closure).
+- **Why this order:** the backlog note placed these stories after the Checkpoint E18 path and before the closure, so the open Trainer re-test is not mixed with new screens; US-132 first because US-133's "I can create or describe it again" uses it and the cleanup also removes typed-meal foods; the checkpoint right after the last implementation task, the closure after it.
+- Items to test, collected first: (1) describe the Gherkin meal: one draft, name lists everything, totals with the beers' alcohol, one portion = whole meal, marked as estimate; (2) edit it, and a disagreeing draft blocks "Guardar" until fixed or retried; (3) save: entry in the comida and the food in later searches; (4) offline or no answer keeps the text with "Reintentar", empty or no-food text creates nothing; (5) after the first cleanup run, unused foods gone from search, favourites and comida foods kept, a removed food can be made again; (6) past days with a removed food unchanged and their entries open; (7) leave the app and come back with the text typed and the draft open, and search and photo adding unchanged (final regression of these stories). Seven items, one coherent food-logging journey → **one checkpoint (user decision 2026-11-10)**.
+- **👤 Checkpoint E18-B** (after T-272; 7 items in `tasks/todo.md`; its approval releases T-267). Try on the phone: in Diario, add to a comida with "Describir comida" and the Gherkin sentence; edit the draft and see "Guardar" blocked on a mismatch; save and find the food again; try airplane mode and an empty or no-food text; after the first cleanup run, check that unused foods are gone from search while favourites and comida foods stay, and that past days keep their totals and open their entries; leave the app and come back with the text typed and the draft open.
+- Internal milestones (task verification items, not checkpoints): `food-photo` redeployed after T-271; `deploy-supabase` green after T-272 with data intact; the job listed in production `cron.job` (read-only, subagent); a read-only count of the foods the first run would delete, shown to the user before the T-272 merge.
+
 ## Dependencies
+- T-271 needs T-270 merged and the Trainer re-test approved. T-272 needs T-271 merged and deployed. T-267 needs Checkpoint E18 (re-test) and Checkpoint E18-B approved.
 - T-259 needs the breakdown approved. T-260 needs T-259 merged and deployed. T-261 needs T-260 merged. T-262 needs T-261 merged and deployed. T-263 needs T-262 merged (no build dependency). T-264 needs T-263. T-265 needs T-264 merged and the **👤 Gemini terms check** decided. T-266 needs T-265 merged and deployed. T-267 needs Checkpoint E18 approved.
 - Built pieces E18 relies on: the deterministic `coach` kinds (ADR-97…99), `coach_week_summary`/`coach_week_summary_week` and `coach_week_summary_seen` (T-231, T-242, T-246, T-247), `coach_block_reviews` and `open_coach_block_review` (T-233, T-243), Centro de avisos (E10, T-231, T-243), the `FoodSearchViewModel` own-first block and the `food-search` ordering (T-230, T-254, T-255), the exercise details tabs (T-179), `food-photo` and `GEMINI_API_KEY` (ADR-59).
 
@@ -84,8 +98,22 @@ Items to test in the epic, collected first: (1) no "Uso de IA", limit or model s
 - **Chat scope (T-265).** A model may drift into medical or unrelated advice. Mitigation: a scoped system prompt reviewed by `fitness-scientist`, no tools, no user data in the request.
 - **A late checkpoint (one at the end).** Feedback on T-259…T-264 arrives after the chat is built. Mitigation: those tasks touch different screens from the chat, so fixes do not rework it.
 
+## Architecture decisions for US-132, US-133 (2026-11-10)
+- **Text meals are a mode of `food-photo` (user decision 2026-11-10).** `mode: text` is the dish flow with the typed sentence as the main input and no image: `image_base64` optional for `text` only, a higher comment cap for `text` only (`MAX_COMMENT_CHARS = 200` stays for the other modes), one extra dish-prompt sentence (the user text describes what was eaten; list the portion assumptions in the name or note; Gemini estimates quantities). Same draft, same ADR-104 energy check and `previous` retry, nothing stored or logged. Gemini decides portions, as the dish mode does. In the app the draft opens in the existing AI dish draft form and saves through the existing create-and-add path.
+- **The cleanup is SQL inside the database.** A security definer function, not executable by clients, judged per owner, run monthly by `pg_cron`. The T-272 planner first confirms from Supabase's current docs that `pg_cron` is available on the free plan, can be enabled from a migration and runs locally; no GitHub Actions workflow, no Edge Function, no secret (ADR-105, E20). If it is not available, T-272 stops BLOCKED.
+- **Diary entries keep their `food_id`.** The FK from `food_log_entries.food_id` to `foods` is dropped so the value survives a delete (no `set null`); snapshots already hold the name, amount, portion label, kcal and macros (ADR-53). pgTAP proves the per-day totals, counts, names, amounts and `food_id` values are equal before and after the cleanup; the app opens such an entry from its snapshot.
+
+## Risks (US-132, US-133)
+- **The first cleanup run deletes many existing foods at once.** Every personal food unused for 30 days goes, including hand-made ones (accepted in ADR-105). Mitigation: a read-only count per account shown to the user before the merge; the user chose to run it at deploy (Q-E18-3).
+- **Old APK against a deleted food.** Until the T-272 APK is installed, opening an entry whose food is gone may fail. The user chose the first run at deploy (Q-E18-3), so the old APK may fail on such an entry until the new APK is installed; the PM tells the user to install the T-272 APK right after the deploy.
+- **Readers that join `foods`.** A join in `food_diary_summary`, `most_eaten_foods` or `cooking_impact` could drop orphaned entries and change a day's totals. Mitigation: the planner lists every reader; the pgTAP totals-equal test covers them.
+- **Typed-meal estimates can be off** (`07` ref 102). Mitigation: the draft is always editable, marked as an estimate, and goes through the energy check.
+
 ## Open questions
 - **👤 Gemini terms check: RESOLVED (user, 2026-11-09): free tier, same as `food-photo`, which already works on it; no check, T-265 does not wait. No open user item remains. (Superseded text:)** the user checks Google's current Gemini API terms for Spain/EEA and decides free tier or paid tier with a low spending limit, for the chat and `food-photo`.
 - **Q1 · RESOLVED (user, 2026-11-09):** see "Decisions" (no backfill; the block-end notice is a report; past reports read only; paused weeks only when shown). Recorded in `09-open-questions.md` by the closure T-267 (not tracked there today).
 - **Q2 · RESOLVED (user, 2026-11-09):** see "Decisions" (single-turn; Gemini's quota only). Multi-turn chat is a possible later-epic idea. Recorded in `09-open-questions.md` by T-267.
+- **Q-E18-3 · RESOLVED (user, 2026-11-10): the first cleanup runs at deploy.** The T-272 migration calls the cleanup function once when it is applied to production, before the new APK is installed; the monthly job follows. The read-only count before the merge is shown to the user for information only.
+- **Q-E18-4 · RESOLVED (PM, 2026-11-10, recorded here and in the PR; no user decision needed): the 30 days count from the later of the food's creation and the creation time of its newest diary entry.** A food created less than 30 days ago is kept even if never added; logging an old day today counts as use.
+- **Q-E18-5 · RESOLVED (user, 2026-11-10): an entry whose food was removed can be viewed and deleted only.** It opens from its snapshot; changing its amount, repeating it and saving it as a comida are not offered for it. To log it again, the user describes it again.
 - **Q3 (non-blocking, delegated to ux-reviewer):** the chat tab label, the "Informes" entry position in Centro de avisos, the Trainer/"Detalles" content map (where "Tus datos", "Lo que el entrenador sabe de ti" and "Bloque nuevo" land), and the glossary row that lists "Informe" as a forbidden word for the weekly summary (amended so "Informes" names the list).

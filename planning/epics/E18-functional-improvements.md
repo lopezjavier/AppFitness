@@ -197,7 +197,7 @@ Feature: Meal from text
 
   Scenario: Describe a meal
     Given I am adding food to a comida in Diario
-    When I choose "Describir comida" and type "pechuga de pollo con ensalada, 2 cervezas y 4 calamares"
+    When I tap the AI icon next to the barcode icon, choose "Describir comida" in the "Añadir con IA" sheet and type "pechuga de pollo con ensalada, 2 cervezas y 4 calamares"
     Then I see a draft food whose name lists everything I typed
     And the draft has total kcal and macros for the whole meal, with one portion equal to the whole meal
 
@@ -251,7 +251,7 @@ Feature: Unused food cleanup
   Scenario: Past days do not change
     Given a deleted food was in a diary entry from an earlier day
     Then that day's totals, entry names and amounts are unchanged
-    And opening the entry still shows its details
+    And opening the entry still shows its details, and I can only view or delete it
 
   Scenario: A removed food is gone from search
     When a food is removed
