@@ -6,13 +6,15 @@ Operating instructions: [`CLAUDE.md`](../CLAUDE.md). Phase 1 history (frozen): [
 Legend: **👤** = done by the user (accounts, web consoles, secrets) · **PM** = done by Claude Code.
 Secrets rule: never pasted in the chat or in versioned files. The user enters them in their terminal or in the consoles, and Claude only verifies that they exist.
 
-Last task ID used: T-273 (T-273 = revert of the unused-food cleanup, user decision 2026-11-10; T-271, T-272 = US-132, US-133, added to E18 by ADR-105, epic-planner 2026-11-10; T-268, T-269, T-270 = Checkpoint E18 feedback fixes; T-259…T-267 reserved by the E18 breakdown; T-257…T-258 = ADR-104 hard energy check, Checkpoint E17 feedback; T-251…T-256 reserved by the E17 breakdown; T-246…T-249 by E16; T-239…T-244 by E15; T-250 = user-reported fix below)
+Last task ID used: T-275 (T-274, T-275 = US-134, US-135, added to E18 by ADR-106, epic-planner 2026-11-10; T-273 = revert of the unused-food cleanup, user decision 2026-11-10; T-271, T-272 = US-132, US-133, added to E18 by ADR-105, epic-planner 2026-11-10; T-268, T-269, T-270 = Checkpoint E18 feedback fixes; T-259…T-267 reserved by the E18 breakdown; T-257…T-258 = ADR-104 hard energy check, Checkpoint E17 feedback; T-251…T-256 reserved by the E17 breakdown; T-246…T-249 by E16; T-239…T-244 by E15; T-250 = user-reported fix below)
 
 **Done in the T-246 branch (user report, 2026-11-08; the user ordered it into the current branch, so it ships in T-246's PR as a separate `fix(T-250)` commit):** `fix(T-250)`: the `food-photo` dish prompt (`supabase/functions/food-photo/prompts.ts`) never says whether the per-100 g values are for the food as served; a 400 g cooked plate came back with raw-food kcal/100 g. Fix: the dish prompt states that values and `estimated_grams` describe the food as shown in the photo (cooked when cooked), with a handler/prompt test and a redeploy of `food-photo`. Backend only, no model-call change elsewhere.
 
 **Next (2026-11-10, E18, T-272):** T-271 merged (PR #627, `deploy-supabase` green, `food-photo` redeployed); the next task is **T-272** (US-133, the unused-food cleanup; planner starts with the `pg_cron` free-plan check), then **Checkpoint E18-B**. Earlier note: (T-270): T-269 merged (PR #619) and the Checkpoint E18 re-test is **approved by the user except one bug**: opening the Trainer and tapping "Tu plan" / "Tu bloque" each take 2-3 s of loading. Diagnosis (code read, nothing timed): our code, not Supabase. `TrainerViewModel.fetch()` runs ~18-22 sequential round trips on every open, and the box screens (T-268) get a new `TrainerViewModel` that repeats the whole fetch. **T-270 merged (PR #624, 2026-11-10); the user approved the Trainer re-test (2026-11-10), so the Checkpoint E18 re-test is closed and the next task is T-271 (US-132).** Re-present only the Trainer open and the two boxes; its approval releases T-271 (US-132), then T-272 (US-133) and **Checkpoint E18-B**, whose approval releases T-267 (closure). Follow-ups: chat has no follow-up context (each question stands alone; user may want a task); week-summary box has no date range; old non-cardio `no_range_flag` rows lack `figures.routine_id`; `BlockReviewEntry` hand-rolled clickable card; `WeekSummaryScreen` internal `SummaryCard` name clash; duplicate "Tu plan" header.
 
 **Added to E18 (product-owner, 2026-11-10, ADR-105): broken down → T-271 (US-132), T-272 (US-133), Checkpoint E18-B** (epic-planner, 2026-11-10; E18 section, "Text meals and food cleanup").
+
+**Added to E18 (product-owner, 2026-11-10, ADR-106): broken down → T-274 (US-134), T-275 (US-135), Checkpoint E18-C (approved by the user, 2026-11-10; Q-E18-6 limits approved)** (epic-planner, 2026-11-10; E18 section, "Extend the block and food form corrections"). They run after the approved Checkpoint E18-B and before the closure T-267, which now waits for Checkpoint E18-C.
 
 ## Open follow-ups carried into Phase 3
 
@@ -37,7 +39,7 @@ Rule: every CI failure that passes on re-run is logged here with date, run URL a
 
 ## 👤 Checkpoints
 
-E18 (epic-planner, 2026-11-09; one checkpoint only, user decision 2026-11-09): **Checkpoint E18** after T-266, the last implementation task ("Uso de IA" gone, past reports in "Informes", quick search and my foods at once, the compact Trainer, the exercise chat, plus the final E18 regression; 16 items grouped by functionality; its approval, after the T-268…T-270 fixes, releases T-271). **Checkpoint E18-B** after T-272 (ADR-105: a meal from typed text and the unused-food cleanup, with past days unchanged; 7 items; the only checkpoint for US-132 and US-133, user decision 2026-11-10; its approval releases the closure T-267). The 👤 **Gemini terms check** (a decision, not a test) gates T-265. Details under the E18 section.
+E18 (epic-planner, 2026-11-09; one checkpoint only, user decision 2026-11-09): **Checkpoint E18** after T-266, the last implementation task ("Uso de IA" gone, past reports in "Informes", quick search and my foods at once, the compact Trainer, the exercise chat, plus the final E18 regression; 16 items grouped by functionality; its approval, after the T-268…T-270 fixes, releases T-271). **Checkpoint E18-B** after T-272 (ADR-105: a meal from typed text and the unused-food cleanup, with past days unchanged; 7 items; the only checkpoint for US-132 and US-133, user decision 2026-11-10; its approval releases the closure T-267). **Checkpoint E18-C** (proposed, epic-planner 2026-11-10; ADR-106: extend the block and the food form corrections; 7 items; the only checkpoint for US-134 and US-135, user decision 2026-11-10) after T-275; its approval releases the closure T-267 instead of E18-B's. The 👤 **Gemini terms check** (a decision, not a test) gates T-265. Details under the E18 section.
 
 E17 (epic-planner, 2026-11-09; one checkpoint only, user decision 2026-11-09): **Checkpoint E17** after T-255, the last implementation task (the kcal/macro warning, "Alcohol (g)", the food audit, Open Food Facts copies and the conversion, plus the final E17 regression; 10 items; its approval releases the closure T-256). Details under the E17 section.
 
@@ -83,6 +85,8 @@ Rules: ADR-103 (Anthropic removed, reports stored, the Gemini exercise chat), AD
 10. **T-267** · closure step (PM, no size class; it waits for the checkpoint approval, so it cannot merge into a task): E18 closure. *(Moved after Checkpoint E18-B by the 2026-11-10 breakdown, see below.)*
 
 **Added 2026-11-10 (ADR-105; order after the T-268…T-270 fixes):** 11. **T-271** · **Size M** · backend + core + UI: US-132, the `food-photo` text mode and "Describir comida" (one task: the backend change is about 5 files and alone would be S). 12. **T-272** · **Size M** (upper end) · backend + core: US-133, the `pg_cron` cleanup, the diary entries that survive a deleted food. → **👤 Checkpoint E18-B**. 13. **T-267** closure.
+
+**Added 2026-11-10 (ADR-106; after the approved Checkpoint E18-B; T-267 moves from 13 to 15):** 13. **T-274** · **Size L** · backend + core + UI: US-134, extend the block (one vertical slice; the SQL is the heavy part, the app part is a pencil, a date picker and one call, too small to stand alone). 14. **T-275** · **Size M** · core + UI: US-135, the food form corrections. → **👤 Checkpoint E18-C** (proposed; the only one for both stories, user decision 2026-11-10). 15. **T-267** closure.
 
 ---
 
@@ -409,7 +413,75 @@ After T-273 merges (the last implementation task), CI green, `deploy-supabase` g
 - [x] 5. Leave the app and come back (and after the system kills it) with a text typed in "Describir comida" and with the draft open: the same tab, screen and draft are restored; adding by search and by photo still works as before.
 Out of scope here (pgTAP, Deno and host tests only): the text is not stored or logged; another account's foods are untouched.
 
-**Approved by the user 2026-11-10 (all 5 items).** Next: T-267 (E18 closure), in a fresh session.
+**Approved by the user 2026-11-10 (all 5 items).** Next: T-267 (E18 closure), in a fresh session. *(Superseded the same day by ADR-106: next is T-274, then T-275, Checkpoint E18-C and T-267.)*
+
+---
+
+## Extend the block and food form corrections (US-134, US-135, ADR-106) *(epic-planner, 2026-11-10)*
+
+Order: Checkpoint E18-B (approved) → **T-274** → **T-275** → **👤 Checkpoint E18-C** (proposed) → T-267 (closure). Why: both stories were added after Checkpoint E18-B was approved and before the closure, so they go between them. US-134 goes first because it is the larger, riskier change (a production migration that moves the block calendar); it deploys early and T-275 runs while it settles, so any calendar regression is visible before the checkpoint. US-135 is app-only and independent. One checkpoint after the last of the two (user decision 2026-11-10). Neither story needs `fitness-scientist`: US-134 changes no load, deload or calorie rule, and US-135 uses the factor already in `07` §4.
+
+## T-274: Extend my block: a new last day from the Trainer (US-134) · L
+
+**Story:** US-134 · **Flow:** planner → ux-reviewer (plan) → backend-developer → kotlin-core-developer → compose-ui-developer → pr-reviewer ∥ ux-reviewer (diff) → pr-creator · **Size:** L (one vertical slice: backend about 8 files, app about 7; the app part alone would be S, so it is not split; split backend → app with a new ID only if the planner counts clearly more than ~15 files)
+**Scenarios:** US-134 Choosing the new last day; A session on the last day counts; My sessions stay to do; Later weeks and schedules move too; Changing my mind; The extension survives leaving the app; No extension without a block.
+**Description:** **Rule (ADR-106, `04` §9.9):** the user picks the new last day of the running block; the difference `N` in days from the block's current computed end (`coach_block_end`, which already includes paused weeks) is added to the plan week that holds today: its window becomes `7 + N` days long, every later plan week, the end-of-block review and the block-end notice move `N` days later, and windows already past never change (no back-dating). A later pick replaces the earlier one ("Changing my mind": picking the original day restores `N = 0`). Nothing else changes: plan sessions, links, loads, deloads (week numbers stay plan weeks), calories and the diet break are untouched (ADR-106 non-goals: no pause, no back-dating). **Proposed limits (flag, needs the user's OK before planning, see `tasks/plan.md` "Open questions" Q-E18-6): at most 14 days later than the end the block would have without any extension (the 14-day return rule of `04` §9.9 is the only break rule, ADR-101, so a longer extension would overlap it); the earliest day is the later of today and that unextended end, so the picker cannot shorten the block below its own end or end it in the past; the pencil shows only while the block is running (up to its last day), not once the review is due.** **Backend:** a migration that stores the extension per plan (the planner picks the form: for example the plan week it applies to and `N`, on `coach_plans` or a small owner-scoped table with RLS) and a writer RPC (for example `set_coach_block_end(p_plan_id, p_last_day date)`, security definer, `search_path = ''`, owner check, `22023` outside the limits or without an accepted plan with a saved block); every reader that does the 7-day window arithmetic uses the extended windows: the planner lists them (at least `coach_plan_weeks`, `coach_block_end`, `coach_plan_week`, `coach_plan_calendar`, the link trigger `coach_link_plan_session`, `coach_block_counted_weeks`, `open_coach_block_review`, `open_coach_block_new`, the block-end notice, the weekly summary week, `evaluate_coach_deload`'s week-4 check and §9.16's "after the last day" guards) and keeps one shared helper so the arithmetic lives in one place. **Core:** the Trainer repository gains the writer call; the ViewModel validates the limits, sends the pick, re-reads the block and keeps the dialog state and a pending pick in `SavedStateHandle` (ADR-40); offline detected before sending. **UI — templates and patterns:** in the Trainer's "Tu bloque" box/screen (T-268), an `AppIconButton` pencil (tooltip and contentDescription by ux-reviewer, e.g. "Cambiar el último día del bloque"; testTag by ux-reviewer) right after the block end day; it opens the existing `AppDatePickerDialog` with the allowed range only (days outside it disabled); on confirm the end day updates in place (no extra confirmation dialog, no snackbar unless ux-reviewer requires one per R-31); the week list and the review date show the moved dates. No pencil without an active block. No new designsystem component. Docs: `04` §9.9 and §9.15 (the extension rule, limits, readers), `03` §3 (the stored extension and RPC), `05` §10 glossary if ux-reviewer adds a term.
+**Acceptance criteria:**
+- [ ] Picking a later last day shows it as the block end in the Trainer; a session completed on that day is linked to the extended current week and counts in its adherence and in the block.
+- [ ] The current week's sessions not done stay to do; every later week, the review and the block-end notice move by the same `N` days; past weeks keep their dates and adherence.
+- [ ] Picking the original day again gives the original dates; picks outside the limits are refused by the picker and by the RPC.
+- [ ] No pencil and no writer access without an accepted plan with a saved block; another account's plan cannot be changed (RLS/owner check).
+- [ ] Loads, deloads, calories and plan sessions are unchanged by an extension (pgTAP compares them before and after).
+- [ ] Leaving the app and coming back (and process death) with the picker open or after a pick shows the same state; `check-ux-conventions.sh` passes.
+**Host tests:** pgTAP `coach_block_extension.test.sql` (extend in the last week and in an earlier week; `coach_plan_weeks` dates and adherence; `coach_block_end`; a workout on the new last day linked and counted; a workout on the day after not linked; later weeks shifted by `N`; past weeks unchanged; re-pick to the original; limits refused with `22023`; paused weeks plus an extension; no block; another user refused; deload, sessions and nutrition goals unchanged; review and block-end notice dates moved), existing `coach_plan_weeks*`, `coach_block_review*`, `coach_deload*` tests still green; repository/DTO test; ViewModel tests (pick, re-pick, limits, offline, error, `SavedStateHandle` restore); Robolectric (pencil present with a block and absent without, picker range, end day updated, restoration with `StateRestorationTester`).
+**Verification:**
+- [ ] `npx supabase db reset && npx supabase db lint && npx supabase test db` + lint + `testLocalDebugUnitTest` green; after the merge `deploy-supabase` green on `main` with data intact (the current block's dates unchanged until the user picks a day).
+- [ ] The E18-B APK still reads the Trainer against the new backend (the change is additive; with no extension stored every reader returns what it returned before).
+**Agent runs:** 8. About 15 files.
+**Dependencies:** Checkpoint E18-B approved (done); Q-E18-6 (limits) confirmed by the user.
+**Files likely touched:** `supabase/migrations/<ts>_coach_block_extension.sql`, `supabase/tests/{coach_block_extension,coach_plan_weeks_pause}.test.sql` (+ any `coach_*` test the planner finds), the shared Trainer/coach repository and DTO, `feature/trainer/{TrainerViewModel,TrainerUiState}.kt` and the "Tu bloque" screen/box (T-268), `strings.xml`, tests, `planning/{03-data-model,04-business-rules}.md`
+**Estimated scope:** L
+
+---
+
+## T-275: Food form corrections: the "Describir comida" example and Alcohol by volume (US-135) · M
+
+**Story:** US-135 · **Flow:** planner → ux-reviewer (plan) → kotlin-core-developer → compose-ui-developer → pr-reviewer ∥ ux-reviewer (diff) → pr-creator (no backend: the stored value stays grams per 100 g/ml) · **Size:** M
+**Scenarios:** US-135 A simple example in "Qué has comido"; Alcohol lives in its own section; Alcohol by volume, no formula; A food measured in grams.
+**Description:** **Example:** the placeholder/example of the "Describir comida" input (T-271) becomes "Ej.: pechuga de pollo con patatas fritas" (string change only). **Alcohol section:** in the create/edit food form (`CreateFoodScreen`, every mode that shows the nutrient fields: manual create, edit, the AI draft and an OFF copy edit; the planner confirms the list) "Alcohol" leaves the macro rows between "Fibra" and "Proteínas" and becomes a new collapsible section after "Minerales", built with the existing `SectionBlock` pattern of `CreateFoodSections.kt` (same toggle, "filled" count and testTag scheme, `create_food_section_alcohol_*`), collapsed by default and expanded when the food already has alcohol (ux-reviewer confirms). **Input by unit:** for a food whose base unit is ml the section offers grams per 100 ml or "grados" (% vol) through a `SegmentedSelector` (ux-reviewer picks the labels, e.g. "g/100 ml" / "Grados (% vol)"); grados are converted to grams with the factor already in `07` §4 (`alcohol_g_100 = %vol × 0.789`, the same as the OFF import), the converted grams are shown under the field ("= 3,9 g por 100 ml", copy by ux-reviewer, number via `AppNumberFormat`), and only grams are stored and fed to the energy check (ADR-104, so a grados entry updates the check live). For a g food only grams are offered (no selector). The help (`HelpButton`) explains what to type without any formula: the current line "Si solo sabes los grados: alcohol (g) por 100 ml = grados × 0,79." is replaced (copy by ux-reviewer, glossary §10). An edited food always opens in grams. The unit choice, the typed value and the section's expanded state survive leaving the app (`SavedStateHandle`, ADR-40). The AI estimate still returns grams (ADR-106, no `food-photo` change). **Shared helper:** the % vol → g conversion lives in one shared function used by the form; the planner checks whether the OFF import's Kotlin side already has one and reuses it (one place for the factor). Docs: `07` §4 "Manual entry and edit" bullet (grams or grados for ml foods, converted with the same factor; the help line without a formula; the factor itself unchanged), `05` §8/§10 (the Alcohol section and the grados wording).
+**Acceptance criteria:**
+- [ ] "Describir comida" shows "Ej.: pechuga de pollo con patatas fritas".
+- [ ] In every create/edit food form "Alcohol" is not between "Fibra" and "Proteínas" and is a collapsible section below "Minerales".
+- [ ] An ml food accepts grams or grados; grados show the converted grams, the stored value is grams (`%vol × 0.789`), and the energy check uses it; the help states no formula.
+- [ ] A g food accepts grams only.
+- [ ] Leaving the app and coming back (and process death) with the section open and grados typed restores them; `check-ux-conventions.sh` passes.
+**Host tests:** unit tests for the conversion (e.g. 5 % vol → 3,9 g, 40 % vol → 31,6 g, 0, empty, rounding as the planner fixes it); ViewModel tests (unit selector shown only for ml, grados converted and stored as grams, energy check fed with the grams, editing a food opens in grams, `SavedStateHandle` restore); Robolectric (Alcohol not among the macros, section below "Minerales" collapsible, selector only for ml, converted line, help text without a formula, the new example in "Describir comida", restoration with `StateRestorationTester`).
+**Verification:**
+- [ ] lint + `testLocalDebugUnitTest` green (`scripts/verify-local.sh`; `--full` only if the planner touches the designsystem).
+**Agent runs:** 7. About 10 files.
+**Dependencies:** T-274 merged (no build dependency; the order keeps one task at a time).
+**Files likely touched:** `feature/food/{CreateFoodScreen,CreateFoodSections,CreateFoodUiState,CreateFoodViewModel}.kt`, the "Describir comida" input screen or sheet (T-271), a shared alcohol conversion helper (or the OFF import's existing one), `strings.xml`, tests, `planning/07-coach-design.md` §4, `planning/05-design-system.md` §8/§10
+**Estimated scope:** M
+
+---
+
+### Checkpoint E18-C — Extend the block and the food form corrections 👤 (7 items, leave and come back included) *(PROPOSED by the epic-planner, 2026-11-10; needs the user's OK; the only checkpoint for US-134 and US-135, user decision 2026-11-10; its approval releases T-267)*
+
+After T-275 merges (the last implementation task), CI green, `deploy-supabase` green on `main` after T-274 with data intact (the block's dates unchanged until a day is picked); install the new APK right after. Main account (the block extension is undone in item 3, so the real block ends where it did). What to try on the phone (`python scripts/deliver-apk.py`):
+
+*Extend the block (T-274):*
+- [ ] 1. Entrenador → "Tu bloque": a pencil sits right after the block's end day; tap it: a date picker opens that only lets you pick from the current end (or today) up to 14 days later (per Q-E18-6).
+- [ ] 2. Pick a day 3 days later: the block now ends on that day, and the later weeks and the review date are 3 days later; this week's sessions you have not done are still to do; your loads, deloads and calories are as before.
+- [ ] 3. Tap the pencil again and pick the original day: every date is back to what it was.
+
+*Food form corrections (T-275):*
+- [ ] 4. Diario → add food → "Añadir con IA" → "Describir comida": the example reads "Ej.: pechuga de pollo con patatas fritas".
+- [ ] 5. Create a food, and edit an existing one: "Alcohol" is not between "Fibra" and "Proteínas"; it is a collapsible section below "Minerales".
+- [ ] 6. A food measured in ml: in Alcohol choose grados and type 5: the grams per 100 ml appear, the help asks you to calculate nothing, and after saving and reopening it shows grams; a food measured in g only takes grams.
+
+*Leave and come back (final E18 regression of these stories):*
+- [ ] 7. Leave the app and come back (and after the system kills it) with the date picker open, after extending, and with the Alcohol section open and grados typed: the same tab, screen and values are restored; the Trainer, "Describir comida", photo and search adding still work as before.
+Out of scope here (pgTAP and host tests only): a session on the new last day counting in the week; past weeks never changing; another account's block; refusals outside the limits by the server.
 
 ---
 
@@ -424,7 +496,7 @@ Out of scope here (pgTAP, Deno and host tests only): the text is not stored or l
 - [ ] Version bumped; `tasks/todo.md` pointer updated through a PR.
 **Verification:**
 - [ ] `git tag` lists the E18 tag.
-**Dependencies:** Checkpoint E18 approved (with the T-268…T-270 re-test) and Checkpoint E18-B approved (T-271, T-272 merged).
+**Dependencies:** Checkpoint E18 approved (with the T-268…T-270 re-test) and Checkpoint E18-B approved (T-271, T-272 merged); since ADR-106 (2026-11-10) also T-274, T-275 merged and Checkpoint E18-C approved.
 **Files likely touched:** `androidApp/build.gradle.kts`, `tasks/todo.md`, `tasks/plan.md`, `planning/09-open-questions.md`, `planning/01-scope.md`, `planning/epics/E18-functional-improvements.md`, `retrospectives/E18.md`
 **Estimated scope:** closure step (PM)
 

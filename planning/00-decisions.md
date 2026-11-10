@@ -182,3 +182,10 @@ Older ADRs: [`phase2/00-decisions.md`](phase2/00-decisions.md) (73-100) and [`ph
   - **SUPERSEDED (user, 2026-11-10, T-273):** the scheduled cleanup of personal foods unused for 30 days (and its pg_cron job) is dropped; the storage saved is negligible (about 100 KB a year for 100 foods). The first run at deploy (T-272) already removed the foods then unused; the migration `20270125100200` removes the job and function. What stays: diary entries keep their snapshot, `food_log_entries.food_id` is nullable (`on delete set null`), and an entry whose food is gone opens read-only (view or delete).
 - **Consequences:** `food_log_entries.food_id` must survive a food delete (diary days and totals unchanged, entry details open from the snapshot); `03` and `08` are updated by the tasks. Accepted: the foods removed by the single T-272 run are not restored.
 - **Approval:** user, 2026-11-10 (chat, product-owner).
+
+### ADR-106 — Extend the block by date; alcohol by volume in the food form (E18 US-134, US-135; amends ADR-101 and Q-E17-1)
+- **Context:** an illness in the last week of a block forces two sessions on consecutive days or a missed session. A pause with its own state was proposed and rejected as too complex. Typing alcohol grams means doing a formula by hand.
+- **Decision:** a pencil button next to the block end day in the Trainer opens a date picker for the new last day of the block (the day counts); the block, its weeks, the review and the next block move by the same number of days; nothing else changes (loads, deloads and calories are out of scope). The Alcohol field moves to a collapsible section below "Minerales" and accepts grams or % vol for foods measured in ml (converted with the factor already in `07` §4); the AI estimate still returns grams. The example of "Describir comida" becomes "pechuga de pollo con patatas fritas".
+- **Consequences:** E15's "illness" non-goal is relaxed for this action only; `04` §9.9/§9.15 and `07` §4 are updated by the tasks. Open for the planner: a maximum extension (the user gave none).
+- **Approval:** user, 2026-11-10 (chat, product-owner).
+
