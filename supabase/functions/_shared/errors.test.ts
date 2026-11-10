@@ -20,6 +20,7 @@ Deno.test("photo error codes map to their HTTP status", () => {
         NO_FOOD_RECOGNIZED: 422,
         QUOTA_EXCEEDED: 429,
         PROVIDER_ERROR: 502,
+        PROVIDER_TIMEOUT: 504,
         NOT_CONFIGURED: 503,
     } as const;
     for (const [code, status] of Object.entries(expected)) {

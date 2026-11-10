@@ -9,7 +9,7 @@ import {
     methodNotAllowed,
     unauthorized,
 } from "../_shared/errors.ts";
-import { GeminiError, resolveModel } from "../_shared/gemini-client.ts";
+import { GeminiError, resolveModel } from "../_shared/gemini.ts";
 import { foodEnergyCheck, isFailing } from "./energy-check.ts";
 import { parsePrevious, type PreviousEstimate } from "./previous.ts";
 import {
