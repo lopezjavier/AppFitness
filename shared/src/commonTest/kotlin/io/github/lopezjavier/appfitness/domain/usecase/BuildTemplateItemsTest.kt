@@ -75,6 +75,22 @@ class BuildTemplateItemsTest {
     }
 
     @Test
+    fun entriesOfARemovedFood_areSkippedAndTheRestKept() {
+        val removed = entry("e2", "gone", 50.0).copy(foodId = null)
+
+        val items = build(listOf(entry("e1", "eggs", 120.0), removed, entry("e3", "rice", 80.0)))
+
+        assertEquals(listOf(NewTemplateItem("eggs", 120.0, null), NewTemplateItem("rice", 80.0, null)), items)
+    }
+
+    @Test
+    fun aSectionOfOnlyRemovedFoods_givesNoItems() {
+        val items = build(listOf(entry("e1", "gone", 50.0).copy(foodId = null)))
+
+        assertTrue(items.isEmpty())
+    }
+
+    @Test
     fun emptySection_hasNothingToSave() {
         assertTrue(build(emptyList()).isEmpty())
     }

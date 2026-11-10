@@ -59,6 +59,8 @@ CI and unit tests build without the bundle. `scripts/deliver-apk.py` imports it 
 - **App:** `prodDebug` APK at the end of each epic, installed manually; no release signing (ADR-67).
 - **Keep-alive:** `keepalive.yml` calls the `health` function every 3 days at 06:00 UTC (ADR-12); the log never prints the URL or key. GitHub disables scheduled workflows after 60 days without repo activity: re-enable with `gh workflow enable keepalive.yml`.
 
+- **pg_cron (E18, ADR-105):** the migration `20270125100100_cleanup_unused_foods` runs `create extension pg_cron`; if production refuses it, enable it in Dashboard > Database > Extensions and re-run the deploy. The monthly job needs no secret or workflow. Inspect it in the SQL editor: `select * from cron.job;` and `select * from cron.job_run_details order by start_time desc limit 5;`.
+
 ## 5. Free-tier limits to watch
 Supabase Free (500 MB DB, 500K function invocations/month, pauses after 7 idle days; keepalive covers it) · GitHub Actions on a public repo (unlimited minutes; revisit if the repo goes private, ADR-67) · Open Food Facts (~10 searches/min; cached in `foods`) · Gemini free tier (model-dependent caps; `429` surfaces as "Reintentar", no billing, ADR-59).
 

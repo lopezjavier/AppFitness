@@ -87,6 +87,27 @@ class EditEntryRestorationTest {
     }
 
     @Test
+    fun removedFoodSheet_reopensViewOnlyAfterRecreation() {
+        diary.server[Today] = listOf(
+            FoodLogEntry("e1", Today, "snack", null, "Huevo", 110.0, null, "g", 220.0, 10.0, 20.0, 5.0),
+        )
+        val saved = SavedStateHandle()
+        val tester = StateRestorationTester(rule)
+        tester.setContent { SheetHost(model(saved)) }
+        rule.waitForIdle()
+        rule.onNodeWithTag("food_sheet_removed_note").assertExists()
+
+        tester.emulateSavedInstanceStateRestore()
+        rule.waitForIdle()
+
+        rule.onNodeWithTag("food_sheet_removed_note").assertExists()
+        rule.onNodeWithTag("food_sheet_title").assertTextContains("Huevo")
+        rule.onNodeWithTag("food_sheet_delete").assertExists()
+        rule.onNodeWithTag("food_sheet_commit").assertDoesNotExist()
+        rule.onNodeWithTag("food_sheet_amount").assertDoesNotExist()
+    }
+
+    @Test
     fun aViewModelRecreatedFromTheSameSavedState_showsTheDraftNotTheStoredEntry() {
         val saved = SavedStateHandle(
             mapOf("edit_entry_amount" to "75", "edit_entry_portion" to "", "edit_entry_slot" to "lunch"),

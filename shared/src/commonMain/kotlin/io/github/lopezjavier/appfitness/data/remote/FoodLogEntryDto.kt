@@ -15,7 +15,7 @@ internal data class FoodLogEntryDto(
     val id: String,
     @SerialName("log_date") val logDate: String,
     @SerialName("meal_slot_id") val mealSlotId: String,
-    @SerialName("food_id") val foodId: String,
+    @SerialName("food_id") val foodId: String? = null,
     @SerialName("food_name") val foodName: String,
     val amount: Double,
     @SerialName("portion_label") val portionLabel: String? = null,

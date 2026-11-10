@@ -4,6 +4,7 @@ import androidx.lifecycle.SavedStateHandle
 import app.cash.turbine.test
 import io.github.lopezjavier.appfitness.app.FakeConnectivityObserver
 import io.github.lopezjavier.appfitness.domain.AppError
+import io.github.lopezjavier.appfitness.domain.AppException
 import io.github.lopezjavier.appfitness.domain.model.CookingMethod
 import io.github.lopezjavier.appfitness.domain.model.FoodLogEntry
 import io.github.lopezjavier.appfitness.domain.model.FoodPortion
@@ -325,6 +326,77 @@ class EditEntryViewModelTest {
 
         assertEquals(EditEntryUiState.Error, model.uiState.value)
         assertTrue(diary.updated.isEmpty())
+    }
+
+    private fun EditEntryViewModel.removed() = assertIs<EditEntryUiState.Removed>(uiState.value).content
+
+    @Test
+    fun anEntryOfARemovedFood_opensViewOnlyFromItsSnapshotWithoutLoadingTheFood() = runTest(dispatcher) {
+        foods.known.clear()
+        diary.server[today] = listOf(chickenEntry().copy(foodId = null))
+        val model = viewModel()
+        advanceUntilIdle()
+
+        val removed = model.removed()
+        assertEquals("Pechuga de pollo", removed.entry.foodName)
+        assertEquals(220.0, removed.entry.amount)
+        assertEquals(242.0, removed.entry.kcal)
+        assertEquals(DefaultMealSlots.first { it.id == "snack" }.label, removed.mealLabel)
+        assertTrue(removed.canDelete)
+    }
+
+    @Test
+    fun anEntryOfARemovedFood_cannotBeSavedAndEditsAreNoOps() = runTest(dispatcher) {
+        diary.server[today] = listOf(chickenEntry().copy(foodId = null))
+        val model = viewModel()
+        advanceUntilIdle()
+
+        model.onEvent(EditEntryEvent.AmountChanged("10"))
+        model.onEvent(EditEntryEvent.Save)
+        advanceUntilIdle()
+
+        assertTrue(diary.updated.isEmpty())
+        assertEquals(220.0, model.removed().entry.amount)
+        assertEquals(EditEntryUiState.Removed::class, model.uiState.value::class)
+    }
+
+    @Test
+    fun anEntryOfARemovedFood_deleteAsksTheDiaryToDeleteIt() = runTest(dispatcher) {
+        diary.server[today] = listOf(chickenEntry().copy(foodId = null))
+        val model = viewModel()
+        advanceUntilIdle()
+
+        model.effects.test {
+            model.onEvent(EditEntryEvent.Delete)
+            advanceUntilIdle()
+            assertEquals(EditEntryEffect.DeleteRequested("e1"), awaitItem())
+        }
+    }
+
+    @Test
+    fun anEntryOfARemovedFood_cannotBeDeletedOffline() = runTest(dispatcher) {
+        diary.server[today] = listOf(chickenEntry().copy(foodId = null))
+        connectivity.state.value = false
+        val model = viewModel()
+        advanceUntilIdle()
+
+        assertFalse(model.removed().canDelete)
+        model.effects.test {
+            model.onEvent(EditEntryEvent.Delete)
+            advanceUntilIdle()
+            expectNoEvents()
+        }
+    }
+
+    @Test
+    fun anEntryOfARemovedFood_stillOpensWhenTheMealsCannotBeRead() = runTest(dispatcher) {
+        diary.server[today] = listOf(chickenEntry().copy(foodId = null))
+        slots.result = Result.failure(AppException(AppError.Network))
+        slots.allResult = Result.failure(AppException(AppError.Network))
+        val model = viewModel()
+        advanceUntilIdle()
+
+        assertNull(model.removed().mealLabel)
     }
 
     @Test

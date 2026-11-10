@@ -62,6 +62,7 @@ object AppSheetsDefaults {
  * [secondaryAction] is an optional slot between the button and the hint (e.g. a destructive "Eliminar").
  * [commitLabel] overrides the footer text for a confirmation that is none of the four (e.g. "Crear plan").
  * [footerNotice] is an optional non-error message pinned above the button (e.g. the energy-check warning).
+ * A null [commit] draws no button: only for a read-only surface whose single action is [secondaryAction] (T-272).
  *
  * Closing (X, back or Cancelar; an outside tap and a swipe do nothing, R-38) only calls [onDismiss] and never
  * [onCommit]: an edit is never applied silently (R-10, no dialog, R-08). The sheet draws no state of its own; the
@@ -79,7 +80,7 @@ object AppSheetsDefaults {
 @Composable
 fun AppEditSheet(
     title: String,
-    commit: SheetCommit,
+    commit: SheetCommit?,
     onCommit: () -> Unit,
     onDismiss: () -> Unit,
     modifier: Modifier = Modifier,
@@ -100,7 +101,7 @@ fun AppEditSheet(
             SheetCommit.Save -> Res.string.action_save
             SheetCommit.Apply -> Res.string.action_done
             SheetCommit.Add -> Res.string.action_add
-            SheetCommit.Finish -> Res.string.action_finish
+            SheetCommit.Finish, null -> Res.string.action_finish
         },
     )
     AppBottomSheet(
@@ -117,13 +118,15 @@ fun AppEditSheet(
                 footerNotice?.let { notice ->
                     Box(Modifier.fillMaxWidth().padding(bottom = Spacing.sm)) { notice() }
                 }
-                PrimaryButton(
-                    text = label,
-                    onClick = { if (commitEnabled && !saving) onCommit() },
-                    modifier = Modifier.fillMaxWidth().testTag(AppSheetsDefaults.commitTag(testTagPrefix)),
-                    enabled = commitEnabled && !saving,
-                    loading = saving,
-                )
+                if (commit != null) {
+                    PrimaryButton(
+                        text = label,
+                        onClick = { if (commitEnabled && !saving) onCommit() },
+                        modifier = Modifier.fillMaxWidth().testTag(AppSheetsDefaults.commitTag(testTagPrefix)),
+                        enabled = commitEnabled && !saving,
+                        loading = saving,
+                    )
+                }
                 secondaryAction?.let { action ->
                     Box(Modifier.fillMaxWidth().padding(top = Spacing.xs), contentAlignment = Alignment.Center) {
                         action()

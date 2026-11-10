@@ -16,6 +16,19 @@ sealed interface EditEntryUiState {
     data object Error : EditEntryUiState
 
     data class Content(val content: EditEntryContent) : EditEntryUiState
+
+    /**
+     * The entry's food was removed by the monthly cleanup (ADR-105): the sheet is view-only, from the entry's snapshot,
+     * and Delete is its only action. It holds no draft.
+     */
+    data class Removed(val content: RemovedEntryContent) : EditEntryUiState
+}
+
+/** View-only [entry] of a removed food; [mealLabel] is its meal's name, null when the meals could not be read. */
+data class RemovedEntryContent(val entry: FoodLogEntry, val mealLabel: String?, val isOffline: Boolean) {
+    /** The delete button is enabled: deleting needs the server. */
+    val canDelete: Boolean
+        get() = !isOffline
 }
 
 /**

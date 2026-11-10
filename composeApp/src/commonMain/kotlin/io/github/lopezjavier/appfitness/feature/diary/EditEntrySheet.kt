@@ -4,23 +4,32 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.text.TextStyle
 import io.github.lopezjavier.appfitness.composeapp.resources.Res
 import io.github.lopezjavier.appfitness.composeapp.resources.action_retry
 import io.github.lopezjavier.appfitness.composeapp.resources.edit_entry_load_error
+import io.github.lopezjavier.appfitness.composeapp.resources.edit_entry_removed_meal
+import io.github.lopezjavier.appfitness.composeapp.resources.edit_entry_removed_note
 import io.github.lopezjavier.appfitness.composeapp.resources.edit_entry_title
+import io.github.lopezjavier.appfitness.designsystem.AppDateFormat
 import io.github.lopezjavier.appfitness.designsystem.AppInfoSheet
 import io.github.lopezjavier.appfitness.designsystem.AppStateAction
+import io.github.lopezjavier.appfitness.designsystem.AppTheme
 import io.github.lopezjavier.appfitness.designsystem.ErrorState
 import io.github.lopezjavier.appfitness.designsystem.FoodSheet
 import io.github.lopezjavier.appfitness.designsystem.FoodSheetContext
 import io.github.lopezjavier.appfitness.designsystem.FoodSheetTotals
+import io.github.lopezjavier.appfitness.designsystem.InlineNote
 import io.github.lopezjavier.appfitness.designsystem.SkeletonBox
 import io.github.lopezjavier.appfitness.designsystem.Spacing
+import io.github.lopezjavier.appfitness.designsystem.labelRes
 import io.github.lopezjavier.appfitness.designsystem.offlineHint
+import io.github.lopezjavier.appfitness.domain.model.CookingMethod
 import io.github.lopezjavier.appfitness.domain.model.Micronutrients
 import io.github.lopezjavier.appfitness.domain.usecase.BuildLabelNutrients
 import io.github.lopezjavier.appfitness.feature.food.LabelNutrientsCard
@@ -31,6 +40,7 @@ import org.jetbrains.compose.resources.stringResource
 private const val SKELETON_ROWS = 3
 private const val SHEET_PREFIX = "food_sheet"
 private const val OFFLINE_ACTION = "guardar ni eliminar"
+private const val OFFLINE_DELETE_ACTION = "eliminar"
 private val SkeletonHeight = Spacing.xl * 2
 
 /**
@@ -68,7 +78,62 @@ fun EditEntrySheet(
         }
 
         is EditEntryUiState.Content -> EditEntryContentSheet(state.content, onEvent, onDismiss, modifier)
+
+        is EditEntryUiState.Removed -> RemovedEntrySheet(state.content, onEvent, onDismiss, modifier)
     }
+}
+
+/**
+ * View-only entry of a food removed by the monthly cleanup (ADR-105), from the entry's snapshot: a note, the amount,
+ * the totals and the meal. No favourite, no food editing and no "Guardar" (nothing can change); "Eliminar" is the only
+ * action and needs the server.
+ */
+@Composable
+private fun RemovedEntrySheet(
+    content: RemovedEntryContent,
+    onEvent: (EditEntryEvent) -> Unit,
+    onDismiss: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val entry = content.entry
+    val cookingLabel = entry.cookingMethod.takeIf { it != CookingMethod.Raw }?.let { stringResource(it.labelRes()) }
+    val amountLine = FoodEntryDetail.format(entry.portionLabel, entry.amount, entry.baseUnit, cookingLabel)
+    val date = AppDateFormat.shortDate(entry.logDate)
+    val mealLine = content.mealLabel?.let { stringResource(Res.string.edit_entry_removed_meal, it, date) } ?: date
+    FoodSheet(
+        name = entry.foodName,
+        brand = null,
+        quantity = {
+            Column(verticalArrangement = Arrangement.spacedBy(Spacing.lg)) {
+                InlineNote(
+                    text = stringResource(Res.string.edit_entry_removed_note),
+                    testTag = "${SHEET_PREFIX}_removed_note",
+                )
+                SnapshotLine(amountLine, "${SHEET_PREFIX}_snapshot_amount", AppTheme.typography.bodyLarge)
+            }
+        },
+        totals = FoodSheetTotals(
+            wholeHalfUp(entry.kcal),
+            amountText(entry.proteinG),
+            amountText(entry.carbsG),
+            amountText(entry.fatG),
+        ),
+        details = null,
+        extra = { SnapshotLine(mealLine, "${SHEET_PREFIX}_snapshot_meal", AppTheme.typography.bodyMedium) },
+        context = FoodSheetContext.Removed(
+            onDelete = { onEvent(EditEntryEvent.Delete) },
+            canDelete = content.canDelete,
+            offlineHint = if (content.isOffline) offlineHint(OFFLINE_DELETE_ACTION) else null,
+        ),
+        onDismiss = onDismiss,
+        modifier = modifier,
+        testTagPrefix = SHEET_PREFIX,
+    )
+}
+
+@Composable
+private fun SnapshotLine(text: String, tag: String, style: TextStyle) {
+    Text(text = text, style = style, color = AppTheme.colors.textPrimary, modifier = Modifier.testTag(tag))
 }
 
 @Composable
