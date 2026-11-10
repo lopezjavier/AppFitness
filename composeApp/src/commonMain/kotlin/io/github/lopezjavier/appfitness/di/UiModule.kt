@@ -18,6 +18,7 @@ import io.github.lopezjavier.appfitness.feature.diary.DiaryHistoryViewModel
 import io.github.lopezjavier.appfitness.feature.diary.DiaryViewModel
 import io.github.lopezjavier.appfitness.feature.diary.EditEntryViewModel
 import io.github.lopezjavier.appfitness.feature.exercises.ComposeResourcesExerciseLibrary
+import io.github.lopezjavier.appfitness.feature.exercises.ExerciseChatViewModel
 import io.github.lopezjavier.appfitness.feature.exercises.ExerciseDetailViewModel
 import io.github.lopezjavier.appfitness.feature.exercises.ExercisePickerViewModel
 import io.github.lopezjavier.appfitness.feature.food.AddFoodViewModel
@@ -364,6 +365,7 @@ val uiModule =
         viewModel { (exerciseId: String) ->
             ExerciseDetailViewModel(exerciseId, get(), get(), get(), get(), get(), get())
         }
+        viewModel { ExerciseChatViewModel(repository = get(), connectivity = get(), savedState = get()) }
         viewModelOf(::RoutinesViewModel)
         viewModel { WorkoutEntryViewModel(repository = get(), connectivity = get(), savedState = get()) }
         viewModel {

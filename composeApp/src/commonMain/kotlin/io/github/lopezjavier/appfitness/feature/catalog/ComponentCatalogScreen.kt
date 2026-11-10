@@ -29,6 +29,8 @@ import io.github.lopezjavier.appfitness.composeapp.resources.catalog_button_prim
 import io.github.lopezjavier.appfitness.composeapp.resources.catalog_button_secondary
 import io.github.lopezjavier.appfitness.composeapp.resources.catalog_card_body
 import io.github.lopezjavier.appfitness.composeapp.resources.catalog_card_title
+import io.github.lopezjavier.appfitness.composeapp.resources.catalog_chat_bubble_answer
+import io.github.lopezjavier.appfitness.composeapp.resources.catalog_chat_bubble_question
 import io.github.lopezjavier.appfitness.composeapp.resources.catalog_section_buttons
 import io.github.lopezjavier.appfitness.composeapp.resources.catalog_section_cards
 import io.github.lopezjavier.appfitness.composeapp.resources.catalog_section_chips
@@ -38,6 +40,7 @@ import io.github.lopezjavier.appfitness.composeapp.resources.catalog_state_disab
 import io.github.lopezjavier.appfitness.composeapp.resources.catalog_state_enabled
 import io.github.lopezjavier.appfitness.composeapp.resources.catalog_state_pressed
 import io.github.lopezjavier.appfitness.composeapp.resources.catalog_title
+import io.github.lopezjavier.appfitness.composeapp.resources.exercise_tab_chat
 import io.github.lopezjavier.appfitness.composeapp.resources.exercise_tab_history
 import io.github.lopezjavier.appfitness.composeapp.resources.exercise_tab_how_to
 import io.github.lopezjavier.appfitness.composeapp.resources.exercise_tab_similar
@@ -59,6 +62,7 @@ import io.github.lopezjavier.appfitness.designsystem.AppScreen
 import io.github.lopezjavier.appfitness.designsystem.AppTabRow
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
 import io.github.lopezjavier.appfitness.designsystem.AppToggleChip
+import io.github.lopezjavier.appfitness.designsystem.ChatBubble
 import io.github.lopezjavier.appfitness.designsystem.FilterChipRow
 import io.github.lopezjavier.appfitness.designsystem.GhostButton
 import io.github.lopezjavier.appfitness.designsystem.PrimaryButton
@@ -148,6 +152,16 @@ private fun CardsSection() {
                 color = AppTheme.colors.textSecondary,
             )
         }
+        ChatBubble(
+            text = stringResource(Res.string.catalog_chat_bubble_question),
+            isQuestion = true,
+            testTag = "catalog_chat_bubble_question",
+        )
+        ChatBubble(
+            text = stringResource(Res.string.catalog_chat_bubble_answer),
+            isQuestion = false,
+            testTag = "catalog_chat_bubble_answer",
+        )
     }
 }
 
@@ -269,13 +283,15 @@ private fun TabsSection() {
     val similar = stringResource(Res.string.exercise_tab_similar)
     val history = stringResource(Res.string.exercise_tab_history)
     val howTo = stringResource(Res.string.exercise_tab_how_to)
+    val chat = stringResource(Res.string.exercise_tab_chat)
     val options =
-        remember(summary, similar, history, howTo) {
+        remember(summary, similar, history, howTo, chat) {
             listOf(
                 AppOption(summary, "catalog_tab_summary"),
                 AppOption(similar, "catalog_tab_similar"),
                 AppOption(history, "catalog_tab_history"),
                 AppOption(howTo, "catalog_tab_how_to"),
+                AppOption(chat, "catalog_tab_chat"),
             )
         }
     CatalogSection(stringResource(Res.string.catalog_section_tabs), "catalog_section_tabs") {

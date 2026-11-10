@@ -8,6 +8,7 @@ import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.assertHeightIsAtLeast
+import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsNotSelected
 import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.getUnclippedBoundsInRoot
@@ -75,6 +76,48 @@ class AppTabRowTest {
         rule.onNodeWithTag("tab_how_to").performClick()
 
         assertEquals(listOf(2), taps)
+    }
+
+    private val fiveOptions = listOf(
+        AppOption("Resumen", "five_summary"),
+        AppOption("Similares", "five_similar"),
+        AppOption("Historial", "five_history"),
+        AppOption("Cómo hacerlo", "five_how_to"),
+        AppOption("Preguntar", "five_chat"),
+    )
+
+    private fun showFive(fontScale: Float) {
+        rule.setContent {
+            CompositionLocalProvider(LocalDensity provides Density(LocalDensity.current.density, fontScale)) {
+                AppTheme { AppTabRow(fiveOptions, 0, {}, Modifier) }
+            }
+        }
+        rule.waitForIdle()
+    }
+
+    @Test
+    fun fiveTabs_at360Dp_showEveryTab_andEachWordFitsItsTabWithoutClipping() {
+        showFive(fontScale = 1f)
+
+        val tabs = fiveOptions.map { rule.onNodeWithTag(it.testTag).assertIsDisplayed().getUnclippedBoundsInRoot() }
+        fiveOptions.forEachIndexed { index, option ->
+            // A single-word label that fits on one line is never split mid-word.
+            val label = rule.onNodeWithText(option.label, useUnmergedTree = true).getUnclippedBoundsInRoot()
+            assertTrue(label.left >= tabs[index].left && label.right <= tabs[index].right)
+            if (!option.label.contains(' ')) assertTrue(label.height < 28.dp)
+        }
+    }
+
+    @Test
+    fun fiveTabs_at130PercentFont_keepEveryLabelInsideItsTab() {
+        showFive(fontScale = 1.3f)
+
+        val tabs = fiveOptions.map { rule.onNodeWithTag(it.testTag).assertIsDisplayed().getUnclippedBoundsInRoot() }
+        fiveOptions.forEachIndexed { index, option ->
+            val label = rule.onNodeWithText(option.label, useUnmergedTree = true).getUnclippedBoundsInRoot()
+            assertTrue(label.left >= tabs[index].left && label.right <= tabs[index].right)
+            assertTrue(label.top >= tabs[index].top && label.bottom <= tabs[index].bottom)
+        }
     }
 
     @Test

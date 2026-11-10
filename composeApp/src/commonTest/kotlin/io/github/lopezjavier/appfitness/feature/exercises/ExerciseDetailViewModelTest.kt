@@ -194,16 +194,27 @@ class ExerciseDetailViewModelTest {
     }
 
     @Test
-    fun tabOrder_isSummarySimilarHistoryHowTo() {
+    fun tabOrder_isSummarySimilarHistoryHowToChat() {
         assertEquals(
             listOf(
                 ExerciseDetailTab.Summary,
                 ExerciseDetailTab.Similar,
                 ExerciseDetailTab.History,
                 ExerciseDetailTab.HowTo,
+                ExerciseDetailTab.Chat,
             ),
             ExerciseDetailTab.entries,
         )
+    }
+
+    @Test
+    fun chatTab_isSelectableAndRestoredByName() = runTest {
+        val first = viewModel()
+        loaded(first)
+        first.selectTab(ExerciseDetailTab.Chat)
+        advanceUntilIdle()
+
+        assertEquals(ExerciseDetailTab.Chat, loaded(viewModel()).tab)
     }
 
     @Test

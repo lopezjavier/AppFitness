@@ -33,6 +33,10 @@ object AppTabRowDefaults {
 
     /** Labels wrap to this many lines (large font scales) instead of being clipped. */
     const val LABEL_MAX_LINES = 2
+
+    /** From this many tabs the labels use `bodyMedium` and a tighter padding so 360 dp phones do not split words. */
+    const val COMPACT_FROM = 5
+    val CompactLabelPadding: Dp = 2.dp
 }
 
 /**
@@ -45,17 +49,19 @@ object AppTabRowDefaults {
 @Composable
 fun AppTabRow(options: List<AppOption>, selectedIndex: Int, onSelect: (Int) -> Unit, modifier: Modifier = Modifier) {
     SingleSelection.requireValid(selectedIndex, options.size)
+    val compact = options.size >= AppTabRowDefaults.COMPACT_FROM
     Row(modifier.fillMaxWidth().height(IntrinsicSize.Min).selectableGroup()) {
         options.forEachIndexed { index, option ->
-            Tab(option, index == selectedIndex) { SingleSelection.onTap(selectedIndex, index)?.let(onSelect) }
+            Tab(option, index == selectedIndex, compact) { SingleSelection.onTap(selectedIndex, index)?.let(onSelect) }
         }
     }
 }
 
 @Composable
-private fun RowScope.Tab(option: AppOption, selected: Boolean, onClick: () -> Unit) {
+private fun RowScope.Tab(option: AppOption, selected: Boolean, compact: Boolean, onClick: () -> Unit) {
     val colors = AppTheme.colors
-    val base = AppTheme.typography.titleMedium
+    val base = if (compact) AppTheme.typography.bodyMedium else AppTheme.typography.titleMedium
+    val horizontalPadding = if (compact) AppTabRowDefaults.CompactLabelPadding else Spacing.xs
     Box(
         Modifier
             .weight(1f)
@@ -71,7 +77,7 @@ private fun RowScope.Tab(option: AppOption, selected: Boolean, onClick: () -> Un
             color = if (selected) colors.neonLime else colors.textSecondary,
             textAlign = TextAlign.Center,
             maxLines = AppTabRowDefaults.LABEL_MAX_LINES,
-            modifier = Modifier.align(Alignment.Center).padding(horizontal = Spacing.xs, vertical = Spacing.sm),
+            modifier = Modifier.align(Alignment.Center).padding(horizontal = horizontalPadding, vertical = Spacing.sm),
         )
         Box(
             Modifier
