@@ -11,6 +11,9 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -52,7 +55,17 @@ fun TrainerBoxRoot(
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val exerciseNames = rememberExerciseNames(state, nameResolver)
-    TrainerEffectsHost(viewModel.effects, { viewModel.onEvent(TrainerEvent.Refresh) }, actions)
+    // The host's ON_RESUME fires once when this screen composes: with the shared state already loaded that is not a
+    // resume of the app, so it must not fetch again. Later resumes (back from another app) still refresh.
+    // remember is enough: after a recreation the state is already Content, so the first resume is skipped again.
+    var skipEntryRefresh by remember { mutableStateOf(state is TrainerUiState.Content) }
+    TrainerEffectsHost(
+        viewModel.effects,
+        {
+            if (skipEntryRefresh) skipEntryRefresh = false else viewModel.onEvent(TrainerEvent.Refresh)
+        },
+        actions,
+    )
     TrainerBoxScreen(box, state, connectivity.isOnline, viewModel::onEvent, onBack, modifier, actions, exerciseNames)
 }
 

@@ -14,6 +14,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.window.DialogProperties
+import androidx.lifecycle.ViewModelStoreOwner
 import androidx.navigation.NavBackStackEntry
 import androidx.navigation.NavController
 import androidx.navigation.NavDestination
@@ -80,10 +81,17 @@ internal typealias BeforeStartSlot =
 
 /**
  * Content of a Trainer summary box screen ("Tu plan", "Tu bloque"): modifier (full-screen insets), which [box], where
- * its entries go ([TrainerActions]) and how to leave.
+ * its entries go ([TrainerActions]), the owner of the Trainer tab's [TrainerViewModel] (null when that entry is gone,
+ * e.g. after process restoration: the box then builds its own) and how to leave.
  */
 internal typealias TrainerBoxSlot =
-    @Composable (modifier: Modifier, box: TrainerBox, actions: TrainerActions, onBack: () -> Unit) -> Unit
+    @Composable (
+        modifier: Modifier,
+        box: TrainerBox,
+        actions: TrainerActions,
+        trainerOwner: ViewModelStoreOwner?,
+        onBack: () -> Unit,
+    ) -> Unit
 
 /** Content of "Tus datos": modifier (full-screen insets), how to leave and the editor opener of an input. */
 internal typealias YourDataSlot =
@@ -685,8 +693,16 @@ internal val DefaultBeforeStartSlot: BeforeStartSlot = { modifier, _, _, _, _, _
     Box(modifier.fillMaxSize().testTag("before_start_screen"))
 }
 
+/**
+ * The Trainer tab's back-stack entry, which owns the root's [TrainerViewModel]: the box screens read the same instance
+ * so they show its content at once. Null when the entry is not on the stack (the box then falls back to its own).
+ */
+@Composable
+private fun rememberTrainerOwner(navController: NavHostController, box: NavBackStackEntry): ViewModelStoreOwner? =
+    remember(box) { runCatching { navController.getBackStackEntry(TrainerHome) }.getOrNull() }
+
 /** Empty "Tu plan" / "Tu bloque" for previews and shell tests; the real one is wired by `AppRoot`. */
-internal val DefaultTrainerBoxSlot: TrainerBoxSlot = { modifier, box, _, _ ->
+internal val DefaultTrainerBoxSlot: TrainerBoxSlot = { modifier, box, _, _, _ ->
     Box(modifier.fillMaxSize().testTag(if (box == TrainerBox.Plan) "trainer_plan_screen" else "trainer_block_screen"))
 }
 
@@ -1016,12 +1032,14 @@ internal fun AppNavHost(
             freeTextLines(Modifier.padding(fullScreenPadding)) { navController.popFullScreen(entry) }
         }
         composable<TrainerPlanRoute> { entry ->
-            trainerBox(Modifier.padding(fullScreenPadding), TrainerBox.Plan, trainerActions) {
+            val owner = rememberTrainerOwner(navController, entry)
+            trainerBox(Modifier.padding(fullScreenPadding), TrainerBox.Plan, trainerActions, owner) {
                 navController.popFullScreen(entry)
             }
         }
         composable<TrainerBlockRoute> { entry ->
-            trainerBox(Modifier.padding(fullScreenPadding), TrainerBox.Block, trainerActions) {
+            val owner = rememberTrainerOwner(navController, entry)
+            trainerBox(Modifier.padding(fullScreenPadding), TrainerBox.Block, trainerActions, owner) {
                 navController.popFullScreen(entry)
             }
         }
