@@ -1,6 +1,6 @@
 # E18 · Functional improvements
 
-> **Status: DEFINED (product-owner, 2026-11-09, ADR-103), not planned.** Stories US-128, US-129, US-130, US-120…US-122 (moved from the former "E18 UI review"), and US-132 and US-133 (added by product-owner, 2026-11-10, ADR-105). The `epic-planner` breaks it into tasks. It runs before E19 (UI review), so the screens it adds are reviewed once.
+> **Status: DEFINED (product-owner, 2026-11-09, ADR-103), not planned.** Stories US-128, US-129, US-130, US-120…US-122 (moved from the former "E18 UI review"), and US-132 (added by product-owner, 2026-11-10, ADR-105); US-133 was added and then withdrawn by T-273 (user decision, 2026-11-10). The `epic-planner` breaks it into tasks. It runs before E19 (UI review), so the screens it adds are reviewed once.
 
 ## Intent
 
@@ -12,13 +12,13 @@
 
 **Approach chosen and why.** US-128 goes first because it drops data in production. Reports history, quick search and the compact Trainer follow. The chat goes last, behind a 👤 check of Google's current terms for the Gemini API in Spain (the EEA may require paid services; if so, the paid tier with a low spending limit is the fallback, and the user decides). One Edge Function receives the exercise context and the question and returns the answer; the key stays server-side (ADR-17).
 
-## Text meals and food cleanup (US-132, US-133, ADR-105)
+## Text meals (US-132, ADR-105; US-133 withdrawn by T-273)
 
 **Problem.** Logging a meal when I am out means searching foods one by one or taking a photo, and the foods created that way are used once and pile up.
 
-**Outcome.** I type what I ate in one sentence and get an editable draft with total kcal and macros. Personal foods I have not used for a month disappear by themselves, and past diary days do not change.
+**Outcome.** I type what I ate in one sentence and get an editable draft with total kcal and macros. (US-133, automatic cleanup of unused foods, was withdrawn by T-273: the storage saved is negligible.) Past diary days do not change, and an entry whose food is gone opens read-only.
 
-**Approach chosen and why.** Text reuses the photo flow: a new mode of the Gemini free-tier function returns one combined food as a draft in the usual form, with the energy check of ADR-104; the text is not stored or logged. The cleanup is a `pg_cron` job in Supabase, not a GitHub Actions workflow (E20 makes the repository private and expects no more Actions use; no secret is needed). Scope, decided by the user: all personal foods (`source = 'user'`, including Open Food Facts copies) not added to the diary for 30 days, because photo foods carry no marker and existing ones cannot be told apart. Favourites and foods in a saved comida are never removed. **Risk accepted:** a hand-made food unused for a month is deleted; Gemini estimates can be off (`07` ref 102), so the draft is always editable and shown as an estimate.
+**Approach chosen and why.** Text reuses the photo flow: a new mode of the Gemini free-tier function returns one combined food as a draft in the usual form, with the energy check of ADR-104; the text is not stored or logged. The cleanup originally planned (US-133) was dropped by T-273. **Risk accepted:** Gemini estimates can be off (`07` ref 102), so the draft is always editable and shown as an estimate.
 
 ## Rules
 `04` §6.1 (reminders stay computed, never stored); ADR-17, ADR-59, ADR-66, ADR-98, ADR-101, ADR-103, ADR-104, ADR-105; `05` §8-§10; ADR-27, ADR-80.
@@ -231,7 +231,9 @@ Feature: Meal from text
     Then the text is sent only to the estimate service, and is not stored or logged
 ```
 
-## US-133 · Unused personal foods clean themselves up
+## US-133 · ~~Unused personal foods clean themselves up~~ WITHDRAWN (T-273, user decision 2026-11-10)
+> Withdrawn: the storage saved is negligible. Kept for history, do not implement. Only "Past days do not change" remains as a safeguard (entry shown from its snapshot, view or delete only).
+
 **As** the user
 **I want** foods I no longer use to disappear
 **So that** my food list stays small.
