@@ -6,7 +6,7 @@ Operating instructions: [`CLAUDE.md`](../CLAUDE.md). Phase 1 history (frozen): [
 Legend: **👤** = done by the user (accounts, web consoles, secrets) · **PM** = done by Claude Code.
 Secrets rule: never pasted in the chat or in versioned files. The user enters them in their terminal or in the consoles, and Claude only verifies that they exist.
 
-Last task ID used: T-272 (T-271, T-272 = US-132, US-133, added to E18 by ADR-105, epic-planner 2026-11-10; T-268, T-269, T-270 = Checkpoint E18 feedback fixes; T-259…T-267 reserved by the E18 breakdown; T-257…T-258 = ADR-104 hard energy check, Checkpoint E17 feedback; T-251…T-256 reserved by the E17 breakdown; T-246…T-249 by E16; T-239…T-244 by E15; T-250 = user-reported fix below)
+Last task ID used: T-273 (T-273 = revert of the unused-food cleanup, user decision 2026-11-10; T-271, T-272 = US-132, US-133, added to E18 by ADR-105, epic-planner 2026-11-10; T-268, T-269, T-270 = Checkpoint E18 feedback fixes; T-259…T-267 reserved by the E18 breakdown; T-257…T-258 = ADR-104 hard energy check, Checkpoint E17 feedback; T-251…T-256 reserved by the E17 breakdown; T-246…T-249 by E16; T-239…T-244 by E15; T-250 = user-reported fix below)
 
 **Done in the T-246 branch (user report, 2026-11-08; the user ordered it into the current branch, so it ships in T-246's PR as a separate `fix(T-250)` commit):** `fix(T-250)`: the `food-photo` dish prompt (`supabase/functions/food-photo/prompts.ts`) never says whether the per-100 g values are for the food as served; a 400 g cooked plate came back with raw-food kcal/100 g. Fix: the dish prompt states that values and `estimated_grams` describe the food as shown in the photo (cooked when cooked), with a handler/prompt test and a redeploy of `food-photo`. Backend only, no model-call change elsewhere.
 
@@ -377,6 +377,19 @@ Order: T-270 → Trainer re-test approved → **T-271** → **T-272** → **👤
 **Dependencies:** T-271 merged and deployed.
 **Files likely touched:** `supabase/migrations/<ts>_cleanup_unused_personal_foods.sql`, `supabase/tests/{cleanup_unused_personal_foods,food_log_entries,delete_account_cascade}.test.sql`, `shared/…/data/repository/{SupabaseFoodDiaryRepository,SupabaseFoodRepository}.kt`, the diary entry details ViewModel/screen, tests, `planning/{02-architecture,03-data-model,04-business-rules,08-environment-setup}.md`
 **Estimated scope:** M
+
+**Status 2026-11-10:** T-272 merged (PR #629, CI green, `deploy-supabase` green). Review found it deviates from the spec: the FK was `on delete set null` (the spec said keep `food_id`), and two verification items were skipped (read-only pre-merge count shown to the user; read-only `cron.job` check on production). The first cleanup already ran on production at deploy. User decision 2026-11-10: the storage saved is negligible (about 100 KB a year for 100 foods), so the automatic cleanup is dropped → T-273.
+
+## T-273: Revert the unused-food cleanup (T-272), keep the read-only entry sheet · S
+
+**Story:** user decision 2026-11-10 (no new US; US-133 is withdrawn) · **Flow:** planner → backend-developer → pr-reviewer → pr-creator (no UI change expected; the planner confirms) · **Size:** S
+**Description:** Revert PR #629's cleanup as a revert PR (`git revert` of the squash commit), with one constraint: migrations `20270125100000` and `20270125100100` are already applied on production, so their files must NOT be deleted (that would break the `deploy-supabase` migration history). The planner decides the minimal safe form: a new migration that unschedules the `cleanup-unused-foods` job and drops `cleanup_unused_foods()`, while `food_log_entries.food_id` stays nullable (entries may already hold null; harmless), and the read-only edit sheet for an entry whose food is gone stays as a safeguard. Update `planning/03`, `08`, US-133/ADR-105/E18 to say the cleanup is dropped (no new ADR text beyond marking ADR-105's cleanup part superseded by this user decision; the planner proposes the wording). Remove the pgTAP file for the dropped function; adjust the tests that expect it.
+**Acceptance criteria:**
+- [ ] No `cron.job` row `cleanup-unused-foods` and no `cleanup_unused_foods()` function after the migrations run; no job runs on production.
+- [ ] Diary entries, totals and the read-only sheet behave as before; `most_eaten_foods` still ignores entries without a food.
+- [ ] Docs and US-133 mark the cleanup as dropped.
+- [ ] After the merge `deploy-supabase` green on `main`; a subagent confirms read-only that production `cron.job` has no such job.
+**Dependencies:** T-272 merged (done). Checkpoint E18-B (typed meal only) is presented after T-273.
 
 ---
 
