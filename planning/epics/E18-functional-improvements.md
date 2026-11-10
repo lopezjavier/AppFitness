@@ -275,6 +275,8 @@ Feature: Unused food cleanup
 **I want** to say the day my block now ends
 **So that** I can finish my sessions without doubling up.
 
+The action is a pencil button next to the block end day in the Trainer (a date picker opens; no separate "Ampliar bloque" entry).
+
 Non-goals: pausing, back-dating, any change to loads, deloads or calories.
 
 ```gherkin
@@ -282,7 +284,7 @@ Feature: Extend the block
 
   Scenario: Choosing the new last day
     Given my block ends on 12 Nov
-    When I tap "Ampliar bloque" and pick 15 Nov
+    When I tap the pencil next to the block end day and pick 15 Nov
     Then the Trainer shows the block ending on 15 Nov
 
   Scenario: A session on the last day counts
@@ -302,7 +304,7 @@ Feature: Extend the block
 
   Scenario: Changing my mind
     Given I extended my block to 15 Nov
-    When I tap "Ampliar bloque" and pick 12 Nov
+    When I tap the pencil and pick 12 Nov
     Then the block ends on 12 Nov again
 
   Scenario: The extension survives leaving the app
@@ -312,7 +314,7 @@ Feature: Extend the block
 
   Scenario: No extension without a block
     Given I have no active block
-    Then there is no "Ampliar bloque" action
+    Then there is no pencil and no way to extend
 ```
 
 ## US-135 · Small corrections to the food forms
