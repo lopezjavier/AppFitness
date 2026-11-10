@@ -32,6 +32,7 @@ import org.robolectric.annotation.Config
 /** ADR-40: the Trainer tab, the plan section and the weeks survive recreation. */
 @RunWith(RobolectricTestRunner::class)
 @Config(qualifiers = "w360dp-h2400dp-xxhdpi")
+@Suppress("TooManyFunctions") // One method per restoration scenario.
 class TrainerRestorationTest {
     @get:Rule
     val rule = createComposeRule()
@@ -75,7 +76,7 @@ class TrainerRestorationTest {
         val repository = FakeCoachRepository()
         var current by mutableStateOf(TrainerViewModel(repository, MutableClock(), plans = plans))
         val connectivity = FakeConnectivityObserver()
-        rule.setContent { AppTheme { TrainerRoutesWithDetails(current, connectivity) } }
+        rule.setContent { AppTheme { TrainerRoutesWithBoxes(current, connectivity) } }
         rule.waitForIdle()
         rule.onNodeWithTag("trainer_calorie_card").assertExists()
 
@@ -84,7 +85,7 @@ class TrainerRestorationTest {
         rule.waitForIdle()
 
         rule.onNodeWithTag("trainer_calorie_card").assertExists()
-        rule.openTrainerDetails()
+        rule.openTrainerPlan()
         rule.onNodeWithTag("trainer_plan_card").assertExists()
     }
 
@@ -106,9 +107,9 @@ class TrainerRestorationTest {
         )
         var current by mutableStateOf(model())
         val connectivity = FakeConnectivityObserver()
-        rule.setContent { AppTheme { TrainerRoutesWithDetails(current, connectivity) } }
+        rule.setContent { AppTheme { TrainerRoutesWithBoxes(current, connectivity) } }
         rule.waitForIdle()
-        rule.openTrainerDetails()
+        rule.openTrainerBlock()
 
         // A new view model over the same saved state, as after process death: nothing is kept only in memory.
         current = model()
@@ -134,9 +135,9 @@ class TrainerRestorationTest {
         )
         val connectivity = FakeConnectivityObserver()
         val tester = StateRestorationTester(rule)
-        tester.setContent { AppTheme { TrainerRoutesWithDetails(model, connectivity) } }
+        tester.setContent { AppTheme { TrainerRoutesWithBoxes(model, connectivity) } }
         rule.waitForIdle()
-        rule.openTrainerDetails()
+        rule.openTrainerBlock()
 
         tester.emulateSavedInstanceStateRestore()
         rule.waitForIdle()
@@ -166,9 +167,9 @@ class TrainerRestorationTest {
         )
         val connectivity = FakeConnectivityObserver()
         val tester = StateRestorationTester(rule)
-        tester.setContent { AppTheme { TrainerRoutesWithDetails(model, connectivity) } }
+        tester.setContent { AppTheme { TrainerRoutesWithBoxes(model, connectivity) } }
         rule.waitForIdle()
-        rule.openTrainerDetails()
+        rule.openTrainerBlock()
         rule.onNodeWithTag("plan_week_cardio_value_1").performScrollTo()
         rule.waitForIdle()
 
@@ -189,9 +190,9 @@ class TrainerRestorationTest {
         val saved = SavedStateHandle()
         var current by mutableStateOf(TrainerViewModel(repository, MutableClock(), plans = plans, savedState = saved))
         val connectivity = FakeConnectivityObserver()
-        rule.setContent { AppTheme { TrainerRoutesWithDetails(current, connectivity) } }
+        rule.setContent { AppTheme { TrainerRoutesWithBoxes(current, connectivity) } }
         rule.waitForIdle()
-        rule.openTrainerDetails()
+        rule.openTrainerPlan()
         rule.onNodeWithTag("trainer_plan_cardio_row").performClick()
         rule.onNodeWithTag("cardio_sheet_stepper_increment").performClick()
         rule.waitForIdle()
@@ -205,32 +206,39 @@ class TrainerRestorationTest {
     }
 
     @Test
-    fun recreation_keepsDetallesOpenWithTheTrainerTabSelected() {
+    fun recreation_keepsTuPlanOpenWithTheTrainerTabSelected() = keepsBoxScreenOpen("trainer_plan_screen") {
+        it.onOpenPlan()
+    }
+
+    @Test
+    fun recreation_keepsTuBloqueOpenWithTheTrainerTabSelected() = keepsBoxScreenOpen("trainer_block_screen") {
+        it.onOpenBlockScreen()
+    }
+
+    private fun keepsBoxScreenOpen(screenTag: String, open: (TrainerActions) -> Unit) {
         val tester = StateRestorationTester(rule)
         tester.setContent {
             App(
                 rootRoute = RootRoute.Main,
                 trainer = { modifier, actions ->
-                    Box(
-                        modifier.fillMaxSize().testTag("trainer_screen").clickable(onClick = actions.onOpenDetails),
-                    )
+                    Box(modifier.fillMaxSize().testTag("trainer_screen").clickable { open(actions) })
                 },
             )
         }
         rule.onNodeWithTag("nav_tab_trainer").performClick()
         rule.onNodeWithTag("trainer_screen").performClick()
         rule.waitForIdle()
-        rule.onNodeWithTag("trainer_details_screen").assertExists()
+        rule.onNodeWithTag(screenTag).assertExists()
 
         tester.emulateSavedInstanceStateRestore()
         rule.waitForIdle()
 
-        rule.onNodeWithTag("trainer_details_screen").assertExists()
+        rule.onNodeWithTag(screenTag).assertExists()
         rule.onNodeWithTag("trainer_screen").assertDoesNotExist()
     }
 
     @Test
-    fun recreatedViewModel_keepsTheRemoveBlockDialogOpenOnDetalles() {
+    fun recreatedViewModel_keepsTheRemoveBlockDialogOpenOnTuBloque() {
         val plans = FakeCoachPlanRepository()
         plans.current = Result.success(coachPlan(status = PlanStatus.Accepted))
         val blocks = FakeCoachBlockRepository()
@@ -240,9 +248,9 @@ class TrainerRestorationTest {
         fun model() = TrainerViewModel(repository, MutableClock(), plans, blocks, FakeCoachWeeksRepository(), saved)
         var current by mutableStateOf(model())
         val connectivity = FakeConnectivityObserver()
-        rule.setContent { AppTheme { TrainerRoutesWithDetails(current, connectivity) } }
+        rule.setContent { AppTheme { TrainerRoutesWithBoxes(current, connectivity) } }
         rule.waitForIdle()
-        rule.openTrainerDetails()
+        rule.openTrainerBlock()
         rule.onNodeWithTag("trainer_remove_block").performClick()
         rule.waitForIdle()
 

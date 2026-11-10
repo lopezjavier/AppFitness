@@ -82,9 +82,13 @@ data class BeforeStartRoute(val mode: String, val planId: String? = null, val re
 @Serializable
 data object YourDataRoute : AppRoute
 
-/** "Detalles" (US-120): the plan and the block with their full content, opened from the Trainer tab root. */
+/** "Tu plan" (US-120): the accepted plan with its full content, opened from the Trainer tab root's plan box. */
 @Serializable
-data object TrainerDetailsRoute : AppRoute
+data object TrainerPlanRoute : AppRoute
+
+/** "Tu bloque" (US-120): the saved block with its weeks and coach changes, opened from the root's block box. */
+@Serializable
+data object TrainerBlockRoute : AppRoute
 
 /** "Para conocerte" (US-81): the free-text editor, opened from the "Para conocerte" row (R-55). */
 @Serializable
@@ -447,7 +451,8 @@ object AppDestinations {
             PlanProposalRoute(),
             BeforeStartRoute(""),
             YourDataRoute,
-            TrainerDetailsRoute,
+            TrainerPlanRoute,
+            TrainerBlockRoute,
             IntakeRoute,
             FreeTextLinesRoute,
             BlockPreviewRoute(""),

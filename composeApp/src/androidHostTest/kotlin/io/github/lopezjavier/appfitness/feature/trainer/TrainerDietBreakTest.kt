@@ -45,12 +45,13 @@ class TrainerDietBreakTest {
         )
         val state = TrainerUiState.Content(
             plan = PlanSummary.Accepted(plan),
+            block = BlockSummary.Saved(coachBlock(saved = true)),
             weeks = listOf(1, 2, 3, 4).map { planWeek(week = it) },
             dietBreakSaving = saving,
         )
-        rule.setContent { AppTheme { TrainerWithDetails(state, flowOf(online), { events += it }) } }
+        rule.setContent { AppTheme { TrainerWithBoxes(state, flowOf(online), { events += it }) } }
         rule.waitForIdle()
-        rule.openTrainerDetails()
+        rule.openTrainerPlan()
     }
 
     @Test
@@ -59,6 +60,8 @@ class TrainerDietBreakTest {
 
         rule.onNodeWithText("Semana 4: descanso de dieta, 2.400 kcal al día").assertExists()
         rule.onNodeWithTag("trainer_plan_diet_break_switch").assertIsOn()
+        rule.onNodeWithTag("trainer_plan_back").performClick()
+        rule.openTrainerBlock()
         rule.onNodeWithTag("trainer_block_week_diet_break").assertExists()
     }
 
@@ -67,8 +70,10 @@ class TrainerDietBreakTest {
         show()
 
         rule.onNodeWithTag("trainer_plan_diet_break").assertDoesNotExist()
-        rule.onNodeWithTag("trainer_block_week_diet_break").assertDoesNotExist()
         rule.onNodeWithTag("trainer_plan_diet_break_switch").assertIsOff()
+        rule.onNodeWithTag("trainer_plan_back").performClick()
+        rule.openTrainerBlock()
+        rule.onNodeWithTag("trainer_block_week_diet_break").assertDoesNotExist()
     }
 
     @Test

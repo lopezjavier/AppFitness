@@ -39,10 +39,10 @@ class TrainerRemoveBlockScreenTest {
 
     private fun showRoute(model: TrainerViewModel, details: Boolean = true) {
         rule.setContent {
-            AppTheme { TrainerRoutesWithDetails(model, connectivity) }
+            AppTheme { TrainerRoutesWithBoxes(model, connectivity) }
         }
         rule.waitForIdle()
-        if (details) rule.openTrainerDetails()
+        if (details) rule.openTrainerBlock()
     }
 
     private fun tap(tag: String) {
@@ -116,10 +116,9 @@ class TrainerRemoveBlockScreenTest {
         rule.onNodeWithText("¿Eliminar el bloque?").assertDoesNotExist()
         rule.onNodeWithTag("trainer_remove_block").assertDoesNotExist()
         rule.onNodeWithTag("trainer_weeks_section").assertDoesNotExist()
-        rule.onNodeWithTag("trainer_plan_card").assertExists()
-        tap("trainer_details_back")
+        tap("trainer_block_back")
         rule.onNodeWithTag("trainer_create_block").assertExists()
-        rule.onNodeWithTag("trainer_block_status").assertDoesNotExist()
+        rule.onNodeWithTag("trainer_box_block").assertDoesNotExist()
     }
 
     @Test
@@ -153,10 +152,10 @@ class TrainerRemoveBlockScreenTest {
         val tester = StateRestorationTester(rule)
         tester.setContent {
             val model = remember { model(saved) }
-            AppTheme { TrainerRoutesWithDetails(model, connectivity) }
+            AppTheme { TrainerRoutesWithBoxes(model, connectivity) }
         }
         rule.waitForIdle()
-        rule.openTrainerDetails()
+        rule.openTrainerBlock()
         tap("trainer_remove_block")
 
         tester.emulateSavedInstanceStateRestore()

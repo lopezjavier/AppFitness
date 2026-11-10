@@ -45,7 +45,7 @@ private data class CoachChangeContext(val busyId: String?, val online: Boolean)
 
 /**
  * "Cambios del entrenador" (US-97, US-104): the [rows] (the pending flags on the root, the applied changes in
- * "Detalles"), one [CoachChangeRow] each.
+ * "Tu bloque"), one [CoachChangeRow] each.
  * [names] resolves the exercise names by id (R-54; a row waits for its name); `busyChangeId` is the change whose undo
  * or decision is in flight (its action shows progress, every other row's are disabled).
  */

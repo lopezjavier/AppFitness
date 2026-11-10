@@ -28,10 +28,13 @@ import io.github.lopezjavier.appfitness.composeapp.resources.catalog_inline_note
 import io.github.lopezjavier.appfitness.composeapp.resources.catalog_section_action_row
 import io.github.lopezjavier.appfitness.composeapp.resources.catalog_section_offline_banner
 import io.github.lopezjavier.appfitness.composeapp.resources.catalog_section_state_messages
+import io.github.lopezjavier.appfitness.composeapp.resources.catalog_section_summary_card
 import io.github.lopezjavier.appfitness.composeapp.resources.catalog_state_action_count
 import io.github.lopezjavier.appfitness.composeapp.resources.catalog_status_discomfort
 import io.github.lopezjavier.appfitness.composeapp.resources.catalog_status_note
 import io.github.lopezjavier.appfitness.composeapp.resources.catalog_status_suggestion
+import io.github.lopezjavier.appfitness.composeapp.resources.catalog_summary_card_line
+import io.github.lopezjavier.appfitness.composeapp.resources.catalog_summary_card_title
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_photo_camera
 import io.github.lopezjavier.appfitness.composeapp.resources.live_discomfort_resolve
 import io.github.lopezjavier.appfitness.composeapp.resources.live_discomfort_resolve_offline
@@ -49,6 +52,7 @@ import io.github.lopezjavier.appfitness.designsystem.GhostTone
 import io.github.lopezjavier.appfitness.designsystem.InlineNote
 import io.github.lopezjavier.appfitness.designsystem.OfflineBanner
 import io.github.lopezjavier.appfitness.designsystem.Spacing
+import io.github.lopezjavier.appfitness.designsystem.SummaryCard
 import org.jetbrains.compose.resources.stringResource
 
 /** Catalog sections of the empty and error state blocks (T-026) and the offline banner (T-029). */
@@ -56,6 +60,22 @@ internal fun LazyListScope.stateMessageItems() {
     item { StateMessagesSection() }
     item { OfflineBannerSection() }
     item { ActionRowAndNoteSection() }
+    item { SummaryCardSection() }
+}
+
+@Composable
+private fun SummaryCardSection() {
+    CatalogSection(
+        stringResource(Res.string.catalog_section_summary_card),
+        "catalog_section_summary_card",
+    ) {
+        SummaryCard(
+            title = stringResource(Res.string.catalog_summary_card_title),
+            lines = listOf(stringResource(Res.string.catalog_summary_card_line)),
+            onClick = {},
+            testTag = "catalog_summary_card",
+        )
+    }
 }
 
 @Composable

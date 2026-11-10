@@ -47,10 +47,10 @@ class PlanActivityScreenTest {
 
     private fun showTrainer(state: TrainerUiState.Content) {
         rule.setContent {
-            AppTheme { TrainerWithDetails(state, flowOf(true), { trainerEvents += it }) }
+            AppTheme { TrainerWithBoxes(state, flowOf(true), { trainerEvents += it }) }
         }
         rule.waitForIdle()
-        rule.openTrainerDetails()
+        rule.openTrainerPlan()
     }
 
     private fun accepted(activity: PlanActivity?) =

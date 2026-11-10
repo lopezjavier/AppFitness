@@ -33,10 +33,10 @@ class PlanWeeksTest {
 
     private fun show(state: TrainerUiState, online: Boolean = true) {
         rule.setContent {
-            AppTheme { TrainerWithDetails(state, flowOf(online), { events += it }) }
+            AppTheme { TrainerWithBoxes(state, flowOf(online), { events += it }) }
         }
         rule.waitForIdle()
-        rule.openTrainerDetails()
+        rule.openTrainerBlock()
     }
 
     @Test

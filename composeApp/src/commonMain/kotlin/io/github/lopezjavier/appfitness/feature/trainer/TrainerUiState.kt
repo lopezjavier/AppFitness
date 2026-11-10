@@ -120,16 +120,9 @@ sealed interface TrainerUiState {
         val pendingCoachChanges: List<CoachChangeRowUi>
             get() = coachChanges.filter { it.status == CoachChangeStatus.Pending }
 
-        /** Applied (and undone) changes, the "Cambios del entrenador" list that lives in "Detalles". */
+        /** Applied (and undone) changes, the "Cambios del entrenador" list that lives on "Tu bloque". */
         val appliedCoachChanges: List<CoachChangeRowUi>
             get() = coachChanges.filter { it.status != CoachChangeStatus.Pending }
-
-        /**
-         * The root's "Detalles" row: a plan exists (proposed or accepted), a block is saved, or applied coach changes
-         * exist, so nothing held there is unreachable.
-         */
-        val hasDetails: Boolean
-            get() = plan !is PlanSummary.None || block is BlockSummary.Saved || appliedCoachChanges.isNotEmpty()
 
         /** "Bloque nuevo" replaces "Crear plan nuevo": an accepted plan with its block already saved. */
         val canStartNewBlock: Boolean get() = plan is PlanSummary.Accepted && block is BlockSummary.Saved
@@ -285,6 +278,9 @@ sealed interface TrainerEffect {
 
     /** Navigate to the editor of [routineId] with the range of [exerciseId] in focus. */
     data class OpenRoutineRange(val routineId: String, val exerciseId: String) : TrainerEffect
+
+    /** No routine could be resolved for the exercise: reject haptic and a message, no action button. */
+    data object RangeUnavailable : TrainerEffect
 
     /** Navigate to "Antes de empezar" in new-block mode for the accepted plan [planId]. */
     data class OpenNewBlock(val planId: String) : TrainerEffect

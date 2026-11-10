@@ -16,6 +16,7 @@ import io.github.lopezjavier.appfitness.composeapp.resources.cardio_save_offline
 import io.github.lopezjavier.appfitness.composeapp.resources.coach_change_decide_error
 import io.github.lopezjavier.appfitness.composeapp.resources.coach_change_decide_not_pending
 import io.github.lopezjavier.appfitness.composeapp.resources.coach_change_decide_offline
+import io.github.lopezjavier.appfitness.composeapp.resources.coach_change_range_unavailable
 import io.github.lopezjavier.appfitness.composeapp.resources.coach_change_undo_conflict
 import io.github.lopezjavier.appfitness.composeapp.resources.coach_change_undo_error
 import io.github.lopezjavier.appfitness.composeapp.resources.coach_change_undo_not_found
@@ -43,7 +44,7 @@ import org.jetbrains.compose.resources.stringResource
 
 /**
  * Plays the one-off [effects] (haptics, failure messages, navigation) and calls [onRefresh] on resume. Both the
- * Trainer root and "Detalles" use it, so a message or a haptic fires from whichever of them is on top.
+ * Trainer root and "Tu plan" and "Tu bloque" use it, so a message or a haptic fires from whichever of them is on top.
  */
 @Suppress("LongMethod", "CyclomaticComplexMethod") // One failure message per effect, wired in one place.
 @Composable
@@ -69,6 +70,7 @@ internal fun TrainerEffectsHost(effects: Flow<TrainerEffect>, onRefresh: () -> U
     val decideOffline = offlineHint(stringResource(Res.string.coach_change_decide_offline)) + "."
     val decideNotPending = stringResource(Res.string.coach_change_decide_not_pending)
     val decideError = stringResource(Res.string.coach_change_decide_error)
+    val rangeUnavailable = stringResource(Res.string.coach_change_range_unavailable)
     val cancelDeloadOffline = offlineHint(stringResource(Res.string.coach_deload_cancel_offline)) + "."
     val cancelDeloadError = stringResource(Res.string.coach_deload_cancel_error)
     val requestDeloadOffline = offlineHint(stringResource(Res.string.coach_deload_request_offline)) + "."
@@ -154,6 +156,11 @@ internal fun TrainerEffectsHost(effects: Flow<TrainerEffect>, onRefresh: () -> U
                             else -> decideError
                         },
                     )
+                }
+
+                TrainerEffect.RangeUnavailable -> {
+                    latestHaptics.reject()
+                    messages.show(rangeUnavailable)
                 }
 
                 is TrainerEffect.OpenRoutineRange ->

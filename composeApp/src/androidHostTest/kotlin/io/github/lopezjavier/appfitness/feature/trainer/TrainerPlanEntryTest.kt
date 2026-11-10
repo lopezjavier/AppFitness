@@ -40,7 +40,7 @@ class TrainerPlanEntryTest {
     private fun show(state: TrainerUiState, online: Boolean = true) {
         rule.setContent {
             AppTheme {
-                TrainerWithDetails(
+                TrainerWithBoxes(
                     state,
                     flowOf(online),
                     { events += it },
@@ -94,7 +94,7 @@ class TrainerPlanEntryTest {
     @Test
     fun withAnAcceptedPlan_theSummaryShowsCaloriesRateAndOutcomes() {
         show(content(PlanSummary.Accepted(coachPlan(status = PlanStatus.Accepted))))
-        rule.openTrainerDetails()
+        rule.openTrainerPlan()
 
         rule.onNodeWithText("Plan activo").assertExists()
         rule.onNodeWithText("2.000 kcal al día · −0,4 kg/sem").assertExists()
@@ -105,7 +105,7 @@ class TrainerPlanEntryTest {
     @Test
     fun anAcceptedPlanEditedByTheUser_isMarked() {
         show(content(PlanSummary.Accepted(coachPlan(status = PlanStatus.Accepted, editedByUser = true))))
-        rule.openTrainerDetails()
+        rule.openTrainerPlan()
 
         rule.onNodeWithText("Editado por ti").assertExists()
     }
@@ -222,7 +222,7 @@ class TrainerPlanEntryTest {
     fun aSavedBlock_readsBloqueGuardado_withoutOpeningAnything() {
         val plan = PlanSummary.Accepted(coachPlan(status = PlanStatus.Accepted))
         show(content(plan, block = BlockSummary.Saved(coachBlock(saved = true))))
-        rule.openTrainerDetails()
+        rule.openTrainerBlock()
 
         rule.onNodeWithText("Bloque guardado").assertExists()
         tap("trainer_block_card")

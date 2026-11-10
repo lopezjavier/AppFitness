@@ -50,9 +50,15 @@ data class CoachChangeRowUi(
 /** What the routine editor and the live session show behind the `?` of a changed exercise. */
 data class CoachChangeMarker(val kind: CoachChangeKind, val figures: CoachChangeFigures, val reason: String)
 
-/** Routines the change touches, from its planned-values snapshots. */
-internal fun CoachChange.routineIds(): List<String> =
-    ((after.orEmpty()) + (before.orEmpty())).map { it.routineId }.distinct()
+/**
+ * Routines the change touches, from its planned-values snapshots; a no-range flag has none and stores its routine in
+ * the figures. There is no client-side cardio filter: the exercise-name resolver exposes no movement pattern, so the
+ * server (flag creation and the cleanup migration) is the guard.
+ */
+internal fun CoachChange.routineIds(): List<String> {
+    val fromSnapshots = ((after.orEmpty()) + (before.orEmpty())).map { it.routineId }.distinct()
+    return fromSnapshots.ifEmpty { listOfNotNull(figures.routineId) }
+}
 
 private fun CoachChange.isKnown(): Boolean = kind != CoachChangeKind.Unknown && status != CoachChangeStatus.Unknown
 

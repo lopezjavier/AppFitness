@@ -38,6 +38,7 @@ import io.github.lopezjavier.appfitness.feature.templates.pickedFoodResult
 import io.github.lopezjavier.appfitness.feature.trainer.BeforeStartEffect
 import io.github.lopezjavier.appfitness.feature.trainer.BeforeStartMode
 import io.github.lopezjavier.appfitness.feature.trainer.TrainerActions
+import io.github.lopezjavier.appfitness.feature.trainer.TrainerBox
 import io.github.lopezjavier.appfitness.feature.workout.PastWorkoutSource
 import kotlinx.datetime.LocalDate
 
@@ -77,9 +78,12 @@ internal typealias BeforeStartSlot =
         onOpenFolderBlock: (BeforeStartEffect.OpenFolderBlock) -> Unit,
     ) -> Unit
 
-/** Content of "Detalles": modifier (full-screen insets), where its entries go ([TrainerActions]) and how to leave. */
-internal typealias TrainerDetailsSlot =
-    @Composable (modifier: Modifier, actions: TrainerActions, onBack: () -> Unit) -> Unit
+/**
+ * Content of a Trainer summary box screen ("Tu plan", "Tu bloque"): modifier (full-screen insets), which [box], where
+ * its entries go ([TrainerActions]) and how to leave.
+ */
+internal typealias TrainerBoxSlot =
+    @Composable (modifier: Modifier, box: TrainerBox, actions: TrainerActions, onBack: () -> Unit) -> Unit
 
 /** Content of "Tus datos": modifier (full-screen insets), how to leave and the editor opener of an input. */
 internal typealias YourDataSlot =
@@ -681,9 +685,9 @@ internal val DefaultBeforeStartSlot: BeforeStartSlot = { modifier, _, _, _, _, _
     Box(modifier.fillMaxSize().testTag("before_start_screen"))
 }
 
-/** Empty "Detalles" for previews and shell tests; the real one is wired by `AppRoot`. */
-internal val DefaultTrainerDetailsSlot: TrainerDetailsSlot = { modifier, _, _ ->
-    Box(modifier.fillMaxSize().testTag("trainer_details_screen"))
+/** Empty "Tu plan" / "Tu bloque" for previews and shell tests; the real one is wired by `AppRoot`. */
+internal val DefaultTrainerBoxSlot: TrainerBoxSlot = { modifier, box, _, _ ->
+    Box(modifier.fillMaxSize().testTag(if (box == TrainerBox.Plan) "trainer_plan_screen" else "trainer_block_screen"))
 }
 
 /** Empty "Tus datos" for previews and shell tests; the real one is wired by `AppRoot`. */
@@ -732,7 +736,7 @@ internal val DefaultAboutSlot: AboutSlot = { modifier, _ ->
  * destinations get their own padding so hiding the bottom bar never resizes a tab's viewport.
  */
 @Composable
-@Suppress("LongMethod") // The destination table, one line per route.
+@Suppress("LongMethod", "ContentSlotReused") // The destination table; each route is its own entry.
 internal fun AppNavHost(
     navController: NavHostController,
     tabPadding: PaddingValues,
@@ -741,7 +745,7 @@ internal fun AppNavHost(
     modifier: Modifier = Modifier,
     profile: ProfileSlot = DefaultProfileSlot,
     trainer: TrainerSlot = DefaultTrainerSlot,
-    trainerDetails: TrainerDetailsSlot = DefaultTrainerDetailsSlot,
+    trainerBox: TrainerBoxSlot = DefaultTrainerBoxSlot,
     preferences: PreferencesSlot = DefaultPreferencesSlot,
     preferencesSection: PreferencesSectionSlot = DefaultPreferencesSectionSlot,
     about: AboutSlot = DefaultAboutSlot,
@@ -827,7 +831,8 @@ internal fun AppNavHost(
                 navController.navigateToFullScreen(BeforeStartRoute(mode.argument, planId, replacingPlanId))
             },
             onOpenYourData = { navController.navigateToFullScreen(YourDataRoute) },
-            onOpenDetails = { navController.navigateToFullScreen(TrainerDetailsRoute) },
+            onOpenPlan = { navController.navigateToFullScreen(TrainerPlanRoute) },
+            onOpenBlockScreen = { navController.navigateToFullScreen(TrainerBlockRoute) },
             onOpenFreeText = { navController.navigateToFullScreen(FreeTextLinesRoute) },
             onOpenWeekSummary = { navController.navigateToFullScreen(WeekSummaryRoute) },
             onOpenBlockReview = { navController.navigateToFullScreen(BlockReviewRoute) },
@@ -1010,8 +1015,15 @@ internal fun AppNavHost(
         composable<FreeTextLinesRoute> { entry ->
             freeTextLines(Modifier.padding(fullScreenPadding)) { navController.popFullScreen(entry) }
         }
-        composable<TrainerDetailsRoute> { entry ->
-            trainerDetails(Modifier.padding(fullScreenPadding), trainerActions) { navController.popFullScreen(entry) }
+        composable<TrainerPlanRoute> { entry ->
+            trainerBox(Modifier.padding(fullScreenPadding), TrainerBox.Plan, trainerActions) {
+                navController.popFullScreen(entry)
+            }
+        }
+        composable<TrainerBlockRoute> { entry ->
+            trainerBox(Modifier.padding(fullScreenPadding), TrainerBox.Block, trainerActions) {
+                navController.popFullScreen(entry)
+            }
         }
         composable<YourDataRoute> { entry ->
             yourData(Modifier.padding(fullScreenPadding), { navController.popFullScreen(entry) }, openFix)

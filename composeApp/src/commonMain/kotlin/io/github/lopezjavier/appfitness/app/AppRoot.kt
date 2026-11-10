@@ -44,7 +44,7 @@ import io.github.lopezjavier.appfitness.feature.trainer.IntakeRoot
 import io.github.lopezjavier.appfitness.feature.trainer.PastReportRoot
 import io.github.lopezjavier.appfitness.feature.trainer.PlanProposalRoot
 import io.github.lopezjavier.appfitness.feature.trainer.ReportsRoot
-import io.github.lopezjavier.appfitness.feature.trainer.TrainerDetailsRoot
+import io.github.lopezjavier.appfitness.feature.trainer.TrainerBoxRoot
 import io.github.lopezjavier.appfitness.feature.trainer.TrainerRoute
 import io.github.lopezjavier.appfitness.feature.trainer.WeekSummaryRoot
 import io.github.lopezjavier.appfitness.feature.trainer.YourDataRoot
@@ -83,8 +83,8 @@ fun AppRoot(
         trainer = { trainerModifier, actions ->
             TrainerRoute(trainerModifier, actions, nameResolver = koinInject())
         },
-        trainerDetails = { detailsModifier, actions, onBack ->
-            TrainerDetailsRoot(detailsModifier, actions, onBack, nameResolver = koinInject())
+        trainerBox = { boxModifier, box, actions, onBack ->
+            TrainerBoxRoot(box, boxModifier, actions, onBack, nameResolver = koinInject())
         },
         strength = { strengthModifier, onOpenExercise, onOpenMuscleVolume, onStartWorkout, onBack ->
             StrengthRoot(onOpenExercise, onOpenMuscleVolume, onStartWorkout, onBack, strengthModifier)

@@ -47,6 +47,8 @@ data class CoachChangeFigures(
     val repMax: Int? = null,
     /** Plan week of a deload change (1-based). */
     val week: Int? = null,
+    /** Routine holding the exercise, stored by a no-range flag (which has no planned-values snapshots). */
+    val routineId: String? = null,
 )
 
 /** One planned set inside a [PlannedRoutineValues] snapshot. */

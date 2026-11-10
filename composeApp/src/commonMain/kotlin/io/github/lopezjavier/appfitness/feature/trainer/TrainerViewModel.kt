@@ -265,9 +265,17 @@ class TrainerViewModel(
     private fun openRange(id: String) {
         val row = (_uiState.value as? TrainerUiState.Content)?.coachChanges?.firstOrNull { it.id == id } ?: return
         if (row.kind != CoachChangeKind.NoRangeFlag || row.status != CoachChangeStatus.Pending) return
-        val routineId = row.routineIds.firstOrNull() ?: return
-        val exerciseId = row.exerciseId ?: return
-        viewModelScope.launch { effectChannel.send(TrainerEffect.OpenRoutineRange(routineId, exerciseId)) }
+        val routineId = row.routineIds.firstOrNull()
+        val exerciseId = row.exerciseId
+        viewModelScope.launch {
+            effectChannel.send(
+                if (routineId != null && exerciseId != null) {
+                    TrainerEffect.OpenRoutineRange(routineId, exerciseId)
+                } else {
+                    TrainerEffect.RangeUnavailable
+                },
+            )
+        }
     }
 
     private fun requestRemoveBlock() {
