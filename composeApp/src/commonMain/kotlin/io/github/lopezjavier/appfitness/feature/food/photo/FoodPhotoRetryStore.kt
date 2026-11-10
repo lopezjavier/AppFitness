@@ -4,8 +4,11 @@ import io.github.lopezjavier.appfitness.domain.model.FoodPhotoMode
 import io.github.lopezjavier.appfitness.domain.port.PhotoCapture
 import kotlin.random.Random
 
-/** The photo (an opaque [PhotoCapture] handle), its [mode] and the dish [comment] kept for one retry. */
-data class RetryPhoto(val handle: String, val mode: FoodPhotoMode, val comment: String?)
+/**
+ * What a retry resends: a photo (an opaque [PhotoCapture] handle) with its [mode] and dish [comment], or, in
+ * [FoodPhotoMode.Text] mode, the typed [text] (then [handle] is null). Exactly one of [handle] and [text] is set.
+ */
+data class RetryPhoto(val handle: String?, val mode: FoodPhotoMode, val comment: String?, val text: String? = null)
 
 /**
  * In-memory hand-over of a photo from the photo flow to the create-food form, so the AI estimate can be repeated
@@ -16,9 +19,14 @@ class FoodPhotoRetryStore(private val photoCapture: PhotoCapture) {
     private val held = mutableMapOf<String, RetryPhoto>()
 
     /** Keeps [handle] for a retry and returns the token the form reads it by. */
-    fun put(handle: String, mode: FoodPhotoMode, comment: String?): String {
+    fun put(handle: String, mode: FoodPhotoMode, comment: String?): String = keep(RetryPhoto(handle, mode, comment))
+
+    /** Keeps the typed meal [text] (memory only) for a retry and returns the token the form reads it by. */
+    fun putText(text: String): String = keep(RetryPhoto(handle = null, mode = FoodPhotoMode.Text, comment = null, text))
+
+    private fun keep(retry: RetryPhoto): String {
         val token = "retry-${Random.nextLong().toULong().toString(HEX)}"
-        held[token] = RetryPhoto(handle, mode, comment)
+        held[token] = retry
         return token
     }
 
@@ -28,7 +36,7 @@ class FoodPhotoRetryStore(private val photoCapture: PhotoCapture) {
 
     /** Forgets [token] and deletes its photo file; unknown tokens are ignored. */
     fun release(token: String) {
-        held.remove(token)?.let { photoCapture.discard(it.handle) }
+        held.remove(token)?.handle?.let(photoCapture::discard)
     }
 
     private companion object {

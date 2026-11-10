@@ -3,8 +3,11 @@ package io.github.lopezjavier.appfitness.domain.model
 import io.github.lopezjavier.appfitness.domain.usecase.EnergyCheckLevel
 import kotlinx.serialization.Serializable
 
-/** What the photo shows: a plated dish, a nutrition label or a barcode on a package. */
-enum class FoodPhotoMode { Dish, Label, Barcode }
+/**
+ * What the estimate comes from: a plated dish, a nutrition label or a barcode on a package (all photos), or a [Text]
+ * sentence describing a whole meal (no image).
+ */
+enum class FoodPhotoMode { Dish, Label, Barcode, Text }
 
 /** How sure the model is about its estimate. */
 enum class FoodPhotoConfidence { Low, Medium, High }
@@ -68,11 +71,13 @@ data class NewFoodDraft(
 private const val DISH_PORTION_LABEL = "1 ración"
 
 /**
- * The form prefill for this draft. Only a dish with a positive estimate gets a portion ("1 ración"); micronutrients
- * (grams per 100) are converted to each nutrient's label unit, and keys the app does not know are ignored.
+ * The form prefill for this draft. Only a dish or a text meal with a positive estimate gets a portion ("1 ración");
+ * micronutrients (grams per 100) are converted to each nutrient's label unit, and keys the app does not know are
+ * ignored.
  */
 fun FoodPhotoDraft.toNewFoodDraft(mode: FoodPhotoMode): NewFoodDraft {
-    val portion = estimatedGrams?.takeIf { mode == FoodPhotoMode.Dish && it.isFinite() && it > 0.0 }
+    val hasPortion = mode == FoodPhotoMode.Dish || mode == FoodPhotoMode.Text
+    val portion = estimatedGrams?.takeIf { hasPortion && it.isFinite() && it > 0.0 }
     val values = buildMap {
         MicronutrientKind.entries.filter { it.editable }.forEach { kind ->
             val grams = micronutrients[kind.offKey + "_100g"]?.takeIf { it.isFinite() && it >= 0.0 }

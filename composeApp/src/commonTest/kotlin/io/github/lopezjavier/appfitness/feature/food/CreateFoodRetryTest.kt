@@ -123,6 +123,65 @@ class CreateFoodRetryTest {
     }
 
     @Test
+    fun textRetry_resendsTheTypedTextWithTheCurrentValuesAndNoImage() = runTest(dispatcher) {
+        val model = model(store.putText("pollo con ensalada"))
+        advanceUntilIdle()
+
+        model.retry()
+        advanceUntilIdle()
+
+        val (text, previous) = photos.textCalls.single()
+        assertEquals("pollo con ensalada", text)
+        assertNotNull(previous)
+        assertEquals(500.0, previous.kcal)
+        assertTrue(photos.calls.isEmpty())
+        assertTrue(capture.reads.isEmpty())
+    }
+
+    @Test
+    fun textRetry_thatPasses_releasesTheTokenAndKeepsTheFormValuesApplied() = runTest(dispatcher) {
+        val token = store.putText("pollo con ensalada")
+        val model = model(token)
+        advanceUntilIdle()
+
+        model.retry()
+        advanceUntilIdle()
+
+        assertEquals(RetryState.None, model.uiState.value.retryState)
+        assertFalse(store.has(token))
+        assertTrue(capture.discarded.isEmpty())
+    }
+
+    @Test
+    fun textOrigin_isExposed_andSurvivesProcessDeathAsTextGone() = runTest(dispatcher) {
+        val state = SavedStateHandle()
+        val withText = model(store.putText("pollo"), state)
+        advanceUntilIdle()
+        val withPhoto = model(token())
+        advanceUntilIdle()
+
+        val afterDeath = CreateFoodViewModel(
+            barcode = null,
+            name = null,
+            foodRepository = foods,
+            connectivity = connectivity,
+            savedState = state,
+            photoRepository = photos,
+            photoCapture = capture,
+            retryStore = FoodPhotoRetryStore(capture),
+        )
+        advanceUntilIdle()
+
+        assertTrue(withText.uiState.value.retryFromText)
+        assertFalse(withPhoto.uiState.value.retryFromText)
+        assertEquals(RetryState.PhotoGone, afterDeath.uiState.value.retryState)
+        assertTrue(afterDeath.uiState.value.retryFromText)
+        afterDeath.retry()
+        advanceUntilIdle()
+        assertTrue(photos.textCalls.isEmpty())
+    }
+
+    @Test
     fun retry_overwritesOnlyTheNutritionFields_keepingNameBrandAndPortions() = runTest(dispatcher) {
         photos.results += Result.success(
             FakeFoodPhotoRepository.lentils.copy(

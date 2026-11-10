@@ -75,6 +75,15 @@ internal class FakeFoodPhotoRepository(var result: Result<FoodPhotoDraft> = Resu
         return results.removeFirstOrNull() ?: result
     }
 
+    /** The `text` and `previous` of every [estimateText] call. */
+    val textCalls = mutableListOf<Pair<String, PreviousEstimate?>>()
+
+    override suspend fun estimateText(text: String, previous: PreviousEstimate?): Result<FoodPhotoDraft> {
+        textCalls += text to previous
+        gate?.await()
+        return results.removeFirstOrNull() ?: result
+    }
+
     /** Answer of [estimateAmount]. */
     var amountResult: Result<AmountEstimate> = Result.success(AmountEstimate(180.0, "g", null))
     val amountCalls = mutableListOf<Pair<Food, String>>()

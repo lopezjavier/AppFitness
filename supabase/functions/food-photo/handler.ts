@@ -15,6 +15,7 @@ import { parsePrevious, type PreviousEstimate } from "./previous.ts";
 import {
     type FoodDraft,
     type FoodPhotoMode,
+    MAX_TEXT_CHARS,
     MODES,
     normalizeDraft,
     normalizeWeight,
@@ -27,6 +28,8 @@ export const MAX_COMMENT_CHARS = 200;
 const MAX_FOOD_TEXT = 120;
 // Request bodies above this are refused unread (base64 of the cap plus JSON overhead).
 const MAX_BODY_CHARS = Math.ceil(MAX_IMAGE_BYTES / 3) * 4 + 1024;
+// Mode text carries no image: its body (sentence plus optional previous estimate) is far smaller.
+const MAX_TEXT_BODY_CHARS = 8 * 1024;
 
 export type FoodPhotoDeps = {
     /** User id of an access token, or null when invalid. */
@@ -43,7 +46,8 @@ export type FoodPhotoDeps = {
     generate: (
         req: {
             mode: FoodPhotoMode;
-            imageBase64: string;
+            /** Null only for mode text. */
+            imageBase64: string | null;
             comment: string | null;
             /** Failed estimate to correct; set only for the retry of dish and label. */
             previous: PreviousEstimate | null;
@@ -93,18 +97,34 @@ export function createFoodPhotoHandler(
                 >;
 
             if (!MODES.includes(mode as FoodPhotoMode)) {
-                return invalid("mode must be dish, label, barcode or weight");
+                return invalid(
+                    "mode must be dish, label, barcode, weight or text",
+                );
             }
-            if (typeof image_base64 !== "string") {
-                return invalid("image_base64 is required");
-            }
-            const image = image_base64.replace(/\s+/g, "");
-            if (image === "") return invalid("image_base64 is required");
-            if (decodedSize(image) > MAX_IMAGE_BYTES) return tooLarge();
-            if (
-                !/^[A-Za-z0-9+/]+={0,2}$/.test(image) || image.length % 4 !== 0
-            ) {
-                return invalid("image_base64 must be valid base64");
+            const isText = mode === "text";
+            let image: string | null = null;
+            if (isText) {
+                if (raw.length > MAX_TEXT_BODY_CHARS) {
+                    return invalid("Request body is too large for mode text");
+                }
+                if (image_base64 !== undefined && image_base64 !== null) {
+                    return invalid(
+                        "image_base64 is not allowed with mode text",
+                    );
+                }
+            } else {
+                if (typeof image_base64 !== "string") {
+                    return invalid("image_base64 is required");
+                }
+                image = image_base64.replace(/\s+/g, "");
+                if (image === "") return invalid("image_base64 is required");
+                if (decodedSize(image) > MAX_IMAGE_BYTES) return tooLarge();
+                if (
+                    !/^[A-Za-z0-9+/]+={0,2}$/.test(image) ||
+                    image.length % 4 !== 0
+                ) {
+                    return invalid("image_base64 must be valid base64");
+                }
             }
 
             let note: string | null = null;
@@ -112,16 +132,22 @@ export function createFoodPhotoHandler(
                 if (typeof comment !== "string") {
                     return invalid("comment must be a string");
                 }
-                if (mode !== "dish") {
-                    return invalid("comment is only allowed with mode dish");
+                if (mode !== "dish" && !isText) {
+                    return invalid(
+                        "comment is only allowed with mode dish or text",
+                    );
                 }
                 const trimmed = comment.trim();
-                if (trimmed.length > MAX_COMMENT_CHARS) {
+                const cap = isText ? MAX_TEXT_CHARS : MAX_COMMENT_CHARS;
+                if (trimmed.length > cap) {
                     return invalid(
-                        `comment must have at most ${MAX_COMMENT_CHARS} characters`,
+                        `comment must have at most ${cap} characters`,
                     );
                 }
                 note = trimmed === "" ? null : trimmed;
+            }
+            if (isText && note === null) {
+                return invalid("comment is required with mode text");
             }
 
             let foodContext: FoodContext | null = null;
@@ -135,9 +161,9 @@ export function createFoodPhotoHandler(
 
             let previousEstimate: PreviousEstimate | null = null;
             if (previous !== undefined && previous !== null) {
-                if (mode !== "dish" && mode !== "label") {
+                if (mode !== "dish" && mode !== "label" && !isText) {
                     return invalid(
-                        "previous is only allowed with mode dish or label",
+                        "previous is only allowed with mode dish, label or text",
                     );
                 }
                 const parsed = parsePrevious(previous);

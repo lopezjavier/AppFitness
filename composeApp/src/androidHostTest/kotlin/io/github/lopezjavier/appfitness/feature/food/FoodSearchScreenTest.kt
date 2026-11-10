@@ -137,7 +137,7 @@ class FoodSearchScreenTest {
         show(content(Chicken))
 
         val field = rule.onNodeWithTag("food_search_field").getUnclippedBoundsInRoot()
-        listOf("scan", "photo", "create").forEach { name ->
+        listOf("scan", "ai", "create").forEach { name ->
             val icon = rule.onNodeWithTag("food_search_action_$name").getUnclippedBoundsInRoot()
             assertEquals(field.bottom.value, icon.bottom.value, 1f)
             assertTrue(icon.left >= field.right)
@@ -149,19 +149,19 @@ class FoodSearchScreenTest {
         show(FoodSearchUiState(results = FoodResults.Error, isOffline = true))
 
         rule.onNodeWithTag("food_search_action_scan").assertIsNotEnabled()
-        rule.onNodeWithTag("food_search_action_photo").assertIsNotEnabled()
+        rule.onNodeWithTag("food_search_action_ai").assertIsNotEnabled()
     }
 
     @Test
-    fun photoAction_isLabelled_andOpensThePhotoFlow() {
+    fun aiAction_isLabelled_andOpensTheAiFlow() {
         var photo = 0
         rule.setContent {
             AppTheme { FoodSearchScreen(content(Chicken), { events += it }, {}, onPhotoClick = { photo++ }) }
         }
         rule.waitForIdle()
 
-        rule.onNodeWithTag("food_search_action_photo").assertContentDescriptionEquals("Añadir con foto")
-        rule.onNodeWithTag("food_search_action_photo").performClick()
+        rule.onNodeWithTag("food_search_action_ai").assertContentDescriptionEquals("Añadir con IA")
+        rule.onNodeWithTag("food_search_action_ai").performClick()
 
         assertEquals(1, photo)
     }

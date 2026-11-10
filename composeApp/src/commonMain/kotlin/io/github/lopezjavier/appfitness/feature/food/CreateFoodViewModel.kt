@@ -101,6 +101,11 @@ class CreateFoodViewModel(
         if (editFoodId == null) retryToken ?: savedState.get<String>(KEY_RETRY_TOKEN) else null
     private val retryState = MutableStateFlow(initialRetryState())
 
+    /** The failing estimate came from a typed text (not a photo): the "gone" copy after process death says so. */
+    private val retryFromText: Boolean = photoToken?.let {
+        (retryStore.get(it)?.mode?.name ?: savedState.get<String>(KEY_RETRY_MODE)) == FoodPhotoMode.Text.name
+    } == true
+
     /** The unit as stored (edit mode); the unit goes back to it when the server refuses a change. */
     private var originalUnit: String? = savedState.get<String>(KEY_ORIGINAL_UNIT)
     private val unitLocked = MutableStateFlow(savedState.get<Boolean>(KEY_UNIT_LOCKED) == true)
@@ -124,7 +129,11 @@ class CreateFoodViewModel(
             .combine(unitRefused) { state, refused -> state.copy(unitRefused = refused) }
             .combine(aiNote) { state, note -> state.copy(aiEstimateNote = note) }
             .combine(retryState) { state, retry ->
-                state.copy(retryState = retry, canSave = state.canSave && retry != RetryState.Running)
+                state.copy(
+                    retryState = retry,
+                    retryFromText = retryFromText,
+                    canSave = state.canSave && retry != RetryState.Running,
+                )
             }
             .stateIn(
                 viewModelScope,
@@ -136,6 +145,7 @@ class CreateFoodViewModel(
                         unitRefused = unitRefused.value,
                         aiEstimateNote = aiNote.value,
                         retryState = retryState.value,
+                        retryFromText = retryFromText,
                         canSave = initial.canSave && retryState.value != RetryState.Running,
                     )
                 },
@@ -345,8 +355,13 @@ class CreateFoodViewModel(
         retryState.value = RetryState.Running
         viewModelScope.launch {
             val outcome: Result<FoodPhotoDraft> = try {
-                val encoded = Base64.encode(photoCapture.readJpeg(kept.handle))
-                photoRepository.estimate(kept.mode, encoded, kept.comment, previous)
+                val text = kept.text
+                if (text != null) {
+                    photoRepository.estimateText(text, previous)
+                } else {
+                    val encoded = Base64.encode(photoCapture.readJpeg(requireNotNull(kept.handle)))
+                    photoRepository.estimate(kept.mode, encoded, kept.comment, previous)
+                }
             } catch (cancelled: CancellationException) {
                 throw cancelled
             } catch (_: Exception) {

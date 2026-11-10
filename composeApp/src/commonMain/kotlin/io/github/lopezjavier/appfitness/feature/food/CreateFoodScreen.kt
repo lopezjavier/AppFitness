@@ -114,6 +114,7 @@ fun CreateFoodScreen(
                 EnergyWarningNotice(
                     warning = warning,
                     retryState = state.retryState,
+                    retryFromText = state.retryFromText,
                     isOffline = state.isOffline,
                     onRetry = { onEvent(CreateFoodEvent.RetryEstimate) },
                 )

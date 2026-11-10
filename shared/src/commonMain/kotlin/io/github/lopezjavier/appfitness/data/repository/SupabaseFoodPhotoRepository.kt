@@ -7,6 +7,7 @@ import io.github.lopezjavier.appfitness.data.remote.AmountRequestDto
 import io.github.lopezjavier.appfitness.data.remote.AmountResponseDto
 import io.github.lopezjavier.appfitness.data.remote.FoodPhotoRequestDto
 import io.github.lopezjavier.appfitness.data.remote.FoodPhotoResponseDto
+import io.github.lopezjavier.appfitness.data.remote.MealTextRequestDto
 import io.github.lopezjavier.appfitness.domain.AppError
 import io.github.lopezjavier.appfitness.domain.AppException
 import io.github.lopezjavier.appfitness.domain.model.AmountEstimate
@@ -67,6 +68,11 @@ class SupabaseFoodPhotoRepository internal constructor(
             FoodPhotoRequestDto.serializer(),
             FoodPhotoRequestDto.from(mode, imageBase64, comment, previous),
         )
+        decode(invoke(body)) { json.decodeFromString<FoodPhotoResponseDto>(it).draft.toDomain() }
+    }
+
+    override suspend fun estimateText(text: String, previous: PreviousEstimate?): Result<FoodPhotoDraft> = auth.ownRow {
+        val body = json.encodeToString(MealTextRequestDto.serializer(), MealTextRequestDto.from(text, previous))
         decode(invoke(body)) { json.decodeFromString<FoodPhotoResponseDto>(it).draft.toDomain() }
     }
 

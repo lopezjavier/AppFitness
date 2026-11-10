@@ -7,6 +7,9 @@ import io.github.lopezjavier.appfitness.domain.port.PhotoSource
 /** Longest optional dish comment, in characters. */
 const val MAX_PHOTO_COMMENT = 200
 
+/** Longest typed meal description, in characters (mirrors `MAX_TEXT_CHARS` of `food-photo`). */
+const val MAX_MEAL_TEXT = 500
+
 /** Why an estimate failed; each kind has its own message. No `Throwable` ever reaches the state. */
 enum class FoodPhotoErrorKind {
     /** The photo of a dish did not show a recognisable food. */
@@ -15,6 +18,9 @@ enum class FoodPhotoErrorKind {
     /** The label or barcode photo did not identify a product. */
     NotRecognizedProduct,
 
+    /** The typed text did not name any food. */
+    NotRecognizedMeal,
+
     /** No connection. */
     Network,
 
@@ -22,7 +28,10 @@ enum class FoodPhotoErrorKind {
     Unavailable,
 }
 
-/** Where the "add from photo" flow stands. Only [Closed], [ModeSheet] and [SourceSheet] survive process death. */
+/**
+ * Where the "add with AI" flow stands. [Closed], [ModeSheet], [SourceSheet] and [TextInput] survive process death
+ * (an [Estimating] or [Error] step after a text send comes back as [TextInput]).
+ */
 sealed interface FoodPhotoStep {
     data object Closed : FoodPhotoStep
 
@@ -35,6 +44,9 @@ sealed interface FoodPhotoStep {
 
     /** [handle] is the compressed photo to show; read it through `PhotoCapture.readJpeg`. */
     data class Preview(val handle: String) : FoodPhotoStep
+
+    /** The user types the meal description ([FoodPhotoUiState.mealText]); no photo is involved. */
+    data object TextInput : FoodPhotoStep
 
     data object Estimating : FoodPhotoStep
 
@@ -50,6 +62,8 @@ data class FoodPhotoUiState(
     val step: FoodPhotoStep = FoodPhotoStep.Closed,
     val mode: FoodPhotoMode? = null,
     val comment: String = "",
+    /** The meal description typed in [FoodPhotoStep.TextInput], at most [MAX_MEAL_TEXT] characters. */
+    val mealText: String = "",
     val lastSource: PhotoSource? = null,
     val captureFailed: Boolean = false,
     val isOffline: Boolean = false,
@@ -71,7 +85,12 @@ sealed interface FoodPhotoEvent {
     /** Send the previewed photo to the estimate (ignored offline). */
     data object UsePhoto : FoodPhotoEvent
 
-    /** Send the same photo again after a failure. */
+    data class MealTextChanged(val text: String) : FoodPhotoEvent
+
+    /** Send the typed meal description to the estimate (ignored offline or when blank). */
+    data object SendMealText : FoodPhotoEvent
+
+    /** Send the same photo or text again after a failure. */
     data object Retry : FoodPhotoEvent
 
     /** Leave the flow for an empty create-food form. */

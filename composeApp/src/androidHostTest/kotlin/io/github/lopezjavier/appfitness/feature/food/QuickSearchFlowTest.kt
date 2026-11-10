@@ -260,7 +260,7 @@ class QuickSearchFlowTest {
         rule.onNodeWithTag("food_search_tab_recent").assertExists()
         assertTrue(!exists("food_search_tab_templates"))
         assertTrue(!exists("food_search_action_scan"))
-        assertTrue(!exists("food_search_action_photo"))
+        assertTrue(!exists("food_search_action_ai"))
         assertTrue(!exists("food_search_action_create"))
     }
 

@@ -154,6 +154,9 @@ class UnconfiguredFoodPhotoRepository : FoodPhotoRepository {
         previous: PreviousEstimate?,
     ): Result<FoodPhotoDraft> = Result.failure(AppException(AppError.Unknown))
 
+    override suspend fun estimateText(text: String, previous: PreviousEstimate?): Result<FoodPhotoDraft> =
+        Result.failure(AppException(AppError.Unknown))
+
     override suspend fun estimateAmount(food: Food, imageBase64: String): Result<AmountEstimate> =
         Result.failure(AppException(AppError.Unknown))
 }

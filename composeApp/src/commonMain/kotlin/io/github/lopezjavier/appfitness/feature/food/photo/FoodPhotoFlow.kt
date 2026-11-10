@@ -2,6 +2,7 @@ package io.github.lopezjavier.appfitness.feature.food.photo
 
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import io.github.lopezjavier.appfitness.domain.model.FoodPhotoMode
 
 /**
  * Draws the current step of the "add from photo" flow over the food search: the mode and source sheets, then the
@@ -37,7 +38,9 @@ fun FoodPhotoFlow(
             modifier = modifier,
         )
 
-        FoodPhotoStep.Estimating -> PhotoEstimating(modifier)
+        FoodPhotoStep.TextInput -> MealTextStep(state, onEvent, modifier)
+
+        FoodPhotoStep.Estimating -> PhotoEstimating(modifier, isText = state.mode == FoodPhotoMode.Text)
 
         is FoodPhotoStep.Error -> PhotoError(step.kind, onEvent, modifier)
     }

@@ -26,6 +26,7 @@ import io.github.lopezjavier.appfitness.composeapp.resources.create_food_retry_c
 import io.github.lopezjavier.appfitness.composeapp.resources.create_food_retry_offline_action
 import io.github.lopezjavier.appfitness.composeapp.resources.create_food_retry_photo_gone
 import io.github.lopezjavier.appfitness.composeapp.resources.create_food_retry_running
+import io.github.lopezjavier.appfitness.composeapp.resources.create_food_retry_text_gone
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_retry
 import io.github.lopezjavier.appfitness.designsystem.AppIconButton
 import io.github.lopezjavier.appfitness.designsystem.AppNumberFormat
@@ -58,6 +59,7 @@ internal fun EnergyWarningNotice(
     offProduct: Boolean = false,
     testTagPrefix: String = "create_food_energy",
     retryState: RetryState = RetryState.None,
+    retryFromText: Boolean = false,
     isOffline: Boolean = false,
     onRetry: (() -> Unit)? = null,
 ) {
@@ -90,7 +92,13 @@ internal fun EnergyWarningNotice(
         }
         if (retryState == RetryState.PhotoGone) {
             Text(
-                text = stringResource(Res.string.create_food_retry_photo_gone),
+                text = stringResource(
+                    if (retryFromText) {
+                        Res.string.create_food_retry_text_gone
+                    } else {
+                        Res.string.create_food_retry_photo_gone
+                    },
+                ),
                 style = AppTheme.typography.bodySmall,
                 color = AppTheme.colors.textSecondary,
                 modifier = Modifier.testTag("create_food_retry_photo_gone"),

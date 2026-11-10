@@ -2,6 +2,7 @@
 import {
     COMMENT_PREFIX,
     FOOD_CONTEXT_PREFIX,
+    MEAL_PREFIX,
     PREVIOUS_ESTIMATE_PREFIX,
     PROMPTS,
 } from "../food-photo/prompts.ts";
@@ -24,7 +25,8 @@ export type { GeminiDeps, GeminiErrorKind } from "./gemini.ts";
 
 export type GenerateRequest = {
     mode: FoodPhotoMode;
-    imageBase64: string;
+    /** Null only for mode text (no image part is sent). */
+    imageBase64: string | null;
     comment?: string | null;
     /** Failed estimate to correct (retry of dish and label); sent as a data part. */
     previous?: PreviousEstimate | null;
@@ -40,13 +42,21 @@ function mimeType(base64: string): string {
 
 /** Builds the request body; exported for tests. */
 export function buildBody(req: GenerateRequest) {
-    const parts: unknown[] = [{
-        inlineData: {
-            mimeType: mimeType(req.imageBase64),
-            data: req.imageBase64,
-        },
-    }];
-    if (req.comment) parts.push({ text: COMMENT_PREFIX + req.comment });
+    const parts: unknown[] = [];
+    if (req.imageBase64) {
+        parts.push({
+            inlineData: {
+                mimeType: mimeType(req.imageBase64),
+                data: req.imageBase64,
+            },
+        });
+    }
+    if (req.comment) {
+        parts.push({
+            text: (req.mode === "text" ? MEAL_PREFIX : COMMENT_PREFIX) +
+                req.comment,
+        });
+    }
     if (req.previous) {
         // Explicit fields: anything else a caller passes never reaches the model.
         const { estimate, reason } = req.previous;
