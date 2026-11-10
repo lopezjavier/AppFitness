@@ -6,13 +6,13 @@ Operating instructions: [`CLAUDE.md`](../CLAUDE.md). Phase 1 history (frozen): [
 Legend: **👤** = done by the user (accounts, web consoles, secrets) · **PM** = done by Claude Code.
 Secrets rule: never pasted in the chat or in versioned files. The user enters them in their terminal or in the consoles, and Claude only verifies that they exist.
 
-Last task ID used: T-270 (T-268, T-269, T-270 = Checkpoint E18 feedback fixes; T-259…T-267 reserved by the E18 breakdown; T-257…T-258 = ADR-104 hard energy check, Checkpoint E17 feedback; T-251…T-256 reserved by the E17 breakdown; T-246…T-249 by E16; T-239…T-244 by E15; T-250 = user-reported fix below)
+Last task ID used: T-272 (T-271, T-272 = US-132, US-133, added to E18 by ADR-105, epic-planner 2026-11-10; T-268, T-269, T-270 = Checkpoint E18 feedback fixes; T-259…T-267 reserved by the E18 breakdown; T-257…T-258 = ADR-104 hard energy check, Checkpoint E17 feedback; T-251…T-256 reserved by the E17 breakdown; T-246…T-249 by E16; T-239…T-244 by E15; T-250 = user-reported fix below)
 
 **Done in the T-246 branch (user report, 2026-11-08; the user ordered it into the current branch, so it ships in T-246's PR as a separate `fix(T-250)` commit):** `fix(T-250)`: the `food-photo` dish prompt (`supabase/functions/food-photo/prompts.ts`) never says whether the per-100 g values are for the food as served; a 400 g cooked plate came back with raw-food kcal/100 g. Fix: the dish prompt states that values and `estimated_grams` describe the food as shown in the photo (cooked when cooked), with a handler/prompt test and a redeploy of `food-photo`. Backend only, no model-call change elsewhere.
 
-**Next (2026-11-10, E18, T-270):** T-269 merged (PR #619) and the Checkpoint E18 re-test is **approved by the user except one bug**: opening the Trainer and tapping "Tu plan" / "Tu bloque" each take 2-3 s of loading. Diagnosis (code read, nothing timed): our code, not Supabase. `TrainerViewModel.fetch()` runs ~18-22 sequential round trips on every open, and the box screens (T-268) get a new `TrainerViewModel` that repeats the whole fetch. Next is **T-270** (fix). After T-270 re-present only the Trainer open and the two boxes; its approval releases T-267 (closure). Follow-ups: chat has no follow-up context (each question stands alone; user may want a task); week-summary box has no date range; old non-cardio `no_range_flag` rows lack `figures.routine_id`; `BlockReviewEntry` hand-rolled clickable card; `WeekSummaryScreen` internal `SummaryCard` name clash; duplicate "Tu plan" header.
+**Next (2026-11-10, E18, T-270):** T-269 merged (PR #619) and the Checkpoint E18 re-test is **approved by the user except one bug**: opening the Trainer and tapping "Tu plan" / "Tu bloque" each take 2-3 s of loading. Diagnosis (code read, nothing timed): our code, not Supabase. `TrainerViewModel.fetch()` runs ~18-22 sequential round trips on every open, and the box screens (T-268) get a new `TrainerViewModel` that repeats the whole fetch. Next is **T-270** (fix). After T-270 re-present only the Trainer open and the two boxes; its approval releases T-271 (US-132), then T-272 (US-133) and **Checkpoint E18-B**, whose approval releases T-267 (closure). Follow-ups: chat has no follow-up context (each question stands alone; user may want a task); week-summary box has no date range; old non-cardio `no_range_flag` rows lack `figures.routine_id`; `BlockReviewEntry` hand-rolled clickable card; `WeekSummaryScreen` internal `SummaryCard` name clash; duplicate "Tu plan" header.
 
-**Added to E18 (product-owner, 2026-11-10, ADR-105), not yet broken down:** US-132 (meal from typed text) and US-133 (monthly `pg_cron` cleanup of unused personal foods). Run `epic-planner` for these two stories in a fresh session after Checkpoint E18 is approved and before T-267 (closure); the planner confirms `pg_cron` on the free plan, and `fitness-scientist` supplies the portion defaults in `07` first.
+**Added to E18 (product-owner, 2026-11-10, ADR-105): broken down → T-271 (US-132), T-272 (US-133), Checkpoint E18-B** (epic-planner, 2026-11-10; E18 section, "Text meals and food cleanup").
 
 ## Open follow-ups carried into Phase 3
 
@@ -37,7 +37,7 @@ Rule: every CI failure that passes on re-run is logged here with date, run URL a
 
 ## 👤 Checkpoints
 
-E18 (epic-planner, 2026-11-09; one checkpoint only, user decision 2026-11-09): **Checkpoint E18** after T-266, the last implementation task ("Uso de IA" gone, past reports in "Informes", quick search and my foods at once, the compact Trainer, the exercise chat, plus the final E18 regression; 16 items grouped by functionality; its approval releases the closure T-267). The 👤 **Gemini terms check** (a decision, not a test) gates T-265. Details under the E18 section.
+E18 (epic-planner, 2026-11-09; one checkpoint only, user decision 2026-11-09): **Checkpoint E18** after T-266, the last implementation task ("Uso de IA" gone, past reports in "Informes", quick search and my foods at once, the compact Trainer, the exercise chat, plus the final E18 regression; 16 items grouped by functionality; its approval, after the T-268…T-270 fixes, releases T-271). **Checkpoint E18-B** after T-272 (ADR-105: a meal from typed text and the unused-food cleanup, with past days unchanged; 7 items; the only checkpoint for US-132 and US-133, user decision 2026-11-10; its approval releases the closure T-267). The 👤 **Gemini terms check** (a decision, not a test) gates T-265. Details under the E18 section.
 
 E17 (epic-planner, 2026-11-09; one checkpoint only, user decision 2026-11-09): **Checkpoint E17** after T-255, the last implementation task (the kcal/macro warning, "Alcohol (g)", the food audit, Open Food Facts copies and the conversion, plus the final E17 regression; 10 items; its approval releases the closure T-256). Details under the E17 section.
 
@@ -80,7 +80,9 @@ Rules: ADR-103 (Anthropic removed, reports stored, the Gemini exercise chat), AD
 7. 👤 **Gemini terms check** (user decision, not a task, no size): free tier or paid tier with a low limit, for the chat and `food-photo`. Can be done any time before T-265 (for example while T-263 or T-264 runs), so T-265 does not wait.
 8. **T-265** · **Size M** · backend: US-130 backend: the `exercise-chat` Edge Function. Split from the UI because together they are about 16 files and the backend (prompt, Gemini call, error mapping, data minimisation) is reviewed apart from the chat tab.
 9. **T-266** · **Size M** · core + UI: US-130 in the app: the chat tab. Last implementation task. → **👤 Checkpoint E18** (the only one; final regression).
-10. **T-267** · closure step (PM, no size class; it waits for the checkpoint approval, so it cannot merge into a task): E18 closure.
+10. **T-267** · closure step (PM, no size class; it waits for the checkpoint approval, so it cannot merge into a task): E18 closure. *(Moved after Checkpoint E18-B by the 2026-11-10 breakdown, see below.)*
+
+**Added 2026-11-10 (ADR-105; order after the T-268…T-270 fixes):** 11. **T-271** · **Size M** · backend + core + UI: US-132, the `food-photo` text mode and "Describir comida" (one task: the backend change is about 5 files and alone would be S). 12. **T-272** · **Size M** (upper end) · backend + core: US-133, the `pg_cron` cleanup, the diary entries that survive a deleted food. → **👤 Checkpoint E18-B**. 13. **T-267** closure.
 
 ---
 
@@ -262,7 +264,7 @@ Rules: ADR-103 (Anthropic removed, reports stored, the Gemini exercise chat), AD
 - **Trainer rework goes through `ux-reviewer`** (plan and diff) to build a proper Trainer section: summary boxes on the Trainer that expand/open their information (feedback 1), a sensible "Cambios del entrenador" (no rep-range prompt for cardio; the "Añadir un rango" tap fixed).
 - Fix tasks (next sessions, one per session, `/clear` between): trainer layout and "Cambios del entrenador" first, chat prompt second; then Checkpoint E18 is re-presented.
 
-### Checkpoint E18 — Functional improvements, with the final E18 regression 👤 (16 items, leave and come back included) *(epic-planner, 2026-11-09; the only E18 checkpoint, user decision 2026-11-09; its approval releases T-267)*
+### Checkpoint E18 — Functional improvements, with the final E18 regression 👤 (16 items, leave and come back included) *(epic-planner, 2026-11-09; user decision 2026-11-09; after the ADR-105 breakdown (2026-11-10) its approval releases T-271, and T-267 waits for Checkpoint E18-B)*
 
 After T-266 merges (the last implementation task), CI green, `deploy-supabase` green on `main` after T-259, T-261 and T-265 with data intact, `coach`, `exercise-chat` and `food-photo` deployed, `ANTHROPIC_API_KEY` unset. Main account. **Before installing, take screenshots of your Trainer** (for item 12). What to try on the phone (`python scripts/deliver-apk.py`):
 
@@ -325,7 +327,76 @@ Out of scope here (pgTAP, Deno and host tests only): no Anthropic code or key re
 - [ ] Opening "Tu plan" or "Tu bloque" shows its content at once (no skeleton) when the Trainer is already loaded; state survives leaving the app.
 - [ ] The Trainer open issues the independent reads in parallel; a host test asserts the sequential depth dropped and the evaluate/apply order is unchanged.
 - [ ] Behaviour and figures shown are identical to today; `check-ux-conventions.sh` passes; lint + tests green.
-**Dependencies:** T-269 merged. Then the Trainer open and the two boxes are re-presented.
+**Dependencies:** T-269 merged. Then the Trainer open and the two boxes are re-presented; their approval releases T-271.
+
+---
+
+## Text meals and food cleanup (US-132, US-133, ADR-105) *(epic-planner, 2026-11-10)*
+
+Order: T-270 → Trainer re-test approved → **T-271** → **T-272** → **👤 Checkpoint E18-B** → T-267 (closure). Why: the backlog note asked for these stories after the Checkpoint E18 path and before the closure, so the open re-test stays small and is not mixed with new screens; US-132 goes first because US-133's "I can create or describe it again" uses it, and the cleanup also removes the foods typed meals create; the checkpoint follows the last implementation task, with the closure after it. One checkpoint for both stories (user decision 2026-11-10). If T-272's open questions are answered before T-271's PR is ready nothing changes; if they are still open when T-271 merges, the PM asks them before planning T-272.
+
+## T-271: Log a meal by typing it: `food-photo` text mode and "Describir comida" (US-132) · M
+
+**Story:** US-132 · **Flow:** planner → ux-reviewer (plan) → backend-developer → kotlin-core-developer → compose-ui-developer → pr-reviewer ∥ ux-reviewer (diff) → pr-creator · **Size:** M
+**Scenarios:** US-132 Describe a meal; Drinks count; The draft is an estimate and editable; The energy check still applies; Saving; No answer; Empty or unusable text; Privacy; plus "leave the app and come back with the text typed and with the draft open".
+**Description:** **User decision (2026-11-10): reuse `food-photo` and its dish flow; no new function, no new schema file, no new prompt file.** **Backend (`food-photo`):** a `text` mode that is the dish flow with the typed sentence as the main input and no image: `image_base64` becomes optional for `text` only (still required for `dish`, `label`, `barcode`, `weight`); the comment limit (`MAX_COMMENT_CHARS = 200`) is raised for `text` only (new cap chosen by the planner, enforced in the existing schema); `previous` (the ADR-104 retry) is accepted for `text` as for `dish`. The dish prompt gains one sentence for this mode: the user text describes what was eaten; list the portion assumptions in the name or note; Gemini estimates the quantities. The response is the existing dish draft (name, nutrition per 100 g, `estimated_grams` for the whole meal, `alcohol_g`, confidence) with the existing energy-check `issue`; a text with no food gives the existing `422 NO_FOOD_RECOGNIZED`; an empty text is `400 INVALID_INPUT`. The text is neither stored nor logged (same rule as the image, ADR-59). `food-photo` redeployed. **Core:** the existing food-photo repository call gains the text mode (no image); the input ViewModel keeps the typed text in `SavedStateHandle` (restored after background and process death, ADR-40) and on every error; offline detected before sending. **UI — templates and patterns (user decision 2026-11-10; no new button):** in "Añadir alimento" the photo icon next to the barcode icon is replaced by an AI icon (icon only, no visible text, like the barcode icon; "Añadir con IA" is only its contentDescription; ux-reviewer picks the icon, AI/sparkle style, and the testTag) that opens the existing mode sheet; the sheet's title changes from "Añadir desde foto" to "Añadir con IA", and it keeps its three options ("Estimar con IA", "Etiqueta nutricional", "Código de barras") plus a fourth, "Describir comida", same row pattern as the other three (R-39 sweep: every place that shows the old icon, title or strings is updated; test tags defined by ux-reviewer, and every test using the old photo icon tag is updated); `05` line about the photo action updated. The text input uses the archetype ux-reviewer picks in the plan (Form sheet or pushed `AppScreen`, R-06/R-07) with a multi-line `AppTextField`, the primary action pinned (copy by ux-reviewer, glossary §10), progress per R-31; no answer or offline: the standard message with "Reintentar" (R-30/R-37) and the text kept; empty text or no food: told so, nothing created. The draft opens in the existing AI dish draft form (`CreateFoodScreen` AI mode): marked as an estimate, name, amounts and nutrients editable, `EnergyWarningNotice` with "Guardar" blocked until fixed or retried (T-258 flow), one portion = the whole meal (`estimated_grams`); saving uses the existing create-personal-food + add-to-meal path, so the food is in later searches. The photo dish flow is unchanged. Docs: `03` §7 `food-photo` row; `05` the photo-action line ("Añadir con IA" icon and sheet), §8/§10 ("Añadir con IA", "Describir comida").
+**Acceptance criteria:**
+- [ ] `food-photo` accepts `{mode: "text", comment}` without an image; every other mode still requires one; the higher comment cap applies to `text` only; the dish prompt carries the new sentence only in text mode.
+- [ ] Typing the Gherkin sentence gives one editable draft whose name lists everything typed, with total kcal and macros (alcohol included for drinks) and one portion equal to the whole meal, marked as an estimate.
+- [ ] A disagreeing draft blocks "Guardar" until fixed or retried; saving adds the entry to that comida and creates a personal food found by later searches.
+- [ ] Offline or no answer: message with "Reintentar", text kept; empty or no-food text: told so, nothing created; the text is not stored or logged.
+- [ ] Leaving the app and coming back (and process death) with the text typed or the draft open restores it; `check-ux-conventions.sh` passes.
+**Host tests:** Deno (`food-photo` handler and schema: text without image accepted, other modes without image rejected, per-mode comment cap, `previous` in text mode, energy-check issue, `NO_FOOD_RECOGNIZED`, empty text, the prompt sentence present only in text mode, no logging of the text); repository/DTO (body has `mode: text` and no image); ViewModel (send, draft, issue, retry with previous, offline, no answer keeps the text, empty, no food, save creates the food and the entry, `SavedStateHandle` restore); Robolectric (the AI icon, with no visible text and contentDescription "Añadir con IA", replaces the photo icon beside the barcode icon, the sheet titled "Añadir con IA" with four options incl. "Describir comida", the three existing options unchanged, input, progress, error with "Reintentar", draft marked as estimate, "Guardar" blocked, restoration with `StateRestorationTester`).
+**Verification:**
+- [ ] `deno test --allow-all supabase/functions` + lint + `testLocalDebugUnitTest` green; after the merge `deploy-supabase` green on `main` with `food-photo` redeployed.
+**Agent runs:** 8. About 13 files.
+**Dependencies:** T-270 merged and the Trainer re-test approved.
+**Files likely touched:** `supabase/functions/food-photo/{schema,handler,prompts}.ts` (+ `schema.test.ts`, `handler.test.ts`), the shared food-photo repository and DTO, `feature/food/{AddFoodSheet,AddFoodUiState,AddFoodViewModel,CreateFoodViewModel,CreateFoodScreen,FoodRoots}.kt` (+ a text-input screen or sheet), `app/{AppRoutes,AppNavHost}.kt`, `strings.xml`, `planning/03-data-model.md` §7, `planning/05-design-system.md` §10, tests
+**Estimated scope:** M
+
+---
+
+## T-272: Unused personal foods clean themselves up (US-133) · M (upper end)
+
+**Story:** US-133 · **Flow:** planner → backend-developer → kotlin-core-developer → compose-ui-developer only if the entry details screen changes (then ux-reviewer plan and diff) → pr-reviewer → pr-creator · **Size:** M (upper end; one vertical slice: backend about 7 files, app about 5; split backend → app only if the planner counts more than ~15 files)
+**Scenarios:** US-133 A food unused for a month is removed; Used, favourite or grouped foods stay; Past days do not change; A removed food is gone from search; It needs no open app or secret; Other accounts are untouched.
+**Description:** **User decisions (`tasks/plan.md` "Open questions"): Q-E18-3 the first run is at deploy, Q-E18-4 the 30 days count from the later of the food's creation and its newest entry's creation time, Q-E18-5 an entry whose food was removed is view and delete only.** **Planning precondition (planner, before any code):** confirm from Supabase's current docs that `pg_cron` (Supabase Cron) is available on the free plan and can be enabled from a migration, and that it runs in the local stack (`supabase db reset`); the job runs SQL inside the database, so there is no GitHub Actions workflow, no Edge Function call and no secret in any versioned file (ADR-105, E20). If `pg_cron` is not available on the free plan, stop and report BLOCKED to the user (no fallback is chosen here). **Migration:** `food_log_entries.food_id` must survive a food delete: the value is kept (the `on delete no action` FK to `foods` is dropped; no `set null`, which would lose the value); snapshots (name, amount, portion label, kcal, macros) are never touched; the planner checks the RLS insert/update policies and every reader that joins `foods` (`food_diary_summary`, `most_eaten_foods`, `personal_food_in_use`, `cooking_impact`) so none drops or changes an entry whose food is gone. A cleanup function (e.g. `cleanup_unused_personal_foods(p_now timestamptz default now()) -> int`, security definer, `search_path = ''`, execute revoked from `public`, `anon` and `authenticated`) deletes `source = 'user'` foods (Open Food Facts copies included; OFF cache rows untouched) whose owner has added none to the diary in the last 30 days (clock per Q-E18-4), that are not in the owner's `favorite_foods` and in no `meal_template_items` of the owner; each food is judged only on its owner's rows; `food_portions` go by cascade. `pg_cron` schedules it monthly (ADR-105) under a fixed job name; the migration calls the function once when applied to production (Q-E18-3), then the schedule takes over. **App (core):** opening a diary entry whose food is gone shows its details from the snapshot (no "No se pudo cargar"); what else the entry allows (amount edit, copy or repeat to another day, save as comida) is view and delete only (Q-E18-5: no amount edit, no repeat or copy, "save as comida" skips it); search needs no change (the food is gone). Docs: `03` §3 (FK change, the function, the job), `04` (the cleanup rule), `08-environment-setup.md` (`pg_cron` enabled), `02` (scheduled job).
+**Acceptance criteria:**
+- [ ] A personal food unused for 30 days, not a favourite and in no saved comida is deleted by the function; a food used within 30 days, a favourite, a food in a saved comida and every OFF cache row stay.
+- [ ] For every day that held a deleted food, the per-day totals (`food_diary_summary`), entry count, names, amounts and `food_id` values are equal before and after the cleanup.
+- [ ] A deleted food is not returned by `search_user_food_ids` or `food-search`; a new food with the same name can be created.
+- [ ] One account's cleanup never deletes or keeps another account's food because of the other account's rows.
+- [ ] `cron.job` holds the monthly job; no client can execute the function; no secret or Actions workflow is added.
+- [ ] An entry whose food is gone opens with its details from the snapshot (host test).
+**Host tests:** pgTAP `cleanup_unused_personal_foods.test.sql` (each kept and deleted case with a fixed `p_now`, the 29/30/31-day boundary per Q-E18-4, OFF copies deleted and OFF cache kept, per-day totals and entries identical before and after, `food_id` kept, two users, search no longer finds it, function not executable by `authenticated`/`anon`, the job exists in `cron.job`); `food_log_entries.test.sql` and `delete_account_cascade.test.sql` updated for the FK change; app: repository/ViewModel tests (entry with a missing food opens from the snapshot and offers view and delete only), Robolectric only if the details screen changes.
+**Verification:**
+- [ ] `npx supabase db reset && npx supabase db lint && npx supabase test db` + lint + `testLocalDebugUnitTest` green.
+- [ ] Before the merge, a subagent runs a read-only count on production of the foods the first run would delete (per account) and the PM shows it to the user for information (Q-E18-3: the first run is at deploy, no extra approval).
+- [ ] After the merge `deploy-supabase` green on `main` with data intact; a subagent confirms read-only that `cron.job` lists the job on production.
+**Agent runs:** 6-8. About 12 files.
+**Dependencies:** T-271 merged and deployed.
+**Files likely touched:** `supabase/migrations/<ts>_cleanup_unused_personal_foods.sql`, `supabase/tests/{cleanup_unused_personal_foods,food_log_entries,delete_account_cascade}.test.sql`, `shared/…/data/repository/{SupabaseFoodDiaryRepository,SupabaseFoodRepository}.kt`, the diary entry details ViewModel/screen, tests, `planning/{02-architecture,03-data-model,04-business-rules,08-environment-setup}.md`
+**Estimated scope:** M
+
+---
+
+### Checkpoint E18-B — A meal from typed text and the unused-food cleanup 👤 (7 items, leave and come back included) *(epic-planner, 2026-11-10; the only checkpoint for US-132 and US-133, user decision 2026-11-10; its approval releases T-267)*
+
+After T-272 merges (the last implementation task), CI green, `deploy-supabase` green on `main` after T-271 and T-272 with data intact, `food-photo` redeployed, the cleanup job listed in `cron.job`, and the first cleanup run done by the T-272 migration at deploy (Q-E18-3); install the new APK right after. Main account. What to try on the phone (`python scripts/deliver-apk.py`):
+
+*Meal from typed text (T-271):*
+- [ ] 1. Diario → add food to a comida: the AI icon next to the barcode icon (an icon only, no text) opens a sheet "Añadir con IA" with "Estimar con IA", "Etiqueta nutricional", "Código de barras" and "Describir comida"; choose "Describir comida" and type "pechuga de pollo con ensalada, 2 cervezas y 4 calamares": one draft whose name lists everything, total kcal and macros with alcohol from the beers, one portion = the whole meal, marked as an estimate.
+- [ ] 2. Change the name, the amount and a nutrient; make the kcal disagree with the macros: the issue shows and "Guardar" is blocked until you fix it or retry.
+- [ ] 3. Save: the entry is in that comida, and searching its name later finds it as your food.
+- [ ] 4. Airplane mode, then describe a meal: a clear message with "Reintentar" and your text still there; send an empty text and "hola": you are told so and nothing is created.
+
+*Unused food cleanup (T-272):*
+- [ ] 5. After the first run: foods you have not used for 30 days are gone from the food search, while your favourites and the foods in your saved comidas are still there; you can create or describe a removed food again.
+- [ ] 6. Open past Diario days that held a removed food: the same totals, entry names and amounts as before, and opening the entry still shows its details.
+
+*Leave and come back (final regression of these stories):*
+- [ ] 7. Leave the app and come back (and after the system kills it) with a text typed in "Describir comida" and with the draft open: the same tab, screen and draft are restored; adding by search and by photo still works as before.
+Out of scope here (pgTAP, Deno and host tests only): the text is not stored or logged; another account's foods are untouched; the job needs no secret and no open app; the 30-day boundary.
 
 ---
 
@@ -340,7 +411,7 @@ Out of scope here (pgTAP, Deno and host tests only): no Anthropic code or key re
 - [ ] Version bumped; `tasks/todo.md` pointer updated through a PR.
 **Verification:**
 - [ ] `git tag` lists the E18 tag.
-**Dependencies:** Checkpoint E18 approved.
+**Dependencies:** Checkpoint E18 approved (with the T-268…T-270 re-test) and Checkpoint E18-B approved (T-271, T-272 merged).
 **Files likely touched:** `androidApp/build.gradle.kts`, `tasks/todo.md`, `tasks/plan.md`, `planning/09-open-questions.md`, `planning/01-scope.md`, `planning/epics/E18-functional-improvements.md`, `retrospectives/E18.md`
 **Estimated scope:** closure step (PM)
 
