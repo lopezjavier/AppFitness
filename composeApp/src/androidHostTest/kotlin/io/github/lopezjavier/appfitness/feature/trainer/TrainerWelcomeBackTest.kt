@@ -45,7 +45,7 @@ class TrainerWelcomeBackTest {
     private fun show(state: TrainerUiState.Content, online: Boolean = true) {
         rule.setContent {
             AppTheme {
-                TrainerScreen(
+                TrainerWithDetails(
                     state = state,
                     isOnline = flowOf(online),
                     onEvent = { events += it },
@@ -124,6 +124,7 @@ class TrainerWelcomeBackTest {
     @Test
     fun withoutTheReview_aSavedBlockOffersNewBlock() {
         show(content(welcomeBack = false, savedBlock = true))
+        rule.openTrainerDetails()
 
         rule.onNodeWithTag("trainer_new_block").performScrollTo().assertIsDisplayed()
     }

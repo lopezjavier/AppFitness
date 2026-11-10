@@ -26,7 +26,7 @@ class TrainerPlanPhaseTest {
         val plan = coachPlan(status = PlanStatus.Accepted, phase = phase, phaseReason = reason)
         rule.setContent {
             AppTheme {
-                TrainerScreen(
+                TrainerWithDetails(
                     TrainerUiState.Content(plan = PlanSummary.Accepted(plan)),
                     flowOf(true),
                     {},
@@ -35,6 +35,7 @@ class TrainerPlanPhaseTest {
             }
         }
         rule.waitForIdle()
+        rule.openTrainerDetails()
     }
 
     @Test

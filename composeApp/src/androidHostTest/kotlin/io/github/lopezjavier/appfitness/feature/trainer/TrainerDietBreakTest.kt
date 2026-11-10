@@ -48,8 +48,9 @@ class TrainerDietBreakTest {
             weeks = listOf(1, 2, 3, 4).map { planWeek(week = it) },
             dietBreakSaving = saving,
         )
-        rule.setContent { AppTheme { TrainerScreen(state, flowOf(online), { events += it }) } }
+        rule.setContent { AppTheme { TrainerWithDetails(state, flowOf(online), { events += it }) } }
         rule.waitForIdle()
+        rule.openTrainerDetails()
     }
 
     @Test

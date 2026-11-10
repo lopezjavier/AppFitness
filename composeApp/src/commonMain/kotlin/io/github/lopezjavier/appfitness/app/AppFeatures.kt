@@ -26,7 +26,9 @@ fun AppFeatures.isAvailable(route: AppRoute): Boolean = when (route) {
 
     PreferencesRoute, is PreferencesSectionRoute, AboutRoute -> true
 
-    is PlanProposalRoute, is BeforeStartRoute, YourDataRoute, IntakeRoute, FreeTextLinesRoute -> true
+    is PlanProposalRoute, is BeforeStartRoute, YourDataRoute, IntakeRoute, FreeTextLinesRoute,
+    TrainerDetailsRoute,
+    -> true
 
     is BlockPreviewRoute, is BlockBuilderRoute, is FolderBlockRoute, is FolderReviewResultRoute -> true
 

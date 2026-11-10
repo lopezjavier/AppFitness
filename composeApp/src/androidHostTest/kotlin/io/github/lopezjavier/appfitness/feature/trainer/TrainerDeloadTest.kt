@@ -62,9 +62,10 @@ class TrainerDeloadTest {
 
     private fun show(state: TrainerUiState, online: Boolean = true) {
         rule.setContent {
-            AppTheme { TrainerScreen(state, flowOf(online), { events += it }) }
+            AppTheme { TrainerWithDetails(state, flowOf(online), { events += it }) }
         }
         rule.waitForIdle()
+        rule.openTrainerDetails()
     }
 
     private fun model(vararg rows: CoachChange): TrainerViewModel {
@@ -89,11 +90,12 @@ class TrainerDeloadTest {
         rule.setContent {
             AppTheme {
                 CompositionLocalProvider(LocalAppMessages provides messages) {
-                    TrainerRoute(viewModel = model, connectivity = FakeConnectivityObserver())
+                    TrainerRoutesWithDetails(model, FakeConnectivityObserver())
                 }
             }
         }
         rule.waitForIdle()
+        rule.openTrainerDetails()
     }
 
     @Test
@@ -249,9 +251,10 @@ class TrainerDeloadTest {
         val model = model(deloadChange())
         val tester = StateRestorationTester(rule)
         tester.setContent {
-            AppTheme { TrainerRoute(viewModel = model, connectivity = FakeConnectivityObserver()) }
+            AppTheme { TrainerRoutesWithDetails(model, FakeConnectivityObserver()) }
         }
         rule.waitForIdle()
+        rule.openTrainerDetails()
 
         tester.emulateSavedInstanceStateRestore()
         rule.waitForIdle()

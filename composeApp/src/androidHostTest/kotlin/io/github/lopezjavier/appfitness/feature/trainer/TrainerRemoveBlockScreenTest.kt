@@ -37,11 +37,12 @@ class TrainerRemoveBlockScreenTest {
         return TrainerViewModel(FakeCoachRepository(), MutableClock(), plans, blocks, FakeCoachWeeksRepository(), saved)
     }
 
-    private fun showRoute(model: TrainerViewModel) {
+    private fun showRoute(model: TrainerViewModel, details: Boolean = true) {
         rule.setContent {
-            AppTheme { TrainerRoute(viewModel = model, connectivity = connectivity) }
+            AppTheme { TrainerRoutesWithDetails(model, connectivity) }
         }
         rule.waitForIdle()
+        if (details) rule.openTrainerDetails()
     }
 
     private fun tap(tag: String) {
@@ -62,7 +63,7 @@ class TrainerRemoveBlockScreenTest {
     @Test
     fun withoutABlock_theActionIsAbsent() {
         blocks.current = Result.success(null)
-        showRoute(model())
+        showRoute(model(), details = false)
 
         rule.onNodeWithTag("trainer_remove_block").assertDoesNotExist()
         rule.onNodeWithTag("trainer_create_block").assertExists()
@@ -71,7 +72,7 @@ class TrainerRemoveBlockScreenTest {
     @Test
     fun aProposedBlock_doesNotOfferTheAction() {
         blocks.current = Result.success(coachBlock(saved = false))
-        showRoute(model())
+        showRoute(model(), details = false)
 
         rule.onNodeWithTag("trainer_block_card").assertExists()
         rule.onNodeWithTag("trainer_remove_block").assertDoesNotExist()
@@ -113,10 +114,12 @@ class TrainerRemoveBlockScreenTest {
 
         assertEquals(listOf("plan-7"), blocks.removals)
         rule.onNodeWithText("¿Eliminar el bloque?").assertDoesNotExist()
-        rule.onNodeWithTag("trainer_create_block").assertExists()
         rule.onNodeWithTag("trainer_remove_block").assertDoesNotExist()
         rule.onNodeWithTag("trainer_weeks_section").assertDoesNotExist()
         rule.onNodeWithTag("trainer_plan_card").assertExists()
+        tap("trainer_details_back")
+        rule.onNodeWithTag("trainer_create_block").assertExists()
+        rule.onNodeWithTag("trainer_block_status").assertDoesNotExist()
     }
 
     @Test
@@ -150,9 +153,10 @@ class TrainerRemoveBlockScreenTest {
         val tester = StateRestorationTester(rule)
         tester.setContent {
             val model = remember { model(saved) }
-            AppTheme { TrainerRoute(viewModel = model, connectivity = connectivity) }
+            AppTheme { TrainerRoutesWithDetails(model, connectivity) }
         }
         rule.waitForIdle()
+        rule.openTrainerDetails()
         tap("trainer_remove_block")
 
         tester.emulateSavedInstanceStateRestore()

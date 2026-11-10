@@ -30,8 +30,9 @@ class PlanWeeksCardioTest {
             block = BlockSummary.Saved(coachBlock(saved = true)),
             weeks = weeks.toList(),
         )
-        rule.setContent { AppTheme { TrainerScreen(state, flowOf(true), {}) } }
+        rule.setContent { AppTheme { TrainerWithDetails(state, flowOf(true), {}) } }
         rule.waitForIdle()
+        rule.openTrainerDetails()
     }
 
     @Test
