@@ -400,14 +400,16 @@ Order: T-270 → Trainer re-test approved → **T-271** → **T-272** → **👤
 After T-273 merges (the last implementation task), CI green, `deploy-supabase` green on `main` with data intact (production checked read-only by the user: no cleanup job, no cleanup function, 669 entries, 0 without a food) and `food-photo` redeployed; install the new APK right after. Main account. What to try on the phone (`python scripts/deliver-apk.py`):
 
 *Meal from typed text (T-271):*
-- [ ] 1. Diario → add food to a comida: the AI icon next to the barcode icon (an icon only, no text) opens a sheet "Añadir con IA" with "Estimar con IA", "Etiqueta nutricional", "Código de barras" and "Describir comida"; choose "Describir comida" and type "pechuga de pollo con ensalada, 2 cervezas y 4 calamares": one draft whose name lists everything, total kcal and macros with alcohol from the beers, one portion = the whole meal, marked as an estimate.
-- [ ] 2. Change the name, the amount and a nutrient; make the kcal disagree with the macros: the issue shows and "Guardar" is blocked until you fix it or retry.
-- [ ] 3. Save: the entry is in that comida, and searching its name later finds it as your food.
-- [ ] 4. Airplane mode, then describe a meal: a clear message with "Reintentar" and your text still there; send an empty text and "hola": you are told so and nothing is created.
+- [x] 1. Diario → add food to a comida: the AI icon next to the barcode icon (an icon only, no text) opens a sheet "Añadir con IA" with "Estimar con IA", "Etiqueta nutricional", "Código de barras" and "Describir comida"; choose "Describir comida" and type "pechuga de pollo con ensalada, 2 cervezas y 4 calamares": one draft whose name lists everything, total kcal and macros with alcohol from the beers, one portion = the whole meal, marked as an estimate.
+- [x] 2. Change the name, the amount and a nutrient; make the kcal disagree with the macros: the issue shows and "Guardar" is blocked until you fix it or retry.
+- [x] 3. Save: the entry is in that comida, and searching its name later finds it as your food.
+- [x] 4. Airplane mode, then describe a meal: a clear message with "Reintentar" and your text still there; send an empty text and "hola": you are told so and nothing is created.
 
 *Leave and come back (final regression of these stories):*
-- [ ] 5. Leave the app and come back (and after the system kills it) with a text typed in "Describir comida" and with the draft open: the same tab, screen and draft are restored; adding by search and by photo still works as before.
+- [x] 5. Leave the app and come back (and after the system kills it) with a text typed in "Describir comida" and with the draft open: the same tab, screen and draft are restored; adding by search and by photo still works as before.
 Out of scope here (pgTAP, Deno and host tests only): the text is not stored or logged; another account's foods are untouched.
+
+**Approved by the user 2026-11-10 (all 5 items).** Next: T-267 (E18 closure), in a fresh session.
 
 ---
 
