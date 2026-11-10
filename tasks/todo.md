@@ -14,7 +14,7 @@ Last task ID used: T-275 (T-274, T-275 = US-134, US-135, added to E18 by ADR-106
 
 **Added to E18 (product-owner, 2026-11-10, ADR-105): broken down → T-271 (US-132), T-272 (US-133), Checkpoint E18-B** (epic-planner, 2026-11-10; E18 section, "Text meals and food cleanup").
 
-**Added to E18 (product-owner, 2026-11-10, ADR-106): broken down → T-274 (US-134), T-275 (US-135), Checkpoint E18-C (proposed)** (epic-planner, 2026-11-10; E18 section, "Extend the block and food form corrections"). They run after the approved Checkpoint E18-B and before the closure T-267, which now waits for Checkpoint E18-C.
+**Added to E18 (product-owner, 2026-11-10, ADR-106): broken down → T-274 (US-134), T-275 (US-135), Checkpoint E18-C (approved by the user, 2026-11-10; Q-E18-6 limits approved)** (epic-planner, 2026-11-10; E18 section, "Extend the block and food form corrections"). They run after the approved Checkpoint E18-B and before the closure T-267, which now waits for Checkpoint E18-C.
 
 ## Open follow-ups carried into Phase 3
 
