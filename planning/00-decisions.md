@@ -126,7 +126,7 @@ The rows of ADR-93, 94, 98 and 99 are added here: the Phase 2 archive index lack
 | 103 | Phase 3 epics re-split: E18 functional improvements, E19 UI review, E20 Closure; Anthropic removed (restores "100 % free"), reports stored, a Gemini exercise chat | Supersedes 77, 90 (cost caps); amends 101 |
 | 102 | Food energy check (E17): optional `alcohol_g_100` in grams per 100 base units, per-food "saved anyway" flag cleared by a trigger when an input changes, one SQL check function and an owner-scoped audit RPC (rule in `07` section 4) | — |
 | 104 | Food energy check becomes a hard block (E17 checkpoint feedback): a food whose kcal and macros disagree cannot be saved by any path (manual, edit, AI photo, OFF copy); the AI estimate must be consistent or the app shows the issue with a retry that feeds the failed estimate back; the "saved anyway" flag, "Guardar igualmente" and the food audit are removed | Supersedes parts of 102 |
-| 105 | E18 gains a meal from typed text (US-132, Gemini free tier, editable draft) and a monthly `pg_cron` cleanup of personal foods unused for 30 days (US-133); diary snapshots stay | Amends 103 |
+| 105 | E18 gains a meal from typed text (US-132, Gemini free tier, editable draft); the monthly cleanup of unused foods (US-133) was dropped on 2026-11-10 (T-273); diary snapshots stay | Amends 103 |
 
 ## Phase 3 ADRs (full text)
 
@@ -175,11 +175,10 @@ Older ADRs: [`phase2/00-decisions.md`](phase2/00-decisions.md) (73-100) and [`ph
 - **Consequences:** a CHECK constraint is not used, so existing rows and diary snapshots stay readable; the rule is enforced on write. Redeploy `food-photo`, `food-search` and `food-barcode` with the migration. Docs `03`, `04` section 2, `05` section 8 and 10, `07` section 4 and the E17 epic are updated in T-257/T-258.
 - **Approval:** user, 2026-11-09 (chat, Checkpoint E17 feedback).
 
-### ADR-105 — Meal from typed text and a monthly cleanup of unused personal foods (E18 US-132, US-133; amends ADR-103)
+### ADR-105 — Meal from typed text (E18 US-132; amends ADR-103). The monthly cleanup (US-133) was dropped by T-273
 - **Context:** logging a meal when out of the house is slow, and AI-estimated foods are used once and accumulate. Diary entries already store snapshots of kcal, macros and name (ADR-53, `03`).
 - **Decision (user, 2026-11-10, chat):**
   - A typed sentence is sent to the Gemini free tier (same function family as `food-photo`, ADR-59) and returns one combined food as an editable draft (name lists everything, total kcal and macros, one portion is the whole meal). It is saved as a personal food and added to the diary. The ADR-104 energy check applies; the text is neither stored nor logged. It reuses the `food-photo` dish flow (draft, energy check, retry) with the typed sentence as input and no image; Gemini decides the portions, with no fixed defaults and no `fitness-scientist` task. In "Añadir alimento" the photo icon becomes an icon-only AI icon that opens the existing sheet, which gains "Describir comida".
-  - Personal foods (`source = 'user'`, including Open Food Facts copies) not added to the diary for 30 days are deleted by a scheduled job. Favourites and foods in a saved comida are kept. Photo foods carry no marker, so the scope is every personal food (the user's choice). The 30 days count from the later of the food's creation and its newest entry's creation time. The first run happens at deploy. An entry whose food was removed can only be viewed or deleted.
-  - The job is a `pg_cron` schedule in Supabase (no GitHub Actions: E20 makes the repository private, ADR-101; no secret). The planner confirms `pg_cron` on the free plan.
-- **Consequences:** `food_log_entries.food_id` must survive a food delete (diary days and totals unchanged, entry details open from the snapshot); `03` and `08` are updated by the tasks. Accepted risk: a hand-made food unused for a month is deleted.
+  - **SUPERSEDED (user, 2026-11-10, T-273):** the scheduled cleanup of personal foods unused for 30 days (and its pg_cron job) is dropped; the storage saved is negligible (about 100 KB a year for 100 foods). The first run at deploy (T-272) already removed the foods then unused; the migration `20270125100200` removes the job and function. What stays: diary entries keep their snapshot, `food_log_entries.food_id` is nullable (`on delete set null`), and an entry whose food is gone opens read-only (view or delete).
+- **Consequences:** `food_log_entries.food_id` must survive a food delete (diary days and totals unchanged, entry details open from the snapshot); `03` and `08` are updated by the tasks. Accepted: the foods removed by the single T-272 run are not restored.
 - **Approval:** user, 2026-11-10 (chat, product-owner).
