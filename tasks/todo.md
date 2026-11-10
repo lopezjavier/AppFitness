@@ -385,17 +385,19 @@ Order: T-270 → Trainer re-test approved → **T-271** → **T-272** → **👤
 **Story:** user decision 2026-11-10 (no new US; US-133 is withdrawn) · **Flow:** planner → backend-developer → pr-reviewer → pr-creator (no UI change expected; the planner confirms) · **Size:** S
 **Description:** Revert PR #629's cleanup as a revert PR (`git revert` of the squash commit), with one constraint: migrations `20270125100000` and `20270125100100` are already applied on production, so their files must NOT be deleted (that would break the `deploy-supabase` migration history). The planner decides the minimal safe form: a new migration that unschedules the `cleanup-unused-foods` job and drops `cleanup_unused_foods()`, while `food_log_entries.food_id` stays nullable (entries may already hold null; harmless), and the read-only edit sheet for an entry whose food is gone stays as a safeguard. Update `planning/03`, `08`, US-133/ADR-105/E18 to say the cleanup is dropped (no new ADR text beyond marking ADR-105's cleanup part superseded by this user decision; the planner proposes the wording). Remove the pgTAP file for the dropped function; adjust the tests that expect it.
 **Acceptance criteria:**
-- [ ] No `cron.job` row `cleanup-unused-foods` and no `cleanup_unused_foods()` function after the migrations run; no job runs on production.
-- [ ] Diary entries, totals and the read-only sheet behave as before; `most_eaten_foods` still ignores entries without a food.
-- [ ] Docs and US-133 mark the cleanup as dropped.
-- [ ] After the merge `deploy-supabase` green on `main`; a subagent confirms read-only that production `cron.job` has no such job.
+- [x] No `cron.job` row `cleanup-unused-foods` and no `cleanup_unused_foods()` function after the migrations run; no job runs on production.
+- [x] Diary entries, totals and the read-only sheet behave as before; `most_eaten_foods` still ignores entries without a food.
+- [x] Docs and US-133 mark the cleanup as dropped.
+- [x] After the merge `deploy-supabase` green on `main`; a subagent confirms read-only that production `cron.job` has no such job.
 **Dependencies:** T-272 merged (done). Checkpoint E18-B (typed meal only) is presented after T-273.
+
+**Status 2026-11-10:** T-273 merged (PR #631, CI green, `deploy-supabase` green). Production verified read-only by the user: no `cleanup-unused-foods` job, no `cleanup_unused_foods()`, 669 entries, 0 without a food. **Next: 👤 Checkpoint E18-B**, then T-267.
 
 ---
 
-### Checkpoint E18-B — A meal from typed text and the unused-food cleanup 👤 (7 items, leave and come back included) *(epic-planner, 2026-11-10; the only checkpoint for US-132 and US-133, user decision 2026-11-10; its approval releases T-267)*
+### Checkpoint E18-B — A meal from typed text 👤 (5 items, leave and come back included) *(epic-planner, 2026-11-10; the only checkpoint for US-132, user decision 2026-11-10; the cleanup items were dropped with US-133 by T-273; its approval releases T-267)*
 
-After T-272 merges (the last implementation task), CI green, `deploy-supabase` green on `main` after T-271 and T-272 with data intact, `food-photo` redeployed, the cleanup job listed in `cron.job`, and the first cleanup run done by the T-272 migration at deploy (Q-E18-3); install the new APK right after. Main account. What to try on the phone (`python scripts/deliver-apk.py`):
+After T-273 merges (the last implementation task), CI green, `deploy-supabase` green on `main` with data intact (production checked read-only by the user: no cleanup job, no cleanup function, 669 entries, 0 without a food) and `food-photo` redeployed; install the new APK right after. Main account. What to try on the phone (`python scripts/deliver-apk.py`):
 
 *Meal from typed text (T-271):*
 - [ ] 1. Diario → add food to a comida: the AI icon next to the barcode icon (an icon only, no text) opens a sheet "Añadir con IA" with "Estimar con IA", "Etiqueta nutricional", "Código de barras" and "Describir comida"; choose "Describir comida" and type "pechuga de pollo con ensalada, 2 cervezas y 4 calamares": one draft whose name lists everything, total kcal and macros with alcohol from the beers, one portion = the whole meal, marked as an estimate.
@@ -403,13 +405,9 @@ After T-272 merges (the last implementation task), CI green, `deploy-supabase` g
 - [ ] 3. Save: the entry is in that comida, and searching its name later finds it as your food.
 - [ ] 4. Airplane mode, then describe a meal: a clear message with "Reintentar" and your text still there; send an empty text and "hola": you are told so and nothing is created.
 
-*Unused food cleanup (T-272):*
-- [ ] 5. After the first run: foods you have not used for 30 days are gone from the food search, while your favourites and the foods in your saved comidas are still there; you can create or describe a removed food again.
-- [ ] 6. Open past Diario days that held a removed food: the same totals, entry names and amounts as before, and opening the entry still shows its details.
-
 *Leave and come back (final regression of these stories):*
-- [ ] 7. Leave the app and come back (and after the system kills it) with a text typed in "Describir comida" and with the draft open: the same tab, screen and draft are restored; adding by search and by photo still works as before.
-Out of scope here (pgTAP, Deno and host tests only): the text is not stored or logged; another account's foods are untouched; the job needs no secret and no open app; the 30-day boundary.
+- [ ] 5. Leave the app and come back (and after the system kills it) with a text typed in "Describir comida" and with the draft open: the same tab, screen and draft are restored; adding by search and by photo still works as before.
+Out of scope here (pgTAP, Deno and host tests only): the text is not stored or logged; another account's foods are untouched.
 
 ---
 
