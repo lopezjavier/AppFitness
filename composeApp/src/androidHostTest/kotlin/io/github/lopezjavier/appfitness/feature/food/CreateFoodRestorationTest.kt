@@ -163,6 +163,21 @@ class CreateFoodRestorationTest {
     }
 
     @Test
+    fun textDraftRecreatedWithAnEmptyStore_saysTheTextIsGone() {
+        val store = FoodPhotoRetryStore(FakePhotoCapture())
+        val token = store.putText("pechuga con ensalada")
+        val saved = SavedStateHandle()
+        aiForm(store, token, saved)
+        rule.setContent { FormHost(aiForm(FoodPhotoRetryStore(FakePhotoCapture()), null, saved)) }
+        rule.waitForIdle()
+
+        rule.onNodeWithTag("create_food_energy_warning").assertExists()
+        rule.onNodeWithTag("create_food_retry_photo_gone")
+            .assertTextContains("El texto ya no está disponible. Corrige los valores a mano.")
+        rule.onNodeWithTag("create_food_save").assertIsNotEnabled()
+    }
+
+    @Test
     fun retryOffline_isDisabled_withTheStandardHint() {
         val store = FoodPhotoRetryStore(FakePhotoCapture())
         val token = store.put("photo-1", FoodPhotoMode.Dish, null)

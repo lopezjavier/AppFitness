@@ -20,6 +20,12 @@ interface FoodPhotoRepository {
     ): Result<FoodPhotoDraft>
 
     /**
+     * Estimates one food (the whole meal as one portion) from a sentence the user typed; no image is sent. [text] is
+     * neither stored nor logged. [previous] is a failed estimate to be corrected (retry, ADR-104).
+     */
+    suspend fun estimateText(text: String, previous: PreviousEstimate? = null): Result<FoodPhotoDraft>
+
+    /**
      * Estimates the amount (in [Food.baseUnit]) of the portion shown in the photo for an existing [food], which is sent
      * as data. Nothing is created or stored.
      */

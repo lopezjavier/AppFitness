@@ -29,6 +29,7 @@ import kotlin.io.encoding.ExperimentalEncodingApi
 private const val KEY_STEP = "food_photo_step"
 private const val KEY_MODE = "food_photo_mode"
 private const val KEY_COMMENT = "food_photo_comment"
+private const val KEY_MEAL_TEXT = "food_photo_meal_text"
 
 /**
  * "Add a food from a photo" (US-48, US-49): mode sheet, source sheet, preview, estimate and failure, ending in an
@@ -75,7 +76,8 @@ class FoodPhotoViewModel(
             is FoodPhotoEvent.SourceChosen -> chooseSource(event.source)
             FoodPhotoEvent.Retake -> retake()
             is FoodPhotoEvent.CommentChanged -> changeComment(event.text)
-            FoodPhotoEvent.UsePhoto -> if (step() is FoodPhotoStep.Preview) send()
+            is FoodPhotoEvent.MealTextChanged -> changeMealText(event.text)
+            FoodPhotoEvent.UsePhoto, FoodPhotoEvent.SendMealText -> if (canSend()) send()
             FoodPhotoEvent.Retry -> if (step() is FoodPhotoStep.Error) send()
             FoodPhotoEvent.CreateManually -> createManually()
             FoodPhotoEvent.Dismiss -> dismiss()
@@ -90,7 +92,15 @@ class FoodPhotoViewModel(
     private fun chooseMode(mode: FoodPhotoMode) {
         if (step() != FoodPhotoStep.ModeSheet) return
         _uiState.update { it.copy(mode = mode, captureFailed = false) }
-        setStep(FoodPhotoStep.SourceSheet)
+        // A described meal has no photo: it goes straight to the text input.
+        setStep(if (mode == FoodPhotoMode.Text) FoodPhotoStep.TextInput else FoodPhotoStep.SourceSheet)
+    }
+
+    private fun changeMealText(text: String) {
+        if (step() != FoodPhotoStep.TextInput) return
+        val limited = text.take(MAX_MEAL_TEXT)
+        savedState[KEY_MEAL_TEXT] = limited
+        _uiState.update { it.copy(mealText = limited) }
     }
 
     private fun changeComment(text: String) {
@@ -108,8 +118,11 @@ class FoodPhotoViewModel(
 
             FoodPhotoStep.ModeSheet -> "ModeSheet"
 
-            // The photo does not survive process death: every later step comes back as the source sheet.
-            else -> "SourceSheet"
+            // The typed text is device-local restore state: a text flow comes back on its input (ADR-40).
+            FoodPhotoStep.TextInput -> "TextInput"
+
+            // The photo does not survive process death: every later photo step comes back as the source sheet.
+            else -> if (_uiState.value.mode == FoodPhotoMode.Text) "TextInput" else "SourceSheet"
         }
         savedState[KEY_MODE] = _uiState.value.mode?.name
     }
@@ -159,8 +172,44 @@ class FoodPhotoViewModel(
         capture(source)
     }
 
-    @OptIn(ExperimentalEncodingApi::class)
+    /** "Usar foto" sends from the preview, "Estimar" from the text input. */
+    private fun canSend() = step().let { it is FoodPhotoStep.Preview || it == FoodPhotoStep.TextInput }
+
     private fun send() {
+        if (_uiState.value.mode == FoodPhotoMode.Text) sendText() else sendPhoto()
+    }
+
+    private fun sendText() {
+        val text = _uiState.value.mealText.trim()
+        if (text.isEmpty() || _uiState.value.isOffline) return
+        setStep(FoodPhotoStep.Estimating)
+        viewModelScope.launch {
+            val outcome = try {
+                photoRepository.estimateText(text)
+            } catch (cancelled: CancellationException) {
+                throw cancelled
+            } catch (_: Exception) {
+                // The reason is deliberately dropped: nothing about the text or the response is kept.
+                Result.failure(IllegalStateException("estimate failed"))
+            }
+            if (step() != FoodPhotoStep.Estimating) return@launch
+            outcome.fold(
+                onSuccess = {
+                    // A failing estimate keeps its text (memory only) for the retry of the form (ADR-104).
+                    val token = if (it.failsEnergyCheck(FoodPhotoMode.Text)) retryStore.putText(text) else null
+                    clearMealText()
+                    setStep(FoodPhotoStep.Closed)
+                    effectChannel.send(FoodPhotoEffect.OpenPrefilledForm(it.toNewFoodDraft(FoodPhotoMode.Text), token))
+                },
+                onFailure = {
+                    setStep(FoodPhotoStep.Error(kindOf(FoodPhotoMode.Text, (it as? AppException)?.error)))
+                },
+            )
+        }
+    }
+
+    @OptIn(ExperimentalEncodingApi::class)
+    private fun sendPhoto() {
         val state = _uiState.value
         val photo = handle
         val mode = state.mode
@@ -204,12 +253,11 @@ class FoodPhotoViewModel(
         ) != null
 
     private fun kindOf(mode: FoodPhotoMode, error: AppError?): FoodPhotoErrorKind = when (error) {
-        AppError.PhotoNotRecognized ->
-            if (mode == FoodPhotoMode.Dish) {
-                FoodPhotoErrorKind.NotRecognizedDish
-            } else {
-                FoodPhotoErrorKind.NotRecognizedProduct
-            }
+        AppError.PhotoNotRecognized -> when (mode) {
+            FoodPhotoMode.Dish -> FoodPhotoErrorKind.NotRecognizedDish
+            FoodPhotoMode.Text -> FoodPhotoErrorKind.NotRecognizedMeal
+            FoodPhotoMode.Label, FoodPhotoMode.Barcode -> FoodPhotoErrorKind.NotRecognizedProduct
+        }
 
         AppError.Network -> FoodPhotoErrorKind.Network
 
@@ -220,18 +268,23 @@ class FoodPhotoViewModel(
         if (step() !is FoodPhotoStep.Error) return
         dropPhoto()
         clearComment()
+        clearMealText()
         setStep(FoodPhotoStep.Closed)
         effectChannel.trySend(FoodPhotoEffect.OpenEmptyForm)
     }
 
     private fun back() {
         when (step()) {
+            is FoodPhotoStep.Error -> if (_uiState.value.mode == FoodPhotoMode.Text) {
+                setStep(FoodPhotoStep.TextInput)
+            } else {
+                setStep(FoodPhotoStep.Preview(handle ?: return))
+            }
+
             is FoodPhotoStep.Preview -> {
                 dropPhoto()
                 setStep(FoodPhotoStep.SourceSheet)
             }
-
-            is FoodPhotoStep.Error -> setStep(FoodPhotoStep.Preview(handle ?: return))
 
             FoodPhotoStep.Estimating -> Unit
 
@@ -244,8 +297,14 @@ class FoodPhotoViewModel(
         captureId++
         dropPhoto()
         clearComment()
+        clearMealText()
         _uiState.update { it.copy(captureFailed = false) }
         setStep(FoodPhotoStep.Closed)
+    }
+
+    private fun clearMealText() {
+        savedState[KEY_MEAL_TEXT] = ""
+        _uiState.update { it.copy(mealText = "") }
     }
 
     private fun clearComment() {
@@ -270,13 +329,20 @@ class FoodPhotoViewModel(
         val step = when (savedState.get<String>(KEY_STEP)) {
             "ModeSheet" -> FoodPhotoStep.ModeSheet
             "SourceSheet" -> FoodPhotoStep.SourceSheet
+            "TextInput" -> FoodPhotoStep.TextInput
             else -> FoodPhotoStep.Closed
         }
         val mode = savedState.get<String>(KEY_MODE)?.let { name ->
             FoodPhotoMode.entries.firstOrNull { it.name == name }
         }
-        // A source sheet without a mode makes no sense: start over from the mode sheet.
-        val safeStep = if (step == FoodPhotoStep.SourceSheet && mode == null) FoodPhotoStep.ModeSheet else step
-        return FoodPhotoUiState(step = safeStep, mode = mode, comment = savedState.get<String>(KEY_COMMENT).orEmpty())
+        // A source sheet or text input without its mode makes no sense: start over from the mode sheet.
+        val needsMode = step == FoodPhotoStep.SourceSheet || step == FoodPhotoStep.TextInput
+        val safeStep = if (needsMode && mode == null) FoodPhotoStep.ModeSheet else step
+        return FoodPhotoUiState(
+            step = safeStep,
+            mode = mode,
+            comment = savedState.get<String>(KEY_COMMENT).orEmpty(),
+            mealText = savedState.get<String>(KEY_MEAL_TEXT).orEmpty(),
+        )
     }
 }

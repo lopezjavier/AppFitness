@@ -126,6 +126,38 @@ class SupabaseFoodPhotoRepositoryTest {
     }
 
     @Test
+    fun estimateText_sendsTheTrimmedSentenceWithTextModeAndNoImage() = runTest {
+        val repo = signedIn()
+
+        val draft = repo.estimateText("  pollo con ensalada y 2 cervezas ").getOrThrow()
+
+        assertEquals("Tortilla de patatas", draft.name)
+        val body = bodies.single()
+        assertTrue(body.contains(""""mode":"text""""), body)
+        assertTrue(body.contains(""""comment":"pollo con ensalada y 2 cervezas""""), body)
+        assertFalse(body.contains("image_base64"), body)
+        assertFalse(body.contains("previous"), body)
+    }
+
+    @Test
+    fun estimateText_sendsThePreviousEstimateOfARetry() = runTest {
+        val repo = signedIn()
+
+        repo.estimateText("pollo", failedEstimate).getOrThrow()
+
+        assertTrue(bodies.single().contains(""""previous":{"estimate":{"name":"Vino tinto""""), bodies.single())
+    }
+
+    @Test
+    fun estimateText_mapsUnrecognisedAndInvalidAnswers() = runTest {
+        val notRecognised = signedIn(status = HttpStatusCode.UnprocessableEntity, body = ERROR_BODY)
+        val invalid = signedIn(status = HttpStatusCode.BadRequest, body = ERROR_BODY)
+
+        assertEquals(AppError.PhotoNotRecognized, notRecognised.estimateText("x").appErrorOrNull())
+        assertEquals(AppError.Validation, invalid.estimateText("x").appErrorOrNull())
+    }
+
+    @Test
     fun foodPhotoTimeout_isLongerThanTheFunctionsGeminiTimeout() {
         assertTrue(FOOD_PHOTO_TIMEOUT > 25.seconds)
     }

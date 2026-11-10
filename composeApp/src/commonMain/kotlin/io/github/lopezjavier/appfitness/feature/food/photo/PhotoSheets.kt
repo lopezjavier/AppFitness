@@ -21,6 +21,8 @@ import io.github.lopezjavier.appfitness.composeapp.resources.food_photo_mode_est
 import io.github.lopezjavier.appfitness.composeapp.resources.food_photo_mode_estimate_title
 import io.github.lopezjavier.appfitness.composeapp.resources.food_photo_mode_label_hint
 import io.github.lopezjavier.appfitness.composeapp.resources.food_photo_mode_label_title
+import io.github.lopezjavier.appfitness.composeapp.resources.food_photo_mode_text_hint
+import io.github.lopezjavier.appfitness.composeapp.resources.food_photo_mode_text_title
 import io.github.lopezjavier.appfitness.composeapp.resources.food_photo_mode_title
 import io.github.lopezjavier.appfitness.composeapp.resources.food_photo_source_camera_hint
 import io.github.lopezjavier.appfitness.composeapp.resources.food_photo_source_camera_title
@@ -30,6 +32,7 @@ import io.github.lopezjavier.appfitness.composeapp.resources.food_photo_source_t
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_auto_awesome
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_barcode_scanner
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_label
+import io.github.lopezjavier.appfitness.composeapp.resources.ic_note
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_photo_camera
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_photo_library
 import io.github.lopezjavier.appfitness.designsystem.AppActionSheet
@@ -40,7 +43,10 @@ import io.github.lopezjavier.appfitness.domain.model.FoodPhotoMode
 import io.github.lopezjavier.appfitness.domain.port.PhotoSource
 import org.jetbrains.compose.resources.stringResource
 
-/** First sheet of the "add from photo" flow: what kind of photo. Scrim, swipe and back close the flow. */
+/**
+ * First sheet of the "add with AI" flow: which kind of photo, or describing the meal in text. Scrim, swipe and back
+ * close the flow.
+ */
 @Composable
 fun PhotoModeSheet(onModeChoose: (FoodPhotoMode) -> Unit, onDismiss: () -> Unit, modifier: Modifier = Modifier) {
     // A choice moves the flow on: the sheet's own closing callback must not cancel it.
@@ -68,6 +74,12 @@ fun PhotoModeSheet(onModeChoose: (FoodPhotoMode) -> Unit, onDismiss: () -> Unit,
                 title = stringResource(Res.string.food_photo_mode_barcode_title),
                 hint = stringResource(Res.string.food_photo_mode_barcode_hint),
                 onClick = { choose(FoodPhotoMode.Barcode) },
+            ),
+            AppSheetAction(
+                icon = Res.drawable.ic_note,
+                title = stringResource(Res.string.food_photo_mode_text_title),
+                hint = stringResource(Res.string.food_photo_mode_text_hint),
+                onClick = { choose(FoodPhotoMode.Text) },
             ),
         ),
         onDismiss = { if (!chosen) onDismiss() },

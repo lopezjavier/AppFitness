@@ -34,13 +34,26 @@ internal data class FoodPhotoRequestDto(
                 previous = previous?.takeIf { mode == FoodPhotoMode.Dish || mode == FoodPhotoMode.Label }
                     ?.let(PreviousDto::from),
             )
+    }
+}
 
-        private val FoodPhotoMode.wireName: String
-            get() = when (this) {
-                FoodPhotoMode.Dish -> "dish"
-                FoodPhotoMode.Label -> "label"
-                FoodPhotoMode.Barcode -> "barcode"
-            }
+private val FoodPhotoMode.wireName: String
+    get() = when (this) {
+        FoodPhotoMode.Dish -> "dish"
+        FoodPhotoMode.Label -> "label"
+        FoodPhotoMode.Barcode -> "barcode"
+        FoodPhotoMode.Text -> "text"
+    }
+
+/** Body of `POST food-photo` in `text` mode: the sentence travels as [comment]; there is no image. */
+@Serializable
+internal data class MealTextRequestDto(val mode: String, val comment: String, val previous: PreviousDto? = null) {
+    companion object {
+        fun from(text: String, previous: PreviousEstimate? = null) = MealTextRequestDto(
+            mode = FoodPhotoMode.Text.wireName,
+            comment = text.trim(),
+            previous = previous?.let(PreviousDto::from),
+        )
     }
 }
 

@@ -53,6 +53,8 @@ data class CreateFoodUiState(
     val energyWarning: EnergyWarning? = null,
     /** Whether the AI estimate this form came from can be repeated with the failing values. */
     val retryState: RetryState = RetryState.None,
+    /** The estimate came from a typed text: when [retryState] is [RetryState.PhotoGone] the copy says "texto". */
+    val retryFromText: Boolean = false,
 )
 
 /**

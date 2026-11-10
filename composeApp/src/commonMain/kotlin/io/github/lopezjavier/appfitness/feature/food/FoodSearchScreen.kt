@@ -38,8 +38,8 @@ import io.github.lopezjavier.appfitness.composeapp.resources.food_kcal_per_100_m
 import io.github.lopezjavier.appfitness.composeapp.resources.food_offline_message
 import io.github.lopezjavier.appfitness.composeapp.resources.food_photo_offline_state
 import io.github.lopezjavier.appfitness.composeapp.resources.food_remote_error
+import io.github.lopezjavier.appfitness.composeapp.resources.food_search_ai_description
 import io.github.lopezjavier.appfitness.composeapp.resources.food_search_label
-import io.github.lopezjavier.appfitness.composeapp.resources.food_search_photo_description
 import io.github.lopezjavier.appfitness.composeapp.resources.food_search_placeholder
 import io.github.lopezjavier.appfitness.composeapp.resources.food_search_scan_description
 import io.github.lopezjavier.appfitness.composeapp.resources.food_tab_favourites
@@ -47,8 +47,8 @@ import io.github.lopezjavier.appfitness.composeapp.resources.food_tab_most_eaten
 import io.github.lopezjavier.appfitness.composeapp.resources.food_tab_recent
 import io.github.lopezjavier.appfitness.composeapp.resources.food_tab_templates
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_add
+import io.github.lopezjavier.appfitness.composeapp.resources.ic_auto_awesome
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_barcode_scanner
-import io.github.lopezjavier.appfitness.composeapp.resources.ic_photo_camera
 import io.github.lopezjavier.appfitness.designsystem.AppIconButton
 import io.github.lopezjavier.appfitness.designsystem.AppListRow
 import io.github.lopezjavier.appfitness.designsystem.AppOption
@@ -174,9 +174,9 @@ private fun SearchRow(
                 enabled = !state.isOffline,
             )
             AppIconButton(
-                contentDescription = stringResource(Res.string.food_search_photo_description),
-                icon = Res.drawable.ic_photo_camera,
-                testTag = "${TAG}_action_photo",
+                contentDescription = stringResource(Res.string.food_search_ai_description),
+                icon = Res.drawable.ic_auto_awesome,
+                testTag = "${TAG}_action_ai",
                 onClick = onPhotoClick,
                 modifier = offline,
                 enabled = !state.isOffline,

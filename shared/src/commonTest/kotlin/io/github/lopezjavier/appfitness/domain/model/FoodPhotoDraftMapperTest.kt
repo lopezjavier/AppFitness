@@ -116,6 +116,13 @@ class FoodPhotoDraftMapperTest {
     }
 
     @Test
+    fun textMeal_keepsTheWholeMealAsOnePortionLikeADish() {
+        val draft = tortilla.toNewFoodDraft(FoodPhotoMode.Text)
+
+        assertEquals(listOf(NewPortion("1 ración", 250.0)), draft.portions)
+    }
+
+    @Test
     fun alcohol_negativeOrNonFiniteIsDropped() {
         assertNull(tortilla.copy(alcohol = -1.0).toNewFoodDraft(FoodPhotoMode.Dish).alcohol)
         assertNull(tortilla.copy(alcohol = Double.NaN).toNewFoodDraft(FoodPhotoMode.Dish).alcohol)

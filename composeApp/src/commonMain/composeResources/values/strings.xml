@@ -932,7 +932,7 @@
     <string name="food_empty_search">No hemos encontrado alimentos</string>
     <string name="food_create_action">Crear alimento</string>
     <string name="food_search_scan_description">Escanear código de barras</string>
-    <string name="food_search_photo_description">Añadir con foto</string>
+    <string name="food_search_ai_description">Añadir con IA</string>
     <string name="food_remote_error">No se pudo buscar en Open Food Facts. Inténtalo de nuevo.</string>
     <string name="food_empty_search_hint">Prueba con otro nombre o marca.</string>
     <string name="food_empty_recent">Aún no has registrado alimentos</string>
@@ -1036,6 +1036,7 @@
     <string name="create_food_retry_running">Estimando…</string>
     <string name="create_food_retry_offline_action">repetir la estimación</string>
     <string name="create_food_retry_photo_gone">La foto ya no está disponible. Corrige los valores a mano.</string>
+    <string name="create_food_retry_text_gone">El texto ya no está disponible. Corrige los valores a mano.</string>
     <string name="create_food_retry_failed">No se pudo repetir la estimación. Inténtalo de nuevo.</string>
     <string name="create_food_energy_warning">Las calorías y los macros no cuadran: %1$s kcal declaradas, los macros suman %2$s kcal.</string>
     <string name="create_food_energy_warning_wrong">Parece un error: %1$s</string>
@@ -1603,13 +1604,15 @@
     <string name="past_source_routines_error">No se pudieron cargar las rutinas</string>
     <string name="past_source_sessions_error">No se pudo cargar el historial</string>
     <string name="food_photo_offline_state">Sin conexión</string>
-    <string name="food_photo_mode_title">Añadir desde foto</string>
+    <string name="food_photo_mode_title">Añadir con IA</string>
     <string name="food_photo_mode_estimate_title">Estimar con IA</string>
     <string name="food_photo_mode_estimate_hint">Calorías y macros de un plato</string>
     <string name="food_photo_mode_label_title">Etiqueta nutricional</string>
     <string name="food_photo_mode_label_hint">Lee los valores impresos en el envase</string>
     <string name="food_photo_mode_barcode_title">Código de barras</string>
     <string name="food_photo_mode_barcode_hint">Identifica el producto por su código</string>
+    <string name="food_photo_mode_text_title">Describir comida</string>
+    <string name="food_photo_mode_text_hint">Escribe lo que has comido o bebido</string>
     <string name="food_photo_source_title">Elegir foto</string>
     <string name="food_photo_source_camera_title">Hacer foto</string>
     <string name="food_photo_source_camera_hint">Usa la cámara</string>
@@ -1624,6 +1627,11 @@
     <string name="food_photo_comment_placeholder">Añade un detalle: ingredientes, aliño…</string>
     <string name="food_photo_comment_counter">%1$d de %2$d</string>
     <string name="food_photo_analyzing">Analizando tu foto…</string>
+    <string name="food_photo_analyzing_meal">Analizando tu comida…</string>
+    <string name="food_photo_text_label">¿Qué has comido?</string>
+    <string name="food_photo_text_placeholder">Ej.: pechuga con ensalada y dos cervezas</string>
+    <string name="food_photo_text_submit">Estimar</string>
+    <string name="food_photo_text_offline_action">estimar la comida</string>
     <string name="food_photo_estimating_amount">Estimando la cantidad…</string>
     <string name="add_food_photo_cd">Estimar cantidad con foto</string>
     <string name="amount_photo_confidence">Confianza %1$d/10</string>
@@ -1631,6 +1639,7 @@
     <string name="add_food_photo_error">No hemos podido estimar la cantidad</string>
     <string name="add_food_photo_offline">Sin conexión: no puedes estimar la cantidad con foto</string>
     <string name="food_photo_error_dish">No hemos podido estimar este alimento</string>
+    <string name="food_photo_error_meal">No hemos encontrado ningún alimento en el texto. Descríbelo con más detalle.</string>
     <string name="food_photo_error_product">No hemos podido identificar este producto</string>
     <string name="food_photo_error_network">No hay conexión. Comprueba tu red e inténtalo de nuevo</string>
     <string name="food_photo_error_unavailable">El servicio no está disponible ahora. Inténtalo más tarde o crea el alimento manualmente.</string>

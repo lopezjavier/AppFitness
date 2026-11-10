@@ -1,13 +1,21 @@
 // Gemini response schema and normalizer of `food-photo`. The model output is untrusted: the allow-list
 // normalizer below is the only thing that reaches the app (ADR-59).
 
-export type FoodPhotoMode = "dish" | "label" | "barcode" | "weight";
+export type FoodPhotoMode = "dish" | "label" | "barcode" | "weight" | "text";
 export const MODES: readonly FoodPhotoMode[] = [
     "dish",
     "label",
     "barcode",
     "weight",
+    "text",
 ];
+
+/** Longest meal description accepted in mode `text` (the photo comment of `dish` stays at 200). */
+export const MAX_TEXT_CHARS = 500;
+
+/** Modes whose draft is a whole portion estimate (zero-filled, with estimated_grams). */
+const isPortionMode = (mode: FoodPhotoMode) =>
+    mode === "dish" || mode === "text";
 
 /** Largest amount a diary entry accepts (`food_log_entries.amount` check). */
 export const MAX_AMOUNT = 5000;
@@ -227,7 +235,7 @@ export function normalizeDraft(
     if (alcohol === null) return null;
 
     const micronutrients: Record<string, number> = {};
-    if (mode === "dish") {
+    if (isPortionMode(mode)) {
         for (const key of ALLOWED_MICRO) micronutrients[key] = 0;
     }
     for (const [key, value] of Object.entries(obj(r.micronutrients))) {
@@ -243,7 +251,7 @@ export function normalizeDraft(
         name,
         brand: text(r.brand),
         base_unit: r.base_unit === "ml" ? "ml" : "g",
-        nutrition: mode === "dish"
+        nutrition: isPortionMode(mode)
             ? {
                 kcal: nutrition.kcal ?? 0,
                 protein_g: nutrition.protein_g ?? 0,
@@ -253,7 +261,7 @@ export function normalizeDraft(
             }
             : { ...nutrition, alcohol_g: alcohol },
         micronutrients,
-        estimated_grams: mode === "dish" && grams !== null && grams > 0
+        estimated_grams: isPortionMode(mode) && grams !== null && grams > 0
             ? grams
             : null,
         confidence,

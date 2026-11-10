@@ -38,11 +38,13 @@ import io.github.lopezjavier.appfitness.app.InterceptTopBarBack
 import io.github.lopezjavier.appfitness.composeapp.resources.Res
 import io.github.lopezjavier.appfitness.composeapp.resources.action_retry
 import io.github.lopezjavier.appfitness.composeapp.resources.food_photo_analyzing
+import io.github.lopezjavier.appfitness.composeapp.resources.food_photo_analyzing_meal
 import io.github.lopezjavier.appfitness.composeapp.resources.food_photo_comment_counter
 import io.github.lopezjavier.appfitness.composeapp.resources.food_photo_comment_label
 import io.github.lopezjavier.appfitness.composeapp.resources.food_photo_comment_placeholder
 import io.github.lopezjavier.appfitness.composeapp.resources.food_photo_error_dish
 import io.github.lopezjavier.appfitness.composeapp.resources.food_photo_error_manual
+import io.github.lopezjavier.appfitness.composeapp.resources.food_photo_error_meal
 import io.github.lopezjavier.appfitness.composeapp.resources.food_photo_error_network
 import io.github.lopezjavier.appfitness.composeapp.resources.food_photo_error_product
 import io.github.lopezjavier.appfitness.composeapp.resources.food_photo_error_unavailable
@@ -191,20 +193,29 @@ private fun CommentField(comment: String, onEvent: (FoodPhotoEvent) -> Unit) {
             testTagPrefix = "food_photo_comment_input",
             stateDescription = counter,
         )
-        Text(
-            text = counter,
-            style = AppTheme.typography.bodySmall,
-            color = AppTheme.colors.textSecondary,
-            textAlign = TextAlign.End,
-            modifier = Modifier.fillMaxWidth().testTag("food_photo_comment_input_counter"),
-        )
+        CharCounter(counter, "food_photo_comment_input_counter")
     }
 }
 
-/** "Analizando tu foto…": the AI wait on the shared template; back is disabled and nothing can be cancelled. */
+/** The "n de max" counter under a length-limited field. */
 @Composable
-fun PhotoEstimating(modifier: Modifier = Modifier) {
-    val message = stringResource(Res.string.food_photo_analyzing)
+internal fun CharCounter(counter: String, testTag: String) {
+    Text(
+        text = counter,
+        style = AppTheme.typography.bodySmall,
+        color = AppTheme.colors.textSecondary,
+        textAlign = TextAlign.End,
+        modifier = Modifier.fillMaxWidth().testTag(testTag),
+    )
+}
+
+/**
+ * "Analizando tu foto…" (or "…tu comida…" with [isText]): the AI wait on the shared template; back is disabled and
+ * nothing can be cancelled.
+ */
+@Composable
+fun PhotoEstimating(modifier: Modifier = Modifier, isText: Boolean = false) {
+    val message = stringResource(if (isText) Res.string.food_photo_analyzing_meal else Res.string.food_photo_analyzing)
     FullScreenStep("food_photo_estimating", onBack = {}, modifier = modifier) {
         Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
             StreamProgressState(
@@ -223,6 +234,7 @@ fun PhotoError(kind: FoodPhotoErrorKind, onEvent: (FoodPhotoEvent) -> Unit, modi
         when (kind) {
             FoodPhotoErrorKind.NotRecognizedDish -> Res.string.food_photo_error_dish
             FoodPhotoErrorKind.NotRecognizedProduct -> Res.string.food_photo_error_product
+            FoodPhotoErrorKind.NotRecognizedMeal -> Res.string.food_photo_error_meal
             FoodPhotoErrorKind.Network -> Res.string.food_photo_error_network
             FoodPhotoErrorKind.Unavailable -> Res.string.food_photo_error_unavailable
         },
