@@ -6,11 +6,11 @@ Operating instructions: [`CLAUDE.md`](../CLAUDE.md). Phase 1 history (frozen): [
 Legend: **👤** = done by the user (accounts, web consoles, secrets) · **PM** = done by Claude Code.
 Secrets rule: never pasted in the chat or in versioned files. The user enters them in their terminal or in the consoles, and Claude only verifies that they exist.
 
-Last task ID used: T-269 (T-268, T-269 = Checkpoint E18 feedback fixes; T-259…T-267 reserved by the E18 breakdown; T-257…T-258 = ADR-104 hard energy check, Checkpoint E17 feedback; T-251…T-256 reserved by the E17 breakdown; T-246…T-249 by E16; T-239…T-244 by E15; T-250 = user-reported fix below)
+Last task ID used: T-270 (T-268, T-269, T-270 = Checkpoint E18 feedback fixes; T-259…T-267 reserved by the E18 breakdown; T-257…T-258 = ADR-104 hard energy check, Checkpoint E17 feedback; T-251…T-256 reserved by the E17 breakdown; T-246…T-249 by E16; T-239…T-244 by E15; T-250 = user-reported fix below)
 
 **Done in the T-246 branch (user report, 2026-11-08; the user ordered it into the current branch, so it ships in T-246's PR as a separate `fix(T-250)` commit):** `fix(T-250)`: the `food-photo` dish prompt (`supabase/functions/food-photo/prompts.ts`) never says whether the per-100 g values are for the food as served; a 400 g cooked plate came back with raw-food kcal/100 g. Fix: the dish prompt states that values and `estimated_grams` describe the food as shown in the photo (cooked when cooked), with a handler/prompt test and a redeploy of `food-photo`. Backend only, no model-call change elsewhere.
 
-**Next (2026-11-10, E18, Checkpoint E18 re-test):** T-269 merged (PR #619, CI green; exercise chat prompt reduced to 8 user-approved lines, no health handling, `07` §3 updated). `deploy-supabase` must be green on `main` (T-268 migration `20270124100000_coach_no_range_cardio.sql` and the `exercise-chat` redeploy) before the 👤 **Checkpoint E18** is re-presented (re-test: Trainer boxes "Tu plan"/"Tu bloque"/"Resumen semanal", "Cambios del entrenador" with no cardio and a working "Añadir un rango", the chat). Follow-ups: chat has no follow-up context (each question stands alone; user may want a task); T-268 follow-ups: week-summary box has no date range; old non-cardio `no_range_flag` rows lack `figures.routine_id`; `BlockReviewEntry` hand-rolled clickable card; `WeekSummaryScreen` internal `SummaryCard` name clash; duplicate "Tu plan" header. T-267 (closure) waits for the approval.
+**Next (2026-11-10, E18, T-270):** T-269 merged (PR #619) and the Checkpoint E18 re-test is **approved by the user except one bug**: opening the Trainer and tapping "Tu plan" / "Tu bloque" each take 2-3 s of loading. Diagnosis (code read, nothing timed): our code, not Supabase. `TrainerViewModel.fetch()` runs ~18-22 sequential round trips on every open, and the box screens (T-268) get a new `TrainerViewModel` that repeats the whole fetch. Next is **T-270** (fix). After T-270 re-present only the Trainer open and the two boxes; its approval releases T-267 (closure). Follow-ups: chat has no follow-up context (each question stands alone; user may want a task); week-summary box has no date range; old non-cardio `no_range_flag` rows lack `figures.routine_id`; `BlockReviewEntry` hand-rolled clickable card; `WeekSummaryScreen` internal `SummaryCard` name clash; duplicate "Tu plan" header.
 
 ## Open follow-ups carried into Phase 3
 
@@ -313,6 +313,17 @@ Out of scope here (pgTAP, Deno and host tests only): no Anthropic code or key re
 - [x] `07` §3 and the prompt revised by `fitness-scientist`; the user approved the exact wording before implementation.
 - [x] Handler/prompt tests updated; `exercise-chat` redeployed green on `main`.
 **Dependencies:** T-268 merged. Then Checkpoint E18 is re-presented.
+
+
+## T-270: fix(T-270) Trainer loads slowly on open and in the "Tu plan" / "Tu bloque" boxes · fix (core + UI)
+
+**Story:** Checkpoint E18 feedback 4 (US-120 rework) · **Flow:** planner → ux-reviewer (plan) → kotlin-core-developer → compose-ui-developer → pr-reviewer + ux-reviewer (diff) → pr-creator.
+**Description:** Opening the Trainer and opening "Tu plan" or "Tu bloque" each show 2-3 s of loading. Cause (code read, not timed): `TrainerViewModel.fetch()` (`feature/trainer/TrainerViewModel.kt`) is one sequential chain of ~18-22 Postgrest round trips, run on every open and again on every resume; the T-268 box screens (`TrainerBoxRoot`, `AppNavHost` `TrainerPlanRoute`/`TrainerBlockRoute`) create a new `TrainerViewModel` that repeats the whole fetch although the Trainer root already holds the data. Fix in two steps: (1) the box screens reuse the Trainer root's state (scope the ViewModel to the Trainer graph entry or hoist the content state): opening a box costs no fetch; (2) `fetch()` runs the plan-independent reads in parallel (derived estimates, follow-ups, week summary, block review, goals checklist, weeks in phase) and keeps the plan-dependent order (`currentPlan` → diet break → deload / calorie proposal → weeks / block pause). The planner measures the result against a round-trip count in a test; a `trainer_home_snapshot` RPC is out of scope unless the planner shows steps 1-2 are not enough.
+**Acceptance criteria:**
+- [ ] Opening "Tu plan" or "Tu bloque" shows its content at once (no skeleton) when the Trainer is already loaded; state survives leaving the app.
+- [ ] The Trainer open issues the independent reads in parallel; a host test asserts the sequential depth dropped and the evaluate/apply order is unchanged.
+- [ ] Behaviour and figures shown are identical to today; `check-ux-conventions.sh` passes; lint + tests green.
+**Dependencies:** T-269 merged. Then the Trainer open and the two boxes are re-presented.
 
 ---
 
