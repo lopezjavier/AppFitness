@@ -10,7 +10,7 @@ Last task ID used: T-269 (T-268, T-269 = Checkpoint E18 feedback fixes; T-259…
 
 **Done in the T-246 branch (user report, 2026-11-08; the user ordered it into the current branch, so it ships in T-246's PR as a separate `fix(T-250)` commit):** `fix(T-250)`: the `food-photo` dish prompt (`supabase/functions/food-photo/prompts.ts`) never says whether the per-100 g values are for the food as served; a 400 g cooked plate came back with raw-food kcal/100 g. Fix: the dish prompt states that values and `estimated_grams` describe the food as shown in the photo (cooked when cooked), with a handler/prompt test and a redeploy of `food-photo`. Backend only, no model-call change elsewhere.
 
-**Next (2026-11-10, E18, T-269):** T-268 merged (PR #617, CI green; migration `20270124100000_coach_no_range_cardio.sql`, `deploy-supabase` must be green on `main` before Checkpoint E18 is re-presented). Next is **T-269** (exercise chat prompt rework): `fitness-scientist` revises the prompt and `07` §3, then **the user reviews the exact wording** before implementation. After T-269, re-present the 👤 **Checkpoint E18** (re-test: Trainer boxes "Tu plan"/"Tu bloque"/"Resumen semanal", "Cambios del entrenador" with no cardio and a working "Añadir un rango", the chat). T-268 follow-ups: week-summary box has no date range; old non-cardio `no_range_flag` rows lack `figures.routine_id`; `BlockReviewEntry` hand-rolled clickable card; `WeekSummaryScreen` internal `SummaryCard` name clash; duplicate "Tu plan" header. T-267 (closure) waits for the approval.
+**Next (2026-11-10, E18, Checkpoint E18 re-test):** T-269 merged (PR #619, CI green; exercise chat prompt reduced to 8 user-approved lines, no health handling, `07` §3 updated). `deploy-supabase` must be green on `main` (T-268 migration `20270124100000_coach_no_range_cardio.sql` and the `exercise-chat` redeploy) before the 👤 **Checkpoint E18** is re-presented (re-test: Trainer boxes "Tu plan"/"Tu bloque"/"Resumen semanal", "Cambios del entrenador" with no cardio and a working "Añadir un rango", the chat). Follow-ups: chat has no follow-up context (each question stands alone; user may want a task); T-268 follow-ups: week-summary box has no date range; old non-cardio `no_range_flag` rows lack `figures.routine_id`; `BlockReviewEntry` hand-rolled clickable card; `WeekSummaryScreen` internal `SummaryCard` name clash; duplicate "Tu plan" header. T-267 (closure) waits for the approval.
 
 ## Open follow-ups carried into Phase 3
 
@@ -310,8 +310,8 @@ Out of scope here (pgTAP, Deno and host tests only): no Anthropic code or key re
 **Story:** Checkpoint E18 feedback 3 (US-130 rework) · **Flow:** fitness-scientist (prompt + `07` §3) → **user reviews the exact prompt wording** (hard gate) → backend-developer → pr-reviewer → pr-creator.
 **Description:** The chat answers the question asked like an expert trainer (e.g. safer replacement exercises for an injury): no "consult a professional" message, no bias, and remove the `Registrar molestia` pointer from the T-265 medical line. Screenshot: `design/reported/E18-preguntar-useless-answer.png`.
 **Acceptance criteria:**
-- [ ] `07` §3 and the prompt revised by `fitness-scientist`; the user approved the exact wording before implementation.
-- [ ] Handler/prompt tests updated; `exercise-chat` redeployed green on `main`.
+- [x] `07` §3 and the prompt revised by `fitness-scientist`; the user approved the exact wording before implementation.
+- [x] Handler/prompt tests updated; `exercise-chat` redeployed green on `main`.
 **Dependencies:** T-268 merged. Then Checkpoint E18 is re-presented.
 
 ---
