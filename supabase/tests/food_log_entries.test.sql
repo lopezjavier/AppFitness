@@ -38,10 +38,11 @@ select ok(
 select table_privs_are('public', 'food_log_entries', 'anon', array[]::text[],
   'anon has no privileges on food_log_entries');
 select ok(
-  (select bool_and(confdeltype = 'a') from pg_constraint
+  (select bool_and(confdeltype = case confrelid when 'public.foods'::regclass then 'n' else 'a' end)
+    from pg_constraint
     where conrelid = 'public.food_log_entries'::regclass and contype = 'f'
       and confrelid in ('public.foods'::regclass, 'public.meal_slots'::regclass)),
-  'the food and meal slot FKs use on delete no action');
+  'the food FK uses on delete set null and the meal slot FK on delete no action');
 
 -- ---------------------------------------------------------------------------
 -- Constraints (as postgres)
