@@ -4,7 +4,7 @@ Live index of every closed decision, one line per ADR, with the numbers kept sin
 
 ## New ADRs go here
 
-Phase 3 ADRs continue the numbering (next: **ADR-105**) and are written **in full** in this file, below the index, with their one-line row in the index. Format: context -> decision -> consequences. A new decision also updates the affected live docs.
+Phase 3 ADRs continue the numbering (next: **ADR-106**) and are written **in full** in this file, below the index, with their one-line row in the index. Format: context -> decision -> consequences. A new decision also updates the affected live docs.
 
 ## Index (Phase 1, ADR-01..72)
 
@@ -126,6 +126,7 @@ The rows of ADR-93, 94, 98 and 99 are added here: the Phase 2 archive index lack
 | 103 | Phase 3 epics re-split: E18 functional improvements, E19 UI review, E20 Closure; Anthropic removed (restores "100 % free"), reports stored, a Gemini exercise chat | Supersedes 77, 90 (cost caps); amends 101 |
 | 102 | Food energy check (E17): optional `alcohol_g_100` in grams per 100 base units, per-food "saved anyway" flag cleared by a trigger when an input changes, one SQL check function and an owner-scoped audit RPC (rule in `07` section 4) | — |
 | 104 | Food energy check becomes a hard block (E17 checkpoint feedback): a food whose kcal and macros disagree cannot be saved by any path (manual, edit, AI photo, OFF copy); the AI estimate must be consistent or the app shows the issue with a retry that feeds the failed estimate back; the "saved anyway" flag, "Guardar igualmente" and the food audit are removed | Supersedes parts of 102 |
+| 105 | E18 gains a meal from typed text (US-132, Gemini free tier, editable draft) and a monthly `pg_cron` cleanup of personal foods unused for 30 days (US-133); diary snapshots stay | Amends 103 |
 
 ## Phase 3 ADRs (full text)
 
@@ -173,3 +174,12 @@ Older ADRs: [`phase2/00-decisions.md`](phase2/00-decisions.md) (73-100) and [`ph
   - **Open Food Facts product that fails the check (PM recommendation, recorded in the PR):** it is not added as is; the user corrects it first, and the copy is created only with consistent values.
 - **Consequences:** a CHECK constraint is not used, so existing rows and diary snapshots stay readable; the rule is enforced on write. Redeploy `food-photo`, `food-search` and `food-barcode` with the migration. Docs `03`, `04` section 2, `05` section 8 and 10, `07` section 4 and the E17 epic are updated in T-257/T-258.
 - **Approval:** user, 2026-11-09 (chat, Checkpoint E17 feedback).
+
+### ADR-105 — Meal from typed text and a monthly cleanup of unused personal foods (E18 US-132, US-133; amends ADR-103)
+- **Context:** logging a meal when out of the house is slow, and AI-estimated foods are used once and accumulate. Diary entries already store snapshots of kcal, macros and name (ADR-53, `03`).
+- **Decision (user, 2026-11-10, chat):**
+  - A typed sentence is sent to the Gemini free tier (same function family as `food-photo`, ADR-59) and returns one combined food as an editable draft (name lists everything, total kcal and macros, one portion is the whole meal). It is saved as a personal food and added to the diary. The ADR-104 energy check applies; the text is neither stored nor logged. Portion defaults (what "a beer" is) come from `fitness-scientist` into `07` before any task uses them.
+  - Personal foods (`source = 'user'`, including Open Food Facts copies) not added to the diary for 30 days are deleted by a scheduled job. Favourites and foods in a saved comida are kept. Photo foods carry no marker, so the scope is every personal food (the user's choice).
+  - The job is a `pg_cron` schedule in Supabase (no GitHub Actions: E20 makes the repository private, ADR-101; no secret). The planner confirms `pg_cron` on the free plan.
+- **Consequences:** `food_log_entries.food_id` must survive a food delete (diary days and totals unchanged, entry details open from the snapshot); `03` and `08` are updated by the tasks. Accepted risk: a hand-made food unused for a month is deleted.
+- **Approval:** user, 2026-11-10 (chat, product-owner).
