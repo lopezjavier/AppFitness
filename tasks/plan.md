@@ -49,6 +49,8 @@ Every task pays 6-8 agent hand-offs, so stories stay whole unless one is too lar
 | 11 | T-274 (**L**): Extend my block: a new last day from the Trainer | **L** | US-134 | backend + core + UI | 8 |
 | 12 | T-275 (**M**): Food form corrections: the "Describir comida" example and Alcohol by volume | **M** | US-135 | core + UI | 7 |
 | — | **👤 Checkpoint E18-C** (approved; US-134 + US-135; 7 items) | — | | | |
+| 12b | T-276 (fix): The pencil extends the current week, not the block (Checkpoint E18-C feedback, user 2026-11-11; food items approved) | fix | US-134 | core + UI | 7 |
+| — | **👤 Checkpoint E18-C re-test** (block items 1-3 and the block part of 7 only) | — | | | |
 | 13 | T-267: E18 closure | closure step (no size class) | DoD | PM | PM only |
 
 Why these splits and merges:
@@ -89,6 +91,7 @@ Items to test in the epic, collected first: (1) no "Uso de IA", limit or model s
 
 ### Phase 5: Extend the block and food form corrections (US-134, US-135, ADR-106; added 2026-11-10)
 - Checkpoint E18-B (approved) → T-274 → T-275 → **👤 Checkpoint E18-C** (approved, 7 items) → T-267 (closure).
+- **Checkpoint E18-C feedback (user, 2026-11-11):** the food items are approved; the block extension must extend the current week (pencil on the active week), not the block → `fix(T-276)` → re-test of the block items only → T-267 (closure). Details in `tasks/todo.md`.
 - **Why this order:** both stories arrived after Checkpoint E18-B was approved, so they sit between it and the closure. T-274 first: it is the riskier change (a production migration on the block calendar), it deploys early and T-275 (app only, independent) runs while it settles. One checkpoint after the last of the two (user decision 2026-11-10).
 - Items to test, collected first: (1) the pencil after the block end day and the picker's range; (2) pick 3 days later: end, later weeks and review move by 3 days, this week's sessions still to do, loads/deloads/calories unchanged; (3) pick the original day: everything back; (4) the new "Describir comida" example; (5) Alcohol as a collapsible section below "Minerales" in create and edit; (6) grados for an ml food converted to grams with no formula in the help, grams only for a g food; (7) leave the app and come back (picker open, after extending, Alcohol section with grados typed) and the Trainer and food adding unchanged (final regression). Seven items → **one checkpoint (user decision 2026-11-10)**.
 - **👤 Checkpoint E18-C** (approved; after T-275; 7 items in `tasks/todo.md`; its approval releases T-267). Try on the phone: extend the block from the pencil in "Tu bloque" and see every later date move, then pick the original day back; check the "Describir comida" example; create and edit a food and find Alcohol in its own section below "Minerales"; type grados for a drink in ml and see the grams; leave the app and come back on each.
