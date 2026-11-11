@@ -1,12 +1,12 @@
 # Tasks — Phase 3
 
-Plan of the current epic: [tasks/plan.md](plan.md) (E18) · Planning: [planning/](../planning/README.md)
+Plan of the current epic: [tasks/plan.md](plan.md) (E19) · Planning: [planning/](../planning/README.md)
 Operating instructions: [`CLAUDE.md`](../CLAUDE.md). Phase 1 history (frozen): [tasks/phase1/](phase1/todo.md). Phase 2 history (frozen, with the full per-task log T-134…T-238): [tasks/phase2/](phase2/todo.md).
 
 Legend: **👤** = done by the user (accounts, web consoles, secrets) · **PM** = done by Claude Code.
 Secrets rule: never pasted in the chat or in versioned files. The user enters them in their terminal or in the consoles, and Claude only verifies that they exist.
 
-Last task ID used: T-276 (T-276 = Checkpoint E18-C feedback fix, user 2026-11-11; T-274, T-275 = US-134, US-135, added to E18 by ADR-106, epic-planner 2026-11-10; T-273 = revert of the unused-food cleanup, user decision 2026-11-10; T-271, T-272 = US-132, US-133, added to E18 by ADR-105, epic-planner 2026-11-10; T-268, T-269, T-270 = Checkpoint E18 feedback fixes; T-259…T-267 reserved by the E18 breakdown; T-257…T-258 = ADR-104 hard energy check, Checkpoint E17 feedback; T-251…T-256 reserved by the E17 breakdown; T-246…T-249 by E16; T-239…T-244 by E15; T-250 = user-reported fix below)
+Last task ID used: T-285 (T-277…T-285 reserved by the E19 breakdown, epic-planner 2026-11-11; T-276 = Checkpoint E18-C feedback fix, user 2026-11-11; T-274, T-275 = US-134, US-135, added to E18 by ADR-106, epic-planner 2026-11-10; T-273 = revert of the unused-food cleanup, user decision 2026-11-10; T-271, T-272 = US-132, US-133, added to E18 by ADR-105, epic-planner 2026-11-10; T-268, T-269, T-270 = Checkpoint E18 feedback fixes; T-259…T-267 reserved by the E18 breakdown; T-257…T-258 = ADR-104 hard energy check, Checkpoint E17 feedback; T-251…T-256 reserved by the E17 breakdown; T-246…T-249 by E16; T-239…T-244 by E15; T-250 = user-reported fix below)
 
 **Done in the T-246 branch (user report, 2026-11-08; the user ordered it into the current branch, so it ships in T-246's PR as a separate `fix(T-250)` commit):** `fix(T-250)`: the `food-photo` dish prompt (`supabase/functions/food-photo/prompts.ts`) never says whether the per-100 g values are for the food as served; a 400 g cooked plate came back with raw-food kcal/100 g. Fix: the dish prompt states that values and `estimated_grams` describe the food as shown in the photo (cooked when cooked), with a handler/prompt test and a redeploy of `food-photo`. Backend only, no model-call change elsewhere.
 
@@ -39,6 +39,8 @@ Rule: every CI failure that passes on re-run is logged here with date, run URL a
 
 ## 👤 Checkpoints
 
+E19 (epic-planner, 2026-11-11; user decision 2026-11-11): **no 👤 checkpoint.** The epic adds no functionality to test and says "no gates" (US-123 "Early feedback, no gates"): the user decides each round's findings in chat before the fix batch and reviews the updated gallery images and the emulator himself. The closure T-285 waits only for the user's normal epic-closure approval. Details under the E19 section.
+
 E18 (epic-planner, 2026-11-09; one checkpoint only, user decision 2026-11-09): **Checkpoint E18** after T-266, the last implementation task ("Uso de IA" gone, past reports in "Informes", quick search and my foods at once, the compact Trainer, the exercise chat, plus the final E18 regression; 16 items grouped by functionality; its approval, after the T-268…T-270 fixes, releases T-271). **Checkpoint E18-B** after T-272 (ADR-105: a meal from typed text and the unused-food cleanup, with past days unchanged; 7 items; the only checkpoint for US-132 and US-133, user decision 2026-11-10; its approval releases the closure T-267). **Checkpoint E18-C** (proposed, epic-planner 2026-11-10; ADR-106: extend the block and the food form corrections; 7 items; the only checkpoint for US-134 and US-135, user decision 2026-11-10) after T-275; its approval releases the closure T-267 instead of E18-B's. The 👤 **Gemini terms check** (a decision, not a test) gates T-265. Details under the E18 section.
 
 E17 (epic-planner, 2026-11-09; one checkpoint only, user decision 2026-11-09): **Checkpoint E17** after T-255, the last implementation task (the kcal/macro warning, "Alcohol (g)", the food audit, Open Food Facts copies and the conversion, plus the final E17 regression; 10 items; its approval releases the closure T-256). Details under the E17 section.
@@ -51,12 +53,221 @@ E15 (epic-planner, 2026-11-08, after the user's Q1-Q5 answers; needs the user's 
 
 - **Out of scope (user, 2026-11-08, ADR-101):** "Recuperar" / returning after a break (regain phase) is out of scope for the app; the 14-day return rule stays as the only break rule.
 - **R-59 sweep leftover (T-245): consumed → T-248** (E16 breakdown, 2026-11-08).
-- **UI review epic (user, 2026-11-08):** "Lo que el entrenador sabe de ti" (`free_text_*`, `trainer_free_text_row`) and the "Para conocerte" help text say the coach reads those notes when preparing the plan and blocks, but the coach is deterministic (ADR-97…99; `plan_*` kinds have `deterministic: true`, `report` and `chat` are unavailable, and no coach code reads the free text), so the "Enviar al entrenador" switches control nothing. The user will raise it in the detailed UI review epic (remove, hide until a model feature exists, or fix the copy).
+- **UI review epic, "Lo que el entrenador sabe de ti" (user, 2026-11-08): consumed → T-277** (E19 breakdown, 2026-11-11; the user decided to remove it in every layer).
 - **E13 backlog (user request, 2026-10-30): consumed.** Items 1 → T-179, 2 → T-181…T-184, 3 and 4 → T-205/T-206. Nothing from it is open.
 
 ## Reminders
 
 - Delete `design/reported/live-session-cardio-row-layout.png` once the user confirms the cardio fix (T-238).
+
+---
+
+# E19 · UI review → `v1.x` (proposed `v1.10.0`)
+
+Epic: [`planning/epics/E19-ui-review.md`](../planning/epics/E19-ui-review.md) (stories US-131, US-123). Plan: [tasks/plan.md](plan.md).
+Rules: `05` §8-§10 (R-35…R-37, R-39 sweep, R-40 guards, R-44, "Decided - do not re-propose"), `04` (no behaviour change), ADR-27 (host tests, no UI-automation harness), ADR-40 (state survives leaving the app), ADR-80, ADR-103 (E19 scope; its "spike" bullet is superseded by the epic update of 2026-11-11: Roborazzi is the tool, recorded by T-279), ADR-2/ADR-14 (the `local` flavor and its "Test login"), ADR-97…99 (the deterministic coach: the reason for removing the free-text notes, T-277); the T-259/T-242 row-count self-check precedent for production drops.
+"Notes for later epics": the "Lo que el entrenador sabe de ti" note targets E19 → moved into **T-277** (pointer left in place; decided by the user 2026-11-11: remove it in every layer if nothing reads it, Q-E19-2, and use E19 to remove everything else that is no longer used, Q-E19-5). The "Recuperar" note is a non-goal; nothing else moved. Carried Phase 3 follow-ups that are pure UI polish (the `FormContentMaxWidth` cap and themed "puedes cambiarlo" text on the block targets step, T-235; the `BlockReviewEntry` hand-rolled clickable card, the `WeekSummaryScreen` internal `SummaryCard` name clash and the duplicate "Tu plan" header, E18 pointer) are handed to the ux-reviewer of the Trainer round as pre-seeded findings (T-283); the list above is left as is and the PM ticks them when the round merges.
+
+**Status (epic-planner, 2026-11-11, revised the same day with the user's feedback): PROPOSED, needs the user's OK on the breakdown PR.** **No 👤 checkpoint in E19 (user decision 2026-11-11):** the epic has no new functionality to test and says "no gates"; the user reviews the gallery images and the emulator himself during the rounds, and the closure T-285 waits only for the normal epic-closure approval. **Cleanup first (user decision 2026-11-11, Q-E19-2 and Q-E19-5):** before the gallery, E19 removes everything that is no longer used: the free-text notes in every layer (if nothing reads them) and any other dead code found by an audit. The audit list (what is unused, with evidence) is the first deliverable, shown to the user before any deletion; every production table or column to drop is listed for the user's explicit OK before the migration is written.
+
+**Order and sizing (every task pays 6-8 hand-offs; no S task):**
+1. **T-277** · **Size L (by the audit)** · audit + backend + core + UI: one task, one PR (user decision 2026-11-11). The dead-code audit comes first and is shown to the user; the user approves each production drop by name. Then the removal in every layer: the free-text notes ("Lo que el entrenador sabe de ti", the switches, the "Para conocerte" free-text field and help) and every unused screen, route, composable, string, resource, domain/data class, port, DI binding, feature flag, script, Edge Function or field, RPC, table, column and stale doc, with one migration that drops the approved objects (row-count self-check, the T-259/T-242 precedent). First of all, so the dataset and the gallery are built on the cleaned app and schema.
+2. **T-278** · **Size M** · backend + script: US-131 live flow: the rich dummy user on Docker Supabase and the one command that starts the backend and installs the `local` app on the emulator. It follows T-277 because it seeds the post-cleanup schema. It goes before the gallery because nothing ties it to the gallery (the gallery uses fake UI states, no backend and no user), and this way the user can use the emulator while the gallery is built.
+3. **T-279** · **Size L** · UI (host tests): US-131 gallery part 1: the gallery harness, the command, the index page, the missing-screen and missing-overlay check, and every screen of the Diario and Perfil areas (plus Inicio: sign-in, onboarding, the root loading and profile-error states, and Centro de avisos). US-131 as one task is far above ~15 files (46 routes, 5 root states, about 35 sheet and dialog composables, each in several states; inventory in `tasks/plan.md`), so it is split; the split follows the review areas, not components, and the harness is built once here.
+4. **T-280** · **Size L** · UI (host tests): US-131 gallery part 2: every screen of the Entreno and Trainer areas; the check's pending list becomes empty.
+5. **T-281** · **Size M (estimate)** · review + UI: US-123 round 1, Diario.
+6. **T-282** · **Size M (estimate)** · review + UI: US-123 round 2, Entreno.
+7. **T-283** · **Size M (estimate)** · review + UI: US-123 round 3, Trainer.
+8. **T-284** · **Size M (estimate)** · review + UI: US-123 round 4, Perfil. Last implementation task.
+9. **T-285** · closure step (PM, no size class; it waits for the user's epic-closure approval, so it cannot merge into a task).
+
+Round sizes are estimates: the work is the accepted findings, known only after the user decides them in chat. If a round's accepted findings exceed ~15 files, the round's planner splits the fix into batches with new IDs (one designsystem/rule batch first, then the screen sweep), never one task per finding. A round with very few accepted findings (S) merges into the next round instead of shipping alone (the PM records it).
+
+---
+
+## T-277: Remove everything unused: the audit, then the free-text notes and all dead code in every layer (Q-E19-2, Q-E19-5, user decisions 2026-11-11) · L
+
+**Story:** US-123 (cleanup decided before the rounds; the free-text note moved from "Notes for later epics") · **Flow:** planner (audit plan) → kotlin-core-developer ∥ backend-developer (audit run, read-only) → **PM presents the audit list to the user in chat (first deliverable); the user approves each production drop by name** → planner (removal plan) → ux-reviewer (plan: strings and screens removed or reworded) → backend-developer (migration, readers, Edge Functions, pgTAP) → kotlin-core-developer (navigation, DI, domain/data, view models) → compose-ui-developer (screens, strings, resources) → pr-reviewer ∥ ux-reviewer (diff) → pr-creator (`scripts/verify-local.sh --full`: navigation, DI and designsystem may change) · **Size:** L (by the audit; mostly deletions; one task and one PR across every layer by user decision; split by layer with a new ID only if the planner counts clearly more than ~30 files with real edits)
+**Scenarios:** US-123 Behaviour does not change (only unused things go; the free-text switches control nothing today, ADR-97…99: `plan_*` kinds are `deterministic: true`); A decision becomes a rule (no text claims the coach reads something it does not).
+**Description:** **Step 1, the audit (first deliverable, read-only):** a list of everything no longer used, one row per item: layer, item, evidence (the command or search and its result), proposed action, and whether it holds production data. Sources: Kotlin compiler and lint warnings for unused symbols and parameters, Android lint `UnusedResources` (strings, drawables, raws), a search for unreferenced screens, routes, composables, domain/data classes, ports, repositories, DTOs, DI bindings and feature flags (`AppFeatures`, `AppConfig`), a search of every SQL function/RPC, table and column in `supabase/migrations` against the app, the Edge Functions and the other SQL (a function only called by pgTAP counts as unused), Edge Functions and request fields with no caller, scripts in `scripts/` and workflows no longer run, and docs that describe removed features. Each finding is grep-verified (no dynamic call by name, e.g. `rpc("...")` strings, routes by serialization, resources by name). **Free-text notes, verified first:** the planner shows by search that no coach logic reads the free text (known places where it appears: `CoachIntake`, `PlanInput`, `CoachIntakeDto`, `PlanInputsDto`, the intake repositories, `coach_free_text`, `coach_summary_free_text`, `coach_plan_inputs`, `coach_summary`, the `coach` function's `planNutrition` test). If a reader only passes it through to the removed screens, it counts as unused; if anything really uses it, the planner stops and reports to the PM. The notes typed in other features (check-in, discomfort, the block review's "¿Cómo te ha ido?") are judged one by one: they go only if nothing shows or uses them. The list is written under this task, and the PM shows it to the user before any deletion. The user approves each production table or column by name. For every backend item the list also says how the installed app (`v1.9.0`) uses it ("old-app impact", see the risk below). **Step 2, the backend removal (same PR):** the free-text storage (`coach_free_text` and its send switch, the intake `free_text` column, `coach_summary_free_text`, the RPCs `coach_free_text_lines` and `set_free_text_line_excluded`, and the free-text fields in `coach_plan_inputs`, `coach_summary` and the `coach` Edge Function inputs, as the audit confirmed), plus every approved backend item of the audit: unused RPCs and functions, tables, columns, Edge Functions or request fields, and their grants. **Only what the user approved by name.** A new migration (merged migrations are never edited) drops them, recreates the readers without the dropped fields, and carries a row-count self-check as in T-259/T-242: every table it does not drop keeps its row count, otherwise it raises. Edge Function fields are removed and the functions redeployed. A function with no caller is deleted; the planner checks that `deploy-supabase` undeploys it, otherwise it is a 👤 console step for the user. pgTAP: the tests of dropped objects are removed, the readers' tests updated, plus a test that the dropped objects are gone; `delete_account_cascade` stays green. **Step 3, the app-side removal:** the Trainer row `trainer_free_text_row`, `FreeTextLinesRoute` with its screen, view model, UI state, nav-host and `fullScreenRoutes` entries, DI and strings; the "Para conocerte" free-text field and its help (`intake_free_text_*`; the screen stays for years training and maintenance kcal, which the coach reads; Q-E19-4 is settled by Q-E19-5); the free-text fields in the domain models, DTOs and repositories; every other app-side item of the audit (screens, composables, strings, resources, classes, ports, bindings, flags, scripts, stale docs). Any remaining text that says the coach reads the user's notes is reworded (ux-reviewer). **Docs (the planning rules require a decision record for a feature removal, CLAUDE.md "a new decision = new ADR + update affected docs"):** a new ADR (next number, ADR-107) "Free-text notes and unused code removed; the coach is deterministic" that amends the US-81/US-89 decisions and lists what E19 removes, including the dropped backend objects; the US-81 and US-89 story files and ADRs marked as amended; `05` §10 glossary (the term removed) and §8 a rule "no copy claims the coach reads or uses something it does not" (R-##, ux-reviewer words it); `03` (tables, columns, RPCs), `04` (any rule that mentions the notes), `02` if an Edge Function goes.
+**Risk of one PR (the PM tells the user before the merge):** the migration deploys to production when the PR merges, while the phone still runs the old APK (`v1.9.0`) until the user installs the new one. The old app's behaviour against the dropped free-text objects, from its code:
+- Reading "Para conocerte" keeps working: it selects `coach_user_intake` with `select()` (all columns), and its DTO's `free_text` is nullable with a default.
+- "Lo que el entrenador sabe de ti" calls `coach_free_text_lines` and `set_free_text_line_excluded`. Once those RPCs are dropped, that screen shows its load error and its switches fail ("No se pudo cambiar…").
+- Saving the free-text field in "Para conocerte" sends a `free_text` key to `save_coach_intake`. It fails unless the recreated function ignores unknown keys.
+- The plan-input readers only map a `free_text` key when present, so an absent key is tolerated.
+
+Mitigations:
+1. The recreated `save_coach_intake` ignores a `free_text` key instead of failing.
+2. The PM delivers the new APK (`deliver-apk.py`) right after `deploy-supabase` is green, and asks the user to install it before using the Trainer.
+3. For every other dropped object, the audit's "old-app impact" column says whether the old app calls it. Anything the old app calls on a main screen gets a tolerant stub or waits for a later cleanup, and the user decides which when approving the list.
+4. The migration is the last commit of the PR, so a review fix never redeploys a half-done drop.
+**Acceptance criteria:**
+- [ ] The audit list (item, layer, evidence, proposed action, production data yes/no, old-app impact) is recorded under this task and was shown to the user before any deletion; every production table or column dropped was approved by name.
+- [ ] Every object dropped is in the approved list; the row-count self-check passes; no reader, RPC or Edge Function still mentions a dropped field (search recorded in the PR).
+- [ ] The Trainer has no "Lo que el entrenador sabe de ti" row; no route, screen, switch, field, string or app-side class of the free-text notes remains; no text says the coach reads the user's notes.
+- [ ] "Para conocerte" keeps years training and maintenance kcal, their save and their restoration.
+- [ ] Every other app-side item of the audit is removed (or listed with the reason it stays); every remaining screen behaves as before; host tests of removed code are deleted, the rest stay green.
+- [ ] The new app calls no dropped object; the old app's impact is as described in the risk above, with its mitigations in place, and the PM told the user before the merge.
+- [ ] ADR-107 and the affected docs updated in the same PR; `check-ux-conventions.sh` passes.
+**Host tests:** Trainer root without the row; the route table has no free-text route; "Para conocerte" without the free-text field and help, its other fields saved and restored (`StateRestorationTester`); repository/DTO tests updated for the removed fields; a guard (string test or `check-ux-conventions.sh`) that no string claims the coach reads notes, if ux-reviewer finds it checkable; pgTAP (dropped objects absent; readers return their other fields unchanged; `save_coach_intake` ignores a `free_text` key; cross-user tests still green); Deno tests of any changed Edge Function.
+**Verification:**
+- [ ] lint (including the unused-resources check, now clean or with an allowlist that names each kept item) + host tests green (`verify-local.sh --full`); `npx supabase db reset && npx supabase db lint && npx supabase test db` + Deno tests green.
+- [ ] After the merge: `deploy-supabase` green on `main` with data intact (row counts from the self-check); the new APK delivered to the user right after.
+**Agent runs:** 9 (audit step included).
+**Dependencies:** breakdown approved; the user's OK on the drop list (inside the task, after the audit).
+**Files likely touched:** `supabase/migrations/<ts>_drop_unused.sql`, `supabase/tests/{coach_free_text,coach_plan_inputs,coach_summary,coach_user_intake,delete_account_cascade}.test.sql`, `supabase/functions/coach/*`, `app/{AppRoutes,AppNavHost,AppFeatures,AppScaffold,AppRoot,App}.kt`, `di/UiModule.kt`, `feature/trainer/{FreeTextLines*,TrainerScreen,Intake*,YourData*,BeforeStartUiState}.kt`, `shared/.../{CoachIntake,PlanInput,CoachIntakeDto,PlanInputsDto,CoachIntakeRepository,SupabaseCoachIntakeRepository,UnconfiguredCoachIntakeRepository}.kt`, `strings.xml`, plus the resources, scripts, SQL, functions and docs found by the audit, their tests, `planning/{00-decisions,02-architecture,03-data-model,04-business-rules,05-design-system}.md`, the US-81/US-89 epic files
+**Estimated scope:** L (by the audit)
+
+---
+
+## T-278: A rich dummy user and one command for the live flow on the emulator (US-131) · M
+
+**Story:** US-131 · **Flow:** planner → backend-developer (dataset, seed test) → pr-reviewer → pr-creator (no gate script: SQL and script only; `06` §2.1) · **Size:** M (dataset SQL with dates relative to today, its pgTAP check, the command script, docs; about 6-8 files)
+**Scenarios:** US-131 A rich dummy user for real flows; One command starts the live flow.
+**Description:** **Dataset (local only, no personal data):** the seeded test user `test@appfitness.local` (`08` §3.2, fixed id) gets weeks of diary (several comidas a day, personal and catalogue foods, at least one entry whose food is gone, ADR-105), weeks of weight history, a training block in progress with finished sessions (including a cardio set, a paused week and an extension, so the E18 screens have content), an accepted trainer plan, stored weekly reports and a block review in "Informes", and open notices in Centro de avisos. It is written against the post-cleanup schema (T-277), with no free-text notes. Dates are relative to the day the command runs, so the data is always "current". The data is written through the same tables and RPCs the app uses where possible, so it is valid for the coach readers. **Where it lives (planner decides, recorded in the PR):** a separate local-only SQL file applied by the command after `supabase db reset`, so `seed.sql` and every existing pgTAP test that relies on the minimal test user stay unchanged; never applied to production (`deploy-supabase` runs `db push` without seed). **Command:** one command (Python, like `deliver-apk.py`, runnable from PowerShell) that starts Docker Supabase, resets it, applies the dataset, builds and installs the `local` flavor on the running emulator (`10.0.2.2`), and prints the "Test login" credentials it uses; it stops with a clear message when Docker or the emulator is missing. Docs: `08-environment-setup.md` (the command and the dataset), `02-architecture.md` §"seed" line.
+**Acceptance criteria:**
+- [ ] One command starts the local backend with the dummy data and installs the app on the emulator.
+- [ ] After "Test login", Diario, Peso, Entreno, Trainer, "Informes" and Centro de avisos show the dummy history, block, plan, reports and notices.
+- [ ] The dataset is local only (never in `db push`), holds no personal data, and `seed.sql` and the existing pgTAP tests are unchanged and green.
+**Host tests:** a pgTAP test of the dataset (applied after reset: the user has N diary days, weight rows, an accepted plan with a saved block and finished sessions, at least one stored report and one notice; coach readers such as `coach_plan_weeks` return without error); the script's dry-run test if the planner adds one (as `test_deliver_apk.py`).
+**Verification:**
+- [ ] `npx supabase db reset && npx supabase db lint && npx supabase test db` green; the command run once by a subagent against the local Docker stack (emulator step optional in the agent's environment).
+**Agent runs:** 5. About 6-8 files.
+**Dependencies:** T-277 merged (it seeds the post-cleanup schema). It does not depend on the gallery and the gallery does not depend on it (the gallery renders fake UI states with no backend); it goes first so the user can use the emulator while the gallery is built.
+**Files likely touched:** `supabase/seed-review.sql` (name by planner), `supabase/tests/seed_review.test.sql`, `scripts/review-emulator.py` (name by planner), `scripts/test_review_emulator.py`, `planning/08-environment-setup.md`, `planning/02-architecture.md`
+**Estimated scope:** M
+
+---
+
+## T-279: Screen gallery, part 1: harness, index, missing-screen check, Diario and Perfil (US-131) · L
+
+**Story:** US-131 · **Flow:** planner → ux-reviewer (plan: the area map and the state list per screen) → compose-ui-developer (gallery entries and fixtures; kotlin-core-developer only if a screen needs a stateless content split) → pr-reviewer ∥ ux-reviewer (diff) → pr-creator (`scripts/verify-local.sh --full`) · **Size:** L (harness plus about 25 screens; split from T-280 by area)
+**Scenarios:** US-131 One command renders every screen (Diario, Perfil, Inicio, Centro de avisos); No screen is missing (the check itself, with a named pending list for T-280); States are shown, not only the happy path; Images are easy to browse.
+**Description:** **Tool (epic, recorded here):** Roborazzi on the Robolectric host tests, already in the repo (`composeApp/build.gradle.kts`, 360x640 dp device as the designsystem screenshot tests, `06` §"Screenshot tests"). No `@Preview`, no Maestro, no device, no backend, no Koin graph with real clients, no account, no secret. **Gallery, not goldens (planner confirms):** the gallery images are written on demand by the gallery command to a build output folder (gitignored) and uploaded as a CI artifact (`android-ci.yml` already uploads `**/build/outputs/roborazzi/`); they are not verified goldens, so a UI change does not need re-recorded PNGs; the existing designsystem goldens stay as they are. **Fixtures:** each screen is rendered from fixed fake UI states (dummy user, no personal data, fixed clock and locale `es-ES`, dark theme as the app), through its stateless content composable; where a screen has no stateless split, the planner chooses between the existing host-test fakes and a stateless extraction (a pure refactor; behaviour and existing host tests unchanged). **States:** for each screen, with data, empty, loading and error where they exist, plus every sheet and dialog it opens (ux-reviewer lists them per screen in the plan). **Index:** one generated HTML page (or markdown, planner's choice) grouping the images by area (Diario, Entreno, Trainer, Perfil, and "Inicio" for sign-in and onboarding), one row per screen with its states. Each screen belongs to exactly one area; ux-reviewer assigns the shared ones (Centro de avisos, "Informes", the food search reached from several places) in the plan. **Command:** one command (for example a Gradle task or `scripts/gallery.sh` / `.py`, usable from PowerShell as `deliver-apk.py` is) that renders the gallery and prints the index path. **Coverage (the inventory in `tasks/plan.md` "What the gallery must cover" is the starting list; the planner re-derives it from the code):** every `AppRoute` (the `AppDestinations.fullScreenRoutes` list plus the four tab roots), every `RootRoute` state (Loading, Welcome, Onboarding with each step, ProfileError), every sheet and dialog, and the in-screen flows (the live session's summary, the photo/"Describir comida" AI sheets and the AI draft, the barcode result paths, the date pickers). **Missing-screen and missing-overlay check (two parts, both fail naming what is missing):** (1) routes: a host test reads the `AppRoute` subclasses (sealed-class reflection or `fullScreenRoutes` plus the tab roots) and the `RootRoute` states and fails for each one without a gallery entry; (2) sheets and dialogs, which are not routes: a source scan (a host test reading `commonMain`, or a `check-ux-conventions.sh`-style script run in CI; planner's choice) finds every composable in `feature/` that calls an overlay primitive (`AppBottomSheet`, `AppActionSheet`, `FoodSheet`, `OptionPickerSheet`, `NameSheet`, `NoteSheet`, `DayPickerSheet`, `ChartMetricPickerSheet`, `RpePickerSheet`, `SetTypePickerSheet`, `AppConfirmDialog`, `DiscardChangesDialog`, `AppDatePickerDialog`, and any new overlay primitive added to `designsystem/`) and fails for each one not listed in the gallery's overlay manifest. Exempt by name, with the reason in the manifest: the debug component catalog (`CatalogRoute`, local only); system UIs the app does not draw (Google sign-in's Credential Manager sheet, the system camera and photo picker, the ML Kit barcode scanner, Android permission dialogs); the rest-alert system notification (`RestAlertNotifier`, an Android notification, not Compose; its text is listed in the index as text). There are no home-screen widgets. The Entreno and Trainer screens and overlays are in an explicit pending list that T-280 empties (the list cannot grow). Docs: `06-agent-workflow.md` (the gallery command, where the images and the index are, record vs gallery), ADR-103's spike bullet marked superseded (Roborazzi chosen, epic 2026-11-11), `02-architecture.md` testing line if the planner adds a source set or folder.
+**Acceptance criteria:**
+- [ ] One command renders every Diario, Perfil, Inicio (sign-in, onboarding, loading, profile error) and Centro de avisos screen with its states, sheets and dialogs, with no device, backend, account or secret.
+- [ ] The index page groups the images by area and opens each one.
+- [ ] The check fails and names a route or a sheet/dialog without an entry (proved by a test for each part); only the named T-280 pending list and the documented exemptions are exempt.
+- [ ] No production behaviour changes; every existing host test and golden stays green; `check-ux-conventions.sh` passes.
+**Host tests:** the gallery tests themselves (one per screen, all states); the route check and the overlay check, each with a test that it names a missing entry; existing tests unchanged.
+**Verification:**
+- [ ] lint + `testLocalDebugUnitTest`/host tests green (`verify-local.sh --full`); the gallery artifact is attached to the PR's CI run and the PM links the index in the PR body.
+**Agent runs:** 6. About 15-20 files (harness, index generator, the two checks, fixtures and entries for two areas).
+**Dependencies:** T-278 merged (no build dependency on the dummy user; T-277 before it means the gallery never captures removed screens).
+**Files likely touched:** `composeApp/src/androidHostTest/.../gallery/` (harness, index, check, `DiarioGallery`, `PerfilGallery`, fixtures), `composeApp/build.gradle.kts` (gallery task or property), `scripts/gallery.*`, `.gitignore`, `planning/06-agent-workflow.md`, `planning/00-decisions.md` (ADR-103 note)
+**Estimated scope:** L
+
+---
+
+## T-280: Screen gallery, part 2: Entreno and Trainer (US-131) · L
+
+**Story:** US-131 · **Flow:** planner → ux-reviewer (plan: state list per screen) → compose-ui-developer (kotlin-core-developer only for a stateless content split) → pr-reviewer ∥ ux-reviewer (diff) → pr-creator (`scripts/verify-local.sh --full`) · **Size:** L (about 30 screens, many with several states: the live session, the block builder flow, the plan proposal, reports)
+**Scenarios:** US-131 One command renders every screen (all areas); No screen is missing (pending list empty); States are shown, not only the happy path.
+**Description:** Gallery entries, with the T-279 harness and conventions, for the Entreno area (routines with folders and their sheets, the routine builder with its calculator sheets, exercise picker, exercise details with its tabs and the chat tab, create/edit exercise sheets, live session including rest and cardio timers, RPE, set type, disc loader, warm-up, discomfort, progression help, volume options and finish sheets and its dialogs, the session summary inside it, save-as-routine and update-routine sheets, session detail, edit workout, past workout with its chooser sheet, the calendar) and the Trainer area (Trainer root and "Detalles", "Tu plan", "Tu bloque" with the "Actual" week pencil and its date picker, "Para conocerte", "Tus datos", "Antes de empezar" with the activity-level sheet, plan proposal, block preview, the builder with split, day type, slot picker, create-exercise and exercise-reason sheets, block start and replace sheets, folder block and review result, weekly summary, block review, "Informes" and a past report). States per screen as listed by ux-reviewer (with data, empty, loading, error, sheets, dialogs; the plan proposal's blocked state, a paused week, an extended week). The T-279 pending list is emptied, so from here every new route or overlay needs a gallery entry or the check fails.
+**Acceptance criteria:**
+- [ ] The gallery command renders every screen of the app (all areas) with its states, sheets and dialogs, and the index lists them by area.
+- [ ] The check has no pending list; only the documented exemptions (debug catalog, system UIs, the system notification) remain.
+- [ ] No production behaviour changes; existing host tests and goldens green; `check-ux-conventions.sh` passes.
+**Host tests:** the gallery tests of both areas; the missing-screen check green with an empty pending list.
+**Verification:**
+- [ ] lint + host tests green (`verify-local.sh --full`); the full gallery artifact on the PR's CI run, index linked in the PR body.
+**Agent runs:** 6. About 12-18 files.
+**Dependencies:** T-279 merged.
+**Files likely touched:** `composeApp/src/androidHostTest/.../gallery/{EntrenoGallery,TrainerGallery}*.kt`, fixtures, the check's pending list
+**Estimated scope:** L
+
+---
+
+## The review rounds (US-123) *(T-281…T-284; no 👤 gate in E19, user decision 2026-11-11)*
+
+Before round 1 the PM sends the user the gallery command, the index path and the live-flow command (no gate): the user browses them himself, and anything missing or wrong in the tools becomes a `fix(T-###)` before the round starts.
+
+Every round follows the same steps (US-123 "Reviewed in rounds", "Every change goes through the design system", "A decision becomes a rule", "Early feedback, no gates", "Behaviour does not change"):
+1. **Review (ux-reviewer, review mode on the gallery images and, when needed, the emulator):** the area's screens and every flow, sheet and dialog reachable from them. Output: a findings list, one row per finding: screen, problem, proposed change, and the component or rule it affects (`05` §6/§8-§10, R-##). It respects "Decided - do not re-propose" (`05` §8) and proposes no behaviour change.
+2. **Decision (PM ↔ user, in chat):** the PM presents the list; the user accepts, rejects or changes each item. Nothing is planned or built before that. The decisions are recorded in the round's task section (accepted, rejected, changed).
+3. **Rules first (same branch, first commit):** every accepted change is written into `05` (§6 component, §8 rule, §9 pattern, §10 glossary) before code; a finding that states how something should look or work everywhere becomes an R-## rule and, when it can be checked, a guard in `check-ux-conventions.sh` (CLAUDE.md: a repeated finding becomes a check).
+4. **Fix batch:** planner → ux-reviewer (plan: pattern map, sweep list of every screen in any area with the pattern, Spanish copy) → compose-ui-developer (kotlin-core-developer only when a UI state must change shape) → pr-reviewer ∥ ux-reviewer (diff) → pr-creator (`verify-local.sh`, `--full` when the designsystem changes). The sweep covers every screen of the app with the pattern, not only the round's area (R-39); later rounds review the updated gallery.
+5. **Early feedback:** after the merge the PM sends the user the updated gallery images of the changed screens (the CI artifact or the gallery command), with no 👤 gate; any comment becomes a finding of the next round, or a `fix(T-###)` if it is a defect.
+Common acceptance criteria for every round: the findings list was decided by the user before planning; every accepted change is in `05` first and swept everywhere it applies; no change alters what the app does (the existing host tests stay green and are only adjusted for testTags or layout, never for behaviour); new or changed UI has host tests and gallery entries; `check-ux-conventions.sh` passes; state survives leaving the app (ADR-40).
+
+## T-281: Review round 1: Diario (US-123) · M (estimate)
+
+**Story:** US-123 · **Flow:** ux-reviewer (review) → user decisions in chat → planner → ux-reviewer (plan) → compose-ui-developer → pr-reviewer ∥ ux-reviewer (diff) → pr-creator · **Size:** M (estimate; resized after the decisions, split into batches with new IDs above ~15 files)
+**Scenarios:** US-123 Reviewed in rounds (Diario); Every change goes through the design system; A decision becomes a rule; Early feedback, no gates; Behaviour does not change.
+**Description:** Area: Diario and everything reachable from it: the day view, comidas and their entries, the add-food flow (search, the AI sheet with photo and "Describir comida", the AI draft, create/edit food with its sections and the energy check), barcode, diary history, check-in and activity if reached from Diario, Centro de avisos if ux-reviewer assigned it here (T-279), and every sheet and dialog on the way. Steps as in "The review rounds".
+**Acceptance criteria:**
+- [ ] The Diario findings list (screen, problem, proposed change, component/rule) was presented and each item decided by the user before planning; decisions recorded here.
+- [ ] The common round criteria above.
+**Host tests:** per accepted change, the Robolectric test of each changed screen (and of every swept screen), gallery entries updated; a `check-ux-conventions.sh` self-test for any new guard.
+**Agent runs:** 7 plus the review step.
+**Dependencies:** T-280 merged.
+**Files likely touched:** decided by the findings; `planning/05-design-system.md`, `scripts/check-ux-conventions.sh`, `designsystem/`, `feature/{diary,food,meals,checkin,activity,notifications}/`, gallery entries
+**Estimated scope:** M (estimate)
+
+---
+
+## T-282: Review round 2: Entreno (US-123) · M (estimate)
+
+**Story:** US-123 · **Flow:** as T-281 · **Size:** M (estimate; same resizing rule)
+**Scenarios:** US-123 Reviewed in rounds (Entreno); Every change goes through the design system; A decision becomes a rule; Early feedback, no gates; Behaviour does not change.
+**Description:** Area: Entreno and everything reachable from it: routines and the routine builder, templates, the exercise picker and exercise details (with the chat tab), the live session (set rows, the timer slot R-58, rest and cardio, RPE and set-type pickers, discomfort), session summary and detail, past and edited workouts, the calendar, quick search, and every sheet and dialog on the way. Changes already swept by round 1 are not re-proposed. Steps as in "The review rounds".
+**Acceptance criteria:**
+- [ ] The Entreno findings list was decided by the user before planning; decisions recorded here.
+- [ ] The common round criteria above; the live session keeps its timers, haptics and restoration behaviour (existing tests green).
+**Host tests:** as T-281, for the changed and swept screens.
+**Agent runs:** 7 plus the review step.
+**Dependencies:** T-281 merged.
+**Files likely touched:** decided by the findings; `planning/05-design-system.md`, `scripts/check-ux-conventions.sh`, `designsystem/`, `feature/{routines,templates,exercises,workout}/`, gallery entries
+**Estimated scope:** M (estimate)
+
+---
+
+## T-283: Review round 3: Trainer (US-123) · M (estimate)
+
+**Story:** US-123 · **Flow:** as T-281 · **Size:** M (estimate; same resizing rule)
+**Scenarios:** US-123 Reviewed in rounds (Trainer); Every change goes through the design system; A decision becomes a rule; Early feedback, no gates; Behaviour does not change.
+**Description:** Area: the Trainer and everything reachable from it: the compact Trainer and "Detalles", "Tu plan", "Tu bloque" with "Semanas del bloque" and the "Actual" week pencil, "Para conocerte" (as left by T-277), "Tus datos", the plan proposal, the block flow (types, split, targets, builder, preview, before start), folder block and its review result, the weekly summary, the block review, "Informes" and past reports, and every sheet and dialog on the way. Steps as in "The review rounds". ("Lo que el entrenador sabe de ti" is already removed by T-277.) **Pre-seeded findings (the carried follow-ups):** the `BlockReviewEntry` hand-rolled clickable card, the `WeekSummaryScreen` internal `SummaryCard` name clash, the duplicate "Tu plan" header, the `FormContentMaxWidth` cap and the themed "puedes cambiarlo" text on the block targets step (T-235).
+**Acceptance criteria:**
+- [ ] The Trainer findings list, including the pre-seeded ones, was decided by the user before planning; decisions recorded here.
+- [ ] The common round criteria above.
+**Host tests:** as T-281, for the changed and swept screens.
+**Agent runs:** 7 plus the review step.
+**Dependencies:** T-282 merged.
+**Files likely touched:** decided by the findings; `planning/05-design-system.md`, `scripts/check-ux-conventions.sh`, `designsystem/`, `feature/trainer/`, `strings.xml`, gallery entries
+**Estimated scope:** M (estimate)
+
+---
+
+## T-284: Review round 4: Perfil (US-123) · M (estimate)
+
+**Story:** US-123 · **Flow:** as T-281 · **Size:** M (estimate; same resizing rule)
+**Scenarios:** US-123 Reviewed in rounds (Perfil); Every change goes through the design system; A decision becomes a rule; Early feedback, no gates; Behaviour does not change.
+**Description:** Area: Perfil and everything reachable from it: the Perfil root, "Mi entrenamiento", Preferencias (hub and sections, meal structure and default comidas), Peso and its history, statistics (training stats, strength, exercise progress, muscle volume), "Acerca de", and the "Inicio" screens (sign-in, onboarding), with every sheet and dialog on the way. Steps as in "The review rounds". Last implementation task: after its merge the PM checks that no finding from the four rounds is left without a decision or an owning task (rejected items stay recorded as rejected).
+**Acceptance criteria:**
+- [ ] The Perfil findings list was decided by the user before planning; decisions recorded here.
+- [ ] The common round criteria above.
+**Host tests:** as T-281, for the changed and swept screens.
+**Agent runs:** 7 plus the review step.
+**Dependencies:** T-283 merged.
+**Files likely touched:** decided by the findings; `planning/05-design-system.md`, `scripts/check-ux-conventions.sh`, `designsystem/`, `feature/{profile,weight,analytics,about,auth,onboarding,meals}/`, gallery entries
+**Estimated scope:** M (estimate)
+
+---
+
+## T-285: E19 closure → `v1.x` · closure step (PM only, not a developer task)
+
+**Story:** E19 Definition of Done · **Flow:** PM closure step after T-284 merges and the user approves the epic closure (the normal closure approval; E19 has no 👤 checkpoint, user decision 2026-11-11). No developer agent, no size class; it cannot merge into a task because it waits for that approval.
+**Description:** Version bump (`versionName`/`versionCode`, minor per epic, proposed `1.10.0`), tag, retrospective `retrospectives/E19.md`, archive of the E19 log lines; `09-open-questions.md` records Q-E19-1 (no checkpoints), Q-E19-2 (free text removed in every layer), Q-E19-5 (dead-code cleanup, with the approved drop list) and their answers; `01-scope.md` E19 row marked done; the epic status set to done.
+**Acceptance criteria:**
+- [ ] T-277…T-284 (and any batch or fix tasks) merged with green CI; `deploy-supabase` green after T-277 with data intact.
+- [ ] Every round's findings decided and recorded; `05` §8-§10 hold every accepted rule; `check-ux-conventions.sh` passes.
+- [ ] `00`, `02`, `05`, `06`, `08` and the epic file are current; the user approved the epic closure.
+- [ ] Version bumped; `tasks/todo.md` pointer updated through a PR.
+**Verification:**
+- [ ] `git tag` lists the E19 tag.
+**Dependencies:** T-284 merged; the user's epic-closure approval.
+**Files likely touched:** `androidApp/build.gradle.kts`, `tasks/todo.md`, `tasks/plan.md`, `planning/09-open-questions.md`, `planning/01-scope.md`, `planning/epics/E19-ui-review.md`, `retrospectives/E19.md`
+**Estimated scope:** closure step (PM)
 
 ---
 

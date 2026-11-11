@@ -1,149 +1,175 @@
-# Implementation Plan: E18 · Functional improvements → `v1.x` (proposed `v1.9.0`)
+# Implementation Plan: E19 · UI review → `v1.x` (proposed `v1.10.0`)
 
-> **Status: CLOSED (`v1.9.0`, 2026-11-11). Was PROPOSED by the epic-planner, 2026-11-09; updated the same day with the user's feedback.** The task list (T-259…T-267) needs the user's OK on the breakdown PR; one checkpoint only, Checkpoint E18 at the end (user decision 2026-11-09). Q1 and Q2 are resolved by the user (2026-11-09, "Decisions" below). The only open user item is the 👤 Gemini terms check, which gates T-265. The E17 plan that lived here is in git history (E17 closed, `v1.8.0`; `tasks/todo.md` E17 section).
-> **Extended 2026-11-10 (epic-planner) with US-132 and US-133 (ADR-105):** T-271, T-272 and **👤 Checkpoint E18-B**, after the T-268…T-270 fixes and before the closure T-267. Q-E18-3…Q-E18-5 are resolved (below).
-> **Extended 2026-11-10 (epic-planner) with US-134 and US-135 (ADR-106):** T-274, T-275 and **👤 Checkpoint E18-C (approved by the user, 2026-11-10)**, after the approved Checkpoint E18-B and before the closure T-267. Q-E18-6 (the extension limits) needs the user's OK before T-274 is planned.
+> **Status: PROPOSED by the epic-planner, 2026-11-11; revised twice the same day with the user's feedback; needs the user's OK on the breakdown PR.** Tasks T-277…T-285 (revised a third time: the cleanup is one task, and the dummy user runs before the gallery). **No 👤 checkpoint** (user decision 2026-11-11, Q-E19-1). E19 starts by removing everything that is no longer used (user decisions 2026-11-11, Q-E19-2 and Q-E19-5). The free-text notes go in every layer if nothing reads them, and a dead-code audit covers the rest. The audit list is shown to the user before any deletion, and every production table or column is approved by name before the migration. The E18 plan that lived here is in git history (E18 closed, `v1.9.0`; `tasks/todo.md` E18 section).
 
 ## Overview
-The app drops every trace of Anthropic (Edge Function code, key, `coach_usage`, "Uso de IA", the monthly limit, the model selector) and is "100 % free" again. Weekly summaries and block reviews are stored as snapshots from now on and reopened from "Informes" in Centro de avisos. Diario and Entreno get a magnifier that opens a view-only food or exercise search, and the food search lists favourites and my foods at once, with Open Food Facts after. The Trainer shows the essentials and moves the full nutrition plan and block into "Detalles". Last, an exercise's details get a chat tab where a Gemini trainer-expert answers single questions about that exercise only.
+E19 first cleans the app in one task. An audit lists everything no longer used, with evidence, and the user sees it first. Then everything on the list goes, in every layer and one PR: the free-text notes ("Lo que el entrenador sabe de ti", the "Enviar al entrenador" switches, the "Para conocerte" free-text field and help); every unused screen, string, resource, class, binding, flag, script and stale doc; and, through one migration, the free-text storage and every unused RPC, table and column the user approved. Then E19 builds the tools to see the whole app without installing it (the dummy user first, then the gallery), and reviews all the UI with the user, area by area.
 
-Sources: `planning/epics/E18-functional-improvements.md` (intent, non-goals, US-128, US-129, US-130, US-120…US-122), ADR-103, ADR-17, ADR-59, ADR-66, ADR-98, ADR-101, ADR-104, `04` §6.1, §6.7, §6.9, `03` §3, §7, `05` §8-§10, `01` §4. Tasks: `tasks/todo.md` (E18 section).
+The tools are a screen gallery and a rich dummy user on the emulator. The gallery is made of Roborazzi images from the Robolectric host tests with fake data: every screen, state, sheet and dialog, grouped by area in one index page, with a check that fails when a screen or an overlay has no entry. The dummy user runs on the local flavor and Docker Supabase, started with one command.
 
-Out of scope (epic non-goals, `01-scope.md`): comparing reports; storing reminders; saving the chat; a chat disclaimer; chats outside an exercise; a monthly report (ADR-66); any model in the numbers (ADR-98); a new look (E19). Also out of E18 by user decision: rebuilding old reports, follow-up context in the chat, an app-side chat limit.
+Then come four review rounds (Diario, Entreno, Trainer, Perfil). ux-reviewer proposes findings, the user decides each one in chat, and every accepted change goes into `05` first and is swept across every screen with the pattern. Nothing changes what the app does: the cleanup removes only unused things.
 
-## Decisions (user, 2026-11-09)
-In plain words:
-- **Old reports are not rebuilt (Q1(a)).** "Informes" starts with the weekly summaries produced after the update. Older weeks were never saved, and rebuilding them today could show different numbers, so they are not added. The block reviews already in the database are listed, because they were saved when they were shown.
-- **The block-end notice is a report (Q1(b)).** Opening "Tu bloque ha terminado: revísalo" from Centro de avisos removes it from the active list, and the review stays in "Informes". The Trainer's "Revisión del bloque" card still shows until the next block is saved. T-261 amends `04` §6.9 ("opening never clears it").
-- **Past reports are read only (Q1(c), the planner's default taken by the user).** A report opened from "Informes" shows its figures and the decision you took, as text. It has no buttons to decide again ("Aplicar", "Ahora no", "Aceptar", "Seguir como estoy", "Crear el siguiente bloque"). The current report opened from its notice keeps its buttons.
-- **Paused weeks (Q1(d), the planner's default taken by the user).** A "Semana en pausa" week appears in "Informes" only if its summary was actually produced and shown to you. A paused week nobody opened leaves no report.
-- **One question at a time in the chat (Q2(a)).** Each question is answered on its own: the app sends only the exercise (name, muscles, instructions) and that question, never the earlier questions or answers. This matches the Gherkin, and the chat empties when you leave the exercise anyway. A chat that remembers the conversation is a possible idea for a later epic.
-- **The daily limit is Gemini's (Q2(b)).** When Gemini says it is busy or its quota is used up, the Edge Function catches it and the app shows a short reason. The app keeps no count of questions and has no limit of its own.
+Sources: `planning/epics/E19-ui-review.md` (intent, non-goals, US-131, US-123), ADR-103, ADR-97…99, ADR-27, ADR-40, ADR-80, ADR-2/ADR-14 (local flavor, "Test login"), `05` §6, §8-§10, `06` (screenshot tests), `08` §3.2 (seed user), `02` §5, `03`, the T-259/T-242 production-drop precedent. Tasks: `tasks/todo.md` (E19 section).
+
+Out of scope (epic non-goals, `01-scope.md`): changing behaviour or adding features; a second UI-automation harness (ADR-27; no Maestro, no `@Preview` fixtures); rebuilding screens from scratch; re-proposing anything in `05` §8 "Decided - do not re-propose"; dropping anything with production data that the user did not approve by name.
+
+## Decisions (user, 2026-11-11)
+- **No 👤 checkpoint in E19 (Q-E19-1).** There is no new functionality to test, and the epic says "no gates". The user reviews the gallery images and the emulator himself during the rounds. The closure T-285 waits only for the normal epic-closure approval.
+- **One cleanup task (user, 2026-11-11).** The audit, the app removal and the backend migration form one task and one PR (T-277). The audit-first gate stays inside it, and production drops are approved by name.
+- **The dummy user before the gallery (user, 2026-11-11).** Nothing technical ties the dummy user to the gallery. It must follow the cleanup because it seeds the post-cleanup schema.
+- **The free-text notes go in every layer if nothing reads them (Q-E19-2, revised).** This covers the UI, strings, domain/data code, repositories, DTOs, DI, tests, Edge Function fields, a migration that drops the unused columns and tables (with a row-count self-check), pgTAP and docs (`03`, `04`, `05`, ADR-107). The audit proves by search that nothing reads them before the drop is planned. The "Para conocerte" free-text field goes with them; its other fields stay (this replaces Q-E19-4).
+- **E19 removes everything else that is no longer used (Q-E19-5).** The candidates are unused screens and routes, composables, strings and resources, domain/data classes, ports, DI bindings, feature flags, scripts, Edge Functions, RPCs, tables and columns, and stale docs, found by static checks and verified by search. The audit list, with evidence, is the first deliverable, and the user sees it before any data is deleted. Anything holding production data is listed for the user's OK before the migration.
 
 ## Architecture decisions
-- **Anthropic goes backend first, then app.** T-259 removes the provider, budget and prices from the `coach` Edge Function and drops `coach_usage`. Every deterministic kind keeps its exact response, and the handler ignores a `model` field, so the installed app keeps working until T-260's APK. T-260 removes the app side. The user unsets the secret and revokes the key (👤); the PM only verifies that the name is gone.
-- **Reports are snapshots, written when produced.** A new owner-scoped table holds the exact JSON a weekly summary showed. It is stored the first time the app builds a finished week's summary (idempotent security definer writer, the `open_coach_block_review` precedent), and later reads return the stored snapshot. No backfill and no gap filling. Block reviews are already frozen in `coach_block_reviews`; they are listed from there and gain a seen mark for the block-end notice. Reminders are never stored (`04` §6.1).
-- **One renderer per report type.** A past report is drawn by the same mapper and content composables as the live `WeekSummaryScreen` and `BlockReviewScreen`, in a read-only mode, with no second copy of the layout.
-- **Quick search reuses the existing searches** in a view-only mode (no target meal or workout, no "Añadir"). The food search shows my block (favourites and my foods) before it waits for `food-search`.
-- **The compact Trainer moves cards; it does not rebuild them.** The cards and rows of `TrainerContent` move between the Trainer root and a pushed "Detalles" screen. ux-reviewer writes the content map in the plan, and "Nothing is lost" is tested against it.
-- **The chat is a thin, closed, single-turn Edge Function.** `exercise-chat` takes only the exercise's name, muscles, instructions and one question. It has no tools and no database access, stores, counts and logs nothing, and maps Gemini busy/quota/timeout errors to codes the app names. It shares a Gemini client extracted from `food-photo`. The app keeps the conversation only in memory and saved state: it survives leaving the app and is cleared when you leave the exercise.
+- **One PR across every layer, and its risk (T-277).** The migration deploys to production when the PR merges, while the phone still runs the old APK (`v1.9.0`). From the old app's code:
+  - Reading "Para conocerte" keeps working: `select()` on `coach_user_intake`, and the DTO's `free_text` is nullable with a default.
+  - "Lo que el entrenador sabe de ti" shows its load error, and its switches fail, once `coach_free_text_lines` and `set_free_text_line_excluded` are dropped.
+  - Saving the free-text field fails unless `save_coach_intake` ignores the `free_text` key.
+  - The plan-input readers tolerate an absent `free_text` key.
+
+  Mitigations:
+  1. The recreated `save_coach_intake` ignores a `free_text` key.
+  2. The PM delivers the new APK right after `deploy-supabase` is green.
+  3. The audit's "old-app impact" column flags any other dropped object the old app calls; for those the user chooses a tolerant stub or a later drop when approving the list.
+  4. The migration is the PR's last commit.
+
+  The PM tells the user all this before the merge.
+- **One migration for all approved drops (T-277).** A new migration (merged migrations are never edited) drops the approved objects and recreates the readers without the dropped fields. It carries a row-count self-check (T-259/T-242 precedent): every table it does not drop keeps its row count, otherwise it raises. Edge Function fields are removed and the functions redeployed. A function with no caller is deleted.
+- **The audit is evidence-based.** For each item it records the command or search and its result. It looks for dynamic references before calling anything unused (`rpc("...")` strings, routes by serialization, resources by name). An RPC called only by pgTAP counts as unused.
+- **The gallery does not need the dummy user.** It renders each screen from fixed fake UI states on Robolectric, with no backend, no account and no network (the epic). The dummy user (T-278) is only for the live flow on the emulator. **The two tasks are independent. T-278 runs right after the cleanup (it seeds the post-cleanup schema) and before the gallery, so the user can use the emulator while the gallery is built.**
+- **Roborazzi is the tool (epic 2026-11-11; supersedes ADR-103's "spike" bullet, recorded by T-279).**
+- **Gallery images are generated, not goldens.** The command writes the images and the index to a gitignored build folder, and CI uploads them as an artifact. The existing designsystem goldens stay. (The T-279 planner confirms this.)
+- **Screens are rendered from fixed fake UI states** through their stateless content composables, with a fixed clock and `es-ES`. Where a screen has no stateless split, the planner uses the existing host-test fakes or a pure stateless extraction (no behaviour change).
+- **The coverage check has two parts.**
+  - (1) **Routes:** every `AppRoute` (the `AppDestinations.fullScreenRoutes` list plus the tab roots) and every `RootRoute` state needs a gallery entry.
+  - (2) **Sheets and dialogs:** these are not routes, so a source scan of `feature/` finds every composable that calls an overlay primitive (`AppBottomSheet`, `AppActionSheet`, `FoodSheet`, `OptionPickerSheet`, `NameSheet`, `NoteSheet`, `DayPickerSheet`, `ChartMetricPickerSheet`, `RpePickerSheet`, `SetTypePickerSheet`, `AppConfirmDialog`, `DiscardChangesDialog`, `AppDatePickerDialog`, plus any new primitive) and requires it in the gallery's overlay manifest.
+  - Both parts fail and name what is missing. T-279 has a pending list (Entreno, Trainer) that T-280 empties.
+  - Help sheets (`HelpButton`) are covered as part of each screen that has them.
+- **The rich dummy user is a separate local-only dataset.** The live-flow command applies it after `supabase db reset`, with dates relative to today. `seed.sql` and the pgTAP tests stay unchanged, and production never receives it.
+- **Rounds change the design system first.** Each accepted finding goes into `05` in the round's first commit, then it is swept app-wide (R-39). A rule that can be checked becomes a guard in `check-ux-conventions.sh`.
+
+## What the gallery must cover (inventory from the code, 2026-11-11)
+Taken from `app/AppRoutes.kt` (`AppDestinations.fullScreenRoutes`, the tab roots), `app/RootRoute.kt` and the sheet and dialog composables in `feature/` and `designsystem/`. The T-279 planner re-derives it after the T-277 removals, and the check keeps it complete. Each screen gets its states (with data, empty, loading and error where they exist) and its overlays.
+- **Inicio (root states):** `Loading` (skeleton), `Welcome` (Google sign-in button, and its error), `Onboarding` (each step: biometrics and goals), `ProfileError`.
+- **Diario:**
+  - Screens: `DiaryHome` (the day, comidas, entries, the header bell, calendar and magnifier) and `DiaryDayRoute` (a past day).
+  - Food search (`FoodSearchRoute`) in its normal, pick (comida draft) and view-only modes, with its tabs including Comidas.
+  - `AddFoodRoute` (`AddFoodSheet`, normal and view-only).
+  - `CreateFoodRoute`: manual, from barcode, AI prefill, Open Food Facts copy, the energy-check block, and the Alcohol section with grados.
+  - `EditFoodRoute`, `EditEntryRoute` (`EditEntrySheet`, including a removed-food entry, read only), `SaveTemplateRoute` (`SaveTemplateSheet`), `TemplateDetailsRoute` (+ `TemplateFoodSheet`).
+  - `NotificationCenterRoute` (Centro de avisos, with its "Informes" entry) and `CheckInRoute`.
+  - Photo and AI flows (`photo/PhotoSheets`): the AI sheet with photo and "Describir comida", the text input, the draft, the error with retry and offline.
+  - Barcode result paths: found, not found leading to create, and OFF.
+- **Entreno:**
+  - `WorkoutHome` (routines and folders, `RoutinesSheets`, `FolderSheet`), `RoutineDetailsRoute`, `RoutineBuilderRoute` (+ `RoutineBuilderCalculatorSheets`, the row dialog).
+  - `ExercisePickerRoute` (normal and select mode), `ExerciseDetailRoute` (its tabs including the chat; `CreateExerciseSheet`, `ExerciseFormSheet`).
+  - `LiveSessionRoute`: set rows, the rest and cardio timer slot, the summary inside it, `LiveSessionDialogs`, `ExerciseMenu`, `RpePickerSheet`, `SetTypePickerSheet`, `DiscLoaderSheet`, `WarmUpCalculatorSheet`, `DiscomfortSheet`, `ProgressionHelpSheet`, `VolumeOptionsSheets`, `FinishSessionSheet`, `SaveAsRoutineSheet`, `UpdateRoutineSheet`.
+  - `HistoryRoute` (calendar), `SessionDetailRoute`, `EditWorkoutRoute` (`WorkoutFormBody` sheets), `PastWorkoutRoute` (+ `PastWorkoutChooserSheet`, the `WorkoutEntry` dialog).
+- **Trainer:**
+  - `TrainerHome` (the compact root and "Detalles"), `TrainerPlanRoute` ("Tu plan"), `TrainerBlockRoute` ("Tu bloque", the "Actual" week pencil and its date picker, the block section dialog).
+  - `PlanProposalRoute` (including the blocked state), `BeforeStartRoute` (plan and block modes, `ActivityLevelSheet`), `YourDataRoute`, `IntakeRoute` ("Para conocerte" as left by T-277).
+  - `BlockPreviewRoute`, `BlockBuilderRoute`: its steps `BlockTypesScreen`, `BlockSplitChoiceScreen`, `BlockTargetsScreen`, the builder, `DayTypeSheet`, `BuilderSlotPickerSheet`, `BuilderCreateExerciseSheet`, `ExerciseReasonSheet` and its dialog.
+  - `BlockStartSheets`, `BlockReplaceSheet`, `FolderBlockRoute` (+ dialog), `FolderReviewResultRoute`.
+  - `WeekSummaryRoute` (including a paused week), `BlockReviewRoute`, `ReportsRoute`, `PastReportRoute` (a weekly and a block report).
+  - `FreeTextLinesRoute` and anything else the T-277 audit removes are not covered.
+- **Perfil:**
+  - `ProfileHome` (root, "Mi entrenamiento" sheet, `ProfileDialogs`, the account-action dialogs), `PreferencesRoute`, and `PreferencesSectionRoute` for each of `personal`, `energy`, `macros`, `cooking`, `training`, `checkin`.
+  - `MealSlotsRoute` (+ its sheet), `MealDefaultsRoute` (+ `MealDefaultsSheets`).
+  - `WeightRoute` (`WeightDaySheet`, `CircumferenceSheet`, `CompositionSheet`, `GoalSheets`, the chart metric picker; opened on the weight and circumference targets), `WeightHistoryRoute`, `DiaryHistoryRoute`.
+  - `StrengthRoute`, `MuscleVolumeRoute`, `StatsRoute` (+ `MuscleDetailSheet`), `ActivityRoute` (+ the chart picker), `ExerciseProgressRoute`, `AboutRoute`.
+- **Shared, once:** the offline banner, the shell's bottom bar and its tabs.
+- **Not in the gallery (exempt by name, with the reason in the manifest):**
+  - `CatalogRoute`: the debug catalog, local only, unless the audit removes it.
+  - System UIs the app does not draw: the Credential Manager sign-in sheet, the system camera and photo picker, the ML Kit barcode scanner, permission dialogs.
+  - The rest-alert notification (`RestAlertNotifier`): an Android notification, not Compose. Its texts are listed in the index.
+  - There are no home-screen widgets.
 
 ## Ordering and sizing
 Every task pays 6-8 agent hand-offs, so stories stay whole unless one is too large for one PR. There is no S task.
 
 | Order | Task | Size | Story | Flow | Agent runs |
 |---|---|---|---|---|---|
-| 1 | T-259 (**M**): Anthropic removed: Edge Functions, `coach_usage` dropped, decisions | **M** | US-128 (backend) | backend | 5 |
-| 2 | T-260 (**M**): "Uso de IA", the limit and the model selector removed from the app | **M** | US-128 | core + UI | 7 |
-| 3 | T-261 (**M**): Reports stored: snapshots, their list, the block-end seen mark | **M** | US-129 (backend) | backend | 5 |
-| 4 | T-262 (**M**): "Informes": past reports from Centro de avisos | **M** | US-129 | core + UI | 7 |
-| 5 | T-263 (**M**): Quick search in Diario and Entreno, and my foods at once | **M** | US-121, US-122 | core + UI | 7 |
-| 6 | T-264 (**M**): A compact Trainer with "Detalles" | **M** | US-120 | UI + core | 7 |
-| — | 👤 Gemini terms check (decision gate, any time before T-265) | — | US-130 | user | — |
-| 7 | T-265 (**M**): The exercise chat Edge Function | **M** | US-130 (backend) | backend | 6 |
-| 8 | T-266 (**M**): Ask about an exercise: the chat tab | **M** | US-130 | core + UI | 7 |
-| — | **👤 Checkpoint E18** (final regression; re-tested after the fixes T-268…T-270) | — | | | |
-| 9 | T-271 (**M**): Log a meal by typing it: `food-photo` text mode and "Describir comida" | **M** | US-132 | backend + core + UI | 8 |
-| 10 | T-272 (**M**, upper end): Unused personal foods clean themselves up (`pg_cron`) | **M** | US-133 | backend + core | 6-8 |
-| — | **👤 Checkpoint E18-B** (US-132 + US-133; 7 items) | — | | | |
-| 11 | T-274 (**L**): Extend my block: a new last day from the Trainer | **L** | US-134 | backend + core + UI | 8 |
-| 12 | T-275 (**M**): Food form corrections: the "Describir comida" example and Alcohol by volume | **M** | US-135 | core + UI | 7 |
-| — | **👤 Checkpoint E18-C** (approved; US-134 + US-135; 7 items) | — | | | |
-| 12b | T-276 (fix): The pencil extends the current week, not the block (Checkpoint E18-C feedback, user 2026-11-11; food items approved) | fix | US-134 | core + UI | 7 |
-| — | **👤 Checkpoint E18-C re-test** (block items 1-3 and the block part of 7 only) | — | | | |
-| 13 ✅ | T-267: E18 closure | closure step (no size class) | DoD | PM | PM only |
+| 1 | T-277: Remove everything unused: the audit, then the free-text notes and all dead code in every layer (one PR, with the migration) | **L** (by the audit) | US-123 cleanup (Q-E19-2, Q-E19-5) | audit + backend + core + UI | 9 |
+| 2 | T-278: A rich dummy user and one command for the live flow on the emulator | **M** | US-131 | backend + script | 5 |
+| 3 | T-279: Screen gallery, part 1: harness, index, coverage check, Diario, Perfil, Inicio | **L** | US-131 | UI (host tests) | 6 |
+| 4 | T-280: Screen gallery, part 2: Entreno and Trainer | **L** | US-131 | UI (host tests) | 6 |
+| 5 | T-281: Review round 1: Diario | **M** (estimate) | US-123 | review + UI | 7 + review |
+| 6 | T-282: Review round 2: Entreno | **M** (estimate) | US-123 | review + UI | 7 + review |
+| 7 | T-283: Review round 3: Trainer | **M** (estimate) | US-123 | review + UI | 7 + review |
+| 8 | T-284: Review round 4: Perfil | **M** (estimate) | US-123 | review + UI | 7 + review |
+| 9 | T-285: E19 closure (after the user's closure approval) | closure step (no size class) | DoD | PM | PM only |
 
 Why these splits and merges:
-- **US-128 → T-259 + T-260:** about 45 files (Edge Function, shared client, migration, pgTAP, docs, then the app's screen, models, repository, DI and tests). Backend and app are reviewed apart, and the backend must land first (production data drop, epic order).
-- **US-129 → T-261 + T-262:** about 20 files (migration, RPCs, pgTAP, then repository, list, read-only viewer of two report types, Centro de avisos entry, routes, tests).
-- **US-121 + US-122 → T-263:** US-122 alone is S (T-255 already orders the list) and touches the same `FoodSearchViewModel`/`FoodSearchScreen` as US-121's Diario path.
-- **US-120 → T-264:** one UI task (cards move; about 10 files).
-- **US-130 → T-265 + T-266:** about 16 files. The closed backend (prompt, data minimisation, error mapping, the shared Gemini client and the `food-photo` sweep) is reviewed apart from the chat tab.
-- **US-132 → T-271 (one task):** the backend change is a mode of the existing `food-photo` dish flow (optional image for `text`, a higher comment cap for `text`, one prompt sentence; about 5 files, S alone), so it rides with the app entry and input (about 8 files). User decision 2026-11-10: no new function, schema or prompt file.
-- **US-133 → T-272 (one task):** the migration, the job and pgTAP are about 7 files and the app part (an entry whose food is gone opens from its snapshot) about 5; one vertical slice, split backend → app only if the planner counts more than ~15 files.
-- **US-134 → T-274 (one task, L):** the heavy part is SQL (the stored extension, the writer RPC and every reader of the 7-day window arithmetic, with pgTAP; about 8 files); the app part is a pencil, the existing `AppDatePickerDialog` and one repository call (about 7 files), S alone, so it is not split. A split backend → app (new ID) only if the planner counts clearly more than ~15 files.
-- **US-135 → T-275 (one task, M):** app only (the stored value stays grams): the example string, the Alcohol section on the existing `SectionBlock` pattern, the grados input for ml foods with the shared conversion, help copy and docs. It does not merge into T-274 (different domain and screens).
-- **Closure T-267** is released by Checkpoint E18-C's approval (before 2026-11-10 it was Checkpoint E18-B's, and before that Checkpoint E18's). It has no checkpoint of its own and no size class: it cannot merge into a task because it waits for the approval.
+- **Cleanup → one task, T-277 (user decision).** The audit, the app removal and the backend migration go in one PR. The audit-first gate and the by-name approval of production drops stay inside it. The deploy-order risk is handled as described in "Architecture decisions". It is mostly deletions; it splits by layer with a new ID only above ~30 files with real edits.
+- **Cleanup before everything else:** the dataset seeds the cleaned schema, and the gallery never captures screens that go away.
+- **US-131 → T-278 + T-279 + T-280:** the dataset and its script are a different domain (about 6-8 files, M). It goes first because nothing ties it to the gallery and the emulator is useful while the gallery is built. The gallery covers about 48 screens, 4 root states and about 35 sheet and dialog composables, each in several states, so it is split by review area, not by component. The harness, index and checks are built once, in T-279.
+- **US-123 → one task per area (T-281…T-284):** the story defines the rounds by area and requires the user's decision before each fix batch. Sizes are estimates. Above ~15 files a round splits into batches with new IDs (design system and rules first, then the sweep). A round with very few accepted findings (S) merges into the next one.
+- **Closure T-285** waits for the user's epic-closure approval and has no checkpoint.
 
-## Phases and checkpoint
+## Phases
+No 👤 checkpoint (user decision 2026-11-11). The user's feedback comes through the audit list, the drop approvals, the per-round decisions in chat and the updated images after each merge.
 
-Items to test in the epic, collected first: (1) no "Uso de IA", limit or model selector; (2) the plan, block builder, folder review, weekly summary and food photo work as before, data intact; (3) "Informes" newest first, a report as it was shown, read only; (4) back and open another; (5) opening a report notice (weekly or block-end) clears it and it stays in "Informes"; (6) reminders never in "Informes"; (7) the Diario and Entreno magnifiers; (8) view-only details without "Añadir"; (9) favourites and my foods at once, OFF after; (10) Trainer essentials; (11) "Detalles" full content; (12) nothing lost against screenshots; (13) chat tab and a trainer-expert answer; (14) the chat takes no actions; (15) offline gives a short message and leaving the exercise empties the chat; (16) leave the app and come back on each new screen (final regression). Not testable by hand (pgTAP/Deno/host tests): no key or Anthropic code, `coach_usage` gone, another account's reports, only the exercise and one question sent, the busy and quota messages.
+### Phase 0: Remove what is no longer used
+- T-277, one task and one PR:
+  1. The audit list (item, layer, evidence, proposed action, production data yes/no, old-app impact) goes to the user in chat before any deletion.
+  2. The user approves each production table or column by name.
+  3. The removal follows in every layer, with the migration as the last commit.
+  4. Before the merge, the PM tells the user how the old APK behaves after the drop.
+  5. After `deploy-supabase` is green, the PM delivers the new APK right away.
+- Verification items:
+  - `deploy-supabase` green on `main` after T-277, with data intact (the self-check row counts).
+  - lint, including unused resources, clean or with a named allowlist.
 
-**User decision (2026-11-09): one checkpoint only, at the end** (the E16/E17 precedent). The 16 items are kept grouped by functionality: Anthropic removed 2, past reports 4, quick search 3, compact Trainer 3, exercise chat 3, leave and come back 1.
+### Phase 1: The review tools (US-131)
+- T-278 (dummy user and live-flow command; the PM sends the user the command when it merges) → T-279 → T-280. When T-280 merges, the PM sends the gallery command and the index path, with no gate. Anything missing or wrong becomes a `fix(T-###)` before round 1.
+- Internal milestones:
+  - The dataset pgTAP test green after T-278.
+  - The gallery artifact attached to the T-279 and T-280 CI runs.
+  - Both coverage checks green with an empty pending list after T-280.
 
-### Phase 1: Anthropic removed and past reports (US-128, US-129)
-- T-259 → T-260 → T-261 → T-262. No checkpoint here (user decision). `deploy-supabase` green after T-259 and T-261 and the 👤 secret removal are task verification items and preconditions of Checkpoint E18.
-
-### Phase 2: Quick search and the compact Trainer (US-121, US-122, US-120)
-- T-263 → T-264. No checkpoint here.
-- **👤 Gemini terms check** (decision gate for T-265): can be done any time before T-265, for example while T-263 or T-264 runs.
-
-### Phase 3: Ask about an exercise, the checkpoint and closure (US-130)
-- T-265 → T-266 → **👤 Checkpoint E18** → fixes T-268 → T-269 → T-270 → Trainer re-test → Phase 4 → T-267.
-- **👤 Checkpoint E18 — Functional improvements, with the final E18 regression** (after T-266, the last implementation task; 16 items in `tasks/todo.md`; its approval releases T-267). Take screenshots of the Trainer before installing. Try: no "Uso de IA", limit or model selector, and everything you use works as before; "Informes" from Centro de avisos lists your reports newest first, each read only as it was shown; back and open another; opening a report notice clears it; reminders never appear in "Informes"; the magnifiers in Diario and Entreno open searches whose results have no "Añadir"; your foods appear at once with OFF after; the Trainer shows its essentials, "Detalles" holds the full plan and block, and nothing is missing against the screenshots; the chat tab answers as a trainer expert, takes no actions, explains when there is no answer and empties when you leave the exercise; leave the app and come back on each new screen.
-
-### Phase 4: Text meals and food cleanup (US-132, US-133, ADR-105; added 2026-11-10)
-- T-271 → T-272 → T-273 (revert of the cleanup, user decision 2026-11-10: US-133 withdrawn, its checkpoint items dropped) → **👤 Checkpoint E18-B** (typed meal only, 5 items) → T-267 (closure).
-- **Why this order:** the backlog note placed these stories after the Checkpoint E18 path and before the closure, so the open Trainer re-test is not mixed with new screens; US-132 first because US-133's "I can create or describe it again" uses it and the cleanup also removes typed-meal foods; the checkpoint right after the last implementation task, the closure after it.
-- Items to test, collected first: (1) describe the Gherkin meal: one draft, name lists everything, totals with the beers' alcohol, one portion = whole meal, marked as estimate; (2) edit it, and a disagreeing draft blocks "Guardar" until fixed or retried; (3) save: entry in the comida and the food in later searches; (4) offline or no answer keeps the text with "Reintentar", empty or no-food text creates nothing; (5) after the first cleanup run, unused foods gone from search, favourites and comida foods kept, a removed food can be made again; (6) past days with a removed food unchanged and their entries open; (7) leave the app and come back with the text typed and the draft open, and search and photo adding unchanged (final regression of these stories). Seven items, one coherent food-logging journey → **one checkpoint (user decision 2026-11-10)**.
-- **👤 Checkpoint E18-B** (after T-272; 7 items in `tasks/todo.md`; its approval releases T-267). Try on the phone: in Diario, add to a comida with "Describir comida" and the Gherkin sentence; edit the draft and see "Guardar" blocked on a mismatch; save and find the food again; try airplane mode and an empty or no-food text; after the first cleanup run, check that unused foods are gone from search while favourites and comida foods stay, and that past days keep their totals and open their entries; leave the app and come back with the text typed and the draft open.
-- Internal milestones (task verification items, not checkpoints): `food-photo` redeployed after T-271; `deploy-supabase` green after T-272 with data intact; the job listed in production `cron.job` (read-only, subagent); a read-only count of the foods the first run would delete, shown to the user before the T-272 merge.
-
-### Phase 5: Extend the block and food form corrections (US-134, US-135, ADR-106; added 2026-11-10)
-- Checkpoint E18-B (approved) → T-274 → T-275 → **👤 Checkpoint E18-C** (approved, 7 items) → T-267 (closure).
-- **Checkpoint E18-C feedback (user, 2026-11-11):** the food items are approved; the block extension must extend the current week (pencil on the active week), not the block → `fix(T-276)` → re-test of the block items only → T-267 (closure). Details in `tasks/todo.md`.
-- **Why this order:** both stories arrived after Checkpoint E18-B was approved, so they sit between it and the closure. T-274 first: it is the riskier change (a production migration on the block calendar), it deploys early and T-275 (app only, independent) runs while it settles. One checkpoint after the last of the two (user decision 2026-11-10).
-- Items to test, collected first: (1) the pencil after the block end day and the picker's range; (2) pick 3 days later: end, later weeks and review move by 3 days, this week's sessions still to do, loads/deloads/calories unchanged; (3) pick the original day: everything back; (4) the new "Describir comida" example; (5) Alcohol as a collapsible section below "Minerales" in create and edit; (6) grados for an ml food converted to grams with no formula in the help, grams only for a g food; (7) leave the app and come back (picker open, after extending, Alcohol section with grados typed) and the Trainer and food adding unchanged (final regression). Seven items → **one checkpoint (user decision 2026-11-10)**.
-- **👤 Checkpoint E18-C** (approved; after T-275; 7 items in `tasks/todo.md`; its approval releases T-267). Try on the phone: extend the block from the pencil in "Tu bloque" and see every later date move, then pick the original day back; check the "Describir comida" example; create and edit a food and find Alcohol in its own section below "Minerales"; type grados for a drink in ml and see the grams; leave the app and come back on each.
-- Internal milestones (task verification items, not checkpoints): `deploy-supabase` green after T-274 with data intact; the E18-B APK still works against the T-274 backend.
-
-## Architecture decisions for US-134, US-135 (2026-11-10)
-- **An extension stretches the current plan week.** The difference `N` between the picked last day and the block's current computed end (`coach_block_end`, which already includes paused weeks) is added to the plan week that holds today (its window becomes `7 + N` days); later weeks, the review and the block-end notice move `N` days; past windows never change. A new pick replaces the old one. The window arithmetic gets one shared SQL helper that every reader uses (the T-274 planner lists them: `coach_plan_weeks`, `coach_block_end`, `coach_plan_week`, `coach_plan_calendar`, `coach_link_plan_session`, `coach_block_counted_weeks`, the review and "Bloque nuevo" openers, the block-end notice, the weekly summary week, the deload week-4 check, the §9.16 guards). With no extension stored every reader returns what it returns today (additive migration; the installed APK keeps working).
-- **No new UI component.** The pencil is an `AppIconButton` in "Tu bloque", the picker is `AppDatePickerDialog` with a bounded range; the Alcohol section reuses `SectionBlock` (`CreateFoodSections.kt`) and the unit choice reuses `SegmentedSelector`.
-- **Alcohol is still stored in grams.** Grados (% vol) are an input mode for ml foods only, converted with the `07` §4 factor (`× 0.789`) by one shared function (reused from the OFF import if it exists on the Kotlin side); the energy check, the database and `food-photo` are unchanged.
-
-## Risks (US-134, US-135)
-- **Calendar regression (T-274).** Many SQL functions repeat the 7-day window arithmetic (T-242); missing one would make weeks, links, the review or the deload disagree. Mitigation: one shared helper, the planner's reader list, pgTAP across readers with and without an extension, existing `coach_*` tests kept green.
-- **Production block (T-274).** The user's real block is on production. Mitigation: additive migration, no extension stored on deploy, `deploy-supabase` confirmed with data intact; at the checkpoint the user undoes the test extension (item 3).
-- **Link trigger and the extended last day (T-274).** A workout on the new last day must link to the stretched week, and one on the next day must not. Mitigation: explicit pgTAP cases at both edges.
-- **Rounding of converted grams (T-275).** Mitigation: the planner fixes the rounding and the tests pin it; the stored grams feed the same energy check as manual grams.
+### Phase 2: The review rounds (US-123)
+- T-281 (Diario) → T-282 (Entreno) → T-283 (Trainer, with the carried UI follow-ups as pre-seeded findings) → T-284 (Perfil) → the user's closure approval → T-285.
+- Each round:
+  1. ux-reviewer writes findings from the gallery.
+  2. The user decides each finding in chat.
+  3. The accepted changes go into `05` first.
+  4. The planner plans the fix batch, which includes the app-wide sweep.
+  5. The PM sends the updated images to the user (no gate).
 
 ## Dependencies
-- T-274 needs Checkpoint E18-B approved (done) and Q-E18-6 (resolved 2026-11-10). T-275 needs T-274 merged (no build dependency). T-267 also needs Checkpoint E18-C approved.
-- T-271 needs T-270 merged and the Trainer re-test approved. T-272 needs T-271 merged and deployed. T-267 needs Checkpoint E18 (re-test) and Checkpoint E18-B approved.
-- T-259 needs the breakdown approved. T-260 needs T-259 merged and deployed. T-261 needs T-260 merged. T-262 needs T-261 merged and deployed. T-263 needs T-262 merged (no build dependency). T-264 needs T-263. T-265 needs T-264 merged and the **👤 Gemini terms check** decided. T-266 needs T-265 merged and deployed. T-267 needs Checkpoint E18 approved.
-- Built pieces E18 relies on: the deterministic `coach` kinds (ADR-97…99), `coach_week_summary`/`coach_week_summary_week` and `coach_week_summary_seen` (T-231, T-242, T-246, T-247), `coach_block_reviews` and `open_coach_block_review` (T-233, T-243), Centro de avisos (E10, T-231, T-243), the `FoodSearchViewModel` own-first block and the `food-search` ordering (T-230, T-254, T-255), the exercise details tabs (T-179), `food-photo` and `GEMINI_API_KEY` (ADR-59).
+- T-277 needs the breakdown approved. Inside it, the removal waits for the user's OK on the drop list.
+- T-278 needs T-277 merged and deployed, because it seeds the post-cleanup schema.
+- T-279 needs T-278 merged. There is no build dependency: the gallery does not use the dummy user. T-280 needs T-279 merged.
+- T-281 needs T-280 merged. T-282 needs T-281, T-283 needs T-282 and T-284 needs T-283 merged, because each round reviews the gallery as the previous round left it.
+- T-285 needs T-284 merged and the user's closure approval.
+- Built pieces E19 relies on:
+  - Roborazzi and the host-test setup, and the CI artifact upload.
+  - The `local` flavor and "Test login".
+  - The existing host-test fakes and `check-ux-conventions.sh`.
+  - `deploy-supabase` and the T-259/T-242 self-check pattern.
+  - Every screen built through E18.
 
 ## Risks
-- **Production drop of `coach_usage` (T-259).** Mitigation: drop only budget objects; row counts of every other table checked before and after; `deploy-supabase` confirmed with data intact before Checkpoint E18.
-- **Old installed app against the new backend (T-259 → T-266).** With one checkpoint, the phone keeps the E17 APK until the end of the epic, while each backend change deploys on merge. Mitigation: the `coach` handler ignores `model`; T-261 adds tables and RPCs without changing what the E17 app reads; only the old "Uso de IA" screen fails until the new APK. Every backend task checks that the E17 app's calls still work.
-- **Removing the streaming path breaks a deterministic kind (T-259).** Mitigation: every kind's Deno tests are kept; responses are compared before and after.
-- **Weeks that are never produced (T-261).** With no gap filling, a finished week whose summary the app never builds (for example, the app is not opened before the next week ends) leaves no report. This is accepted by Q1(a)/(d); the app builds the latest summary on every Trainer or Centro de avisos load, so this only happens after a long absence.
-- **Snapshot drift (T-262).** A later change of the summary JSON shape could break old snapshots. Mitigation: the mapper tolerates missing keys (the T-246 precedent: "a summary built before T-246 lacks the key"); a test renders an older snapshot.
-- **Tab-root header crowding (T-263).** Diario's header would hold the bell, the calendar and the magnifier, and R-02 caps object actions at 2 icons plus ⋮. Mitigation: ux-reviewer rules on it in the plan (the epic fixes the position).
-- **Trainer content regression (T-264).** Moving cards can drop a figure. Mitigation: the content map in the plan, one host test per figure group, and screenshots before the checkpoint.
-- **Gemini terms and quota (T-265).** The free tier may not be allowed in the EEA, or its daily quota may be low. Mitigation: the 👤 check before T-265; the paid tier with a low limit as fallback (user decision); the quota message in the app.
-- **Chat scope (T-265).** A model may drift into medical or unrelated advice. Mitigation: a scoped system prompt reviewed by `fitness-scientist`, no tools, no user data in the request.
-- **A late checkpoint (one at the end).** Feedback on T-259…T-264 arrives after the chat is built. Mitigation: those tasks touch different screens from the chat, so fixes do not rework it.
-
-## Architecture decisions for US-132, US-133 (2026-11-10)
-- **Text meals are a mode of `food-photo` (user decision 2026-11-10).** `mode: text` is the dish flow with the typed sentence as the main input and no image: `image_base64` optional for `text` only, a higher comment cap for `text` only (`MAX_COMMENT_CHARS = 200` stays for the other modes), one extra dish-prompt sentence (the user text describes what was eaten; list the portion assumptions in the name or note; Gemini estimates quantities). Same draft, same ADR-104 energy check and `previous` retry, nothing stored or logged. Gemini decides portions, as the dish mode does. In the app the draft opens in the existing AI dish draft form and saves through the existing create-and-add path.
-- **The cleanup is SQL inside the database.** A security definer function, not executable by clients, judged per owner, run monthly by `pg_cron`. The T-272 planner first confirms from Supabase's current docs that `pg_cron` is available on the free plan, can be enabled from a migration and runs locally; no GitHub Actions workflow, no Edge Function, no secret (ADR-105, E20). If it is not available, T-272 stops BLOCKED.
-- **Diary entries keep their `food_id`.** The FK from `food_log_entries.food_id` to `foods` is dropped so the value survives a delete (no `set null`); snapshots already hold the name, amount, portion label, kcal and macros (ADR-53). pgTAP proves the per-day totals, counts, names, amounts and `food_id` values are equal before and after the cleanup; the app opens such an entry from its snapshot.
-
-## Risks (US-132, US-133)
-- **The first cleanup run deletes many existing foods at once.** Every personal food unused for 30 days goes, including hand-made ones (accepted in ADR-105). Mitigation: a read-only count per account shown to the user before the merge; the user chose to run it at deploy (Q-E18-3).
-- **Old APK against a deleted food.** Until the T-272 APK is installed, opening an entry whose food is gone may fail. The user chose the first run at deploy (Q-E18-3), so the old APK may fail on such an entry until the new APK is installed; the PM tells the user to install the T-272 APK right after the deploy.
-- **Readers that join `foods`.** A join in `food_diary_summary`, `most_eaten_foods` or `cooking_impact` could drop orphaned entries and change a day's totals. Mitigation: the planner lists every reader; the pgTAP totals-equal test covers them.
-- **Typed-meal estimates can be off** (`07` ref 102). Mitigation: the draft is always editable, marked as an estimate, and goes through the energy check.
+- **Dropping something that is used (T-277).** Mitigation:
+  - Every item carries evidence and a search for dynamic references.
+  - The free-text readers (`coach_summary`, `coach_plan_inputs`, the `coach` function inputs) are checked to only pass the text through.
+  - The user approves each production object by name.
+  - The row-count self-check runs, and the full pgTAP and Deno suites stay green.
+  - Notes typed in other features (check-in, discomfort, "¿Cómo te ha ido?") are judged one by one, not dropped as a group.
+- **Old APK against the dropped backend (T-277, one PR).** The migration deploys on merge while the phone still has `v1.9.0`. The old "Lo que el entrenador sabe de ti" screen and the free-text save would fail; the rest of the old app tolerates the drop. Mitigation: as described in "Architecture decisions" (`save_coach_intake` tolerant, an old-app impact column in the audit, the migration as the last commit, the new APK delivered right after the deploy, the user told before the merge).
+- **A removed Edge Function stays deployed.** Mitigation: the T-277 planner checks that `deploy-supabase` removes it; otherwise it is a 👤 console step listed for the user.
+- **The audit grows the task.** Mitigation: deletions are easy to review. The task splits by layer only above ~30 files with real edits. Doubtful items are listed for the user instead of removed.
+- **Gallery effort per screen (T-279, T-280).** Mitigation: the planner decides per screen; any extraction is a pure refactor checked by the existing host tests.
+- **Overlays the scan cannot see.** Mitigation: one primitive list; ux-reviewer checks the per-screen overlay list in the T-279 and T-280 plans; a new overlay primitive in `designsystem/` must join the list (pr-reviewer checks).
+- **Robolectric rendering differs from the phone.** Mitigation: the emulator flow covers real rendering.
+- **Dataset drift (T-278).** Mitigation: the dataset goes through the app's tables and RPCs, its dates are relative, and a pgTAP test runs it after every reset.
+- **A round grows.** Mitigation: design system first, sweep by search, split into batches above ~15 files.
+- **A look change that changes behaviour.** Mitigation: a common acceptance criterion; pr-reviewer rejects behaviour changes.
+- **No phone check before closure.** Mitigation: the user reviews the emulator during the rounds and gives the closure approval himself.
 
 ## Open questions
-- **👤 Gemini terms check: RESOLVED (user, 2026-11-09): free tier, same as `food-photo`, which already works on it; no check, T-265 does not wait. No open user item remains. (Superseded text:)** the user checks Google's current Gemini API terms for Spain/EEA and decides free tier or paid tier with a low spending limit, for the chat and `food-photo`.
-- **Q1 · RESOLVED (user, 2026-11-09):** see "Decisions" (no backfill; the block-end notice is a report; past reports read only; paused weeks only when shown). Recorded in `09-open-questions.md` by the closure T-267 (not tracked there today).
-- **Q2 · RESOLVED (user, 2026-11-09):** see "Decisions" (single-turn; Gemini's quota only). Multi-turn chat is a possible later-epic idea. Recorded in `09-open-questions.md` by T-267.
-- **Q-E18-3 · RESOLVED (user, 2026-11-10): the first cleanup runs at deploy.** The T-272 migration calls the cleanup function once when it is applied to production, before the new APK is installed; the monthly job follows. The read-only count before the merge is shown to the user for information only.
-- **Q-E18-4 · RESOLVED (PM, 2026-11-10, recorded here and in the PR; no user decision needed): the 30 days count from the later of the food's creation and the creation time of its newest diary entry.** A food created less than 30 days ago is kept even if never added; logging an old day today counts as use.
-- **Q-E18-5 · RESOLVED (user, 2026-11-10): an entry whose food was removed can be viewed and deleted only.** It opens from its snapshot; changing its amount, repeating it and saving it as a comida are not offered for it. To log it again, the user describes it again.
-- **Q-E18-6 · RESOLVED (user approved the proposal, 2026-11-10) (product; the user gave no maximum, ADR-106 asks the planner to propose one): the extension limits.** Proposal: (a) at most **14 days** later than the end the block would have without any extension (the 14-day return rule of `04` §9.9 is the only break rule, ADR-101, so a longer extension would overlap it); (b) the earliest day is the later of today and that unextended end, so the picker never shortens the block below its own end nor ends it in the past (US-134 "Changing my mind" still works: the original day is allowed while it is not past); (c) the pencil shows only while the block is running (up to its last day), not once the review is due. The user confirms or changes (a)-(c) before T-274 is planned.
-- **Checkpoint E18-C · approved by the user 2026-11-10** ( 7 items; one checkpoint for US-134 and US-135, user decision 2026-11-10).
-- **Q3 (non-blocking, delegated to ux-reviewer):** the chat tab label, the "Informes" entry position in Centro de avisos, the Trainer/"Detalles" content map (where "Tus datos", "Lo que el entrenador sabe de ti" and "Bloque nuevo" land), and the glossary row that lists "Informe" as a forbidden word for the weekly summary (amended so "Informes" names the list).
+- **Q-E19-1: RESOLVED (user, 2026-11-11):** no 👤 checkpoint in E19.
+- **Q-E19-2: RESOLVED (user, 2026-11-11, revised):** the free-text notes are removed in every layer, including a migration that drops their storage, provided the audit shows nothing reads them; ADR-107.
+- **Q-E19-4: superseded by Q-E19-5:** the "Para conocerte" free-text field goes with the notes; its other fields stay.
+- **Q-E19-5: RESOLVED (user, 2026-11-11):** E19 removes everything no longer used. The audit list comes first, and production tables and columns need the user's OK by name. **Pending inside T-277 (not blocking the breakdown):** the user's OK on the drop list once the audit exists.
+- **Q-E19-3 (non-blocking, delegated to ux-reviewer in the T-279 plan):** which area owns the shared screens (Centro de avisos, "Informes", the food search reached from several places) and the exact list of states per screen.
