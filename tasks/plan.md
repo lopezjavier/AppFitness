@@ -67,7 +67,7 @@ Taken from `app/AppRoutes.kt` (`AppDestinations.fullScreenRoutes`, the tab roots
   - `HistoryRoute` (calendar), `SessionDetailRoute`, `EditWorkoutRoute` (`WorkoutFormBody` sheets), `PastWorkoutRoute` (+ `PastWorkoutChooserSheet`, the `WorkoutEntry` dialog).
 - **Trainer:**
   - `TrainerHome` (the compact root and "Detalles"), `TrainerPlanRoute` ("Tu plan"), `TrainerBlockRoute` ("Tu bloque", the "Actual" week pencil and its date picker, the block section dialog).
-  - `PlanProposalRoute` (including the blocked state), `BeforeStartRoute` (plan and block modes, `ActivityLevelSheet`), `YourDataRoute`, `IntakeRoute` ("Para conocerte" as left by T-277).
+  - `PlanProposalRoute` (including the blocked state), `BeforeStartRoute` (plan and block modes, `ActivityLevelSheet`), `YourDataRoute`. The "Para conocerte" screen was deleted by T-277 (years training and maintenance kcal are edited through the `IntakeRowEditor` sheets).
   - `BlockPreviewRoute`, `BlockBuilderRoute`: its steps `BlockTypesScreen`, `BlockSplitChoiceScreen`, `BlockTargetsScreen`, the builder, `DayTypeSheet`, `BuilderSlotPickerSheet`, `BuilderCreateExerciseSheet`, `ExerciseReasonSheet` and its dialog.
   - `BlockStartSheets`, `BlockReplaceSheet`, `FolderBlockRoute` (+ dialog), `FolderReviewResultRoute`.
   - `WeekSummaryRoute` (including a paused week), `BlockReviewRoute`, `ReportsRoute`, `PastReportRoute` (a weekly and a block report).
