@@ -4,7 +4,7 @@ Live index of every closed decision, one line per ADR, with the numbers kept sin
 
 ## New ADRs go here
 
-Phase 3 ADRs continue the numbering (next: **ADR-106**) and are written **in full** in this file, below the index, with their one-line row in the index. Format: context -> decision -> consequences. A new decision also updates the affected live docs.
+Phase 3 ADRs continue the numbering (next: **ADR-108**) and are written **in full** in this file, below the index, with their one-line row in the index. Format: context -> decision -> consequences. A new decision also updates the affected live docs.
 
 ## Index (Phase 1, ADR-01..72)
 
@@ -103,19 +103,19 @@ The rows of ADR-93, 94, 98 and 99 are added here: the Phase 2 archive index lack
 | 84 | Expenditure anchors on the capped 28-day intake; weight slope only with enough data; plan target checked against the intention's rate | |
 | 85 | The plan sets weekly cardio minutes and daily steps; cardio is the last exercise of every routine; cardio machines are their own equipment | Amends 76; amended by 89 (no medical line), 92 (one cardio machine item) |
 | 86 | Long-term follow-up: intake priors, one phase per block, end-of-block review proposes the next block and any phase change, breaks pause the block | Amends 76 |
-| 87 | The user's free text reaches the model verbatim, capped, visible and excludable line by line; the model only describes features and data that exist | Amends 76 and `07` §8 |
+| 87 | The user's free text reaches the model verbatim, capped, visible and excludable line by line; the model only describes features and data that exist | Amends 76 and `07` §8; free text removed by 107 |
 | 88 | One behaviour "Entrenador": inside an accepted block, load progression, calorie changes in the safe band and deloads apply on their own with "Deshacer"/cancel; phases and new blocks need acceptance | Amends 76 |
 | 89 | No generic health disclaimers; one data-triggered note on a persisting level 4-5 discomfort; train around an injured area with a graded return the user paces | Amends 81 and 85; reverses E13 Q29 |
 | 90 | The per-user monthly AI cap rises from 2 € to 3 €; the 5 € global total stays | Superseded by ADR-103 |
-| 91 | Minimal intake (years, maintenance, free text) and no "Recuperar" (deferred to Phase 3); no field extraction | Amends 86, 87 |
+| 91 | Minimal intake (years, maintenance, free text) and no "Recuperar" (deferred to Phase 3); no field extraction | Amends 86, 87; free text removed by 107 |
 | 92 | Equipment split: "Barra Z" is the only new item, every other implement is "Otro"; one "Máquina de cardio"; same barbell / EZ bar / dumbbell exercise is a 1.00 alternative both ways; no alternative below 0.90 | Amends 83, 85 |
 | 93 | The model builds the training block; one routine checker validates blocks and reviews folders | Superseded in part by 97 and 99; heading still says PROPOSED |
 | 94 | Block lifecycle: two starting points, a block is a normal folder, "Eliminar bloque", favourite exercises | PROPOSED (as in its heading) |
 | 95 | A routine folder with routines cannot be deleted: the user moves or deletes the routines first; no dialog | Supersedes 51; amends 45, 69 (R-08) |
 | 96 | The coach never refuses a call because of money: no per-user or total cap; `coach_usage` records the spend and one non-blocking notice shows when the month passes 5 € | Supersedes 77's cap and 90 |
-| 97 | The folder review is deterministic and runs on the device: a 0-10 score and a checklist, no model call, no "Aplicar en una copia"; "a block from a folder" keeps its model review | Supersedes 93's folder-review bullet; 94 and 95 unaffected |
-| 98 | The nutrition plan is deterministic: `plan_nutrition` drops the model call | Supersedes the model call of 76 for the nutrition plan |
-| 99 | Block creation is deterministic: a builder with no model call (split and type per day, 100 % gate) | Supersedes the model-built block of 93 and the block calls of 76; PROPOSED (as in its heading) |
+| 97 | The folder review is deterministic and runs on the device: a 0-10 score and a checklist, no model call, no "Aplicar en una copia"; "a block from a folder" keeps its model review | Supersedes 93's folder-review bullet; 94 and 95 unaffected; amended by 107 |
+| 98 | The nutrition plan is deterministic: `plan_nutrition` drops the model call | Supersedes the model call of 76 for the nutrition plan; amended by 107 |
+| 99 | Block creation is deterministic: a builder with no model call (split and type per day, 100 % gate) | Supersedes the model-built block of 93 and the block calls of 76; PROPOSED (as in its heading); amended by 107 |
 | 100 | Product definition is a user-invoked `product-owner` skill; `epic-planner` no longer writes stories | — |
 
 ## Index (Phase 3, ADR-101..)
@@ -127,6 +127,8 @@ The rows of ADR-93, 94, 98 and 99 are added here: the Phase 2 archive index lack
 | 102 | Food energy check (E17): optional `alcohol_g_100` in grams per 100 base units, per-food "saved anyway" flag cleared by a trigger when an input changes, one SQL check function and an owner-scoped audit RPC (rule in `07` section 4) | — |
 | 104 | Food energy check becomes a hard block (E17 checkpoint feedback): a food whose kcal and macros disagree cannot be saved by any path (manual, edit, AI photo, OFF copy); the AI estimate must be consistent or the app shows the issue with a retry that feeds the failed estimate back; the "saved anyway" flag, "Guardar igualmente" and the food audit are removed | Supersedes parts of 102 |
 | 105 | E18 gains a meal from typed text (US-132, Gemini free tier, editable draft); the monthly cleanup of unused foods (US-133) was dropped on 2026-11-10 (T-273); diary snapshots stay | Amends 103 |
+| 106 | Extend the block by date (a pencil on the week in progress, within the 14-day limit); alcohol by volume in the food form (E18 US-134, US-135) | Amends 101 and Q-E17-1 |
+| 107 | Free-text notes and unused code removed in every layer (E19 US-123): the coach reads only structured data; one migration drops the free-text storage and unused SQL objects; rule R-63 | Amends 87 and 91 (free text), 97, 98, 99 and the US-81 and US-89 decisions |
 
 ## Phase 3 ADRs (full text)
 
@@ -189,4 +191,21 @@ Older ADRs: [`phase2/00-decisions.md`](phase2/00-decisions.md) (73-100) and [`ph
 - **Consequences:** E15's "illness" non-goal is relaxed for this action only; `04` §9.9/§9.15 and `07` §4 are updated by the tasks. Open for the planner: a maximum extension (the user gave none).
 - **Approval:** user, 2026-11-10 (chat, product-owner).
 - **Amendment 2026-11-11 (user, Checkpoint E18-C):** the pencil sits on the week in progress (the "Actual" card of "Semanas del bloque"), not next to a block end line, and the picker picks that week's new last day. The rule is unchanged: the N days added to the week that holds today move the later weeks, the review and the block-end notice by the same N, within the 14-day total limit of the block. The "El bloque termina el …" line is shown again only once a week was paused.
+
+### ADR-107 — Free-text notes and unused code removed; the coach reads only structured data (E19 US-123; amends ADR-87 and ADR-91 for the free text, ADR-97, ADR-98, ADR-99 and the US-81 and US-89 decisions)
+- **Context:** every `coach` kind is model-free (ADR-97..99, ADR-103), so no code reads a user's free text. The "Enviar al entrenador" switches of ADR-87 and the "Lo que el entrenador sabe de ti" screen controlled nothing, and the copy said the coach used them. The E19 audit of the whole codebase also found dead code in every layer. At the E19 breakdown (2026-11-11) the user asked for the free-text notes to be removed in every layer and for every unused item to go, with no "keep for later".
+- **Decision (user, 2026-11-11, T-277 audit decisions, chat):**
+  - **Free text is removed everywhere:** the "Lo que el entrenador sabe de ti" screen, its Trainer row and the per-line switches; the free-text field of "Para conocerte"; the check-in note field; the free text in `coach_summary`, `coach_plan_inputs` and `save_coach_intake`. A `free_text` key sent by an older app is ignored by `save_coach_intake`: not validated, not stored, not returned.
+  - **Backend, one migration (`20270127100000_remove_unused.sql`, T-286), one transaction with a row-count self-check:** dropped table `coach_free_text_exclusions`; columns `coach_user_intake.free_text` and `weekly_check_ins.notes`, with their length checks; functions `coach_free_text_lines`, `set_free_text_line_excluded`, `save_meal_slots`, `delete_meal_slot`, `coach_plan_week_of_date`, `assert_unique_meal_labels`, `convert_used_off_foods`, `coach_rederive_plan_links`, `migrate_equipment_list`, `off_alcohol_g` and `coach_plan_calendar`. Before each drop, a guard checks that no surviving public function still refers to it. `coach_summary`, `coach_plan_inputs` and `save_coach_intake` are recreated without free text, and the `free_text` key is removed from every `coach_recommendations.input_summary`.
+  - **Production data:** the removed `weekly_check_ins.notes` and `coach_user_intake.free_text` values were deleted by that migration on production. It reports the counts with `raise notice`; the exact figures are not stored in the repository (the `deploy-supabase` CI log does not show notices), so the record is the migration notice of the production run, see the T-286 PR (#650).
+  - **Kept, with the reason:** `exercise_discomforts.note` (the user wants discomfort notes tracked across sessions; it is shown only in its own form, a later task may use it); `coach_plan_calendar_for` (the per-user calendar every coach reader uses); `copy_off_food_core` (called by the live `copy_off_food`); the `coach_recommendations.input_summary` column; all 8 Edge Functions (`health`, `food-barcode`, `account-status`, `delete-account`, `food-photo`, `food-search`, `coach`, `exercise-chat`).
+  - **App (T-277, PR #648):** the free-text screen, route and ViewModel; the "Para conocerte" screen, route and ViewModel (years training and maintenance kcal are still edited in "Tus datos" through the row-editor sheets); the Trainer row; the check-in note field; the coach-limit message part used only by the free-text screen; dead use cases, DTO fields and repository methods; 26 string resources and one drawable that nothing referenced. The navigation state version moves from 1 to 2, so a saved stack with removed routes is discarded (ADR-40).
+  - **Resource guard (T-277):** `scripts/check-unused-resources.py` (stdlib, with `scripts/tests/test_check_unused_resources.py`) fails on a string, plural, array or drawable that no Kotlin source uses; it runs in `verify-local.sh` and `android-ci.yml`. The Python tests `scripts/test_repdb_tools.py` and `scripts/tests/test_generate_band_long.py` run in `security.yml`; one drifted test of `test_repdb_tools.py` that compared against an immutable migration was deleted.
+- **Consequences:**
+  - Rule R-63 in `05` §8: no copy claims that the coach reads or uses something it does not.
+  - Old app v1.9.0: once the migration is deployed its Check-in screen fails (it selects and writes `notes`), and its free-text screen and switches fail too. The mitigation used: the user installed the T-277 APK before the migration was merged, and `deploy-supabase` ran green right after (run 43108523640 on `main`). The data removal is irreversible; the counts above are the proof.
+  - No "keep for later": an unused item is removed by the task that finds it; a later need adds code with its own task and story.
+  - `07` §8 ("words never change numbers", ADR-87) stays true: free text never changed a figure and is no longer sent at all.
+  - Live docs updated by T-287: `02`, `03`, `04` (§6.5, §7.5, §7.8, §7.9), `05`, `07`, `10-feature-inventory.md`, the `README`, E4 and E10, and the stories US-81 and US-89 in E13 (marked "Amended by ADR-107").
+- **Approval:** user, 2026-11-11 (chat: the T-277 audit decisions and the split into T-277, T-286 and T-287).
 

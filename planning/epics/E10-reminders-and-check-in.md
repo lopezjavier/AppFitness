@@ -15,7 +15,7 @@ E2 (Preferencias), E5 (weight and circumferences), E6 (sessions), E8 (weekly vol
 
 ## Tables
 - `notification_settings` (`user_id`, `kind` enum `weight` | `circumference` | `weekly_check_in`, `enabled`), unique per user and kind; a missing row means enabled.
-- `weekly_check_ins` (`user_id`, `week_start` date (Monday), `energy` 1-5, `notes` nullable), unique per user and week.
+- `weekly_check_ins` (`user_id`, `week_start` date (Monday), `energy` 1-5), unique per user and week. Amended by ADR-107: the check-in note (`notes`) was removed (T-277, T-286).
 - `profiles.check_in_weekday` (ISO weekday, default 7 = Sunday; design decision).
 
 ## Navigation

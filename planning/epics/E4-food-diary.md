@@ -434,7 +434,7 @@ Feature: Configurable meals
 **Technical notes**
 - Model (`03-data-model.md` §3): `meal_slots` per user (`code` from the `meal_type` enum for the defaults, `label`, `position`, `enabled`); seeded with the four defaults when onboarding completes.
 - `food_log_entries` references `meal_slot_id` instead of a fixed `meal_type`.
-- Meals are deleted, never disabled (ADR-41): the `enabled` column is kept but always true. Delete rules (not the only meal, no entries on any day) are enforced by the `delete_meal_slot` RPC; the editor lives in Perfil -> Preferencias -> "Comidas".
+- Meals are deleted, never disabled (ADR-41): the `enabled` column is kept but always true. Delete rules (at least one meal remains; a meal with logged entries cannot be deleted) are enforced by the `save_meal_structure` RPC, which takes the removed meals explicitly (the old `delete_meal_slot` was dropped by T-286, ADR-107); the editor lives in Perfil -> Preferencias -> "Comidas".
 - Custom meals have `code` null; the defaults keep their code so time-of-day suggestions still work.
 
 ---
