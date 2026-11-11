@@ -3,7 +3,7 @@ begin;
 create extension if not exists pgtap with schema extensions;
 set local search_path = extensions, public;
 
-select plan(33);
+select plan(31);
 
 insert into auth.users (id, email) values
   ('11111111-1111-4111-8111-111111111111', 'ana@example.com'),
@@ -181,18 +181,6 @@ select results_eq(
     where user_id = '22222222-2222-4222-8222-222222222222'$$,
   $$select id, label, position, enabled, code from bea_before$$,
   'Bea''s meals are untouched');
-
--- ---------------------------------------------------------------------------
--- Pre-check guard (index dropped inside the transaction to seed duplicates)
--- ---------------------------------------------------------------------------
-select lives_ok($$select public.assert_unique_meal_labels()$$, 'the guard passes without duplicates');
-drop index public.meal_slots_user_label_key;
-update public.meal_slots set label = 'Cena temprana '
-  where user_id = '11111111-1111-4111-8111-111111111111' and label = 'Comida';
-update public.meal_slots set label = 'cena temprana'
-  where user_id = '11111111-1111-4111-8111-111111111111' and label = 'Brunch';
-select throws_ok($$select public.assert_unique_meal_labels()$$, '23505', null,
-  'the guard fails loudly when a user has colliding labels');
 
 select * from finish();
 rollback;

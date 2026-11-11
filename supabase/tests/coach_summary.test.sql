@@ -3,7 +3,7 @@ begin;
 create extension if not exists pgtap with schema extensions;
 set local search_path = extensions, public;
 
-select plan(54);
+select plan(45);
 
 create function pg_temp.d0() returns date language sql as $$ select (now() at time zone 'utc')::date $$;
 create function pg_temp.mon0() returns date language sql as $$
@@ -76,7 +76,7 @@ values (pg_temp.u(1), pg_temp.d0(),
 insert into public.daily_activity (user_id, day, steps, active_kcal) values (pg_temp.u(1), pg_temp.d0(), 8000, 450);
 insert into public.sleep_sessions (user_id, external_id, started_at, ended_at, minutes) values
   (pg_temp.u(1), 's1', pg_temp.d0()::timestamp at time zone 'utc' - interval '7 hours', pg_temp.d0()::timestamp at time zone 'utc', 420);
-insert into public.weekly_check_ins (user_id, week_start, energy, notes) values (pg_temp.u(1), pg_temp.mon0(), 4, 'CHECKIN_SECRETO');
+insert into public.weekly_check_ins (user_id, week_start, energy) values (pg_temp.u(1), pg_temp.mon0(), 4);
 
 -- ---------------------------------------------------------------------------
 -- User 4: the worst case (8 weeks of daily data, 20 custom main/cardio exercises, 10 open discomforts)
@@ -102,9 +102,8 @@ select pg_temp.u(4), pg_temp.d0() - i, 7000 + i * 13, 300 + i from generate_seri
 insert into public.sleep_sessions (user_id, external_id, started_at, ended_at, minutes)
 select pg_temp.u(4), 'sl' || i, now() - make_interval(days => i, hours => 9), now() - make_interval(days => i, hours => 1), 400 + i
 from generate_series(0, 55) i;
--- 20 free-text lines of exactly 100 escaped bytes each (50 double quotes): the largest block the 2 000-byte budget allows.
-insert into public.weekly_check_ins (user_id, week_start, energy, notes)
-select pg_temp.u(4), pg_temp.mon0() - 7 * i, 1 + i % 5, repeat(chr(34), 50) from generate_series(0, 7) i;
+insert into public.weekly_check_ins (user_id, week_start, energy)
+select pg_temp.u(4), pg_temp.mon0() - 7 * i, 1 + i % 5 from generate_series(0, 7) i;
 insert into public.workout_sessions (id, user_id, name, status, started_at, ended_at)
 select ('a5000000-0000-4000-8000-0000000002' || lpad(i::text, 2, '0'))::uuid, pg_temp.u(4), 's', 'completed',
        now() - make_interval(days => i), now() - make_interval(days => i) + interval '1 hour'
@@ -192,7 +191,6 @@ select is((pg_temp.sm(1)->'main_lifts'->0->'weekly_e1rm'->>7)::numeric, 233.5::n
 select is(jsonb_array_length(pg_temp.sm(4)->'main_lifts'), 12, 'main lifts are capped at 12');
 select is(jsonb_array_length(pg_temp.sm(4)->'open_discomforts'), 10, 'open discomforts are capped at 10');
 select ok(octet_length(pg_temp.sm(4)::text) <= 16384, 'the worst-case summary fits in 16 384 bytes');
-select ok(octet_length(pg_temp.sm(4)::text) <= 14500, 'and with 20 free-text lines of escaped quotes it measures 14 158 bytes, margin of about 12 percent');
 
 -- T-182: cardio_favorites
 select is(pg_temp.sm(1)->'cardio_favorites',
@@ -203,27 +201,10 @@ select is(pg_temp.sm(2)->'cardio_favorites', '[]'::jsonb, 'an empty user has no 
 select ok(jsonb_array_length(pg_temp.sm(4)->'cardio_favorites') <= 3, 'cardio favorites are capped at 3');
 select is(jsonb_typeof(pg_temp.sm(4)->'cardio_favorites'), 'array', 'cardio_favorites is always an array');
 
--- T-185: free_text, the user's own words (ADR-87)
-select is(pg_temp.sm(2)->'free_text', '[]'::jsonb, 'a user with no notes has an empty free_text array');
-select is(jsonb_array_length(pg_temp.sm(1)->'free_text'), 4,
-  'user 1 sends the check-in note and the three discomfort notes (resolved and older ones included)');
-select is((select array_agg(x ->> 'date' order by o) from jsonb_array_elements(pg_temp.sm(1)->'free_text') with ordinality t(x, o)),
-          (select array_agg(x ->> 'date' order by x ->> 'date' desc) from jsonb_array_elements(pg_temp.sm(1)->'free_text') t(x)),
-  'the free_text lines are newest first');
-select is((select array_agg(distinct k order by k) from jsonb_array_elements(pg_temp.sm(1)->'free_text') t(x), jsonb_object_keys(x) k),
-          array['date', 'origin', 'text'], 'each line is {origin, date, text}');
-select is((select x ->> 'origin' from jsonb_array_elements(pg_temp.sm(1)->'free_text') t(x) where x ->> 'text' = 'CHECKIN_SECRETO'),
-          'check_in', 'the check-in note keeps its origin');
-select is(jsonb_array_length(pg_temp.sm(4)->'free_text'), 20, 'the worst case sends 20 lines');
-
-select pg_temp.sm(1);
-select public.set_free_text_line_excluded('check_in', pg_temp.mon0()::text, true);
-select is(jsonb_array_length(pg_temp.sm(1)->'free_text'), 3, 'an excluded line leaves the summary');
-select ok(pg_temp.sm(1)::text !~ 'CHECKIN_SECRETO', 'and its text is not in the payload');
-select is((select notes from public.weekly_check_ins where user_id = pg_temp.u(1) and week_start = pg_temp.mon0()),
-          'CHECKIN_SECRETO', 'while the check-in note itself is intact');
-select public.set_free_text_line_excluded('check_in', pg_temp.mon0()::text, false);
-select is(jsonb_array_length(pg_temp.sm(1)->'free_text'), 4, 'including it again brings it back');
+-- Free text never leaves the database (T-286, ADR-107): the summary has no free_text key and keeps the others.
+select ok(not (pg_temp.sm(1) ? 'free_text'), 'the summary has no free_text key');
+select ok(pg_temp.sm(1) ?& array['weeks', 'main_lifts', 'open_discomforts', 'cardio_favorites', 'estimates', 'profile'],
+  'the summary keeps its other keys');
 
 select * from finish();
 rollback;

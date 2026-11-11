@@ -22,7 +22,7 @@ select ok(
   'RLS is enabled and forced on meal_slots');
 select table_privs_are('public', 'meal_slots', 'anon', array[]::text[], 'anon has no privileges on meal_slots');
 select table_privs_are('public', 'meal_slots', 'authenticated', array['DELETE', 'SELECT', 'INSERT', 'UPDATE'],
-  'authenticated can select, insert, update and delete own meal_slots (delete only via delete_meal_slot rules)');
+  'authenticated can select, insert, update and delete own meal_slots');
 
 -- ---------------------------------------------------------------------------
 -- Seeding
