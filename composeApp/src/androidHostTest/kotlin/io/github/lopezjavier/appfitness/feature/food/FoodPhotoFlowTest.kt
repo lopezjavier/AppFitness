@@ -209,6 +209,7 @@ class FoodPhotoFlowTest : PhotoFlowHost() {
         toPreview("photo_mode_row_1")
         tap("food_photo_preview_use")
 
+        tap("create_food_section_alcohol_toggle")
         rule.onNodeWithTag("create_food_alcohol_field").assertTextContains("9,5")
         tap("create_food_alcohol_help")
         tap("create_food_alcohol_help_sheet_close")

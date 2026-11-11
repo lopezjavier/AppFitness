@@ -1031,7 +1031,12 @@
     <string name="create_food_alcohol">Alcohol (g)</string>
     <string name="create_food_alcohol_help_cd">Ayuda: Alcohol (g)</string>
     <string name="create_food_alcohol_help_title">Alcohol</string>
-    <string name="create_food_alcohol_help_body">Gramos de alcohol por 100 g o 100 ml. Si solo sabes los grados: alcohol (g) por 100 ml = grados × 0,79.</string>
+    <string name="create_food_alcohol_help_body">Gramos de alcohol por 100 g o 100 ml. En un alimento en ml también puedes indicar los grados (% vol) y la app los convierte.</string>
+    <string name="create_food_alcohol_mode_g">g</string>
+    <string name="create_food_alcohol_mode_abv">grados</string>
+    <string name="create_food_alcohol_mode_cd">Indicar el alcohol en</string>
+    <string name="create_food_alcohol_abv">Grados (% vol)</string>
+    <string name="create_food_alcohol_converted">= %1$s g por 100 ml</string>
     <string name="create_food_retry_cd">Repetir la estimación</string>
     <string name="create_food_retry_running">Estimando…</string>
     <string name="create_food_retry_offline_action">repetir la estimación</string>
@@ -1042,7 +1047,7 @@
     <string name="create_food_energy_warning_wrong">Parece un error: %1$s</string>
     <string name="create_food_energy_help_cd">Ayuda: Calorías y macros</string>
     <string name="create_food_energy_help_title">Calorías y macros</string>
-    <string name="create_food_energy_help_fibre_alcohol">Si lleva fibra o alcohol, añádelos: aportan calorías que no cuentan los macros.</string>
+    <string name="create_food_energy_help_fibre_alcohol">Si lleva fibra o alcohol, añádelos (el alcohol está en su sección): aportan calorías que no cuentan los macros.</string>
     <string name="create_food_energy_help_polyols">Si lleva edulcorantes con polialcoholes, aportan menos calorías. El eritritol cuenta como polialcohol: indícalo en «Polialcoholes».</string>
     <string name="add_food_energy_fix">Corregir y guardar mi copia</string>
     <string name="add_food_energy_help_off">Este dato viene de Open Food Facts y no cuadra. Compáralo con la etiqueta, corrígelo y guarda tu copia: hasta entonces no se puede añadir.</string>
@@ -1061,6 +1066,7 @@
     <string name="create_food_section_fats">Grasas y carbohidratos detallados</string>
     <string name="create_food_section_vitamins">Vitaminas</string>
     <string name="create_food_section_minerals">Minerales</string>
+    <string name="create_food_section_alcohol">Alcohol</string>
     <string name="create_food_section_filled">Rellenos: %1$d</string>
     <string name="create_food_nutrient_cd">%1$s, %2$s</string>
     <string name="create_food_nutrient_label">%1$s (%2$s)</string>
@@ -1631,7 +1637,7 @@
     <string name="food_photo_analyzing">Analizando tu foto…</string>
     <string name="food_photo_analyzing_meal">Analizando tu comida…</string>
     <string name="food_photo_text_label">¿Qué has comido?</string>
-    <string name="food_photo_text_placeholder">Ej.: pechuga con ensalada y dos cervezas</string>
+    <string name="food_photo_text_placeholder">Ej.: pechuga de pollo con patatas fritas</string>
     <string name="food_photo_text_submit">Estimar</string>
     <string name="food_photo_text_offline_action">estimar la comida</string>
     <string name="food_photo_estimating_amount">Estimando la cantidad…</string>

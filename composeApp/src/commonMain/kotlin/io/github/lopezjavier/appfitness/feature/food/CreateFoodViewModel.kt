@@ -20,6 +20,7 @@ import io.github.lopezjavier.appfitness.domain.port.PhotoCapture
 import io.github.lopezjavier.appfitness.domain.port.UnconfiguredPhotoCapture
 import io.github.lopezjavier.appfitness.domain.repository.FoodPhotoRepository
 import io.github.lopezjavier.appfitness.domain.repository.FoodRepository
+import io.github.lopezjavier.appfitness.domain.usecase.AlcoholByVolume
 import io.github.lopezjavier.appfitness.feature.food.photo.FoodPhotoRetryStore
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.channels.Channel
@@ -44,6 +45,8 @@ private const val KEY_UNIT_REFUSED = "create_food_unit_refused"
 private const val KEY_TOUCHED = "create_food_touched"
 private const val KEY_PORTIONS = "create_food_portions"
 private const val KEY_SECTIONS = "create_food_sections"
+private const val KEY_ALCOHOL_MODE = "create_food_alcohol_mode"
+private const val KEY_ALCOHOL_ABV = "create_food_alcohol_abv"
 private const val KEY_RETRY_TOKEN = "create_food_retry_token"
 private const val KEY_RETRY_MODE = "create_food_retry_mode"
 private const val KEY_FIELD_PREFIX = "create_food_field_"
@@ -115,6 +118,11 @@ class CreateFoodViewModel(
             CreateFoodSection.entries.firstOrNull { it.name == id }
         }.toSet(),
     )
+    private val alcoholMode = MutableStateFlow(
+        savedState.get<String>(KEY_ALCOHOL_MODE)?.let { name -> AlcoholMode.entries.firstOrNull { it.name == name } }
+            ?: AlcoholMode.Grams,
+    )
+    private val alcoholAbv = MutableStateFlow(savedState.get<String>(KEY_ALCOHOL_ABV).orEmpty())
     private val loadState = MutableStateFlow(
         if (editFoodId != null && savedState.get<Boolean>(KEY_STARTED) != true) LoadState.Loading else LoadState.Idle,
     )
@@ -125,6 +133,8 @@ class CreateFoodViewModel(
     val uiState: StateFlow<CreateFoodUiState> =
         combine(draft, online, saving, saveFailed, loadState, ::buildState)
             .combine(sections) { state, expanded -> state.copy(expandedSections = expandedWith(expanded, state)) }
+            .combine(alcoholMode) { state, mode -> state.copy(alcoholMode = mode) }
+            .combine(alcoholAbv) { state, abv -> state.withAlcoholAbv(abv) }
             .combine(unitLocked) { state, locked -> state.copy(unitLocked = locked) }
             .combine(unitRefused) { state, refused -> state.copy(unitRefused = refused) }
             .combine(aiNote) { state, note -> state.copy(aiEstimateNote = note) }
@@ -139,7 +149,7 @@ class CreateFoodViewModel(
                 viewModelScope,
                 SharingStarted.Eagerly,
                 buildState(draft.value, true, false, false, loadState.value).let { initial ->
-                    initial.copy(
+                    initial.copy(alcoholMode = alcoholMode.value).withAlcoholAbv(alcoholAbv.value).copy(
                         expandedSections = expandedWith(sections.value, initial),
                         unitLocked = unitLocked.value,
                         unitRefused = unitRefused.value,
@@ -170,6 +180,7 @@ class CreateFoodViewModel(
     private fun expandedWith(expanded: Set<CreateFoodSection>, state: CreateFoodUiState): Set<CreateFoodSection> =
         if (state.energyWarning != null) expanded + SECTION_OF_CHECK_FIELDS else expanded
 
+    @Suppress("CyclomaticComplexMethod") // One branch per event.
     fun onEvent(event: CreateFoodEvent) {
         when (event) {
             is CreateFoodEvent.FieldChanged -> changeField(event)
@@ -178,6 +189,10 @@ class CreateFoodViewModel(
 
             // Only "g" and "ml" exist; the unit of a food that is in use never changes.
             is CreateFoodEvent.UnitSelected -> selectUnit(event.unit)
+
+            is CreateFoodEvent.AlcoholModeSelected -> selectAlcoholMode(event.mode)
+
+            is CreateFoodEvent.AlcoholAbvChanged -> changeAlcoholAbv(event.text)
 
             CreateFoodEvent.AddPortion -> update {
                 if (it.portions.size >=
@@ -212,6 +227,8 @@ class CreateFoodViewModel(
     }
 
     private fun changeField(event: CreateFoodEvent.FieldChanged) {
+        // Typing the grams makes the grados stale: the grams are the value.
+        if (event.field == CreateFoodField.Alcohol) setAlcoholAbv("")
         update {
             it.copy(fields = it.fields + (event.field to event.text), touched = it.touched + event.field.name)
         }
@@ -224,8 +241,48 @@ class CreateFoodViewModel(
     }
 
     private fun selectUnit(unit: String) {
-        if (!unitLocked.value && unit in UNITS) update { it.copy(baseUnit = unit) }
+        if (unitLocked.value || unit !in UNITS) return
+        update { it.copy(baseUnit = unit) }
+        // Grados only exist for ml: the grams stay, the mode and the typed grados go.
+        if (unit == "g") {
+            setAlcoholMode(AlcoholMode.Grams)
+            setAlcoholAbv("")
+        }
     }
+
+    private fun selectAlcoholMode(mode: AlcoholMode) {
+        if (mode == AlcoholMode.Grados && draft.value.baseUnit != "ml") return
+        setAlcoholMode(mode)
+    }
+
+    private fun changeAlcoholAbv(text: String) {
+        if (draft.value.baseUnit != "ml") return
+        setAlcoholAbv(text)
+        val grams = text.trim().replace(',', '.').toDoubleOrNull()?.takeIf { it.isFinite() }
+            ?.let { formatEditable(AlcoholByVolume.toGramsPer100(it)) }.orEmpty()
+        update {
+            it.copy(
+                fields = it.fields + (CreateFoodField.Alcohol to grams),
+                touched =
+                it.touched + CreateFoodField.Alcohol.name,
+            )
+        }
+    }
+
+    private fun setAlcoholMode(mode: AlcoholMode) {
+        alcoholMode.value = mode
+        savedState[KEY_ALCOHOL_MODE] = mode.name
+    }
+
+    private fun setAlcoholAbv(text: String) {
+        alcoholAbv.value = text
+        savedState[KEY_ALCOHOL_ABV] = text
+    }
+
+    private fun CreateFoodUiState.withAlcoholAbv(abv: String) = copy(
+        alcoholAbv = abv,
+        alcoholConvertedG = alcohol.takeIf { alcoholMode == AlcoholMode.Grados && abv.isNotBlank() && it.isNotBlank() },
+    )
 
     private fun toggleSection(section: CreateFoodSection) {
         val toggled = sections.value.let { if (section in it) it - section else it + section }

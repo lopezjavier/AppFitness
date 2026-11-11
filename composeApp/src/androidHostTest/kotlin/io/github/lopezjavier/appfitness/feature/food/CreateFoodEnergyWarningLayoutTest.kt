@@ -12,6 +12,7 @@ import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performTextInput
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
@@ -83,6 +84,8 @@ class CreateFoodEnergyWarningLayoutTest {
     @Test
     fun invalidAlcohol_showsTheFieldError() {
         show()
+        rule.onNodeWithTag("create_food_section_alcohol_toggle").performScrollTo().performClick()
+        rule.waitForIdle()
         type("create_food_alcohol_field", "150")
 
         rule.onNodeWithTag("create_food_alcohol_field_error").assertExists()
