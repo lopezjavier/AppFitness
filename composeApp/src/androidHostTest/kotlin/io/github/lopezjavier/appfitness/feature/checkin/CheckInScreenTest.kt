@@ -20,8 +20,6 @@ import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
-import androidx.compose.ui.test.performScrollTo
-import androidx.compose.ui.test.performTextInput
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
 import io.github.lopezjavier.appfitness.designsystem.LocalAppHaptics
 import io.github.lopezjavier.appfitness.designsystem.LocalAppMessages
@@ -73,14 +71,12 @@ class CheckInScreenTest {
     private fun ready(
         summary: CheckInSummaryState = summary(),
         energy: Int? = null,
-        notes: String = "",
         day: LocalDate = SUNDAY,
         answer: CheckIn? = null,
         isOffline: Boolean = false,
     ) = CheckInUiState.Ready(
         window = CheckInDay(day, MONDAY, answer),
         energy = energy,
-        notes = notes,
         summary = summary,
         isOffline = isOffline,
         exerciseNames = mapOf("bench" to "Press banca"),
@@ -275,15 +271,6 @@ class CheckInScreenTest {
     }
 
     @Test
-    fun notes_typedTextIsSent() {
-        show()
-
-        rule.onNodeWithTag("checkin_notes").performScrollTo().performTextInput("Dormí poco")
-
-        assertEquals(listOf<CheckInEvent>(CheckInEvent.SetNotes("Dormí poco")), events)
-    }
-
-    @Test
     fun guardar_isDisabledUntilAnEnergyIsChosen() {
         show(ready(energy = null))
 
@@ -316,7 +303,7 @@ class CheckInScreenTest {
     @Test
     fun saveFailure_keepsTheDraft_rejectsAndShowsTheMessage() {
         val effects = Channel<CheckInEffect>(Channel.BUFFERED)
-        show(ready(energy = 4, notes = "x"), effects)
+        show(ready(energy = 4), effects)
 
         effects.trySend(CheckInEffect.SaveFailed(offline = false))
         rule.waitForIdle()
@@ -325,15 +312,6 @@ class CheckInScreenTest {
         assertEquals(1, haptics.rejects)
         assertEquals(listOf("No se pudo guardar el check-in. Inténtalo de nuevo."), messages.shown)
         rule.onNodeWithTag("checkin_save").assertIsEnabled()
-    }
-
-    @Test
-    fun notesOverTheLimit_showTheMessageAndBlockGuardar() {
-        show(ready(energy = 4, notes = "a".repeat(1001)))
-
-        rule.onNodeWithText("Máximo 1000 caracteres").assertExists()
-        rule.onNodeWithTag("checkin_notes_counter").assertTextContains("1001/1000")
-        rule.onNodeWithTag("checkin_save").assertIsNotEnabled()
     }
 
     // -- Discard, offline and reopening ------------------------------
@@ -383,10 +361,10 @@ class CheckInScreenTest {
 
     @Test
     fun reopenedAnswer_isPrefilled_andCleanUntilEdited() {
-        show(ready(energy = 5, notes = "Muy bien", answer = CheckIn(MONDAY, 5, "Muy bien")))
+        show(ready(energy = 5, answer = CheckIn(MONDAY, 5)))
 
         rule.onNodeWithTag("checkin_energy_5").assertIsSelected()
-        rule.onNodeWithTag("checkin_notes").assertTextContains("Muy bien")
+        rule.onNodeWithTag("checkin_notes").assertDoesNotExist()
         rule.onNodeWithTag("checkin_save").assertIsNotEnabled()
     }
 

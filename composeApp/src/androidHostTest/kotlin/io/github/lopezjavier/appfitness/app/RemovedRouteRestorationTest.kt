@@ -20,9 +20,9 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 
 /**
- * ADR-40: a back stack saved by a build that still had a destination this build removed (the AI usage screen) is
- * dropped, not restored (restoring an unknown destination makes Navigation throw), and the app starts at its start
- * tab.
+ * ADR-40: a back stack saved by a build that still had a destination this build removed (the AI usage screen, then
+ * the free-text lines screen) is dropped, not restored (restoring an unknown destination makes Navigation throw), and
+ * the app starts at its start tab.
  */
 @RunWith(RobolectricTestRunner::class)
 @Config(qualifiers = "w360dp-h2400dp-xxhdpi")
@@ -35,7 +35,8 @@ class RemovedRouteRestorationTest {
     private var version by mutableStateOf(NAV_STATE_VERSION)
 
     /** Opens a full-screen destination from the Trainer tab, saves the state, leaves and comes back. */
-    private fun openFreeTextThenRecreateWith(newVersion: Int) {
+    private fun openYourDataThenRecreateWith(savedVersion: Int, newVersion: Int) {
+        version = savedVersion
         rule.setContent {
             if (shown) {
                 CompositionLocalProvider(LocalSaveableStateRegistry provides registry) {
@@ -44,7 +45,7 @@ class RemovedRouteRestorationTest {
                         trainer = { modifier, actions ->
                             Box(
                                 modifier.fillMaxSize().testTag("trainer_screen")
-                                    .clickable(onClick = actions.onOpenFreeText),
+                                    .clickable(onClick = actions.onOpenYourData),
                             )
                         },
                     )
@@ -53,7 +54,7 @@ class RemovedRouteRestorationTest {
         }
         rule.onNodeWithTag("nav_tab_trainer").performClick()
         rule.onNodeWithTag("trainer_screen").performClick()
-        rule.onNodeWithTag("free_text_screen").assertExists()
+        rule.onNodeWithTag("your_data_screen").assertExists()
         val saved = registry.performSave()
         rule.runOnIdle { shown = false }
         rule.waitForIdle()
@@ -66,16 +67,24 @@ class RemovedRouteRestorationTest {
 
     @Test
     fun savedStackFromTheSameVersion_isRestored() {
-        openFreeTextThenRecreateWith(NAV_STATE_VERSION)
+        openYourDataThenRecreateWith(NAV_STATE_VERSION, NAV_STATE_VERSION)
 
-        rule.onNodeWithTag("free_text_screen").assertExists()
+        rule.onNodeWithTag("your_data_screen").assertExists()
     }
 
     @Test
     fun savedStackFromAnOlderVersion_isDropped_andTheAppStartsAtTheStartTab() {
-        openFreeTextThenRecreateWith(NAV_STATE_VERSION + 1)
+        openYourDataThenRecreateWith(NAV_STATE_VERSION, NAV_STATE_VERSION + 1)
 
-        rule.onNodeWithTag("free_text_screen").assertDoesNotExist()
+        rule.onNodeWithTag("your_data_screen").assertDoesNotExist()
+        rule.onNodeWithTag("nav_tab_diary").assertExists()
+    }
+
+    @Test
+    fun aStackSavedByTheLastBuildWithTheFreeTextScreen_isDropped_underTheCurrentVersion() {
+        openYourDataThenRecreateWith(savedVersion = 1, newVersion = NAV_STATE_VERSION)
+
+        rule.onNodeWithTag("your_data_screen").assertDoesNotExist()
         rule.onNodeWithTag("nav_tab_diary").assertExists()
     }
 }

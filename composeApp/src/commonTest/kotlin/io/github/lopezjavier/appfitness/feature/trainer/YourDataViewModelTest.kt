@@ -268,20 +268,20 @@ class YourDataViewModelTest {
     }
 
     @Test
-    fun savedIntake_isSummarisedInTheThreeRows() = runTest(dispatcher) {
+    fun savedIntake_isSummarisedInTheTwoRows() = runTest(dispatcher) {
         plan(planInput(PlanInputKey.Sex))
-        intake.stored = CoachIntake(trainingYears = 4.0, knownMaintenanceKcal = 2600, freeText = "Rodilla operada")
+        intake.stored = CoachIntake(trainingYears = 4.0, knownMaintenanceKcal = 2600)
         val model = viewModel()
 
         advanceUntilIdle()
 
-        assertEquals(IntakeSummary(4.0, 2600, "Rodilla operada"), model.content().intake)
+        assertEquals(IntakeSummary(4.0, 2600), model.content().intake)
     }
 
     @Test
     fun savingTheYearsSheet_updatesOnlyThatRow() = runTest(dispatcher) {
         plan(planInput(PlanInputKey.Sex))
-        intake.stored = CoachIntake(knownMaintenanceKcal = 2600, freeText = "hola")
+        intake.stored = CoachIntake(knownMaintenanceKcal = 2600)
         val model = viewModel()
         advanceUntilIdle()
 
@@ -292,7 +292,7 @@ class YourDataViewModelTest {
         advanceUntilIdle()
 
         assertEquals(listOf<IntakeUpdate>(IntakeUpdate.TrainingYears(0.5)), intake.saveCalls)
-        assertEquals(IntakeSummary(0.5, 2600, "hola"), model.content().intake)
+        assertEquals(IntakeSummary(0.5, 2600), model.content().intake)
         assertNull(model.editor.value.sheet)
     }
 

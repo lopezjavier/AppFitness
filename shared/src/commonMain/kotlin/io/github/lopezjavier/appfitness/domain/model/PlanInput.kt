@@ -23,10 +23,9 @@ enum class PlanInputKey {
     SessionMinutes,
     Experience,
 
-    /** The three "Para conocerte" inputs: informational, never blocking, shown as intake rows (not summary lines). */
+    /** The "Para conocerte" inputs: informational, never blocking, shown as intake rows (not summary lines). */
     TrainingYears,
     KnownMaintenance,
-    FreeText,
     Unknown,
     ;
 
@@ -47,7 +46,7 @@ enum class PlanInputKey {
 enum class PlanInputStatus { Ok, Missing, UnsetOptional, Provisional, Stale, Unknown }
 
 /** Where the user fixes an input by hand. */
-enum class PlanFixTarget { MyTraining, PersonalData, Weight, ActivitySheet, TrainingYears, Maintenance, FreeText }
+enum class PlanFixTarget { MyTraining, PersonalData, Weight, ActivitySheet, TrainingYears, Maintenance }
 
 enum class PlanInputSource { Profile, MyTraining, WeighIn, CoachEstimate, Intake, Unknown }
 

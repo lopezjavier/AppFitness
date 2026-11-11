@@ -158,7 +158,6 @@ internal class FakeFoodDiaryRepository : FoodDiaryRepository {
 
     /** One element per [addEntries] call, so a test can assert a copy is a single request. */
     val addedBatches = mutableListOf<List<NewFoodEntry>>()
-    val deletedBatches = mutableListOf<List<String>>()
     var batchResult: Result<Unit> = Result.success(Unit)
 
     /** When set, [addEntries] suspends until it completes. */
@@ -190,13 +189,6 @@ internal class FakeFoodDiaryRepository : FoodDiaryRepository {
             days.mapValues { (date, list) -> list + created.filter { it.logDate == date } }
         }
         return Result.success(created)
-    }
-
-    override suspend fun deleteEntries(ids: List<String>): Result<Unit> {
-        if (batchResult.isFailure) return batchResult
-        deletedBatches += ids
-        cache.update { days -> days.mapValues { (_, list) -> list.filterNot { it.id in ids } } }
-        return Result.success(Unit)
     }
 
     /** Days with entries returned by [summaries] (filtered to the range); [summariesResult] can force a failure. */

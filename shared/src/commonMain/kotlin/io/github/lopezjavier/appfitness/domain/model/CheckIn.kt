@@ -2,11 +2,8 @@ package io.github.lopezjavier.appfitness.domain.model
 
 import kotlinx.datetime.LocalDate
 
-/** Maximum length of the check-in notes (DB check `char_length <= 1000`). */
-const val CHECK_IN_NOTES_MAX = 1000
-
 /** The user's answer for the Monday-Sunday week starting on [weekStart] (a Monday). [energy] is 1-5. */
-data class CheckIn(val weekStart: LocalDate, val energy: Int, val notes: String)
+data class CheckIn(val weekStart: LocalDate, val energy: Int)
 
 /**
  * The check-in window currently open: [day] is the check-in day (latest day up to today with the chosen weekday),

@@ -5,11 +5,9 @@ import io.github.lopezjavier.appfitness.domain.coach.builder.BuilderScore
 import io.github.lopezjavier.appfitness.domain.coach.builder.BuilderScoreResult
 import io.github.lopezjavier.appfitness.domain.coach.builder.BuilderStart
 import io.github.lopezjavier.appfitness.domain.coach.builder.BuilderState
-import io.github.lopezjavier.appfitness.domain.coach.builder.BuiltBlock
 import io.github.lopezjavier.appfitness.domain.coach.builder.DayTypeOption
 import io.github.lopezjavier.appfitness.domain.coach.builder.FitResult
 import io.github.lopezjavier.appfitness.domain.coach.builder.FolderBlockDraft
-import io.github.lopezjavier.appfitness.domain.coach.builder.FolderBlockStatus
 import io.github.lopezjavier.appfitness.domain.coach.builder.PickerContext
 import io.github.lopezjavier.appfitness.domain.coach.builder.PickerEntry
 import io.github.lopezjavier.appfitness.domain.coach.builder.RoutinePlan
@@ -86,8 +84,6 @@ class BuildBlockUseCase(private val blocks: CoachBlockRepository, private val fo
 
     fun score(state: BuilderState): BuilderScoreResult = BuilderScore.score(state.days, state.intention)
 
-    fun checkFolder(draft: FolderBlockDraft): FolderBlockStatus = draft.status()
-
     /** Reads a folder as an editable copy (nothing is written). */
     suspend fun loadFolder(folderId: String): Result<FolderBlockSource> = folders(folderId)
 
@@ -113,8 +109,4 @@ class BuildBlockUseCase(private val blocks: CoachBlockRepository, private val fo
     ): Result<BlockSaved>? = draft
         .toBuiltBlock(sessionMinutes, cardioTargetMinWeek, inputs.cardioDefault, inputs.history)
         ?.let { blocks.saveBuiltBlock(planId, it, folderName) }
-
-    /** Saves an already-built payload. */
-    suspend fun saveBuilt(planId: String, block: BuiltBlock, folderName: String?): Result<BlockSaved> =
-        blocks.saveBuiltBlock(planId, block, folderName)
 }

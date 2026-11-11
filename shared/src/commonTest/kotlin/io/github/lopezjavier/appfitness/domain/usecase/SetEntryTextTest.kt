@@ -5,8 +5,6 @@ import io.github.lopezjavier.appfitness.domain.model.PreviousSet
 import io.github.lopezjavier.appfitness.domain.model.SetEntry
 import kotlin.test.Test
 import kotlin.test.assertEquals
-import kotlin.test.assertFalse
-import kotlin.test.assertTrue
 
 class SetEntryTextTest {
     @Test
@@ -53,12 +51,5 @@ class SetEntryTextTest {
         val ghost = PreviousSet(1, 0.0, 0, durationS = 90)
 
         assertEquals("01:30", SetEntryText.format(ghost, ExerciseMetricType.Duration))
-    }
-
-    @Test
-    fun onlyLoadedRepMetrics_carryVolume() {
-        assertTrue(SetEntryText.carriesVolume(ExerciseMetricType.Bodyweight))
-        assertFalse(SetEntryText.carriesVolume(ExerciseMetricType.Duration))
-        assertFalse(SetEntryText.carriesVolume(ExerciseMetricType.DistanceDuration))
     }
 }

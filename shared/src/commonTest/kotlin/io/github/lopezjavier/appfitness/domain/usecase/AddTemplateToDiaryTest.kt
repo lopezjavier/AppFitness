@@ -61,8 +61,6 @@ private class RecordingDiary(var failure: AppError? = null) : FoodDiaryRepositor
         )
     }
 
-    override suspend fun deleteEntries(ids: List<String>): Result<Unit> = error("not used")
-
     override suspend fun summaries(from: LocalDate, to: LocalDate): Result<List<DiaryDaySummary>> = error("not used")
 }
 

@@ -11,12 +11,10 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
-import androidx.compose.ui.test.performTextInput
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.SavedStateHandle
 import androidx.navigation.compose.rememberNavController
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
-import io.github.lopezjavier.appfitness.domain.model.IntakeUpdate
 import io.github.lopezjavier.appfitness.domain.model.PlanInputKind
 import io.github.lopezjavier.appfitness.feature.routines.FakeRoutineRepository
 import io.github.lopezjavier.appfitness.feature.trainer.BeforeStartMode
@@ -24,11 +22,8 @@ import io.github.lopezjavier.appfitness.feature.trainer.BeforeStartRoot
 import io.github.lopezjavier.appfitness.feature.trainer.BeforeStartViewModel
 import io.github.lopezjavier.appfitness.feature.trainer.FakeCoachIntakeRepository
 import io.github.lopezjavier.appfitness.feature.trainer.FakeCoachRepository
-import io.github.lopezjavier.appfitness.feature.trainer.IntakeRoot
-import io.github.lopezjavier.appfitness.feature.trainer.IntakeViewModel
 import io.github.lopezjavier.appfitness.feature.trainer.planKeys
 import io.github.lopezjavier.appfitness.feature.workout.MutableClock
-import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
@@ -69,10 +64,6 @@ class IntakeFlowNavigationTest {
         }
         BeforeStartRoot(onBack, onCreated, onOpenYourData, onFix, modifier, model, connectivity)
     }
-    private val intakeSlot: IntakeSlot = { modifier, host ->
-        val model = remember { IntakeViewModel(intake, SavedStateHandle()) }
-        IntakeRoot(host, modifier, model, connectivity)
-    }
 
     private fun show() {
         rule.setContent {
@@ -81,7 +72,6 @@ class IntakeFlowNavigationTest {
                     navController = rememberNavController(),
                     trainer = trainerSlot,
                     beforeStart = beforeStartSlot,
-                    intake = intakeSlot,
                 )
             }
         }
@@ -101,34 +91,7 @@ class IntakeFlowNavigationTest {
         tap("t_plan")
 
         rule.onNodeWithTag("before_start_screen").assertExists()
-        rule.onNodeWithTag("intake_screen").assertDoesNotExist()
         rule.onNodeWithTag("intake_years_sheet").assertDoesNotExist()
         assertTrue(intake.saveCalls.isEmpty())
-    }
-
-    @Test
-    fun theFreeTextRow_opensParaConocerte_andSavingReturnsToAntesDeEmpezarWithTheText() {
-        show()
-        tap("t_plan")
-
-        tap("before_start_row_free_text")
-        rule.onNodeWithTag("intake_screen").assertExists()
-        rule.onNodeWithTag("intake_free_text").performTextInput("Rodilla operada")
-        tap("intake_save")
-
-        rule.onNodeWithTag("before_start_screen").assertExists()
-        rule.onNodeWithTag("intake_screen").assertDoesNotExist()
-        assertEquals(listOf<IntakeUpdate>(IntakeUpdate.FreeText("Rodilla operada")), intake.saveCalls)
-    }
-
-    @Test
-    fun backFromParaConocerte_returnsToAntesDeEmpezar() {
-        show()
-        tap("t_plan")
-        tap("before_start_row_free_text")
-
-        tap("intake_back")
-
-        rule.onNodeWithTag("before_start_screen").assertExists()
     }
 }

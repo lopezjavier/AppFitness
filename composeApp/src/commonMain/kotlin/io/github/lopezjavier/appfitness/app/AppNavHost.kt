@@ -97,15 +97,6 @@ internal typealias TrainerBoxSlot =
 internal typealias YourDataSlot =
     @Composable (modifier: Modifier, onBack: () -> Unit, onFix: (PlanFixTarget) -> Unit) -> Unit
 
-/** What "Para conocerte" needs from navigation: how to go on after saving ([onDone]) and how to leave ([onClose]). */
-class IntakeHost(val onDone: () -> Unit, val onClose: () -> Unit)
-
-/** Content of "Para conocerte": modifier (full-screen insets) and its [IntakeHost]. */
-internal typealias IntakeSlot = @Composable (modifier: Modifier, host: IntakeHost) -> Unit
-
-/** Content of "Lo que el entrenador sabe de ti": modifier (full-screen insets) and how to leave. */
-internal typealias FreeTextLinesSlot = @Composable (modifier: Modifier, onBack: () -> Unit) -> Unit
-
 /** Content of the block preview: modifier (full-screen insets), plan id, exercise opener and how to leave. */
 internal typealias BlockPreviewSlot =
     @Composable (modifier: Modifier, planId: String, onOpenExercise: (String) -> Unit, onBack: () -> Unit) -> Unit
@@ -711,16 +702,6 @@ internal val DefaultYourDataSlot: YourDataSlot = { modifier, _, _ ->
     Box(modifier.fillMaxSize().testTag("your_data_screen"))
 }
 
-/** Empty "Para conocerte" for previews and shell tests; the real one is wired by `AppRoot`. */
-internal val DefaultIntakeSlot: IntakeSlot = { modifier, _ ->
-    Box(modifier.fillMaxSize().testTag("intake_screen"))
-}
-
-/** Empty "Lo que el entrenador sabe de ti" for previews and shell tests; the real one is wired by `AppRoot`. */
-internal val DefaultFreeTextLinesSlot: FreeTextLinesSlot = { modifier, _ ->
-    Box(modifier.fillMaxSize().testTag("free_text_screen"))
-}
-
 /** Empty block preview for previews and shell tests; the real one is wired by `AppRoot`. */
 internal val DefaultBlockPreviewSlot: BlockPreviewSlot = { modifier, _, _, _ ->
     Box(modifier.fillMaxSize().testTag("block_preview_screen"))
@@ -768,8 +749,6 @@ internal fun AppNavHost(
     planProposal: PlanProposalSlot = DefaultPlanProposalSlot,
     beforeStart: BeforeStartSlot = DefaultBeforeStartSlot,
     yourData: YourDataSlot = DefaultYourDataSlot,
-    intake: IntakeSlot = DefaultIntakeSlot,
-    freeTextLines: FreeTextLinesSlot = DefaultFreeTextLinesSlot,
     blockPreview: BlockPreviewSlot = DefaultBlockPreviewSlot,
     blockBuilder: BlockBuilderSlot = DefaultBlockBuilderSlot,
     folderBlock: FolderBlockSlot = DefaultFolderBlockSlot,
@@ -849,7 +828,6 @@ internal fun AppNavHost(
             onOpenYourData = { navController.navigateToFullScreen(YourDataRoute) },
             onOpenPlan = { navController.navigateToFullScreen(TrainerPlanRoute) },
             onOpenBlockScreen = { navController.navigateToFullScreen(TrainerBlockRoute) },
-            onOpenFreeText = { navController.navigateToFullScreen(FreeTextLinesRoute) },
             onOpenWeekSummary = { navController.navigateToFullScreen(WeekSummaryRoute) },
             onOpenBlockReview = { navController.navigateToFullScreen(BlockReviewRoute) },
             onOpenExercise = { navController.navigateToFullScreen(ExerciseDetailRoute(it, selectMode = false)) },
@@ -875,8 +853,6 @@ internal fun AppNavHost(
 
                 // The screens open their own sheet.
                 PlanFixTarget.TrainingYears, PlanFixTarget.Maintenance -> null
-
-                PlanFixTarget.FreeText -> IntakeRoute
             }
             if (route != null) navController.navigateToFullScreen(route)
         }
@@ -1018,18 +994,6 @@ internal fun AppNavHost(
         }
         composable<FolderReviewResultRoute> { entry ->
             folderReviewResult(Modifier.padding(fullScreenPadding)) { navController.popFullScreen(entry) }
-        }
-        composable<IntakeRoute> { entry ->
-            intake(
-                Modifier.padding(fullScreenPadding),
-                IntakeHost(
-                    onDone = { navController.popFullScreen(entry) },
-                    onClose = { navController.popFullScreen(entry) },
-                ),
-            )
-        }
-        composable<FreeTextLinesRoute> { entry ->
-            freeTextLines(Modifier.padding(fullScreenPadding)) { navController.popFullScreen(entry) }
         }
         composable<TrainerPlanRoute> { entry ->
             val owner = rememberTrainerOwner(navController, entry)

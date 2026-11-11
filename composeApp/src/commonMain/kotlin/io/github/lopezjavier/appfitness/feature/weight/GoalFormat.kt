@@ -95,6 +95,3 @@ internal fun signedTenths(value: Double): String {
     }
     return "$sign${tenths / TENTHS},${tenths % TENTHS}"
 }
-
-/** True when the delta rounds to 0,0. */
-internal fun isZeroTenths(value: Double): Boolean = (abs(value) * TENTHS).roundToInt() == 0

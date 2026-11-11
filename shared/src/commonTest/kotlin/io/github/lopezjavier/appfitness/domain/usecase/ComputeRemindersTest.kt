@@ -185,7 +185,7 @@ class ComputeRemindersTest {
     private fun checkInDay(answered: Boolean = false, day: LocalDate = daysAgo(1)) = CheckInDay(
         day,
         day,
-        if (answered) CheckIn(day, 3, "") else null,
+        if (answered) CheckIn(day, 3) else null,
     )
 
     private fun runWithCheckIn(

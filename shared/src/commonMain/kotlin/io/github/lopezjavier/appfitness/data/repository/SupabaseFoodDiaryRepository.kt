@@ -87,13 +87,6 @@ class SupabaseFoodDiaryRepository(private val auth: Auth, private val postgrest:
         created
     }
 
-    override suspend fun deleteEntries(ids: List<String>): Result<Unit> = auth.ownRow {
-        if (ids.isEmpty()) return@ownRow
-        postgrest.from("food_log_entries").delete { filter { isIn("id", ids) } }
-        val gone = ids.toSet()
-        cache.update { days -> days.mapValues { (_, entries) -> entries.filterNot { it.id in gone } } }
-    }
-
     override suspend fun summaries(from: LocalDate, to: LocalDate): Result<List<DiaryDaySummary>> = auth.ownRow {
         postgrest.rpc("food_diary_summary", DiaryDaySummaryParams(from.toString(), to.toString()))
             .decodeList<DiaryDaySummaryDto>()

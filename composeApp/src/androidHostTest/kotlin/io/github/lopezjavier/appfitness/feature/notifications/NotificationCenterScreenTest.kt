@@ -45,7 +45,7 @@ class NotificationCenterScreenTest {
 
     private val checkInReminder = Reminder(ReminderKind.CheckIn, LocalDate(2026, 11, 15), days = 0)
     private val openWindow = CheckInDay(LocalDate(2026, 11, 15), LocalDate(2026, 11, 9), answer = null)
-    private val answeredWindow = openWindow.copy(answer = CheckIn(LocalDate(2026, 11, 9), energy = 4, notes = ""))
+    private val answeredWindow = openWindow.copy(answer = CheckIn(LocalDate(2026, 11, 9), energy = 4))
 
     private fun show(
         state: NotificationCenterUiState,

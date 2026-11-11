@@ -90,14 +90,6 @@ data object TrainerPlanRoute : AppRoute
 @Serializable
 data object TrainerBlockRoute : AppRoute
 
-/** "Para conocerte" (US-81): the free-text editor, opened from the "Para conocerte" row (R-55). */
-@Serializable
-data object IntakeRoute : AppRoute
-
-/** "Lo que el entrenador sabe de ti" (US-89): every free-text line the coach reads, opened from the Trainer tab. */
-@Serializable
-data object FreeTextLinesRoute : AppRoute
-
 /** The four-week training block of the plan [planId] (US-72): request, review and save, opened from the Trainer tab. */
 @Serializable
 data class BlockPreviewRoute(val planId: String) : AppRoute
@@ -453,8 +445,6 @@ object AppDestinations {
             YourDataRoute,
             TrainerPlanRoute,
             TrainerBlockRoute,
-            IntakeRoute,
-            FreeTextLinesRoute,
             BlockPreviewRoute(""),
             BlockBuilderRoute(""),
             FolderBlockRoute("", ""),

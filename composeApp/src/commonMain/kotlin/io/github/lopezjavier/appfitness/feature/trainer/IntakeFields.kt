@@ -36,7 +36,6 @@ import io.github.lopezjavier.appfitness.designsystem.Spacing
 import io.github.lopezjavier.appfitness.designsystem.StatusChip
 import io.github.lopezjavier.appfitness.designsystem.StatusTone
 import io.github.lopezjavier.appfitness.designsystem.offlineHint
-import io.github.lopezjavier.appfitness.domain.model.PlanFixTarget
 import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.stringResource
 
@@ -87,7 +86,7 @@ internal fun IntakeRows(
                     )
                 }
             }
-            if (kind != IntakeRowKind.FreeText && intake.isProvisional(kind)) {
+            if (intake.isProvisional(kind)) {
                 StatusChip(
                     text = stringResource(Res.string.trainer_provisional),
                     tone = StatusTone.Caution,
@@ -200,16 +199,10 @@ private fun MaintenanceSheet(
     }
 }
 
-/** A tap on an intake row: years and maintenance open their small sheet, the free text opens "Para conocerte". */
-internal fun openIntakeRow(
-    kind: IntakeRowKind,
-    intake: IntakeSummary,
-    onEditorEvent: (IntakeRowEvent) -> Unit,
-    onFix: (PlanFixTarget) -> Unit,
-) {
+/** A tap on an intake row: years and maintenance open their small sheet. */
+internal fun openIntakeRow(kind: IntakeRowKind, intake: IntakeSummary, onEditorEvent: (IntakeRowEvent) -> Unit) {
     when (kind) {
         IntakeRowKind.TrainingYears -> onEditorEvent(IntakeRowEvent.OpenYears(intake.trainingYears))
         IntakeRowKind.Maintenance -> onEditorEvent(IntakeRowEvent.OpenMaintenance(intake.maintenanceKcal))
-        IntakeRowKind.FreeText -> onFix(PlanFixTarget.FreeText)
     }
 }

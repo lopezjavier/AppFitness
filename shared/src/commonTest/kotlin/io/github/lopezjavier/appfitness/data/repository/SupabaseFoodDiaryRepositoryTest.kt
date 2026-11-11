@@ -459,39 +459,6 @@ class SupabaseFoodDiaryRepositoryTest {
     }
 
     @Test
-    fun deleteEntries_isOneInFilterRequestAndRemovesThemFromTheCache() = runTest {
-        var body = "[$ROW_ONE,$ROW_TWO]"
-        val repo = signedInRepository { body }
-        repo.refresh(day).getOrThrow()
-        val before = requests.size
-
-        repo.entries(day).test {
-            assertEquals(listOf("e1", "e2"), awaitItem().map { it.id })
-            body = ""
-            repo.deleteEntries(listOf("e1", "e2")).getOrThrow()
-            assertEquals(emptyList(), awaitItem())
-        }
-        val deletes = requests.drop(before).filter { it.method == HttpMethod.Delete }
-        assertEquals(1, deletes.size)
-        assertEquals("in.(e1,e2)", deletes.single().url.parameters["id"])
-    }
-
-    @Test
-    fun deleteEntries_networkError_isMappedAndKeepsTheCache() = runTest {
-        var fail = false
-        val repo =
-            signedInRepository {
-                if (fail) throw IOException("offline")
-                "[$ROW_ONE]"
-            }
-        repo.refresh(day).getOrThrow()
-        fail = true
-
-        assertEquals(AppError.Network, repo.deleteEntries(listOf("e1")).appErrorOrNull())
-        repo.entries(day).test { assertEquals(listOf("e1"), awaitItem().map { it.id }) }
-    }
-
-    @Test
     fun networkErrors_areMapped() = runTest {
         var fail = false
         val repo =

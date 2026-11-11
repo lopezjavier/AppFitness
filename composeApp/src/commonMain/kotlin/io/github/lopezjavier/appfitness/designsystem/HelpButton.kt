@@ -103,13 +103,6 @@ fun HelpTriggerButton(contentDescription: String, testTag: String, onClick: () -
     )
 }
 
-/**
- * The "?" as a trailing action of [AppTopBar] (a screen-level help, R-32). The caller opens its own [AppInfoSheet]
- * from [onClick] and keeps the open state.
- */
-fun helpTopBarAction(contentDescription: String, testTag: String, onClick: () -> Unit): AppTopBarAction =
-    AppTopBarAction(Res.drawable.ic_help, contentDescription, onClick, testTag)
-
 @Composable
 private fun HelpText(text: String, modifier: Modifier = Modifier) {
     Text(

@@ -244,10 +244,10 @@ private fun BeforeStartContent(
                         PlanFixTarget.ActivitySheet -> onEvent(BeforeStartEvent.OpenSheet)
 
                         PlanFixTarget.TrainingYears ->
-                            openIntakeRow(IntakeRowKind.TrainingYears, state.intake, onEditorEvent, onFix)
+                            openIntakeRow(IntakeRowKind.TrainingYears, state.intake, onEditorEvent)
 
                         PlanFixTarget.Maintenance ->
-                            openIntakeRow(IntakeRowKind.Maintenance, state.intake, onEditorEvent, onFix)
+                            openIntakeRow(IntakeRowKind.Maintenance, state.intake, onEditorEvent)
 
                         else -> onFix(row.fixTarget)
                     }
@@ -276,7 +276,7 @@ private fun BeforeStartContent(
                 intake = state.intake,
                 kinds = state.intakeRows,
                 screen = "before_start",
-                onOpen = { openIntakeRow(it, state.intake, onEditorEvent, onFix) },
+                onOpen = { openIntakeRow(it, state.intake, onEditorEvent) },
                 modifier = Modifier.testTag("before_start_intake_block"),
             )
         }
@@ -408,15 +408,10 @@ private fun BeforeStartFooter(
 /** Where a flagged input is fixed, as the flag row's value. */
 internal fun PlanFixTarget.destinationLabel() = when (this) {
     PlanFixTarget.MyTraining -> Res.string.before_start_fix_preferences
-
     PlanFixTarget.PersonalData -> Res.string.before_start_fix_personal
-
     PlanFixTarget.Weight -> Res.string.before_start_fix_weight
-
     PlanFixTarget.ActivitySheet -> Res.string.before_start_fix_activity
-
-    PlanFixTarget.TrainingYears, PlanFixTarget.Maintenance, PlanFixTarget.FreeText ->
-        Res.string.before_start_fix_intake
+    PlanFixTarget.TrainingYears, PlanFixTarget.Maintenance -> Res.string.before_start_fix_intake
 }
 
 /** Card-shaped placeholder while the inputs load (R-31): a title bar and one bar per summary line. */

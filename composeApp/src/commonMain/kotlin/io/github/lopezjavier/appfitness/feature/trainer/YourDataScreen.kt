@@ -179,7 +179,7 @@ private fun YourDataContent(
             intake = state.intake,
             kinds = IntakeRowKind.entries,
             screen = "your_data",
-            onOpen = { openIntakeRow(it, state.intake, onEditorEvent, onFix) },
+            onOpen = { openIntakeRow(it, state.intake, onEditorEvent) },
         )
     }
 }
@@ -222,10 +222,10 @@ private fun YourDataRow(
                         PlanFixTarget.ActivitySheet -> onEvent(YourDataEvent.OpenSheet)
 
                         PlanFixTarget.TrainingYears ->
-                            openIntakeRow(IntakeRowKind.TrainingYears, intake, onEditorEvent, onFix)
+                            openIntakeRow(IntakeRowKind.TrainingYears, intake, onEditorEvent)
 
                         PlanFixTarget.Maintenance ->
-                            openIntakeRow(IntakeRowKind.Maintenance, intake, onEditorEvent, onFix)
+                            openIntakeRow(IntakeRowKind.Maintenance, intake, onEditorEvent)
 
                         else -> onFix(target)
                     }

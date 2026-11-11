@@ -27,12 +27,11 @@ import kotlinx.coroutines.launch
 import kotlinx.datetime.LocalDate
 
 private const val KEY_ENERGY = "checkin_energy"
-private const val KEY_NOTES = "checkin_notes"
 
 /**
- * The weekly check-in (US-59): the closed week in figures and the energy/notes form. The open check-in comes from the
+ * The weekly check-in (US-59): the closed week in figures and the energy form. The open check-in comes from the
  * [ReminderCoordinator] (no route argument, so opening it on the Monday after still shows the closed week). The summary
- * loads on its own: a failure shows an error block with a retry and never blocks the form. An unsaved energy/notes
+ * loads on its own: a failure shows an error block with a retry and never blocks the form. An unsaved energy
  * draft survives process death through [savedState] (ADR-40). Saving upserts the week, refreshes the center and then
  * emits [CheckInEffect.Saved]. [exerciseNames] names the records of the summary: the summary only loads together
  * with their names (a failed lookup or an id without a name is a failed summary with a retry, never an unnamed
@@ -77,8 +76,6 @@ class CheckInViewModel(
             is CheckInEvent.SelectEnergy ->
                 if (event.energy in CHECK_IN_ENERGY_RANGE) edit { it.copy(energy = event.energy) }
 
-            is CheckInEvent.SetNotes -> edit { it.copy(notes = event.notes) }
-
             CheckInEvent.Save -> save()
 
             CheckInEvent.Retry -> if (_uiState.value == CheckInUiState.LoadFailed) load()
@@ -101,7 +98,6 @@ class CheckInViewModel(
             _uiState.value = CheckInUiState.Ready(
                 window = window,
                 energy = savedState.get<Int>(KEY_ENERGY) ?: window.answer?.energy,
-                notes = savedState.get<String>(KEY_NOTES) ?: window.answer?.notes.orEmpty(),
                 summary = CheckInSummaryState.Loading,
                 isOffline = !online,
             )
@@ -155,7 +151,6 @@ class CheckInViewModel(
     /** An unsaved draft is kept in the saved state; equal to what is stored, nothing is kept. */
     private fun persistDraft(state: CheckInUiState.Ready) {
         savedState[KEY_ENERGY] = state.energy.takeIf { state.isDirty }
-        savedState[KEY_NOTES] = state.notes.takeIf { state.isDirty }
     }
 
     private fun save() {
@@ -164,13 +159,12 @@ class CheckInViewModel(
         if (!state.canSave || energy == null) return
         updateReady { it.copy(isSaving = true) }
         viewModelScope.launch {
-            val answer = CheckIn(state.window.weekStart, energy, state.notes)
+            val answer = CheckIn(state.window.weekStart, energy)
             val result = checkIns.save(answer)
             if (result.isSuccess) {
                 // The center must already show the answered check-in when the editor closes.
                 coordinator.refresh()
                 savedState[KEY_ENERGY] = null
-                savedState[KEY_NOTES] = null
                 updateReady { it.copy(window = it.window.copy(answer = answer), isSaving = false) }
                 effectChannel.send(CheckInEffect.Saved)
             } else {

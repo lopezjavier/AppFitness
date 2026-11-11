@@ -155,7 +155,7 @@ class LoadRemindersTest {
     @Test
     fun answeredCheckIn_isInTheSnapshotButNotCounted() = runTest {
         val env = checkInEnv()
-        val answer = CheckIn(checkInWeek, 4, "good")
+        val answer = CheckIn(checkInWeek, 4)
         env.checkIns.rows[checkInWeek] = answer
 
         val snapshot = env.load().getOrThrow()
@@ -168,7 +168,7 @@ class LoadRemindersTest {
     fun silencedCheckIn_hidesBothTheReminderAndTheAnsweredRow() = runTest {
         val env = checkInEnv()
         env.settings.values[NotificationKind.WeeklyCheckIn] = false
-        env.checkIns.rows[checkInWeek] = CheckIn(checkInWeek, 4, "")
+        env.checkIns.rows[checkInWeek] = CheckIn(checkInWeek, 4)
 
         val snapshot = env.load().getOrThrow()
 

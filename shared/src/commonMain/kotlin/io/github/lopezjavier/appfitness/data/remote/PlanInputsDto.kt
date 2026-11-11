@@ -45,9 +45,12 @@ internal data class PlanInputsDto(
             "proposed" -> CurrentPlan.Proposed
             else -> null
         },
-        inputs = inputs.map { it.toDomain() },
+        // The free-text entry was removed by T-277; a server that still sends it must not show an unknown row.
+        inputs = inputs.filter { it.key != REMOVED_FREE_TEXT_KEY }.map { it.toDomain() },
     )
 }
+
+private const val REMOVED_FREE_TEXT_KEY = "free_text"
 
 @Serializable
 internal data class PlanInputDto(
@@ -90,7 +93,6 @@ internal data class PlanInputDto(
             "experience" to PlanInputKey.Experience,
             "training_years" to PlanInputKey.TrainingYears,
             "known_maintenance" to PlanInputKey.KnownMaintenance,
-            "free_text" to PlanInputKey.FreeText,
         )
         val SOURCES = mapOf(
             "profile" to PlanInputSource.Profile,
@@ -118,7 +120,6 @@ internal data class PlanInputDto(
             "training_years" to PlanFixTarget.TrainingYears,
             "experience" to PlanFixTarget.TrainingYears,
             "known_maintenance" to PlanFixTarget.Maintenance,
-            "free_text" to PlanFixTarget.FreeText,
         )
     }
 }

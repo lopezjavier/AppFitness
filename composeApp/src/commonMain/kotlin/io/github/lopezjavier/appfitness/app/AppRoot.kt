@@ -39,8 +39,6 @@ import io.github.lopezjavier.appfitness.feature.trainer.BlockPreviewRoot
 import io.github.lopezjavier.appfitness.feature.trainer.BlockReviewRoot
 import io.github.lopezjavier.appfitness.feature.trainer.FolderBlockRoot
 import io.github.lopezjavier.appfitness.feature.trainer.FolderReviewResultRoot
-import io.github.lopezjavier.appfitness.feature.trainer.FreeTextLinesRoot
-import io.github.lopezjavier.appfitness.feature.trainer.IntakeRoot
 import io.github.lopezjavier.appfitness.feature.trainer.PastReportRoot
 import io.github.lopezjavier.appfitness.feature.trainer.PlanProposalRoot
 import io.github.lopezjavier.appfitness.feature.trainer.ReportsRoot
@@ -120,8 +118,6 @@ fun AppRoot(
             BeforeStartRoot(onBack, onCreated, onOpenYourData, onFix, startModifier, onOpenFolderBlock = onOpenReview)
         },
         yourData = { dataModifier, onBack, onFix -> YourDataRoot(onBack, onFix, dataModifier) },
-        intake = { intakeModifier, host -> IntakeRoot(host, intakeModifier) },
-        freeTextLines = { linesModifier, onBack -> FreeTextLinesRoot(onBack, linesModifier) },
         blockPreview = { blockModifier, planId, onOpenExercise, onBack ->
             BlockPreviewRoot(planId, onBack, onOpenExercise, blockModifier)
         },

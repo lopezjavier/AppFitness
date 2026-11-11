@@ -145,30 +145,19 @@ class BeforeStartScreenTest {
     @Test
     fun theIntakeRows_showWhatWasSaid_andNeverBlockCreating() {
         repository.inputs[PlanInputKind.Plan] = Result.success(planKeys())
-        intake.stored = CoachIntake(trainingYears = 4.0, freeText = "Rodilla operada")
+        intake.stored = CoachIntake(trainingYears = 4.0)
 
         show()
 
         rule.onNodeWithTag("before_start_intake_block").assertExists()
         rule.onNodeWithTag("before_start_row_training_years").assertTextEquals("Tiempo entrenando", "4 años")
-        rule.onNodeWithTag("before_start_row_free_text").assertTextEquals("Para conocerte", "Rodilla operada")
         rule.onNodeWithTag("before_start_row_maintenance")
             .assertTextEquals("Calorías de mantenimiento", "Sin indicar")
         rule.onNodeWithTag("before_start_create").assertIsEnabled()
     }
 
     @Test
-    fun tappingTheFreeTextRow_opensParaConocerte() {
-        repository.inputs[PlanInputKind.Plan] = Result.success(planKeys())
-        show()
-
-        tap("before_start_row_free_text")
-
-        assertEquals(listOf(PlanFixTarget.FreeText), fixed)
-    }
-
-    @Test
-    fun aBlock_hasOnlyTheYearsAndFreeTextRows() {
+    fun aBlock_hasOnlyTheYearsRow() {
         repository.inputs[PlanInputKind.Block] = Result.success(
             PlanInputs(PlanInputKind.Block, null, planKeys().inputs.take(1)),
         )
@@ -176,7 +165,7 @@ class BeforeStartScreenTest {
         show(mode = "block", planId = "plan-2")
 
         rule.onNodeWithTag("before_start_row_training_years").assertExists()
-        rule.onNodeWithTag("before_start_row_free_text").assertExists()
+        rule.onNodeWithTag("before_start_row_free_text").assertDoesNotExist()
         rule.onNodeWithTag("before_start_row_maintenance").assertDoesNotExist()
     }
 

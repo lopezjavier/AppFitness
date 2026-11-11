@@ -4,7 +4,6 @@ import androidx.compose.runtime.Composable
 import io.github.lopezjavier.appfitness.composeapp.resources.Res
 import io.github.lopezjavier.appfitness.composeapp.resources.energy_adjust_value
 import io.github.lopezjavier.appfitness.composeapp.resources.intake_maintenance_label
-import io.github.lopezjavier.appfitness.composeapp.resources.intake_title
 import io.github.lopezjavier.appfitness.composeapp.resources.intake_years_label
 import io.github.lopezjavier.appfitness.composeapp.resources.intake_years_many
 import io.github.lopezjavier.appfitness.composeapp.resources.intake_years_one
@@ -16,21 +15,18 @@ import org.jetbrains.compose.resources.stringResource
 internal fun IntakeRowKind.intakeLabel(): StringResource = when (this) {
     IntakeRowKind.TrainingYears -> Res.string.intake_years_label
     IntakeRowKind.Maintenance -> Res.string.intake_maintenance_label
-    IntakeRowKind.FreeText -> Res.string.intake_title
 }
 
 /** Test tag of the row on the screen [screen] ("before_start" or "your_data"). */
 internal fun IntakeRowKind.rowTag(screen: String): String = when (this) {
     IntakeRowKind.TrainingYears -> "${screen}_row_training_years"
     IntakeRowKind.Maintenance -> "${screen}_row_maintenance"
-    IntakeRowKind.FreeText -> "${screen}_row_free_text"
 }
 
-/** The editor a row opens: the sheet of the screen, or "Para conocerte" for the free text. */
+/** The editor a row opens: the sheet of the screen. */
 internal fun IntakeRowKind.fixTarget(): PlanFixTarget = when (this) {
     IntakeRowKind.TrainingYears -> PlanFixTarget.TrainingYears
     IntakeRowKind.Maintenance -> PlanFixTarget.Maintenance
-    IntakeRowKind.FreeText -> PlanFixTarget.FreeText
 }
 
 /** The value of an intake row, or null when the user has not said it ("Sin indicar"). */
@@ -41,8 +37,6 @@ internal fun IntakeRowKind.valueText(summary: IntakeSummary): String? = when (th
     IntakeRowKind.Maintenance -> summary.maintenanceKcal?.let {
         stringResource(Res.string.energy_adjust_value, AppNumberFormat.integer(it))
     }
-
-    IntakeRowKind.FreeText -> summary.freeText?.lineSequence()?.firstOrNull { it.isNotBlank() }
 }
 
 /** "1 año", "0,5 años", "4 años": training time in years. */

@@ -9,18 +9,14 @@ import kotlinx.serialization.Serializable
 
 /** Row of `public.weekly_check_ins` (user_id defaults to `auth.uid()` on insert, so it is never sent). */
 @Serializable
-internal data class WeeklyCheckInDto(
-    @SerialName("week_start") val weekStart: LocalDate,
-    val energy: Int,
-    val notes: String? = null,
-) {
-    fun toDomain() = CheckIn(weekStart, energy, notes.orEmpty())
+internal data class WeeklyCheckInDto(@SerialName("week_start") val weekStart: LocalDate, val energy: Int) {
+    fun toDomain() = CheckIn(weekStart, energy)
 
     companion object {
-        const val COLUMNS = "week_start,energy,notes"
+        const val COLUMNS = "week_start,energy"
 
-        /** Notes are always sent (empty when none) so an edit can clear the previous text on upsert. */
-        fun of(checkIn: CheckIn) = WeeklyCheckInDto(checkIn.weekStart, checkIn.energy, checkIn.notes)
+        /** No `notes` key is sent, so an upsert keeps whatever the server still stores in that column. */
+        fun of(checkIn: CheckIn) = WeeklyCheckInDto(checkIn.weekStart, checkIn.energy)
     }
 }
 

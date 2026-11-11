@@ -52,20 +52,29 @@ class SupabaseWeeklyCheckInRepositoryTest {
 
     @Test
     fun get_mapsTheRowAndFiltersByWeek() = runTest {
-        val repo = signedIn("""[{"week_start":"2026-11-09","energy":4,"notes":"slept badly"}]""")
+        val repo = signedIn("""[{"week_start":"2026-11-09","energy":4}]""")
 
         val checkIn = repo.get(week).getOrThrow()
 
-        assertEquals(CheckIn(week, 4, "slept badly"), checkIn)
+        assertEquals(CheckIn(week, 4), checkIn)
         val url = requests.last().url.toString()
         assertTrue(url.contains("week_start=eq.2026-11-09"), url)
     }
 
     @Test
-    fun get_nullNotesBecomeEmpty() = runTest {
-        val repo = signedIn("""[{"week_start":"2026-11-09","energy":2,"notes":null}]""")
+    fun get_selectsOnlyWeekStartAndEnergy() = runTest {
+        val repo = signedIn("""[{"week_start":"2026-11-09","energy":4}]""")
 
-        assertEquals("", repo.get(week).getOrThrow()?.notes)
+        repo.get(week).getOrThrow()
+
+        assertEquals("week_start,energy", requests.last().url.parameters["select"])
+    }
+
+    @Test
+    fun get_ignoresANotesColumnTheServerStillReturns() = runTest {
+        val repo = signedIn("""[{"week_start":"2026-11-09","energy":2,"notes":"old text"}]""")
+
+        assertEquals(CheckIn(week, 2), repo.get(week).getOrThrow())
     }
 
     @Test
@@ -77,25 +86,24 @@ class SupabaseWeeklyCheckInRepositoryTest {
     fun save_upsertsOnUserAndWeekWithTheAnswer() = runTest {
         val repo = signedIn()
 
-        repo.save(CheckIn(week, 4, "good week")).getOrThrow()
+        repo.save(CheckIn(week, 4)).getOrThrow()
 
         val write = requests.last { it.method == HttpMethod.Post }
         assertEquals("user_id,week_start", write.url.parameters["on_conflict"])
         val body = (write.body as TextContent).text
         assertTrue(""""week_start":"2026-11-09"""" in body, body)
         assertTrue(""""energy":4""" in body, body)
-        assertTrue(""""notes":"good week"""" in body, body)
         assertTrue("user_id" !in body, body)
     }
 
     @Test
-    fun save_clearingTheNotesSendsAnEmptyString() = runTest {
+    fun save_neverSendsNotes() = runTest {
         val repo = signedIn()
 
-        repo.save(CheckIn(week, 3, "")).getOrThrow()
+        repo.save(CheckIn(week, 3)).getOrThrow()
 
         val body = (requests.last { it.method == HttpMethod.Post }.body as TextContent).text
-        assertTrue(""""notes":""""" in body, body)
+        assertTrue("notes" !in body, body)
     }
 
     @Test
@@ -104,6 +112,6 @@ class SupabaseWeeklyCheckInRepositoryTest {
         writeStatus = HttpStatusCode.BadRequest
         writeBody = """{"code":"23514","message":"new row violates check constraint","details":null,"hint":null}"""
 
-        assertEquals(AppError.Validation, repo.save(CheckIn(week, 6, "")).appErrorOrNull())
+        assertEquals(AppError.Validation, repo.save(CheckIn(week, 6)).appErrorOrNull())
     }
 }
