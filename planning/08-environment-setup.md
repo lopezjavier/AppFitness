@@ -44,10 +44,17 @@ npx supabase test db                                       # pgTAP
 npx supabase functions serve --env-file supabase/.env.local
 deno fmt --check supabase/functions && deno lint supabase/functions && deno test --allow-all supabase/functions
 ```
-`seed.sql` (local only, never `--include-seed` in production) creates the test user used by the `local` flavor's "Test login": `test@appfitness.local` / `appfitness-local-test` (local-only, not a secret), fixed id `00000000-0000-4000-8000-000000000001`, already onboarded (`supabase/tests/seed.test.sql` checks it). Locally the Email provider is enabled.
-### 3.3 App
+`seed.sql` (local only, never `--include-seed` in production) creates the test user used by the `local` flavor's "Test login": `test@appfitness.local` / `appfitness-local-test` (local-only, not a secret), fixed id `00000000-0000-4000-8000-000000000001`, already onboarded (`supabase/tests/seed.test.sql` checks it). Locally the Email provider is enabled. A second file, `supabase/seed-review.sql`, holds the rich dataset of the same user (section 3.3); it is not in `config.toml` `[db.seed]`, so `db reset` and `deploy-supabase` never load it.
+### 3.3 Live flow on the emulator (local only)
+```bash
+python scripts/review-emulator.py [--no-build] [--no-reset] [--serial ID] [--check] [--dry-run] [--verbose]
+```
+One command: preflight (Docker, `npx`, `adb`, exactly one emulator, `supabase.local.publishableKey` in `local.properties`, the RepDB bundle), `npx supabase start`, `db reset`, apply `supabase/seed-review.sql` with psql in the `supabase_db_<project_id>` container, install the `local` flavor, grant `ACCESS_LOCAL_NETWORK`, launch, and print the Test login credentials. `--no-build` only relaunches; `--no-reset` re-applies the dataset (it deletes its own rows first); `--check` also runs `supabase/review/seed-review.check.sql` (pgTAP checks; the same files run in the `supabase-ci` step "Rich dataset", because `supabase test db` mounts only `supabase/tests`); `--dry-run` prints the commands and runs nothing.
+
+The dataset (dates relative to today, no personal data, no free text beyond food and routine names): about 8 weeks of weigh-ins (latest 3 days ago), one circumference set 20 days ago, 4 comidas a day for 28 days (catalogue and personal foods; one entry whose personal food was deleted), 3 weekly check-ins answered, block 1 finished with its stored review, block 2 accepted and in progress (finished sessions, a cardio set, one paused week, one extension), a stored paused-week report and an unseen weekly summary. The Centro de avisos lists the weight, circumference, check-in and weekly-summary notices; `block_end` is not seeded (it exists only while a review is open, and block 2 is already saved). The plan rows are written like the pgTAP fixtures; the workouts, the review, the extension and the weekly summary go through the app's RPCs.
+### 3.4 App
 `./gradlew :androidApp:installLocalDebug` (emulator + local Supabase) · `./gradlew testLocalDebugUnitTest` · `./gradlew :androidApp:assembleProdDebug` (APK in `androidApp/build/outputs/apk/prod/debug/`). On Android 17 (API 37) the `local` build needs `ACCESS_LOCAL_NETWORK` granted after every install to reach `10.0.2.2` (`adb shell pm grant io.github.lopezjavier.appfitness.local android.permission.ACCESS_LOCAL_NETWORK`).
-### 3.4 Exercise bundle (RepDB, gitignored; ADR-38/39)
+### 3.5 Exercise bundle (RepDB, gitignored; ADR-38/39)
 ```bash
 python scripts/import-repdb.py <path to Biblioteca_Ejercicios_Free>     # library.json + images, idempotent
 python scripts/generate-exercise-catalog.py <bundle> --out supabase/migrations/<ts>_exercise_catalog.sql   # only when the catalogue changes

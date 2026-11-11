@@ -41,7 +41,7 @@ jobs:
         run: bash scripts/check-text-encoding.sh
       - name: Delivery script unit tests
         run: |
-          python3 -m unittest scripts/test_deliver_apk.py
+          python3 -m unittest scripts/test_deliver_apk.py scripts/test_review_emulator.py
           python3 -I scripts/test_repdb_tools.py
           python3 -I scripts/tests/test_generate_band_long.py
           python3 -I scripts/tests/test_check_unused_resources.py
