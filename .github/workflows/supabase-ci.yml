@@ -90,3 +90,10 @@ jobs:
         run: supabase db lint --level warning --fail-on warning
       - name: pgTAP tests
         run: supabase test db
+      # The local-only rich dataset (T-278) is not under supabase/tests (supabase test db mounts only that folder):
+      # apply it twice (re-runnable), then run its pgTAP checks; psql stops and the check raises on any failure.
+      - name: Rich dataset (apply twice, then check)
+        run: |
+          for f in supabase/seed-review.sql supabase/seed-review.sql supabase/review/seed-review.check.sql; do
+            docker exec -i supabase_db_appfitness psql -U postgres -d postgres -v ON_ERROR_STOP=1 < "$f"
+          done

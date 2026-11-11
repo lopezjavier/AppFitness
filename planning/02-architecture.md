@@ -32,7 +32,7 @@ Open Food Facts API
   src/androidHostTest/ (Robolectric + Compose UI tests, golden PNGs in snapshots/)   src/commonTest/
   src/commonMain/composeResources/files/exercises/   RepDB bundle (gitignored, ADR-39)
 /shared         KMP library: config/ (AppConfig) · domain/{model,usecase,port} · data/{remote,repository} · di/
-/supabase       config.toml · migrations/ (versioned SQL) · tests/ (pgTAP) · functions/ (+ _shared/) · seed.sql (local only)
+/supabase       config.toml · migrations/ (versioned SQL) · tests/ (pgTAP) · functions/ (+ _shared/) · seed.sql (local only: the minimal test user) · seed-review.sql (local only: the rich dataset, applied by `scripts/review-emulator.py`, never by `db reset`) · review/ (its pgTAP checks)
 /.github/workflows   android-ci, supabase-ci, deploy-supabase, keepalive, security
 /scripts, /gradle/libs.versions.toml, /planning, /tasks
 ```
@@ -72,7 +72,7 @@ Kotlin 2.x + Compose Multiplatform + AGP 9 (built-in Kotlin, Android-KMP library
 - AI photos (ADR-59): image from the system camera or `PickVisualMedia`, downscaled JPEG to `food-photo`, which calls Gemini with a fixed mode prompt (dish, label, barcode, weight) and returns a normalized draft. No key or SDK in the app, no storage, no logging of image/comment/provider body.
 - Exercise chat (ADR-103, US-130): `exercise-chat` sends Gemini a fixed Spanish trainer prompt plus one user turn holding only the exercise (name, muscles, instructions) and the question; each question stands alone. No tools, no DB access beyond auth, no storage, counting or logging of question or answer. The Gemini transport is shared with `food-photo` in `_shared/gemini.ts`.
 - Coach (ADR-103, T-259): the `coach` function (JWT) calls no AI provider: Anthropic, its key, prices, budget and usage ledger were removed. Every kind is deterministic (`KindSpec` is just `prepare`, whose `finalize` stores and answers): `plan_nutrition`, `plan_recompute`, `plan_phase_change` (T-233: "Aceptar" at the end-of-block review, `accept_coach_phase`), `plan_goal_switch` (T-239) and `plan_diet_break` (T-248). Any other `kind` (including the retired `ping`, `report` and `chat`) is `INVALID_INPUT` "Unknown kind"; a `model` in the body is ignored. The answer is `text/event-stream`: one `event: delta` (`{text}`) then `event: done` with `{usage:{input_tokens:0,output_tokens:0,cost_eur:0}}` (the zero `usage` stays only for the installed app until the T-260 build); failures are JSON errors. The `intake_extract` kind was removed in T-198 and `block_splits`, `plan_block` and `folder_review` in T-224 (ADR-99): all are unknown kinds, and `coach_block_model_input`, `coach_folder_for_review`, `save_folder_review` and the table `coach_folder_reviews` are dropped. Prompts, inputs and outputs are never logged. `CoachInputError` can carry extra JSON fields.
-- `seed.sql` creates the local test user only (never in production). The exercise catalogue is a generated migration (ADR-39); assets are produced by `scripts/import-repdb.py` and `scripts/generate-exercise-catalog.py`.
+- `seed.sql` creates the local test user only (never in production); `seed-review.sql` is the local-only rich dataset of that user (08 section 3.3), outside `config.toml` `[db.seed]` so `db reset` and `deploy-supabase` never load it. The exercise catalogue is a generated migration (ADR-39); assets are produced by `scripts/import-repdb.py` and `scripts/generate-exercise-catalog.py`.
 
 ## 7. Security
 
