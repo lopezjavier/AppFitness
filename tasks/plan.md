@@ -1,6 +1,6 @@
 # Implementation Plan: E18 · Functional improvements → `v1.x` (proposed `v1.9.0`)
 
-> **Status: PROPOSED by the epic-planner, 2026-11-09; updated the same day with the user's feedback.** The task list (T-259…T-267) needs the user's OK on the breakdown PR; one checkpoint only, Checkpoint E18 at the end (user decision 2026-11-09). Q1 and Q2 are resolved by the user (2026-11-09, "Decisions" below). The only open user item is the 👤 Gemini terms check, which gates T-265. The E17 plan that lived here is in git history (E17 closed, `v1.8.0`; `tasks/todo.md` E17 section).
+> **Status: CLOSED (`v1.9.0`, 2026-11-11). Was PROPOSED by the epic-planner, 2026-11-09; updated the same day with the user's feedback.** The task list (T-259…T-267) needs the user's OK on the breakdown PR; one checkpoint only, Checkpoint E18 at the end (user decision 2026-11-09). Q1 and Q2 are resolved by the user (2026-11-09, "Decisions" below). The only open user item is the 👤 Gemini terms check, which gates T-265. The E17 plan that lived here is in git history (E17 closed, `v1.8.0`; `tasks/todo.md` E17 section).
 > **Extended 2026-11-10 (epic-planner) with US-132 and US-133 (ADR-105):** T-271, T-272 and **👤 Checkpoint E18-B**, after the T-268…T-270 fixes and before the closure T-267. Q-E18-3…Q-E18-5 are resolved (below).
 > **Extended 2026-11-10 (epic-planner) with US-134 and US-135 (ADR-106):** T-274, T-275 and **👤 Checkpoint E18-C (approved by the user, 2026-11-10)**, after the approved Checkpoint E18-B and before the closure T-267. Q-E18-6 (the extension limits) needs the user's OK before T-274 is planned.
 
@@ -51,7 +51,7 @@ Every task pays 6-8 agent hand-offs, so stories stay whole unless one is too lar
 | — | **👤 Checkpoint E18-C** (approved; US-134 + US-135; 7 items) | — | | | |
 | 12b | T-276 (fix): The pencil extends the current week, not the block (Checkpoint E18-C feedback, user 2026-11-11; food items approved) | fix | US-134 | core + UI | 7 |
 | — | **👤 Checkpoint E18-C re-test** (block items 1-3 and the block part of 7 only) | — | | | |
-| 13 | T-267: E18 closure | closure step (no size class) | DoD | PM | PM only |
+| 13 ✅ | T-267: E18 closure | closure step (no size class) | DoD | PM | PM only |
 
 Why these splits and merges:
 - **US-128 → T-259 + T-260:** about 45 files (Edge Function, shared client, migration, pgTAP, docs, then the app's screen, models, repository, DI and tests). Backend and app are reviewed apart, and the backend must land first (production data drop, epic order).
