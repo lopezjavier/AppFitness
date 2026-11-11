@@ -88,7 +88,7 @@ private fun PlanInputSource.toOrigin(): PlanInputOrigin = when (this) {
 /** The intake entries have their own rows (see [IntakeRowKind]); they are not input rows. */
 fun PlanInputs.rows(): List<PlanInputRow> = inputs.filter { it.key !in INTAKE_KEYS }.map { it.toRow() }
 
-private val INTAKE_KEYS = setOf(PlanInputKey.TrainingYears, PlanInputKey.KnownMaintenance, PlanInputKey.FreeText)
+private val INTAKE_KEYS = setOf(PlanInputKey.TrainingYears, PlanInputKey.KnownMaintenance)
 
 /**
  * The summary lines of "Antes de empezar": each line shows its keys joined ("Sexo y edad"). Plan: goal, sex and age,

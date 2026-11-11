@@ -68,7 +68,7 @@ class IntakeRowEditorTest {
 
     @Test
     fun savingYears_sendsOnlyYears_andClosesAndReportsTheStoredRow() = runTest(dispatcher) {
-        repository.stored = CoachIntake(knownMaintenanceKcal = 2400, freeText = "hola")
+        repository.stored = CoachIntake(knownMaintenanceKcal = 2400)
         val editor = editor()
         editor.onEvent(IntakeRowEvent.OpenYears(null))
         editor.onEvent(IntakeRowEvent.YearsUp)
@@ -77,7 +77,7 @@ class IntakeRowEditorTest {
         advanceUntilIdle()
 
         assertEquals(listOf<IntakeUpdate>(IntakeUpdate.TrainingYears(0.5)), repository.saveCalls)
-        assertEquals(CoachIntake(0.5, 2400, "hola"), saved.single())
+        assertEquals(CoachIntake(0.5, 2400), saved.single())
         assertNull(editor.sheet())
     }
 

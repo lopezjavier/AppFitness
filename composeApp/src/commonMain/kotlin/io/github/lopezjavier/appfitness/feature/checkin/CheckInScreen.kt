@@ -20,7 +20,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.text.input.ImeAction
 import io.github.lopezjavier.appfitness.composeapp.resources.Res
 import io.github.lopezjavier.appfitness.composeapp.resources.action_retry
 import io.github.lopezjavier.appfitness.composeapp.resources.checkin_delta_kg
@@ -31,9 +30,6 @@ import io.github.lopezjavier.appfitness.composeapp.resources.checkin_energy_grou
 import io.github.lopezjavier.appfitness.composeapp.resources.checkin_energy_label
 import io.github.lopezjavier.appfitness.composeapp.resources.checkin_energy_option_cd
 import io.github.lopezjavier.appfitness.composeapp.resources.checkin_form_header
-import io.github.lopezjavier.appfitness.composeapp.resources.checkin_notes_counter
-import io.github.lopezjavier.appfitness.composeapp.resources.checkin_notes_label
-import io.github.lopezjavier.appfitness.composeapp.resources.checkin_notes_too_long
 import io.github.lopezjavier.appfitness.composeapp.resources.checkin_records_empty
 import io.github.lopezjavier.appfitness.composeapp.resources.checkin_records_header
 import io.github.lopezjavier.appfitness.composeapp.resources.checkin_sets_label
@@ -64,7 +60,6 @@ import io.github.lopezjavier.appfitness.designsystem.AppListRow
 import io.github.lopezjavier.appfitness.designsystem.AppNumberFormat
 import io.github.lopezjavier.appfitness.designsystem.AppOption
 import io.github.lopezjavier.appfitness.designsystem.AppStateAction
-import io.github.lopezjavier.appfitness.designsystem.AppTextField
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
 import io.github.lopezjavier.appfitness.designsystem.ErrorState
 import io.github.lopezjavier.appfitness.designsystem.HelpButton
@@ -87,12 +82,11 @@ import org.jetbrains.compose.resources.stringResource
 import kotlin.math.abs
 import kotlin.math.roundToInt
 
-private const val NOTES_MIN_LINES = 4
 private const val TENTHS = 10.0
 
 /**
  * The weekly check-in (US-59) on [AppEditorScreen]: the closed week in figures, a slot for the coach (E13, empty) and
- * the energy/notes form above a pinned "Guardar". The summary has its own loading and error states and never blocks
+ * the energy form above a pinned "Guardar". The summary has its own loading and error states and never blocks
  * the form. The template owns the discard dialog, the offline hint and the Confirm haptic when the editor closes after
  * [CheckInEffect.Saved]; a failed save is a Reject haptic plus a message (R-28, R-37).
  */
@@ -120,7 +114,7 @@ fun CheckInScreen(
         onClose = onClose,
         modifier = modifier,
         saved = saved,
-        canSave = state.energy != null && !state.notesTooLong,
+        canSave = state.energy != null,
         testTagPrefix = "checkin",
     ) {
         Column(
@@ -340,23 +334,5 @@ private fun FormBlock(state: CheckInUiState.Ready, onEvent: (CheckInEvent) -> Un
                 enabled = !state.isSaving,
             )
         }
-        AppTextField(
-            value = state.notes,
-            onValueChange = { onEvent(CheckInEvent.SetNotes(it)) },
-            label = stringResource(Res.string.checkin_notes_label),
-            maxLength = Int.MAX_VALUE,
-            errorText = if (state.notesTooLong) stringResource(Res.string.checkin_notes_too_long) else null,
-            enabled = !state.isSaving,
-            testTagPrefix = "checkin_notes",
-            imeAction = ImeAction.Default,
-            singleLine = false,
-            minLines = NOTES_MIN_LINES,
-        )
-        Text(
-            text = stringResource(Res.string.checkin_notes_counter, state.notes.length),
-            style = AppTheme.typography.bodySmall,
-            color = if (state.notesTooLong) AppTheme.colors.error else AppTheme.colors.textSecondary,
-            modifier = Modifier.testTag("checkin_notes_counter"),
-        )
     }
 }

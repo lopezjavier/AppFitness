@@ -102,11 +102,10 @@ class IntakeRowSheetsTest {
 
         rule.onNodeWithTag("intake_years_sheet").assertDoesNotExist()
         rule.onNodeWithTag("intake_maintenance_sheet").assertDoesNotExist()
-        rule.onNodeWithTag("intake_screen").assertDoesNotExist()
         rule.onNodeWithTag("before_start_row_training_years").assertTextEquals("Tiempo entrenando", "Sin indicar")
         rule.onNodeWithTag("before_start_row_maintenance")
             .assertTextEquals("Calorías de mantenimiento", "Sin indicar")
-        rule.onNodeWithTag("before_start_row_free_text").assertTextEquals("Para conocerte", "Sin indicar")
+        rule.onNodeWithTag("before_start_row_free_text").assertDoesNotExist()
         assertTrue(fixed.isEmpty())
     }
 
@@ -133,19 +132,8 @@ class IntakeRowSheetsTest {
     }
 
     @Test
-    fun theFreeTextRow_opensNoSheet_itOpensParaConocerte() {
-        showBeforeStart()
-
-        tap("before_start_row_free_text")
-
-        assertEquals(listOf(PlanFixTarget.FreeText), fixed)
-        rule.onNodeWithTag("intake_years_sheet").assertDoesNotExist()
-        rule.onNodeWithTag("intake_maintenance_sheet").assertDoesNotExist()
-    }
-
-    @Test
     fun theYearsStepper_startsAtSinIndicar_andSavingStoresOnlyTheYears() {
-        intake.stored = CoachIntake(knownMaintenanceKcal = 2400, freeText = "Rodilla")
+        intake.stored = CoachIntake(knownMaintenanceKcal = 2400)
         showBeforeStart()
         tap("before_start_row_training_years")
         rule.onNodeWithTag("intake_years_sheet_stepper").assertExists()
@@ -160,7 +148,6 @@ class IntakeRowSheetsTest {
         rule.onNodeWithTag("before_start_row_training_years").assertTextEquals("Tiempo entrenando", "0,5 años")
         rule.onNodeWithTag("before_start_row_maintenance")
             .assertTextEquals("Calorías de mantenimiento", "2.400 kcal")
-        rule.onNodeWithTag("before_start_row_free_text").assertTextEquals("Para conocerte", "Rodilla")
     }
 
     @Test
@@ -270,8 +257,8 @@ class IntakeRowSheetsTest {
     }
 
     @Test
-    fun aStatedYearsAndMaintenance_carryTheProvisionalChip_theFreeTextDoesNot() {
-        intake.stored = CoachIntake(trainingYears = 4.0, knownMaintenanceKcal = 2400, freeText = "Rodilla")
+    fun aStatedYearsAndMaintenance_carryTheProvisionalChip() {
+        intake.stored = CoachIntake(trainingYears = 4.0, knownMaintenanceKcal = 2400)
 
         showBeforeStart()
 
@@ -280,8 +267,6 @@ class IntakeRowSheetsTest {
             useUnmergedTree = true,
         ).assertExists()
         rule.onNodeWithTag("before_start_row_maintenance_chip_provisional", useUnmergedTree = true).assertExists()
-        rule.onNodeWithTag("before_start_row_free_text_chip_provisional", useUnmergedTree = true)
-            .assertDoesNotExist()
     }
 
     @Test
@@ -313,9 +298,10 @@ class IntakeRowSheetsTest {
         rule.onNodeWithTag("intake_maintenance_sheet").assertExists()
         rule.onNodeWithTag("intake_years_sheet").assertDoesNotExist()
         tap("intake_maintenance_sheet_close")
-        tap("your_data_row_free_text")
-
-        assertEquals(listOf(PlanFixTarget.FreeText), fixed)
+        tap("your_data_row_training_years")
+        rule.onNodeWithTag("intake_years_sheet").assertExists()
+        rule.onNodeWithTag("intake_maintenance_sheet").assertDoesNotExist()
+        assertTrue(fixed.isEmpty())
     }
 
     @Test

@@ -2,7 +2,6 @@ package io.github.lopezjavier.appfitness.domain.usecase
 
 import io.github.lopezjavier.appfitness.domain.model.RestingHeartRate
 import io.github.lopezjavier.appfitness.domain.model.SleepStage
-import kotlinx.datetime.LocalDate
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
 import kotlin.time.Instant
@@ -29,9 +28,6 @@ object WatchDataShaping {
         if (stages.isEmpty()) return (endedAt - startedAt).inWholeMinutes.toInt()
         return stages.filter { it.stage in ASLEEP_STAGES }.sumOf { (it.endedAt - it.startedAt).inWholeMinutes.toInt() }
     }
-
-    /** A night belongs to the local day it ends on. */
-    fun sleepDay(endedAt: Instant, zone: TimeZone): LocalDate = endedAt.toLocalDateTime(zone).date
 
     /** One resting heart rate per local day: the latest reading of the day wins. */
     fun restingPerDay(readings: List<RestingReading>, zone: TimeZone): List<RestingHeartRate> =

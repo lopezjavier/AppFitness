@@ -107,9 +107,8 @@ internal fun PlanInputKey.labelResource(): StringResource = when (this) {
 
     PlanInputKey.Experience -> Res.string.plan_input_label_experience
 
-    PlanInputKey.TrainingYears, PlanInputKey.KnownMaintenance, PlanInputKey.FreeText,
-    PlanInputKey.Unknown,
-    -> Res.string.plan_input_label_unknown
+    PlanInputKey.TrainingYears, PlanInputKey.KnownMaintenance, PlanInputKey.Unknown ->
+        Res.string.plan_input_label_unknown
 }
 
 internal fun PlanInputSource.originLabel(): StringResource = when (this) {

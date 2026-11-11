@@ -177,7 +177,7 @@ class NotificationCenterViewModelTest {
     @Test
     fun silencedCheckIn_hidesTheReminderAndTheAnsweredRow() = runTest {
         val env = checkInEnv().apply { settings.values[NotificationKind.WeeklyCheckIn] = false }
-        env.checkIns.rows[LocalDate(2026, 10, 19)] = CheckIn(LocalDate(2026, 10, 19), 4, "ok")
+        env.checkIns.rows[LocalDate(2026, 10, 19)] = CheckIn(LocalDate(2026, 10, 19), 4)
         val f = fixture(env)
 
         f.viewModel.uiState.test {
@@ -217,7 +217,7 @@ class NotificationCenterViewModelTest {
     @Test
     fun answeredCheckIn_isReachableButNotCounted() = runTest {
         val env = checkInEnv()
-        env.checkIns.rows[LocalDate(2026, 10, 19)] = CheckIn(LocalDate(2026, 10, 19), 4, "ok")
+        env.checkIns.rows[LocalDate(2026, 10, 19)] = CheckIn(LocalDate(2026, 10, 19), 4)
         val f = fixture(env)
 
         f.viewModel.uiState.test {

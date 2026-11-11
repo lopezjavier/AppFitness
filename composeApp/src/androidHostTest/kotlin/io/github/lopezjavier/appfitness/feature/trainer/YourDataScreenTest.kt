@@ -130,16 +130,6 @@ class YourDataScreenTest {
     }
 
     @Test
-    fun theFreeTextRow_opensTheIntake() {
-        withDerived()
-        show()
-
-        tap("your_data_row_free_text")
-
-        assertEquals(listOf(PlanFixTarget.FreeText), fixed)
-    }
-
-    @Test
     fun theHandoverNote_showsTheMeasuredFigure_andIsAcknowledgedOnce() {
         withDerived(source = DerivedSource.Adaptive, handover = true)
 

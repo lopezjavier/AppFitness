@@ -114,15 +114,12 @@ class TrainerFlowTest {
     }
 
     @Test
-    fun theFreeTextRow_sitsRightUnderTusDatos_andOpensWhatTheCoachKnows() {
-        var opened = 0
+    fun theFreeTextRow_isGone_andTusDatosIsTheLastRow() {
+        show()
 
-        show(TrainerActions(onOpenFreeText = { opened++ }))
-
-        rule.onNodeWithText("Lo que el entrenador sabe de ti").assertExists()
-        assertTrue(top("trainer_free_text_row") > top("trainer_your_data"))
-        tap("trainer_free_text_row")
-        assertEquals(1, opened)
+        rule.onNodeWithTag("trainer_free_text_row").assertDoesNotExist()
+        rule.onNodeWithText("Lo que el entrenador sabe de ti").assertDoesNotExist()
+        rule.onNodeWithTag("trainer_your_data").assertExists()
     }
 
     @Test

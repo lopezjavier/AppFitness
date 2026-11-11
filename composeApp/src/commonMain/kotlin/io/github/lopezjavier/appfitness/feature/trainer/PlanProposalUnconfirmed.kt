@@ -74,10 +74,10 @@ private fun UnconfirmedRow(
                         PlanFixTarget.ActivitySheet -> onEvent(PlanProposalEvent.OpenActivitySheet)
 
                         PlanFixTarget.TrainingYears ->
-                            openIntakeRow(IntakeRowKind.TrainingYears, state.intake, onEditorEvent, onFix)
+                            openIntakeRow(IntakeRowKind.TrainingYears, state.intake, onEditorEvent)
 
                         PlanFixTarget.Maintenance ->
-                            openIntakeRow(IntakeRowKind.Maintenance, state.intake, onEditorEvent, onFix)
+                            openIntakeRow(IntakeRowKind.Maintenance, state.intake, onEditorEvent)
 
                         else -> onFix(target)
                     }

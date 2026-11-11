@@ -72,14 +72,14 @@ sealed interface BeforeStartUiState {
         val rows: List<PlanInputRow> = inputs.rows()
 
         /**
-         * The intake rows: three in a plan, "Tiempo entrenando" and "Para conocerte" in a block (it does not read the
+         * The intake rows: three in a plan, only "Tiempo entrenando" in a block (it does not read the
          * maintenance). Never flags or blockers: an empty value reads "Sin indicar". Each one opens only its editor.
          */
         val intakeRows: List<IntakeRowKind>
             get() = if (mode == BeforeStartMode.Plan) {
                 IntakeRowKind.entries
             } else {
-                listOf(IntakeRowKind.TrainingYears, IntakeRowKind.FreeText)
+                listOf(IntakeRowKind.TrainingYears)
             }
 
         /** Blocking missing inputs, shown first as "Falta: ..." rows. */

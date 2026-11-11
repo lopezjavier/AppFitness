@@ -118,3 +118,5 @@ Recommended PR order if split: T-277a (slices A-C), T-277b (E), T-277c (D).
 - Every caller of shared pieces changed: `IntakeUpdate`/`CoachIntake` used only by `SupabaseCoachIntakeRepository`, Intake/BeforeStart/YourData view models and tests; `PlanInputKey` by `PlanInputRows/Text`, `BeforeStartScreen`, `AppNavHost:879`; `BuildBlockUseCase` ctor change touches `SharedModule`, the block view models and `BuildBlockUseCaseTest` (grep before editing); `HelpButton` has other callers, only `helpTopBarAction` is removed.
 - Scrub `input_summary` is a production UPDATE (user approved); keep it idempotent and inside the migration.
 - BLOCKING: none.
+
+> Deviation (Slice A): the whole "Para conocerte" `IntakeScreen`/`IntakeRoute`/`IntakeViewModel` was deleted; years training and maintenance kcal are edited through the `IntakeRowEditor` sheets (unchanged). Wherever this document says `IntakeScreen`, `IntakeRoute`, `IntakeViewModel` or `IntakeRestorationTest`, read it as deleted; `RemovedRouteRestorationTest` uses "Tus datos" as its sample destination. `coach_error`, `coach_failure_*` and `coach_timeout` stay (used by `coachFailureMessage()`).

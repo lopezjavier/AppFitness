@@ -50,17 +50,6 @@ object SetEntryText {
         return "${tenths / TENTHS.toLong()},${tenths % TENTHS.toLong()}"
     }
 
-    /** Whether sets of this metric type add to the volume (the others show "—" instead of "0 kg"). */
-    fun carriesVolume(metricType: ExerciseMetricType): Boolean = when (metricType) {
-        ExerciseMetricType.WeightReps,
-        ExerciseMetricType.Bodyweight,
-        ExerciseMetricType.Assisted,
-        ExerciseMetricType.Weighted,
-        -> true
-
-        else -> false
-    }
-
     private fun repsText(reps: Int) = "$reps reps"
 
     private fun loadedReps(sign: String, kg: Double, reps: Int) =

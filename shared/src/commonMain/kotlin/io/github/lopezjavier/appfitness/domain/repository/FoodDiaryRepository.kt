@@ -31,9 +31,6 @@ interface FoodDiaryRepository {
     /** Logs several foods in ONE request (copy, repeat); each created entry joins the cache of its day if loaded. */
     suspend fun addEntries(entries: List<NewFoodEntry>): Result<List<FoodLogEntry>>
 
-    /** Deletes the entries [ids] in ONE request (undo of a copy); they leave the cache. */
-    suspend fun deleteEntries(ids: List<String>): Result<Unit>
-
     /**
      * Per-day totals of [from]..[to] (inclusive, at most 400 days), oldest first; only days with entries appear. Read
      * only and not cached.

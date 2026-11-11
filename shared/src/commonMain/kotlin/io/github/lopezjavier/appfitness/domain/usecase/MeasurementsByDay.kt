@@ -27,8 +27,3 @@ class MeasurementsByDay {
             )
         }
 }
-
-/** The latest row by measurement time, any source; ties break by the larger id. Null when there are no rows. */
-class CurrentWeight {
-    operator fun invoke(rows: List<BodyMeasurement>): BodyMeasurement? = rows.minWithOrNull(NEWEST_FIRST)
-}

@@ -8,7 +8,6 @@ import io.github.lopezjavier.appfitness.app.ReminderEnv
 import io.github.lopezjavier.appfitness.domain.AppError
 import io.github.lopezjavier.appfitness.domain.model.BodyCircumference
 import io.github.lopezjavier.appfitness.domain.model.BodyMeasurement
-import io.github.lopezjavier.appfitness.domain.model.CHECK_IN_NOTES_MAX
 import io.github.lopezjavier.appfitness.domain.model.CheckIn
 import io.github.lopezjavier.appfitness.domain.model.CircumferenceSite
 import io.github.lopezjavier.appfitness.domain.model.Equipment
@@ -112,7 +111,6 @@ class CheckInViewModelTest {
         assertEquals(CHECK_IN_DAY, ready.window.day)
         assertEquals(WEEK, ready.window.weekStart)
         assertEquals(null, ready.energy)
-        assertEquals("", ready.notes)
         assertFalse(ready.isEditing)
         val summary = assertIs<CheckInSummaryState.Loaded>(ready.summary).summary
         assertEquals(12_400.0, summary.training.current.volume)
@@ -121,28 +119,24 @@ class CheckInViewModelTest {
 
     @Test
     fun anAnsweredCheckIn_opensPrefilled() = runTest {
-        val env = env().apply { checkIns.rows[WEEK] = CheckIn(WEEK, 4, "tired legs") }
+        val env = env().apply { checkIns.rows[WEEK] = CheckIn(WEEK, 4) }
         val f = fixture(env)
         advanceUntilIdle()
 
         assertEquals(4, f.ready.energy)
-        assertEquals("tired legs", f.ready.notes)
         assertTrue(f.ready.isEditing)
         assertFalse(f.ready.canSave, "unchanged")
     }
 
     @Test
-    fun guardar_needsAnEnergy_butNotNotes() = runTest {
+    fun guardar_needsAnEnergy() = runTest {
         val f = fixture()
         advanceUntilIdle()
         assertFalse(f.ready.canSave)
 
-        f.viewModel.onEvent(CheckInEvent.SetNotes("only notes"))
-        assertFalse(f.ready.canSave, "notes alone are not enough")
         f.viewModel.onEvent(CheckInEvent.SelectEnergy(3))
+
         assertTrue(f.ready.canSave)
-        f.viewModel.onEvent(CheckInEvent.SetNotes(""))
-        assertTrue(f.ready.canSave, "notes are optional")
     }
 
     @Test
@@ -163,14 +157,13 @@ class CheckInViewModelTest {
         assertEquals(1, f.coordinator.reminders.value.size)
 
         f.viewModel.onEvent(CheckInEvent.SelectEnergy(4))
-        f.viewModel.onEvent(CheckInEvent.SetNotes("good week"))
         f.viewModel.effects.test {
             f.viewModel.onEvent(CheckInEvent.Save)
             advanceUntilIdle()
             assertEquals(CheckInEffect.Saved, awaitItem())
         }
 
-        assertEquals(listOf(CheckIn(WEEK, 4, "good week")), f.env.checkIns.saves)
+        assertEquals(listOf(CheckIn(WEEK, 4)), f.env.checkIns.saves)
         assertTrue(f.coordinator.reminders.value.isEmpty(), "the reminder is gone")
         assertEquals(4, f.coordinator.checkIn.value?.answer?.energy, "still reachable, answered")
         assertFalse(f.ready.isSaving)
@@ -199,7 +192,6 @@ class CheckInViewModelTest {
         advanceUntilIdle()
         f.env.checkIns.failWrites = true
         f.viewModel.onEvent(CheckInEvent.SelectEnergy(5))
-        f.viewModel.onEvent(CheckInEvent.SetNotes("kept"))
 
         f.viewModel.effects.test {
             f.viewModel.onEvent(CheckInEvent.Save)
@@ -208,7 +200,6 @@ class CheckInViewModelTest {
         }
 
         assertEquals(5, f.ready.energy)
-        assertEquals("kept", f.ready.notes)
         assertFalse(f.ready.isSaving)
         assertTrue(f.ready.canSave, "can try again")
         assertEquals(1, f.coordinator.reminders.value.size, "the reminder stays")
@@ -227,21 +218,6 @@ class CheckInViewModelTest {
             advanceUntilIdle()
             assertEquals(CheckInEffect.SaveFailed(offline = false), awaitItem())
         }
-    }
-
-    @Test
-    fun notesOverTheLimit_blockGuardar() = runTest {
-        val f = fixture()
-        advanceUntilIdle()
-        f.viewModel.onEvent(CheckInEvent.SelectEnergy(3))
-
-        f.viewModel.onEvent(CheckInEvent.SetNotes("x".repeat(CHECK_IN_NOTES_MAX + 1)))
-        assertTrue(f.ready.notesTooLong)
-        assertFalse(f.ready.canSave)
-
-        f.viewModel.onEvent(CheckInEvent.SetNotes("x".repeat(CHECK_IN_NOTES_MAX)))
-        assertFalse(f.ready.notesTooLong)
-        assertTrue(f.ready.canSave)
     }
 
     @Test
@@ -311,7 +287,7 @@ class CheckInViewModelTest {
     @Test
     fun reopeningOnTheMonday_showsTheSavedAnswerAndTheClosedWeekFigures() = runTest {
         val monday = LocalDate(2026, 10, 26)
-        val env = env(monday).apply { checkIns.rows[WEEK] = CheckIn(WEEK, 2, "slept badly") }
+        val env = env(monday).apply { checkIns.rows[WEEK] = CheckIn(WEEK, 2) }
         val f = fixture(env)
         advanceUntilIdle()
 
@@ -328,7 +304,7 @@ class CheckInViewModelTest {
     @Test
     fun editingOnTheMonday_updatesTheSameWeek() = runTest {
         val monday = LocalDate(2026, 10, 26)
-        val env = env(monday).apply { checkIns.rows[WEEK] = CheckIn(WEEK, 2, "slept badly") }
+        val env = env(monday).apply { checkIns.rows[WEEK] = CheckIn(WEEK, 2) }
         val f = fixture(env)
         advanceUntilIdle()
 
@@ -337,7 +313,7 @@ class CheckInViewModelTest {
         f.viewModel.onEvent(CheckInEvent.Save)
         advanceUntilIdle()
 
-        assertEquals(listOf(CheckIn(WEEK, 4, "slept badly")), env.checkIns.saves)
+        assertEquals(listOf(CheckIn(WEEK, 4)), env.checkIns.saves)
         assertEquals(1, env.checkIns.rows.size, "one row per week")
         assertEquals(4, f.ready.window.answer?.energy)
     }
@@ -349,13 +325,12 @@ class CheckInViewModelTest {
         val first = fixture(env, handle)
         advanceUntilIdle()
         first.viewModel.onEvent(CheckInEvent.SelectEnergy(5))
-        first.viewModel.onEvent(CheckInEvent.SetNotes("draft"))
 
         val second = fixture(env, handle)
         advanceUntilIdle()
 
         assertEquals(5, second.ready.energy)
-        assertEquals("draft", second.ready.notes)
+        assertFalse(handle.contains("checkin_notes"), "no notes key is kept any more")
         assertTrue(second.ready.canSave)
         assertIs<CheckInSummaryState.Loaded>(second.ready.summary)
     }
@@ -363,7 +338,7 @@ class CheckInViewModelTest {
     @Test
     fun aDraftEqualToTheSavedAnswer_isNotKept() = runTest {
         val handle = SavedStateHandle()
-        val env = env().apply { checkIns.rows[WEEK] = CheckIn(WEEK, 3, "same") }
+        val env = env().apply { checkIns.rows[WEEK] = CheckIn(WEEK, 3) }
         val first = fixture(env, handle)
         advanceUntilIdle()
         first.viewModel.onEvent(CheckInEvent.SelectEnergy(5))

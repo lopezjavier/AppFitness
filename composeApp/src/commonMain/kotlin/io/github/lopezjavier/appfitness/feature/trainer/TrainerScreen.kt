@@ -21,7 +21,6 @@ import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.github.lopezjavier.appfitness.composeapp.resources.Res
-import io.github.lopezjavier.appfitness.composeapp.resources.trainer_free_text_row
 import io.github.lopezjavier.appfitness.composeapp.resources.trainer_title
 import io.github.lopezjavier.appfitness.composeapp.resources.trainer_your_data_row
 import io.github.lopezjavier.appfitness.composeapp.resources.week_summary_title
@@ -50,7 +49,7 @@ private const val TITLE_FRACTION = 0.4f
 /**
  * Where the Trainer root goes: the pending plan proposal, a block preview ([onOpenBlock] takes the plan
  * id), "Antes de empezar" ([onOpenBeforeStart] takes the mode, the plan id and the plan being replaced) and
- * the "Tu plan" and "Tu bloque" boxes, "Tus datos" and "Lo que el entrenador sabe de ti".
+ * the "Tu plan" and "Tu bloque" boxes and "Tus datos".
  */
 data class TrainerActions(
     val onOpenProposal: () -> Unit = {},
@@ -59,7 +58,6 @@ data class TrainerActions(
     val onOpenYourData: () -> Unit = {},
     val onOpenPlan: () -> Unit = {},
     val onOpenBlockScreen: () -> Unit = {},
-    val onOpenFreeText: () -> Unit = {},
     val onOpenWeekSummary: () -> Unit = {},
     val onOpenBlockReview: () -> Unit = {},
     val onOpenExercise: (exerciseId: String) -> Unit = {},
@@ -160,11 +158,6 @@ private fun TrainerContent(
             )
         }
         YourDataEntry(state.provisionalCount, actions.onOpenYourData)
-        NavigationRow(
-            label = stringResource(Res.string.trainer_free_text_row),
-            onClick = actions.onOpenFreeText,
-            modifier = Modifier.testTag("trainer_free_text_row"),
-        )
     }
 }
 

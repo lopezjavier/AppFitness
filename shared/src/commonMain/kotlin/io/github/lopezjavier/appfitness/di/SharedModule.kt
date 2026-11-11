@@ -139,10 +139,8 @@ import io.github.lopezjavier.appfitness.domain.usecase.BuildTemplateItems
 import io.github.lopezjavier.appfitness.domain.usecase.CompleteOnboarding
 import io.github.lopezjavier.appfitness.domain.usecase.ComputeReminders
 import io.github.lopezjavier.appfitness.domain.usecase.CookedItemNutrition
-import io.github.lopezjavier.appfitness.domain.usecase.CurrentWeight
 import io.github.lopezjavier.appfitness.domain.usecase.DecideCalorieProposalUseCase
 import io.github.lopezjavier.appfitness.domain.usecase.DecidePhaseChangeUseCase
-import io.github.lopezjavier.appfitness.domain.usecase.DecideProgressionFlagUseCase
 import io.github.lopezjavier.appfitness.domain.usecase.DefaultMealSlot
 import io.github.lopezjavier.appfitness.domain.usecase.DeleteAccount
 import io.github.lopezjavier.appfitness.domain.usecase.ExerciseNameResolver
@@ -150,7 +148,6 @@ import io.github.lopezjavier.appfitness.domain.usecase.GetAccountProtection
 import io.github.lopezjavier.appfitness.domain.usecase.GroupMealEntries
 import io.github.lopezjavier.appfitness.domain.usecase.HealthWriteBack
 import io.github.lopezjavier.appfitness.domain.usecase.InterpretMetric
-import io.github.lopezjavier.appfitness.domain.usecase.ListCoachChangesUseCase
 import io.github.lopezjavier.appfitness.domain.usecase.LoadBlockReviewUseCase
 import io.github.lopezjavier.appfitness.domain.usecase.LoadCheckInSummary
 import io.github.lopezjavier.appfitness.domain.usecase.LoadExerciseCatalog
@@ -178,7 +175,6 @@ import io.github.lopezjavier.appfitness.domain.usecase.SearchExercises
 import io.github.lopezjavier.appfitness.domain.usecase.SignInWithGoogle
 import io.github.lopezjavier.appfitness.domain.usecase.SyncHealthData
 import io.github.lopezjavier.appfitness.domain.usecase.SyncHealthMeasurements
-import io.github.lopezjavier.appfitness.domain.usecase.UndoCoachChangeUseCase
 import io.github.lopezjavier.appfitness.domain.usecase.ValidateBodyMeasurement
 import io.github.lopezjavier.appfitness.domain.usecase.ValidateCircumference
 import io.github.lopezjavier.appfitness.domain.usecase.ValidateMealSlots
@@ -419,9 +415,6 @@ val sharedModule =
             }
         }
         factory { ApplyCoachProgressionUseCase(get()) }
-        factory { ListCoachChangesUseCase(get()) }
-        factory { UndoCoachChangeUseCase(get()) }
-        factory { DecideProgressionFlagUseCase(get()) }
         factory { DecideCalorieProposalUseCase(get()) }
         single<MealSlotRepository> {
             if (get<AppConfig>().isSupabaseConfigured) {
@@ -514,7 +507,6 @@ val sharedModule =
         factory { Bmi() }
         factory { InterpretMetric(get()) }
         factory { MeasurementsByDay() }
-        factory { CurrentWeight() }
         // The local day boundaries follow the device time zone, which is not a Koin dependency.
         // The HealthDataSource port is bound by the platform module.
         factory { HealthWriteBack(get(), get(), get()) }

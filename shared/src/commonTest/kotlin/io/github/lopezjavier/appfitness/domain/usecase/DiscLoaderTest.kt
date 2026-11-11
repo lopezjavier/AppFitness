@@ -37,12 +37,6 @@ class DiscLoaderTest {
     }
 
     @Test
-    fun perSideText_listsHeaviestFirstRepeatingDiscs() {
-        assertEquals("25 + 25 + 1,25", DiscLoader.perSideText(mapOf(1.25 to 1, 25.0 to 2)))
-        assertEquals("", DiscLoader.perSideText(emptyMap()))
-    }
-
-    @Test
     fun roundingIsTwiceTheSmallestEnabledPlate() {
         assertEquals(1.0, CalculatorSettings().roundingKg)
         assertEquals(2.0, CalculatorSettings(plateKg = listOf(25.0, 1.0, 5.0)).roundingKg)

@@ -615,19 +615,16 @@ class BeforeStartViewModelTest {
         planInput(PlanInputKey.TrainingYears, PlanInputStatus.Ok, PlanInputValue.Number(4.0), PlanInputSource.Intake)
 
     @Test
-    fun planMode_exposesThreeIntakeRows_withTheSavedValues() = runTest(dispatcher) {
+    fun planMode_exposesTwoIntakeRows_withTheSavedValues() = runTest(dispatcher) {
         givenPlan(completePlan(savedIntakeEntry))
-        intake.stored = CoachIntake(trainingYears = 4.0, knownMaintenanceKcal = 2400, freeText = "Rodilla operada")
+        intake.stored = CoachIntake(trainingYears = 4.0, knownMaintenanceKcal = 2400)
         val model = viewModel()
 
         advanceUntilIdle()
 
         val content = model.content()
-        assertEquals(
-            listOf(IntakeRowKind.TrainingYears, IntakeRowKind.Maintenance, IntakeRowKind.FreeText),
-            content.intakeRows,
-        )
-        assertEquals(IntakeSummary(4.0, 2400, "Rodilla operada"), content.intake)
+        assertEquals(listOf(IntakeRowKind.TrainingYears, IntakeRowKind.Maintenance), content.intakeRows)
+        assertEquals(IntakeSummary(4.0, 2400), content.intake)
     }
 
     @Test
@@ -637,7 +634,7 @@ class BeforeStartViewModelTest {
 
         advanceUntilIdle()
 
-        assertEquals(3, model.content().intakeRows.size)
+        assertEquals(2, model.content().intakeRows.size)
         assertTrue(model.content().intake.isEmpty)
         assertTrue(model.content().flags.isEmpty())
         assertTrue(model.content().canCreate)
@@ -649,27 +646,26 @@ class BeforeStartViewModelTest {
             completePlan(
                 planInput(PlanInputKey.TrainingYears, PlanInputStatus.UnsetOptional, PlanInputValue.Absent),
                 planInput(PlanInputKey.KnownMaintenance, PlanInputStatus.UnsetOptional, PlanInputValue.Absent),
-                planInput(PlanInputKey.FreeText, PlanInputStatus.UnsetOptional, PlanInputValue.Absent),
             ),
         )
         val model = viewModel()
 
         advanceUntilIdle()
 
-        val intakeKeys = setOf(PlanInputKey.TrainingYears, PlanInputKey.KnownMaintenance, PlanInputKey.FreeText)
+        val intakeKeys = setOf(PlanInputKey.TrainingYears, PlanInputKey.KnownMaintenance)
         assertTrue(model.content().rows.none { it.key in intakeKeys })
         assertTrue(model.content().missingNotes.isEmpty())
     }
 
     @Test
-    fun blockMode_hasOnlyYearsAndFreeTextRows_withTheStoredValues() = runTest(dispatcher) {
+    fun blockMode_hasOnlyTheYearsRow_withTheStoredValue() = runTest(dispatcher) {
         coach.inputs[PlanInputKind.Block] = Result.success(PlanInputs(PlanInputKind.Block, null, emptyList()))
         intake.stored = CoachIntake(trainingYears = 1.5, knownMaintenanceKcal = 2400)
         val model = viewModel(args("block"))
 
         advanceUntilIdle()
 
-        assertEquals(listOf(IntakeRowKind.TrainingYears, IntakeRowKind.FreeText), model.content().intakeRows)
+        assertEquals(listOf(IntakeRowKind.TrainingYears), model.content().intakeRows)
         assertEquals(1.5, model.content().intake.trainingYears)
     }
 
@@ -694,13 +690,13 @@ class BeforeStartViewModelTest {
         advanceUntilIdle()
 
         assertTrue(model.content().intake.isEmpty)
-        assertEquals(3, model.content().intakeRows.size)
+        assertEquals(2, model.content().intakeRows.size)
     }
 
     @Test
     fun savingTheMaintenanceSheet_updatesOnlyThatRow_andKeepsTheOthers() = runTest(dispatcher) {
         givenPlan(completePlan())
-        intake.stored = CoachIntake(trainingYears = 3.0, freeText = "hola")
+        intake.stored = CoachIntake(trainingYears = 3.0)
         val model = viewModel()
         advanceUntilIdle()
 
@@ -710,7 +706,7 @@ class BeforeStartViewModelTest {
         advanceUntilIdle()
 
         assertEquals(listOf<IntakeUpdate>(IntakeUpdate.KnownMaintenance(2400)), intake.saveCalls)
-        assertEquals(IntakeSummary(3.0, 2400, "hola"), model.content().intake)
+        assertEquals(IntakeSummary(3.0, 2400), model.content().intake)
         assertNull(model.editor.value.sheet)
     }
 

@@ -85,7 +85,7 @@ class ResolveCheckInDayTest {
 
     @Test
     fun answerIsAttachedByTheCaller_notByResolve() {
-        val answered = resolveDay(sunday)?.copy(answer = CheckIn(monday, 4, "ok"))
+        val answered = resolveDay(sunday)?.copy(answer = CheckIn(monday, 4))
 
         assertEquals(4, answered?.answer?.energy)
     }

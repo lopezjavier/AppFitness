@@ -72,6 +72,10 @@ jobs:
         run: |
           bash scripts/tests/test-check-ux-conventions.sh
           bash scripts/check-ux-conventions.sh
+      - name: Unused resources guard
+        run: |
+          python3 -I scripts/tests/test_check_unused_resources.py
+          python3 -I scripts/check-unused-resources.py
       - uses: actions/setup-java@v6
         with:
           distribution: temurin

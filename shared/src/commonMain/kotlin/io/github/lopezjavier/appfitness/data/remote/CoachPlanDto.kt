@@ -250,13 +250,6 @@ internal data class CoachRecommendationDto(
     )
 }
 
-/** Result of `evaluate_coach_calorie_change`; `recommendation_id` only when a change was created. */
-@Serializable
-internal data class CalorieEvaluationDto(
-    val status: String = "none",
-    @SerialName("recommendation_id") val recommendationId: String? = null,
-)
-
 @Serializable
 internal data class PlanRequestBody(val kind: String, val input: PlanRequestInput)
 

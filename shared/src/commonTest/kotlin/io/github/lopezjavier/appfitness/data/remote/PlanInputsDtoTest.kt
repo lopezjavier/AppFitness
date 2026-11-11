@@ -121,7 +121,7 @@ class PlanInputsDtoTest {
         val keys = listOf(
             "intention", "sex", "age", "height", "weight", "activity_level", "total_expenditure", "weight_trend",
             "diary", "place", "equipment", "cardio", "days_per_week", "session_minutes", "experience",
-            "training_years", "known_maintenance", "free_text",
+            "training_years", "known_maintenance",
         )
 
         val result = decode(list(*keys.map { entry(key = it) }.toTypedArray()))
@@ -208,21 +208,33 @@ class PlanInputsDtoTest {
                     status = "unset_optional",
                     fix = "\"intake\"",
                 ),
-                entry(key = "free_text", value = "\"hola\"", source = "intake", status = "ok", fix = "\"intake\""),
                 entry(key = "sex"),
             ),
         )
 
         assertEquals(
-            listOf(PlanInputKey.TrainingYears, PlanInputKey.KnownMaintenance, PlanInputKey.FreeText, PlanInputKey.Sex),
+            listOf(PlanInputKey.TrainingYears, PlanInputKey.KnownMaintenance, PlanInputKey.Sex),
             result.inputs.map { it.key },
         )
         assertEquals(
-            listOf(PlanFixTarget.TrainingYears, PlanFixTarget.Maintenance, PlanFixTarget.FreeText, null),
+            listOf(PlanFixTarget.TrainingYears, PlanFixTarget.Maintenance, null),
             result.inputs.map { it.fixTarget },
         )
         assertEquals(PlanInputSource.Intake, result.inputs.first().source)
-        assertEquals(listOf(false, false, false, false), result.inputs.map { it.blocking })
+        assertEquals(listOf(false, false, false), result.inputs.map { it.blocking })
+    }
+
+    @Test
+    fun serverFreeTextEntry_isSkippedAndNeighboursSurvive() {
+        val result = decode(
+            list(
+                entry(key = "training_years", value = "3", source = "intake", fix = "\"intake\""),
+                entry(key = "free_text", value = "\"hola\"", source = "intake", status = "ok", fix = "\"intake\""),
+                entry(key = "sex"),
+            ),
+        )
+
+        assertEquals(listOf(PlanInputKey.TrainingYears, PlanInputKey.Sex), result.inputs.map { it.key })
     }
 
     @Test

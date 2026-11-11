@@ -75,8 +75,6 @@ class ShellChromeTest {
                 YourDataRoute,
                 TrainerPlanRoute,
                 TrainerBlockRoute,
-                IntakeRoute,
-                FreeTextLinesRoute,
                 BlockPreviewRoute::class,
                 BlockBuilderRoute::class,
                 FolderBlockRoute::class,
@@ -105,8 +103,6 @@ class ShellChromeTest {
                     it is YourDataRoute ||
                     it is TrainerPlanRoute ||
                     it is TrainerBlockRoute ||
-                    it is IntakeRoute ||
-                    it is FreeTextLinesRoute ||
                     it is NotificationCenterRoute ||
                     it is CheckInRoute ||
                     it is WeekSummaryRoute ||

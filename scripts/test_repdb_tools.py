@@ -231,12 +231,6 @@ class StrengthFlagTest(unittest.TestCase):
                 ("glute-bridge", "reps_only", "hinge", "bodyweight"), ("clamshells", "reps_only", "isolation", "band")):
             self.assertTrue(gen.counts_as_strength(key, metric, pattern, equipment), key)
 
-    def test_rendered_sql_matches_the_live_migration(self):
-        path = os.path.join(os.path.dirname(__file__), "..", "supabase", "migrations",
-                            "20261229100400_exercises_counts_as_strength.sql")
-        with open(path, encoding="utf-8") as f:
-            self.assertIn(gen.render_strength_sql(), f.read())
-
     def test_cli_writes_the_statement(self):
         with tempfile.TemporaryDirectory() as tmp:
             out = os.path.join(tmp, "strength.sql")

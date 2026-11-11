@@ -213,7 +213,7 @@ class ReminderCoordinatorTest {
         val coordinator = coordinator(env)
         coordinator.refresh()
 
-        env.checkIns.save(CheckIn(LocalDate(2026, 10, 19), 5, "")).getOrThrow()
+        env.checkIns.save(CheckIn(LocalDate(2026, 10, 19), 5)).getOrThrow()
         coordinator.refresh()
 
         assertTrue(coordinator.reminders.value.isEmpty())

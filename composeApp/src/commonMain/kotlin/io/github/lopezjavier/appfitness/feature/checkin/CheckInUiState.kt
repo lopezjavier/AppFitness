@@ -1,6 +1,5 @@
 package io.github.lopezjavier.appfitness.feature.checkin
 
-import io.github.lopezjavier.appfitness.domain.model.CHECK_IN_NOTES_MAX
 import io.github.lopezjavier.appfitness.domain.model.CheckInDay
 import io.github.lopezjavier.appfitness.domain.model.WeeklySummary
 
@@ -26,13 +25,12 @@ sealed interface CheckInUiState {
 
     /**
      * [window] is the check-in being answered ([CheckInDay.day] its day, [CheckInDay.weekStart] the Monday of the
-     * summary week) and holds the saved answer when it is reopened. [energy] and [notes] are the draft (the saved
+     * summary week) and holds the saved answer when it is reopened. [energy] is the draft (the saved
      * answer until edited). The week closes when the next check-in day arrives; saving updates the same week.
      */
     data class Ready(
         val window: CheckInDay,
         val energy: Int?,
-        val notes: String,
         val summary: CheckInSummaryState,
         val isOffline: Boolean = false,
         val isSaving: Boolean = false,
@@ -45,14 +43,11 @@ sealed interface CheckInUiState {
         val isDirty: Boolean
             get() {
                 val answer = window.answer
-                return if (answer == null) energy != null else energy != answer.energy || notes != answer.notes
+                return if (answer == null) energy != null else energy != answer.energy
             }
 
-        /** Over the 1000 characters the database accepts: shows "Máximo 1000 caracteres" and blocks saving. */
-        val notesTooLong: Boolean get() = notes.length > CHECK_IN_NOTES_MAX
-
-        /** "Guardar" needs an energy, valid notes, a change, the network and no save running (R-30). */
-        val canSave: Boolean get() = energy != null && !notesTooLong && isDirty && !isOffline && !isSaving
+        /** "Guardar" needs an energy, a change, the network and no save running (R-30). */
+        val canSave: Boolean get() = energy != null && isDirty && !isOffline && !isSaving
     }
 }
 
@@ -60,8 +55,6 @@ sealed interface CheckInUiState {
 sealed interface CheckInEvent {
     /** One of [CHECK_IN_ENERGY_RANGE]; anything else is ignored. */
     data class SelectEnergy(val energy: Int) : CheckInEvent
-
-    data class SetNotes(val notes: String) : CheckInEvent
 
     data object Save : CheckInEvent
 

@@ -76,29 +76,3 @@ class MeasurementsByDayTest {
         assertEquals(latest, day.manual)
     }
 }
-
-class CurrentWeightTest {
-    private val current = CurrentWeight()
-
-    @Test
-    fun noRows_isNull() {
-        assertNull(current(emptyList()))
-    }
-
-    @Test
-    fun latestByMeasuredAt_winsAcrossSources() {
-        val manual = row("m", "2026-10-14T08:00:00Z")
-        val hc = row("h", "2026-10-15T08:00:00Z", MeasurementSource.HealthConnect)
-
-        assertEquals(hc, current(listOf(hc, manual)))
-    }
-
-    @Test
-    fun sameInstant_tiesBreakByLargerId() {
-        val a = row("a", "2026-10-14T08:00:00Z")
-        val b = row("b", "2026-10-14T08:00:00Z", MeasurementSource.HealthConnect)
-
-        assertEquals(b, current(listOf(b, a)))
-        assertEquals(b, current(listOf(a, b)))
-    }
-}

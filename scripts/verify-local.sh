@@ -3,7 +3,7 @@
 # Usage: bash scripts/verify-local.sh [--full]
 # Default mode (stops at the first failing step and says which one):
 #   1. ktlintFormat (all modules), then ktlintCheck detekt
-#   2. check-design-tokens.sh, tests/test-check-ux-conventions.sh, check-ux-conventions.sh (as android-ci.yml)
+#   2. check-design-tokens.sh, check-unused-resources.py, python script tests, tests/test-check-ux-conventions.sh, check-ux-conventions.sh (as android-ci.yml)
 #   3. cross-cutting test classes: *AppModuleTest, *ShellChromeTest, *StringsTest
 #   4. test classes of every test file changed vs main (committed + working tree) and the test class
 #      named after each changed source file when it exists (FooViewModel.kt -> FooViewModelTest)
@@ -87,6 +87,8 @@ run "ktlintCheck detekt" gq ktlintCheck detekt
 run "check-design-tokens" bash scripts/check-design-tokens.sh
 run "test-check-ux-conventions" bash scripts/tests/test-check-ux-conventions.sh
 run "check-ux-conventions" bash scripts/check-ux-conventions.sh
+run "check-unused-resources" python -I scripts/check-unused-resources.py
+run "python script tests" bash -c 'for t in scripts/test_deliver_apk.py scripts/test_repdb_tools.py scripts/tests/test_generate_band_long.py scripts/tests/test_check_unused_resources.py; do python -I "$t" || exit 1; done'
 
 # (c) cross-cutting classes
 mapfile -t cross < <(echo "$all_tests" | grep -E '(AppModuleTest|ShellChromeTest|StringsTest)\.kt$')

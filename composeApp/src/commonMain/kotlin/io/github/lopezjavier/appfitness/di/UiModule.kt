@@ -45,8 +45,6 @@ import io.github.lopezjavier.appfitness.feature.trainer.BlockPreviewViewModel
 import io.github.lopezjavier.appfitness.feature.trainer.BlockReviewViewModel
 import io.github.lopezjavier.appfitness.feature.trainer.FolderBlockViewModel
 import io.github.lopezjavier.appfitness.feature.trainer.FolderReviewResultViewModel
-import io.github.lopezjavier.appfitness.feature.trainer.FreeTextLinesViewModel
-import io.github.lopezjavier.appfitness.feature.trainer.IntakeViewModel
 import io.github.lopezjavier.appfitness.feature.trainer.PastReportViewModel
 import io.github.lopezjavier.appfitness.feature.trainer.PlanProposalViewModel
 import io.github.lopezjavier.appfitness.feature.trainer.ReportsViewModel
@@ -516,8 +514,6 @@ val uiModule =
             )
         }
         viewModel { YourDataViewModel(coach = get(), intakeRepo = get(), clock = get(), savedState = get()) }
-        viewModel { IntakeViewModel(repository = get(), savedState = get()) }
-        viewModel { FreeTextLinesViewModel(repository = get(), clock = get()) }
         viewModel { params ->
             BlockBuilderViewModel(
                 planId = params.get(),

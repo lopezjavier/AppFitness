@@ -1,15 +1,10 @@
 package io.github.lopezjavier.appfitness.data.remote
 
 import io.github.lopezjavier.appfitness.domain.model.CoachIntake
-import io.github.lopezjavier.appfitness.domain.model.FreeTextKind
-import io.github.lopezjavier.appfitness.domain.model.FreeTextStatus
 import io.github.lopezjavier.appfitness.domain.model.IntakeUpdate
-import kotlinx.datetime.LocalDate
 import kotlinx.serialization.json.JsonObject
 import kotlin.test.Test
 import kotlin.test.assertEquals
-import kotlin.test.assertFalse
-import kotlin.test.assertTrue
 
 class CoachIntakeDtoTest {
     private fun row(text: String) = coachPlanJson.decodeFromString<CoachIntakeDto>(text).toDomain()
@@ -18,16 +13,22 @@ class CoachIntakeDtoTest {
         coachPlanJson.encodeToString(JsonObject.serializer(), SaveIntakeParams.of(update))
 
     @Test
-    fun fullRow_mapsTheThreeFields() {
+    fun fullRow_mapsTheFields() {
         val intake = row(
-            """{"user_id":"u1","training_years":4.5,"known_maintenance_kcal":2400,"free_text":"hola",""" +
+            """{"user_id":"u1","training_years":4.5,"known_maintenance_kcal":2400,""" +
                 """"maintenance_handover_at":null,"saved_at":"2026-11-02T10:00:00+00:00"}""",
         )
 
         assertEquals(4.5, intake.trainingYears)
         assertEquals(2400, intake.knownMaintenanceKcal)
-        assertEquals("hola", intake.freeText)
         assertEquals(true, intake.maintenanceHandoverPending)
+    }
+
+    @Test
+    fun rowWithTheRemovedFreeTextField_isDecodedAndTheFieldIgnored() {
+        val intake = row("""{"training_years":4.5,"free_text":"hola"}""")
+
+        assertEquals(CoachIntake(trainingYears = 4.5), intake)
     }
 
     @Test
@@ -41,7 +42,7 @@ class CoachIntakeDtoTest {
 
     @Test
     fun withoutMaintenance_handoverIsNotPending() {
-        assertEquals(false, row("""{"free_text":"x"}""").maintenanceHandoverPending)
+        assertEquals(false, row("""{"training_years":2}""").maintenanceHandoverPending)
     }
 
     @Test
@@ -57,7 +58,7 @@ class CoachIntakeDtoTest {
                 """"free_text":"texto","future":{"a":1}}""",
         )
 
-        assertEquals(CoachIntake(trainingYears = 3.0, freeText = "texto"), intake)
+        assertEquals(CoachIntake(trainingYears = 3.0), intake)
     }
 
     @Test
@@ -71,46 +72,8 @@ class CoachIntakeDtoTest {
     }
 
     @Test
-    fun saveParams_freeText_sendOnlyThatKey() {
-        assertEquals("""{"p":{"free_text":"texto"}}""", body(IntakeUpdate.FreeText("texto")))
-    }
-
-    @Test
     fun saveParams_nullValue_isAnExplicitNullThatClears() {
         assertEquals("""{"p":{"known_maintenance_kcal":null}}""", body(IntakeUpdate.KnownMaintenance(null)))
         assertEquals("""{"p":{"training_years":null}}""", body(IntakeUpdate.TrainingYears(null)))
-        assertEquals("""{"p":{"free_text":null}}""", body(IntakeUpdate.FreeText(null)))
-    }
-
-    @Test
-    fun freeTextLine_mapsKindStatusAndDate() {
-        val line = coachPlanJson.decodeFromString<FreeTextLineDto>(
-            """{"kind":"check_in","source_id":"2026-10-26","date":"2026-10-28","text":"duermo mal",""" +
-                """"status":"over_limit"}""",
-        ).toDomain()
-
-        assertEquals(FreeTextKind.CheckIn, line.kind)
-        assertEquals("2026-10-26", line.sourceId)
-        assertEquals(LocalDate(2026, 10, 28), line.date)
-        assertEquals(FreeTextStatus.OverLimit, line.status)
-        assertTrue(line.text.isNotEmpty())
-    }
-
-    @Test
-    fun freeTextLine_unknownKindAndStatus_doNotCrash() {
-        val line = coachPlanJson.decodeFromString<FreeTextLineDto>(
-            """{"kind":"podcast","source_id":"x","date":"2026-10-28","text":"t","status":"archived"}""",
-        ).toDomain()
-
-        assertEquals(FreeTextKind.Unknown, line.kind)
-        assertFalse(line.status == FreeTextStatus.Sent)
-    }
-
-    @Test
-    fun kindWire_roundTripsForTheExclusionParams() {
-        assertEquals(
-            """{"p_kind":"discomfort","p_id":"d1","p_excluded":true}""",
-            coachPlanJson.encodeToString(ExcludeLineParams.of(FreeTextKind.Discomfort, "d1", true)),
-        )
     }
 }

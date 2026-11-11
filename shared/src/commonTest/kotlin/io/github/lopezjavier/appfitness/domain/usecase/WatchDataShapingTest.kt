@@ -41,14 +41,6 @@ class WatchDataShapingTest {
     }
 
     @Test
-    fun sleepDay_isTheLocalDayOfTheEnd_evenWhenTheNightCrossesMidnight() {
-        // Slept 22:30 on the 21st until 00:30 on the 22nd, Madrid time (UTC+2).
-        val ended = Instant.parse("2026-10-21T22:30:00Z")
-
-        assertEquals(LocalDate(2026, 10, 22), WatchDataShaping.sleepDay(ended, MADRID))
-    }
-
-    @Test
     fun stageKey_mapsHealthConnectStageTypes() {
         val expected = mapOf(
             0 to "unknown",

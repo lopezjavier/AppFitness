@@ -3,7 +3,6 @@ package io.github.lopezjavier.appfitness.domain.usecase
 import io.github.lopezjavier.appfitness.domain.model.TrainedSession
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.TimeZone
-import kotlinx.datetime.YearMonth
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.time.Instant
@@ -45,10 +44,6 @@ class TrainingCalendarTest {
         assertEquals(mapOf(2024 to 1, 2025 to 3), TrainingCalendar.yearCounts(days))
         assertEquals(mapOf(1 to 2, 3 to 1), TrainingCalendar.monthCounts(days, 2025))
         assertEquals(emptyMap(), TrainingCalendar.monthCounts(days, 2023))
-        assertEquals(
-            setOf(YearMonth(2024, 12), YearMonth(2025, 1), YearMonth(2025, 3)),
-            TrainingCalendar.monthsWithTraining(days),
-        )
     }
 
     @Test
@@ -57,6 +52,5 @@ class TrainingCalendarTest {
 
         assertEquals(emptyMap(), days)
         assertEquals(emptyMap(), TrainingCalendar.yearCounts(days))
-        assertEquals(emptySet(), TrainingCalendar.monthsWithTraining(days))
     }
 }

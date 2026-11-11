@@ -8,8 +8,6 @@ import io.github.lopezjavier.appfitness.data.remote.SupabaseClientFactory
 import io.github.lopezjavier.appfitness.domain.AppError
 import io.github.lopezjavier.appfitness.domain.appErrorOrNull
 import io.github.lopezjavier.appfitness.domain.model.CoachIntake
-import io.github.lopezjavier.appfitness.domain.model.FreeTextKind
-import io.github.lopezjavier.appfitness.domain.model.FreeTextStatus
 import io.github.lopezjavier.appfitness.domain.model.IntakeUpdate
 import io.github.lopezjavier.appfitness.domain.model.TestLoginCredentials
 import io.ktor.client.engine.mock.MockEngine
@@ -21,7 +19,6 @@ import io.ktor.http.HttpStatusCode
 import io.ktor.http.content.TextContent
 import io.ktor.http.headersOf
 import kotlinx.coroutines.test.runTest
-import kotlinx.datetime.LocalDate
 import kotlinx.io.IOException
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -39,7 +36,6 @@ private const val ROW =
 class SupabaseCoachIntakeRepositoryTest {
     private val requests = mutableListOf<HttpRequestData>()
     private var offline = false
-    private val today = LocalDate(2026, 11, 2)
 
     private suspend fun repo(
         signIn: Boolean = true,
@@ -84,7 +80,7 @@ class SupabaseCoachIntakeRepositoryTest {
         val intake = repository.get().getOrThrow()
 
         assertTrue(rest().single().url.encodedPath.endsWith("/rest/v1/coach_user_intake"))
-        assertEquals(CoachIntake(trainingYears = 4.0, freeText = "hola"), intake)
+        assertEquals(CoachIntake(trainingYears = 4.0), intake)
     }
 
     @Test
@@ -98,13 +94,14 @@ class SupabaseCoachIntakeRepositoryTest {
     fun save_callsTheRpcWithOnlyTheEditedKeyAndReturnsTheStoredRow() = runTest {
         val repository = repo { HttpStatusCode.OK to ROW }
 
-        val stored = repository.save(IntakeUpdate.FreeText("hola")).getOrThrow()
+        val stored = repository.save(IntakeUpdate.TrainingYears(4.0)).getOrThrow()
 
         val call = rest().single()
         assertEquals(HttpMethod.Post, call.method)
         assertTrue(call.url.encodedPath.endsWith("/rest/v1/rpc/save_coach_intake"), call.url.toString())
-        assertEquals("""{"p":{"free_text":"hola"}}""", bodyOf(call))
-        assertEquals(CoachIntake(trainingYears = 4.0, freeText = "hola"), stored)
+        assertEquals("""{"p":{"training_years":4.0}}""", bodyOf(call))
+        assertTrue("free_text" !in bodyOf(call))
+        assertEquals(CoachIntake(trainingYears = 4.0), stored)
     }
 
     @Test
@@ -127,34 +124,6 @@ class SupabaseCoachIntakeRepositoryTest {
     }
 
     @Test
-    fun freeTextLines_callsTheRpcWithTodayAndMapsStatuses() = runTest {
-        val repository = repo {
-            HttpStatusCode.OK to
-                """[{"kind":"intake","source_id":"intake","date":"2026-11-02","text":"hola","status":"sent"},""" +
-                """{"kind":"check_in","source_id":"2026-10-26","date":"2026-10-28","text":"x","status":"excluded"}]"""
-        }
-
-        val lines = repository.freeTextLines(today).getOrThrow()
-
-        val call = rest().single()
-        assertTrue(call.url.encodedPath.endsWith("/rest/v1/rpc/coach_free_text_lines"), call.url.toString())
-        assertEquals("""{"p_today":"2026-11-02"}""", bodyOf(call))
-        assertEquals(listOf(FreeTextStatus.Sent, FreeTextStatus.Excluded), lines.map { it.status })
-        assertEquals(listOf(FreeTextKind.Intake, FreeTextKind.CheckIn), lines.map { it.kind })
-    }
-
-    @Test
-    fun setLineExcluded_callsTheRpcWithKindIdAndFlag() = runTest {
-        val repository = repo { HttpStatusCode.NoContent to "" }
-
-        repository.setLineExcluded(FreeTextKind.CheckIn, "2026-10-26", true).getOrThrow()
-
-        val call = rest().single()
-        assertTrue(call.url.encodedPath.endsWith("/rest/v1/rpc/set_free_text_line_excluded"), call.url.toString())
-        assertEquals("""{"p_kind":"check_in","p_id":"2026-10-26","p_excluded":true}""", bodyOf(call))
-    }
-
-    @Test
     fun acknowledgeMaintenanceHandover_callsTheRpc() = runTest {
         val repository = repo { HttpStatusCode.NoContent to "" }
 
@@ -168,7 +137,6 @@ class SupabaseCoachIntakeRepositoryTest {
         val repository = repo(signIn = false) { HttpStatusCode.OK to "[]" }
 
         assertEquals(AppError.Unauthorized, repository.get().appErrorOrNull())
-        assertEquals(AppError.Unauthorized, repository.freeTextLines(today).appErrorOrNull())
         assertTrue(requests.isEmpty())
     }
 }
