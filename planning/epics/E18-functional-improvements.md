@@ -268,53 +268,57 @@ Feature: Unused food cleanup
     Then each account's cleanup deletes only that account's own unused foods
 ```
 
-## US-134 · Extend my block
-*Added by product-owner, 2026-11-10 (ADR-106). Reverses the "illness" non-goal of E15 for this one action; "Bloque nuevo" stays the way to change plan.*
+## US-134 · Extend my current week
+*Added by product-owner, 2026-11-10 (ADR-106); reworked 2026-11-11 (user, Checkpoint E18-C: the pencil belongs to the week in progress, not to the block). Reverses the "illness" non-goal of E15 for this one action; "Bloque nuevo" stays the way to change plan.*
 
 **As** a user who is ill or busy
-**I want** to say the day my block now ends
+**I want** to say the day my current week now ends
 **So that** I can finish my sessions without doubling up.
 
-The action is a pencil button next to the block end day in the Trainer (a date picker opens; no separate "Ampliar bloque" entry).
+The action is a pencil button on the date row of the "Actual" week card in "Semanas del bloque" (a date picker opens; no separate "Ampliar bloque" entry). The days added to the week move the later weeks, the review and the block end by the same number, up to 14 days in total for the block. The line "El bloque termina el …" shows only once a week was paused.
 
 Non-goals: pausing, back-dating, any change to loads, deloads or calories.
 
 ```gherkin
-Feature: Extend the block
+Feature: Extend the current week
 
-  Scenario: Choosing the new last day
-    Given my block ends on 12 Nov
-    When I tap the pencil next to the block end day and pick 15 Nov
-    Then the Trainer shows the block ending on 15 Nov
+  Scenario: Choosing the new last day of the week
+    Given my current week ends on 12 Nov
+    When I tap the pencil on the "Actual" week and pick 15 Nov
+    Then the week shows its dates ending on 15 Nov
 
   Scenario: A session on the last day counts
-    Given I extended my block to 15 Nov
+    Given I extended my current week to 15 Nov
     When I finish a session on 15 Nov
-    Then it counts in the block and in my week's adherence
+    Then it counts in the week and in my week's adherence
 
   Scenario: My sessions stay to do
     Given my week has 4 sessions and I did 2
-    When I extend the block
+    When I extend the week
     Then the other 2 are still to do
 
   Scenario: Later weeks and schedules move too
     Given my block has weeks after the current one, a review or a next block planned
-    When I extend the block by 3 days
+    When I extend the current week by 3 days
     Then each of them moves 3 days later
 
   Scenario: Changing my mind
-    Given I extended my block to 15 Nov
+    Given I extended my current week to 15 Nov
     When I tap the pencil and pick 12 Nov
-    Then the block ends on 12 Nov again
+    Then the week ends on 12 Nov again
 
   Scenario: The extension survives leaving the app
-    Given I extended my block
+    Given I extended my current week
     When I close the app and open it again
-    Then the Trainer still shows the new end date
+    Then the Trainer still shows the new dates
 
   Scenario: No extension without a block
     Given I have no active block
     Then there is no pencil and no way to extend
+
+  Scenario: The block end line is not shown while no week was paused
+    Given I never paused a week
+    Then the Trainer does not show "El bloque termina el …"
 ```
 
 ## US-135 · Small corrections to the food forms

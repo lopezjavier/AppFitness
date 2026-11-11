@@ -26,15 +26,15 @@ import io.github.lopezjavier.appfitness.composeapp.resources.plan_week_cardio
 import io.github.lopezjavier.appfitness.composeapp.resources.plan_week_steps
 import io.github.lopezjavier.appfitness.composeapp.resources.plan_week_steps_none
 import io.github.lopezjavier.appfitness.composeapp.resources.trainer_block_end
-import io.github.lopezjavier.appfitness.composeapp.resources.trainer_block_end_busy
-import io.github.lopezjavier.appfitness.composeapp.resources.trainer_block_end_edit_cd
-import io.github.lopezjavier.appfitness.composeapp.resources.trainer_block_end_help_body
-import io.github.lopezjavier.appfitness.composeapp.resources.trainer_block_end_help_cd
-import io.github.lopezjavier.appfitness.composeapp.resources.trainer_block_end_help_title
-import io.github.lopezjavier.appfitness.composeapp.resources.trainer_block_end_offline
 import io.github.lopezjavier.appfitness.composeapp.resources.trainer_week_chip_current
 import io.github.lopezjavier.appfitness.composeapp.resources.trainer_week_chip_deload
 import io.github.lopezjavier.appfitness.composeapp.resources.trainer_week_chip_diet_break
+import io.github.lopezjavier.appfitness.composeapp.resources.trainer_week_extend_busy
+import io.github.lopezjavier.appfitness.composeapp.resources.trainer_week_extend_edit_cd
+import io.github.lopezjavier.appfitness.composeapp.resources.trainer_week_extend_help_body
+import io.github.lopezjavier.appfitness.composeapp.resources.trainer_week_extend_help_cd
+import io.github.lopezjavier.appfitness.composeapp.resources.trainer_week_extend_help_title
+import io.github.lopezjavier.appfitness.composeapp.resources.trainer_week_extend_offline
 import io.github.lopezjavier.appfitness.composeapp.resources.trainer_week_planned
 import io.github.lopezjavier.appfitness.composeapp.resources.trainer_week_progress
 import io.github.lopezjavier.appfitness.composeapp.resources.trainer_week_session_done
@@ -59,6 +59,7 @@ import io.github.lopezjavier.appfitness.designsystem.OfflineHint
 import io.github.lopezjavier.appfitness.designsystem.Spacing
 import io.github.lopezjavier.appfitness.designsystem.StatusChip
 import io.github.lopezjavier.appfitness.designsystem.StatusTone
+import io.github.lopezjavier.appfitness.domain.model.ActiveWeekExtension
 import io.github.lopezjavier.appfitness.domain.model.BlockPause
 import io.github.lopezjavier.appfitness.domain.model.PlanWeek
 import io.github.lopezjavier.appfitness.domain.model.PlanWeekSession
@@ -78,13 +79,13 @@ internal fun PlanWeeksSection(
     request: DeloadRequestUi = DeloadRequestUi(),
     pause: BlockPause? = null,
     dietBreakWeek: Int? = null,
-    extend: ExtendBlockUi = ExtendBlockUi(),
+    extend: ExtendWeekUi = ExtendWeekUi(),
 ) {
     if (weeks.isEmpty()) return
     Column(Modifier.testTag("trainer_weeks_section"), verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
         ListSectionHeader(stringResource(Res.string.trainer_weeks_header))
-        BlockPauseLines(pause, extend)
-        weeks.forEach { WeekCard(it, dietBreak = it.week == dietBreakWeek) }
+        BlockPauseLines(pause)
+        weeks.forEach { WeekCard(it, dietBreak = it.week == dietBreakWeek, extend = extend) }
         if (request.available) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 GhostButton(
@@ -107,14 +108,13 @@ internal fun PlanWeeksSection(
     }
 }
 
-/**
- * "Semana en pausa" while the block is paused and the block's last day with its pencil (US-106, US-134): the pencil
- * and its help show only while the block can still be changed; offline it is disabled with the standard hint.
- */
+/** "Semana en pausa" while the block is paused, and the block's end once a week was paused (US-106). */
 @Composable
-private fun BlockPauseLines(pause: BlockPause?, extend: ExtendBlockUi) {
+private fun BlockPauseLines(pause: BlockPause?) {
     if (pause == null) return
     val end = pause.blockEnd
+    val showEnd = pause.pausedWeeks > 0 && end != null
+    if (!pause.paused && !showEnd) return
     Column(verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
         if (pause.paused) {
             Row {
@@ -125,54 +125,38 @@ private fun BlockPauseLines(pause: BlockPause?, extend: ExtendBlockUi) {
                 )
             }
         }
-        if (end != null) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(
-                    text = stringResource(Res.string.trainer_block_end, AppDateFormat.title(end)),
-                    style = AppTheme.typography.bodySmall,
-                    color = AppTheme.colors.textSecondary,
-                    modifier = Modifier.weight(1f).testTag("trainer_block_end"),
-                )
-                if (pause.extendable) {
-                    HelpButton(
-                        contentDescription = stringResource(Res.string.trainer_block_end_help_cd),
-                        title = stringResource(Res.string.trainer_block_end_help_title),
-                        body = stringResource(Res.string.trainer_block_end_help_body),
-                        testTag = "trainer_block_end_help",
-                    )
-                    AppIconButton(
-                        contentDescription = stringResource(Res.string.trainer_block_end_edit_cd),
-                        icon = Res.drawable.ic_edit,
-                        testTag = "trainer_block_end_edit",
-                        onClick = extend.onOpen,
-                        enabled = extend.online && !extend.busy,
-                        busyDescription = if (extend.busy) stringResource(Res.string.trainer_block_end_busy) else null,
-                    )
-                }
-            }
-            if (pause.extendable && !extend.online) OfflineHint(stringResource(Res.string.trainer_block_end_offline))
-            if (pause.extendable && extend.pickerOpen) ExtendBlockPicker(pause, extend)
+        if (showEnd && end != null) {
+            Text(
+                text = stringResource(Res.string.trainer_block_end, AppDateFormat.title(end)),
+                style = AppTheme.typography.bodySmall,
+                color = AppTheme.colors.textSecondary,
+                modifier = Modifier.testTag("trainer_block_end"),
+            )
         }
     }
 }
 
-/** The date picker of the block's last day: selectable from `minEnd` to `maxEnd`, starting on the current end. */
+/** The date picker of the week's last day: selectable from `minDay` to `maxDay`, starting on the current last day. */
 @Composable
-private fun ExtendBlockPicker(pause: BlockPause, extend: ExtendBlockUi) {
+private fun ExtendWeekPicker(extension: ActiveWeekExtension, extend: ExtendWeekUi) {
     AppDatePickerDialog(
-        selected = pause.blockEnd,
+        selected = extension.selected,
         onConfirm = extend.onConfirm,
         onDismiss = extend.onDismiss,
         confirmLabel = stringResource(Res.string.action_done),
         dismissLabel = stringResource(Res.string.action_cancel),
-        maxDate = pause.maxEnd,
-        minDate = pause.minEnd,
-        testTagPrefix = "trainer_block_end_picker",
+        maxDate = extension.maxDay,
+        minDate = extension.minDay,
+        testTagPrefix = "trainer_week_extend_picker",
     )
 }
 
-/** State of the block's last-day pencil: the picker is [pickerOpen]; disabled offline or while [busy]. */
-internal data class ExtendBlockUi(
+/**
+ * State of the active week's last-day pencil (US-134): [extension] is null when nothing can be extended; the picker
+ * is [pickerOpen]; disabled offline or while [busy].
+ */
+internal data class ExtendWeekUi(
+    val extension: ActiveWeekExtension? = null,
     val pickerOpen: Boolean = false,
     val busy: Boolean = false,
     val online: Boolean = true,
@@ -190,7 +174,7 @@ internal data class DeloadRequestUi(
 )
 
 @Composable
-private fun WeekCard(week: PlanWeek, dietBreak: Boolean) {
+private fun WeekCard(week: PlanWeek, dietBreak: Boolean, extend: ExtendWeekUi) {
     AppCard(Modifier.fillMaxWidth().testTag("trainer_week_${week.week}")) {
         Column(verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
             Row(
@@ -224,11 +208,7 @@ private fun WeekCard(week: PlanWeek, dietBreak: Boolean) {
                     )
                 }
             }
-            Text(
-                text = AppDateFormat.dayRange(week.startDate, week.endDate),
-                style = AppTheme.typography.bodySmall,
-                color = AppTheme.colors.textSecondary,
-            )
+            WeekDates(week, extend)
             Text(
                 text = if (week.phase == WeekPhase.Upcoming) {
                     pluralStringResource(Res.plurals.trainer_week_planned, week.planned, week.planned)
@@ -243,6 +223,50 @@ private fun WeekCard(week: PlanWeek, dietBreak: Boolean) {
             WeekSteps(week)
             week.sessions.forEach { SessionRow(week, it) }
         }
+    }
+}
+
+/** The week's date range: plain text, except the active week when it can be extended (pencil, hint, picker). */
+@Composable
+private fun WeekDates(week: PlanWeek, extend: ExtendWeekUi) {
+    val extension = extend.extension?.takeIf { week.phase == WeekPhase.Current && it.week.week == week.week }
+    if (extension == null) {
+        Text(
+            text = AppDateFormat.dayRange(week.startDate, week.endDate),
+            style = AppTheme.typography.bodySmall,
+            color = AppTheme.colors.textSecondary,
+        )
+    } else {
+        ExtendableDayRange(week, extend)
+        if (!extend.online) OfflineHint(stringResource(Res.string.trainer_week_extend_offline))
+        if (extend.pickerOpen) ExtendWeekPicker(extension, extend)
+    }
+}
+
+/** The active week's date range with its help and the pencil that changes the week's last day (US-134). */
+@Composable
+private fun ExtendableDayRange(week: PlanWeek, extend: ExtendWeekUi) {
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        Text(
+            text = AppDateFormat.dayRange(week.startDate, week.endDate),
+            style = AppTheme.typography.bodySmall,
+            color = AppTheme.colors.textSecondary,
+            modifier = Modifier.weight(1f),
+        )
+        HelpButton(
+            contentDescription = stringResource(Res.string.trainer_week_extend_help_cd),
+            title = stringResource(Res.string.trainer_week_extend_help_title),
+            body = stringResource(Res.string.trainer_week_extend_help_body),
+            testTag = "trainer_week_extend_help",
+        )
+        AppIconButton(
+            contentDescription = stringResource(Res.string.trainer_week_extend_edit_cd),
+            icon = Res.drawable.ic_edit,
+            testTag = "trainer_week_extend_edit",
+            onClick = extend.onOpen,
+            enabled = extend.online && !extend.busy,
+            busyDescription = if (extend.busy) stringResource(Res.string.trainer_week_extend_busy) else null,
+        )
     }
 }
 

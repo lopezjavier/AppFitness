@@ -16,8 +16,9 @@ interface CoachWeeksRepository {
     suspend fun blockPause(planId: String, today: LocalDate): Result<BlockPause>
 
     /**
-     * "Cambiar el último día del bloque" (US-134): the new last day of the running block, within the pause's
-     * `minEnd`..`maxEnd`; returns the block's new pause state. Picking the original end removes the extension.
+     * Sets the last day of the running block (US-134), within the pause's `minEnd`..`maxEnd`; returns the block's new
+     * pause state. The app sends the block end plus the days the active week moves (`ActiveWeekExtension`); the
+     * original block end removes the extension.
      */
     suspend fun setBlockEnd(planId: String, lastDay: LocalDate, today: LocalDate): Result<BlockPause>
 

@@ -28,8 +28,6 @@ import io.github.lopezjavier.appfitness.composeapp.resources.coach_deload_reques
 import io.github.lopezjavier.appfitness.composeapp.resources.coach_deload_request_not_available
 import io.github.lopezjavier.appfitness.composeapp.resources.coach_deload_request_offline
 import io.github.lopezjavier.appfitness.composeapp.resources.plan_proposal_diet_break_offline
-import io.github.lopezjavier.appfitness.composeapp.resources.trainer_block_end_error
-import io.github.lopezjavier.appfitness.composeapp.resources.trainer_block_end_offline
 import io.github.lopezjavier.appfitness.composeapp.resources.trainer_block_remove_action
 import io.github.lopezjavier.appfitness.composeapp.resources.trainer_block_remove_error
 import io.github.lopezjavier.appfitness.composeapp.resources.trainer_discomfort_change_action
@@ -37,6 +35,8 @@ import io.github.lopezjavier.appfitness.composeapp.resources.trainer_discomfort_
 import io.github.lopezjavier.appfitness.composeapp.resources.trainer_discomfort_save_error
 import io.github.lopezjavier.appfitness.composeapp.resources.trainer_plan_diet_break_error
 import io.github.lopezjavier.appfitness.composeapp.resources.trainer_swap_applied
+import io.github.lopezjavier.appfitness.composeapp.resources.trainer_week_extend_error
+import io.github.lopezjavier.appfitness.composeapp.resources.trainer_week_extend_offline
 import io.github.lopezjavier.appfitness.designsystem.LocalAppHaptics
 import io.github.lopezjavier.appfitness.designsystem.LocalAppMessages
 import io.github.lopezjavier.appfitness.designsystem.offlineHint
@@ -61,8 +61,8 @@ internal fun TrainerEffectsHost(effects: Flow<TrainerEffect>, onRefresh: () -> U
     val cardioOffline = offlineHint(stringResource(Res.string.cardio_save_offline)) + "."
     val dietBreakError = stringResource(Res.string.trainer_plan_diet_break_error)
     val dietBreakOffline = offlineHint(stringResource(Res.string.plan_proposal_diet_break_offline)) + "."
-    val blockEndError = stringResource(Res.string.trainer_block_end_error)
-    val blockEndOffline = offlineHint(stringResource(Res.string.trainer_block_end_offline)) + "."
+    val weekEndError = stringResource(Res.string.trainer_week_extend_error)
+    val weekEndOffline = offlineHint(stringResource(Res.string.trainer_week_extend_offline)) + "."
     val removeBlock = listOf(
         stringResource(Res.string.trainer_block_remove_error),
         offlineHint(stringResource(Res.string.trainer_block_remove_action)) + ".",
@@ -99,12 +99,12 @@ internal fun TrainerEffectsHost(effects: Flow<TrainerEffect>, onRefresh: () -> U
                 TrainerEffect.CardioSaved,
                 TrainerEffect.DietBreakSaved,
                 TrainerEffect.BlockRemoved,
-                TrainerEffect.BlockEndChanged,
+                TrainerEffect.WeekEndChanged,
                 -> latestHaptics.confirm()
 
-                is TrainerEffect.BlockEndFailed -> {
+                is TrainerEffect.WeekEndFailed -> {
                     latestHaptics.reject()
-                    messages.show(if (effect.offline) blockEndOffline else blockEndError)
+                    messages.show(if (effect.offline) weekEndOffline else weekEndError)
                 }
 
                 is TrainerEffect.DietBreakFailed -> {

@@ -165,13 +165,14 @@ private fun BoxContent(
                     ),
                     state.pause,
                     dietBreakWeek = (state.plan as? PlanSummary.Accepted)?.plan?.nutrition?.dietBreak?.week,
-                    extend = ExtendBlockUi(
-                        pickerOpen = state.extendPickerOpen,
-                        busy = state.extendingBlock,
+                    extend = ExtendWeekUi(
+                        extension = state.weekExtension,
+                        pickerOpen = state.extendWeekPickerOpen,
+                        busy = state.extendingWeek,
                         online = online,
-                        onOpen = { onEvent(TrainerEvent.OpenExtendPicker) },
-                        onDismiss = { onEvent(TrainerEvent.DismissExtendPicker) },
-                        onConfirm = { onEvent(TrainerEvent.ExtendBlock(it)) },
+                        onOpen = { onEvent(TrainerEvent.OpenExtendWeekPicker) },
+                        onDismiss = { onEvent(TrainerEvent.DismissExtendWeekPicker) },
+                        onConfirm = { onEvent(TrainerEvent.ExtendWeek(it)) },
                     ),
                 )
             }

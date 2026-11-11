@@ -31,8 +31,9 @@ data class PlanWeek(
 /**
  * Pause state of the block (US-106): [paused] while the last finished 7-day window has no completed workout and none
  * was done yet in the current one; [pausedWeeks] stays after the block resumes (the end moved by that many weeks);
- * [blockEnd] is the moved last day, null when the block has no weeks. [extensionDays] is the total the user added with
- * "Cambiar el último día" (US-134); [minEnd]..[maxEnd] bound the pickable last day (null unless [extendable]).
+ * [blockEnd] is the moved last day, null when the block has no weeks. [extensionDays] is the total the user added to
+ * the weeks (US-134); [minEnd]..[maxEnd] bound the block's last day the server accepts (null unless [extendable]).
+ * The app derives the active week's pickable range from them (see [ActiveWeekExtension]).
  */
 data class BlockPause(
     val paused: Boolean,
