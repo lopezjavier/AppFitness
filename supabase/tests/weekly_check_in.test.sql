@@ -3,7 +3,7 @@ begin;
 create extension if not exists pgtap with schema extensions;
 set local search_path = extensions, public;
 
-select plan(29);
+select plan(27);
 
 insert into auth.users (id, email) values
   ('11111111-1111-4111-8111-111111111111', 'ana@example.com'),
@@ -50,7 +50,7 @@ select ok(has_function_privilege('authenticated', 'public.weekly_records(date, d
 set local role authenticated;
 select set_config('request.jwt.claims', '{"sub":"11111111-1111-4111-8111-111111111111","role":"authenticated"}', true);
 
-select lives_ok($$insert into public.weekly_check_ins (week_start, energy, notes) values ('2026-11-09', 4, 'bien')$$,
+select lives_ok($$insert into public.weekly_check_ins (week_start, energy) values ('2026-11-09', 4)$$,
   'A inserts a check-in; user_id defaults to the caller');
 select is((select user_id from public.weekly_check_ins where week_start = '2026-11-09'),
   '11111111-1111-4111-8111-111111111111'::uuid, 'the default user_id is auth.uid()');
@@ -67,10 +67,6 @@ select throws_ok($$insert into public.weekly_check_ins (week_start, energy) valu
   '23514', null, 'energy 6 is rejected');
 select throws_ok($$insert into public.weekly_check_ins (week_start, energy) values ('2026-11-15', 3)$$,
   '23514', null, 'a Sunday week_start is rejected');
-select throws_ok($$insert into public.weekly_check_ins (week_start, energy, notes) values ('2026-11-16', 3, repeat('a', 1001))$$,
-  '23514', null, 'notes over 1000 characters are rejected');
-select lives_ok($$insert into public.weekly_check_ins (week_start, energy, notes) values ('2026-11-16', 3, repeat('a', 1000))$$,
-  'notes of exactly 1000 characters are accepted');
 select throws_ok(
   $$insert into public.weekly_check_ins (user_id, week_start, energy)
     values ('22222222-2222-4222-8222-222222222222', '2026-11-23', 3)$$,

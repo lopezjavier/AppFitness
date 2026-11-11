@@ -3,7 +3,7 @@ begin;
 create extension if not exists pgtap with schema extensions;
 set local search_path = extensions, public;
 
-select plan(51);
+select plan(47);
 
 create function pg_temp.u(n int) returns uuid language sql as $$
   select ('c8000000-0000-4000-8000-0000000000' || lpad(n::text, 2, '0'))::uuid $$;
@@ -19,8 +19,6 @@ grant execute on all functions in schema pg_temp to authenticated;
 -- Schema and security
 select ok((select relrowsecurity and relforcerowsecurity from pg_class where oid = 'public.coach_user_intake'::regclass),
   'RLS is enabled and forced on coach_user_intake');
-select ok((select relrowsecurity and relforcerowsecurity from pg_class where oid = 'public.coach_free_text_exclusions'::regclass),
-  'RLS is enabled and forced on coach_free_text_exclusions');
 select table_privs_are('public', 'coach_user_intake', 'anon', array[]::text[], 'anon has no privileges on coach_user_intake');
 select ok(not has_function_privilege('anon', 'public.save_coach_intake(jsonb)', 'execute'), 'anon cannot execute save_coach_intake');
 select ok(not has_function_privilege('anon', 'public.ack_maintenance_handover()', 'execute'), 'anon cannot execute ack_maintenance_handover');
@@ -48,35 +46,34 @@ select is((public.save_coach_intake(jsonb_build_object(
                                           jsonb_build_object('exercise_id', '00000000-0000-0000-0000-000000000000', 'weight_kg', 50, 'reps', 5)),
     'known_maintenance_kcal', 2400, 'known_cut_kcal', 1900, 'free_text', '  Lo dejé por el hombro  ',
     'unknown_key', 'ignored'))) - 'saved_at',
-  '{"training_years": 4.0, "known_maintenance_kcal": 2400, "free_text": "Lo dejé por el hombro", "maintenance_handover_at": null}'::jsonb,
-  'the old payload with a custom and an unknown best saves the kept fields, trimmed, ignoring the removed keys');
+  '{"training_years": 4.0, "known_maintenance_kcal": 2400, "maintenance_handover_at": null}'::jsonb,
+  'the old payload with a custom and an unknown best saves the kept fields, ignoring the removed keys (free_text is neither stored nor returned)');
 select is((select count(*)::int from public.coach_user_intake), 1, 'one row exists');
 
 -- Partial update: only the keys present are written
 select is(public.save_coach_intake('{"training_years": 1}') - 'saved_at',
-  '{"training_years": 1.0, "known_maintenance_kcal": 2400, "free_text": "Lo dejé por el hombro", "maintenance_handover_at": null}'::jsonb,
-  'saving the years alone keeps the maintenance and the text');
+  '{"training_years": 1.0, "known_maintenance_kcal": 2400, "maintenance_handover_at": null}'::jsonb,
+  'saving the years alone keeps the maintenance');
 select is((select count(*)::int from public.coach_user_intake), 1, 'saving twice keeps a single row (upsert)');
-select is(public.save_coach_intake('{"known_maintenance_kcal": 2600}')->>'free_text', 'Lo dejé por el hombro', 'saving the maintenance alone keeps the text');
-select is((public.save_coach_intake('{"free_text": "Otro texto"}')->>'training_years')::numeric, 1.0, 'saving the text alone keeps the years');
+select public.save_coach_intake('{"known_maintenance_kcal": 2600}');
+select is((public.save_coach_intake('{"free_text": "Otro texto"}')->>'training_years')::numeric, 1.0, 'a free_text key alone keeps the years');
 select is(public.save_coach_intake('{"free_text": "Otro texto"}')->>'known_maintenance_kcal', '2600', 'and the maintenance');
 select is(public.save_coach_intake('{"training_years": null}')->'training_years', 'null'::jsonb, 'a key present with null clears the value');
 select is((select known_maintenance_kcal from public.coach_user_intake), 2600, 'and keeps the others');
-select is(public.save_coach_intake('{"free_text": "   "}')->'free_text', 'null'::jsonb, 'blank text becomes null');
-select is((select known_maintenance_kcal from public.coach_user_intake), 2600, 'blank text keeps the maintenance');
+select is((select known_maintenance_kcal from public.coach_user_intake), 2600, 'a blank free_text key keeps the maintenance');
 select is(public.save_coach_intake('{}') - 'saved_at',
-  '{"training_years": null, "known_maintenance_kcal": 2600, "free_text": null, "maintenance_handover_at": null}'::jsonb,
+  '{"training_years": null, "known_maintenance_kcal": 2600, "maintenance_handover_at": null}'::jsonb,
   'an empty object changes nothing');
 select is(public.save_coach_intake('{"known_maintenance_kcal": null}')->'known_maintenance_kcal', 'null'::jsonb, 'maintenance can be cleared');
 select is(public.save_coach_intake('{"training_years": 2.5, "known_maintenance_kcal": 2300, "free_text": "x"}') - 'saved_at',
-  '{"training_years": 2.5, "known_maintenance_kcal": 2300, "free_text": "x", "maintenance_handover_at": null}'::jsonb,
-  'all three can be saved in one call');
+  '{"training_years": 2.5, "known_maintenance_kcal": 2300, "maintenance_handover_at": null}'::jsonb,
+  'the kept fields are saved in one call and the free_text key is ignored');
 
 -- Boundaries that are valid
 select lives_ok($$select public.save_coach_intake('{"training_years": 0, "known_maintenance_kcal": 1200}')$$, 'the lower bounds are accepted');
 select lives_ok($$select public.save_coach_intake('{"training_years": 60, "known_maintenance_kcal": 6000}')$$, 'the upper bounds are accepted');
-select lives_ok(format($$select public.save_coach_intake(jsonb_build_object('free_text', %L))$$, repeat('a', 500)),
-  'a 500-character text is accepted');
+select lives_ok(format($$select public.save_coach_intake(jsonb_build_object('free_text', %L))$$, repeat('a', 5000)),
+  'a free_text key of any length is ignored, not refused (T-286)');
 
 -- Values that are refused
 select throws_ok($$select public.save_coach_intake('{"training_years": 60.1}')$$, '22023', null, '60.1 years is refused');
@@ -85,9 +82,7 @@ select throws_ok($$select public.save_coach_intake('{"training_years": "3"}')$$,
 select throws_ok($$select public.save_coach_intake('{"known_maintenance_kcal": 1199}')$$, '22023', null, 'maintenance 1199 is refused');
 select throws_ok($$select public.save_coach_intake('{"known_maintenance_kcal": 6001}')$$, '22023', null, 'maintenance 6001 is refused');
 select throws_ok($$select public.save_coach_intake('{"known_maintenance_kcal": 2400.5}')$$, '22023', null, 'a decimal maintenance is refused');
-select throws_ok(format($$select public.save_coach_intake(jsonb_build_object('free_text', %L))$$, repeat('a', 501)),
-  '22023', null, 'a 501-character text is refused');
-select is((select free_text from public.coach_user_intake), repeat('a', 500), 'a refused save changes nothing');
+select lives_ok($$select public.save_coach_intake('{"free_text": 42}')$$, 'a free_text key of another type is ignored, not refused');
 
 -- Handover: stored at save time when the adaptive expenditure already qualifies (a reliable 28-day diary)
 select pg_temp.as_user(2);

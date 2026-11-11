@@ -3,7 +3,7 @@ begin;
 create extension if not exists pgtap with schema extensions;
 set local search_path = extensions, public;
 
-select plan(43);
+select plan(41);
 
 -- The on_auth_user_created trigger creates each profile.
 insert into auth.users (id, email) values
@@ -98,8 +98,6 @@ insert into public.routine_folders (id, user_id, name) values
 
 insert into public.coach_user_intake (user_id, training_years) values
   ('d1000000-0000-4000-8000-000000000001', 3), ('d2000000-0000-4000-8000-000000000002', 1);
-insert into public.coach_free_text_exclusions (user_id, kind, source_id) values
-  ('d1000000-0000-4000-8000-000000000001', 'intake', 'intake'), ('d2000000-0000-4000-8000-000000000002', 'intake', 'intake');
 
 insert into public.exercise_favorites (user_id, exercise_id)
   select u.id, (select id from public.exercises where not is_custom order by key limit 1)
@@ -234,10 +232,6 @@ select is((select count(*)::int from public.coach_user_intake where user_id = 'd
   'the deleted user''s coach_user_intake is gone');
 select is((select count(*)::int from public.coach_user_intake where user_id = 'd2000000-0000-4000-8000-000000000002'), 1,
   'another user''s coach_user_intake is untouched');
-select is((select count(*)::int from public.coach_free_text_exclusions where user_id = 'd1000000-0000-4000-8000-000000000001'), 0,
-  'the deleted user''s coach_free_text_exclusions are gone');
-select is((select count(*)::int from public.coach_free_text_exclusions where user_id = 'd2000000-0000-4000-8000-000000000002'), 1,
-  'another user''s coach_free_text_exclusions are untouched');
 
 select * from finish();
 rollback;

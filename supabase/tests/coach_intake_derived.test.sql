@@ -132,12 +132,12 @@ select is(pg_temp.est(19)->'profile_intake', '{"saved": false}'::jsonb, 'without
 create temp table before_notes as select pg_temp.est(21) as j;
 grant select on before_notes to authenticated;
 reset role;
-insert into public.weekly_check_ins (user_id, week_start, energy, notes)
-values (pg_temp.u(21), pg_temp.d0() - (extract(isodow from pg_temp.d0())::int - 1), 1, 'me duele mucho la rodilla');
+insert into public.weekly_check_ins (user_id, week_start, energy)
+values (pg_temp.u(21), pg_temp.d0() - (extract(isodow from pg_temp.d0())::int - 1), 1);
 insert into public.exercise_discomforts (user_id, exercise_id, level, note)
 values (pg_temp.u(21), 'ea000000-0000-4000-8000-000000000001', 5, 'me duele mucho la rodilla');
 set local role authenticated;
-select is(pg_temp.est(21), (select j from before_notes), 'a check-in or discomfort note saying "me duele mucho la rodilla" changes no figure');
+select is(pg_temp.est(21), (select j from before_notes), 'a discomfort note saying "me duele mucho la rodilla" changes no figure');
 
 select * from finish();
 rollback;

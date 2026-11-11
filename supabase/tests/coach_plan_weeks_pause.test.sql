@@ -4,7 +4,7 @@ begin;
 create extension if not exists pgtap with schema extensions;
 set local search_path = extensions, public;
 
-select plan(63);
+select plan(50);
 
 -- ---------------------------------------------------------------------------
 -- Fixture helpers
@@ -84,7 +84,7 @@ end $$;
 -- The plan weeks as 'week:start' pairs and the linked sessions as the weeks that hold a link.
 create function pg_temp.cal(n int, p_today date default null) returns text language sql as $$
   select string_agg(c.week || ':' || c.start_date, ' ' order by c.week)
-  from public.coach_plan_calendar(pg_temp.plan_of(n), coalesce(p_today, pg_temp.d0())) c $$;
+  from public.coach_plan_calendar_for(pg_temp.u(n), pg_temp.plan_of(n), coalesce(p_today, pg_temp.d0())) c $$;
 create function pg_temp.linked_weeks(n int) returns text language sql as $$
   select coalesce(string_agg(s.week::text, ',' order by s.week), '')
   from public.coach_plan_sessions s where s.plan_id = pg_temp.plan_of(n) and s.session_id is not null $$;
@@ -169,10 +169,8 @@ select set_config('app.coach_write', 'off', true);
 -- ---------------------------------------------------------------------------
 -- Structure and privileges
 -- ---------------------------------------------------------------------------
-select ok(not has_function_privilege('anon', 'public.coach_plan_calendar(uuid, date)', 'execute')
-      and not has_function_privilege('anon', 'public.coach_plan_week_of_date(uuid, date)', 'execute')
-      and not has_function_privilege('anon', 'public.coach_block_pause(uuid, date)', 'execute'),
-  'anon cannot execute the three new RPCs');
+select ok(not has_function_privilege('anon', 'public.coach_block_pause(uuid, date)', 'execute'),
+  'anon cannot execute coach_block_pause');
 select ok(not has_function_privilege('anon', 'public.coach_plan_calendar_for(uuid, uuid, date)', 'execute')
       and not has_function_privilege('anon', 'public.coach_plan_week_of_date_for(uuid, uuid, date)', 'execute')
       and not has_function_privilege('anon', 'public.coach_plan_pause_state_for(uuid, uuid, date)', 'execute')
@@ -181,9 +179,6 @@ select ok(not has_function_privilege('anon', 'public.coach_plan_calendar_for(uui
   'anon cannot execute the helpers');
 select ok(has_function_privilege('authenticated', 'public.coach_block_pause(uuid, date)', 'execute'),
   'authenticated can execute coach_block_pause');
-select ok(not has_function_privilege('authenticated', 'public.coach_rederive_plan_links(uuid)', 'execute')
-      and not has_function_privilege('anon', 'public.coach_rederive_plan_links(uuid)', 'execute'),
-  'the re-derive step is not callable by clients');
 
 -- ---------------------------------------------------------------------------
 -- Mapping: windows 0 and 2 trained, windows 1 and 3 empty (user 1; today in window 4)
@@ -194,9 +189,6 @@ select is(pg_temp.cal(1),
   '1:' || (pg_temp.d0() - 28) || ' 2:' || (pg_temp.d0() - 14) || ' 3:' || pg_temp.d0() || ' 4:' || (pg_temp.d0() + 7),
   'two paused weeks: plan weeks 1 and 2 are the trained windows, week 3 is the current window, week 4 follows');
 select is(public.coach_plan_week(pg_temp.plan_of(1), pg_temp.d0()), 3, 'the current plan week is the trained weeks plus one');
-select is(public.coach_plan_week_of_date(pg_temp.plan_of(1), pg_temp.d0() - 13), 2,
-  'a date in the second trained window is plan week 2');
-select is(public.coach_plan_week_of_date(pg_temp.plan_of(1), pg_temp.d0() - 28 - 1), 0, 'a date before the start is week 0');
 select is(public.coach_block_pause(pg_temp.plan_of(1), pg_temp.d0()) - array['extension_days', 'min_end', 'max_end', 'extendable'],
   jsonb_build_object('paused', true, 'paused_weeks', 2, 'block_end', pg_temp.d0() + 13),
   'the block is paused, two weeks are paused and the end moved two weeks later');
@@ -325,9 +317,6 @@ select is(public.coach_weeks_in_phase(pg_temp.d0()), '{"phase": "cut", "weeks": 
 -- RLS: user B cannot read user A's plan through the new functions
 -- ---------------------------------------------------------------------------
 select pg_temp.as_user(2);
-select is((select count(*)::int from public.coach_plan_calendar(pg_temp.plan_of(1), pg_temp.d0())), 0,
-  'user B gets no calendar rows of user A');
-select is(public.coach_plan_week_of_date(pg_temp.plan_of(1), pg_temp.d0()), null, 'user B gets no plan week of user A');
 select is(public.coach_block_pause(pg_temp.plan_of(1), pg_temp.d0()), null, 'user B gets no pause state of user A');
 select is(public.coach_block_end(pg_temp.plan_of(1), pg_temp.d0()), null, 'user B gets no block end of user A');
 select is((select count(*)::int from public.coach_plan_calendar_for(pg_temp.u(1), pg_temp.plan_of(1), pg_temp.d0())), 0,
@@ -343,25 +332,6 @@ select pg_temp.as_user(1);
 select is(public.coach_block_pause(pg_temp.plan_of(1), pg_temp.d0())->>'paused_weeks', '1',
   'a backdated workout in window 1 removes one paused week');
 select is(pg_temp.linked_weeks(1), '1,2', 'the existing links keep their rows');
-
--- ---------------------------------------------------------------------------
--- Existing-block migration step (user 13): calendar-numbered links (weeks 1, 3, 4) become weeks 1, 2, 3
--- ---------------------------------------------------------------------------
-reset role;
-create temp table before13 as select pg_temp.snap(13) as h, pg_temp.linked_weeks(13) as lw,
-  (select count(*) from public.coach_plan_sessions where plan_id = pg_temp.plan_of(13) and session_id is not null) as n;
-select is((select lw from before13), '1,3,4', 'the fixture starts with calendar-numbered links');
-select public.coach_rederive_plan_links(pg_temp.plan_of(13));
-select is(pg_temp.linked_weeks(13), '1,2,3', 'the re-derive renumbers the links to the paused-adjusted weeks');
-select is((select count(*) from public.coach_plan_sessions where plan_id = pg_temp.plan_of(13) and session_id is not null),
-  (select n from before13), 'no done session is lost');
-select is(pg_temp.snap(13), (select h from before13), 'the plan and nutrition_goals rows are unchanged');
-select is((select s.session_id from public.coach_plan_sessions s where s.plan_id = pg_temp.plan_of(13) and s.week = 2),
-  (select w.id from public.workout_sessions w where w.user_id = pg_temp.u(13) order by w.started_at offset 1 limit 1),
-  'the second workout (window 2) is now plan week 2');
-select lives_ok($$select public.coach_rederive_plan_links(pg_temp.plan_of(13))$$, 'a second run is a no-op');
-select is(pg_temp.linked_weeks(13), '1,2,3', 'and keeps the links');
-select lives_ok($$select public.coach_rederive_plan_links(gen_random_uuid())$$, 'an unknown plan is ignored');
 
 select * from finish();
 rollback;

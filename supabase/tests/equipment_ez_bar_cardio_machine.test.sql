@@ -1,10 +1,10 @@
--- pgTAP: Barra Z, one "Máquina de cardio", "Otro" for small implements, saved-list migration and the
+-- pgTAP: Barra Z, one "Máquina de cardio", "Otro" for small implements and the
 -- barbell / EZ bar / dumbbell alternatives (T-201, ADR-92).
 begin;
 create extension if not exists pgtap with schema extensions;
 set local search_path = extensions, public;
 
-select plan(37);
+select plan(25);
 
 create function pg_temp.eq(p_key text) returns text language sql as $$
   select equipment::text from public.exercises where key = p_key and not is_custom $$;
@@ -70,37 +70,6 @@ select is((select count(*)::int from public.exercises
   2, 'the two reverse-grip rows are back');
 select is(pg_temp.eq('barbell-curl') || '/' || pg_temp.eq('bicep-curl'), 'barbell/dumbbell',
   'straight-bar and dumbbell exercises keep their item');
-
--- ---------------------------------------------------------------------------
--- migrate_equipment_list
--- ---------------------------------------------------------------------------
-select ok(not has_function_privilege('anon', 'public.migrate_equipment_list(text[], text)', 'execute'),
-  'anon cannot execute migrate_equipment_list');
-select is(public.migrate_equipment_list(array['rower', 'cardio_bike', 'treadmill', 'elliptical', 'cardio_other'], 'home'),
-  array['cardio_machine'], 'the five cardio values collapse into one, deduplicated');
-select is(public.migrate_equipment_list(array['rower', 'barbell', 'cardio_bike'], 'home'),
-  array['cardio_machine', 'barbell'], 'order is kept at the first occurrence');
-select is(public.migrate_equipment_list(array['barbell', 'cardio_bike', 'treadmill'], 'gym'),
-  array['barbell', 'cardio_machine', 'ez_bar'], 'a gym list gains ez_bar');
-select is(public.migrate_equipment_list(array['dumbbell', 'bodyweight'], 'home'),
-  array['dumbbell', 'bodyweight'], 'a home list does not gain ez_bar');
-select is(public.migrate_equipment_list(array['dumbbell', 'bodyweight'], null),
-  array['dumbbell', 'bodyweight'], 'a list without a place does not gain ez_bar');
-select is(public.migrate_equipment_list(
-    array['barbell', 'dumbbell', 'machine', 'cable', 'kettlebell', 'bodyweight', 'band', 'band_long'], 'home'),
-  array['barbell', 'dumbbell', 'machine', 'cable', 'kettlebell', 'bodyweight', 'band', 'band_long', 'ez_bar'],
-  'a list holding every old lifting value gains ez_bar');
-select is(public.migrate_equipment_list(
-    array['barbell', 'dumbbell', 'machine', 'cable', 'kettlebell', 'bodyweight', 'band'], 'home'),
-  array['barbell', 'dumbbell', 'machine', 'cable', 'kettlebell', 'bodyweight', 'band'],
-  'a list missing one lifting value does not gain ez_bar');
-select is(public.migrate_equipment_list(array[]::text[], 'gym'), array[]::text[], 'an empty gym list stays empty');
-select is(public.migrate_equipment_list(array['barbell', 'ez_bar'], 'gym'), array['barbell', 'ez_bar'],
-  'ez_bar is never duplicated');
-select ok(not ('other' = any (public.migrate_equipment_list(array['barbell', 'dumbbell'], 'gym'))),
-  'nobody gains other');
-select is(public.migrate_equipment_list(array['machine'], 'gym'), array['machine', 'ez_bar'],
-  'a stored plan list (text) follows the same rule');
 
 -- ---------------------------------------------------------------------------
 -- Alternatives: the same exercise with another implement, 1.00 both ways; floor 0.90

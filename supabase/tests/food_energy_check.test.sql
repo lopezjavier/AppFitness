@@ -1,9 +1,9 @@
--- pgTAP: public.food_energy_check and public.off_alcohol_g (T-251, US-116, ADR-102; rule in 07 section 4).
+-- pgTAP: public.food_energy_check (T-251, US-116, ADR-102; rule in 07 section 4).
 begin;
 create extension if not exists pgtap with schema extensions;
 set local search_path = extensions, public;
 
-select plan(34);
+select plan(27);
 
 -- Privileges
 select ok(has_function_privilege('authenticated',
@@ -14,8 +14,6 @@ select ok(not has_function_privilege('anon',
   'anon cannot execute food_energy_check');
 select ok((select provolatile = 'i' and not prosecdef from pg_proc where proname = 'food_energy_check'),
   'food_energy_check is immutable and security invoker');
-select ok(not has_function_privilege('anon', 'public.off_alcohol_g(jsonb)', 'execute'),
-  'anon cannot execute off_alcohol_g');
 
 -- Worked examples of 07 section 4 (per 100 g)
 select results_eq($$ select result, computed, gap from public.food_energy_check(500, 10, 30, 10, null, null, null) $$,
@@ -70,14 +68,6 @@ select is((select computed from public.food_energy_check(100, 0, 0, 0, null, nul
   'alcohol counts 7 kcal/g');
 select is((select computed from public.food_energy_check(100, 1.111, 0, 0, null, null, null)), 4.444::numeric,
   'computed is returned unrounded');
-
--- off_alcohol_g: % vol x 0.789, capped at 100
-select is(public.off_alcohol_g('{"nutriments":{"alcohol_100g":12}}'), 9.5::numeric, '12 % vol is 9.5 g');
-select is(public.off_alcohol_g('{"nutriments":{"alcohol_100g":"5"}}'), 3.9::numeric, 'a numeric string is accepted');
-select is(public.off_alcohol_g('{"nutriments":{"alcohol":12}}'), 9.5::numeric, 'falls back to nutriments.alcohol');
-select is(public.off_alcohol_g('{"nutriments":{"energy":1}}'), null, 'absent gives null');
-select is(public.off_alcohol_g('{"nutriments":{"alcohol_100g":"abc"}}'), null, 'invalid gives null');
-select is(public.off_alcohol_g('{"nutriments":{"alcohol_100g":200}}'), 100::numeric, 'capped at 100');
 
 select * from finish();
 rollback;
