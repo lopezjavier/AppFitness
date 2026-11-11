@@ -6,7 +6,7 @@ A coach the user can trust for years, like a real trainer: it gets to know the u
 ## Scope
 > **Moved to E14 (user, 2026-11-03: "we don't have a proper block yet"):** the block follow-ups — plan weeks that follow the training, the end-of-block review and phase changes, the automatic changes ("Entrenador"), injury follow-up and the health note, life changes (US-83…US-88 follow-up parts, US-90, US-91, US-92 and the automatic parts of US-69, US-70, US-73, US-75). Their headings below say "→ E14 (backlog)"; [E14-block-follow-up.md](E14-block-follow-up.md) holds the backlog. E13 finishes with the block (US-72, US-93…US-96), the report (US-71), history (US-74), the evaluation and the chat (US-77). **Removed 2026-11-03 (user, E13 Q56):** the minimal phase "Mínimo" and "Tengo poco tiempo".
 
-- Includes: intake "Para conocerte" and the free text the coach reads (US-81, US-89); confirmation of derived values; calorie and macro plan with outcomes; phases over the year (cut, gain, maintenance, recomposition, minimal; US-82; regain removed 2026-11-02, out of scope for the app (ADR-101)); the end-of-block review and the next block, with optional per-muscle priorities (US-83, US-84); one "Entrenador" behaviour: progression, calorie changes in the safe band and deloads applied on their own with "Deshacer" (US-85, US-86); progression per exercise; weekly report; block creator with plan storage and adherence; breaks, the minimal plan and coming back (US-88); training around an injury, graded return and one data-triggered health note (US-87, US-90); life changes mid-block: "Revisar el bloque" with "Adaptar el bloque", "Bloque nuevo" or "Solo unos días", goal change, new exercises, kept swaps, turning 65 (US-91, US-92, `07` §12.8); recommendation history with outcome and deletion; monthly AI budget; chat with tools (last, gated by the evaluation); weekly cardio and daily steps in the plan, and cardio as the last exercise of every routine of the block (US-79, ADR-85; the coach plans no warm-up, E13 Q27); cardio machines as their own equipment group (US-80). **Added 2026-11-03 (T-202, ADR-93, ADR-94):** the model builds the whole block and one routine checker validates it (US-72 amended); starting a block from scratch (2-3 split options) or from a routine folder (US-93); removing a block without a new plan (US-94); reviewing any routine folder with the coach (US-95); favourite exercises (US-96).
+- Includes: intake (US-81; its free text was removed by ADR-107) and the coach's free text (US-89, superseded); confirmation of derived values; calorie and macro plan with outcomes; phases over the year (cut, gain, maintenance, recomposition, minimal; US-82; regain removed 2026-11-02, out of scope for the app (ADR-101)); the end-of-block review and the next block, with optional per-muscle priorities (US-83, US-84); one "Entrenador" behaviour: progression, calorie changes in the safe band and deloads applied on their own with "Deshacer" (US-85, US-86); progression per exercise; weekly report; block creator with plan storage and adherence; breaks, the minimal plan and coming back (US-88); training around an injury, graded return and one data-triggered health note (US-87, US-90); life changes mid-block: "Revisar el bloque" with "Adaptar el bloque", "Bloque nuevo" or "Solo unos días", goal change, new exercises, kept swaps, turning 65 (US-91, US-92, `07` §12.8); recommendation history with outcome and deletion; monthly AI budget; chat with tools (last, gated by the evaluation); weekly cardio and daily steps in the plan, and cardio as the last exercise of every routine of the block (US-79, ADR-85; the coach plans no warm-up, E13 Q27); cardio machines as their own equipment group (US-80). **Added 2026-11-03 (T-202, ADR-93, ADR-94):** the model builds the whole block and one routine checker validates it (US-72 amended); starting a block from scratch (2-3 split options) or from a routine folder (US-93); removing a block without a new plan (US-94); reviewing any routine folder with the coach (US-95); favourite exercises (US-96).
 - Out of scope: medical advice, diagnosis or treatment, generic health disclaimers, video analysis, meal plans, reverse dieting and refeeds (`07` §4), soreness, pump or readiness questionnaires, illness rules (`07` §12.5), a coaching-mode selector (ADR-88), water and voice (out of scope for the app, ADR-101).
 
 ## Decisions
@@ -24,7 +24,7 @@ The coach has its own tab "Trainer" between "Entreno" and "Perfil" (ADR-79), add
 
 ## Architecture
 - One Edge Function `coach` (JWT, RLS through the user's token; the API key only server-side). It receives a compact summary built in SQL (last 8 weeks at most), never raw tables.
-- Models (ADR-77): *(2026-11-04, ADR-99: no model for the block or the split; the block plan no longer uses Opus.)* Opus 5.5 for the block plan; Sonnet 5.5 for the weekly report and the chat. No model for derived values, progression, deload or trend: they are deterministic. **2026-11-01 (ADR-86, ADR-87):** the model also extracts the intake profile from the user's free text and writes the end-of-block review proposal (choosing among server-eligible phase and block options); phase triggers, the safe band and every number stay deterministic; the model reads the free-text block "Lo que el entrenador sabe de ti" and only describes features and data that exist (server-validated).
+- Models (ADR-77): *(2026-11-04, ADR-99: no model for the block or the split; the block plan no longer uses Opus.)* Opus 5.5 for the block plan; Sonnet 5.5 for the weekly report and the chat. No model for derived values, progression, deload or trend: they are deterministic. **2026-11-01 (ADR-86, ADR-87):** the model also extracts the intake profile from the user's free text and writes the end-of-block review proposal (choosing among server-eligible phase and block options); phase triggers, the safe band and every number stay deterministic; the model read the free-text block "Lo que el entrenador sabe de ti" (removed by ADR-107) and only described features and data that exist (server-validated).
 - **2026-11-03 (ADR-93):** *(Superseded 2026-11-04, ADR-99, T-219, user: block creation is deterministic with no model call; see `07` §3 "Block builder".)* the training block is built by the model (split, exercises, sets, rep ranges, target RPE, rests, supersets and drop sets under time conditions) from the user's folders, history, previous blocks, favourites, discomforts and free text; one deterministic routine checker (`04` §9.6) validates it and also reviews any routine folder. Cardio stays server-computed. The minimal phase ("Mínimo", "Tengo poco tiempo") is removed (user, 2026-11-03, E13 Q56).
 - Structured output (JSON schema), validated server-side against the rules of `07-coach-design.md` before it reaches the app; an invalid plan is retried once, then an error is shown. The model never writes to the database; accepted proposals are written by RPCs.
 - Every call records its token usage and cost in `coach_usage`; the function refuses a call when the user's monthly budget (3 €, ADR-90; 2 € until 2026-11-02) or the global one (5 €) would be exceeded.
@@ -40,7 +40,7 @@ The coach has its own tab "Trainer" between "Entreno" and "Perfil" (ADR-79), add
 - `coach_usage` (`user_id`, `month`, `input_tokens`, `output_tokens`, `cost_eur`).
 - `coach_conversations` only with US-77.
 - **Added 2026-11-03 (T-202):** `exercise_favorites` (US-96), the folder reviews with their proposed changes (US-95); a new `movement_pattern` value `shoulder_abduction`.
-- **Added 2026-11-01 (names final in each task's plan):** the intake (US-81: fields, free text, confirmed flags), the free-text exclusions (US-89), the phase and its options on `coach_plans` (US-82), the block reviews with "¿Cómo te ha ido?" and the per-muscle priorities (US-83, US-84), the automatic changes with their previous value for "Deshacer" (US-85, US-86), the graded-return state per exercise and the dismissed health notes (US-87, US-90).
+- **Added 2026-11-01 (names final in each task's plan):** the intake (US-81: fields, confirmed flags), the free-text exclusions (US-89, dropped by ADR-107), the phase and its options on `coach_plans` (US-82), the block reviews with "¿Cómo te ha ido?" and the per-muscle priorities (US-83, US-84), the automatic changes with their previous value for "Deshacer" (US-85, US-86), the graded-return state per exercise and the dismissed health notes (US-87, US-90).
 - Every table cascades on account deletion (ADR-29).
 
 ---
@@ -86,7 +86,7 @@ Feature: Confirmation of derived values
 
   # Added 2026-11-01 (ADR-86, E13 Q32; replaces "without history: beginner"). T-185, T-186.
   Scenario: Experience is the higher of what I said and my history
-    Given I said in "Para conocerte" that I have lifted consistently for 3 years
+    Given I set my training years to 3 in "Tus datos"
     And the app has 10 of my sessions
     When I open "Tus datos"
     Then my experience is "Avanzado"
@@ -349,12 +349,10 @@ Feature: Weekly coach report
     Then the text has three parts: one thing that went well, one obstacle, and one change for next week
     And the change is one action for the user, never a change of the plan
 
-  Scenario: The report reads what I wrote
-    Given my check-in note says "Esta semana he dormido fatal por el trabajo"
-    And the line is not left out in "Lo que el entrenador sabe de ti"
+  Scenario: The report reads only structured data
+    Given my check-in has an energy level and no note (the note was removed, ADR-107)
     When the report is generated
-    Then the coach can take that note into account
-    And no figure or trigger comes from the note
+    Then the coach uses the logged data and the energy level only
 
   Scenario: The report lists what the coach changed
     Given the coach raised two loads and lowered the calories this week on its own
@@ -391,7 +389,7 @@ Feature: Weekly coach report
 
 **Technical notes**
 - Figure validation compares every number in the text with the summary after normalising decimals and units; rounding to the shown precision is allowed.
-- **Amended 2026-11-01:** the report shows the weekly average weight and trend against the target rate, logged diary days, sessions done against planned, open discomforts and the loads changed automatically that week (`07` §12.6). Its text reads the free-text block (US-89) and is grounded (ADR-87): every figure is in the summary, every feature it names exists. The "one change" is chosen among server-built candidates (E13 Q49 recommendation).
+- **Amended 2026-11-01:** the report shows the weekly average weight and trend against the target rate, logged diary days, sessions done against planned, open discomforts and the loads changed automatically that week (`07` §12.6). Its text read the free-text block (US-89, removed by ADR-107) and is grounded (ADR-87): every figure is in the summary, every feature it names exists. The "one change" is chosen among server-built candidates (E13 Q49 recommendation).
 
 ## US-72 · Block creator
 > **Rewritten 2026-11-04 (T-221, ADR-99, user):** the app builds no block with a model. The user picks a split for the days per week, a routine type per day, and an exercise per slot of a builder whose sets, reps, RPE and rest are computed (`07` §3 "Block builder" (a)-(g)); "Guardar bloque" needs 100 %. Cardio, no warm-up and planned weights from history stand. Tasks: T-221 (rules, save), T-222 (screens). Starting from a folder: US-93.
@@ -710,7 +708,7 @@ Feature: Recommendation history
     When the user taps "Eliminar historial del entrenador" and confirms
     Then the plans, recommendations, automatic changes, block reviews, outcomes, reports and conversations are deleted
     And the account, the routines and the training data stay
-    And the confirmed derived values, "Para conocerte" and this month's AI usage stay
+    And the confirmed derived values stay
 
   Scenario: Deleting the account
     When the user deletes the account
@@ -808,16 +806,11 @@ Feature: Coach chat
     When the user asks "¿Puedes registrar mi frecuencia cardiaca en la sesión?"
     Then the answer describes only features and data the app has
     And any text about a feature the app does not have is discarded before it is shown
-
-  Scenario: The chat reads what I told the coach
-    Given "Para conocerte" says I am coming back from a shoulder injury
-    When I ask "¿Por qué no tengo press militar en el bloque?"
-    Then the answer can use that context
 ```
 
 **Technical notes**
 - Enabled only after the evaluation below is met for the other stories. Tools are read-only queries over the user's data; proposals go through the same validators as US-69/US-72.
-- **Amended 2026-11-01 (ADR-87, ADR-88):** the chat reads the free-text block (US-89) and its output passes the same grounding validator as the report. Chat proposals stay cards that need "Aceptar" (they are not among the automatic changes of ADR-88).
+- **Amended 2026-11-01 (ADR-87, ADR-88):** the chat read the free-text block (US-89, removed by ADR-107) and its output passes the same grounding validator as the report. Chat proposals stay cards that need "Aceptar" (they are not among the automatic changes of ADR-88).
 
 ## US-78 · "Antes de empezar": the data a plan or a block will use
 *Added 2026-10-30 from the Checkpoint E13-B feedback (tasks T-175, T-176); E13 Q14-Q22 resolved by the user the same day. Runs before "Crear plan" (US-69) and "Crear bloque" (US-72) generate anything.*
@@ -886,14 +879,14 @@ Feature: Before starting a plan or a block
   # Added 2026-11-02 (user, Checkpoint E13-D feedback; R-53, R-55). T-198.
   Scenario: The intake rows
     When I open "Antes de empezar" for the plan
-    Then it shows the rows "Tiempo entrenando", "Calorías de mantenimiento" and "Para conocerte"
+    Then it shows the rows "Tiempo entrenando" and "Calorías de mantenimiento"
     And each row opens its own editor with only that value
     When I save one of them
     Then I am back with the new value on that row and the other rows unchanged
 
   Scenario: The intake rows for the block
     When I open "Antes de empezar" for the block
-    Then it shows "Tiempo entrenando" and "Para conocerte" only
+    Then it shows "Tiempo entrenando" only
 ```
 
 **Technical notes**
@@ -1030,6 +1023,9 @@ Feature: Cardio equipment
 *US-81…US-90 added 2026-11-01 (replan, user: "the app must replace a real trainer I can trust long-term; the follow-up is the gap, phases over the year the biggest"). Design: `07` §1-§4, §7, §8, §12 (fitness-scientist, sources §10 51-66). Decisions: ADR-86…ADR-89, E13 Q32-Q43 (user); E13 Q44-Q49 open with the recommendation the tasks use.*
 
 ## US-81 · "Para conocerte": the coach gets to know me
+
+> **Amended by ADR-107 (2026-11-11):** the "Para conocerte" screen, its route and its free-text field were removed by T-277. Years training and maintenance kcal stay in "Tus datos" and their row editors, the only place they are edited. The free text is not kept, so the scenarios about it are removed below.
+
 *Tasks T-185 (backend), T-186 (UI); **rewritten 2026-11-02** (user, Checkpoint E13-D feedback) and built by T-198. ADR-86 (amendment proposed: ADR-91 in `tasks/plan.md`), E13 Q32, Q46 (superseded by the user 2026-11-02), Q50 (recommendation), R-53, R-55.*
 
 **As** a user starting with the coach
@@ -1045,27 +1041,19 @@ Feature: Getting to know the user
   # my loads" and "Cutting calories are only context" (fields removed). The 2026-11-01 text is in git history (#433).
 
   Scenario: Nothing opens on its own
-    Given I have no "Para conocerte" saved
+    Given I have no value saved
     When I tap "Crear plan" for the first time
     Then "Antes de empezar" opens directly
-    And "Para conocerte" opens only when I tap it
 
   Scenario: Each row opens its own editor
-    When I tap "Tiempo entrenando", "Calorías de mantenimiento" or "Para conocerte" in "Antes de empezar" or "Tus datos"
+    When I tap "Tiempo entrenando" or "Calorías de mantenimiento" in "Antes de empezar" or "Tus datos"
     Then only that value's editor opens
     And every value is optional
 
   # "Situación" (returning after a break) was removed with "Recuperar" on 2026-11-02 (user; out of scope for the app (ADR-101)).
   Scenario: Only questions that change something
-    Then the coach asks only my time training, my maintenance calories if I know them, and a free text
+    Then the coach asks only my time training and my maintenance calories if I know them
     And it asks nothing that no figure or coach request uses
-
-  Scenario: Writing in my own words
-    When I tap "Para conocerte"
-    Then I see a free text "Cuéntanos lo que quieras sobre tu entrenamiento" of up to 500 characters with its "?"
-    When I write "Entrené 4 años, lo dejé hace 8 meses por una lesión de hombro" and tap "Guardar"
-    Then my text is saved as I wrote it
-    And no field is filled from it
 
   Scenario: Saving works
     Given I filled any of the values
@@ -1083,7 +1071,7 @@ Feature: Getting to know the user
 ```
 
 **Technical notes**
-- **Rewritten 2026-11-02 (user):** nothing is extracted from the text by a model (the `intake_extract` kind is removed); the user types the values. Three inputs and what they change: training years → the experience class (max with the history, `07` §2: gain rate, days); known maintenance → the expenditure prior until the measured value qualifies, then the handover note (US-68); the free text → sent verbatim, as context, with the plan and block requests (US-89). Removed: the situation (with "Recuperar", out of scope for the app (ADR-101)), injured area, pre-break bests, cutting calories (R-53).
+- **Rewritten 2026-11-02 (user):** nothing is extracted from the text by a model (the `intake_extract` kind is removed); the user types the values. Three inputs and what they change: training years → the experience class (max with the history, `07` §2: gain rate, days); known maintenance → the expenditure prior until the measured value qualifies, then the handover note (US-68); the free text → removed by ADR-107 (T-277, T-286); see US-89. Removed: the situation (with "Recuperar", out of scope for the app (ADR-101)), injured area, pre-break bests, cutting calories (R-53).
 - *(Superseded 2026-11-02:)* ~~One model call (`intake` kind, ADR-77 budget) extracts the structured profile from the free text as JSON; the server validates allowed values, plausible ranges and catalogue lifts and returns a form; the user confirms.~~ ~~The extraction costs about 0,01-0,03 € once per intake edit.~~
 
 ## US-82 · Phases over the year
@@ -1486,6 +1474,9 @@ Feature: Breaks and coming back
 ```
 
 ## US-89 · "Lo que el entrenador sabe de ti": my words reach the coach
+
+> **Amended by ADR-107 (2026-11-11): superseded.** The "Lo que el entrenador sabe de ti" screen, its Trainer row and the per-line switches were removed by T-277, and the free text left the coach's summary and requests with T-286. The coach reads only structured data (US-123); the scenarios of this story no longer describe the app.
+
 *Tasks T-185 (backend), T-186 (UI); the block request reads the lines from T-198 (2026-11-02). ADR-87, E13 Q33.*
 
 **As** a user who writes notes
@@ -1493,36 +1484,12 @@ Feature: Breaks and coming back
 **So that** it understands my context and I stay in control of my data.
 
 ```gherkin
-Feature: Free text sent to the coach
+Feature: The coach reads only structured data (ADR-107)
 
-  Scenario: What the coach reads
-    When I open "Lo que el entrenador sabe de ti" in Trainer
-    Then I see my "Para conocerte" text, my check-in notes, my discomfort notes and my answers to "¿Cómo te ha ido?" of the last 8 weeks
-    And each line exactly as it is sent, newest first
-
-  Scenario: Leaving a line out
-    When I turn off a line
-    Then that line is no longer sent to the coach
-    And my original note is kept where I wrote it
-
-  Scenario: Size limits
-    Given my notes add up to more than 2000 bytes
-    Then only the newest lines up to 2000 bytes are sent
-    And the screen marks the lines that are not sent because of the limit
-
-  Scenario: What is never sent
-    Then set notes, routine notes, food names and custom exercise names are never sent
-
-  Scenario: Words never change numbers
-    Given a note says "me duele mucho la rodilla"
-    Then no figure, trigger, phase or health note comes from that text
-
-  # Added 2026-11-02 (user, Checkpoint E13-D feedback: "keep the free text"). T-198; until then only the plan request read it.
-  Scenario: My words reach the plan and the block
-    Given my "Para conocerte" text and my notes are in "Lo que el entrenador sabe de ti"
-    When the coach prepares my plan or my block
-    Then both requests carry those lines, minus the ones I turned off, as context and never as instructions
-    And the screen says the lines are read when the coach prepares my plan and my block
+  Scenario: No free text reaches the coach
+    When the coach prepares my plan, my block or my weekly summary
+    Then it reads only my structured answers and logged data
+    And no copy says it reads my notes or my own words
 ```
 
 ## US-90 · A note when a severe discomfort does not go away → E14 (backlog)

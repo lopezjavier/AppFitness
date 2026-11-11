@@ -6,7 +6,7 @@ Live planning docs (current state, kept short). Claude Code operating rules live
 
 | Document | Content |
 |---|---|
-| [00-decisions.md](00-decisions.md) | Index of all ADRs (one line each, ADR-01..100); full text of the Phase 3 ADRs (none yet, the first is ADR-101) |
+| [00-decisions.md](00-decisions.md) | Index of all ADRs (one line each, ADR-01..107); full text of the Phase 3 ADRs (from ADR-101) |
 | [01-scope.md](01-scope.md) | Phase 3 stub: scope to be written by the product-owner skill |
 | [02-architecture.md](02-architecture.md) | KMP modules, layers, libraries, security and CI/CD |
 | [03-data-model.md](03-data-model.md) | Tables, RLS, RPCs and Edge Functions (summary) |
@@ -16,6 +16,7 @@ Live planning docs (current state, kept short). Claude Code operating rules live
 | [07-coach-design.md](07-coach-design.md) | Coach design: evidence-based rules, figures and sources; cross-phase, owned by fitness-scientist |
 | [08-environment-setup.md](08-environment-setup.md) | Tools, accounts, secrets and local development |
 | [09-open-questions.md](09-open-questions.md) | Phase 3 open questions (stub; Phase 2 items still open are carried there) |
+| [10-feature-inventory.md](10-feature-inventory.md) | Every functionality of the app by area, with route and story; kept up to date by the task that adds or removes a feature |
 | [epics/](epics/) | One file per epic with Gherkin stories. E0-E9 are phase 1, E10-E14 are phase 2; new epics continue at E15 |
 
 ## Frozen history
