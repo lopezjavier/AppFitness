@@ -173,3 +173,5 @@ No 👤 checkpoint (user decision 2026-11-11). The user's feedback comes through
 - **Q-E19-4: superseded by Q-E19-5:** the "Para conocerte" free-text field goes with the notes; its other fields stay.
 - **Q-E19-5: RESOLVED (user, 2026-11-11):** E19 removes everything no longer used. The audit list comes first, and production tables and columns need the user's OK by name. **Pending inside T-277 (not blocking the breakdown):** the user's OK on the drop list once the audit exists.
 - **Q-E19-3 (non-blocking, delegated to ux-reviewer in the T-279 plan):** which area owns the shared screens (Centro de avisos, "Informes", the food search reached from several places) and the exact list of states per screen.
+
+> **Update (user, 2026-11-11):** T-277 is split by layer into T-277 (app side), T-286 (backend migration) and T-287 (docs and feature inventory); order T-277 → T-286 → T-287 → T-278. Details and the audit are in `tasks/todo.md` (T-277) and `tasks/T-277/`.
