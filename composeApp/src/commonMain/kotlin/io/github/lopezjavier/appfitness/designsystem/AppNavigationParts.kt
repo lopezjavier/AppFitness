@@ -45,7 +45,10 @@ internal fun NavIcon(item: AppNavigationItem, selected: Boolean) {
     )
 }
 
-/** The label hides itself from semantics by default (the item carries the description); tests pass a plain [modifier]. */
+/**
+ * The label hides itself from semantics by default (the item carries the description);
+ * tests pass a plain [modifier].
+ */
 @Composable
 internal fun NavLabel(
     item: AppNavigationItem,
