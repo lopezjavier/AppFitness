@@ -32,7 +32,8 @@ import org.jetbrains.compose.resources.painterResource
  * on a `surfaceOverlay` block with the `md` shape, plus an optional [supporting] line under them. The whole row is a
  * 48 dp button announced with [onClickLabel] only when [onClick] is given. With a [trailing] slot the descendants are
  * not merged, so the action stays its own node. [primaryText] uses `textPrimary` (the discomfort level), otherwise
- * `textSecondary`. A text action for the trailing slot is [ExerciseStatusTextAction]. [testTag] lands on the root; [textTestTag] and [supportingTestTag] on the lines when set.
+ * `textSecondary`. A text action for the trailing slot is [ExerciseStatusTextAction]. [testTag] lands on the root;
+ * [textTestTag] and [supportingTestTag] on the lines when set.
  */
 @Composable
 @Suppress("LongParameterList") // Slots plus the tags and semantics a row needs.
