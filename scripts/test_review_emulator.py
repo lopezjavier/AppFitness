@@ -129,6 +129,37 @@ class DryRunTest(unittest.TestCase):
         self.assertIn("seed-review.sql", out.getvalue())
 
 
+class JavaHomeTest(unittest.TestCase):
+    def test_run_step_passes_the_discovered_java_home(self):
+        done = mock.Mock(returncode=0, stdout="")
+        with mock.patch.object(review.gitbash, "java_env", return_value={"JAVA_HOME": "C:\\jdk"}), \
+                mock.patch.object(review.subprocess, "run", return_value=done) as run:
+            review.run_step({"cmd": ["x"], "env": {"ANDROID_SERIAL": "e"}}, "adb", False)
+        env = run.call_args.kwargs["env"]
+        self.assertEqual(env["JAVA_HOME"], "C:\\jdk")
+        self.assertEqual(env["ANDROID_SERIAL"], "e")
+
+    def preflight(self, **kw):
+        ok = mock.Mock(returncode=0, stdout="List of devices attached\nemulator-5554\tdevice\n")
+        with mock.patch.object(review.shutil, "which", return_value="x"), \
+                mock.patch.object(review.subprocess, "run", return_value=ok), \
+                mock.patch.object(review.deliver, "read_local_properties",
+                                  return_value={"supabase.local.publishableKey": "k"}), \
+                mock.patch.object(review.deliver, "repdb_bundle_problem", return_value=None), \
+                mock.patch.object(review.gitbash, "java_env", return_value={}), \
+                mock.patch.dict(review.os.environ, {}, clear=True):
+            return review.preflight(args(**kw), "adb")
+
+    def test_preflight_reports_a_missing_jdk_when_building(self):
+        serial, problem = self.preflight()
+        self.assertIsNone(serial)
+        self.assertIn("JAVA_HOME", problem)
+
+    def test_preflight_ignores_the_jdk_without_a_build(self):
+        serial, problem = self.preflight(no_build=True)
+        self.assertEqual((serial, problem), ("emulator-5554", None))
+
+
 class CredentialsTest(unittest.TestCase):
     def test_match_seed_sql_and_the_environment_doc(self):
         with open(os.path.join(ROOT, "supabase", "seed.sql"), encoding="utf-8") as f:

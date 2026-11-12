@@ -1,12 +1,15 @@
 #!/usr/bin/env python3
 """Render the screen gallery (T-279) and write composeApp/build/gallery/index.html.
 
-Usage: python scripts/gallery.py [--index-only]
+Usage: python scripts/gallery.py [--index-only] [Area]
 
 Runs the gallery capture tests on the host (Robolectric + Roborazzi, no device, no backend) with -Pgallery, then
 builds a static index from the per-image sidecar JSON. Images are never compared: they are for review rounds.
+With an Area (e.g. Entreno, "Design system") only that area is captured and indexed; without one, everything (CI).
 """
+import argparse
 import html
+import importlib.util
 import json
 import os
 import shutil
@@ -14,6 +17,11 @@ import subprocess
 import sys
 
 ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+
+# Loaded by path: CI runs `python3 -I`, which drops this folder from sys.path.
+_spec = importlib.util.spec_from_file_location("gitbash", os.path.join(os.path.dirname(__file__), "gitbash.py"))
+gitbash = importlib.util.module_from_spec(_spec)
+_spec.loader.exec_module(gitbash)
 GALLERY_DIR = os.path.join(ROOT, "composeApp", "build", "gallery")
 AREAS = ["Inicio", "Diario", "Entreno", "Trainer", "Perfil", "Compartido", "Design system"]
 
@@ -77,11 +85,14 @@ def _screen_section(screen, entries):
     return "\n".join(parts)
 
 
-def build_index(entries, manifest):
+def build_index(entries, manifest, area=None):
     """Return the index.html text: one h2 per area, one h3 per screen, the exemptions table at the end."""
     known = [a for a in AREAS if any(e["area"] == a for e in entries)]
     extra = sorted({e["area"] for e in entries} - set(AREAS))
-    body = ["<h1>Screen gallery</h1>", "<p>{} images. Not compared with anything: review aid only.</p>".format(len(entries))]
+    body = ["<h1>Screen gallery</h1>"]
+    if area:
+        body.append("<p>Area: {}</p>".format(html.escape(area)))
+    body.append("<p>{} images. Not compared with anything: review aid only.</p>".format(len(entries)))
     for area in known + extra:
         body.append("<h2>{}</h2>".format(html.escape(area)))
         screens = []
@@ -115,9 +126,29 @@ def build_index(entries, manifest):
     ).format(style, "\n".join(body))
 
 
-def write_index(gallery_dir=GALLERY_DIR):
+def resolve_area(text):
+    """The canonical area for `text` (case, spaces, '-' and '_' are ignored). Raises ValueError listing the valid ones."""
+    def norm(value):
+        return value.lower().replace("-", "").replace("_", "").replace(" ", "")
+
+    for area in AREAS:
+        if norm(area) == norm(text):
+            return area
+    raise ValueError("unknown area '{}'. Valid areas: {}".format(text, ", ".join(AREAS)))
+
+
+def gradle_command(bash, area):
+    command = [bash, "scripts/gradle-quiet.sh", ":composeApp:testAndroidHostTest", "-Pgallery"]
+    if area:
+        command.append("-Pgallery.area=" + area)
+    return command + ["--tests", "*.gallery.*"]
+
+
+def write_index(gallery_dir=GALLERY_DIR, area=None):
     entries = load_entries(gallery_dir)
-    text = build_index(entries, load_manifest(gallery_dir))
+    if area:
+        entries = [e for e in entries if e["area"] == area]
+    text = build_index(entries, load_manifest(gallery_dir), area)
     path = os.path.join(gallery_dir, "index.html")
     with open(path, "w", encoding="utf-8", newline="\n") as handle:
         handle.write(text)
@@ -125,21 +156,38 @@ def write_index(gallery_dir=GALLERY_DIR):
 
 
 def main(argv):
-    if "--index-only" not in argv:
+    parser = argparse.ArgumentParser(prog="gallery.py", description=__doc__)
+    parser.add_argument("area", nargs="?", help="Only this area: " + ", ".join(AREAS))
+    parser.add_argument("--index-only", action="store_true", help="Rebuild the index from the existing images.")
+    args = parser.parse_args(argv)
+    area = None
+    if args.area:
+        try:
+            area = resolve_area(args.area)
+        except ValueError as error:
+            print("error: " + str(error), file=sys.stderr)
+            return 2
+    if not args.index_only:
+        try:
+            # Never plain "bash": on Windows that is the WSL launcher, which has no JAVA_HOME.
+            bash = gitbash.find_bash()
+        except gitbash.BashNotFound as error:
+            print("error: " + str(error), file=sys.stderr)
+            return 1
         # Drop images of states that no longer exist, so the index never lists stale ones.
         shutil.rmtree(GALLERY_DIR, ignore_errors=True)
-        # Resolve bash through PATH: on Windows a bare "bash" would start WSL, which has no JAVA_HOME.
-        bash = shutil.which("bash") or "bash"
-        result = subprocess.run(
-            [bash, "scripts/gradle-quiet.sh", ":composeApp:testAndroidHostTest", "-Pgallery", "--tests", "*.gallery.*"],
-            cwd=ROOT,
-        )
+        result = subprocess.run(gradle_command(bash, area), cwd=ROOT, env=dict(os.environ, **gitbash.java_env()))
         if result.returncode != 0:
             return result.returncode
     try:
-        print(write_index())
+        path = write_index(area=area)
+        count = len([e for e in load_entries(GALLERY_DIR) if not area or e["area"] == area])
     except GalleryError as error:
         print("Gallery inconsistent: " + str(error), file=sys.stderr)
+        return 1
+    print(path)
+    if area and count == 0:
+        print("warning: no images for area '{}'".format(area), file=sys.stderr)
         return 1
     return 0
 
