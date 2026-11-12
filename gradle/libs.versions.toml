@@ -46,7 +46,7 @@ roborazzi = "1.77.0"
 # T-034 (all latest stable on 2026-10-14; 3.9.0-beta-1 and credentials 1.7.0-alpha are excluded).
 # supabase-kt 3.8.0 is built against Ktor 3.5.1, so the OkHttp engine and the mock engine use exactly 3.5.1.
 # The `sb_publishable_` key check (ADR-17) is SupabaseClientFactoryTest: the key is sent as `apikey`.
-supabase-bom = "3.8.0"
+supabase-bom = "3.9.0"
 ktor = "3.6.0"
 androidx-credentials = "1.6.0"
 play-services-code-scanner = "16.1.0"
