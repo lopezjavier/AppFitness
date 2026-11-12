@@ -43,7 +43,7 @@ Out of scope (epic non-goals, `01-scope.md`): changing behaviour or adding featu
 - **The coverage check has two parts.**
   - (1) **Routes:** every `AppRoute` (the `AppDestinations.fullScreenRoutes` list plus the tab roots) and every `RootRoute` state needs a gallery entry.
   - (2) **Sheets and dialogs:** these are not routes, so a source scan of `feature/` finds every composable that calls an overlay primitive (`AppBottomSheet`, `AppEditSheet`, `AppPickerSheet`, `AppInfoSheet`, `AppActionSheet`, `FoodSheet`, `OptionPickerSheet`, `NameSheet`, `NoteSheet`, `DayPickerSheet`, `ChartMetricPickerSheet`, `RpePickerSheet`, `SetTypePickerSheet`, `AppConfirmDialog`, `DiscardChangesDialog`, `AppDatePickerDialog`, plus any new primitive) and requires it in the gallery's overlay manifest. The primitive list is derived from the `designsystem/` sources (every `*Sheet(` / `*Dialog(` declaration) plus `ModalBottomSheet`, `AlertDialog`, `Dialog`, and `feature/catalog/*` is exempt (T-279).
-  - Both parts fail and name what is missing. T-279 has a pending list (Entreno, Trainer) that T-280 empties.
+  - Both parts fail and name what is missing. T-279 had a pending list (Entreno, Trainer); T-280 emptied it and removed the mechanism.
   - Help sheets (`HelpButton`) are covered as part of each screen that has them.
 - **The rich dummy user is a separate local-only dataset.** The live-flow command applies it after `supabase db reset`, with dates relative to today. `seed.sql` and the pgTAP tests stay unchanged, and production never receives it.
 - **Rounds change the design system first.** Each accepted finding goes into `05` in the round's first commit, then it is swept app-wide (R-39). A rule that can be checked becomes a guard in `check-ux-conventions.sh`.
