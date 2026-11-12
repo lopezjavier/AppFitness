@@ -88,7 +88,7 @@ run "check-design-tokens" bash scripts/check-design-tokens.sh
 run "test-check-ux-conventions" bash scripts/tests/test-check-ux-conventions.sh
 run "check-ux-conventions" bash scripts/check-ux-conventions.sh
 run "check-unused-resources" python -I scripts/check-unused-resources.py
-run "python script tests" bash -c 'for t in scripts/test_deliver_apk.py scripts/test_repdb_tools.py scripts/tests/test_generate_band_long.py scripts/tests/test_check_unused_resources.py; do python -I "$t" || exit 1; done'
+run "python script tests" bash -c 'for t in scripts/test_deliver_apk.py scripts/test_repdb_tools.py scripts/tests/test_generate_band_long.py scripts/tests/test_check_unused_resources.py scripts/tests/test_gallery_index.py; do python -I "$t" || exit 1; done'
 
 # (c) cross-cutting classes
 mapfile -t cross < <(echo "$all_tests" | grep -E '(AppModuleTest|ShellChromeTest|StringsTest)\.kt$')

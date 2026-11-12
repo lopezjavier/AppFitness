@@ -171,6 +171,7 @@ Mitigations:
 **Acceptance criteria:**
 - [ ] The gallery command renders every screen of the app (all areas) with its states, sheets and dialogs, and the index lists them by area.
 - [ ] The check has no pending list; only the documented exemptions (debug catalog, system UIs, the system notification) remain.
+- [ ] (user request, 2026-11-12) The gallery also renders a "Design system" showcase page: a dummy UI with every `designsystem/` component and its variants (states, sizes, dark theme), as its own index area, so the design system can be reviewed in one image set. It sits next to the debug catalog exemption (`CatalogRoute` stays exempt); the planner decides whether the showcase is a new gallery entry group or reuses the catalog's composables.
 - [ ] No production behaviour changes; existing host tests and goldens green; `check-ux-conventions.sh` passes.
 **Host tests:** the gallery tests of both areas; the missing-screen check green with an empty pending list.
 **Verification:**
@@ -198,6 +199,7 @@ Common acceptance criteria for every round: the findings list was decided by the
 
 **Story:** US-123 · **Flow:** ux-reviewer (review) → user decisions in chat → planner → ux-reviewer (plan) → compose-ui-developer → pr-reviewer ∥ ux-reviewer (diff) → pr-creator · **Size:** M (estimate; resized after the decisions, split into batches with new IDs above ~15 files)
 **Scenarios:** US-123 Reviewed in rounds (Diario); Every change goes through the design system; A decision becomes a rule; Early feedback, no gates; Behaviour does not change.
+**Known finding from T-279 (ux-reviewer, 2026-11-12):** Centro de avisos copy is not plural-aware: `notifications_weight_reminder` and `notifications_circumference_reminder` (`strings.xml` ~1726) give "1 días" / "1 semanas" and "0 días" / "0 semanas"; make them `<plurals>` like `notifications_bell_cd`, and the user decides the wording for the 0 case ("Hoy toca pesarte"?). The gallery already has the 1-day, 1-week and 0 entries.
 **Description:** Area: Diario and everything reachable from it: the day view, comidas and their entries, the add-food flow (search, the AI sheet with photo and "Describir comida", the AI draft, create/edit food with its sections and the energy check), barcode, diary history, check-in and activity if reached from Diario, Centro de avisos if ux-reviewer assigned it here (T-279), and every sheet and dialog on the way. Steps as in "The review rounds".
 **Acceptance criteria:**
 - [ ] The Diario findings list (screen, problem, proposed change, component/rule) was presented and each item decided by the user before planning; decisions recorded here.
