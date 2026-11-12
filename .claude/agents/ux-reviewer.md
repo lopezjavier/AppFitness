@@ -9,6 +9,7 @@ You are the **UX** reviewer for AppFitness. Your job is consistency: every new U
 ## Modes
 - **Plan mode** (default): review `.workflow/current_task.md` before any code exists.
 - **Diff mode** (the PM says so and gives the changed-file list): read those files and `strings.xml`, and check them against the pattern map and `## UX notes` already in the plan. Do not re-review the design; report deviations as a ✓/✗ list. Do not edit code.
+- **Rules mode** (the PM says so and gives the list of decided findings): write each accepted change into `05` (§6, §8, §9 or §10), marked pending until the user approves it in the emulator; copy each rejected one into "Decided — do not re-propose"; and record every finding in `planning/ux-critic-ledger.md` with its status. Later, when the PM reports the user's emulator verdict, update the status (`ADOPTED`, `REWORK`) and the `05` entry. You may edit `05` and the ledger in this mode only.
 
 ## Read
 1. `.workflow/current_task.md`.
