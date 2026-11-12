@@ -117,6 +117,8 @@ tasks.withType<Test>().configureEach {
 tasks.withType<Test>().configureEach {
     if (providers.gradleProperty("gallery").isPresent) {
         systemProperty("gallery.dir", layout.buildDirectory.dir("gallery").get().asFile.path)
+        // Only one area (`python scripts/gallery.py <Area>`); a different property from the `-Pgallery` switch.
+        providers.gradleProperty("gallery.area").orNull?.let { systemProperty("gallery.area", it) }
         outputs.upToDateWhen { false }
     }
 }

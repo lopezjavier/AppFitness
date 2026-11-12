@@ -94,6 +94,7 @@ Every task pays 6-8 agent hand-offs, so stories stay whole unless one is too lar
 | 3 | T-279: Screen gallery, part 1: harness, index, coverage check, Diario, Perfil, Inicio | **L** | US-131 | UI (host tests) | 6 |
 | 4 | T-280: Screen gallery, part 2: Entreno and Trainer | **L** | US-131 | UI (host tests) | 6 |
 | 4b | T-288: Review round 0: the design system (with the gallery tooling fix) | **M** (estimate) | US-123 | tooling + review + UI | 8 + review |
+| 4c | T-289…T-295: round 0 fix batches (planner 2026-11-12, regrouped, no S): T-289 tokens + typography + guard G19 (M, ~15 files); T-290 buttons, inputs, set table, discomfort row (L, ~21); T-291 selection controls and weekday (M, ~14); T-292 navigation, headers, rows (M, ~13); T-293 progress, states, sleep (M, ~13); T-294 EmptyState icons sweep A + Outlined icons (L, ~21); T-295 sweep B + GhostButton audit + closing (L, ~19) | 4 x **M**, 3 x **L** | US-123 | UI (host tests, gallery) | 5 each |
 | 5 | T-281: Review round 1: Diario | **M** (estimate) | US-123 | review + UI | 7 + review |
 | 6 | T-282: Review round 2: Entreno | **M** (estimate) | US-123 | review + UI | 7 + review |
 | 7 | T-283: Review round 3: Trainer | **M** (estimate) | US-123 | review + UI | 7 + review |
@@ -141,7 +142,7 @@ No 👤 checkpoint (user decision 2026-11-11). The user's feedback comes through
 - T-277 needs the breakdown approved. Inside it, the removal waits for the user's OK on the drop list.
 - T-278 needs T-277 merged and deployed, because it seeds the post-cleanup schema.
 - T-279 needs T-278 merged. There is no build dependency: the gallery does not use the dummy user. T-280 needs T-279 merged.
-- T-288 needs T-280 merged. T-281 needs T-288 merged. T-282 needs T-281, T-283 needs T-282 and T-284 needs T-283 merged, because each round reviews the gallery as the previous round left it.
+- T-288 needs T-280 merged. T-289 needs T-288's rules; T-290, T-291, T-292 need T-289; T-293 needs T-290 and T-292; T-294 needs T-293; T-295 needs T-293 and T-294. T-281 needs T-295 merged and the user's verdict on the round 0 ledger. T-282 needs T-281, T-283 needs T-282 and T-284 needs T-283 merged, because each round reviews the gallery as the previous round left it.
 - T-285 needs T-284 merged and the user's closure approval.
 - Built pieces E19 relies on:
   - Roborazzi and the host-test setup, and the CI artifact upload.

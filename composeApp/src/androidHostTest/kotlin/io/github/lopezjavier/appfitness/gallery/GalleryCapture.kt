@@ -28,11 +28,13 @@ private const val SETTLE_MILLIS = 1_000L
  * sidecar JSON for the index. It only runs when `-Pgallery` set the `gallery.dir` system property.
  */
 @OptIn(ExperimentalRoborazziApi::class)
-internal fun ComposeContentTestRule.renderGallery(entries: List<GalleryEntry>) {
+internal fun ComposeContentTestRule.renderGallery(allEntries: List<GalleryEntry>) {
     val configured = System.getProperty("gallery.dir")
     assumeTrue("Gallery capture runs only with -Pgallery (python scripts/gallery.py)", configured != null)
     val root = checkNotNull(configured)
-    val current = mutableStateOf<GalleryEntry?>(entries.firstOrNull())
+    val entries = selectGalleryEntries(allEntries, System.getProperty("gallery.area"))
+    assumeTrue("Gallery: no entries of this class in the selected area", entries.isNotEmpty())
+    val current = mutableStateOf<GalleryEntry?>(entries.first())
     setContent {
         AppTheme {
             current.value?.let { entry ->
@@ -69,6 +71,10 @@ internal fun ComposeContentTestRule.renderGallery(entries: List<GalleryEntry>) {
         assertTrue("Gallery: ${entry.key} rendered a blank image", hasMoreThanOneColour(png))
     }
 }
+
+/** The entries to render: all of them, or only those of `area` (`-Pgallery.area`, set by `gallery.py <Area>`). */
+internal fun selectGalleryEntries(entries: List<GalleryEntry>, area: String?): List<GalleryEntry> =
+    if (area == null) entries else entries.filter { it.area == area }
 
 private fun hasMoreThanOneColour(png: File): Boolean {
     val image = ImageIO.read(png)

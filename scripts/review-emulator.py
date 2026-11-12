@@ -20,7 +20,11 @@ _spec = importlib.util.spec_from_file_location("deliver_apk", os.path.join(os.pa
 deliver = importlib.util.module_from_spec(_spec)
 _spec.loader.exec_module(deliver)
 
-SEED_FILE = os.path.join("supabase", "seed-review.sql")
+_spec = importlib.util.spec_from_file_location("gitbash", os.path.join(os.path.dirname(__file__), "gitbash.py"))
+gitbash = importlib.util.module_from_spec(_spec)
+_spec.loader.exec_module(gitbash)
+
+SEED_FILE =os.path.join("supabase", "seed-review.sql")
 CHECK_FILE = os.path.join("supabase", "review", "seed-review.check.sql")
 CONFIG_TOML = os.path.join("supabase", "config.toml")
 APP_ID = "io.github.lopezjavier.appfitness.local"
@@ -113,7 +117,10 @@ def preflight(args, adb):
     except ValueError as e:
         return None, str(e)
     if not args.no_build:
-        missing = missing_local_config(deliver.read_local_properties(os.path.join(ROOT, "local.properties")))
+        if not os.environ.get("JAVA_HOME") and not gitbash.java_env():
+            return None, ("JAVA_HOME is not set and no JDK was found (Android Studio jbr or java on PATH): "
+                          "set JAVA_HOME to a JDK 21")
+        missing =missing_local_config(deliver.read_local_properties(os.path.join(ROOT, "local.properties")))
         if missing:
             return None, ("local.properties is missing " + ", ".join(missing) +
                           " (the publishable key printed by `npx supabase start`; see planning/08-environment-setup.md)")
@@ -133,7 +140,8 @@ def resolve(cmd, adb):
 
 def run_step(step, adb, verbose):
     cmd = resolve(step["cmd"], adb)
-    env = dict(os.environ, **step.get("env", {}))
+    # gradlew.bat fails with "JAVA_HOME is not set" when it is unset and no java is on PATH: pass a discovered JDK.
+    env = dict(os.environ, **gitbash.java_env(), **step.get("env", {}))
     stdin = open(os.path.join(ROOT, step["stdin"]), "rb") if step.get("stdin") else None
     try:
         if verbose:
