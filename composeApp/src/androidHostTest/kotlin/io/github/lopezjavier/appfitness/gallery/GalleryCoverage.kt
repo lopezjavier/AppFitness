@@ -7,11 +7,15 @@ import java.io.File
 
 /** Pure coverage logic of the screen gallery (T-279): what must have an entry, and what is missing. */
 @OptIn(ExperimentalSerializationApi::class)
+@Suppress("TooManyFunctions") // Pure checks: one function per rule of the gallery.
 internal object GalleryCoverage {
     private val PRIMITIVE_DECLARATION =
         Regex("""(?m)^(?:(?:internal|private|public)\s+)?fun\s+(\w*(?:Sheet|Dialog))\s*\(""")
     private val FUNCTION_DECLARATION =
         Regex("""(?m)^(?:(?:internal|private|public|inline)\s+)*fun\s+(?:<[^>]*>\s*)?(?:[\w.<>?]+\.)?(\w+)\s*\(""")
+    private val CATALOG_SECTION_TAG = Regex("\"(catalog_section_[a-z0-9_]+)\"")
+    private val CATALOG_TITLE = Regex("<string name=\"(catalog_section_[a-z0-9_]+)\">([^<]*)</string>")
+    private val TOP_LEVEL_FUN = Regex("""^(?:internal\s+|public\s+)?fun\s+([A-Z]\w*)\s*\(""")
     private val ROOT_ROUTE_DECLARATION =
         Regex("""(?m)^\s*(?:data object|object|data class|class)\s+(\w+)[^\n]*:\s*RootRoute""")
 
@@ -54,33 +58,75 @@ internal object GalleryCoverage {
     }
 
     /**
-     * Failure messages for one kind of unit ([kind] is "route" or "overlay"): [universe] minus [covered], [exempt] and
-     * [pending] must be empty; [pending] must shrink (no name that has an entry) and name only units of [universe];
-     * every exemption needs a reason.
+     * Failure messages for one kind of unit ([kind] is "route" or "overlay"): [universe] minus [covered] and [exempt]
+     * must be empty; every exemption needs a reason.
      */
-    fun failures(
-        kind: String,
-        universe: Set<String>,
-        covered: Set<String>,
-        exempt: Map<String, String>,
-        pending: Map<String, String>,
-    ): List<String> = buildList {
-        (universe - covered - exempt.keys - pending.keys).sorted().forEach {
-            add(
-                "Gallery: $kind $it has no entry " +
-                    "(add one in a *Gallery.kt or list it in GalleryManifest.pending/exempt)",
-            )
+    fun failures(kind: String, universe: Set<String>, covered: Set<String>, exempt: Map<String, String>): List<String> =
+        buildList {
+            (universe - covered - exempt.keys).sorted().forEach {
+                add("Gallery: $kind $it has no entry (add one in a *Gallery.kt or list it in GalleryManifest.exempt)")
+            }
+            exempt.filterValues { it.isBlank() }.keys.sorted().forEach {
+                add("Gallery: exemption $it has no reason (write why it is not in the gallery)")
+            }
         }
-        (pending.keys intersect covered).sorted().forEach {
-            add("Gallery: $kind $it is pending but already has an entry (remove it from GalleryManifest.pending)")
-        }
-        (pending.keys - universe).sorted().forEach {
-            add("Gallery: pending $kind $it does not exist (remove it from GalleryManifest.pending)")
-        }
-        exempt.filterValues { it.isBlank() }.keys.sorted().forEach {
-            add("Gallery: exemption $it has no reason (write why it is not in the gallery)")
+
+    /** Every `catalog_section_*` tag passed to `CatalogSection(...)` in the catalog sources, sorted and unique. */
+    fun catalogSectionTags(sources: Collection<String>): List<String> = sources
+        .flatMap { text -> CATALOG_SECTION_TAG.findAll(text).map { it.groupValues[1] } }
+        .distinct()
+        .sorted()
+
+    /** The Spanish titles of the catalog sections: `catalog_section_x` to its string of the resources `strings.xml`. */
+    fun catalogTitles(stringsXml: String): Map<String, String> =
+        CATALOG_TITLE.findAll(stringsXml).associate { it.groupValues[1] to it.groupValues[2] }
+
+    /**
+     * Names of the public or internal top-level `@Composable` functions (not `private`, not `@Preview`) of the
+     * design system [sources]; the annotations directly above a declaration count as its own.
+     */
+    fun designSystemComposables(sources: Collection<String>): Set<String> = buildSet {
+        for (text in sources) {
+            val lines = text.lines()
+            lines.forEachIndexed { index, line ->
+                val name = TOP_LEVEL_FUN.find(line)?.groupValues?.get(1) ?: return@forEachIndexed
+                val annotations = mutableListOf(line)
+                var above = index - 1
+                while (above >= 0 && lines[above].trimStart().startsWith("@")) {
+                    annotations += lines[above]
+                    above--
+                }
+                if (annotations.any { "@Composable" in it } && annotations.none { "@Preview" in it }) add(name)
+            }
         }
     }
+
+    /**
+     * Failure messages of the design system check: every [components] name must appear in the catalog text
+     * ([catalogText]) or be in [exempt] with a reason. A stale exemption (shown now, or no longer a component) fails.
+     */
+    fun designSystemGaps(components: Set<String>, catalogText: String, exempt: Map<String, String>): List<String> =
+        buildList {
+            val shown = components.filter { Regex("\\b$it\\(").containsMatchIn(catalogText) }.toSet()
+            (components - shown - exempt.keys).sorted().forEach {
+                add(
+                    "Design system: $it is not in the component catalog " +
+                        "(add a section in feature/catalog or list it in GalleryManifest.designSystemExempt)",
+                )
+            }
+            (exempt.keys intersect shown).sorted().forEach {
+                add("Design system: exemption $it is shown in the catalog now (remove it from designSystemExempt)")
+            }
+            (exempt.keys - components).sorted().forEach {
+                add(
+                    "Design system: exemption $it is not a design system composable " +
+                        "(remove it from designSystemExempt)",
+                )
+            }
+            exempt.filterValues { it.isBlank() }.keys.sorted().forEach {
+                add("Design system: exemption $it has no reason (write why it is not in the catalog)")
+            }
+        }
 
     /** Names an entry claims to cover that are neither a route nor a scanned overlay: a typo. */
     fun unknownCovers(covers: Set<String>, routes: Set<String>, overlays: Set<String>): List<String> =

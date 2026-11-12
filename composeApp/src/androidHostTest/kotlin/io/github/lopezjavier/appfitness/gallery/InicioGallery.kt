@@ -204,7 +204,7 @@ class InicioGallery {
     val rule = createComposeRule()
 
     @Test
-    fun rendersEveryEntry() = rule.renderGallery(inicioEntries().filter { !it.wide })
+    fun rendersEveryEntry() = rule.renderGallery(inicioEntries().filter { !it.wide && !it.tall })
 
     @Test
     fun rendersCentroDeAvisos() = rule.renderGallery(notificationCenterEntries())

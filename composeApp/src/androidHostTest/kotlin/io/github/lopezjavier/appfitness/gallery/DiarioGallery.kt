@@ -209,11 +209,11 @@ class DiarioGallery {
     val rule = createComposeRule()
 
     @Test
-    fun rendersDiaryAndCheckIn() = rule.renderGallery(diaryScreens().filter { !it.wide } + checkIns())
+    fun rendersDiaryAndCheckIn() = rule.renderGallery(diaryScreens().filter { !it.wide && !it.tall } + checkIns())
 
     @Test
-    fun rendersFood() = rule.renderGallery(diarioFoodEntries().filter { !it.wide })
+    fun rendersFood() = rule.renderGallery(diarioFoodEntries().filter { !it.wide && !it.tall })
 
     @Test
-    fun rendersTemplatesAndEntries() = rule.renderGallery(diarioTemplateEntries().filter { !it.wide })
+    fun rendersTemplatesAndEntries() = rule.renderGallery(diarioTemplateEntries().filter { !it.wide && !it.tall })
 }

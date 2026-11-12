@@ -25,17 +25,18 @@ internal object GalleryChecks {
         val routes = routeUniverse()
         val overlays = overlayUniverse()
         val covered = GalleryRegistry.all().flatMap { it.covers }.toSet()
-        val exempt = GalleryManifest.exempt
-        val routePending = GalleryManifest.pending.filterKeys { it in routes }
-        val overlayPending = GalleryManifest.pending.filterKeys { it !in routes }
-        return GalleryCoverage.failures("route", routes, covered intersect routes, exempt, routePending) +
-            GalleryCoverage.failures(
-                "overlay",
-                overlays,
-                covered intersect overlays,
-                emptyMap(),
-                overlayPending,
-            ) +
+        return GalleryCoverage.failures("route", routes, covered intersect routes, GalleryManifest.exempt) +
+            GalleryCoverage.failures("overlay", overlays, covered intersect overlays, emptyMap()) +
             GalleryCoverage.unknownCovers(covered, routes, overlays)
+    }
+
+    /** The design system check on the real sources: every component is in the catalog or exempt with a reason. */
+    fun designSystemFailures(): List<String> {
+        val base = File(SOURCE_ROOT)
+        val components = GalleryCoverage.designSystemComposables(
+            GalleryCoverage.readSources(File(base, "designsystem")).values,
+        )
+        val catalog = GalleryCoverage.readSources(File(base, "feature/catalog")).values.joinToString("\n")
+        return GalleryCoverage.designSystemGaps(components, catalog, GalleryManifest.designSystemExempt)
     }
 }

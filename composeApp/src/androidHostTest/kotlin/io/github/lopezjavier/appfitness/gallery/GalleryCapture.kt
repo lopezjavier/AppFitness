@@ -84,15 +84,12 @@ private fun sidecar(entry: GalleryEntry): String {
 
 private fun escape(text: String) = text.replace("\\", "\\\\").replace("\"", "\\\"")
 
-/** Writes `manifest.json` (exemptions and pending names) for the index; runs only with `-Pgallery`. */
+/** Writes `manifest.json` (the exemptions, with their reasons) for the index; runs only with `-Pgallery`. */
 internal fun writeGalleryManifest() {
     val configured = System.getProperty("gallery.dir")
     assumeTrue("Gallery capture runs only with -Pgallery (python scripts/gallery.py)", configured != null)
     fun obj(map: Map<String, String>) =
         map.entries.joinToString(",", "{", "}") { "\"${escape(it.key)}\":\"${escape(it.value)}\"" }
     val dir = File(checkNotNull(configured)).also { it.mkdirs() }
-    File(dir, "manifest.json").writeText(
-        "{\"exempt\":${obj(GalleryManifest.exempt)},\"pending\":${obj(GalleryManifest.pending)}}",
-        Charsets.UTF_8,
-    )
+    File(dir, "manifest.json").writeText("{\"exempt\":${obj(GalleryManifest.exempt)}}", Charsets.UTF_8)
 }
