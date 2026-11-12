@@ -32,7 +32,7 @@ class GalleryIndexTest(unittest.TestCase):
 
     def index(self, manifest=None):
         entries = mod.load_entries(self.root)
-        return mod.build_index(entries, manifest or {"exempt": {}, "pending": {}})
+        return mod.build_index(entries, manifest or {"exempt": {}})
 
     def test_groups_by_area_in_index_order(self):
         sidecar(self.root, "perfil/peso/data", entry("Perfil", "Peso", "data"))
@@ -54,13 +54,25 @@ class GalleryIndexTest(unittest.TestCase):
         self.assertIn("Sheets and dialogs", text)
         self.assertIn("Also opened from: Perfil", text)
 
-    def test_lists_exemptions_and_pending_names(self):
+    def test_lists_exemptions_with_their_reasons(self):
         sidecar(self.root, "inicio/a/b", entry("Inicio", "A", "b"))
-        text = self.index({"exempt": {"CatalogRoute": "debug only"}, "pending": {"LiveSessionRoute": "T-280"}})
+        text = self.index({"exempt": {"CatalogRoute": "debug only"}})
         self.assertIn("CatalogRoute", text)
         self.assertIn("debug only", text)
-        self.assertIn("Not yet in the gallery", text)
-        self.assertIn("LiveSessionRoute", text)
+        self.assertNotIn("Not yet in the gallery", text)
+
+    def test_index_uses_the_dark_app_background_and_readable_text(self):
+        sidecar(self.root, "inicio/a/b", entry("Inicio", "A", "b"))
+        text = self.index()
+        self.assertIn("background:#0B0F14", text)
+        self.assertIn("color:#E0E2EA", text)
+        self.assertNotIn("background:#fff", text)
+
+    def test_design_system_is_an_index_area_after_compartido(self):
+        sidecar(self.root, "design_system/button/default", entry("Design system", "Button", "default"))
+        sidecar(self.root, "compartido/a/b", entry("Compartido", "A", "b"))
+        text = self.index()
+        self.assertLess(text.index("<h2>Compartido</h2>"), text.index("<h2>Design system</h2>"))
 
     def test_sidecar_without_image_fails(self):
         sidecar(self.root, "inicio/a/b", entry("Inicio", "A", "b"), png=False)

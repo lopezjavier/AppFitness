@@ -15,7 +15,7 @@ import sys
 
 ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 GALLERY_DIR = os.path.join(ROOT, "composeApp", "build", "gallery")
-AREAS = ["Inicio", "Diario", "Entreno", "Trainer", "Perfil", "Compartido"]
+AREAS = ["Inicio", "Diario", "Entreno", "Trainer", "Perfil", "Compartido", "Design system"]
 
 
 class GalleryError(Exception):
@@ -49,7 +49,7 @@ def load_entries(gallery_dir):
 def load_manifest(gallery_dir):
     path = os.path.join(gallery_dir, "manifest.json")
     if not os.path.exists(path):
-        return {"exempt": {}, "pending": {}}
+        return {"exempt": {}}
     with open(path, encoding="utf-8") as handle:
         return json.load(handle)
 
@@ -78,7 +78,7 @@ def _screen_section(screen, entries):
 
 
 def build_index(entries, manifest):
-    """Return the index.html text: one h2 per area, one h3 per screen, exemptions and pending lists at the end."""
+    """Return the index.html text: one h2 per area, one h3 per screen, the exemptions table at the end."""
     known = [a for a in AREAS if any(e["area"] == a for e in entries)]
     extra = sorted({e["area"] for e in entries} - set(AREAS))
     body = ["<h1>Screen gallery</h1>", "<p>{} images. Not compared with anything: review aid only.</p>".format(len(entries))]
@@ -97,18 +97,17 @@ def build_index(entries, manifest):
         + "".join("<tr><td>{}</td><td>{}</td></tr>".format(html.escape(k), html.escape(v)) for k, v in sorted(exempt.items()))
         + "</table>"
     )
-    pending = manifest.get("pending", {})
-    body.append("<h2>Not yet in the gallery</h2>")
-    owners = sorted(set(pending.values()))
-    for owner in owners:
-        names = sorted(name for name, who in pending.items() if who == owner)
-        body.append("<h3>{}</h3><p>{}</p>".format(html.escape(owner), html.escape(", ".join(names))))
     style = (
-        "body{font-family:sans-serif;margin:24px;color:#111;background:#fff}"
-        "h2{border-bottom:2px solid #333;margin-top:40px}"
+        # Dark theme of the app (designsystem/AppColors.kt, dark scheme): surfaceBase, surfaceRaised, surfaceOverlay,
+        # textPrimary, textSecondary and the primary NeonLime for links.
+        "body{font-family:sans-serif;margin:24px;color:#E0E2EA;background:#0B0F14}"
+        "h2{border-bottom:2px solid #1A222D;margin-top:40px;color:#E0E2EA}"
+        "h3{color:#C2CAB0}"
+        "a{color:#A3E635}"
         ".grid{display:flex;flex-wrap:wrap;gap:12px}"
-        "figure{margin:0;width:180px}figcaption{font-size:13px;color:#222}"
-        "table{border-collapse:collapse}td,th{border:1px solid #777;padding:4px 8px;text-align:left}"
+        "figure{margin:0;width:180px}figcaption{font-size:13px;color:#C2CAB0}"
+        "img{display:block;background:#121820;border:1px solid rgba(255,255,255,0.08);border-radius:8px}"
+        "table{border-collapse:collapse}td,th{border:1px solid #1A222D;padding:4px 8px;text-align:left}"
     )
     return (
         '<!doctype html><html lang="en"><head><meta charset="utf-8"><title>Screen gallery</title>'
