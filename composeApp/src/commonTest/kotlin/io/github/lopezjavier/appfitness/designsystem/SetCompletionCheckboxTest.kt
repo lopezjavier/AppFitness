@@ -31,10 +31,10 @@ class SetCompletionCheckboxTest {
     }
 
     @Test
-    fun colors_unchecked_overlayFill_ghostGlyph() {
+    fun colors_unchecked_controlFill_tertiaryGlyph() {
         val colors = SetCompletionCheckboxDefaults.colors(checked = false, appColors = c)
-        assertEquals(c.surfaceOverlay, colors.container)
-        assertEquals(c.ghostData, colors.icon)
+        assertEquals(c.surfaceControl, colors.container)
+        assertEquals(c.textTertiary, colors.icon)
     }
 
     @Test

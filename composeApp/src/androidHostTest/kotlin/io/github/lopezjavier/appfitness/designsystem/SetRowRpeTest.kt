@@ -108,6 +108,38 @@ class SetRowRpeTest {
     }
 
     @Test
+    fun header_namesThePreviousColumnAntes() {
+        rule.setContent { AppTheme { SetTableHeader(testTagPrefix = "hdr") } }
+
+        rule.onNode(hasText("ANTES", ignoreCase = true), useUnmergedTree = true).assertIsDisplayed()
+        rule.onNode(hasText("Anterior", ignoreCase = true), useUnmergedTree = true).assertDoesNotExist()
+    }
+
+    @Test
+    fun at360DpWithRpe_repsCellIsAtLeast48Dp_andHeaderAlignsWithTheRow() {
+        rule.setContent {
+            AppTheme {
+                Column(Modifier.fillMaxWidth().padding(horizontal = Spacing.lg)) {
+                    SetTableHeader(showRpe = true, testTagPrefix = "hdr")
+                    SetRow(
+                        SetRowValues(1, "85 kg × 8", "100", "10", completed = false, rpe = "8"),
+                        {},
+                        {},
+                        {},
+                        testTagPrefix = "row",
+                        onRpeClick = {},
+                    )
+                }
+            }
+        }
+
+        rule.onNodeWithTag("row_reps").assertWidthIsAtLeast(48.dp)
+        val header = rule.onNodeWithTag("hdr_reps", useUnmergedTree = true).getUnclippedBoundsInRoot()
+        val row = rule.onNodeWithTag("row_reps").getUnclippedBoundsInRoot()
+        assertEquals(row.left.value, header.left.value, 1f)
+    }
+
+    @Test
     fun at360DpAnd130PercentFont_weightAndRepsStayVisibleAndRpeKeeps48Dp() {
         rule.setContent {
             CompositionLocalProvider(LocalDensity provides Density(density = 2.75f, fontScale = 1.3f)) {
@@ -130,6 +162,7 @@ class SetRowRpeTest {
         rule.onNodeWithTag("row_weight").assertIsDisplayed()
         rule.onNodeWithTag("row_reps").assertIsDisplayed()
         rule.onNodeWithTag("row_rpe").assertWidthIsAtLeast(48.dp).assertIsDisplayed()
+        rule.onNodeWithTag("row_reps").assertWidthIsAtLeast(48.dp)
         // The weighted columns must be wide enough for their text: a 3-digit reps value is not clipped.
         val reps = rule.onNodeWithTag("row_reps").getUnclippedBoundsInRoot()
         assertTrue("reps column too narrow: ${reps.width}", reps.width >= 36.dp)

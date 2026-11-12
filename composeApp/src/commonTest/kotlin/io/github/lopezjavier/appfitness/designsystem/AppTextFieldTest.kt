@@ -21,12 +21,14 @@ class AppTextFieldTest {
     fun minHeight_isAtLeastTheTouchTarget() = assertTrue(AppTextFieldDefaults.MinHeight >= 48.dp)
 
     @Test
-    fun borderColor_isCyanWhenFocused() =
-        assertEquals(c.athleticCyan, AppTextFieldDefaults.borderColor(focused = true, hasError = false, appColors = c))
+    fun borderColor_isLimeWhenFocused() =
+        assertEquals(c.neonLime, AppTextFieldDefaults.borderColor(focused = true, hasError = false, appColors = c))
 
     @Test
-    fun borderColor_isStrongWhenIdle() =
-        assertEquals(c.borderStrong, AppTextFieldDefaults.borderColor(focused = false, hasError = false, appColors = c))
+    fun borderColor_isControlWhenIdle() = assertEquals(
+        c.borderControl,
+        AppTextFieldDefaults.borderColor(focused = false, hasError = false, appColors = c),
+    )
 
     @Test
     fun borderColor_isErrorWhenInvalidEvenIfFocused() {

@@ -139,11 +139,11 @@ object NumberInputDefaults {
         appColors: AppColors,
         hasError: Boolean = false,
     ): NumberInputColors = NumberInputColors(
-        container = appColors.surfaceOverlay,
+        container = AppInputStyle.container(appColors),
         border = AppInputStyle.borderColor(focused && !readOnly, hasError, appColors),
         text = appColors.textPrimary,
-        // Planned values are editable data, so AA contrast (textSecondary) rather than ghostData.
-        placeholder = appColors.textSecondary,
+        // Placeholders are hints: textTertiary (R-65), not the disabled ghostData.
+        placeholder = appColors.textTertiary,
         label = AppInputStyle.labelColor(appColors),
         cursor = appColors.athleticCyan,
     )

@@ -4,6 +4,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.compositeOver
 import androidx.compose.ui.graphics.luminance
 import kotlin.test.Test
+import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 
 private const val AA = 4.5f
@@ -117,6 +118,14 @@ class ContrastTest {
             val ratio = contrastRatio(thumb, c.surfaceRaised)
             assertTrue(ratio >= NON_TEXT, "thumb $thumb vs raised: $ratio < $NON_TEXT")
         }
+    }
+
+    @Test
+    fun disabledPrimary_labelOnContainer_isTheDocumentedExemption() {
+        // Disabled controls are exempt from WCAG, but the figure of 05 section 2.1a (about 3.26:1) must hold.
+        val disabled = AppButtonDefaults.colors(AppButtonVariant.Primary, enabled = false, appColors = c)
+        val ratio = contrastRatio(disabled.content, disabled.container)
+        assertEquals(3.26f, ratio, 0.1f)
     }
 
     @Test

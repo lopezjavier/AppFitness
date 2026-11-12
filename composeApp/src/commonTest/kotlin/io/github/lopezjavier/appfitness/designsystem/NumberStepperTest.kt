@@ -25,5 +25,5 @@ class NumberStepperTest {
     }
 
     @Test
-    fun circle_isOverlay() = assertEquals(c.surfaceOverlay, NumberStepperDefaults.buttonColor(c))
+    fun circle_isControlSurface() = assertEquals(c.surfaceControl, NumberStepperDefaults.buttonColor(c))
 }

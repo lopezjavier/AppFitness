@@ -47,8 +47,7 @@ import io.github.lopezjavier.appfitness.designsystem.ErrorState
 import io.github.lopezjavier.appfitness.designsystem.ExerciseStatusChevron
 import io.github.lopezjavier.appfitness.designsystem.ExerciseStatusInfoMarker
 import io.github.lopezjavier.appfitness.designsystem.ExerciseStatusRow
-import io.github.lopezjavier.appfitness.designsystem.GhostButton
-import io.github.lopezjavier.appfitness.designsystem.GhostTone
+import io.github.lopezjavier.appfitness.designsystem.ExerciseStatusTextAction
 import io.github.lopezjavier.appfitness.designsystem.InlineNote
 import io.github.lopezjavier.appfitness.designsystem.OfflineBanner
 import io.github.lopezjavier.appfitness.designsystem.Spacing
@@ -108,10 +107,9 @@ private fun ExerciseStatusRows() {
             text = stringResource(Res.string.catalog_status_discomfort),
             marker = { ExerciseStatusInfoMarker() },
             trailing = {
-                GhostButton(
+                ExerciseStatusTextAction(
                     text = stringResource(Res.string.live_discomfort_resolve),
                     onClick = {},
-                    tone = GhostTone.Neutral,
                 )
             },
             supporting = stringResource(Res.string.live_discomfort_resolve_offline),

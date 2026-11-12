@@ -44,7 +44,7 @@ object NumberStepperDefaults {
     fun iconColor(enabled: Boolean, appColors: AppColors): Color =
         if (enabled) appColors.textPrimary else appColors.ghostData
 
-    fun buttonColor(appColors: AppColors): Color = appColors.surfaceOverlay
+    fun buttonColor(appColors: AppColors): Color = appColors.surfaceControl
 }
 
 /**

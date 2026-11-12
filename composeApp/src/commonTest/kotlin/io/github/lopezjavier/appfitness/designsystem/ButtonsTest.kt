@@ -1,11 +1,14 @@
 package io.github.lopezjavier.appfitness.designsystem
 
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.graphics.compositeOver
 import androidx.compose.ui.unit.dp
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNotEquals
 import kotlin.test.assertNull
+import kotlin.test.assertTrue
 
 class ButtonsTest {
     private val c = KineticDarkColors
@@ -14,9 +17,9 @@ class ButtonsTest {
         AppButtonDefaults.colors(variant, enabled, c)
 
     @Test
-    fun minHeight_primaryAndSecondary52_ghost48() {
-        assertEquals(52.dp, AppButtonDefaults.minHeight(AppButtonVariant.Primary))
-        assertEquals(52.dp, AppButtonDefaults.minHeight(AppButtonVariant.Secondary))
+    fun minHeight_primaryAndSecondary56_ghost48() {
+        assertEquals(56.dp, AppButtonDefaults.minHeight(AppButtonVariant.Primary))
+        assertEquals(56.dp, AppButtonDefaults.minHeight(AppButtonVariant.Secondary))
         assertEquals(48.dp, AppButtonDefaults.minHeight(AppButtonVariant.Ghost))
     }
 
@@ -28,14 +31,14 @@ class ButtonsTest {
             assertNull(it.border)
         }
         colors(AppButtonVariant.Secondary).let {
-            assertEquals(c.surfaceOverlay, it.container)
+            assertEquals(c.surfaceControl, it.container)
             assertEquals(c.textPrimary, it.content)
             assertNull(it.border)
         }
         colors(AppButtonVariant.Ghost).let {
             assertEquals(Color.Transparent, it.container)
-            assertEquals(c.athleticCyan, it.content)
-            assertEquals(c.athleticCyan, it.border)
+            assertEquals(c.textPrimary, it.content)
+            assertEquals(c.borderControl, it.border)
         }
     }
 
@@ -43,15 +46,37 @@ class ButtonsTest {
     fun colors_disabled_useGhostDataContent_andDifferFromEnabled() {
         AppButtonVariant.entries.forEach { variant ->
             val disabled = colors(variant, enabled = false)
-            assertEquals(c.ghostData, disabled.content, variant.name)
+            if (variant != AppButtonVariant.Primary) assertEquals(c.ghostData, disabled.content, variant.name)
             assertNotEquals(colors(variant).content, disabled.content, variant.name)
         }
-        assertEquals(c.surfaceOverlay, colors(AppButtonVariant.Primary, false).container)
+        assertEquals(
+            c.neonLime.copy(alpha = 0.2f).compositeOver(c.surfaceBase),
+            colors(AppButtonVariant.Primary, false).container,
+        )
+        val disabledContainer = colors(AppButtonVariant.Primary, false).container
+        assertEquals(
+            c.neonLime.copy(alpha = 0.5f).compositeOver(disabledContainer),
+            colors(AppButtonVariant.Primary, false).content,
+        )
+        assertTrue(contrastRatio(colors(AppButtonVariant.Primary, false).content, disabledContainer) >= 3f)
         assertNull(colors(AppButtonVariant.Primary, false).border)
-        assertEquals(c.surfaceOverlay, colors(AppButtonVariant.Secondary, false).container)
+        assertEquals(c.surfaceControl, colors(AppButtonVariant.Secondary, false).container)
         assertNull(colors(AppButtonVariant.Secondary, false).border)
         assertEquals(Color.Transparent, colors(AppButtonVariant.Ghost, false).container)
         assertEquals(c.borderSubtle, colors(AppButtonVariant.Ghost, false).border)
+    }
+
+    @Test
+    fun ghostBorder_whenFocused_is2dpLime_otherwiseThinNeutral() {
+        val ghost = colors(AppButtonVariant.Ghost)
+        val focused = AppButtonDefaults.borderStroke(AppButtonVariant.Ghost, true, true, ghost, c)
+        assertEquals(AppBorder.focus, focused?.width)
+        assertEquals(SolidColor(c.neonLime), focused?.brush)
+        val resting = AppButtonDefaults.borderStroke(AppButtonVariant.Ghost, true, false, ghost, c)
+        assertEquals(AppBorder.thin, resting?.width)
+        assertEquals(SolidColor(c.borderControl), resting?.brush)
+        val primary = colors(AppButtonVariant.Primary)
+        assertNull(AppButtonDefaults.borderStroke(AppButtonVariant.Primary, true, true, primary, c))
     }
 
     @Test
@@ -62,7 +87,7 @@ class ButtonsTest {
 
     @Test
     fun shapeAndPadding_matchTokens() {
-        assertEquals(AppShapes.md, AppButtonDefaults.Shape)
+        assertEquals(AppShapes.lg, AppButtonDefaults.Shape)
         assertEquals(Spacing.xl, AppButtonDefaults.HorizontalPadding)
     }
 
@@ -89,7 +114,9 @@ class ButtonsTest {
     @Test
     fun ghostTones_mapToTheirColours() {
         fun ghost(tone: GhostTone) = AppButtonDefaults.colors(AppButtonVariant.Ghost, true, c, tone)
-        assertEquals(c.athleticCyan, ghost(GhostTone.Action).content)
+        assertEquals(c.textPrimary, ghost(GhostTone.Action).content)
+        assertEquals(c.borderControl, ghost(GhostTone.Action).border)
+        assertEquals(c.borderControl, ghost(GhostTone.Neutral).border)
         assertEquals(c.textPrimary, ghost(GhostTone.Neutral).content)
         assertEquals(c.error, ghost(GhostTone.Destructive).content)
         assertEquals(c.error, ghost(GhostTone.Destructive).border)

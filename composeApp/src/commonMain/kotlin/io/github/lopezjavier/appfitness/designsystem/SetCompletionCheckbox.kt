@@ -39,7 +39,7 @@ object SetCompletionCheckboxDefaults {
     fun colors(checked: Boolean, appColors: AppColors): SetCheckboxColors = if (checked) {
         SetCheckboxColors(container = appColors.neonLime, icon = appColors.onNeonLime)
     } else {
-        SetCheckboxColors(container = appColors.surfaceOverlay, icon = appColors.ghostData)
+        SetCheckboxColors(container = appColors.surfaceControl, icon = appColors.textTertiary)
     }
 
     /** Completing a set is a Confirm (R-29); un-checking vibrates nothing. */

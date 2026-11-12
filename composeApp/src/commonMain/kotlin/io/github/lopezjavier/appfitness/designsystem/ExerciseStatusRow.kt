@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -18,6 +19,7 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import io.github.lopezjavier.appfitness.composeapp.resources.Res
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_chevron_right
@@ -30,7 +32,8 @@ import org.jetbrains.compose.resources.painterResource
  * on a `surfaceOverlay` block with the `md` shape, plus an optional [supporting] line under them. The whole row is a
  * 48 dp button announced with [onClickLabel] only when [onClick] is given. With a [trailing] slot the descendants are
  * not merged, so the action stays its own node. [primaryText] uses `textPrimary` (the discomfort level), otherwise
- * `textSecondary`. [testTag] lands on the root; [textTestTag] and [supportingTestTag] on the lines when set.
+ * `textSecondary`. A text action for the trailing slot is [ExerciseStatusTextAction]. [testTag] lands on the root;
+ * [textTestTag] and [supportingTestTag] on the lines when set.
  */
 @Composable
 @Suppress("LongParameterList") // Slots plus the tags and semantics a row needs.
@@ -92,6 +95,45 @@ fun ExerciseStatusRow(
     }
 }
 
+/**
+ * Borderless text action of a status row (R-51), e.g. "Ya no me molesta": a one-line `bodyMedium` W600 label with a
+ * 48 dp touch target. While [loading] a small progress indicator follows the label. The caller passes its tag via
+ * [modifier]; disabled uses the `ghostData` colour.
+ */
+@Composable
+fun ExerciseStatusTextAction(
+    text: String,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    enabled: Boolean = true,
+    loading: Boolean = false,
+) {
+    val color = if (enabled) AppTheme.colors.textPrimary else AppTheme.colors.ghostData
+    Row(
+        modifier = modifier
+            .heightIn(min = Spacing.minTouchTarget)
+            .clickable(enabled = enabled, role = Role.Button, onClick = onClick)
+            .padding(Spacing.sm),
+        horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(
+            text = text,
+            style = AppTheme.typography.bodyMedium.copy(fontWeight = FontWeight.W600),
+            color = color,
+            maxLines = 1,
+            softWrap = false,
+        )
+        if (loading) {
+            CircularProgressIndicator(
+                modifier = Modifier.size(AppButtonDefaults.LoadingIndicatorSize),
+                color = AppTheme.colors.neonLime,
+                strokeWidth = AppButtonDefaults.LoadingIndicatorStroke,
+            )
+        }
+    }
+}
+
 /** Decorative info icon marker of a note or suggestion row. */
 @Composable
 fun ExerciseStatusInfoMarker() = StatusRowIcon(Res.drawable.ic_info)
@@ -108,6 +150,18 @@ private fun StatusRowIcon(icon: DrawableResource) {
         tint = AppTheme.colors.textSecondary,
         modifier = Modifier.size(InlineNoteDefaults.IconSize),
     )
+}
+
+@Preview
+@Composable
+private fun ExerciseStatusTextActionPreview() {
+    AppTheme {
+        Column {
+            ExerciseStatusTextAction("Ya no me molesta", onClick = {})
+            ExerciseStatusTextAction("Ya no me molesta", onClick = {}, loading = true)
+            ExerciseStatusTextAction("Ya no me molesta", onClick = {}, enabled = false)
+        }
+    }
 }
 
 @Preview

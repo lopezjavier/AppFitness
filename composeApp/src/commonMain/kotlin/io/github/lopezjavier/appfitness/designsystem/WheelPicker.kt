@@ -91,7 +91,7 @@ object WheelPickerDefaults {
     fun itemColor(distance: Int, appColors: AppColors): Color = when (distance) {
         0 -> appColors.textPrimary
         1 -> appColors.textSecondary
-        else -> appColors.ghostData
+        else -> appColors.textTertiary
     }
 
     /** Clamps a requested [progress] (as TalkBack or a test sends it) to [range]. */

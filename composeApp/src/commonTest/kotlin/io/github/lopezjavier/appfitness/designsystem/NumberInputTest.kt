@@ -160,21 +160,23 @@ class NumberInputTest {
     }
 
     @Test
-    fun colors_unfocused_borderStrong_focused_cyan() {
-        assertEquals(c.borderStrong, colors(focused = false).border)
-        assertEquals(c.athleticCyan, colors(focused = true).border)
+    fun colors_unfocused_borderControl_focused_lime() {
+        assertEquals(c.borderControl, colors(focused = false).border)
+        assertEquals(c.neonLime, colors(focused = true).border)
+        assertEquals(c.surfaceControl, colors(focused = false).container)
+        assertEquals(c.textTertiary, colors(focused = false).placeholder)
     }
 
     @Test
     fun colors_readOnly_neverFocusBorder() =
-        assertEquals(c.borderStrong, colors(focused = true, readOnly = true).border)
+        assertEquals(c.borderControl, colors(focused = true, readOnly = true).border)
 
     @Test
-    fun colors_placeholder_isTextSecondary_text_isTextPrimary() {
+    fun colors_placeholder_isTextTertiary_text_isTextPrimary() {
         val colors = colors(focused = false)
-        assertEquals(c.textSecondary, colors.placeholder)
+        assertEquals(c.textTertiary, colors.placeholder)
         assertEquals(c.textPrimary, colors.text)
-        assertEquals(c.surfaceOverlay, colors.container)
+        assertEquals(c.surfaceControl, colors.container)
         assertEquals(c.textSecondary, colors.label)
         assertEquals(c.athleticCyan, colors.cursor)
     }

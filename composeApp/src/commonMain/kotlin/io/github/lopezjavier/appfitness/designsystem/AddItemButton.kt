@@ -5,6 +5,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import io.github.lopezjavier.appfitness.composeapp.resources.Res
 import io.github.lopezjavier.appfitness.composeapp.resources.add_item
+import io.github.lopezjavier.appfitness.composeapp.resources.ic_add
 import org.jetbrains.compose.resources.stringResource
 
 /**
@@ -18,5 +19,6 @@ fun AddItemButton(objectLabel: String, onClick: () -> Unit, modifier: Modifier =
         onClick = onClick,
         modifier = modifier.fillMaxWidth(),
         enabled = enabled,
+        leadingIcon = Res.drawable.ic_add,
     )
 }
