@@ -45,16 +45,21 @@ internal fun NavIcon(item: AppNavigationItem, selected: Boolean) {
     )
 }
 
+/** The label hides itself from semantics by default (the item carries the description); tests pass a plain [modifier]. */
 @Composable
-internal fun NavLabel(item: AppNavigationItem, selected: Boolean) {
+internal fun NavLabel(
+    item: AppNavigationItem,
+    selected: Boolean,
+    modifier: Modifier = Modifier.clearAndSetSemantics {},
+) {
     CompositionLocalProvider(LocalDensity provides clampedLabelDensity()) {
         Text(
-            text = stringResource(item.label).uppercase(),
-            style = AppNavigationDefaults.labelStyle(AppTheme.typography.labelTechnical, selected),
+            text = stringResource(item.label),
+            style = AppNavigationDefaults.labelStyle(AppTheme.typography.bodySmall, selected),
             maxLines = 1,
             softWrap = false,
             overflow = TextOverflow.Visible,
-            modifier = Modifier.clearAndSetSemantics {},
+            modifier = modifier,
         )
     }
 }

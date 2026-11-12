@@ -80,7 +80,7 @@ fun EnergyStrategySection(
         Row(verticalAlignment = Alignment.CenterVertically) {
             Text(
                 text = stringResource(Res.string.energy_heading),
-                style = AppTheme.typography.titleLarge,
+                style = AppTheme.typography.titleSection,
                 color = AppTheme.colors.textPrimary,
                 modifier = Modifier.weight(1f).semantics { heading() },
             )

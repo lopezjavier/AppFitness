@@ -7,6 +7,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.semantics.getOrNull
 import androidx.compose.ui.test.assertContentDescriptionEquals
@@ -21,7 +22,10 @@ import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.text.TextLayoutResult
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
@@ -122,6 +126,29 @@ class ListComponentsTest {
         rule.onNodeWithTag(
             "header",
         ).assertTextContains("Comidas", substring = true).assertTextContains("3", substring = true)
+    }
+
+    @Test
+    fun listSectionHeader_rendersWithTheTitleSectionStyle() {
+        var expected: TextStyle? = null
+        rule.setContent {
+            AppTheme {
+                expected = AppTheme.typography.titleSection
+                ListSectionHeader("Comidas")
+            }
+        }
+
+        val results = mutableListOf<TextLayoutResult>()
+        rule.onNodeWithText(
+            "Comidas",
+            useUnmergedTree = true,
+        ).fetchSemanticsNode().config[SemanticsActions.GetTextLayoutResult]
+            .action!!(results)
+
+        val style = results.single().layoutInput.style
+        assertEquals(expected!!.fontSize, style.fontSize)
+        assertEquals(expected.fontWeight, style.fontWeight)
+        assertEquals(18.sp, style.fontSize)
     }
 
     @Test

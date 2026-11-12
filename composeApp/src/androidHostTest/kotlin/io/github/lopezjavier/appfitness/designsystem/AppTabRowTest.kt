@@ -1,5 +1,6 @@
 package io.github.lopezjavier.appfitness.designsystem
 
+import androidx.compose.foundation.layout.width
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalDensity
@@ -19,6 +20,7 @@ import androidx.compose.ui.test.performClick
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.height
+import androidx.compose.ui.unit.width
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Rule
@@ -28,6 +30,7 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 
 /** [AppTabRow]: selected semantics, 48 dp tabs, callbacks and large font scales. */
+@Suppress("TooManyFunctions") // One scenario per test.
 @RunWith(RobolectricTestRunner::class)
 @Config(qualifiers = "w360dp-h800dp-xxhdpi")
 class AppTabRowTest {
@@ -86,38 +89,82 @@ class AppTabRowTest {
         AppOption("Preguntar", "five_chat"),
     )
 
-    private fun showFive(fontScale: Float) {
+    // 100 dp gives each of five tabs 20 dp, less than the 24 dp of label padding, so the row always has to scroll.
+    private fun showFive(fontScale: Float, selected: Int = 0) {
         rule.setContent {
             CompositionLocalProvider(LocalDensity provides Density(LocalDensity.current.density, fontScale)) {
-                AppTheme { AppTabRow(fiveOptions, 0, {}, Modifier) }
+                AppTheme { AppTabRow(fiveOptions, selected, {}, Modifier.width(100.dp)) }
             }
         }
         rule.waitForIdle()
     }
 
-    @Test
-    fun fiveTabs_at360Dp_showEveryTab_andEachWordFitsItsTabWithoutClipping() {
-        showFive(fontScale = 1f)
-
-        val tabs = fiveOptions.map { rule.onNodeWithTag(it.testTag).assertIsDisplayed().getUnclippedBoundsInRoot() }
+    private fun assertScrollingTabsKeepLabelsOnOneLine() {
+        val tabs = fiveOptions.map { rule.onNodeWithTag(it.testTag).getUnclippedBoundsInRoot() }
         fiveOptions.forEachIndexed { index, option ->
-            // A single-word label that fits on one line is never split mid-word.
             val label = rule.onNodeWithText(option.label, useUnmergedTree = true).getUnclippedBoundsInRoot()
+            assertTrue(tabs[index].width >= 72.dp)
             assertTrue(label.left >= tabs[index].left && label.right <= tabs[index].right)
-            if (!option.label.contains(' ')) assertTrue(label.height < 28.dp)
+            assertTrue(label.height < 28.dp)
         }
+        assertTrue(tabs.last().right > 100.dp)
     }
 
     @Test
-    fun fiveTabs_at130PercentFont_keepEveryLabelInsideItsTab() {
+    fun fiveTabs_at100Dp_scrollWithWideTabs_andNeverBreakAWord() {
+        showFive(fontScale = 1f)
+
+        assertScrollingTabsKeepLabelsOnOneLine()
+    }
+
+    @Test
+    fun fiveTabs_at130PercentFont_scrollWithWideTabs_andNeverBreakAWord() {
         showFive(fontScale = 1.3f)
 
-        val tabs = fiveOptions.map { rule.onNodeWithTag(it.testTag).assertIsDisplayed().getUnclippedBoundsInRoot() }
-        fiveOptions.forEachIndexed { index, option ->
-            val label = rule.onNodeWithText(option.label, useUnmergedTree = true).getUnclippedBoundsInRoot()
-            assertTrue(label.left >= tabs[index].left && label.right <= tabs[index].right)
-            assertTrue(label.top >= tabs[index].top && label.bottom <= tabs[index].bottom)
+        assertScrollingTabsKeepLabelsOnOneLine()
+    }
+
+    // Robolectric measures text at ~0 width, so every longest word "fits" and the row stays equal-weight here;
+    // the scrolling branch is covered at 100 dp above and the real word-fit decision is checked on a device.
+    private fun assertEqualWeightFiveTabsAt328Dp(fontScale: Float) {
+        rule.setContent {
+            CompositionLocalProvider(LocalDensity provides Density(LocalDensity.current.density, fontScale)) {
+                AppTheme { AppTabRow(fiveOptions, 0, {}, Modifier.width(328.dp)) }
+            }
         }
+        rule.waitForIdle()
+
+        val tabs = fiveOptions.map { rule.onNodeWithTag(it.testTag).assertIsDisplayed().getUnclippedBoundsInRoot() }
+        // Pixel rounding of equal weights may differ by under 1 dp.
+        assertTrue(tabs.maxOf { it.width.value } - tabs.minOf { it.width.value } < 1f)
+        assertTrue(tabs.last().right <= 328.dp)
+        assertTrue(tabs.all { it.height >= 48.dp })
+    }
+
+    @Test
+    fun fiveTabs_at328Dp_areEqualWeightInTheTestEnvironment() {
+        assertEqualWeightFiveTabsAt328Dp(fontScale = 1f)
+    }
+
+    @Test
+    fun fiveTabs_at328DpAnd130PercentFont_areEqualWeightInTheTestEnvironment() {
+        assertEqualWeightFiveTabsAt328Dp(fontScale = 1.3f)
+    }
+
+    @Test
+    fun fiveTabs_keepTheSelectedTabVisible_whenItIsTheLastOne() {
+        showFive(fontScale = 1f, selected = 4)
+
+        rule.onNodeWithTag("five_chat").assertIsDisplayed().assertIsSelected()
+    }
+
+    @Test
+    fun threeTabs_at360Dp_shareTheWidthEquallyWithoutScrolling() {
+        show()
+
+        val tabs = options.map { rule.onNodeWithTag(it.testTag).assertIsDisplayed().getUnclippedBoundsInRoot() }
+        assertEquals(1, tabs.map { it.width }.distinct().size)
+        assertEquals(360.dp, tabs.last().right)
     }
 
     @Test

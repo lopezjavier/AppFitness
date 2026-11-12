@@ -46,7 +46,7 @@ class AppNavigationTest {
 
     @Test
     fun labelStyle_selectedIsExtraBold_unselectedIsSemiBold() {
-        val base = appTypography(FontFamily.Default).labelTechnical
+        val base = appTypography(FontFamily.Default).bodySmall
         val selected = AppNavigationDefaults.labelStyle(base, selected = true)
         val unselected = AppNavigationDefaults.labelStyle(base, selected = false)
         assertEquals(FontWeight.W800, selected.fontWeight)
@@ -58,7 +58,7 @@ class AppNavigationTest {
     @Test
     fun contentHeight_andIconSize_matchTheMockup() {
         assertEquals(64.dp, AppNavigationDefaults.ContentHeight)
-        assertEquals(22.dp, AppNavigationDefaults.IconSize)
+        assertEquals(24.dp, AppNavigationDefaults.IconSize)
     }
 
     @Test

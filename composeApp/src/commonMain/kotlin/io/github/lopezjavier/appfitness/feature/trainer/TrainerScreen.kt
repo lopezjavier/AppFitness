@@ -29,6 +29,7 @@ import io.github.lopezjavier.appfitness.designsystem.AppCard
 import io.github.lopezjavier.appfitness.designsystem.AppScreen
 import io.github.lopezjavier.appfitness.designsystem.AppShapes
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
+import io.github.lopezjavier.appfitness.designsystem.AppTopBarDefaults
 import io.github.lopezjavier.appfitness.designsystem.NavigationRow
 import io.github.lopezjavier.appfitness.designsystem.SkeletonBox
 import io.github.lopezjavier.appfitness.designsystem.Spacing
@@ -202,7 +203,7 @@ private fun TrainerHeader(title: String) {
     ) {
         Text(
             text = title,
-            style = AppTheme.typography.titleLarge,
+            style = AppTopBarDefaults.titleStyle,
             color = AppTheme.colors.textPrimary,
             modifier = Modifier.weight(1f).semantics { heading() },
         )

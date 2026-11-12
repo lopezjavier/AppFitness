@@ -69,8 +69,8 @@ enum class AppNavigationType { Bar, Rail }
 
 /** Sizes, colours and label style of [AppNavigation]. */
 object AppNavigationDefaults {
-    /** Icon glyph size (mockup: 22). */
-    val IconSize: Dp = 22.dp
+    /** Icon glyph size (C-16: 24). */
+    val IconSize: Dp = 24.dp
 
     /** Bar height above the system navigation inset (mockup: 64). */
     val ContentHeight: Dp = 64.dp
@@ -106,16 +106,16 @@ object AppNavigationDefaults {
         indicator = Color.Transparent,
     )
 
-    /** Active label is extra-bold (W800), the rest keep the base weight: the non-colour cue of the active tab. */
+    /** Active label is extra-bold (W800), the rest semi-bold (W600): the non-colour cue of the active tab. */
     fun labelStyle(base: TextStyle, selected: Boolean): TextStyle =
-        if (selected) base.copy(fontWeight = FontWeight.W800) else base
+        base.copy(fontWeight = if (selected) FontWeight.W800 else FontWeight.W600)
 }
 
 /**
  * Navigation for the top-level tabs: a bottom bar on phones, a side rail from 600 dp wide. The selected
  * item uses `neonLime`, an extra-bold label and its filled icon when it has one, with no pill
- * (ADR-22); the rest use `textSecondary`. Labels are uppercase and their font scale is clamped to
- * 130% so the longest one never clips; each item keeps the original casing as its content description.
+ * (ADR-22); the rest use `textSecondary`. Labels are sentence case (12 sp) and their font scale is clamped to
+ * 130% so the longest one never clips; each item exposes its label as the content description.
  *
  * @param items destinations in display order.
  * @param selectedIndex index into [items] of the active destination.

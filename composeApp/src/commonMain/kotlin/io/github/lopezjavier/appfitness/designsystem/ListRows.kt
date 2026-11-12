@@ -18,6 +18,7 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.style.TextOverflow
 import io.github.lopezjavier.appfitness.composeapp.resources.Res
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_chevron_right
@@ -37,6 +38,8 @@ object NavigationRowDefaults {
  * tag (pass it in [modifier]); [supportingTestTag] tags the supporting line;
  * [onClickLabel] is what a screen reader announces for the tap. [headlineTrailing] (default none) sits in the same
  * line right after the headline text, which shrinks first (an inline marker such as a favourite star).
+ * [headlineStyle] (default `bodyLarge`) and [headlineMaxLines] (default 2) restyle the headline; [supportingSecondary]
+ * is a second `bodyMedium` line below [supporting].
  */
 @Composable
 fun AppListRow(
@@ -50,6 +53,9 @@ fun AppListRow(
     enabled: Boolean = true,
     onClickLabel: String? = null,
     headlineTrailing: (@Composable () -> Unit)? = null,
+    headlineStyle: TextStyle? = null,
+    headlineMaxLines: Int = HEADLINE_MAX_LINES,
+    supportingSecondary: String? = null,
 ) {
     val clickable =
         if (onClick != null) {
@@ -71,9 +77,9 @@ fun AppListRow(
             val headlineText: @Composable (Modifier) -> Unit = { textModifier ->
                 Text(
                     text = headline,
-                    style = AppTheme.typography.bodyLarge,
+                    style = headlineStyle ?: AppTheme.typography.bodyLarge,
                     color = AppTheme.colors.textPrimary,
-                    maxLines = HEADLINE_MAX_LINES,
+                    maxLines = headlineMaxLines,
                     overflow = TextOverflow.Ellipsis,
                     modifier = textModifier,
                 )
@@ -97,9 +103,21 @@ fun AppListRow(
                     modifier = if (supportingTestTag != null) Modifier.testTag(supportingTestTag) else Modifier,
                 )
             }
+            if (supportingSecondary != null) SingleLineSupporting(supportingSecondary)
         }
         trailing?.invoke()
     }
+}
+
+@Composable
+private fun SingleLineSupporting(text: String) {
+    Text(
+        text = text,
+        style = AppTheme.typography.bodyMedium,
+        color = AppTheme.colors.textSecondary,
+        maxLines = 1,
+        overflow = TextOverflow.Ellipsis,
+    )
 }
 
 /**
@@ -139,7 +157,7 @@ fun NavigationRow(
 }
 
 /**
- * Title of a group of rows (`titleLarge`, heading semantics) with an optional [count] in `textSecondary` after it
+ * Title of a group of rows (`titleSection`, heading semantics) with an optional [count] in `textSecondary` after it
  * (plain text, not a pill). Named `ListSectionHeader` so it never clashes with the feature-private copies.
  */
 @Composable
@@ -149,7 +167,7 @@ fun ListSectionHeader(title: String, modifier: Modifier = Modifier, count: Int? 
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
     ) {
-        Text(text = title, style = AppTheme.typography.titleLarge, color = AppTheme.colors.textPrimary)
+        Text(text = title, style = AppTheme.typography.titleSection, color = AppTheme.colors.textPrimary)
         if (count != null) {
             Text(text = count.toString(), style = AppTheme.typography.bodyMedium, color = AppTheme.colors.textSecondary)
         }

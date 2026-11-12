@@ -40,6 +40,8 @@ import androidx.compose.ui.semantics.SemanticsPropertyReceiver
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Density
@@ -61,6 +63,10 @@ object AppTopBarDefaults {
 
     /** Optical offset: the back arrow glyph box sits on the screen margin while the touch target stays 48 dp. */
     val StartPaddingWithNavigation: Dp = Spacing.screenMargin - (NavigationTouchTarget - NavigationIconSize) / 2
+
+    /** Screen-title style (`titleLarge` forced to W700, C-13); tab headings that replace a top bar share it. */
+    val titleStyle: TextStyle
+        @Composable get() = AppTheme.typography.titleLarge.copy(fontWeight = FontWeight.W700)
 
     const val TestTag = "topbar"
 
@@ -169,7 +175,7 @@ fun AppTopBar(
         Column(Modifier.weight(1f).padding(vertical = if (subtitle != null) Spacing.xs else Spacing.none)) {
             Text(
                 text = title,
-                style = AppTheme.typography.titleLarge,
+                style = AppTopBarDefaults.titleStyle,
                 color = colors.textPrimary,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
