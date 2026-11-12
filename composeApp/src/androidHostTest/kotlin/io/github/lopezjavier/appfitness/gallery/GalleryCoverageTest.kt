@@ -10,7 +10,7 @@ import kotlin.test.assertTrue
 class GalleryCoverageTest {
     @Test
     fun routeCheck_namesTheRouteWithNoEntry() {
-        val result = GalleryCoverage.failures("route", setOf("A", "B"), setOf("A"), emptyMap(), emptyMap())
+        val result = GalleryCoverage.failures("route", setOf("A", "B"), setOf("A"), emptyMap())
 
         assertEquals(1, result.size)
         assertTrue("B" in result.single(), result.single())
@@ -18,42 +18,76 @@ class GalleryCoverageTest {
 
     @Test
     fun overlayCheck_namesTheOverlayWithNoEntry() {
-        val result = GalleryCoverage.failures(
-            "overlay",
-            setOf("FooSheet", "BarDialog"),
-            setOf("FooSheet"),
-            emptyMap(),
-            emptyMap(),
-        )
+        val result = GalleryCoverage.failures("overlay", setOf("FooSheet", "BarDialog"), setOf("FooSheet"), emptyMap())
 
         assertTrue(result.single().contains("BarDialog"), result.single())
     }
 
     @Test
-    fun exemptAndPendingNames_areNotReportedMissing() {
-        val result = GalleryCoverage.failures(
-            "route",
-            setOf("A", "B", "C"),
-            setOf("A"),
-            mapOf("B" to "no UI"),
-            mapOf("C" to "T-280"),
-        )
+    fun exemptNames_areNotReportedMissing() {
+        val result = GalleryCoverage.failures("route", setOf("A", "B"), setOf("A"), mapOf("B" to "no UI"))
 
         assertTrue(result.isEmpty(), result.toString())
     }
 
     @Test
-    fun pendingNameThatNowHasAnEntry_fails() {
-        val result = GalleryCoverage.failures("route", setOf("A"), setOf("A"), emptyMap(), mapOf("A" to "T-280"))
+    fun exemptionWithBlankReason_fails() {
+        val result = GalleryCoverage.failures("route", setOf("A"), emptySet(), mapOf("A" to " "))
 
-        assertTrue(result.single().contains("A"), result.single())
+        assertTrue(result.any { "no reason" in it }, result.toString())
     }
 
     @Test
-    fun exemptionWithBlankReason_fails() {
-        val result = GalleryCoverage.failures("route", setOf("A"), emptySet(), mapOf("A" to " "), emptyMap())
+    fun designSystemCheck_namesAComponentMissingFromTheCatalog() {
+        val components = GalleryCoverage.designSystemComposables(
+            listOf("@Composable\nfun AppShownButton() {}\n\n@Composable\nfun AppMissingBadge() {}\n"),
+        )
 
-        assertTrue(result.any { "no reason" in it }, result.toString())
+        val result = GalleryCoverage.designSystemGaps(components, "AppShownButton()", emptyMap())
+
+        assertEquals(setOf("AppShownButton", "AppMissingBadge"), components)
+        assertTrue(result.single().contains("AppMissingBadge"), result.toString())
+    }
+
+    @Test
+    fun designSystemScan_skipsPrivateFunctionsAndPreviews() {
+        val components = GalleryCoverage.designSystemComposables(
+            listOf(
+                "@Composable\nprivate fun Hidden() {}\n@Preview\n@Composable\nfun PreviewCard() {}\nfun Plain() {}\n",
+            ),
+        )
+
+        assertTrue(components.isEmpty(), components.toString())
+    }
+
+    @Test
+    fun designSystemCheck_aNameOnlyMentionedWithoutACall_isNotShown() {
+        val mentioned = GalleryCoverage.designSystemGaps(setOf("AppChip"), "// see AppChip for details", emptyMap())
+        val called = GalleryCoverage.designSystemGaps(setOf("AppChip"), "AppChip(label = \"x\")", emptyMap())
+
+        assertEquals(1, mentioned.size, mentioned.toString())
+        assertTrue(called.isEmpty(), called.toString())
+    }
+
+    @Test
+    fun designSystemExemption_thatIsShownNowOrStale_fails() {
+        val result = GalleryCoverage.designSystemGaps(
+            setOf("AppShown"),
+            "AppShown()",
+            mapOf("AppShown" to "was missing", "AppGone" to "removed"),
+        )
+
+        assertTrue(result.any { "AppShown" in it && "shown" in it }, result.toString())
+        assertTrue(result.any { "AppGone" in it }, result.toString())
+    }
+
+    @Test
+    fun catalogSectionTags_areReadFromTheSectionLiterals() {
+        val tags = GalleryCoverage.catalogSectionTags(
+            listOf("CatalogSection(stringResource(x), \"catalog_section_cards\") {}\n\"catalog_section_chips\""),
+        )
+
+        assertEquals(listOf("catalog_section_cards", "catalog_section_chips"), tags)
     }
 
     @Test
@@ -86,6 +120,25 @@ class GalleryCoverageTest {
         )
 
         assertTrue(result.containsAll(setOf("NewThingSheet", "OtherDialog", "ModalBottomSheet")))
+    }
+
+    @Test
+    fun realDesignSystem_everyComponentIsInTheCatalogOrExempt() {
+        val failures = GalleryChecks.designSystemFailures()
+
+        assertTrue(failures.isEmpty(), failures.joinToString("\n"))
+    }
+
+    @Test
+    fun showcase_hasOneEntryPerCatalogSection() {
+        val sections = GalleryCoverage.catalogSectionTags(
+            GalleryCoverage.readSources(File(GalleryChecks.SOURCE_ROOT, "feature/catalog")).values,
+        )
+
+        val entries = designSystemEntries()
+        assertTrue(sections.isNotEmpty())
+        assertEquals(sections.size, entries.count { it.tall })
+        assertTrue(entries.all { it.area == DESIGN_SYSTEM_AREA })
     }
 
     @Test

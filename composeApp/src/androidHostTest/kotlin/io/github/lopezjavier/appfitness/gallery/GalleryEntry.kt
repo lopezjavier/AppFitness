@@ -4,7 +4,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.test.junit4.ComposeContentTestRule
 
 /** Index areas, in the order the index lists them. */
-internal val GALLERY_AREAS = listOf("Inicio", "Diario", "Entreno", "Trainer", "Perfil", "Compartido")
+internal val GALLERY_AREAS = listOf("Inicio", "Diario", "Entreno", "Trainer", "Perfil", "Compartido", "Design system")
 
 /** What an entry shows. */
 internal enum class GalleryKind { Screen, Sheet, Dialog }
@@ -25,6 +25,8 @@ internal class GalleryEntry(
     val covers: Set<String> = emptySet(),
     val alsoOpenedFrom: List<String> = emptyList(),
     val wide: Boolean = false,
+    /** Renders the entry on a 2200 dp tall window (a long screen such as the design system catalog). */
+    val tall: Boolean = false,
     val fontScale: Float = 1f,
     val interact: (ComposeContentTestRule.() -> Unit)? = null,
     val content: @Composable () -> Unit,

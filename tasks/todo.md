@@ -173,12 +173,13 @@ Mitigations:
 - [ ] The check has no pending list; only the documented exemptions (debug catalog, system UIs, the system notification) remain.
 - [ ] (user request, 2026-11-12) The gallery also renders a "Design system" showcase page: a dummy UI with every `designsystem/` component and its variants (states, sizes, dark theme), as its own index area, so the design system can be reviewed in one image set. It sits next to the debug catalog exemption (`CatalogRoute` stays exempt); the planner decides whether the showcase is a new gallery entry group or reuses the catalog's composables.
 - [ ] No production behaviour changes; existing host tests and goldens green; `check-ux-conventions.sh` passes.
-**Host tests:** the gallery tests of both areas; the missing-screen check green with an empty pending list.
+**Recorded gaps (PM, 2026-11-12; owner: the review rounds T-281…T-284):** (1) 45 `designsystem/` components are not in the debug catalog, so the showcase cannot show them; they are named, each with a reason, in `GalleryManifest.designSystemExempt`; each round adds to the catalog the components of its area (R-39) and removes them from the map. (2) Not covered, no UI exists: WeekSummary paused week (the summary model has no pause field), PlanProposal replace sheet. (3) Production finding for round 2: the date dialogs (`AppDatePickerDialog`, seen on the past-workout form) show English "Select date" and "Listo"; proposed fix in the component so every date dialog is swept at once, copy "Seleccionar fecha" / "Aceptar" (ux-reviewer, to be decided by the user in the round).
+**Host tests:** the gallery tests of both areas; the missing-screen check green with no pending list (exemptions carry a reason).
 **Verification:**
 - [ ] lint + host tests green (`verify-local.sh --full`); the full gallery artifact on the PR's CI run, index linked in the PR body.
 **Agent runs:** 6. About 12-18 files.
 **Dependencies:** T-279 merged.
-**Files likely touched:** `composeApp/src/androidHostTest/.../gallery/{EntrenoGallery,TrainerGallery}*.kt`, fixtures, the check's pending list
+**Files likely touched:** `composeApp/src/androidHostTest/.../gallery/{EntrenoGallery,TrainerGallery}*.kt`, fixtures, the check (no pending list)
 **Estimated scope:** L
 
 ---

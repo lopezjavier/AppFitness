@@ -289,16 +289,16 @@ class PerfilGallery {
     @Test
     fun rendersProfileAndPreferences() = rule.renderGallery(
         (profileRoot() + preferences() + about()).filter {
-            !it.wide
+            !it.wide && !it.tall
         },
     )
 
     @Test
-    fun rendersMeals() = rule.renderGallery(perfilMealsEntries().filter { !it.wide })
+    fun rendersMeals() = rule.renderGallery(perfilMealsEntries().filter { !it.wide && !it.tall })
 
     @Test
-    fun rendersWeight() = rule.renderGallery(perfilWeightEntries().filter { !it.wide })
+    fun rendersWeight() = rule.renderGallery(perfilWeightEntries().filter { !it.wide && !it.tall })
 
     @Test
-    fun rendersStatistics() = rule.renderGallery(perfilStatsEntries().filter { !it.wide })
+    fun rendersStatistics() = rule.renderGallery(perfilStatsEntries().filter { !it.wide && !it.tall })
 }
