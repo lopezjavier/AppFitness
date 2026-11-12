@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Immutable
@@ -111,14 +112,19 @@ object SetRowDefaults {
 
     // Weighted columns (sum 8): previous / KG / reps.
     const val PREVIOUS_WEIGHT = 2.5f
-    const val KG_WEIGHT = 3.5f
-    const val REPS_WEIGHT = 2f
+    const val KG_WEIGHT = 3.25f
+    const val REPS_WEIGHT = 2.25f
 
-    // Weighted columns when the fixed 48 dp RPE cell is present (UX: ~48 / 64 / 43 dp at 360 dp).
-    const val PREVIOUS_WEIGHT_RPE = 2.25f
-    const val KG_WEIGHT_RPE = 3f
-    const val REPS_WEIGHT_RPE = 2f
+    // Weighted columns when the fixed 48 dp RPE cell is present (sum 7.4; REPS keeps a 48 dp touch target, V-2).
+    const val PREVIOUS_WEIGHT_RPE = 2.1f
+    const val KG_WEIGHT_RPE = 2.8f
+    const val REPS_WEIGHT_RPE = 2.5f
+
+    /** Start inset of a row and its header when the RPE cell is present, so the columns fit at 360 dp. */
+    val RpeInset: Dp = Spacing.sm
     const val PREVIOUS_MAX_LINES_RPE = 3
+
+    fun rpeInset(withRpe: Boolean): Dp = if (withRpe) RpeInset else 0.dp
 
     fun previousWeight(withRpe: Boolean): Float = if (withRpe) PREVIOUS_WEIGHT_RPE else PREVIOUS_WEIGHT
 
@@ -148,7 +154,7 @@ object SetRowDefaults {
  * `_weight`, `_reps`, `_check`, `_type` (the badge) and `_rpe`. [onTypeClick]
  * (optional) makes the badge a 48 dp button described by [typeClickLabel]. [onRpeClick] (optional) adds a fixed
  * 48 dp RPE cell between reps and the checkbox, spoken as [rpeClickLabel]; it stays tappable on completed rows.
- * Without [showPrevious] the "Anterior" column is gone and the inputs take its width (the live row, which has the
+ * Without [showPrevious] the "Antes" column is gone and the inputs take its width (the live row, which has the
  * note button).
  * [trailing] is an optional 48 dp action after the checkbox (the set note, R-49); pass `showNote` to the header too.
  * Pair it with a [SetTableHeader] above, which names the columns.
@@ -176,7 +182,9 @@ fun SetRow(
     val previousText = SetRowDefaults.previousText(values.previous)
     val clickable = SetRowDefaults.isPreviousClickable(onUsePrevious != null, values.previous, values.completed)
     Row(
-        modifier = modifier.fillMaxWidth().heightIn(min = SetRowDefaults.MinHeight),
+        modifier = modifier.fillMaxWidth().padding(
+            start = SetRowDefaults.rpeInset(withRpe),
+        ).heightIn(min = SetRowDefaults.MinHeight),
         horizontalArrangement = Arrangement.spacedBy(SetRowDefaults.ColumnGap),
         verticalAlignment = Alignment.CenterVertically,
     ) {
@@ -240,7 +248,9 @@ private fun RowScope.SetFieldCells(
     val number = AppNumberFormat.integer(values.index)
     val weights = SetRowFieldLayout.weights(fields, withRpe, cardioTime = values.cardioPlaceholder != null)
     fields.forEachIndexed { position, spec ->
-        val cellModifier = Modifier.weight(weights[position]).tag(testTagPrefix, spec.kind.tagPart)
+        val cellModifier = Modifier.weight(weights[position]).tag(testTagPrefix, spec.kind.tagPart).let {
+            if (spec.kind == SetFieldKind.Reps) it.widthIn(min = SetCompletionCheckboxDefaults.TouchTarget) else it
+        }
         if (spec.kind == SetFieldKind.Duration && values.cardioPlaceholder != null) {
             CardioTimeCell(
                 elapsedSeconds = values.durationSeconds,
@@ -297,7 +307,7 @@ private fun PreviousCell(
         Text(
             text = text,
             style = AppTheme.typography.bodySmall,
-            color = AppTheme.colors.ghostData,
+            color = AppTheme.colors.textTertiary,
             maxLines = maxLines,
             modifier = textModifier,
         )
@@ -339,7 +349,7 @@ private fun RpeCell(value: String?, description: String?, onClick: () -> Unit, m
 }
 
 /**
- * Column headers of a set table ("TIPO · ANTERIOR · KG · REPS · LISTO") on the same column widths as
+ * Column headers of a set table ("TIPO · ANTES · KG · REPS · LISTO") on the same column widths as
  * [SetRow]. Not interactive: each field speaks its own label.
  */
 @Composable
@@ -353,7 +363,7 @@ fun SetTableHeader(
     cardioTime: Boolean = false,
 ) {
     Row(
-        modifier = modifier.fillMaxWidth(),
+        modifier = modifier.fillMaxWidth().padding(start = SetRowDefaults.rpeInset(showRpe)),
         horizontalArrangement = Arrangement.spacedBy(SetRowDefaults.ColumnGap),
         verticalAlignment = Alignment.CenterVertically,
     ) {

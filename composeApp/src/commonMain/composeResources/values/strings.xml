@@ -117,7 +117,7 @@
     <string name="catalog_trend_caution">+0,35 kg esta semana</string>
     <string name="set_header_type">Tipo</string>
     <string name="set_header_type_cd">Tipo de serie</string>
-    <string name="set_header_previous">Anterior</string>
+    <string name="set_header_previous">Antes</string>
     <string name="set_header_weight">Kg</string>
     <string name="set_header_reps">Reps</string>
     <string name="set_header_weight_cd">Kilos</string>

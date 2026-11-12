@@ -250,7 +250,7 @@ private fun TextFieldBox(
             .fillMaxWidth()
             .heightIn(min = AppTextFieldDefaults.MinHeight)
             .clip(AppShapes.base)
-            .background(colors.surfaceOverlay)
+            .background(AppInputStyle.container(colors))
             .border(
                 AppTextFieldDefaults.borderWidth(focused, hasError),
                 AppTextFieldDefaults.borderColor(focused, hasError, colors),
@@ -273,7 +273,7 @@ private fun TextFieldBox(
                 Text(
                     text = placeholder,
                     style = textStyle,
-                    color = colors.ghostData,
+                    color = colors.textTertiary,
                     maxLines = 1,
                     modifier = Modifier.clearAndSetSemantics {},
                 )

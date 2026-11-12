@@ -8,11 +8,14 @@ import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.assertHasClickAction
 import androidx.compose.ui.test.assertHeightIsAtLeast
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.assertTextContains
+import androidx.compose.ui.test.getUnclippedBoundsInRoot
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.height
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
@@ -65,7 +68,9 @@ class ExerciseStatusRowTest {
                     marker = {},
                     testTag = "row",
                     trailing = {
-                        GhostButton("Ya no me molesta", onClick = { trailing++ }, modifier = Modifier.testTag("act"))
+                        ExerciseStatusTextAction("Ya no me molesta", onClick = {
+                            trailing++
+                        }, modifier = Modifier.testTag("act"))
                     },
                 )
             }
@@ -75,6 +80,62 @@ class ExerciseStatusRowTest {
 
         assertEquals(1, trailing)
         assertFalse(rule.onNodeWithTag("row").fetchSemanticsNode().config.contains(SemanticsActions.OnClick))
+    }
+
+    @Test
+    fun textAction_is48dpTall_andClickedOnce() {
+        var clicks = 0
+        rule.setContent {
+            AppTheme {
+                ExerciseStatusTextAction("Ya no me molesta", onClick = { clicks++ }, modifier = Modifier.testTag("act"))
+            }
+        }
+
+        rule.onNodeWithTag("act").assertHeightIsAtLeast(48.dp).performClick()
+
+        assertEquals(1, clicks)
+    }
+
+    @Test
+    fun textAction_disabled_isNotClickable() {
+        var clicks = 0
+        rule.setContent {
+            AppTheme {
+                ExerciseStatusTextAction(
+                    "Ya no me molesta",
+                    onClick = { clicks++ },
+                    modifier = Modifier.testTag("act"),
+                    enabled = false,
+                )
+            }
+        }
+
+        rule.onNodeWithTag("act").assertIsNotEnabled().performClick()
+
+        assertEquals(0, clicks)
+    }
+
+    @Test
+    fun longLevelText_wrapsAtWordBoundaries_ratherThanBreakingTheAction() {
+        rule.setContent {
+            AppTheme {
+                ExerciseStatusRow(
+                    text = "Dolor agudo que limita el movimiento",
+                    marker = {},
+                    testTag = "row",
+                    textTestTag = "level",
+                    trailing = {
+                        ExerciseStatusTextAction("Ya no me molesta", onClick = {}, modifier = Modifier.testTag("act"))
+                    },
+                )
+            }
+        }
+
+        val action = rule.onNodeWithTag("act").getUnclippedBoundsInRoot()
+        val level = rule.onNodeWithTag("level").getUnclippedBoundsInRoot()
+        // The action keeps a single line (about one touch target tall); the level text takes at most 3 lines.
+        assertTrue("action wrapped: ${action.height}", action.height < 64.dp)
+        assertTrue("level too tall: ${level.height}", level.height <= 72.dp)
     }
 
     @Test
