@@ -11,7 +11,20 @@ Live summary of what is built in `composeApp/.../designsystem/`; full tables, co
 ### 2.1 Surfaces and text
 `surfaceBase #0B0F14` (background, bars) · `surfaceRaised #121820` (cards) · `surfaceOverlay #1A222D` (sheets, inputs, chips) · `borderSubtle` white 8 % · `borderStrong` white 12 % · `divider` white 4 % · `textPrimary #E0E2EA` · `textSecondary #C2CAB0` · `ghostData` white 36 % (previous values, placeholders; never the only cue) · `scrim` black 65 %.
 ### 2.1a Round 0 amendments (T-288, US-123; PENDING until the user approves them in the emulator; ledger C-01…C-19, V-1…V-4)
-These override the values above where they differ; the contrast figures were hand-computed and the planner must re-check each before code (target AA 4.5:1 text, 3:1 graphics).
+These override the values above where they differ. Contrast figures were re-checked in T-289 (sRGB relative luminance) and are asserted in `ContrastTest` (target AA 4.5:1 text, 3:1 graphics):
+
+| Pair | Ratio | Verdict |
+|---|---|---|
+| `textSecondary` on base / raised / overlay / control | 9.1 / 8.4 / 7.6 / 6.5 | pass |
+| `textTertiary` on base / raised / overlay / control | 6.5 / 6.0 / 5.4 / 4.65 | pass; the margin on `surfaceControl` is 0.15, never darken the token |
+| `neonLime` label on `selectedContainer` | 6.5 | pass |
+| `neonLime` 1 dp border vs base / vs `selectedContainer` | 12.7 / 6.5 | pass (3:1) |
+| `selectedContainer` fill vs base | 1.95 | fails alone: the border carries the state (R-64, R-41), never the fill |
+| `borderControl` over base / raised / overlay / control | 3.3 / 4.1 / 3.3 / 3.1 | pass (3:1) |
+| `trackInactive` on raised / base | 1.6 / 1.56 | fails 3:1 as a graphic (Q1): the track is not the only cue (fill and value text, R-41), and the 4 dp stop dot is `textTertiary` (3.7 vs the track, 6.0 vs raised) |
+| Disabled primary: label `neonLime` 50 % on container 20 % | 3.26 | below AA, accepted: disabled controls are exempt (WCAG 1.4.3, Q2); 60 % would still not reach AA, so keep 50 % |
+
+R-65: `ghostData` is only for disabled content and only inside `designsystem/` (guard G20); data and status text use `textSecondary`, previous values and placeholders `textTertiary`. `surfaceControl` also maps to the M3 `surfaceContainerHighest` role (stock text-field container); `surfaceContainerHigh` stays `surfaceOverlay`.
 - **`textSecondary` #A9B3C4** (was #C2CAB0; C-07).
 - **`textTertiary` #8C97A9** (new; C-03): the previous-set cell, placeholders and wheel neighbours. `ghostData` (white 36 %) is kept only for disabled content.
 - **`surfaceControl` #242E3B** (new; C-06): inputs, steppers, the pending set circle and `SecondaryButton`.

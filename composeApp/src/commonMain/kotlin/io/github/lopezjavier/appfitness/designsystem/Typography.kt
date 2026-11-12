@@ -38,6 +38,8 @@ class AppTypography(
      * pass `text.uppercase()` and keep the original casing in `contentDescription`.
      */
     val labelTechnical: TextStyle,
+    /** `ListSectionHeader` (C-13). */
+    val titleSection: TextStyle,
 )
 
 internal fun appTypography(fontFamily: FontFamily, scale: TypeScale = TypeScale.Phone): AppTypography {
@@ -62,7 +64,8 @@ internal fun appTypography(fontFamily: FontFamily, scale: TypeScale = TypeScale.
         bodyMedium = style(14.sp, 20.sp, FontWeight.W400, 0.em),
         bodySmall = style(12.sp, 16.sp, FontWeight.W400, 0.em),
         labelNumeric = style(18.sp, 22.sp, FontWeight.W700, 0.02.em),
-        labelTechnical = style(11.sp, 14.sp, FontWeight.W600, 0.06.em),
+        labelTechnical = style(11.sp, 14.sp, FontWeight.W600, 0.02.em),
+        titleSection = style(18.sp, 24.sp, FontWeight.W600, 0.em),
     )
 }
 

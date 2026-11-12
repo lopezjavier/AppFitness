@@ -190,7 +190,7 @@ private fun RpeCell(rpe: Double?, number: Int, onClick: () -> Unit, modifier: Mo
         Text(
             text = rpe?.let(RpeScale::text) ?: stringResource(Res.string.set_header_rpe),
             style = AppTheme.typography.labelNumeric,
-            color = if (rpe == null) AppTheme.colors.ghostData else AppTheme.colors.textPrimary,
+            color = if (rpe == null) AppTheme.colors.textTertiary else AppTheme.colors.textPrimary,
         )
     }
 }

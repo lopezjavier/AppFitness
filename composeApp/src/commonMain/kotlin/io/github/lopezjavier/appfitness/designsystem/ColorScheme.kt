@@ -45,7 +45,8 @@ internal fun kineticDarkColorScheme(colors: AppColors = KineticDarkColors): Colo
     surfaceBright = colors.surfaceOverlay,
     surfaceContainer = colors.surfaceOverlay,
     surfaceContainerHigh = colors.surfaceOverlay,
-    surfaceContainerHighest = colors.surfaceOverlay,
+    // The stock text-field container reads this role (05 §2.1a: inputs are surfaceControl).
+    surfaceContainerHighest = colors.surfaceControl,
     surfaceContainerLow = colors.surfaceRaised,
     surfaceContainerLowest = colors.surfaceBase,
     surfaceDim = colors.surfaceBase,

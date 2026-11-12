@@ -49,7 +49,6 @@ class SpacingShapesElevationTest {
         assertEquals(12.dp, AppElevation.sheetShadowOffsetY)
         assertEquals(32.dp, AppElevation.sheetShadowBlur)
         assertEquals((-4).dp, AppElevation.sheetShadowSpread)
-        assertEquals(16.dp, AppElevation.glowBlur)
     }
 
     @Test

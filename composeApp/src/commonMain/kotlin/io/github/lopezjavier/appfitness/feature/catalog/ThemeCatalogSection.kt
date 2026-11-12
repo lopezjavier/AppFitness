@@ -44,9 +44,13 @@ internal val ColorTokens: List<Pair<String, (AppColors) -> Color>> =
         "divider" to { it.divider },
         "textPrimary" to { it.textPrimary },
         "textSecondary" to { it.textSecondary },
+        "textTertiary" to { it.textTertiary },
         "ghostData" to { it.ghostData },
         "scrim" to { it.scrim },
-        "sheetHandle" to { it.sheetHandle },
+        "surfaceControl" to { it.surfaceControl },
+        "borderControl" to { it.borderControl },
+        "selectedContainer" to { it.selectedContainer },
+        "trackInactive" to { it.trackInactive },
         "neonLime" to { it.neonLime },
         "onNeonLime" to { it.onNeonLime },
         "athleticCyan" to { it.athleticCyan },
@@ -60,10 +64,9 @@ internal val ColorTokens: List<Pair<String, (AppColors) -> Color>> =
         "macroCarbs" to { it.macroCarbs },
         "macroFat" to { it.macroFat },
         "shadowSheet" to { it.shadowSheet },
-        "glowLime" to { it.glowLime },
     )
 
-/** The nine styles in the order of design system section 3; the uppercase flag follows the label style rule. */
+/** The ten styles in the order of design system section 3; the uppercase flag follows the label style rule. */
 private val TypeStyles: List<Triple<String, (AppTypography) -> TextStyle, Boolean>> =
     listOf(
         Triple("displayHero", { t: AppTypography -> t.displayHero }, false),
@@ -74,6 +77,7 @@ private val TypeStyles: List<Triple<String, (AppTypography) -> TextStyle, Boolea
         Triple("bodyMedium", { t: AppTypography -> t.bodyMedium }, false),
         Triple("bodySmall", { t: AppTypography -> t.bodySmall }, false),
         Triple("labelNumeric", { t: AppTypography -> t.labelNumeric }, false),
+        Triple("titleSection", { t: AppTypography -> t.titleSection }, false),
         Triple("labelTechnical", { t: AppTypography -> t.labelTechnical }, true),
     )
 
