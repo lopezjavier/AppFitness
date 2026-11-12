@@ -75,6 +75,7 @@ jobs:
       - name: Unused resources guard
         run: |
           python3 -I scripts/tests/test_check_unused_resources.py
+          python3 -I scripts/tests/test_gallery_index.py
           python3 -I scripts/check-unused-resources.py
       - uses: actions/setup-java@v6
         with:
@@ -93,6 +94,17 @@ jobs:
       - name: Test summary
         if: always()
         run: bash scripts/test-summary.sh
+      # T-279: one image per screen state, never compared; review aid (planning/06-agent-workflow.md section 4).
+      - name: Screen gallery
+        run: python3 -I scripts/gallery.py
+      - name: Upload screen gallery
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: screen-gallery
+          path: composeApp/build/gallery/
+          if-no-files-found: ignore
+          retention-days: 14
       - name: Assemble prodDebug APK
         run: ./gradlew :androidApp:assembleProdDebug
       - uses: actions/upload-artifact@v7
