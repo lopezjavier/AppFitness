@@ -196,6 +196,59 @@ class ContrastTest {
         }
     }
 
+    private val textSurfaces
+        get() = mapOf(
+            "base" to c.surfaceBase,
+            "raised" to c.surfaceRaised,
+            "overlay" to c.surfaceOverlay,
+            "control" to c.surfaceControl,
+        )
+
+    @Test
+    fun round0_textSecondaryAndTertiary_overEveryTextSurface_isAa() {
+        textSurfaces.forEach { (name, surface) ->
+            assertAa(c.textSecondary, surface, "textSecondary/$name")
+            assertAa(c.textTertiary, surface, "textTertiary/$name")
+        }
+    }
+
+    @Test
+    fun round0_textTertiaryOnControl_keepsItsNarrowMargin() {
+        // The placeholder on surfaceControl has about 0.15 of margin: darkening the token would break AA.
+        assertTrue(contrastRatio(c.textTertiary, c.surfaceControl) < 4.8f)
+    }
+
+    @Test
+    fun round0_selectedControl_labelAndBorderAreReadable() {
+        assertAa(c.neonLime, c.selectedContainer, "neonLime/selectedContainer")
+        assertTrue(contrastRatio(c.neonLime, c.surfaceBase) >= NON_TEXT, "border vs base")
+        assertTrue(contrastRatio(c.neonLime, c.selectedContainer) >= NON_TEXT, "border vs fill")
+    }
+
+    @Test
+    fun round0_selectedContainerFillAlone_failsNonText_soTheBorderCarriesTheState() {
+        assertTrue(contrastRatio(c.selectedContainer, c.surfaceBase) < NON_TEXT)
+    }
+
+    @Test
+    fun round0_borderControl_overTheControlSurfaces_atLeast3to1() {
+        listOf(c.surfaceBase, c.surfaceRaised, c.surfaceOverlay, c.surfaceControl).forEach { bg ->
+            val ratio = contrastRatio(c.borderControl, bg)
+            assertTrue(ratio >= NON_TEXT, "borderControl vs $bg: $ratio < $NON_TEXT")
+        }
+    }
+
+    @Test
+    fun round0_trackInactive_isBelow3to1_soTheStopDotIsTextTertiary() {
+        // Q1: the track alone is not a 3:1 graphic (value text and fill also carry the state, R-41).
+        assertTrue(contrastRatio(c.trackInactive, c.surfaceRaised) < NON_TEXT)
+        assertTrue(contrastRatio(c.textTertiary, c.surfaceRaised) >= NON_TEXT, "stop dot vs card")
+        assertTrue(
+            contrastRatio(c.textTertiary, c.trackInactive.compositeOver(c.surfaceRaised)) >= NON_TEXT,
+            "stop dot vs track",
+        )
+    }
+
     /** US-46 accessibility: body text roles over every surface token (the app ships a single dark scheme). */
     @Test
     fun bodyText_textPrimaryAndSecondaryOverEverySurface_isAa() {

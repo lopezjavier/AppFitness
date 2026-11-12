@@ -120,7 +120,7 @@ private fun toneColor(tone: HealthTone): Color = when (tone) {
     HealthTone.Synced -> AppTheme.colors.electricGreen
     HealthTone.Attention -> AppTheme.colors.energyAmber
     HealthTone.Failed -> AppTheme.colors.error
-    HealthTone.Neutral -> AppTheme.colors.ghostData
+    HealthTone.Neutral -> AppTheme.colors.textSecondary
 }
 
 @Composable

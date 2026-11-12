@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # UX conventions guard (T-118, planning/phase1/ux-audit-2026-10.md section 10, planning/05-design-system.md).
-# Features must reuse the design-system templates instead of reinventing them (guards G1..G19).
+# Features must reuse the design-system templates instead of reinventing them (guards G1..G20).
 #
 # Usage: check-ux-conventions.sh [root-dir] [warnings-file] [allowlist-file]
 #   root-dir        tree to scan (default: repository root). Tests pass a fixture tree.
@@ -37,7 +37,7 @@ while IFS= read -r raw || [ -n "$raw" ]; do
   line="${raw%%#*}"
   line="$(printf '%s' "$line" | sed -E 's/^[[:space:]]+//; s/[[:space:]]+$//')"
   [ -z "$line" ] && continue
-  if ! printf '%s' "$line" | grep -qE '^G([1-9]|1[0-8]) [^ ]+$'; then
+  if ! printf '%s' "$line" | grep -qE '^G([1-9]|1[0-9]|20) [^ ]+$'; then
     echo "UX conventions guard ERROR: malformed warnings line: $raw" >&2
     exit 2
   fi
@@ -351,6 +351,11 @@ if [ "${#forbidden_files[@]}" -gt 0 ]; then
   fi
   [ "$rc" -eq 0 ] && report G19 "removed energy-check override or food audit text (ADR-104: a failing food cannot be saved)" "$hits"
 fi
+
+# G20 (R-65): `ghostData` (white 36 %) is for disabled content only, and only inside designsystem/. Previous values,
+# placeholders and wheel neighbours use `textTertiary`; data and status text use `textSecondary`.
+scan G20 "ghostData in feature code (R-65: textTertiary for previous values and placeholders, textSecondary for data)" \
+  '\bghostData\b' '.*/feature/catalog/[^:]*' "${kotlin_feature[@]+"${kotlin_feature[@]}"}"
 
 if [ "$violations" -gt 0 ]; then
   echo "UX conventions guard FAILED: $violations violation(s), $warnings warning(s)." >&2

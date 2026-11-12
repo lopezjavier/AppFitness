@@ -125,7 +125,7 @@ private fun WeekCell(group: MuscleGroup, index: Int, week: LocalDate, value: Dou
         Text(
             text = formatVolume(value),
             style = AppTheme.typography.bodyMedium,
-            color = if (value > 0.0) AppTheme.colors.textPrimary else AppTheme.colors.ghostData,
+            color = if (value > 0.0) AppTheme.colors.textPrimary else AppTheme.colors.textSecondary,
             textAlign = TextAlign.Center,
             modifier = Modifier.testTag("muscle_volume_week_${group.tagName()}_$index"),
         )

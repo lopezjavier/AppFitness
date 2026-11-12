@@ -15,10 +15,18 @@ class AppColorsTest {
         assertColor(0xFFFFFF, colors.borderStrong, alpha = 0.12f, name = "borderStrong")
         assertColor(0xFFFFFF, colors.divider, alpha = 0.04f, name = "divider")
         assertColor(0xE0E2EA, colors.textPrimary, name = "textPrimary")
-        assertColor(0xC2CAB0, colors.textSecondary, name = "textSecondary")
+        assertColor(0xA9B3C4, colors.textSecondary, name = "textSecondary")
+        assertColor(0x8C97A9, colors.textTertiary, name = "textTertiary")
         assertColor(0xFFFFFF, colors.ghostData, alpha = 0.36f, name = "ghostData")
         assertColor(0x000000, colors.scrim, alpha = 0.65f, name = "scrim")
-        assertColor(0xFFFFFF, colors.sheetHandle, alpha = 0.20f, name = "sheetHandle")
+    }
+
+    @Test
+    fun round0Tokens_matchSection2_1a() {
+        assertColor(0x242E3B, colors.surfaceControl, name = "surfaceControl")
+        assertColor(0xFFFFFF, colors.borderControl, alpha = 0.36f, name = "borderControl")
+        assertColor(0x354925, colors.selectedContainer, name = "selectedContainer")
+        assertColor(0xFFFFFF, colors.trackInactive, alpha = 0.16f, name = "trackInactive")
     }
 
     @Test
@@ -47,6 +55,5 @@ class AppColorsTest {
     @Test
     fun shadowTokens_matchSpec() {
         assertColor(0x000000, colors.shadowSheet, alpha = 0.70f, name = "shadowSheet")
-        assertColor(0xA3E635, colors.glowLime, alpha = 0.15f, name = "glowLime")
     }
 }

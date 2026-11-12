@@ -23,11 +23,19 @@ class AppColors(
     val divider: Color,
     val textPrimary: Color,
     val textSecondary: Color,
-    /** Supporting data only (about 3.3:1): never the only cue (05 §7). */
+    /** Previous values, placeholders and wheel neighbours (AA on every surface, 05 §2.1a). */
+    val textTertiary: Color,
+    /** Disabled content only (about 3.3:1, exempt from contrast): never the only cue (05 §7). */
     val ghostData: Color,
     val scrim: Color,
-    /** Bottom sheet drag handle (decorative). */
-    val sheetHandle: Color,
+    /** Inputs, steppers, the pending set circle and `SecondaryButton` (05 §2.1a). */
+    val surfaceControl: Color,
+    /** Resting border of inputs and `GhostButton`; the focus border is `neonLime` 2 dp. */
+    val borderControl: Color,
+    /** Selected chip, segment, weekday... container; the 1 dp lime border carries the state (R-64). */
+    val selectedContainer: Color,
+    /** Unfilled part of linear bars (below 3:1: the stop dot is `textTertiary`). */
+    val trackInactive: Color,
     // §2.2 Accents
     val neonLime: Color,
     val onNeonLime: Color,
@@ -44,7 +52,6 @@ class AppColors(
     val macroFat: Color,
     // §4 Shadow colors (tokens only; see AppElevation)
     val shadowSheet: Color,
-    val glowLime: Color,
 ) {
     /**
      * §2.5 RPE ramp (green = easiest, red = hardest) for a whole value 6 to 10; only used by the RPE picker. The
@@ -120,10 +127,14 @@ internal val KineticDarkColors =
         borderStrong = Color.White.copy(alpha = 0.12f),
         divider = Color.White.copy(alpha = 0.04f),
         textPrimary = Color(0xFFE0E2EA),
-        textSecondary = Color(0xFFC2CAB0),
+        textSecondary = Color(0xFFA9B3C4),
+        textTertiary = Color(0xFF8C97A9),
         ghostData = Color.White.copy(alpha = 0.36f),
         scrim = Color.Black.copy(alpha = 0.65f),
-        sheetHandle = Color.White.copy(alpha = 0.20f),
+        surfaceControl = Color(0xFF242E3B),
+        borderControl = Color.White.copy(alpha = 0.36f),
+        selectedContainer = Color(0xFF354925),
+        trackInactive = Color.White.copy(alpha = 0.16f),
         neonLime = NeonLime,
         onNeonLime = Color(0xFF0B0F14),
         athleticCyan = AthleticCyan,
@@ -138,7 +149,6 @@ internal val KineticDarkColors =
         macroCarbs = AthleticCyan,
         macroFat = EnergyAmber,
         shadowSheet = Color.Black.copy(alpha = 0.70f),
-        glowLime = NeonLime.copy(alpha = 0.15f),
     )
 
 internal val LocalAppColors = staticCompositionLocalOf { KineticDarkColors }

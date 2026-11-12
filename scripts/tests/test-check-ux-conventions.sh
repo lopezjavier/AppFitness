@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Fixture tests for scripts/check-ux-conventions.sh (T-118). For each guard G1..G11 (G16: own cases below; G13/G14: own cases below) a small tree under
+# Fixture tests for scripts/check-ux-conventions.sh (T-118). For each guard G1..G11 (G16, G19, G20: own cases below; G13/G14: own cases below) a small tree under
 # scripts/tests/ux-conventions/g<n>/ holds one violating file. Three cases per guard:
 #   violation  : no warning list              -> exit 1
 #   listed     : path in the warning list     -> exit 0 and a WARN line
@@ -268,6 +268,25 @@ run "$(mk19 c "composeApp/src/commonMain/composeResources/values/strings.xml" '<
 expect "G19 Revisar alimentos fails" 1
 run "$(mk19 d "composeApp/src/commonMain/composeResources/values/strings.xml" '<string name="x">Nota</string>')" "$empty"
 expect "G19 an unrelated text passes" 0 NOWARN
+printf 'G19 .*\n' > "$work/listed-g19.txt"
+run "$(mk19 e "composeApp/src/commonMain/kotlin/demo/Sheet.kt" 'val t = "Añadir igualmente"')" "$work/listed-g19.txt"
+expect "G19 violation in a listed path warns and passes (parser accepts G19)" 0 WARN
+# G20 (R-65): ghostData is for disabled content only; features never use it (designsystem and the catalog may).
+mk20() { # name file-path
+  local d="$work/g20-$1"
+  mkdir -p "$d/$(dirname "$2")"
+  printf 'val c = AppTheme.colors.ghostData\n' > "$d/$2"
+  echo "$d"
+}
+run "$(mk20 a "composeApp/src/commonMain/kotlin/demo/feature/weight/Line.kt")" "$empty"
+expect "G20 ghostData in feature code fails" 1
+printf 'G20 .*\n' > "$work/listed-g20.txt"
+run "$(mk20 b "composeApp/src/commonMain/kotlin/demo/feature/weight/Line.kt")" "$work/listed-g20.txt"
+expect "G20 violation in a listed path warns and passes (parser accepts G20)" 0 WARN
+run "$(mk20 c "composeApp/src/commonMain/kotlin/demo/designsystem/Buttons.kt")" "$empty"
+expect "G20 ghostData in designsystem passes" 0 NOWARN
+run "$(mk20 d "composeApp/src/commonMain/kotlin/demo/feature/catalog/ThemeCatalogSection.kt")" "$empty"
+expect "G20 ghostData in feature/catalog passes" 0 NOWARN
 
 run "$repo_root" "$real_list" "$real_allow"
 expect "the real tree passes with the real allow-list" 0

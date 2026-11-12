@@ -29,7 +29,8 @@ class TypographyTest {
             "bodyMedium" to Spec(14.sp, 20.sp, FontWeight.W400, 0.em),
             "bodySmall" to Spec(12.sp, 16.sp, FontWeight.W400, 0.em),
             "labelNumeric" to Spec(18.sp, 22.sp, FontWeight.W700, 0.02.em),
-            "labelTechnical" to Spec(11.sp, 14.sp, FontWeight.W600, 0.06.em),
+            "labelTechnical" to Spec(11.sp, 14.sp, FontWeight.W600, 0.02.em),
+            "titleSection" to Spec(18.sp, 24.sp, FontWeight.W600, 0.em),
         )
 
     @Test
@@ -108,6 +109,7 @@ class TypographyTest {
         "bodySmall" to bodySmall,
         "labelNumeric" to labelNumeric,
         "labelTechnical" to labelTechnical,
+        "titleSection" to titleSection,
     )
 
     private fun Typography.slots(): Map<String, TextStyle> = mapOf(

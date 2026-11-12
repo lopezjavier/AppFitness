@@ -44,7 +44,7 @@ class ColorSchemeTest {
         assertEquals(colors.surfaceOverlay, scheme.surfaceVariant)
         assertEquals(colors.surfaceBase, scheme.surfaceContainerLowest)
         assertEquals(colors.surfaceBase, scheme.surfaceDim)
-        assertEquals(colors.surfaceOverlay, scheme.surfaceContainerHighest)
+        assertEquals(colors.surfaceControl, scheme.surfaceContainerHighest)
         assertEquals(colors.surfaceOverlay, scheme.surfaceBright)
         assertEquals(Color.Transparent, scheme.surfaceTint)
         assertEquals(colors.scrim, scheme.scrim)
