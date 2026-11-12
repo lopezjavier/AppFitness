@@ -1,6 +1,7 @@
 package io.github.lopezjavier.appfitness.designsystem
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -41,7 +42,7 @@ import androidx.compose.ui.unit.sp
 
 /** Colours of one segment state plus the [track] behind all segments. */
 @Immutable
-data class SegmentedSelectorColors(val track: Color, val segment: Color, val content: Color)
+data class SegmentedSelectorColors(val track: Color, val segment: Color, val content: Color, val border: Color)
 
 /** Sizes, colours and label style of [SegmentedSelector]. */
 object SegmentedSelectorDefaults {
@@ -89,9 +90,14 @@ object SegmentedSelectorDefaults {
      * [AppCard] (also `surfaceRaised`), use `surfaceBase` for the track instead.
      */
     fun colors(selected: Boolean, appColors: AppColors): SegmentedSelectorColors = if (selected) {
-        SegmentedSelectorColors(appColors.surfaceRaised, appColors.neonLime, appColors.onNeonLime)
+        SegmentedSelectorColors(
+            appColors.surfaceRaised,
+            appColors.selectedContainer,
+            appColors.neonLime,
+            appColors.neonLime,
+        )
     } else {
-        SegmentedSelectorColors(appColors.surfaceRaised, Color.Transparent, appColors.textSecondary)
+        SegmentedSelectorColors(appColors.surfaceRaised, Color.Transparent, appColors.textSecondary, Color.Transparent)
     }
 
     /** Selected label is bold (W700): a non-colour cue. */
@@ -101,8 +107,9 @@ object SegmentedSelectorDefaults {
 
 /**
  * Equal-weight single-select control (for example Déficit / Mantenimiento / Superávit). The
- * selected segment is lime with dark bold text. All labels share one size: the largest (up to `bodyMedium`)
- * at which the widest label, measured in the selected weight, fits on one line. Below
+ * selected segment (R-64) has the `selectedContainer` fill, a 1 dp lime border and lime bold text. All labels share
+ * one size: the largest (up to `bodyMedium`) at which the widest label, measured in the selected weight, fits on
+ * one line. Below
  * [SegmentedSelectorDefaults.MinLabelFontSize] labels wrap to two lines (hyphenated on API 33+) and the segments
  * grow together; a label is never clipped. [selectedIndex] is null (no segment active) or valid for [options];
  * tapping the active segment does not call
@@ -198,6 +205,7 @@ private fun RowScope.Segment(
             .heightIn(min = SegmentedSelectorDefaults.SegmentMinHeight)
             .clip(SegmentedSelectorDefaults.SegmentShape)
             .background(colors.segment)
+            .border(AppBorder.thin, colors.border, SegmentedSelectorDefaults.SegmentShape)
             .alpha(if (dimmed) SegmentedSelectorDefaults.DISABLED_ALPHA else 1f)
             .testTag(option.testTag)
             .semantics { option.contentDescription?.let { contentDescription = it } }

@@ -1,9 +1,7 @@
 package io.github.lopezjavier.appfitness.designsystem
 
-import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -60,10 +58,10 @@ fun weekdayName(day: Int): String = stringResource(DayNames[day - 1])
 fun weekdayLetter(day: Int): String = stringResource(DayLetters[day - 1])
 
 /**
- * Seven equal day chips "L M X J V S D" (ISO days 1..7, multi-select). Each chip is a checkbox of at least 48 dp whose
- * description is the full day name. A day in [disabled] (day -> name of the comida that owns it) is inert and its
- * state says "Ya asignado a <comida>". The row scrolls horizontally when the seven targets do not fit (narrow screens,
- * large fonts) and never wraps. Chips are tagged `<testTagPrefix>_day_<n>`. Stateless.
+ * Seven equal day chips "L M X J V S D" (ISO days 1..7, multi-select). Seven weighted cells of at least 40 x 48 dp
+ * (each a checkbox whose description is the full day name); the row never scrolls and never wraps. A day in
+ * [disabled] (day -> name of the comida that owns it) is inert and its state says "Ya asignado a <comida>".
+ * Chips are tagged `<testTagPrefix>_day_<n>`. Stateless.
  */
 @Composable
 fun WeekdaySelector(
@@ -75,7 +73,7 @@ fun WeekdaySelector(
 ) {
     val group = stringResource(Res.string.weekday_group_cd)
     Row(
-        modifier = modifier.horizontalScroll(rememberScrollState()).semantics { contentDescription = group },
+        modifier = modifier.semantics { contentDescription = group },
         horizontalArrangement = Arrangement.spacedBy(Spacing.xs),
         verticalAlignment = Alignment.CenterVertically,
     ) {
@@ -85,10 +83,12 @@ fun WeekdaySelector(
                 label = weekdayLetter(day),
                 checked = owner == null && day in selected,
                 onCheckedChange = { onToggle(day) },
-                modifier = Modifier.testTag("${testTagPrefix}_day_$day"),
+                modifier = Modifier.weight(1f).testTag("${testTagPrefix}_day_$day"),
                 contentDescription = weekdayName(day),
                 enabled = owner == null,
                 stateDescription = owner?.let { stringResource(Res.string.weekday_assigned_to, it) },
+                minTouchWidth = AppChipDefaults.WeekdayMinTouchWidth,
+                fillWidth = true,
             )
         }
     }

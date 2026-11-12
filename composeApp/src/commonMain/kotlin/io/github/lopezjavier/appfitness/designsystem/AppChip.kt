@@ -7,6 +7,7 @@ import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.sizeIn
@@ -63,9 +64,15 @@ object AppChipDefaults {
     /** Same width in both states, so selecting a chip never shifts the layout. */
     val BorderWidth: Dp = AppBorder.thin
 
-    /** The selected chip differs in fill, text colour and weight, not only in border. */
+    /** Minimum touch width of a weekday cell (exception to the 48 dp target, design system section 7). */
+    val WeekdayMinTouchWidth: Dp = 40.dp
+
+    /**
+     * The selected chip (R-64) differs in fill (`selectedContainer`), text colour and weight (lime, W700) and has a
+     * 1 dp lime border, not only a border.
+     */
     fun colors(selected: Boolean, appColors: AppColors): AppChipColors = if (selected) {
-        AppChipColors(appColors.surfaceOverlay, appColors.athleticCyan, appColors.athleticCyan)
+        AppChipColors(appColors.selectedContainer, appColors.neonLime, appColors.neonLime)
     } else {
         AppChipColors(appColors.surfaceRaised, appColors.textSecondary, appColors.borderSubtle)
     }
@@ -105,6 +112,8 @@ fun AppToggleChip(
     contentDescription: String? = null,
     enabled: Boolean = true,
     stateDescription: String? = null,
+    minTouchWidth: Dp = AppChipDefaults.MinTouchTarget,
+    fillWidth: Boolean = false,
 ) {
     val state = stateDescription
         ?: stringResource(if (checked) Res.string.chip_state_on else Res.string.chip_state_off)
@@ -112,6 +121,8 @@ fun AppToggleChip(
         label = label,
         selected = checked,
         enabled = enabled,
+        minTouchWidth = minTouchWidth,
+        fillWidth = fillWidth,
         modifier = modifier
             .toggleable(value = checked, enabled = enabled, role = Role.Checkbox, onValueChange = onCheckedChange)
             .semantics {
@@ -144,7 +155,14 @@ fun AppButtonChip(
 }
 
 @Composable
-private fun ChipFrame(label: String, selected: Boolean, modifier: Modifier = Modifier, enabled: Boolean = true) {
+private fun ChipFrame(
+    label: String,
+    selected: Boolean,
+    modifier: Modifier = Modifier,
+    enabled: Boolean = true,
+    minTouchWidth: Dp = AppChipDefaults.MinTouchTarget,
+    fillWidth: Boolean = false,
+) {
     val colors = if (enabled) {
         AppChipDefaults.colors(selected, AppTheme.colors)
     } else {
@@ -152,17 +170,18 @@ private fun ChipFrame(label: String, selected: Boolean, modifier: Modifier = Mod
     }
     Box(
         modifier =
-        modifier.sizeIn(minWidth = AppChipDefaults.MinTouchTarget, minHeight = AppChipDefaults.MinTouchTarget),
+        modifier.sizeIn(minWidth = minTouchWidth, minHeight = AppChipDefaults.MinTouchTarget),
         contentAlignment = Alignment.Center,
     ) {
         Box(
             modifier =
             Modifier
+                .then(if (fillWidth) Modifier.fillMaxWidth() else Modifier)
                 .height(AppChipDefaults.Height)
                 .clip(AppChipDefaults.Shape)
                 .background(colors.container)
                 .border(AppChipDefaults.BorderWidth, colors.border, AppChipDefaults.Shape)
-                .padding(horizontal = AppChipDefaults.HorizontalPadding),
+                .padding(horizontal = if (fillWidth) 0.dp else AppChipDefaults.HorizontalPadding),
             contentAlignment = Alignment.Center,
         ) {
             Text(
