@@ -20,11 +20,13 @@ class SegmentedSelectorTest {
     }
 
     @Test
-    fun colors_selected_limeFillDarkText() {
+    fun colors_selected_selectedContainerLimeTextAndBorder() {
         val colors = SegmentedSelectorDefaults.colors(selected = true, appColors = c)
-        assertEquals(c.neonLime, colors.segment)
-        assertEquals(c.onNeonLime, colors.content)
+        assertEquals(c.selectedContainer, colors.segment)
+        assertEquals(c.neonLime, colors.content)
+        assertEquals(c.neonLime, colors.border)
         assertEquals(c.surfaceRaised, colors.track)
+        assertTrue(contrastRatio(colors.content, colors.segment) >= 4.5)
     }
 
     @Test
@@ -32,6 +34,7 @@ class SegmentedSelectorTest {
         val colors = SegmentedSelectorDefaults.colors(selected = false, appColors = c)
         assertEquals(Color.Transparent, colors.segment)
         assertEquals(c.textSecondary, colors.content)
+        assertEquals(Color.Transparent, colors.border)
         assertEquals(c.surfaceRaised, colors.track)
     }
 

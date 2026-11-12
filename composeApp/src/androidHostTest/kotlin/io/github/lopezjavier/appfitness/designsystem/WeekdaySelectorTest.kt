@@ -12,6 +12,7 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.assert
+import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.assertIsOff
 import androidx.compose.ui.test.assertIsOn
@@ -20,7 +21,6 @@ import androidx.compose.ui.test.getUnclippedBoundsInRoot
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
-import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.height
@@ -118,23 +118,27 @@ class WeekdaySelectorTest {
     }
 
     @Test
-    fun chipsAreAtLeast48dpAndNeverWrap() {
-        show(width = 200)
-        val first = day(1).getUnclippedBoundsInRoot()
-        assertTrue(first.height >= 48.dp)
-        assertTrue(first.width >= 48.dp)
-        val last = day(7)
-        last.performScrollTo()
-        assertEquals(first.top, last.getUnclippedBoundsInRoot().top)
+    fun cellsAreAtLeast40x48dp_onOneRowWithinTheRowWidth() {
+        // 360 dp screen minus 16 dp margins on each side.
+        show(width = 328)
+        val bounds = (1..7).map { day(it).getUnclippedBoundsInRoot() }
+        bounds.forEach {
+            assertTrue("cell width ${it.width}", it.width >= 40.dp)
+            assertTrue(it.height >= 48.dp)
+            assertEquals(bounds.first().top, it.top)
+            assertTrue(it.right <= 328.dp)
+        }
     }
 
     @Test
-    fun atALargeFontScale_everyDayStaysReachableOnOneRow() {
-        show(fontScale = 2f, width = 300)
-        day(7).performScrollTo()
+    fun atALargeFontScale_everyDayStaysOnOneRowWithoutScrolling() {
+        show(fontScale = 1.3f, width = 328)
+        for (d in 1..7) day(d).assertIsDisplayed()
         day(7).performClick()
         assertEquals(listOf(7), toggles)
-        assertEquals(day(1).getUnclippedBoundsInRoot().height, day(7).getUnclippedBoundsInRoot().height)
+        assertTrue(day(7).getUnclippedBoundsInRoot().right <= 360.dp)
+        val heights = (1..7).map { day(it).getUnclippedBoundsInRoot().height }
+        assertEquals("cells keep one height (no label wraps): $heights", 1, heights.distinct().size)
     }
 
     @Test

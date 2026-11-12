@@ -18,11 +18,18 @@ class AppChipTest {
     }
 
     @Test
-    fun colors_selected_cyanTextAndBorderOnOverlay() {
+    fun colors_selected_limeTextAndBorderOnSelectedContainer() {
         val colors = AppChipDefaults.colors(selected = true, appColors = c)
-        assertEquals(c.surfaceOverlay, colors.container)
-        assertEquals(c.athleticCyan, colors.content)
-        assertEquals(c.athleticCyan, colors.border)
+        assertEquals(c.selectedContainer, colors.container)
+        assertEquals(c.neonLime, colors.content)
+        assertEquals(c.neonLime, colors.border)
+        assertTrue(contrastRatio(colors.content, colors.container) >= 4.5)
+    }
+
+    @Test
+    fun touchSizes_weekdayCellIs40AndDefaultIs48() {
+        assertEquals(40.dp, AppChipDefaults.WeekdayMinTouchWidth)
+        assertEquals(48.dp, AppChipDefaults.MinTouchTarget)
     }
 
     @Test

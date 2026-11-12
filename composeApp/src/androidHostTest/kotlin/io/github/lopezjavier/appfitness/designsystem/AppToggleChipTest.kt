@@ -1,5 +1,7 @@
 package io.github.lopezjavier.appfitness.designsystem
 
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.width
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -12,6 +14,7 @@ import androidx.compose.ui.semantics.getOrNull
 import androidx.compose.ui.state.ToggleableState
 import androidx.compose.ui.test.assertHeightIsAtLeast
 import androidx.compose.ui.test.assertWidthIsAtLeast
+import androidx.compose.ui.test.assertWidthIsEqualTo
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
@@ -71,6 +74,29 @@ class AppToggleChipTest {
         show(initial = false)
 
         assertEquals(listOf("Disco de 2,5 kg"), config().getOrNull(SemanticsProperties.ContentDescription))
+    }
+
+    @Test
+    fun fillWidthInA43dpSlot_is43dpWideAndTogglesOnce() {
+        var toggles = 0
+        rule.setContent {
+            AppTheme {
+                Row(Modifier.width(43.dp)) {
+                    AppToggleChip(
+                        label = "L",
+                        checked = false,
+                        onCheckedChange = { toggles++ },
+                        modifier = Modifier.weight(1f).testTag("chip"),
+                        minTouchWidth = AppChipDefaults.WeekdayMinTouchWidth,
+                        fillWidth = true,
+                    )
+                }
+            }
+        }
+
+        rule.onNodeWithTag("chip").assertWidthIsEqualTo(43.dp).performClick()
+
+        assertEquals(1, toggles)
     }
 
     @Test
