@@ -133,7 +133,7 @@ class WeekdaySelectorTest {
     @Test
     fun atALargeFontScale_everyDayStaysOnOneRowWithoutScrolling() {
         show(fontScale = 1.3f, width = 328)
-        (1..7).forEach { day(it).assertIsDisplayed() }
+        for (d in 1..7) day(d).assertIsDisplayed()
         day(7).performClick()
         assertEquals(listOf(7), toggles)
         assertTrue(day(7).getUnclippedBoundsInRoot().right <= 360.dp)
