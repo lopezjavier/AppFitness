@@ -15,7 +15,6 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.unit.Dp
-import androidx.compose.ui.unit.dp
 import io.github.lopezjavier.appfitness.composeapp.resources.Res
 import io.github.lopezjavier.appfitness.composeapp.resources.diary_goals_prompt_supporting
 import io.github.lopezjavier.appfitness.composeapp.resources.diary_goals_prompt_title
@@ -34,6 +33,7 @@ import io.github.lopezjavier.appfitness.designsystem.MacroProgressBarDefaults
 import io.github.lopezjavier.appfitness.designsystem.NavigationRow
 import io.github.lopezjavier.appfitness.designsystem.ProgressRing
 import io.github.lopezjavier.appfitness.designsystem.Spacing
+import io.github.lopezjavier.appfitness.designsystem.compactRingColumnWidth
 import io.github.lopezjavier.appfitness.domain.model.DiaryGoals
 import io.github.lopezjavier.appfitness.domain.model.MealTotals
 import org.jetbrains.compose.resources.painterResource
@@ -41,9 +41,6 @@ import org.jetbrains.compose.resources.stringResource
 
 /** Font scale from which the hero falls back to the full ring over three bars, so no figure clips (R-68). */
 private const val FULL_HERO_FONT_SCALE = 1.15f
-
-/** Width of the compact ring (`ProgressRing(compact = true)`). */
-private val COMPACT_RING_WIDTH = 132.dp
 
 /**
  * The day's progress card (calorie ring and three macro bars), or the "set your goal" prompt without goals. With
@@ -85,7 +82,9 @@ private fun ProgressCard(
                 stringResource(Res.string.macro_fat_short),
             )
             // V-15: the stacked layout is used only when every short label and figure fits beside the ring.
-            val stacked = compact && compactMacrosFit(labels, goals, totals, maxWidth - COMPACT_RING_WIDTH - Spacing.lg)
+            // V-15b: measured against the real ring column (the 132 dp ring or the wider status pill).
+            val ringColumn = compactRingColumnWidth(totals.kcal, goals.targetKcal, pastDay)
+            val stacked = compact && compactMacrosFit(labels, goals, totals, maxWidth - ringColumn - Spacing.lg)
             if (stacked) {
                 Row(
                     Modifier.fillMaxWidth().testTag("diary_hero_compact"),

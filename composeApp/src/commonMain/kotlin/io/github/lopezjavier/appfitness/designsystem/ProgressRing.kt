@@ -20,8 +20,10 @@ import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.progressBarRangeInfo
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
@@ -171,6 +173,25 @@ private fun statusSentence(state: ProgressRingState, pastDay: Boolean): String =
     pastDay -> stringResource(Res.string.progress_ring_left_past, AppNumberFormat.integer(state.remaining))
 
     else -> stringResource(Res.string.progress_ring_left, AppNumberFormat.integer(state.remaining))
+}
+
+/**
+ * The real width of the compact ring column (V-15b): the 132 dp ring or, when wider, the status pill, which is not
+ * wrapped by the column itself. The diary hero measures its macro labels against what is left beside this width.
+ */
+@Composable
+fun compactRingColumnWidth(consumedKcal: Double, targetKcal: Int, pastDay: Boolean): Dp {
+    val state = ProgressRingDefaults.state(roundHalfUp(consumedKcal), targetKcal)
+    val text = if (state.isOverTarget) {
+        stringResource(Res.string.progress_ring_excess, AppNumberFormat.integer(-state.remaining))
+    } else {
+        statusSentence(state, pastDay)
+    }
+    val measurer = rememberTextMeasurer()
+    val density = LocalDensity.current
+    val textWidth = measurer.measure(text, ProgressRingDefaults.captionStyle(AppTheme.typography), softWrap = false, maxLines = 1).size.width
+    val pillWidth = with(density) { textWidth.toDp() } + PillDefaults.HorizontalPadding * 2
+    return maxOf(ProgressRingDefaults.CompactHeroSize, pillWidth)
 }
 
 @Composable

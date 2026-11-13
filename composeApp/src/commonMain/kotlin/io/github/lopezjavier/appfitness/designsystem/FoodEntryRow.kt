@@ -81,8 +81,9 @@ fun FoodEntryRow(
     }
 }
 
+/** The trailing slot of [FoodEntryRow]: kcal over the macros; shared with the diary group row (C-60). */
 @Composable
-private fun EntryTotals(model: FoodEntryRowModel) {
+internal fun EntryTotals(model: FoodEntryRowModel) {
     Column(horizontalAlignment = Alignment.End) {
         Text(
             text = stringResource(Res.string.diary_entry_kcal, AppNumberFormat.integer(model.kcal)),
