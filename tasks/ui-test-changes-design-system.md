@@ -27,7 +27,7 @@ Tests changed or added in commit e4ce774b (check they still pass after later bat
 ## T-294 (EmptyState icons sweep A and Outlined icons V-3)
 
 - EmptyState icons now per domain: Trainer (`ic_nav_trainer`, `ic_swap`, `ic_folder`, `ic_description`, `ic_calendar`), notifications (`ic_notifications`), weight circumferences (`ic_straighten`), gallery state messages (`ic_folder`, `ic_search`). New drawables: `ic_folder`, `ic_description`, `ic_straighten`. Sweep B (Diario, Entreno, analytics, activity, exercises, food, routines, meals) still passes `ic_inbox`.
-- Seven drawables converted to Outlined: `ic_info`, `ic_photo_camera`, `ic_photo_library`, `ic_label`, `ic_auto_awesome` (hand-drawn stroked), `ic_nav_trainer` (hand-drawn stroked), `ic_health_connect` (outlined heart).
+- Seven drawables converted to Outlined: `ic_info`, `ic_photo_camera`, `ic_photo_library`, `ic_label`, `ic_auto_awesome` (Material sparkle geometry, stroked), `ic_nav_trainer` (official Material Symbols Outlined `insights`, verbatim path), `ic_health_connect` (outlined heart).
 - Goldens expected to change: every golden showing those icons (info, camera, library, label, sparkle, Trainer tab, Health Connect source rows), the gallery state-messages entries, and any screen golden of the Trainer, notifications and circumference empty states.
 - New test: `OutlinedIconsTest` (reads the 7 drawable files, asserts the Outlined header; not run yet). Not run: no tests executed in this batch.
 

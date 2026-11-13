@@ -25,7 +25,7 @@ One row per ux-critic finding. The PM has the dispositions recorded here as the 
 | C-19 | PrimaryMinHeight 56 dp, radius 16 dp | 0 | IN REVIEW | 05 §6.0 |
 | V-1 | discomfort row: borderless text action, no mid-word break | 0 | IN REVIEW | 05 §6.0 (R-51) |
 | V-2 | REPS field >= 48 dp | 0 | IN REVIEW | 05 §6.0 (R-58) |
-| V-3 | legacy filled icons to Outlined (ic_info, ic_photo_camera, ic_photo_library, ic_label, ic_auto_awesome, ic_nav_trainer, ic_health_connect) | 0 | IN REVIEW | 05 §6.0 |
+| V-3 | legacy filled icons to Outlined (ic_info, ic_photo_camera, ic_photo_library, ic_label, ic_auto_awesome, ic_nav_trainer, ic_health_connect). ic_nav_trainer history: original filled `insights` (liked) > T-294 hand-drawn trend+sparkle (rejected, broken) > `insert_chart` bf5317ff (rejected, degradation) > decision 2026-11-13: Material Symbols Outlined `insights`, verbatim path | 0 | IN REVIEW | 05 §6.0 |
 | V-4 | remove unused sheetHandle and glowLime/glowBlur tokens | 0 | IN REVIEW | 05 §2.1a |
 
 Status values:
