@@ -79,6 +79,7 @@ fun PortionSelector(
                 selectedIndex = selected,
                 onSelect = { index -> onPortionSelect(portions.getOrNull(index - 1)?.id) },
                 modifier = Modifier.testTag("${testTagPrefix}_portion"),
+                edgeToEdge = Spacing.screenMargin,
             )
         }
         AmountRow(

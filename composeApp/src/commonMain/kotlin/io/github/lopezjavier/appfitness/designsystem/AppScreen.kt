@@ -131,6 +131,7 @@ private fun PinnedFooter(maxContentWidth: Dp, tag: String, footer: @Composable (
     Box(
         Modifier
             .fillMaxWidth()
+            .footerEdge(AppTheme.colors.borderSubtle, AppTheme.colors.surfaceBase)
             .windowInsetsPadding(WindowInsets.safeDrawing.only(WindowInsetsSides.Bottom + WindowInsetsSides.Horizontal))
             .onSizeChanged { size -> state?.height = with(density) { size.height.toDp() } }
             .testTag(tag),

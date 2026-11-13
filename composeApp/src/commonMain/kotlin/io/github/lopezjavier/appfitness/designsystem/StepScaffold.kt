@@ -139,6 +139,7 @@ private fun PinnedStepFooter(testTagPrefix: String, footer: @Composable () -> Un
     Box(
         Modifier
             .fillMaxWidth()
+            .footerEdge(AppTheme.colors.borderSubtle, AppTheme.colors.surfaceBase)
             .windowInsetsPadding(WindowInsets.safeDrawing.only(WindowInsetsSides.Bottom))
             .padding(bottom = Spacing.lg)
             .onSizeChanged { size -> state?.height = with(density) { size.height.toDp() } }

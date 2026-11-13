@@ -170,7 +170,7 @@ private fun NarrowDay(content: DiaryContent, actions: EntryActions, onEvent: (Di
         verticalArrangement = Arrangement.spacedBy(Spacing.cardGap),
     ) {
         if (content.defaultsFailed) item(key = "defaults") { DefaultsFailedMessage(onEvent) }
-        item(key = "dashboard") { DiaryDashboard(content, onEvent) }
+        item(key = "dashboard") { DiaryDashboard(content, onEvent, compactHero = true) }
         mealItems(content, actions, onEvent)
     }
 }

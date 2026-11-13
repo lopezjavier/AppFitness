@@ -40,6 +40,7 @@ import io.github.lopezjavier.appfitness.designsystem.GhostButton
 import io.github.lopezjavier.appfitness.designsystem.HelpButton
 import io.github.lopezjavier.appfitness.designsystem.HelpContent
 import io.github.lopezjavier.appfitness.designsystem.OfflineHint
+import io.github.lopezjavier.appfitness.designsystem.nestedContainerColor
 import io.github.lopezjavier.appfitness.designsystem.Spacing
 import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.painterResource
@@ -71,7 +72,7 @@ internal fun EnergyWarningNotice(
         modifier
             .fillMaxWidth()
             .heightIn(max = MaxNoticeHeight)
-            .background(AppTheme.colors.surfaceOverlay, AppShapes.md)
+            .background(nestedContainerColor(), AppShapes.md)
             .verticalScroll(rememberScrollState())
             .padding(Spacing.md)
             .testTag("${testTagPrefix}_warning"),

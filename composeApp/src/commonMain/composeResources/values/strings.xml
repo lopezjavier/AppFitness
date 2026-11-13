@@ -94,6 +94,9 @@
     <string name="macro_protein">Proteínas</string>
     <string name="macro_carbs">Carbohidratos</string>
     <string name="macro_fat">Grasas</string>
+    <string name="macro_protein_short">Prot.</string>
+    <string name="macro_carbs_short">Carb.</string>
+    <string name="macro_fat_short">Grasa</string>
     <string name="weekly_rate_no_data">Sin datos suficientes</string>
     <string name="catalog_section_ring">Anillo de calorías</string>
     <string name="catalog_section_macro_bars">Barras de macros</string>
@@ -226,6 +229,7 @@
     <string name="action_clear_search">Borrar búsqueda</string>
     <string name="number_range_error">Entre %1$s y %2$s %3$s</string>
     <string name="name_sheet_duplicate">Ya existe %1$s con ese nombre</string>
+    <string name="name_sheet_blank">Escribe un nombre</string>
     <string name="action_keep_editing">Seguir editando</string>
     <string name="action_retry">Reintentar</string>
     <string name="catalog_topbar_sample_title">Rutina</string>

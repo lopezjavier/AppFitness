@@ -6,7 +6,6 @@
 # One short fact of the row (a trigger, a figure, a range)
 preferences_reminders_weight_helper
 preferences_reminders_circumference_helper
-diary_remaining_hint
 session_cardio_minutes_hint
 circumference_range_hint
 

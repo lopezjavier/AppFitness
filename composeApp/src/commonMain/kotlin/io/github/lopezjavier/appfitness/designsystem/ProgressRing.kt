@@ -63,6 +63,10 @@ object ProgressRingDefaults {
     val Size: Dp = 176.dp
     val StrokeWidth: Dp = 12.dp
 
+    /** The compact hero ring (R-68): 132 dp with a 10 dp stroke, so the first meal card fits above the fold. */
+    val CompactHeroSize: Dp = 132.dp
+    val CompactHeroStroke: Dp = 10.dp
+
     /** [PercentRing]: fits a list row's trailing slot. */
     val CompactSize: Dp = 40.dp
     val CompactStroke: Dp = 4.dp
@@ -98,16 +102,27 @@ object ProgressRingDefaults {
 /**
  * Daily calorie ring: consumed value and "de N kcal" in the centre, and one status pill below (R-67): "Te quedan N
  * kcal", "Objetivo cumplido", "+N kcal en exceso" or, for a [pastDay], "Quedaron N kcal"; it wraps at large font
- * scales instead of clipping. The whole ring is one accessibility
+ * scales instead of clipping. [compact] draws the 132 dp hero ring of a phone (R-68). The whole ring is one accessibility
  * node carrying the caller's [modifier] (and its testTag).
  */
 @Composable
-fun ProgressRing(consumedKcal: Int, targetKcal: Int, modifier: Modifier = Modifier, pastDay: Boolean = false) =
-    ProgressRing(consumedKcal.toDouble(), targetKcal, modifier, pastDay)
+fun ProgressRing(
+    consumedKcal: Int,
+    targetKcal: Int,
+    modifier: Modifier = Modifier,
+    pastDay: Boolean = false,
+    compact: Boolean = false,
+) = ProgressRing(consumedKcal.toDouble(), targetKcal, modifier, pastDay, compact)
 
 /** [ProgressRing] for a consumed value with decimals; it is shown rounded half up to whole kcal. */
 @Composable
-fun ProgressRing(consumedKcal: Double, targetKcal: Int, modifier: Modifier = Modifier, pastDay: Boolean = false) {
+fun ProgressRing(
+    consumedKcal: Double,
+    targetKcal: Int,
+    modifier: Modifier = Modifier,
+    pastDay: Boolean = false,
+    compact: Boolean = false,
+) {
     val wholeKcal = roundHalfUp(consumedKcal)
     val state = ProgressRingDefaults.state(wholeKcal, targetKcal)
     val colors = ProgressRingDefaults.colors(state.isOverTarget, AppTheme.colors)
@@ -137,7 +152,7 @@ fun ProgressRing(consumedKcal: Double, targetKcal: Int, modifier: Modifier = Mod
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(Spacing.sm),
     ) {
-        RingBody(sweep, colors, consumedText, targetText)
+        RingBody(sweep, colors, consumedText, targetText, compact)
         StatusPill(statusText, if (state.isOverTarget || state.remaining == 0) colors.status else AppTheme.colors.textSecondary)
     }
 }
@@ -159,14 +174,22 @@ private fun statusSentence(state: ProgressRingState, pastDay: Boolean): String =
 }
 
 @Composable
-private fun RingBody(sweep: Float, colors: ProgressRingColors, consumedText: String, targetText: String) {
-    Box(Modifier.size(ProgressRingDefaults.Size), contentAlignment = Alignment.Center) {
+private fun RingBody(
+    sweep: Float,
+    colors: ProgressRingColors,
+    consumedText: String,
+    targetText: String,
+    compact: Boolean,
+) {
+    val ringSize = if (compact) ProgressRingDefaults.CompactHeroSize else ProgressRingDefaults.Size
+    val stroke = if (compact) ProgressRingDefaults.CompactHeroStroke else ProgressRingDefaults.StrokeWidth
+    Box(Modifier.size(ringSize), contentAlignment = Alignment.Center) {
         RingArc(
             sweep = sweep,
             track = colors.track,
             progress = colors.progress,
-            size = ProgressRingDefaults.Size,
-            strokeWidth = ProgressRingDefaults.StrokeWidth,
+            size = ringSize,
+            strokeWidth = stroke,
         )
         Column(
             modifier = Modifier.clearAndSetSemantics {},
@@ -174,7 +197,7 @@ private fun RingBody(sweep: Float, colors: ProgressRingColors, consumedText: Str
         ) {
             Text(
                 text = consumedText,
-                style = ProgressRingDefaults.valueStyle(AppTheme.typography),
+                style = if (compact) AppTheme.typography.headlineMetric else ProgressRingDefaults.valueStyle(AppTheme.typography),
                 color = AppTheme.colors.textPrimary,
                 maxLines = 1,
                 softWrap = false,

@@ -35,7 +35,7 @@ fun SkeletonBox(modifier: Modifier = Modifier, shape: Shape = AppShapes.base) {
         label = "skeleton_shimmer_progress",
     )
     val base = AppTheme.colors.surfaceRaised
-    val highlight = AppTheme.colors.surfaceOverlay
+    val highlight = nestedContainerColor()
     Box(
         modifier =
         modifier

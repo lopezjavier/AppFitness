@@ -6,8 +6,8 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.key
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -23,6 +23,7 @@ import io.github.lopezjavier.appfitness.composeapp.resources.ic_edit
 import io.github.lopezjavier.appfitness.composeapp.resources.template_details_items_header
 import io.github.lopezjavier.appfitness.composeapp.resources.template_details_title
 import io.github.lopezjavier.appfitness.designsystem.AddItemButton
+import io.github.lopezjavier.appfitness.designsystem.AppCard
 import io.github.lopezjavier.appfitness.designsystem.AppScreen
 import io.github.lopezjavier.appfitness.designsystem.AppTopBarAction
 import io.github.lopezjavier.appfitness.designsystem.FoodEntryRow
@@ -30,7 +31,6 @@ import io.github.lopezjavier.appfitness.designsystem.ListSectionHeader
 import io.github.lopezjavier.appfitness.designsystem.OfflineHint
 import io.github.lopezjavier.appfitness.designsystem.PrimaryButton
 import io.github.lopezjavier.appfitness.designsystem.Spacing
-import io.github.lopezjavier.appfitness.designsystem.appAnimateItem
 import org.jetbrains.compose.resources.stringResource
 
 private const val TAG = "template_details"
@@ -115,13 +115,21 @@ private fun DetailsList(content: TemplateDetailsUiState.Content, onOpen: (Int) -
                 modifier = Modifier.testTag("${TAG}_items_header"),
             )
         }
-        items(content.rows, key = { it.index }) { row ->
-            FoodEntryRow(
-                model = row.toRowModel(),
-                onClick = { onOpen(row.index) },
-                tagPrefix = "${TAG}_item",
-                modifier = appAnimateItem(),
-            )
+        // C-28: the foods of the comida are rows of one card, like the meals of the Diario.
+        if (content.rows.isNotEmpty()) {
+            item(key = "rows") {
+                AppCard(Modifier.fillMaxWidth().testTag("${TAG}_rows_card")) {
+                    content.rows.forEach { row ->
+                        key(row.index) {
+                            FoodEntryRow(
+                                model = row.toRowModel(),
+                                onClick = { onOpen(row.index) },
+                                tagPrefix = "${TAG}_item",
+                            )
+                        }
+                    }
+                }
+            }
         }
         item(key = "add") {
             AddItemButton(

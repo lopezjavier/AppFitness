@@ -202,7 +202,7 @@ fun AppTextField(
             singleLine = singleLine,
             minLines = minLines,
             interactionSource = interactionSource,
-            cursorBrush = SolidColor(colors.athleticCyan),
+            cursorBrush = SolidColor(if (hasError) colors.error else colors.neonLime),
             decorationBox = { innerTextField ->
                 TextFieldBox(
                     focused,

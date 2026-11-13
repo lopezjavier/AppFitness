@@ -15,6 +15,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import io.github.lopezjavier.appfitness.composeapp.resources.Res
+import io.github.lopezjavier.appfitness.composeapp.resources.name_sheet_blank
 import io.github.lopezjavier.appfitness.composeapp.resources.name_sheet_duplicate
 import org.jetbrains.compose.resources.stringResource
 
@@ -117,7 +118,11 @@ fun NameSheet(
             },
             label = label,
             maxLength = maxLength,
-            errorText = if (edited && duplicate) stringResource(Res.string.name_sheet_duplicate, itemLabel) else null,
+            errorText = when {
+                edited && name.isBlank() -> stringResource(Res.string.name_sheet_blank)
+                edited && duplicate -> stringResource(Res.string.name_sheet_duplicate, itemLabel)
+                else -> null
+            },
             testTagPrefix = "${testTagPrefix}_input",
             imeAction = ImeAction.Done,
             onImeAction = { save() },

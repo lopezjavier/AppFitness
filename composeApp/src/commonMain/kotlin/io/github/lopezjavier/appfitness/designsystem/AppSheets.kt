@@ -260,19 +260,25 @@ internal fun AppSheetLayout(
     footer: (@Composable ColumnScope.() -> Unit)?,
     body: @Composable ColumnScope.() -> Unit,
 ) {
+    val scrollState = rememberScrollState()
     Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.TopCenter) {
         Column(Modifier.widthIn(max = WindowWidthClassDefaults.FormContentMaxWidth).fillMaxWidth()) {
             header()
             Column(
                 Modifier
                     .weight(1f, fill = false)
-                    .verticalScroll(rememberScrollState())
+                    .verticalScroll(scrollState)
                     .padding(horizontal = Spacing.screenMargin),
                 content = body,
             )
             if (footer != null) {
                 Column(
                     Modifier
+                        .footerEdge(
+                            AppTheme.colors.borderSubtle,
+                            AppBottomSheetDefaults.colors(AppTheme.colors).container,
+                            visible = scrollState.canScrollForward,
+                        )
                         .imePadding()
                         .navigationBarsPadding()
                         .padding(horizontal = Spacing.screenMargin)

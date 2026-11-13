@@ -145,7 +145,8 @@ object NumberInputDefaults {
         // Placeholders are hints: textTertiary (R-65), not the disabled ghostData.
         placeholder = appColors.textTertiary,
         label = AppInputStyle.labelColor(appColors),
-        cursor = appColors.athleticCyan,
+        // The caret is lime like the focus border, and the error colour while the field is invalid (C-41).
+        cursor = if (hasError) appColors.error else appColors.neonLime,
     )
 
     fun borderWidth(focused: Boolean, readOnly: Boolean, hasError: Boolean = false): Dp =

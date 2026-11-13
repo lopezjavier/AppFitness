@@ -371,6 +371,12 @@ internal fun MealSelector(
         }
         val options = slots.map { AppOption(it.label, "${optionTagPrefix}_${it.id}") }
         val selected = slots.indexOfFirst { it.id == selectedSlotId }.takeIf { it >= 0 }
-        FilterChipRow(options, selected, { onSelect(slots[it].id) }, Modifier.testTag(containerTag))
+        FilterChipRow(
+            options,
+            selected,
+            { onSelect(slots[it].id) },
+            Modifier.testTag(containerTag),
+            edgeToEdge = Spacing.screenMargin,
+        )
     }
 }
