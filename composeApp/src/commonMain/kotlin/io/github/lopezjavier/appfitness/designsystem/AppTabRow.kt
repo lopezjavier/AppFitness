@@ -70,7 +70,6 @@ internal fun tabsFitEqualWeight(longestWordWidths: List<Int>, share: Int, paddin
  * [AppOption.testTag]; tapping the active tab does not call [onSelect]. It measures through `BoxWithConstraints`, so do
  * not place it inside a parent that asks for intrinsic sizes.
  */
-
 @Composable
 fun AppTabRow(options: List<AppOption>, selectedIndex: Int, onSelect: (Int) -> Unit, modifier: Modifier = Modifier) {
     SingleSelection.requireValid(selectedIndex, options.size)

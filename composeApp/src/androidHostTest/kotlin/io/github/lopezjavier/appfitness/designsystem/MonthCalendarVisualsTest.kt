@@ -126,10 +126,10 @@ class MonthCalendarVisualsTest {
 
         val map = rule.onNodeWithTag("month_calendar_day_2026-10-14").captureToImage().toPixelMap()
         val x = map.width / 2
-        // xxhdpi = 3 px/dp: cyan ring from 4 dp (1.5 dp wide); Modifier.border does not inset, so the 2 dp padding
-        // puts the 1 dp lime border at 6 dp, just inside the ring; then the fill.
+        // xxhdpi = 3 px/dp: cyan ring 12..16.5 px (4 dp, 1.5 dp wide); the content is inset by ring + 2 dp gap, so the
+        // 1 dp lime border sits at 22.5..25.5 px; then the fill.
         assertEquals(cyan, map[x, 14].withoutAlpha())
-        assertEquals(lime, map[x, 19].withoutAlpha())
+        assertEquals(lime, map[x, 24].withoutAlpha())
         assertEquals(container, map[x, 30].withoutAlpha())
     }
 

@@ -201,6 +201,7 @@ private fun WeekdayHeader(cellWidth: Dp) {
     }
 }
 
+/** Gap between the outer cyan today ring and the inner lime selection border. */
 private val TodayRingGap = 2.dp
 
 @Composable
@@ -223,7 +224,7 @@ private fun dayDescription(cell: DayCell): String {
 private fun Modifier.dayCellDecoration(cell: DayCell, colors: AppColors): Modifier = this
     .let {
         if (cell.isToday && cell.selected) {
-            it.border(AppBorder.focus, colors.athleticCyan, AppShapes.full).padding(TodayRingGap)
+            it.border(AppBorder.focus, colors.athleticCyan, AppShapes.full).padding(AppBorder.focus + TodayRingGap)
         } else {
             it
         }
