@@ -195,20 +195,7 @@ private fun StateMessage(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(StateMessageMetrics.ItemSpacing),
         ) {
-            // Decorative: the text carries the meaning.
-            Box(
-                Modifier.size(StateMessageMetrics.IconCircleSize).clip(AppShapes.full).background(
-                    AppTheme.colors.surfaceOverlay,
-                ),
-                contentAlignment = Alignment.Center,
-            ) {
-                Icon(
-                    painter = painterResource(icon),
-                    contentDescription = null,
-                    tint = colors.icon,
-                    modifier = Modifier.size(StateMessageMetrics.IconSize),
-                )
-            }
+            StateMessageGlyph(icon, colors.icon)
             Column(
                 modifier = if (isError) Modifier.semantics { liveRegion = LiveRegionMode.Polite } else Modifier,
                 horizontalAlignment = Alignment.CenterHorizontally,
@@ -251,6 +238,24 @@ private fun StateMessage(
                 )
             }
         }
+    }
+}
+
+// Decorative: the text carries the meaning.
+@Composable
+private fun StateMessageGlyph(icon: DrawableResource, tint: Color) {
+    Box(
+        Modifier.size(
+            StateMessageMetrics.IconCircleSize,
+        ).clip(AppShapes.full).background(AppTheme.colors.surfaceOverlay),
+        contentAlignment = Alignment.Center,
+    ) {
+        Icon(
+            painter = painterResource(icon),
+            contentDescription = null,
+            tint = tint,
+            modifier = Modifier.size(StateMessageMetrics.IconSize),
+        )
     }
 }
 

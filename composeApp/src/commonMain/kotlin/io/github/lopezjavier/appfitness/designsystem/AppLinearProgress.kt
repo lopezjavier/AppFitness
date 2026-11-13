@@ -46,9 +46,9 @@ internal fun BoxScope.TrackStopDot() {
 }
 
 /**
- * A plain progress bar towards a goal: an `athleticCyan` fill over a `trackInactive` track with a stop dot, rounded. [fraction] is clamped
- * to 0..1; [stateDescription] is the spoken value ("Progreso hacia el objetivo, 50 %"), so the bar is never
- * colour-only. [fillColor] overrides the fill (for example the caution token at a limit). Unlike
+ * A plain progress bar towards a goal: an `athleticCyan` fill over a `trackInactive` track with a stop dot, rounded.
+ * [fraction] is clamped to 0..1; [stateDescription] is the spoken value ("Progreso hacia el objetivo, 50 %"), so the
+ * bar is never colour-only. [fillColor] overrides the fill (for example the caution token at a limit). Unlike
  * `MacroProgressBar` it has no macro colour and no amounts.
  */
 @Composable
