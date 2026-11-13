@@ -35,7 +35,7 @@ One row per ux-critic finding. The PM has the dispositions recorded here as the 
 | C-25 | token `macroFat` #A78BFA (orange is the over-target colour) | 1 | REWORK (tried #A78BFA violet, user disliked it; now #F472B6 pink) | 05 §2.3, visual items |
 | C-26 | nested containers on sheets use `surfaceControl` | 1 | IN REVIEW (build waits for round 0 verdict) | 05 visual items |
 | C-27 | pinned footer: hairline plus fade | 1 | IN REVIEW (build waits for round 0 verdict) | 05 visual items, §9 |
-| C-28 | meal rows inside `AppCard` | 1 | REWORK (card kept; its header is redone by R-75: toggle row, ⋮ and "+", kcal pill, macros line) | 05 visual items |
+| C-28 | meal rows inside `AppCard` | 1 | REWORK (card kept; its header is redone by R-75: toggle row, bookmark-plus and "+", kcal pill, macros line) | 05 visual items |
 | C-29 | compact hero: ring 132 dp with stacked macros, full ring at font scale >= 1.15 | 1 | IN REVIEW (build waits for round 0 verdict) | 05 R-68 |
 | C-30 | entry typography | 1 | REWORK (entry kcal now 14 sp W600 in `FoodEntryRow` and `DiaryGroupRow`) | 05 visual items |
 | C-31 | plural-aware reminders ("Toca pesarte", "Llevas N días sin pesarte"; measures likewise) | 1 | IN REVIEW | 05 R-72, guard G21 |
@@ -60,23 +60,23 @@ One row per ux-critic finding. The PM has the dispositions recorded here as the 
 | V-11 | C-17 empty and error evidence (swept Diario states) | 1 | IN REVIEW | 05 R-66 |
 | V-12 | R-35 glossary wording | 1 | IN REVIEW | 05 R-35, §10 |
 | V-13 | R-44 dates and numbers; fix only if the sweep confirms a violation | 1 | PROPOSED | 05 R-44 |
-| C-44 | meal card header redesign: name + chevron toggle row, buttons at the trailing edge | 1 | IN REVIEW (batch 3; adjusted: at most two buttons) | 05 R-75 |
+| C-44 | meal card header redesign: name + chevron toggle row, buttons at the trailing edge | 1 | IN REVIEW (batch 3; adjusted: exactly two buttons, bookmark-plus and "+", no ⋮) | 05 R-75 |
 | C-45 | critic's original meal card layout variant | 1 | SUPERSEDED by C-55 as adjusted by the user | 05 R-75 |
-| C-46 | compact tonal icon button (48 dp target, 36 dp circle) for ⋮ and "+" | 1 | IN REVIEW (batch 3) | 05 §6.0, R-75 |
+| C-46 | compact tonal icon button (48 dp target, 36 dp circle) for bookmark-plus and "+" | 1 | IN REVIEW (batch 3) | 05 §6.0, R-75 |
 | C-47 | compact kcal pill under the meal name, no border; none for an empty meal | 1 | IN REVIEW (batch 3) | 05 §6.0, R-75 |
-| C-48 | ⋮ "Guardar como comida" only with entries; empty meal has no ⋮ | 1 | IN REVIEW (batch 3; as adjusted: no separate saved-comida icon) | 05 R-75 |
+| C-48 | existing bookmark-plus "Guardar como comida" icon button only with entries; empty meal has none | 1 | IN REVIEW (batch 3; final user decision: no ⋮ menu, no separate saved-comida icon) | 05 R-75 |
 | C-49 | "+" shown only while the card is expanded | 1 | IN REVIEW (batch 3) | 05 R-75 |
 | C-50 | no ⋮ on a food row (swipe and edit sheet carry delete) | 1 | IN REVIEW (batch 3) | 05 R-75 |
 | C-51 | saved-comida icon in the meal card header | 1 | REJECTED (user, 2026-11-13): saved comidas stay in the "Guardadas" tab | 05 §8 Decided |
 | C-52 | search tab row 14 sp, 6/8 dp padding, full-bleed; "Más comidos" -> "Habituales" | 1 | IN REVIEW (batch 3) | 05 R-77, §6.0, §10 |
 | C-53 | restaurant icon on the meal card | 1 | REJECTED (user, 2026-11-13) | 05 §8 Decided |
 | C-54 | macros line hidden when the card is collapsed | 1 | REJECTED (user, 2026-11-13): shown expanded and collapsed, as today | 05 §8 Decided |
-| C-55 | meal card per the critic, with the user's corrections: two buttons max (⋮, "+"), macros line always visible, collapsed card about 100 dp | 1 | IN REVIEW (batch 3; as adjusted) | 05 R-75 |
+| C-55 | meal card per the critic, with the user's corrections: exactly two buttons (bookmark-plus, "+"), no ⋮, macros line always visible, collapsed card about 100 dp | 1 | IN REVIEW (batch 3; as adjusted) | 05 R-75 |
 | C-56 | critic's third header variant (extra header buttons) | 1 | SUPERSEDED / REJECTED: at most two buttons | 05 §8 Decided |
 | V-14 | tab row shows no indicator while scrolling: indicator stays visible | 1 | IN REVIEW (batch 3) | 05 §6.0, R-77 |
 | V-15 | compact hero macro labels break mid-word: never | 1 | IN REVIEW (batch 3) | 05 R-76 |
 | V-16 | search tab row full-bleed edge to edge | 1 | IN REVIEW (batch 3) | 05 R-77 |
-| V-17 | ⋮ wording "Más acciones de %1$s" everywhere | 1 | IN REVIEW (batch 3) | 05 §10 |
+| V-17 | ⋮ "Más acciones de %1$s" wording on the meal card | 1 | WITHDRAWN (user, 2026-11-13): the meal card has no ⋮; its bookmark-plus keeps "Guardar como comida" | 05 §10 |
 | U-1 | diary entry with ingredients: collapsed swipe removes the whole food (user request, explicit exception to "no behaviour change") | 1 | IN REVIEW | 05 R-71 |
 
 Status values:
