@@ -54,6 +54,13 @@ private const val EQUAL_WEIGHT_MAX_LINES = 2
 private data class TabBounds(val start: Int, val width: Int)
 
 /**
+ * Whether every tab's longest word ([longestWordWidths], px) plus [padding] (px, both sides) fits its equal [share]
+ * of the row (px); a word that exactly fills the share still fits.
+ */
+internal fun tabsFitEqualWeight(longestWordWidths: List<Int>, share: Int, padding: Int): Boolean =
+    longestWordWidths.all { it + padding <= share }
+
+/**
  * Tab bar for the sections of one screen (for example Resumen / Historial / Cómo hacerlo). Every label is 12 sp
  * (`bodySmall`, W600; the selected one W700, lime, with a lime indicator; the others `textSecondary`). When the
  * longest word of every label fits its equal share of the width the tabs are equal-weight and a label may wrap between
@@ -63,6 +70,7 @@ private data class TabBounds(val start: Int, val width: Int)
  * [AppOption.testTag]; tapping the active tab does not call [onSelect]. It measures through `BoxWithConstraints`, so do
  * not place it inside a parent that asks for intrinsic sizes.
  */
+
 @Composable
 fun AppTabRow(options: List<AppOption>, selectedIndex: Int, onSelect: (Int) -> Unit, modifier: Modifier = Modifier) {
     SingleSelection.requireValid(selectedIndex, options.size)
@@ -74,10 +82,13 @@ fun AppTabRow(options: List<AppOption>, selectedIndex: Int, onSelect: (Int) -> U
         val share = constraints.maxWidth / options.size.coerceAtLeast(1)
         val fits = remember(options, widestStyle, density, share) {
             val padding = with(density) { AppTabRowDefaults.LabelPadding.roundToPx() * 2 }
-            options.all { option ->
-                val longestWord = option.label.split(' ').maxOf { measurer.measure(it, widestStyle).size.width }
-                longestWord + padding <= share
-            }
+            tabsFitEqualWeight(
+                options.map { option ->
+                    option.label.split(' ').maxOf { measurer.measure(it, widestStyle).size.width }
+                },
+                share,
+                padding,
+            )
         }
         val onTap: (Int) -> Unit = { index -> SingleSelection.onTap(selectedIndex, index)?.let(onSelect) }
         if (fits) {

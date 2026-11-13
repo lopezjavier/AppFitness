@@ -53,6 +53,7 @@ import io.github.lopezjavier.appfitness.composeapp.resources.month_9
 import io.github.lopezjavier.appfitness.composeapp.resources.month_calendar_day_cd
 import io.github.lopezjavier.appfitness.composeapp.resources.month_calendar_day_marked
 import io.github.lopezjavier.appfitness.composeapp.resources.month_calendar_day_selected
+import io.github.lopezjavier.appfitness.composeapp.resources.month_calendar_day_today
 import io.github.lopezjavier.appfitness.composeapp.resources.month_calendar_day_unmarked
 import io.github.lopezjavier.appfitness.composeapp.resources.month_calendar_next
 import io.github.lopezjavier.appfitness.composeapp.resources.month_calendar_prev
@@ -200,12 +201,11 @@ private fun WeekdayHeader(cellWidth: Dp) {
     }
 }
 
-// The hit area is the whole 48 dp cell while the visible circle is padded inside it, so the selectable sits first.
+private val TodayRingGap = 2.dp
+
 @Composable
-@Suppress("ModifierClickableOrder")
-private fun DayCellView(cell: DayCell, cellWidth: Dp, enabled: Boolean, onSelect: (LocalDate) -> Unit) {
-    val colors = AppTheme.colors
-    val description = stringResource(
+private fun dayDescription(cell: DayCell): String {
+    val base = stringResource(
         Res.string.month_calendar_day_cd,
         cell.date.day,
         stringResource(MonthLabels[cell.date.month.ordinal]),
@@ -213,6 +213,37 @@ private fun DayCellView(cell: DayCell, cellWidth: Dp, enabled: Boolean, onSelect
             if (cell.marked) Res.string.month_calendar_day_marked else Res.string.month_calendar_day_unmarked,
         ),
     )
+    return if (cell.isToday) "$base, ${stringResource(Res.string.month_calendar_day_today)}" else base
+}
+
+/**
+ * The visible circle of a day (R-64): selected = `selectedContainer` fill with a 1 dp lime border; today = 1 dp cyan
+ * ring. Today and selected: the cyan ring sits outside, so the lime border stays inside it.
+ */
+private fun Modifier.dayCellDecoration(cell: DayCell, colors: AppColors): Modifier = this
+    .let {
+        if (cell.isToday && cell.selected) {
+            it.border(AppBorder.focus, colors.athleticCyan, AppShapes.full).padding(TodayRingGap)
+        } else {
+            it
+        }
+    }
+    .clip(AppShapes.full)
+    .background(if (cell.selected) colors.selectedContainer else colors.surfaceBase)
+    .let {
+        when {
+            cell.selected -> it.border(AppBorder.thin, colors.neonLime, AppShapes.full)
+            cell.isToday -> it.border(AppBorder.thin, colors.athleticCyan, AppShapes.full)
+            else -> it
+        }
+    }
+
+// The hit area is the whole 48 dp cell while the visible circle is padded inside it, so the selectable sits first.
+@Composable
+@Suppress("ModifierClickableOrder")
+private fun DayCellView(cell: DayCell, cellWidth: Dp, enabled: Boolean, onSelect: (LocalDate) -> Unit) {
+    val colors = AppTheme.colors
+    val description = dayDescription(cell)
     val selectedText = stringResource(Res.string.month_calendar_day_selected)
     Box(
         Modifier
@@ -230,15 +261,7 @@ private fun DayCellView(cell: DayCell, cellWidth: Dp, enabled: Boolean, onSelect
             )
             .testTag("month_calendar_day_${cell.date}")
             .padding(Spacing.xs)
-            .clip(AppShapes.full)
-            .background(if (cell.selected) colors.selectedContainer else colors.surfaceBase)
-            .let {
-                when {
-                    cell.selected -> it.border(AppBorder.thin, colors.neonLime, AppShapes.full)
-                    cell.isToday -> it.border(AppBorder.focus, colors.neonLime, AppShapes.full)
-                    else -> it
-                }
-            },
+            .dayCellDecoration(cell, colors),
         contentAlignment = Alignment.Center,
     ) {
         Text(

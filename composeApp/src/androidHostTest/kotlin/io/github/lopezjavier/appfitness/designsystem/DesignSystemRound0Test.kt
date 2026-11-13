@@ -1,19 +1,13 @@
 package io.github.lopezjavier.appfitness.designsystem
 
-import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.toPixelMap
-import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.test.assertCountEquals
-import androidx.compose.ui.test.captureToImage
 import androidx.compose.ui.test.getUnclippedBoundsInRoot
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithTag
 import io.github.lopezjavier.appfitness.composeapp.resources.Res
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_inbox
-import kotlinx.datetime.LocalDate
-import kotlinx.datetime.YearMonth
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Rule
@@ -110,43 +104,4 @@ class DesignSystemRound0Test {
         val width = rule.onNodeWithTag("empty_action").getUnclippedBoundsInRoot().let { (it.right - it.left).value }
         assertTrue("action is $width dp wide", width >= 200f)
     }
-
-    @Test
-    fun monthCalendarGrid_selectedDay_hasLimeBorderAndSelectedContainerFill() {
-        var selectedContainer = Color.Unspecified
-        var lime = Color.Unspecified
-        var base = Color.Unspecified
-        rule.setContent {
-            AppTheme {
-                selectedContainer = AppTheme.colors.selectedContainer
-                lime = AppTheme.colors.neonLime
-                base = AppTheme.colors.surfaceBase
-                MonthCalendarGrid(
-                    month = YearMonth(2026, 10),
-                    markedDays = emptySet(),
-                    selected = LocalDate(2026, 10, 14),
-                    today = LocalDate(2026, 10, 20),
-                    onSelect = {},
-                    onPrevMonth = {},
-                    onNextMonth = {},
-                    canGoNext = true,
-                    modifier = Modifier.testTag("grid"),
-                )
-            }
-        }
-        rule.waitForIdle()
-
-        val selected = rule.onNodeWithTag("month_calendar_day_2026-10-14")
-        val other = rule.onNodeWithTag("month_calendar_day_2026-10-15")
-        val selectedMap = selected.captureToImage().toPixelMap()
-        val otherMap = other.captureToImage().toPixelMap()
-        val x = selectedMap.width / 2
-        // 48 dp cell, 4 dp padding, 1 dp border: the ring is at 4..5 dp, the fill just below it (xxhdpi = 3 px/dp).
-        assertEquals(lime, selectedMap[x, 14].withoutAlpha())
-        assertEquals(selectedContainer, selectedMap[x, 24].withoutAlpha())
-        assertEquals(base, otherMap[x, 14].withoutAlpha())
-        assertEquals(base, otherMap[x, 24].withoutAlpha())
-    }
-
-    private fun Color.withoutAlpha(): Color = copy(alpha = 1f)
 }

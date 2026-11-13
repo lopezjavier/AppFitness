@@ -91,8 +91,6 @@ object ProgressRingDefaults {
     fun valueStyle(typography: AppTypography): TextStyle = typography.displayHero
 
     fun captionStyle(typography: AppTypography): TextStyle = typography.bodyMedium.copy(fontWeight = FontWeight.W600)
-
-    fun statusStyle(typography: AppTypography): TextStyle = captionStyle(typography)
 }
 
 /**
@@ -184,7 +182,7 @@ private fun StatusPill(text: String, color: Color) {
     PillContainer(modifier = Modifier.clearAndSetSemantics {}) {
         Text(
             text = text,
-            style = ProgressRingDefaults.statusStyle(AppTheme.typography),
+            style = ProgressRingDefaults.captionStyle(AppTheme.typography),
             color = color,
             textAlign = TextAlign.Center,
         )

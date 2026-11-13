@@ -165,11 +165,11 @@ private fun ActivityMetricCard(
             Icon(
                 painter = painterResource(metric.icon()),
                 contentDescription = null,
-                tint = if (selected) AppTheme.colors.athleticCyan else AppTheme.colors.textSecondary,
+                tint = if (selected) AppTheme.colors.neonLime else AppTheme.colors.textSecondary,
                 modifier = Modifier.size(IconSize),
             )
         },
-        highlighted = selected,
+        selected = selected,
     )
 }
 

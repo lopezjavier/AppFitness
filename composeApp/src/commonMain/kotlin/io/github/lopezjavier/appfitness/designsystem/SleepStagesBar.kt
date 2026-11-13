@@ -98,7 +98,7 @@ fun SleepStagesBar(
             ) {
                 Box(
                     Modifier
-                        .size(Spacing.sm)
+                        .size(Spacing.md)
                         .clip(AppShapes.full)
                         .background(SleepStagesBarDefaults.color(segment.kind))
                         .clearAndSetSemantics {},

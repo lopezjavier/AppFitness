@@ -44,3 +44,11 @@ Tests changed or added in commit e4ce774b (check they still pass after later bat
 - Fixed: `MacroProgressBarTest` (track is `trackInactive`), `StateMessagesTest` (icon 32 dp).
 - New: `DesignSystemRound0Test` (stop dot on both bars, sleep ramp, 200 dp error/empty buttons, R-64 calendar selected pixels). `AppLinearProgressDefaults.STOP_DOT_TAG` test tag added to `TrackStopDot`.
 - Not covered by a pixel test: `AppDatePickerDialog` selected day/year R-64 (existing semantics tests pass).
+
+## T-296 follow-up (ux-reviewer C-20 / R-64 (b)-(f) and pr-reviewer nits)
+
+- SelectableCard: `selectedContainer` fill, 1 dp lime border, lime W700 title; `SelectableCardTest` updated. OptionPickerSheet check tint lime.
+- MonthCalendarGrid: today = 1 dp cyan ring; today and selected = outer 1.5 dp cyan ring plus 2 dp padding before the lime border; cell description appends ", hoy" for today (new string `month_calendar_day_today`). Note: `Modifier.border` does not inset, so the visible gap between the cyan ring and the lime border is 0.5 dp (2 dp padding minus the 1.5 dp ring); if a wider gap is wanted, pad by `AppBorder.focus + 2.dp`. New `MonthCalendarVisualsTest` (pixels and descriptions).
+- AppCard `selected` (and MetricCard passthrough); ActivitySummary uses it with a lime icon. `AppCardDefaultsTest` covers it. `highlighted` stays cyan for the other four callers.
+- SleepStagesBar legend swatch 12 dp. ProgressRing `statusStyle` merged into `captionStyle`. NavLabel default modifier removed (the bar and rail pass `clearAndSetSemantics`). `tabsFitEqualWeight` extracted with `TabsFitEqualWeightTest` (boundary case). Calendar tests moved out of `DesignSystemRound0Test` (detekt TooManyFunctions).
+- No golden changed in verify for these edits (no golden covers SelectableCard, the calendar or ActivitySummary).

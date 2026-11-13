@@ -1191,6 +1191,7 @@
     <string name="month_calendar_day_marked">con registros</string>
     <string name="month_calendar_day_unmarked">sin registros</string>
     <string name="month_calendar_day_selected">seleccionado</string>
+    <string name="month_calendar_day_today">hoy</string>
     <string name="catalog_section_month_calendar">Calendario mensual</string>
     <string name="catalog_section_diary_history_row">Fila de historial</string>
 

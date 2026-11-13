@@ -13,7 +13,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
@@ -45,16 +44,9 @@ internal fun NavIcon(item: AppNavigationItem, selected: Boolean) {
     )
 }
 
-/**
- * The label hides itself from semantics by default (the item carries the description);
- * tests pass a plain [modifier].
- */
+/** The label text; the caller decides whether it hides from semantics (the items carry the description). */
 @Composable
-internal fun NavLabel(
-    item: AppNavigationItem,
-    selected: Boolean,
-    modifier: Modifier = Modifier.clearAndSetSemantics {},
-) {
+internal fun NavLabel(item: AppNavigationItem, selected: Boolean, modifier: Modifier = Modifier) {
     CompositionLocalProvider(LocalDensity provides clampedLabelDensity()) {
         Text(
             text = stringResource(item.label),

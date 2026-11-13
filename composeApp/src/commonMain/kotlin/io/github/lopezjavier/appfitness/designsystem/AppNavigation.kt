@@ -27,6 +27,7 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
@@ -173,7 +174,7 @@ private fun AppNavigationBar(
                 icon = { NavIcon(item, selected) },
                 modifier = item.itemModifier(),
                 alwaysShowLabel = true,
-                label = { NavLabel(item, selected) },
+                label = { NavLabel(item, selected, Modifier.clearAndSetSemantics {}) },
                 colors = navBarItemColors(),
             )
         }
@@ -223,7 +224,7 @@ private fun AppNavigationRail(
                 icon = { NavIcon(item, selected) },
                 modifier = item.itemModifier(),
                 alwaysShowLabel = true,
-                label = { NavLabel(item, selected) },
+                label = { NavLabel(item, selected, Modifier.clearAndSetSemantics {}) },
                 colors = navRailItemColors(),
             )
         }

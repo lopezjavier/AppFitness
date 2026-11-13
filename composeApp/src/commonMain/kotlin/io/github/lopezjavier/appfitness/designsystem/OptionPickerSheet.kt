@@ -54,7 +54,7 @@ private fun PickerRow(tagPrefix: String, option: PickerOption, onClose: () -> Un
                 Icon(
                     painter = painterResource(Res.drawable.ic_check),
                     contentDescription = null,
-                    tint = AppTheme.colors.athleticCyan,
+                    tint = AppTheme.colors.neonLime,
                     modifier = Modifier.size(Spacing.xl),
                 )
             }
