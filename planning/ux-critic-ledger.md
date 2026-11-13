@@ -38,7 +38,7 @@ One row per ux-critic finding. The PM has the dispositions recorded here as the 
 | C-28 | meal rows inside `AppCard` | 1 | IN REVIEW (build waits for round 0 verdict) | 05 visual items |
 | C-29 | compact hero: ring 132 dp with stacked macros, full ring at font scale >= 1.15 | 1 | IN REVIEW (build waits for round 0 verdict) | 05 R-68 |
 | C-30 | entry typography | 1 | IN REVIEW | 05 visual items |
-| C-31 | plural-aware reminders ("Toca pesarte", "Llevas N días sin pesarte"; measures likewise) | 1 | IN REVIEW | 05 R-72, guard G19 |
+| C-31 | plural-aware reminders ("Toca pesarte", "Llevas N días sin pesarte"; measures likewise) | 1 | IN REVIEW | 05 R-72, guard G21 |
 | C-32 | per-type notice icons, hide "Pendientes" at 0 | 1 | IN REVIEW | 05 R-74 |
 | C-33 | calendar resting cells without fill | 1 | IN REVIEW (build waits for round 0 verdict) | 05 visual items |
 | C-34 | energy notice icon and copy | 1 | IN REVIEW | 05 R-74 |
