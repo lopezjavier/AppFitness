@@ -1,18 +1,13 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Material Symbols Outlined style (hand-drawn, stroked, 24px): insights -->
+<!-- Material Symbols Outlined (weight 400, 24px): insert_chart. Apache-2.0, see files/licenses/MaterialSymbols-LICENSE.txt -->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
     android:width="24dp"
     android:height="24dp"
     android:viewportWidth="960"
     android:viewportHeight="960">
-    <path
-        android:pathData="M120,760 L340,520 L500,640 L780,320"
-        android:strokeColor="#FF000000"
-        android:strokeWidth="80"
-        android:strokeLineCap="round"
-        android:strokeLineJoin="round" />    <path
-        android:pathData="M780,140 Q795,225 880,240 Q795,255 780,340 Q765,255 680,240 Q765,225 780,140Z"
-        android:strokeColor="#FF000000"
-        android:strokeWidth="80"
-        android:strokeLineCap="round"
-        android:strokeLineJoin="round" /></vector>
+    <group android:translateY="960">
+        <path
+            android:fillColor="#FF000000"
+            android:pathData="M280-280h80v-200h-80v200Zm320 0h80v-400h-80v400Zm-160 0h80v-120h-80v120Zm0-200h80v-80h-80v80ZM200-120q-33 0-56.5-23.5T120-200v-560q0-33 23.5-56.5T200-840h560q33 0 56.5 23.5T840-760v560q0 33-23.5 56.5T760-120H200Zm0-80h560v-560H200v560Zm0-560v560-560Z" />
+    </group>
+</vector>
