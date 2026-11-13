@@ -22,6 +22,7 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import io.github.lopezjavier.appfitness.composeapp.resources.Res
 import io.github.lopezjavier.appfitness.composeapp.resources.diary_entry_delete_cd
@@ -119,7 +120,7 @@ private fun GroupHeader(group: MealRow.Group, expanded: Boolean, onToggle: () ->
                 )
                 Text(
                     text = stringResource(Res.string.diary_meal_kcal, wholeHalfUp(group.totals.kcal)),
-                    style = AppTheme.typography.labelNumeric,
+                    style = AppTheme.typography.bodyMedium.copy(fontWeight = FontWeight.W600),
                     color = AppTheme.colors.textPrimary,
                 )
             }

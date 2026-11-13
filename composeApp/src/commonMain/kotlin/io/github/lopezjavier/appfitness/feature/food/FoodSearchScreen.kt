@@ -76,7 +76,7 @@ private const val TAG = "food_search"
  * Food search (US-17, US-21) on [AppScreen] (R-01): titled with the destination, "Añadir al desayuno" (the label of
  * the button that opened it) or "Añadir alimento" when a food is chosen for a comida. The search field carries
  * the three actions
- * as icon buttons (scan, photo, "Crear alimento"), then the four views ("Recientes / Más comidos / Favoritos /
+ * as icon buttons (scan, photo, "Crear alimento"), then the four views ("Recientes / Habituales / Favoritos /
  * Guardadas", hidden while a query is typed) as tabs and the results: the user's own foods first, the Open Food Facts
  * ones below them (a skeleton while they load, an inline error with "Reintentar" if they failed). [scanFailed] shows
  * the generic "could not read the code" message under the field; [templateManageFailed] a refused delete of a comida.
@@ -108,8 +108,9 @@ fun FoodSearchScreen(
                 SearchRow(state, onEvent)
                 if (scanFailed) ScanError()
                 if (!state.viewOnly) state.notFoundBarcode?.let { NotFoundCard(it, onEvent) }
-                if (state.query.isBlank()) Tabs(state, onEvent)
             }
+            // R-77: the tab row runs edge to edge (full-bleed), outside the padded column.
+            if (state.query.isBlank()) Tabs(state, onEvent)
             Box(Modifier.weight(1f).fillMaxWidth()) {
                 if (state.query.isBlank() && state.tab == FoodSearchTab.Templates) {
                     TemplatesPane(state.templates, state.isOffline, templateManageFailed, isOnline, onEvent)

@@ -1,6 +1,7 @@
 package io.github.lopezjavier.appfitness.feature.diary
 
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.Row
@@ -11,6 +12,10 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.rememberTextMeasurer
+import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.dp
 import io.github.lopezjavier.appfitness.composeapp.resources.Res
 import io.github.lopezjavier.appfitness.composeapp.resources.diary_goals_prompt_supporting
 import io.github.lopezjavier.appfitness.composeapp.resources.diary_goals_prompt_title
@@ -25,6 +30,7 @@ import io.github.lopezjavier.appfitness.designsystem.AppCard
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
 import io.github.lopezjavier.appfitness.designsystem.Macro
 import io.github.lopezjavier.appfitness.designsystem.MacroProgressBar
+import io.github.lopezjavier.appfitness.designsystem.MacroProgressBarDefaults
 import io.github.lopezjavier.appfitness.designsystem.NavigationRow
 import io.github.lopezjavier.appfitness.designsystem.ProgressRing
 import io.github.lopezjavier.appfitness.designsystem.Spacing
@@ -35,6 +41,9 @@ import org.jetbrains.compose.resources.stringResource
 
 /** Font scale from which the hero falls back to the full ring over three bars, so no figure clips (R-68). */
 private const val FULL_HERO_FONT_SCALE = 1.15f
+
+/** Width of the compact ring (`ProgressRing(compact = true)`). */
+private val COMPACT_RING_WIDTH = 132.dp
 
 /**
  * The day's progress card (calorie ring and three macro bars), or the "set your goal" prompt without goals. With
@@ -69,34 +78,69 @@ private fun ProgressCard(
     modifier: Modifier = Modifier,
 ) {
     AppCard(modifier.fillMaxWidth()) {
-        if (compact) {
-            Row(
-                Modifier.fillMaxWidth().testTag("diary_hero_compact"),
-                horizontalArrangement = Arrangement.spacedBy(Spacing.lg),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                ProgressRing(totals.kcal, goals.targetKcal, Modifier.testTag("diary_ring"), pastDay, compact = true)
-                Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(Spacing.md)) {
-                    MacroBar(Macro.Protein, stringResource(Res.string.macro_protein_short), totals.proteinG, goals.proteinG)
-                    MacroBar(Macro.Carbs, stringResource(Res.string.macro_carbs_short), totals.carbsG, goals.carbsG)
-                    MacroBar(Macro.Fat, stringResource(Res.string.macro_fat_short), totals.fatG, goals.fatG)
+        BoxWithConstraints(Modifier.fillMaxWidth()) {
+            val labels = listOf(
+                stringResource(Res.string.macro_protein_short),
+                stringResource(Res.string.macro_carbs_short),
+                stringResource(Res.string.macro_fat_short),
+            )
+            // V-15: the stacked layout is used only when every short label and figure fits beside the ring.
+            val stacked = compact && compactMacrosFit(labels, goals, totals, maxWidth - COMPACT_RING_WIDTH - Spacing.lg)
+            if (stacked) {
+                Row(
+                    Modifier.fillMaxWidth().testTag("diary_hero_compact"),
+                    horizontalArrangement = Arrangement.spacedBy(Spacing.lg),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    ProgressRing(totals.kcal, goals.targetKcal, Modifier.testTag("diary_ring"), pastDay, compact = true)
+                    Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(Spacing.md)) {
+                        MacroBar(Macro.Protein, labels[0], totals.proteinG, goals.proteinG)
+                        MacroBar(Macro.Carbs, labels[1], totals.carbsG, goals.carbsG)
+                        MacroBar(Macro.Fat, labels[2], totals.fatG, goals.fatG)
+                    }
                 }
-            }
-            return@AppCard
-        }
-        Column(
-            Modifier.fillMaxWidth(),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(Spacing.xl),
-        ) {
-            ProgressRing(totals.kcal, goals.targetKcal, Modifier.testTag("diary_ring"), pastDay)
-            Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(Spacing.lg)) {
-                MacroBar(Macro.Protein, stringResource(Res.string.macro_protein), totals.proteinG, goals.proteinG)
-                MacroBar(Macro.Carbs, stringResource(Res.string.macro_carbs), totals.carbsG, goals.carbsG)
-                MacroBar(Macro.Fat, stringResource(Res.string.macro_fat), totals.fatG, goals.fatG)
+            } else {
+                FullHero(goals, totals, pastDay)
             }
         }
     }
+}
+
+@Composable
+private fun FullHero(goals: DiaryGoals, totals: MealTotals, pastDay: Boolean) {
+    Column(
+        Modifier.fillMaxWidth(),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(Spacing.xl),
+    ) {
+        ProgressRing(totals.kcal, goals.targetKcal, Modifier.testTag("diary_ring"), pastDay)
+        Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(Spacing.lg)) {
+            MacroBar(Macro.Protein, stringResource(Res.string.macro_protein), totals.proteinG, goals.proteinG)
+            MacroBar(Macro.Carbs, stringResource(Res.string.macro_carbs), totals.carbsG, goals.carbsG)
+            MacroBar(Macro.Fat, stringResource(Res.string.macro_fat), totals.fatG, goals.fatG)
+        }
+    }
+}
+
+/** Whether the widest macro row (dot, short label, "consumed / target") fits in [available] without wrapping. */
+@Composable
+private fun compactMacrosFit(labels: List<String>, goals: DiaryGoals, totals: MealTotals, available: Dp): Boolean {
+    val measurer = rememberTextMeasurer()
+    val typography = AppTheme.typography
+    val density = LocalDensity.current
+    val labelStyle = MacroProgressBarDefaults.labelStyle(typography).copy(fontWeight = FontWeight.W700)
+    val valueStyle = MacroProgressBarDefaults.valueStyle(typography)
+    val rows = listOf(
+        labels[0] to MacroProgressBarDefaults.text(totals.proteinG, goals.proteinG),
+        labels[1] to MacroProgressBarDefaults.text(totals.carbsG, goals.carbsG),
+        labels[2] to MacroProgressBarDefaults.text(totals.fatG, goals.fatG),
+    )
+    val widest = rows.maxOf { (label, text) ->
+        measurer.measure(label.uppercase(), labelStyle).size.width +
+            measurer.measure(text.full, valueStyle).size.width
+    }
+    val fixed = with(density) { (MacroProgressBarDefaults.DotSize + Spacing.sm * 3).roundToPx() }
+    return widest + fixed <= with(density) { available.roundToPx() }
 }
 
 @Composable

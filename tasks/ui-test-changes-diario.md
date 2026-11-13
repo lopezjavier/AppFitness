@@ -42,3 +42,19 @@ Behaviour tests that will fail or need an update:
 - G21 (new guard, R-72). `G19` was already taken by ADR-104, so the plural-count guard is `G21`; the ten existing plain strings with a count (`activity_chart_summary`, `live_calc_warm_up_sets_state`, `builder_warm_up_cap_hint`, `folder_review_result_*`, `folder_block_refused*`, `folder_block_group_option`) are an inline allow-list in `check-ux-conventions.sh` and are migration debt for their own areas. `ux-inline-text-allowlist.txt` lost `diary_remaining_hint` (the string no longer exists).
 
 Not done: V-13 (R-44) was not confirmed by the sweep (no date or number format violation found in the Diario screens read in batches 1 and 2), so it stays PROPOSED.
+
+## Batch 3 (meal card redesign, search tabs, fat colour)
+
+Behaviour tests that will fail or need an update:
+- Meal card (`DiaryScreenTest`, `FoodLoggingFlowTest`, `MealSection` tests): the header is now name + chevron toggle, `CompactKcalPill` (only with entries), macros line (always), then at the trailing edge `diary_section_<id>_save_template` (new icon `ic_save`, only with entries, now a `CompactTonalIconButton`) and `diary_section_<id>_add` ("+Añadir", `CompactAddButton`, shown ONLY while expanded; its content description is "Añadir a <comida>", its text is "+Añadir"; tests that read the old "Añadir a <comida>" text or tap the add button of a collapsed card fail). The add button is no longer in the meal body, so an empty expanded meal has no body at all. kcal is no longer on the name row (`diary_meal_kcal` shows in the pill); an empty meal has no pill. Name wraps to 2 lines. New tests needed: collapsed hides add, expanded shows it; empty meal has no save and no pill; two lines at 360 dp / 1.3 font scale; 48 dp targets.
+- Entry kcal 14 sp W600 in `FoodEntryRow` and `DiaryGroupRow` header (`labelNumeric`/`titleMedium` assertions, if any).
+- `macroFat` is `#F472B6`: `AppColorsTest`, `MacroDefaultsTest`, `ContrastTest` (fat on surfaceBase/Raised/Overlay: text >= 4.5:1, graphic >= 3:1), `DesignSystemRound0Test`, catalog `ThemeCatalogSection`.
+- `AppTabRow` now 14 sp (`bodyMedium`), 6/8 dp padding (`LabelPadding` 8 dp, new `LabelVerticalPadding` 6 dp): the equal-weight fit test (`tabsFitEqualWeight` callers, `AppTabRowTest` width cases) and every screen with tabs (food search, exercise detail, block builder, block preview, catalog) may change from equal weight to scrolling. In the scrolling layout the baseline and the lime indicator are drawn once outside the scrolled content (clamped to the viewport, V-14): tests that look for the per-tab indicator must be re-checked; new test: indicator visible after scrolling.
+- Food search: the tab row is outside the padded column (full-bleed); tab "Más comidos" is "Habituales" (`food_tab_most_eaten`, tag `food_search_tab_most_eaten` unchanged); tests asserting the text fail.
+- Compact hero (V-15): `diary_hero_compact` is used only when the widest macro row (dot, short label, "consumed / target") fits beside the 132 dp ring, measured with the text measurer; otherwise the full hero. `DiaryScreenTest` compact-at-360 cases may now render the full hero for large figures. New test: 4-digit grams fall back.
+- Collapsed group swipe removes the whole food: already built in batch 1 (R-71, `diary_group_<id>_delete`); no new code, tests listed under batch 1.
+
+Goldens expected to change (re-record):
+- Diario day (meal cards collapsed, expanded, empty; fat colour in rows, bars, summary), group card header, entry rows, food search (tab row), every tabbed screen (tab label size/padding), compact and full hero (fat bar colour), `ThemeCatalogSection` fat swatch, new catalog entries needed for `CompactTonalIconButton`, `CompactAddButton`, `CompactKcalPill` (not added in this build-only batch).
+
+Left for the repair task: catalog entries and previews for the three new components; `AppIconButton` is unchanged.

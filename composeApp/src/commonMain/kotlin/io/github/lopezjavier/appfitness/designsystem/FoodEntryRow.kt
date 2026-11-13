@@ -9,6 +9,7 @@ import androidx.compose.runtime.Immutable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.text.font.FontWeight
 import io.github.lopezjavier.appfitness.composeapp.resources.Res
 import io.github.lopezjavier.appfitness.composeapp.resources.diary_entry_delete_cd
 import io.github.lopezjavier.appfitness.composeapp.resources.diary_entry_kcal
@@ -85,7 +86,7 @@ private fun EntryTotals(model: FoodEntryRowModel) {
     Column(horizontalAlignment = Alignment.End) {
         Text(
             text = stringResource(Res.string.diary_entry_kcal, AppNumberFormat.integer(model.kcal)),
-            style = AppTheme.typography.titleMedium,
+            style = AppTheme.typography.bodyMedium.copy(fontWeight = FontWeight.W600),
             color = AppTheme.colors.textPrimary,
         )
         Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {

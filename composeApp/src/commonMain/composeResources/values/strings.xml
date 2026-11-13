@@ -920,7 +920,7 @@
     <string name="food_search_label">Buscar alimentos</string>
     <string name="food_search_placeholder">Nombre o marca</string>
     <string name="food_tab_recent">Recientes</string>
-    <string name="food_tab_most_eaten">Más comidos</string>
+    <string name="food_tab_most_eaten">Habituales</string>
     <string name="food_tab_favourites">Favoritos</string>
     <string name="food_empty_search">No hemos encontrado alimentos</string>
     <string name="food_create_action">Crear alimento</string>
@@ -1148,6 +1148,7 @@
     <string name="edit_entry_save_error">No se pudo guardar. Inténtalo de nuevo.</string>
 
     <string name="diary_save_template_cd">Guardar como comida</string>
+    <string name="diary_add_short">+Añadir</string>
     <string name="save_template_title">Guardar como comida</string>
     <string name="save_template_name_label">Nombre de la comida</string>
     <string name="save_template_error_too_long">Usa como máximo 60 caracteres</string>
