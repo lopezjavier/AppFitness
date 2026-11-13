@@ -193,7 +193,10 @@ private fun Tab(
             softWrap = !scrolling,
             modifier = Modifier
                 .align(Alignment.Center)
-                .padding(horizontal = AppTabRowDefaults.LabelPadding, vertical = AppTabRowDefaults.LabelVerticalPadding),
+                .padding(
+                    horizontal = AppTabRowDefaults.LabelPadding,
+                    vertical = AppTabRowDefaults.LabelVerticalPadding,
+                ),
         )
         if (!scrolling) {
             Box(

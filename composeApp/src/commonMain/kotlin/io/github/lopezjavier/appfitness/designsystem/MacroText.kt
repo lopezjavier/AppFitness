@@ -68,7 +68,14 @@ fun MacroLine(
     muted: Boolean = false,
 ) {
     FlowRow(modifier, horizontalArrangement = Arrangement.spacedBy(Spacing.xs)) {
-        MacroText(Res.string.diary_meal_protein, proteinG, Macro.Protein, style, muted = muted, trailingSeparator = true)
+        MacroText(
+            Res.string.diary_meal_protein,
+            proteinG,
+            Macro.Protein,
+            style,
+            muted = muted,
+            trailingSeparator = true,
+        )
         MacroText(Res.string.diary_meal_carbs, carbsG, Macro.Carbs, style, muted = muted, trailingSeparator = true)
         MacroText(Res.string.diary_meal_fat, fatG, Macro.Fat, style, muted = muted)
     }

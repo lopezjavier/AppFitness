@@ -26,12 +26,11 @@ import io.github.lopezjavier.appfitness.composeapp.resources.ic_search
 import io.github.lopezjavier.appfitness.composeapp.resources.topbar_back_cd
 import io.github.lopezjavier.appfitness.designsystem.AppIconButton
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
+import io.github.lopezjavier.appfitness.designsystem.FeatureMetrics
 import io.github.lopezjavier.appfitness.feature.notifications.NotificationsBell
 import io.github.lopezjavier.appfitness.feature.workout.DateLabel
 import io.github.lopezjavier.appfitness.feature.workout.text
 import org.jetbrains.compose.resources.stringResource
-
-private val NavigatorMaxWidth = 320.dp
 
 /**
  * The header of the Diario screen (the `AppScreen.header` slot): previous/next day arrows around the centred day
@@ -61,7 +60,10 @@ internal fun DiaryDateHeader(
         // C-40: the day navigator is capped at 320 dp and starts at the start edge, so on a tablet the arrows stay
         // next to the date instead of drifting to the window edges.
         Row(Modifier.weight(1f), verticalAlignment = Alignment.CenterVertically) {
-            Row(Modifier.widthIn(max = NavigatorMaxWidth), verticalAlignment = Alignment.CenterVertically) {
+            Row(
+                Modifier.widthIn(max = FeatureMetrics.DateNavigatorMaxWidth),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
                 AppIconButton(
                     contentDescription = stringResource(Res.string.diary_prev_day),
                     icon = Res.drawable.ic_chevron_left,

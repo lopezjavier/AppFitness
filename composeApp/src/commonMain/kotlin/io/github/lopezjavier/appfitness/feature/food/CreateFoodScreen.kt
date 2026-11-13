@@ -5,25 +5,25 @@ package io.github.lopezjavier.appfitness.feature.food
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.unit.dp
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.unit.dp
 import io.github.lopezjavier.appfitness.composeapp.resources.Res
 import io.github.lopezjavier.appfitness.composeapp.resources.action_retry
 import io.github.lopezjavier.appfitness.composeapp.resources.create_food_ai_note
@@ -59,6 +59,7 @@ import io.github.lopezjavier.appfitness.designsystem.AppStateAction
 import io.github.lopezjavier.appfitness.designsystem.AppTextField
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
 import io.github.lopezjavier.appfitness.designsystem.ErrorState
+import io.github.lopezjavier.appfitness.designsystem.FeatureMetrics
 import io.github.lopezjavier.appfitness.designsystem.InlineNote
 import io.github.lopezjavier.appfitness.designsystem.Macro
 import io.github.lopezjavier.appfitness.designsystem.MacroDefaults
@@ -74,9 +75,6 @@ import org.jetbrains.compose.resources.stringResource
 private const val MAX_NAME_LENGTH = 200
 private const val NUTRIENT_DECIMALS = 2
 private const val LABEL_DECIMALS = 4
-private val InputWidth = 96.dp
-private val InputHeight = 48.dp
-private val TableRowMinHeight = 56.dp
 private const val SKELETON_ROWS = 4
 private val SkeletonHeight = Spacing.xl * 2
 
@@ -281,13 +279,24 @@ private fun NutritionBlock(state: CreateFoodUiState, onEvent: (CreateFoodEvent) 
     )
     Column {
         NutrientField(
-            NutrientSpec(kcalLabel, null, "create_food_kcal_field", unit = stringResource(Res.string.create_food_unit_kcal)),
+            NutrientSpec(
+                kcalLabel,
+                null,
+                "create_food_kcal_field",
+                unit = stringResource(Res.string.create_food_unit_kcal),
+            ),
             state.kcal,
             errors.kcal,
             change(CreateFoodField.Kcal),
             ImeAction.Next,
         )
-        val fat = NutrientSpec(stringResource(Res.string.create_food_fat_total), Macro.Fat, "create_food_fat_field", unit = gramUnit)
+        val fat =
+            NutrientSpec(
+                stringResource(Res.string.create_food_fat_total),
+                Macro.Fat,
+                "create_food_fat_field",
+                unit = gramUnit,
+            )
         NutrientField(fat, state.fat, errors.fat, change(CreateFoodField.Fat), ImeAction.Next)
         KindField(MicronutrientKind.SaturatedFat, stringResource(Res.string.create_food_saturated_of), Macro.Fat, true)
         val carbs =
@@ -333,7 +342,7 @@ internal fun NutrientField(
 ) {
     Column(Modifier.fillMaxWidth()) {
         Row(
-            Modifier.fillMaxWidth().heightIn(min = TableRowMinHeight),
+            Modifier.fillMaxWidth().heightIn(min = FeatureMetrics.NutrientRowMinHeight),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(Spacing.md),
         ) {
@@ -352,7 +361,9 @@ internal fun NutrientField(
                 value = value,
                 onValueChange = onChange,
                 label = spec.spokenLabel,
-                modifier = Modifier.width(InputWidth).height(InputHeight).testTag(spec.tag),
+                modifier = Modifier.width(
+                    FeatureMetrics.NutrientInputWidth,
+                ).height(FeatureMetrics.NutrientInputHeight).testTag(spec.tag),
                 maxDecimals = spec.decimals,
                 showLabel = false,
                 imeAction = imeAction,

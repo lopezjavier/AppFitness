@@ -15,16 +15,16 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.ProgressBarRangeInfo
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.progressBarRangeInfo
 import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.TextStyle
-import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Dp
@@ -155,7 +155,16 @@ fun ProgressRing(
         verticalArrangement = Arrangement.spacedBy(Spacing.sm),
     ) {
         RingBody(sweep, colors, consumedText, targetText, compact)
-        StatusPill(statusText, if (state.isOverTarget || state.remaining == 0) colors.status else AppTheme.colors.textSecondary)
+        StatusPill(
+            statusText,
+            if (state.isOverTarget ||
+                state.remaining == 0
+            ) {
+                colors.status
+            } else {
+                AppTheme.colors.textSecondary
+            },
+        )
     }
 }
 
@@ -189,7 +198,12 @@ fun compactRingColumnWidth(consumedKcal: Double, targetKcal: Int, pastDay: Boole
     }
     val measurer = rememberTextMeasurer()
     val density = LocalDensity.current
-    val textWidth = measurer.measure(text, ProgressRingDefaults.captionStyle(AppTheme.typography), softWrap = false, maxLines = 1).size.width
+    val textWidth = measurer.measure(
+        text,
+        ProgressRingDefaults.captionStyle(AppTheme.typography),
+        softWrap = false,
+        maxLines = 1,
+    ).size.width
     val pillWidth = with(density) { textWidth.toDp() } + PillDefaults.HorizontalPadding * 2
     return maxOf(ProgressRingDefaults.CompactHeroSize, pillWidth)
 }
@@ -218,7 +232,13 @@ private fun RingBody(
         ) {
             Text(
                 text = consumedText,
-                style = if (compact) AppTheme.typography.headlineMetric else ProgressRingDefaults.valueStyle(AppTheme.typography),
+                style = if (compact) {
+                    AppTheme.typography.headlineMetric
+                } else {
+                    ProgressRingDefaults.valueStyle(
+                        AppTheme.typography,
+                    )
+                },
                 color = AppTheme.colors.textPrimary,
                 maxLines = 1,
                 softWrap = false,

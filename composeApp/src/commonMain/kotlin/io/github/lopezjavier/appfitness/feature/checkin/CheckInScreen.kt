@@ -28,10 +28,10 @@ import io.github.lopezjavier.appfitness.composeapp.resources.checkin_energy_grou
 import io.github.lopezjavier.appfitness.composeapp.resources.checkin_energy_label
 import io.github.lopezjavier.appfitness.composeapp.resources.checkin_energy_option_cd
 import io.github.lopezjavier.appfitness.composeapp.resources.checkin_form_header
+import io.github.lopezjavier.appfitness.composeapp.resources.checkin_kg_unit
 import io.github.lopezjavier.appfitness.composeapp.resources.checkin_records_empty
 import io.github.lopezjavier.appfitness.composeapp.resources.checkin_records_header
 import io.github.lopezjavier.appfitness.composeapp.resources.checkin_sets_label
-import io.github.lopezjavier.appfitness.composeapp.resources.checkin_kg_unit
 import io.github.lopezjavier.appfitness.composeapp.resources.checkin_summary_caption
 import io.github.lopezjavier.appfitness.composeapp.resources.checkin_summary_error
 import io.github.lopezjavier.appfitness.composeapp.resources.checkin_summary_header

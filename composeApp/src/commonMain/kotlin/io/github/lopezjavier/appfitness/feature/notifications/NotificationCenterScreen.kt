@@ -3,12 +3,12 @@ package io.github.lopezjavier.appfitness.feature.notifications
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
@@ -31,7 +31,6 @@ import io.github.lopezjavier.appfitness.composeapp.resources.notifications_check
 import io.github.lopezjavier.appfitness.composeapp.resources.notifications_checkin_answered_title
 import io.github.lopezjavier.appfitness.composeapp.resources.notifications_checkin_week
 import io.github.lopezjavier.appfitness.composeapp.resources.notifications_circumference_reminder
-import io.github.lopezjavier.appfitness.composeapp.resources.notifications_circumference_reminder
 import io.github.lopezjavier.appfitness.composeapp.resources.notifications_circumference_reminder_due
 import io.github.lopezjavier.appfitness.composeapp.resources.notifications_empty_message
 import io.github.lopezjavier.appfitness.composeapp.resources.notifications_empty_title
@@ -52,11 +51,11 @@ import io.github.lopezjavier.appfitness.composeapp.resources.reports_title
 import io.github.lopezjavier.appfitness.composeapp.resources.root_error_message
 import io.github.lopezjavier.appfitness.designsystem.AppDateFormat
 import io.github.lopezjavier.appfitness.designsystem.AppScreen
+import io.github.lopezjavier.appfitness.designsystem.AppShapes
 import io.github.lopezjavier.appfitness.designsystem.AppStateAction
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
 import io.github.lopezjavier.appfitness.designsystem.EmptyState
 import io.github.lopezjavier.appfitness.designsystem.ErrorState
-import io.github.lopezjavier.appfitness.designsystem.AppShapes
 import io.github.lopezjavier.appfitness.designsystem.ListSectionHeader
 import io.github.lopezjavier.appfitness.designsystem.NavigationRow
 import io.github.lopezjavier.appfitness.designsystem.SkeletonBox

@@ -97,12 +97,7 @@ fun CompactTonalIconButton(
  * 48 dp touch target. [contentDescription] names the object ("Añadir a Desayuno").
  */
 @Composable
-fun CompactAddButton(
-    text: String,
-    contentDescription: String,
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier,
-) {
+fun CompactAddButton(text: String, contentDescription: String, onClick: () -> Unit, modifier: Modifier = Modifier) {
     val colors = AppTheme.colors
     Box(
         modifier

@@ -59,13 +59,13 @@ fun AppSearchField(
             {
                 Row {
                     if (value.isNotEmpty() && enabled) {
-                    AppIconButton(
-                        contentDescription = stringResource(Res.string.action_clear_search),
-                        icon = Res.drawable.ic_close,
-                        testTag = clearTestTag,
-                        onClick = { onValueChange("") },
-                        tint = AppTheme.colors.textSecondary,
-                    )
+                        AppIconButton(
+                            contentDescription = stringResource(Res.string.action_clear_search),
+                            icon = Res.drawable.ic_close,
+                            testTag = clearTestTag,
+                            onClick = { onValueChange("") },
+                            tint = AppTheme.colors.textSecondary,
+                        )
                     }
                     trailingAction?.invoke()
                 }

@@ -21,15 +21,14 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.layout.SubcomposeLayout
 import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.rememberTextMeasurer
-import androidx.compose.ui.unit.Constraints
-import androidx.compose.ui.unit.dp
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
+import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Constraints
+import androidx.compose.ui.unit.dp
 import io.github.lopezjavier.appfitness.composeapp.resources.Res
 import io.github.lopezjavier.appfitness.composeapp.resources.add_item
 import io.github.lopezjavier.appfitness.composeapp.resources.diary_add_object_custom
@@ -40,6 +39,7 @@ import io.github.lopezjavier.appfitness.composeapp.resources.diary_section_colla
 import io.github.lopezjavier.appfitness.composeapp.resources.diary_section_expanded
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_expand_more
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_save_meal
+import io.github.lopezjavier.appfitness.designsystem.AppBorder
 import io.github.lopezjavier.appfitness.designsystem.AppCard
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
 import io.github.lopezjavier.appfitness.designsystem.CompactAddButton
@@ -47,13 +47,13 @@ import io.github.lopezjavier.appfitness.designsystem.CompactKcalPill
 import io.github.lopezjavier.appfitness.designsystem.CompactTonalIconButton
 import io.github.lopezjavier.appfitness.designsystem.MacroLine
 import io.github.lopezjavier.appfitness.designsystem.Spacing
+import io.github.lopezjavier.appfitness.designsystem.semiBold
 import io.github.lopezjavier.appfitness.domain.model.MealRow
 import io.github.lopezjavier.appfitness.domain.model.MealSlot
 import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.resources.stringResource
 
 internal const val EXPANDED_CHEVRON_ROTATION = 180f
-private val HAIRLINE = 1.dp
 
 /**
  * The object of the add button: "a <comida>" with the meal name as typed, no article (R-69: a meal named by the user
@@ -104,7 +104,7 @@ private fun MealBody(section: MealSectionUi, actions: EntryActions) {
     if (section.rows.isEmpty()) return
     // C-64: a 1 dp hairline centred in the 8 dp gap under the header.
     Box(Modifier.fillMaxWidth().height(Spacing.sm), contentAlignment = Alignment.Center) {
-        Box(Modifier.fillMaxWidth().height(HAIRLINE).background(AppTheme.colors.borderSubtle))
+        Box(Modifier.fillMaxWidth().height(AppBorder.thin).background(AppTheme.colors.borderSubtle))
     }
     Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
         section.rows.forEach { row ->
@@ -133,8 +133,15 @@ private fun SectionHeader(
     val id = section.slot.id
     val measurer = rememberTextMeasurer()
     val nameStyle = AppTheme.typography.titleMedium
-    val pillStyle = AppTheme.typography.bodyMedium.copy(fontWeight = FontWeight.W600)
-    val pillText = if (section.entries.isEmpty()) null else stringResource(Res.string.diary_meal_kcal, wholeHalfUp(section.totals.kcal))
+    val pillStyle = AppTheme.typography.bodyMedium.semiBold()
+    val pillText = if (section.entries.isEmpty()) {
+        null
+    } else {
+        stringResource(
+            Res.string.diary_meal_kcal,
+            wholeHalfUp(section.totals.kcal),
+        )
+    }
     val saveDescription = stringResource(Res.string.diary_save_template_cd)
     val addText = stringResource(Res.string.diary_add_short)
     val addDescription = stringResource(Res.string.add_item, addObjectLabel(section.slot))
@@ -165,7 +172,8 @@ private fun SectionHeader(
         val pillWidth = pillText?.let {
             measurer.measure(it, pillStyle, softWrap = false, maxLines = 1).size.width + 2 * Spacing.md.roundToPx()
         } ?: 0
-        val nameRowWidth = nameWidth + Spacing.xl.roundToPx() + if (pillText == null) 0 else 2 * Spacing.xs.roundToPx() + pillWidth
+        val nameRowWidth =
+            nameWidth + Spacing.xl.roundToPx() + if (pillText == null) 0 else 2 * Spacing.xs.roundToPx() + pillWidth
         val pillInline = nameRowWidth <= toggleWidth
         val toggle = subcompose("toggle") {
             SectionToggle(

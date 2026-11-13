@@ -3,8 +3,8 @@ package io.github.lopezjavier.appfitness.feature.diary
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.size
 import androidx.compose.material3.Icon
 import androidx.compose.runtime.Composable
@@ -12,7 +12,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.unit.Dp
 import io.github.lopezjavier.appfitness.composeapp.resources.Res
@@ -33,6 +32,7 @@ import io.github.lopezjavier.appfitness.designsystem.MacroProgressBarDefaults
 import io.github.lopezjavier.appfitness.designsystem.NavigationRow
 import io.github.lopezjavier.appfitness.designsystem.ProgressRing
 import io.github.lopezjavier.appfitness.designsystem.Spacing
+import io.github.lopezjavier.appfitness.designsystem.bold
 import io.github.lopezjavier.appfitness.designsystem.compactRingColumnWidth
 import io.github.lopezjavier.appfitness.domain.model.DiaryGoals
 import io.github.lopezjavier.appfitness.domain.model.MealTotals
@@ -62,6 +62,7 @@ internal fun DiaryDashboard(
             compactHero && LocalDensity.current.fontScale < FULL_HERO_FONT_SCALE,
             modifier,
         )
+
         DiaryGoalsState.NotSet -> GoalsPrompt({ onEvent(DiaryEvent.OpenGoals) }, modifier)
     }
 }
@@ -127,7 +128,7 @@ private fun compactMacrosFit(labels: List<String>, goals: DiaryGoals, totals: Me
     val measurer = rememberTextMeasurer()
     val typography = AppTheme.typography
     val density = LocalDensity.current
-    val labelStyle = MacroProgressBarDefaults.labelStyle(typography).copy(fontWeight = FontWeight.W700)
+    val labelStyle = MacroProgressBarDefaults.labelStyle(typography).bold()
     val valueStyle = MacroProgressBarDefaults.valueStyle(typography)
     val rows = listOf(
         labels[0] to MacroProgressBarDefaults.text(totals.proteinG, goals.proteinG),

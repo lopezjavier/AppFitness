@@ -16,7 +16,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.unit.dp
 import io.github.lopezjavier.appfitness.composeapp.resources.Res
 import io.github.lopezjavier.appfitness.composeapp.resources.add_food_energy_help_off
 import io.github.lopezjavier.appfitness.composeapp.resources.create_food_energy_help_cd
@@ -36,12 +35,13 @@ import io.github.lopezjavier.appfitness.designsystem.AppIconButton
 import io.github.lopezjavier.appfitness.designsystem.AppNumberFormat
 import io.github.lopezjavier.appfitness.designsystem.AppShapes
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
+import io.github.lopezjavier.appfitness.designsystem.FeatureMetrics
 import io.github.lopezjavier.appfitness.designsystem.GhostButton
 import io.github.lopezjavier.appfitness.designsystem.HelpButton
 import io.github.lopezjavier.appfitness.designsystem.HelpContent
 import io.github.lopezjavier.appfitness.designsystem.OfflineHint
-import io.github.lopezjavier.appfitness.designsystem.nestedContainerColor
 import io.github.lopezjavier.appfitness.designsystem.Spacing
+import io.github.lopezjavier.appfitness.designsystem.nestedContainerColor
 import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.resources.stringResource
@@ -83,7 +83,7 @@ internal fun EnergyWarningNotice(
                 painter = painterResource(Res.drawable.ic_warning),
                 contentDescription = null,
                 tint = AppTheme.colors.energyAmber,
-                modifier = Modifier.size(20.dp),
+                modifier = Modifier.size(FeatureMetrics.NoticeIconSize),
             )
             Text(
                 text = warningText(warning),
@@ -130,13 +130,11 @@ internal fun EnergyWarningNotice(
 
 /** The facts of [warning], with the "Parece un error" prefix when it is clearly wrong. */
 @Composable
-private fun warningText(warning: EnergyWarning): String {
-    return stringResource(
-        if (warning.clearlyWrong) Res.string.create_food_energy_warning_wrong else Res.string.create_food_energy_warning,
-        AppNumberFormat.decimal(warning.kcal, maxDecimals = 0),
-        AppNumberFormat.decimal(warning.computedKcal, maxDecimals = 0),
-    )
-}
+private fun warningText(warning: EnergyWarning): String = stringResource(
+    if (warning.clearlyWrong) Res.string.create_food_energy_warning_wrong else Res.string.create_food_energy_warning,
+    AppNumberFormat.decimal(warning.kcal, maxDecimals = 0),
+    AppNumberFormat.decimal(warning.computedKcal, maxDecimals = 0),
+)
 
 /** The advice behind the "?": the Open Food Facts one, or the one for the sign of the gap. */
 private fun adviceOf(warning: EnergyWarning, offProduct: Boolean): StringResource = when {

@@ -26,9 +26,9 @@ import io.github.lopezjavier.appfitness.composeapp.resources.add_food_portion_op
 import io.github.lopezjavier.appfitness.composeapp.resources.add_food_preview_kcal
 import io.github.lopezjavier.appfitness.composeapp.resources.add_food_quantity_error
 import io.github.lopezjavier.appfitness.composeapp.resources.add_food_sheet_title
-import io.github.lopezjavier.appfitness.composeapp.resources.add_item
 import io.github.lopezjavier.appfitness.composeapp.resources.add_food_unit_g
 import io.github.lopezjavier.appfitness.composeapp.resources.add_food_unit_ml
+import io.github.lopezjavier.appfitness.composeapp.resources.add_item
 import io.github.lopezjavier.appfitness.composeapp.resources.diary_meal_carbs
 import io.github.lopezjavier.appfitness.composeapp.resources.diary_meal_fat
 import io.github.lopezjavier.appfitness.composeapp.resources.diary_meal_protein
@@ -52,11 +52,11 @@ import io.github.lopezjavier.appfitness.designsystem.Spacing
 import io.github.lopezjavier.appfitness.designsystem.offlineHint
 import io.github.lopezjavier.appfitness.domain.model.Food
 import io.github.lopezjavier.appfitness.domain.model.MealSlot
+import io.github.lopezjavier.appfitness.feature.diary.addObjectLabel
 import io.github.lopezjavier.appfitness.feature.diary.amountText
 import io.github.lopezjavier.appfitness.feature.diary.wholeHalfUp
 import io.github.lopezjavier.appfitness.feature.food.photo.AmountPhotoEvent
 import io.github.lopezjavier.appfitness.feature.food.photo.AmountPhotoNotice
-import io.github.lopezjavier.appfitness.feature.diary.addObjectLabel
 import io.github.lopezjavier.appfitness.feature.food.photo.AmountPhotoUiState
 import io.github.lopezjavier.appfitness.feature.food.photo.EstimateConfidenceLine
 import io.github.lopezjavier.appfitness.feature.food.photo.FoodPhotoStep

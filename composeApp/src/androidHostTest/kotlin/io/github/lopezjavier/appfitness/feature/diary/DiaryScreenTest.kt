@@ -192,7 +192,10 @@ class DiaryScreenTest {
             assertTrue("toggle at scale $scale", toggle.height >= 48.dp)
             assertTrue("save at scale $scale", save.width >= 48.dp && save.height >= 48.dp)
             assertTrue("add at scale $scale", add.width >= 48.dp && add.height >= 48.dp)
-            assertTrue("toggle overlaps the buttons at scale $scale", toggle.right <= save.left && save.right <= add.left)
+            assertTrue(
+                "toggle overlaps the buttons at scale $scale",
+                toggle.right <= save.left && save.right <= add.left,
+            )
             val label = rule.onNodeWithText(name, useUnmergedTree = true).getUnclippedBoundsInRoot()
             assertTrue("name at most two lines at scale $scale", label.height <= (2 * 32f * scale).dp)
         }
