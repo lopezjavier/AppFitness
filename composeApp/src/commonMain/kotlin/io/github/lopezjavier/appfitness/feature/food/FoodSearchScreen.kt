@@ -49,6 +49,7 @@ import io.github.lopezjavier.appfitness.composeapp.resources.food_tab_templates
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_add
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_auto_awesome
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_barcode_scanner
+import io.github.lopezjavier.appfitness.composeapp.resources.ic_inbox
 import io.github.lopezjavier.appfitness.designsystem.AppIconButton
 import io.github.lopezjavier.appfitness.designsystem.AppListRow
 import io.github.lopezjavier.appfitness.designsystem.AppOption
@@ -247,6 +248,7 @@ private fun EmptyResults(state: FoodSearchUiState, onEvent: (FoodSearchEvent) ->
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         EmptyState(
+            icon = Res.drawable.ic_inbox,
             message = if (searching) stringResource(Res.string.food_empty_search_hint) else message,
             title = if (searching) message else null,
             testTagPrefix = "${TAG}_empty",

@@ -20,6 +20,7 @@ import io.github.lopezjavier.appfitness.composeapp.resources.assign_default_titl
 import io.github.lopezjavier.appfitness.composeapp.resources.default_picker_empty
 import io.github.lopezjavier.appfitness.composeapp.resources.default_picker_empty_hint
 import io.github.lopezjavier.appfitness.composeapp.resources.default_picker_title
+import io.github.lopezjavier.appfitness.composeapp.resources.ic_inbox
 import io.github.lopezjavier.appfitness.composeapp.resources.template_items_count
 import io.github.lopezjavier.appfitness.composeapp.resources.template_summary
 import io.github.lopezjavier.appfitness.composeapp.resources.weekday_assigned_to
@@ -62,6 +63,7 @@ internal fun DefaultComidaPickerSheet(
         Column(Modifier.fillMaxWidth().padding(horizontal = Spacing.screenMargin).padding(bottom = Spacing.xl)) {
             if (!hasSavedComidas) {
                 EmptyState(
+                    icon = Res.drawable.ic_inbox,
                     message = stringResource(Res.string.default_picker_empty_hint),
                     title = stringResource(Res.string.default_picker_empty),
                     modifier = Modifier.padding(vertical = Spacing.xl),

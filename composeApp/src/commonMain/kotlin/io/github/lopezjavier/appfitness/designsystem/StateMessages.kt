@@ -18,6 +18,7 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.Immutable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
@@ -46,7 +47,13 @@ data class AppStateAction(val label: String, val onClick: () -> Unit)
 data class StateMessageColors(val icon: Color, val title: Color, val message: Color)
 
 private object StateMessageMetrics {
-    val IconSize: Dp = 48.dp
+    val IconSize: Dp = 32.dp
+
+    /** The `surfaceOverlay` circle behind the glyph (C-17). */
+    val IconCircleSize: Dp = 72.dp
+
+    /** Both buttons of an error block share this minimum width, so "Reintentar" and "Crear manualmente" align. */
+    val ButtonMinWidth: Dp = 200.dp
 
     /** Keeps the block centred, not stretched, on tablets. */
     val MaxContentWidth: Dp = 360.dp
@@ -110,10 +117,10 @@ object ErrorStateDefaults {
 @Composable
 fun EmptyState(
     message: String,
+    icon: DrawableResource,
     modifier: Modifier = Modifier,
     title: String? = null,
     action: AppStateAction? = null,
-    icon: DrawableResource = Res.drawable.ic_inbox,
     testTagPrefix: String? = null,
 ) {
     StateMessage(
@@ -189,12 +196,19 @@ private fun StateMessage(
             verticalArrangement = Arrangement.spacedBy(StateMessageMetrics.ItemSpacing),
         ) {
             // Decorative: the text carries the meaning.
-            Icon(
-                painter = painterResource(icon),
-                contentDescription = null,
-                tint = colors.icon,
-                modifier = Modifier.size(StateMessageMetrics.IconSize),
-            )
+            Box(
+                Modifier.size(StateMessageMetrics.IconCircleSize).clip(AppShapes.full).background(
+                    AppTheme.colors.surfaceOverlay,
+                ),
+                contentAlignment = Alignment.Center,
+            ) {
+                Icon(
+                    painter = painterResource(icon),
+                    contentDescription = null,
+                    tint = colors.icon,
+                    modifier = Modifier.size(StateMessageMetrics.IconSize),
+                )
+            }
             Column(
                 modifier = if (isError) Modifier.semantics { liveRegion = LiveRegionMode.Polite } else Modifier,
                 horizontalAlignment = Alignment.CenterHorizontally,
@@ -222,6 +236,7 @@ private fun StateMessage(
                     onClick = action.onClick,
                     modifier =
                     Modifier
+                        .widthIn(min = StateMessageMetrics.ButtonMinWidth)
                         .padding(top = StateMessageMetrics.ActionTopSpacing)
                         .then(actionTag(actionTestTag, testTagPrefix, "action")),
                 )
@@ -230,7 +245,9 @@ private fun StateMessage(
                 SecondaryButton(
                     text = secondaryAction.label,
                     onClick = secondaryAction.onClick,
-                    modifier = actionTag(secondaryActionTestTag, testTagPrefix, "secondary_action"),
+                    modifier = Modifier
+                        .widthIn(min = StateMessageMetrics.ButtonMinWidth)
+                        .then(actionTag(secondaryActionTestTag, testTagPrefix, "secondary_action")),
                 )
             }
         }
@@ -253,8 +270,8 @@ private const val PREVIEW_ERROR_MESSAGE = "Comprueba tu conexión e inténtalo d
 private fun EmptyStatePreview() {
     AppTheme {
         Column(Modifier.background(AppTheme.colors.surfaceBase)) {
-            EmptyState(PREVIEW_MESSAGE, title = "Sin alimentos hoy", action = PreviewAction)
-            EmptyState("Todavía no hay datos para este periodo.")
+            EmptyState(PREVIEW_MESSAGE, Res.drawable.ic_inbox, title = "Sin alimentos hoy", action = PreviewAction)
+            EmptyState("Todavía no hay datos para este periodo.", Res.drawable.ic_inbox)
         }
     }
 }

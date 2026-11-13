@@ -23,6 +23,7 @@ import androidx.compose.ui.text.withStyle
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.github.lopezjavier.appfitness.composeapp.resources.Res
 import io.github.lopezjavier.appfitness.composeapp.resources.action_retry
+import io.github.lopezjavier.appfitness.composeapp.resources.ic_inbox
 import io.github.lopezjavier.appfitness.composeapp.resources.muscle_volume_open
 import io.github.lopezjavier.appfitness.composeapp.resources.strength_card_title
 import io.github.lopezjavier.appfitness.composeapp.resources.strength_delta_down
@@ -103,6 +104,7 @@ fun StrengthScreen(
 
                 StrengthUiState.Empty -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                     EmptyState(
+                        icon = Res.drawable.ic_inbox,
                         message = stringResource(Res.string.strength_empty_message),
                         action = AppStateAction(stringResource(Res.string.strength_empty_cta), onStartWorkout),
                         testTagPrefix = "strength_empty",

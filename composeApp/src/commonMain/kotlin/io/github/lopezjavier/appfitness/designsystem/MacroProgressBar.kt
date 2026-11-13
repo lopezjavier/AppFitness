@@ -77,7 +77,7 @@ object MacroProgressBarDefaults {
         target = "${AppNumberFormat.integer(targetGrams)} g",
     )
 
-    fun trackColor(appColors: AppColors): Color = appColors.surfaceOverlay
+    fun trackColor(appColors: AppColors): Color = appColors.trackInactive
 
     fun labelStyle(typography: AppTypography): TextStyle = typography.labelTechnical
 
@@ -152,6 +152,7 @@ fun MacroProgressBar(
                 .clip(MacroProgressBarDefaults.Shape)
                 .background(MacroProgressBarDefaults.trackColor(colors)),
         ) {
+            TrackStopDot()
             Box(
                 Modifier
                     .fillMaxWidth(fraction)

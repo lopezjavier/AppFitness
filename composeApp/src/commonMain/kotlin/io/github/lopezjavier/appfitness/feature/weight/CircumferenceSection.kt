@@ -30,6 +30,7 @@ import io.github.lopezjavier.appfitness.composeapp.resources.circumference_site_
 import io.github.lopezjavier.appfitness.composeapp.resources.circumference_site_waist
 import io.github.lopezjavier.appfitness.composeapp.resources.circumference_title
 import io.github.lopezjavier.appfitness.composeapp.resources.circumference_value_cm
+import io.github.lopezjavier.appfitness.composeapp.resources.ic_inbox
 import io.github.lopezjavier.appfitness.composeapp.resources.metric_tile_open_label
 import io.github.lopezjavier.appfitness.designsystem.AddItemButton
 import io.github.lopezjavier.appfitness.designsystem.AppDateFormat
@@ -116,6 +117,7 @@ private fun SectionContent(
     Column(verticalArrangement = Arrangement.spacedBy(Spacing.md)) {
         if (content.isEmpty) {
             EmptyState(
+                icon = Res.drawable.ic_inbox,
                 message = stringResource(Res.string.circumference_empty_message),
                 modifier = Modifier.fillMaxWidth(),
                 title = stringResource(Res.string.circumference_empty_title),

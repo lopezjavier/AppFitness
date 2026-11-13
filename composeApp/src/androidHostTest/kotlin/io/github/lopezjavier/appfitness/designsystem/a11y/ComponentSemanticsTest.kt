@@ -35,6 +35,8 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.unit.dp
+import io.github.lopezjavier.appfitness.composeapp.resources.Res
+import io.github.lopezjavier.appfitness.composeapp.resources.ic_inbox
 import io.github.lopezjavier.appfitness.designsystem.AppBottomSheet
 import io.github.lopezjavier.appfitness.designsystem.AppStateAction
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
@@ -253,7 +255,7 @@ class ComponentSemanticsTest {
 
     @Test
     fun emptyState_icon_notInSemantics() {
-        rule.setContent { AppTheme { EmptyState("Todavía no hay datos para este periodo.") } }
+        rule.setContent { AppTheme { EmptyState("Todavía no hay datos para este periodo.", Res.drawable.ic_inbox) } }
         rule.onAllNodes(SemanticsMatcher.keyIsDefined(SemanticsProperties.ContentDescription), useUnmergedTree = true)
             .assertCountEquals(0)
     }
