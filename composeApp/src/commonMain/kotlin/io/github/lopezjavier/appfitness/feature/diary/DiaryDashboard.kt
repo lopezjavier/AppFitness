@@ -140,7 +140,9 @@ private fun compactMacrosFit(labels: List<String>, goals: DiaryGoals, totals: Me
             measurer.measure(text.full, valueStyle).size.width
     }
     val fixed = with(density) { (MacroProgressBarDefaults.DotSize + Spacing.sm * 3).roundToPx() }
-    return widest + fixed <= with(density) { available.roundToPx() }
+    // A small safety margin keeps a label that only just fits from breaking on a device (R-76).
+    val margin = with(density) { Spacing.md.roundToPx() }
+    return widest + fixed + margin <= with(density) { available.roundToPx() }
 }
 
 @Composable

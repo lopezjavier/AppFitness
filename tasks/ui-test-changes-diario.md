@@ -58,3 +58,12 @@ Goldens expected to change (re-record):
 - Diario day (meal cards collapsed, expanded, empty; fat colour in rows, bars, summary), group card header, entry rows, food search (tab row), every tabbed screen (tab label size/padding), compact and full hero (fat bar colour), `ThemeCatalogSection` fat swatch, new catalog entries needed for `CompactTonalIconButton`, `CompactAddButton`, `CompactKcalPill` (not added in this build-only batch).
 
 Left for the repair task: catalog entries and previews for the three new components; `AppIconButton` is unchanged.
+
+## Batch 4 (compact meal card header, R-75/R-76)
+
+Behaviour tests that will fail or need an update:
+- `diary_section_<id>_add` ("+Añadir") is now visible collapsed AND expanded (batch 3 test "collapsed hides add" must be inverted). `..._save_template` still exists iff the meal has entries; its icon is now `ic_save_meal` (bookmark-plus); `ic_save` (floppy) is deleted. Affected: `DiaryScreenTest`, `DiaryGroupFlowTest`, `FoodLoggingFlowTest`, `SaveTemplateFlowTest` (any that expand a card only to tap add, or assert add absent when collapsed).
+- Header layout: kcal pill is on the name row, right of name + chevron (not under it); macros are a `FlowRow` (whole items wrap) under the name; buttons vertically centred; the card has no top padding (`AppCard(contentPadding = ...)`, new parameter, default unchanged). Position/bounds assertions of kcal or macros relative to the name need updates. New tests: collapsed header height <= ~88 dp with one-line name; two-line name at 360 dp / 1.3 font scale with nothing clipped or overlapping the buttons; 48 dp targets for toggle, save and add.
+- `MacroProgressBar` labels and values are now `maxLines = 1, softWrap = false` (shared with other screens: no behaviour change expected; check Perfil/goals tests that measure bar text). Compact hero fit check has an extra 16 dp margin, so `diary_hero_compact` falls back to the full hero slightly earlier. New test (R-76): at 360 dp and font scale 1.0, 1.3, 2.0 no macro label has more than one line and none is ellipsized.
+
+Goldens expected to change (re-record): Diario day (meal cards collapsed, expanded, empty), `FoodLoggingFlow` screenshots with a card, compact hero (label non-wrapping), any golden using `MacroProgressBar`.

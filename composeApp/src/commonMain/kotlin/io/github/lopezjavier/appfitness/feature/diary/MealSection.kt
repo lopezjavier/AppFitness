@@ -3,8 +3,11 @@ package io.github.lopezjavier.appfitness.feature.diary
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -33,7 +36,7 @@ import io.github.lopezjavier.appfitness.composeapp.resources.diary_save_template
 import io.github.lopezjavier.appfitness.composeapp.resources.diary_section_collapsed
 import io.github.lopezjavier.appfitness.composeapp.resources.diary_section_expanded
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_expand_more
-import io.github.lopezjavier.appfitness.composeapp.resources.ic_save
+import io.github.lopezjavier.appfitness.composeapp.resources.ic_save_meal
 import io.github.lopezjavier.appfitness.designsystem.AppCard
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
 import io.github.lopezjavier.appfitness.designsystem.CompactAddButton
@@ -58,9 +61,9 @@ internal const val EXPANDED_CHEVRON_ROTATION = 180f
 internal fun addObjectLabel(slot: MealSlot): String = stringResource(Res.string.diary_add_object_custom, slot.label)
 
 /**
- * One meal (R-75): a header with the toggle (name, chevron, kcal pill, macros) and at most two buttons, then the
- * entries while expanded. [onSaveTemplate] saves the entries as a comida and shows only while the meal has entries;
- * [onAdd] ("+Añadir") shows only while expanded.
+ * One meal (R-75): a header with the toggle (name, chevron, kcal pill, macros) and two buttons, then the entries
+ * while expanded. [onSaveTemplate] saves the entries as a comida and shows only while the meal has entries; [onAdd]
+ * ("+Añadir") is always visible, collapsed or expanded.
  */
 @Suppress("LongParameterList") // One callback per action of the meal: toggle, add and save, plus the entry actions.
 @Composable
@@ -73,12 +76,20 @@ internal fun MealSectionCard(
     onSaveTemplate: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    AppCard(modifier.fillMaxWidth().testTag("diary_section_${section.slot.id}")) {
+    AppCard(
+        modifier.fillMaxWidth().testTag("diary_section_${section.slot.id}"),
+        // No padding above the name row (R-75).
+        contentPadding = PaddingValues(
+            start = Spacing.cardPadding,
+            end = Spacing.cardPadding,
+            bottom = Spacing.cardPadding,
+        ),
+    ) {
         SectionHeader(
             section = section,
             collapsed = collapsed,
             onToggle = onToggle,
-            onAdd = onAdd.takeIf { !collapsed },
+            onAdd = onAdd,
             onSaveTemplate = onSaveTemplate.takeIf { section.entries.isNotEmpty() },
         )
         if (!collapsed) MealBody(section, actions)
@@ -112,7 +123,7 @@ private fun SectionHeader(
     onSaveTemplate: (() -> Unit)?,
 ) {
     val id = section.slot.id
-    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.Top) {
+    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
         SectionToggle(
             section = section,
             collapsed = collapsed,
@@ -122,7 +133,7 @@ private fun SectionHeader(
         if (onSaveTemplate != null) {
             CompactTonalIconButton(
                 contentDescription = stringResource(Res.string.diary_save_template_cd),
-                icon = Res.drawable.ic_save,
+                icon = Res.drawable.ic_save_meal,
                 testTag = "diary_section_${id}_save_template",
                 onClick = onSaveTemplate,
             )
@@ -157,10 +168,10 @@ private fun SectionToggle(
                 stateDescription = state
                 role = Role.Button
             },
-        verticalArrangement = Arrangement.spacedBy(Spacing.xs),
+        verticalArrangement = Arrangement.Center,
     ) {
         Row(
-            Modifier.heightIn(min = Spacing.minTouchTarget),
+            Modifier.heightIn(min = Spacing.xl),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(Spacing.xs),
         ) {
@@ -178,9 +189,9 @@ private fun SectionToggle(
                 tint = AppTheme.colors.textSecondary,
                 modifier = Modifier.size(Spacing.xl).rotate(if (collapsed) 0f else EXPANDED_CHEVRON_ROTATION),
             )
-        }
-        if (section.entries.isNotEmpty()) {
-            CompactKcalPill(stringResource(Res.string.diary_meal_kcal, wholeHalfUp(section.totals.kcal)))
+            if (section.entries.isNotEmpty()) {
+                CompactKcalPill(stringResource(Res.string.diary_meal_kcal, wholeHalfUp(section.totals.kcal)))
+            }
         }
         MacroSummary(section.totals)
     }
@@ -195,9 +206,11 @@ private fun MealSummaryText(text: String, macro: Macro) {
     )
 }
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 internal fun MacroSummary(totals: MealTotals) {
-    Row(horizontalArrangement = Arrangement.spacedBy(Spacing.md)) {
+    // Whole items wrap ("P 15 g" never splits), so the line never overlaps the header buttons.
+    FlowRow(horizontalArrangement = Arrangement.spacedBy(Spacing.md)) {
         MealSummaryText(stringResource(Res.string.diary_meal_protein, wholeHalfUp(totals.proteinG)), Macro.Protein)
         MealSummaryText(stringResource(Res.string.diary_meal_carbs, wholeHalfUp(totals.carbsG)), Macro.Carbs)
         MealSummaryText(stringResource(Res.string.diary_meal_fat, wholeHalfUp(totals.fatG)), Macro.Fat)

@@ -133,6 +133,8 @@ fun MacroProgressBar(
                 text = label.uppercase(),
                 style = MacroProgressBarDefaults.labelStyle(AppTheme.typography).copy(fontWeight = FontWeight.W700),
                 color = colors.textPrimary,
+                maxLines = 1,
+                softWrap = false,
                 modifier = Modifier.weight(1f),
             )
             Text(
@@ -142,6 +144,8 @@ fun MacroProgressBar(
                     withStyle(SpanStyle(color = colors.textSecondary)) { append(" / ${text.target}") }
                 },
                 style = MacroProgressBarDefaults.valueStyle(AppTheme.typography),
+                maxLines = 1,
+                softWrap = false,
                 modifier = Modifier.padding(start = Spacing.sm),
             )
         }
