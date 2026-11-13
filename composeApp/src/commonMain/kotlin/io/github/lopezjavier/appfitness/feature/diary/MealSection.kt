@@ -28,7 +28,6 @@ import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Constraints
-import androidx.compose.ui.unit.dp
 import io.github.lopezjavier.appfitness.composeapp.resources.Res
 import io.github.lopezjavier.appfitness.composeapp.resources.add_item
 import io.github.lopezjavier.appfitness.composeapp.resources.diary_add_object_custom
@@ -102,15 +101,17 @@ internal fun MealSectionCard(
 @Composable
 private fun MealBody(section: MealSectionUi, actions: EntryActions) {
     if (section.rows.isEmpty()) return
-    // C-64: a 1 dp hairline centred in the 8 dp gap under the header.
-    Box(Modifier.fillMaxWidth().height(Spacing.sm), contentAlignment = Alignment.Center) {
-        Box(Modifier.fillMaxWidth().height(AppBorder.thin).background(AppTheme.colors.borderSubtle))
-    }
-    Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-        section.rows.forEach { row ->
-            when (row) {
-                is MealRow.Single -> key(row.entry.id) { LoggedEntryRow(row.entry, actions) }
-                is MealRow.Group -> key("group-${row.groupId}") { DiaryGroupCard(row, actions) }
+    Column {
+        // C-64: a 1 dp hairline centred in the 8 dp gap under the header.
+        Box(Modifier.fillMaxWidth().height(Spacing.sm), contentAlignment = Alignment.Center) {
+            Box(Modifier.fillMaxWidth().height(AppBorder.thin).background(AppTheme.colors.borderSubtle))
+        }
+        Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+            section.rows.forEach { row ->
+                when (row) {
+                    is MealRow.Single -> key(row.entry.id) { LoggedEntryRow(row.entry, actions) }
+                    is MealRow.Group -> key("group-${row.groupId}") { DiaryGroupCard(row, actions) }
+                }
             }
         }
     }
@@ -122,6 +123,7 @@ private fun MealBody(section: MealSectionUi, actions: EntryActions) {
  * first; when name + chevron + pill do not fit on one row beside them (360 dp, large font scale) the pill moves to
  * the macros line (R-78) and the buttons stay beside the name.
  */
+@Suppress("LongMethod") // One SubcomposeLayout: measure the buttons, then the toggle.
 @Composable
 private fun SectionHeader(
     section: MealSectionUi,

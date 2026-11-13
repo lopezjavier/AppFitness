@@ -168,7 +168,7 @@ private fun SummaryCards(summary: WeeklySummary, names: Map<String, String>) {
         val previous = summary.training.previous
         val volume = current.volume.roundToInt()
         Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-            // C-24: the three figures side by side, each with its change as a pill; one caption says what it compares to.
+            // C-24: three figures side by side, each with its change as a pill; one caption says what it compares to.
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
                 WeekTile(
                     label = stringResource(Res.string.checkin_volume_label),

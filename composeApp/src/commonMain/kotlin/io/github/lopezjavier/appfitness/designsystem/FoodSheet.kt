@@ -178,6 +178,7 @@ private class SheetFooter(
     val commitLabel: String? = null,
 )
 
+@Suppress("LongMethod") // One branch per sheet context.
 private fun footerOf(context: FoodSheetContext, prefix: String): SheetFooter = when (context) {
     is FoodSheetContext.Edit -> SheetFooter(
         commit = SheetCommit.Save,

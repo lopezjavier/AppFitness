@@ -99,6 +99,7 @@ fun MacroProgressBar(
 ) = MacroProgressBar(label, macro, consumedGrams.toDouble(), targetGrams, modifier)
 
 /** [MacroProgressBar] for a consumed value with decimals; it is shown as whole grams, half up. */
+@Suppress("LongMethod") // One bar: label row, value row and track.
 @Composable
 fun MacroProgressBar(
     label: String,

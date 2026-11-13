@@ -40,6 +40,7 @@ import kotlin.test.assertIs
 import kotlin.test.assertTrue
 
 @OptIn(ExperimentalCoroutinesApi::class)
+@Suppress("LargeClass") // One test per scenario of the Diario.
 class DiaryViewModelTest {
     private val dispatcher = StandardTestDispatcher()
     private val today = LocalDate(2026, 10, 19)

@@ -36,6 +36,7 @@ internal fun LazyListScope.diaryItems() {
     item { DiaryPartsSection() }
 }
 
+@Suppress("MagicNumber") // Demo figures of the catalog.
 @Composable
 private fun DiaryPartsSection() {
     val saveDescription = stringResource(Res.string.diary_save_template_cd)

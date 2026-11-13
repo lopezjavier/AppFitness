@@ -60,7 +60,7 @@ internal fun NotFoundCard(code: String, onEvent: (FoodSearchEvent) -> Unit) {
     }
 }
 
-/** Inline partial failure under the results (R-74, C-35): the Open Food Facts search failed, "Reintentar" repeats it. */
+/** Inline partial failure under the results (R-74, C-35): the Open Food Facts search failed; "Reintentar" repeats. */
 @Composable
 internal fun RemoteFailureNotice(onRetry: () -> Unit, modifier: Modifier = Modifier) {
     Row(

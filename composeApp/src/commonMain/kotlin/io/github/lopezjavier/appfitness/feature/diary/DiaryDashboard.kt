@@ -41,6 +41,7 @@ import org.jetbrains.compose.resources.stringResource
 
 /** Font scale from which the hero falls back to the full ring over three bars, so no figure clips (R-68). */
 private const val FULL_HERO_FONT_SCALE = 1.15f
+private const val DOT_GAPS = 3
 
 /**
  * The day's progress card (calorie ring and three macro bars), or the "set your goal" prompt without goals. With
@@ -139,7 +140,7 @@ private fun compactMacrosFit(labels: List<String>, goals: DiaryGoals, totals: Me
         measurer.measure(label.uppercase(), labelStyle).size.width +
             measurer.measure(text.full, valueStyle).size.width
     }
-    val fixed = with(density) { (MacroProgressBarDefaults.DotSize + Spacing.sm * 3).roundToPx() }
+    val fixed = with(density) { (MacroProgressBarDefaults.DotSize + Spacing.sm * DOT_GAPS).roundToPx() }
     // A small safety margin keeps a label that only just fits from breaking on a device (R-76).
     val margin = with(density) { Spacing.md.roundToPx() }
     return widest + fixed + margin <= with(density) { available.roundToPx() }

@@ -55,6 +55,7 @@ private val MaxNoticeHeight = Spacing.xl * 8
  * type) the help body is OFF-specific and [onFix] / [fixLabel] open the corrected copy. Tags derive from
  * [testTagPrefix]. Not a failure: no error colour, no haptic.
  */
+@Suppress("LongMethod") // One notice: icon, text, help and the two actions.
 @Composable
 internal fun EnergyWarningNotice(
     warning: EnergyWarning,

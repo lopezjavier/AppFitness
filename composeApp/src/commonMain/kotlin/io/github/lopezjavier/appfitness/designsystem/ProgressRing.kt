@@ -104,7 +104,8 @@ object ProgressRingDefaults {
 /**
  * Daily calorie ring: consumed value and "de N kcal" in the centre, and one status pill below (R-67): "Te quedan N
  * kcal", "Objetivo cumplido", "+N kcal en exceso" or, for a [pastDay], "Quedaron N kcal"; it wraps at large font
- * scales instead of clipping. [compact] draws the 132 dp hero ring of a phone (R-68). The whole ring is one accessibility
+ * scales instead of clipping. [compact] draws the 132 dp hero ring of a phone (R-68). The whole ring is one
+ * accessibility
  * node carrying the caller's [modifier] (and its testTag).
  */
 @Composable

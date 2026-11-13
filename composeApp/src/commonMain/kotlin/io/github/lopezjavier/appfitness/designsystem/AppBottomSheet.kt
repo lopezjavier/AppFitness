@@ -115,7 +115,7 @@ fun AppBottomSheet(
             shouldDismissOnClickOutside = dismissOnClickOutside,
         ),
     ) {
-        // Containers nested in a sheet (state circles, notes, skeletons) read surfaceControl, not the sheet colour (C-26).
+        // Containers nested in a sheet (state circles, notes, skeletons) read surfaceControl (C-26).
         CompositionLocalProvider(LocalNestedContainer provides AppTheme.colors.surfaceControl) {
             with(AppBottomSheetDefaults) {
                 Column(Modifier.fillMaxWidth().topHairline(colors.border)) {
