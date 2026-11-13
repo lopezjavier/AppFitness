@@ -53,3 +53,19 @@ Sources the `ux-critic` already opened, with the takeaway used. Read this before
 | Input border (white 12 %) on `surfaceOverlay` fill | 1.46:1 |
 | Proposed `#A9B3C4` on base / raised / overlay | 9.1 / 8.4 / 7.6 |
 | Proposed `#8C97A9` on base / raised / overlay | 6.5 / 6.0 / 5.4 |
+
+## Round 1 (Diario), new sources
+
+| URL | Takeaway | Supports |
+|---|---|---|
+| androidx `SearchBarTokens.kt` | Search bar 56 dp, leading/trailing icons, no label token | C-21 |
+| androidx `DatePickerModalTokens.kt` | Unselected date has no container; today 1 dp outline | C-33 |
+| androidx `OutlinedTextFieldTokens.kt` | Caret = Primary, error caret = Error | C-41 |
+| androidx `PrimaryNavigationTabTokens.kt` | Active indicator 3 dp Primary | C-09 evidence |
+| androidx `ListTokens.kt` | Leading icon 24 dp OnSurfaceVariant; 16 dp leading/trailing space | C-28, C-32 |
+| unicode.org CLDR plural rules | Spanish: one, many, other; 0 falls in other | C-31 |
+| nngroup.com/articles/skeleton-screens/ | Skeleton structure mimics the final page | R-31 violations |
+| developer.android.com/develop/ui/compose/lists | Content padding applies to content, not the list | C-37 |
+| carbondesignsystem.com/data-visualization/color-palettes/ | Orange = serious warning | C-25 |
+| ssw.com.au/rules/destructive-button-ui-ux | Keep delete away from Save, less prominent | C-22 |
+| material-components-android `Dialog.md` | Optional divider between content and buttons | C-27 |
