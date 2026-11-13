@@ -98,13 +98,21 @@ class CheckInScreenTest {
 
     // -- Weekly summary ------------------------------
 
+    /** The delta pill of a tile is its own merged node, so it is read from the unmerged tree under the tile. */
+    private fun assertTilePill(tileTag: String, text: String) {
+        rule.onNode(hasText(text) and hasAnyAncestor(hasTestTag(tileTag)), useUnmergedTree = true).assertExists()
+    }
+
     @Test
     fun weeklySummary_showsVolumeWorkoutsAndSetsWithTheirDifference() {
         show()
 
-        rule.onNodeWithTag("checkin_summary_volume").assertTextEquals("VOLUMEN", "12.400", "kg", "+800")
-        rule.onNodeWithTag("checkin_summary_workouts").assertTextEquals("ENTRENOS", "4", "+1")
-        rule.onNodeWithTag("checkin_summary_sets").assertTextEquals("SERIES", "40", "+10")
+        rule.onNodeWithTag("checkin_summary_volume").assertTextEquals("VOLUMEN", "12.400", "kg")
+        rule.onNodeWithTag("checkin_summary_workouts").assertTextEquals("ENTRENOS", "4")
+        rule.onNodeWithTag("checkin_summary_sets").assertTextEquals("SERIES", "40")
+        assertTilePill("checkin_summary_volume", "+800")
+        assertTilePill("checkin_summary_workouts", "+1")
+        assertTilePill("checkin_summary_sets", "+10")
         rule.onNodeWithTag("checkin_summary_delta_caption").assertTextContains("Comparado con la semana anterior")
     }
 
@@ -153,9 +161,10 @@ class CheckInScreenTest {
         val empty = TrainingSummary(0, 0, 0.0, 0)
         show(ready(summary(current = empty, previous = empty, records = emptyList())))
 
-        rule.onNodeWithTag("checkin_summary_volume").assertTextEquals("VOLUMEN", "0", "kg", "Igual")
-        rule.onNodeWithTag("checkin_summary_workouts").assertTextEquals("ENTRENOS", "0", "Igual")
-        rule.onNodeWithTag("checkin_summary_sets").assertTextEquals("SERIES", "0", "Igual")
+        rule.onNodeWithTag("checkin_summary_volume").assertTextEquals("VOLUMEN", "0", "kg")
+        rule.onNodeWithTag("checkin_summary_workouts").assertTextEquals("ENTRENOS", "0")
+        rule.onNodeWithTag("checkin_summary_sets").assertTextEquals("SERIES", "0")
+        listOf("volume", "workouts", "sets").forEach { assertTilePill("checkin_summary_$it", "Igual") }
         rule.onNodeWithTag("checkin_summary_records_empty").assertTextContains("Sin récords esta semana")
     }
 

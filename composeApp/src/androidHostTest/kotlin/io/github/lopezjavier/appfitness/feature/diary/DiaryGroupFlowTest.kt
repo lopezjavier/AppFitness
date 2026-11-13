@@ -222,7 +222,8 @@ class DiaryGroupFlowTest {
         tap(TOGGLE_TAG)
 
         rule.onNodeWithTag("diary_group_${GROUP}_delete").assertDoesNotExist()
-        rule.onNodeWithTag(GROUP_TAG).performTouchInput { swipeLeft() }
+        // The header is the part of the expanded card that is not an ingredient row.
+        rule.onNodeWithTag(TOGGLE_TAG).performTouchInput { swipeLeft() }
         rule.waitForIdle()
 
         assertEquals(emptyList<String>(), diary.deleted)
