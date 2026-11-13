@@ -69,3 +69,11 @@ Sources the `ux-critic` already opened, with the takeaway used. Read this before
 | carbondesignsystem.com/data-visualization/color-palettes/ | Orange = serious warning | C-25 |
 | ssw.com.au/rules/destructive-button-ui-ux | Keep delete away from Save, less prominent | C-22 |
 | material-components-android `Dialog.md` | Optional divider between content and buttons | C-27 |
+
+### Batch 5 (Diario meal card polish), critic's notes
+
+- C-60: reusing the plain rows' slots (headline plus trailing, `ListTokens` 16 dp edge space) keeps name and kcal on one text edge; the overlay box moves to 8 dp so box content (8 dp inner) lands on the same edge as plain rows.
+- C-61 to C-65: a collapsed card is a header only, so 16 dp of bottom padding reads as dead space; 4 dp tight spacing plus a tertiary-coloured separator keeps the macros subordinate to the name. A hairline appears only where content groups need separating (expanded with entries).
+- C-62: letter/figure weight and colour contrast (W700 primary letter, W600 macro-coloured figure) aids scanning; the dot is glued to the preceding item so line wraps never start with a separator.
+- V-15 follow-up: a fit check against a fixed 132 dp is wrong when the status pill is wider; measure the real column.
+- 360 dp risk: name + pill + two 48 dp targets need about 310 dp against 296 dp available; since mid-word breaks are forbidden, the pill drops to the macros line and the buttons stay beside the name (touch targets never shrink below 48 dp).

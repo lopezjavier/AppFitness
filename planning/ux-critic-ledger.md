@@ -80,6 +80,16 @@ One row per ux-critic finding. The PM has the dispositions recorded here as the 
 | V-15 | compact hero macro labels break mid-word: never | 1 | REWORK (still failing on device after batch 3: "PRO/T.", "CAR/B.", "GRAS/A"; batch 4 states it testably: single-line labels, fall back to ring over three bars, host test at 360 dp and font scale 1.0/1.3/2.0; PENDING) | 05 R-76 |
 | V-16 | search tab row full-bleed edge to edge | 1 | IN REVIEW (batch 3) | 05 R-77 |
 | V-17 | ⋮ "Más acciones de %1$s" wording on the meal card | 1 | WITHDRAWN (user, 2026-11-13): the meal card has no ⋮; its bookmark-plus keeps "Guardar como comida" | 05 §10 |
+| C-60 | `DiaryGroupRow` uses `FoodEntryRow`'s slots: name + 24 dp chevron as headline, kcal 14 sp W600 over `MacroText` as trailing; overlay box starts 8 dp from the card edge | 1 | PENDING (batch 5) | 05 R-78 |
+| C-61 | collapsed or empty meal card bottom padding 4 dp (expanded keeps 16) | 1 | PENDING (batch 5) | 05 R-78 |
+| C-62 | header macros: letter textPrimary W700, figure macro colour W600, bodySmall, " · " in textTertiary attached to the preceding item | 1 | PENDING (batch 5) | 05 R-78 |
+| C-63 | 4 dp between the name row and the macros line | 1 | PENDING (batch 5) | 05 R-78 |
+| C-64 | 1 dp borderSubtle hairline in the 8 dp gap, only expanded with entries | 1 | PENDING (batch 5) | 05 R-78 |
+| C-65 | meal with no entries: whole macros line in textTertiary | 1 | PENDING (batch 5) | 05 R-78 |
+| V-18 | retire `MealSummaryText` in favour of `MacroText` (R-39) | 1 | PENDING (batch 5) | 05 R-78 |
+| V-19 | retire `MacroSummary` in favour of `MacroText` (R-39) | 1 | PENDING (batch 5) | 05 R-78 |
+| V-20 | short forms Prot./Carb./Grasa and P/C/G added to the glossary | 1 | PENDING (batch 5) | 05 §10 |
+| V-15b | V-15 follow-up: `compactMacrosFit` measures the real ring-column width; host test required; 360 dp header fallback (pill moves to the macros line) | 1 | PENDING (batch 5; part of V-15 and R-75) | 05 R-76, R-78 |
 | U-1 | diary entry with ingredients: collapsed swipe removes the whole food (user request, explicit exception to "no behaviour change"; reconfirmed in batch 4, unchanged) | 1 | IN REVIEW | 05 R-71 |
 
 Status values:
