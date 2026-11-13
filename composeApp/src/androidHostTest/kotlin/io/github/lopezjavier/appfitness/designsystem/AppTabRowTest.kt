@@ -152,6 +152,15 @@ class AppTabRowTest {
     }
 
     @Test
+    fun scrollingRow_keepsTheLimeIndicatorOnScreen_afterScrollingToTheSelectedTab() {
+        showFive(fontScale = 1f, selected = 4)
+
+        val indicator = rule.onNodeWithTag("app_tab_indicator").assertIsDisplayed().getUnclippedBoundsInRoot()
+        assertTrue(indicator.width > 0.dp)
+        assertTrue(indicator.left >= 0.dp && indicator.right <= 60.dp)
+    }
+
+    @Test
     fun fiveTabs_keepTheSelectedTabVisible_whenItIsTheLastOne() {
         showFive(fontScale = 1f, selected = 4)
 

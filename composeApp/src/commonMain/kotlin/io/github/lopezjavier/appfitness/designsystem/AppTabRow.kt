@@ -158,6 +158,7 @@ private fun ScrollingTabs(options: List<AppOption>, selectedIndex: Int, viewport
                         },
                     )
                     .height(AppTabRowDefaults.IndicatorHeight)
+                    .testTag("app_tab_indicator")
                     .background(colors.neonLime),
             )
         }

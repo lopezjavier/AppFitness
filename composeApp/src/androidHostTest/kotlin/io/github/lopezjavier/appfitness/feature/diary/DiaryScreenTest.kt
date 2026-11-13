@@ -24,6 +24,8 @@ import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.height
+import androidx.compose.ui.unit.width
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
 import io.github.lopezjavier.appfitness.domain.model.DiaryGoals
 import io.github.lopezjavier.appfitness.domain.model.FoodLogEntry
@@ -160,6 +162,40 @@ class DiaryScreenTest {
         rule.onNodeWithTag("diary_section_breakfast_add").performClick()
 
         assertEquals(listOf<DiaryEvent>(DiaryEvent.AddToMeal("breakfast")), events)
+    }
+
+    @Test
+    fun heroMacroLabels_neverWrapOrBreakMidWord_atFontScales1_1p3_and2() {
+        listOf(1f, FONT_SCALE, 2f).forEach { scale ->
+            show(content(), scale)
+
+            val labels = listOf("Prot." to "Proteínas", "Carb." to "Carbohidratos", "Grasa" to "Grasas")
+            labels.forEach { (short, full) ->
+                // Compact hero uses the short label, the full hero the long one; either is on exactly one line.
+                val node = rule.onNode(hasText(short) or hasText(full), useUnmergedTree = true)
+                val height = node.getUnclippedBoundsInRoot().height
+                assertTrue("$short/$full wraps at font scale $scale ($height)", height <= (24f * scale).dp)
+            }
+        }
+    }
+
+    @Test
+    fun mealHeader_keeps48dpTargetsAndDoesNotOverlapTheButtons_atFontScales1_1p3_and2() {
+        val name = "Desayuno largo para comprobar el ajuste"
+        val slots = listOf(MealSlot("breakfast", MealCode.Breakfast, name, 0))
+        listOf(1f, FONT_SCALE, 2f).forEach { scale ->
+            show(content(entries = listOf(entry("a", "breakfast")), slots = slots), scale)
+
+            val toggle = rule.onNodeWithTag("diary_section_breakfast_toggle").getUnclippedBoundsInRoot()
+            val save = rule.onNodeWithTag("diary_section_breakfast_save_template").getUnclippedBoundsInRoot()
+            val add = rule.onNodeWithTag("diary_section_breakfast_add").getUnclippedBoundsInRoot()
+            assertTrue("toggle at scale $scale", toggle.height >= 48.dp)
+            assertTrue("save at scale $scale", save.width >= 48.dp && save.height >= 48.dp)
+            assertTrue("add at scale $scale", add.width >= 48.dp && add.height >= 48.dp)
+            assertTrue("toggle overlaps the buttons at scale $scale", toggle.right <= save.left && save.right <= add.left)
+            val label = rule.onNodeWithText(name, useUnmergedTree = true).getUnclippedBoundsInRoot()
+            assertTrue("name at most two lines at scale $scale", label.height <= (2 * 32f * scale).dp)
+        }
     }
 
     @Test

@@ -1,5 +1,7 @@
 package io.github.lopezjavier.appfitness.designsystem
 
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Box
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toPixelMap
@@ -12,7 +14,6 @@ import androidx.compose.ui.test.onNodeWithTag
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.YearMonth
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertNotEquals
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -32,21 +33,25 @@ class MonthCalendarVisualsTest {
     fun monthCalendarGrid_selectedDay_hasLimeBorderAndSelectedContainerFill() {
         var selectedContainer = Color.Unspecified
         var lime = Color.Unspecified
+        var base = Color.Unspecified
         rule.setContent {
             AppTheme {
                 selectedContainer = AppTheme.colors.selectedContainer
                 lime = AppTheme.colors.neonLime
-                MonthCalendarGrid(
-                    month = YearMonth(2026, 10),
-                    markedDays = emptySet(),
-                    selected = LocalDate(2026, 10, 14),
-                    today = LocalDate(2026, 10, 20),
-                    onSelect = {},
-                    onPrevMonth = {},
-                    onNextMonth = {},
-                    canGoNext = true,
-                    modifier = Modifier.testTag("grid"),
-                )
+                base = AppTheme.colors.surfaceBase
+                Box(Modifier.background(base)) {
+                    MonthCalendarGrid(
+                        month = YearMonth(2026, 10),
+                        markedDays = emptySet(),
+                        selected = LocalDate(2026, 10, 14),
+                        today = LocalDate(2026, 10, 20),
+                        onSelect = {},
+                        onPrevMonth = {},
+                        onNextMonth = {},
+                        canGoNext = true,
+                        modifier = Modifier.testTag("grid"),
+                    )
+                }
             }
         }
         rule.waitForIdle()
@@ -60,9 +65,8 @@ class MonthCalendarVisualsTest {
         assertEquals(lime, selectedMap[x, 14].withoutAlpha())
         assertEquals(selectedContainer, selectedMap[x, 24].withoutAlpha())
         // C-33: a resting day draws no circle, so its pixels are neither the border nor the selected fill.
-        assertEquals(otherMap[x, 14].withoutAlpha(), otherMap[x, 24].withoutAlpha())
-        assertNotEquals(lime, otherMap[x, 14].withoutAlpha())
-        assertNotEquals(selectedContainer, otherMap[x, 24].withoutAlpha())
+        assertEquals(base, otherMap[x, 14].withoutAlpha())
+        assertEquals(base, otherMap[x, 24].withoutAlpha())
     }
 
     private fun showCalendar(selected: LocalDate?, today: LocalDate) {

@@ -80,3 +80,15 @@ Behaviour tests that will fail or need an update:
 - Glossary V-20 (Prot./Carb./Grasa, P/C/G) is a doc item: no code change here (strings already exist).
 
 Goldens expected to change (re-record): Diario day (collapsed, expanded, empty cards; group header collapsed and expanded), compact hero, `FoodEntryRow` and `FoodSheet`/`AddFoodSheet`/template rows with macros (new macro styling), catalog entry for `MacroText`/`MacroLine` (not added in this build-only batch).
+
+## Test task outcome (for the PR body)
+
+Assertions removed or replaced (behaviour no longer exists, by design):
+- Offline "Sin conexión" stateDescription on the food search AI icon (`FoodPhotoFlowTest.photoAction_offline_isDisabled...`): batch 1 dropped it; the icon is only disabled (R-69 top-bar actions).
+- Goals-prompt help ("?" button, `diary_goals_prompt_help`, its sheet and its recreation test) in `DiaryScreenTest`: batch 1 turned the prompt into a `NavigationRow` without help (R-73, C-42); replaced by `goalsPrompt_isOneNavigationRowWithoutHelp_andOpensGoals`.
+- Empty-meal remaining-kcal hint (`diary_section_<id>_empty_hint`): removed by batch 1 (R-75); replaced by a "no hint, no save button, add still offered" test.
+- Food search offline `ErrorState` text: now `OfflineState` (`offline_state`).
+
+Production change for testability: tag `app_tab_indicator` on the scrolling `AppTabRow` indicator (V-14 test). Catalog section `catalog_section_diary_parts` added for the Diario components (`DiaryCatalogSections.kt`).
+
+Follow-ups (non-blocking, not written): `InlineNote` inside versus outside a sheet (C-26), sheet footer edge with short and tall content (C-27), `FilterChipRow(edgeToEdge)` (C-37), `NameSheet` blank error (R-27), compact hero fallback with 4-digit grams and wide status pill (V-15/V-15b), pill moving to the macros line at 360 dp / 1.3. Robolectric measures text near zero width, so the hero and header tests at font scales 1.0/1.3/2.0 assert single-line height, 48 dp targets and no overlap only; the real fit decision is checked on a device.

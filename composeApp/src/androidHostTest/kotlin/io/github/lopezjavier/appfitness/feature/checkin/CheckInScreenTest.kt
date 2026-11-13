@@ -10,6 +10,7 @@ import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.assertTextContains
+import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.hasAnyAncestor
 import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.hasText
@@ -101,13 +102,9 @@ class CheckInScreenTest {
     fun weeklySummary_showsVolumeWorkoutsAndSetsWithTheirDifference() {
         show()
 
-        rule.onNodeWithTag("checkin_summary_volume").assertTextContains("12.400", substring = true)
-        rule.onNodeWithTag("checkin_summary_volume").assertTextContains("kg", substring = true)
-        rule.onNodeWithTag("checkin_summary_volume").assertTextContains("+800", substring = true)
-        rule.onNodeWithTag("checkin_summary_workouts").assertTextContains("4", substring = true)
-        rule.onNodeWithTag("checkin_summary_workouts").assertTextContains("+1", substring = true)
-        rule.onNodeWithTag("checkin_summary_sets").assertTextContains("40", substring = true)
-        rule.onNodeWithTag("checkin_summary_sets").assertTextContains("+10", substring = true)
+        rule.onNodeWithTag("checkin_summary_volume").assertTextEquals("VOLUMEN", "12.400", "kg", "+800")
+        rule.onNodeWithTag("checkin_summary_workouts").assertTextEquals("ENTRENOS", "4", "+1")
+        rule.onNodeWithTag("checkin_summary_sets").assertTextEquals("SERIES", "40", "+10")
         rule.onNodeWithTag("checkin_summary_delta_caption").assertTextContains("Comparado con la semana anterior")
     }
 
@@ -156,10 +153,9 @@ class CheckInScreenTest {
         val empty = TrainingSummary(0, 0, 0.0, 0)
         show(ready(summary(current = empty, previous = empty, records = emptyList())))
 
-        rule.onNodeWithTag("checkin_summary_volume").assertTextContains("0", substring = true)
-        rule.onNodeWithTag("checkin_summary_volume").assertTextContains("Igual", substring = true)
-        rule.onNodeWithTag("checkin_summary_workouts").assertTextContains("Igual", substring = true)
-        rule.onNodeWithTag("checkin_summary_sets").assertTextContains("Igual", substring = true)
+        rule.onNodeWithTag("checkin_summary_volume").assertTextEquals("VOLUMEN", "0", "kg", "Igual")
+        rule.onNodeWithTag("checkin_summary_workouts").assertTextEquals("ENTRENOS", "0", "Igual")
+        rule.onNodeWithTag("checkin_summary_sets").assertTextEquals("SERIES", "0", "Igual")
         rule.onNodeWithTag("checkin_summary_records_empty").assertTextContains("Sin récords esta semana")
     }
 

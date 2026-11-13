@@ -42,7 +42,8 @@ private val ExpectedTags =
         "catalog_nav_tab_diary", "catalog_nav_tab_profile", "catalog_edit_sheet_open",
         "catalog_edit_apply_sheet_open", "catalog_picker_sheet_open", "catalog_info_sheet_open",
         "catalog_name_sheet_open", "catalog_food_sheet_open", "catalog_nav_row", "catalog_add_item",
-        "catalog_time_range_week", "catalog_list_row",
+        "catalog_time_range_week", "catalog_list_row", "catalog_compact_tonal_icon", "catalog_compact_add",
+        "catalog_text_button_danger",
         "catalog_dialog_open", "catalog_wheel_height", "catalog_selectable_card_moderate",
         "weekday_selector_day_1", "month_calendar_prev", "month_calendar_day_2026-10-18", "diary_history_row_open",
     )
@@ -62,7 +63,7 @@ private val ExpectedSections =
         "selectable_card", "exercise_media", "reorderable",
         "state_messages", "offline_banner", "action_row", "summary_card",
         "favourite_toggle", "portion_selector", "cooking_selector", "weekday_selector", "month_calendar",
-        "diary_history_row",
+        "diary_history_row", "diary_parts",
         "muscle_split_bar",
         "goal_metrics", "swipe", "rows", "food_entry", "metric_card", "time_range",
         "top_bar",

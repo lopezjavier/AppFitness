@@ -1,6 +1,7 @@
 package io.github.lopezjavier.appfitness.feature.catalog
 
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.runtime.Composable
@@ -85,6 +86,8 @@ private fun DiaryPartsSection() {
             style = AppTheme.typography.bodySmall,
             modifier = Modifier.testTag("catalog_macro_text"),
         )
-        EntryTotals(FoodEntryRowModel("catalog", "", "", kcal = 620, proteinG = 48, carbsG = 71, fatG = 7))
+        Box(Modifier.testTag("catalog_entry_totals")) {
+            EntryTotals(FoodEntryRowModel("catalog", "", "", kcal = 620, proteinG = 48, carbsG = 71, fatG = 7))
+        }
     }
 }
