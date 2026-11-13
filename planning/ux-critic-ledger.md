@@ -28,6 +28,39 @@ One row per ux-critic finding. The PM has the dispositions recorded here as the 
 | V-3 | legacy filled icons to Outlined (ic_info, ic_photo_camera, ic_photo_library, ic_label, ic_auto_awesome, ic_nav_trainer, ic_health_connect). ic_nav_trainer history: original filled `insights` (liked) > T-294 hand-drawn trend+sparkle (rejected, broken) > `insert_chart` bf5317ff (rejected, degradation) > decision 2026-11-13: Material Symbols Outlined `insights`, verbatim path | 0 | IN REVIEW | 05 §6.0 |
 | V-4 | remove unused sheetHandle and glowLime/glowBlur tokens | 0 | IN REVIEW | 05 §2.1a |
 | C-20 | R-64 extended to leftovers: SelectableCard (fill, 1 dp border, lime title), OptionPickerSheet check lime, calendar today = 1 dp cyan ring (selected+today = R-64 plus a 1.5 dp (`AppBorder.focus`) cyan outer ring with a 2 dp gap to the lime border), AppCard `selected` param for ActivitySummary, `highlighted` stays informational cyan, sleep swatch 12 dp (alphas kept) | 0 | ADOPTED | 05 R-64 (b)-(f), §6.0 |
+| C-21 | add-food screen: search field full width, scan in trailing slot, "Añadir con IA" and "Crear alimento" as top-bar actions | 1 | IN REVIEW | 05 R-69 |
+| C-22 | edit-entry sheet: "Eliminar" text-style danger action >= 16 dp below "Guardar", no dialog | 1 | IN REVIEW | 05 R-70 |
+| C-23 | remaining kcal only in the ring status pill ("Te quedan N kcal" / "Objetivo cumplido" / "Quedaron N kcal"), removed from empty meal cards | 1 | IN REVIEW | 05 R-67 |
+| C-24 | check-in: 3 MetricTiles in one row | 1 | IN REVIEW | 05 visual items |
+| C-25 | token `macroFat` #A78BFA (orange is the over-target colour) | 1 | IN REVIEW (build waits for round 0 verdict) | 05 R-74 visual items, §2.3 |
+| C-26 | nested containers on sheets use `surfaceControl` | 1 | IN REVIEW (build waits for round 0 verdict) | 05 visual items |
+| C-27 | pinned footer: hairline plus fade | 1 | IN REVIEW (build waits for round 0 verdict) | 05 visual items, §9 |
+| C-28 | meal rows inside `AppCard` | 1 | IN REVIEW (build waits for round 0 verdict) | 05 visual items |
+| C-29 | compact hero: ring 132 dp with stacked macros, full ring at font scale >= 1.15 | 1 | IN REVIEW (build waits for round 0 verdict) | 05 R-68 |
+| C-30 | entry typography | 1 | IN REVIEW | 05 visual items |
+| C-31 | plural-aware reminders ("Toca pesarte", "Llevas N días sin pesarte"; measures likewise) | 1 | IN REVIEW | 05 R-72, guard G19 |
+| C-32 | per-type notice icons, hide "Pendientes" at 0 | 1 | IN REVIEW | 05 R-74 |
+| C-33 | calendar resting cells without fill | 1 | IN REVIEW (build waits for round 0 verdict) | 05 visual items |
+| C-34 | energy notice icon and copy | 1 | IN REVIEW | 05 R-74 |
+| C-35 | inline partial-failure notice | 1 | IN REVIEW | 05 R-74 |
+| C-36 | nutrient table rows | 1 | IN REVIEW | 05 visual items |
+| C-37 | chip row runs to the sheet edge | 1 | IN REVIEW (build waits for round 0 verdict) | 05 visual items |
+| C-38 | meal chips labelled "Comida del día" | 1 | IN REVIEW | 05 visual items, §10 |
+| C-39 | add button names its destination "Añadir a <comida>" (meal name as typed, no article) | 1 | IN REVIEW | 05 R-69 |
+| C-40 | tablet navigator capped at 320 dp | 1 | IN REVIEW (build waits for round 0 verdict) | 05 visual items |
+| C-41 | lime caret in text fields | 1 | IN REVIEW (build waits for round 0 verdict) | 05 visual items |
+| C-42 | goals prompt is a NavigationRow with icon and chevron, no "?" | 1 | IN REVIEW | 05 R-73 |
+| C-43 | photo hint | 1 | IN REVIEW | 05 visual items |
+| V-5 | R-30 offline: only the shell says "Sin conexión" (rule violation fixed) | 1 | IN REVIEW | 05 R-30 |
+| V-6 | R-37 message templates and punctuation | 1 | IN REVIEW | 05 R-37 |
+| V-7 | R-27 validation under the field after the first edit | 1 | IN REVIEW | 05 R-27 |
+| V-8 | R-03 navigation entries are `NavigationRow` | 1 | IN REVIEW | 05 R-03, R-73 |
+| V-9 | R-31 loading, empty, error and progress states | 1 | IN REVIEW | 05 R-31 |
+| V-10 | C-09 tab label evidence (swept Diario tab rows) | 1 | IN REVIEW | 05 §9 |
+| V-11 | C-17 empty and error evidence (swept Diario states) | 1 | IN REVIEW | 05 R-66 |
+| V-12 | R-35 glossary wording | 1 | IN REVIEW | 05 R-35, §10 |
+| V-13 | R-44 dates and numbers; fix only if the sweep confirms a violation | 1 | PROPOSED | 05 R-44 |
+| U-1 | diary entry with ingredients: collapsed swipe removes the whole food (user request, explicit exception to "no behaviour change") | 1 | IN REVIEW | 05 R-71 |
 
 Status values:
 - `PROPOSED`: reported by the critic, not decided yet.
@@ -38,5 +71,7 @@ Status values:
 - `DEFERRED`: postponed (link: E9 row or round).
 
 A round that changes tokens or components does not start while the previous such round has rows `IN REVIEW`.
+
+Round 1 (T-281, Diario) state: all rows C-21…C-43, V-5…V-13 and U-1 were accepted by the user on 2026-11-13 and are written into `05` §8 as PENDING (R-67…R-74). Rows marked "build waits for round 0 verdict" touch tokens or components and are not built until the round 0 rows are `ADOPTED` or `REWORK`. Placement double-check (C-21, C-22, C-39, C-42) and calorie graphic (C-23, C-29): agreed with conditions recorded in R-68…R-70.
 
 Round 0 build state (T-295): all rows C-01…C-19 and V-1…V-4 are built on `feat/ui-design-system` and the PENDING tags are removed from `05-design-system.md`. Every row stays `IN REVIEW` until the user's emulator verdict sets `ADOPTED` or `REWORK`.
