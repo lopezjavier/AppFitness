@@ -59,7 +59,8 @@ object AppSheetsDefaults {
  * `<prefix>_commit` and is disabled while
  * `!commitEnabled` or [saving] (so a second tap or a keyboard action cannot fire twice). [commitHint] is a short
  * line under the button, typically `offlineHint("guardar")` (R-30), tagged `<prefix>_commit_hint`.
- * [secondaryAction] is an optional slot between the button and the hint (e.g. a destructive "Eliminar").
+ * [secondaryAction] is an optional slot between the button and the hint, at least 16 dp under it (R-70; e.g. a
+ * destructive "Eliminar" as an [AppTextButton]).
  * [commitLabel] overrides the footer text for a confirmation that is none of the four (e.g. "Crear plan").
  * [footerNotice] is an optional non-error message pinned above the button (e.g. the energy-check warning).
  * A null [commit] draws no button: only for a read-only surface whose single action is [secondaryAction] (T-272).
@@ -128,7 +129,7 @@ fun AppEditSheet(
                     )
                 }
                 secondaryAction?.let { action ->
-                    Box(Modifier.fillMaxWidth().padding(top = Spacing.xs), contentAlignment = Alignment.Center) {
+                    Box(Modifier.fillMaxWidth().padding(top = Spacing.lg), contentAlignment = Alignment.Center) {
                         action()
                     }
                 }
@@ -259,19 +260,25 @@ internal fun AppSheetLayout(
     footer: (@Composable ColumnScope.() -> Unit)?,
     body: @Composable ColumnScope.() -> Unit,
 ) {
+    val scrollState = rememberScrollState()
     Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.TopCenter) {
         Column(Modifier.widthIn(max = WindowWidthClassDefaults.FormContentMaxWidth).fillMaxWidth()) {
             header()
             Column(
                 Modifier
                     .weight(1f, fill = false)
-                    .verticalScroll(rememberScrollState())
+                    .verticalScroll(scrollState)
                     .padding(horizontal = Spacing.screenMargin),
                 content = body,
             )
             if (footer != null) {
                 Column(
                     Modifier
+                        .footerEdge(
+                            AppTheme.colors.borderSubtle,
+                            AppBottomSheetDefaults.colors(AppTheme.colors).container,
+                            visible = scrollState.canScrollForward,
+                        )
                         .imePadding()
                         .navigationBarsPadding()
                         .padding(horizontal = Spacing.screenMargin)

@@ -4,6 +4,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Text
@@ -50,6 +51,7 @@ fun AppCard(
     modifier: Modifier = Modifier,
     highlighted: Boolean = false,
     selected: Boolean = false,
+    contentPadding: PaddingValues = PaddingValues(AppCardDefaults.Padding),
     content: @Composable ColumnScope.() -> Unit,
 ) {
     val colors = AppCardDefaults.colors(AppTheme.colors, highlighted, selected)
@@ -66,7 +68,7 @@ fun AppCard(
             .clip(AppCardDefaults.Shape)
             .background(colors.container)
             .border(borderWidth, colors.border, AppCardDefaults.Shape)
-            .padding(AppCardDefaults.Padding),
+            .padding(contentPadding),
         content = content,
     )
 }

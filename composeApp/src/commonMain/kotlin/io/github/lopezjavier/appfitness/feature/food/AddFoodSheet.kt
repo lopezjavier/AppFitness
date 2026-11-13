@@ -1,10 +1,10 @@
+@file:Suppress("TooManyFunctions") // The sheet and its small private parts live together.
+
 package io.github.lopezjavier.appfitness.feature.food
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.heightIn
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -29,6 +29,7 @@ import io.github.lopezjavier.appfitness.composeapp.resources.add_food_quantity_e
 import io.github.lopezjavier.appfitness.composeapp.resources.add_food_sheet_title
 import io.github.lopezjavier.appfitness.composeapp.resources.add_food_unit_g
 import io.github.lopezjavier.appfitness.composeapp.resources.add_food_unit_ml
+import io.github.lopezjavier.appfitness.composeapp.resources.add_item
 import io.github.lopezjavier.appfitness.composeapp.resources.diary_meal_carbs
 import io.github.lopezjavier.appfitness.composeapp.resources.diary_meal_fat
 import io.github.lopezjavier.appfitness.composeapp.resources.diary_meal_protein
@@ -45,14 +46,14 @@ import io.github.lopezjavier.appfitness.designsystem.FoodSheet
 import io.github.lopezjavier.appfitness.designsystem.FoodSheetContext
 import io.github.lopezjavier.appfitness.designsystem.FoodSheetTotals
 import io.github.lopezjavier.appfitness.designsystem.Macro
-import io.github.lopezjavier.appfitness.designsystem.MacroDefaults
+import io.github.lopezjavier.appfitness.designsystem.MacroText
 import io.github.lopezjavier.appfitness.designsystem.PortionOption
 import io.github.lopezjavier.appfitness.designsystem.PortionSelector
-import io.github.lopezjavier.appfitness.designsystem.SkeletonBox
 import io.github.lopezjavier.appfitness.designsystem.Spacing
 import io.github.lopezjavier.appfitness.designsystem.offlineHint
 import io.github.lopezjavier.appfitness.domain.model.Food
 import io.github.lopezjavier.appfitness.domain.model.MealSlot
+import io.github.lopezjavier.appfitness.feature.diary.addObjectLabel
 import io.github.lopezjavier.appfitness.feature.diary.amountText
 import io.github.lopezjavier.appfitness.feature.diary.wholeHalfUp
 import io.github.lopezjavier.appfitness.feature.food.photo.AmountPhotoEvent
@@ -62,10 +63,8 @@ import io.github.lopezjavier.appfitness.feature.food.photo.EstimateConfidenceLin
 import io.github.lopezjavier.appfitness.feature.food.photo.FoodPhotoStep
 import org.jetbrains.compose.resources.stringResource
 
-private const val SKELETON_ROWS = 3
 private const val SHEET_PREFIX = "food_sheet"
 private const val OFFLINE_ACTION = "añadir"
-private val SkeletonHeight = Spacing.xl * 2
 
 /**
  * Add-food bottom sheet (US-17, US-22) on [FoodSheet] in its Add context: the quantity first (base unit or named
@@ -121,14 +120,7 @@ fun AddFoodSheet(
 }
 
 @Composable
-private fun SheetLoading() {
-    Column(
-        Modifier.fillMaxWidth().testTag("${SHEET_PREFIX}_loading"),
-        verticalArrangement = Arrangement.spacedBy(Spacing.md),
-    ) {
-        repeat(SKELETON_ROWS) { SkeletonBox(Modifier.fillMaxWidth().heightIn(min = SkeletonHeight)) }
-    }
-}
+private fun SheetLoading() = FoodSheetSkeleton("${SHEET_PREFIX}_loading")
 
 @Composable
 @Suppress("LongParameterList") // The content, its events, the edit action and the photo flow.
@@ -177,6 +169,7 @@ private fun AddFoodContentSheet(
             onAdd = { onEvent(AddFoodEvent.Submit) },
             offlineHint = if (content.isOffline && !content.pick) offlineHint(OFFLINE_ACTION) else null,
             notice = content.energyWarning?.let { warning -> { OffWarningNotice(warning, onEvent) } },
+            commitLabel = commitLabelOf(content),
         ),
         onDismiss = onDismiss,
         modifier = modifier,
@@ -184,6 +177,13 @@ private fun AddFoodContentSheet(
         editFoodEnabled = content.canEdit,
         testTagPrefix = SHEET_PREFIX,
     )
+}
+
+/** "Añadir a Cena": the button names the meal it adds to, as typed (R-69); plain "Añadir" without a chosen meal. */
+@Composable
+private fun commitLabelOf(content: AddFoodContent): String? {
+    val slot = content.slots.firstOrNull { it.id == content.selectedSlotId }?.takeUnless { content.pick } ?: return null
+    return stringResource(Res.string.add_item, addObjectLabel(slot))
 }
 
 /** Quick search details: the Info archetype with the food's label only (no amount, meal, "Editar" or "Añadir"). */
@@ -277,24 +277,11 @@ internal fun KcalText(kcal: Double, modifier: Modifier = Modifier) {
 
 @Composable
 internal fun MacroTexts(proteinG: Double, carbsG: Double, fatG: Double) {
-    val colors = AppTheme.colors
-    val style = AppTheme.typography.labelNumeric
+    val style = AppTheme.typography.bodyMedium
     Row(horizontalArrangement = Arrangement.spacedBy(Spacing.md)) {
-        Text(
-            stringResource(Res.string.diary_meal_protein, amountText(proteinG)),
-            style = style,
-            color = MacroDefaults.color(Macro.Protein, colors),
-        )
-        Text(
-            stringResource(Res.string.diary_meal_carbs, amountText(carbsG)),
-            style = style,
-            color = MacroDefaults.color(Macro.Carbs, colors),
-        )
-        Text(
-            stringResource(Res.string.diary_meal_fat, amountText(fatG)),
-            style = style,
-            color = MacroDefaults.color(Macro.Fat, colors),
-        )
+        MacroText(Res.string.diary_meal_protein, amountText(proteinG), Macro.Protein, style)
+        MacroText(Res.string.diary_meal_carbs, amountText(carbsG), Macro.Carbs, style)
+        MacroText(Res.string.diary_meal_fat, amountText(fatG), Macro.Fat, style)
     }
 }
 
@@ -385,6 +372,12 @@ internal fun MealSelector(
         }
         val options = slots.map { AppOption(it.label, "${optionTagPrefix}_${it.id}") }
         val selected = slots.indexOfFirst { it.id == selectedSlotId }.takeIf { it >= 0 }
-        FilterChipRow(options, selected, { onSelect(slots[it].id) }, Modifier.testTag(containerTag))
+        FilterChipRow(
+            options,
+            selected,
+            { onSelect(slots[it].id) },
+            Modifier.testTag(containerTag),
+            edgeToEdge = Spacing.screenMargin,
+        )
     }
 }

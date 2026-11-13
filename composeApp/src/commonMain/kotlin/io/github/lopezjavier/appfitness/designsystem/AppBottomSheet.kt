@@ -12,6 +12,7 @@ import androidx.compose.material3.SheetState
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.Immutable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -28,6 +29,13 @@ import androidx.compose.ui.semantics.testTagsAsResourceId
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+
+/** The fill of a container nested in a sheet; null outside a sheet (then [nestedContainerColor] is surfaceOverlay). */
+internal val LocalNestedContainer = androidx.compose.runtime.staticCompositionLocalOf<Color?> { null }
+
+/** Fill of a container nested in a surface: surfaceControl inside a sheet, surfaceOverlay elsewhere (C-26). */
+@Composable
+fun nestedContainerColor(): Color = LocalNestedContainer.current ?: AppTheme.colors.surfaceOverlay
 
 /** Colours of the [AppBottomSheet]. */
 @Immutable
@@ -107,9 +115,12 @@ fun AppBottomSheet(
             shouldDismissOnClickOutside = dismissOnClickOutside,
         ),
     ) {
-        with(AppBottomSheetDefaults) {
-            Column(Modifier.fillMaxWidth().topHairline(colors.border)) {
-                content()
+        // Containers nested in a sheet (state circles, notes, skeletons) read surfaceControl (C-26).
+        CompositionLocalProvider(LocalNestedContainer provides AppTheme.colors.surfaceControl) {
+            with(AppBottomSheetDefaults) {
+                Column(Modifier.fillMaxWidth().topHairline(colors.border)) {
+                    content()
+                }
             }
         }
     }

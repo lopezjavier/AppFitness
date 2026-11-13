@@ -40,6 +40,7 @@ import kotlin.test.assertIs
 import kotlin.test.assertTrue
 
 @OptIn(ExperimentalCoroutinesApi::class)
+@Suppress("LargeClass") // One test per scenario of the Diario.
 class DiaryViewModelTest {
     private val dispatcher = StandardTestDispatcher()
     private val today = LocalDate(2026, 10, 19)
@@ -466,6 +467,23 @@ class DiaryViewModelTest {
         assertEquals(listOf("a"), diary.deleted)
         assertTrue(model.content().meals.first { it.slot.id == "breakfast" }.isEmpty)
         assertEquals(1139.5, model.content().dayTotals.kcal)
+    }
+
+    @Test
+    fun deleteGroup_removesEveryIngredientOfTheFoodAndNothingElse() = runTest(dispatcher) {
+        diary.server[today] = listOf(
+            entry("a", "breakfast", 150.0).copy(groupId = "g1", groupName = "Avena con plátano"),
+            entry("b", "breakfast", 105.0).copy(groupId = "g1", groupName = "Avena con plátano"),
+            entry("c", "breakfast", 60.0),
+        )
+        val model = viewModel()
+        advanceUntilIdle()
+
+        model.onEvent(DiaryEvent.DeleteGroup("g1"))
+        advanceUntilIdle()
+
+        assertEquals(listOf("a", "b"), diary.deleted.sorted())
+        assertEquals(60.0, model.content().dayTotals.kcal)
     }
 
     @Test

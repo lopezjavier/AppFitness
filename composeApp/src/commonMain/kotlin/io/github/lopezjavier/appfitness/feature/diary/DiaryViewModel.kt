@@ -4,6 +4,7 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import io.github.lopezjavier.appfitness.domain.model.FoodLogEntry
+import io.github.lopezjavier.appfitness.domain.model.MealRow
 import io.github.lopezjavier.appfitness.domain.model.MealSlot
 import io.github.lopezjavier.appfitness.domain.model.NutritionGoals
 import io.github.lopezjavier.appfitness.domain.port.Clock
@@ -198,6 +199,8 @@ class DiaryViewModel(
             -> event.openEffect(date.value)?.let(effectChannel::trySend)
 
             is DiaryEvent.DeleteEntry -> visibleEntries().firstOrNull { it.id == event.entryId }?.let(::delete)
+
+            is DiaryEvent.DeleteGroup -> visibleGroupEntries(event.groupId).forEach(::delete)
         }
     }
 
@@ -227,6 +230,13 @@ class DiaryViewModel(
             if (!writes.delete(entry) && hide) hiddenIds.update { it - entry.id }
         }
     }
+
+    private fun visibleGroupEntries(groupId: String): List<FoodLogEntry> =
+        (uiState.value as? DiaryUiState.Content)?.content?.meals.orEmpty()
+            .flatMap { it.rows }
+            .filterIsInstance<MealRow.Group>()
+            .firstOrNull { it.groupId == groupId }
+            ?.entries.orEmpty()
 
     private fun visibleEntries(): List<FoodLogEntry> =
         (uiState.value as? DiaryUiState.Content)?.content?.meals?.flatMap { it.entries }.orEmpty()

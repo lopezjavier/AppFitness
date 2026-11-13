@@ -9,14 +9,12 @@ import androidx.compose.ui.test.assertHeightIsAtLeast
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
-import androidx.compose.ui.test.assertTextContains
 import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.assertWidthIsAtLeast
 import androidx.compose.ui.test.getUnclippedBoundsInRoot
 import androidx.compose.ui.test.hasAnyAncestor
 import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.hasText
-import androidx.compose.ui.test.junit4.StateRestorationTester
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithContentDescription
@@ -26,6 +24,8 @@ import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.height
+import androidx.compose.ui.unit.width
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
 import io.github.lopezjavier.appfitness.domain.model.DiaryGoals
 import io.github.lopezjavier.appfitness.domain.model.FoodLogEntry
@@ -144,11 +144,70 @@ class DiaryScreenTest {
         val tags = DefaultSlots.map { "diary_section_${it.id}" }
         tags.forEach { rule.onNodeWithTag(it).assertExists() }
         assertEquals(tags, tags.sortedBy(::top))
-        rule.onNodeWithText("Añadir al desayuno").assertExists()
-        rule.onNodeWithText("Añadir a la comida").assertExists()
-        rule.onNodeWithText("Añadir a la merienda").assertExists()
-        rule.onNodeWithText("Añadir a la cena").assertExists()
+        rule.onNodeWithContentDescription("Añadir a Desayuno").assertExists()
+        rule.onNodeWithContentDescription("Añadir a Comida").assertExists()
+        rule.onNodeWithContentDescription("Añadir a Merienda").assertExists()
+        rule.onNodeWithContentDescription("Añadir a Cena").assertExists()
     }
+
+    @Test
+    fun addButton_isVisibleCollapsedAndExpanded_andTheSaveButtonNeedsEntries() {
+        val rows = listOf(entry("a", "breakfast"))
+        show(content(entries = rows, collapsed = setOf("breakfast")))
+
+        rule.onNodeWithTag("diary_section_breakfast_add").assertIsDisplayed().assertHeightIsAtLeast(48.dp)
+        rule.onNodeWithTag("diary_section_breakfast_save_template").assertIsDisplayed()
+        rule.onNodeWithTag("diary_section_lunch_add").assertIsDisplayed()
+        rule.onNodeWithTag("diary_section_lunch_save_template").assertDoesNotExist()
+        rule.onNodeWithTag("diary_section_breakfast_add").performClick()
+
+        assertEquals(listOf<DiaryEvent>(DiaryEvent.AddToMeal("breakfast")), events)
+    }
+
+    private fun assertHeroLabelsOnOneLine(scale: Float) {
+        show(content(), scale)
+
+        // Labels are upper-cased: the compact hero uses the short one, the full hero the long one.
+        listOf("PROT." to "PROTEÍNAS", "CARB." to "CARBOHIDRATOS", "GRASA" to "GRASAS").forEach { (short, full) ->
+            val node = rule.onNode(hasText(short) or hasText(full), useUnmergedTree = true)
+            val height = node.getUnclippedBoundsInRoot().height
+            assertTrue("$short/$full wraps at font scale $scale ($height)", height <= (24f * scale).dp)
+        }
+    }
+
+    @Test
+    fun heroMacroLabels_stayOnOneLine_atFontScale1() = assertHeroLabelsOnOneLine(1f)
+
+    @Test
+    fun heroMacroLabels_stayOnOneLine_atFontScale1p3() = assertHeroLabelsOnOneLine(FONT_SCALE)
+
+    @Test
+    fun heroMacroLabels_stayOnOneLine_atFontScale2() = assertHeroLabelsOnOneLine(2f)
+
+    private fun assertMealHeaderFits(scale: Float) {
+        val name = "Desayuno largo para comprobar el ajuste"
+        val slots = listOf(MealSlot("breakfast", MealCode.Breakfast, name, 0))
+        show(content(entries = listOf(entry("a", "breakfast")), slots = slots), scale)
+
+        val toggle = rule.onNodeWithTag("diary_section_breakfast_toggle").getUnclippedBoundsInRoot()
+        val save = rule.onNodeWithTag("diary_section_breakfast_save_template").getUnclippedBoundsInRoot()
+        val add = rule.onNodeWithTag("diary_section_breakfast_add").getUnclippedBoundsInRoot()
+        assertTrue("toggle at scale $scale", toggle.height >= 48.dp)
+        assertTrue("save at scale $scale", save.width >= 48.dp && save.height >= 48.dp)
+        assertTrue("add at scale $scale", add.width >= 48.dp && add.height >= 48.dp)
+        assertTrue("toggle overlaps the buttons at scale $scale", toggle.right <= save.left && save.right <= add.left)
+        val label = rule.onNodeWithText(name, useUnmergedTree = true).getUnclippedBoundsInRoot()
+        assertTrue("name at most two lines at scale $scale", label.height <= (2 * 32f * scale).dp)
+    }
+
+    @Test
+    fun mealHeader_keeps48dpTargetsWithoutOverlap_atFontScale1() = assertMealHeaderFits(1f)
+
+    @Test
+    fun mealHeader_keeps48dpTargetsWithoutOverlap_atFontScale1p3() = assertMealHeaderFits(FONT_SCALE)
+
+    @Test
+    fun mealHeader_keeps48dpTargetsWithoutOverlap_atFontScale2() = assertMealHeaderFits(2f)
 
     @Test
     fun noMealSettingsButton_theStructureIsEditedFromPerfil() {
@@ -199,9 +258,9 @@ class DiaryScreenTest {
         )
         show(content(slots = slots))
 
-        rule.onNodeWithText("Añadir a Almuerzo").assertExists()
-        rule.onNodeWithText("Añadir a Pre-entreno").assertExists()
-        rule.onNodeWithText("Añadir al desayuno").assertDoesNotExist()
+        rule.onNodeWithContentDescription("Añadir a Almuerzo").assertExists()
+        rule.onNodeWithContentDescription("Añadir a Pre-entreno").assertExists()
+        rule.onNodeWithContentDescription("Añadir a Desayuno").assertDoesNotExist()
     }
 
     @Test
@@ -299,12 +358,13 @@ class DiaryScreenTest {
     }
 
     @Test
-    fun emptySection_showsWhatIsLeftOfTheDayAndStillOffersAdd() {
+    fun emptySection_showsNoRemainingHintNoSaveButtonAndStillOffersAdd() {
         show(content(entries = listOf(entry("a", "breakfast"))))
 
-        rule.onNodeWithTag("diary_section_snack_empty_hint").assertTextEquals("Te quedan 560 kcal")
+        rule.onNodeWithTag("diary_section_snack_empty_hint").assertDoesNotExist()
+        rule.onNodeWithTag("diary_section_snack_save_template").assertDoesNotExist()
         rule.onNodeWithTag("diary_section_snack_add").assertExists()
-        rule.onNodeWithTag("diary_section_breakfast_empty_hint").assertDoesNotExist()
+        rule.onNodeWithTag("diary_section_breakfast_save_template").assertExists()
     }
 
     @Test
@@ -462,7 +522,7 @@ class DiaryScreenTest {
     fun error_offersRetry() {
         show(DiaryUiState.Error)
 
-        rule.onNodeWithText("No se pudo cargar tu diario").assertExists()
+        rule.onNodeWithText("No se pudo cargar tu diario.").assertExists()
         rule.onNodeWithTag("diary_error_action").performClick()
 
         assertEquals(listOf<DiaryEvent>(DiaryEvent.Retry), events)
@@ -530,27 +590,14 @@ class DiaryScreenTest {
     }
 
     @Test
-    fun goalsPrompt_hasItsExplanationBehindOneQuestionMark_andTheCardStillOpensGoals() {
+    fun goalsPrompt_isOneNavigationRowWithoutHelp_andOpensGoals() {
         show(content(goals = DiaryGoalsState.NotSet))
-        val text = "Define tus calorías y macros para ver tu progreso diario."
 
-        rule.onNodeWithText(text, useUnmergedTree = true).assertDoesNotExist()
-        rule.onAllNodesWithTag("diary_goals_prompt_help", useUnmergedTree = true).assertCountEquals(1)
-        rule.onNodeWithContentDescription("Ayuda: objetivos", useUnmergedTree = true).assertExists()
-        rule.onNodeWithTag("diary_goals_prompt_help", useUnmergedTree = true).performClick()
-        rule.onNodeWithTag("diary_goals_prompt_help_sheet_body").assertTextContains(text, substring = true)
-        assertEquals(emptyList<DiaryEvent>(), events)
-    }
+        rule.onNodeWithText("Configura tu objetivo", useUnmergedTree = true).assertExists()
+        rule.onNodeWithText("Calorías y macros diarios", useUnmergedTree = true).assertExists()
+        rule.onNodeWithTag("diary_goals_prompt_help", useUnmergedTree = true).assertDoesNotExist()
+        rule.onNodeWithTag("diary_goals_prompt").performClick()
 
-    @Test
-    fun anOpenGoalsPromptHelp_survivesRecreation() {
-        val tester = StateRestorationTester(rule)
-        tester.setContent { AppTheme { DiaryScreen(content(goals = DiaryGoalsState.NotSet), {}) } }
-        rule.onNodeWithTag("diary_goals_prompt_help", useUnmergedTree = true).performClick()
-
-        tester.emulateSavedInstanceStateRestore()
-        rule.waitForIdle()
-
-        rule.onNodeWithTag("diary_goals_prompt_help_sheet_body").assertExists()
+        assertEquals(listOf<DiaryEvent>(DiaryEvent.OpenGoals), events)
     }
 }

@@ -122,7 +122,7 @@ Feature: Text search and logging
     Then they see their most recent foods to add them directly
 
   Scenario: Most eaten foods
-    When they open the "Más comidos" tab
+    When they open the "Habituales" tab
     Then the foods they log most often appear first
     And the ranking is derived from their own history, not a stored copy
 

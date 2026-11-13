@@ -338,7 +338,7 @@ class AmountPhotoFlowTest {
         estimate()
 
         rule.onNodeWithTag("food_sheet_amount_error").assertExists()
-        rule.onNodeWithText("No hemos podido estimar la cantidad").assertExists()
+        rule.onNodeWithText("No hemos podido estimar la cantidad.").assertExists()
         rule.onNodeWithText("Reintentar").assertExists()
         rule.onNodeWithTag("food_sheet_amount").assertTextContains("100")
 
@@ -395,7 +395,7 @@ class AmountPhotoFlowTest {
 
         rule.onNodeWithTag("food_sheet_amount_photo").assertIsNotEnabled()
         rule.onNodeWithTag("food_sheet_amount_offline").assertExists()
-        rule.onNodeWithText("Sin conexión: no puedes estimar la cantidad con foto").assertExists()
+        rule.onNodeWithText("Sin conexión: no puedes estimar la cantidad con foto.").assertExists()
     }
 
     @Test

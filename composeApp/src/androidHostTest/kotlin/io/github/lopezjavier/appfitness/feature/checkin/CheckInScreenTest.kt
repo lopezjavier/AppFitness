@@ -10,6 +10,7 @@ import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.assertTextContains
+import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.hasAnyAncestor
 import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.hasText
@@ -97,18 +98,22 @@ class CheckInScreenTest {
 
     // -- Weekly summary ------------------------------
 
+    /** The delta pill of a tile is its own merged node, so it is read from the unmerged tree under the tile. */
+    private fun assertTilePill(tileTag: String, text: String) {
+        rule.onNode(hasText(text) and hasAnyAncestor(hasTestTag(tileTag)), useUnmergedTree = true).assertExists()
+    }
+
     @Test
     fun weeklySummary_showsVolumeWorkoutsAndSetsWithTheirDifference() {
         show()
 
-        rule.onNodeWithTag("checkin_summary_volume").assertTextContains("12.400 kg", substring = true)
-        rule.onNodeWithTag("checkin_summary_volume").assertTextContains("+800 kg vs semana anterior", substring = true)
-        rule.onNodeWithTag("checkin_summary_workouts").assertTextContains("4 entrenos", substring = true)
-        rule.onNodeWithTag(
-            "checkin_summary_workouts",
-        ).assertTextContains("+1 entreno vs semana anterior", substring = true)
-        rule.onNodeWithTag("checkin_summary_sets").assertTextContains("40 series", substring = true)
-        rule.onNodeWithTag("checkin_summary_sets").assertTextContains("+10 series vs semana anterior", substring = true)
+        rule.onNodeWithTag("checkin_summary_volume").assertTextEquals("VOLUMEN", "12.400", "kg")
+        rule.onNodeWithTag("checkin_summary_workouts").assertTextEquals("ENTRENOS", "4")
+        rule.onNodeWithTag("checkin_summary_sets").assertTextEquals("SERIES", "40")
+        assertTilePill("checkin_summary_volume", "+800")
+        assertTilePill("checkin_summary_workouts", "+1")
+        assertTilePill("checkin_summary_sets", "+10")
+        rule.onNodeWithTag("checkin_summary_delta_caption").assertTextContains("Comparado con la semana anterior")
     }
 
     @Test
@@ -156,12 +161,10 @@ class CheckInScreenTest {
         val empty = TrainingSummary(0, 0, 0.0, 0)
         show(ready(summary(current = empty, previous = empty, records = emptyList())))
 
-        rule.onNodeWithTag("checkin_summary_volume").assertTextContains("0 kg", substring = true)
-        rule.onNodeWithTag("checkin_summary_workouts").assertTextContains("0 entrenos", substring = true)
-        rule.onNodeWithTag("checkin_summary_sets").assertTextContains("0 series", substring = true)
-        rule.onNodeWithTag(
-            "checkin_summary_volume",
-        ).assertTextContains("Igual que la semana anterior", substring = true)
+        rule.onNodeWithTag("checkin_summary_volume").assertTextEquals("VOLUMEN", "0", "kg")
+        rule.onNodeWithTag("checkin_summary_workouts").assertTextEquals("ENTRENOS", "0")
+        rule.onNodeWithTag("checkin_summary_sets").assertTextEquals("SERIES", "0")
+        listOf("volume", "workouts", "sets").forEach { assertTilePill("checkin_summary_$it", "Igual") }
         rule.onNodeWithTag("checkin_summary_records_empty").assertTextContains("Sin récords esta semana")
     }
 

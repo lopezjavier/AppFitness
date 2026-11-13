@@ -115,6 +115,7 @@ private fun CatalogItems() {
         exerciseMediaItems()
         stateMessageItems()
         foodItems()
+        diaryItems()
         diaryHistoryItems()
         goalMetricItems()
         listsItems()

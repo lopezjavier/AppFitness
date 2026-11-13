@@ -99,6 +99,7 @@ fun MacroProgressBar(
 ) = MacroProgressBar(label, macro, consumedGrams.toDouble(), targetGrams, modifier)
 
 /** [MacroProgressBar] for a consumed value with decimals; it is shown as whole grams, half up. */
+@Suppress("LongMethod") // One bar: label row, value row and track.
 @Composable
 fun MacroProgressBar(
     label: String,
@@ -133,6 +134,8 @@ fun MacroProgressBar(
                 text = label.uppercase(),
                 style = MacroProgressBarDefaults.labelStyle(AppTheme.typography).copy(fontWeight = FontWeight.W700),
                 color = colors.textPrimary,
+                maxLines = 1,
+                softWrap = false,
                 modifier = Modifier.weight(1f),
             )
             Text(
@@ -142,6 +145,8 @@ fun MacroProgressBar(
                     withStyle(SpanStyle(color = colors.textSecondary)) { append(" / ${text.target}") }
                 },
                 style = MacroProgressBarDefaults.valueStyle(AppTheme.typography),
+                maxLines = 1,
+                softWrap = false,
                 modifier = Modifier.padding(start = Spacing.sm),
             )
         }

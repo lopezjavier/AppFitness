@@ -247,7 +247,7 @@ private fun StateMessageGlyph(icon: DrawableResource, tint: Color) {
     Box(
         Modifier.size(
             StateMessageMetrics.IconCircleSize,
-        ).clip(AppShapes.full).background(AppTheme.colors.surfaceOverlay),
+        ).clip(AppShapes.full).background(nestedContainerColor()),
         contentAlignment = Alignment.Center,
     ) {
         Icon(

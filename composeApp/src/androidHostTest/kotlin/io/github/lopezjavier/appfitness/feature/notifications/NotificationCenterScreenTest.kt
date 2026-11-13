@@ -71,8 +71,8 @@ class NotificationCenterScreenTest {
         show(content())
 
         rule.onNodeWithTag("notifications_reminder_weight").assertIsDisplayed()
-        rule.onNodeWithText("No te has pesado en 4 días").assertIsDisplayed()
-        rule.onNodeWithText("No te has medido en 2 semanas").assertIsDisplayed()
+        rule.onNodeWithText("Llevas 4 días sin pesarte").assertIsDisplayed()
+        rule.onNodeWithText("Llevas 2 semanas sin medirte").assertIsDisplayed()
         rule.onNodeWithTag("notifications_reminder_weight").assertTextContains("sáb, 24 oct", substring = true)
         rule.onNodeWithTag("notifications_reminder_circumference").assertTextContains("mié, 14 oct", substring = true)
     }

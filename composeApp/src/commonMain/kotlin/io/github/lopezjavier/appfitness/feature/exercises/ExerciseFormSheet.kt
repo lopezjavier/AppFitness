@@ -129,6 +129,7 @@ private fun FormChoices(ui: ExerciseFormUi, actions: ExerciseFormActions) {
                 options = muscleOptions,
                 selectedIndex = ui.muscleGroup?.ordinal,
                 onSelect = { actions.onMuscleGroup(MuscleGroup.entries[it]) },
+                edgeToEdge = Spacing.screenMargin,
             )
         }
         ChipGroup(stringResource(Res.string.exercise_create_equipment_label)) {
@@ -136,6 +137,7 @@ private fun FormChoices(ui: ExerciseFormUi, actions: ExerciseFormActions) {
                 options = equipmentOptions,
                 selectedIndex = ui.equipment?.ordinal,
                 onSelect = { actions.onEquipment(Equipment.entries[it]) },
+                edgeToEdge = Spacing.screenMargin,
             )
         }
         if (ui.metricType != null) {

@@ -118,6 +118,9 @@ private val NeonLime = Color(0xFFA3E635)
 private val AthleticCyan = Color(0xFF38BDF8)
 private val EnergyAmber = Color(0xFFF97316)
 
+// Fat is pink (#F472B6) because orange is the over-target colour (C-25).
+private val MacroFatPink = Color(0xFFF472B6)
+
 internal val KineticDarkColors =
     AppColors(
         surfaceBase = Color(0xFF0B0F14),
@@ -147,7 +150,7 @@ internal val KineticDarkColors =
         onErrorContainer = Color(0xFFFFDAD6),
         macroProtein = NeonLime,
         macroCarbs = AthleticCyan,
-        macroFat = EnergyAmber,
+        macroFat = MacroFatPink,
         shadowSheet = Color.Black.copy(alpha = 0.70f),
     )
 

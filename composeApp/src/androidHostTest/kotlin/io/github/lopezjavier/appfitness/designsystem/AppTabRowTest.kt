@@ -89,11 +89,11 @@ class AppTabRowTest {
         AppOption("Preguntar", "five_chat"),
     )
 
-    // 100 dp gives each of five tabs 20 dp, less than the 24 dp of label padding, so the row always has to scroll.
+    // 60 dp gives each of five tabs 12 dp, less than the 16 dp of label padding, so the row always has to scroll.
     private fun showFive(fontScale: Float, selected: Int = 0) {
         rule.setContent {
             CompositionLocalProvider(LocalDensity provides Density(LocalDensity.current.density, fontScale)) {
-                AppTheme { AppTabRow(fiveOptions, selected, {}, Modifier.width(100.dp)) }
+                AppTheme { AppTabRow(fiveOptions, selected, {}, Modifier.width(60.dp)) }
             }
         }
         rule.waitForIdle()
@@ -107,7 +107,7 @@ class AppTabRowTest {
             assertTrue(label.left >= tabs[index].left && label.right <= tabs[index].right)
             assertTrue(label.height < 28.dp)
         }
-        assertTrue(tabs.last().right > 100.dp)
+        assertTrue(tabs.last().right > 60.dp)
     }
 
     @Test
@@ -149,6 +149,15 @@ class AppTabRowTest {
     @Test
     fun fiveTabs_at328DpAnd130PercentFont_areEqualWeightInTheTestEnvironment() {
         assertEqualWeightFiveTabsAt328Dp(fontScale = 1.3f)
+    }
+
+    @Test
+    fun scrollingRow_keepsTheLimeIndicatorOnScreen_afterScrollingToTheSelectedTab() {
+        showFive(fontScale = 1f, selected = 4)
+
+        val indicator = rule.onNodeWithTag("app_tab_indicator").assertIsDisplayed().getUnclippedBoundsInRoot()
+        assertTrue(indicator.width > 0.dp)
+        assertTrue(indicator.left >= 0.dp && indicator.right <= 60.dp)
     }
 
     @Test

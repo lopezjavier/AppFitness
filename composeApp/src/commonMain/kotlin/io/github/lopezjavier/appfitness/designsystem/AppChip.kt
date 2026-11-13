@@ -28,6 +28,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.layout
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.layout.positionInParent
@@ -198,7 +199,9 @@ private fun ChipFrame(
  * Horizontally scrollable group of single-select chips. [selectedIndex] is null (nothing selected) or a valid index of
  * [options]; tapping the active chip does not call [onSelect]. Edge padding is the caller's concern
  * (apply it to the row from the call site). With [scrollToSelected] the row scrolls the selected chip fully into view
- * whenever the selection changes (and on first composition), for rows that overflow the screen.
+ * whenever the selection changes (and on first composition), for rows that overflow the screen. [edgeToEdge] > 0
+ * makes a row inside a padded sheet body run to the sheet edge: it extends by that much on both sides and keeps the
+ * same amount of content padding, so the first and last chips still line up with the rest (C-37).
  */
 @Composable
 fun FilterChipRow(
@@ -207,6 +210,7 @@ fun FilterChipRow(
     onSelect: (Int) -> Unit,
     modifier: Modifier = Modifier,
     scrollToSelected: Boolean = false,
+    edgeToEdge: Dp = 0.dp,
 ) {
     SingleSelection.requireValid(selectedIndex, options.size)
     val scrollState = rememberScrollState()
@@ -225,8 +229,10 @@ fun FilterChipRow(
     }
     Row(
         modifier = modifier
+            .bleedHorizontally(edgeToEdge)
             .then(if (scrollToSelected) Modifier.onSizeChanged { viewportWidth = it.width } else Modifier)
             .horizontalScroll(scrollState)
+            .padding(horizontal = edgeToEdge)
             .selectableGroup(),
         horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
         verticalAlignment = Alignment.CenterVertically,
@@ -252,6 +258,18 @@ fun FilterChipRow(
                     .semantics { option.contentDescription?.let { contentDescription = it } },
             )
         }
+    }
+}
+
+/** Measures and places the content [by] wider than the incoming constraint on each side (a row that bleeds out). */
+private fun Modifier.bleedHorizontally(by: Dp): Modifier = if (by == 0.dp) {
+    this
+} else {
+    layout { measurable, constraints ->
+        val extra = by.roundToPx()
+        val width = if (constraints.hasBoundedWidth) constraints.maxWidth + 2 * extra else constraints.maxWidth
+        val placeable = measurable.measure(constraints.copy(minWidth = width.coerceAtLeast(0), maxWidth = width))
+        layout(constraints.maxWidth, placeable.height) { placeable.place(-extra, 0) }
     }
 }
 

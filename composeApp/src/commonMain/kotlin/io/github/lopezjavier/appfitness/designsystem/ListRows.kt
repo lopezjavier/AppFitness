@@ -122,7 +122,8 @@ private fun SingleLineSupporting(text: String) {
 
 /**
  * A row that opens another screen (R-03): the [label], an optional current [value] in `textSecondary` and the
- * decorative chevron. At least 48 dp, one `Role.Button` node that reads "label, value".
+ * decorative chevron, plus an optional [supporting] line and [leading] icon (R-73). At least 48 dp, one
+ * `Role.Button` node that reads "label, value".
  */
 @Composable
 fun NavigationRow(
@@ -131,9 +132,15 @@ fun NavigationRow(
     modifier: Modifier = Modifier,
     value: String? = null,
     enabled: Boolean = true,
+    supporting: String? = null,
+    leading: (@Composable () -> Unit)? = null,
+    onClickLabel: String? = null,
 ) {
     AppListRow(
         headline = label,
+        onClickLabel = onClickLabel,
+        supporting = supporting,
+        leading = leading,
         modifier = if (enabled) modifier else modifier.alpha(NavigationRowDefaults.DISABLED_ALPHA),
         onClick = onClick,
         enabled = enabled,

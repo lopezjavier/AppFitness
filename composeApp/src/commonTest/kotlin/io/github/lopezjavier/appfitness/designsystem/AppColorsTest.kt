@@ -2,6 +2,7 @@ package io.github.lopezjavier.appfitness.designsystem
 
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertNotEquals
 
 class AppColorsTest {
     private val colors = KineticDarkColors
@@ -46,10 +47,10 @@ class AppColorsTest {
     fun macroTokens_matchSpec_andReuseAccents() {
         assertColor(0xA3E635, colors.macroProtein, name = "macroProtein")
         assertColor(0x38BDF8, colors.macroCarbs, name = "macroCarbs")
-        assertColor(0xF97316, colors.macroFat, name = "macroFat")
+        assertColor(0xF472B6, colors.macroFat, name = "macroFat")
         assertEquals(colors.neonLime, colors.macroProtein)
         assertEquals(colors.athleticCyan, colors.macroCarbs)
-        assertEquals(colors.energyAmber, colors.macroFat)
+        assertNotEquals(colors.energyAmber, colors.macroFat)
     }
 
     @Test

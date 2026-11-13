@@ -55,7 +55,7 @@ fun InlineNote(
     Row(
         modifier = modifier
             .fillMaxWidth()
-            .background(AppTheme.colors.surfaceOverlay, AppShapes.md)
+            .background(nestedContainerColor(), AppShapes.md)
             .let {
                 if (onClick != null) {
                     it.heightIn(min = Spacing.minTouchTarget)

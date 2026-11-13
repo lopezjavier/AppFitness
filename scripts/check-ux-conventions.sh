@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # UX conventions guard (T-118, planning/phase1/ux-audit-2026-10.md section 10, planning/05-design-system.md).
-# Features must reuse the design-system templates instead of reinventing them (guards G1..G20).
+# Features must reuse the design-system templates instead of reinventing them (guards G1..G21).
 #
 # Usage: check-ux-conventions.sh [root-dir] [warnings-file] [allowlist-file]
 #   root-dir        tree to scan (default: repository root). Tests pass a fixture tree.
@@ -37,7 +37,7 @@ while IFS= read -r raw || [ -n "$raw" ]; do
   line="${raw%%#*}"
   line="$(printf '%s' "$line" | sed -E 's/^[[:space:]]+//; s/[[:space:]]+$//')"
   [ -z "$line" ] && continue
-  if ! printf '%s' "$line" | grep -qE '^G([1-9]|1[0-9]|20) [^ ]+$'; then
+  if ! printf '%s' "$line" | grep -qE '^G([1-9]|1[0-9]|2[01]) [^ ]+$'; then
     echo "UX conventions guard ERROR: malformed warnings line: $raw" >&2
     exit 2
   fi
@@ -279,6 +279,26 @@ if [ -f "$strings_file" ]; then
     exit "$rc"
   fi
   [ "$rc" -eq 0 ] && report G17 "'%%' in strings.xml (Compose resources print both signs; use a single %)" "$hits"
+  # G21 (R-72): a count of days, weeks, sets, exercises, meals or foods is a <plurals> resource, never a plain
+  # <string> with "%1$d días". The keys below are the existing plain strings (trainer, activity and live-workout
+  # screens) that still need converting; they are migration debt, the guard fails for any other key.
+  rc=0
+  hits=$(grep -HnE '<string name="[^"]+"[^>]*>[^<]*%[0-9]\$d[[:space:]]+(días?|semanas?|series?|ejercicios?|comidas?|alimentos?)\b' "$strings_file") || rc=$?
+  if [ "$rc" -ge 2 ]; then
+    echo "UX conventions guard ERROR: grep failed with exit code $rc (G21)." >&2
+    exit "$rc"
+  fi
+  if [ "$rc" -eq 0 ]; then
+    plural_debt='activity_chart_summary live_calc_warm_up_sets_state builder_warm_up_cap_hint folder_review_result_complete folder_review_result_group_add_other folder_review_result_days_other folder_review_result_days_met folder_block_refused folder_block_refused_one folder_block_group_option'
+    while IFS= read -r hit; do
+      [ -z "$hit" ] && continue
+      key=$(printf '%s' "$hit" | sed -E 's/^[^<]*<string name="([^"]+)".*$/\1/')
+      case " $plural_debt " in
+        *" $key "*) ;;
+        *) report G21 "count in a plain string (R-72: use a <plurals> resource)" "$hit" ;;
+      esac
+    done <<< "$hits"
+  fi
   # G16: generic exercise labels. exercise_detail_title is the screen-kind title shown while the exercise is loading
   # (no object known yet, R-01), not an exercise name.
   rc=0

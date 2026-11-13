@@ -11,6 +11,8 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.items
@@ -35,6 +37,7 @@ import io.github.lopezjavier.appfitness.composeapp.resources.diary_day_picker_to
 import io.github.lopezjavier.appfitness.composeapp.resources.diary_defaults_failed
 import io.github.lopezjavier.appfitness.composeapp.resources.diary_error_message
 import io.github.lopezjavier.appfitness.composeapp.resources.nav_diary
+import io.github.lopezjavier.appfitness.designsystem.AppCard
 import io.github.lopezjavier.appfitness.designsystem.AppScreen
 import io.github.lopezjavier.appfitness.designsystem.AppShapes
 import io.github.lopezjavier.appfitness.designsystem.AppStateAction
@@ -42,6 +45,7 @@ import io.github.lopezjavier.appfitness.designsystem.AppTheme
 import io.github.lopezjavier.appfitness.designsystem.DayPickerSheet
 import io.github.lopezjavier.appfitness.designsystem.ErrorState
 import io.github.lopezjavier.appfitness.designsystem.GhostButton
+import io.github.lopezjavier.appfitness.designsystem.ProgressRingDefaults
 import io.github.lopezjavier.appfitness.designsystem.SkeletonBox
 import io.github.lopezjavier.appfitness.designsystem.Spacing
 import io.github.lopezjavier.appfitness.designsystem.WindowWidthClass
@@ -53,9 +57,9 @@ import io.github.lopezjavier.appfitness.feature.workout.text
 import kotlinx.datetime.LocalDate
 import org.jetbrains.compose.resources.stringResource
 
-private val SkeletonDashboardHeight = Spacing.xl * 9
-private val SkeletonSectionHeight = Spacing.xl * 3
 private const val SKELETON_SECTIONS = 4
+private const val SKELETON_MACROS = 3
+private const val SKELETON_TITLE_FRACTION = 0.4f
 
 /**
  * Stateless "Diario" screen (US-19, US-20) on `AppScreen` with the date switcher as its header: the defaults notice,
@@ -130,6 +134,7 @@ private fun DiaryDay(
         onDelete = { onEvent(DiaryEvent.DeleteEntry(it)) },
         expandedGroupIds = content.expandedGroupIds,
         onToggleGroup = { onEvent(DiaryEvent.ToggleGroup(it)) },
+        onDeleteGroup = { onEvent(DiaryEvent.DeleteGroup(it)) },
     )
     BoxWithConstraints(Modifier.fillMaxSize()) {
         val wide = windowWidthClassFor(maxWidth) == WindowWidthClass.Wide
@@ -165,7 +170,7 @@ private fun NarrowDay(content: DiaryContent, actions: EntryActions, onEvent: (Di
         verticalArrangement = Arrangement.spacedBy(Spacing.cardGap),
     ) {
         if (content.defaultsFailed) item(key = "defaults") { DefaultsFailedMessage(onEvent) }
-        item(key = "dashboard") { DiaryDashboard(content, onEvent) }
+        item(key = "dashboard") { DiaryDashboard(content, onEvent, compactHero = true) }
         mealItems(content, actions, onEvent)
     }
 }
@@ -231,10 +236,28 @@ private fun DiaryLoading() {
         Modifier.fillMaxSize().padding(Spacing.screenMargin).testTag("diary_loading"),
         verticalArrangement = Arrangement.spacedBy(Spacing.blockGap),
     ) {
-        SkeletonBox(Modifier.fillMaxWidth().height(SkeletonDashboardHeight), AppShapes.lg)
+        // The layout of the loaded day (R-31): the ring card, then one card per meal with its header and button.
+        AppCard(Modifier.fillMaxWidth()) {
+            Column(
+                Modifier.fillMaxWidth(),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(Spacing.lg),
+            ) {
+                SkeletonBox(Modifier.size(ProgressRingDefaults.Size), AppShapes.full)
+                repeat(SKELETON_MACROS) { SkeletonBox(Modifier.fillMaxWidth().height(Spacing.md), AppShapes.sm) }
+            }
+        }
         Column(verticalArrangement = Arrangement.spacedBy(Spacing.cardGap)) {
             repeat(SKELETON_SECTIONS) {
-                SkeletonBox(Modifier.fillMaxWidth().height(SkeletonSectionHeight), AppShapes.lg)
+                AppCard(Modifier.fillMaxWidth()) {
+                    Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+                        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                            SkeletonBox(Modifier.fillMaxWidth(SKELETON_TITLE_FRACTION).height(Spacing.lg), AppShapes.sm)
+                            SkeletonBox(Modifier.width(Spacing.xl * 2).height(Spacing.lg), AppShapes.sm)
+                        }
+                        SkeletonBox(Modifier.fillMaxWidth().height(Spacing.minTouchTarget), AppShapes.base)
+                    }
+                }
             }
         }
     }

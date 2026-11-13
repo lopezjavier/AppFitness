@@ -288,6 +288,25 @@ expect "G20 ghostData in designsystem passes" 0 NOWARN
 run "$(mk20 d "composeApp/src/commonMain/kotlin/demo/feature/catalog/ThemeCatalogSection.kt")" "$empty"
 expect "G20 ghostData in feature/catalog passes" 0 NOWARN
 
+# G21 (R-72): a count in a plain string must be a plurals resource.
+mk21() { # name string-line
+  local d="$work/g21-$1"
+  mkdir -p "$d/composeApp/src/commonMain/composeResources/values"
+  printf '%s\n' "$2" > "$d/composeApp/src/commonMain/composeResources/values/strings.xml"
+  echo "$d"
+}
+run "$(mk21 a '<string name="x_reminder">Llevas %1$d días sin pesarte</string>')" "$empty"
+expect "G21 a day count in a plain string fails" 1
+run "$(mk21 b '<string name="x_sets">%1$d series de calentamiento</string>')" "$empty"
+expect "G21 a set count in a plain string fails" 1
+run "$(mk21 c '<plurals name="x_reminder"><item quantity="other">Llevas %1$d días sin pesarte</item></plurals>')" "$empty"
+expect "G21 a plurals resource passes" 0 NOWARN
+run "$(mk21 d '<string name="live_calc_warm_up_sets_state">%1$d series de calentamiento</string>')" "$empty"
+expect "G21 an allow-listed existing key passes" 0 NOWARN
+printf 'G21 .*\n' > "$work/listed-g21.txt"
+run "$(mk21 e '<string name="x_reminder">Llevas %1$d días sin pesarte</string>')" "$work/listed-g21.txt"
+expect "G21 violation in a listed path warns and passes (parser accepts G21)" 0 WARN
+
 run "$repo_root" "$real_list" "$real_allow"
 expect "the real tree passes with the real allow-list" 0
 

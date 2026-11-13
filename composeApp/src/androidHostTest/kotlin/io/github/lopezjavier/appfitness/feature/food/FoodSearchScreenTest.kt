@@ -137,10 +137,11 @@ class FoodSearchScreenTest {
         show(content(Chicken))
 
         val field = rule.onNodeWithTag("food_search_field").getUnclippedBoundsInRoot()
-        listOf("scan", "ai", "create").forEach { name ->
+        val scan = rule.onNodeWithTag("food_search_action_scan").getUnclippedBoundsInRoot()
+        assertTrue("the scan sits inside the field", scan.left >= field.left && scan.right <= field.right)
+        listOf("ai", "create").forEach { name ->
             val icon = rule.onNodeWithTag("food_search_action_$name").getUnclippedBoundsInRoot()
-            assertEquals(field.bottom.value, icon.bottom.value, 1f)
-            assertTrue(icon.left >= field.right)
+            assertTrue("$name is a top-bar action above the field", icon.bottom <= field.top)
         }
     }
 
@@ -171,14 +172,14 @@ class FoodSearchScreenTest {
         val breakfast = MealSlot("b", MealCode.Breakfast, "Desayuno", 0)
         show(FoodSearchUiState(results = FoodResults.Empty, mealSlot = breakfast))
 
-        rule.onNodeWithTag("food_search_title").assertTextEquals("Añadir al desayuno")
+        rule.onNodeWithTag("food_search_title").assertTextEquals("Añadir a Desayuno")
     }
 
     @Test
-    fun title_forDinner_readsAnadirALaCena() {
+    fun title_forDinner_readsAnadirACena() {
         show(FoodSearchUiState(results = FoodResults.Empty, mealSlot = MealSlot("d", MealCode.Dinner, "Cena", 3)))
 
-        rule.onNodeWithTag("food_search_title").assertTextEquals("Añadir a la cena")
+        rule.onNodeWithTag("food_search_title").assertTextEquals("Añadir a Cena")
     }
 
     @Test
@@ -334,17 +335,18 @@ class FoodSearchScreenTest {
     fun error_offersARetry() {
         show(FoodSearchUiState(results = FoodResults.Error))
 
-        rule.onNodeWithText("No se pudieron cargar los alimentos").assertExists()
+        rule.onNodeWithText("No se pudieron cargar los alimentos.").assertExists()
         rule.onNodeWithTag("food_search_retry_action").performClick()
 
         assertEquals(listOf<FoodSearchEvent>(FoodSearchEvent.Retry), events)
     }
 
     @Test
-    fun offline_disablesTheSearchBox_andSaysWhy() {
+    fun offline_disablesTheSearchBox_andShowsTheOfflineStateInsteadOfTheRetry() {
         show(FoodSearchUiState(results = FoodResults.Error, isOffline = true))
 
         rule.onNodeWithTag("food_search_field").assertIsNotEnabled()
-        rule.onNodeWithText("Necesitas conexión para buscar alimentos").assertExists()
+        rule.onNodeWithTag("offline_state").assertExists()
+        rule.onNodeWithTag("food_search_retry_action").assertDoesNotExist()
     }
 }

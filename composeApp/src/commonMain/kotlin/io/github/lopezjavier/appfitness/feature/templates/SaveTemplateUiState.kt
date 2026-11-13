@@ -4,8 +4,8 @@ import io.github.lopezjavier.appfitness.domain.AppError
 import io.github.lopezjavier.appfitness.domain.model.CookingMethod
 import io.github.lopezjavier.appfitness.domain.usecase.TemplateNameCheck
 
-/** Why the name cannot be saved yet. A blank name disables the save without a message. */
-enum class TemplateNameError { TooLong, Taken }
+/** Why the name cannot be saved yet. [Blank] is shown only after the first edit (R-27). */
+enum class TemplateNameError { Blank, TooLong, Taken }
 
 /** What the save-as-comida sheet shows. */
 sealed interface SaveTemplateUiState {

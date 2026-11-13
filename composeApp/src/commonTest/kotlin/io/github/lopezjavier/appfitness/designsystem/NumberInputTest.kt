@@ -178,7 +178,7 @@ class NumberInputTest {
         assertEquals(c.textPrimary, colors.text)
         assertEquals(c.surfaceControl, colors.container)
         assertEquals(c.textSecondary, colors.label)
-        assertEquals(c.athleticCyan, colors.cursor)
+        assertEquals(c.neonLime, colors.cursor)
     }
 
     @Test

@@ -103,7 +103,12 @@ internal fun BuilderCreateExerciseSheet(
 private fun ChipChoice(label: String, options: List<AppOption>, selected: Int?, onSelect: (Int) -> Unit) {
     Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
         Text(text = label, style = AppTheme.typography.titleMedium, color = AppTheme.colors.textPrimary)
-        FilterChipRow(options = options, selectedIndex = selected, onSelect = onSelect)
+        FilterChipRow(
+            options = options,
+            selectedIndex = selected,
+            onSelect = onSelect,
+            edgeToEdge = Spacing.screenMargin,
+        )
     }
 }
 

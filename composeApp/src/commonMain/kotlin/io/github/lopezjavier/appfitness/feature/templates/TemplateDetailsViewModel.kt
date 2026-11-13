@@ -604,7 +604,15 @@ class TemplateDetailsViewModel(
             draft?.let { buildContent(loaded, it, micronutrients, online, progress) } ?: TemplateDetailsUiState.Loading
     }
 
-    private fun nameErrorOf(ready: DetailsLoaded.Ready, name: String, takenName: String?): TemplateNameError? = when {
+    private fun nameErrorOf(
+        ready: DetailsLoaded.Ready,
+        name: String,
+        takenName: String?,
+        edited: Boolean,
+    ): TemplateNameError? = when {
+        // R-27: a blank name is told under the field only once the user has edited it.
+        edited && name.isBlank() -> TemplateNameError.Blank
+
         validateTemplateName(name) == TemplateNameCheck.TooLong -> TemplateNameError.TooLong
 
         nameKey(name) in ready.otherNames || (takenName != null && nameKey(name) == takenName) ->
@@ -630,7 +638,7 @@ class TemplateDetailsViewModel(
         val remaining = remainingEntries(template, current)
         val rows = remaining.map { buildRow(it, current, remaining.size > 1, progress.prefs) }
         val name = current.name ?: template.name
-        val nameError = nameErrorOf(ready, name, current.takenName)
+        val nameError = nameErrorOf(ready, name, current.takenName, edited = current.name != null)
         val nameValid = validateTemplateName(name) == TemplateNameCheck.Valid && nameError == null
         val isDirty = name.trim() != template.name ||
             remaining.size != template.items.size ||

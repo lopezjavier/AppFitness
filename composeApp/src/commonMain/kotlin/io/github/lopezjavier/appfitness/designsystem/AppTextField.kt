@@ -11,10 +11,10 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
@@ -94,6 +94,7 @@ object AppTextFieldDefaults {
  * there so Enter inserts a line break.
  * v4: a multi-line box insets its text by [AppTextFieldDefaults.MultiLineVerticalPadding] at the top and bottom
  * (it used to sit flush against the border); single-line rendering is unchanged.
+ * v5: [showLabel] false hides the visible label (the content description stays); a slot grows past 48 dp for two icons.
  */
 @Suppress("LongMethod") // One BasicTextField wiring; splitting would only move the parameters around.
 @Composable
@@ -119,6 +120,7 @@ fun AppTextField(
     autofocus: Boolean = false,
     singleLine: Boolean = true,
     minLines: Int = 1,
+    showLabel: Boolean = true,
 ) {
     val interactionSource = remember { MutableInteractionSource() }
     val focused by interactionSource.collectIsFocusedAsState()
@@ -159,12 +161,14 @@ fun AppTextField(
         )
     }
     Column(modifier, verticalArrangement = Arrangement.spacedBy(AppTextFieldDefaults.LabelSpacing)) {
-        Text(
-            text = label,
-            style = AppInputStyle.labelStyle(AppTheme.typography),
-            color = AppInputStyle.labelColor(colors),
-            modifier = Modifier.clearAndSetSemantics {},
-        )
+        if (showLabel) {
+            Text(
+                text = label,
+                style = AppInputStyle.labelStyle(AppTheme.typography),
+                color = AppInputStyle.labelColor(colors),
+                modifier = Modifier.clearAndSetSemantics {},
+            )
+        }
         BasicTextField(
             value = shown,
             onValueChange = { raw ->
@@ -197,7 +201,7 @@ fun AppTextField(
             singleLine = singleLine,
             minLines = minLines,
             interactionSource = interactionSource,
-            cursorBrush = SolidColor(colors.athleticCyan),
+            cursorBrush = SolidColor(if (hasError) colors.error else colors.neonLime),
             decorationBox = { innerTextField ->
                 TextFieldBox(
                     focused,
@@ -288,7 +292,7 @@ private fun TextFieldBox(
 @Composable
 private fun FieldSlot(content: @Composable () -> Unit) {
     Box(
-        Modifier.size(AppTextFieldDefaults.SlotSize),
+        Modifier.defaultMinSize(AppTextFieldDefaults.SlotSize, AppTextFieldDefaults.SlotSize),
         contentAlignment = Alignment.Center,
     ) { content() }
 }

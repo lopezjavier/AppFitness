@@ -53,3 +53,27 @@ Sources the `ux-critic` already opened, with the takeaway used. Read this before
 | Input border (white 12 %) on `surfaceOverlay` fill | 1.46:1 |
 | Proposed `#A9B3C4` on base / raised / overlay | 9.1 / 8.4 / 7.6 |
 | Proposed `#8C97A9` on base / raised / overlay | 6.5 / 6.0 / 5.4 |
+
+## Round 1 (Diario), new sources
+
+| URL | Takeaway | Supports |
+|---|---|---|
+| androidx `SearchBarTokens.kt` | Search bar 56 dp, leading/trailing icons, no label token | C-21 |
+| androidx `DatePickerModalTokens.kt` | Unselected date has no container; today 1 dp outline | C-33 |
+| androidx `OutlinedTextFieldTokens.kt` | Caret = Primary, error caret = Error | C-41 |
+| androidx `PrimaryNavigationTabTokens.kt` | Active indicator 3 dp Primary | C-09 evidence |
+| androidx `ListTokens.kt` | Leading icon 24 dp OnSurfaceVariant; 16 dp leading/trailing space | C-28, C-32 |
+| unicode.org CLDR plural rules | Spanish: one, many, other; 0 falls in other | C-31 |
+| nngroup.com/articles/skeleton-screens/ | Skeleton structure mimics the final page | R-31 violations |
+| developer.android.com/develop/ui/compose/lists | Content padding applies to content, not the list | C-37 |
+| carbondesignsystem.com/data-visualization/color-palettes/ | Orange = serious warning | C-25 |
+| ssw.com.au/rules/destructive-button-ui-ux | Keep delete away from Save, less prominent | C-22 |
+| material-components-android `Dialog.md` | Optional divider between content and buttons | C-27 |
+
+### Batch 5 (Diario meal card polish), critic's notes
+
+- C-60: reusing the plain rows' slots (headline plus trailing, `ListTokens` 16 dp edge space) keeps name and kcal on one text edge; the overlay box moves to 8 dp so box content (8 dp inner) lands on the same edge as plain rows.
+- C-61 to C-65: a collapsed card is a header only, so 16 dp of bottom padding reads as dead space; 4 dp tight spacing plus a tertiary-coloured separator keeps the macros subordinate to the name. A hairline appears only where content groups need separating (expanded with entries).
+- C-62: letter/figure weight and colour contrast (W700 primary letter, W600 macro-coloured figure) aids scanning; the dot is glued to the preceding item so line wraps never start with a separator.
+- V-15 follow-up: a fit check against a fixed 132 dp is wrong when the status pill is wider; measure the real column.
+- 360 dp risk: name + pill + two 48 dp targets need about 310 dp against 296 dp available; since mid-word breaks are forbidden, the pill drops to the macros line and the buttons stay beside the name (touch targets never shrink below 48 dp).

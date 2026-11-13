@@ -43,25 +43,23 @@ class FoodPhotoFlowTest : PhotoFlowHost() {
         val scan = rule.onNodeWithTag("food_search_action_scan").getUnclippedBoundsInRoot()
         val photo = rule.onNodeWithTag("food_search_action_ai").getUnclippedBoundsInRoot()
         val create = rule.onNodeWithTag("food_search_action_create").getUnclippedBoundsInRoot()
-        assertTrue("actions sit after the field", field.right <= scan.left)
-        assertTrue(scan.right <= photo.left)
+        assertTrue("the scan sits inside the field", scan.left >= field.left && scan.right <= field.right)
+        assertTrue("the top-bar actions sit above the field", photo.bottom <= field.top && create.bottom <= field.top)
         assertTrue(photo.right <= create.left)
-        assertEquals(scan.top, photo.top)
         assertEquals(photo.top, create.top)
-        assertEquals(scan.right - scan.left, photo.right - photo.left)
         assertTrue(photo.bottom - photo.top >= 48.dp)
         rule.onNodeWithTag("food_search_action_ai").assertIsEnabled()
         rule.onNodeWithTag("food_search_action_ai").assertContentDescriptionEquals("Añadir con IA")
     }
 
     @Test
-    fun photoAction_offline_isDisabled_andKeepsItsState() {
+    fun photoAction_offline_isDisabled_withoutAStateDescription() {
         connectivity.state.value = false
         start()
 
         rule.onNodeWithTag("food_search_action_ai").assertIsNotEnabled()
         val config = rule.onNodeWithTag("food_search_action_ai").fetchSemanticsNode().config
-        assertEquals("Sin conexión", config[SemanticsProperties.StateDescription])
+        assertTrue(SemanticsProperties.StateDescription !in config)
     }
 
     @Test
@@ -77,7 +75,7 @@ class FoodPhotoFlowTest : PhotoFlowHost() {
         exists("photo_mode_row_4")
         rule.onNodeWithText("Añadir con IA").assertExists()
         rule.onNodeWithText("Describir comida").assertExists()
-        rule.onNodeWithText("Calorías y macros de un plato").assertExists()
+        rule.onNodeWithText("Foto de un plato: calorías y macros").assertExists()
     }
 
     @Test
@@ -284,7 +282,7 @@ class FoodPhotoFlowTest : PhotoFlowHost() {
         tap("food_photo_preview_use")
 
         exists("food_photo_error")
-        rule.onNodeWithText("No hemos podido estimar este alimento").assertExists()
+        rule.onNodeWithText("No hemos podido estimar este alimento.").assertExists()
         rule.onNodeWithText("Reintentar").assertExists()
         rule.onNodeWithText("Crear manualmente").assertExists()
     }
@@ -297,7 +295,7 @@ class FoodPhotoFlowTest : PhotoFlowHost() {
 
         tap("food_photo_preview_use")
 
-        rule.onNodeWithText("No hemos podido identificar este producto").assertExists()
+        rule.onNodeWithText("No hemos podido identificar este producto.").assertExists()
     }
 
     @Test

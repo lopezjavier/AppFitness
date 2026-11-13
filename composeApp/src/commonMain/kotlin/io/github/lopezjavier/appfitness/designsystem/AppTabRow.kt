@@ -12,7 +12,9 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.selectable
@@ -34,6 +36,7 @@ import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import kotlin.math.roundToInt
 
@@ -45,8 +48,11 @@ object AppTabRowDefaults {
     /** Minimum width of a tab in the scrolling layout. */
     val TabMinWidth: Dp = 72.dp
 
-    /** Horizontal padding around every label. */
-    val LabelPadding: Dp = Spacing.md
+    /** Horizontal padding around every label (6/8 dp, R-77). */
+    val LabelPadding: Dp = Spacing.sm
+
+    /** Vertical padding around every label. */
+    val LabelVerticalPadding: Dp = 6.dp
 }
 
 private const val EQUAL_WEIGHT_MAX_LINES = 2
@@ -61,8 +67,8 @@ internal fun tabsFitEqualWeight(longestWordWidths: List<Int>, share: Int, paddin
     longestWordWidths.all { it + padding <= share }
 
 /**
- * Tab bar for the sections of one screen (for example Resumen / Historial / Cómo hacerlo). Every label is 12 sp
- * (`bodySmall`, W600; the selected one W700, lime, with a lime indicator; the others `textSecondary`). When the
+ * Tab bar for the sections of one screen (for example Resumen / Historial / Cómo hacerlo). Every label is 14 sp
+ * (`bodyMedium`, W600; the selected one W700, lime, with a lime indicator; the others `textSecondary`). When the
  * longest word of every label fits its equal share of the width the tabs are equal-weight and a label may wrap between
  * words; otherwise the row scrolls horizontally with content-width tabs of at least 72 dp and one-line labels, and
  * the selected tab is kept visible. Labels never break inside a word. Each tab is at least 48 dp tall. Stateless: the
@@ -75,7 +81,7 @@ fun AppTabRow(options: List<AppOption>, selectedIndex: Int, onSelect: (Int) -> U
     SingleSelection.requireValid(selectedIndex, options.size)
     val measurer = rememberTextMeasurer()
     val density = LocalDensity.current
-    val base = AppTheme.typography.bodySmall
+    val base = AppTheme.typography.bodyMedium
     val widestStyle = base.copy(fontWeight = FontWeight.W700)
     BoxWithConstraints(modifier.fillMaxWidth()) {
         val share = constraints.maxWidth / options.size.coerceAtLeast(1)
@@ -119,12 +125,42 @@ private fun ScrollingTabs(options: List<AppOption>, selectedIndex: Int, viewport
             tab.start + tab.width > visibleEnd -> scroll.animateScrollTo(tab.start + tab.width - viewportWidth)
         }
     }
-    Row(Modifier.horizontalScroll(scroll).widthIn(min = viewportDp).height(IntrinsicSize.Min).selectableGroup()) {
-        options.forEachIndexed { index, option ->
-            val placed = Modifier.onPlaced {
-                bounds[index] = TabBounds(it.positionInParent().x.roundToInt(), it.size.width)
+    val colors = AppTheme.colors
+    Box(Modifier.fillMaxWidth()) {
+        Row(Modifier.horizontalScroll(scroll).widthIn(min = viewportDp).height(IntrinsicSize.Min).selectableGroup()) {
+            options.forEachIndexed { index, option ->
+                val placed = Modifier.onPlaced {
+                    bounds[index] = TabBounds(it.positionInParent().x.roundToInt(), it.size.width)
+                }
+                Tab(option, index == selectedIndex, scrolling = true, onClick = { onTap(index) }, modifier = placed)
             }
-            Tab(option, index == selectedIndex, scrolling = true, onClick = { onTap(index) }, modifier = placed)
+        }
+        // V-14: the baseline and the lime indicator live outside the scrolled content, so the indicator of the
+        // selected tab stays on screen (clamped to the viewport) while the row scrolls.
+        Box(
+            Modifier
+                .align(Alignment.BottomStart)
+                .fillMaxWidth()
+                .height(AppTabRowDefaults.IndicatorHeight)
+                .background(colors.divider),
+        )
+        if (selectedBounds != null) {
+            Box(
+                Modifier
+                    .align(Alignment.BottomStart)
+                    .offset { IntOffset((selectedBounds.start - scroll.value).coerceIn(0, viewportWidth), 0) }
+                    .width(
+                        with(LocalDensity.current) {
+                            val start = (selectedBounds.start - scroll.value).coerceIn(0, viewportWidth)
+                            val end = (selectedBounds.start + selectedBounds.width - scroll.value)
+                                .coerceIn(start, viewportWidth)
+                            (end - start).toDp()
+                        },
+                    )
+                    .height(AppTabRowDefaults.IndicatorHeight)
+                    .testTag("app_tab_indicator")
+                    .background(colors.neonLime),
+            )
         }
     }
 }
@@ -138,7 +174,7 @@ private fun Tab(
     modifier: Modifier = Modifier,
 ) {
     val colors = AppTheme.colors
-    val base = AppTheme.typography.bodySmall
+    val base = AppTheme.typography.bodyMedium
     Box(
         modifier
             .then(if (scrolling) Modifier.widthIn(min = AppTabRowDefaults.TabMinWidth) else Modifier)
@@ -157,14 +193,19 @@ private fun Tab(
             softWrap = !scrolling,
             modifier = Modifier
                 .align(Alignment.Center)
-                .padding(horizontal = AppTabRowDefaults.LabelPadding, vertical = Spacing.sm),
+                .padding(
+                    horizontal = AppTabRowDefaults.LabelPadding,
+                    vertical = AppTabRowDefaults.LabelVerticalPadding,
+                ),
         )
-        Box(
-            Modifier
-                .fillMaxWidth()
-                .height(AppTabRowDefaults.IndicatorHeight)
-                .background(if (selected) colors.neonLime else colors.divider),
-        )
+        if (!scrolling) {
+            Box(
+                Modifier
+                    .fillMaxWidth()
+                    .height(AppTabRowDefaults.IndicatorHeight)
+                    .background(if (selected) colors.neonLime else colors.divider),
+            )
+        }
     }
 }
 

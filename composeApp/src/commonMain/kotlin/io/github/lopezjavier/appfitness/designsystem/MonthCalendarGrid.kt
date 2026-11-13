@@ -218,7 +218,8 @@ private fun dayDescription(cell: DayCell): String {
 }
 
 /**
- * The visible circle of a day (R-64): selected = `selectedContainer` fill with a 1 dp lime border; today = 1 dp cyan
+ * The visible circle of a day (R-64, C-33; a resting day has no fill, only selected and today draw a circle):
+ * selected = `selectedContainer` fill with a 1 dp lime border; today = 1 dp cyan
  * ring. Today and selected: the cyan ring sits outside, so the lime border stays inside it.
  */
 private fun Modifier.dayCellDecoration(cell: DayCell, colors: AppColors): Modifier = this
@@ -230,7 +231,7 @@ private fun Modifier.dayCellDecoration(cell: DayCell, colors: AppColors): Modifi
         }
     }
     .clip(AppShapes.full)
-    .background(if (cell.selected) colors.selectedContainer else colors.surfaceBase)
+    .let { if (cell.selected) it.background(colors.selectedContainer) else it }
     .let {
         when {
             cell.selected -> it.border(AppBorder.thin, colors.neonLime, AppShapes.full)

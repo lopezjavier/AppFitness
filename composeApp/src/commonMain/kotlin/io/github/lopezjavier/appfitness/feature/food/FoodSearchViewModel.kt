@@ -69,6 +69,9 @@ class FoodSearchViewModel(
     private val mealSlots: MealSlotRepository? = null,
     private val viewOnly: Boolean = false,
 ) : ViewModel() {
+    /** Connectivity for the offline state (R-30). */
+    val isOnline: Flow<Boolean> = connectivity.isOnline
+
     /** Pick and view-only modes never log a food, so they have no Comidas tab, scan or create. */
     private val noLogging = pick || viewOnly
     private val mealSlot = MutableStateFlow<MealSlot?>(null)

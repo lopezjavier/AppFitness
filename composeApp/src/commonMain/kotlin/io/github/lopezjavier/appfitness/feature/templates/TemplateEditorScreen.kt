@@ -5,13 +5,14 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.key
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.input.ImeAction
 import io.github.lopezjavier.appfitness.composeapp.resources.Res
 import io.github.lopezjavier.appfitness.composeapp.resources.action_remove
+import io.github.lopezjavier.appfitness.composeapp.resources.name_sheet_blank
 import io.github.lopezjavier.appfitness.composeapp.resources.name_sheet_duplicate
 import io.github.lopezjavier.appfitness.composeapp.resources.save_template_error_too_long
 import io.github.lopezjavier.appfitness.composeapp.resources.template_details_items_header
@@ -19,13 +20,13 @@ import io.github.lopezjavier.appfitness.composeapp.resources.template_details_na
 import io.github.lopezjavier.appfitness.composeapp.resources.template_edit_title
 import io.github.lopezjavier.appfitness.composeapp.resources.template_swipe_remove_cd
 import io.github.lopezjavier.appfitness.designsystem.AddItemButton
+import io.github.lopezjavier.appfitness.designsystem.AppCard
 import io.github.lopezjavier.appfitness.designsystem.AppEditorScreen
 import io.github.lopezjavier.appfitness.designsystem.AppTextField
 import io.github.lopezjavier.appfitness.designsystem.FoodEntryRow
 import io.github.lopezjavier.appfitness.designsystem.ListSectionHeader
 import io.github.lopezjavier.appfitness.designsystem.Spacing
 import io.github.lopezjavier.appfitness.designsystem.SwipeToDeleteRow
-import io.github.lopezjavier.appfitness.designsystem.appAnimateItem
 import org.jetbrains.compose.resources.stringResource
 
 private const val TAG = "template_edit"
@@ -90,21 +91,29 @@ private fun EditorList(content: TemplateDetailsUiState.Content, onEvent: (Templa
                 modifier = Modifier.testTag("${TAG}_items_header"),
             )
         }
-        items(content.rows, key = { it.index }) { row ->
-            SwipeToDeleteRow(
-                deleteLabel = stringResource(Res.string.template_swipe_remove_cd, row.name),
-                enabled = row.removable,
-                onDelete = { onEvent(TemplateDetailsEvent.RemoveFood(row.index)) },
-                backgroundTag = "${TAG}_remove_${row.index}",
-                label = stringResource(Res.string.action_remove),
-                modifier = appAnimateItem(),
-            ) {
-                FoodEntryRow(
-                    model = row.toRowModel(),
-                    onClick = { onEvent(TemplateDetailsEvent.OpenFood(row.index)) },
-                    tagPrefix = "${TAG}_item",
-                    modifier = Modifier.fillMaxWidth(),
-                )
+        // C-28: the foods of the comida are rows of one card, like the meals of the Diario.
+        if (content.rows.isNotEmpty()) {
+            item(key = "rows") {
+                AppCard(Modifier.fillMaxWidth().testTag("${TAG}_rows_card")) {
+                    content.rows.forEach { row ->
+                        key(row.index) {
+                            SwipeToDeleteRow(
+                                deleteLabel = stringResource(Res.string.template_swipe_remove_cd, row.name),
+                                enabled = row.removable,
+                                onDelete = { onEvent(TemplateDetailsEvent.RemoveFood(row.index)) },
+                                backgroundTag = "${TAG}_remove_${row.index}",
+                                label = stringResource(Res.string.action_remove),
+                            ) {
+                                FoodEntryRow(
+                                    model = row.toRowModel(),
+                                    onClick = { onEvent(TemplateDetailsEvent.OpenFood(row.index)) },
+                                    tagPrefix = "${TAG}_item",
+                                    modifier = Modifier.fillMaxWidth(),
+                                )
+                            }
+                        }
+                    }
+                }
             }
         }
         item(key = "add") {
@@ -120,6 +129,7 @@ private fun EditorList(content: TemplateDetailsUiState.Content, onEvent: (Templa
 
 @Composable
 private fun nameErrorText(error: TemplateNameError): String = when (error) {
+    TemplateNameError.Blank -> stringResource(Res.string.name_sheet_blank)
     TemplateNameError.Taken -> stringResource(Res.string.name_sheet_duplicate, "una comida")
     TemplateNameError.TooLong -> stringResource(Res.string.save_template_error_too_long)
 }

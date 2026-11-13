@@ -9,6 +9,7 @@ import androidx.compose.runtime.Immutable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.text.font.FontWeight
 import io.github.lopezjavier.appfitness.composeapp.resources.Res
 import io.github.lopezjavier.appfitness.composeapp.resources.diary_entry_delete_cd
 import io.github.lopezjavier.appfitness.composeapp.resources.diary_entry_kcal
@@ -80,12 +81,13 @@ fun FoodEntryRow(
     }
 }
 
+/** The trailing slot of [FoodEntryRow]: kcal over the macros; shared with the diary group row (C-60). */
 @Composable
-private fun EntryTotals(model: FoodEntryRowModel) {
+internal fun EntryTotals(model: FoodEntryRowModel) {
     Column(horizontalAlignment = Alignment.End) {
         Text(
             text = stringResource(Res.string.diary_entry_kcal, AppNumberFormat.integer(model.kcal)),
-            style = AppTheme.typography.labelNumeric,
+            style = AppTheme.typography.bodyMedium.copy(fontWeight = FontWeight.W600),
             color = AppTheme.colors.textPrimary,
         )
         Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
@@ -98,9 +100,5 @@ private fun EntryTotals(model: FoodEntryRowModel) {
 
 @Composable
 private fun MacroGrams(format: StringResource, grams: Int, macro: Macro) {
-    Text(
-        text = stringResource(format, AppNumberFormat.integer(grams)),
-        style = AppTheme.typography.bodySmall,
-        color = MacroDefaults.color(macro, AppTheme.colors),
-    )
+    MacroText(format, AppNumberFormat.integer(grams), macro, AppTheme.typography.bodySmall)
 }

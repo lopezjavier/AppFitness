@@ -18,7 +18,6 @@ import androidx.compose.ui.platform.testTag
 import io.github.lopezjavier.appfitness.composeapp.resources.Res
 import io.github.lopezjavier.appfitness.composeapp.resources.action_retry
 import io.github.lopezjavier.appfitness.composeapp.resources.food_error_message
-import io.github.lopezjavier.appfitness.composeapp.resources.food_offline_message
 import io.github.lopezjavier.appfitness.composeapp.resources.food_templates_empty
 import io.github.lopezjavier.appfitness.composeapp.resources.food_templates_empty_hint
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_save_meal
@@ -28,11 +27,13 @@ import io.github.lopezjavier.appfitness.designsystem.AppStateAction
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
 import io.github.lopezjavier.appfitness.designsystem.EmptyState
 import io.github.lopezjavier.appfitness.designsystem.ErrorState
+import io.github.lopezjavier.appfitness.designsystem.OfflineState
 import io.github.lopezjavier.appfitness.designsystem.SkeletonBox
 import io.github.lopezjavier.appfitness.designsystem.Spacing
 import io.github.lopezjavier.appfitness.designsystem.SwipeToDeleteRow
 import io.github.lopezjavier.appfitness.designsystem.appAnimateItem
 import io.github.lopezjavier.appfitness.feature.templates.TemplateRow
+import kotlinx.coroutines.flow.Flow
 import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.stringResource
 
@@ -48,6 +49,7 @@ internal fun TemplatesPane(
     results: TemplatesResults,
     isOffline: Boolean,
     manageFailed: Boolean,
+    isOnline: Flow<Boolean>,
     onEvent: (FoodSearchEvent) -> Unit,
 ) {
     when (results) {
@@ -65,13 +67,18 @@ internal fun TemplatesPane(
         }
 
         TemplatesResults.Error -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-            ErrorState(
-                message = stringResource(
-                    if (isOffline) Res.string.food_offline_message else Res.string.food_error_message,
-                ),
-                action = AppStateAction(stringResource(Res.string.action_retry)) { onEvent(FoodSearchEvent.Retry) },
-                testTagPrefix = "food_search_templates_retry",
-            )
+            // R-30: offline, only the offline state speaks.
+            if (isOffline) {
+                OfflineState(isOnline = isOnline, onReload = { onEvent(FoodSearchEvent.Retry) })
+            } else {
+                ErrorState(
+                    message = stringResource(Res.string.food_error_message),
+                    action = AppStateAction(stringResource(Res.string.action_retry)) {
+                        onEvent(FoodSearchEvent.Retry)
+                    },
+                    testTagPrefix = "food_search_templates_retry",
+                )
+            }
         }
     }
 }

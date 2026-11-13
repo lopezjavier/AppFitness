@@ -2,6 +2,7 @@ package io.github.lopezjavier.appfitness.feature.diary
 
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -24,6 +25,7 @@ import io.github.lopezjavier.appfitness.composeapp.resources.ic_search
 import io.github.lopezjavier.appfitness.composeapp.resources.topbar_back_cd
 import io.github.lopezjavier.appfitness.designsystem.AppIconButton
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
+import io.github.lopezjavier.appfitness.designsystem.FeatureMetrics
 import io.github.lopezjavier.appfitness.feature.notifications.NotificationsBell
 import io.github.lopezjavier.appfitness.feature.workout.DateLabel
 import io.github.lopezjavier.appfitness.feature.workout.text
@@ -54,28 +56,37 @@ internal fun DiaryDateHeader(
                 onClick = onBack,
             )
         }
-        AppIconButton(
-            contentDescription = stringResource(Res.string.diary_prev_day),
-            icon = Res.drawable.ic_chevron_left,
-            testTag = "diary_date_prev",
-            onClick = { onEvent(DiaryEvent.PreviousDay) },
-        )
-        Text(
-            text = label.text(),
-            style = AppTheme.typography.titleMedium,
-            color = AppTheme.colors.textPrimary,
-            textAlign = TextAlign.Center,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
-            modifier = Modifier.weight(1f).semantics { heading() }.testTag("diary_date_label"),
-        )
-        AppIconButton(
-            contentDescription = stringResource(Res.string.diary_next_day),
-            icon = Res.drawable.ic_chevron_right,
-            testTag = "diary_date_next",
-            onClick = { onEvent(DiaryEvent.NextDay) },
-            enabled = canGoNext,
-        )
+        // C-40: the day navigator is capped at 320 dp and starts at the start edge, so on a tablet the arrows stay
+        // next to the date instead of drifting to the window edges.
+        Row(Modifier.weight(1f), verticalAlignment = Alignment.CenterVertically) {
+            Row(
+                Modifier.widthIn(max = FeatureMetrics.DateNavigatorMaxWidth),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                AppIconButton(
+                    contentDescription = stringResource(Res.string.diary_prev_day),
+                    icon = Res.drawable.ic_chevron_left,
+                    testTag = "diary_date_prev",
+                    onClick = { onEvent(DiaryEvent.PreviousDay) },
+                )
+                Text(
+                    text = label.text(),
+                    style = AppTheme.typography.titleMedium,
+                    color = AppTheme.colors.textPrimary,
+                    textAlign = TextAlign.Center,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.weight(1f).semantics { heading() }.testTag("diary_date_label"),
+                )
+                AppIconButton(
+                    contentDescription = stringResource(Res.string.diary_next_day),
+                    icon = Res.drawable.ic_chevron_right,
+                    testTag = "diary_date_next",
+                    onClick = { onEvent(DiaryEvent.NextDay) },
+                    enabled = canGoNext,
+                )
+            }
+        }
         // Only the tab root offers the quick (view-only) food search; a past day does not.
         if (onBack == null) {
             AppIconButton(

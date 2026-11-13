@@ -34,6 +34,7 @@ import io.github.lopezjavier.appfitness.composeapp.resources.diary_meal_protein
 import io.github.lopezjavier.appfitness.composeapp.resources.diary_section_collapsed
 import io.github.lopezjavier.appfitness.composeapp.resources.diary_section_expanded
 import io.github.lopezjavier.appfitness.composeapp.resources.food_sheet_details_title
+import io.github.lopezjavier.appfitness.composeapp.resources.ic_delete
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_edit
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_expand_more
 import io.github.lopezjavier.appfitness.composeapp.resources.template_food_remove
@@ -81,6 +82,8 @@ sealed interface FoodSheetContext {
         val offlineHint: String?,
         /** A non-error message pinned above "Añadir" (the energy block of an Open Food Facts food). */
         val notice: (@Composable () -> Unit)? = null,
+        /** The button text naming its destination, "Añadir a Cena" (R-69); null keeps "Añadir". */
+        val commitLabel: String? = null,
     ) : FoodSheetContext
 
     /**
@@ -143,6 +146,7 @@ fun FoodSheet(
         help = headerActions(favourite, onEditFood, editFoodEnabled, testTagPrefix),
         secondaryAction = footer.secondary,
         footerNotice = footer.notice,
+        commitLabel = footer.commitLabel,
         testTagPrefix = testTagPrefix,
     ) {
         Column(verticalArrangement = Arrangement.spacedBy(Spacing.lg)) {
@@ -171,8 +175,10 @@ private class SheetFooter(
     val hint: String?,
     val secondary: (@Composable () -> Unit)?,
     val notice: (@Composable () -> Unit)? = null,
+    val commitLabel: String? = null,
 )
 
+@Suppress("LongMethod") // One branch per sheet context.
 private fun footerOf(context: FoodSheetContext, prefix: String): SheetFooter = when (context) {
     is FoodSheetContext.Edit -> SheetFooter(
         commit = SheetCommit.Save,
@@ -181,12 +187,13 @@ private fun footerOf(context: FoodSheetContext, prefix: String): SheetFooter = w
         saving = context.saving,
         hint = context.offlineHint,
         secondary = {
-            GhostButton(
+            AppTextButton(
                 text = stringResource(Res.string.action_delete),
                 onClick = context.onDelete,
                 enabled = context.canDelete && !context.saving,
-                tone = GhostTone.Destructive,
-                modifier = Modifier.fillMaxWidth().testTag("${prefix}_delete"),
+                tone = AppTextButtonTone.Danger,
+                leadingIcon = Res.drawable.ic_delete,
+                modifier = Modifier.testTag("${prefix}_delete"),
             )
         },
     )
@@ -198,12 +205,13 @@ private fun footerOf(context: FoodSheetContext, prefix: String): SheetFooter = w
         saving = false,
         hint = context.offlineHint,
         secondary = {
-            GhostButton(
+            AppTextButton(
                 text = stringResource(Res.string.action_delete),
                 onClick = context.onDelete,
                 enabled = context.canDelete,
-                tone = GhostTone.Destructive,
-                modifier = Modifier.fillMaxWidth().testTag("${prefix}_delete"),
+                tone = AppTextButtonTone.Danger,
+                leadingIcon = Res.drawable.ic_delete,
+                modifier = Modifier.testTag("${prefix}_delete"),
             )
         },
     )
@@ -216,6 +224,7 @@ private fun footerOf(context: FoodSheetContext, prefix: String): SheetFooter = w
         hint = context.offlineHint,
         secondary = null,
         notice = context.notice,
+        commitLabel = context.commitLabel,
     )
 
     is FoodSheetContext.Comida -> SheetFooter(
@@ -225,12 +234,13 @@ private fun footerOf(context: FoodSheetContext, prefix: String): SheetFooter = w
         saving = false,
         hint = null,
         secondary = {
-            GhostButton(
+            AppTextButton(
                 text = stringResource(Res.string.template_food_remove),
                 onClick = context.onRemove,
                 enabled = context.canRemove,
-                tone = GhostTone.Destructive,
-                modifier = Modifier.fillMaxWidth().testTag("${prefix}_remove"),
+                tone = AppTextButtonTone.Danger,
+                leadingIcon = Res.drawable.ic_delete,
+                modifier = Modifier.testTag("${prefix}_remove"),
             )
         },
     )
@@ -283,21 +293,10 @@ private fun Totals(totals: FoodSheetTotals, tag: String) {
             color = colors.textPrimary,
             modifier = Modifier.testTag("${tag}_kcal"),
         )
-        Text(
-            stringResource(Res.string.diary_meal_protein, totals.proteinG),
-            style = style,
-            color = MacroDefaults.color(Macro.Protein, colors),
-        )
-        Text(
-            stringResource(Res.string.diary_meal_carbs, totals.carbsG),
-            style = style,
-            color = MacroDefaults.color(Macro.Carbs, colors),
-        )
-        Text(
-            stringResource(Res.string.diary_meal_fat, totals.fatG),
-            style = style,
-            color = MacroDefaults.color(Macro.Fat, colors),
-        )
+        val macroStyle = AppTheme.typography.bodyMedium
+        MacroText(Res.string.diary_meal_protein, totals.proteinG, Macro.Protein, macroStyle)
+        MacroText(Res.string.diary_meal_carbs, totals.carbsG, Macro.Carbs, macroStyle)
+        MacroText(Res.string.diary_meal_fat, totals.fatG, Macro.Fat, macroStyle)
     }
 }
 

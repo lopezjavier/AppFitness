@@ -92,11 +92,11 @@ class AddFoodSheetTest {
     }
 
     @Test
-    fun mealSelector_isLabelledAnadirAAboveTheChips() {
+    fun mealSelector_isLabelledComidaDelDiaAboveTheChips() {
         show(content(chicken))
 
-        rule.onNodeWithText("Añadir a:").assertExists()
-        val labelTop = rule.onNodeWithText("Añadir a:").getUnclippedBoundsInRoot().top
+        rule.onNodeWithText("Comida del día").assertExists()
+        val labelTop = rule.onNodeWithText("Comida del día").getUnclippedBoundsInRoot().top
         val chipsTop = rule.onNodeWithTag("food_sheet_meals").getUnclippedBoundsInRoot().top
         assertTrue(labelTop < chipsTop)
     }
@@ -151,7 +151,7 @@ class AddFoodSheetTest {
     fun invalidQuantity_disablesAdd_andShowsTheFieldError() {
         show(content(chicken, amount = "0", preview = null, error = QuantityCheck.TooLow))
 
-        rule.onNodeWithTag("food_sheet_error").assertTextEquals("Introduce una cantidad entre 0 y 5000")
+        rule.onNodeWithTag("food_sheet_error").assertTextEquals("Introduce una cantidad entre 0 y 5000.")
         rule.onNodeWithTag("food_sheet_commit").assertIsNotEnabled()
     }
 

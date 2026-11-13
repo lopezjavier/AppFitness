@@ -1,5 +1,6 @@
 package io.github.lopezjavier.appfitness.designsystem
 
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.size
 import androidx.compose.material3.Icon
 import androidx.compose.runtime.Composable
@@ -19,6 +20,8 @@ import org.jetbrains.compose.resources.stringResource
  * (`<testTagPrefix>_clear` unless [clearTestTag] is given; only while the text is not empty and the
  * field is [enabled]) and the keyboard action "Buscar", which hides the keyboard and calls [onSearch]
  * (screens that search live as the query changes pass an empty lambda). The field itself is tagged [testTagPrefix].
+ * [showLabel] false hides the visible label (the content description stays, C-21); [trailingAction] is an extra
+ * icon after the clear button (the barcode scan of the food search).
  */
 @Suppress("LongParameterList") // Field, search and tag contract of R-26.
 @Composable
@@ -32,6 +35,8 @@ fun AppSearchField(
     modifier: Modifier = Modifier,
     enabled: Boolean = true,
     clearTestTag: String = "${testTagPrefix}_clear",
+    showLabel: Boolean = true,
+    trailingAction: (@Composable () -> Unit)? = null,
 ) {
     val keyboard = LocalSoftwareKeyboardController.current
     AppTextField(
@@ -50,15 +55,20 @@ fun AppSearchField(
                 modifier = Modifier.size(AppTopBarDefaults.NavigationIconSize),
             )
         },
-        trailing = if (value.isNotEmpty() && enabled) {
+        trailing = if ((value.isNotEmpty() && enabled) || trailingAction != null) {
             {
-                AppIconButton(
-                    contentDescription = stringResource(Res.string.action_clear_search),
-                    icon = Res.drawable.ic_close,
-                    testTag = clearTestTag,
-                    onClick = { onValueChange("") },
-                    tint = AppTheme.colors.textSecondary,
-                )
+                Row {
+                    if (value.isNotEmpty() && enabled) {
+                        AppIconButton(
+                            contentDescription = stringResource(Res.string.action_clear_search),
+                            icon = Res.drawable.ic_close,
+                            testTag = clearTestTag,
+                            onClick = { onValueChange("") },
+                            tint = AppTheme.colors.textSecondary,
+                        )
+                    }
+                    trailingAction?.invoke()
+                }
             }
         } else {
             null
@@ -69,5 +79,6 @@ fun AppSearchField(
             onSearch()
         },
         capitalization = KeyboardCapitalization.None,
+        showLabel = showLabel,
     )
 }

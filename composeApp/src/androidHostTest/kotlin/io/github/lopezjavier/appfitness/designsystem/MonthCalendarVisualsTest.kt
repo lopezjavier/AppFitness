@@ -1,5 +1,7 @@
 package io.github.lopezjavier.appfitness.designsystem
 
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Box
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toPixelMap
@@ -37,17 +39,19 @@ class MonthCalendarVisualsTest {
                 selectedContainer = AppTheme.colors.selectedContainer
                 lime = AppTheme.colors.neonLime
                 base = AppTheme.colors.surfaceBase
-                MonthCalendarGrid(
-                    month = YearMonth(2026, 10),
-                    markedDays = emptySet(),
-                    selected = LocalDate(2026, 10, 14),
-                    today = LocalDate(2026, 10, 20),
-                    onSelect = {},
-                    onPrevMonth = {},
-                    onNextMonth = {},
-                    canGoNext = true,
-                    modifier = Modifier.testTag("grid"),
-                )
+                Box(Modifier.background(base)) {
+                    MonthCalendarGrid(
+                        month = YearMonth(2026, 10),
+                        markedDays = emptySet(),
+                        selected = LocalDate(2026, 10, 14),
+                        today = LocalDate(2026, 10, 20),
+                        onSelect = {},
+                        onPrevMonth = {},
+                        onNextMonth = {},
+                        canGoNext = true,
+                        modifier = Modifier.testTag("grid"),
+                    )
+                }
             }
         }
         rule.waitForIdle()
@@ -60,6 +64,7 @@ class MonthCalendarVisualsTest {
         // 48 dp cell, 4 dp padding, 1 dp border: the ring is at 4..5 dp, the fill just below it (xxhdpi = 3 px/dp).
         assertEquals(lime, selectedMap[x, 14].withoutAlpha())
         assertEquals(selectedContainer, selectedMap[x, 24].withoutAlpha())
+        // C-33: a resting day draws no circle, so its pixels are neither the border nor the selected fill.
         assertEquals(base, otherMap[x, 14].withoutAlpha())
         assertEquals(base, otherMap[x, 24].withoutAlpha())
     }
