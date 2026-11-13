@@ -24,6 +24,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.style.TextOverflow
 import io.github.lopezjavier.appfitness.composeapp.resources.Res
+import io.github.lopezjavier.appfitness.composeapp.resources.diary_entry_delete_cd
 import io.github.lopezjavier.appfitness.composeapp.resources.diary_meal_kcal
 import io.github.lopezjavier.appfitness.composeapp.resources.diary_section_collapsed
 import io.github.lopezjavier.appfitness.composeapp.resources.diary_section_expanded
@@ -31,6 +32,7 @@ import io.github.lopezjavier.appfitness.composeapp.resources.ic_expand_more
 import io.github.lopezjavier.appfitness.designsystem.AppShapes
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
 import io.github.lopezjavier.appfitness.designsystem.Spacing
+import io.github.lopezjavier.appfitness.designsystem.SwipeToDeleteRow
 import io.github.lopezjavier.appfitness.domain.model.MealRow
 import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.resources.stringResource
@@ -38,10 +40,33 @@ import org.jetbrains.compose.resources.stringResource
 /**
  * A comida group of a meal (ADR-68): a header (name, kcal, macros, chevron; one merged button) and, while expanded,
  * its ingredients as [LoggedEntryRow]s (tap to edit, swipe to delete). Collapsed ingredients are not composed.
+ * Collapsed, the whole group is one swipe-to-delete row that removes the food (R-71).
  */
 @Composable
 internal fun DiaryGroupCard(group: MealRow.Group, actions: EntryActions, modifier: Modifier = Modifier) {
     val expanded = group.groupId in actions.expandedGroupIds
+    // R-71: collapsed, the whole food swipes away; expanded, only each ingredient does (the card is not swipeable).
+    if (expanded || !actions.canDelete) {
+        GroupCardBody(group, actions, expanded, modifier)
+    } else {
+        SwipeToDeleteRow(
+            deleteLabel = stringResource(Res.string.diary_entry_delete_cd, group.name),
+            enabled = true,
+            onDelete = { actions.onDeleteGroup(group.groupId) },
+            backgroundTag = "diary_group_${group.groupId}_delete",
+            modifier = modifier.clip(AppShapes.base),
+            containerColor = AppTheme.colors.surfaceRaised,
+        ) { GroupCardBody(group, actions, expanded = false) }
+    }
+}
+
+@Composable
+private fun GroupCardBody(
+    group: MealRow.Group,
+    actions: EntryActions,
+    expanded: Boolean,
+    modifier: Modifier = Modifier,
+) {
     Column(
         modifier
             .fillMaxWidth()

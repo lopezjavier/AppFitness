@@ -31,9 +31,11 @@ import io.github.lopezjavier.appfitness.composeapp.resources.Res
 import io.github.lopezjavier.appfitness.composeapp.resources.progress_ring_cd
 import io.github.lopezjavier.appfitness.composeapp.resources.progress_ring_excess
 import io.github.lopezjavier.appfitness.composeapp.resources.progress_ring_excess_spoken
+import io.github.lopezjavier.appfitness.composeapp.resources.progress_ring_left
+import io.github.lopezjavier.appfitness.composeapp.resources.progress_ring_left_past
+import io.github.lopezjavier.appfitness.composeapp.resources.progress_ring_met
 import io.github.lopezjavier.appfitness.composeapp.resources.progress_ring_of_target
 import io.github.lopezjavier.appfitness.composeapp.resources.progress_ring_state
-import io.github.lopezjavier.appfitness.composeapp.resources.progress_ring_state_within
 import org.jetbrains.compose.resources.stringResource
 import kotlin.math.floor
 import kotlin.math.min
@@ -94,17 +96,18 @@ object ProgressRingDefaults {
 }
 
 /**
- * Daily calorie ring: consumed value and "de N kcal" in the centre, and a pill below only when over target
- * ("+N kcal en exceso"; it wraps at large font scales instead of clipping). The whole ring is one accessibility
+ * Daily calorie ring: consumed value and "de N kcal" in the centre, and one status pill below (R-67): "Te quedan N
+ * kcal", "Objetivo cumplido", "+N kcal en exceso" or, for a [pastDay], "Quedaron N kcal"; it wraps at large font
+ * scales instead of clipping. The whole ring is one accessibility
  * node carrying the caller's [modifier] (and its testTag).
  */
 @Composable
-fun ProgressRing(consumedKcal: Int, targetKcal: Int, modifier: Modifier = Modifier) =
-    ProgressRing(consumedKcal.toDouble(), targetKcal, modifier)
+fun ProgressRing(consumedKcal: Int, targetKcal: Int, modifier: Modifier = Modifier, pastDay: Boolean = false) =
+    ProgressRing(consumedKcal.toDouble(), targetKcal, modifier, pastDay)
 
 /** [ProgressRing] for a consumed value with decimals; it is shown rounded half up to whole kcal. */
 @Composable
-fun ProgressRing(consumedKcal: Double, targetKcal: Int, modifier: Modifier = Modifier) {
+fun ProgressRing(consumedKcal: Double, targetKcal: Int, modifier: Modifier = Modifier, pastDay: Boolean = false) {
     val wholeKcal = roundHalfUp(consumedKcal)
     val state = ProgressRingDefaults.state(wholeKcal, targetKcal)
     val colors = ProgressRingDefaults.colors(state.isOverTarget, AppTheme.colors)
@@ -115,21 +118,14 @@ fun ProgressRing(consumedKcal: Double, targetKcal: Int, modifier: Modifier = Mod
     )
     val consumedText = AppNumberFormat.integer(wholeKcal.coerceAtLeast(0))
     val targetText = AppNumberFormat.integer(targetKcal)
-    val statusText =
-        if (state.isOverTarget) {
-            stringResource(Res.string.progress_ring_excess, AppNumberFormat.integer(-state.remaining))
-        } else {
-            null
-        }
+    val spokenStatus = statusSentence(state, pastDay)
+    val statusText = if (state.isOverTarget) {
+        stringResource(Res.string.progress_ring_excess, AppNumberFormat.integer(-state.remaining))
+    } else {
+        spokenStatus
+    }
     val description = stringResource(Res.string.progress_ring_cd)
-    val stateDescriptionText =
-        if (state.isOverTarget) {
-            val spokenExcess =
-                stringResource(Res.string.progress_ring_excess_spoken, AppNumberFormat.integer(-state.remaining))
-            stringResource(Res.string.progress_ring_state, consumedText, targetText, spokenExcess)
-        } else {
-            stringResource(Res.string.progress_ring_state_within, consumedText, targetText)
-        }
+    val stateDescriptionText = stringResource(Res.string.progress_ring_state, consumedText, targetText, spokenStatus)
     val fraction = min(wholeKcal.coerceAtLeast(0).toFloat() / targetKcal, 1f)
     Column(
         modifier =
@@ -142,8 +138,24 @@ fun ProgressRing(consumedKcal: Double, targetKcal: Int, modifier: Modifier = Mod
         verticalArrangement = Arrangement.spacedBy(Spacing.sm),
     ) {
         RingBody(sweep, colors, consumedText, targetText)
-        if (statusText != null) StatusPill(statusText, colors.status)
+        StatusPill(statusText, if (state.isOverTarget || state.remaining == 0) colors.status else AppTheme.colors.textSecondary)
     }
+}
+
+/**
+ * The one sentence that says what is left of the day (R-67, C-23): "Te quedan N kcal" under target, "Objetivo
+ * cumplido" on it, "Quedaron N kcal" for a [pastDay] under target; over target it is the excess, spoken in full.
+ */
+@Composable
+private fun statusSentence(state: ProgressRingState, pastDay: Boolean): String = when {
+    state.isOverTarget ->
+        stringResource(Res.string.progress_ring_excess_spoken, AppNumberFormat.integer(-state.remaining))
+
+    state.remaining == 0 -> stringResource(Res.string.progress_ring_met)
+
+    pastDay -> stringResource(Res.string.progress_ring_left_past, AppNumberFormat.integer(state.remaining))
+
+    else -> stringResource(Res.string.progress_ring_left, AppNumberFormat.integer(state.remaining))
 }
 
 @Composable

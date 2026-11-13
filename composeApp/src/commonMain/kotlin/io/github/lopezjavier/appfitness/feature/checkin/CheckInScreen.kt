@@ -22,10 +22,8 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import io.github.lopezjavier.appfitness.composeapp.resources.Res
 import io.github.lopezjavier.appfitness.composeapp.resources.action_retry
-import io.github.lopezjavier.appfitness.composeapp.resources.checkin_delta_kg
-import io.github.lopezjavier.appfitness.composeapp.resources.checkin_delta_same
-import io.github.lopezjavier.appfitness.composeapp.resources.checkin_delta_sets
-import io.github.lopezjavier.appfitness.composeapp.resources.checkin_delta_workouts
+import io.github.lopezjavier.appfitness.composeapp.resources.checkin_delta_caption
+import io.github.lopezjavier.appfitness.composeapp.resources.checkin_delta_same_short
 import io.github.lopezjavier.appfitness.composeapp.resources.checkin_energy_group_cd
 import io.github.lopezjavier.appfitness.composeapp.resources.checkin_energy_label
 import io.github.lopezjavier.appfitness.composeapp.resources.checkin_energy_option_cd
@@ -33,19 +31,17 @@ import io.github.lopezjavier.appfitness.composeapp.resources.checkin_form_header
 import io.github.lopezjavier.appfitness.composeapp.resources.checkin_records_empty
 import io.github.lopezjavier.appfitness.composeapp.resources.checkin_records_header
 import io.github.lopezjavier.appfitness.composeapp.resources.checkin_sets_label
-import io.github.lopezjavier.appfitness.composeapp.resources.checkin_sets_value
+import io.github.lopezjavier.appfitness.composeapp.resources.checkin_kg_unit
 import io.github.lopezjavier.appfitness.composeapp.resources.checkin_summary_caption
 import io.github.lopezjavier.appfitness.composeapp.resources.checkin_summary_error
 import io.github.lopezjavier.appfitness.composeapp.resources.checkin_summary_header
 import io.github.lopezjavier.appfitness.composeapp.resources.checkin_title
 import io.github.lopezjavier.appfitness.composeapp.resources.checkin_volume_label
-import io.github.lopezjavier.appfitness.composeapp.resources.checkin_volume_value
 import io.github.lopezjavier.appfitness.composeapp.resources.checkin_weight_delta_caption
 import io.github.lopezjavier.appfitness.composeapp.resources.checkin_weight_label
 import io.github.lopezjavier.appfitness.composeapp.resources.checkin_weight_not_enough
 import io.github.lopezjavier.appfitness.composeapp.resources.checkin_weight_value
 import io.github.lopezjavier.appfitness.composeapp.resources.checkin_workouts_label
-import io.github.lopezjavier.appfitness.composeapp.resources.checkin_workouts_value
 import io.github.lopezjavier.appfitness.composeapp.resources.help_checkin_energy_bullet_1
 import io.github.lopezjavier.appfitness.composeapp.resources.help_checkin_energy_bullet_2
 import io.github.lopezjavier.appfitness.composeapp.resources.help_checkin_energy_bullet_3
@@ -66,8 +62,12 @@ import io.github.lopezjavier.appfitness.designsystem.HelpButton
 import io.github.lopezjavier.appfitness.designsystem.HelpContent
 import io.github.lopezjavier.appfitness.designsystem.ListSectionHeader
 import io.github.lopezjavier.appfitness.designsystem.MetricCard
+import io.github.lopezjavier.appfitness.designsystem.MetricTile
 import io.github.lopezjavier.appfitness.designsystem.SegmentedSelector
 import io.github.lopezjavier.appfitness.designsystem.Spacing
+import io.github.lopezjavier.appfitness.designsystem.TrendPill
+import io.github.lopezjavier.appfitness.designsystem.TrendPillDefaults
+import io.github.lopezjavier.appfitness.designsystem.TrendTone
 import io.github.lopezjavier.appfitness.domain.model.PersonalRecord
 import io.github.lopezjavier.appfitness.domain.model.WeekRecord
 import io.github.lopezjavier.appfitness.domain.model.WeeklySummary
@@ -77,9 +77,7 @@ import io.github.lopezjavier.appfitness.feature.workout.label
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.datetime.DayOfWeek
-import org.jetbrains.compose.resources.pluralStringResource
 import org.jetbrains.compose.resources.stringResource
-import kotlin.math.abs
 import kotlin.math.roundToInt
 
 private const val TENTHS = 10.0
@@ -169,50 +167,70 @@ private fun SummaryCards(summary: WeeklySummary, names: Map<String, String>) {
         val current = summary.training.current
         val previous = summary.training.previous
         val volume = current.volume.roundToInt()
-        val volumeDelta = volume - previous.volume.roundToInt()
-        SummaryCard(
-            label = stringResource(Res.string.checkin_volume_label),
-            value = stringResource(Res.string.checkin_volume_value, AppNumberFormat.integer(volume)),
-            delta = if (volumeDelta == 0) {
-                stringResource(Res.string.checkin_delta_same)
-            } else {
-                stringResource(Res.string.checkin_delta_kg, AppNumberFormat.signedInteger(volumeDelta))
-            },
-            tag = "checkin_summary_volume",
-        )
-        val workoutsDelta = current.workouts - previous.workouts
-        SummaryCard(
-            label = stringResource(Res.string.checkin_workouts_label),
-            value = pluralStringResource(Res.plurals.checkin_workouts_value, current.workouts, current.workouts),
-            delta = if (workoutsDelta == 0) {
-                stringResource(Res.string.checkin_delta_same)
-            } else {
-                pluralStringResource(
-                    Res.plurals.checkin_delta_workouts,
-                    abs(workoutsDelta),
-                    AppNumberFormat.signedInteger(workoutsDelta),
+        Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+            // C-24: the three figures side by side, each with its change as a pill; one caption says what it compares to.
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+                WeekTile(
+                    label = stringResource(Res.string.checkin_volume_label),
+                    value = AppNumberFormat.integer(volume),
+                    unit = stringResource(Res.string.checkin_kg_unit),
+                    delta = volume - previous.volume.roundToInt(),
+                    tag = "checkin_summary_volume",
+                    modifier = Modifier.weight(1f),
                 )
-            },
-            tag = "checkin_summary_workouts",
-        )
-        val setsDelta = current.sets - previous.sets
-        SummaryCard(
-            label = stringResource(Res.string.checkin_sets_label),
-            value = pluralStringResource(Res.plurals.checkin_sets_value, current.sets, current.sets),
-            delta = if (setsDelta == 0) {
-                stringResource(Res.string.checkin_delta_same)
-            } else {
-                pluralStringResource(
-                    Res.plurals.checkin_delta_sets,
-                    abs(setsDelta),
-                    AppNumberFormat.signedInteger(setsDelta),
+                WeekTile(
+                    label = stringResource(Res.string.checkin_workouts_label),
+                    value = AppNumberFormat.integer(current.workouts),
+                    unit = null,
+                    delta = current.workouts - previous.workouts,
+                    tag = "checkin_summary_workouts",
+                    modifier = Modifier.weight(1f),
                 )
-            },
-            tag = "checkin_summary_sets",
-        )
+                WeekTile(
+                    label = stringResource(Res.string.checkin_sets_label),
+                    value = AppNumberFormat.integer(current.sets),
+                    unit = null,
+                    delta = current.sets - previous.sets,
+                    tag = "checkin_summary_sets",
+                    modifier = Modifier.weight(1f),
+                )
+            }
+            Text(
+                text = stringResource(Res.string.checkin_delta_caption),
+                style = AppTheme.typography.bodySmall,
+                color = AppTheme.colors.textSecondary,
+                modifier = Modifier.testTag("checkin_summary_delta_caption"),
+            )
+        }
         RecordsCard(summary.records, names)
         WeightCard(summary.weightTrend)
     }
+}
+
+/** One figure of the week with its signed difference to the week before as a pill (sign and words, not colour). */
+@Composable
+private fun WeekTile(
+    label: String,
+    value: String,
+    unit: String?,
+    delta: Int,
+    tag: String,
+    modifier: Modifier = Modifier,
+) {
+    val deltaText = if (delta == 0) {
+        stringResource(Res.string.checkin_delta_same_short)
+    } else {
+        AppNumberFormat.signedInteger(delta)
+    }
+    MetricTile(
+        label = label,
+        value = value,
+        modifier = modifier.testTag(tag),
+        unit = unit,
+        supporting = {
+            TrendPill(deltaText, TrendTone.Neutral, direction = TrendPillDefaults.direction(delta.toDouble()))
+        },
+    )
 }
 
 /** One figure with its difference to the week before as text (sign and words, never colour alone). */

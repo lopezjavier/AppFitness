@@ -7,13 +7,16 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.unit.dp
 import io.github.lopezjavier.appfitness.composeapp.resources.Res
 import io.github.lopezjavier.appfitness.composeapp.resources.add_food_energy_help_off
 import io.github.lopezjavier.appfitness.composeapp.resources.create_food_energy_help_cd
@@ -28,6 +31,7 @@ import io.github.lopezjavier.appfitness.composeapp.resources.create_food_retry_p
 import io.github.lopezjavier.appfitness.composeapp.resources.create_food_retry_running
 import io.github.lopezjavier.appfitness.composeapp.resources.create_food_retry_text_gone
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_retry
+import io.github.lopezjavier.appfitness.composeapp.resources.ic_warning
 import io.github.lopezjavier.appfitness.designsystem.AppIconButton
 import io.github.lopezjavier.appfitness.designsystem.AppNumberFormat
 import io.github.lopezjavier.appfitness.designsystem.AppShapes
@@ -38,6 +42,7 @@ import io.github.lopezjavier.appfitness.designsystem.HelpContent
 import io.github.lopezjavier.appfitness.designsystem.OfflineHint
 import io.github.lopezjavier.appfitness.designsystem.Spacing
 import org.jetbrains.compose.resources.StringResource
+import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.resources.stringResource
 
 private val MaxNoticeHeight = Spacing.xl * 8
@@ -73,10 +78,16 @@ internal fun EnergyWarningNotice(
         verticalArrangement = Arrangement.spacedBy(Spacing.sm),
     ) {
         Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm), verticalAlignment = Alignment.CenterVertically) {
+            Icon(
+                painter = painterResource(Res.drawable.ic_warning),
+                contentDescription = null,
+                tint = AppTheme.colors.energyAmber,
+                modifier = Modifier.size(20.dp),
+            )
             Text(
                 text = warningText(warning),
                 style = AppTheme.typography.bodyMedium,
-                color = AppTheme.colors.energyAmber,
+                color = AppTheme.colors.textPrimary,
                 modifier = Modifier.weight(1f),
             )
             if (onRetry != null && (retryState == RetryState.Available || retryState == RetryState.Running)) {
@@ -119,12 +130,11 @@ internal fun EnergyWarningNotice(
 /** The facts of [warning], with the "Parece un error" prefix when it is clearly wrong. */
 @Composable
 private fun warningText(warning: EnergyWarning): String {
-    val facts = stringResource(
-        Res.string.create_food_energy_warning,
+    return stringResource(
+        if (warning.clearlyWrong) Res.string.create_food_energy_warning_wrong else Res.string.create_food_energy_warning,
         AppNumberFormat.decimal(warning.kcal, maxDecimals = 0),
         AppNumberFormat.decimal(warning.computedKcal, maxDecimals = 0),
     )
-    return if (warning.clearlyWrong) stringResource(Res.string.create_food_energy_warning_wrong, facts) else facts
 }
 
 /** The advice behind the "?": the Open Food Facts one, or the one for the sign of the gap. */

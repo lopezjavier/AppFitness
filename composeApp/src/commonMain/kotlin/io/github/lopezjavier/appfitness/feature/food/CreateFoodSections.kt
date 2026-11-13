@@ -21,7 +21,6 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
 import io.github.lopezjavier.appfitness.composeapp.resources.Res
 import io.github.lopezjavier.appfitness.composeapp.resources.create_food_nutrient_cd
-import io.github.lopezjavier.appfitness.composeapp.resources.create_food_nutrient_label
 import io.github.lopezjavier.appfitness.composeapp.resources.create_food_section_alcohol
 import io.github.lopezjavier.appfitness.composeapp.resources.create_food_section_fats
 import io.github.lopezjavier.appfitness.composeapp.resources.create_food_section_filled
@@ -110,11 +109,8 @@ internal fun KindGrid(kinds: List<MicronutrientKind>, state: CreateFoodUiState, 
             {
                 val name = stringResource(micronutrientLabel(kind))
                 val spec = NutrientSpec(
-                    label = stringResource(
-                        Res.string.create_food_nutrient_label,
-                        name,
-                        stringResource(micronutrientUnitLabel(kind.labelUnit)),
-                    ),
+                    label = name,
+                    unit = stringResource(micronutrientUnitLabel(kind.labelUnit)),
                     macro = null,
                     tag = "create_food_nutrient_${micronutrientTag(kind)}",
                     spokenLabel = stringResource(

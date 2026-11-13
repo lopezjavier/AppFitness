@@ -3,10 +3,10 @@
 package io.github.lopezjavier.appfitness.feature.food
 
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
@@ -18,7 +18,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.unit.dp
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.liveRegion
@@ -48,6 +48,7 @@ import io.github.lopezjavier.appfitness.composeapp.resources.create_food_sugars_
 import io.github.lopezjavier.appfitness.composeapp.resources.create_food_title
 import io.github.lopezjavier.appfitness.composeapp.resources.create_food_unit
 import io.github.lopezjavier.appfitness.composeapp.resources.create_food_unit_g
+import io.github.lopezjavier.appfitness.composeapp.resources.create_food_unit_kcal
 import io.github.lopezjavier.appfitness.composeapp.resources.create_food_unit_locked
 import io.github.lopezjavier.appfitness.composeapp.resources.create_food_unit_ml
 import io.github.lopezjavier.appfitness.composeapp.resources.create_food_unit_refused
@@ -66,14 +67,16 @@ import io.github.lopezjavier.appfitness.designsystem.SegmentedSelector
 import io.github.lopezjavier.appfitness.designsystem.SkeletonBox
 import io.github.lopezjavier.appfitness.designsystem.Spacing
 import io.github.lopezjavier.appfitness.domain.model.MicronutrientKind
+import io.github.lopezjavier.appfitness.domain.model.MicronutrientUnit
 import io.github.lopezjavier.appfitness.domain.model.NewFoodError
 import org.jetbrains.compose.resources.stringResource
 
 private const val MAX_NAME_LENGTH = 200
 private const val NUTRIENT_DECIMALS = 2
 private const val LABEL_DECIMALS = 4
-private const val GRID_COLUMNS = 2
-private const val LARGE_FONT_SCALE = 1.3f
+private val InputWidth = 96.dp
+private val InputHeight = 48.dp
+private val TableRowMinHeight = 56.dp
 private const val SKELETON_ROWS = 4
 private val SkeletonHeight = Spacing.xl * 2
 
@@ -228,13 +231,18 @@ private fun UnitSection(state: CreateFoodUiState, onEvent: (CreateFoodEvent) -> 
     }
 }
 
-/** Visible label, macro colour (null = neutral), test tag, spoken label and decimals of a nutrient field. */
+/**
+ * Visible label, macro colour (null = neutral), test tag, spoken label, decimals, unit suffix of the input and whether
+ * the row is a "de los cuales" part (indented 16 dp) of a nutrient field.
+ */
 internal class NutrientSpec(
     val label: String,
     val macro: Macro?,
     val tag: String,
     val spokenLabel: String = label,
     val decimals: Int = NUTRIENT_DECIMALS,
+    val unit: String? = null,
+    val indent: Boolean = false,
 )
 
 /**
@@ -255,55 +263,65 @@ private fun NutritionBlock(state: CreateFoodUiState, onEvent: (CreateFoodEvent) 
         indent: Boolean = false,
         imeAction: ImeAction = ImeAction.Next,
     ) {
-        val spec =
-            NutrientSpec(label, macro, "create_food_nutrient_${micronutrientTag(kind)}", decimals = LABEL_DECIMALS)
-        Box(if (indent) Modifier.padding(start = Spacing.lg) else Modifier) {
-            NutrientField(spec, state.nutrients[kind].orEmpty(), errors.nutrients[kind], onChange = {
-                onEvent(CreateFoodEvent.NutrientChanged(kind, it))
-            }, imeAction = imeAction)
-        }
+        val spec = NutrientSpec(
+            label,
+            macro,
+            "create_food_nutrient_${micronutrientTag(kind)}",
+            decimals = LABEL_DECIMALS,
+            unit = stringResource(micronutrientUnitLabel(kind.labelUnit)),
+            indent = indent,
+        )
+        NutrientField(spec, state.nutrients[kind].orEmpty(), errors.nutrients[kind], onChange = {
+            onEvent(CreateFoodEvent.NutrientChanged(kind, it))
+        }, imeAction = imeAction)
     }
+    val gramUnit = stringResource(micronutrientUnitLabel(MicronutrientUnit.G))
     val kcalLabel = stringResource(
         if (state.baseUnit == "ml") Res.string.create_food_kcal_ml else Res.string.create_food_kcal_g,
     )
-    Column(verticalArrangement = Arrangement.spacedBy(Spacing.md)) {
+    Column {
         NutrientField(
-            NutrientSpec(kcalLabel, null, "create_food_kcal_field"),
+            NutrientSpec(kcalLabel, null, "create_food_kcal_field", unit = stringResource(Res.string.create_food_unit_kcal)),
             state.kcal,
             errors.kcal,
             change(CreateFoodField.Kcal),
             ImeAction.Next,
         )
-        val fat = NutrientSpec(stringResource(Res.string.create_food_fat_total), Macro.Fat, "create_food_fat_field")
+        val fat = NutrientSpec(stringResource(Res.string.create_food_fat_total), Macro.Fat, "create_food_fat_field", unit = gramUnit)
         NutrientField(fat, state.fat, errors.fat, change(CreateFoodField.Fat), ImeAction.Next)
         KindField(MicronutrientKind.SaturatedFat, stringResource(Res.string.create_food_saturated_of), Macro.Fat, true)
         val carbs =
-            NutrientSpec(stringResource(Res.string.create_food_carbs_total), Macro.Carbs, "create_food_carbs_field")
+            NutrientSpec(
+                stringResource(Res.string.create_food_carbs_total),
+                Macro.Carbs,
+                "create_food_carbs_field",
+                unit = gramUnit,
+            )
         NutrientField(carbs, state.carbs, errors.carbs, change(CreateFoodField.Carbs), ImeAction.Next)
         KindField(MicronutrientKind.Sugars, stringResource(Res.string.create_food_sugars_of), Macro.Carbs, true)
         KindField(MicronutrientKind.Fiber, stringResource(Res.string.create_food_fiber), null)
         val protein =
-            NutrientSpec(stringResource(Res.string.create_food_protein), Macro.Protein, "create_food_protein_field")
+            NutrientSpec(
+                stringResource(Res.string.create_food_protein),
+                Macro.Protein,
+                "create_food_protein_field",
+                unit = gramUnit,
+            )
         NutrientField(protein, state.protein, errors.protein, change(CreateFoodField.Protein), ImeAction.Next)
         KindField(MicronutrientKind.Salt, stringResource(Res.string.create_food_salt), null, imeAction = ImeAction.Done)
     }
 }
 
-/** Fields in rows of two; one per row when the font is large enough to squeeze a field below ~140 dp. */
+/** The nutrient fields as one table (C-36): a column of rows, each with its label at the start and the input at the end. */
 @Composable
 internal fun FieldGrid(fields: List<@Composable () -> Unit>) {
-    val columns = if (LocalDensity.current.fontScale > LARGE_FONT_SCALE) 1 else GRID_COLUMNS
-    Column(verticalArrangement = Arrangement.spacedBy(Spacing.md)) {
-        fields.chunked(columns).forEach { rowFields ->
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(Spacing.md)) {
-                rowFields.forEach { Box(Modifier.weight(1f)) { it() } }
-                repeat(columns - rowFields.size) { Spacer(Modifier.weight(1f)) }
-            }
-        }
-    }
+    Column { fields.forEach { it() } }
 }
 
-/** A decimal field with its label (in the macro colour when set) and the error text under it. */
+/**
+ * One table row of a nutrient (C-36): the label at the start (in the macro colour when set; a "de los cuales" part is
+ * indented 16 dp), a 96 x 48 dp input with the unit suffix at the end, 56 dp high, and the error text under it.
+ */
 @Composable
 internal fun NutrientField(
     spec: NutrientSpec,
@@ -313,24 +331,34 @@ internal fun NutrientField(
     imeAction: ImeAction = ImeAction.Done,
     help: (@Composable () -> Unit)? = null,
 ) {
-    Column(verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Text(
-                text = spec.label,
-                style = AppTheme.typography.bodyMedium,
-                color = spec.macro?.let { MacroDefaults.color(it, AppTheme.colors) } ?: AppTheme.colors.textSecondary,
+    Column(Modifier.fillMaxWidth()) {
+        Row(
+            Modifier.fillMaxWidth().heightIn(min = TableRowMinHeight),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(Spacing.md),
+        ) {
+            Row(
+                Modifier.weight(1f).padding(start = if (spec.indent) Spacing.lg else Spacing.none),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text(
+                    text = spec.label,
+                    style = AppTheme.typography.bodyLarge,
+                    color = spec.macro?.let { MacroDefaults.color(it, AppTheme.colors) } ?: AppTheme.colors.textPrimary,
+                )
+                help?.invoke()
+            }
+            NumberInput(
+                value = value,
+                onValueChange = onChange,
+                label = spec.spokenLabel,
+                modifier = Modifier.width(InputWidth).height(InputHeight).testTag(spec.tag),
+                maxDecimals = spec.decimals,
+                showLabel = false,
+                imeAction = imeAction,
+                unit = spec.unit,
             )
-            help?.invoke()
         }
-        NumberInput(
-            value = value,
-            onValueChange = onChange,
-            label = spec.spokenLabel,
-            modifier = Modifier.fillMaxWidth().testTag(spec.tag),
-            maxDecimals = spec.decimals,
-            showLabel = false,
-            imeAction = imeAction,
-        )
         error?.let { FieldErrorText(errorMessage(it), "${spec.tag}_error") }
     }
 }

@@ -22,20 +22,11 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.style.TextOverflow
 import io.github.lopezjavier.appfitness.composeapp.resources.Res
-import io.github.lopezjavier.appfitness.composeapp.resources.diary_add_object_breakfast
 import io.github.lopezjavier.appfitness.composeapp.resources.diary_add_object_custom
-import io.github.lopezjavier.appfitness.composeapp.resources.diary_add_object_dinner
-import io.github.lopezjavier.appfitness.composeapp.resources.diary_add_object_lunch
-import io.github.lopezjavier.appfitness.composeapp.resources.diary_add_object_snack
-import io.github.lopezjavier.appfitness.composeapp.resources.diary_meal_breakfast
 import io.github.lopezjavier.appfitness.composeapp.resources.diary_meal_carbs
-import io.github.lopezjavier.appfitness.composeapp.resources.diary_meal_dinner
 import io.github.lopezjavier.appfitness.composeapp.resources.diary_meal_fat
 import io.github.lopezjavier.appfitness.composeapp.resources.diary_meal_kcal
-import io.github.lopezjavier.appfitness.composeapp.resources.diary_meal_lunch
 import io.github.lopezjavier.appfitness.composeapp.resources.diary_meal_protein
-import io.github.lopezjavier.appfitness.composeapp.resources.diary_meal_snack
-import io.github.lopezjavier.appfitness.composeapp.resources.diary_remaining_hint
 import io.github.lopezjavier.appfitness.composeapp.resources.diary_save_template_cd
 import io.github.lopezjavier.appfitness.composeapp.resources.diary_section_collapsed
 import io.github.lopezjavier.appfitness.composeapp.resources.diary_section_expanded
@@ -44,52 +35,27 @@ import io.github.lopezjavier.appfitness.composeapp.resources.ic_save_meal
 import io.github.lopezjavier.appfitness.designsystem.AddItemButton
 import io.github.lopezjavier.appfitness.designsystem.AppCard
 import io.github.lopezjavier.appfitness.designsystem.AppIconButton
-import io.github.lopezjavier.appfitness.designsystem.AppNumberFormat
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
 import io.github.lopezjavier.appfitness.designsystem.Macro
 import io.github.lopezjavier.appfitness.designsystem.MacroDefaults
 import io.github.lopezjavier.appfitness.designsystem.Spacing
-import io.github.lopezjavier.appfitness.domain.model.MealCode
 import io.github.lopezjavier.appfitness.domain.model.MealRow
 import io.github.lopezjavier.appfitness.domain.model.MealSlot
 import io.github.lopezjavier.appfitness.domain.model.MealTotals
-import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.resources.stringResource
 
 internal const val EXPANDED_CHEVRON_ROTATION = 180f
 
-/** Default label of the four default meals. */
-private fun defaultLabel(code: MealCode): StringResource = when (code) {
-    MealCode.Breakfast -> Res.string.diary_meal_breakfast
-    MealCode.Lunch -> Res.string.diary_meal_lunch
-    MealCode.Snack -> Res.string.diary_meal_snack
-    MealCode.Dinner -> Res.string.diary_meal_dinner
-}
-
-private fun addObject(code: MealCode): StringResource = when (code) {
-    MealCode.Breakfast -> Res.string.diary_add_object_breakfast
-    MealCode.Lunch -> Res.string.diary_add_object_lunch
-    MealCode.Snack -> Res.string.diary_add_object_snack
-    MealCode.Dinner -> Res.string.diary_add_object_dinner
-}
-
 /**
- * The object of the add button ("a la cena" for a default meal, "a <label>" for a custom or renamed one), so the
- * [AddItemButton] reads "Añadir a la cena" and never disagrees with the meal's name.
+ * The object of the add button: "a <comida>" with the meal name as typed, no article (R-69: a meal named by the user
+ * has no known gender), so the [AddItemButton] reads "Añadir a Cena".
  */
 @Composable
-internal fun addObjectLabel(slot: MealSlot): String {
-    val code = slot.code
-    return if (code != null && slot.label == stringResource(defaultLabel(code))) {
-        stringResource(addObject(code))
-    } else {
-        stringResource(Res.string.diary_add_object_custom, slot.label)
-    }
-}
+internal fun addObjectLabel(slot: MealSlot): String = stringResource(Res.string.diary_add_object_custom, slot.label)
 
 /**
- * One meal: a header with its totals (tap to collapse), the entries (or the remaining-kcal hint) and the add button.
+ * One meal: a header with its totals (tap to collapse), the entries and the add button.
  * [onSaveTemplate] saves the entries of the meal as a comida; its icon shows only while the meal has entries.
  */
 @Suppress("LongParameterList") // One callback per action of the meal: toggle, add and save, plus the entry actions.
@@ -114,7 +80,7 @@ internal fun MealSectionCard(
     }
 }
 
-/** The entries of a meal (or its remaining-kcal hint) and the add button. */
+/** The entries of a meal and the add button; an empty meal shows only the button (R-67). */
 @Composable
 private fun MealBody(section: MealSectionUi, actions: EntryActions, onAdd: () -> Unit) {
     val id = section.slot.id
@@ -124,17 +90,6 @@ private fun MealBody(section: MealSectionUi, actions: EntryActions, onAdd: () ->
                 is MealRow.Single -> key(row.entry.id) { LoggedEntryRow(row.entry, actions) }
                 is MealRow.Group -> key("group-${row.groupId}") { DiaryGroupCard(row, actions) }
             }
-        }
-        if (section.showRemainingHint && section.remainingKcal != null) {
-            Text(
-                text = stringResource(
-                    Res.string.diary_remaining_hint,
-                    AppNumberFormat.integer(section.remainingKcal),
-                ),
-                style = AppTheme.typography.bodyMedium,
-                color = AppTheme.colors.textSecondary,
-                modifier = Modifier.testTag("diary_section_${id}_empty_hint"),
-            )
         }
         AddItemButton(
             objectLabel = addObjectLabel(section.slot),

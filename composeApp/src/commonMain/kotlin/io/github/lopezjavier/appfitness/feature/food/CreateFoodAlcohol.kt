@@ -22,6 +22,7 @@ import io.github.lopezjavier.appfitness.designsystem.AppTheme
 import io.github.lopezjavier.appfitness.designsystem.HelpButton
 import io.github.lopezjavier.appfitness.designsystem.SegmentedSelector
 import io.github.lopezjavier.appfitness.designsystem.Spacing
+import io.github.lopezjavier.appfitness.domain.model.MicronutrientUnit
 import org.jetbrains.compose.resources.stringResource
 
 private const val ALCOHOL_DECIMALS = 1
@@ -64,6 +65,7 @@ internal fun AlcoholSectionContent(state: CreateFoodUiState, onEvent: (CreateFoo
                     null,
                     "create_food_alcohol_field",
                     decimals = ALCOHOL_DECIMALS,
+                    unit = stringResource(micronutrientUnitLabel(MicronutrientUnit.G)),
                 ),
                 state.alcohol,
                 state.errors.alcohol,

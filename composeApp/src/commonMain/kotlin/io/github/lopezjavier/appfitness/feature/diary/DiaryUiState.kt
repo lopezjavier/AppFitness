@@ -106,6 +106,12 @@ sealed interface DiaryEvent {
 
     /** Delete an entry at once (no confirmation, no undo); [DiaryEffect.WriteFailed] follows if it fails. */
     data class DeleteEntry(val entryId: String) : DiaryEvent
+
+    /**
+     * Delete a whole comida group of the visible day (every ingredient) at once (R-71): the swipe of a collapsed
+     * group. Same rules as [DeleteEntry] for each ingredient.
+     */
+    data class DeleteGroup(val groupId: String) : DiaryEvent
 }
 
 /** One-off effects. */

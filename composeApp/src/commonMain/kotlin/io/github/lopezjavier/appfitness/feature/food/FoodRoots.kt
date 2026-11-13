@@ -106,6 +106,7 @@ fun FoodSearchRoot(
         scanFailed = scanFailed,
         templateManageFailed = templateManageFailed,
         onPhotoClick = { photoViewModel.onEvent(FoodPhotoEvent.Open) },
+        isOnline = viewModel.isOnline,
     )
     FoodPhotoFlow(photoState, photoViewModel::onEvent, photoCapture::readJpeg)
 }

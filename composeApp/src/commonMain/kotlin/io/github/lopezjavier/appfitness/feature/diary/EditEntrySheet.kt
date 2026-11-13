@@ -3,7 +3,6 @@ package io.github.lopezjavier.appfitness.feature.diary
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.heightIn
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
@@ -25,23 +24,21 @@ import io.github.lopezjavier.appfitness.designsystem.FoodSheet
 import io.github.lopezjavier.appfitness.designsystem.FoodSheetContext
 import io.github.lopezjavier.appfitness.designsystem.FoodSheetTotals
 import io.github.lopezjavier.appfitness.designsystem.InlineNote
-import io.github.lopezjavier.appfitness.designsystem.SkeletonBox
 import io.github.lopezjavier.appfitness.designsystem.Spacing
 import io.github.lopezjavier.appfitness.designsystem.labelRes
 import io.github.lopezjavier.appfitness.designsystem.offlineHint
 import io.github.lopezjavier.appfitness.domain.model.CookingMethod
 import io.github.lopezjavier.appfitness.domain.model.Micronutrients
 import io.github.lopezjavier.appfitness.domain.usecase.BuildLabelNutrients
+import io.github.lopezjavier.appfitness.feature.food.FoodSheetSkeleton
 import io.github.lopezjavier.appfitness.feature.food.LabelNutrientsCard
 import io.github.lopezjavier.appfitness.feature.food.MealSelector
 import io.github.lopezjavier.appfitness.feature.food.QuantityInput
 import org.jetbrains.compose.resources.stringResource
 
-private const val SKELETON_ROWS = 3
 private const val SHEET_PREFIX = "food_sheet"
 private const val OFFLINE_ACTION = "guardar ni eliminar"
 private const val OFFLINE_DELETE_ACTION = "eliminar"
-private val SkeletonHeight = Spacing.xl * 2
 
 /**
  * Edit-entry sheet (US-19, US-20) on [FoodSheet] in its Edit context: change the quantity (base unit or portion) and
@@ -137,14 +134,7 @@ private fun SnapshotLine(text: String, tag: String, style: TextStyle) {
 }
 
 @Composable
-private fun SheetLoading() {
-    Column(
-        Modifier.fillMaxWidth().testTag("${SHEET_PREFIX}_loading"),
-        verticalArrangement = Arrangement.spacedBy(Spacing.md),
-    ) {
-        repeat(SKELETON_ROWS) { SkeletonBox(Modifier.fillMaxWidth().heightIn(min = SkeletonHeight)) }
-    }
-}
+private fun SheetLoading() = FoodSheetSkeleton("${SHEET_PREFIX}_loading")
 
 @Composable
 private fun EditEntryContentSheet(

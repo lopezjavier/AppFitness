@@ -85,7 +85,7 @@ private fun EntryTotals(model: FoodEntryRowModel) {
     Column(horizontalAlignment = Alignment.End) {
         Text(
             text = stringResource(Res.string.diary_entry_kcal, AppNumberFormat.integer(model.kcal)),
-            style = AppTheme.typography.labelNumeric,
+            style = AppTheme.typography.titleMedium,
             color = AppTheme.colors.textPrimary,
         )
         Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
@@ -98,9 +98,5 @@ private fun EntryTotals(model: FoodEntryRowModel) {
 
 @Composable
 private fun MacroGrams(format: StringResource, grams: Int, macro: Macro) {
-    Text(
-        text = stringResource(format, AppNumberFormat.integer(grams)),
-        style = AppTheme.typography.bodySmall,
-        color = MacroDefaults.color(macro, AppTheme.colors),
-    )
+    MacroText(format, AppNumberFormat.integer(grams), macro, AppTheme.typography.bodySmall)
 }
