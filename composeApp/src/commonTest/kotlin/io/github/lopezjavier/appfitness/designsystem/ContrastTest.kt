@@ -81,7 +81,9 @@ class ContrastTest {
     fun macroPercentText_macroColoursOnRaised_isAa() {
         assertAa(c.macroProtein, c.surfaceRaised, "protein/surfaceRaised")
         assertAa(c.macroCarbs, c.surfaceRaised, "carbs/surfaceRaised")
+        assertAa(c.macroFat, c.surfaceBase, "fat/surfaceBase")
         assertAa(c.macroFat, c.surfaceRaised, "fat/surfaceRaised")
+        assertAa(c.macroFat, c.surfaceOverlay, "fat/surfaceOverlay")
     }
 
     @Test
@@ -115,8 +117,10 @@ class ContrastTest {
     @Test
     fun sliderThumb_macroColoursOnRaised_atLeast3to1() {
         listOf(c.macroProtein, c.macroCarbs, c.macroFat).forEach { thumb ->
-            val ratio = contrastRatio(thumb, c.surfaceRaised)
-            assertTrue(ratio >= NON_TEXT, "thumb $thumb vs raised: $ratio < $NON_TEXT")
+            listOf(c.surfaceBase, c.surfaceRaised, c.surfaceOverlay).forEach { surface ->
+                val ratio = contrastRatio(thumb, surface)
+                assertTrue(ratio >= NON_TEXT, "thumb $thumb vs $surface: $ratio < $NON_TEXT")
+            }
         }
     }
 

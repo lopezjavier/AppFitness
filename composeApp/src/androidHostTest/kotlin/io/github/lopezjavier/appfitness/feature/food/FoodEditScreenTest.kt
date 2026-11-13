@@ -267,7 +267,7 @@ class FoodEditScreenTest {
     }
 
     @Test
-    fun nutrientFields_shareOneColumn_andSaturatedAndSugarsAreIndented() {
+    fun nutrientInputs_shareOneColumnAtTheEnd_andSaturatedAndSugarsLabelsAreIndented() {
         manualYogurt()
         showForm()
 
@@ -278,10 +278,13 @@ class FoodEditScreenTest {
             "create_food_nutrient_fiber",
             "create_food_protein_field",
             "create_food_nutrient_salt",
+            "create_food_nutrient_saturated_fat",
+            "create_food_nutrient_sugars",
         ).map(::left).toSet()
         assertEquals(1, column.size)
-        assertTrue(left("create_food_nutrient_saturated_fat") > left("create_food_fat_field"))
-        assertTrue(left("create_food_nutrient_sugars") > left("create_food_carbs_field"))
+        fun labelLeft(text: String) = rule.onNodeWithText(text, useUnmergedTree = true).getUnclippedBoundsInRoot().left
+        assertTrue(labelLeft("de los cuales saturadas") > labelLeft("Grasas total"))
+        assertTrue(labelLeft("de los cuales azúcares") > labelLeft("Hidratos de carbono"))
         rule.onNodeWithTag("create_food_label_title").assertDoesNotExist()
         rule.onNodeWithText("Información de la etiqueta (opcional)").assertDoesNotExist()
         rule.onNodeWithText("Por 100 g").assertDoesNotExist()

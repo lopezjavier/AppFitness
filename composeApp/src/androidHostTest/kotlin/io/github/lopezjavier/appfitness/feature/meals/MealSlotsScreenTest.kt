@@ -326,7 +326,7 @@ class MealSlotsScreenTest {
     fun loadError_offersRetry() {
         show(MealSlotsUiState.LoadError)
 
-        rule.onNodeWithText("No se pudieron cargar tus comidas").assertIsDisplayed()
+        rule.onNodeWithText("No se pudieron cargar tus comidas.").assertIsDisplayed()
         rule.onNodeWithTag("meals_error_action").performClick()
         assertEquals(listOf<MealSlotsEvent>(MealSlotsEvent.Retry), events)
     }

@@ -12,6 +12,7 @@ import androidx.compose.ui.test.onNodeWithTag
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.YearMonth
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNotEquals
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -31,12 +32,10 @@ class MonthCalendarVisualsTest {
     fun monthCalendarGrid_selectedDay_hasLimeBorderAndSelectedContainerFill() {
         var selectedContainer = Color.Unspecified
         var lime = Color.Unspecified
-        var base = Color.Unspecified
         rule.setContent {
             AppTheme {
                 selectedContainer = AppTheme.colors.selectedContainer
                 lime = AppTheme.colors.neonLime
-                base = AppTheme.colors.surfaceBase
                 MonthCalendarGrid(
                     month = YearMonth(2026, 10),
                     markedDays = emptySet(),
@@ -60,8 +59,10 @@ class MonthCalendarVisualsTest {
         // 48 dp cell, 4 dp padding, 1 dp border: the ring is at 4..5 dp, the fill just below it (xxhdpi = 3 px/dp).
         assertEquals(lime, selectedMap[x, 14].withoutAlpha())
         assertEquals(selectedContainer, selectedMap[x, 24].withoutAlpha())
-        assertEquals(base, otherMap[x, 14].withoutAlpha())
-        assertEquals(base, otherMap[x, 24].withoutAlpha())
+        // C-33: a resting day draws no circle, so its pixels are neither the border nor the selected fill.
+        assertEquals(otherMap[x, 14].withoutAlpha(), otherMap[x, 24].withoutAlpha())
+        assertNotEquals(lime, otherMap[x, 14].withoutAlpha())
+        assertNotEquals(selectedContainer, otherMap[x, 24].withoutAlpha())
     }
 
     private fun showCalendar(selected: LocalDate?, today: LocalDate) {

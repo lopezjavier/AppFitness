@@ -206,6 +206,30 @@ class DiaryGroupFlowTest {
     }
 
     @Test
+    fun swipingTheCollapsedGroup_removesTheWholeFood() {
+        start(oats, banana)
+
+        rule.onNodeWithTag(GROUP_TAG).performTouchInput { swipeLeft() }
+        rule.waitForIdle()
+
+        assertEquals(listOf("banana", "oats"), diary.deleted.sorted())
+        rule.onNodeWithTag(GROUP_TAG).assertDoesNotExist()
+    }
+
+    @Test
+    fun anExpandedGroup_isNotSwipeable_onlyItsIngredientsAre() {
+        start(oats, banana)
+        tap(TOGGLE_TAG)
+
+        rule.onNodeWithTag("diary_group_${GROUP}_delete").assertDoesNotExist()
+        rule.onNodeWithTag(GROUP_TAG).performTouchInput { swipeLeft() }
+        rule.waitForIdle()
+
+        assertEquals(emptyList<String>(), diary.deleted)
+        rule.onNodeWithTag(GROUP_TAG).assertExists()
+    }
+
+    @Test
     fun aFoodAddedLater_staysOutsideTheGroup() {
         start(oats, banana)
         tap(TOGGLE_TAG)

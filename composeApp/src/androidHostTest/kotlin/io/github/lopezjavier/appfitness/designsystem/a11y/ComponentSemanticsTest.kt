@@ -78,7 +78,7 @@ class ComponentSemanticsTest {
     fun progressRing_stateDescription_normal() {
         rule.setContent { AppTheme { ProgressRing(1840, 2400) } }
         rule.onNodeWithContentDescription("Calorías")
-            .assert(stateDescription("1.840 de 2.400 kcal"))
+            .assert(stateDescription("1.840 de 2.400 kcal, Te quedan 560 kcal"))
     }
 
     @Test

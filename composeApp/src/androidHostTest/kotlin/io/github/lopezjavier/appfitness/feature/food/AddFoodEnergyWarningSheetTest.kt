@@ -71,8 +71,8 @@ class AddFoodEnergyWarningSheetTest {
 
         rule.onNodeWithTag("add_food_energy_warning").assertExists()
         rule.onNodeWithText("Parece un error:", substring = true).assertExists()
-        rule.onNodeWithText("500 kcal declaradas", substring = true).assertExists()
-        rule.onNodeWithText("250 kcal", substring = true).assertExists()
+        rule.onNodeWithText("Declaradas: 500 kcal", substring = true).assertExists()
+        rule.onNodeWithText("los macros suman 250 kcal", substring = true).assertExists()
         rule.onNodeWithTag("food_sheet_commit").assertExists().assertIsNotEnabled()
         rule.onNodeWithText("Añadir igualmente").assertDoesNotExist()
     }

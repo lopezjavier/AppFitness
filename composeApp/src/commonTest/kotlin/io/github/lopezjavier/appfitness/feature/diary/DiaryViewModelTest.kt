@@ -469,6 +469,23 @@ class DiaryViewModelTest {
     }
 
     @Test
+    fun deleteGroup_removesEveryIngredientOfTheFoodAndNothingElse() = runTest(dispatcher) {
+        diary.server[today] = listOf(
+            entry("a", "breakfast", 150.0).copy(groupId = "g1", groupName = "Avena con plátano"),
+            entry("b", "breakfast", 105.0).copy(groupId = "g1", groupName = "Avena con plátano"),
+            entry("c", "breakfast", 60.0),
+        )
+        val model = viewModel()
+        advanceUntilIdle()
+
+        model.onEvent(DiaryEvent.DeleteGroup("g1"))
+        advanceUntilIdle()
+
+        assertEquals(listOf("a", "b"), diary.deleted.sorted())
+        assertEquals(60.0, model.content().dayTotals.kcal)
+    }
+
+    @Test
     fun aFailedDelete_keepsTheEntryAndReportsTheError() = runTest(dispatcher) {
         seedPlanExample()
         diary.failDelete()

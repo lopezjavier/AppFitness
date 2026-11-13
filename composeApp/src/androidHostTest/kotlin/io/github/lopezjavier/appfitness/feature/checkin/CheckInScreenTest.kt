@@ -101,14 +101,14 @@ class CheckInScreenTest {
     fun weeklySummary_showsVolumeWorkoutsAndSetsWithTheirDifference() {
         show()
 
-        rule.onNodeWithTag("checkin_summary_volume").assertTextContains("12.400 kg", substring = true)
-        rule.onNodeWithTag("checkin_summary_volume").assertTextContains("+800 kg vs semana anterior", substring = true)
-        rule.onNodeWithTag("checkin_summary_workouts").assertTextContains("4 entrenos", substring = true)
-        rule.onNodeWithTag(
-            "checkin_summary_workouts",
-        ).assertTextContains("+1 entreno vs semana anterior", substring = true)
-        rule.onNodeWithTag("checkin_summary_sets").assertTextContains("40 series", substring = true)
-        rule.onNodeWithTag("checkin_summary_sets").assertTextContains("+10 series vs semana anterior", substring = true)
+        rule.onNodeWithTag("checkin_summary_volume").assertTextContains("12.400", substring = true)
+        rule.onNodeWithTag("checkin_summary_volume").assertTextContains("kg", substring = true)
+        rule.onNodeWithTag("checkin_summary_volume").assertTextContains("+800", substring = true)
+        rule.onNodeWithTag("checkin_summary_workouts").assertTextContains("4", substring = true)
+        rule.onNodeWithTag("checkin_summary_workouts").assertTextContains("+1", substring = true)
+        rule.onNodeWithTag("checkin_summary_sets").assertTextContains("40", substring = true)
+        rule.onNodeWithTag("checkin_summary_sets").assertTextContains("+10", substring = true)
+        rule.onNodeWithTag("checkin_summary_delta_caption").assertTextContains("Comparado con la semana anterior")
     }
 
     @Test
@@ -156,12 +156,10 @@ class CheckInScreenTest {
         val empty = TrainingSummary(0, 0, 0.0, 0)
         show(ready(summary(current = empty, previous = empty, records = emptyList())))
 
-        rule.onNodeWithTag("checkin_summary_volume").assertTextContains("0 kg", substring = true)
-        rule.onNodeWithTag("checkin_summary_workouts").assertTextContains("0 entrenos", substring = true)
-        rule.onNodeWithTag("checkin_summary_sets").assertTextContains("0 series", substring = true)
-        rule.onNodeWithTag(
-            "checkin_summary_volume",
-        ).assertTextContains("Igual que la semana anterior", substring = true)
+        rule.onNodeWithTag("checkin_summary_volume").assertTextContains("0", substring = true)
+        rule.onNodeWithTag("checkin_summary_volume").assertTextContains("Igual", substring = true)
+        rule.onNodeWithTag("checkin_summary_workouts").assertTextContains("Igual", substring = true)
+        rule.onNodeWithTag("checkin_summary_sets").assertTextContains("Igual", substring = true)
         rule.onNodeWithTag("checkin_summary_records_empty").assertTextContains("Sin récords esta semana")
     }
 

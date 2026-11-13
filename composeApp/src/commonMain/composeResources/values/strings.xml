@@ -1680,6 +1680,7 @@
     <string name="weekday_letter_7">D</string>
     <string name="weekday_assigned_to">Ya asignado a %1$s</string>
     <string name="catalog_section_weekday_selector">Selector de días</string>
+    <string name="catalog_section_diary_parts">Diario: acciones compactas y macros</string>
     <string name="meal_defaults_title">Comidas por defecto</string>
     <string name="meal_defaults_open">Comidas por defecto</string>
     <string name="meal_defaults_open_hint">Guarda los cambios para abrir las comidas por defecto</string>

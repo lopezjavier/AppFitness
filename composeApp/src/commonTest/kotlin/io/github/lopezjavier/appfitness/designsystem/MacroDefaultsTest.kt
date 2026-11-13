@@ -2,6 +2,7 @@ package io.github.lopezjavier.appfitness.designsystem
 
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertNotEquals
 
 class MacroDefaultsTest {
     private val c = KineticDarkColors
@@ -19,8 +20,8 @@ class MacroDefaultsTest {
     }
 
     @Test
-    fun color_fat_isAmber() {
+    fun color_fat_isPink() {
         assertEquals(c.macroFat, MacroDefaults.color(Macro.Fat, c))
-        assertEquals(c.energyAmber, MacroDefaults.color(Macro.Fat, c))
+        assertNotEquals(c.energyAmber, MacroDefaults.color(Macro.Fat, c))
     }
 }
