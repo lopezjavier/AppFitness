@@ -61,11 +61,14 @@ One row per ux-critic finding. The PM has the dispositions recorded here as the 
 | V-12 | R-35 glossary wording | 1 | IN REVIEW | 05 R-35, §10 |
 | V-13 | R-44 dates and numbers; fix only if the sweep confirms a violation | 1 | PROPOSED | 05 R-44 |
 | C-44 | meal card header redesign: name + chevron toggle row, buttons at the trailing edge | 1 | IN REVIEW (batch 3; adjusted: exactly two buttons, save icon (not the bookmark-plus) and lime text button "+Añadir", no ⋮) | 05 R-75 |
+| C-57 | meal card header compact layout (batch 4 feedback + final decisions): kcal pill right of name + chevron, macros under the name, both buttons on the right, no top padding, two-line name wrap, same collapsed and expanded | 1 | IN REVIEW (batch 4, PENDING until the user approves in the emulator; supersedes the pill-under-the-name layout of C-44/C-47) | 05 R-75, §6.0, §9 |
+| C-58 | both buttons always visible collapsed and expanded; only the save button (and kcal pill) hidden on an empty meal | 1 | IN REVIEW (batch 4; supersedes C-49) | 05 R-75, §10 |
+| C-59 | save icon = outlined rounded bookmark with a plus inside in a circular tonal button (`ic_save_meal`); replaces the floppy `ic_save` | 1 | IN REVIEW (batch 4; supersedes the "no plus" wording of C-46/C-48) | 05 §6.0, §10 |
 | C-45 | critic's original meal card layout variant | 1 | SUPERSEDED by C-55 as adjusted by the user | 05 R-75 |
 | C-46 | compact tonal icon button (48 dp target, 36 dp circle) for the save icon only; the "+" becomes a lime compact text button "+Añadir" (48 dp target) | 1 | IN REVIEW (batch 3; final user decision 2026-11-13) | 05 §6.0, R-75 |
 | C-47 | compact kcal pill under the meal name, no border; none for an empty meal | 1 | IN REVIEW (batch 3) | 05 §6.0, R-75 |
 | C-48 | "Guardar como comida" icon button (new icon chosen at build, not the bookmark-plus) only with entries; empty meal has none | 1 | IN REVIEW (batch 3; final user decision: no ⋮ menu, no separate saved-comida icon) | 05 R-75 |
-| C-49 | "+" shown only while the card is expanded | 1 | IN REVIEW (batch 3) | 05 R-75 |
+| C-49 | "+" shown only while the card is expanded | 1 | SUPERSEDED by C-58 (user, 2026-11-13, batch 4: both buttons always visible) | 05 R-75 |
 | C-50 | no ⋮ on a food row (swipe and edit sheet carry delete) | 1 | IN REVIEW (batch 3) | 05 R-75 |
 | C-51 | saved-comida icon in the meal card header | 1 | REJECTED (user, 2026-11-13): saved comidas stay in the "Guardadas" tab | 05 §8 Decided |
 | C-52 | search tab row 14 sp, 6/8 dp padding, full-bleed; "Más comidos" -> "Habituales" | 1 | IN REVIEW (batch 3) | 05 R-77, §6.0, §10 |
@@ -74,10 +77,10 @@ One row per ux-critic finding. The PM has the dispositions recorded here as the 
 | C-55 | meal card per the critic, with the user's corrections: exactly two buttons (save icon, not the bookmark-plus; lime text button "+Añadir"), no ⋮, macros line always visible, collapsed card about 100 dp | 1 | IN REVIEW (batch 3; as adjusted) | 05 R-75 |
 | C-56 | critic's third header variant (extra header buttons) | 1 | SUPERSEDED / REJECTED: at most two buttons | 05 §8 Decided |
 | V-14 | tab row shows no indicator while scrolling: indicator stays visible | 1 | IN REVIEW (batch 3) | 05 §6.0, R-77 |
-| V-15 | compact hero macro labels break mid-word: never | 1 | IN REVIEW (batch 3) | 05 R-76 |
+| V-15 | compact hero macro labels break mid-word: never | 1 | REWORK (still failing on device after batch 3: "PRO/T.", "CAR/B.", "GRAS/A"; batch 4 states it testably: single-line labels, fall back to ring over three bars, host test at 360 dp and font scale 1.0/1.3/2.0; PENDING) | 05 R-76 |
 | V-16 | search tab row full-bleed edge to edge | 1 | IN REVIEW (batch 3) | 05 R-77 |
 | V-17 | ⋮ "Más acciones de %1$s" wording on the meal card | 1 | WITHDRAWN (user, 2026-11-13): the meal card has no ⋮; its bookmark-plus keeps "Guardar como comida" | 05 §10 |
-| U-1 | diary entry with ingredients: collapsed swipe removes the whole food (user request, explicit exception to "no behaviour change") | 1 | IN REVIEW | 05 R-71 |
+| U-1 | diary entry with ingredients: collapsed swipe removes the whole food (user request, explicit exception to "no behaviour change"; reconfirmed in batch 4, unchanged) | 1 | IN REVIEW | 05 R-71 |
 
 Status values:
 - `PROPOSED`: reported by the critic, not decided yet.
