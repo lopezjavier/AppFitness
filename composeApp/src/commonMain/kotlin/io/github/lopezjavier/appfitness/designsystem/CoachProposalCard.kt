@@ -61,7 +61,6 @@ fun CoachProposalCard(
                 onClick = onDiscard,
                 modifier = Modifier.weight(1f).testTag("${testTagPrefix}_discard"),
                 enabled = !busy,
-                tone = GhostTone.Neutral,
             )
             PrimaryButton(
                 text = acceptText,

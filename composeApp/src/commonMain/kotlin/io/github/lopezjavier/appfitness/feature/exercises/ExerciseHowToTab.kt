@@ -20,7 +20,7 @@ import io.github.lopezjavier.appfitness.composeapp.resources.exercise_attributio
 import io.github.lopezjavier.appfitness.composeapp.resources.exercise_detail_no_instructions
 import io.github.lopezjavier.appfitness.composeapp.resources.exercise_detail_tips
 import io.github.lopezjavier.appfitness.composeapp.resources.exercise_step_number
-import io.github.lopezjavier.appfitness.composeapp.resources.ic_inbox
+import io.github.lopezjavier.appfitness.composeapp.resources.ic_description
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
 import io.github.lopezjavier.appfitness.designsystem.EmptyState
 import io.github.lopezjavier.appfitness.designsystem.ExerciseLayoutDefaults
@@ -42,7 +42,7 @@ internal fun ExerciseHowToTab(
     if (info == null || (info.instructions.isEmpty() && info.tips.isEmpty())) {
         Box(modifier, contentAlignment = Alignment.Center) {
             EmptyState(
-                icon = Res.drawable.ic_inbox,
+                icon = Res.drawable.ic_description,
                 message = stringResource(Res.string.exercise_detail_no_instructions),
                 testTagPrefix = "exercise_detail_how_to_empty",
             )

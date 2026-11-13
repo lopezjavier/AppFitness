@@ -18,7 +18,7 @@ import androidx.compose.ui.platform.testTag
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.github.lopezjavier.appfitness.composeapp.resources.Res
 import io.github.lopezjavier.appfitness.composeapp.resources.action_retry
-import io.github.lopezjavier.appfitness.composeapp.resources.ic_inbox
+import io.github.lopezjavier.appfitness.composeapp.resources.ic_bar_chart
 import io.github.lopezjavier.appfitness.composeapp.resources.muscle_volume_all
 import io.github.lopezjavier.appfitness.composeapp.resources.muscle_volume_caption
 import io.github.lopezjavier.appfitness.composeapp.resources.muscle_volume_empty_message
@@ -78,7 +78,7 @@ fun MuscleVolumeScreen(
 
                 MuscleVolumeUiState.Empty -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                     EmptyState(
-                        icon = Res.drawable.ic_inbox,
+                        icon = Res.drawable.ic_bar_chart,
                         message = stringResource(Res.string.muscle_volume_empty_message),
                         action = AppStateAction(stringResource(Res.string.strength_empty_cta), onStartWorkout),
                         testTagPrefix = "muscle_volume_empty",

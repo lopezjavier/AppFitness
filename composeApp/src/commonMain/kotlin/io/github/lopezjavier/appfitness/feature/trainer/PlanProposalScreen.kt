@@ -473,7 +473,6 @@ private fun ProposalFooter(
             onClick = { onEvent(PlanProposalEvent.Discard) },
             modifier = Modifier.fillMaxWidth().testTag("plan_proposal_discard"),
             enabled = !state.busy && online,
-            tone = GhostTone.Neutral,
             loading = state.discarding,
         )
     }

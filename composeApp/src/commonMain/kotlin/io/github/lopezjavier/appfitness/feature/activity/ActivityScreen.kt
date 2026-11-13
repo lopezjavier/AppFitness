@@ -34,7 +34,7 @@ import io.github.lopezjavier.appfitness.composeapp.resources.activity_empty_titl
 import io.github.lopezjavier.appfitness.composeapp.resources.activity_error
 import io.github.lopezjavier.appfitness.composeapp.resources.activity_title
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_calendar
-import io.github.lopezjavier.appfitness.composeapp.resources.ic_inbox
+import io.github.lopezjavier.appfitness.composeapp.resources.ic_steps
 import io.github.lopezjavier.appfitness.designsystem.AppLineChartSkeleton
 import io.github.lopezjavier.appfitness.designsystem.AppScreen
 import io.github.lopezjavier.appfitness.designsystem.AppStateAction
@@ -198,7 +198,7 @@ private fun ActivityBody(
         else -> StateColumn(healthSync, onHealthEvent) {
             when (state) {
                 ActivityUiState.Empty -> EmptyState(
-                    icon = Res.drawable.ic_inbox,
+                    icon = Res.drawable.ic_steps,
                     message = stringResource(Res.string.activity_empty_message),
                     title = stringResource(Res.string.activity_empty_title),
                     testTagPrefix = "activity_empty",

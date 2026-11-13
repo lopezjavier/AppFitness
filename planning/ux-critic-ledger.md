@@ -37,3 +37,5 @@ Status values:
 - `DEFERRED`: postponed (link: E9 row or round).
 
 A round that changes tokens or components does not start while the previous such round has rows `IN REVIEW`.
+
+Round 0 build state (T-295): all rows C-01…C-19 and V-1…V-4 are built on `feat/ui-design-system` and the PENDING tags are removed from `05-design-system.md`. Every row stays `IN REVIEW` until the user's emulator verdict sets `ADOPTED` or `REWORK`.

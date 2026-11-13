@@ -31,6 +31,7 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -230,14 +231,22 @@ private fun DayCellView(cell: DayCell, cellWidth: Dp, enabled: Boolean, onSelect
             .testTag("month_calendar_day_${cell.date}")
             .padding(Spacing.xs)
             .clip(AppShapes.full)
-            .background(if (cell.selected) colors.neonLime else colors.surfaceBase)
-            .let { if (cell.isToday) it.border(AppBorder.focus, colors.neonLime, AppShapes.full) else it },
+            .background(if (cell.selected) colors.selectedContainer else colors.surfaceBase)
+            .let {
+                when {
+                    cell.selected -> it.border(AppBorder.thin, colors.neonLime, AppShapes.full)
+                    cell.isToday -> it.border(AppBorder.focus, colors.neonLime, AppShapes.full)
+                    else -> it
+                }
+            },
         contentAlignment = Alignment.Center,
     ) {
         Text(
             text = cell.date.day.toString(),
-            style = AppTheme.typography.bodyMedium,
-            color = if (cell.selected) colors.onNeonLime else colors.textPrimary,
+            style = AppTheme.typography.bodyMedium.let {
+                if (cell.selected) it.copy(fontWeight = FontWeight.W700) else it
+            },
+            color = if (cell.selected) colors.neonLime else colors.textPrimary,
             modifier = Modifier.clearAndSetSemantics {},
         )
         if (cell.marked) {
@@ -247,7 +256,7 @@ private fun DayCellView(cell: DayCell, cellWidth: Dp, enabled: Boolean, onSelect
                     .padding(bottom = Spacing.xs)
                     .size(MonthCalendarGridDefaults.MarkSize)
                     .clip(AppShapes.full)
-                    .background(if (cell.selected) colors.onNeonLime else colors.neonLime),
+                    .background(colors.neonLime),
             )
         }
     }

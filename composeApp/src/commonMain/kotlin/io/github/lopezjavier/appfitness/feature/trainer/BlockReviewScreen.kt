@@ -274,7 +274,6 @@ private fun DecisionFailure(retryTag: String, onRetry: () -> Unit) {
             text = stringResource(Res.string.action_retry),
             onClick = onRetry,
             modifier = Modifier.testTag(retryTag),
-            tone = GhostTone.Neutral,
         )
     }
 }

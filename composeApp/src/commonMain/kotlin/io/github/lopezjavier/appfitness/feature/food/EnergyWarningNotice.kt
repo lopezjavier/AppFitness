@@ -112,7 +112,6 @@ internal fun EnergyWarningNotice(
                 text = fixLabel,
                 onClick = onFix,
                 modifier = Modifier.fillMaxWidth().testTag("${testTagPrefix}_fix"),
-                tone = GhostTone.Action,
             )
         }
     }

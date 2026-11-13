@@ -93,7 +93,6 @@ internal fun PlanWeeksSection(
                     onClick = request.onRequest,
                     modifier = Modifier.weight(1f).testTag("trainer_deload_request"),
                     enabled = request.online && !request.busy,
-                    tone = GhostTone.Neutral,
                     loading = request.busy,
                 )
                 HelpButton(

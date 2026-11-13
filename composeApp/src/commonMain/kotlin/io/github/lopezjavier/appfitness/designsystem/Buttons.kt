@@ -40,10 +40,10 @@ import org.jetbrains.compose.resources.painterResource
 enum class AppButtonVariant { Primary, Secondary, Ghost }
 
 /**
- * Colour treatment of a [GhostButton]. [Action] and [Neutral] are identical since round 0 (C-08: neutral label and
- * border, no cyan); the duplicate stays until the GhostButton audit (T-295). [Destructive] uses the error colour.
+ * Colour treatment of a [GhostButton]. [Action] is the neutral label and border since round 0 (C-08, no cyan);
+ * the Neutral tone was removed in the T-295 audit. [Destructive] uses the error colour.
  */
-enum class GhostTone { Action, Neutral, Destructive }
+enum class GhostTone { Action, Destructive }
 
 /** Colours of a button state. A null [border] draws none. */
 @Immutable
@@ -104,7 +104,7 @@ object AppButtonDefaults {
         AppButtonVariant.Ghost -> {
             val accent =
                 when (ghostTone) {
-                    GhostTone.Action, GhostTone.Neutral -> appColors.textPrimary
+                    GhostTone.Action -> appColors.textPrimary
                     GhostTone.Destructive -> appColors.error
                 }
             AppButtonColors(

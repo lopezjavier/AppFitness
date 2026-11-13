@@ -86,7 +86,7 @@ fun ChecklistRow(
 private fun CheckGlyph(checked: Boolean, enabled: Boolean) {
     val colors = AppTheme.colors
     val container = if (checked) colors.neonLime else colors.surfaceOverlay
-    val glyph = if (checked) colors.onNeonLime else colors.ghostData
+    val glyph = if (checked) colors.onNeonLime else colors.textTertiary
     Box(
         Modifier
             .padding(top = Spacing.xs)

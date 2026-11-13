@@ -72,7 +72,6 @@ private fun AccountActions(state: AccountUiState, onSignOut: () -> Unit, onDelet
             text = stringResource(Res.string.profile_sign_out),
             onClick = onSignOut,
             modifier = Modifier.fillMaxWidth().testTag("preferences_sign_out"),
-            tone = GhostTone.Neutral,
         )
         val protectedNote = stringResource(Res.string.profile_account_protected)
         val isProtected = state.protection == AccountProtection.Protected
