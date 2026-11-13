@@ -18,7 +18,7 @@ import io.github.lopezjavier.appfitness.composeapp.resources.block_start_folders
 import io.github.lopezjavier.appfitness.composeapp.resources.block_start_scratch
 import io.github.lopezjavier.appfitness.composeapp.resources.block_start_scratch_hint
 import io.github.lopezjavier.appfitness.composeapp.resources.block_start_title
-import io.github.lopezjavier.appfitness.composeapp.resources.ic_inbox
+import io.github.lopezjavier.appfitness.composeapp.resources.ic_folder
 import io.github.lopezjavier.appfitness.designsystem.AppListRow
 import io.github.lopezjavier.appfitness.designsystem.AppPickerSheet
 import io.github.lopezjavier.appfitness.designsystem.AppStateAction
@@ -91,7 +91,7 @@ private fun FolderPicker(picker: FolderPickerState, onEvent: (BeforeStartEvent) 
 
         is FolderPickerState.Loaded -> if (picker.folders.isEmpty()) {
             EmptyState(
-                icon = Res.drawable.ic_inbox,
+                icon = Res.drawable.ic_folder,
                 message = stringResource(Res.string.block_start_folders_empty_reason),
                 title = stringResource(Res.string.block_start_folders_empty),
                 testTagPrefix = "block_start_folders_empty",

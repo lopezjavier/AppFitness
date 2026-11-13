@@ -33,7 +33,7 @@ import io.github.lopezjavier.appfitness.composeapp.resources.block_review_phase_
 import io.github.lopezjavier.appfitness.composeapp.resources.block_review_phase_kept
 import io.github.lopezjavier.appfitness.composeapp.resources.block_review_phase_offline
 import io.github.lopezjavier.appfitness.composeapp.resources.block_review_title
-import io.github.lopezjavier.appfitness.composeapp.resources.ic_inbox
+import io.github.lopezjavier.appfitness.composeapp.resources.ic_nav_trainer
 import io.github.lopezjavier.appfitness.composeapp.resources.trainer_block_create_action
 import io.github.lopezjavier.appfitness.designsystem.AppCard
 import io.github.lopezjavier.appfitness.designsystem.AppScreen
@@ -113,7 +113,7 @@ fun BlockReviewScreen(
 
                 BlockReviewUiState.Empty -> Box(Modifier.fillMaxSize(), Alignment.Center) {
                     EmptyState(
-                        icon = Res.drawable.ic_inbox,
+                        icon = Res.drawable.ic_nav_trainer,
                         message = stringResource(Res.string.block_review_empty),
                         testTagPrefix = "block_review_empty",
                     )

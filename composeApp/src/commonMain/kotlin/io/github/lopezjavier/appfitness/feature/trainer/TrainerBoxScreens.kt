@@ -18,7 +18,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.github.lopezjavier.appfitness.composeapp.resources.Res
-import io.github.lopezjavier.appfitness.composeapp.resources.ic_inbox
+import io.github.lopezjavier.appfitness.composeapp.resources.ic_nav_trainer
 import io.github.lopezjavier.appfitness.composeapp.resources.trainer_block_title
 import io.github.lopezjavier.appfitness.composeapp.resources.trainer_box_empty
 import io.github.lopezjavier.appfitness.composeapp.resources.trainer_plan_section
@@ -103,7 +103,7 @@ fun TrainerBoxScreen(
                     BoxContent(box, state, online, onEvent, actions, exerciseNames)
                 } else {
                     EmptyState(
-                        icon = Res.drawable.ic_inbox,
+                        icon = Res.drawable.ic_nav_trainer,
                         message = stringResource(Res.string.trainer_box_empty),
                         testTagPrefix = "${box.tagPrefix}_empty",
                     )

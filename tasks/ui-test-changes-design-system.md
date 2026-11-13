@@ -23,3 +23,10 @@ Tests changed or added in commit e4ce774b (check they still pass after later bat
 - Goldens expected to change: `ProgressRing` and `ScoreRing` (captions and status 14 sp W600), `AppLinearProgress` and `MacroProgressBar` (`trackInactive` track and 4 dp `textTertiary` stop dot), `SleepStagesBar` (cyan ramp, Unknown now `textTertiary`), `EmptyState` and `ErrorState` (32 dp glyph in a 72 dp `surfaceOverlay` circle; error buttons min width 200 dp), every gallery entry showing them (state messages, rings, macro bars, sleep).
 - Tests to review: `ProgressRingTest` (caption and status style assertions, `labelTechnical` expected before), any test asserting `SleepStagesBarDefaults.color` per kind, any test of `AppStateAction` button widths or `EmptyStateDefaults.IconSize` (48 dp before, now 32 dp), `StateMessages` tests asserting the icon size.
 - New coverage to add: stop dot present on `AppLinearProgress`/`MacroProgressBar`; ramp alphas (Deep 100 %, REM 75 %, Light 50 %); both error buttons at least 200 dp wide.
+
+## T-294 (EmptyState icons sweep A and Outlined icons V-3)
+
+- EmptyState icons now per domain: Trainer (`ic_nav_trainer`, `ic_swap`, `ic_folder`, `ic_description`, `ic_calendar`), notifications (`ic_notifications`), weight circumferences (`ic_straighten`), gallery state messages (`ic_folder`, `ic_search`). New drawables: `ic_folder`, `ic_description`, `ic_straighten`. Sweep B (Diario, Entreno, analytics, activity, exercises, food, routines, meals) still passes `ic_inbox`.
+- Seven drawables converted to Outlined: `ic_info`, `ic_photo_camera`, `ic_photo_library`, `ic_label`, `ic_auto_awesome` (hand-drawn stroked), `ic_nav_trainer` (hand-drawn stroked), `ic_health_connect` (outlined heart).
+- Goldens expected to change: every golden showing those icons (info, camera, library, label, sparkle, Trainer tab, Health Connect source rows), the gallery state-messages entries, and any screen golden of the Trainer, notifications and circumference empty states.
+- New test: `OutlinedIconsTest` (reads the 7 drawable files, asserts the Outlined header; not run yet). Not run: no tests executed in this batch.

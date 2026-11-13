@@ -17,7 +17,6 @@ import androidx.compose.ui.platform.testTag
 import io.github.lopezjavier.appfitness.composeapp.resources.Res
 import io.github.lopezjavier.appfitness.composeapp.resources.action_retry
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_chevron_right
-import io.github.lopezjavier.appfitness.composeapp.resources.ic_inbox
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_notifications
 import io.github.lopezjavier.appfitness.composeapp.resources.notifications_block_end_title
 import io.github.lopezjavier.appfitness.composeapp.resources.notifications_checkin_answered_supporting
@@ -122,7 +121,7 @@ private fun CenterContent(
         if (state.reminders.isEmpty()) {
             item(key = "empty") {
                 EmptyState(
-                    icon = Res.drawable.ic_inbox,
+                    icon = Res.drawable.ic_notifications,
                     message = stringResource(Res.string.notifications_empty_message),
                     title = stringResource(Res.string.notifications_empty_title),
                     modifier = Modifier.fillMaxWidth().padding(vertical = Spacing.lg).testTag("notifications_empty"),

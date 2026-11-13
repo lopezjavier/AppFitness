@@ -35,8 +35,9 @@ import io.github.lopezjavier.appfitness.composeapp.resources.catalog_status_note
 import io.github.lopezjavier.appfitness.composeapp.resources.catalog_status_suggestion
 import io.github.lopezjavier.appfitness.composeapp.resources.catalog_summary_card_line
 import io.github.lopezjavier.appfitness.composeapp.resources.catalog_summary_card_title
-import io.github.lopezjavier.appfitness.composeapp.resources.ic_inbox
+import io.github.lopezjavier.appfitness.composeapp.resources.ic_folder
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_photo_camera
+import io.github.lopezjavier.appfitness.composeapp.resources.ic_search
 import io.github.lopezjavier.appfitness.composeapp.resources.live_discomfort_resolve
 import io.github.lopezjavier.appfitness.composeapp.resources.live_discomfort_resolve_offline
 import io.github.lopezjavier.appfitness.designsystem.ActionRow
@@ -160,14 +161,14 @@ private fun StateMessagesSection() {
         AppCard(Modifier.fillMaxWidth()) {
             Column(verticalArrangement = Arrangement.spacedBy(Spacing.lg)) {
                 EmptyState(
-                    icon = Res.drawable.ic_inbox,
+                    icon = Res.drawable.ic_folder,
                     message = stringResource(Res.string.catalog_empty_message),
                     title = stringResource(Res.string.catalog_empty_title),
                     action = addAction,
                     testTagPrefix = "catalog_empty_state",
                 )
                 EmptyState(
-                    icon = Res.drawable.ic_inbox,
+                    icon = Res.drawable.ic_search,
                     message = stringResource(Res.string.catalog_empty_plain_message),
                     testTagPrefix = "catalog_empty_state_plain",
                 )

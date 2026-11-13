@@ -17,7 +17,7 @@ import io.github.lopezjavier.appfitness.composeapp.resources.block_replace_empty
 import io.github.lopezjavier.appfitness.composeapp.resources.block_replace_error
 import io.github.lopezjavier.appfitness.composeapp.resources.block_replace_reset
 import io.github.lopezjavier.appfitness.composeapp.resources.block_replace_title
-import io.github.lopezjavier.appfitness.composeapp.resources.ic_inbox
+import io.github.lopezjavier.appfitness.composeapp.resources.ic_swap
 import io.github.lopezjavier.appfitness.designsystem.AppListRow
 import io.github.lopezjavier.appfitness.designsystem.AppPickerSheet
 import io.github.lopezjavier.appfitness.designsystem.AppStateAction
@@ -76,7 +76,7 @@ internal fun BlockReplaceSheet(
 
                 AlternativesState.Empty -> Centered {
                     EmptyState(
-                        icon = Res.drawable.ic_inbox,
+                        icon = Res.drawable.ic_swap,
                         message = stringResource(Res.string.block_replace_empty),
                         testTagPrefix = "block_preview_replace_empty",
                     )
