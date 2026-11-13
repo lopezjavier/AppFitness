@@ -90,7 +90,7 @@ fun ScoreRing(
         PillContainer(modifier = Modifier.clearAndSetSemantics {}) {
             Text(
                 text = bandLabel,
-                style = ProgressRingDefaults.statusStyle(AppTheme.typography),
+                style = ProgressRingDefaults.captionStyle(AppTheme.typography),
                 color = tint,
                 textAlign = TextAlign.Center,
                 modifier = bandTag?.let { Modifier.testTag(it) } ?: Modifier,

@@ -1,9 +1,11 @@
 package io.github.lopezjavier.appfitness.designsystem
 
 import androidx.compose.ui.test.assertContentDescriptionEquals
+import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertHeightIsAtLeast
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.v2.createComposeRule
+import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
@@ -42,14 +44,13 @@ class WorkoutRowTest {
     }
 
     @Test
-    fun theRow_showsNameDateAndTheThreeFigures() {
+    fun theRow_showsNameDateAndOneStatsLine() {
         show()
 
         rule.onNodeWithText("Push", useUnmergedTree = true).assertIsDisplayed()
         rule.onNodeWithText("lun, 24 oct", useUnmergedTree = true).assertIsDisplayed()
-        rule.onNodeWithText("52 min", useUnmergedTree = true).assertIsDisplayed()
-        rule.onNodeWithText("8.400 kg", useUnmergedTree = true).assertIsDisplayed()
-        rule.onNodeWithText("18 series", useUnmergedTree = true).assertIsDisplayed()
+        rule.onNodeWithText("52 min · 8.400 kg · 18 series", useUnmergedTree = true).assertIsDisplayed()
+        rule.onAllNodesWithText("52 min", useUnmergedTree = true).assertCountEquals(0)
     }
 
     @Test

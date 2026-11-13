@@ -39,6 +39,8 @@ import io.github.lopezjavier.appfitness.composeapp.resources.exercise_picker_tit
 import io.github.lopezjavier.appfitness.composeapp.resources.exercise_save_failed
 import io.github.lopezjavier.appfitness.composeapp.resources.exercise_search_label
 import io.github.lopezjavier.appfitness.composeapp.resources.exercise_search_placeholder
+import io.github.lopezjavier.appfitness.composeapp.resources.ic_nav_workout
+import io.github.lopezjavier.appfitness.composeapp.resources.ic_search
 import io.github.lopezjavier.appfitness.designsystem.AppOption
 import io.github.lopezjavier.appfitness.designsystem.AppScreen
 import io.github.lopezjavier.appfitness.designsystem.AppSearchField
@@ -258,12 +260,14 @@ private fun PickerEmpty(state: ExercisePickerUiState.Content) {
         when {
             state.totalCount == 0 ->
                 EmptyState(
+                    icon = Res.drawable.ic_nav_workout,
                     message = stringResource(Res.string.exercise_empty_catalog),
                     testTagPrefix = "exercise_picker_empty",
                 )
 
             state.query.isBlank() ->
                 EmptyState(
+                    icon = Res.drawable.ic_search,
                     message = hint,
                     title = stringResource(Res.string.exercise_empty_no_results_filters),
                     testTagPrefix = "exercise_picker_empty",
@@ -271,6 +275,7 @@ private fun PickerEmpty(state: ExercisePickerUiState.Content) {
 
             else ->
                 EmptyState(
+                    icon = Res.drawable.ic_search,
                     message = hint,
                     title = stringResource(Res.string.exercise_empty_no_results, state.query.trim()),
                     testTagPrefix = "exercise_picker_empty",

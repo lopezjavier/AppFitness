@@ -14,6 +14,8 @@ import androidx.compose.ui.test.getUnclippedBoundsInRoot
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.height
 import androidx.compose.ui.unit.width
@@ -45,6 +47,22 @@ class AppTopBarTest {
             contentDescription = "Acción ${index + 1}",
             onClick = { clicks += index + 1 },
         )
+    }
+
+    @Test
+    fun titleStyle_isTitleLargeSizeInBold700() {
+        var title: TextStyle? = null
+        var titleLarge: TextStyle? = null
+        rule.setContent {
+            AppTheme {
+                title = AppTopBarDefaults.titleStyle
+                titleLarge = AppTheme.typography.titleLarge
+            }
+        }
+
+        assertEquals(titleLarge!!.fontSize, title!!.fontSize)
+        assertEquals(titleLarge.lineHeight, title.lineHeight)
+        assertEquals(FontWeight.W700, title.fontWeight)
     }
 
     @Test

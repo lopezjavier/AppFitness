@@ -43,6 +43,7 @@ import io.github.lopezjavier.appfitness.designsystem.AppConfirmDialog
 import io.github.lopezjavier.appfitness.designsystem.AppIconButton
 import io.github.lopezjavier.appfitness.designsystem.AppScreen
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
+import io.github.lopezjavier.appfitness.designsystem.AppTopBarDefaults
 import io.github.lopezjavier.appfitness.designsystem.LocalAppHaptics
 import io.github.lopezjavier.appfitness.designsystem.LocalAppMessages
 import io.github.lopezjavier.appfitness.designsystem.Spacing
@@ -178,7 +179,7 @@ private fun EntryHeader(title: String, onOpenHistory: () -> Unit, onOpenSearch: 
     ) {
         Text(
             text = title,
-            style = AppTheme.typography.titleLarge,
+            style = AppTopBarDefaults.titleStyle,
             color = AppTheme.colors.textPrimary,
             modifier = Modifier.weight(1f).semantics { heading() },
         )

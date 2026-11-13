@@ -13,6 +13,7 @@ import androidx.compose.ui.semantics.semantics
 import io.github.lopezjavier.appfitness.composeapp.resources.Res
 import io.github.lopezjavier.appfitness.composeapp.resources.action_not_now
 import io.github.lopezjavier.appfitness.composeapp.resources.block_replace_title
+import io.github.lopezjavier.appfitness.composeapp.resources.ic_swap
 import io.github.lopezjavier.appfitness.composeapp.resources.trainer_discomfort_change_action
 import io.github.lopezjavier.appfitness.composeapp.resources.trainer_discomfort_note_days14
 import io.github.lopezjavier.appfitness.composeapp.resources.trainer_discomfort_note_sessions3
@@ -132,6 +133,7 @@ private fun SwapPickerSheet(
                 }
 
                 picker.candidates.isEmpty() -> EmptyState(
+                    icon = Res.drawable.ic_swap,
                     message = stringResource(Res.string.trainer_swap_picker_empty),
                     testTagPrefix = "trainer_swap_picker_empty",
                 )

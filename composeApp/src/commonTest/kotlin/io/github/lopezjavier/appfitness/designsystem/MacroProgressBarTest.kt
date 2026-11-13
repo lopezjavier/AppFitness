@@ -60,8 +60,8 @@ class MacroProgressBarTest {
     }
 
     @Test
-    fun trackColor_isOverlay() {
-        assertEquals(KineticDarkColors.surfaceOverlay, MacroProgressBarDefaults.trackColor(KineticDarkColors))
+    fun trackColor_isTrackInactive() {
+        assertEquals(KineticDarkColors.trackInactive, MacroProgressBarDefaults.trackColor(KineticDarkColors))
     }
 
     @Test

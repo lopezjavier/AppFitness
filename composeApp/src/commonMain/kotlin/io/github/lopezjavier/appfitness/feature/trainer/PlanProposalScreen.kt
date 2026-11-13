@@ -73,7 +73,6 @@ import io.github.lopezjavier.appfitness.designsystem.AppScreen
 import io.github.lopezjavier.appfitness.designsystem.AppShapes
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
 import io.github.lopezjavier.appfitness.designsystem.GhostButton
-import io.github.lopezjavier.appfitness.designsystem.GhostTone
 import io.github.lopezjavier.appfitness.designsystem.HelpButton
 import io.github.lopezjavier.appfitness.designsystem.InlineNote
 import io.github.lopezjavier.appfitness.designsystem.ListSectionHeader
@@ -473,7 +472,6 @@ private fun ProposalFooter(
             onClick = { onEvent(PlanProposalEvent.Discard) },
             modifier = Modifier.fillMaxWidth().testTag("plan_proposal_discard"),
             enabled = !state.busy && online,
-            tone = GhostTone.Neutral,
             loading = state.discarding,
         )
     }

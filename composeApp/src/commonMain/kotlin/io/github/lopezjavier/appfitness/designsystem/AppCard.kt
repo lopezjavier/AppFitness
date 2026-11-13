@@ -28,21 +28,38 @@ object AppCardDefaults {
     /** Border of a [highlighted] card (training domain: cyan, 1.5 dp). */
     val HighlightBorderWidth: Dp = AppBorder.focus
 
-    fun colors(appColors: AppColors, highlighted: Boolean = false): AppCardColors = AppCardColors(
-        container = appColors.surfaceRaised,
-        border = if (highlighted) appColors.athleticCyan else appColors.borderSubtle,
-    )
+    fun colors(appColors: AppColors, highlighted: Boolean = false, selected: Boolean = false): AppCardColors =
+        AppCardColors(
+            container = if (selected) appColors.selectedContainer else appColors.surfaceRaised,
+            border = when {
+                selected -> appColors.neonLime
+                highlighted -> appColors.athleticCyan
+                else -> appColors.borderSubtle
+            },
+        )
 }
 
 /**
  * Tier-1 card: `surfaceRaised` with a 1 dp border at 8% white and a 16 dp radius. It draws no shadow;
  * depth comes from the tonal step and the border. [highlighted] swaps the border for a 1.5 dp cyan one (callers
- * add a non-colour cue too).
+ * add a non-colour cue too). [selected] (R-64) fills with `selectedContainer` and draws a 1 dp lime border; it wins
+ * over [highlighted].
  */
 @Composable
-fun AppCard(modifier: Modifier = Modifier, highlighted: Boolean = false, content: @Composable ColumnScope.() -> Unit) {
-    val colors = AppCardDefaults.colors(AppTheme.colors, highlighted)
-    val borderWidth = if (highlighted) AppCardDefaults.HighlightBorderWidth else AppCardDefaults.BorderWidth
+fun AppCard(
+    modifier: Modifier = Modifier,
+    highlighted: Boolean = false,
+    selected: Boolean = false,
+    content: @Composable ColumnScope.() -> Unit,
+) {
+    val colors = AppCardDefaults.colors(AppTheme.colors, highlighted, selected)
+    val borderWidth = if (highlighted &&
+        !selected
+    ) {
+        AppCardDefaults.HighlightBorderWidth
+    } else {
+        AppCardDefaults.BorderWidth
+    }
     Column(
         modifier =
         modifier

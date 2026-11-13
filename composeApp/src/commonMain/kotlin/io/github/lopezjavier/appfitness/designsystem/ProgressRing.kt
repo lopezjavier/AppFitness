@@ -22,6 +22,7 @@ import androidx.compose.ui.semantics.progressBarRangeInfo
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Dp
@@ -89,9 +90,7 @@ object ProgressRingDefaults {
 
     fun valueStyle(typography: AppTypography): TextStyle = typography.displayHero
 
-    fun captionStyle(typography: AppTypography): TextStyle = typography.labelTechnical
-
-    fun statusStyle(typography: AppTypography): TextStyle = typography.labelTechnical
+    fun captionStyle(typography: AppTypography): TextStyle = typography.bodyMedium.copy(fontWeight = FontWeight.W600)
 }
 
 /**
@@ -183,7 +182,7 @@ private fun StatusPill(text: String, color: Color) {
     PillContainer(modifier = Modifier.clearAndSetSemantics {}) {
         Text(
             text = text,
-            style = ProgressRingDefaults.statusStyle(AppTheme.typography),
+            style = ProgressRingDefaults.captionStyle(AppTheme.typography),
             color = color,
             textAlign = TextAlign.Center,
         )

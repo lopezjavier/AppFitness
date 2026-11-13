@@ -33,6 +33,7 @@ import io.github.lopezjavier.appfitness.composeapp.resources.block_review_phase_
 import io.github.lopezjavier.appfitness.composeapp.resources.block_review_phase_kept
 import io.github.lopezjavier.appfitness.composeapp.resources.block_review_phase_offline
 import io.github.lopezjavier.appfitness.composeapp.resources.block_review_title
+import io.github.lopezjavier.appfitness.composeapp.resources.ic_nav_trainer
 import io.github.lopezjavier.appfitness.composeapp.resources.trainer_block_create_action
 import io.github.lopezjavier.appfitness.designsystem.AppCard
 import io.github.lopezjavier.appfitness.designsystem.AppScreen
@@ -42,7 +43,6 @@ import io.github.lopezjavier.appfitness.designsystem.CoachProposalCard
 import io.github.lopezjavier.appfitness.designsystem.EmptyState
 import io.github.lopezjavier.appfitness.designsystem.ErrorState
 import io.github.lopezjavier.appfitness.designsystem.GhostButton
-import io.github.lopezjavier.appfitness.designsystem.GhostTone
 import io.github.lopezjavier.appfitness.designsystem.LocalAppHaptics
 import io.github.lopezjavier.appfitness.designsystem.OfflineHint
 import io.github.lopezjavier.appfitness.designsystem.OfflineState
@@ -112,6 +112,7 @@ fun BlockReviewScreen(
 
                 BlockReviewUiState.Empty -> Box(Modifier.fillMaxSize(), Alignment.Center) {
                     EmptyState(
+                        icon = Res.drawable.ic_nav_trainer,
                         message = stringResource(Res.string.block_review_empty),
                         testTagPrefix = "block_review_empty",
                     )
@@ -272,7 +273,6 @@ private fun DecisionFailure(retryTag: String, onRetry: () -> Unit) {
             text = stringResource(Res.string.action_retry),
             onClick = onRetry,
             modifier = Modifier.testTag(retryTag),
-            tone = GhostTone.Neutral,
         )
     }
 }

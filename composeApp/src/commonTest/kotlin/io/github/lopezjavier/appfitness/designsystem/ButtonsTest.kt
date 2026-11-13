@@ -116,8 +116,6 @@ class ButtonsTest {
         fun ghost(tone: GhostTone) = AppButtonDefaults.colors(AppButtonVariant.Ghost, true, c, tone)
         assertEquals(c.textPrimary, ghost(GhostTone.Action).content)
         assertEquals(c.borderControl, ghost(GhostTone.Action).border)
-        assertEquals(c.borderControl, ghost(GhostTone.Neutral).border)
-        assertEquals(c.textPrimary, ghost(GhostTone.Neutral).content)
         assertEquals(c.error, ghost(GhostTone.Destructive).content)
         assertEquals(c.error, ghost(GhostTone.Destructive).border)
     }

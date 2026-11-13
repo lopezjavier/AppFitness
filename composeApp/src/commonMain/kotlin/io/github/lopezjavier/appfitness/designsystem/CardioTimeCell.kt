@@ -184,7 +184,7 @@ private fun TimeButton(
             } else {
                 StopwatchFieldDefaults.timeStyle(AppTheme.typography)
             },
-            color = if (dim) AppTheme.colors.ghostData else AppTheme.colors.textPrimary,
+            color = if (dim) AppTheme.colors.textTertiary else AppTheme.colors.textPrimary,
             maxLines = 1,
         )
     }

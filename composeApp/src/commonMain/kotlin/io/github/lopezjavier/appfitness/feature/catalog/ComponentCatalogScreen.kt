@@ -129,7 +129,7 @@ internal fun CatalogSection(title: String, testTag: String, content: @Composable
     Column(verticalArrangement = Arrangement.spacedBy(Spacing.cardGap)) {
         Text(
             text = title,
-            style = AppTheme.typography.titleLarge,
+            style = AppTheme.typography.titleSection,
             color = AppTheme.colors.textPrimary,
             modifier = Modifier.semantics { heading() }.testTag(testTag),
         )

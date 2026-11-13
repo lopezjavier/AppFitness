@@ -12,6 +12,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.github.lopezjavier.appfitness.composeapp.resources.Res
 import io.github.lopezjavier.appfitness.composeapp.resources.action_retry
 import io.github.lopezjavier.appfitness.composeapp.resources.block_review_title
+import io.github.lopezjavier.appfitness.composeapp.resources.ic_description
 import io.github.lopezjavier.appfitness.composeapp.resources.past_report_error
 import io.github.lopezjavier.appfitness.composeapp.resources.past_report_not_found
 import io.github.lopezjavier.appfitness.composeapp.resources.reports_title
@@ -87,6 +88,7 @@ fun PastReportScreen(
 
                 PastReportUiState.NotFound -> Box(Modifier.fillMaxSize(), Alignment.Center) {
                     EmptyState(
+                        icon = Res.drawable.ic_description,
                         message = stringResource(Res.string.past_report_not_found),
                         testTagPrefix = "past_report_empty",
                     )

@@ -121,6 +121,7 @@ private fun CenterContent(
         if (state.reminders.isEmpty()) {
             item(key = "empty") {
                 EmptyState(
+                    icon = Res.drawable.ic_notifications,
                     message = stringResource(Res.string.notifications_empty_message),
                     title = stringResource(Res.string.notifications_empty_title),
                     modifier = Modifier.fillMaxWidth().padding(vertical = Spacing.lg).testTag("notifications_empty"),

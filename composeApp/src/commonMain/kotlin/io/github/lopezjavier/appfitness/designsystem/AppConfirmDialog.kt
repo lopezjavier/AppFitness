@@ -117,7 +117,6 @@ private fun DialogButtons(
             text = cancelLabel,
             onClick = onDismiss,
             modifier = modifier.testTag(cancelTag),
-            tone = GhostTone.Neutral,
         )
     }
     val confirm: @Composable (Modifier) -> Unit = { modifier ->

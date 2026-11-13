@@ -45,6 +45,7 @@ import io.github.lopezjavier.appfitness.composeapp.resources.folder_block_sets_o
 import io.github.lopezjavier.appfitness.composeapp.resources.folder_block_title
 import io.github.lopezjavier.appfitness.composeapp.resources.folder_review_result_empty_title
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_close
+import io.github.lopezjavier.appfitness.composeapp.resources.ic_folder
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_swap
 import io.github.lopezjavier.appfitness.designsystem.AddItemButton
 import io.github.lopezjavier.appfitness.designsystem.AppIconButton
@@ -151,6 +152,7 @@ private fun StateBody(
 
         is FolderBlockUiState.Empty -> Box(Modifier.fillMaxSize(), Alignment.Center) {
             EmptyState(
+                icon = Res.drawable.ic_folder,
                 message = stringResource(Res.string.folder_block_empty_body),
                 title = stringResource(Res.string.folder_review_result_empty_title),
                 testTagPrefix = "folder_block_empty",

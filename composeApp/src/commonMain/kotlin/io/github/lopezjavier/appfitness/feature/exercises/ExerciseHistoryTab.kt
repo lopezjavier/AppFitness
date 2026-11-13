@@ -36,6 +36,7 @@ import io.github.lopezjavier.appfitness.composeapp.resources.exercise_history_se
 import io.github.lopezjavier.appfitness.composeapp.resources.exercise_history_set_rpe_cd
 import io.github.lopezjavier.appfitness.composeapp.resources.history_load_more_error
 import io.github.lopezjavier.appfitness.composeapp.resources.history_loading_more
+import io.github.lopezjavier.appfitness.composeapp.resources.ic_calendar
 import io.github.lopezjavier.appfitness.designsystem.AppCard
 import io.github.lopezjavier.appfitness.designsystem.AppNumberFormat
 import io.github.lopezjavier.appfitness.designsystem.AppStateAction
@@ -79,6 +80,7 @@ internal fun ExerciseHistoryTab(
 
                 HistoryState.Empty -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                     EmptyState(
+                        icon = Res.drawable.ic_calendar,
                         message = stringResource(Res.string.exercise_history_empty),
                         testTagPrefix = "exercise_history_empty",
                     )

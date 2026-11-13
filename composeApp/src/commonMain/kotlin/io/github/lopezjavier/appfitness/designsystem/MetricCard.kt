@@ -35,6 +35,7 @@ fun MetricCard(
     clickLabel: String? = null,
     leading: (@Composable () -> Unit)? = null,
     highlighted: Boolean = false,
+    selected: Boolean = false,
 ) {
     // With a trailing action only the label and value block is the button, so the action is a sibling node.
     val cardClick = onClick.takeIf { trailingAction == null }?.let {
@@ -43,7 +44,7 @@ fun MetricCard(
     val headClick = onClick.takeIf { trailingAction != null }?.let {
         Modifier.clickable(onClickLabel = clickLabel, role = Role.Button, onClick = it)
     } ?: Modifier
-    AppCard(modifier.fillMaxWidth().heightIn(min = Spacing.minTouchTarget).then(cardClick), highlighted) {
+    AppCard(modifier.fillMaxWidth().heightIn(min = Spacing.minTouchTarget).then(cardClick), highlighted, selected) {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.md)) {
             leading?.invoke()
             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {

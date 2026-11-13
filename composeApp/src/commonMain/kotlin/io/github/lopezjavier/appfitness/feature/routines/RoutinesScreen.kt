@@ -22,6 +22,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.github.lopezjavier.appfitness.composeapp.resources.Res
 import io.github.lopezjavier.appfitness.composeapp.resources.action_retry
 import io.github.lopezjavier.appfitness.composeapp.resources.delete_offline
+import io.github.lopezjavier.appfitness.composeapp.resources.ic_nav_workout
 import io.github.lopezjavier.appfitness.composeapp.resources.routines_action_failed
 import io.github.lopezjavier.appfitness.composeapp.resources.routines_empty
 import io.github.lopezjavier.appfitness.composeapp.resources.routines_empty_title
@@ -138,6 +139,7 @@ private fun RoutinesContent(state: RoutinesUiState.Content, onEvent: (RoutinesEv
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
             EmptyState(
+                icon = Res.drawable.ic_nav_workout,
                 message = stringResource(Res.string.routines_empty),
                 title = stringResource(Res.string.routines_empty_title),
                 testTagPrefix = "routines_empty",

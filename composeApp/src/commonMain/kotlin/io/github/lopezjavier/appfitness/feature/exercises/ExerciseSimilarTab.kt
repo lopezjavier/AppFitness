@@ -23,6 +23,7 @@ import io.github.lopezjavier.appfitness.composeapp.resources.action_retry
 import io.github.lopezjavier.appfitness.composeapp.resources.exercise_similar_empty
 import io.github.lopezjavier.appfitness.composeapp.resources.exercise_similar_error
 import io.github.lopezjavier.appfitness.composeapp.resources.exercise_similar_percent_cd
+import io.github.lopezjavier.appfitness.composeapp.resources.ic_swap
 import io.github.lopezjavier.appfitness.designsystem.AppStateAction
 import io.github.lopezjavier.appfitness.designsystem.EmptyState
 import io.github.lopezjavier.appfitness.designsystem.ErrorState
@@ -57,6 +58,7 @@ internal fun ExerciseSimilarTab(
 
                 SimilarState.Empty -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                     EmptyState(
+                        icon = Res.drawable.ic_swap,
                         message = stringResource(Res.string.exercise_similar_empty),
                         testTagPrefix = "exercise_detail_similar_empty",
                     )

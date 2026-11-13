@@ -15,6 +15,20 @@ class AppCardDefaultsTest {
     }
 
     @Test
+    fun selected_isSelectedContainerWithLimeBorder_andWinsOverHighlighted() {
+        val colors = AppCardDefaults.colors(KineticDarkColors, highlighted = true, selected = true)
+        assertEquals(KineticDarkColors.selectedContainer, colors.container)
+        assertEquals(KineticDarkColors.neonLime, colors.border)
+    }
+
+    @Test
+    fun highlighted_staysCyan() {
+        val colors = AppCardDefaults.colors(KineticDarkColors, highlighted = true)
+        assertEquals(KineticDarkColors.athleticCyan, colors.border)
+        assertEquals(KineticDarkColors.surfaceRaised, colors.container)
+    }
+
+    @Test
     fun shapeAndSizes_matchTheTokens() {
         assertEquals(AppShapes.lg, AppCardDefaults.Shape)
         assertEquals(16.dp, AppRadius.lg)

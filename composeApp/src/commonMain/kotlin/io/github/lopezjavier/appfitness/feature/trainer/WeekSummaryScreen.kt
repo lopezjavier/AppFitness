@@ -24,6 +24,7 @@ import io.github.lopezjavier.appfitness.composeapp.resources.block_week_paused
 import io.github.lopezjavier.appfitness.composeapp.resources.coach_changes_header
 import io.github.lopezjavier.appfitness.composeapp.resources.coach_deload_headline
 import io.github.lopezjavier.appfitness.composeapp.resources.coach_deload_status_cancelled
+import io.github.lopezjavier.appfitness.composeapp.resources.ic_calendar
 import io.github.lopezjavier.appfitness.composeapp.resources.week_summary_empty
 import io.github.lopezjavier.appfitness.composeapp.resources.week_summary_error
 import io.github.lopezjavier.appfitness.composeapp.resources.week_summary_group_cd_one
@@ -101,6 +102,7 @@ fun WeekSummaryScreen(
 
                 WeekSummaryUiState.Empty -> Box(Modifier.fillMaxSize(), Alignment.Center) {
                     EmptyState(
+                        icon = Res.drawable.ic_calendar,
                         message = stringResource(Res.string.week_summary_empty),
                         testTagPrefix = "week_summary_empty",
                     )

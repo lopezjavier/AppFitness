@@ -84,12 +84,14 @@ class SelectableCardTest {
     }
 
     @Test
-    fun selectedBorder_isThickerAndLime_thanTheUnselectedOne() {
+    fun selectedCard_hasSelectedContainerAndAThinLimeBorder() {
         val selected = SelectableCardDefaults.colors(true, KineticDarkColors)
         val unselected = SelectableCardDefaults.colors(false, KineticDarkColors)
         assertEquals(KineticDarkColors.neonLime, selected.border)
         assertEquals(KineticDarkColors.borderSubtle, unselected.border)
-        assertEquals(AppBorder.focus, SelectableCardDefaults.borderWidth(true))
+        assertEquals(KineticDarkColors.selectedContainer, selected.container)
+        assertEquals(KineticDarkColors.surfaceRaised, unselected.container)
+        assertEquals(AppBorder.thin, SelectableCardDefaults.borderWidth(true))
         assertEquals(AppBorder.thin, SelectableCardDefaults.borderWidth(false))
     }
 }

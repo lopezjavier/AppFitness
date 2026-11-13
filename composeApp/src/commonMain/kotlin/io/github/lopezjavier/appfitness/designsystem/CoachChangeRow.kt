@@ -112,7 +112,6 @@ private fun CoachChangeActionButton(action: CoachChangeRowAction, enabled: Boole
             action.onClick,
             modifier,
             enabled = enabled && !action.loading,
-            tone = GhostTone.Neutral,
             loading = action.loading,
         )
     }

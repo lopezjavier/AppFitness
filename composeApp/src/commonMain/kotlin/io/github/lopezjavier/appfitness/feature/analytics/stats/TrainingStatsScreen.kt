@@ -15,6 +15,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.github.lopezjavier.appfitness.composeapp.resources.Res
+import io.github.lopezjavier.appfitness.composeapp.resources.ic_bar_chart
 import io.github.lopezjavier.appfitness.composeapp.resources.stats_empty_message
 import io.github.lopezjavier.appfitness.composeapp.resources.stats_empty_title
 import io.github.lopezjavier.appfitness.composeapp.resources.stats_title
@@ -174,6 +175,7 @@ private fun DistributionSections(state: TrainingStatsUiState, onEvent: (Training
 @Composable
 private fun FrameEmpty() {
     EmptyState(
+        icon = Res.drawable.ic_bar_chart,
         message = stringResource(Res.string.stats_empty_message),
         title = stringResource(Res.string.stats_empty_title),
         testTagPrefix = "stats_empty",

@@ -39,6 +39,7 @@ import io.github.lopezjavier.appfitness.composeapp.resources.exercise_chat_offli
 import io.github.lopezjavier.appfitness.composeapp.resources.exercise_chat_progress
 import io.github.lopezjavier.appfitness.composeapp.resources.exercise_chat_send_cd
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_arrow_upward
+import io.github.lopezjavier.appfitness.composeapp.resources.ic_chat
 import io.github.lopezjavier.appfitness.designsystem.AppIconButton
 import io.github.lopezjavier.appfitness.designsystem.AppTextField
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
@@ -116,6 +117,7 @@ internal fun ExerciseChatTab(
         Box(Modifier.weight(1f).fillMaxWidth(), contentAlignment = Alignment.Center) {
             if (state.messages.isEmpty() && !state.sending) {
                 EmptyState(
+                    icon = Res.drawable.ic_chat,
                     message = stringResource(Res.string.exercise_chat_empty),
                     testTagPrefix = "exercise_chat_empty",
                 )

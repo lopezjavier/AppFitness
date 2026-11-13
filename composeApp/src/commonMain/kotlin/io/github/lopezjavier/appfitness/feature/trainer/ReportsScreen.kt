@@ -21,6 +21,7 @@ import io.github.lopezjavier.appfitness.composeapp.resources.Res
 import io.github.lopezjavier.appfitness.composeapp.resources.action_retry
 import io.github.lopezjavier.appfitness.composeapp.resources.block_review_title
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_chevron_right
+import io.github.lopezjavier.appfitness.composeapp.resources.ic_description
 import io.github.lopezjavier.appfitness.composeapp.resources.reports_empty_message
 import io.github.lopezjavier.appfitness.composeapp.resources.reports_empty_title
 import io.github.lopezjavier.appfitness.composeapp.resources.reports_error
@@ -95,6 +96,7 @@ fun ReportsScreen(
 
                 ReportsUiState.Empty -> Box(Modifier.fillMaxSize(), Alignment.Center) {
                     EmptyState(
+                        icon = Res.drawable.ic_description,
                         message = stringResource(Res.string.reports_empty_message),
                         title = stringResource(Res.string.reports_empty_title),
                         testTagPrefix = "reports_empty",

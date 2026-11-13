@@ -21,6 +21,7 @@ import io.github.lopezjavier.appfitness.composeapp.resources.food_error_message
 import io.github.lopezjavier.appfitness.composeapp.resources.food_offline_message
 import io.github.lopezjavier.appfitness.composeapp.resources.food_templates_empty
 import io.github.lopezjavier.appfitness.composeapp.resources.food_templates_empty_hint
+import io.github.lopezjavier.appfitness.composeapp.resources.ic_save_meal
 import io.github.lopezjavier.appfitness.composeapp.resources.template_manage_failed
 import io.github.lopezjavier.appfitness.composeapp.resources.template_swipe_delete_cd
 import io.github.lopezjavier.appfitness.designsystem.AppStateAction
@@ -56,6 +57,7 @@ internal fun TemplatesPane(
 
         TemplatesResults.Empty -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
             EmptyState(
+                icon = Res.drawable.ic_save_meal,
                 message = stringResource(Res.string.food_templates_empty_hint),
                 title = stringResource(Res.string.food_templates_empty),
                 testTagPrefix = "food_search_templates_empty",

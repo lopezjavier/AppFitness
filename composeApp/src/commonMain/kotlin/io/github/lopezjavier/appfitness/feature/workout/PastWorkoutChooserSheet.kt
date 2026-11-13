@@ -15,6 +15,8 @@ import androidx.navigationevent.compose.NavigationBackHandler
 import androidx.navigationevent.compose.rememberNavigationEventState
 import io.github.lopezjavier.appfitness.composeapp.resources.Res
 import io.github.lopezjavier.appfitness.composeapp.resources.action_retry
+import io.github.lopezjavier.appfitness.composeapp.resources.ic_calendar
+import io.github.lopezjavier.appfitness.composeapp.resources.ic_nav_workout
 import io.github.lopezjavier.appfitness.composeapp.resources.past_source_empty
 import io.github.lopezjavier.appfitness.composeapp.resources.past_source_no_routines_message
 import io.github.lopezjavier.appfitness.composeapp.resources.past_source_no_routines_title
@@ -120,6 +122,7 @@ private fun RoutineList(routines: ChooserRoutines, onEvent: (PastWorkoutChooserE
         ChooserRoutines.Loading -> Skeleton("${TAG}_routines_loading")
 
         ChooserRoutines.Empty -> EmptyState(
+            icon = Res.drawable.ic_nav_workout,
             message = stringResource(Res.string.past_source_no_routines_message),
             title = stringResource(Res.string.past_source_no_routines_title),
             testTagPrefix = "${TAG}_routines_empty",
@@ -157,6 +160,7 @@ private fun SessionList(history: HistoryUiState, onEvent: (PastWorkoutChooserEve
         HistoryUiState.Loading -> Skeleton("${TAG}_sessions_loading")
 
         HistoryUiState.Empty -> EmptyState(
+            icon = Res.drawable.ic_calendar,
             message = stringResource(Res.string.past_source_no_sessions_message),
             title = stringResource(Res.string.past_source_no_sessions_title),
             testTagPrefix = "${TAG}_sessions_empty",

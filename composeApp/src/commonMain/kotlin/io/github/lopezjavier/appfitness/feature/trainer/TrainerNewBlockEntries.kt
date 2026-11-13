@@ -17,7 +17,6 @@ import io.github.lopezjavier.appfitness.composeapp.resources.trainer_welcome_bac
 import io.github.lopezjavier.appfitness.designsystem.AppCard
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
 import io.github.lopezjavier.appfitness.designsystem.GhostButton
-import io.github.lopezjavier.appfitness.designsystem.GhostTone
 import io.github.lopezjavier.appfitness.designsystem.OfflineHint
 import io.github.lopezjavier.appfitness.designsystem.Spacing
 import io.github.lopezjavier.appfitness.domain.model.PhaseWeeks
@@ -33,7 +32,6 @@ internal fun NewBlockEntries(online: Boolean, onEvent: (TrainerEvent) -> Unit) {
             onClick = { onEvent(TrainerEvent.OpenNewBlock) },
             modifier = Modifier.fillMaxWidth().testTag("trainer_new_block"),
             enabled = online,
-            tone = GhostTone.Neutral,
         )
         if (!online) OfflineHint(stringResource(Res.string.trainer_new_block_action))
         GhostButton(
@@ -41,7 +39,6 @@ internal fun NewBlockEntries(online: Boolean, onEvent: (TrainerEvent) -> Unit) {
             onClick = { onEvent(TrainerEvent.OpenMyTraining) },
             modifier = Modifier.fillMaxWidth().testTag("trainer_my_training"),
             enabled = online,
-            tone = GhostTone.Neutral,
         )
     }
 }
@@ -65,7 +62,6 @@ internal fun WelcomeBackCard(online: Boolean, onEvent: (TrainerEvent) -> Unit) {
             onClick = { onEvent(TrainerEvent.OpenNewBlock) },
             modifier = Modifier.fillMaxWidth().testTag("trainer_welcome_back_new_block"),
             enabled = online,
-            tone = GhostTone.Neutral,
         )
         if (!online) OfflineHint(stringResource(Res.string.trainer_new_block_action))
     }

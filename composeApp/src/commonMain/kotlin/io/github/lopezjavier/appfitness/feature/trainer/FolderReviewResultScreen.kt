@@ -33,6 +33,7 @@ import io.github.lopezjavier.appfitness.composeapp.resources.folder_review_resul
 import io.github.lopezjavier.appfitness.composeapp.resources.folder_review_result_score_state
 import io.github.lopezjavier.appfitness.composeapp.resources.folder_review_result_title
 import io.github.lopezjavier.appfitness.composeapp.resources.folder_review_result_title_plain
+import io.github.lopezjavier.appfitness.composeapp.resources.ic_folder
 import io.github.lopezjavier.appfitness.designsystem.AppCard
 import io.github.lopezjavier.appfitness.designsystem.AppListRow
 import io.github.lopezjavier.appfitness.designsystem.AppNumberFormat
@@ -88,6 +89,7 @@ fun FolderReviewResultScreen(
 
                 FolderReviewResultUiState.Empty -> Box(Modifier.fillMaxSize(), Alignment.Center) {
                     EmptyState(
+                        icon = Res.drawable.ic_folder,
                         message = stringResource(Res.string.folder_review_result_empty_body),
                         title = stringResource(Res.string.folder_review_result_empty_title),
                         testTagPrefix = "folder_review_result_empty",

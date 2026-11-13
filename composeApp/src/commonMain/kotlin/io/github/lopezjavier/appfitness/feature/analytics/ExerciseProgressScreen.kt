@@ -38,6 +38,7 @@ import io.github.lopezjavier.appfitness.composeapp.resources.exercise_progress_r
 import io.github.lopezjavier.appfitness.composeapp.resources.exercise_progress_single_session
 import io.github.lopezjavier.appfitness.composeapp.resources.exercise_progress_single_value
 import io.github.lopezjavier.appfitness.composeapp.resources.exercise_progress_title
+import io.github.lopezjavier.appfitness.composeapp.resources.ic_trending_up
 import io.github.lopezjavier.appfitness.designsystem.AppCard
 import io.github.lopezjavier.appfitness.designsystem.AppLineChart
 import io.github.lopezjavier.appfitness.designsystem.AppLineChartBlock
@@ -105,6 +106,7 @@ fun ExerciseProgressScreen(
 
             is ExerciseProgressUiState.Empty -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                 EmptyState(
+                    icon = Res.drawable.ic_trending_up,
                     message = stringResource(Res.string.exercise_progress_empty_message),
                     testTagPrefix = "exercise_progress_empty",
                 )

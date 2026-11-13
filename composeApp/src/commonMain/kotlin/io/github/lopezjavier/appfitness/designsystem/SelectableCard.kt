@@ -21,6 +21,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -37,11 +38,11 @@ object SelectableCardDefaults {
     val Shape = AppShapes.lg
     val MinHeight: Dp = 48.dp
     val UnselectedBorderWidth: Dp = AppBorder.thin
-    val SelectedBorderWidth: Dp = AppBorder.focus
+    val SelectedBorderWidth: Dp = AppBorder.thin
     val CheckSize: Dp = 24.dp
 
     fun colors(selected: Boolean, appColors: AppColors): SelectableCardColors = SelectableCardColors(
-        container = appColors.surfaceRaised,
+        container = if (selected) appColors.selectedContainer else appColors.surfaceRaised,
         border = if (selected) appColors.neonLime else appColors.borderSubtle,
     )
 
@@ -54,9 +55,9 @@ object SelectableCardDefaults {
 }
 
 /**
- * Radio-style card with a [title] and a [description]. The selected card has a lime border and a check icon
- * (a non-colour cue); the [description] is optional. The whole card is the target and is exposed as a radio
- * button; wrap a group of cards in [Modifier.selectableGroup] on the parent.
+ * Radio-style card with a [title] and a [description]. The selected card has a `selectedContainer` fill, a 1 dp lime
+ * border, a lime W700 title and a check icon (a non-colour cue); the [description] is optional. The whole card is
+ * the target and is exposed as a radio button; wrap a group of cards in [Modifier.selectableGroup] on the parent.
  */
 @Composable
 fun SelectableCard(
@@ -82,7 +83,13 @@ fun SelectableCard(
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
-            Text(text = title, style = AppTheme.typography.titleMedium, color = AppTheme.colors.textPrimary)
+            Text(
+                text = title,
+                style = AppTheme.typography.titleMedium.let {
+                    if (selected) it.copy(fontWeight = FontWeight.W700) else it
+                },
+                color = if (selected) AppTheme.colors.neonLime else AppTheme.colors.textPrimary,
+            )
             if (description.isNotEmpty()) {
                 Text(
                     text = description,

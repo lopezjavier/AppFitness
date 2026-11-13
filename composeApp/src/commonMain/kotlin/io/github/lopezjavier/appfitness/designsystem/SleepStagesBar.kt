@@ -35,16 +35,20 @@ data class SleepStageSegment(val kind: SleepStageKind, val minutes: Int, val lab
 object SleepStagesBarDefaults {
     val Height: Dp = 12.dp
 
+    /** Ordered ramp (C-18): Profundo 100 %, REM 75 %, Ligero 50 % of `athleticCyan`; Despierto is the amber alert. */
+    private const val REM_ALPHA = 0.75f
+    private const val LIGHT_ALPHA = 0.5f
+
     fun segmentTag(testTag: String, kind: SleepStageKind): String = "${testTag}_${kind.name.lowercase()}"
 
     @Composable
     fun color(kind: SleepStageKind): Color = when (kind) {
         SleepStageKind.Awake -> AppTheme.colors.energyAmber
-        SleepStageKind.Light -> AppTheme.colors.athleticCyan
-        SleepStageKind.Deep -> AppTheme.colors.neonLime
-        SleepStageKind.Rem -> AppTheme.colors.electricGreen
-        SleepStageKind.Sleeping -> AppTheme.colors.athleticCyan
-        SleepStageKind.Unknown -> AppTheme.colors.ghostData
+        SleepStageKind.Light -> AppTheme.colors.athleticCyan.copy(alpha = LIGHT_ALPHA)
+        SleepStageKind.Deep -> AppTheme.colors.athleticCyan
+        SleepStageKind.Rem -> AppTheme.colors.athleticCyan.copy(alpha = REM_ALPHA)
+        SleepStageKind.Sleeping -> AppTheme.colors.athleticCyan.copy(alpha = LIGHT_ALPHA)
+        SleepStageKind.Unknown -> AppTheme.colors.textTertiary
     }
 }
 
@@ -94,7 +98,7 @@ fun SleepStagesBar(
             ) {
                 Box(
                     Modifier
-                        .size(Spacing.sm)
+                        .size(Spacing.md)
                         .clip(AppShapes.full)
                         .background(SleepStagesBarDefaults.color(segment.kind))
                         .clearAndSetSemantics {},
