@@ -15,6 +15,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.ProgressBarRangeInfo
 import androidx.compose.ui.semantics.progressBarRangeInfo
 import androidx.compose.ui.semantics.semantics
@@ -27,6 +28,7 @@ object AppLinearProgressDefaults {
     val BarHeight: Dp = 8.dp
     val StopDotSize: Dp = 4.dp
     val StopDotInset: Dp = 2.dp
+    const val STOP_DOT_TAG: String = "track_stop_dot"
 }
 
 /** The 4 dp `textTertiary` dot at the end of an unfilled bar track (C-11); the fill drawn over it hides it at 100 %. */
@@ -37,6 +39,7 @@ internal fun BoxScope.TrackStopDot() {
             .align(Alignment.CenterEnd)
             .padding(end = AppLinearProgressDefaults.StopDotInset)
             .size(AppLinearProgressDefaults.StopDotSize)
+            .testTag(AppLinearProgressDefaults.STOP_DOT_TAG)
             .clip(AppShapes.full)
             .background(AppTheme.colors.textTertiary),
     )

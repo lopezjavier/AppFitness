@@ -28,8 +28,8 @@ class StateMessagesTest {
     }
 
     @Test
-    fun iconSize48_onGrid() {
-        assertEquals(48.dp, EmptyStateDefaults.IconSize)
+    fun iconSize32_onGrid() {
+        assertEquals(32.dp, EmptyStateDefaults.IconSize)
         assertEquals(EmptyStateDefaults.IconSize, ErrorStateDefaults.IconSize)
         assertEquals(0f, EmptyStateDefaults.IconSize.value % 4f)
     }

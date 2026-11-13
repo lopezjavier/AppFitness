@@ -37,3 +37,10 @@ Tests changed or added in commit e4ce774b (check they still pass after later bat
 - GhostButton audit: `GhostTone.Neutral` removed (identical to `Action`); callers drop the `tone` argument. `ButtonsTest` lost its 2 `Neutral` assertions (compile fix; the `Action` assertions cover the same colours).
 - `ghostData` replaced by `textTertiary` in `CardioTimeCell` (empty cell) and `ChecklistRow` (unchecked glyph). Goldens expected to change: cardio time cell empty state, checklist rows unchecked, plus every golden with an EmptyState (new icons).
 - `MonthCalendarGrid` selected day and `AppDatePickerDialog` selected day/year follow R-64 (selectedContainer, 1 dp lime border for the grid, lime W700 label; mark dot always lime). Goldens expected to change: month calendar grid, date picker dialog, diary history calendar screens. Not done: ActivitySummary:168 and AppCard `highlighted` (shared cyan highlight used by routine, folder review, workout calendar and metric cards; needs a product call).
+
+## T-296 (tests and goldens)
+
+- Re-recorded goldens: `topbar_2_actions`, `topbar_3_actions`, `topbar_subtitle`, `editor_dirty`, `list_rows`; all explained by the T-292 ledger (title W700, `titleSection` headers, WorkoutRow layout). No other golden failed in verify.
+- Fixed: `MacroProgressBarTest` (track is `trackInactive`), `StateMessagesTest` (icon 32 dp).
+- New: `DesignSystemRound0Test` (stop dot on both bars, sleep ramp, 200 dp error/empty buttons, R-64 calendar selected pixels). `AppLinearProgressDefaults.STOP_DOT_TAG` test tag added to `TrackStopDot`.
+- Not covered by a pixel test: `AppDatePickerDialog` selected day/year R-64 (existing semantics tests pass).
