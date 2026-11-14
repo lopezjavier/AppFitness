@@ -103,24 +103,22 @@ fun WeekSummaryScreen(
             when (state) {
                 WeekSummaryUiState.Loading -> SummarySkeleton()
 
-                WeekSummaryUiState.Empty -> Box(Modifier.fillMaxSize(), Alignment.Center) {
-                    EmptyState(
-                        icon = Res.drawable.ic_calendar,
-                        message = stringResource(Res.string.week_summary_empty),
-                        testTagPrefix = "week_summary_empty",
-                    )
-                }
+                WeekSummaryUiState.Empty -> EmptyState(
+                    modifier = Modifier.fillMaxSize(),
+                    icon = Res.drawable.ic_calendar,
+                    message = stringResource(Res.string.week_summary_empty),
+                    testTagPrefix = "week_summary_empty",
+                )
 
-                WeekSummaryUiState.Error -> Box(Modifier.fillMaxSize(), Alignment.Center) {
-                    ErrorState(
-                        message = stringResource(Res.string.week_summary_error),
-                        action = AppStateAction(stringResource(Res.string.action_retry)) {
-                            onEvent(WeekSummaryEvent.Retry)
-                        },
-                        testTagPrefix = "week_summary_error",
-                        actionTestTag = "week_summary_retry",
-                    )
-                }
+                WeekSummaryUiState.Error -> ErrorState(
+                    modifier = Modifier.fillMaxSize(),
+                    message = stringResource(Res.string.week_summary_error),
+                    action = AppStateAction(stringResource(Res.string.action_retry)) {
+                        onEvent(WeekSummaryEvent.Retry)
+                    },
+                    testTagPrefix = "week_summary_error",
+                    actionTestTag = "week_summary_retry",
+                )
 
                 WeekSummaryUiState.Offline -> Box(
                     Modifier.fillMaxSize().testTag("week_summary_offline"),

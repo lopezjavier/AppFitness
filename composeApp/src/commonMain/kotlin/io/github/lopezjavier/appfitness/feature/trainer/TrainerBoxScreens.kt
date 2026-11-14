@@ -127,13 +127,12 @@ fun TrainerBoxScreen(
                 is TrainerUiState.Content -> if (state.hasContent(box)) {
                     BoxContent(box, state, online, onEvent, actions, exerciseNames)
                 } else {
-                    Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                        EmptyState(
-                            icon = Res.drawable.ic_nav_trainer,
-                            message = stringResource(box.emptyMessage),
-                            testTagPrefix = "${box.tagPrefix}_empty",
-                        )
-                    }
+                    EmptyState(
+                        modifier = Modifier.fillMaxSize(),
+                        icon = Res.drawable.ic_nav_trainer,
+                        message = stringResource(box.emptyMessage),
+                        testTagPrefix = "${box.tagPrefix}_empty",
+                    )
                 }
             }
             if (menuOpen && hasSavedBlock) {

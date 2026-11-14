@@ -94,25 +94,23 @@ fun ReportsScreen(
                     testTag = "reports_loading",
                 )
 
-                ReportsUiState.Empty -> Box(Modifier.fillMaxSize(), Alignment.Center) {
-                    EmptyState(
-                        icon = Res.drawable.ic_description,
-                        message = stringResource(Res.string.reports_empty_message),
-                        title = stringResource(Res.string.reports_empty_title),
-                        testTagPrefix = "reports_empty",
-                    )
-                }
+                ReportsUiState.Empty -> EmptyState(
+                    modifier = Modifier.fillMaxSize(),
+                    icon = Res.drawable.ic_description,
+                    message = stringResource(Res.string.reports_empty_message),
+                    title = stringResource(Res.string.reports_empty_title),
+                    testTagPrefix = "reports_empty",
+                )
 
-                ReportsUiState.Error -> Box(Modifier.fillMaxSize(), Alignment.Center) {
-                    ErrorState(
-                        message = stringResource(Res.string.reports_error),
-                        action = AppStateAction(stringResource(Res.string.action_retry)) {
-                            onEvent(ReportsEvent.Retry)
-                        },
-                        testTagPrefix = "reports_error",
-                        actionTestTag = "reports_retry",
-                    )
-                }
+                ReportsUiState.Error -> ErrorState(
+                    modifier = Modifier.fillMaxSize(),
+                    message = stringResource(Res.string.reports_error),
+                    action = AppStateAction(stringResource(Res.string.action_retry)) {
+                        onEvent(ReportsEvent.Retry)
+                    },
+                    testTagPrefix = "reports_error",
+                    actionTestTag = "reports_retry",
+                )
 
                 ReportsUiState.Offline -> Box(Modifier.fillMaxSize().testTag("reports_offline"), Alignment.Center) {
                     OfflineState(isOnline = isOnline, onReload = { onEvent(ReportsEvent.Retry) })

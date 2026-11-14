@@ -6,14 +6,18 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.lifecycle.Lifecycle
@@ -23,7 +27,7 @@ import io.github.lopezjavier.appfitness.composeapp.resources.Res
 import io.github.lopezjavier.appfitness.composeapp.resources.action_retry
 import io.github.lopezjavier.appfitness.composeapp.resources.before_start_error
 import io.github.lopezjavier.appfitness.composeapp.resources.trainer_provisional
-import io.github.lopezjavier.appfitness.composeapp.resources.trainer_value_supporting
+import io.github.lopezjavier.appfitness.composeapp.resources.ic_chevron_right
 import io.github.lopezjavier.appfitness.composeapp.resources.your_data_handover_note
 import io.github.lopezjavier.appfitness.composeapp.resources.your_data_intake_provisional
 import io.github.lopezjavier.appfitness.composeapp.resources.your_data_save_action
@@ -40,8 +44,8 @@ import io.github.lopezjavier.appfitness.designsystem.InlineNote
 import io.github.lopezjavier.appfitness.designsystem.ListSectionHeader
 import io.github.lopezjavier.appfitness.designsystem.LocalAppHaptics
 import io.github.lopezjavier.appfitness.designsystem.LocalAppMessages
-import io.github.lopezjavier.appfitness.designsystem.NavigationRow
 import io.github.lopezjavier.appfitness.designsystem.OfflineState
+import io.github.lopezjavier.appfitness.designsystem.RowGroupCard
 import io.github.lopezjavier.appfitness.designsystem.SkeletonBox
 import io.github.lopezjavier.appfitness.designsystem.Spacing
 import io.github.lopezjavier.appfitness.designsystem.StatusChip
@@ -51,6 +55,7 @@ import io.github.lopezjavier.appfitness.domain.model.PlanFixTarget
 import io.github.lopezjavier.appfitness.domain.port.ConnectivityObserver
 import io.github.lopezjavier.appfitness.feature.exercises.tagName
 import kotlinx.coroutines.flow.Flow
+import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.koinInject
 import org.koin.compose.viewmodel.koinViewModel
@@ -99,7 +104,7 @@ fun YourDataRoot(
 }
 
 /**
- * "Tus datos" on [AppScreen] with back, no footer: every input the coach reads, grouped by origin. A row with an
+ * "Tus datos" on [AppScreen] with back, no footer: every input the coach reads, grouped by origin, one card per group. A row with an
  * editor opens it (the activity level opens its sheet); derived values are plain rows. Provisional ones carry a chip.
  */
 @Composable
@@ -129,6 +134,7 @@ fun YourDataScreen(
                 })
 
                 YourDataUiState.Error -> ErrorState(
+                    modifier = Modifier.fillMaxSize(),
                     message = stringResource(Res.string.before_start_error),
                     action = AppStateAction(stringResource(Res.string.action_retry)) { onEvent(YourDataEvent.Retry) },
                     testTagPrefix = "your_data_error",
@@ -167,11 +173,25 @@ private fun YourDataContent(
     ) {
         if (state.showHandover) HandoverNote(state.handoverKcal, onEvent)
         state.sections.forEach { section ->
-            Column(Modifier.testTag("your_data_section_${section.origin.tagName()}")) {
+            Column(
+                Modifier.testTag("your_data_section_${section.origin.tagName()}"),
+                verticalArrangement = Arrangement.spacedBy(Spacing.xs),
+            ) {
                 ListSectionHeader(stringResource(section.origin.title()))
-                section.rows.forEach { row ->
-                    YourDataRow(row, row.key in state.intakeSourcedKeys, state.intake, onEvent, onEditorEvent, onFix)
-                }
+                RowGroupCard(
+                    rows = section.rows.map { row ->
+                        {
+                            YourDataRow(
+                                row,
+                                row.key in state.intakeSourcedKeys,
+                                state.intake,
+                                onEvent,
+                                onEditorEvent,
+                                onFix,
+                            )
+                        }
+                    },
+                )
             }
         }
         // The three things told in "Para conocerte": each row opens only its own editor (R-55).
@@ -209,54 +229,56 @@ private fun YourDataRow(
     onFix: (PlanFixTarget) -> Unit,
 ) {
     val tag = "your_data_row_${row.key.tagName()}"
-    val value =
-        stringResource(Res.string.trainer_value_supporting, row.valueText(), stringResource(row.source.originLabel()))
-    Column {
-        val target = row.fixTarget
-        if (target != null) {
-            NavigationRow(
-                label = row.labelText(),
-                value = value,
-                onClick = {
-                    when (target) {
-                        PlanFixTarget.ActivitySheet -> onEvent(YourDataEvent.OpenSheet)
-
-                        PlanFixTarget.TrainingYears ->
-                            openIntakeRow(IntakeRowKind.TrainingYears, intake, onEditorEvent)
-
-                        PlanFixTarget.Maintenance ->
-                            openIntakeRow(IntakeRowKind.Maintenance, intake, onEditorEvent)
-
-                        else -> onFix(target)
-                    }
-                },
-                modifier = Modifier.testTag(tag),
-            )
-        } else {
-            AppListRow(
-                headline = row.labelText(),
-                modifier = Modifier.testTag(tag),
-                trailing = {
-                    Text(text = value, style = AppTheme.typography.bodyMedium, color = AppTheme.colors.textSecondary)
-                },
-            )
-        }
-        if (row.isProvisional || fromIntake) {
+    // The section header names the origin, so the value is shown alone (C-112).
+    val value = row.valueText()
+    val target = row.fixTarget
+    val chip: (@Composable () -> Unit)? = if (row.isProvisional || fromIntake) {
+        {
             StatusChip(
                 text = stringResource(Res.string.trainer_provisional),
                 tone = StatusTone.Caution,
                 modifier = Modifier.testTag("your_data_chip_provisional_${row.key.tagName()}"),
             )
         }
-        if (fromIntake) {
-            Text(
-                text = stringResource(Res.string.your_data_intake_provisional),
-                style = AppTheme.typography.bodySmall,
-                color = AppTheme.colors.textSecondary,
-                modifier = Modifier.testTag("your_data_intake_provisional_${row.key.tagName()}"),
-            )
+    } else {
+        null
+    }
+    val note = if (fromIntake) stringResource(Res.string.your_data_intake_provisional) else null
+    val trailing: @Composable () -> Unit = {
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.xs)) {
+            Text(text = value, style = AppTheme.typography.bodyMedium, color = AppTheme.colors.textSecondary)
+            if (target != null) {
+                Icon(
+                    painter = painterResource(Res.drawable.ic_chevron_right),
+                    contentDescription = null,
+                    tint = AppTheme.colors.textSecondary,
+                    modifier = Modifier.size(Spacing.xl),
+                )
+            }
         }
     }
+    AppListRow(
+        headline = row.labelText(),
+        modifier = Modifier.padding(horizontal = Spacing.lg).testTag(tag),
+        supporting = note,
+        supportingContent = chip,
+        trailing = trailing,
+        onClick = target?.let {
+            {
+                when (it) {
+                    PlanFixTarget.ActivitySheet -> onEvent(YourDataEvent.OpenSheet)
+
+                    PlanFixTarget.TrainingYears ->
+                        openIntakeRow(IntakeRowKind.TrainingYears, intake, onEditorEvent)
+
+                    PlanFixTarget.Maintenance ->
+                        openIntakeRow(IntakeRowKind.Maintenance, intake, onEditorEvent)
+
+                    else -> onFix(it)
+                }
+            }
+        },
+    )
 }
 
 /** Card-shaped placeholder while the data loads (R-31): a title bar and one bar per row. */

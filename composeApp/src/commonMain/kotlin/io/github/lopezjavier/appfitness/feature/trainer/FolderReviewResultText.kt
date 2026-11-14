@@ -205,7 +205,7 @@ internal fun ReviewListRow(item: ReviewItem, tagPrefix: String, modifier: Modifi
             Icon(
                 painter = painterResource(if (item.met) Res.drawable.ic_check else Res.drawable.ic_warning),
                 contentDescription = null,
-                tint = if (item.met) AppTheme.colors.neonLime else AppTheme.colors.error,
+                tint = if (item.met) AppTheme.colors.neonLime else AppTheme.colors.energyAmber,
                 modifier = Modifier.size(Spacing.xl),
             )
         },

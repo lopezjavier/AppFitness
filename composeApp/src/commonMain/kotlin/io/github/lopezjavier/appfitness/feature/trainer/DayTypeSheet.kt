@@ -1,19 +1,27 @@
 package io.github.lopezjavier.appfitness.feature.trainer
 
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.size
+import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
 import io.github.lopezjavier.appfitness.composeapp.resources.Res
 import io.github.lopezjavier.appfitness.composeapp.resources.block_type_recommended
+import io.github.lopezjavier.appfitness.composeapp.resources.ic_check
 import io.github.lopezjavier.appfitness.designsystem.AppListRow
 import io.github.lopezjavier.appfitness.designsystem.AppPickerSheet
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
+import io.github.lopezjavier.appfitness.designsystem.Spacing
 import io.github.lopezjavier.appfitness.domain.coach.builder.DayTypeOption
 import io.github.lopezjavier.appfitness.domain.coach.builder.RoutineType
+import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.resources.stringResource
 
 /**
@@ -40,8 +48,26 @@ private fun DayTypeRow(option: DayTypeOption, current: Boolean, onPick: (Routine
     AppListRow(
         headline = option.type.displayName,
         supporting = reason ?: routineGroupsText(option.type),
-        trailing = if (option.recommended) {
-            { Text(recommended, style = AppTheme.typography.bodyMedium, color = AppTheme.colors.textSecondary) }
+        trailing = if (option.recommended || current) {
+            {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+                ) {
+                    if (option.recommended) {
+                        Text(recommended, style = AppTheme.typography.bodyMedium, color = AppTheme.colors.textSecondary)
+                    }
+                    // The lime check marks the day type in use (V-57); the selected semantics carry it for TalkBack.
+                    if (current) {
+                        Icon(
+                            painter = painterResource(Res.drawable.ic_check),
+                            contentDescription = null,
+                            tint = AppTheme.colors.neonLime,
+                            modifier = Modifier.size(Spacing.xl).testTag("block_type_option_${option.type.name}_check"),
+                        )
+                    }
+                }
+            }
         } else {
             null
         },

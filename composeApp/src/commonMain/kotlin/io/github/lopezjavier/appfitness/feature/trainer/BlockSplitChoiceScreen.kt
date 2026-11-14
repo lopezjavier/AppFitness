@@ -34,13 +34,14 @@ internal fun BlockSplitChoiceScreen(
 ) {
     AppScreen(
         title = stringResource(Res.string.block_split_title),
+        subtitle = blockFlowSubtitle(BlockFlowStep.Splits, state.withTargets),
         modifier = modifier,
         onBack = { onEvent(BlockBuilderEvent.Back) },
         footer = {
             PrimaryButton(
                 text = stringResource(Res.string.block_builder_continue),
                 onClick = { onEvent(BlockBuilderEvent.Continue) },
-                modifier = Modifier.fillMaxWidth().padding(Spacing.screenMargin).testTag("block_split_continue"),
+                modifier = Modifier.fillMaxWidth().testTag("block_split_continue"),
             )
         },
         testTagPrefix = "block_split",

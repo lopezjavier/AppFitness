@@ -3,6 +3,7 @@
 package io.github.lopezjavier.appfitness.feature.trainer
 
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
@@ -43,6 +44,7 @@ internal fun CoachFailureContent(
         val target = if (onFix != null) kind.fixTarget() else null
         if (target != null && onFix != null) {
             ErrorState(
+                modifier = Modifier.fillMaxSize(),
                 message = stringResource(message),
                 action = AppStateAction(stringResource(target.destinationLabel())) { onFix(target) },
                 testTagPrefix = "${tagPrefix}_error",
@@ -53,6 +55,7 @@ internal fun CoachFailureContent(
         } else if (kind == PlanFailureKind.BlockInProgress && onLeave != null) {
             // A block already runs: retrying cannot help, so the way out comes first (V-69).
             ErrorState(
+                modifier = Modifier.fillMaxSize(),
                 message = stringResource(message),
                 action = AppStateAction(stringResource(Res.string.coach_failure_block_in_progress_action), onLeave),
                 testTagPrefix = "${tagPrefix}_error",
@@ -62,6 +65,7 @@ internal fun CoachFailureContent(
             )
         } else {
             ErrorState(
+                modifier = Modifier.fillMaxSize(),
                 message = stringResource(message),
                 action = retry,
                 testTagPrefix = "${tagPrefix}_error",

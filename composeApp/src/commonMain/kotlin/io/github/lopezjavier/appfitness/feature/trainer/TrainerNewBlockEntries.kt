@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import io.github.lopezjavier.appfitness.composeapp.resources.Res
@@ -15,6 +16,7 @@ import io.github.lopezjavier.appfitness.composeapp.resources.trainer_plan_weeks_
 import io.github.lopezjavier.appfitness.composeapp.resources.trainer_welcome_back_line
 import io.github.lopezjavier.appfitness.composeapp.resources.trainer_welcome_back_title
 import io.github.lopezjavier.appfitness.designsystem.AppCard
+import io.github.lopezjavier.appfitness.designsystem.AppTextButton
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
 import io.github.lopezjavier.appfitness.designsystem.GhostButton
 import io.github.lopezjavier.appfitness.designsystem.OfflineHint
@@ -26,18 +28,18 @@ import org.jetbrains.compose.resources.stringResource
 /** "Bloque nuevo" and "Mi entrenamiento" under the active plan while its block is saved (T-240). */
 @Composable
 internal fun NewBlockEntries(online: Boolean, onEvent: (TrainerEvent) -> Unit) {
-    Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-        GhostButton(
+    Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm), horizontalAlignment = Alignment.CenterHorizontally) {
+        AppTextButton(
             text = stringResource(Res.string.trainer_new_block),
             onClick = { onEvent(TrainerEvent.OpenNewBlock) },
-            modifier = Modifier.fillMaxWidth().testTag("trainer_new_block"),
+            modifier = Modifier.testTag("trainer_new_block"),
             enabled = online,
         )
         if (!online) OfflineHint(stringResource(Res.string.trainer_new_block_action))
-        GhostButton(
+        AppTextButton(
             text = stringResource(Res.string.trainer_my_training),
             onClick = { onEvent(TrainerEvent.OpenMyTraining) },
-            modifier = Modifier.fillMaxWidth().testTag("trainer_my_training"),
+            modifier = Modifier.testTag("trainer_my_training"),
             enabled = online,
         )
     }

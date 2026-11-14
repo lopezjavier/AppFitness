@@ -47,6 +47,7 @@ internal fun BlockTypesScreen(
 ) {
     AppScreen(
         title = stringResource(Res.string.block_types_title),
+        subtitle = blockFlowSubtitle(BlockFlowStep.Types, state.withTargets),
         modifier = modifier,
         onBack = { onEvent(BlockBuilderEvent.Back) },
         footer = { TypesFooter(state, onEvent) },
@@ -126,10 +127,7 @@ private fun DayTypeRow(
 
 @Composable
 private fun TypesFooter(state: BlockBuilderUiState.Types, onEvent: (BlockBuilderEvent) -> Unit) {
-    Column(
-        Modifier.fillMaxWidth().padding(Spacing.screenMargin),
-        verticalArrangement = Arrangement.spacedBy(Spacing.sm),
-    ) {
+    Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
         if (state.daysChanged) {
             InlineNote(
                 text = stringResource(Res.string.block_builder_days_changed_note),

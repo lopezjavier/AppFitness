@@ -2,6 +2,7 @@ package io.github.lopezjavier.appfitness.designsystem
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -54,7 +55,8 @@ object NavigationRowDefaults {
  * line right after the headline text, which shrinks first (an inline marker such as a favourite star).
  * [headlineStyle] (default `bodyLarge`) and [headlineMaxLines] (default 2) restyle the headline; [supportingSecondary]
  * is a second `bodyMedium` line below [supporting]; [supportingMaxLines] (default unlimited) caps [supporting] with an
- * ellipsis, for a summary that must stay on one line so the row keeps its 56 dp height.
+ * ellipsis, for a summary that must stay on one line so the row keeps its 56 dp height. [supportingContent] is a
+ * free slot below the text lines (a status chip, C-122); the row is 72 dp when it is set.
  */
 @Composable
 fun AppListRow(
@@ -72,6 +74,7 @@ fun AppListRow(
     headlineMaxLines: Int = HEADLINE_MAX_LINES,
     supportingSecondary: String? = null,
     supportingMaxLines: Int = Int.MAX_VALUE,
+    supportingContent: (@Composable () -> Unit)? = null,
 ) {
     val clickable =
         if (onClick != null) {
@@ -84,7 +87,8 @@ fun AppListRow(
             .fillMaxWidth()
             .heightIn(
                 min = AppListRowDefaults.minHeight(
-                    supportingLines = listOfNotNull(supporting, supportingSecondary).size,
+                    supportingLines = listOfNotNull(supporting, supportingSecondary).size +
+                        if (supportingContent != null) 2 else 0,
                 ),
             )
             .then(clickable)
@@ -126,6 +130,9 @@ fun AppListRow(
                 )
             }
             if (supportingSecondary != null) SingleLineSupporting(supportingSecondary)
+            if (supportingContent != null) {
+                Box(Modifier.padding(top = Spacing.xs)) { supportingContent() }
+            }
         }
         trailing?.invoke()
     }
@@ -157,11 +164,13 @@ fun NavigationRow(
     supporting: String? = null,
     leading: (@Composable () -> Unit)? = null,
     onClickLabel: String? = null,
+    supportingContent: (@Composable () -> Unit)? = null,
 ) {
     AppListRow(
         headline = label,
         onClickLabel = onClickLabel,
         supporting = supporting,
+        supportingContent = supportingContent,
         leading = leading,
         modifier = if (enabled) modifier else modifier.alpha(NavigationRowDefaults.DISABLED_ALPHA),
         onClick = onClick,

@@ -29,7 +29,7 @@ import io.github.lopezjavier.appfitness.designsystem.AppOption
 import io.github.lopezjavier.appfitness.designsystem.AppSwitch
 import io.github.lopezjavier.appfitness.designsystem.AppTextField
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
-import io.github.lopezjavier.appfitness.designsystem.FilterChipRow
+import io.github.lopezjavier.appfitness.designsystem.FilterChipFlow
 import io.github.lopezjavier.appfitness.designsystem.SheetCommit
 import io.github.lopezjavier.appfitness.designsystem.Spacing
 import io.github.lopezjavier.appfitness.designsystem.offlineHint
@@ -103,12 +103,7 @@ internal fun BuilderCreateExerciseSheet(
 private fun ChipChoice(label: String, options: List<AppOption>, selected: Int?, onSelect: (Int) -> Unit) {
     Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
         Text(text = label, style = AppTheme.typography.titleMedium, color = AppTheme.colors.textPrimary)
-        FilterChipRow(
-            options = options,
-            selectedIndex = selected,
-            onSelect = onSelect,
-            edgeToEdge = Spacing.screenMargin,
-        )
+        FilterChipFlow(options = options, selectedIndex = selected, onSelect = onSelect)
     }
 }
 

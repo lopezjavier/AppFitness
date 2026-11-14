@@ -105,6 +105,9 @@ class BlockBuilderViewModel(
 
     private val nextMode = previousPlanId != null && nextBlock != null
     private var context: NextBlockContext? = null
+
+    /** The flow starts with "Objetivo por grupo" (four steps, C-108). */
+    private val hasTargetsStep: Boolean get() = nextMode && context != null
     private var choices: Map<MuscleGroup, GroupPriority> =
         savedState.get<String>(KEY_PRIORITIES)?.let(::decodeChoices).orEmpty()
     private var accepted: Set<MuscleGroup> =
@@ -255,7 +258,7 @@ class BlockBuilderViewModel(
             nextMode && context != null && savedState.get<String>(KEY_STEP).let { it == null || it == STEP_TARGETS } ->
                 targetsUi()
 
-            else -> BlockBuilderUiState.Splits(inputs.days, splits, splitIndex)
+            else -> BlockBuilderUiState.Splits(inputs.days, splits, splitIndex, hasTargetsStep)
         }.also { persist(it) }
     }
 
@@ -277,7 +280,7 @@ class BlockBuilderViewModel(
         val noFit = (start as? BuilderStart.NoFit)?.let {
             NoFitInfo(it.dayIndex, it.fit.minutesNeeded, it.fit.limitMinutes)
         }
-        return BlockBuilderUiState.Types(split, chosen, options, openDay, noFit)
+        return BlockBuilderUiState.Types(split, chosen, options, openDay, noFit, withTargets = hasTargetsStep)
     }
 
     private fun startBuilder(data: Inputs, types: List<RoutineType>): BuilderStart = builder.start(
@@ -360,7 +363,7 @@ class BlockBuilderViewModel(
         val ctx = context ?: return
         val types = seedTypes(ctx)
         if (types == null) {
-            set(BlockBuilderUiState.Splits(data.days, builder.splitsFor(data.days), 0))
+            set(BlockBuilderUiState.Splits(data.days, builder.splitsFor(data.days), 0, hasTargetsStep))
             return
         }
         val start = startBuilder(data, types) as? BuilderStart.Ready ?: return
@@ -436,6 +439,7 @@ class BlockBuilderViewModel(
             favouriteIds = favourites.favoriteIds.value,
             stalledExerciseIds = context?.stalledLifts.orEmpty(),
             savedPlanId = previous?.savedPlanId,
+            withTargets = hasTargetsStep,
             validPatterns = slot?.let { slotOf(state, it) }?.let { SlotEligibility.validPatterns(it.kind) }.orEmpty(),
         )
     }
@@ -590,7 +594,7 @@ class BlockBuilderViewModel(
 
                 data != null -> {
                     val index = savedState.get<Int>(KEY_SPLIT) ?: 0
-                    set(BlockBuilderUiState.Splits(data.days, builder.splitsFor(data.days), index))
+                    set(BlockBuilderUiState.Splits(data.days, builder.splitsFor(data.days), index, hasTargetsStep))
                 }
             }
 

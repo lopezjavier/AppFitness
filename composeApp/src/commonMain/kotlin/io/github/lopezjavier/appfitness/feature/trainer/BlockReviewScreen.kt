@@ -112,24 +112,22 @@ fun BlockReviewScreen(
             when (state) {
                 BlockReviewUiState.Loading -> ReviewSkeleton()
 
-                BlockReviewUiState.Empty -> Box(Modifier.fillMaxSize(), Alignment.Center) {
-                    EmptyState(
-                        icon = Res.drawable.ic_nav_trainer,
-                        message = stringResource(Res.string.block_review_empty),
-                        testTagPrefix = "block_review_empty",
-                    )
-                }
+                BlockReviewUiState.Empty -> EmptyState(
+                    modifier = Modifier.fillMaxSize(),
+                    icon = Res.drawable.ic_nav_trainer,
+                    message = stringResource(Res.string.block_review_empty),
+                    testTagPrefix = "block_review_empty",
+                )
 
-                BlockReviewUiState.Error -> Box(Modifier.fillMaxSize(), Alignment.Center) {
-                    ErrorState(
-                        message = stringResource(Res.string.block_review_error),
-                        action = AppStateAction(stringResource(Res.string.action_retry)) {
-                            onEvent(BlockReviewEvent.Retry)
-                        },
-                        testTagPrefix = "block_review_error",
-                        actionTestTag = "block_review_retry",
-                    )
-                }
+                BlockReviewUiState.Error -> ErrorState(
+                    modifier = Modifier.fillMaxSize(),
+                    message = stringResource(Res.string.block_review_error),
+                    action = AppStateAction(stringResource(Res.string.action_retry)) {
+                        onEvent(BlockReviewEvent.Retry)
+                    },
+                    testTagPrefix = "block_review_error",
+                    actionTestTag = "block_review_retry",
+                )
 
                 BlockReviewUiState.Offline -> Box(
                     Modifier.fillMaxSize().testTag("block_review_offline"),
@@ -151,7 +149,7 @@ private fun ReviewFooter(
     online: Boolean,
     onOpenBeforeStart: (BeforeStartMode, String?, String?) -> Unit,
 ) {
-    Column(verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
+    Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
         PrimaryButton(
             text = stringResource(Res.string.block_review_next_block),
             onClick = {

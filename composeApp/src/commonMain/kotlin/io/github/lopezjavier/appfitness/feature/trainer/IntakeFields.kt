@@ -4,12 +4,18 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.material3.Icon
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import io.github.lopezjavier.appfitness.composeapp.resources.Res
+import io.github.lopezjavier.appfitness.composeapp.resources.ic_chevron_right
+import io.github.lopezjavier.appfitness.composeapp.resources.intake_group_title
 import io.github.lopezjavier.appfitness.composeapp.resources.intake_kcal_range
 import io.github.lopezjavier.appfitness.composeapp.resources.intake_maintenance_field
 import io.github.lopezjavier.appfitness.composeapp.resources.intake_maintenance_help_body
@@ -25,18 +31,21 @@ import io.github.lopezjavier.appfitness.composeapp.resources.intake_years_less
 import io.github.lopezjavier.appfitness.composeapp.resources.intake_years_more
 import io.github.lopezjavier.appfitness.composeapp.resources.trainer_provisional
 import io.github.lopezjavier.appfitness.designsystem.AppEditSheet
+import io.github.lopezjavier.appfitness.designsystem.AppListRow
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
 import io.github.lopezjavier.appfitness.designsystem.HelpButton
+import io.github.lopezjavier.appfitness.designsystem.ListSectionHeader
 import io.github.lopezjavier.appfitness.designsystem.LocalAppHaptics
-import io.github.lopezjavier.appfitness.designsystem.NavigationRow
 import io.github.lopezjavier.appfitness.designsystem.NumberInput
 import io.github.lopezjavier.appfitness.designsystem.NumberStepper
+import io.github.lopezjavier.appfitness.designsystem.RowGroupCard
 import io.github.lopezjavier.appfitness.designsystem.SheetCommit
 import io.github.lopezjavier.appfitness.designsystem.Spacing
 import io.github.lopezjavier.appfitness.designsystem.StatusChip
 import io.github.lopezjavier.appfitness.designsystem.StatusTone
 import io.github.lopezjavier.appfitness.designsystem.offlineHint
 import org.jetbrains.compose.resources.StringResource
+import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.resources.stringResource
 
 private const val MAX_KCAL_DIGITS = 4
@@ -54,8 +63,9 @@ private fun IntakeRowKind.help(): RowHelp? = when (this) {
 }
 
 /**
- * The intake rows of [kinds] (R-55): value or "Sin indicar", a "Provisional" chip for a stated number, and a tap that
- * opens only that row's editor through [onOpen]. [screen] prefixes the test tags.
+ * The intake rows of [kinds] (R-55, C-112): a "Tus respuestas" header over one row group; each row is the label with
+ * its "?" right after it, a "Provisional" chip as the supporting slot for a stated number (C-122), and the value with
+ * the chevron last. A tap opens only that row's editor through [onOpen]. [screen] prefixes the test tags.
  */
 @Composable
 internal fun IntakeRows(
@@ -66,35 +76,65 @@ internal fun IntakeRows(
     modifier: Modifier = Modifier,
 ) {
     val unset = stringResource(Res.string.intake_unset)
-    Column(modifier) {
-        kinds.forEach { kind ->
-            val tag = kind.rowTag(screen)
-            val help = kind.help()
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                NavigationRow(
-                    label = stringResource(kind.intakeLabel()),
-                    value = kind.valueText(intake) ?: unset,
-                    onClick = { onOpen(kind) },
-                    modifier = Modifier.weight(1f).testTag(tag),
-                )
-                if (help != null) {
-                    HelpButton(
-                        contentDescription = stringResource(help.contentDescription),
-                        title = stringResource(kind.intakeLabel()),
-                        body = stringResource(help.body),
-                        testTag = "${tag}_help",
-                    )
+    Column(modifier, verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
+        ListSectionHeader(stringResource(Res.string.intake_group_title))
+        RowGroupCard(
+            rows = kinds.map { kind ->
+                {
+                    IntakeRow(kind, kind.valueText(intake) ?: unset, intake.isProvisional(kind), screen, onOpen)
                 }
+            },
+        )
+    }
+}
+
+@Composable
+private fun IntakeRow(
+    kind: IntakeRowKind,
+    value: String,
+    provisional: Boolean,
+    screen: String,
+    onOpen: (IntakeRowKind) -> Unit,
+) {
+    val tag = kind.rowTag(screen)
+    val help = kind.help()
+    AppListRow(
+        headline = stringResource(kind.intakeLabel()),
+        modifier = Modifier.padding(horizontal = Spacing.lg).testTag(tag),
+        onClick = { onOpen(kind) },
+        headlineTrailing = help?.let {
+            {
+                HelpButton(
+                    contentDescription = stringResource(it.contentDescription),
+                    title = stringResource(kind.intakeLabel()),
+                    body = stringResource(it.body),
+                    testTag = "${tag}_help",
+                )
             }
-            if (intake.isProvisional(kind)) {
+        },
+        supportingContent = if (provisional) {
+            {
                 StatusChip(
                     text = stringResource(Res.string.trainer_provisional),
                     tone = StatusTone.Caution,
                     modifier = Modifier.testTag("${tag}_chip_provisional"),
                 )
             }
-        }
-    }
+        } else {
+            null
+        },
+        trailing = {
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.xs)) {
+                Text(text = value, style = AppTheme.typography.bodyMedium, color = AppTheme.colors.textSecondary)
+                Icon(
+                    painter = painterResource(Res.drawable.ic_chevron_right),
+                    contentDescription = null,
+                    tint = AppTheme.colors.textSecondary,
+                    modifier = Modifier.size(Spacing.xl),
+                )
+            }
+        },
+    )
 }
 
 /**
@@ -193,6 +233,7 @@ private fun MaintenanceSheet(
             modifier = Modifier.fillMaxWidth().testTag("intake_maintenance_sheet_field"),
             readOnly = editor.saving,
             maxIntegerDigits = MAX_KCAL_DIGITS,
+            startAligned = true,
             errorText = if (sheet.invalid) stringResource(Res.string.intake_kcal_range) else null,
             errorTestTag = "intake_maintenance_error",
         )

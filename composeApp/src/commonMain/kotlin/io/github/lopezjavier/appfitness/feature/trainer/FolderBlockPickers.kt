@@ -104,6 +104,7 @@ private fun ExercisePicker(
             onValueChange = { query = it },
             label = stringResource(Res.string.exercise_search_label),
             placeholder = stringResource(Res.string.exercise_search_placeholder),
+            showLabel = false,
             onSearch = {},
             testTagPrefix = "folder_block_picker_search",
             modifier = Modifier.fillMaxWidth().padding(horizontal = Spacing.screenMargin),

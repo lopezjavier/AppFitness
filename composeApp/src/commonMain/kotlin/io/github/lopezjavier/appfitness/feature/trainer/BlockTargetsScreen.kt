@@ -3,6 +3,9 @@ package io.github.lopezjavier.appfitness.feature.trainer
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
@@ -31,6 +34,7 @@ import io.github.lopezjavier.appfitness.composeapp.resources.block_targets_sugge
 import io.github.lopezjavier.appfitness.composeapp.resources.block_targets_suggestion_applied
 import io.github.lopezjavier.appfitness.composeapp.resources.block_targets_suggestion_applied_cd
 import io.github.lopezjavier.appfitness.composeapp.resources.block_targets_suggestion_cd
+import io.github.lopezjavier.appfitness.composeapp.resources.block_targets_groups_header
 import io.github.lopezjavier.appfitness.composeapp.resources.block_targets_title
 import io.github.lopezjavier.appfitness.composeapp.resources.block_types_no_fit
 import io.github.lopezjavier.appfitness.composeapp.resources.block_types_no_fit_action
@@ -42,6 +46,7 @@ import io.github.lopezjavier.appfitness.designsystem.AppScreen
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
 import io.github.lopezjavier.appfitness.designsystem.AppToggleChip
 import io.github.lopezjavier.appfitness.designsystem.HelpButton
+import io.github.lopezjavier.appfitness.designsystem.ListSectionHeader
 import io.github.lopezjavier.appfitness.designsystem.InlineNote
 import io.github.lopezjavier.appfitness.designsystem.PrimaryButton
 import io.github.lopezjavier.appfitness.designsystem.SegmentedSelector
@@ -69,6 +74,7 @@ internal fun BlockTargetsScreen(
 ) {
     AppScreen(
         title = stringResource(Res.string.block_targets_title),
+        subtitle = blockFlowSubtitle(BlockFlowStep.Targets, withTargets = true),
         modifier = modifier,
         onBack = { onEvent(BlockBuilderEvent.Back) },
         footer = { TargetsFooter(state, onEvent) },
@@ -77,9 +83,13 @@ internal fun BlockTargetsScreen(
         Column(
             Modifier.fillMaxWidth().verticalScroll(rememberScrollState()).padding(Spacing.screenMargin)
                 .testTag("block_builder_targets_screen"),
-            verticalArrangement = Arrangement.spacedBy(Spacing.md),
+            verticalArrangement = Arrangement.spacedBy(Spacing.lg),
         ) {
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
+            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                ListSectionHeader(
+                    title = stringResource(Res.string.block_targets_groups_header),
+                    modifier = Modifier.weight(1f),
+                )
                 HelpButton(
                     contentDescription = stringResource(Res.string.block_targets_help_cd),
                     title = stringResource(Res.string.block_targets_title),
@@ -108,8 +118,8 @@ private fun TargetRow(row: GroupTargetRow, onEvent: (BlockBuilderEvent) -> Unit)
         GroupPriority.None -> stringResource(Res.string.block_targets_choice_none)
     }
     val stateText = stringResource(Res.string.block_targets_state, choiceText, line)
-    Column(verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
+    Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+        Row(Modifier.heightIn(min = Spacing.minTouchTarget), verticalAlignment = Alignment.CenterVertically) {
             Text(
                 text = line,
                 style = AppTheme.typography.bodyMedium,
@@ -124,6 +134,9 @@ private fun TargetRow(row: GroupTargetRow, onEvent: (BlockBuilderEvent) -> Unit)
                     onClick = { onEvent(BlockBuilderEvent.SetPriority(row.group, GroupPriority.None)) },
                     tint = AppTheme.colors.textSecondary,
                 )
+            } else {
+                // The 48 dp clear slot is always reserved so the row does not jump when a choice is made (C-115).
+                Spacer(Modifier.size(Spacing.minTouchTarget))
             }
         }
         PriorityControl(row, tag, onEvent)

@@ -56,7 +56,13 @@ sealed interface BlockBuilderUiState {
     data class Failed(val offline: Boolean) : BlockBuilderUiState
 
     /** Step 1: the splits for [days], recommended first. */
-    data class Splits(val days: Int, val splits: List<Split>, val selectedIndex: Int) : BlockBuilderUiState
+    data class Splits(
+        val days: Int,
+        val splits: List<Split>,
+        val selectedIndex: Int,
+        /** The next block starts with "Objetivo por grupo": the flow has four steps instead of three (C-108). */
+        val withTargets: Boolean = false,
+    ) : BlockBuilderUiState
 
     /**
      * Step 2: one type per day. [options] holds the five types of each day (disabled ones with their reason).
@@ -71,6 +77,8 @@ sealed interface BlockBuilderUiState {
         val noFit: NoFitInfo?,
         /** The days per week changed in "Mi entrenamiento": the day types were re-seeded; the screen says so. */
         val daysChanged: Boolean = false,
+        /** See [Splits.withTargets]. */
+        val withTargets: Boolean = false,
     ) : BlockBuilderUiState {
         val canContinue: Boolean get() = noFit == null
     }
@@ -115,6 +123,8 @@ sealed interface BlockBuilderUiState {
         val stalledExerciseIds: Set<String> = emptySet(),
         /** The plan the block was saved under (the server's `plan_id`), set once the save succeeded. */
         val savedPlanId: String? = null,
+        /** See [Splits.withTargets]. */
+        val withTargets: Boolean = false,
     ) : BlockBuilderUiState {
         /** "Guardar bloque" is enabled: 100 % and no save in flight (a plan-closed error also blocks it). */
         val canSave: Boolean get() = state.canSave && !saving && saveError != BuilderSaveError.PlanClosed
