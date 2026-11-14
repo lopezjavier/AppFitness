@@ -88,6 +88,7 @@ fun AppScreen(
                 navigationButton = backButton,
                 actions = actions,
                 testTagPrefix = testTagPrefix,
+                maxContentWidth = maxContentWidth,
             )
         }
         Box(

@@ -18,6 +18,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
@@ -147,13 +148,14 @@ fun AppTopBar(
     actions: List<AppTopBarAction> = emptyList(),
     windowInsets: WindowInsets = AppTopBarDefaults.windowInsets,
     testTagPrefix: String = AppTopBarDefaults.TestTag,
+    maxContentWidth: Dp = Dp.Unspecified,
 ) {
     val colors = AppTheme.colors
     val borderColor = colors.borderSubtle
     val startPadding =
         if (navigationButton != null) AppTopBarDefaults.StartPaddingWithNavigation else Spacing.screenMargin
     val endPadding = if (actions.isEmpty()) Spacing.screenMargin else AppTopBarDefaults.EndPaddingWithActions
-    Row(
+    Box(
         modifier =
         modifier
             .fillMaxWidth()
@@ -164,10 +166,16 @@ fun AppTopBar(
                 drawLine(borderColor, Offset(0f, y), Offset(size.width, y), strokeWidth = AppBorder.thin.toPx())
             }
             .windowInsetsPadding(windowInsets)
-            .heightIn(min = AppTopBarDefaults.Height)
-            .padding(start = startPadding, end = endPadding),
-        verticalAlignment = Alignment.CenterVertically,
+            .heightIn(min = AppTopBarDefaults.Height),
+        contentAlignment = Alignment.Center,
     ) {
+        Row(
+            modifier = Modifier
+                .widthIn(max = maxContentWidth)
+                .fillMaxWidth()
+                .padding(start = startPadding, end = endPadding),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
         if (navigationButton != null) {
             BackButton(navigationButton, AppTopBarDefaults.backTag(testTagPrefix))
             Spacer(Modifier.width(Spacing.xs))
@@ -194,6 +202,7 @@ fun AppTopBar(
             }
         }
         TopBarActions(actions, testTagPrefix)
+        }
     }
 }
 

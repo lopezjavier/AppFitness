@@ -23,7 +23,17 @@ import org.jetbrains.compose.resources.DrawableResource
 import org.jetbrains.compose.resources.painterResource
 
 /** How a metric status reads; it is never the only cue (the chip also has an icon and the status text). */
-enum class StatusTone { Good, Caution, Alert }
+enum class StatusTone {
+    Good,
+    Caution,
+    Alert,
+
+    /** A current state or phase (cyan, no icon, C-109). */
+    Info,
+
+    /** A paused state (`textSecondary`, no icon, C-109). */
+    Neutral,
+}
 
 object StatusChipDefaults {
     val IconSize = Spacing.lg
@@ -32,12 +42,16 @@ object StatusChipDefaults {
         StatusTone.Good -> appColors.electricGreen
         StatusTone.Caution -> appColors.energyAmber
         StatusTone.Alert -> appColors.error
+        StatusTone.Info -> appColors.athleticCyan
+        StatusTone.Neutral -> appColors.textSecondary
     }
 
-    fun icon(tone: StatusTone): DrawableResource = when (tone) {
+    /** Info and Neutral carry their meaning in the label alone (R-98). */
+    fun icon(tone: StatusTone): DrawableResource? = when (tone) {
         StatusTone.Good -> Res.drawable.ic_tone_favorable
         StatusTone.Caution -> Res.drawable.ic_tone_caution
         StatusTone.Alert -> Res.drawable.ic_tone_unfavorable
+        StatusTone.Info, StatusTone.Neutral -> null
     }
 }
 
@@ -49,12 +63,14 @@ object StatusChipDefaults {
 fun StatusChip(text: String, tone: StatusTone, modifier: Modifier = Modifier, mergeSemantics: Boolean = true) {
     val color = StatusChipDefaults.color(tone, AppTheme.colors)
     PillContainer(if (mergeSemantics) modifier.semantics(mergeDescendants = true) {} else modifier) {
-        Icon(
-            painter = painterResource(StatusChipDefaults.icon(tone)),
-            contentDescription = null,
-            tint = color,
-            modifier = Modifier.size(StatusChipDefaults.IconSize),
-        )
+        StatusChipDefaults.icon(tone)?.let { icon ->
+            Icon(
+                painter = painterResource(icon),
+                contentDescription = null,
+                tint = color,
+                modifier = Modifier.size(StatusChipDefaults.IconSize),
+            )
+        }
         Text(text = text, style = AppTheme.typography.bodySmall, color = color)
     }
 }

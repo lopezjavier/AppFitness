@@ -27,6 +27,21 @@ import org.jetbrains.compose.resources.stringResource
 object MacroStackedBarDefaults {
     val Height: Dp = 12.dp
 
+    /** The 8 dp bar of the nutrition plan (C-105). */
+    val SlimHeight: Dp = 8.dp
+
+    /** Share of kcal per macro in percent (protein x4, carbs x4, fat x9); zeros when there are no kcal. */
+    fun kcalShares(proteinG: Double, carbsG: Double, fatG: Double): Triple<Int, Int, Int> {
+        val p = proteinG * 4
+        val c = carbsG * 4
+        val f = fatG * 9
+        val total = p + c + f
+        if (total <= 0.0) return Triple(0, 0, 0)
+        val pp = (p / total * 100).toInt()
+        val cp = (c / total * 100).toInt()
+        return Triple(pp, cp, 100 - pp - cp)
+    }
+
     fun segmentTag(testTag: String, macro: Macro): String = "${testTag}_${macro.name.lowercase()}"
 }
 
@@ -42,6 +57,7 @@ fun MacroStackedBar(
     fatPct: Int,
     modifier: Modifier = Modifier,
     testTag: String = "macro_stacked_bar",
+    barHeight: Dp = MacroStackedBarDefaults.Height,
 ) {
     val colors = AppTheme.colors
     val spoken =
@@ -54,7 +70,7 @@ fun MacroStackedBar(
     Row(
         modifier
             .fillMaxWidth()
-            .height(MacroStackedBarDefaults.Height)
+            .height(barHeight)
             .clip(AppShapes.full)
             .background(colors.surfaceOverlay)
             .testTag(testTag)

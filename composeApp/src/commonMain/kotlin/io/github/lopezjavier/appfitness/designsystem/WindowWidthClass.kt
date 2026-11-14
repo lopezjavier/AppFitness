@@ -16,6 +16,9 @@ object WindowWidthClassDefaults {
     /** Cap of a multi-step form column (onboarding) on wide windows. */
     val FormContentMaxWidth: Dp = 480.dp
 
+    /** Cap of the Trainer hub grids (R-91, C-106); forms keep [FormContentMaxWidth]. */
+    val HubContentMaxWidth: Dp = 840.dp
+
     /** Cap of a single column of cards (the live workout) on wide windows. */
     val CardColumnMaxWidth: Dp = 640.dp
 
