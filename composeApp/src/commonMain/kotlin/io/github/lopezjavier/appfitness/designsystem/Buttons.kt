@@ -140,8 +140,8 @@ object AppButtonDefaults {
 }
 
 /**
- * Lime-filled main action. While [loading] a small progress indicator sits at the end of the button (the text
- * does not change); pass `enabled = false` as well to block taps.
+ * Lime-filled main action. While [loading] a 20 dp progress indicator sits directly before the label, 8 dp gap,
+ * the group centred (C-82); pass `enabled = false` as well to block taps.
  */
 @Composable
 fun PrimaryButton(
@@ -174,7 +174,7 @@ fun SecondaryButton(
 
 /**
  * Transparent action with a label and a neutral border; [tone] picks the destructive treatment.
- * [loading] shows the same end-of-button progress indicator as [PrimaryButton].
+ * [loading] shows the same progress indicator before the label as [PrimaryButton].
  */
 @Composable
 fun GhostButton(
@@ -228,6 +228,15 @@ private fun AppButton(
             contentAlignment = Alignment.Center,
         ) {
             Row(verticalAlignment = Alignment.CenterVertically) {
+                if (loading) {
+                    // Decorative: the caller exposes the busy state through the button's semantics (C-82).
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(AppButtonDefaults.LoadingIndicatorSize),
+                        color = colors.content,
+                        strokeWidth = AppButtonDefaults.LoadingIndicatorStroke,
+                    )
+                    Spacer(Modifier.width(Spacing.sm))
+                }
                 if (leadingIcon != null) {
                     // Decorative: the label carries the meaning.
                     Icon(
@@ -239,14 +248,6 @@ private fun AppButton(
                     Spacer(Modifier.width(Spacing.sm))
                 }
                 Text(text = text, style = AppTheme.typography.titleMedium, textAlign = TextAlign.Center)
-            }
-            if (loading) {
-                // Decorative: the caller exposes the busy state through the button's semantics.
-                CircularProgressIndicator(
-                    modifier = Modifier.align(Alignment.CenterEnd).size(AppButtonDefaults.LoadingIndicatorSize),
-                    color = AppTheme.colors.neonLime,
-                    strokeWidth = AppButtonDefaults.LoadingIndicatorStroke,
-                )
             }
         }
     }

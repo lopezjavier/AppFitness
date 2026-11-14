@@ -1,5 +1,6 @@
 package io.github.lopezjavier.appfitness.designsystem
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -7,6 +8,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
@@ -18,11 +20,13 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Immutable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
@@ -328,7 +332,7 @@ private fun PreviousCell(
     }
 }
 
-/** Fixed 48 dp button showing the logged RPE ("7,5") in the training accent or the empty marker. */
+/** Fixed 48 dp button; the RPE sits in the [SetTypeBadge] container (C-71): value in the accent W700, or "—". */
 @Composable
 private fun RpeCell(value: String?, description: String?, onClick: () -> Unit, modifier: Modifier = Modifier) {
     Box(
@@ -338,13 +342,22 @@ private fun RpeCell(value: String?, description: String?, onClick: () -> Unit, m
             .semantics { if (description != null) contentDescription = description },
         contentAlignment = Alignment.Center,
     ) {
-        Text(
-            text = value ?: SetRowDefaults.NO_PREVIOUS,
-            style = AppTheme.typography.bodyMedium,
-            color = if (value == null) AppTheme.colors.textSecondary else AppTheme.colors.athleticCyan,
-            textAlign = TextAlign.Center,
-            maxLines = 1,
-        )
+        Box(
+            Modifier
+                .defaultMinSize(SetRowDefaults.IndexBadgeSize, SetRowDefaults.IndexBadgeSize)
+                .clip(AppShapes.sm)
+                .background(AppTheme.colors.surfaceOverlay)
+                .padding(horizontal = Spacing.xs),
+            contentAlignment = Alignment.Center,
+        ) {
+            Text(
+                text = value ?: SetRowDefaults.NO_PREVIOUS,
+                style = AppTheme.typography.labelTechnical.copy(fontWeight = FontWeight.W700),
+                color = if (value == null) AppTheme.colors.textSecondary else AppTheme.colors.athleticCyan,
+                textAlign = TextAlign.Center,
+                maxLines = 1,
+            )
+        }
     }
 }
 

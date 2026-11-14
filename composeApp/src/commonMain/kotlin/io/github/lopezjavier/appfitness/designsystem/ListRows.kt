@@ -20,11 +20,25 @@ import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.dp
 import io.github.lopezjavier.appfitness.composeapp.resources.Res
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_chevron_right
 import org.jetbrains.compose.resources.painterResource
 
 private const val HEADLINE_MAX_LINES = 2
+
+/** Minimum row heights by number of supporting lines (C-74): 48 / 56 / 72 dp. */
+object AppListRowDefaults {
+    private val OneSupporting = 56.dp
+    private val TwoSupporting = 72.dp
+
+    fun minHeight(supportingLines: Int): Dp = when {
+        supportingLines <= 0 -> Spacing.minTouchTarget
+        supportingLines == 1 -> OneSupporting
+        else -> TwoSupporting
+    }
+}
 
 /** Look of a disabled [NavigationRow]: not clickable, reduced emphasis. */
 object NavigationRowDefaults {
@@ -66,7 +80,11 @@ fun AppListRow(
     Row(
         modifier
             .fillMaxWidth()
-            .heightIn(min = Spacing.minTouchTarget)
+            .heightIn(
+                min = AppListRowDefaults.minHeight(
+                    supportingLines = listOfNotNull(supporting, supportingSecondary).size,
+                ),
+            )
             .then(clickable)
             .padding(vertical = Spacing.xs),
         verticalAlignment = Alignment.CenterVertically,

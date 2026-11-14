@@ -8,12 +8,12 @@ import androidx.compose.ui.platform.testTag
 import io.github.lopezjavier.appfitness.composeapp.resources.Res
 import io.github.lopezjavier.appfitness.composeapp.resources.action_delete
 import io.github.lopezjavier.appfitness.composeapp.resources.action_edit
-import io.github.lopezjavier.appfitness.composeapp.resources.ic_add
-import io.github.lopezjavier.appfitness.composeapp.resources.ic_check
+import io.github.lopezjavier.appfitness.composeapp.resources.ic_content_copy
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_delete
+import io.github.lopezjavier.appfitness.composeapp.resources.ic_drive_file_move
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_edit
-import io.github.lopezjavier.appfitness.composeapp.resources.ic_label
-import io.github.lopezjavier.appfitness.composeapp.resources.ic_star
+import io.github.lopezjavier.appfitness.composeapp.resources.ic_fact_check
+import io.github.lopezjavier.appfitness.composeapp.resources.ic_flag
 import io.github.lopezjavier.appfitness.composeapp.resources.routine_duplicate
 import io.github.lopezjavier.appfitness.composeapp.resources.routines_folder_menu_delete
 import io.github.lopezjavier.appfitness.composeapp.resources.routines_folder_menu_delete_blocked_cd
@@ -27,10 +27,10 @@ import io.github.lopezjavier.appfitness.composeapp.resources.routines_next_clear
 import io.github.lopezjavier.appfitness.composeapp.resources.routines_next_set
 import io.github.lopezjavier.appfitness.composeapp.resources.routines_offline_reason
 import io.github.lopezjavier.appfitness.designsystem.AppActionSheet
-import io.github.lopezjavier.appfitness.designsystem.AppPickerSheet
 import io.github.lopezjavier.appfitness.designsystem.AppSheetAction
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
-import io.github.lopezjavier.appfitness.designsystem.SheetActionRow
+import io.github.lopezjavier.appfitness.designsystem.OptionPickerSheet
+import io.github.lopezjavier.appfitness.designsystem.PickerOption
 import io.github.lopezjavier.appfitness.designsystem.Spacing
 import io.github.lopezjavier.appfitness.domain.model.RoutineFolder
 import io.github.lopezjavier.appfitness.domain.model.RoutineSummary
@@ -48,8 +48,9 @@ internal fun RoutinesDialogs(state: RoutinesUiState.Content, onEvent: (RoutinesE
 }
 
 /**
- * Actions of one routine (R-07). Offline only "Editar" and "Eliminar" are listed ("Eliminar" explains the refusal),
- * with the reason under the title. Reordering is on the card itself (handle, TalkBack "Subir" / "Bajar").
+ * Actions of one routine (R-07). Offline "Duplicar", "Mover a carpeta" and "Siguiente entreno" stay listed but
+ * dimmed (V-40, like the folder menu) and "Eliminar" explains the refusal, with the reason under the title.
+ * Reordering is on the card itself (handle, TalkBack "Subir" / "Bajar").
  */
 @Composable
 private fun RoutineMenuSheet(routine: RoutineSummary, isOnline: Boolean, onEvent: (RoutinesEvent) -> Unit) {
@@ -60,26 +61,28 @@ private fun RoutineMenuSheet(routine: RoutineSummary, isOnline: Boolean, onEvent
                 onEvent(RoutinesEvent.Edit(id))
             },
         )
-        if (isOnline) {
-            add(
-                AppSheetAction(Res.drawable.ic_add, stringResource(Res.string.routine_duplicate)) {
-                    onEvent(RoutinesEvent.Duplicate(id))
-                },
-            )
-            add(
-                AppSheetAction(Res.drawable.ic_label, stringResource(Res.string.routines_move_to_folder)) {
-                    onEvent(RoutinesEvent.OpenMove(id))
-                },
-            )
-            val nextLabel = stringResource(
-                if (routine.isNext) Res.string.routines_next_clear else Res.string.routines_next_set,
-            )
-            add(
-                AppSheetAction(Res.drawable.ic_star, nextLabel) {
-                    onEvent(if (routine.isNext) RoutinesEvent.ClearNext else RoutinesEvent.SetNext(id))
-                },
-            )
-        }
+        add(
+            AppSheetAction(
+                icon = Res.drawable.ic_content_copy,
+                title = stringResource(Res.string.routine_duplicate),
+                enabled = isOnline,
+            ) { onEvent(RoutinesEvent.Duplicate(id)) },
+        )
+        add(
+            AppSheetAction(
+                icon = Res.drawable.ic_drive_file_move,
+                title = stringResource(Res.string.routines_move_to_folder),
+                enabled = isOnline,
+            ) { onEvent(RoutinesEvent.OpenMove(id)) },
+        )
+        val nextLabel = stringResource(
+            if (routine.isNext) Res.string.routines_next_clear else Res.string.routines_next_set,
+        )
+        add(
+            AppSheetAction(icon = Res.drawable.ic_flag, title = nextLabel, enabled = isOnline) {
+                onEvent(if (routine.isNext) RoutinesEvent.ClearNext else RoutinesEvent.SetNext(id))
+            },
+        )
         add(
             AppSheetAction(Res.drawable.ic_delete, stringResource(Res.string.action_delete)) {
                 onEvent(RoutinesEvent.Delete(id))
@@ -111,7 +114,7 @@ private fun FolderMenuSheet(
     AppActionSheet(
         actions = listOf(
             AppSheetAction(
-                icon = Res.drawable.ic_check,
+                icon = Res.drawable.ic_fact_check,
                 title = stringResource(Res.string.routines_folder_menu_review),
                 testTag = "routines_folder_menu_review",
             ) { onEvent(RoutinesEvent.ReviewFolder(folder.id)) },
@@ -147,30 +150,33 @@ private fun FolderMenuOfflineReason() {
     )
 }
 
-/** Folder picker: one tap on a target moves the routine there and closes; X, back or scrim close without moving. */
+/**
+ * Folder picker (R-64 b, V-37): one tap on a target moves the routine there and closes; the current folder carries the
+ * check and a tap on it only closes; X, back or scrim close without moving.
+ */
 @Composable
 private fun MoveSheet(routine: RoutineSummary, state: RoutinesUiState.Content, onEvent: (RoutinesEvent) -> Unit) {
-    AppPickerSheet(
-        title = stringResource(Res.string.routines_move_sheet_title, routine.name),
-        onDismiss = { onEvent(RoutinesEvent.DismissMove) },
-        testTagPrefix = "routines_move_sheet",
-    ) {
-        val currentFolder = state.folders.firstOrNull { it.id == routine.folderId }?.id
-        SheetActionRow(
-            label = stringResource(Res.string.routines_group_none),
-            onClick = { onEvent(RoutinesEvent.MoveToFolder(routine.id, null)) },
-            testTag = "routines_move_target_none",
-            enabled = currentFolder != null,
+    val currentFolder = state.folders.firstOrNull { it.id == routine.folderId }?.id
+    val noneOption = PickerOption(
+        tag = "none",
+        label = stringResource(Res.string.routines_group_none),
+        isSelected = currentFolder == null,
+        onPick = { if (currentFolder != null) onEvent(RoutinesEvent.MoveToFolder(routine.id, null)) },
+    )
+    val folderOptions = state.folders.map { folder ->
+        PickerOption(
+            tag = folder.id,
+            label = folder.name,
+            isSelected = folder.id == currentFolder,
+            onPick = { if (folder.id != currentFolder) onEvent(RoutinesEvent.MoveToFolder(routine.id, folder.id)) },
         )
-        state.folders.forEach { folder ->
-            SheetActionRow(
-                label = folder.name,
-                onClick = { onEvent(RoutinesEvent.MoveToFolder(routine.id, folder.id)) },
-                testTag = "routines_move_target_${folder.id}",
-                enabled = folder.id != currentFolder,
-            )
-        }
     }
+    OptionPickerSheet(
+        title = stringResource(Res.string.routines_move_sheet_title, routine.name),
+        tagPrefix = "routines_move",
+        options = listOf(noneOption) + folderOptions,
+        onClose = { onEvent(RoutinesEvent.DismissMove) },
+    )
 }
 
 @Composable

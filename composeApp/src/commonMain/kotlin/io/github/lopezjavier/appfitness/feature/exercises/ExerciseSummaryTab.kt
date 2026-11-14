@@ -38,7 +38,7 @@ import io.github.lopezjavier.appfitness.designsystem.ExerciseAnimation
 import io.github.lopezjavier.appfitness.designsystem.ExerciseLayoutDefaults
 import io.github.lopezjavier.appfitness.designsystem.GhostButton
 import io.github.lopezjavier.appfitness.designsystem.LocalAnimationsEnabled
-import io.github.lopezjavier.appfitness.designsystem.SecondaryButton
+import io.github.lopezjavier.appfitness.designsystem.NavigationRow
 import io.github.lopezjavier.appfitness.designsystem.SkeletonBox
 import io.github.lopezjavier.appfitness.designsystem.Spacing
 import io.github.lopezjavier.appfitness.designsystem.TextPill
@@ -108,10 +108,10 @@ private fun SummaryText(
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(Spacing.blockGap)) {
         DetailHeader(detail)
-        SecondaryButton(
-            text = stringResource(Res.string.exercise_progress_link),
+        NavigationRow(
+            label = stringResource(Res.string.exercise_progress_link),
             onClick = onOpenProgress,
-            modifier = Modifier.fillMaxWidth().testTag("exercise_detail_progress_link"),
+            modifier = Modifier.testTag("exercise_detail_progress_link"),
         )
         RecordsBlock(records, today, onRetryRecords)
     }

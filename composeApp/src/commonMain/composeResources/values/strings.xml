@@ -418,7 +418,6 @@
     <string name="preferences_auto_update_help_body">Al terminar un entreno de una rutina, la rutina se actualiza sin preguntar.</string>
     <string name="preferences_auto_update_help_cd">Ayuda: actualizar rutina</string>
     <string name="builder_name_label">Nombre de la rutina</string>
-    <string name="builder_add_exercise">Añadir ejercicio</string>
     <string name="builder_title_new">Nueva rutina</string>
     <string name="builder_title_edit">Editar rutina</string>
     <string name="builder_name_taken">Ya existe una rutina con ese nombre</string>
@@ -447,7 +446,6 @@
         <item quantity="other">%1$d segundos</item>
     </plurals>
     <string name="builder_rest_state">Descanso: %1$s</string>
-    <string name="builder_add_set">Añadir serie</string>
     <string name="builder_set_delete_cd">Eliminar serie %1$d</string>
     <string name="builder_set_weight_cd">Peso de la serie %1$d</string>
     <string name="builder_set_reps_cd">Repeticiones de la serie %1$d</string>
@@ -714,7 +712,6 @@
     <string name="live_discard_title">¿Descartar entreno?</string>
     <string name="live_discard_message">Se borrará este entreno con todas sus series.</string>
     <string name="live_exercise_menu_cd">Más opciones de %1$s</string>
-    <string name="live_exercise_menu_title">Opciones del ejercicio</string>
     <string name="live_exercise_menu_rest">Descanso</string>
     <string name="live_rest_sheet_title">Descanso de este ejercicio</string>
     <string name="live_rest_help_body">Solo en este entreno; la rutina no cambia.</string>
@@ -885,6 +882,7 @@
     <string name="exercise_progress_empty_message">Aún no has registrado este ejercicio en ningún entreno.</string>
     <string name="exercise_progress_error_message">No se pudo cargar el progreso del ejercicio</string>
     <string name="exercise_progress_link">Ver progreso</string>
+    <string name="exercise_detail_offline_favourite">marcar favoritos</string>
     <string name="chart_date_short">%1$d %2$s</string>
 
     <!-- T-048b weekly muscle volume -->
@@ -1562,7 +1560,8 @@
     <string name="workout_form_date_value">%1$s %2$d</string>
     <string name="workout_form_date_cd">Fecha: %1$s. Cambiar</string>
     <string name="workout_form_date_static_cd">Fecha: %1$s</string>
-    <string name="workout_form_duration">Duración (min)</string>
+    <string name="workout_form_duration">Duración</string>
+    <string name="workout_form_duration_unit">min</string>
     <string name="workout_form_gym">Gimnasio</string>
     <string name="workout_form_description">Descripción</string>
     <string name="workout_form_load_error">No se pudo cargar el entreno</string>

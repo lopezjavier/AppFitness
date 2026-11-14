@@ -29,6 +29,7 @@ import io.github.lopezjavier.appfitness.composeapp.resources.delete_failed
 import io.github.lopezjavier.appfitness.composeapp.resources.exercise_deleted
 import io.github.lopezjavier.appfitness.composeapp.resources.exercise_detail_delete_cd
 import io.github.lopezjavier.appfitness.composeapp.resources.exercise_detail_edit_cd
+import io.github.lopezjavier.appfitness.composeapp.resources.exercise_detail_offline_favourite
 import io.github.lopezjavier.appfitness.composeapp.resources.exercise_detail_select
 import io.github.lopezjavier.appfitness.composeapp.resources.exercise_detail_title
 import io.github.lopezjavier.appfitness.composeapp.resources.exercise_error_message
@@ -359,9 +360,14 @@ private fun DetailContent(
                     max = ExerciseLayoutDefaults.ContentMaxWidth,
                 ).testTag("exercise_detail_tabs"),
             )
-            if (state.canManage && !state.isOnline) {
+            if (!state.isOnline) {
+                // The disabled star always says why (V-41); an own exercise also names delete.
                 OfflineHint(
-                    action = stringResource(Res.string.action_delete).lowercase(),
+                    action = if (state.canManage) {
+                        stringResource(Res.string.action_delete).lowercase()
+                    } else {
+                        stringResource(Res.string.exercise_detail_offline_favourite)
+                    },
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(horizontal = Spacing.screenMargin, vertical = Spacing.sm)

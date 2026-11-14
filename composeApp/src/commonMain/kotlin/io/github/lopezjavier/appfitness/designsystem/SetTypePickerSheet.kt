@@ -22,7 +22,6 @@ import io.github.lopezjavier.appfitness.composeapp.resources.Res
 import io.github.lopezjavier.appfitness.composeapp.resources.help_set_type_body
 import io.github.lopezjavier.appfitness.composeapp.resources.help_set_type_cd
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_check
-import io.github.lopezjavier.appfitness.composeapp.resources.ic_set_normal
 import io.github.lopezjavier.appfitness.composeapp.resources.set_type_picker_title
 import io.github.lopezjavier.appfitness.domain.model.SetType
 import org.jetbrains.compose.resources.painterResource
@@ -87,17 +86,8 @@ private fun SetTypePickerOptions(staged: SetType, onSelect: (SetType) -> Unit) {
             horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            if (type == SetType.Working) {
-                // Decorative: the "Normal" label sits right next to it.
-                Icon(
-                    painter = painterResource(Res.drawable.ic_set_normal),
-                    contentDescription = null,
-                    tint = AppTheme.colors.textPrimary,
-                    modifier = Modifier.size(SetRowDefaults.IndexBadgeSize).testTag("set_type_picker_normal_icon"),
-                )
-            } else {
-                SetTypeBadge(type = type)
-            }
+            // Every type, "Normal" included, shows its letter badge (R-81, C-72).
+            SetTypeBadge(type = type)
             Text(
                 text = stringResource(SetTypeBadgeDefaults.labelResource(type)),
                 style = AppTheme.typography.bodyLarge,

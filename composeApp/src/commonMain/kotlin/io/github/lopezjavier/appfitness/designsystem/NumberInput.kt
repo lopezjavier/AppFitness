@@ -167,7 +167,8 @@ object NumberInputDefaults {
                 .trim()
         }
 
-    fun textStyle(typography: AppTypography): TextStyle = typography.labelNumeric.copy(textAlign = TextAlign.Center)
+    fun textStyle(typography: AppTypography, startAligned: Boolean = false): TextStyle =
+        typography.labelNumeric.copy(textAlign = if (startAligned) TextAlign.Start else TextAlign.Center)
 
     fun labelStyle(typography: AppTypography): TextStyle = AppInputStyle.labelStyle(typography)
 }
@@ -177,7 +178,8 @@ object NumberInputDefaults {
  * that passed [NumberInputDefaults.sanitize] (an invalid edit is rejected as a whole). [label] is always
  * spoken; it is drawn above the field when [showLabel] is true. The [placeholder] is ghost data shown while
  * the field is empty and is not spoken (the field announces [placeholderDescription], e.g. "Previsto", instead).
- * The caller's [modifier] lands on the text field node.
+ * The caller's [modifier] lands on the text field node. [startAligned] (default centred, for table cells) starts the
+ * value at the leading edge with the [unit] in the trailing slot, as in a form (C-77).
  *
  * [value] must be updated synchronously inside [onValueChange] (plain `mutableStateOf`/`TextFieldState`-style
  * state). A `StateFlow` + `collectAsState` round-trip reverts for one frame and moves the cursor to the end on
@@ -201,12 +203,13 @@ fun NumberInput(
     errorTestTag: String? = null,
     unit: String? = null,
     placeholderDescription: String? = null,
+    startAligned: Boolean = false,
 ) {
     val interactionSource = remember { MutableInteractionSource() }
     val focused by interactionSource.collectIsFocusedAsState()
     val hasError = errorText != null
     val colors = NumberInputDefaults.colors(focused, readOnly, AppTheme.colors, hasError)
-    val textStyle = NumberInputDefaults.textStyle(AppTheme.typography).copy(color = colors.text)
+    val textStyle = NumberInputDefaults.textStyle(AppTheme.typography, startAligned).copy(color = colors.text)
     val plannedState = placeholderDescription.takeIf { value.isEmpty() && placeholder != null }
     val fieldModifier = modifier.semantics {
         if (!showLabel) contentDescription = label
@@ -271,7 +274,7 @@ fun NumberInput(
                             end = NumberInputDefaults.HorizontalPadding +
                                 if (unit != null) NumberInputDefaults.UnitReserve else 0.dp,
                         ),
-                    contentAlignment = Alignment.Center,
+                    contentAlignment = if (startAligned) Alignment.CenterStart else Alignment.Center,
                 ) {
                     if (value.isEmpty() && placeholder != null) NumberInputPlaceholder(placeholder, textStyle, colors)
                     innerTextField()

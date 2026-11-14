@@ -23,10 +23,12 @@ import androidx.compose.ui.semantics.semantics
 import io.github.lopezjavier.appfitness.composeapp.resources.Res
 import io.github.lopezjavier.appfitness.composeapp.resources.builder_rest_decrease_cd
 import io.github.lopezjavier.appfitness.composeapp.resources.builder_rest_increase_cd
-import io.github.lopezjavier.appfitness.composeapp.resources.ic_edit
-import io.github.lopezjavier.appfitness.composeapp.resources.ic_label
+import io.github.lopezjavier.appfitness.composeapp.resources.ic_calculate
+import io.github.lopezjavier.appfitness.composeapp.resources.ic_fitness_center
+import io.github.lopezjavier.appfitness.composeapp.resources.ic_monitor_weight
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_more_vert
-import io.github.lopezjavier.appfitness.composeapp.resources.ic_trending_up
+import io.github.lopezjavier.appfitness.composeapp.resources.ic_sticky_note_2
+import io.github.lopezjavier.appfitness.composeapp.resources.ic_timer
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_warning
 import io.github.lopezjavier.appfitness.composeapp.resources.live_exercise_menu_body_weight
 import io.github.lopezjavier.appfitness.composeapp.resources.live_exercise_menu_cd
@@ -35,7 +37,6 @@ import io.github.lopezjavier.appfitness.composeapp.resources.live_exercise_menu_
 import io.github.lopezjavier.appfitness.composeapp.resources.live_exercise_menu_plate_calc
 import io.github.lopezjavier.appfitness.composeapp.resources.live_exercise_menu_rest
 import io.github.lopezjavier.appfitness.composeapp.resources.live_exercise_menu_routine_note
-import io.github.lopezjavier.appfitness.composeapp.resources.live_exercise_menu_title
 import io.github.lopezjavier.appfitness.composeapp.resources.live_exercise_menu_warm_up_calc
 import io.github.lopezjavier.appfitness.composeapp.resources.live_rest_help_body
 import io.github.lopezjavier.appfitness.composeapp.resources.live_rest_help_cd
@@ -109,7 +110,7 @@ internal fun ExerciseMenuSheet(
     val actions = buildList {
         add(
             AppSheetAction(
-                Res.drawable.ic_edit,
+                Res.drawable.ic_timer,
                 stringResource(Res.string.live_exercise_menu_rest),
                 onClick = onRest,
                 testTag = "${prefix}_menu_rest",
@@ -117,7 +118,7 @@ internal fun ExerciseMenuSheet(
         )
         add(
             AppSheetAction(
-                Res.drawable.ic_trending_up,
+                Res.drawable.ic_calculate,
                 stringResource(Res.string.live_exercise_menu_warm_up_calc),
                 onClick = onWarmUpCalculator,
                 testTag = "${prefix}_menu_warm_up_calc",
@@ -126,7 +127,7 @@ internal fun ExerciseMenuSheet(
         if (exercise.equipment == Equipment.Barbell || exercise.equipment == Equipment.Dumbbell) {
             add(
                 AppSheetAction(
-                    Res.drawable.ic_label,
+                    Res.drawable.ic_fitness_center,
                     stringResource(Res.string.live_exercise_menu_plate_calc),
                     onClick = onPlateCalculator,
                     testTag = "${prefix}_menu_plate_calc",
@@ -138,7 +139,7 @@ internal fun ExerciseMenuSheet(
         if (exercise.metricType in BODY_WEIGHT_TYPES) {
             add(
                 AppSheetAction(
-                    Res.drawable.ic_edit,
+                    Res.drawable.ic_monitor_weight,
                     stringResource(Res.string.live_exercise_menu_body_weight),
                     hint = note.takeIf { healthConnectToday },
                     onClick = onBodyWeight,
@@ -151,7 +152,7 @@ internal fun ExerciseMenuSheet(
     AppActionSheet(
         actions = actions,
         onDismiss = onDismiss,
-        title = stringResource(Res.string.live_exercise_menu_title),
+        title = exercise.name,
         testTagPrefix = "${prefix}_menu_sheet",
     )
 }
@@ -219,7 +220,7 @@ private const val MAX = RoutineBounds.REST_MAX_SECONDS
 /** "Nota del ejercicio": edits the routine's note of this exercise (ADR-82). */
 @Composable
 private fun routineNoteAction(prefix: String, onClick: () -> Unit) = AppSheetAction(
-    Res.drawable.ic_edit,
+    Res.drawable.ic_sticky_note_2,
     stringResource(Res.string.live_exercise_menu_routine_note),
     onClick = onClick,
     testTag = "${prefix}_menu_note",

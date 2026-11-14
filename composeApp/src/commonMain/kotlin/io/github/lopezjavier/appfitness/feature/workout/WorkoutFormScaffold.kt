@@ -11,6 +11,8 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -23,6 +25,7 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import io.github.lopezjavier.appfitness.composeapp.resources.Res
 import io.github.lopezjavier.appfitness.composeapp.resources.action_retry
+import io.github.lopezjavier.appfitness.composeapp.resources.ic_calendar
 import io.github.lopezjavier.appfitness.composeapp.resources.workout_form_date
 import io.github.lopezjavier.appfitness.composeapp.resources.workout_form_date_cd
 import io.github.lopezjavier.appfitness.composeapp.resources.workout_form_date_static_cd
@@ -37,6 +40,7 @@ import io.github.lopezjavier.appfitness.designsystem.ErrorState
 import io.github.lopezjavier.appfitness.designsystem.SkeletonBox
 import io.github.lopezjavier.appfitness.designsystem.Spacing
 import kotlinx.datetime.LocalDate
+import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.resources.stringResource
 
 private const val SKELETON_ROWS = 3
@@ -72,8 +76,8 @@ internal fun FormDateField(date: LocalDate, tag: String, modifier: Modifier = Mo
                 .fillMaxWidth()
                 .heightIn(min = AppTextFieldDefaults.MinHeight)
                 .clip(AppShapes.base)
-                .background(colors.surfaceOverlay)
-                .border(AppBorder.thin, colors.borderStrong, AppShapes.base)
+                .background(colors.surfaceControl)
+                .border(AppBorder.thin, colors.borderControl, AppShapes.base)
                 .let {
                     if (onClick != null) {
                         it.clickable(role = Role.Button, onClick = onClick)
@@ -92,6 +96,15 @@ internal fun FormDateField(date: LocalDate, tag: String, modifier: Modifier = Mo
                 color = colors.textPrimary,
                 modifier = Modifier.clearAndSetSemantics {},
             )
+            if (onClick != null) {
+                // Decorative: the description already says "Cambiar". The icon marks the field as editable (C-77).
+                Icon(
+                    painter = painterResource(Res.drawable.ic_calendar),
+                    contentDescription = null,
+                    tint = colors.textSecondary,
+                    modifier = Modifier.align(Alignment.CenterEnd).size(Spacing.xl),
+                )
+            }
         }
     }
 }
