@@ -263,6 +263,15 @@ Contrast re-check (planner): textSecondary 9.1/8.4/7.6/6.5:1 on base/raised/over
 - [ ] The Entreno findings list was decided by the user before planning; decisions recorded here.
 - [ ] The common round criteria above; the live session keeps its timers, haptics and restoration behaviour (existing tests green).
 **Review findings (ux-critic, 2026-11-14) and the user's decisions:** full list in `planning/ux-critic-round2.md` (C-66…C-89, V-21…V-41). The user **rejected C-68** (finish button stays in the three-dots menu) and **accepted everything else** (2026-11-14). PM defaults, recorded: V-35 R-70 covers `AppEditorScreen`; V-22 two-line row for distance/time (layout with ux-reviewer); C-86 follows C-37 if they conflict. Gallery defects (3 empty sheets, white Rutinas canvas, Historial without back arrow) become a tooling `fix` batch, not a blocker.
+**Build batches (PM, 2026-11-14; each a new `compose-ui-developer`, build-only, one commit, appends to `tasks/ui-test-changes-entreno.md`):**
+1. **B1 designsystem components:** C-66 (primary rule, `RoutineCard` stays in B5), C-70 glyph and tint, C-71 `RpeCell` badge, C-74 `AppListRow` heights 56/72/88, C-77 date field and `NumberInput` start-aligned with trailing unit, C-82 loading indicator, C-83 sheet header, C-87 footer cap 480 dp, V-30 `AddItemButton`, V-32 `NavigationRow` use, V-37 `OptionPickerSheet` with check.
+2. **B2 icons and menus:** C-72 (one glyph per action, new Outlined drawables; menu titles), V-38, V-40, V-41.
+3. **B3 live session:** C-67, C-69, V-21 (48 dp cells, padding 12 dp), V-22 (two-line distance/time row), C-76 chip reasons, V-28 menu title and periods, V-29.
+4. **B4 routine builder and details:** C-75 and V-23 steppers, V-31, C-79 and V-27 set summaries, C-89, V-25 routine skeleton and fallback title.
+5. **B5 Rutinas and Entreno root:** C-66 `isNext` primary, C-85 offline hint first, V-39 titles ("Entreno" root header), V-37 folder picker.
+6. **B6 history, sessions and exercises:** C-73 and V-24 year view, C-88, C-78, C-80, V-26 durations, C-84, V-25 exercise skeleton, C-81 and V-33 and V-34 picker, C-86 form chips, V-35 `AppEditorScreen` footer, V-36 verify.
+7. **B7 gallery tooling fix:** the three empty sheets, Rutinas canvas, Historial back arrow, `no_session`; strings and copy leftovers (V-39 error text, V-28 periods) if not done.
+Then the emulator look (`! python scripts/deliver-apk.py`), then the test task (one PR).
 **Host tests:** as T-281, for the changed and swept screens.
 **Agent runs:** 7 plus the review step.
 **Dependencies:** T-281 merged.
