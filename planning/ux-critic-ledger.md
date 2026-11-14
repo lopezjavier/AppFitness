@@ -155,10 +155,54 @@ One row per ux-critic finding. The PM has the dispositions recorded here as the 
 | V-47 | routine skeleton row height equals the card (72 dp) | 2 | ADOPTED | 05 §6.0b |
 | V-48 | cardio start description "Iniciar cardio" | 2 | ADOPTED | 05 R-81 |
 | V-49 | empty folder: no "0 rutinas", no chevron, toggle inert | 2 | ADOPTED | 05 §6.0b |
+| C-101 | `SummaryCard` headline + unit, facts, progress slot; new `SegmentedProgress` (Tu bloque, Tu plan) | 3 | ACCEPTED (not built; designsystem) | 05 §6.0c, R-95 |
+| C-102 | Entrenos card headline + `SegmentedProgress`; new `BarListRow` "Series por grupo"; lifts with `TrendPill` | 3 | ACCEPTED (not built) | 05 §6.0c, R-95 |
+| C-103 | `highlighted` on every decision-waiting card | 3 | ACCEPTED (not built) | 05 R-94 |
+| C-104 | one `DecisionButtonRow` (ghost left, primary right, 56 dp) | 3 | ACCEPTED (not built; designsystem) | 05 §6.0c, R-94 |
+| C-105 | Plan nutricional: `displayHero` kcal + `MacroStackedBar`, rows stay as legend | 3 | ACCEPTED (not built) | 05 §6.0c |
+| C-106 | `HubContentMaxWidth` 840 dp adaptive grid for the six hub screens | 3 | ACCEPTED (not built) | 05 R-91 |
+| C-107 | `SkeletonBox` white 8 % / shimmer 16 % | 3 | ACCEPTED (not built; designsystem) | 05 §6.0c |
+| C-108 | `AppScreen.subtitle` "Paso N de M" in the block flow | 3 | ACCEPTED (not built) | 05 §6.0c, §10 |
+| C-109 | `StatusTone.Info` and `Neutral` for Actual / Descanso de dieta / Descarga / Semana en pausa | 3 | ACCEPTED (not built; designsystem) | 05 §6.0c, R-98 |
+| C-110 | a fact never breaks (U+00A0), " · " only when it fits at 360 dp x 1.3 | 3 | ACCEPTED (not built) | 05 R-93 |
+| C-111 | centred `EmptyState`/`ErrorState`; Trainer root without a plan | 3 | ACCEPTED (not built) | 05 R-92, §10 |
+| C-112 | Tus datos / Antes de empezar rows grouped in cards, "· origen" dropped, "Tus respuestas"; amends §6.2 | 3 | ACCEPTED (not built) | 05 §6.0c, §6.2, R-96 |
+| C-113 | Tu bloque header card, current week highlighted, adherence `SegmentedProgress`, `?` and pencil in the title row | 3 | ACCEPTED (not built) | 05 §6.0c |
+| C-114 | Tu plan card: kcal headline, figure tiles, objectives list | 3 | ACCEPTED (not built) | 05 §6.0c |
+| C-115 | builder muscle header and targets spacing | 3 | ACCEPTED (not built) | 05 §6.0c |
+| C-116 | "puedes cambiarlo" as `ExerciseRow` second supporting line | 3 | ACCEPTED (not built; designsystem) | 05 §6.0c |
+| C-117 | `InlineNote(tone = Info or Error)` | 3 | ACCEPTED (not built; designsystem) | 05 §6.0c |
+| C-118 | folder review intro, amber unmet icon, grouped check rows, `?` top end | 3 | ACCEPTED (not built) | 05 §6.0c |
+| C-119 | fill motion for segments and bars | 3 | ACCEPTED (not built) | 05 R-97 |
+| C-120 | Informes leading icons, rows in one card | 3 | ACCEPTED (not built) | 05 §6.0c, R-96 |
+| C-121 | one `SectionCard(title, help?)` folds the feature-local `SummaryCard`s | 3 | ACCEPTED (not built; designsystem) | 05 §6.0c, R-96 |
+| C-122 | "Provisional" chip inside the row's supporting slot | 3 | ACCEPTED (not built) | 05 §6.0c |
+| V-50 | "Resumen semanal" and changes-only "Tu bloque" boxes get figure lines | 3 | ACCEPTED (not built) | 05 §6.0c, R-95 |
+| V-51 | `BlockReviewEntry` becomes a `SummaryCard` | 3 | ACCEPTED (not built) | 05 R-95 |
+| V-52 | rename/fold the feature-local `SummaryCard`s | 3 | ACCEPTED (not built) | 05 R-96 |
+| V-53 | duplicate "Tu plan" header dropped | 3 | ACCEPTED (not built) | 05 §6.0c |
+| V-54 | "Eliminar bloque" moves to the top-bar ⋮ sheet | 3 | ACCEPTED (not built) | 05 §6.0c |
+| V-55 | nutrition figures as tiles; 2 x 2 grid allowed (PM decision on R-85) | 3 | ACCEPTED (not built) | 05 R-85 amendment |
+| V-56 | one card per box/row list | 3 | ACCEPTED (not built) | 05 R-96 |
+| V-57 | lime check on the current day type | 3 | ACCEPTED (not built) | 05 §6.0c |
+| V-58 | search field label/inset | 3 | ACCEPTED (not built) | 05 §6.0c |
+| V-59 | "Equipamiento" chips wrap | 3 | ACCEPTED (not built) | 05 §6.0c |
+| V-60 | week tabs full-bleed | 3 | ACCEPTED (not built) | 05 §6.0c |
+| V-61 | kcal field `startAligned`, "Minutos por semana" style | 3 | ACCEPTED (not built) | 05 §6.0c |
+| V-62 | plural "rutina(s)" (+ G21 word list) | 3 | ACCEPTED (not built) | 05 R-100 |
+| V-63 | folder refused/empty states: tap target for the fix, no dead "Guardar bloque" | 3 | ACCEPTED (not built) | 05 §6.0c |
+| V-64 | "Mi entrenamiento" is a text link (R-90 wins; §6.2/§10 corrected) | 3 | ACCEPTED (not built) | 05 §6.2, R-100 |
+| V-65 | "coach" becomes "entrenador" | 3 | ACCEPTED (not built) | 05 R-100, §10 |
+| V-66 | final periods, "Inténtalo de nuevo.", «» quotes | 3 | ACCEPTED (not built) | 05 R-100 |
+| V-67 | footers stop double padding | 3 | ACCEPTED (not built) | 05 R-99 |
+| V-68 | `ic_description` Outlined | 3 | ACCEPTED (not built) | 05 §6.0c |
+| V-69 | "Ya tienes un bloque en marcha" offers a way out | 3 | ACCEPTED (not built) | 05 §6.0c |
+| V-70 | offline hint placement (low confidence) | 3 | ACCEPTED (not built) | 05 §6.0c, R-88 |
 
 Status values:
 - `PROPOSED`: reported by the critic, not decided yet.
 - `IN REVIEW`: accepted in chat, built and merged, not yet approved in the emulator. Its `05` entry is marked pending.
+- `ACCEPTED (not built)`: accepted by the user in chat, written into `05` as PENDING, not built yet (becomes `IN REVIEW` when merged).
 - `ADOPTED`: approved by the user in the emulator (link: R-## or the `05` section).
 - `REWORK`: seen in the emulator and not approved; the row records what was tried and what the user disliked.
 - `REJECTED`: refused by the user (also copied to `05` §8 "Decided — do not re-propose").
