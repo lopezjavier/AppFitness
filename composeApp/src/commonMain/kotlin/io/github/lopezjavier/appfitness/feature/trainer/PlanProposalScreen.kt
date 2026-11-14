@@ -46,7 +46,7 @@ import io.github.lopezjavier.appfitness.composeapp.resources.plan_proposal_error
 import io.github.lopezjavier.appfitness.composeapp.resources.plan_proposal_fat_min
 import io.github.lopezjavier.appfitness.composeapp.resources.plan_proposal_floor_note
 import io.github.lopezjavier.appfitness.composeapp.resources.plan_proposal_interrupted
-import io.github.lopezjavier.appfitness.composeapp.resources.plan_proposal_kcal_day
+import io.github.lopezjavier.appfitness.composeapp.resources.plan_proposal_kcal_unit
 import io.github.lopezjavier.appfitness.composeapp.resources.plan_proposal_open_before_start
 import io.github.lopezjavier.appfitness.composeapp.resources.plan_proposal_options_error
 import io.github.lopezjavier.appfitness.composeapp.resources.plan_proposal_options_offline
@@ -80,6 +80,9 @@ import io.github.lopezjavier.appfitness.designsystem.LocalAppHaptics
 import io.github.lopezjavier.appfitness.designsystem.LocalAppMessages
 import io.github.lopezjavier.appfitness.designsystem.Macro
 import io.github.lopezjavier.appfitness.designsystem.MacroDefaults
+import io.github.lopezjavier.appfitness.designsystem.MacroStackedBar
+import io.github.lopezjavier.appfitness.designsystem.MacroStackedBarDefaults
+import io.github.lopezjavier.appfitness.designsystem.DecisionButtonRow
 import io.github.lopezjavier.appfitness.designsystem.NavigationRow
 import io.github.lopezjavier.appfitness.designsystem.OfflineHint
 import io.github.lopezjavier.appfitness.designsystem.PrimaryButton
@@ -324,11 +327,33 @@ private fun NutritionCard(state: PlanProposalUiState.Proposal) {
             color = AppTheme.colors.textPrimary,
             modifier = Modifier.semantics { heading() },
         )
-        Text(
-            text = stringResource(Res.string.plan_proposal_kcal_day, AppNumberFormat.integer(nutrition.targetKcal)),
-            style = AppTheme.typography.titleLarge,
-            color = AppTheme.colors.textPrimary,
-            modifier = Modifier.testTag("plan_proposal_kcal"),
+        Row(
+            Modifier.semantics(mergeDescendants = true) {}.testTag("plan_proposal_kcal"),
+            horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+            verticalAlignment = Alignment.Bottom,
+        ) {
+            Text(
+                text = AppNumberFormat.integer(nutrition.targetKcal),
+                style = AppTheme.typography.displayHero,
+                color = AppTheme.colors.textPrimary,
+            )
+            Text(
+                text = stringResource(Res.string.plan_proposal_kcal_unit),
+                style = AppTheme.typography.bodyLarge,
+                color = AppTheme.colors.textSecondary,
+            )
+        }
+        val shares = MacroStackedBarDefaults.kcalShares(
+            nutrition.proteinG.toDouble(),
+            nutrition.carbsG.toDouble(),
+            nutrition.fatG.toDouble(),
+        )
+        MacroStackedBar(
+            proteinPct = shares.first,
+            carbsPct = shares.second,
+            fatPct = shares.third,
+            testTag = "plan_proposal_macro_bar",
+            barHeight = MacroStackedBarDefaults.SlimHeight,
         )
         MacroRow(
             Macro.Protein,
@@ -389,7 +414,7 @@ private fun MacroRow(macro: Macro, text: String, tag: String) {
 }
 
 @Composable
-private fun OutcomesSection(outcomes: List<PlanOutcome>) {
+internal fun OutcomesSection(outcomes: List<PlanOutcome>) {
     Column(Modifier.testTag("plan_proposal_outcomes")) {
         ListSectionHeader(stringResource(Res.string.plan_proposal_outcomes_header))
         outcomes.forEach { outcome ->
@@ -429,10 +454,8 @@ private fun ProposalFooter(
     onEvent: (PlanProposalEvent) -> Unit,
     onOpenBeforeStart: (replacingPlanId: String) -> Unit,
 ) {
-    Column(
-        Modifier.fillMaxWidth().padding(Spacing.screenMargin),
-        verticalArrangement = Arrangement.spacedBy(Spacing.sm),
-    ) {
+    // PinnedFooter already pads the bar (V-67): no second screenMargin here.
+    Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
         when {
             state.unconfirmedValues.isNotEmpty() -> InlineNote(
                 text = stringResource(
@@ -459,21 +482,17 @@ private fun ProposalFooter(
                 BeforeStartRow(state, onOpenBeforeStart)
             }
         }
-        PrimaryButton(
-            text = stringResource(Res.string.action_accept),
-            onClick = { onEvent(PlanProposalEvent.Accept) },
-            modifier = Modifier.fillMaxWidth().testTag("plan_proposal_accept"),
-            enabled = state.canAccept && online,
-            loading = state.accepting,
+        // Ghost left, primary right (R-94). Offline only "Aceptar" is blocked: "Descartar" reports the offline message.
+        DecisionButtonRow(
+            acceptText = stringResource(Res.string.action_accept),
+            discardText = stringResource(Res.string.action_discard),
+            onAccept = { onEvent(PlanProposalEvent.Accept) },
+            onDiscard = { onEvent(PlanProposalEvent.Discard) },
+            testTagPrefix = "plan_proposal",
+            busy = state.busy,
+            acceptEnabled = state.canAccept && online,
         )
         if (!online) OfflineHint(stringResource(Res.string.plan_proposal_accept_offline))
-        GhostButton(
-            text = stringResource(Res.string.action_discard),
-            onClick = { onEvent(PlanProposalEvent.Discard) },
-            modifier = Modifier.fillMaxWidth().testTag("plan_proposal_discard"),
-            enabled = !state.busy && online,
-            loading = state.discarding,
-        )
     }
 }
 

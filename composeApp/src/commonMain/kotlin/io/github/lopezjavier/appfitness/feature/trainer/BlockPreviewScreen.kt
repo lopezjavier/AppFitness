@@ -156,7 +156,7 @@ fun BlockPreviewScreen(
                 BlockPreviewUiState.Loading, BlockPreviewUiState.Closed -> BlockSkeleton()
 
                 is BlockPreviewUiState.Failed -> Box(Modifier.fillMaxSize(), Alignment.Center) {
-                    CoachFailureContent(state.kind, isOnline, BlockFailureCopy, "block_preview") {
+                    CoachFailureContent(state.kind, isOnline, BlockFailureCopy, "block_preview", onLeave = onBack) {
                         onEvent(BlockPreviewEvent.Retry)
                     }
                 }

@@ -1805,6 +1805,7 @@
     <string name="coach_failure_missing_profile">Faltan datos para calcular tu plan. Completa tu perfil y registra tu peso.</string>
     <string name="coach_failure_missing_generic">Faltan datos para crear el plan. Completa tu perfil e inténtalo de nuevo.</string>
     <string name="coach_failure_infeasible">No hay un plan seguro con tus datos actuales. Revisa tu peso y tu perfil.</string>
+    <string name="coach_failure_block_in_progress_action">Volver a Trainer</string>
     <string name="coach_failure_block_in_progress">Ya tienes un bloque en marcha. Usa «Bloque nuevo» para empezar otro.</string>
     <string name="coach_failure_invalid">La IA no dio una respuesta válida. Inténtalo de nuevo.</string>
 
@@ -2086,6 +2087,22 @@
     <string name="trainer_box_plan_line">%1$s · %2$s kcal al día</string>
     <string name="trainer_box_block_deload">Descarga planificada</string>
     <string name="trainer_box_empty">Todavía no hay nada que mostrar.</string>
+    <string name="trainer_box_empty_plan">Aún no tienes un plan activo.</string>
+    <string name="trainer_box_empty_block">Aún no tienes un bloque guardado.</string>
+    <string name="trainer_plan_empty_title">Aún no tienes un plan</string>
+    <string name="trainer_plan_empty_body">Crea tu plan para que el entrenador calcule tus calorías y tus macros.</string>
+    <string name="plan_proposal_kcal_unit">kcal al día</string>
+    <string name="trainer_plan_fact_cardio">Cardio</string>
+    <string name="trainer_plan_fact_cardio_value">%1$s min por semana</string>
+    <string name="trainer_plan_fact_steps">Pasos</string>
+    <string name="trainer_plan_fact_steps_value">%1$s al día</string>
+    <string name="trainer_plan_rate_label">Ritmo</string>
+    <string name="trainer_plan_rate_unit">kg/sem</string>
+    <string name="trainer_week_progress_cd">%1$d de %2$d entrenos</string>
+    <plurals name="trainer_block_changes_applied">
+        <item quantity="one">%1$d cambio aplicado</item>
+        <item quantity="other">%1$d cambios aplicados</item>
+    </plurals>
     <string name="trainer_block_remove">Eliminar bloque</string>
     <string name="trainer_block_remove_action">eliminar el bloque</string>
     <string name="trainer_block_remove_title">¿Eliminar el bloque?</string>

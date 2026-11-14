@@ -3,6 +3,10 @@ package io.github.lopezjavier.appfitness.feature.trainer
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.lazy.grid.LazyGridScope
+import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.size
 import androidx.compose.material3.Icon
@@ -37,6 +41,7 @@ import io.github.lopezjavier.appfitness.composeapp.resources.trainer_week_extend
 import io.github.lopezjavier.appfitness.composeapp.resources.trainer_week_extend_offline
 import io.github.lopezjavier.appfitness.composeapp.resources.trainer_week_planned
 import io.github.lopezjavier.appfitness.composeapp.resources.trainer_week_progress
+import io.github.lopezjavier.appfitness.composeapp.resources.trainer_week_progress_cd
 import io.github.lopezjavier.appfitness.composeapp.resources.trainer_week_session_done
 import io.github.lopezjavier.appfitness.composeapp.resources.trainer_week_session_missed
 import io.github.lopezjavier.appfitness.composeapp.resources.trainer_week_session_pending
@@ -55,6 +60,7 @@ import io.github.lopezjavier.appfitness.designsystem.GhostButton
 import io.github.lopezjavier.appfitness.designsystem.HelpButton
 import io.github.lopezjavier.appfitness.designsystem.ListSectionHeader
 import io.github.lopezjavier.appfitness.designsystem.OfflineHint
+import io.github.lopezjavier.appfitness.designsystem.SegmentedProgress
 import io.github.lopezjavier.appfitness.designsystem.Spacing
 import io.github.lopezjavier.appfitness.designsystem.StatusChip
 import io.github.lopezjavier.appfitness.designsystem.StatusTone
@@ -72,8 +78,7 @@ import org.jetbrains.compose.resources.stringResource
  * The weeks of the saved block (US-73, US-75): one card per week with its date span, the "Actual" / "Descarga"
  * chips, "3 de 4 entrenos · 75 %" and one status row per planned routine. Absent when there are no weeks.
  */
-@Composable
-internal fun PlanWeeksSection(
+internal fun LazyGridScope.planWeeks(
     weeks: List<PlanWeek>,
     request: DeloadRequestUi = DeloadRequestUi(),
     pause: BlockPause? = null,
@@ -81,27 +86,33 @@ internal fun PlanWeeksSection(
     extend: ExtendWeekUi = ExtendWeekUi(),
 ) {
     if (weeks.isEmpty()) return
-    Column(Modifier.testTag("trainer_weeks_section"), verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-        ListSectionHeader(stringResource(Res.string.trainer_weeks_header))
-        BlockPauseLines(pause)
-        weeks.forEach { WeekCard(it, dietBreak = it.week == dietBreakWeek, extend = extend) }
-        if (request.available) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                GhostButton(
-                    text = stringResource(Res.string.coach_deload_request),
-                    onClick = request.onRequest,
-                    modifier = Modifier.weight(1f).testTag("trainer_deload_request"),
-                    enabled = request.online && !request.busy,
-                    loading = request.busy,
-                )
-                HelpButton(
-                    contentDescription = stringResource(Res.string.coach_deload_help_cd),
-                    title = stringResource(Res.string.coach_deload_help_title),
-                    body = stringResource(Res.string.coach_deload_help_body),
-                    testTag = "trainer_deload_help",
-                )
+    fullSpanItem("weeks_header") {
+        Column(Modifier.testTag("trainer_weeks_section")) {
+            ListSectionHeader(stringResource(Res.string.trainer_weeks_header))
+            BlockPauseLines(pause)
+        }
+    }
+    items(weeks, key = { "week_${it.week}" }) { WeekCard(it, dietBreak = it.week == dietBreakWeek, extend = extend) }
+    if (request.available) {
+        fullSpanItem("deload_request") {
+            Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    GhostButton(
+                        text = stringResource(Res.string.coach_deload_request),
+                        onClick = request.onRequest,
+                        modifier = Modifier.weight(1f).testTag("trainer_deload_request"),
+                        enabled = request.online && !request.busy,
+                        loading = request.busy,
+                    )
+                    HelpButton(
+                        contentDescription = stringResource(Res.string.coach_deload_help_cd),
+                        title = stringResource(Res.string.coach_deload_help_title),
+                        body = stringResource(Res.string.coach_deload_help_body),
+                        testTag = "trainer_deload_help",
+                    )
+                }
+                if (!request.online) OfflineHint(stringResource(Res.string.coach_deload_request_offline))
             }
-            if (!request.online) OfflineHint(stringResource(Res.string.coach_deload_request_offline))
         }
     }
 }
@@ -118,7 +129,7 @@ private fun BlockPauseLines(pause: BlockPause?) {
             Row {
                 StatusChip(
                     stringResource(Res.string.block_week_paused),
-                    StatusTone.Caution,
+                    StatusTone.Neutral,
                     Modifier.testTag("trainer_block_paused"),
                 )
             }
@@ -173,7 +184,8 @@ internal data class DeloadRequestUi(
 
 @Composable
 private fun WeekCard(week: PlanWeek, dietBreak: Boolean, extend: ExtendWeekUi) {
-    AppCard(Modifier.fillMaxWidth().testTag("trainer_week_${week.week}")) {
+    val isCurrent = week.phase == WeekPhase.Current
+    AppCard(Modifier.fillMaxWidth().testTag("trainer_week_${week.week}"), highlighted = isCurrent) {
         Column(verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
             Row(
                 horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
@@ -184,27 +196,30 @@ private fun WeekCard(week: PlanWeek, dietBreak: Boolean, extend: ExtendWeekUi) {
                     style = AppTheme.typography.titleMedium,
                     color = AppTheme.colors.textPrimary,
                 )
-                if (week.phase == WeekPhase.Current) {
+                if (isCurrent) {
                     StatusChip(
                         stringResource(Res.string.trainer_week_chip_current),
-                        StatusTone.Good,
+                        StatusTone.Info,
                         Modifier.testTag("trainer_week_${week.week}_current"),
                     )
                 }
                 if (dietBreak) {
                     StatusChip(
                         stringResource(Res.string.trainer_week_chip_diet_break),
-                        StatusTone.Good,
+                        StatusTone.Info,
                         Modifier.testTag("trainer_block_week_diet_break"),
                     )
                 }
                 if (week.deload) {
                     StatusChip(
                         stringResource(Res.string.trainer_week_chip_deload),
-                        StatusTone.Caution,
+                        StatusTone.Info,
                         Modifier.testTag("trainer_week_${week.week}_deload"),
                     )
                 }
+                Spacer(Modifier.weight(1f))
+                // The "?" and the pencil sit in the title row's trailing slot (C-113).
+                if (extendableExtension(week, extend) != null) ExtendWeekActions(extend)
             }
             WeekDates(week, extend)
             Text(
@@ -217,6 +232,15 @@ private fun WeekCard(week: PlanWeek, dietBreak: Boolean, extend: ExtendWeekUi) {
                 color = AppTheme.colors.textPrimary,
                 modifier = Modifier.testTag("trainer_week_${week.week}_adherence"),
             )
+            if (week.phase != WeekPhase.Upcoming && week.planned > 0) {
+                SegmentedProgress(
+                    total = week.planned,
+                    done = week.completed,
+                    stateDescription = stringResource(Res.string.trainer_week_progress_cd, week.completed, week.planned),
+                    modifier = Modifier.padding(vertical = Spacing.xs),
+                    testTag = "trainer_week_${week.week}_progress",
+                )
+            }
             WeekCardio(week)
             WeekSteps(week)
             week.sessions.forEach { SessionRow(week, it) }
@@ -227,30 +251,25 @@ private fun WeekCard(week: PlanWeek, dietBreak: Boolean, extend: ExtendWeekUi) {
 /** The week's date range: plain text, except the active week when it can be extended (pencil, hint, picker). */
 @Composable
 private fun WeekDates(week: PlanWeek, extend: ExtendWeekUi) {
-    val extension = extend.extension?.takeIf { week.phase == WeekPhase.Current && it.week.week == week.week }
-    if (extension == null) {
-        Text(
-            text = AppDateFormat.dayRange(week.startDate, week.endDate),
-            style = AppTheme.typography.bodySmall,
-            color = AppTheme.colors.textSecondary,
-        )
-    } else {
-        ExtendableDayRange(week, extend)
+    val extension = extendableExtension(week, extend)
+    Text(
+        text = AppDateFormat.dayRange(week.startDate, week.endDate),
+        style = AppTheme.typography.bodySmall,
+        color = AppTheme.colors.textSecondary,
+    )
+    if (extension != null) {
         if (!extend.online) OfflineHint(stringResource(Res.string.trainer_week_extend_offline))
         if (extend.pickerOpen) ExtendWeekPicker(extension, extend)
     }
 }
 
-/** The active week's date range with its help and the pencil that changes the week's last day (US-134). */
+private fun extendableExtension(week: PlanWeek, extend: ExtendWeekUi): ActiveWeekExtension? =
+    extend.extension?.takeIf { week.phase == WeekPhase.Current && it.week.week == week.week }
+
+/** The help and the pencil that change the active week's last day (US-134), in the title row's trailing slot. */
 @Composable
-private fun ExtendableDayRange(week: PlanWeek, extend: ExtendWeekUi) {
+private fun ExtendWeekActions(extend: ExtendWeekUi) {
     Row(verticalAlignment = Alignment.CenterVertically) {
-        Text(
-            text = AppDateFormat.dayRange(week.startDate, week.endDate),
-            style = AppTheme.typography.bodySmall,
-            color = AppTheme.colors.textSecondary,
-            modifier = Modifier.weight(1f),
-        )
         HelpButton(
             contentDescription = stringResource(Res.string.trainer_week_extend_help_cd),
             title = stringResource(Res.string.trainer_week_extend_help_title),

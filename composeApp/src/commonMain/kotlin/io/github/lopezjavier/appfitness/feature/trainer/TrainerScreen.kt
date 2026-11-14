@@ -8,8 +8,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.lazy.grid.LazyGridScope
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -21,13 +20,24 @@ import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.github.lopezjavier.appfitness.composeapp.resources.Res
+import io.github.lopezjavier.appfitness.composeapp.resources.ic_nav_trainer
+import io.github.lopezjavier.appfitness.composeapp.resources.trainer_plan_create
+import io.github.lopezjavier.appfitness.composeapp.resources.trainer_plan_create_action
+import io.github.lopezjavier.appfitness.composeapp.resources.trainer_plan_empty_body
+import io.github.lopezjavier.appfitness.composeapp.resources.trainer_plan_empty_title
 import io.github.lopezjavier.appfitness.composeapp.resources.trainer_title
+import io.github.lopezjavier.appfitness.composeapp.resources.trainer_week_progress
 import io.github.lopezjavier.appfitness.composeapp.resources.trainer_your_data_row
 import io.github.lopezjavier.appfitness.composeapp.resources.week_summary_title
 import io.github.lopezjavier.appfitness.composeapp.resources.your_data_provisional_count
 import io.github.lopezjavier.appfitness.designsystem.AppCard
 import io.github.lopezjavier.appfitness.designsystem.AppScreen
 import io.github.lopezjavier.appfitness.designsystem.AppShapes
+import io.github.lopezjavier.appfitness.designsystem.AppStateAction
+import io.github.lopezjavier.appfitness.designsystem.EmptyState
+import io.github.lopezjavier.appfitness.designsystem.OfflineHint
+import io.github.lopezjavier.appfitness.designsystem.WindowWidthClassDefaults
+import io.github.lopezjavier.appfitness.domain.model.PlanWeek
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
 import io.github.lopezjavier.appfitness.designsystem.AppTopBarDefaults
 import io.github.lopezjavier.appfitness.designsystem.NavigationRow
@@ -121,6 +131,7 @@ fun TrainerScreen(
         modifier = modifier,
         header = { TrainerHeader(title) },
         testTagPrefix = "trainer",
+        maxContentWidth = WindowWidthClassDefaults.HubContentMaxWidth,
     ) {
         Box(Modifier.fillMaxSize().testTag("trainer_screen")) {
             when (state) {
@@ -139,47 +150,117 @@ private fun TrainerContent(
     actions: TrainerActions,
     exerciseNames: Map<String, String>,
 ) {
-    Column(
-        Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(Spacing.screenMargin),
-        verticalArrangement = Arrangement.spacedBy(Spacing.blockGap),
-    ) {
-        state.calorieProposal?.let { CalorieProposalCard(it, state.decidingChange, online, onEvent) }
-        CoachChangesSection(state, state.pendingCoachChanges, exerciseNames, online, onEvent, actions.onOpenExercise)
-        if (state.blockReviewDue) BlockReviewEntry(actions.onOpenBlockReview)
-        if (state.welcomeBack && !state.blockReviewDue) WelcomeBackCard(online, onEvent)
-        DiscomfortFollowUpsSection(state, online, onEvent, actions.onOpenExercise)
-        PlanEntrySection(state.plan, online, actions.onOpenProposal, actions.onOpenBeforeStart, actions.onOpenPlan)
-        BlockBoxes(state, online, actions)
-        if (state.hasWeekSummary) {
-            SummaryCard(
-                title = stringResource(Res.string.week_summary_title),
-                lines = emptyList(),
-                onClick = actions.onOpenWeekSummary,
-                testTag = "trainer_box_week_summary",
-            )
+    if (state.plan is PlanSummary.None) {
+        NoPlanContent(online, state.provisionalCount, actions)
+        return
+    }
+    HubGrid {
+        if (state.hasDecisionCards()) {
+            fullSpanItem("decisions") {
+                Column(verticalArrangement = Arrangement.spacedBy(Spacing.cardGap)) {
+                    state.calorieProposal?.let { CalorieProposalCard(it, state.decidingChange, online, onEvent) }
+                    CoachChangesSection(
+                        state,
+                        state.pendingCoachChanges,
+                        exerciseNames,
+                        online,
+                        onEvent,
+                        actions.onOpenExercise,
+                    )
+                    if (state.blockReviewDue) BlockReviewEntry(actions.onOpenBlockReview)
+                    if (state.welcomeBack && !state.blockReviewDue) WelcomeBackCard(online, onEvent)
+                    DiscomfortFollowUpsSection(state, online, onEvent, actions.onOpenExercise)
+                }
+            }
         }
-        YourDataEntry(state.provisionalCount, actions.onOpenYourData)
+        val planEntry: @Composable () -> Unit = {
+            PlanEntrySection(state.plan, online, actions.onOpenProposal, actions.onOpenBeforeStart, actions.onOpenPlan)
+        }
+        if (state.plan is PlanSummary.Accepted) item { planEntry() } else fullSpanItem { planEntry() }
+        blockBoxes(state, online, actions)
+        if (state.hasWeekSummary) {
+            item {
+                SummaryCard(
+                    title = stringResource(Res.string.week_summary_title),
+                    lines = weekSummaryFigureLines(state.weeks),
+                    onClick = actions.onOpenWeekSummary,
+                    testTag = "trainer_box_week_summary",
+                )
+            }
+        }
+        fullSpanItem("your_data") {
+            // 12 dp from the grid plus 12 dp here: 24 dp before "Tus datos" (C-101).
+            Column(Modifier.padding(top = Spacing.md)) { YourDataEntry(state.provisionalCount, actions.onOpenYourData) }
+        }
+    }
+}
+
+private fun TrainerUiState.Content.hasDecisionCards(): Boolean = calorieProposal != null ||
+    pendingCoachChanges.isNotEmpty() ||
+    blockReviewDue ||
+    welcomeBack ||
+    discomfortFollowUps.isNotEmpty() ||
+    swapPicker != null
+
+/** The figure line of the "Resumen semanal" box (V-50): the last finished week's workouts, when there is one. */
+@Composable
+private fun weekSummaryFigureLines(weeks: List<PlanWeek>): List<String> {
+    val week = weeks.lastOrNull { it.phase == WeekPhase.Past } ?: return emptyList()
+    return listOf(stringResource(Res.string.trainer_week_progress, week.completed, week.planned, week.adherencePct))
+}
+
+/** The root without a plan (C-111): a centred empty state with "Crear plan" and "Tus datos" below. */
+@Composable
+private fun NoPlanContent(online: Boolean, provisionalCount: Int?, actions: TrainerActions) {
+    Column(Modifier.fillMaxSize().padding(Spacing.screenMargin)) {
+        Box(Modifier.weight(1f).fillMaxWidth(), contentAlignment = Alignment.Center) {
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                EmptyState(
+                    icon = Res.drawable.ic_nav_trainer,
+                    title = stringResource(Res.string.trainer_plan_empty_title),
+                    message = stringResource(Res.string.trainer_plan_empty_body),
+                    action = if (online) {
+                        AppStateAction(stringResource(Res.string.trainer_plan_create)) {
+                            actions.onOpenBeforeStart(BeforeStartMode.Plan, null, null)
+                        }
+                    } else {
+                        null
+                    },
+                    testTagPrefix = "trainer_empty",
+                )
+                if (!online) OfflineHint(stringResource(Res.string.trainer_plan_create_action))
+            }
+        }
+        YourDataEntry(provisionalCount, actions.onOpenYourData)
     }
 }
 
 /** The block entry ("Crear bloque" or the proposal) and, with a saved block, its box. */
-@Composable
-private fun BlockBoxes(state: TrainerUiState.Content, online: Boolean, actions: TrainerActions) {
-    BlockSummaryBox(
-        state.blockStatus,
-        state.weeks.firstOrNull { it.phase == WeekPhase.Current },
-        deloadPlanned = state.weeks.any { it.deload },
-        hasAppliedChanges = state.appliedCoachChanges.isNotEmpty(),
-        onOpen = actions.onOpenBlockScreen,
-    )
-    BlockEntrySection(
-        state.plan,
-        state.block,
-        online,
-        actions.onOpenBlock,
-        actions.onOpenBeforeStart,
-        state.blockReviewDue,
-    )
+private fun LazyGridScope.blockBoxes(state: TrainerUiState.Content, online: Boolean, actions: TrainerActions) {
+    if (state.blockStatus is BlockStatus.Saved || state.appliedCoachChanges.isNotEmpty()) {
+        item {
+            BlockSummaryBox(
+                state.blockStatus,
+                state.weeks.firstOrNull { it.phase == WeekPhase.Current },
+                deloadPlanned = state.weeks.any { it.deload },
+                appliedChangesCount = state.appliedCoachChanges.size,
+                onOpen = actions.onOpenBlockScreen,
+            )
+        }
+    }
+    val entryShows = state.block is BlockSummary.Proposed || (state.block is BlockSummary.None && !state.blockReviewDue)
+    if (entryShows) {
+        fullSpanItem("block_entry") {
+            BlockEntrySection(
+                state.plan,
+                state.block,
+                online,
+                actions.onOpenBlock,
+                actions.onOpenBeforeStart,
+                state.blockReviewDue,
+            )
+        }
+    }
 }
 
 /** The "Tus datos" row at the end of the hub (R-03): its value is how many values are still provisional. */

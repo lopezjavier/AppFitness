@@ -7,12 +7,12 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.ui.Alignment
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
@@ -20,9 +20,20 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.github.lopezjavier.appfitness.composeapp.resources.Res
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_nav_trainer
 import io.github.lopezjavier.appfitness.composeapp.resources.trainer_block_title
-import io.github.lopezjavier.appfitness.composeapp.resources.trainer_box_empty
+import io.github.lopezjavier.appfitness.composeapp.resources.ic_delete
+import io.github.lopezjavier.appfitness.composeapp.resources.ic_more_vert
+import io.github.lopezjavier.appfitness.composeapp.resources.topbar_more_cd
+import io.github.lopezjavier.appfitness.composeapp.resources.trainer_block_remove
+import io.github.lopezjavier.appfitness.composeapp.resources.trainer_block_remove_action
+import io.github.lopezjavier.appfitness.composeapp.resources.trainer_box_empty_block
+import io.github.lopezjavier.appfitness.composeapp.resources.trainer_box_empty_plan
 import io.github.lopezjavier.appfitness.composeapp.resources.trainer_plan_section
+import io.github.lopezjavier.appfitness.designsystem.AppActionSheet
 import io.github.lopezjavier.appfitness.designsystem.AppCard
+import io.github.lopezjavier.appfitness.designsystem.AppSheetAction
+import io.github.lopezjavier.appfitness.designsystem.AppTopBarAction
+import io.github.lopezjavier.appfitness.designsystem.WindowWidthClassDefaults
+import io.github.lopezjavier.appfitness.designsystem.offlineHint
 import io.github.lopezjavier.appfitness.designsystem.AppScreen
 import io.github.lopezjavier.appfitness.designsystem.EmptyState
 import io.github.lopezjavier.appfitness.designsystem.SkeletonBox
@@ -38,9 +49,13 @@ import org.koin.compose.viewmodel.koinViewModel
 private const val SKELETON_ROWS = 4
 
 /** The summary boxes of the Trainer root that open a pushed screen with their full content (US-120). */
-enum class TrainerBox(internal val title: StringResource, internal val tagPrefix: String) {
-    Plan(Res.string.trainer_plan_section, "trainer_plan"),
-    Block(Res.string.trainer_block_title, "trainer_block"),
+enum class TrainerBox(
+    internal val title: StringResource,
+    internal val tagPrefix: String,
+    internal val emptyMessage: StringResource,
+) {
+    Plan(Res.string.trainer_plan_section, "trainer_plan", Res.string.trainer_box_empty_plan),
+    Block(Res.string.trainer_block_title, "trainer_block", Res.string.trainer_box_empty_block),
 }
 
 /** Stateful "Tu plan" / "Tu bloque": its own [TrainerViewModel] (refreshed on resume) and the shared effects host. */
@@ -89,10 +104,20 @@ fun TrainerBoxScreen(
     exerciseNames: Map<String, String> = emptyMap(),
 ) {
     val online by isOnline.collectAsStateWithLifecycle(initialValue = true)
+    var menuOpen by rememberSaveable { mutableStateOf(false) }
+    val hasSavedBlock = box == TrainerBox.Block && (state as? TrainerUiState.Content)?.block is BlockSummary.Saved
+    val moreLabel = stringResource(Res.string.topbar_more_cd)
     AppScreen(
         title = stringResource(box.title),
         modifier = modifier,
         onBack = onBack,
+        // "Eliminar bloque" lives in the ⋮ sheet (V-54); the confirmation dialog is unchanged (R-08).
+        actions = if (hasSavedBlock) {
+            listOf(AppTopBarAction(Res.drawable.ic_more_vert, moreLabel, { menuOpen = true }, "trainer_block_more"))
+        } else {
+            emptyList()
+        },
+        maxContentWidth = WindowWidthClassDefaults.HubContentMaxWidth,
         testTagPrefix = box.tagPrefix,
     ) {
         Box(Modifier.fillMaxSize().testTag("${box.tagPrefix}_screen")) {
@@ -102,12 +127,30 @@ fun TrainerBoxScreen(
                 is TrainerUiState.Content -> if (state.hasContent(box)) {
                     BoxContent(box, state, online, onEvent, actions, exerciseNames)
                 } else {
-                    EmptyState(
-                        icon = Res.drawable.ic_nav_trainer,
-                        message = stringResource(Res.string.trainer_box_empty),
-                        testTagPrefix = "${box.tagPrefix}_empty",
-                    )
+                    Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                        EmptyState(
+                            icon = Res.drawable.ic_nav_trainer,
+                            message = stringResource(box.emptyMessage),
+                            testTagPrefix = "${box.tagPrefix}_empty",
+                        )
+                    }
                 }
+            }
+            if (menuOpen && hasSavedBlock) {
+                AppActionSheet(
+                    actions = listOf(
+                        AppSheetAction(
+                            icon = Res.drawable.ic_delete,
+                            title = stringResource(Res.string.trainer_block_remove),
+                            hint = if (online) null else offlineHint(stringResource(Res.string.trainer_block_remove_action)),
+                            testTag = "trainer_remove_block",
+                            enabled = online,
+                            onClick = { onEvent(TrainerEvent.RequestRemoveBlock) },
+                        ),
+                    ),
+                    onDismiss = { menuOpen = false },
+                    testTagPrefix = "trainer_block_menu",
+                )
             }
         }
     }
@@ -128,12 +171,9 @@ private fun BoxContent(
     actions: TrainerActions,
     exerciseNames: Map<String, String>,
 ) {
-    Column(
-        Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(Spacing.screenMargin),
-        verticalArrangement = Arrangement.spacedBy(Spacing.blockGap),
-    ) {
+    HubGrid {
         when (box) {
-            TrainerBox.Plan -> PlanDetailsSection(
+            TrainerBox.Plan -> planDetails(
                 plan = state.plan,
                 online = online,
                 onOpenBeforeStart = actions.onOpenBeforeStart,
@@ -148,16 +188,22 @@ private fun BoxContent(
 
             // The applied changes come first so that "Deshacer" is visible without scrolling past the weeks.
             TrainerBox.Block -> {
-                CoachChangesSection(
-                    state,
-                    state.appliedCoachChanges,
-                    exerciseNames,
-                    online,
-                    onEvent,
-                    actions.onOpenExercise,
-                )
-                BlockDetailsSection(state.block, online, state.removeBlockConfirm, onEvent)
-                PlanWeeksSection(
+                if (state.appliedCoachChanges.isNotEmpty()) {
+                    fullSpanItem("applied_changes") {
+                        CoachChangesSection(
+                            state,
+                            state.appliedCoachChanges,
+                            exerciseNames,
+                            online,
+                            onEvent,
+                            actions.onOpenExercise,
+                        )
+                    }
+                }
+                if (state.block is BlockSummary.Saved) fullSpanItem("block_card") {
+                    BlockDetailsSection(state.block, state.blockStatus, state.removeBlockConfirm, onEvent)
+                }
+                planWeeks(
                     state.weeks,
                     DeloadRequestUi(
                         available = state.canRequestDeload,

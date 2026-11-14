@@ -19,6 +19,9 @@ object WindowWidthClassDefaults {
     /** Cap of the Trainer hub grids (R-91, C-106); forms keep [FormContentMaxWidth]. */
     val HubContentMaxWidth: Dp = 840.dp
 
+    /** Minimum width of one column of a Trainer hub grid (R-91): two columns fit from about 620 dp. */
+    val HubGridCellMinWidth: Dp = 300.dp
+
     /** Cap of a single column of cards (the live workout) on wide windows. */
     val CardColumnMaxWidth: Dp = 640.dp
 
