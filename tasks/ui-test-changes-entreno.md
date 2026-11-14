@@ -88,3 +88,17 @@ Behaviour tests that will fail or need an update:
 Uncovered (needs a new test in the repair task): C-93 assertions (Spec 7: note and check centres within 1 dp for every `ExerciseMetricType`, header over the field container, LISTO/NOTA left edges equal between a strength and a cardio card, at 360 dp and font scale 1.0 / 1.3 / 2.0); `SetRowDefaults.cardioStartFits`; the "Iniciar" pill fallback; `CircleIconButton` colours (accent enabled/disabled, `disabledGlyph`); `TonalSquareIconButton`; `IconTile`.
 
 Shared components added (new): `CircleIconButton`, `TonalSquareIconButton`, `IconTile` in `designsystem/TonalIconControls.kt`; drawables `ic_folder_open`, `ic_create_new_folder` (Material Symbols Outlined, weight 400, copied from google/material-design-icons). Shared components changed (callers to re-check): `StopwatchField` (`TimeText` container, all callers), `SetRow`/`SetTableHeader` (cardio rows only), `SetRowFieldLayout.weights` (cardio 1 : 1). Not touched: the tests, goldens and `GalleryManifest` references to `routines_edit_*`; V-47: the skeleton row was already 72 dp (`Spacing.xl * 3`), now equal to the card.
+
+## Batch 6 (lime start on every routine card; no drag handle)
+
+Behaviour tests that will fail or need an update:
+- Retired: tag `routines_drag_<id>` and string `routines_drag_cd` ("Mover <rutina>"). `RoutinesScreenTest` and `RoutinesFoldersScreenTest` assertions on the handle (drag via `routines_drag_r1`, content description, 48 dp size, `routines_drag_r4` existence) fail; reorder is now touch-and-hold on `routines_row_<id>` (`longClick`/`down` + hold, then `moveBy`), same `RoutinesEvent.Reorder`. The tap on `routines_row_<id>` still opens details.
+- `routines_start_<id>` is lime (`accent = true`) on every card, not only `isNext`; colour assertions for non-next cards change. Disabled = lime 20 % fill, lime 50 % glyph on all cards.
+- The next routine's supporting line has a 16 dp cyan `ic_flag` glyph before "Siguiente · N ejercicios" (tag `routines_next_badge_<id>` stays on the text).
+- Card padding: start 12 dp (no handle, no spacer); name edge at 28 dp.
+- ⋮ sheet (`routines_menu`): order Editar, Duplicar, Mover a carpeta, Siguiente entreno, Subir, Bajar, Eliminar; "Subir" is absent on the first routine of its group and "Bajar" on the last; both dimmed offline; they send `RoutinesEvent.MoveUp`/`MoveDown`. Tests that count or index sheet actions change.
+- Picked-up look: `AppCard(lifted = true)` (`surfaceOverlay`, 1 dp `borderControl`) and scale 1.02 (none when `LocalAnimationsEnabled` is false).
+
+Shared components changed (callers to re-check): `AppCard` (new `lifted` parameter, default false, all callers unchanged), `ReorderableItemScope` (new `dragOnLongPress()`; the builder and meals keep `dragHandle()`). `RoutineCard` has a new `dragging` parameter.
+
+Uncovered (needs a new test in the repair task): long-press pick-up and drop reorder, "Subir"/"Bajar" sheet rows (presence, order, offline dim), the lifted card look.

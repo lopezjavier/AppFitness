@@ -69,7 +69,7 @@ private fun GroupBody(group: RoutineGroup, canStart: Boolean, canDelete: Boolean
             onEvent(RoutinesEvent.Reorder(folderId, moveWithinGroup(ids, ids[from], to - from)))
         },
         modifier = Modifier.fillMaxWidth(),
-    ) { routine, _, _ ->
-        RoutineCard(routine, canStart, canDelete, onEvent)
+    ) { routine, _, dragging ->
+        RoutineCard(routine, canStart, canDelete, dragging, onEvent)
     }
 }

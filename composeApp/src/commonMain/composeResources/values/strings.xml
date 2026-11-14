@@ -415,7 +415,6 @@
     <string name="routines_next_clear">Quitar como siguiente entreno</string>
     <string name="routines_move_to_folder">Mover a carpeta</string>
     <string name="routines_move_sheet_title">Mover «%1$s» a…</string>
-    <string name="routines_drag_cd">Mover %1$s</string>
     <string name="preferences_auto_update_label">Actualizar automáticamente</string>
     <string name="preferences_auto_update_help_body">Al terminar un entreno de una rutina, la rutina se actualiza sin preguntar.</string>
     <string name="preferences_auto_update_help_cd">Ayuda: actualizar rutina</string>

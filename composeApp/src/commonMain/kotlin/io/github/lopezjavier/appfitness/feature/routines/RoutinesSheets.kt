@@ -8,6 +8,10 @@ import androidx.compose.ui.platform.testTag
 import io.github.lopezjavier.appfitness.composeapp.resources.Res
 import io.github.lopezjavier.appfitness.composeapp.resources.action_delete
 import io.github.lopezjavier.appfitness.composeapp.resources.action_edit
+import io.github.lopezjavier.appfitness.composeapp.resources.action_move_down
+import io.github.lopezjavier.appfitness.composeapp.resources.action_move_up
+import io.github.lopezjavier.appfitness.composeapp.resources.ic_arrow_downward
+import io.github.lopezjavier.appfitness.composeapp.resources.ic_arrow_upward
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_content_copy
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_delete
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_drive_file_move
@@ -39,7 +43,17 @@ import org.jetbrains.compose.resources.stringResource
 /** Every sheet and dialog of the routines list: routine actions, folder picker, folder name and the folder delete. */
 @Composable
 internal fun RoutinesDialogs(state: RoutinesUiState.Content, onEvent: (RoutinesEvent) -> Unit) {
-    state.menuFor?.let { RoutineMenuSheet(it, state.isOnline, onEvent) }
+    state.menuFor?.let { routine ->
+        val group = state.routines.filter { it.folderId == routine.folderId }
+        val position = group.indexOfFirst { it.id == routine.id }
+        RoutineMenuSheet(
+            routine = routine,
+            canMoveUp = position > 0,
+            canMoveDown = position in 0 until group.lastIndex,
+            isOnline = state.isOnline,
+            onEvent = onEvent,
+        )
+    }
     state.folderMenuFor?.let { folder ->
         FolderMenuSheet(folder, state.isOnline, state.routines.any { it.folderId == folder.id }, onEvent)
     }
@@ -50,10 +64,17 @@ internal fun RoutinesDialogs(state: RoutinesUiState.Content, onEvent: (RoutinesE
 /**
  * Actions of one routine (R-07). Offline "Duplicar", "Mover a carpeta" and "Siguiente entreno" stay listed but
  * dimmed (V-40, like the folder menu) and "Eliminar" explains the refusal, with the reason under the title.
- * Reordering is on the card itself (handle, TalkBack "Subir" / "Bajar").
+ * Reordering is touch-and-hold on the card, "Subir" / "Bajar" here (each only when possible, dimmed offline) and as
+ * TalkBack actions (C-100).
  */
 @Composable
-private fun RoutineMenuSheet(routine: RoutineSummary, isOnline: Boolean, onEvent: (RoutinesEvent) -> Unit) {
+private fun RoutineMenuSheet(
+    routine: RoutineSummary,
+    canMoveUp: Boolean,
+    canMoveDown: Boolean,
+    isOnline: Boolean,
+    onEvent: (RoutinesEvent) -> Unit,
+) {
     val id = routine.id
     val actions = buildList {
         add(
@@ -83,6 +104,24 @@ private fun RoutineMenuSheet(routine: RoutineSummary, isOnline: Boolean, onEvent
                 onEvent(if (routine.isNext) RoutinesEvent.ClearNext else RoutinesEvent.SetNext(id))
             },
         )
+        if (canMoveUp) {
+            add(
+                AppSheetAction(
+                    icon = Res.drawable.ic_arrow_upward,
+                    title = stringResource(Res.string.action_move_up),
+                    enabled = isOnline,
+                ) { onEvent(RoutinesEvent.MoveUp(id)) },
+            )
+        }
+        if (canMoveDown) {
+            add(
+                AppSheetAction(
+                    icon = Res.drawable.ic_arrow_downward,
+                    title = stringResource(Res.string.action_move_down),
+                    enabled = isOnline,
+                ) { onEvent(RoutinesEvent.MoveDown(id)) },
+            )
+        }
         add(
             AppSheetAction(Res.drawable.ic_delete, stringResource(Res.string.action_delete)) {
                 onEvent(RoutinesEvent.Delete(id))

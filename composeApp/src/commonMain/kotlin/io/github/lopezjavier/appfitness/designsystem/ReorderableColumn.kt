@@ -2,6 +2,7 @@
 
 package io.github.lopezjavier.appfitness.designsystem
 
+import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
 import androidx.compose.foundation.gestures.detectVerticalDragGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -201,6 +202,22 @@ class ReorderableItemScope internal constructor(
             onVerticalDrag = { change, amount ->
                 change.consume()
                 onDragBy(amount)
+            },
+            onDragEnd = { onDragEnd() },
+            onDragCancel = { onDragCancel() },
+        )
+    }
+
+    /**
+     * Picks the item up on touch-and-hold (the system long-press delay) and follows the finger; for card lists
+     * without a visible [DragHandle]. A plain tap or a quick swipe never reaches it, so taps and scrolling keep working.
+     */
+    fun Modifier.dragOnLongPress(): Modifier = pointerInput(Unit) {
+        detectDragGesturesAfterLongPress(
+            onDragStart = { onDragStart() },
+            onDrag = { change, amount ->
+                change.consume()
+                onDragBy(amount.y)
             },
             onDragEnd = { onDragEnd() },
             onDragCancel = { onDragCancel() },
