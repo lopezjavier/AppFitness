@@ -5,7 +5,10 @@ import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.assertTextContains
 import androidx.compose.ui.test.assertTextEquals
+import androidx.compose.ui.test.hasAnyAncestor
 import androidx.compose.ui.test.hasContentDescription
+import androidx.compose.ui.test.hasTestTag
+import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
@@ -123,7 +126,10 @@ class WorkoutCalendarScreenTest {
         show(content(WorkoutCalendarView.Year))
 
         rule.onNodeWithTag("calendar_year_title").assertTextContains("2026 · 7 entrenos")
-        rule.onNodeWithTag("calendar_year_month_3").assertTextContains("5")
+        rule.onNode(
+            hasText("5") and hasAnyAncestor(hasTestTag("calendar_year_month_3")),
+            useUnmergedTree = true,
+        ).assertExists()
     }
 
     @Test

@@ -189,9 +189,9 @@ private fun TimeText(
         modifier
             .heightIn(min = StopwatchFieldDefaults.TouchTarget)
             .widthIn(min = StopwatchFieldDefaults.TouchTarget)
-            .timeFieldContainer(done = !enabled && !running)
             .clickable(enabled = enabled, role = Role.Button, onClickLabel = edit, onClick = onClick)
-            .semantics { stateDescription = state },
+            .semantics { stateDescription = state }
+            .timeFieldContainer(done = !enabled && !running),
         contentAlignment = Alignment.Center,
     ) {
         Text(

@@ -285,7 +285,12 @@ class LiveSessionCardioTest {
 
     @Test
     fun startCircle_sitsOnLineOneBetweenTheTimeFieldAndListo_whenItFits() {
-        showScreen(cardioState())
+        // One field (time only): the circle fits on a phone; two fields (km and time) do not.
+        showScreen(
+            cardioState().let { state ->
+                state.copy(exercises = state.exercises.map { it.copy(metricType = ExerciseMetricType.Duration) })
+            },
+        )
 
         val cell = bounds("live_set_0_1_stopwatch_cell")
         val start = bounds("session_cardio_start_0_1")
@@ -309,8 +314,9 @@ class LiveSessionCardioTest {
 
     @Test
     fun cardioStartFits_dependsOnTheWidthAndTheFontScale() {
-        val phone = 360.dp
+        val phone = 328.dp // 360 dp minus the card margins and padding
         assertTrue(SetRowDefaults.cardioStartFits(phone, fieldCount = 1, hasNote = true, fontScale = 1f))
+        assertTrue(SetRowDefaults.cardioStartFits(phone, fieldCount = 1, hasNote = true, fontScale = 1.3f))
         assertFalse(SetRowDefaults.cardioStartFits(phone, fieldCount = 1, hasNote = true, fontScale = 2f))
         assertFalse(SetRowDefaults.cardioStartFits(phone, fieldCount = 2, hasNote = true, fontScale = 1f))
         assertTrue(SetRowDefaults.cardioStartFits(412.dp, fieldCount = 2, hasNote = true, fontScale = 1f))

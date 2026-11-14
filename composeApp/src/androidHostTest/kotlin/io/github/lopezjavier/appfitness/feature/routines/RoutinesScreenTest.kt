@@ -158,9 +158,15 @@ class RoutinesScreenTest {
         rule.onNodeWithText("Siguiente entreno").performClick()
         rule.waitForIdle()
 
-        rule.onNodeWithTag("routines_next_badge_r1").assertTextContains("Siguiente", substring = true)
-        rule.onNodeWithTag("routines_next_badge_r1").assertTextContains("2 ejercicios", substring = true)
-        rule.onNodeWithTag("routines_next_badge_r2").assertDoesNotExist()
+        rule.onNodeWithTag(
+            "routines_next_badge_r1",
+            useUnmergedTree = true,
+        ).assertTextContains("Siguiente", substring = true)
+        rule.onNodeWithTag(
+            "routines_next_badge_r1",
+            useUnmergedTree = true,
+        ).assertTextContains("2 ejercicios", substring = true)
+        rule.onNodeWithTag("routines_next_badge_r2", useUnmergedTree = true).assertDoesNotExist()
     }
 
     @Test

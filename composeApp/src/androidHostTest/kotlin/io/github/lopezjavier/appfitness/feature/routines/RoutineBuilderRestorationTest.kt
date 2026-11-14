@@ -5,7 +5,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.test.assertContentDescriptionEquals
-import androidx.compose.ui.test.assertIsSelected
+import androidx.compose.ui.test.assertIsOn
 import androidx.compose.ui.test.assertTextContains
 import androidx.compose.ui.test.junit4.StateRestorationTester
 import androidx.compose.ui.test.junit4.v2.createComposeRule
@@ -135,7 +135,7 @@ class RoutineBuilderRestorationTest {
         tester.emulateSavedInstanceStateRestore()
         rule.waitForIdle()
 
-        rule.onNodeWithTag("note_sheet_option_setup").assertIsSelected()
+        rule.onNodeWithTag("note_sheet_option_setup").assertIsOn()
         rule.onNodeWithTag("note_sheet_text").assertTextContains("bajar el pe")
     }
 

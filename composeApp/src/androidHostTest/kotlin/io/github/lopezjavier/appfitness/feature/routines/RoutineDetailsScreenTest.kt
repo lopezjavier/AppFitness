@@ -75,7 +75,7 @@ class RoutineDetailsScreenTest {
             ),
         )
 
-        rule.onNodeWithText("50 min").assertExists()
+        rule.onNodeWithText("1 × 50 min", substring = true).assertExists()
         rule.onNodeWithText("0 reps", substring = true).assertDoesNotExist()
     }
 
@@ -111,8 +111,8 @@ class RoutineDetailsScreenTest {
         show(content)
 
         rule.onNodeWithText("Ejercicios").assertIsDisplayed()
-        rule.onNodeWithText("3 x 8").assertIsDisplayed()
-        rule.onNodeWithText("60 kg x 8 · 62,5 kg x 6").assertIsDisplayed()
+        rule.onNodeWithText("3 × 8", substring = true).assertIsDisplayed()
+        rule.onNodeWithText("1 × 8 · 60 kg, 1 × 6 · 62,5 kg", substring = true).assertIsDisplayed()
         rule.onNodeWithTag("routine_details_exercise_e1").performClick()
         assertEquals(listOf("e1"), opened)
     }

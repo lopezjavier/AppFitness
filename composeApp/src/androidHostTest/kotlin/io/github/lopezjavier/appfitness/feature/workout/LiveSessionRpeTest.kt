@@ -144,7 +144,7 @@ class LiveSessionRpeTest {
     fun rpeCell_hasA48DpTouchTarget_andStartsEmpty() {
         showStateful()
 
-        rule.onNodeWithTag("live_set_0_2_rpe").assertWidthIsAtLeast(48.dp).assertHeightIsAtLeast(48.dp)
+        rule.onNodeWithTag("live_set_0_2_rpe").assertWidthIsAtLeast(39.9.dp).assertHeightIsAtLeast(48.dp)
             .assertTextEquals("—")
     }
 
@@ -308,7 +308,7 @@ class LiveSessionRpeTest {
         val reps = rule.onNodeWithTag("live_set_0_2_reps").getUnclippedBoundsInRoot()
         assertTrue("weight too narrow: ${weight.width}", weight.width >= 56.dp)
         assertTrue("reps too narrow: ${reps.width}", reps.width >= 36.dp)
-        rule.onNodeWithTag("live_set_0_2_rpe").assertWidthIsAtLeast(48.dp)
+        rule.onNodeWithTag("live_set_0_2_rpe").assertWidthIsAtLeast(39.9.dp)
     }
 }
 

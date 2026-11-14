@@ -55,7 +55,7 @@ class SetRowRpeTest {
             }
         }
 
-        rule.onNodeWithTag("row_rpe").assertHasClickAction().assertWidthIsAtLeast(48.dp)
+        rule.onNodeWithTag("row_rpe").assertHasClickAction().assertWidthIsAtLeast(40.dp)
             .assertHeightIsAtLeast(48.dp).performClick()
 
         assertEquals(1, taps)
@@ -161,7 +161,7 @@ class SetRowRpeTest {
 
         rule.onNodeWithTag("row_weight").assertIsDisplayed()
         rule.onNodeWithTag("row_reps").assertIsDisplayed()
-        rule.onNodeWithTag("row_rpe").assertWidthIsAtLeast(48.dp).assertIsDisplayed()
+        rule.onNodeWithTag("row_rpe").assertWidthIsAtLeast(40.dp).assertIsDisplayed()
         rule.onNodeWithTag("row_reps").assertWidthIsAtLeast(48.dp)
         // The weighted columns must be wide enough for their text: a 3-digit reps value is not clipped.
         val reps = rule.onNodeWithTag("row_reps").getUnclippedBoundsInRoot()

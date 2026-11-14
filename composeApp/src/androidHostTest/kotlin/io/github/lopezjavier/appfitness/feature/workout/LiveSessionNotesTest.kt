@@ -6,7 +6,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.layout.boundsInRoot
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
-import androidx.compose.ui.test.assertIsSelected
+import androidx.compose.ui.test.assertIsOn
 import androidx.compose.ui.test.assertTextContains
 import androidx.compose.ui.test.junit4.StateRestorationTester
 import androidx.compose.ui.test.junit4.v2.createComposeRule
@@ -249,7 +249,7 @@ class LiveSessionNotesTest {
         saveSetNote("range")
 
         tap("live_set_note_0_1")
-        rule.onNodeWithTag("note_sheet_option_range").assertIsSelected()
+        rule.onNodeWithTag("note_sheet_option_range").assertIsOn()
         rule.onNodeWithTag("note_sheet_commit").assertIsNotEnabled()
         tap("note_sheet_option_assisted")
         rule.onNodeWithTag("note_sheet_commit").assertIsEnabled()
@@ -311,7 +311,7 @@ class LiveSessionNotesTest {
 
         tap("live_exercise_note_0")
 
-        rule.onNodeWithTag("routine_note_sheet_option_other").assertIsSelected()
+        rule.onNodeWithTag("routine_note_sheet_option_other").assertIsOn()
         rule.onNodeWithTag("routine_note_sheet_text").assertTextContains("bajar el peso si duele")
     }
 
@@ -331,7 +331,7 @@ class LiveSessionNotesTest {
         tester.emulateSavedInstanceStateRestore()
         settle()
 
-        rule.onNodeWithTag("note_sheet_option_grip").assertIsSelected()
+        rule.onNodeWithTag("note_sheet_option_grip").assertIsOn()
         rule.onNodeWithTag("note_sheet_text").assertTextContains("pausa lar")
     }
 

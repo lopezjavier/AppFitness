@@ -71,13 +71,13 @@ class SetRowTest {
     }
 
     @Test
-    fun rpeColumnWeights_sumTo7_4_andInsetIs8dp() {
+    fun rpeColumnWeights_sumTo7_4_andThereIsNoInset() {
         val sum = SetRowDefaults.PREVIOUS_WEIGHT_RPE + SetRowDefaults.KG_WEIGHT_RPE + SetRowDefaults.REPS_WEIGHT_RPE
         assertEquals(7.4f, sum, 0.001f)
         assertEquals(2.1f, SetRowDefaults.PREVIOUS_WEIGHT_RPE)
         assertEquals(2.8f, SetRowDefaults.KG_WEIGHT_RPE)
         assertEquals(2.5f, SetRowDefaults.REPS_WEIGHT_RPE)
-        assertEquals(8.dp, SetRowDefaults.RpeInset)
+        assertEquals(0.dp, SetRowDefaults.RpeInset)
         assertEquals(0.dp, SetRowDefaults.rpeInset(false))
     }
 

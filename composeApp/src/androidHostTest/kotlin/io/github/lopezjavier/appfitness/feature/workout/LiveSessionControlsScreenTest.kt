@@ -161,7 +161,7 @@ class LiveSessionControlsScreenTest {
 
         rule.onNodeWithTag("live_menu_finish").assertIsNotEnabled()
         rule.onNodeWithTag("live_menu_finish_reason").assertExists()
-        rule.onNodeWithText("Completa al menos una serie para finalizar").assertExists()
+        rule.onNodeWithText("Completa al menos una serie para finalizar.").assertExists()
     }
 
     @Test

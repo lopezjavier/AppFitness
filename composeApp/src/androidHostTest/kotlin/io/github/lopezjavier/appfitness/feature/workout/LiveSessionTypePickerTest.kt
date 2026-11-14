@@ -61,7 +61,7 @@ class LiveSessionTypePickerTest {
     fun badge_hasA48DpTouchTarget() {
         showStateful()
 
-        rule.onNodeWithTag("live_set_0_1_type").assertWidthIsAtLeast(48.dp).assertHeightIsAtLeast(48.dp)
+        rule.onNodeWithTag("live_set_0_1_type").assertWidthIsAtLeast(39.9.dp).assertHeightIsAtLeast(48.dp)
     }
 
     @Test

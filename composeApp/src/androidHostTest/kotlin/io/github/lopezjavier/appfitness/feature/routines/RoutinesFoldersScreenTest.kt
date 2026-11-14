@@ -111,7 +111,7 @@ class RoutinesFoldersScreenTest {
         show()
 
         rule.onNodeWithTag("routines_folder_f1").assertTextContains("Fuerza")
-        rule.onNodeWithTag("routines_folder_f1").assertTextContains("3 rutinas")
+        rule.onNodeWithTag("routines_folder_f1").assertTextContains("3 rutinas", substring = true)
         rule.onNodeWithTag("routines_row_r1").assertTextContains("Torso A")
         rule.onNodeWithTag("routines_group_none").assertTextContains("Sin carpeta")
         rule.onNodeWithTag("routines_group_none").assertTextContains("1")
@@ -132,7 +132,7 @@ class RoutinesFoldersScreenTest {
     fun anExpandedEmptyFolder_showsCarpetaVacia() {
         show()
 
-        rule.onNodeWithTag("routines_folder_empty_f2").assertTextEquals("Carpeta vacía")
+        rule.onNodeWithTag("routines_folder_empty_f2", useUnmergedTree = true).assertTextEquals("Carpeta vacía")
     }
 
     @Test
@@ -144,7 +144,7 @@ class RoutinesFoldersScreenTest {
         rule.onNodeWithTag("routines_folder_toggle_f2").assert(
             SemanticsMatcher.keyNotDefined(SemanticsProperties.StateDescription),
         )
-        rule.onNodeWithTag("routines_folder_empty_f2").assertTextEquals("Carpeta vacía")
+        rule.onNodeWithTag("routines_folder_empty_f2", useUnmergedTree = true).assertTextEquals("Carpeta vacía")
     }
 
     @Test
@@ -290,17 +290,20 @@ class RoutinesFoldersScreenTest {
     @Test
     fun nextWorkout_isHighlighted_andMovesToAnotherRoutine() {
         show()
-        rule.onNodeWithTag("routines_next_badge_r1").assertDoesNotExist()
+        rule.onNodeWithTag("routines_next_badge_r1", useUnmergedTree = true).assertDoesNotExist()
 
         openMenu("r1")
         rule.onNodeWithText("Siguiente entreno").assertExists()
         clickText("Siguiente entreno")
-        rule.onNodeWithTag("routines_next_badge_r1").assertTextContains("Siguiente", substring = true)
+        rule.onNodeWithTag(
+            "routines_next_badge_r1",
+            useUnmergedTree = true,
+        ).assertTextContains("Siguiente", substring = true)
 
         openMenu("r4")
         clickText("Siguiente entreno")
-        rule.onNodeWithTag("routines_next_badge_r4").assertExists()
-        rule.onNodeWithTag("routines_next_badge_r1").assertDoesNotExist()
+        rule.onNodeWithTag("routines_next_badge_r4", useUnmergedTree = true).assertExists()
+        rule.onNodeWithTag("routines_next_badge_r1", useUnmergedTree = true).assertDoesNotExist()
     }
 
     @Test
@@ -312,7 +315,7 @@ class RoutinesFoldersScreenTest {
         rule.onNodeWithText("Quitar como siguiente entreno").assertExists()
         clickText("Quitar como siguiente entreno")
 
-        rule.onNodeWithTag("routines_next_badge_r1").assertDoesNotExist()
+        rule.onNodeWithTag("routines_next_badge_r1", useUnmergedTree = true).assertDoesNotExist()
     }
 
     @Test
@@ -367,7 +370,7 @@ class RoutinesFoldersScreenTest {
 
         assertEquals(listOf("r4" to "f2"), repository.movedToFolder)
         rule.onNodeWithTag("routines_move_option_f2").assertDoesNotExist()
-        rule.onNodeWithTag("routines_folder_empty_f2").assertDoesNotExist()
+        rule.onNodeWithTag("routines_folder_empty_f2", useUnmergedTree = true).assertDoesNotExist()
     }
 
     @Test
