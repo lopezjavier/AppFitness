@@ -39,6 +39,7 @@ internal fun SetFieldInput(
         maxIntegerDigits = kind.maxIntegerDigits,
         showLabel = false,
         readOnly = values.completed,
+        flatWhenReadOnly = true,
         imeAction = imeAction,
         placeholderDescription = stringResource(Res.string.set_value_planned),
     )

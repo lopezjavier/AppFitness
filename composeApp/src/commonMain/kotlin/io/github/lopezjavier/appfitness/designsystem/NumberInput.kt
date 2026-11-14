@@ -179,7 +179,8 @@ object NumberInputDefaults {
  * spoken; it is drawn above the field when [showLabel] is true. The [placeholder] is ghost data shown while
  * the field is empty and is not spoken (the field announces [placeholderDescription], e.g. "Previsto", instead).
  * The caller's [modifier] lands on the text field node. [startAligned] (default centred, for table cells) starts the
- * value at the leading edge with the [unit] in the trailing slot, as in a form (C-77).
+ * value at the leading edge with the [unit] in the trailing slot, as in a form (C-77). [flatWhenReadOnly] draws a
+ * read-only field on `surfaceOverlay` with no border, so a done set row no longer looks editable (C-67).
  *
  * [value] must be updated synchronously inside [onValueChange] (plain `mutableStateOf`/`TextFieldState`-style
  * state). A `StateFlow` + `collectAsState` round-trip reverts for one frame and moves the cursor to the end on
@@ -204,6 +205,7 @@ fun NumberInput(
     unit: String? = null,
     placeholderDescription: String? = null,
     startAligned: Boolean = false,
+    flatWhenReadOnly: Boolean = false,
 ) {
     val interactionSource = remember { MutableInteractionSource() }
     val focused by interactionSource.collectIsFocusedAsState()
@@ -263,11 +265,17 @@ fun NumberInput(
                         .fillMaxWidth()
                         .heightIn(min = NumberInputDefaults.MinHeight)
                         .clip(NumberInputDefaults.Shape)
-                        .background(colors.container)
-                        .border(
-                            NumberInputDefaults.borderWidth(focused, readOnly, hasError),
-                            colors.border,
-                            NumberInputDefaults.Shape,
+                        .background(if (flatWhenReadOnly && readOnly) AppTheme.colors.surfaceOverlay else colors.container)
+                        .then(
+                            if (flatWhenReadOnly && readOnly) {
+                                Modifier
+                            } else {
+                                Modifier.border(
+                                    NumberInputDefaults.borderWidth(focused, readOnly, hasError),
+                                    colors.border,
+                                    NumberInputDefaults.Shape,
+                                )
+                            },
                         )
                         .padding(
                             start = NumberInputDefaults.HorizontalPadding,

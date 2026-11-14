@@ -123,6 +123,8 @@
     <string name="set_header_type">Tipo</string>
     <string name="set_header_type_cd">Tipo de serie</string>
     <string name="set_header_previous">Antes</string>
+    <string name="set_row_previous_line">Antes: %1$s</string>
+    <string name="set_current_cd">Serie actual</string>
     <string name="set_header_weight">Kg</string>
     <string name="set_header_reps">Reps</string>
     <string name="set_header_weight_cd">Kilos</string>
@@ -662,12 +664,12 @@
     <string name="live_resume">Reanudar entreno</string>
     <string name="live_paused_label">EN PAUSA</string>
     <string name="live_timer_paused_state">En pausa</string>
-    <string name="live_finish_empty_reason">Completa al menos una serie para finalizar</string>
+    <string name="live_finish_empty_reason">Completa al menos una serie para finalizar.</string>
     <string name="live_set_delete_cd">Eliminar serie %1$d</string>
-    <string name="live_finish_offline_reason">Sin conexión: no puedes finalizar ni descartar el entreno</string>
+    <string name="live_finish_offline_reason">Sin conexión: no puedes finalizar ni descartar el entreno.</string>
     <string name="live_pending_save">Pendiente de guardar</string>
     <string name="live_invalid_set">Indica el peso y las repeticiones</string>
-    <string name="live_error">No se pudo cargar tu entreno</string>
+    <string name="live_error">No se pudo cargar tu entreno.</string>
     <string name="live_action_failed">No se pudo completar la acción. Inténtalo de nuevo.</string>
     <string name="live_finish_sheet_title">¿Finalizar entreno?</string>
     <plurals name="live_finish_warning">
@@ -710,7 +712,7 @@
         <item quantity="other">y %1$d cambios más</item>
     </plurals>
     <string name="live_discard_title">¿Descartar entreno?</string>
-    <string name="live_discard_message">Se borrará este entreno con todas sus series.</string>
+    <string name="live_discard_message">Se eliminará este entreno con todas sus series.</string>
     <string name="live_exercise_menu_cd">Más opciones de %1$s</string>
     <string name="live_exercise_menu_rest">Descanso</string>
     <string name="live_rest_sheet_title">Descanso de este ejercicio</string>

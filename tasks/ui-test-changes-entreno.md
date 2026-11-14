@@ -22,4 +22,19 @@ Uncovered (needs a new test in the repair task): one glyph per action in the rou
 
 Shared components changed (callers to re-check): `AppListRow` (all callers with supporting lines: ~20 screens), `AppSheetHeader`, `AppScreen` footer, `PrimaryButton`/`GhostButton` loading, `NumberInput`, `SetTypePickerSheet`, `SetNoteButton`, `ic_flag` and `ic_fact_check` redrawn as Material Symbols Outlined (used by the Diario goals prompt too).
 
+## Batch 2 (live session)
+
+Behaviour tests that will fail or need an update:
+- Note sheets (`NoteSheet`, every caller: live set note, routine note, builder, workout form): the reasons are `AppToggleChip`s in a `FlowRow` (checkbox role with "Activado"/"Desactivado" state), not `ScaleOptionRow` radios; tags `<prefix>_option_<wire>` are kept, but they now sit on the chip node. Tests using `isSelected`/radio semantics must use the toggle state.
+- `SetRow` geometry (V-21): type cell 40 dp (was 48), RPE cell 40 x 48 dp (was 48 x 48), RPE start inset 0 (was 8 dp), so KG/REPS cells are wider; live card padding 12 dp (was 16). Width and bounds assertions in `SetRowTest`, `SetRowRpeTest`, `LiveSession*ScreenTest` and the live goldens change. `SetRowDefaults.OrdinalTypeWidth` still uses 48 dp (builder/form headers unchanged).
+- Cardio rows (V-22): two lines. Line 1 TIPO, KM, TIEMPO, LISTO (weights 1 : 1.4, fields at least 72 dp); line 2 holds "Antes: <previous>" (new string `set_row_previous_line`, only when a previous exists) and the note button (`live_set_note_action_*`), which moved off line 1. The cardio header has no note spacer. `session_cardio_*` layout tests (header/cell alignment, widths) and cardio goldens change; the row now has a second line even without a previous value (the note button needs it).
+- Done rows (C-67): KG/REPS of a completed set draw on `surfaceOverlay` with no border (`NumberInput.flatWhenReadOnly`, set by `SetFieldInput`, so also the catalog rows); tests asserting a border/focus colour on read-only fields.
+- First pending set of the session (C-67): its check circle has a 1.5 dp `athleticCyan` ring and `stateDescription` "Serie actual" (`set_current_cd`); `SetRowValues.current`, `SetCompletionCheckbox(currentStateDescription)`. Tests reading the checkbox `stateDescription` on the first pending row.
+- Session progress (C-69): phone layout (`NarrowLive`) has `AppLinearProgress` (4 dp, lime, tag `live_progress_bar`, `stateDescription` = `live_progress_summary`) above the list; new `barHeight` parameter on `AppLinearProgress` (default unchanged). The tablet text `live_progress_summary` is unchanged.
+- Session menu (V-28): sheet title is the routine name (fallback "Entreno en vivo") instead of "EN VIVO"; periods added to `live_finish_empty_reason`, `live_finish_offline_reason` and `live_error` (text assertions). V-29: `live_discard_message` now "Se eliminará este entreno con todas sus series."
+
+Uncovered (needs a new test in the repair task): ring on the first pending set only; flat done fields; two-line cardio row with and without a previous value; progress bar fraction; menu title.
+
+Shared components changed (callers to re-check): `NoteSheet` (4 callers), `SetRow` and `SetTableHeader` (live, catalog), `NumberInput`, `SetFieldInput`, `SetCompletionCheckbox`, `AppLinearProgress`.
+
 Glyph verification (R-81): Material Symbols Outlined names confirmed to exist and used: `timer`, `calculate`, `fitness_center`, `drive_file_move`, `content_copy`, `flag`, `sticky_note_2`; group = `link`, ungroup = `link_off`, "Revisar tus rutinas" = `fact_check`.

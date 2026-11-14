@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
@@ -21,6 +22,8 @@ import io.github.lopezjavier.appfitness.composeapp.resources.Res
 import io.github.lopezjavier.appfitness.composeapp.resources.live_object_exercise
 import io.github.lopezjavier.appfitness.composeapp.resources.live_progress_summary
 import io.github.lopezjavier.appfitness.designsystem.AddItemButton
+import io.github.lopezjavier.appfitness.designsystem.AppLinearProgress
+import io.github.lopezjavier.appfitness.designsystem.AppLinearProgressDefaults
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
 import io.github.lopezjavier.appfitness.designsystem.Spacing
 import io.github.lopezjavier.appfitness.designsystem.appAnimateItem
@@ -34,15 +37,27 @@ internal fun NarrowLive(
     onOpenExercise: (String) -> Unit,
     optionSaveFailed: Boolean,
 ) {
-    LazyColumn(
-        Modifier.fillMaxSize().imePadding(),
-        contentPadding = PaddingValues(horizontal = Spacing.screenMargin, vertical = Spacing.lg),
-        verticalArrangement = Arrangement.spacedBy(Spacing.cardGap),
-    ) {
-        exerciseItems(state, onEvent, onOpenExercise, optionSaveFailed)
-        item(key = "add_exercise") { AddExerciseButton(onEvent) }
-        if (state.allExercisesComplete) {
-            item(key = "finish_session") { FinishButton(state, onEvent) }
+    Column(Modifier.fillMaxSize()) {
+        val sets = state.exercises.flatMap { it.sets }
+        val done = sets.count { it.completed }
+        // Full-width session progress under the top bar (C-69); the tablet layout has the text summary instead.
+        AppLinearProgress(
+            fraction = if (sets.isEmpty()) 0f else done.toFloat() / sets.size,
+            stateDescription = stringResource(Res.string.live_progress_summary, done, sets.size),
+            modifier = Modifier.testTag("live_progress_bar"),
+            fillColor = AppTheme.colors.neonLime,
+            barHeight = AppLinearProgressDefaults.SlimBarHeight,
+        )
+        LazyColumn(
+            Modifier.weight(1f).fillMaxWidth().imePadding(),
+            contentPadding = PaddingValues(horizontal = Spacing.screenMargin, vertical = Spacing.lg),
+            verticalArrangement = Arrangement.spacedBy(Spacing.cardGap),
+        ) {
+            exerciseItems(state, onEvent, onOpenExercise, optionSaveFailed)
+            item(key = "add_exercise") { AddExerciseButton(onEvent) }
+            if (state.allExercisesComplete) {
+                item(key = "finish_session") { FinishButton(state, onEvent) }
+            }
         }
     }
 }
@@ -85,6 +100,10 @@ private fun LazyListScope.exerciseItems(
     onOpenExercise: (String) -> Unit,
     optionSaveFailed: Boolean,
 ) {
+    // The next set to do is the first pending one of the session; its check circle gets the ring (C-67).
+    val current = state.exercises.firstNotNullOfOrNull { exercise ->
+        exercise.sets.firstOrNull { !it.completed }?.let { exercise.position to it.setIndex }
+    }
     items(state.exercises, key = { it.position }) {
         LiveExerciseCard(
             it,
@@ -95,6 +114,7 @@ private fun LazyListScope.exerciseItems(
             online = state.isOnline,
             discomfortSaving = state.discomfortSaving,
             discomfortLogs = state.discomfortLogs,
+            currentSetIndex = current?.takeIf { (position, _) -> position == it.position }?.second,
             modifier = appAnimateItem(),
         )
     }

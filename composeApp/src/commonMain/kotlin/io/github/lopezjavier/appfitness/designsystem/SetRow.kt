@@ -39,7 +39,9 @@ import io.github.lopezjavier.appfitness.composeapp.resources.set_header_previous
 import io.github.lopezjavier.appfitness.composeapp.resources.set_header_rpe
 import io.github.lopezjavier.appfitness.composeapp.resources.set_header_rpe_cd
 import io.github.lopezjavier.appfitness.composeapp.resources.set_header_type
+import io.github.lopezjavier.appfitness.composeapp.resources.set_current_cd
 import io.github.lopezjavier.appfitness.composeapp.resources.set_header_type_cd
+import io.github.lopezjavier.appfitness.composeapp.resources.set_row_previous_line
 import io.github.lopezjavier.appfitness.composeapp.resources.set_row_use_previous_cd
 import io.github.lopezjavier.appfitness.domain.model.SetType
 import org.jetbrains.compose.resources.stringResource
@@ -66,6 +68,8 @@ data class SetRowValues(
     /** Elapsed time shown by a [SetFieldKind.Duration] field (the stopwatch). */
     val durationSeconds: Int = 0,
     val stopwatchRunning: Boolean = false,
+    /** Marks the next set to do: its check circle gets the cyan ring (C-67). */
+    val current: Boolean = false,
     /**
      * Non-null makes the duration field the cardio TIEMPO cell (R-58): the planned time as its dim placeholder and a
      * start button; the running time lives in the shared timer bar, not in the row. Null keeps the inline stopwatch.
@@ -100,14 +104,20 @@ object SetRowDefaults {
     /** Width of the [SetOrdinal] left of the type badge (read-only summaries and editors). */
     val OrdinalWidth: Dp = 16.dp
 
-    /** Column of the type badge, shared by [SetRow] and [SetTableHeader] ("TIPO" fits; one touch target). */
-    val TypeColumnWidth: Dp = SetCompletionCheckboxDefaults.TouchTarget
+    /** Column of the type badge, shared by [SetRow] and [SetTableHeader]: 40 x 48 dp, 48 dp tall (V-21). */
+    val TypeColumnWidth: Dp = 40.dp
 
-    /** Ordinal + gap + type column of the editors that keep the set number; their headers use it as a spacer. */
-    val OrdinalTypeWidth: Dp get() = OrdinalWidth + ColumnGap + TypeColumnWidth
+    /** Ordinal + gap + 48 dp type badge of the editors that keep the set number; their headers use it as a spacer. */
+    val OrdinalTypeWidth: Dp get() = OrdinalWidth + ColumnGap + SetCompletionCheckboxDefaults.TouchTarget
 
-    /** Fixed width of the RPE, LISTO and note cells, shared by rows and headers. */
+    /** Fixed width of the LISTO and note cells, shared by rows and headers. */
     val FixedCellWidth: Dp = SetCompletionCheckboxDefaults.TouchTarget
+
+    /** Width of the RPE cell (40 x 48 dp, V-21). */
+    val RpeCellWidth: Dp = 40.dp
+
+    /** Minimum width of the KM and TIEMPO fields of a cardio set (V-22). */
+    val CardioFieldMinWidth: Dp = 72.dp
     val MinHeight: Dp = 48.dp
 
     /** Compact gap: at 360 dp the three weighted columns need every dp (UX: "102,25" at 130 % font). */
@@ -124,8 +134,8 @@ object SetRowDefaults {
     const val KG_WEIGHT_RPE = 2.8f
     const val REPS_WEIGHT_RPE = 2.5f
 
-    /** Start inset of a row and its header when the RPE cell is present, so the columns fit at 360 dp. */
-    val RpeInset: Dp = Spacing.sm
+    /** Start inset of a row and its header when the RPE cell is present: none since V-21 (the cells are narrower). */
+    val RpeInset: Dp = 0.dp
     const val PREVIOUS_MAX_LINES_RPE = 3
 
     fun rpeInset(withRpe: Boolean): Dp = if (withRpe) RpeInset else 0.dp
@@ -185,8 +195,104 @@ fun SetRow(
     val number = AppNumberFormat.integer(values.index)
     val previousText = SetRowDefaults.previousText(values.previous)
     val clickable = SetRowDefaults.isPreviousClickable(onUsePrevious != null, values.previous, values.completed)
+    // A cardio row (R-58) is two lines (V-22): TIPO, KM, TIEMPO and LISTO, then "Antes: ..." and the note button.
+    val twoLine = values.cardioPlaceholder != null
+    val line: @Composable (Modifier) -> Unit = { lineModifier ->
+        SetRowLine(
+            lineModifier = lineModifier,
+            values = values,
+            number = number,
+            previousText = previousText,
+            clickable = clickable,
+            withRpe = withRpe,
+            showPrevious = showPrevious,
+            callbacks = SetRowCallbacks(
+                onWeightChange,
+                onRepsChange,
+                onCompletedChange,
+                onUsePrevious,
+                onTypeClick,
+                typeClickLabel,
+                onRpeClick,
+                rpeClickLabel,
+            ),
+            fields = fields,
+            actions = actions,
+            testTagPrefix = testTagPrefix,
+            trailing = trailing.takeUnless { twoLine },
+        )
+    }
+    if (twoLine) {
+        Column(modifier.fillMaxWidth()) {
+            line(Modifier)
+            CardioPreviousLine(values.previous, trailing)
+        }
+    } else {
+        line(modifier)
+    }
+}
+
+/** The change and click handlers of a [SetRow], grouped for [SetRowLine]. */
+private class SetRowCallbacks(
+    val onWeightChange: (String) -> Unit,
+    val onRepsChange: (String) -> Unit,
+    val onCompletedChange: (Boolean) -> Unit,
+    val onUsePrevious: (() -> Unit)?,
+    val onTypeClick: (() -> Unit)?,
+    val typeClickLabel: String?,
+    val onRpeClick: (() -> Unit)?,
+    val rpeClickLabel: String?,
+)
+
+/** Second line of a cardio set: "Antes: 5 km · 30:00" (only when a value exists) and the trailing action. */
+@Composable
+private fun CardioPreviousLine(previous: String?, trailing: (@Composable () -> Unit)?) {
+    if (previous.isNullOrBlank() && trailing == null) return
     Row(
-        modifier = modifier.fillMaxWidth().padding(
+        Modifier.fillMaxWidth().padding(start = SetRowDefaults.TypeColumnWidth + SetRowDefaults.ColumnGap),
+        horizontalArrangement = Arrangement.spacedBy(SetRowDefaults.ColumnGap),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        if (previous.isNullOrBlank()) {
+            Spacer(Modifier.weight(1f))
+        } else {
+            Text(
+                text = stringResource(Res.string.set_row_previous_line, previous),
+                style = AppTheme.typography.bodySmall,
+                color = AppTheme.colors.textTertiary,
+                modifier = Modifier.weight(1f),
+            )
+        }
+        trailing?.invoke()
+    }
+}
+
+@Composable
+@Suppress("LongParameterList") // One row line: values, handlers and its tags.
+private fun SetRowLine(
+    lineModifier: Modifier,
+    values: SetRowValues,
+    number: String,
+    previousText: String,
+    clickable: Boolean,
+    withRpe: Boolean,
+    showPrevious: Boolean,
+    callbacks: SetRowCallbacks,
+    fields: List<SetFieldSpec>,
+    actions: SetRowFieldActions,
+    testTagPrefix: String?,
+    trailing: (@Composable () -> Unit)?,
+) {
+    val onWeightChange = callbacks.onWeightChange
+    val onRepsChange = callbacks.onRepsChange
+    val onCompletedChange = callbacks.onCompletedChange
+    val onUsePrevious = callbacks.onUsePrevious
+    val onTypeClick = callbacks.onTypeClick
+    val typeClickLabel = callbacks.typeClickLabel
+    val onRpeClick = callbacks.onRpeClick
+    val rpeClickLabel = callbacks.rpeClickLabel
+    Row(
+        modifier = lineModifier.fillMaxWidth().padding(
             start = SetRowDefaults.rpeInset(withRpe),
         ).heightIn(min = SetRowDefaults.MinHeight),
         horizontalArrangement = Arrangement.spacedBy(SetRowDefaults.ColumnGap),
@@ -229,6 +335,7 @@ fun SetRow(
             onCheckedChange = onCompletedChange,
             contentDescription = stringResource(Res.string.set_checkbox_cd, number),
             modifier = Modifier.tag(testTagPrefix, "check"),
+            currentStateDescription = if (values.current) stringResource(Res.string.set_current_cd) else null,
         )
         trailing?.invoke()
     }
@@ -252,8 +359,13 @@ private fun RowScope.SetFieldCells(
     val number = AppNumberFormat.integer(values.index)
     val weights = SetRowFieldLayout.weights(fields, withRpe, cardioTime = values.cardioPlaceholder != null)
     fields.forEachIndexed { position, spec ->
+        val cardioRow = values.cardioPlaceholder != null
         val cellModifier = Modifier.weight(weights[position]).tag(testTagPrefix, spec.kind.tagPart).let {
-            if (spec.kind == SetFieldKind.Reps) it.widthIn(min = SetCompletionCheckboxDefaults.TouchTarget) else it
+            when {
+                cardioRow -> it.widthIn(min = SetRowDefaults.CardioFieldMinWidth)
+                spec.kind == SetFieldKind.Reps -> it.widthIn(min = SetCompletionCheckboxDefaults.TouchTarget)
+                else -> it
+            }
         }
         if (spec.kind == SetFieldKind.Duration && values.cardioPlaceholder != null) {
             CardioTimeCell(
@@ -264,7 +376,7 @@ private fun RowScope.SetFieldCells(
                 readOnly = values.completed,
                 onStart = handlers.actions.onStopwatchToggle,
                 onManualEntry = handlers.actions.onDurationEdit,
-                modifier = Modifier.weight(weights[position]),
+                modifier = Modifier.weight(weights[position]).widthIn(min = SetRowDefaults.CardioFieldMinWidth),
                 testTagPrefix = SetRowDefaults.childTag(testTagPrefix, "stopwatch"),
                 startTestTag = values.cardioStartTag,
                 placeholderTestTag = values.cardioPlaceholderTag,
@@ -337,7 +449,7 @@ private fun PreviousCell(
 private fun RpeCell(value: String?, description: String?, onClick: () -> Unit, modifier: Modifier = Modifier) {
     Box(
         modifier
-            .size(SetCompletionCheckboxDefaults.TouchTarget)
+            .size(SetRowDefaults.RpeCellWidth, SetCompletionCheckboxDefaults.TouchTarget)
             .clickable(role = Role.Button, onClick = onClick)
             .semantics { if (description != null) contentDescription = description },
         contentAlignment = Alignment.Center,
@@ -396,7 +508,8 @@ fun SetTableHeader(
         fields.forEachIndexed { position, spec ->
             HeaderText(
                 text = stringResource(spec.kind.header),
-                modifier = Modifier.weight(weights[position]).headerTag(testTagPrefix, spec.kind.tagPart, cardioTime),
+                modifier = Modifier.weight(weights[position]).headerTag(testTagPrefix, spec.kind.tagPart, cardioTime)
+                    .let { if (cardioTime) it.widthIn(min = SetRowDefaults.CardioFieldMinWidth) else it },
                 spoken = stringResource(spec.kind.headerDescription),
                 centered = true,
             )
@@ -404,7 +517,7 @@ fun SetTableHeader(
         if (showRpe) {
             HeaderText(
                 text = stringResource(Res.string.set_header_rpe),
-                modifier = Modifier.width(SetRowDefaults.FixedCellWidth).tag(testTagPrefix, "rpe"),
+                modifier = Modifier.width(SetRowDefaults.RpeCellWidth).tag(testTagPrefix, "rpe"),
                 spoken = stringResource(Res.string.set_header_rpe_cd),
                 centered = true,
             )
@@ -414,7 +527,8 @@ fun SetTableHeader(
             modifier = Modifier.width(SetRowDefaults.FixedCellWidth).headerTag(testTagPrefix, "check", cardioTime),
             centered = true,
         )
-        if (showNote) Spacer(Modifier.width(SetRowDefaults.FixedCellWidth))
+        // A cardio row moves its note button to the second line (V-22), so the header has no note column.
+        if (showNote && !cardioTime) Spacer(Modifier.width(SetRowDefaults.FixedCellWidth))
     }
 }
 

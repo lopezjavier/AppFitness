@@ -2,6 +2,7 @@ package io.github.lopezjavier.appfitness.designsystem
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.padding
@@ -17,6 +18,7 @@ import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -33,6 +35,9 @@ object SetCompletionCheckboxDefaults {
     val VisualSize: Dp = 38.dp
     val TouchTarget: Dp = 48.dp
     val IconSize: Dp = 24.dp
+
+    /** Ring of the next set to do (C-67). */
+    val CurrentRingWidth: Dp = 1.5.dp
     val Shape = AppShapes.full
 
     /** Both states draw the glyph; fill and glyph colour differ in luminance, so it survives greyscale. */
@@ -56,9 +61,12 @@ fun SetCompletionCheckbox(
     onCheckedChange: (Boolean) -> Unit,
     contentDescription: String,
     modifier: Modifier = Modifier,
+    currentStateDescription: String? = null,
 ) {
     val haptics = LocalAppHaptics.current
     val colors = SetCompletionCheckboxDefaults.colors(checked, AppTheme.colors)
+    // The next set to do carries a cyan ring and is spoken as such (C-67); it is never drawn on a checked circle.
+    val ringed = currentStateDescription != null && !checked
     Box(
         modifier =
         modifier
@@ -71,7 +79,10 @@ fun SetCompletionCheckbox(
                     onCheckedChange(it)
                 },
             )
-            .semantics { this.contentDescription = contentDescription },
+            .semantics {
+                this.contentDescription = contentDescription
+                if (ringed) stateDescription = currentStateDescription.orEmpty()
+            },
         contentAlignment = Alignment.Center,
     ) {
         Box(
@@ -79,7 +90,18 @@ fun SetCompletionCheckbox(
             Modifier
                 .size(SetCompletionCheckboxDefaults.VisualSize)
                 .clip(SetCompletionCheckboxDefaults.Shape)
-                .background(colors.container),
+                .background(colors.container)
+                .then(
+                    if (ringed) {
+                        Modifier.border(
+                            SetCompletionCheckboxDefaults.CurrentRingWidth,
+                            AppTheme.colors.athleticCyan,
+                            SetCompletionCheckboxDefaults.Shape,
+                        )
+                    } else {
+                        Modifier
+                    },
+                ),
             contentAlignment = Alignment.Center,
         ) {
             Image(
