@@ -155,7 +155,7 @@ One row per ux-critic finding. The PM has the dispositions recorded here as the 
 | V-47 | routine skeleton row height equals the card (72 dp) | 2 | ADOPTED | 05 §6.0b |
 | V-48 | cardio start description "Iniciar cardio" | 2 | ADOPTED | 05 R-81 |
 | V-49 | empty folder: no "0 rutinas", no chevron, toggle inert | 2 | ADOPTED | 05 §6.0b |
-| C-101 | `SummaryCard` headline + unit, facts, progress slot; new `SegmentedProgress` (Tu bloque, Tu plan) | 3 | ACCEPTED (not built; designsystem) | 05 §6.0c, R-95 |
+| C-101 | `SummaryCard` headline + unit, facts, progress slot; new `SegmentedProgress` (Tu bloque, Tu plan) | 3 | REWORK (root part, batch 5) | 05 §6.0c, R-95 |
 | C-102 | Entrenos card headline + `SegmentedProgress`; new `BarListRow` "Series por grupo"; lifts with `TrendPill` | 3 | ACCEPTED (not built) | 05 §6.0c, R-95 |
 | C-103 | `highlighted` on every decision-waiting card | 3 | ACCEPTED (not built) | 05 R-94 |
 | C-104 | one `DecisionButtonRow` (ghost left, primary right, 56 dp) | 3 | ACCEPTED (not built; designsystem) | 05 §6.0c, R-94 |
@@ -168,7 +168,7 @@ One row per ux-critic finding. The PM has the dispositions recorded here as the 
 | C-111 | centred `EmptyState`/`ErrorState`; Trainer root without a plan | 3 | ACCEPTED (not built) | 05 R-92, §10 |
 | C-112 | Tus datos / Antes de empezar rows grouped in cards, "· origen" dropped, "Tus respuestas"; amends §6.2 | 3 | ACCEPTED (not built) | 05 §6.0c, §6.2, R-96 |
 | C-113 | Tu bloque header card, current week highlighted, adherence `SegmentedProgress`, `?` and pencil in the title row | 3 | ACCEPTED (not built) | 05 §6.0c |
-| C-114 | Tu plan card: kcal headline, figure tiles, objectives list | 3 | ACCEPTED (not built) | 05 §6.0c |
+| C-114 | Tu plan card: kcal headline, figure tiles, objectives list | 3 | REWORK (root part, batch 5) | 05 §6.0c |
 | C-115 | builder muscle header and targets spacing | 3 | ACCEPTED (not built) | 05 §6.0c |
 | C-116 | "puedes cambiarlo" as `ExerciseRow` second supporting line | 3 | ACCEPTED (not built; designsystem) | 05 §6.0c |
 | C-117 | `InlineNote(tone = Info or Error)` | 3 | ACCEPTED (not built; designsystem) | 05 §6.0c |
@@ -177,7 +177,15 @@ One row per ux-critic finding. The PM has the dispositions recorded here as the 
 | C-120 | Informes leading icons, rows in one card | 3 | ACCEPTED (not built) | 05 §6.0c, R-96 |
 | C-121 | one `SectionCard(title, help?)` folds the feature-local `SummaryCard`s | 3 | ACCEPTED (not built; designsystem) | 05 §6.0c, R-96 |
 | C-122 | "Provisional" chip inside the row's supporting slot | 3 | ACCEPTED (not built) | 05 §6.0c |
-| V-50 | "Resumen semanal" and changes-only "Tu bloque" boxes get figure lines | 3 | ACCEPTED (not built) | 05 §6.0c, R-95 |
+| C-123 | Trainer root: Tu plan about 218 dp, Tu bloque about 206 dp, 12 dp apart, 24 dp before "Tus datos" | 3 | IN REVIEW (batch 5) | 05 §6.0c |
+| C-124 | Tu bloque: week chip, "2 de 4 entrenos esta semana", session segments, "Por hacer", Cardio and Pasos al día progress facts | 3 | IN REVIEW (batch 5) | 05 §6.0c, R-93 |
+| C-125 | Tu plan: full-width goal band (OBJETIVO, goal name, rate, graphic), kcal headline, macro bar and text | 3 | IN REVIEW (batch 5) | 05 §6.0c, §10 |
+| C-126 | `GoalGraphic(phase)`: decorative 96 x 48 dp sketch per goal | 3 | IN REVIEW (batch 5; designsystem) | 05 §6.0c |
+| C-127 | Resumen semanal card: headline, segments, Cardio and Pasos facts, mean weight and calories tiles | 3 | IN REVIEW (batch 5) | 05 §6.0c |
+| C-128 | Trainer root at two columns: Series por grupo muscular card, 840 dp header cap, 220 dp minimum row-1 cards | 3 | IN REVIEW (batch 5) | 05 §6.0c, R-91 |
+| C-129 | Tu bloque states: no block (glyph card with "Crear bloque"), not started, paused, ended, weeks read failed | 3 | IN REVIEW (batch 5) | 05 §6.0c |
+| C-130 | Trainer root motion: stagger macro bar, goal stroke, segments, cardio, steps, summary; no replay on refresh | 3 | IN REVIEW (batch 5) | 05 §8 R-97 |
+| V-50 | "Resumen semanal" and changes-only "Tu bloque" boxes get figure lines | 3 | REWORK (root part, batch 5) | 05 §6.0c, R-95 |
 | V-51 | `BlockReviewEntry` becomes a `SummaryCard` | 3 | ACCEPTED (not built) | 05 R-95 |
 | V-52 | rename/fold the feature-local `SummaryCard`s | 3 | ACCEPTED (not built) | 05 R-96 |
 | V-53 | duplicate "Tu plan" header dropped | 3 | ACCEPTED (not built) | 05 §6.0c |
@@ -198,6 +206,8 @@ One row per ux-critic finding. The PM has the dispositions recorded here as the 
 | V-68 | `ic_description` Outlined | 3 | ACCEPTED (not built) | 05 §6.0c |
 | V-69 | "Ya tienes un bloque en marcha" offers a way out | 3 | ACCEPTED (not built) | 05 §6.0c |
 | V-70 | offline hint placement (low confidence) | 3 | ACCEPTED (not built) | 05 §6.0c, R-88 |
+| V-71 | "Objetivo" eyebrow and goal name in the Tu plan band | 3 | IN REVIEW (batch 5) | 05 §10 |
+| V-72 | "Tus datos" root row as a one-row `RowGroupCard`, 56 dp | 3 | IN REVIEW (batch 5) | 05 §6.0c |
 
 Status values:
 - `PROPOSED`: reported by the critic, not decided yet.
