@@ -64,3 +64,52 @@ IN REVIEW rows whose build differs from `05`: V-2 (see V-21); C-15 says `Workout
 - No sheet rendered in `sesi_n_en_vivo/set_type_picker.png`, `editar_entreno/set_type_picker.png`, `editar_entreno/rpe_picker.png`.
 - `rutinas/*` captured on a white canvas; `entreno/default.png` shows only the header.
 - Historial captured without a back arrow; exercise media absent; `no_session.png` equals the loading state.
+
+## Re-review after the emulator look (ux-critic, 2026-11-14): routines list and cardio live row
+
+The user was not happy with the Entreno root (wanted a redesign) and the cardio live row (misaligned). Reference images (gitignored): `design/reported/e19-entreno-routines-list.png`, `e19-entreno-cardio-live.png`, `e19-entreno-routines-reference.png`. **The user approved all findings with the ux-critic's recommendations (2026-11-14), including C-98 (pencil removed) and the rebuild scope (state, events, tags and sheets unchanged). "~55 min", muscle chips and "Crear rutina aquí" are new behaviour: not built, not added to the backlog.** Supersedes V-22 in part (note leaves line 2; weights 1:1; header keeps the note column), C-66 in form only (circular start button; R-79 stays). All dp at 360 dp.
+
+| ID | Change |
+|---|---|
+| C-90 | Cardio card uses one grid shared with strength rows (Spec 1). |
+| C-91 | TIEMPO drawn as a field (Spec 2); sweep `StopwatchField.TimeText` (R-39). |
+| C-92 | Start control as a tonal circle, "Iniciar" pill on line 2 when it does not fit (Spec 3). |
+| C-93 | Host-test assertions (Spec 7), tests batch only. |
+| C-94 | Routine card is one compact row with a circular start button (Spec 4). |
+| C-95 | Folder as a card, whole row toggles (Spec 5). |
+| C-96 | One add row: "Añadir rutina" + folder icon button (Spec 6). |
+| C-97 | "Sin carpeta" is `ListSectionHeader(title, count = n)`. |
+| C-98 | Pencil removed from the routine card ("Editar" stays in the ⋮ sheet and the details top bar). |
+| V-42..V-45 | Rule violations fixed by the above (note alone on line 2; TIEMPO 24 dp off; no TIEMPO container; "Sin carpeta" raw Text). |
+| V-46 | Copy: `routines_error` → "No se pudieron cargar tus rutinas. Inténtalo de nuevo."; offline menu hint → "Sin conexión: no se puede duplicar, mover ni cambiar el siguiente entreno."; folder hint → "Sin conexión: no se puede renombrar ni borrar la carpeta." |
+| V-47 | Routine skeleton row height equals the new card (72 dp). |
+| V-48 | Cardio start description "Iniciar cardio" (parallel to "Pausar cardio" / "Reanudar cardio"). |
+| V-49 | Empty folder: no "0 rutinas", no chevron (Spec 5). |
+
+**Dropped from the reference:** status dot, "+ Carpeta" in the header, "MIS CARPETAS", "2 activas", "Rutinas sueltas", lime on every play button and on "Añadir rutina", muscle chips, "~55 min", "Crear rutina aquí".
+
+### Spec 1 (C-90): cardio grid
+Root cause: `SetRow.kt:199` `twoLine = values.cardioPlaceholder != null` forces two lines; `:222` `trailing.takeUnless { twoLine }` removes the note from line 1; `:249-267` `CardioPreviousLine` draws the note alone after a `Spacer(weight 1)`; `:531` `if (showNote && !cardioTime)` drops the note column from the cardio header (LISTO 52 dp off); `CardioTimeCell.kt:94-100` the cell is `Row { Box(weight 1) { time }; StartButton }` and the header centres over the whole cell (24 dp off the time).
+- **Line 1:** one `Row`, `heightIn(min = 48.dp)`, `spacedBy(4.dp)`, `CenterVertically`; header and row share the `SetRowDefaults` constants. Columns: TIPO 40 | fields `weight(1f)` each, `widthIn(min = 72.dp)` | START 48 (new `StartCellWidth`, only when it fits, Spec 3) | LISTO 48 | NOTA 48. One field (Cinta): TIPO 0-40, TIEMPO 44-148, START 152-200, LISTO 204-252, NOTA 256-304. Two fields (KM/PASOS/PISOS + TIEMPO): field 44-120, TIEMPO 124-200, LISTO 204-252, NOTA 256-304, START on line 2. LISTO and NOTA land on the same x as strength rows. Weights 1:1; drop `CARDIO_TIME = 1.4f`.
+- **Header:** "TIPO" | field labels centred over the field containers | 48 dp spacer (START, when on line 1) | "LISTO" | 48 dp spacer (NOTA). Remove the `!cardioTime` exception.
+- **Line 2:** only when `previous` is not blank: "Antes: 5 km · 30:00", `bodySmall` 12/16 `textTertiary`, `padding(start = 44.dp)`, 20 dp high, no trailing action.
+
+### Spec 2 (C-91): TIEMPO field
+Container as `NumberInput`: `surfaceControl` fill, 1 dp `borderControl`, `AppShapes.base`, min height 48 dp, fills its column, text centred, 4 dp horizontal padding. Placeholder "20 min": `labelNumeric` 18/22 at `NumberInputDefaults.PlaceholderWeight`, `textTertiary`, one line (steps down to `bodyMedium` 14/20 if it does not fit). Typed time: unchanged `StopwatchFieldDefaults.timeStyle`, `textPrimary`. Done set: `surfaceOverlay`, no border (as KG/REPS, C-67). Same container in `StopwatchField.TimeText`.
+
+### Spec 3 (C-92): start control
+- **On line 1:** 48 x 48 target, 38 dp circle (`SetCompletionCheckboxDefaults.VisualSize`), `surfaceControl`, `ic_play_arrow` 24 dp `textPrimary`. Run in the bar = disabled, glyph `neonLime`, existing description "En marcha en la barra"; done set = disabled, glyph `ghostData`. Tag `session_cardio_start_<p>_<s>` unchanged.
+- **Fit rule** (replaces the `BoxWithConstraints` branch): START stays on line 1 while every field keeps >= 72 dp x font scale (one field at 360 dp: up to font scale 1.44; two fields: from 412 dp wide).
+- **Fallback on line 2:** `Row(padding(start = 44.dp), spacedBy(8.dp))` with a pill 40 dp high in a 48 dp target, `surfaceControl`, `AppShapes.full`, 16 dp horizontal padding, `ic_play_arrow` 20 dp + "Iniciar" `bodyMedium` W600 `textPrimary`; then "Antes: …" with `weight(1f)`, max 2 lines.
+
+### Spec 4 (C-94, C-98): routine card
+`AppCard(highlighted = isNext, contentPadding = PaddingValues(start = 4.dp, end = 4.dp, top = 8.dp, bottom = 8.dp))`, one `Row(CenterVertically)`. Order: `DragHandle` 48 | 12 dp | name block `weight(1f)`, min height 56 dp | start 48 | ⋮ 48 `textSecondary` (no pencil). Name block: name `titleMedium` max 2 lines; 4 dp; `bodyMedium` `textSecondary` "6 ejercicios". Next routine: "Siguiente · 6 ejercicios", "Siguiente" in `athleticCyan` W600; replaces the separate `labelTechnical` line. Start button: 40 dp circle, `ic_play_arrow` 24 dp; `isNext`: `neonLime` fill, `onNeonLime` glyph; others: `surfaceControl` fill, `textPrimary` glyph; disabled: next = lime 20 % fill, lime 50 % glyph (C-02), others = `ghostData` glyph. `contentDescription` "Empezar <rutina>" (`routines_start_cd`); tag `routines_start_<id>` unchanged. Card 72 dp. The card tap still opens details with its pinned full-width "Empezar".
+
+### Spec 5 (C-95): folder card
+`AppCard(contentPadding = PaddingValues(start = 12.dp, end = 4.dp, top = 8.dp, bottom = 8.dp))`, `Row(CenterVertically)`, min height 56 dp. Order: tile | 12 dp | text block `weight(1f)` | ⋮ 48. Tile: 40 x 40, `AppShapes.md`, `surfaceControl`, Outlined `folder` (collapsed) / `folder_open` (expanded, new drawable) 24 dp `textSecondary`. Line 1: name `titleMedium` + `expand_more` 24 dp `textSecondary` right after it (4 dp gap, rotated when expanded, as R-75). Line 2: `bodyMedium` `textSecondary`, one line, ellipsis: "2 rutinas · Torso A, Pierna A"; collapsed and holding the next routine: "4 rutinas · Siguiente: Torso A" (second part `athleticCyan`); empty: "Carpeta vacía" `textTertiary`, no "0 rutinas", no chevron, no body. New strings `routines_folder_summary` "%1$s · %2$s", `routines_folder_next` "Siguiente: %1$s". Tile + text block are one toggle with the existing descriptions; ⋮ separate. Expanded: routine cards follow at 12 dp, full width; 24 dp between groups. No lime on tile or chevron (R-64).
+
+### Spec 6 (C-96): add row
+`Row(spacedBy(8.dp))`: `AddItemButton("rutina")` `weight(1f)` (tonal, unchanged) + a 56 x 56 icon button, radius 16 dp, `surfaceControl`, Outlined `create_new_folder` 24 dp `textPrimary` (new drawable), `contentDescription` and tooltip "Añadir carpeta", tag `routines_add_folder`, disabled offline. Last list item, not pinned.
+
+### Spec 7 (C-93): assertions (tests batch only)
+For every `ExerciseMetricType`: note and check centres differ <= 1 dp vertically; header centre compared with the field container, not the composite cell; LISTO and NOTA left edges equal between a strength and a cardio card; at 360 dp and font scale 1.0 / 1.3 / 2.0.
