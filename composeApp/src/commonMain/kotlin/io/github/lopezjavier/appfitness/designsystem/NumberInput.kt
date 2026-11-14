@@ -265,7 +265,15 @@ fun NumberInput(
                         .fillMaxWidth()
                         .heightIn(min = NumberInputDefaults.MinHeight)
                         .clip(NumberInputDefaults.Shape)
-                        .background(if (flatWhenReadOnly && readOnly) AppTheme.colors.surfaceOverlay else colors.container)
+                        .background(
+                            if (flatWhenReadOnly &&
+                                readOnly
+                            ) {
+                                AppTheme.colors.surfaceOverlay
+                            } else {
+                                colors.container
+                            },
+                        )
                         .then(
                             if (flatWhenReadOnly && readOnly) {
                                 Modifier

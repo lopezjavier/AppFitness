@@ -1,3 +1,5 @@
+@file:Suppress("TooManyFunctions") // The row and its small private cells share one file.
+
 package io.github.lopezjavier.appfitness.designsystem
 
 import androidx.compose.foundation.background
@@ -37,11 +39,11 @@ import androidx.compose.ui.unit.dp
 import io.github.lopezjavier.appfitness.composeapp.resources.Res
 import io.github.lopezjavier.appfitness.composeapp.resources.action_done
 import io.github.lopezjavier.appfitness.composeapp.resources.set_checkbox_cd
+import io.github.lopezjavier.appfitness.composeapp.resources.set_current_cd
 import io.github.lopezjavier.appfitness.composeapp.resources.set_header_previous
 import io.github.lopezjavier.appfitness.composeapp.resources.set_header_rpe
 import io.github.lopezjavier.appfitness.composeapp.resources.set_header_rpe_cd
 import io.github.lopezjavier.appfitness.composeapp.resources.set_header_type
-import io.github.lopezjavier.appfitness.composeapp.resources.set_current_cd
 import io.github.lopezjavier.appfitness.composeapp.resources.set_header_type_cd
 import io.github.lopezjavier.appfitness.composeapp.resources.set_row_previous_line
 import io.github.lopezjavier.appfitness.composeapp.resources.set_row_use_previous_cd
@@ -261,6 +263,7 @@ fun SetRow(
 }
 
 /** The change and click handlers of a [SetRow], grouped for [SetRowLine]. */
+@Suppress("LongParameterList") // A plain holder of the row's handlers.
 private class SetRowCallbacks(
     val onWeightChange: (String) -> Unit,
     val onRepsChange: (String) -> Unit,
@@ -313,7 +316,7 @@ private fun CardioSecondLine(values: SetRowValues, onStart: () -> Unit, startInl
 }
 
 @Composable
-@Suppress("LongParameterList") // One row line: values, handlers and its tags.
+@Suppress("LongParameterList", "LongMethod", "ModifierNaming", "ModifierWithoutDefault") // One internal row line.
 private fun SetRowLine(
     lineModifier: Modifier,
     values: SetRowValues,
@@ -546,13 +549,18 @@ fun SetTableHeader(
     }
     // A cardio header keeps a START spacer exactly when its rows keep the start circle on line 1 (C-90, C-92).
     BoxWithConstraints(modifier.fillMaxWidth()) {
-        val startInline = SetRowDefaults.cardioStartFits(maxWidth, fields.size, showNote, LocalDensity.current.fontScale)
+        val startInline = SetRowDefaults.cardioStartFits(
+            maxWidth,
+            fields.size,
+            showNote,
+            LocalDensity.current.fontScale,
+        )
         SetTableHeaderRow(Modifier, showRpe, fields, showNote, showPrevious, testTagPrefix, true, startInline)
     }
 }
 
 @Composable
-@Suppress("LongParameterList") // The header's flags, forwarded from [SetTableHeader].
+@Suppress("LongParameterList", "ModifierWithoutDefault") // The header's flags, forwarded from [SetTableHeader].
 private fun SetTableHeaderRow(
     modifier: Modifier,
     showRpe: Boolean,

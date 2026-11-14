@@ -80,7 +80,10 @@ internal fun durationMetric(durationSeconds: Long): Pair<String, String> {
     }
 }
 
-/** A workout duration as "55 min" or "1 h 5 min" (whole minutes, rounded down; a stopwatch is only for the live timer). */
+/**
+ * A workout duration as "55 min" or "1 h 5 min" (whole minutes, rounded down; a stopwatch is only for the live
+ * timer).
+ */
 @Composable
 internal fun durationText(durationSeconds: Long): String {
     val minutes = (durationSeconds.coerceAtLeast(0) / SECONDS_PER_MINUTE).toInt()

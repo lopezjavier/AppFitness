@@ -26,7 +26,7 @@ import org.jetbrains.compose.resources.stringResource
 private const val MONTHS = 12
 private const val COLUMNS_COMPACT = 3
 private const val COLUMNS_WIDE = 4
-private val MonthTileMinHeight = Spacing.xl * 8 / 3
+private val MonthTileMinHeight = Spacing.minTouchTarget + Spacing.lg
 
 /**
  * Year view: the 12 months of [year] as tiles with their workout counts ([monthCounts], month number 1-12); a tile

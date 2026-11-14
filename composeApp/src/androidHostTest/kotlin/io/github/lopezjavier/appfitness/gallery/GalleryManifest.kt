@@ -32,11 +32,12 @@ internal object GalleryManifest {
         "AppAvatar", "AppBottomSheet", "AppButtonChip", "AppChip", "AppIconButton", "AppLineChartSkeleton",
         "AppMessageHost", "AppSheetHeader", "AppSheetLayout", "AppSwitch", "AppSwitchRow", "CardioTimeCell",
         "ChecklistRow", "CoachChangeRow", "CoachProposalCard", "DayPickerSheet", "DiscStepperRow",
-        "DiscardChangesDialog", "FilterChipFlow", "HelpTriggerButton", "InvalidTimeMessage", "ListRowSkeleton", "NavIcon", "NavLabel",
-        "OfflineHint", "OptionPickerSheet", "PausedText", "PillContainer", "ProgressLine", "RestTimerAction",
-        "RingArc", "RpeHelpButton", "RpeOptionRow", "RpePickerSheet", "ScaleOptionRow", "SetFieldInput",
-        "SetNoteButton", "SetOrdinal", "SheetActionRow", "StatusChip", "StepScaffold", "StreamProgressState",
-        "SupersetAccent", "TimeInput", "TimerBarLabel", "TimerBarSurface",
+        "DiscardChangesDialog", "FilterChipFlow", "HelpTriggerButton", "InvalidTimeMessage",
+        "ListRowSkeleton", "NavIcon", "NavLabel", "OfflineHint", "OptionPickerSheet", "PausedText",
+        "PillContainer", "ProgressLine", "RestTimerAction", "RingArc", "RpeHelpButton", "RpeOptionRow",
+        "RpePickerSheet", "ScaleOptionRow", "SetFieldInput", "SetNoteButton", "SetOrdinal", "SheetActionRow",
+        "StatusChip", "StepScaffold", "StreamProgressState", "SupersetAccent",
+        "TimeInput", "TimerBarLabel", "TimerBarSurface",
     ).associateWith {
         "Not in the component catalog yet: recorded gap in tasks/todo.md (T-280), owner review rounds T-281 to T-284."
     }

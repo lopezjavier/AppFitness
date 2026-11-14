@@ -30,10 +30,10 @@ import io.github.lopezjavier.appfitness.composeapp.resources.delete_failed
 import io.github.lopezjavier.appfitness.composeapp.resources.exercise_deleted
 import io.github.lopezjavier.appfitness.composeapp.resources.exercise_detail_delete_cd
 import io.github.lopezjavier.appfitness.composeapp.resources.exercise_detail_edit_cd
+import io.github.lopezjavier.appfitness.composeapp.resources.exercise_detail_error_message
 import io.github.lopezjavier.appfitness.composeapp.resources.exercise_detail_offline_favourite
 import io.github.lopezjavier.appfitness.composeapp.resources.exercise_detail_select
 import io.github.lopezjavier.appfitness.composeapp.resources.exercise_detail_title
-import io.github.lopezjavier.appfitness.composeapp.resources.exercise_detail_error_message
 import io.github.lopezjavier.appfitness.composeapp.resources.exercise_favourite_failed
 import io.github.lopezjavier.appfitness.composeapp.resources.exercise_in_use_message
 import io.github.lopezjavier.appfitness.composeapp.resources.exercise_in_use_routines

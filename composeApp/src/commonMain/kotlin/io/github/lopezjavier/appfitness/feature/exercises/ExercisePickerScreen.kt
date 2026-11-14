@@ -1,3 +1,5 @@
+@file:Suppress("TooManyFunctions") // The picker and its small private parts share one file.
+
 package io.github.lopezjavier.appfitness.feature.exercises
 
 import androidx.compose.foundation.layout.Arrangement
@@ -17,8 +19,6 @@ import androidx.compose.foundation.lazy.grid.LazyGridScope
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.material3.Text
-import androidx.compose.ui.unit.Dp
-import androidx.compose.ui.unit.dp
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -26,14 +26,15 @@ import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.unit.Dp
 import androidx.lifecycle.compose.LifecycleResumeEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.github.lopezjavier.appfitness.composeapp.resources.Res
 import io.github.lopezjavier.appfitness.composeapp.resources.action_retry
 import io.github.lopezjavier.appfitness.composeapp.resources.exercise_attribution
-import io.github.lopezjavier.appfitness.composeapp.resources.exercise_empty_catalog
 import io.github.lopezjavier.appfitness.composeapp.resources.exercise_create_equipment_label
 import io.github.lopezjavier.appfitness.composeapp.resources.exercise_create_muscle_label
+import io.github.lopezjavier.appfitness.composeapp.resources.exercise_empty_catalog
 import io.github.lopezjavier.appfitness.composeapp.resources.exercise_empty_hint
 import io.github.lopezjavier.appfitness.composeapp.resources.exercise_empty_no_results
 import io.github.lopezjavier.appfitness.composeapp.resources.exercise_empty_no_results_filters
@@ -164,7 +165,12 @@ private fun PickerFilters(state: ExercisePickerUiState.Content, onEvent: (Exerci
             }
     // The rows run to the screen edge and keep the margin as content padding, so a chip is never clipped (R-86).
     Column(
-        Modifier.padding(start = Spacing.screenMargin, end = Spacing.screenMargin, top = Spacing.lg, bottom = Spacing.sm),
+        Modifier.padding(
+            start = Spacing.screenMargin,
+            end = Spacing.screenMargin,
+            top = Spacing.lg,
+            bottom = Spacing.sm,
+        ),
         verticalArrangement = Arrangement.spacedBy(Spacing.sm),
     ) {
         SearchField(
@@ -203,7 +209,7 @@ internal fun MuscleChipRow(
     onSelect: (MuscleGroup?) -> Unit,
     tagPrefix: String,
     modifier: Modifier = Modifier,
-    edgeToEdge: Dp = 0.dp,
+    edgeToEdge: Dp = Spacing.none,
 ) {
     val options = listOf(AppOption(stringResource(Res.string.exercise_filter_all), "${tagPrefix}_muscle_chip_all")) +
         MuscleGroup.entries.map { AppOption(stringResource(it.label), "${tagPrefix}_muscle_chip_${it.tagName()}") }

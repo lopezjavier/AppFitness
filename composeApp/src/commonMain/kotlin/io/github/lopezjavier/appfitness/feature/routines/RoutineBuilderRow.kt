@@ -7,9 +7,9 @@ import androidx.compose.foundation.gestures.rememberDraggableState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
@@ -27,7 +27,6 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.customActions
 import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import io.github.lopezjavier.appfitness.composeapp.resources.Res
 import io.github.lopezjavier.appfitness.composeapp.resources.action_remove
@@ -92,6 +91,7 @@ import io.github.lopezjavier.appfitness.designsystem.SupersetAccent
 import io.github.lopezjavier.appfitness.designsystem.SupersetAccentWidth
 import io.github.lopezjavier.appfitness.designsystem.SwipeToDeleteRow
 import io.github.lopezjavier.appfitness.designsystem.exerciseNoteSummary
+import io.github.lopezjavier.appfitness.designsystem.semiBold
 import io.github.lopezjavier.appfitness.designsystem.supersetText
 import io.github.lopezjavier.appfitness.domain.model.Equipment
 import io.github.lopezjavier.appfitness.domain.model.RoutineBounds
@@ -409,7 +409,7 @@ private fun StepperLine(
         Row(verticalAlignment = Alignment.CenterVertically) {
             Text(
                 text = unit,
-                style = AppTheme.typography.bodyMedium.copy(fontWeight = FontWeight.W600),
+                style = AppTheme.typography.bodyMedium.semiBold(),
                 color = AppTheme.colors.textSecondary,
             )
             help?.invoke()

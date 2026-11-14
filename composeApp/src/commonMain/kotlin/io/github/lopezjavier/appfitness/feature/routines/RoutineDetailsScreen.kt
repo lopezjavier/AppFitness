@@ -34,8 +34,8 @@ import io.github.lopezjavier.appfitness.composeapp.resources.routine_details_exe
 import io.github.lopezjavier.appfitness.composeapp.resources.routine_details_last_done
 import io.github.lopezjavier.appfitness.composeapp.resources.routine_details_never_done
 import io.github.lopezjavier.appfitness.composeapp.resources.routine_details_sets_minutes
-import io.github.lopezjavier.appfitness.composeapp.resources.routine_details_title_fallback
 import io.github.lopezjavier.appfitness.composeapp.resources.routine_details_sets_reps
+import io.github.lopezjavier.appfitness.composeapp.resources.routine_details_title_fallback
 import io.github.lopezjavier.appfitness.composeapp.resources.routine_details_weight
 import io.github.lopezjavier.appfitness.composeapp.resources.routines_action_failed
 import io.github.lopezjavier.appfitness.composeapp.resources.routines_start
@@ -155,8 +155,10 @@ fun RoutineDetailsScreen(
     val content = state as? RoutineDetailsUiState.Content
     val editLabel = stringResource(Res.string.action_edit)
     val deleteLabel = stringResource(Res.string.action_delete)
+    val fallbackTitle = stringResource(Res.string.routine_details_title_fallback)
+    val routineTitle = if (content != null) content.name else fallbackTitle
     AppScreen(
-        title = content?.name ?: stringResource(Res.string.routine_details_title_fallback),
+        title = routineTitle,
         modifier = modifier,
         onBack = onBack,
         actions = if (content == null) {
@@ -294,7 +296,8 @@ private fun repsSummary(sets: List<PlannedSet>): String =
     sets.groupConsecutiveBy { it.weightKg to it.reps }.map { (set, count) ->
         val base = stringResource(Res.string.routine_details_sets_reps, count, set.reps)
         set.weightKg?.let {
-            base + " · " + stringResource(Res.string.routine_details_weight, AppNumberFormat.decimal(it, maxDecimals = 2))
+            base + " · " +
+                stringResource(Res.string.routine_details_weight, AppNumberFormat.decimal(it, maxDecimals = 2))
         } ?: base
     }.joinToString(", ")
 

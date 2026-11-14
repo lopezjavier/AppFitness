@@ -58,4 +58,3 @@ internal fun WorkoutMetricTiles(
         }
     }
 }
-

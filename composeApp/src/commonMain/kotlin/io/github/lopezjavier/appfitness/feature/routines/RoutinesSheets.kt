@@ -68,6 +68,7 @@ internal fun RoutinesDialogs(state: RoutinesUiState.Content, onEvent: (RoutinesE
  * TalkBack actions (C-100).
  */
 @Composable
+@Suppress("LongMethod") // One flat list of menu actions.
 private fun RoutineMenuSheet(
     routine: RoutineSummary,
     canMoveUp: Boolean,

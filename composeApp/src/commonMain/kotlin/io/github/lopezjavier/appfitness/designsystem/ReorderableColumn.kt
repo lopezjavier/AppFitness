@@ -210,7 +210,8 @@ class ReorderableItemScope internal constructor(
 
     /**
      * Picks the item up on touch-and-hold (the system long-press delay) and follows the finger; for card lists
-     * without a visible [DragHandle]. A plain tap or a quick swipe never reaches it, so taps and scrolling keep working.
+     * without a visible [DragHandle]. A plain tap or a quick swipe never reaches it, so taps and scrolling keep
+     * working.
      */
     fun Modifier.dragOnLongPress(): Modifier = pointerInput(Unit) {
         detectDragGesturesAfterLongPress(

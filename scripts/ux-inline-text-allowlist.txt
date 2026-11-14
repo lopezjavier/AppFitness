@@ -39,3 +39,4 @@ rpe_picker_hint
 
 # Consequence of a tap that applies at once (picker without a confirm dialog, R-08): what it will change (T-241)
 trainer_swap_picker_hint
+calendar_select_day_hint  # state of the month view: no day selected yet

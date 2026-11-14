@@ -37,8 +37,9 @@ data class NoteSheetOption<K : NoteKind>(val kind: K, val label: String)
 data class NoteSheetHelp(val contentDescription: String, val title: String, val content: HelpContent)
 
 /**
- * Note sheet (edit archetype, R-07): a single-choice row of wrapping chips for the [options], a "?" help sheet beside the title, an always
- * visible detail field (optional, required for the option that [NoteKind.requiresText]) and a pinned "Guardar".
+ * Note sheet (edit archetype, R-07): a single-choice row of wrapping chips for the [options], a "?" help sheet
+ * beside the title, an always visible detail field (optional, required for the option that
+ * [NoteKind.requiresText]) and a pinned "Guardar".
  * [kind] and [draft] are the pair being edited, [originalKind] and [original] the saved note it started from. "Guardar"
  * is enabled when the pair is a valid note (the text fits in [NoteText.MAX]) that differs from the saved one;
  * tapping the chosen option again clears the choice (a saved note is removed by clearing it). Closing discards the

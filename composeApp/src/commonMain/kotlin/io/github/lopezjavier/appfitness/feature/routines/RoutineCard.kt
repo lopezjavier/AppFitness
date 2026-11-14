@@ -21,7 +21,6 @@ import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.unit.dp
 import io.github.lopezjavier.appfitness.composeapp.resources.Res
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_flag
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_more_vert
@@ -153,7 +152,7 @@ private fun NameBlock(routine: RoutineSummary, onEvent: (RoutinesEvent) -> Unit,
                     painter = painterResource(Res.drawable.ic_flag),
                     contentDescription = null,
                     tint = AppTheme.colors.athleticCyan,
-                    modifier = Modifier.size(16.dp),
+                    modifier = Modifier.size(Spacing.lg),
                 )
             }
             Text(

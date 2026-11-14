@@ -54,6 +54,7 @@ object CardioTimeCellDefaults {
  * placeholder takes [placeholderTestTag].
  */
 @Composable
+@Suppress("LongParameterList") // The cell's state, handler and tags.
 fun CardioTimeCell(
     elapsedSeconds: Int,
     placeholder: String,
