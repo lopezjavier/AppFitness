@@ -281,22 +281,22 @@ private fun setsSummary(sets: List<PlannedSet>): String = // A cardio set is pla
 
 @Composable
 private fun minutesSummary(sets: List<PlannedSet>): String =
-    sets.groupConsecutiveBy { it.durationS }.joinToString(", ") { (set, count) ->
+    sets.groupConsecutiveBy { it.durationS }.map { (set, count) ->
         stringResource(
             Res.string.routine_details_sets_minutes,
             count,
             (set.durationS ?: 0) / RoutineBounds.SECONDS_PER_MINUTE,
         )
-    }
+    }.joinToString(", ")
 
 @Composable
 private fun repsSummary(sets: List<PlannedSet>): String =
-    sets.groupConsecutiveBy { it.weightKg to it.reps }.joinToString(", ") { (set, count) ->
+    sets.groupConsecutiveBy { it.weightKg to it.reps }.map { (set, count) ->
         val base = stringResource(Res.string.routine_details_sets_reps, count, set.reps)
         set.weightKg?.let {
             base + " · " + stringResource(Res.string.routine_details_weight, AppNumberFormat.decimal(it, maxDecimals = 2))
         } ?: base
-    }
+    }.joinToString(", ")
 
 /** Runs of consecutive sets with the same [key], each as its first set and the run length. */
 private fun <K> List<PlannedSet>.groupConsecutiveBy(key: (PlannedSet) -> K): List<Pair<PlannedSet, Int>> {
