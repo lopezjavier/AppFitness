@@ -13,6 +13,7 @@ import io.github.lopezjavier.appfitness.domain.model.PhaseWeeks
 import io.github.lopezjavier.appfitness.domain.model.PlanWeek
 import io.github.lopezjavier.appfitness.domain.model.ProgressionFlagDecision
 import io.github.lopezjavier.appfitness.domain.model.WeekPhase
+import io.github.lopezjavier.appfitness.domain.model.WeekSummary
 import io.github.lopezjavier.appfitness.domain.usecase.GoalChecklist
 import kotlinx.datetime.LocalDate
 
@@ -101,6 +102,8 @@ sealed interface TrainerUiState {
         val busyChangeId: String? = null,
         /** The latest finished plan week has a summary: shows the "Resumen semanal" row. */
         val hasWeekSummary: Boolean = false,
+        /** The latest finished week's summary behind the "Resumen semanal" box figures (C-127); null when none. */
+        val latestWeekSummary: WeekSummary? = null,
         /** The block has ended and its review is open: shows "Revisión del bloque" and hides "Crear bloque". */
         val blockReviewDue: Boolean = false,
         /**

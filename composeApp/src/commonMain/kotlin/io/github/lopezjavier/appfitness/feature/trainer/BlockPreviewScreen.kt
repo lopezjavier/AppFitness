@@ -305,16 +305,29 @@ private fun FrequencyLine(training: BlockTraining, modifier: Modifier) {
     )
 }
 
+/**
+ * "Series por grupo muscular" of a block (C-102): one [BarListRow] per muscle. With a [limit] only the largest groups
+ * show (the Trainer root's wide layout, C-128); [tagPrefix] gives `<prefix>_section` and `<prefix>_<muscle>`.
+ */
 @Composable
-private fun SetsSection(weeklySets: Map<String, Int>, sessionsPerMuscle: Map<String, Int>, modifier: Modifier) {
+internal fun SetsSection(
+    weeklySets: Map<String, Int>,
+    sessionsPerMuscle: Map<String, Int>,
+    modifier: Modifier,
+    limit: Int? = null,
+    tagPrefix: String = "block_preview_sets",
+) {
+    val shown = weeklySets.entries.let { all ->
+        if (limit == null) all.toList() else all.sortedByDescending { it.value }.take(limit)
+    }
     val largest = weeklySets.values.max()
     SectionCard(
         stringResource(Res.string.block_sets_header),
         modifier = modifier,
-        testTag = "block_preview_sets_section",
+        testTag = "${tagPrefix}_section",
     ) {
         Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-            weeklySets.entries.forEachIndexed { index, (muscle, sets) ->
+            shown.forEachIndexed { index, (muscle, sets) ->
                 val days = sessionsPerMuscle[muscle]
                 BarListRow(
                     label = if (days == null) {
@@ -329,7 +342,7 @@ private fun SetsSection(weeklySets: Map<String, Int>, sessionsPerMuscle: Map<Str
                     value = sets.toString(),
                     fraction = BarListRowDefaults.fraction(sets, largest),
                     staggerIndex = index,
-                    testTag = "block_preview_sets_$muscle",
+                    testTag = "${tagPrefix}_$muscle",
                 )
             }
         }

@@ -592,8 +592,8 @@ class TrainerViewModel(
     private suspend fun fetch(): TrainerUiState.Content = supervisorScope {
         // The count only feeds the "Tus datos" row: a failed read leaves the row without it.
         val provisional = async { repository.derivedValues(today()).getOrNull()?.provisionalCount() }
-        // A failed read just hides the "Resumen semanal" row.
-        val hasWeekSummary = async { summaries?.getLatest(today())?.getOrNull() != null }
+        // A failed read just hides the "Resumen semanal" row; the summary itself feeds its figures (C-127).
+        val latestSummary = async { summaries?.getLatest(today())?.getOrNull() }
         // The review opens (idempotently) once the block's last day has passed; a failed read hides the card.
         val blockReviewDue = async { loadBlockReview?.invoke(today())?.getOrNull() != null }
         // The swap offer and the health note; a failed read hides them.
@@ -621,6 +621,7 @@ class TrainerViewModel(
             ActiveWeekExtension.of(hub.weeks, hub.pause) != null
         if (!extendPicker) savedState.remove<Boolean>(KEY_EXTEND_PICKER)
         val shownFollowUps = followUps.await()
+        val weekSummary = latestSummary.await()
         TrainerUiState.Content(
             plan = plan,
             calorieProposal = proposal.await(),
@@ -630,7 +631,8 @@ class TrainerViewModel(
             extendWeekPickerOpen = extendPicker,
             coachChanges = hub.changes,
             provisionalCount = provisional.await(),
-            hasWeekSummary = hasWeekSummary.await(),
+            latestWeekSummary = weekSummary,
+            hasWeekSummary = weekSummary != null,
             blockReviewDue = blockReviewDue.await(),
             welcomeBack = welcomeBack.await(),
             goalsChecklist = checklist.await(),

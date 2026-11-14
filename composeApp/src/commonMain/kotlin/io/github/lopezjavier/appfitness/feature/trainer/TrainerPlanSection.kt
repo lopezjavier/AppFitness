@@ -60,6 +60,7 @@ import io.github.lopezjavier.appfitness.designsystem.Spacing
 import io.github.lopezjavier.appfitness.designsystem.StatusChip
 import io.github.lopezjavier.appfitness.designsystem.StatusTone
 import io.github.lopezjavier.appfitness.designsystem.SummaryCard
+import io.github.lopezjavier.appfitness.designsystem.SummaryFact
 import io.github.lopezjavier.appfitness.domain.model.CalorieProposal
 import io.github.lopezjavier.appfitness.domain.model.CoachPlan
 import io.github.lopezjavier.appfitness.domain.model.PhaseWeeks
@@ -83,6 +84,8 @@ internal fun PlanEntrySection(
     onOpenProposal: () -> Unit,
     onOpenBeforeStart: (BeforeStartMode, String?, String?) -> Unit,
     onOpenPlan: () -> Unit = {},
+    showActivityFacts: Boolean = true,
+    modifier: Modifier = Modifier,
 ) {
     when (plan) {
         // Without a plan the root shows the centred empty state with "Crear plan" (C-111).
@@ -99,20 +102,32 @@ internal fun PlanEntrySection(
             ReplacePlanEntry(plan.plan.id, online, onOpenBeforeStart)
         }
 
-        is PlanSummary.Accepted -> PlanSummaryBox(plan.plan, onOpenPlan)
+        is PlanSummary.Accepted -> PlanSummaryBox(plan.plan, showActivityFacts, onOpenPlan, modifier)
     }
 }
 
-/** The accepted plan's box: phase and calories, then the cardio minutes and the diet-break week when there are any. */
+/**
+ * The accepted plan's box (C-125): the goal band, the kcal headline, the macro bar with its text and, only while there
+ * is no saved block ([showActivityFacts]), the cardio and steps targets; with a block they live in "Tu bloque".
+ */
 @Composable
-private fun PlanSummaryBox(plan: CoachPlan, onOpen: () -> Unit) {
+private fun PlanSummaryBox(
+    plan: CoachPlan,
+    showActivityFacts: Boolean,
+    onOpen: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
     val nutrition = plan.nutrition
-    val facts = nutrition.activity?.let {
+    val facts = nutrition.activity?.takeIf { showActivityFacts }?.let {
         listOf(
-            stringResource(Res.string.trainer_plan_fact_cardio) to
+            SummaryFact(
+                stringResource(Res.string.trainer_plan_fact_cardio),
                 stringResource(Res.string.trainer_plan_fact_cardio_value, AppNumberFormat.integer(it.cardioMinWeek)),
-            stringResource(Res.string.trainer_plan_fact_steps) to
+            ),
+            SummaryFact(
+                stringResource(Res.string.trainer_plan_fact_steps),
                 stringResource(Res.string.trainer_plan_fact_steps_value, AppNumberFormat.integer(it.stepsDay)),
+            ),
         )
     }.orEmpty()
     val dietBreak = nutrition.dietBreak?.let {
@@ -120,12 +135,15 @@ private fun PlanSummaryBox(plan: CoachPlan, onOpen: () -> Unit) {
     }
     SummaryCard(
         title = stringResource(Res.string.trainer_plan_section),
-        lines = listOfNotNull(stringResource(PhaseText.label(plan.phase)), dietBreak),
+        lines = listOfNotNull(dietBreak),
         onClick = onOpen,
         testTag = "trainer_box_plan",
+        modifier = modifier,
         headline = AppNumberFormat.integer(nutrition.targetKcal),
         headlineUnit = stringResource(Res.string.plan_proposal_kcal_unit),
         facts = facts,
+        content = { GoalBand(plan.phase, nutrition.rateKgWeek) },
+        progress = { PlanMacros(nutrition) },
     )
 }
 

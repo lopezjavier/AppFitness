@@ -360,6 +360,7 @@
     <string name="profile_macros_total">TOTAL: 100 %</string>
     <string name="macro_stacked_bar_state">Proteínas %1$s %, carbohidratos %2$s %, grasas %3$s %</string>
     <string name="catalog_section_macro_stacked_bar">Barra de reparto de macros</string>
+    <string name="catalog_section_goal_graphic">Gráfico del objetivo</string>
     <string name="catalog_section_sleep_stages_bar">Barra de fases del sueño</string>
     <string name="profile_sign_out">Cerrar sesión</string>
     <string name="sign_out_dialog_title">¿Cerrar sesión?</string>
@@ -2086,7 +2087,6 @@
     <string name="trainer_block_status_ended">Bloque terminado</string>
     <string name="trainer_block_title">Tu bloque</string>
     <string name="trainer_box_plan_line">%1$s · %2$s kcal al día</string>
-    <string name="trainer_box_block_deload">Descarga planificada</string>
     <string name="trainer_box_empty">Todavía no hay nada que mostrar.</string>
     <string name="trainer_box_empty_plan">Aún no tienes un plan activo.</string>
     <string name="trainer_box_empty_block">Aún no tienes un bloque guardado.</string>
@@ -2532,4 +2532,18 @@
     <string name="reports_block_phase_kept">Seguiste como estabas.</string>
     <string name="past_report_not_found">Ya no está disponible.</string>
     <string name="past_report_error">No se pudo cargar. Inténtalo de nuevo.</string>
+    <!-- T-283 batch 5: Trainer root rework (C-123..C-130) -->
+    <string name="trainer_goal_eyebrow">Objetivo</string>
+    <string name="trainer_block_headline_unit">entrenos esta semana</string>
+    <string name="trainer_block_todo">Por hacer: %1$s</string>
+    <string name="trainer_block_week_complete">Semana completa.</string>
+    <string name="trainer_block_cardio_value">%1$s&#160;de&#160;%2$s&#160;min</string>
+    <string name="trainer_block_steps_label">Pasos al día</string>
+    <string name="trainer_block_steps_value">%1$s&#160;de&#160;%2$s</string>
+    <string name="trainer_block_steps_none">Sin datos de pasos</string>
+    <string name="trainer_block_starts">Empieza el %1$s.</string>
+    <string name="trainer_summary_unit">entrenos</string>
+    <string name="trainer_summary_weight_label">Peso medio</string>
+    <string name="trainer_summary_kcal_label">Calorías</string>
+    <string name="trainer_summary_kcal_target">Objetivo %1$s</string>
 </resources>

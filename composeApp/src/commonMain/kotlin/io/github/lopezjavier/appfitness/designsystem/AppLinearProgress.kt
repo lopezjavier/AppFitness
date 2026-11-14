@@ -51,7 +51,7 @@ internal fun BoxScope.TrackStopDot() {
 /**
  * A plain progress bar towards a goal: an `athleticCyan` fill over a `trackInactive` track with a stop dot, rounded.
  * [fraction] is clamped to 0..1; [stateDescription] is the spoken value ("Progreso hacia el objetivo, 50 %"), so the
- * bar is never colour-only. [fillColor] overrides the fill (for example the caution token at a limit). Unlike
+ * bar is never colour-only. [fillColor] overrides the fill (for example the caution token at a limit). With a [staggerIndex] the fill rises once on first composition (R-97). Unlike
  * `MacroProgressBar` it has no macro colour and no amounts.
  */
 @Composable
@@ -61,8 +61,10 @@ fun AppLinearProgress(
     modifier: Modifier = Modifier,
     fillColor: Color? = null,
     barHeight: Dp = AppLinearProgressDefaults.BarHeight,
+    staggerIndex: Int? = null,
 ) {
     val clamped = fraction.coerceIn(0f, 1f)
+    val fill = rememberFillProgress(staggerIndex ?: 0)
     Box(
         modifier
             .fillMaxWidth()
@@ -78,7 +80,7 @@ fun AppLinearProgress(
         Box(
             Modifier
                 .fillMaxHeight()
-                .fillMaxWidth(clamped)
+                .fillMaxWidth(if (staggerIndex != null) clamped * fill.value else clamped)
                 .background(fillColor ?: AppTheme.colors.athleticCyan),
         )
     }

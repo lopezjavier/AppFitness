@@ -36,7 +36,7 @@ object SegmentedProgressDefaults {
  * Step progress as [total] rounded segments: the first [done] are `athleticCyan`, the one at 1-based [current] (when
  * given) is a track segment with a 1.5 dp cyan border, the rest are `trackInactive`. Above 12 segments it falls back
  * to [AppLinearProgress]. [stateDescription] is the spoken value ("Semana 2 de 4"); segments are decorative.
- * Segments fill once on first composition (R-97).
+ * Segments fill once on first composition (R-97); [staggerOffset] shifts the 40 ms stagger of the first segment.
  */
 @Composable
 fun SegmentedProgress(
@@ -46,6 +46,7 @@ fun SegmentedProgress(
     modifier: Modifier = Modifier,
     current: Int? = null,
     testTag: String = "segmented_progress",
+    staggerOffset: Int = 0,
 ) {
     if (total > SegmentedProgressDefaults.MaxSegments) {
         AppLinearProgress(
@@ -67,7 +68,7 @@ fun SegmentedProgress(
         repeat(total) { index ->
             val isDone = index < done
             val isCurrent = !isDone && current == index + 1
-            val fill = rememberFillProgress(index)
+            val fill = rememberFillProgress(staggerOffset + index)
             Box(
                 Modifier
                     .weight(1f)

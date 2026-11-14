@@ -3,6 +3,7 @@
 package io.github.lopezjavier.appfitness.feature.catalog
 
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.lazy.LazyListScope
@@ -29,6 +30,7 @@ import io.github.lopezjavier.appfitness.composeapp.resources.catalog_ring_percen
 import io.github.lopezjavier.appfitness.composeapp.resources.catalog_ring_score
 import io.github.lopezjavier.appfitness.composeapp.resources.catalog_section_bar_chart
 import io.github.lopezjavier.appfitness.composeapp.resources.catalog_section_body_heatmap
+import io.github.lopezjavier.appfitness.composeapp.resources.catalog_section_goal_graphic
 import io.github.lopezjavier.appfitness.composeapp.resources.catalog_section_line_chart
 import io.github.lopezjavier.appfitness.composeapp.resources.catalog_section_macro_bars
 import io.github.lopezjavier.appfitness.composeapp.resources.catalog_section_macro_sliders
@@ -67,7 +69,9 @@ import io.github.lopezjavier.appfitness.designsystem.Macro
 import io.github.lopezjavier.appfitness.designsystem.MacroProgressBar
 import io.github.lopezjavier.appfitness.designsystem.MacroSlider
 import io.github.lopezjavier.appfitness.designsystem.MacroSliderDefaults
+import io.github.lopezjavier.appfitness.designsystem.GoalGraphic
 import io.github.lopezjavier.appfitness.designsystem.MacroStackedBar
+import io.github.lopezjavier.appfitness.domain.model.Phase
 import io.github.lopezjavier.appfitness.designsystem.MetricTile
 import io.github.lopezjavier.appfitness.designsystem.PercentRing
 import io.github.lopezjavier.appfitness.designsystem.ProgressRing
@@ -114,6 +118,7 @@ internal fun LazyListScope.dataVizItems() {
     item { MacroBarsSection() }
     item { MacroSlidersSection() }
     item { MacroStackedBarSection() }
+    item { GoalGraphicSection() }
     item { SleepStagesBarSection() }
     item { MetricTilesSection() }
     item { TrendPillsSection() }
@@ -217,6 +222,20 @@ private fun MacroStackedBarSection() {
                 fatPct = DEFAULT_FAT_PERCENT,
                 testTag = "catalog_macro_stacked_bar",
             )
+        }
+    }
+}
+
+@Composable
+private fun GoalGraphicSection() {
+    CatalogSection(
+        stringResource(Res.string.catalog_section_goal_graphic),
+        "catalog_section_goal_graphic",
+    ) {
+        AppCard(Modifier.fillMaxWidth()) {
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(Spacing.lg)) {
+                Phase.entries.forEach { GoalGraphic(it, staggerIndex = 0) }
+            }
         }
     }
 }
