@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.Text
@@ -32,10 +33,9 @@ import io.github.lopezjavier.appfitness.composeapp.resources.routine_details_err
 import io.github.lopezjavier.appfitness.composeapp.resources.routine_details_exercises
 import io.github.lopezjavier.appfitness.composeapp.resources.routine_details_last_done
 import io.github.lopezjavier.appfitness.composeapp.resources.routine_details_never_done
-import io.github.lopezjavier.appfitness.composeapp.resources.routine_details_set_bodyweight
-import io.github.lopezjavier.appfitness.composeapp.resources.routine_details_set_line
-import io.github.lopezjavier.appfitness.composeapp.resources.routine_details_set_minutes
+import io.github.lopezjavier.appfitness.composeapp.resources.routine_details_sets_minutes
 import io.github.lopezjavier.appfitness.composeapp.resources.routine_details_sets_reps
+import io.github.lopezjavier.appfitness.composeapp.resources.routine_details_title_fallback
 import io.github.lopezjavier.appfitness.composeapp.resources.routine_details_weight
 import io.github.lopezjavier.appfitness.composeapp.resources.routines_action_failed
 import io.github.lopezjavier.appfitness.composeapp.resources.routines_start
@@ -155,8 +155,10 @@ fun RoutineDetailsScreen(
     val content = state as? RoutineDetailsUiState.Content
     val editLabel = stringResource(Res.string.action_edit)
     val deleteLabel = stringResource(Res.string.action_delete)
+    val fallbackTitle = stringResource(Res.string.routine_details_title_fallback)
+    val routineTitle = if (content != null) content.name else fallbackTitle
     AppScreen(
-        title = content?.name.orEmpty(),
+        title = routineTitle,
         modifier = modifier,
         onBack = onBack,
         actions = if (content == null) {
@@ -242,6 +244,7 @@ private fun DetailsList(
             ExerciseRow(
                 name = exercise.name,
                 supporting = setsSummary(exercise.plannedSets),
+                supportingMaxLines = 1,
                 onOpen = { onOpenExercise(exercise.exerciseId) },
                 tagPrefix = "${TAG}_exercise_${exercise.exerciseId}",
                 modifier = appAnimateItem(),
@@ -254,7 +257,8 @@ private fun DetailsList(
 @Composable
 private fun DetailsLoading() {
     Column(
-        Modifier.fillMaxSize().testTag("${TAG}_loading"),
+        Modifier.fillMaxSize().padding(horizontal = Spacing.screenMargin, vertical = Spacing.lg)
+            .testTag("${TAG}_loading"),
         verticalArrangement = Arrangement.spacedBy(Spacing.sm),
     ) {
         repeat(SKELETON_ROWS) {
@@ -270,32 +274,43 @@ private fun dateOf(instant: Instant, timeZone: TimeZone, today: LocalDate): Stri
     AppDateFormat.list(instant.toLocalDateTime(timeZone).date, today)
 
 /**
- * "3 x 8" when every set is the same, with " · 60 kg" when they carry a weight; otherwise one entry per set
- * ("60 kg x 8 · 62,5 kg x 6", "10 reps" without weight), so per-set weights are visible.
+ * One grammar (C-79, V-27): consecutive equal sets are grouped as "n × reps" with " · 60 kg" when they carry a
+ * weight, groups joined by ", " ("1 × 10 · 40 kg, 3 × 8 · 60 kg"). A cardio set is planned in time: "2 × 1 min".
  */
 @Composable
-private fun setsSummary(sets: List<PlannedSet>): String = // A cardio set is planned in time: "50 min", never "0 reps".
+private fun setsSummary(sets: List<PlannedSet>): String = // A cardio set is planned in time, never "0 reps".
     if (sets.isNotEmpty() && sets.all { it.durationS != null }) minutesSummary(sets) else repsSummary(sets)
 
 @Composable
-private fun minutesSummary(sets: List<PlannedSet>): String = sets.map {
-    stringResource(
-        Res.string.routine_details_set_minutes,
-        (it.durationS ?: 0) / RoutineBounds.SECONDS_PER_MINUTE,
-    )
-}.joinToString(" · ")
+private fun minutesSummary(sets: List<PlannedSet>): String =
+    sets.groupConsecutiveBy { it.durationS }.map { (set, count) ->
+        stringResource(
+            Res.string.routine_details_sets_minutes,
+            count,
+            (set.durationS ?: 0) / RoutineBounds.SECONDS_PER_MINUTE,
+        )
+    }.joinToString(", ")
 
 @Composable
-private fun repsSummary(sets: List<PlannedSet>): String {
-    val first = sets.firstOrNull() ?: return ""
-    val weightOf = { set: PlannedSet -> set.weightKg?.let { AppNumberFormat.decimal(it, maxDecimals = 2) } }
-    return if (sets.all { it.weightKg == first.weightKg && it.reps == first.reps }) {
-        val base = stringResource(Res.string.routine_details_sets_reps, sets.size, first.reps)
-        weightOf(first)?.let { base + " · " + stringResource(Res.string.routine_details_weight, it) } ?: base
-    } else {
-        sets.map { set ->
-            weightOf(set)?.let { stringResource(Res.string.routine_details_set_line, it, set.reps) }
-                ?: stringResource(Res.string.routine_details_set_bodyweight, set.reps)
-        }.joinToString(" · ")
+private fun repsSummary(sets: List<PlannedSet>): String =
+    sets.groupConsecutiveBy { it.weightKg to it.reps }.map { (set, count) ->
+        val base = stringResource(Res.string.routine_details_sets_reps, count, set.reps)
+        set.weightKg?.let {
+            base + " · " +
+                stringResource(Res.string.routine_details_weight, AppNumberFormat.decimal(it, maxDecimals = 2))
+        } ?: base
+    }.joinToString(", ")
+
+/** Runs of consecutive sets with the same [key], each as its first set and the run length. */
+private fun <K> List<PlannedSet>.groupConsecutiveBy(key: (PlannedSet) -> K): List<Pair<PlannedSet, Int>> {
+    val groups = mutableListOf<Pair<PlannedSet, Int>>()
+    for (set in this) {
+        val last = groups.lastOrNull()
+        if (last != null && key(last.first) == key(set)) {
+            groups[groups.lastIndex] = last.first to last.second + 1
+        } else {
+            groups += set to 1
+        }
     }
+    return groups
 }

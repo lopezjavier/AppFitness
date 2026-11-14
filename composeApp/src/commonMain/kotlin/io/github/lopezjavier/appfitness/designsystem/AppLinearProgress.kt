@@ -26,6 +26,9 @@ import androidx.compose.ui.unit.dp
 /** Geometry of [AppLinearProgress]. */
 object AppLinearProgressDefaults {
     val BarHeight: Dp = 8.dp
+
+    /** The thin session bar under a top bar (C-69). */
+    val SlimBarHeight: Dp = 4.dp
     val StopDotSize: Dp = 4.dp
     val StopDotInset: Dp = 2.dp
     const val STOP_DOT_TAG: String = "track_stop_dot"
@@ -57,12 +60,13 @@ fun AppLinearProgress(
     stateDescription: String,
     modifier: Modifier = Modifier,
     fillColor: Color? = null,
+    barHeight: Dp = AppLinearProgressDefaults.BarHeight,
 ) {
     val clamped = fraction.coerceIn(0f, 1f)
     Box(
         modifier
             .fillMaxWidth()
-            .height(AppLinearProgressDefaults.BarHeight)
+            .height(barHeight)
             .clip(AppShapes.full)
             .background(AppTheme.colors.trackInactive)
             .semantics {

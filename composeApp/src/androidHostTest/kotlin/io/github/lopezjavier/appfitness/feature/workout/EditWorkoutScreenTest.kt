@@ -297,6 +297,25 @@ class EditWorkoutScreenTest {
     }
 
     @Test
+    fun eliminar_isATextActionAtLeast16dpUnderGuardar_andAtLeast48dpHigh() {
+        show()
+
+        val save = rule.onNodeWithTag("edit_workout_save").getUnclippedBoundsInRoot()
+        val delete = rule.onNodeWithTag("edit_workout_delete").getUnclippedBoundsInRoot()
+        assertTrue("Eliminar must sit under Guardar", delete.top >= save.bottom + 16.dp)
+        rule.onNodeWithTag("edit_workout_delete").assertHeightIsAtLeast(48.dp)
+        rule.onNodeWithTag("edit_workout_delete").assertTextContains("Eliminar")
+    }
+
+    @Test
+    fun theAddButtons_areLabelledAñadirSerieAndAñadirEjercicio() {
+        show()
+
+        rule.onNodeWithTag("edit_workout_add_set_0").performScrollTo().assertTextContains("Añadir serie")
+        rule.onNodeWithTag("edit_workout_add_exercise").performScrollTo().assertTextContains("Añadir ejercicio")
+    }
+
+    @Test
     fun offline_disablesGuardarAndEliminar_showsTheHint_andATapOnGuardarRejectsOnce() {
         connectivity.state.value = false
         show()

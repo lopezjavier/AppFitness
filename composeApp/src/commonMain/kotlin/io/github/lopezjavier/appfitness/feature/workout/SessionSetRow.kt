@@ -90,6 +90,7 @@ internal fun SessionSetRow(
     deleteEnabled: Boolean = true,
     showRpe: Boolean = true,
     cardio: Boolean = false,
+    current: Boolean = false,
 ) {
     val cardioRow = cardio || row.plannedDurationMinutes != null
     val tag = "live_set_${position}_${row.setIndex}"
@@ -109,7 +110,7 @@ internal fun SessionSetRow(
                     position = position,
                     placeholder = cardioPlaceholder(row.plannedDurationMinutes),
                     placeholderDescription = cardioPlaceholderDescription(row.plannedDurationMinutes),
-                ),
+                ).copy(current = current),
                 onWeightChange = { onEvent(LiveSessionEvent.WeightChanged(position, row.setIndex, it)) },
                 onRepsChange = { onEvent(LiveSessionEvent.RepsChanged(position, row.setIndex, it)) },
                 onCompletedChange = { onEvent(LiveSessionEvent.SetChecked(position, row.setIndex, it)) },

@@ -15,22 +15,22 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.style.TextOverflow
 import io.github.lopezjavier.appfitness.composeapp.resources.Res
-import io.github.lopezjavier.appfitness.composeapp.resources.builder_add_set
 import io.github.lopezjavier.appfitness.composeapp.resources.builder_rest_decrease_cd
 import io.github.lopezjavier.appfitness.composeapp.resources.builder_rest_increase_cd
 import io.github.lopezjavier.appfitness.composeapp.resources.builder_rest_unit
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_arrow_downward
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_arrow_upward
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_delete
+import io.github.lopezjavier.appfitness.composeapp.resources.live_object_set
 import io.github.lopezjavier.appfitness.composeapp.resources.note_edit
 import io.github.lopezjavier.appfitness.composeapp.resources.workout_form_exercise_down_cd
 import io.github.lopezjavier.appfitness.composeapp.resources.workout_form_exercise_remove_cd
 import io.github.lopezjavier.appfitness.composeapp.resources.workout_form_exercise_up_cd
 import io.github.lopezjavier.appfitness.composeapp.resources.workout_form_set_error
+import io.github.lopezjavier.appfitness.designsystem.AddItemButton
 import io.github.lopezjavier.appfitness.designsystem.AppCard
 import io.github.lopezjavier.appfitness.designsystem.AppIconButton
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
-import io.github.lopezjavier.appfitness.designsystem.GhostButton
 import io.github.lopezjavier.appfitness.designsystem.InlineNote
 import io.github.lopezjavier.appfitness.designsystem.NumberStepper
 import io.github.lopezjavier.appfitness.designsystem.Spacing
@@ -131,10 +131,10 @@ internal fun FormExerciseCard(
                     }
                 }
             }
-            GhostButton(
-                text = stringResource(Res.string.builder_add_set),
+            AddItemButton(
+                objectLabel = stringResource(Res.string.live_object_set),
                 onClick = { onEvent(WorkoutFormEvent.AddSet(index)) },
-                modifier = Modifier.fillMaxWidth().testTag("${tagPrefix}_add_set_$index"),
+                modifier = Modifier.testTag("${tagPrefix}_add_set_$index"),
                 enabled = exercise.sets.size < WorkoutDraftBounds.SETS_MAX,
             )
             RestLine(exercise.restSeconds, index, tagPrefix, onEvent)

@@ -38,7 +38,7 @@ private fun historyEntries(): List<GalleryEntry> {
 
     fun calendar(state: String, ui: WorkoutCalendarUiState, wide: Boolean = false) =
         GalleryEntry(ENTRENO_AREA, HISTORY_SCREEN, state, covers = setOf("HistoryRoute"), wide = wide) {
-            WorkoutCalendarScreen(ui, onEvent = {})
+            WorkoutCalendarScreen(ui, onEvent = {}, onBack = {})
         }
 
     val selected = month.copy(
@@ -54,7 +54,10 @@ private fun historyEntries(): List<GalleryEntry> {
         calendar("selected day with several workouts", selected),
         calendar("selected day cards loading", selected.copy(dayCards = DayCardsState.Loading)),
         calendar("selected day cards failed", selected.copy(dayCards = DayCardsState.Error)),
-        calendar("year view", month.copy(view = WorkoutCalendarView.Year, monthCounts = mapOf(10 to 3))),
+        calendar(
+            "year view",
+            month.copy(view = WorkoutCalendarView.Year, monthCounts = mapOf(3 to 2, 9 to 5, 10 to 3)),
+        ),
         calendar(
             "multi-year view",
             month.copy(view = WorkoutCalendarView.MultiYear, yearCounts = mapOf(2025 to 40, 2026 to 12)),

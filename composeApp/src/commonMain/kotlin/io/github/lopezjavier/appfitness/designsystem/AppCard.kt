@@ -44,7 +44,7 @@ object AppCardDefaults {
  * Tier-1 card: `surfaceRaised` with a 1 dp border at 8% white and a 16 dp radius. It draws no shadow;
  * depth comes from the tonal step and the border. [highlighted] swaps the border for a 1.5 dp cyan one (callers
  * add a non-colour cue too). [selected] (R-64) fills with `selectedContainer` and draws a 1 dp lime border; it wins
- * over [highlighted].
+ * over [highlighted]. [lifted] is the picked-up look of a dragged card: `surfaceOverlay` with a 1 dp `borderControl`.
  */
 @Composable
 fun AppCard(
@@ -52,11 +52,14 @@ fun AppCard(
     highlighted: Boolean = false,
     selected: Boolean = false,
     contentPadding: PaddingValues = PaddingValues(AppCardDefaults.Padding),
+    lifted: Boolean = false,
     content: @Composable ColumnScope.() -> Unit,
 ) {
-    val colors = AppCardDefaults.colors(AppTheme.colors, highlighted, selected)
+    val base = AppCardDefaults.colors(AppTheme.colors, highlighted, selected)
+    val colors = if (lifted) AppCardColors(AppTheme.colors.surfaceOverlay, AppTheme.colors.borderControl) else base
     val borderWidth = if (highlighted &&
-        !selected
+        !selected &&
+        !lifted
     ) {
         AppCardDefaults.HighlightBorderWidth
     } else {

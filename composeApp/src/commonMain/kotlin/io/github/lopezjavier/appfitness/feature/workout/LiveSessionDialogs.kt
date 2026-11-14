@@ -16,7 +16,7 @@ import io.github.lopezjavier.appfitness.composeapp.resources.live_finish
 import io.github.lopezjavier.appfitness.composeapp.resources.live_finish_empty_reason
 import io.github.lopezjavier.appfitness.composeapp.resources.live_finish_offline_reason
 import io.github.lopezjavier.appfitness.composeapp.resources.live_menu_discard
-import io.github.lopezjavier.appfitness.composeapp.resources.live_title
+import io.github.lopezjavier.appfitness.composeapp.resources.live_title_fallback
 import io.github.lopezjavier.appfitness.composeapp.resources.note_sheet_exercise_title
 import io.github.lopezjavier.appfitness.composeapp.resources.note_sheet_set_title
 import io.github.lopezjavier.appfitness.designsystem.AppActionSheet
@@ -140,7 +140,7 @@ internal fun LiveDialogs(
                 ),
             ),
             onDismiss = onCloseMenu,
-            title = stringResource(Res.string.live_title),
+            title = state.name.ifBlank { stringResource(Res.string.live_title_fallback) },
             testTagPrefix = "live_menu",
             notice = {
                 if (state.actionsBlocked) OfflineReason("live_menu_offline_reason")

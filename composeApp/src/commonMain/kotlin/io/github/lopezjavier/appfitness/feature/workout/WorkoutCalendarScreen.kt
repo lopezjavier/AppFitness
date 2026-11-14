@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -24,6 +25,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.github.lopezjavier.appfitness.composeapp.resources.Res
 import io.github.lopezjavier.appfitness.composeapp.resources.action_retry
 import io.github.lopezjavier.appfitness.composeapp.resources.calendar_error
+import io.github.lopezjavier.appfitness.composeapp.resources.calendar_select_day_hint
 import io.github.lopezjavier.appfitness.composeapp.resources.calendar_view_month
 import io.github.lopezjavier.appfitness.composeapp.resources.calendar_view_year
 import io.github.lopezjavier.appfitness.composeapp.resources.calendar_view_years
@@ -32,6 +34,7 @@ import io.github.lopezjavier.appfitness.designsystem.AppOption
 import io.github.lopezjavier.appfitness.designsystem.AppScreen
 import io.github.lopezjavier.appfitness.designsystem.AppShapes
 import io.github.lopezjavier.appfitness.designsystem.AppStateAction
+import io.github.lopezjavier.appfitness.designsystem.AppTheme
 import io.github.lopezjavier.appfitness.designsystem.ErrorState
 import io.github.lopezjavier.appfitness.designsystem.MonthCalendarGrid
 import io.github.lopezjavier.appfitness.designsystem.SegmentedSelector
@@ -154,8 +157,16 @@ private fun CalendarContent(state: WorkoutCalendarUiState.Content, onEvent: (Wor
                         onNextMonth = { onEvent(WorkoutCalendarEvent.NextMonth) },
                         canGoNext = state.canGoNext,
                     )
-                    state.selectedDay?.let {
-                        CalendarDaySection(it, state.dayCards, state.canAddToSelectedDay, onEvent)
+                    val selectedDay = state.selectedDay
+                    if (selectedDay == null) {
+                        Text(
+                            text = stringResource(Res.string.calendar_select_day_hint),
+                            style = AppTheme.typography.bodyMedium,
+                            color = AppTheme.colors.textSecondary,
+                            modifier = Modifier.testTag("calendar_select_day_hint"),
+                        )
+                    } else {
+                        CalendarDaySection(selectedDay, state.dayCards, state.canAddToSelectedDay, onEvent)
                     }
                 }
 

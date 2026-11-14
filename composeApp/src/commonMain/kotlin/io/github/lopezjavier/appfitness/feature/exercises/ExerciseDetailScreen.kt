@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyListState
@@ -29,9 +30,10 @@ import io.github.lopezjavier.appfitness.composeapp.resources.delete_failed
 import io.github.lopezjavier.appfitness.composeapp.resources.exercise_deleted
 import io.github.lopezjavier.appfitness.composeapp.resources.exercise_detail_delete_cd
 import io.github.lopezjavier.appfitness.composeapp.resources.exercise_detail_edit_cd
+import io.github.lopezjavier.appfitness.composeapp.resources.exercise_detail_error_message
+import io.github.lopezjavier.appfitness.composeapp.resources.exercise_detail_offline_favourite
 import io.github.lopezjavier.appfitness.composeapp.resources.exercise_detail_select
 import io.github.lopezjavier.appfitness.composeapp.resources.exercise_detail_title
-import io.github.lopezjavier.appfitness.composeapp.resources.exercise_error_message
 import io.github.lopezjavier.appfitness.composeapp.resources.exercise_favourite_failed
 import io.github.lopezjavier.appfitness.composeapp.resources.exercise_in_use_message
 import io.github.lopezjavier.appfitness.composeapp.resources.exercise_in_use_routines
@@ -49,6 +51,7 @@ import io.github.lopezjavier.appfitness.composeapp.resources.ic_edit
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_star
 import io.github.lopezjavier.appfitness.designsystem.AppOption
 import io.github.lopezjavier.appfitness.designsystem.AppScreen
+import io.github.lopezjavier.appfitness.designsystem.AppShapes
 import io.github.lopezjavier.appfitness.designsystem.AppStateAction
 import io.github.lopezjavier.appfitness.designsystem.AppTabRow
 import io.github.lopezjavier.appfitness.designsystem.AppTopBarAction
@@ -248,7 +251,7 @@ fun ExerciseDetailScreen(
                 ExerciseDetailUiState.Error ->
                     Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                         ErrorState(
-                            message = stringResource(Res.string.exercise_error_message),
+                            message = stringResource(Res.string.exercise_detail_error_message),
                             action = AppStateAction(stringResource(Res.string.action_retry), onRetry),
                             testTagPrefix = "exercise_detail_error",
                         )
@@ -326,12 +329,18 @@ private fun DetailLoading() {
         Modifier.fillMaxSize().padding(Spacing.screenMargin),
         verticalArrangement = Arrangement.spacedBy(Spacing.lg),
     ) {
-        SkeletonBox(Modifier.fillMaxWidth().widthIn(max = ExerciseLayoutDefaults.AnimationMaxWidth).padding(Spacing.xl))
-        SkeletonBox(Modifier.fillMaxWidth(NAME_FRACTION).padding(Spacing.lg))
+        SkeletonBox(
+            Modifier.fillMaxWidth().widthIn(max = ExerciseLayoutDefaults.AnimationMaxWidth)
+                .height(SkeletonMediaHeight),
+            AppShapes.lg,
+        )
+        SkeletonBox(Modifier.fillMaxWidth(NAME_FRACTION).height(Spacing.xl), AppShapes.md)
+        SkeletonBox(Modifier.fillMaxWidth().height(SkeletonMediaHeight / 2), AppShapes.lg)
     }
 }
 
 private const val NAME_FRACTION = 0.6f
+private val SkeletonMediaHeight = Spacing.xl * 8
 
 @Composable
 @Suppress("LongMethod") // One branch per tab.
@@ -359,9 +368,14 @@ private fun DetailContent(
                     max = ExerciseLayoutDefaults.ContentMaxWidth,
                 ).testTag("exercise_detail_tabs"),
             )
-            if (state.canManage && !state.isOnline) {
+            if (!state.isOnline) {
+                // The disabled star always says why (V-41); an own exercise also names delete.
                 OfflineHint(
-                    action = stringResource(Res.string.action_delete).lowercase(),
+                    action = if (state.canManage) {
+                        stringResource(Res.string.action_delete).lowercase()
+                    } else {
+                        stringResource(Res.string.exercise_detail_offline_favourite)
+                    },
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(horizontal = Spacing.screenMargin, vertical = Spacing.sm)

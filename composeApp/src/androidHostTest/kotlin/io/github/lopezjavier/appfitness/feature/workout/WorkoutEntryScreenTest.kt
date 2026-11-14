@@ -49,11 +49,12 @@ class WorkoutEntryScreenTest {
     }
 
     @Test
-    fun header_showsRutinasOnce_andNotMisRutinas() {
+    fun header_showsEntrenoOnce_andNotRutinasNorMisRutinas() {
         show()
 
-        rule.onAllNodesWithText("Rutinas").assertCountEquals(1)
-        rule.onNodeWithText("Rutinas").assertIsDisplayed()
+        rule.onAllNodesWithText("Entreno").assertCountEquals(1)
+        rule.onNodeWithText("Entreno").assertIsDisplayed()
+        rule.onAllNodesWithText("Rutinas").assertCountEquals(0)
         rule.onAllNodesWithText("Mis rutinas").assertCountEquals(0)
     }
 
@@ -92,7 +93,7 @@ class WorkoutEntryScreenTest {
     fun headerText_isAHeading() {
         show()
 
-        rule.onNode(hasText("Rutinas") and SemanticsMatcher.keyIsDefined(SemanticsProperties.Heading))
+        rule.onNode(hasText("Entreno") and SemanticsMatcher.keyIsDefined(SemanticsProperties.Heading))
             .assertIsDisplayed()
     }
 }

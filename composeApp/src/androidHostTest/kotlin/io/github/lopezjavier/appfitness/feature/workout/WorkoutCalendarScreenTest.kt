@@ -5,7 +5,10 @@ import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.assertTextContains
 import androidx.compose.ui.test.assertTextEquals
+import androidx.compose.ui.test.hasAnyAncestor
 import androidx.compose.ui.test.hasContentDescription
+import androidx.compose.ui.test.hasTestTag
+import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
@@ -116,6 +119,29 @@ class WorkoutCalendarScreenTest {
         rule.onNodeWithTag("calendar_year_month_3").performClick()
 
         assertEquals(listOf<WorkoutCalendarEvent>(WorkoutCalendarEvent.SelectMonth(YearMonth(2026, 3))), events)
+    }
+
+    @Test
+    fun yearView_headingShowsTheYearAndItsTotal_andTilesShowTheBareCount() {
+        show(content(WorkoutCalendarView.Year))
+
+        rule.onNodeWithTag("calendar_year_title").assertTextContains("2026 · 7 entrenos")
+        rule.onNode(
+            hasText("5") and hasAnyAncestor(hasTestTag("calendar_year_month_3")),
+            useUnmergedTree = true,
+        ).assertExists()
+    }
+
+    @Test
+    fun monthView_withNoDaySelected_showsTheSelectDayHint_andHidesItOnceSelected() {
+        show(content())
+        rule.onNodeWithTag("calendar_select_day_hint").assertTextEquals("Toca un día para ver sus entrenos.")
+    }
+
+    @Test
+    fun monthView_withADaySelected_hasNoSelectDayHint() {
+        show(content(selectedDay = TrainedDay))
+        rule.onNodeWithTag("calendar_select_day_hint").assertDoesNotExist()
     }
 
     @Test
@@ -241,7 +267,7 @@ class WorkoutCalendarScreenTest {
             ),
         )
 
-        val summary = "duración 1:02:05, volumen 2.120 kg"
+        val summary = "duración 1 h 2 min, volumen 2.120 kg"
         rule.onNodeWithTag("calendar_day_card_s1").assert(hasContentDescription(summary, substring = true))
         rule.onNodeWithTag("calendar_day_card_s2").assert(hasContentDescription("Pierna", substring = true))
         rule.onNodeWithTag("calendar_day_card_s2").performClick()

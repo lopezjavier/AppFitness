@@ -17,6 +17,7 @@ import io.github.lopezjavier.appfitness.domain.model.SetType
 import io.github.lopezjavier.appfitness.domain.model.SetUsed
 import io.github.lopezjavier.appfitness.domain.usecase.ExerciseSummary
 import io.github.lopezjavier.appfitness.domain.usecase.SessionSummary
+import io.github.lopezjavier.appfitness.feature.routines.RoutinesScreen
 import io.github.lopezjavier.appfitness.feature.workout.CalculatorDraft
 import io.github.lopezjavier.appfitness.feature.workout.CalculatorKind
 import io.github.lopezjavier.appfitness.feature.workout.CalculatorUiState
@@ -254,7 +255,7 @@ private fun liveSession(): List<GalleryEntry> {
     return listOf(
         live("loading", LiveSessionUiState.Loading),
         live("load failed", LiveSessionUiState.Error),
-        live("no session", LiveSessionUiState.NoSession),
+        // NoSession is not captured: it draws the loading skeleton (same image as "loading") and closes the screen.
         live("no sets done yet", active(exercises = pending)),
         live("mid session with done, pending and current sets", active()),
         live("rest timer running", active(timerBar = restTimer)),
@@ -311,7 +312,7 @@ private fun liveSession(): List<GalleryEntry> {
             "FinishSessionSheet",
         ),
         live("discard dialog", active(discardConfirm = true), GalleryKind.Dialog, "LiveDialogs"),
-        live("set type picker", active(typePicker = TypePickerTarget(0, 0)), GalleryKind.Sheet, "LiveTypePicker"),
+        live("set type picker", active(typePicker = TypePickerTarget(0, 1)), GalleryKind.Sheet, "LiveTypePicker"),
         live("rpe picker", active(rpePicker = rpe), GalleryKind.Sheet, "LiveRpePicker"),
         live(
             "set note sheet",
@@ -379,7 +380,7 @@ private fun workoutEntry(): List<GalleryEntry> {
             onOpenLiveSession = {},
             onOpenHistory = {},
             discardAsked = discardAsked,
-            routines = { _, _ -> },
+            routines = { body, _ -> RoutinesScreen(EntrenoFixtures.listContent(), onEvent = {}, modifier = body) },
         )
     }
     return listOf(

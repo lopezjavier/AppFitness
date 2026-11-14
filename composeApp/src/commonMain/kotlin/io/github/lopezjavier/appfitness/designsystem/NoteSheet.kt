@@ -1,7 +1,8 @@
 package io.github.lopezjavier.appfitness.designsystem
 
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.selection.selectableGroup
@@ -36,8 +37,9 @@ data class NoteSheetOption<K : NoteKind>(val kind: K, val label: String)
 data class NoteSheetHelp(val contentDescription: String, val title: String, val content: HelpContent)
 
 /**
- * Note sheet (edit archetype, R-07): a single-choice list of [options], a "?" help sheet beside the title, an always
- * visible detail field (optional, required for the option that [NoteKind.requiresText]) and a pinned "Guardar".
+ * Note sheet (edit archetype, R-07): a single-choice row of wrapping chips for the [options], a "?" help sheet
+ * beside the title, an always visible detail field (optional, required for the option that
+ * [NoteKind.requiresText]) and a pinned "Guardar".
  * [kind] and [draft] are the pair being edited, [originalKind] and [original] the saved note it started from. "Guardar"
  * is enabled when the pair is a valid note (the text fits in [NoteText.MAX]) that differs from the saved one;
  * tapping the chosen option again clears the choice (a saved note is removed by clearing it). Closing discards the
@@ -47,6 +49,7 @@ data class NoteSheetHelp(val contentDescription: String, val title: String, val 
  * The caller owns the draft (a ViewModel or the stateful overload) and follows the [AppEditSheet] contract: close and
  * fire the Confirm haptic after saving.
  */
+@OptIn(ExperimentalLayoutApi::class) // FlowRow wraps the reason chips.
 @Suppress("LongParameterList") // Slots of the sheet contract.
 @Composable
 fun <K : NoteKind> NoteSheet(
@@ -82,18 +85,19 @@ fun <K : NoteKind> NoteSheet(
         },
         testTagPrefix = testTagPrefix,
     ) {
-        Column(
+        // The reasons are categories, not a scale (C-76): wrapping chips; choosing the chosen one again clears it.
+        FlowRow(
             Modifier.selectableGroup().testTag("${testTagPrefix}_options"),
+            horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
             verticalArrangement = Arrangement.spacedBy(Spacing.sm),
         ) {
             options.forEach { option ->
                 val selected = option.kind == kind
-                ScaleOptionRow(
+                AppToggleChip(
                     label = option.label,
-                    color = AppTheme.colors.athleticCyan,
-                    selected = selected,
-                    onClick = { onKindChange(if (selected) null else option.kind) },
-                    testTag = "${testTagPrefix}_option_${option.kind.wire}",
+                    checked = selected,
+                    onCheckedChange = { onKindChange(if (selected) null else option.kind) },
+                    modifier = Modifier.testTag("${testTagPrefix}_option_${option.kind.wire}"),
                     contentDescription = option.label,
                 )
             }

@@ -4,6 +4,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import io.github.lopezjavier.appfitness.composeapp.resources.Res
 import io.github.lopezjavier.appfitness.composeapp.resources.history_row_cd
+import io.github.lopezjavier.appfitness.composeapp.resources.history_row_cd_no_volume
 import io.github.lopezjavier.appfitness.composeapp.resources.history_row_sets
 import io.github.lopezjavier.appfitness.designsystem.WorkoutRow
 import org.jetbrains.compose.resources.pluralStringResource
@@ -13,7 +14,7 @@ import org.jetbrains.compose.resources.stringResource
 @Composable
 internal fun HistoryWorkoutRow(row: HistoryRow, onClick: () -> Unit, tag: String, modifier: Modifier = Modifier) {
     val date = row.label.text()
-    val duration = formatElapsed(row.durationSeconds)
+    val duration = durationText(row.durationSeconds)
     val volume = volumeText(row.volumeKg)
     WorkoutRow(
         name = row.name,
@@ -22,7 +23,11 @@ internal fun HistoryWorkoutRow(row: HistoryRow, onClick: () -> Unit, tag: String
         volumeText = volume,
         setsText = pluralStringResource(Res.plurals.history_row_sets, row.completedSets, row.completedSets),
         onClick = onClick,
-        contentDescription = stringResource(Res.string.history_row_cd, date, row.name, duration, volume),
+        contentDescription = if (volume == null) {
+            stringResource(Res.string.history_row_cd_no_volume, date, row.name, duration)
+        } else {
+            stringResource(Res.string.history_row_cd, date, row.name, duration, volume)
+        },
         modifier = modifier,
         tag = tag,
     )

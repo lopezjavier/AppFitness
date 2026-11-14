@@ -77,3 +77,15 @@ Sources the `ux-critic` already opened, with the takeaway used. Read this before
 - C-62: letter/figure weight and colour contrast (W700 primary letter, W600 macro-coloured figure) aids scanning; the dot is glued to the preceding item so line wraps never start with a separator.
 - V-15 follow-up: a fit check against a fixed 132 dp is wrong when the status pill is wider; measure the real column.
 - 360 dp risk: name + pill + two 48 dp targets need about 310 dp against 296 dp available; since mid-word breaks are forbidden, the pill drops to the macros line and the buttons stay beside the name (touch targets never shrink below 48 dp).
+
+## Round 2 (Entreno, 2026-11-14)
+- C-66: Carbon button usage: one primary button per page; buttons can show inline loading (also C-82). https://carbondesignsystem.com/components/button/usage/
+- C-68, C-71: Hevy shows Finish at the top right and lets the user tap the set number to change its type. https://www.hevyapp.com/features/track-workouts/
+- C-70: M3 icon button tokens: unselected `OnSurfaceVariant`, selected `Primary`, disabled 0.38. `IconButtonTokens.kt` in androidx.
+- C-72, C-81: NN/g icon usability: icons need visible labels; one icon with several meanings hurts learning. https://www.nngroup.com/articles/icon-usability/
+- C-76, C-86: Material Chip docs: chip groups wrap by default; single line needs a horizontal scroll view; touch target 48 dp, height 32 dp.
+- C-77, V-36: Material DatePicker docs: the input field opens the calendar; end icon "Open Date Picker"; today has a 1 dp stroke.
+- V-21, V-22, V-24, C-83: WCAG 1.4.4 resize text, failure F69 (text clipped or truncated).
+- C-67, C-69: NN/g visibility of system status: communicate the current state; show progress. https://www.nngroup.com/articles/visibility-system-status/
+- C-73: Hevy gym-consistency: whole-year calendar view, trained days highlighted. https://www.hevyapp.com/features/gym-consistency/
+- Confirmed Material Symbols Outlined names: `calculate`, `drive_file_move`, `sticky_note_2`, `content_copy`, `flag`, `timer`, `fitness_center`. Unverified: `link`, `link_off`, `fact_check`.

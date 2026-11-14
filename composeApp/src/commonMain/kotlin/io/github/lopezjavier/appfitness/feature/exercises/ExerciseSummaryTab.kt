@@ -4,6 +4,8 @@ import androidx.compose.foundation.ScrollState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -20,9 +22,7 @@ import androidx.compose.ui.semantics.semantics
 import io.github.lopezjavier.appfitness.composeapp.resources.Res
 import io.github.lopezjavier.appfitness.composeapp.resources.action_retry
 import io.github.lopezjavier.appfitness.composeapp.resources.exercise_detail_animation_cd
-import io.github.lopezjavier.appfitness.composeapp.resources.exercise_detail_per_hand
-import io.github.lopezjavier.appfitness.composeapp.resources.exercise_detail_per_hand_no
-import io.github.lopezjavier.appfitness.composeapp.resources.exercise_detail_per_hand_yes
+import io.github.lopezjavier.appfitness.composeapp.resources.exercise_detail_per_hand_pill
 import io.github.lopezjavier.appfitness.composeapp.resources.exercise_progress_link
 import io.github.lopezjavier.appfitness.composeapp.resources.exercise_record_value_kg
 import io.github.lopezjavier.appfitness.composeapp.resources.exercise_record_value_km
@@ -38,7 +38,7 @@ import io.github.lopezjavier.appfitness.designsystem.ExerciseAnimation
 import io.github.lopezjavier.appfitness.designsystem.ExerciseLayoutDefaults
 import io.github.lopezjavier.appfitness.designsystem.GhostButton
 import io.github.lopezjavier.appfitness.designsystem.LocalAnimationsEnabled
-import io.github.lopezjavier.appfitness.designsystem.SecondaryButton
+import io.github.lopezjavier.appfitness.designsystem.NavigationRow
 import io.github.lopezjavier.appfitness.designsystem.SkeletonBox
 import io.github.lopezjavier.appfitness.designsystem.Spacing
 import io.github.lopezjavier.appfitness.designsystem.TextPill
@@ -108,10 +108,10 @@ private fun SummaryText(
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(Spacing.blockGap)) {
         DetailHeader(detail)
-        SecondaryButton(
-            text = stringResource(Res.string.exercise_progress_link),
+        NavigationRow(
+            label = stringResource(Res.string.exercise_progress_link),
             onClick = onOpenProgress,
-            modifier = Modifier.fillMaxWidth().testTag("exercise_detail_progress_link"),
+            modifier = Modifier.testTag("exercise_detail_progress_link"),
         )
         RecordsBlock(records, today, onRetryRecords)
     }
@@ -137,29 +137,22 @@ private fun DetailMedia(detail: ExerciseDetail, name: String) {
     }
 }
 
+@OptIn(ExperimentalLayoutApi::class) // FlowRow wraps the pills at large font scales.
 @Composable
 private fun DetailHeader(detail: ExerciseDetail) {
     // The name is the screen title (R-01), so the body starts with the muscle and equipment pills.
-    Column(verticalArrangement = Arrangement.spacedBy(Spacing.md)) {
-        Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-            TextPill(stringResource(detail.exercise.muscleGroup.label))
-            TextPill(stringResource(detail.exercise.equipment.label))
+    FlowRow(
+        horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+        verticalArrangement = Arrangement.spacedBy(Spacing.sm),
+    ) {
+        TextPill(stringResource(detail.exercise.muscleGroup.label))
+        TextPill(stringResource(detail.exercise.equipment.label))
+        if (detail.exercise.perHand) {
+            TextPill(
+                text = stringResource(Res.string.exercise_detail_per_hand_pill),
+                modifier = Modifier.testTag("exercise_detail_per_hand_value"),
+            )
         }
-        Text(
-            text = stringResource(
-                Res.string.exercise_detail_per_hand,
-                stringResource(
-                    if (detail.exercise.perHand) {
-                        Res.string.exercise_detail_per_hand_yes
-                    } else {
-                        Res.string.exercise_detail_per_hand_no
-                    },
-                ),
-            ),
-            style = AppTheme.typography.bodyMedium,
-            color = AppTheme.colors.textSecondary,
-            modifier = Modifier.testTag("exercise_detail_per_hand_value"),
-        )
     }
 }
 

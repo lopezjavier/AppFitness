@@ -4,6 +4,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -21,7 +22,9 @@ import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.github.lopezjavier.appfitness.composeapp.resources.Res
 import io.github.lopezjavier.appfitness.composeapp.resources.action_retry
+import io.github.lopezjavier.appfitness.composeapp.resources.add_item
 import io.github.lopezjavier.appfitness.composeapp.resources.delete_offline
+import io.github.lopezjavier.appfitness.composeapp.resources.ic_create_new_folder
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_nav_workout
 import io.github.lopezjavier.appfitness.composeapp.resources.routines_action_failed
 import io.github.lopezjavier.appfitness.composeapp.resources.routines_empty
@@ -39,6 +42,7 @@ import io.github.lopezjavier.appfitness.designsystem.LocalAppMessages
 import io.github.lopezjavier.appfitness.designsystem.OfflineHint
 import io.github.lopezjavier.appfitness.designsystem.SkeletonBox
 import io.github.lopezjavier.appfitness.designsystem.Spacing
+import io.github.lopezjavier.appfitness.designsystem.TonalSquareIconButton
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
 
@@ -113,8 +117,8 @@ fun RoutinesRoot(
 }
 
 /**
- * The routines as swipeable cards (R-20): tap opens the details, ✎ the builder, ⋮ the actions sheet, "Empezar"
- * starts a session; "Añadir rutina" and "Añadir carpeta" close the list (R-19). Body only: the title, bar and
+ * The routines as swipeable cards (R-20): tap opens the details, ▶ starts a session, ⋮ opens the actions sheet;
+ * "Añadir rutina" and the folder button close the list in one row (R-19, C-96). Body only: the title, bar and
  * messages belong to the Entreno tab. Loading shows skeleton rows, an empty list offers "Añadir rutina" in place and
  * a failed load offers "Reintentar".
  */
@@ -158,24 +162,25 @@ private fun RoutinesContent(state: RoutinesUiState.Content, onEvent: (RoutinesEv
         contentPadding = PaddingValues(horizontal = Spacing.screenMargin, vertical = Spacing.lg),
         verticalArrangement = Arrangement.spacedBy(Spacing.cardGap),
     ) {
-        routineGroups(state, onEvent)
-        item(key = "add_routine") {
-            AddItemButton(
-                objectLabel = "rutina",
-                onClick = { onEvent(RoutinesEvent.NewRoutine) },
-                modifier = Modifier.testTag("routines_add_routine"),
-                enabled = state.isOnline,
-            )
-        }
-        item(key = "add_folder") {
-            AddItemButton(
-                objectLabel = "carpeta",
-                onClick = { onEvent(RoutinesEvent.NewFolder) },
-                modifier = Modifier.testTag("routines_add_folder"),
-                enabled = state.isOnline,
-            )
-        }
         if (!state.isOnline) item(key = "offline_hint") { OfflineHint(action = "empezar") }
+        routineGroups(state, onEvent)
+        item(key = "add_row") {
+            Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+                AddItemButton(
+                    objectLabel = "rutina",
+                    onClick = { onEvent(RoutinesEvent.NewRoutine) },
+                    modifier = Modifier.weight(1f).testTag("routines_add_routine"),
+                    enabled = state.isOnline,
+                )
+                TonalSquareIconButton(
+                    contentDescription = stringResource(Res.string.add_item, "carpeta"),
+                    icon = Res.drawable.ic_create_new_folder,
+                    testTag = "routines_add_folder",
+                    onClick = { onEvent(RoutinesEvent.NewFolder) },
+                    enabled = state.isOnline,
+                )
+            }
+        }
     }
 }
 

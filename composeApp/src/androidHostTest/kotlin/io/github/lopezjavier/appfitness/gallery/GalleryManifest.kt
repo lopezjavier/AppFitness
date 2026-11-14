@@ -31,12 +31,15 @@ internal object GalleryManifest {
     ) + listOf(
         "AppAvatar", "AppBottomSheet", "AppButtonChip", "AppChip", "AppIconButton", "AppLineChartSkeleton",
         "AppMessageHost", "AppSheetHeader", "AppSheetLayout", "AppSwitch", "AppSwitchRow", "CardioTimeCell",
-        "ChecklistRow", "CoachChangeRow", "CoachProposalCard", "DayPickerSheet", "DiscStepperRow",
-        "DiscardChangesDialog", "HelpTriggerButton", "InvalidTimeMessage", "ListRowSkeleton", "NavIcon", "NavLabel",
-        "OfflineHint", "OptionPickerSheet", "PausedText", "PillContainer", "ProgressLine", "RestTimerAction",
-        "RingArc", "RpeHelpButton", "RpeOptionRow", "RpePickerSheet", "ScaleOptionRow", "SetFieldInput",
-        "SetNoteButton", "SetOrdinal", "SheetActionRow", "StatusChip", "StepScaffold", "StreamProgressState",
-        "SupersetAccent", "TimeInput", "TimerBarLabel", "TimerBarSurface",
+        "ChecklistRow", "CoachChangeRow", "CardioStart", "CircleIconButton", "CoachProposalCard", "DayPickerSheet",
+        "DiscStepperRow",
+        "DiscardChangesDialog", "FilterChipFlow", "HelpTriggerButton", "IconTile", "InvalidTimeMessage",
+        "ListRowSkeleton", "NavIcon", "NavLabel", "OfflineHint", "OptionPickerSheet", "PausedText",
+        "PillContainer", "ProgressLine", "RestTimerAction", "RingArc", "RpeHelpButton", "RpeOptionRow",
+        "RpePickerSheet", "ScaleOptionRow", "SetFieldInput", "SetNoteButton", "SetOrdinal", "SheetActionRow",
+        "StatusChip", "StepScaffold", "StreamProgressState", "SupersetAccent",
+        "TonalSquareIconButton",
+        "TimeInput", "TimerBarLabel", "TimerBarSurface",
     ).associateWith {
         "Not in the component catalog yet: recorded gap in tasks/todo.md (T-280), owner review rounds T-281 to T-284."
     }

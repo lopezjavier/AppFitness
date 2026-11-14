@@ -190,7 +190,8 @@ private fun TimeText(
             .heightIn(min = StopwatchFieldDefaults.TouchTarget)
             .widthIn(min = StopwatchFieldDefaults.TouchTarget)
             .clickable(enabled = enabled, role = Role.Button, onClickLabel = edit, onClick = onClick)
-            .semantics { stateDescription = state },
+            .semantics { stateDescription = state }
+            .timeFieldContainer(done = !enabled && !running),
         contentAlignment = Alignment.Center,
     ) {
         Text(
@@ -200,6 +201,20 @@ private fun TimeText(
             maxLines = 1,
         )
     }
+}
+
+/**
+ * The container of a typed time, drawn like KG and REPS (C-91): `surfaceControl` with a thin `borderControl`, radius
+ * 8 dp, 4 dp of side padding. A [done] set uses `surfaceOverlay` and no border (C-67).
+ */
+@Composable
+internal fun Modifier.timeFieldContainer(done: Boolean): Modifier {
+    val colors = AppTheme.colors
+    val shape = NumberInputDefaults.Shape
+    return clip(shape)
+        .background(if (done) colors.surfaceOverlay else colors.surfaceControl)
+        .let { if (done) it else it.border(NumberInputDefaults.BorderWidth, colors.borderControl, shape) }
+        .padding(horizontal = NumberInputDefaults.HorizontalPadding)
 }
 
 @Composable

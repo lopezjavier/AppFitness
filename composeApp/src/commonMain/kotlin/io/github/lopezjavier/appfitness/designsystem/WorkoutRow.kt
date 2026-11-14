@@ -20,7 +20,7 @@ fun WorkoutRow(
     name: String,
     dateText: String,
     durationText: String,
-    volumeText: String,
+    volumeText: String?,
     setsText: String,
     onClick: () -> Unit,
     contentDescription: String,
@@ -32,7 +32,7 @@ fun WorkoutRow(
         headlineStyle = AppTheme.typography.titleMedium,
         headlineMaxLines = 1,
         supporting = dateText,
-        supportingSecondary = listOf(durationText, volumeText, setsText).joinToString(STATS_SEPARATOR),
+        supportingSecondary = listOfNotNull(durationText, volumeText, setsText).joinToString(STATS_SEPARATOR),
         onClick = onClick,
         modifier = modifier
             .testTag(tag)

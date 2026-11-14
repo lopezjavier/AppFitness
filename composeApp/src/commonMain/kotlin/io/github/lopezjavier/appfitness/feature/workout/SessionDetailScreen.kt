@@ -43,9 +43,6 @@ import io.github.lopezjavier.appfitness.composeapp.resources.session_detail_fall
 import io.github.lopezjavier.appfitness.composeapp.resources.session_detail_no_sets
 import io.github.lopezjavier.appfitness.composeapp.resources.session_detail_routine_saved
 import io.github.lopezjavier.appfitness.composeapp.resources.session_detail_save_as_routine_cd
-import io.github.lopezjavier.appfitness.composeapp.resources.session_detail_volume_label
-import io.github.lopezjavier.appfitness.composeapp.resources.summary_duration
-import io.github.lopezjavier.appfitness.composeapp.resources.summary_sets
 import io.github.lopezjavier.appfitness.designsystem.AppCard
 import io.github.lopezjavier.appfitness.designsystem.AppDateFormat
 import io.github.lopezjavier.appfitness.designsystem.AppNumberFormat
@@ -220,37 +217,12 @@ private fun DetailContent(state: SessionDetailUiState.Content, onOpenExercise: (
 
 @Composable
 private fun DetailHeader(state: SessionDetailUiState.Content) {
-    AppCard(Modifier.fillMaxWidth()) {
-        Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-            StatRow(
-                stringResource(Res.string.summary_duration),
-                formatElapsed(state.stats.durationSeconds),
-                "session_detail_duration",
-            )
-            StatRow(
-                stringResource(Res.string.summary_sets),
-                AppNumberFormat.integer(state.stats.completedSets),
-                "session_detail_sets",
-            )
-            StatRow(
-                stringResource(Res.string.session_detail_volume_label),
-                volumeText(state.stats.volumeKg),
-                "session_detail_volume",
-            )
-        }
-    }
-}
-
-@Composable
-private fun StatRow(label: String, value: String, tag: String) {
-    Row(
-        Modifier.fillMaxWidth().semantics(mergeDescendants = true) {}.testTag(tag),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Text(label, style = AppTheme.typography.bodyMedium, color = AppTheme.colors.textSecondary)
-        Text(value, style = AppTheme.typography.labelNumeric, color = AppTheme.colors.textPrimary)
-    }
+    WorkoutMetricTiles(
+        durationSeconds = state.stats.durationSeconds,
+        completedSets = state.stats.completedSets,
+        volumeKg = state.stats.volumeKg.takeIf { it > 0.0 },
+        tagPrefix = "session_detail",
+    )
 }
 
 @Composable
@@ -294,7 +266,7 @@ private fun SetLine(position: Int, set: DetailSet) {
         SetTypeBadge(type = set.setType)
         Text(
             text = set.text,
-            style = AppTheme.typography.labelNumeric,
+            style = AppTheme.typography.titleMedium,
             color = AppTheme.colors.textPrimary,
             modifier = Modifier.weight(1f),
         )

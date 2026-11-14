@@ -16,17 +16,18 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import io.github.lopezjavier.appfitness.composeapp.resources.Res
-import io.github.lopezjavier.appfitness.composeapp.resources.builder_add_exercise
+import io.github.lopezjavier.appfitness.composeapp.resources.live_object_exercise
 import io.github.lopezjavier.appfitness.composeapp.resources.note_sheet_set_title
 import io.github.lopezjavier.appfitness.composeapp.resources.workout_form_description
 import io.github.lopezjavier.appfitness.composeapp.resources.workout_form_duration
+import io.github.lopezjavier.appfitness.composeapp.resources.workout_form_duration_unit
 import io.github.lopezjavier.appfitness.composeapp.resources.workout_form_gym
 import io.github.lopezjavier.appfitness.composeapp.resources.workout_form_name
 import io.github.lopezjavier.appfitness.composeapp.resources.workout_form_name_error
 import io.github.lopezjavier.appfitness.composeapp.resources.workout_form_no_exercises
+import io.github.lopezjavier.appfitness.designsystem.AddItemButton
 import io.github.lopezjavier.appfitness.designsystem.AppTextField
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
-import io.github.lopezjavier.appfitness.designsystem.GhostButton
 import io.github.lopezjavier.appfitness.designsystem.LocalAppHaptics
 import io.github.lopezjavier.appfitness.designsystem.NoteSheet
 import io.github.lopezjavier.appfitness.designsystem.NumberInput
@@ -91,6 +92,8 @@ internal fun WorkoutFormBody(
             label = stringResource(Res.string.workout_form_duration),
             modifier = Modifier.fillMaxWidth().testTag("${tagPrefix}_duration"),
             maxIntegerDigits = WorkoutFormLimits.MINUTES_MAX_CHARS,
+            startAligned = true,
+            unit = stringResource(Res.string.workout_form_duration_unit),
         )
         AppTextField(
             value = form.gym,
@@ -132,10 +135,10 @@ internal fun WorkoutFormBody(
                 onOpenNote = { notePicker = slot(index, it) },
             )
         }
-        GhostButton(
-            text = stringResource(Res.string.builder_add_exercise),
+        AddItemButton(
+            objectLabel = stringResource(Res.string.live_object_exercise),
             onClick = onAddExercise,
-            modifier = Modifier.fillMaxWidth().testTag("${tagPrefix}_add_exercise"),
+            modifier = Modifier.testTag("${tagPrefix}_add_exercise"),
         )
     }
     FormPickers(form, typePicker, rpePicker, onEvent, { typePicker = NO_PICKER }, { rpePicker = NO_PICKER })

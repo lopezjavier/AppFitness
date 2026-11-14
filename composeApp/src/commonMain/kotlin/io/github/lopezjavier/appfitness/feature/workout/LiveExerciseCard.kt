@@ -4,6 +4,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
@@ -69,12 +70,14 @@ internal fun LiveExerciseCard(
     online: Boolean = true,
     discomfortSaving: Boolean = false,
     discomfortLogs: Int = 0,
+    currentSetIndex: Int? = null,
 ) {
     val position = exercise.position
     val name = exercise.name
     var sheet by rememberSaveable { mutableStateOf(ExerciseSheet.None) }
     OnDiscomfortStored(discomfortLogs) { if (sheet == ExerciseSheet.Discomfort) sheet = ExerciseSheet.None }
-    AppCard(modifier.fillMaxWidth()) {
+    // 12 dp inside the live card gives the set row its 48 dp cells at 360 dp (V-21).
+    AppCard(modifier.fillMaxWidth(), contentPadding = PaddingValues(Spacing.md)) {
         Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 ExerciseHeading(exercise, name, onOpenExercise, Modifier.weight(1f))
@@ -105,6 +108,7 @@ internal fun LiveExerciseCard(
                     deleteEnabled = deleteEnabled,
                     showRpe = !timed,
                     cardio = cardio,
+                    current = it.setIndex == currentSetIndex,
                 )
             }
             AddItemButton(
@@ -206,7 +210,7 @@ private fun LiveSetTableHeader(fields: List<SetFieldSpec>, showRpe: Boolean, car
     SetTableHeader(
         showRpe = showRpe,
         fields = fields,
-        showNote = true,
+        showNote = true, // a cardio table drops the note column itself: its button sits on the second line (V-22)
         showPrevious = false,
         testTagPrefix = "live_set_header",
         cardioTime = cardio,

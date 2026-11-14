@@ -221,11 +221,13 @@ internal fun closeThen(scope: CoroutineScope, sheetState: SheetState, onDismiss:
 /**
  * Shared header of every archetype: a `titleLarge` heading (omitted when [title] is null), the optional "?" [help]
  * slot and the X "Cerrar" (`<prefix>_close`), each a 48 dp target that keeps its size at large font scales.
+ * The row grows with a two-line title and keeps 12 dp below it (C-83).
  */
 @Composable
 internal fun AppSheetHeader(title: String?, onClose: () -> Unit, prefix: String, help: (@Composable () -> Unit)?) {
     Row(
-        modifier = Modifier.fillMaxWidth().padding(start = Spacing.screenMargin, end = Spacing.xs),
+        modifier = Modifier.fillMaxWidth()
+            .padding(start = Spacing.screenMargin, end = Spacing.xs, bottom = Spacing.md),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(Spacing.xs),
     ) {

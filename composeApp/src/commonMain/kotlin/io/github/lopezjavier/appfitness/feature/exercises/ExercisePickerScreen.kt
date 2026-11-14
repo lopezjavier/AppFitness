@@ -1,3 +1,5 @@
+@file:Suppress("TooManyFunctions") // The picker and its small private parts share one file.
+
 package io.github.lopezjavier.appfitness.feature.exercises
 
 import androidx.compose.foundation.layout.Arrangement
@@ -24,11 +26,14 @@ import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.unit.Dp
 import androidx.lifecycle.compose.LifecycleResumeEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.github.lopezjavier.appfitness.composeapp.resources.Res
 import io.github.lopezjavier.appfitness.composeapp.resources.action_retry
 import io.github.lopezjavier.appfitness.composeapp.resources.exercise_attribution
+import io.github.lopezjavier.appfitness.composeapp.resources.exercise_create_equipment_label
+import io.github.lopezjavier.appfitness.composeapp.resources.exercise_create_muscle_label
 import io.github.lopezjavier.appfitness.composeapp.resources.exercise_empty_catalog
 import io.github.lopezjavier.appfitness.composeapp.resources.exercise_empty_hint
 import io.github.lopezjavier.appfitness.composeapp.resources.exercise_empty_no_results
@@ -36,6 +41,7 @@ import io.github.lopezjavier.appfitness.composeapp.resources.exercise_empty_no_r
 import io.github.lopezjavier.appfitness.composeapp.resources.exercise_error_message
 import io.github.lopezjavier.appfitness.composeapp.resources.exercise_filter_all
 import io.github.lopezjavier.appfitness.composeapp.resources.exercise_picker_title
+import io.github.lopezjavier.appfitness.composeapp.resources.exercise_picker_title_add
 import io.github.lopezjavier.appfitness.composeapp.resources.exercise_save_failed
 import io.github.lopezjavier.appfitness.composeapp.resources.exercise_search_label
 import io.github.lopezjavier.appfitness.composeapp.resources.exercise_search_placeholder
@@ -121,7 +127,9 @@ fun ExercisePickerScreen(
     selectMode: Boolean = false,
 ) {
     AppScreen(
-        title = stringResource(Res.string.exercise_picker_title),
+        title = stringResource(
+            if (selectMode) Res.string.exercise_picker_title_add else Res.string.exercise_picker_title,
+        ),
         modifier = modifier,
         onBack = onBack,
         maxContentWidth = ExerciseLayoutDefaults.ContentMaxWidth,
@@ -155,30 +163,43 @@ private fun PickerFilters(state: ExercisePickerUiState.Content, onEvent: (Exerci
             Equipment.entries.map {
                 AppOption(stringResource(it.label), "exercise_picker_equipment_chip_${it.tagName()}")
             }
+    // The rows run to the screen edge and keep the margin as content padding, so a chip is never clipped (R-86).
     Column(
-        Modifier.padding(top = Spacing.lg, bottom = Spacing.sm),
+        Modifier.padding(
+            start = Spacing.screenMargin,
+            end = Spacing.screenMargin,
+            top = Spacing.lg,
+            bottom = Spacing.sm,
+        ),
         verticalArrangement = Arrangement.spacedBy(Spacing.sm),
     ) {
         SearchField(
             query = state.query,
             onQueryChange = { onEvent(ExercisePickerEvent.SetQuery(it)) },
-            modifier = Modifier.padding(horizontal = Spacing.screenMargin),
         )
+        ChipCaption(stringResource(Res.string.exercise_create_muscle_label))
         MuscleChipRow(
             selected = state.muscleGroup,
             onSelect = { onEvent(ExercisePickerEvent.SelectMuscleGroup(it)) },
             tagPrefix = "exercise_picker",
-            modifier = Modifier.padding(horizontal = Spacing.screenMargin),
+            edgeToEdge = Spacing.screenMargin,
         )
+        ChipCaption(stringResource(Res.string.exercise_create_equipment_label))
         FilterChipRow(
             options = equipmentOptions,
             selectedIndex = state.equipment?.let { it.ordinal + 1 } ?: 0,
             onSelect = { index ->
                 onEvent(ExercisePickerEvent.SelectEquipment(Equipment.entries.getOrNull(index - 1)))
             },
-            modifier = Modifier.padding(horizontal = Spacing.screenMargin).testTag("exercise_picker_equipment_chips"),
+            modifier = Modifier.testTag("exercise_picker_equipment_chips"),
+            edgeToEdge = Spacing.screenMargin,
         )
     }
+}
+
+@Composable
+private fun ChipCaption(text: String) {
+    Text(text = text, style = AppTheme.typography.labelTechnical, color = AppTheme.colors.textSecondary)
 }
 
 /** Single-select muscle filter: "Todos" (null) plus every [MuscleGroup]; tags `<tagPrefix>_muscle_chip(s)_*`. */
@@ -188,6 +209,7 @@ internal fun MuscleChipRow(
     onSelect: (MuscleGroup?) -> Unit,
     tagPrefix: String,
     modifier: Modifier = Modifier,
+    edgeToEdge: Dp = Spacing.none,
 ) {
     val options = listOf(AppOption(stringResource(Res.string.exercise_filter_all), "${tagPrefix}_muscle_chip_all")) +
         MuscleGroup.entries.map { AppOption(stringResource(it.label), "${tagPrefix}_muscle_chip_${it.tagName()}") }
@@ -196,6 +218,7 @@ internal fun MuscleChipRow(
         selectedIndex = selected?.let { it.ordinal + 1 } ?: 0,
         onSelect = { onSelect(MuscleGroup.entries.getOrNull(it - 1)) },
         modifier = modifier.testTag("${tagPrefix}_muscle_chips"),
+        edgeToEdge = edgeToEdge,
     )
 }
 
@@ -206,6 +229,7 @@ private fun SearchField(query: String, onQueryChange: (String) -> Unit, modifier
         onValueChange = onQueryChange,
         label = stringResource(Res.string.exercise_search_label),
         placeholder = stringResource(Res.string.exercise_search_placeholder),
+        showLabel = false,
         onSearch = {}, // The list filters live as the query changes; the keyboard action only hides the keyboard.
         modifier = modifier.fillMaxWidth(),
         testTagPrefix = "exercise_picker_search",

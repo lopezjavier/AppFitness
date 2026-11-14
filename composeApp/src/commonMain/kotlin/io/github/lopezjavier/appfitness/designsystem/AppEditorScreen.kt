@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.LaunchedEffect
@@ -84,6 +85,7 @@ fun AppEditorScreen(
     actions: List<AppTopBarAction> = emptyList(),
     maxContentWidth: Dp = WindowWidthClassDefaults.FormContentMaxWidth,
     testTagPrefix: String = AppScreenDefaults.TestTag,
+    showFooter: Boolean = true,
     content: @Composable (PaddingValues) -> Unit,
 ) {
     val state = rememberSaveable(saver = EditorDiscardState.Saver) { EditorDiscardState() }
@@ -115,17 +117,21 @@ fun AppEditorScreen(
         actions = actions,
         maxContentWidth = maxContentWidth,
         testTagPrefix = testTagPrefix,
-        footer = {
-            EditorFooter(
-                canSave = state.canSave(saveEnabledWhenClean),
-                isSaving = isSaving,
-                isOnline = isOnline,
-                onSave = onSave,
-                destructiveAction = destructiveAction,
-                secondaryAction = secondaryAction,
-                notice = footerNotice,
-                testTagPrefix = testTagPrefix,
-            )
+        footer = if (showFooter) {
+            {
+                EditorFooter(
+                    canSave = state.canSave(saveEnabledWhenClean),
+                    isSaving = isSaving,
+                    isOnline = isOnline,
+                    onSave = onSave,
+                    destructiveAction = destructiveAction,
+                    secondaryAction = secondaryAction,
+                    notice = footerNotice,
+                    testTagPrefix = testTagPrefix,
+                )
+            }
+        } else {
+            null
         },
         content = content,
     )
@@ -181,12 +187,14 @@ private fun EditorFooter(
             )
         }
         if (destructiveAction != null) {
-            GhostButton(
+            // R-70: a text-style danger action, at least 16 dp under "Guardar" (the column gap plus this padding).
+            AppTextButton(
                 text = destructiveAction.label,
                 onClick = destructiveAction.onClick,
-                modifier = Modifier.fillMaxWidth().testTag(AppEditorScreenDefaults.deleteTag(testTagPrefix)),
+                modifier = Modifier.fillMaxWidth().padding(top = Spacing.sm)
+                    .testTag(AppEditorScreenDefaults.deleteTag(testTagPrefix)),
                 enabled = destructiveAction.enabled,
-                tone = GhostTone.Destructive,
+                tone = AppTextButtonTone.Danger,
             )
         }
     }

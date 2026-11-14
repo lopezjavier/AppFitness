@@ -2,13 +2,18 @@
 
 package io.github.lopezjavier.appfitness.designsystem
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -17,52 +22,52 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import io.github.lopezjavier.appfitness.composeapp.resources.Res
+import io.github.lopezjavier.appfitness.composeapp.resources.cardio_start_cd
+import io.github.lopezjavier.appfitness.composeapp.resources.cardio_start_label
 import io.github.lopezjavier.appfitness.composeapp.resources.cardio_timer_running_cd
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_play_arrow
 import io.github.lopezjavier.appfitness.composeapp.resources.stopwatch_edit_cd
-import io.github.lopezjavier.appfitness.composeapp.resources.stopwatch_start_cd
 import io.github.lopezjavier.appfitness.domain.usecase.DurationFormat
+import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.resources.stringResource
 
 object CardioTimeCellDefaults {
-    /** Width the time needs at normal font scale; it grows with the font so the cell stacks before the text clips. */
-    val MinFieldWidth: Dp = 40.dp
+    /** Width of the pill that starts the run when the circle does not fit on the row's first line. */
+    val PillHeight: Dp = 40.dp
 }
 
 /**
- * The TIEMPO cell of a cardio set (R-58): the time to type (the planned [placeholder] while it is empty, mm:ss after)
- * and a trailing 48 dp play button that starts or resumes the run, which then lives in the shared timer bar. While
- * the run is going ([timerInBar]) the time is not editable and the button is disabled and tinted; while paused the
- * time can be typed. Stacks the button under the time when the cell is too narrow for both (large font). Tags (with
- * [testTagPrefix]): `_cell`, `_time`, `_input` and `_error`; the button takes [startTestTag] and the placeholder
- * [placeholderTestTag].
+ * The TIEMPO field of a cardio set (R-58): drawn as a field like KG and REPS (C-91), holding the time to type (the
+ * planned [placeholder] while it is empty, mm:ss after). The start control is a separate cell of the row
+ * ([CardioStart]); the run lives in the shared timer bar. While the run is going ([timerInBar]) the time is not
+ * editable; while paused it can be typed. Tags (with [testTagPrefix]): `_cell`, `_time`, `_input` and `_error`; the
+ * placeholder takes [placeholderTestTag].
  */
 @Composable
-@Suppress("LongParameterList") // The cell is stateless: values, three callbacks and its tags.
+@Suppress("LongParameterList") // The cell's state, handler and tags.
 fun CardioTimeCell(
     elapsedSeconds: Int,
     placeholder: String,
     placeholderDescription: String,
     timerInBar: Boolean,
     readOnly: Boolean,
-    onStart: () -> Unit,
     onManualEntry: (Int) -> Unit,
     modifier: Modifier = Modifier,
     testTagPrefix: String? = null,
-    startTestTag: String? = null,
     placeholderTestTag: String? = null,
 ) {
     val entry = remember { TimeEntry() }
-    val time: @Composable () -> Unit = {
+    Column(modifier.then(tagged(testTagPrefix, "cell")), horizontalAlignment = Alignment.CenterHorizontally) {
         if (entry.editing) {
             TimeInput(
                 value = entry.draft,
@@ -78,6 +83,7 @@ fun CardioTimeCell(
             TimeButton(
                 text = if (empty) placeholder else text,
                 dim = empty,
+                done = readOnly,
                 description = if (empty) placeholderDescription else edit,
                 enabled = !readOnly && !timerInBar,
                 onClick = entry::begin,
@@ -87,23 +93,6 @@ fun CardioTimeCell(
                     tagged(testTagPrefix, "time")
                 },
             )
-        }
-    }
-    val start: @Composable () -> Unit = { StartButton(timerInBar, readOnly, onStart, startTestTag) }
-    val minField = CardioTimeCellDefaults.MinFieldWidth * LocalDensity.current.fontScale
-    Column(modifier.then(tagged(testTagPrefix, "cell")), horizontalAlignment = Alignment.CenterHorizontally) {
-        BoxWithConstraints(Modifier.fillMaxWidth()) {
-            if (maxWidth >= StopwatchFieldDefaults.TouchTarget + minField) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Box(Modifier.weight(1f), contentAlignment = Alignment.Center) { time() }
-                    start()
-                }
-            } else {
-                Column(Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) {
-                    time()
-                    start()
-                }
-            }
         }
         if (entry.invalid) InvalidTimeMessage(tagged(testTagPrefix, "error"))
     }
@@ -147,45 +136,106 @@ private class TimeEntry {
 private fun tagged(prefix: String?, part: String): Modifier =
     childTestTag(prefix, part)?.let { Modifier.testTag(it) } ?: Modifier
 
+/**
+ * The start control of a cardio set (C-92): a tonal circle on the row's first line, or an "Iniciar" [pill] on the
+ * second line when the first has no room. A run in the bar disables it with a lime glyph; a done set with a dim one.
+ */
 @Composable
-private fun StartButton(timerInBar: Boolean, readOnly: Boolean, onStart: () -> Unit, tag: String?) {
-    AppIconButton(
-        contentDescription = stringResource(
-            if (timerInBar) Res.string.cardio_timer_running_cd else Res.string.stopwatch_start_cd,
-        ),
-        icon = Res.drawable.ic_play_arrow,
-        testTag = tag ?: "cardio_time_start",
-        onClick = onStart,
-        enabled = !readOnly && !timerInBar,
-        tint = if (timerInBar) AppTheme.colors.neonLime else AppTheme.colors.textPrimary,
+internal fun CardioStart(
+    timerInBar: Boolean,
+    done: Boolean,
+    onStart: () -> Unit,
+    tag: String?,
+    pill: Boolean,
+    modifier: Modifier = Modifier,
+) {
+    val description = stringResource(
+        if (timerInBar) Res.string.cardio_timer_running_cd else Res.string.cardio_start_cd,
     )
+    val enabled = !done && !timerInBar
+    val disabledGlyph = if (timerInBar) AppTheme.colors.neonLime else AppTheme.colors.ghostData
+    val testTag = tag ?: "cardio_time_start"
+    if (!pill) {
+        CircleIconButton(
+            contentDescription = description,
+            icon = Res.drawable.ic_play_arrow,
+            testTag = testTag,
+            onClick = onStart,
+            modifier = modifier,
+            enabled = enabled,
+            size = SetCompletionCheckboxDefaults.VisualSize,
+            disabledGlyph = disabledGlyph,
+        )
+        return
+    }
+    val content = if (enabled) AppTheme.colors.textPrimary else disabledGlyph
+    Box(
+        modifier
+            .heightIn(min = SetCompletionCheckboxDefaults.TouchTarget)
+            .clip(AppShapes.full)
+            .clickable(enabled = enabled, role = Role.Button, onClick = onStart)
+            .semantics { contentDescription = description }
+            .testTag(testTag),
+        contentAlignment = Alignment.Center,
+    ) {
+        Row(
+            Modifier.height(CardioTimeCellDefaults.PillHeight).clip(AppShapes.full)
+                .background(AppTheme.colors.surfaceControl).padding(horizontal = Spacing.lg),
+            horizontalArrangement = Arrangement.spacedBy(Spacing.xs),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Icon(
+                painter = painterResource(Res.drawable.ic_play_arrow),
+                contentDescription = null,
+                tint = content,
+                modifier = Modifier.size(AppButtonDefaults.LeadingIconSize),
+            )
+            Text(
+                text = stringResource(Res.string.cardio_start_label),
+                style = AppTheme.typography.bodyMedium.copy(fontWeight = FontWeight.W600),
+                color = content,
+                maxLines = 1,
+            )
+        }
+    }
 }
 
 @Composable
+@Suppress("LongParameterList") // One field: text, state, description and click.
 private fun TimeButton(
     text: String,
     dim: Boolean,
+    done: Boolean,
     description: String,
     enabled: Boolean,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    var compact by remember(text) { mutableStateOf(false) }
+    val style = when {
+        !dim -> StopwatchFieldDefaults.timeStyle(AppTheme.typography)
+
+        compact -> AppTheme.typography.bodyMedium.copy(textAlign = TextAlign.Center)
+
+        else -> StopwatchFieldDefaults.timeStyle(AppTheme.typography)
+            .copy(fontWeight = NumberInputDefaults.PlaceholderWeight)
+    }
     Box(
         modifier
+            .fillMaxWidth()
             .heightIn(min = StopwatchFieldDefaults.TouchTarget)
+            .timeFieldContainer(done)
             .clickable(enabled = enabled, role = Role.Button, onClick = onClick)
             .semantics { contentDescription = description },
         contentAlignment = Alignment.Center,
     ) {
         Text(
             text = text,
-            style = if (dim) {
-                AppTheme.typography.bodySmall.copy(textAlign = TextAlign.Center)
-            } else {
-                StopwatchFieldDefaults.timeStyle(AppTheme.typography)
-            },
+            style = style,
             color = if (dim) AppTheme.colors.textTertiary else AppTheme.colors.textPrimary,
             maxLines = 1,
+            softWrap = false,
+            onTextLayout = { if (dim && it.hasVisualOverflow) compact = true },
         )
     }
 }

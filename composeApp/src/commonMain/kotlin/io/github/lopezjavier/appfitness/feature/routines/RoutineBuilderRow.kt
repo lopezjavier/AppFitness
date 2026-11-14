@@ -7,8 +7,9 @@ import androidx.compose.foundation.gestures.rememberDraggableState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
@@ -40,15 +41,18 @@ import io.github.lopezjavier.appfitness.composeapp.resources.builder_rest_increa
 import io.github.lopezjavier.appfitness.composeapp.resources.builder_rest_unit
 import io.github.lopezjavier.appfitness.composeapp.resources.builder_row_cd_superset
 import io.github.lopezjavier.appfitness.composeapp.resources.builder_row_menu_cd
+import io.github.lopezjavier.appfitness.composeapp.resources.builder_superset_sets_help_body
+import io.github.lopezjavier.appfitness.composeapp.resources.builder_superset_sets_help_cd
 import io.github.lopezjavier.appfitness.composeapp.resources.builder_ungroup
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_arrow_downward
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_arrow_upward
+import io.github.lopezjavier.appfitness.composeapp.resources.ic_calculate
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_delete
-import io.github.lopezjavier.appfitness.composeapp.resources.ic_edit
-import io.github.lopezjavier.appfitness.composeapp.resources.ic_label
+import io.github.lopezjavier.appfitness.composeapp.resources.ic_fitness_center
+import io.github.lopezjavier.appfitness.composeapp.resources.ic_link
+import io.github.lopezjavier.appfitness.composeapp.resources.ic_link_off
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_more_vert
-import io.github.lopezjavier.appfitness.composeapp.resources.ic_remove
-import io.github.lopezjavier.appfitness.composeapp.resources.ic_set_normal
+import io.github.lopezjavier.appfitness.composeapp.resources.ic_sticky_note_2
 import io.github.lopezjavier.appfitness.composeapp.resources.live_exercise_menu_plate_calc
 import io.github.lopezjavier.appfitness.composeapp.resources.live_exercise_menu_warm_up_calc
 import io.github.lopezjavier.appfitness.composeapp.resources.note_add
@@ -87,6 +91,7 @@ import io.github.lopezjavier.appfitness.designsystem.SupersetAccent
 import io.github.lopezjavier.appfitness.designsystem.SupersetAccentWidth
 import io.github.lopezjavier.appfitness.designsystem.SwipeToDeleteRow
 import io.github.lopezjavier.appfitness.designsystem.exerciseNoteSummary
+import io.github.lopezjavier.appfitness.designsystem.semiBold
 import io.github.lopezjavier.appfitness.designsystem.supersetText
 import io.github.lopezjavier.appfitness.domain.model.Equipment
 import io.github.lopezjavier.appfitness.domain.model.RoutineBounds
@@ -268,12 +273,21 @@ private fun RowIdentity(
                 overflow = TextOverflow.Ellipsis,
             )
             if (superset != null) {
-                Text(
-                    text = superset,
-                    style = AppTheme.typography.bodySmall,
-                    color = AppTheme.colors.athleticCyan,
-                    modifier = Modifier.testTag("routine_builder_superset_label_$index"),
-                )
+                // V-31: the "?" of the superset sets sits with its label, never alone on a line.
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        text = superset,
+                        style = AppTheme.typography.bodySmall,
+                        color = AppTheme.colors.athleticCyan,
+                        modifier = Modifier.testTag("routine_builder_superset_label_$index"),
+                    )
+                    HelpButton(
+                        contentDescription = stringResource(Res.string.builder_superset_sets_help_cd),
+                        title = superset,
+                        body = stringResource(Res.string.builder_superset_sets_help_body),
+                        testTag = "routine_builder_superset_sets_help_$index",
+                    )
+                }
             }
         }
     }
@@ -367,7 +381,11 @@ private fun TargetRpeLine(row: BuilderRowUi, index: Int, onEvent: (RoutineBuilde
     )
 }
 
-/** Technical label ("SERIES") on the left, the stepper on the right. */
+/**
+ * Sentence-case label with its "?" on the left, the stepper on the right (R-83): label and "?" stay together and the
+ * stepper drops to its own line before it is squeezed.
+ */
+@OptIn(ExperimentalLayoutApi::class) // FlowRow moves the stepper to the next line when the row is too narrow.
 @Suppress("LongParameterList") // Label, value, descriptions and bounds of one stepper.
 @Composable
 private fun StepperLine(
@@ -382,16 +400,19 @@ private fun StepperLine(
     tag: String,
     help: (@Composable () -> Unit)? = null,
 ) {
-    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-        Text(
-            text = unit,
-            style = AppTheme.typography.labelTechnical,
-            color = AppTheme.colors.textSecondary,
-            modifier = if (help == null) Modifier.weight(1f) else Modifier,
-        )
-        if (help != null) {
-            help()
-            Spacer(Modifier.weight(1f))
+    FlowRow(
+        Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalArrangement = Arrangement.Center,
+        itemVerticalAlignment = Alignment.CenterVertically,
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text(
+                text = unit,
+                style = AppTheme.typography.bodyMedium.semiBold(),
+                color = AppTheme.colors.textSecondary,
+            )
+            help?.invoke()
         }
         NumberStepper(
             valueText = valueText,
@@ -439,27 +460,27 @@ internal fun BuilderRowMenu(
             )
         }
         if (row.canGroupWithNext) {
-            add(AppSheetAction(Res.drawable.ic_label, group) { onEvent(RoutineBuilderEvent.GroupWithNext(index)) })
+            add(AppSheetAction(Res.drawable.ic_link, group) { onEvent(RoutineBuilderEvent.GroupWithNext(index)) })
         }
         if (row.supersetLabel != null) {
-            add(AppSheetAction(Res.drawable.ic_remove, ungroup) { onEvent(RoutineBuilderEvent.Ungroup(index)) })
+            add(AppSheetAction(Res.drawable.ic_link_off, ungroup) { onEvent(RoutineBuilderEvent.Ungroup(index)) })
         }
         add(
             AppSheetAction(
-                Res.drawable.ic_edit,
+                Res.drawable.ic_sticky_note_2,
                 stringResource(if (row.noteKind == null) Res.string.note_add else Res.string.note_edit),
                 testTag = "routine_builder_exercise_note_$index",
                 onClick = onEditNote,
             ),
         )
         add(
-            AppSheetAction(Res.drawable.ic_set_normal, warmUp) {
+            AppSheetAction(Res.drawable.ic_calculate, warmUp) {
                 onEvent(RoutineBuilderEvent.OpenCalculator(index, CalculatorKind.WarmUp))
             },
         )
         if (row.equipment == Equipment.Barbell || row.equipment == Equipment.Dumbbell) {
             add(
-                AppSheetAction(Res.drawable.ic_set_normal, plates) {
+                AppSheetAction(Res.drawable.ic_fitness_center, plates) {
                     onEvent(RoutineBuilderEvent.OpenCalculator(index, CalculatorKind.Discs))
                 },
             )

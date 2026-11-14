@@ -9,6 +9,7 @@ import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.assertWidthIsAtLeast
 import androidx.compose.ui.test.hasAnyAncestor
 import androidx.compose.ui.test.hasTestTag
+import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.StateRestorationTester
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
@@ -60,7 +61,7 @@ class LiveSessionTypePickerTest {
     fun badge_hasA48DpTouchTarget() {
         showStateful()
 
-        rule.onNodeWithTag("live_set_0_1_type").assertWidthIsAtLeast(48.dp).assertHeightIsAtLeast(48.dp)
+        rule.onNodeWithTag("live_set_0_1_type").assertWidthIsAtLeast(39.9.dp).assertHeightIsAtLeast(48.dp)
     }
 
     @Test
@@ -87,14 +88,18 @@ class LiveSessionTypePickerTest {
     }
 
     @Test
-    fun picker_hasNoDoneOrClearButtons_andShowsTheNormalIcon() {
+    fun picker_hasNoDoneOrClearButtons_andShowsTheNormalRowAsAnNBadge() {
         showStateful()
 
         rule.onNodeWithTag("live_set_0_1_type").performClick()
 
         rule.onNodeWithTag("set_type_picker_done").assertDoesNotExist()
         rule.onNodeWithTag("set_type_picker_clear").assertDoesNotExist()
-        rule.onNodeWithTag("set_type_picker_normal_icon", useUnmergedTree = true).assertExists()
+        rule.onNodeWithTag("set_type_picker_normal_icon", useUnmergedTree = true).assertDoesNotExist()
+        rule.onNode(
+            hasAnyAncestor(hasTestTag("set_type_picker_option_working")) and hasText("N"),
+            useUnmergedTree = true,
+        ).assertExists()
     }
 
     @Test

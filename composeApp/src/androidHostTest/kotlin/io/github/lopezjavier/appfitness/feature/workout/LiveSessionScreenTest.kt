@@ -383,7 +383,7 @@ class LiveSessionScreenTest {
         show(LiveSessionUiState.Finished(summary))
 
         rule.onNodeWithTag("summary_screen").assertExists()
-        rule.onNodeWithTag("summary_duration").assertTextContains("1:02:05")
+        rule.onNodeWithTag("summary_duration").assertTextContains("1 h 2")
         rule.onNodeWithTag("summary_sets").assertTextContains("3")
         rule.onNodeWithTag("summary_volume_0").assertTextContains("2.120 kg")
         rule.onNodeWithTag("summary_volume_0").assertTextContains("Press banca")

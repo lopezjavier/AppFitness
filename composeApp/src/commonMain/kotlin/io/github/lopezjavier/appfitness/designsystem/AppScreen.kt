@@ -137,6 +137,8 @@ private fun PinnedFooter(maxContentWidth: Dp, tag: String, footer: @Composable (
             .testTag(tag),
         contentAlignment = Alignment.TopCenter,
     ) {
-        Box(Modifier.widthIn(max = maxContentWidth).fillMaxWidth().padding(Spacing.screenMargin)) { footer() }
+        // A pinned footer never grows past the form width, even on a wider body (C-87).
+        val footerWidth = minOf(maxContentWidth, WindowWidthClassDefaults.FormContentMaxWidth)
+        Box(Modifier.widthIn(max = footerWidth).fillMaxWidth().padding(Spacing.screenMargin)) { footer() }
     }
 }

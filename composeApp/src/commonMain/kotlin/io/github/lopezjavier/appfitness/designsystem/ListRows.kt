@@ -20,11 +20,25 @@ import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.dp
 import io.github.lopezjavier.appfitness.composeapp.resources.Res
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_chevron_right
 import org.jetbrains.compose.resources.painterResource
 
 private const val HEADLINE_MAX_LINES = 2
+
+/** Minimum row heights by number of supporting lines (C-74): 48 / 56 / 72 dp. */
+object AppListRowDefaults {
+    private val OneSupporting = 56.dp
+    private val TwoSupporting = 72.dp
+
+    fun minHeight(supportingLines: Int): Dp = when {
+        supportingLines <= 0 -> Spacing.minTouchTarget
+        supportingLines == 1 -> OneSupporting
+        else -> TwoSupporting
+    }
+}
 
 /** Look of a disabled [NavigationRow]: not clickable, reduced emphasis. */
 object NavigationRowDefaults {
@@ -39,7 +53,8 @@ object NavigationRowDefaults {
  * [onClickLabel] is what a screen reader announces for the tap. [headlineTrailing] (default none) sits in the same
  * line right after the headline text, which shrinks first (an inline marker such as a favourite star).
  * [headlineStyle] (default `bodyLarge`) and [headlineMaxLines] (default 2) restyle the headline; [supportingSecondary]
- * is a second `bodyMedium` line below [supporting].
+ * is a second `bodyMedium` line below [supporting]; [supportingMaxLines] (default unlimited) caps [supporting] with an
+ * ellipsis, for a summary that must stay on one line so the row keeps its 56 dp height.
  */
 @Composable
 fun AppListRow(
@@ -56,6 +71,7 @@ fun AppListRow(
     headlineStyle: TextStyle? = null,
     headlineMaxLines: Int = HEADLINE_MAX_LINES,
     supportingSecondary: String? = null,
+    supportingMaxLines: Int = Int.MAX_VALUE,
 ) {
     val clickable =
         if (onClick != null) {
@@ -66,7 +82,11 @@ fun AppListRow(
     Row(
         modifier
             .fillMaxWidth()
-            .heightIn(min = Spacing.minTouchTarget)
+            .heightIn(
+                min = AppListRowDefaults.minHeight(
+                    supportingLines = listOfNotNull(supporting, supportingSecondary).size,
+                ),
+            )
             .then(clickable)
             .padding(vertical = Spacing.xs),
         verticalAlignment = Alignment.CenterVertically,
@@ -100,6 +120,8 @@ fun AppListRow(
                     text = supporting,
                     style = AppTheme.typography.bodyMedium,
                     color = AppTheme.colors.textSecondary,
+                    maxLines = supportingMaxLines,
+                    overflow = TextOverflow.Ellipsis,
                     modifier = if (supportingTestTag != null) Modifier.testTag(supportingTestTag) else Modifier,
                 )
             }

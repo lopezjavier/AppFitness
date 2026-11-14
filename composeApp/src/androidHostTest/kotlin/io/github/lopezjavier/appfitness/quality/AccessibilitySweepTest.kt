@@ -43,6 +43,7 @@ class AccessibilitySweepTest {
 
     // Layout rounds 48 dp to 47.99998 at xxhdpi.
     private val minTarget = 47.9.dp
+    private val setCellMinWidth = 39.9.dp
 
     private fun assertEveryClickableIsNamedAndBigEnough(screen: String) {
         rule.waitForIdle()
@@ -61,8 +62,14 @@ class AccessibilitySweepTest {
             val tag = config.getOrNull(SemanticsProperties.TestTag) ?: "#$index"
             when {
                 !named -> "$tag has no text or content description"
+
                 bounds.height < minTarget -> "$tag is ${bounds.height} high"
-                !isField && bounds.width < minTarget -> "$tag is ${bounds.width} wide"
+
+                // The set-row type badge and RPE cell are 40 x 48 dp by design (V-21).
+                !isField &&
+                    bounds.width < if (tag.endsWith("_type") || tag.endsWith("_rpe")) setCellMinWidth else minTarget ->
+                    "$tag is ${bounds.width} wide"
+
                 else -> null
             }
         }

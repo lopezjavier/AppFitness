@@ -26,6 +26,7 @@ import org.jetbrains.compose.resources.stringResource
 private const val MONTHS = 12
 private const val COLUMNS_COMPACT = 3
 private const val COLUMNS_WIDE = 4
+private val MonthTileMinHeight = Spacing.minTouchTarget + Spacing.lg
 
 /**
  * Year view: the 12 months of [year] as tiles with their workout counts ([monthCounts], month number 1-12); a tile
@@ -41,7 +42,7 @@ internal fun YearMonthTiles(
 ) {
     Column(modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(Spacing.cardGap)) {
         Text(
-            text = stringResource(Res.string.calendar_year_title, year),
+            text = stringResource(Res.string.calendar_year_title, year, workoutsText(monthCounts.values.sum())),
             style = AppTheme.typography.titleMedium,
             color = AppTheme.colors.textPrimary,
             modifier = Modifier.semantics { heading() }.testTag("calendar_year_title"),
@@ -61,7 +62,7 @@ private fun MonthTile(month: Int, count: Int, onClick: () -> Unit, modifier: Mod
     val name = monthName(month)
     val description = countDescription(name, count)
     AppCard(
-        modifier.heightIn(min = Spacing.minTouchTarget)
+        modifier.heightIn(min = MonthTileMinHeight)
             .clickable(role = Role.Button, onClick = onClick)
             .testTag("calendar_year_month_$month")
             .clearAndSetSemantics { contentDescription = description },
@@ -72,11 +73,11 @@ private fun MonthTile(month: Int, count: Int, onClick: () -> Unit, modifier: Mod
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(Spacing.xs, Alignment.CenterVertically),
         ) {
-            Text(name, style = AppTheme.typography.bodyMedium, color = AppTheme.colors.textPrimary, maxLines = 1)
+            Text(name, style = AppTheme.typography.bodySmall, color = AppTheme.colors.textPrimary, maxLines = 1)
             Text(
-                text = workoutsText(count),
+                text = count.toString(),
                 style = AppTheme.typography.labelNumeric,
-                color = if (count > 0) AppTheme.colors.athleticCyan else AppTheme.colors.textSecondary,
+                color = if (count > 0) AppTheme.colors.athleticCyan else AppTheme.colors.textTertiary,
             )
         }
     }

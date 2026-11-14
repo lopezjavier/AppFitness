@@ -115,7 +115,8 @@ class RoutinesScreenTest {
         show()
 
         rule.onNodeWithTag("routines_add_routine").assertTextContains("Añadir rutina")
-        rule.onNodeWithTag("routines_add_folder").assertTextContains("Añadir carpeta")
+        rule.onNodeWithTag("routines_add_folder").assertContentDescriptionEquals("Añadir carpeta")
+        rule.onNodeWithTag("routines_add_folder").assertWidthIsAtLeast(56.dp).assertHeightIsAtLeast(56.dp)
         rule.onNodeWithTag("routines_add_routine").performClick()
         rule.waitForIdle()
 
@@ -142,13 +143,30 @@ class RoutinesScreenTest {
     }
 
     @Test
-    fun pencil_opensTheBuilderForThatRoutine() {
+    fun theCard_hasNoPencilAndNoEmpezarText_onlyTheStartCircle() {
         show()
 
-        rule.onNodeWithTag("routines_edit_r1").performClick()
+        rule.onNodeWithTag("routines_edit_r1").assertDoesNotExist()
+        rule.onAllNodesWithText("Empezar").assertCountEquals(0)
+        rule.onNodeWithTag("routines_start_r1").assertContentDescriptionEquals("Empezar Torso fuerza")
+    }
+
+    @Test
+    fun theNextRoutine_showsTheFlagLineWithItsExerciseCount() {
+        show()
+        openMenu("r1")
+        rule.onNodeWithText("Siguiente entreno").performClick()
         rule.waitForIdle()
 
-        assertEquals(listOf<RoutinesEffect>(RoutinesEffect.OpenBuilder("r1")), effects)
+        rule.onNodeWithTag(
+            "routines_next_badge_r1",
+            useUnmergedTree = true,
+        ).assertTextContains("Siguiente", substring = true)
+        rule.onNodeWithTag(
+            "routines_next_badge_r1",
+            useUnmergedTree = true,
+        ).assertTextContains("2 ejercicios", substring = true)
+        rule.onNodeWithTag("routines_next_badge_r2", useUnmergedTree = true).assertDoesNotExist()
     }
 
     @Test
@@ -187,7 +205,7 @@ class RoutinesScreenTest {
     }
 
     @Test
-    fun actionsSheet_offersEditarDuplicarMoverSiguienteAndEliminar_withoutArchivar() {
+    fun actionsSheet_offersEditarDuplicarMoverSiguienteBajarAndEliminar_withoutArchivar() {
         show()
 
         openMenu("r1")
@@ -196,8 +214,53 @@ class RoutinesScreenTest {
         rule.onNodeWithText("Duplicar").assertExists()
         rule.onNodeWithText("Mover a carpeta").assertExists()
         rule.onNodeWithText("Siguiente entreno").assertExists()
+        rule.onNodeWithText("Bajar").assertExists()
         rule.onNodeWithText("Eliminar").assertExists()
         rule.onAllNodesWithText("Archivar").assertCountEquals(0)
+    }
+
+    @Test
+    fun actionsSheet_listsRowsInOrder_withSubirOnlyWhenNotFirstAndBajarOnlyWhenNotLast() {
+        show()
+
+        openMenu("r1")
+        rule.onNodeWithText("Subir").assertDoesNotExist()
+        val firstTop = rule.onNodeWithText("Siguiente entreno").fetchSemanticsNode().boundsInRoot.top
+        val bajarTop = rule.onNodeWithText("Bajar").fetchSemanticsNode().boundsInRoot.top
+        val eliminarTop = rule.onNodeWithText("Eliminar").fetchSemanticsNode().boundsInRoot.top
+        assertTrue(firstTop < bajarTop && bajarTop < eliminarTop)
+    }
+
+    @Test
+    fun actionsSheet_onTheLastRoutine_offersSubirButNotBajar() {
+        show()
+
+        openMenu("r2")
+
+        rule.onNodeWithText("Subir").assertExists()
+        rule.onNodeWithText("Bajar").assertDoesNotExist()
+    }
+
+    @Test
+    fun menuBajar_reordersTheRoutine() {
+        show()
+        openMenu("r1")
+
+        rule.onNodeWithText("Bajar").performClick()
+        rule.waitForIdle()
+
+        assertEquals(listOf(null to listOf("r2", "r1")), repository.savedOrders)
+    }
+
+    @Test
+    fun menuSubir_reordersTheRoutine() {
+        show()
+        openMenu("r2")
+
+        rule.onNodeWithText("Subir").performClick()
+        rule.waitForIdle()
+
+        assertEquals(listOf(null to listOf("r2", "r1")), repository.savedOrders)
     }
 
     @Test
@@ -237,7 +300,7 @@ class RoutinesScreenTest {
     }
 
     @Test
-    fun offline_theSheetOnlyOffersEditarAndEliminar_withTheReason() {
+    fun offline_theSheetListsTheNetworkActionsDimmed_withTheReason() {
         show()
         connectivity.state.value = false
         rule.waitForIdle()
@@ -246,16 +309,19 @@ class RoutinesScreenTest {
 
         rule.onNodeWithText("Editar").assertExists()
         rule.onNodeWithText("Eliminar").assertExists()
-        rule.onAllNodesWithText("Duplicar").assertCountEquals(0)
+        rule.onNodeWithText("Duplicar").assertExists().assertIsNotEnabled()
+        rule.onNodeWithText("Mover a carpeta").assertExists().assertIsNotEnabled()
+        rule.onNodeWithText("Siguiente entreno").assertExists().assertIsNotEnabled()
+        rule.onNodeWithText("Bajar").assertExists().assertIsNotEnabled()
         rule.onNodeWithTag("routines_menu_offline_reason").assertExists()
     }
 
     @Test
-    fun everyRoutineHasAnEmpezarButton_andNoEmptyWorkoutIsOffered() {
+    fun everyRoutineHasAStartCircle_andNoEmptyWorkoutIsOffered() {
         show()
 
-        rule.onNodeWithTag("routines_start_r1").assertTextContains("Empezar")
-        rule.onNodeWithTag("routines_start_r2").assertTextContains("Empezar")
+        rule.onNodeWithTag("routines_start_r1").assertContentDescriptionEquals("Empezar Torso fuerza")
+        rule.onNodeWithTag("routines_start_r2").assertContentDescriptionEquals("Empezar Pierna")
         rule.onNodeWithTag("routines_start_empty").assertDoesNotExist()
         rule.onNodeWithTag("offline_hint").assertDoesNotExist()
     }
@@ -357,36 +423,58 @@ class RoutinesScreenTest {
 
     // ---- C2: handle versus swipe, targets, descriptions ----
 
-    @Test
-    fun draggingTheHandleSideways_neverArmsTheSwipe() {
-        show()
-
-        rule.onNodeWithTag("routines_drag_r1").performTouchInput {
+    /** Touch-and-hold on the card of [id], then [moveBy] the finger (C-99). */
+    private fun holdAndDrag(id: String, dx: Float, dy: Float) {
+        rule.onNodeWithTag("routines_row_$id").performTouchInput {
             down(center)
-            moveBy(Offset(-cardWidthPx() * 0.8f, 0f))
+            advanceEventTime(viewConfiguration.longPressTimeoutMillis + LONG_PRESS_MARGIN_MS)
+            repeat(DRAG_STEPS) { moveBy(Offset(dx / DRAG_STEPS, dy / DRAG_STEPS)) }
             up()
         }
         rule.waitForIdle()
+    }
 
-        rule.onNodeWithTag("routines_swipe_bg_r1").assertDoesNotExist()
+    @Test
+    fun holdingTheCardThenDraggingSideways_neverArmsTheSwipeOrDeletes() {
+        show()
+
+        holdAndDrag("r1", -cardWidthPx() * 0.8f, 0f)
+
         assertTrue(repository.deletedIds.isEmpty())
         assertTrue(haptics.calls.none { it == HapticEvent.Armed })
     }
 
     @Test
-    fun draggingTheHandleDown_reordersTheRoutines_andNeverArmsTheSwipe() {
+    fun holdingTheCardThenDraggingDown_reordersTheRoutines_andNeverArmsTheSwipe() {
         show()
 
-        rule.onNodeWithTag("routines_drag_r1").performTouchInput {
+        holdAndDrag("r1", 0f, DRAG_STEP_PX * DRAG_STEPS)
+
+        assertEquals(listOf(null to listOf("r2", "r1")), repository.savedOrders)
+        rule.onNodeWithTag("routines_swipe_bg_r1").assertDoesNotExist()
+        assertTrue(repository.deletedIds.isEmpty())
+    }
+
+    @Test
+    fun aShortVerticalDragWithoutHolding_doesNotReorder() {
+        show()
+
+        rule.onNodeWithTag("routines_row_r1").performTouchInput {
             down(center)
             repeat(DRAG_STEPS) { moveBy(Offset(0f, DRAG_STEP_PX)) }
             up()
         }
         rule.waitForIdle()
 
-        assertEquals(listOf(null to listOf("r2", "r1")), repository.savedOrders)
-        rule.onNodeWithTag("routines_swipe_bg_r1").assertDoesNotExist()
-        assertTrue(repository.deletedIds.isEmpty())
+        assertTrue(repository.savedOrders.isEmpty())
+    }
+
+    @Test
+    fun theCard_hasNoDragHandle() {
+        show()
+
+        rule.onNodeWithTag("routines_drag_r1").assertDoesNotExist()
+        rule.onAllNodesWithText("Mover Torso fuerza").assertCountEquals(0)
     }
 
     @Test
@@ -402,11 +490,9 @@ class RoutinesScreenTest {
     fun everyControlOfTheCard_isAtLeast48dp_andDescribedByName() {
         show()
 
-        rule.onNodeWithTag("routines_edit_r1").assertContentDescriptionEquals("Editar Torso fuerza")
         rule.onNodeWithTag("routines_row_menu_r1").assertContentDescriptionEquals("Más acciones de Torso fuerza")
-        rule.onNodeWithTag("routines_drag_r1").assertContentDescriptionEquals("Mover Torso fuerza")
         rule.onNodeWithTag("routines_start_r1").assertContentDescriptionEquals("Empezar Torso fuerza")
-        listOf("routines_edit_r1", "routines_row_menu_r1", "routines_drag_r1", "routines_start_r1", "routines_row_r1")
+        listOf("routines_row_menu_r1", "routines_start_r1", "routines_row_r1")
             .forEach { tag ->
                 rule.onNodeWithTag(tag).assertWidthIsAtLeast(48.dp).assertHeightIsAtLeast(48.dp)
                 rule.onNodeWithTag(tag).assertIsDisplayed()
@@ -431,3 +517,4 @@ class RoutinesScreenTest {
 
 private const val DRAG_STEPS = 8
 private const val DRAG_STEP_PX = 50f
+private const val LONG_PRESS_MARGIN_MS = 100L

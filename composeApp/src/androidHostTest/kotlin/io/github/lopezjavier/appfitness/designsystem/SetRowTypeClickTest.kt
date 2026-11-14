@@ -48,7 +48,7 @@ class SetRowTypeClickTest {
             }
         }
 
-        rule.onNodeWithTag("row_type").assertHasClickAction().assertWidthIsAtLeast(48.dp)
+        rule.onNodeWithTag("row_type").assertHasClickAction().assertWidthIsAtLeast(40.dp)
             .assertHeightIsAtLeast(48.dp).performClick()
 
         assertEquals(1, taps)
