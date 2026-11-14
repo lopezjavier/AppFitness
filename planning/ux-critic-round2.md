@@ -113,3 +113,20 @@ Container as `NumberInput`: `surfaceControl` fill, 1 dp `borderControl`, `AppSha
 
 ### Spec 7 (C-93): assertions (tests batch only)
 For every `ExerciseMetricType`: note and check centres differ <= 1 dp vertically; header centre compared with the field container, not the composite cell; LISTO and NOTA left edges equal between a strength and a cardio card; at 360 dp and font scale 1.0 / 1.3 / 2.0.
+
+## Follow-up after the second emulator look (ux-critic, 2026-11-14): lime start and the drag handle
+
+**User decisions (2026-11-14):** the round start button is lime on EVERY routine card (C-99); the drag handle is removed and reordering becomes touch-and-hold plus "Subir"/"Bajar" in the ⋮ sheet (C-100, recommended option b + d).
+
+### C-99: lime start on every card
+- `CircleIconButton` on every `RoutineCard`: `neonLime` fill, `onNeonLime` glyph (`accent = true` always). Disabled (offline or starting): lime 20 % fill, lime 50 % glyph on all cards.
+- **R-79 reworded in `05`:** "A screen has at most one `PrimaryButton` in its content. Exception (user, 2026-11-14): the round start button of every routine card (`CircleIconButton`, `neonLime` fill, `onNeonLime` glyph) is lime. It is the card's own action, not a `PrimaryButton`, and no other repeated per-row control may be lime. The Entreno root has no `PrimaryButton`; 'Añadir rutina' stays tonal. Lime never means 'next'."
+- **"Siguiente" cue (cyan only, R-64 d):** keep the 1.5 dp `athleticCyan` card border (`AppCard(highlighted = true)`). Supporting line: a 16 dp Outlined `flag` glyph in `athleticCyan`, 4 dp gap, then "Siguiente · 6 ejercicios" with "Siguiente" in `athleticCyan` W600 (R-81 assigns `flag` to "Siguiente entreno"; verify the drawable exists, else add it as Material Symbols Outlined). `stateDescription` "Siguiente entreno" and the collapsed-folder line "4 rutinas · Siguiente: Torso A" unchanged.
+
+### C-100: no drag handle; touch-and-hold to drag + "Subir"/"Bajar" rows
+- **Card:** remove `DragHandle` and its 12 dp spacer from `RoutineCard`; `contentPadding` start 12 dp (end 4, top and bottom 8 unchanged). The name edge lands at 28 dp (the folder tile's left edge); name width 216 dp at 360 dp.
+- **Gesture:** touch-and-hold on the name block picks the card up (`detectDragGesturesAfterLongPress`, system touch-and-hold delay); a tap still opens details; swipe-left delete and list scroll unchanged. Tick haptic on pick-up and on each swap, and auto-scroll, as in R-22. A swap needs half a slot of travel (about 42 dp) after the hold and can be dragged back. Same `RoutinesEvent.Reorder(folderId, orderedIds)`, within one group; the TalkBack "Subir"/"Bajar" actions stay.
+- **Picked-up look** (`RoutineCard` currently ignores `dragging`): scale 1.02, container `surfaceOverlay`, 1 dp `borderControl`, no shadow (§4); no scale when animations are off.
+- **⋮ sheet order:** Editar, Duplicar, Mover a carpeta, Siguiente entreno, Subir, Bajar, Eliminar. "Subir"/"Bajar" (`ic_arrow_upward`/`ic_arrow_downward`, existing `action_move_up`/`action_move_down`, events `RoutinesEvent.MoveUp`/`MoveDown` already in the ViewModel) each shown only when possible (as the routine builder's row menu); dimmed offline (V-40). Retire `routines_drag_cd` and the tag `routines_drag_<id>`.
+- **Scope:** the builder and "Comidas del día" keep their handles.
+- **R-22 reworded in `05`:** "Reordering uses the shared component. A row with a visible `DragHandle` drags at once from the handle; a card list without handles (Rutinas) picks the card up on touch-and-hold. Both give Tick haptics on pick-up and each pass, auto-scroll near edges, the TalkBack actions 'Subir'/'Bajar', and 'Subir'/'Bajar' rows in the item's ⋮ sheet."
