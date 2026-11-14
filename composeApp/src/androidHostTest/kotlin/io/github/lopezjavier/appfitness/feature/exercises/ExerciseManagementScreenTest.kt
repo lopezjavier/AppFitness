@@ -269,19 +269,20 @@ class ExerciseManagementScreenTest {
     }
 
     @Test
-    fun aCatalogueExercise_hasNoEditOrDelete_andShowsThePerHandValue() {
+    fun aCatalogueExercise_hasNoEditOrDelete_andShowsThePerHandPill() {
         showDetail("cat")
 
         rule.onNodeWithTag("exercise_detail_edit").assertDoesNotExist()
         rule.onNodeWithTag("exercise_detail_delete").assertDoesNotExist()
-        rule.onNodeWithTag("exercise_detail_per_hand_value").assertTextEquals("Pesas por mano: Sí")
+        rule.onNodeWithTag("exercise_detail_per_hand_value").assertTextEquals("Una pesa en cada mano")
     }
 
     @Test
-    fun aManualExercise_showsPerHandNo_whenTheFlagIsOff() {
+    fun aManualExercise_showsNoPerHandPill_whenTheFlagIsOff() {
         showDetail("mine")
 
-        rule.onNodeWithTag("exercise_detail_per_hand_value").assertTextEquals("Pesas por mano: No")
+        rule.onNodeWithTag("exercise_detail_per_hand_value").assertDoesNotExist()
+        rule.onNodeWithText("Pesas por mano", substring = true).assertDoesNotExist()
     }
 
     @Test
@@ -305,7 +306,7 @@ class ExerciseManagementScreenTest {
         assertEquals("Press Hammer unilateral", saved.name)
         assertTrue(saved.perHand)
         rule.onNodeWithTag("exercise_edit_sheet_commit").assertDoesNotExist()
-        rule.onNodeWithTag("exercise_detail_per_hand_value").assertTextEquals("Pesas por mano: Sí")
+        rule.onNodeWithTag("exercise_detail_per_hand_value").assertTextEquals("Una pesa en cada mano")
         rule.onNodeWithTag("exercise_detail_title").assertTextEquals("Press Hammer unilateral")
         haptics.assertSingle(HapticEvent.Confirm)
         assertTrue(messages.shown.isEmpty())
@@ -398,6 +399,15 @@ class ExerciseManagementScreenTest {
     }
 
     @Test
+    fun offline_aCatalogueExercise_explainsThatFavouritesNeedTheNetwork() {
+        connectivity.state.value = false
+        showDetail("cat")
+
+        rule.onNodeWithTag("exercise_detail_offline_hint")
+            .assertTextEquals("Sin conexión: no se puede marcar favoritos")
+    }
+
+    @Test
     fun aDetailThatFailsToLoad_showsTheGenericTitle_noManagementButtons_andRetry() {
         repository.rows = emptyList()
         showDetail("mine")
@@ -405,5 +415,6 @@ class ExerciseManagementScreenTest {
         rule.onNodeWithTag("exercise_detail_title").assertTextEquals("Ejercicio")
         rule.onNodeWithTag("exercise_detail_edit").assertDoesNotExist()
         rule.onNodeWithTag("exercise_detail_error_action").assertExists()
+        rule.onNodeWithText("No se pudo cargar el ejercicio").assertExists()
     }
 }

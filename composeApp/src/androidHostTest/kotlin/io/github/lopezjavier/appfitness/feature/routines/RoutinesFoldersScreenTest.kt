@@ -2,6 +2,7 @@ package io.github.lopezjavier.appfitness.feature.routines
 
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.semantics.CustomAccessibilityAction
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.semantics.SemanticsNode
 import androidx.compose.ui.semantics.SemanticsProperties
@@ -17,6 +18,7 @@ import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.assertTextContains
 import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.assertWidthIsAtLeast
+import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithText
@@ -112,6 +114,7 @@ class RoutinesFoldersScreenTest {
         rule.onNodeWithTag("routines_folder_f1").assertTextContains("3 rutinas")
         rule.onNodeWithTag("routines_row_r1").assertTextContains("Torso A")
         rule.onNodeWithTag("routines_group_none").assertTextContains("Sin carpeta")
+        rule.onNodeWithTag("routines_group_none").assertTextContains("1")
         rule.onNodeWithTag("routines_row_r4").assertTextContains("Pierna")
     }
 
@@ -129,6 +132,18 @@ class RoutinesFoldersScreenTest {
     fun anExpandedEmptyFolder_showsCarpetaVacia() {
         show()
 
+        rule.onNodeWithTag("routines_folder_empty_f2").assertTextEquals("Carpeta vacía")
+    }
+
+    @Test
+    fun anEmptyFolder_hasNoZeroCount_andItsToggleDoesNothing() {
+        show()
+
+        rule.onAllNodesWithText("0 rutinas", substring = true).assertCountEquals(0)
+        rule.onNodeWithTag("routines_folder_toggle_f2").assert(SemanticsMatcher.keyNotDefined(SemanticsActions.OnClick))
+        rule.onNodeWithTag("routines_folder_toggle_f2").assert(
+            SemanticsMatcher.keyNotDefined(SemanticsProperties.StateDescription),
+        )
         rule.onNodeWithTag("routines_folder_empty_f2").assertTextEquals("Carpeta vacía")
     }
 
@@ -280,7 +295,7 @@ class RoutinesFoldersScreenTest {
         openMenu("r1")
         rule.onNodeWithText("Siguiente entreno").assertExists()
         clickText("Siguiente entreno")
-        rule.onNodeWithTag("routines_next_badge_r1").assertTextEquals("Siguiente")
+        rule.onNodeWithTag("routines_next_badge_r1").assertTextContains("Siguiente", substring = true)
 
         openMenu("r4")
         clickText("Siguiente entreno")
@@ -301,12 +316,28 @@ class RoutinesFoldersScreenTest {
     }
 
     @Test
-    fun everyRoutineHasADescribedDragHandle() {
+    fun noRoutineHasADragHandle_reorderIsTouchAndHold() {
         show()
 
-        rule.onNodeWithTag("routines_drag_r1").assertContentDescriptionEquals("Mover Torso A")
-        rule.onNodeWithTag("routines_drag_r1").assertHeightIsAtLeast(48.dp).assertWidthIsAtLeast(48.dp)
-        rule.onNodeWithTag("routines_drag_r4").assertExists()
+        rule.onNodeWithTag("routines_drag_r1").assertDoesNotExist()
+        rule.onNodeWithTag("routines_drag_r4").assertDoesNotExist()
+        rule.onNodeWithTag("routines_row_r4").assertExists()
+    }
+
+    @Test
+    fun holdingARoutineInAFolderThenDraggingDown_reordersItWithinItsFolder() {
+        show()
+
+        rule.onNodeWithTag("routines_row_r1").performTouchInput {
+            down(center)
+            advanceEventTime(viewConfiguration.longPressTimeoutMillis + LONG_PRESS_MARGIN_MS)
+            repeat(DRAG_STEPS) { moveBy(Offset(0f, DRAG_STEP_PX)) }
+            up()
+        }
+        rule.waitForIdle()
+
+        assertEquals("f1", repository.savedOrders.single().first)
+        assertTrue(repository.savedOrders.single().second.first() != "r1")
     }
 
     @Test
@@ -330,14 +361,25 @@ class RoutinesFoldersScreenTest {
         show()
         openMenu("r4")
         clickText("Mover a carpeta")
-        rule.onNodeWithTag("routines_move_target_none").assertIsNotEnabled()
-        rule.onNodeWithTag("routines_move_target_none").assertTextContains("Sin carpeta")
+        rule.onNodeWithTag("routines_move_option_none").assertTextContains("Sin carpeta")
 
-        click("routines_move_target_f2")
+        click("routines_move_option_f2")
 
         assertEquals(listOf("r4" to "f2"), repository.movedToFolder)
-        rule.onNodeWithTag("routines_move_target_f2").assertDoesNotExist()
+        rule.onNodeWithTag("routines_move_option_f2").assertDoesNotExist()
         rule.onNodeWithTag("routines_folder_empty_f2").assertDoesNotExist()
+    }
+
+    @Test
+    fun tappingTheCurrentFolderInTheMoveSheet_onlyClosesIt() {
+        show()
+        openMenu("r4")
+        clickText("Mover a carpeta")
+
+        click("routines_move_option_none")
+
+        assertTrue(repository.movedToFolder.isEmpty())
+        rule.onNodeWithTag("routines_move_sheet").assertDoesNotExist()
     }
 
     @Test
@@ -349,7 +391,7 @@ class RoutinesFoldersScreenTest {
         click("routines_move_sheet_close")
 
         assertTrue(repository.movedToFolder.isEmpty())
-        rule.onNodeWithTag("routines_move_target_f1").assertDoesNotExist()
+        rule.onNodeWithTag("routines_move_option_f1").assertDoesNotExist()
     }
 
     @Test
@@ -368,8 +410,8 @@ class RoutinesFoldersScreenTest {
         rule.onNodeWithTag("routines_add_folder").assertIsNotEnabled()
         click("routines_folder_toggle_f1")
         openMenu("r4")
-        rule.onAllNodesWithText("Mover a carpeta").assertCountEquals(0)
-        rule.onAllNodesWithText("Siguiente entreno").assertCountEquals(0)
+        rule.onNodeWithText("Mover a carpeta").assertIsNotEnabled()
+        rule.onNodeWithText("Siguiente entreno").assertIsNotEnabled()
     }
 
     private fun isDisabledForTalkBack() = SemanticsMatcher("has the disabled semantics") {
@@ -384,3 +426,7 @@ class RoutinesFoldersScreenTest {
         SemanticsProperties.StateDescription in it.config && it.config[SemanticsProperties.StateDescription] == expected
     }
 }
+
+private const val DRAG_STEPS = 8
+private const val DRAG_STEP_PX = 50f
+private const val LONG_PRESS_MARGIN_MS = 100L

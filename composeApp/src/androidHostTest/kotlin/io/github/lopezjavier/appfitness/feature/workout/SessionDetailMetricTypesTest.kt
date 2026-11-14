@@ -49,16 +49,16 @@ class SessionDetailMetricTypesTest {
     }
 
     @Test
-    fun aSessionWithoutVolume_showsADashInsteadOfZeroKilos() {
+    fun aSessionWithoutVolume_hasNoVolumeTile() {
         show(cardioSession(volumeKg = 0.0))
 
-        rule.onNodeWithTag("session_detail_volume").assertTextContains("—")
+        rule.onNodeWithTag("session_detail_volume").assertDoesNotExist()
     }
 
     @Test
     fun aSessionWithVolume_stillShowsKilos() {
         show(cardioSession(volumeKg = 672.0))
 
-        rule.onNodeWithTag("session_detail_volume").assertTextContains("672 kg")
+        rule.onNodeWithTag("session_detail_volume").assertTextContains("672")
     }
 }

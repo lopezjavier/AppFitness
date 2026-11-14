@@ -92,7 +92,7 @@ class RoutinesFolderMenuTest {
         rule.onNodeWithTag("routines_folder_menu_rename").assertIsNotEnabled()
         rule.onNodeWithTag("routines_folder_menu_delete").assertIsNotEnabled()
         rule.onNodeWithTag("routines_folder_menu_offline_reason")
-            .assertTextEquals("Sin conexión: no se puede renombrar ni borrar la carpeta")
+            .assertTextEquals("Sin conexión: no se puede renombrar ni borrar la carpeta.")
         assertTrue(reviewed.isEmpty())
 
         click("routines_folder_menu_review")

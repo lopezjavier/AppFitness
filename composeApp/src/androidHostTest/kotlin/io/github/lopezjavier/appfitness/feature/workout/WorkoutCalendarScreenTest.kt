@@ -119,6 +119,26 @@ class WorkoutCalendarScreenTest {
     }
 
     @Test
+    fun yearView_headingShowsTheYearAndItsTotal_andTilesShowTheBareCount() {
+        show(content(WorkoutCalendarView.Year))
+
+        rule.onNodeWithTag("calendar_year_title").assertTextContains("2026 · 7 entrenos")
+        rule.onNodeWithTag("calendar_year_month_3").assertTextContains("5")
+    }
+
+    @Test
+    fun monthView_withNoDaySelected_showsTheSelectDayHint_andHidesItOnceSelected() {
+        show(content())
+        rule.onNodeWithTag("calendar_select_day_hint").assertTextEquals("Toca un día para ver sus entrenos.")
+    }
+
+    @Test
+    fun monthView_withADaySelected_hasNoSelectDayHint() {
+        show(content(selectedDay = TrainedDay))
+        rule.onNodeWithTag("calendar_select_day_hint").assertDoesNotExist()
+    }
+
+    @Test
     fun multiYearView_listsTheYearsWithTheirCounts_andTappingOneOpensIt() {
         show(content(WorkoutCalendarView.MultiYear))
 
@@ -241,7 +261,7 @@ class WorkoutCalendarScreenTest {
             ),
         )
 
-        val summary = "duración 1:02:05, volumen 2.120 kg"
+        val summary = "duración 1 h 2 min, volumen 2.120 kg"
         rule.onNodeWithTag("calendar_day_card_s1").assert(hasContentDescription(summary, substring = true))
         rule.onNodeWithTag("calendar_day_card_s2").assert(hasContentDescription("Pierna", substring = true))
         rule.onNodeWithTag("calendar_day_card_s2").performClick()
