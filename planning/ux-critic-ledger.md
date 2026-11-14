@@ -4,29 +4,29 @@ One row per ux-critic finding. The PM has the dispositions recorded here as the 
 
 | ID | Pattern (keywords) | Round | Status | Link |
 |---|---|---|---|---|
-| C-01 | selected state: selectedContainer #354925 + 1dp lime border + lime W700 label (chips, toggle chips, weekday, portion, cooking, segmented, time range) | 0 | IN REVIEW | 05 §2.1a, §6.0, R-64 |
-| C-02 | disabled PrimaryButton: lime 20 % container, lime 50 % label | 0 | IN REVIEW | 05 §2.1a, R-65 |
-| C-03 | textTertiary #8C97A9 for previous-set cell, placeholders, wheel neighbours; ghostData only disabled | 0 | IN REVIEW | 05 §2.1a, R-65 |
-| C-04 | SetRow header «ANTES», tracking 0.02 em, REPS weights, RPE variant inset 8 dp | 0 | IN REVIEW | 05 §3, §6.0, §10 |
-| C-05 | borderControl white 36 % for input resting borders | 0 | IN REVIEW | 05 §2.1a, §6.0 |
-| C-06 | surfaceControl #242E3B for inputs, steppers, pending set circle, SecondaryButton | 0 | IN REVIEW | 05 §2.1a, §6.0 |
-| C-07 | textSecondary #A9B3C4 | 0 | IN REVIEW | 05 §2.1a |
-| C-08 | GhostButton neutral, focus border lime 2 dp | 0 | IN REVIEW | 05 §6.0 |
-| C-09 | tabs shared 12 sp label, scroll (min 72 dp) only if a word does not fit | 0 | REWORK (tried 12 sp; user found it too small in the search tabs: now 14 sp, 6/8 dp padding, full-bleed, indicator visible while scrolling) | 05 §9 (amended), §6.0 |
-| C-10 | ring caption/status bodyMedium 14/20 W600 | 0 | IN REVIEW | 05 §3, §6.0 |
-| C-11 | trackInactive white 16 % + 4 dp stop dot on linear bars | 0 | IN REVIEW | 05 §2.1a, §6.0 |
-| C-12 | WeekdaySelector 7 weighted cells, no scroll, cells >= 40x48 dp | 0 | IN REVIEW | 05 §6.0, §7 exception |
-| C-13 | titleSection 18/24 W600 for ListSectionHeader, top-bar title W700 | 0 | IN REVIEW | 05 §3, §6.0 |
-| C-14 | AddItemButton leading ic_add 20 dp | 0 | IN REVIEW | 05 §6.0 |
-| C-15 | WorkoutRow headline titleMedium, one bodyMedium supporting line, empty trailing | 0 | IN REVIEW | 05 §6.0 |
-| C-16 | nav labels sentence case 12/16 W600, icons 24 dp | 0 | IN REVIEW | 05 §3, §6.0, §10 |
-| C-17 | EmptyState 32 dp glyph in 72 dp circle, per-domain icon; error buttons min width 200 dp | 0 | IN REVIEW | 05 §6.0, R-66 |
-| C-18 | sleep stages cyan ramp 100/75/50 % + amber Despierto | 0 | IN REVIEW | 05 §2.1a |
-| C-19 | PrimaryMinHeight 56 dp, radius 16 dp | 0 | IN REVIEW | 05 §6.0 |
-| V-1 | discomfort row: borderless text action, no mid-word break | 0 | IN REVIEW | 05 §6.0 (R-51) |
-| V-2 | REPS field >= 48 dp | 0 | IN REVIEW | 05 §6.0 (R-58) |
-| V-3 | legacy filled icons to Outlined (ic_info, ic_photo_camera, ic_photo_library, ic_label, ic_auto_awesome, ic_nav_trainer, ic_health_connect). ic_nav_trainer history: original filled `insights` (liked) > T-294 hand-drawn trend+sparkle (rejected, broken) > `insert_chart` bf5317ff (rejected, degradation) > decision 2026-11-13: Material Symbols Outlined `insights`, verbatim path | 0 | IN REVIEW | 05 §6.0 |
-| V-4 | remove unused sheetHandle and glowLime/glowBlur tokens | 0 | IN REVIEW | 05 §2.1a |
+| C-01 | selected state: selectedContainer #354925 + 1dp lime border + lime W700 label (chips, toggle chips, weekday, portion, cooking, segmented, time range) | 0 | ADOPTED | 05 §2.1a, §6.0, R-64 |
+| C-02 | disabled PrimaryButton: lime 20 % container, lime 50 % label | 0 | ADOPTED | 05 §2.1a, R-65 |
+| C-03 | textTertiary #8C97A9 for previous-set cell, placeholders, wheel neighbours; ghostData only disabled | 0 | ADOPTED | 05 §2.1a, R-65 |
+| C-04 | SetRow header «ANTES», tracking 0.02 em, REPS weights, RPE variant inset 8 dp | 0 | ADOPTED | 05 §3, §6.0, §10 |
+| C-05 | borderControl white 36 % for input resting borders | 0 | ADOPTED | 05 §2.1a, §6.0 |
+| C-06 | surfaceControl #242E3B for inputs, steppers, pending set circle, SecondaryButton | 0 | ADOPTED | 05 §2.1a, §6.0 |
+| C-07 | textSecondary #A9B3C4 | 0 | ADOPTED | 05 §2.1a |
+| C-08 | GhostButton neutral, focus border lime 2 dp | 0 | ADOPTED | 05 §6.0 |
+| C-09 | tabs shared 12 sp label, scroll (min 72 dp) only if a word does not fit | 0 | ADOPTED (reworked; tried 12 sp; user found it too small in the search tabs: now 14 sp, 6/8 dp padding, full-bleed, indicator visible while scrolling) | 05 §9 (amended), §6.0 |
+| C-10 | ring caption/status bodyMedium 14/20 W600 | 0 | ADOPTED | 05 §3, §6.0 |
+| C-11 | trackInactive white 16 % + 4 dp stop dot on linear bars | 0 | ADOPTED | 05 §2.1a, §6.0 |
+| C-12 | WeekdaySelector 7 weighted cells, no scroll, cells >= 40x48 dp | 0 | ADOPTED | 05 §6.0, §7 exception |
+| C-13 | titleSection 18/24 W600 for ListSectionHeader, top-bar title W700 | 0 | ADOPTED | 05 §3, §6.0 |
+| C-14 | AddItemButton leading ic_add 20 dp | 0 | ADOPTED | 05 §6.0 |
+| C-15 | WorkoutRow headline titleMedium, one bodyMedium supporting line, empty trailing | 0 | ADOPTED | 05 §6.0 |
+| C-16 | nav labels sentence case 12/16 W600, icons 24 dp | 0 | ADOPTED | 05 §3, §6.0, §10 |
+| C-17 | EmptyState 32 dp glyph in 72 dp circle, per-domain icon; error buttons min width 200 dp | 0 | ADOPTED | 05 §6.0, R-66 |
+| C-18 | sleep stages cyan ramp 100/75/50 % + amber Despierto | 0 | ADOPTED | 05 §2.1a |
+| C-19 | PrimaryMinHeight 56 dp, radius 16 dp | 0 | ADOPTED | 05 §6.0 |
+| V-1 | discomfort row: borderless text action, no mid-word break | 0 | ADOPTED | 05 §6.0 (R-51) |
+| V-2 | REPS field >= 48 dp | 0 | ADOPTED | 05 §6.0 (R-58) |
+| V-3 | legacy filled icons to Outlined (ic_info, ic_photo_camera, ic_photo_library, ic_label, ic_auto_awesome, ic_nav_trainer, ic_health_connect). ic_nav_trainer history: original filled `insights` (liked) > T-294 hand-drawn trend+sparkle (rejected, broken) > `insert_chart` bf5317ff (rejected, degradation) > decision 2026-11-13: Material Symbols Outlined `insights`, verbatim path | 0 | ADOPTED | 05 §6.0 |
+| V-4 | remove unused sheetHandle and glowLime/glowBlur tokens | 0 | ADOPTED | 05 §2.1a |
 | C-20 | R-64 extended to leftovers: SelectableCard (fill, 1 dp border, lime title), OptionPickerSheet check lime, calendar today = 1 dp cyan ring (selected+today = R-64 plus a 1.5 dp (`AppBorder.focus`) cyan outer ring with a 2 dp gap to the lime border), AppCard `selected` param for ActivitySummary, `highlighted` stays informational cyan, sleep swatch 12 dp (alphas kept) | 0 | ADOPTED | 05 R-64 (b)-(f), §6.0 |
 | C-21 | add-food screen: search field full width, scan in trailing slot, "Añadir con IA" and "Crear alimento" as top-bar actions | 1 | ADOPTED | 05 R-69 |
 | C-22 | edit-entry sheet: "Eliminar" text-style danger action >= 16 dp below "Guardar", no dialog | 1 | ADOPTED | 05 R-70 |
@@ -89,7 +89,7 @@ One row per ux-critic finding. The PM has the dispositions recorded here as the 
 | V-18 | retire `MealSummaryText` in favour of `MacroText` (R-39) | 1 | ADOPTED (batch 5) | 05 R-78 |
 | V-19 | retire `MacroSummary` in favour of `MacroText` (R-39) | 1 | ADOPTED (batch 5) | 05 R-78 |
 | V-20 | short forms Prot./Carb./Grasa and P/C/G added to the glossary | 1 | ADOPTED (batch 5) | 05 §10 |
-| V-15b | V-15 follow-up: `compactMacrosFit` measures the real ring-column width; host test required; 360 dp header fallback (pill moves to the macros line) | 1 | PENDING (batch 5; part of V-15 and R-75) | 05 R-76, R-78 |
+| V-15b | V-15 follow-up: `compactMacrosFit` measures the real ring-column width; host test required; 360 dp header fallback (pill moves to the macros line) | 1 | ADOPTED (user verdict 2026-11-14: Diario approved) | 05 R-76, R-78 |
 | U-1 | diary entry with ingredients: collapsed swipe removes the whole food (user request, explicit exception to "no behaviour change"; reconfirmed in batch 4, unchanged) | 1 | ADOPTED | 05 R-71 |
 | C-66 | Rutinas: the `isNext` routine's "Empezar" is a PrimaryButton, others secondary | 2 | ADOPTED | 05 R-79, §6.0b |
 | C-67 | live set row: current set cyan ring + "Serie actual", done rows on surfaceOverlay without border | 2 | ADOPTED | 05 R-80, §6.0b |
@@ -214,4 +214,4 @@ Round 1 (T-281, Diario) verdict: the user approved the Diario visual result in t
 
 Round 2 (T-282, Entreno): the user decided on 2026-11-14: C-68 REJECTED, every other row accepted; they were written into `05` §6.0b and §8 R-79…R-90 (rules mode). Verdict: the user approved the Entreno look in the emulator on 2026-11-14 (T-282 merged, PR #675), including the redesigned routines list and cardio row; every round 2 row is `ADOPTED` (C-68 stays `REJECTED`, V-36 `RESOLVED`) and the PENDING tags are removed from `05`. Open: V-21's type/RPE cells are 40 x 48 dp with an accessibility-sweep exemption, pending the user's call. Rows whose build differs from `05`: V-2 (superseded by V-21) and C-15 (the built `WorkoutRow` has two supporting lines; `05` §6.0b corrects it).
 
-Round 0 build state (T-295): all rows C-01…C-19 and V-1…V-4 are built on `feat/ui-design-system` and the PENDING tags are removed from `05-design-system.md`. Every row stays `IN REVIEW` until the user's emulator verdict sets `ADOPTED` or `REWORK`.
+Round 0 build state (T-295): all rows C-01…C-19 and V-1…V-4 are built on `feat/ui-design-system` and the PENDING tags are removed from `05-design-system.md`. Verdict (user, chat, 2026-11-14): round 0, Diario and Entreno are all approved; every row C-01…C-19, V-1…V-4 and V-15b is `ADOPTED` (C-09 as reworked).
