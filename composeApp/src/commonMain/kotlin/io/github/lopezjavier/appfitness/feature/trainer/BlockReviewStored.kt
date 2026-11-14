@@ -32,7 +32,7 @@ internal fun StoredPhaseSection(state: BlockReviewUiState.Content, proposal: Pha
 
         PhaseDecision.Kept -> StatusCard(stringResource(Res.string.reports_block_phase_kept), decisionTag)
 
-        null -> SummaryCard("block_review_phase_status") {
+        null -> ReportNoteCard("block_review_phase_status") {
             val reason = BlockReviewText.proposalReason(proposal)
             PhaseRowContent(proposal.toPhase, stringResource(reason.res, *reason.args.toTypedArray()), PREFIX)
         }

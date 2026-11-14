@@ -26,6 +26,7 @@ import io.github.lopezjavier.appfitness.designsystem.ErrorState
 import io.github.lopezjavier.appfitness.designsystem.ListRowSkeleton
 import io.github.lopezjavier.appfitness.designsystem.OfflineState
 import io.github.lopezjavier.appfitness.designsystem.Spacing
+import io.github.lopezjavier.appfitness.designsystem.WindowWidthClassDefaults
 import io.github.lopezjavier.appfitness.domain.model.ReportItem
 import io.github.lopezjavier.appfitness.domain.port.ConnectivityObserver
 import kotlinx.coroutines.flow.Flow
@@ -77,6 +78,7 @@ fun PastReportScreen(
         modifier = modifier,
         subtitle = item?.let { subtitle(it) },
         onBack = onBack,
+        maxContentWidth = WindowWidthClassDefaults.HubContentMaxWidth,
         testTagPrefix = PREFIX,
     ) {
         Box(Modifier.fillMaxSize().testTag("past_report_screen")) {

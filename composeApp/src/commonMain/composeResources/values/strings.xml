@@ -2370,6 +2370,21 @@
     <string name="week_summary_title">Resumen semanal</string>
     <string name="week_summary_subtitle">Semana %1$d · %2$s</string>
     <string name="week_summary_sessions">Esta semana: %1$d de %2$d entrenos.</string>
+    <!-- Report figures (T-283, C-102, V-55): headline, spoken value, tile labels. U+00A0 keeps a fact on one line. -->
+    <string name="report_sessions_headline">%1$d de %2$d</string>
+    <string name="report_sessions_cd">%1$d de %2$d entrenos</string>
+    <string name="report_lift_range">%1$s → %2$s&#160;kg</string>
+    <string name="report_lift_change">%1$s&#160;kg</string>
+    <string name="report_tile_days_label">Días completos</string>
+    <string name="report_tile_days_unit">de&#160;7</string>
+    <string name="report_tile_kcal_label">Calorías medias</string>
+    <string name="report_tile_kcal_target">Objetivo %1$s (%2$s)</string>
+    <string name="report_tile_kcal_target_only">Objetivo %1$s</string>
+    <string name="report_tile_protein_label">Proteína media</string>
+    <string name="report_tile_protein_target">Objetivo %1$s&#160;g</string>
+    <string name="report_tile_protein_per_kg">%1$s&#160;g por kg</string>
+    <string name="report_tile_weight_label">Peso medio</string>
+    <string name="report_tile_weight_slope">%1$s&#160;kg/semana</string>
     <string name="week_summary_groups_header">Series por grupo muscular</string>
     <string name="week_summary_group_line">%1$s %2$s</string>
     <string name="week_summary_group_cd_one">%1$s, 1 serie</string>

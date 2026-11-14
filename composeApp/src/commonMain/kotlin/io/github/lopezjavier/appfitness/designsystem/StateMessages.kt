@@ -113,6 +113,7 @@ object ErrorStateDefaults {
  * Centred "nothing here yet" block: decorative [icon], optional [title], [message] and an optional [action]
  * (primary button). With [testTagPrefix] the root gets the prefix and the children `<prefix>_title`,
  * `<prefix>_message` and `<prefix>_action`. The caller's [modifier] lands on the root.
+ * Pass `Modifier.fillMaxSize()` to centre it vertically in an [AppScreen] body (R-91).
  */
 @Composable
 fun EmptyState(
@@ -186,7 +187,7 @@ private fun StateMessage(
     secondaryActionTestTag: String? = null,
 ) {
     val rootModifier = testTagPrefix?.let { modifier.testTag(it) } ?: modifier
-    Box(modifier = rootModifier.fillMaxWidth(), contentAlignment = Alignment.TopCenter) {
+    Box(modifier = rootModifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
         Column(
             modifier =
             Modifier

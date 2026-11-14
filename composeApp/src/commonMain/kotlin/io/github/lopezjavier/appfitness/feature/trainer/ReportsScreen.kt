@@ -1,15 +1,11 @@
 package io.github.lopezjavier.appfitness.feature.trainer
 
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.LazyListState
-import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.lazy.grid.LazyGridState
+import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.material3.Icon
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -21,7 +17,9 @@ import io.github.lopezjavier.appfitness.composeapp.resources.Res
 import io.github.lopezjavier.appfitness.composeapp.resources.action_retry
 import io.github.lopezjavier.appfitness.composeapp.resources.block_review_title
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_chevron_right
+import io.github.lopezjavier.appfitness.composeapp.resources.ic_calendar
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_description
+import io.github.lopezjavier.appfitness.composeapp.resources.ic_fact_check
 import io.github.lopezjavier.appfitness.composeapp.resources.reports_empty_message
 import io.github.lopezjavier.appfitness.composeapp.resources.reports_empty_title
 import io.github.lopezjavier.appfitness.composeapp.resources.reports_error
@@ -40,7 +38,8 @@ import io.github.lopezjavier.appfitness.designsystem.ErrorState
 import io.github.lopezjavier.appfitness.designsystem.ListRowSkeleton
 import io.github.lopezjavier.appfitness.designsystem.OfflineState
 import io.github.lopezjavier.appfitness.designsystem.Spacing
-import io.github.lopezjavier.appfitness.designsystem.appAnimateItem
+import io.github.lopezjavier.appfitness.designsystem.RowGroupCard
+import io.github.lopezjavier.appfitness.designsystem.WindowWidthClassDefaults
 import io.github.lopezjavier.appfitness.domain.model.ReportItem
 import io.github.lopezjavier.appfitness.domain.model.ReportKind
 import io.github.lopezjavier.appfitness.domain.port.ConnectivityObserver
@@ -69,7 +68,7 @@ fun ReportsRoot(
  * "Informes" on a pushed [AppScreen]: the stored weekly summaries and block reviews as rows, newest first as served.
  * One tap opens the report read-only. Loading is a row skeleton, nothing stored an [EmptyState], a failed load an
  * [ErrorState] with "Reintentar" and no connection the offline state (R-31). The list keeps its scroll position
- * through [listState] (saved with the back stack entry).
+ * through [gridState] (saved with the back stack entry).
  */
 @Composable
 fun ReportsScreen(
@@ -79,12 +78,13 @@ fun ReportsScreen(
     onOpen: (String) -> Unit,
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
-    listState: LazyListState = rememberLazyListState(),
+    gridState: LazyGridState = rememberLazyGridState(),
 ) {
     AppScreen(
         title = stringResource(Res.string.reports_title),
         modifier = modifier,
         onBack = onBack,
+        maxContentWidth = WindowWidthClassDefaults.HubContentMaxWidth,
         testTagPrefix = PREFIX,
     ) {
         Box(Modifier.fillMaxSize().testTag("reports_screen")) {
@@ -118,13 +118,13 @@ fun ReportsScreen(
                     OfflineState(isOnline = isOnline, onReload = { onEvent(ReportsEvent.Retry) })
                 }
 
-                is ReportsUiState.Content -> LazyColumn(
-                    Modifier.fillMaxSize(),
-                    state = listState,
-                    contentPadding = PaddingValues(Spacing.screenMargin),
-                    verticalArrangement = Arrangement.spacedBy(Spacing.sm),
-                ) {
-                    items(state.items, key = { it.id }) { item -> ReportRow(item, onOpen, appAnimateItem()) }
+                is ReportsUiState.Content -> HubGrid(state = gridState) {
+                    fullSpanItem("reports") {
+                        RowGroupCard(
+                            rows = state.items.map { item -> { ReportRow(item, onOpen) } },
+                            modifier = Modifier.testTag("reports_group"),
+                        )
+                    }
                 }
             }
         }
@@ -143,6 +143,14 @@ private fun ReportRow(item: ReportItem, onOpen: (String) -> Unit, modifier: Modi
         onClickLabel = stringResource(
             if (isBlock) Res.string.reports_row_open_block else Res.string.reports_row_open_week,
         ),
+        leading = {
+            Icon(
+                painter = painterResource(if (isBlock) Res.drawable.ic_fact_check else Res.drawable.ic_calendar),
+                contentDescription = null,
+                tint = AppTheme.colors.textSecondary,
+                modifier = Modifier.size(Spacing.xl),
+            )
+        },
         trailing = {
             Icon(
                 painter = painterResource(Res.drawable.ic_chevron_right),

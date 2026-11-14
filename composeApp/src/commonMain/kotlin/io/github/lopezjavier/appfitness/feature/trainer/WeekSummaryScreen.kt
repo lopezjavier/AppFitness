@@ -46,7 +46,9 @@ import io.github.lopezjavier.appfitness.designsystem.ErrorState
 import io.github.lopezjavier.appfitness.designsystem.ListSectionHeader
 import io.github.lopezjavier.appfitness.designsystem.OfflineState
 import io.github.lopezjavier.appfitness.designsystem.SkeletonBox
+import io.github.lopezjavier.appfitness.designsystem.SectionCard
 import io.github.lopezjavier.appfitness.designsystem.Spacing
+import io.github.lopezjavier.appfitness.designsystem.WindowWidthClassDefaults
 import io.github.lopezjavier.appfitness.domain.model.CoachChangeStatus
 import io.github.lopezjavier.appfitness.domain.model.GroupSets
 import io.github.lopezjavier.appfitness.domain.model.ProposalStatus
@@ -94,6 +96,7 @@ fun WeekSummaryScreen(
             if (it.paused) range else stringResource(Res.string.week_summary_subtitle, it.week, range)
         },
         onBack = onBack,
+        maxContentWidth = WindowWidthClassDefaults.HubContentMaxWidth,
         testTagPrefix = "week_summary",
     ) {
         Box(Modifier.fillMaxSize().testTag("week_summary_screen")) {
@@ -135,52 +138,48 @@ fun WeekSummaryScreen(
 @Composable
 internal fun SummaryContent(state: WeekSummaryUiState.Content) {
     val summary = state.summary
-    Column(
-        Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(Spacing.screenMargin),
-        verticalArrangement = Arrangement.spacedBy(Spacing.blockGap),
-    ) {
+    val changeRows = visibleChangeRows(state)
+    HubGrid {
         if (summary.paused) {
             // A paused week (US-106) has nothing to summarise: only its label.
-            Text(
-                text = stringResource(Res.string.block_week_paused),
-                style = AppTheme.typography.titleMedium,
-                color = AppTheme.colors.textPrimary,
-                modifier = Modifier.testTag("week_summary_paused"),
-            )
-            return@Column
+            fullSpanItem("paused") {
+                Text(
+                    text = stringResource(Res.string.block_week_paused),
+                    style = AppTheme.typography.titleMedium,
+                    color = AppTheme.colors.textPrimary,
+                    modifier = Modifier.testTag("week_summary_paused"),
+                )
+            }
+            return@HubGrid
         }
-        SummaryCard("week_summary_section_sessions") {
-            SummaryLine(
-                stringResource(Res.string.week_summary_sessions, summary.sessionsDone, summary.sessionsPlanned),
-            )
+        item("sessions") {
+            SessionsCard("week_summary_section_sessions", summary.sessionsDone, summary.sessionsPlanned)
         }
-        GroupsCard(summary.groups, "week_summary", stringResource(Res.string.week_summary_groups_header))
-        NutritionSection(summary)
-        summary.nutrition?.let { nutrition ->
-            nutrition.diagnosis?.let {
+        if (WeekSummaryText.visibleGroups(summary.groups).isNotEmpty()) {
+            item("groups") {
+                GroupsCard(summary.groups, "week_summary", stringResource(Res.string.week_summary_groups_header))
+            }
+        }
+        if (summary.nutrition != null) fullSpanItem("nutrition") { NutritionSection(summary) }
+        summary.nutrition?.diagnosis?.let { diagnosis ->
+            fullSpanItem("diagnosis") {
                 DiagnosisCard(
-                    it,
-                    hasProposal = nutrition.decisions.any { d ->
-                        d.status ==
-                            ProposalStatus.Pending
-                    },
+                    diagnosis,
+                    hasProposal = summary.nutrition?.decisions?.any { it.status == ProposalStatus.Pending } == true,
                 )
             }
         }
-        ChangesSection(state)
-        StallCard(state.summary.stalls, state.exerciseNames)
+        if (changeRows.isNotEmpty()) fullSpanItem("changes") { ChangesSection(changeRows) }
+        if (state.summary.stalls.any { it.exerciseId in state.exerciseNames }) {
+            fullSpanItem("stalls") { StallCard(state.summary.stalls, state.exerciseNames) }
+        }
         if (WeekSummaryText.showsSeparateDeload(summary)) {
-            SummaryCard("week_summary_section_deload") {
-                SummaryLine(stringResource(Res.string.coach_deload_headline))
+            fullSpanItem("deload") {
+                ReportNoteCard("week_summary_section_deload") {
+                    SummaryLine(stringResource(Res.string.coach_deload_headline))
+                }
             }
         }
-    }
-}
-
-@Composable
-internal fun SummaryCard(tag: String, content: @Composable () -> Unit) {
-    AppCard(Modifier.fillMaxWidth().testTag(tag)) {
-        Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) { content() }
     }
 }
 
@@ -194,44 +193,19 @@ internal fun SummaryLine(text: String, modifier: Modifier = Modifier) {
     )
 }
 
-/** The sets per muscle group as one spoken line; shared with the end-of-block review. */
-@Composable
-internal fun GroupsCard(allGroups: List<GroupSets>, tagPrefix: String, header: String) {
-    val groups = WeekSummaryText.visibleGroups(allGroups)
-    if (groups.isEmpty()) return
-    val labels = groups.map { stringResource(it.muscleGroup.label) }
-    val line = groups.indices.map { i ->
-        stringResource(Res.string.week_summary_group_line, labels[i], WeekSummaryText.sets(groups[i].sets))
-    }.joinToString(GROUP_SEPARATOR)
-    // Each group is spoken as a sentence ("Pecho, 10 series"; half sets as "2,5 series").
-    val spoken = groups.indices.map { i ->
-        val sets = groups[i].sets
-        if (WeekSummaryText.isSingular(sets)) {
-            stringResource(Res.string.week_summary_group_cd_one, labels[i])
-        } else {
-            stringResource(Res.string.week_summary_group_cd_other, labels[i], WeekSummaryText.sets(sets))
-        }
-    }.joinToString(". ")
-    SummaryCard("${tagPrefix}_section_groups") {
-        ListSectionHeader(header)
-        SummaryLine(line, Modifier.testTag("${tagPrefix}_groups_line").semantics { contentDescription = spoken })
-    }
-}
+private typealias ChangeRow = Pair<CoachChangeRowUi, String?>
 
-/** The coach's changes of the week, read-only: the shared row without actions, pending flags as plain status text. */
-@Composable
-private fun ChangesSection(state: WeekSummaryUiState.Content) {
-    // A change waits for its exercise name (R-54); a deload is plan-level and needs none.
-    val rows = state.summary.changes.toCoachChangeRows().mapNotNull { row ->
+/** The coach's changes that can be drawn: a change waits for its exercise name (R-54); a deload is plan-level. */
+private fun visibleChangeRows(state: WeekSummaryUiState.Content): List<ChangeRow> =
+    state.summary.changes.toCoachChangeRows().mapNotNull { row ->
         val name = row.exerciseId?.let { state.exerciseNames[it] }
         if (row.kind.isDeload || name != null) row to name else null
     }
-    if (rows.isEmpty()) return
-    Column(
-        Modifier.fillMaxWidth().testTag("week_summary_section_changes"),
-        verticalArrangement = Arrangement.spacedBy(Spacing.sm),
-    ) {
-        ListSectionHeader(stringResource(Res.string.coach_changes_header))
+
+/** The coach's changes of the week, read-only: the shared row without actions, pending flags as plain status text. */
+@Composable
+private fun ChangesSection(rows: List<ChangeRow>) {
+    SectionCard(stringResource(Res.string.coach_changes_header), testTag = "week_summary_section_changes") {
         rows.forEach { (row, name) ->
             val cancelled = row.status == CoachChangeStatus.Undone
             if (row.kind.isDeload) {
