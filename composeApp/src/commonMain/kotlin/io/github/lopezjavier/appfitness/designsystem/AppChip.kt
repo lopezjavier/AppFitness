@@ -6,6 +6,8 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -255,6 +257,37 @@ fun FilterChipRow(
                             Modifier
                         },
                     )
+                    .semantics { option.contentDescription?.let { contentDescription = it } },
+            )
+        }
+    }
+}
+
+/**
+ * Single-select chips that wrap onto several lines instead of scrolling sideways (R-86): for a required choice in a
+ * form sheet, so every option is visible at once. Same selection rules as [FilterChipRow].
+ */
+@OptIn(ExperimentalLayoutApi::class) // FlowRow is the wrapping row.
+@Composable
+fun FilterChipFlow(
+    options: List<AppOption>,
+    selectedIndex: Int?,
+    onSelect: (Int) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    SingleSelection.requireValid(selectedIndex, options.size)
+    FlowRow(
+        modifier = modifier.fillMaxWidth().selectableGroup(),
+        horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+        verticalArrangement = Arrangement.spacedBy(Spacing.xs),
+    ) {
+        options.forEachIndexed { index, option ->
+            AppChip(
+                label = option.label,
+                selected = index == selectedIndex,
+                onClick = { SingleSelection.onTap(selectedIndex, index)?.let(onSelect) },
+                modifier = Modifier
+                    .testTag(option.testTag)
                     .semantics { option.contentDescription?.let { contentDescription = it } },
             )
         }

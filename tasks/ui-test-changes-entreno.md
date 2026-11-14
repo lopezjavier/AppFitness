@@ -37,6 +37,8 @@ Uncovered (needs a new test in the repair task): ring on the first pending set o
 
 Shared components changed (callers to re-check): `NoteSheet` (4 callers), `SetRow` and `SetTableHeader` (live, catalog), `NumberInput`, `SetFieldInput`, `SetCompletionCheckbox`, `AppLinearProgress`.
 
+Glyph verification (R-81): Material Symbols Outlined names confirmed to exist and used: `timer`, `calculate`, `fitness_center`, `drive_file_move`, `content_copy`, `flag`, `sticky_note_2`; group = `link`, ungroup = `link_off`, "Revisar tus rutinas" = `fact_check`.
+
 ## Batch 3 (routines, builder and details)
 
 Behaviour tests that will fail or need an update:
@@ -51,4 +53,22 @@ Uncovered (needs a new test in the repair task): primary only on `isNext`; offli
 
 Shared components changed (callers to re-check): `AppEditorScreen` (new `showFooter`, default unchanged), `ExercisePickerScreen` title, `workout_entry_title` / `live_rest_sheet_title` strings.
 
-Glyph verification (R-81): Material Symbols Outlined names confirmed to exist and used: `timer`, `calculate`, `fitness_center`, `drive_file_move`, `content_copy`, `flag`, `sticky_note_2`; group = `link`, ungroup = `link_off`, "Revisar tus rutinas" = `fact_check`.
+## Batch 4 (history, sessions, exercises and gallery tooling)
+
+Behaviour tests that will fail or need an update:
+- Historial year view (C-73, V-24): the heading is "2026 · 3 entrenos" (`calendar_year_title` now takes the year and the yearly total as text); month tiles show the bare count (no "entrenos"), `bodySmall` name, `textTertiary` at 0, min height 64 dp; the tile description (`countDescription`) is unchanged. Historial month (C-88): with no day selected a hint "Toca un día para ver sus entrenos." (`calendar_select_day_hint`) shows under the grid.
+- Durations (V-26): `HistoryWorkoutRow` (Historial, day cards, "Añadir entreno" sessions step) shows "55 min" / "1 h 5 min" (`durationText`) instead of "55:00"; a workout with no volume drops the volume segment and its row description loses "volumen" (`history_row_cd_no_volume`); string `session_volume_none` removed, `volumeText` now returns null. `WorkoutRow.volumeText` is nullable. Live timer and the PR "best duration" still use `formatElapsed`.
+- Session summary and detail (C-80): label/value rows are one row of `MetricTile`s (`WorkoutMetricTiles`); tags `summary_duration`, `summary_sets`, `session_detail_duration`, `session_detail_sets`, `session_detail_volume` now sit on the tiles (the value is the number only: duration "55" + unit "min", volume "2.120" + unit "kg"). Detail volume tile is absent when the volume is zero. Summary exercise rows hide the empty volume text.
+- Set lines (C-78): session detail and exercise history set lines are `titleMedium` `textPrimary` (history was `labelNumeric` cyan).
+- Exercise detail (C-84): "Pesas por mano: Sí/No" is gone; a pill "Una pesa en cada mano" (`exercise_detail_per_hand_pill`, tag `exercise_detail_per_hand_value`) shows only when `perHand` is true. `ExerciseManagementScreenTest` lines ~277, ~284, ~308 assert the old text. Header pills are a `FlowRow`. Loading skeleton has real heights (V-25).
+- Exercise picker (C-81, V-33, V-34): captions "Grupo muscular" / "Equipamiento" (`labelTechnical`) above the two chip rows; chip rows are full-bleed with `edgeToEdge` content padding (modifier padding removed); the search field has `showLabel = false` (no visible "Buscar" label; content description kept). `MuscleChipRow` has a new `edgeToEdge` parameter (default 0, the other caller `BuilderSlotPickerSheet` unchanged).
+- Exercise form sheet (C-86): muscle group and equipment are `FilterChipFlow` (wrapping, new in `AppChip.kt`) instead of a scrolling `FilterChipRow`; tags unchanged, no horizontal scroll. The Trainer's `BuilderCreateExerciseSheet` still uses scrolling rows (T-283).
+- `AppEditorScreen` footer (V-35, R-70): the destructive action ("Eliminar" in "Editar entreno") is an `AppTextButton` (Danger, no border, 48 dp) 16 dp under "Guardar"; only `EditWorkoutScreen` passes it. Tests asserting a ghost/bordered delete button.
+- `AppListRow` / `ExerciseRow`: new `supportingMaxLines` (default unlimited, unchanged); `RoutineDetailsScreen` passes 1 so set summaries ellipsize on one line (B3 note). V-31 check: the superset "?" `HelpButton` inside the row's open-exercise `clickable` keeps its own tap (it is a merging node of its own); no code change.
+- V-36 (date dialog selected-day border): Material 3 `DatePicker` draws no border on the selected day (only `todayDateBorderColor`); the selected day shows fill `selectedContainer` and lime text. Not changeable through `DatePickerDefaults.colors`; left as is, needs a decision in the emulator look (custom day cell or accept).
+
+Gallery tooling fixes: live "set type picker" used set 0 (sets are 1-based) so no sheet showed; edit-workout set type and RPE pickers now `performScrollTo()` before the click; Rutinas entries are wrapped in `AppScreen("Entreno")` (no white canvas); Entreno "default" renders `RoutinesScreen` with fixtures (was an empty slot); Historial passes `onBack` (back arrow); the `no_session` entry is removed (it draws the same skeleton as "loading" and closes); year view fixture has three months with workouts; `FilterChipFlow` added to `GalleryManifest.designSystemExempt` (catalog gap).
+
+Uncovered (needs a new test in the repair task): month tile content and heading total; calendar hint; `durationText` ("55 min", "1 h 5 min", 0); no-volume row and its description; `WorkoutMetricTiles` with and without volume; per-hand pill visible only when true; picker captions and chip rows not clipped; `FilterChipFlow` selection and wrap; footer spacing (>= 16 dp) between "Guardar" and "Eliminar"; `supportingMaxLines` ellipsis.
+
+Shared components changed (callers to re-check): `AppEditorScreen` (destructive action; only `EditWorkoutScreen`), `WorkoutRow` (nullable volume; `HistoryWorkoutRow` and the catalog), `AppListRow` and `ExerciseRow` (new parameter, default unchanged), `MuscleChipRow` (new parameter), `AppChip.kt` (new `FilterChipFlow`), `volumeText` (nullable: summary, detail, history row).

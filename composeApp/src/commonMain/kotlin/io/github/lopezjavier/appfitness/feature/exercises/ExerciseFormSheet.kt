@@ -34,7 +34,7 @@ import io.github.lopezjavier.appfitness.designsystem.AppOption
 import io.github.lopezjavier.appfitness.designsystem.AppSwitch
 import io.github.lopezjavier.appfitness.designsystem.AppTextField
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
-import io.github.lopezjavier.appfitness.designsystem.FilterChipRow
+import io.github.lopezjavier.appfitness.designsystem.FilterChipFlow
 import io.github.lopezjavier.appfitness.designsystem.HelpButton
 import io.github.lopezjavier.appfitness.designsystem.NavigationRow
 import io.github.lopezjavier.appfitness.designsystem.OptionPickerSheet
@@ -125,19 +125,17 @@ private fun FormChoices(ui: ExerciseFormUi, actions: ExerciseFormActions) {
         Equipment.entries.map { AppOption(stringResource(it.label), "${ui.tagPrefix}_equipment_${it.tagName()}") }
     Column(verticalArrangement = Arrangement.spacedBy(Spacing.xl)) {
         ChipGroup(stringResource(Res.string.exercise_create_muscle_label)) {
-            FilterChipRow(
+            FilterChipFlow(
                 options = muscleOptions,
                 selectedIndex = ui.muscleGroup?.ordinal,
                 onSelect = { actions.onMuscleGroup(MuscleGroup.entries[it]) },
-                edgeToEdge = Spacing.screenMargin,
             )
         }
         ChipGroup(stringResource(Res.string.exercise_create_equipment_label)) {
-            FilterChipRow(
+            FilterChipFlow(
                 options = equipmentOptions,
                 selectedIndex = ui.equipment?.ordinal,
                 onSelect = { actions.onEquipment(Equipment.entries[it]) },
-                edgeToEdge = Spacing.screenMargin,
             )
         }
         if (ui.metricType != null) {

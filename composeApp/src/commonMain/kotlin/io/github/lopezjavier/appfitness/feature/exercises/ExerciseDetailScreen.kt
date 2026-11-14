@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyListState
@@ -50,6 +51,7 @@ import io.github.lopezjavier.appfitness.composeapp.resources.ic_edit
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_star
 import io.github.lopezjavier.appfitness.designsystem.AppOption
 import io.github.lopezjavier.appfitness.designsystem.AppScreen
+import io.github.lopezjavier.appfitness.designsystem.AppShapes
 import io.github.lopezjavier.appfitness.designsystem.AppStateAction
 import io.github.lopezjavier.appfitness.designsystem.AppTabRow
 import io.github.lopezjavier.appfitness.designsystem.AppTopBarAction
@@ -327,12 +329,18 @@ private fun DetailLoading() {
         Modifier.fillMaxSize().padding(Spacing.screenMargin),
         verticalArrangement = Arrangement.spacedBy(Spacing.lg),
     ) {
-        SkeletonBox(Modifier.fillMaxWidth().widthIn(max = ExerciseLayoutDefaults.AnimationMaxWidth).padding(Spacing.xl))
-        SkeletonBox(Modifier.fillMaxWidth(NAME_FRACTION).padding(Spacing.lg))
+        SkeletonBox(
+            Modifier.fillMaxWidth().widthIn(max = ExerciseLayoutDefaults.AnimationMaxWidth)
+                .height(SkeletonMediaHeight),
+            AppShapes.lg,
+        )
+        SkeletonBox(Modifier.fillMaxWidth(NAME_FRACTION).height(Spacing.xl), AppShapes.md)
+        SkeletonBox(Modifier.fillMaxWidth().height(SkeletonMediaHeight / 2), AppShapes.lg)
     }
 }
 
 private const val NAME_FRACTION = 0.6f
+private val SkeletonMediaHeight = Spacing.xl * 8
 
 @Composable
 @Suppress("LongMethod") // One branch per tab.

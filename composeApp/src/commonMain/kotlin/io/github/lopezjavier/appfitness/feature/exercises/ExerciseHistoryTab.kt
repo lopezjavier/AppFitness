@@ -178,8 +178,8 @@ private fun SetLine(sessionId: String, set: HistorySetUi) {
         SetTypeBadge(set.setType)
         Text(
             text = set.text,
-            style = AppTheme.typography.labelNumeric,
-            color = AppTheme.colors.athleticCyan,
+            style = AppTheme.typography.titleMedium,
+            color = AppTheme.colors.textPrimary,
             modifier = Modifier.weight(1f),
         )
         if (set.rpe != null) {

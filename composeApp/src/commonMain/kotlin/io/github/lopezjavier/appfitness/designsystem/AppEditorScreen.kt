@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.LaunchedEffect
@@ -186,12 +187,14 @@ private fun EditorFooter(
             )
         }
         if (destructiveAction != null) {
-            GhostButton(
+            // R-70: a text-style danger action, at least 16 dp under "Guardar" (the column gap plus this padding).
+            AppTextButton(
                 text = destructiveAction.label,
                 onClick = destructiveAction.onClick,
-                modifier = Modifier.fillMaxWidth().testTag(AppEditorScreenDefaults.deleteTag(testTagPrefix)),
+                modifier = Modifier.fillMaxWidth().padding(top = Spacing.sm)
+                    .testTag(AppEditorScreenDefaults.deleteTag(testTagPrefix)),
                 enabled = destructiveAction.enabled,
-                tone = GhostTone.Destructive,
+                tone = AppTextButtonTone.Danger,
             )
         }
     }

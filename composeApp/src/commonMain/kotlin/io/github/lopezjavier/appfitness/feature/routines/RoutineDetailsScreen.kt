@@ -242,6 +242,7 @@ private fun DetailsList(
             ExerciseRow(
                 name = exercise.name,
                 supporting = setsSummary(exercise.plannedSets),
+                supportingMaxLines = 1,
                 onOpen = { onOpenExercise(exercise.exerciseId) },
                 tagPrefix = "${TAG}_exercise_${exercise.exerciseId}",
                 modifier = appAnimateItem(),

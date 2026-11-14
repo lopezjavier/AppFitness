@@ -32,7 +32,7 @@ internal object GalleryManifest {
         "AppAvatar", "AppBottomSheet", "AppButtonChip", "AppChip", "AppIconButton", "AppLineChartSkeleton",
         "AppMessageHost", "AppSheetHeader", "AppSheetLayout", "AppSwitch", "AppSwitchRow", "CardioTimeCell",
         "ChecklistRow", "CoachChangeRow", "CoachProposalCard", "DayPickerSheet", "DiscStepperRow",
-        "DiscardChangesDialog", "HelpTriggerButton", "InvalidTimeMessage", "ListRowSkeleton", "NavIcon", "NavLabel",
+        "DiscardChangesDialog", "FilterChipFlow", "HelpTriggerButton", "InvalidTimeMessage", "ListRowSkeleton", "NavIcon", "NavLabel",
         "OfflineHint", "OptionPickerSheet", "PausedText", "PillContainer", "ProgressLine", "RestTimerAction",
         "RingArc", "RpeHelpButton", "RpeOptionRow", "RpePickerSheet", "ScaleOptionRow", "SetFieldInput",
         "SetNoteButton", "SetOrdinal", "SheetActionRow", "StatusChip", "StepScaffold", "StreamProgressState",

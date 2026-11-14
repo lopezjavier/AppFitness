@@ -53,7 +53,8 @@ object NavigationRowDefaults {
  * [onClickLabel] is what a screen reader announces for the tap. [headlineTrailing] (default none) sits in the same
  * line right after the headline text, which shrinks first (an inline marker such as a favourite star).
  * [headlineStyle] (default `bodyLarge`) and [headlineMaxLines] (default 2) restyle the headline; [supportingSecondary]
- * is a second `bodyMedium` line below [supporting].
+ * is a second `bodyMedium` line below [supporting]; [supportingMaxLines] (default unlimited) caps [supporting] with an
+ * ellipsis, for a summary that must stay on one line so the row keeps its 56 dp height.
  */
 @Composable
 fun AppListRow(
@@ -70,6 +71,7 @@ fun AppListRow(
     headlineStyle: TextStyle? = null,
     headlineMaxLines: Int = HEADLINE_MAX_LINES,
     supportingSecondary: String? = null,
+    supportingMaxLines: Int = Int.MAX_VALUE,
 ) {
     val clickable =
         if (onClick != null) {
@@ -118,6 +120,8 @@ fun AppListRow(
                     text = supporting,
                     style = AppTheme.typography.bodyMedium,
                     color = AppTheme.colors.textSecondary,
+                    maxLines = supportingMaxLines,
+                    overflow = TextOverflow.Ellipsis,
                     modifier = if (supportingTestTag != null) Modifier.testTag(supportingTestTag) else Modifier,
                 )
             }

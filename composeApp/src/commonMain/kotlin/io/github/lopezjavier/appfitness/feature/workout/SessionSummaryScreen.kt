@@ -20,12 +20,9 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
 import io.github.lopezjavier.appfitness.composeapp.resources.Res
 import io.github.lopezjavier.appfitness.composeapp.resources.action_done
-import io.github.lopezjavier.appfitness.composeapp.resources.summary_duration
-import io.github.lopezjavier.appfitness.composeapp.resources.summary_sets
 import io.github.lopezjavier.appfitness.composeapp.resources.summary_title
 import io.github.lopezjavier.appfitness.composeapp.resources.summary_volume_title
 import io.github.lopezjavier.appfitness.designsystem.AppCard
-import io.github.lopezjavier.appfitness.designsystem.AppNumberFormat
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
 import io.github.lopezjavier.appfitness.designsystem.PrimaryButton
 import io.github.lopezjavier.appfitness.designsystem.Spacing
@@ -51,20 +48,12 @@ internal fun SessionSummaryScreen(summary: LiveSummary, onDone: () -> Unit, modi
                     color = AppTheme.colors.textPrimary,
                     modifier = Modifier.semantics { heading() },
                 )
-                AppCard(Modifier.fillMaxWidth()) {
-                    Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-                        StatRow(
-                            stringResource(Res.string.summary_duration),
-                            formatElapsed(summary.summary.durationSeconds),
-                            "summary_duration",
-                        )
-                        StatRow(
-                            stringResource(Res.string.summary_sets),
-                            AppNumberFormat.integer(summary.summary.completedSets),
-                            "summary_sets",
-                        )
-                    }
-                }
+                WorkoutMetricTiles(
+                    durationSeconds = summary.summary.durationSeconds,
+                    completedSets = summary.summary.completedSets,
+                    volumeKg = null,
+                    tagPrefix = "summary",
+                )
                 Text(
                     text = stringResource(Res.string.summary_volume_title),
                     style = AppTheme.typography.titleMedium,
@@ -81,18 +70,6 @@ internal fun SessionSummaryScreen(summary: LiveSummary, onDone: () -> Unit, modi
                 modifier = Modifier.fillMaxWidth().padding(vertical = Spacing.lg).testTag("summary_done"),
             )
         }
-    }
-}
-
-@Composable
-private fun StatRow(label: String, value: String, tag: String) {
-    Row(
-        Modifier.fillMaxWidth().semantics(mergeDescendants = true) {}.testTag(tag),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Text(label, style = AppTheme.typography.bodyMedium, color = AppTheme.colors.textSecondary)
-        Text(value, style = AppTheme.typography.headlineMetric, color = AppTheme.colors.textPrimary)
     }
 }
 
@@ -115,7 +92,9 @@ private fun ExerciseVolumeRow(exercise: ExerciseSummary, name: String) {
                     overflow = TextOverflow.Ellipsis,
                     modifier = Modifier.weight(1f),
                 )
-                Text(volume, style = AppTheme.typography.labelNumeric, color = AppTheme.colors.athleticCyan)
+                if (volume != null) {
+                    Text(volume, style = AppTheme.typography.labelNumeric, color = AppTheme.colors.athleticCyan)
+                }
             }
             PersonalRecordPills(exercise.records, exercise.position, "session_summary")
         }

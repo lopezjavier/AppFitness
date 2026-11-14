@@ -5,6 +5,9 @@ import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
 import com.github.takahirom.roborazzi.ExperimentalRoborazziApi
+import io.github.lopezjavier.appfitness.composeapp.resources.Res
+import io.github.lopezjavier.appfitness.composeapp.resources.workout_entry_title
+import io.github.lopezjavier.appfitness.designsystem.AppScreen
 import io.github.lopezjavier.appfitness.domain.model.SetType
 import io.github.lopezjavier.appfitness.domain.usecase.SupersetLabel
 import io.github.lopezjavier.appfitness.feature.routines.FolderSheetMode
@@ -19,6 +22,7 @@ import io.github.lopezjavier.appfitness.feature.routines.TypePickerUi
 import io.github.lopezjavier.appfitness.feature.workout.CalculatorDraft
 import io.github.lopezjavier.appfitness.feature.workout.CalculatorKind
 import io.github.lopezjavier.appfitness.feature.workout.CalculatorUiState
+import org.jetbrains.compose.resources.stringResource
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -49,7 +53,12 @@ private fun routinesHome(): List<GalleryEntry> {
         covers = setOf("WorkoutHome") + covers,
         wide = wide,
         interact = interact,
-    ) { RoutinesScreen(ui, onEvent = {}) }
+    ) {
+        // The list is the body of the Entreno tab: without the screen template it would sit on a white canvas.
+        AppScreen(title = stringResource(Res.string.workout_entry_title)) {
+            RoutinesScreen(ui, onEvent = {})
+        }
+    }
 
     val fixtures = EntrenoFixtures
     val strength = fixtures.strengthFolder

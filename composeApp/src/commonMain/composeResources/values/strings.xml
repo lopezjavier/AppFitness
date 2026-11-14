@@ -546,9 +546,7 @@
     <string name="exercise_per_hand_help_title">Pesas por mano</string>
     <string name="exercise_per_hand_help_body">El peso que registras es por mano: el volumen cuenta el doble. El 1RM estimado no se duplica.</string>
     <string name="exercise_per_hand_help_body_edit">El peso que registras es por mano: el volumen cuenta el doble, también en el historial. El 1RM estimado no se duplica. Si cambias el grupo muscular o el equipamiento, el volumen por músculo del historial se recalcula.</string>
-    <string name="exercise_detail_per_hand">Pesas por mano: %1$s</string>
-    <string name="exercise_detail_per_hand_yes">Sí</string>
-    <string name="exercise_detail_per_hand_no">No</string>
+    <string name="exercise_detail_per_hand_pill">Una pesa en cada mano</string>
     <string name="exercise_detail_edit_cd">Editar %1$s</string>
     <string name="exercise_detail_delete_cd">Eliminar %1$s</string>
     <string name="exercise_row_open_detail_cd">Ver detalle de %1$s</string>
@@ -1398,7 +1396,10 @@
     <string name="metric_type_floors_duration_hint">Pisos subidos y tiempo</string>
     <string name="exercise_create_metric_label">Qué registras</string>
     <string name="live_invalid_set_metric">Completa los datos de la serie</string>
-    <string name="session_volume_none">—</string>
+    <string name="metric_unit_min">min</string>
+    <string name="duration_minutes">%1$d min</string>
+    <string name="duration_hours_minutes">%1$d h %2$d min</string>
+    <string name="history_row_cd_no_volume">%1$s, %2$s, duración %3$s</string>
     <string name="chip_state_on">Activado</string>
     <string name="chip_state_off">Desactivado</string>
     <string name="preferences_calc_title">Calculadoras</string>
@@ -1530,7 +1531,8 @@
         <item quantity="other">%1$d entrenos</item>
     </plurals>
     <string name="calendar_count_cd">%1$s, %2$s</string>
-    <string name="calendar_year_title">%1$d</string>
+    <string name="calendar_year_title">%1$d · %2$s</string>
+    <string name="calendar_select_day_hint">Toca un día para ver sus entrenos.</string>
     <string name="calendar_error">No se pudo cargar el calendario.</string>
     <string name="catalog_rows_workout_name">Push</string>
     <string name="catalog_rows_workout_date">lun, 24 oct</string>
