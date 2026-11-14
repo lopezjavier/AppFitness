@@ -4,6 +4,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
@@ -22,6 +23,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
@@ -118,6 +120,22 @@ object SetRowDefaults {
 
     /** Minimum width of the KM and TIEMPO fields of a cardio set (V-22). */
     val CardioFieldMinWidth: Dp = 72.dp
+
+    /** Cell of the cardio start circle on the first line of the row (C-92): a 48 dp target. */
+    val StartCellWidth: Dp = SetCompletionCheckboxDefaults.TouchTarget
+
+    /**
+     * Whether the cardio start circle fits on the first line (C-92): every field keeps [CardioFieldMinWidth] scaled by
+     * [fontScale] next to TIPO, START, LISTO and the note cell. Shared by the row and its header so both agree.
+     */
+    fun cardioStartFits(available: Dp, fieldCount: Int, hasNote: Boolean, fontScale: Float): Boolean {
+        val cells = fieldCount + CARDIO_FIXED_CELLS + if (hasNote) 1 else 0
+        val fixed = TypeColumnWidth + StartCellWidth + FixedCellWidth + if (hasNote) FixedCellWidth else 0.dp
+        return available >= CardioFieldMinWidth * fontScale * fieldCount + fixed + ColumnGap * (cells - 1)
+    }
+
+    /** TIPO, START and LISTO: the cells of a cardio first line besides the fields and the note. */
+    private const val CARDIO_FIXED_CELLS = 3
     val MinHeight: Dp = 48.dp
 
     /** Compact gap: at 360 dp the three weighted columns need every dp (UX: "102,25" at 130 % font). */
@@ -195,9 +213,8 @@ fun SetRow(
     val number = AppNumberFormat.integer(values.index)
     val previousText = SetRowDefaults.previousText(values.previous)
     val clickable = SetRowDefaults.isPreviousClickable(onUsePrevious != null, values.previous, values.completed)
-    // A cardio row (R-58) is two lines (V-22): TIPO, KM, TIEMPO and LISTO, then "Antes: ..." and the note button.
-    val twoLine = values.cardioPlaceholder != null
-    val line: @Composable (Modifier) -> Unit = { lineModifier ->
+    val cardio = values.cardioPlaceholder != null
+    val line: @Composable (Modifier, Boolean) -> Unit = { lineModifier, startInline ->
         SetRowLine(
             lineModifier = lineModifier,
             values = values,
@@ -219,16 +236,27 @@ fun SetRow(
             fields = fields,
             actions = actions,
             testTagPrefix = testTagPrefix,
-            trailing = trailing.takeUnless { twoLine },
+            trailing = trailing,
+            startInline = startInline,
         )
     }
-    if (twoLine) {
-        Column(modifier.fillMaxWidth()) {
-            line(Modifier)
-            CardioPreviousLine(values.previous, trailing)
+    if (cardio) {
+        // A cardio row (R-58) shares the strength grid (C-90): the start circle joins line 1 when it fits (C-92),
+        // otherwise it moves to line 2 as a pill; line 2 also holds "Antes: ..." when a value exists.
+        BoxWithConstraints(modifier.fillMaxWidth()) {
+            val startInline = SetRowDefaults.cardioStartFits(
+                available = maxWidth,
+                fieldCount = fields.size,
+                hasNote = trailing != null,
+                fontScale = LocalDensity.current.fontScale,
+            )
+            Column(Modifier.fillMaxWidth()) {
+                line(Modifier, startInline)
+                CardioSecondLine(values, actions.onStopwatchToggle, startInline)
+            }
         }
     } else {
-        line(modifier)
+        line(modifier, false)
     }
 }
 
@@ -244,26 +272,43 @@ private class SetRowCallbacks(
     val rpeClickLabel: String?,
 )
 
-/** Second line of a cardio set: "Antes: 5 km · 30:00" (only when a value exists) and the trailing action. */
+/**
+ * Second line of a cardio set: the "Iniciar" pill when the start circle did not fit on line 1, and "Antes: 5 km ·
+ * 30:00" (only when a value exists). Nothing to show draws nothing.
+ */
 @Composable
-private fun CardioPreviousLine(previous: String?, trailing: (@Composable () -> Unit)?) {
-    if (previous.isNullOrBlank() && trailing == null) return
-    Row(
-        Modifier.fillMaxWidth().padding(start = SetRowDefaults.TypeColumnWidth + SetRowDefaults.ColumnGap),
-        horizontalArrangement = Arrangement.spacedBy(SetRowDefaults.ColumnGap),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        if (previous.isNullOrBlank()) {
-            Spacer(Modifier.weight(1f))
-        } else {
+private fun CardioSecondLine(values: SetRowValues, onStart: () -> Unit, startInline: Boolean) {
+    val previous = values.previous?.takeUnless { it.isBlank() }
+    if (previous == null && startInline) return
+    val start = Modifier.padding(start = SetRowDefaults.TypeColumnWidth + SetRowDefaults.ColumnGap)
+    val previousText: @Composable (Modifier) -> Unit = { textModifier ->
+        if (previous != null) {
             Text(
                 text = stringResource(Res.string.set_row_previous_line, previous),
                 style = AppTheme.typography.bodySmall,
                 color = AppTheme.colors.textTertiary,
-                modifier = Modifier.weight(1f),
+                maxLines = SetRowDefaults.PREVIOUS_MAX_LINES,
+                modifier = textModifier,
             )
         }
-        trailing?.invoke()
+    }
+    if (startInline) {
+        previousText(Modifier.fillMaxWidth().heightIn(min = Spacing.xl - Spacing.xs).then(start))
+        return
+    }
+    Row(
+        Modifier.fillMaxWidth().then(start),
+        horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        CardioStart(
+            timerInBar = values.stopwatchRunning,
+            done = values.completed,
+            onStart = onStart,
+            tag = values.cardioStartTag,
+            pill = true,
+        )
+        previousText(Modifier.weight(1f))
     }
 }
 
@@ -282,6 +327,7 @@ private fun SetRowLine(
     actions: SetRowFieldActions,
     testTagPrefix: String?,
     trailing: (@Composable () -> Unit)?,
+    startInline: Boolean,
 ) {
     val onWeightChange = callbacks.onWeightChange
     val onRepsChange = callbacks.onRepsChange
@@ -322,6 +368,15 @@ private fun SetRowLine(
             handlers = SetFieldHandlers(onWeightChange, onRepsChange, actions),
             testTagPrefix = testTagPrefix,
         )
+        if (startInline) {
+            CardioStart(
+                timerInBar = values.stopwatchRunning,
+                done = values.completed,
+                onStart = actions.onStopwatchToggle,
+                tag = values.cardioStartTag,
+                pill = false,
+            )
+        }
         if (onRpeClick != null) {
             RpeCell(
                 value = values.rpe,
@@ -374,11 +429,9 @@ private fun RowScope.SetFieldCells(
                 placeholderDescription = values.cardioPlaceholderDescription,
                 timerInBar = values.stopwatchRunning,
                 readOnly = values.completed,
-                onStart = handlers.actions.onStopwatchToggle,
                 onManualEntry = handlers.actions.onDurationEdit,
                 modifier = Modifier.weight(weights[position]).widthIn(min = SetRowDefaults.CardioFieldMinWidth),
                 testTagPrefix = SetRowDefaults.childTag(testTagPrefix, "stopwatch"),
-                startTestTag = values.cardioStartTag,
                 placeholderTestTag = values.cardioPlaceholderTag,
             )
         } else if (spec.kind == SetFieldKind.Duration) {
@@ -487,6 +540,29 @@ fun SetTableHeader(
     testTagPrefix: String? = null,
     cardioTime: Boolean = false,
 ) {
+    if (!cardioTime) {
+        SetTableHeaderRow(modifier, showRpe, fields, showNote, showPrevious, testTagPrefix, false, startSpacer = false)
+        return
+    }
+    // A cardio header keeps a START spacer exactly when its rows keep the start circle on line 1 (C-90, C-92).
+    BoxWithConstraints(modifier.fillMaxWidth()) {
+        val startInline = SetRowDefaults.cardioStartFits(maxWidth, fields.size, showNote, LocalDensity.current.fontScale)
+        SetTableHeaderRow(Modifier, showRpe, fields, showNote, showPrevious, testTagPrefix, true, startInline)
+    }
+}
+
+@Composable
+@Suppress("LongParameterList") // The header's flags, forwarded from [SetTableHeader].
+private fun SetTableHeaderRow(
+    modifier: Modifier,
+    showRpe: Boolean,
+    fields: List<SetFieldSpec>,
+    showNote: Boolean,
+    showPrevious: Boolean,
+    testTagPrefix: String?,
+    cardioTime: Boolean,
+    startSpacer: Boolean,
+) {
     Row(
         modifier = modifier.fillMaxWidth().padding(start = SetRowDefaults.rpeInset(showRpe)),
         horizontalArrangement = Arrangement.spacedBy(SetRowDefaults.ColumnGap),
@@ -514,6 +590,7 @@ fun SetTableHeader(
                 centered = true,
             )
         }
+        if (startSpacer) Spacer(Modifier.width(SetRowDefaults.StartCellWidth))
         if (showRpe) {
             HeaderText(
                 text = stringResource(Res.string.set_header_rpe),
@@ -527,8 +604,7 @@ fun SetTableHeader(
             modifier = Modifier.width(SetRowDefaults.FixedCellWidth).headerTag(testTagPrefix, "check", cardioTime),
             centered = true,
         )
-        // A cardio row moves its note button to the second line (V-22), so the header has no note column.
-        if (showNote && !cardioTime) Spacer(Modifier.width(SetRowDefaults.FixedCellWidth))
+        if (showNote) Spacer(Modifier.width(SetRowDefaults.FixedCellWidth))
     }
 }
 

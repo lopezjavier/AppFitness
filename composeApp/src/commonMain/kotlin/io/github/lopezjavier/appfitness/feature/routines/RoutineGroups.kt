@@ -5,16 +5,12 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyListScope
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.semantics.heading
-import androidx.compose.ui.semantics.semantics
 import io.github.lopezjavier.appfitness.composeapp.resources.Res
-import io.github.lopezjavier.appfitness.composeapp.resources.routines_folder_empty
 import io.github.lopezjavier.appfitness.composeapp.resources.routines_group_none
-import io.github.lopezjavier.appfitness.designsystem.AppTheme
+import io.github.lopezjavier.appfitness.designsystem.ListSectionHeader
 import io.github.lopezjavier.appfitness.designsystem.ReorderableColumn
 import io.github.lopezjavier.appfitness.designsystem.Spacing
 import io.github.lopezjavier.appfitness.designsystem.appAnimateItem
@@ -43,16 +39,15 @@ internal fun LazyListScope.routineGroups(state: RoutinesUiState.Content, onEvent
                 when {
                     folder != null -> FolderHeader(
                         folder = folder,
-                        routineCount = group.routines.size,
+                        routines = group.routines,
                         expanded = expanded,
                         onEvent = onEvent,
                     )
 
-                    hasFolders -> Text(
-                        text = stringResource(Res.string.routines_group_none),
-                        style = AppTheme.typography.titleMedium,
-                        color = AppTheme.colors.textPrimary,
-                        modifier = Modifier.semantics { heading() }.testTag("routines_group_none"),
+                    hasFolders -> ListSectionHeader(
+                        title = stringResource(Res.string.routines_group_none),
+                        modifier = Modifier.testTag("routines_group_none"),
+                        count = group.routines.size,
                     )
                 }
                 if (expanded) GroupBody(group, canStart, state.isOnline, onEvent)
@@ -64,15 +59,8 @@ internal fun LazyListScope.routineGroups(state: RoutinesUiState.Content, onEvent
 @Composable
 private fun GroupBody(group: RoutineGroup, canStart: Boolean, canDelete: Boolean, onEvent: (RoutinesEvent) -> Unit) {
     val folderId = group.folder?.id
-    if (group.routines.isEmpty()) {
-        Text(
-            text = stringResource(Res.string.routines_folder_empty),
-            style = AppTheme.typography.bodyMedium,
-            color = AppTheme.colors.textSecondary,
-            modifier = Modifier.testTag("routines_folder_empty_$folderId"),
-        )
-        return
-    }
+    // An empty folder says so on its own card (V-49): there is no body to show.
+    if (group.routines.isEmpty()) return
     ReorderableColumn(
         items = group.routines,
         key = { it.id },

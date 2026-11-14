@@ -114,8 +114,8 @@ internal object SetRowFieldLayout {
 
             kinds.size == 1 -> listOf(total)
 
-            // The cardio TIEMPO cell holds the time and a 48 dp start button: it takes the wider share (1 : 1.4, V-22).
-            cardioTime && kinds.size == 2 -> kinds.map { if (it == SetFieldKind.Duration) CARDIO_TIME else CARDIO_KM }
+            // A cardio row shares one grid with the strength rows: its fields weigh the same (1 : 1, C-90).
+            cardioTime && kinds.size == 2 -> kinds.map { 1f }
 
             // The stopwatch needs room for its time and toggle: the other field keeps a fixed share.
             SetFieldKind.Duration in kinds -> kinds.map {
@@ -133,6 +133,4 @@ internal object SetRowFieldLayout {
     }
 
     private const val SECONDARY = 2f
-    private const val CARDIO_KM = 1f
-    private const val CARDIO_TIME = 1.4f
 }

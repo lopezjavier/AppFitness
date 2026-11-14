@@ -386,17 +386,18 @@
     </plurals>
     <string name="routines_empty_title">Aún no tienes rutinas</string>
     <string name="routines_empty">Crea tu primera rutina para tenerla lista cuando entrenes.</string>
-    <string name="routines_error">No se pudieron cargar tus rutinas</string>
+    <string name="routines_error">No se pudieron cargar tus rutinas. Inténtalo de nuevo.</string>
     <string name="routines_row_menu_cd">Más acciones de %1$s</string>
-    <string name="routine_edit_cd">Editar %1$s</string>
     <string name="routines_delete_cd">Eliminar %1$s</string>
     <string name="routine_duplicate">Duplicar</string>
-    <string name="routines_offline_reason">Sin conexión: no se puede duplicar, mover ni cambiar el siguiente entreno</string>
+    <string name="routines_offline_reason">Sin conexión: no se puede duplicar, mover ni cambiar el siguiente entreno.</string>
     <string name="routines_action_failed">No se pudo completar la acción. Inténtalo de nuevo.</string>
     <string name="routines_folder_sheet_title_create">Nueva carpeta</string>
     <string name="routines_folder_sheet_title_rename">Renombrar carpeta</string>
     <string name="routines_folder_name_label">Nombre</string>
     <string name="routines_folder_empty">Carpeta vacía</string>
+    <string name="routines_folder_summary">%1$s · %2$s</string>
+    <string name="routines_folder_next">Siguiente: %1$s</string>
     <string name="routines_folder_menu_delete">Borrar carpeta</string>
     <string name="routines_folder_menu_delete_blocked_cd">No disponible: la carpeta tiene rutinas</string>
     <string name="routines_folder_collapse_cd">Contraer carpeta %1$s</string>
@@ -1356,6 +1357,8 @@
     <string name="set_row_steps_cd">Pasos, serie %1$s</string>
     <string name="set_row_floors_cd">Pisos, serie %1$s</string>
     <string name="set_row_field_hint_cd">%1$s, %2$s</string>
+    <string name="cardio_start_cd">Iniciar cardio</string>
+    <string name="cardio_start_label">Iniciar</string>
     <string name="stopwatch_start_cd">Iniciar cronómetro</string>
     <string name="stopwatch_stop_cd">Detener cronómetro</string>
     <string name="stopwatch_running_state">En marcha, %1$s</string>
@@ -2239,7 +2242,7 @@
     <string name="routines_folder_menu_cd">Más acciones de %1$s</string>
     <string name="routines_folder_menu_review">Revisar tus rutinas</string>
     <string name="routines_folder_menu_rename">Renombrar</string>
-    <string name="routines_folder_menu_offline_reason">Sin conexión: no se puede renombrar ni borrar la carpeta</string>
+    <string name="routines_folder_menu_offline_reason">Sin conexión: no se puede renombrar ni borrar la carpeta.</string>
     <string name="folder_review_result_title">Revisión de «%1$s»</string>
     <string name="folder_review_result_title_plain">Revisión de la carpeta</string>
     <string name="folder_review_result_help_cd">Ayuda: cómo se calcula la puntuación</string>
