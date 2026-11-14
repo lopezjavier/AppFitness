@@ -158,6 +158,7 @@ private fun RoutinesContent(state: RoutinesUiState.Content, onEvent: (RoutinesEv
         contentPadding = PaddingValues(horizontal = Spacing.screenMargin, vertical = Spacing.lg),
         verticalArrangement = Arrangement.spacedBy(Spacing.cardGap),
     ) {
+        if (!state.isOnline) item(key = "offline_hint") { OfflineHint(action = "empezar") }
         routineGroups(state, onEvent)
         item(key = "add_routine") {
             AddItemButton(
@@ -175,7 +176,6 @@ private fun RoutinesContent(state: RoutinesUiState.Content, onEvent: (RoutinesEv
                 enabled = state.isOnline,
             )
         }
-        if (!state.isOnline) item(key = "offline_hint") { OfflineHint(action = "empezar") }
     }
 }
 

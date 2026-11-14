@@ -8,7 +8,8 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
@@ -26,6 +27,7 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.customActions
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import io.github.lopezjavier.appfitness.composeapp.resources.Res
 import io.github.lopezjavier.appfitness.composeapp.resources.action_remove
@@ -40,6 +42,8 @@ import io.github.lopezjavier.appfitness.composeapp.resources.builder_rest_increa
 import io.github.lopezjavier.appfitness.composeapp.resources.builder_rest_unit
 import io.github.lopezjavier.appfitness.composeapp.resources.builder_row_cd_superset
 import io.github.lopezjavier.appfitness.composeapp.resources.builder_row_menu_cd
+import io.github.lopezjavier.appfitness.composeapp.resources.builder_superset_sets_help_body
+import io.github.lopezjavier.appfitness.composeapp.resources.builder_superset_sets_help_cd
 import io.github.lopezjavier.appfitness.composeapp.resources.builder_ungroup
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_arrow_downward
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_arrow_upward
@@ -269,12 +273,21 @@ private fun RowIdentity(
                 overflow = TextOverflow.Ellipsis,
             )
             if (superset != null) {
-                Text(
-                    text = superset,
-                    style = AppTheme.typography.bodySmall,
-                    color = AppTheme.colors.athleticCyan,
-                    modifier = Modifier.testTag("routine_builder_superset_label_$index"),
-                )
+                // V-31: the "?" of the superset sets sits with its label, never alone on a line.
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        text = superset,
+                        style = AppTheme.typography.bodySmall,
+                        color = AppTheme.colors.athleticCyan,
+                        modifier = Modifier.testTag("routine_builder_superset_label_$index"),
+                    )
+                    HelpButton(
+                        contentDescription = stringResource(Res.string.builder_superset_sets_help_cd),
+                        title = superset,
+                        body = stringResource(Res.string.builder_superset_sets_help_body),
+                        testTag = "routine_builder_superset_sets_help_$index",
+                    )
+                }
             }
         }
     }
@@ -368,7 +381,11 @@ private fun TargetRpeLine(row: BuilderRowUi, index: Int, onEvent: (RoutineBuilde
     )
 }
 
-/** Technical label ("SERIES") on the left, the stepper on the right. */
+/**
+ * Sentence-case label with its "?" on the left, the stepper on the right (R-83): label and "?" stay together and the
+ * stepper drops to its own line before it is squeezed.
+ */
+@OptIn(ExperimentalLayoutApi::class) // FlowRow moves the stepper to the next line when the row is too narrow.
 @Suppress("LongParameterList") // Label, value, descriptions and bounds of one stepper.
 @Composable
 private fun StepperLine(
@@ -383,16 +400,19 @@ private fun StepperLine(
     tag: String,
     help: (@Composable () -> Unit)? = null,
 ) {
-    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-        Text(
-            text = unit,
-            style = AppTheme.typography.labelTechnical,
-            color = AppTheme.colors.textSecondary,
-            modifier = if (help == null) Modifier.weight(1f) else Modifier,
-        )
-        if (help != null) {
-            help()
-            Spacer(Modifier.weight(1f))
+    FlowRow(
+        Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalArrangement = Arrangement.Center,
+        itemVerticalAlignment = Alignment.CenterVertically,
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text(
+                text = unit,
+                style = AppTheme.typography.bodyMedium.copy(fontWeight = FontWeight.W600),
+                color = AppTheme.colors.textSecondary,
+            )
+            help?.invoke()
         }
         NumberStepper(
             valueText = valueText,

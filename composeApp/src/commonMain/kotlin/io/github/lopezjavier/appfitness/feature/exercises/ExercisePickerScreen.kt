@@ -36,6 +36,7 @@ import io.github.lopezjavier.appfitness.composeapp.resources.exercise_empty_no_r
 import io.github.lopezjavier.appfitness.composeapp.resources.exercise_error_message
 import io.github.lopezjavier.appfitness.composeapp.resources.exercise_filter_all
 import io.github.lopezjavier.appfitness.composeapp.resources.exercise_picker_title
+import io.github.lopezjavier.appfitness.composeapp.resources.exercise_picker_title_add
 import io.github.lopezjavier.appfitness.composeapp.resources.exercise_save_failed
 import io.github.lopezjavier.appfitness.composeapp.resources.exercise_search_label
 import io.github.lopezjavier.appfitness.composeapp.resources.exercise_search_placeholder
@@ -121,7 +122,9 @@ fun ExercisePickerScreen(
     selectMode: Boolean = false,
 ) {
     AppScreen(
-        title = stringResource(Res.string.exercise_picker_title),
+        title = stringResource(
+            if (selectMode) Res.string.exercise_picker_title_add else Res.string.exercise_picker_title,
+        ),
         modifier = modifier,
         onBack = onBack,
         maxContentWidth = ExerciseLayoutDefaults.ContentMaxWidth,

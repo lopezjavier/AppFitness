@@ -84,6 +84,7 @@ fun AppEditorScreen(
     actions: List<AppTopBarAction> = emptyList(),
     maxContentWidth: Dp = WindowWidthClassDefaults.FormContentMaxWidth,
     testTagPrefix: String = AppScreenDefaults.TestTag,
+    showFooter: Boolean = true,
     content: @Composable (PaddingValues) -> Unit,
 ) {
     val state = rememberSaveable(saver = EditorDiscardState.Saver) { EditorDiscardState() }
@@ -115,17 +116,21 @@ fun AppEditorScreen(
         actions = actions,
         maxContentWidth = maxContentWidth,
         testTagPrefix = testTagPrefix,
-        footer = {
-            EditorFooter(
-                canSave = state.canSave(saveEnabledWhenClean),
-                isSaving = isSaving,
-                isOnline = isOnline,
-                onSave = onSave,
-                destructiveAction = destructiveAction,
-                secondaryAction = secondaryAction,
-                notice = footerNotice,
-                testTagPrefix = testTagPrefix,
-            )
+        footer = if (showFooter) {
+            {
+                EditorFooter(
+                    canSave = state.canSave(saveEnabledWhenClean),
+                    isSaving = isSaving,
+                    isOnline = isOnline,
+                    onSave = onSave,
+                    destructiveAction = destructiveAction,
+                    secondaryAction = secondaryAction,
+                    notice = footerNotice,
+                    testTagPrefix = testTagPrefix,
+                )
+            }
+        } else {
+            null
         },
         content = content,
     )

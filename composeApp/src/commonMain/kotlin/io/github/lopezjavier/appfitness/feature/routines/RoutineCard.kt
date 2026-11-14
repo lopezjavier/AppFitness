@@ -36,6 +36,7 @@ import io.github.lopezjavier.appfitness.designsystem.AppCard
 import io.github.lopezjavier.appfitness.designsystem.AppIconButton
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
 import io.github.lopezjavier.appfitness.designsystem.DragHandle
+import io.github.lopezjavier.appfitness.designsystem.PrimaryButton
 import io.github.lopezjavier.appfitness.designsystem.ReorderableItemScope
 import io.github.lopezjavier.appfitness.designsystem.SecondaryButton
 import io.github.lopezjavier.appfitness.designsystem.Spacing
@@ -107,13 +108,24 @@ private fun ReorderableItemScope.CardBody(
                 tint = AppTheme.colors.textSecondary,
             )
         }
-        SecondaryButton(
-            text = stringResource(Res.string.routines_start),
-            onClick = { onEvent(RoutinesEvent.StartRoutine(routine.id)) },
-            modifier = Modifier.fillMaxWidth().padding(top = Spacing.sm).semantics { contentDescription = startLabel }
-                .testTag("routines_start_${routine.id}"),
-            enabled = canStart,
-        )
+        val startModifier = Modifier.fillMaxWidth().padding(top = Spacing.sm)
+            .semantics { contentDescription = startLabel }
+            .testTag("routines_start_${routine.id}")
+        if (routine.isNext) {
+            PrimaryButton(
+                text = stringResource(Res.string.routines_start),
+                onClick = { onEvent(RoutinesEvent.StartRoutine(routine.id)) },
+                modifier = startModifier,
+                enabled = canStart,
+            )
+        } else {
+            SecondaryButton(
+                text = stringResource(Res.string.routines_start),
+                onClick = { onEvent(RoutinesEvent.StartRoutine(routine.id)) },
+                modifier = startModifier,
+                enabled = canStart,
+            )
+        }
     }
 }
 

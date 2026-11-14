@@ -23,8 +23,6 @@ import io.github.lopezjavier.appfitness.composeapp.resources.builder_set_hint_re
 import io.github.lopezjavier.appfitness.composeapp.resources.builder_set_reps_cd
 import io.github.lopezjavier.appfitness.composeapp.resources.builder_set_type_cd
 import io.github.lopezjavier.appfitness.composeapp.resources.builder_set_weight_cd
-import io.github.lopezjavier.appfitness.composeapp.resources.builder_superset_sets_help_body
-import io.github.lopezjavier.appfitness.composeapp.resources.builder_superset_sets_help_cd
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_delete
 import io.github.lopezjavier.appfitness.composeapp.resources.live_object_set
 import io.github.lopezjavier.appfitness.composeapp.resources.routine_cardio_minutes_decrease_cd
@@ -35,7 +33,6 @@ import io.github.lopezjavier.appfitness.composeapp.resources.routine_cardio_minu
 import io.github.lopezjavier.appfitness.designsystem.AddItemButton
 import io.github.lopezjavier.appfitness.designsystem.AppIconButton
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
-import io.github.lopezjavier.appfitness.designsystem.HelpButton
 import io.github.lopezjavier.appfitness.designsystem.NumberInput
 import io.github.lopezjavier.appfitness.designsystem.NumberStepper
 import io.github.lopezjavier.appfitness.designsystem.SetOrdinal
@@ -60,16 +57,6 @@ internal fun PlannedSets(row: BuilderRowUi, index: Int, onEvent: (RoutineBuilder
             modifier = Modifier.testTag("routine_builder_add_set_$index"),
             enabled = row.canAddSet,
         )
-        if (row.supersetLabel != null) {
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
-                HelpButton(
-                    contentDescription = stringResource(Res.string.builder_superset_sets_help_cd),
-                    title = row.supersetLabelText().orEmpty(),
-                    body = stringResource(Res.string.builder_superset_sets_help_body),
-                    testTag = "routine_builder_superset_sets_help_$index",
-                )
-            }
-        }
     }
 }
 

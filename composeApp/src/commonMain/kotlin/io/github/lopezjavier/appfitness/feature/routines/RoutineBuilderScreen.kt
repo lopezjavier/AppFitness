@@ -132,6 +132,7 @@ fun RoutineBuilderScreen(
         saved = editing?.saved == true,
         canSave = editing?.canSave == true,
         testTagPrefix = "routine_builder",
+        showFooter = editing != null,
     ) {
         Box(Modifier.fillMaxSize().testTag("routine_builder_screen")) {
             when (state) {

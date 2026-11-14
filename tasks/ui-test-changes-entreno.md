@@ -37,4 +37,18 @@ Uncovered (needs a new test in the repair task): ring on the first pending set o
 
 Shared components changed (callers to re-check): `NoteSheet` (4 callers), `SetRow` and `SetTableHeader` (live, catalog), `NumberInput`, `SetFieldInput`, `SetCompletionCheckbox`, `AppLinearProgress`.
 
+## Batch 3 (routines, builder and details)
+
+Behaviour tests that will fail or need an update:
+- Rutinas (C-66): the `isNext` routine's "Empezar" (`routines_start_<id>`) is a `PrimaryButton`; the others stay `SecondaryButton`. C-85: the offline hint (`OfflineHint`) is the first list item, not the last.
+- Routine details: set summaries use one grammar with "×" and groups ("1 × 10 · 40 kg, 3 × 8 · 60 kg", "2 × 1 min"); per-set weights are no longer "60 kg x 8 · 62,5 kg x 6". Strings `routine_details_set_line`, `_set_bodyweight`, `_set_minutes` removed, `routine_details_sets_minutes` added. `routine_details_sets_reps` now "%1$d × %2$d". Catalog row supporting is "3 × 8". Skeleton has 16 dp margins; with no content the title is "Rutina" (`routine_details_title_fallback`) instead of empty.
+- Builder (C-89): the footer ("Guardar") is hidden until the routine has loaded (`AppEditorScreen(showFooter)`, new, default true); `routine_builder_save` does not exist during Loading / LoadError.
+- Builder steppers (C-75, V-23): `StepperLine` is a `FlowRow`; label is `bodyMedium` W600 sentence case ("Descanso", was "DESCANSO"); label + "?" are one group, the stepper wraps to its own line when narrow. Text assertions on "DESCANSO".
+- V-31: the superset "?" (`routine_builder_superset_sets_help_<i>`) moved from the end of the sets column into the row header next to `routine_builder_superset_label_<i>` (inside the open-exercise tap target).
+- V-39: Entreno root header is "Entreno" (`workout_entry_title`, was "Rutinas"); live rest sheet title is "Descanso" (was "Descanso de este ejercicio"); the exercise picker in `selectMode` is titled "Añadir ejercicio" (new `exercise_picker_title_add`); the exercise detail error is "No se pudo cargar el ejercicio" (new `exercise_detail_error_message`; the picker keeps `exercise_error_message`).
+
+Uncovered (needs a new test in the repair task): primary only on `isNext`; offline hint position; grouped summaries (equal sets, mixed weights, cardio); footer hidden while loading; stepper wrap on a narrow width; superset "?" beside its label.
+
+Shared components changed (callers to re-check): `AppEditorScreen` (new `showFooter`, default unchanged), `ExercisePickerScreen` title, `workout_entry_title` / `live_rest_sheet_title` strings.
+
 Glyph verification (R-81): Material Symbols Outlined names confirmed to exist and used: `timer`, `calculate`, `fitness_center`, `drive_file_move`, `content_copy`, `flag`, `sticky_note_2`; group = `link`, ungroup = `link_off`, "Revisar tus rutinas" = `fact_check`.

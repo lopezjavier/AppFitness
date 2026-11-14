@@ -32,7 +32,7 @@ import io.github.lopezjavier.appfitness.composeapp.resources.exercise_detail_edi
 import io.github.lopezjavier.appfitness.composeapp.resources.exercise_detail_offline_favourite
 import io.github.lopezjavier.appfitness.composeapp.resources.exercise_detail_select
 import io.github.lopezjavier.appfitness.composeapp.resources.exercise_detail_title
-import io.github.lopezjavier.appfitness.composeapp.resources.exercise_error_message
+import io.github.lopezjavier.appfitness.composeapp.resources.exercise_detail_error_message
 import io.github.lopezjavier.appfitness.composeapp.resources.exercise_favourite_failed
 import io.github.lopezjavier.appfitness.composeapp.resources.exercise_in_use_message
 import io.github.lopezjavier.appfitness.composeapp.resources.exercise_in_use_routines
@@ -249,7 +249,7 @@ fun ExerciseDetailScreen(
                 ExerciseDetailUiState.Error ->
                     Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                         ErrorState(
-                            message = stringResource(Res.string.exercise_error_message),
+                            message = stringResource(Res.string.exercise_detail_error_message),
                             action = AppStateAction(stringResource(Res.string.action_retry), onRetry),
                             testTagPrefix = "exercise_detail_error",
                         )
