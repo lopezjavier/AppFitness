@@ -115,6 +115,15 @@ One row per ux-critic finding. The PM has the dispositions recorded here as the 
 | C-87 | pinned footer capped at 480 dp on wide screens | 2 | IN REVIEW | 05 §6.0b |
 | C-88 | calendar month, no day selected: "Toca un día para ver sus entrenos." | 2 | IN REVIEW | 05 §6.0b |
 | C-89 | builder footer hidden until loaded | 2 | IN REVIEW | 05 R-88 |
+| C-90 | cardio card shares the strength grid (weights 1 : 1, note on line 1) | 2 | IN REVIEW | 05 §6.0b |
+| C-91 | TIEMPO drawn as a field (`StopwatchField.TimeText`, every caller) | 2 | IN REVIEW | 05 R-39 |
+| C-92 | cardio start: tonal circle on line 1, "Iniciar" pill on line 2 when it does not fit | 2 | IN REVIEW | 05 §6.0b |
+| C-93 | host-test assertions for the cardio grid alignment (Spec 7) | 2 | IN REVIEW | 05 §6.0b |
+| C-94 | routine card: one 72 dp row, circular start, no "Empezar" button | 2 | IN REVIEW | 05 §6.0b |
+| C-95 | folder as a card, whole row toggles | 2 | IN REVIEW | 05 §6.0b |
+| C-96 | one add row: "Añadir rutina" + folder icon button | 2 | IN REVIEW | 05 §6.0b |
+| C-97 | "Sin carpeta" is `ListSectionHeader(title, count)` | 2 | IN REVIEW | 05 §6.0b |
+| C-98 | pencil removed from the routine card ("Editar" stays in the sheet and the details top bar) | 2 | IN REVIEW | 05 §6.0b |
 | C-99 | the round start button is lime on every routine card; "Siguiente" is the cyan border, a flag and text | 2 | IN REVIEW | 05 R-79, R-64 |
 | C-100 | routine cards lose the drag handle: touch-and-hold to reorder, "Subir"/"Bajar" in the ⋮ sheet | 2 | IN REVIEW | 05 R-22 |
 | V-21 | live set row reaches 48 dp (KG/REPS 48 wide, TIPO/RPE 40 x 48); amends V-2 and C-04 (build gave 40 / 35 dp) | 2 | IN REVIEW | 05 R-80, §6.0b, §7 |
@@ -132,12 +141,20 @@ One row per ux-critic finding. The PM has the dispositions recorded here as the 
 | V-33 | exercise search `showLabel = false` | 2 | IN REVIEW | 05 R-86 |
 | V-34 | picker chip rows full-bleed with content padding | 2 | IN REVIEW | 05 R-86 |
 | V-35 | R-70 covers AppEditorScreen ("Editar entreno" Eliminar) | 2 | IN REVIEW | 05 R-90 |
-| V-36 | date dialog selected day lime border check (es + en device; medium-low) | 2 | IN REVIEW | 05 R-64 e (verify only) |
+| V-36 | date dialog selected day: Material 3 draws no border; lime fill accepted (user decision 2026-11-14) | 2 | RESOLVED | 05 R-64 e |
 | V-37 | "Mover a carpeta" via OptionPickerSheet with lime check | 2 | IN REVIEW | 05 R-90 |
 | V-38 | star marks "Siguiente entreno" (replaced by `flag`, see C-72) | 2 | IN REVIEW | 05 R-81 |
 | V-39 | titles: Descanso, add picker, Entreno tab header = tab label (R-04 wins), detail error copy | 2 | IN REVIEW | 05 R-01, R-89 |
 | V-40 | offline menus dim actions in both (low) | 2 | IN REVIEW | 05 R-88 |
 | V-41 | offline favourite star carries the hint (low) | 2 | IN REVIEW | 05 R-88 |
+| V-42 | cardio: note alone on line 2 (note back on line 1 after LISTO) | 2 | IN REVIEW | 05 §6.0b |
+| V-43 | cardio: TIEMPO centred 24 dp off its header | 2 | IN REVIEW | 05 §6.0b |
+| V-44 | cardio: TIEMPO had no field container | 2 | IN REVIEW | 05 R-39 |
+| V-45 | "Sin carpeta" was a raw Text (now `ListSectionHeader` with count) | 2 | IN REVIEW | 05 §6.0b |
+| V-46 | copy: routines error, offline menu and folder hints end with a period | 2 | IN REVIEW | 05 R-88 |
+| V-47 | routine skeleton row height equals the card (72 dp) | 2 | IN REVIEW | 05 §6.0b |
+| V-48 | cardio start description "Iniciar cardio" | 2 | IN REVIEW | 05 R-81 |
+| V-49 | empty folder: no "0 rutinas", no chevron, toggle inert | 2 | IN REVIEW | 05 §6.0b |
 
 Status values:
 - `PROPOSED`: reported by the critic, not decided yet.

@@ -9,16 +9,13 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.test.assertContentDescriptionEquals
 import androidx.compose.ui.test.assertCountEquals
-import androidx.compose.ui.test.onAllNodesWithText
-import androidx.compose.ui.unit.dp
-import io.github.lopezjavier.appfitness.designsystem.SetRowDefaults
-import org.junit.Assert.assertFalse
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.assertTextContains
 import androidx.compose.ui.test.getUnclippedBoundsInRoot
 import androidx.compose.ui.test.junit4.StateRestorationTester
 import androidx.compose.ui.test.junit4.v2.createComposeRule
+import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
@@ -27,9 +24,12 @@ import androidx.compose.ui.test.performImeAction
 import androidx.compose.ui.test.performTextInput
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.DpRect
+import androidx.compose.ui.unit.dp
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
+import io.github.lopezjavier.appfitness.designsystem.SetRowDefaults
 import io.github.lopezjavier.appfitness.domain.model.ExerciseMetricType
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
@@ -125,7 +125,13 @@ class LiveSessionCardioTest {
             }
         }
         rule.waitForIdle()
-        return Pair({ state = it; rule.waitForIdle() }, { scale = it; rule.waitForIdle() })
+        return Pair({
+            state = it
+            rule.waitForIdle()
+        }, {
+            scale = it
+            rule.waitForIdle()
+        })
     }
 
     private fun bounds(tag: String): DpRect = rule.onNodeWithTag(tag).getUnclippedBoundsInRoot().let {
@@ -295,7 +301,7 @@ class LiveSessionCardioTest {
 
         val start = bounds("session_cardio_start_0_1")
         val check = bounds("live_set_0_1_check")
-        assertTrue("the pill sits under line 1", start.top >= check.bottom - CENTER_TOLERANCE)
+        assertTrue("the pill sits under line 1", start.top >= check.bottom - CENTER_TOLERANCE.dp)
         rule.onNodeWithText("Iniciar").assertExists()
         rule.onNodeWithTag("session_cardio_start_0_1").assertContentDescriptionEquals("Iniciar cardio").performClick()
         assertEquals(listOf<LiveSessionEvent>(LiveSessionEvent.StopwatchToggled(0, 1)), events)
@@ -313,7 +319,11 @@ class LiveSessionCardioTest {
     @Test
     fun previousLine_showsOnlyWhenAPreviousValueExists() {
         val withPrevious = cardioState().let { state ->
-            state.copy(exercises = state.exercises.map { it.copy(sets = listOf(cardioRow().copy(previous = "5 km · 30:00"))) })
+            state.copy(
+                exercises = state.exercises.map {
+                    it.copy(sets = listOf(cardioRow().copy(previous = "5 km · 30:00")))
+                },
+            )
         }
         showScreen(withPrevious)
 
