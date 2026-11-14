@@ -91,6 +91,51 @@ One row per ux-critic finding. The PM has the dispositions recorded here as the 
 | V-20 | short forms Prot./Carb./Grasa and P/C/G added to the glossary | 1 | ADOPTED (batch 5) | 05 §10 |
 | V-15b | V-15 follow-up: `compactMacrosFit` measures the real ring-column width; host test required; 360 dp header fallback (pill moves to the macros line) | 1 | PENDING (batch 5; part of V-15 and R-75) | 05 R-76, R-78 |
 | U-1 | diary entry with ingredients: collapsed swipe removes the whole food (user request, explicit exception to "no behaviour change"; reconfirmed in batch 4, unchanged) | 1 | ADOPTED | 05 R-71 |
+| C-66 | Rutinas: the `isNext` routine's "Empezar" is a PrimaryButton, others secondary | 2 | IN REVIEW | 05 R-79, §6.0b |
+| C-67 | live set row: current set cyan ring + "Serie actual", done rows on surfaceOverlay without border | 2 | IN REVIEW | 05 R-80, §6.0b |
+| C-68 | finish the workout only when all sets are done | 2 | REJECTED (user: "also in the three dots") | 05 §8 Decided |
+| C-69 | live session phone: full-width AppLinearProgress under the top bar | 2 | IN REVIEW | 05 §6.0b |
+| C-70 | set note button: one `sticky_note_2` glyph, tertiary / cyan by state | 2 | IN REVIEW | 05 R-80, §6.0b |
+| C-71 | RpeCell reuses the SetTypeBadge container | 2 | IN REVIEW | 05 R-80, §6.0b |
+| C-72 | one glyph per action (timer, calculate, fitness_center, drive_file_move, content_copy, flag, sticky_note_2); menu title = object | 2 | IN REVIEW | 05 R-81 |
+| C-73 | Historial year: 3 x 4 MonthTiles, bare count, unit in the heading | 2 | IN REVIEW | 05 §6.0b |
+| C-74 | AppListRow min height 56 / 72 / 88 dp by line count | 2 | IN REVIEW | 05 §6.0b |
+| C-75 | StepperLine: sentence-case labels, label + ? flow, 48 dp buttons | 2 | IN REVIEW | 05 R-83, §6.0b |
+| C-76 | set note reasons as wrapping toggle chips | 2 | IN REVIEW | 05 R-84 |
+| C-77 | date field looks editable (surfaceControl + border + calendar icon); NumberInput start-aligned, unit trailing | 2 | IN REVIEW | 05 R-83, §6.0b |
+| C-78 | set lines textPrimary titleMedium on history and session detail | 2 | IN REVIEW | 05 R-82 |
+| C-79 | one set-summary grammar in routine details | 2 | IN REVIEW | 05 R-82 |
+| C-80 | summary and session detail figures as a MetricTile row | 2 | IN REVIEW | 05 R-85 |
+| C-81 | picker chip rows captioned, 8 dp apart | 2 | IN REVIEW | 05 R-86 |
+| C-82 | saving indicator 20 dp before the label | 2 | IN REVIEW | 05 §6.0b |
+| C-83 | sheet header grows with a two-line title | 2 | IN REVIEW | 05 §6.0b |
+| C-84 | "Pesas por mano: No" hidden; true = pill "Una pesa en cada mano" | 2 | IN REVIEW | 05 R-87 |
+| C-85 | Rutinas offline hint is the first list item | 2 | IN REVIEW | 05 R-88 |
+| C-86 | exercise form chips wrap (low confidence; interacts with C-37) | 2 | IN REVIEW | 05 R-86 |
+| C-87 | pinned footer capped at 480 dp on wide screens | 2 | IN REVIEW | 05 §6.0b |
+| C-88 | calendar month, no day selected: "Toca un día para ver sus entrenos." | 2 | IN REVIEW | 05 §6.0b |
+| C-89 | builder footer hidden until loaded | 2 | IN REVIEW | 05 R-88 |
+| V-21 | live set row reaches 48 dp (KG/REPS 48 wide, TIPO/RPE 40 x 48); amends V-2 and C-04 (build gave 40 / 35 dp) | 2 | IN REVIEW | 05 R-80, §6.0b, §7 |
+| V-22 | distance/time set row on two lines, no ANTES column; "Antes:" on line 2 | 2 | IN REVIEW | 05 §6.0b, R-80 |
+| V-23 | stepper "+" and "Sin objetivo" fit (see C-75) | 2 | IN REVIEW | 05 R-83 |
+| V-24 | year view breaks words (see C-73) | 2 | IN REVIEW | 05 §6.0b |
+| V-25 | skeletons: box heights, 16 dp margins, fallback title "Rutina" | 2 | IN REVIEW | 05 §6.0b, R-88 |
+| V-26 | durations "55 min", empty volume segment dropped | 2 | IN REVIEW | 05 R-82 |
+| V-27 | "×" never "x" | 2 | IN REVIEW | 05 R-82 |
+| V-28 | session menu titled with the routine name; sentences end with a period | 2 | IN REVIEW | 05 R-89 |
+| V-29 | "Se eliminará este entreno con todas sus series." | 2 | IN REVIEW | 05 §10, R-89 |
+| V-30 | AddItemButton for "Añadir serie" in builder and live card | 2 | IN REVIEW | 05 R-90 |
+| V-31 | superset ? on the label's line | 2 | IN REVIEW | 05 R-90 |
+| V-32 | "Ver progreso" is a NavigationRow | 2 | IN REVIEW | 05 R-90 |
+| V-33 | exercise search `showLabel = false` | 2 | IN REVIEW | 05 R-86 |
+| V-34 | picker chip rows full-bleed with content padding | 2 | IN REVIEW | 05 R-86 |
+| V-35 | R-70 covers AppEditorScreen ("Editar entreno" Eliminar) | 2 | IN REVIEW | 05 R-90 |
+| V-36 | date dialog selected day lime border check (es + en device; medium-low) | 2 | IN REVIEW | 05 R-64 e (verify only) |
+| V-37 | "Mover a carpeta" via OptionPickerSheet with lime check | 2 | IN REVIEW | 05 R-90 |
+| V-38 | star marks "Siguiente entreno" (replaced by `flag`, see C-72) | 2 | IN REVIEW | 05 R-81 |
+| V-39 | titles: Descanso, add picker, Entreno tab header = tab label (R-04 wins), detail error copy | 2 | IN REVIEW | 05 R-01, R-89 |
+| V-40 | offline menus dim actions in both (low) | 2 | IN REVIEW | 05 R-88 |
+| V-41 | offline favourite star carries the hint (low) | 2 | IN REVIEW | 05 R-88 |
 
 Status values:
 - `PROPOSED`: reported by the critic, not decided yet.
@@ -103,5 +148,7 @@ Status values:
 A round that changes tokens or components does not start while the previous such round has rows `IN REVIEW`.
 
 Round 1 (T-281, Diario) verdict: the user approved the Diario visual result in the emulator on 2026-11-13; every round 1 row is `ADOPTED`. Earlier state: all rows C-21…C-43, V-5…V-13 and U-1 were accepted by the user on 2026-11-13 and are written into `05` §8 as PENDING (R-67…R-74). Rows marked "build waits for round 0 verdict" touch tokens or components and are not built until the round 0 rows are `ADOPTED` or `REWORK`. Placement double-check (C-21, C-22, C-39, C-42) and calorie graphic (C-23, C-29): agreed with conditions recorded in R-68…R-70.
+
+Round 2 (T-282, Entreno): the user decided on 2026-11-14: C-68 REJECTED, every other row accepted; they are written into `05` §6.0b and §8 R-79…R-90 as PENDING (rules mode). IN REVIEW rows whose build differs from `05`: V-2 (superseded by V-21) and C-15 (the built `WorkoutRow` has two supporting lines; `05` §6.0b corrects it).
 
 Round 0 build state (T-295): all rows C-01…C-19 and V-1…V-4 are built on `feat/ui-design-system` and the PENDING tags are removed from `05-design-system.md`. Every row stays `IN REVIEW` until the user's emulator verdict sets `ADOPTED` or `REWORK`.

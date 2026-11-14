@@ -262,6 +262,7 @@ Contrast re-check (planner): textSecondary 9.1/8.4/7.6/6.5:1 on base/raised/over
 **Acceptance criteria:**
 - [ ] The Entreno findings list was decided by the user before planning; decisions recorded here.
 - [ ] The common round criteria above; the live session keeps its timers, haptics and restoration behaviour (existing tests green).
+**Review findings (ux-critic, 2026-11-14) and the user's decisions:** full list in `planning/ux-critic-round2.md` (C-66…C-89, V-21…V-41). The user **rejected C-68** (finish button stays in the three-dots menu) and **accepted everything else** (2026-11-14). PM defaults, recorded: V-35 R-70 covers `AppEditorScreen`; V-22 two-line row for distance/time (layout with ux-reviewer); C-86 follows C-37 if they conflict. Gallery defects (3 empty sheets, white Rutinas canvas, Historial without back arrow) become a tooling `fix` batch, not a blocker.
 **Host tests:** as T-281, for the changed and swept screens.
 **Agent runs:** 7 plus the review step.
 **Dependencies:** T-281 merged.
