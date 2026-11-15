@@ -7,6 +7,7 @@ import io.github.lopezjavier.appfitness.domain.model.ExerciseMetricType
 import io.github.lopezjavier.appfitness.domain.model.MovementPattern
 import io.github.lopezjavier.appfitness.domain.model.MuscleGroup
 import io.github.lopezjavier.appfitness.domain.model.PlannedSet
+import io.github.lopezjavier.appfitness.domain.model.PreviousSet
 import io.github.lopezjavier.appfitness.domain.model.Routine
 import io.github.lopezjavier.appfitness.domain.model.RoutineExercise
 import io.github.lopezjavier.appfitness.domain.model.SessionExercise
@@ -55,6 +56,12 @@ class LiveSessionCardioViewModelTest {
                 null,
                 listOf(WorkoutSet(1, SetType.Working, SetEntry.Duration(0), null)),
             ),
+            SessionExercise(
+                "run",
+                2,
+                null,
+                listOf(WorkoutSet(1, SetType.Working, SetEntry.DistanceDuration(0.0, 0), null)),
+            ),
         ),
     )
     private val exercises = FakeExerciseRepository(
@@ -67,10 +74,21 @@ class LiveSessionCardioViewModelTest {
                 metric = ExerciseMetricType.Duration,
                 pattern = MovementPattern.Cardio,
             ),
+            exerciseRow(
+                "run",
+                "run",
+                MuscleGroup.FullBody,
+                metric = ExerciseMetricType.DistanceDuration,
+                pattern = MovementPattern.Cardio,
+            ),
         ),
     )
     private val library = FakeExerciseLibrary(
-        mapOf("bench" to exerciseInfo("bench", "Press banca"), "bike" to exerciseInfo("bike", "Bicicleta")),
+        mapOf(
+            "bench" to exerciseInfo("bench", "Press banca"),
+            "bike" to exerciseInfo("bike", "Bicicleta"),
+            "run" to exerciseInfo("run", "Correr"),
+        ),
     )
     private val clock = MutableClock()
     private var routines = FakeRoutineRepository(
@@ -83,6 +101,7 @@ class LiveSessionCardioViewModelTest {
                 exercises = listOf(
                     RoutineExercise("e1", 0, null, listOf(PlannedSet(null, 8)), restSeconds = 90),
                     RoutineExercise("bike", 1, null, listOf(PlannedSet.ofMinutes(50)), restSeconds = 90),
+                    RoutineExercise("run", 2, null, listOf(PlannedSet.ofMinutes(35)), restSeconds = 90),
                 ),
             ),
         ),
@@ -192,6 +211,81 @@ class LiveSessionCardioViewModelTest {
         onEvent(LiveSessionEvent.RepsChanged(0, 1, "8"))
         onEvent(LiveSessionEvent.SetChecked(0, 1, true))
         onEvent(LiveSessionEvent.SetRpeChosen(0, 1, 8.0))
+    }
+
+    private fun LiveSessionViewModel.runRow() = active().exercises[2].sets.single()
+
+    @Test
+    fun listoWithoutDistance_keepsTheStopwatchUntouched_andMarksTheSetInvalid() = runSessionTest {
+        val vm = loaded()
+
+        vm.onEvent(LiveSessionEvent.SetChecked(2, 1, true))
+        runCurrent()
+
+        assertFalse(vm.runRow().completed)
+        assertTrue(vm.runRow().invalid)
+        assertEquals(0, vm.runRow().durationSeconds)
+    }
+
+    @Test
+    fun playAfterAnInvalidListo_countsUpFromZero_notOverTarget() = runSessionTest {
+        val vm = loaded()
+        vm.onEvent(LiveSessionEvent.SetChecked(2, 1, true))
+        runCurrent()
+
+        vm.onEvent(LiveSessionEvent.StopwatchToggled(2, 1))
+        elapse(30.seconds)
+
+        val bar = vm.cardioBar()
+        assertEquals(30.seconds, bar.elapsed)
+        assertEquals(35.minutes, bar.target)
+        assertEquals(30, vm.runRow().durationSeconds)
+    }
+
+    @Test
+    fun playAfterAnInvalidListo_stillAlertsOnceAtTheTarget() = runSessionTest {
+        val vm = loaded()
+        vm.onEvent(LiveSessionEvent.SetChecked(2, 1, true))
+        runCurrent()
+        val start = clock.current
+
+        vm.onEvent(LiveSessionEvent.StopwatchToggled(2, 1))
+        runCurrent()
+        assertEquals(start + 35.minutes, scheduler.scheduled)
+        assertEquals(RestAlertKind.Cardio, scheduler.scheduledKind)
+        elapse(35.minutes)
+
+        assertEquals(1, haptics.alerts)
+        assertEquals(1, sound.plays)
+    }
+
+    @Test
+    fun listoWithDistance_completesAndLogsThePlannedTime() = runSessionTest {
+        val vm = loaded()
+        vm.onEvent(LiveSessionEvent.DistanceChanged(2, 1, "5"))
+
+        vm.onEvent(LiveSessionEvent.SetChecked(2, 1, true))
+        runCurrent()
+
+        assertTrue(vm.runRow().completed)
+        assertEquals(35 * 60, vm.runRow().durationSeconds)
+    }
+
+    @Test
+    fun cardioSets_haveNoPreviousText_andUsePreviousChangesNothing() = runSessionTest {
+        repository.previous = mapOf(
+            "run" to listOf(PreviousSet(1, 0.0, 0, durationS = 2416, distanceM = 12000.0)),
+            "bike" to listOf(PreviousSet(1, 0.0, 0, durationS = 1800)),
+        )
+        val vm = loaded()
+
+        vm.onEvent(LiveSessionEvent.UsePrevious(2, 1))
+        runCurrent()
+
+        assertNull(vm.runRow().previous)
+        assertNull(vm.active().exercises[1].sets.single().previous)
+        assertEquals("", vm.runRow().distance)
+        assertEquals(0, vm.runRow().durationSeconds)
     }
 
     @Test

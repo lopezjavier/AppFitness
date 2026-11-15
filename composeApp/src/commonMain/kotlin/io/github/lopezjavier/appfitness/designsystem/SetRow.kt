@@ -45,7 +45,6 @@ import io.github.lopezjavier.appfitness.composeapp.resources.set_header_rpe
 import io.github.lopezjavier.appfitness.composeapp.resources.set_header_rpe_cd
 import io.github.lopezjavier.appfitness.composeapp.resources.set_header_type
 import io.github.lopezjavier.appfitness.composeapp.resources.set_header_type_cd
-import io.github.lopezjavier.appfitness.composeapp.resources.set_row_previous_line
 import io.github.lopezjavier.appfitness.composeapp.resources.set_row_use_previous_cd
 import io.github.lopezjavier.appfitness.domain.model.SetType
 import org.jetbrains.compose.resources.stringResource
@@ -244,7 +243,7 @@ fun SetRow(
     }
     if (cardio) {
         // A cardio row (R-58) shares the strength grid (C-90): the start circle joins line 1 when it fits (C-92),
-        // otherwise it moves to line 2 as a pill; line 2 also holds "Antes: ..." when a value exists.
+        // otherwise it moves to line 2 as a pill.
         BoxWithConstraints(modifier.fillMaxWidth()) {
             val startInline = SetRowDefaults.cardioStartFits(
                 available = maxWidth,
@@ -275,32 +274,12 @@ private class SetRowCallbacks(
     val rpeClickLabel: String?,
 )
 
-/**
- * Second line of a cardio set: the "Iniciar" pill when the start circle did not fit on line 1, and "Antes: 5 km ·
- * 30:00" (only when a value exists). Nothing to show draws nothing.
- */
+/** Second line of a cardio set: the "Iniciar" pill when the start circle did not fit on line 1 (no previous). */
 @Composable
 private fun CardioSecondLine(values: SetRowValues, onStart: () -> Unit, startInline: Boolean) {
-    val previous = values.previous?.takeUnless { it.isBlank() }
-    if (previous == null && startInline) return
-    val start = Modifier.padding(start = SetRowDefaults.TypeColumnWidth + SetRowDefaults.ColumnGap)
-    val previousText: @Composable (Modifier) -> Unit = { textModifier ->
-        if (previous != null) {
-            Text(
-                text = stringResource(Res.string.set_row_previous_line, previous),
-                style = AppTheme.typography.bodySmall,
-                color = AppTheme.colors.textTertiary,
-                maxLines = SetRowDefaults.PREVIOUS_MAX_LINES,
-                modifier = textModifier,
-            )
-        }
-    }
-    if (startInline) {
-        previousText(Modifier.fillMaxWidth().heightIn(min = Spacing.xl - Spacing.xs).then(start))
-        return
-    }
+    if (startInline) return
     Row(
-        Modifier.fillMaxWidth().then(start),
+        Modifier.fillMaxWidth().padding(start = SetRowDefaults.TypeColumnWidth + SetRowDefaults.ColumnGap),
         horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
         verticalAlignment = Alignment.CenterVertically,
     ) {
@@ -311,7 +290,6 @@ private fun CardioSecondLine(values: SetRowValues, onStart: () -> Unit, startInl
             tag = values.cardioStartTag,
             pill = true,
         )
-        previousText(Modifier.weight(1f))
     }
 }
 
