@@ -2546,4 +2546,37 @@
     <string name="trainer_summary_weight_label">Peso medio</string>
     <string name="trainer_summary_kcal_label">Calorías</string>
     <string name="trainer_summary_kcal_target">Objetivo %1$s</string>
+    <!-- T-283 batch 6c: "Tu plan" card with the weight pace (C-131..C-138) -->
+    <string name="trainer_plan_goal_meta">Meta&#160;%1$s&#160;kg · %2$s</string>
+    <string name="trainer_plan_pace_actual">Ritmo: %1$s&#160;kg/sem</string>
+    <string name="trainer_plan_pace_actual_provisional">Ritmo provisional: %1$s&#160;kg/sem</string>
+    <string name="trainer_plan_pace_goal">Objetivo: %1$s&#160;kg/sem</string>
+    <string name="trainer_plan_pace_help_cd">Qué significa el ritmo</string>
+    <string name="trainer_plan_pace_help_title">Tu ritmo</string>
+    <string name="trainer_plan_pace_help_body">Con tus pesajes, tu ritmo real está entre %1$s y %2$s kg por semana.</string>
+    <string name="trainer_plan_verdict_no_data">Aún no hay pesajes suficientes para ver tu ritmo. Pésate al menos 3 días por semana.</string>
+    <string name="trainer_plan_verdict_soon">Aún es pronto para saber tu ritmo: el peso cambia de un día a otro y hacen falta más semanas.</string>
+    <string name="trainer_plan_verdict_on_pace">Vas al ritmo previsto.</string>
+    <string name="trainer_plan_verdict_cut_slower">Pierdes peso más despacio de lo previsto.</string>
+    <string name="trainer_plan_verdict_cut_not_falling">Tu peso no baja como estaba previsto.</string>
+    <string name="trainer_plan_verdict_gain_slower">Ganas peso más despacio de lo previsto.</string>
+    <string name="trainer_plan_verdict_gain_not_rising">Tu peso no sube como estaba previsto.</string>
+    <string name="trainer_plan_verdict_cut_faster">Pierdes peso más rápido de lo previsto.</string>
+    <string name="trainer_plan_verdict_gain_faster">Ganas peso más rápido de lo previsto.</string>
+    <string name="trainer_plan_verdict_early_cut">Es habitual al empezar una definición: las primeras semanas el peso baja más deprisa y no todo es grasa.</string>
+    <string name="trainer_plan_verdict_stable">Tu peso se mantiene estable.</string>
+    <string name="trainer_plan_verdict_rising">Tu peso está subiendo (%1$s&#160;kg por semana).</string>
+    <string name="trainer_plan_verdict_falling">Tu peso está bajando (%1$s&#160;kg por semana).</string>
+    <string name="trainer_plan_chart_week">Sem %1$d</string>
+    <string name="trainer_plan_chart_today">Hoy</string>
+    <string name="trainer_plan_chart_today_value">Hoy · %1$s&#160;kg</string>
+    <string name="trainer_plan_chart_goal">Meta</string>
+    <string name="trainer_plan_tile_of_kcal">de&#160;%1$s&#160;kcal</string>
+    <string name="trainer_plan_tile_of_min">de&#160;%1$s&#160;min</string>
+    <string name="trainer_plan_tile_of_steps">de&#160;%1$s</string>
+    <string name="trainer_plan_tile_no_data">sin datos</string>
+    <string name="trainer_plan_tile_calories">Calorías</string>
+    <string name="trainer_plan_tile_cardio">Cardio</string>
+    <string name="trainer_plan_tile_steps">Pasos</string>
+    <string name="trainer_plan_tiles_caption">Calorías: media de la semana pasada. Cardio y pasos: esta semana.</string>
 </resources>

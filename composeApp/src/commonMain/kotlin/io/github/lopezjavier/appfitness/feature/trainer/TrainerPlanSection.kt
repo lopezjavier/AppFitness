@@ -27,10 +27,6 @@ import io.github.lopezjavier.appfitness.composeapp.resources.calorie_proposal_ho
 import io.github.lopezjavier.appfitness.composeapp.resources.calorie_proposal_offline
 import io.github.lopezjavier.appfitness.composeapp.resources.phase_help_cd
 import io.github.lopezjavier.appfitness.composeapp.resources.plan_proposal_kcal_unit
-import io.github.lopezjavier.appfitness.composeapp.resources.trainer_plan_fact_cardio
-import io.github.lopezjavier.appfitness.composeapp.resources.trainer_plan_fact_cardio_value
-import io.github.lopezjavier.appfitness.composeapp.resources.trainer_plan_fact_steps
-import io.github.lopezjavier.appfitness.composeapp.resources.trainer_plan_fact_steps_value
 import io.github.lopezjavier.appfitness.composeapp.resources.trainer_plan_rate_label
 import io.github.lopezjavier.appfitness.composeapp.resources.trainer_plan_rate_unit
 import io.github.lopezjavier.appfitness.composeapp.resources.trainer_box_plan_line
@@ -45,7 +41,6 @@ import io.github.lopezjavier.appfitness.composeapp.resources.trainer_plan_pendin
 import io.github.lopezjavier.appfitness.composeapp.resources.trainer_plan_pending_title
 import io.github.lopezjavier.appfitness.composeapp.resources.trainer_plan_phase_line
 import io.github.lopezjavier.appfitness.composeapp.resources.trainer_plan_replace
-import io.github.lopezjavier.appfitness.composeapp.resources.trainer_plan_section
 import io.github.lopezjavier.appfitness.composeapp.resources.trainer_source_edited
 import io.github.lopezjavier.appfitness.designsystem.AppCard
 import io.github.lopezjavier.appfitness.designsystem.AppNumberFormat
@@ -60,11 +55,13 @@ import io.github.lopezjavier.appfitness.designsystem.Spacing
 import io.github.lopezjavier.appfitness.designsystem.StatusChip
 import io.github.lopezjavier.appfitness.designsystem.StatusTone
 import io.github.lopezjavier.appfitness.designsystem.SummaryCard
-import io.github.lopezjavier.appfitness.designsystem.SummaryFact
 import io.github.lopezjavier.appfitness.domain.model.CalorieProposal
 import io.github.lopezjavier.appfitness.domain.model.CoachPlan
 import io.github.lopezjavier.appfitness.domain.model.PhaseWeeks
+import io.github.lopezjavier.appfitness.domain.model.PlanWeek
+import io.github.lopezjavier.appfitness.domain.model.WeekSummary
 import io.github.lopezjavier.appfitness.domain.usecase.GoalChecklist
+import io.github.lopezjavier.appfitness.domain.usecase.WeightPace
 import io.github.lopezjavier.appfitness.feature.weight.signedTenths
 import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.pluralStringResource
@@ -74,9 +71,10 @@ import kotlin.math.abs
 private const val HALF = 2
 
 /**
- * "Tu plan" on the Trainer root: "Crear plan" without a plan, the pending proposal, or (accepted) the box whose lines
- * carry the key figures and that opens "Tu plan".
+ * "Tu plan" on the Trainer root: "Crear plan" without a plan, the pending proposal, or (accepted) the [PlanCard] with
+ * the weight pace and the three tiles; it opens "Tu plan".
  */
+@Suppress("LongParameterList") // The plan, the figures of the accepted card and the root's events.
 @Composable
 internal fun PlanEntrySection(
     plan: PlanSummary,
@@ -84,7 +82,10 @@ internal fun PlanEntrySection(
     onOpenProposal: () -> Unit,
     onOpenBeforeStart: (BeforeStartMode, String?, String?) -> Unit,
     onOpenPlan: () -> Unit = {},
-    showActivityFacts: Boolean = true,
+    weightPace: WeightPace? = null,
+    weeksInPhase: PhaseWeeks? = null,
+    latestSummary: WeekSummary? = null,
+    currentWeek: PlanWeek? = null,
     modifier: Modifier = Modifier,
 ) {
     when (plan) {
@@ -102,49 +103,18 @@ internal fun PlanEntrySection(
             ReplacePlanEntry(plan.plan.id, online, onOpenBeforeStart)
         }
 
-        is PlanSummary.Accepted -> PlanSummaryBox(plan.plan, showActivityFacts, onOpenPlan, modifier)
-    }
-}
-
-/**
- * The accepted plan's box (C-125): the goal band, the kcal headline, the macro bar with its text and, only while there
- * is no saved block ([showActivityFacts]), the cardio and steps targets; with a block they live in "Tu bloque".
- */
-@Composable
-private fun PlanSummaryBox(
-    plan: CoachPlan,
-    showActivityFacts: Boolean,
-    onOpen: () -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    val nutrition = plan.nutrition
-    val facts = nutrition.activity?.takeIf { showActivityFacts }?.let {
-        listOf(
-            SummaryFact(
-                stringResource(Res.string.trainer_plan_fact_cardio),
-                stringResource(Res.string.trainer_plan_fact_cardio_value, AppNumberFormat.integer(it.cardioMinWeek)),
-            ),
-            SummaryFact(
-                stringResource(Res.string.trainer_plan_fact_steps),
-                stringResource(Res.string.trainer_plan_fact_steps_value, AppNumberFormat.integer(it.stepsDay)),
-            ),
+        is PlanSummary.Accepted -> PlanCard(
+            plan = plan.plan,
+            pace = weightPace,
+            weeksInPhase = weeksInPhase,
+            latestSummary = latestSummary,
+            currentWeek = currentWeek,
+            online = online,
+            onOpen = onOpenPlan,
+            onCreateNew = { onOpenBeforeStart(BeforeStartMode.Plan, null, plan.plan.id) },
+            modifier = modifier,
         )
-    }.orEmpty()
-    val dietBreak = nutrition.dietBreak?.let {
-        stringResource(Res.string.trainer_plan_diet_break, AppNumberFormat.integer(it.targetKcal))
     }
-    SummaryCard(
-        title = stringResource(Res.string.trainer_plan_section),
-        lines = listOfNotNull(dietBreak),
-        onClick = onOpen,
-        testTag = "trainer_box_plan",
-        modifier = modifier,
-        headline = AppNumberFormat.integer(nutrition.targetKcal),
-        headlineUnit = stringResource(Res.string.plan_proposal_kcal_unit),
-        facts = facts,
-        content = { GoalBand(plan.phase, nutrition.rateKgWeek) },
-        progress = { PlanMacros(nutrition) },
-    )
 }
 
 /**

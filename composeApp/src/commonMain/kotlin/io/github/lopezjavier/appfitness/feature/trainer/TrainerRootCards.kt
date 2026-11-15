@@ -1,24 +1,17 @@
 package io.github.lopezjavier.appfitness.feature.trainer
 
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.ExperimentalLayoutApi
-import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.unit.dp
 import io.github.lopezjavier.appfitness.composeapp.resources.Res
 import io.github.lopezjavier.appfitness.composeapp.resources.block_week_paused
 import io.github.lopezjavier.appfitness.composeapp.resources.report_sessions_cd
@@ -27,117 +20,27 @@ import io.github.lopezjavier.appfitness.composeapp.resources.trainer_block_cardi
 import io.github.lopezjavier.appfitness.composeapp.resources.trainer_block_steps_label
 import io.github.lopezjavier.appfitness.composeapp.resources.trainer_block_steps_none
 import io.github.lopezjavier.appfitness.composeapp.resources.trainer_block_steps_value
-import io.github.lopezjavier.appfitness.composeapp.resources.trainer_goal_eyebrow
 import io.github.lopezjavier.appfitness.composeapp.resources.trainer_plan_fact_cardio
-import io.github.lopezjavier.appfitness.composeapp.resources.trainer_plan_rate_unit
 import io.github.lopezjavier.appfitness.composeapp.resources.trainer_summary_kcal_label
 import io.github.lopezjavier.appfitness.composeapp.resources.trainer_summary_kcal_target
 import io.github.lopezjavier.appfitness.composeapp.resources.trainer_summary_unit
 import io.github.lopezjavier.appfitness.composeapp.resources.trainer_summary_weight_label
 import io.github.lopezjavier.appfitness.composeapp.resources.week_summary_title
 import io.github.lopezjavier.appfitness.designsystem.AppNumberFormat
-import io.github.lopezjavier.appfitness.designsystem.AppShapes
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
-import io.github.lopezjavier.appfitness.designsystem.MacroLine
-import io.github.lopezjavier.appfitness.designsystem.MacroStackedBar
-import io.github.lopezjavier.appfitness.designsystem.MacroStackedBarDefaults
 import io.github.lopezjavier.appfitness.designsystem.MetricTile
-import io.github.lopezjavier.appfitness.designsystem.NonBreaking
 import io.github.lopezjavier.appfitness.designsystem.SegmentedProgress
 import io.github.lopezjavier.appfitness.designsystem.Spacing
 import io.github.lopezjavier.appfitness.designsystem.SummaryCard
 import io.github.lopezjavier.appfitness.designsystem.SummaryFact
-import io.github.lopezjavier.appfitness.domain.model.PlanNutrition
 import io.github.lopezjavier.appfitness.domain.model.PlanWeek
-import io.github.lopezjavier.appfitness.domain.model.Phase
 import io.github.lopezjavier.appfitness.domain.model.WeekSummary
-import io.github.lopezjavier.appfitness.feature.weight.signedTenths
 import org.jetbrains.compose.resources.stringResource
-import kotlin.math.abs
 
-private val GoalBandMinHeight = 72.dp
-private const val RATE_EPSILON = 0.05
 internal const val BLOCK_SEGMENTS_STAGGER = 2
 private const val CARDIO_STAGGER = 3
 private const val STEPS_STAGGER = 4
 private const val SUMMARY_STAGGER = 5
-
-/**
- * The goal band of "Tu plan" (C-125): the "OBJETIVO" eyebrow, the goal name with its weekly rate (omitted at zero) and
- * (the graphic of C-126 is gone; batch 6c replaces this band with the weight pace chart).
- */
-@OptIn(ExperimentalLayoutApi::class)
-@Composable
-internal fun GoalBand(phase: Phase, rateKgWeek: Double) {
-    val name = stringResource(PhaseText.label(phase))
-    Row(
-        Modifier
-            .padding(top = Spacing.xs)
-            .fillMaxWidth()
-            .heightIn(min = GoalBandMinHeight)
-            .background(AppTheme.colors.surfaceControl, AppShapes.md)
-            .padding(Spacing.md)
-            .testTag("trainer_box_plan_goal"),
-        horizontalArrangement = Arrangement.spacedBy(Spacing.md),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Column(Modifier.weight(1f)) {
-            Text(
-                text = stringResource(Res.string.trainer_goal_eyebrow).uppercase(),
-                style = AppTheme.typography.labelTechnical,
-                color = AppTheme.colors.textSecondary,
-            )
-            FlowRow(
-                horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
-                verticalArrangement = Arrangement.Bottom,
-            ) {
-                Text(
-                    text = name,
-                    style = AppTheme.typography.titleLarge,
-                    color = AppTheme.colors.textPrimary,
-                )
-                if (abs(rateKgWeek) >= RATE_EPSILON) {
-                    Text(
-                        text = NonBreaking.join(
-                            signedTenths(rateKgWeek),
-                            stringResource(Res.string.trainer_plan_rate_unit),
-                        ),
-                        style = AppTheme.typography.bodyMedium.copy(fontWeight = FontWeight.W600),
-                        color = AppTheme.colors.textSecondary,
-                        modifier = Modifier.padding(bottom = Spacing.xs).testTag("trainer_box_plan_rate"),
-                    )
-                }
-            }
-        }
-    }
-}
-
-/** The macro bar of "Tu plan" (8 dp, kcal shares) with its text 4 dp below (C-125). */
-@Composable
-internal fun PlanMacros(nutrition: PlanNutrition) {
-    val (protein, carbs, fat) = MacroStackedBarDefaults.kcalShares(
-        nutrition.proteinG.toDouble(),
-        nutrition.carbsG.toDouble(),
-        nutrition.fatG.toDouble(),
-    )
-    Column(Modifier.padding(top = Spacing.xs), verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
-        MacroStackedBar(
-            proteinPct = protein,
-            carbsPct = carbs,
-            fatPct = fat,
-            testTag = "trainer_box_plan_macro_bar",
-            barHeight = MacroStackedBarDefaults.SlimHeight,
-            staggerIndex = 0,
-        )
-        MacroLine(
-            proteinG = AppNumberFormat.integer(nutrition.proteinG),
-            carbsG = AppNumberFormat.integer(nutrition.carbsG),
-            fatG = AppNumberFormat.integer(nutrition.fatG),
-            modifier = Modifier.testTag("trainer_box_plan_macros"),
-            style = AppTheme.typography.bodyMedium,
-        )
-    }
-}
 
 /**
  * The "Cardio" and "Pasos al día" progress facts of [week] (C-124): minutes done of the target and the mean steps of

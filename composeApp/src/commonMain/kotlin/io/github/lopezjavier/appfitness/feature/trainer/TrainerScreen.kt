@@ -193,7 +193,10 @@ private fun TrainerContent(
                 actions.onOpenProposal,
                 actions.onOpenBeforeStart,
                 actions.onOpenPlan,
-                showActivityFacts = state.block !is BlockSummary.Saved,
+                weightPace = state.weightPace,
+                weeksInPhase = state.weeksInPhase,
+                latestSummary = state.latestWeekSummary,
+                currentWeek = state.weeks.firstOrNull { it.phase == WeekPhase.Current },
                 modifier = cardMin,
             )
         }
