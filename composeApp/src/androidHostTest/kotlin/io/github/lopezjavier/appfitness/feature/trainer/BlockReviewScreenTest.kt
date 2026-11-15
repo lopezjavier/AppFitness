@@ -95,7 +95,7 @@ class BlockReviewScreenTest {
 
         rule.onNodeWithTag("block_review_title").assertTextEquals("Revisión del bloque")
         rule.onNodeWithTag("block_review_section_sessions_headline", useUnmergedTree = true)
-            .assertTextEquals("14 de 16")
+            .assertTextEquals("14${NBSP}de${NBSP}16")
         rule.onNodeWithTag("block_review_section_sessions_percent", useUnmergedTree = true).assertTextEquals("88 %")
         val order = listOf("sessions", "lifts", "groups", "weight", "outcomes", "waist")
             .map { top("block_review_section_$it") }
@@ -115,7 +115,7 @@ class BlockReviewScreenTest {
     fun mainLift_showsItsTrendLine() {
         show(content())
 
-        rule.onNodeWithText("100 → 105 kg", substring = true).assertIsDisplayed()
+        rule.onNodeWithText("100$NBSP→${NBSP}105${NBSP}kg", substring = true).assertIsDisplayed()
         rule.onAllNodesWithTag("block_review_lift_id-bench_stall").assertCountEquals(0)
     }
 

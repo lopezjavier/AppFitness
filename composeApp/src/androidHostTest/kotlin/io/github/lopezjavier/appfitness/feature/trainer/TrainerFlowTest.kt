@@ -191,7 +191,7 @@ class TrainerFlowTest {
         }
         tap("nav_tab_trainer")
 
-        tap("trainer_create_plan")
+        tap("trainer_empty_action")
 
         rule.onNodeWithTag("before_start_screen").assertExists()
     }

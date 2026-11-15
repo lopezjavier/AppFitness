@@ -66,7 +66,7 @@ private val ExpectedSections =
         "diary_history_row", "diary_parts",
         "muscle_split_bar",
         "goal_metrics", "swipe", "rows", "food_entry", "metric_card", "time_range",
-        "top_bar",
+        "top_bar", "weight_pace_chart", "progress_picker",
         "screen", "editor", "messages", "offline_state", "action_sheet",
         "navigation", "bottom_sheet", "confirm_dialog", "date_picker", "logo", "skeleton", "wip", "theme",
     ).map { "catalog_section_$it" }

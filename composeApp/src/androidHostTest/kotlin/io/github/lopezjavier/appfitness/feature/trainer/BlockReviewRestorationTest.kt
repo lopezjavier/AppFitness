@@ -2,11 +2,13 @@ package io.github.lopezjavier.appfitness.feature.trainer
 
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsNotDisplayed
+import androidx.compose.ui.test.hasScrollAction
+import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.junit4.StateRestorationTester
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
-import androidx.compose.ui.test.performScrollTo
+import androidx.compose.ui.test.performScrollToNode
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
 import io.github.lopezjavier.appfitness.domain.model.PhaseDecision
 import kotlinx.coroutines.flow.flowOf
@@ -36,7 +38,7 @@ class BlockReviewRestorationTest {
     fun recreation_keepsTheScrollPosition() {
         val restoration = StateRestorationTester(rule)
         restoration.show(state())
-        rule.onNodeWithTag("block_review_phase").performScrollTo()
+        rule.onNode(hasScrollAction()).performScrollToNode(hasTestTag("block_review_phase"))
         rule.onNodeWithTag("block_review_section_sessions").assertIsNotDisplayed()
 
         restoration.emulateSavedInstanceStateRestore()
@@ -63,7 +65,8 @@ class BlockReviewRestorationTest {
     fun recreation_showsTheDecisionReadFromTheReview() {
         val restoration = StateRestorationTester(rule)
         restoration.show(state(PhaseDecision.Kept))
-        rule.onNodeWithTag("block_review_phase_status").performScrollTo().assertIsDisplayed()
+        rule.onNode(hasScrollAction()).performScrollToNode(hasTestTag("block_review_phase_status"))
+        rule.onNodeWithTag("block_review_phase_status").assertIsDisplayed()
 
         restoration.emulateSavedInstanceStateRestore()
         rule.waitForIdle()

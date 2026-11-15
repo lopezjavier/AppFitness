@@ -6,6 +6,7 @@ import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
+import androidx.compose.ui.test.assertTextContains
 import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.hasSetTextAction
 import androidx.compose.ui.test.junit4.v2.createComposeRule
@@ -94,7 +95,7 @@ class PlanProposalScreenTest {
     fun weightLossPlan_showsCaloriesMacrosAndWeeklyRate() {
         show(proposal())
 
-        rule.onNodeWithText("2.000${NBSP}kcal al día").assertExists()
+        rule.onNodeWithTag("plan_proposal_kcal").assertTextContains("2.000", substring = true)
         rule.onNodeWithTag("plan_proposal_macro_protein").assertExists()
         rule.onNodeWithText("Proteína: 150${NBSP}g").assertExists()
         rule.onNodeWithText("Carbohidratos: el resto, 200${NBSP}g").assertExists()
@@ -289,7 +290,7 @@ class PlanProposalScreenTest {
         show(proposal(confirmed = true, dataChanged = true, plan = coachPlan(id = "plan-5")))
 
         rule.onNodeWithTag("plan_proposal_unconfirmed_note").assertTextEquals(
-            "Hay valores sin confirmar. Confírmalos en \"Antes de empezar\" para poder aceptar.",
+            "Hay valores sin confirmar. Confírmalos en «Antes de empezar» para poder aceptar.",
         )
         rule.onNodeWithTag("plan_proposal_accept").assertIsNotEnabled()
         tap("plan_proposal_open_your_data")
@@ -445,11 +446,10 @@ class PlanProposalScreenTest {
     }
 
     @Test
-    fun offlineWithAProposal_disablesAcceptAndDiscardWithTheHint() {
+    fun offlineWithAProposal_disablesAcceptWithTheHint_andDiscardStaysEnabled() {
         show(proposal(), online = false)
 
         rule.onNodeWithTag("plan_proposal_accept").assertIsNotEnabled()
-        rule.onNodeWithTag("plan_proposal_discard").assertIsNotEnabled()
         rule.onNodeWithText("Sin conexión: no se puede aceptar el plan.").assertExists()
     }
 
@@ -512,7 +512,7 @@ class PlanProposalScreenTest {
         rule.waitForIdle()
 
         assertEquals(1, plans.requests.size)
-        rule.onNodeWithText("2.000${NBSP}kcal al día").assertExists()
+        rule.onNodeWithTag("plan_proposal_kcal").assertTextContains("2.000", substring = true)
         assertTrue(plans.acceptCalls.isEmpty())
     }
 }

@@ -20,10 +20,9 @@ import io.github.lopezjavier.appfitness.domain.model.PlanStatus
 import io.github.lopezjavier.appfitness.domain.model.PlanWeek
 import io.github.lopezjavier.appfitness.domain.model.WeekPhase
 import io.github.lopezjavier.appfitness.domain.model.WeekSummary
-import io.github.lopezjavier.appfitness.domain.model.WeekSummaryNutrition
+import io.github.lopezjavier.appfitness.domain.usecase.PlanPaceLine
 import io.github.lopezjavier.appfitness.domain.usecase.WeightPace
 import io.github.lopezjavier.appfitness.domain.usecase.WeightPaceState
-import io.github.lopezjavier.appfitness.gallery.TrainerFixtures
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.datetime.LocalDate
 import org.junit.Assert.assertEquals
@@ -34,7 +33,6 @@ import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 
-private val NBSP = 160.toChar().toString()
 private const val XXHDPI = 3f
 
 /**
@@ -66,7 +64,7 @@ class TrainerRootCardsTest {
         slopeHighKgWeek = slope?.plus(0.2),
         weekly = emptyList(),
         daily = emptyList(),
-        planLine = null,
+        planLine = PlanPaceLine(startWeeks = 0.0, startKg = 82.0, endWeeks = 8.0, endKg = 79.0),
         windowStart = LocalDate(2026, 10, 19),
         windowWeeks = 4,
         earlyCutNote = early,
@@ -117,14 +115,14 @@ class TrainerRootCardsTest {
     // "Tu plan" card
 
     @Test
-    fun planCard_showsGoalPaceFiguresVerdictAndThreeTiles() {
+    fun planCard_showsGoalPaceFiguresVerdictAndTheCaloriesRow() {
         show(planState(pace(WeightPaceState.OnPace)))
 
         node("trainer_box_plan_goal").assertExists()
         node("trainer_box_plan_pace_actual").assertExists()
         node("trainer_box_plan_pace_goal").assertExists()
         node("trainer_box_plan_verdict").assertTextContains("Vas al ritmo previsto.")
-        listOf("calories", "cardio", "steps").forEach { node("trainer_box_plan_tile_$it").assertExists() }
+        node("trainer_box_plan_tile_calories").assertExists()
     }
 
     @Test
@@ -186,20 +184,17 @@ class TrainerRootCardsTest {
     }
 
     @Test
-    fun planCard_caloriesTile_saysSinDatos_withoutAGatedSummary() {
+    fun planCard_caloriesRow_saysSinDatosDeComidas_withoutDiaryDays() {
         show(planState(pace(WeightPaceState.OnPace)))
 
-        node("trainer_box_plan_tile_calories").assertTextContains("sin datos", substring = true)
-        node("trainer_box_plan_tiles_caption").assertDoesNotExist()
+        node("trainer_box_plan_tile_calories_value").assertTextContains("Sin datos de comidas", substring = true)
     }
 
     @Test
-    fun planCard_caloriesTile_showsTheAverageAndTheCaption_withAGatedSummary() {
-        val nutrition = WeekSummaryNutrition(5, true, 1950, 150.0, 2000, 150, 1.8, emptyList())
-        show(planState(pace(WeightPaceState.OnPace), TrainerFixtures.weekSummary(nutrition = nutrition)))
+    fun planCard_caloriesRow_showsTheDiaryAverageAgainstTheTarget() {
+        show(planState(pace(WeightPaceState.OnPace)).copy(diaryCalories = DiaryCalories(avgKcal = 1950, days = 5)))
 
-        node("trainer_box_plan_tile_calories").assertTextContains("1.950", substring = true)
-        node("trainer_box_plan_tiles_caption").assertExists()
+        node("trainer_box_plan_tile_calories_value").assertTextContains("1.950", substring = true)
     }
 
     // "Tu bloque" card and its screen
@@ -362,10 +357,9 @@ class TrainerRootCardsTest {
     // R-93: a fact never breaks, at 360 dp and font scale 1.0 and 1.3
 
     private fun assertFactsStayOnOneLine(fontScale: Float) {
-        val nutrition = WeekSummaryNutrition(5, true, 1950, 150.0, 2000, 150, 1.8, emptyList())
         val weeks = listOf(
             planWeek(week = 1, phase = WeekPhase.Past),
-            planWeek(week = 2, cardioMinTarget = 150, stepsTarget = 7000, stepsAvg = 6200),
+            planWeek(week = 2, cardioMinTarget = 150, cardioMinDone = 100, stepsTarget = 7000, stepsAvg = 6200),
             planWeek(week = 3, phase = WeekPhase.Upcoming),
             planWeek(week = 4, phase = WeekPhase.Upcoming),
         )
@@ -375,20 +369,17 @@ class TrainerRootCardsTest {
                 block = savedBlock,
                 weeks = weeks,
                 weightPace = pace(WeightPaceState.OnPace),
-                latestWeekSummary = TrainerFixtures.weekSummary(nutrition = nutrition),
+                diaryCalories = DiaryCalories(avgKcal = 1950, days = 5),
             ),
             fontScale = fontScale,
         )
 
         listOf(
-            "Semana${NBSP}2${NBSP}de${NBSP}4",
-            "3${NBSP}de${NBSP}4",
-            "75$NBSP%",
-            "de${NBSP}2.000${NBSP}kcal",
-            "de${NBSP}150${NBSP}min",
-        ).forEach { fact ->
-            assertEquals(fact, 1, lineCount(rule.onNodeWithText(fact, useUnmergedTree = true)))
-        }
+            "trainer_box_block_week_title",
+            "trainer_box_block_headline",
+            "trainer_box_plan_tile_calories_value",
+            "trainer_box_block_cardio_value",
+        ).forEach { tag -> assertEquals(tag, 1, lineCount(node(tag))) }
     }
 
     @Test

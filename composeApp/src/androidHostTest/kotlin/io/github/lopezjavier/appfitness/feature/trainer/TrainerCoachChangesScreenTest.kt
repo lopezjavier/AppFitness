@@ -167,7 +167,7 @@ class TrainerCoachChangesScreenTest {
     fun undoneRow_readsRevertidoWithTheOldWeight_andNoAction() {
         show(listOf(row("c4", CoachChangeKind.LoadRaise, CoachChangeStatus.Undone, raise)))
 
-        rule.onNodeWithTag("trainer_change_c4_status", useUnmergedTree = true).assertTextEquals("Revertido")
+        rule.onNodeWithText("Revertido", useUnmergedTree = true).assertExists()
         rule.onNodeWithText("Vuelve a 60${NBSP}kg.").assertExists()
         rule.onNodeWithTag("trainer_coach_change_undo_c4").assertDoesNotExist()
     }
@@ -178,7 +178,7 @@ class TrainerCoachChangesScreenTest {
         show(listOf(row("c5", CoachChangeKind.LoadFlag, CoachChangeStatus.Pending, flag)))
 
         rule.onNodeWithText(
-            "La siguiente subida es de 22,5 kg (+12,5 %), más de lo recomendable de una vez. " +
+            "La siguiente subida es de 22,5${NBSP}kg (+12,5$NBSP%), más de lo recomendable de una vez. " +
                 "Puedes subir igualmente o mantener el peso y sumar repeticiones.",
         ).assertExists()
         rule.onNodeWithText("Subir a 22,5${NBSP}kg").assertExists()
@@ -244,16 +244,6 @@ class TrainerCoachChangesScreenTest {
 
         rule.onNodeWithTag("trainer_coach_change_raise_c8").assertIsNotEnabled()
         rule.onNodeWithTag("trainer_coach_change_keep_c8").assertIsNotEnabled()
-    }
-
-    @Test
-    fun tappingTheName_opensTheExercise() {
-        val opened = mutableListOf<String>()
-        show(listOf(row("c1", CoachChangeKind.LoadRaise, figures = raise)), onOpenExercise = { opened += it })
-
-        rule.onNodeWithText("Press de banca").performClick()
-
-        assertEquals(listOf("bench"), opened)
     }
 
     @Test

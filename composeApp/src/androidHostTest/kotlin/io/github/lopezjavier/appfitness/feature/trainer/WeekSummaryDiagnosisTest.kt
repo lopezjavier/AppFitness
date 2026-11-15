@@ -84,9 +84,9 @@ class WeekSummaryDiagnosisTest {
                 "Registraste de media 2.350 kcal al día, 350 kcal más que tu objetivo.",
                 substring = true,
             )
-            .assertTextContains("La mayor parte llega el fin de semana.", substring = true)
+            .assertTextContainsIgnoringNbsp("La mayor parte llega el fin de semana.")
         rule.onNodeWithTag("week_summary_diagnosis_action")
-            .assertTextEquals("Intenta que el fin de semana se parezca al resto de la semana.")
+            .assertTextEqualsIgnoringNbsp("Intenta que el fin de semana se parezca al resto de la semana.")
     }
 
     @Test
@@ -94,9 +94,9 @@ class WeekSummaryDiagnosisTest {
         show(state(NutritionDiagnosis.Plateau(-0.02, -0.12, 0.09)))
 
         rule.onNodeWithTag("week_summary_diagnosis_cause").performScrollTo()
-            .assertTextContains("Meseta: tu peso apenas ha cambiado en 2 semanas", substring = true)
-            .assertTextContains("−0,02 kg por semana, entre −0,12 y 0,09", substring = true)
-            .assertTextContains("No es un fracaso", substring = true)
+            .assertTextContainsIgnoringNbsp("Meseta: tu peso apenas ha cambiado en 2 semanas")
+            .assertTextContainsIgnoringNbsp("−0,02 kg por semana, entre −0,12 y 0,09")
+            .assertTextContainsIgnoringNbsp("No es un fracaso")
     }
 
     @Test

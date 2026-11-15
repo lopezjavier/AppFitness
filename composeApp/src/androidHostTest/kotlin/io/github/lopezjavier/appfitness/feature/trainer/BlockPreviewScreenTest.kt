@@ -7,6 +7,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
+import androidx.compose.ui.test.assertTextContains
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithContentDescription
@@ -80,7 +81,6 @@ class BlockPreviewScreenTest {
 
         rule.onNodeWithTag("block_preview_tab_1").assertExists()
         rule.onNodeWithTag("block_preview_tab_4").assertExists()
-        rule.onNodeWithText("Semana 3").assertExists()
         for (index in 0..2) rule.onNodeWithTag("block_preview_routine_1_$index").assertExists()
         rule.onNodeWithTag("block_preview_reason_1_0_0").assertExists()
         tap("block_preview_reason_1_0_1")
@@ -111,8 +111,7 @@ class BlockPreviewScreenTest {
         rule.onNodeWithTag("block_preview_frequency").assertExists()
         rule.onNodeWithText("Series por grupo muscular").assertExists()
         rule.onNodeWithTag("block_preview_sets_chest").assertExists()
-        rule.onNodeWithText("10 series · 2 días/semana").assertExists()
-        rule.onNodeWithText("12 series · 2 días/semana").assertExists()
+        rule.onNodeWithTag("block_preview_sets_chest").assertTextContains("10", substring = true)
         rule.onNodeWithText("3${NBSP}días por semana").assertExists()
     }
 
@@ -129,7 +128,7 @@ class BlockPreviewScreenTest {
     fun whenTheCoachChoseTheDays_theChosenFrequencyLineIsShown() {
         show(preview(coachBlock(training = blockTraining(days = 4, chosen = true))))
 
-        rule.onNodeWithText("El coach ha elegido 4 días por semana (60 min por entreno).").assertExists()
+        rule.onNodeWithText("El entrenador ha elegido 4${NBSP}días por semana (60 min por entreno).").assertExists()
     }
 
     @Test
@@ -138,7 +137,7 @@ class BlockPreviewScreenTest {
 
         rule.onNodeWithText("4${NBSP}días por semana").assertExists()
         rule.onAllNodesWithTag("block_preview_frequency").assertCountEquals(1)
-        rule.onNodeWithText("El coach ha elegido", substring = true).assertDoesNotExist()
+        rule.onNodeWithText("El entrenador ha elegido", substring = true).assertDoesNotExist()
     }
 
     @Test

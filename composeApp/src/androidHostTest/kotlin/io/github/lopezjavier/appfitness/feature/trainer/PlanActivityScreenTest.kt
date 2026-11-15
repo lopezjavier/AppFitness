@@ -5,6 +5,7 @@ import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
+import androidx.compose.ui.test.assertTextContains
 import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
@@ -61,7 +62,7 @@ class PlanActivityScreenTest {
     fun targetsNextToTheCalories_showBothRowsWithTheirReasons() {
         showProposal(proposal())
 
-        rule.onNodeWithText("2.000${NBSP}kcal al día").assertExists()
+        rule.onNodeWithTag("plan_proposal_kcal").assertTextContains("2.000", substring = true)
         rule.onNodeWithText("Cardio · 150${NBSP}min por semana · ritmo suave").assertExists()
         rule.onNodeWithText("Pasos · 7.000 al día").assertExists()
         rule.onNodeWithTag("plan_proposal_activity_cardio_help").performClick()
@@ -119,7 +120,7 @@ class PlanActivityScreenTest {
         rule.onNodeWithTag("cardio_sheet_note").assertExists()
         rule.onNodeWithText("Está por debajo de lo que recomienda la OMS (150 min). Puedes dejarlo así.").assertExists()
         rule.onNodeWithTag("cardio_sheet_commit").assertIsEnabled()
-        rule.onNodeWithText("2.000${NBSP}kcal al día").assertExists()
+        rule.onNodeWithTag("plan_proposal_kcal").assertTextContains("2.000", substring = true)
     }
 
     @Test

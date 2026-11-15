@@ -52,9 +52,10 @@ class BlockBuilderScreenTest {
     fun theSectionHeader_showsMuscleSetsRepsRpeAndRest() {
         show(Data.builderUi())
 
-        rule.onNodeWithTag("block_builder_section_0_chest").assertTextContains("Pecho · ", substring = true)
-        rule.onNodeWithTag("block_builder_section_0_chest").assertTextContains("series · ", substring = true)
-        rule.onNodeWithTag("block_builder_section_0_chest").assertTextContains("repeticiones · RPE 8 · descanso", true)
+        rule.onNodeWithTag("block_builder_section_0_chest").assertTextContains("Pecho")
+        rule.onNodeWithTag("block_builder_section_spec_0_chest").assertTextContains("series · ", substring = true)
+        rule.onNodeWithTag("block_builder_section_spec_0_chest")
+            .assertTextContains("repeticiones · RPE 8 · descanso", true)
     }
 
     @Test
@@ -62,8 +63,8 @@ class BlockBuilderScreenTest {
         show(Data.builderUi(Data.start(intention = TrainingIntention.Strength)))
 
         rule.onNodeWithTag(
-            "block_builder_section_0_chest_main",
-        ).assertTextContains("Básico · 3 series · 4-6 repeticiones", substring = true)
+            "block_builder_section_spec_0_chest_main",
+        ).assertTextContains("3 series · 4-6${NBSP}repeticiones", substring = true)
     }
 
     @Test
@@ -204,7 +205,7 @@ class BlockBuilderScreenTest {
     fun cardio_isTheLastRow_withMinutes_andTheHonestNote() {
         show(Data.builderUi(Data.start(cardioTarget = 150)))
 
-        rule.onNodeWithText("Bicicleta estática · 60 min · ritmo suave").assertExists()
+        rule.onNodeWithText("Bicicleta estática · 60${NBSP}min · ritmo suave").assertExists()
         rule.onNodeWithText("Te faltan 30${NBSP}min de cardio a la semana: hazlos por tu cuenta.").assertExists()
     }
 
@@ -249,7 +250,7 @@ class BlockBuilderScreenTest {
         val entries = listOf(PickerEntry(Data.fly, PickerDisabledReason.NoMovementPattern))
         show(Data.builderUi(openSlot = SlotRef(0, 0), pickerEntries = entries))
 
-        rule.onNodeWithText("Sin patrón de movimiento: defínelo en el ejercicio").assertExists()
+        rule.onNodeWithText("Sin patrón de movimiento: defínelo en el ejercicio.").assertExists()
         rule.onNodeWithTag("block_builder_pick_fly").performClick()
 
         assertEquals(emptyList<BlockBuilderEvent>(), events)

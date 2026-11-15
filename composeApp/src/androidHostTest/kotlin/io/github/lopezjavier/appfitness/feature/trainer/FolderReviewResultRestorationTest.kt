@@ -76,7 +76,7 @@ class FolderReviewResultRestorationTest {
         rule.onNodeWithText("8${NBSP}series (se recomiendan al menos 10)", substring = true).assertExists()
         rule.onNodeWithTag("folder_review_result_row_chest_help").performClick()
         rule.waitForIdle()
-        rule.onNodeWithText("Añade 2 series de ejercicios", substring = true).assertExists()
+        rule.onNodeWithText("Añade 2${NBSP}series de ejercicios", substring = true).assertExists()
         assertEquals(listOf("folder-1"), computed)
 
         chestSets = 12.0

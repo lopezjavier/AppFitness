@@ -54,12 +54,12 @@ class TrainerPlanAfterCreateTest {
     @Test
     fun aPlanCreatedWhileAway_showsThePendingCardAndCrearBloqueOnReturn() {
         showTrainer()
-        rule.onNodeWithTag("trainer_create_plan").assertExists()
+        rule.onNodeWithTag("trainer_empty_action").assertExists()
 
         plans.current = Result.success(coachPlan())
         leaveAndComeBack()
 
-        rule.onNodeWithTag("trainer_create_plan").assertDoesNotExist()
+        rule.onNodeWithTag("trainer_empty_action").assertDoesNotExist()
         rule.onNodeWithText("Plan pendiente").assertExists()
         rule.onNodeWithTag("trainer_plan_card").assertExists()
     }
@@ -71,7 +71,7 @@ class TrainerPlanAfterCreateTest {
         plans.current = Result.success(coachPlan(status = PlanStatus.Accepted))
         leaveAndComeBack()
 
-        rule.onNodeWithTag("trainer_create_plan").assertDoesNotExist()
+        rule.onNodeWithTag("trainer_empty_action").assertDoesNotExist()
         rule.onNodeWithTag("trainer_create_block").assertExists()
         rule.onNodeWithTag("trainer_box_plan").assertExists()
     }
@@ -81,7 +81,7 @@ class TrainerPlanAfterCreateTest {
         plans.current = Result.success(coachPlan(status = PlanStatus.Accepted))
         showTrainer()
 
-        rule.onNodeWithTag("trainer_create_plan").assertDoesNotExist()
+        rule.onNodeWithTag("trainer_empty_action").assertDoesNotExist()
         rule.onNodeWithTag("trainer_create_block").assertExists()
         rule.onNodeWithTag("trainer_box_plan").assertExists()
     }

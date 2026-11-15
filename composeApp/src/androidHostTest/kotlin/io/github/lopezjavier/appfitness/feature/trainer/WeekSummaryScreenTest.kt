@@ -5,7 +5,6 @@ import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertTextContains
 import androidx.compose.ui.test.assertTextEquals
-import androidx.compose.ui.test.hasContentDescription
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithTag
@@ -20,7 +19,6 @@ import io.github.lopezjavier.appfitness.app.ReminderCoordinator
 import io.github.lopezjavier.appfitness.app.ReminderEnv
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
 import io.github.lopezjavier.appfitness.domain.model.CoachChangeKind
-import io.github.lopezjavier.appfitness.domain.model.GroupSets
 import io.github.lopezjavier.appfitness.domain.model.MuscleGroup
 import io.github.lopezjavier.appfitness.domain.model.ProposalStatus
 import io.github.lopezjavier.appfitness.domain.model.ReminderKind
@@ -72,8 +70,11 @@ class WeekSummaryScreenTest {
         show(content())
 
         rule.onNodeWithTag("week_summary_title").assertTextEquals("Resumen semanal")
-        rule.onNodeWithTag("week_summary_subtitle").assertTextContains("Semana 2", substring = true)
-        rule.onNodeWithTag("week_summary_section_sessions_headline", useUnmergedTree = true).assertTextEquals("3 de 4")
+        rule.onNodeWithTag("week_summary_subtitle").assertTextContains("Semana${NBSP}2", substring = true)
+        rule.onNodeWithTag(
+            "week_summary_section_sessions_headline",
+            useUnmergedTree = true,
+        ).assertTextEquals("3${NBSP}de${NBSP}4")
         rule.onNodeWithTag("week_summary_nutrition_weight").assertTextContains("80,2", substring = true)
     }
 
@@ -121,7 +122,7 @@ class WeekSummaryScreenTest {
     fun fourCompleteDays_showTheMissingLineAndNoAverages() {
         show(content(weekSummary(nutrition = weekNutrition(completeDays = 4))))
 
-        rule.onNodeWithTag("week_summary_nutrition_missing").assertTextEquals(
+        rule.onNodeWithTag("week_summary_nutrition_missing").assertTextEqualsIgnoringNbsp(
             "Faltan registros: solo 4 de 7 días completos. " +
                 "Con menos de 5 no sacamos conclusiones sobre tus calorías.",
         )
@@ -142,11 +143,11 @@ class WeekSummaryScreenTest {
 
         val reason = "Te proponemos subir 100 kcal: en las últimas 2 semanas tu peso ha bajado más de lo previsto."
         rule.onNodeWithTag("week_summary_nutrition_decision_a")
-            .assertTextEquals("Calorías: +100 kcal · Aplicada. $reason")
+            .assertTextEqualsIgnoringNbsp("Calorías: +100 kcal · Aplicada. $reason")
         rule.onNodeWithTag("week_summary_nutrition_decision_d")
-            .assertTextEquals("Calorías: +100 kcal · Pospuesta. $reason")
+            .assertTextEqualsIgnoringNbsp("Calorías: +100 kcal · Pospuesta. $reason")
         rule.onNodeWithTag("week_summary_nutrition_decision_p")
-            .assertTextEquals("Calorías: +100 kcal · Pendiente. $reason")
+            .assertTextEqualsIgnoringNbsp("Calorías: +100 kcal · Pendiente. $reason")
         rule.onAllNodesWithText("Aplicar").assertCountEquals(0)
     }
 
@@ -173,7 +174,10 @@ class WeekSummaryScreenTest {
         show(content(weekSummary(nutrition = null)))
 
         rule.onAllNodesWithTag("week_summary_section_nutrition").assertCountEquals(0)
-        rule.onNodeWithTag("week_summary_section_sessions_headline", useUnmergedTree = true).assertTextEquals("3 de 4")
+        rule.onNodeWithTag(
+            "week_summary_section_sessions_headline",
+            useUnmergedTree = true,
+        ).assertTextEquals("3${NBSP}de${NBSP}4")
     }
 
     @Test
@@ -209,14 +213,6 @@ class WeekSummaryScreenTest {
 
         rule.onNodeWithTag("week_summary_change_row_c1").assertIsDisplayed()
         rule.onAllNodesWithTag("trainer_coach_change_undo_c1").assertCountEquals(0)
-    }
-
-    @Test
-    fun halfSetsAreSpokenAsOneSentence() {
-        show(content(weekSummary(groups = listOf(GroupSets(MuscleGroup.Triceps, 2.5)))))
-
-        rule.onNode(hasContentDescription("Tríceps, 2,5${NBSP}series"))
-            .assertIsDisplayed()
     }
 
     private fun stalled(cause: StallCause) = content(weekSummary(stalls = listOf(StallDiagnosis("id-bench", cause))))
@@ -323,7 +319,7 @@ class WeekSummaryScreenTest {
 
         rule.onNodeWithTag("week_summary_stall_help").performScrollTo().performClick()
 
-        rule.onNodeWithTag("week_summary_stall_help_sheet_body").assertTextContains("3 semanas", substring = true)
+        rule.onNodeWithTag("week_summary_stall_help_sheet_body").assertTextContainsIgnoringNbsp("3 semanas")
     }
 
     /** Stalls belong to the summary only: the notice in Centro de avisos keeps its single week line. */

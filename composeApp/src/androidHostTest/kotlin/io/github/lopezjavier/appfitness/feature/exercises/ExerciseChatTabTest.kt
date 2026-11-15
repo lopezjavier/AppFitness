@@ -195,7 +195,9 @@ class ExerciseChatTabTest {
         show()
         rule.onNodeWithTag("exercise_chat_input").performTextInput("Hola")
 
-        rule.onNodeWithTag("exercise_chat_offline_hint").assertTextContains("Sin conexión: no se puede preguntar")
+        rule.onNodeWithTag(
+            "exercise_chat_offline_hint",
+        ).assertTextContains("Sin conexión: no se puede preguntar", substring = true)
         rule.onNodeWithTag("exercise_chat_send").assertIsNotEnabled()
         assertEquals(0, repository.calls.size)
     }

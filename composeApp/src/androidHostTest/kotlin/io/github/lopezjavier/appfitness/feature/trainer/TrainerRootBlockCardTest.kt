@@ -61,6 +61,12 @@ class TrainerRootBlockCardTest {
         rule.waitForIdle()
     }
 
+    /** A row of a card menu sheet: the sheet has no scrollable parent to scroll to. */
+    private fun tapRow(tag: String) {
+        rule.onNodeWithTag(tag).performClick()
+        rule.waitForIdle()
+    }
+
     // Week selector (R-106)
 
     @Test
@@ -132,7 +138,7 @@ class TrainerRootBlockCardTest {
         show(state(threeWeeks, extendable))
 
         tap("trainer_block_menu")
-        tap("trainer_block_menu_extend_week")
+        tapRow("trainer_block_menu_extend_week")
 
         assertEquals(listOf<TrainerEvent>(TrainerEvent.OpenExtendWeekPicker), events)
     }

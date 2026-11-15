@@ -195,7 +195,7 @@ class BlockBuilderNextBlockScreenTest {
         val picked = state.pick(0, 0, Pick(BlockBuilderTestData.bench.id, MuscleGroup.Chest, null, 60.0))
         show(BlockBuilderTestData.builderUi(picked, stalledExerciseIds = setOf(BlockBuilderTestData.bench.id)))
 
-        rule.onNodeWithTag("block_builder_slot_0_0_swap_marker").assertTextEquals("puedes cambiarlo")
+        rule.onNodeWithText("puedes cambiarlo", substring = true).assertExists()
         rule.onNodeWithTag("block_builder_slot_0_0_swap_help").performClick()
         rule.onNodeWithText("Este ejercicio no ha progresado en el bloque", substring = true).assertExists()
     }

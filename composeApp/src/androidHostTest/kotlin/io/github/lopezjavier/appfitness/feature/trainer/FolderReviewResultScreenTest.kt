@@ -165,7 +165,7 @@ class FolderReviewResultScreenTest {
         hasText("1${NBSP}serie (se recomiendan al menos 10)").assertExists()
         rule.onAllNodesWithText("Añade 9 series", substring = true).assertCountEquals(0)
         openHelp("chest")
-        hasText("Añade 9 series de ejercicios donde sea el músculo principal").assertExists()
+        hasText("Añade 9${NBSP}series de ejercicios donde sea el músculo principal").assertExists()
     }
 
     @Test
@@ -221,9 +221,9 @@ class FolderReviewResultScreenTest {
         rule.onNodeWithTag("folder_review_result_score", useUnmergedTree = true).assert(fraction(0.6f))
         rule.onNodeWithTag("folder_review_result_score_value", useUnmergedTree = true).assertTextEquals("6,0")
         rule.onNodeWithTag("folder_review_result_score_band", useUnmergedTree = true).assertTextEquals("Aceptable")
-        hasText("Sin${NBSP}series (se recomiendan al menos 10)").assertExists()
+        hasText("Sin series (se recomiendan al menos 10)").assertExists()
         openHelp("glutes")
-        hasText("Añade al menos 10 series de ejercicios donde sea el músculo principal").assertExists()
+        hasText("Añade al menos 10${NBSP}series de ejercicios donde sea el músculo principal").assertExists()
     }
 
     @Test
@@ -277,7 +277,7 @@ class FolderReviewResultScreenTest {
 
         rule.onNodeWithTag("folder_review_result_row_reps").assertExists()
         rule.onNodeWithTag("folder_review_result_row_order").assertExists()
-        rule.onNodeWithText("Press banca (Torso): 10-12 repeticiones; para fuerza, hasta 8.").assertExists()
+        rule.onNodeWithText("Press banca (Torso): 10-12${NBSP}repeticiones; para fuerza, hasta 8.").assertExists()
         rule.onNodeWithText("Torso: Press banca va después de Curl.").assertExists()
         rule.onAllNodesWithText("Cámbialo", substring = true, ignoreCase = true).assertCountEquals(0)
         rule.onAllNodesWithText("Pon primero", substring = true, ignoreCase = true).assertCountEquals(0)
@@ -314,7 +314,7 @@ class FolderReviewResultScreenTest {
 
         rule.onNodeWithText("Cómo se calcula").assertExists()
         hasText("con al menos 10 cada uno").assertExists()
-        hasText("Por encima de 20 series en un grupo solo se avisa, sin restar nota.").assertExists()
+        hasText("Por encima de 20${NBSP}series en un grupo solo se avisa, sin restar nota.").assertExists()
         rule.onAllNodesWithText("Como buscas fuerza", substring = true).assertCountEquals(0)
     }
 

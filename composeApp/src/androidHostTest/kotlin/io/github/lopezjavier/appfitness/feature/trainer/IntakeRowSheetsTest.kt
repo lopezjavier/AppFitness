@@ -147,7 +147,7 @@ class IntakeRowSheetsTest {
 
         assertEquals(listOf<IntakeUpdate>(IntakeUpdate.TrainingYears(0.5)), intake.saveCalls)
         rule.onNodeWithTag("intake_years_sheet").assertDoesNotExist()
-        rule.onNodeWithTag("before_start_row_training_years").assertTextEquals("Tiempo entrenando", "0,5 años")
+        rule.onNodeWithTag("before_start_row_training_years").assertTextEquals("Tiempo entrenando, 0,5 años")
         rule.onNodeWithTag("before_start_row_maintenance")
             .assertTextEquals("Calorías de mantenimiento", "2.400 kcal")
     }
@@ -178,7 +178,7 @@ class IntakeRowSheetsTest {
         rule.onNodeWithTag("intake_maintenance_sheet").assertDoesNotExist()
         rule.onNodeWithTag("before_start_row_maintenance")
             .assertTextEquals("Calorías de mantenimiento", "2.400 kcal")
-        rule.onNodeWithTag("before_start_row_training_years").assertTextEquals("Tiempo entrenando", "4 años")
+        rule.onNodeWithTag("before_start_row_training_years").assertTextEquals("Tiempo entrenando, 4 años")
     }
 
     @Test
@@ -289,7 +289,7 @@ class IntakeRowSheetsTest {
         tap("intake_years_sheet_commit")
 
         assertEquals(listOf<IntakeUpdate>(IntakeUpdate.TrainingYears(1.5)), intake.saveCalls)
-        rule.onNodeWithTag("your_data_row_training_years").assertTextEquals("Tiempo entrenando", "1,5 años")
+        rule.onNodeWithTag("your_data_row_training_years").assertTextEquals("Tiempo entrenando, 1,5 años")
     }
 
     @Test

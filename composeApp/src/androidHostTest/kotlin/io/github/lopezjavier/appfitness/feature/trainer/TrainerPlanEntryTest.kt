@@ -64,8 +64,7 @@ class TrainerPlanEntryTest {
     fun withoutAPlan_crearPlanOpensAntesDeEmpezarInPlanMode() {
         show(content(PlanSummary.None))
 
-        rule.onNodeWithText("Tu plan").assertExists()
-        tap("trainer_create_plan")
+        tap("trainer_empty_action")
 
         assertEquals(listOf(Triple(BeforeStartMode.Plan, null, null)), starts)
         assertEquals(0, opened)
@@ -75,7 +74,7 @@ class TrainerPlanEntryTest {
     fun offline_crearPlanIsDisabledWithTheHint() {
         show(content(PlanSummary.None), online = false)
 
-        rule.onNodeWithTag("trainer_create_plan").assertIsNotEnabled()
+        rule.onNodeWithTag("trainer_empty_action").assertDoesNotExist()
         rule.onNodeWithText("Sin conexión: no se puede crear el plan.").assertExists()
     }
 
@@ -83,7 +82,7 @@ class TrainerPlanEntryTest {
     fun withAPendingProposal_aSummaryCardOpensIt() {
         show(content(PlanSummary.Proposed(coachPlan())))
 
-        rule.onNodeWithTag("trainer_create_plan").assertDoesNotExist()
+        rule.onNodeWithTag("trainer_empty_action").assertDoesNotExist()
         rule.onNodeWithText("Plan pendiente").assertExists()
         rule.onNodeWithText("Revísalo y acepta o descarta.").assertExists()
         tap("trainer_plan_card")

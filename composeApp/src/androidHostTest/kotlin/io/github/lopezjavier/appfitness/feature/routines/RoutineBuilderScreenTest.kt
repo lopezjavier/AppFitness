@@ -657,7 +657,7 @@ class RoutineBuilderScreenTest {
         connectivity.state.value = false
         rule.waitForIdle()
 
-        rule.onNodeWithText("Sin conexión: no se puede guardar").assertExists()
+        rule.onNodeWithText("Sin conexión: no se puede guardar", substring = true).assertExists()
         rule.onNodeWithTag("routine_builder_save").assertIsNotEnabled()
     }
 

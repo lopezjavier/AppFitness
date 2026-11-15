@@ -3,6 +3,7 @@ package io.github.lopezjavier.appfitness.feature.trainer
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.assertIsOff
 import androidx.compose.ui.test.assertIsSelected
+import androidx.compose.ui.test.assertTextContains
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
@@ -22,8 +23,6 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
-
-private val NBSP = 160.toChar().toString()
 
 /** US-82: the phase row, the cut rate and the diet break on the plan proposal, one test per scenario. */
 @RunWith(RobolectricTestRunner::class)
@@ -193,7 +192,7 @@ class PlanProposalPhaseTest {
         rule.onNodeWithTag("plan_proposal_cut_rate_option_1.0").performClick()
         rule.waitForIdle()
 
-        rule.onNodeWithText("1.800${NBSP}kcal al día").assertExists()
+        rule.onNodeWithTag("plan_proposal_kcal").assertTextContains("1.800", substring = true)
         assertEquals(1, plans.optionsCalls.size)
         assertEquals(0, plans.requests.size)
     }
@@ -225,7 +224,7 @@ class PlanProposalPhaseTest {
         rule.onNodeWithTag("plan_proposal_cut_rate_option_1.0").performClick()
         rule.waitForIdle()
 
-        rule.onNodeWithText("2.000${NBSP}kcal al día").assertExists()
+        rule.onNodeWithTag("plan_proposal_kcal").assertTextContains("2.000", substring = true)
         rule.onNodeWithTag("plan_proposal_cut_rate_option_0.5").assertIsSelected()
     }
 }

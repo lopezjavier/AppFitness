@@ -140,8 +140,8 @@ class RoundThreeComponentsTest {
         rule.setContent {
             AppTheme {
                 DecisionButtonRow(
-                    acceptText = "Aceptar el plan con todos los cambios propuestos",
-                    discardText = "Descartar la propuesta completa por ahora",
+                    acceptText = "Aceptar el plan con todos los cambios propuestos ".repeat(4),
+                    discardText = "Descartar la propuesta completa por ahora ".repeat(4),
                     onAccept = {},
                     onDiscard = {},
                     testTagPrefix = "decision",

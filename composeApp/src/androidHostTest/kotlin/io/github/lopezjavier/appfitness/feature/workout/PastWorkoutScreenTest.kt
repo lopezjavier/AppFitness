@@ -234,6 +234,6 @@ class PastWorkoutScreenTest {
         show()
 
         rule.onNodeWithTag("past_workout_save").assertIsNotEnabled()
-        rule.onNodeWithText("Sin conexión: no se puede guardar").assertExists()
+        rule.onNodeWithText("Sin conexión: no se puede guardar", substring = true).assertExists()
     }
 }

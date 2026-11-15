@@ -291,7 +291,7 @@ class BlockPreviewReplaceTest {
         tap("block_preview_replace_1_0_0")
 
         rule.onNodeWithTag("block_preview_replace_empty").assertExists()
-        rule.onNodeWithText("Este ejercicio no tiene similares").assertExists()
+        rule.onNodeWithText("Este ejercicio no tiene similares.").assertExists()
     }
 
     @Test

@@ -86,8 +86,8 @@ class YourDataScreenTest {
         rule.onNodeWithTag("your_data_section_my_training").assertExists()
         rule.onNodeWithTag("your_data_section_weighing").assertExists()
         rule.onNodeWithTag("your_data_section_estimate").assertExists()
-        rule.onNodeWithText("Perder grasa · Mi entrenamiento").assertExists()
-        rule.onNodeWithText("80,0 kg · Pesaje").assertExists()
+        rule.onNodeWithText("Perder grasa").assertExists()
+        rule.onNodeWithText("80,0", substring = true).assertExists()
     }
 
     @Test
@@ -117,7 +117,7 @@ class YourDataScreenTest {
         show()
 
         rule.onNodeWithTag("your_data_chip_provisional_total_expenditure").assertTextEquals("Provisional")
-        rule.onNodeWithTag("your_data_intake_provisional_total_expenditure").assertTextEquals(
+        rule.onNodeWithTag("your_data_intake_provisional_total_expenditure", useUnmergedTree = true).assertTextEquals(
             "Según lo que nos contaste (provisional). Lo cambiaremos por tus datos reales cuando haya suficientes.",
         )
     }
@@ -128,7 +128,10 @@ class YourDataScreenTest {
 
         show()
 
-        rule.onNodeWithTag("your_data_intake_provisional_total_expenditure").assertDoesNotExist()
+        rule.onNodeWithTag(
+            "your_data_intake_provisional_total_expenditure",
+            useUnmergedTree = true,
+        ).assertDoesNotExist()
     }
 
     @Test

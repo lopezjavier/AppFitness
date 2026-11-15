@@ -28,9 +28,15 @@ class TrainerDiscomfortScreenTest {
 
     private val repository = FakeDiscomfortFollowUpRepository(candidates = swapCandidates())
 
+    private val plans = FakeCoachPlanRepository().also {
+        it.current =
+            Result.success(coachPlan(status = io.github.lopezjavier.appfitness.domain.model.PlanStatus.Accepted))
+    }
+
     private fun model(): TrainerViewModel = TrainerViewModel(
         FakeCoachRepository(),
         MutableClock(),
+        plans = plans,
         savedState = SavedStateHandle(),
         discomfortFollowUps = repository,
         exerciseNames = discomfortNames(),

@@ -358,7 +358,7 @@ class CheckInScreenTest {
     fun offline_showsTheHint_andDisablesGuardar() {
         show(ready(energy = 4, isOffline = true))
 
-        rule.onNodeWithText("Sin conexión: no se puede guardar").assertIsDisplayed()
+        rule.onNodeWithText("Sin conexión: no se puede guardar", substring = true).assertIsDisplayed()
         rule.onNodeWithTag("checkin_save").assertIsNotEnabled()
     }
 
