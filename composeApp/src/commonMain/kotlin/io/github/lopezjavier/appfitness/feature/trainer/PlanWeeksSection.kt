@@ -147,7 +147,7 @@ private fun BlockPauseLines(pause: BlockPause?) {
 
 /** The date picker of the week's last day: selectable from `minDay` to `maxDay`, starting on the current last day. */
 @Composable
-private fun ExtendWeekPicker(extension: ActiveWeekExtension, extend: ExtendWeekUi) {
+internal fun ExtendWeekPicker(extension: ActiveWeekExtension, extend: ExtendWeekUi) {
     AppDatePickerDialog(
         selected = extension.selected,
         onConfirm = extend.onConfirm,
@@ -263,7 +263,7 @@ private fun WeekDates(week: PlanWeek, extend: ExtendWeekUi) {
     }
 }
 
-private fun extendableExtension(week: PlanWeek, extend: ExtendWeekUi): ActiveWeekExtension? =
+internal fun extendableExtension(week: PlanWeek, extend: ExtendWeekUi): ActiveWeekExtension? =
     extend.extension?.takeIf { week.phase == WeekPhase.Current && it.week.week == week.week }
 
 /** The help and the pencil that change the active week's last day (US-134), in the title row's trailing slot. */

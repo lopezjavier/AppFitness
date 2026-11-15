@@ -11,7 +11,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
@@ -20,20 +19,11 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.github.lopezjavier.appfitness.composeapp.resources.Res
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_nav_trainer
 import io.github.lopezjavier.appfitness.composeapp.resources.trainer_block_title
-import io.github.lopezjavier.appfitness.composeapp.resources.ic_delete
-import io.github.lopezjavier.appfitness.composeapp.resources.ic_more_vert
-import io.github.lopezjavier.appfitness.composeapp.resources.topbar_more_cd
-import io.github.lopezjavier.appfitness.composeapp.resources.trainer_block_remove
-import io.github.lopezjavier.appfitness.composeapp.resources.trainer_block_remove_action
 import io.github.lopezjavier.appfitness.composeapp.resources.trainer_box_empty_block
 import io.github.lopezjavier.appfitness.composeapp.resources.trainer_box_empty_plan
 import io.github.lopezjavier.appfitness.composeapp.resources.trainer_plan_section
-import io.github.lopezjavier.appfitness.designsystem.AppActionSheet
 import io.github.lopezjavier.appfitness.designsystem.AppCard
-import io.github.lopezjavier.appfitness.designsystem.AppSheetAction
-import io.github.lopezjavier.appfitness.designsystem.AppTopBarAction
 import io.github.lopezjavier.appfitness.designsystem.WindowWidthClassDefaults
-import io.github.lopezjavier.appfitness.designsystem.offlineHint
 import io.github.lopezjavier.appfitness.designsystem.AppScreen
 import io.github.lopezjavier.appfitness.designsystem.EmptyState
 import io.github.lopezjavier.appfitness.designsystem.SkeletonBox
@@ -104,19 +94,11 @@ fun TrainerBoxScreen(
     exerciseNames: Map<String, String> = emptyMap(),
 ) {
     val online by isOnline.collectAsStateWithLifecycle(initialValue = true)
-    var menuOpen by rememberSaveable { mutableStateOf(false) }
-    val hasSavedBlock = box == TrainerBox.Block && (state as? TrainerUiState.Content)?.block is BlockSummary.Saved
-    val moreLabel = stringResource(Res.string.topbar_more_cd)
+    // "Eliminar bloque" is a text link inside the "Tu bloque" card of the root (V-73, R-103): no ⋮ here.
     AppScreen(
         title = stringResource(box.title),
         modifier = modifier,
         onBack = onBack,
-        // "Eliminar bloque" lives in the ⋮ sheet (V-54); the confirmation dialog is unchanged (R-08).
-        actions = if (hasSavedBlock) {
-            listOf(AppTopBarAction(Res.drawable.ic_more_vert, moreLabel, { menuOpen = true }, "trainer_block_more"))
-        } else {
-            emptyList()
-        },
         maxContentWidth = WindowWidthClassDefaults.HubContentMaxWidth,
         testTagPrefix = box.tagPrefix,
     ) {
@@ -134,22 +116,6 @@ fun TrainerBoxScreen(
                         testTagPrefix = "${box.tagPrefix}_empty",
                     )
                 }
-            }
-            if (menuOpen && hasSavedBlock) {
-                AppActionSheet(
-                    actions = listOf(
-                        AppSheetAction(
-                            icon = Res.drawable.ic_delete,
-                            title = stringResource(Res.string.trainer_block_remove),
-                            hint = if (online) null else offlineHint(stringResource(Res.string.trainer_block_remove_action)),
-                            testTag = "trainer_remove_block",
-                            enabled = online,
-                            onClick = { onEvent(TrainerEvent.RequestRemoveBlock) },
-                        ),
-                    ),
-                    onDismiss = { menuOpen = false },
-                    testTagPrefix = "trainer_block_menu",
-                )
             }
         }
     }
@@ -200,7 +166,7 @@ private fun BoxContent(
                     }
                 }
                 if (state.block is BlockSummary.Saved) fullSpanItem("block_card") {
-                    BlockDetailsSection(state.block, state.blockStatus, state.removeBlockConfirm, onEvent)
+                    BlockDetailsSection(state.block, state.blockStatus)
                 }
                 planWeeks(
                     state.weeks,

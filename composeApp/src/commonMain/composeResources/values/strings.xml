@@ -2542,6 +2542,11 @@
     <string name="trainer_block_steps_value">%1$s&#160;de&#160;%2$s</string>
     <string name="trainer_block_steps_none">Sin datos de pasos</string>
     <string name="trainer_block_starts">Empieza el %1$s.</string>
+    <string name="trainer_block_starts_chip">Empieza el %1$s</string>
+    <string name="trainer_block_session_done">Listo</string>
+    <string name="trainer_block_session_cd_done">%1$s, listo</string>
+    <string name="trainer_block_session_cd_pending">%1$s, pendiente</string>
+    <string name="trainer_block_weeks_error">No se pudo cargar las semanas.</string>
     <string name="trainer_summary_unit">entrenos</string>
     <string name="trainer_summary_weight_label">Peso medio</string>
     <string name="trainer_summary_kcal_label">Calorías</string>

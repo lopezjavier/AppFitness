@@ -201,7 +201,7 @@ private fun TrainerContent(
             )
         }
         if (state.plan is PlanSummary.Accepted) item { planEntry() } else fullSpanItem { planEntry() }
-        blockBoxes(state, online, actions, cardMin)
+        blockBoxes(state, online, actions, onEvent, cardMin)
         if (state.hasWeekSummary) {
             item {
                 WeekSummaryBox(
@@ -269,6 +269,7 @@ private fun LazyGridScope.blockBoxes(
     state: TrainerUiState.Content,
     online: Boolean,
     actions: TrainerActions,
+    onEvent: (TrainerEvent) -> Unit,
     cardModifier: Modifier,
 ) {
     if (state.blockStatus is BlockStatus.Saved || state.appliedCoachChanges.isNotEmpty()) {
@@ -277,7 +278,22 @@ private fun LazyGridScope.blockBoxes(
                 state.blockStatus,
                 state.weeks,
                 appliedChangesCount = state.appliedCoachChanges.size,
-                onOpen = actions.onOpenBlockScreen,
+                actions = BlockCardActions(
+                    online = online,
+                    extend = ExtendWeekUi(
+                        extension = state.weekExtension,
+                        pickerOpen = state.extendWeekPickerOpen,
+                        busy = state.extendingWeek,
+                        online = online,
+                        onOpen = { onEvent(TrainerEvent.OpenExtendWeekPicker) },
+                        onDismiss = { onEvent(TrainerEvent.DismissExtendWeekPicker) },
+                        onConfirm = { onEvent(TrainerEvent.ExtendWeek(it)) },
+                    ),
+                    removeConfirm = state.removeBlockConfirm,
+                    onOpen = actions.onOpenBlockScreen,
+                    onOpenMyTraining = actions.onOpenMyTraining,
+                    onEvent = onEvent,
+                ),
                 modifier = cardModifier,
             )
         }

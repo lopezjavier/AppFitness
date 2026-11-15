@@ -104,17 +104,9 @@ internal fun BlockEntrySection(
     }
 }
 
-/**
- * The saved block on "Tu bloque": the header card with the week segments and "Semana 2 de 4" (C-113) and the
- * "Eliminar bloque" confirmation; the action itself lives in the top bar's ⋮ sheet (V-54).
- */
+/** The saved block on "Tu bloque": the header card with the week segments and "Semana 2 de 4" (C-113). */
 @Composable
-internal fun BlockDetailsSection(
-    block: BlockSummary,
-    status: BlockStatus,
-    removeBlockConfirm: Boolean,
-    onEvent: (TrainerEvent) -> Unit,
-) {
+internal fun BlockDetailsSection(block: BlockSummary, status: BlockStatus) {
     if (block !is BlockSummary.Saved) return
     AppCard(Modifier.fillMaxWidth().testTag("trainer_block_card")) {
         Text(
@@ -140,106 +132,15 @@ internal fun BlockDetailsSection(
             }
         }
     }
-    if (removeBlockConfirm) RemoveBlockDialog(onEvent)
 }
 
 /** "Semana 2 de 4" for the current week, or the status line while there is none (paused, ended, not started). */
 @Composable
-private fun BlockStatus.Saved.weekLine(): String = when {
+internal fun BlockStatus.Saved.weekLine(): String = when {
     reviewDue -> stringResource(Res.string.trainer_block_status_ended)
     paused -> stringResource(Res.string.block_week_paused)
     week != null -> stringResource(Res.string.trainer_block_status_week, week, total)
     else -> stringResource(Res.string.trainer_block_status_upcoming)
-}
-
-/**
- * "Tu bloque" box on the Trainer root (US-120, C-124): the week chip, "2 de 4 entrenos esta semana" with one segment per
- * workout, what is left to do and the cardio and steps progress; opens the block screen. [weeks] holds the block's
- * weeks (empty when their read failed: the box then keeps its two lines). Without a saved block it only shows while
- * applied changes exist (the proposal has its own card).
- */
-@Composable
-internal fun BlockSummaryBox(
-    status: BlockStatus,
-    weeks: List<PlanWeek>,
-    appliedChangesCount: Int,
-    onOpen: () -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    if (status !is BlockStatus.Saved) {
-        // Applied coach changes live on "Tu bloque": without a saved block the box still reaches them (V-50).
-        if (appliedChangesCount > 0) {
-            SummaryCard(
-                title = stringResource(Res.string.trainer_block_title),
-                lines = listOf(
-                    pluralStringResource(Res.plurals.trainer_block_changes_applied, appliedChangesCount, appliedChangesCount),
-                ),
-                onClick = onOpen,
-                testTag = "trainer_box_block",
-                modifier = modifier,
-            )
-        }
-        return
-    }
-    val current = weeks.firstOrNull { it.phase == WeekPhase.Current }
-    val first = weeks.minByOrNull { it.week }
-    // The week the figures describe: the current one, or the first while the block has not started.
-    val shown = if (status.reviewDue || status.paused) null else current ?: first?.takeIf { it.phase == WeekPhase.Upcoming }
-    val withHeadline = shown?.takeIf { it.planned > 0 }
-    SummaryCard(
-        title = stringResource(Res.string.trainer_block_title),
-        lines = blockLines(status, shown, current, weeks.isEmpty()),
-        onClick = onOpen,
-        testTag = "trainer_box_block",
-        modifier = modifier,
-        headline = withHeadline?.let { stringResource(Res.string.report_sessions_headline, it.completed, it.planned) },
-        headlineUnit = withHeadline?.let { stringResource(Res.string.trainer_block_headline_unit) },
-        facts = weekActivityFacts(shown),
-        status = if (weeks.isEmpty()) {
-            null
-        } else {
-            { BlockChips(status.weekLine(), status, deload = current?.deload == true && !status.paused) }
-        },
-        progress = withHeadline?.let { week ->
-            { SessionSegments(week.completed, week.planned, "trainer_box_block_progress", BLOCK_SEGMENTS_STAGGER) }
-        },
-    )
-}
-
-/** The text under the segments: what is left this week, "Semana completa.", the start date, or the two-line fallback. */
-@Composable
-private fun blockLines(status: BlockStatus.Saved, shown: PlanWeek?, current: PlanWeek?, noWeeks: Boolean): List<String> =
-    when {
-        // The weeks could not be read: today's two lines (title and week line).
-        noWeeks -> listOf(status.weekLine())
-
-        shown == null -> emptyList()
-
-        shown == current -> {
-            val todo = shown.sessions.filter { !it.done }.map { it.name }
-            when {
-                todo.isNotEmpty() -> listOf(stringResource(Res.string.trainer_block_todo, todo.joinToString(" · ")))
-                shown.planned > 0 -> listOf(stringResource(Res.string.trainer_block_week_complete))
-                else -> emptyList()
-            }
-        }
-
-        else -> listOf(
-            stringResource(
-                Res.string.trainer_block_starts,
-                AppDateFormat.weekdayDayMonth(shown.startDate.dayOfWeek, shown.startDate.day, shown.startDate.month),
-            ),
-        )
-    }
-
-/** The status chips of the box: "Semana 1 de 4" (Info) and "Descarga" in a deload week; Neutral for the other states. */
-@Composable
-private fun BlockChips(line: String, status: BlockStatus.Saved, deload: Boolean) {
-    val running = !status.reviewDue && !status.paused && status.week != null
-    Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm), verticalAlignment = Alignment.CenterVertically) {
-        StatusChip(line, if (running) StatusTone.Info else StatusTone.Neutral)
-        if (deload) StatusChip(stringResource(Res.string.trainer_week_chip_deload), StatusTone.Info)
-    }
 }
 
 /**
@@ -290,9 +191,9 @@ internal fun BlockReviewEntry(onOpen: () -> Unit) {
     )
 }
 
-/** The "Eliminar bloque" confirmation (R-08); the action lives in the top bar's ⋮ sheet of "Tu bloque" (V-54). */
+/** The "Eliminar bloque" confirmation (R-08); the action is a text link in the "Tu bloque" card of the root (R-103). */
 @Composable
-private fun RemoveBlockDialog(onEvent: (TrainerEvent) -> Unit) {
+internal fun RemoveBlockDialog(onEvent: (TrainerEvent) -> Unit) {
     AppConfirmDialog(
         title = stringResource(Res.string.trainer_block_remove_title),
         message = stringResource(Res.string.trainer_block_remove_message),
