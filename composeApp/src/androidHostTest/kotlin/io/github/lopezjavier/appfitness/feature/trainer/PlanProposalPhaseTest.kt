@@ -141,8 +141,8 @@ class PlanProposalPhaseTest {
 
         rule.onNodeWithTag("plan_proposal_cut_rate_option_1.0").assertIsNotEnabled()
         rule.onNodeWithTag("plan_proposal_diet_break_switch").assertIsNotEnabled()
-        rule.onNodeWithText("Sin conexión: no se puede cambiar el ritmo").assertExists()
-        rule.onNodeWithText("Sin conexión: no se puede cambiar el descanso de dieta").assertExists()
+        rule.onNodeWithText("Sin conexión: no se puede cambiar el ritmo.").assertExists()
+        rule.onNodeWithText("Sin conexión: no se puede cambiar el descanso de dieta.").assertExists()
     }
 
     @Test

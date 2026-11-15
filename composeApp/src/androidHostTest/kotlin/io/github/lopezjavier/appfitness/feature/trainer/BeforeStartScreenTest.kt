@@ -499,7 +499,7 @@ class BeforeStartScreenTest {
 
         rule.onNodeWithTag("before_start_create").assertIsNotEnabled()
         rule.onNodeWithTag("before_start_offline_hint").assertExists()
-        rule.onNodeWithText("Sin conexión: no se puede crear el plan").assertExists()
+        rule.onNodeWithText("Sin conexión: no se puede crear el plan.").assertExists()
     }
 
     @Test

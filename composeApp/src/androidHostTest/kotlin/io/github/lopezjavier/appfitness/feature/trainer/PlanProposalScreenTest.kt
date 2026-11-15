@@ -448,7 +448,7 @@ class PlanProposalScreenTest {
 
         rule.onNodeWithTag("plan_proposal_accept").assertIsNotEnabled()
         rule.onNodeWithTag("plan_proposal_discard").assertIsNotEnabled()
-        rule.onNodeWithText("Sin conexión: no se puede aceptar el plan").assertExists()
+        rule.onNodeWithText("Sin conexión: no se puede aceptar el plan.").assertExists()
     }
 
     @Test

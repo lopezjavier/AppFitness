@@ -376,7 +376,7 @@ class ExercisePickerScreenTest {
         rule.onNodeWithTag("exercise_picker_create_button").assertIsNotEnabled()
         rule.onNodeWithTag(
             "exercise_picker_offline_hint",
-        ).assertTextEquals("Sin conexión: no se puede añadir un ejercicio")
+        ).assertTextEquals("Sin conexión: no se puede añadir un ejercicio.")
         rule.onNodeWithTag("exercise_picker_row_bench").assertExists()
     }
 
@@ -625,6 +625,6 @@ class ExercisePickerScreenTest {
 
         rule.onNodeWithTag("exercise_create_sheet_commit").assertIsNotEnabled()
         rule.onNodeWithTag("exercise_create_sheet_commit_hint")
-            .assertTextEquals("Sin conexión: no se puede añadir un ejercicio")
+            .assertTextEquals("Sin conexión: no se puede añadir un ejercicio.")
     }
 }

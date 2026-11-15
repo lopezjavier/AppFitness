@@ -290,7 +290,7 @@ class TrainerRootCardsTest {
         show(TrainerUiState.Content(), online = false)
 
         node("trainer_empty_action").assertDoesNotExist()
-        rule.onNodeWithText("Sin conexión: no se puede crear el plan").assertExists()
+        rule.onNodeWithText("Sin conexión: no se puede crear el plan.").assertExists()
     }
 
     // R-92: centred empty state

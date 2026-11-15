@@ -272,7 +272,7 @@ class MealSlotsScreenTest {
     fun offline_showsTheTemplateHintAndDisablesSave() {
         show(editing(isOnline = false, canSave = false))
 
-        rule.onNodeWithTag("offline_hint").assertTextEquals("Sin conexión: no se puede guardar")
+        rule.onNodeWithTag("offline_hint").assertTextEquals("Sin conexión: no se puede guardar.")
         rule.onNodeWithTag("meals_save").assertIsNotEnabled()
     }
 

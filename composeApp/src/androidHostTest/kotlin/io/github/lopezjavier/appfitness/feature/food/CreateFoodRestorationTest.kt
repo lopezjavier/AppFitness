@@ -222,7 +222,7 @@ class CreateFoodRestorationTest {
         rule.waitForIdle()
 
         rule.onNodeWithTag("create_food_energy_retry").assertIsNotEnabled()
-        rule.onNodeWithText("Sin conexión: no se puede repetir la estimación").assertExists()
+        rule.onNodeWithText("Sin conexión: no se puede repetir la estimación.").assertExists()
     }
 
     @Test

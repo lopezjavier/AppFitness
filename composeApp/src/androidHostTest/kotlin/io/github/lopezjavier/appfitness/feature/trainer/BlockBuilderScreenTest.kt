@@ -144,7 +144,7 @@ class BlockBuilderScreenTest {
         show(Data.builderUi(Data.filled(Data.start())), online = false)
 
         rule.onNodeWithTag("block_builder_save").assertIsNotEnabled()
-        rule.onNodeWithText("Sin conexión: no se puede guardar el bloque").assertExists()
+        rule.onNodeWithText("Sin conexión: no se puede guardar el bloque.").assertExists()
     }
 
     @Test

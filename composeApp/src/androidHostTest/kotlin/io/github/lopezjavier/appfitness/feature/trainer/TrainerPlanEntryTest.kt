@@ -76,7 +76,7 @@ class TrainerPlanEntryTest {
         show(content(PlanSummary.None), online = false)
 
         rule.onNodeWithTag("trainer_create_plan").assertIsNotEnabled()
-        rule.onNodeWithText("Sin conexión: no se puede crear el plan").assertExists()
+        rule.onNodeWithText("Sin conexión: no se puede crear el plan.").assertExists()
     }
 
     @Test
@@ -154,7 +154,7 @@ class TrainerPlanEntryTest {
         show(content(PlanSummary.Accepted(coachPlan(status = PlanStatus.Accepted)), calorieProposal()), online = false)
 
         rule.onNodeWithTag("trainer_calorie_card_accept").assertIsNotEnabled()
-        rule.onNodeWithText("Sin conexión: no se puede aplicar el cambio o guardar tu decisión").assertExists()
+        rule.onNodeWithText("Sin conexión: no se puede aplicar el cambio o guardar tu decisión.").assertExists()
     }
 
     @Test
@@ -203,7 +203,7 @@ class TrainerPlanEntryTest {
         show(content(PlanSummary.Accepted(coachPlan(status = PlanStatus.Accepted))), online = false)
 
         rule.onNodeWithTag("trainer_create_block").assertIsNotEnabled()
-        rule.onNodeWithText("Sin conexión: no se puede crear el bloque").assertExists()
+        rule.onNodeWithText("Sin conexión: no se puede crear el bloque.").assertExists()
     }
 
     @Test

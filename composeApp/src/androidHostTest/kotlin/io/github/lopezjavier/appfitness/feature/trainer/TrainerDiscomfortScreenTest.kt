@@ -121,7 +121,7 @@ class TrainerDiscomfortScreenTest {
         showRoute(online = false)
 
         rule.onNodeWithTag("trainer_discomfort_offer_card_accept").assertIsNotEnabled()
-        rule.onNodeWithText("Sin conexión: no se puede cambiar el ejercicio").assertExists()
+        rule.onNodeWithText("Sin conexión: no se puede cambiar el ejercicio.").assertExists()
     }
 
     @Test

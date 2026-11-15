@@ -268,7 +268,7 @@ class BlockPreviewScreenTest {
         show(preview(), online = false)
 
         rule.onNodeWithTag("block_preview_save").assertIsNotEnabled()
-        rule.onNodeWithText("Sin conexión: no se puede guardar el bloque").assertExists()
+        rule.onNodeWithText("Sin conexión: no se puede guardar el bloque.").assertExists()
     }
 
     @Test

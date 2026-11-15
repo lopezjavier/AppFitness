@@ -78,7 +78,7 @@ class TrainerNewBlockScreenTest {
 
         rule.onNodeWithTag("trainer_new_block").assertIsNotEnabled()
         rule.onNodeWithTag("trainer_my_training").assertIsNotEnabled()
-        rule.onNodeWithText("Sin conexión: no se puede crear un bloque nuevo").assertExists()
+        rule.onNodeWithText("Sin conexión: no se puede crear un bloque nuevo.").assertExists()
     }
 
     @Test

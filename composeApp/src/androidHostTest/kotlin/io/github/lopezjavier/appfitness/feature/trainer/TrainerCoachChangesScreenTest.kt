@@ -234,7 +234,7 @@ class TrainerCoachChangesScreenTest {
         show(listOf(row("c1", CoachChangeKind.LoadRaise, figures = raise)), online = false)
 
         rule.onNodeWithTag("trainer_coach_change_undo_c1").assertIsNotEnabled()
-        rule.onNodeWithText("Sin conexión: no se puede deshacer el cambio").assertExists()
+        rule.onNodeWithText("Sin conexión: no se puede deshacer el cambio.").assertExists()
     }
 
     @Test

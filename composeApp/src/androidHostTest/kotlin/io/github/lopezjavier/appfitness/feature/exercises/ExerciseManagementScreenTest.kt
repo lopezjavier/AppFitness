@@ -392,7 +392,7 @@ class ExerciseManagementScreenTest {
             .assertContentDescriptionEquals("Editar Press Hammer")
         openOverflow()
         rule.onNodeWithTag("action_sheet_row_1").assertIsNotEnabled()
-        rule.onNodeWithTag("exercise_detail_offline_hint").assertTextEquals("Sin conexión: no se puede eliminar")
+        rule.onNodeWithTag("exercise_detail_offline_hint").assertTextEquals("Sin conexión: no se puede eliminar.")
         openOverflow()
         rule.onNodeWithTag("action_sheet_row_1").performClick()
         assertEquals(0, repository.deleteCalls)
@@ -404,7 +404,7 @@ class ExerciseManagementScreenTest {
         showDetail("cat")
 
         rule.onNodeWithTag("exercise_detail_offline_hint")
-            .assertTextEquals("Sin conexión: no se puede marcar favoritos")
+            .assertTextEquals("Sin conexión: no se puede marcar favoritos.")
     }
 
     @Test

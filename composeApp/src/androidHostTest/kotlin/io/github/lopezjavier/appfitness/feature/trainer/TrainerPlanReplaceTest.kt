@@ -87,7 +87,7 @@ class TrainerPlanReplaceTest {
         show(content(accepted), online = false)
 
         rule.onNodeWithTag("trainer_create_plan_new").assertIsNotEnabled()
-        rule.onNodeWithText("Sin conexión: no se puede crear el plan").assertExists()
+        rule.onNodeWithText("Sin conexión: no se puede crear el plan.").assertExists()
     }
 
     @Test

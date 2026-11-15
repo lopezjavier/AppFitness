@@ -370,6 +370,6 @@ class MyTrainingSectionTest {
         rule.waitForIdle()
 
         rule.onNodeWithTag("preferences_mi_entrenamiento_save").assertIsNotEnabled()
-        rule.onNodeWithTag("offline_hint").assertTextEquals("Sin conexión: no se puede guardar")
+        rule.onNodeWithTag("offline_hint").assertTextEquals("Sin conexión: no se puede guardar.")
     }
 }

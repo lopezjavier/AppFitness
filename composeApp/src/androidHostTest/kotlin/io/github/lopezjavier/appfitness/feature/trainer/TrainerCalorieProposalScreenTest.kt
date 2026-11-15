@@ -118,7 +118,7 @@ class TrainerCalorieProposalScreenTest {
         show(state(proposal(2000, 1900, -0.5)), online = false)
 
         rule.onNodeWithTag("trainer_calorie_card_accept").assertIsNotEnabled()
-        rule.onNodeWithText("Sin conexión: no se puede aplicar el cambio o guardar tu decisión").assertExists()
+        rule.onNodeWithText("Sin conexión: no se puede aplicar el cambio o guardar tu decisión.").assertExists()
     }
 
     @Test

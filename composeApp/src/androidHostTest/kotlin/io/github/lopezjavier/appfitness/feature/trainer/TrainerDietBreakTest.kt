@@ -117,7 +117,7 @@ class TrainerDietBreakTest {
         show(online = false)
 
         rule.onNodeWithTag("trainer_plan_diet_break_switch").assertIsNotEnabled()
-        rule.onNodeWithText("Sin conexión: no se puede cambiar el descanso de dieta").assertExists()
+        rule.onNodeWithText("Sin conexión: no se puede cambiar el descanso de dieta.").assertExists()
     }
 
     @Test

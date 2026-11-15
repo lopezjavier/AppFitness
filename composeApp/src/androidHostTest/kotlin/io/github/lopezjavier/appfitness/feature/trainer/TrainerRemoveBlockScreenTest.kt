@@ -142,7 +142,7 @@ class TrainerRemoveBlockScreenTest {
         showRoute(model())
 
         rule.onNodeWithTag("trainer_remove_block").assertIsNotEnabled()
-        rule.onNodeWithText("Sin conexión: no se puede eliminar el bloque").assertExists()
+        rule.onNodeWithText("Sin conexión: no se puede eliminar el bloque.").assertExists()
     }
 
     @Test

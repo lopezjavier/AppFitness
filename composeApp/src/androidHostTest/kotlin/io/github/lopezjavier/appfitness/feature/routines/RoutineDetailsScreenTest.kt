@@ -145,7 +145,7 @@ class RoutineDetailsScreenTest {
         show(content.copy(isOnline = false))
 
         rule.onNodeWithTag("routine_details_start").assertIsNotEnabled()
-        rule.onNodeWithText("Sin conexión: no se puede empezar").assertIsDisplayed()
+        rule.onNodeWithText("Sin conexión: no se puede empezar.").assertIsDisplayed()
     }
 
     @Test

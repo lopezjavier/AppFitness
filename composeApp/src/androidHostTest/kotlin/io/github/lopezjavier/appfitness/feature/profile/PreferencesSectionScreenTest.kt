@@ -261,7 +261,7 @@ class PreferencesSectionScreenTest {
     fun offline_disablesGuardar_showsTheHint_andATapVibratesOneReject() {
         show(PreferencesSection.Macros, loaded(PreferencesSection.Macros, dirtyMacros, isOnline = false))
         rule.onNodeWithTag("preferences_macros_save").assertIsNotEnabled().performClick()
-        rule.onNodeWithTag("offline_hint").assertTextEquals("Sin conexión: no se puede guardar")
+        rule.onNodeWithTag("offline_hint").assertTextEquals("Sin conexión: no se puede guardar.")
         assertEquals(1, haptics.rejects)
         assertTrue(events.isEmpty())
     }
@@ -472,7 +472,7 @@ class PreferencesSectionScreenTest {
         show(PreferencesSection.Reminders, loaded(PreferencesSection.Reminders, dirty, isOnline = false))
 
         rule.onNodeWithTag("preferences_avisos_save").assertIsNotEnabled().performClick()
-        rule.onNodeWithTag("offline_hint").assertTextEquals("Sin conexión: no se puede guardar")
+        rule.onNodeWithTag("offline_hint").assertTextEquals("Sin conexión: no se puede guardar.")
         assertTrue(events.isEmpty())
     }
 
