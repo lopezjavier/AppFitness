@@ -361,6 +361,7 @@
     <string name="macro_stacked_bar_state">Proteínas %1$s %, carbohidratos %2$s %, grasas %3$s %</string>
     <string name="catalog_section_macro_stacked_bar">Barra de reparto de macros</string>
     <string name="catalog_section_weight_pace_chart">Peso frente al plan</string>
+    <string name="catalog_section_progress_picker">Selector de semanas</string>
     <string name="catalog_section_sleep_stages_bar">Barra de fases del sueño</string>
     <string name="profile_sign_out">Cerrar sesión</string>
     <string name="sign_out_dialog_title">¿Cerrar sesión?</string>
@@ -2341,7 +2342,7 @@
     <string name="coach_changes_header">Cambios del entrenador</string>
     <string name="coach_change_undo">Deshacer</string>
     <string name="coach_change_undo_cd">Deshacer el cambio de %1$s</string>
-    <string name="coach_change_status_undone">Deshecho</string>
+    <string name="coach_change_status_undone">Revertido</string>
     <string name="coach_change_undone_line">Vuelve a %1$s kg.</string>
     <string name="coach_change_decided_raise">Subida aceptada</string>
     <string name="coach_change_decided_keep">Peso mantenido</string>
@@ -2361,8 +2362,8 @@
     <string name="coach_change_marker_cd">Por qué cambió el peso: %1$s</string>
     <string name="coach_change_marker_title">Cambio del entrenador</string>
     <plurals name="coach_change_undone_skipped">
-        <item quantity="one">Deshecho, salvo en %1$d rutina que ya habías editado.</item>
-        <item quantity="other">Deshecho, salvo en %1$d rutinas que ya habías editado.</item>
+        <item quantity="one">Revertido, salvo en %1$d rutina que ya habías editado.</item>
+        <item quantity="other">Revertido, salvo en %1$d rutinas que ya habías editado.</item>
     </plurals>
     <string name="coach_change_undo_conflict">Ya no se puede deshacer: has cambiado esa rutina.</string>
     <string name="coach_change_undo_not_found">Ese cambio ya no existe.</string>
@@ -2544,6 +2545,24 @@
     <string name="trainer_block_session_cd_done">%1$s, listo</string>
     <string name="trainer_block_session_cd_pending">%1$s, pendiente</string>
     <string name="trainer_block_weeks_error">No se pudo cargar las semanas.</string>
+    <!-- T-283 root cards with their own menu, week picker and coach changes (R-105, 2026-11-15) -->
+    <string name="trainer_plan_menu_cd">Más acciones de Tu plan</string>
+    <string name="trainer_block_menu_cd">Más acciones de Tu bloque</string>
+    <string name="trainer_menu_diet_break_on">Activar descanso de dieta</string>
+    <string name="trainer_menu_diet_break_off">Quitar descanso de dieta</string>
+    <string name="trainer_menu_cardio">Editar cardio</string>
+    <string name="trainer_menu_cardio_hint">%1$s&#160;min por semana</string>
+    <string name="trainer_menu_extend_week">Extender semana</string>
+    <string name="trainer_menu_extend_week_hint">Cambia el último día de esta semana.</string>
+    <string name="trainer_menu_deload_hint">Una semana más ligera: menos series y menos peso.</string>
+    <string name="trainer_block_week_item">S%1$d</string>
+    <string name="trainer_block_week_item_done_cd">Semana %1$d, hecha</string>
+    <string name="trainer_block_week_item_current_cd">Semana %1$d, actual</string>
+    <string name="trainer_block_week_item_planned_cd">Semana %1$d, planificada</string>
+    <string name="trainer_block_week_unit">entrenos</string>
+    <string name="trainer_block_session_cd">%1$s: %2$s</string>
+    <string name="trainer_block_cardio_planned">Objetivo:&#160;%1$s&#160;min</string>
+    <string name="trainer_change_figure">%1$s&#160;→&#160;%2$s&#160;kg</string>
     <!-- T-283 batch 6c: "Tu plan" card with the weight pace (C-131..C-138) -->
     <string name="trainer_plan_goal_meta">Meta&#160;%1$s&#160;kg · %2$s</string>
     <string name="trainer_plan_pace_actual">Ritmo: %1$s&#160;kg/sem</string>

@@ -16,7 +16,7 @@ import org.jetbrains.compose.resources.DrawableResource
  * One row of an [AppActionSheet]: decorative [icon], [title] and an optional one-line [hint]. [testTag] overrides
  * the generated `<prefix>_row_<n>` tag; a disabled row is dimmed and inert (say why in [hint]); a [blocked] row is
  * dimmed but still clickable, so the tap can explain the refusal, and is announced as unavailable with
- * [blockedDescription].
+ * [blockedDescription]. A [danger] row (destructive, it opens an R-08 confirmation) reads in `error`.
  */
 @Immutable
 data class AppSheetAction(
@@ -27,6 +27,7 @@ data class AppSheetAction(
     val enabled: Boolean = true,
     val blocked: Boolean = false,
     val blockedDescription: String? = null,
+    val danger: Boolean = false,
     val onClick: () -> Unit,
 )
 
@@ -79,6 +80,7 @@ fun AppActionSheet(
                 enabled = action.enabled,
                 blocked = action.blocked,
                 blockedDescription = action.blockedDescription,
+                danger = action.danger,
             )
         }
         Spacer(Modifier.height(Spacing.lg))

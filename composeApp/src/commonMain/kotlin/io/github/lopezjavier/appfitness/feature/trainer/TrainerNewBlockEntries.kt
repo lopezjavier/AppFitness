@@ -25,7 +25,10 @@ import io.github.lopezjavier.appfitness.domain.model.PhaseWeeks
 import org.jetbrains.compose.resources.pluralStringResource
 import org.jetbrains.compose.resources.stringResource
 
-/** "Bloque nuevo" and "Mi entrenamiento" under the active plan while its block is saved (T-240). */
+/**
+ * "Bloque nuevo" under the active plan while its block is saved (T-240), on the old "Tu plan" screen; "Mi
+ * entrenamiento" is now a text link of the Trainer root ([MyTrainingLink], R-90).
+ */
 @Composable
 internal fun NewBlockEntries(online: Boolean, onEvent: (TrainerEvent) -> Unit) {
     Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm), horizontalAlignment = Alignment.CenterHorizontally) {
@@ -36,13 +39,17 @@ internal fun NewBlockEntries(online: Boolean, onEvent: (TrainerEvent) -> Unit) {
             enabled = online,
         )
         if (!online) OfflineHint(stringResource(Res.string.trainer_new_block_action))
-        AppTextButton(
-            text = stringResource(Res.string.trainer_my_training),
-            onClick = { onEvent(TrainerEvent.OpenMyTraining) },
-            modifier = Modifier.testTag("trainer_my_training"),
-            enabled = online,
-        )
     }
+}
+
+/** "Mi entrenamiento" on the Trainer root, below "Tus datos": a text link (R-90, R-100) that opens the screen. */
+@Composable
+internal fun MyTrainingLink(onOpen: () -> Unit, modifier: Modifier = Modifier) {
+    AppTextButton(
+        text = stringResource(Res.string.trainer_my_training),
+        onClick = onOpen,
+        modifier = modifier.testTag("trainer_my_training"),
+    )
 }
 
 /** "Bienvenido de nuevo" after a break of 14+ days (US-107): one line and the "Bloque nuevo" action. */

@@ -106,6 +106,8 @@ fun TrainerBoxScreen(
             when (state) {
                 TrainerUiState.Loading -> BoxSkeleton(box.tagPrefix)
 
+                TrainerUiState.Error -> TrainerLoadError(box.tagPrefix, onEvent)
+
                 is TrainerUiState.Content -> if (state.hasContent(box)) {
                     BoxContent(box, state, online, onEvent, actions, exerciseNames)
                 } else {
@@ -189,7 +191,7 @@ private fun BoxContent(
                     ),
                 )
                 if (state.block is BlockSummary.Saved) fullSpanItem("block_actions") {
-                    BlockDetailsActions(online, state.removeBlockConfirm, actions.onOpenMyTraining, onEvent)
+                    BlockDetailsActions(online, state.removeBlockConfirm, onEvent)
                 }
             }
         }

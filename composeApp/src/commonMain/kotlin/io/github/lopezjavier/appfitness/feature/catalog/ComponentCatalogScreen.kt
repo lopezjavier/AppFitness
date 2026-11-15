@@ -110,6 +110,7 @@ private fun CatalogItems() {
         item { SegmentedSection() }
         item { TabsSection() }
         dataVizItems()
+        progressPickerItems()
         workoutInputItems()
         pickerItems()
         exerciseMediaItems()

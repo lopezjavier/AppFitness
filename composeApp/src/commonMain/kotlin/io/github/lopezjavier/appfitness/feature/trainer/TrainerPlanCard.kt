@@ -89,30 +89,31 @@ internal fun signedHundredths(value: Double): String {
 }
 
 /**
- * The accepted plan's card on the Trainer root (C-131..C-138): the goal header and the weight pace chart (the tappable
- * body that opens "Tu plan"), then, outside that tap target so the "?" and the button keep their own targets (R-103),
- * the figures line, the verdict, the weeks in the phase and the Calorías row. A summary only: "Crear
- * plan nuevo" lives in "Tu plan".
+ * The accepted plan's card on the Trainer root (C-131..C-138, R-105): the goal header and the weight pace chart, then
+ * the phase's reason with its "?", the figures line, the verdict, the weeks in the phase and the Calorías row. The card
+ * opens nothing (the "Tu plan" screen is gone): its actions are in the ⋮ [menu] of the title row.
  */
-@Suppress("LongParameterList") // The plan, the figures around it and the card's two events.
+@Suppress("LongParameterList") // The plan, the figures around it and the card's menu.
 @Composable
 internal fun PlanCard(
     plan: CoachPlan,
     pace: WeightPace?,
     weeksInPhase: PhaseWeeks?,
     diaryCalories: DiaryCalories?,
-    onOpen: () -> Unit,
     modifier: Modifier = Modifier,
+    menu: (@Composable () -> Unit)? = null,
 ) {
     SummaryCard(
         title = stringResource(Res.string.trainer_plan_section),
         lines = emptyList(),
-        onClick = onOpen,
+        onClick = null,
         testTag = "trainer_box_plan",
         modifier = modifier,
+        titleAction = menu,
         content = { PlanChartPanel(plan, pace) },
         footer = {
             Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+                PhaseReasonLine(plan)
                 PaceFigures(plan, pace)
                 if (pace != null) PaceVerdict(pace)
                 weeksInPhase?.takeIf { it.weeks > 0 }?.let { WeeksInPhaseLine(it) }

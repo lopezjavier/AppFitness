@@ -65,6 +65,9 @@ data class SwapPickerUi(
 sealed interface TrainerUiState {
     data object Loading : TrainerUiState
 
+    /** The plan read kept failing after its retries: "Reintentar" instead of a (wrong) no-plan screen. */
+    data object Error : TrainerUiState
+
     /**
      * The plan hub. [plan], [calorieProposal], [block], [weeks] degrade to none when their reads fail.
      * [provisionalCount] feeds the "Tus datos" row; null when the read failed (the row then shows no count).

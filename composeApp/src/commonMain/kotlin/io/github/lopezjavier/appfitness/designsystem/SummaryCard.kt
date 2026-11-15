@@ -2,7 +2,9 @@ package io.github.lopezjavier.appfitness.designsystem
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
@@ -15,6 +17,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -43,13 +46,16 @@ data class SummaryFact(
  * [facts] (8 dp apart), a decorative chevron aligned to the top and a full-width [footer] slot. [highlighted] marks a
  * card that waits for a decision (R-94). The body (title, status, content, headline, progress, lines, facts) is one
  * `Role.Button` of at least 48 dp and carries [testTag]. The [footer] sits outside that button with its own targets (R-103). Slots bring their own spacing: the column gap is 4 dp.
+ *
+ * A card that opens nothing (R-105: the Trainer root cards) passes a null [onClick]: no chevron, no button and no
+ * merged body (its content keeps its own targets), and [titleAction] (a 48 dp ⋮ button) closes the title row.
  */
 @Composable
 @Suppress("LongParameterList") // Slots fixed by the round 3 summary-card contract (R-95).
 fun SummaryCard(
     title: String,
     lines: List<String>,
-    onClick: () -> Unit,
+    onClick: (() -> Unit)?,
     testTag: String,
     modifier: Modifier = Modifier,
     headline: String? = null,
@@ -60,27 +66,41 @@ fun SummaryCard(
     status: (@Composable () -> Unit)? = null,
     content: (@Composable () -> Unit)? = null,
     footer: (@Composable () -> Unit)? = null,
+    titleAction: (@Composable () -> Unit)? = null,
 ) {
     AppCard(modifier.fillMaxWidth(), highlighted = highlighted) {
         Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
-            SummaryBody(
+            val body = if (onClick != null) {
                 Modifier
                     .testTag(testTag)
                     .clickable(role = Role.Button, onClick = onClick)
-                    .semantics(mergeDescendants = true) {},
-                title, status, content, headline, headlineUnit, progress, lines, facts,
+                    .semantics(mergeDescendants = true) {}
+            } else {
+                Modifier.testTag(testTag)
+            }
+            SummaryBody(
+                body,
+                SummaryTitle(title, status, chevron = onClick != null, action = titleAction),
+                content, headline, headlineUnit, progress, lines, facts,
             )
             footer?.invoke()
         }
     }
 }
 
+/** The title row's parts: the title, the status chips, the chevron of a tappable card and the trailing action. */
+private class SummaryTitle(
+    val text: String,
+    val status: (@Composable () -> Unit)?,
+    val chevron: Boolean,
+    val action: (@Composable () -> Unit)?,
+)
+
 @Composable
 @Suppress("LongParameterList") // The merged body of the card; every slot of the public contract.
 private fun SummaryBody(
     modifier: Modifier,
-    title: String,
-    status: (@Composable () -> Unit)?,
+    title: SummaryTitle,
     content: (@Composable () -> Unit)?,
     headline: String?,
     headlineUnit: String?,
@@ -92,7 +112,7 @@ private fun SummaryBody(
         modifier.fillMaxWidth().heightIn(min = Spacing.minTouchTarget),
         verticalArrangement = Arrangement.spacedBy(Spacing.xs),
     ) {
-        SummaryTitleRow(title, status)
+        SummaryTitleRow(title)
         content?.invoke()
         if (headline != null) {
             Row(
@@ -124,25 +144,30 @@ private fun SummaryBody(
 }
 
 @Composable
-private fun SummaryTitleRow(title: String, status: (@Composable () -> Unit)?) {
+private fun SummaryTitleRow(title: SummaryTitle) {
     Row(
         Modifier.fillMaxWidth(),
-        verticalAlignment = Alignment.Top,
+        // With a 48 dp action the title and chips centre on it; otherwise they align to the top (chevron).
+        verticalAlignment = if (title.action != null) Alignment.CenterVertically else Alignment.Top,
         horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
     ) {
         Text(
-            text = title,
+            text = title.text,
             style = AppTheme.typography.titleMedium,
             color = AppTheme.colors.textPrimary,
-            modifier = Modifier.weight(1f),
+            modifier = Modifier.weight(1f).semantics { heading() },
         )
-        status?.invoke()
-        Icon(
-            painter = painterResource(Res.drawable.ic_chevron_right),
-            contentDescription = null,
-            tint = AppTheme.colors.textSecondary,
-            modifier = Modifier.size(Spacing.xl),
-        )
+        title.status?.invoke()
+        if (title.chevron) {
+            Icon(
+                painter = painterResource(Res.drawable.ic_chevron_right),
+                contentDescription = null,
+                tint = AppTheme.colors.textSecondary,
+                modifier = Modifier.size(Spacing.xl),
+            )
+        }
+        // The ⋮ sits flush with the card edge: it pulls back into the card padding by its own inner space.
+        title.action?.let { Box(Modifier.offset(x = Spacing.md)) { it() } }
     }
 }
 

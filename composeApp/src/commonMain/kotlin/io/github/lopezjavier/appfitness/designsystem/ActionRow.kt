@@ -42,9 +42,11 @@ object ActionRowDefaults {
  * (`bodyMedium`, `textSecondary`; null for a title-only row). At least 48 dp tall, `Role.Button`, and read as one
  * node ("title, hint"). [testTag] lands on the row. A disabled ([enabled] false) row is dimmed and inert; its
  * [hint] should say why. A [blocked] row is dimmed like a disabled one but stays clickable (the tap explains the
- * refusal) and is announced as unavailable, with [blockedDescription] as its state description.
+ * refusal) and is announced as unavailable, with [blockedDescription] as its state description. A [danger] row (a
+ * destructive action that opens its R-08 confirmation) draws its icon and title in `error` while enabled.
  */
 @Composable
+@Suppress("LongParameterList") // Copy, action, tag and the three row states.
 fun ActionRow(
     icon: DrawableResource,
     title: String,
@@ -55,8 +57,13 @@ fun ActionRow(
     enabled: Boolean = true,
     blocked: Boolean = false,
     blockedDescription: String? = null,
+    danger: Boolean = false,
 ) {
-    val contentColor = if (enabled && !blocked) AppTheme.colors.textPrimary else AppTheme.colors.ghostData
+    val contentColor = when {
+        !enabled || blocked -> AppTheme.colors.ghostData
+        danger -> AppTheme.colors.error
+        else -> AppTheme.colors.textPrimary
+    }
     Row(
         modifier = modifier
             .fillMaxWidth()

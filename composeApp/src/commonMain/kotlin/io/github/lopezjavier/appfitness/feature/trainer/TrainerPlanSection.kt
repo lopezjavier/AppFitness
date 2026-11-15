@@ -70,7 +70,7 @@ private const val HALF = 2
 
 /**
  * "Tu plan" on the Trainer root: "Crear plan" without a plan, the pending proposal, or (accepted) the [PlanCard] with
- * the weight pace and the Calorías tile; it opens "Tu plan".
+ * the weight pace and the Calorías row; the accepted card opens nothing, its actions are in its ⋮ [menu] (R-105).
  */
 @Suppress("LongParameterList") // The plan, the figures of the accepted card and the root's events.
 @Composable
@@ -79,11 +79,11 @@ internal fun PlanEntrySection(
     online: Boolean,
     onOpenProposal: () -> Unit,
     onOpenBeforeStart: (BeforeStartMode, String?, String?) -> Unit,
-    onOpenPlan: () -> Unit = {},
     weightPace: WeightPace? = null,
     weeksInPhase: PhaseWeeks? = null,
     diaryCalories: DiaryCalories? = null,
     modifier: Modifier = Modifier,
+    menu: (@Composable () -> Unit)? = null,
 ) {
     when (plan) {
         // Without a plan the root shows the centred empty state with "Crear plan" (C-111).
@@ -105,8 +105,8 @@ internal fun PlanEntrySection(
             pace = weightPace,
             weeksInPhase = weeksInPhase,
             diaryCalories = diaryCalories,
-            onOpen = onOpenPlan,
             modifier = modifier,
+            menu = menu,
         )
     }
 }
@@ -249,6 +249,29 @@ private fun PhaseLine(plan: CoachPlan) {
             title = label,
             body = stringResource(PhaseText.help(phase)),
             testTag = "trainer_plan_phase_help",
+        )
+    }
+}
+
+/**
+ * The phase's reason on the root "Tu plan" card (R-105): the one-sentence reason ("Quieres perder grasa…") with the
+ * "?" that explains the phase. The phase name is already the card's goal heading, so it is not repeated here.
+ */
+@Composable
+internal fun PhaseReasonLine(plan: CoachPlan) {
+    val phase = plan.phase
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        Text(
+            text = stringResource(PhaseText.reason(phase, plan.nutrition.phaseReason)),
+            style = AppTheme.typography.bodyMedium,
+            color = AppTheme.colors.textSecondary,
+            modifier = Modifier.weight(1f).testTag("trainer_box_plan_reason"),
+        )
+        HelpButton(
+            contentDescription = stringResource(Res.string.phase_help_cd),
+            title = stringResource(PhaseText.label(phase)),
+            body = stringResource(PhaseText.help(phase)),
+            testTag = "trainer_box_plan_reason_help",
         )
     }
 }

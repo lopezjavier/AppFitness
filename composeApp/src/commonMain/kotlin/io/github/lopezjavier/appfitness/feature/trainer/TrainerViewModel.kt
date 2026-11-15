@@ -56,6 +56,7 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.async
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -77,6 +78,8 @@ private const val KEY_EXTEND_PICKER = "extend_week_picker"
 private const val KEY_PAUSED_RECORDED = "week_summary_paused_recorded"
 private const val PERCENT = 100.0
 private const val DAYS_PER_WEEK = 7
+private const val PLAN_READ_RETRIES = 2
+private const val PLAN_READ_BACKOFF_MS = 300L
 
 private fun PlanSummary.id(): String? = when (this) {
     is PlanSummary.Proposed -> plan.id
@@ -157,7 +160,7 @@ class TrainerViewModel(
     /** Fresh read of the whole hub after the swap changed the block's routines. */
     private suspend fun reloadHub() {
         loadJob?.cancel()
-        _uiState.value = fetch()
+        fetchOrNull()?.let { _uiState.value = it }
     }
 
     // The server accepts a date within one day of UTC today, so it is the UTC date.
@@ -339,8 +342,7 @@ class TrainerViewModel(
             if (result.isSuccess) {
                 // The weeks, deload rows and block entry all derive from the block: reload the hub.
                 loadJob?.cancel()
-                val fresh = fetch()
-                _uiState.value = fresh
+                fetchOrNull()?.let { _uiState.value = it }
                 effectChannel.send(TrainerEffect.BlockRemoved)
             } else {
                 _uiState.update { state ->
@@ -566,7 +568,7 @@ class TrainerViewModel(
     private fun load() {
         _uiState.value = TrainerUiState.Loading
         loadJob?.cancel()
-        loadJob = viewModelScope.launch { _uiState.value = fetch() }
+        loadJob = viewModelScope.launch { _uiState.value = fetchOrNull() ?: TrainerUiState.Error }
     }
 
     /**
@@ -578,7 +580,8 @@ class TrainerViewModel(
         if (loadJob?.isActive == true) return
         if (_uiState.value !is TrainerUiState.Content) return load()
         loadJob = viewModelScope.launch {
-            val fresh = fetch()
+            // A failed plan read keeps the Content already shown.
+            val fresh = fetchOrNull() ?: return@launch
             _uiState.update { state ->
                 if (state is TrainerUiState.Content) {
                     fresh.copy(
@@ -617,6 +620,14 @@ class TrainerViewModel(
      * it, so the screen waits for the longest chain, not for the sum. A failed read is a [Result.failure] that only
      * hides its own piece; cancellation still propagates.
      */
+    private suspend fun fetchOrNull(): TrainerUiState.Content? = try {
+        fetch()
+    } catch (_: PlanReadFailed) {
+        null
+    }
+
+    private class PlanReadFailed : RuntimeException()
+
     private suspend fun fetch(): TrainerUiState.Content = supervisorScope {
         // The count only feeds the "Tus datos" row: a failed read leaves the row without it.
         val provisional = async { repository.derivedValues(today()).getOrNull()?.provisionalCount() }
@@ -630,7 +641,7 @@ class TrainerViewModel(
         val localToday = clock.now().toLocalDateTime(timeZone).date
         val weighIns = async { readWeighIns(localToday) }
         // The plan entry and the calorie card never block the screen: a failed read means none.
-        val plan = readPlan()
+        val plan = readPlan() ?: throw PlanReadFailed()
         // A failed read hides the line ("Llevas n semanas en esta fase"), never "0 semanas".
         val weeksInPhase = async {
             if (plan is PlanSummary.Accepted) loadWeeksInPhase?.invoke(today())?.getOrNull() else null
@@ -781,15 +792,41 @@ class TrainerViewModel(
     /**
      * A goal-switch proposal (stored by "Bloque nuevo" until the new block is saved) is never the plan entry: the hub
      * keeps showing the accepted plan, and no proposal card appears.
+     *
+     * [PlanSummary.None] only when the read SUCCEEDED with no plan; null when it kept failing after
+     * [PLAN_READ_RETRIES] retries with a growing backoff (a cold start can race the session), so a failed read is never
+     * shown as "no plan".
      */
-    private suspend fun readPlan(): PlanSummary {
-        val current = plans?.currentPlan()?.getOrNull() ?: return PlanSummary.None
-        val plan = if (current.fromGoalSwitch) plans?.acceptedPlan()?.getOrNull() else current
+    @Suppress("ReturnCount") // Guards: no repository, failed reads, no plan.
+    private suspend fun readPlan(): PlanSummary? {
+        val repository = plans ?: return PlanSummary.None
+        val read = withRetries { repository.currentPlan() }
+        if (read.isFailure) return null
+        val current = read.getOrNull()
+        val plan = if (current?.fromGoalSwitch == true) {
+            val accepted = withRetries { repository.acceptedPlan() }
+            if (accepted.isFailure) return null
+            accepted.getOrNull()
+        } else {
+            current
+        }
         return when {
             plan == null -> PlanSummary.None
             plan.status == PlanStatus.Accepted -> PlanSummary.Accepted(plan)
             else -> PlanSummary.Proposed(plan)
         }
+    }
+
+    private suspend fun <T> withRetries(read: suspend () -> Result<T>): Result<T> {
+        var result = read()
+        var backoff = PLAN_READ_BACKOFF_MS
+        repeat(PLAN_READ_RETRIES) {
+            if (result.isSuccess) return result
+            delay(backoff)
+            backoff *= 2
+            result = read()
+        }
+        return result
     }
 
     @Suppress("ReturnCount") // Guards for a missing card, use case or an in-flight decision.
@@ -806,7 +843,7 @@ class TrainerViewModel(
                 val plan = readPlan()
                 _uiState.update { state ->
                     if (state is TrainerUiState.Content) {
-                        val kept = if (plan is PlanSummary.None) state.plan else plan
+                        val kept = if (plan == null || plan is PlanSummary.None) state.plan else plan
                         state.copy(calorieProposal = null, decidingChange = false, plan = kept)
                     } else {
                         state
@@ -819,7 +856,7 @@ class TrainerViewModel(
                 if ((result.exceptionOrNull() as? CoachException)?.failure == CoachFailure.Conflict) {
                     // Already decided elsewhere (55000): show what the server holds now.
                     loadJob?.cancel()
-                    _uiState.value = fetch()
+                    fetchOrNull()?.let { _uiState.value = it }
                 } else {
                     _uiState.update { state ->
                         if (state is TrainerUiState.Content) state.copy(decidingChange = false) else state

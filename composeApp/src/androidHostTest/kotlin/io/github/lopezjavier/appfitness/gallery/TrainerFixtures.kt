@@ -24,6 +24,10 @@ import io.github.lopezjavier.appfitness.domain.model.BlockTraining
 import io.github.lopezjavier.appfitness.domain.model.CalorieProposal
 import io.github.lopezjavier.appfitness.domain.model.CatalogExercise
 import io.github.lopezjavier.appfitness.domain.model.CoachBlock
+import io.github.lopezjavier.appfitness.domain.model.CoachChangeFigures
+import io.github.lopezjavier.appfitness.domain.model.CoachChangeKind
+import io.github.lopezjavier.appfitness.domain.model.CoachChangeStatus
+import io.github.lopezjavier.appfitness.domain.model.DietBreakWeek
 import io.github.lopezjavier.appfitness.domain.model.CoachPlan
 import io.github.lopezjavier.appfitness.domain.model.Equipment
 import io.github.lopezjavier.appfitness.domain.model.Exercise
@@ -71,6 +75,7 @@ import io.github.lopezjavier.appfitness.feature.trainer.BlockPreviewUiState
 import io.github.lopezjavier.appfitness.feature.trainer.BlockSummary
 import io.github.lopezjavier.appfitness.feature.trainer.BuilderSaveError
 import io.github.lopezjavier.appfitness.feature.trainer.CardioEdit
+import io.github.lopezjavier.appfitness.feature.trainer.CoachChangeRowUi
 import io.github.lopezjavier.appfitness.feature.trainer.DiaryCalories
 import io.github.lopezjavier.appfitness.feature.trainer.FolderBlockUiState
 import io.github.lopezjavier.appfitness.feature.trainer.FolderPickerTarget
@@ -109,6 +114,7 @@ internal object TrainerFixtures {
         limitedBy: PlanLimit? = null,
         phase: Phase = Phase.Cut,
         withActivity: Boolean = true,
+        dietBreakWeek: Int? = null,
     ): CoachPlan = CoachPlan(
         id = PLAN_ID,
         blockStart = planStart,
@@ -135,7 +141,7 @@ internal object TrainerFixtures {
             phase = phase,
             phaseReason = PhaseReason.Intention,
             phaseOptions = PhaseOptions(),
-            dietBreak = null,
+            dietBreak = dietBreakWeek?.let { DietBreakWeek(targetKcal = 2400, proteinG = 150, carbsG = 280, fatG = 70, week = it) },
         ),
         outcomes = listOf(
             PlanOutcome(OutcomeKind.Weight, "weight", 72.5, "Bajar de forma gradual.", LocalDate(2026, 11, 16)),
@@ -328,6 +334,68 @@ internal object TrainerFixtures {
         week(4, WeekPhase.Upcoming, completed = 0, goals = WeekGoalsFixture(0, null)),
     )
 
+    /**
+     * A long block of [total] weeks (above the 12-segment limit, so the bar falls back and the week numbers scroll):
+     * weeks before [current] done, [current] in progress, the rest upcoming.
+     */
+    fun longWeeks(total: Int = 16, current: Int = 9): List<PlanWeek> = (1..total).map { n ->
+        when {
+            n < current -> week(n, WeekPhase.Past, completed = if (n % 3 == 0) 3 else 4, goals = WeekGoalsFixture(150, 7200))
+            n == current -> week(n, WeekPhase.Current, completed = 2)
+            else -> week(n, WeekPhase.Upcoming, completed = 0, goals = WeekGoalsFixture(0, null))
+        }
+    }
+
+    /** Week 1 past with a missed session, week 2 current, week 3 an upcoming deload, week 4 upcoming. */
+    fun mixedWeeks(): List<PlanWeek> = listOf(
+        week(1, WeekPhase.Past, completed = 3, goals = WeekGoalsFixture(120, 6100)),
+        week(2, WeekPhase.Current, completed = 2),
+        week(3, WeekPhase.Upcoming, deload = true, completed = 0, goals = WeekGoalsFixture(0, null)),
+        week(4, WeekPhase.Upcoming, completed = 0, goals = WeekGoalsFixture(0, null)),
+    )
+
+    /** Every week past: the block ended (its review is due); the picker starts on the last week. */
+    fun endedWeeks(): List<PlanWeek> = (1..4).map { week(it, WeekPhase.Past, completed = if (it == 3) 2 else 4) }
+
+    /**
+     * The applied coach changes of "Cambios del entrenador": a raise still undoable, a raise already reverted
+     * ("Revertido") and a drop whose undo is in flight ([BUSY_CHANGE_ID]).
+     */
+    fun appliedChanges(): List<CoachChangeRowUi> = listOf(
+        CoachChangeRowUi(
+            id = "chg-raise",
+            kind = CoachChangeKind.LoadRaise,
+            status = CoachChangeStatus.Applied,
+            exerciseId = "bench",
+            routineIds = listOf("routine-0"),
+            figures = CoachChangeFigures(weightFromKg = 80.0, weightToKg = 82.5, rpeMax = 8.0),
+            reason = "all_sets_top_of_range",
+            decision = null,
+        ),
+        CoachChangeRowUi(
+            id = "chg-undone",
+            kind = CoachChangeKind.LoadRaise,
+            status = CoachChangeStatus.Undone,
+            exerciseId = "row",
+            routineIds = listOf("routine-1"),
+            figures = CoachChangeFigures(weightFromKg = 60.0, weightToKg = 62.5),
+            reason = "all_sets_top_of_range",
+            decision = null,
+        ),
+        CoachChangeRowUi(
+            id = BUSY_CHANGE_ID,
+            kind = CoachChangeKind.LoadDrop,
+            status = CoachChangeStatus.Applied,
+            exerciseId = "fly",
+            routineIds = listOf("routine-0"),
+            figures = CoachChangeFigures(weightFromKg = 20.0, weightToKg = 17.5, sessions = 2),
+            reason = "missed_reps",
+            decision = null,
+        ),
+    )
+
+    const val BUSY_CHANGE_ID = "chg-busy"
+
     /** A block paused for one week with its moved end date (US-106). */
     val pausedBlock = BlockPause(
         paused = true,
@@ -423,8 +491,13 @@ internal object TrainerFixtures {
         weeks: List<PlanWeek> = weeks(),
         today: LocalDate = goalsToday,
         diaryCalories: DiaryCalories? = null,
+        dietBreakWeek: Int? = null,
+        coachChanges: List<CoachChangeRowUi> = emptyList(),
+        busyChangeId: String? = null,
     ): TrainerUiState.Content = TrainerUiState.Content(
-        plan = PlanSummary.Accepted(plan()),
+        plan = PlanSummary.Accepted(plan(dietBreakWeek = dietBreakWeek)),
+        coachChanges = coachChanges,
+        busyChangeId = busyChangeId,
         diaryCalories = diaryCalories,
         calorieProposal = proposal,
         block = block,

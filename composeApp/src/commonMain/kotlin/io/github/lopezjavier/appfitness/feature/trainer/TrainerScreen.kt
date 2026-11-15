@@ -36,7 +36,10 @@ import io.github.lopezjavier.appfitness.composeapp.resources.trainer_your_data_r
 import io.github.lopezjavier.appfitness.composeapp.resources.your_data_provisional_count
 import io.github.lopezjavier.appfitness.designsystem.AppScreen
 import io.github.lopezjavier.appfitness.designsystem.AppShapes
+import io.github.lopezjavier.appfitness.composeapp.resources.action_retry
+import io.github.lopezjavier.appfitness.composeapp.resources.root_error_message
 import io.github.lopezjavier.appfitness.designsystem.AppStateAction
+import io.github.lopezjavier.appfitness.designsystem.ErrorState
 import io.github.lopezjavier.appfitness.designsystem.EmptyState
 import io.github.lopezjavier.appfitness.designsystem.OfflineHint
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
@@ -117,9 +120,11 @@ internal fun rememberExerciseNames(state: TrainerUiState, resolver: ExerciseName
 
 /**
  * The Trainer tab root (US-68, US-69, US-78) on [AppScreen] with the compact header: the pending suggestions, "Tu
- * plan", the block entry, the weeks and the "Tus datos" row (or the skeleton while it loads).
+ * plan" and "Tu bloque" (each with its own ⋮), the applied coach changes, the links group and "Mi entrenamiento" (or
+ * the skeleton while it loads). [preview] opens a card menu or preselects a week (the gallery only).
  */
 @Composable
+@Suppress("LongParameterList") // The state, its events, the navigation, the names and the gallery hook.
 fun TrainerScreen(
     state: TrainerUiState,
     isOnline: Flow<Boolean>,
@@ -127,6 +132,7 @@ fun TrainerScreen(
     modifier: Modifier = Modifier,
     actions: TrainerActions = TrainerActions(),
     exerciseNames: Map<String, String> = emptyMap(),
+    preview: TrainerRootPreview = TrainerRootPreview(),
 ) {
     val title = stringResource(Res.string.trainer_title)
     val online by isOnline.collectAsStateWithLifecycle(initialValue = true)
@@ -145,13 +151,19 @@ fun TrainerScreen(
                 Spacing.screenMargin * GRID_COLUMNS
             when (state) {
                 TrainerUiState.Loading -> TrainerSkeleton()
-                is TrainerUiState.Content -> TrainerContent(state, online, onEvent, actions, exerciseNames, twoColumns)
+                TrainerUiState.Error -> TrainerLoadError("trainer", onEvent)
+                is TrainerUiState.Content ->
+                    TrainerContent(state, online, onEvent, actions, exerciseNames, twoColumns, preview)
             }
         }
     }
 }
 
+/** Gallery hooks of the root: the card whose ⋮ sheet starts open and the week the "Tu bloque" picker starts on. */
+data class TrainerRootPreview(val openMenu: TrainerRootMenu? = null, val week: Int? = null)
+
 @Composable
+@Suppress("LongParameterList", "LongMethod") // The root's state, events and layout; one grid of fixed items.
 private fun TrainerContent(
     state: TrainerUiState.Content,
     online: Boolean,
@@ -159,6 +171,7 @@ private fun TrainerContent(
     actions: TrainerActions,
     exerciseNames: Map<String, String>,
     twoColumns: Boolean,
+    preview: TrainerRootPreview,
 ) {
     if (state.plan is PlanSummary.None) {
         NoPlanContent(online, state.provisionalCount, actions)
@@ -186,24 +199,47 @@ private fun TrainerContent(
         // The two cards of the first row are at least 220 dp high when they sit side by side (C-128).
         val cardMin = if (twoColumns) Modifier.heightIn(min = WideCardMinHeight) else Modifier
         val planEntry: @Composable () -> Unit = {
+            val accepted = (state.plan as? PlanSummary.Accepted)?.plan
             PlanEntrySection(
                 state.plan,
                 online,
                 actions.onOpenProposal,
                 actions.onOpenBeforeStart,
-                actions.onOpenPlan,
                 weightPace = state.weightPace,
                 weeksInPhase = state.weeksInPhase,
                 diaryCalories = state.diaryCalories,
                 modifier = cardMin,
+                menu = accepted?.let { plan ->
+                    {
+                        PlanCardMenu(
+                            plan,
+                            online,
+                            state.dietBreakSaving,
+                            actions.onOpenBeforeStart,
+                            onEvent,
+                            initiallyOpen = preview.openMenu == TrainerRootMenu.Plan,
+                        )
+                    }
+                },
             )
+            state.cardioEdit?.let {
+                CardioMinutesSheet(
+                    edit = it,
+                    online = online,
+                    onChange = { minutes -> onEvent(TrainerEvent.CardioMinutesChanged(minutes)) },
+                    onSave = { onEvent(TrainerEvent.SaveCardio) },
+                    onDismiss = { onEvent(TrainerEvent.DismissCardioEdit) },
+                )
+            }
         }
         if (state.plan is PlanSummary.Accepted) item { planEntry() } else fullSpanItem { planEntry() }
-        blockBoxes(state, online, actions, onEvent, cardMin)
+        blockBoxes(state, online, onEvent, exerciseNames, cardMin, preview)
+        blockEntry(state, online, actions, cardMin)
         fullSpanItem("your_data") {
             // 12 dp from the grid plus 12 dp here: 24 dp before the group (C-101).
             Column(Modifier.padding(top = Spacing.md)) {
                 RootLinksGroup(state.provisionalCount, actions.onOpenReports, actions.onOpenYourData)
+                MyTrainingLink(actions.onOpenMyTraining, Modifier.padding(top = Spacing.sm))
             }
         }
     }
@@ -239,29 +275,52 @@ private fun NoPlanContent(online: Boolean, provisionalCount: Int?, actions: Trai
             }
         }
         RootLinksGroup(provisionalCount, actions.onOpenReports, actions.onOpenYourData)
+        MyTrainingLink(actions.onOpenMyTraining, Modifier.padding(top = Spacing.sm))
     }
 }
 
-/** The block entry ("Crear bloque" or the proposal) and, with a saved block, its box. */
+/**
+ * The saved block's card with its ⋮ and, right under it in the same grid cell, "Cambios del entrenador" while
+ * applied changes exist (also without a saved block). The dialogs the block's ⋮ opens are hosted here.
+ */
+@Suppress("LongParameterList") // The state, its events, the names, the cell size and the gallery hook.
 private fun LazyGridScope.blockBoxes(
     state: TrainerUiState.Content,
     online: Boolean,
-    actions: TrainerActions,
     onEvent: (TrainerEvent) -> Unit,
+    exerciseNames: Map<String, String>,
     cardModifier: Modifier,
+    preview: TrainerRootPreview,
 ) {
-    if (state.blockStatus is BlockStatus.Saved || state.appliedCoachChanges.isNotEmpty()) {
-        item {
+    if (state.blockStatus !is BlockStatus.Saved && state.appliedCoachChanges.isEmpty()) return
+    item("block_card") {
+        Column(verticalArrangement = Arrangement.spacedBy(Spacing.cardGap)) {
             BlockSummaryBox(
                 state.blockStatus,
                 state.weeks,
-                appliedChangesCount = state.appliedCoachChanges.size,
-                actions = BlockCardActions(onOpen = actions.onOpenBlockScreen, onEvent = onEvent),
+                actions = BlockCardActions(onEvent = onEvent),
                 modifier = cardModifier,
                 today = state.today,
+                pause = state.pause,
+                dietBreakWeek = (state.plan as? PlanSummary.Accepted)?.plan?.nutrition?.dietBreak?.week,
+                menu = {
+                    BlockCardMenu(state, online, onEvent, initiallyOpen = preview.openMenu == TrainerRootMenu.Block)
+                },
+                initialWeek = preview.week,
             )
+            CoachChangesCard(state, exerciseNames, online, onEvent)
         }
+        BlockMenuTargets(state, online, onEvent)
     }
+}
+
+/** "Crear bloque" or the proposed block, while there is no saved block. */
+private fun LazyGridScope.blockEntry(
+    state: TrainerUiState.Content,
+    online: Boolean,
+    actions: TrainerActions,
+    cardModifier: Modifier,
+) {
     val entryShows = state.block is BlockSummary.Proposed || (state.block is BlockSummary.None && !state.blockReviewDue)
     if (entryShows) {
         item("block_entry") {
@@ -325,6 +384,18 @@ private fun TrainerHeader(title: String) {
             )
             NotificationsBell("trainer_action_notifications")
         }
+    }
+}
+
+/** The plan read failed after its retries: the existing error state with "Reintentar" (a new load, not no-plan). */
+@Composable
+internal fun TrainerLoadError(tagPrefix: String, onEvent: (TrainerEvent) -> Unit) {
+    Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+        ErrorState(
+            message = stringResource(Res.string.root_error_message),
+            action = AppStateAction(stringResource(Res.string.action_retry)) { onEvent(TrainerEvent.Refresh) },
+            testTagPrefix = "${tagPrefix}_error",
+        )
     }
 }
 
