@@ -7,16 +7,12 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.semantics.contentDescription
-import androidx.compose.ui.semantics.semantics
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.github.lopezjavier.appfitness.composeapp.resources.Res
 import io.github.lopezjavier.appfitness.composeapp.resources.action_retry
@@ -27,11 +23,7 @@ import io.github.lopezjavier.appfitness.composeapp.resources.coach_deload_status
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_calendar
 import io.github.lopezjavier.appfitness.composeapp.resources.week_summary_empty
 import io.github.lopezjavier.appfitness.composeapp.resources.week_summary_error
-import io.github.lopezjavier.appfitness.composeapp.resources.week_summary_group_cd_one
-import io.github.lopezjavier.appfitness.composeapp.resources.week_summary_group_cd_other
-import io.github.lopezjavier.appfitness.composeapp.resources.week_summary_group_line
 import io.github.lopezjavier.appfitness.composeapp.resources.week_summary_groups_header
-import io.github.lopezjavier.appfitness.composeapp.resources.week_summary_sessions
 import io.github.lopezjavier.appfitness.composeapp.resources.week_summary_subtitle
 import io.github.lopezjavier.appfitness.composeapp.resources.week_summary_title
 import io.github.lopezjavier.appfitness.designsystem.AppCard
@@ -43,24 +35,20 @@ import io.github.lopezjavier.appfitness.designsystem.CoachChangeRow
 import io.github.lopezjavier.appfitness.designsystem.CoachChangeRowState
 import io.github.lopezjavier.appfitness.designsystem.EmptyState
 import io.github.lopezjavier.appfitness.designsystem.ErrorState
-import io.github.lopezjavier.appfitness.designsystem.ListSectionHeader
 import io.github.lopezjavier.appfitness.designsystem.OfflineState
 import io.github.lopezjavier.appfitness.designsystem.SectionCard
 import io.github.lopezjavier.appfitness.designsystem.SkeletonBox
 import io.github.lopezjavier.appfitness.designsystem.Spacing
 import io.github.lopezjavier.appfitness.designsystem.WindowWidthClassDefaults
 import io.github.lopezjavier.appfitness.domain.model.CoachChangeStatus
-import io.github.lopezjavier.appfitness.domain.model.GroupSets
 import io.github.lopezjavier.appfitness.domain.model.ProposalStatus
 import io.github.lopezjavier.appfitness.domain.port.ConnectivityObserver
-import io.github.lopezjavier.appfitness.feature.exercises.label
 import kotlinx.coroutines.flow.Flow
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.koinInject
 import org.koin.compose.viewmodel.koinViewModel
 
 private const val SKELETON_CARDS = 3
-private const val GROUP_SEPARATOR = " · "
 
 /** Stateful "Resumen semanal" (US-98): connects [WeekSummaryViewModel] to the stateless [WeekSummaryScreen]. */
 @Composable

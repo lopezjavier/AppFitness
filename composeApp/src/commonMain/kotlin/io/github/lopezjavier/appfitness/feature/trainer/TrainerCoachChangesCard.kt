@@ -61,7 +61,8 @@ private const val STACK_ACTION_FONT_SCALE = 1.3f
 private val GlyphSize = Spacing.xl + Spacing.lg
 
 /**
- * "Cambios del entrenador" on the Trainer root (R-107), full width under "Tu bloque", only while applied changes exist: one
+ * "Cambios del entrenador" on the Trainer root (R-107), full width under "Tu bloque", only while applied changes exist:
+ * one
  * card with the title and one row per change, apart by hairlines. A row reads what changed (the exercise and
  * "80 → 82,5 kg" with a rising or falling glyph; a deload "Semana de descarga · Semana 3"), its state when closed
  * ("Revertido" with the old figure struck through and "Vuelve a 80 kg.", "Cancelada", "Subida aceptada") and, while it
@@ -205,7 +206,7 @@ private fun ChangeGlyph(row: CoachChangeRowUi) {
 
 /** The name, what changed and, for a closed change, its state chip and the weight it went back to. */
 @Composable
-private fun ChangeText(row: CoachChangeRowUi, name: String, modifier: Modifier) {
+private fun ChangeText(row: CoachChangeRowUi, name: String, modifier: Modifier = Modifier) {
     val undone = row.status == CoachChangeStatus.Undone
     Column(modifier, verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
         Text(

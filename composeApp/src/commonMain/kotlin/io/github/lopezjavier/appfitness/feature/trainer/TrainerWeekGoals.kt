@@ -13,8 +13,7 @@ internal fun elapsedShare(week: PlanWeek, today: LocalDate?): Float? {
     if (today == null || week.phase != WeekPhase.Current) return null
     val days = week.endDate.toEpochDays() - week.startDate.toEpochDays() + 1
     val passed = today.toEpochDays() - week.startDate.toEpochDays()
-    if (days <= 0 || passed < 0 || passed >= days) return null
-    return passed.toFloat() / days
+    return if (days <= 0 || passed < 0 || passed >= days) null else passed.toFloat() / days
 }
 
 /**

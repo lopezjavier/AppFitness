@@ -59,8 +59,9 @@ object WeightPaceFit {
     private val T95 = doubleArrayOf(12.706, 4.303, 3.182, 2.776, 2.571, 2.447)
 
     /**
-     * [daily] are the daily weights (any range; only the window counts), [rateKgWeek] the plan's signed rate. The window
-     * is the weeks of the current phase run ([weeksInPhase] null means the full 8), at most 8, ending the week of
+     * [daily] are the daily weights (any range; only the window counts), [rateKgWeek] the plan's signed rate. The
+     * window is the weeks of the current phase run ([weeksInPhase] null means the full 8), at most 8, ending the week
+     * of
      * [today]. [outcome] and [planStart] give the dashed plan line; no outcome means no line.
      */
     @Suppress("LongParameterList", "LongMethod") // One flat pure computation, every input is a plain value.
@@ -113,7 +114,11 @@ object WeightPaceFit {
         val meanY = weekly.map { it.kg }.average()
         val sxx = weekly.sumOf { (it.index - meanX) * (it.index - meanX) }
         val slope = weekly.sumOf { (it.index - meanX) * (it.kg - meanY) } / sxx
-        if (n == MIN_WEEKS_FOR_SLOPE) return Fit(slope, null, null)
+        return if (n == MIN_WEEKS_FOR_SLOPE) Fit(slope, null, null) else intervalFit(weekly, slope, meanX, meanY, sxx)
+    }
+
+    private fun intervalFit(weekly: List<WeeklyWeight>, slope: Double, meanX: Double, meanY: Double, sxx: Double): Fit {
+        val n = weekly.size
         val intercept = meanY - slope * meanX
         val sse = weekly.sumOf { (it.kg - (intercept + slope * it.index)).let { r -> r * r } }
         val df = n - 2
@@ -132,6 +137,10 @@ object WeightPaceFit {
         val gated = weekly.size < MIN_WEEKS_FOR_VERDICT ||
             latestComplete == null || latestComplete.days < MIN_DAYS_IN_LATEST_WEEK
         if (gated || low == null || high == null) return WeightPaceState.Soon
+        return verdictOf(rate, low, high)
+    }
+
+    private fun verdictOf(rate: Double, low: Double, high: Double): WeightPaceState {
         if (abs(rate) < EPSILON) {
             return when {
                 low > 0.0 -> WeightPaceState.Rising
@@ -161,6 +170,15 @@ object WeightPaceFit {
         windowStart: LocalDate,
     ): PlanPaceLine? {
         if (outcome == null) return null
+        return lineTo(outcome, rate, planStart, windowStart)
+    }
+
+    private fun lineTo(
+        outcome: PlanOutcome,
+        rate: Double,
+        planStart: LocalDate,
+        windowStart: LocalDate,
+    ): PlanPaceLine? {
         val endWeeks = windowStart.daysUntil(outcome.deadline).toDouble() / DAYS_PER_WEEK
         val startWeeks = (windowStart.daysUntil(planStart).toDouble() / DAYS_PER_WEEK).coerceAtLeast(0.0)
         if (endWeeks <= startWeeks) return null

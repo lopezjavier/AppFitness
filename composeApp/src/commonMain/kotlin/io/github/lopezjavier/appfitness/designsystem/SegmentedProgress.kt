@@ -63,7 +63,9 @@ object SegmentedProgressDefaults {
     /** Tabs are squared: 8 dp corners at most. */
     val TabShape = RoundedCornerShape(8.dp)
 
-    /** Up to this many tabs share the width (no scroll at 360 dp and font scale 1.3); more scroll at [ScrollTabWidth]. */
+    /**
+     * Up to this many tabs share the width (no scroll at 360 dp and font scale 1.3); more scroll at [ScrollTabWidth].
+     */
     const val MaxTabs: Int = 6
     val ScrollTabWidth: Dp = 56.dp
 
@@ -139,7 +141,8 @@ fun SegmentedProgress(
  * `textPrimary` label (about 8.5:1 over the track on `surfaceRaised`); an upcoming step is the track with a
  * `textSecondary` label (about 5.1:1). The [selected] step adds a bold label and a 3 dp `textPrimary` bar under its tab
  * (shape and weight, never colour alone). Up to [SegmentedProgressDefaults.MaxTabs] steps share the full width (no
- * scroll at 360 dp and font scale 1.3); above that each tab is about 56 dp wide and the row scrolls with the last visible tab cut by 24 dp (so the scroll is evident), brought to the
+ * scroll at 360 dp and font scale 1.3); above that each tab is about 56 dp wide and the row scrolls with the last
+ * visible tab cut by 24 dp (so the scroll is evident), brought to the
  * selection on first show. [description] is each step's spoken label ("Semana 2, actual"); [stateDescription] the
  * row's. Nothing animates, so a new selection replays nothing (R-97). Items are tagged `<testTag>_item_<step>`.
  */
@@ -164,7 +167,7 @@ fun SegmentedProgressPicker(
     var selectedX by remember { mutableStateOf<Int?>(null) }
     // A long block: bring the chosen tab into view once; later scrolling is the user's own.
     var scrolledOnce by remember { mutableStateOf(false) }
-    BoxWithConstraints(Modifier.fillMaxWidth()) {
+    BoxWithConstraints(modifier.fillMaxWidth()) {
         // The last visible tab is cut by about 24 dp, so the row visibly continues (R-106).
         val tabWidth = scrollTabWidth(maxWidth)
         LaunchedEffect(selectedX, tabWidth) {
@@ -175,7 +178,7 @@ fun SegmentedProgressPicker(
             }
         }
         Row(
-            modifier
+            Modifier
                 .fillMaxWidth()
                 .testTag(testTag)
                 .let { if (shared) it else it.horizontalScroll(scroll) }
@@ -227,7 +230,7 @@ private fun WeekTab(
     selected: Boolean,
     description: String,
     onSelect: () -> Unit,
-    modifier: Modifier,
+    modifier: Modifier = Modifier,
 ) {
     val colors = AppTheme.colors
     val shape = SegmentedProgressDefaults.TabShape
@@ -292,7 +295,7 @@ private fun WeekTab(
 
 /** One rounded segment: cyan fill when done (fills once, R-97), a cyan 1.5 dp outline when current, else the track. */
 @Composable
-private fun SegmentBar(isDone: Boolean, isCurrent: Boolean, staggerIndex: Int, modifier: Modifier) {
+private fun SegmentBar(isDone: Boolean, isCurrent: Boolean, staggerIndex: Int, modifier: Modifier = Modifier) {
     val colors = AppTheme.colors
     val fill = rememberFillProgress(staggerIndex)
     Box(

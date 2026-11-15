@@ -22,7 +22,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.github.lopezjavier.appfitness.composeapp.resources.Res
 import io.github.lopezjavier.appfitness.composeapp.resources.action_retry
@@ -332,8 +331,8 @@ private fun LazyGridScope.blockEntry(
                 online,
                 actions.onOpenBlock,
                 actions.onOpenBeforeStart,
-                state.blockReviewDue,
                 cardModifier,
+                state.blockReviewDue,
             )
         }
     }

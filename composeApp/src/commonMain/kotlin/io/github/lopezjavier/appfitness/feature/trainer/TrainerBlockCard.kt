@@ -94,9 +94,12 @@ private val SessionBarHeight = Spacing.xs + Spacing.xs / 2
 internal class BlockCardActions(val onEvent: (TrainerEvent) -> Unit)
 
 /**
- * "Tu bloque" card on the Trainer root (C-124, R-103, R-105, R-106). Title row: "Tu bloque", the block's state chip ("Semana 2 de 4",
- * "Bloque terminado") and the ⋮ [menu]. Body: the block chips ("Empieza el…", "Semana en pausa"), the week tabs ("S1"…, done filled with a check, current outlined, the chosen one underlined) and,
- * under them, the chosen week as the "Semanas del bloque" card showed it: its chips, dates, "3 de 4 entrenos" with the percent
+ * "Tu bloque" card on the Trainer root (C-124, R-103, R-105, R-106). Title row: "Tu bloque", the block's state chip
+ * ("Semana 2 de 4",
+ * "Bloque terminado") and the ⋮ [menu]. Body: the block chips ("Empieza el…", "Semana en pausa"), the week tabs ("S1"…,
+ * done filled with a check, current outlined, the chosen one underlined) and,
+ * under them, the chosen week as the "Semanas del bloque" card showed it: its chips, dates, "3 de 4 entrenos" with the
+ * percent
  * chip and one continuous 6 dp bar, one status card per session, and the Cardio and Pasos al día bars. The current week
  * is chosen by default (the last one once the block ended, the first before it starts); the choice is local and
  * survives a recreation. [weeks] is empty when their read failed: the card then shows a retry note. [initialWeek]
@@ -277,7 +280,8 @@ private class WeekDetailContext(
 
 /**
  * The chosen week, as the "Semanas del bloque" card showed it (US-73, US-75): "Semana 2" with its chips, the dates,
- * the moved end date under the dates, the sessions headline with the percent chip and its bar (a planned week reads "4 entrenos planificados"), one
+ * the moved end date under the dates, the sessions headline with the percent chip and its bar (a planned week reads "4
+ * entrenos planificados"), one
  * status card per session and the Cardio and Pasos al día bars (a planned week shows only its cardio target).
  */
 @Composable
@@ -417,7 +421,7 @@ private fun SessionCards(week: PlanWeek) {
  * past week; neutral, never an error) or "Planificado" (an upcoming week, `textTertiary`).
  */
 @Composable
-private fun SessionCard(week: PlanWeek, session: PlanWeekSession, modifier: Modifier) {
+private fun SessionCard(week: PlanWeek, session: PlanWeekSession, modifier: Modifier = Modifier) {
     val state = stringResource(
         when {
             session.done -> Res.string.trainer_week_session_done

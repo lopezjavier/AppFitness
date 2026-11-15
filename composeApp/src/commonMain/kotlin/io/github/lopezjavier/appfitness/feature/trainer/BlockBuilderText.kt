@@ -251,7 +251,7 @@ internal fun blockFlowSubtitle(step: BlockFlowStep, withTargets: Boolean): Strin
         BlockFlowStep.Targets -> 1
         BlockFlowStep.Splits -> 1 + offset
         BlockFlowStep.Types -> 2 + offset
-        BlockFlowStep.Builder -> 3 + offset
+        BlockFlowStep.Builder -> FLOW_STEPS + offset
     }
     return stringResource(Res.string.block_flow_step, number, FLOW_STEPS + offset)
 }

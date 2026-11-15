@@ -24,7 +24,6 @@ import io.github.lopezjavier.appfitness.composeapp.resources.calorie_proposal_ho
 import io.github.lopezjavier.appfitness.composeapp.resources.calorie_proposal_hold_raise
 import io.github.lopezjavier.appfitness.composeapp.resources.calorie_proposal_offline
 import io.github.lopezjavier.appfitness.composeapp.resources.phase_help_cd
-import io.github.lopezjavier.appfitness.composeapp.resources.trainer_plan_create
 import io.github.lopezjavier.appfitness.composeapp.resources.trainer_plan_create_action
 import io.github.lopezjavier.appfitness.composeapp.resources.trainer_plan_pending_supporting
 import io.github.lopezjavier.appfitness.composeapp.resources.trainer_plan_pending_title
@@ -50,7 +49,8 @@ private const val HALF = 2
 
 /**
  * "Tu plan" on the Trainer root: "Crear plan" without a plan, the pending proposal, or (accepted) the [PlanCard] with
- * the weight pace and the Calorías row; the accepted card opens nothing, its actions are in its ⋮ [menu] (R-103, R-105).
+ * the weight pace and the Calorías row; the accepted card opens nothing, its actions are in its ⋮ [menu] (R-103,
+ * R-105).
  */
 @Suppress("LongParameterList") // The plan, the figures of the accepted card and the root's events.
 @Composable
@@ -59,10 +59,10 @@ internal fun PlanEntrySection(
     online: Boolean,
     onOpenProposal: () -> Unit,
     onOpenBeforeStart: (BeforeStartMode, String?, String?) -> Unit,
+    modifier: Modifier = Modifier,
     weightPace: WeightPace? = null,
     weeksInPhase: PhaseWeeks? = null,
     diaryCalories: DiaryCalories? = null,
-    modifier: Modifier = Modifier,
     menu: (@Composable () -> Unit)? = null,
 ) {
     when (plan) {

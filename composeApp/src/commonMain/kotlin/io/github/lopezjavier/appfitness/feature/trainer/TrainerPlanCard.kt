@@ -89,7 +89,8 @@ internal fun signedHundredths(value: Double): String {
 }
 
 /**
- * The accepted plan's card on the Trainer root (C-131..C-138, R-102, R-105): the goal header and the weight pace chart, then
+ * The accepted plan's card on the Trainer root (C-131..C-138, R-102, R-105): the goal header and the weight pace chart,
+ * then
  * the phase's reason with its "?", the figures line, the verdict, the weeks in the phase and the Calorías row. The card
  * opens nothing (the "Tu plan" screen is gone): its actions are in the ⋮ [menu] of the title row.
  */

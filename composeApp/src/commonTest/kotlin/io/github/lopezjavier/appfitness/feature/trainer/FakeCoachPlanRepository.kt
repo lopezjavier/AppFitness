@@ -123,7 +123,9 @@ internal class FakeCoachPlanRepository : CoachPlanRepository {
         return request
     }
 
-    /** The next [currentFailures] reads of [currentPlan] fail (a cold start racing the session), then [current] answers. */
+    /**
+     * The next [currentFailures] reads of [currentPlan] fail (a cold start racing the session), then [current] answers.
+     */
     var currentFailures = 0
 
     override suspend fun currentPlan(): Result<CoachPlan?> {

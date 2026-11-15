@@ -189,7 +189,8 @@ class BlockReviewScreenTest {
 
         rule.onNodeWithTag("block_review_phase").performScrollTo().assertIsDisplayed()
         rule.onNodeWithText(
-            "Llevas 12${NBSP}semanas de definición. Te proponemos 4${NBSP}semanas comiendo lo que gastas antes de seguir.",
+            "Llevas 12${NBSP}semanas de definición. " +
+                "Te proponemos 4${NBSP}semanas comiendo lo que gastas antes de seguir.",
         ).assertIsDisplayed()
         rule.onNodeWithText("Mantenimiento").assertIsDisplayed()
         rule.onNodeWithTag("block_review_phase_help").assertIsDisplayed()

@@ -4,7 +4,6 @@ package io.github.lopezjavier.appfitness.feature.catalog
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.runtime.Composable
@@ -92,7 +91,6 @@ import io.github.lopezjavier.appfitness.designsystem.WeightPaceChartData
 import io.github.lopezjavier.appfitness.designsystem.WeightPaceLabel
 import io.github.lopezjavier.appfitness.designsystem.WeightPacePoint
 import io.github.lopezjavier.appfitness.domain.model.MuscleGroup
-import io.github.lopezjavier.appfitness.domain.model.Phase
 import org.jetbrains.compose.resources.stringResource
 import kotlin.math.roundToInt
 

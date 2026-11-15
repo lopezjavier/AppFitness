@@ -3,7 +3,6 @@ package io.github.lopezjavier.appfitness.gallery
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import com.github.takahirom.roborazzi.ExperimentalRoborazziApi
@@ -214,7 +213,8 @@ private fun trainerRootCards(): List<GalleryEntry> {
         root("cards, coach changes offline", withChanges.copy(busyChangeId = null), online = false),
         root("cards, large font (1.3)", withChanges, fontScale = 1.3f),
         root("cards, tablet width", withChanges, wide = true),
-        // The pace key ("Ritmo" and "Objetivo") shows only under a drawn chart; "cards" above have no weigh-ins (R-102).
+        // The pace key ("Ritmo" and "Objetivo") shows only under a drawn chart; "cards" above have no weigh-ins
+        // (R-102).
         root("plan chart with weigh-ins", withPace),
         root("plan chart with weigh-ins, large font (1.3)", withPace, fontScale = 1.3f),
         root("plan chart with weigh-ins, tablet width", withPace, wide = true),

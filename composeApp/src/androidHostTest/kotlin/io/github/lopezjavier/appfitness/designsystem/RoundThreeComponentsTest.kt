@@ -52,7 +52,7 @@ class RoundThreeComponentsTest {
         val description = rule.onNodeWithTag("seg").fetchSemanticsNode().config
             .getOrNull(SemanticsProperties.StateDescription)
         assertEquals("Semana 2 de 4", description)
-        (0 until 4).forEach { rule.onNodeWithTag("seg_segment_$it", useUnmergedTree = true).assertExists() }
+        for (i in 0 until 4) rule.onNodeWithTag("seg_segment_$i", useUnmergedTree = true).assertExists()
         rule.onNodeWithTag("seg_segment_4", useUnmergedTree = true).assertDoesNotExist()
     }
 

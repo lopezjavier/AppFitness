@@ -35,7 +35,9 @@ import org.jetbrains.compose.resources.pluralStringResource
 import org.jetbrains.compose.resources.stringResource
 import kotlin.math.abs
 
-/** The nutrition card (07 section 4 (a)): the four figures as a 2 x 2 tile grid, weigh-ins and the calorie decisions. */
+/**
+ * The nutrition card (07 section 4 (a)): the four figures as a 2 x 2 tile grid, weigh-ins and the calorie decisions.
+ */
 @Composable
 internal fun NutritionSection(summary: WeekSummary) {
     val nutrition = summary.nutrition ?: return

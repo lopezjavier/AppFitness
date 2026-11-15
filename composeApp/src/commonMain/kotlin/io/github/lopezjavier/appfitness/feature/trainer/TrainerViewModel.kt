@@ -591,10 +591,11 @@ class TrainerViewModel(
         }
     }
 
-    // Informes keeps a paused week only if it is stored (US-129): once per open, off the critical path, silent on failure.
+    // Informes keeps a paused week only if it is stored (US-129): once per open, off the critical path, silent on
+    // failure.
     private fun recordPausedWeekOnce(summary: WeekSummary?) {
-        val record = recordPausedWeek ?: return
-        if (summary?.paused != true) return
+        val record = recordPausedWeek
+        if (record == null || summary?.paused != true) return
         val key = "${summary.planId}:${summary.startDate}"
         if (savedState.get<String>(KEY_PAUSED_RECORDED) == key) return
         viewModelScope.launch {
@@ -688,12 +689,15 @@ class TrainerViewModel(
         today: LocalDate,
         weeksInPhase: PhaseWeeks?,
     ): DiaryCalories? {
-        val repo = diary ?: return null
-        val accepted = (plan as? PlanSummary.Accepted)?.plan ?: return null
+        val repo = diary
+        val accepted = (plan as? PlanSummary.Accepted)?.plan
+        if (repo == null || accepted == null) return null
         val from = weeksInPhase?.let { today.minus(DatePeriod(days = it.weeks * DAYS_PER_WEEK)) } ?: accepted.blockStart
         val days = repo.summaries(from, today).getOrNull().orEmpty()
-        if (days.isEmpty()) return null
-        return DiaryCalories(avgKcal = (days.sumOf { it.totals.kcal } / days.size).roundToInt(), days = days.size)
+        return days.takeIf { it.isNotEmpty() }
+            ?.let {
+                DiaryCalories(avgKcal = (it.sumOf { day -> day.totals.kcal } / it.size).roundToInt(), days = it.size)
+            }
     }
 
     /** Daily weights of the 8 ISO weeks ending the week of [today]; null when the read failed (the chart is hidden). */
@@ -714,9 +718,10 @@ class TrainerViewModel(
         weeksInPhase: PhaseWeeks?,
         today: LocalDate,
     ): WeightPace? {
-        val accepted = (plan as? PlanSummary.Accepted)?.plan ?: return null
+        val accepted = (plan as? PlanSummary.Accepted)?.plan
+        if (accepted == null || weighIns == null) return null
         return WeightPaceFit.compute(
-            daily = weighIns ?: return null,
+            daily = weighIns,
             today = today,
             rateKgWeek = accepted.nutrition.rateKgWeek,
             phase = accepted.phase,

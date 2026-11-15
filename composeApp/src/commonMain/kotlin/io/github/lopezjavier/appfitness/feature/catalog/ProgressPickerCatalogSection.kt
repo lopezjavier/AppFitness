@@ -26,7 +26,10 @@ private const val SHORT_CURRENT = 3
 private const val LONG_WEEKS = 16
 private const val LONG_CURRENT = 9
 
-/** Catalog section of [SegmentedProgressPicker] (R-106): week tabs of a 6-week block (shared width) and a 16-week block (scrolling). */
+/**
+ * Catalog section of [SegmentedProgressPicker] (R-106): week tabs of a 6-week block (shared width) and a 16-week block
+ * (scrolling).
+ */
 internal fun LazyListScope.progressPickerItems() {
     item { ProgressPickerSection() }
 }

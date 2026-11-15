@@ -86,7 +86,8 @@ class BeforeStartNewBlockScreenTest {
         show { model }
 
         rule.onNodeWithTag("before_start_note_goal_change").assertTextContains(
-            "Tus calorías pasan de 2.800 a 2.300${NBSP}kcal: Definición. El bloque actual sigue hasta que guardes el nuevo.",
+            "Tus calorías pasan de 2.800 a 2.300${NBSP}kcal: Definición. " +
+                "El bloque actual sigue hasta que guardes el nuevo.",
         )
     }
 

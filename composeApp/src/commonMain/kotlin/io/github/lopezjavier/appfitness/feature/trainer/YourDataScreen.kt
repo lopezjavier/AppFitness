@@ -104,7 +104,8 @@ fun YourDataRoot(
 }
 
 /**
- * "Tus datos" on [AppScreen] with back, no footer: every input the coach reads, grouped by origin, one card per group. A row with an
+ * "Tus datos" on [AppScreen] with back, no footer: every input the coach reads, grouped by origin, one card per group.
+ * A row with an
  * editor opens it (the activity level opens its sheet); derived values are plain rows. Provisional ones carry a chip.
  */
 @Composable

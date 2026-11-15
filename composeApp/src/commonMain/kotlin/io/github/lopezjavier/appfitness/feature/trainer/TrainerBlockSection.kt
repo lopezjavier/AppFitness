@@ -14,7 +14,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.unit.dp
 import io.github.lopezjavier.appfitness.composeapp.resources.Res
 import io.github.lopezjavier.appfitness.composeapp.resources.action_cancel
 import io.github.lopezjavier.appfitness.composeapp.resources.action_delete
@@ -52,8 +51,8 @@ internal fun BlockEntrySection(
     online: Boolean,
     onOpenBlock: (String) -> Unit,
     onOpenBeforeStart: (BeforeStartMode, String?, String?) -> Unit,
-    reviewDue: Boolean = false,
     modifier: Modifier = Modifier,
+    reviewDue: Boolean = false,
 ) {
     val planId = when (plan) {
         is PlanSummary.Proposed -> plan.plan.id
@@ -101,7 +100,7 @@ internal fun BlockStatus.Saved.weekLine(): String = when {
  * "Crear bloque" button inside it. [content] is the button (and its offline hint).
  */
 @Composable
-private fun BlockEmptyCard(modifier: Modifier, content: @Composable () -> Unit) {
+private fun BlockEmptyCard(modifier: Modifier = Modifier, content: @Composable () -> Unit) {
     AppCard(modifier.fillMaxWidth().testTag("trainer_block_empty")) {
         Column(
             Modifier.fillMaxWidth(),
@@ -144,7 +143,9 @@ internal fun BlockReviewEntry(onOpen: () -> Unit) {
     )
 }
 
-/** The "Eliminar bloque" confirmation (R-08); the action is in the ⋮ of the "Tu bloque" card of the root (R-103, R-105). */
+/**
+ * The "Eliminar bloque" confirmation (R-08); the action is in the ⋮ of the "Tu bloque" card of the root (R-103, R-105).
+ */
 @Composable
 internal fun RemoveBlockDialog(onEvent: (TrainerEvent) -> Unit) {
     AppConfirmDialog(

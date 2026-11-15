@@ -252,7 +252,7 @@ private fun PreviewContent(
 
 /** "Por debajo de lo recomendado" with its "?" (R-46): the block is still created. */
 @Composable
-private fun BelowRecommendedNote(modifier: Modifier) {
+private fun BelowRecommendedNote(modifier: Modifier = Modifier) {
     Row(
         modifier.fillMaxWidth().testTag("block_preview_below_recommended"),
         verticalAlignment = Alignment.CenterVertically,
@@ -270,7 +270,7 @@ private fun BelowRecommendedNote(modifier: Modifier) {
 
 /** What changed since the previous block: a titled section, not collapsible (R-32). */
 @Composable
-private fun ChangesSection(changes: String, modifier: Modifier) {
+private fun ChangesSection(changes: String, modifier: Modifier = Modifier) {
     Column(modifier.testTag("block_preview_changes")) {
         ListSectionHeader(
             stringResource(Res.string.block_changes_header),
@@ -286,7 +286,7 @@ private fun ChangesSection(changes: String, modifier: Modifier) {
 }
 
 @Composable
-private fun FrequencyLine(training: BlockTraining, modifier: Modifier) {
+private fun FrequencyLine(training: BlockTraining, modifier: Modifier = Modifier) {
     val text = if (training.daysChosen) {
         pluralStringResource(
             Res.plurals.block_frequency_chosen,
@@ -307,7 +307,11 @@ private fun FrequencyLine(training: BlockTraining, modifier: Modifier) {
 
 /** "Series por grupo muscular" of a block (C-102): one [BarListRow] per muscle. */
 @Composable
-internal fun SetsSection(weeklySets: Map<String, Int>, sessionsPerMuscle: Map<String, Int>, modifier: Modifier) {
+internal fun SetsSection(
+    weeklySets: Map<String, Int>,
+    sessionsPerMuscle: Map<String, Int>,
+    modifier: Modifier = Modifier,
+) {
     val largest = weeklySets.values.max()
     SectionCard(
         stringResource(Res.string.block_sets_header),

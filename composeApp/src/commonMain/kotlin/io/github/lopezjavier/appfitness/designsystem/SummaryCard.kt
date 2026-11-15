@@ -80,7 +80,6 @@ fun SummaryCard(
                 Modifier.testTag(testTag)
             }
             SummaryBody(
-                body,
                 SummaryTitle(title, status, chevron = onClick != null, action = titleAction),
                 content,
                 headline,
@@ -88,6 +87,7 @@ fun SummaryCard(
                 progress,
                 lines,
                 facts,
+                body,
             )
             footer?.invoke()
         }
@@ -105,7 +105,6 @@ private class SummaryTitle(
 @Composable
 @Suppress("LongParameterList") // The merged body of the card; every slot of the public contract.
 private fun SummaryBody(
-    modifier: Modifier,
     title: SummaryTitle,
     content: (@Composable () -> Unit)?,
     headline: String?,
@@ -113,6 +112,7 @@ private fun SummaryBody(
     progress: (@Composable () -> Unit)?,
     lines: List<String>,
     facts: List<SummaryFact>,
+    modifier: Modifier = Modifier,
 ) {
     Column(
         modifier.fillMaxWidth().heightIn(min = Spacing.minTouchTarget),

@@ -57,7 +57,8 @@ internal fun BoxScope.TrackStopDot() {
 /**
  * A plain progress bar towards a goal: an `athleticCyan` fill over a `trackInactive` track with a stop dot, rounded.
  * [fraction] is clamped to 0..1; [stateDescription] is the spoken value ("Progreso hacia el objetivo, 50 %"), so the
- * bar is never colour-only. [fillColor] overrides the fill (for example the caution token at a limit). With a [staggerIndex] the fill rises once on first composition (R-97). Unlike
+ * bar is never colour-only. [fillColor] overrides the fill (for example the caution token at a limit). With a
+ * [staggerIndex] the fill rises once on first composition (R-97). Unlike
  * `MacroProgressBar` it has no macro colour and no amounts. [markerFraction] (0..1, null for none) draws the marker
  * tick across the track: a target or a "where you should be by now" point (05 §6.0f); the bar then takes 6 dp more
  * height for the overhang, and the caller's [stateDescription] must say what the marker means in words.
@@ -73,7 +74,7 @@ fun AppLinearProgress(
     markerFraction: Float? = null,
 ) {
     if (markerFraction == null) {
-        LinearTrack(fraction, stateDescription, modifier, fillColor, barHeight, staggerIndex)
+        LinearTrack(fraction, stateDescription, fillColor, barHeight, staggerIndex, modifier)
         return
     }
     val markerColor = AppTheme.colors.textPrimary
@@ -95,7 +96,7 @@ fun AppLinearProgress(
             },
         contentAlignment = Alignment.Center,
     ) {
-        LinearTrack(fraction, stateDescription, Modifier, fillColor, barHeight, staggerIndex)
+        LinearTrack(fraction, stateDescription, fillColor, barHeight, staggerIndex)
     }
 }
 
@@ -103,10 +104,10 @@ fun AppLinearProgress(
 private fun LinearTrack(
     fraction: Float,
     stateDescription: String,
-    modifier: Modifier,
     fillColor: Color?,
     barHeight: Dp,
     staggerIndex: Int?,
+    modifier: Modifier = Modifier,
 ) {
     val clamped = fraction.coerceIn(0f, 1f)
     val fill = rememberFillProgress(staggerIndex ?: 0)

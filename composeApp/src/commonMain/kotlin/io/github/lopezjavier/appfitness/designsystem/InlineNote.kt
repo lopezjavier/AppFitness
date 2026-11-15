@@ -43,7 +43,8 @@ object InlineNoteDefaults {
  * Subtle hint inside a form: decorative info icon and [text] (`bodyMedium`, `textSecondary`) on a `surfaceOverlay`
  * block with the `md` shape. Not interactive unless [onClick] is given (then a 48 dp button announced with
  * [onClickLabel], e.g. a shown note that opens its editor); the text is the only spoken content. [testTag] lands on
- * the root. [tone] Error tints the unfavourable glyph `error` and the text `textPrimary` (C-117). With [onDismiss] a trailing close button (48 dp, "Cerrar", tagged [dismissTestTag]) lets the user remove a
+ * the root. [tone] Error tints the unfavourable glyph `error` and the text `textPrimary` (C-117). With [onDismiss] a
+ * trailing close button (48 dp, "Cerrar", tagged [dismissTestTag]) lets the user remove a
  * note that shows once (R-52); the text stays the first spoken content.
  */
 @Composable
