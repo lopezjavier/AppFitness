@@ -18,8 +18,8 @@ Finish the app. Close the gaps that matter in real use, then leave it in mainten
 | [E17 Food data quality](epics/E17-food-data-quality.md) | A macro/kcal check, an audit of existing foods, and Open Food Facts as a fallback that copies into editable personal foods (US-116…US-119). **Done, `v1.8.0`.** |
 | [E18 Functional improvements](epics/E18-functional-improvements.md) | Anthropic removed (code, key, "Uso de IA", cost caps), a stored history of weekly and block reports, a Gemini chat about an exercise, a compact Trainer with a Details screen, a quick-search icon in Diario and Entreno, favourites first in food search, and a meal logged from typed text (US-128, US-129, US-130, US-120…US-122, US-132; US-133 withdrawn). **Done, `v1.9.0`.** |
 | [E19 UI review](epics/E19-ui-review.md) | A way to see UI changes without installing the APK, then a paired review of Diario, Entreno, Trainer and Perfil (US-131, US-123) |
-| [E21 Illness](epics/E21-illness.md) | **Draft, no stories yet.** Mark an illness of a few days (cold, gastroenteritis), pause the block and keep those days out of the weight and calorie data; food guidance only if clinical sources are verified. Runs before E20 closure. |
-| [E20 Closure](epics/E20-closure.md) | Supabase keep-alive, a secured data export, a private repository and a project retro (US-124…US-127) |
+| [E20 Illness](epics/E20-illness.md) | **Draft, no stories yet.** Mark an illness of a few days (cold, gastroenteritis), pause the block and keep those days out of the weight and calorie data; food guidance only if clinical sources are verified. Runs before E21 closure. |
+| [E21 Closure](epics/E21-closure.md) | Supabase keep-alive, a secured data export, a private repository and a project retro (US-124…US-127) |
 
 Intents and stories approved by the user on 2026-11-08; the `epic-planner` breaks them into tasks.
 

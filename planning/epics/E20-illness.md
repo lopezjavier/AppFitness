@@ -1,4 +1,4 @@
-# E21 · Illness
+# E20 · Illness
 
 > **Status: DRAFT (product-owner, 2026-11-15), not agreed, not planned.** No stories and no Gherkin yet: writing them is the first task of the epic, done with the user and `fitness-scientist` (see "First task"). Origin: the user was ill during week 1 of a block (2 of 4 sessions, 1 kg lost) and asked whether to restart the block and the nutrition plan; the answer was no, but the app has no way to say "I am ill".
 
@@ -23,7 +23,7 @@ Layers 1 and 2 first; layer 3 as a later delivery inside the epic.
 
 ## Scope tension to resolve first (needs an ADR)
 - `01-scope.md` lists "medical advice" as out of scope; E13, E14 and E15 list "illness rules" as non-goals; `07` §12.5 says "Illness: no rule (none verified)". ADR-106 relaxed this only for extending the week.
-- E21 reverses that for illness. A new ADR must say exactly how far: the pause and the data exclusion (layers 1-2) are product behaviour; the food guidance (layer 3) is health advice and needs its own decision (Q5).
+- E20 reverses that for illness. A new ADR must say exactly how far: the pause and the data exclusion (layers 1-2) are product behaviour; the food guidance (layer 3) is health advice and needs its own decision (Q5).
 
 ## Relations with what exists (to resolve)
 - **Automatic pause (US-106, E15):** "Semana en pausa" when a week has no sessions. How does a declared illness relate to it (replaces it, same state, or separate)?
@@ -44,7 +44,7 @@ Layers 1 and 2 first; layer 3 as a later delivery inside the epic.
 | Q7 | Return to training: resume at the planned loads, or lighter for the first session after an illness? No rule is verified today (`07` §12.5). | `fitness-scientist` | Resume as planned unless a verified rule says otherwise |
 | Q8 | Does the 14-day return rule (ADR-101) or the "welcome back" notice apply to a short illness? | User | No, only to breaks longer than the rule |
 | Q9 | Where does the user mark an illness (Trainer card, block menu, notification centre) and how is it shown ("Enfermo" chip on the days and on the Trainer)? Copy in Spanish. | User + `ux-reviewer` | Trainer, next to "Tu bloque" |
-| Q10 | Epic number and order: E20 "Closure" is meant to be last (maintenance mode after it). Keep E21 as a number and run it before E20, or renumber? | User | Run E21 before E20 closure; keep the numbers |
+| Q10 | Epic number and order | User | **Resolved (user, 2026-11-15):** Illness is E20 and runs before Closure, renumbered E21 |
 
 ## Decisions to take (ADRs and doc updates)
 - **ADR (new):** illness is in scope, up to where (layers 1-2; layer 3 separately); amends the "medical advice" and "illness rules" exclusions in `01-scope.md`, E13/E14/E15 non-goals and `07` §12.5; builds on ADR-106.
