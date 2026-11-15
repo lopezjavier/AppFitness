@@ -1786,7 +1786,6 @@
     <string name="trainer_row_activity_level">Nivel de actividad</string>
     <string name="trainer_row_total_expenditure">Gasto calórico total</string>
     <string name="trainer_row_weight_trend">Tendencia de peso</string>
-    <string name="trainer_value_supporting">%1$s · %2$s</string>
     <string name="trainer_kcal_value">%1$s kcal</string>
     <string name="trainer_experience_beginner">Principiante</string>
     <string name="trainer_experience_intermediate">Intermedio</string>
@@ -1827,7 +1826,6 @@
     </plurals>
     <string name="trainer_plan_pending_title">Plan pendiente</string>
     <string name="trainer_plan_pending_supporting">Revísalo y acepta o descarta.</string>
-    <string name="trainer_plan_active_line">%1$s kcal al día · %2$s kg/sem</string>
     <string name="calorie_change_title">Ajuste de calorías</string>
     <string name="calorie_change_payload">De %1$s a %2$s kcal al día</string>
     <string name="calorie_proposal_cut_lower">Te proponemos bajar %1$s kcal: en las últimas 2 semanas tu peso ha bajado menos de lo previsto.</string>
@@ -1881,7 +1879,6 @@
     <string name="plan_proposal_progress">Preparando tu plan…</string>
     <string name="plan_proposal_progress_cd">Preparando tu plan</string>
     <string name="plan_proposal_calories">Calorías</string>
-    <string name="plan_proposal_kcal_day">%1$s kcal al día</string>
     <string name="plan_proposal_rate">Ritmo semanal</string>
     <string name="plan_proposal_rate_value">%1$s kg/sem</string>
     <string name="plan_proposal_rate_help_cd">Ayuda: ritmo semanal</string>
@@ -1959,7 +1956,6 @@
 
     <!-- T-176: "Antes de empezar", "Tus datos" and the re-ask on the plan proposal. -->
     <string name="before_start_title">Antes de empezar</string>
-    <string name="before_start_summary_chevron_cd">Ver tus datos</string>
     <string name="before_start_flag">Falta: %1$s</string>
     <string name="before_start_fix_preferences">Preferencias</string>
     <string name="before_start_fix_personal">Datos personales</string>
@@ -2057,8 +2053,6 @@
     <string name="trainer_block_status_upcoming">Aún sin empezar</string>
     <string name="trainer_block_status_ended">Bloque terminado</string>
     <string name="trainer_block_title">Tu bloque</string>
-    <string name="trainer_box_plan_line">%1$s · %2$s kcal al día</string>
-    <string name="trainer_box_empty">Todavía no hay nada que mostrar.</string>
     <string name="trainer_box_empty_block">Aún no tienes un bloque guardado.</string>
     <string name="trainer_plan_empty_title">Aún no tienes un plan</string>
     <string name="trainer_plan_empty_body">Crea tu plan para que el entrenador calcule tus calorías y tus macros.</string>
@@ -2066,10 +2060,6 @@
     <string name="trainer_plan_fact_cardio">Cardio</string>
     <string name="trainer_plan_rate_unit">kg/sem</string>
     <string name="trainer_week_progress_cd">%1$d de %2$d entrenos</string>
-    <plurals name="trainer_block_changes_applied">
-        <item quantity="one">%1$d cambio aplicado</item>
-        <item quantity="other">%1$d cambios aplicados</item>
-    </plurals>
     <string name="trainer_block_remove">Eliminar bloque</string>
     <string name="trainer_block_remove_action">eliminar el bloque</string>
     <string name="trainer_block_remove_title">¿Eliminar el bloque?</string>
@@ -2343,7 +2333,6 @@
     <!-- Weekly summary (T-231, US-98) -->
     <string name="week_summary_title">Resumen semanal</string>
     <string name="week_summary_subtitle">Semana %1$d · %2$s</string>
-    <string name="week_summary_sessions">Esta semana: %1$d de %2$d entrenos.</string>
     <!-- Report figures (T-283, C-102, V-55): headline, spoken value, tile labels. U+00A0 keeps a fact on one line. -->
     <string name="report_sessions_headline">%1$d de %2$d</string>
     <string name="report_sessions_cd">%1$d de %2$d entrenos</string>
@@ -2353,16 +2342,12 @@
     <string name="report_tile_days_unit">de&#160;7</string>
     <string name="report_tile_kcal_label">Calorías medias</string>
     <string name="report_tile_kcal_target">Objetivo %1$s (%2$s)</string>
-    <string name="report_tile_kcal_target_only">Objetivo %1$s</string>
     <string name="report_tile_protein_label">Proteína media</string>
     <string name="report_tile_protein_target">Objetivo %1$s&#160;g</string>
     <string name="report_tile_protein_per_kg">%1$s&#160;g por kg</string>
     <string name="report_tile_weight_label">Peso medio</string>
     <string name="report_tile_weight_slope">%1$s&#160;kg/semana</string>
     <string name="week_summary_groups_header">Series por grupo muscular</string>
-    <string name="week_summary_group_line">%1$s %2$s</string>
-    <string name="week_summary_group_cd_one">%1$s, 1 serie</string>
-    <string name="week_summary_group_cd_other">%1$s, %2$s series</string>
     <string name="week_summary_weight">Peso medio %1$s kg (%2$s kg/semana; objetivo %3$s kg/semana).</string>
     <string name="week_summary_weight_no_target">Peso medio %1$s kg (%2$s kg/semana).</string>
     <string name="week_summary_weight_avg_only">Peso medio %1$s kg.</string>
@@ -2371,10 +2356,7 @@
     <string name="week_summary_nutrition_days">Días completos: %1$d de 7</string>
     <string name="week_summary_nutrition_missing">Faltan registros: solo %1$d de 7 días completos. Con menos de 5 no sacamos conclusiones sobre tus calorías.</string>
     <string name="week_summary_nutrition_kcal">Calorías: %1$s kcal de media (%2$s respecto a tu objetivo de %3$s).</string>
-    <string name="week_summary_nutrition_kcal_avg_only">Calorías: %1$s kcal de media.</string>
     <string name="week_summary_nutrition_protein">Proteína: %1$s g de media (%2$s g por kg; objetivo %3$s g).</string>
-    <string name="week_summary_nutrition_protein_no_kg">Proteína: %1$s g de media (objetivo %2$s g).</string>
-    <string name="week_summary_nutrition_protein_avg_only">Proteína: %1$s g de media.</string>
     <string name="week_summary_nutrition_weigh_ins">Registraste %1$s.</string>
     <string name="week_summary_decision">Calorías: %1$s kcal · %2$s. %3$s</string>
     <plurals name="week_summary_weigh_ins">
@@ -2437,8 +2419,6 @@
     <string name="block_review_card_supporting">Tu bloque ha terminado: revísalo.</string>
     <string name="block_review_empty">Aún no hay revisión del bloque.</string>
     <string name="block_review_error">No se pudo cargar la revisión del bloque. Inténtalo de nuevo.</string>
-    <string name="block_review_sessions">Has hecho %1$d de %2$d entrenos.</string>
-    <string name="block_review_sessions_pct">Has hecho %1$d de %2$d entrenos (%3$s).</string>
     <string name="block_review_sessions_header">Entrenos</string>
     <string name="block_review_lifts_header">Básicos</string>
     <string name="block_review_groups_header">Series por grupo</string>
@@ -2497,17 +2477,11 @@
     <string name="past_report_error">No se pudo cargar. Inténtalo de nuevo.</string>
     <!-- T-283 batch 5: Trainer root rework (C-123..C-130) -->
     <string name="trainer_goal_eyebrow">Objetivo</string>
-    <string name="trainer_block_headline_unit">entrenos esta semana</string>
-    <string name="trainer_block_todo">Por hacer: %1$s</string>
-    <string name="trainer_block_week_complete">Semana completa.</string>
     <string name="trainer_block_cardio_value">%1$s&#160;de&#160;%2$s&#160;min</string>
     <string name="trainer_block_steps_label">Pasos al día</string>
     <string name="trainer_block_steps_value">%1$s&#160;de&#160;%2$s</string>
     <string name="trainer_block_steps_none">Sin datos de pasos</string>
-    <string name="trainer_block_starts">Empieza el %1$s.</string>
     <string name="trainer_block_starts_chip">Empieza el %1$s</string>
-    <string name="trainer_block_session_cd_done">%1$s, listo</string>
-    <string name="trainer_block_session_cd_pending">%1$s, pendiente</string>
     <string name="trainer_block_weeks_error">No se pudo cargar las semanas.</string>
     <!-- T-283 root cards with their own menu, week picker and coach changes (R-105, 2026-11-15) -->
     <string name="trainer_plan_menu_cd">Más acciones de Tu plan</string>

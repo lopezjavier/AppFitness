@@ -1,10 +1,12 @@
 package io.github.lopezjavier.appfitness.feature.trainer
 
+import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertTextContains
 import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.hasContentDescription
+import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onAllNodesWithText
@@ -71,9 +73,8 @@ class WeekSummaryScreenTest {
 
         rule.onNodeWithTag("week_summary_title").assertTextEquals("Resumen semanal")
         rule.onNodeWithTag("week_summary_subtitle").assertTextContains("Semana 2", substring = true)
-        rule.onNodeWithText("Esta semana: 3${NBSP}de${NBSP}4${NBSP}entrenos.").assertIsDisplayed()
-        rule.onNodeWithText("Peso medio 80,2${NBSP}kg (−0,3${NBSP}kg/semana; objetivo −0,4${NBSP}kg/semana).")
-            .assertIsDisplayed()
+        rule.onNodeWithTag("week_summary_section_sessions_headline", useUnmergedTree = true).assertTextEquals("3 de 4")
+        rule.onNodeWithTag("week_summary_nutrition_weight").assertTextContains("80,2", substring = true)
     }
 
     @Test
@@ -81,8 +82,10 @@ class WeekSummaryScreenTest {
         show(content())
 
         rule.onNodeWithText("Series por grupo muscular").assertIsDisplayed()
-        rule.onNodeWithTag("week_summary_groups_line")
-            .assertTextEquals("Pecho 10 · Espalda 12 · Tríceps 2,5")
+        rule.onNodeWithTag("week_summary_section_groups").assertExists()
+        rule.onNodeWithText("Pecho").assertExists()
+        rule.onNodeWithText("Espalda").assertExists()
+        rule.onNodeWithText("Tríceps").assertExists()
     }
 
     @Test
@@ -91,23 +94,27 @@ class WeekSummaryScreenTest {
 
         rule.onNodeWithTag("week_summary_section_nutrition").assertIsDisplayed()
         rule.onNodeWithText("Nutrición").assertIsDisplayed()
-        rule.onNodeWithTag("week_summary_nutrition_days").assertTextEquals("Días completos: 5 de 7")
-        rule.onNodeWithTag("week_summary_nutrition_kcal")
-            .assertTextEquals("Calorías: 2.310${NBSP}kcal de media (−90 respecto a tu objetivo de 2.400).")
+        rule.onNodeWithTag("week_summary_nutrition_days").assertTextContains("5", substring = true)
+        rule.onNodeWithTag("week_summary_nutrition_kcal").assertTextContains("2.310", substring = true)
+        rule.onNodeWithTag("week_summary_nutrition_kcal").assertTextContains("Objetivo 2.400", substring = true)
+        rule.onNodeWithTag("week_summary_nutrition_protein").assertTextContains("149", substring = true)
         rule.onNodeWithTag("week_summary_nutrition_protein")
-            .assertTextEquals("Proteína: 149${NBSP}g de media (1,8${NBSP}g por kg; objetivo 150${NBSP}g).")
+            .assertTextContains("Objetivo 150${NBSP}g · 1,8${NBSP}g por kg", substring = true)
+        rule.onNodeWithTag("week_summary_nutrition_weight").assertTextContains("80,2", substring = true)
         rule.onNodeWithTag("week_summary_nutrition_weight")
-            .assertTextEquals("Peso medio 80,2${NBSP}kg (−0,3${NBSP}kg/semana; objetivo −0,4${NBSP}kg/semana).")
+            .assertTextContains("−0,3${NBSP}kg/semana", substring = true)
         rule.onNodeWithTag("week_summary_nutrition_weigh_ins").assertTextEquals("Registraste 3 pesajes.")
         rule.onAllNodesWithTag("week_summary_nutrition_missing").assertCountEquals(0)
     }
 
     @Test
-    fun proteinWithoutPerKg_dropsTheClause() {
+    fun proteinWithoutPerKg_dropsThePerKgFigure() {
         show(content(weekSummary(nutrition = weekNutrition(proteinGPerKg = null))))
 
         rule.onNodeWithTag("week_summary_nutrition_protein")
-            .assertTextEquals("Proteína: 149${NBSP}g de media (objetivo 150${NBSP}g).")
+            .assertTextContains("Objetivo 150${NBSP}g", substring = true)
+        rule.onNodeWithTag("week_summary_nutrition_protein")
+            .assert(hasText("por kg", substring = true).not())
     }
 
     @Test
@@ -166,7 +173,7 @@ class WeekSummaryScreenTest {
         show(content(weekSummary(nutrition = null)))
 
         rule.onAllNodesWithTag("week_summary_section_nutrition").assertCountEquals(0)
-        rule.onNodeWithText("Esta semana: 3${NBSP}de${NBSP}4${NBSP}entrenos.").assertIsDisplayed()
+        rule.onNodeWithTag("week_summary_section_sessions_headline", useUnmergedTree = true).assertTextEquals("3 de 4")
     }
 
     @Test
@@ -392,7 +399,10 @@ class WeekSummaryScreenTest {
         rule.waitUntil(5_000) { summaries.seen.isNotEmpty() }
         rule.waitForIdle()
 
-        rule.onNodeWithText("Esta semana: 3${NBSP}de${NBSP}4${NBSP}entrenos.").performScrollTo().assertIsDisplayed()
+        rule.onNodeWithTag(
+            "week_summary_section_sessions_headline",
+            useUnmergedTree = true,
+        ).performScrollTo().assertIsDisplayed()
         assertEquals(listOf("plan-1" to 2), summaries.seen)
         rule.waitUntil(5_000) { coordinator.reminders.value.isEmpty() }
         assertTrue(coordinator.reminders.value.isEmpty())

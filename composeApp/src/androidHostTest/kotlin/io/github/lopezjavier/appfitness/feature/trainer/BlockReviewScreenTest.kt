@@ -94,7 +94,9 @@ class BlockReviewScreenTest {
         )
 
         rule.onNodeWithTag("block_review_title").assertTextEquals("Revisión del bloque")
-        rule.onNodeWithText("Has hecho 14 de 16 entrenos (88 %).").assertIsDisplayed()
+        rule.onNodeWithTag("block_review_section_sessions_headline", useUnmergedTree = true)
+            .assertTextEquals("14 de 16")
+        rule.onNodeWithTag("block_review_section_sessions_percent", useUnmergedTree = true).assertTextEquals("88 %")
         val order = listOf("sessions", "lifts", "groups", "weight", "outcomes", "waist")
             .map { top("block_review_section_$it") }
         assertEquals(order.sorted(), order)
