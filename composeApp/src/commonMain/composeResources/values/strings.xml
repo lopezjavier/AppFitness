@@ -2539,6 +2539,10 @@
     <string name="trainer_block_steps_label">Pasos al día</string>
     <string name="trainer_block_steps_value">%1$s&#160;de&#160;%2$s</string>
     <string name="trainer_block_steps_none">Sin datos de pasos</string>
+    <string name="trainer_block_state_behind">Por detrás</string>
+    <string name="trainer_block_state_on_track">En camino</string>
+    <string name="trainer_block_state_done">Cumplido</string>
+    <string name="trainer_block_state_over">Superado</string>
     <string name="trainer_block_starts">Empieza el %1$s.</string>
     <string name="trainer_block_starts_chip">Empieza el %1$s</string>
     <string name="trainer_block_session_cd_done">%1$s, listo</string>

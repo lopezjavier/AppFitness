@@ -9,6 +9,8 @@ import io.github.lopezjavier.appfitness.feature.trainer.TrainerBoxScreen
 import io.github.lopezjavier.appfitness.feature.trainer.TrainerScreen
 import io.github.lopezjavier.appfitness.feature.trainer.TrainerUiState
 import kotlinx.coroutines.flow.flowOf
+import kotlinx.datetime.DatePeriod
+import kotlinx.datetime.plus
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -45,9 +47,10 @@ private fun trainerHome(): List<GalleryEntry> {
         home("block review due", TrainerFixtures.contentWithBlock(blockReviewDue = true)),
         home("calorie proposal", TrainerFixtures.contentWithBlock(proposal = TrainerFixtures.calorieProposal)),
         home(
-            "week bars, empty",
+            "week bars, empty (Monday)",
             TrainerFixtures.contentWithBlock(
                 weeks = TrainerFixtures.weeks(completed = 0, goals = TrainerFixtures.WeekGoalsFixture(0, null)),
+                today = TrainerFixtures.planStart.plus(DatePeriod(days = 7)),
             ),
         ),
         home(

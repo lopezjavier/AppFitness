@@ -258,6 +258,7 @@ private fun LazyGridScope.blockBoxes(
                 appliedChangesCount = state.appliedCoachChanges.size,
                 actions = BlockCardActions(onOpen = actions.onOpenBlockScreen, onEvent = onEvent),
                 modifier = cardModifier,
+                today = state.today,
             )
         }
     }

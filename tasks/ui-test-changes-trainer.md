@@ -186,3 +186,12 @@ Tests/goldens that will fail or need an update:
 - "Tu bloque" root card is back to C-135: `trainer_box_block_headline`, `trainer_box_block_percent`, the session cards, `trainer_box_block_cardio` / `trainer_box_block_steps` bars ("81 de 150 min", "1.492 de 7.000", "Sin datos de pasos"); `trainer_box_block_goals*` tags are gone. `BlockSummaryBox` lost its `activity` and `today` parameters; `TrainerUiState.Content.today` is removed.
 - Strings removed: `trainer_week_goal*`, `trainer_goal_state_*`, `catalog_section_goal_ring`, `trainer_plan_tile_of_min`; restored: `trainer_block_cardio_value`, `trainer_block_steps_value`, `trainer_block_steps_none`. "Tu plan" keeps only the Calorías tile (no Cardio/Pasos tiles).
 - Gallery: entries renamed "week bars, empty / behind / done / over target" (+ large font); `contentWithBlock` has no `today`.
+
+## Block R redo: "Tu bloque" bars with a state (enhancement commit, droppable)
+
+Tests/goldens that will fail or need an update:
+- `TrainerWeekGoals.kt` is back as pure logic (`WeekGoalState`, `elapsedShare`, `dueShare`, `cardioGoalState(done, target, due, planned)`, `averageGoalState(avg, target)`): unit cases from 07 §3 (Thursday, 4 planned: due 1/4, 37/150 min Behind, 38 OnTrack; 0 planned: straight line minus 10 %; 165/150 Over, 150 Done; steps 6.300/7.000 OnTrack, 6.299 Behind, 7.700 Over; null avg Idle).
+- "Tu bloque" bars: new tags `trainer_box_block_cardio_bar`, `trainer_box_block_steps_bar`, `trainer_box_block_goal_state`; the bar `stateDescription` is now "Cardio, 81 de 150 min, Por detrás" (comma-joined, state word last; no word when Idle) instead of "Cardio 81 de 150 min". New strings `trainer_block_state_behind/on_track/done/over`.
+- Percent chip `trainer_box_block_percent` is `StatusTone.Good` (with the favourable glyph) at completed >= planned.
+- `AppLinearProgress` has `markerFraction`; with it the bar is 6 dp taller (catalogue/goldens of callers without it are unchanged).
+- `BlockSummaryBox(today)` and `TrainerUiState.Content.today` are back (the ViewModel sets the local date); fixtures `contentWithBlock(today = goalsToday = 29 oct 2026)`; gallery entry "week bars, empty (Monday)" uses planStart + 7 days (Monday 26 oct).

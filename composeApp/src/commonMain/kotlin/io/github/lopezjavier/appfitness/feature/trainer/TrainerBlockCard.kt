@@ -15,6 +15,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.contentDescription
@@ -37,6 +38,10 @@ import io.github.lopezjavier.appfitness.composeapp.resources.trainer_block_remov
 import io.github.lopezjavier.appfitness.composeapp.resources.trainer_block_session_cd_done
 import io.github.lopezjavier.appfitness.composeapp.resources.trainer_block_session_cd_pending
 import io.github.lopezjavier.appfitness.composeapp.resources.trainer_block_starts_chip
+import io.github.lopezjavier.appfitness.composeapp.resources.trainer_block_state_behind
+import io.github.lopezjavier.appfitness.composeapp.resources.trainer_block_state_done
+import io.github.lopezjavier.appfitness.composeapp.resources.trainer_block_state_on_track
+import io.github.lopezjavier.appfitness.composeapp.resources.trainer_block_state_over
 import io.github.lopezjavier.appfitness.composeapp.resources.trainer_block_status_ended
 import io.github.lopezjavier.appfitness.composeapp.resources.trainer_block_status_week
 import io.github.lopezjavier.appfitness.composeapp.resources.trainer_block_steps_label
@@ -61,11 +66,13 @@ import io.github.lopezjavier.appfitness.designsystem.OfflineHint
 import io.github.lopezjavier.appfitness.designsystem.SegmentedProgress
 import io.github.lopezjavier.appfitness.designsystem.Spacing
 import io.github.lopezjavier.appfitness.designsystem.StatusChip
+import io.github.lopezjavier.appfitness.designsystem.StatusChipDefaults
 import io.github.lopezjavier.appfitness.designsystem.StatusTone
 import io.github.lopezjavier.appfitness.designsystem.SummaryCard
 import io.github.lopezjavier.appfitness.domain.model.PlanWeek
 import io.github.lopezjavier.appfitness.domain.model.PlanWeekSession
 import io.github.lopezjavier.appfitness.domain.model.WeekPhase
+import kotlinx.datetime.LocalDate
 import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.resources.pluralStringResource
 import org.jetbrains.compose.resources.stringResource
@@ -76,6 +83,9 @@ private const val STACK_FONT_SCALE = 1.2f
 private const val SEGMENTS_STAGGER = 2
 private const val CARDIO_STAGGER = 3
 private const val STEPS_STAGGER = 4
+
+/** Past the target the bar's scale grows to the done figure, never beyond twice the target (the marker stays clear). */
+private const val MAX_OVER_SCALE = 2f
 private val BarHeight = Spacing.sm
 
 /** What the "Tu bloque" card of the root needs: where a tap goes and the retry event of its weeks note. */
@@ -86,7 +96,7 @@ internal class BlockCardActions(val onOpen: () -> Unit, val onEvent: (TrainerEve
  * entrenos esta semana" with the percent chip, the sessions as small cards and the cardio and steps bars; every action
  * (extend the week, "Mi entrenamiento", "Eliminar bloque") lives in the "Tu bloque" screen it opens. [weeks] holds the
  * block's weeks (empty when their read failed: the card then shows a retry note). Without a saved block it only shows
- * while applied changes exist (the proposal has its own card).
+ * while applied changes exist (the proposal has its own card). [today] places the cardio pace marker (05 §6.0f).
  */
 @Composable
 internal fun BlockSummaryBox(
@@ -95,6 +105,7 @@ internal fun BlockSummaryBox(
     appliedChangesCount: Int,
     actions: BlockCardActions,
     modifier: Modifier = Modifier,
+    today: LocalDate? = null,
 ) {
     if (status !is BlockStatus.Saved) {
         // Applied coach changes live on "Tu bloque": without a saved block the box still reaches them (V-50).
@@ -122,7 +133,7 @@ internal fun BlockSummaryBox(
         testTag = "trainer_box_block",
         modifier = modifier,
         status = if (weeks.isEmpty()) null else ({ MainChip(status) }),
-        content = { BlockBody(status, weeks, shown, current) },
+        content = { BlockBody(status, weeks, shown, current, today) },
         footer = if (weeks.isEmpty()) ({ BlockWeeksError { actions.onEvent(TrainerEvent.Refresh) } }) else null,
     )
 }
@@ -142,7 +153,13 @@ private fun MainChip(status: BlockStatus.Saved) {
 
 @Composable
 @OptIn(ExperimentalLayoutApi::class)
-private fun BlockBody(status: BlockStatus.Saved, weeks: List<PlanWeek>, shown: PlanWeek?, current: PlanWeek?) {
+private fun BlockBody(
+    status: BlockStatus.Saved,
+    weeks: List<PlanWeek>,
+    shown: PlanWeek?,
+    current: PlanWeek?,
+    today: LocalDate?,
+) {
     // The weeks could not be read: the footer shows the retry note instead.
     if (weeks.isEmpty()) return
     Column(Modifier.fillMaxWidth().padding(top = Spacing.xs), verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
@@ -201,11 +218,14 @@ private fun BlockBody(status: BlockStatus.Saved, weeks: List<PlanWeek>, shown: P
             SessionsHeadline(week)
             SessionCards(week)
         }
-        shown?.let { ActivityBars(it) }
+        shown?.let { ActivityBars(it, today) }
     }
 }
 
-/** "2 de 4" with " entrenos esta semana" and the percent chip at the end. */
+/**
+ * "2 de 4" with " entrenos esta semana" and the percent chip at the end: Info while the week is open, Good (with its
+ * check glyph) once every planned session is done; sessions never read "Superado" (07 §3 (c)), the chip caps at Good.
+ */
 @Composable
 private fun SessionsHeadline(week: PlanWeek) {
     val percent = (week.completed * PERCENT / week.planned).roundToInt()
@@ -226,7 +246,7 @@ private fun SessionsHeadline(week: PlanWeek) {
         }
         StatusChip(
             text = NonBreaking.join(percent.toString(), "%"),
-            tone = StatusTone.Info,
+            tone = if (week.completed >= week.planned) StatusTone.Good else StatusTone.Info,
             modifier = Modifier.testTag("trainer_box_block_percent"),
         )
     }
@@ -293,67 +313,149 @@ private fun SessionCard(week: PlanWeek, session: PlanWeekSession, modifier: Modi
     }
 }
 
-/** "Cardio" and "Pasos al día" with an 8 dp bar each; a row without a target is omitted, steps without data read muted. */
+/**
+ * "Cardio" and "Pasos al día" with an 8 dp bar each (05 §6.0f): the bar colour, a glyph and the state word say where
+ * the goal stands (07 §3 "Weekly goal rings: over target and pace"); cardio carries the "where you should be by now"
+ * marker while open, and past the target either bar fills completely and shows the target as a marker. A row without
+ * a target is omitted; steps without data read muted.
+ */
 @Composable
-private fun ActivityBars(week: PlanWeek) {
-    week.cardioMinTarget?.takeIf { it > 0 }?.let { target ->
-        ActivityBar(
-            label = stringResource(Res.string.trainer_plan_fact_cardio),
-            value = stringResource(
-                Res.string.trainer_block_cardio_value,
-                AppNumberFormat.integer(week.cardioMinDone),
-                AppNumberFormat.integer(target),
-            ),
-            fraction = week.cardioMinDone.toFloat() / target,
-            stagger = CARDIO_STAGGER,
-            tag = "trainer_box_block_cardio",
-        )
-    }
-    week.stepsTarget?.takeIf { it > 0 }?.let { target ->
-        val avg = week.stepsAvg
-        ActivityBar(
-            label = stringResource(Res.string.trainer_block_steps_label),
-            value = if (avg == null) {
-                stringResource(Res.string.trainer_block_steps_none)
-            } else {
-                stringResource(
-                    Res.string.trainer_block_steps_value,
-                    AppNumberFormat.integer(avg),
+private fun ActivityBars(week: PlanWeek, today: LocalDate?) {
+    val cardioTarget = week.cardioMinTarget?.takeIf { it > 0 }
+    val stepsTarget = week.stepsTarget?.takeIf { it > 0 }
+    if (cardioTarget == null && stepsTarget == null) return
+    // More air above and between the bars than in the sessions grid: the two goals read as their own group.
+    Column(Modifier.fillMaxWidth().padding(top = Spacing.xs), verticalArrangement = Arrangement.spacedBy(Spacing.md)) {
+        cardioTarget?.let { target ->
+            val due = dueShare(elapsedShare(week, today), week.planned)
+            val state = cardioGoalState(week.cardioMinDone, target, due, week.planned)
+            ActivityBar(
+                label = stringResource(Res.string.trainer_plan_fact_cardio),
+                value = stringResource(
+                    Res.string.trainer_block_cardio_value,
+                    AppNumberFormat.integer(week.cardioMinDone),
                     AppNumberFormat.integer(target),
-                )
-            },
-            fraction = avg?.let { it.toFloat() / target },
-            stagger = STEPS_STAGGER,
-            tag = "trainer_box_block_steps",
-        )
+                ),
+                ratio = week.cardioMinDone.toFloat() / target,
+                state = state,
+                pace = due?.takeIf { state == WeekGoalState.Behind || state == WeekGoalState.OnTrack },
+                stagger = CARDIO_STAGGER,
+                tag = "trainer_box_block_cardio",
+            )
+        }
+        stepsTarget?.let { target ->
+            val avg = week.stepsAvg
+            ActivityBar(
+                label = stringResource(Res.string.trainer_block_steps_label),
+                value = if (avg == null) {
+                    stringResource(Res.string.trainer_block_steps_none)
+                } else {
+                    stringResource(
+                        Res.string.trainer_block_steps_value,
+                        AppNumberFormat.integer(avg),
+                        AppNumberFormat.integer(target),
+                    )
+                },
+                ratio = avg?.let { it.toFloat() / target },
+                state = averageGoalState(avg, target),
+                // An average has no pace to keep: no marker while open.
+                pace = null,
+                stagger = STEPS_STAGGER,
+                tag = "trainer_box_block_steps",
+            )
+        }
     }
 }
 
+private fun WeekGoalState.tone(): StatusTone? = when (this) {
+    WeekGoalState.Behind -> StatusTone.Caution
+    WeekGoalState.OnTrack -> StatusTone.Info
+    WeekGoalState.Done, WeekGoalState.Over -> StatusTone.Good
+    WeekGoalState.Idle -> null
+}
+
 @Composable
-private fun ActivityBar(label: String, value: String, fraction: Float?, stagger: Int, tag: String) {
+private fun WeekGoalState.word(): String? = when (this) {
+    WeekGoalState.Behind -> stringResource(Res.string.trainer_block_state_behind)
+    WeekGoalState.OnTrack -> stringResource(Res.string.trainer_block_state_on_track)
+    WeekGoalState.Done -> stringResource(Res.string.trainer_block_state_done)
+    WeekGoalState.Over -> stringResource(Res.string.trainer_block_state_over)
+    WeekGoalState.Idle -> null
+}
+
+@Suppress("LongParameterList") // One bar row: each figure is its own slot.
+@Composable
+@OptIn(ExperimentalLayoutApi::class)
+private fun ActivityBar(
+    label: String,
+    value: String,
+    ratio: Float?,
+    state: WeekGoalState,
+    pace: Float?,
+    stagger: Int,
+    tag: String,
+) {
+    val tone = state.tone()
+    val color = tone?.let { StatusChipDefaults.color(it, AppTheme.colors) } ?: AppTheme.colors.athleticCyan
+    val word = state.word()
     Column(Modifier.fillMaxWidth().testTag(tag), verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
-        Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-            Text(
-                text = label,
-                style = AppTheme.typography.bodyMedium,
-                color = AppTheme.colors.textSecondary,
-                modifier = Modifier.weight(1f),
-            )
+        Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm), verticalAlignment = Alignment.CenterVertically) {
+            FlowRow(
+                Modifier.weight(1f),
+                horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+                verticalArrangement = Arrangement.spacedBy(Spacing.xs),
+            ) {
+                Text(
+                    text = label,
+                    style = AppTheme.typography.bodyMedium,
+                    color = AppTheme.colors.textSecondary,
+                    modifier = Modifier.align(Alignment.CenterVertically),
+                )
+                if (word != null && tone != null) {
+                    GoalStateWord(word, tone, color, Modifier.align(Alignment.CenterVertically))
+                }
+            }
             Text(
                 text = value,
                 style = AppTheme.typography.bodyMedium,
-                fontWeight = if (fraction == null) FontWeight.Normal else FontWeight.W600,
-                color = if (fraction == null) AppTheme.colors.textTertiary else AppTheme.colors.textPrimary,
+                fontWeight = if (ratio == null) FontWeight.Normal else FontWeight.W600,
+                color = if (ratio == null) AppTheme.colors.textTertiary else AppTheme.colors.textPrimary,
             )
         }
-        if (fraction != null) {
+        if (ratio != null) {
+            // Past the target the scale stretches to the done figure: the fill is full and the marker is the target.
+            val over = ratio > 1f
+            val scale = ratio.coerceIn(1f, MAX_OVER_SCALE)
             AppLinearProgress(
-                fraction = fraction,
-                stateDescription = "$label $value",
+                fraction = if (over) 1f else ratio,
+                stateDescription = listOfNotNull(label, value, word).joinToString(", "),
+                fillColor = color,
                 barHeight = BarHeight,
                 staggerIndex = stagger,
+                markerFraction = if (over) 1f / scale else pace?.takeIf { it > 0f && it < 1f },
+                modifier = Modifier.testTag("${tag}_bar"),
             )
         }
+    }
+}
+
+/** The state in words in the bar's colour, after the glyph of its `StatusChip` tone when it has one (R-98). */
+@Composable
+private fun GoalStateWord(word: String, tone: StatusTone, color: Color, modifier: Modifier) {
+    Row(
+        modifier.testTag("trainer_box_block_goal_state"),
+        horizontalArrangement = Arrangement.spacedBy(Spacing.xs),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        StatusChipDefaults.icon(tone)?.let {
+            Icon(
+                painter = painterResource(it),
+                contentDescription = null,
+                tint = color,
+                modifier = Modifier.size(StatusChipDefaults.IconSize),
+            )
+        }
+        Text(text = word, style = AppTheme.typography.bodySmall, color = color)
     }
 }
 
