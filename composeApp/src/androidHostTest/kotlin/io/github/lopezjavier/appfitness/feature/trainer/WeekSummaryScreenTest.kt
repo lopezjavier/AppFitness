@@ -220,8 +220,14 @@ class WeekSummaryScreenTest {
     private fun assertStall(cause: String, action: String) {
         rule.onNodeWithTag("week_summary_section_stalls").performScrollTo().assertIsDisplayed()
         rule.onNodeWithTag("week_summary_stall_id-bench_name", useUnmergedTree = true).assertTextEquals("Press banca")
-        rule.onNodeWithTag("week_summary_stall_id-bench_cause", useUnmergedTree = true).assertTextEquals(cause)
-        rule.onNodeWithTag("week_summary_stall_id-bench_action", useUnmergedTree = true).assertTextEquals(action)
+        rule.onNodeWithTag(
+            "week_summary_stall_id-bench_cause",
+            useUnmergedTree = true,
+        ).assertTextEqualsIgnoringNbsp(cause)
+        rule.onNodeWithTag(
+            "week_summary_stall_id-bench_action",
+            useUnmergedTree = true,
+        ).assertTextEqualsIgnoringNbsp(action)
     }
 
     @Test

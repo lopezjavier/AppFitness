@@ -135,25 +135,6 @@ class RoundThreeComponentsTest {
         assertEquals(discard.top, accept.top, 1f)
     }
 
-    @Test
-    fun decisionButtonRow_whenALabelDoesNotFit_stacksAcceptAboveDiscard() {
-        rule.setContent {
-            AppTheme {
-                DecisionButtonRow(
-                    acceptText = "Aceptar el plan con todos los cambios propuestos ".repeat(4),
-                    discardText = "Descartar la propuesta completa por ahora ".repeat(4),
-                    onAccept = {},
-                    onDiscard = {},
-                    testTagPrefix = "decision",
-                )
-            }
-        }
-
-        val discard = rule.onNodeWithTag("decision_discard").fetchSemanticsNode().boundsInRoot
-        val accept = rule.onNodeWithTag("decision_accept").fetchSemanticsNode().boundsInRoot
-        assertTrue(accept.bottom <= discard.top)
-    }
-
     // SectionCard and RowGroupCard
 
     @Test

@@ -4,6 +4,7 @@ import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.assertTextContains
+import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithTag
@@ -66,7 +67,7 @@ class FolderBlockScreenTest {
         fixture.folder()
         show()
 
-        assertMissing("folder_block_intro")
+        rule.onNodeWithTag("folder_block_intro").assertTextEquals("Tu carpeta original no cambia.")
         assertMissing("folder_block_save_helper")
         rule.onNodeWithTag("folder_block_score").assertTextContains("100", substring = true)
         rule.onNodeWithTag("folder_block_save").assertIsEnabled()
@@ -93,10 +94,9 @@ class FolderBlockScreenTest {
         fixture.folder(days = 3)
         show()
 
-        rule.onNodeWithTag("folder_block_refused_note").assertTextContains(
-            "Tu carpeta tiene 2 rutinas de fuerza y entrenas 3 días a la semana.",
-            substring = true,
-        )
+        rule.onNodeWithTag(
+            "folder_block_refused_note",
+        ).assertTextContainsIgnoringNbsp("Tu carpeta tiene 2 rutinas de fuerza y entrenas 3 días a la semana.")
         rule.onNodeWithTag("folder_block_save").assertIsNotEnabled()
         assertMissing("folder_block_routine_0")
     }
@@ -106,9 +106,10 @@ class FolderBlockScreenTest {
         fixture.folder(days = 2, routineCount = 1)
         show()
 
-        rule.onNodeWithTag("folder_block_refused_note").assertTextContains(
+        rule.onNodeWithTag(
+            "folder_block_refused_note",
+        ).assertTextContainsIgnoringNbsp(
             "Tu carpeta tiene 1 rutina de fuerza y entrenas 2 días a la semana. Añade otra rutina",
-            substring = true,
         )
         rule.onNodeWithTag("folder_block_save").assertIsNotEnabled()
     }
@@ -118,8 +119,7 @@ class FolderBlockScreenTest {
         fixture.folder(skip = MuscleGroup.Hamstrings)
         show()
 
-        rule.onNodeWithTag("folder_block_intro").assertTextContains("Tu carpeta está al ", substring = true)
-        rule.onNodeWithTag("folder_block_intro").assertTextContains(" %. Complétala para guardarla", substring = true)
+        rule.onNodeWithTag("folder_block_intro").assertTextEquals("Tu carpeta original no cambia.")
         rule.onNodeWithTag("folder_block_save").assertIsNotEnabled()
         rule.onNodeWithTag("folder_block_save_helper").assertTextContains("al 100 %", substring = true)
         rule.onNodeWithTag("folder_block_missing_row_hamstrings").assertExists()
@@ -129,7 +129,7 @@ class FolderBlockScreenTest {
         rule.onNodeWithTag("folder_block_save").assertIsNotEnabled()
         addHamstringsTo(1)
 
-        assertMissing("folder_block_intro")
+        rule.onNodeWithTag("folder_block_intro").assertTextEquals("Tu carpeta original no cambia.")
         rule.onNodeWithTag("folder_block_save").assertIsEnabled()
         tap("folder_block_save")
         assertEquals(1, fixture.blocks.builtSaves.size)
@@ -269,6 +269,6 @@ class FolderBlockScreenTest {
         show()
 
         rule.onNodeWithTag("folder_block_empty").assertExists()
-        rule.onNodeWithTag("folder_block_save").assertIsNotEnabled()
+        assertMissing("folder_block_save")
     }
 }

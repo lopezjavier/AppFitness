@@ -92,7 +92,7 @@ class FolderReviewResultRestorationTest {
 
         rule.onNodeWithTag("folder_review_result_row_chest_help").performClick()
         rule.waitForIdle()
-        rule.onNodeWithText("Más de 20 series a la semana", substring = true).assertExists()
+        rule.onNodeWithText("Más de 20${NBSP}series a la semana", substring = true).assertExists()
         rule.onNodeWithTag("folder_review_result_row_chest").assertExists()
     }
 }

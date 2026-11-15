@@ -133,9 +133,11 @@ class TrainerDiscomfortScreenTest {
             listOf(followUp(offerSwap = false, showNote = true, noteReason = DiscomfortNoteReason.Days14))
         showRoute()
 
-        rule.onNodeWithText(
-            "Esta molestia fuerte en Press banca sigue ahí desde hace 14 días. Seguimos entrenando el resto y " +
-                "no subimos el peso en Press banca. Puede merecer la pena que te lo revise un profesional.",
+        rule.onNode(
+            hasTextIgnoringNbsp(
+                "Esta molestia fuerte en Press banca sigue ahí desde hace 14 días. Seguimos entrenando el resto y " +
+                    "no subimos el peso en Press banca. Puede merecer la pena que te lo revise un profesional.",
+            ),
         ).assertExists()
         tap("trainer_discomfort_note_close")
 

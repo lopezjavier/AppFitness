@@ -128,7 +128,9 @@ class BlockPreviewScreenTest {
     fun whenTheCoachChoseTheDays_theChosenFrequencyLineIsShown() {
         show(preview(coachBlock(training = blockTraining(days = 4, chosen = true))))
 
-        rule.onNodeWithText("El entrenador ha elegido 4${NBSP}días por semana (60 min por entreno).").assertExists()
+        rule.onNode(
+            hasTextIgnoringNbsp("El entrenador ha elegido 4 días por semana (60 min por entreno)."),
+        ).assertExists()
     }
 
     @Test

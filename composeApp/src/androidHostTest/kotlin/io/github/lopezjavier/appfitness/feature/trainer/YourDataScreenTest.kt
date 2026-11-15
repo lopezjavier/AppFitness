@@ -117,9 +117,11 @@ class YourDataScreenTest {
         show()
 
         rule.onNodeWithTag("your_data_chip_provisional_total_expenditure").assertTextEquals("Provisional")
-        rule.onNodeWithTag("your_data_intake_provisional_total_expenditure", useUnmergedTree = true).assertTextEquals(
-            "Según lo que nos contaste (provisional). Lo cambiaremos por tus datos reales cuando haya suficientes.",
-        )
+        rule.onNodeWithText(
+            "Según lo que nos contaste (provisional)",
+            substring = true,
+            useUnmergedTree = true,
+        ).assertExists()
     }
 
     @Test

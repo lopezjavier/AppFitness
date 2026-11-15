@@ -1,6 +1,8 @@
 package io.github.lopezjavier.appfitness.feature.trainer
 
 import androidx.compose.ui.semantics.SemanticsProperties
+import androidx.compose.ui.semantics.getOrNull
+import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.SemanticsNodeInteraction
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
@@ -27,3 +29,10 @@ internal fun SemanticsNodeInteraction.assertTextContainsIgnoringNbsp(part: Strin
     assertTrue(actual.contains(part.plainSpaces()), "'$actual' does not contain '$part'")
     return this
 }
+
+/** Matches a node whose text contains [part], U+00A0 and a plain space being the same character. */
+internal fun hasTextIgnoringNbsp(part: String): SemanticsMatcher =
+    SemanticsMatcher("text contains '$part' ignoring U+00A0") { node ->
+        node.config.getOrNull(SemanticsProperties.Text)
+            ?.any { it.text.plainSpaces().contains(part.plainSpaces()) } == true
+    }

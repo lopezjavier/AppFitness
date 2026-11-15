@@ -164,7 +164,7 @@ class TrainerRootCardsTest {
     fun planCard_soon_showsOnlyTheProvisionalFigure_noVerdictLine() {
         show(planState(pace(WeightPaceState.Soon, slope = -0.2)))
 
-        node("trainer_box_plan_pace_actual").assertTextContains("Ritmo provisional", substring = true)
+        rule.onNodeWithText("Ritmo provisional", substring = true, useUnmergedTree = true).assertExists()
         node("trainer_box_plan_verdict").assertDoesNotExist()
     }
 

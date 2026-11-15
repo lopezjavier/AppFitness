@@ -52,8 +52,8 @@ class WeekSummaryDiagnosisTest {
 
     private fun assertLines(cause: String, action: String) {
         rule.onNodeWithTag("week_summary_section_diagnosis").performScrollTo().assertIsDisplayed()
-        rule.onNodeWithTag("week_summary_diagnosis_cause").assertTextEquals(cause)
-        rule.onNodeWithTag("week_summary_diagnosis_action").assertTextEquals(action)
+        rule.onNodeWithTag("week_summary_diagnosis_cause").assertTextEqualsIgnoringNbsp(cause)
+        rule.onNodeWithTag("week_summary_diagnosis_action").assertTextEqualsIgnoringNbsp(action)
     }
 
     @Test
@@ -80,10 +80,7 @@ class WeekSummaryDiagnosisTest {
         show(state(NutritionDiagnosis.Calories(2350, 2000, 350, above = true, weekend = true)))
 
         rule.onNodeWithTag("week_summary_diagnosis_cause").performScrollTo()
-            .assertTextContains(
-                "Registraste de media 2.350 kcal al día, 350 kcal más que tu objetivo.",
-                substring = true,
-            )
+            .assertTextContainsIgnoringNbsp("Registraste de media 2.350 kcal al día, 350 kcal más que tu objetivo.")
             .assertTextContainsIgnoringNbsp("La mayor parte llega el fin de semana.")
         rule.onNodeWithTag("week_summary_diagnosis_action")
             .assertTextEqualsIgnoringNbsp("Intenta que el fin de semana se parezca al resto de la semana.")

@@ -53,9 +53,9 @@ class BlockBuilderScreenTest {
         show(Data.builderUi())
 
         rule.onNodeWithTag("block_builder_section_0_chest").assertTextContains("Pecho")
-        rule.onNodeWithTag("block_builder_section_spec_0_chest").assertTextContains("series · ", substring = true)
+        rule.onNodeWithTag("block_builder_section_spec_0_chest").assertTextContainsIgnoringNbsp("series · ")
         rule.onNodeWithTag("block_builder_section_spec_0_chest")
-            .assertTextContains("repeticiones · RPE 8 · descanso", true)
+            .assertTextContainsIgnoringNbsp("repeticiones · RPE 8 · descanso")
     }
 
     @Test
@@ -64,7 +64,7 @@ class BlockBuilderScreenTest {
 
         rule.onNodeWithTag(
             "block_builder_section_spec_0_chest_main",
-        ).assertTextContains("3 series · 4-6${NBSP}repeticiones", substring = true)
+        ).assertTextContainsIgnoringNbsp("3 series · 4-6${NBSP}repeticiones")
     }
 
     @Test
@@ -73,7 +73,7 @@ class BlockBuilderScreenTest {
 
         rule.onNodeWithTag("block_builder_section_help_0_chest").performClick()
 
-        rule.onNodeWithText("Cada músculo necesita al menos 10 series", substring = true).assertExists()
+        rule.onNodeWithText("Cada músculo necesita al menos 10${NBSP}series", substring = true).assertExists()
     }
 
     @Test
