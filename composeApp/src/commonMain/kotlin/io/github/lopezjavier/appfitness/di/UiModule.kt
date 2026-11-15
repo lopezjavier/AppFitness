@@ -488,6 +488,7 @@ val uiModule =
                 recordPausedWeek = get(),
                 discomfortFollowUps = get(),
                 exerciseNames = get(),
+                diary = get(),
             )
         }
         viewModel {

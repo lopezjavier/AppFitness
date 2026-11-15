@@ -15,6 +15,8 @@ import io.github.lopezjavier.appfitness.domain.port.Clock
 import io.github.lopezjavier.appfitness.domain.repository.CoachIntakeRepository
 import io.github.lopezjavier.appfitness.domain.repository.CoachRepository
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.async
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -97,19 +99,24 @@ class YourDataViewModel(
     }
 
     /** The plan list is required; a failed block list only drops the block-only rows. */
-    private suspend fun fetch(): YourDataUiState {
-        val plan = coach.planInputs(PlanInputKind.Plan, today())
-        val block = coach.planInputs(PlanInputKind.Block, today())
+    private suspend fun fetch(): YourDataUiState = coroutineScope {
+        // The four reads are independent: one round trip of waiting instead of four in a row.
+        val planRead = async { coach.planInputs(PlanInputKind.Plan, today()) }
+        val blockRead = async { coach.planInputs(PlanInputKind.Block, today()) }
+        val intakeRead = async { intakeRepo.get().getOrNull() }
+        val derivedRead = async { coach.derivedValues(today()).getOrNull() }
+        val plan = planRead.await()
+        val block = blockRead.await()
+        val intake = intakeRead.await()
+        val derived = derivedRead.await()
         val planRows = plan.getOrNull()?.rows()
         val blockRows = block.getOrNull()?.rows()
-        return when {
+        when {
             planRows == null && blockRows == null ->
                 if (plan.appErrorOrNull() == AppError.Network) YourDataUiState.Offline else YourDataUiState.Error
 
             else -> {
                 // The intake and the derived values only enrich the screen: a failure leaves them out.
-                val intake = intakeRepo.get().getOrNull()
-                val derived = coach.derivedValues(today()).getOrNull()
                 val handover = derived?.totalExpenditure?.handover == true && !handoverAcknowledged
                 YourDataUiState.Content(
                     rows = mergeRows(planRows.orEmpty(), blockRows.orEmpty()),

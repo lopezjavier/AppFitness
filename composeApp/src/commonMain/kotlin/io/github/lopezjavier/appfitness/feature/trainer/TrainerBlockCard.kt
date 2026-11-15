@@ -25,7 +25,6 @@ import io.github.lopezjavier.appfitness.composeapp.resources.Res
 import io.github.lopezjavier.appfitness.composeapp.resources.action_retry
 import io.github.lopezjavier.appfitness.composeapp.resources.block_week_paused
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_check
-import io.github.lopezjavier.appfitness.composeapp.resources.ic_edit
 import io.github.lopezjavier.appfitness.composeapp.resources.preferences_my_training_title
 import io.github.lopezjavier.appfitness.composeapp.resources.report_sessions_cd
 import io.github.lopezjavier.appfitness.composeapp.resources.report_sessions_headline
@@ -47,12 +46,8 @@ import io.github.lopezjavier.appfitness.composeapp.resources.trainer_block_title
 import io.github.lopezjavier.appfitness.composeapp.resources.trainer_block_weeks_error
 import io.github.lopezjavier.appfitness.composeapp.resources.trainer_plan_fact_cardio
 import io.github.lopezjavier.appfitness.composeapp.resources.trainer_week_chip_deload
-import io.github.lopezjavier.appfitness.composeapp.resources.trainer_week_extend_busy
-import io.github.lopezjavier.appfitness.composeapp.resources.trainer_week_extend_edit_cd
-import io.github.lopezjavier.appfitness.composeapp.resources.trainer_week_extend_offline
 import io.github.lopezjavier.appfitness.composeapp.resources.trainer_week_session_pending
 import io.github.lopezjavier.appfitness.designsystem.AppDateFormat
-import io.github.lopezjavier.appfitness.designsystem.AppIconButton
 import io.github.lopezjavier.appfitness.designsystem.AppLinearProgress
 import io.github.lopezjavier.appfitness.designsystem.AppNumberFormat
 import io.github.lopezjavier.appfitness.designsystem.AppShapes
@@ -83,23 +78,15 @@ private const val CARDIO_STAGGER = 3
 private const val STEPS_STAGGER = 4
 private val BarHeight = Spacing.sm
 
-/** What the "Tu bloque" card needs besides the block status and its weeks: the pencil's state and the card's events. */
-@Suppress("LongParameterList") // The card's state and its three entries.
-internal class BlockCardActions(
-    val online: Boolean,
-    val extend: ExtendWeekUi,
-    val removeConfirm: Boolean,
-    val onOpen: () -> Unit,
-    val onOpenMyTraining: () -> Unit,
-    val onEvent: (TrainerEvent) -> Unit,
-)
+/** What the "Tu bloque" card of the root needs: where a tap goes and the retry event of its weeks note. */
+internal class BlockCardActions(val onOpen: () -> Unit, val onEvent: (TrainerEvent) -> Unit)
 
 /**
- * "Tu bloque" card on the Trainer root (C-124, R-103): the week chip with its pencil, the week segments, "2 de 4
- * entrenos esta semana" with the percent chip, the sessions as small cards, the cardio and steps bars and, outside the
- * card's tap target, "Mi entrenamiento" and "Eliminar bloque". [weeks] holds the block's weeks (empty when their read
- * failed: the card then shows a retry note). Without a saved block it only shows while applied changes exist (the
- * proposal has its own card).
+ * "Tu bloque" card on the Trainer root (C-124, R-103): a summary only. The week chip, the week segments, "2 de 4
+ * entrenos esta semana" with the percent chip, the sessions as small cards and the cardio and steps bars; every action
+ * (extend the week, "Mi entrenamiento", "Eliminar bloque") lives in the "Tu bloque" screen it opens. [weeks] holds the
+ * block's weeks (empty when their read failed: the card then shows a retry note). Without a saved block it only shows
+ * while applied changes exist (the proposal has its own card).
  */
 @Composable
 internal fun BlockSummaryBox(
@@ -128,7 +115,6 @@ internal fun BlockSummaryBox(
     val first = weeks.minByOrNull { it.week }
     // The week the figures describe: the current one, or the first while the block has not started (never when ended).
     val shown = if (status.reviewDue) null else current ?: first?.takeIf { it.phase == WeekPhase.Upcoming }
-    val extension = if (status.reviewDue || status.paused) null else current?.let { extendableExtension(it, actions.extend) }
     SummaryCard(
         title = stringResource(Res.string.trainer_block_title),
         lines = emptyList(),
@@ -136,12 +122,9 @@ internal fun BlockSummaryBox(
         testTag = "trainer_box_block",
         modifier = modifier,
         status = if (weeks.isEmpty()) null else ({ MainChip(status) }),
-        titleAction = extension?.let { { WeekPencil(actions.extend) } },
         content = { BlockBody(status, weeks, shown, current) },
-        footer = { BlockLinks(actions, weeksFailed = weeks.isEmpty()) },
+        footer = if (weeks.isEmpty()) ({ BlockWeeksError { actions.onEvent(TrainerEvent.Refresh) } }) else null,
     )
-    if (extension != null && actions.extend.pickerOpen) ExtendWeekPicker(extension, actions.extend)
-    if (actions.removeConfirm) RemoveBlockDialog(actions.onEvent)
 }
 
 /** The state chip: "Semana 1 de 4" (Info), the start date or "Bloque terminado" (Neutral). */
@@ -155,19 +138,6 @@ private fun MainChip(status: BlockStatus.Saved) {
         else -> null to StatusTone.Neutral
     }
     if (text != null) StatusChip(text, tone, Modifier.testTag("trainer_box_block_chip"))
-}
-
-/** The pencil of the active week: its own 48 dp target outside the card's tap target (R-103); the same sheet as "Actual". */
-@Composable
-private fun WeekPencil(extend: ExtendWeekUi) {
-    AppIconButton(
-        contentDescription = stringResource(Res.string.trainer_week_extend_edit_cd),
-        icon = Res.drawable.ic_edit,
-        testTag = "trainer_box_block_extend_edit",
-        onClick = extend.onOpen,
-        enabled = extend.online && !extend.busy,
-        busyDescription = if (extend.busy) stringResource(Res.string.trainer_week_extend_busy) else null,
-    )
 }
 
 @Composable
@@ -387,12 +357,19 @@ private fun ActivityBar(label: String, value: String, fraction: Float?, stagger:
     }
 }
 
-/** The card's footer: the weeks note when their read failed, then "Mi entrenamiento" and "Eliminar bloque" (R-103). */
+/**
+ * The actions of the "Tu bloque" screen: "Mi entrenamiento" and "Eliminar bloque" (Danger tone); the removal is
+ * disabled offline with its hint. The confirmation dialog is rendered here while [removeConfirm] holds.
+ */
 @Composable
 @OptIn(ExperimentalLayoutApi::class)
-private fun BlockLinks(actions: BlockCardActions, weeksFailed: Boolean) {
+internal fun BlockDetailsActions(
+    online: Boolean,
+    removeConfirm: Boolean,
+    onOpenMyTraining: () -> Unit,
+    onEvent: (TrainerEvent) -> Unit,
+) {
     Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
-        if (weeksFailed) BlockWeeksError { actions.onEvent(TrainerEvent.Refresh) }
         FlowRow(
             Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween,
@@ -400,22 +377,20 @@ private fun BlockLinks(actions: BlockCardActions, weeksFailed: Boolean) {
         ) {
             AppTextButton(
                 text = stringResource(Res.string.preferences_my_training_title),
-                onClick = actions.onOpenMyTraining,
+                onClick = onOpenMyTraining,
                 modifier = Modifier.testTag("trainer_box_block_my_training"),
             )
             AppTextButton(
                 text = stringResource(Res.string.trainer_block_remove),
-                onClick = { actions.onEvent(TrainerEvent.RequestRemoveBlock) },
+                onClick = { onEvent(TrainerEvent.RequestRemoveBlock) },
                 modifier = Modifier.testTag("trainer_remove_block"),
-                enabled = actions.online,
+                enabled = online,
                 tone = AppTextButtonTone.Danger,
             )
         }
-        if (!actions.online) OfflineHint(stringResource(Res.string.trainer_block_remove_action))
-        if (!actions.online && actions.extend.extension != null) {
-            OfflineHint(stringResource(Res.string.trainer_week_extend_offline))
-        }
+        if (!online) OfflineHint(stringResource(Res.string.trainer_block_remove_action))
     }
+    if (removeConfirm) RemoveBlockDialog(onEvent)
 }
 
 /** The "weeks could not be read" note of the card, tapping it retries (C-138). */

@@ -22,22 +22,16 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
 import io.github.lopezjavier.appfitness.composeapp.resources.Res
-import io.github.lopezjavier.appfitness.composeapp.resources.ic_add
 import io.github.lopezjavier.appfitness.composeapp.resources.trainer_goal_eyebrow
 import io.github.lopezjavier.appfitness.composeapp.resources.trainer_plan_chart_goal
 import io.github.lopezjavier.appfitness.composeapp.resources.trainer_plan_chart_today
 import io.github.lopezjavier.appfitness.composeapp.resources.trainer_plan_chart_today_value
 import io.github.lopezjavier.appfitness.composeapp.resources.trainer_plan_chart_week
-import io.github.lopezjavier.appfitness.composeapp.resources.trainer_plan_create_action
 import io.github.lopezjavier.appfitness.composeapp.resources.trainer_plan_goal_meta
 import io.github.lopezjavier.appfitness.composeapp.resources.trainer_plan_pace_actual
 import io.github.lopezjavier.appfitness.composeapp.resources.trainer_plan_pace_actual_provisional
 import io.github.lopezjavier.appfitness.composeapp.resources.trainer_plan_pace_goal
-import io.github.lopezjavier.appfitness.composeapp.resources.trainer_plan_pace_help_body
-import io.github.lopezjavier.appfitness.composeapp.resources.trainer_plan_pace_help_cd
-import io.github.lopezjavier.appfitness.composeapp.resources.trainer_plan_pace_help_title
 import io.github.lopezjavier.appfitness.composeapp.resources.trainer_plan_rate_unit
-import io.github.lopezjavier.appfitness.composeapp.resources.trainer_plan_replace
 import io.github.lopezjavier.appfitness.composeapp.resources.trainer_plan_section
 import io.github.lopezjavier.appfitness.composeapp.resources.trainer_plan_tile_calories
 import io.github.lopezjavier.appfitness.composeapp.resources.trainer_plan_tile_cardio
@@ -58,18 +52,14 @@ import io.github.lopezjavier.appfitness.composeapp.resources.trainer_plan_verdic
 import io.github.lopezjavier.appfitness.composeapp.resources.trainer_plan_verdict_no_data
 import io.github.lopezjavier.appfitness.composeapp.resources.trainer_plan_verdict_on_pace
 import io.github.lopezjavier.appfitness.composeapp.resources.trainer_plan_verdict_rising
-import io.github.lopezjavier.appfitness.composeapp.resources.trainer_plan_verdict_soon
 import io.github.lopezjavier.appfitness.composeapp.resources.trainer_plan_verdict_stable
 import io.github.lopezjavier.appfitness.designsystem.AppDateFormat
 import io.github.lopezjavier.appfitness.designsystem.AppLinearProgress
 import io.github.lopezjavier.appfitness.designsystem.AppNumberFormat
 import io.github.lopezjavier.appfitness.designsystem.AppShapes
-import io.github.lopezjavier.appfitness.designsystem.AppTextButton
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
-import io.github.lopezjavier.appfitness.designsystem.HelpButton
 import io.github.lopezjavier.appfitness.designsystem.MetricTile
 import io.github.lopezjavier.appfitness.designsystem.NonBreaking
-import io.github.lopezjavier.appfitness.designsystem.OfflineHint
 import io.github.lopezjavier.appfitness.designsystem.Spacing
 import io.github.lopezjavier.appfitness.designsystem.StatusChip
 import io.github.lopezjavier.appfitness.designsystem.StatusTone
@@ -118,7 +108,8 @@ internal fun signedHundredths(value: Double): String {
 /**
  * The accepted plan's card on the Trainer root (C-131..C-138): the goal header and the weight pace chart (the tappable
  * body that opens "Tu plan"), then, outside that tap target so the "?" and the button keep their own targets (R-103),
- * the figures line, the verdict, the weeks in the phase, the three tiles with their caption and "Crear plan nuevo".
+ * the figures line, the verdict, the weeks in the phase and the three tiles with their caption. A summary only: "Crear
+ * plan nuevo" lives in "Tu plan".
  */
 @Suppress("LongParameterList") // The plan, the figures around it and the card's two events.
 @Composable
@@ -128,9 +119,7 @@ internal fun PlanCard(
     weeksInPhase: PhaseWeeks?,
     latestSummary: WeekSummary?,
     currentWeek: PlanWeek?,
-    online: Boolean,
     onOpen: () -> Unit,
-    onCreateNew: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     SummaryCard(
@@ -146,7 +135,6 @@ internal fun PlanCard(
                 if (pace != null) PaceVerdict(pace)
                 weeksInPhase?.takeIf { it.weeks > 0 }?.let { WeeksInPhaseLine(it) }
                 PlanTiles(plan, latestSummary, currentWeek)
-                CreatePlanAction(online, onCreateNew)
             }
         },
     )
@@ -267,15 +255,13 @@ private fun bandOf(pace: WeightPace, weekly: List<WeightPacePoint>): List<Weight
     }
 }
 
-/** "Ritmo / Objetivo" with a key for each chart line (the chart's legend) and the "?" with the interval (C-132). */
+/** "Ritmo / Objetivo" with a key for each chart line (the chart's legend, C-132). */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun PaceFigures(plan: CoachPlan, pace: WeightPace?) {
     // Without enough data only the plan's rate shows (07 §5 (5)).
     val actual = pace?.takeIf { it.slopeKgWeek != null && it.state != WeightPaceState.NoData }
     val slope = actual?.slopeKgWeek
-    val low = actual?.slopeLowKgWeek
-    val high = actual?.slopeHighKgWeek
     FlowRow(
         Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
@@ -302,18 +288,6 @@ private fun PaceFigures(plan: CoachPlan, pace: WeightPace?) {
             dashed = true,
             tag = "trainer_box_plan_pace_goal",
         )
-        if (low != null && high != null) {
-            HelpButton(
-                contentDescription = stringResource(Res.string.trainer_plan_pace_help_cd),
-                title = stringResource(Res.string.trainer_plan_pace_help_title),
-                body = stringResource(
-                    Res.string.trainer_plan_pace_help_body,
-                    signedHundredths(low),
-                    signedHundredths(high),
-                ),
-                testTag = "trainer_box_plan_pace_help",
-            )
-        }
     }
 }
 
@@ -344,7 +318,6 @@ private fun PaceVerdict(pace: WeightPace) {
     val slope = pace.slopeKgWeek ?: 0.0
     val text = when (pace.state) {
         WeightPaceState.NoData -> stringResource(Res.string.trainer_plan_verdict_no_data)
-        WeightPaceState.Soon -> stringResource(Res.string.trainer_plan_verdict_soon)
         WeightPaceState.OnPace -> stringResource(Res.string.trainer_plan_verdict_on_pace)
         WeightPaceState.Slower -> stringResource(slowerVerdict(cut, slope))
         WeightPaceState.Faster -> stringResource(
@@ -355,6 +328,8 @@ private fun PaceVerdict(pace: WeightPace) {
             stringResource(Res.string.trainer_plan_verdict_rising, AppNumberFormat.decimal(abs(slope), 2))
         WeightPaceState.Falling ->
             stringResource(Res.string.trainer_plan_verdict_falling, AppNumberFormat.decimal(abs(slope), 2))
+        // Too early to judge: the provisional figure says it, so there is no verdict line.
+        WeightPaceState.Soon -> return
     }
     Column(verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
         Text(
@@ -478,19 +453,4 @@ private fun PlanTile(tile: TileData, index: Int, modifier: Modifier) {
             }
         },
     )
-}
-
-/** "Crear plan nuevo" inside the card, end-aligned and outside the card's tap target (C-136); offline it is disabled. */
-@Composable
-private fun CreatePlanAction(online: Boolean, onCreateNew: () -> Unit) {
-    Column(Modifier.fillMaxWidth(), horizontalAlignment = Alignment.End) {
-        AppTextButton(
-            text = stringResource(Res.string.trainer_plan_replace),
-            onClick = onCreateNew,
-            modifier = Modifier.testTag("trainer_create_plan_new"),
-            enabled = online,
-            leadingIcon = Res.drawable.ic_add,
-        )
-        if (!online) OfflineHint(stringResource(Res.string.trainer_plan_create_action))
-    }
 }

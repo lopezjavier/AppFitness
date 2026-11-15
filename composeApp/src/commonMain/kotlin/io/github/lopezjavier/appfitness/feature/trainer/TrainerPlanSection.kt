@@ -109,9 +109,7 @@ internal fun PlanEntrySection(
             weeksInPhase = weeksInPhase,
             latestSummary = latestSummary,
             currentWeek = currentWeek,
-            online = online,
             onOpen = onOpenPlan,
-            onCreateNew = { onOpenBeforeStart(BeforeStartMode.Plan, null, plan.plan.id) },
             modifier = modifier,
         )
     }
@@ -153,13 +151,11 @@ internal fun LazyGridScope.planDetails(
         fullSpanItem("goals") { GoalsChecklistSection(goalsChecklist) }
     }
     // While the review is due its footer is the only way on: no "Bloque nuevo" entry here.
-    if (canStartNewBlock) {
-        if (!reviewDue) fullSpanItem("new_block") { NewBlockEntries(online, onEvent) }
-    } else {
-        fullSpanItem("replace_plan") {
-            Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-                ReplacePlanEntry(plan.plan.id, online, onOpenBeforeStart)
-            }
+    if (canStartNewBlock && !reviewDue) fullSpanItem("new_block") { NewBlockEntries(online, onEvent) }
+    // The root card only summarises: replacing the plan is an action of this screen (R-103).
+    fullSpanItem("replace_plan") {
+        Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+            ReplacePlanEntry(plan.plan.id, online, onOpenBeforeStart)
         }
     }
 }

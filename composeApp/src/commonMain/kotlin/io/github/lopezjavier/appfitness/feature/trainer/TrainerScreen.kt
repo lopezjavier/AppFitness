@@ -258,22 +258,7 @@ private fun LazyGridScope.blockBoxes(
                 state.blockStatus,
                 state.weeks,
                 appliedChangesCount = state.appliedCoachChanges.size,
-                actions = BlockCardActions(
-                    online = online,
-                    extend = ExtendWeekUi(
-                        extension = state.weekExtension,
-                        pickerOpen = state.extendWeekPickerOpen,
-                        busy = state.extendingWeek,
-                        online = online,
-                        onOpen = { onEvent(TrainerEvent.OpenExtendWeekPicker) },
-                        onDismiss = { onEvent(TrainerEvent.DismissExtendWeekPicker) },
-                        onConfirm = { onEvent(TrainerEvent.ExtendWeek(it)) },
-                    ),
-                    removeConfirm = state.removeBlockConfirm,
-                    onOpen = actions.onOpenBlockScreen,
-                    onOpenMyTraining = actions.onOpenMyTraining,
-                    onEvent = onEvent,
-                ),
+                actions = BlockCardActions(onOpen = actions.onOpenBlockScreen, onEvent = onEvent),
                 modifier = cardModifier,
             )
         }

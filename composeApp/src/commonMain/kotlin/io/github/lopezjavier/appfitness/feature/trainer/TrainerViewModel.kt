@@ -24,6 +24,8 @@ import io.github.lopezjavier.appfitness.domain.model.PlanStatus
 import io.github.lopezjavier.appfitness.domain.model.PhaseWeeks
 import io.github.lopezjavier.appfitness.domain.model.PlanWeek
 import io.github.lopezjavier.appfitness.domain.model.WeekSummary
+import io.github.lopezjavier.appfitness.domain.model.WeekSummaryNutrition
+import io.github.lopezjavier.appfitness.domain.repository.FoodDiaryRepository
 import io.github.lopezjavier.appfitness.domain.model.ProgressionFlagDecision
 import io.github.lopezjavier.appfitness.domain.port.Clock
 import io.github.lopezjavier.appfitness.domain.repository.BodyMeasurementRepository
@@ -76,6 +78,7 @@ private const val KEY_EXTEND_PICKER = "extend_week_picker"
 private const val KEY_PAUSED_RECORDED = "week_summary_paused_recorded"
 private const val PERCENT = 100.0
 private const val DAYS_PER_WEEK = 7
+private const val MIN_DIARY_DAYS = 5
 
 private fun PlanSummary.id(): String? = when (this) {
     is PlanSummary.Proposed -> plan.id
@@ -129,6 +132,7 @@ class TrainerViewModel(
     discomfortFollowUps: DiscomfortFollowUpRepository? = null,
     exerciseNames: ExerciseNameResolver? = null,
     private val timeZone: TimeZone = TimeZone.currentSystemDefault(),
+    private val diary: FoodDiaryRepository? = null,
 ) : ViewModel() {
     private val cardioEdit = CardioEditState(savedState)
 
@@ -652,6 +656,7 @@ class TrainerViewModel(
         val shownFollowUps = followUps.await()
         val weekSummary = latestSummary.await()
         recordPausedWeekOnce(weekSummary)
+        val shownSummary = withDiaryNutrition(weekSummary, plan)
         val phaseWeeks = weeksInPhase.await()
         TrainerUiState.Content(
             plan = plan,
@@ -662,7 +667,7 @@ class TrainerViewModel(
             extendWeekPickerOpen = extendPicker,
             coachChanges = hub.changes,
             provisionalCount = provisional.await(),
-            latestWeekSummary = weekSummary,
+            latestWeekSummary = shownSummary,
             blockReviewDue = blockReviewDue.await(),
             welcomeBack = welcomeBack.await(),
             goalsChecklist = checklist.await(),
@@ -673,6 +678,31 @@ class TrainerViewModel(
             discomfortFollowUps = shownFollowUps,
             swapPicker = discomfort?.restoredPicker(shownFollowUps),
         )
+    }
+
+    /**
+     * A week summary stored before the nutrition section existed has no `nutrition` (the snapshot is frozen), which made
+     * the "Calorías" tile read "sin datos" although the diary has the week. Then the average per logged day comes from
+     * the diary itself, with the same minimum of 5 days; fewer days keep the honest empty state.
+     */
+    private suspend fun withDiaryNutrition(summary: WeekSummary?, plan: PlanSummary): WeekSummary? {
+        val repo = diary ?: return summary
+        val accepted = (plan as? PlanSummary.Accepted)?.plan ?: return summary
+        if (summary == null || summary.paused || summary.nutrition != null) return summary
+        val days = repo.summaries(summary.startDate, summary.endDate).getOrNull() ?: return summary
+        if (days.size < MIN_DIARY_DAYS) return summary
+        val avg = days.sumOf { it.totals.kcal } / days.size
+        val nutrition = WeekSummaryNutrition(
+            completeDays = days.size,
+            gateOk = true,
+            avgKcal = avg.roundToInt(),
+            avgProteinG = null,
+            targetKcal = accepted.nutrition.targetKcal,
+            targetProteinG = null,
+            proteinGPerKg = null,
+            decisions = emptyList(),
+        )
+        return summary.copy(nutrition = nutrition)
     }
 
     /** Daily weights of the 8 ISO weeks ending the week of [today]; null when the read failed (the chart is hidden). */

@@ -94,7 +94,7 @@ fun TrainerBoxScreen(
     exerciseNames: Map<String, String> = emptyMap(),
 ) {
     val online by isOnline.collectAsStateWithLifecycle(initialValue = true)
-    // "Eliminar bloque" is a text link inside the "Tu bloque" card of the root (V-73, R-103): no ⋮ here.
+    // The root cards only summarise: "Eliminar bloque" and the other actions are text links inside the boxes (R-103).
     AppScreen(
         title = stringResource(box.title),
         modifier = modifier,
@@ -188,6 +188,9 @@ private fun BoxContent(
                         onConfirm = { onEvent(TrainerEvent.ExtendWeek(it)) },
                     ),
                 )
+                if (state.block is BlockSummary.Saved) fullSpanItem("block_actions") {
+                    BlockDetailsActions(online, state.removeBlockConfirm, actions.onOpenMyTraining, onEvent)
+                }
             }
         }
     }

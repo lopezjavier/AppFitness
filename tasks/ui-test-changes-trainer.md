@@ -138,3 +138,15 @@ Tests/goldens that will fail or need an update:
 - Plan tiles and session cards now stack to one column from font scale 1.2 (was 1.5): any test using fontScale between 1.2 and 1.5 that expects three tiles or two session columns changes.
 - Root links group (`trainer_reports`, `trainer_your_data`) and `reports_row_*` rows now have 16 dp horizontal padding (they sat flush against the card edge).
 - Gallery: `GalleryCoverageTest` reports RemoveBlockDialog / `SavedBlockActions` / design-system catalog gaps (BarListRow, DecisionButtonRow, RowGroupCard, SectionCard, SegmentedProgress) from earlier batches: manifest or catalog entries still to add.
+
+## Batch 7 (root = summary, actions in the details; user feedback)
+
+Tests/goldens that will fail or need an update:
+- `SummaryCard.titleAction` is removed (designsystem): drop its tests (click on `titleAction` does not trigger `onClick`; merged text excludes it; title wraps earlier with the slot). `footer` stays (Tu plan tiles, Tu bloque weeks note).
+- "Tu plan" root card: no `trainer_create_plan_new`, no `trainer_box_plan_pace_help` ("?"), no `trainer_box_plan_verdict` in the `Soon` state (provisional figure only). `PlanCard` lost `online` and `onCreateNew` (the Proposed branch of `PlanEntrySection` still has `ReplacePlanEntry`). Verdict tests for `Soon` now assert absence; strings `trainer_plan_verdict_soon` and `trainer_plan_pace_help_*` are unused.
+- "Tu plan" screen (`planDetails`): `trainer_create_plan_new` (GhostButton, offline-gated with the hint) now always shows, also with a saved block (before, `canStartNewBlock` replaced it with `NewBlockEntries`; both now show, "Bloque nuevo" first). Tests that expected its absence with a saved block change.
+- "Tu bloque" root card: `BlockCardActions` is now `(onOpen, onEvent)`; no pencil `trainer_box_block_extend_edit`, no `trainer_box_block_my_training`, no `trainer_remove_block`, no remove dialog and no picker; the footer is only the `trainer_box_block_weeks_error` note. Pencil/picker/offline tests move to the "Actual" week pencil of the box screen (already covered by the `PlanWeeksSection` tests).
+- "Tu bloque" screen: new last item `block_actions` (`BlockDetailsActions`): `trainer_box_block_my_training` (calls `TrainerActions.onOpenMyTraining`), `trainer_remove_block` (Danger; disabled offline with the hint), dialog `trainer_remove_block_dialog_*` while `removeBlockConfirm`. Only with a saved block. New tests: click opens the dialog, confirm sends `ConfirmRemoveBlock`, offline disables the removal.
+- `TrainerViewModel` takes a trailing `diary: FoodDiaryRepository? = null` (wired in `UiModule`): a non-paused latest summary with `nutrition == null` (stored before T-246) gets `nutrition` from `summaries(start, end)` when there are at least 5 logged days (average kcal per logged day, target = the plan's `targetKcal`, `gateOk = true`); fewer than 5 days, a failed read, a paused or an already-filled summary stay as they are. New VM tests for those cases.
+- `YourDataViewModel.fetch()` now runs its four reads concurrently (`async`): results are unchanged; a failure of the intake or derived read is still silent.
+
