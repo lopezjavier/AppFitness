@@ -52,7 +52,6 @@ E15 (epic-planner, 2026-11-08, after the user's Q1-Q5 answers; needs the user's 
 ## Notes for later epics
 
 - **Out of scope (user, 2026-11-08, ADR-101):** "Recuperar" / returning after a break (regain phase) is out of scope for the app; the 14-day return rule stays as the only break rule.
-- **Manual block pause (user request, 2026-11-15): open, after the E19 UI redesign.** A button to pause the block on purpose (sickness, a trip), because today a pause is only automatic when a week has no sessions (US-106). Not defined yet: it needs the `product-owner` skill (story, Gherkin, how it relates to the automatic pause and to ADR-101's 14-day return rule) and probably a backend change; the user decides when to start it.
 - **R-59 sweep leftover (T-245): consumed → T-248** (E16 breakdown, 2026-11-08).
 - **UI review epic, "Lo que el entrenador sabe de ti" (user, 2026-11-08): consumed → T-277** (E19 breakdown, 2026-11-11; the user decided to remove it in every layer).
 - **E13 backlog (user request, 2026-10-30): consumed.** Items 1 → T-179, 2 → T-181…T-184, 3 and 4 → T-205/T-206. Nothing from it is open.
