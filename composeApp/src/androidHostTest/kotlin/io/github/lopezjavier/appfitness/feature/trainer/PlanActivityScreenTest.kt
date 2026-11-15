@@ -47,10 +47,9 @@ class PlanActivityScreenTest {
 
     private fun showTrainer(state: TrainerUiState.Content) {
         rule.setContent {
-            AppTheme { TrainerWithBoxes(state, flowOf(true), { trainerEvents += it }) }
+            AppTheme { TrainerScreen(state, flowOf(true), { trainerEvents += it }) }
         }
         rule.waitForIdle()
-        rule.openTrainerPlan()
     }
 
     private fun accepted(activity: PlanActivity?) =
@@ -188,15 +187,7 @@ class PlanActivityScreenTest {
     }
 
     @Test
-    fun acceptedPlan_showsBothTargetsInTuPlan() {
-        showTrainer(TrainerUiState.Content(plan = accepted(defaultActivity.copy(cardioMinWeek = 120))))
-
-        rule.onNodeWithTag("trainer_plan_activity", useUnmergedTree = true)
-            .assertTextEquals("Cardio · 120 min por semana · Pasos · 7.000 al día")
-    }
-
-    @Test
-    fun acceptedPlan_editFromTuPlan_opensTheSheetAtTheSavedValue() {
+    fun acceptedPlan_cardioEditOnTheRoot_opensTheSheetAtTheSavedValue() {
         showTrainer(
             TrainerUiState.Content(
                 plan = accepted(defaultActivity.copy(cardioMinWeek = 120)),
@@ -209,20 +200,23 @@ class PlanActivityScreenTest {
     }
 
     @Test
-    fun tuPlanCardioRow_sendsTheOpenEvent() {
+    fun tuPlanMenu_cardioEntry_sendsTheOpenEvent() {
         showTrainer(TrainerUiState.Content(plan = accepted(defaultActivity)))
 
-        rule.onNodeWithTag("trainer_plan_cardio_row").performClick()
+        rule.onNodeWithTag("trainer_plan_menu").performClick()
+        rule.onNodeWithTag("trainer_plan_menu_cardio").performClick()
 
         assertEquals(listOf<TrainerEvent>(TrainerEvent.OpenCardioEdit), trainerEvents)
     }
 
     @Test
-    fun acceptedPlanWithoutActivity_showsNoLineAndNoError() {
+    fun tuPlanMenu_withoutActivity_hasNoCardioEntry() {
         showTrainer(TrainerUiState.Content(plan = accepted(null)))
 
-        rule.onNodeWithTag("trainer_plan_activity", useUnmergedTree = true).assertDoesNotExist()
-        rule.onNodeWithTag("trainer_plan_card").assertExists()
+        rule.onNodeWithTag("trainer_plan_menu").performClick()
+
+        rule.onNodeWithTag("trainer_plan_menu_new_plan").assertExists()
+        rule.onNodeWithTag("trainer_plan_menu_cardio").assertDoesNotExist()
     }
 
     private fun androidx.compose.ui.test.SemanticsNodeInteraction.assertDoesNotHaveClick() =

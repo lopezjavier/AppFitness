@@ -45,7 +45,7 @@ class TrainerWelcomeBackTest {
     private fun show(state: TrainerUiState.Content, online: Boolean = true) {
         rule.setContent {
             AppTheme {
-                TrainerWithBoxes(
+                TrainerScreen(
                     state = state,
                     isOnline = flowOf(online),
                     onEvent = { events += it },
@@ -118,15 +118,15 @@ class TrainerWelcomeBackTest {
         rule.onNodeWithTag("trainer_review_card").assertIsDisplayed()
         rule.onAllNodesWithTag("trainer_welcome_back_card").assertCountEquals(0)
         rule.onAllNodesWithTag("trainer_new_block").assertCountEquals(0)
-        rule.onAllNodesWithTag("trainer_my_training").assertCountEquals(0)
     }
 
     @Test
-    fun withoutTheReview_aSavedBlockOffersNewBlock() {
+    fun withoutTheReview_aSavedBlockOffersNewBlockInItsMenu() {
         show(content(welcomeBack = false, savedBlock = true))
-        rule.openTrainerPlan()
 
-        rule.onNodeWithTag("trainer_new_block").performScrollTo().assertIsDisplayed()
+        rule.onNodeWithTag("trainer_block_menu").performClick()
+
+        rule.onNodeWithTag("trainer_block_menu_new_block").assertExists()
     }
 
     @Test

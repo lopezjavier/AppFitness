@@ -29,6 +29,8 @@ import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 
+private val NBSP = 160.toChar().toString()
+
 /** ADR-40: the Trainer tab, the plan section and the weeks survive recreation. */
 @RunWith(RobolectricTestRunner::class)
 @Config(qualifiers = "w360dp-h2400dp-xxhdpi")
@@ -76,7 +78,7 @@ class TrainerRestorationTest {
         val repository = FakeCoachRepository()
         var current by mutableStateOf(TrainerViewModel(repository, MutableClock(), plans = plans))
         val connectivity = FakeConnectivityObserver()
-        rule.setContent { AppTheme { TrainerRoutesWithBoxes(current, connectivity) } }
+        rule.setContent { AppTheme { TrainerRoute(viewModel = current, connectivity = connectivity) } }
         rule.waitForIdle()
         rule.onNodeWithTag("trainer_calorie_card").assertExists()
 
@@ -85,8 +87,7 @@ class TrainerRestorationTest {
         rule.waitForIdle()
 
         rule.onNodeWithTag("trainer_calorie_card").assertExists()
-        rule.openTrainerPlan()
-        rule.onNodeWithTag("trainer_plan_card").assertExists()
+        rule.onNodeWithTag("trainer_box_plan").assertExists()
     }
 
     @Test
@@ -107,15 +108,14 @@ class TrainerRestorationTest {
         )
         var current by mutableStateOf(model())
         val connectivity = FakeConnectivityObserver()
-        rule.setContent { AppTheme { TrainerRoutesWithBoxes(current, connectivity) } }
+        rule.setContent { AppTheme { TrainerRoute(viewModel = current, connectivity = connectivity) } }
         rule.waitForIdle()
-        rule.openTrainerBlock()
 
         // A new view model over the same saved state, as after process death: nothing is kept only in memory.
         current = model()
         rule.waitForIdle()
 
-        rule.onNodeWithTag("trainer_week_2").assertExists()
+        rule.onNodeWithTag("trainer_box_block_weeks_item_2").assertExists()
     }
 
     @Test
@@ -135,18 +135,18 @@ class TrainerRestorationTest {
         )
         val connectivity = FakeConnectivityObserver()
         val tester = StateRestorationTester(rule)
-        tester.setContent { AppTheme { TrainerRoutesWithBoxes(model, connectivity) } }
+        tester.setContent { AppTheme { TrainerRoute(viewModel = model, connectivity = connectivity) } }
         rule.waitForIdle()
-        rule.openTrainerBlock()
 
         tester.emulateSavedInstanceStateRestore()
         rule.waitForIdle()
 
-        rule.onNodeWithTag("trainer_weeks_section").assertExists()
+        rule.onNodeWithTag("trainer_box_block_weeks_item_1").assertExists()
+        rule.onNodeWithTag("trainer_box_block_weeks_item_2").assertExists()
     }
 
     @Test
-    fun recreation_keepsTheWeekCardioAndStepsLines_afterScrollingToThem() {
+    fun recreation_keepsTheCardioAndStepsBarsOfTheChosenWeek() {
         val plans = FakeCoachPlanRepository()
         plans.current = Result.success(coachPlan(status = PlanStatus.Accepted))
         val blocks = FakeCoachBlockRepository()
@@ -167,17 +167,18 @@ class TrainerRestorationTest {
         )
         val connectivity = FakeConnectivityObserver()
         val tester = StateRestorationTester(rule)
-        tester.setContent { AppTheme { TrainerRoutesWithBoxes(model, connectivity) } }
+        tester.setContent { AppTheme { TrainerRoute(viewModel = model, connectivity = connectivity) } }
         rule.waitForIdle()
-        rule.openTrainerBlock()
-        rule.onNodeWithTag("plan_week_cardio_value_1").performScrollTo()
+        rule.onNodeWithTag("trainer_box_block_weeks_item_1").performScrollTo().performClick()
         rule.waitForIdle()
 
         tester.emulateSavedInstanceStateRestore()
         rule.waitForIdle()
 
-        rule.onNodeWithTag("plan_week_cardio_value_1").assertTextEquals("Cardio de la semana: 100 de 150 min")
-        rule.onNodeWithTag("plan_week_steps_value_1").assertTextEquals("Pasos: media 7.800 de 7.000")
+        rule.onNodeWithTag("trainer_box_block_cardio_value", useUnmergedTree = true)
+            .assertTextEquals("100${NBSP}de${NBSP}150${NBSP}min")
+        rule.onNodeWithTag("trainer_box_block_steps_value", useUnmergedTree = true)
+            .assertTextEquals("7.800${NBSP}de${NBSP}7.000")
     }
 
     @Test
@@ -190,10 +191,10 @@ class TrainerRestorationTest {
         val saved = SavedStateHandle()
         var current by mutableStateOf(TrainerViewModel(repository, MutableClock(), plans = plans, savedState = saved))
         val connectivity = FakeConnectivityObserver()
-        rule.setContent { AppTheme { TrainerRoutesWithBoxes(current, connectivity) } }
+        rule.setContent { AppTheme { TrainerRoute(viewModel = current, connectivity = connectivity) } }
         rule.waitForIdle()
-        rule.openTrainerPlan()
-        rule.onNodeWithTag("trainer_plan_cardio_row").performClick()
+        rule.onNodeWithTag("trainer_plan_menu").performClick()
+        rule.onNodeWithTag("trainer_plan_menu_cardio").performClick()
         rule.onNodeWithTag("cardio_sheet_stepper_increment").performClick()
         rule.waitForIdle()
         rule.onNodeWithTag("cardio_sheet_stepper_value").assertTextEquals("125 min")
@@ -206,7 +207,7 @@ class TrainerRestorationTest {
     }
 
     @Test
-    fun recreatedViewModel_keepsTheRemoveBlockDialogOpenOnTuBloque() {
+    fun recreatedViewModel_keepsTheRemoveBlockDialogOpenOnTheRoot() {
         val plans = FakeCoachPlanRepository()
         plans.current = Result.success(coachPlan(status = PlanStatus.Accepted))
         val blocks = FakeCoachBlockRepository()
@@ -216,10 +217,10 @@ class TrainerRestorationTest {
         fun model() = TrainerViewModel(repository, MutableClock(), plans, blocks, FakeCoachWeeksRepository(), saved)
         var current by mutableStateOf(model())
         val connectivity = FakeConnectivityObserver()
-        rule.setContent { AppTheme { TrainerRoutesWithBoxes(current, connectivity) } }
+        rule.setContent { AppTheme { TrainerRoute(viewModel = current, connectivity = connectivity) } }
         rule.waitForIdle()
-        rule.openTrainerBlock()
-        rule.onNodeWithTag("trainer_remove_block").performClick()
+        rule.onNodeWithTag("trainer_block_menu").performClick()
+        rule.onNodeWithTag("trainer_block_menu_remove").performClick()
         rule.waitForIdle()
 
         current = model()

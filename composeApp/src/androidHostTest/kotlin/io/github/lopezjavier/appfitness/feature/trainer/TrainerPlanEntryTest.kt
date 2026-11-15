@@ -40,7 +40,7 @@ class TrainerPlanEntryTest {
     private fun show(state: TrainerUiState, online: Boolean = true) {
         rule.setContent {
             AppTheme {
-                TrainerWithBoxes(
+                TrainerScreen(
                     state,
                     flowOf(online),
                     { events += it },
@@ -89,25 +89,6 @@ class TrainerPlanEntryTest {
         tap("trainer_plan_card")
 
         assertEquals(1, opened)
-    }
-
-    @Test
-    fun withAnAcceptedPlan_theSummaryShowsCaloriesRateAndOutcomes() {
-        show(content(PlanSummary.Accepted(coachPlan(status = PlanStatus.Accepted))))
-        rule.openTrainerPlan()
-
-        rule.onNodeWithText("Plan activo").assertExists()
-        rule.onNodeWithText("2.000 kcal al día · −0,4 kg/sem").assertExists()
-        rule.onNodeWithText("1 objetivo del plan").assertExists()
-        rule.onNodeWithText("Editado por ti").assertDoesNotExist()
-    }
-
-    @Test
-    fun anAcceptedPlanEditedByTheUser_isMarked() {
-        show(content(PlanSummary.Accepted(coachPlan(status = PlanStatus.Accepted, editedByUser = true))))
-        rule.openTrainerPlan()
-
-        rule.onNodeWithText("Editado por ti").assertExists()
     }
 
     @Test
@@ -219,14 +200,21 @@ class TrainerPlanEntryTest {
     }
 
     @Test
-    fun aSavedBlock_readsBloqueGuardado_withoutOpeningAnything() {
+    fun withAnAcceptedPlan_theRootShowsThePlanCardWithItsMenu_andOpensNothing() {
+        show(content(PlanSummary.Accepted(coachPlan(status = PlanStatus.Accepted))))
+
+        rule.onNodeWithTag("trainer_box_plan").assertExists()
+        rule.onNodeWithTag("trainer_plan_menu").assertExists()
+        assertEquals(0, opened)
+    }
+
+    @Test
+    fun aSavedBlock_theBlockCardOpensNothing_andHasItsMenu() {
         val plan = PlanSummary.Accepted(coachPlan(status = PlanStatus.Accepted))
         show(content(plan, block = BlockSummary.Saved(coachBlock(saved = true))))
-        rule.openTrainerBlock()
 
-        rule.onNodeWithText("Bloque guardado").assertExists()
-        tap("trainer_block_card")
-
+        rule.onNodeWithTag("trainer_box_block").assertExists()
+        rule.onNodeWithTag("trainer_block_menu").assertExists()
         assertTrue(openedBlocks.isEmpty())
     }
 }

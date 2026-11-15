@@ -172,23 +172,4 @@ class TrainerDiscomfortScreenTest {
 
         rule.onNodeWithText("Prioriza pocos grupos a la vez.", substring = true).assertExists()
     }
-
-    @Test
-    fun deloadHelp_opensItsExplanation() {
-        val state = TrainerUiState.Content(
-            plan = PlanSummary.Accepted(coachPlan(status = PlanStatus.Accepted)),
-            block = BlockSummary.Saved(coachBlock(saved = true)),
-            weeks = listOf(
-                planWeek(week = 1, phase = WeekPhase.Current),
-                planWeek(week = 2, phase = WeekPhase.Upcoming),
-            ),
-        )
-        rule.setContent { AppTheme { TrainerWithBoxes(state, flowOf(true), {}) } }
-        rule.openTrainerBlock()
-
-        rule.onNodeWithTag("trainer_deload_help").performClick()
-        rule.waitForIdle()
-
-        rule.onNodeWithText("Una semana de descarga es una semana más ligera", substring = true).assertExists()
-    }
 }

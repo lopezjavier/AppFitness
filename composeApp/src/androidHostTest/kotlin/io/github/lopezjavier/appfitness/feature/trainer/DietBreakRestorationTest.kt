@@ -60,26 +60,4 @@ class DietBreakRestorationTest {
 
         rule.onNodeWithTag("plan_proposal_diet_break_switch").performScrollTo().assertIsOn()
     }
-
-    @Test
-    fun trainerPlanSwitch_rereadFromThePlan_showsTheStoredValueAfterRecreation() {
-        val plan = coachPlan(
-            status = PlanStatus.Accepted,
-            phaseOptions = PhaseOptions(0.5, dietBreak = true),
-            dietBreakWeek = DietBreakWeek(2400, 160, 280, 70),
-        )
-        val tester = StateRestorationTester(rule)
-        tester.setContent {
-            AppTheme {
-                TrainerWithBoxes(TrainerUiState.Content(plan = PlanSummary.Accepted(plan)), flowOf(true), {})
-            }
-        }
-        rule.openTrainerPlan()
-        rule.onNodeWithTag("trainer_plan_diet_break_switch").assertIsOn()
-
-        tester.emulateSavedInstanceStateRestore()
-        rule.waitForIdle()
-
-        rule.onNodeWithTag("trainer_plan_diet_break_switch").assertIsOn()
-    }
 }

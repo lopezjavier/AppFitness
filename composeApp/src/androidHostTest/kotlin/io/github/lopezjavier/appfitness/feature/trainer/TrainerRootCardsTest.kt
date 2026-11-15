@@ -95,7 +95,7 @@ class TrainerRootCardsTest {
             CompositionLocalProvider(
                 LocalDensity provides if (fontScale == null) density else Density(density.density, fontScale),
             ) {
-                AppTheme { TrainerWithBoxes(state, flowOf(online), { events += it }, actions = actions) }
+                AppTheme { TrainerScreen(state, flowOf(online), { events += it }, actions = actions) }
             }
         }
         rule.waitForIdle()
@@ -227,25 +227,32 @@ class TrainerRootCardsTest {
     }
 
     @Test
-    fun tuBloque_miEntrenamiento_navigates_andRemoveRequestsTheDialog() {
+    fun miEntrenamiento_isALinkOnTheRoot_thatNavigates_evenOffline() {
         var training = 0
         show(
             blockState(listOf(planWeek(week = 1))),
+            online = false,
             actions = TrainerActions(onOpenMyTraining = { training++ }),
         )
-        rule.openTrainerBlock()
 
-        tap("trainer_box_block_my_training")
-        tap("trainer_remove_block")
+        tap("trainer_my_training")
 
         assertEquals(1, training)
+    }
+
+    @Test
+    fun blockMenu_removeRequestsTheDialog() {
+        show(blockState(listOf(planWeek(week = 1))))
+
+        tap("trainer_block_menu")
+        tap("trainer_block_menu_remove")
+
         assertEquals(listOf<TrainerEvent>(TrainerEvent.RequestRemoveBlock), events)
     }
 
     @Test
-    fun tuBloque_confirmingTheDialog_sendsConfirmRemoveBlock() {
+    fun removeDialog_isHostedByTheRoot_andConfirmingSendsConfirmRemoveBlock() {
         show(blockState(listOf(planWeek(week = 1))).copy(removeBlockConfirm = true))
-        rule.openTrainerBlock()
 
         tap("trainer_remove_block_dialog_confirm")
 
@@ -253,18 +260,73 @@ class TrainerRootCardsTest {
     }
 
     @Test
-    fun tuBloque_offline_removalIsDisabled_butMiEntrenamientoStillNavigates() {
-        var training = 0
-        show(
-            blockState(listOf(planWeek(week = 1))),
-            online = false,
-            actions = TrainerActions(onOpenMyTraining = { training++ }),
-        )
-        rule.openTrainerBlock()
+    fun blockMenu_offline_everyEntryIsDisabledWithItsHint() {
+        show(blockState(listOf(planWeek(week = 1))), online = false)
 
-        rule.onNodeWithTag("trainer_remove_block").assertIsNotEnabled()
-        tap("trainer_box_block_my_training")
-        assertEquals(1, training)
+        tap("trainer_block_menu")
+
+        rule.onNodeWithTag("trainer_block_menu_remove").assertIsNotEnabled()
+        rule.onNodeWithTag("trainer_block_menu_new_block").assertIsNotEnabled()
+        rule.onNodeWithText("Sin conexión: no se puede eliminar el bloque.").assertExists()
+    }
+
+    @Test
+    fun planMenu_newPlan_opensAntesDeEmpezarReplacingThePlan() {
+        val starts = mutableListOf<Triple<BeforeStartMode, String?, String?>>()
+        show(
+            planState(pace(WeightPaceState.OnPace)),
+            actions = TrainerActions(
+                onOpenBeforeStart = { mode, planId, replacing -> starts += Triple(mode, planId, replacing) },
+            ),
+        )
+
+        tap("trainer_plan_menu")
+        tap("trainer_plan_menu_new_plan")
+
+        assertEquals(listOf(Triple(BeforeStartMode.Plan, null, accepted.plan.id)), starts)
+    }
+
+    @Test
+    fun planMenu_offline_newPlanIsDisabledWithItsHint() {
+        show(planState(pace(WeightPaceState.OnPace)), online = false)
+
+        tap("trainer_plan_menu")
+
+        rule.onNodeWithTag("trainer_plan_menu_new_plan").assertIsNotEnabled()
+        rule.onNodeWithText("Sin conexión: no se puede crear el plan.").assertExists()
+    }
+
+    @Test
+    fun planMenu_dietBreak_forAnUneditedCut_sendsTheToggle() {
+        show(planState(pace(WeightPaceState.OnPace)))
+
+        tap("trainer_plan_menu")
+        tap("trainer_plan_menu_diet_break")
+
+        assertEquals(listOf<TrainerEvent>(TrainerEvent.ToggleDietBreak(true)), events)
+    }
+
+    @Test
+    fun planMenu_dietBreak_isAbsentForAPlanEditedByTheUser() {
+        show(
+            planState(pace(WeightPaceState.OnPace)).copy(
+                plan = PlanSummary.Accepted(coachPlan(status = PlanStatus.Accepted, editedByUser = true)),
+            ),
+        )
+
+        tap("trainer_plan_menu")
+
+        rule.onNodeWithTag("trainer_plan_menu_new_plan").assertExists()
+        rule.onNodeWithTag("trainer_plan_menu_diet_break").assertDoesNotExist()
+    }
+
+    @Test
+    fun planMenu_dietBreak_offlineIsDisabledWithItsHint() {
+        show(planState(pace(WeightPaceState.OnPace)), online = false)
+
+        tap("trainer_plan_menu")
+
+        rule.onNodeWithTag("trainer_plan_menu_diet_break").assertIsNotEnabled()
     }
 
     // Offline gating of the creating actions
@@ -275,14 +337,6 @@ class TrainerRootCardsTest {
 
         rule.onNodeWithTag("trainer_create_block").assertIsNotEnabled()
         rule.onNodeWithText("Sin conexión", substring = true).assertExists()
-    }
-
-    @Test
-    fun offline_tuPlanCrearPlanNuevoIsDisabled() {
-        show(planState(pace(WeightPaceState.OnPace)), online = false)
-        rule.openTrainerPlan()
-
-        rule.onNodeWithTag("trainer_create_plan_new").assertIsNotEnabled()
     }
 
     @Test

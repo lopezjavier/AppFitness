@@ -38,7 +38,7 @@ class TrainerPlanAfterCreateTest {
         val model = TrainerViewModel(FakeCoachRepository(), MutableClock(), plans = plans)
         rule.setContent {
             CompositionLocalProvider(LocalLifecycleOwner provides owner) {
-                AppTheme { TrainerRoutesWithBoxes(model, FakeConnectivityObserver()) }
+                AppTheme { TrainerRoute(viewModel = model, connectivity = FakeConnectivityObserver()) }
             }
         }
         rule.waitForIdle()
@@ -73,8 +73,7 @@ class TrainerPlanAfterCreateTest {
 
         rule.onNodeWithTag("trainer_create_plan").assertDoesNotExist()
         rule.onNodeWithTag("trainer_create_block").assertExists()
-        rule.openTrainerPlan()
-        rule.onNodeWithText("Plan activo").assertExists()
+        rule.onNodeWithTag("trainer_box_plan").assertExists()
     }
 
     @Test
@@ -84,7 +83,6 @@ class TrainerPlanAfterCreateTest {
 
         rule.onNodeWithTag("trainer_create_plan").assertDoesNotExist()
         rule.onNodeWithTag("trainer_create_block").assertExists()
-        rule.openTrainerPlan()
-        rule.onNodeWithText("Plan activo").assertExists()
+        rule.onNodeWithTag("trainer_box_plan").assertExists()
     }
 }

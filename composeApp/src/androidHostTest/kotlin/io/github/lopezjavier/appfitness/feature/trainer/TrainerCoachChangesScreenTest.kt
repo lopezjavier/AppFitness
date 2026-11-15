@@ -2,6 +2,7 @@ package io.github.lopezjavier.appfitness.feature.trainer
 
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.test.assertIsNotEnabled
+import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
@@ -64,8 +65,12 @@ class TrainerCoachChangesScreenTest {
     ) {
         rule.setContent {
             AppTheme {
-                TrainerWithBoxes(
-                    state = TrainerUiState.Content(coachChanges = rows, busyChangeId = busyId),
+                TrainerScreen(
+                    state = TrainerUiState.Content(
+                        plan = PlanSummary.Accepted(coachPlan(status = PlanStatus.Accepted)),
+                        coachChanges = rows,
+                        busyChangeId = busyId,
+                    ),
                     isOnline = flowOf(online),
                     onEvent = { events += it },
                     actions = TrainerActions(onOpenExercise = onOpenExercise),
@@ -74,13 +79,10 @@ class TrainerCoachChangesScreenTest {
             }
         }
         rule.waitForIdle()
-        // Pending flags stay on the root; the applied changes live in "Tu bloque".
-        if (rows.isNotEmpty() && rows.none { it.status == CoachChangeStatus.Pending }) rule.openTrainerBlock()
     }
 
     private fun showRoute(
         model: TrainerViewModel,
-        details: Boolean = true,
         onRange: (String, String) -> Unit = { _, _ -> },
     ) {
         val resolver = ExerciseNameResolver(
@@ -91,7 +93,6 @@ class TrainerCoachChangesScreenTest {
         rule.setContent {
             AppTheme {
                 CompositionLocalProvider(LocalAppMessages provides messages) {
-                    // T-283: the box screen is gone; `details` is ignored until the test block retargets this host.
                     TrainerRoute(
                         viewModel = model,
                         connectivity = FakeConnectivityObserver(),
@@ -121,10 +122,10 @@ class TrainerCoachChangesScreenTest {
     private val raise = CoachChangeFigures(weightFromKg = 60.0, weightToKg = 62.5, rpeMax = 8.0)
 
     @Test
-    fun noRows_hidesTheSection() {
+    fun noRows_hidesTheCard() {
         show(emptyList())
 
-        rule.onNodeWithTag("trainer_coach_changes_section").assertDoesNotExist()
+        rule.onNodeWithTag("trainer_changes_card").assertDoesNotExist()
     }
 
     @Test
@@ -133,16 +134,15 @@ class TrainerCoachChangesScreenTest {
 
         rule.onNodeWithText("Cambios del entrenador").assertExists()
         rule.onNodeWithText("Press de banca").assertExists()
-        rule.onNodeWithText(
-            "Subida de 60 kg a 62,5 kg: completaste todas las series en el máximo del rango con RPE 8 o menos.",
-        ).assertExists()
+        rule.onNodeWithTag("trainer_change_c1_figure", useUnmergedTree = true)
+            .assertTextEquals("60${NBSP}→${NBSP}62,5${NBSP}kg")
         rule.onNodeWithTag("trainer_coach_change_undo_c1").performClick()
 
         assertEquals(listOf<TrainerEvent>(TrainerEvent.UndoCoachChange("c1")), events)
     }
 
     @Test
-    fun appliedDrop_readsTheFivePercentReasonWithTheSessions() {
+    fun appliedDrop_readsTheFigureFromTo() {
         show(
             listOf(
                 row(
@@ -153,9 +153,8 @@ class TrainerCoachChangesScreenTest {
             ),
         )
 
-        rule.onNodeWithText(
-            "Bajada del 5 % de 80 kg a 76 kg: 2 sesiones seguidas sin llegar al mínimo del rango.",
-        ).assertExists()
+        rule.onNodeWithTag("trainer_change_c2_figure", useUnmergedTree = true)
+            .assertTextEquals("80${NBSP}→${NBSP}76${NBSP}kg")
     }
 
     @Test
@@ -168,11 +167,10 @@ class TrainerCoachChangesScreenTest {
     }
 
     @Test
-    fun undoneRow_readsDeshechoWithTheOldWeight_andNoAction() {
+    fun undoneRow_readsRevertidoWithTheOldWeight_andNoAction() {
         show(listOf(row("c4", CoachChangeKind.LoadRaise, CoachChangeStatus.Undone, raise)))
 
-        rule.onNodeWithTag("trainer_coach_change_row_c4_status", useUnmergedTree = true).assertExists()
-        rule.onNodeWithText("Deshecho").assertExists()
+        rule.onNodeWithTag("trainer_change_c4_status", useUnmergedTree = true).assertTextEquals("Revertido")
         rule.onNodeWithText("Vuelve a 60 kg.").assertExists()
         rule.onNodeWithTag("trainer_coach_change_undo_c4").assertDoesNotExist()
     }
@@ -256,7 +254,7 @@ class TrainerCoachChangesScreenTest {
         val opened = mutableListOf<String>()
         show(listOf(row("c1", CoachChangeKind.LoadRaise, figures = raise)), onOpenExercise = { opened += it })
 
-        rule.onNodeWithTag("trainer_coach_change_row_c1_headline").performClick()
+        rule.onNodeWithText("Press de banca").performClick()
 
         assertEquals(listOf("bench"), opened)
     }
@@ -273,7 +271,7 @@ class TrainerCoachChangesScreenTest {
         // The plural is read from the resources off the main thread.
         rule.waitUntil(timeoutMillis = RESOURCE_TIMEOUT_MS) { messages.shown.isNotEmpty() }
 
-        assertEquals(listOf("Deshecho, salvo en 2 rutinas que ya habías editado."), messages.shown)
+        assertEquals(listOf("Revertido, salvo en 2 rutinas que ya habías editado."), messages.shown)
     }
 
     @Test
@@ -315,7 +313,7 @@ class TrainerCoachChangesScreenTest {
             ),
         )
         changes.decideResult = Result.failure(AppException(AppError.Unknown))
-        showRoute(model(), details = false)
+        showRoute(model())
 
         rule.onNodeWithTag("trainer_coach_change_keep_c5").performClick()
         rule.waitForIdle()
@@ -337,7 +335,7 @@ class TrainerCoachChangesScreenTest {
             ),
         )
         val opened = mutableListOf<Pair<String, String>>()
-        showRoute(model(), details = false) { routineId, exerciseId -> opened += routineId to exerciseId }
+        showRoute(model()) { routineId, exerciseId -> opened += routineId to exerciseId }
 
         rule.onNodeWithTag("trainer_coach_change_add_range_c7").performClick()
         rule.waitForIdle()
@@ -347,3 +345,4 @@ class TrainerCoachChangesScreenTest {
 }
 
 private const val RESOURCE_TIMEOUT_MS = 5_000L
+private val NBSP = 160.toChar().toString()
