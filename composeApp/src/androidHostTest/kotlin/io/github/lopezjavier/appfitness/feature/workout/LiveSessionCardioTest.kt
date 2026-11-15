@@ -323,7 +323,7 @@ class LiveSessionCardioTest {
     }
 
     @Test
-    fun previousLine_showsOnlyWhenAPreviousValueExists() {
+    fun cardioRow_neverShowsAPreviousLine_evenIfTheRowCarriesOne() {
         val withPrevious = cardioState().let { state ->
             state.copy(
                 exercises = state.exercises.map {
@@ -333,7 +333,8 @@ class LiveSessionCardioTest {
         }
         showScreen(withPrevious)
 
-        rule.onNodeWithText("Antes: 5 km · 30:00").assertExists()
+        rule.onAllNodesWithText("Antes", substring = true).assertCountEquals(0)
+        rule.onNodeWithTag("live_set_0_1_previous").assertDoesNotExist()
     }
 
     @Test

@@ -55,7 +55,7 @@ internal fun LiveSetRow.toSetRowValues(
     placeholderDescription: String = "",
 ) = SetRowValues(
     index = setIndex,
-    previous = previous,
+    previous = previous.takeUnless { cardio },
     weight = weight,
     reps = reps,
     completed = completed,

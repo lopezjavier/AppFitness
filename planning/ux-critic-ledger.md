@@ -127,7 +127,7 @@ One row per ux-critic finding. The PM has the dispositions recorded here as the 
 | C-99 | the round start button is lime on every routine card; "Siguiente" is the cyan border, a flag and text | 2 | ADOPTED | 05 R-79, R-64 |
 | C-100 | routine cards lose the drag handle: touch-and-hold to reorder, "Subir"/"Bajar" in the ⋮ sheet | 2 | ADOPTED | 05 R-22 |
 | V-21 | live set row reaches 48 dp (KG/REPS 48 wide, TIPO/RPE 40 x 48); amends V-2 and C-04 (build gave 40 / 35 dp). Note: the type/RPE cells stay 40 x 48 dp with an accessibility-sweep exemption, kept (ux-reviewer decision, 2026-11-14) | 2 | ADOPTED | 05 R-80, §6.0b, §7 |
-| V-22 | distance/time set row on two lines, no ANTES column; "Antes:" on line 2 | 2 | ADOPTED | 05 §6.0b, R-80 |
+| V-22 | distance/time set row on two lines, no ANTES column; line 2 only the "Iniciar" pill fallback (no "Antes", user decision) | 2 | ADOPTED | 05 §6.0b, R-80 |
 | V-23 | stepper "+" and "Sin objetivo" fit (see C-75) | 2 | ADOPTED | 05 R-83 |
 | V-24 | year view breaks words (see C-73) | 2 | ADOPTED | 05 §6.0b |
 | V-25 | skeletons: box heights, 16 dp margins, fallback title "Rutina" | 2 | ADOPTED | 05 §6.0b, R-88 |

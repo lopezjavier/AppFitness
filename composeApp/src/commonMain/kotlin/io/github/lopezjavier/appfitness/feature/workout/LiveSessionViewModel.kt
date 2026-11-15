@@ -851,6 +851,8 @@ class LiveSessionViewModel(
 
     /** A failed read just means no ghost; it never blocks the session. */
     private suspend fun loadGhost(exerciseId: String) {
+        // Cardio has no progression: no previous tag and nothing to reuse.
+        if (traits[exerciseId]?.cardio == true) return
         val routineId = GhostData.routineFilter(previousMode, session?.routineId)
         repository.lastPerformance(exerciseId, routineId).getOrNull()?.takeIf { it.isNotEmpty() }
             ?.let { ghosts[exerciseId] = it }
@@ -1128,13 +1130,17 @@ class LiveSessionViewModel(
 
     /** Validates, then completes the set; a working set without RPE first asks for it (ADR-55). */
     private fun checkSet(position: Int, setIndex: Int) {
+        val untouchedStopwatch = findSet(position, setIndex)?.stopwatch
         fillBlankFromSuggestions(position, setIndex)
         val filled = findSet(position, setIndex)
         val valid = filled?.let { parseEntry(it, metricOf(exerciseIdAt(position))) } != null
         val needsRpe = filled?.setType != SetType.WarmUp && filled?.rpe == null && !isTimedCardio(position, setIndex)
         when {
             !valid -> {
-                updateSet(position, setIndex) { it.copy(invalid = true) }
+                // The planned time is only seeded when the set completes: a refused check leaves the stopwatch alone.
+                updateSet(position, setIndex) {
+                    it.copy(invalid = true, stopwatch = untouchedStopwatch ?: it.stopwatch)
+                }
                 publish()
             }
 
