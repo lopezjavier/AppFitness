@@ -142,8 +142,9 @@ class RoundThreeComponentsTest {
     fun decisionButtonRow_whenALabelDoesNotFit_stacksAcceptAboveDiscard() {
         rule.setContent {
             AppTheme {
-                // Too narrow for two half-width labels, whatever the text measurer reports for the fonts.
-                Box(Modifier.width(120.dp)) { DecisionButtonRow("Aceptar", "Descartar", {}, {}, "decision") }
+                // Narrower than the two button paddings alone, so the slot width is negative and no label can fit,
+                // even when the Robolectric text measurer reports a zero width for the fonts.
+                Box(Modifier.width(40.dp)) { DecisionButtonRow("Aceptar", "Descartar", {}, {}, "decision") }
             }
         }
 
