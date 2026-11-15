@@ -9,7 +9,6 @@ import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.material3.Text
@@ -20,6 +19,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
 import io.github.lopezjavier.appfitness.composeapp.resources.Res
 import io.github.lopezjavier.appfitness.composeapp.resources.trainer_goal_eyebrow
+import io.github.lopezjavier.appfitness.composeapp.resources.trainer_plan_calories_none
+import io.github.lopezjavier.appfitness.composeapp.resources.trainer_plan_calories_value
 import io.github.lopezjavier.appfitness.composeapp.resources.trainer_plan_chart_goal
 import io.github.lopezjavier.appfitness.composeapp.resources.trainer_plan_chart_today
 import io.github.lopezjavier.appfitness.composeapp.resources.trainer_plan_chart_today_value
@@ -31,10 +32,6 @@ import io.github.lopezjavier.appfitness.composeapp.resources.trainer_plan_pace_g
 import io.github.lopezjavier.appfitness.composeapp.resources.trainer_plan_rate_unit
 import io.github.lopezjavier.appfitness.composeapp.resources.trainer_plan_section
 import io.github.lopezjavier.appfitness.composeapp.resources.trainer_plan_tile_calories
-import io.github.lopezjavier.appfitness.composeapp.resources.trainer_plan_tile_no_data
-import io.github.lopezjavier.appfitness.composeapp.resources.trainer_plan_tile_of_kcal
-import io.github.lopezjavier.appfitness.composeapp.resources.trainer_plan_tiles_caption
-import io.github.lopezjavier.appfitness.composeapp.resources.trainer_plan_tiles_caption_empty
 import io.github.lopezjavier.appfitness.composeapp.resources.trainer_plan_verdict_cut_faster
 import io.github.lopezjavier.appfitness.composeapp.resources.trainer_plan_verdict_cut_not_falling
 import io.github.lopezjavier.appfitness.composeapp.resources.trainer_plan_verdict_cut_slower
@@ -48,11 +45,9 @@ import io.github.lopezjavier.appfitness.composeapp.resources.trainer_plan_verdic
 import io.github.lopezjavier.appfitness.composeapp.resources.trainer_plan_verdict_rising
 import io.github.lopezjavier.appfitness.composeapp.resources.trainer_plan_verdict_stable
 import io.github.lopezjavier.appfitness.designsystem.AppDateFormat
-import io.github.lopezjavier.appfitness.designsystem.AppLinearProgress
 import io.github.lopezjavier.appfitness.designsystem.AppNumberFormat
 import io.github.lopezjavier.appfitness.designsystem.AppShapes
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
-import io.github.lopezjavier.appfitness.designsystem.MetricTile
 import io.github.lopezjavier.appfitness.designsystem.NonBreaking
 import io.github.lopezjavier.appfitness.designsystem.Spacing
 import io.github.lopezjavier.appfitness.designsystem.StatusChip
@@ -68,7 +63,6 @@ import io.github.lopezjavier.appfitness.domain.model.CoachPlan
 import io.github.lopezjavier.appfitness.domain.model.PhaseWeeks
 import io.github.lopezjavier.appfitness.domain.usecase.WeightPace
 import io.github.lopezjavier.appfitness.domain.usecase.WeightPaceState
-import org.jetbrains.compose.resources.pluralStringResource
 import org.jetbrains.compose.resources.stringResource
 import kotlin.math.abs
 import kotlin.math.max
@@ -79,12 +73,9 @@ private const val CENTS = 100
 private const val RATE_EPSILON = 0.005
 private const val WEEK_CENTRE = 0.5f
 private const val MIN_LABEL_GAP_WEEKS = 1.5f
-private const val PERCENT = 100.0
 private const val MINUS = '−'
-private const val NO_VALUE = "–"
 private const val TILE_STAGGER = 1
 private const val KEY_DASH_FACTOR = 1.5f
-private val TileMinHeight = Spacing.minTouchTarget + Spacing.xl + Spacing.md + Spacing.xs
 
 /** A rate with its sign and two decimals ("+0,18", "−0,05"); zero has no sign. True minus sign (U+2212). */
 internal fun signedHundredths(value: Double): String {
@@ -100,7 +91,7 @@ internal fun signedHundredths(value: Double): String {
 /**
  * The accepted plan's card on the Trainer root (C-131..C-138): the goal header and the weight pace chart (the tappable
  * body that opens "Tu plan"), then, outside that tap target so the "?" and the button keep their own targets (R-103),
- * the figures line, the verdict, the weeks in the phase and the Calorías tile with its scope line. A summary only: "Crear
+ * the figures line, the verdict, the weeks in the phase and the Calorías row. A summary only: "Crear
  * plan nuevo" lives in "Tu plan".
  */
 @Suppress("LongParameterList") // The plan, the figures around it and the card's two events.
@@ -125,7 +116,7 @@ internal fun PlanCard(
                 PaceFigures(plan, pace)
                 if (pace != null) PaceVerdict(pace)
                 weeksInPhase?.takeIf { it.weeks > 0 }?.let { WeeksInPhaseLine(it) }
-                PlanTiles(plan, diaryCalories)
+                CaloriesRow(plan, diaryCalories)
             }
         },
     )
@@ -349,75 +340,24 @@ private fun slowerVerdict(cut: Boolean, slope: Double) = when {
 }
 
 /**
- * The Calorías tile (the mean per logged diary day since the plan started against the target) and its scope line,
- * always shown so the figure says what it covers; "sin datos" only when no day is logged. Cardio and steps live only in the "Tu bloque" card. Opens nothing.
+ * The Calorías row (05 §6.0g): a [GoalBarRow] like Cardio and Pasos al día, "2.122 de 2.507 kcal" (the mean per logged
+ * diary day since the plan started, then the target) over an always-cyan 8 dp bar; no percentage, no state word, no
+ * glyph. Without any logged day it reads "Sin datos de comidas" with no bar. Opens nothing.
  */
 @Composable
-private fun PlanTiles(plan: CoachPlan, diaryCalories: DiaryCalories?) {
-    val avgKcal = diaryCalories?.avgKcal
-    val targetKcal = plan.nutrition.targetKcal
-    val calories = TileData(
+private fun CaloriesRow(plan: CoachPlan, diaryCalories: DiaryCalories?) {
+    val target = plan.nutrition.targetKcal
+    val avg = diaryCalories?.avgKcal
+    GoalBarRow(
         label = stringResource(Res.string.trainer_plan_tile_calories),
-        value = avgKcal?.let { AppNumberFormat.integer(it) } ?: NO_VALUE,
-        sub = if (avgKcal != null) {
-            stringResource(Res.string.trainer_plan_tile_of_kcal, AppNumberFormat.integer(targetKcal))
+        value = if (avg == null) {
+            stringResource(Res.string.trainer_plan_calories_none)
         } else {
-            stringResource(Res.string.trainer_plan_tile_no_data)
+            stringResource(Res.string.trainer_plan_calories_value, AppNumberFormat.integer(avg), AppNumberFormat.integer(target))
         },
-        ratio = avgKcal?.let { it / targetKcal.toDouble() },
+        ratio = avg?.takeIf { target > 0 }?.let { it.toFloat() / target },
+        pace = null,
+        stagger = TILE_STAGGER,
         tag = "trainer_box_plan_tile_calories",
-    )
-    Column(verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
-        PlanTile(calories, 0, Modifier.fillMaxWidth())
-        Text(
-            text = if (diaryCalories == null) {
-                stringResource(Res.string.trainer_plan_tiles_caption_empty)
-            } else {
-                pluralStringResource(
-                    Res.plurals.trainer_plan_tiles_caption,
-                    diaryCalories.days,
-                    diaryCalories.days,
-                )
-            },
-            style = AppTheme.typography.bodySmall,
-            color = AppTheme.colors.textSecondary,
-            modifier = Modifier.testTag("trainer_box_plan_tiles_caption"),
-        )
-    }
-}
-
-private class TileData(val label: String, val value: String, val sub: String, val ratio: Double?, val tag: String)
-
-@Composable
-private fun PlanTile(tile: TileData, index: Int, modifier: Modifier) {
-    val percent = tile.ratio?.let { (it * PERCENT).roundToInt() }
-    MetricTile(
-        label = tile.label,
-        value = tile.value,
-        modifier = modifier.heightIn(min = TileMinHeight).testTag(tile.tag),
-        supporting = {
-            Column(verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
-                Row(horizontalArrangement = Arrangement.spacedBy(Spacing.xs)) {
-                    Text(
-                        text = tile.sub,
-                        style = AppTheme.typography.bodySmall,
-                        color = AppTheme.colors.textSecondary,
-                        modifier = Modifier.weight(1f, fill = false),
-                    )
-                    percent?.let {
-                        Text(
-                            text = NonBreaking.join(it.toString(), "%"),
-                            style = AppTheme.typography.bodySmall,
-                            color = AppTheme.colors.textSecondary,
-                        )
-                    }
-                }
-                AppLinearProgress(
-                    fraction = (tile.ratio ?: 0.0).toFloat(),
-                    stateDescription = "${tile.label} ${tile.value} ${tile.sub}",
-                    staggerIndex = TILE_STAGGER + index,
-                )
-            }
-        },
     )
 }

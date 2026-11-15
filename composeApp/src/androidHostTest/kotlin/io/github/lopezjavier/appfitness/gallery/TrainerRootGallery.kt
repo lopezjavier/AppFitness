@@ -4,6 +4,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import com.github.takahirom.roborazzi.ExperimentalRoborazziApi
 import io.github.lopezjavier.appfitness.feature.trainer.BlockSummary
+import io.github.lopezjavier.appfitness.feature.trainer.DiaryCalories
 import io.github.lopezjavier.appfitness.feature.trainer.TrainerBox
 import io.github.lopezjavier.appfitness.feature.trainer.TrainerBoxScreen
 import io.github.lopezjavier.appfitness.feature.trainer.TrainerScreen
@@ -74,6 +75,34 @@ private fun trainerHome(): List<GalleryEntry> {
         home("offline", TrainerFixtures.contentWithBlock(), online = false),
         home("large font (1.3)", TrainerFixtures.contentWithBlock(), fontScale = 1.3f),
         home("tablet width", TrainerFixtures.contentWithBlock(), wide = true),
+        // The Calorías row (05 §6.0g, always cyan): target 2.000 kcal; "plan and block active" is its empty state
+        // ("Sin datos de comidas", no bar).
+        home(
+            "calories, one day logged",
+            TrainerFixtures.contentWithBlock(diaryCalories = DiaryCalories(avgKcal = 1_690, days = 1)),
+        ),
+        home(
+            "calories, in progress (under target)",
+            TrainerFixtures.contentWithBlock(diaryCalories = DiaryCalories(avgKcal = 1_690, days = 10)),
+        ),
+        home(
+            "calories, on target",
+            TrainerFixtures.contentWithBlock(diaryCalories = DiaryCalories(avgKcal = 2_000, days = 10)),
+        ),
+        home(
+            "calories, over target",
+            TrainerFixtures.contentWithBlock(diaryCalories = DiaryCalories(avgKcal = 2_240, days = 10)),
+        ),
+        home(
+            "calories, in progress, large font (1.3)",
+            TrainerFixtures.contentWithBlock(diaryCalories = DiaryCalories(avgKcal = 1_690, days = 10)),
+            fontScale = 1.3f,
+        ),
+        home(
+            "calories, over target, tablet width",
+            TrainerFixtures.contentWithBlock(diaryCalories = DiaryCalories(avgKcal = 2_240, days = 10)),
+            wide = true,
+        ),
         home(
             "week bars, over target, large font (1.3)",
             TrainerFixtures.contentWithBlock(

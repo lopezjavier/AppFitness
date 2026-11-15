@@ -631,18 +631,18 @@ class TrainerViewModel(
         val weighIns = async { readWeighIns(localToday) }
         // The plan entry and the calorie card never block the screen: a failed read means none.
         val plan = readPlan()
-        // The Calorías tile reads the diary since the plan start, beside the rest of the chain.
-        val diaryCalories = async { diaryCaloriesOf(plan, localToday) }
+        // A failed read hides the line ("Llevas n semanas en esta fase"), never "0 semanas".
+        val weeksInPhase = async {
+            if (plan is PlanSummary.Accepted) loadWeeksInPhase?.invoke(today())?.getOrNull() else null
+        }
+        // The Calorías tile reads the diary since the phase start (it waits only for the weeks read, no extra chain).
+        val diaryCalories = async { diaryCaloriesOf(plan, localToday, weeksInPhase.await()) }
         // A diet-break plan switches the Diario target by plan week, so it ends before anything reads that target.
         val dietBreak = async { if (plan is PlanSummary.Accepted) plans?.applyDietBreak(today()) }
         val block = blocks.summaryFor(plan)
         dietBreak.await()
         val proposal = async { proposalFor(plan) }
         val checklist = goalsChecklistAsync(plan)
-        // A failed read hides the line ("Llevas n semanas en esta fase"), never "0 semanas".
-        val weeksInPhase = async {
-            if (plan is PlanSummary.Accepted) loadWeeksInPhase?.invoke(today())?.getOrNull() else null
-        }
         val welcomeBack = async { welcomeBackFor(plan, block) }
         // Assumption: the deload rule written by evaluateDeload does not change what welcomeBack and weeksInPhase read.
         val hub = hubOf(plan, block)
@@ -682,13 +682,15 @@ class TrainerViewModel(
     }
 
     /**
-     * The "Calorías" tile: the simple mean of kcal per logged diary day since the plan started, with no minimum of days
-     * (one logged day is enough). Null only when no day is logged since the start or the read failed.
+     * The "Calorías" tile: the simple mean of kcal per logged diary day since the phase started (today minus the weeks
+     * in phase; the block start when that read failed), with no minimum of days (one logged day is enough). Null only
+     * when no day is logged in the window or the read failed.
      */
-    private suspend fun diaryCaloriesOf(plan: PlanSummary, today: LocalDate): DiaryCalories? {
+    private suspend fun diaryCaloriesOf(plan: PlanSummary, today: LocalDate, weeksInPhase: PhaseWeeks?): DiaryCalories? {
         val repo = diary ?: return null
         val accepted = (plan as? PlanSummary.Accepted)?.plan ?: return null
-        val days = repo.summaries(accepted.blockStart, today).getOrNull().orEmpty()
+        val from = weeksInPhase?.let { today.minus(DatePeriod(days = it.weeks * DAYS_PER_WEEK)) } ?: accepted.blockStart
+        val days = repo.summaries(from, today).getOrNull().orEmpty()
         if (days.isEmpty()) return null
         return DiaryCalories(avgKcal = (days.sumOf { it.totals.kcal } / days.size).roundToInt(), days = days.size)
     }

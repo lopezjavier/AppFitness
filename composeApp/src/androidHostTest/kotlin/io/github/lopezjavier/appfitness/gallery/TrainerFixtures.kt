@@ -71,6 +71,7 @@ import io.github.lopezjavier.appfitness.feature.trainer.BlockPreviewUiState
 import io.github.lopezjavier.appfitness.feature.trainer.BlockSummary
 import io.github.lopezjavier.appfitness.feature.trainer.BuilderSaveError
 import io.github.lopezjavier.appfitness.feature.trainer.CardioEdit
+import io.github.lopezjavier.appfitness.feature.trainer.DiaryCalories
 import io.github.lopezjavier.appfitness.feature.trainer.FolderBlockUiState
 import io.github.lopezjavier.appfitness.feature.trainer.FolderPickerTarget
 import io.github.lopezjavier.appfitness.feature.trainer.GroupTargetRow
@@ -421,8 +422,10 @@ internal object TrainerFixtures {
         blockReviewDue: Boolean = false,
         weeks: List<PlanWeek> = weeks(),
         today: LocalDate = goalsToday,
+        diaryCalories: DiaryCalories? = null,
     ): TrainerUiState.Content = TrainerUiState.Content(
         plan = PlanSummary.Accepted(plan()),
+        diaryCalories = diaryCalories,
         calorieProposal = proposal,
         block = block,
         weeks = weeks,

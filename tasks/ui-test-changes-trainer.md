@@ -195,3 +195,20 @@ Tests/goldens that will fail or need an update:
 - Percent chip `trainer_box_block_percent` is `StatusTone.Good` (with the favourable glyph) at completed >= planned.
 - `AppLinearProgress` has `markerFraction`; with it the bar is 6 dp taller (catalogue/goldens of callers without it are unchanged).
 - `BlockSummaryBox(today)` and `TrainerUiState.Content.today` are back (the ViewModel sets the local date); fixtures `contentWithBlock(today = goalsToday = 29 oct 2026)`; gallery entry "week bars, empty (Monday)" uses planStart + 7 days (Monday 26 oct).
+
+## One goal-row format: Calorías, Cardio, Pasos al día, always cyan (05 §6.0g; replaces the never-merged `TargetGapBar` draft)
+
+Tests/goldens that will fail or need an update:
+- No state word or glyph on the Cardio and Pasos rows: tag `trainer_box_block_goal_state` and strings `trainer_block_state_{behind,on_track,done,over}` are deleted; bar `stateDescription` is now "Cardio, 81 de 150 min" / "Pasos al día, 1.492 de 7.000" (no state word).
+- `WeekGoalState`, `cardioGoalState`, `averageGoalState` are deleted (their unit tests go); `elapsedShare` and `dueShare` stay. No colour logic remains to unit-test.
+- Every goal bar fill is `athleticCyan` in every state (no amber, green or grey by threshold). The cardio pace marker shows whenever `dueShare` is in (0, 1) and cardio is under its target (no longer tied to Behind/OnTrack). Over target: full fill and the target marker at 1 / ratio (scale capped at 2x).
+- Calorías: the `MetricTile` is replaced by a `GoalBarRow` (tag `trainer_box_plan_tile_calories` kept; new `trainer_box_plan_tile_calories_value` and `trainer_box_plan_tile_calories_bar`; the same `_value` suffix now exists on `trainer_box_block_cardio` and `trainer_box_block_steps`). Value "1.690 de 2.000 kcal" (`trainer_plan_calories_value`); no data "Sin datos de comidas" (`trainer_plan_calories_none`) with no bar.
+- Caption `trainer_box_plan_tiles_caption` and strings `trainer_plan_tiles_caption` (plural), `trainer_plan_tiles_caption_empty`, `trainer_plan_tile_no_data`, `trainer_plan_tile_of_kcal` are deleted. No `TargetGapBar`, no `catalog_section_target_gap_bar` / `catalog_target_gap_bar_*` tags (never merged).
+- Fixtures: `contentWithBlock(diaryCalories)`; gallery entries "calories, one day logged", "in progress (under target)", "on target", "over target", "in progress, large font (1.3)", "over target, tablet width". Existing "week bars, *" entries lose the state words and glyphs and are all cyan.
+
+## Calorías mean reads the diary since the phase start (not the block start)
+
+Tests that need adding/updating in `TrainerViewModelTest` (fake diary records the `from` it was asked for):
+- 4 weeks in phase, entries only in the last 10 days: `summaries` is called with `from = today - 28 days`; the mean covers the 10 logged days only (kcal per logged day).
+- Weeks-in-phase read failed (or use case absent): `from = plan.blockStart` (previous behaviour).
+- Empty diary: `diaryCalories` is null ("Sin datos de comidas").
