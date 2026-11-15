@@ -56,8 +56,11 @@ import io.github.lopezjavier.appfitness.composeapp.resources.trainer_week_sessio
 import io.github.lopezjavier.appfitness.composeapp.resources.trainer_week_session_missed
 import io.github.lopezjavier.appfitness.composeapp.resources.trainer_week_session_pending
 import io.github.lopezjavier.appfitness.composeapp.resources.trainer_week_session_planned
+import io.github.lopezjavier.appfitness.composeapp.resources.trainer_week_chip_paused
 import io.github.lopezjavier.appfitness.composeapp.resources.trainer_week_title
+import io.github.lopezjavier.appfitness.composeapp.resources.trainer_week_title_of
 import io.github.lopezjavier.appfitness.designsystem.AppDateFormat
+import io.github.lopezjavier.appfitness.designsystem.AppLinearProgress
 import io.github.lopezjavier.appfitness.designsystem.AppNumberFormat
 import io.github.lopezjavier.appfitness.designsystem.AppShapes
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
@@ -65,7 +68,7 @@ import io.github.lopezjavier.appfitness.designsystem.InlineNote
 import io.github.lopezjavier.appfitness.designsystem.InlineNoteTone
 import io.github.lopezjavier.appfitness.designsystem.LocalAnimationsEnabled
 import io.github.lopezjavier.appfitness.designsystem.NonBreaking
-import io.github.lopezjavier.appfitness.designsystem.SegmentedProgress
+import io.github.lopezjavier.appfitness.designsystem.SegmentedProgressDefaults
 import io.github.lopezjavier.appfitness.designsystem.SegmentedProgressPicker
 import io.github.lopezjavier.appfitness.designsystem.Spacing
 import io.github.lopezjavier.appfitness.designsystem.StatusChip
@@ -85,16 +88,16 @@ private const val PERCENT = 100.0
 private const val STACK_FONT_SCALE = 1.2f
 private const val CARDIO_STAGGER = 3
 private const val STEPS_STAGGER = 4
+private val SessionBarHeight = Spacing.xs + Spacing.xs / 2
 
 /** What the "Tu bloque" card of the root needs: the retry event of its weeks note (the card opens nothing). */
 internal class BlockCardActions(val onEvent: (TrainerEvent) -> Unit)
 
 /**
- * "Tu bloque" card on the Trainer root (C-124, R-105). Title row: "Tu bloque", the block's state chip ("Semana 2 de 4",
- * "Bloque terminado") and the ⋮ [menu]. Body: the block chips ("Empieza el…", "Semana en pausa"), the moved end date
- * when weeks were paused, the week tabs ("S1"…, done filled with a check, current outlined, the chosen one underlined) and,
+ * "Tu bloque" card on the Trainer root (C-124, R-103, R-105, R-106). Title row: "Tu bloque", the block's state chip ("Semana 2 de 4",
+ * "Bloque terminado") and the ⋮ [menu]. Body: the block chips ("Empieza el…", "Semana en pausa"), the week tabs ("S1"…, done filled with a check, current outlined, the chosen one underlined) and,
  * under them, the chosen week as the "Semanas del bloque" card showed it: its chips, dates, "3 de 4 entrenos" with the percent
- * chip and the session segments, one status card per session, and the Cardio and Pasos al día bars. The current week
+ * chip and one continuous 6 dp bar, one status card per session, and the Cardio and Pasos al día bars. The current week
  * is chosen by default (the last one once the block ended, the first before it starts); the choice is local and
  * survives a recreation. [weeks] is empty when their read failed: the card then shows a retry note. [initialWeek]
  * preselects a week (the gallery). [today] places the cardio pace tick of the current week (05 §6.0f).
@@ -166,7 +169,6 @@ private fun BlockBody(
     val selected = sorted.firstOrNull { it.week == picked } ?: sorted.firstOrNull { it.week == defaultWeek(sorted) }
     Column(Modifier.fillMaxWidth().padding(top = Spacing.xs), verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
         BlockChips(status, sorted.firstOrNull())
-        BlockEndLine(pause)
         WeekPicker(status, sorted, selected?.week ?: 1) { week ->
             if (week != selected?.week) interacted = true
             picked = week
@@ -174,7 +176,16 @@ private fun BlockBody(
         selected?.let { week ->
             val animate = LocalAnimationsEnabled.current && !interacted
             CompositionLocalProvider(LocalAnimationsEnabled provides animate) {
-                WeekDetail(week, dietBreak = week.week == dietBreakWeek, today = today)
+                WeekDetail(
+                    week,
+                    WeekDetailContext(
+                        totalWeeks = sorted.size,
+                        paused = status.paused && !status.reviewDue,
+                        dietBreak = week.week == dietBreakWeek,
+                        today = today,
+                        pause = pause,
+                    ),
+                )
             }
         }
     }
@@ -214,7 +225,7 @@ private fun BlockEndLine(pause: BlockPause?) {
     val end = pause?.blockEnd ?: return
     if (pause.pausedWeeks <= 0) return
     Text(
-        text = stringResource(Res.string.trainer_block_end, AppDateFormat.title(end)),
+        text = stringResource(Res.string.trainer_block_end, AppDateFormat.shortDate(end)),
         style = AppTheme.typography.bodySmall,
         color = AppTheme.colors.textSecondary,
         modifier = Modifier.testTag("trainer_box_block_end"),
@@ -222,7 +233,7 @@ private fun BlockEndLine(pause: BlockPause?) {
 }
 
 /**
- * The block's weeks as squared tabs that are the progress line itself (R-105): "S1"… inside each (spoken "Semana 1,
+ * The block's weeks as squared tabs that are the progress line itself (R-106): "S1"… inside each (spoken "Semana 1,
  * hecha"), done weeks filled cyan with a check, the current one outlined, the chosen one underlined and bold; up to
  * six share the width, longer blocks scroll sideways.
  */
@@ -253,15 +264,30 @@ private fun WeekPicker(status: BlockStatus.Saved, weeks: List<PlanWeek>, selecte
     )
 }
 
+/** What the chosen week's detail needs besides the week: the block's size, pause state, diet break and today. */
+private class WeekDetailContext(
+    val totalWeeks: Int,
+    val paused: Boolean,
+    val dietBreak: Boolean,
+    val today: LocalDate?,
+    val pause: BlockPause?,
+)
+
 /**
  * The chosen week, as the "Semanas del bloque" card showed it (US-73, US-75): "Semana 2" with its chips, the dates,
- * the sessions headline with the percent chip and segments (a planned week reads "4 entrenos planificados"), one
+ * the moved end date under the dates, the sessions headline with the percent chip and its bar (a planned week reads "4 entrenos planificados"), one
  * status card per session and the Cardio and Pasos al día bars (a planned week shows only its cardio target).
  */
 @Composable
 @OptIn(ExperimentalLayoutApi::class)
-private fun WeekDetail(week: PlanWeek, dietBreak: Boolean, today: LocalDate?) {
+private fun WeekDetail(week: PlanWeek, context: WeekDetailContext) {
     val upcoming = week.phase == WeekPhase.Upcoming
+    val today = context.today
+    val title = if (context.totalWeeks > SegmentedProgressDefaults.MaxTabs) {
+        stringResource(Res.string.trainer_week_title_of, week.week, context.totalWeeks)
+    } else {
+        stringResource(Res.string.trainer_week_title, week.week)
+    }
     Column(
         Modifier.fillMaxWidth().padding(top = Spacing.xs).testTag("trainer_box_block_week_${week.week}"),
         verticalArrangement = Arrangement.spacedBy(Spacing.sm),
@@ -271,19 +297,22 @@ private fun WeekDetail(week: PlanWeek, dietBreak: Boolean, today: LocalDate?) {
             verticalArrangement = Arrangement.spacedBy(Spacing.xs),
         ) {
             Text(
-                text = stringResource(Res.string.trainer_week_title, week.week),
+                text = title,
                 style = AppTheme.typography.titleMedium,
                 color = AppTheme.colors.textPrimary,
                 modifier = Modifier.align(Alignment.CenterVertically).testTag("trainer_box_block_week_title"),
             )
             if (week.phase == WeekPhase.Current) {
+                // A paused week is "En pausa", never "Actual": the week is not running (R-106).
                 StatusChip(
-                    stringResource(Res.string.trainer_week_chip_current),
-                    StatusTone.Info,
+                    stringResource(
+                        if (context.paused) Res.string.trainer_week_chip_paused else Res.string.trainer_week_chip_current,
+                    ),
+                    if (context.paused) StatusTone.Neutral else StatusTone.Info,
                     Modifier.testTag("trainer_box_block_week_current"),
                 )
             }
-            if (dietBreak) {
+            if (context.dietBreak) {
                 StatusChip(
                     stringResource(Res.string.trainer_week_chip_diet_break),
                     StatusTone.Info,
@@ -304,6 +333,7 @@ private fun WeekDetail(week: PlanWeek, dietBreak: Boolean, today: LocalDate?) {
             color = AppTheme.colors.textSecondary,
             modifier = Modifier.testTag("trainer_box_block_week_dates"),
         )
+        BlockEndLine(context.pause)
         if (upcoming) {
             Text(
                 text = pluralStringResource(Res.plurals.trainer_week_planned, week.planned, week.planned),
@@ -313,12 +343,14 @@ private fun WeekDetail(week: PlanWeek, dietBreak: Boolean, today: LocalDate?) {
             )
         } else if (week.planned > 0) {
             SessionsHeadline(week)
-            SegmentedProgress(
-                total = week.planned,
-                done = week.completed,
+            // One continuous 6 dp bar, never segments: the headline above already says "3 de 4" (R-106).
+            AppLinearProgress(
+                fraction = week.completed.toFloat() / week.planned,
                 stateDescription = stringResource(Res.string.trainer_week_progress_cd, week.completed, week.planned),
-                testTag = "trainer_box_block_sessions_progress",
-                staggerOffset = 1,
+                fillColor = AppTheme.colors.athleticCyan,
+                barHeight = SessionBarHeight,
+                staggerIndex = 1,
+                modifier = Modifier.testTag("trainer_box_block_sessions_progress"),
             )
         }
         if (week.sessions.isNotEmpty()) SessionCards(week)

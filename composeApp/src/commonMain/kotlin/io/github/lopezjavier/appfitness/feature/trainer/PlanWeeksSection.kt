@@ -4,6 +4,7 @@ import androidx.compose.runtime.Composable
 import io.github.lopezjavier.appfitness.composeapp.resources.Res
 import io.github.lopezjavier.appfitness.composeapp.resources.action_cancel
 import io.github.lopezjavier.appfitness.composeapp.resources.action_done
+import io.github.lopezjavier.appfitness.composeapp.resources.trainer_week_extend_picker_title
 import io.github.lopezjavier.appfitness.designsystem.AppDatePickerDialog
 import io.github.lopezjavier.appfitness.domain.model.ActiveWeekExtension
 import kotlinx.datetime.LocalDate
@@ -21,6 +22,7 @@ internal fun ExtendWeekPicker(extension: ActiveWeekExtension, extend: ExtendWeek
         maxDate = extension.maxDay,
         minDate = extension.minDay,
         testTagPrefix = "trainer_week_extend_picker",
+        title = stringResource(Res.string.trainer_week_extend_picker_title),
     )
 }
 

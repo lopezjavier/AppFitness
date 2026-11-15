@@ -1,6 +1,11 @@
 package io.github.lopezjavier.appfitness.gallery
 
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Modifier
+import io.github.lopezjavier.appfitness.designsystem.OfflineBanner
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import com.github.takahirom.roborazzi.ExperimentalRoborazziApi
 import io.github.lopezjavier.appfitness.feature.trainer.BlockSummary
@@ -185,11 +190,40 @@ private fun trainerRootCards(): List<GalleryEntry> {
         busyChangeId = TrainerFixtures.BUSY_CHANGE_ID,
         diaryCalories = DiaryCalories(avgKcal = 1_890, days = 12),
     )
+    val withPace = TrainerFixtures.contentWithBlock(diaryCalories = DiaryCalories(avgKcal = 1_890, days = 12))
+        .copy(weightPace = TrainerFixtures.weightPace())
     return listOf(
+        // The Offline banner sits right below the top bar of the shell, over the offline root.
+        GalleryEntry(
+            TRAINER_AREA,
+            TRAINER_SCREEN,
+            "offline, with the Sin conexión banner",
+            covers = setOf("TrainerHome"),
+        ) {
+            Column(Modifier.fillMaxSize()) {
+                OfflineBanner(Modifier.fillMaxWidth())
+                TrainerScreen(
+                    state = TrainerFixtures.contentWithBlock(),
+                    isOnline = flowOf(false),
+                    onEvent = {},
+                    modifier = Modifier.weight(1f),
+                )
+            }
+        },
         root("cards, coach changes (applied, reverted, undo running)", withChanges),
         root("cards, coach changes offline", withChanges.copy(busyChangeId = null), online = false),
         root("cards, large font (1.3)", withChanges, fontScale = 1.3f),
         root("cards, tablet width", withChanges, wide = true),
+        // The pace key ("Ritmo" and "Objetivo") shows only under a drawn chart; "cards" above have no weigh-ins (R-102).
+        root("plan chart with weigh-ins", withPace),
+        root("plan chart with weigh-ins, large font (1.3)", withPace, fontScale = 1.3f),
+        root("plan chart with weigh-ins, tablet width", withPace, wide = true),
+        root("plan read failed", TrainerUiState.Error, tall = false),
+        root(
+            "weeks could not be read",
+            TrainerFixtures.contentWithBlock(weeks = emptyList()),
+        ),
+        root("no block yet, Crear bloque", TrainerFixtures.contentWithBlock(block = BlockSummary.None)),
         root(
             "week picker, current week (default)",
             TrainerFixtures.contentWithBlock(weeks = TrainerFixtures.mixedWeeks()),
@@ -307,7 +341,7 @@ internal fun trainerRootEntries(): List<GalleryEntry> =
 @OptIn(ExperimentalRoborazziApi::class)
 @RunWith(RobolectricTestRunner::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
-@Config(qualifiers = "w360dp-h640dp-xxhdpi")
+@Config(qualifiers = "es-rES-w360dp-h640dp-xxhdpi")
 class TrainerRootGallery {
     @get:Rule
     val rule = createComposeRule()

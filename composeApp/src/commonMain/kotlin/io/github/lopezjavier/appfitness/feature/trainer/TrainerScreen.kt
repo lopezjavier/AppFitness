@@ -292,23 +292,24 @@ private fun LazyGridScope.blockBoxes(
 ) {
     if (state.blockStatus !is BlockStatus.Saved && state.appliedCoachChanges.isEmpty()) return
     item("block_card") {
-        Column(verticalArrangement = Arrangement.spacedBy(Spacing.cardGap)) {
-            BlockSummaryBox(
-                state.blockStatus,
-                state.weeks,
-                actions = BlockCardActions(onEvent = onEvent),
-                modifier = cardModifier,
-                today = state.today,
-                pause = state.pause,
-                dietBreakWeek = (state.plan as? PlanSummary.Accepted)?.plan?.nutrition?.dietBreak?.week,
-                menu = {
-                    BlockCardMenu(state, online, onEvent, initiallyOpen = preview.openMenu == TrainerRootMenu.Block)
-                },
-                initialWeek = preview.week,
-            )
-            CoachChangesCard(state, exerciseNames, online, onEvent)
-        }
+        BlockSummaryBox(
+            state.blockStatus,
+            state.weeks,
+            actions = BlockCardActions(onEvent = onEvent),
+            modifier = cardModifier,
+            today = state.today,
+            pause = state.pause,
+            dietBreakWeek = (state.plan as? PlanSummary.Accepted)?.plan?.nutrition?.dietBreak?.week,
+            menu = {
+                BlockCardMenu(state, online, onEvent, initiallyOpen = preview.openMenu == TrainerRootMenu.Block)
+            },
+            initialWeek = preview.week,
+        )
         BlockMenuTargets(state, online, onEvent)
+    }
+    // Its own full-width row: the changes read at the full width, never squeezed into the block's cell (R-107).
+    if (state.appliedCoachChanges.isNotEmpty()) {
+        fullSpanItem("coach_changes") { CoachChangesCard(state, exerciseNames, online, onEvent) }
     }
 }
 

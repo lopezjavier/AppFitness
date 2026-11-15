@@ -7,6 +7,7 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxHeight
@@ -65,6 +66,9 @@ object SegmentedProgressDefaults {
     /** Up to this many tabs share the width (no scroll at 360 dp and font scale 1.3); more scroll at [ScrollTabWidth]. */
     const val MaxTabs: Int = 6
     val ScrollTabWidth: Dp = 56.dp
+
+    /** How much of the next tab shows at the edge of a scrolling row, so the scroll is evident. */
+    val PeekWidth: Dp = 24.dp
 
     /** The done tab's Outlined check and its gap to the label. */
     val TickSize: Dp = 16.dp
@@ -128,14 +132,14 @@ fun SegmentedProgress(
 }
 
 /**
- * Week tabs that are the progress line itself (R-105): equal-width squared tabs (8 dp corners, 4 dp apart, 36 dp
+ * Week tabs that are the progress line itself (R-106): equal-width squared tabs (8 dp corners, 4 dp apart, 36 dp
  * visible inside a 48 dp touch area, `Role.Tab`) with a short [label] ("S2"). The look comes from the step's state,
  * never from an animation: a done step is filled `athleticCyan` from the first frame with an Outlined check and its
  * label in `onNeonLime` (about 8.9:1); the [current] step is the dark track with a 1.5 dp cyan outline and a
  * `textPrimary` label (about 8.5:1 over the track on `surfaceRaised`); an upcoming step is the track with a
  * `textSecondary` label (about 5.1:1). The [selected] step adds a bold label and a 3 dp `textPrimary` bar under its tab
  * (shape and weight, never colour alone). Up to [SegmentedProgressDefaults.MaxTabs] steps share the full width (no
- * scroll at 360 dp and font scale 1.3); above that each tab is 56 dp wide and the row scrolls, brought to the
+ * scroll at 360 dp and font scale 1.3); above that each tab is about 56 dp wide and the row scrolls with the last visible tab cut by 24 dp (so the scroll is evident), brought to the
  * selection on first show. [description] is each step's spoken label ("Semana 2, actual"); [stateDescription] the
  * row's. Nothing animates, so a new selection replays nothing (R-97). Items are tagged `<testTag>_item_<step>`.
  */
@@ -160,41 +164,57 @@ fun SegmentedProgressPicker(
     var selectedX by remember { mutableStateOf<Int?>(null) }
     // A long block: bring the chosen tab into view once; later scrolling is the user's own.
     var scrolledOnce by remember { mutableStateOf(false) }
-    LaunchedEffect(selectedX) {
-        val x = selectedX
-        if (!shared && !scrolledOnce && x != null) {
-            scroll.scrollTo((x - with(density) { SegmentedProgressDefaults.ScrollTabWidth.roundToPx() }).coerceAtLeast(0))
-            scrolledOnce = true
-        }
-    }
-    Row(
-        modifier
-            .fillMaxWidth()
-            .testTag(testTag)
-            .let { if (shared) it else it.horizontalScroll(scroll) }
-            .semantics { this.stateDescription = stateDescription },
-        horizontalArrangement = Arrangement.spacedBy(SegmentedProgressDefaults.Gap),
-    ) {
-        repeat(total) { index ->
-            val step = index + 1
-            val state = when {
-                index < done -> StepState.Done
-                current == step -> StepState.Current
-                else -> StepState.Upcoming
+    BoxWithConstraints(Modifier.fillMaxWidth()) {
+        // The last visible tab is cut by about 24 dp, so the row visibly continues (R-106).
+        val tabWidth = scrollTabWidth(maxWidth)
+        LaunchedEffect(selectedX, tabWidth) {
+            val x = selectedX
+            if (!shared && !scrolledOnce && x != null) {
+                scroll.scrollTo((x - with(density) { tabWidth.roundToPx() }).coerceAtLeast(0))
+                scrolledOnce = true
             }
-            val tabModifier = if (shared) Modifier.weight(1f) else Modifier.width(SegmentedProgressDefaults.ScrollTabWidth)
-            WeekTab(
-                label = label(step),
-                state = state,
-                selected = selected == step,
-                description = description(step),
-                onSelect = { onSelect(step) },
-                modifier = tabModifier
-                    .onPlaced { if (selected == step) selectedX = it.positionInParent().x.toInt() }
-                    .testTag(SegmentedProgressDefaults.itemTag(testTag, step)),
-            )
+        }
+        Row(
+            modifier
+                .fillMaxWidth()
+                .testTag(testTag)
+                .let { if (shared) it else it.horizontalScroll(scroll) }
+                .semantics { this.stateDescription = stateDescription },
+            horizontalArrangement = Arrangement.spacedBy(SegmentedProgressDefaults.Gap),
+        ) {
+            repeat(total) { index ->
+                val step = index + 1
+                val state = when {
+                    index < done -> StepState.Done
+                    current == step -> StepState.Current
+                    else -> StepState.Upcoming
+                }
+                val tabModifier = if (shared) Modifier.weight(1f) else Modifier.width(tabWidth)
+                WeekTab(
+                    label = label(step),
+                    state = state,
+                    selected = selected == step,
+                    description = description(step),
+                    onSelect = { onSelect(step) },
+                    modifier = tabModifier
+                        .onPlaced { if (selected == step) selectedX = it.positionInParent().x.toInt() }
+                        .testTag(SegmentedProgressDefaults.itemTag(testTag, step)),
+                )
+            }
         }
     }
+}
+
+/**
+ * The width of a scrolling tab: whole tabs of about [SegmentedProgressDefaults.ScrollTabWidth] that fit [available],
+ * stretched so a further tab shows by [SegmentedProgressDefaults.PeekWidth] at the edge.
+ */
+private fun scrollTabWidth(available: Dp): Dp {
+    val gap = SegmentedProgressDefaults.Gap
+    val peek = SegmentedProgressDefaults.PeekWidth
+    val whole = ((available - peek + gap) / (SegmentedProgressDefaults.ScrollTabWidth + gap)).toInt().coerceAtLeast(1)
+    // whole * (w + gap) + peek = available: the next tab starts [peek] before the edge.
+    return ((available - peek) / whole - gap).coerceAtLeast(SegmentedProgressDefaults.ScrollTabWidth)
 }
 
 private enum class StepState { Done, Current, Upcoming }

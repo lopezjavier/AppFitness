@@ -143,7 +143,7 @@ internal fun BlockReviewEntry(onOpen: () -> Unit) {
     )
 }
 
-/** The "Eliminar bloque" confirmation (R-08); the action is a text link in the "Tu bloque" card of the root (R-103). */
+/** The "Eliminar bloque" confirmation (R-08); the action is in the ⋮ of the "Tu bloque" card of the root (R-103, R-105). */
 @Composable
 internal fun RemoveBlockDialog(onEvent: (TrainerEvent) -> Unit) {
     AppConfirmDialog(

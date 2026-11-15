@@ -50,7 +50,7 @@ private const val HALF = 2
 
 /**
  * "Tu plan" on the Trainer root: "Crear plan" without a plan, the pending proposal, or (accepted) the [PlanCard] with
- * the weight pace and the Calorías row; the accepted card opens nothing, its actions are in its ⋮ [menu] (R-105).
+ * the weight pace and the Calorías row; the accepted card opens nothing, its actions are in its ⋮ [menu] (R-103, R-105).
  */
 @Suppress("LongParameterList") // The plan, the figures of the accepted card and the root's events.
 @Composable

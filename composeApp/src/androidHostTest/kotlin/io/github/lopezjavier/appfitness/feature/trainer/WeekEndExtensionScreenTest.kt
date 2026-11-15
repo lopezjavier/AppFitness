@@ -152,7 +152,7 @@ class WeekEndExtensionScreenTest {
         show(trainer(pickerOpen = true))
 
         day(27).performClick()
-        rule.onNodeWithTag("trainer_week_extend_picker_confirm").performClick()
+        rule.onNodeWithTag("trainer_week_extend_picker_accept").performClick()
 
         assertEquals(listOf<TrainerEvent>(TrainerEvent.ExtendWeek(LocalDate(2026, 10, 27))), events)
     }
@@ -161,7 +161,7 @@ class WeekEndExtensionScreenTest {
     fun confirmingWithoutChange_sendsTheWeeksCurrentLastDay() {
         show(trainer(pickerOpen = true))
 
-        rule.onNodeWithTag("trainer_week_extend_picker_confirm").performClick()
+        rule.onNodeWithTag("trainer_week_extend_picker_accept").performClick()
 
         assertEquals(listOf<TrainerEvent>(TrainerEvent.ExtendWeek(LocalDate(2026, 10, 25))), events)
     }
@@ -170,7 +170,7 @@ class WeekEndExtensionScreenTest {
     fun cancellingThePicker_sendsDismissOnly() {
         show(trainer(pickerOpen = true))
 
-        rule.onNodeWithTag("trainer_week_extend_picker_dismiss").performClick()
+        rule.onNodeWithTag("trainer_week_extend_picker_discard").performClick()
 
         assertEquals(listOf<TrainerEvent>(TrainerEvent.DismissExtendWeekPicker), events)
     }
@@ -196,7 +196,7 @@ class WeekEndExtensionScreenTest {
         rule.openTrainerBlock()
 
         day(27).performClick()
-        rule.onNodeWithTag("trainer_week_extend_picker_confirm").performClick()
+        rule.onNodeWithTag("trainer_week_extend_picker_accept").performClick()
         rule.waitForIdle()
 
         rule.onNode(hasText("19 al 27 oct")).assertExists()
@@ -246,7 +246,7 @@ class WeekEndExtensionScreenTest {
 
         tester.emulateSavedInstanceStateRestore()
         rule.waitForIdle()
-        rule.onNodeWithTag("trainer_week_extend_picker_confirm").performClick()
+        rule.onNodeWithTag("trainer_week_extend_picker_accept").performClick()
 
         assertEquals(listOf<TrainerEvent>(TrainerEvent.ExtendWeek(LocalDate(2026, 10, 28))), events)
     }

@@ -40,6 +40,7 @@ import io.github.lopezjavier.appfitness.composeapp.resources.ic_trending_up
 import io.github.lopezjavier.appfitness.composeapp.resources.trainer_change_figure
 import io.github.lopezjavier.appfitness.composeapp.resources.trainer_week_title
 import io.github.lopezjavier.appfitness.designsystem.AppShapes
+import io.github.lopezjavier.appfitness.designsystem.AppTextButton
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
 import io.github.lopezjavier.appfitness.designsystem.GhostButton
 import io.github.lopezjavier.appfitness.designsystem.OfflineHint
@@ -60,7 +61,7 @@ private const val STACK_ACTION_FONT_SCALE = 1.3f
 private val GlyphSize = Spacing.xl + Spacing.lg
 
 /**
- * "Cambios del entrenador" on the Trainer root (R-105), right under "Tu bloque", only while applied changes exist: one
+ * "Cambios del entrenador" on the Trainer root (R-107), full width under "Tu bloque", only while applied changes exist: one
  * card with the title and one row per change, apart by hairlines. A row reads what changed (the exercise and
  * "80 → 82,5 kg" with a rising or falling glyph; a deload "Semana de descarga · Semana 3"), its state when closed
  * ("Revertido" with the old figure struck through and "Vuelve a 80 kg.", "Cancelada", "Subida aceptada") and, while it
@@ -162,13 +163,14 @@ private fun rowAction(row: CoachChangeRowUi, name: String, onEvent: (TrainerEven
 
 @Composable
 private fun ChangeAction(action: ChangeActionUi, busy: Boolean, enabled: Boolean) {
-    GhostButton(
-        text = action.text,
-        onClick = action.onClick,
-        modifier = Modifier.testTag(action.tag).semantics { contentDescription = action.contentDescription },
-        enabled = enabled && !busy,
-        loading = busy,
-    )
+    val modifier = Modifier.testTag(action.tag).semantics { contentDescription = action.contentDescription }
+    if (busy) {
+        // The busy row shows its progress on the button.
+        GhostButton(text = action.text, onClick = action.onClick, modifier = modifier, enabled = false, loading = true)
+    } else {
+        // A compact text action (48 dp target): the name keeps the width, "Press de banca" stays on one line (R-107).
+        AppTextButton(text = action.text, onClick = action.onClick, modifier = modifier, enabled = enabled)
+    }
 }
 
 /** Up for a raise (cyan), down for a drop, flat for a kept weight, a moon for a deload; dimmed once closed. */

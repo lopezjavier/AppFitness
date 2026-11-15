@@ -389,9 +389,9 @@ for file in "${kotlin_feature[@]+"${kotlin_feature[@]}"}"; do
     */feature/trainer/TrainerScreen.kt) root_card_files+=("$file"); root_screen+=("$file") ;;
   esac
 done
-# G22 (R-103): the "Tu plan" root card summarises; its actions live in the details screen. TrainerBlockCard.kt is not
-# scanned because it also hosts the "Tu bloque" details actions.
-scan G22 "action button, pencil or help button in the Tu plan root card (R-103: actions live in the details screen)" \
+# G22 (R-103): the "Tu plan" root card summarises; its actions live in its ⋮ menu (R-105), never in the body.
+# TrainerBlockCard.kt is not scanned because the week tabs and the coach-change rows there are controls of the card.
+scan G22 "action button, pencil or help button in the Tu plan root card (R-103: actions live in the card's menu)" \
   '\b(GhostButton|AppTextButton|PrimaryButton|SecondaryButton|HelpButton|AppIconButton)\(' '' \
   "${root_summary_cards[@]+"${root_summary_cards[@]}"}"
 # G23 (R-96): a feature never declares its own SummaryCard / SectionCard.
@@ -400,8 +400,9 @@ scan G23 "feature-local SummaryCard/SectionCard (R-96: use the designsystem one)
 # G24 (R-102): hub root cards show energy figures and never a macro bar.
 scan G24 "MacroStackedBar in a Trainer root card (R-102: macros live in Plan nutricional)" \
   '\bMacroStackedBar\(' '' "${root_card_files[@]+"${root_card_files[@]}"}"
-# G27 (R-103): the root screen opens no dialog of its own (removal and week extension moved to the details).
-scan G27 "dialog on the Trainer root screen (R-103: dialogs belong to the details screens)" \
+# G27 (R-103): the root screen opens no dialog of its own (removal and week extension are hosted by the card menus'
+# targets, never by TrainerScreen.kt).
+scan G27 "dialog on the Trainer root screen (R-103: dialogs belong to the card menu targets)" \
   '\b(RemoveBlockDialog|AppDatePickerDialog|AppConfirmDialog)\(' '' "${root_screen[@]+"${root_screen[@]}"}"
 if [ -f "$strings_file" ]; then
   # G25 (R-100): the word "coach" is never shown; it is "entrenador".

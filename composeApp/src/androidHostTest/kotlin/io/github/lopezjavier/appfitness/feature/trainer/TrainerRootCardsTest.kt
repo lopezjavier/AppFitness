@@ -38,9 +38,9 @@ private val NBSP = 160.toChar().toString()
 private const val XXHDPI = 3f
 
 /**
- * The Trainer root as approved on 2026-11-15 (T-283 Block A): summary cards without actions (R-103), the details
- * screens that took the actions, offline gating, centred empty state (R-92), facts that never break (R-93) and the
- * pinned footers (R-99).
+ * The Trainer root as approved on 2026-11-15 (T-283 Block A): summary cards that open nothing, their actions in a ⋮
+ * (R-103, R-105), offline gating, centred empty state (R-92), facts that never break (R-93) and the pinned footers
+ * (R-99).
  */
 @RunWith(RobolectricTestRunner::class)
 @Config(qualifiers = "w360dp-h2400dp-xxhdpi")

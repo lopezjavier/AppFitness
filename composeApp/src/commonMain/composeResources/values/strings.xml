@@ -204,7 +204,7 @@
     <string name="catalog_sheet_name_title">Nueva carpeta</string>
     <string name="catalog_sheet_name_item">una carpeta</string>
     <string name="offline_banner_message">Sin conexión</string>
-    <string name="offline_hint_template">Sin conexión: no se puede %1$s</string>
+    <string name="offline_hint_template">Sin conexión: no se puede %1$s.</string>
     <string name="offline_state_title">Sin conexión</string>
     <string name="offline_state_message">Conéctate para ver estos datos.</string>
     <string name="discard_changes_title">¿Descartar los cambios?</string>
@@ -1856,10 +1856,13 @@
     <string name="coach_deload_request_error">No se pudo pedir la descarga. Inténtalo de nuevo.</string>
     <string name="coach_deload_request_not_available">Ya hay una descarga en este bloque.</string>
     <string name="block_week_paused">Semana en pausa</string>
-    <string name="trainer_block_end">El bloque termina el %1$s</string>
+    <string name="trainer_block_end">El bloque termina el %1$s.</string>
+    <string name="trainer_week_extend_picker_title">Último día de la semana</string>
     <string name="trainer_week_extend_offline">cambiar el último día</string>
     <string name="trainer_week_extend_error">No se pudo cambiar el último día. Inténtalo de nuevo.</string>
     <string name="trainer_week_title">Semana %1$d</string>
+    <string name="trainer_week_title_of">Semana&#160;%1$d&#160;de&#160;%2$d</string>
+    <string name="trainer_week_chip_paused">En pausa</string>
     <string name="trainer_week_chip_current">Actual</string>
     <string name="trainer_week_chip_deload">Descarga</string>
     <plurals name="trainer_week_planned">

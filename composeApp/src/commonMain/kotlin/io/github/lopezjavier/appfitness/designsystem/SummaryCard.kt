@@ -45,9 +45,10 @@ data class SummaryFact(
  * (`headlineMetric`) with its [headlineUnit], a [progress] slot, the key facts as [lines] (`bodyMedium`), key-value
  * [facts] (8 dp apart), a decorative chevron aligned to the top and a full-width [footer] slot. [highlighted] marks a
  * card that waits for a decision (R-94). The body (title, status, content, headline, progress, lines, facts) is one
- * `Role.Button` of at least 48 dp and carries [testTag]. The [footer] sits outside that button with its own targets (R-103). Slots bring their own spacing: the column gap is 4 dp.
+ * `Role.Button` of at least 48 dp and carries [testTag]. The [footer] sits outside that button with its own targets.
+ * Slots bring their own spacing: the column gap is 4 dp.
  *
- * A card that opens nothing (R-105: the Trainer root cards) passes a null [onClick]: no chevron, no button and no
+ * A card that opens nothing (R-103: the Trainer root cards) passes a null [onClick]: no chevron, no button and no
  * merged body (its content keeps its own targets), and [titleAction] (a 48 dp ⋮ button) closes the title row.
  */
 @Composable

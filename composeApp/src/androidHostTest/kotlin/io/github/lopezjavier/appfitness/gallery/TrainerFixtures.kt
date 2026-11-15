@@ -93,6 +93,9 @@ import io.github.lopezjavier.appfitness.feature.trainer.SwapPickerUi
 import io.github.lopezjavier.appfitness.feature.trainer.TrainerUiState
 import io.github.lopezjavier.appfitness.feature.trainer.YourDataUiState
 import io.github.lopezjavier.appfitness.feature.trainer.toRow
+import io.github.lopezjavier.appfitness.domain.usecase.DailyWeight
+import io.github.lopezjavier.appfitness.domain.usecase.WeightPace
+import io.github.lopezjavier.appfitness.domain.usecase.WeightPaceFit
 import kotlinx.datetime.LocalDate
 import kotlin.time.Instant
 
@@ -508,6 +511,20 @@ internal object TrainerFixtures {
         blockReviewDue = blockReviewDue,
     )
 
+    /**
+     * The weight pace of the accepted plan: eight weeks of weigh-ins (four a week) falling about 0.3 kg a week, so the
+     * chart, its "Ritmo" and "Objetivo" key and the verdict all show. Computed by the real fit for [today].
+     */
+    fun weightPace(today: LocalDate = LocalDate(2026, 11, 12)): WeightPace {
+        val start = LocalDate(2026, 9, 21)
+        val daily = (0 until PACE_WEEKS).flatMap { week ->
+            listOf(0, 1, 3, 5).map { day ->
+                DailyWeight(LocalDate.fromEpochDays(start.toEpochDays() + week * 7 + day), 76.0 - 0.3 * week - 0.02 * day)
+            }
+        }
+        return WeightPaceFit.compute(daily, today, -0.375, Phase.Cut, null, planStart, plan().outcomes.firstOrNull())
+    }
+
     /** The hub before any plan: the "Crear plan" entry only. */
     fun contentWithoutPlan(): TrainerUiState.Content = TrainerUiState.Content(provisionalCount = null)
 
@@ -763,6 +780,7 @@ internal object TrainerFixtures {
     val refusedDays = DaysCheck.Refused(routines = 1, days = 2)
 
     private const val PLAN_ID = "plan-1"
+    private const val PACE_WEEKS = 8
     private val SESSION_NAMES = listOf("Empuje", "Tirón", "Piernas")
     private val WEEK_SESSION_NAMES = listOf("Torso A", "Pierna A", "Torso B", "Pierna B")
 }

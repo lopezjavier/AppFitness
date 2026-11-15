@@ -89,7 +89,7 @@ internal fun signedHundredths(value: Double): String {
 }
 
 /**
- * The accepted plan's card on the Trainer root (C-131..C-138, R-105): the goal header and the weight pace chart, then
+ * The accepted plan's card on the Trainer root (C-131..C-138, R-102, R-105): the goal header and the weight pace chart, then
  * the phase's reason with its "?", the figures line, the verdict, the weeks in the phase and the Calorías row. The card
  * opens nothing (the "Tu plan" screen is gone): its actions are in the ⋮ [menu] of the title row.
  */
@@ -114,7 +114,8 @@ internal fun PlanCard(
         footer = {
             Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
                 PhaseReasonLine(plan)
-                PaceFigures(plan, pace)
+                // The key explains the chart's lines: without a chart the rate chip already says it (R-102).
+                if (pace != null && hasChart(pace)) PaceFigures(plan, pace)
                 if (pace != null) PaceVerdict(pace)
                 weeksInPhase?.takeIf { it.weeks > 0 }?.let { WeeksInPhaseLine(it) }
                 CaloriesRow(plan, diaryCalories)
@@ -122,6 +123,8 @@ internal fun PlanCard(
         },
     )
 }
+
+private fun hasChart(pace: WeightPace): Boolean = pace.planLine != null || pace.weekly.isNotEmpty()
 
 /** The panel: eyebrow, goal name, planned rate chip and the "Meta" line over the chart (C-131). */
 @Composable
@@ -172,7 +175,7 @@ private fun PlanChartPanel(plan: CoachPlan, pace: WeightPace?) {
                 }
             }
         }
-        if (pace != null && (pace.planLine != null || pace.weekly.isNotEmpty())) {
+        if (pace != null && hasChart(pace)) {
             WeightPaceChart(
                 data = chartDataOf(pace),
                 valueLabel = { AppNumberFormat.decimal(it) },
