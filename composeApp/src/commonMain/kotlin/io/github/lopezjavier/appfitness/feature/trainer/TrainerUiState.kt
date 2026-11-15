@@ -13,7 +13,6 @@ import io.github.lopezjavier.appfitness.domain.model.PhaseWeeks
 import io.github.lopezjavier.appfitness.domain.model.PlanWeek
 import io.github.lopezjavier.appfitness.domain.model.ProgressionFlagDecision
 import io.github.lopezjavier.appfitness.domain.model.WeekPhase
-import io.github.lopezjavier.appfitness.domain.model.WeekSummary
 import io.github.lopezjavier.appfitness.domain.usecase.GoalChecklist
 import io.github.lopezjavier.appfitness.domain.usecase.WeightPace
 import kotlinx.datetime.LocalDate
@@ -101,8 +100,8 @@ sealed interface TrainerUiState {
         val coachChanges: List<CoachChangeRowUi> = emptyList(),
         /** Id of the change whose undo or decision is in flight; the other rows' actions are disabled meanwhile. */
         val busyChangeId: String? = null,
-        /** The latest finished week's summary behind the "Resumen semanal" box figures (C-127); null when none. */
-        val latestWeekSummary: WeekSummary? = null,
+        /** Mean kcal of the days logged this week so far (the "Calorías" tile); null when none is logged. */
+        val weekDiaryKcal: Int? = null,
         /** The block has ended and its review is open: shows "Revisión del bloque" and hides "Crear bloque". */
         val blockReviewDue: Boolean = false,
         /**

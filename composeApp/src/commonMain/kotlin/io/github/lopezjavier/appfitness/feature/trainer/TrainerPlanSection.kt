@@ -59,7 +59,6 @@ import io.github.lopezjavier.appfitness.domain.model.CalorieProposal
 import io.github.lopezjavier.appfitness.domain.model.CoachPlan
 import io.github.lopezjavier.appfitness.domain.model.PhaseWeeks
 import io.github.lopezjavier.appfitness.domain.model.PlanWeek
-import io.github.lopezjavier.appfitness.domain.model.WeekSummary
 import io.github.lopezjavier.appfitness.domain.usecase.GoalChecklist
 import io.github.lopezjavier.appfitness.domain.usecase.WeightPace
 import io.github.lopezjavier.appfitness.feature.weight.signedTenths
@@ -84,7 +83,7 @@ internal fun PlanEntrySection(
     onOpenPlan: () -> Unit = {},
     weightPace: WeightPace? = null,
     weeksInPhase: PhaseWeeks? = null,
-    latestSummary: WeekSummary? = null,
+    weekDiaryKcal: Int? = null,
     currentWeek: PlanWeek? = null,
     modifier: Modifier = Modifier,
 ) {
@@ -107,7 +106,7 @@ internal fun PlanEntrySection(
             plan = plan.plan,
             pace = weightPace,
             weeksInPhase = weeksInPhase,
-            latestSummary = latestSummary,
+            weekDiaryKcal = weekDiaryKcal,
             currentWeek = currentWeek,
             onOpen = onOpenPlan,
             modifier = modifier,
@@ -127,9 +126,7 @@ internal fun LazyGridScope.planDetails(
     cardioEdit: CardioEdit? = null,
     onEvent: (TrainerEvent) -> Unit = {},
     goalsChecklist: GoalChecklist? = null,
-    canStartNewBlock: Boolean = false,
     weeksInPhase: PhaseWeeks? = null,
-    reviewDue: Boolean = false,
     dietBreakSaving: Boolean = false,
 ) {
     if (plan !is PlanSummary.Accepted) return
@@ -150,8 +147,6 @@ internal fun LazyGridScope.planDetails(
     if (plan.plan.nutrition.editedByUser && goalsChecklist != null) {
         fullSpanItem("goals") { GoalsChecklistSection(goalsChecklist) }
     }
-    // While the review is due its footer is the only way on: no "Bloque nuevo" entry here.
-    if (canStartNewBlock && !reviewDue) fullSpanItem("new_block") { NewBlockEntries(online, onEvent) }
     // The root card only summarises: replacing the plan is an action of this screen (R-103).
     fullSpanItem("replace_plan") {
         Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {

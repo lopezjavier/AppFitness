@@ -73,7 +73,6 @@ import io.github.lopezjavier.appfitness.designsystem.WeightPacePoint
 import io.github.lopezjavier.appfitness.domain.model.CoachPlan
 import io.github.lopezjavier.appfitness.domain.model.PhaseWeeks
 import io.github.lopezjavier.appfitness.domain.model.PlanWeek
-import io.github.lopezjavier.appfitness.domain.model.WeekSummary
 import io.github.lopezjavier.appfitness.domain.usecase.WeightPace
 import io.github.lopezjavier.appfitness.domain.usecase.WeightPaceState
 import org.jetbrains.compose.resources.stringResource
@@ -117,7 +116,7 @@ internal fun PlanCard(
     plan: CoachPlan,
     pace: WeightPace?,
     weeksInPhase: PhaseWeeks?,
-    latestSummary: WeekSummary?,
+    weekDiaryKcal: Int?,
     currentWeek: PlanWeek?,
     onOpen: () -> Unit,
     modifier: Modifier = Modifier,
@@ -134,7 +133,7 @@ internal fun PlanCard(
                 PaceFigures(plan, pace)
                 if (pace != null) PaceVerdict(pace)
                 weeksInPhase?.takeIf { it.weeks > 0 }?.let { WeeksInPhaseLine(it) }
-                PlanTiles(plan, latestSummary, currentWeek)
+                PlanTiles(plan, weekDiaryKcal, currentWeek)
             }
         },
     )
@@ -357,13 +356,11 @@ private fun slowerVerdict(cut: Boolean, slope: Double) = when {
     else -> Res.string.trainer_plan_verdict_gain_not_rising
 }
 
-/** Calorías (last finished week), Cardio and Pasos (this week) as three tiles that open nothing (C-135). */
+/** Calorías (mean of the days logged this week), Cardio and Pasos (this week) as three tiles that open nothing (C-135). */
 @Composable
-private fun PlanTiles(plan: CoachPlan, summary: WeekSummary?, week: PlanWeek?) {
+private fun PlanTiles(plan: CoachPlan, avgKcal: Int?, week: PlanWeek?) {
     val activity = plan.nutrition.activity
-    val nutrition = summary?.takeIf { !it.paused }?.nutrition?.takeIf { it.gateOk }
-    val avgKcal = nutrition?.avgKcal
-    val targetKcal = nutrition?.targetKcal ?: plan.nutrition.targetKcal
+    val targetKcal = plan.nutrition.targetKcal
     val cardioTarget = week?.cardioMinTarget?.takeIf { it > 0 } ?: activity?.cardioMinWeek?.takeIf { it > 0 }
     val stepsTarget = week?.stepsTarget?.takeIf { it > 0 } ?: activity?.stepsDay?.takeIf { it > 0 }
     val noData = stringResource(Res.string.trainer_plan_tile_no_data)
