@@ -179,17 +179,17 @@ One row per ux-critic finding. The PM has the dispositions recorded here as the 
 | C-122 | "Provisional" chip inside the row's supporting slot | 3 | ACCEPTED (not built) | 05 §6.0c |
 | C-123 | Trainer root: Tu plan about 218 dp, Tu bloque about 206 dp, 12 dp apart, 24 dp before "Tus datos" | 3 | IN REVIEW (batch 5) | 05 §6.0c |
 | C-124 | Tu bloque: week chip, "2 de 4 entrenos esta semana", session segments, "Por hacer", Cardio and Pasos al día progress facts | 3 | IN REVIEW (batch 5) | 05 §6.0c, R-93 |
-| C-125 | Tu plan: full-width goal band (OBJETIVO, goal name, rate, graphic), kcal headline, macro bar and text | 3 | IN REVIEW (batch 5) | 05 §6.0c, §10 |
-| C-126 | `GoalGraphic(phase)`: decorative 96 x 48 dp sketch per goal | 3 | IN REVIEW (batch 5; designsystem) | 05 §6.0c |
-| C-127 | Resumen semanal card: headline, segments, Cardio and Pasos facts, mean weight and calories tiles | 3 | IN REVIEW (batch 5) | 05 §6.0c |
-| C-128 | Trainer root at two columns: Series por grupo muscular card, 840 dp header cap, 220 dp minimum row-1 cards | 3 | IN REVIEW (batch 5) | 05 §6.0c, R-91 |
+| C-125 | Tu plan: full-width goal band (OBJETIVO, goal name, rate, graphic), kcal headline, macro bar and text | 3 | REWORK (user mockup 2026-11-15: replaced by C-131; the band keeps eyebrow, name and rate, loses the graphic, kcal headline and macro bar) | 05 §6.0c, §10 |
+| C-126 | `GoalGraphic(phase)`: decorative 96 x 48 dp sketch per goal | 3 | REWORK (user mockup 2026-11-15: removed, the weight chart replaces it; delete the component and its catalogue entry) | 05 §6.0c |
+| C-127 | Resumen semanal card: headline, segments, Cardio and Pasos facts, mean weight and calories tiles | 3 | REWORK (user mockup 2026-11-15: the box is replaced by the row "Informes y resumen semanal", C-137) | 05 §6.0c |
+| C-128 | Trainer root at two columns: Series por grupo muscular card, 840 dp header cap, 220 dp minimum row-1 cards | 3 | REWORK (user mockup 2026-11-15: the sets card goes with the summary box; the 840 dp cap stays, C-139) | 05 §6.0c, R-91 |
 | C-129 | Tu bloque states: no block (glyph card with "Crear bloque"), not started, paused, ended, weeks read failed | 3 | IN REVIEW (batch 5) | 05 §6.0c |
 | C-130 | Trainer root motion: stagger macro bar, goal stroke, segments, cardio, steps, summary; no replay on refresh | 3 | IN REVIEW (batch 5) | 05 §8 R-97 |
 | V-50 | "Resumen semanal" and changes-only "Tu bloque" boxes get figure lines | 3 | REWORK (root part, batch 5) | 05 §6.0c, R-95 |
 | V-51 | `BlockReviewEntry` becomes a `SummaryCard` | 3 | ACCEPTED (not built) | 05 R-95 |
 | V-52 | rename/fold the feature-local `SummaryCard`s | 3 | ACCEPTED (not built) | 05 R-96 |
 | V-53 | duplicate "Tu plan" header dropped | 3 | ACCEPTED (not built) | 05 §6.0c |
-| V-54 | "Eliminar bloque" moves to the top-bar ⋮ sheet | 3 | ACCEPTED (not built) | 05 §6.0c |
+| V-54 | "Eliminar bloque" moves to the top-bar ⋮ sheet | 3 | REWORK (built in batch 2; user mockup 2026-11-15: it lives inside the "Tu bloque" card as a destructive text link, same dialog; the ⋮ and its sheet go, V-73) | 05 §6.0c |
 | V-55 | nutrition figures as tiles; 2 x 2 grid allowed (PM decision on R-85) | 3 | ACCEPTED (not built) | 05 R-85 amendment |
 | V-56 | one card per box/row list | 3 | ACCEPTED (not built) | 05 R-96 |
 | V-57 | lime check on the current day type | 3 | ACCEPTED (not built) | 05 §6.0c |
@@ -207,7 +207,18 @@ One row per ux-critic finding. The PM has the dispositions recorded here as the 
 | V-69 | "Ya tienes un bloque en marcha" offers a way out | 3 | ACCEPTED (not built) | 05 §6.0c |
 | V-70 | offline hint placement (low confidence) | 3 | ACCEPTED (not built) | 05 §6.0c, R-88 |
 | V-71 | "Objetivo" eyebrow and goal name in the Tu plan band | 3 | IN REVIEW (batch 5) | 05 §10 |
-| V-72 | "Tus datos" root row as a one-row `RowGroupCard`, 56 dp | 3 | IN REVIEW (batch 5) | 05 §6.0c |
+| V-72 | "Tus datos" root row as a one-row `RowGroupCard`, 56 dp | 3 | IN REVIEW (batch 5; batch 6 makes it the second row of a two-row group, C-137) | 05 §6.0c |
+| C-131 | Tu plan card (user mockup 2026-11-15): goal header, `WeightPaceChart` (dashed plan line to "Meta", solid trend, weekly dots, faint daily dots, "rango probable" band), figures line "Ritmo / Pautado", verdict, "Llevas N semanas", three tiles, "Crear plan nuevo" inside | 3 | ACCEPTED (not built; user, 2026-11-15) | 05 §6.0d, 07 §5 |
+| C-132 | `WeightPaceChart` (designsystem, new): neutral verdict only, no corridor, no error colour, no forward projection; the verdict line is the text alternative | 3 | ACCEPTED (not built) | 05 §6.0d, R-101 |
+| C-133 | Verdict wording from 07 §5 (5); the mockup's "Ritmo óptimo" and "En pasillo" chips and the "Fase activa" chip are dropped | 3 | ACCEPTED (not built) | 05 §10, R-101 |
+| C-134 | Tu plan tiles: Calorías, Cardio, Pasos (kcal eaten against the plan target; calories IN, macros OUT; no macro bar on the root) | 3 | ACCEPTED (not built) | 05 §6.0d, R-102 |
+| C-135 | Tu bloque card: week chip with pencil, segmented progress, "2 de 4 entrenos esta semana" with percent chip, four session cards (Listo / Pendiente), Cardio and Pasos al día bars | 3 | ACCEPTED (not built) | 05 §6.0d |
+| C-136 | In-card actions: "Crear plan nuevo" (Tu plan), "Mi entrenamiento" and "Eliminar bloque" (Tu bloque), outside the card's tap target | 3 | ACCEPTED (not built) | 05 R-103 |
+| C-137 | Root row "Informes y resumen semanal" (leading Outlined icon) in one `RowGroupCard` with "Tus datos" | 3 | ACCEPTED (not built) | 05 §6.0d, §10 |
+| C-138 | Root states: no plan, no block, not started, paused, ended, too few weigh-ins, offline | 3 | ACCEPTED (not built) | 05 §6.0d |
+| C-139 | Wide layout: two columns (Tu plan, Tu bloque) at 300 dp minimum cells under the 840 dp cap | 3 | ACCEPTED (not built) | 05 R-91 |
+| C-140 | Motion: the plan line draws first, then the trend, then the dots; tiles and bars fill with the R-97 stagger | 3 | ACCEPTED (not built) | 05 R-97 |
+| V-73 | Top-bar ⋮ and its sheet on the Trainer root removed (nothing left in it) | 3 | ACCEPTED (not built) | 05 §6.0d |
 
 Status values:
 - `PROPOSED`: reported by the critic, not decided yet.
