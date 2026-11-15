@@ -1,5 +1,7 @@
 package io.github.lopezjavier.appfitness.feature.trainer
 
+import io.github.lopezjavier.appfitness.domain.AppError
+import io.github.lopezjavier.appfitness.domain.AppException
 import io.github.lopezjavier.appfitness.domain.model.CalorieProposal
 import io.github.lopezjavier.appfitness.domain.model.CoachPlan
 import io.github.lopezjavier.appfitness.domain.model.DietBreakApplication
@@ -121,8 +123,15 @@ internal class FakeCoachPlanRepository : CoachPlanRepository {
         return request
     }
 
+    /** The next [currentFailures] reads of [currentPlan] fail (a cold start racing the session), then [current] answers. */
+    var currentFailures = 0
+
     override suspend fun currentPlan(): Result<CoachPlan?> {
         currentReads++
+        if (currentFailures > 0) {
+            currentFailures--
+            return Result.failure(AppException(AppError.Network))
+        }
         return current
     }
 
