@@ -8,7 +8,7 @@ These three rows were still marked "open" in `phase2/09-open-questions.md` (froz
 
 | Question | Raised | Status | Where to look |
 |---|---|---|---|
-| E13 Q48: what "Eliminar historial del entrenador" deletes now (US-74) | 2026-11-01 | **Out of scope for the app (user, 2026-11-08, ADR-101).** "Eliminar historial del entrenador" does not exist and will not: personal app, and E20 adds a data export. | `phase2/09-open-questions.md` row E13 Q48 |
+| E13 Q48: what "Eliminar historial del entrenador" deletes now (US-74) | 2026-11-01 | **Out of scope for the app (user, 2026-11-08, ADR-101).** "Eliminar historial del entrenador" does not exist and will not: personal app, and E21 adds a data export. | `phase2/09-open-questions.md` row E13 Q48 |
 | E13 Q52: training around an injury without an injured area (US-87; `07` §7, §12.1, §12.8 row 7) | 2026-11-02 | **Resolved by `fitness-scientist` (2026-11-07), no user decision needed:** the app has no injured-area field; discomfort is logged per exercise with a level. Levels 1-3: load increases stop for 7 days, the exercise stays. Levels 4-5: no load suggestion for that exercise, a swap to a same-pattern exercise is offered and applied only on tap, then a 3-step return; after 14 days a note suggests a professional. Rules and sources in `07-coach-design.md` §7 and §12.1 (dated 2026-11-07). | `07-coach-design.md` |
 | E13 Q55: life changes once the model builds blocks; drop "Adaptar el bloque"? (US-91) | 2026-11-03 | **Resolved (user, 2026-11-08, ADR-101).** "Adaptar el bloque" is dropped. Every life change (days, goal, trip) goes through "Bloque nuevo", the early review that opens the pre-filled builder; E15 provides it for goal changes and after a break. | `phase2/09-open-questions.md` row E13 Q55 |
 | E15 Q1: where "Bloque nuevo" lives | 2026-11-08 | **Resolved (user, 2026-11-08)**; built in T-240 | Always on the Trainer root during a block, in the place of "Crear plan nuevo" |
@@ -25,3 +25,20 @@ These three rows were still marked "open" in `phase2/09-open-questions.md` (froz
 | E17 Q-E17-3: references of OFF foods | 2026-11-09 | **Resolved (user, 2026-11-09)**; built in T-254/T-255 | Diary, favourites and comida items point to the personal copy |
 | E17 Q-E17-4: hard block | 2026-11-09 | **Resolved (user, 2026-11-09, ADR-104)**; built in T-257/T-258 | No failing food is saved by any path; the AI retry sends the previous estimate and the reason; the user's 10 wrong foods were fixed in production |
 | E17 checkpoints | 2026-11-09 | **Resolved (user)** | Checkpoint E17 (items 6-10 approved) and Checkpoint E17-fix (7 items) approved |
+
+## E20 Illness (draft, 2026-11-15)
+
+Raised by the user in chat (product-owner). All open; resolved in the first task of the epic, see [`epics/E20-illness.md`](epics/E20-illness.md) for the options and recommendations.
+
+| Question | Raised | Status | Where to look |
+|---|---|---|---|
+| E20 Q1: does an illness shift the block, and does a block count sessions or calendar weeks? | 2026-11-15 | **Open** (user, after `fitness-scientist`) | E20 |
+| E20 Q2: a block that ends on its date with sessions missing | 2026-11-15 | **Open** (user) | E20 |
+| E20 Q3: illness catalogue and what each one pauses | 2026-11-15 | **Open** (user + `fitness-scientist`) | E20, `07` §12.5 |
+| E20 Q4: how illness days are entered (open-ended or fixed, maximum, past days) | 2026-11-15 | **Open** (user) | E20 |
+| E20 Q5: food guidance for an illness (timing, clinical sources, suggestion or block, disclaimer) | 2026-11-15 | **Open** (user, sources from `fitness-scientist`) | E20 |
+| E20 Q6: weight, calories and steps on illness days | 2026-11-15 | **Open** (`fitness-scientist`) | E20, `07` |
+| E20 Q7: return to training after an illness | 2026-11-15 | **Open** (`fitness-scientist`) | E20, `07` §12.5 |
+| E20 Q8: the 14-day return rule and "welcome back" for a short illness | 2026-11-15 | **Open** (user) | E20, ADR-101 |
+| E20 Q9: where an illness is marked and how it is shown | 2026-11-15 | **Open** (user + `ux-reviewer`) | E20 |
+| E20 Q10: order relative to the closure epic | 2026-11-15 | **Resolved (user, 2026-11-15)** | Illness is E20 and runs before Closure, renumbered E21 |
