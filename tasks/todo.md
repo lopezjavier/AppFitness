@@ -18,6 +18,7 @@ Last task ID used: T-295 (T-289…T-295 = fix batches of review round 0, planner
 
 ## Open follow-ups carried into Phase 3
 
+- Cardio timer bug (user report 2026-11-15, third report), fixed in #679 (`fix(cardio)`, merged 2026-11-15, no T-###) and confirmed fixed by the user on the device (2026-11-16): a refused LISTO (blank distance) left the planned seconds in the stopwatch, so play started at 35:00 (bar amber with "+", no target alert, cell 1:10:30). `checkSet` now restores the stopwatch when the check is refused. User decision: no "use previous" and no "Antes ..." line on cardio rows (docs `05` V-22/R-58/C-04 updated). The reported screenshot is deleted.
 - T-238 (pr-reviewer, non-blocking): extract local vals for the ktlint-wrapped `kind == RestAlertKind.Cardio` in `RestAlertNotifier.post` and `minutes != null` in `SessionSetRow.cardioPlaceholder`.
 - T-238: `LiveSessionViewModel.timerBarUi` uses `names.getValue(...)`, which can throw (use a fallback).
 - T-238: missing ViewModel tests: deleting the active cardio set, starting a second cardio run, a refused session pause (`restoreCardio`), a target reached while a rest owns the bar.
