@@ -248,6 +248,7 @@ private fun trainerRootCards(): List<GalleryEntry> {
             kind = GalleryKind.Sheet,
             tall = false,
             preview = TrainerRootPreview(openMenu = TrainerRootMenu.Plan),
+            covers = setOf("CardMenu"),
         ),
         root(
             "Tu plan menu open, offline",
@@ -256,6 +257,7 @@ private fun trainerRootCards(): List<GalleryEntry> {
             kind = GalleryKind.Sheet,
             tall = false,
             preview = TrainerRootPreview(openMenu = TrainerRootMenu.Plan),
+            covers = setOf("CardMenu"),
         ),
         root(
             "Tu bloque menu open",
@@ -263,6 +265,7 @@ private fun trainerRootCards(): List<GalleryEntry> {
             kind = GalleryKind.Sheet,
             tall = false,
             preview = TrainerRootPreview(openMenu = TrainerRootMenu.Block),
+            covers = setOf("CardMenu"),
         ),
         root(
             "Tu bloque menu open, offline",
@@ -271,6 +274,7 @@ private fun trainerRootCards(): List<GalleryEntry> {
             kind = GalleryKind.Sheet,
             tall = false,
             preview = TrainerRootPreview(openMenu = TrainerRootMenu.Block),
+            covers = setOf("CardMenu"),
         ),
         root(
             "cardio sheet from the Tu plan menu",
