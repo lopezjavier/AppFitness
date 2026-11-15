@@ -103,7 +103,7 @@ private fun trainerBoxes(): List<GalleryEntry> {
             "remove block confirmation",
             TrainerFixtures.contentWithBlock().copy(removeBlockConfirm = true),
             kind = GalleryKind.Dialog,
-            covers = arrayOf("SavedBlockActions"),
+            covers = arrayOf("RemoveBlockDialog"),
         ),
         block("offline", TrainerFixtures.contentWithBlock(), online = false),
         block("loading", TrainerUiState.Loading),

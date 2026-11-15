@@ -22,6 +22,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import io.github.lopezjavier.appfitness.composeapp.resources.Res
+import io.github.lopezjavier.appfitness.composeapp.resources.action_done
 import io.github.lopezjavier.appfitness.composeapp.resources.action_retry
 import io.github.lopezjavier.appfitness.composeapp.resources.block_week_paused
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_check
@@ -35,7 +36,6 @@ import io.github.lopezjavier.appfitness.composeapp.resources.trainer_block_remov
 import io.github.lopezjavier.appfitness.composeapp.resources.trainer_block_remove_action
 import io.github.lopezjavier.appfitness.composeapp.resources.trainer_block_session_cd_done
 import io.github.lopezjavier.appfitness.composeapp.resources.trainer_block_session_cd_pending
-import io.github.lopezjavier.appfitness.composeapp.resources.trainer_block_session_done
 import io.github.lopezjavier.appfitness.composeapp.resources.trainer_block_starts_chip
 import io.github.lopezjavier.appfitness.composeapp.resources.trainer_block_status_ended
 import io.github.lopezjavier.appfitness.composeapp.resources.trainer_block_status_week
@@ -279,7 +279,7 @@ private fun SessionCard(week: PlanWeek, session: PlanWeekSession, modifier: Modi
                 modifier = Modifier.size(Spacing.lg),
             )
             Text(
-                text = stringResource(Res.string.trainer_block_session_done),
+                text = stringResource(Res.string.action_done),
                 style = AppTheme.typography.bodySmall,
                 color = AppTheme.colors.electricGreen,
             )

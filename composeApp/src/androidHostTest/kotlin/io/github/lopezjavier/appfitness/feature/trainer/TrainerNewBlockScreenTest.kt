@@ -44,14 +44,14 @@ class TrainerNewBlockScreenTest {
     }
 
     @Test
-    fun duringASavedBlock_bloqueNuevoAndMiEntrenamientoReplaceCrearPlanNuevo() {
+    fun duringASavedBlock_bloqueNuevoAndMiEntrenamientoShowNextToCrearPlanNuevo() {
         show(savedBlock())
 
         rule.onNodeWithTag("trainer_new_block").assertExists()
         rule.onNodeWithText("Bloque nuevo").assertExists()
         rule.onNodeWithTag("trainer_my_training").assertExists()
         rule.onNodeWithText("Mi entrenamiento").assertExists()
-        rule.onNodeWithTag("trainer_create_plan_new").assertDoesNotExist()
+        rule.onNodeWithTag("trainer_create_plan_new").assertExists()
     }
 
     @Test

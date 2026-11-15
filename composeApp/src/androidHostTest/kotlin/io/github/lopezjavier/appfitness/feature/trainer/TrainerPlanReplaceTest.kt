@@ -50,7 +50,7 @@ class TrainerPlanReplaceTest {
     }
 
     @Test
-    fun withAnAcceptedPlan_crearPlanNuevoReplacesCrearPlan() {
+    fun withAnAcceptedPlan_crearPlanNuevoIsOnTuPlanAndNotOnTheRootCard() {
         show(content(accepted))
 
         rule.onNodeWithTag("trainer_create_plan").assertDoesNotExist()
@@ -59,11 +59,11 @@ class TrainerPlanReplaceTest {
     }
 
     @Test
-    fun withASavedBlock_crearPlanNuevoIsGone() {
+    fun withASavedBlock_crearPlanNuevoStaysOnTuPlan() {
         show(TrainerUiState.Content(plan = accepted, block = BlockSummary.Saved(coachBlock(saved = true))))
 
-        rule.onNodeWithTag("trainer_create_plan_new").assertDoesNotExist()
-        rule.onNodeWithText("Crear plan nuevo").assertDoesNotExist()
+        rule.onNodeWithTag("trainer_create_plan_new").assertExists()
+        rule.onNodeWithText("Crear plan nuevo").assertExists()
     }
 
     @Test

@@ -66,10 +66,11 @@ class TrainerSummaryBoxesTest {
     }
 
     @Test
-    fun withoutAPlan_theRootOffersCrearPlan_andNoBoxes() {
+    fun withoutAPlan_theRootOffersCrearPlanInTheEmptyState_andNoBoxes() {
         show(TrainerUiState.Content())
 
-        rule.onNodeWithTag("trainer_create_plan").assertExists()
+        rule.onNodeWithTag("trainer_empty_action").assertExists()
+        rule.onNodeWithTag("trainer_create_plan").assertDoesNotExist()
         rule.onNodeWithTag("trainer_box_plan").assertDoesNotExist()
         rule.onNodeWithTag("trainer_box_block").assertDoesNotExist()
     }
@@ -98,8 +99,9 @@ class TrainerSummaryBoxesTest {
         show(savedState(listOf(planWeek(week = 1, phase = WeekPhase.Past), planWeek(week = 2), planWeek(week = 3))))
 
         rule.onNodeWithTag("trainer_box_block").assertExists()
-        rule.onNodeWithText("Semana 2 de 3").assertExists()
-        rule.onNodeWithText("3 de 4 entrenos · 75 %").assertExists()
+        rule.onNodeWithTag("trainer_box_block_chip", useUnmergedTree = true).assertTextContains("Semana 2 de 3")
+        rule.onNodeWithTag("trainer_box_block_headline", useUnmergedTree = true).assertTextContains("3 de 4")
+        rule.onNodeWithTag("trainer_box_block_percent", useUnmergedTree = true).assertTextContains("75 %")
         rule.onNodeWithTag("trainer_week_1").assertDoesNotExist()
         rule.onNodeWithTag("trainer_remove_block").assertDoesNotExist()
         rule.onNodeWithTag("trainer_create_block").assertDoesNotExist()

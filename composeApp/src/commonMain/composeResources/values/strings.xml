@@ -2541,7 +2541,6 @@
     <string name="trainer_block_steps_none">Sin datos de pasos</string>
     <string name="trainer_block_starts">Empieza el %1$s.</string>
     <string name="trainer_block_starts_chip">Empieza el %1$s</string>
-    <string name="trainer_block_session_done">Listo</string>
     <string name="trainer_block_session_cd_done">%1$s, listo</string>
     <string name="trainer_block_session_cd_pending">%1$s, pendiente</string>
     <string name="trainer_block_weeks_error">No se pudo cargar las semanas.</string>
@@ -2550,11 +2549,7 @@
     <string name="trainer_plan_pace_actual">Ritmo: %1$s&#160;kg/sem</string>
     <string name="trainer_plan_pace_actual_provisional">Ritmo provisional: %1$s&#160;kg/sem</string>
     <string name="trainer_plan_pace_goal">Objetivo: %1$s&#160;kg/sem</string>
-    <string name="trainer_plan_pace_help_cd">Qué significa el ritmo</string>
-    <string name="trainer_plan_pace_help_title">Tu ritmo</string>
-    <string name="trainer_plan_pace_help_body">Con tus pesajes, tu ritmo real está entre %1$s y %2$s kg por semana.</string>
     <string name="trainer_plan_verdict_no_data">Aún no hay pesajes suficientes para ver tu ritmo. Pésate al menos 3 días por semana.</string>
-    <string name="trainer_plan_verdict_soon">Aún es pronto para saber tu ritmo: el peso cambia de un día a otro y hacen falta más semanas.</string>
     <string name="trainer_plan_verdict_on_pace">Vas al ritmo previsto.</string>
     <string name="trainer_plan_verdict_cut_slower">Pierdes peso más despacio de lo previsto.</string>
     <string name="trainer_plan_verdict_cut_not_falling">Tu peso no baja como estaba previsto.</string>

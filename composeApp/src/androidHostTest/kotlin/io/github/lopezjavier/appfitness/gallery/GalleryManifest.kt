@@ -40,6 +40,8 @@ internal object GalleryManifest {
         "StatusChip", "StepScaffold", "StreamProgressState", "SupersetAccent",
         "TonalSquareIconButton",
         "TimeInput", "TimerBarLabel", "TimerBarSurface",
+        // Trainer round 3 (T-283): shown in the Trainer gallery screens; a catalog section is owed.
+        "BarListRow", "DecisionButtonRow", "RowGroupCard", "SectionCard", "SegmentedProgress",
     ).associateWith {
         "Not in the component catalog yet: recorded gap in tasks/todo.md (T-280), owner review rounds T-281 to T-284."
     }
