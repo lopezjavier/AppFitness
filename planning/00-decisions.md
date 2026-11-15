@@ -163,6 +163,7 @@ The rows of ADR-93, 94, 98 and 99 are added here: the Phase 2 archive index lack
   - E19 starts with a spike on how to see UI without installing the APK (candidate: screenshots from the Robolectric tests; the emulator as fallback) and records its choice.
 - **Consequences:** `01-scope.md`, E18, E19, E20 (renumbered), `09-open-questions.md` and `tasks/todo.md` references; `phase2/01-scope.md` NFR-02 and the cost rows of `07` §11 are updated by the US-128 task. T-261: weekly summaries are stored as snapshots (`coach_week_reports`) and block reviews are listed live; `04` §6.9 is amended (opening the block-end notice marks the review seen, `seen_at`, and clears the notice; the review stays in "Informes") and `04` §6.11 describes the reports.
 - **Approval:** user, 2026-11-09 (chat).
+- **Amendment 2026-11-15 (user, chat):** the Closure epic is renumbered E21; the new E20 is Illness (`epics/E20-illness.md`, draft). References to "E20 Closure" in the ADRs above mean E21.
 
 Older ADRs: [`phase2/00-decisions.md`](phase2/00-decisions.md) (73-100) and [`phase1/00-decisions.md`](phase1/00-decisions.md) (01-72).
 
