@@ -1,5 +1,7 @@
 package io.github.lopezjavier.appfitness.designsystem
 
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.width
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
@@ -19,6 +21,7 @@ import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.unit.dp
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Rule
@@ -133,6 +136,20 @@ class RoundThreeComponentsTest {
         val accept = rule.onNodeWithTag("decision_accept").fetchSemanticsNode().boundsInRoot
         assertTrue(discard.right <= accept.left)
         assertEquals(discard.top, accept.top, 1f)
+    }
+
+    @Test
+    fun decisionButtonRow_whenALabelDoesNotFit_stacksAcceptAboveDiscard() {
+        rule.setContent {
+            AppTheme {
+                // Too narrow for two half-width labels, whatever the text measurer reports for the fonts.
+                Box(Modifier.width(120.dp)) { DecisionButtonRow("Aceptar", "Descartar", {}, {}, "decision") }
+            }
+        }
+
+        val discard = rule.onNodeWithTag("decision_discard").fetchSemanticsNode().boundsInRoot
+        val accept = rule.onNodeWithTag("decision_accept").fetchSemanticsNode().boundsInRoot
+        assertTrue("accept $accept must sit above discard $discard", accept.bottom <= discard.top)
     }
 
     // SectionCard and RowGroupCard

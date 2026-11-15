@@ -97,7 +97,7 @@ class FolderBlockScreenTest {
         rule.onNodeWithTag(
             "folder_block_refused_note",
         ).assertTextContainsIgnoringNbsp("Tu carpeta tiene 2 rutinas de fuerza y entrenas 3 días a la semana.")
-        rule.onNodeWithTag("folder_block_save").assertIsNotEnabled()
+        assertMissing("folder_block_save")
         assertMissing("folder_block_routine_0")
     }
 
@@ -111,7 +111,7 @@ class FolderBlockScreenTest {
         ).assertTextContainsIgnoringNbsp(
             "Tu carpeta tiene 1 rutina de fuerza y entrenas 2 días a la semana. Añade otra rutina",
         )
-        rule.onNodeWithTag("folder_block_save").assertIsNotEnabled()
+        assertMissing("folder_block_save")
     }
 
     @Test
@@ -121,7 +121,7 @@ class FolderBlockScreenTest {
 
         rule.onNodeWithTag("folder_block_intro").assertTextEquals("Tu carpeta original no cambia.")
         rule.onNodeWithTag("folder_block_save").assertIsNotEnabled()
-        rule.onNodeWithTag("folder_block_save_helper").assertTextContains("al 100 %", substring = true)
+        rule.onNodeWithTag("folder_block_save_helper").assertTextContainsIgnoringNbsp("al 100 %")
         rule.onNodeWithTag("folder_block_missing_row_hamstrings").assertExists()
         rule.onNodeWithTag("folder_block_missing_row_hamstrings_help").assertExists()
 

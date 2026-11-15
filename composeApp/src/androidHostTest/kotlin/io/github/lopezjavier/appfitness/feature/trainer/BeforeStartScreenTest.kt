@@ -124,10 +124,7 @@ class BeforeStartScreenTest {
         rule.onNodeWithTag("before_start_summary").assertTextContainsIgnoringNbsp("Objetivo · Perder grasa")
         rule.onNodeWithTag("before_start_summary").assertTextContainsIgnoringNbsp("Sexo y edad · Hombre · 31 años")
         rule.onNodeWithTag("before_start_summary").assertTextContainsIgnoringNbsp("Altura y peso · 178 cm · 80,0 kg")
-        rule.onNodeWithTag(
-            "before_start_row_activity_level",
-            useUnmergedTree = true,
-        ).assertTextEquals("Nivel de actividad · Ligero")
+        rule.onNodeWithTag("before_start_summary").assertTextContainsIgnoringNbsp("Nivel de actividad · Ligero")
         rule.onNodeWithTag("before_start_flag_intention").assertDoesNotExist()
         rule.onNodeWithTag("before_start_create").assertIsEnabled()
         assertTrue(repository.confirmCalls.isEmpty())
@@ -141,7 +138,7 @@ class BeforeStartScreenTest {
         show()
 
         rule.onNodeWithTag("before_start_intake_block").assertExists()
-        rule.onNodeWithTag("before_start_row_training_years").assertTextEqualsIgnoringNbsp("Tiempo entrenando, 4 años")
+        rule.onNodeWithTag("before_start_row_training_years").assertTextListIgnoringNbsp("Tiempo entrenando", "4 años")
         rule.onNodeWithTag("before_start_row_maintenance")
             .assertTextEquals("Calorías de mantenimiento", "Sin indicar")
         rule.onNodeWithTag("before_start_create").assertIsEnabled()

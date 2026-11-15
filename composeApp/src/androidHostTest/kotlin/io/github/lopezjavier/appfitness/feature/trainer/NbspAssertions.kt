@@ -36,3 +36,10 @@ internal fun hasTextIgnoringNbsp(part: String): SemanticsMatcher =
         node.config.getOrNull(SemanticsProperties.Text)
             ?.any { it.text.plainSpaces().contains(part.plainSpaces()) } == true
     }
+
+/** The node's text list element by element (a merged row), U+00A0 and a plain space being the same character. */
+internal fun SemanticsNodeInteraction.assertTextListIgnoringNbsp(vararg expected: String): SemanticsNodeInteraction {
+    val actual = fetchSemanticsNode().config[SemanticsProperties.Text].map { it.text.plainSpaces() }
+    assertEquals(expected.map { it.plainSpaces() }, actual)
+    return this
+}
