@@ -23,6 +23,8 @@ import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 
+private val NBSP = 160.toChar().toString()
+
 /** US-82: the phase row, the cut rate and the diet break on the plan proposal, one test per scenario. */
 @RunWith(RobolectricTestRunner::class)
 @Config(qualifiers = "w360dp-h2400dp-xxhdpi")
@@ -191,7 +193,7 @@ class PlanProposalPhaseTest {
         rule.onNodeWithTag("plan_proposal_cut_rate_option_1.0").performClick()
         rule.waitForIdle()
 
-        rule.onNodeWithText("1.800 kcal al día").assertExists()
+        rule.onNodeWithText("1.800${NBSP}kcal al día").assertExists()
         assertEquals(1, plans.optionsCalls.size)
         assertEquals(0, plans.requests.size)
     }
@@ -223,7 +225,7 @@ class PlanProposalPhaseTest {
         rule.onNodeWithTag("plan_proposal_cut_rate_option_1.0").performClick()
         rule.waitForIdle()
 
-        rule.onNodeWithText("2.000 kcal al día").assertExists()
+        rule.onNodeWithText("2.000${NBSP}kcal al día").assertExists()
         rule.onNodeWithTag("plan_proposal_cut_rate_option_0.5").assertIsSelected()
     }
 }

@@ -22,6 +22,8 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 import kotlin.test.assertEquals
 
+private val NBSP = 160.toChar().toString()
+
 /** US-129: a stored report opens read-only with the live content, its title and its period. */
 @RunWith(RobolectricTestRunner::class)
 @Config(qualifiers = "w360dp-h2400dp-xxhdpi")
@@ -62,7 +64,7 @@ class PastReportScreenTest {
 
         rule.onNodeWithTag("past_report_title").assertTextEquals("Resumen semanal")
         rule.onNodeWithTag("past_report_subtitle").assertTextContains("3 al 9 nov", substring = true)
-        rule.onNodeWithText("Esta semana: 3 de 4 entrenos.").assertIsDisplayed()
+        rule.onNodeWithText("Esta semana: 3${NBSP}de${NBSP}4${NBSP}entrenos.").assertIsDisplayed()
     }
 
     @Test

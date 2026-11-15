@@ -21,6 +21,8 @@ import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 
+private val NBSP = 160.toChar().toString()
+
 /** US-113 / US-114: the "why is my weight not moving" card of the weekly summary, one test per Gherkin scenario. */
 @RunWith(RobolectricTestRunner::class)
 @Config(qualifiers = "w360dp-h2400dp-xxhdpi")
@@ -61,7 +63,7 @@ class WeekSummaryDiagnosisTest {
         assertLines(
             "Faltan registros: 3 de 7 días de comida completos en la semana del 4 ene. " +
                 "Sin ellos no podemos saber por qué tu peso no va como estaba previsto.",
-            "Registra lo que comes al menos 5 días por semana.",
+            "Registra lo que comes al menos 5${NBSP}días por semana.",
         )
         rule.onAllNodesWithTag("week_summary_diagnosis_cause").assertCountEquals(1)
     }
@@ -70,7 +72,7 @@ class WeekSummaryDiagnosisTest {
     fun weighInCause_namesTheWeighIns() {
         show(state(NutritionDiagnosis.LoggingWeighIn(2, LocalDate(2027, 1, 4))))
 
-        assertLines("Faltan pesajes: 2 en la semana del 4 ene.", "Pésate al menos 3 días por semana.")
+        assertLines("Faltan pesajes: 2 en la semana del 4 ene.", "Pésate al menos 3${NBSP}días por semana.")
     }
 
     @Test

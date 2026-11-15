@@ -37,6 +37,8 @@ import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 
+private val NBSP = 160.toChar().toString()
+
 /** US-72: the block preview screen, one test per Gherkin scenario (display side; the rules live in the server). */
 @RunWith(RobolectricTestRunner::class)
 @Config(qualifiers = "w360dp-h2400dp-xxhdpi")
@@ -111,7 +113,7 @@ class BlockPreviewScreenTest {
         rule.onNodeWithTag("block_preview_sets_chest").assertExists()
         rule.onNodeWithText("10 series · 2 días/semana").assertExists()
         rule.onNodeWithText("12 series · 2 días/semana").assertExists()
-        rule.onNodeWithText("3 días por semana").assertExists()
+        rule.onNodeWithText("3${NBSP}días por semana").assertExists()
     }
 
     @Test
@@ -120,7 +122,7 @@ class BlockPreviewScreenTest {
 
         rule.onNodeWithTag("block_preview_routine_1_0").assertExists()
         rule.onAllNodesWithTag("block_preview_routine_1_1").assertCountEquals(0)
-        rule.onNodeWithText("1 día por semana").assertExists()
+        rule.onNodeWithText("1${NBSP}día por semana").assertExists()
     }
 
     @Test
@@ -134,7 +136,7 @@ class BlockPreviewScreenTest {
     fun whenTheUserChoseTheDays_theChosenFrequencyLineIsAbsent() {
         show(preview(coachBlock(training = blockTraining(days = 4, chosen = false))))
 
-        rule.onNodeWithText("4 días por semana").assertExists()
+        rule.onNodeWithText("4${NBSP}días por semana").assertExists()
         rule.onAllNodesWithTag("block_preview_frequency").assertCountEquals(1)
         rule.onNodeWithText("El coach ha elegido", substring = true).assertDoesNotExist()
     }

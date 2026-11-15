@@ -26,6 +26,8 @@ import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 
+private val NBSP = 160.toChar().toString()
+
 /** ADR-40: leaving the app and coming back keeps the review; it is recomputed from the folder, never asked online. */
 @RunWith(RobolectricTestRunner::class)
 @Config(qualifiers = "w360dp-h2400dp-xxhdpi")
@@ -71,7 +73,7 @@ class FolderReviewResultRestorationTest {
     fun aRecreatedModel_restoresTheFolder_andRecomputesFromTheCurrentRoutines() {
         rule.setContent { AppTheme { FolderReviewResultRoot(onBack = {}, viewModel = current) } }
         rule.waitForIdle()
-        rule.onNodeWithText("8 series (se recomiendan al menos 10)", substring = true).assertExists()
+        rule.onNodeWithText("8${NBSP}series (se recomiendan al menos 10)", substring = true).assertExists()
         rule.onNodeWithTag("folder_review_result_row_chest_help").performClick()
         rule.waitForIdle()
         rule.onNodeWithText("Añade 2 series de ejercicios", substring = true).assertExists()
@@ -82,7 +84,7 @@ class FolderReviewResultRestorationTest {
         rule.waitForIdle()
 
         assertEquals(listOf("folder-1", "folder-1"), computed)
-        rule.onNodeWithText("12 series (se recomiendan al menos 10)", substring = true).assertExists()
+        rule.onNodeWithText("12${NBSP}series (se recomiendan al menos 10)", substring = true).assertExists()
 
         chestSets = 25.0
         current = newModel()

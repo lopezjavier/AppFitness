@@ -262,6 +262,25 @@ class ContrastTest {
         )
     }
 
+    /** The week selector tabs "S1"... (R-106): done, current and upcoming states are readable on their fills. */
+    @Test
+    fun weekTabs_doneLabelOnCyanFill_isAa() {
+        assertAa(c.onNeonLime, c.athleticCyan, "onNeonLime/athleticCyan")
+    }
+
+    @Test
+    fun weekTabs_currentAndUpcomingLabelsOnTheTrack_areAa() {
+        val track = c.trackInactive.compositeOver(c.surfaceRaised)
+        assertAa(c.textPrimary, track, "textPrimary/track")
+        assertAa(c.textSecondary, track, "textSecondary/track")
+    }
+
+    @Test
+    fun weekTabs_currentCyanOutlineOnTheCard_atLeast3to1() {
+        val ratio = contrastRatio(c.athleticCyan, c.surfaceRaised)
+        assertTrue(ratio >= NON_TEXT, "cyan outline vs card: $ratio < $NON_TEXT")
+    }
+
     /** US-46 accessibility: body text roles over every surface token (the app ships a single dark scheme). */
     @Test
     fun bodyText_textPrimaryAndSecondaryOverEverySurface_isAa() {

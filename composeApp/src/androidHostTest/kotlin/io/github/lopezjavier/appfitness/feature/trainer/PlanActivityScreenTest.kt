@@ -22,6 +22,8 @@ import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 
+private val NBSP = 160.toChar().toString()
+
 /** US-79: the cardio and steps targets in the proposal and in "Tu plan", one test per scenario. */
 @RunWith(RobolectricTestRunner::class)
 @Config(qualifiers = "w360dp-h2400dp-xxhdpi")
@@ -59,8 +61,8 @@ class PlanActivityScreenTest {
     fun targetsNextToTheCalories_showBothRowsWithTheirReasons() {
         showProposal(proposal())
 
-        rule.onNodeWithText("2.000 kcal al día").assertExists()
-        rule.onNodeWithText("Cardio · 150 min por semana · ritmo suave").assertExists()
+        rule.onNodeWithText("2.000${NBSP}kcal al día").assertExists()
+        rule.onNodeWithText("Cardio · 150${NBSP}min por semana · ritmo suave").assertExists()
         rule.onNodeWithText("Pasos · 7.000 al día").assertExists()
         rule.onNodeWithTag("plan_proposal_activity_cardio_help").performClick()
         rule.onNodeWithText(
@@ -117,7 +119,7 @@ class PlanActivityScreenTest {
         rule.onNodeWithTag("cardio_sheet_note").assertExists()
         rule.onNodeWithText("Está por debajo de lo que recomienda la OMS (150 min). Puedes dejarlo así.").assertExists()
         rule.onNodeWithTag("cardio_sheet_commit").assertIsEnabled()
-        rule.onNodeWithText("2.000 kcal al día").assertExists()
+        rule.onNodeWithText("2.000${NBSP}kcal al día").assertExists()
     }
 
     @Test
@@ -154,7 +156,7 @@ class PlanActivityScreenTest {
     fun aSavedCardioBelow150_showsTheNoteInTheRow() {
         showProposal(proposal(activity = defaultActivity.copy(cardioMinWeek = 90, cardioEdited = true)))
 
-        rule.onNodeWithText("Cardio · 90 min por semana · ritmo suave").assertExists()
+        rule.onNodeWithText("Cardio · 90${NBSP}min por semana · ritmo suave").assertExists()
         rule.onNodeWithTag("plan_proposal_activity_below_note").assertExists()
     }
 
@@ -165,7 +167,7 @@ class PlanActivityScreenTest {
         val row = rule.onNodeWithTag("plan_proposal_activity_steps_row")
         row.assertExists()
         rule.onNodeWithText("Pasos · 11.000 al día").assertExists()
-        rule.onNodeWithText("Sale de tu media de los últimos 28 días y no se puede editar.").assertExists()
+        rule.onNodeWithText("Sale de tu media de los últimos 28${NBSP}días y no se puede editar.").assertExists()
         row.assertDoesNotHaveClick()
         row.performClick()
         assertEquals(emptyList<PlanProposalEvent>(), proposalEvents)

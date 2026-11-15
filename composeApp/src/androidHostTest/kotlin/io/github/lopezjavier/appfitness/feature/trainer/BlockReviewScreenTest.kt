@@ -34,6 +34,8 @@ import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 
+private val NBSP = 160.toChar().toString()
+
 /** US-101 and US-103: the end-of-block review screen, one test per Gherkin scenario plus the standard states. */
 @RunWith(RobolectricTestRunner::class)
 @Config(qualifiers = "w360dp-h2400dp-xxhdpi")
@@ -187,7 +189,7 @@ class BlockReviewScreenTest {
 
         rule.onNodeWithTag("block_review_phase").performScrollTo().assertIsDisplayed()
         rule.onNodeWithText(
-            "Llevas 12 semanas de definición. Te proponemos 4 semanas comiendo lo que gastas antes de seguir.",
+            "Llevas 12${NBSP}semanas de definición. Te proponemos 4${NBSP}semanas comiendo lo que gastas antes de seguir.",
         ).assertIsDisplayed()
         rule.onNodeWithText("Mantenimiento").assertIsDisplayed()
         rule.onNodeWithTag("block_review_phase_help").assertIsDisplayed()

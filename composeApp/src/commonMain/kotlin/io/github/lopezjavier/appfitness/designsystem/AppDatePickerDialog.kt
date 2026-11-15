@@ -93,7 +93,7 @@ object AppDatePickerDialogDefaults {
 /**
  * Date picker dialog (US-37): the platform calendar in the app's colours. It only reports the picked day: the screen
  * that opened it keeps the date in its draft and saves with its own button. [maxDate] is the latest selectable day (a
- * past-only date field passes today). The root is tagged [testTagPrefix], with `<prefix>_confirm` and
+ * past-only date field passes today). The root is tagged [testTagPrefix], with `<prefix>_accept` and
  * `<prefix>_discard` buttons (a [DecisionButtonRow]: [confirmLabel] primary); the accept button stays disabled until
  * a day is selected. A [title] replaces the platform's "Select date" heading. The calendar follows the device locale
  * (month names and the first weekday). Back and a scrim tap dismiss.

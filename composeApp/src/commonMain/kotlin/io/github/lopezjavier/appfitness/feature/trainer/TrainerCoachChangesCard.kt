@@ -77,21 +77,23 @@ internal fun CoachChangesCard(
     onEvent: (TrainerEvent) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val rows = state.appliedCoachChanges.filter { it.kind.isDeload || (it.exerciseId != null && it.exerciseId in names) }
-    if (rows.isEmpty()) return
+    val deloadName = stringResource(Res.string.coach_deload_headline)
+    // A row waits for its exercise name (R-54): only rows with a resolved name (or a deload) are listed.
+    val named = state.appliedCoachChanges.mapNotNull { row ->
+        val name = if (row.kind.isDeload) deloadName else row.exerciseId?.let { names[it] }
+        name?.let { row to it }
+    }
+    if (named.isEmpty()) return
+    val rows = named.map { it.first }
     val stacked = LocalDensity.current.fontScale >= STACK_ACTION_FONT_SCALE
     Column(modifier.fillMaxWidth().testTag("trainer_changes_card"), verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
         RowGroupCard(
             title = stringResource(Res.string.coach_changes_header),
-            rows = rows.map { row ->
+            rows = named.map { (row, name) ->
                 {
                     ChangeRow(
                         row = row,
-                        name = if (row.kind.isDeload) {
-                            stringResource(Res.string.coach_deload_headline)
-                        } else {
-                            names[row.exerciseId.orEmpty()].orEmpty()
-                        },
+                        name = name,
                         busy = state.busyChangeId == row.id,
                         enabled = online && state.busyChangeId == null && !state.requestingDeload,
                         stacked = stacked,

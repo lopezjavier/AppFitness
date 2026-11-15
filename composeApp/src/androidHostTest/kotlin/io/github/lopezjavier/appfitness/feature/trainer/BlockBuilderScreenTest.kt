@@ -26,6 +26,8 @@ import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 
+private val NBSP = 160.toChar().toString()
+
 private typealias Data = BlockBuilderTestData
 
 /** US-72 builder scenarios that have a UI: sections, slots, picker, score and save footer, cardio, extras, discard. */
@@ -123,7 +125,7 @@ class BlockBuilderScreenTest {
     fun theScoreIsABarWithText_andSaveIsOffUntil100() {
         show(Data.builderUi())
 
-        rule.onNodeWithTag("block_builder_score").assertTextContains("Rutina completa al 0 %", substring = true)
+        rule.onNodeWithTag("block_builder_score").assertTextContains("Rutina completa al 0${NBSP}%", substring = true)
         rule.onNodeWithTag("block_builder_save").assertIsNotEnabled()
         rule.onNodeWithText("Elige un ejercicio en cada hueco para guardar.").assertExists()
     }
@@ -132,7 +134,7 @@ class BlockBuilderScreenTest {
     fun at100_saveIsEnabledAndSends() {
         show(Data.builderUi(Data.filled(Data.start())))
 
-        rule.onNodeWithTag("block_builder_score").assertTextContains("Rutina completa al 100 %", substring = true)
+        rule.onNodeWithTag("block_builder_score").assertTextContains("Rutina completa al 100${NBSP}%", substring = true)
         rule.onNodeWithTag("block_builder_save").assertIsEnabled().performClick()
         rule.onAllNodesWithText("Elige un ejercicio en cada hueco para guardar.").assertCountEquals(0)
 
@@ -190,7 +192,7 @@ class BlockBuilderScreenTest {
         rule.onNodeWithText("Extra (opcional)").assertExists()
         rule.onNodeWithTag("block_builder_extra_add_0").performClick()
         rule.onNodeWithTag("block_builder_extra_remove_0_0").performClick()
-        rule.onNodeWithTag("block_builder_score").assertTextContains("Rutina completa al 0 %", substring = true)
+        rule.onNodeWithTag("block_builder_score").assertTextContains("Rutina completa al 0${NBSP}%", substring = true)
 
         assertEquals(
             listOf(BlockBuilderEvent.AddExtra(0), BlockBuilderEvent.RemoveExtra(0, 0)),
@@ -203,7 +205,7 @@ class BlockBuilderScreenTest {
         show(Data.builderUi(Data.start(cardioTarget = 150)))
 
         rule.onNodeWithText("Bicicleta estática · 60 min · ritmo suave").assertExists()
-        rule.onNodeWithText("Te faltan 30 min de cardio a la semana: hazlos por tu cuenta.").assertExists()
+        rule.onNodeWithText("Te faltan 30${NBSP}min de cardio a la semana: hazlos por tu cuenta.").assertExists()
     }
 
     @Test

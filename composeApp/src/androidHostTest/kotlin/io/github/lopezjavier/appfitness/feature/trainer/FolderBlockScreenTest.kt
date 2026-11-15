@@ -20,6 +20,8 @@ import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 
+private val NBSP = 160.toChar().toString()
+
 /** US-93 "Desde una carpeta": one test per Gherkin scenario, over the real ViewModel and fakes. */
 @RunWith(RobolectricTestRunner::class)
 @Config(qualifiers = "w360dp-h2400dp-xxhdpi")
@@ -182,7 +184,7 @@ class FolderBlockScreenTest {
         show()
         val tag = "folder_block_rep_fix_0_${fixture.chestIndex}"
 
-        rule.onNodeWithTag(tag).assertTextContains("Cambiar a 6-8 repeticiones", substring = true)
+        rule.onNodeWithTag(tag).assertTextContains("Cambiar a 6-8${NBSP}repeticiones", substring = true)
         tap(tag)
 
         assertMissing(tag)
@@ -194,7 +196,7 @@ class FolderBlockScreenTest {
         show()
 
         rule.onNodeWithTag("folder_block_sets_over_note")
-            .assertTextContains("Tiene más de 10 series: quita series o el ejercicio en la carpeta.", substring = true)
+            .assertTextContains("Tiene más de 10${NBSP}series: quita series o el ejercicio en la carpeta.", substring = true)
         rule.onNodeWithTag("folder_block_save").assertIsNotEnabled()
     }
 

@@ -36,6 +36,8 @@ import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 
+private val NBSP = 160.toChar().toString()
+
 /** US-81: each intake row opens only its own small editor, in "Antes de empezar" and in "Tus datos". */
 @RunWith(RobolectricTestRunner::class)
 @Config(qualifiers = "w360dp-h2400dp-xxhdpi")
@@ -187,7 +189,7 @@ class IntakeRowSheetsTest {
         typeKcal("1199")
 
         rule.onNodeWithTag("intake_maintenance_error", useUnmergedTree = true)
-            .assertTextEquals("Entre 1200 y 6000 kcal")
+            .assertTextEquals("Entre 1200 y 6000${NBSP}kcal")
         rule.onNodeWithTag("intake_maintenance_sheet_commit").assertIsNotEnabled()
         assertTrue(intake.saveCalls.isEmpty())
     }

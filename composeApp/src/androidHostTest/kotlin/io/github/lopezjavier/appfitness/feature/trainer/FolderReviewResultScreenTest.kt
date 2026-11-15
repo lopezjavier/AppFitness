@@ -23,6 +23,8 @@ import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 
+private val NBSP = 160.toChar().toString()
+
 /** US-95: the score and checklist of a folder, from the stateless screen (one test per Gherkin scenario). */
 @RunWith(RobolectricTestRunner::class)
 @Config(qualifiers = "w360dp-h2400dp-xxhdpi")
@@ -136,8 +138,8 @@ class FolderReviewResultScreenTest {
         rule.onNodeWithTag("folder_review_result_score_value", useUnmergedTree = true).assertTextEquals("10,0")
         rule.onNodeWithTag("folder_review_result_score_band", useUnmergedTree = true).assertTextEquals("Completa")
         rule.onNodeWithTag("folder_review_result_complete")
-            .assertTextEquals("Todos los grupos principales tienen 10 o más series a la semana en 3 días.")
-        rule.onAllNodesWithText("12 series (se recomiendan al menos 10)", substring = true).assertCountEquals(6)
+            .assertTextEquals("Todos los grupos principales tienen 10 o más series a la semana en 3${NBSP}días.")
+        rule.onAllNodesWithText("12${NBSP}series (se recomiendan al menos 10)", substring = true).assertCountEquals(6)
         rule.onAllNodesWithText("Añade", substring = true).assertCountEquals(0)
         rule.onAllNodesWithText("Por ejemplo", substring = true).assertCountEquals(0)
     }
@@ -153,14 +155,14 @@ class FolderReviewResultScreenTest {
     fun aMetGroup_showsItsFigureWithADecimalComma() {
         show(content(items = withGroup(metGroup(MuscleGroup.Chest, 10.5))))
 
-        hasText("10,5 series (se recomiendan al menos 10)").assertExists()
+        hasText("10,5${NBSP}series (se recomiendan al menos 10)").assertExists()
     }
 
     @Test
     fun aGroupWithOneSet_usesTheSingular() {
         show(content(score = 9.0, items = withGroup(unmetGroup(MuscleGroup.Chest, 1.0, 9))))
 
-        hasText("1 serie (se recomiendan al menos 10)").assertExists()
+        hasText("1${NBSP}serie (se recomiendan al menos 10)").assertExists()
         rule.onAllNodesWithText("Añade 9 series", substring = true).assertCountEquals(0)
         openHelp("chest")
         hasText("Añade 9 series de ejercicios donde sea el músculo principal").assertExists()
@@ -170,12 +172,12 @@ class FolderReviewResultScreenTest {
     fun anUnmetGroup_showsOnlyTheFigure_andTheAdviceAndExampleSitBehindTheQuestionMark() {
         show(content(score = 9.0, items = withGroup(unmetGroup(MuscleGroup.Back, 4.0, 6))))
 
-        hasText("4 series (se recomiendan al menos 10)").assertExists()
+        hasText("4${NBSP}series (se recomiendan al menos 10)").assertExists()
         rule.onAllNodesWithText("Añade 6 series", substring = true).assertCountEquals(0)
         rule.onAllNodesWithText("Por ejemplo", substring = true).assertCountEquals(0)
         openHelp("back")
         hasText(
-            "Añade 6 series de ejercicios donde sea el músculo principal; donde solo ayuda cuentan la mitad.",
+            "Añade 6${NBSP}series de ejercicios donde sea el músculo principal; donde solo ayuda cuentan la mitad.",
         ).assertExists()
         hasText("Por ejemplo: remos, jalones al pecho, dominadas.").assertExists()
     }
@@ -219,7 +221,7 @@ class FolderReviewResultScreenTest {
         rule.onNodeWithTag("folder_review_result_score", useUnmergedTree = true).assert(fraction(0.6f))
         rule.onNodeWithTag("folder_review_result_score_value", useUnmergedTree = true).assertTextEquals("6,0")
         rule.onNodeWithTag("folder_review_result_score_band", useUnmergedTree = true).assertTextEquals("Aceptable")
-        hasText("Sin series (se recomiendan al menos 10)").assertExists()
+        hasText("Sin${NBSP}series (se recomiendan al menos 10)").assertExists()
         openHelp("glutes")
         hasText("Añade al menos 10 series de ejercicios donde sea el músculo principal").assertExists()
     }
@@ -228,10 +230,10 @@ class FolderReviewResultScreenTest {
     fun moreThanTwentySets_keepTheRowMetWithANeutralNote() {
         show(content(items = withGroup(metGroup(MuscleGroup.Chest, 25.0))))
 
-        hasText("25 series (se recomiendan al menos 10)").assertExists()
+        hasText("25${NBSP}series (se recomiendan al menos 10)").assertExists()
         rule.onAllNodesWithText("Más de 20 series", substring = true).assertCountEquals(0)
         openHelp("chest")
-        hasText("Más de 20 series a la semana: por encima de unas 20, añadir más series aporta poco.").assertExists()
+        hasText("Más de 20${NBSP}series a la semana: por encima de unas 20, añadir más series aporta poco.").assertExists()
         rule.onNodeWithTag("folder_review_result_row_chest").assert(
             SemanticsMatcher.expectValue(SemanticsProperties.StateDescription, "Cumplido"),
         )
@@ -257,7 +259,7 @@ class FolderReviewResultScreenTest {
     fun fewDays_areRecommendedToBeSplit() {
         show(content(score = 7.5, items = metItems().dropLast(1) + ReviewItem.Days(1, met = false)))
 
-        rule.onNodeWithText("Solo 1 día de entreno; se recomiendan al menos 2.").assertExists()
+        rule.onNodeWithText("Solo 1${NBSP}día de entreno; se recomiendan al menos 2.").assertExists()
         rule.onAllNodesWithText("Si puedes", substring = true).assertCountEquals(0)
         rule.onAllNodesWithTag("folder_review_result_row_days_help").assertCountEquals(1)
         rule.onNodeWithTag("folder_review_result_row_days_help").performClick()
@@ -296,7 +298,7 @@ class FolderReviewResultScreenTest {
         )
 
         rule.onNodeWithTag("folder_review_result_complete").assertTextEquals(
-            "Todos los grupos principales tienen 10 o más series a la semana en 3 días. " +
+            "Todos los grupos principales tienen 10 o más series a la semana en 3${NBSP}días. " +
                 "Los ejercicios principales son pesados y van primero.",
         )
     }

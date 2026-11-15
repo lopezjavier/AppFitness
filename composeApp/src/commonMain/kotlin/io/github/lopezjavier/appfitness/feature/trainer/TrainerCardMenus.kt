@@ -22,12 +22,12 @@ import io.github.lopezjavier.appfitness.composeapp.resources.trainer_block_remov
 import io.github.lopezjavier.appfitness.composeapp.resources.trainer_block_remove_action
 import io.github.lopezjavier.appfitness.composeapp.resources.trainer_block_title
 import io.github.lopezjavier.appfitness.composeapp.resources.trainer_menu_cardio
-import io.github.lopezjavier.appfitness.composeapp.resources.trainer_menu_cardio_hint
-import io.github.lopezjavier.appfitness.composeapp.resources.trainer_menu_deload_hint
+import io.github.lopezjavier.appfitness.composeapp.resources.trainer_menu_cardio_detail
+import io.github.lopezjavier.appfitness.composeapp.resources.trainer_menu_deload_detail
 import io.github.lopezjavier.appfitness.composeapp.resources.trainer_menu_diet_break_off
 import io.github.lopezjavier.appfitness.composeapp.resources.trainer_menu_diet_break_on
 import io.github.lopezjavier.appfitness.composeapp.resources.trainer_menu_extend_week
-import io.github.lopezjavier.appfitness.composeapp.resources.trainer_menu_extend_week_hint
+import io.github.lopezjavier.appfitness.composeapp.resources.trainer_menu_extend_week_detail
 import io.github.lopezjavier.appfitness.composeapp.resources.trainer_new_block
 import io.github.lopezjavier.appfitness.composeapp.resources.trainer_new_block_action
 import io.github.lopezjavier.appfitness.composeapp.resources.trainer_plan_create_action
@@ -132,7 +132,7 @@ internal fun PlanCardMenu(
                     icon = Res.drawable.ic_heart,
                     title = stringResource(Res.string.trainer_menu_cardio),
                     hint = stringResource(
-                        Res.string.trainer_menu_cardio_hint,
+                        Res.string.trainer_menu_cardio_detail,
                         AppNumberFormat.integer(activity.cardioMinWeek),
                     ),
                     testTag = "trainer_plan_menu_cardio",
@@ -182,7 +182,7 @@ internal fun BlockCardMenu(
                     icon = Res.drawable.ic_calendar,
                     title = stringResource(Res.string.trainer_menu_extend_week),
                     hint = offlineHint(online, Res.string.trainer_week_extend_offline)
-                        ?: stringResource(Res.string.trainer_menu_extend_week_hint),
+                        ?: stringResource(Res.string.trainer_menu_extend_week_detail),
                     testTag = "trainer_block_menu_extend_week",
                     enabled = online && !state.extendingWeek,
                     onClick = { onEvent(TrainerEvent.OpenExtendWeekPicker) },
@@ -195,7 +195,7 @@ internal fun BlockCardMenu(
                     icon = Res.drawable.ic_sleep,
                     title = stringResource(Res.string.coach_deload_request),
                     hint = offlineHint(online, Res.string.coach_deload_request_offline)
-                        ?: stringResource(Res.string.trainer_menu_deload_hint),
+                        ?: stringResource(Res.string.trainer_menu_deload_detail),
                     testTag = "trainer_block_menu_deload",
                     enabled = online && !state.requestingDeload && state.busyChangeId == null,
                     onClick = { onEvent(TrainerEvent.RequestDeload) },

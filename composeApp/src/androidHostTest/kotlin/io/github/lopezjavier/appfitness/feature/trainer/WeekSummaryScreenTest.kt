@@ -43,6 +43,8 @@ import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 
+private val NBSP = 160.toChar().toString()
+
 /** US-98: the weekly summary screen, one test per Gherkin scenario plus the standard states. */
 @RunWith(RobolectricTestRunner::class)
 @Config(qualifiers = "w360dp-h2400dp-xxhdpi")
@@ -69,8 +71,8 @@ class WeekSummaryScreenTest {
 
         rule.onNodeWithTag("week_summary_title").assertTextEquals("Resumen semanal")
         rule.onNodeWithTag("week_summary_subtitle").assertTextContains("Semana 2", substring = true)
-        rule.onNodeWithText("Esta semana: 3 de 4 entrenos.").assertIsDisplayed()
-        rule.onNodeWithText("Peso medio 80,2 kg (−0,3 kg/semana; objetivo −0,4 kg/semana).")
+        rule.onNodeWithText("Esta semana: 3${NBSP}de${NBSP}4${NBSP}entrenos.").assertIsDisplayed()
+        rule.onNodeWithText("Peso medio 80,2${NBSP}kg (−0,3${NBSP}kg/semana; objetivo −0,4${NBSP}kg/semana).")
             .assertIsDisplayed()
     }
 
@@ -91,11 +93,11 @@ class WeekSummaryScreenTest {
         rule.onNodeWithText("Nutrición").assertIsDisplayed()
         rule.onNodeWithTag("week_summary_nutrition_days").assertTextEquals("Días completos: 5 de 7")
         rule.onNodeWithTag("week_summary_nutrition_kcal")
-            .assertTextEquals("Calorías: 2.310 kcal de media (−90 respecto a tu objetivo de 2.400).")
+            .assertTextEquals("Calorías: 2.310${NBSP}kcal de media (−90 respecto a tu objetivo de 2.400).")
         rule.onNodeWithTag("week_summary_nutrition_protein")
-            .assertTextEquals("Proteína: 149 g de media (1,8 g por kg; objetivo 150 g).")
+            .assertTextEquals("Proteína: 149${NBSP}g de media (1,8${NBSP}g por kg; objetivo 150${NBSP}g).")
         rule.onNodeWithTag("week_summary_nutrition_weight")
-            .assertTextEquals("Peso medio 80,2 kg (−0,3 kg/semana; objetivo −0,4 kg/semana).")
+            .assertTextEquals("Peso medio 80,2${NBSP}kg (−0,3${NBSP}kg/semana; objetivo −0,4${NBSP}kg/semana).")
         rule.onNodeWithTag("week_summary_nutrition_weigh_ins").assertTextEquals("Registraste 3 pesajes.")
         rule.onAllNodesWithTag("week_summary_nutrition_missing").assertCountEquals(0)
     }
@@ -105,7 +107,7 @@ class WeekSummaryScreenTest {
         show(content(weekSummary(nutrition = weekNutrition(proteinGPerKg = null))))
 
         rule.onNodeWithTag("week_summary_nutrition_protein")
-            .assertTextEquals("Proteína: 149 g de media (objetivo 150 g).")
+            .assertTextEquals("Proteína: 149${NBSP}g de media (objetivo 150${NBSP}g).")
     }
 
     @Test
@@ -164,7 +166,7 @@ class WeekSummaryScreenTest {
         show(content(weekSummary(nutrition = null)))
 
         rule.onAllNodesWithTag("week_summary_section_nutrition").assertCountEquals(0)
-        rule.onNodeWithText("Esta semana: 3 de 4 entrenos.").assertIsDisplayed()
+        rule.onNodeWithText("Esta semana: 3${NBSP}de${NBSP}4${NBSP}entrenos.").assertIsDisplayed()
     }
 
     @Test
@@ -206,7 +208,7 @@ class WeekSummaryScreenTest {
     fun halfSetsAreSpokenAsOneSentence() {
         show(content(weekSummary(groups = listOf(GroupSets(MuscleGroup.Triceps, 2.5)))))
 
-        rule.onNode(hasContentDescription("Tríceps, 2,5 series"))
+        rule.onNode(hasContentDescription("Tríceps, 2,5${NBSP}series"))
             .assertIsDisplayed()
     }
 
@@ -224,8 +226,8 @@ class WeekSummaryScreenTest {
         show(stalled(StallCause.Sessions(1.5, planDays = 3)))
 
         assertStall(
-            "Entrenaste de media 1,5 días por semana. La fuerza mejora con al menos 2.",
-            "Intenta entrenar al menos 2 días por semana.",
+            "Entrenaste de media 1,5${NBSP}días por semana. La fuerza mejora con al menos 2.",
+            "Intenta entrenar al menos 2${NBSP}días por semana.",
         )
     }
 
@@ -234,7 +236,7 @@ class WeekSummaryScreenTest {
         show(stalled(StallCause.Sessions(1.0, planDays = 1)))
 
         rule.onNodeWithTag("week_summary_stall_id-bench_action", useUnmergedTree = true)
-            .assertTextEquals("En el próximo bloque puedes elegir 2 días.")
+            .assertTextEquals("En el próximo bloque puedes elegir 2${NBSP}días.")
     }
 
     @Test
@@ -242,7 +244,7 @@ class WeekSummaryScreenTest {
         show(stalled(StallCause.Sets(7.0, MuscleGroup.Chest)))
 
         assertStall(
-            "Hiciste de media 7 series semanales de pecho; para ganar músculo se recomiendan al menos 10.",
+            "Hiciste de media 7${NBSP}series semanales de pecho; para ganar músculo se recomiendan al menos 10.",
             "Completa las series del plan.",
         )
     }
@@ -264,7 +266,7 @@ class WeekSummaryScreenTest {
         assertStall(
             "Registraste de media 120 g de proteína al día (1,4 g por kg). " +
                 "Por debajo de 1,6 g por kg se gana menos músculo y fuerza.",
-            "Tu objetivo es 160 g al día.",
+            "Tu objetivo es 160${NBSP}g al día.",
         )
     }
 
@@ -390,7 +392,7 @@ class WeekSummaryScreenTest {
         rule.waitUntil(5_000) { summaries.seen.isNotEmpty() }
         rule.waitForIdle()
 
-        rule.onNodeWithText("Esta semana: 3 de 4 entrenos.").performScrollTo().assertIsDisplayed()
+        rule.onNodeWithText("Esta semana: 3${NBSP}de${NBSP}4${NBSP}entrenos.").performScrollTo().assertIsDisplayed()
         assertEquals(listOf("plan-1" to 2), summaries.seen)
         rule.waitUntil(5_000) { coordinator.reminders.value.isEmpty() }
         assertTrue(coordinator.reminders.value.isEmpty())

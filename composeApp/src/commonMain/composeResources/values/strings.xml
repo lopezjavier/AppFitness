@@ -2515,10 +2515,10 @@
     <string name="trainer_menu_diet_break_on">Activar descanso de dieta</string>
     <string name="trainer_menu_diet_break_off">Quitar descanso de dieta</string>
     <string name="trainer_menu_cardio">Editar cardio</string>
-    <string name="trainer_menu_cardio_hint">%1$s&#160;min por semana</string>
+    <string name="trainer_menu_cardio_detail">%1$s&#160;min por semana</string>
     <string name="trainer_menu_extend_week">Extender semana</string>
-    <string name="trainer_menu_extend_week_hint">Cambia el último día de esta semana.</string>
-    <string name="trainer_menu_deload_hint">Una semana más ligera: menos series y menos peso.</string>
+    <string name="trainer_menu_extend_week_detail">Cambia el último día de esta semana.</string>
+    <string name="trainer_menu_deload_detail">Una semana más ligera: menos series y menos peso.</string>
     <string name="trainer_block_week_item">S%1$d</string>
     <string name="trainer_block_week_item_done_cd">Semana %1$d, hecha</string>
     <string name="trainer_block_week_item_current_cd">Semana %1$d, actual</string>

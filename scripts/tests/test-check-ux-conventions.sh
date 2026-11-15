@@ -344,6 +344,27 @@ expect "G26 a plain space before a unit in a Trainer string fails" 1
 run "$(mkstr g26b '<string name="trainer_x">%1$s&#160;kg al día</string>')" "$empty"
 expect "G26 a non-breaking space before a unit passes" 0 NOWARN
 
+# G22 also guards the other buttons of the card; G27 the other dialogs of the root screen.
+run "$(mkr g22c "$trainer_dir/TrainerPlanCard.kt" 'AppIconButton(onClick = {})')" "$empty"
+expect "G22 an icon button in the Tu plan root card fails" 1
+run "$(mkr g27b "$trainer_dir/TrainerScreen.kt" 'AppDatePickerDialog(onDismiss = {})')" "$empty"
+expect "G27 a date picker on the Trainer root screen fails" 1
+run "$(mkr g27c "$trainer_dir/TrainerBlockCard.kt" 'RemoveBlockDialog(onEvent)')" "$empty"
+expect "G27 the dialog hosted by the block card passes" 0 NOWARN
+
+# Rule citations: every R-nnn a guard names in its messages exists in planning/05-design-system.md section 8.
+cases=$((cases + 1))
+missing=""
+for cited in $(grep -ohE 'R-[0-9]+' "$guard" | sort -u); do
+  grep -qE "^- \*\*$cited( |\.|\))" "$repo_root/planning/05-design-system.md" || missing="$missing $cited"
+done
+if [ -z "$missing" ]; then
+  echo "ok   every rule cited by a guard exists in 05 section 8"
+else
+  echo "FAIL rules cited by a guard but missing from 05 section 8:$missing"
+  failures=$((failures + 1))
+fi
+
 run "$repo_root" "$real_list" "$real_allow"
 expect "the real tree passes with the real allow-list" 0
 

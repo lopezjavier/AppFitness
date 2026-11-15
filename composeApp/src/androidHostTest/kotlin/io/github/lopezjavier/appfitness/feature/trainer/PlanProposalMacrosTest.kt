@@ -14,6 +14,8 @@ import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 
+private val NBSP = 160.toChar().toString()
+
 /** US-72 / ADR-98: protein as the headline macro, the fat minimum, carbs as the rest and the underweight note. */
 @RunWith(RobolectricTestRunner::class)
 @Config(qualifiers = "w360dp-h2400dp-xxhdpi")
@@ -41,7 +43,7 @@ class PlanProposalMacrosTest {
         show(coachPlan())
 
         rule.onNodeWithTag("plan_proposal_macro_protein").assertExists()
-        rule.onNodeWithText("Proteína: 150 g").assertExists()
+        rule.onNodeWithText("Proteína: 150${NBSP}g").assertExists()
     }
 
     @Test
@@ -49,14 +51,14 @@ class PlanProposalMacrosTest {
         show(coachPlan())
 
         // 20 % of 2000 kcal is 400 kcal, 44.4 g, rounded up to 45 g.
-        rule.onNodeWithText("Grasa: 60 g (mínimo 45 g)").assertExists()
+        rule.onNodeWithText("Grasa: 60${NBSP}g (mínimo 45${NBSP}g)").assertExists()
     }
 
     @Test
     fun carbs_areTheRest() {
         show(coachPlan())
 
-        rule.onNodeWithText("Carbohidratos: el resto, 200 g").assertExists()
+        rule.onNodeWithText("Carbohidratos: el resto, 200${NBSP}g").assertExists()
     }
 
     @Test

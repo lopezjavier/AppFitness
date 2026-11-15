@@ -28,6 +28,8 @@ import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 
+private val NBSP = 160.toChar().toString()
+
 /** US-78: "Tus datos" lists every input by origin, with its source, and opens the place where it is fixed. */
 @RunWith(RobolectricTestRunner::class)
 @Config(qualifiers = "w360dp-h2400dp-xxhdpi")
@@ -136,7 +138,7 @@ class YourDataScreenTest {
         show()
 
         rule.onNodeWithTag("your_data_handover_note")
-            .assertTextEquals("Ahora usamos tus datos reales: tu gasto medido es de 2.400 kcal.")
+            .assertTextEquals("Ahora usamos tus datos reales: tu gasto medido es de 2.400${NBSP}kcal.")
         assertEquals(1, intake.ackCalls)
     }
 

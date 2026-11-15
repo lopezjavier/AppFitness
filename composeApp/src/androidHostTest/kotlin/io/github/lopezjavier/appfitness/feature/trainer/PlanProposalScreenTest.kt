@@ -36,6 +36,8 @@ import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 
+private val NBSP = 160.toChar().toString()
+
 /** US-69 and US-68: the plan proposal screen, one test per Gherkin scenario (display, gate, accept, discard). */
 @RunWith(RobolectricTestRunner::class)
 @Config(qualifiers = "w360dp-h2400dp-xxhdpi")
@@ -92,12 +94,12 @@ class PlanProposalScreenTest {
     fun weightLossPlan_showsCaloriesMacrosAndWeeklyRate() {
         show(proposal())
 
-        rule.onNodeWithText("2.000 kcal al día").assertExists()
+        rule.onNodeWithText("2.000${NBSP}kcal al día").assertExists()
         rule.onNodeWithTag("plan_proposal_macro_protein").assertExists()
-        rule.onNodeWithText("Proteína: 150 g").assertExists()
-        rule.onNodeWithText("Carbohidratos: el resto, 200 g").assertExists()
-        rule.onNodeWithText("Grasa: 60 g (mínimo 45 g)").assertExists()
-        rule.onNodeWithText("−0,4 kg/sem").assertExists()
+        rule.onNodeWithText("Proteína: 150${NBSP}g").assertExists()
+        rule.onNodeWithText("Carbohidratos: el resto, 200${NBSP}g").assertExists()
+        rule.onNodeWithText("Grasa: 60${NBSP}g (mínimo 45${NBSP}g)").assertExists()
+        rule.onNodeWithText("−0,4${NBSP}kg/sem").assertExists()
         rule.onNodeWithTag("trainer_card").assertDoesNotExist()
     }
 
@@ -118,7 +120,7 @@ class PlanProposalScreenTest {
 
         rule.onNodeWithTag("plan_proposal_floor_note").assertExists()
         rule.onNodeWithText(
-            "Tu plan se queda en 1.200 kcal, el mínimo recomendado. Un ritmo más rápido no sería seguro.",
+            "Tu plan se queda en 1.200${NBSP}kcal, el mínimo recomendado. Un ritmo más rápido no sería seguro.",
         ).assertExists()
     }
 
@@ -134,7 +136,7 @@ class PlanProposalScreenTest {
         show(proposal())
 
         rule.onNodeWithText("Objetivos del plan").assertExists()
-        rule.onNodeWithText("Peso: 72,5 kg").assertExists()
+        rule.onNodeWithText("Peso: 72,5${NBSP}kg").assertExists()
         rule.onNodeWithText("Para el 16 de noviembre").assertExists()
         tap("plan_proposal_outcome_help_weight")
         rule.onNodeWithText("Por qué este objetivo").assertExists()
@@ -148,7 +150,7 @@ class PlanProposalScreenTest {
 
         rule.onNodeWithTag("plan_proposal_outcome_weight").assertDoesNotExist()
         rule.onNodeWithTag("plan_proposal_outcome_squat").assertExists()
-        rule.onNodeWithText("Fuerza (e1RM): 100,0 kg").assertExists()
+        rule.onNodeWithText("Fuerza (e1RM): 100,0${NBSP}kg").assertExists()
     }
 
     @Test
@@ -177,7 +179,7 @@ class PlanProposalScreenTest {
         assertTrue(bounds[0].top < bounds[1].top && bounds[1].top < bounds[2].top)
         assertEquals(bounds[0].height, bounds[1].height, 0.5f)
         assertEquals(bounds[0].height, bounds[2].height, 0.5f)
-        rule.onNodeWithText("Proteína: 150 g").assertExists()
+        rule.onNodeWithText("Proteína: 150${NBSP}g").assertExists()
     }
 
     @Test
@@ -510,7 +512,7 @@ class PlanProposalScreenTest {
         rule.waitForIdle()
 
         assertEquals(1, plans.requests.size)
-        rule.onNodeWithText("2.000 kcal al día").assertExists()
+        rule.onNodeWithText("2.000${NBSP}kcal al día").assertExists()
         assertTrue(plans.acceptCalls.isEmpty())
     }
 }
