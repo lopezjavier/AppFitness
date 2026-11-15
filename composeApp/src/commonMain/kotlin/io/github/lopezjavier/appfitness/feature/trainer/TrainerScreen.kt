@@ -6,8 +6,6 @@ import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.widthIn
-import androidx.compose.ui.unit.dp
-import io.github.lopezjavier.appfitness.designsystem.RowGroupCard
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
@@ -24,6 +22,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.github.lopezjavier.appfitness.composeapp.resources.Res
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_nav_trainer
@@ -31,6 +30,7 @@ import io.github.lopezjavier.appfitness.composeapp.resources.trainer_plan_create
 import io.github.lopezjavier.appfitness.composeapp.resources.trainer_plan_create_action
 import io.github.lopezjavier.appfitness.composeapp.resources.trainer_plan_empty_body
 import io.github.lopezjavier.appfitness.composeapp.resources.trainer_plan_empty_title
+import io.github.lopezjavier.appfitness.composeapp.resources.trainer_reports_row
 import io.github.lopezjavier.appfitness.composeapp.resources.trainer_title
 import io.github.lopezjavier.appfitness.composeapp.resources.trainer_your_data_row
 import io.github.lopezjavier.appfitness.composeapp.resources.your_data_provisional_count
@@ -39,12 +39,13 @@ import io.github.lopezjavier.appfitness.designsystem.AppShapes
 import io.github.lopezjavier.appfitness.designsystem.AppStateAction
 import io.github.lopezjavier.appfitness.designsystem.EmptyState
 import io.github.lopezjavier.appfitness.designsystem.OfflineHint
-import io.github.lopezjavier.appfitness.designsystem.WindowWidthClassDefaults
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
 import io.github.lopezjavier.appfitness.designsystem.AppTopBarDefaults
 import io.github.lopezjavier.appfitness.designsystem.NavigationRow
+import io.github.lopezjavier.appfitness.designsystem.RowGroupCard
 import io.github.lopezjavier.appfitness.designsystem.SkeletonBox
 import io.github.lopezjavier.appfitness.designsystem.Spacing
+import io.github.lopezjavier.appfitness.designsystem.WindowWidthClassDefaults
 import io.github.lopezjavier.appfitness.domain.model.WeekPhase
 import io.github.lopezjavier.appfitness.domain.port.ConnectivityObserver
 import io.github.lopezjavier.appfitness.domain.usecase.ExerciseNameResolver
@@ -58,14 +59,13 @@ import org.koin.compose.viewmodel.koinViewModel
 private val PlanSkeletonHeight = 218.dp
 private val BlockSkeletonHeight = 206.dp
 private val WideCardMinHeight = 220.dp
-private val YourDataRowHeight = 56.dp
+private val RootRowHeight = 56.dp
 private const val GRID_COLUMNS = 2
-private const val WIDE_SETS_LIMIT = 6
 
 /**
  * Where the Trainer root goes: the pending plan proposal, a block preview ([onOpenBlock] takes the plan
  * id), "Antes de empezar" ([onOpenBeforeStart] takes the mode, the plan id and the plan being replaced) and
- * the "Tu plan" and "Tu bloque" boxes and "Tus datos".
+ * the "Tu plan" and "Tu bloque" boxes, "Informes y resumen semanal" ([onOpenReports]) and "Tus datos".
  */
 data class TrainerActions(
     val onOpenProposal: () -> Unit = {},
@@ -74,7 +74,7 @@ data class TrainerActions(
     val onOpenYourData: () -> Unit = {},
     val onOpenPlan: () -> Unit = {},
     val onOpenBlockScreen: () -> Unit = {},
-    val onOpenWeekSummary: () -> Unit = {},
+    val onOpenReports: () -> Unit = {},
     val onOpenBlockReview: () -> Unit = {},
     val onOpenExercise: (exerciseId: String) -> Unit = {},
     val onOpenRoutineRange: (routineId: String, exerciseId: String) -> Unit = { _, _ -> },
@@ -202,31 +202,11 @@ private fun TrainerContent(
         }
         if (state.plan is PlanSummary.Accepted) item { planEntry() } else fullSpanItem { planEntry() }
         blockBoxes(state, online, actions, onEvent, cardMin)
-        if (state.hasWeekSummary) {
-            item {
-                WeekSummaryBox(
-                    summary = state.latestWeekSummary,
-                    lastWeek = state.weeks.lastOrNull { it.phase == WeekPhase.Past },
-                    onOpen = actions.onOpenWeekSummary,
-                )
-            }
-        }
-        // Only two columns have room for it: a phone keeps the root short (US-120).
-        val training = (state.block as? BlockSummary.Saved)?.block?.training
-        if (twoColumns && training != null && training.weeklySets.isNotEmpty()) {
-            item("sets") {
-                SetsSection(
-                    training.weeklySets,
-                    training.sessionsPerMuscle,
-                    Modifier,
-                    limit = WIDE_SETS_LIMIT,
-                    tagPrefix = "trainer_sets",
-                )
-            }
-        }
         fullSpanItem("your_data") {
-            // 12 dp from the grid plus 12 dp here: 24 dp before "Tus datos" (C-101).
-            Column(Modifier.padding(top = Spacing.md)) { YourDataEntry(state.provisionalCount, actions.onOpenYourData) }
+            // 12 dp from the grid plus 12 dp here: 24 dp before the group (C-101).
+            Column(Modifier.padding(top = Spacing.md)) {
+                RootLinksGroup(state.provisionalCount, actions.onOpenReports, actions.onOpenYourData)
+            }
         }
     }
 }
@@ -260,7 +240,7 @@ private fun NoPlanContent(online: Boolean, provisionalCount: Int?, actions: Trai
                 if (!online) OfflineHint(stringResource(Res.string.trainer_plan_create_action))
             }
         }
-        YourDataEntry(provisionalCount, actions.onOpenYourData)
+        RootLinksGroup(provisionalCount, actions.onOpenReports, actions.onOpenYourData)
     }
 }
 
@@ -314,19 +294,31 @@ private fun LazyGridScope.blockBoxes(
     }
 }
 
-/** The "Tus datos" row at the end of the hub (R-03, V-72): a one-row group; its value is how many values are still provisional. */
+/**
+ * The group at the end of the hub (R-03, V-72, C-132): "Informes y resumen semanal" (opens the reports list) then "Tus
+ * datos", whose value is how many values are still provisional.
+ */
 @Composable
-private fun YourDataEntry(provisionalCount: Int?, onOpenYourData: () -> Unit) {
+private fun RootLinksGroup(provisionalCount: Int?, onOpenReports: () -> Unit, onOpenYourData: () -> Unit) {
     RowGroupCard(
-        rows = listOf {
-            NavigationRow(
-                label = stringResource(Res.string.trainer_your_data_row),
-                onClick = onOpenYourData,
-                modifier = Modifier.heightIn(min = YourDataRowHeight).testTag("trainer_your_data"),
-                value = provisionalCount?.takeIf { it > 0 }
-                    ?.let { pluralStringResource(Res.plurals.your_data_provisional_count, it, it) },
-            )
-        },
+        rows = listOf(
+            {
+                NavigationRow(
+                    label = stringResource(Res.string.trainer_reports_row),
+                    onClick = onOpenReports,
+                    modifier = Modifier.heightIn(min = RootRowHeight).testTag("trainer_reports"),
+                )
+            },
+            {
+                NavigationRow(
+                    label = stringResource(Res.string.trainer_your_data_row),
+                    onClick = onOpenYourData,
+                    modifier = Modifier.heightIn(min = RootRowHeight).testTag("trainer_your_data"),
+                    value = provisionalCount?.takeIf { it > 0 }
+                        ?.let { pluralStringResource(Res.plurals.your_data_provisional_count, it, it) },
+                )
+            },
+        ),
     )
 }
 
@@ -360,6 +352,6 @@ private fun TrainerSkeleton() {
         Spacer(Modifier.height(Spacing.cardGap))
         SkeletonBox(Modifier.fillMaxWidth().height(BlockSkeletonHeight), AppShapes.lg)
         Spacer(Modifier.height(Spacing.blockGap))
-        SkeletonBox(Modifier.fillMaxWidth().height(YourDataRowHeight), AppShapes.lg)
+        SkeletonBox(Modifier.fillMaxWidth().height(RootRowHeight * 2), AppShapes.lg)
     }
 }

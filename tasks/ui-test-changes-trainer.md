@@ -119,3 +119,13 @@ Tests/goldens that will fail or need an update:
 - The "Por hacer: ..." and "Semana completa." lines and the `SummaryFact` cardio/steps rows (4 dp) are gone from the root block card (`trainer_block_todo`, `trainer_block_week_complete` strings unused now); bars are 8 dp.
 - The pencil opens the same `AppDatePickerDialog` (`trainer_week_extend_picker_*`) and sends `ExtendWeek` (set_coach_block_end) from the root VM: new tests: click on pencil / "Mi entrenamiento" / "Eliminar bloque" does not trigger `onOpen`; click on the card body does; picker confirm sends `ExtendWeek`.
 - Strings: new `trainer_block_starts_chip`, `trainer_block_session_done` ("Listo"), `trainer_block_session_cd_done|pending`, `trainer_block_weeks_error`.
+
+## Batch 6e (Trainer root assembly)
+
+Tests/goldens that will fail or need an update:
+- `TrainerRootCards.kt` is deleted: `WeekSummaryBox` (`trainer_box_week_summary`, `_progress`, `_weight`, `_kcal`), `SummaryTiles`, `weekActivityFacts`, `SessionSegments`, `BLOCK_SEGMENTS_STAGGER` are gone. Drop `TrainerSummaryBoxesTest` / `TrainerWeekSummaryRowTest` cases about the root week-summary box. `TrainerActions.onOpenWeekSummary` is replaced by `onOpenReports` (those tests construct it).
+- The sets card (`trainer_sets_section`, `trainer_sets_<muscle>`) is gone from the wide root; `SetsSection` lost `limit`/`tagPrefix` (tags back to `block_preview_sets_*`).
+- Root end group is one `RowGroupCard`: `trainer_reports` ("Informes y resumen semanal", opens `onOpenReports` = `ReportsRoute`) then `trainer_your_data`. Skeleton ends with a two-row-high placeholder.
+- Strings: new `trainer_reports_row`; removed `trainer_summary_*`, `trainer_plan_fact_cardio_value`, `trainer_plan_fact_steps`, `trainer_plan_fact_steps_value`.
+- New tests: click on `trainer_reports` calls `onOpenReports`; no-plan root also shows the group.
+- Note: `hasWeekSummary` is no longer read by the root UI (still set by the VM; `latestWeekSummary` feeds the plan tiles).

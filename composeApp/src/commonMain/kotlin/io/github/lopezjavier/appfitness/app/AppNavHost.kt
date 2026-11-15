@@ -828,7 +828,7 @@ internal fun AppNavHost(
             onOpenYourData = { navController.navigateToFullScreen(YourDataRoute) },
             onOpenPlan = { navController.navigateToFullScreen(TrainerPlanRoute) },
             onOpenBlockScreen = { navController.navigateToFullScreen(TrainerBlockRoute) },
-            onOpenWeekSummary = { navController.navigateToFullScreen(WeekSummaryRoute) },
+            onOpenReports = { navController.navigateToFullScreen(ReportsRoute) },
             onOpenBlockReview = { navController.navigateToFullScreen(BlockReviewRoute) },
             onOpenExercise = { navController.navigateToFullScreen(ExerciseDetailRoute(it, selectMode = false)) },
             onOpenRoutineRange = { routineId, exerciseId ->
