@@ -213,7 +213,7 @@ One row per ux-critic finding. The PM has the dispositions recorded here as the 
 | C-133 | Verdict wording from 07 §5 (5); the mockup's "Ritmo óptimo" and "En pasillo" chips and the "Fase activa" chip are dropped | 3 | ACCEPTED (not built) | 05 §10, R-101 |
 | C-134 | Tu plan tiles: Calorías, Cardio, Pasos (kcal eaten against the plan target; calories IN, macros OUT; no macro bar on the root) | 3 | ACCEPTED (not built) | 05 §6.0d, R-102 |
 | C-135 | Tu bloque card: week chip with pencil, segmented progress, "2 de 4 entrenos esta semana" with percent chip, four session cards (Listo / Pendiente), Cardio and Pasos al día bars | 3 | ACCEPTED (not built) | 05 §6.0d |
-| C-136 | In-card actions: "Crear plan nuevo" (Tu plan), "Mi entrenamiento" and "Eliminar bloque" (Tu bloque), outside the card's tap target | 3 | ACCEPTED (not built) | 05 R-103 |
+| C-136 | In-card actions: "Crear plan nuevo" (Tu plan), "Mi entrenamiento" and "Eliminar bloque" (Tu bloque), outside the card's tap target | 3 | REWORK (superseded 2026-11-15 by C-143: actions are in each card's ⋮, details screens deleted) | 05 R-103, R-105 |
 | C-137 | Root row "Informes y resumen semanal" (leading Outlined icon) in one `RowGroupCard` with "Tus datos" | 3 | ACCEPTED (not built) | 05 §6.0d, §10 |
 | C-138 | Root states: no plan, no block, not started, paused, ended, too few weigh-ins, offline | 3 | ACCEPTED (not built) | 05 §6.0d |
 | C-139 | Wide layout: two columns (Tu plan, Tu bloque) at 300 dp minimum cells under the 840 dp cap | 3 | ACCEPTED (not built) | 05 R-91 |
@@ -223,6 +223,12 @@ One row per ux-critic finding. The PM has the dispositions recorded here as the 
 | C-142 | R-104 state words Por detrás / En camino / Cumplido / Superado / Sin datos / Por empezar, never colour alone | 3 | REJECTED by the user 2026-11-15 (went with the rings) | 05 R-104, §10 |
 | V-74 | Steps tile: "Pasos al día" plus "de 7.000 al día" repeats the period and wraps to four lines at 360 dp (uneven tile heights); target becomes "de 7.000" | 3 | PROPOSED (05 §6.0e reworded; string `trainer_week_goal_of_per_day` to change) | 05 §6.0e |
 | V-75 | Over-target colour: ring/status green (R-104) vs live cardio timer amber past target (R-58); fitness-scientist is answering | 3 | PROPOSED (rule conflict flagged) | 05 R-58, R-104 |
+| C-143 | Trainer root cards have their own ⋮ menu (`CardMenu` + `AppActionSheet`): Tu plan (Crear plan nuevo, Descanso de dieta, Editar cardio), Tu bloque (Bloque nuevo, Extender semana, Hacer descarga, Eliminar bloque); cards open nothing. Supersedes C-136 and the "no actions" half of R-103 (G22/G27 keep their patterns) | 3 | IN REVIEW (T-283, commit 583f1289; user, 2026-11-15) | 05 R-103, R-105, §6.0h |
+| C-144 | Week selector: `SegmentedProgressPicker` tabs "S1".."SN" (tick on done, outline on current, upcoming tappable as "Planificado", chosen = bold + 3 dp bar, "Semana N" title above the detail, no fill animation); replaces the round segments of C-135 | 3 | IN REVIEW (T-283, commit 583f1289) | 05 R-106, §6.0h |
+| C-145 | Root card "Cambios del entrenador" (`CoachChangesCard`): rows with "Revertido" state and "Deshacer" action, under "Tu bloque", only with applied changes | 3 | IN REVIEW (T-283, commit 583f1289) | 05 R-107, §10 |
+| C-146 | A failed plan read never shows the no-plan screen: skeleton while retrying, then `ErrorState` with "Reintentar" | 3 | IN REVIEW (T-283, commit 583f1289) | 05 R-108 |
+| C-147 | The "Tu plan" and "Tu bloque" screens are deleted; "Mi entrenamiento" is a text link below "Tus datos" on the root | 3 | IN REVIEW (T-283; deletion in parallel) | 05 §6.0h, R-90 |
+| V-76 | "Eliminar bloque" text link inside the "Tu bloque" card (V-73 / V-54 REWORK) becomes the last entry of the card's ⋮ sheet (destructive, R-08 dialog unchanged) | 3 | IN REVIEW (T-283, commit 583f1289) | 05 R-105 |
 
 Status values:
 - `PROPOSED`: reported by the critic, not decided yet.

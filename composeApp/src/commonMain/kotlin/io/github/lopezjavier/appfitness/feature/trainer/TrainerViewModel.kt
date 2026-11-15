@@ -17,8 +17,6 @@ import io.github.lopezjavier.appfitness.domain.model.CoachDerivedValues
 import io.github.lopezjavier.appfitness.domain.model.CoachException
 import io.github.lopezjavier.appfitness.domain.model.CoachFailure
 import io.github.lopezjavier.appfitness.domain.model.CoachPlan
-import io.github.lopezjavier.appfitness.domain.model.MacroSplit
-import io.github.lopezjavier.appfitness.domain.model.Macronutrient
 import io.github.lopezjavier.appfitness.domain.model.Phase
 import io.github.lopezjavier.appfitness.domain.model.PlanStatus
 import io.github.lopezjavier.appfitness.domain.model.PhaseWeeks
@@ -35,23 +33,16 @@ import io.github.lopezjavier.appfitness.domain.repository.CoachRepository
 import io.github.lopezjavier.appfitness.domain.repository.CoachSummaryRepository
 import io.github.lopezjavier.appfitness.domain.repository.CoachWeeksRepository
 import io.github.lopezjavier.appfitness.domain.repository.DiscomfortFollowUpRepository
-import io.github.lopezjavier.appfitness.domain.repository.NutritionGoalsRepository
-import io.github.lopezjavier.appfitness.domain.repository.ProfileRepository
 import io.github.lopezjavier.appfitness.domain.usecase.DecideCalorieProposalUseCase
 import io.github.lopezjavier.appfitness.domain.usecase.ExerciseNameResolver
-import io.github.lopezjavier.appfitness.domain.usecase.GoalChecklist
-import io.github.lopezjavier.appfitness.domain.usecase.GoalTargets
 import io.github.lopezjavier.appfitness.domain.usecase.LoadBlockReviewUseCase
 import io.github.lopezjavier.appfitness.domain.usecase.LoadWeeksInPhaseUseCase
 import io.github.lopezjavier.appfitness.domain.usecase.LoadWelcomeBack
-import io.github.lopezjavier.appfitness.domain.usecase.NutritionGoalsChecklist
 import io.github.lopezjavier.appfitness.domain.usecase.RecordPausedWeekReport
 import io.github.lopezjavier.appfitness.domain.usecase.DailyWeight
 import io.github.lopezjavier.appfitness.domain.usecase.DailyWeights
 import io.github.lopezjavier.appfitness.domain.usecase.WeightPace
 import io.github.lopezjavier.appfitness.domain.usecase.WeightPaceFit
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.async
 import kotlinx.coroutines.channels.Channel
@@ -76,7 +67,6 @@ import kotlin.math.roundToInt
 private const val KEY_REMOVE_BLOCK_CONFIRM = "remove_block_confirm"
 private const val KEY_EXTEND_PICKER = "extend_week_picker"
 private const val KEY_PAUSED_RECORDED = "week_summary_paused_recorded"
-private const val PERCENT = 100.0
 private const val DAYS_PER_WEEK = 7
 private const val PLAN_READ_RETRIES = 2
 private const val PLAN_READ_BACKOFF_MS = 300L
@@ -120,8 +110,6 @@ class TrainerViewModel(
     private val blocks: CoachBlockRepository? = null,
     private val coachWeeks: CoachWeeksRepository? = null,
     private val savedState: SavedStateHandle = SavedStateHandle(),
-    private val goals: NutritionGoalsRepository? = null,
-    private val profile: ProfileRepository? = null,
     private val measurements: BodyMeasurementRepository? = null,
     private val coachChanges: CoachChangesRepository? = null,
     private val decideProposal: DecideCalorieProposalUseCase? = plans?.let { DecideCalorieProposalUseCase(it) },
@@ -653,7 +641,6 @@ class TrainerViewModel(
         val block = blocks.summaryFor(plan)
         dietBreak.await()
         val proposal = async { proposalFor(plan) }
-        val checklist = goalsChecklistAsync(plan)
         val welcomeBack = async { welcomeBackFor(plan, block) }
         // Assumption: the deload rule written by evaluateDeload does not change what welcomeBack and weeksInPhase read.
         val hub = hubOf(plan, block)
@@ -681,7 +668,6 @@ class TrainerViewModel(
             diaryCalories = diaryCalories.await(),
             blockReviewDue = blockReviewDue.await(),
             welcomeBack = welcomeBack.await(),
-            goalsChecklist = checklist.await(),
             cardioEdit = cardioEdit.current((plan as? PlanSummary.Accepted)?.plan?.cardioMinutes()),
             removeBlockConfirm = confirmRemove && block is BlockSummary.Saved,
             weeksInPhase = phaseWeeks,
@@ -760,34 +746,6 @@ class TrainerViewModel(
         val accepted = (plan as? PlanSummary.Accepted)?.plan?.takeIf { block is BlockSummary.Saved } ?: return false
         return loadWelcomeBack?.invoke(accepted)?.getOrNull() == true
     }
-
-    /** N1-N4 on the Diario goals in use: only for an accepted plan with edited goals, null when an input is missing. */
-    @Suppress("ReturnCount") // Guards: not edited, a repository, or an input is missing.
-    private fun CoroutineScope.goalsChecklistAsync(plan: PlanSummary): Deferred<GoalChecklist?> = async {
-        val accepted = (plan as? PlanSummary.Accepted)?.plan ?: return@async null
-        if (!accepted.nutrition.editedByUser) return@async null
-        val savedRead = async { goals?.getOwn()?.getOrNull() }
-        val sexRead = async { profile?.getBiometrics()?.getOrNull()?.sex }
-        val weightRead = async { measurements?.getLatestWeight()?.getOrNull()?.weightKg }
-        val saved = savedRead.await() ?: return@async null
-        val sex = sexRead.await() ?: return@async null
-        val weightKg = weightRead.await() ?: return@async null
-        val kcal = saved.targetKcal
-        NutritionGoalsChecklist(
-            targets = GoalTargets(
-                targetKcal = kcal,
-                proteinG = gramsOf(kcal, saved.split, Macronutrient.Protein),
-                fatG = gramsOf(kcal, saved.split, Macronutrient.Fat),
-            ),
-            weightKg = weightKg,
-            sex = sex,
-            phase = accepted.phase,
-            expenditureKcal = accepted.nutrition.expenditureKcal,
-        )
-    }
-
-    private fun gramsOf(kcal: Int, split: MacroSplit, macro: Macronutrient): Int =
-        (kcal * split[macro] / PERCENT / macro.kcalPerGram.toDouble()).roundToInt()
 
     /**
      * A goal-switch proposal (stored by "Bloque nuevo" until the new block is saved) is never the plan entry: the hub

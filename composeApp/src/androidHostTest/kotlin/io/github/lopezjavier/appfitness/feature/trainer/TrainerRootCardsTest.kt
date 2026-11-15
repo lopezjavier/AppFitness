@@ -137,16 +137,6 @@ class TrainerRootCardsTest {
         node("trainer_create_plan").assertDoesNotExist()
     }
 
-    @Test
-    fun planCard_tappingItsBody_opensTuPlan_once() {
-        var opened = 0
-        show(planState(pace(WeightPaceState.OnPace)), actions = TrainerActions(onOpenPlan = { opened++ }))
-
-        tap("trainer_box_plan")
-
-        assertEquals(1, opened)
-    }
-
     private fun assertVerdict(case: WeightPace, text: String) {
         show(planState(case))
 
@@ -224,19 +214,6 @@ class TrainerRootCardsTest {
             "trainer_box_block_extend_edit",
             "trainer_remove_block_dialog_confirm",
         ).forEach { node(it).assertDoesNotExist() }
-    }
-
-    @Test
-    fun blockCard_tappingItsBody_opensTuBloque_once() {
-        var opened = 0
-        show(
-            blockState(listOf(planWeek(week = 1))),
-            actions = TrainerActions(onOpenBlockScreen = { opened++ }),
-        )
-
-        tap("trainer_box_block")
-
-        assertEquals(1, opened)
     }
 
     @Test

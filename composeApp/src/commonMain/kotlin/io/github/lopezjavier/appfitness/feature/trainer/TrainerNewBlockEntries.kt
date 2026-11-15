@@ -1,11 +1,8 @@
 package io.github.lopezjavier.appfitness.feature.trainer
 
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import io.github.lopezjavier.appfitness.composeapp.resources.Res
@@ -20,27 +17,9 @@ import io.github.lopezjavier.appfitness.designsystem.AppTextButton
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
 import io.github.lopezjavier.appfitness.designsystem.GhostButton
 import io.github.lopezjavier.appfitness.designsystem.OfflineHint
-import io.github.lopezjavier.appfitness.designsystem.Spacing
 import io.github.lopezjavier.appfitness.domain.model.PhaseWeeks
 import org.jetbrains.compose.resources.pluralStringResource
 import org.jetbrains.compose.resources.stringResource
-
-/**
- * "Bloque nuevo" under the active plan while its block is saved (T-240), on the old "Tu plan" screen; "Mi
- * entrenamiento" is now a text link of the Trainer root ([MyTrainingLink], R-90).
- */
-@Composable
-internal fun NewBlockEntries(online: Boolean, onEvent: (TrainerEvent) -> Unit) {
-    Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm), horizontalAlignment = Alignment.CenterHorizontally) {
-        AppTextButton(
-            text = stringResource(Res.string.trainer_new_block),
-            onClick = { onEvent(TrainerEvent.OpenNewBlock) },
-            modifier = Modifier.testTag("trainer_new_block"),
-            enabled = online,
-        )
-        if (!online) OfflineHint(stringResource(Res.string.trainer_new_block_action))
-    }
-}
 
 /** "Mi entrenamiento" on the Trainer root, below "Tus datos": a text link (R-90, R-100) that opens the screen. */
 @Composable

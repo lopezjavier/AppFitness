@@ -91,22 +91,13 @@ class TrainerCoachChangesScreenTest {
         rule.setContent {
             AppTheme {
                 CompositionLocalProvider(LocalAppMessages provides messages) {
-                    if (details) {
-                        TrainerBoxRoot(
-                            box = TrainerBox.Block,
-                            actions = actions,
-                            viewModel = model,
-                            connectivity = FakeConnectivityObserver(),
-                            nameResolver = resolver,
-                        )
-                    } else {
-                        TrainerRoute(
-                            viewModel = model,
-                            connectivity = FakeConnectivityObserver(),
-                            nameResolver = resolver,
-                            actions = actions,
-                        )
-                    }
+                    // T-283: the box screen is gone; `details` is ignored until the test block retargets this host.
+                    TrainerRoute(
+                        viewModel = model,
+                        connectivity = FakeConnectivityObserver(),
+                        nameResolver = resolver,
+                        actions = actions,
+                    )
                 }
             }
         }

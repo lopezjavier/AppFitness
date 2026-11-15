@@ -225,47 +225,7 @@ class TrainerSummaryBoxesTest {
         rule.onNodeWithTag("trainer_coach_change_row_done").assertExists()
     }
 
-    @Test
-    fun theBoxes_callTheirActions() {
-        var plan = 0
-        var block = 0
-        rule.setContent {
-            AppTheme {
-                TrainerScreen(
-                    savedState(listOf(planWeek(week = 1))),
-                    flowOf(true),
-                    {},
-                    actions = TrainerActions(onOpenPlan = { plan++ }, onOpenBlockScreen = { block++ }),
-                )
-            }
-        }
-
-        tap("trainer_box_plan")
-        tap("trainer_box_block")
-
-        assertEquals(listOf(1, 1), listOf(plan, block))
-    }
-
     // States of the pushed screens
-
-    @Test
-    fun whileLoading_eachScreenShowsItsSkeleton() {
-        rule.setContent {
-            AppTheme { TrainerBoxScreen(TrainerBox.Plan, TrainerUiState.Loading, flowOf(true), {}, {}) }
-        }
-
-        rule.onNodeWithTag("trainer_plan_loading").assertExists()
-    }
-
-    @Test
-    fun whenNothingIsLeft_theScreenShowsTheEmptyState() {
-        rule.setContent {
-            AppTheme { TrainerBoxScreen(TrainerBox.Block, TrainerUiState.Content(), flowOf(true), {}, {}) }
-        }
-
-        rule.onNodeWithText("Todavía no hay nada que mostrar.").assertExists()
-        rule.onNodeWithTag("trainer_block_empty").assertExists()
-    }
 
     @Test
     fun theScreenTitles_equalTheBoxTitles() {

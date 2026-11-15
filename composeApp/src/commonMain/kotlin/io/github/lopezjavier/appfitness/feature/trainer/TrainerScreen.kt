@@ -66,16 +66,14 @@ private const val GRID_COLUMNS = 2
 
 /**
  * Where the Trainer root goes: the pending plan proposal, a block preview ([onOpenBlock] takes the plan
- * id), "Antes de empezar" ([onOpenBeforeStart] takes the mode, the plan id and the plan being replaced) and
- * the "Tu plan" and "Tu bloque" boxes, "Informes y resumen semanal" ([onOpenReports]) and "Tus datos".
+ * id), "Antes de empezar" ([onOpenBeforeStart] takes the mode, the plan id and the plan being replaced),
+ * "Informes y resumen semanal" ([onOpenReports]) and "Tus datos".
  */
 data class TrainerActions(
     val onOpenProposal: () -> Unit = {},
     val onOpenBlock: (String) -> Unit = {},
     val onOpenBeforeStart: (mode: BeforeStartMode, planId: String?, replacingPlanId: String?) -> Unit = { _, _, _ -> },
     val onOpenYourData: () -> Unit = {},
-    val onOpenPlan: () -> Unit = {},
-    val onOpenBlockScreen: () -> Unit = {},
     val onOpenReports: () -> Unit = {},
     val onOpenBlockReview: () -> Unit = {},
     val onOpenExercise: (exerciseId: String) -> Unit = {},

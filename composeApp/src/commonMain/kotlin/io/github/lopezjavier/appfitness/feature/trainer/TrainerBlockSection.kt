@@ -3,7 +3,6 @@ package io.github.lopezjavier.appfitness.feature.trainer
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
@@ -18,26 +17,20 @@ import io.github.lopezjavier.appfitness.composeapp.resources.trainer_block_creat
 import io.github.lopezjavier.appfitness.composeapp.resources.trainer_block_create_action
 import io.github.lopezjavier.appfitness.composeapp.resources.trainer_block_proposed_supporting
 import io.github.lopezjavier.appfitness.composeapp.resources.trainer_block_proposed_title
-import io.github.lopezjavier.appfitness.composeapp.resources.trainer_block_changes_applied
 import io.github.lopezjavier.appfitness.composeapp.resources.trainer_block_remove_message
 import io.github.lopezjavier.appfitness.composeapp.resources.trainer_block_remove_title
-import io.github.lopezjavier.appfitness.composeapp.resources.trainer_block_saved_title
 import io.github.lopezjavier.appfitness.composeapp.resources.trainer_block_status_ended
 import io.github.lopezjavier.appfitness.composeapp.resources.trainer_block_status_upcoming
 import io.github.lopezjavier.appfitness.composeapp.resources.trainer_block_status_week
-import io.github.lopezjavier.appfitness.composeapp.resources.trainer_block_title
 import io.github.lopezjavier.appfitness.designsystem.AppCard
 import io.github.lopezjavier.appfitness.designsystem.AppConfirmDialog
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
 import io.github.lopezjavier.appfitness.designsystem.OfflineHint
 import io.github.lopezjavier.appfitness.designsystem.PrimaryButton
-import io.github.lopezjavier.appfitness.designsystem.SegmentedProgress
 import io.github.lopezjavier.appfitness.designsystem.Spacing
 import io.github.lopezjavier.appfitness.designsystem.SummaryCard
-import io.github.lopezjavier.appfitness.domain.model.PlanWeek
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.size
 import androidx.compose.material3.Icon
 import androidx.compose.ui.Alignment
@@ -45,20 +38,9 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_fitness_center
-import io.github.lopezjavier.appfitness.composeapp.resources.report_sessions_headline
-import io.github.lopezjavier.appfitness.composeapp.resources.trainer_block_headline_unit
-import io.github.lopezjavier.appfitness.composeapp.resources.trainer_block_starts
-import io.github.lopezjavier.appfitness.composeapp.resources.trainer_block_todo
-import io.github.lopezjavier.appfitness.composeapp.resources.trainer_block_week_complete
 import io.github.lopezjavier.appfitness.composeapp.resources.trainer_box_empty_block
-import io.github.lopezjavier.appfitness.composeapp.resources.trainer_week_chip_deload
-import io.github.lopezjavier.appfitness.designsystem.AppDateFormat
 import io.github.lopezjavier.appfitness.designsystem.AppShapes
-import io.github.lopezjavier.appfitness.designsystem.StatusChip
-import io.github.lopezjavier.appfitness.designsystem.StatusTone
-import io.github.lopezjavier.appfitness.domain.model.WeekPhase
 import org.jetbrains.compose.resources.painterResource
-import org.jetbrains.compose.resources.pluralStringResource
 import org.jetbrains.compose.resources.stringResource
 
 /** The block entry on the Trainer root: "Crear bloque" or the proposed block to review. */
@@ -101,36 +83,6 @@ internal fun BlockEntrySection(
         )
 
         is BlockSummary.Saved -> Unit
-    }
-}
-
-/** The saved block on "Tu bloque": the header card with the week segments and "Semana 2 de 4" (C-113). */
-@Composable
-internal fun BlockDetailsSection(block: BlockSummary, status: BlockStatus) {
-    if (block !is BlockSummary.Saved) return
-    AppCard(Modifier.fillMaxWidth().testTag("trainer_block_card")) {
-        Text(
-            text = stringResource(Res.string.trainer_block_saved_title),
-            style = AppTheme.typography.titleMedium,
-            color = AppTheme.colors.textPrimary,
-        )
-        (status as? BlockStatus.Saved)?.takeIf { it.total > 0 }?.let { saved ->
-            val line = saved.weekLine()
-            Column(Modifier.padding(top = Spacing.sm), verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-                Text(
-                    text = line,
-                    style = AppTheme.typography.bodyMedium,
-                    color = AppTheme.colors.textSecondary,
-                )
-                SegmentedProgress(
-                    total = saved.total,
-                    done = ((saved.week ?: 1) - 1).coerceAtLeast(0),
-                    stateDescription = line,
-                    current = saved.week,
-                    testTag = "trainer_block_weeks_progress",
-                )
-            }
-        }
     }
 }
 

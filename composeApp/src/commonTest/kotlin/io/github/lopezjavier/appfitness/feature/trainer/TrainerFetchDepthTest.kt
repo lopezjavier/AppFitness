@@ -122,12 +122,6 @@ class TrainerFetchDepthTest {
                 return weeks.blockPause(planId, today)
             }
         },
-        goals = object : NutritionGoalsRepository by goals {
-            override suspend fun getOwn(): Result<NutritionGoals?> {
-                timed("getOwn")
-                return goals.getOwn()
-            }
-        },
         coachChanges = object : CoachChangesRepository by changes {
             override suspend fun list(planId: String?, statuses: Set<CoachChangeStatus>): Result<List<CoachChange>> {
                 slow("changes")
@@ -221,17 +215,6 @@ class TrainerFetchDepthTest {
         assertEquals(null, content.pause)
         assertEquals(BlockSummary.Saved(coachBlock(saved = true)), content.block)
         assertTrue(starts.any { it.first == "changes" })
-    }
-
-    @Test
-    fun goalsChecklistRead_startsOnlyAfterTheDietBreakWasApplied() = runTest(dispatcher) {
-        plans.current = Result.success(coachPlan(status = PlanStatus.Accepted, editedByUser = true))
-        blocks.current = Result.success(coachBlock(saved = true))
-        viewModel()
-
-        advanceUntilIdle()
-
-        assertTrue(startOf("applyDietBreak.end") <= startOf("getOwn"))
     }
 
     @Test

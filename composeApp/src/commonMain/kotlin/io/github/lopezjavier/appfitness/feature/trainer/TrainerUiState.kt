@@ -14,7 +14,6 @@ import io.github.lopezjavier.appfitness.domain.model.PlanWeek
 import io.github.lopezjavier.appfitness.domain.model.ProgressionFlagDecision
 import io.github.lopezjavier.appfitness.domain.model.WeekPhase
 import io.github.lopezjavier.appfitness.domain.model.WeekSummary
-import io.github.lopezjavier.appfitness.domain.usecase.GoalChecklist
 import io.github.lopezjavier.appfitness.domain.usecase.WeightPace
 import kotlinx.datetime.LocalDate
 
@@ -101,8 +100,6 @@ sealed interface TrainerUiState {
         val removeBlockConfirm: Boolean = false,
         /** The block removal is in flight: the dialog stays open with its confirm action disabled. */
         val removingBlock: Boolean = false,
-        /** N1-N4 on the Diario goals in use; null until the core supplies it. Shown only for an edited plan. */
-        val goalsChecklist: GoalChecklist? = null,
         /** "Cambios del entrenador": pending flags first, then the latest changes; empty hides the section. */
         val coachChanges: List<CoachChangeRowUi> = emptyList(),
         /** Id of the change whose undo or decision is in flight; the other rows' actions are disabled meanwhile. */
@@ -115,7 +112,7 @@ sealed interface TrainerUiState {
         val blockReviewDue: Boolean = false,
         /**
          * "Bienvenido de nuevo" (US-107): the latest session is 14+ days old and no session or block was saved since.
-         * Hidden while [blockReviewDue]: the review footer is the only way on then (like `NewBlockEntries`).
+         * Hidden while [blockReviewDue]: the review footer is the only way on then (like the "Bloque nuevo" menu row).
          */
         val welcomeBack: Boolean = false,
         /** Weeks started in the current calorie phase ("Llevas n semanas en esta fase"); null hides the line. */

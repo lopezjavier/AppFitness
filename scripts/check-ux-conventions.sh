@@ -390,7 +390,7 @@ for file in "${kotlin_feature[@]+"${kotlin_feature[@]}"}"; do
   esac
 done
 # G22 (R-103): the "Tu plan" root card summarises; its actions live in the details screen. TrainerBlockCard.kt is not
-# scanned because it also hosts the "Tu bloque" details actions (BlockDetailsActions).
+# scanned because it also hosts the "Tu bloque" details actions.
 scan G22 "action button, pencil or help button in the Tu plan root card (R-103: actions live in the details screen)" \
   '\b(GhostButton|AppTextButton|PrimaryButton|SecondaryButton|HelpButton|AppIconButton)\(' '' \
   "${root_summary_cards[@]+"${root_summary_cards[@]}"}"

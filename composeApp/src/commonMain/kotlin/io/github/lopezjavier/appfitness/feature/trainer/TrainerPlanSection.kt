@@ -4,8 +4,6 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.lazy.grid.LazyGridScope
-import androidx.compose.ui.semantics.semantics
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -26,43 +24,25 @@ import io.github.lopezjavier.appfitness.composeapp.resources.calorie_proposal_ho
 import io.github.lopezjavier.appfitness.composeapp.resources.calorie_proposal_hold_raise
 import io.github.lopezjavier.appfitness.composeapp.resources.calorie_proposal_offline
 import io.github.lopezjavier.appfitness.composeapp.resources.phase_help_cd
-import io.github.lopezjavier.appfitness.composeapp.resources.plan_proposal_kcal_unit
-import io.github.lopezjavier.appfitness.composeapp.resources.trainer_plan_rate_label
-import io.github.lopezjavier.appfitness.composeapp.resources.trainer_plan_rate_unit
-import io.github.lopezjavier.appfitness.composeapp.resources.trainer_box_plan_line
-import io.github.lopezjavier.appfitness.composeapp.resources.trainer_plan_active_line
-import io.github.lopezjavier.appfitness.composeapp.resources.trainer_plan_active_title
-import io.github.lopezjavier.appfitness.composeapp.resources.trainer_plan_activity
 import io.github.lopezjavier.appfitness.composeapp.resources.trainer_plan_create
 import io.github.lopezjavier.appfitness.composeapp.resources.trainer_plan_create_action
-import io.github.lopezjavier.appfitness.composeapp.resources.trainer_plan_diet_break
-import io.github.lopezjavier.appfitness.composeapp.resources.trainer_plan_outcomes
 import io.github.lopezjavier.appfitness.composeapp.resources.trainer_plan_pending_supporting
 import io.github.lopezjavier.appfitness.composeapp.resources.trainer_plan_pending_title
-import io.github.lopezjavier.appfitness.composeapp.resources.trainer_plan_phase_line
 import io.github.lopezjavier.appfitness.composeapp.resources.trainer_plan_replace
-import io.github.lopezjavier.appfitness.composeapp.resources.trainer_source_edited
-import io.github.lopezjavier.appfitness.designsystem.AppCard
 import io.github.lopezjavier.appfitness.designsystem.AppNumberFormat
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
 import io.github.lopezjavier.appfitness.designsystem.CoachProposalCard
 import io.github.lopezjavier.appfitness.designsystem.GhostButton
 import io.github.lopezjavier.appfitness.designsystem.HelpButton
-import io.github.lopezjavier.appfitness.designsystem.MetricTile
 import io.github.lopezjavier.appfitness.designsystem.OfflineHint
-import io.github.lopezjavier.appfitness.designsystem.PrimaryButton
 import io.github.lopezjavier.appfitness.designsystem.Spacing
-import io.github.lopezjavier.appfitness.designsystem.StatusChip
-import io.github.lopezjavier.appfitness.designsystem.StatusTone
 import io.github.lopezjavier.appfitness.designsystem.SummaryCard
 import io.github.lopezjavier.appfitness.domain.model.CalorieProposal
 import io.github.lopezjavier.appfitness.domain.model.CoachPlan
 import io.github.lopezjavier.appfitness.domain.model.PhaseWeeks
-import io.github.lopezjavier.appfitness.domain.usecase.GoalChecklist
 import io.github.lopezjavier.appfitness.domain.usecase.WeightPace
 import io.github.lopezjavier.appfitness.feature.weight.signedTenths
 import org.jetbrains.compose.resources.StringResource
-import org.jetbrains.compose.resources.pluralStringResource
 import org.jetbrains.compose.resources.stringResource
 import kotlin.math.abs
 
@@ -111,51 +91,6 @@ internal fun PlanEntrySection(
     }
 }
 
-/**
- * "Tu plan" screen: the active plan with everything around it, as items of a [HubGrid]. The screen title is the
- * heading, so there is no second "Tu plan" header (V-53).
- */
-@Suppress("LongParameterList") // The plan, its state and the events of the screen.
-internal fun LazyGridScope.planDetails(
-    plan: PlanSummary,
-    online: Boolean,
-    onOpenBeforeStart: (BeforeStartMode, String?, String?) -> Unit,
-    cardioEdit: CardioEdit? = null,
-    onEvent: (TrainerEvent) -> Unit = {},
-    goalsChecklist: GoalChecklist? = null,
-    canStartNewBlock: Boolean = false,
-    weeksInPhase: PhaseWeeks? = null,
-    reviewDue: Boolean = false,
-    dietBreakSaving: Boolean = false,
-) {
-    if (plan !is PlanSummary.Accepted) return
-    fullSpanItem("plan_card") {
-        ActivePlanCard(plan.plan, weeksInPhase, onEditCardio = { onEvent(TrainerEvent.OpenCardioEdit) }) {
-            DietBreakToggle(plan.plan, online, dietBreakSaving) { onEvent(TrainerEvent.ToggleDietBreak(it)) }
-        }
-        cardioEdit?.let {
-            CardioMinutesSheet(
-                edit = it,
-                online = online,
-                onChange = { minutes -> onEvent(TrainerEvent.CardioMinutesChanged(minutes)) },
-                onSave = { onEvent(TrainerEvent.SaveCardio) },
-                onDismiss = { onEvent(TrainerEvent.DismissCardioEdit) },
-            )
-        }
-    }
-    if (plan.plan.nutrition.editedByUser && goalsChecklist != null) {
-        fullSpanItem("goals") { GoalsChecklistSection(goalsChecklist) }
-    }
-    // While the review is due its footer is the only way on: no "Bloque nuevo" entry here.
-    if (canStartNewBlock && !reviewDue) fullSpanItem("new_block") { NewBlockEntries(online, onEvent) }
-    // The root card only summarises: replacing the plan is an action of this screen (R-103).
-    fullSpanItem("replace_plan") {
-        Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-            ReplacePlanEntry(plan.plan.id, online, onOpenBeforeStart)
-        }
-    }
-}
-
 /** "Crear plan nuevo" under the current plan: opens "Antes de empezar", which says what it replaces. */
 @Composable
 private fun ReplacePlanEntry(
@@ -170,87 +105,6 @@ private fun ReplacePlanEntry(
         enabled = online,
     )
     if (!online) OfflineHint(stringResource(Res.string.trainer_plan_create_action))
-}
-
-@Composable
-private fun ActivePlanCard(
-    plan: CoachPlan,
-    weeksInPhase: PhaseWeeks?,
-    onEditCardio: () -> Unit,
-    dietBreakRow: @Composable () -> Unit,
-) {
-    val nutrition = plan.nutrition
-    AppCard(Modifier.fillMaxWidth().testTag("trainer_plan_card")) {
-        Text(
-            text = stringResource(Res.string.trainer_plan_active_title),
-            style = AppTheme.typography.titleMedium,
-            color = AppTheme.colors.textPrimary,
-        )
-        Row(
-            Modifier.semantics(mergeDescendants = true) {},
-            horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
-            verticalAlignment = Alignment.Bottom,
-        ) {
-            Text(
-                text = AppNumberFormat.integer(nutrition.targetKcal),
-                style = AppTheme.typography.headlineMetric,
-                color = AppTheme.colors.textPrimary,
-            )
-            Text(
-                text = stringResource(Res.string.plan_proposal_kcal_unit),
-                style = AppTheme.typography.bodyMedium,
-                color = AppTheme.colors.textSecondary,
-            )
-        }
-        // The rate as a tile (V-55); the cardio and steps figures stay in the editable row below.
-        MetricTile(
-            label = stringResource(Res.string.trainer_plan_rate_label),
-            value = signedTenths(nutrition.rateKgWeek),
-            unit = stringResource(Res.string.trainer_plan_rate_unit),
-            modifier = Modifier.fillMaxWidth().testTag("trainer_plan_rate_tile"),
-        )
-        PhaseLine(plan)
-        nutrition.dietBreak?.let { week ->
-            Text(
-                text = stringResource(Res.string.trainer_plan_diet_break, AppNumberFormat.integer(week.targetKcal)),
-                style = AppTheme.typography.bodyMedium,
-                color = AppTheme.colors.textSecondary,
-                modifier = Modifier.testTag("trainer_plan_diet_break"),
-            )
-        }
-        weeksInPhase?.let { WeeksInPhaseLine(it) }
-        dietBreakRow()
-        nutrition.activity?.let { PlanCardioRow(it, onEditCardio) }
-        // The objectives are listed like the proposal's, not counted (C-114).
-        if (plan.outcomes.isNotEmpty()) OutcomesSection(plan.outcomes)
-        if (nutrition.editedByUser) {
-            StatusChip(stringResource(Res.string.trainer_source_edited), StatusTone.Caution)
-        }
-    }
-}
-
-/** One line with the phase and, when it is short, its reason; the "?" explains the phase. */
-@Composable
-private fun PhaseLine(plan: CoachPlan) {
-    val phase = plan.phase
-    val reason = plan.nutrition.phaseReason
-    val label = stringResource(PhaseText.label(phase))
-    val text =
-        stringResource(Res.string.trainer_plan_phase_line, label, stringResource(PhaseText.reason(phase, reason)))
-    Row(verticalAlignment = Alignment.CenterVertically) {
-        Text(
-            text = text,
-            style = AppTheme.typography.bodyMedium,
-            color = AppTheme.colors.textSecondary,
-            modifier = Modifier.weight(1f).testTag("trainer_plan_phase"),
-        )
-        HelpButton(
-            contentDescription = stringResource(Res.string.phase_help_cd),
-            title = label,
-            body = stringResource(PhaseText.help(phase)),
-            testTag = "trainer_plan_phase_help",
-        )
-    }
 }
 
 /**

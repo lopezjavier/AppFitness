@@ -5,8 +5,6 @@ import androidx.compose.ui.test.junit4.v2.createComposeRule
 import com.github.takahirom.roborazzi.ExperimentalRoborazziApi
 import io.github.lopezjavier.appfitness.feature.trainer.BlockSummary
 import io.github.lopezjavier.appfitness.feature.trainer.DiaryCalories
-import io.github.lopezjavier.appfitness.feature.trainer.TrainerBox
-import io.github.lopezjavier.appfitness.feature.trainer.TrainerBoxScreen
 import io.github.lopezjavier.appfitness.feature.trainer.TrainerRootMenu
 import io.github.lopezjavier.appfitness.feature.trainer.TrainerRootPreview
 import io.github.lopezjavier.appfitness.feature.trainer.TrainerScreen
@@ -23,8 +21,6 @@ import org.robolectric.annotation.GraphicsMode
 
 internal const val TRAINER_AREA = "Trainer"
 private const val TRAINER_SCREEN = "Trainer"
-private const val PLAN_BOX_SCREEN = "Tu plan"
-private const val BLOCK_BOX_SCREEN = "Tu bloque"
 
 /** The Trainer hub (TrainerHome): every state the root can show, with the plan and block entries. */
 @Suppress("LongMethod") // A list of fixtures.
@@ -112,66 +108,6 @@ private fun trainerHome(): List<GalleryEntry> {
             ),
             fontScale = 1.3f,
         ),
-    )
-}
-
-/** The "Tu plan" and "Tu bloque" boxes (TrainerPlanRoute, TrainerBlockRoute) opened from the hub. */
-@Suppress("LongMethod") // A list of fixtures.
-private fun trainerBoxes(): List<GalleryEntry> {
-    @Composable
-    fun TrainerBoxEntry(box: TrainerBox, ui: TrainerUiState, online: Boolean = true) {
-        TrainerBoxScreen(box = box, state = ui, isOnline = flowOf(online), onEvent = {}, onBack = {})
-    }
-
-    fun plan(state: String, ui: TrainerUiState, online: Boolean = true) = GalleryEntry(
-        TRAINER_AREA,
-        PLAN_BOX_SCREEN,
-        state,
-        covers = setOf("TrainerPlanRoute"),
-    ) { TrainerBoxEntry(TrainerBox.Plan, ui, online) }
-
-    fun block(
-        state: String,
-        ui: TrainerUiState,
-        online: Boolean = true,
-        kind: GalleryKind = GalleryKind.Screen,
-        vararg covers: String,
-    ) = GalleryEntry(
-        TRAINER_AREA,
-        BLOCK_BOX_SCREEN,
-        state,
-        kind,
-        covers = setOf("TrainerBlockRoute") + covers,
-    ) { TrainerBoxEntry(TrainerBox.Block, ui, online) }
-
-    return listOf(
-        plan("accepted plan", TrainerFixtures.contentWithBlock()),
-        plan("accepted plan offline", TrainerFixtures.contentWithBlock(), online = false),
-        plan("proposal pending", TrainerFixtures.contentWithProposal()),
-        plan("loading", TrainerUiState.Loading),
-        plan("diet break switch saving", TrainerFixtures.contentWithBlock().copy(dietBreakSaving = true)),
-        block("saved block", TrainerFixtures.contentWithBlock()),
-        block("current week paused", TrainerFixtures.contentWithBlock(pause = TrainerFixtures.pausedBlock)),
-        block("current week extended", TrainerFixtures.contentWithBlock(pause = TrainerFixtures.extendedBlock)),
-        block(
-            "block not saved",
-            TrainerFixtures.contentWithBlock(block = BlockSummary.Proposed(TrainerFixtures.block(saved = false))),
-        ),
-        block(
-            "week end picker open",
-            TrainerFixtures.contentWithBlock(pause = TrainerFixtures.extendedBlock)
-                .copy(extendWeekPickerOpen = true),
-            kind = GalleryKind.Sheet,
-            covers = arrayOf("ExtendWeekPicker"),
-        ),
-        block(
-            "remove block confirmation",
-            TrainerFixtures.contentWithBlock().copy(removeBlockConfirm = true),
-            kind = GalleryKind.Dialog,
-            covers = arrayOf("RemoveBlockDialog"),
-        ),
-        block("offline", TrainerFixtures.contentWithBlock(), online = false),
-        block("loading", TrainerUiState.Loading),
     )
 }
 
@@ -361,7 +297,7 @@ private fun trainerRootCards(): List<GalleryEntry> {
 }
 
 internal fun trainerRootEntries(): List<GalleryEntry> =
-    trainerHome() + trainerRootCards() + trainerBoxes() + swapPicker()
+    trainerHome() + trainerRootCards() + swapPicker()
 
 /** Renders the Trainer hub and its boxes (US-131); skipped unless `-Pgallery`. */
 @OptIn(ExperimentalRoborazziApi::class)

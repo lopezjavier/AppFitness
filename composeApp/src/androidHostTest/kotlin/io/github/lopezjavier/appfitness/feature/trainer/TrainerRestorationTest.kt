@@ -206,38 +206,6 @@ class TrainerRestorationTest {
     }
 
     @Test
-    fun recreation_keepsTuPlanOpenWithTheTrainerTabSelected() = keepsBoxScreenOpen("trainer_plan_screen") {
-        it.onOpenPlan()
-    }
-
-    @Test
-    fun recreation_keepsTuBloqueOpenWithTheTrainerTabSelected() = keepsBoxScreenOpen("trainer_block_screen") {
-        it.onOpenBlockScreen()
-    }
-
-    private fun keepsBoxScreenOpen(screenTag: String, open: (TrainerActions) -> Unit) {
-        val tester = StateRestorationTester(rule)
-        tester.setContent {
-            App(
-                rootRoute = RootRoute.Main,
-                trainer = { modifier, actions ->
-                    Box(modifier.fillMaxSize().testTag("trainer_screen").clickable { open(actions) })
-                },
-            )
-        }
-        rule.onNodeWithTag("nav_tab_trainer").performClick()
-        rule.onNodeWithTag("trainer_screen").performClick()
-        rule.waitForIdle()
-        rule.onNodeWithTag(screenTag).assertExists()
-
-        tester.emulateSavedInstanceStateRestore()
-        rule.waitForIdle()
-
-        rule.onNodeWithTag(screenTag).assertExists()
-        rule.onNodeWithTag("trainer_screen").assertDoesNotExist()
-    }
-
-    @Test
     fun recreatedViewModel_keepsTheRemoveBlockDialogOpenOnTuBloque() {
         val plans = FakeCoachPlanRepository()
         plans.current = Result.success(coachPlan(status = PlanStatus.Accepted))

@@ -16,8 +16,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalDensity
@@ -33,8 +33,6 @@ import io.github.lopezjavier.appfitness.composeapp.resources.report_sessions_hea
 import io.github.lopezjavier.appfitness.composeapp.resources.trainer_block_cardio_planned
 import io.github.lopezjavier.appfitness.composeapp.resources.trainer_block_cardio_value
 import io.github.lopezjavier.appfitness.composeapp.resources.trainer_block_end
-import io.github.lopezjavier.appfitness.composeapp.resources.trainer_block_remove
-import io.github.lopezjavier.appfitness.composeapp.resources.trainer_block_remove_action
 import io.github.lopezjavier.appfitness.composeapp.resources.trainer_block_session_cd
 import io.github.lopezjavier.appfitness.composeapp.resources.trainer_block_starts_chip
 import io.github.lopezjavier.appfitness.composeapp.resources.trainer_block_status_ended
@@ -62,14 +60,11 @@ import io.github.lopezjavier.appfitness.composeapp.resources.trainer_week_title
 import io.github.lopezjavier.appfitness.designsystem.AppDateFormat
 import io.github.lopezjavier.appfitness.designsystem.AppNumberFormat
 import io.github.lopezjavier.appfitness.designsystem.AppShapes
-import io.github.lopezjavier.appfitness.designsystem.AppTextButton
-import io.github.lopezjavier.appfitness.designsystem.AppTextButtonTone
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
 import io.github.lopezjavier.appfitness.designsystem.InlineNote
 import io.github.lopezjavier.appfitness.designsystem.InlineNoteTone
 import io.github.lopezjavier.appfitness.designsystem.LocalAnimationsEnabled
 import io.github.lopezjavier.appfitness.designsystem.NonBreaking
-import io.github.lopezjavier.appfitness.designsystem.OfflineHint
 import io.github.lopezjavier.appfitness.designsystem.SegmentedProgress
 import io.github.lopezjavier.appfitness.designsystem.SegmentedProgressPicker
 import io.github.lopezjavier.appfitness.designsystem.Spacing
@@ -482,26 +477,6 @@ private fun ActivityBars(week: PlanWeek, today: LocalDate?) {
             )
         }
     }
-}
-
-/**
- * The remaining action of the old "Tu bloque" screen: "Eliminar bloque" (Danger tone), disabled offline with its hint
- * ("Mi entrenamiento" moved to the Trainer root, R-90). The confirmation dialog is rendered here while
- * [removeConfirm] holds. The screen itself is removed in a later batch.
- */
-@Composable
-internal fun BlockDetailsActions(online: Boolean, removeConfirm: Boolean, onEvent: (TrainerEvent) -> Unit) {
-    Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
-        AppTextButton(
-            text = stringResource(Res.string.trainer_block_remove),
-            onClick = { onEvent(TrainerEvent.RequestRemoveBlock) },
-            modifier = Modifier.align(Alignment.End).testTag("trainer_remove_block"),
-            enabled = online,
-            tone = AppTextButtonTone.Danger,
-        )
-        if (!online) OfflineHint(stringResource(Res.string.trainer_block_remove_action))
-    }
-    if (removeConfirm) RemoveBlockDialog(onEvent)
 }
 
 /**

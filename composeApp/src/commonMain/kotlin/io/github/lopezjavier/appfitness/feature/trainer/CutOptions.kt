@@ -30,8 +30,6 @@ import io.github.lopezjavier.appfitness.designsystem.HelpContent
 import io.github.lopezjavier.appfitness.designsystem.OfflineHint
 import io.github.lopezjavier.appfitness.designsystem.SegmentedSelector
 import io.github.lopezjavier.appfitness.designsystem.Spacing
-import io.github.lopezjavier.appfitness.domain.model.CoachPlan
-import io.github.lopezjavier.appfitness.domain.model.Phase
 import io.github.lopezjavier.appfitness.domain.model.PhaseOptions
 import org.jetbrains.compose.resources.stringResource
 
@@ -118,14 +116,4 @@ internal fun DietBreakSwitchRow(
         )
         if (!online) OfflineHint(stringResource(Res.string.plan_proposal_diet_break_offline))
     }
-}
-
-/**
- * The "Descanso de dieta" switch of an accepted cut. Hidden for a plan the user edited: the break would never apply
- * and nothing the user could do fixes it here.
- */
-@Composable
-internal fun DietBreakToggle(plan: CoachPlan, online: Boolean, saving: Boolean, onToggle: (Boolean) -> Unit) {
-    if (plan.phase != Phase.Cut || plan.nutrition.editedByUser) return
-    DietBreakSwitchRow(plan.nutrition.dietBreak != null, onToggle, online, saving, "trainer_plan_diet_break")
 }

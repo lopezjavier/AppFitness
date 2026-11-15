@@ -14,7 +14,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.window.DialogProperties
-import androidx.lifecycle.ViewModelStoreOwner
 import androidx.navigation.NavBackStackEntry
 import androidx.navigation.NavController
 import androidx.navigation.NavDestination
@@ -39,7 +38,6 @@ import io.github.lopezjavier.appfitness.feature.templates.pickedFoodResult
 import io.github.lopezjavier.appfitness.feature.trainer.BeforeStartEffect
 import io.github.lopezjavier.appfitness.feature.trainer.BeforeStartMode
 import io.github.lopezjavier.appfitness.feature.trainer.TrainerActions
-import io.github.lopezjavier.appfitness.feature.trainer.TrainerBox
 import io.github.lopezjavier.appfitness.feature.workout.PastWorkoutSource
 import kotlinx.datetime.LocalDate
 
@@ -77,20 +75,6 @@ internal typealias BeforeStartSlot =
         onOpenYourData: () -> Unit,
         onFix: (PlanFixTarget) -> Unit,
         onOpenFolderBlock: (BeforeStartEffect.OpenFolderBlock) -> Unit,
-    ) -> Unit
-
-/**
- * Content of a Trainer summary box screen ("Tu plan", "Tu bloque"): modifier (full-screen insets), which [box], where
- * its entries go ([TrainerActions]), the owner of the Trainer tab's [TrainerViewModel] (null when that entry is gone,
- * e.g. after process restoration: the box then builds its own) and how to leave.
- */
-internal typealias TrainerBoxSlot =
-    @Composable (
-        modifier: Modifier,
-        box: TrainerBox,
-        actions: TrainerActions,
-        trainerOwner: ViewModelStoreOwner?,
-        onBack: () -> Unit,
     ) -> Unit
 
 /** Content of "Tus datos": modifier (full-screen insets), how to leave and the editor opener of an input. */
@@ -684,19 +668,6 @@ internal val DefaultBeforeStartSlot: BeforeStartSlot = { modifier, _, _, _, _, _
     Box(modifier.fillMaxSize().testTag("before_start_screen"))
 }
 
-/**
- * The Trainer tab's back-stack entry, which owns the root's [TrainerViewModel]: the box screens read the same instance
- * so they show its content at once. Null when the entry is not on the stack (the box then falls back to its own).
- */
-@Composable
-private fun rememberTrainerOwner(navController: NavHostController, box: NavBackStackEntry): ViewModelStoreOwner? =
-    remember(box) { runCatching { navController.getBackStackEntry(TrainerHome) }.getOrNull() }
-
-/** Empty "Tu plan" / "Tu bloque" for previews and shell tests; the real one is wired by `AppRoot`. */
-internal val DefaultTrainerBoxSlot: TrainerBoxSlot = { modifier, box, _, _, _ ->
-    Box(modifier.fillMaxSize().testTag(if (box == TrainerBox.Plan) "trainer_plan_screen" else "trainer_block_screen"))
-}
-
 /** Empty "Tus datos" for previews and shell tests; the real one is wired by `AppRoot`. */
 internal val DefaultYourDataSlot: YourDataSlot = { modifier, _, _ ->
     Box(modifier.fillMaxSize().testTag("your_data_screen"))
@@ -742,7 +713,6 @@ internal fun AppNavHost(
     modifier: Modifier = Modifier,
     profile: ProfileSlot = DefaultProfileSlot,
     trainer: TrainerSlot = DefaultTrainerSlot,
-    trainerBox: TrainerBoxSlot = DefaultTrainerBoxSlot,
     preferences: PreferencesSlot = DefaultPreferencesSlot,
     preferencesSection: PreferencesSectionSlot = DefaultPreferencesSectionSlot,
     about: AboutSlot = DefaultAboutSlot,
@@ -826,8 +796,6 @@ internal fun AppNavHost(
                 navController.navigateToFullScreen(BeforeStartRoute(mode.argument, planId, replacingPlanId))
             },
             onOpenYourData = { navController.navigateToFullScreen(YourDataRoute) },
-            onOpenPlan = { navController.navigateToFullScreen(TrainerPlanRoute) },
-            onOpenBlockScreen = { navController.navigateToFullScreen(TrainerBlockRoute) },
             onOpenReports = { navController.navigateToFullScreen(ReportsRoute) },
             onOpenBlockReview = { navController.navigateToFullScreen(BlockReviewRoute) },
             onOpenExercise = { navController.navigateToFullScreen(ExerciseDetailRoute(it, selectMode = false)) },
@@ -994,18 +962,6 @@ internal fun AppNavHost(
         }
         composable<FolderReviewResultRoute> { entry ->
             folderReviewResult(Modifier.padding(fullScreenPadding)) { navController.popFullScreen(entry) }
-        }
-        composable<TrainerPlanRoute> { entry ->
-            val owner = rememberTrainerOwner(navController, entry)
-            trainerBox(Modifier.padding(fullScreenPadding), TrainerBox.Plan, trainerActions, owner) {
-                navController.popFullScreen(entry)
-            }
-        }
-        composable<TrainerBlockRoute> { entry ->
-            val owner = rememberTrainerOwner(navController, entry)
-            trainerBox(Modifier.padding(fullScreenPadding), TrainerBox.Block, trainerActions, owner) {
-                navController.popFullScreen(entry)
-            }
         }
         composable<YourDataRoute> { entry ->
             yourData(Modifier.padding(fullScreenPadding), { navController.popFullScreen(entry) }, openFix)
