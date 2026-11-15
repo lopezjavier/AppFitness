@@ -30,7 +30,7 @@ import io.github.lopezjavier.appfitness.composeapp.resources.catalog_ring_percen
 import io.github.lopezjavier.appfitness.composeapp.resources.catalog_ring_score
 import io.github.lopezjavier.appfitness.composeapp.resources.catalog_section_bar_chart
 import io.github.lopezjavier.appfitness.composeapp.resources.catalog_section_body_heatmap
-import io.github.lopezjavier.appfitness.composeapp.resources.catalog_section_goal_graphic
+import io.github.lopezjavier.appfitness.composeapp.resources.catalog_section_weight_pace_chart
 import io.github.lopezjavier.appfitness.composeapp.resources.catalog_section_line_chart
 import io.github.lopezjavier.appfitness.composeapp.resources.catalog_section_macro_bars
 import io.github.lopezjavier.appfitness.composeapp.resources.catalog_section_macro_sliders
@@ -69,7 +69,13 @@ import io.github.lopezjavier.appfitness.designsystem.Macro
 import io.github.lopezjavier.appfitness.designsystem.MacroProgressBar
 import io.github.lopezjavier.appfitness.designsystem.MacroSlider
 import io.github.lopezjavier.appfitness.designsystem.MacroSliderDefaults
-import io.github.lopezjavier.appfitness.designsystem.GoalGraphic
+import io.github.lopezjavier.appfitness.designsystem.PaceSamplePlan
+import io.github.lopezjavier.appfitness.designsystem.PaceSampleWeekly
+import io.github.lopezjavier.appfitness.designsystem.WeightPaceBandPoint
+import io.github.lopezjavier.appfitness.designsystem.WeightPaceChart
+import io.github.lopezjavier.appfitness.designsystem.WeightPaceChartData
+import io.github.lopezjavier.appfitness.designsystem.WeightPaceLabel
+import io.github.lopezjavier.appfitness.designsystem.WeightPacePoint
 import io.github.lopezjavier.appfitness.designsystem.MacroStackedBar
 import io.github.lopezjavier.appfitness.domain.model.Phase
 import io.github.lopezjavier.appfitness.designsystem.MetricTile
@@ -118,7 +124,7 @@ internal fun LazyListScope.dataVizItems() {
     item { MacroBarsSection() }
     item { MacroSlidersSection() }
     item { MacroStackedBarSection() }
-    item { GoalGraphicSection() }
+    item { WeightPaceChartSection() }
     item { SleepStagesBarSection() }
     item { MetricTilesSection() }
     item { TrendPillsSection() }
@@ -226,15 +232,37 @@ private fun MacroStackedBarSection() {
     }
 }
 
+@Suppress("MagicNumber") // Sample weights and weeks of the demo chart.
+private val WeightPaceChartSamples = listOf(
+    WeightPaceChartData(
+        weekly = PaceSampleWeekly,
+        daily = listOf(WeightPacePoint(0.2f, 78.1), WeightPacePoint(1.6f, 78.6), WeightPacePoint(2.8f, 79.1)),
+        plan = PaceSamplePlan,
+        band = listOf(WeightPaceBandPoint(0f, 77.8, 78.2), WeightPaceBandPoint(3f, 78.9, 79.7)),
+        xLabels = listOf(
+            WeightPaceLabel(0f, "Sem 1"),
+            WeightPaceLabel(3f, "Hoy 79,3 kg", emphasized = true),
+            WeightPaceLabel(12f, "4 dic"),
+        ),
+    ) to "catalog_weight_pace_chart_full",
+    WeightPaceChartData(
+        weekly = emptyList(),
+        plan = PaceSamplePlan,
+        xLabels = listOf(WeightPaceLabel(0f, "Sem 1"), WeightPaceLabel(12f, "4 dic")),
+    ) to "catalog_weight_pace_chart_plan_only",
+)
+
 @Composable
-private fun GoalGraphicSection() {
+private fun WeightPaceChartSection() {
     CatalogSection(
-        stringResource(Res.string.catalog_section_goal_graphic),
-        "catalog_section_goal_graphic",
+        stringResource(Res.string.catalog_section_weight_pace_chart),
+        "catalog_section_weight_pace_chart",
     ) {
         AppCard(Modifier.fillMaxWidth()) {
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(Spacing.lg)) {
-                Phase.entries.forEach { GoalGraphic(it, staggerIndex = 0) }
+            Column(verticalArrangement = Arrangement.spacedBy(Spacing.lg)) {
+                WeightPaceChartSamples.forEach { (data, tag) ->
+                    WeightPaceChart(data = data, modifier = Modifier.testTag(tag))
+                }
             }
         }
     }

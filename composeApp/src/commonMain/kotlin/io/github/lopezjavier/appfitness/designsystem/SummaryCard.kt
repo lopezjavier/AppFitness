@@ -2,8 +2,10 @@ package io.github.lopezjavier.appfitness.designsystem
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
@@ -40,10 +42,11 @@ data class SummaryFact(
  * A summary box that opens its full information on another screen: an [AppCard] with the [title] and an optional
  * [status] slot (chips) before the chevron, then a full-width [content] slot, an optional [headline] figure
  * (`headlineMetric`) with its [headlineUnit], a [progress] slot, the key facts as [lines] (`bodyMedium`), key-value
- * [facts] (8 dp apart) and a full-width [footer] slot, plus a decorative chevron aligned to the top. [highlighted]
- * marks a card that waits for a
- * decision (R-94). The whole card is one `Role.Button` of at least 48 dp that reads "title, status, content, headline,
- * progress, lines, facts, footer"; [testTag] lands on the root. Slots bring their own spacing: the column gap is 4 dp.
+ * [facts] (8 dp apart), a decorative chevron aligned to the top and a full-width [footer] slot. [highlighted] marks a
+ * card that waits for a decision (R-94). The body (title, status, content, headline, progress, lines, facts) is one
+ * `Role.Button` of at least 48 dp and carries [testTag]. The [footer] and the [titleAction] (a 48 dp icon button
+ * placed before the chevron, its space reserved in the title row) sit outside that button with their own targets
+ * (R-103). Slots bring their own spacing: the column gap is 4 dp.
  */
 @Composable
 @Suppress("LongParameterList") // Slots fixed by the round 3 summary-card contract (R-95).
@@ -61,46 +64,22 @@ fun SummaryCard(
     status: (@Composable () -> Unit)? = null,
     content: (@Composable () -> Unit)? = null,
     footer: (@Composable () -> Unit)? = null,
+    titleAction: (@Composable () -> Unit)? = null,
 ) {
-    AppCard(
-        modifier
-            .fillMaxWidth()
-            .testTag(testTag)
-            .clickable(role = Role.Button, onClick = onClick)
-            .semantics(mergeDescendants = true) {},
-        highlighted = highlighted,
-    ) {
-        Column(
-            Modifier.fillMaxWidth().heightIn(min = Spacing.minTouchTarget),
-            verticalArrangement = Arrangement.spacedBy(Spacing.xs),
-        ) {
-            SummaryTitleRow(title, status)
-            content?.invoke()
-            if (headline != null) {
-                Row(
-                    Modifier.padding(top = if (content != null) Spacing.sm else Spacing.none),
-                    horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
-                    verticalAlignment = Alignment.Bottom,
-                ) {
-                    Text(text = headline, style = AppTheme.typography.headlineMetric, color = AppTheme.colors.textPrimary)
-                    if (headlineUnit != null) {
-                        Text(
-                            text = headlineUnit,
-                            style = AppTheme.typography.bodyMedium,
-                            color = AppTheme.colors.textSecondary,
-                        )
-                    }
+    AppCard(modifier.fillMaxWidth(), highlighted = highlighted) {
+        Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
+            Box(Modifier.fillMaxWidth()) {
+                SummaryBody(
+                    Modifier
+                        .testTag(testTag)
+                        .clickable(role = Role.Button, onClick = onClick)
+                        .semantics(mergeDescendants = true) {},
+                    title, status, titleAction != null, content, headline, headlineUnit, progress, lines, facts,
+                )
+                // Outside the merged button: its own 48 dp target next to the chevron (R-103).
+                titleAction?.let {
+                    Box(Modifier.align(Alignment.TopEnd).padding(end = Spacing.xl + Spacing.sm)) { it() }
                 }
-            }
-            progress?.invoke()
-            lines.forEach {
-                Text(text = it, style = AppTheme.typography.bodyMedium, color = AppTheme.colors.textSecondary)
-            }
-            if (facts.isNotEmpty()) {
-                Column(
-                    Modifier.fillMaxWidth().padding(top = Spacing.sm),
-                    verticalArrangement = Arrangement.spacedBy(Spacing.sm),
-                ) { facts.forEach { SummaryFactRow(it) } }
             }
             footer?.invoke()
         }
@@ -108,7 +87,56 @@ fun SummaryCard(
 }
 
 @Composable
-private fun SummaryTitleRow(title: String, status: (@Composable () -> Unit)?) {
+@Suppress("LongParameterList") // The merged body of the card; every slot of the public contract.
+private fun SummaryBody(
+    modifier: Modifier,
+    title: String,
+    status: (@Composable () -> Unit)?,
+    reserveAction: Boolean,
+    content: (@Composable () -> Unit)?,
+    headline: String?,
+    headlineUnit: String?,
+    progress: (@Composable () -> Unit)?,
+    lines: List<String>,
+    facts: List<SummaryFact>,
+) {
+    Column(
+        modifier.fillMaxWidth().heightIn(min = Spacing.minTouchTarget),
+        verticalArrangement = Arrangement.spacedBy(Spacing.xs),
+    ) {
+        SummaryTitleRow(title, status, reserveAction)
+        content?.invoke()
+        if (headline != null) {
+            Row(
+                Modifier.padding(top = if (content != null) Spacing.sm else Spacing.none),
+                horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+                verticalAlignment = Alignment.Bottom,
+            ) {
+                Text(text = headline, style = AppTheme.typography.headlineMetric, color = AppTheme.colors.textPrimary)
+                if (headlineUnit != null) {
+                    Text(
+                        text = headlineUnit,
+                        style = AppTheme.typography.bodyMedium,
+                        color = AppTheme.colors.textSecondary,
+                    )
+                }
+            }
+        }
+        progress?.invoke()
+        lines.forEach {
+            Text(text = it, style = AppTheme.typography.bodyMedium, color = AppTheme.colors.textSecondary)
+        }
+        if (facts.isNotEmpty()) {
+            Column(
+                Modifier.fillMaxWidth().padding(top = Spacing.sm),
+                verticalArrangement = Arrangement.spacedBy(Spacing.sm),
+            ) { facts.forEach { SummaryFactRow(it) } }
+        }
+    }
+}
+
+@Composable
+private fun SummaryTitleRow(title: String, status: (@Composable () -> Unit)?, reserveAction: Boolean) {
     Row(
         Modifier.fillMaxWidth(),
         verticalAlignment = Alignment.Top,
@@ -121,6 +149,7 @@ private fun SummaryTitleRow(title: String, status: (@Composable () -> Unit)?) {
             modifier = Modifier.weight(1f),
         )
         status?.invoke()
+        if (reserveAction) Spacer(Modifier.size(Spacing.minTouchTarget))
         Icon(
             painter = painterResource(Res.drawable.ic_chevron_right),
             contentDescription = null,

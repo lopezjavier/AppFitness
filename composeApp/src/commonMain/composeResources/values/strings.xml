@@ -360,7 +360,7 @@
     <string name="profile_macros_total">TOTAL: 100 %</string>
     <string name="macro_stacked_bar_state">Proteínas %1$s %, carbohidratos %2$s %, grasas %3$s %</string>
     <string name="catalog_section_macro_stacked_bar">Barra de reparto de macros</string>
-    <string name="catalog_section_goal_graphic">Gráfico del objetivo</string>
+    <string name="catalog_section_weight_pace_chart">Peso frente al plan</string>
     <string name="catalog_section_sleep_stages_bar">Barra de fases del sueño</string>
     <string name="profile_sign_out">Cerrar sesión</string>
     <string name="sign_out_dialog_title">¿Cerrar sesión?</string>

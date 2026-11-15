@@ -14,10 +14,6 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
@@ -42,7 +38,6 @@ import io.github.lopezjavier.appfitness.composeapp.resources.week_summary_title
 import io.github.lopezjavier.appfitness.designsystem.AppNumberFormat
 import io.github.lopezjavier.appfitness.designsystem.AppShapes
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
-import io.github.lopezjavier.appfitness.designsystem.GoalGraphic
 import io.github.lopezjavier.appfitness.designsystem.MacroLine
 import io.github.lopezjavier.appfitness.designsystem.MacroStackedBar
 import io.github.lopezjavier.appfitness.designsystem.MacroStackedBarDefaults
@@ -62,7 +57,6 @@ import kotlin.math.abs
 
 private val GoalBandMinHeight = 72.dp
 private const val RATE_EPSILON = 0.05
-private const val GRAPHIC_STAGGER = 1
 internal const val BLOCK_SEGMENTS_STAGGER = 2
 private const val CARDIO_STAGGER = 3
 private const val STEPS_STAGGER = 4
@@ -70,13 +64,12 @@ private const val SUMMARY_STAGGER = 5
 
 /**
  * The goal band of "Tu plan" (C-125): the "OBJETIVO" eyebrow, the goal name with its weekly rate (omitted at zero) and
- * the decorative [GoalGraphic]. The graphic is hidden rather than wrapping the name (C-126).
+ * (the graphic of C-126 is gone; batch 6c replaces this band with the weight pace chart).
  */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 internal fun GoalBand(phase: Phase, rateKgWeek: Double) {
     val name = stringResource(PhaseText.label(phase))
-    var graphicShown by remember(name) { mutableStateOf(true) }
     Row(
         Modifier
             .padding(top = Spacing.xs)
@@ -102,7 +95,6 @@ internal fun GoalBand(phase: Phase, rateKgWeek: Double) {
                     text = name,
                     style = AppTheme.typography.titleLarge,
                     color = AppTheme.colors.textPrimary,
-                    onTextLayout = { if (it.lineCount > 1) graphicShown = false },
                 )
                 if (abs(rateKgWeek) >= RATE_EPSILON) {
                     Text(
@@ -117,7 +109,6 @@ internal fun GoalBand(phase: Phase, rateKgWeek: Double) {
                 }
             }
         }
-        if (graphicShown) GoalGraphic(phase, staggerIndex = GRAPHIC_STAGGER)
     }
 }
 
