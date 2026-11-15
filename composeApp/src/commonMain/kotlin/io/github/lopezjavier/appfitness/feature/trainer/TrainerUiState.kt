@@ -15,6 +15,7 @@ import io.github.lopezjavier.appfitness.domain.model.ProgressionFlagDecision
 import io.github.lopezjavier.appfitness.domain.model.WeekPhase
 import io.github.lopezjavier.appfitness.domain.model.WeekSummary
 import io.github.lopezjavier.appfitness.domain.usecase.GoalChecklist
+import io.github.lopezjavier.appfitness.domain.usecase.WeightPace
 import kotlinx.datetime.LocalDate
 
 /** The plan entry of the Trainer tab: no plan, a proposal waiting for a decision, or the active plan. */
@@ -113,6 +114,11 @@ sealed interface TrainerUiState {
         val welcomeBack: Boolean = false,
         /** Weeks started in the current calorie phase ("Llevas n semanas en esta fase"); null hides the line. */
         val weeksInPhase: PhaseWeeks? = null,
+        /**
+         * The weight against the plan for the "Tu plan" chart and verdict (07 §5 (3)); null without an accepted plan
+         * or when the weigh-ins could not be read (the chart is then left out).
+         */
+        val weightPace: WeightPace? = null,
         /** Swap offers and health notes of unresolved level 4-5 discomforts, one per exercise (US-108). */
         val discomfortFollowUps: List<DiscomfortFollowUpUi> = emptyList(),
         /** The open swap picker; null when closed. Rebuilt from its exercise id after recreation (ADR-40). */

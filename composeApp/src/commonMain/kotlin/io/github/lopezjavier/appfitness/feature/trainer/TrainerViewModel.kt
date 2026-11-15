@@ -21,6 +21,7 @@ import io.github.lopezjavier.appfitness.domain.model.MacroSplit
 import io.github.lopezjavier.appfitness.domain.model.Macronutrient
 import io.github.lopezjavier.appfitness.domain.model.Phase
 import io.github.lopezjavier.appfitness.domain.model.PlanStatus
+import io.github.lopezjavier.appfitness.domain.model.PhaseWeeks
 import io.github.lopezjavier.appfitness.domain.model.PlanWeek
 import io.github.lopezjavier.appfitness.domain.model.ProgressionFlagDecision
 import io.github.lopezjavier.appfitness.domain.port.Clock
@@ -42,6 +43,10 @@ import io.github.lopezjavier.appfitness.domain.usecase.LoadBlockReviewUseCase
 import io.github.lopezjavier.appfitness.domain.usecase.LoadWeeksInPhaseUseCase
 import io.github.lopezjavier.appfitness.domain.usecase.LoadWelcomeBack
 import io.github.lopezjavier.appfitness.domain.usecase.NutritionGoalsChecklist
+import io.github.lopezjavier.appfitness.domain.usecase.DailyWeight
+import io.github.lopezjavier.appfitness.domain.usecase.DailyWeights
+import io.github.lopezjavier.appfitness.domain.usecase.WeightPace
+import io.github.lopezjavier.appfitness.domain.usecase.WeightPaceFit
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.Job
@@ -55,14 +60,19 @@ import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.supervisorScope
+import kotlinx.datetime.DatePeriod
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.TimeZone
+import kotlinx.datetime.atStartOfDayIn
+import kotlinx.datetime.minus
+import kotlinx.datetime.plus
 import kotlinx.datetime.toLocalDateTime
 import kotlin.math.roundToInt
 
 private const val KEY_REMOVE_BLOCK_CONFIRM = "remove_block_confirm"
 private const val KEY_EXTEND_PICKER = "extend_week_picker"
 private const val PERCENT = 100.0
+private const val DAYS_PER_WEEK = 7
 
 private fun PlanSummary.id(): String? = when (this) {
     is PlanSummary.Proposed -> plan.id
@@ -114,6 +124,7 @@ class TrainerViewModel(
     private val loadWelcomeBack: LoadWelcomeBack? = null,
     discomfortFollowUps: DiscomfortFollowUpRepository? = null,
     exerciseNames: ExerciseNameResolver? = null,
+    private val timeZone: TimeZone = TimeZone.currentSystemDefault(),
 ) : ViewModel() {
     private val cardioEdit = CardioEditState(savedState)
 
@@ -598,6 +609,9 @@ class TrainerViewModel(
         val blockReviewDue = async { loadBlockReview?.invoke(today())?.getOrNull() != null }
         // The swap offer and the health note; a failed read hides them.
         val followUps = async { discomfort?.followUps().orEmpty() }
+        // The widest window (8 weeks) is read beside the plan chain; the pure fit clips it to the phase later.
+        val localToday = clock.now().toLocalDateTime(timeZone).date
+        val weighIns = async { readWeighIns(localToday) }
         // The plan entry and the calorie card never block the screen: a failed read means none.
         val plan = readPlan()
         // A diet-break plan switches the Diario target by plan week, so it ends before anything reads that target.
@@ -622,6 +636,7 @@ class TrainerViewModel(
         if (!extendPicker) savedState.remove<Boolean>(KEY_EXTEND_PICKER)
         val shownFollowUps = followUps.await()
         val weekSummary = latestSummary.await()
+        val phaseWeeks = weeksInPhase.await()
         TrainerUiState.Content(
             plan = plan,
             calorieProposal = proposal.await(),
@@ -638,9 +653,40 @@ class TrainerViewModel(
             goalsChecklist = checklist.await(),
             cardioEdit = cardioEdit.current((plan as? PlanSummary.Accepted)?.plan?.cardioMinutes()),
             removeBlockConfirm = confirmRemove && block is BlockSummary.Saved,
-            weeksInPhase = weeksInPhase.await(),
+            weeksInPhase = phaseWeeks,
+            weightPace = weightPaceOf(plan, weighIns.await(), phaseWeeks, localToday),
             discomfortFollowUps = shownFollowUps,
             swapPicker = discomfort?.restoredPicker(shownFollowUps),
+        )
+    }
+
+    /** Daily weights of the 8 ISO weeks ending the week of [today]; null when the read failed (the chart is hidden). */
+    private suspend fun readWeighIns(today: LocalDate): List<DailyWeight>? {
+        val repository = measurements ?: return null
+        val monday = today.minus(DatePeriod(days = today.dayOfWeek.ordinal))
+        val from = monday.minus(DatePeriod(days = (WeightPaceFit.MAX_WINDOW_WEEKS - 1) * DAYS_PER_WEEK))
+        val rows = repository.getMeasurements(
+            from.atStartOfDayIn(timeZone),
+            today.plus(DatePeriod(days = 1)).atStartOfDayIn(timeZone),
+        ).getOrNull()
+        return rows?.let { DailyWeights()(it, timeZone) }
+    }
+
+    private fun weightPaceOf(
+        plan: PlanSummary,
+        weighIns: List<DailyWeight>?,
+        weeksInPhase: PhaseWeeks?,
+        today: LocalDate,
+    ): WeightPace? {
+        val accepted = (plan as? PlanSummary.Accepted)?.plan ?: return null
+        return WeightPaceFit.compute(
+            daily = weighIns ?: return null,
+            today = today,
+            rateKgWeek = accepted.nutrition.rateKgWeek,
+            phase = accepted.phase,
+            weeksInPhase = weeksInPhase,
+            planStart = accepted.blockStart,
+            outcome = accepted.weightOutcome,
         )
     }
 
