@@ -208,7 +208,7 @@ One row per ux-critic finding. The PM has the dispositions recorded here as the 
 | V-70 | offline hint placement (low confidence) | 3 | ACCEPTED (not built) | 05 §6.0c, R-88 |
 | V-71 | "Objetivo" eyebrow and goal name in the Tu plan band | 3 | IN REVIEW (batch 5) | 05 §10 |
 | V-72 | "Tus datos" root row as a one-row `RowGroupCard`, 56 dp | 3 | IN REVIEW (batch 5; batch 6 makes it the second row of a two-row group, C-137) | 05 §6.0c |
-| C-131 | Tu plan card (user mockup 2026-11-15): goal header, `WeightPaceChart` (dashed plan line to "Meta", solid trend, weekly dots, faint daily dots, "rango probable" band), figures line "Ritmo / Pautado", verdict, "Llevas N semanas", three tiles, "Crear plan nuevo" inside | 3 | ACCEPTED (not built; user, 2026-11-15) | 05 §6.0d, 07 §5 |
+| C-131 | Tu plan card (user mockup 2026-11-15): goal header, `WeightPaceChart` (dashed plan line to "Meta", solid trend, weekly dots, faint daily dots, "rango probable" band), figures line "Ritmo / Objetivo", verdict, "Llevas N semanas", three tiles, "Crear plan nuevo" inside | 3 | ACCEPTED (not built; user, 2026-11-15) | 05 §6.0d, 07 §5 |
 | C-132 | `WeightPaceChart` (designsystem, new): neutral verdict only, no corridor, no error colour, no forward projection; the verdict line is the text alternative | 3 | ACCEPTED (not built) | 05 §6.0d, R-101 |
 | C-133 | Verdict wording from 07 §5 (5); the mockup's "Ritmo óptimo" and "En pasillo" chips and the "Fase activa" chip are dropped | 3 | ACCEPTED (not built) | 05 §10, R-101 |
 | C-134 | Tu plan tiles: Calorías, Cardio, Pasos (kcal eaten against the plan target; calories IN, macros OUT; no macro bar on the root) | 3 | ACCEPTED (not built) | 05 §6.0d, R-102 |
