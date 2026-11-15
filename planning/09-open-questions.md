@@ -25,3 +25,20 @@ These three rows were still marked "open" in `phase2/09-open-questions.md` (froz
 | E17 Q-E17-3: references of OFF foods | 2026-11-09 | **Resolved (user, 2026-11-09)**; built in T-254/T-255 | Diary, favourites and comida items point to the personal copy |
 | E17 Q-E17-4: hard block | 2026-11-09 | **Resolved (user, 2026-11-09, ADR-104)**; built in T-257/T-258 | No failing food is saved by any path; the AI retry sends the previous estimate and the reason; the user's 10 wrong foods were fixed in production |
 | E17 checkpoints | 2026-11-09 | **Resolved (user)** | Checkpoint E17 (items 6-10 approved) and Checkpoint E17-fix (7 items) approved |
+
+## E21 Illness (draft, 2026-11-15)
+
+Raised by the user in chat (product-owner). All open; resolved in the first task of the epic, see [`epics/E21-illness.md`](epics/E21-illness.md) for the options and recommendations.
+
+| Question | Raised | Status | Where to look |
+|---|---|---|---|
+| E21 Q1: does an illness shift the block, and does a block count sessions or calendar weeks? | 2026-11-15 | **Open** (user, after `fitness-scientist`) | E21 |
+| E21 Q2: a block that ends on its date with sessions missing | 2026-11-15 | **Open** (user) | E21 |
+| E21 Q3: illness catalogue and what each one pauses | 2026-11-15 | **Open** (user + `fitness-scientist`) | E21, `07` §12.5 |
+| E21 Q4: how illness days are entered (open-ended or fixed, maximum, past days) | 2026-11-15 | **Open** (user) | E21 |
+| E21 Q5: food guidance for an illness (timing, clinical sources, suggestion or block, disclaimer) | 2026-11-15 | **Open** (user, sources from `fitness-scientist`) | E21 |
+| E21 Q6: weight, calories and steps on illness days | 2026-11-15 | **Open** (`fitness-scientist`) | E21, `07` |
+| E21 Q7: return to training after an illness | 2026-11-15 | **Open** (`fitness-scientist`) | E21, `07` §12.5 |
+| E21 Q8: the 14-day return rule and "welcome back" for a short illness | 2026-11-15 | **Open** (user) | E21, ADR-101 |
+| E21 Q9: where an illness is marked and how it is shown | 2026-11-15 | **Open** (user + `ux-reviewer`) | E21 |
+| E21 Q10: epic number and order relative to E20 closure | 2026-11-15 | **Open** (user) | E21 |
