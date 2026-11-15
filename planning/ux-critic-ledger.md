@@ -219,6 +219,10 @@ One row per ux-critic finding. The PM has the dispositions recorded here as the 
 | C-139 | Wide layout: two columns (Tu plan, Tu bloque) at 300 dp minimum cells under the 840 dp cap | 3 | ACCEPTED (not built) | 05 R-91 |
 | C-140 | Motion: the plan line draws first, then the trend, then the dots; tiles and bars fill with the R-97 stagger | 3 | ACCEPTED (not built) | 05 R-97 |
 | V-73 | Top-bar ⋮ and its sheet on the Trainer root removed (nothing left in it) | 3 | ACCEPTED (not built) | 05 §6.0d |
+| C-141 | Block R (T-283, commit 3014b11e): `GoalRing` / `GoalRingTile` / `GoalProgressState` for Entrenos, Cardio, Pasos al día in "Tu bloque"; supersedes the headline, percent chip and bars of C-135 | 3 | IN REVIEW (built, not approved in the emulator) | 05 §6.0e, R-104 |
+| C-142 | R-104 state words Por detrás / En camino / Cumplido / Superado / Sin datos / Por empezar, never colour alone | 3 | IN REVIEW | 05 R-104, §10 |
+| V-74 | Steps tile: "Pasos al día" plus "de 7.000 al día" repeats the period and wraps to four lines at 360 dp (uneven tile heights); target becomes "de 7.000" | 3 | PROPOSED (05 §6.0e reworded; string `trainer_week_goal_of_per_day` to change) | 05 §6.0e |
+| V-75 | Over-target colour: ring/status green (R-104) vs live cardio timer amber past target (R-58); fitness-scientist is answering | 3 | PROPOSED (rule conflict flagged) | 05 R-58, R-104 |
 
 Status values:
 - `PROPOSED`: reported by the critic, not decided yet.
