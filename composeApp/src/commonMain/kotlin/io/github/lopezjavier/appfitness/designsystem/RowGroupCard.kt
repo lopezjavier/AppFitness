@@ -1,3 +1,5 @@
+@file:Suppress("MatchingDeclarationName") // The file holds the component and its Defaults object.
+
 package io.github.lopezjavier.appfitness.designsystem
 
 import androidx.compose.foundation.background

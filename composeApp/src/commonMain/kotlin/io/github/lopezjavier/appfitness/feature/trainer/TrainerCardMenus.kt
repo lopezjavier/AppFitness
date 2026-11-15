@@ -1,3 +1,5 @@
+@file:Suppress("MatchingDeclarationName") // The file holds the two card menus and the gallery hook enum.
+
 package io.github.lopezjavier.appfitness.feature.trainer
 
 import androidx.compose.runtime.Composable
@@ -157,6 +159,7 @@ internal fun PlanCardMenu(
  * disabled offline with its hint; the ⋮ is hidden when none applies.
  */
 @Composable
+@Suppress("LongMethod") // A flat list of the four menu entries.
 internal fun BlockCardMenu(
     state: TrainerUiState.Content,
     online: Boolean,

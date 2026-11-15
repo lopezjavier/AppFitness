@@ -102,7 +102,7 @@ private fun CoachDerivedValues.provisionalCount(): Int = listOf(
  * for the "Tus datos" row. Every read degrades to "none" on failure; nothing here blocks the screen. The derived values
  * are read only for that count and are never confirmed from here ("Antes de empezar" confirms).
  */
-@Suppress("TooManyFunctions") // One small handler per event.
+@Suppress("TooManyFunctions", "LargeClass") // One small handler per event; one view model per screen (ADR-40).
 class TrainerViewModel(
     private val repository: CoachRepository,
     private val clock: Clock,

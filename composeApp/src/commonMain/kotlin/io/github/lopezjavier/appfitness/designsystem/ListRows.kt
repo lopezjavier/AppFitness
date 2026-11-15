@@ -59,6 +59,7 @@ object NavigationRowDefaults {
  * free slot below the text lines (a status chip, C-122); the row is 72 dp when it is set.
  */
 @Composable
+@Suppress("LongMethod") // One row layout with all its slots.
 fun AppListRow(
     headline: String,
     modifier: Modifier = Modifier,

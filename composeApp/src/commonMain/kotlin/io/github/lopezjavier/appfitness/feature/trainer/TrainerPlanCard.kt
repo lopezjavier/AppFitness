@@ -1,3 +1,5 @@
+@file:Suppress("TooManyFunctions") // One card: its header, chart and verdict are private pieces of it.
+
 package io.github.lopezjavier.appfitness.feature.trainer
 
 import androidx.compose.foundation.background

@@ -1,3 +1,5 @@
+@file:Suppress("TooManyFunctions") // The root: its grid items, states and skeleton are private pieces of it.
+
 package io.github.lopezjavier.appfitness.feature.trainer
 
 import androidx.compose.foundation.layout.Arrangement

@@ -1,3 +1,5 @@
+@file:Suppress("TooManyFunctions") // One card: its week selector, detail and rows are private pieces of it.
+
 package io.github.lopezjavier.appfitness.feature.trainer
 
 import androidx.compose.foundation.background
@@ -286,6 +288,7 @@ private class WeekDetailContext(
  */
 @Composable
 @OptIn(ExperimentalLayoutApi::class)
+@Suppress("LongMethod") // One week detail layout: chips, sessions and bars.
 private fun WeekDetail(week: PlanWeek, context: WeekDetailContext) {
     val upcoming = week.phase == WeekPhase.Upcoming
     val today = context.today

@@ -111,6 +111,7 @@ fun WeightPaceChart(
 private class PacePalette(val trend: Color, val plan: Color, val ring: Color, val label: Color)
 
 /** Maps data coordinates to pixels. */
+@Suppress("LongParameterList") // The plot rectangle and the two data ranges, plain values.
 private class PaceMapper(
     val plotLeft: Float,
     val plotRight: Float,
@@ -129,6 +130,7 @@ private class PaceMapper(
     fun at(point: WeightPacePoint) = Offset(x(point.x), y(point.kg))
 }
 
+@Suppress("LongParameterList") // One draw pass over the data, its palette, its text tools and its progress.
 private fun DrawScope.drawPace(
     data: WeightPaceChartData,
     palette: PacePalette,

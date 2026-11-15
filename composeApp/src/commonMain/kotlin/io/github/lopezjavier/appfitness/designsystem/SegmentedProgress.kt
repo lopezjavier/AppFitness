@@ -223,7 +223,7 @@ private fun scrollTabWidth(available: Dp): Dp {
 private enum class StepState { Done, Current, Upcoming }
 
 @Composable
-@Suppress("LongParameterList") // One tab: its state, its copy and its action.
+@Suppress("LongParameterList", "LongMethod") // One tab: container, tick, label and indicator.
 private fun WeekTab(
     label: String,
     state: StepState,

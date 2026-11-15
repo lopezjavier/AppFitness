@@ -316,6 +316,7 @@ private fun ProposalContent(
 }
 
 @Composable
+@Suppress("LongMethod") // One card layout of the proposal figures.
 private fun NutritionCard(state: PlanProposalUiState.Proposal) {
     val nutrition = state.plan.nutrition
     AppCard(Modifier.fillMaxWidth().testTag("plan_proposal_nutrition")) {

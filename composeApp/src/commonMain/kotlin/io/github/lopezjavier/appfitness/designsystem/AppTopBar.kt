@@ -137,7 +137,7 @@ data class AppTopBarAction(
  * @param testTagPrefix root tag; children are `<prefix>_title`, `<prefix>_subtitle`, `<prefix>_back`,
  *   `<prefix>_action_<n>` (from 1) and `<prefix>_more`.
  */
-@Suppress("LongParameterList") // Slot-style API fixed by the T-118 contract.
+@Suppress("LongParameterList", "LongMethod") // One slot-style bar: title, actions, badge and width cap in one layout.
 @Composable
 fun AppTopBar(
     title: String,
