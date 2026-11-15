@@ -2572,5 +2572,5 @@
     <string name="trainer_plan_tile_calories">Calorías</string>
     <string name="trainer_plan_tile_cardio">Cardio</string>
     <string name="trainer_plan_tile_steps">Pasos</string>
-    <string name="trainer_plan_tiles_caption">Calorías: media de esta semana. Cardio y pasos: también de esta semana.</string>
+    <string name="trainer_plan_tiles_caption">Calorías: media de la semana pasada. Cardio y pasos: esta semana.</string>
 </resources>

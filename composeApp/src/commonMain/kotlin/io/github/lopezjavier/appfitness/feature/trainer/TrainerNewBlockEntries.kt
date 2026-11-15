@@ -9,6 +9,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import io.github.lopezjavier.appfitness.composeapp.resources.Res
+import io.github.lopezjavier.appfitness.composeapp.resources.trainer_my_training
 import io.github.lopezjavier.appfitness.composeapp.resources.trainer_new_block
 import io.github.lopezjavier.appfitness.composeapp.resources.trainer_new_block_action
 import io.github.lopezjavier.appfitness.composeapp.resources.trainer_plan_weeks_in_phase
@@ -24,7 +25,7 @@ import io.github.lopezjavier.appfitness.domain.model.PhaseWeeks
 import org.jetbrains.compose.resources.pluralStringResource
 import org.jetbrains.compose.resources.stringResource
 
-/** "Bloque nuevo" in "Tu bloque" while the block is saved and no review is due (T-240); "Mi entrenamiento" sits in the block actions. */
+/** "Bloque nuevo" and "Mi entrenamiento" under the active plan while its block is saved (T-240). */
 @Composable
 internal fun NewBlockEntries(online: Boolean, onEvent: (TrainerEvent) -> Unit) {
     Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm), horizontalAlignment = Alignment.CenterHorizontally) {
@@ -35,6 +36,12 @@ internal fun NewBlockEntries(online: Boolean, onEvent: (TrainerEvent) -> Unit) {
             enabled = online,
         )
         if (!online) OfflineHint(stringResource(Res.string.trainer_new_block_action))
+        AppTextButton(
+            text = stringResource(Res.string.trainer_my_training),
+            onClick = { onEvent(TrainerEvent.OpenMyTraining) },
+            modifier = Modifier.testTag("trainer_my_training"),
+            enabled = online,
+        )
     }
 }
 

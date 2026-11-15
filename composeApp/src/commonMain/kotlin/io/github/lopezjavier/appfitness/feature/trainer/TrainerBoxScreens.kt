@@ -145,7 +145,9 @@ private fun BoxContent(
                 cardioEdit = state.cardioEdit,
                 onEvent = onEvent,
                 goalsChecklist = state.goalsChecklist,
+                canStartNewBlock = state.canStartNewBlock,
                 weeksInPhase = state.weeksInPhase,
+                reviewDue = state.blockReviewDue,
                 dietBreakSaving = state.dietBreakSaving,
             )
 
@@ -186,10 +188,6 @@ private fun BoxContent(
                         onConfirm = { onEvent(TrainerEvent.ExtendWeek(it)) },
                     ),
                 )
-                // While the review is due its footer is the only way on: no "Bloque nuevo" entry here.
-                if (state.canStartNewBlock && !state.blockReviewDue) {
-                    fullSpanItem("new_block") { NewBlockEntries(online, onEvent) }
-                }
                 if (state.block is BlockSummary.Saved) fullSpanItem("block_actions") {
                     BlockDetailsActions(online, state.removeBlockConfirm, actions.onOpenMyTraining, onEvent)
                 }
