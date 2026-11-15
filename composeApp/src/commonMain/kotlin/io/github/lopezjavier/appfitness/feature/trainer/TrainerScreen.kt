@@ -194,7 +194,7 @@ private fun TrainerContent(
                 actions.onOpenPlan,
                 weightPace = state.weightPace,
                 weeksInPhase = state.weeksInPhase,
-                latestSummary = state.latestWeekSummary,
+                diaryCalories = state.diaryCalories,
                 modifier = cardMin,
             )
         }

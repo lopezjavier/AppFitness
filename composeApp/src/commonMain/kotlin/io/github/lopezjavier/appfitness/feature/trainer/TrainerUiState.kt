@@ -27,6 +27,9 @@ sealed interface PlanSummary {
     data class Accepted(val plan: CoachPlan) : PlanSummary
 }
 
+/** Mean kcal per logged diary day since the plan started, and how many days were logged. */
+data class DiaryCalories(val avgKcal: Int, val days: Int)
+
 /** The training block entry under an open plan: none requested, one waiting to be saved, or already in Entreno. */
 sealed interface BlockSummary {
     data object None : BlockSummary
@@ -103,6 +106,8 @@ sealed interface TrainerUiState {
         val busyChangeId: String? = null,
         /** The latest finished week's summary behind the "Resumen semanal" box figures (C-127); null when none. */
         val latestWeekSummary: WeekSummary? = null,
+        /** Mean kcal per logged diary day since the plan started (the "Calorías" tile); null when no day is logged. */
+        val diaryCalories: DiaryCalories? = null,
         /** The block has ended and its review is open: shows "Revisión del bloque" and hides "Crear bloque". */
         val blockReviewDue: Boolean = false,
         /**

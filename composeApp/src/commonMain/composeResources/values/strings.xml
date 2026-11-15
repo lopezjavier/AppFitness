@@ -2578,5 +2578,9 @@
     <string name="trainer_plan_tile_of_min">de&#160;%1$s&#160;min</string>
     <string name="trainer_plan_tile_no_data">sin datos</string>
     <string name="trainer_plan_tile_calories">Calorías</string>
-    <string name="trainer_plan_tiles_caption">Media de la semana pasada.</string>
+    <plurals name="trainer_plan_tiles_caption">
+        <item quantity="one">Media desde que empezó tu plan · %1$d&#160;día registrado</item>
+        <item quantity="other">Media desde que empezó tu plan · %1$d&#160;días registrados</item>
+    </plurals>
+    <string name="trainer_plan_tiles_caption_empty">Media desde que empezó tu plan.</string>
 </resources>

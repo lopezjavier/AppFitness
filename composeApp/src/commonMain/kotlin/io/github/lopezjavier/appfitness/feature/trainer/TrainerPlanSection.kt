@@ -58,7 +58,6 @@ import io.github.lopezjavier.appfitness.designsystem.SummaryCard
 import io.github.lopezjavier.appfitness.domain.model.CalorieProposal
 import io.github.lopezjavier.appfitness.domain.model.CoachPlan
 import io.github.lopezjavier.appfitness.domain.model.PhaseWeeks
-import io.github.lopezjavier.appfitness.domain.model.WeekSummary
 import io.github.lopezjavier.appfitness.domain.usecase.GoalChecklist
 import io.github.lopezjavier.appfitness.domain.usecase.WeightPace
 import io.github.lopezjavier.appfitness.feature.weight.signedTenths
@@ -83,7 +82,7 @@ internal fun PlanEntrySection(
     onOpenPlan: () -> Unit = {},
     weightPace: WeightPace? = null,
     weeksInPhase: PhaseWeeks? = null,
-    latestSummary: WeekSummary? = null,
+    diaryCalories: DiaryCalories? = null,
     modifier: Modifier = Modifier,
 ) {
     when (plan) {
@@ -105,7 +104,7 @@ internal fun PlanEntrySection(
             plan = plan.plan,
             pace = weightPace,
             weeksInPhase = weeksInPhase,
-            latestSummary = latestSummary,
+            diaryCalories = diaryCalories,
             onOpen = onOpenPlan,
             modifier = modifier,
         )

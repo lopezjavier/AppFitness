@@ -34,6 +34,7 @@ import io.github.lopezjavier.appfitness.composeapp.resources.trainer_plan_tile_c
 import io.github.lopezjavier.appfitness.composeapp.resources.trainer_plan_tile_no_data
 import io.github.lopezjavier.appfitness.composeapp.resources.trainer_plan_tile_of_kcal
 import io.github.lopezjavier.appfitness.composeapp.resources.trainer_plan_tiles_caption
+import io.github.lopezjavier.appfitness.composeapp.resources.trainer_plan_tiles_caption_empty
 import io.github.lopezjavier.appfitness.composeapp.resources.trainer_plan_verdict_cut_faster
 import io.github.lopezjavier.appfitness.composeapp.resources.trainer_plan_verdict_cut_not_falling
 import io.github.lopezjavier.appfitness.composeapp.resources.trainer_plan_verdict_cut_slower
@@ -65,9 +66,9 @@ import io.github.lopezjavier.appfitness.designsystem.WeightPacePlanLine
 import io.github.lopezjavier.appfitness.designsystem.WeightPacePoint
 import io.github.lopezjavier.appfitness.domain.model.CoachPlan
 import io.github.lopezjavier.appfitness.domain.model.PhaseWeeks
-import io.github.lopezjavier.appfitness.domain.model.WeekSummary
 import io.github.lopezjavier.appfitness.domain.usecase.WeightPace
 import io.github.lopezjavier.appfitness.domain.usecase.WeightPaceState
+import org.jetbrains.compose.resources.pluralStringResource
 import org.jetbrains.compose.resources.stringResource
 import kotlin.math.abs
 import kotlin.math.max
@@ -108,7 +109,7 @@ internal fun PlanCard(
     plan: CoachPlan,
     pace: WeightPace?,
     weeksInPhase: PhaseWeeks?,
-    latestSummary: WeekSummary?,
+    diaryCalories: DiaryCalories?,
     onOpen: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -124,7 +125,7 @@ internal fun PlanCard(
                 PaceFigures(plan, pace)
                 if (pace != null) PaceVerdict(pace)
                 weeksInPhase?.takeIf { it.weeks > 0 }?.let { WeeksInPhaseLine(it) }
-                PlanTiles(plan, latestSummary)
+                PlanTiles(plan, diaryCalories)
             }
         },
     )
@@ -348,14 +349,13 @@ private fun slowerVerdict(cut: Boolean, slope: Double) = when {
 }
 
 /**
- * The Calorías tile (the last finished week's average against the target, C-135) and its scope line, always shown so
- * the figure says which week it covers (R-104). Cardio and steps live only in the "Tu bloque" card. Opens nothing.
+ * The Calorías tile (the mean per logged diary day since the plan started against the target) and its scope line,
+ * always shown so the figure says what it covers; "sin datos" only when no day is logged. Cardio and steps live only in the "Tu bloque" card. Opens nothing.
  */
 @Composable
-private fun PlanTiles(plan: CoachPlan, summary: WeekSummary?) {
-    val nutrition = summary?.takeIf { !it.paused }?.nutrition?.takeIf { it.gateOk }
-    val avgKcal = nutrition?.avgKcal
-    val targetKcal = nutrition?.targetKcal ?: plan.nutrition.targetKcal
+private fun PlanTiles(plan: CoachPlan, diaryCalories: DiaryCalories?) {
+    val avgKcal = diaryCalories?.avgKcal
+    val targetKcal = plan.nutrition.targetKcal
     val calories = TileData(
         label = stringResource(Res.string.trainer_plan_tile_calories),
         value = avgKcal?.let { AppNumberFormat.integer(it) } ?: NO_VALUE,
@@ -370,7 +370,15 @@ private fun PlanTiles(plan: CoachPlan, summary: WeekSummary?) {
     Column(verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
         PlanTile(calories, 0, Modifier.fillMaxWidth())
         Text(
-            text = stringResource(Res.string.trainer_plan_tiles_caption),
+            text = if (diaryCalories == null) {
+                stringResource(Res.string.trainer_plan_tiles_caption_empty)
+            } else {
+                pluralStringResource(
+                    Res.plurals.trainer_plan_tiles_caption,
+                    diaryCalories.days,
+                    diaryCalories.days,
+                )
+            },
             style = AppTheme.typography.bodySmall,
             color = AppTheme.colors.textSecondary,
             modifier = Modifier.testTag("trainer_box_plan_tiles_caption"),

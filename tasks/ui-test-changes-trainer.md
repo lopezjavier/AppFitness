@@ -173,3 +173,8 @@ Tests/goldens that will fail or need an update:
 - The pace tick of Entrenos and Cardio now sits at the due share (floor), not the elapsed share; it is hidden at 0 (for example Monday to the day before the first due session).
 - `trainer_week_goal_of_per_day` is now "de 7.000" (no "al día"): spoken text "Pasos al día: 6.400 de 7.000. En camino.".
 - Catalogue tile tags renamed `catalog_goal_ring_tile_<i>` (bare rings stay `catalog_goal_ring_bare_<minutes>`).
+
+## Calorías tile from the diary (since plan start)
+- `TrainerUiState.Content.diaryCalories: DiaryCalories(avgKcal, days)?` replaces the week summary as the tile source; `PlanCard`/`TrainerPlanSection` take `diaryCalories` instead of `latestSummary`. `withDiaryNutrition` and the 5-day minimum are gone; `latestWeekSummary` is unchanged.
+- VM cases (fake diary `summaries(blockStart, today)`): 1 logged day shows its kcal (no "sin datos"); several days give the simple mean rounded; empty diary or failed read gives null ("sin datos", caption "Media desde que empezó tu plan."); a day exactly on `blockStart` counts, a day before it is not requested.
+- Caption (tag `trainer_box_plan_tiles_caption`): "Media desde que empezó tu plan · 1 día registrado" / "· N días registrados" (NBSP between number and unit). Tile tests that set `nutrition` on the summary must now set `diaryCalories`.

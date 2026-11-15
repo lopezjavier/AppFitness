@@ -24,7 +24,6 @@ import io.github.lopezjavier.appfitness.domain.model.PlanStatus
 import io.github.lopezjavier.appfitness.domain.model.PhaseWeeks
 import io.github.lopezjavier.appfitness.domain.model.PlanWeek
 import io.github.lopezjavier.appfitness.domain.model.WeekSummary
-import io.github.lopezjavier.appfitness.domain.model.WeekSummaryNutrition
 import io.github.lopezjavier.appfitness.domain.repository.FoodDiaryRepository
 import io.github.lopezjavier.appfitness.domain.model.ProgressionFlagDecision
 import io.github.lopezjavier.appfitness.domain.port.Clock
@@ -78,7 +77,6 @@ private const val KEY_EXTEND_PICKER = "extend_week_picker"
 private const val KEY_PAUSED_RECORDED = "week_summary_paused_recorded"
 private const val PERCENT = 100.0
 private const val DAYS_PER_WEEK = 7
-private const val MIN_DIARY_DAYS = 5
 
 private fun PlanSummary.id(): String? = when (this) {
     is PlanSummary.Proposed -> plan.id
@@ -633,6 +631,8 @@ class TrainerViewModel(
         val weighIns = async { readWeighIns(localToday) }
         // The plan entry and the calorie card never block the screen: a failed read means none.
         val plan = readPlan()
+        // The Calorías tile reads the diary since the plan start, beside the rest of the chain.
+        val diaryCalories = async { diaryCaloriesOf(plan, localToday) }
         // A diet-break plan switches the Diario target by plan week, so it ends before anything reads that target.
         val dietBreak = async { if (plan is PlanSummary.Accepted) plans?.applyDietBreak(today()) }
         val block = blocks.summaryFor(plan)
@@ -656,7 +656,6 @@ class TrainerViewModel(
         val shownFollowUps = followUps.await()
         val weekSummary = latestSummary.await()
         recordPausedWeekOnce(weekSummary)
-        val shownSummary = withDiaryNutrition(weekSummary, plan)
         val phaseWeeks = weeksInPhase.await()
         TrainerUiState.Content(
             plan = plan,
@@ -667,7 +666,8 @@ class TrainerViewModel(
             extendWeekPickerOpen = extendPicker,
             coachChanges = hub.changes,
             provisionalCount = provisional.await(),
-            latestWeekSummary = shownSummary,
+            latestWeekSummary = weekSummary,
+            diaryCalories = diaryCalories.await(),
             blockReviewDue = blockReviewDue.await(),
             welcomeBack = welcomeBack.await(),
             goalsChecklist = checklist.await(),
@@ -682,28 +682,15 @@ class TrainerViewModel(
     }
 
     /**
-     * A week summary stored before the nutrition section existed has no `nutrition` (the snapshot is frozen), which made
-     * the "Calorías" tile read "sin datos" although the diary has the week. Then the average per logged day comes from
-     * the diary itself, with the same minimum of 5 days; fewer days keep the honest empty state.
+     * The "Calorías" tile: the simple mean of kcal per logged diary day since the plan started, with no minimum of days
+     * (one logged day is enough). Null only when no day is logged since the start or the read failed.
      */
-    private suspend fun withDiaryNutrition(summary: WeekSummary?, plan: PlanSummary): WeekSummary? {
-        val repo = diary ?: return summary
-        val accepted = (plan as? PlanSummary.Accepted)?.plan ?: return summary
-        if (summary == null || summary.paused || summary.nutrition != null) return summary
-        val days = repo.summaries(summary.startDate, summary.endDate).getOrNull() ?: return summary
-        if (days.size < MIN_DIARY_DAYS) return summary
-        val avg = days.sumOf { it.totals.kcal } / days.size
-        val nutrition = WeekSummaryNutrition(
-            completeDays = days.size,
-            gateOk = true,
-            avgKcal = avg.roundToInt(),
-            avgProteinG = null,
-            targetKcal = accepted.nutrition.targetKcal,
-            targetProteinG = null,
-            proteinGPerKg = null,
-            decisions = emptyList(),
-        )
-        return summary.copy(nutrition = nutrition)
+    private suspend fun diaryCaloriesOf(plan: PlanSummary, today: LocalDate): DiaryCalories? {
+        val repo = diary ?: return null
+        val accepted = (plan as? PlanSummary.Accepted)?.plan ?: return null
+        val days = repo.summaries(accepted.blockStart, today).getOrNull().orEmpty()
+        if (days.isEmpty()) return null
+        return DiaryCalories(avgKcal = (days.sumOf { it.totals.kcal } / days.size).roundToInt(), days = days.size)
     }
 
     /** Daily weights of the 8 ISO weeks ending the week of [today]; null when the read failed (the chart is hidden). */
