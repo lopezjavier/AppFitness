@@ -178,3 +178,11 @@ Tests/goldens that will fail or need an update:
 - `TrainerUiState.Content.diaryCalories: DiaryCalories(avgKcal, days)?` replaces the week summary as the tile source; `PlanCard`/`TrainerPlanSection` take `diaryCalories` instead of `latestSummary`. `withDiaryNutrition` and the 5-day minimum are gone; `latestWeekSummary` is unchanged.
 - VM cases (fake diary `summaries(blockStart, today)`): 1 logged day shows its kcal (no "sin datos"); several days give the simple mean rounded; empty diary or failed read gives null ("sin datos", caption "Media desde que empezó tu plan."); a day exactly on `blockStart` counts, a day before it is not requested.
 - Caption (tag `trainer_box_plan_tiles_caption`): "Media desde que empezó tu plan · 1 día registrado" / "· N días registrados" (NBSP between number and unit). Tile tests that set `nutrition` on the summary must now set `diaryCalories`.
+
+## Block R rejected: "Tu bloque" card restored (rings removed)
+
+Tests/goldens that will fail or need an update:
+- `GoalRing`, `GoalRingTile`, `GoalProgressState`, `TrainerWeekGoals.kt` (`elapsedShare`, `dueShare`, `runningGoalState`, `averageGoalState`, `WeekGoals`) are deleted: any test of them goes; the catalogue goal-ring section and its tags (`catalog_goal_ring_*`) are gone.
+- "Tu bloque" root card is back to C-135: `trainer_box_block_headline`, `trainer_box_block_percent`, the session cards, `trainer_box_block_cardio` / `trainer_box_block_steps` bars ("81 de 150 min", "1.492 de 7.000", "Sin datos de pasos"); `trainer_box_block_goals*` tags are gone. `BlockSummaryBox` lost its `activity` and `today` parameters; `TrainerUiState.Content.today` is removed.
+- Strings removed: `trainer_week_goal*`, `trainer_goal_state_*`, `catalog_section_goal_ring`, `trainer_plan_tile_of_min`; restored: `trainer_block_cardio_value`, `trainer_block_steps_value`, `trainer_block_steps_none`. "Tu plan" keeps only the Calorías tile (no Cardio/Pasos tiles).
+- Gallery: entries renamed "week bars, empty / behind / done / over target" (+ large font); `contentWithBlock` has no `today`.

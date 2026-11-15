@@ -258,8 +258,6 @@ private fun LazyGridScope.blockBoxes(
                 appliedChangesCount = state.appliedCoachChanges.size,
                 actions = BlockCardActions(onOpen = actions.onOpenBlockScreen, onEvent = onEvent),
                 modifier = cardModifier,
-                activity = (state.plan as? PlanSummary.Accepted)?.plan?.nutrition?.activity,
-                today = state.today,
             )
         }
     }

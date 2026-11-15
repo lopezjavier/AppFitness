@@ -313,11 +313,8 @@ internal object TrainerFixtures {
         stepsTarget = 7000,
     )
 
-    /** Cardio minutes and the daily steps average of a week (the goal rings of "Tu bloque", R-104). */
+    /** Cardio minutes and the daily steps average of a week (the Cardio and Pasos bars of "Tu bloque"). */
     data class WeekGoalsFixture(val cardioMin: Int = 60, val stepsAvg: Int? = 6400)
-
-    /** Thursday of week 2 (26 oct - 1 nov): three days of the week are behind, so the pace tick sits at 3/7. */
-    val goalsToday = LocalDate(2026, 10, 29)
 
     /** Week 1 done, week 2 in progress (with [completed] sessions and [goals]), weeks 3 and 4 upcoming. */
     fun weeks(completed: Int = 2, goals: WeekGoalsFixture = WeekGoalsFixture()): List<PlanWeek> = listOf(
@@ -420,13 +417,11 @@ internal object TrainerFixtures {
         proposal: CalorieProposal? = null,
         blockReviewDue: Boolean = false,
         weeks: List<PlanWeek> = weeks(),
-        today: LocalDate = goalsToday,
     ): TrainerUiState.Content = TrainerUiState.Content(
         plan = PlanSummary.Accepted(plan()),
         calorieProposal = proposal,
         block = block,
         weeks = weeks,
-        today = today,
         pause = pause,
         provisionalCount = 2,
         blockReviewDue = blockReviewDue,

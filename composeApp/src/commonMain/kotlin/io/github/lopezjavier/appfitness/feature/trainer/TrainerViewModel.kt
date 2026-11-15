@@ -677,7 +677,6 @@ class TrainerViewModel(
             weightPace = weightPaceOf(plan, weighIns.await(), phaseWeeks, localToday),
             discomfortFollowUps = shownFollowUps,
             swapPicker = discomfort?.restoredPicker(shownFollowUps),
-            today = localToday,
         )
     }
 

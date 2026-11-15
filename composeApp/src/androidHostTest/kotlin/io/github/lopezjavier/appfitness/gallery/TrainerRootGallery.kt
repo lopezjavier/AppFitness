@@ -9,8 +9,6 @@ import io.github.lopezjavier.appfitness.feature.trainer.TrainerBoxScreen
 import io.github.lopezjavier.appfitness.feature.trainer.TrainerScreen
 import io.github.lopezjavier.appfitness.feature.trainer.TrainerUiState
 import kotlinx.coroutines.flow.flowOf
-import kotlinx.datetime.DatePeriod
-import kotlinx.datetime.plus
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -47,26 +45,25 @@ private fun trainerHome(): List<GalleryEntry> {
         home("block review due", TrainerFixtures.contentWithBlock(blockReviewDue = true)),
         home("calorie proposal", TrainerFixtures.contentWithBlock(proposal = TrainerFixtures.calorieProposal)),
         home(
-            "week goals, empty (Monday)",
+            "week bars, empty",
             TrainerFixtures.contentWithBlock(
                 weeks = TrainerFixtures.weeks(completed = 0, goals = TrainerFixtures.WeekGoalsFixture(0, null)),
-                today = TrainerFixtures.planStart.plus(DatePeriod(days = 7)),
             ),
         ),
         home(
-            "week goals, behind",
+            "week bars, behind",
             TrainerFixtures.contentWithBlock(
                 weeks = TrainerFixtures.weeks(completed = 0, goals = TrainerFixtures.WeekGoalsFixture(20, 4200)),
             ),
         ),
         home(
-            "week goals, done",
+            "week bars, done",
             TrainerFixtures.contentWithBlock(
                 weeks = TrainerFixtures.weeks(completed = 4, goals = TrainerFixtures.WeekGoalsFixture(150, 7100)),
             ),
         ),
         home(
-            "week goals, over target",
+            "week bars, over target",
             TrainerFixtures.contentWithBlock(
                 weeks = TrainerFixtures.weeks(completed = 4, goals = TrainerFixtures.WeekGoalsFixture(200, 8500)),
             ),
@@ -75,7 +72,7 @@ private fun trainerHome(): List<GalleryEntry> {
         home("large font (1.3)", TrainerFixtures.contentWithBlock(), fontScale = 1.3f),
         home("tablet width", TrainerFixtures.contentWithBlock(), wide = true),
         home(
-            "week goals, over target, large font (1.3)",
+            "week bars, over target, large font (1.3)",
             TrainerFixtures.contentWithBlock(
                 weeks = TrainerFixtures.weeks(completed = 4, goals = TrainerFixtures.WeekGoalsFixture(200, 8500)),
             ),

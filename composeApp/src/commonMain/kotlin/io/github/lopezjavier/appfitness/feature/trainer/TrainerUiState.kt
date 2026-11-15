@@ -128,8 +128,6 @@ sealed interface TrainerUiState {
         val swapPicker: SwapPickerUi? = null,
         /** Exercise whose swap is in flight: the picker ignores further taps meanwhile. */
         val busyFollowUpExerciseId: String? = null,
-        /** The local date of the read: places the "where you should be by now" tick of the week goal rings (R-104). */
-        val today: LocalDate? = null,
     ) : TrainerUiState {
         private val accepted: CoachPlan? get() = (plan as? PlanSummary.Accepted)?.plan
 
