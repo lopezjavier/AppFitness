@@ -122,7 +122,6 @@
     <string name="set_header_type">Tipo</string>
     <string name="set_header_type_cd">Tipo de serie</string>
     <string name="set_header_previous">Antes</string>
-    <string name="set_row_previous_line">Antes: %1$s</string>
     <string name="set_current_cd">Serie actual</string>
     <string name="set_header_weight">Kg</string>
     <string name="set_header_reps">Reps</string>
