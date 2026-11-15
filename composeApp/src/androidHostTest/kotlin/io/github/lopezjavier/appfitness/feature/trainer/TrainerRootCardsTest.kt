@@ -9,8 +9,8 @@ import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.assertTextContains
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
-import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.text.TextLayoutResult
 import androidx.compose.ui.unit.Density
@@ -73,13 +73,12 @@ class TrainerRootCardsTest {
         weeksInPhase = 4,
     )
 
-    private fun planState(pace: WeightPace? = null, summary: WeekSummary? = null) =
-        TrainerUiState.Content(
-            plan = accepted,
-            weightPace = pace,
-            latestWeekSummary = summary,
-            weeks = listOf(planWeek(week = 1, phase = WeekPhase.Current)),
-        )
+    private fun planState(pace: WeightPace? = null, summary: WeekSummary? = null) = TrainerUiState.Content(
+        plan = accepted,
+        weightPace = pace,
+        latestWeekSummary = summary,
+        weeks = listOf(planWeek(week = 1, phase = WeekPhase.Current)),
+    )
 
     private fun blockState(weeks: List<PlanWeek>) =
         TrainerUiState.Content(plan = accepted, block = savedBlock, weeks = weeks)
@@ -160,7 +159,8 @@ class TrainerRootCardsTest {
         assertVerdict(pace(WeightPaceState.Faster, slope = -0.80), "Pierdes peso más rápido de lo previsto.")
 
     @Test
-    fun planCard_verdict_stable() = assertVerdict(pace(WeightPaceState.Stable, slope = 0.0), "Tu peso se mantiene estable.")
+    fun planCard_verdict_stable() =
+        assertVerdict(pace(WeightPaceState.Stable, slope = 0.0), "Tu peso se mantiene estable.")
 
     @Test
     fun planCard_soon_showsOnlyTheProvisionalFigure_noVerdictLine() {
@@ -383,7 +383,7 @@ class TrainerRootCardsTest {
         listOf(
             "Semana${NBSP}2${NBSP}de${NBSP}4",
             "3${NBSP}de${NBSP}4",
-            "75${NBSP}%",
+            "75$NBSP%",
             "de${NBSP}2.000${NBSP}kcal",
             "de${NBSP}150${NBSP}min",
         ).forEach { fact ->

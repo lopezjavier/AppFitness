@@ -4,10 +4,10 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material3.Icon
@@ -82,7 +82,12 @@ fun SummaryCard(
             SummaryBody(
                 body,
                 SummaryTitle(title, status, chevron = onClick != null, action = titleAction),
-                content, headline, headlineUnit, progress, lines, facts,
+                content,
+                headline,
+                headlineUnit,
+                progress,
+                lines,
+                facts,
             )
             footer?.invoke()
         }

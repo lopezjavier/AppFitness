@@ -41,12 +41,12 @@ import io.github.lopezjavier.appfitness.composeapp.resources.block_sets_header
 import io.github.lopezjavier.appfitness.composeapp.resources.block_sets_row
 import io.github.lopezjavier.appfitness.composeapp.resources.block_week_tab
 import io.github.lopezjavier.appfitness.designsystem.AppCard
-import io.github.lopezjavier.appfitness.designsystem.BarListRow
-import io.github.lopezjavier.appfitness.designsystem.BarListRowDefaults
 import io.github.lopezjavier.appfitness.designsystem.AppOption
 import io.github.lopezjavier.appfitness.designsystem.AppScreen
 import io.github.lopezjavier.appfitness.designsystem.AppTabRow
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
+import io.github.lopezjavier.appfitness.designsystem.BarListRow
+import io.github.lopezjavier.appfitness.designsystem.BarListRowDefaults
 import io.github.lopezjavier.appfitness.designsystem.HelpButton
 import io.github.lopezjavier.appfitness.designsystem.InlineNote
 import io.github.lopezjavier.appfitness.designsystem.ListSectionHeader
@@ -307,11 +307,7 @@ private fun FrequencyLine(training: BlockTraining, modifier: Modifier) {
 
 /** "Series por grupo muscular" of a block (C-102): one [BarListRow] per muscle. */
 @Composable
-internal fun SetsSection(
-    weeklySets: Map<String, Int>,
-    sessionsPerMuscle: Map<String, Int>,
-    modifier: Modifier,
-) {
+internal fun SetsSection(weeklySets: Map<String, Int>, sessionsPerMuscle: Map<String, Int>, modifier: Modifier) {
     val largest = weeklySets.values.max()
     SectionCard(
         stringResource(Res.string.block_sets_header),

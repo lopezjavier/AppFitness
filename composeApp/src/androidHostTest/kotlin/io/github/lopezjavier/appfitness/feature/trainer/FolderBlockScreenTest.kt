@@ -196,7 +196,10 @@ class FolderBlockScreenTest {
         show()
 
         rule.onNodeWithTag("folder_block_sets_over_note")
-            .assertTextContains("Tiene más de 10${NBSP}series: quita series o el ejercicio en la carpeta.", substring = true)
+            .assertTextContains(
+                "Tiene más de 10${NBSP}series: quita series o el ejercicio en la carpeta.",
+                substring = true,
+            )
         rule.onNodeWithTag("folder_block_save").assertIsNotEnabled()
     }
 

@@ -233,7 +233,9 @@ class FolderReviewResultScreenTest {
         hasText("25${NBSP}series (se recomiendan al menos 10)").assertExists()
         rule.onAllNodesWithText("Más de 20 series", substring = true).assertCountEquals(0)
         openHelp("chest")
-        hasText("Más de 20${NBSP}series a la semana: por encima de unas 20, añadir más series aporta poco.").assertExists()
+        hasText(
+            "Más de 20${NBSP}series a la semana: por encima de unas 20, añadir más series aporta poco.",
+        ).assertExists()
         rule.onNodeWithTag("folder_review_result_row_chest").assert(
             SemanticsMatcher.expectValue(SemanticsProperties.StateDescription, "Cumplido"),
         )

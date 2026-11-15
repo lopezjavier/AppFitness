@@ -144,9 +144,12 @@ object WeightPaceFit {
         val intervalAbove = low > rate
         return when {
             containsRate && !containsZero -> WeightPaceState.OnPace
+
             containsRate -> WeightPaceState.Soon
+
             // Above a cut's rate (less negative) is slower; above a gain's rate is faster; below mirrors it.
             intervalAbove == (rate < 0.0) -> WeightPaceState.Slower
+
             else -> WeightPaceState.Faster
         }
     }

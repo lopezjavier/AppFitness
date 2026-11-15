@@ -150,7 +150,10 @@ class DayTypeSheetTest {
         show(typesState(noFit = NoFitInfo(day = 1, neededMinutes = 95, limitMinutes = 45)))
 
         rule.onNodeWithTag("block_types_continue").assertIsNotEnabled()
-        rule.onNodeWithText("No cabe en 45${NBSP}min: sube la duración, los días o cambia la división.", substring = true)
+        rule.onNodeWithText(
+            "No cabe en 45${NBSP}min: sube la duración, los días o cambia la división.",
+            substring = true,
+        )
             .assertExists()
     }
 

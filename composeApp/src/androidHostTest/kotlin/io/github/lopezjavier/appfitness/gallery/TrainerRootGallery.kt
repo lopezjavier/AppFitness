@@ -5,9 +5,9 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
-import io.github.lopezjavier.appfitness.designsystem.OfflineBanner
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import com.github.takahirom.roborazzi.ExperimentalRoborazziApi
+import io.github.lopezjavier.appfitness.designsystem.OfflineBanner
 import io.github.lopezjavier.appfitness.feature.trainer.BlockSummary
 import io.github.lopezjavier.appfitness.feature.trainer.DiaryCalories
 import io.github.lopezjavier.appfitness.feature.trainer.TrainerRootMenu
@@ -334,8 +334,7 @@ private fun trainerRootCards(): List<GalleryEntry> {
     )
 }
 
-internal fun trainerRootEntries(): List<GalleryEntry> =
-    trainerHome() + trainerRootCards() + swapPicker()
+internal fun trainerRootEntries(): List<GalleryEntry> = trainerHome() + trainerRootCards() + swapPicker()
 
 /** Renders the Trainer hub and its boxes (US-131); skipped unless `-Pgallery`. */
 @OptIn(ExperimentalRoborazziApi::class)

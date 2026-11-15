@@ -12,8 +12,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import io.github.lopezjavier.appfitness.designsystem.AppLinearProgress
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
-import io.github.lopezjavier.appfitness.designsystem.bodyMediumStrong
 import io.github.lopezjavier.appfitness.designsystem.Spacing
+import io.github.lopezjavier.appfitness.designsystem.bodyMediumStrong
 
 /** Past the target the bar's scale grows to the done figure, never beyond twice the target (the marker stays clear). */
 private const val MAX_OVER_SCALE = 2f

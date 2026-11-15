@@ -115,7 +115,10 @@ class BlockPreviewCardioScreenTest {
     fun theCardioRow_readsMinutesAndPace_andTheTotalTimeFollows() {
         show(block(ownMin = 0))
 
-        rule.onNodeWithTag("block_preview_cardio_row_1_0", useUnmergedTree = true).assertTextEquals("50${NBSP}min · suave")
+        rule.onNodeWithTag(
+            "block_preview_cardio_row_1_0",
+            useUnmergedTree = true,
+        ).assertTextEquals("50${NBSP}min · suave")
         rule.onNodeWithTag("block_preview_cardio_total_1_0").assertTextEquals("Tiempo total: 1 h 50 min")
         rule.onAllNodesWithText("Calentamiento").assertCountEquals(0)
     }

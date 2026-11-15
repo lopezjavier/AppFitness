@@ -18,12 +18,11 @@ import io.github.lopezjavier.appfitness.domain.model.CoachException
 import io.github.lopezjavier.appfitness.domain.model.CoachFailure
 import io.github.lopezjavier.appfitness.domain.model.CoachPlan
 import io.github.lopezjavier.appfitness.domain.model.Phase
-import io.github.lopezjavier.appfitness.domain.model.PlanStatus
 import io.github.lopezjavier.appfitness.domain.model.PhaseWeeks
+import io.github.lopezjavier.appfitness.domain.model.PlanStatus
 import io.github.lopezjavier.appfitness.domain.model.PlanWeek
-import io.github.lopezjavier.appfitness.domain.model.WeekSummary
-import io.github.lopezjavier.appfitness.domain.repository.FoodDiaryRepository
 import io.github.lopezjavier.appfitness.domain.model.ProgressionFlagDecision
+import io.github.lopezjavier.appfitness.domain.model.WeekSummary
 import io.github.lopezjavier.appfitness.domain.port.Clock
 import io.github.lopezjavier.appfitness.domain.repository.BodyMeasurementRepository
 import io.github.lopezjavier.appfitness.domain.repository.CoachBlockRepository
@@ -33,14 +32,15 @@ import io.github.lopezjavier.appfitness.domain.repository.CoachRepository
 import io.github.lopezjavier.appfitness.domain.repository.CoachSummaryRepository
 import io.github.lopezjavier.appfitness.domain.repository.CoachWeeksRepository
 import io.github.lopezjavier.appfitness.domain.repository.DiscomfortFollowUpRepository
+import io.github.lopezjavier.appfitness.domain.repository.FoodDiaryRepository
+import io.github.lopezjavier.appfitness.domain.usecase.DailyWeight
+import io.github.lopezjavier.appfitness.domain.usecase.DailyWeights
 import io.github.lopezjavier.appfitness.domain.usecase.DecideCalorieProposalUseCase
 import io.github.lopezjavier.appfitness.domain.usecase.ExerciseNameResolver
 import io.github.lopezjavier.appfitness.domain.usecase.LoadBlockReviewUseCase
 import io.github.lopezjavier.appfitness.domain.usecase.LoadWeeksInPhaseUseCase
 import io.github.lopezjavier.appfitness.domain.usecase.LoadWelcomeBack
 import io.github.lopezjavier.appfitness.domain.usecase.RecordPausedWeekReport
-import io.github.lopezjavier.appfitness.domain.usecase.DailyWeight
-import io.github.lopezjavier.appfitness.domain.usecase.DailyWeights
 import io.github.lopezjavier.appfitness.domain.usecase.WeightPace
 import io.github.lopezjavier.appfitness.domain.usecase.WeightPaceFit
 import kotlinx.coroutines.Job
@@ -683,7 +683,11 @@ class TrainerViewModel(
      * in phase; the block start when that read failed), with no minimum of days (one logged day is enough). Null only
      * when no day is logged in the window or the read failed.
      */
-    private suspend fun diaryCaloriesOf(plan: PlanSummary, today: LocalDate, weeksInPhase: PhaseWeeks?): DiaryCalories? {
+    private suspend fun diaryCaloriesOf(
+        plan: PlanSummary,
+        today: LocalDate,
+        weeksInPhase: PhaseWeeks?,
+    ): DiaryCalories? {
         val repo = diary ?: return null
         val accepted = (plan as? PlanSummary.Accepted)?.plan ?: return null
         val from = weeksInPhase?.let { today.minus(DatePeriod(days = it.weeks * DAYS_PER_WEEK)) } ?: accepted.blockStart

@@ -124,7 +124,7 @@ class BlockBuilderNextBlockScreenTest {
         )
 
         rule.onNodeWithTag("block_builder_targets_group_chest_reason")
-            .assertTextEquals("Tu adherencia fue menor del 80${NBSP}%: no añadimos series.")
+            .assertTextEquals("Tu adherencia fue menor del 80$NBSP%: no añadimos series.")
     }
 
     @Test

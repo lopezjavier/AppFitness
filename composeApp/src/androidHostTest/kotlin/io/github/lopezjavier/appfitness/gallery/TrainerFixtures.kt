@@ -27,8 +27,8 @@ import io.github.lopezjavier.appfitness.domain.model.CoachBlock
 import io.github.lopezjavier.appfitness.domain.model.CoachChangeFigures
 import io.github.lopezjavier.appfitness.domain.model.CoachChangeKind
 import io.github.lopezjavier.appfitness.domain.model.CoachChangeStatus
-import io.github.lopezjavier.appfitness.domain.model.DietBreakWeek
 import io.github.lopezjavier.appfitness.domain.model.CoachPlan
+import io.github.lopezjavier.appfitness.domain.model.DietBreakWeek
 import io.github.lopezjavier.appfitness.domain.model.Equipment
 import io.github.lopezjavier.appfitness.domain.model.Exercise
 import io.github.lopezjavier.appfitness.domain.model.ExerciseMetricType
@@ -67,6 +67,9 @@ import io.github.lopezjavier.appfitness.domain.model.WeekPhase
 import io.github.lopezjavier.appfitness.domain.model.WeekSummary
 import io.github.lopezjavier.appfitness.domain.model.WeekSummaryNutrition
 import io.github.lopezjavier.appfitness.domain.model.WeekSummaryWeight
+import io.github.lopezjavier.appfitness.domain.usecase.DailyWeight
+import io.github.lopezjavier.appfitness.domain.usecase.WeightPace
+import io.github.lopezjavier.appfitness.domain.usecase.WeightPaceFit
 import io.github.lopezjavier.appfitness.feature.trainer.AlternativesState
 import io.github.lopezjavier.appfitness.feature.trainer.BeforeStartMode
 import io.github.lopezjavier.appfitness.feature.trainer.BeforeStartUiState
@@ -93,9 +96,6 @@ import io.github.lopezjavier.appfitness.feature.trainer.SwapPickerUi
 import io.github.lopezjavier.appfitness.feature.trainer.TrainerUiState
 import io.github.lopezjavier.appfitness.feature.trainer.YourDataUiState
 import io.github.lopezjavier.appfitness.feature.trainer.toRow
-import io.github.lopezjavier.appfitness.domain.usecase.DailyWeight
-import io.github.lopezjavier.appfitness.domain.usecase.WeightPace
-import io.github.lopezjavier.appfitness.domain.usecase.WeightPaceFit
 import kotlinx.datetime.LocalDate
 import kotlin.time.Instant
 
@@ -144,7 +144,9 @@ internal object TrainerFixtures {
             phase = phase,
             phaseReason = PhaseReason.Intention,
             phaseOptions = PhaseOptions(),
-            dietBreak = dietBreakWeek?.let { DietBreakWeek(targetKcal = 2400, proteinG = 150, carbsG = 280, fatG = 70, week = it) },
+            dietBreak = dietBreakWeek?.let {
+                DietBreakWeek(targetKcal = 2400, proteinG = 150, carbsG = 280, fatG = 70, week = it)
+            },
         ),
         outcomes = listOf(
             PlanOutcome(OutcomeKind.Weight, "weight", 72.5, "Bajar de forma gradual.", LocalDate(2026, 11, 16)),
@@ -343,8 +345,21 @@ internal object TrainerFixtures {
      */
     fun longWeeks(total: Int = 16, current: Int = 9): List<PlanWeek> = (1..total).map { n ->
         when {
-            n < current -> week(n, WeekPhase.Past, completed = if (n % 3 == 0) 3 else 4, goals = WeekGoalsFixture(150, 7200))
+            n < current -> week(
+                n,
+                WeekPhase.Past,
+                completed = if (n % 3 ==
+                    0
+                ) {
+                    3
+                } else {
+                    4
+                },
+                goals = WeekGoalsFixture(150, 7200),
+            )
+
             n == current -> week(n, WeekPhase.Current, completed = 2)
+
             else -> week(n, WeekPhase.Upcoming, completed = 0, goals = WeekGoalsFixture(0, null))
         }
     }
@@ -519,7 +534,10 @@ internal object TrainerFixtures {
         val start = LocalDate(2026, 9, 21)
         val daily = (0 until PACE_WEEKS).flatMap { week ->
             listOf(0, 1, 3, 5).map { day ->
-                DailyWeight(LocalDate.fromEpochDays(start.toEpochDays() + week * 7 + day), 76.0 - 0.3 * week - 0.02 * day)
+                DailyWeight(
+                    LocalDate.fromEpochDays(start.toEpochDays() + week * 7 + day),
+                    76.0 - 0.3 * week - 0.02 * day,
+                )
             }
         }
         return WeightPaceFit.compute(daily, today, -0.375, Phase.Cut, null, planStart, plan().outcomes.firstOrNull())

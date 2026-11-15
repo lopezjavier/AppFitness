@@ -16,8 +16,8 @@ import io.github.lopezjavier.appfitness.domain.repository.CoachIntakeRepository
 import io.github.lopezjavier.appfitness.domain.repository.CoachRepository
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.async
-import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow

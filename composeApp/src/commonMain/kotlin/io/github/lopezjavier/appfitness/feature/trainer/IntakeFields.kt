@@ -124,7 +124,10 @@ private fun IntakeRow(
             null
         },
         trailing = {
-            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.xs)) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(Spacing.xs),
+            ) {
                 Text(text = value, style = AppTheme.typography.bodyMedium, color = AppTheme.colors.textSecondary)
                 Icon(
                     painter = painterResource(Res.drawable.ic_chevron_right),

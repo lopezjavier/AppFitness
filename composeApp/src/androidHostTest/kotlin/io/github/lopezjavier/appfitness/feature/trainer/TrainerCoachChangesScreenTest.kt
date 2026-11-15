@@ -81,10 +81,7 @@ class TrainerCoachChangesScreenTest {
         rule.waitForIdle()
     }
 
-    private fun showRoute(
-        model: TrainerViewModel,
-        onRange: (String, String) -> Unit = { _, _ -> },
-    ) {
+    private fun showRoute(model: TrainerViewModel, onRange: (String, String) -> Unit = { _, _ -> }) {
         val resolver = ExerciseNameResolver(
             FakeExerciseRepository(listOf(exerciseRow("bench", "bench"))),
             FakeExerciseLibrary(mapOf("bench" to exerciseInfo("bench", "Press de banca"))),
@@ -135,7 +132,7 @@ class TrainerCoachChangesScreenTest {
         rule.onNodeWithText("Cambios del entrenador").assertExists()
         rule.onNodeWithText("Press de banca").assertExists()
         rule.onNodeWithTag("trainer_change_c1_figure", useUnmergedTree = true)
-            .assertTextEquals("60${NBSP}→${NBSP}62,5${NBSP}kg")
+            .assertTextEquals("60$NBSP→${NBSP}62,5${NBSP}kg")
         rule.onNodeWithTag("trainer_coach_change_undo_c1").performClick()
 
         assertEquals(listOf<TrainerEvent>(TrainerEvent.UndoCoachChange("c1")), events)
@@ -154,7 +151,7 @@ class TrainerCoachChangesScreenTest {
         )
 
         rule.onNodeWithTag("trainer_change_c2_figure", useUnmergedTree = true)
-            .assertTextEquals("80${NBSP}→${NBSP}76${NBSP}kg")
+            .assertTextEquals("80$NBSP→${NBSP}76${NBSP}kg")
     }
 
     @Test

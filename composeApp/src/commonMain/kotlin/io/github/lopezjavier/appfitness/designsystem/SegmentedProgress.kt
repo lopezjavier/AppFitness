@@ -1,4 +1,4 @@
-@file:Suppress("MatchingDeclarationName") // The file holds the component, its picker variant and their Defaults.
+@file:Suppress("MatchingDeclarationName", "ktlint:standard:property-naming") // Defaults object.
 
 package io.github.lopezjavier.appfitness.designsystem
 
@@ -17,9 +17,9 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.selectable
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -253,7 +253,10 @@ private fun WeekTab(
                 .background(container)
                 .let { if (state == StepState.Current) it.border(AppBorder.focus, colors.athleticCyan, shape) else it }
                 .padding(horizontal = Spacing.xs),
-            horizontalArrangement = Arrangement.spacedBy(SegmentedProgressDefaults.TickGap, Alignment.CenterHorizontally),
+            horizontalArrangement = Arrangement.spacedBy(
+                SegmentedProgressDefaults.TickGap,
+                Alignment.CenterHorizontally,
+            ),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             if (state == StepState.Done) {

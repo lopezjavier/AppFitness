@@ -3,8 +3,8 @@
 package io.github.lopezjavier.appfitness.feature.catalog
 
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.runtime.Composable
@@ -30,7 +30,6 @@ import io.github.lopezjavier.appfitness.composeapp.resources.catalog_ring_percen
 import io.github.lopezjavier.appfitness.composeapp.resources.catalog_ring_score
 import io.github.lopezjavier.appfitness.composeapp.resources.catalog_section_bar_chart
 import io.github.lopezjavier.appfitness.composeapp.resources.catalog_section_body_heatmap
-import io.github.lopezjavier.appfitness.composeapp.resources.catalog_section_weight_pace_chart
 import io.github.lopezjavier.appfitness.composeapp.resources.catalog_section_line_chart
 import io.github.lopezjavier.appfitness.composeapp.resources.catalog_section_macro_bars
 import io.github.lopezjavier.appfitness.composeapp.resources.catalog_section_macro_sliders
@@ -40,6 +39,7 @@ import io.github.lopezjavier.appfitness.composeapp.resources.catalog_section_rad
 import io.github.lopezjavier.appfitness.composeapp.resources.catalog_section_ring
 import io.github.lopezjavier.appfitness.composeapp.resources.catalog_section_sleep_stages_bar
 import io.github.lopezjavier.appfitness.composeapp.resources.catalog_section_trend_pills
+import io.github.lopezjavier.appfitness.composeapp.resources.catalog_section_weight_pace_chart
 import io.github.lopezjavier.appfitness.composeapp.resources.catalog_state_disabled
 import io.github.lopezjavier.appfitness.composeapp.resources.catalog_text_pill
 import io.github.lopezjavier.appfitness.composeapp.resources.catalog_trend_caution
@@ -69,16 +69,10 @@ import io.github.lopezjavier.appfitness.designsystem.Macro
 import io.github.lopezjavier.appfitness.designsystem.MacroProgressBar
 import io.github.lopezjavier.appfitness.designsystem.MacroSlider
 import io.github.lopezjavier.appfitness.designsystem.MacroSliderDefaults
+import io.github.lopezjavier.appfitness.designsystem.MacroStackedBar
+import io.github.lopezjavier.appfitness.designsystem.MetricTile
 import io.github.lopezjavier.appfitness.designsystem.PaceSamplePlan
 import io.github.lopezjavier.appfitness.designsystem.PaceSampleWeekly
-import io.github.lopezjavier.appfitness.designsystem.WeightPaceBandPoint
-import io.github.lopezjavier.appfitness.designsystem.WeightPaceChart
-import io.github.lopezjavier.appfitness.designsystem.WeightPaceChartData
-import io.github.lopezjavier.appfitness.designsystem.WeightPaceLabel
-import io.github.lopezjavier.appfitness.designsystem.WeightPacePoint
-import io.github.lopezjavier.appfitness.designsystem.MacroStackedBar
-import io.github.lopezjavier.appfitness.domain.model.Phase
-import io.github.lopezjavier.appfitness.designsystem.MetricTile
 import io.github.lopezjavier.appfitness.designsystem.PercentRing
 import io.github.lopezjavier.appfitness.designsystem.ProgressRing
 import io.github.lopezjavier.appfitness.designsystem.RadarChart
@@ -92,7 +86,13 @@ import io.github.lopezjavier.appfitness.designsystem.TextPill
 import io.github.lopezjavier.appfitness.designsystem.TrendDirection
 import io.github.lopezjavier.appfitness.designsystem.TrendPill
 import io.github.lopezjavier.appfitness.designsystem.TrendTone
+import io.github.lopezjavier.appfitness.designsystem.WeightPaceBandPoint
+import io.github.lopezjavier.appfitness.designsystem.WeightPaceChart
+import io.github.lopezjavier.appfitness.designsystem.WeightPaceChartData
+import io.github.lopezjavier.appfitness.designsystem.WeightPaceLabel
+import io.github.lopezjavier.appfitness.designsystem.WeightPacePoint
 import io.github.lopezjavier.appfitness.domain.model.MuscleGroup
+import io.github.lopezjavier.appfitness.domain.model.Phase
 import org.jetbrains.compose.resources.stringResource
 import kotlin.math.roundToInt
 

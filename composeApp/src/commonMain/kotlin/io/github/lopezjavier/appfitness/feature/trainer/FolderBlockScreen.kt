@@ -33,10 +33,10 @@ import io.github.lopezjavier.appfitness.composeapp.resources.block_builder_save_
 import io.github.lopezjavier.appfitness.composeapp.resources.block_builder_slot_clear_cd
 import io.github.lopezjavier.appfitness.composeapp.resources.block_builder_slot_swap_cd
 import io.github.lopezjavier.appfitness.composeapp.resources.folder_block_empty_body
+import io.github.lopezjavier.appfitness.composeapp.resources.folder_block_fix_action
 import io.github.lopezjavier.appfitness.composeapp.resources.folder_block_intro
 import io.github.lopezjavier.appfitness.composeapp.resources.folder_block_left_out
 import io.github.lopezjavier.appfitness.composeapp.resources.folder_block_missing_title
-import io.github.lopezjavier.appfitness.composeapp.resources.folder_block_fix_action
 import io.github.lopezjavier.appfitness.composeapp.resources.folder_block_refused
 import io.github.lopezjavier.appfitness.composeapp.resources.folder_block_refused_one
 import io.github.lopezjavier.appfitness.composeapp.resources.folder_block_rep_fix
@@ -171,7 +171,13 @@ private fun StateBody(
 @Composable
 private fun RefusedNote(state: FolderBlockUiState.Refused, onFix: () -> Unit) {
     val text = when (val days = state.days) {
-        is DaysCheck.Refused -> pluralStringResource(Res.plurals.folder_block_refused, days.routines, days.routines, days.days)
+        is DaysCheck.Refused -> pluralStringResource(
+            Res.plurals.folder_block_refused,
+            days.routines,
+            days.routines,
+            days.days,
+        )
+
         else -> stringResource(Res.string.folder_block_refused_one, state.daysPerWeek)
     }
     InlineNote(

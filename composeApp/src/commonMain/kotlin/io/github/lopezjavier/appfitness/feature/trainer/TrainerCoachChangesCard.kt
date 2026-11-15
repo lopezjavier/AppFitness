@@ -86,7 +86,10 @@ internal fun CoachChangesCard(
     if (named.isEmpty()) return
     val rows = named.map { it.first }
     val stacked = LocalDensity.current.fontScale >= STACK_ACTION_FONT_SCALE
-    Column(modifier.fillMaxWidth().testTag("trainer_changes_card"), verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+    Column(
+        modifier.fillMaxWidth().testTag("trainer_changes_card"),
+        verticalArrangement = Arrangement.spacedBy(Spacing.sm),
+    ) {
         RowGroupCard(
             title = stringResource(Res.string.coach_changes_header),
             rows = named.map { (row, name) ->
@@ -238,9 +241,12 @@ private fun changeFigure(row: CoachChangeRowUi): String? {
     val to = row.figures.weightToKg
     return when {
         row.kind.isDeload -> row.figures.week?.let { stringResource(Res.string.trainer_week_title, it) }
+
         from != null && to != null ->
             stringResource(Res.string.trainer_change_figure, coachWeightText(from), coachWeightText(to))
+
         row.kind == CoachChangeKind.LoadKept -> coachChangeReasonText(row.kind, row.figures).ifEmpty { null }
+
         else -> null
     }
 }
@@ -250,7 +256,10 @@ private fun changeFigure(row: CoachChangeRowUi): String? {
 private fun closedStatus(row: CoachChangeRowUi): Pair<String, StatusTone>? = when {
     row.kind.isDeload && row.status == CoachChangeStatus.Undone ->
         stringResource(Res.string.coach_deload_status_cancelled) to StatusTone.Neutral
+
     row.status == CoachChangeStatus.Undone -> statusText(row)?.let { it to StatusTone.Neutral }
+
     row.status == CoachChangeStatus.Decided -> statusText(row)?.let { it to StatusTone.Good }
+
     else -> null
 }

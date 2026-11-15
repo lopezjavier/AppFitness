@@ -42,7 +42,10 @@ class BlockPauseScreenTest {
         showTrainer(trainer(BlockPause(paused = true, pausedWeeks = 1, blockEnd = end)))
 
         rule.onNodeWithTag("trainer_box_block_week_current", useUnmergedTree = true).assertTextEquals("En pausa")
-        rule.onNodeWithTag("trainer_box_block_end", useUnmergedTree = true).assertTextEquals("El bloque termina el 24 oct.")
+        rule.onNodeWithTag(
+            "trainer_box_block_end",
+            useUnmergedTree = true,
+        ).assertTextEquals("El bloque termina el 24 oct.")
     }
 
     @Test

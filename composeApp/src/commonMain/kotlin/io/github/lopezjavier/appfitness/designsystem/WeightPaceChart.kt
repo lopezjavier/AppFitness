@@ -1,4 +1,4 @@
-@file:Suppress("MatchingDeclarationName") // The file holds the component, its data model and its Defaults object.
+@file:Suppress("MatchingDeclarationName", "ktlint:standard:property-naming") // Defaults object.
 
 package io.github.lopezjavier.appfitness.designsystem
 
@@ -85,7 +85,12 @@ object WeightPaceChartDefaults {
 fun WeightPaceChart(
     data: WeightPaceChartData,
     modifier: Modifier = Modifier,
-    valueLabel: (Double) -> String = { ((it * WeightPaceChartDefaults.Tenth).roundToInt() / WeightPaceChartDefaults.Tenth).toString() },
+    valueLabel: (Double) -> String = {
+        (
+            (it * WeightPaceChartDefaults.Tenth).roundToInt() /
+                WeightPaceChartDefaults.Tenth
+            ).toString()
+    },
 ) {
     val colors = AppTheme.colors
     val labelStyle = AppTheme.typography.bodySmall

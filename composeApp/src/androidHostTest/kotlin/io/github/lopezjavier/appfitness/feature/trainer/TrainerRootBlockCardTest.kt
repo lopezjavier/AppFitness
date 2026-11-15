@@ -30,6 +30,7 @@ private val NBSP = 160.toChar().toString()
  */
 @RunWith(RobolectricTestRunner::class)
 @Config(qualifiers = "w360dp-h2400dp-xxhdpi")
+@Suppress("TooManyFunctions") // One method per scenario.
 class TrainerRootBlockCardTest {
     @get:Rule
     val rule = createComposeRule()

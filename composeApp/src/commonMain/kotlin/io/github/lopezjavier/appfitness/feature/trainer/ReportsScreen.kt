@@ -16,8 +16,8 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.github.lopezjavier.appfitness.composeapp.resources.Res
 import io.github.lopezjavier.appfitness.composeapp.resources.action_retry
 import io.github.lopezjavier.appfitness.composeapp.resources.block_review_title
-import io.github.lopezjavier.appfitness.composeapp.resources.ic_chevron_right
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_calendar
+import io.github.lopezjavier.appfitness.composeapp.resources.ic_chevron_right
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_description
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_fact_check
 import io.github.lopezjavier.appfitness.composeapp.resources.reports_empty_message
@@ -37,8 +37,8 @@ import io.github.lopezjavier.appfitness.designsystem.EmptyState
 import io.github.lopezjavier.appfitness.designsystem.ErrorState
 import io.github.lopezjavier.appfitness.designsystem.ListRowSkeleton
 import io.github.lopezjavier.appfitness.designsystem.OfflineState
-import io.github.lopezjavier.appfitness.designsystem.Spacing
 import io.github.lopezjavier.appfitness.designsystem.RowGroupCard
+import io.github.lopezjavier.appfitness.designsystem.Spacing
 import io.github.lopezjavier.appfitness.designsystem.WindowWidthClassDefaults
 import io.github.lopezjavier.appfitness.domain.model.ReportItem
 import io.github.lopezjavier.appfitness.domain.model.ReportKind

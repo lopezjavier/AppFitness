@@ -43,9 +43,9 @@ import io.github.lopezjavier.appfitness.designsystem.AppTheme
 import io.github.lopezjavier.appfitness.designsystem.EmptyState
 import io.github.lopezjavier.appfitness.designsystem.ErrorState
 import io.github.lopezjavier.appfitness.designsystem.HelpButton
+import io.github.lopezjavier.appfitness.designsystem.RowGroupCard
 import io.github.lopezjavier.appfitness.designsystem.ScoreRing
 import io.github.lopezjavier.appfitness.designsystem.SkeletonBox
-import io.github.lopezjavier.appfitness.designsystem.RowGroupCard
 import io.github.lopezjavier.appfitness.designsystem.Spacing
 import io.github.lopezjavier.appfitness.designsystem.WindowWidthClassDefaults
 import org.jetbrains.compose.resources.stringResource

@@ -16,8 +16,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.setValue
 import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalDensity
@@ -41,22 +41,22 @@ import io.github.lopezjavier.appfitness.composeapp.resources.trainer_block_steps
 import io.github.lopezjavier.appfitness.composeapp.resources.trainer_block_steps_value
 import io.github.lopezjavier.appfitness.composeapp.resources.trainer_block_title
 import io.github.lopezjavier.appfitness.composeapp.resources.trainer_block_week_item
+import io.github.lopezjavier.appfitness.composeapp.resources.trainer_block_week_item_current_cd
 import io.github.lopezjavier.appfitness.composeapp.resources.trainer_block_week_item_done_cd
 import io.github.lopezjavier.appfitness.composeapp.resources.trainer_block_week_item_planned_cd
-import io.github.lopezjavier.appfitness.composeapp.resources.trainer_block_week_item_current_cd
 import io.github.lopezjavier.appfitness.composeapp.resources.trainer_block_week_unit
 import io.github.lopezjavier.appfitness.composeapp.resources.trainer_block_weeks_error
 import io.github.lopezjavier.appfitness.composeapp.resources.trainer_plan_fact_cardio
 import io.github.lopezjavier.appfitness.composeapp.resources.trainer_week_chip_current
 import io.github.lopezjavier.appfitness.composeapp.resources.trainer_week_chip_deload
 import io.github.lopezjavier.appfitness.composeapp.resources.trainer_week_chip_diet_break
+import io.github.lopezjavier.appfitness.composeapp.resources.trainer_week_chip_paused
 import io.github.lopezjavier.appfitness.composeapp.resources.trainer_week_planned
 import io.github.lopezjavier.appfitness.composeapp.resources.trainer_week_progress_cd
 import io.github.lopezjavier.appfitness.composeapp.resources.trainer_week_session_done
 import io.github.lopezjavier.appfitness.composeapp.resources.trainer_week_session_missed
 import io.github.lopezjavier.appfitness.composeapp.resources.trainer_week_session_pending
 import io.github.lopezjavier.appfitness.composeapp.resources.trainer_week_session_planned
-import io.github.lopezjavier.appfitness.composeapp.resources.trainer_week_chip_paused
 import io.github.lopezjavier.appfitness.composeapp.resources.trainer_week_title
 import io.github.lopezjavier.appfitness.composeapp.resources.trainer_week_title_of
 import io.github.lopezjavier.appfitness.designsystem.AppDateFormat
@@ -145,10 +145,9 @@ private fun MainChip(status: BlockStatus.Saved) {
 }
 
 /** The week shown by default: the current one, the last once every week is past, otherwise the first. */
-private fun defaultWeek(weeks: List<PlanWeek>): Int? =
-    weeks.firstOrNull { it.phase == WeekPhase.Current }?.week
-        ?: weeks.takeIf { list -> list.all { it.phase == WeekPhase.Past } }?.maxOfOrNull { it.week }
-        ?: weeks.minOfOrNull { it.week }
+private fun defaultWeek(weeks: List<PlanWeek>): Int? = weeks.firstOrNull { it.phase == WeekPhase.Current }?.week
+    ?: weeks.takeIf { list -> list.all { it.phase == WeekPhase.Past } }?.maxOfOrNull { it.week }
+    ?: weeks.minOfOrNull { it.week }
 
 @Composable
 @Suppress("LongParameterList") // The block, its weeks, the pause, the diet break and the gallery hook.
@@ -198,7 +197,10 @@ private fun BlockChips(status: BlockStatus.Saved, first: PlanWeek?) {
     val starts = first?.takeIf { status.week == null && !status.reviewDue && it.phase == WeekPhase.Upcoming }
     val paused = status.paused && !status.reviewDue
     if (starts == null && !paused) return
-    FlowRow(horizontalArrangement = Arrangement.spacedBy(Spacing.sm), verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
+    FlowRow(
+        horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+        verticalArrangement = Arrangement.spacedBy(Spacing.xs),
+    ) {
         starts?.let { week ->
             StatusChip(
                 stringResource(
@@ -306,7 +308,11 @@ private fun WeekDetail(week: PlanWeek, context: WeekDetailContext) {
                 // A paused week is "En pausa", never "Actual": the week is not running (R-106).
                 StatusChip(
                     stringResource(
-                        if (context.paused) Res.string.trainer_week_chip_paused else Res.string.trainer_week_chip_current,
+                        if (context.paused) {
+                            Res.string.trainer_week_chip_paused
+                        } else {
+                            Res.string.trainer_week_chip_current
+                        },
                     ),
                     if (context.paused) StatusTone.Neutral else StatusTone.Info,
                     Modifier.testTag("trainer_box_block_week_current"),
@@ -366,7 +372,11 @@ private fun WeekDetail(week: PlanWeek, context: WeekDetailContext) {
 private fun SessionsHeadline(week: PlanWeek) {
     val percent = (week.completed * PERCENT / week.planned).roundToInt()
     Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm), verticalAlignment = Alignment.CenterVertically) {
-        Row(Modifier.weight(1f), horizontalArrangement = Arrangement.spacedBy(Spacing.sm), verticalAlignment = Alignment.Bottom) {
+        Row(
+            Modifier.weight(1f),
+            horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+            verticalAlignment = Alignment.Bottom,
+        ) {
             Text(
                 text = stringResource(Res.string.report_sessions_headline, week.completed, week.planned),
                 style = AppTheme.typography.headlineMetric,

@@ -3,15 +3,15 @@ package io.github.lopezjavier.appfitness.feature.trainer
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.heightIn
-import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.grid.LazyGridScope
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -25,7 +25,9 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.github.lopezjavier.appfitness.composeapp.resources.Res
+import io.github.lopezjavier.appfitness.composeapp.resources.action_retry
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_nav_trainer
+import io.github.lopezjavier.appfitness.composeapp.resources.root_error_message
 import io.github.lopezjavier.appfitness.composeapp.resources.trainer_plan_create
 import io.github.lopezjavier.appfitness.composeapp.resources.trainer_plan_create_action
 import io.github.lopezjavier.appfitness.composeapp.resources.trainer_plan_empty_body
@@ -36,16 +38,14 @@ import io.github.lopezjavier.appfitness.composeapp.resources.trainer_your_data_r
 import io.github.lopezjavier.appfitness.composeapp.resources.your_data_provisional_count
 import io.github.lopezjavier.appfitness.designsystem.AppScreen
 import io.github.lopezjavier.appfitness.designsystem.AppShapes
-import io.github.lopezjavier.appfitness.composeapp.resources.action_retry
-import io.github.lopezjavier.appfitness.composeapp.resources.root_error_message
 import io.github.lopezjavier.appfitness.designsystem.AppStateAction
-import io.github.lopezjavier.appfitness.designsystem.ErrorState
-import io.github.lopezjavier.appfitness.designsystem.EmptyState
-import io.github.lopezjavier.appfitness.designsystem.OfflineHint
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
-import io.github.lopezjavier.appfitness.designsystem.HubDimensions
 import io.github.lopezjavier.appfitness.designsystem.AppTopBarDefaults
+import io.github.lopezjavier.appfitness.designsystem.EmptyState
+import io.github.lopezjavier.appfitness.designsystem.ErrorState
+import io.github.lopezjavier.appfitness.designsystem.HubDimensions
 import io.github.lopezjavier.appfitness.designsystem.NavigationRow
+import io.github.lopezjavier.appfitness.designsystem.OfflineHint
 import io.github.lopezjavier.appfitness.designsystem.RowGroupCard
 import io.github.lopezjavier.appfitness.designsystem.SkeletonBox
 import io.github.lopezjavier.appfitness.designsystem.Spacing
@@ -150,7 +150,9 @@ fun TrainerScreen(
                 Spacing.screenMargin * GRID_COLUMNS
             when (state) {
                 TrainerUiState.Loading -> TrainerSkeleton()
+
                 TrainerUiState.Error -> TrainerLoadError("trainer", onEvent)
+
                 is TrainerUiState.Content ->
                     TrainerContent(state, online, onEvent, actions, exerciseNames, twoColumns, preview)
             }
@@ -349,14 +351,18 @@ private fun RootLinksGroup(provisionalCount: Int?, onOpenReports: () -> Unit, on
                 NavigationRow(
                     label = stringResource(Res.string.trainer_reports_row),
                     onClick = onOpenReports,
-                    modifier = Modifier.padding(horizontal = Spacing.lg).heightIn(min = RootRowHeight).testTag("trainer_reports"),
+                    modifier = Modifier.padding(
+                        horizontal = Spacing.lg,
+                    ).heightIn(min = RootRowHeight).testTag("trainer_reports"),
                 )
             },
             {
                 NavigationRow(
                     label = stringResource(Res.string.trainer_your_data_row),
                     onClick = onOpenYourData,
-                    modifier = Modifier.padding(horizontal = Spacing.lg).heightIn(min = RootRowHeight).testTag("trainer_your_data"),
+                    modifier = Modifier.padding(
+                        horizontal = Spacing.lg,
+                    ).heightIn(min = RootRowHeight).testTag("trainer_your_data"),
                     value = provisionalCount?.takeIf { it > 0 }
                         ?.let { pluralStringResource(Res.plurals.your_data_provisional_count, it, it) },
                 )

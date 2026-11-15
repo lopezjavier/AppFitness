@@ -156,7 +156,10 @@ private fun PlanChartPanel(plan: CoachPlan, pace: WeightPace?) {
             Column(horizontalAlignment = Alignment.End, verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
                 if (abs(rate) >= RATE_EPSILON) {
                     StatusChip(
-                        text = NonBreaking.join(signedHundredths(rate), stringResource(Res.string.trainer_plan_rate_unit)),
+                        text = NonBreaking.join(
+                            signedHundredths(rate),
+                            stringResource(Res.string.trainer_plan_rate_unit),
+                        ),
                         tone = StatusTone.Info,
                         modifier = Modifier.testTag("trainer_box_plan_rate"),
                     )
@@ -304,16 +307,23 @@ private fun PaceVerdict(pace: WeightPace) {
     val slope = pace.slopeKgWeek ?: 0.0
     val text = when (pace.state) {
         WeightPaceState.NoData -> stringResource(Res.string.trainer_plan_verdict_no_data)
+
         WeightPaceState.OnPace -> stringResource(Res.string.trainer_plan_verdict_on_pace)
+
         WeightPaceState.Slower -> stringResource(slowerVerdict(cut, slope))
+
         WeightPaceState.Faster -> stringResource(
             if (cut) Res.string.trainer_plan_verdict_cut_faster else Res.string.trainer_plan_verdict_gain_faster,
         )
+
         WeightPaceState.Stable -> stringResource(Res.string.trainer_plan_verdict_stable)
+
         WeightPaceState.Rising ->
             stringResource(Res.string.trainer_plan_verdict_rising, AppNumberFormat.decimal(abs(slope), 2))
+
         WeightPaceState.Falling ->
             stringResource(Res.string.trainer_plan_verdict_falling, AppNumberFormat.decimal(abs(slope), 2))
+
         // Too early to judge: the provisional figure says it, so there is no verdict line.
         WeightPaceState.Soon -> return
     }
@@ -357,7 +367,11 @@ private fun CaloriesRow(plan: CoachPlan, diaryCalories: DiaryCalories?) {
         value = if (avg == null) {
             stringResource(Res.string.trainer_plan_calories_none)
         } else {
-            stringResource(Res.string.trainer_plan_calories_value, AppNumberFormat.integer(avg), AppNumberFormat.integer(target))
+            stringResource(
+                Res.string.trainer_plan_calories_value,
+                AppNumberFormat.integer(avg),
+                AppNumberFormat.integer(target),
+            )
         },
         ratio = avg?.takeIf { target > 0 }?.let { it.toFloat() / target },
         pace = null,

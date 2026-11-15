@@ -3,11 +3,11 @@ package io.github.lopezjavier.appfitness.feature.trainer
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.heightIn
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Text
@@ -21,6 +21,7 @@ import io.github.lopezjavier.appfitness.composeapp.resources.Res
 import io.github.lopezjavier.appfitness.composeapp.resources.block_builder_continue
 import io.github.lopezjavier.appfitness.composeapp.resources.block_targets_choice_none
 import io.github.lopezjavier.appfitness.composeapp.resources.block_targets_clear_cd
+import io.github.lopezjavier.appfitness.composeapp.resources.block_targets_groups_header
 import io.github.lopezjavier.appfitness.composeapp.resources.block_targets_help_body
 import io.github.lopezjavier.appfitness.composeapp.resources.block_targets_help_cd
 import io.github.lopezjavier.appfitness.composeapp.resources.block_targets_line
@@ -34,7 +35,6 @@ import io.github.lopezjavier.appfitness.composeapp.resources.block_targets_sugge
 import io.github.lopezjavier.appfitness.composeapp.resources.block_targets_suggestion_applied
 import io.github.lopezjavier.appfitness.composeapp.resources.block_targets_suggestion_applied_cd
 import io.github.lopezjavier.appfitness.composeapp.resources.block_targets_suggestion_cd
-import io.github.lopezjavier.appfitness.composeapp.resources.block_targets_groups_header
 import io.github.lopezjavier.appfitness.composeapp.resources.block_targets_title
 import io.github.lopezjavier.appfitness.composeapp.resources.block_types_no_fit
 import io.github.lopezjavier.appfitness.composeapp.resources.block_types_no_fit_action
@@ -46,8 +46,8 @@ import io.github.lopezjavier.appfitness.designsystem.AppScreen
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
 import io.github.lopezjavier.appfitness.designsystem.AppToggleChip
 import io.github.lopezjavier.appfitness.designsystem.HelpButton
-import io.github.lopezjavier.appfitness.designsystem.ListSectionHeader
 import io.github.lopezjavier.appfitness.designsystem.InlineNote
+import io.github.lopezjavier.appfitness.designsystem.ListSectionHeader
 import io.github.lopezjavier.appfitness.designsystem.PrimaryButton
 import io.github.lopezjavier.appfitness.designsystem.SegmentedSelector
 import io.github.lopezjavier.appfitness.designsystem.Spacing

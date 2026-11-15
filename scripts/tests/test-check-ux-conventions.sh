@@ -356,7 +356,7 @@ expect "G27 the dialog hosted by the block card passes" 0 NOWARN
 cases=$((cases + 1))
 missing=""
 for cited in $(grep -ohE 'R-[0-9]+' "$guard" | sort -u); do
-  grep -qE "^- \*\*$cited( |\.|\))" "$repo_root/planning/05-design-system.md" || missing="$missing $cited"
+  grep -qE "^- \*\*$cited(\*| |\.|\))" "$repo_root/planning/05-design-system.md" || missing="$missing $cited"
 done
 if [ -z "$missing" ]; then
   echo "ok   every rule cited by a guard exists in 05 section 8"

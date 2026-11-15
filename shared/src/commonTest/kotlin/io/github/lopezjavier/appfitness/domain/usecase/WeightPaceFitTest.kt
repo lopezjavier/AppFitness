@@ -34,8 +34,7 @@ class WeightPaceFitTest {
         }
     }
 
-    private fun line(weeks: Int, from: Double, perWeek: Double) =
-        DoubleArray(weeks) { from + perWeek * it }
+    private fun line(weeks: Int, from: Double, perWeek: Double) = DoubleArray(weeks) { from + perWeek * it }
 
     private fun compute(
         daily: List<DailyWeight>,
@@ -282,8 +281,11 @@ class WeightPaceFitTest {
 
         val planLine = assertNotNull(
             compute(
-                series(*line(5, 80.0, -0.5)), -0.5, weeksInPhase = PhaseWeeks(Phase.Cut, 5),
-                planStart = start.minus(DatePeriod(days = 30)), outcome = outcome(),
+                series(*line(5, 80.0, -0.5)),
+                -0.5,
+                weeksInPhase = PhaseWeeks(Phase.Cut, 5),
+                planStart = start.minus(DatePeriod(days = 30)),
+                outcome = outcome(),
             ).planLine,
         )
 
@@ -299,8 +301,11 @@ class WeightPaceFitTest {
 
         val planLine = assertNotNull(
             compute(
-                series(*line(5, 80.0, -0.5)), -0.5, weeksInPhase = PhaseWeeks(Phase.Cut, 5),
-                planStart = start.plus(DatePeriod(days = 7)), outcome = outcome(),
+                series(*line(5, 80.0, -0.5)),
+                -0.5,
+                weeksInPhase = PhaseWeeks(Phase.Cut, 5),
+                planStart = start.plus(DatePeriod(days = 7)),
+                outcome = outcome(),
             ).planLine,
         )
 
@@ -313,8 +318,11 @@ class WeightPaceFitTest {
         val start = windowStartOf(5)
 
         val pace = compute(
-            series(*line(5, 80.0, -0.5)), -0.5, weeksInPhase = PhaseWeeks(Phase.Cut, 5),
-            planStart = start.plus(DatePeriod(days = 14)), outcome = outcome(on = start.plus(DatePeriod(days = 7))),
+            series(*line(5, 80.0, -0.5)),
+            -0.5,
+            weeksInPhase = PhaseWeeks(Phase.Cut, 5),
+            planStart = start.plus(DatePeriod(days = 14)),
+            outcome = outcome(on = start.plus(DatePeriod(days = 7))),
         )
 
         assertNull(pace.planLine)

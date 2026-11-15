@@ -1,4 +1,4 @@
-@file:Suppress("MatchingDeclarationName") // The file holds the component and its Defaults object.
+@file:Suppress("MatchingDeclarationName", "ktlint:standard:property-naming") // Defaults object.
 
 package io.github.lopezjavier.appfitness.designsystem
 

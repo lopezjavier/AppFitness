@@ -72,6 +72,7 @@ import io.github.lopezjavier.appfitness.designsystem.AppNumberFormat
 import io.github.lopezjavier.appfitness.designsystem.AppScreen
 import io.github.lopezjavier.appfitness.designsystem.AppShapes
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
+import io.github.lopezjavier.appfitness.designsystem.DecisionButtonRow
 import io.github.lopezjavier.appfitness.designsystem.GhostButton
 import io.github.lopezjavier.appfitness.designsystem.HelpButton
 import io.github.lopezjavier.appfitness.designsystem.InlineNote
@@ -82,7 +83,6 @@ import io.github.lopezjavier.appfitness.designsystem.Macro
 import io.github.lopezjavier.appfitness.designsystem.MacroDefaults
 import io.github.lopezjavier.appfitness.designsystem.MacroStackedBar
 import io.github.lopezjavier.appfitness.designsystem.MacroStackedBarDefaults
-import io.github.lopezjavier.appfitness.designsystem.DecisionButtonRow
 import io.github.lopezjavier.appfitness.designsystem.NavigationRow
 import io.github.lopezjavier.appfitness.designsystem.OfflineHint
 import io.github.lopezjavier.appfitness.designsystem.PrimaryButton
