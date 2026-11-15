@@ -31,6 +31,8 @@ import io.github.lopezjavier.appfitness.composeapp.resources.catalog_ring_score
 import io.github.lopezjavier.appfitness.composeapp.resources.catalog_section_bar_chart
 import io.github.lopezjavier.appfitness.composeapp.resources.catalog_section_body_heatmap
 import io.github.lopezjavier.appfitness.composeapp.resources.catalog_section_weight_pace_chart
+import io.github.lopezjavier.appfitness.composeapp.resources.catalog_section_goal_ring
+import io.github.lopezjavier.appfitness.composeapp.resources.ic_heart
 import io.github.lopezjavier.appfitness.composeapp.resources.catalog_section_line_chart
 import io.github.lopezjavier.appfitness.composeapp.resources.catalog_section_macro_bars
 import io.github.lopezjavier.appfitness.composeapp.resources.catalog_section_macro_sliders
@@ -73,6 +75,9 @@ import io.github.lopezjavier.appfitness.designsystem.PaceSamplePlan
 import io.github.lopezjavier.appfitness.designsystem.PaceSampleWeekly
 import io.github.lopezjavier.appfitness.designsystem.WeightPaceBandPoint
 import io.github.lopezjavier.appfitness.designsystem.WeightPaceChart
+import io.github.lopezjavier.appfitness.designsystem.GoalProgressState
+import io.github.lopezjavier.appfitness.designsystem.GoalRing
+import io.github.lopezjavier.appfitness.designsystem.GoalRingTile
 import io.github.lopezjavier.appfitness.designsystem.WeightPaceChartData
 import io.github.lopezjavier.appfitness.designsystem.WeightPaceLabel
 import io.github.lopezjavier.appfitness.designsystem.WeightPacePoint
@@ -125,6 +130,7 @@ internal fun LazyListScope.dataVizItems() {
     item { MacroSlidersSection() }
     item { MacroStackedBarSection() }
     item { WeightPaceChartSection() }
+    item { GoalRingSection() }
     item { SleepStagesBarSection() }
     item { MetricTilesSection() }
     item { TrendPillsSection() }
@@ -262,6 +268,54 @@ private fun WeightPaceChartSection() {
             Column(verticalArrangement = Arrangement.spacedBy(Spacing.lg)) {
                 WeightPaceChartSamples.forEach { (data, tag) ->
                     WeightPaceChart(data = data, modifier = Modifier.testTag(tag))
+                }
+            }
+        }
+    }
+}
+
+/** The four goal states of a 150-minute weekly target, three days into the week (R-104). */
+@Suppress("MagicNumber") // Sample minutes.
+private val GoalRingSamples = listOf(
+    Triple(GoalProgressState.Behind, 20, "Por detrás"),
+    Triple(GoalProgressState.OnTrack, 70, "En camino"),
+    Triple(GoalProgressState.Done, 150, "Cumplido"),
+    Triple(GoalProgressState.Over, 200, "Superado"),
+)
+
+@Suppress("MagicNumber") // The pace share and target of the samples.
+@Composable
+private fun GoalRingSection() {
+    CatalogSection(stringResource(Res.string.catalog_section_goal_ring), "catalog_section_goal_ring") {
+        AppCard(Modifier.fillMaxWidth()) {
+            Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
+                    GoalRingSamples.forEach { (state, minutes, status) ->
+                        GoalRing(
+                            fraction = minutes / 150f,
+                            state = state,
+                            value = minutes.toString(),
+                            description = "Cardio: $minutes de 150 min. $status.",
+                            paceFraction = 3f / 7f,
+                            testTag = "catalog_goal_ring_bare_$minutes",
+                        )
+                    }
+                }
+                GoalRingSamples.forEachIndexed { index, (state, minutes, status) ->
+                    GoalRingTile(
+                        label = "Cardio",
+                        icon = Res.drawable.ic_heart,
+                        value = minutes.toString(),
+                        target = "de 150 min",
+                        state = state,
+                        statusText = status,
+                        fraction = minutes / 150f,
+                        description = "Cardio: $minutes de 150 min. $status.",
+                        paceFraction = 3f / 7f,
+                        horizontal = true,
+                        staggerIndex = index,
+                        testTag = "catalog_goal_ring_$index",
+                    )
                 }
             }
         }

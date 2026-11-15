@@ -46,7 +46,6 @@ import io.github.lopezjavier.appfitness.designsystem.RowGroupCard
 import io.github.lopezjavier.appfitness.designsystem.SkeletonBox
 import io.github.lopezjavier.appfitness.designsystem.Spacing
 import io.github.lopezjavier.appfitness.designsystem.WindowWidthClassDefaults
-import io.github.lopezjavier.appfitness.domain.model.WeekPhase
 import io.github.lopezjavier.appfitness.domain.port.ConnectivityObserver
 import io.github.lopezjavier.appfitness.domain.usecase.ExerciseNameResolver
 import io.github.lopezjavier.appfitness.feature.notifications.NotificationsBell
@@ -196,7 +195,6 @@ private fun TrainerContent(
                 weightPace = state.weightPace,
                 weeksInPhase = state.weeksInPhase,
                 latestSummary = state.latestWeekSummary,
-                currentWeek = state.weeks.firstOrNull { it.phase == WeekPhase.Current },
                 modifier = cardMin,
             )
         }
@@ -260,6 +258,8 @@ private fun LazyGridScope.blockBoxes(
                 appliedChangesCount = state.appliedCoachChanges.size,
                 actions = BlockCardActions(onOpen = actions.onOpenBlockScreen, onEvent = onEvent),
                 modifier = cardModifier,
+                activity = (state.plan as? PlanSummary.Accepted)?.plan?.nutrition?.activity,
+                today = state.today,
             )
         }
     }

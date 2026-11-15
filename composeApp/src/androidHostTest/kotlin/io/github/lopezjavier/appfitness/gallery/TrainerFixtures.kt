@@ -289,7 +289,13 @@ internal object TrainerFixtures {
     val exerciseNames = mapOf("bench" to "Press de banca", "row" to "Remo con barra", "fly" to "Aperturas")
 
     /** A week of the saved block; week 2 is the current one by default. */
-    fun week(week: Int, phase: WeekPhase, deload: Boolean = false, completed: Int = 3) = PlanWeek(
+    fun week(
+        week: Int,
+        phase: WeekPhase,
+        deload: Boolean = false,
+        completed: Int = 3,
+        goals: WeekGoalsFixture = WeekGoalsFixture(),
+    ) = PlanWeek(
         week = week,
         startDate = LocalDate.fromEpochDays(planStart.toEpochDays() + 7 * (week - 1)),
         endDate = LocalDate.fromEpochDays(planStart.toEpochDays() + 7 * (week - 1) + 6),
@@ -298,19 +304,27 @@ internal object TrainerFixtures {
         planned = 4,
         completed = completed,
         adherencePct = completed * 25,
-        sessions = listOf(PlanWeekSession(0, "Empuje", "routine-0", done = completed > 0)),
-        cardioMinDone = 0,
-        cardioMinTarget = null,
-        stepsAvg = null,
-        stepsTarget = null,
+        sessions = WEEK_SESSION_NAMES.mapIndexed { index, name ->
+            PlanWeekSession(index, name, "routine-$index", done = index < completed)
+        },
+        cardioMinDone = goals.cardioMin,
+        cardioMinTarget = 150,
+        stepsAvg = goals.stepsAvg,
+        stepsTarget = 7000,
     )
 
-    /** Week 1 done, week 2 in progress, weeks 3 and 4 upcoming. */
-    fun weeks(): List<PlanWeek> = listOf(
-        week(1, WeekPhase.Past, completed = 4),
-        week(2, WeekPhase.Current),
-        week(3, WeekPhase.Upcoming, completed = 0),
-        week(4, WeekPhase.Upcoming, completed = 0),
+    /** Cardio minutes and the daily steps average of a week (the goal rings of "Tu bloque", R-104). */
+    data class WeekGoalsFixture(val cardioMin: Int = 60, val stepsAvg: Int? = 6400)
+
+    /** Thursday of week 2 (26 oct - 1 nov): three days of the week are behind, so the pace tick sits at 3/7. */
+    val goalsToday = LocalDate(2026, 10, 29)
+
+    /** Week 1 done, week 2 in progress (with [completed] sessions and [goals]), weeks 3 and 4 upcoming. */
+    fun weeks(completed: Int = 2, goals: WeekGoalsFixture = WeekGoalsFixture()): List<PlanWeek> = listOf(
+        week(1, WeekPhase.Past, completed = 4, goals = WeekGoalsFixture(150, 7200)),
+        week(2, WeekPhase.Current, completed = completed, goals = goals),
+        week(3, WeekPhase.Upcoming, completed = 0, goals = WeekGoalsFixture(0, null)),
+        week(4, WeekPhase.Upcoming, completed = 0, goals = WeekGoalsFixture(0, null)),
     )
 
     /** A block paused for one week with its moved end date (US-106). */
@@ -405,11 +419,14 @@ internal object TrainerFixtures {
         pause: BlockPause? = null,
         proposal: CalorieProposal? = null,
         blockReviewDue: Boolean = false,
+        weeks: List<PlanWeek> = weeks(),
+        today: LocalDate = goalsToday,
     ): TrainerUiState.Content = TrainerUiState.Content(
         plan = PlanSummary.Accepted(plan()),
         calorieProposal = proposal,
         block = block,
-        weeks = weeks(),
+        weeks = weeks,
+        today = today,
         pause = pause,
         provisionalCount = 2,
         blockReviewDue = blockReviewDue,
@@ -671,4 +688,5 @@ internal object TrainerFixtures {
 
     private const val PLAN_ID = "plan-1"
     private val SESSION_NAMES = listOf("Empuje", "Tirón", "Piernas")
+    private val WEEK_SESSION_NAMES = listOf("Torso A", "Pierna A", "Torso B", "Pierna B")
 }

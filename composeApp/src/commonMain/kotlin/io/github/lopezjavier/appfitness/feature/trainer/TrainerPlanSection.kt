@@ -58,7 +58,6 @@ import io.github.lopezjavier.appfitness.designsystem.SummaryCard
 import io.github.lopezjavier.appfitness.domain.model.CalorieProposal
 import io.github.lopezjavier.appfitness.domain.model.CoachPlan
 import io.github.lopezjavier.appfitness.domain.model.PhaseWeeks
-import io.github.lopezjavier.appfitness.domain.model.PlanWeek
 import io.github.lopezjavier.appfitness.domain.model.WeekSummary
 import io.github.lopezjavier.appfitness.domain.usecase.GoalChecklist
 import io.github.lopezjavier.appfitness.domain.usecase.WeightPace
@@ -72,7 +71,7 @@ private const val HALF = 2
 
 /**
  * "Tu plan" on the Trainer root: "Crear plan" without a plan, the pending proposal, or (accepted) the [PlanCard] with
- * the weight pace and the three tiles; it opens "Tu plan".
+ * the weight pace and the Calorías tile; it opens "Tu plan".
  */
 @Suppress("LongParameterList") // The plan, the figures of the accepted card and the root's events.
 @Composable
@@ -85,7 +84,6 @@ internal fun PlanEntrySection(
     weightPace: WeightPace? = null,
     weeksInPhase: PhaseWeeks? = null,
     latestSummary: WeekSummary? = null,
-    currentWeek: PlanWeek? = null,
     modifier: Modifier = Modifier,
 ) {
     when (plan) {
@@ -108,7 +106,6 @@ internal fun PlanEntrySection(
             pace = weightPace,
             weeksInPhase = weeksInPhase,
             latestSummary = latestSummary,
-            currentWeek = currentWeek,
             onOpen = onOpenPlan,
             modifier = modifier,
         )

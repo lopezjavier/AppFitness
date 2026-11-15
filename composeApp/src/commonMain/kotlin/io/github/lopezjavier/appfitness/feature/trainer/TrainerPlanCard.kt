@@ -6,9 +6,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
-import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
@@ -19,7 +17,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
 import io.github.lopezjavier.appfitness.composeapp.resources.Res
 import io.github.lopezjavier.appfitness.composeapp.resources.trainer_goal_eyebrow
@@ -34,12 +31,8 @@ import io.github.lopezjavier.appfitness.composeapp.resources.trainer_plan_pace_g
 import io.github.lopezjavier.appfitness.composeapp.resources.trainer_plan_rate_unit
 import io.github.lopezjavier.appfitness.composeapp.resources.trainer_plan_section
 import io.github.lopezjavier.appfitness.composeapp.resources.trainer_plan_tile_calories
-import io.github.lopezjavier.appfitness.composeapp.resources.trainer_plan_tile_cardio
 import io.github.lopezjavier.appfitness.composeapp.resources.trainer_plan_tile_no_data
 import io.github.lopezjavier.appfitness.composeapp.resources.trainer_plan_tile_of_kcal
-import io.github.lopezjavier.appfitness.composeapp.resources.trainer_plan_tile_of_min
-import io.github.lopezjavier.appfitness.composeapp.resources.trainer_plan_tile_of_steps
-import io.github.lopezjavier.appfitness.composeapp.resources.trainer_plan_tile_steps
 import io.github.lopezjavier.appfitness.composeapp.resources.trainer_plan_tiles_caption
 import io.github.lopezjavier.appfitness.composeapp.resources.trainer_plan_verdict_cut_faster
 import io.github.lopezjavier.appfitness.composeapp.resources.trainer_plan_verdict_cut_not_falling
@@ -72,7 +65,6 @@ import io.github.lopezjavier.appfitness.designsystem.WeightPacePlanLine
 import io.github.lopezjavier.appfitness.designsystem.WeightPacePoint
 import io.github.lopezjavier.appfitness.domain.model.CoachPlan
 import io.github.lopezjavier.appfitness.domain.model.PhaseWeeks
-import io.github.lopezjavier.appfitness.domain.model.PlanWeek
 import io.github.lopezjavier.appfitness.domain.model.WeekSummary
 import io.github.lopezjavier.appfitness.domain.usecase.WeightPace
 import io.github.lopezjavier.appfitness.domain.usecase.WeightPaceState
@@ -86,7 +78,6 @@ private const val CENTS = 100
 private const val RATE_EPSILON = 0.005
 private const val WEEK_CENTRE = 0.5f
 private const val MIN_LABEL_GAP_WEEKS = 1.5f
-private const val STACK_FONT_SCALE = 1.2f
 private const val PERCENT = 100.0
 private const val MINUS = '−'
 private const val NO_VALUE = "–"
@@ -108,7 +99,7 @@ internal fun signedHundredths(value: Double): String {
 /**
  * The accepted plan's card on the Trainer root (C-131..C-138): the goal header and the weight pace chart (the tappable
  * body that opens "Tu plan"), then, outside that tap target so the "?" and the button keep their own targets (R-103),
- * the figures line, the verdict, the weeks in the phase and the three tiles with their caption. A summary only: "Crear
+ * the figures line, the verdict, the weeks in the phase and the Calorías tile with its scope line. A summary only: "Crear
  * plan nuevo" lives in "Tu plan".
  */
 @Suppress("LongParameterList") // The plan, the figures around it and the card's two events.
@@ -118,7 +109,6 @@ internal fun PlanCard(
     pace: WeightPace?,
     weeksInPhase: PhaseWeeks?,
     latestSummary: WeekSummary?,
-    currentWeek: PlanWeek?,
     onOpen: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -134,7 +124,7 @@ internal fun PlanCard(
                 PaceFigures(plan, pace)
                 if (pace != null) PaceVerdict(pace)
                 weeksInPhase?.takeIf { it.weeks > 0 }?.let { WeeksInPhaseLine(it) }
-                PlanTiles(plan, latestSummary, currentWeek)
+                PlanTiles(plan, latestSummary)
             }
         },
     )
@@ -357,59 +347,28 @@ private fun slowerVerdict(cut: Boolean, slope: Double) = when {
     else -> Res.string.trainer_plan_verdict_gain_not_rising
 }
 
-/** Calorías (last finished week), Cardio and Pasos (this week) as three tiles that open nothing (C-135). */
+/**
+ * The Calorías tile (the last finished week's average against the target, C-135) and its scope line, always shown so
+ * the figure says which week it covers (R-104). Cardio and steps live only in the "Tu bloque" card. Opens nothing.
+ */
 @Composable
-private fun PlanTiles(plan: CoachPlan, summary: WeekSummary?, week: PlanWeek?) {
-    val activity = plan.nutrition.activity
+private fun PlanTiles(plan: CoachPlan, summary: WeekSummary?) {
     val nutrition = summary?.takeIf { !it.paused }?.nutrition?.takeIf { it.gateOk }
     val avgKcal = nutrition?.avgKcal
     val targetKcal = nutrition?.targetKcal ?: plan.nutrition.targetKcal
-    val cardioTarget = week?.cardioMinTarget?.takeIf { it > 0 } ?: activity?.cardioMinWeek?.takeIf { it > 0 }
-    val stepsTarget = week?.stepsTarget?.takeIf { it > 0 } ?: activity?.stepsDay?.takeIf { it > 0 }
-    val noData = stringResource(Res.string.trainer_plan_tile_no_data)
     val calories = TileData(
         label = stringResource(Res.string.trainer_plan_tile_calories),
         value = avgKcal?.let { AppNumberFormat.integer(it) } ?: NO_VALUE,
         sub = if (avgKcal != null) {
             stringResource(Res.string.trainer_plan_tile_of_kcal, AppNumberFormat.integer(targetKcal))
         } else {
-            noData
+            stringResource(Res.string.trainer_plan_tile_no_data)
         },
         ratio = avgKcal?.let { it / targetKcal.toDouble() },
         tag = "trainer_box_plan_tile_calories",
     )
-    val cardio = TileData(
-        label = stringResource(Res.string.trainer_plan_tile_cardio),
-        value = week?.let { AppNumberFormat.integer(it.cardioMinDone) } ?: NO_VALUE,
-        sub = cardioTarget?.let { stringResource(Res.string.trainer_plan_tile_of_min, AppNumberFormat.integer(it)) }
-            ?: noData,
-        ratio = if (week != null && cardioTarget != null) week.cardioMinDone / cardioTarget.toDouble() else null,
-        tag = "trainer_box_plan_tile_cardio",
-    )
-    val stepsAvg = week?.stepsAvg
-    val steps = TileData(
-        label = stringResource(Res.string.trainer_plan_tile_steps),
-        value = stepsAvg?.let { AppNumberFormat.integer(it) } ?: NO_VALUE,
-        sub = stepsTarget?.let { stringResource(Res.string.trainer_plan_tile_of_steps, AppNumberFormat.integer(it)) }
-            ?: noData,
-        ratio = if (stepsAvg != null && stepsTarget != null) stepsAvg / stepsTarget.toDouble() else null,
-        tag = "trainer_box_plan_tile_steps",
-    )
-    val tiles = listOf(calories, cardio, steps)
-    if (LocalDensity.current.fontScale >= STACK_FONT_SCALE) {
-        Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-            tiles.forEachIndexed { index, tile -> PlanTile(tile, index, Modifier.fillMaxWidth()) }
-        }
-    } else {
-        Row(
-            Modifier.fillMaxWidth().height(IntrinsicSize.Min),
-            horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
-        ) {
-            tiles.forEachIndexed { index, tile -> PlanTile(tile, index, Modifier.weight(1f).fillMaxHeight()) }
-        }
-    }
-    // The caption explains the Calorías tile, so it shows only while that tile has a value.
-    if (avgKcal != null) {
+    Column(verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
+        PlanTile(calories, 0, Modifier.fillMaxWidth())
         Text(
             text = stringResource(Res.string.trainer_plan_tiles_caption),
             style = AppTheme.typography.bodySmall,

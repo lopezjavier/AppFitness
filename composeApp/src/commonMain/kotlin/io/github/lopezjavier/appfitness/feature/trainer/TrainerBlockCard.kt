@@ -1,6 +1,8 @@
 package io.github.lopezjavier.appfitness.feature.trainer
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
@@ -15,6 +17,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.contentDescription
@@ -27,11 +30,7 @@ import io.github.lopezjavier.appfitness.composeapp.resources.action_retry
 import io.github.lopezjavier.appfitness.composeapp.resources.block_week_paused
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_check
 import io.github.lopezjavier.appfitness.composeapp.resources.preferences_my_training_title
-import io.github.lopezjavier.appfitness.composeapp.resources.report_sessions_cd
-import io.github.lopezjavier.appfitness.composeapp.resources.report_sessions_headline
 import io.github.lopezjavier.appfitness.composeapp.resources.trainer_block_changes_applied
-import io.github.lopezjavier.appfitness.composeapp.resources.trainer_block_cardio_value
-import io.github.lopezjavier.appfitness.composeapp.resources.trainer_block_headline_unit
 import io.github.lopezjavier.appfitness.composeapp.resources.trainer_block_remove
 import io.github.lopezjavier.appfitness.composeapp.resources.trainer_block_remove_action
 import io.github.lopezjavier.appfitness.composeapp.resources.trainer_block_session_cd_done
@@ -39,51 +38,45 @@ import io.github.lopezjavier.appfitness.composeapp.resources.trainer_block_sessi
 import io.github.lopezjavier.appfitness.composeapp.resources.trainer_block_starts_chip
 import io.github.lopezjavier.appfitness.composeapp.resources.trainer_block_status_ended
 import io.github.lopezjavier.appfitness.composeapp.resources.trainer_block_status_week
-import io.github.lopezjavier.appfitness.composeapp.resources.trainer_block_steps_label
-import io.github.lopezjavier.appfitness.composeapp.resources.trainer_block_steps_none
-import io.github.lopezjavier.appfitness.composeapp.resources.trainer_block_steps_value
 import io.github.lopezjavier.appfitness.composeapp.resources.trainer_block_title
 import io.github.lopezjavier.appfitness.composeapp.resources.trainer_block_weeks_error
-import io.github.lopezjavier.appfitness.composeapp.resources.trainer_plan_fact_cardio
 import io.github.lopezjavier.appfitness.composeapp.resources.trainer_week_chip_deload
 import io.github.lopezjavier.appfitness.composeapp.resources.trainer_week_session_pending
+import io.github.lopezjavier.appfitness.designsystem.AppBorder
 import io.github.lopezjavier.appfitness.designsystem.AppDateFormat
-import io.github.lopezjavier.appfitness.designsystem.AppLinearProgress
-import io.github.lopezjavier.appfitness.designsystem.AppNumberFormat
 import io.github.lopezjavier.appfitness.designsystem.AppShapes
 import io.github.lopezjavier.appfitness.designsystem.AppTextButton
 import io.github.lopezjavier.appfitness.designsystem.AppTextButtonTone
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
 import io.github.lopezjavier.appfitness.designsystem.InlineNote
 import io.github.lopezjavier.appfitness.designsystem.InlineNoteTone
-import io.github.lopezjavier.appfitness.designsystem.NonBreaking
 import io.github.lopezjavier.appfitness.designsystem.OfflineHint
 import io.github.lopezjavier.appfitness.designsystem.SegmentedProgress
 import io.github.lopezjavier.appfitness.designsystem.Spacing
 import io.github.lopezjavier.appfitness.designsystem.StatusChip
 import io.github.lopezjavier.appfitness.designsystem.StatusTone
 import io.github.lopezjavier.appfitness.designsystem.SummaryCard
+import io.github.lopezjavier.appfitness.domain.model.PlanActivity
 import io.github.lopezjavier.appfitness.domain.model.PlanWeek
 import io.github.lopezjavier.appfitness.domain.model.PlanWeekSession
 import io.github.lopezjavier.appfitness.domain.model.WeekPhase
 import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.resources.pluralStringResource
 import org.jetbrains.compose.resources.stringResource
-import kotlin.math.roundToInt
+import kotlinx.datetime.LocalDate
+import androidx.compose.ui.unit.dp
 
-private const val PERCENT = 100.0
 private const val STACK_FONT_SCALE = 1.2f
-private const val SEGMENTS_STAGGER = 2
-private const val CARDIO_STAGGER = 3
-private const val STEPS_STAGGER = 4
-private val BarHeight = Spacing.sm
+private val DiscSize = 20.dp
+private val DiscIconSize = 14.dp
 
 /** What the "Tu bloque" card of the root needs: where a tap goes and the retry event of its weeks note. */
 internal class BlockCardActions(val onOpen: () -> Unit, val onEvent: (TrainerEvent) -> Unit)
 
 /**
- * "Tu bloque" card on the Trainer root (C-124, R-103): a summary only. The week chip, the week segments, "2 de 4
- * entrenos esta semana" with the percent chip, the sessions as small cards and the cardio and steps bars; every action
+ * "Tu bloque" card on the Trainer root (C-124, R-103, R-104): a summary only. The week chip and the week segments
+ * (the block), then "Esta semana" with one goal ring each for Entrenos, Cardio and Pasos al día (the only place the
+ * root shows cardio and steps; targets fall back to the plan's [activity]) and the sessions as small cards; every action
  * (extend the week, "Mi entrenamiento", "Eliminar bloque") lives in the "Tu bloque" screen it opens. [weeks] holds the
  * block's weeks (empty when their read failed: the card then shows a retry note). Without a saved block it only shows
  * while applied changes exist (the proposal has its own card).
@@ -95,6 +88,8 @@ internal fun BlockSummaryBox(
     appliedChangesCount: Int,
     actions: BlockCardActions,
     modifier: Modifier = Modifier,
+    activity: PlanActivity? = null,
+    today: LocalDate? = null,
 ) {
     if (status !is BlockStatus.Saved) {
         // Applied coach changes live on "Tu bloque": without a saved block the box still reaches them (V-50).
@@ -122,7 +117,7 @@ internal fun BlockSummaryBox(
         testTag = "trainer_box_block",
         modifier = modifier,
         status = if (weeks.isEmpty()) null else ({ MainChip(status) }),
-        content = { BlockBody(status, weeks, shown, current) },
+        content = { BlockBody(status, weeks, shown, current, activity, today) },
         footer = if (weeks.isEmpty()) ({ BlockWeeksError { actions.onEvent(TrainerEvent.Refresh) } }) else null,
     )
 }
@@ -142,7 +137,15 @@ private fun MainChip(status: BlockStatus.Saved) {
 
 @Composable
 @OptIn(ExperimentalLayoutApi::class)
-private fun BlockBody(status: BlockStatus.Saved, weeks: List<PlanWeek>, shown: PlanWeek?, current: PlanWeek?) {
+@Suppress("LongParameterList") // The block, its weeks and what the week goals read.
+private fun BlockBody(
+    status: BlockStatus.Saved,
+    weeks: List<PlanWeek>,
+    shown: PlanWeek?,
+    current: PlanWeek?,
+    activity: PlanActivity?,
+    today: LocalDate?,
+) {
     // The weeks could not be read: the footer shows the retry note instead.
     if (weeks.isEmpty()) return
     Column(Modifier.fillMaxWidth().padding(top = Spacing.xs), verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
@@ -197,38 +200,11 @@ private fun BlockBody(status: BlockStatus.Saved, weeks: List<PlanWeek>, shown: P
                 testTag = "trainer_box_block_weeks",
             )
         }
-        shown?.takeIf { it.planned > 0 }?.let { week ->
-            SessionsHeadline(week)
-            SessionCards(week)
+        shown?.let { week ->
+            // Everything below covers this week only: the goal rings carry the "Esta semana" eyebrow (scope).
+            WeekGoals(week, activity, today)
+            if (week.planned > 0) SessionCards(week)
         }
-        shown?.let { ActivityBars(it) }
-    }
-}
-
-/** "2 de 4" with " entrenos esta semana" and the percent chip at the end. */
-@Composable
-private fun SessionsHeadline(week: PlanWeek) {
-    val percent = (week.completed * PERCENT / week.planned).roundToInt()
-    Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm), verticalAlignment = Alignment.CenterVertically) {
-        Row(Modifier.weight(1f), horizontalArrangement = Arrangement.spacedBy(Spacing.sm), verticalAlignment = Alignment.Bottom) {
-            Text(
-                text = stringResource(Res.string.report_sessions_headline, week.completed, week.planned),
-                style = AppTheme.typography.headlineMetric,
-                color = AppTheme.colors.textPrimary,
-                modifier = Modifier.testTag("trainer_box_block_headline"),
-            )
-            Text(
-                text = stringResource(Res.string.trainer_block_headline_unit),
-                style = AppTheme.typography.bodyMedium,
-                color = AppTheme.colors.textSecondary,
-                modifier = Modifier.weight(1f, fill = false),
-            )
-        }
-        StatusChip(
-            text = NonBreaking.join(percent.toString(), "%"),
-            tone = StatusTone.Info,
-            modifier = Modifier.testTag("trainer_box_block_percent"),
-        )
     }
 }
 
@@ -262,6 +238,7 @@ private fun SessionCard(week: PlanWeek, session: PlanWeekSession, modifier: Modi
         horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
         verticalAlignment = Alignment.CenterVertically,
     ) {
+        SessionDisc(session.done)
         Text(
             text = session.name,
             style = AppTheme.typography.bodyMedium,
@@ -272,12 +249,6 @@ private fun SessionCard(week: PlanWeek, session: PlanWeekSession, modifier: Modi
             modifier = Modifier.weight(1f),
         )
         if (session.done) {
-            Icon(
-                painter = painterResource(Res.drawable.ic_check),
-                contentDescription = null,
-                tint = AppTheme.colors.electricGreen,
-                modifier = Modifier.size(Spacing.lg),
-            )
             Text(
                 text = stringResource(Res.string.action_done),
                 style = AppTheme.typography.bodySmall,
@@ -293,65 +264,29 @@ private fun SessionCard(week: PlanWeek, session: PlanWeekSession, modifier: Modi
     }
 }
 
-/** "Cardio" and "Pasos al día" with an 8 dp bar each; a row without a target is omitted, steps without data read muted. */
+/** A 20 dp disc before the name: filled green with a check when done, an empty ring when pending (shape + text). */
 @Composable
-private fun ActivityBars(week: PlanWeek) {
-    week.cardioMinTarget?.takeIf { it > 0 }?.let { target ->
-        ActivityBar(
-            label = stringResource(Res.string.trainer_plan_fact_cardio),
-            value = stringResource(
-                Res.string.trainer_block_cardio_value,
-                AppNumberFormat.integer(week.cardioMinDone),
-                AppNumberFormat.integer(target),
+private fun SessionDisc(done: Boolean) {
+    val colors = AppTheme.colors
+    Box(
+        Modifier
+            .size(DiscSize)
+            .clip(AppShapes.full)
+            .then(
+                if (done) {
+                    Modifier.background(colors.electricGreen)
+                } else {
+                    Modifier.border(AppBorder.focus, colors.textTertiary, AppShapes.full)
+                },
             ),
-            fraction = week.cardioMinDone.toFloat() / target,
-            stagger = CARDIO_STAGGER,
-            tag = "trainer_box_block_cardio",
-        )
-    }
-    week.stepsTarget?.takeIf { it > 0 }?.let { target ->
-        val avg = week.stepsAvg
-        ActivityBar(
-            label = stringResource(Res.string.trainer_block_steps_label),
-            value = if (avg == null) {
-                stringResource(Res.string.trainer_block_steps_none)
-            } else {
-                stringResource(
-                    Res.string.trainer_block_steps_value,
-                    AppNumberFormat.integer(avg),
-                    AppNumberFormat.integer(target),
-                )
-            },
-            fraction = avg?.let { it.toFloat() / target },
-            stagger = STEPS_STAGGER,
-            tag = "trainer_box_block_steps",
-        )
-    }
-}
-
-@Composable
-private fun ActivityBar(label: String, value: String, fraction: Float?, stagger: Int, tag: String) {
-    Column(Modifier.fillMaxWidth().testTag(tag), verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
-        Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-            Text(
-                text = label,
-                style = AppTheme.typography.bodyMedium,
-                color = AppTheme.colors.textSecondary,
-                modifier = Modifier.weight(1f),
-            )
-            Text(
-                text = value,
-                style = AppTheme.typography.bodyMedium,
-                fontWeight = if (fraction == null) FontWeight.Normal else FontWeight.W600,
-                color = if (fraction == null) AppTheme.colors.textTertiary else AppTheme.colors.textPrimary,
-            )
-        }
-        if (fraction != null) {
-            AppLinearProgress(
-                fraction = fraction,
-                stateDescription = "$label $value",
-                barHeight = BarHeight,
-                staggerIndex = stagger,
+        contentAlignment = Alignment.Center,
+    ) {
+        if (done) {
+            Icon(
+                painter = painterResource(Res.drawable.ic_check),
+                contentDescription = null,
+                tint = colors.onNeonLime,
+                modifier = Modifier.size(DiscIconSize),
             )
         }
     }
