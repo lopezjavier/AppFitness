@@ -23,6 +23,7 @@ import io.github.lopezjavier.appfitness.domain.model.Phase
 import io.github.lopezjavier.appfitness.domain.model.PlanStatus
 import io.github.lopezjavier.appfitness.domain.model.PhaseWeeks
 import io.github.lopezjavier.appfitness.domain.model.PlanWeek
+import io.github.lopezjavier.appfitness.domain.model.WeekSummary
 import io.github.lopezjavier.appfitness.domain.model.ProgressionFlagDecision
 import io.github.lopezjavier.appfitness.domain.port.Clock
 import io.github.lopezjavier.appfitness.domain.repository.BodyMeasurementRepository
@@ -43,6 +44,7 @@ import io.github.lopezjavier.appfitness.domain.usecase.LoadBlockReviewUseCase
 import io.github.lopezjavier.appfitness.domain.usecase.LoadWeeksInPhaseUseCase
 import io.github.lopezjavier.appfitness.domain.usecase.LoadWelcomeBack
 import io.github.lopezjavier.appfitness.domain.usecase.NutritionGoalsChecklist
+import io.github.lopezjavier.appfitness.domain.usecase.RecordPausedWeekReport
 import io.github.lopezjavier.appfitness.domain.usecase.DailyWeight
 import io.github.lopezjavier.appfitness.domain.usecase.DailyWeights
 import io.github.lopezjavier.appfitness.domain.usecase.WeightPace
@@ -71,6 +73,7 @@ import kotlin.math.roundToInt
 
 private const val KEY_REMOVE_BLOCK_CONFIRM = "remove_block_confirm"
 private const val KEY_EXTEND_PICKER = "extend_week_picker"
+private const val KEY_PAUSED_RECORDED = "week_summary_paused_recorded"
 private const val PERCENT = 100.0
 private const val DAYS_PER_WEEK = 7
 
@@ -122,6 +125,7 @@ class TrainerViewModel(
     private val loadBlockReview: LoadBlockReviewUseCase? = null,
     private val loadWeeksInPhase: LoadWeeksInPhaseUseCase? = null,
     private val loadWelcomeBack: LoadWelcomeBack? = null,
+    private val recordPausedWeek: RecordPausedWeekReport? = null,
     discomfortFollowUps: DiscomfortFollowUpRepository? = null,
     exerciseNames: ExerciseNameResolver? = null,
     private val timeZone: TimeZone = TimeZone.currentSystemDefault(),
@@ -594,6 +598,17 @@ class TrainerViewModel(
         }
     }
 
+    // Informes keeps a paused week only if it is stored (US-129): once per open, off the critical path, silent on failure.
+    private fun recordPausedWeekOnce(summary: WeekSummary?) {
+        val record = recordPausedWeek ?: return
+        if (summary?.paused != true) return
+        val key = "${summary.planId}:${summary.startDate}"
+        if (savedState.get<String>(KEY_PAUSED_RECORDED) == key) return
+        viewModelScope.launch {
+            if (record(today()).isSuccess) savedState[KEY_PAUSED_RECORDED] = key
+        }
+    }
+
     /**
      * One read of the whole hub. The plan-dependent chain keeps its order (plan, diet break, proposal; block; deload
      * evaluation; then weeks, pause and change rows); every read that does not depend on a previous answer runs beside
@@ -636,6 +651,7 @@ class TrainerViewModel(
         if (!extendPicker) savedState.remove<Boolean>(KEY_EXTEND_PICKER)
         val shownFollowUps = followUps.await()
         val weekSummary = latestSummary.await()
+        recordPausedWeekOnce(weekSummary)
         val phaseWeeks = weeksInPhase.await()
         TrainerUiState.Content(
             plan = plan,
@@ -647,7 +663,6 @@ class TrainerViewModel(
             coachChanges = hub.changes,
             provisionalCount = provisional.await(),
             latestWeekSummary = weekSummary,
-            hasWeekSummary = weekSummary != null,
             blockReviewDue = blockReviewDue.await(),
             welcomeBack = welcomeBack.await(),
             goalsChecklist = checklist.await(),

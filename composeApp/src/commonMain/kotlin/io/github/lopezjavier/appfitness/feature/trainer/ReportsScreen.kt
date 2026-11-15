@@ -136,7 +136,7 @@ private fun ReportRow(item: ReportItem, onOpen: (String) -> Unit, modifier: Modi
     AppListRow(
         headline = stringResource(if (isBlock) Res.string.block_review_title else Res.string.week_summary_title),
         supporting = if (item.paused) stringResource(Res.string.reports_row_paused, period) else period,
-        modifier = modifier.testTag("reports_row_${item.id}"),
+        modifier = modifier.padding(horizontal = Spacing.lg).testTag("reports_row_${item.id}"),
         onClick = { onOpen(item.id) },
         onClickLabel = stringResource(
             if (isBlock) Res.string.reports_row_open_block else Res.string.reports_row_open_week,

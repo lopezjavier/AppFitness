@@ -129,19 +129,6 @@ class TrainerSummaryBoxesTest {
     }
 
     @Test
-    fun theWeekSummaryBox_callsOnOpenWeekSummary() {
-        var opened = 0
-        show(
-            TrainerUiState.Content(plan = accepted, hasWeekSummary = true),
-            TrainerActions(onOpenWeekSummary = { opened++ }),
-        )
-
-        tap("trainer_box_week_summary")
-
-        assertEquals(1, opened)
-    }
-
-    @Test
     fun theRoot_keepsOnlyThePendingFlags_andTheAppliedChangesLiveOnTuBloque() {
         val state = TrainerUiState.Content(
             plan = accepted,

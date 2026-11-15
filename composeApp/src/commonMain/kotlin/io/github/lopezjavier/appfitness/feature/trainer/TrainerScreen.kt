@@ -306,14 +306,14 @@ private fun RootLinksGroup(provisionalCount: Int?, onOpenReports: () -> Unit, on
                 NavigationRow(
                     label = stringResource(Res.string.trainer_reports_row),
                     onClick = onOpenReports,
-                    modifier = Modifier.heightIn(min = RootRowHeight).testTag("trainer_reports"),
+                    modifier = Modifier.padding(horizontal = Spacing.lg).heightIn(min = RootRowHeight).testTag("trainer_reports"),
                 )
             },
             {
                 NavigationRow(
                     label = stringResource(Res.string.trainer_your_data_row),
                     onClick = onOpenYourData,
-                    modifier = Modifier.heightIn(min = RootRowHeight).testTag("trainer_your_data"),
+                    modifier = Modifier.padding(horizontal = Spacing.lg).heightIn(min = RootRowHeight).testTag("trainer_your_data"),
                     value = provisionalCount?.takeIf { it > 0 }
                         ?.let { pluralStringResource(Res.plurals.your_data_provisional_count, it, it) },
                 )

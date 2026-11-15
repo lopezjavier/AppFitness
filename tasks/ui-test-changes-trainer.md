@@ -129,3 +129,12 @@ Tests/goldens that will fail or need an update:
 - Strings: new `trainer_reports_row`; removed `trainer_summary_*`, `trainer_plan_fact_cardio_value`, `trainer_plan_fact_steps`, `trainer_plan_fact_steps_value`.
 - New tests: click on `trainer_reports` calls `onOpenReports`; no-plan root also shows the group.
 - Note: `hasWeekSummary` is no longer read by the root UI (still set by the VM; `latestWeekSummary` feeds the plan tiles).
+
+## Batch 6f (gallery pass)
+
+Tests/goldens that will fail or need an update:
+- `TrainerViewModel` takes `recordPausedWeek: RecordPausedWeekReport? = null` (wired in `UiModule`). A paused latest summary is recorded once per open, fire-and-forget after the summary read (same `week_summary_paused_recorded` saved-state key as `WeekSummaryViewModel`). New test needed: paused summary calls it once, a non-paused one never, a failure is silent and retried on the next load.
+- `TrainerUiState.Content.hasWeekSummary` is removed. Deleted `TrainerWeekSummaryViewModelTest` and `TrainerWeekSummaryRowTest`; removed the `theWeekSummaryBox_callsOnOpenWeekSummary` case of `TrainerSummaryBoxesTest`.
+- Plan tiles and session cards now stack to one column from font scale 1.2 (was 1.5): any test using fontScale between 1.2 and 1.5 that expects three tiles or two session columns changes.
+- Root links group (`trainer_reports`, `trainer_your_data`) and `reports_row_*` rows now have 16 dp horizontal padding (they sat flush against the card edge).
+- Gallery: `GalleryCoverageTest` reports RemoveBlockDialog / `SavedBlockActions` / design-system catalog gaps (BarListRow, DecisionButtonRow, RowGroupCard, SectionCard, SegmentedProgress) from earlier batches: manifest or catalog entries still to add.

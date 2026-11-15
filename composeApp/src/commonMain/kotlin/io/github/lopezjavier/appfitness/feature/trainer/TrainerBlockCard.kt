@@ -77,7 +77,7 @@ import org.jetbrains.compose.resources.stringResource
 import kotlin.math.roundToInt
 
 private const val PERCENT = 100.0
-private const val STACK_FONT_SCALE = 1.5f
+private const val STACK_FONT_SCALE = 1.2f
 private const val SEGMENTS_STAGGER = 2
 private const val CARDIO_STAGGER = 3
 private const val STEPS_STAGGER = 4
@@ -262,7 +262,7 @@ private fun SessionsHeadline(week: PlanWeek) {
     }
 }
 
-/** The week's sessions as small read-only cards in two columns (one column from font scale 1.5), no tap. */
+/** The week's sessions as small read-only cards in two columns (one column from font scale 1.2), no tap. */
 @Composable
 private fun SessionCards(week: PlanWeek) {
     val columns = if (LocalDensity.current.fontScale >= STACK_FONT_SCALE) 1 else 2

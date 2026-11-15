@@ -412,7 +412,6 @@ internal object TrainerFixtures {
         weeks = weeks(),
         pause = pause,
         provisionalCount = 2,
-        hasWeekSummary = true,
         blockReviewDue = blockReviewDue,
     )
 

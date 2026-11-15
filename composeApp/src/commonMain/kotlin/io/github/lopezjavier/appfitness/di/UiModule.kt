@@ -485,6 +485,7 @@ val uiModule =
                 loadBlockReview = get(),
                 loadWeeksInPhase = get(),
                 loadWelcomeBack = get(),
+                recordPausedWeek = get(),
                 discomfortFollowUps = get(),
                 exerciseNames = get(),
             )
