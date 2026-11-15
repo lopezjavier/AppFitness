@@ -10,9 +10,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.text.font.FontWeight
 import io.github.lopezjavier.appfitness.designsystem.AppLinearProgress
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
+import io.github.lopezjavier.appfitness.designsystem.bodyMediumStrong
 import io.github.lopezjavier.appfitness.designsystem.Spacing
 
 /** Past the target the bar's scale grows to the done figure, never beyond twice the target (the marker stays clear). */
@@ -53,8 +53,7 @@ internal fun GoalBarRow(
             )
             Text(
                 text = value,
-                style = AppTheme.typography.bodyMedium,
-                fontWeight = if (ratio == null) FontWeight.Normal else FontWeight.W600,
+                style = if (ratio == null) AppTheme.typography.bodyMedium else AppTheme.typography.bodyMediumStrong,
                 color = if (ratio == null) AppTheme.colors.textTertiary else AppTheme.colors.textPrimary,
                 modifier = Modifier.align(Alignment.CenterVertically).testTag("${tag}_value"),
             )

@@ -43,6 +43,7 @@ import io.github.lopezjavier.appfitness.designsystem.ErrorState
 import io.github.lopezjavier.appfitness.designsystem.EmptyState
 import io.github.lopezjavier.appfitness.designsystem.OfflineHint
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
+import io.github.lopezjavier.appfitness.designsystem.HubDimensions
 import io.github.lopezjavier.appfitness.designsystem.AppTopBarDefaults
 import io.github.lopezjavier.appfitness.designsystem.NavigationRow
 import io.github.lopezjavier.appfitness.designsystem.RowGroupCard
@@ -58,10 +59,10 @@ import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.koinInject
 import org.koin.compose.viewmodel.koinViewModel
 
-private val PlanSkeletonHeight = 218.dp
-private val BlockSkeletonHeight = 206.dp
-private val WideCardMinHeight = 220.dp
-private val RootRowHeight = 56.dp
+private val PlanSkeletonHeight = HubDimensions.PlanCardSkeleton
+private val BlockSkeletonHeight = HubDimensions.BlockCardSkeleton
+private val WideCardMinHeight = HubDimensions.WideCardMin
+private val RootRowHeight = HubDimensions.RootRow
 private const val GRID_COLUMNS = 2
 
 /**

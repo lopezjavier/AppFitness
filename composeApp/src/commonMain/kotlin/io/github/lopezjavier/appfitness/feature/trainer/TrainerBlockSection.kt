@@ -25,6 +25,7 @@ import io.github.lopezjavier.appfitness.composeapp.resources.trainer_block_statu
 import io.github.lopezjavier.appfitness.designsystem.AppCard
 import io.github.lopezjavier.appfitness.designsystem.AppConfirmDialog
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
+import io.github.lopezjavier.appfitness.designsystem.HubDimensions
 import io.github.lopezjavier.appfitness.designsystem.OfflineHint
 import io.github.lopezjavier.appfitness.designsystem.PrimaryButton
 import io.github.lopezjavier.appfitness.designsystem.Spacing
@@ -129,7 +130,7 @@ private fun BlockEmptyCard(modifier: Modifier, content: @Composable () -> Unit) 
     }
 }
 
-private val BlockEmptyCircle = 72.dp
+private val BlockEmptyCircle = HubDimensions.EmptyGlyphCircle
 
 /** The end-of-block card (US-101): opens "Revisión del bloque"; the title equals the screen title (R-04). */
 @Composable
