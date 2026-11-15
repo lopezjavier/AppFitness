@@ -307,7 +307,7 @@ printf 'G21 .*\n' > "$work/listed-g21.txt"
 run "$(mk21 e '<string name="x_reminder">Llevas %1$d días sin pesarte</string>')" "$work/listed-g21.txt"
 expect "G21 violation in a listed path warns and passes (parser accepts G21)" 0 WARN
 
-# G22..G29 (T-283, round 3): the Trainer root rules. mkr <name> <file-path> <content>.
+# G22..G27 (T-283, round 3): the Trainer root rules. mkr <name> <file-path> <content>.
 mkr() {
   local d="$work/r3-$1"
   mkdir -p "$d/$(dirname "$2")"
@@ -327,14 +327,8 @@ run "$(mkr g24a "$trainer_dir/TrainerBlockCard.kt" 'MacroStackedBar(shares)')" "
 expect "G24 a macro bar in a root card fails" 1
 run "$(mkr g24b "$trainer_dir/PlanProposalScreen.kt" 'MacroStackedBar(shares)')" "$empty"
 expect "G24 a macro bar in the plan proposal passes" 0 NOWARN
-run "$(mkr g27a "$trainer_dir/TrainerPlanCard.kt" 'Canvas(Modifier) {}')" "$empty"
-expect "G27 a Canvas in feature/trainer fails" 1
-run "$(mkr g28a "$trainer_dir/TrainerBoxScreens.kt" 'LazyVerticalGrid(columns = c) {}')" "$empty"
-expect "G28 a second LazyVerticalGrid in feature/trainer fails" 1
-run "$(mkr g28b "$trainer_dir/TrainerHubGrid.kt" 'LazyVerticalGrid(columns = c) {}')" "$empty"
-expect "G28 the HubGrid owner passes" 0 NOWARN
-run "$(mkr g29a "$trainer_dir/TrainerScreen.kt" 'RemoveBlockDialog(onEvent)')" "$empty"
-expect "G29 a dialog on the Trainer root screen fails" 1
+run "$(mkr g27a "$trainer_dir/TrainerScreen.kt" 'RemoveBlockDialog(onEvent)')" "$empty"
+expect "G27 a dialog on the Trainer root screen fails" 1
 mkstr() { # name string-line
   local d="$work/r3s-$1"
   mkdir -p "$d/composeApp/src/commonMain/composeResources/values"

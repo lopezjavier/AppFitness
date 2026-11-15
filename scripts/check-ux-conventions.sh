@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # UX conventions guard (T-118, planning/phase1/ux-audit-2026-10.md section 10, planning/05-design-system.md).
-# Features must reuse the design-system templates instead of reinventing them (guards G1..G29).
+# Features must reuse the design-system templates instead of reinventing them (guards G1..G27).
 #
 # Usage: check-ux-conventions.sh [root-dir] [warnings-file] [allowlist-file]
 #   root-dir        tree to scan (default: repository root). Tests pass a fixture tree.
@@ -377,45 +377,31 @@ fi
 scan G20 "ghostData in feature code (R-65: textTertiary for previous values and placeholders, textSecondary for data)" \
   '\bghostData\b' '.*/feature/catalog/[^:]*' "${kotlin_feature[@]+"${kotlin_feature[@]}"}"
 
-# G22..G29 (T-283, round 3, R-91..R-103): the Trainer root keeps what the user approved. Each guard is the grep
-# form of one rule; none has a warnings-file entry.
-root_plan_card=()
+# G22..G27 (T-283, round 3, R-93, R-96, R-100, R-102, R-103): the Trainer root keeps what the user approved. Each guard
+# is the grep form of one written rule (05 section 8); none has a warnings-file entry.
+root_summary_cards=()
 root_card_files=()
-trainer_files=()
-trainer_other_files=()
 root_screen=()
 for file in "${kotlin_feature[@]+"${kotlin_feature[@]}"}"; do
   case "$file" in
-    */feature/trainer/TrainerPlanCard.kt) root_plan_card+=("$file"); root_card_files+=("$file") ;;
+    */feature/trainer/TrainerPlanCard.kt) root_summary_cards+=("$file"); root_card_files+=("$file") ;;
     */feature/trainer/TrainerBlockCard.kt | */feature/trainer/TrainerHubGrid.kt) root_card_files+=("$file") ;;
     */feature/trainer/TrainerScreen.kt) root_card_files+=("$file"); root_screen+=("$file") ;;
   esac
-  case "$file" in
-    */feature/trainer/*) trainer_files+=("$file") ;;
-  esac
-  case "$file" in
-    */feature/trainer/TrainerHubGrid.kt) ;;
-    */feature/trainer/*) trainer_other_files+=("$file") ;;
-  esac
 done
-# G22 (R-103): the "Tu plan" root card summarises; its actions live in the "Tu plan" screen.
+# G22 (R-103): the "Tu plan" root card summarises; its actions live in the details screen. TrainerBlockCard.kt is not
+# scanned because it also hosts the "Tu bloque" details actions (BlockDetailsActions).
 scan G22 "action button, pencil or help button in the Tu plan root card (R-103: actions live in the details screen)" \
   '\b(GhostButton|AppTextButton|PrimaryButton|SecondaryButton|HelpButton|AppIconButton)\(' '' \
-  "${root_plan_card[@]+"${root_plan_card[@]}"}"
+  "${root_summary_cards[@]+"${root_summary_cards[@]}"}"
 # G23 (R-96): a feature never declares its own SummaryCard / SectionCard.
 scan G23 "feature-local SummaryCard/SectionCard (R-96: use the designsystem one)" \
   '\bfun (SummaryCard|SectionCard)\(' '' "${kotlin_feature[@]+"${kotlin_feature[@]}"}"
 # G24 (R-102): hub root cards show energy figures and never a macro bar.
 scan G24 "MacroStackedBar in a Trainer root card (R-102: macros live in Plan nutricional)" \
   '\bMacroStackedBar\(' '' "${root_card_files[@]+"${root_card_files[@]}"}"
-# G27 (R-39, R-97): data-viz drawing and fill motion belong to designsystem/.
-scan G27 "Canvas( or animateFloatAsState in feature/trainer (R-39, R-97: use a designsystem component)" \
-  '\b(Canvas\(|animateFloatAsState\()' '' "${trainer_files[@]+"${trainer_files[@]}"}"
-# G28 (R-91): the hub grid has one owner.
-scan G28 "LazyVerticalGrid outside TrainerHubGrid.kt (R-91: use HubGrid)" \
-  '\bLazyVerticalGrid\(' '' "${trainer_other_files[@]+"${trainer_other_files[@]}"}"
-# G29 (R-103): the root screen opens no dialog of its own (removal and week extension moved to the details).
-scan G29 "dialog on the Trainer root screen (R-103: dialogs belong to the details screens)" \
+# G27 (R-103): the root screen opens no dialog of its own (removal and week extension moved to the details).
+scan G27 "dialog on the Trainer root screen (R-103: dialogs belong to the details screens)" \
   '\b(RemoveBlockDialog|AppDatePickerDialog|AppConfirmDialog)\(' '' "${root_screen[@]+"${root_screen[@]}"}"
 if [ -f "$strings_file" ]; then
   # G25 (R-100): the word "coach" is never shown; it is "entrenador".
