@@ -2545,7 +2545,7 @@
     <string name="trainer_week_goals_eyebrow">Esta semana</string>
     <string name="trainer_week_goal_sessions">Entrenos</string>
     <string name="trainer_week_goal_of">de&#160;%1$s</string>
-    <string name="trainer_week_goal_of_per_day">de&#160;%1$s al&#160;día</string>
+    <string name="trainer_week_goal_of_per_day">de&#160;%1$s</string>
     <string name="trainer_week_goal_cd">%1$s: %2$s %3$s. %4$s.</string>
     <string name="trainer_goal_state_behind">Por detrás</string>
     <string name="trainer_goal_state_on_track">En camino</string>

@@ -314,7 +314,7 @@ private fun GoalRingSection() {
                         paceFraction = 3f / 7f,
                         horizontal = true,
                         staggerIndex = index,
-                        testTag = "catalog_goal_ring_$index",
+                        testTag = "catalog_goal_ring_tile_$index",
                     )
                 }
             }

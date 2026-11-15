@@ -164,3 +164,12 @@ Tests/goldens that will fail or need an update:
 - Strings: new `trainer_week_goals_eyebrow`, `trainer_week_goal_sessions`, `trainer_week_goal_of`, `trainer_week_goal_of_per_day`, `trainer_week_goal_cd`, `trainer_goal_state_*` (6), `catalog_section_goal_ring`; removed `trainer_plan_tile_cardio`, `trainer_plan_tile_steps`, `trainer_plan_tile_of_steps`, `trainer_block_cardio_value`, `trainer_block_steps_none`, `trainer_block_steps_value`.
 - Gallery fixtures: `TrainerFixtures.week()` now has four sessions ("Torso A", "Pierna A", "Torso B", "Pierna B"), cardio/steps targets 150/7.000, `weeks(completed = 2, goals)`; `contentWithBlock(weeks, today = 29 oct 2026)`. New root entries: week goals empty (Monday), behind, done, over target, over target at font 1.3. Goldens of the root and the "Tu bloque" screen change.
 - Guards: R-104 could get a guard (a `%` StatusChip or `NonBreaking.join(..., "%")` in `TrainerPlanCard.kt`/`TrainerBlockCard.kt` fails).
+
+## Block R follow-up (pace, sessions cap, steps target)
+
+Tests/goldens that will fail or need an update:
+- `runningGoalState(done, target, due, slack = 0.0, allowOver = true)` replaces the `(elapsed, discrete)` signature; new `dueShare(elapsed, planned)` = floor(planned * elapsed) / planned, or `elapsed` when `planned == 0`. Unit cases: cardio with planned sessions is "Por detrás" below target * floor(planned * elapsed) / planned with no slack (Thursday, 4 planned: due 1/4, 37/150 min is Behind, 38 OnTrack); with 0 planned the straight line minus 10 %; sessions never Over (`allowOver = false`), 5 of 4 is Done.
+- Entrenos tile: at or above the planned sessions it reads Done with the shared label "Cumplido" (07 §3 (c): no new copy), never "Superado"; its ring stops at one lap (fraction capped at 1). Cardio and steps keep "Cumplido" / "Superado".
+- The pace tick of Entrenos and Cardio now sits at the due share (floor), not the elapsed share; it is hidden at 0 (for example Monday to the day before the first due session).
+- `trainer_week_goal_of_per_day` is now "de 7.000" (no "al día"): spoken text "Pasos al día: 6.400 de 7.000. En camino.".
+- Catalogue tile tags renamed `catalog_goal_ring_tile_<i>` (bare rings stay `catalog_goal_ring_bare_<minutes>`).

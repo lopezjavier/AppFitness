@@ -49,8 +49,9 @@ import kotlin.math.floor
 /** At or above this share of the target a goal reads "Superado" (and draws its second lap). */
 private const val OVER_RATIO = 1.1
 
-/** A running total may lag the straight-line pace by this share before it reads "Por detrás". */
+/** Without planned sessions, cardio may lag the straight-line pace by this share before it reads "Por detrás". */
 private const val PACE_SLACK = 0.1
+private const val EPSILON = 1e-9
 
 /** A daily average this close to its target still reads "En camino". */
 private const val AVERAGE_NEAR = 0.9
@@ -71,21 +72,33 @@ internal fun elapsedShare(week: PlanWeek, today: LocalDate?): Float? {
 }
 
 /**
- * A running weekly total ([done] of [target]) against the straight-line pace of the [elapsed] week. [discrete] counts
- * (sessions) compare with the whole sessions the pace asks for so far, minutes with the pace minus a 10 % slack.
+ * The share of the week's target due by now: the whole sessions the [planned] count asks for after the [elapsed]
+ * share of the week (floor(planned * elapsed) / planned), or the straight line [elapsed] when nothing is planned.
  */
-internal fun runningGoalState(done: Double, target: Double, elapsed: Float?, discrete: Boolean): GoalProgressState {
+internal fun dueShare(elapsed: Float?, planned: Int): Float? = elapsed?.let {
+    if (planned > 0) floor(planned * it) / planned else it
+}
+
+/**
+ * A running weekly total ([done] of [target]) against the [due] share of the target (07 §3 "Weekly goal rings: over
+ * target and pace"). [slack] is the share the total may lag before "Por detrás" (0 when [due] follows the planned
+ * sessions, 10 % on the straight line). [allowOver] false caps the state at Done (sessions: one more is not "más").
+ */
+internal fun runningGoalState(
+    done: Double,
+    target: Double,
+    due: Float?,
+    slack: Double = 0.0,
+    allowOver: Boolean = true,
+): GoalProgressState {
     if (target <= 0.0) return GoalProgressState.Idle
     val ratio = done / target
     return when {
-        ratio >= OVER_RATIO -> GoalProgressState.Over
+        allowOver && ratio >= OVER_RATIO -> GoalProgressState.Over
         ratio >= 1.0 -> GoalProgressState.Done
-        elapsed == null -> if (done > 0.0) GoalProgressState.OnTrack else GoalProgressState.Idle
-        else -> {
-            val pace = target * elapsed
-            val needed = if (discrete) floor(pace) else pace * (1 - PACE_SLACK)
-            if (done >= needed) GoalProgressState.OnTrack else GoalProgressState.Behind
-        }
+        due == null -> if (done > 0.0) GoalProgressState.OnTrack else GoalProgressState.Idle
+        done + EPSILON >= target * due * (1 - slack) -> GoalProgressState.OnTrack
+        else -> GoalProgressState.Behind
     }
 }
 
@@ -121,6 +134,9 @@ private class WeekGoal(
 @Composable
 internal fun WeekGoals(week: PlanWeek, activity: PlanActivity?, today: LocalDate?) {
     val elapsed = elapsedShare(week, today)
+    // Cardio follows the planned sessions when there are any (07 §3): due in whole sessions, no slack.
+    val due = dueShare(elapsed, week.planned)
+    val cardioSlack = if (week.planned > 0) 0.0 else PACE_SLACK
     val goals = buildList {
         if (week.planned > 0) {
             add(
@@ -129,9 +145,15 @@ internal fun WeekGoals(week: PlanWeek, activity: PlanActivity?, today: LocalDate
                     icon = Res.drawable.ic_fitness_center,
                     value = week.completed.toString(),
                     target = stringResource(Res.string.trainer_week_goal_of, week.planned.toString()),
-                    state = runningGoalState(week.completed.toDouble(), week.planned.toDouble(), elapsed, true),
-                    fraction = week.completed.toFloat() / week.planned,
-                    pace = elapsed,
+                    state = runningGoalState(
+                        week.completed.toDouble(),
+                        week.planned.toDouble(),
+                        due,
+                        allowOver = false,
+                    ),
+                    // No second lap for sessions: the ring stops at one lap.
+                    fraction = (week.completed.toFloat() / week.planned).coerceAtMost(1f),
+                    pace = due,
                     tag = "trainer_box_block_goal_sessions",
                 ),
             )
@@ -144,9 +166,9 @@ internal fun WeekGoals(week: PlanWeek, activity: PlanActivity?, today: LocalDate
                     icon = Res.drawable.ic_heart,
                     value = AppNumberFormat.integer(week.cardioMinDone),
                     target = stringResource(Res.string.trainer_plan_tile_of_min, AppNumberFormat.integer(target)),
-                    state = runningGoalState(week.cardioMinDone.toDouble(), target.toDouble(), elapsed, false),
+                    state = runningGoalState(week.cardioMinDone.toDouble(), target.toDouble(), due, cardioSlack),
                     fraction = week.cardioMinDone.toFloat() / target,
-                    pace = elapsed,
+                    pace = due,
                     tag = "trainer_box_block_cardio",
                 ),
             )
