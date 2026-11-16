@@ -52,3 +52,10 @@ Appended by each batch; the test task works from this list (CI only).
 - Statistics all failed (V-84): `TrainingStatsUiState.allFailed`; the screen shows one `ErrorState` (tags `stats_error_*`, action "Reintentar" sends `Retry()`), the range selector is hidden. Add a test; the per-section `stats_retry_<section>` tags stay for partial failures.
 - Empty statistics (V-91): `TrainingStatsUiState.isFullyEmpty` (empty frame and empty 7-day body map) hides the body map card, so the `stats_empty_*` state stands alone. `TrainingStatsScreenTest` line 272 (`stats_body_empty` in an empty frame) changes: the hint now shows only when the frame has data; golden changes.
 - V-95: gallery fixtures `PerfilStatsGallery` use "Press de banca" (chip and top-exercise row); runtime already uses `ExerciseNameResolver`. Goldens "Fuerza" and stats change.
+
+## B6 Copy sweep and tags
+
+- Copy (V-77, R-37): final period added to `stats_error_message`, `strength_error_message`, `exercise_progress_error_message`, `muscle_volume_error_message`, `weight_empty_message`, `weight_error_message`, `weight_delete_error`, `weight_delete_error_offline`, `weight_trend_error_message`, `preferences_save_error_offline`. Tests reading those texts change (`TrainingStatsScreenTest` error message, any weight/strength error assertion).
+- V-94 verified (C-160: one column in the stats grid, no 2 x 2 tile grid); V-96 verified (see commit notes).
+- Removed unused strings `energy_pill_*`, `energy_intensity_*`, `meal_defaults_open_hint`; removed `MealSlotsUiState.Editing.canNavigateToDefaults` (and its ViewModel test `canNavigateToDefaults_isFalseWhileDirty`, the `form().canNavigateToDefaults` assertion, the restoration assertion and the gallery/screen-test arguments). `MealDefaultsNavigationTest` still reads the gone `meal_slots_defaults_*` tags: remove those assertions.
+- Tags: all new tags of B1-B5 follow `<screen>_<element>` and are listed above; none added in B6.

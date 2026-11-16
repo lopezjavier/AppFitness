@@ -296,12 +296,6 @@
     <string name="energy_adjust_decrease_cd">Reducir ajuste 50 kcal</string>
     <string name="energy_adjust_increase_cd">Aumentar ajuste 50 kcal</string>
     <string name="energy_target">Objetivo: %1$s kcal al día</string>
-    <string name="energy_pill_deficit">%1$s kcal · Déficit %2$s</string>
-    <string name="energy_pill_surplus">%1$s kcal · Superávit %2$s</string>
-    <string name="energy_pill_maintenance">%1$s kcal · Mantenimiento</string>
-    <string name="energy_intensity_light">ligero</string>
-    <string name="energy_intensity_moderate">moderado</string>
-    <string name="energy_intensity_aggressive">agresivo</string>
     <string name="energy_floor_warning">Meta ajustada al mínimo de seguridad (%1$s kcal/día)</string>
     <string name="catalog_section_number_stepper">Selector numérico</string>
     <string name="catalog_text_pill">−400 kcal · Déficit moderado</string>
@@ -844,7 +838,7 @@
     <string name="stats_body_description">%1$s, %2$s</string>
     <string name="stats_heat_less">Menos</string>
     <string name="stats_heat_more">Más series</string>
-    <string name="stats_error_message">No se han podido cargar las estadísticas</string>
+    <string name="stats_error_message">No se han podido cargar las estadísticas.</string>
     <string name="stats_empty_title">Sin entrenos en este periodo</string>
     <string name="stats_empty_message">Registra un entreno o prueba con otro periodo.</string>
     <string name="stats_radar_previous_failed">No se pudo cargar el periodo anterior.</string>
@@ -862,7 +856,7 @@
     <string name="strength_open_exercise">Progreso del ejercicio</string>
     <string name="strength_empty_message">Aún no tienes entrenos en las últimas semanas. Entrena para ver tu progreso de fuerza.</string>
     <string name="strength_empty_cta">Empezar entreno</string>
-    <string name="strength_error_message">No se pudo cargar tu progreso de fuerza</string>
+    <string name="strength_error_message">No se pudo cargar tu progreso de fuerza.</string>
     <string name="exercise_progress_title">Progreso del ejercicio</string>
     <string name="exercise_progress_chart_1rm">1RM estimado (kg)</string>
     <string name="exercise_progress_chart_volume">Volumen (kg)</string>
@@ -882,7 +876,7 @@
     <string name="exercise_progress_single_value">Último entreno: %1$s</string>
     <string name="exercise_progress_single_value_kg">Último entreno: %1$s kg</string>
     <string name="exercise_progress_empty_message">Aún no has registrado este ejercicio en ningún entreno.</string>
-    <string name="exercise_progress_error_message">No se pudo cargar el progreso del ejercicio</string>
+    <string name="exercise_progress_error_message">No se pudo cargar el progreso del ejercicio.</string>
     <string name="exercise_progress_link">Ver progreso</string>
     <string name="exercise_detail_offline_favourite">marcar favoritos</string>
     <string name="chart_date_short">%1$d %2$s</string>
@@ -898,7 +892,7 @@
     <string name="muscle_volume_chart_cd">%1$s, kg por semana: %2$s</string>
     <string name="muscle_volume_chart_cd_week">semana del %1$s, %2$s</string>
     <string name="muscle_volume_empty_message">Aún no hay volumen en las últimas 8 semanas. Entrena para verlo por grupo muscular.</string>
-    <string name="muscle_volume_error_message">No se pudo cargar el volumen por grupo muscular</string>
+    <string name="muscle_volume_error_message">No se pudo cargar el volumen por grupo muscular.</string>
     <string name="diary_prev_day">Día anterior</string>
     <string name="diary_next_day">Día siguiente</string>
     <string name="diary_goals_prompt_title">Configura tu objetivo</string>
@@ -1216,8 +1210,8 @@
     <string name="weight_history_title">Historial de peso</string>
     <string name="weight_history_tap_day">Toca un día para ver su pesaje.</string>
     <string name="weight_history_empty_month">Sin pesajes este mes.</string>
-    <string name="weight_empty_message">Aún no has registrado tu peso</string>
-    <string name="weight_error_message">No se pudieron cargar los pesajes</string>
+    <string name="weight_empty_message">Aún no has registrado tu peso.</string>
+    <string name="weight_error_message">No se pudieron cargar los pesajes.</string>
     <string name="weight_sheet_title_today">Registrar peso</string>
     <string name="weight_sheet_title_day">Peso del %1$s</string>
     <string name="weight_field_weight">Peso (kg)</string>
@@ -1226,8 +1220,8 @@
     <string name="weight_range_weight">El peso debe estar entre 20 y 400 kg</string>
     <string name="weight_range_fat">La grasa corporal debe estar entre 2 y 75 %</string>
     <string name="weight_save_error">No se pudo guardar. Inténtalo de nuevo.</string>
-    <string name="weight_delete_error">No se pudo eliminar el pesaje</string>
-    <string name="weight_delete_error_offline">Sin conexión: no se pudo eliminar</string>
+    <string name="weight_delete_error">No se pudo eliminar el pesaje.</string>
+    <string name="weight_delete_error_offline">Sin conexión: no se pudo eliminar.</string>
     <string name="weight_hc_section">Pesajes de Health Connect</string>
     <string name="weight_hc_icon_cd">Health Connect</string>
     <string name="weight_hc_delete_cd">Eliminar pesaje de %1$s</string>
@@ -1285,7 +1279,7 @@
 
     <!-- T-080 weight trend chart -->
     <string name="weight_trend_pill">%1$s kg esta semana</string>
-    <string name="weight_trend_error_message">No se pudo cargar la tendencia</string>
+    <string name="weight_trend_error_message">No se pudo cargar la tendencia.</string>
     <string name="weight_chart_metric_title_cd">Métrica del gráfico: %1$s. Cambiar</string>
     <string name="weight_chart_metric_picker_title">Métrica del gráfico</string>
     <string name="weight_chart_summary_goal">Objetivo %1$s kg; peso inicial %2$s kg.</string>
@@ -1703,7 +1697,6 @@
     <string name="catalog_section_diary_parts">Diario: acciones compactas y macros</string>
     <string name="meal_defaults_title">Comidas por defecto</string>
     <string name="meal_defaults_open">Comidas por defecto</string>
-    <string name="meal_defaults_open_hint">Guarda los cambios para abrir las comidas por defecto</string>
     <string name="meal_defaults_add_object">comida por defecto</string>
     <string name="meal_defaults_all_taken">Todos los días ya tienen una comida</string>
     <string name="meal_defaults_remove_cd">Quitar %1$s de %2$s</string>
@@ -1720,7 +1713,7 @@
     <string name="preferences_energy_title">Objetivo calórico</string>
     <string name="preferences_macros_title">Macros</string>
     <string name="preferences_save_error">No se pudo guardar. Inténtalo de nuevo.</string>
-    <string name="preferences_save_error_offline">Sin conexión: no se puede guardar</string>
+    <string name="preferences_save_error_offline">Sin conexión: no se puede guardar.</string>
     <string name="profile_strength_value">Récord 1RM %1$s kg</string>
     <string name="profile_calories_value">media %1$s kcal</string>
     <string name="delete_account_error_offline">Sin conexión: no se puede borrar la cuenta</string>

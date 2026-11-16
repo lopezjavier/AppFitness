@@ -70,7 +70,6 @@ class MealSlotsEditorViewModelTest {
         assertFalse(vm.form().isDirty)
         assertFalse(vm.form().canSave)
         assertFalse(vm.form().saved)
-        assertTrue(vm.form().canNavigateToDefaults)
     }
 
     @Test
@@ -408,14 +407,6 @@ class MealSlotsEditorViewModelTest {
         assertFalse(vm.form().canSave)
         save(vm)
         assertTrue(slots.saved.isEmpty())
-    }
-
-    @Test
-    fun canNavigateToDefaults_isFalseWhileDirty() = runTest {
-        val vm = editor()
-        vm.onEvent(MealSlotsEvent.Delete("snack"))
-
-        assertFalse(vm.form().canNavigateToDefaults)
     }
 
     @Test

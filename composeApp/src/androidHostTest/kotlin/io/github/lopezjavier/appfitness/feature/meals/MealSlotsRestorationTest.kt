@@ -105,6 +105,5 @@ class MealSlotsRestorationTest {
         assertEquals(listOf("breakfast", "lunch", "dinner"), state.rows.map { it.key })
         assertEquals(MealNameSheet.Rename("dinner", "Cena"), state.sheet)
         assertTrue(state.isDirty)
-        assertTrue(!state.canNavigateToDefaults)
     }
 }

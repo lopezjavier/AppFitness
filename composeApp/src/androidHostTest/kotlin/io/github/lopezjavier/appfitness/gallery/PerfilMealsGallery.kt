@@ -49,7 +49,7 @@ private fun mealSlots(): List<GalleryEntry> {
         entry("unchanged (Guardar disabled)", MealSlotsUiState.Editing(rows)),
         entry(
             "changed (Guardar enabled)",
-            MealSlotsUiState.Editing(rows, isDirty = true, canSave = true, canNavigateToDefaults = false),
+            MealSlotsUiState.Editing(rows, isDirty = true, canSave = true),
         ),
         entry("offline", MealSlotsUiState.Editing(rows, isOnline = false, isDirty = true)),
         entry("saving", MealSlotsUiState.Editing(rows, isSaving = true, isDirty = true)),

@@ -66,7 +66,6 @@ private fun editing(
     isDirty = isDirty,
     saveError = saveError,
     canSave = canSave,
-    canNavigateToDefaults = !isDirty,
 )
 
 /** US-56 meals editor rendered from a given state: rows, Name sheet, states and the events they send. */
