@@ -110,11 +110,13 @@ private fun KcalLine(totals: HistoryTotals, targets: HistoryTargets?) {
 @Composable
 private fun MacroLines(totals: HistoryTotals, targets: HistoryTargets?) {
     if (targets == null) {
-        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(Spacing.lg)) {
-            PlainMacro(Res.string.diary_meal_protein, totals.proteinG)
-            PlainMacro(Res.string.diary_meal_carbs, totals.carbsG)
-            PlainMacro(Res.string.diary_meal_fat, totals.fatG)
-        }
+        MacroLine(
+            proteinG = AppNumberFormat.integer(totals.proteinG.roundToInt()),
+            carbsG = AppNumberFormat.integer(totals.carbsG.roundToInt()),
+            fatG = AppNumberFormat.integer(totals.fatG.roundToInt()),
+            modifier = Modifier.fillMaxWidth(),
+            style = AppTheme.typography.bodyMedium,
+        )
     } else {
         Column(verticalArrangement = Arrangement.spacedBy(Spacing.lg)) {
             MacroBar(Macro.Protein, stringResource(Res.string.macro_protein), totals.proteinG, targets.proteinG)
@@ -122,15 +124,6 @@ private fun MacroLines(totals: HistoryTotals, targets: HistoryTargets?) {
             MacroBar(Macro.Fat, stringResource(Res.string.macro_fat), totals.fatG, targets.fatG)
         }
     }
-}
-
-@Composable
-private fun PlainMacro(format: StringResource, grams: Double) {
-    Text(
-        text = stringResource(format, AppNumberFormat.integer(grams.roundToInt())),
-        style = AppTheme.typography.bodyMedium,
-        color = AppTheme.colors.textSecondary,
-    )
 }
 
 @Composable

@@ -37,9 +37,9 @@ import io.github.lopezjavier.appfitness.designsystem.AppDateFormat
 import io.github.lopezjavier.appfitness.designsystem.AppEditSheet
 import io.github.lopezjavier.appfitness.designsystem.AppIconButton
 import io.github.lopezjavier.appfitness.designsystem.AppInputStyle
+import io.github.lopezjavier.appfitness.designsystem.AppTextButton
+import io.github.lopezjavier.appfitness.designsystem.AppTextButtonTone
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
-import io.github.lopezjavier.appfitness.designsystem.GhostButton
-import io.github.lopezjavier.appfitness.designsystem.GhostTone
 import io.github.lopezjavier.appfitness.designsystem.HelpButton
 import io.github.lopezjavier.appfitness.designsystem.NumberInput
 import io.github.lopezjavier.appfitness.designsystem.SheetCommit
@@ -85,12 +85,12 @@ internal fun CircumferenceSheet(
         commitHint = if (isOnline) null else offlineHint("guardar"),
         secondaryAction = sheet.existingId?.let { id ->
             {
-                GhostButton(
+                AppTextButton(
                     text = stringResource(Res.string.action_delete),
                     onClick = { onEvent(CircumferencesEvent.Delete(id)) },
                     modifier = Modifier.testTag("${SHEET_TAG}_delete"),
                     enabled = sheet.canDelete,
-                    tone = GhostTone.Destructive,
+                    tone = AppTextButtonTone.Danger,
                 )
             }
         },

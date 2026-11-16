@@ -24,6 +24,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.clearAndSetSemantics
@@ -105,13 +107,23 @@ private val MonthLabels: List<StringResource> = listOf(
 )
 
 /** The state of one day cell. */
-private class DayCell(val date: LocalDate, val marked: Boolean, val selected: Boolean, val isToday: Boolean)
+private class DayCell(
+    val date: LocalDate,
+    val marked: Boolean,
+    val selected: Boolean,
+    val isToday: Boolean,
+    val band: Boolean = false,
+    val bandStart: Boolean = false,
+    val bandEnd: Boolean = false,
+)
 
 /**
  * Month calendar, Monday first: a header with the previous/next arrows and the month title, the weekday names and one
  * 48 dp cell per day. [markedDays] carry a dot (they have diary entries), [selected] is filled and [today] outlined.
  * Days after [today] are inert; days without entries are selectable. [onNextMonth] is disabled while [canGoNext] is
- * false. Tags: `month_calendar_prev|next|title` and `month_calendar_day_<yyyy-MM-dd>`.
+ * false. [bandDays] (a period such as the last 7 days, C-157, R-64) get one `selectedContainer` band with a 1 dp lime
+ * outline around the run of cells (it breaks at the end of a calendar row). Tags: `month_calendar_prev|next|title` and
+ * `month_calendar_day_<yyyy-MM-dd>`.
  */
 @Composable
 @Suppress("LongParameterList") // One parameter per state value and callback.
@@ -125,16 +137,30 @@ fun MonthCalendarGrid(
     onNextMonth: () -> Unit,
     canGoNext: Boolean,
     modifier: Modifier = Modifier,
+    bandDays: Set<LocalDate> = emptySet(),
 ) {
     Column(modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
         MonthHeader(month, canGoNext, onPrevMonth, onNextMonth)
         BoxWithConstraints(Modifier.fillMaxWidth(), contentAlignment = Alignment.TopCenter) {
             // Never narrower than the touch target: a very narrow window overflows its margins instead.
             val cellWidth = maxOf(MonthCalendarGridDefaults.CellMin, maxWidth / MonthCalendarGridDefaults.DAYS_PER_WEEK)
-            val weeks = remember(month, markedDays, selected, today) {
+            val weeks = remember(month, markedDays, selected, today, bandDays) {
                 weeksOf(month).map { week ->
-                    week.map { date ->
-                        date?.let { DayCell(it, it in markedDays, it == selected, it == today) }
+                    week.mapIndexed { index, date ->
+                        date?.let {
+                            val band = it in bandDays
+                            val previous = week.getOrNull(index - 1)
+                            val next = week.getOrNull(index + 1)
+                            DayCell(
+                                date = it,
+                                marked = it in markedDays,
+                                selected = it == selected,
+                                isToday = it == today,
+                                band = band,
+                                bandStart = band && (previous == null || previous !in bandDays),
+                                bandEnd = band && (next == null || next !in bandDays),
+                            )
+                        }
                     }
                 }
             }
@@ -240,6 +266,23 @@ private fun Modifier.dayCellDecoration(cell: DayCell, colors: AppColors): Modifi
         }
     }
 
+/** One `selectedContainer` band behind a run of cells with a 1 dp lime outline (top, bottom and the run's ends). */
+private fun Modifier.bandDecoration(cell: DayCell, colors: AppColors): Modifier = if (!cell.band) {
+    this
+} else {
+    drawBehind {
+        drawRect(colors.selectedContainer)
+        val stroke = AppBorder.thin.toPx()
+        val half = stroke / 2
+        drawLine(colors.neonLime, Offset(0f, half), Offset(size.width, half), stroke)
+        drawLine(colors.neonLime, Offset(0f, size.height - half), Offset(size.width, size.height - half), stroke)
+        if (cell.bandStart) drawLine(colors.neonLime, Offset(half, 0f), Offset(half, size.height), stroke)
+        if (cell.bandEnd) {
+            drawLine(colors.neonLime, Offset(size.width - half, 0f), Offset(size.width - half, size.height), stroke)
+        }
+    }
+}
+
 // The hit area is the whole 48 dp cell while the visible circle is padded inside it, so the selectable sits first.
 @Composable
 @Suppress("ModifierClickableOrder")
@@ -262,6 +305,7 @@ private fun DayCellView(cell: DayCell, cellWidth: Dp, enabled: Boolean, onSelect
                 onClick = { onSelect(cell.date) },
             )
             .testTag("month_calendar_day_${cell.date}")
+            .bandDecoration(cell, colors)
             .padding(Spacing.xs)
             .dayCellDecoration(cell, colors),
         contentAlignment = Alignment.Center,

@@ -8,8 +8,6 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.semantics.heading
-import androidx.compose.ui.semantics.semantics
 import io.github.lopezjavier.appfitness.composeapp.resources.Res
 import io.github.lopezjavier.appfitness.composeapp.resources.action_retry
 import io.github.lopezjavier.appfitness.composeapp.resources.circumference_add_object
@@ -167,14 +165,7 @@ private fun SiteGroup(
     timeZone: TimeZone,
     onEvent: (CircumferencesEvent) -> Unit,
 ) {
-    val siteLabel = circumferenceSiteLabel(group.site)
     Column(Modifier.fillMaxWidth().testTag("circumference_group_${group.site.name.lowercase()}")) {
-        Text(
-            text = siteLabel,
-            style = AppTheme.typography.labelTechnical,
-            color = AppTheme.colors.textSecondary,
-            modifier = Modifier.semantics { heading() },
-        )
         group.rows.forEach { row -> CircumferenceHistoryRow(row, isOnline, today, timeZone, onEvent) }
     }
 }
@@ -199,6 +190,7 @@ private fun CircumferenceHistoryRow(
         containerColor = AppTheme.colors.surfaceBase,
     ) {
         MeasurementRow(
+            label = siteLabel,
             value = value,
             supporting = AppDateFormat.list(local.date, today),
             onClick = { onEvent(CircumferencesEvent.OpenEdit(row.id)) },

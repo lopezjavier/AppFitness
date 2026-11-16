@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -16,10 +17,13 @@ import androidx.compose.ui.platform.testTag
 import io.github.lopezjavier.appfitness.composeapp.resources.Res
 import io.github.lopezjavier.appfitness.composeapp.resources.action_retry
 import io.github.lopezjavier.appfitness.composeapp.resources.weight_error_message
+import io.github.lopezjavier.appfitness.composeapp.resources.weight_history_empty_month
+import io.github.lopezjavier.appfitness.composeapp.resources.weight_history_tap_day
 import io.github.lopezjavier.appfitness.composeapp.resources.weight_history_title
 import io.github.lopezjavier.appfitness.designsystem.AppScreen
 import io.github.lopezjavier.appfitness.designsystem.AppShapes
 import io.github.lopezjavier.appfitness.designsystem.AppStateAction
+import io.github.lopezjavier.appfitness.designsystem.AppTheme
 import io.github.lopezjavier.appfitness.designsystem.ErrorState
 import io.github.lopezjavier.appfitness.designsystem.MonthCalendarGrid
 import io.github.lopezjavier.appfitness.designsystem.SkeletonBox
@@ -79,6 +83,14 @@ private fun HistoryCalendar(content: WeightContent, onEvent: (WeightEvent) -> Un
         contentPadding = PaddingValues(Spacing.screenMargin),
         verticalArrangement = Arrangement.spacedBy(Spacing.blockGap),
     ) {
+        item(key = "hint") {
+            Text(
+                text = stringResource(Res.string.weight_history_tap_day),
+                style = AppTheme.typography.bodyMedium,
+                color = AppTheme.colors.textSecondary,
+                modifier = Modifier.testTag("weight_history_tap_day"),
+            )
+        }
         item(key = "calendar") {
             MonthCalendarGrid(
                 month = content.month,
@@ -91,6 +103,19 @@ private fun HistoryCalendar(content: WeightContent, onEvent: (WeightEvent) -> Un
                 canGoNext = content.canGoNext,
                 modifier = appAnimateItem().testTag("weight_history_calendar"),
             )
+        }
+        val monthHasEntries = content.markedDays.any {
+            it.year == content.month.year && it.month == content.month.month
+        }
+        if (!monthHasEntries) {
+            item(key = "empty_month") {
+                Text(
+                    text = stringResource(Res.string.weight_history_empty_month),
+                    style = AppTheme.typography.bodyMedium,
+                    color = AppTheme.colors.textSecondary,
+                    modifier = Modifier.testTag("weight_history_empty_month"),
+                )
+            }
         }
     }
 }

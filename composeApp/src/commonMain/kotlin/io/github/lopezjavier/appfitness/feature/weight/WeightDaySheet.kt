@@ -22,9 +22,9 @@ import io.github.lopezjavier.appfitness.composeapp.resources.weight_sheet_title_
 import io.github.lopezjavier.appfitness.designsystem.AppDateFormat
 import io.github.lopezjavier.appfitness.designsystem.AppEditSheet
 import io.github.lopezjavier.appfitness.designsystem.AppInfoSheet
+import io.github.lopezjavier.appfitness.designsystem.AppTextButton
+import io.github.lopezjavier.appfitness.designsystem.AppTextButtonTone
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
-import io.github.lopezjavier.appfitness.designsystem.GhostButton
-import io.github.lopezjavier.appfitness.designsystem.GhostTone
 import io.github.lopezjavier.appfitness.designsystem.MeasurementRow
 import io.github.lopezjavier.appfitness.designsystem.SheetCommit
 import io.github.lopezjavier.appfitness.designsystem.Spacing
@@ -86,12 +86,12 @@ internal fun WeightDaySheet(
             commitHint = if (isOnline) null else offlineHint("guardar"),
             secondaryAction = if (form.isEditing) {
                 {
-                    GhostButton(
+                    AppTextButton(
                         text = stringResource(Res.string.action_delete),
                         onClick = { onEvent(WeightEvent.DeleteManual) },
                         modifier = Modifier.testTag("weight_sheet_delete"),
                         enabled = form.canDelete,
-                        tone = GhostTone.Destructive,
+                        tone = AppTextButtonTone.Danger,
                     )
                 }
             } else {

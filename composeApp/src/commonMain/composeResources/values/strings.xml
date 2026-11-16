@@ -880,6 +880,7 @@
     </plurals>
     <string name="exercise_progress_single_session">Necesitas al menos 2 entrenos para ver la evolución</string>
     <string name="exercise_progress_single_value">Último entreno: %1$s</string>
+    <string name="exercise_progress_single_value_kg">Último entreno: %1$s kg</string>
     <string name="exercise_progress_empty_message">Aún no has registrado este ejercicio en ningún entreno.</string>
     <string name="exercise_progress_error_message">No se pudo cargar el progreso del ejercicio</string>
     <string name="exercise_progress_link">Ver progreso</string>
@@ -1191,6 +1192,7 @@
     <string name="diary_history_view_week">Semana</string>
     <string name="diary_history_view_month">Mes</string>
     <string name="diary_history_week_title">Media diaria</string>
+    <string name="diary_history_month_title">%1$s · media diaria</string>
     <string name="diary_history_target_kcal">de %1$s kcal</string>
     <string name="month_calendar_prev">Mes anterior</string>
     <string name="month_calendar_next">Mes siguiente</string>
@@ -1211,6 +1213,8 @@
     <string name="weight_current_when">%1$s, %2$s</string>
     <string name="weight_edit_today_cd">Editar peso de hoy</string>
     <string name="weight_history_title">Historial de peso</string>
+    <string name="weight_history_tap_day">Toca un día para ver su pesaje.</string>
+    <string name="weight_history_empty_month">Sin pesajes este mes.</string>
     <string name="weight_empty_message">Aún no has registrado tu peso</string>
     <string name="weight_error_message">No se pudieron cargar los pesajes</string>
     <string name="weight_sheet_title_today">Registrar peso</string>
@@ -1334,6 +1338,7 @@
     <string name="weight_hc_note">Sincronizado desde Health Connect</string>
     <string name="weight_composition_button_cd">Ver composición corporal</string>
     <string name="weight_composition_title">Composición corporal</string>
+    <string name="weight_composition_subtitle">Medido el %1$s</string>
     <string name="weight_composition_row_fat">Grasa corporal</string>
     <string name="weight_composition_row_lean">Masa magra</string>
     <string name="weight_composition_row_water">Agua</string>

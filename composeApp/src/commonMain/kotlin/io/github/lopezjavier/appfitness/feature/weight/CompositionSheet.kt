@@ -24,10 +24,12 @@ import io.github.lopezjavier.appfitness.composeapp.resources.weight_composition_
 import io.github.lopezjavier.appfitness.composeapp.resources.weight_composition_row_fat
 import io.github.lopezjavier.appfitness.composeapp.resources.weight_composition_row_lean
 import io.github.lopezjavier.appfitness.composeapp.resources.weight_composition_row_water
+import io.github.lopezjavier.appfitness.composeapp.resources.weight_composition_subtitle
 import io.github.lopezjavier.appfitness.composeapp.resources.weight_composition_title
 import io.github.lopezjavier.appfitness.composeapp.resources.weight_composition_value_kcal
 import io.github.lopezjavier.appfitness.composeapp.resources.weight_composition_value_kg
 import io.github.lopezjavier.appfitness.designsystem.AppInfoSheet
+import io.github.lopezjavier.appfitness.designsystem.AppNumberFormat
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
 import io.github.lopezjavier.appfitness.designsystem.Spacing
 import io.github.lopezjavier.appfitness.domain.model.Dated
@@ -36,6 +38,8 @@ import io.github.lopezjavier.appfitness.feature.workout.shortLabel
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
 import org.jetbrains.compose.resources.stringResource
+
+private val CompositionRowHeight = Spacing.minTouchTarget + Spacing.sm
 
 /**
  * "Composición corporal": the latest value of each metric with the day it was measured, "—" when never measured.
@@ -54,37 +58,61 @@ internal fun CompositionSheet(
         modifier = modifier,
         testTagPrefix = "weight_composition_sheet",
     ) {
-        Column(verticalArrangement = Arrangement.spacedBy(Spacing.md)) {
-            val value = composition ?: LatestComposition()
+        val value = composition ?: LatestComposition()
+        val sharedDay = listOfNotNull(value.bodyFat, value.leanMass, value.water, value.bone, value.bmr)
+            .map { it.measuredAt.toLocalDateTime(timeZone).date }
+            .distinct()
+            .singleOrNull()
+        Column(verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
+            // The date is said once when every metric was measured the same day (C-165).
+            sharedDay?.let {
+                Text(
+                    text = stringResource(
+                        Res.string.weight_composition_subtitle,
+                        stringResource(Res.string.chart_date_short, it.day, it.month.shortLabel()),
+                    ),
+                    style = AppTheme.typography.bodyMedium,
+                    color = AppTheme.colors.textSecondary,
+                    modifier = Modifier.testTag("weight_composition_subtitle"),
+                )
+            }
+            val showDates = sharedDay == null
             CompositionRow(
                 "weight_composition_fat",
                 stringResource(Res.string.weight_composition_row_fat),
                 value.bodyFat?.map { stringResource(Res.string.metric_value_percent, decimalText(it)) },
                 timeZone,
+                showDates,
             )
             CompositionRow(
                 "weight_composition_lean",
                 stringResource(Res.string.weight_composition_row_lean),
                 value.leanMass.asKg(),
                 timeZone,
+                showDates,
             )
             CompositionRow(
                 "weight_composition_water",
                 stringResource(Res.string.weight_composition_row_water),
                 value.water.asKg(),
                 timeZone,
+                showDates,
             )
             CompositionRow(
                 "weight_composition_bone",
                 stringResource(Res.string.weight_composition_row_bone),
                 value.bone.asKg(),
                 timeZone,
+                showDates,
             )
             CompositionRow(
                 "weight_composition_bmr",
                 stringResource(Res.string.weight_composition_row_bmr),
-                value.bmr?.map { stringResource(Res.string.weight_composition_value_kcal, it.toString()) },
+                value.bmr?.map {
+                    stringResource(Res.string.weight_composition_value_kcal, AppNumberFormat.integer(it))
+                },
                 timeZone,
+                showDates,
             )
         }
     }
@@ -98,7 +126,7 @@ private fun Dated<Double>?.asKg(): Dated<String>? =
 
 /** One metric: label, tabular value and date; one merged spoken description ("Grasa corporal, 18,5 %, 3 oct"). */
 @Composable
-private fun CompositionRow(tag: String, label: String, value: Dated<String>?, timeZone: TimeZone) {
+private fun CompositionRow(tag: String, label: String, value: Dated<String>?, timeZone: TimeZone, showDate: Boolean) {
     val date = value?.let {
         val local = it.measuredAt.toLocalDateTime(timeZone)
         stringResource(Res.string.chart_date_short, local.day, local.month.shortLabel())
@@ -111,7 +139,7 @@ private fun CompositionRow(tag: String, label: String, value: Dated<String>?, ti
     Row(
         Modifier
             .fillMaxWidth()
-            .defaultMinSize(minHeight = Spacing.minTouchTarget)
+            .defaultMinSize(minHeight = CompositionRowHeight)
             .semantics(mergeDescendants = true) { contentDescription = spoken }
             .testTag(tag),
         verticalAlignment = Alignment.CenterVertically,
@@ -129,7 +157,7 @@ private fun CompositionRow(tag: String, label: String, value: Dated<String>?, ti
                 style = AppTheme.typography.labelNumeric,
                 color = AppTheme.colors.textPrimary,
             )
-            date?.let {
+            date?.takeIf { showDate }?.let {
                 Text(text = it, style = AppTheme.typography.bodySmall, color = AppTheme.colors.textSecondary)
             }
         }

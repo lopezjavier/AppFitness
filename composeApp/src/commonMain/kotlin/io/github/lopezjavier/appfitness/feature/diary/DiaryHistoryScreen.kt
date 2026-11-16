@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import io.github.lopezjavier.appfitness.composeapp.resources.Res
@@ -32,8 +33,11 @@ import io.github.lopezjavier.appfitness.designsystem.Spacing
 import io.github.lopezjavier.appfitness.designsystem.WindowWidthClass
 import io.github.lopezjavier.appfitness.designsystem.WindowWidthClassDefaults
 import io.github.lopezjavier.appfitness.designsystem.windowWidthClassFor
+import kotlinx.datetime.DateTimeUnit
+import kotlinx.datetime.minus
 import org.jetbrains.compose.resources.stringResource
 
+private const val WEEK_DAYS = 7
 private val SkeletonCalendarHeight = Spacing.xl * 11
 private val SkeletonRowHeight = Spacing.xl * 6
 
@@ -90,14 +94,15 @@ private fun HistoryContent(content: DiaryHistoryContent, wide: Boolean, onEvent:
         verticalArrangement = Arrangement.spacedBy(Spacing.blockGap),
     ) {
         ViewSelector(content.view, onEvent)
+        // Order (C-157): selector, summary card, calendar.
         if (wide) {
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(Spacing.blockGap)) {
-                Calendar(content, onEvent, Modifier.weight(1f))
                 DiaryHistorySummary(content, onEvent, Modifier.weight(1f))
+                Calendar(content, onEvent, Modifier.weight(1f))
             }
         } else {
-            Calendar(content, onEvent)
             DiaryHistorySummary(content, onEvent)
+            Calendar(content, onEvent)
         }
     }
 }
@@ -121,10 +126,19 @@ private fun Calendar(
     onEvent: (DiaryHistoryEvent) -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val weekBand = remember(content.today, content.view) {
+        if (content.view == DiaryHistoryView.Week) {
+            (0 until WEEK_DAYS).map { content.today.minus(it, DateTimeUnit.DAY) }.toSet()
+        } else {
+            emptySet()
+        }
+    }
     MonthCalendarGrid(
         month = content.month,
         markedDays = content.markedDays,
-        selected = content.selectedDay?.date,
+        // Only the Día view has a selected day: Semana shows the band, Mes names the month in its card title.
+        selected = content.selectedDay?.date.takeIf { content.view == DiaryHistoryView.Day },
+        bandDays = weekBand,
         today = content.today,
         onSelect = { onEvent(DiaryHistoryEvent.SelectDay(it)) },
         onPrevMonth = { onEvent(DiaryHistoryEvent.PreviousMonth) },
