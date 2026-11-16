@@ -40,8 +40,9 @@ import org.jetbrains.compose.resources.stringResource
 private const val DAYS_PER_ISO_WEEK = 7
 
 /**
- * "Avisos" section of Preferencias (US-57, US-59): the reminder switches, in the order weight, circumferences, check-in, its day, weekly summary, block end (C-156), and the "Día del check-in" row (value =
- * the weekday, lowercase) opening a picker of the seven weekdays. Switches and day are drafts (R-10): a tap applies to
+ * "Avisos" section of Preferencias (US-57, US-59): the reminder switches, in the order weight, circumferences,
+ * check-in, its day, weekly summary, block end (C-156), and the "Día del check-in" row (value = the weekday,
+ * lowercase) opening a picker of the seven weekdays. Switches and day are drafts (R-10): a tap applies to
  * the draft (the picker closes, R-12) and the editor's "Guardar" saves them.
  */
 @Composable

@@ -99,10 +99,12 @@ fun ProfileRootRoute(
 }
 
 /**
- * The Perfil tab root (ADR-37, US-05, US-56) on [AppScreen]: the "?" (Acerca de) and the notifications bell in the bar, the 72 dp photo-and-name header, three cards (C-150, R-109): "Mi entrenamiento" (value = the intention),
+ * The Perfil tab root (ADR-37, US-05, US-56) on [AppScreen]: the "?" (Acerca de) and the notifications bell in the
+ * bar, the 72 dp photo-and-name header, three cards (C-150, R-109): "Mi entrenamiento" (value = the intention),
  * "Estadísticas" with the "Peso", "Fuerza", "Calorías", "Entrenos" and "Actividad" rows (chevron only, no value), and
- * "Preferencias" alone. The bar holds the "?" (Acerca de) then the bell. "Mi entrenamiento" shows its value once it is known. The debug catalog button appears where [ProfileRootActions.onOpenCatalog] is
- * non-null (local flavor). It holds no editable state: nothing to restore.
+ * "Preferencias" alone. The bar holds the "?" (Acerca de) then the bell. "Mi entrenamiento" shows its value once it
+ * is known. The debug catalog button appears where [ProfileRootActions.onOpenCatalog] is non-null (local flavor).
+ * It holds no editable state: nothing to restore.
  */
 @Composable
 fun ProfileRootScreen(

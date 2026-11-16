@@ -63,8 +63,9 @@ internal fun AccountSection(state: AccountUiState, onEvent: (AccountEvent) -> Un
 }
 
 /**
- * "Cerrar sesión" as a row and "Borrar cuenta" as a danger text action at least 16 dp under it (R-70, R-113); the last group of the Preferencias hub. A
- * protected account shows its note under "Borrar cuenta", which also announces it as its state (ADR-57).
+ * "Cerrar sesión" as a row and "Borrar cuenta" as a danger text action at least 16 dp under it (R-70, R-113); the
+ * last group of the Preferencias hub. A protected account shows its note under "Borrar cuenta", which also
+ * announces it as its state (ADR-57).
  */
 @Composable
 private fun AccountActions(state: AccountUiState, onSignOut: () -> Unit, onDelete: () -> Unit) {

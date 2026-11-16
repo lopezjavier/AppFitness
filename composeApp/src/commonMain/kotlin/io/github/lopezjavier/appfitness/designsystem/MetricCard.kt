@@ -16,8 +16,9 @@ import androidx.compose.ui.semantics.Role
 /**
  * A card with one headline number: the technical [label] over the [value] (`headlineMetric`, same styles as
  * [MetricTile]), then optional [supporting] content (a trend, a hint), a [trailingAction] at the end of the
- * header (for example an edit icon button), a [leading] decorative icon before the text, a [labelLeading] 16 dp icon inside the label row (C-160), a [highlighted] border for the
- * selected card and a [progress] bar under everything. With [onClick] and no
+ * header (for example an edit icon button), a [leading] decorative icon before the text, a [labelLeading] 16 dp
+ * icon inside the label row (C-160), a [highlighted] border for the selected card and a [progress] bar under
+ * everything. With [onClick] and no
  * [trailingAction] the whole card is one `Role.Button` target. With both, only the label and value block is the
  * button; [supporting] and [trailingAction] are sibling nodes outside it, so they may hold interactive content (an
  * edit pencil, a "Sincronizar" button). [clickLabel] is the spoken action of [onClick] ("Ver detalle"). At least

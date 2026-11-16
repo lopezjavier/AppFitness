@@ -35,6 +35,7 @@ import io.github.lopezjavier.appfitness.designsystem.Spacing
 import io.github.lopezjavier.appfitness.domain.model.Dated
 import io.github.lopezjavier.appfitness.domain.model.LatestComposition
 import io.github.lopezjavier.appfitness.feature.workout.shortLabel
+import kotlinx.datetime.LocalDate
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
 import org.jetbrains.compose.resources.stringResource
@@ -65,17 +66,7 @@ internal fun CompositionSheet(
             .singleOrNull()
         Column(verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
             // The date is said once when every metric was measured the same day (C-165).
-            sharedDay?.let {
-                Text(
-                    text = stringResource(
-                        Res.string.weight_composition_subtitle,
-                        stringResource(Res.string.chart_date_short, it.day, it.month.shortLabel()),
-                    ),
-                    style = AppTheme.typography.bodyMedium,
-                    color = AppTheme.colors.textSecondary,
-                    modifier = Modifier.testTag("weight_composition_subtitle"),
-                )
-            }
+            sharedDay?.let { CompositionSubtitle(it) }
             val showDates = sharedDay == null
             CompositionRow(
                 "weight_composition_fat",
@@ -116,6 +107,19 @@ internal fun CompositionSheet(
             )
         }
     }
+}
+
+@Composable
+private fun CompositionSubtitle(day: LocalDate) {
+    Text(
+        text = stringResource(
+            Res.string.weight_composition_subtitle,
+            stringResource(Res.string.chart_date_short, day.day, day.month.shortLabel()),
+        ),
+        style = AppTheme.typography.bodyMedium,
+        color = AppTheme.colors.textSecondary,
+        modifier = Modifier.testTag("weight_composition_subtitle"),
+    )
 }
 
 private inline fun <T> Dated<T>.map(transform: (T) -> String): Dated<String> = Dated(transform(value), measuredAt)

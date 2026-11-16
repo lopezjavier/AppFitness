@@ -57,8 +57,9 @@ import org.jetbrains.compose.resources.vectorResource
 private val WarningIconSize = Spacing.lg + Spacing.xs
 
 /**
- * "Estrategia energética": TDEE, strategy selector, adjustment stepper, daily target headline ("Objetivo: 2.788 kcal al día", no adjustment chip, C-169) and the
- * safety-floor warning. Stateless: Onboarding and Profile own the state. Tags (prefix = [testTagPrefix]):
+ * "Estrategia energética": TDEE, strategy selector, adjustment stepper, daily target headline ("Objetivo: 2.788
+ * kcal al día", no adjustment chip, C-169) and the safety-floor warning. Stateless: Onboarding and Profile own
+ * the state. Tags (prefix = [testTagPrefix]):
  * `_tdee`, `_strategy_<deficit|maintenance|surplus>`, `_adjust_decrement|_increment|_value`, `_target`,
  * `_floor_warning`, `_strategy_help`.
  */

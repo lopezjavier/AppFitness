@@ -48,7 +48,8 @@ private val SkeletonRowHeight = Spacing.xl * 5
 
 /**
  * Meals editor (US-23, US-56) on [AppEditorScreen]: one configuration row per meal (drag handle, name, "Quitar"),
- * "Añadir comida del día". "Comidas por defecto" is a row of the Preferencias hub (C-154). Nothing is applied until "Guardar" (removals included).
+ * "Añadir comida del día". "Comidas por defecto" is a row of the Preferencias hub (C-154). Nothing is applied
+ * until "Guardar" (removals included).
  * Create and rename go through the Name sheet, which only stages the change in the draft. The template owns the
  * discard dialog, the offline hint and the close once [MealSlotsUiState.Editing.saved]; a failed save is a one-shot
  * message (R-28).

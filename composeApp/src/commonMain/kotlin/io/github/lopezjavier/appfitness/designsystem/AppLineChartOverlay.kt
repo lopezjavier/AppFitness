@@ -14,7 +14,10 @@ internal class OverlaySpec(
     val range: ClosedFloatingPointRange<Double>,
 )
 
-/** The padded domain of a chart plus its optional [reference] and [band]; null when there is nothing to scale against. */
+/**
+ * The padded domain of a chart plus its optional [reference] and [band]; null when there is nothing to scale
+ * against.
+ */
 internal fun overlaySpec(
     reference: Double?,
     band: ClosedFloatingPointRange<Double>?,

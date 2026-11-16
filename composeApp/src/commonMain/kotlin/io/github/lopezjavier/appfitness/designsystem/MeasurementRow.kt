@@ -1,3 +1,5 @@
+@file:Suppress("MatchingDeclarationName") // Named after the component; the object holds its sizes.
+
 package io.github.lopezjavier.appfitness.designsystem
 
 import androidx.compose.foundation.background

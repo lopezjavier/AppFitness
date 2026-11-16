@@ -3,7 +3,6 @@ package io.github.lopezjavier.appfitness.feature.analytics.stats
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.material3.Text
@@ -44,7 +43,6 @@ import io.github.lopezjavier.appfitness.domain.model.MuscleGroupSets
 import io.github.lopezjavier.appfitness.domain.model.ProgressRange
 import io.github.lopezjavier.appfitness.domain.model.SetCountPoint
 import io.github.lopezjavier.appfitness.domain.model.TrainingSummary
-import io.github.lopezjavier.appfitness.feature.analytics.formatVolume
 import io.github.lopezjavier.appfitness.feature.exercises.label
 import io.github.lopezjavier.appfitness.feature.exercises.tagName
 import io.github.lopezjavier.appfitness.feature.workout.shortLabel
@@ -157,8 +155,8 @@ internal fun SetCountCard(
 internal fun MuscleRowsCard(
     muscleSets: SectionState<List<MuscleGroupSets>>,
     onRetry: () -> Unit,
-    onOpenMuscleVolume: () -> Unit = {},
     modifier: Modifier = Modifier,
+    onOpenMuscleVolume: () -> Unit = {},
 ) {
     StatsCard(stringResource(Res.string.stats_muscles_title), modifier) {
         StatsBlock(muscleSets, StatsSection.Muscles, RowsHeight, onRetry) { rows ->

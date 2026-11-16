@@ -85,7 +85,8 @@ object TrendPillDefaults {
 
 /**
  * Read-only weekly-trend pill: tone glyph, trend arrow and the caller-formatted [text]. The tone is
- * spoken through a state description. [showToneIcon] false keeps only the arrow glyph (Fuerza, C-152). The caller's [modifier] lands on the merged node.
+ * spoken through a state description. [showToneIcon] false keeps only the arrow glyph (Fuerza, C-152). The
+ * caller's [modifier] lands on the merged node.
  */
 @Composable
 fun TrendPill(

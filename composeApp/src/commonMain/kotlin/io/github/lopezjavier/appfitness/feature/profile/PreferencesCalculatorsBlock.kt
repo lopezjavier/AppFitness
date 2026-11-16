@@ -44,8 +44,9 @@ import org.jetbrains.compose.resources.stringResource
 private const val ROUNDING_STEP_KG = 0.5
 
 /**
- * content of the "Calculadoras" card (title and "?" are its header, C-168): dumbbell handle, default bar, available plates and the derived rounding
- * (read-only, twice the smallest plate; ADR-56). All of it is a draft until "Guardar"; switching off the last plate
+ * content of the "Calculadoras" card (title and "?" are its header, C-168): dumbbell handle, default bar,
+ * available plates and the derived rounding (read-only, twice the smallest plate; ADR-56). All of it is a draft
+ * until "Guardar"; switching off the last plate
  * is refused and shows [platesError].
  */
 @Composable

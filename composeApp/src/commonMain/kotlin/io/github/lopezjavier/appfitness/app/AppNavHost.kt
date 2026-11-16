@@ -411,7 +411,10 @@ internal typealias StrengthSlot =
 internal typealias MuscleVolumeSlot =
     @Composable (modifier: Modifier, onStartWorkout: () -> Unit, onBack: () -> Unit) -> Unit
 
-/** "Estadisticas" content: modifier (full-screen insets), the progress opener (by exercise id) and the kilos per group. */
+/**
+ * "Estadisticas" content: modifier (full-screen insets), the progress opener (by exercise id) and the kilos per
+ * group.
+ */
 internal typealias TrainingStatsSlot =
     @Composable (
         modifier: Modifier,

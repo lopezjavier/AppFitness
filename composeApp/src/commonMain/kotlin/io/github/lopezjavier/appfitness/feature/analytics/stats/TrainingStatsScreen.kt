@@ -187,7 +187,11 @@ private fun LeftSections(
     }
     SummaryTiles(state.summary, retry(onEvent, StatsSection.Summary))
     SetCountCard(state.range, state.setCounts, retry(onEvent, StatsSection.Chart))
-    MuscleRowsCard(state.muscleSets, retry(onEvent, StatsSection.Muscles), onOpenMuscleVolume)
+    MuscleRowsCard(
+        state.muscleSets,
+        retry(onEvent, StatsSection.Muscles),
+        onOpenMuscleVolume = onOpenMuscleVolume,
+    )
 }
 
 /** Compact order: tiles, chart, groups, exercises, then the distribution. An empty frame keeps only the body map. */
