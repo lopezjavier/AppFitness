@@ -1717,7 +1717,7 @@
     <string name="preferences_save_error_offline">Sin conexión: no se puede guardar.</string>
     <string name="delete_account_error_offline">Sin conexión: no se puede borrar la cuenta</string>
     <string name="about_title">Acerca de</string>
-    <string name="profile_about_row">Acerca de</string>
+    <string name="profile_about_action_cd">Acerca de</string>
     <string name="about_credits_section">Créditos</string>
     <string name="about_version_format">Versión %1$s (%2$d)</string>
     <string name="about_version_flavor_format">%1$s · %2$s</string>

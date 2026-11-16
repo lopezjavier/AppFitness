@@ -91,6 +91,14 @@ fun rememberHelpTopBarAction(
     )
 }
 
+/** A "?" top-bar action that runs [onClick] (e.g. opens a screen) instead of a help sheet. */
+fun helpTopBarAction(contentDescription: String, testTag: String, onClick: () -> Unit) = AppTopBarAction(
+    icon = Res.drawable.ic_help,
+    contentDescription = contentDescription,
+    onClick = onClick,
+    testTag = testTag,
+)
+
 @Composable
 private fun HelpSheet(title: String, content: HelpContent, testTag: String, onDismiss: () -> Unit) {
     AppInfoSheet(title = title, onDismiss = onDismiss, testTagPrefix = "${testTag}_sheet") {

@@ -35,7 +35,7 @@ import io.github.lopezjavier.appfitness.composeapp.resources.ic_restaurant_outli
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_settings
 import io.github.lopezjavier.appfitness.composeapp.resources.preferences_my_training_title
 import io.github.lopezjavier.appfitness.composeapp.resources.preferences_title
-import io.github.lopezjavier.appfitness.composeapp.resources.profile_about_row
+import io.github.lopezjavier.appfitness.composeapp.resources.profile_about_action_cd
 import io.github.lopezjavier.appfitness.composeapp.resources.profile_activity_row
 import io.github.lopezjavier.appfitness.composeapp.resources.profile_diary_history_row
 import io.github.lopezjavier.appfitness.composeapp.resources.profile_statistics_section
@@ -58,6 +58,7 @@ import io.github.lopezjavier.appfitness.designsystem.NavigationRow
 import io.github.lopezjavier.appfitness.designsystem.SecondaryButton
 import io.github.lopezjavier.appfitness.designsystem.SkeletonBox
 import io.github.lopezjavier.appfitness.designsystem.Spacing
+import io.github.lopezjavier.appfitness.designsystem.helpTopBarAction
 import io.github.lopezjavier.appfitness.feature.notifications.notificationsBarAction
 import org.jetbrains.compose.resources.DrawableResource
 import org.jetbrains.compose.resources.StringResource
@@ -99,9 +100,9 @@ fun ProfileRootRoute(
 }
 
 /**
- * The Perfil tab root (ADR-37, US-05, US-56) on [AppScreen]: the notifications bell in the bar, the 72 dp photo-and-name header, three cards (C-150, R-109): "Mi entrenamiento" (value = the intention),
+ * The Perfil tab root (ADR-37, US-05, US-56) on [AppScreen]: the "?" (Acerca de) and the notifications bell in the bar, the 72 dp photo-and-name header, three cards (C-150, R-109): "Mi entrenamiento" (value = the intention),
  * "Estadísticas" with the "Peso", "Fuerza", "Calorías", "Entrenos" and "Actividad" rows (chevron only, no value), and
- * "Preferencias" with "Acerca de". "Mi entrenamiento" shows its value once it is known. The debug catalog button appears where [ProfileRootActions.onOpenCatalog] is
+ * "Preferencias" alone. The bar holds the "?" (Acerca de) then the bell. "Mi entrenamiento" shows its value once it is known. The debug catalog button appears where [ProfileRootActions.onOpenCatalog] is
  * non-null (local flavor). It holds no editable state: nothing to restore.
  */
 @Composable
@@ -112,7 +113,12 @@ fun ProfileRootScreen(
     actions: ProfileRootActions = ProfileRootActions(),
 ) {
     val bell = notificationsBarAction("profile_action_notifications")
-    val barActions = remember(bell) { listOfNotNull(bell) }
+    val aboutCd = stringResource(Res.string.profile_about_action_cd)
+    val onOpenAbout = actions.onOpenAbout
+    val about = remember(aboutCd, onOpenAbout) {
+        helpTopBarAction(aboutCd, "profile_action_about", onOpenAbout)
+    }
+    val barActions = remember(about, bell) { listOfNotNull(about, bell) }
     AppScreen(
         title = stringResource(Res.string.profile_title),
         modifier = modifier,
@@ -170,7 +176,7 @@ private fun RootLoaded(state: ProfileRootUiState.Loaded, actions: ProfileRootAct
                 onClick = actions.onOpenMyTraining,
                 modifier = Modifier.testTag("profile_my_training_row"),
                 value = state.intention?.let { stringResource(it.label) },
-                leading = state.intention?.let { { IntentionIcon(it, selected = true) } },
+                valueLeading = state.intention?.let { { IntentionIcon(it, selected = true) } },
             )
         }
         StatisticsSection(actions)
@@ -180,11 +186,6 @@ private fun RootLoaded(state: ProfileRootUiState.Loaded, actions: ProfileRootAct
                 onClick = actions.onOpenPreferences,
                 modifier = Modifier.testTag("profile_preferences_row"),
                 leading = { RowIcon(Res.drawable.ic_settings) },
-            )
-            NavigationRow(
-                label = stringResource(Res.string.profile_about_row),
-                onClick = actions.onOpenAbout,
-                modifier = Modifier.testTag("profile_about_row"),
             )
         }
     }

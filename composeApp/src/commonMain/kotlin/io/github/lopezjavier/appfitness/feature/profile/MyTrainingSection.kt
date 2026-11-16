@@ -145,7 +145,7 @@ private fun IntentionRow(intention: TrainingIntention?, unset: String, onClick: 
             onClick = onClick,
             modifier = Modifier.weight(1f).testTag("preferences_intention_field"),
             value = intention?.let { stringResource(it.label) } ?: unset,
-            leading = intention?.let { { IntentionIcon(it, selected = true) } },
+            valueLeading = intention?.let { { IntentionIcon(it, selected = true) } },
         )
         HelpButton(
             contentDescription = stringResource(Res.string.my_training_intention_help_cd),

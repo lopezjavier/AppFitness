@@ -74,3 +74,7 @@ Appended by each batch; the test task works from this list (CI only).
 
 - Deleted `MealDefaultsNavigationTest` (all three tests covered the removed "Comidas por defecto" button/hint in the meals editor); removed the defaults-row tests from `MealSlotsScreenTest` and `MealSlotsFlowTest`; removed the muscle-volume row tests from `StrengthScreenTest` and `StrengthNavigationTest`. The test task should add the replacements listed in B3/B5 (hub default-comidas row click, `stats_open_muscle_volume` click and navigation from Estadisticas).
 - Slot lambdas updated: `PreferencesSlot` (5th arg), `MealSlotsSlot` (2 args), `StrengthSlot` (4 args), `TrainingStatsSlot` (4 args).
+
+## B9
+
+- `ProfileRootScreenTest.aboutRow_isPresentAndOpensAbout` and `AboutNavigationTest` use tag `profile_about_row`, now removed: use top-bar tag `profile_action_about` (48 dp, content description "Acerca de"). Add: bar order is about then bell; last card holds only `profile_preferences_row`. Intention icon is now `NavigationRow(valueLeading=...)`, left of the value text, for `profile_my_training_row` and `preferences_intention_field`. Perfil goldens (root, Mi entrenamiento editor) need regeneration.

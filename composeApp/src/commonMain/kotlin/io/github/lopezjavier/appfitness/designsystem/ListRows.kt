@@ -174,6 +174,7 @@ fun NavigationRow(
     leading: (@Composable () -> Unit)? = null,
     onClickLabel: String? = null,
     supportingContent: (@Composable () -> Unit)? = null,
+    valueLeading: (@Composable () -> Unit)? = null,
 ) {
     // C-161: when label and value do not fit on one line the row takes two (label, then the value as supporting).
     var stacked by remember(label, value) { mutableStateOf(false) }
@@ -197,7 +198,8 @@ fun NavigationRow(
                 horizontalArrangement = Arrangement.spacedBy(Spacing.xs),
             ) {
                 if (value != null && !stackValue) {
-                    // C-162: one value style, trailing, before the chevron.
+                    // C-162: one value style, trailing, before the chevron; [valueLeading] sits just left of the text.
+                    valueLeading?.invoke()
                     Text(
                         text = value,
                         style = AppTheme.typography.bodyLarge,
