@@ -104,8 +104,43 @@ class MealDefaultsScreenTest {
         rule.onNodeWithTag(
             "meal_defaults_assignment_lunch_rice",
         ).assertTextContains("2 alimentos · 612 kcal", substring = true)
-        rule.onNodeWithTag("meal_defaults_assignment_lunch_rice").assertTextContains("L X V", substring = true)
+        rule.onNodeWithTag("meal_defaults_assignment_lunch_rice").assertTextContains("L, X, V", substring = true)
         rule.onNodeWithTag("meal_defaults_note").assertTextContains("a partir del próximo día", substring = true)
+    }
+
+    private fun showDays(days: Set<Int>) = show(
+        content(
+            meals = listOf(
+                MealDefaultsCardUi(
+                    "lunch",
+                    "Comida",
+                    listOf(AssignmentUi("rice", "Arroz con pollo", 2, 612.4, days)),
+                    canAdd = true,
+                ),
+            ),
+        ),
+    )
+
+    @Test
+    fun threeOrMoreConsecutiveDays_readAsARange() {
+        showDays(setOf(1, 2, 3, 4, 5))
+
+        rule.onNodeWithTag("meal_defaults_assignment_lunch_rice")
+            .assertTextContains("Lunes a viernes", substring = true)
+    }
+
+    @Test
+    fun oneDay_readsItsFullName() {
+        showDays(setOf(3))
+
+        rule.onNodeWithTag("meal_defaults_assignment_lunch_rice").assertTextContains("Miércoles", substring = true)
+    }
+
+    @Test
+    fun twoConsecutiveDays_readAsCommaSeparatedInitials() {
+        showDays(setOf(1, 2))
+
+        rule.onNodeWithTag("meal_defaults_assignment_lunch_rice").assertTextContains("L, M", substring = true)
     }
 
     @Test

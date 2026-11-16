@@ -33,10 +33,19 @@ class TrainingStatsNavigationTest {
             Box(Modifier.size(48.dp).testTag("profile_open_stats").clickable(onClick = actions.onOpenTrainingStats))
         }
     }
-    private val statsSlot: TrainingStatsSlot = { modifier, onOpenExercise, _, onBack ->
-        AppScreen("Entrenamiento", modifier.testTag("stats_screen"), onBack = onBack, testTagPrefix = "stats") {
+    private val statsSlot: TrainingStatsSlot = { modifier, onOpenExercise, onOpenMuscleVolume, onBack ->
+        AppScreen("Entrenos", modifier.testTag("stats_screen"), onBack = onBack, testTagPrefix = "stats") {
             Box(Modifier.size(48.dp).testTag("stats_open_exercise").clickable { onOpenExercise("bench") })
+            Box(Modifier.size(48.dp).testTag("stats_open_muscle_volume").clickable(onClick = onOpenMuscleVolume))
         }
+    }
+    private val muscleVolumeSlot: MuscleVolumeSlot = { modifier, _, onBack ->
+        AppScreen(
+            "Kilos por grupo muscular",
+            modifier.testTag("muscle_volume_screen"),
+            onBack = onBack,
+            testTagPrefix = "muscle_volume",
+        ) {}
     }
     private val progressSlot: ExerciseProgressSlot = { modifier, exerciseId, _ ->
         Text(exerciseId, modifier.testTag("progress_exercise_id"))
@@ -49,6 +58,7 @@ class TrainingStatsNavigationTest {
                     navController = rememberNavController(),
                     profile = profileSlot,
                     trainingStats = statsSlot,
+                    muscleVolume = muscleVolumeSlot,
                     exerciseProgress = progressSlot,
                 )
             }
@@ -64,12 +74,26 @@ class TrainingStatsNavigationTest {
         rule.waitForIdle()
 
         rule.onNodeWithTag("stats_screen").assertExists()
-        rule.onNodeWithTag("stats_title").assertTextEquals("Entrenamiento")
+        rule.onNodeWithTag("stats_title").assertTextEquals("Entrenos")
         rule.onNodeWithTag("nav_bar").assertDoesNotExist()
 
         rule.onNodeWithTag("stats_back").performClick()
         rule.waitForIdle()
         rule.onNodeWithTag("profile_screen").assertExists()
+    }
+
+    @Test
+    fun kilosPorGrupoRow_opensTheScreen_andBackReturnsToEstadisticas() {
+        showShell()
+        rule.onNodeWithTag("nav_tab_profile").performClick()
+        rule.onNodeWithTag("profile_open_stats").performClick()
+        rule.onNodeWithTag("stats_open_muscle_volume").performClick()
+        rule.waitForIdle()
+
+        rule.onNodeWithTag("muscle_volume_screen").assertExists()
+        rule.onNodeWithTag("muscle_volume_back").performClick()
+        rule.waitForIdle()
+        rule.onNodeWithTag("stats_screen").assertExists()
     }
 
     @Test

@@ -67,10 +67,10 @@ class MuscleVolumeScreenTest {
     }
 
     @Test
-    fun title_isVolumenInTheBar_andBackLeaves() {
+    fun title_isKilosPorGrupoMuscularInTheBar_andBackLeaves() {
         show(content())
 
-        rule.onNodeWithTag("muscle_volume_title").assertTextEquals("Volumen")
+        rule.onNodeWithTag("muscle_volume_title").assertTextEquals("Kilos por grupo muscular")
         rule.onNodeWithTag("muscle_volume_back").performClick()
 
         assertEquals(1, backs)

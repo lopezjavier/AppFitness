@@ -356,20 +356,19 @@ class OnboardingScreenTest {
 
         rule.onNodeWithTag("onboarding_goals_tdee").assertTextContains("Gasto diario estimado: ", substring = true)
         rule.onNodeWithTag("onboarding_goals_strategy_maintenance").assertIsSelected()
-        rule.onNodeWithTag("onboarding_goals_pill").assertTextEquals("0 kcal · Mantenimiento")
+        rule.onNodeWithTag("onboarding_goals_pill").assertDoesNotExist()
         rule.onNodeWithTag("onboarding_goals_floor_warning").assertDoesNotExist()
     }
 
     @Test
-    fun choosingDeficitAndSteppingDown_updatesThePill() {
+    fun choosingDeficitAndSteppingDown_updatesTheAdjustment() {
         goToGoalsStep()
 
         tap("onboarding_goals_strategy_deficit")
-        rule.onNodeWithTag("onboarding_goals_pill").assertTextEquals("−400 kcal · Déficit moderado")
+        rule.onNodeWithTag("onboarding_goals_adjust_value").assertTextEquals("−400 kcal")
         tap("onboarding_goals_adjust_decrement")
         tap("onboarding_goals_adjust_decrement")
 
-        rule.onNodeWithTag("onboarding_goals_pill").assertTextEquals("−500 kcal · Déficit moderado")
         rule.onNodeWithTag("onboarding_goals_adjust_value").assertTextEquals("−500 kcal")
     }
 

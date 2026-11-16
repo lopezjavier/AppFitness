@@ -139,7 +139,7 @@ class PreferencesSectionScreenTest {
     fun cookingEditor_isTitledCocina() = assertTitle(PreferencesSection.Cooking, "Cocina")
 
     @Test
-    fun trainingEditor_isTitledEntrenamiento() = assertTitle(PreferencesSection.Training, "Entrenamiento")
+    fun trainingEditor_isTitledRegistroDeSeries() = assertTitle(PreferencesSection.Training, "Registro de series")
 
     // -- Guardar per section ------------------------------
 

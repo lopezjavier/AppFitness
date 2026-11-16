@@ -1,15 +1,20 @@
 package io.github.lopezjavier.appfitness.feature.profile
 
 import androidx.compose.ui.test.assertHeightIsAtLeast
+import androidx.compose.ui.test.assertTextContains
 import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.getUnclippedBoundsInRoot
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
+import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.width
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
 import io.github.lopezjavier.appfitness.designsystem.WindowWidthClassDefaults
+import io.github.lopezjavier.appfitness.domain.model.ActivityLevel
+import io.github.lopezjavier.appfitness.domain.model.GoalStrategy
+import io.github.lopezjavier.appfitness.domain.model.MacroSplit
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Rule
@@ -29,15 +34,18 @@ class PreferencesHubScreenTest {
     private var meals = 0
     private var backs = 0
 
-    private val keys =
-        listOf("personal", "energy", "macros", "meals", "cooking", "training", "avisos")
+    private var mealDefaults = 0
 
-    private fun show() {
+    private val keys =
+        listOf("personal", "avisos", "energy", "macros", "meals", "meal_defaults", "cooking", "training")
+
+    private fun show(summary: PreferencesHubSummary = PreferencesHubSummary()) {
         rule.setContent {
             AppTheme {
                 PreferencesHubScreen(
                     onBack = { backs++ },
-                    actions = PreferencesHubActions({ sections += it }, { meals++ }),
+                    actions = PreferencesHubActions({ sections += it }, { meals++ }, { mealDefaults++ }),
+                    summary = summary,
                 )
             }
         }
@@ -53,17 +61,18 @@ class PreferencesHubScreenTest {
     }
 
     @Test
-    fun sevenRows_readTheDestinationTitles_inOrder_andThereIsNoFoodAuditRow() {
+    fun eightRows_readTheDestinationTitles_inOrder_andThereIsNoFoodAuditRow() {
         show()
         rule.onNodeWithTag("preferences_row_food_audit").assertDoesNotExist()
         val labels = listOf(
             "Datos personales",
+            "Avisos",
             "Objetivo calórico",
             "Macros",
             "Comidas del día",
+            "Comidas por defecto",
             "Cocina",
-            "Entrenamiento",
-            "Avisos",
+            "Registro de series",
         )
         keys.zip(labels).forEach { (key, label) ->
             rule.onNodeWithTag("preferences_row_$key").assertTextEquals(label).assertHeightIsAtLeast(48.dp)
@@ -79,15 +88,52 @@ class PreferencesHubScreenTest {
         assertEquals(
             listOf(
                 PreferencesSection.PersonalData,
+                PreferencesSection.Reminders,
                 PreferencesSection.EnergyGoal,
                 PreferencesSection.Macros,
                 PreferencesSection.Cooking,
                 PreferencesSection.Training,
-                PreferencesSection.Reminders,
             ),
             sections,
         )
         assertEquals(1, meals)
+        assertEquals(1, mealDefaults)
+    }
+
+    @Test
+    fun defaultComidasRow_opensTheDefaultsEditor_only() {
+        show()
+        rule.onNodeWithTag("preferences_row_meal_defaults").performClick()
+        assertEquals(1, mealDefaults)
+        assertEquals(0, meals)
+        assertTrue(sections.isEmpty())
+    }
+
+    @Test
+    fun threeNamedGroups_thenCuentaLast() {
+        show()
+        val tops = listOf("General", "Nutrición", "Entreno", "Cuenta").map {
+            rule.onNodeWithText(it).getUnclippedBoundsInRoot().top
+        }
+        assertEquals(tops.sortedBy { it.value }, tops)
+    }
+
+    @Test
+    fun rowsWithAValue_showItAsTheSupportingLine() {
+        show(
+            PreferencesHubSummary(
+                personal = PersonalSummary(30, 180, ActivityLevel.Moderate),
+                energy = EnergySummary(2788, GoalStrategy.Maintenance),
+                split = MacroSplit(30, 40, 30),
+                mealCount = 4,
+                remindersOn = 3,
+            ),
+        )
+        rule.onNodeWithTag("preferences_row_energy").assertTextContains("2.788 kcal · Mantenimiento", substring = true)
+        rule.onNodeWithTag("preferences_row_macros").assertTextContains("P 30 % · C 40 % · G 30 %", substring = true)
+        rule.onNodeWithTag("preferences_row_meals").assertTextContains("4 comidas", substring = true)
+        rule.onNodeWithTag("preferences_row_avisos").assertTextContains("3 de ", substring = true)
+        rule.onNodeWithTag("preferences_row_personal").assertTextContains("30 años · 180 cm", substring = true)
     }
 
     @Test

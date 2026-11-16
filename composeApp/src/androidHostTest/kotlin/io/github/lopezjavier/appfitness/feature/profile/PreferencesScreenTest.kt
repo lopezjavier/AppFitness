@@ -232,12 +232,12 @@ class PreferencesScreenTest {
     }
 
     @Test
-    fun activitySheet_listsTheLevels_andListoAppliesTheChoice() {
+    fun activitySheet_listsTheLevels_andTappingOneAppliesItWithoutAListoFooter() {
         show()
         rule.onNodeWithTag("preferences_activity_row").performScrollTo().performClick()
         rule.waitForIdle()
+        rule.onNodeWithTag("preferences_sheet_commit").assertDoesNotExist()
         rule.onNodeWithTag("preferences_activity_light").performClick()
-        rule.onNodeWithTag("preferences_sheet_commit").performClick()
         rule.waitForIdle()
         assertEquals(listOf<PreferencesEvent>(PreferencesEvent.SelectActivity(ActivityLevel.Light)), events)
     }
@@ -400,12 +400,13 @@ class PreferencesScreenTest {
     }
 
     @Test
-    fun editedActivity_isShownOnTheCardAfterListo() {
+    fun editedActivity_isShownOnTheCardAfterTappingALevel() {
         showStateful()
         openSheet("preferences_activity_row")
         rule.onNodeWithTag("preferences_activity_light").performClick()
-        rule.onNodeWithTag("preferences_sheet_commit").performClick()
         rule.waitForIdle()
+
+        rule.onNodeWithTag("preferences_sheet_activity").assertDoesNotExist()
 
         rule.onNodeWithTag("preferences_activity_row").assertContentDescriptionEquals("Actividad, Ligero, editar")
     }

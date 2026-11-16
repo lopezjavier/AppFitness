@@ -135,7 +135,7 @@ class GlossaryStringsTest {
     @Test
     fun statistics_haveOneNameEach() {
         assertEquals("Calorías", value("diary_history_title"))
-        assertEquals("Entrenamiento", value("stats_title"))
+        assertEquals("Entrenos", value("stats_title"))
         assertEquals("Estadísticas", value("profile_statistics_section"))
     }
 

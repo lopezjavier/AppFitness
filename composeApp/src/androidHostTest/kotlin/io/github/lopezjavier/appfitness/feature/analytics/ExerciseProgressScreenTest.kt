@@ -204,7 +204,7 @@ class ExerciseProgressScreenTest {
         show(content(ExerciseProgress(ProgressMetric.OneRepMax, listOf(point(1, 100.0)), listOf(point(1, 3_000.0)))))
 
         rule.onNodeWithText("Necesitas al menos 2 entrenos para ver la evolución").assertExists()
-        rule.onNodeWithTag("exercise_progress_single_value").assertTextEquals("Último entreno: 100,0")
+        rule.onNodeWithTag("exercise_progress_single_value").assertTextEquals("Último entreno: 100,0 kg")
         rule.onNodeWithTag("exercise_progress_chart_1rm").assertDoesNotExist()
         rule.onNodeWithTag("exercise_progress_chart_volume").assertDoesNotExist()
     }

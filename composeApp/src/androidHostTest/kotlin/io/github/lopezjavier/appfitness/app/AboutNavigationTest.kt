@@ -28,7 +28,7 @@ class AboutNavigationTest {
 
     private val profileSlot: ProfileSlot = { modifier, actions ->
         Box(modifier.fillMaxSize().testTag("profile_screen")) {
-            Box(Modifier.size(48.dp).testTag("profile_about_row").clickable(onClick = actions.onOpenAbout))
+            Box(Modifier.size(48.dp).testTag("profile_action_about").clickable(onClick = actions.onOpenAbout))
         }
     }
     private val aboutSlot: AboutSlot = { modifier, onBack ->
@@ -41,7 +41,7 @@ class AboutNavigationTest {
             AppTheme { AppScaffold(navController = rememberNavController(), profile = profileSlot, about = aboutSlot) }
         }
         rule.onNodeWithTag("nav_tab_profile").performClick()
-        rule.onNodeWithTag("profile_about_row").performClick()
+        rule.onNodeWithTag("profile_action_about").performClick()
         rule.waitForIdle()
 
         rule.onNodeWithTag("about_screen").assertExists()

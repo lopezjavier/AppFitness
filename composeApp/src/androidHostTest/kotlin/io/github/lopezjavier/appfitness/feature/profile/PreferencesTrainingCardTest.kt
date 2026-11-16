@@ -80,7 +80,7 @@ class PreferencesTrainingCardTest {
         rule.setContent { AppTheme { PreferencesScreen(loaded(), { events += it }) } }
 
         rule.onNodeWithTag("preferences_training_card").performScrollTo()
-        rule.onNodeWithText("Entrenamiento").assertExists()
+        rule.onNodeWithText("Series").assertExists()
         rule.onNodeWithText("Incluir calentamiento").assertExists()
         rule.onNodeWithText("Las series de calentamiento cuentan en volumen, 1RM y récords.").assertDoesNotExist()
         rule.onAllNodesWithTag("preferences_warm_up_help").assertCountEquals(1)

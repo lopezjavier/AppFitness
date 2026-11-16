@@ -144,11 +144,11 @@ class NotificationNavigationTest {
     }
 
     @Test
-    fun perfilBell_sitsBesideTheGear_andOpensTheCenter() {
+    fun perfilBell_sitsBesideAbout_andOpensTheCenter() {
         open(pending = 2)
         tap("nav_tab_profile")
 
-        rule.onNodeWithTag("profile_action_0").assertIsDisplayed()
+        rule.onNodeWithTag("profile_action_about").assertIsDisplayed()
         tap("profile_action_notifications")
 
         rule.onNodeWithTag("notifications_screen").assertIsDisplayed()

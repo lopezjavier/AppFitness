@@ -124,7 +124,7 @@ class PreferencesNavigationTest {
 
     private fun openHubFromPerfil() {
         tap("nav_tab_profile")
-        tap("profile_action_0")
+        tap("profile_preferences_row")
     }
 
     @Test
