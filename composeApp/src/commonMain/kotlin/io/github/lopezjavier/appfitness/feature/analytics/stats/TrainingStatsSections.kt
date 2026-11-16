@@ -15,6 +15,7 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import io.github.lopezjavier.appfitness.composeapp.resources.Res
 import io.github.lopezjavier.appfitness.composeapp.resources.chart_date_short
+import io.github.lopezjavier.appfitness.composeapp.resources.muscle_volume_open
 import io.github.lopezjavier.appfitness.composeapp.resources.stats_chart_cd
 import io.github.lopezjavier.appfitness.composeapp.resources.stats_chart_empty
 import io.github.lopezjavier.appfitness.composeapp.resources.stats_chart_title_month
@@ -36,6 +37,7 @@ import io.github.lopezjavier.appfitness.designsystem.AppTheme
 import io.github.lopezjavier.appfitness.designsystem.MetricTile
 import io.github.lopezjavier.appfitness.designsystem.MetricTileRow
 import io.github.lopezjavier.appfitness.designsystem.MuscleSplitBar
+import io.github.lopezjavier.appfitness.designsystem.NavigationRow
 import io.github.lopezjavier.appfitness.designsystem.Spacing
 import io.github.lopezjavier.appfitness.designsystem.durationText
 import io.github.lopezjavier.appfitness.domain.model.MuscleGroupSets
@@ -155,6 +157,7 @@ internal fun SetCountCard(
 internal fun MuscleRowsCard(
     muscleSets: SectionState<List<MuscleGroupSets>>,
     onRetry: () -> Unit,
+    onOpenMuscleVolume: () -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
     StatsCard(stringResource(Res.string.stats_muscles_title), modifier) {
@@ -172,6 +175,11 @@ internal fun MuscleRowsCard(
                         modifier = Modifier.testTag("stats_muscle_row_${row.muscleGroup.tagName()}"),
                     )
                 }
+                NavigationRow(
+                    label = stringResource(Res.string.muscle_volume_open),
+                    onClick = onOpenMuscleVolume,
+                    modifier = Modifier.testTag("stats_open_muscle_volume"),
+                )
             }
         }
     }

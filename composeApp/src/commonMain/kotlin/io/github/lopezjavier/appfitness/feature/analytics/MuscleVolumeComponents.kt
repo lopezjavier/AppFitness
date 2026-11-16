@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Text
@@ -17,6 +18,7 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.dp
 import io.github.lopezjavier.appfitness.composeapp.resources.Res
 import io.github.lopezjavier.appfitness.composeapp.resources.chart_date_short
 import io.github.lopezjavier.appfitness.composeapp.resources.muscle_volume_card_cd
@@ -24,6 +26,8 @@ import io.github.lopezjavier.appfitness.composeapp.resources.muscle_volume_chart
 import io.github.lopezjavier.appfitness.composeapp.resources.muscle_volume_chart_cd_week
 import io.github.lopezjavier.appfitness.composeapp.resources.muscle_volume_chart_title
 import io.github.lopezjavier.appfitness.composeapp.resources.muscle_volume_current_value
+import io.github.lopezjavier.appfitness.composeapp.resources.muscle_volume_last_week
+import io.github.lopezjavier.appfitness.designsystem.AppBarChart
 import io.github.lopezjavier.appfitness.designsystem.AppCard
 import io.github.lopezjavier.appfitness.designsystem.AppLineChart
 import io.github.lopezjavier.appfitness.designsystem.AppLineChartBlock
@@ -38,9 +42,11 @@ import io.github.lopezjavier.appfitness.feature.exercises.tagName
 import io.github.lopezjavier.appfitness.feature.workout.shortLabel
 import kotlinx.datetime.LocalDate
 import org.jetbrains.compose.resources.stringResource
+import kotlin.math.roundToInt
 
 private const val COMPACT_COLUMNS = 4
 private const val WIDE_COLUMNS = 8
+private val OverviewChartHeight = 64.dp
 
 @Composable
 private fun LocalDate.weekLabel(): String = stringResource(Res.string.chart_date_short, day, month.shortLabel())
@@ -66,14 +72,31 @@ internal fun GroupOverviewCard(
     ) {
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
             Text(name, style = AppTheme.typography.titleMedium, color = AppTheme.colors.textPrimary)
-            Text(
-                text = stringResource(Res.string.muscle_volume_current_value, current),
-                style = AppTheme.typography.labelNumeric,
-                color = AppTheme.colors.athleticCyan,
-                modifier = Modifier.testTag("muscle_volume_current_${group.tagName()}"),
-            )
+            Column(horizontalAlignment = Alignment.End) {
+                Text(
+                    text = stringResource(Res.string.muscle_volume_current_value, current),
+                    style = AppTheme.typography.labelNumeric,
+                    color = AppTheme.colors.athleticCyan,
+                    modifier = Modifier.testTag("muscle_volume_current_${group.tagName()}"),
+                )
+                Text(
+                    text = stringResource(Res.string.muscle_volume_last_week),
+                    style = AppTheme.typography.bodySmall,
+                    color = AppTheme.colors.textSecondary,
+                )
+            }
         }
-        WeekGrid(group, history, Modifier.fillMaxWidth().padding(top = Spacing.md))
+        val labels = history.weeks.map { it.weekLabel() }
+        val perWeek = labels.zip(values).map { (label, value) ->
+            stringResource(Res.string.muscle_volume_chart_cd_week, label, formatVolume(value))
+        }.joinToString("; ")
+        AppBarChart(
+            values = values.map { it.roundToInt() },
+            labels = labels,
+            description = stringResource(Res.string.muscle_volume_chart_cd, name, perWeek),
+            modifier = Modifier.fillMaxWidth().height(OverviewChartHeight).padding(top = Spacing.md)
+                .testTag("muscle_volume_overview_chart_${group.tagName()}"),
+        )
     }
 }
 

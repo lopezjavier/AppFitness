@@ -51,6 +51,18 @@ data class TrainingStatsUiState(
     val muscleDetail: SectionState<MuscleDetail> = SectionState.Loading,
 ) {
     val isEmpty: Boolean get() = summary == SectionState.Empty
+
+    /** Every block failed to load (R-114): the screen shows one error instead of one per block. */
+    val allFailed: Boolean
+        get() = listOf(summary, setCounts, muscleSets, topExercises, radar, bodyMap).all { it == SectionState.Error }
+
+    /** The frame is empty and the 7-day body map has no sets either: one empty state says it all (R-31). */
+    val isFullyEmpty: Boolean
+        get() = isEmpty && when (bodyMap) {
+            SectionState.Empty -> true
+            is SectionState.Content -> bodyMap.data.all { it.sets <= 0.0 }
+            else -> false
+        }
 }
 
 enum class StatsSection { Summary, Chart, Muscles, Exercises, Radar, Body, Sheet }

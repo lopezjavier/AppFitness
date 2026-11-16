@@ -405,7 +405,6 @@ internal typealias StrengthSlot =
     @Composable (
         modifier: Modifier,
         onOpenExercise: (String) -> Unit,
-        onOpenMuscleVolume: () -> Unit,
         onStartWorkout: () -> Unit,
         onBack: () -> Unit,
     ) -> Unit
@@ -414,9 +413,14 @@ internal typealias StrengthSlot =
 internal typealias MuscleVolumeSlot =
     @Composable (modifier: Modifier, onStartWorkout: () -> Unit, onBack: () -> Unit) -> Unit
 
-/** "Estadisticas" content: modifier (full-screen insets) and the progress opener (by exercise id). */
+/** "Estadisticas" content: modifier (full-screen insets), the progress opener (by exercise id) and the kilos per group. */
 internal typealias TrainingStatsSlot =
-    @Composable (modifier: Modifier, onOpenExercise: (String) -> Unit, onBack: () -> Unit) -> Unit
+    @Composable (
+        modifier: Modifier,
+        onOpenExercise: (String) -> Unit,
+        onOpenMuscleVolume: () -> Unit,
+        onBack: () -> Unit,
+    ) -> Unit
 
 /** Exercise progress content: modifier (full-screen insets) and the exercise id. */
 internal typealias ExerciseProgressSlot =
@@ -624,7 +628,7 @@ internal val DefaultPastWorkoutSlot: PastWorkoutSlot = { modifier, _, _, _, _ ->
 }
 
 /** Empty "Fuerza" for previews and shell tests; the real one is wired by `AppRoot`. */
-internal val DefaultStrengthSlot: StrengthSlot = { modifier, _, _, _, _ ->
+internal val DefaultStrengthSlot: StrengthSlot = { modifier, _, _, _ ->
     Box(modifier.fillMaxSize().testTag("strength_screen"))
 }
 
@@ -634,7 +638,7 @@ internal val DefaultMuscleVolumeSlot: MuscleVolumeSlot = { modifier, _, _ ->
 }
 
 /** Empty "Estadisticas" for previews and shell tests; the real one is wired by `AppRoot`. */
-internal val DefaultTrainingStatsSlot: TrainingStatsSlot = { modifier, _, _ ->
+internal val DefaultTrainingStatsSlot: TrainingStatsSlot = { modifier, _, _, _ ->
     Box(modifier.fillMaxSize().testTag("stats_screen"))
 }
 
@@ -1050,7 +1054,11 @@ internal fun AppNavHost(
             weightHistory(Modifier.padding(fullScreenPadding)) { navController.popFullScreen(entry) }
         }
         composable<StatsRoute> { entry ->
-            trainingStats(Modifier.padding(fullScreenPadding), openProgress) { navController.popFullScreen(entry) }
+            trainingStats(
+                Modifier.padding(fullScreenPadding),
+                openProgress,
+                { navController.navigateToFullScreen(MuscleVolumeRoute) },
+            ) { navController.popFullScreen(entry) }
         }
         composable<PreferencesRoute> { entry ->
             preferences(
@@ -1407,7 +1415,6 @@ private fun NavGraphBuilder.strengthDestinations(
         strength(
             Modifier.padding(fullScreenPadding),
             openProgress,
-            { navController.navigateToFullScreen(MuscleVolumeRoute) },
             { navController.navigateToTab(TopLevelTab.Workout) },
         ) { navController.popFullScreen(entry) }
     }

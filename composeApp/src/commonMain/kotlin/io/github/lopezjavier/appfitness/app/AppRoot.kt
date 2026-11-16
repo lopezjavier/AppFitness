@@ -81,14 +81,14 @@ fun AppRoot(
         trainer = { trainerModifier, actions ->
             TrainerRoute(trainerModifier, actions, nameResolver = koinInject())
         },
-        strength = { strengthModifier, onOpenExercise, onOpenMuscleVolume, onStartWorkout, onBack ->
-            StrengthRoot(onOpenExercise, onOpenMuscleVolume, onStartWorkout, onBack, strengthModifier)
+        strength = { strengthModifier, onOpenExercise, onStartWorkout, onBack ->
+            StrengthRoot(onOpenExercise, onStartWorkout, onBack, strengthModifier)
         },
         muscleVolume = { volumeModifier, onStartWorkout, onBack ->
             MuscleVolumeRoot(onStartWorkout, onBack, volumeModifier)
         },
-        trainingStats = { statsModifier, onOpenExercise, onBack ->
-            TrainingStatsRoot(onOpenExercise, onBack, statsModifier)
+        trainingStats = { statsModifier, onOpenExercise, onOpenMuscleVolume, onBack ->
+            TrainingStatsRoot(onOpenExercise, onOpenMuscleVolume, onBack, statsModifier)
         },
         exerciseProgress = { progressModifier, exerciseId, onBack ->
             ExerciseProgressRoot(exerciseId, onBack, progressModifier)

@@ -852,7 +852,7 @@
     <string name="body_view_back">Espalda</string>
     <string name="stats_sheet_subtitle">Últimos 7 días · %1$s</string>
     <string name="stats_sheet_empty">No has entrenado este músculo en los últimos 7 días.</string>
-    <string name="muscle_volume_title">Volumen</string>
+    <string name="muscle_volume_title">Kilos por grupo muscular</string>
     <string name="strength_card_title">1RM estimado</string>
     <string name="strength_record">Récord 1RM estimado: %1$s kg</string>
     <string name="strength_record_none">Sin récord de 1RM todavía</string>
@@ -888,9 +888,10 @@
     <string name="chart_date_short">%1$d %2$s</string>
 
     <!-- T-048b weekly muscle volume -->
-    <string name="muscle_volume_open">Volumen</string>
+    <string name="muscle_volume_open">Kilos por grupo muscular</string>
     <string name="muscle_volume_all">Todos</string>
-    <string name="muscle_volume_caption">Semanas de lunes a domingo · máximo 8</string>
+    <string name="muscle_volume_caption">Últimas 8 semanas, de lunes a domingo.</string>
+    <string name="muscle_volume_last_week">Última semana</string>
     <string name="muscle_volume_current_value">%1$s kg</string>
     <string name="muscle_volume_card_cd">%1$s, semana actual %2$s kg</string>
     <string name="muscle_volume_chart_title">%1$s: kg por semana</string>
