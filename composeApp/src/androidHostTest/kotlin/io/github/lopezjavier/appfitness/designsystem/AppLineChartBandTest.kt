@@ -21,8 +21,17 @@ class AppLineChartBandTest {
     private val values = listOf<Double?>(80.0, 79.0, 78.0)
 
     @Test
-    fun withoutBandOrReference_thereIsNoOverlay() {
-        assertNull(overlaySpec(null, null, values, null))
+    fun withoutBandOrReference_theSpecOnlyCarriesThePaddedDomain() {
+        val spec = overlaySpec(null, null, values, null)!!
+
+        assertNull(spec.reference)
+        assertNull(spec.band)
+        assertEquals(plotRange(null, values, null), spec.range)
+    }
+
+    @Test
+    fun withoutAnyData_thereIsNoOverlay() {
+        assertNull(overlaySpec(null, null, emptyList(), null))
     }
 
     @Test

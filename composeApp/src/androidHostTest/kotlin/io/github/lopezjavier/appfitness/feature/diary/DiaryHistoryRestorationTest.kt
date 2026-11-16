@@ -3,6 +3,7 @@ package io.github.lopezjavier.appfitness.feature.diary
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.ui.test.assertIsNotSelected
 import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.junit4.StateRestorationTester
@@ -67,7 +68,11 @@ class DiaryHistoryRestorationTest {
         rule.waitForIdle()
 
         rule.onNodeWithTag("month_calendar_title").assertTextEquals("septiembre 2026")
-        rule.onNodeWithTag("month_calendar_day_$September15").assertIsSelected()
         rule.onNodeWithTag("diary_history_view_week").assertIsSelected()
+        // Semana shows no selected day (C-157), but the chosen day survived and returns with the Día view.
+        rule.onNodeWithTag("month_calendar_day_$September15").assertIsNotSelected()
+        rule.onNodeWithTag("diary_history_view_day").performClick()
+        rule.waitForIdle()
+        rule.onNodeWithTag("month_calendar_day_$September15").assertIsSelected()
     }
 }

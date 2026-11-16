@@ -63,6 +63,7 @@ import io.github.lopezjavier.appfitness.designsystem.HelpContent
 import io.github.lopezjavier.appfitness.designsystem.ListSectionHeader
 import io.github.lopezjavier.appfitness.designsystem.MetricCard
 import io.github.lopezjavier.appfitness.designsystem.MetricTile
+import io.github.lopezjavier.appfitness.designsystem.MetricTileRow
 import io.github.lopezjavier.appfitness.designsystem.SegmentedSelector
 import io.github.lopezjavier.appfitness.designsystem.Spacing
 import io.github.lopezjavier.appfitness.designsystem.TrendPill
@@ -169,32 +170,40 @@ private fun SummaryCards(summary: WeeklySummary, names: Map<String, String>) {
         val volume = current.volume.roundToInt()
         Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
             // C-24: three figures side by side, each with its change as a pill; one caption says what it compares to.
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-                WeekTile(
-                    label = stringResource(Res.string.checkin_volume_label),
-                    value = AppNumberFormat.integer(volume),
-                    unit = stringResource(Res.string.checkin_kg_unit),
-                    delta = volume - previous.volume.roundToInt(),
-                    tag = "checkin_summary_volume",
-                    modifier = Modifier.weight(1f),
-                )
-                WeekTile(
-                    label = stringResource(Res.string.checkin_workouts_label),
-                    value = AppNumberFormat.integer(current.workouts),
-                    unit = null,
-                    delta = current.workouts - previous.workouts,
-                    tag = "checkin_summary_workouts",
-                    modifier = Modifier.weight(1f),
-                )
-                WeekTile(
-                    label = stringResource(Res.string.checkin_sets_label),
-                    value = AppNumberFormat.integer(current.sets),
-                    unit = null,
-                    delta = current.sets - previous.sets,
-                    tag = "checkin_summary_sets",
-                    modifier = Modifier.weight(1f),
-                )
-            }
+            MetricTileRow(
+                listOf(
+                    { m ->
+                        WeekTile(
+                            label = stringResource(Res.string.checkin_volume_label),
+                            value = AppNumberFormat.integer(volume),
+                            unit = stringResource(Res.string.checkin_kg_unit),
+                            delta = volume - previous.volume.roundToInt(),
+                            tag = "checkin_summary_volume",
+                            modifier = m,
+                        )
+                    },
+                    { m ->
+                        WeekTile(
+                            label = stringResource(Res.string.checkin_workouts_label),
+                            value = AppNumberFormat.integer(current.workouts),
+                            unit = null,
+                            delta = current.workouts - previous.workouts,
+                            tag = "checkin_summary_workouts",
+                            modifier = m,
+                        )
+                    },
+                    { m ->
+                        WeekTile(
+                            label = stringResource(Res.string.checkin_sets_label),
+                            value = AppNumberFormat.integer(current.sets),
+                            unit = null,
+                            delta = current.sets - previous.sets,
+                            tag = "checkin_summary_sets",
+                            modifier = m,
+                        )
+                    },
+                ),
+            )
             Text(
                 text = stringResource(Res.string.checkin_delta_caption),
                 style = AppTheme.typography.bodySmall,

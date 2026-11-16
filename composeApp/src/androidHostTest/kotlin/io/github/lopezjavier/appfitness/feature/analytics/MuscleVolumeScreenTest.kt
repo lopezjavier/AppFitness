@@ -59,18 +59,26 @@ class MuscleVolumeScreenTest {
         rule.onNodeWithTag("muscle_volume_card_chest").assertExists()
         rule.onNodeWithTag("muscle_volume_card_back").assertExists()
         rule.onNodeWithTag("muscle_volume_card_quads").assertDoesNotExist()
-        for (i in 0..7) rule.onNodeWithTag("muscle_volume_week_chest_$i", useUnmergedTree = true).assertExists()
-        for (i in 0..7) rule.onNodeWithTag("muscle_volume_week_back_$i", useUnmergedTree = true).assertExists()
-        rule.onNodeWithTag("muscle_volume_week_chest_6", useUnmergedTree = true).assertTextEquals("4.260")
-        rule.onNodeWithTag("muscle_volume_week_chest_0", useUnmergedTree = true).assertTextEquals("0")
+        rule.onNodeWithTag("muscle_volume_overview_chart_chest", useUnmergedTree = true).assertExists()
+        rule.onNodeWithTag("muscle_volume_overview_chart_back", useUnmergedTree = true).assertExists()
+        rule.onNodeWithTag("muscle_volume_week_chest_0", useUnmergedTree = true).assertDoesNotExist()
         rule.onNodeWithTag("muscle_volume_current_chest", useUnmergedTree = true).assertTextEquals("5.400 kg")
     }
 
     @Test
-    fun title_isVolumenInTheBar_andBackLeaves() {
+    fun singleGroup_showsTheEightWeeksOfThatGroup() {
+        show(content(MuscleGroup.Chest))
+
+        for (i in 0..7) rule.onNodeWithTag("muscle_volume_week_chest_$i", useUnmergedTree = true).assertExists()
+        rule.onNodeWithTag("muscle_volume_week_chest_6", useUnmergedTree = true).assertTextEquals("4.260")
+        rule.onNodeWithTag("muscle_volume_week_chest_0", useUnmergedTree = true).assertTextEquals("0")
+    }
+
+    @Test
+    fun title_isKilosPorGrupoMuscularInTheBar_andBackLeaves() {
         show(content())
 
-        rule.onNodeWithTag("muscle_volume_title").assertTextEquals("Volumen")
+        rule.onNodeWithTag("muscle_volume_title").assertTextEquals("Kilos por grupo muscular")
         rule.onNodeWithTag("muscle_volume_back").performClick()
 
         assertEquals(1, backs)
@@ -135,7 +143,7 @@ class MuscleVolumeScreenTest {
     fun caption_explainsTheWeeks() {
         show(content())
 
-        rule.onNodeWithText("Semanas de lunes a domingo · máximo 8").assertExists()
+        rule.onNodeWithText("Últimas 8 semanas, de lunes a domingo.").assertExists()
     }
 
     @Test
@@ -149,12 +157,23 @@ class MuscleVolumeScreenTest {
         )
         show(MuscleVolumeUiState.Content(threeWeeks, null))
 
-        for (i in 0..2) rule.onNodeWithTag("muscle_volume_week_chest_$i", useUnmergedTree = true).assertExists()
-        rule.onNodeWithTag("muscle_volume_week_chest_3", useUnmergedTree = true).assertDoesNotExist()
-        rule.onNodeWithTag("muscle_volume_week_chest_1", useUnmergedTree = true).assertTextEquals("0")
+        rule.onNodeWithTag("muscle_volume_overview_chart_chest", useUnmergedTree = true).assertExists()
         rule.onNodeWithTag("muscle_volume_current_chest", useUnmergedTree = true).assertTextEquals("5.400 kg")
         rule.onNodeWithTag("muscle_volume_chip_back").performClick()
         assertEquals(listOf<MuscleVolumeEvent>(MuscleVolumeEvent.SelectGroup(MuscleGroup.Back)), events)
+    }
+
+    @Test
+    fun threeWeekHistory_singleGroupShowsOnlyThreeWeekCells() {
+        val threeWeeks = MuscleVolumeHistory(
+            weeks = Weeks.takeLast(3),
+            series = mapOf(MuscleGroup.Chest to listOf(1000.0, 0.0, 5400.0)),
+        )
+        show(MuscleVolumeUiState.Content(threeWeeks, MuscleGroup.Chest))
+
+        for (i in 0..2) rule.onNodeWithTag("muscle_volume_week_chest_$i", useUnmergedTree = true).assertExists()
+        rule.onNodeWithTag("muscle_volume_week_chest_3", useUnmergedTree = true).assertDoesNotExist()
+        rule.onNodeWithTag("muscle_volume_week_chest_1", useUnmergedTree = true).assertTextEquals("0")
     }
 
     @Test

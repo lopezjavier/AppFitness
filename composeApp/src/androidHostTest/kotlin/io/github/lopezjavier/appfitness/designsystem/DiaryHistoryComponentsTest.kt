@@ -148,7 +148,7 @@ class DiaryHistoryComponentsTest {
             AppTheme { DiaryHistoryRow("18 oct", HistoryTotals(1840.0, 142.0, 210.0, 48.0), null, "Sin registros") }
         }
 
-        rule.onNode(hasText("P 142 g")).assertExists()
+        rule.onNode(hasText("P 142 g", substring = true)).assertExists()
         rule.onNodeWithTag("diary_history_macro_protein").assertDoesNotExist()
     }
 

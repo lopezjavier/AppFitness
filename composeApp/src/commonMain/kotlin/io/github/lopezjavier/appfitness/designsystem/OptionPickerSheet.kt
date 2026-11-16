@@ -19,7 +19,14 @@ import io.github.lopezjavier.appfitness.composeapp.resources.ic_check
 import org.jetbrains.compose.resources.painterResource
 
 /** One row of an [OptionPickerSheet]: its [tag] suffix, visible [label] and whether it is the chosen value. */
-internal class PickerOption(val tag: String, val label: String, val isSelected: Boolean, val onPick: () -> Unit)
+internal class PickerOption(
+    val tag: String,
+    val label: String,
+    val isSelected: Boolean,
+    /** Optional leading glyph that identifies the option (for example a training intention). */
+    val leading: (@Composable () -> Unit)? = null,
+    val onPick: () -> Unit,
+)
 
 /**
  * Picker archetype for a plain single-choice list: a tap applies the option to the draft and closes (R-12); the
@@ -41,6 +48,7 @@ private fun PickerRow(tagPrefix: String, option: PickerOption, onClose: () -> Un
     if (option.isSelected) LaunchedEffect(Unit) { requester.bringIntoView() }
     AppListRow(
         headline = option.label,
+        leading = option.leading,
         modifier = Modifier
             .bringIntoViewRequester(requester)
             .testTag("${tagPrefix}_option_${option.tag}")

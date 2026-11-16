@@ -10,6 +10,7 @@ import io.github.lopezjavier.appfitness.composeapp.resources.sign_out_dialog_con
 import io.github.lopezjavier.appfitness.composeapp.resources.sign_out_dialog_message
 import io.github.lopezjavier.appfitness.composeapp.resources.sign_out_dialog_title
 import io.github.lopezjavier.appfitness.designsystem.AppConfirmDialog
+import io.github.lopezjavier.appfitness.designsystem.GhostTone
 import org.jetbrains.compose.resources.stringResource
 
 @Composable
@@ -22,6 +23,7 @@ internal fun SignOutDialog(onConfirm: () -> Unit, onDismiss: () -> Unit) {
         onConfirm = onConfirm,
         onDismiss = onDismiss,
         testTagPrefix = "account_sign_out_dialog",
+        confirmTone = GhostTone.Action,
     )
 }
 

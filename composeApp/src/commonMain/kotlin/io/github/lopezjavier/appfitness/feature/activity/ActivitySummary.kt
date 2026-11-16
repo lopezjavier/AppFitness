@@ -43,7 +43,7 @@ import org.jetbrains.compose.resources.stringResource
 
 private const val STACK_FONT_SCALE = 1.5f
 private const val COLUMNS = 2
-private val IconSize = Spacing.xl
+private val IconSize = Spacing.lg
 private val SkeletonCardHeight = Spacing.xl * 3
 
 /** The value text of [metric] on [day], or null when the watch gave none. */
@@ -161,7 +161,7 @@ private fun ActivityMetricCard(
         modifier = modifier.testTag("activity_${metric.tagName()}_card").semantics { this.selected = selected },
         onClick = { onEvent(ActivityEvent.SelectMetric(metric)) },
         clickLabel = stringResource(Res.string.activity_card_click),
-        leading = {
+        labelLeading = {
             Icon(
                 painter = painterResource(metric.icon()),
                 contentDescription = null,

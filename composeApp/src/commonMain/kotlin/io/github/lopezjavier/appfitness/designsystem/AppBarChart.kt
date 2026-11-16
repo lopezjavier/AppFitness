@@ -30,8 +30,14 @@ object AppBarChartDefaults {
     /** Target number of labels on the bottom axis. */
     const val MAX_BOTTOM_LABELS = 4
 
-    /** Gap between two bars. */
-    val BarGap: Dp = 4.dp
+    /** Bars take this share of their slot (R-112), capped at [MaxBarWidth]. */
+    const val BAR_SLOT_FRACTION = 0.6f
+
+    /** Widest a bar gets, so a chart with few bars never shows one full-width slab (R-112). */
+    val MaxBarWidth: Dp = 32.dp
+
+    /** Height of the stub drawn for a zero value, so an empty slot still reads as a data point (R-112). */
+    val ZeroStub: Dp = 2.dp
 
     /** Rounded top corners of a bar. */
     val BarCorner: Dp = 2.dp
@@ -100,18 +106,16 @@ private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawBars(
     drawText(axisTexts[1], topLeft = Offset(axisWidth - axisTexts[1].size.width.toFloat(), 0f))
     if (input.values.isEmpty()) return
     val slot = plotWidth / input.values.size
-    val barWidth = max(slot - AppBarChartDefaults.BarGap.toPx(), 1f)
+    val barWidth = minOf(slot * AppBarChartDefaults.BAR_SLOT_FRACTION, AppBarChartDefaults.MaxBarWidth.toPx())
     val corner = CornerRadius(AppBarChartDefaults.BarCorner.toPx())
     input.values.forEachIndexed { index, value ->
-        val barHeight = plotHeight * value.coerceAtLeast(0) / maxValue
-        if (barHeight > 0f) {
-            drawRoundRect(
-                color = input.color,
-                topLeft = Offset(plotLeft + slot * index + (slot - barWidth) / 2f, plotBottom - barHeight),
-                size = Size(barWidth, barHeight),
-                cornerRadius = corner,
-            )
-        }
+        val barHeight = max(plotHeight * value.coerceAtLeast(0) / maxValue, AppBarChartDefaults.ZeroStub.toPx())
+        drawRoundRect(
+            color = input.color,
+            topLeft = Offset(plotLeft + slot * index + (slot - barWidth) / 2f, plotBottom - barHeight),
+            size = Size(barWidth, barHeight),
+            cornerRadius = corner,
+        )
     }
     val step = max(1, ceil(input.values.size / AppBarChartDefaults.MAX_BOTTOM_LABELS.toDouble()).toInt())
     for (index in input.labels.indices step step) {

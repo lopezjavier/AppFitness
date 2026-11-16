@@ -215,7 +215,7 @@ class TrainingStatsScreenTest {
     fun title_isEstadisticasInTheBar_andBackLeaves() {
         show(content())
 
-        rule.onNodeWithTag("stats_title").assertTextEquals("Entrenamiento")
+        rule.onNodeWithTag("stats_title").assertTextEquals("Entrenos")
         rule.onNodeWithTag("stats_back").performClick()
 
         assertEquals(1, backs)
@@ -343,7 +343,7 @@ class TrainingStatsScreenTest {
         show(content().copy(setCounts = SectionState.Error))
 
         scrollTo("stats_retry_chart")
-        rule.onNodeWithText("No se han podido cargar las estadísticas").assertExists()
+        rule.onNodeWithText("No se han podido cargar las estadísticas.").assertExists()
         rule.onNodeWithTag("stats_retry_chart").performClick()
         rule.onNodeWithTag("stats_tile_workouts").assertExists()
         rule.onNodeWithTag("stats_retry_summary").assertDoesNotExist()
@@ -363,6 +363,51 @@ class TrainingStatsScreenTest {
         scrollTo("stats_body_front")
         rule.onNodeWithTag("stats_body_front").assertExists()
         assertEquals(listOf<TrainingStatsEvent>(TrainingStatsEvent.SelectRange(ProgressRange.ThreeMonths)), events)
+    }
+
+    @Test
+    fun allSectionsFailed_showOneErrorWithoutTheRangeSelector_andRetryReloadsEverything() {
+        show(
+            TrainingStatsUiState(
+                summary = SectionState.Error,
+                setCounts = SectionState.Error,
+                muscleSets = SectionState.Error,
+                topExercises = SectionState.Error,
+                radar = SectionState.Error,
+                bodyMap = SectionState.Error,
+            ),
+        )
+
+        rule.onNodeWithTag("stats_range_month").assertDoesNotExist()
+        rule.onNodeWithTag("stats_retry_chart").assertDoesNotExist()
+        rule.onNodeWithTag("stats_error_action").assertTextEquals("Reintentar").performClick()
+
+        assertEquals(listOf<TrainingStatsEvent>(TrainingStatsEvent.Retry()), events)
+    }
+
+    @Test
+    fun fullyEmpty_hidesTheBodyMap_andShowsOnlyTheEmptyState() {
+        val noSets = SectionState.Content(groups().filter { it.muscleGroup != MuscleGroup.FullBody })
+        show(content().copy(summary = SectionState.Empty, bodyMap = noSets))
+
+        rule.onNodeWithTag("stats_empty_title").assertExists()
+        rule.onNodeWithTag("stats_body_front").assertDoesNotExist()
+        rule.onNodeWithTag("stats_body_empty").assertDoesNotExist()
+    }
+
+    @Test
+    fun muscleVolumeRow_endsTheMuscleGroupCard_andOpensTheKilosScreen() {
+        var volumeOpens = 0
+        rule.setContent {
+            AppTheme { TrainingStatsScreen(content(), {}, {}, {}, onOpenMuscleVolume = { volumeOpens++ }) }
+        }
+        scrollTo("stats_open_muscle_volume")
+
+        rule.onNodeWithTag("stats_open_muscle_volume").assertTextEquals("Kilos por grupo muscular")
+            .assertHeightIsAtLeast(48.dp)
+            .performClick()
+
+        assertEquals(1, volumeOpens)
     }
 
     @Test

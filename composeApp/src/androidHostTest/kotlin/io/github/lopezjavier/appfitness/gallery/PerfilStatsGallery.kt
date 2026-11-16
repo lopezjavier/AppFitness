@@ -44,7 +44,7 @@ import kotlinx.datetime.YearMonth
 
 private val Today = GalleryFixtures.today
 private val Chips =
-    listOf(StrengthChip("bench", "Press banca"), StrengthChip("squat", "Sentadilla"), StrengthChip("row", "Remo"))
+    listOf(StrengthChip("bench", "Press de banca"), StrengthChip("squat", "Sentadilla"), StrengthChip("row", "Remo"))
 
 private fun strength(): List<GalleryEntry> {
     fun entry(state: String, ui: StrengthUiState) = GalleryEntry(
@@ -55,7 +55,7 @@ private fun strength(): List<GalleryEntry> {
         alsoOpenedFrom = listOf("Entreno"),
     ) {
         StrengthScreen(ui, onEvent = {
-        }, onOpenExercise = {}, onOpenMuscleVolume = {}, onStartWorkout = {}, onBack = {})
+        }, onOpenExercise = {}, onStartWorkout = {}, onBack = {})
     }
     return listOf(
         entry("loading", StrengthUiState.Loading),
@@ -124,7 +124,7 @@ private fun exerciseProgress(): List<GalleryEntry> {
 }
 
 private fun trainingStats(): List<GalleryEntry> {
-    val bench = StatsExercise("bench", "Press banca", 9.0, 3)
+    val bench = StatsExercise("bench", "Press de banca", 9.0, 3)
     val full = qualityStatsState() as TrainingStatsUiState
 
     fun entry(state: String, ui: TrainingStatsUiState, kind: GalleryKind = GalleryKind.Screen, vararg covers: String) =

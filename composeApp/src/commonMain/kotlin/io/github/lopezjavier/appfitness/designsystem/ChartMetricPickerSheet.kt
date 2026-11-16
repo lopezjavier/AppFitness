@@ -17,8 +17,9 @@ import org.jetbrains.compose.resources.painterResource
 data class ChartMetricOption<T>(val value: T, val label: String, val tag: String)
 
 /**
- * The picker of the metric a chart plots (picker archetype, R-07): one row per option, the [selected] one checked. A
- * tap applies at once through [onSelect]; the caller closes the sheet. Tags: `<tagPrefix>_picker_sheet` (+ `_close`)
+ * The picker of the metric a chart plots (picker archetype, R-07): one row per option, the [selected] one with a
+ * lime check (R-64 b). A tap applies at once through [onSelect]; the caller closes the sheet. Tags:
+ * `<tagPrefix>_picker_sheet` (+ `_close`)
  * and `<tagPrefix>_<option.tag>` per row.
  */
 @Composable
@@ -50,7 +51,7 @@ fun <T> ChartMetricPickerSheet(
                         Icon(
                             painter = painterResource(Res.drawable.ic_check),
                             contentDescription = null,
-                            tint = AppTheme.colors.athleticCyan,
+                            tint = AppTheme.colors.neonLime,
                             modifier = Modifier.size(Spacing.xl),
                         )
                     }

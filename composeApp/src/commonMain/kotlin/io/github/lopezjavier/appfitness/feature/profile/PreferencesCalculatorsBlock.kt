@@ -8,15 +8,14 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.semantics.heading
-import androidx.compose.ui.semantics.semantics
 import io.github.lopezjavier.appfitness.composeapp.resources.Res
-import io.github.lopezjavier.appfitness.composeapp.resources.help_rounding_body
-import io.github.lopezjavier.appfitness.composeapp.resources.help_rounding_cd
-import io.github.lopezjavier.appfitness.composeapp.resources.help_rounding_title
 import io.github.lopezjavier.appfitness.composeapp.resources.preferences_calc_bar
 import io.github.lopezjavier.appfitness.composeapp.resources.preferences_calc_bar_10
 import io.github.lopezjavier.appfitness.composeapp.resources.preferences_calc_bar_15
@@ -31,11 +30,9 @@ import io.github.lopezjavier.appfitness.composeapp.resources.preferences_calc_pl
 import io.github.lopezjavier.appfitness.composeapp.resources.preferences_calc_plates
 import io.github.lopezjavier.appfitness.composeapp.resources.preferences_calc_plates_error
 import io.github.lopezjavier.appfitness.composeapp.resources.preferences_calc_rounding_value
-import io.github.lopezjavier.appfitness.composeapp.resources.preferences_calc_title
 import io.github.lopezjavier.appfitness.designsystem.AppOption
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
 import io.github.lopezjavier.appfitness.designsystem.AppToggleChip
-import io.github.lopezjavier.appfitness.designsystem.HelpButton
 import io.github.lopezjavier.appfitness.designsystem.NumberStepper
 import io.github.lopezjavier.appfitness.designsystem.SegmentedSelector
 import io.github.lopezjavier.appfitness.designsystem.Spacing
@@ -47,8 +44,9 @@ import org.jetbrains.compose.resources.stringResource
 private const val ROUNDING_STEP_KG = 0.5
 
 /**
- * "Calculadoras" block of the training card: dumbbell handle, default bar, available plates and the derived rounding
- * (read-only, twice the smallest plate; ADR-56). All of it is a draft until "Guardar"; switching off the last plate
+ * content of the "Calculadoras" card (title and "?" are its header, C-168): dumbbell handle, default bar,
+ * available plates and the derived rounding (read-only, twice the smallest plate; ADR-56). All of it is a draft
+ * until "Guardar"; switching off the last plate
  * is refused and shows [platesError].
  */
 @Composable
@@ -59,20 +57,6 @@ internal fun CalculatorsBlock(
     modifier: Modifier = Modifier,
 ) {
     Column(modifier, verticalArrangement = Arrangement.spacedBy(Spacing.md)) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Text(
-                text = stringResource(Res.string.preferences_calc_title),
-                style = AppTheme.typography.titleMedium,
-                color = AppTheme.colors.textPrimary,
-                modifier = Modifier.weight(1f).semantics { heading() },
-            )
-            HelpButton(
-                contentDescription = stringResource(Res.string.help_rounding_cd),
-                title = stringResource(Res.string.help_rounding_title),
-                body = stringResource(Res.string.help_rounding_body),
-                testTag = "rounding_help",
-            )
-        }
         RoundingRow(
             label = stringResource(Res.string.preferences_calc_dumbbell_handle),
             kg = settings.dumbbellHandleKg,
@@ -108,17 +92,9 @@ private fun RoundingRow(
     onChange: (Double) -> Unit,
 ) {
     val text = GhostData.weightText(kg)
-    Row(
-        Modifier.fillMaxWidth(),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(Spacing.md),
-    ) {
-        Text(
-            text = label,
-            style = AppTheme.typography.bodyLarge,
-            color = AppTheme.colors.textPrimary,
-            modifier = Modifier.weight(1f),
-        )
+    // The stepper moves to its own line when the label wraps (R-83).
+    var stacked by remember { mutableStateOf(false) }
+    val stepper: @Composable () -> Unit = {
         NumberStepper(
             valueText = stringResource(Res.string.preferences_calc_rounding_value, text),
             onDecrement = { onChange(kg - ROUNDING_STEP_KG) },
@@ -131,6 +107,30 @@ private fun RoundingRow(
             modifier = Modifier.testTag(tag),
             testTagPrefix = tag,
         )
+    }
+    val labelText: @Composable (Modifier) -> Unit = { labelModifier ->
+        Text(
+            text = label,
+            style = AppTheme.typography.bodyLarge,
+            color = AppTheme.colors.textPrimary,
+            modifier = labelModifier,
+            onTextLayout = { if (it.lineCount > 1) stacked = true },
+        )
+    }
+    if (stacked) {
+        Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
+            labelText(Modifier)
+            stepper()
+        }
+    } else {
+        Row(
+            Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(Spacing.md),
+        ) {
+            labelText(Modifier.weight(1f))
+            stepper()
+        }
     }
 }
 
@@ -146,8 +146,8 @@ private fun BarSelector(barKg: Double, onSelect: (Double) -> Unit) {
     Column(verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
         Text(
             text = stringResource(Res.string.preferences_calc_bar),
-            style = AppTheme.typography.bodyMedium,
-            color = AppTheme.colors.textSecondary,
+            style = AppTheme.typography.bodyLarge,
+            color = AppTheme.colors.textPrimary,
         )
         SegmentedSelector(
             options = options,
@@ -164,8 +164,8 @@ private fun PlateChips(enabled: List<Double>, showError: Boolean, onToggle: (Dou
     Column(verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
         Text(
             text = stringResource(Res.string.preferences_calc_plates),
-            style = AppTheme.typography.bodyMedium,
-            color = AppTheme.colors.textSecondary,
+            style = AppTheme.typography.bodyLarge,
+            color = AppTheme.colors.textPrimary,
         )
         FlowRow(
             horizontalArrangement = Arrangement.spacedBy(Spacing.sm),

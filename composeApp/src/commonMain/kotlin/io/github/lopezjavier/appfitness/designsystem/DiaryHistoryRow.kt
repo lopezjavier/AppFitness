@@ -15,14 +15,10 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.Role
 import io.github.lopezjavier.appfitness.composeapp.resources.Res
 import io.github.lopezjavier.appfitness.composeapp.resources.diary_history_target_kcal
-import io.github.lopezjavier.appfitness.composeapp.resources.diary_meal_carbs
-import io.github.lopezjavier.appfitness.composeapp.resources.diary_meal_fat
 import io.github.lopezjavier.appfitness.composeapp.resources.diary_meal_kcal
-import io.github.lopezjavier.appfitness.composeapp.resources.diary_meal_protein
 import io.github.lopezjavier.appfitness.composeapp.resources.macro_carbs
 import io.github.lopezjavier.appfitness.composeapp.resources.macro_fat
 import io.github.lopezjavier.appfitness.composeapp.resources.macro_protein
-import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.stringResource
 import kotlin.math.roundToInt
 
@@ -110,11 +106,13 @@ private fun KcalLine(totals: HistoryTotals, targets: HistoryTargets?) {
 @Composable
 private fun MacroLines(totals: HistoryTotals, targets: HistoryTargets?) {
     if (targets == null) {
-        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(Spacing.lg)) {
-            PlainMacro(Res.string.diary_meal_protein, totals.proteinG)
-            PlainMacro(Res.string.diary_meal_carbs, totals.carbsG)
-            PlainMacro(Res.string.diary_meal_fat, totals.fatG)
-        }
+        MacroLine(
+            proteinG = AppNumberFormat.integer(totals.proteinG.roundToInt()),
+            carbsG = AppNumberFormat.integer(totals.carbsG.roundToInt()),
+            fatG = AppNumberFormat.integer(totals.fatG.roundToInt()),
+            modifier = Modifier.fillMaxWidth(),
+            style = AppTheme.typography.bodyMedium,
+        )
     } else {
         Column(verticalArrangement = Arrangement.spacedBy(Spacing.lg)) {
             MacroBar(Macro.Protein, stringResource(Res.string.macro_protein), totals.proteinG, targets.proteinG)
@@ -122,15 +120,6 @@ private fun MacroLines(totals: HistoryTotals, targets: HistoryTargets?) {
             MacroBar(Macro.Fat, stringResource(Res.string.macro_fat), totals.fatG, targets.fatG)
         }
     }
-}
-
-@Composable
-private fun PlainMacro(format: StringResource, grams: Double) {
-    Text(
-        text = stringResource(format, AppNumberFormat.integer(grams.roundToInt())),
-        style = AppTheme.typography.bodyMedium,
-        color = AppTheme.colors.textSecondary,
-    )
 }
 
 @Composable

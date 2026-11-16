@@ -8,15 +8,14 @@ import org.koin.compose.viewmodel.koinViewModel
 
 /**
  * Stateful meals editor: connects [MealSlotsEditorViewModel]; the editor template calls [onClose] once the structure
- * is saved or the user leaves. [onOpenDefaults] opens the default comidas.
+ * is saved or the user leaves.
  */
 @Composable
 fun MealSlotsRoot(
     onClose: () -> Unit,
-    onOpenDefaults: () -> Unit,
     modifier: Modifier = Modifier,
     viewModel: MealSlotsEditorViewModel = koinViewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
-    MealSlotsScreen(state, viewModel::onEvent, modifier, onOpenDefaults, onClose)
+    MealSlotsScreen(state, viewModel::onEvent, modifier, onClose)
 }

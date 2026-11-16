@@ -184,18 +184,17 @@ class PreferencesRestorationTest {
     }
 
     @Test
-    fun anOpenPickerSheet_andItsDraft_surviveRecreation_andNothingIsAppliedUntilListo() {
+    fun anOpenActivitySheet_survivesRecreation_andNothingIsAppliedUntilALevelIsTapped() {
         val tester = StateRestorationTester(rule)
         show(tester, "personal")
         rule.onNodeWithTag("preferences_activity_row").performScrollTo().performClick()
-        rule.onNodeWithTag("preferences_activity_light").performClick()
         rule.waitForIdle()
 
         recreate(tester)
 
         rule.onNodeWithTag("preferences_sheet_activity").assertIsDisplayed()
         rule.onNodeWithTag("preferences_personal_save").assertIsNotEnabled()
-        rule.onNodeWithTag("preferences_sheet_commit").performClick()
+        rule.onNodeWithTag("preferences_activity_light").performClick()
         rule.waitForIdle()
         rule.onNodeWithTag("preferences_personal_save").assertIsEnabled()
     }

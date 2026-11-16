@@ -173,12 +173,13 @@ private fun WeightContentView(
     }
     val summary: @Composable () -> Unit = {
         Column(verticalArrangement = Arrangement.spacedBy(Spacing.cardGap)) {
-            CurrentWeightCard(content, onEvent, timeZone, trend, healthSync, onHealthEvent)
+            healthSync?.let { HealthStatusLine(it, onHealthEvent) }
+            CurrentWeightCard(content, onEvent, timeZone, trend)
             (trend as? WeightTrendUiState.Content)?.planOutcome?.let { PlanOutcomeCard(it) }
+            trend?.let { WeightChart(it, onTrendEvent) }
             goal?.let {
                 MetricCardsSection(it, onGoalEvent)
             }
-            trend?.let { WeightChart(it, onTrendEvent) }
         }
     }
     val measurements: @Composable () -> Unit = {
@@ -242,16 +243,12 @@ private fun WeightSheets(
  * "Peso actual": the latest weight of any source with when it was taken, the weekly rate and the Health Connect
  * status with its button. The label and value open the composition; the pencil edits today's weight.
  */
-// Screen state plus its event sinks.
-@Suppress("LongParameterList")
 @Composable
 private fun CurrentWeightCard(
     content: WeightContent,
     onEvent: (WeightEvent) -> Unit,
     timeZone: TimeZone,
     trend: WeightTrendUiState?,
-    healthSync: HealthSyncUiState?,
-    onHealthEvent: (HealthSyncEvent) -> Unit,
 ) {
     val current = content.current
     val editEnabled = content.days[content.today]?.hasHealthConnectWeight != true
@@ -278,7 +275,6 @@ private fun CurrentWeightCard(
                     )
                     trend?.let { WeeklyRatePill(it) }
                 }
-                healthSync?.let { HealthStatusLine(it, onHealthEvent) }
             }
         },
         trailingAction = { EditTodayButton({ onEvent(WeightEvent.LogToday) }, editEnabled) },

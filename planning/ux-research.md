@@ -104,3 +104,9 @@ Sources the `ux-critic` already opened, with the takeaway used. Read this before
 - C-104: Carbon button usage: grouped buttons share one width; primary on the right, on top when stacked. https://carbondesignsystem.com/components/button/usage/
 - C-110: Non-breaking space between a number and its unit (style guides cited). https://en.wikipedia.org/wiki/Non-breaking_space
 - C-119: M3 motion tokens: DurationMedium2 = 300 ms; emphasized decelerate (0.05, 0.7, 0.1, 1.0).
+- C-149: NN/g IA tree tests: "Are content titles distinguishable from one another?" https://www.nngroup.com/articles/navigation-ia-tests/
+- C-151, C-152, C-163: Hevy Profile: Statistics (muscle charts), Exercises (per-lift bests and history), Measures (weight, body fat, circumferences). https://www.hevyapp.com/features/gym-progress/
+- C-150, C-153..C-156, C-167, C-169: Android settings pattern: secondary text shows status; a dependent setting goes below its parent; avoid account entries in the overview; labels do not repeat the section title. https://developer.android.com/design/ui/mobile/guides/patterns/settings
+- C-159: Europa data visualisation guide: line charts may skip the zero baseline when zero hides important changes. https://data.europa.eu/apps/data-visualisation-guide/scales-in-line-charts
+- C-166: NN/g chart types: bar charts make differences between values easy to perceive. https://www.nngroup.com/articles/choosing-chart-types/
+- C-160, C-161: WCAG 1.4.4 failure F69: clipped or truncated text at 200 %. https://www.w3.org/WAI/WCAG21/Understanding/resize-text.html

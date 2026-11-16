@@ -130,6 +130,7 @@ internal typealias PreferencesSlot =
         onBack: () -> Unit,
         onOpenSection: (String) -> Unit,
         onOpenMeals: () -> Unit,
+        onOpenMealDefaults: () -> Unit,
     ) -> Unit
 
 /** Content of one Preferencias editor: its modifier (full-screen insets) and how to leave (saved, discarded, back). */
@@ -287,8 +288,7 @@ internal typealias SaveTemplateSlot =
     ) -> Unit
 
 /** Meals editor content: modifier (full-screen insets) and how to leave. */
-internal typealias MealSlotsSlot =
-    @Composable (modifier: Modifier, onClose: () -> Unit, onOpenDefaults: () -> Unit) -> Unit
+internal typealias MealSlotsSlot = @Composable (modifier: Modifier, onClose: () -> Unit) -> Unit
 
 /** Default comidas editor content (US-51): modifier (full-screen insets) and how to leave. */
 internal typealias MealDefaultsSlot = @Composable (modifier: Modifier, onClose: () -> Unit) -> Unit
@@ -403,7 +403,6 @@ internal typealias StrengthSlot =
     @Composable (
         modifier: Modifier,
         onOpenExercise: (String) -> Unit,
-        onOpenMuscleVolume: () -> Unit,
         onStartWorkout: () -> Unit,
         onBack: () -> Unit,
     ) -> Unit
@@ -412,9 +411,17 @@ internal typealias StrengthSlot =
 internal typealias MuscleVolumeSlot =
     @Composable (modifier: Modifier, onStartWorkout: () -> Unit, onBack: () -> Unit) -> Unit
 
-/** "Estadisticas" content: modifier (full-screen insets) and the progress opener (by exercise id). */
+/**
+ * "Estadisticas" content: modifier (full-screen insets), the progress opener (by exercise id) and the kilos per
+ * group.
+ */
 internal typealias TrainingStatsSlot =
-    @Composable (modifier: Modifier, onOpenExercise: (String) -> Unit, onBack: () -> Unit) -> Unit
+    @Composable (
+        modifier: Modifier,
+        onOpenExercise: (String) -> Unit,
+        onOpenMuscleVolume: () -> Unit,
+        onBack: () -> Unit,
+    ) -> Unit
 
 /** Exercise progress content: modifier (full-screen insets) and the exercise id. */
 internal typealias ExerciseProgressSlot =
@@ -578,7 +585,7 @@ internal val DefaultCreateFoodSlot: CreateFoodSlot = { modifier, _, _, _, _, _, 
 }
 
 /** Empty meals editor for previews and shell tests; the real one is wired by `AppRoot`. */
-internal val DefaultMealSlotsSlot: MealSlotsSlot = { modifier, _, _ ->
+internal val DefaultMealSlotsSlot: MealSlotsSlot = { modifier, _ ->
     Box(modifier.fillMaxSize().testTag("meals_screen"))
 }
 
@@ -622,7 +629,7 @@ internal val DefaultPastWorkoutSlot: PastWorkoutSlot = { modifier, _, _, _, _ ->
 }
 
 /** Empty "Fuerza" for previews and shell tests; the real one is wired by `AppRoot`. */
-internal val DefaultStrengthSlot: StrengthSlot = { modifier, _, _, _, _ ->
+internal val DefaultStrengthSlot: StrengthSlot = { modifier, _, _, _ ->
     Box(modifier.fillMaxSize().testTag("strength_screen"))
 }
 
@@ -632,7 +639,7 @@ internal val DefaultMuscleVolumeSlot: MuscleVolumeSlot = { modifier, _, _ ->
 }
 
 /** Empty "Estadisticas" for previews and shell tests; the real one is wired by `AppRoot`. */
-internal val DefaultTrainingStatsSlot: TrainingStatsSlot = { modifier, _, _ ->
+internal val DefaultTrainingStatsSlot: TrainingStatsSlot = { modifier, _, _, _ ->
     Box(modifier.fillMaxSize().testTag("stats_screen"))
 }
 
@@ -642,7 +649,7 @@ internal val DefaultExerciseProgressSlot: ExerciseProgressSlot = { modifier, _, 
 }
 
 /** Empty Preferencias for previews and shell tests; the real one is wired by `AppRoot`. */
-internal val DefaultPreferencesSlot: PreferencesSlot = { modifier, onBack, _, _ ->
+internal val DefaultPreferencesSlot: PreferencesSlot = { modifier, onBack, _, _, _ ->
     Box(modifier.fillMaxSize().testTag("preferences_screen")) {
         Box(Modifier.fillMaxSize().clickable(onClick = onBack).testTag("preferences_back"))
     }
@@ -1037,7 +1044,11 @@ internal fun AppNavHost(
             weightHistory(Modifier.padding(fullScreenPadding)) { navController.popFullScreen(entry) }
         }
         composable<StatsRoute> { entry ->
-            trainingStats(Modifier.padding(fullScreenPadding), openProgress) { navController.popFullScreen(entry) }
+            trainingStats(
+                Modifier.padding(fullScreenPadding),
+                openProgress,
+                { navController.navigateToFullScreen(MuscleVolumeRoute) },
+            ) { navController.popFullScreen(entry) }
         }
         composable<PreferencesRoute> { entry ->
             preferences(
@@ -1045,6 +1056,7 @@ internal fun AppNavHost(
                 { navController.popFullScreen(entry) },
                 { key -> navController.navigateToFullScreen(PreferencesSectionRoute(key)) },
                 openMeals,
+                openMealDefaults,
             )
         }
         composable<PreferencesSectionRoute> { entry ->
@@ -1111,7 +1123,7 @@ internal fun AppNavHost(
             templateDetails,
         )
         composable<MealSlotsRoute> {
-            mealSlots(Modifier.padding(fullScreenPadding), { navController.popBackStack() }, openMealDefaults)
+            mealSlots(Modifier.padding(fullScreenPadding)) { navController.popBackStack() }
         }
         composable<MealDefaultsRoute> {
             mealDefaults(Modifier.padding(fullScreenPadding)) { navController.popBackStack() }
@@ -1393,7 +1405,6 @@ private fun NavGraphBuilder.strengthDestinations(
         strength(
             Modifier.padding(fullScreenPadding),
             openProgress,
-            { navController.navigateToFullScreen(MuscleVolumeRoute) },
             { navController.navigateToTab(TopLevelTab.Workout) },
         ) { navController.popFullScreen(entry) }
     }

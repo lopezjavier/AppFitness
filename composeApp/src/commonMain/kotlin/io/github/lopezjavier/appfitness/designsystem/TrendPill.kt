@@ -85,7 +85,8 @@ object TrendPillDefaults {
 
 /**
  * Read-only weekly-trend pill: tone glyph, trend arrow and the caller-formatted [text]. The tone is
- * spoken through a state description. The caller's [modifier] lands on the merged node.
+ * spoken through a state description. [showToneIcon] false keeps only the arrow glyph (Fuerza, C-152). The
+ * caller's [modifier] lands on the merged node.
  */
 @Composable
 fun TrendPill(
@@ -94,6 +95,7 @@ fun TrendPill(
     modifier: Modifier = Modifier,
     direction: TrendDirection = TrendDirection.None,
     containerColor: Color? = null,
+    showToneIcon: Boolean = true,
 ) {
     val color = TrendPillDefaults.contentColor(tone, AppTheme.colors)
     val toneDescription =
@@ -107,7 +109,7 @@ fun TrendPill(
         modifier = modifier.semantics(mergeDescendants = true) { toneDescription?.let { stateDescription = it } },
         containerColor = TrendPillDefaults.containerColor(AppTheme.colors, containerColor),
     ) {
-        TrendPillDefaults.toneIcon(tone)?.let { PillIcon(it, color) }
+        if (showToneIcon) TrendPillDefaults.toneIcon(tone)?.let { PillIcon(it, color) }
         TrendPillDefaults.directionIcon(direction)?.let { PillIcon(it, color) }
         Text(text = text, style = TrendPillDefaults.textStyle(AppTheme.typography), color = color)
     }

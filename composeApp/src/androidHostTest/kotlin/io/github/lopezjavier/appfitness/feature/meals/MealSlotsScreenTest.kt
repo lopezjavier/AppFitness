@@ -66,7 +66,6 @@ private fun editing(
     isDirty = isDirty,
     saveError = saveError,
     canSave = canSave,
-    canNavigateToDefaults = !isDirty,
 )
 
 /** US-56 meals editor rendered from a given state: rows, Name sheet, states and the events they send. */
@@ -80,7 +79,6 @@ class MealSlotsScreenTest {
     private val events = mutableListOf<MealSlotsEvent>()
     private val messages = RecordingMessages()
     private var closed = 0
-    private var defaultsOpened = 0
 
     private fun show(state: MealSlotsUiState) {
         rule.setContent {
@@ -88,7 +86,7 @@ class MealSlotsScreenTest {
                 CompositionLocalProvider(LocalAppMessages provides messages) {
                     MealSlotsScreen(state, {
                         events += it
-                    }, onOpenDefaults = { defaultsOpened++ }, onClose = { closed++ })
+                    }, onClose = { closed++ })
                 }
             }
         }
@@ -173,26 +171,6 @@ class MealSlotsScreenTest {
 
         rule.onNodeWithTag("meals_delete_lunch").assertIsNotEnabled()
         rule.onNodeWithTag("meals_hint_lunch").assertTextEquals("Debe quedar al menos una comida del día")
-    }
-
-    @Test
-    fun defaultsRow_whileDirty_isDisabledAndExplainsWhy() {
-        show(editing(isDirty = true))
-
-        rule.onNodeWithTag("meal_slots_defaults_button").assertIsNotEnabled().performClick()
-        rule.onNodeWithTag("meal_slots_defaults_hint")
-            .assertTextEquals("Guarda los cambios para abrir las comidas por defecto")
-        assertEquals(0, defaultsOpened)
-    }
-
-    @Test
-    fun defaultsRow_whenClean_opensTheDefaults() {
-        show(editing(isDirty = false, canSave = false))
-
-        rule.onNodeWithTag("meal_slots_defaults_hint").assertDoesNotExist()
-        rule.onNodeWithTag("meal_slots_defaults_button").assertIsEnabled().performClick()
-
-        assertEquals(1, defaultsOpened)
     }
 
     @Test

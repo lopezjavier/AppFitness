@@ -4,8 +4,6 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.size
-import androidx.compose.material3.Icon
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -14,10 +12,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.semantics.selected
-import androidx.compose.ui.semantics.semantics
 import io.github.lopezjavier.appfitness.composeapp.resources.Res
-import io.github.lopezjavier.appfitness.composeapp.resources.ic_check
 import io.github.lopezjavier.appfitness.composeapp.resources.preferences_checkin_day_help_body
 import io.github.lopezjavier.appfitness.composeapp.resources.preferences_checkin_day_help_cd
 import io.github.lopezjavier.appfitness.composeapp.resources.preferences_checkin_day_row
@@ -31,24 +26,23 @@ import io.github.lopezjavier.appfitness.composeapp.resources.preferences_reminde
 import io.github.lopezjavier.appfitness.composeapp.resources.preferences_reminders_weight
 import io.github.lopezjavier.appfitness.composeapp.resources.preferences_reminders_weight_helper
 import io.github.lopezjavier.appfitness.designsystem.AppCard
-import io.github.lopezjavier.appfitness.designsystem.AppListRow
-import io.github.lopezjavier.appfitness.designsystem.AppPickerSheet
 import io.github.lopezjavier.appfitness.designsystem.AppSwitchRow
-import io.github.lopezjavier.appfitness.designsystem.AppTheme
 import io.github.lopezjavier.appfitness.designsystem.HelpButton
 import io.github.lopezjavier.appfitness.designsystem.HelpContent
 import io.github.lopezjavier.appfitness.designsystem.NavigationRow
+import io.github.lopezjavier.appfitness.designsystem.OptionPickerSheet
+import io.github.lopezjavier.appfitness.designsystem.PickerOption
 import io.github.lopezjavier.appfitness.designsystem.Spacing
 import io.github.lopezjavier.appfitness.designsystem.weekdayName
 import io.github.lopezjavier.appfitness.domain.model.NotificationKind
-import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.resources.stringResource
 
 private const val DAYS_PER_ISO_WEEK = 7
 
 /**
- * "Avisos" section of Preferencias (US-57, US-59): the three reminder switches and the "Día del check-in" row (value =
- * the weekday, lowercase) opening a picker of the seven weekdays. Switches and day are drafts (R-10): a tap applies to
+ * "Avisos" section of Preferencias (US-57, US-59): the reminder switches, in the order weight, circumferences,
+ * check-in, its day, weekly summary, block end (C-156), and the "Día del check-in" row (value = the weekday,
+ * lowercase) opening a picker of the seven weekdays. Switches and day are drafts (R-10): a tap applies to
  * the draft (the picker closes, R-12) and the editor's "Guardar" saves them.
  */
 @Composable
@@ -81,7 +75,6 @@ internal fun RemindersSection(form: PreferencesForm, onEvent: (PreferencesEvent)
                 helpContentDescription = stringResource(Res.string.preferences_reminders_checkin_help_cd),
                 helpTestTag = "preferences_reminders_checkin_help",
             )
-            NoticeSwitches(form, onEvent)
             Row(verticalAlignment = Alignment.CenterVertically) {
                 NavigationRow(
                     label = dayLabel,
@@ -96,6 +89,7 @@ internal fun RemindersSection(form: PreferencesForm, onEvent: (PreferencesEvent)
                     testTag = "preferences_checkin_day_help",
                 )
             }
+            NoticeSwitches(form, onEvent)
         }
     }
     if (picking) {
@@ -124,34 +118,18 @@ private fun NoticeSwitches(form: PreferencesForm, onEvent: (PreferencesEvent) ->
 
 @Composable
 private fun WeekdayPicker(title: String, weekday: Int, onEvent: (PreferencesEvent) -> Unit, onClose: () -> Unit) {
-    AppPickerSheet(
+    // One choice applies on tap with a lime check on the current day (R-12, R-64 b).
+    OptionPickerSheet(
         title = title,
-        onDismiss = onClose,
-        testTagPrefix = "preferences_checkin_weekday_sheet",
-    ) {
-        for (day in 1..DAYS_PER_ISO_WEEK) {
-            AppListRow(
-                headline = weekdayName(day),
-                modifier = Modifier
-                    .testTag("preferences_checkin_weekday_option_$day")
-                    .semantics { selected = day == weekday },
-                onClick = {
-                    onEvent(PreferencesEvent.SetCheckInWeekday(day))
-                    onClose()
-                },
-                trailing = if (day == weekday) {
-                    {
-                        Icon(
-                            painter = painterResource(Res.drawable.ic_check),
-                            contentDescription = null,
-                            tint = AppTheme.colors.athleticCyan,
-                            modifier = Modifier.size(Spacing.xl),
-                        )
-                    }
-                } else {
-                    null
-                },
+        tagPrefix = "preferences_checkin_weekday",
+        options = (1..DAYS_PER_ISO_WEEK).map { day ->
+            PickerOption(
+                tag = day.toString(),
+                label = weekdayName(day),
+                isSelected = day == weekday,
+                onPick = { onEvent(PreferencesEvent.SetCheckInWeekday(day)) },
             )
-        }
-    }
+        },
+        onClose = onClose,
+    )
 }

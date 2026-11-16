@@ -410,7 +410,7 @@ class CircumferenceSectionTest {
         show()
 
         rule.onNodeWithTag("circumference_empty").assertExists()
-        rule.onNodeWithText("Aún no hay medidas").assertExists()
+        rule.onNodeWithText("Aún no hay circunferencias").assertExists()
         rule.onNodeWithText("Registra tu primera circunferencia.").assertExists()
     }
 

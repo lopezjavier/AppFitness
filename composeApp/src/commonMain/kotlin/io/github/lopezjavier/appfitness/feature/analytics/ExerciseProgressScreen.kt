@@ -37,6 +37,7 @@ import io.github.lopezjavier.appfitness.composeapp.resources.exercise_progress_r
 import io.github.lopezjavier.appfitness.composeapp.resources.exercise_progress_records_cd
 import io.github.lopezjavier.appfitness.composeapp.resources.exercise_progress_single_session
 import io.github.lopezjavier.appfitness.composeapp.resources.exercise_progress_single_value
+import io.github.lopezjavier.appfitness.composeapp.resources.exercise_progress_single_value_kg
 import io.github.lopezjavier.appfitness.composeapp.resources.exercise_progress_title
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_trending_up
 import io.github.lopezjavier.appfitness.designsystem.AppCard
@@ -274,7 +275,11 @@ private fun NotEnoughData(progress: ExerciseProgress) {
             progress.primary.singleOrNull()?.let { point ->
                 Text(
                     text = stringResource(
-                        Res.string.exercise_progress_single_value,
+                        if (progress.mode == ProgressMetric.OneRepMax) {
+                            Res.string.exercise_progress_single_value_kg
+                        } else {
+                            Res.string.exercise_progress_single_value
+                        },
                         progress.mode.spec().format(point.value),
                     ),
                     style = AppTheme.typography.labelNumeric,

@@ -66,21 +66,54 @@ fun HelpButton(
         modifier = modifier,
         tint = AppTheme.colors.textSecondary,
     )
-    if (open) {
-        AppInfoSheet(title = title, onDismiss = { open = false }, testTagPrefix = "${testTag}_sheet") {
-            Column(
-                Modifier.semantics(mergeDescendants = true) {}.testTag("${testTag}_sheet_body"),
-                verticalArrangement = Arrangement.spacedBy(Spacing.sm),
-            ) {
-                content.paragraphs.forEach { HelpText(it) }
-                content.bullets.forEachIndexed { index, bullet ->
-                    Row(
-                        Modifier.testTag("${testTag}_sheet_bullet_${index + 1}"),
-                        horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
-                    ) {
-                        Text("•", style = AppTheme.typography.bodyLarge, color = AppTheme.colors.textSecondary)
-                        HelpText(bullet, Modifier.weight(1f))
-                    }
+    if (open) HelpSheet(title, content, testTag) { open = false }
+}
+
+/**
+ * The "?" of a screen that explains one thing as a top-bar action (C-167): returns the [AppTopBarAction] for the
+ * `actions` of the screen template and draws the [AppInfoSheet] itself while it is open. Same tags as [HelpButton]
+ * (`<testTag>` on the icon, `<testTag>_sheet` on the sheet); the open state survives recreation.
+ */
+@Composable
+fun rememberHelpTopBarAction(
+    contentDescription: String,
+    title: String,
+    body: String,
+    testTag: String,
+): AppTopBarAction {
+    var open by rememberSaveable { mutableStateOf(false) }
+    if (open) HelpSheet(title, HelpContent.fromBody(body), testTag) { open = false }
+    return AppTopBarAction(
+        icon = Res.drawable.ic_help,
+        contentDescription = contentDescription,
+        onClick = { open = true },
+        testTag = testTag,
+    )
+}
+
+/** A "?" top-bar action that runs [onClick] (e.g. opens a screen) instead of a help sheet. */
+fun helpTopBarAction(contentDescription: String, testTag: String, onClick: () -> Unit) = AppTopBarAction(
+    icon = Res.drawable.ic_help,
+    contentDescription = contentDescription,
+    onClick = onClick,
+    testTag = testTag,
+)
+
+@Composable
+private fun HelpSheet(title: String, content: HelpContent, testTag: String, onDismiss: () -> Unit) {
+    AppInfoSheet(title = title, onDismiss = onDismiss, testTagPrefix = "${testTag}_sheet") {
+        Column(
+            Modifier.semantics(mergeDescendants = true) {}.testTag("${testTag}_sheet_body"),
+            verticalArrangement = Arrangement.spacedBy(Spacing.sm),
+        ) {
+            content.paragraphs.forEach { HelpText(it) }
+            content.bullets.forEachIndexed { index, bullet ->
+                Row(
+                    Modifier.testTag("${testTag}_sheet_bullet_${index + 1}"),
+                    horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+                ) {
+                    Text("•", style = AppTheme.typography.bodyLarge, color = AppTheme.colors.textSecondary)
+                    HelpText(bullet, Modifier.weight(1f))
                 }
             }
         }

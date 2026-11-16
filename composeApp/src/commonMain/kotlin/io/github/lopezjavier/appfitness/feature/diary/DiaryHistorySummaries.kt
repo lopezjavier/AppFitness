@@ -9,7 +9,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import io.github.lopezjavier.appfitness.composeapp.resources.Res
 import io.github.lopezjavier.appfitness.composeapp.resources.diary_history_empty
+import io.github.lopezjavier.appfitness.composeapp.resources.diary_history_month_title
 import io.github.lopezjavier.appfitness.composeapp.resources.diary_history_week_title
+import io.github.lopezjavier.appfitness.designsystem.AppDateFormat
 import io.github.lopezjavier.appfitness.designsystem.DiaryHistoryRow
 import io.github.lopezjavier.appfitness.designsystem.HistoryTargets
 import io.github.lopezjavier.appfitness.designsystem.HistoryTotals
@@ -21,6 +23,7 @@ import io.github.lopezjavier.appfitness.domain.usecase.PeriodAverage
 import io.github.lopezjavier.appfitness.feature.workout.sessionDateLabel
 import io.github.lopezjavier.appfitness.feature.workout.text
 import kotlinx.datetime.LocalDate
+import kotlinx.datetime.YearMonth
 import org.jetbrains.compose.resources.stringResource
 
 private fun DiaryGoals.toTargets() = HistoryTargets(targetKcal, proteinG, carbsG, fatG)
@@ -49,7 +52,7 @@ internal fun DiaryHistorySummary(
 
         DiaryHistoryView.Week -> WeekSummary(content.week, targets, modifier)
 
-        DiaryHistoryView.Month -> MonthSummaryCards(content.monthSummary, targets, modifier)
+        DiaryHistoryView.Month -> MonthSummaryCards(content.monthSummary, targets, content.month, modifier)
     }
 }
 
@@ -69,13 +72,19 @@ private fun WeekSummary(week: PeriodAverage?, targets: HistoryTargets?, modifier
 }
 
 @Composable
-private fun MonthSummaryCards(summary: MonthSummary?, targets: HistoryTargets?, modifier: Modifier = Modifier) {
+private fun MonthSummaryCards(
+    summary: MonthSummary?,
+    targets: HistoryTargets?,
+    month: YearMonth,
+    modifier: Modifier = Modifier,
+) {
     Column(
         modifier.fillMaxWidth().testTag("diary_history_month_summary"),
         verticalArrangement = Arrangement.spacedBy(Spacing.cardGap),
     ) {
         DiaryHistoryRow(
-            title = stringResource(Res.string.diary_history_week_title),
+            // The card names the month it averages ("octubre 2026 · media diaria", C-157).
+            title = stringResource(Res.string.diary_history_month_title, AppDateFormat.month(month.firstDay)),
             totals = summary?.let { HistoryTotals(it.avgKcalPerLoggedDay, it.avgProteinG, it.avgCarbsG, it.avgFatG) },
             targets = targets,
             emptyText = stringResource(Res.string.diary_history_empty),

@@ -1,5 +1,6 @@
 package io.github.lopezjavier.appfitness.feature.profile
 
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.test.assertContentDescriptionEquals
 import androidx.compose.ui.test.assertHeightIsAtLeast
 import androidx.compose.ui.test.assertIsDisplayed
@@ -17,6 +18,8 @@ import io.github.lopezjavier.appfitness.designsystem.AppAvatarDefaults
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
 import io.github.lopezjavier.appfitness.designsystem.WindowWidthClassDefaults
 import io.github.lopezjavier.appfitness.domain.model.TrainingIntention
+import io.github.lopezjavier.appfitness.feature.notifications.LocalNotificationsEntry
+import io.github.lopezjavier.appfitness.feature.notifications.NotificationsEntry
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Rule
@@ -65,21 +68,23 @@ class ProfileRootScreenTest {
         myTrainingOpens = 0
         rule.setContent {
             AppTheme {
-                ProfileRootScreen(
-                    state = state,
-                    onEvent = { events += it },
-                    actions = ProfileRootActions(
-                        onOpenPreferences = { preferencesOpens++ },
-                        onOpenCatalog = if (withCatalog) ({ catalogOpens++ }) else null,
-                        onOpenStrength = { strengthOpens++ },
-                        onOpenWeight = { weightOpens++ },
-                        onOpenDiaryHistory = { diaryHistoryOpens++ },
-                        onOpenTrainingStats = { trainingStatsOpens++ },
-                        onOpenAbout = { aboutOpens++ },
-                        onOpenActivity = { activityOpens++ },
-                        onOpenMyTraining = { myTrainingOpens++ },
-                    ),
-                )
+                CompositionLocalProvider(LocalNotificationsEntry provides NotificationsEntry(0) {}) {
+                    ProfileRootScreen(
+                        state = state,
+                        onEvent = { events += it },
+                        actions = ProfileRootActions(
+                            onOpenPreferences = { preferencesOpens++ },
+                            onOpenCatalog = if (withCatalog) ({ catalogOpens++ }) else null,
+                            onOpenStrength = { strengthOpens++ },
+                            onOpenWeight = { weightOpens++ },
+                            onOpenDiaryHistory = { diaryHistoryOpens++ },
+                            onOpenTrainingStats = { trainingStatsOpens++ },
+                            onOpenAbout = { aboutOpens++ },
+                            onOpenActivity = { activityOpens++ },
+                            onOpenMyTraining = { myTrainingOpens++ },
+                        ),
+                    )
+                }
             }
         }
         rule.waitForIdle()
@@ -130,17 +135,27 @@ class ProfileRootScreenTest {
         rule.onNodeWithTag("profile_my_training_row").assertTextEquals("Mi entrenamiento")
     }
 
-    // -- gear -----------------------------------------------------------------------------------------------------
+    // -- top bar and Preferencias row -----------------------------------------------------------------------------
 
     @Test
-    fun gear_isNamedPreferencias_meetsTheTouchTarget_andOpensPreferences() {
+    fun topBar_hasNoGear_andAboutComesBeforeTheBell() {
         show()
         rule.onNodeWithTag("profile_title").assertTextEquals("Perfil")
-        rule.onNodeWithTag("profile_action_0")
-            .assertContentDescriptionEquals("Preferencias")
+        rule.onNodeWithTag("profile_action_0").assertDoesNotExist()
+        val about = rule.onNodeWithTag("profile_action_about").getUnclippedBoundsInRoot()
+        val bell = rule.onNodeWithTag("profile_action_notifications").getUnclippedBoundsInRoot()
+        assertTrue("about ${about.left} bell ${bell.left}", about.left < bell.left)
+    }
+
+    @Test
+    fun preferencesRow_isTheOnlyRowOfTheLastCard_andOpensPreferences() {
+        show()
+        rule.onNodeWithTag("profile_preferences_row").assertTextEquals("Preferencias")
             .assertHeightIsAtLeast(48.dp)
             .performClick()
         assertEquals(1, preferencesOpens)
+        rule.onNodeWithTag("profile_about_row").assertDoesNotExist()
+        rule.onNodeWithTag("profile_account_row").assertDoesNotExist()
     }
 
     @Test
@@ -156,22 +171,14 @@ class ProfileRootScreenTest {
     // -- statistics rows ------------------------------------------------------------------------------------------
 
     @Test
-    fun statisticsRows_showTheirValues_asOneNodeLabelAndValue() {
+    fun statisticsRows_showOnlyTheirLabel_evenWhenValuesAreKnown() {
         show()
         rule.onNodeWithTag("profile_statistics_heading").assertTextEquals("Estadísticas")
-        rule.onNodeWithTag("profile_weight_row").assertTextEquals("Peso", "79,4 kg")
-        rule.onNodeWithTag("profile_strength_row").assertTextEquals("Fuerza", "Récord 1RM 113,5 kg")
-        rule.onNodeWithTag("profile_diary_history_row").assertTextEquals("Calorías", "media 1.950 kcal")
-        rule.onNodeWithTag("profile_training_stats_row").assertTextEquals("Entrenamiento")
-        rule.onNodeWithTag("profile_activity_row").assertTextEquals("Actividad")
-    }
-
-    @Test
-    fun aStatisticWithoutValue_showsOnlyItsLabel() {
-        show(loaded(weightKg = null, strengthRecordKg = null, avgKcal = null))
         rule.onNodeWithTag("profile_weight_row").assertTextEquals("Peso")
         rule.onNodeWithTag("profile_strength_row").assertTextEquals("Fuerza")
         rule.onNodeWithTag("profile_diary_history_row").assertTextEquals("Calorías")
+        rule.onNodeWithTag("profile_training_stats_row").assertTextEquals("Entrenos")
+        rule.onNodeWithTag("profile_activity_row").assertTextEquals("Actividad")
     }
 
     @Test
@@ -187,10 +194,13 @@ class ProfileRootScreenTest {
     }
 
     @Test
-    fun aboutRow_isPresentAndOpensAbout() {
+    fun aboutAction_isNamedAcercaDe_meetsTheTouchTarget_andOpensAbout() {
         show()
 
-        rule.onNodeWithTag("profile_about_row").assertHeightIsAtLeast(48.dp).performClick()
+        rule.onNodeWithTag("profile_action_about")
+            .assertContentDescriptionEquals("Acerca de")
+            .assertHeightIsAtLeast(48.dp)
+            .performClick()
 
         assertEquals(1, aboutOpens)
     }

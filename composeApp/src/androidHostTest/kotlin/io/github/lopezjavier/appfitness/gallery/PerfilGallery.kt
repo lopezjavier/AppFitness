@@ -168,7 +168,7 @@ private fun preferences(): List<GalleryEntry> {
             loadedPreferences(personal),
             GalleryKind.Sheet,
             scrollTap("preferences_activity_row"),
-            covers = arrayOf("PickerSheet"),
+            covers = arrayOf("PickerSheet", "PersonalSheets"),
         ),
         section("Datos personales", personal, "large font (1.3)", loadedPreferences(personal, dirty), fontScale = 1.3f),
         section(
@@ -275,7 +275,7 @@ private fun about(): List<GalleryEntry> = listOf(
 
 internal fun perfilEntries(): List<GalleryEntry> =
     profileRoot() + preferences() + about() + perfilMealsEntries() + perfilWeightEntries() +
-        perfilStatsEntries()
+        perfilStatsEntries() + perfilIntentionEntries()
 
 /** Renders the Perfil entries (US-131); skipped unless `-Pgallery`. */
 @OptIn(ExperimentalRoborazziApi::class)
@@ -288,7 +288,7 @@ class PerfilGallery {
 
     @Test
     fun rendersProfileAndPreferences() = rule.renderGallery(
-        (profileRoot() + preferences() + about()).filter {
+        (profileRoot() + preferences() + about() + perfilIntentionEntries()).filter {
             !it.wide && !it.tall
         },
     )

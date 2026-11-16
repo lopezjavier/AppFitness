@@ -153,9 +153,9 @@ class SessionDetailScreenTest {
         show(detail())
 
         rule.onNodeWithTag("session_detail_screen").assertExists()
-        rule.onNodeWithTag("session_detail_duration").assertTextContains("1 h 2")
+        rule.onNodeWithTag("session_detail_duration").assertTextContains("1 h 2", substring = true)
         rule.onNodeWithTag("session_detail_sets").assertTextContains("3")
-        rule.onNodeWithTag("session_detail_volume").assertTextContains("2.120")
+        rule.onNodeWithTag("session_detail_volume").assertTextContains("2.120", substring = true)
         rule.onNodeWithText("Press banca").assertExists()
         rule.onNodeWithTag("session_detail_set_0_1").assertTextContains("60 kg × 12")
         rule.onNodeWithTag("session_detail_set_0_2").assertTextContains("87,5 kg × 8")
@@ -211,7 +211,7 @@ class SessionDetailScreenTest {
     fun recalculatedVolume_isShownFromTheState() {
         show(detail(volumeKg = 2_032.5))
 
-        rule.onNodeWithTag("session_detail_volume").assertTextContains("2.033")
+        rule.onNodeWithTag("session_detail_volume").assertTextContains("2.033", substring = true)
     }
 
     @Test

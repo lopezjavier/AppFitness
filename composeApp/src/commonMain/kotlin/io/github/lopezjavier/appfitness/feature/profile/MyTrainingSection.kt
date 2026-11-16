@@ -145,6 +145,7 @@ private fun IntentionRow(intention: TrainingIntention?, unset: String, onClick: 
             onClick = onClick,
             modifier = Modifier.weight(1f).testTag("preferences_intention_field"),
             value = intention?.let { stringResource(it.label) } ?: unset,
+            valueLeading = intention?.let { { IntentionIcon(it, selected = true) } },
         )
         HelpButton(
             contentDescription = stringResource(Res.string.my_training_intention_help_cd),
@@ -179,7 +180,7 @@ private fun Label(text: String, modifier: Modifier = Modifier) = Text(
 @Composable
 private fun LabelWithHelp(text: String, helpContentDescription: String, helpBody: String, helpTestTag: String) {
     Row(verticalAlignment = Alignment.CenterVertically) {
-        Label(text, Modifier.weight(1f))
+        Label(text)
         HelpButton(
             contentDescription = helpContentDescription,
             title = text,
@@ -204,7 +205,12 @@ private fun IntentionPicker(current: TrainingIntention?, onEvent: (PreferencesEv
         onEvent(PreferencesEvent.SetIntention(null))
     }
     val options = TrainingIntention.entries.map {
-        PickerOption(it.tagName(), stringResource(it.label), it == current) {
+        PickerOption(
+            tag = it.tagName(),
+            label = stringResource(it.label),
+            isSelected = it == current,
+            leading = { IntentionIcon(it, selected = it == current) },
+        ) {
             onEvent(PreferencesEvent.SetIntention(it))
         }
     }

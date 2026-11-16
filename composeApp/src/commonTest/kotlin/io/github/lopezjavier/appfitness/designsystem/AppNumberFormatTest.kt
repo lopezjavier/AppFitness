@@ -14,6 +14,17 @@ class AppNumberFormatTest {
     }
 
     @Test
+    fun volume_staysInKilosBelowOneHundredThousand() {
+        assertEquals("99.999" to "kg", AppNumberFormat.volume(99_999.0, "kg", "t"))
+    }
+
+    @Test
+    fun volume_becomesTonnesFromOneHundredThousandKilos() {
+        assertEquals("100" to "t", AppNumberFormat.volume(100_000.0, "kg", "t"))
+        assertEquals("1.250,5" to "t", AppNumberFormat.volume(1_250_500.0, "kg", "t"))
+    }
+
+    @Test
     fun integer_zero() = assertEquals("0", AppNumberFormat.integer(0))
 
     @Test

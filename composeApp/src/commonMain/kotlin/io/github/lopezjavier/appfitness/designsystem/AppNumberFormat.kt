@@ -9,6 +9,8 @@ private const val TEN = 10L
 private const val HALF = 0.5
 private const val CENTS = 100.0
 private const val MAX_SCALED = 9.0e18
+private const val TONNE_FROM_KG = 100_000.0
+private const val KG_PER_TONNE = 1000.0
 private const val HUGE = "999.999.999.999.999"
 
 /**
@@ -63,6 +65,17 @@ object AppNumberFormat {
         val sign = if (value < 0 && cents > 0) MINUS.toString() else ""
         return "$sign${group((cents / CENTS.toLong()).toString())},$fraction €"
     }
+
+    /**
+     * A training volume as (value, unit) for a metric tile (C-160): whole kilos below 100.000 kg, otherwise tonnes with
+     * one decimal ("1.250,5" t). The caller passes the localized unit labels.
+     */
+    fun volume(volumeKg: Double, kgUnit: String, tonneUnit: String): Pair<String, String> =
+        if (volumeKg >= TONNE_FROM_KG) {
+            decimal(volumeKg / KG_PER_TONNE) to tonneUnit
+        } else {
+            integer(floor(volumeKg + HALF).toInt()) to kgUnit
+        }
 
     /** Like [integer] but a positive value carries "+" ("+250", "−400", "0"). */
     fun signedInteger(value: Int): String = if (value > 0) "+${integer(value)}" else integer(value)

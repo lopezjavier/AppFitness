@@ -80,22 +80,22 @@ fun AppRoot(
         trainer = { trainerModifier, actions ->
             TrainerRoute(trainerModifier, actions, nameResolver = koinInject())
         },
-        strength = { strengthModifier, onOpenExercise, onOpenMuscleVolume, onStartWorkout, onBack ->
-            StrengthRoot(onOpenExercise, onOpenMuscleVolume, onStartWorkout, onBack, strengthModifier)
+        strength = { strengthModifier, onOpenExercise, onStartWorkout, onBack ->
+            StrengthRoot(onOpenExercise, onStartWorkout, onBack, strengthModifier)
         },
         muscleVolume = { volumeModifier, onStartWorkout, onBack ->
             MuscleVolumeRoot(onStartWorkout, onBack, volumeModifier)
         },
-        trainingStats = { statsModifier, onOpenExercise, onBack ->
-            TrainingStatsRoot(onOpenExercise, onBack, statsModifier)
+        trainingStats = { statsModifier, onOpenExercise, onOpenMuscleVolume, onBack ->
+            TrainingStatsRoot(onOpenExercise, onOpenMuscleVolume, onBack, statsModifier)
         },
         exerciseProgress = { progressModifier, exerciseId, onBack ->
             ExerciseProgressRoot(exerciseId, onBack, progressModifier)
         },
-        preferences = { hubModifier, onBack, onOpenSection, onOpenMeals ->
+        preferences = { hubModifier, onBack, onOpenSection, onOpenMeals, onOpenMealDefaults ->
             PreferencesHubRoot(
                 onBack = onBack,
-                actions = PreferencesHubActions({ onOpenSection(it.key) }, onOpenMeals),
+                actions = PreferencesHubActions({ onOpenSection(it.key) }, onOpenMeals, onOpenMealDefaults),
                 modifier = hubModifier,
             )
         },
@@ -195,7 +195,7 @@ fun AppRoot(
             WeightHistoryRoot(onBack, historyModifier, onRemindersChange = refreshReminders)
         },
         diaryHistory = { historyModifier, onOpenDay, onBack -> DiaryHistoryRoot(onOpenDay, onBack, historyModifier) },
-        mealSlots = { mealsModifier, onClose, onOpenDefaults -> MealSlotsRoot(onClose, onOpenDefaults, mealsModifier) },
+        mealSlots = { mealsModifier, onClose -> MealSlotsRoot(onClose, mealsModifier) },
         mealDefaults = { defaultsModifier, onClose -> MealDefaultsRoot(onClose, defaultsModifier) },
         foodSearch = { searchModifier, slotId, date, onOpenFood, onCreateFood, onOpenTemplate, pick, viewOnly, onBack ->
             FoodSearchRoot(

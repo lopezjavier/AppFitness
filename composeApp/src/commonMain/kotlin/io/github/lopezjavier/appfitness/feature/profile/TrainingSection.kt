@@ -12,12 +12,17 @@ import androidx.compose.ui.platform.testTag
 import io.github.lopezjavier.appfitness.composeapp.resources.Res
 import io.github.lopezjavier.appfitness.composeapp.resources.help_previous_mode_body
 import io.github.lopezjavier.appfitness.composeapp.resources.help_previous_mode_cd
+import io.github.lopezjavier.appfitness.composeapp.resources.help_rounding_body
+import io.github.lopezjavier.appfitness.composeapp.resources.help_rounding_cd
+import io.github.lopezjavier.appfitness.composeapp.resources.help_rounding_title
 import io.github.lopezjavier.appfitness.composeapp.resources.preferences_auto_update_help_body
 import io.github.lopezjavier.appfitness.composeapp.resources.preferences_auto_update_help_cd
 import io.github.lopezjavier.appfitness.composeapp.resources.preferences_auto_update_label
+import io.github.lopezjavier.appfitness.composeapp.resources.preferences_calc_title
 import io.github.lopezjavier.appfitness.composeapp.resources.preferences_previous_mode_overall
 import io.github.lopezjavier.appfitness.composeapp.resources.preferences_previous_mode_routine
 import io.github.lopezjavier.appfitness.composeapp.resources.preferences_previous_values_title
+import io.github.lopezjavier.appfitness.composeapp.resources.preferences_series_title
 import io.github.lopezjavier.appfitness.composeapp.resources.preferences_warm_up_help_body
 import io.github.lopezjavier.appfitness.composeapp.resources.preferences_warm_up_help_cd
 import io.github.lopezjavier.appfitness.composeapp.resources.preferences_warm_up_label
@@ -26,6 +31,7 @@ import io.github.lopezjavier.appfitness.designsystem.AppSwitchRow
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
 import io.github.lopezjavier.appfitness.designsystem.HelpButton
 import io.github.lopezjavier.appfitness.designsystem.HelpContent
+import io.github.lopezjavier.appfitness.designsystem.SectionCard
 import io.github.lopezjavier.appfitness.designsystem.SegmentedSelector
 import io.github.lopezjavier.appfitness.designsystem.Spacing
 import io.github.lopezjavier.appfitness.domain.model.CalculatorSettings
@@ -33,12 +39,11 @@ import io.github.lopezjavier.appfitness.domain.model.PreviousValuesMode
 import org.jetbrains.compose.resources.stringResource
 
 /**
- * "Entrenamiento" editor content: "Incluir calentamiento" and "Actualizar automáticamente" rows, the
- * previous-values selector
- * and the "Calculadoras" block. The switch is drawn inside but hidden from semantics, so there is a single focus
- * target (the row). Nothing is applied until "Guardar".
+ * "Registro de series" editor content (C-168): a "Series" card ("Incluir calentamiento", "Actualizar
+ * automáticamente", the previous-values selector) and a "Calculadoras" card. The switch is drawn inside but hidden
+ * from semantics, so there is a single focus target (the row). Nothing is applied until "Guardar".
  */
-@Suppress("LongParameterList") // One value and callback per control of the card.
+@Suppress("LongParameterList") // One value and callback per control of the cards.
 @Composable
 internal fun TrainingSection(
     warmUpIncluded: Boolean,
@@ -52,30 +57,44 @@ internal fun TrainingSection(
     onEvent: (PreferencesEvent) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    run {
-        Column(
-            modifier.fillMaxWidth().testTag("preferences_training_card"),
-            verticalArrangement = Arrangement.spacedBy(Spacing.sm),
+    Column(
+        modifier.fillMaxWidth().testTag("preferences_training_card"),
+        verticalArrangement = Arrangement.spacedBy(Spacing.cardGap),
+    ) {
+        SectionCard(title = stringResource(Res.string.preferences_series_title)) {
+            Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+                AppSwitchRow(
+                    label = stringResource(Res.string.preferences_warm_up_label),
+                    checked = warmUpIncluded,
+                    onCheckedChange = onChange,
+                    modifier = Modifier.testTag("preferences_warm_up_switch"),
+                    help = HelpContent.fromBody(stringResource(Res.string.preferences_warm_up_help_body)),
+                    helpContentDescription = stringResource(Res.string.preferences_warm_up_help_cd),
+                    helpTestTag = "preferences_warm_up_help",
+                )
+                AppSwitchRow(
+                    label = stringResource(Res.string.preferences_auto_update_label),
+                    checked = autoUpdateRoutine,
+                    onCheckedChange = onAutoUpdateRoutine,
+                    modifier = Modifier.testTag("preferences_auto_update_switch"),
+                    help = HelpContent.fromBody(stringResource(Res.string.preferences_auto_update_help_body)),
+                    helpContentDescription = stringResource(Res.string.preferences_auto_update_help_cd),
+                    helpTestTag = "preferences_auto_update_help",
+                )
+                PreviousValuesSelector(previousValuesMode, onPreviousValuesMode)
+            }
+        }
+        SectionCard(
+            title = stringResource(Res.string.preferences_calc_title),
+            help = {
+                HelpButton(
+                    contentDescription = stringResource(Res.string.help_rounding_cd),
+                    title = stringResource(Res.string.help_rounding_title),
+                    body = stringResource(Res.string.help_rounding_body),
+                    testTag = "rounding_help",
+                )
+            },
         ) {
-            AppSwitchRow(
-                label = stringResource(Res.string.preferences_warm_up_label),
-                checked = warmUpIncluded,
-                onCheckedChange = onChange,
-                modifier = Modifier.testTag("preferences_warm_up_switch"),
-                help = HelpContent.fromBody(stringResource(Res.string.preferences_warm_up_help_body)),
-                helpContentDescription = stringResource(Res.string.preferences_warm_up_help_cd),
-                helpTestTag = "preferences_warm_up_help",
-            )
-            AppSwitchRow(
-                label = stringResource(Res.string.preferences_auto_update_label),
-                checked = autoUpdateRoutine,
-                onCheckedChange = onAutoUpdateRoutine,
-                modifier = Modifier.testTag("preferences_auto_update_switch"),
-                help = HelpContent.fromBody(stringResource(Res.string.preferences_auto_update_help_body)),
-                helpContentDescription = stringResource(Res.string.preferences_auto_update_help_cd),
-                helpTestTag = "preferences_auto_update_help",
-            )
-            PreviousValuesSelector(previousValuesMode, onPreviousValuesMode)
             CalculatorsBlock(calculators, platesError, onEvent)
         }
     }
@@ -90,12 +109,12 @@ private fun PreviousValuesSelector(mode: PreviousValuesMode, onSelect: (Previous
         AppOption(stringResource(Res.string.preferences_previous_mode_overall), "preferences_previous_mode_overall"),
     )
     Column(verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
+        // The "?" stays next to its label (R-83).
         Row(verticalAlignment = Alignment.CenterVertically) {
             Text(
                 text = stringResource(Res.string.preferences_previous_values_title),
-                style = AppTheme.typography.bodyMedium,
-                color = AppTheme.colors.textSecondary,
-                modifier = Modifier.weight(1f),
+                style = AppTheme.typography.bodyLarge,
+                color = AppTheme.colors.textPrimary,
             )
             HelpButton(
                 contentDescription = stringResource(Res.string.help_previous_mode_cd),

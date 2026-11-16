@@ -30,12 +30,6 @@ import io.github.lopezjavier.appfitness.composeapp.resources.energy_adjust_state
 import io.github.lopezjavier.appfitness.composeapp.resources.energy_adjust_value
 import io.github.lopezjavier.appfitness.composeapp.resources.energy_floor_warning
 import io.github.lopezjavier.appfitness.composeapp.resources.energy_heading
-import io.github.lopezjavier.appfitness.composeapp.resources.energy_intensity_aggressive
-import io.github.lopezjavier.appfitness.composeapp.resources.energy_intensity_light
-import io.github.lopezjavier.appfitness.composeapp.resources.energy_intensity_moderate
-import io.github.lopezjavier.appfitness.composeapp.resources.energy_pill_deficit
-import io.github.lopezjavier.appfitness.composeapp.resources.energy_pill_maintenance
-import io.github.lopezjavier.appfitness.composeapp.resources.energy_pill_surplus
 import io.github.lopezjavier.appfitness.composeapp.resources.energy_strategy_deficit
 import io.github.lopezjavier.appfitness.composeapp.resources.energy_strategy_help_cd
 import io.github.lopezjavier.appfitness.composeapp.resources.energy_strategy_help_deficit
@@ -55,7 +49,6 @@ import io.github.lopezjavier.appfitness.designsystem.HelpContent
 import io.github.lopezjavier.appfitness.designsystem.NumberStepper
 import io.github.lopezjavier.appfitness.designsystem.SegmentedSelector
 import io.github.lopezjavier.appfitness.designsystem.Spacing
-import io.github.lopezjavier.appfitness.designsystem.TextPill
 import io.github.lopezjavier.appfitness.domain.model.GoalStrategy
 import io.github.lopezjavier.appfitness.domain.usecase.AdjustmentIntensity
 import org.jetbrains.compose.resources.stringResource
@@ -64,9 +57,10 @@ import org.jetbrains.compose.resources.vectorResource
 private val WarningIconSize = Spacing.lg + Spacing.xs
 
 /**
- * "Estrategia energética": TDEE, strategy selector, adjustment stepper, daily target, adjustment pill and the
- * safety-floor warning. Stateless: Onboarding and Profile own the state. Tags (prefix = [testTagPrefix]):
- * `_tdee`, `_strategy_<deficit|maintenance|surplus>`, `_adjust_decrement|_increment|_value`, `_target`, `_pill`,
+ * "Estrategia energética": TDEE, strategy selector, adjustment stepper, daily target headline ("Objetivo: 2.788
+ * kcal al día", no adjustment chip, C-169) and the safety-floor warning. Stateless: Onboarding and Profile own
+ * the state. Tags (prefix = [testTagPrefix]):
+ * `_tdee`, `_strategy_<deficit|maintenance|surplus>`, `_adjust_decrement|_increment|_value`, `_target`,
  * `_floor_warning`, `_strategy_help`.
  */
 @Composable
@@ -113,10 +107,7 @@ fun EnergyStrategySection(
             }
             AdjustmentRow(state, onEvent, testTagPrefix)
             TargetText(state.targetKcal, Modifier.testTag("${testTagPrefix}_target"))
-            Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-                TextPill(pillText(state), Modifier.testTag("${testTagPrefix}_pill"))
-                if (state.isFloored) FloorWarning(state.floorKcal, Modifier.testTag("${testTagPrefix}_floor_warning"))
-            }
+            if (state.isFloored) FloorWarning(state.floorKcal, Modifier.testTag("${testTagPrefix}_floor_warning"))
         }
     }
 }
@@ -187,23 +178,6 @@ private fun TargetText(targetKcal: Int, modifier: Modifier = Modifier) {
             }
         }
     Text(text = text, style = AppTheme.typography.bodyMedium, modifier = modifier)
-}
-
-@Composable
-private fun pillText(state: EnergyStrategyUiState): String {
-    val adjustment = AppNumberFormat.signedInteger(state.adjustment)
-    val intensity =
-        when (state.intensity) {
-            AdjustmentIntensity.Light -> stringResource(Res.string.energy_intensity_light)
-            AdjustmentIntensity.Moderate -> stringResource(Res.string.energy_intensity_moderate)
-            AdjustmentIntensity.Aggressive -> stringResource(Res.string.energy_intensity_aggressive)
-            null -> ""
-        }
-    return when (state.strategy) {
-        GoalStrategy.Deficit -> stringResource(Res.string.energy_pill_deficit, adjustment, intensity)
-        GoalStrategy.Maintenance -> stringResource(Res.string.energy_pill_maintenance, adjustment)
-        GoalStrategy.Surplus -> stringResource(Res.string.energy_pill_surplus, adjustment, intensity)
-    }
 }
 
 @Composable

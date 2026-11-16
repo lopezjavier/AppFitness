@@ -139,7 +139,7 @@ class PreferencesSectionScreenTest {
     fun cookingEditor_isTitledCocina() = assertTitle(PreferencesSection.Cooking, "Cocina")
 
     @Test
-    fun trainingEditor_isTitledEntrenamiento() = assertTitle(PreferencesSection.Training, "Entrenamiento")
+    fun trainingEditor_isTitledRegistroDeSeries() = assertTitle(PreferencesSection.Training, "Registro de series")
 
     // -- Guardar per section ------------------------------
 
@@ -284,7 +284,7 @@ class PreferencesSectionScreenTest {
         show(PreferencesSection.Macros, dirtyState(PreferencesSection.Macros), effects)
         effects.trySend(PreferencesEffect.SaveFailed(offline = true))
         rule.waitForIdle()
-        assertEquals(listOf("Sin conexión: no se puede guardar"), messages.shown)
+        assertEquals(listOf("Sin conexión: no se puede guardar."), messages.shown)
     }
 
     // -- content ------------------------------

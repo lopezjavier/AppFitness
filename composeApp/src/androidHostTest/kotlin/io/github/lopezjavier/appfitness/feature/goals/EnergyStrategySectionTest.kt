@@ -106,20 +106,21 @@ class EnergyStrategySectionTest {
             ),
         )
 
-        rule.onNodeWithTag("${TAG}_target").assertTextEquals("Meta diaria: 2.400 kcal/día")
-        rule.onNodeWithTag("${TAG}_pill").assertTextEquals("−400 kcal · Déficit moderado")
+        rule.onNodeWithTag("${TAG}_target").assertTextEquals("Objetivo: 2.400 kcal al día")
+        rule.onNodeWithTag("${TAG}_pill").assertDoesNotExist()
         rule.onNodeWithTag("${TAG}_adjust_value").assertTextEquals("−400 kcal")
     }
 
     @Test
-    fun maintenanceAndSurplusPills() {
+    fun maintenanceAndSurplusSelection_showNoAdjustmentChip() {
         var current by mutableStateOf(state())
         rule.setContent { AppTheme { EnergyStrategySection(current, { events += it }, TAG) } }
-        rule.onNodeWithTag("${TAG}_pill").assertTextEquals("0 kcal · Mantenimiento")
+        rule.onNodeWithTag("${TAG}_pill").assertDoesNotExist()
 
         current = state(strategy = GoalStrategy.Surplus, adjustment = 250)
 
-        rule.onNodeWithTag("${TAG}_pill").assertTextEquals("+250 kcal · Superávit ligero")
+        rule.onNodeWithTag("${TAG}_pill").assertDoesNotExist()
+        rule.onNodeWithTag("${TAG}_adjust_value").assertTextEquals("+250 kcal")
         rule.onNodeWithTag("${TAG}_strategy_surplus").assertIsSelected()
     }
 
@@ -159,7 +160,7 @@ class EnergyStrategySectionTest {
             "${TAG}_floor_warning",
         ).assertTextEquals("Meta ajustada al mínimo de seguridad (1.200 kcal/día)")
             .assert(SemanticsMatcher.expectValue(SemanticsProperties.LiveRegion, LiveRegionMode.Polite))
-        rule.onNodeWithTag("${TAG}_target").assertTextEquals("Meta diaria: 1.200 kcal/día")
+        rule.onNodeWithTag("${TAG}_target").assertTextEquals("Objetivo: 1.200 kcal al día")
         rule.onNodeWithTag("${TAG}_adjust_decrement").assertIsNotEnabled()
         rule.onNodeWithTag("${TAG}_adjust_increment").assertIsEnabled()
     }

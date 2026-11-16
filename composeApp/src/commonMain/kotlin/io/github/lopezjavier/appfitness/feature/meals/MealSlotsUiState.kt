@@ -47,7 +47,7 @@ sealed interface MealSlotsUiState {
     /**
      * The editor. Nothing is applied until [MealSlotsEvent.Save] (removals included). [canSave] needs valid labels,
      * unsaved changes, a connection and no save in flight; [saved] turns true once the single save succeeded (the
-     * template closes the screen). [sheet] is the open Name sheet. [canNavigateToDefaults] is false while [isDirty].
+     * template closes the screen). [sheet] is the open Name sheet.
      */
     data class Editing(
         val rows: List<MealSlotRowUi>,
@@ -58,7 +58,6 @@ sealed interface MealSlotsUiState {
         val saveError: MealSlotsSaveError? = null,
         val canSave: Boolean = false,
         val saved: Boolean = false,
-        val canNavigateToDefaults: Boolean = true,
     ) : MealSlotsUiState
 }
 

@@ -295,19 +295,14 @@
     <string name="energy_adjust_state">Ajuste: %1$s kcal</string>
     <string name="energy_adjust_decrease_cd">Reducir ajuste 50 kcal</string>
     <string name="energy_adjust_increase_cd">Aumentar ajuste 50 kcal</string>
-    <string name="energy_target">Meta diaria: %1$s kcal/día</string>
-    <string name="energy_pill_deficit">%1$s kcal · Déficit %2$s</string>
-    <string name="energy_pill_surplus">%1$s kcal · Superávit %2$s</string>
-    <string name="energy_pill_maintenance">%1$s kcal · Mantenimiento</string>
-    <string name="energy_intensity_light">ligero</string>
-    <string name="energy_intensity_moderate">moderado</string>
-    <string name="energy_intensity_aggressive">agresivo</string>
+    <string name="energy_target">Objetivo: %1$s kcal al día</string>
     <string name="energy_floor_warning">Meta ajustada al mínimo de seguridad (%1$s kcal/día)</string>
     <string name="catalog_section_number_stepper">Selector numérico</string>
     <string name="catalog_text_pill">−400 kcal · Déficit moderado</string>
     <string name="onboarding_decimal_separator">,</string>
     <string name="unit_cm">cm</string>
     <string name="unit_kg">kg</string>
+    <string name="unit_tonne">t</string>
     <string name="month_1">enero</string>
     <string name="month_2">febrero</string>
     <string name="month_3">marzo</string>
@@ -347,7 +342,7 @@
     <string name="catalog_section_text_field">Campo de texto</string>
     <string name="profile_personal_title">Datos personales</string>
     <string name="profile_age_label">Edad</string>
-    <string name="profile_activity_label">Actividad</string>
+    <string name="profile_activity_label">Nivel de actividad</string>
     <string name="profile_height_value">%1$d cm</string>
     <string name="profile_height_spoken">%1$d centímetros</string>
     <string name="profile_weight_hc_cd">%1$s, %2$s, sincronizado desde Health Connect</string>
@@ -780,13 +775,14 @@
     <string name="profile_strength_row">Fuerza</string>
     <string name="profile_diary_history_row">Calorías</string>
     <string name="strength_title">Fuerza</string>
-    <string name="stats_title">Entrenamiento</string>
-    <string name="profile_training_stats_row">Entrenamiento</string>
+    <string name="stats_title">Entrenos</string>
+    <string name="profile_training_stats_row">Entrenos</string>
     <string name="stats_tile_workouts">Entrenos</string>
     <string name="stats_tile_sets">Series</string>
     <string name="stats_tile_volume">Volumen</string>
     <string name="stats_tile_duration">Duración</string>
     <string name="stats_unit_kg">kg</string>
+    <string name="stats_unit_tonne">t</string>
     <string name="stats_duration_hm">%1$d h %2$d min</string>
     <string name="stats_duration_h">%1$d h</string>
     <string name="stats_duration_m">%1$d min</string>
@@ -842,7 +838,7 @@
     <string name="stats_body_description">%1$s, %2$s</string>
     <string name="stats_heat_less">Menos</string>
     <string name="stats_heat_more">Más series</string>
-    <string name="stats_error_message">No se han podido cargar las estadísticas</string>
+    <string name="stats_error_message">No se han podido cargar las estadísticas.</string>
     <string name="stats_empty_title">Sin entrenos en este periodo</string>
     <string name="stats_empty_message">Registra un entreno o prueba con otro periodo.</string>
     <string name="stats_radar_previous_failed">No se pudo cargar el periodo anterior.</string>
@@ -850,7 +846,7 @@
     <string name="body_view_back">Espalda</string>
     <string name="stats_sheet_subtitle">Últimos 7 días · %1$s</string>
     <string name="stats_sheet_empty">No has entrenado este músculo en los últimos 7 días.</string>
-    <string name="muscle_volume_title">Volumen</string>
+    <string name="muscle_volume_title">Kilos por grupo muscular</string>
     <string name="strength_card_title">1RM estimado</string>
     <string name="strength_record">Récord 1RM estimado: %1$s kg</string>
     <string name="strength_record_none">Sin récord de 1RM todavía</string>
@@ -860,7 +856,7 @@
     <string name="strength_open_exercise">Progreso del ejercicio</string>
     <string name="strength_empty_message">Aún no tienes entrenos en las últimas semanas. Entrena para ver tu progreso de fuerza.</string>
     <string name="strength_empty_cta">Empezar entreno</string>
-    <string name="strength_error_message">No se pudo cargar tu progreso de fuerza</string>
+    <string name="strength_error_message">No se pudo cargar tu progreso de fuerza.</string>
     <string name="exercise_progress_title">Progreso del ejercicio</string>
     <string name="exercise_progress_chart_1rm">1RM estimado (kg)</string>
     <string name="exercise_progress_chart_volume">Volumen (kg)</string>
@@ -878,23 +874,25 @@
     </plurals>
     <string name="exercise_progress_single_session">Necesitas al menos 2 entrenos para ver la evolución</string>
     <string name="exercise_progress_single_value">Último entreno: %1$s</string>
+    <string name="exercise_progress_single_value_kg">Último entreno: %1$s kg</string>
     <string name="exercise_progress_empty_message">Aún no has registrado este ejercicio en ningún entreno.</string>
-    <string name="exercise_progress_error_message">No se pudo cargar el progreso del ejercicio</string>
+    <string name="exercise_progress_error_message">No se pudo cargar el progreso del ejercicio.</string>
     <string name="exercise_progress_link">Ver progreso</string>
     <string name="exercise_detail_offline_favourite">marcar favoritos</string>
     <string name="chart_date_short">%1$d %2$s</string>
 
     <!-- T-048b weekly muscle volume -->
-    <string name="muscle_volume_open">Volumen</string>
+    <string name="muscle_volume_open">Kilos por grupo muscular</string>
     <string name="muscle_volume_all">Todos</string>
-    <string name="muscle_volume_caption">Semanas de lunes a domingo · máximo 8</string>
+    <string name="muscle_volume_caption">Últimas 8 semanas, de lunes a domingo.</string>
+    <string name="muscle_volume_last_week">Última semana</string>
     <string name="muscle_volume_current_value">%1$s kg</string>
     <string name="muscle_volume_card_cd">%1$s, semana actual %2$s kg</string>
     <string name="muscle_volume_chart_title">%1$s: kg por semana</string>
-    <string name="muscle_volume_chart_cd">%1$s, volumen semanal en kg: %2$s</string>
+    <string name="muscle_volume_chart_cd">%1$s, kg por semana: %2$s</string>
     <string name="muscle_volume_chart_cd_week">semana del %1$s, %2$s</string>
     <string name="muscle_volume_empty_message">Aún no hay volumen en las últimas 8 semanas. Entrena para verlo por grupo muscular.</string>
-    <string name="muscle_volume_error_message">No se pudo cargar el volumen por grupo muscular</string>
+    <string name="muscle_volume_error_message">No se pudo cargar el volumen por grupo muscular.</string>
     <string name="diary_prev_day">Día anterior</string>
     <string name="diary_next_day">Día siguiente</string>
     <string name="diary_goals_prompt_title">Configura tu objetivo</string>
@@ -1075,7 +1073,21 @@
     <string name="meals_hint_has_entries">Tiene alimentos registrados: no se puede quitar</string>
     <string name="meals_last_meal_hint">Debe quedar al menos una comida del día</string>
     <string name="preferences_meals_title">Comidas del día</string>
-    <string name="preferences_training_title">Entrenamiento</string>
+    <string name="preferences_training_title">Registro de series</string>
+    <string name="preferences_series_title">Series</string>
+    <string name="preferences_group_general">General</string>
+    <string name="preferences_group_nutrition">Nutrición</string>
+    <string name="preferences_group_training">Entreno</string>
+    <string name="preferences_group_account">Cuenta</string>
+    <string name="preferences_hub_personal_value">%1$d años · %2$d cm · %3$s</string>
+    <string name="preferences_hub_energy_value">%1$s kcal · %2$s</string>
+    <string name="preferences_hub_macros_value">P %1$d % · C %2$d % · G %3$d %</string>
+    <plurals name="preferences_hub_meals_value">
+        <item quantity="one">%1$d comida</item>
+        <item quantity="other">%1$d comidas</item>
+    </plurals>
+    <string name="preferences_hub_reminders_value">%1$d de %2$d activados</string>
+    <string name="meal_defaults_days_range">%1$s a %2$s</string>
     <string name="preferences_reminders_title">Avisos</string>
     <string name="preferences_my_training_title">Mi entrenamiento</string>
     <string name="my_training_intention_label">Objetivo de entrenamiento</string>
@@ -1176,6 +1188,7 @@
     <string name="diary_history_view_week">Semana</string>
     <string name="diary_history_view_month">Mes</string>
     <string name="diary_history_week_title">Media diaria</string>
+    <string name="diary_history_month_title">%1$s · media diaria</string>
     <string name="diary_history_target_kcal">de %1$s kcal</string>
     <string name="month_calendar_prev">Mes anterior</string>
     <string name="month_calendar_next">Mes siguiente</string>
@@ -1196,8 +1209,10 @@
     <string name="weight_current_when">%1$s, %2$s</string>
     <string name="weight_edit_today_cd">Editar peso de hoy</string>
     <string name="weight_history_title">Historial de peso</string>
-    <string name="weight_empty_message">Aún no has registrado tu peso</string>
-    <string name="weight_error_message">No se pudieron cargar las mediciones</string>
+    <string name="weight_history_tap_day">Toca un día para ver su pesaje.</string>
+    <string name="weight_history_empty_month">Sin pesajes este mes.</string>
+    <string name="weight_empty_message">Aún no has registrado tu peso.</string>
+    <string name="weight_error_message">No se pudieron cargar los pesajes.</string>
     <string name="weight_sheet_title_today">Registrar peso</string>
     <string name="weight_sheet_title_day">Peso del %1$s</string>
     <string name="weight_field_weight">Peso (kg)</string>
@@ -1206,11 +1221,11 @@
     <string name="weight_range_weight">El peso debe estar entre 20 y 400 kg</string>
     <string name="weight_range_fat">La grasa corporal debe estar entre 2 y 75 %</string>
     <string name="weight_save_error">No se pudo guardar. Inténtalo de nuevo.</string>
-    <string name="weight_delete_error">No se pudo eliminar la medición</string>
-    <string name="weight_delete_error_offline">Sin conexión: no se pudo eliminar</string>
-    <string name="weight_hc_section">Mediciones de Health Connect</string>
+    <string name="weight_delete_error">No se pudo eliminar el pesaje.</string>
+    <string name="weight_delete_error_offline">Sin conexión: no se pudo eliminar.</string>
+    <string name="weight_hc_section">Pesajes de Health Connect</string>
     <string name="weight_hc_icon_cd">Health Connect</string>
-    <string name="weight_hc_delete_cd">Eliminar medición de %1$s</string>
+    <string name="weight_hc_delete_cd">Eliminar pesaje de %1$s</string>
     <string name="circumference_title">Circunferencias</string>
     <string name="circumference_add_object">circunferencia</string>
     <string name="circumference_ratio_label">Relación cintura-cadera</string>
@@ -1219,9 +1234,9 @@
     <string name="circumference_value_cm">%1$s cm</string>
     <string name="circumference_row_edit_label">Editar medida</string>
     <string name="circumference_row_delete_cd">Eliminar %1$s %2$s</string>
-    <string name="circumference_empty_title">Aún no hay medidas</string>
+    <string name="circumference_empty_title">Aún no hay circunferencias</string>
     <string name="circumference_empty_message">Registra tu primera circunferencia.</string>
-    <string name="circumference_error_message">No se pudieron cargar las circunferencias</string>
+    <string name="circumference_error_message">No se pudieron cargar las circunferencias.</string>
     <string name="circumference_site_neck">Cuello</string>
     <string name="circumference_site_chest">Pecho</string>
     <string name="circumference_site_waist">Cintura</string>
@@ -1265,7 +1280,7 @@
 
     <!-- T-080 weight trend chart -->
     <string name="weight_trend_pill">%1$s kg esta semana</string>
-    <string name="weight_trend_error_message">No se pudo cargar la tendencia</string>
+    <string name="weight_trend_error_message">No se pudo cargar la tendencia.</string>
     <string name="weight_chart_metric_title_cd">Métrica del gráfico: %1$s. Cambiar</string>
     <string name="weight_chart_metric_picker_title">Métrica del gráfico</string>
     <string name="weight_chart_summary_goal">Objetivo %1$s kg; peso inicial %2$s kg.</string>
@@ -1319,6 +1334,7 @@
     <string name="weight_hc_note">Sincronizado desde Health Connect</string>
     <string name="weight_composition_button_cd">Ver composición corporal</string>
     <string name="weight_composition_title">Composición corporal</string>
+    <string name="weight_composition_subtitle">Medido el %1$s</string>
     <string name="weight_composition_row_fat">Grasa corporal</string>
     <string name="weight_composition_row_lean">Masa magra</string>
     <string name="weight_composition_row_water">Agua</string>
@@ -1408,7 +1424,7 @@
     <string name="preferences_calc_bar">Barra por defecto</string>
     <string name="preferences_calc_bar_20">20 kg</string>
     <string name="preferences_calc_bar_15">15 kg</string>
-    <string name="preferences_calc_bar_10">10 kg EZ</string>
+    <string name="preferences_calc_bar_10">10 kg Barra Z</string>
     <string name="preferences_calc_bar_7_5">7,5 kg</string>
     <string name="preferences_calc_plates">Discos disponibles (kg)</string>
     <string name="preferences_calc_plate_cd">Disco de %1$s kg</string>
@@ -1661,7 +1677,7 @@
     <string name="preferences_cooking_fried_support">Del peso crudo. Por defecto 8 %</string>
     <string name="preferences_cooking_help_body">Porcentaje del peso crudo que se añade como grasa.</string>
     <string name="preferences_cooking_help_cd">Ayuda: cocinado</string>
-    <string name="preferences_cooking_error">Introduce un valor entre 0 y 20 %.</string>
+    <string name="preferences_cooking_error">Entre 0 y 20 %.</string>
     <string name="weekday_group_cd">Días de la semana</string>
     <string name="weekday_name_1">Lunes</string>
     <string name="weekday_name_2">Martes</string>
@@ -1682,7 +1698,6 @@
     <string name="catalog_section_diary_parts">Diario: acciones compactas y macros</string>
     <string name="meal_defaults_title">Comidas por defecto</string>
     <string name="meal_defaults_open">Comidas por defecto</string>
-    <string name="meal_defaults_open_hint">Guarda los cambios para abrir las comidas por defecto</string>
     <string name="meal_defaults_add_object">comida por defecto</string>
     <string name="meal_defaults_all_taken">Todos los días ya tienen una comida</string>
     <string name="meal_defaults_remove_cd">Quitar %1$s de %2$s</string>
@@ -1699,12 +1714,10 @@
     <string name="preferences_energy_title">Objetivo calórico</string>
     <string name="preferences_macros_title">Macros</string>
     <string name="preferences_save_error">No se pudo guardar. Inténtalo de nuevo.</string>
-    <string name="preferences_save_error_offline">Sin conexión: no se puede guardar</string>
-    <string name="profile_strength_value">Récord 1RM %1$s kg</string>
-    <string name="profile_calories_value">media %1$s kcal</string>
+    <string name="preferences_save_error_offline">Sin conexión: no se puede guardar.</string>
     <string name="delete_account_error_offline">Sin conexión: no se puede borrar la cuenta</string>
     <string name="about_title">Acerca de</string>
-    <string name="profile_about_row">Acerca de</string>
+    <string name="profile_about_action_cd">Acerca de</string>
     <string name="about_credits_section">Créditos</string>
     <string name="about_version_format">Versión %1$s (%2$d)</string>
     <string name="about_version_flavor_format">%1$s · %2$s</string>

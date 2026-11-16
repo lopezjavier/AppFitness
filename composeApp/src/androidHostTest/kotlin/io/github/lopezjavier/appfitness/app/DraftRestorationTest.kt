@@ -465,22 +465,21 @@ class DraftRestorationTest {
     }
 
     @Test
-    fun preferencesPickerSheet_keepsTheOpenSheetAndTheChosenLevelAfterRecreation() {
+    fun preferencesPickerSheet_keepsTheOpenSheetAfterRecreation_andTappingALevelAppliesIt() {
         val tester = StateRestorationTester(rule)
         showPreferences(tester, "personal")
         rule.onNodeWithTag("preferences_activity_row").performScrollTo().performClick()
-        rule.onNodeWithTag("preferences_activity_light").performClick()
         rule.waitForIdle()
 
         tester.emulateSavedInstanceStateRestore()
         rule.waitForIdle()
 
         rule.onNodeWithTag("preferences_sheet_activity").assertIsDisplayed()
-        rule.onNodeWithTag("preferences_sheet_commit").performClick()
+        rule.onNodeWithTag("preferences_activity_light").performClick()
         rule.waitForIdle()
         rule.onNodeWithTag("preferences_activity_row")
             .performScrollTo()
-            .assertContentDescriptionEquals("Actividad, Ligero, editar")
+            .assertContentDescriptionEquals("Nivel de actividad, Ligero, editar")
     }
 
     // -- scroll position (audit of the LazyColumn lists) ---------------------------------------------------------

@@ -24,7 +24,6 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.github.lopezjavier.appfitness.composeapp.resources.Res
 import io.github.lopezjavier.appfitness.composeapp.resources.action_retry
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_nav_workout
-import io.github.lopezjavier.appfitness.composeapp.resources.muscle_volume_open
 import io.github.lopezjavier.appfitness.composeapp.resources.strength_card_title
 import io.github.lopezjavier.appfitness.composeapp.resources.strength_delta_down
 import io.github.lopezjavier.appfitness.composeapp.resources.strength_delta_flat
@@ -61,33 +60,29 @@ private val SkeletonChipsHeight = Spacing.minTouchTarget
 
 /**
  * Stateful "Fuerza" screen: connects [StrengthViewModel]. [onOpenExercise] opens the progress of an exercise,
- * [onOpenMuscleVolume] the weekly volume per muscle group and
  * [onStartWorkout] leads the empty state to the Entreno tab.
  */
 @Composable
 fun StrengthRoot(
     onOpenExercise: (String) -> Unit,
-    onOpenMuscleVolume: () -> Unit,
     onStartWorkout: () -> Unit,
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
     viewModel: StrengthViewModel = koinViewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
-    StrengthScreen(state, viewModel::onEvent, onOpenExercise, onOpenMuscleVolume, onStartWorkout, onBack, modifier)
+    StrengthScreen(state, viewModel::onEvent, onOpenExercise, onStartWorkout, onBack, modifier)
 }
 
 /**
  * "Fuerza" (US-15): the top exercises as chips, the 1RM record of the selected one, its change over the last month and
  * the way to its full progress.
  */
-@Suppress("LongParameterList") // One callback per navigation target of the screen.
 @Composable
 fun StrengthScreen(
     state: StrengthUiState,
     onEvent: (StrengthEvent) -> Unit,
     onOpenExercise: (String) -> Unit,
-    onOpenMuscleVolume: () -> Unit,
     onStartWorkout: () -> Unit,
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
@@ -121,7 +116,7 @@ fun StrengthScreen(
                     )
                 }
 
-                is StrengthUiState.Content -> StrengthContent(state, onEvent, onOpenExercise, onOpenMuscleVolume)
+                is StrengthUiState.Content -> StrengthContent(state, onEvent, onOpenExercise)
             }
         }
     }
@@ -132,7 +127,6 @@ private fun StrengthContent(
     state: StrengthUiState.Content,
     onEvent: (StrengthEvent) -> Unit,
     onOpenExercise: (String) -> Unit,
-    onOpenMuscleVolume: () -> Unit,
 ) {
     val options = state.chips.map { AppOption(it.name, "strength_chip_${it.exerciseId}") }
     val selectedIndex = state.chips.indexOfFirst { it.exerciseId == state.selectedId }.takeIf { it >= 0 }
@@ -161,11 +155,6 @@ private fun StrengthContent(
                 )
             }
         }
-        NavigationRow(
-            label = stringResource(Res.string.muscle_volume_open),
-            onClick = onOpenMuscleVolume,
-            modifier = Modifier.testTag("strength_open_muscle_volume"),
-        )
     }
 }
 
@@ -227,7 +216,7 @@ private fun DeltaPill(delta: Double) {
         TrendDirection.Down -> stringResource(Res.string.strength_delta_down, rounded) to TrendTone.Neutral
         else -> stringResource(Res.string.strength_delta_flat) to TrendTone.Neutral
     }
-    TrendPill(text, tone, Modifier.testTag("strength_delta"), direction)
+    TrendPill(text, tone, Modifier.testTag("strength_delta"), direction, showToneIcon = false)
 }
 
 @Composable

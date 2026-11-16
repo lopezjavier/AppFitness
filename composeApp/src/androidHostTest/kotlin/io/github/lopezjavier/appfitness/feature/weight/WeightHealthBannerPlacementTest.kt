@@ -77,13 +77,13 @@ class WeightHealthBannerPlacementTest {
 
     @Test
     @Config(qualifiers = "w360dp-h2400dp-xxhdpi")
-    fun statusLineAndSyncButton_liveInsideThePesoActualCard() {
+    fun statusLineAndSyncButton_sitAbovePesoActualCard_asTheFirstElement() {
         show(HealthSyncUiState(HealthSyncStatus.NeverSynced))
 
         val card = bounds("weight_current_card")
         listOf("weight_hc_banner", "weight_hc_status", "weight_hc_sync_button").forEach { tag ->
             val box = bounds(tag)
-            assertTrue("$tag is inside the card", box.top >= card.top && box.bottom <= card.bottom)
+            assertTrue("$tag is above the card", box.bottom <= card.top)
         }
     }
 

@@ -279,7 +279,6 @@ class MealSlotsEditorViewModel(
                 saveError = saveError,
                 canSave = validation.isValid && dirty && online && !saving,
                 saved = saved,
-                canNavigateToDefaults = !dirty,
             )
         }
     }

@@ -12,7 +12,6 @@ circumference_range_hint
 # Reason a primary action or control is disabled (05 section 6.1: disabled and says why)
 block_builder_helper
 folder_block_save_helper
-meal_defaults_open_hint
 builder_warm_up_cap_hint
 meals_last_meal_hint
 meals_hint_has_entries

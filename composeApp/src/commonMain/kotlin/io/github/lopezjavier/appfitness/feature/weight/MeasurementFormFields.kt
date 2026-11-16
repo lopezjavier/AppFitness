@@ -19,6 +19,7 @@ import io.github.lopezjavier.appfitness.composeapp.resources.weight_field_fat_pl
 import io.github.lopezjavier.appfitness.composeapp.resources.weight_field_weight
 import io.github.lopezjavier.appfitness.composeapp.resources.weight_range_fat
 import io.github.lopezjavier.appfitness.composeapp.resources.weight_range_weight
+import io.github.lopezjavier.appfitness.designsystem.AppInputStyle
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
 import io.github.lopezjavier.appfitness.designsystem.NumberInput
 import io.github.lopezjavier.appfitness.designsystem.Spacing
@@ -57,6 +58,7 @@ internal fun MeasurementFormFields(day: LocalDate, form: MeasurementForm, onEven
                     maxDecimals = 1,
                     maxIntegerDigits = WEIGHT_INTEGER_DIGITS,
                     showLabel = false,
+                    startAligned = true,
                 )
             }
             LabeledNumberInput(
@@ -76,6 +78,7 @@ internal fun MeasurementFormFields(day: LocalDate, form: MeasurementForm, onEven
                     maxDecimals = 1,
                     maxIntegerDigits = FAT_INTEGER_DIGITS,
                     showLabel = false,
+                    startAligned = true,
                 )
             }
         }
@@ -93,9 +96,9 @@ private fun LabeledNumberInput(
 ) {
     Column(modifier, verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
         Text(
-            text = label.uppercase(),
-            style = AppTheme.typography.labelTechnical,
-            color = AppTheme.colors.textSecondary,
+            text = label,
+            style = AppInputStyle.labelStyle(AppTheme.typography),
+            color = AppInputStyle.labelColor(AppTheme.colors),
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
             modifier = Modifier.testTag(labelTag),

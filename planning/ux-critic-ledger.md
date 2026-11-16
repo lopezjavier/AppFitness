@@ -229,6 +229,51 @@ One row per ux-critic finding. The PM has the dispositions recorded here as the 
 | C-146 | A failed plan read never shows the no-plan screen: skeleton while retrying, then `ErrorState` with "Reintentar" | 3 | ADOPTED (user, 2026-11-15) | 05 R-108 |
 | C-147 | The "Tu plan" and "Tu bloque" screens are deleted; "Mi entrenamiento" is a text link below "Tus datos" on the root | 3 | ADOPTED (user, 2026-11-15; screens deleted) | 05 §6.0h, R-90 |
 | V-76 | "Eliminar bloque" text link inside the "Tu bloque" card (V-73 / V-54 REWORK) becomes the last entry of the card's ⋮ sheet (destructive, R-08 dialog unchanged) | 3 | ADOPTED (user, 2026-11-15) | 05 R-105 |
+| C-149 | Rename "Entrenamiento" stats row/title to "Entrenos" (`profile_training_stats_row`, `stats_title`); Preferencias row/title to "Registro de series" (`preferences_training_title`); glossary row 420 amended | 4 | ACCEPTED (not built) | 05 §10 |
+| C-150 | Perfil root: 72 dp header (56 dp avatar, name titleLarge), grouped `AppCard`s (Mi entrenamiento; "Estadísticas" with five Outlined 24 dp icons; Acerca de), Fuerza value names the lift | 4 | ACCEPTED (not built) | 05 §6.0i, R-109 |
+| C-151 | "Volumen" row leaves Fuerza; "Kilos por grupo muscular" `NavigationRow` last in "Series por grupo muscular" | 4 | ACCEPTED (not built) | 05 §6.0i, §10 |
+| C-152 | Fuerza: 1RM `AppLineChart` of the chosen lift (3M, `TimeRangeSelector`); `TrendPill` glyph only | 4 | ACCEPTED (not built) | 05 §6.0i |
+| C-153 | Preferencias hub grouped (General, Nutrición, Entreno, Cuenta) with value supporting lines | 4 | ACCEPTED (not built) | 05 §6.0i, R-109 |
+| C-154 | "Comidas por defecto" becomes a hub row after "Comidas del día" | 4 | ACCEPTED (not built) | 05 §6.0i |
+| C-155 | Option A: "Cuenta" row/screen with "Cerrar sesión" and danger text "Borrar cuenta" (>= 16 dp apart); outlined buttons leave Preferencias | 4 | REWORK (as C-172: a group inside the hub, not a screen) | 05 §6.0i, R-113 |
+| C-156 | Avisos order | 4 | ACCEPTED (not built) | 05 §6.0i |
+| C-157 | Calorías order (segmented, summary card, calendar); Semana band with 1 dp lime outline; Mes no selected day, month in card title. Diario calendar-icon question | 4 | ACCEPTED (order and Semana band; not built); Diario calendar-icon question OPEN (deferred product question, no rule) | 05 §6.0i |
+| C-158 | Deferred product question (user, round 4) | 4 | OPEN (deferred, no rule) | - |
+| C-159 | Line chart padded domain, 4 gridlines, zero baseline only on bars | 4 | ACCEPTED (not built) | 05 R-112 |
+| C-160 | MetricTile value/unit fit, tonnes from 100.000 kg, Actividad icon 16 dp, one column at font scale >= 1.3 | 4 | ACCEPTED (not built) | 05 §6.0i, R-111, §10 |
+| C-161 | NavigationRow two lines when label and value do not fit; label never ellipsized | 4 | ACCEPTED (not built) | 05 R-110 |
+| C-162 | NavigationRow value one style (bodyLarge textSecondary, trailing); its use as the trailing value on the Perfil root stat rows is reversed by the user (chevron only) | 4 | ACCEPTED (not built) | 05 R-110 |
+| C-163 | Peso order: HealthStatusLine, Peso actual + rate, WeightChart, tiles, Circunferencias | 4 | ACCEPTED (not built) | 05 §6.0i |
+| C-164 | HealthStatusLine and "Sincronizar" in one 56 dp row | 4 | ACCEPTED (not built) | 05 R-114 |
+| C-165 | Peso `MeasurementRow` two lines (72 dp); composition sheet date once | 4 | ACCEPTED (not built) | 05 §6.0i |
+| C-166 | Kilos per group cards: 8-bar chart, headline, caption; bar width rule; check empty plot is not a capture artefact | 4 | ACCEPTED (not built) | 05 §6.0i, R-112 |
+| C-167 | Drop headings repeating the screen title; Cocina "?" to top-bar `HelpButton` | 4 | ACCEPTED (not built) | 05 §6.0i |
+| C-168 | Registro de series: "Series" and "Calculadoras" `SectionCard`s; label style; stepper own line | 4 | ACCEPTED (not built) | 05 §6.0i |
+| C-169 | Objetivo calórico headline "Objetivo: 2.788 kcal al día", chip removed | 4 | ACCEPTED (not built) | 05 §6.0i |
+| C-170 | Default-meal days "Lunes a viernes" / "L, M, X"; picker rows 16 dp leading space | 4 | ACCEPTED (not built) | 05 §6.0i, §10 |
+| C-171 | "¿Cerrar sesión?" confirm neutral; error colour only on "Borrar cuenta" | 4 | ACCEPTED (not built) | 05 R-113 |
+| C-172 | Perfil root: bell only (gear removed), "Preferencias" row then "Acerca de", stat rows chevron only; "Cuenta" is the last group of the Preferencias hub ("Cerrar sesión" row, danger "Borrar cuenta" 16 dp below), no Cuenta screen | 4 | ACCEPTED (built, user emulator look) | 05 §6.0i, R-109, R-113 |
+| C-173 | Each training intention gets a distinct stroke-only icon (lime when selected) in the intention picker, the Mi entrenamiento row and the Perfil root value row; gallery lists all | 4 | ACCEPTED (built, user request) | 05 §6.0j |
+| V-77 | R-37 error copy and missing periods on the Perfil screens | 4 | ACCEPTED (not built) | 05 R-100, R-115 |
+| V-78 | R-70 "Eliminar" in the Peso sheet must be a text danger action | 4 | ACCEPTED (not built) | 05 R-70 |
+| V-79 | R-24/R-83/C-77 uppercase labels, centred numeric fields, Cocina error per R-25 | 4 | ACCEPTED (not built) | 05 §6.0i |
+| V-80 | R-64(b)/C-20 cyan check marks in "Métrica del gráfico" and "Día del check-in" pickers | 4 | ACCEPTED (not built) | 05 R-64 |
+| V-81 | R-12 activity-level sheet applies on tap, no "Listo" footer | 4 | ACCEPTED (not built) | 05 R-12 |
+| V-82 | R-04 "Actividad" to "Nivel de actividad"; "Añadir circunferencia" opens "Añadir medida" | 4 | ACCEPTED (not built) | 05 §10 |
+| V-83 | R-33 "Sexo" as `SegmentedSelector` | 4 | ACCEPTED (not built) | 05 §6.0i |
+| V-84 | R-79/R-31/R-74 all sections failed shows one `ErrorState` | 4 | ACCEPTED (not built) | 05 R-114 |
+| V-85 | R-83 "?" stays with its label (Avisos, Registro de series, Mi entrenamiento) | 4 | ACCEPTED (not built) | 05 R-83 |
+| V-86 | R-78 Calorías without goals uses `MacroText` | 4 | ACCEPTED (not built) | 05 R-78 |
+| V-87 | R-35 glossary words: "Volumen", "Pecho: kg por semana", "Barra Z" (row 435 already correct; code string "10 kg EZ" to fix), one word for medida/mediciones/circunferencia | 4 | ACCEPTED (not built) | 05 §10 |
+| V-88 | R-44 "1810 kcal" thousands separator; "Último entreno: 100,0" needs "kg" | 4 | ACCEPTED (not built) | 05 R-44 |
+| V-89 | R-43 Peso `HealthStatusLine` directly under the top bar (`WeightScreen.kt:281`) | 4 | ACCEPTED (not built) | 05 R-114 |
+| V-90 | C-26 Health Connect row in the day sheet on `surfaceControl` | 4 | ACCEPTED (not built) | 05 C-26 |
+| V-91 | R-31 empty training stats show `stats_body_empty` | 4 | ACCEPTED (not built) | 05 R-31 |
+| V-92 | R-39 "Historial de peso": "Toca un día para ver su pesaje." and empty-month message | 4 | ACCEPTED (not built) | 05 §6.0i |
+| V-93 | V-3 Actividad tile glyphs Outlined | 4 | ACCEPTED (not built) | 05 §6.0i |
+| V-94 | R-85 2 x 2 tile grid: resolved by C-160 (one column rules) | 4 | ACCEPTED (not built; resolved by C-160) | 05 R-111 |
+| V-95 | R-54 chip "Press banca" vs title "Press de banca": use the name resolver | 4 | ACCEPTED (not built) | 05 §9.0a |
+| V-96 | R-14b "Comidas del día" save-rejected footer notice: developer verifies; if missing, R-14b applies as written | 4 | ACCEPTED (not built; verify) | 05 R-14 |
 
 Status values:
 - `PROPOSED`: reported by the critic, not decided yet.
