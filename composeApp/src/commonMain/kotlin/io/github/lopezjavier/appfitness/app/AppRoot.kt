@@ -27,7 +27,7 @@ import io.github.lopezjavier.appfitness.feature.meals.defaults.MealDefaultsRoot
 import io.github.lopezjavier.appfitness.feature.notifications.NotificationCenterRoot
 import io.github.lopezjavier.appfitness.feature.profile.AccountRoot
 import io.github.lopezjavier.appfitness.feature.profile.PreferencesHubActions
-import io.github.lopezjavier.appfitness.feature.profile.PreferencesHubScreen
+import io.github.lopezjavier.appfitness.feature.profile.PreferencesHubRoot
 import io.github.lopezjavier.appfitness.feature.profile.PreferencesSectionRoot
 import io.github.lopezjavier.appfitness.feature.profile.ProfileRootRoute
 import io.github.lopezjavier.appfitness.feature.routines.RoutineBuilderRoot
@@ -93,10 +93,10 @@ fun AppRoot(
         exerciseProgress = { progressModifier, exerciseId, onBack ->
             ExerciseProgressRoot(exerciseId, onBack, progressModifier)
         },
-        preferences = { hubModifier, onBack, onOpenSection, onOpenMeals ->
-            PreferencesHubScreen(
+        preferences = { hubModifier, onBack, onOpenSection, onOpenMeals, onOpenMealDefaults ->
+            PreferencesHubRoot(
                 onBack = onBack,
-                actions = PreferencesHubActions({ onOpenSection(it.key) }, onOpenMeals),
+                actions = PreferencesHubActions({ onOpenSection(it.key) }, onOpenMeals, onOpenMealDefaults),
                 modifier = hubModifier,
             )
         },
@@ -197,7 +197,7 @@ fun AppRoot(
             WeightHistoryRoot(onBack, historyModifier, onRemindersChange = refreshReminders)
         },
         diaryHistory = { historyModifier, onOpenDay, onBack -> DiaryHistoryRoot(onOpenDay, onBack, historyModifier) },
-        mealSlots = { mealsModifier, onClose, onOpenDefaults -> MealSlotsRoot(onClose, onOpenDefaults, mealsModifier) },
+        mealSlots = { mealsModifier, onClose -> MealSlotsRoot(onClose, mealsModifier) },
         mealDefaults = { defaultsModifier, onClose -> MealDefaultsRoot(onClose, defaultsModifier) },
         foodSearch = { searchModifier, slotId, date, onOpenFood, onCreateFood, onOpenTemplate, pick, viewOnly, onBack ->
             FoodSearchRoot(

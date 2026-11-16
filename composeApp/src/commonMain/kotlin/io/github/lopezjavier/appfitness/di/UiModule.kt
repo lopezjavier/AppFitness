@@ -32,6 +32,7 @@ import io.github.lopezjavier.appfitness.feature.meals.defaults.MealDefaultsViewM
 import io.github.lopezjavier.appfitness.feature.notifications.NotificationCenterViewModel
 import io.github.lopezjavier.appfitness.feature.onboarding.OnboardingViewModel
 import io.github.lopezjavier.appfitness.feature.profile.AccountViewModel
+import io.github.lopezjavier.appfitness.feature.profile.PreferencesHubViewModel
 import io.github.lopezjavier.appfitness.feature.profile.PreferencesViewModel
 import io.github.lopezjavier.appfitness.feature.profile.ProfileRootViewModel
 import io.github.lopezjavier.appfitness.feature.routines.RoutineBuilderViewModel
@@ -89,6 +90,7 @@ val uiModule =
         viewModelOf(::AppViewModel)
         viewModelOf(::WelcomeViewModel)
         viewModelOf(::ProfileRootViewModel)
+        viewModelOf(::PreferencesHubViewModel)
         viewModelOf(::NotificationCenterViewModel)
         viewModel {
             CheckInViewModel(

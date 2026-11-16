@@ -2,11 +2,9 @@ package io.github.lopezjavier.appfitness.feature.profile
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.LiveRegionMode
@@ -22,11 +20,7 @@ import io.github.lopezjavier.appfitness.composeapp.resources.preferences_cooking
 import io.github.lopezjavier.appfitness.composeapp.resources.preferences_cooking_fried_support
 import io.github.lopezjavier.appfitness.composeapp.resources.preferences_cooking_griddle_label
 import io.github.lopezjavier.appfitness.composeapp.resources.preferences_cooking_griddle_support
-import io.github.lopezjavier.appfitness.composeapp.resources.preferences_cooking_help_body
-import io.github.lopezjavier.appfitness.composeapp.resources.preferences_cooking_help_cd
-import io.github.lopezjavier.appfitness.composeapp.resources.preferences_cooking_title
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
-import io.github.lopezjavier.appfitness.designsystem.HelpButton
 import io.github.lopezjavier.appfitness.designsystem.NumberInput
 import io.github.lopezjavier.appfitness.designsystem.Spacing
 import org.jetbrains.compose.resources.StringResource
@@ -36,7 +30,7 @@ private const val MAX_DECIMALS = 1
 
 /**
  * "Cocina" editor content (US-50): the added-fat percentage of the raw weight per cooking method (plancha,
- * air fryer, frito).
+ * air fryer, frito). The screen title is not repeated as a heading and the "?" is a top-bar action (C-167).
  * Nothing is saved until the pinned "Guardar" of Preferencias; an invalid field shows its error and disables it.
  */
 @Composable
@@ -50,20 +44,6 @@ internal fun CookingSection(
             modifier.fillMaxWidth().testTag("preferences_cooking_card"),
             verticalArrangement = Arrangement.spacedBy(Spacing.md),
         ) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(
-                    text = stringResource(Res.string.preferences_cooking_title),
-                    style = AppTheme.typography.titleMedium,
-                    color = AppTheme.colors.textPrimary,
-                    modifier = Modifier.weight(1f),
-                )
-                HelpButton(
-                    contentDescription = stringResource(Res.string.preferences_cooking_help_cd),
-                    title = stringResource(Res.string.preferences_cooking_title),
-                    body = stringResource(Res.string.preferences_cooking_help_body),
-                    testTag = "preferences_cooking_help",
-                )
-            }
             FatPctField(
                 value = form.griddleText,
                 onChange = { onEvent(PreferencesEvent.SetFatPctGriddle(it)) },
@@ -114,6 +94,7 @@ private fun FatPctField(
             modifier = Modifier.fillMaxWidth().testTag(tag),
             maxDecimals = MAX_DECIMALS,
             imeAction = imeAction,
+            startAligned = true,
         )
         if (hasError) {
             val message = stringResource(Res.string.preferences_cooking_error)

@@ -10,7 +10,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
@@ -18,8 +17,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import io.github.lopezjavier.appfitness.composeapp.resources.Res
 import io.github.lopezjavier.appfitness.composeapp.resources.action_retry
-import io.github.lopezjavier.appfitness.composeapp.resources.meal_defaults_open
-import io.github.lopezjavier.appfitness.composeapp.resources.meal_defaults_open_hint
 import io.github.lopezjavier.appfitness.composeapp.resources.meals_add_object
 import io.github.lopezjavier.appfitness.composeapp.resources.meals_item_label
 import io.github.lopezjavier.appfitness.composeapp.resources.meals_label_field
@@ -35,11 +32,9 @@ import io.github.lopezjavier.appfitness.designsystem.AppEditorScreen
 import io.github.lopezjavier.appfitness.designsystem.AppScreen
 import io.github.lopezjavier.appfitness.designsystem.AppShapes
 import io.github.lopezjavier.appfitness.designsystem.AppStateAction
-import io.github.lopezjavier.appfitness.designsystem.AppTheme
 import io.github.lopezjavier.appfitness.designsystem.ErrorState
 import io.github.lopezjavier.appfitness.designsystem.LocalAppMessages
 import io.github.lopezjavier.appfitness.designsystem.NameSheet
-import io.github.lopezjavier.appfitness.designsystem.NavigationRow
 import io.github.lopezjavier.appfitness.designsystem.ReorderableColumn
 import io.github.lopezjavier.appfitness.designsystem.SheetCommit
 import io.github.lopezjavier.appfitness.designsystem.SkeletonBox
@@ -53,7 +48,7 @@ private val SkeletonRowHeight = Spacing.xl * 5
 
 /**
  * Meals editor (US-23, US-56) on [AppEditorScreen]: one configuration row per meal (drag handle, name, "Quitar"),
- * "Añadir comida del día" and the "Comidas por defecto" entry. Nothing is applied until "Guardar" (removals included).
+ * "Añadir comida del día". "Comidas por defecto" is a row of the Preferencias hub (C-154). Nothing is applied until "Guardar" (removals included).
  * Create and rename go through the Name sheet, which only stages the change in the draft. The template owns the
  * discard dialog, the offline hint and the close once [MealSlotsUiState.Editing.saved]; a failed save is a one-shot
  * message (R-28).
@@ -63,7 +58,6 @@ fun MealSlotsScreen(
     state: MealSlotsUiState,
     onEvent: (MealSlotsEvent) -> Unit,
     modifier: Modifier = Modifier,
-    onOpenDefaults: () -> Unit = {},
     onClose: () -> Unit = {},
 ) {
     val title = stringResource(Res.string.meals_title)
@@ -91,7 +85,7 @@ fun MealSlotsScreen(
         canSave = state.canSave,
         testTagPrefix = TAG,
     ) {
-        Box(Modifier.fillMaxSize().testTag("meals_screen")) { MealsForm(state, onEvent, onOpenDefaults) }
+        Box(Modifier.fillMaxSize().testTag("meals_screen")) { MealsForm(state, onEvent) }
     }
     state.sheet?.let { MealNameSheetHost(it, state.rows, onEvent) }
 }
@@ -133,7 +127,7 @@ private fun MealNameSheetHost(sheet: MealNameSheet, rows: List<MealSlotRowUi>, o
 }
 
 @Composable
-private fun MealsForm(state: MealSlotsUiState.Editing, onEvent: (MealSlotsEvent) -> Unit, onOpenDefaults: () -> Unit) {
+private fun MealsForm(state: MealSlotsUiState.Editing, onEvent: (MealSlotsEvent) -> Unit) {
     val context = MealRowContext(interactive = !state.isSaving)
     val scrollState = rememberScrollState()
     Column(
@@ -158,28 +152,6 @@ private fun MealsForm(state: MealSlotsUiState.Editing, onEvent: (MealSlotsEvent)
             enabled = context.interactive,
             modifier = Modifier.testTag("meals_add"),
         )
-        DefaultsEntry(enabled = state.canNavigateToDefaults, onOpenDefaults)
-    }
-}
-
-/** "Comidas por defecto": not clickable while the meals have unsaved changes, and it says why. */
-@Composable
-private fun DefaultsEntry(enabled: Boolean, onOpen: () -> Unit) {
-    Column(verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
-        NavigationRow(
-            label = stringResource(Res.string.meal_defaults_open),
-            onClick = onOpen,
-            modifier = Modifier.testTag("meal_slots_defaults_button"),
-            enabled = enabled,
-        )
-        if (!enabled) {
-            Text(
-                text = stringResource(Res.string.meal_defaults_open_hint),
-                style = AppTheme.typography.bodyMedium,
-                color = AppTheme.colors.textSecondary,
-                modifier = Modifier.testTag("meal_slots_defaults_hint"),
-            )
-        }
     }
 }
 

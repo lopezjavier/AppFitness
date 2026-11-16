@@ -20,6 +20,8 @@ import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.github.lopezjavier.appfitness.composeapp.resources.Res
 import io.github.lopezjavier.appfitness.composeapp.resources.action_retry
+import io.github.lopezjavier.appfitness.composeapp.resources.preferences_cooking_help_body
+import io.github.lopezjavier.appfitness.composeapp.resources.preferences_cooking_help_cd
 import io.github.lopezjavier.appfitness.composeapp.resources.preferences_cooking_title
 import io.github.lopezjavier.appfitness.composeapp.resources.preferences_energy_title
 import io.github.lopezjavier.appfitness.composeapp.resources.preferences_macros_title
@@ -39,6 +41,7 @@ import io.github.lopezjavier.appfitness.designsystem.LocalAppHaptics
 import io.github.lopezjavier.appfitness.designsystem.LocalAppMessages
 import io.github.lopezjavier.appfitness.designsystem.SkeletonBox
 import io.github.lopezjavier.appfitness.designsystem.Spacing
+import io.github.lopezjavier.appfitness.designsystem.rememberHelpTopBarAction
 import io.github.lopezjavier.appfitness.feature.goals.EnergyStrategySection
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.emptyFlow
@@ -121,8 +124,15 @@ fun PreferencesSectionScreen(
         }
         return
     }
+    val cookingHelp = rememberHelpTopBarAction(
+        contentDescription = stringResource(Res.string.preferences_cooking_help_cd),
+        title = stringResource(Res.string.preferences_cooking_title),
+        body = stringResource(Res.string.preferences_cooking_help_body),
+        testTag = "preferences_cooking_help",
+    )
     AppEditorScreen(
         title = title,
+        actions = if (section == PreferencesSection.Cooking) listOf(cookingHelp) else emptyList(),
         isDirty = state.isDirty,
         isSaving = state.isSaving,
         isOnline = state.isOnline,

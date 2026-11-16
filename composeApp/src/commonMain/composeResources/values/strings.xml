@@ -295,7 +295,7 @@
     <string name="energy_adjust_state">Ajuste: %1$s kcal</string>
     <string name="energy_adjust_decrease_cd">Reducir ajuste 50 kcal</string>
     <string name="energy_adjust_increase_cd">Aumentar ajuste 50 kcal</string>
-    <string name="energy_target">Meta diaria: %1$s kcal/día</string>
+    <string name="energy_target">Objetivo: %1$s kcal al día</string>
     <string name="energy_pill_deficit">%1$s kcal · Déficit %2$s</string>
     <string name="energy_pill_surplus">%1$s kcal · Superávit %2$s</string>
     <string name="energy_pill_maintenance">%1$s kcal · Mantenimiento</string>
@@ -1078,6 +1078,19 @@
     <string name="meals_last_meal_hint">Debe quedar al menos una comida del día</string>
     <string name="preferences_meals_title">Comidas del día</string>
     <string name="preferences_training_title">Registro de series</string>
+    <string name="preferences_series_title">Series</string>
+    <string name="preferences_group_general">General</string>
+    <string name="preferences_group_nutrition">Nutrición</string>
+    <string name="preferences_group_training">Entreno</string>
+    <string name="preferences_hub_personal_value">%1$d años · %2$d cm · %3$s</string>
+    <string name="preferences_hub_energy_value">%1$s kcal · %2$s</string>
+    <string name="preferences_hub_macros_value">P %1$d % · C %2$d % · G %3$d %</string>
+    <plurals name="preferences_hub_meals_value">
+        <item quantity="one">%1$d comida</item>
+        <item quantity="other">%1$d comidas</item>
+    </plurals>
+    <string name="preferences_hub_reminders_value">%1$d de %2$d activados</string>
+    <string name="meal_defaults_days_range">%1$s a %2$s</string>
     <string name="preferences_reminders_title">Avisos</string>
     <string name="preferences_my_training_title">Mi entrenamiento</string>
     <string name="my_training_intention_label">Objetivo de entrenamiento</string>
@@ -1663,7 +1676,7 @@
     <string name="preferences_cooking_fried_support">Del peso crudo. Por defecto 8 %</string>
     <string name="preferences_cooking_help_body">Porcentaje del peso crudo que se añade como grasa.</string>
     <string name="preferences_cooking_help_cd">Ayuda: cocinado</string>
-    <string name="preferences_cooking_error">Introduce un valor entre 0 y 20 %.</string>
+    <string name="preferences_cooking_error">Entre 0 y 20 %.</string>
     <string name="weekday_group_cd">Días de la semana</string>
     <string name="weekday_name_1">Lunes</string>
     <string name="weekday_name_2">Martes</string>

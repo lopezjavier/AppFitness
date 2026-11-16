@@ -32,9 +32,11 @@ import io.github.lopezjavier.appfitness.composeapp.resources.circumference_sheet
 import io.github.lopezjavier.appfitness.composeapp.resources.circumference_sheet_title_edit
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_chevron_left
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_chevron_right
+import io.github.lopezjavier.appfitness.composeapp.resources.unit_cm
 import io.github.lopezjavier.appfitness.designsystem.AppDateFormat
 import io.github.lopezjavier.appfitness.designsystem.AppEditSheet
 import io.github.lopezjavier.appfitness.designsystem.AppIconButton
+import io.github.lopezjavier.appfitness.designsystem.AppInputStyle
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
 import io.github.lopezjavier.appfitness.designsystem.GhostButton
 import io.github.lopezjavier.appfitness.designsystem.GhostTone
@@ -127,9 +129,9 @@ private fun SiteValueField(
             horizontalArrangement = Arrangement.SpaceBetween,
         ) {
             Text(
-                text = label.uppercase(),
-                style = AppTheme.typography.labelTechnical,
-                color = AppTheme.colors.textSecondary,
+                text = label,
+                style = AppInputStyle.labelStyle(AppTheme.typography),
+                color = AppInputStyle.labelColor(AppTheme.colors),
                 modifier = Modifier.weight(1f),
             )
             if (!sheet.isEditing) {
@@ -152,6 +154,8 @@ private fun SiteValueField(
             maxDecimals = 1,
             maxIntegerDigits = VALUE_INTEGER_DIGITS,
             showLabel = false,
+            unit = stringResource(Res.string.unit_cm),
+            startAligned = true,
         )
         if (sheet.problems.containsKey(site)) {
             Text(

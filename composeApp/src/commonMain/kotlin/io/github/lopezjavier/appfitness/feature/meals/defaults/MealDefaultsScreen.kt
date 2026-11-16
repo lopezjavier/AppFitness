@@ -24,6 +24,7 @@ import io.github.lopezjavier.appfitness.composeapp.resources.action_retry
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_close
 import io.github.lopezjavier.appfitness.composeapp.resources.meal_defaults_add_object
 import io.github.lopezjavier.appfitness.composeapp.resources.meal_defaults_all_taken
+import io.github.lopezjavier.appfitness.composeapp.resources.meal_defaults_days_range
 import io.github.lopezjavier.appfitness.composeapp.resources.meal_defaults_load_error
 import io.github.lopezjavier.appfitness.composeapp.resources.meal_defaults_note
 import io.github.lopezjavier.appfitness.composeapp.resources.meal_defaults_offline
@@ -43,9 +44,11 @@ import io.github.lopezjavier.appfitness.designsystem.LocalAppMessages
 import io.github.lopezjavier.appfitness.designsystem.SkeletonBox
 import io.github.lopezjavier.appfitness.designsystem.Spacing
 import io.github.lopezjavier.appfitness.designsystem.weekdayLetter
+import io.github.lopezjavier.appfitness.designsystem.weekdayName
 import org.jetbrains.compose.resources.stringResource
 
 private const val SKELETON_CARDS = 3
+private const val MIN_RANGE_DAYS = 3
 private const val TAG = "meal_defaults"
 private val SkeletonCardHeight = Spacing.xl * 5
 
@@ -168,7 +171,7 @@ private fun AssignmentRow(
     onEvent: (MealDefaultsEvent) -> Unit,
 ) {
     val id = "${card.slotId}_${assignment.templateId}"
-    val days = assignment.days.sorted().map { weekdayLetter(it) }.joinToString(" ")
+    val days = defaultDaysText(assignment.days)
     Row(
         Modifier.fillMaxWidth().heightIn(min = Spacing.minTouchTarget),
         verticalAlignment = Alignment.CenterVertically,
@@ -198,6 +201,27 @@ private fun AssignmentRow(
             onClick = { onEvent(MealDefaultsEvent.Remove(card.slotId, assignment.templateId)) },
             enabled = interactive,
         )
+    }
+}
+
+/**
+ * The weekdays of a default comida (C-170): a run of three or more consecutive days reads "Lunes a viernes", one day
+ * its full name, anything else the initials "L, M, X".
+ */
+@Composable
+private fun defaultDaysText(days: Set<Int>): String {
+    val sorted = days.sorted()
+    val contiguous = sorted.size >= MIN_RANGE_DAYS && sorted.last() - sorted.first() == sorted.size - 1
+    return when {
+        sorted.size == 1 -> weekdayName(sorted.first())
+
+        contiguous -> stringResource(
+            Res.string.meal_defaults_days_range,
+            weekdayName(sorted.first()),
+            weekdayName(sorted.last()).lowercase(),
+        )
+
+        else -> sorted.map { weekdayLetter(it) }.joinToString(", ")
     }
 }
 

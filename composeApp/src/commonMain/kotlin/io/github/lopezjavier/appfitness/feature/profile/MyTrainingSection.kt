@@ -179,7 +179,7 @@ private fun Label(text: String, modifier: Modifier = Modifier) = Text(
 @Composable
 private fun LabelWithHelp(text: String, helpContentDescription: String, helpBody: String, helpTestTag: String) {
     Row(verticalAlignment = Alignment.CenterVertically) {
-        Label(text, Modifier.weight(1f))
+        Label(text)
         HelpButton(
             contentDescription = helpContentDescription,
             title = text,

@@ -52,7 +52,9 @@ import io.github.lopezjavier.appfitness.composeapp.resources.wheel_month_cd
 import io.github.lopezjavier.appfitness.composeapp.resources.wheel_weight_decimal_cd
 import io.github.lopezjavier.appfitness.composeapp.resources.wheel_weight_kg_cd
 import io.github.lopezjavier.appfitness.composeapp.resources.wheel_year_cd
+import io.github.lopezjavier.appfitness.designsystem.AppOption
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
+import io.github.lopezjavier.appfitness.designsystem.SegmentedSelector
 import io.github.lopezjavier.appfitness.designsystem.SelectableCard
 import io.github.lopezjavier.appfitness.designsystem.Spacing
 import io.github.lopezjavier.appfitness.designsystem.WheelPicker
@@ -78,40 +80,24 @@ private const val YEAR_WHEEL_WEIGHT = 1.4f
  */
 
 /**
- * Sex as two equal cards side by side (label only, `selected` semantics, no preselection). Tags:
+ * Sex as a two-option [SegmentedSelector] (R-33; label only, `selected` semantics, no preselection). Tags:
  * `<tagPrefix>_sex_male|female`.
  */
 @Composable
 internal fun SexSelector(sex: Sex?, onSelect: (Sex) -> Unit, tagPrefix: String, modifier: Modifier = Modifier) {
-    Row(
-        modifier.fillMaxWidth().height(IntrinsicSize.Min).selectableGroup(),
-        horizontalArrangement = Arrangement.spacedBy(Spacing.cardGap),
-    ) {
-        Sex.entries.forEach { option ->
-            SexCard(
-                label = if (option == Sex.Male) Res.string.onboarding_sex_male else Res.string.onboarding_sex_female,
-                selected = sex == option,
-                onClick = { onSelect(option) },
-                tag = "${tagPrefix}_sex_${option.name.lowercase()}",
-                modifier = Modifier.weight(1f),
-            )
-        }
+    val options = Sex.entries.map { option ->
+        AppOption(
+            label = stringResource(
+                if (option == Sex.Male) Res.string.onboarding_sex_male else Res.string.onboarding_sex_female,
+            ),
+            testTag = "${tagPrefix}_sex_${option.name.lowercase()}",
+        )
     }
-}
-
-@Composable
-private fun SexCard(
-    label: StringResource,
-    selected: Boolean,
-    onClick: () -> Unit,
-    tag: String,
-    modifier: Modifier = Modifier,
-) {
-    SelectableCard(
-        title = stringResource(label),
-        selected = selected,
-        onClick = onClick,
-        modifier = modifier.fillMaxHeight().testTag(tag),
+    SegmentedSelector(
+        options = options,
+        selectedIndex = sex?.let { Sex.entries.indexOf(it) },
+        onSelect = { onSelect(Sex.entries[it]) },
+        modifier = modifier,
     )
 }
 

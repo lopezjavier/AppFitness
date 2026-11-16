@@ -10,11 +10,27 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.compose.LifecycleEventEffect
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.github.lopezjavier.appfitness.composeapp.resources.Res
+import io.github.lopezjavier.appfitness.composeapp.resources.energy_strategy_deficit
+import io.github.lopezjavier.appfitness.composeapp.resources.energy_strategy_maintenance
+import io.github.lopezjavier.appfitness.composeapp.resources.energy_strategy_surplus
+import io.github.lopezjavier.appfitness.composeapp.resources.meal_defaults_open
 import io.github.lopezjavier.appfitness.composeapp.resources.preferences_cooking_title
 import io.github.lopezjavier.appfitness.composeapp.resources.preferences_energy_title
+import io.github.lopezjavier.appfitness.composeapp.resources.preferences_group_general
+import io.github.lopezjavier.appfitness.composeapp.resources.preferences_group_nutrition
+import io.github.lopezjavier.appfitness.composeapp.resources.preferences_group_training
+import io.github.lopezjavier.appfitness.composeapp.resources.preferences_hub_energy_value
+import io.github.lopezjavier.appfitness.composeapp.resources.preferences_hub_macros_value
+import io.github.lopezjavier.appfitness.composeapp.resources.preferences_hub_meals_value
+import io.github.lopezjavier.appfitness.composeapp.resources.preferences_hub_personal_value
+import io.github.lopezjavier.appfitness.composeapp.resources.preferences_hub_reminders_value
 import io.github.lopezjavier.appfitness.composeapp.resources.preferences_macros_title
 import io.github.lopezjavier.appfitness.composeapp.resources.preferences_meals_title
 import io.github.lopezjavier.appfitness.composeapp.resources.preferences_reminders_title
@@ -22,24 +38,55 @@ import io.github.lopezjavier.appfitness.composeapp.resources.preferences_title
 import io.github.lopezjavier.appfitness.composeapp.resources.preferences_training_title
 import io.github.lopezjavier.appfitness.composeapp.resources.profile_personal_title
 import io.github.lopezjavier.appfitness.designsystem.AppCard
+import io.github.lopezjavier.appfitness.designsystem.AppNumberFormat
 import io.github.lopezjavier.appfitness.designsystem.AppScreen
+import io.github.lopezjavier.appfitness.designsystem.ListSectionHeader
 import io.github.lopezjavier.appfitness.designsystem.NavigationRow
 import io.github.lopezjavier.appfitness.designsystem.Spacing
+import io.github.lopezjavier.appfitness.domain.model.GoalStrategy
+import io.github.lopezjavier.appfitness.feature.biometrics.activityTitle
 import org.jetbrains.compose.resources.StringResource
+import org.jetbrains.compose.resources.pluralStringResource
 import org.jetbrains.compose.resources.stringResource
+import org.koin.compose.viewmodel.koinViewModel
 
-/** The hub's destinations: the section editors and the meals editor (T-126). */
-class PreferencesHubActions(val onOpenSection: (PreferencesSection) -> Unit = {}, val onOpenMeals: () -> Unit = {})
+/** The hub's destinations: the section editors, the meals editor and the default comidas editor (T-126, C-154). */
+class PreferencesHubActions(
+    val onOpenSection: (PreferencesSection) -> Unit = {},
+    val onOpenMeals: () -> Unit = {},
+    val onOpenMealDefaults: () -> Unit = {},
+)
 
 /**
- * Preferencias hub (US-56): stateless groups of [NavigationRow]s, one per editor, on a full-screen [AppScreen]:
- * [Datos personales] · [Objetivo calórico, Macros, Comidas del día, Cocina] · [Entrenamiento] · [Avisos]. "Cerrar
- * sesión" and "Borrar cuenta" live on the "Cuenta" screen (R-113). "Mi entrenamiento" lives in the Perfil root
- * (T-154), not here. Each row label is the
- * title of the screen it opens (R-04).
+ * Stateful hub: connects [PreferencesHubViewModel] to [PreferencesHubScreen]; the values are read again every time the
+ * hub resumes, so a saved editor shows its new value on return.
  */
 @Composable
-fun PreferencesHubScreen(onBack: () -> Unit, actions: PreferencesHubActions, modifier: Modifier = Modifier) {
+fun PreferencesHubRoot(
+    onBack: () -> Unit,
+    actions: PreferencesHubActions,
+    modifier: Modifier = Modifier,
+    viewModel: PreferencesHubViewModel = koinViewModel(),
+) {
+    val summary by viewModel.summary.collectAsStateWithLifecycle()
+    LifecycleEventEffect(Lifecycle.Event.ON_RESUME) { viewModel.onEvent(PreferencesHubEvent.Refresh) }
+    PreferencesHubScreen(onBack, actions, modifier, summary)
+}
+
+/**
+ * Preferencias hub (US-56, R-109): stateless, three named groups of [NavigationRow]s on a full-screen [AppScreen]:
+ * General (Datos personales, Avisos), Nutrición (Objetivo calórico, Macros, Comidas del día, Comidas por defecto,
+ * Cocina) and Entreno (Registro de series). A row with a current value in [summary] shows it as its supporting line
+ * (C-153). "Cerrar sesión" and "Borrar cuenta" live on the "Cuenta" screen (R-113) and "Mi entrenamiento" in the
+ * Perfil root (T-154). Each row label is the title of the screen it opens (R-04).
+ */
+@Composable
+fun PreferencesHubScreen(
+    onBack: () -> Unit,
+    actions: PreferencesHubActions,
+    modifier: Modifier = Modifier,
+    summary: PreferencesHubSummary = PreferencesHubSummary(),
+) {
     AppScreen(
         title = stringResource(Res.string.preferences_title),
         modifier = modifier,
@@ -54,31 +101,11 @@ fun PreferencesHubScreen(onBack: () -> Unit, actions: PreferencesHubActions, mod
                 .testTag("preferences_hub"),
             verticalArrangement = Arrangement.spacedBy(Spacing.cardGap),
         ) {
-            HubGroup {
-                HubRow(Res.string.profile_personal_title, "personal") {
-                    actions.onOpenSection(PreferencesSection.PersonalData)
-                }
-            }
-            HubGroup {
-                HubRow(Res.string.preferences_energy_title, "energy") {
-                    actions.onOpenSection(PreferencesSection.EnergyGoal)
-                }
-                HubRow(Res.string.preferences_macros_title, "macros") {
-                    actions.onOpenSection(PreferencesSection.Macros)
-                }
-                HubRow(Res.string.preferences_meals_title, "meals") { actions.onOpenMeals() }
-                HubRow(Res.string.preferences_cooking_title, "cooking") {
-                    actions.onOpenSection(PreferencesSection.Cooking)
-                }
-            }
-            HubGroup {
+            GeneralGroup(summary, actions)
+            NutritionGroup(summary, actions)
+            HubGroup(Res.string.preferences_group_training) {
                 HubRow(Res.string.preferences_training_title, "training") {
                     actions.onOpenSection(PreferencesSection.Training)
-                }
-            }
-            HubGroup {
-                HubRow(Res.string.preferences_reminders_title, "avisos") {
-                    actions.onOpenSection(PreferencesSection.Reminders)
                 }
             }
         }
@@ -86,15 +113,83 @@ fun PreferencesHubScreen(onBack: () -> Unit, actions: PreferencesHubActions, mod
 }
 
 @Composable
-private fun HubGroup(content: @Composable () -> Unit) {
-    AppCard(Modifier.fillMaxWidth()) { content() }
+private fun GeneralGroup(summary: PreferencesHubSummary, actions: PreferencesHubActions) {
+    HubGroup(Res.string.preferences_group_general) {
+        HubRow(Res.string.profile_personal_title, "personal", summary.personal?.let { personalText(it) }) {
+            actions.onOpenSection(PreferencesSection.PersonalData)
+        }
+        val on = summary.remindersOn
+        val remindersText = on?.let {
+            stringResource(Res.string.preferences_hub_reminders_value, it, PreferencesHubSummary.REMINDER_TOTAL)
+        }
+        HubRow(Res.string.preferences_reminders_title, "avisos", remindersText) {
+            actions.onOpenSection(PreferencesSection.Reminders)
+        }
+    }
 }
 
 @Composable
-private fun HubRow(label: StringResource, key: String, onClick: () -> Unit) {
+private fun NutritionGroup(summary: PreferencesHubSummary, actions: PreferencesHubActions) {
+    HubGroup(Res.string.preferences_group_nutrition) {
+        HubRow(Res.string.preferences_energy_title, "energy", summary.energy?.let { energyText(it) }) {
+            actions.onOpenSection(PreferencesSection.EnergyGoal)
+        }
+        val split = summary.split
+        val macrosText = split?.let {
+            stringResource(Res.string.preferences_hub_macros_value, it.proteinPct, it.carbsPct, it.fatPct)
+        }
+        HubRow(Res.string.preferences_macros_title, "macros", macrosText) {
+            actions.onOpenSection(PreferencesSection.Macros)
+        }
+        HubRow(Res.string.preferences_meals_title, "meals", summary.mealCount?.let { mealsText(it) }) {
+            actions.onOpenMeals()
+        }
+        HubRow(Res.string.meal_defaults_open, "meal_defaults") { actions.onOpenMealDefaults() }
+        HubRow(Res.string.preferences_cooking_title, "cooking") {
+            actions.onOpenSection(PreferencesSection.Cooking)
+        }
+    }
+}
+
+@Composable
+private fun personalText(personal: PersonalSummary): String = stringResource(
+    Res.string.preferences_hub_personal_value,
+    personal.ageYears,
+    personal.heightCm,
+    stringResource(activityTitle(personal.activity)),
+)
+
+@Composable
+private fun energyText(energy: EnergySummary): String = stringResource(
+    Res.string.preferences_hub_energy_value,
+    AppNumberFormat.integer(energy.targetKcal),
+    stringResource(
+        when (energy.strategy) {
+            GoalStrategy.Deficit -> Res.string.energy_strategy_deficit
+            GoalStrategy.Maintenance -> Res.string.energy_strategy_maintenance
+            GoalStrategy.Surplus -> Res.string.energy_strategy_surplus
+        },
+    ),
+)
+
+@Composable
+private fun mealsText(count: Int): String = pluralStringResource(Res.plurals.preferences_hub_meals_value, count, count)
+
+/** A named group (R-109): the `titleSection` header over one card of rows. */
+@Composable
+private fun HubGroup(title: StringResource, content: @Composable () -> Unit) {
+    Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+        ListSectionHeader(stringResource(title))
+        AppCard(Modifier.fillMaxWidth()) { content() }
+    }
+}
+
+@Composable
+private fun HubRow(label: StringResource, key: String, supporting: String? = null, onClick: () -> Unit) {
     NavigationRow(
         label = stringResource(label),
         onClick = onClick,
         modifier = Modifier.testTag("preferences_row_$key"),
+        supporting = supporting,
     )
 }

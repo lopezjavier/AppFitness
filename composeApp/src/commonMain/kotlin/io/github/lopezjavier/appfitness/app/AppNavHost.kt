@@ -132,6 +132,7 @@ internal typealias PreferencesSlot =
         onBack: () -> Unit,
         onOpenSection: (String) -> Unit,
         onOpenMeals: () -> Unit,
+        onOpenMealDefaults: () -> Unit,
     ) -> Unit
 
 /** Content of one Preferencias editor: its modifier (full-screen insets) and how to leave (saved, discarded, back). */
@@ -289,8 +290,7 @@ internal typealias SaveTemplateSlot =
     ) -> Unit
 
 /** Meals editor content: modifier (full-screen insets) and how to leave. */
-internal typealias MealSlotsSlot =
-    @Composable (modifier: Modifier, onClose: () -> Unit, onOpenDefaults: () -> Unit) -> Unit
+internal typealias MealSlotsSlot = @Composable (modifier: Modifier, onClose: () -> Unit) -> Unit
 
 /** Default comidas editor content (US-51): modifier (full-screen insets) and how to leave. */
 internal typealias MealDefaultsSlot = @Composable (modifier: Modifier, onClose: () -> Unit) -> Unit
@@ -580,7 +580,7 @@ internal val DefaultCreateFoodSlot: CreateFoodSlot = { modifier, _, _, _, _, _, 
 }
 
 /** Empty meals editor for previews and shell tests; the real one is wired by `AppRoot`. */
-internal val DefaultMealSlotsSlot: MealSlotsSlot = { modifier, _, _ ->
+internal val DefaultMealSlotsSlot: MealSlotsSlot = { modifier, _ ->
     Box(modifier.fillMaxSize().testTag("meals_screen"))
 }
 
@@ -644,7 +644,7 @@ internal val DefaultExerciseProgressSlot: ExerciseProgressSlot = { modifier, _, 
 }
 
 /** Empty Preferencias for previews and shell tests; the real one is wired by `AppRoot`. */
-internal val DefaultPreferencesSlot: PreferencesSlot = { modifier, onBack, _, _ ->
+internal val DefaultPreferencesSlot: PreferencesSlot = { modifier, onBack, _, _, _ ->
     Box(modifier.fillMaxSize().testTag("preferences_screen")) {
         Box(Modifier.fillMaxSize().clickable(onClick = onBack).testTag("preferences_back"))
     }
@@ -1058,6 +1058,7 @@ internal fun AppNavHost(
                 { navController.popFullScreen(entry) },
                 { key -> navController.navigateToFullScreen(PreferencesSectionRoute(key)) },
                 openMeals,
+                openMealDefaults,
             )
         }
         composable<PreferencesSectionRoute> { entry ->
@@ -1124,7 +1125,7 @@ internal fun AppNavHost(
             templateDetails,
         )
         composable<MealSlotsRoute> {
-            mealSlots(Modifier.padding(fullScreenPadding), { navController.popBackStack() }, openMealDefaults)
+            mealSlots(Modifier.padding(fullScreenPadding)) { navController.popBackStack() }
         }
         composable<MealDefaultsRoute> {
             mealDefaults(Modifier.padding(fullScreenPadding)) { navController.popBackStack() }

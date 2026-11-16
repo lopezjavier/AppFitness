@@ -21,7 +21,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
-import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.Dp
 import io.github.lopezjavier.appfitness.composeapp.resources.Res
@@ -38,18 +37,17 @@ import io.github.lopezjavier.appfitness.composeapp.resources.profile_age_label
 import io.github.lopezjavier.appfitness.composeapp.resources.profile_height_spoken
 import io.github.lopezjavier.appfitness.composeapp.resources.profile_height_value
 import io.github.lopezjavier.appfitness.composeapp.resources.profile_name_label
-import io.github.lopezjavier.appfitness.composeapp.resources.profile_personal_title
 import io.github.lopezjavier.appfitness.composeapp.resources.profile_row_cd
 import io.github.lopezjavier.appfitness.composeapp.resources.profile_weight_hc_cd
 import io.github.lopezjavier.appfitness.composeapp.resources.profile_weight_value
 import io.github.lopezjavier.appfitness.composeapp.resources.weight_hc_note
 import io.github.lopezjavier.appfitness.designsystem.AppCard
 import io.github.lopezjavier.appfitness.designsystem.AppEditSheet
+import io.github.lopezjavier.appfitness.designsystem.AppPickerSheet
 import io.github.lopezjavier.appfitness.designsystem.AppTextField
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
 import io.github.lopezjavier.appfitness.designsystem.SheetCommit
 import io.github.lopezjavier.appfitness.designsystem.Spacing
-import io.github.lopezjavier.appfitness.domain.model.ActivityLevel
 import io.github.lopezjavier.appfitness.domain.model.BiometricBounds
 import io.github.lopezjavier.appfitness.feature.biometrics.ActivityCards
 import io.github.lopezjavier.appfitness.feature.biometrics.BirthDateWheels
@@ -71,15 +69,14 @@ private const val TAG_PREFIX = "preferences"
 private val LocalDateSaver: Saver<LocalDate, Any> =
     Saver(save = { it.toString() }, restore = { LocalDate.parse(it as String) })
 private val IntSaver: Saver<Int, Any> = Saver(save = { it }, restore = { it as Int })
-private val ActivitySaver: Saver<ActivityLevel, Any> =
-    Saver(save = { it.name }, restore = { ActivityLevel.valueOf(it as String) })
 
 /** Which picker sheet is open. */
 private enum class PersonalSheet { BirthDate, Height, Weight, Activity }
 
 /**
- * "Datos personales": the name field, sex inline, and birth date / height / current weight / activity as rows that
- * open a picker sheet. Sheet edits reach the form only through "Listo".
+ * "Datos personales": the name field, sex as a segmented control, and birth date / height / current weight /
+ * activity as rows that open a picker sheet. The wheel sheets reach the form only through "Listo"; the activity
+ * level applies on tap (R-12). The screen title is not repeated as a card heading (C-167).
  */
 @Composable
 internal fun PersonalDataCard(
@@ -91,13 +88,7 @@ internal fun PersonalDataCard(
     val form = state.form
     val editable = !state.isSaving
     AppCard(modifier.fillMaxWidth()) {
-        Text(
-            text = stringResource(Res.string.profile_personal_title),
-            style = AppTheme.typography.titleLarge,
-            color = AppTheme.colors.textPrimary,
-            modifier = Modifier.semantics { heading() },
-        )
-        NameField(form.name, editable, onEvent, Modifier.padding(top = Spacing.md))
+        NameField(form.name, editable, onEvent)
         Column(Modifier.padding(top = Spacing.md), verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
             Text(
                 text = stringResource(Res.string.onboarding_label_sex),
@@ -282,14 +273,22 @@ private fun PersonalSheets(
             WeightWheels(draft, onDraft, tagPrefix = TAG_PREFIX, onCentredChange = onCentred)
         }
 
-        PersonalSheet.Activity -> PickerSheet<ActivityLevel>(
-            title = Res.string.profile_activity_label,
-            contentTag = "preferences_sheet_activity",
-            initial = form.activity,
-            saver = ActivitySaver,
-            onApply = { onEvent(PreferencesEvent.SelectActivity(it)) },
-            onClose = onClose,
-        ) { draft, onDraft, _ -> ActivityCards(draft, onDraft, tagPrefix = TAG_PREFIX) }
+        // A single choice applies on tap, with no "Listo" (R-12, V-81).
+        PersonalSheet.Activity -> AppPickerSheet(
+            title = stringResource(Res.string.profile_activity_label),
+            onDismiss = onClose,
+            testTagPrefix = "preferences_sheet",
+        ) {
+            ActivityCards(
+                selected = form.activity,
+                onSelect = {
+                    onEvent(PreferencesEvent.SelectActivity(it))
+                    onClose()
+                },
+                tagPrefix = TAG_PREFIX,
+                modifier = Modifier.testTag("preferences_sheet_activity"),
+            )
+        }
 
         null -> Unit
     }
