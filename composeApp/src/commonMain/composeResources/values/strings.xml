@@ -308,6 +308,7 @@
     <string name="onboarding_decimal_separator">,</string>
     <string name="unit_cm">cm</string>
     <string name="unit_kg">kg</string>
+    <string name="unit_tonne">t</string>
     <string name="month_1">enero</string>
     <string name="month_2">febrero</string>
     <string name="month_3">marzo</string>
@@ -787,6 +788,7 @@
     <string name="stats_tile_volume">Volumen</string>
     <string name="stats_tile_duration">Duración</string>
     <string name="stats_unit_kg">kg</string>
+    <string name="stats_unit_tonne">t</string>
     <string name="stats_duration_hm">%1$d h %2$d min</string>
     <string name="stats_duration_h">%1$d h</string>
     <string name="stats_duration_m">%1$d min</string>

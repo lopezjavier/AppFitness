@@ -24,6 +24,7 @@ import io.github.lopezjavier.appfitness.designsystem.AppTheme
 import io.github.lopezjavier.appfitness.designsystem.BarListRow
 import io.github.lopezjavier.appfitness.designsystem.BarListRowDefaults
 import io.github.lopezjavier.appfitness.designsystem.MetricTile
+import io.github.lopezjavier.appfitness.designsystem.MetricTileRow
 import io.github.lopezjavier.appfitness.designsystem.SectionCard
 import io.github.lopezjavier.appfitness.designsystem.SegmentedProgress
 import io.github.lopezjavier.appfitness.designsystem.Spacing
@@ -110,29 +111,28 @@ internal class ReportTile(
 internal fun ReportTileGrid(tiles: List<ReportTile>) {
     Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
         tiles.chunked(2).forEach { pair ->
-            Row(
-                Modifier.fillMaxWidth().height(IntrinsicSize.Min),
-                horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
-            ) {
-                pair.forEach { tile ->
-                    MetricTile(
-                        label = tile.label,
-                        value = tile.value,
-                        modifier = Modifier.weight(1f).fillMaxHeight().testTag(tile.tag),
-                        unit = tile.unit,
-                        supporting = tile.supporting?.let {
-                            {
-                                Text(
-                                    text = it,
-                                    style = AppTheme.typography.bodySmall,
-                                    color = AppTheme.colors.textSecondary,
-                                )
-                            }
-                        },
-                    )
-                }
-                if (pair.size == 1) Row(Modifier.weight(1f)) {}
-            }
+            MetricTileRow(
+                tiles = pair.map { tile ->
+                    { m: Modifier ->
+                        MetricTile(
+                            label = tile.label,
+                            value = tile.value,
+                            modifier = m.testTag(tile.tag),
+                            unit = tile.unit,
+                            supporting = tile.supporting?.let {
+                                {
+                                    Text(
+                                        text = it,
+                                        style = AppTheme.typography.bodySmall,
+                                        color = AppTheme.colors.textSecondary,
+                                    )
+                                }
+                            },
+                        )
+                    }
+                },
+                columns = 2,
+            )
         }
     }
 }

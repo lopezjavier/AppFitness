@@ -147,7 +147,7 @@ private fun HealthConnectRow(
         onDelete = { onEvent(WeightEvent.DeleteHealthConnect(row.id)) },
         backgroundTag = "weight_hc_delete_bg_${row.id}",
         modifier = Modifier.testTag("weight_hc_row_${row.id}"),
-        containerColor = AppTheme.colors.surfaceBase,
+        containerColor = AppTheme.colors.surfaceControl,
     ) {
         MeasurementRow(
             value = stringResource(Res.string.weight_current_value, decimalText(row.weightKg)),

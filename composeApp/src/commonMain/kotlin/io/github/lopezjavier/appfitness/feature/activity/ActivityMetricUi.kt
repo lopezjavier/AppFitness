@@ -9,10 +9,10 @@ import io.github.lopezjavier.appfitness.composeapp.resources.activity_resting_hr
 import io.github.lopezjavier.appfitness.composeapp.resources.activity_sleep
 import io.github.lopezjavier.appfitness.composeapp.resources.activity_steps
 import io.github.lopezjavier.appfitness.composeapp.resources.activity_total_kcal
-import io.github.lopezjavier.appfitness.composeapp.resources.ic_flame
-import io.github.lopezjavier.appfitness.composeapp.resources.ic_heart
-import io.github.lopezjavier.appfitness.composeapp.resources.ic_sleep
-import io.github.lopezjavier.appfitness.composeapp.resources.ic_steps
+import io.github.lopezjavier.appfitness.composeapp.resources.ic_flame_outlined
+import io.github.lopezjavier.appfitness.composeapp.resources.ic_heart_outlined
+import io.github.lopezjavier.appfitness.composeapp.resources.ic_sleep_outlined
+import io.github.lopezjavier.appfitness.composeapp.resources.ic_steps_outlined
 import io.github.lopezjavier.appfitness.designsystem.AppNumberFormat
 import io.github.lopezjavier.appfitness.designsystem.ChartMetricOption
 import io.github.lopezjavier.appfitness.designsystem.durationText
@@ -33,10 +33,10 @@ internal fun ActivityMetric.nameRes(): StringResource = when (this) {
 }
 
 internal fun ActivityMetric.icon(): DrawableResource = when (this) {
-    ActivityMetric.Steps -> Res.drawable.ic_steps
-    ActivityMetric.Sleep -> Res.drawable.ic_sleep
-    ActivityMetric.ActiveKcal, ActivityMetric.TotalKcal -> Res.drawable.ic_flame
-    ActivityMetric.RestingHeartRate -> Res.drawable.ic_heart
+    ActivityMetric.Steps -> Res.drawable.ic_steps_outlined
+    ActivityMetric.Sleep -> Res.drawable.ic_sleep_outlined
+    ActivityMetric.ActiveKcal, ActivityMetric.TotalKcal -> Res.drawable.ic_flame_outlined
+    ActivityMetric.RestingHeartRate -> Res.drawable.ic_heart_outlined
 }
 
 /** The snake_case name in tags: `activity_<tag>_card` and `activity_chart_metric_<tag>`. */

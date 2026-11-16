@@ -98,6 +98,9 @@ object AppLineChartDefaults {
 
     /** Title-to-chart gap of [AppLineChartBlock]. */
     val TitleSpacing: Dp = Spacing.sm
+
+    /** Horizontal gridlines of the value axis (C-159). */
+    const val GRIDLINES = 4
 }
 
 /**
@@ -118,6 +121,8 @@ object AppLineChartDefaults {
  * [band] shades a horizontal value range (low-opacity athleticCyan, behind the line). It never widens the vertical
  * range (only the data and [referenceLine] do): the band is clipped to the visible range and skipped when it lies
  * outside; the caller mentions it in [description]. Null by default, which leaves the chart as it was.
+ * The vertical domain is padded (C-159): data plus max(10 %, [domainStep]) rounded outwards to a multiple of
+ * [domainStep] (5 by default, kilos), four gridlines, never anchored at zero.
  */
 @Composable
 // The extra parameters are the optional trend layer; every default keeps the single-series chart as it was.
@@ -139,6 +144,7 @@ fun AppLineChart(
     connectGaps: Boolean = false,
     markers: List<Int> = emptyList(),
     band: ClosedFloatingPointRange<Double>? = null,
+    domainStep: Double = DEFAULT_DOMAIN_STEP,
 ) {
     val producer = remember { CartesianChartModelProducer() }
     val markerPoints = markers.distinct().sorted().filter { values.getOrNull(it) != null }
@@ -174,7 +180,7 @@ fun AppLineChart(
         valueLabel,
         labels,
         pointCount,
-        overlaySpec(referenceLine, band, values, dots),
+        overlaySpec(referenceLine, band, values, dots, domainStep),
     )
     val animationSpec = if (animated) tween<Float>(AppLineChartDefaults.ANIMATION_MILLIS) else null
     Box(
@@ -277,6 +283,7 @@ private fun rememberAppCartesianChart(
             valueFormatter = remember(valueLabel) {
                 CartesianValueFormatter { _, value, _ -> valueLabel(value) }
             },
+            itemPlacer = remember { VerticalAxis.ItemPlacer.count(count = { AppLineChartDefaults.GRIDLINES }) },
         ),
         bottomAxis =
         HorizontalAxis.rememberBottom(

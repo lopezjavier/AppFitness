@@ -16,7 +16,7 @@ import androidx.compose.ui.semantics.Role
 /**
  * A card with one headline number: the technical [label] over the [value] (`headlineMetric`, same styles as
  * [MetricTile]), then optional [supporting] content (a trend, a hint), a [trailingAction] at the end of the
- * header (for example an edit icon button), a [leading] decorative icon before the text, a [highlighted] border for the
+ * header (for example an edit icon button), a [leading] decorative icon before the text, a [labelLeading] 16 dp icon inside the label row (C-160), a [highlighted] border for the
  * selected card and a [progress] bar under everything. With [onClick] and no
  * [trailingAction] the whole card is one `Role.Button` target. With both, only the label and value block is the
  * button; [supporting] and [trailingAction] are sibling nodes outside it, so they may hold interactive content (an
@@ -36,6 +36,7 @@ fun MetricCard(
     leading: (@Composable () -> Unit)? = null,
     highlighted: Boolean = false,
     selected: Boolean = false,
+    labelLeading: (@Composable () -> Unit)? = null,
 ) {
     // With a trailing action only the label and value block is the button, so the action is a sibling node.
     val cardClick = onClick.takeIf { trailingAction == null }?.let {
@@ -52,15 +53,22 @@ fun MetricCard(
                     Modifier.fillMaxWidth().heightIn(min = Spacing.minTouchTarget).then(headClick),
                     verticalArrangement = Arrangement.spacedBy(Spacing.xs),
                 ) {
-                    Text(
-                        text = label,
-                        style = MetricTileDefaults.labelStyle(AppTheme.typography),
-                        color = AppTheme.colors.textSecondary,
-                    )
-                    Text(
-                        text = value,
-                        style = MetricTileDefaults.valueStyle(AppTheme.typography),
-                        color = AppTheme.colors.textPrimary,
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(Spacing.xs),
+                    ) {
+                        labelLeading?.invoke()
+                        Text(
+                            text = label,
+                            style = MetricTileDefaults.labelStyle(AppTheme.typography),
+                            color = AppTheme.colors.textSecondary,
+                        )
+                    }
+                    MetricValueText(
+                        value = value,
+                        unit = null,
+                        valueColor = AppTheme.colors.textPrimary,
+                        unitColor = AppTheme.colors.textSecondary,
                     )
                 }
                 supporting?.invoke()

@@ -3,10 +3,10 @@ package io.github.lopezjavier.appfitness.feature.weight
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.size
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -38,6 +38,7 @@ import io.github.lopezjavier.appfitness.composeapp.resources.health_synced_minut
 import io.github.lopezjavier.appfitness.composeapp.resources.health_synced_now
 import io.github.lopezjavier.appfitness.composeapp.resources.health_syncing
 import io.github.lopezjavier.appfitness.composeapp.resources.health_update_needed
+import io.github.lopezjavier.appfitness.designsystem.AppListRowDefaults
 import io.github.lopezjavier.appfitness.designsystem.AppShapes
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
 import io.github.lopezjavier.appfitness.designsystem.GhostButton
@@ -49,9 +50,12 @@ import org.jetbrains.compose.resources.stringResource
 
 private val SkeletonLineHeight = Spacing.xl
 
+/** The one row of status and action (R-114). */
+private val StatusRowHeight = AppListRowDefaults.minHeight(supportingLines = 1)
+
 /**
  * The Health Connect status of "Peso actual" (US-26): a status dot, the status text and one button ("Sincronizar" and
- * its siblings). While the state loads a skeleton line is drawn, so "Sin sincronizar" never flashes.
+ * its siblings) in one 56 dp row. While the state loads a skeleton line is drawn, so "Sin sincronizar" never flashes.
  */
 @Composable
 fun HealthStatusLine(state: HealthSyncUiState, onEvent: (HealthSyncEvent) -> Unit, modifier: Modifier = Modifier) {
@@ -63,17 +67,14 @@ fun HealthStatusLine(state: HealthSyncUiState, onEvent: (HealthSyncEvent) -> Uni
         )
         return
     }
-    Column(
-        modifier.fillMaxWidth().testTag("weight_hc_banner"),
-        verticalArrangement = Arrangement.spacedBy(Spacing.xs),
+    // C-164, R-114: dot and text at the start, the action at the end, one 56 dp row.
+    Row(
+        modifier.fillMaxWidth().heightIn(min = StatusRowHeight).testTag("weight_hc_banner"),
+        horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+        verticalAlignment = Alignment.CenterVertically,
     ) {
-        Row(
-            horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            StatusDot(toneColor(spec.tone))
-            StatusText(spec)
-        }
+        StatusDot(toneColor(spec.tone))
+        StatusText(spec, Modifier.weight(1f))
         GhostButton(
             text = actionLabel(spec.action),
             onClick = { onEvent(HealthSyncEvent.Tap) },
@@ -102,14 +103,14 @@ private fun StatusDot(color: Color) {
  * ("hace 1 min") the region is off, so the minute ticker never re-announces.
  */
 @Composable
-private fun StatusText(spec: HealthBannerSpec) {
+private fun StatusText(spec: HealthBannerSpec, modifier: Modifier = Modifier) {
     val status = spec.status
     val announce = status !is HealthSyncStatus.Synced || status.age == SyncAge.Now
     Text(
         text = statusLabel(status),
         style = AppTheme.typography.bodyMedium,
         color = AppTheme.colors.textPrimary,
-        modifier = Modifier
+        modifier = modifier
             .semantics { if (announce) liveRegion = LiveRegionMode.Polite }
             .testTag("weight_hc_status"),
     )

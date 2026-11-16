@@ -180,6 +180,7 @@ private fun ActivityPlot(state: ActivityUiState.Content) {
             dots = days.map { byDay[it]?.div(MINUTES_PER_HOUR) },
             animated = LocalAnimationsEnabled.current,
             connectGaps = true,
+            domainStep = SLEEP_DOMAIN_STEP_HOURS,
         )
 
         ActivityMetric.RestingHeartRate -> AppLineChart(
@@ -194,3 +195,6 @@ private fun ActivityPlot(state: ActivityUiState.Content) {
         )
     }
 }
+
+/** Rounding unit of the sleep chart domain: one hour (C-159; the 5 kg default does not apply to hours). */
+private const val SLEEP_DOMAIN_STEP_HOURS = 1.0

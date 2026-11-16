@@ -29,10 +29,12 @@ import io.github.lopezjavier.appfitness.composeapp.resources.stats_tile_sets
 import io.github.lopezjavier.appfitness.composeapp.resources.stats_tile_volume
 import io.github.lopezjavier.appfitness.composeapp.resources.stats_tile_workouts
 import io.github.lopezjavier.appfitness.composeapp.resources.stats_unit_kg
+import io.github.lopezjavier.appfitness.composeapp.resources.stats_unit_tonne
 import io.github.lopezjavier.appfitness.designsystem.AppBarChart
 import io.github.lopezjavier.appfitness.designsystem.AppNumberFormat
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
 import io.github.lopezjavier.appfitness.designsystem.MetricTile
+import io.github.lopezjavier.appfitness.designsystem.MetricTileRow
 import io.github.lopezjavier.appfitness.designsystem.MuscleSplitBar
 import io.github.lopezjavier.appfitness.designsystem.Spacing
 import io.github.lopezjavier.appfitness.designsystem.durationText
@@ -55,31 +57,45 @@ private val ExercisesHeight = Spacing.xl * 6
 @Composable
 internal fun SummaryTiles(summary: SectionState<TrainingSummary>, onRetry: () -> Unit, modifier: Modifier = Modifier) {
     StatsBlock(summary, StatsSection.Summary, TilesHeight, onRetry, modifier) { data ->
-        Column(verticalArrangement = Arrangement.spacedBy(Spacing.md)) {
-            Row(horizontalArrangement = Arrangement.spacedBy(Spacing.md)) {
+        val volume = AppNumberFormat.volume(
+            data.volume,
+            stringResource(Res.string.stats_unit_kg),
+            stringResource(Res.string.stats_unit_tonne),
+        )
+        val tiles = listOf<@Composable (Modifier) -> Unit>(
+            { m ->
                 MetricTile(
                     stringResource(Res.string.stats_tile_workouts),
                     AppNumberFormat.integer(data.workouts),
-                    Modifier.weight(1f).testTag("stats_tile_workouts"),
+                    m.testTag("stats_tile_workouts"),
                 )
+            },
+            { m ->
                 MetricTile(
                     stringResource(Res.string.stats_tile_sets),
                     AppNumberFormat.integer(data.sets),
-                    Modifier.weight(1f).testTag("stats_tile_sets"),
+                    m.testTag("stats_tile_sets"),
                 )
-            }
-            Row(horizontalArrangement = Arrangement.spacedBy(Spacing.md)) {
+            },
+            { m ->
                 MetricTile(
                     stringResource(Res.string.stats_tile_volume),
-                    formatVolume(data.volume),
-                    Modifier.weight(1f).testTag("stats_tile_volume"),
-                    unit = stringResource(Res.string.stats_unit_kg),
+                    volume.first,
+                    m.testTag("stats_tile_volume"),
+                    unit = volume.second,
                 )
+            },
+            { m ->
                 MetricTile(
                     stringResource(Res.string.stats_tile_duration),
                     durationText(data.durationSeconds),
-                    Modifier.weight(1f).testTag("stats_tile_duration"),
+                    m.testTag("stats_tile_duration"),
                 )
+            },
+        )
+        Column(verticalArrangement = Arrangement.spacedBy(Spacing.md)) {
+            tiles.chunked(2).forEach { pair ->
+                MetricTileRow(pair, spacing = Spacing.md)
             }
         }
     }

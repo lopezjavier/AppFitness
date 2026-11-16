@@ -12,6 +12,10 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
@@ -19,6 +23,7 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.TextLayoutResult
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
@@ -76,6 +81,8 @@ fun AppListRow(
     supportingSecondary: String? = null,
     supportingMaxLines: Int = Int.MAX_VALUE,
     supportingContent: (@Composable () -> Unit)? = null,
+    headlineOverflow: TextOverflow = TextOverflow.Ellipsis,
+    onHeadlineTextLayout: ((TextLayoutResult) -> Unit)? = null,
 ) {
     val clickable =
         if (onClick != null) {
@@ -105,7 +112,8 @@ fun AppListRow(
                     style = headlineStyle ?: AppTheme.typography.bodyLarge,
                     color = AppTheme.colors.textPrimary,
                     maxLines = headlineMaxLines,
-                    overflow = TextOverflow.Ellipsis,
+                    overflow = headlineOverflow,
+                    onTextLayout = { onHeadlineTextLayout?.invoke(it) },
                     modifier = textModifier,
                 )
             }
@@ -167,22 +175,36 @@ fun NavigationRow(
     onClickLabel: String? = null,
     supportingContent: (@Composable () -> Unit)? = null,
 ) {
+    // C-161: when label and value do not fit on one line the row takes two (label, then the value as supporting).
+    var stacked by remember(label, value) { mutableStateOf(false) }
+    val stackValue = stacked && value != null
     AppListRow(
         headline = label,
         onClickLabel = onClickLabel,
-        supporting = supporting,
+        supporting = if (stackValue) value else supporting,
+        supportingSecondary = if (stackValue) supporting else null,
         supportingContent = supportingContent,
         leading = leading,
         modifier = if (enabled) modifier else modifier.alpha(NavigationRowDefaults.DISABLED_ALPHA),
         onClick = onClick,
         enabled = enabled,
+        headlineMaxLines = if (value != null && !stackValue) 1 else HEADLINE_MAX_LINES,
+        headlineOverflow = if (value != null && !stackValue) TextOverflow.Clip else TextOverflow.Ellipsis,
+        onHeadlineTextLayout = { if (value != null && it.hasVisualOverflow) stacked = true },
         trailing = {
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(Spacing.xs),
             ) {
-                if (value != null) {
-                    Text(text = value, style = AppTheme.typography.bodyMedium, color = AppTheme.colors.textSecondary)
+                if (value != null && !stackValue) {
+                    // C-162: one value style, trailing, before the chevron.
+                    Text(
+                        text = value,
+                        style = AppTheme.typography.bodyLarge,
+                        color = AppTheme.colors.textSecondary,
+                        maxLines = 1,
+                        softWrap = false,
+                    )
                 }
                 Icon(
                     painter = painterResource(Res.drawable.ic_chevron_right),
