@@ -361,6 +361,14 @@ Then the emulator look (`! python scripts/deliver-apk.py`), then the test task (
 **Host tests:** as T-281, for the changed and swept screens.
 **Agent runs:** 7 plus the review step.
 **Review and decisions (2026-11-16, branch `feat/ui-perfil`; ux-critic report on the 20 Perfil images, new IDs C-149..C-171, V-77..V-96; the user's extra brief: critique the organisation of Estadísticas, Mi entrenamiento and Preferencias):** the user **accepted every finding** ("I accept it all"). PM resolutions of the open choices: C-155 takes **option A** (a "Cuenta" screen, as `05` §6.2 specifies; ux-critic's preferred option). **Deferred, product questions not built:** C-157's "Diario calendar icon opens Calorías" and C-158 (calorie target in Preferencias versus Trainer's plan: which wins) wait for the user. Accepted: C-149..C-156, C-157 (order and Semana band only), C-159..C-171 and V-77..V-96. Next: ux-reviewer rules mode writes them into `05` and the ledger (first commit), then build batches `compose-ui-developer`, a new agent per batch.
+**Build batches (user decision 2026-11-16; for this area only: every batch is a new `compose-ui-developer` agent with a fresh context, but all batches run in this one session, no `/clear` between them; then one emulator look by the user, then the test task with tests run only in the PR's CI, as in the previous areas). Rules: `05` §6.0i and R-109..R-115; each batch compiles only, commits on `feat/ui-perfil` and appends to `tasks/ui-test-changes-perfil.md`:**
+- [ ] **B1 design-system components, swept app-wide:** C-159, C-160, C-161, C-162, C-164, C-166 (chart parts), V-90, V-93.
+- [ ] **B2 Perfil root and navigation:** C-149, C-150, C-155 (Cuenta screen), V-82, V-87.
+- [ ] **B3 Preferencias:** C-153, C-154, C-156, C-167, C-168, C-169, C-170, C-171, V-79, V-80, V-81, V-83, V-85.
+- [ ] **B4 Peso, Actividad, Calorías:** C-157 (order and Semana band), C-163, C-165, V-78, V-86, V-88, V-89, V-92.
+- [ ] **B5 Statistics and Fuerza:** C-151, C-152, V-84, V-91, V-95.
+- [ ] **B6 copy sweep and tags:** V-77, V-94 (resolved by C-160), V-96 (verify only).
+- [ ] **Emulator look by the user** (`! python scripts/deliver-apk.py`), comments become extra batches; then the **test task** (tests and goldens from `tasks/ui-test-changes-perfil.md`, CI only), pr-reviewer once, one PR, merge on green.
 **Dependencies:** T-283 merged.
 **Files likely touched:** decided by the findings; `planning/05-design-system.md`, `scripts/check-ux-conventions.sh`, `designsystem/`, `feature/{profile,weight,analytics,about,auth,onboarding,meals}/`, gallery entries
 **Estimated scope:** M (estimate)
