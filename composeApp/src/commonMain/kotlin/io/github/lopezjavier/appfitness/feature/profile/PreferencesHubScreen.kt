@@ -23,6 +23,7 @@ import io.github.lopezjavier.appfitness.composeapp.resources.energy_strategy_sur
 import io.github.lopezjavier.appfitness.composeapp.resources.meal_defaults_open
 import io.github.lopezjavier.appfitness.composeapp.resources.preferences_cooking_title
 import io.github.lopezjavier.appfitness.composeapp.resources.preferences_energy_title
+import io.github.lopezjavier.appfitness.composeapp.resources.preferences_group_account
 import io.github.lopezjavier.appfitness.composeapp.resources.preferences_group_general
 import io.github.lopezjavier.appfitness.composeapp.resources.preferences_group_nutrition
 import io.github.lopezjavier.appfitness.composeapp.resources.preferences_group_training
@@ -45,6 +46,8 @@ import io.github.lopezjavier.appfitness.designsystem.NavigationRow
 import io.github.lopezjavier.appfitness.designsystem.Spacing
 import io.github.lopezjavier.appfitness.domain.model.GoalStrategy
 import io.github.lopezjavier.appfitness.feature.biometrics.activityTitle
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.emptyFlow
 import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.pluralStringResource
 import org.jetbrains.compose.resources.stringResource
@@ -67,18 +70,28 @@ fun PreferencesHubRoot(
     actions: PreferencesHubActions,
     modifier: Modifier = Modifier,
     viewModel: PreferencesHubViewModel = koinViewModel(),
+    accountViewModel: AccountViewModel = koinViewModel(),
 ) {
     val summary by viewModel.summary.collectAsStateWithLifecycle()
+    val accountState by accountViewModel.uiState.collectAsStateWithLifecycle()
     LifecycleEventEffect(Lifecycle.Event.ON_RESUME) { viewModel.onEvent(PreferencesHubEvent.Refresh) }
-    PreferencesHubScreen(onBack, actions, modifier, summary)
+    PreferencesHubScreen(
+        onBack = onBack,
+        actions = actions,
+        modifier = modifier,
+        summary = summary,
+        accountState = accountState,
+        onAccountEvent = accountViewModel::onEvent,
+        accountEffects = accountViewModel.effects,
+    )
 }
 
 /**
  * Preferencias hub (US-56, R-109): stateless, three named groups of [NavigationRow]s on a full-screen [AppScreen]:
  * General (Datos personales, Avisos), Nutrición (Objetivo calórico, Macros, Comidas del día, Comidas por defecto,
- * Cocina) and Entreno (Registro de series). A row with a current value in [summary] shows it as its supporting line
- * (C-153). "Cerrar sesión" and "Borrar cuenta" live on the "Cuenta" screen (R-113) and "Mi entrenamiento" in the
- * Perfil root (T-154). Each row label is the title of the screen it opens (R-04).
+ * Cocina) and Entreno (Registro de series), then the last group "Cuenta" with "Cerrar sesión" and "Borrar cuenta"
+ * (R-113, C-172). A row with a current value in [summary] shows it as its supporting line (C-153). "Mi entrenamiento"
+ * lives in the Perfil root (T-154). Each row label is the title of the screen it opens (R-04).
  */
 @Composable
 fun PreferencesHubScreen(
@@ -86,6 +99,9 @@ fun PreferencesHubScreen(
     actions: PreferencesHubActions,
     modifier: Modifier = Modifier,
     summary: PreferencesHubSummary = PreferencesHubSummary(),
+    accountState: AccountUiState = AccountUiState(),
+    onAccountEvent: (AccountEvent) -> Unit = {},
+    accountEffects: Flow<AccountEffect> = emptyFlow(),
 ) {
     AppScreen(
         title = stringResource(Res.string.preferences_title),
@@ -107,6 +123,10 @@ fun PreferencesHubScreen(
                 HubRow(Res.string.preferences_training_title, "training") {
                     actions.onOpenSection(PreferencesSection.Training)
                 }
+            }
+            Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+                ListSectionHeader(stringResource(Res.string.preferences_group_account))
+                AccountSection(accountState, onAccountEvent, accountEffects)
             }
         }
     }

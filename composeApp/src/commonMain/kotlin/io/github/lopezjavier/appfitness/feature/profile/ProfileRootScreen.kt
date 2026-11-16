@@ -25,38 +25,32 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.github.lopezjavier.appfitness.composeapp.resources.Res
-import io.github.lopezjavier.appfitness.composeapp.resources.account_title
 import io.github.lopezjavier.appfitness.composeapp.resources.action_retry
 import io.github.lopezjavier.appfitness.composeapp.resources.catalog_title
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_bar_chart
+import io.github.lopezjavier.appfitness.composeapp.resources.ic_directions_walk_outlined
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_fitness_center
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_monitor_weight
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_restaurant_outlined
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_settings
-import io.github.lopezjavier.appfitness.composeapp.resources.ic_steps_outlined
 import io.github.lopezjavier.appfitness.composeapp.resources.preferences_my_training_title
 import io.github.lopezjavier.appfitness.composeapp.resources.preferences_title
 import io.github.lopezjavier.appfitness.composeapp.resources.profile_about_row
 import io.github.lopezjavier.appfitness.composeapp.resources.profile_activity_row
-import io.github.lopezjavier.appfitness.composeapp.resources.profile_calories_value
 import io.github.lopezjavier.appfitness.composeapp.resources.profile_diary_history_row
 import io.github.lopezjavier.appfitness.composeapp.resources.profile_statistics_section
 import io.github.lopezjavier.appfitness.composeapp.resources.profile_strength_row
-import io.github.lopezjavier.appfitness.composeapp.resources.profile_strength_value
 import io.github.lopezjavier.appfitness.composeapp.resources.profile_title
 import io.github.lopezjavier.appfitness.composeapp.resources.profile_training_stats_row
 import io.github.lopezjavier.appfitness.composeapp.resources.profile_weight_row
-import io.github.lopezjavier.appfitness.composeapp.resources.profile_weight_value
 import io.github.lopezjavier.appfitness.composeapp.resources.root_error_message
 import io.github.lopezjavier.appfitness.designsystem.AppAvatar
 import io.github.lopezjavier.appfitness.designsystem.AppAvatarDefaults
 import io.github.lopezjavier.appfitness.designsystem.AppCard
-import io.github.lopezjavier.appfitness.designsystem.AppNumberFormat
 import io.github.lopezjavier.appfitness.designsystem.AppScreen
 import io.github.lopezjavier.appfitness.designsystem.AppShapes
 import io.github.lopezjavier.appfitness.designsystem.AppStateAction
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
-import io.github.lopezjavier.appfitness.designsystem.AppTopBarAction
 import io.github.lopezjavier.appfitness.designsystem.ErrorState
 import io.github.lopezjavier.appfitness.designsystem.ListRowSkeleton
 import io.github.lopezjavier.appfitness.designsystem.ListSectionHeader
@@ -64,7 +58,6 @@ import io.github.lopezjavier.appfitness.designsystem.NavigationRow
 import io.github.lopezjavier.appfitness.designsystem.SecondaryButton
 import io.github.lopezjavier.appfitness.designsystem.SkeletonBox
 import io.github.lopezjavier.appfitness.designsystem.Spacing
-import io.github.lopezjavier.appfitness.feature.analytics.formatKilos
 import io.github.lopezjavier.appfitness.feature.notifications.notificationsBarAction
 import org.jetbrains.compose.resources.DrawableResource
 import org.jetbrains.compose.resources.StringResource
@@ -90,7 +83,6 @@ class ProfileRootActions(
     val onOpenAbout: () -> Unit = {},
     val onOpenActivity: () -> Unit = {},
     val onOpenMyTraining: () -> Unit = {},
-    val onOpenAccount: () -> Unit = {},
 )
 
 /** Stateful Perfil root: connects [ProfileRootViewModel] to the stateless [ProfileRootScreen]. */
@@ -107,11 +99,9 @@ fun ProfileRootRoute(
 }
 
 /**
- * The Perfil tab root (ADR-37, US-05, US-56) on [AppScreen]: the notifications bell and the "Preferencias" gear in
- * the bar, the 72 dp photo-and-name header, three cards (C-150, R-109): "Mi entrenamiento" (value = the intention),
- * "Estadísticas" with the "Peso", "Fuerza", "Calorías", "Entrenos" and "Actividad" rows, and "Acerca de" with
- * "Cuenta". A row shows its value once it is known and
- * none when it could not be read. The debug catalog button appears where [ProfileRootActions.onOpenCatalog] is
+ * The Perfil tab root (ADR-37, US-05, US-56) on [AppScreen]: the notifications bell in the bar, the 72 dp photo-and-name header, three cards (C-150, R-109): "Mi entrenamiento" (value = the intention),
+ * "Estadísticas" with the "Peso", "Fuerza", "Calorías", "Entrenos" and "Actividad" rows (chevron only, no value), and
+ * "Preferencias" with "Acerca de". "Mi entrenamiento" shows its value once it is known. The debug catalog button appears where [ProfileRootActions.onOpenCatalog] is
  * non-null (local flavor). It holds no editable state: nothing to restore.
  */
 @Composable
@@ -121,14 +111,8 @@ fun ProfileRootScreen(
     modifier: Modifier = Modifier,
     actions: ProfileRootActions = ProfileRootActions(),
 ) {
-    val gear = stringResource(Res.string.preferences_title)
     val bell = notificationsBarAction("profile_action_notifications")
-    val barActions = remember(gear, actions.onOpenPreferences, bell) {
-        listOfNotNull(
-            bell,
-            AppTopBarAction(Res.drawable.ic_settings, gear, actions.onOpenPreferences, "profile_action_0"),
-        )
-    }
+    val barActions = remember(bell) { listOfNotNull(bell) }
     AppScreen(
         title = stringResource(Res.string.profile_title),
         modifier = modifier,
@@ -188,17 +172,18 @@ private fun RootLoaded(state: ProfileRootUiState.Loaded, actions: ProfileRootAct
                 value = state.intention?.let { stringResource(it.label) },
             )
         }
-        StatisticsSection(state, actions)
+        StatisticsSection(actions)
         AppCard(Modifier.fillMaxWidth()) {
+            NavigationRow(
+                label = stringResource(Res.string.preferences_title),
+                onClick = actions.onOpenPreferences,
+                modifier = Modifier.testTag("profile_preferences_row"),
+                leading = { RowIcon(Res.drawable.ic_settings) },
+            )
             NavigationRow(
                 label = stringResource(Res.string.profile_about_row),
                 onClick = actions.onOpenAbout,
                 modifier = Modifier.testTag("profile_about_row"),
-            )
-            NavigationRow(
-                label = stringResource(Res.string.account_title),
-                onClick = actions.onOpenAccount,
-                modifier = Modifier.testTag("profile_account_row"),
             )
         }
     }
@@ -233,34 +218,28 @@ private fun RootHeader(state: ProfileRootUiState.Loaded) {
 
 /** "Estadísticas": a heading and one card of [NavigationRow]s, each label equal to its screen title (R-04, R-109). */
 @Composable
-private fun StatisticsSection(state: ProfileRootUiState.Loaded, actions: ProfileRootActions) {
-    val weight = state.weightKg?.let { stringResource(Res.string.profile_weight_value, formatKilos(it)) }
-    val strength = state.strengthRecordKg?.let { stringResource(Res.string.profile_strength_value, formatKilos(it)) }
-    val calories = state.avgKcal?.let {
-        stringResource(Res.string.profile_calories_value, AppNumberFormat.integer(it))
-    }
+private fun StatisticsSection(actions: ProfileRootActions) {
     Column(Modifier.fillMaxWidth()) {
         ListSectionHeader(
             title = stringResource(Res.string.profile_statistics_section),
             modifier = Modifier.testTag("profile_statistics_heading"),
         )
         AppCard(Modifier.fillMaxWidth()) {
-            StatRow(Res.string.profile_weight_row, Res.drawable.ic_monitor_weight, "profile_weight_row", weight) {
+            StatRow(Res.string.profile_weight_row, Res.drawable.ic_monitor_weight, "profile_weight_row") {
                 actions.onOpenWeight()
             }
-            StatRow(Res.string.profile_strength_row, Res.drawable.ic_fitness_center, "profile_strength_row", strength) {
+            StatRow(Res.string.profile_strength_row, Res.drawable.ic_fitness_center, "profile_strength_row") {
                 actions.onOpenStrength()
             }
             StatRow(
                 Res.string.profile_diary_history_row,
                 Res.drawable.ic_restaurant_outlined,
                 "profile_diary_history_row",
-                calories,
             ) { actions.onOpenDiaryHistory() }
             StatRow(Res.string.profile_training_stats_row, Res.drawable.ic_bar_chart, "profile_training_stats_row") {
                 actions.onOpenTrainingStats()
             }
-            StatRow(Res.string.profile_activity_row, Res.drawable.ic_steps_outlined, "profile_activity_row") {
+            StatRow(Res.string.profile_activity_row, Res.drawable.ic_directions_walk_outlined, "profile_activity_row") {
                 actions.onOpenActivity()
             }
         }
@@ -268,26 +247,22 @@ private fun StatisticsSection(state: ProfileRootUiState.Loaded, actions: Profile
 }
 
 @Composable
-private fun StatRow(
-    label: StringResource,
-    icon: DrawableResource,
-    tag: String,
-    value: String? = null,
-    onClick: () -> Unit,
-) {
+private fun StatRow(label: StringResource, icon: DrawableResource, tag: String, onClick: () -> Unit) {
     NavigationRow(
         label = stringResource(label),
         onClick = onClick,
         modifier = Modifier.testTag(tag),
-        value = value,
-        leading = {
-            Icon(
-                painter = painterResource(icon),
-                contentDescription = null,
-                tint = AppTheme.colors.textSecondary,
-                modifier = Modifier.size(STAT_ICON_SIZE),
-            )
-        },
+        leading = { RowIcon(icon) },
+    )
+}
+
+@Composable
+private fun RowIcon(icon: DrawableResource) {
+    Icon(
+        painter = painterResource(icon),
+        contentDescription = null,
+        tint = AppTheme.colors.textSecondary,
+        modifier = Modifier.size(STAT_ICON_SIZE),
     )
 }
 

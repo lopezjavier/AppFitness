@@ -63,7 +63,7 @@ internal fun AccountSection(state: AccountUiState, onEvent: (AccountEvent) -> Un
 }
 
 /**
- * "Cerrar sesión" as a row and "Borrar cuenta" as a danger text action at least 16 dp under it (R-70, R-113). A
+ * "Cerrar sesión" as a row and "Borrar cuenta" as a danger text action at least 16 dp under it (R-70, R-113); the last group of the Preferencias hub. A
  * protected account shows its note under "Borrar cuenta", which also announces it as its state (ADR-57).
  */
 @Composable
@@ -73,7 +73,7 @@ private fun AccountActions(state: AccountUiState, onSignOut: () -> Unit, onDelet
             AppListRow(
                 headline = stringResource(Res.string.profile_sign_out),
                 onClick = onSignOut,
-                modifier = Modifier.testTag("account_sign_out"),
+                modifier = Modifier.testTag("preferences_sign_out"),
             )
         }
         val protectedNote = stringResource(Res.string.profile_account_protected)
@@ -85,7 +85,7 @@ private fun AccountActions(state: AccountUiState, onSignOut: () -> Unit, onDelet
             onClick = onDelete,
             modifier = Modifier.padding(top = Spacing.xl)
                 .semantics { if (isProtected) stateDescription = protectedNote }
-                .testTag("account_delete_account"),
+                .testTag("preferences_delete_account"),
             enabled = state.canDelete,
             tone = AppTextButtonTone.Danger,
         )
@@ -95,7 +95,7 @@ private fun AccountActions(state: AccountUiState, onSignOut: () -> Unit, onDelet
                 text = protectedNote,
                 style = AppTheme.typography.bodySmall,
                 color = AppTheme.colors.textSecondary,
-                modifier = Modifier.padding(horizontal = Spacing.sm).testTag("account_delete_protected_note"),
+                modifier = Modifier.padding(horizontal = Spacing.sm).testTag("preferences_delete_protected_note"),
             )
         }
     }

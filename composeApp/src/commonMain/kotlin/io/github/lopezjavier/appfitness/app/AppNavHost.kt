@@ -120,8 +120,6 @@ internal typealias BlockBuilderSlot =
 
 internal typealias AboutSlot = @Composable (modifier: Modifier, onBack: () -> Unit) -> Unit
 
-internal typealias AccountSlot = @Composable (modifier: Modifier, onBack: () -> Unit) -> Unit
-
 /**
  * Content of the Preferencias hub: its modifier (full-screen insets), how to leave, and the openers of a section
  * editor (by `PreferencesSection.key`), of the meals editor and of Cuenta.
@@ -704,11 +702,6 @@ internal val DefaultAboutSlot: AboutSlot = { modifier, _ ->
     Box(modifier.fillMaxSize().testTag("about_screen"))
 }
 
-/** Empty "Cuenta" for previews and shell tests; the real one is wired by `AppRoot`. */
-internal val DefaultAccountSlot: AccountSlot = { modifier, _ ->
-    Box(modifier.fillMaxSize().testTag("account_screen"))
-}
-
 /**
  * Single type-safe NavHost with one nested graph (own back stack) per tab (ADR-10) and the
  * full-screen destinations at the root, above the tabs (ADR-22). Tabs and full-screen
@@ -727,7 +720,6 @@ internal fun AppNavHost(
     preferences: PreferencesSlot = DefaultPreferencesSlot,
     preferencesSection: PreferencesSectionSlot = DefaultPreferencesSectionSlot,
     about: AboutSlot = DefaultAboutSlot,
-    account: AccountSlot = DefaultAccountSlot,
     planProposal: PlanProposalSlot = DefaultPlanProposalSlot,
     beforeStart: BeforeStartSlot = DefaultBeforeStartSlot,
     yourData: YourDataSlot = DefaultYourDataSlot,
@@ -800,7 +792,6 @@ internal fun AppNavHost(
     val openTrainingStats = remember(navController) { { navController.navigateToFullScreen(StatsRoute) } }
     val openActivity = remember(navController) { { navController.navigateToFullScreen(ActivityRoute) } }
     val openAbout = remember(navController) { { navController.navigateToFullScreen(AboutRoute) } }
-    val openAccount = remember(navController) { { navController.navigateToFullScreen(AccountRoute) } }
     val trainerActions = remember(navController) {
         TrainerActions(
             onOpenProposal = { navController.navigateToFullScreen(PlanProposalRoute()) },
@@ -931,7 +922,6 @@ internal fun AppNavHost(
                         onOpenDiaryHistory = openDiaryHistory,
                         onOpenTrainingStats = openTrainingStats,
                         onOpenAbout = openAbout,
-                        onOpenAccount = openAccount,
                         onOpenActivity = openActivity,
                         onOpenMyTraining = openMyTraining,
                     ),
@@ -1002,9 +992,6 @@ internal fun AppNavHost(
         }
         composable<AboutRoute> { entry ->
             about(Modifier.padding(fullScreenPadding)) { navController.popFullScreen(entry) }
-        }
-        composable<AccountRoute> { entry ->
-            account(Modifier.padding(fullScreenPadding)) { navController.popFullScreen(entry) }
         }
         composable<WeightRoute> { entry ->
             weight(

@@ -25,7 +25,6 @@ import io.github.lopezjavier.appfitness.feature.food.FoodSearchRoot
 import io.github.lopezjavier.appfitness.feature.meals.MealSlotsRoot
 import io.github.lopezjavier.appfitness.feature.meals.defaults.MealDefaultsRoot
 import io.github.lopezjavier.appfitness.feature.notifications.NotificationCenterRoot
-import io.github.lopezjavier.appfitness.feature.profile.AccountRoot
 import io.github.lopezjavier.appfitness.feature.profile.PreferencesHubActions
 import io.github.lopezjavier.appfitness.feature.profile.PreferencesHubRoot
 import io.github.lopezjavier.appfitness.feature.profile.PreferencesSectionRoot
@@ -127,7 +126,6 @@ fun AppRoot(
             )
         },
         about = { aboutModifier, onBack -> AboutRoot(onBack, aboutModifier) },
-        account = { accountModifier, onBack -> AccountRoot(onBack, accountModifier) },
         activity = { activityModifier, onBack -> ActivityRoot(onBack, activityModifier) },
         exercisePicker = { pickerModifier, selectMode, onOpenDetail, onSelected, onBack ->
             ExercisePickerRoot(selectMode, onOpenDetail, onSelected, pickerModifier, onBack)

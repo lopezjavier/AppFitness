@@ -235,14 +235,14 @@ One row per ux-critic finding. The PM has the dispositions recorded here as the 
 | C-152 | Fuerza: 1RM `AppLineChart` of the chosen lift (3M, `TimeRangeSelector`); `TrendPill` glyph only | 4 | ACCEPTED (not built) | 05 §6.0i |
 | C-153 | Preferencias hub grouped (General, Nutrición, Entreno, Cuenta) with value supporting lines | 4 | ACCEPTED (not built) | 05 §6.0i, R-109 |
 | C-154 | "Comidas por defecto" becomes a hub row after "Comidas del día" | 4 | ACCEPTED (not built) | 05 §6.0i |
-| C-155 | Option A: "Cuenta" row/screen with "Cerrar sesión" and danger text "Borrar cuenta" (>= 16 dp apart); outlined buttons leave Preferencias | 4 | ACCEPTED (not built) | 05 §6.0i, R-113 |
+| C-155 | Option A: "Cuenta" row/screen with "Cerrar sesión" and danger text "Borrar cuenta" (>= 16 dp apart); outlined buttons leave Preferencias | 4 | REWORK (as C-172: a group inside the hub, not a screen) | 05 §6.0i, R-113 |
 | C-156 | Avisos order | 4 | ACCEPTED (not built) | 05 §6.0i |
 | C-157 | Calorías order (segmented, summary card, calendar); Semana band with 1 dp lime outline; Mes no selected day, month in card title. Diario calendar-icon question | 4 | ACCEPTED (order and Semana band; not built); Diario calendar-icon question OPEN (deferred product question, no rule) | 05 §6.0i |
 | C-158 | Deferred product question (user, round 4) | 4 | OPEN (deferred, no rule) | - |
 | C-159 | Line chart padded domain, 4 gridlines, zero baseline only on bars | 4 | ACCEPTED (not built) | 05 R-112 |
 | C-160 | MetricTile value/unit fit, tonnes from 100.000 kg, Actividad icon 16 dp, one column at font scale >= 1.3 | 4 | ACCEPTED (not built) | 05 §6.0i, R-111, §10 |
 | C-161 | NavigationRow two lines when label and value do not fit; label never ellipsized | 4 | ACCEPTED (not built) | 05 R-110 |
-| C-162 | NavigationRow value one style (bodyLarge textSecondary, trailing) | 4 | ACCEPTED (not built) | 05 R-110 |
+| C-162 | NavigationRow value one style (bodyLarge textSecondary, trailing); its use as the trailing value on the Perfil root stat rows is reversed by the user (chevron only) | 4 | ACCEPTED (not built) | 05 R-110 |
 | C-163 | Peso order: HealthStatusLine, Peso actual + rate, WeightChart, tiles, Circunferencias | 4 | ACCEPTED (not built) | 05 §6.0i |
 | C-164 | HealthStatusLine and "Sincronizar" in one 56 dp row | 4 | ACCEPTED (not built) | 05 R-114 |
 | C-165 | Peso `MeasurementRow` two lines (72 dp); composition sheet date once | 4 | ACCEPTED (not built) | 05 §6.0i |
@@ -252,6 +252,7 @@ One row per ux-critic finding. The PM has the dispositions recorded here as the 
 | C-169 | Objetivo calórico headline "Objetivo: 2.788 kcal al día", chip removed | 4 | ACCEPTED (not built) | 05 §6.0i |
 | C-170 | Default-meal days "Lunes a viernes" / "L, M, X"; picker rows 16 dp leading space | 4 | ACCEPTED (not built) | 05 §6.0i, §10 |
 | C-171 | "¿Cerrar sesión?" confirm neutral; error colour only on "Borrar cuenta" | 4 | ACCEPTED (not built) | 05 R-113 |
+| C-172 | Perfil root: bell only (gear removed), "Preferencias" row then "Acerca de", stat rows chevron only; "Cuenta" is the last group of the Preferencias hub ("Cerrar sesión" row, danger "Borrar cuenta" 16 dp below), no Cuenta screen | 4 | ACCEPTED (built, user emulator look) | 05 §6.0i, R-109, R-113 |
 | V-77 | R-37 error copy and missing periods on the Perfil screens | 4 | ACCEPTED (not built) | 05 R-100, R-115 |
 | V-78 | R-70 "Eliminar" in the Peso sheet must be a text danger action | 4 | ACCEPTED (not built) | 05 R-70 |
 | V-79 | R-24/R-83/C-77 uppercase labels, centred numeric fields, Cocina error per R-25 | 4 | ACCEPTED (not built) | 05 §6.0i |

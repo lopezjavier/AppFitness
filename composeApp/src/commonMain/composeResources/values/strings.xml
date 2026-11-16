@@ -1078,6 +1078,7 @@
     <string name="preferences_group_general">General</string>
     <string name="preferences_group_nutrition">Nutrición</string>
     <string name="preferences_group_training">Entreno</string>
+    <string name="preferences_group_account">Cuenta</string>
     <string name="preferences_hub_personal_value">%1$d años · %2$d cm · %3$s</string>
     <string name="preferences_hub_energy_value">%1$s kcal · %2$s</string>
     <string name="preferences_hub_macros_value">P %1$d % · C %2$d % · G %3$d %</string>
@@ -1714,12 +1715,9 @@
     <string name="preferences_macros_title">Macros</string>
     <string name="preferences_save_error">No se pudo guardar. Inténtalo de nuevo.</string>
     <string name="preferences_save_error_offline">Sin conexión: no se puede guardar.</string>
-    <string name="profile_strength_value">Récord 1RM %1$s kg</string>
-    <string name="profile_calories_value">media %1$s kcal</string>
     <string name="delete_account_error_offline">Sin conexión: no se puede borrar la cuenta</string>
     <string name="about_title">Acerca de</string>
     <string name="profile_about_row">Acerca de</string>
-    <string name="account_title">Cuenta</string>
     <string name="about_credits_section">Créditos</string>
     <string name="about_version_format">Versión %1$s (%2$d)</string>
     <string name="about_version_flavor_format">%1$s · %2$s</string>
