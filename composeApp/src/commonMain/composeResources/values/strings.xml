@@ -348,7 +348,7 @@
     <string name="catalog_section_text_field">Campo de texto</string>
     <string name="profile_personal_title">Datos personales</string>
     <string name="profile_age_label">Edad</string>
-    <string name="profile_activity_label">Actividad</string>
+    <string name="profile_activity_label">Nivel de actividad</string>
     <string name="profile_height_value">%1$d cm</string>
     <string name="profile_height_spoken">%1$d centímetros</string>
     <string name="profile_weight_hc_cd">%1$s, %2$s, sincronizado desde Health Connect</string>
@@ -781,8 +781,8 @@
     <string name="profile_strength_row">Fuerza</string>
     <string name="profile_diary_history_row">Calorías</string>
     <string name="strength_title">Fuerza</string>
-    <string name="stats_title">Entrenamiento</string>
-    <string name="profile_training_stats_row">Entrenamiento</string>
+    <string name="stats_title">Entrenos</string>
+    <string name="profile_training_stats_row">Entrenos</string>
     <string name="stats_tile_workouts">Entrenos</string>
     <string name="stats_tile_sets">Series</string>
     <string name="stats_tile_volume">Volumen</string>
@@ -893,7 +893,7 @@
     <string name="muscle_volume_current_value">%1$s kg</string>
     <string name="muscle_volume_card_cd">%1$s, semana actual %2$s kg</string>
     <string name="muscle_volume_chart_title">%1$s: kg por semana</string>
-    <string name="muscle_volume_chart_cd">%1$s, volumen semanal en kg: %2$s</string>
+    <string name="muscle_volume_chart_cd">%1$s, kg por semana: %2$s</string>
     <string name="muscle_volume_chart_cd_week">semana del %1$s, %2$s</string>
     <string name="muscle_volume_empty_message">Aún no hay volumen en las últimas 8 semanas. Entrena para verlo por grupo muscular.</string>
     <string name="muscle_volume_error_message">No se pudo cargar el volumen por grupo muscular</string>
@@ -1077,7 +1077,7 @@
     <string name="meals_hint_has_entries">Tiene alimentos registrados: no se puede quitar</string>
     <string name="meals_last_meal_hint">Debe quedar al menos una comida del día</string>
     <string name="preferences_meals_title">Comidas del día</string>
-    <string name="preferences_training_title">Entrenamiento</string>
+    <string name="preferences_training_title">Registro de series</string>
     <string name="preferences_reminders_title">Avisos</string>
     <string name="preferences_my_training_title">Mi entrenamiento</string>
     <string name="my_training_intention_label">Objetivo de entrenamiento</string>
@@ -1199,7 +1199,7 @@
     <string name="weight_edit_today_cd">Editar peso de hoy</string>
     <string name="weight_history_title">Historial de peso</string>
     <string name="weight_empty_message">Aún no has registrado tu peso</string>
-    <string name="weight_error_message">No se pudieron cargar las mediciones</string>
+    <string name="weight_error_message">No se pudieron cargar los pesajes</string>
     <string name="weight_sheet_title_today">Registrar peso</string>
     <string name="weight_sheet_title_day">Peso del %1$s</string>
     <string name="weight_field_weight">Peso (kg)</string>
@@ -1208,11 +1208,11 @@
     <string name="weight_range_weight">El peso debe estar entre 20 y 400 kg</string>
     <string name="weight_range_fat">La grasa corporal debe estar entre 2 y 75 %</string>
     <string name="weight_save_error">No se pudo guardar. Inténtalo de nuevo.</string>
-    <string name="weight_delete_error">No se pudo eliminar la medición</string>
+    <string name="weight_delete_error">No se pudo eliminar el pesaje</string>
     <string name="weight_delete_error_offline">Sin conexión: no se pudo eliminar</string>
-    <string name="weight_hc_section">Mediciones de Health Connect</string>
+    <string name="weight_hc_section">Pesajes de Health Connect</string>
     <string name="weight_hc_icon_cd">Health Connect</string>
-    <string name="weight_hc_delete_cd">Eliminar medición de %1$s</string>
+    <string name="weight_hc_delete_cd">Eliminar pesaje de %1$s</string>
     <string name="circumference_title">Circunferencias</string>
     <string name="circumference_add_object">circunferencia</string>
     <string name="circumference_ratio_label">Relación cintura-cadera</string>
@@ -1221,9 +1221,9 @@
     <string name="circumference_value_cm">%1$s cm</string>
     <string name="circumference_row_edit_label">Editar medida</string>
     <string name="circumference_row_delete_cd">Eliminar %1$s %2$s</string>
-    <string name="circumference_empty_title">Aún no hay medidas</string>
+    <string name="circumference_empty_title">Aún no hay circunferencias</string>
     <string name="circumference_empty_message">Registra tu primera circunferencia.</string>
-    <string name="circumference_error_message">No se pudieron cargar las circunferencias</string>
+    <string name="circumference_error_message">No se pudieron cargar las circunferencias.</string>
     <string name="circumference_site_neck">Cuello</string>
     <string name="circumference_site_chest">Pecho</string>
     <string name="circumference_site_waist">Cintura</string>
@@ -1410,7 +1410,7 @@
     <string name="preferences_calc_bar">Barra por defecto</string>
     <string name="preferences_calc_bar_20">20 kg</string>
     <string name="preferences_calc_bar_15">15 kg</string>
-    <string name="preferences_calc_bar_10">10 kg EZ</string>
+    <string name="preferences_calc_bar_10">10 kg Barra Z</string>
     <string name="preferences_calc_bar_7_5">7,5 kg</string>
     <string name="preferences_calc_plates">Discos disponibles (kg)</string>
     <string name="preferences_calc_plate_cd">Disco de %1$s kg</string>
@@ -1707,6 +1707,7 @@
     <string name="delete_account_error_offline">Sin conexión: no se puede borrar la cuenta</string>
     <string name="about_title">Acerca de</string>
     <string name="profile_about_row">Acerca de</string>
+    <string name="account_title">Cuenta</string>
     <string name="about_credits_section">Créditos</string>
     <string name="about_version_format">Versión %1$s (%2$d)</string>
     <string name="about_version_flavor_format">%1$s · %2$s</string>

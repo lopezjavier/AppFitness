@@ -45,7 +45,8 @@ object AppConfirmDialogDefaults {
  * Dialog for a destructive confirmation (the only kind of dialog the app allows, planning/05 §1.5).
  * "Cancel" (neutral) comes first and "Confirm" (destructive, `error` colour) second; a scrim tap or back
  * is a cancel. The root is tagged [testTagPrefix] with `<prefix>_confirm` and `<prefix>_cancel` buttons unless
- * [confirmTestTag] or [cancelTestTag] override them.
+ * [confirmTestTag] or [cancelTestTag] override them. [confirmTone] is `Destructive` unless the action is
+ * reversible (the "Cerrar sesión" confirm is neutral, C-171).
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Suppress("LongParameterList")
@@ -61,6 +62,7 @@ fun AppConfirmDialog(
     testTagPrefix: String = "confirm_dialog",
     confirmTestTag: String = AppConfirmDialogDefaults.confirmTag(testTagPrefix),
     cancelTestTag: String = AppConfirmDialogDefaults.cancelTag(testTagPrefix),
+    confirmTone: GhostTone = GhostTone.Destructive,
 ) {
     val colors = AppTheme.colors
     BasicAlertDialog(
@@ -92,7 +94,15 @@ fun AppConfirmDialog(
                     modifier = Modifier.semantics { heading() },
                 )
                 Text(text = message, style = AppTheme.typography.bodyMedium, color = colors.textSecondary)
-                DialogButtons(confirmLabel, cancelLabel, onConfirm, onDismiss, confirmTestTag, cancelTestTag)
+                DialogButtons(
+                    confirmLabel,
+                    cancelLabel,
+                    onConfirm,
+                    onDismiss,
+                    confirmTestTag,
+                    cancelTestTag,
+                    confirmTone,
+                )
             }
         }
     }
@@ -111,6 +121,7 @@ private fun DialogButtons(
     onDismiss: () -> Unit,
     confirmTag: String,
     cancelTag: String,
+    confirmTone: GhostTone,
 ) {
     val cancel: @Composable (Modifier) -> Unit = { modifier ->
         GhostButton(
@@ -124,7 +135,7 @@ private fun DialogButtons(
             text = confirmLabel,
             onClick = onConfirm,
             modifier = modifier.testTag(confirmTag),
-            tone = GhostTone.Destructive,
+            tone = confirmTone,
         )
     }
     BoxWithConstraints(Modifier.fillMaxWidth().padding(top = Spacing.sm)) {

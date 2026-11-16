@@ -3,12 +3,15 @@ package io.github.lopezjavier.appfitness.feature.profile
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -16,15 +19,21 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.dp
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.github.lopezjavier.appfitness.composeapp.resources.Res
+import io.github.lopezjavier.appfitness.composeapp.resources.account_title
 import io.github.lopezjavier.appfitness.composeapp.resources.action_retry
 import io.github.lopezjavier.appfitness.composeapp.resources.catalog_title
+import io.github.lopezjavier.appfitness.composeapp.resources.ic_bar_chart
+import io.github.lopezjavier.appfitness.composeapp.resources.ic_fitness_center
+import io.github.lopezjavier.appfitness.composeapp.resources.ic_monitor_weight
+import io.github.lopezjavier.appfitness.composeapp.resources.ic_restaurant_outlined
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_settings
+import io.github.lopezjavier.appfitness.composeapp.resources.ic_steps_outlined
 import io.github.lopezjavier.appfitness.composeapp.resources.preferences_my_training_title
 import io.github.lopezjavier.appfitness.composeapp.resources.preferences_title
 import io.github.lopezjavier.appfitness.composeapp.resources.profile_about_row
@@ -41,6 +50,7 @@ import io.github.lopezjavier.appfitness.composeapp.resources.profile_weight_valu
 import io.github.lopezjavier.appfitness.composeapp.resources.root_error_message
 import io.github.lopezjavier.appfitness.designsystem.AppAvatar
 import io.github.lopezjavier.appfitness.designsystem.AppAvatarDefaults
+import io.github.lopezjavier.appfitness.designsystem.AppCard
 import io.github.lopezjavier.appfitness.designsystem.AppNumberFormat
 import io.github.lopezjavier.appfitness.designsystem.AppScreen
 import io.github.lopezjavier.appfitness.designsystem.AppShapes
@@ -56,12 +66,17 @@ import io.github.lopezjavier.appfitness.designsystem.SkeletonBox
 import io.github.lopezjavier.appfitness.designsystem.Spacing
 import io.github.lopezjavier.appfitness.feature.analytics.formatKilos
 import io.github.lopezjavier.appfitness.feature.notifications.notificationsBarAction
+import org.jetbrains.compose.resources.DrawableResource
+import org.jetbrains.compose.resources.StringResource
+import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
 
 private const val NAME_MAX_LINES = 2
 private const val NAME_SKELETON_WIDTH_UNITS = 8
 private const val SKELETON_ROWS = 4
+private val HEADER_HEIGHT = 72.dp
+private val STAT_ICON_SIZE = 24.dp
 
 /** The callbacks of the Perfil root, grouped to keep the layout composables' signatures short. */
 @Suppress("LongParameterList") // One callback per row or button.
@@ -75,6 +90,7 @@ class ProfileRootActions(
     val onOpenAbout: () -> Unit = {},
     val onOpenActivity: () -> Unit = {},
     val onOpenMyTraining: () -> Unit = {},
+    val onOpenAccount: () -> Unit = {},
 )
 
 /** Stateful Perfil root: connects [ProfileRootViewModel] to the stateless [ProfileRootScreen]. */
@@ -92,8 +108,9 @@ fun ProfileRootRoute(
 
 /**
  * The Perfil tab root (ADR-37, US-05, US-56) on [AppScreen]: the notifications bell and the "Preferencias" gear in
- * the bar, the photo and name, the "Mi entrenamiento" row (value = the intention) and "Estadísticas" with the
- * "Peso", "Fuerza", "Calorías", "Entrenamiento" and "Actividad" rows. A row shows its value once it is known and
+ * the bar, the 72 dp photo-and-name header, three cards (C-150, R-109): "Mi entrenamiento" (value = the intention),
+ * "Estadísticas" with the "Peso", "Fuerza", "Calorías", "Entrenos" and "Actividad" rows, and "Acerca de" with
+ * "Cuenta". A row shows its value once it is known and
  * none when it could not be read. The debug catalog button appears where [ProfileRootActions.onOpenCatalog] is
  * non-null (local flavor). It holds no editable state: nothing to restore.
  */
@@ -146,7 +163,6 @@ private fun RootBody(onOpenCatalog: (() -> Unit)?, content: @Composable () -> Un
             .fillMaxSize()
             .verticalScroll(rememberScrollState())
             .padding(horizontal = Spacing.screenMargin, vertical = Spacing.xl),
-        horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(Spacing.lg),
     ) {
         content()
@@ -162,7 +178,40 @@ private fun RootBody(onOpenCatalog: (() -> Unit)?, content: @Composable () -> Un
 
 @Composable
 private fun RootLoaded(state: ProfileRootUiState.Loaded, actions: ProfileRootActions) {
-    Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(Spacing.lg)) {
+    Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(Spacing.lg)) {
+        RootHeader(state)
+        AppCard(Modifier.fillMaxWidth()) {
+            NavigationRow(
+                label = stringResource(Res.string.preferences_my_training_title),
+                onClick = actions.onOpenMyTraining,
+                modifier = Modifier.testTag("profile_my_training_row"),
+                value = state.intention?.let { stringResource(it.label) },
+            )
+        }
+        StatisticsSection(state, actions)
+        AppCard(Modifier.fillMaxWidth()) {
+            NavigationRow(
+                label = stringResource(Res.string.profile_about_row),
+                onClick = actions.onOpenAbout,
+                modifier = Modifier.testTag("profile_about_row"),
+            )
+            NavigationRow(
+                label = stringResource(Res.string.account_title),
+                onClick = actions.onOpenAccount,
+                modifier = Modifier.testTag("profile_account_row"),
+            )
+        }
+    }
+}
+
+/** One 72 dp row: the 56 dp photo and the name, start-aligned (C-150). */
+@Composable
+private fun RootHeader(state: ProfileRootUiState.Loaded) {
+    Row(
+        Modifier.fillMaxWidth().height(HEADER_HEIGHT),
+        horizontalArrangement = Arrangement.spacedBy(Spacing.lg),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
         AppAvatar(
             imageUrl = state.avatarUrl,
             size = AppAvatarDefaults.RootSize,
@@ -174,28 +223,15 @@ private fun RootLoaded(state: ProfileRootUiState.Loaded, actions: ProfileRootAct
                 text = name,
                 style = AppTheme.typography.titleLarge,
                 color = AppTheme.colors.textPrimary,
-                textAlign = TextAlign.Center,
                 maxLines = NAME_MAX_LINES,
                 overflow = TextOverflow.Ellipsis,
-                modifier = Modifier.fillMaxWidth().testTag("profile_root_name"),
+                modifier = Modifier.weight(1f).testTag("profile_root_name"),
             )
         }
-        NavigationRow(
-            label = stringResource(Res.string.preferences_my_training_title),
-            onClick = actions.onOpenMyTraining,
-            modifier = Modifier.fillMaxWidth().testTag("profile_my_training_row"),
-            value = state.intention?.let { stringResource(it.label) },
-        )
-        StatisticsSection(state, actions)
-        NavigationRow(
-            label = stringResource(Res.string.profile_about_row),
-            onClick = actions.onOpenAbout,
-            modifier = Modifier.fillMaxWidth().testTag("profile_about_row"),
-        )
     }
 }
 
-/** "Estadísticas": a heading and one [NavigationRow] per destination, each label equal to its screen title (R-04). */
+/** "Estadísticas": a heading and one card of [NavigationRow]s, each label equal to its screen title (R-04, R-109). */
 @Composable
 private fun StatisticsSection(state: ProfileRootUiState.Loaded, actions: ProfileRootActions) {
     val weight = state.weightKg?.let { stringResource(Res.string.profile_weight_value, formatKilos(it)) }
@@ -208,46 +244,67 @@ private fun StatisticsSection(state: ProfileRootUiState.Loaded, actions: Profile
             title = stringResource(Res.string.profile_statistics_section),
             modifier = Modifier.testTag("profile_statistics_heading"),
         )
-        NavigationRow(
-            label = stringResource(Res.string.profile_weight_row),
-            onClick = actions.onOpenWeight,
-            modifier = Modifier.testTag("profile_weight_row"),
-            value = weight,
-        )
-        NavigationRow(
-            label = stringResource(Res.string.profile_strength_row),
-            onClick = actions.onOpenStrength,
-            modifier = Modifier.testTag("profile_strength_row"),
-            value = strength,
-        )
-        NavigationRow(
-            label = stringResource(Res.string.profile_diary_history_row),
-            onClick = actions.onOpenDiaryHistory,
-            modifier = Modifier.testTag("profile_diary_history_row"),
-            value = calories,
-        )
-        NavigationRow(
-            label = stringResource(Res.string.profile_training_stats_row),
-            onClick = actions.onOpenTrainingStats,
-            modifier = Modifier.testTag("profile_training_stats_row"),
-        )
-        NavigationRow(
-            label = stringResource(Res.string.profile_activity_row),
-            onClick = actions.onOpenActivity,
-            modifier = Modifier.testTag("profile_activity_row"),
-        )
+        AppCard(Modifier.fillMaxWidth()) {
+            StatRow(Res.string.profile_weight_row, Res.drawable.ic_monitor_weight, "profile_weight_row", weight) {
+                actions.onOpenWeight()
+            }
+            StatRow(Res.string.profile_strength_row, Res.drawable.ic_fitness_center, "profile_strength_row", strength) {
+                actions.onOpenStrength()
+            }
+            StatRow(
+                Res.string.profile_diary_history_row,
+                Res.drawable.ic_restaurant_outlined,
+                "profile_diary_history_row",
+                calories,
+            ) { actions.onOpenDiaryHistory() }
+            StatRow(Res.string.profile_training_stats_row, Res.drawable.ic_bar_chart, "profile_training_stats_row") {
+                actions.onOpenTrainingStats()
+            }
+            StatRow(Res.string.profile_activity_row, Res.drawable.ic_steps_outlined, "profile_activity_row") {
+                actions.onOpenActivity()
+            }
+        }
     }
+}
+
+@Composable
+private fun StatRow(
+    label: StringResource,
+    icon: DrawableResource,
+    tag: String,
+    value: String? = null,
+    onClick: () -> Unit,
+) {
+    NavigationRow(
+        label = stringResource(label),
+        onClick = onClick,
+        modifier = Modifier.testTag(tag),
+        value = value,
+        leading = {
+            Icon(
+                painter = painterResource(icon),
+                contentDescription = null,
+                tint = AppTheme.colors.textSecondary,
+                modifier = Modifier.size(STAT_ICON_SIZE),
+            )
+        },
+    )
 }
 
 @Composable
 private fun RootSkeleton() {
     Column(
-        Modifier.testTag("profile_root_loading"),
-        horizontalAlignment = Alignment.CenterHorizontally,
+        Modifier.testTag("profile_root_loading").fillMaxWidth(),
         verticalArrangement = Arrangement.spacedBy(Spacing.lg),
     ) {
-        SkeletonBox(Modifier.size(AppAvatarDefaults.RootSize), AppShapes.full)
-        SkeletonBox(Modifier.size(Spacing.xl * NAME_SKELETON_WIDTH_UNITS, Spacing.xl), AppShapes.sm)
+        Row(
+            Modifier.height(HEADER_HEIGHT),
+            horizontalArrangement = Arrangement.spacedBy(Spacing.lg),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            SkeletonBox(Modifier.size(AppAvatarDefaults.RootSize), AppShapes.full)
+            SkeletonBox(Modifier.size(Spacing.xl * NAME_SKELETON_WIDTH_UNITS, Spacing.xl), AppShapes.sm)
+        }
         ListRowSkeleton(Modifier.fillMaxWidth(), rows = SKELETON_ROWS)
     }
 }

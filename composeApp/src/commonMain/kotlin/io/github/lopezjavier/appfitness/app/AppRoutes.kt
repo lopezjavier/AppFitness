@@ -102,6 +102,10 @@ data class FolderReviewResultRoute(val folderId: String) : AppRoute
 @Serializable
 data object AboutRoute : AppRoute
 
+/** "Cuenta": "Cerrar sesión" and "Borrar cuenta", opened from the Perfil root (C-155, R-113). */
+@Serializable
+data object AccountRoute : AppRoute
+
 /** Exercise picker (US-09). In [selectMode] a row returns the exercise to the caller instead of opening the detail. */
 @Serializable
 data class ExercisePickerRoute(val selectMode: Boolean = false) : AppRoute
@@ -432,6 +436,7 @@ object AppDestinations {
             WeightRoute(),
             WeightHistoryRoute,
             AboutRoute,
+            AccountRoute,
             PlanProposalRoute(),
             BeforeStartRoute(""),
             YourDataRoute,

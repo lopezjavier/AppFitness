@@ -34,8 +34,8 @@ object AppAvatarDefaults {
     /** Gap between the optional ring and the photo (the photo is inset, never cropped). */
     val RingGap: Dp = 2.dp
 
-    /** Size on the Perfil root (planning/05 section 6.2). */
-    val RootSize: Dp = 96.dp
+    /** Size in the Perfil root header (planning/05 section 6.0i, C-150). */
+    val RootSize: Dp = 56.dp
 
     /** Placeholder glyph size relative to the avatar size. */
     const val PLACEHOLDER_FRACTION = 0.55f
