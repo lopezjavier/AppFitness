@@ -360,6 +360,7 @@ Then the emulator look (`! python scripts/deliver-apk.py`), then the test task (
 - [ ] The common round criteria above.
 **Host tests:** as T-281, for the changed and swept screens.
 **Agent runs:** 7 plus the review step.
+**Review and decisions (2026-11-16, branch `feat/ui-perfil`; ux-critic report on the 20 Perfil images, new IDs C-149..C-171, V-77..V-96; the user's extra brief: critique the organisation of Estadísticas, Mi entrenamiento and Preferencias):** the user **accepted every finding** ("I accept it all"). PM resolutions of the open choices: C-155 takes **option A** (a "Cuenta" screen, as `05` §6.2 specifies; ux-critic's preferred option). **Deferred, product questions not built:** C-157's "Diario calendar icon opens Calorías" and C-158 (calorie target in Preferencias versus Trainer's plan: which wins) wait for the user. Accepted: C-149..C-156, C-157 (order and Semana band only), C-159..C-171 and V-77..V-96. Next: ux-reviewer rules mode writes them into `05` and the ledger (first commit), then build batches `compose-ui-developer`, a new agent per batch.
 **Dependencies:** T-283 merged.
 **Files likely touched:** decided by the findings; `planning/05-design-system.md`, `scripts/check-ux-conventions.sh`, `designsystem/`, `feature/{profile,weight,analytics,about,auth,onboarding,meals}/`, gallery entries
 **Estimated scope:** M (estimate)
