@@ -56,6 +56,6 @@ Appended by each batch; the test task works from this list (CI only).
 ## B6 Copy sweep and tags
 
 - Copy (V-77, R-37): final period added to `stats_error_message`, `strength_error_message`, `exercise_progress_error_message`, `muscle_volume_error_message`, `weight_empty_message`, `weight_error_message`, `weight_delete_error`, `weight_delete_error_offline`, `weight_trend_error_message`, `preferences_save_error_offline`. Tests reading those texts change (`TrainingStatsScreenTest` error message, any weight/strength error assertion).
-- V-94 verified (C-160: one column in the stats grid, no 2 x 2 tile grid); V-96 verified (see commit notes).
+- V-94 not verified by B6 (resolved by C-160, check at the emulator look); V-96 partly checked (`MealSlotsScreen` renders `SaveErrorMessage`; R-14b pinned footer unconfirmed).
 - Removed unused strings `energy_pill_*`, `energy_intensity_*`, `meal_defaults_open_hint`; removed `MealSlotsUiState.Editing.canNavigateToDefaults` (and its ViewModel test `canNavigateToDefaults_isFalseWhileDirty`, the `form().canNavigateToDefaults` assertion, the restoration assertion and the gallery/screen-test arguments). `MealDefaultsNavigationTest` still reads the gone `meal_slots_defaults_*` tags: remove those assertions.
 - Tags: all new tags of B1-B5 follow `<screen>_<element>` and are listed above; none added in B6.
