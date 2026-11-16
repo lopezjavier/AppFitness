@@ -69,3 +69,8 @@ Appended by each batch; the test task works from this list (CI only).
 ## B8: training intention icons (C-173)
 
 - `PickerOption` gains an optional `leading` slot (OptionPickerSheet rows, other pickers unchanged). Intention picker rows, the intention row in Mi entrenamiento and the Perfil root "Mi entrenamiento" row now have a leading icon: goldens for those screens and the intention sheet change; no tags change. New gallery entry Perfil > "Iconos de objetivo" (`PerfilIntentionGallery.kt`), no golden. New drawables `ic_intention_*` (strength, muscle, recomposition, maintenance).
+
+## Host-test compile pass (round 4)
+
+- Deleted `MealDefaultsNavigationTest` (all three tests covered the removed "Comidas por defecto" button/hint in the meals editor); removed the defaults-row tests from `MealSlotsScreenTest` and `MealSlotsFlowTest`; removed the muscle-volume row tests from `StrengthScreenTest` and `StrengthNavigationTest`. The test task should add the replacements listed in B3/B5 (hub default-comidas row click, `stats_open_muscle_volume` click and navigation from Estadisticas).
+- Slot lambdas updated: `PreferencesSlot` (5th arg), `MealSlotsSlot` (2 args), `StrengthSlot` (4 args), `TrainingStatsSlot` (4 args).

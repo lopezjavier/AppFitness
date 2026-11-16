@@ -33,7 +33,7 @@ class TrainingStatsNavigationTest {
             Box(Modifier.size(48.dp).testTag("profile_open_stats").clickable(onClick = actions.onOpenTrainingStats))
         }
     }
-    private val statsSlot: TrainingStatsSlot = { modifier, onOpenExercise, onBack ->
+    private val statsSlot: TrainingStatsSlot = { modifier, onOpenExercise, _, onBack ->
         AppScreen("Entrenamiento", modifier.testTag("stats_screen"), onBack = onBack, testTagPrefix = "stats") {
             Box(Modifier.size(48.dp).testTag("stats_open_exercise").clickable { onOpenExercise("bench") })
         }

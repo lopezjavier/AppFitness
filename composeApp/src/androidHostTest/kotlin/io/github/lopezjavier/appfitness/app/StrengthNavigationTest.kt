@@ -35,11 +35,10 @@ class StrengthNavigationTest {
             Box(tapTarget().testTag("profile_open_strength").clickable(onClick = actions.onOpenStrength))
         }
     }
-    private val strengthSlot: StrengthSlot = { modifier, onOpenExercise, onOpenMuscleVolume, onStartWorkout, onBack ->
+    private val strengthSlot: StrengthSlot = { modifier, onOpenExercise, onStartWorkout, onBack ->
         AppScreen("Fuerza", modifier.testTag("strength_screen"), onBack = onBack, testTagPrefix = "strength") {
             Column(Modifier.fillMaxSize()) {
                 Box(tapTarget().testTag("strength_open").clickable { onOpenExercise("bench") })
-                Box(tapTarget().testTag("strength_open_muscle_volume").clickable(onClick = onOpenMuscleVolume))
                 Box(tapTarget().testTag("strength_start").clickable(onClick = onStartWorkout))
             }
         }
@@ -120,21 +119,6 @@ class StrengthNavigationTest {
 
         rule.onNodeWithTag("progress_exercise_id").assertTextEquals("bench")
         rule.onNodeWithTag("exercise_progress_back").performClick()
-        rule.waitForIdle()
-        rule.onNodeWithTag("strength_screen").assertExists()
-    }
-
-    @Test
-    fun volumenPorGrupoMuscular_opensItsScreenWithTitle_andBackReturnsToFuerza() {
-        showShell()
-        openStrengthFromProfile()
-
-        rule.onNodeWithTag("strength_open_muscle_volume").performClick()
-        rule.waitForIdle()
-
-        rule.onNodeWithTag("muscle_volume_screen").assertExists()
-        rule.onNodeWithTag("muscle_volume_title").assertTextEquals("Volumen")
-        rule.onNodeWithTag("muscle_volume_back").performClick()
         rule.waitForIdle()
         rule.onNodeWithTag("strength_screen").assertExists()
     }

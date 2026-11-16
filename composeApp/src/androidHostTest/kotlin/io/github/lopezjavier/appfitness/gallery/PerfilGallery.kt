@@ -168,7 +168,7 @@ private fun preferences(): List<GalleryEntry> {
             loadedPreferences(personal),
             GalleryKind.Sheet,
             scrollTap("preferences_activity_row"),
-            covers = arrayOf("PickerSheet"),
+            covers = arrayOf("PickerSheet", "PersonalSheets"),
         ),
         section("Datos personales", personal, "large font (1.3)", loadedPreferences(personal, dirty), fontScale = 1.3f),
         section(

@@ -262,17 +262,6 @@ class MealSlotsFlowTest {
         assertTrue(slots.saved.isEmpty())
     }
 
-    @Test
-    fun theDefaultsRow_isBlockedWhileDirty_andOpensAfterSaving() {
-        start()
-        openEditor()
-
-        rename("lunch", "Almuerzo")
-
-        rule.onNodeWithTag("meal_slots_defaults_hint").assertExists()
-        rule.onNodeWithTag("meal_slots_defaults_button").assertIsNotEnabled()
-    }
-
     private fun showFoodSheet() {
         val rice = food("rice", "Arroz")
         val foods = FakeFoodRepository().apply { known[rice.id] = rice }

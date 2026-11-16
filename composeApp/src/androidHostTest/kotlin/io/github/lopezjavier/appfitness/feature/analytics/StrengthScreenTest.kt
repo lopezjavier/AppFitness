@@ -39,7 +39,6 @@ class StrengthScreenTest {
     private val events = mutableListOf<StrengthEvent>()
     private val opened = mutableListOf<String>()
     private var startedWorkout = 0
-    private var openedVolume = 0
     private var backs = 0
 
     private fun show(state: StrengthUiState) {
@@ -49,7 +48,6 @@ class StrengthScreenTest {
                     state = state,
                     onEvent = { events += it },
                     onOpenExercise = { opened += it },
-                    onOpenMuscleVolume = { openedVolume++ },
                     onStartWorkout = { startedWorkout++ },
                     onBack = { backs++ },
                 )
@@ -149,20 +147,10 @@ class StrengthScreenTest {
     }
 
     @Test
-    fun volumenPorGrupoMuscular_opensTheWeeklyVolume() {
-        show(content(StrengthSummary(90.0, null)))
-
-        rule.onNodeWithTag("strength_open_muscle_volume").assertTextEquals("Volumen").performClick()
-
-        assertEquals(1, openedVolume)
-    }
-
-    @Test
     fun empty_invitesToStartAWorkout() {
         show(StrengthUiState.Empty)
 
         rule.onNodeWithTag("strength_empty_action", useUnmergedTree = true).assertExists()
-        rule.onNodeWithTag("strength_open_muscle_volume").assertDoesNotExist()
         rule.onNodeWithText("Empezar entreno").performClick()
         assertEquals(1, startedWorkout)
     }
@@ -188,7 +176,7 @@ class StrengthScreenTest {
         var chips by mutableStateOf(listOf(StrengthChip("custom-1", "Remo en anillas")))
         rule.setContent {
             AppTheme {
-                StrengthScreen(StrengthUiState.Content(chips, "custom-1", null), {}, {}, {}, {}, {})
+                StrengthScreen(StrengthUiState.Content(chips, "custom-1", null), {}, {}, {}, {})
             }
         }
         rule.onNodeWithTag("strength_chip_custom-1").assertTextEquals("Remo en anillas")

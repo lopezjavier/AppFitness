@@ -64,10 +64,10 @@ class PreferencesNavigationTest {
             actions = actions,
         )
     }
-    private val hubSlot: PreferencesSlot = { modifier, onBack, onOpenSection, onOpenMeals ->
+    private val hubSlot: PreferencesSlot = { modifier, onBack, onOpenSection, onOpenMeals, onOpenMealDefaults ->
         PreferencesHubScreen(
             onBack = onBack,
-            actions = PreferencesHubActions({ onOpenSection(it.key) }, onOpenMeals),
+            actions = PreferencesHubActions({ onOpenSection(it.key) }, onOpenMeals, onOpenMealDefaults),
             modifier = modifier,
         )
     }
@@ -92,7 +92,7 @@ class PreferencesNavigationTest {
             modifier = modifier,
         )
     }
-    private val mealSlotsSlot: MealSlotsSlot = { modifier, _, _ -> Box(modifier.fillMaxSize().testTag("meals_stub")) }
+    private val mealSlotsSlot: MealSlotsSlot = { modifier, _ -> Box(modifier.fillMaxSize().testTag("meals_stub")) }
     private val diarySlot: DiarySlot = { modifier, onOpenPreferences, _, _, _, _, _ ->
         Box(modifier.fillMaxSize().testTag("diary_screen")) {
             Box(Modifier.fillMaxSize().clickable(onClick = onOpenPreferences).testTag("diary_goal_prompt"))
