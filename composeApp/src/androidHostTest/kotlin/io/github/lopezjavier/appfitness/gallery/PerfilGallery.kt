@@ -275,7 +275,7 @@ private fun about(): List<GalleryEntry> = listOf(
 
 internal fun perfilEntries(): List<GalleryEntry> =
     profileRoot() + preferences() + about() + perfilMealsEntries() + perfilWeightEntries() +
-        perfilStatsEntries()
+        perfilStatsEntries() + perfilIntentionEntries()
 
 /** Renders the Perfil entries (US-131); skipped unless `-Pgallery`. */
 @OptIn(ExperimentalRoborazziApi::class)
@@ -288,7 +288,7 @@ class PerfilGallery {
 
     @Test
     fun rendersProfileAndPreferences() = rule.renderGallery(
-        (profileRoot() + preferences() + about()).filter {
+        (profileRoot() + preferences() + about() + perfilIntentionEntries()).filter {
             !it.wide && !it.tall
         },
     )

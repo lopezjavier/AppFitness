@@ -253,6 +253,7 @@ One row per ux-critic finding. The PM has the dispositions recorded here as the 
 | C-170 | Default-meal days "Lunes a viernes" / "L, M, X"; picker rows 16 dp leading space | 4 | ACCEPTED (not built) | 05 §6.0i, §10 |
 | C-171 | "¿Cerrar sesión?" confirm neutral; error colour only on "Borrar cuenta" | 4 | ACCEPTED (not built) | 05 R-113 |
 | C-172 | Perfil root: bell only (gear removed), "Preferencias" row then "Acerca de", stat rows chevron only; "Cuenta" is the last group of the Preferencias hub ("Cerrar sesión" row, danger "Borrar cuenta" 16 dp below), no Cuenta screen | 4 | ACCEPTED (built, user emulator look) | 05 §6.0i, R-109, R-113 |
+| C-173 | Each training intention gets a distinct stroke-only icon (lime when selected) in the intention picker, the Mi entrenamiento row and the Perfil root value row; gallery lists all | 4 | ACCEPTED (built, user request) | 05 §6.0j |
 | V-77 | R-37 error copy and missing periods on the Perfil screens | 4 | ACCEPTED (not built) | 05 R-100, R-115 |
 | V-78 | R-70 "Eliminar" in the Peso sheet must be a text danger action | 4 | ACCEPTED (not built) | 05 R-70 |
 | V-79 | R-24/R-83/C-77 uppercase labels, centred numeric fields, Cocina error per R-25 | 4 | ACCEPTED (not built) | 05 §6.0i |

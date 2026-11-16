@@ -170,6 +170,7 @@ private fun RootLoaded(state: ProfileRootUiState.Loaded, actions: ProfileRootAct
                 onClick = actions.onOpenMyTraining,
                 modifier = Modifier.testTag("profile_my_training_row"),
                 value = state.intention?.let { stringResource(it.label) },
+                leading = state.intention?.let { { IntentionIcon(it, selected = true) } },
             )
         }
         StatisticsSection(actions)
