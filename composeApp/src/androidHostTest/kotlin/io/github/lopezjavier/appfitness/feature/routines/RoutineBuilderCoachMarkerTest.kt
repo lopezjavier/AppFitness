@@ -32,6 +32,8 @@ import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 
+private val NBSP = 160.toChar().toString()
+
 /** US-97 / US-104 in the routine editor: the `?` reason of a changed exercise and the range focus (ADR-40). */
 @RunWith(RobolectricTestRunner::class)
 @Config(qualifiers = "w360dp-h800dp-xxhdpi")
@@ -91,7 +93,7 @@ class RoutineBuilderCoachMarkerTest {
 
         rule.onNodeWithText("Cambio del entrenador").assertExists()
         rule.onNodeWithText(
-            "Subida de 60 kg a 62,5 kg: completaste todas las series en el máximo del rango.",
+            "Subida de 60${NBSP}kg a 62,5${NBSP}kg: completaste todas las series en el máximo del rango.",
         ).assertExists()
     }
 

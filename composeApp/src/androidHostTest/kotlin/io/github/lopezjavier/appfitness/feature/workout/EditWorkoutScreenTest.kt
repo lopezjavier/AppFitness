@@ -323,7 +323,7 @@ class EditWorkoutScreenTest {
 
         rule.onNodeWithTag("edit_workout_save").assertIsNotEnabled()
         rule.onNodeWithTag("edit_workout_delete").assertIsNotEnabled()
-        rule.onNodeWithText("Sin conexión: no se puede guardar").assertExists()
+        rule.onNodeWithText("Sin conexión: no se puede guardar", substring = true).assertExists()
         rule.onNodeWithTag("edit_workout_save").performClick()
         rule.waitForIdle()
 

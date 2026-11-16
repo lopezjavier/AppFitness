@@ -25,8 +25,12 @@ import io.github.lopezjavier.appfitness.composeapp.resources.Res
 import io.github.lopezjavier.appfitness.composeapp.resources.action_close
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_close
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_info
+import io.github.lopezjavier.appfitness.composeapp.resources.ic_tone_unfavorable
 import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.resources.stringResource
+
+/** Tone of an [InlineNote]: [Info] is the default hint, [Error] reads as a problem (C-117). */
+enum class InlineNoteTone { Info, Error }
 
 /** Sizes of an [InlineNote]. */
 object InlineNoteDefaults {
@@ -39,7 +43,8 @@ object InlineNoteDefaults {
  * Subtle hint inside a form: decorative info icon and [text] (`bodyMedium`, `textSecondary`) on a `surfaceOverlay`
  * block with the `md` shape. Not interactive unless [onClick] is given (then a 48 dp button announced with
  * [onClickLabel], e.g. a shown note that opens its editor); the text is the only spoken content. [testTag] lands on
- * the root. With [onDismiss] a trailing close button (48 dp, "Cerrar", tagged [dismissTestTag]) lets the user remove a
+ * the root. [tone] Error tints the unfavourable glyph `error` and the text `textPrimary` (C-117). With [onDismiss] a
+ * trailing close button (48 dp, "Cerrar", tagged [dismissTestTag]) lets the user remove a
  * note that shows once (R-52); the text stays the first spoken content.
  */
 @Composable
@@ -51,6 +56,7 @@ fun InlineNote(
     onClickLabel: String? = null,
     onDismiss: (() -> Unit)? = null,
     dismissTestTag: String = "inline_note_close",
+    tone: InlineNoteTone = InlineNoteTone.Info,
 ) {
     Row(
         modifier = modifier
@@ -71,15 +77,17 @@ fun InlineNote(
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Icon(
-            painter = painterResource(Res.drawable.ic_info),
+            painter = painterResource(
+                if (tone == InlineNoteTone.Error) Res.drawable.ic_tone_unfavorable else Res.drawable.ic_info,
+            ),
             contentDescription = null,
-            tint = AppTheme.colors.textSecondary,
+            tint = if (tone == InlineNoteTone.Error) AppTheme.colors.error else AppTheme.colors.textSecondary,
             modifier = Modifier.size(InlineNoteDefaults.IconSize),
         )
         Text(
             text = text,
             style = AppTheme.typography.bodyMedium,
-            color = AppTheme.colors.textSecondary,
+            color = if (tone == InlineNoteTone.Error) AppTheme.colors.textPrimary else AppTheme.colors.textSecondary,
             modifier = Modifier.weight(1f),
         )
         if (onDismiss != null) {

@@ -27,6 +27,7 @@ import org.jetbrains.compose.resources.stringResource
  * [supportingTestTag] tags the supporting line; [supportingMaxLines] caps it with an ellipsis (default unlimited).
  * With [enabled] false the row body does nothing (the caller says why in [supporting]);
  * the thumbnail still opens the details.
+ * [supportingSecondary] is a second supporting line (`bodyMedium`, `textSecondary`; C-116, "puedes cambiarlo").
  * [trailing] is a separate slot for the caller's own controls.
  * [favorite] draws the filled star marker inline right after the name, through `AppListRow.headlineTrailing`, so
  * [trailing] stays free (R-56, T-204; tagged [favoriteTestTag]) and adds "Favorito"
@@ -48,6 +49,7 @@ fun ExerciseRow(
     favoriteTestTag: String? = null,
     enabled: Boolean = true,
     supportingMaxLines: Int = Int.MAX_VALUE,
+    supportingSecondary: String? = null,
 ) {
     val thumbnail: @Composable () -> Unit = {
         ExerciseThumbnail(
@@ -83,6 +85,7 @@ fun ExerciseRow(
         },
         supportingTestTag = supportingTestTag,
         supportingMaxLines = supportingMaxLines,
+        supportingSecondary = supportingSecondary,
         onClick = onSelect ?: onOpen,
         enabled = enabled,
     )

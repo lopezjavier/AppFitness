@@ -1,8 +1,7 @@
 package io.github.lopezjavier.appfitness.feature.trainer
 
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
@@ -15,6 +14,7 @@ import io.github.lopezjavier.appfitness.composeapp.resources.trainer_plan_weeks_
 import io.github.lopezjavier.appfitness.composeapp.resources.trainer_welcome_back_line
 import io.github.lopezjavier.appfitness.composeapp.resources.trainer_welcome_back_title
 import io.github.lopezjavier.appfitness.designsystem.AppCard
+import io.github.lopezjavier.appfitness.designsystem.AppTextButton
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
 import io.github.lopezjavier.appfitness.designsystem.GhostButton
 import io.github.lopezjavier.appfitness.designsystem.OfflineHint
@@ -23,24 +23,15 @@ import io.github.lopezjavier.appfitness.domain.model.PhaseWeeks
 import org.jetbrains.compose.resources.pluralStringResource
 import org.jetbrains.compose.resources.stringResource
 
-/** "Bloque nuevo" and "Mi entrenamiento" under the active plan while its block is saved (T-240). */
+/** "Mi entrenamiento" on the Trainer root, below "Tus datos": a text link (R-90, R-100) that opens the screen. */
 @Composable
-internal fun NewBlockEntries(online: Boolean, onEvent: (TrainerEvent) -> Unit) {
-    Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-        GhostButton(
-            text = stringResource(Res.string.trainer_new_block),
-            onClick = { onEvent(TrainerEvent.OpenNewBlock) },
-            modifier = Modifier.fillMaxWidth().testTag("trainer_new_block"),
-            enabled = online,
-        )
-        if (!online) OfflineHint(stringResource(Res.string.trainer_new_block_action))
-        GhostButton(
-            text = stringResource(Res.string.trainer_my_training),
-            onClick = { onEvent(TrainerEvent.OpenMyTraining) },
-            modifier = Modifier.fillMaxWidth().testTag("trainer_my_training"),
-            enabled = online,
-        )
-    }
+internal fun MyTrainingLink(onOpen: () -> Unit, modifier: Modifier = Modifier) {
+    AppTextButton(
+        text = stringResource(Res.string.trainer_my_training),
+        onClick = onOpen,
+        // The button pads its label by 8 dp: 8 dp more start the text where the row labels above start (16 dp).
+        modifier = modifier.padding(start = Spacing.sm).testTag("trainer_my_training"),
+    )
 }
 
 /** "Bienvenido de nuevo" after a break of 14+ days (US-107): one line and the "Bloque nuevo" action. */

@@ -12,6 +12,8 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
 
+private val NBSP = 160.toChar().toString()
+
 /** Golden image of [CoachChangeRow] in each state, one under the other on a 360 dp wide screen. */
 @RunWith(RobolectricTestRunner::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
@@ -30,7 +32,7 @@ class CoachChangeRowScreenshotTest {
                 ) {
                     CoachChangeRow(
                         "Press de banca",
-                        "Subida de 60 kg a 62,5 kg: completaste todas las series en el máximo del rango.",
+                        "Subida de 60${NBSP}kg a 62,5${NBSP}kg: completaste todas las series en el máximo del rango.",
                         CoachChangeRowState.Applied,
                         "applied",
                         actions = listOf(CoachChangeRowAction("Deshacer", "undo", {})),

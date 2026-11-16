@@ -22,6 +22,8 @@ import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 
+private val NBSP = 160.toChar().toString()
+
 /** US-102 scenarios that have a UI: the targets step and the pre-filled builder of the next block. */
 @RunWith(RobolectricTestRunner::class)
 @Config(qualifiers = "w360dp-h2400dp-xxhdpi")
@@ -54,7 +56,7 @@ class BlockBuilderNextBlockScreenTest {
         show(targets(listOf(row(MuscleGroup.Chest, GroupPriority.Prioritise, after = 12))))
 
         rule.onNodeWithText("Objetivo por grupo").assertExists()
-        rule.onNodeWithTag("block_builder_targets_group_chest_line").assertTextEquals("Pecho: 10 → 12 series")
+        rule.onNodeWithTag("block_builder_targets_group_chest_line").assertTextEquals("Pecho: 10 → 12${NBSP}series")
     }
 
     @Test
@@ -122,7 +124,7 @@ class BlockBuilderNextBlockScreenTest {
         )
 
         rule.onNodeWithTag("block_builder_targets_group_chest_reason")
-            .assertTextEquals("Tu adherencia fue menor del 80 %: no añadimos series.")
+            .assertTextEquals("Tu adherencia fue menor del 80$NBSP%: no añadimos series.")
     }
 
     @Test
@@ -142,10 +144,10 @@ class BlockBuilderNextBlockScreenTest {
     fun theSuggestion_changesNothingUntilTapped_thenSendsTheEvent() {
         show(targets(listOf(row(MuscleGroup.Chest, suggestion = SuggestionState.Offered))))
 
-        rule.onNodeWithTag("block_builder_targets_group_chest_line").assertTextEquals("Pecho: 10 → 10 series")
+        rule.onNodeWithTag("block_builder_targets_group_chest_line").assertTextEquals("Pecho: 10 → 10${NBSP}series")
         assertTrue(events.isEmpty())
         rule.onNodeWithTag("block_builder_targets_group_chest_suggestion")
-            .assertTextContains("Sugerencia: +2 series")
+            .assertTextContains("Sugerencia: +2${NBSP}series")
             .performClick()
 
         assertEquals(listOf<BlockBuilderEvent>(BlockBuilderEvent.ApplySuggestion(MuscleGroup.Chest)), events)
@@ -193,7 +195,7 @@ class BlockBuilderNextBlockScreenTest {
         val picked = state.pick(0, 0, Pick(BlockBuilderTestData.bench.id, MuscleGroup.Chest, null, 60.0))
         show(BlockBuilderTestData.builderUi(picked, stalledExerciseIds = setOf(BlockBuilderTestData.bench.id)))
 
-        rule.onNodeWithTag("block_builder_slot_0_0_swap_marker").assertTextEquals("puedes cambiarlo")
+        rule.onNodeWithText("puedes cambiarlo", substring = true).assertExists()
         rule.onNodeWithTag("block_builder_slot_0_0_swap_help").performClick()
         rule.onNodeWithText("Este ejercicio no ha progresado en el bloque", substring = true).assertExists()
     }

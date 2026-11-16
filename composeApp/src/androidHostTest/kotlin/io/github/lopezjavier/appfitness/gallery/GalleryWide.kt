@@ -13,7 +13,7 @@ import org.robolectric.annotation.GraphicsMode
 @OptIn(ExperimentalRoborazziApi::class)
 @RunWith(RobolectricTestRunner::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
-@Config(qualifiers = "w840dp-h640dp-xxhdpi")
+@Config(qualifiers = "es-rES-w840dp-h640dp-xxhdpi")
 class GalleryWide {
     @get:Rule
     val rule = createComposeRule()

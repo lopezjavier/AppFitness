@@ -5,6 +5,7 @@ import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
+import androidx.compose.ui.test.assertTextContains
 import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
@@ -21,6 +22,8 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
+
+private val NBSP = 160.toChar().toString()
 
 /** US-79: the cardio and steps targets in the proposal and in "Tu plan", one test per scenario. */
 @RunWith(RobolectricTestRunner::class)
@@ -47,10 +50,9 @@ class PlanActivityScreenTest {
 
     private fun showTrainer(state: TrainerUiState.Content) {
         rule.setContent {
-            AppTheme { TrainerWithBoxes(state, flowOf(true), { trainerEvents += it }) }
+            AppTheme { TrainerScreen(state, flowOf(true), { trainerEvents += it }) }
         }
         rule.waitForIdle()
-        rule.openTrainerPlan()
     }
 
     private fun accepted(activity: PlanActivity?) =
@@ -60,8 +62,8 @@ class PlanActivityScreenTest {
     fun targetsNextToTheCalories_showBothRowsWithTheirReasons() {
         showProposal(proposal())
 
-        rule.onNodeWithText("2.000 kcal al día").assertExists()
-        rule.onNodeWithText("Cardio · 150 min por semana · ritmo suave").assertExists()
+        rule.onNodeWithTag("plan_proposal_kcal").assertTextContains("2.000", substring = true)
+        rule.onNodeWithText("Cardio · 150${NBSP}min por semana · ritmo suave").assertExists()
         rule.onNodeWithText("Pasos · 7.000 al día").assertExists()
         rule.onNodeWithTag("plan_proposal_activity_cardio_help").performClick()
         rule.onNodeWithText(
@@ -118,7 +120,7 @@ class PlanActivityScreenTest {
         rule.onNodeWithTag("cardio_sheet_note").assertExists()
         rule.onNodeWithText("Está por debajo de lo que recomienda la OMS (150 min). Puedes dejarlo así.").assertExists()
         rule.onNodeWithTag("cardio_sheet_commit").assertIsEnabled()
-        rule.onNodeWithText("2.000 kcal al día").assertExists()
+        rule.onNodeWithTag("plan_proposal_kcal").assertTextContains("2.000", substring = true)
     }
 
     @Test
@@ -155,7 +157,7 @@ class PlanActivityScreenTest {
     fun aSavedCardioBelow150_showsTheNoteInTheRow() {
         showProposal(proposal(activity = defaultActivity.copy(cardioMinWeek = 90, cardioEdited = true)))
 
-        rule.onNodeWithText("Cardio · 90 min por semana · ritmo suave").assertExists()
+        rule.onNodeWithText("Cardio · 90${NBSP}min por semana · ritmo suave").assertExists()
         rule.onNodeWithTag("plan_proposal_activity_below_note").assertExists()
     }
 
@@ -166,7 +168,7 @@ class PlanActivityScreenTest {
         val row = rule.onNodeWithTag("plan_proposal_activity_steps_row")
         row.assertExists()
         rule.onNodeWithText("Pasos · 11.000 al día").assertExists()
-        rule.onNodeWithText("Sale de tu media de los últimos 28 días y no se puede editar.").assertExists()
+        rule.onNodeWithText("Sale de tu media de los últimos 28${NBSP}días y no se puede editar.").assertExists()
         row.assertDoesNotHaveClick()
         row.performClick()
         assertEquals(emptyList<PlanProposalEvent>(), proposalEvents)
@@ -188,15 +190,7 @@ class PlanActivityScreenTest {
     }
 
     @Test
-    fun acceptedPlan_showsBothTargetsInTuPlan() {
-        showTrainer(TrainerUiState.Content(plan = accepted(defaultActivity.copy(cardioMinWeek = 120))))
-
-        rule.onNodeWithTag("trainer_plan_activity", useUnmergedTree = true)
-            .assertTextEquals("Cardio · 120 min por semana · Pasos · 7.000 al día")
-    }
-
-    @Test
-    fun acceptedPlan_editFromTuPlan_opensTheSheetAtTheSavedValue() {
+    fun acceptedPlan_cardioEditOnTheRoot_opensTheSheetAtTheSavedValue() {
         showTrainer(
             TrainerUiState.Content(
                 plan = accepted(defaultActivity.copy(cardioMinWeek = 120)),
@@ -209,20 +203,23 @@ class PlanActivityScreenTest {
     }
 
     @Test
-    fun tuPlanCardioRow_sendsTheOpenEvent() {
+    fun tuPlanMenu_cardioEntry_sendsTheOpenEvent() {
         showTrainer(TrainerUiState.Content(plan = accepted(defaultActivity)))
 
-        rule.onNodeWithTag("trainer_plan_cardio_row").performClick()
+        rule.onNodeWithTag("trainer_plan_menu").performClick()
+        rule.onNodeWithTag("trainer_plan_menu_cardio").performClick()
 
         assertEquals(listOf<TrainerEvent>(TrainerEvent.OpenCardioEdit), trainerEvents)
     }
 
     @Test
-    fun acceptedPlanWithoutActivity_showsNoLineAndNoError() {
+    fun tuPlanMenu_withoutActivity_hasNoCardioEntry() {
         showTrainer(TrainerUiState.Content(plan = accepted(null)))
 
-        rule.onNodeWithTag("trainer_plan_activity", useUnmergedTree = true).assertDoesNotExist()
-        rule.onNodeWithTag("trainer_plan_card").assertExists()
+        rule.onNodeWithTag("trainer_plan_menu").performClick()
+
+        rule.onNodeWithTag("trainer_plan_menu_new_plan").assertExists()
+        rule.onNodeWithTag("trainer_plan_menu_cardio").assertDoesNotExist()
     }
 
     private fun androidx.compose.ui.test.SemanticsNodeInteraction.assertDoesNotHaveClick() =

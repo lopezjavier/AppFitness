@@ -176,7 +176,7 @@ class MealTextFlowTest : PhotoFlowHost() {
         rule.waitForIdle()
 
         exists("food_photo_text_offline")
-        rule.onNodeWithText("Sin conexión: no se puede estimar la comida").assertExists()
+        rule.onNodeWithText("Sin conexión: no se puede estimar la comida.").assertExists()
         rule.onNodeWithTag("food_photo_text_input").performTextInput("arroz")
         rule.waitForIdle()
         rule.onNodeWithTag("food_photo_text_submit").assertIsNotEnabled()

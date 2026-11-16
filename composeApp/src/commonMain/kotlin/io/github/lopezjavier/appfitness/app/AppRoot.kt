@@ -42,9 +42,7 @@ import io.github.lopezjavier.appfitness.feature.trainer.FolderReviewResultRoot
 import io.github.lopezjavier.appfitness.feature.trainer.PastReportRoot
 import io.github.lopezjavier.appfitness.feature.trainer.PlanProposalRoot
 import io.github.lopezjavier.appfitness.feature.trainer.ReportsRoot
-import io.github.lopezjavier.appfitness.feature.trainer.TrainerBoxRoot
 import io.github.lopezjavier.appfitness.feature.trainer.TrainerRoute
-import io.github.lopezjavier.appfitness.feature.trainer.TrainerViewModel
 import io.github.lopezjavier.appfitness.feature.trainer.WeekSummaryRoot
 import io.github.lopezjavier.appfitness.feature.trainer.YourDataRoot
 import io.github.lopezjavier.appfitness.feature.weight.WeightHistoryRoot
@@ -81,15 +79,6 @@ fun AppRoot(
         profile = { profileModifier, actions -> ProfileRootRoute(profileModifier, actions) },
         trainer = { trainerModifier, actions ->
             TrainerRoute(trainerModifier, actions, nameResolver = koinInject())
-        },
-        trainerBox = { boxModifier, box, actions, trainerOwner, onBack ->
-            // The Trainer tab's instance (already loaded); a fresh one only when its entry is gone.
-            val trainerModel = if (trainerOwner != null) {
-                koinViewModel<TrainerViewModel>(viewModelStoreOwner = trainerOwner)
-            } else {
-                koinViewModel<TrainerViewModel>()
-            }
-            TrainerBoxRoot(box, boxModifier, actions, onBack, trainerModel, nameResolver = koinInject())
         },
         strength = { strengthModifier, onOpenExercise, onOpenMuscleVolume, onStartWorkout, onBack ->
             StrengthRoot(onOpenExercise, onOpenMuscleVolume, onStartWorkout, onBack, strengthModifier)

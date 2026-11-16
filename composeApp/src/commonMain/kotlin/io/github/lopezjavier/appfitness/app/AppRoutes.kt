@@ -82,14 +82,6 @@ data class BeforeStartRoute(val mode: String, val planId: String? = null, val re
 @Serializable
 data object YourDataRoute : AppRoute
 
-/** "Tu plan" (US-120): the accepted plan with its full content, opened from the Trainer tab root's plan box. */
-@Serializable
-data object TrainerPlanRoute : AppRoute
-
-/** "Tu bloque" (US-120): the saved block with its weeks and coach changes, opened from the root's block box. */
-@Serializable
-data object TrainerBlockRoute : AppRoute
-
 /** The four-week training block of the plan [planId] (US-72): request, review and save, opened from the Trainer tab. */
 @Serializable
 data class BlockPreviewRoute(val planId: String) : AppRoute
@@ -443,8 +435,6 @@ object AppDestinations {
             PlanProposalRoute(),
             BeforeStartRoute(""),
             YourDataRoute,
-            TrainerPlanRoute,
-            TrainerBlockRoute,
             BlockPreviewRoute(""),
             BlockBuilderRoute(""),
             FolderBlockRoute("", ""),

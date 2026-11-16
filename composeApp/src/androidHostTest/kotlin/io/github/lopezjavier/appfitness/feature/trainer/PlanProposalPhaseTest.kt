@@ -3,6 +3,7 @@ package io.github.lopezjavier.appfitness.feature.trainer
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.assertIsOff
 import androidx.compose.ui.test.assertIsSelected
+import androidx.compose.ui.test.assertTextContains
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
@@ -141,8 +142,8 @@ class PlanProposalPhaseTest {
 
         rule.onNodeWithTag("plan_proposal_cut_rate_option_1.0").assertIsNotEnabled()
         rule.onNodeWithTag("plan_proposal_diet_break_switch").assertIsNotEnabled()
-        rule.onNodeWithText("Sin conexión: no se puede cambiar el ritmo").assertExists()
-        rule.onNodeWithText("Sin conexión: no se puede cambiar el descanso de dieta").assertExists()
+        rule.onNodeWithText("Sin conexión: no se puede cambiar el ritmo.").assertExists()
+        rule.onNodeWithText("Sin conexión: no se puede cambiar el descanso de dieta.").assertExists()
     }
 
     @Test
@@ -191,7 +192,7 @@ class PlanProposalPhaseTest {
         rule.onNodeWithTag("plan_proposal_cut_rate_option_1.0").performClick()
         rule.waitForIdle()
 
-        rule.onNodeWithText("1.800 kcal al día").assertExists()
+        rule.onNodeWithTag("plan_proposal_kcal").assertTextContains("1.800", substring = true)
         assertEquals(1, plans.optionsCalls.size)
         assertEquals(0, plans.requests.size)
     }
@@ -223,7 +224,7 @@ class PlanProposalPhaseTest {
         rule.onNodeWithTag("plan_proposal_cut_rate_option_1.0").performClick()
         rule.waitForIdle()
 
-        rule.onNodeWithText("2.000 kcal al día").assertExists()
+        rule.onNodeWithTag("plan_proposal_kcal").assertTextContains("2.000", substring = true)
         rule.onNodeWithTag("plan_proposal_cut_rate_option_0.5").assertIsSelected()
     }
 }

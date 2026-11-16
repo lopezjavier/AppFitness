@@ -1,30 +1,21 @@
 package io.github.lopezjavier.appfitness.feature.trainer
 
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.rememberUpdatedState
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.semantics.Role
-import androidx.compose.ui.semantics.contentDescription
-import androidx.compose.ui.semantics.heading
-import androidx.compose.ui.semantics.semantics
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -47,9 +38,7 @@ import io.github.lopezjavier.appfitness.composeapp.resources.before_start_note_r
 import io.github.lopezjavier.appfitness.composeapp.resources.before_start_note_stale_weight
 import io.github.lopezjavier.appfitness.composeapp.resources.before_start_reason_block
 import io.github.lopezjavier.appfitness.composeapp.resources.before_start_reason_plan
-import io.github.lopezjavier.appfitness.composeapp.resources.before_start_summary_chevron_cd
 import io.github.lopezjavier.appfitness.composeapp.resources.before_start_title
-import io.github.lopezjavier.appfitness.composeapp.resources.ic_chevron_right
 import io.github.lopezjavier.appfitness.composeapp.resources.new_block_goal_change
 import io.github.lopezjavier.appfitness.composeapp.resources.new_block_goal_change_no_figures
 import io.github.lopezjavier.appfitness.composeapp.resources.new_block_prepare_failed
@@ -72,15 +61,16 @@ import io.github.lopezjavier.appfitness.designsystem.NavigationRow
 import io.github.lopezjavier.appfitness.designsystem.OfflineHint
 import io.github.lopezjavier.appfitness.designsystem.OfflineState
 import io.github.lopezjavier.appfitness.designsystem.PrimaryButton
+import io.github.lopezjavier.appfitness.designsystem.RowGroupCard
 import io.github.lopezjavier.appfitness.designsystem.SkeletonBox
 import io.github.lopezjavier.appfitness.designsystem.Spacing
+import io.github.lopezjavier.appfitness.designsystem.SummaryCard
 import io.github.lopezjavier.appfitness.designsystem.offlineHint
 import io.github.lopezjavier.appfitness.domain.model.CurrentPlan
 import io.github.lopezjavier.appfitness.domain.model.PlanFixTarget
 import io.github.lopezjavier.appfitness.domain.port.ConnectivityObserver
 import io.github.lopezjavier.appfitness.feature.exercises.tagName
 import kotlinx.coroutines.flow.Flow
-import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.koinInject
 import org.koin.compose.viewmodel.koinViewModel
@@ -189,6 +179,7 @@ fun BeforeStartScreen(
                 })
 
                 BeforeStartUiState.Error -> ErrorState(
+                    modifier = Modifier.fillMaxSize(),
                     message = stringResource(Res.string.before_start_error),
                     action = AppStateAction(stringResource(Res.string.action_retry)) {
                         onEvent(BeforeStartEvent.Retry)
@@ -233,26 +224,33 @@ private fun BeforeStartContent(
         Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(Spacing.screenMargin),
         verticalArrangement = Arrangement.spacedBy(Spacing.blockGap),
     ) {
-        state.flags.forEach { row ->
-            NavigationRow(
-                label = stringResource(Res.string.before_start_flag, row.labelText()),
-                value = row.fixTarget?.let { stringResource(it.destinationLabel()) },
-                onClick = {
-                    when (row.fixTarget) {
-                        null -> onOpenYourData()
+        if (state.flags.isNotEmpty()) {
+            RowGroupCard(
+                rows = state.flags.map { row ->
+                    {
+                        NavigationRow(
+                            label = stringResource(Res.string.before_start_flag, row.labelText()),
+                            value = row.fixTarget?.let { stringResource(it.destinationLabel()) },
+                            onClick = {
+                                when (row.fixTarget) {
+                                    null -> onOpenYourData()
 
-                        PlanFixTarget.ActivitySheet -> onEvent(BeforeStartEvent.OpenSheet)
+                                    PlanFixTarget.ActivitySheet -> onEvent(BeforeStartEvent.OpenSheet)
 
-                        PlanFixTarget.TrainingYears ->
-                            openIntakeRow(IntakeRowKind.TrainingYears, state.intake, onEditorEvent)
+                                    PlanFixTarget.TrainingYears ->
+                                        openIntakeRow(IntakeRowKind.TrainingYears, state.intake, onEditorEvent)
 
-                        PlanFixTarget.Maintenance ->
-                            openIntakeRow(IntakeRowKind.Maintenance, state.intake, onEditorEvent)
+                                    PlanFixTarget.Maintenance ->
+                                        openIntakeRow(IntakeRowKind.Maintenance, state.intake, onEditorEvent)
 
-                        else -> onFix(row.fixTarget)
+                                    else -> onFix(row.fixTarget)
+                                }
+                            },
+                            modifier = Modifier.padding(horizontal = Spacing.lg)
+                                .testTag("before_start_flag_${row.key.tagName()}"),
+                        )
                     }
                 },
-                modifier = Modifier.testTag("before_start_flag_${row.key.tagName()}"),
             )
         }
         state.missingNotes.forEach { row ->
@@ -269,7 +267,7 @@ private fun BeforeStartContent(
         }
         state.replaces?.let { ReplacesInlineNote(it) }
         state.goalChange?.let { GoalChangeInlineNote(it) }
-        SummaryCard(state, onOpenYourData)
+        YourDataSummary(state, onOpenYourData)
         if (state.intakeRows.isNotEmpty()) {
             // Never a flag, "Sin indicar" when nothing was said; each row opens only its own editor (R-55).
             IntakeRows(
@@ -314,43 +312,19 @@ private fun GoalChangeInlineNote(change: GoalChangeNote) {
     InlineNote(text = text, testTag = "before_start_note_goal_change")
 }
 
+/** The "Tus datos" summary: the shared [SummaryCard] with one line per group of inputs; a tap opens "Tus datos". */
 @Composable
-private fun SummaryCard(state: BeforeStartUiState.Content, onOpenYourData: () -> Unit) {
-    val chevronDescription = stringResource(Res.string.before_start_summary_chevron_cd)
-    AppCard(
-        Modifier.fillMaxWidth()
-            .testTag("before_start_summary")
-            .clickable(role = Role.Button, onClick = onOpenYourData),
-    ) {
-        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.xs)) {
-            Text(
-                text = stringResource(Res.string.your_data_title),
-                style = AppTheme.typography.titleMedium,
-                color = AppTheme.colors.textPrimary,
-                modifier = Modifier.weight(1f).semantics { heading() },
-            )
-            Icon(
-                painter = painterResource(Res.drawable.ic_chevron_right),
-                contentDescription = null,
-                tint = AppTheme.colors.textSecondary,
-                modifier = Modifier.size(Spacing.xl)
-                    .testTag("before_start_summary_chevron")
-                    .semantics { contentDescription = chevronDescription },
-            )
-        }
-        state.mode.kind.summaryLines().forEach { keys ->
-            val rows = keys.mapNotNull { key -> state.rows.firstOrNull { it.key == key } }
-            if (rows.isNotEmpty()) {
-                Text(
-                    text = summaryLineText(rows),
-                    style = AppTheme.typography.bodyLarge,
-                    color = AppTheme.colors.textPrimary,
-                    modifier = Modifier.padding(top = Spacing.sm)
-                        .testTag("before_start_row_${rows.first().key.tagName()}"),
-                )
-            }
-        }
+private fun YourDataSummary(state: BeforeStartUiState.Content, onOpenYourData: () -> Unit) {
+    val lines = state.mode.kind.summaryLines().mapNotNull { keys ->
+        val rows = keys.mapNotNull { key -> state.rows.firstOrNull { it.key == key } }
+        if (rows.isEmpty()) null else summaryLineText(rows)
     }
+    SummaryCard(
+        title = stringResource(Res.string.your_data_title),
+        lines = lines,
+        onClick = onOpenYourData,
+        testTag = "before_start_summary",
+    )
 }
 
 /** Pinned footer: what the footer does, why it is disabled (if it is) and the create button. */

@@ -64,7 +64,7 @@ class AppDatePickerDialogTest {
         show()
 
         day(15).performClick()
-        rule.onNodeWithTag("picker_confirm").performClick()
+        rule.onNodeWithTag("picker_accept").performClick()
 
         assertEquals(LocalDate(2026, 10, 15), confirmed)
     }
@@ -73,7 +73,7 @@ class AppDatePickerDialogTest {
     fun acceptingWithoutChangingTheSelection_reportsTheInitialDate() {
         show()
 
-        rule.onNodeWithTag("picker_confirm").assertIsEnabled().performClick()
+        rule.onNodeWithTag("picker_accept").assertIsEnabled().performClick()
 
         assertEquals(LocalDate(2026, 10, 10), confirmed)
     }
@@ -90,7 +90,7 @@ class AppDatePickerDialogTest {
     fun aSelectionBeforeMinDate_isClampedToIt() {
         show(selected = LocalDate(2026, 10, 2), minDate = LocalDate(2026, 10, 8))
 
-        rule.onNodeWithTag("picker_confirm").performClick()
+        rule.onNodeWithTag("picker_accept").performClick()
 
         assertEquals(LocalDate(2026, 10, 8), confirmed)
     }
@@ -114,7 +114,7 @@ class AppDatePickerDialogTest {
     fun cancel_dismissesWithoutReportingADate() {
         show()
 
-        rule.onNodeWithTag("picker_dismiss").performClick()
+        rule.onNodeWithTag("picker_discard").performClick()
 
         assertEquals(1, dismissed)
         assertEquals(null, confirmed)
@@ -145,9 +145,9 @@ class AppDatePickerDialogTest {
         val monthNumber = Clock.System.todayIn(TimeZone.UTC).monthNumber
         val month = java.time.Month.of(monthNumber).getDisplayName(TextStyle.FULL, Locale.ENGLISH)
 
-        rule.onNodeWithTag("picker_confirm").assertIsNotEnabled()
+        rule.onNodeWithTag("picker_accept").assertIsNotEnabled()
         rule.onNode(hasText("$month 12,", substring = true)).performClick()
-        rule.onNodeWithTag("picker_confirm").assertIsEnabled()
+        rule.onNodeWithTag("picker_accept").assertIsEnabled()
     }
 
     @Test

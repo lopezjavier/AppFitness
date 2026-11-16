@@ -2,7 +2,6 @@ package io.github.lopezjavier.appfitness.designsystem
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -19,6 +18,7 @@ import androidx.compose.ui.semantics.semantics
  * only the accept button, for example offline, and [footer] holds the hint that explains why.
  * When [content] is set it replaces the title, payload, reason and data lines (for example the phase row of the
  * end-of-block review, 05 section 9.1).
+ * [highlighted] marks the card as waiting for a decision (R-94). Buttons come from [DecisionButtonRow].
  * Tags: the card is [testTagPrefix], the buttons `<testTagPrefix>_accept` and `<testTagPrefix>_discard`.
  */
 @Composable
@@ -36,10 +36,11 @@ fun CoachProposalCard(
     dataUsed: String = "",
     busy: Boolean = false,
     acceptEnabled: Boolean = true,
+    highlighted: Boolean = false,
     footer: (@Composable () -> Unit)? = null,
     content: (@Composable () -> Unit)? = null,
 ) {
-    AppCard(modifier.fillMaxWidth().testTag(testTagPrefix)) {
+    AppCard(modifier.fillMaxWidth().testTag(testTagPrefix), highlighted = highlighted) {
         if (content != null) {
             content()
         } else {
@@ -55,21 +56,15 @@ fun CoachProposalCard(
                 Text(text = dataUsed, style = AppTheme.typography.bodyMedium, color = AppTheme.colors.textSecondary)
             }
         }
-        Row(horizontalArrangement = Arrangement.spacedBy(Spacing.md)) {
-            GhostButton(
-                text = discardText,
-                onClick = onDiscard,
-                modifier = Modifier.weight(1f).testTag("${testTagPrefix}_discard"),
-                enabled = !busy,
-            )
-            PrimaryButton(
-                text = acceptText,
-                onClick = onAccept,
-                modifier = Modifier.weight(1f).testTag("${testTagPrefix}_accept"),
-                enabled = !busy && acceptEnabled,
-                loading = busy,
-            )
-        }
+        DecisionButtonRow(
+            acceptText = acceptText,
+            discardText = discardText,
+            onAccept = onAccept,
+            onDiscard = onDiscard,
+            testTagPrefix = testTagPrefix,
+            busy = busy,
+            acceptEnabled = acceptEnabled,
+        )
         footer?.invoke()
     }
 }

@@ -4,29 +4,29 @@ One row per ux-critic finding. The PM has the dispositions recorded here as the 
 
 | ID | Pattern (keywords) | Round | Status | Link |
 |---|---|---|---|---|
-| C-01 | selected state: selectedContainer #354925 + 1dp lime border + lime W700 label (chips, toggle chips, weekday, portion, cooking, segmented, time range) | 0 | IN REVIEW | 05 §2.1a, §6.0, R-64 |
-| C-02 | disabled PrimaryButton: lime 20 % container, lime 50 % label | 0 | IN REVIEW | 05 §2.1a, R-65 |
-| C-03 | textTertiary #8C97A9 for previous-set cell, placeholders, wheel neighbours; ghostData only disabled | 0 | IN REVIEW | 05 §2.1a, R-65 |
-| C-04 | SetRow header «ANTES», tracking 0.02 em, REPS weights, RPE variant inset 8 dp | 0 | IN REVIEW | 05 §3, §6.0, §10 |
-| C-05 | borderControl white 36 % for input resting borders | 0 | IN REVIEW | 05 §2.1a, §6.0 |
-| C-06 | surfaceControl #242E3B for inputs, steppers, pending set circle, SecondaryButton | 0 | IN REVIEW | 05 §2.1a, §6.0 |
-| C-07 | textSecondary #A9B3C4 | 0 | IN REVIEW | 05 §2.1a |
-| C-08 | GhostButton neutral, focus border lime 2 dp | 0 | IN REVIEW | 05 §6.0 |
-| C-09 | tabs shared 12 sp label, scroll (min 72 dp) only if a word does not fit | 0 | REWORK (tried 12 sp; user found it too small in the search tabs: now 14 sp, 6/8 dp padding, full-bleed, indicator visible while scrolling) | 05 §9 (amended), §6.0 |
-| C-10 | ring caption/status bodyMedium 14/20 W600 | 0 | IN REVIEW | 05 §3, §6.0 |
-| C-11 | trackInactive white 16 % + 4 dp stop dot on linear bars | 0 | IN REVIEW | 05 §2.1a, §6.0 |
-| C-12 | WeekdaySelector 7 weighted cells, no scroll, cells >= 40x48 dp | 0 | IN REVIEW | 05 §6.0, §7 exception |
-| C-13 | titleSection 18/24 W600 for ListSectionHeader, top-bar title W700 | 0 | IN REVIEW | 05 §3, §6.0 |
-| C-14 | AddItemButton leading ic_add 20 dp | 0 | IN REVIEW | 05 §6.0 |
-| C-15 | WorkoutRow headline titleMedium, one bodyMedium supporting line, empty trailing | 0 | IN REVIEW | 05 §6.0 |
-| C-16 | nav labels sentence case 12/16 W600, icons 24 dp | 0 | IN REVIEW | 05 §3, §6.0, §10 |
-| C-17 | EmptyState 32 dp glyph in 72 dp circle, per-domain icon; error buttons min width 200 dp | 0 | IN REVIEW | 05 §6.0, R-66 |
-| C-18 | sleep stages cyan ramp 100/75/50 % + amber Despierto | 0 | IN REVIEW | 05 §2.1a |
-| C-19 | PrimaryMinHeight 56 dp, radius 16 dp | 0 | IN REVIEW | 05 §6.0 |
-| V-1 | discomfort row: borderless text action, no mid-word break | 0 | IN REVIEW | 05 §6.0 (R-51) |
-| V-2 | REPS field >= 48 dp | 0 | IN REVIEW | 05 §6.0 (R-58) |
-| V-3 | legacy filled icons to Outlined (ic_info, ic_photo_camera, ic_photo_library, ic_label, ic_auto_awesome, ic_nav_trainer, ic_health_connect). ic_nav_trainer history: original filled `insights` (liked) > T-294 hand-drawn trend+sparkle (rejected, broken) > `insert_chart` bf5317ff (rejected, degradation) > decision 2026-11-13: Material Symbols Outlined `insights`, verbatim path | 0 | IN REVIEW | 05 §6.0 |
-| V-4 | remove unused sheetHandle and glowLime/glowBlur tokens | 0 | IN REVIEW | 05 §2.1a |
+| C-01 | selected state: selectedContainer #354925 + 1dp lime border + lime W700 label (chips, toggle chips, weekday, portion, cooking, segmented, time range) | 0 | ADOPTED | 05 §2.1a, §6.0, R-64 |
+| C-02 | disabled PrimaryButton: lime 20 % container, lime 50 % label | 0 | ADOPTED | 05 §2.1a, R-65 |
+| C-03 | textTertiary #8C97A9 for previous-set cell, placeholders, wheel neighbours; ghostData only disabled | 0 | ADOPTED | 05 §2.1a, R-65 |
+| C-04 | SetRow header «ANTES», tracking 0.02 em, REPS weights, RPE variant inset 8 dp | 0 | ADOPTED | 05 §3, §6.0, §10 |
+| C-05 | borderControl white 36 % for input resting borders | 0 | ADOPTED | 05 §2.1a, §6.0 |
+| C-06 | surfaceControl #242E3B for inputs, steppers, pending set circle, SecondaryButton | 0 | ADOPTED | 05 §2.1a, §6.0 |
+| C-07 | textSecondary #A9B3C4 | 0 | ADOPTED | 05 §2.1a |
+| C-08 | GhostButton neutral, focus border lime 2 dp | 0 | ADOPTED | 05 §6.0 |
+| C-09 | tabs shared 12 sp label, scroll (min 72 dp) only if a word does not fit | 0 | ADOPTED (reworked; tried 12 sp; user found it too small in the search tabs: now 14 sp, 6/8 dp padding, full-bleed, indicator visible while scrolling) | 05 §9 (amended), §6.0 |
+| C-10 | ring caption/status bodyMedium 14/20 W600 | 0 | ADOPTED | 05 §3, §6.0 |
+| C-11 | trackInactive white 16 % + 4 dp stop dot on linear bars | 0 | ADOPTED | 05 §2.1a, §6.0 |
+| C-12 | WeekdaySelector 7 weighted cells, no scroll, cells >= 40x48 dp | 0 | ADOPTED | 05 §6.0, §7 exception |
+| C-13 | titleSection 18/24 W600 for ListSectionHeader, top-bar title W700 | 0 | ADOPTED | 05 §3, §6.0 |
+| C-14 | AddItemButton leading ic_add 20 dp | 0 | ADOPTED | 05 §6.0 |
+| C-15 | WorkoutRow headline titleMedium, one bodyMedium supporting line, empty trailing | 0 | ADOPTED | 05 §6.0 |
+| C-16 | nav labels sentence case 12/16 W600, icons 24 dp | 0 | ADOPTED | 05 §3, §6.0, §10 |
+| C-17 | EmptyState 32 dp glyph in 72 dp circle, per-domain icon; error buttons min width 200 dp | 0 | ADOPTED | 05 §6.0, R-66 |
+| C-18 | sleep stages cyan ramp 100/75/50 % + amber Despierto | 0 | ADOPTED | 05 §2.1a |
+| C-19 | PrimaryMinHeight 56 dp, radius 16 dp | 0 | ADOPTED | 05 §6.0 |
+| V-1 | discomfort row: borderless text action, no mid-word break | 0 | ADOPTED | 05 §6.0 (R-51) |
+| V-2 | REPS field >= 48 dp | 0 | ADOPTED | 05 §6.0 (R-58) |
+| V-3 | legacy filled icons to Outlined (ic_info, ic_photo_camera, ic_photo_library, ic_label, ic_auto_awesome, ic_nav_trainer, ic_health_connect). ic_nav_trainer history: original filled `insights` (liked) > T-294 hand-drawn trend+sparkle (rejected, broken) > `insert_chart` bf5317ff (rejected, degradation) > decision 2026-11-13: Material Symbols Outlined `insights`, verbatim path | 0 | ADOPTED | 05 §6.0 |
+| V-4 | remove unused sheetHandle and glowLime/glowBlur tokens | 0 | ADOPTED | 05 §2.1a |
 | C-20 | R-64 extended to leftovers: SelectableCard (fill, 1 dp border, lime title), OptionPickerSheet check lime, calendar today = 1 dp cyan ring (selected+today = R-64 plus a 1.5 dp (`AppBorder.focus`) cyan outer ring with a 2 dp gap to the lime border), AppCard `selected` param for ActivitySummary, `highlighted` stays informational cyan, sleep swatch 12 dp (alphas kept) | 0 | ADOPTED | 05 R-64 (b)-(f), §6.0 |
 | C-21 | add-food screen: search field full width, scan in trailing slot, "Añadir con IA" and "Crear alimento" as top-bar actions | 1 | ADOPTED | 05 R-69 |
 | C-22 | edit-entry sheet: "Eliminar" text-style danger action >= 16 dp below "Guardar", no dialog | 1 | ADOPTED | 05 R-70 |
@@ -89,7 +89,7 @@ One row per ux-critic finding. The PM has the dispositions recorded here as the 
 | V-18 | retire `MealSummaryText` in favour of `MacroText` (R-39) | 1 | ADOPTED (batch 5) | 05 R-78 |
 | V-19 | retire `MacroSummary` in favour of `MacroText` (R-39) | 1 | ADOPTED (batch 5) | 05 R-78 |
 | V-20 | short forms Prot./Carb./Grasa and P/C/G added to the glossary | 1 | ADOPTED (batch 5) | 05 §10 |
-| V-15b | V-15 follow-up: `compactMacrosFit` measures the real ring-column width; host test required; 360 dp header fallback (pill moves to the macros line) | 1 | PENDING (batch 5; part of V-15 and R-75) | 05 R-76, R-78 |
+| V-15b | V-15 follow-up: `compactMacrosFit` measures the real ring-column width; host test required; 360 dp header fallback (pill moves to the macros line) | 1 | ADOPTED (user verdict 2026-11-14: Diario approved) | 05 R-76, R-78 |
 | U-1 | diary entry with ingredients: collapsed swipe removes the whole food (user request, explicit exception to "no behaviour change"; reconfirmed in batch 4, unchanged) | 1 | ADOPTED | 05 R-71 |
 | C-66 | Rutinas: the `isNext` routine's "Empezar" is a PrimaryButton, others secondary | 2 | ADOPTED | 05 R-79, §6.0b |
 | C-67 | live set row: current set cyan ring + "Serie actual", done rows on surfaceOverlay without border | 2 | ADOPTED | 05 R-80, §6.0b |
@@ -126,7 +126,7 @@ One row per ux-critic finding. The PM has the dispositions recorded here as the 
 | C-98 | pencil removed from the routine card ("Editar" stays in the sheet and the details top bar) | 2 | ADOPTED | 05 §6.0b |
 | C-99 | the round start button is lime on every routine card; "Siguiente" is the cyan border, a flag and text | 2 | ADOPTED | 05 R-79, R-64 |
 | C-100 | routine cards lose the drag handle: touch-and-hold to reorder, "Subir"/"Bajar" in the ⋮ sheet | 2 | ADOPTED | 05 R-22 |
-| V-21 | live set row reaches 48 dp (KG/REPS 48 wide, TIPO/RPE 40 x 48); amends V-2 and C-04 (build gave 40 / 35 dp). Note: the type/RPE cells stay 40 x 48 dp with an accessibility-sweep exemption, pending the user's call | 2 | ADOPTED | 05 R-80, §6.0b, §7 |
+| V-21 | live set row reaches 48 dp (KG/REPS 48 wide, TIPO/RPE 40 x 48); amends V-2 and C-04 (build gave 40 / 35 dp). Note: the type/RPE cells stay 40 x 48 dp with an accessibility-sweep exemption, kept (ux-reviewer decision, 2026-11-14) | 2 | ADOPTED | 05 R-80, §6.0b, §7 |
 | V-22 | distance/time set row on two lines, no ANTES column; line 2 only the "Iniciar" pill fallback (no "Antes", user decision) | 2 | ADOPTED | 05 §6.0b, R-80 |
 | V-23 | stepper "+" and "Sin objetivo" fit (see C-75) | 2 | ADOPTED | 05 R-83 |
 | V-24 | year view breaks words (see C-73) | 2 | ADOPTED | 05 §6.0b |
@@ -155,10 +155,85 @@ One row per ux-critic finding. The PM has the dispositions recorded here as the 
 | V-47 | routine skeleton row height equals the card (72 dp) | 2 | ADOPTED | 05 §6.0b |
 | V-48 | cardio start description "Iniciar cardio" | 2 | ADOPTED | 05 R-81 |
 | V-49 | empty folder: no "0 rutinas", no chevron, toggle inert | 2 | ADOPTED | 05 §6.0b |
+| C-101 | `SummaryCard` headline + unit, facts, progress slot; new `SegmentedProgress` (Tu bloque, Tu plan) | 3 | REWORK (root part, batch 5) | 05 §6.0c, R-95 |
+| C-102 | Entrenos card headline + `SegmentedProgress`; new `BarListRow` "Series por grupo"; lifts with `TrendPill` | 3 | ACCEPTED (not built) | 05 §6.0c, R-95 |
+| C-103 | `highlighted` on every decision-waiting card | 3 | ACCEPTED (not built) | 05 R-94 |
+| C-104 | one `DecisionButtonRow` (ghost left, primary right, 56 dp) | 3 | ACCEPTED (not built; designsystem) | 05 §6.0c, R-94 |
+| C-105 | Plan nutricional: `displayHero` kcal + `MacroStackedBar`, rows stay as legend | 3 | ACCEPTED (not built) | 05 §6.0c |
+| C-106 | `HubContentMaxWidth` 840 dp adaptive grid for the six hub screens | 3 | ACCEPTED (not built) | 05 R-91 |
+| C-107 | `SkeletonBox` white 8 % / shimmer 16 % | 3 | ACCEPTED (not built; designsystem) | 05 §6.0c |
+| C-108 | `AppScreen.subtitle` "Paso N de M" in the block flow | 3 | ACCEPTED (not built) | 05 §6.0c, §10 |
+| C-109 | `StatusTone.Info` and `Neutral` for Actual / Descanso de dieta / Descarga / Semana en pausa | 3 | ACCEPTED (not built; designsystem) | 05 §6.0c, R-98 |
+| C-110 | a fact never breaks (U+00A0), " · " only when it fits at 360 dp x 1.3 | 3 | ACCEPTED (not built) | 05 R-93 |
+| C-111 | centred `EmptyState`/`ErrorState`; Trainer root without a plan | 3 | ACCEPTED (not built) | 05 R-92, §10 |
+| C-112 | Tus datos / Antes de empezar rows grouped in cards, "· origen" dropped, "Tus respuestas"; amends §6.2 | 3 | ACCEPTED (not built) | 05 §6.0c, §6.2, R-96 |
+| C-113 | Tu bloque header card, current week highlighted, adherence `SegmentedProgress`, `?` and pencil in the title row | 3 | ACCEPTED (not built) | 05 §6.0c |
+| C-114 | Tu plan card: kcal headline, figure tiles, objectives list | 3 | REWORK (root part, batch 5) | 05 §6.0c |
+| C-115 | builder muscle header and targets spacing | 3 | ACCEPTED (not built) | 05 §6.0c |
+| C-116 | "puedes cambiarlo" as `ExerciseRow` second supporting line | 3 | ACCEPTED (not built; designsystem) | 05 §6.0c |
+| C-117 | `InlineNote(tone = Info or Error)` | 3 | ACCEPTED (not built; designsystem) | 05 §6.0c |
+| C-118 | folder review intro, amber unmet icon, grouped check rows, `?` top end | 3 | ACCEPTED (not built) | 05 §6.0c |
+| C-119 | fill motion for segments and bars | 3 | ACCEPTED (not built) | 05 R-97 |
+| C-120 | Informes leading icons, rows in one card | 3 | ACCEPTED (not built) | 05 §6.0c, R-96 |
+| C-121 | one `SectionCard(title, help?)` folds the feature-local `SummaryCard`s | 3 | ACCEPTED (not built; designsystem) | 05 §6.0c, R-96 |
+| C-122 | "Provisional" chip inside the row's supporting slot | 3 | ACCEPTED (not built) | 05 §6.0c |
+| C-123 | Trainer root: Tu plan about 218 dp, Tu bloque about 206 dp, 12 dp apart, 24 dp before "Tus datos" | 3 | ADOPTED (main Trainer page approved by the user, 2026-11-15) | 05 §6.0c |
+| C-124 | Tu bloque: week chip, "2 de 4 entrenos esta semana", session segments, "Por hacer", Cardio and Pasos al día progress facts | 3 | ADOPTED (user, 2026-11-15; week selector reworked by C-144) | 05 §6.0c, R-93 |
+| C-125 | Tu plan: full-width goal band (OBJETIVO, goal name, rate, graphic), kcal headline, macro bar and text | 3 | REWORK (user mockup 2026-11-15: replaced by C-131; the band keeps eyebrow, name and rate, loses the graphic, kcal headline and macro bar) | 05 §6.0c, §10 |
+| C-126 | `GoalGraphic(phase)`: decorative 96 x 48 dp sketch per goal | 3 | REWORK (user mockup 2026-11-15: removed, the weight chart replaces it; delete the component and its catalogue entry) | 05 §6.0c |
+| C-127 | Resumen semanal card: headline, segments, Cardio and Pasos facts, mean weight and calories tiles | 3 | REWORK (user mockup 2026-11-15: the box is replaced by the row "Informes y resumen semanal", C-137) | 05 §6.0c |
+| C-128 | Trainer root at two columns: Series por grupo muscular card, 840 dp header cap, 220 dp minimum row-1 cards | 3 | REWORK (user mockup 2026-11-15: the sets card goes with the summary box; the 840 dp cap stays, C-139) | 05 §6.0c, R-91 |
+| C-129 | Tu bloque states: no block (glyph card with "Crear bloque"), not started, paused, ended, weeks read failed | 3 | ADOPTED (user, 2026-11-15) | 05 §6.0c |
+| C-130 | Trainer root motion: stagger macro bar, goal stroke, segments, cardio, steps, summary; no replay on refresh | 3 | ADOPTED (user, 2026-11-15) | 05 §8 R-97 |
+| V-50 | "Resumen semanal" and changes-only "Tu bloque" boxes get figure lines | 3 | REWORK (root part, batch 5) | 05 §6.0c, R-95 |
+| V-51 | `BlockReviewEntry` becomes a `SummaryCard` | 3 | ACCEPTED (not built) | 05 R-95 |
+| V-52 | rename/fold the feature-local `SummaryCard`s | 3 | ACCEPTED (not built) | 05 R-96 |
+| V-53 | duplicate "Tu plan" header dropped | 3 | ACCEPTED (not built) | 05 §6.0c |
+| V-54 | "Eliminar bloque" moves to the top-bar ⋮ sheet | 3 | REWORK (built in batch 2; user mockup 2026-11-15: it lives inside the "Tu bloque" card as a destructive text link, same dialog; the ⋮ and its sheet go, V-73) | 05 §6.0c |
+| V-55 | nutrition figures as tiles; 2 x 2 grid allowed (PM decision on R-85) | 3 | ACCEPTED (not built) | 05 R-85 amendment |
+| V-56 | one card per box/row list | 3 | ACCEPTED (not built) | 05 R-96 |
+| V-57 | lime check on the current day type | 3 | ACCEPTED (not built) | 05 §6.0c |
+| V-58 | search field label/inset | 3 | ACCEPTED (not built) | 05 §6.0c |
+| V-59 | "Equipamiento" chips wrap | 3 | ACCEPTED (not built) | 05 §6.0c |
+| V-60 | week tabs full-bleed | 3 | ACCEPTED (not built) | 05 §6.0c |
+| V-61 | kcal field `startAligned`, "Minutos por semana" style | 3 | ACCEPTED (not built) | 05 §6.0c |
+| V-62 | plural "rutina(s)" (+ G21 word list) | 3 | ACCEPTED (not built) | 05 R-100 |
+| V-63 | folder refused/empty states: tap target for the fix, no dead "Guardar bloque" | 3 | ACCEPTED (not built) | 05 §6.0c |
+| V-64 | "Mi entrenamiento" is a text link (R-90 wins; §6.2/§10 corrected) | 3 | ACCEPTED (not built) | 05 §6.2, R-100 |
+| V-65 | "coach" becomes "entrenador" | 3 | ACCEPTED (not built) | 05 R-100, §10 |
+| V-66 | final periods, "Inténtalo de nuevo.", «» quotes | 3 | ACCEPTED (not built) | 05 R-100 |
+| V-67 | footers stop double padding | 3 | ACCEPTED (not built) | 05 R-99 |
+| V-68 | `ic_description` Outlined | 3 | ACCEPTED (not built) | 05 §6.0c |
+| V-69 | "Ya tienes un bloque en marcha" offers a way out | 3 | ACCEPTED (not built) | 05 §6.0c |
+| V-70 | offline hint placement (low confidence) | 3 | ACCEPTED (not built) | 05 §6.0c, R-88 |
+| V-71 | "Objetivo" eyebrow and goal name in the Tu plan band | 3 | ADOPTED (user, 2026-11-15) | 05 §10 |
+| V-72 | "Tus datos" root row as a one-row `RowGroupCard`, 56 dp | 3 | ADOPTED (user, 2026-11-15; batch 6 makes it the second row of a two-row group, C-137) | 05 §6.0c |
+| C-131 | Tu plan card (user mockup 2026-11-15): goal header, `WeightPaceChart` (dashed plan line to "Meta", solid trend, weekly dots, faint daily dots, "rango probable" band), figures line "Ritmo / Objetivo", verdict, "Llevas N semanas", three tiles, "Crear plan nuevo" inside | 3 | ACCEPTED (not built; user, 2026-11-15) | 05 §6.0d, 07 §5 |
+| C-132 | `WeightPaceChart` (designsystem, new): neutral verdict only, no corridor, no error colour, no forward projection; the verdict line is the text alternative | 3 | ACCEPTED (not built) | 05 §6.0d, R-101 |
+| C-133 | Verdict wording from 07 §5 (5); the mockup's "Ritmo óptimo" and "En pasillo" chips and the "Fase activa" chip are dropped | 3 | ACCEPTED (not built) | 05 §10, R-101 |
+| C-134 | Tu plan tiles: Calorías, Cardio, Pasos (kcal eaten against the plan target; calories IN, macros OUT; no macro bar on the root) | 3 | ACCEPTED (not built) | 05 §6.0d, R-102 |
+| C-135 | Tu bloque card: week chip with pencil, segmented progress, "2 de 4 entrenos esta semana" with percent chip, four session cards (Listo / Pendiente), Cardio and Pasos al día bars | 3 | ACCEPTED (not built) | 05 §6.0d |
+| C-136 | In-card actions: "Crear plan nuevo" (Tu plan), "Mi entrenamiento" and "Eliminar bloque" (Tu bloque), outside the card's tap target | 3 | REWORK (superseded 2026-11-15 by C-143: actions are in each card's ⋮, details screens deleted) | 05 R-103, R-105 |
+| C-137 | Root row "Informes y resumen semanal" (leading Outlined icon) in one `RowGroupCard` with "Tus datos" | 3 | ACCEPTED (not built) | 05 §6.0d, §10 |
+| C-138 | Root states: no plan, no block, not started, paused, ended, too few weigh-ins, offline | 3 | ACCEPTED (not built) | 05 §6.0d |
+| C-139 | Wide layout: two columns (Tu plan, Tu bloque) at 300 dp minimum cells under the 840 dp cap | 3 | ACCEPTED (not built) | 05 R-91 |
+| C-140 | Motion: the plan line draws first, then the trend, then the dots; tiles and bars fill with the R-97 stagger | 3 | ACCEPTED (not built) | 05 R-97 |
+| V-73 | Top-bar ⋮ and its sheet on the Trainer root removed (nothing left in it) | 3 | ACCEPTED (not built) | 05 §6.0d |
+| C-141 | Block R (T-283, commit 3014b11e): `GoalRing` / `GoalRingTile` / `GoalProgressState` for Entrenos, Cardio, Pasos al día in "Tu bloque"; supersedes the headline, percent chip and bars of C-135 | 3 | REJECTED by the user 2026-11-15 (rings removed, C-135 card restored) | 05 §6.0e, R-104 |
+| C-142 | R-104 state words Por detrás / En camino / Cumplido / Superado / Sin datos / Por empezar, never colour alone | 3 | REJECTED by the user 2026-11-15 (went with the rings) | 05 R-104, §10 |
+| V-74 | Steps tile: "Pasos al día" plus "de 7.000 al día" repeats the period and wraps to four lines at 360 dp (uneven tile heights); target becomes "de 7.000" | 3 | REJECTED (moot: the rings it fixed were removed, C-141) | 05 §6.0e |
+| V-75 | Over-target colour: ring/status green (R-104) vs live cardio timer amber past target (R-58); fitness-scientist is answering | 3 | REJECTED (moot: R-104 rings removed, C-141; R-58 stays as is) | 05 R-58, R-104 |
+| C-143 | Trainer root cards have their own ⋮ menu (`CardMenu` + `AppActionSheet`): Tu plan (Crear plan nuevo, Descanso de dieta, Editar cardio), Tu bloque (Bloque nuevo, Extender semana, Hacer descarga, Eliminar bloque); cards open nothing. Supersedes C-136 and the "no actions" half of R-103 (G22/G27 keep their patterns) | 3 | ADOPTED (user approved the main Trainer page, 2026-11-15) | 05 R-103, R-105, §6.0h |
+| C-144 | Week selector: `SegmentedProgressPicker` tabs "S1".."SN" (tick on done, outline on current, upcoming tappable as "Planificado", chosen = bold + 3 dp bar, "Semana N" title above the detail, no fill animation); replaces the round segments of C-135 | 3 | ADOPTED (user, 2026-11-15) | 05 R-106, §6.0h |
+| C-145 | Root card "Cambios del entrenador" (`CoachChangesCard`): rows with "Revertido" state and "Deshacer" action, under "Tu bloque", only with applied changes | 3 | ADOPTED (user, 2026-11-15) | 05 R-107, §10 |
+| C-146 | A failed plan read never shows the no-plan screen: skeleton while retrying, then `ErrorState` with "Reintentar" | 3 | ADOPTED (user, 2026-11-15) | 05 R-108 |
+| C-147 | The "Tu plan" and "Tu bloque" screens are deleted; "Mi entrenamiento" is a text link below "Tus datos" on the root | 3 | ADOPTED (user, 2026-11-15; screens deleted) | 05 §6.0h, R-90 |
+| V-76 | "Eliminar bloque" text link inside the "Tu bloque" card (V-73 / V-54 REWORK) becomes the last entry of the card's ⋮ sheet (destructive, R-08 dialog unchanged) | 3 | ADOPTED (user, 2026-11-15) | 05 R-105 |
 
 Status values:
 - `PROPOSED`: reported by the critic, not decided yet.
 - `IN REVIEW`: accepted in chat, built and merged, not yet approved in the emulator. Its `05` entry is marked pending.
+- `ACCEPTED (not built)`: accepted by the user in chat, written into `05` as PENDING, not built yet (becomes `IN REVIEW` when merged).
 - `ADOPTED`: approved by the user in the emulator (link: R-## or the `05` section).
 - `REWORK`: seen in the emulator and not approved; the row records what was tried and what the user disliked.
 - `REJECTED`: refused by the user (also copied to `05` §8 "Decided — do not re-propose").
@@ -168,6 +243,6 @@ A round that changes tokens or components does not start while the previous such
 
 Round 1 (T-281, Diario) verdict: the user approved the Diario visual result in the emulator on 2026-11-13; every round 1 row is `ADOPTED`. Earlier state: all rows C-21…C-43, V-5…V-13 and U-1 were accepted by the user on 2026-11-13 and are written into `05` §8 as PENDING (R-67…R-74). Rows marked "build waits for round 0 verdict" touch tokens or components and are not built until the round 0 rows are `ADOPTED` or `REWORK`. Placement double-check (C-21, C-22, C-39, C-42) and calorie graphic (C-23, C-29): agreed with conditions recorded in R-68…R-70.
 
-Round 2 (T-282, Entreno): the user decided on 2026-11-14: C-68 REJECTED, every other row accepted; they were written into `05` §6.0b and §8 R-79…R-90 (rules mode). Verdict: the user approved the Entreno look in the emulator on 2026-11-14 (T-282 merged, PR #675), including the redesigned routines list and cardio row; every round 2 row is `ADOPTED` (C-68 stays `REJECTED`, V-36 `RESOLVED`) and the PENDING tags are removed from `05`. Open: V-21's type/RPE cells are 40 x 48 dp with an accessibility-sweep exemption, pending the user's call. Rows whose build differs from `05`: V-2 (superseded by V-21) and C-15 (the built `WorkoutRow` has two supporting lines; `05` §6.0b corrects it).
+Round 2 (T-282, Entreno): the user decided on 2026-11-14: C-68 REJECTED, every other row accepted; they were written into `05` §6.0b and §8 R-79…R-90 (rules mode). Verdict: the user approved the Entreno look in the emulator on 2026-11-14 (T-282 merged, PR #675), including the redesigned routines list and cardio row; every round 2 row is `ADOPTED` (C-68 stays `REJECTED`, V-36 `RESOLVED`) and the PENDING tags are removed from `05`. V-21's type/RPE cells stay 40 x 48 dp with an accessibility-sweep exemption (ux-reviewer decision, 2026-11-14). Rows whose build differs from `05`: V-2 (superseded by V-21) and C-15 (the built `WorkoutRow` has two supporting lines; `05` §6.0b corrects it).
 
-Round 0 build state (T-295): all rows C-01…C-19 and V-1…V-4 are built on `feat/ui-design-system` and the PENDING tags are removed from `05-design-system.md`. Every row stays `IN REVIEW` until the user's emulator verdict sets `ADOPTED` or `REWORK`.
+Round 0 build state (T-295): all rows C-01…C-19 and V-1…V-4 are built on `feat/ui-design-system` and the PENDING tags are removed from `05-design-system.md`. Verdict (user, chat, 2026-11-14): round 0, Diario and Entreno are all approved; every row C-01…C-19, V-1…V-4 and V-15b is `ADOPTED` (C-09 as reworked).

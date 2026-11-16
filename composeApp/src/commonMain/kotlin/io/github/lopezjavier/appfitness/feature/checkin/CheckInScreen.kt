@@ -235,7 +235,7 @@ private fun WeekTile(
 
 /** One figure with its difference to the week before as text (sign and words, never colour alone). */
 @Composable
-private fun SummaryCard(label: String, value: String, delta: String, tag: String) {
+private fun MetricDeltaCard(label: String, value: String, delta: String, tag: String) {
     MetricCard(
         label = label,
         value = value,
@@ -259,7 +259,7 @@ private fun WeightCard(trend: WeeklyWeightTrend) {
         is WeeklyWeightTrend.Delta -> {
             val tenths = (trend.kgDelta * TENTHS).roundToInt() / TENTHS
             val signed = (if (tenths > 0) "+" else "") + AppNumberFormat.decimal(tenths)
-            SummaryCard(
+            MetricDeltaCard(
                 label = label,
                 value = stringResource(Res.string.checkin_weight_value, signed),
                 delta = stringResource(Res.string.checkin_weight_delta_caption),

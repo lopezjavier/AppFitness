@@ -333,13 +333,22 @@ class TrainerViewModelTest {
     }
 
     @Test
-    fun planReadFailure_degradesToNone() = runTest(dispatcher) {
+    fun planReadFailure_afterRetries_isErrorNeverNoPlan() = runTest(dispatcher) {
         plans.current = Result.failure(AppException(AppError.Network))
         val model = viewModel()
 
         advanceUntilIdle()
 
-        assertEquals(PROVISIONAL_VALUES, model.content().provisionalCount)
+        assertEquals(TrainerUiState.Error, model.uiState.value)
+    }
+
+    @Test
+    fun planReadSuccessWithNoPlan_isNoPlanContent() = runTest(dispatcher) {
+        plans.current = Result.success(null)
+        val model = viewModel()
+
+        advanceUntilIdle()
+
         assertEquals(PlanSummary.None, model.content().plan)
     }
 

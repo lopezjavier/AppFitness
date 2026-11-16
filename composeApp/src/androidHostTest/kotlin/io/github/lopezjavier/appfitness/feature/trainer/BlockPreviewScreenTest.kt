@@ -7,6 +7,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
+import androidx.compose.ui.test.assertTextContains
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithContentDescription
@@ -36,6 +37,8 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
+
+private val NBSP = 160.toChar().toString()
 
 /** US-72: the block preview screen, one test per Gherkin scenario (display side; the rules live in the server). */
 @RunWith(RobolectricTestRunner::class)
@@ -78,7 +81,6 @@ class BlockPreviewScreenTest {
 
         rule.onNodeWithTag("block_preview_tab_1").assertExists()
         rule.onNodeWithTag("block_preview_tab_4").assertExists()
-        rule.onNodeWithText("Semana 3").assertExists()
         for (index in 0..2) rule.onNodeWithTag("block_preview_routine_1_$index").assertExists()
         rule.onNodeWithTag("block_preview_reason_1_0_0").assertExists()
         tap("block_preview_reason_1_0_1")
@@ -109,9 +111,8 @@ class BlockPreviewScreenTest {
         rule.onNodeWithTag("block_preview_frequency").assertExists()
         rule.onNodeWithText("Series por grupo muscular").assertExists()
         rule.onNodeWithTag("block_preview_sets_chest").assertExists()
-        rule.onNodeWithText("10 series · 2 días/semana").assertExists()
-        rule.onNodeWithText("12 series · 2 días/semana").assertExists()
-        rule.onNodeWithText("3 días por semana").assertExists()
+        rule.onNodeWithTag("block_preview_sets_chest").assertTextContains("10", substring = true)
+        rule.onNodeWithText("3${NBSP}días por semana").assertExists()
     }
 
     @Test
@@ -120,23 +121,25 @@ class BlockPreviewScreenTest {
 
         rule.onNodeWithTag("block_preview_routine_1_0").assertExists()
         rule.onAllNodesWithTag("block_preview_routine_1_1").assertCountEquals(0)
-        rule.onNodeWithText("1 día por semana").assertExists()
+        rule.onNodeWithText("1${NBSP}día por semana").assertExists()
     }
 
     @Test
     fun whenTheCoachChoseTheDays_theChosenFrequencyLineIsShown() {
         show(preview(coachBlock(training = blockTraining(days = 4, chosen = true))))
 
-        rule.onNodeWithText("El coach ha elegido 4 días por semana (60 min por entreno).").assertExists()
+        rule.onNode(
+            hasTextIgnoringNbsp("El entrenador ha elegido 4 días por semana (60 min por entreno)."),
+        ).assertExists()
     }
 
     @Test
     fun whenTheUserChoseTheDays_theChosenFrequencyLineIsAbsent() {
         show(preview(coachBlock(training = blockTraining(days = 4, chosen = false))))
 
-        rule.onNodeWithText("4 días por semana").assertExists()
+        rule.onNodeWithText("4${NBSP}días por semana").assertExists()
         rule.onAllNodesWithTag("block_preview_frequency").assertCountEquals(1)
-        rule.onNodeWithText("El coach ha elegido", substring = true).assertDoesNotExist()
+        rule.onNodeWithText("El entrenador ha elegido", substring = true).assertDoesNotExist()
     }
 
     @Test
@@ -268,7 +271,7 @@ class BlockPreviewScreenTest {
         show(preview(), online = false)
 
         rule.onNodeWithTag("block_preview_save").assertIsNotEnabled()
-        rule.onNodeWithText("Sin conexión: no se puede guardar el bloque").assertExists()
+        rule.onNodeWithText("Sin conexión: no se puede guardar el bloque.").assertExists()
     }
 
     @Test

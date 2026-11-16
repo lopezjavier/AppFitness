@@ -9,7 +9,6 @@ import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithTag
-import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
 import io.github.lopezjavier.appfitness.domain.model.PhaseDecision
@@ -21,6 +20,8 @@ import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 import kotlin.test.assertEquals
+
+private val NBSP = 160.toChar().toString()
 
 /** US-129: a stored report opens read-only with the live content, its title and its period. */
 @RunWith(RobolectricTestRunner::class)
@@ -62,7 +63,8 @@ class PastReportScreenTest {
 
         rule.onNodeWithTag("past_report_title").assertTextEquals("Resumen semanal")
         rule.onNodeWithTag("past_report_subtitle").assertTextContains("3 al 9 nov", substring = true)
-        rule.onNodeWithText("Esta semana: 3 de 4 entrenos.").assertIsDisplayed()
+        rule.onNodeWithTag("week_summary_section_sessions_headline", useUnmergedTree = true)
+            .assertTextEquals("3${NBSP}de${NBSP}4")
     }
 
     @Test

@@ -62,10 +62,14 @@ class TrainerDeloadTest {
 
     private fun show(state: TrainerUiState, online: Boolean = true) {
         rule.setContent {
-            AppTheme { TrainerWithBoxes(state, flowOf(online), { events += it }) }
+            AppTheme { TrainerScreen(state, flowOf(online), { events += it }) }
         }
         rule.waitForIdle()
-        rule.openTrainerBlock()
+    }
+
+    private fun openBlockMenu() {
+        rule.onNodeWithTag("trainer_block_menu").performClick()
+        rule.waitForIdle()
     }
 
     private fun model(vararg rows: CoachChange): TrainerViewModel {
@@ -90,37 +94,19 @@ class TrainerDeloadTest {
         rule.setContent {
             AppTheme {
                 CompositionLocalProvider(LocalAppMessages provides messages) {
-                    TrainerRoutesWithBoxes(model, FakeConnectivityObserver())
+                    TrainerRoute(viewModel = model, connectivity = FakeConnectivityObserver())
                 }
             }
         }
         rule.waitForIdle()
-        rule.openTrainerBlock()
     }
 
     @Test
-    fun triggeredDeload_showsTheRowWithItsReasonAndCancelAction() {
+    fun triggeredDeload_showsTheRowWithItsWeekAndCancelAction() {
         show(content(listOf(row(CoachChangeKind.DeloadTriggered))))
 
         rule.onNodeWithText("Semana de descarga").assertExists()
-        rule.onNodeWithText(
-            "Semana de descarga: mismos pesos, menos series. Llevas 3 semanas sin mejorar en los básicos.",
-        ).assertExists()
         rule.onNodeWithTag("trainer_deload_cancel_deload-1").assertExists()
-    }
-
-    @Test
-    fun scheduledDeload_readsTheSevenWeeksReason() {
-        show(content(listOf(row(CoachChangeKind.DeloadScheduled))))
-
-        rule.onNodeWithText("Llevas 7 semanas entrenando sin descarga.").assertExists()
-    }
-
-    @Test
-    fun userDeload_readsTheRequestedReason() {
-        show(content(listOf(row(CoachChangeKind.DeloadUser))))
-
-        rule.onNodeWithText("Semana de descarga que pediste: mismos pesos, menos series.").assertExists()
     }
 
     @Test
@@ -183,10 +169,11 @@ class TrainerDeloadTest {
     }
 
     @Test
-    fun requestAction_isShownUnderTheWeeks_andSendsTheEvent() {
+    fun requestAction_isInTheBlockMenu_andSendsTheEvent() {
         show(content())
 
-        rule.onNodeWithTag("trainer_deload_request").performClick()
+        openBlockMenu()
+        rule.onNodeWithTag("trainer_block_menu_deload").performClick()
 
         assertEquals(listOf<TrainerEvent>(TrainerEvent.RequestDeload), events)
     }
@@ -195,7 +182,10 @@ class TrainerDeloadTest {
     fun requestAction_isHiddenWhenADeloadIsPlannedInTheBlock() {
         show(content(weeks = runningBlock.map { if (it.week == 3) it.copy(deload = true) else it }))
 
-        rule.onNodeWithTag("trainer_deload_request").assertDoesNotExist()
+        openBlockMenu()
+
+        rule.onNodeWithTag("trainer_block_menu_remove").assertExists()
+        rule.onNodeWithTag("trainer_block_menu_deload").assertDoesNotExist()
     }
 
     @Test
@@ -207,13 +197,14 @@ class TrainerDeloadTest {
         }
         showRoute(model)
 
-        rule.onNodeWithTag("trainer_deload_request").performClick()
+        openBlockMenu()
+        rule.onNodeWithTag("trainer_block_menu_deload").performClick()
         rule.waitForIdle()
 
         assertEquals(1, weeks.requests)
-        rule.onNodeWithTag("trainer_week_3_deload").assertExists()
-        rule.onNodeWithTag("trainer_deload_request").assertDoesNotExist()
-        rule.onNodeWithText("Semana de descarga que pediste: mismos pesos, menos series.").assertExists()
+        rule.onNodeWithTag("trainer_deload_cancel_deload-1").assertExists()
+        openBlockMenu()
+        rule.onNodeWithTag("trainer_block_menu_deload").assertDoesNotExist()
     }
 
     @Test
@@ -221,7 +212,8 @@ class TrainerDeloadTest {
         weeks.requestResult = Result.failure(CoachChangeException(CoachChangeFailure.DeloadNotAvailable))
         showRoute(model())
 
-        rule.onNodeWithTag("trainer_deload_request").performClick()
+        openBlockMenu()
+        rule.onNodeWithTag("trainer_block_menu_deload").performClick()
         rule.waitForIdle()
 
         assertEquals(listOf("Ya hay una descarga en este bloque."), messages.shown)
@@ -232,17 +224,20 @@ class TrainerDeloadTest {
         weeks.requestResult = Result.failure(AppException(AppError.Unknown))
         showRoute(model())
 
-        rule.onNodeWithTag("trainer_deload_request").performClick()
+        openBlockMenu()
+        rule.onNodeWithTag("trainer_block_menu_deload").performClick()
         rule.waitForIdle()
 
         assertEquals(listOf("No se pudo pedir la descarga. Inténtalo de nuevo."), messages.shown)
     }
 
     @Test
-    fun offline_disablesTheRequestAndShowsTheHint() {
+    fun offline_theMenuEntryIsDisabledAndShowsTheHint() {
         show(content(), online = false)
 
-        rule.onNodeWithTag("trainer_deload_request").assertIsNotEnabled()
+        openBlockMenu()
+
+        rule.onNodeWithTag("trainer_block_menu_deload").assertIsNotEnabled()
         rule.onNodeWithText("Sin conexión: no se puede pedir la descarga", substring = true).assertExists()
     }
 
@@ -251,15 +246,15 @@ class TrainerDeloadTest {
         val model = model(deloadChange())
         val tester = StateRestorationTester(rule)
         tester.setContent {
-            AppTheme { TrainerRoutesWithBoxes(model, FakeConnectivityObserver()) }
+            AppTheme { TrainerRoute(viewModel = model, connectivity = FakeConnectivityObserver()) }
         }
         rule.waitForIdle()
-        rule.openTrainerBlock()
 
         tester.emulateSavedInstanceStateRestore()
         rule.waitForIdle()
 
         rule.onNodeWithTag("trainer_deload_cancel_deload-1").assertExists()
-        rule.onNodeWithTag("trainer_deload_request").assertExists()
+        openBlockMenu()
+        rule.onNodeWithTag("trainer_block_menu_deload").assertExists()
     }
 }

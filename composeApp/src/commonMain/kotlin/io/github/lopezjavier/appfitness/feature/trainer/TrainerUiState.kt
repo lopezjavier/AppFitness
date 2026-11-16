@@ -13,7 +13,8 @@ import io.github.lopezjavier.appfitness.domain.model.PhaseWeeks
 import io.github.lopezjavier.appfitness.domain.model.PlanWeek
 import io.github.lopezjavier.appfitness.domain.model.ProgressionFlagDecision
 import io.github.lopezjavier.appfitness.domain.model.WeekPhase
-import io.github.lopezjavier.appfitness.domain.usecase.GoalChecklist
+import io.github.lopezjavier.appfitness.domain.model.WeekSummary
+import io.github.lopezjavier.appfitness.domain.usecase.WeightPace
 import kotlinx.datetime.LocalDate
 
 /** The plan entry of the Trainer tab: no plan, a proposal waiting for a decision, or the active plan. */
@@ -24,6 +25,9 @@ sealed interface PlanSummary {
 
     data class Accepted(val plan: CoachPlan) : PlanSummary
 }
+
+/** Mean kcal per logged diary day since the plan started, and how many days were logged. */
+data class DiaryCalories(val avgKcal: Int, val days: Int)
 
 /** The training block entry under an open plan: none requested, one waiting to be saved, or already in Entreno. */
 sealed interface BlockSummary {
@@ -60,6 +64,9 @@ data class SwapPickerUi(
 sealed interface TrainerUiState {
     data object Loading : TrainerUiState
 
+    /** The plan read kept failing after its retries: "Reintentar" instead of a (wrong) no-plan screen. */
+    data object Error : TrainerUiState
+
     /**
      * The plan hub. [plan], [calorieProposal], [block], [weeks] degrade to none when their reads fail.
      * [provisionalCount] feeds the "Tus datos" row; null when the read failed (the row then shows no count).
@@ -93,29 +100,36 @@ sealed interface TrainerUiState {
         val removeBlockConfirm: Boolean = false,
         /** The block removal is in flight: the dialog stays open with its confirm action disabled. */
         val removingBlock: Boolean = false,
-        /** N1-N4 on the Diario goals in use; null until the core supplies it. Shown only for an edited plan. */
-        val goalsChecklist: GoalChecklist? = null,
         /** "Cambios del entrenador": pending flags first, then the latest changes; empty hides the section. */
         val coachChanges: List<CoachChangeRowUi> = emptyList(),
         /** Id of the change whose undo or decision is in flight; the other rows' actions are disabled meanwhile. */
         val busyChangeId: String? = null,
-        /** The latest finished plan week has a summary: shows the "Resumen semanal" row. */
-        val hasWeekSummary: Boolean = false,
+        /** The latest finished week's summary behind the "Resumen semanal" box figures (C-127); null when none. */
+        val latestWeekSummary: WeekSummary? = null,
+        /** Mean kcal per logged diary day since the plan started (the "Calorías" tile); null when no day is logged. */
+        val diaryCalories: DiaryCalories? = null,
         /** The block has ended and its review is open: shows "Revisión del bloque" and hides "Crear bloque". */
         val blockReviewDue: Boolean = false,
         /**
          * "Bienvenido de nuevo" (US-107): the latest session is 14+ days old and no session or block was saved since.
-         * Hidden while [blockReviewDue]: the review footer is the only way on then (like `NewBlockEntries`).
+         * Hidden while [blockReviewDue]: the review footer is the only way on then (like the "Bloque nuevo" menu row).
          */
         val welcomeBack: Boolean = false,
         /** Weeks started in the current calorie phase ("Llevas n semanas en esta fase"); null hides the line. */
         val weeksInPhase: PhaseWeeks? = null,
+        /**
+         * The weight against the plan for the "Tu plan" chart and verdict (07 §5 (3)); null without an accepted plan
+         * or when the weigh-ins could not be read (the chart is then left out).
+         */
+        val weightPace: WeightPace? = null,
         /** Swap offers and health notes of unresolved level 4-5 discomforts, one per exercise (US-108). */
         val discomfortFollowUps: List<DiscomfortFollowUpUi> = emptyList(),
         /** The open swap picker; null when closed. Rebuilt from its exercise id after recreation (ADR-40). */
         val swapPicker: SwapPickerUi? = null,
         /** Exercise whose swap is in flight: the picker ignores further taps meanwhile. */
         val busyFollowUpExerciseId: String? = null,
+        /** The local date of the read: places the cardio pace marker of the "Tu bloque" bars (05 §6.0f). */
+        val today: LocalDate? = null,
     ) : TrainerUiState {
         private val accepted: CoachPlan? get() = (plan as? PlanSummary.Accepted)?.plan
 

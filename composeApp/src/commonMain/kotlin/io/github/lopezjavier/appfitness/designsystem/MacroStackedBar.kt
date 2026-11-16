@@ -12,6 +12,8 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawWithContent
+import androidx.compose.ui.graphics.drawscope.clipRect
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.semantics
@@ -27,13 +29,29 @@ import org.jetbrains.compose.resources.stringResource
 object MacroStackedBarDefaults {
     val Height: Dp = 12.dp
 
+    /** The 8 dp bar of the nutrition plan (C-105). */
+    val SlimHeight: Dp = 8.dp
+
+    /** Share of kcal per macro in percent (protein x4, carbs x4, fat x9); zeros when there are no kcal. */
+    fun kcalShares(proteinG: Double, carbsG: Double, fatG: Double): Triple<Int, Int, Int> {
+        val p = proteinG * 4
+        val c = carbsG * 4
+        val f = fatG * 9
+        val total = p + c + f
+        if (total <= 0.0) return Triple(0, 0, 0)
+        val pp = (p / total * 100).toInt()
+        val cp = (c / total * 100).toInt()
+        return Triple(pp, cp, 100 - pp - cp)
+    }
+
     fun segmentTag(testTag: String, macro: Macro): String = "${testTag}_${macro.name.lowercase()}"
 }
 
 /**
  * One horizontal bar split into the three macro colours, each segment as wide as its percent. Decorative segments;
  * a single `stateDescription` speaks "Proteínas 35 %, carbohidratos 42 %, grasas 23 %". Segments are tagged
- * `<testTag>_protein|carbs|fat`.
+ * `<testTag>_protein|carbs|fat`. With a [staggerIndex] the bar is revealed from the start once on first composition
+ * (R-97).
  */
 @Composable
 fun MacroStackedBar(
@@ -42,8 +60,11 @@ fun MacroStackedBar(
     fatPct: Int,
     modifier: Modifier = Modifier,
     testTag: String = "macro_stacked_bar",
+    barHeight: Dp = MacroStackedBarDefaults.Height,
+    staggerIndex: Int? = null,
 ) {
     val colors = AppTheme.colors
+    val reveal = rememberFillProgress(staggerIndex ?: 0)
     val spoken =
         stringResource(
             Res.string.macro_stacked_bar_state,
@@ -54,11 +75,18 @@ fun MacroStackedBar(
     Row(
         modifier
             .fillMaxWidth()
-            .height(MacroStackedBarDefaults.Height)
+            .height(barHeight)
             .clip(AppShapes.full)
             .background(colors.surfaceOverlay)
             .testTag(testTag)
-            .semantics(mergeDescendants = true) { stateDescription = spoken },
+            .semantics(mergeDescendants = true) { stateDescription = spoken }
+            .drawWithContent {
+                if (staggerIndex == null || reveal.value >= 1f) {
+                    drawContent()
+                } else {
+                    clipRect(right = size.width * reveal.value) { this@drawWithContent.drawContent() }
+                }
+            },
     ) {
         listOf(Macro.Protein to proteinPct, Macro.Carbs to carbsPct, Macro.Fat to fatPct).forEach { (macro, pct) ->
             if (pct > 0) {

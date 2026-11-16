@@ -365,7 +365,7 @@ class RoutinesScreenTest {
         rule.waitForIdle()
 
         rule.onNodeWithTag("routines_start_r1").assertIsNotEnabled()
-        rule.onNodeWithText("Sin conexión: no se puede empezar").assertExists()
+        rule.onNodeWithText("Sin conexión: no se puede empezar.").assertExists()
     }
 
     @Test

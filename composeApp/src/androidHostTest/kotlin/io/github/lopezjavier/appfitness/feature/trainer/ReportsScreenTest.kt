@@ -2,6 +2,7 @@ package io.github.lopezjavier.appfitness.feature.trainer
 
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertIsNotDisplayed
 import androidx.compose.ui.test.assertTextContains
 import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.hasScrollAction
@@ -111,6 +112,6 @@ class ReportsScreenTest {
         rule.waitForIdle()
 
         rule.onNodeWithTag("reports_row_r-25").assertIsDisplayed()
-        rule.onAllNodesWithTag("reports_row_r-0").assertCountEquals(0)
+        rule.onNode(hasTestTag("reports_row_r-0"), useUnmergedTree = true).assertIsNotDisplayed()
     }
 }

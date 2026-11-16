@@ -2,6 +2,7 @@ package io.github.lopezjavier.appfitness.feature.trainer
 
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.test.assertIsNotEnabled
+import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
@@ -64,8 +65,12 @@ class TrainerCoachChangesScreenTest {
     ) {
         rule.setContent {
             AppTheme {
-                TrainerWithBoxes(
-                    state = TrainerUiState.Content(coachChanges = rows, busyChangeId = busyId),
+                TrainerScreen(
+                    state = TrainerUiState.Content(
+                        plan = PlanSummary.Accepted(coachPlan(status = PlanStatus.Accepted)),
+                        coachChanges = rows,
+                        busyChangeId = busyId,
+                    ),
                     isOnline = flowOf(online),
                     onEvent = { events += it },
                     actions = TrainerActions(onOpenExercise = onOpenExercise),
@@ -74,15 +79,9 @@ class TrainerCoachChangesScreenTest {
             }
         }
         rule.waitForIdle()
-        // Pending flags stay on the root; the applied changes live in "Tu bloque".
-        if (rows.isNotEmpty() && rows.none { it.status == CoachChangeStatus.Pending }) rule.openTrainerBlock()
     }
 
-    private fun showRoute(
-        model: TrainerViewModel,
-        details: Boolean = true,
-        onRange: (String, String) -> Unit = { _, _ -> },
-    ) {
+    private fun showRoute(model: TrainerViewModel, onRange: (String, String) -> Unit = { _, _ -> }) {
         val resolver = ExerciseNameResolver(
             FakeExerciseRepository(listOf(exerciseRow("bench", "bench"))),
             FakeExerciseLibrary(mapOf("bench" to exerciseInfo("bench", "Press de banca"))),
@@ -91,22 +90,12 @@ class TrainerCoachChangesScreenTest {
         rule.setContent {
             AppTheme {
                 CompositionLocalProvider(LocalAppMessages provides messages) {
-                    if (details) {
-                        TrainerBoxRoot(
-                            box = TrainerBox.Block,
-                            actions = actions,
-                            viewModel = model,
-                            connectivity = FakeConnectivityObserver(),
-                            nameResolver = resolver,
-                        )
-                    } else {
-                        TrainerRoute(
-                            viewModel = model,
-                            connectivity = FakeConnectivityObserver(),
-                            nameResolver = resolver,
-                            actions = actions,
-                        )
-                    }
+                    TrainerRoute(
+                        viewModel = model,
+                        connectivity = FakeConnectivityObserver(),
+                        nameResolver = resolver,
+                        actions = actions,
+                    )
                 }
             }
         }
@@ -130,10 +119,10 @@ class TrainerCoachChangesScreenTest {
     private val raise = CoachChangeFigures(weightFromKg = 60.0, weightToKg = 62.5, rpeMax = 8.0)
 
     @Test
-    fun noRows_hidesTheSection() {
+    fun noRows_hidesTheCard() {
         show(emptyList())
 
-        rule.onNodeWithTag("trainer_coach_changes_section").assertDoesNotExist()
+        rule.onNodeWithTag("trainer_changes_card").assertDoesNotExist()
     }
 
     @Test
@@ -142,16 +131,15 @@ class TrainerCoachChangesScreenTest {
 
         rule.onNodeWithText("Cambios del entrenador").assertExists()
         rule.onNodeWithText("Press de banca").assertExists()
-        rule.onNodeWithText(
-            "Subida de 60 kg a 62,5 kg: completaste todas las series en el máximo del rango con RPE 8 o menos.",
-        ).assertExists()
+        rule.onNodeWithTag("trainer_change_c1_figure", useUnmergedTree = true)
+            .assertTextEquals("60$NBSP→${NBSP}62,5${NBSP}kg")
         rule.onNodeWithTag("trainer_coach_change_undo_c1").performClick()
 
         assertEquals(listOf<TrainerEvent>(TrainerEvent.UndoCoachChange("c1")), events)
     }
 
     @Test
-    fun appliedDrop_readsTheFivePercentReasonWithTheSessions() {
+    fun appliedDrop_readsTheFigureFromTo() {
         show(
             listOf(
                 row(
@@ -162,9 +150,8 @@ class TrainerCoachChangesScreenTest {
             ),
         )
 
-        rule.onNodeWithText(
-            "Bajada del 5 % de 80 kg a 76 kg: 2 sesiones seguidas sin llegar al mínimo del rango.",
-        ).assertExists()
+        rule.onNodeWithTag("trainer_change_c2_figure", useUnmergedTree = true)
+            .assertTextEquals("80$NBSP→${NBSP}76${NBSP}kg")
     }
 
     @Test
@@ -177,12 +164,11 @@ class TrainerCoachChangesScreenTest {
     }
 
     @Test
-    fun undoneRow_readsDeshechoWithTheOldWeight_andNoAction() {
+    fun undoneRow_readsRevertidoWithTheOldWeight_andNoAction() {
         show(listOf(row("c4", CoachChangeKind.LoadRaise, CoachChangeStatus.Undone, raise)))
 
-        rule.onNodeWithTag("trainer_coach_change_row_c4_status", useUnmergedTree = true).assertExists()
-        rule.onNodeWithText("Deshecho").assertExists()
-        rule.onNodeWithText("Vuelve a 60 kg.").assertExists()
+        rule.onNodeWithText("Revertido", useUnmergedTree = true).assertExists()
+        rule.onNodeWithText("Vuelve a 60${NBSP}kg.").assertExists()
         rule.onNodeWithTag("trainer_coach_change_undo_c4").assertDoesNotExist()
     }
 
@@ -192,10 +178,10 @@ class TrainerCoachChangesScreenTest {
         show(listOf(row("c5", CoachChangeKind.LoadFlag, CoachChangeStatus.Pending, flag)))
 
         rule.onNodeWithText(
-            "La siguiente subida es de 22,5 kg (+12,5 %), más de lo recomendable de una vez. " +
+            "La siguiente subida es de 22,5${NBSP}kg (+12,5$NBSP%), más de lo recomendable de una vez. " +
                 "Puedes subir igualmente o mantener el peso y sumar repeticiones.",
         ).assertExists()
-        rule.onNodeWithText("Subir a 22,5 kg").assertExists()
+        rule.onNodeWithText("Subir a 22,5${NBSP}kg").assertExists()
         rule.onNodeWithTag("trainer_coach_change_raise_c5").performClick()
         rule.onNodeWithTag("trainer_coach_change_keep_c5").performClick()
 
@@ -243,7 +229,7 @@ class TrainerCoachChangesScreenTest {
         show(listOf(row("c1", CoachChangeKind.LoadRaise, figures = raise)), online = false)
 
         rule.onNodeWithTag("trainer_coach_change_undo_c1").assertIsNotEnabled()
-        rule.onNodeWithText("Sin conexión: no se puede deshacer el cambio").assertExists()
+        rule.onNodeWithText("Sin conexión: no se puede deshacer el cambio.").assertExists()
     }
 
     @Test
@@ -261,16 +247,6 @@ class TrainerCoachChangesScreenTest {
     }
 
     @Test
-    fun tappingTheName_opensTheExercise() {
-        val opened = mutableListOf<String>()
-        show(listOf(row("c1", CoachChangeKind.LoadRaise, figures = raise)), onOpenExercise = { opened += it })
-
-        rule.onNodeWithTag("trainer_coach_change_row_c1_headline").performClick()
-
-        assertEquals(listOf("bench"), opened)
-    }
-
-    @Test
     fun undoWithEditedRoutines_showsTheSkippedMessage() {
         changes.changes = Result.success(
             listOf(coachChange("c1", figures = raise)),
@@ -282,7 +258,7 @@ class TrainerCoachChangesScreenTest {
         // The plural is read from the resources off the main thread.
         rule.waitUntil(timeoutMillis = RESOURCE_TIMEOUT_MS) { messages.shown.isNotEmpty() }
 
-        assertEquals(listOf("Deshecho, salvo en 2 rutinas que ya habías editado."), messages.shown)
+        assertEquals(listOf("Revertido, salvo en 2 rutinas que ya habías editado."), messages.shown)
     }
 
     @Test
@@ -324,7 +300,7 @@ class TrainerCoachChangesScreenTest {
             ),
         )
         changes.decideResult = Result.failure(AppException(AppError.Unknown))
-        showRoute(model(), details = false)
+        showRoute(model())
 
         rule.onNodeWithTag("trainer_coach_change_keep_c5").performClick()
         rule.waitForIdle()
@@ -346,7 +322,7 @@ class TrainerCoachChangesScreenTest {
             ),
         )
         val opened = mutableListOf<Pair<String, String>>()
-        showRoute(model(), details = false) { routineId, exerciseId -> opened += routineId to exerciseId }
+        showRoute(model()) { routineId, exerciseId -> opened += routineId to exerciseId }
 
         rule.onNodeWithTag("trainer_coach_change_add_range_c7").performClick()
         rule.waitForIdle()
@@ -356,3 +332,4 @@ class TrainerCoachChangesScreenTest {
 }
 
 private const val RESOURCE_TIMEOUT_MS = 5_000L
+private val NBSP = 160.toChar().toString()

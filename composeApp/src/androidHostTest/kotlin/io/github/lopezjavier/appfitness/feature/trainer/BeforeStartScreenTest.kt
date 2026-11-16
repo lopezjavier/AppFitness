@@ -121,22 +121,10 @@ class BeforeStartScreenTest {
         show()
 
         rule.onNodeWithTag("before_start_screen").assertExists()
-        rule.onNodeWithTag(
-            "before_start_row_intention",
-            useUnmergedTree = true,
-        ).assertTextEquals("Objetivo · Perder grasa")
-        rule.onNodeWithTag(
-            "before_start_row_sex",
-            useUnmergedTree = true,
-        ).assertTextEquals("Sexo y edad · Hombre · 31 años")
-        rule.onNodeWithTag(
-            "before_start_row_height",
-            useUnmergedTree = true,
-        ).assertTextEquals("Altura y peso · 178 cm · 80,0 kg")
-        rule.onNodeWithTag(
-            "before_start_row_activity_level",
-            useUnmergedTree = true,
-        ).assertTextEquals("Nivel de actividad · Ligero")
+        rule.onNodeWithTag("before_start_summary").assertTextContainsIgnoringNbsp("Objetivo · Perder grasa")
+        rule.onNodeWithTag("before_start_summary").assertTextContainsIgnoringNbsp("Sexo y edad · Hombre · 31 años")
+        rule.onNodeWithTag("before_start_summary").assertTextContainsIgnoringNbsp("Altura y peso · 178 cm · 80,0 kg")
+        rule.onNodeWithTag("before_start_summary").assertTextContainsIgnoringNbsp("Nivel de actividad · Ligero")
         rule.onNodeWithTag("before_start_flag_intention").assertDoesNotExist()
         rule.onNodeWithTag("before_start_create").assertIsEnabled()
         assertTrue(repository.confirmCalls.isEmpty())
@@ -150,7 +138,7 @@ class BeforeStartScreenTest {
         show()
 
         rule.onNodeWithTag("before_start_intake_block").assertExists()
-        rule.onNodeWithTag("before_start_row_training_years").assertTextEquals("Tiempo entrenando", "4 años")
+        rule.onNodeWithTag("before_start_row_training_years").assertTextListIgnoringNbsp("Tiempo entrenando", "4 años")
         rule.onNodeWithTag("before_start_row_maintenance")
             .assertTextEquals("Calorías de mantenimiento", "Sin indicar")
         rule.onNodeWithTag("before_start_create").assertIsEnabled()
@@ -194,7 +182,6 @@ class BeforeStartScreenTest {
         tap("before_start_summary")
 
         assertEquals(1, yourDataOpened)
-        rule.onNodeWithTag("before_start_summary_chevron", useUnmergedTree = true).assertExists()
     }
 
     @Test
@@ -298,10 +285,6 @@ class BeforeStartScreenTest {
 
         rule.onNodeWithTag("before_start_note_stale_weight")
             .assertTextEquals("Tu último pesaje es del 24 de octubre. Pesarte de nuevo mejora el plan.")
-        rule.onNodeWithTag(
-            "before_start_row_height",
-            useUnmergedTree = true,
-        ).assertTextContains("24 de octubre", substring = true)
         rule.onNodeWithTag("before_start_create").assertIsEnabled()
     }
 
@@ -380,19 +363,15 @@ class BeforeStartScreenTest {
 
         show(mode = "block", planId = "plan-3")
 
+        rule.onNodeWithTag("before_start_summary").assertTextContainsIgnoringNbsp("Objetivo · Ganar musculatura")
+        rule.onNodeWithTag("before_start_summary").assertTextContainsIgnoringNbsp("Lugar · Gimnasio")
         rule.onNodeWithTag(
-            "before_start_row_intention",
-            useUnmergedTree = true,
-        ).assertTextEquals("Objetivo · Ganar musculatura")
-        rule.onNodeWithTag("before_start_row_place", useUnmergedTree = true).assertTextEquals("Lugar · Gimnasio")
-        rule.onNodeWithTag("before_start_row_equipment", useUnmergedTree = true)
-            .assertTextEquals("Material · Sin definir · Lo elige el entrenador")
-        rule.onNodeWithTag("before_start_row_days_per_week", useUnmergedTree = true)
-            .assertTextEquals("Días por semana · Sin definir · Lo elige el entrenador")
+            "before_start_summary",
+        ).assertTextContainsIgnoringNbsp("Material · Sin definir · Lo elige el entrenador")
         rule.onNodeWithTag(
-            "before_start_row_session_minutes",
-            useUnmergedTree = true,
-        ).assertTextEquals("Duración del entreno · 1 h 30 min")
+            "before_start_summary",
+        ).assertTextContains("Días por semana · Sin definir · Lo elige el entrenador")
+        rule.onNodeWithTag("before_start_summary").assertTextContainsIgnoringNbsp("Duración del entreno · 1 h 30 min")
         rule.onNodeWithTag("before_start_flag_equipment").assertDoesNotExist()
         rule.onNodeWithText("Crear bloque").assertExists()
         rule.onNodeWithTag("before_start_note_replace").assertDoesNotExist()
@@ -404,8 +383,7 @@ class BeforeStartScreenTest {
 
         show(mode = "block", planId = "plan-3")
 
-        rule.onNodeWithTag("before_start_row_cardio", useUnmergedTree = true)
-            .assertTextEquals("Cardio · Máquina de cardio")
+        rule.onNodeWithTag("before_start_summary").assertTextContainsIgnoringNbsp("Cardio · Máquina de cardio")
     }
 
     @Test
@@ -414,8 +392,7 @@ class BeforeStartScreenTest {
 
         show(mode = "block", planId = "plan-3")
 
-        rule.onNodeWithTag("before_start_row_cardio", useUnmergedTree = true)
-            .assertTextEquals("Cardio · Sin máquinas · caminar")
+        rule.onNodeWithTag("before_start_summary").assertTextContainsIgnoringNbsp("Cardio · Sin máquinas · caminar")
     }
 
     private fun blockWithCardio(items: List<String>) {
@@ -499,7 +476,7 @@ class BeforeStartScreenTest {
 
         rule.onNodeWithTag("before_start_create").assertIsNotEnabled()
         rule.onNodeWithTag("before_start_offline_hint").assertExists()
-        rule.onNodeWithText("Sin conexión: no se puede crear el plan").assertExists()
+        rule.onNodeWithText("Sin conexión: no se puede crear el plan.").assertExists()
     }
 
     @Test

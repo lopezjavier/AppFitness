@@ -81,7 +81,7 @@ class CatalogTemplatesTest {
         scrollTo("catalog_editor_offline_chip")
         rule.onNodeWithTag("catalog_editor_offline_chip").performClick()
         scrollTo("catalog_editor_sample")
-        rule.onNodeWithTag("offline_hint").assertTextEquals("Sin conexión: no se puede guardar")
+        rule.onNodeWithTag("offline_hint").assertTextEquals("Sin conexión: no se puede guardar.")
     }
 
     @Test

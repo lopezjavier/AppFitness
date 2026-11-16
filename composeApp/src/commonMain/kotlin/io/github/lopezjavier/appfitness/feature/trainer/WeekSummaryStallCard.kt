@@ -2,11 +2,9 @@ package io.github.lopezjavier.appfitness.feature.trainer
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.semantics
@@ -15,10 +13,9 @@ import io.github.lopezjavier.appfitness.composeapp.resources.week_summary_stall_
 import io.github.lopezjavier.appfitness.composeapp.resources.week_summary_stall_help_body
 import io.github.lopezjavier.appfitness.composeapp.resources.week_summary_stall_help_cd
 import io.github.lopezjavier.appfitness.composeapp.resources.week_summary_stall_missing_food
-import io.github.lopezjavier.appfitness.designsystem.AppCard
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
 import io.github.lopezjavier.appfitness.designsystem.HelpButton
-import io.github.lopezjavier.appfitness.designsystem.ListSectionHeader
+import io.github.lopezjavier.appfitness.designsystem.SectionCard
 import io.github.lopezjavier.appfitness.designsystem.Spacing
 import io.github.lopezjavier.appfitness.domain.model.StallDiagnosis
 import io.github.lopezjavier.appfitness.feature.exercises.label
@@ -39,21 +36,19 @@ internal fun StallCard(
     }
     if (items.isEmpty()) return
     val header = stringResource(Res.string.week_summary_stall_header)
-    AppCard(Modifier.fillMaxWidth().testTag("${testTagPrefix}_section_stalls")) {
+    SectionCard(
+        header,
+        testTag = "${testTagPrefix}_section_stalls",
+        help = {
+            HelpButton(
+                contentDescription = stringResource(Res.string.week_summary_stall_help_cd),
+                title = header,
+                body = stringResource(Res.string.week_summary_stall_help_body),
+                testTag = "${testTagPrefix}_stall_help",
+            )
+        },
+    ) {
         Column(verticalArrangement = Arrangement.spacedBy(Spacing.md)) {
-            Row(
-                Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween,
-            ) {
-                ListSectionHeader(header, Modifier.weight(1f))
-                HelpButton(
-                    contentDescription = stringResource(Res.string.week_summary_stall_help_cd),
-                    title = header,
-                    body = stringResource(Res.string.week_summary_stall_help_body),
-                    testTag = "${testTagPrefix}_stall_help",
-                )
-            }
             items.forEach { (id, name, cause) -> StallItem(id, name, WeekSummaryText.stallLine(cause), testTagPrefix) }
         }
     }

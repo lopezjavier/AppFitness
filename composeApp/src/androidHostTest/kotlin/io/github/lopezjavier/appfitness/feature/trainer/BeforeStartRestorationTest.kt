@@ -139,7 +139,7 @@ class BeforeStartRestorationTest {
             )
         rule.waitForIdle()
 
-        rule.onNodeWithTag("before_start_row_place", useUnmergedTree = true).assertExists()
+        rule.onNodeWithTag("before_start_summary").assertExists()
         rule.onNodeWithTag("before_start_create").performClick()
         rule.waitForIdle()
         // A block first asks how it starts (US-93): no navigation yet, the choice is open (and persisted).

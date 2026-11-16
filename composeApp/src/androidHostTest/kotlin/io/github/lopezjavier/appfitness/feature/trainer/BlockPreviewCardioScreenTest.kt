@@ -31,6 +31,8 @@ import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 
+private val NBSP = 160.toChar().toString()
+
 /** US-72 cardio scenarios: the cardio row, total time, "por tu cuenta" and the any-to-any swap sheet. */
 @RunWith(RobolectricTestRunner::class)
 @Config(qualifiers = "w360dp-h2400dp-xxhdpi")
@@ -113,7 +115,10 @@ class BlockPreviewCardioScreenTest {
     fun theCardioRow_readsMinutesAndPace_andTheTotalTimeFollows() {
         show(block(ownMin = 0))
 
-        rule.onNodeWithTag("block_preview_cardio_row_1_0", useUnmergedTree = true).assertTextEquals("50 min · suave")
+        rule.onNodeWithTag(
+            "block_preview_cardio_row_1_0",
+            useUnmergedTree = true,
+        ).assertTextEquals("50${NBSP}min · suave")
         rule.onNodeWithTag("block_preview_cardio_total_1_0").assertTextEquals("Tiempo total: 1 h 50 min")
         rule.onAllNodesWithText("Calentamiento").assertCountEquals(0)
     }
@@ -123,7 +128,7 @@ class BlockPreviewCardioScreenTest {
         show(block(ownMin = 120))
 
         rule.onNodeWithTag("block_preview_cardio_own_1")
-            .assertTextEquals("Te faltan 120 min de cardio a la semana: hazlos por tu cuenta.")
+            .assertTextEquals("Te faltan 120${NBSP}min de cardio a la semana: hazlos por tu cuenta.")
     }
 
     @Test
@@ -154,6 +159,6 @@ class BlockPreviewCardioScreenTest {
 
         rule.onNodeWithTag("block_preview_exercise_1_0_1").assertTextContains("Caminar a paso ligero", substring = true)
         rule.onNodeWithTag("block_preview_changed_1_0_1", useUnmergedTree = true)
-            .assertTextContains("50 min · suave", substring = true)
+            .assertTextContains("50${NBSP}min · suave", substring = true)
     }
 }

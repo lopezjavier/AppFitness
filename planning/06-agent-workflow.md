@@ -18,6 +18,7 @@ Phase 2 archive (full text as it was when Phase 2 closed): [`phase2/06-agent-wor
 ### 2.1 Task with UI
 ```
 [PM] git checkout main && git pull && git checkout -b feature/T-###-slug
+[PM] task that shows data or changes how something looks: brief ui-designer with the information to show (not a design), it builds the visual, the user judges it in the gallery and emulator and iterates; no developer runs on it before the user approves the look
   -> planner            plan in .workflow/current_task.md
   -> ux-reviewer (plan)  pattern map, rules (05 §8-§10), sweep of existing screens, Spanish copy, testTags
         REJECTED -> planner fixes the plan
@@ -78,6 +79,7 @@ When the user asks, the `product-owner` skill runs in the main session: brainsto
 | `epic-planner` | `tasks/todo.md` + `tasks/plan.md` for one epic: one task per story, one 👤 checkpoint per functionality |
 | `planner` | `.workflow/current_task.md` (contracts, tests, testTags, implementation order) |
 | `ux-reviewer` | "UX notes" in the plan + PASSED/REJECTED; diff review in parallel with pr-reviewer, before pr-creator |
+| `ui-designer` | the visual built in Compose (graphic chosen per piece of information, gallery entries, new designsystem components flagged) + product decisions for the PM |
 | `kotlin-core-developer` | Domain, data, DI, ViewModels + unit tests |
 | `compose-ui-developer` | Screens, designsystem, navigation, Robolectric tests; starts from the core |
 | `backend-developer` | Migrations, RLS, pgTAP, Edge Functions + `deno test` |

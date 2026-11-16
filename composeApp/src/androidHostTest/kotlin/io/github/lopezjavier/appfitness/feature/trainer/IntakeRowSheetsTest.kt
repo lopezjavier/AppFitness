@@ -36,6 +36,8 @@ import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 
+private val NBSP = 160.toChar().toString()
+
 /** US-81: each intake row opens only its own small editor, in "Antes de empezar" and in "Tus datos". */
 @RunWith(RobolectricTestRunner::class)
 @Config(qualifiers = "w360dp-h2400dp-xxhdpi")
@@ -145,7 +147,9 @@ class IntakeRowSheetsTest {
 
         assertEquals(listOf<IntakeUpdate>(IntakeUpdate.TrainingYears(0.5)), intake.saveCalls)
         rule.onNodeWithTag("intake_years_sheet").assertDoesNotExist()
-        rule.onNodeWithTag("before_start_row_training_years").assertTextEquals("Tiempo entrenando", "0,5 años")
+        rule.onNodeWithTag(
+            "before_start_row_training_years",
+        ).assertTextListIgnoringNbsp("Tiempo entrenando", "0,5 años")
         rule.onNodeWithTag("before_start_row_maintenance")
             .assertTextEquals("Calorías de mantenimiento", "2.400 kcal")
     }
@@ -176,7 +180,7 @@ class IntakeRowSheetsTest {
         rule.onNodeWithTag("intake_maintenance_sheet").assertDoesNotExist()
         rule.onNodeWithTag("before_start_row_maintenance")
             .assertTextEquals("Calorías de mantenimiento", "2.400 kcal")
-        rule.onNodeWithTag("before_start_row_training_years").assertTextEquals("Tiempo entrenando", "4 años")
+        rule.onNodeWithTag("before_start_row_training_years").assertTextListIgnoringNbsp("Tiempo entrenando", "4 años")
     }
 
     @Test
@@ -187,7 +191,7 @@ class IntakeRowSheetsTest {
         typeKcal("1199")
 
         rule.onNodeWithTag("intake_maintenance_error", useUnmergedTree = true)
-            .assertTextEquals("Entre 1200 y 6000 kcal")
+            .assertTextEquals("Entre 1200 y 6000${NBSP}kcal")
         rule.onNodeWithTag("intake_maintenance_sheet_commit").assertIsNotEnabled()
         assertTrue(intake.saveCalls.isEmpty())
     }
@@ -287,7 +291,7 @@ class IntakeRowSheetsTest {
         tap("intake_years_sheet_commit")
 
         assertEquals(listOf<IntakeUpdate>(IntakeUpdate.TrainingYears(1.5)), intake.saveCalls)
-        rule.onNodeWithTag("your_data_row_training_years").assertTextEquals("Tiempo entrenando", "1,5 años")
+        rule.onNodeWithTag("your_data_row_training_years").assertTextListIgnoringNbsp("Tiempo entrenando", "1,5 años")
     }
 
     @Test

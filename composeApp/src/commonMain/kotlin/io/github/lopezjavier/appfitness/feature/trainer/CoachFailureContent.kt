@@ -3,11 +3,13 @@
 package io.github.lopezjavier.appfitness.feature.trainer
 
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import io.github.lopezjavier.appfitness.composeapp.resources.Res
 import io.github.lopezjavier.appfitness.composeapp.resources.action_retry
+import io.github.lopezjavier.appfitness.composeapp.resources.coach_failure_block_in_progress_action
 import io.github.lopezjavier.appfitness.designsystem.AppStateAction
 import io.github.lopezjavier.appfitness.designsystem.ErrorState
 import io.github.lopezjavier.appfitness.designsystem.OfflineState
@@ -23,7 +25,8 @@ internal class CoachFailureCopy(val error: StringResource, val interrupted: Stri
 
 /**
  * The state of a failed AI call (R-31) shared by the coach proposal screens: the offline state or
- * an error with "Reintentar". Tags are `<tagPrefix>_offline`, `_error*` and `_retry`.
+ * an error with "Reintentar"; "Ya tienes un bloque en marcha" offers [onLeave] first. Tags are `<tagPrefix>_offline`,
+ * `_error*`, `_leave` and `_retry`.
  */
 @Composable
 internal fun CoachFailureContent(
@@ -32,6 +35,7 @@ internal fun CoachFailureContent(
     copy: CoachFailureCopy,
     tagPrefix: String,
     onFix: ((PlanFixTarget) -> Unit)? = null,
+    onLeave: (() -> Unit)? = null,
     onRetry: () -> Unit,
 ) {
     val retry = AppStateAction(stringResource(Res.string.action_retry), onRetry)
@@ -40,6 +44,7 @@ internal fun CoachFailureContent(
         val target = if (onFix != null) kind.fixTarget() else null
         if (target != null && onFix != null) {
             ErrorState(
+                modifier = Modifier.fillMaxSize(),
                 message = stringResource(message),
                 action = AppStateAction(stringResource(target.destinationLabel())) { onFix(target) },
                 testTagPrefix = "${tagPrefix}_error",
@@ -47,8 +52,20 @@ internal fun CoachFailureContent(
                 actionTestTag = "${tagPrefix}_fix",
                 secondaryActionTestTag = "${tagPrefix}_retry",
             )
+        } else if (kind == PlanFailureKind.BlockInProgress && onLeave != null) {
+            // A block already runs: retrying cannot help, so the way out comes first (V-69).
+            ErrorState(
+                modifier = Modifier.fillMaxSize(),
+                message = stringResource(message),
+                action = AppStateAction(stringResource(Res.string.coach_failure_block_in_progress_action), onLeave),
+                testTagPrefix = "${tagPrefix}_error",
+                secondaryAction = retry,
+                actionTestTag = "${tagPrefix}_leave",
+                secondaryActionTestTag = "${tagPrefix}_retry",
+            )
         } else {
             ErrorState(
+                modifier = Modifier.fillMaxSize(),
                 message = stringResource(message),
                 action = retry,
                 testTagPrefix = "${tagPrefix}_error",

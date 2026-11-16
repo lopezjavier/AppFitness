@@ -33,6 +33,7 @@ import io.github.lopezjavier.appfitness.composeapp.resources.block_builder_save_
 import io.github.lopezjavier.appfitness.composeapp.resources.block_builder_slot_clear_cd
 import io.github.lopezjavier.appfitness.composeapp.resources.block_builder_slot_swap_cd
 import io.github.lopezjavier.appfitness.composeapp.resources.folder_block_empty_body
+import io.github.lopezjavier.appfitness.composeapp.resources.folder_block_fix_action
 import io.github.lopezjavier.appfitness.composeapp.resources.folder_block_intro
 import io.github.lopezjavier.appfitness.composeapp.resources.folder_block_left_out
 import io.github.lopezjavier.appfitness.composeapp.resources.folder_block_missing_title
@@ -58,16 +59,19 @@ import io.github.lopezjavier.appfitness.designsystem.ErrorState
 import io.github.lopezjavier.appfitness.designsystem.ExerciseRow
 import io.github.lopezjavier.appfitness.designsystem.GhostButton
 import io.github.lopezjavier.appfitness.designsystem.InlineNote
+import io.github.lopezjavier.appfitness.designsystem.InlineNoteTone
 import io.github.lopezjavier.appfitness.designsystem.ListSectionHeader
 import io.github.lopezjavier.appfitness.designsystem.OfflineHint
 import io.github.lopezjavier.appfitness.designsystem.OfflineState
 import io.github.lopezjavier.appfitness.designsystem.PrimaryButton
+import io.github.lopezjavier.appfitness.designsystem.RowGroupCard
 import io.github.lopezjavier.appfitness.designsystem.SkeletonBox
 import io.github.lopezjavier.appfitness.designsystem.Spacing
 import io.github.lopezjavier.appfitness.domain.coach.builder.DaysCheck
 import io.github.lopezjavier.appfitness.domain.coach.builder.FolderBlockExercise
 import io.github.lopezjavier.appfitness.domain.coach.builder.GateIssue
 import kotlinx.coroutines.flow.Flow
+import org.jetbrains.compose.resources.pluralStringResource
 import org.jetbrains.compose.resources.stringResource
 
 private const val LOADING_ROWS = 4
@@ -96,11 +100,7 @@ internal fun FolderBlockScreen(
             else -> null
         },
         onBack = { onEvent(FolderBlockEvent.Back) },
-        footer = when {
-            content != null -> ({ ContentFooter(content, online, onEvent) })
-            state is FolderBlockUiState.Refused || state is FolderBlockUiState.Empty -> ({ BlockedFooter() })
-            else -> null
-        },
+        footer = content?.let { { ContentFooter(it, online, onEvent) } },
         testTagPrefix = "folder_block",
     ) {
         Box(Modifier.fillMaxSize().testTag("folder_block_screen")) {
@@ -140,6 +140,7 @@ private fun StateBody(
                 OfflineState(isOnline = isOnline, onReload = { onEvent(FolderBlockEvent.Retry) })
             } else {
                 ErrorState(
+                    modifier = Modifier.fillMaxSize(),
                     message = stringResource(Res.string.block_builder_error),
                     action = AppStateAction(stringResource(Res.string.action_retry)) {
                         onEvent(FolderBlockEvent.Retry)
@@ -150,25 +151,33 @@ private fun StateBody(
             }
         }
 
-        is FolderBlockUiState.Empty -> Box(Modifier.fillMaxSize(), Alignment.Center) {
-            EmptyState(
-                icon = Res.drawable.ic_folder,
-                message = stringResource(Res.string.folder_block_empty_body),
-                title = stringResource(Res.string.folder_review_result_empty_title),
-                testTagPrefix = "folder_block_empty",
-            )
-        }
+        is FolderBlockUiState.Empty -> EmptyState(
+            modifier = Modifier.fillMaxSize(),
+            icon = Res.drawable.ic_folder,
+            message = stringResource(Res.string.folder_block_empty_body),
+            title = stringResource(Res.string.folder_review_result_empty_title),
+            action = AppStateAction(stringResource(Res.string.folder_block_fix_action)) {
+                onEvent(FolderBlockEvent.Back)
+            },
+            testTagPrefix = "folder_block_empty",
+        )
 
-        is FolderBlockUiState.Refused -> RefusedNote(state)
+        is FolderBlockUiState.Refused -> RefusedNote(state) { onEvent(FolderBlockEvent.Back) }
 
         is FolderBlockUiState.Content -> ContentBody(state, onEvent, onOpenExercise)
     }
 }
 
 @Composable
-private fun RefusedNote(state: FolderBlockUiState.Refused) {
+private fun RefusedNote(state: FolderBlockUiState.Refused, onFix: () -> Unit) {
     val text = when (val days = state.days) {
-        is DaysCheck.Refused -> stringResource(Res.string.folder_block_refused, days.routines, days.days)
+        is DaysCheck.Refused -> pluralStringResource(
+            Res.plurals.folder_block_refused,
+            days.routines,
+            days.routines,
+            days.days,
+        )
+
         else -> stringResource(Res.string.folder_block_refused_one, state.daysPerWeek)
     }
     InlineNote(
@@ -177,23 +186,10 @@ private fun RefusedNote(state: FolderBlockUiState.Refused) {
             .padding(Spacing.screenMargin)
             .semantics { liveRegion = LiveRegionMode.Polite }
             .testTag("folder_block_refused_note"),
+        onClick = onFix,
+        onClickLabel = stringResource(Res.string.folder_block_fix_action),
+        tone = InlineNoteTone.Error,
     )
-}
-
-/** Refused and empty folders: nothing can be saved, the footer says so. */
-@Composable
-private fun BlockedFooter() {
-    Column(
-        Modifier.fillMaxWidth().padding(Spacing.screenMargin),
-        verticalArrangement = Arrangement.spacedBy(Spacing.sm),
-    ) {
-        PrimaryButton(
-            text = stringResource(Res.string.block_builder_save),
-            onClick = {},
-            modifier = Modifier.fillMaxWidth().testTag("folder_block_save"),
-            enabled = false,
-        )
-    }
 }
 
 @Composable
@@ -206,12 +202,7 @@ private fun ContentBody(
         Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(Spacing.screenMargin),
         verticalArrangement = Arrangement.spacedBy(Spacing.sm),
     ) {
-        if (state.status.percent < FULL_SCORE) {
-            InlineNote(
-                stringResource(Res.string.folder_block_intro, state.status.percent),
-                Modifier.testTag("folder_block_intro"),
-            )
-        }
+        InlineNote(stringResource(Res.string.folder_block_intro), Modifier.testTag("folder_block_intro"))
         state.draft.routines.forEachIndexed { ri, routine ->
             if (!routine.lifting) return@forEachIndexed
             ListSectionHeader(routine.name, Modifier.testTag("folder_block_routine_$ri"))
@@ -228,8 +219,6 @@ private fun ContentBody(
         MissingSection(state, onEvent)
     }
 }
-
-private const val FULL_SCORE = 100
 
 @Suppress("LongParameterList") // The row of one exercise needs its place, its data and the two callbacks.
 @Composable
@@ -303,7 +292,11 @@ private fun MissingSection(state: FolderBlockUiState.Content, onEvent: (FolderBl
     val groups = state.addableGroups
     if (groups.isEmpty()) return
     ListSectionHeader(stringResource(Res.string.folder_block_missing_title))
-    groups.forEach { ReviewListRow(it.toReviewItem(), "folder_block_missing_row_") }
+    RowGroupCard(
+        rows = groups.map {
+            { ReviewListRow(it.toReviewItem(), "folder_block_missing_row_", Modifier.padding(horizontal = Spacing.lg)) }
+        },
+    )
     AddItemButton(
         objectLabel = stringResource(Res.string.block_builder_extra_object),
         onClick = { onEvent(FolderBlockEvent.OpenAdd) },
@@ -315,10 +308,7 @@ private fun MissingSection(state: FolderBlockUiState.Content, onEvent: (FolderBl
 /** The score, the notes and "Guardar bloque" (R-09: one pinned footer). */
 @Composable
 private fun ContentFooter(state: FolderBlockUiState.Content, online: Boolean, onEvent: (FolderBlockEvent) -> Unit) {
-    Column(
-        Modifier.fillMaxWidth().padding(Spacing.screenMargin),
-        verticalArrangement = Arrangement.spacedBy(Spacing.sm),
-    ) {
+    Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
         BuilderScoreBar(state.status.percent, "folder_block_score")
         if (!state.status.canSave) {
             Text(
@@ -332,11 +322,13 @@ private fun ContentFooter(state: FolderBlockUiState.Content, online: Boolean, on
             BuilderSaveError.Generic, BuilderSaveError.Offline -> InlineNote(
                 stringResource(Res.string.block_builder_save_error),
                 Modifier.testTag("folder_block_save_error"),
+                tone = InlineNoteTone.Error,
             )
 
             BuilderSaveError.PlanClosed -> InlineNote(
                 stringResource(Res.string.block_builder_plan_closed),
                 Modifier.testTag("folder_block_save_error"),
+                tone = InlineNoteTone.Error,
             )
 
             null -> Unit

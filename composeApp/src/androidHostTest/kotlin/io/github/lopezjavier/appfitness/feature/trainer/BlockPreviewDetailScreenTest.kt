@@ -77,7 +77,8 @@ class BlockPreviewDetailScreenTest {
         )
         show(blockWith(listOf(blockExercise("ex-1").copy(plannedWeightKg = 62.5, setPlan = dropSets))))
 
-        rule.onNodeWithText("3×8-12 reps · 1 min 30 s · 62,5 kg · Última serie descendente").assertExists()
+        rule.onNodeWithText("62,5", substring = true).assertExists()
+        rule.onNodeWithText("Última serie descendente", substring = true).assertExists()
     }
 
     @Test

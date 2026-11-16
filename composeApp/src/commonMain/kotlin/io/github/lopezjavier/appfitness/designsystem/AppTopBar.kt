@@ -18,6 +18,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
@@ -136,7 +137,7 @@ data class AppTopBarAction(
  * @param testTagPrefix root tag; children are `<prefix>_title`, `<prefix>_subtitle`, `<prefix>_back`,
  *   `<prefix>_action_<n>` (from 1) and `<prefix>_more`.
  */
-@Suppress("LongParameterList") // Slot-style API fixed by the T-118 contract.
+@Suppress("LongParameterList", "LongMethod") // One slot-style bar: title, actions, badge and width cap in one layout.
 @Composable
 fun AppTopBar(
     title: String,
@@ -147,13 +148,14 @@ fun AppTopBar(
     actions: List<AppTopBarAction> = emptyList(),
     windowInsets: WindowInsets = AppTopBarDefaults.windowInsets,
     testTagPrefix: String = AppTopBarDefaults.TestTag,
+    maxContentWidth: Dp = Dp.Unspecified,
 ) {
     val colors = AppTheme.colors
     val borderColor = colors.borderSubtle
     val startPadding =
         if (navigationButton != null) AppTopBarDefaults.StartPaddingWithNavigation else Spacing.screenMargin
     val endPadding = if (actions.isEmpty()) Spacing.screenMargin else AppTopBarDefaults.EndPaddingWithActions
-    Row(
+    Box(
         modifier =
         modifier
             .fillMaxWidth()
@@ -164,36 +166,51 @@ fun AppTopBar(
                 drawLine(borderColor, Offset(0f, y), Offset(size.width, y), strokeWidth = AppBorder.thin.toPx())
             }
             .windowInsetsPadding(windowInsets)
-            .heightIn(min = AppTopBarDefaults.Height)
-            .padding(start = startPadding, end = endPadding),
-        verticalAlignment = Alignment.CenterVertically,
+            .heightIn(min = AppTopBarDefaults.Height),
+        contentAlignment = Alignment.Center,
     ) {
-        if (navigationButton != null) {
-            BackButton(navigationButton, AppTopBarDefaults.backTag(testTagPrefix))
-            Spacer(Modifier.width(Spacing.xs))
-        }
-        Column(Modifier.weight(1f).padding(vertical = if (subtitle != null) Spacing.xs else Spacing.none)) {
-            Text(
-                text = title,
-                style = AppTopBarDefaults.titleStyle,
-                color = colors.textPrimary,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-                modifier = Modifier.testTag(AppTopBarDefaults.titleTag(testTagPrefix)).semantics { heading() },
-            )
-            if (subtitle != null) {
+        Row(
+            modifier = Modifier
+                .widthIn(max = maxContentWidth)
+                .fillMaxWidth()
+                .padding(start = startPadding, end = endPadding),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            if (navigationButton != null) {
+                BackButton(navigationButton, AppTopBarDefaults.backTag(testTagPrefix))
+                Spacer(Modifier.width(Spacing.xs))
+            }
+            Column(Modifier.weight(1f).padding(vertical = if (subtitle != null) Spacing.xs else Spacing.none)) {
                 Text(
-                    text = subtitle,
-                    style = AppTheme.typography.bodyMedium,
-                    color = colors.textSecondary,
+                    text = title,
+                    style = AppTopBarDefaults.titleStyle,
+                    color = colors.textPrimary,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier.testTag(AppTopBarDefaults.subtitleTag(testTagPrefix))
-                        .let { if (subtitleSemantics != null) it.semantics(properties = subtitleSemantics) else it },
+                    modifier = Modifier.testTag(AppTopBarDefaults.titleTag(testTagPrefix)).semantics { heading() },
                 )
+                if (subtitle != null) {
+                    Text(
+                        text = subtitle,
+                        style = AppTheme.typography.bodyMedium,
+                        color = colors.textSecondary,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.testTag(AppTopBarDefaults.subtitleTag(testTagPrefix))
+                            .let {
+                                if (subtitleSemantics !=
+                                    null
+                                ) {
+                                    it.semantics(properties = subtitleSemantics)
+                                } else {
+                                    it
+                                }
+                            },
+                    )
+                }
             }
+            TopBarActions(actions, testTagPrefix)
         }
-        TopBarActions(actions, testTagPrefix)
     }
 }
 

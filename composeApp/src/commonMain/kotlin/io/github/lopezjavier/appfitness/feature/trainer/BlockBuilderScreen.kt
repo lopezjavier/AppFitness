@@ -71,6 +71,7 @@ import io.github.lopezjavier.appfitness.designsystem.ErrorState
 import io.github.lopezjavier.appfitness.designsystem.ExerciseRow
 import io.github.lopezjavier.appfitness.designsystem.HelpButton
 import io.github.lopezjavier.appfitness.designsystem.InlineNote
+import io.github.lopezjavier.appfitness.designsystem.InlineNoteTone
 import io.github.lopezjavier.appfitness.designsystem.ListSectionHeader
 import io.github.lopezjavier.appfitness.designsystem.OfflineHint
 import io.github.lopezjavier.appfitness.designsystem.OfflineState
@@ -134,6 +135,7 @@ private fun BuilderPlaceholderScreen(
                 OfflineState(isOnline = isOnline, onReload = { onEvent(BlockBuilderEvent.Retry) })
             } else {
                 ErrorState(
+                    modifier = Modifier.fillMaxSize(),
                     message = stringResource(Res.string.block_builder_error),
                     action = AppStateAction(stringResource(Res.string.action_retry)) {
                         onEvent(BlockBuilderEvent.Retry)
@@ -171,6 +173,7 @@ private fun BlockBuilderContent(
     }
     AppScreen(
         title = stringResource(Res.string.block_builder_title),
+        subtitle = blockFlowSubtitle(BlockFlowStep.Builder, state.withTargets),
         modifier = modifier,
         onBack = { onEvent(BlockBuilderEvent.Back) },
         footer = { BuilderFooter(state, online, onEvent) },
@@ -240,9 +243,9 @@ private fun DayContent(
         val strength = state.intention == TrainingIntention.Strength
         day.sections().forEach { section ->
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
-                Text(
-                    sectionHeaderText(section),
-                    Modifier.weight(1f).testTag("block_builder_section_${dayIndex}_${section.key}"),
+                ListSectionHeader(
+                    title = sectionTitle(section),
+                    modifier = Modifier.weight(1f).testTag("block_builder_section_${dayIndex}_${section.key}"),
                 )
                 HelpButton(
                     contentDescription = stringResource(
@@ -260,6 +263,7 @@ private fun DayContent(
                     testTag = "block_builder_section_help_${dayIndex}_${section.key}",
                 )
             }
+            Text(sectionSpecText(section), Modifier.testTag("block_builder_section_spec_${dayIndex}_${section.key}"))
             section.slots.forEach { (index, filled) ->
                 SlotRow(ui, dayIndex, index, day, filled, onEvent, onOpenExercise)
             }
@@ -335,8 +339,8 @@ private fun SlotRow(
         tagPrefix = tag,
         imageUri = exercise.rowImageUri(),
         trailing = { SlotActions(name, tag, dayIndex, index, stalled, open, onEvent) },
+        supportingSecondary = if (stalled) swapMarker else null,
     )
-    if (stalled) Text(swapMarker, Modifier.padding(start = Spacing.screenMargin).testTag("${tag}_swap_marker"))
 }
 
 @Suppress("LongParameterList") // The actions of one filled slot.
@@ -444,10 +448,7 @@ private fun CardioSection(ui: BlockBuilderUiState.Builder, dayIndex: Int, minute
 /** The score bar with its text, the notes and "Guardar bloque" (R-09: one pinned footer for the whole block). */
 @Composable
 private fun BuilderFooter(state: BlockBuilderUiState.Builder, online: Boolean, onEvent: (BlockBuilderEvent) -> Unit) {
-    Column(
-        Modifier.fillMaxWidth().padding(Spacing.screenMargin),
-        verticalArrangement = Arrangement.spacedBy(Spacing.sm),
-    ) {
+    Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
         BuilderScoreBar(state.state.score.percent, "block_builder_score")
         if (state.state.days.any { it.cutSets }) {
             Row(
@@ -470,11 +471,13 @@ private fun BuilderFooter(state: BlockBuilderUiState.Builder, online: Boolean, o
             BuilderSaveError.Generic, BuilderSaveError.Offline -> InlineNote(
                 stringResource(Res.string.block_builder_save_error),
                 Modifier.testTag("block_builder_save_error"),
+                tone = InlineNoteTone.Error,
             )
 
             BuilderSaveError.PlanClosed -> InlineNote(
                 stringResource(Res.string.block_builder_plan_closed),
                 Modifier.testTag("block_builder_save_error"),
+                tone = InlineNoteTone.Error,
             )
 
             null -> Unit

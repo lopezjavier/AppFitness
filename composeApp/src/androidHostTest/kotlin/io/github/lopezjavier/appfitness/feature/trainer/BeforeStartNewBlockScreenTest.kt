@@ -30,6 +30,8 @@ import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 
+private val NBSP = 160.toChar().toString()
+
 /** T-240 (US-110): "Antes de empezar" in new-block mode: the goal-change note, the footer and its restoration. */
 @RunWith(RobolectricTestRunner::class)
 @Config(qualifiers = "w360dp-h2400dp-xxhdpi")
@@ -84,7 +86,8 @@ class BeforeStartNewBlockScreenTest {
         show { model }
 
         rule.onNodeWithTag("before_start_note_goal_change").assertTextContains(
-            "Tus calorías pasan de 2.800 a 2.300 kcal: Definición. El bloque actual sigue hasta que guardes el nuevo.",
+            "Tus calorías pasan de 2.800 a 2.300${NBSP}kcal: Definición. " +
+                "El bloque actual sigue hasta que guardes el nuevo.",
         )
     }
 

@@ -3,9 +3,7 @@
 package io.github.lopezjavier.appfitness.designsystem
 
 import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.widthIn
@@ -18,9 +16,9 @@ import androidx.compose.material3.DatePickerDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.SelectableDates
 import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
 import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.semantics
@@ -36,10 +34,6 @@ import kotlin.time.Instant
 /** Shape, tags and date conversions of [AppDatePickerDialog]. */
 object AppDatePickerDialogDefaults {
     val Shape = AppShapes.lg
-
-    fun confirmTag(prefix: String): String = "${prefix}_confirm"
-
-    fun dismissTag(prefix: String): String = "${prefix}_dismiss"
 
     /** The picker works in UTC milliseconds of the start of the day. */
     fun toMillis(date: LocalDate): Long = date.atStartOfDayIn(TimeZone.UTC).toEpochMilliseconds()
@@ -99,8 +93,10 @@ object AppDatePickerDialogDefaults {
 /**
  * Date picker dialog (US-37): the platform calendar in the app's colours. It only reports the picked day: the screen
  * that opened it keeps the date in its draft and saves with its own button. [maxDate] is the latest selectable day (a
- * past-only date field passes today). The root is tagged [testTagPrefix], with `<prefix>_confirm` and
- * `<prefix>_dismiss` buttons; "Listo" stays disabled until a day is selected. Back and a scrim tap dismiss.
+ * past-only date field passes today). The root is tagged [testTagPrefix], with `<prefix>_accept` and
+ * `<prefix>_discard` buttons (a [DecisionButtonRow]: [confirmLabel] primary); the accept button stays disabled until
+ * a day is selected. A [title] replaces the platform's "Select date" heading. The calendar follows the device locale
+ * (month names and the first weekday). Back and a scrim tap dismiss.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Suppress("LongParameterList") // Labels and callbacks of a dialog.
@@ -115,6 +111,7 @@ fun AppDatePickerDialog(
     maxDate: LocalDate? = null,
     minDate: LocalDate? = null,
     testTagPrefix: String = "date_picker",
+    title: String? = null,
 ) {
     val state = rememberDatePickerState(
         initialSelectedDateMillis = selected
@@ -141,25 +138,32 @@ fun AppDatePickerDialog(
             Column(Modifier.verticalScroll(rememberScrollState()).padding(bottom = Spacing.md)) {
                 DatePicker(
                     state = state,
+                    title = {
+                        if (title != null) {
+                            Text(
+                                text = title,
+                                style = AppTheme.typography.titleMedium,
+                                color = AppTheme.colors.textPrimary,
+                                modifier = Modifier.padding(start = Spacing.lg, end = Spacing.lg, top = Spacing.lg)
+                                    .testTag("${testTagPrefix}_title"),
+                            )
+                        } else {
+                            DatePickerDefaults.DatePickerTitle(state.displayMode, Modifier.padding(Spacing.lg))
+                        }
+                    },
                     showModeToggle = false,
                     colors = AppDatePickerDialogDefaults.colors(),
                 )
-                Row(
-                    Modifier.fillMaxWidth().padding(horizontal = Spacing.md),
-                    horizontalArrangement = Arrangement.spacedBy(Spacing.sm, Alignment.End),
-                ) {
-                    GhostButton(
-                        text = dismissLabel,
-                        onClick = onDismiss,
-                        modifier = Modifier.testTag(AppDatePickerDialogDefaults.dismissTag(testTagPrefix)),
-                    )
-                    GhostButton(
-                        text = confirmLabel,
-                        onClick = { picked?.let(onConfirm) },
-                        modifier = Modifier.testTag(AppDatePickerDialogDefaults.confirmTag(testTagPrefix)),
-                        enabled = picked != null,
-                    )
-                }
+                // "Listo" is the primary action, "Cancelar" the ghost one (R-94).
+                DecisionButtonRow(
+                    acceptText = confirmLabel,
+                    discardText = dismissLabel,
+                    onAccept = { picked?.let(onConfirm) },
+                    onDiscard = onDismiss,
+                    testTagPrefix = testTagPrefix,
+                    modifier = Modifier.padding(horizontal = Spacing.md),
+                    acceptEnabled = picked != null,
+                )
             }
         }
     }

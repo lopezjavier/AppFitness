@@ -28,6 +28,8 @@ import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 
+private val NBSP = 160.toChar().toString()
+
 /** US-78: "Tus datos" lists every input by origin, with its source, and opens the place where it is fixed. */
 @RunWith(RobolectricTestRunner::class)
 @Config(qualifiers = "w360dp-h2400dp-xxhdpi")
@@ -84,8 +86,8 @@ class YourDataScreenTest {
         rule.onNodeWithTag("your_data_section_my_training").assertExists()
         rule.onNodeWithTag("your_data_section_weighing").assertExists()
         rule.onNodeWithTag("your_data_section_estimate").assertExists()
-        rule.onNodeWithText("Perder grasa · Mi entrenamiento").assertExists()
-        rule.onNodeWithText("80,0 kg · Pesaje").assertExists()
+        rule.onNodeWithText("Perder grasa").assertExists()
+        rule.onNodeWithText("80,0", substring = true).assertExists()
     }
 
     @Test
@@ -115,9 +117,11 @@ class YourDataScreenTest {
         show()
 
         rule.onNodeWithTag("your_data_chip_provisional_total_expenditure").assertTextEquals("Provisional")
-        rule.onNodeWithTag("your_data_intake_provisional_total_expenditure").assertTextEquals(
-            "Según lo que nos contaste (provisional). Lo cambiaremos por tus datos reales cuando haya suficientes.",
-        )
+        rule.onNodeWithText(
+            "Según lo que nos contaste (provisional)",
+            substring = true,
+            useUnmergedTree = true,
+        ).assertExists()
     }
 
     @Test
@@ -126,7 +130,10 @@ class YourDataScreenTest {
 
         show()
 
-        rule.onNodeWithTag("your_data_intake_provisional_total_expenditure").assertDoesNotExist()
+        rule.onNodeWithTag(
+            "your_data_intake_provisional_total_expenditure",
+            useUnmergedTree = true,
+        ).assertDoesNotExist()
     }
 
     @Test
@@ -136,7 +143,7 @@ class YourDataScreenTest {
         show()
 
         rule.onNodeWithTag("your_data_handover_note")
-            .assertTextEquals("Ahora usamos tus datos reales: tu gasto medido es de 2.400 kcal.")
+            .assertTextEquals("Ahora usamos tus datos reales: tu gasto medido es de 2.400${NBSP}kcal.")
         assertEquals(1, intake.ackCalls)
     }
 

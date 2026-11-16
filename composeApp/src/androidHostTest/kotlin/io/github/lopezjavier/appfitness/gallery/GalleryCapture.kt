@@ -1,8 +1,12 @@
 package io.github.lopezjavier.appfitness.gallery
 
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.test.junit4.ComposeContentTestRule
 import androidx.compose.ui.unit.Density
@@ -45,7 +49,9 @@ internal fun ComposeContentTestRule.renderGallery(allEntries: List<GalleryEntry>
                         LocalAnimationsEnabled provides false,
                         LocalNotificationsEntry provides NotificationsEntry(0) {},
                     ) {
-                        entry.content()
+                        // The app draws every screen on its base surface; without it a screen made only of white-alpha
+                        // placeholders (the root loading) renders invisible on the light host background.
+                        Box(Modifier.fillMaxSize().background(AppTheme.colors.surfaceBase)) { entry.content() }
                     }
                 }
             }

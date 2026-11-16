@@ -18,6 +18,8 @@ import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 
+private val NBSP = 160.toChar().toString()
+
 private val suggestion = ProgressionSuggestion(
     exerciseId = "e1",
     action = ProgressionAction.RaiseWeight,
@@ -69,7 +71,8 @@ class LiveSessionCoachChangeTest {
         rule.onNodeWithTag("live_exercise_0_suggestion").assertDoesNotExist()
         rule.onNodeWithTag("live_exercise_coach_marker_0").performClick()
         rule.onNodeWithText(
-            "Subida de 60 kg a 62,5 kg: completaste todas las series en el máximo del rango con RPE 8 o menos.",
+            "Subida de 60${NBSP}kg a 62,5${NBSP}kg: completaste todas las series en el máximo del rango " +
+                "con RPE 8 o menos.",
         ).assertExists()
     }
 

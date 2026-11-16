@@ -74,6 +74,7 @@ internal fun BuilderSlotPickerSheet(
             onValueChange = { query = it },
             label = stringResource(Res.string.exercise_search_label),
             placeholder = stringResource(Res.string.exercise_search_placeholder),
+            showLabel = false,
             onSearch = {},
             testTagPrefix = "block_builder_picker_search",
             modifier = Modifier.fillMaxWidth().padding(horizontal = Spacing.screenMargin),

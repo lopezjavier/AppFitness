@@ -38,6 +38,7 @@ import io.github.lopezjavier.appfitness.composeapp.resources.catalog_section_rad
 import io.github.lopezjavier.appfitness.composeapp.resources.catalog_section_ring
 import io.github.lopezjavier.appfitness.composeapp.resources.catalog_section_sleep_stages_bar
 import io.github.lopezjavier.appfitness.composeapp.resources.catalog_section_trend_pills
+import io.github.lopezjavier.appfitness.composeapp.resources.catalog_section_weight_pace_chart
 import io.github.lopezjavier.appfitness.composeapp.resources.catalog_state_disabled
 import io.github.lopezjavier.appfitness.composeapp.resources.catalog_text_pill
 import io.github.lopezjavier.appfitness.composeapp.resources.catalog_trend_caution
@@ -69,6 +70,8 @@ import io.github.lopezjavier.appfitness.designsystem.MacroSlider
 import io.github.lopezjavier.appfitness.designsystem.MacroSliderDefaults
 import io.github.lopezjavier.appfitness.designsystem.MacroStackedBar
 import io.github.lopezjavier.appfitness.designsystem.MetricTile
+import io.github.lopezjavier.appfitness.designsystem.PaceSamplePlan
+import io.github.lopezjavier.appfitness.designsystem.PaceSampleWeekly
 import io.github.lopezjavier.appfitness.designsystem.PercentRing
 import io.github.lopezjavier.appfitness.designsystem.ProgressRing
 import io.github.lopezjavier.appfitness.designsystem.RadarChart
@@ -82,6 +85,11 @@ import io.github.lopezjavier.appfitness.designsystem.TextPill
 import io.github.lopezjavier.appfitness.designsystem.TrendDirection
 import io.github.lopezjavier.appfitness.designsystem.TrendPill
 import io.github.lopezjavier.appfitness.designsystem.TrendTone
+import io.github.lopezjavier.appfitness.designsystem.WeightPaceBandPoint
+import io.github.lopezjavier.appfitness.designsystem.WeightPaceChart
+import io.github.lopezjavier.appfitness.designsystem.WeightPaceChartData
+import io.github.lopezjavier.appfitness.designsystem.WeightPaceLabel
+import io.github.lopezjavier.appfitness.designsystem.WeightPacePoint
 import io.github.lopezjavier.appfitness.domain.model.MuscleGroup
 import org.jetbrains.compose.resources.stringResource
 import kotlin.math.roundToInt
@@ -114,6 +122,7 @@ internal fun LazyListScope.dataVizItems() {
     item { MacroBarsSection() }
     item { MacroSlidersSection() }
     item { MacroStackedBarSection() }
+    item { WeightPaceChartSection() }
     item { SleepStagesBarSection() }
     item { MetricTilesSection() }
     item { TrendPillsSection() }
@@ -217,6 +226,42 @@ private fun MacroStackedBarSection() {
                 fatPct = DEFAULT_FAT_PERCENT,
                 testTag = "catalog_macro_stacked_bar",
             )
+        }
+    }
+}
+
+@Suppress("MagicNumber") // Sample weights and weeks of the demo chart.
+private val WeightPaceChartSamples = listOf(
+    WeightPaceChartData(
+        weekly = PaceSampleWeekly,
+        daily = listOf(WeightPacePoint(0.2f, 78.1), WeightPacePoint(1.6f, 78.6), WeightPacePoint(2.8f, 79.1)),
+        plan = PaceSamplePlan,
+        band = listOf(WeightPaceBandPoint(0f, 77.8, 78.2), WeightPaceBandPoint(3f, 78.9, 79.7)),
+        xLabels = listOf(
+            WeightPaceLabel(0f, "Sem 1"),
+            WeightPaceLabel(3f, "Hoy 79,3 kg", emphasized = true),
+            WeightPaceLabel(12f, "4 dic"),
+        ),
+    ) to "catalog_weight_pace_chart_full",
+    WeightPaceChartData(
+        weekly = emptyList(),
+        plan = PaceSamplePlan,
+        xLabels = listOf(WeightPaceLabel(0f, "Sem 1"), WeightPaceLabel(12f, "4 dic")),
+    ) to "catalog_weight_pace_chart_plan_only",
+)
+
+@Composable
+private fun WeightPaceChartSection() {
+    CatalogSection(
+        stringResource(Res.string.catalog_section_weight_pace_chart),
+        "catalog_section_weight_pace_chart",
+    ) {
+        AppCard(Modifier.fillMaxWidth()) {
+            Column(verticalArrangement = Arrangement.spacedBy(Spacing.lg)) {
+                WeightPaceChartSamples.forEach { (data, tag) ->
+                    WeightPaceChart(data = data, modifier = Modifier.testTag(tag))
+                }
+            }
         }
     }
 }

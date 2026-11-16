@@ -4,6 +4,7 @@ import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.assertTextContains
+import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithTag
@@ -19,6 +20,8 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
+
+private val NBSP = 160.toChar().toString()
 
 /** US-93 "Desde una carpeta": one test per Gherkin scenario, over the real ViewModel and fakes. */
 @RunWith(RobolectricTestRunner::class)
@@ -64,7 +67,7 @@ class FolderBlockScreenTest {
         fixture.folder()
         show()
 
-        assertMissing("folder_block_intro")
+        rule.onNodeWithTag("folder_block_intro").assertTextEquals("Tu carpeta original no cambia.")
         assertMissing("folder_block_save_helper")
         rule.onNodeWithTag("folder_block_score").assertTextContains("100", substring = true)
         rule.onNodeWithTag("folder_block_save").assertIsEnabled()
@@ -91,11 +94,10 @@ class FolderBlockScreenTest {
         fixture.folder(days = 3)
         show()
 
-        rule.onNodeWithTag("folder_block_refused_note").assertTextContains(
-            "Tu carpeta tiene 2 rutinas de fuerza y entrenas 3 días a la semana.",
-            substring = true,
-        )
-        rule.onNodeWithTag("folder_block_save").assertIsNotEnabled()
+        rule.onNodeWithTag(
+            "folder_block_refused_note",
+        ).assertTextContainsIgnoringNbsp("Tu carpeta tiene 2 rutinas de fuerza y entrenas 3 días a la semana.")
+        assertMissing("folder_block_save")
         assertMissing("folder_block_routine_0")
     }
 
@@ -104,11 +106,12 @@ class FolderBlockScreenTest {
         fixture.folder(days = 2, routineCount = 1)
         show()
 
-        rule.onNodeWithTag("folder_block_refused_note").assertTextContains(
+        rule.onNodeWithTag(
+            "folder_block_refused_note",
+        ).assertTextContainsIgnoringNbsp(
             "Tu carpeta tiene 1 rutina de fuerza y entrenas 2 días a la semana. Añade otra rutina",
-            substring = true,
         )
-        rule.onNodeWithTag("folder_block_save").assertIsNotEnabled()
+        assertMissing("folder_block_save")
     }
 
     @Test
@@ -116,10 +119,9 @@ class FolderBlockScreenTest {
         fixture.folder(skip = MuscleGroup.Hamstrings)
         show()
 
-        rule.onNodeWithTag("folder_block_intro").assertTextContains("Tu carpeta está al ", substring = true)
-        rule.onNodeWithTag("folder_block_intro").assertTextContains(" %. Complétala para guardarla", substring = true)
+        rule.onNodeWithTag("folder_block_intro").assertTextEquals("Tu carpeta original no cambia.")
         rule.onNodeWithTag("folder_block_save").assertIsNotEnabled()
-        rule.onNodeWithTag("folder_block_save_helper").assertTextContains("al 100 %", substring = true)
+        rule.onNodeWithTag("folder_block_save_helper").assertTextContainsIgnoringNbsp("al 100 %")
         rule.onNodeWithTag("folder_block_missing_row_hamstrings").assertExists()
         rule.onNodeWithTag("folder_block_missing_row_hamstrings_help").assertExists()
 
@@ -127,7 +129,7 @@ class FolderBlockScreenTest {
         rule.onNodeWithTag("folder_block_save").assertIsNotEnabled()
         addHamstringsTo(1)
 
-        assertMissing("folder_block_intro")
+        rule.onNodeWithTag("folder_block_intro").assertTextEquals("Tu carpeta original no cambia.")
         rule.onNodeWithTag("folder_block_save").assertIsEnabled()
         tap("folder_block_save")
         assertEquals(1, fixture.blocks.builtSaves.size)
@@ -182,7 +184,7 @@ class FolderBlockScreenTest {
         show()
         val tag = "folder_block_rep_fix_0_${fixture.chestIndex}"
 
-        rule.onNodeWithTag(tag).assertTextContains("Cambiar a 6-8 repeticiones", substring = true)
+        rule.onNodeWithTag(tag).assertTextContains("Cambiar a 6-8${NBSP}repeticiones", substring = true)
         tap(tag)
 
         assertMissing(tag)
@@ -194,7 +196,10 @@ class FolderBlockScreenTest {
         show()
 
         rule.onNodeWithTag("folder_block_sets_over_note")
-            .assertTextContains("Tiene más de 10 series: quita series o el ejercicio en la carpeta.", substring = true)
+            .assertTextContains(
+                "Tiene más de 10${NBSP}series: quita series o el ejercicio en la carpeta.",
+                substring = true,
+            )
         rule.onNodeWithTag("folder_block_save").assertIsNotEnabled()
     }
 
@@ -264,6 +269,6 @@ class FolderBlockScreenTest {
         show()
 
         rule.onNodeWithTag("folder_block_empty").assertExists()
-        rule.onNodeWithTag("folder_block_save").assertIsNotEnabled()
+        assertMissing("folder_block_save")
     }
 }

@@ -37,16 +37,16 @@ import io.github.lopezjavier.appfitness.composeapp.resources.block_save
 import io.github.lopezjavier.appfitness.composeapp.resources.block_save_action
 import io.github.lopezjavier.appfitness.composeapp.resources.block_save_error
 import io.github.lopezjavier.appfitness.composeapp.resources.block_saved
-import io.github.lopezjavier.appfitness.composeapp.resources.block_sets_count
 import io.github.lopezjavier.appfitness.composeapp.resources.block_sets_header
 import io.github.lopezjavier.appfitness.composeapp.resources.block_sets_row
 import io.github.lopezjavier.appfitness.composeapp.resources.block_week_tab
 import io.github.lopezjavier.appfitness.designsystem.AppCard
-import io.github.lopezjavier.appfitness.designsystem.AppListRow
 import io.github.lopezjavier.appfitness.designsystem.AppOption
 import io.github.lopezjavier.appfitness.designsystem.AppScreen
 import io.github.lopezjavier.appfitness.designsystem.AppTabRow
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
+import io.github.lopezjavier.appfitness.designsystem.BarListRow
+import io.github.lopezjavier.appfitness.designsystem.BarListRowDefaults
 import io.github.lopezjavier.appfitness.designsystem.HelpButton
 import io.github.lopezjavier.appfitness.designsystem.InlineNote
 import io.github.lopezjavier.appfitness.designsystem.ListSectionHeader
@@ -54,6 +54,7 @@ import io.github.lopezjavier.appfitness.designsystem.LocalAppHaptics
 import io.github.lopezjavier.appfitness.designsystem.LocalAppMessages
 import io.github.lopezjavier.appfitness.designsystem.OfflineHint
 import io.github.lopezjavier.appfitness.designsystem.PrimaryButton
+import io.github.lopezjavier.appfitness.designsystem.SectionCard
 import io.github.lopezjavier.appfitness.designsystem.SkeletonBox
 import io.github.lopezjavier.appfitness.designsystem.Spacing
 import io.github.lopezjavier.appfitness.designsystem.StreamProgressState
@@ -156,7 +157,7 @@ fun BlockPreviewScreen(
                 BlockPreviewUiState.Loading, BlockPreviewUiState.Closed -> BlockSkeleton()
 
                 is BlockPreviewUiState.Failed -> Box(Modifier.fillMaxSize(), Alignment.Center) {
-                    CoachFailureContent(state.kind, isOnline, BlockFailureCopy, "block_preview") {
+                    CoachFailureContent(state.kind, isOnline, BlockFailureCopy, "block_preview", onLeave = onBack) {
                         onEvent(BlockPreviewEvent.Retry)
                     }
                 }
@@ -177,29 +178,30 @@ private fun PreviewContent(
 ) {
     val training = state.block.training
     val weeks = state.weeks
+    val inset = Modifier.padding(horizontal = Spacing.screenMargin)
     LazyColumn(
         Modifier.fillMaxSize(),
         state = rememberLazyListState(),
-        contentPadding = PaddingValues(Spacing.screenMargin),
+        contentPadding = PaddingValues(vertical = Spacing.screenMargin),
         verticalArrangement = Arrangement.spacedBy(Spacing.blockGap),
     ) {
-        item(key = "frequency") { FrequencyLine(training) }
+        item(key = "frequency") { FrequencyLine(training, inset) }
         state.splitReason?.let { reason ->
             item(key = "split_reason") {
                 Text(
                     text = reason,
                     style = AppTheme.typography.bodyMedium,
                     color = AppTheme.colors.textPrimary,
-                    modifier = Modifier.testTag("block_preview_split_reason"),
+                    modifier = inset.testTag("block_preview_split_reason"),
                 )
             }
         }
-        if (state.belowRecommended) item(key = "below_recommended") { BelowRecommendedNote() }
+        if (state.belowRecommended) item(key = "below_recommended") { BelowRecommendedNote(inset) }
         state.changesVsLastBlock?.let { changes ->
-            item(key = "changes") { ChangesSection(changes) }
+            item(key = "changes") { ChangesSection(changes, inset) }
         }
         if (training.weeklySets.isNotEmpty()) {
-            item(key = "sets") { SetsSection(training.weeklySets, training.sessionsPerMuscle) }
+            item(key = "sets") { SetsSection(training.weeklySets, training.sessionsPerMuscle, inset) }
         }
         if (weeks.size > 1) {
             item(key = "tabs") {
@@ -210,11 +212,12 @@ private fun PreviewContent(
                     options = options,
                     selectedIndex = weeks.indexOfFirst { it.week == state.selectedWeek }.coerceAtLeast(0),
                     onSelect = { onEvent(BlockPreviewEvent.SelectWeek(weeks[it].week)) },
+                    modifier = Modifier.fillMaxWidth(),
                 )
             }
         }
         item(key = "week_${state.selectedWeek}") {
-            Column(verticalArrangement = Arrangement.spacedBy(Spacing.blockGap)) {
+            Column(inset, verticalArrangement = Arrangement.spacedBy(Spacing.blockGap)) {
                 val ownMin = training.cardio?.onYourOwnMin ?: 0
                 if (ownMin > 0) {
                     Text(
@@ -249,9 +252,9 @@ private fun PreviewContent(
 
 /** "Por debajo de lo recomendado" with its "?" (R-46): the block is still created. */
 @Composable
-private fun BelowRecommendedNote() {
+private fun BelowRecommendedNote(modifier: Modifier = Modifier) {
     Row(
-        Modifier.fillMaxWidth().testTag("block_preview_below_recommended"),
+        modifier.fillMaxWidth().testTag("block_preview_below_recommended"),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
     ) {
@@ -267,8 +270,8 @@ private fun BelowRecommendedNote() {
 
 /** What changed since the previous block: a titled section, not collapsible (R-32). */
 @Composable
-private fun ChangesSection(changes: String) {
-    Column(Modifier.testTag("block_preview_changes")) {
+private fun ChangesSection(changes: String, modifier: Modifier = Modifier) {
+    Column(modifier.testTag("block_preview_changes")) {
         ListSectionHeader(
             stringResource(Res.string.block_changes_header),
             Modifier.testTag("block_preview_changes_header"),
@@ -283,7 +286,7 @@ private fun ChangesSection(changes: String) {
 }
 
 @Composable
-private fun FrequencyLine(training: BlockTraining) {
+private fun FrequencyLine(training: BlockTraining, modifier: Modifier = Modifier) {
     val text = if (training.daysChosen) {
         pluralStringResource(
             Res.plurals.block_frequency_chosen,
@@ -298,36 +301,42 @@ private fun FrequencyLine(training: BlockTraining) {
         text = text,
         style = AppTheme.typography.bodyLarge,
         color = AppTheme.colors.textPrimary,
-        modifier = Modifier.testTag("block_preview_frequency"),
+        modifier = modifier.testTag("block_preview_frequency"),
     )
 }
 
+/** "Series por grupo muscular" of a block (C-102): one [BarListRow] per muscle. */
 @Composable
-private fun SetsSection(weeklySets: Map<String, Int>, sessionsPerMuscle: Map<String, Int>) {
-    Column(Modifier.testTag("block_preview_sets_section")) {
-        ListSectionHeader(stringResource(Res.string.block_sets_header))
-        weeklySets.forEach { (muscle, sets) ->
-            val setsText = pluralStringResource(Res.plurals.block_sets_count, sets, sets)
-            val days = sessionsPerMuscle[muscle]
-            AppListRow(
-                headline = blockMuscleName(muscle),
-                modifier = Modifier.testTag("block_preview_sets_$muscle"),
-                trailing = {
-                    Text(
-                        text = if (days == null) {
-                            setsText
-                        } else {
-                            stringResource(
-                                Res.string.block_sets_row,
-                                setsText,
-                                pluralStringResource(Res.plurals.block_days_week, days, days),
-                            )
-                        },
-                        style = AppTheme.typography.bodyLarge,
-                        color = AppTheme.colors.textPrimary,
-                    )
-                },
-            )
+internal fun SetsSection(
+    weeklySets: Map<String, Int>,
+    sessionsPerMuscle: Map<String, Int>,
+    modifier: Modifier = Modifier,
+) {
+    val largest = weeklySets.values.max()
+    SectionCard(
+        stringResource(Res.string.block_sets_header),
+        modifier = modifier,
+        testTag = "block_preview_sets_section",
+    ) {
+        Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+            weeklySets.entries.forEachIndexed { index, (muscle, sets) ->
+                val days = sessionsPerMuscle[muscle]
+                BarListRow(
+                    label = if (days == null) {
+                        blockMuscleName(muscle)
+                    } else {
+                        stringResource(
+                            Res.string.block_sets_row,
+                            blockMuscleName(muscle),
+                            pluralStringResource(Res.plurals.block_days_week, days, days),
+                        )
+                    },
+                    value = sets.toString(),
+                    fraction = BarListRowDefaults.fraction(sets, largest),
+                    staggerIndex = index,
+                    testTag = "block_preview_sets_$muscle",
+                )
+            }
         }
     }
 }
@@ -335,10 +344,7 @@ private fun SetsSection(weeklySets: Map<String, Int>, sessionsPerMuscle: Map<Str
 /** Pinned footer: "Guardar bloque", disabled offline with the reason (R-30). */
 @Composable
 private fun BlockFooter(state: BlockPreviewUiState.Preview, online: Boolean, onEvent: (BlockPreviewEvent) -> Unit) {
-    Column(
-        Modifier.fillMaxWidth().padding(Spacing.screenMargin),
-        verticalArrangement = Arrangement.spacedBy(Spacing.sm),
-    ) {
+    Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
         PrimaryButton(
             text = stringResource(Res.string.block_save),
             onClick = { onEvent(BlockPreviewEvent.Save) },

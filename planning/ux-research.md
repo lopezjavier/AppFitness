@@ -89,3 +89,18 @@ Sources the `ux-critic` already opened, with the takeaway used. Read this before
 - C-67, C-69: NN/g visibility of system status: communicate the current state; show progress. https://www.nngroup.com/articles/visibility-system-status/
 - C-73: Hevy gym-consistency: whole-year calendar view, trained days highlighted. https://www.hevyapp.com/features/gym-consistency/
 - Confirmed Material Symbols Outlined names: `calculate`, `drive_file_move`, `sticky_note_2`, `content_copy`, `flag`, `timer`, `fitness_center`. Unverified: `link`, `link_off`, `fact_check`.
+
+## Round 3: Trainer (T-283)
+- C-101, C-102, C-113: NN/g dashboards preattentive: length and 2D position read fastest; gauges and pies discouraged. https://www.nngroup.com/articles/dashboards-preattentive/
+- C-101, C-103, C-105, C-114: Carbon dashboards: the most important data gets the highest contrast and largest area, at the top. https://carbondesignsystem.com/data-visualization/dashboards/
+- C-101, C-102, C-105: MacroFactor dashboard revamp: insights front and center, goal progress on the check-in panel. https://macrofactor.com/dashboard-revamp/
+- C-102: Hevy sets per muscle group per week, shown as a graph. https://www.hevyapp.com/features/sets-per-muscle-group-per-week/
+- C-106: Android canonical layouts (feed = adaptive grid) and window size classes (compact < 600, medium 600-839, expanded >= 840 dp). https://developer.android.com/develop/ui/compose/layouts/adaptive/canonical-layouts
+- C-112, C-118, C-120, C-122, C-106: Android settings pattern: group with containment and headings; set a max width. https://developer.android.com/design/ui/mobile/guides/patterns/settings
+- C-108: NN/g wizards: show the steps and highlight the current one. https://www.nngroup.com/articles/wizards/
+- C-108, C-113: Carbon progress indicator: completed, current, not started; not when the step count changes mid-flow. https://carbondesignsystem.com/components/progress-indicator/usage/
+- C-103, C-109, C-116, C-117, C-118: Carbon status indicator pattern: orange/yellow warnings, blue passive information, grey not started. https://carbondesignsystem.com/patterns/status-indicator-pattern/
+- C-111: NN/g empty states: say the status, teach what will appear, give a direct path. https://www.nngroup.com/articles/empty-state-interface-design/
+- C-104: Carbon button usage: grouped buttons share one width; primary on the right, on top when stacked. https://carbondesignsystem.com/components/button/usage/
+- C-110: Non-breaking space between a number and its unit (style guides cited). https://en.wikipedia.org/wiki/Non-breaking_space
+- C-119: M3 motion tokens: DurationMedium2 = 300 ms; emphasized decelerate (0.05, 0.7, 0.1, 1.0).

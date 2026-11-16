@@ -32,7 +32,7 @@ data class CoachChangeRowAction(
 
 /**
  * A coach load change as a card row (T-228, ADR-88): the exercise [headline] (a tap on it calls [onHeadlineClick]),
- * the [reason] in plain words, an optional [detail] line and, for a closed change, a [statusText] chip ("Deshecho",
+ * the [reason] in plain words, an optional [detail] line and, for a closed change, a [statusText] chip ("Revertido",
  * "Subida aceptada"; text, never colour alone). [actions] are text buttons below; all are disabled when [enabled] is
  * false (busy or offline) and [footer] holds the hint that says why. The card is tagged [testTagPrefix], the status
  * chip `<testTagPrefix>_status`.

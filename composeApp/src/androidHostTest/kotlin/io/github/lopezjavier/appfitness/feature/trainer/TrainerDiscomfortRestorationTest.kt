@@ -31,9 +31,15 @@ class TrainerDiscomfortRestorationTest {
     )
     private val saved = SavedStateHandle()
 
+    private val plans = FakeCoachPlanRepository().also {
+        it.current =
+            Result.success(coachPlan(status = io.github.lopezjavier.appfitness.domain.model.PlanStatus.Accepted))
+    }
+
     private fun model() = TrainerViewModel(
         FakeCoachRepository(),
         MutableClock(),
+        plans = plans,
         savedState = saved,
         discomfortFollowUps = repository,
         exerciseNames = discomfortNames(),

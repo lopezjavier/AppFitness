@@ -1,20 +1,21 @@
 package io.github.lopezjavier.appfitness.feature.trainer
 
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import io.github.lopezjavier.appfitness.composeapp.resources.Res
+import io.github.lopezjavier.appfitness.composeapp.resources.report_tile_days_label
+import io.github.lopezjavier.appfitness.composeapp.resources.report_tile_days_unit
+import io.github.lopezjavier.appfitness.composeapp.resources.report_tile_kcal_label
+import io.github.lopezjavier.appfitness.composeapp.resources.report_tile_kcal_target
+import io.github.lopezjavier.appfitness.composeapp.resources.report_tile_protein_label
+import io.github.lopezjavier.appfitness.composeapp.resources.report_tile_protein_per_kg
+import io.github.lopezjavier.appfitness.composeapp.resources.report_tile_protein_target
+import io.github.lopezjavier.appfitness.composeapp.resources.report_tile_weight_label
+import io.github.lopezjavier.appfitness.composeapp.resources.report_tile_weight_slope
 import io.github.lopezjavier.appfitness.composeapp.resources.week_summary_decision
-import io.github.lopezjavier.appfitness.composeapp.resources.week_summary_nutrition_days
 import io.github.lopezjavier.appfitness.composeapp.resources.week_summary_nutrition_header
-import io.github.lopezjavier.appfitness.composeapp.resources.week_summary_nutrition_kcal
-import io.github.lopezjavier.appfitness.composeapp.resources.week_summary_nutrition_kcal_avg_only
 import io.github.lopezjavier.appfitness.composeapp.resources.week_summary_nutrition_missing
-import io.github.lopezjavier.appfitness.composeapp.resources.week_summary_nutrition_protein
-import io.github.lopezjavier.appfitness.composeapp.resources.week_summary_nutrition_protein_avg_only
-import io.github.lopezjavier.appfitness.composeapp.resources.week_summary_nutrition_protein_no_kg
 import io.github.lopezjavier.appfitness.composeapp.resources.week_summary_nutrition_weigh_ins
 import io.github.lopezjavier.appfitness.composeapp.resources.week_summary_proposal_applied
 import io.github.lopezjavier.appfitness.composeapp.resources.week_summary_proposal_declined
@@ -25,8 +26,7 @@ import io.github.lopezjavier.appfitness.composeapp.resources.week_summary_weight
 import io.github.lopezjavier.appfitness.composeapp.resources.week_summary_weight_no_target
 import io.github.lopezjavier.appfitness.composeapp.resources.week_summary_weight_none
 import io.github.lopezjavier.appfitness.designsystem.AppNumberFormat
-import io.github.lopezjavier.appfitness.designsystem.ListSectionHeader
-import io.github.lopezjavier.appfitness.designsystem.Spacing
+import io.github.lopezjavier.appfitness.designsystem.SectionCard
 import io.github.lopezjavier.appfitness.domain.model.ProposalStatus
 import io.github.lopezjavier.appfitness.domain.model.WeekSummary
 import io.github.lopezjavier.appfitness.domain.model.WeekSummaryDecision
@@ -35,21 +35,27 @@ import org.jetbrains.compose.resources.pluralStringResource
 import org.jetbrains.compose.resources.stringResource
 import kotlin.math.abs
 
-/** The nutrition card (07 section 4 (a)): days, averages against the goals, weight and the calorie decisions. */
+/**
+ * The nutrition card (07 section 4 (a)): the four figures as a 2 x 2 tile grid, weigh-ins and the calorie decisions.
+ */
 @Composable
 internal fun NutritionSection(summary: WeekSummary) {
     val nutrition = summary.nutrition ?: return
-    SummaryCard("week_summary_section_nutrition") {
-        ListSectionHeader(stringResource(Res.string.week_summary_nutrition_header))
-        if (nutrition.gateOk) {
-            NutritionFigures(nutrition)
-        } else {
+    SectionCard(
+        stringResource(Res.string.week_summary_nutrition_header),
+        testTag = "week_summary_section_nutrition",
+    ) {
+        if (!nutrition.gateOk) {
             SummaryLine(
                 stringResource(Res.string.week_summary_nutrition_missing, nutrition.completeDays),
                 Modifier.testTag("week_summary_nutrition_missing"),
             )
         }
-        SummaryLine(weightText(summary), Modifier.testTag("week_summary_nutrition_weight"))
+        val tiles = nutritionTiles(summary, nutrition)
+        if (tiles.isNotEmpty()) ReportTileGrid(tiles)
+        if (summary.weight?.avgKg == null) {
+            SummaryLine(weightText(summary), Modifier.testTag("week_summary_nutrition_weight"))
+        }
         SummaryLine(
             stringResource(
                 Res.string.week_summary_nutrition_weigh_ins,
@@ -61,40 +67,65 @@ internal fun NutritionSection(summary: WeekSummary) {
     }
 }
 
+/** Days, average calories, average protein and average weight; a figure the week lacks is left out. */
 @Composable
-private fun NutritionFigures(nutrition: WeekSummaryNutrition) {
-    Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-        SummaryLine(
-            stringResource(Res.string.week_summary_nutrition_days, nutrition.completeDays),
-            Modifier.testTag("week_summary_nutrition_days"),
+private fun nutritionTiles(summary: WeekSummary, nutrition: WeekSummaryNutrition): List<ReportTile> = buildList {
+    if (nutrition.gateOk) {
+        add(
+            ReportTile(
+                "week_summary_nutrition_days",
+                stringResource(Res.string.report_tile_days_label),
+                nutrition.completeDays.toString(),
+                stringResource(Res.string.report_tile_days_unit),
+            ),
         )
-        val kcal = nutrition.avgKcal
-        if (kcal != null) {
+        nutrition.avgKcal?.let { kcal ->
             val target = nutrition.targetKcal
-            val text = if (target == null) {
-                stringResource(Res.string.week_summary_nutrition_kcal_avg_only, AppNumberFormat.integer(kcal))
-            } else {
-                stringResource(
-                    Res.string.week_summary_nutrition_kcal,
+            add(
+                ReportTile(
+                    "week_summary_nutrition_kcal",
+                    stringResource(Res.string.report_tile_kcal_label),
                     AppNumberFormat.integer(kcal),
-                    WeekSummaryText.kcalDifference(kcal, target),
-                    AppNumberFormat.integer(target),
-                )
-            }
-            SummaryLine(text, Modifier.testTag("week_summary_nutrition_kcal"))
+                    "kcal",
+                    target?.let {
+                        stringResource(
+                            Res.string.report_tile_kcal_target,
+                            AppNumberFormat.integer(it),
+                            WeekSummaryText.kcalDifference(kcal, it),
+                        )
+                    },
+                ),
+            )
         }
-        val protein = nutrition.avgProteinG
-        if (protein != null) {
-            val avg = WeekSummaryText.proteinGrams(protein)
+        nutrition.avgProteinG?.let { protein ->
             val target = nutrition.targetProteinG?.let { AppNumberFormat.integer(it) }
-            val perKg = nutrition.proteinGPerKg?.let { WeekSummaryText.perKg(it) }
-            val text = when {
-                target == null -> stringResource(Res.string.week_summary_nutrition_protein_avg_only, avg)
-                perKg == null -> stringResource(Res.string.week_summary_nutrition_protein_no_kg, avg, target)
-                else -> stringResource(Res.string.week_summary_nutrition_protein, avg, perKg, target)
+            val perKg = nutrition.proteinGPerKg?.let {
+                stringResource(Res.string.report_tile_protein_per_kg, WeekSummaryText.perKg(it))
             }
-            SummaryLine(text, Modifier.testTag("week_summary_nutrition_protein"))
+            add(
+                ReportTile(
+                    "week_summary_nutrition_protein",
+                    stringResource(Res.string.report_tile_protein_label),
+                    WeekSummaryText.proteinGrams(protein),
+                    "g",
+                    listOfNotNull(target?.let { stringResource(Res.string.report_tile_protein_target, it) }, perKg)
+                        .joinToString(" · ").ifEmpty { null },
+                ),
+            )
         }
+    }
+    summary.weight?.avgKg?.let { avg ->
+        add(
+            ReportTile(
+                "week_summary_nutrition_weight",
+                stringResource(Res.string.report_tile_weight_label),
+                WeekSummaryText.kg(avg),
+                "kg",
+                summary.weight?.slopeKgWeek?.let {
+                    stringResource(Res.string.report_tile_weight_slope, WeekSummaryText.signedKg(it))
+                },
+            ),
+        )
     }
 }
 

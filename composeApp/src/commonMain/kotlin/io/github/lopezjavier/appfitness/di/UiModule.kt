@@ -476,8 +476,6 @@ val uiModule =
                 blocks = get(),
                 coachWeeks = get(),
                 savedState = get(),
-                goals = get(),
-                profile = get(),
                 measurements = get(),
                 coachChanges = get(),
                 decideProposal = get(),
@@ -485,8 +483,10 @@ val uiModule =
                 loadBlockReview = get(),
                 loadWeeksInPhase = get(),
                 loadWelcomeBack = get(),
+                recordPausedWeek = get(),
                 discomfortFollowUps = get(),
                 exerciseNames = get(),
+                diary = get(),
             )
         }
         viewModel {

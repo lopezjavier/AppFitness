@@ -156,7 +156,7 @@ class AppEditorScreenTest {
         online = false
         show()
         rule.onNodeWithTag("ed_save").assertIsNotEnabled()
-        rule.onNodeWithTag("offline_hint").assertIsDisplayed().assertTextEquals("Sin conexión: no se puede guardar")
+        rule.onNodeWithTag("offline_hint").assertIsDisplayed().assertTextEquals("Sin conexión: no se puede guardar.")
     }
 
     @Test

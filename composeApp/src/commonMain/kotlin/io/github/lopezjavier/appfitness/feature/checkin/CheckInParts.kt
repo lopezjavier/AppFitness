@@ -11,7 +11,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.rememberUpdatedState
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import io.github.lopezjavier.appfitness.composeapp.resources.Res
@@ -67,16 +66,15 @@ internal fun CheckInPlaceholder(
     AppScreen(title = title, modifier = modifier, onBack = onClose, testTagPrefix = "checkin") {
         Box(Modifier.fillMaxSize().testTag("checkin_screen")) {
             if (state == CheckInUiState.LoadFailed) {
-                Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    ErrorState(
-                        message = stringResource(Res.string.checkin_load_error),
-                        action = AppStateAction(stringResource(Res.string.action_retry)) {
-                            onEvent(CheckInEvent.Retry)
-                        },
-                        actionTestTag = "checkin_retry",
-                        testTagPrefix = "checkin_error",
-                    )
-                }
+                ErrorState(
+                    modifier = Modifier.fillMaxSize(),
+                    message = stringResource(Res.string.checkin_load_error),
+                    action = AppStateAction(stringResource(Res.string.action_retry)) {
+                        onEvent(CheckInEvent.Retry)
+                    },
+                    actionTestTag = "checkin_retry",
+                    testTagPrefix = "checkin_error",
+                )
             } else {
                 Column(
                     Modifier.fillMaxSize().padding(Spacing.screenMargin).testTag("checkin_loading"),

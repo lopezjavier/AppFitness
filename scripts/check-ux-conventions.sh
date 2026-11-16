@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # UX conventions guard (T-118, planning/phase1/ux-audit-2026-10.md section 10, planning/05-design-system.md).
-# Features must reuse the design-system templates instead of reinventing them (guards G1..G21).
+# Features must reuse the design-system templates instead of reinventing them (guards G1..G27).
 #
 # Usage: check-ux-conventions.sh [root-dir] [warnings-file] [allowlist-file]
 #   root-dir        tree to scan (default: repository root). Tests pass a fixture tree.
@@ -37,7 +37,7 @@ while IFS= read -r raw || [ -n "$raw" ]; do
   line="${raw%%#*}"
   line="$(printf '%s' "$line" | sed -E 's/^[[:space:]]+//; s/[[:space:]]+$//')"
   [ -z "$line" ] && continue
-  if ! printf '%s' "$line" | grep -qE '^G([1-9]|1[0-9]|2[01]) [^ ]+$'; then
+  if ! printf '%s' "$line" | grep -qE '^G([1-9]|1[0-9]|2[0-9]) [^ ]+$'; then
     echo "UX conventions guard ERROR: malformed warnings line: $raw" >&2
     exit 2
   fi
@@ -376,6 +376,52 @@ fi
 # placeholders and wheel neighbours use `textTertiary`; data and status text use `textSecondary`.
 scan G20 "ghostData in feature code (R-65: textTertiary for previous values and placeholders, textSecondary for data)" \
   '\bghostData\b' '.*/feature/catalog/[^:]*' "${kotlin_feature[@]+"${kotlin_feature[@]}"}"
+
+# G22..G27 (T-283, round 3, R-93, R-96, R-100, R-102, R-103): the Trainer root keeps what the user approved. Each guard
+# is the grep form of one written rule (05 section 8); none has a warnings-file entry.
+root_summary_cards=()
+root_card_files=()
+root_screen=()
+for file in "${kotlin_feature[@]+"${kotlin_feature[@]}"}"; do
+  case "$file" in
+    */feature/trainer/TrainerPlanCard.kt) root_summary_cards+=("$file"); root_card_files+=("$file") ;;
+    */feature/trainer/TrainerBlockCard.kt | */feature/trainer/TrainerHubGrid.kt) root_card_files+=("$file") ;;
+    */feature/trainer/TrainerScreen.kt) root_card_files+=("$file"); root_screen+=("$file") ;;
+  esac
+done
+# G22 (R-103): the "Tu plan" root card summarises; its actions live in its ⋮ menu (R-105), never in the body.
+# TrainerBlockCard.kt is not scanned because the week tabs and the coach-change rows there are controls of the card.
+scan G22 "action button, pencil or help button in the Tu plan root card (R-103: actions live in the card's menu)" \
+  '\b(GhostButton|AppTextButton|PrimaryButton|SecondaryButton|HelpButton|AppIconButton)\(' '' \
+  "${root_summary_cards[@]+"${root_summary_cards[@]}"}"
+# G23 (R-96): a feature never declares its own SummaryCard / SectionCard.
+scan G23 "feature-local SummaryCard/SectionCard (R-96: use the designsystem one)" \
+  '\bfun (SummaryCard|SectionCard)\(' '' "${kotlin_feature[@]+"${kotlin_feature[@]}"}"
+# G24 (R-102): hub root cards show energy figures and never a macro bar.
+scan G24 "MacroStackedBar in a Trainer root card (R-102: macros live in Plan nutricional)" \
+  '\bMacroStackedBar\(' '' "${root_card_files[@]+"${root_card_files[@]}"}"
+# G27 (R-103): the root screen opens no dialog of its own (removal and week extension are hosted by the card menus'
+# targets, never by TrainerScreen.kt).
+scan G27 "dialog on the Trainer root screen (R-103: dialogs belong to the card menu targets)" \
+  '\b(RemoveBlockDialog|AppDatePickerDialog|AppConfirmDialog)\(' '' "${root_screen[@]+"${root_screen[@]}"}"
+if [ -f "$strings_file" ]; then
+  # G25 (R-100): the word "coach" is never shown; it is "entrenador".
+  rc=0
+  hits=$(grep -HnE '>[^<]*\b[Cc]oach\b' "$strings_file") || rc=$?
+  if [ "$rc" -ge 2 ]; then
+    echo "UX conventions guard ERROR: grep failed with exit code $rc (G25)." >&2
+    exit "$rc"
+  fi
+  [ "$rc" -eq 0 ] && report G25 "the word coach in strings.xml (R-100: entrenador)" "$hits"
+  # G26 (R-93): in the Trainer strings a number and its unit are joined with U+00A0 (&#160;), never a plain space.
+  rc=0
+  hits=$(grep -HnE '<string name="(trainer|block|plan|week_summary|report)_[^"]*"[^>]*>[^<]*(%[0-9]\$[sd]|[0-9]) (kg|kcal|min|g|%)([^[:alnum:]]|$)' "$strings_file") || rc=$?
+  if [ "$rc" -ge 2 ]; then
+    echo "UX conventions guard ERROR: grep failed with exit code $rc (G26)." >&2
+    exit "$rc"
+  fi
+  [ "$rc" -eq 0 ] && report G26 "number and unit joined with a plain space in a Trainer string (R-93: use &#160;)" "$hits"
+fi
 
 if [ "$violations" -gt 0 ]; then
   echo "UX conventions guard FAILED: $violations violation(s), $warnings warning(s)." >&2

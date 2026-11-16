@@ -43,6 +43,7 @@ import io.github.lopezjavier.appfitness.designsystem.AppTheme
 import io.github.lopezjavier.appfitness.designsystem.EmptyState
 import io.github.lopezjavier.appfitness.designsystem.ErrorState
 import io.github.lopezjavier.appfitness.designsystem.HelpButton
+import io.github.lopezjavier.appfitness.designsystem.RowGroupCard
 import io.github.lopezjavier.appfitness.designsystem.ScoreRing
 import io.github.lopezjavier.appfitness.designsystem.SkeletonBox
 import io.github.lopezjavier.appfitness.designsystem.Spacing
@@ -87,25 +88,23 @@ fun FolderReviewResultScreen(
             when (state) {
                 FolderReviewResultUiState.Loading -> ResultSkeleton()
 
-                FolderReviewResultUiState.Empty -> Box(Modifier.fillMaxSize(), Alignment.Center) {
-                    EmptyState(
-                        icon = Res.drawable.ic_folder,
-                        message = stringResource(Res.string.folder_review_result_empty_body),
-                        title = stringResource(Res.string.folder_review_result_empty_title),
-                        testTagPrefix = "folder_review_result_empty",
-                    )
-                }
+                FolderReviewResultUiState.Empty -> EmptyState(
+                    modifier = Modifier.fillMaxSize(),
+                    icon = Res.drawable.ic_folder,
+                    message = stringResource(Res.string.folder_review_result_empty_body),
+                    title = stringResource(Res.string.folder_review_result_empty_title),
+                    testTagPrefix = "folder_review_result_empty",
+                )
 
-                FolderReviewResultUiState.Error -> Box(Modifier.fillMaxSize(), Alignment.Center) {
-                    ErrorState(
-                        message = stringResource(Res.string.folder_review_error),
-                        action = AppStateAction(stringResource(Res.string.action_retry)) {
-                            onEvent(FolderReviewResultEvent.Retry)
-                        },
-                        testTagPrefix = "folder_review_result_error",
-                        actionTestTag = "folder_review_result_retry",
-                    )
-                }
+                FolderReviewResultUiState.Error -> ErrorState(
+                    modifier = Modifier.fillMaxSize(),
+                    message = stringResource(Res.string.folder_review_error),
+                    action = AppStateAction(stringResource(Res.string.action_retry)) {
+                        onEvent(FolderReviewResultEvent.Retry)
+                    },
+                    testTagPrefix = "folder_review_result_error",
+                    actionTestTag = "folder_review_result_retry",
+                )
 
                 is FolderReviewResultUiState.Content -> ResultContent(state)
             }
@@ -125,9 +124,12 @@ private fun ResultContent(state: FolderReviewResultUiState.Content) {
             verticalArrangement = Arrangement.spacedBy(Spacing.lg),
         ) {
             ScoreCard(state)
-            Column(Modifier.testTag("folder_review_result_rows")) {
-                state.items.forEach { item -> ReviewListRow(item, "folder_review_result_row_") }
-            }
+            RowGroupCard(
+                rows = state.items.map { item ->
+                    { ReviewListRow(item, "folder_review_result_row_", Modifier.padding(horizontal = Spacing.lg)) }
+                },
+                modifier = Modifier.testTag("folder_review_result_rows"),
+            )
         }
     }
 }

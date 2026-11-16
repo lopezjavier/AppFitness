@@ -16,11 +16,14 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawWithCache
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.tooling.preview.Preview
 
 private const val SHIMMER_PERIOD_MILLIS = 1200
+private const val SKELETON_BASE_ALPHA = 0.08f
+private const val SKELETON_PEAK_ALPHA = 0.16f
 
 /**
  * Decorative loading placeholder with a left-to-right shimmer. It is hidden from accessibility.
@@ -34,8 +37,9 @@ fun SkeletonBox(modifier: Modifier = Modifier, shape: Shape = AppShapes.base) {
         animationSpec = infiniteRepeatable(tween(SHIMMER_PERIOD_MILLIS, easing = LinearEasing), RepeatMode.Restart),
         label = "skeleton_shimmer_progress",
     )
-    val base = AppTheme.colors.surfaceRaised
-    val highlight = nestedContainerColor()
+    // C-107: white 8 % base, white 16 % shimmer peak.
+    val base = Color.White.copy(alpha = SKELETON_BASE_ALPHA)
+    val highlight = Color.White.copy(alpha = SKELETON_PEAK_ALPHA)
     Box(
         modifier =
         modifier

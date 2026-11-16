@@ -4,6 +4,7 @@ import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.junit4.StateRestorationTester
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
+import androidx.compose.ui.test.onNodeWithText
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
 import io.github.lopezjavier.appfitness.domain.model.BlockPause
 import io.github.lopezjavier.appfitness.domain.model.PlanStatus
@@ -31,43 +32,45 @@ class BlockPauseScreenTest {
     )
 
     private fun showTrainer(state: TrainerUiState) {
-        rule.setContent { AppTheme { TrainerWithBoxes(state, flowOf(true), {}) } }
+        rule.setContent { AppTheme { TrainerScreen(state, flowOf(true), {}) } }
         rule.waitForIdle()
-        rule.openTrainerBlock()
     }
 
     private val end = LocalDate(2026, 10, 24)
 
     @Test
-    fun pausedBlock_showsTheChipAndTheMovedEndDate() {
+    fun pausedBlock_showsEnPausaOnTheCurrentWeekAndTheMovedEndDate() {
         showTrainer(trainer(BlockPause(paused = true, pausedWeeks = 1, blockEnd = end)))
 
-        rule.onNodeWithTag("trainer_block_paused").assertTextEquals("Semana en pausa")
-        rule.onNodeWithTag("trainer_block_end").assertTextEquals("El bloque termina el 24 de octubre")
+        rule.onNodeWithText("En pausa", useUnmergedTree = true).assertExists()
+        rule.onNodeWithTag(
+            "trainer_box_block_end",
+            useUnmergedTree = true,
+        ).assertTextEquals("El bloque termina el 24 oct.")
     }
 
     @Test
-    fun afterResume_theEndDateStaysAndTheChipGoes() {
+    fun afterResume_theEndDateStaysAndTheChipReadsActual() {
         showTrainer(trainer(BlockPause(paused = false, pausedWeeks = 1, blockEnd = end)))
 
-        rule.onNodeWithTag("trainer_block_paused").assertDoesNotExist()
-        rule.onNodeWithTag("trainer_block_end").assertExists()
+        rule.onNodeWithText("Actual", useUnmergedTree = true).assertExists()
+        rule.onNodeWithTag("trainer_box_block_end", useUnmergedTree = true).assertExists()
     }
 
     @Test
-    fun withoutAnyPausedWeek_neitherTheChipNorTheEndLineShow() {
+    fun withoutAnyPausedWeek_theEndLineIsNotShown() {
         showTrainer(trainer(BlockPause(paused = false, pausedWeeks = 0, blockEnd = end)))
 
-        rule.onNodeWithTag("trainer_block_paused").assertDoesNotExist()
-        rule.onNodeWithTag("trainer_block_end").assertDoesNotExist()
+        rule.onNodeWithText("Actual", useUnmergedTree = true).assertExists()
+        rule.onNodeWithTag("trainer_box_block_end", useUnmergedTree = true).assertDoesNotExist()
     }
 
     @Test
-    fun unknownPause_hidesBothLinesButKeepsTheWeeks() {
+    fun unknownPause_hidesTheEndLineButKeepsTheWeeks() {
         showTrainer(trainer(null))
 
-        rule.onNodeWithTag("trainer_block_paused").assertDoesNotExist()
-        rule.onNodeWithTag("trainer_weeks_section").assertExists()
+        rule.onNodeWithTag("trainer_box_block_end", useUnmergedTree = true).assertDoesNotExist()
+        rule.onNodeWithTag("trainer_box_block_weeks").assertExists()
     }
 
     @Test
@@ -90,14 +93,13 @@ class BlockPauseScreenTest {
     fun recreation_keepsThePausedChipAndEndLine() {
         val tester = StateRestorationTester(rule)
         val state = trainer(BlockPause(paused = true, pausedWeeks = 1, blockEnd = end))
-        tester.setContent { AppTheme { TrainerWithBoxes(state, flowOf(true), {}) } }
-        rule.openTrainerBlock()
+        tester.setContent { AppTheme { TrainerScreen(state, flowOf(true), {}) } }
 
         tester.emulateSavedInstanceStateRestore()
         rule.waitForIdle()
 
-        rule.onNodeWithTag("trainer_block_paused").assertExists()
-        rule.onNodeWithTag("trainer_block_end").assertExists()
+        rule.onNodeWithText("En pausa", useUnmergedTree = true).assertExists()
+        rule.onNodeWithTag("trainer_box_block_end", useUnmergedTree = true).assertExists()
     }
 
     @Test

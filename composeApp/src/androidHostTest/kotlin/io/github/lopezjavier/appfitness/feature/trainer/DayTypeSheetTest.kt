@@ -21,6 +21,8 @@ import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 
+private val NBSP = 160.toChar().toString()
+
 /** US-72 "A routine type per day", "A type that leaves a muscle without a day is disabled", strength advice. */
 @Suppress("TooManyFunctions") // One method per scenario.
 @RunWith(RobolectricTestRunner::class)
@@ -148,7 +150,10 @@ class DayTypeSheetTest {
         show(typesState(noFit = NoFitInfo(day = 1, neededMinutes = 95, limitMinutes = 45)))
 
         rule.onNodeWithTag("block_types_continue").assertIsNotEnabled()
-        rule.onNodeWithText("No cabe en 45 min: sube la duración, los días o cambia la división.", substring = true)
+        rule.onNodeWithText(
+            "No cabe en 45${NBSP}min: sube la duración, los días o cambia la división.",
+            substring = true,
+        )
             .assertExists()
     }
 
@@ -199,6 +204,6 @@ class DayTypeSheetTest {
         check(state.options.flatten().any { it.strengthNote }) { "The fixture needs a strength note" }
         rule.onNodeWithTag("block_type_help_0").performClick()
 
-        rule.onNodeWithText("Para ganar fuerza conviene entrenar cada músculo al menos 2 días.").assertExists()
+        rule.onNodeWithText("Para ganar fuerza conviene entrenar cada músculo al menos 2${NBSP}días.").assertExists()
     }
 }

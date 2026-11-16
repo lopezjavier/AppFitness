@@ -135,7 +135,7 @@ internal fun TrainerEffectsHost(effects: Flow<TrainerEffect>, onRefresh: () -> U
 
                 is TrainerEffect.FlagDecided -> latestHaptics.confirm()
 
-                // The row turns "Deshecho" by itself; only routines edited since need a message (R-13).
+                // The row turns "Revertido" by itself; only routines edited since need a message (R-13).
                 is TrainerEffect.CoachChangeUndone -> {
                     latestHaptics.confirm()
                     if (effect.skipped > 0) {

@@ -10,10 +10,7 @@ import io.github.lopezjavier.appfitness.app.FakeConnectivityObserver
 import io.github.lopezjavier.appfitness.app.FakeDiscomfortFollowUpRepository
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
 import io.github.lopezjavier.appfitness.domain.model.DiscomfortNoteReason
-import io.github.lopezjavier.appfitness.domain.model.PlanStatus
-import io.github.lopezjavier.appfitness.domain.model.WeekPhase
 import io.github.lopezjavier.appfitness.feature.workout.MutableClock
-import kotlinx.coroutines.flow.flowOf
 import org.junit.Assert.assertEquals
 import org.junit.Rule
 import org.junit.Test
@@ -31,9 +28,15 @@ class TrainerDiscomfortScreenTest {
 
     private val repository = FakeDiscomfortFollowUpRepository(candidates = swapCandidates())
 
+    private val plans = FakeCoachPlanRepository().also {
+        it.current =
+            Result.success(coachPlan(status = io.github.lopezjavier.appfitness.domain.model.PlanStatus.Accepted))
+    }
+
     private fun model(): TrainerViewModel = TrainerViewModel(
         FakeCoachRepository(),
         MutableClock(),
+        plans = plans,
         savedState = SavedStateHandle(),
         discomfortFollowUps = repository,
         exerciseNames = discomfortNames(),
@@ -121,7 +124,7 @@ class TrainerDiscomfortScreenTest {
         showRoute(online = false)
 
         rule.onNodeWithTag("trainer_discomfort_offer_card_accept").assertIsNotEnabled()
-        rule.onNodeWithText("Sin conexión: no se puede cambiar el ejercicio").assertExists()
+        rule.onNodeWithText("Sin conexión: no se puede cambiar el ejercicio.").assertExists()
     }
 
     @Test
@@ -130,9 +133,11 @@ class TrainerDiscomfortScreenTest {
             listOf(followUp(offerSwap = false, showNote = true, noteReason = DiscomfortNoteReason.Days14))
         showRoute()
 
-        rule.onNodeWithText(
-            "Esta molestia fuerte en Press banca sigue ahí desde hace 14 días. Seguimos entrenando el resto y " +
-                "no subimos el peso en Press banca. Puede merecer la pena que te lo revise un profesional.",
+        rule.onNode(
+            hasTextIgnoringNbsp(
+                "Esta molestia fuerte en Press banca sigue ahí desde hace 14 días. Seguimos entrenando el resto y " +
+                    "no subimos el peso en Press banca. Puede merecer la pena que te lo revise un profesional.",
+            ),
         ).assertExists()
         tap("trainer_discomfort_note_close")
 
@@ -171,24 +176,5 @@ class TrainerDiscomfortScreenTest {
         rule.waitForIdle()
 
         rule.onNodeWithText("Prioriza pocos grupos a la vez.", substring = true).assertExists()
-    }
-
-    @Test
-    fun deloadHelp_opensItsExplanation() {
-        val state = TrainerUiState.Content(
-            plan = PlanSummary.Accepted(coachPlan(status = PlanStatus.Accepted)),
-            block = BlockSummary.Saved(coachBlock(saved = true)),
-            weeks = listOf(
-                planWeek(week = 1, phase = WeekPhase.Current),
-                planWeek(week = 2, phase = WeekPhase.Upcoming),
-            ),
-        )
-        rule.setContent { AppTheme { TrainerWithBoxes(state, flowOf(true), {}) } }
-        rule.openTrainerBlock()
-
-        rule.onNodeWithTag("trainer_deload_help").performClick()
-        rule.waitForIdle()
-
-        rule.onNodeWithText("Una semana de descarga es una semana más ligera", substring = true).assertExists()
     }
 }

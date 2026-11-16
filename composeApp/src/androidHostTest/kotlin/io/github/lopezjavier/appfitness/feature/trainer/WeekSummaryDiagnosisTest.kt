@@ -21,6 +21,8 @@ import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 
+private val NBSP = 160.toChar().toString()
+
 /** US-113 / US-114: the "why is my weight not moving" card of the weekly summary, one test per Gherkin scenario. */
 @RunWith(RobolectricTestRunner::class)
 @Config(qualifiers = "w360dp-h2400dp-xxhdpi")
@@ -50,8 +52,8 @@ class WeekSummaryDiagnosisTest {
 
     private fun assertLines(cause: String, action: String) {
         rule.onNodeWithTag("week_summary_section_diagnosis").performScrollTo().assertIsDisplayed()
-        rule.onNodeWithTag("week_summary_diagnosis_cause").assertTextEquals(cause)
-        rule.onNodeWithTag("week_summary_diagnosis_action").assertTextEquals(action)
+        rule.onNodeWithTag("week_summary_diagnosis_cause").assertTextEqualsIgnoringNbsp(cause)
+        rule.onNodeWithTag("week_summary_diagnosis_action").assertTextEqualsIgnoringNbsp(action)
     }
 
     @Test
@@ -61,7 +63,7 @@ class WeekSummaryDiagnosisTest {
         assertLines(
             "Faltan registros: 3 de 7 días de comida completos en la semana del 4 ene. " +
                 "Sin ellos no podemos saber por qué tu peso no va como estaba previsto.",
-            "Registra lo que comes al menos 5 días por semana.",
+            "Registra lo que comes al menos 5${NBSP}días por semana.",
         )
         rule.onAllNodesWithTag("week_summary_diagnosis_cause").assertCountEquals(1)
     }
@@ -70,7 +72,7 @@ class WeekSummaryDiagnosisTest {
     fun weighInCause_namesTheWeighIns() {
         show(state(NutritionDiagnosis.LoggingWeighIn(2, LocalDate(2027, 1, 4))))
 
-        assertLines("Faltan pesajes: 2 en la semana del 4 ene.", "Pésate al menos 3 días por semana.")
+        assertLines("Faltan pesajes: 2 en la semana del 4 ene.", "Pésate al menos 3${NBSP}días por semana.")
     }
 
     @Test
@@ -78,13 +80,10 @@ class WeekSummaryDiagnosisTest {
         show(state(NutritionDiagnosis.Calories(2350, 2000, 350, above = true, weekend = true)))
 
         rule.onNodeWithTag("week_summary_diagnosis_cause").performScrollTo()
-            .assertTextContains(
-                "Registraste de media 2.350 kcal al día, 350 kcal más que tu objetivo.",
-                substring = true,
-            )
-            .assertTextContains("La mayor parte llega el fin de semana.", substring = true)
+            .assertTextContainsIgnoringNbsp("Registraste de media 2.350 kcal al día, 350 kcal más que tu objetivo.")
+            .assertTextContainsIgnoringNbsp("La mayor parte llega el fin de semana.")
         rule.onNodeWithTag("week_summary_diagnosis_action")
-            .assertTextEquals("Intenta que el fin de semana se parezca al resto de la semana.")
+            .assertTextEqualsIgnoringNbsp("Intenta que el fin de semana se parezca al resto de la semana.")
     }
 
     @Test
@@ -92,9 +91,9 @@ class WeekSummaryDiagnosisTest {
         show(state(NutritionDiagnosis.Plateau(-0.02, -0.12, 0.09)))
 
         rule.onNodeWithTag("week_summary_diagnosis_cause").performScrollTo()
-            .assertTextContains("Meseta: tu peso apenas ha cambiado en 2 semanas", substring = true)
-            .assertTextContains("−0,02 kg por semana, entre −0,12 y 0,09", substring = true)
-            .assertTextContains("No es un fracaso", substring = true)
+            .assertTextContainsIgnoringNbsp("Meseta: tu peso apenas ha cambiado en 2 semanas")
+            .assertTextContainsIgnoringNbsp("−0,02 kg por semana, entre −0,12 y 0,09")
+            .assertTextContainsIgnoringNbsp("No es un fracaso")
     }
 
     @Test

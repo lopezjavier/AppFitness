@@ -264,7 +264,7 @@ class SessionDetailScreenTest {
 
         rule.onNodeWithTag("session_detail_delete").assertIsNotEnabled()
         rule.onNodeWithTag("session_detail_edit").assertIsNotEnabled()
-        rule.onNodeWithText("Sin conexión: no se puede editar").assertExists()
+        rule.onNodeWithText("Sin conexión: no se puede editar.").assertExists()
     }
 
     @Test
@@ -273,7 +273,7 @@ class SessionDetailScreenTest {
 
         rule.onNodeWithTag("session_detail_delete").assertIsEnabled()
         rule.onNodeWithTag("session_detail_edit").assertIsEnabled()
-        rule.onNodeWithText("Sin conexión: no se puede editar").assertDoesNotExist()
+        rule.onNodeWithText("Sin conexión: no se puede editar.").assertDoesNotExist()
     }
 
     @Test

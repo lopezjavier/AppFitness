@@ -26,6 +26,7 @@ import io.github.lopezjavier.appfitness.designsystem.ErrorState
 import io.github.lopezjavier.appfitness.designsystem.ListRowSkeleton
 import io.github.lopezjavier.appfitness.designsystem.OfflineState
 import io.github.lopezjavier.appfitness.designsystem.Spacing
+import io.github.lopezjavier.appfitness.designsystem.WindowWidthClassDefaults
 import io.github.lopezjavier.appfitness.domain.model.ReportItem
 import io.github.lopezjavier.appfitness.domain.port.ConnectivityObserver
 import kotlinx.coroutines.flow.Flow
@@ -77,6 +78,7 @@ fun PastReportScreen(
         modifier = modifier,
         subtitle = item?.let { subtitle(it) },
         onBack = onBack,
+        maxContentWidth = WindowWidthClassDefaults.HubContentMaxWidth,
         testTagPrefix = PREFIX,
     ) {
         Box(Modifier.fillMaxSize().testTag("past_report_screen")) {
@@ -86,24 +88,22 @@ fun PastReportScreen(
                     testTag = "past_report_loading",
                 )
 
-                PastReportUiState.NotFound -> Box(Modifier.fillMaxSize(), Alignment.Center) {
-                    EmptyState(
-                        icon = Res.drawable.ic_description,
-                        message = stringResource(Res.string.past_report_not_found),
-                        testTagPrefix = "past_report_empty",
-                    )
-                }
+                PastReportUiState.NotFound -> EmptyState(
+                    modifier = Modifier.fillMaxSize(),
+                    icon = Res.drawable.ic_description,
+                    message = stringResource(Res.string.past_report_not_found),
+                    testTagPrefix = "past_report_empty",
+                )
 
-                PastReportUiState.Error -> Box(Modifier.fillMaxSize(), Alignment.Center) {
-                    ErrorState(
-                        message = stringResource(Res.string.past_report_error),
-                        action = AppStateAction(stringResource(Res.string.action_retry)) {
-                            onEvent(PastReportEvent.Retry)
-                        },
-                        testTagPrefix = "past_report_error",
-                        actionTestTag = "past_report_retry",
-                    )
-                }
+                PastReportUiState.Error -> ErrorState(
+                    modifier = Modifier.fillMaxSize(),
+                    message = stringResource(Res.string.past_report_error),
+                    action = AppStateAction(stringResource(Res.string.action_retry)) {
+                        onEvent(PastReportEvent.Retry)
+                    },
+                    testTagPrefix = "past_report_error",
+                    actionTestTag = "past_report_retry",
+                )
 
                 PastReportUiState.Offline -> Box(
                     Modifier.fillMaxSize().testTag("past_report_offline"),

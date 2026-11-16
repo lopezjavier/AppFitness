@@ -13,6 +13,8 @@ import io.github.lopezjavier.appfitness.composeapp.resources.block_builder_rest_
 import io.github.lopezjavier.appfitness.composeapp.resources.block_builder_rest_s
 import io.github.lopezjavier.appfitness.composeapp.resources.block_builder_section_header
 import io.github.lopezjavier.appfitness.composeapp.resources.block_builder_section_main
+import io.github.lopezjavier.appfitness.composeapp.resources.block_builder_section_spec
+import io.github.lopezjavier.appfitness.composeapp.resources.block_flow_step
 import io.github.lopezjavier.appfitness.composeapp.resources.block_sets_count
 import io.github.lopezjavier.appfitness.composeapp.resources.block_split_days_repeated
 import io.github.lopezjavier.appfitness.composeapp.resources.block_split_family_full_body
@@ -130,6 +132,16 @@ internal fun sectionHeaderText(section: BuilderSection): String = stringResource
     restText(section.first.restSeconds),
 )
 
+/** The spec of a section under its muscle name (C-115): "3 series · 8-10 repeticiones · RPE 8 · descanso 2 min". */
+@Composable
+internal fun sectionSpecText(section: BuilderSection): String = stringResource(
+    Res.string.block_builder_section_spec,
+    setsText(section.sets),
+    repsText(section.first),
+    section.first.rpe,
+    restText(section.first.restSeconds),
+)
+
 /** "62,5" for a planned weight. */
 internal fun weightText(kg: Double): String = AppNumberFormat.decimal(kg)
 
@@ -224,3 +236,24 @@ internal fun pickerReasonText(reason: PickerDisabledReason): String = stringReso
         PickerDisabledReason.NoMovementPattern -> Res.string.block_builder_pick_no_pattern
     },
 )
+
+/** The steps of the block flow: "Objetivo por grupo" (next block only), the split, the day types, the builder. */
+internal enum class BlockFlowStep { Targets, Splits, Types, Builder }
+
+/**
+ * "Paso 2 de 4" (C-108): the count is fixed at the start of the flow, 3 steps, or 4 when it opens with "Objetivo por
+ * grupo" ([withTargets]).
+ */
+@Composable
+internal fun blockFlowSubtitle(step: BlockFlowStep, withTargets: Boolean): String {
+    val offset = if (withTargets) 1 else 0
+    val number = when (step) {
+        BlockFlowStep.Targets -> 1
+        BlockFlowStep.Splits -> 1 + offset
+        BlockFlowStep.Types -> 2 + offset
+        BlockFlowStep.Builder -> FLOW_STEPS + offset
+    }
+    return stringResource(Res.string.block_flow_step, number, FLOW_STEPS + offset)
+}
+
+private const val FLOW_STEPS = 3

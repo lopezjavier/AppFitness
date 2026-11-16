@@ -9,8 +9,6 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -49,6 +47,7 @@ import io.github.lopezjavier.appfitness.designsystem.OfflineState
 import io.github.lopezjavier.appfitness.designsystem.PrimaryButton
 import io.github.lopezjavier.appfitness.designsystem.SkeletonBox
 import io.github.lopezjavier.appfitness.designsystem.Spacing
+import io.github.lopezjavier.appfitness.designsystem.WindowWidthClassDefaults
 import io.github.lopezjavier.appfitness.domain.model.PhaseDecision
 import io.github.lopezjavier.appfitness.domain.model.PhaseProposal
 import io.github.lopezjavier.appfitness.domain.port.ConnectivityObserver
@@ -103,6 +102,7 @@ fun BlockReviewScreen(
         title = stringResource(Res.string.block_review_title),
         modifier = modifier,
         onBack = onBack,
+        maxContentWidth = WindowWidthClassDefaults.HubContentMaxWidth,
         footer = content?.let { { ReviewFooter(it, online, onOpenBeforeStart) } },
         testTagPrefix = PREFIX,
     ) {
@@ -110,24 +110,22 @@ fun BlockReviewScreen(
             when (state) {
                 BlockReviewUiState.Loading -> ReviewSkeleton()
 
-                BlockReviewUiState.Empty -> Box(Modifier.fillMaxSize(), Alignment.Center) {
-                    EmptyState(
-                        icon = Res.drawable.ic_nav_trainer,
-                        message = stringResource(Res.string.block_review_empty),
-                        testTagPrefix = "block_review_empty",
-                    )
-                }
+                BlockReviewUiState.Empty -> EmptyState(
+                    modifier = Modifier.fillMaxSize(),
+                    icon = Res.drawable.ic_nav_trainer,
+                    message = stringResource(Res.string.block_review_empty),
+                    testTagPrefix = "block_review_empty",
+                )
 
-                BlockReviewUiState.Error -> Box(Modifier.fillMaxSize(), Alignment.Center) {
-                    ErrorState(
-                        message = stringResource(Res.string.block_review_error),
-                        action = AppStateAction(stringResource(Res.string.action_retry)) {
-                            onEvent(BlockReviewEvent.Retry)
-                        },
-                        testTagPrefix = "block_review_error",
-                        actionTestTag = "block_review_retry",
-                    )
-                }
+                BlockReviewUiState.Error -> ErrorState(
+                    modifier = Modifier.fillMaxSize(),
+                    message = stringResource(Res.string.block_review_error),
+                    action = AppStateAction(stringResource(Res.string.action_retry)) {
+                        onEvent(BlockReviewEvent.Retry)
+                    },
+                    testTagPrefix = "block_review_error",
+                    actionTestTag = "block_review_retry",
+                )
 
                 BlockReviewUiState.Offline -> Box(
                     Modifier.fillMaxSize().testTag("block_review_offline"),
@@ -149,7 +147,7 @@ private fun ReviewFooter(
     online: Boolean,
     onOpenBeforeStart: (BeforeStartMode, String?, String?) -> Unit,
 ) {
-    Column(verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
+    Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
         PrimaryButton(
             text = stringResource(Res.string.block_review_next_block),
             onClick = {
@@ -170,21 +168,26 @@ internal fun ReviewContent(
     readOnly: Boolean = false,
 ) {
     val review = state.review
-    Column(
-        Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(Spacing.screenMargin),
-        verticalArrangement = Arrangement.spacedBy(Spacing.blockGap),
-    ) {
-        SessionsCard(state)
-        LiftsCard(state)
-        StallCard(review.stalls, state.exerciseNames, PREFIX)
-        GroupsCard(review.groups, PREFIX, stringResource(Res.string.block_review_groups_header))
-        WeightCard(state)
-        OutcomesCard(state)
-        WaistCard(state)
-        review.phaseProposal?.let {
-            if (readOnly) StoredPhaseSection(state, it) else PhaseProposalSection(state, it, online, onEvent)
+    HubGrid {
+        item("sessions") { BlockSessionsCard(state) }
+        if (WeekSummaryText.visibleGroups(review.groups).isNotEmpty()) {
+            item("groups") { GroupsCard(review.groups, PREFIX, stringResource(Res.string.block_review_groups_header)) }
         }
-        if (!readOnly) state.calorieProposal?.let { CalorieSection(state, online, onEvent) }
+        if (review.lifts.any { it.exerciseId in state.exerciseNames }) fullSpanItem("lifts") { LiftsCard(state) }
+        if (review.stalls.any { it.exerciseId in state.exerciseNames }) {
+            fullSpanItem("stalls") { StallCard(review.stalls, state.exerciseNames, PREFIX) }
+        }
+        fullSpanItem("weight") { WeightCard(state) }
+        if (review.outcomes.isNotEmpty()) fullSpanItem("outcomes") { OutcomesCard(state) }
+        if (review.waist != null) fullSpanItem("waist") { WaistCard(state) }
+        review.phaseProposal?.let {
+            fullSpanItem("phase") {
+                if (readOnly) StoredPhaseSection(state, it) else PhaseProposalSection(state, it, online, onEvent)
+            }
+        }
+        if (!readOnly && state.calorieProposal != null) {
+            fullSpanItem("calorie") { CalorieSection(state, online, onEvent) }
+        }
     }
 }
 
@@ -235,7 +238,7 @@ private fun PhaseProposalSection(
 
 @Composable
 internal fun StatusCard(text: String, modifier: Modifier = Modifier) {
-    SummaryCard("block_review_phase_status") { SummaryLine(text, modifier) }
+    ReportNoteCard("block_review_phase_status") { SummaryLine(text, modifier) }
 }
 
 @Composable

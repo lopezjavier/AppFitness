@@ -26,6 +26,8 @@ import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 
+private val NBSP = 160.toChar().toString()
+
 private typealias Data = BlockBuilderTestData
 
 /** US-72 builder scenarios that have a UI: sections, slots, picker, score and save footer, cardio, extras, discard. */
@@ -50,9 +52,10 @@ class BlockBuilderScreenTest {
     fun theSectionHeader_showsMuscleSetsRepsRpeAndRest() {
         show(Data.builderUi())
 
-        rule.onNodeWithTag("block_builder_section_0_chest").assertTextContains("Pecho · ", substring = true)
-        rule.onNodeWithTag("block_builder_section_0_chest").assertTextContains("series · ", substring = true)
-        rule.onNodeWithTag("block_builder_section_0_chest").assertTextContains("repeticiones · RPE 8 · descanso", true)
+        rule.onNodeWithTag("block_builder_section_0_chest").assertTextContains("Pecho")
+        rule.onNodeWithTag("block_builder_section_spec_0_chest").assertTextContainsIgnoringNbsp("series · ")
+        rule.onNodeWithTag("block_builder_section_spec_0_chest")
+            .assertTextContainsIgnoringNbsp("repeticiones · RPE 8 · descanso")
     }
 
     @Test
@@ -60,8 +63,8 @@ class BlockBuilderScreenTest {
         show(Data.builderUi(Data.start(intention = TrainingIntention.Strength)))
 
         rule.onNodeWithTag(
-            "block_builder_section_0_chest_main",
-        ).assertTextContains("Básico · 3 series · 4-6 repeticiones", substring = true)
+            "block_builder_section_spec_0_chest_main",
+        ).assertTextContainsIgnoringNbsp("3 series · 4-6${NBSP}repeticiones")
     }
 
     @Test
@@ -70,7 +73,7 @@ class BlockBuilderScreenTest {
 
         rule.onNodeWithTag("block_builder_section_help_0_chest").performClick()
 
-        rule.onNodeWithText("Cada músculo necesita al menos 10 series", substring = true).assertExists()
+        rule.onNodeWithText("Cada músculo necesita al menos 10${NBSP}series", substring = true).assertExists()
     }
 
     @Test
@@ -123,7 +126,7 @@ class BlockBuilderScreenTest {
     fun theScoreIsABarWithText_andSaveIsOffUntil100() {
         show(Data.builderUi())
 
-        rule.onNodeWithTag("block_builder_score").assertTextContains("Rutina completa al 0 %", substring = true)
+        rule.onNodeWithTag("block_builder_score").assertTextContains("Rutina completa al 0$NBSP%", substring = true)
         rule.onNodeWithTag("block_builder_save").assertIsNotEnabled()
         rule.onNodeWithText("Elige un ejercicio en cada hueco para guardar.").assertExists()
     }
@@ -132,7 +135,7 @@ class BlockBuilderScreenTest {
     fun at100_saveIsEnabledAndSends() {
         show(Data.builderUi(Data.filled(Data.start())))
 
-        rule.onNodeWithTag("block_builder_score").assertTextContains("Rutina completa al 100 %", substring = true)
+        rule.onNodeWithTag("block_builder_score").assertTextContains("Rutina completa al 100$NBSP%", substring = true)
         rule.onNodeWithTag("block_builder_save").assertIsEnabled().performClick()
         rule.onAllNodesWithText("Elige un ejercicio en cada hueco para guardar.").assertCountEquals(0)
 
@@ -144,7 +147,7 @@ class BlockBuilderScreenTest {
         show(Data.builderUi(Data.filled(Data.start())), online = false)
 
         rule.onNodeWithTag("block_builder_save").assertIsNotEnabled()
-        rule.onNodeWithText("Sin conexión: no se puede guardar el bloque").assertExists()
+        rule.onNodeWithText("Sin conexión: no se puede guardar el bloque.").assertExists()
     }
 
     @Test
@@ -190,7 +193,7 @@ class BlockBuilderScreenTest {
         rule.onNodeWithText("Extra (opcional)").assertExists()
         rule.onNodeWithTag("block_builder_extra_add_0").performClick()
         rule.onNodeWithTag("block_builder_extra_remove_0_0").performClick()
-        rule.onNodeWithTag("block_builder_score").assertTextContains("Rutina completa al 0 %", substring = true)
+        rule.onNodeWithTag("block_builder_score").assertTextContains("Rutina completa al 0$NBSP%", substring = true)
 
         assertEquals(
             listOf(BlockBuilderEvent.AddExtra(0), BlockBuilderEvent.RemoveExtra(0, 0)),
@@ -202,8 +205,8 @@ class BlockBuilderScreenTest {
     fun cardio_isTheLastRow_withMinutes_andTheHonestNote() {
         show(Data.builderUi(Data.start(cardioTarget = 150)))
 
-        rule.onNodeWithText("Bicicleta estática · 60 min · ritmo suave").assertExists()
-        rule.onNodeWithText("Te faltan 30 min de cardio a la semana: hazlos por tu cuenta.").assertExists()
+        rule.onNodeWithText("Bicicleta estática · 60${NBSP}min · ritmo suave").assertExists()
+        rule.onNodeWithText("Te faltan 30${NBSP}min de cardio a la semana: hazlos por tu cuenta.").assertExists()
     }
 
     @Test
@@ -247,7 +250,7 @@ class BlockBuilderScreenTest {
         val entries = listOf(PickerEntry(Data.fly, PickerDisabledReason.NoMovementPattern))
         show(Data.builderUi(openSlot = SlotRef(0, 0), pickerEntries = entries))
 
-        rule.onNodeWithText("Sin patrón de movimiento: defínelo en el ejercicio").assertExists()
+        rule.onNodeWithText("Sin patrón de movimiento: defínelo en el ejercicio.").assertExists()
         rule.onNodeWithTag("block_builder_pick_fly").performClick()
 
         assertEquals(emptyList<BlockBuilderEvent>(), events)

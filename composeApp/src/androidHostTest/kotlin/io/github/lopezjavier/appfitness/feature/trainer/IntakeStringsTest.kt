@@ -36,6 +36,6 @@ class IntakeStringsTest {
     @Test
     fun theKeptCopy_isTheFinalWording() {
         assertTrue(strings.contains(">Calorías de mantenimiento</string>"))
-        assertTrue(strings.contains(">Entre 1200 y 6000 kcal</string>"))
+        assertTrue(strings.replace(" ", " ").replace("&#160;", " ").contains(">Entre 1200 y 6000 kcal</string>"))
     }
 }

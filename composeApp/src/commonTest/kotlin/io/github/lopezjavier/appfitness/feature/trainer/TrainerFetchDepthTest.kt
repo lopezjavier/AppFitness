@@ -1,6 +1,5 @@
 package io.github.lopezjavier.appfitness.feature.trainer
 
-import io.github.lopezjavier.appfitness.app.FakeNutritionGoalsRepository
 import io.github.lopezjavier.appfitness.domain.AppError
 import io.github.lopezjavier.appfitness.domain.AppException
 import io.github.lopezjavier.appfitness.domain.model.BlockPause
@@ -11,7 +10,6 @@ import io.github.lopezjavier.appfitness.domain.model.CoachChangeStatus
 import io.github.lopezjavier.appfitness.domain.model.CoachDerivedValues
 import io.github.lopezjavier.appfitness.domain.model.CoachPlan
 import io.github.lopezjavier.appfitness.domain.model.DietBreakApplication
-import io.github.lopezjavier.appfitness.domain.model.NutritionGoals
 import io.github.lopezjavier.appfitness.domain.model.PlanStatus
 import io.github.lopezjavier.appfitness.domain.model.PlanWeek
 import io.github.lopezjavier.appfitness.domain.repository.CoachBlockRepository
@@ -19,7 +17,6 @@ import io.github.lopezjavier.appfitness.domain.repository.CoachChangesRepository
 import io.github.lopezjavier.appfitness.domain.repository.CoachPlanRepository
 import io.github.lopezjavier.appfitness.domain.repository.CoachRepository
 import io.github.lopezjavier.appfitness.domain.repository.CoachWeeksRepository
-import io.github.lopezjavier.appfitness.domain.repository.NutritionGoalsRepository
 import io.github.lopezjavier.appfitness.feature.workout.MutableClock
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
@@ -54,7 +51,6 @@ class TrainerFetchDepthTest {
     private val blocks = FakeCoachBlockRepository()
     private val weeks = FakeCoachWeeksRepository()
     private val changes = FakeCoachChangesRepository()
-    private val goals = FakeNutritionGoalsRepository()
     private var cancelDerivedValues = false
 
     /** Call name to the virtual time it started, in start order. */
@@ -120,12 +116,6 @@ class TrainerFetchDepthTest {
             override suspend fun blockPause(planId: String, today: LocalDate): Result<BlockPause> {
                 slow("blockPause")
                 return weeks.blockPause(planId, today)
-            }
-        },
-        goals = object : NutritionGoalsRepository by goals {
-            override suspend fun getOwn(): Result<NutritionGoals?> {
-                timed("getOwn")
-                return goals.getOwn()
             }
         },
         coachChanges = object : CoachChangesRepository by changes {
@@ -221,17 +211,6 @@ class TrainerFetchDepthTest {
         assertEquals(null, content.pause)
         assertEquals(BlockSummary.Saved(coachBlock(saved = true)), content.block)
         assertTrue(starts.any { it.first == "changes" })
-    }
-
-    @Test
-    fun goalsChecklistRead_startsOnlyAfterTheDietBreakWasApplied() = runTest(dispatcher) {
-        plans.current = Result.success(coachPlan(status = PlanStatus.Accepted, editedByUser = true))
-        blocks.current = Result.success(coachBlock(saved = true))
-        viewModel()
-
-        advanceUntilIdle()
-
-        assertTrue(startOf("applyDietBreak.end") <= startOf("getOwn"))
     }
 
     @Test

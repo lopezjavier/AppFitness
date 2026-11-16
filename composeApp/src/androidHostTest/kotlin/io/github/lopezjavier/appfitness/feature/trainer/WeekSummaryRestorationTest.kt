@@ -2,10 +2,13 @@ package io.github.lopezjavier.appfitness.feature.trainer
 
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsNotDisplayed
+import androidx.compose.ui.test.hasScrollAction
+import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.junit4.StateRestorationTester
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performScrollTo
+import androidx.compose.ui.test.performScrollToNode
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
 import io.github.lopezjavier.appfitness.domain.model.StallCause
 import io.github.lopezjavier.appfitness.domain.model.StallDiagnosis
@@ -53,7 +56,7 @@ class WeekSummaryRestorationTest {
         restoration.setContent {
             AppTheme { WeekSummaryScreen(state, flowOf(true), {}, {}) }
         }
-        rule.onNodeWithTag("week_summary_section_deload").performScrollTo()
+        rule.onNode(hasScrollAction()).performScrollToNode(hasTestTag("week_summary_section_deload"))
         rule.onNodeWithTag("week_summary_section_deload").assertIsDisplayed()
         rule.onNodeWithTag("week_summary_section_sessions").assertIsNotDisplayed()
 

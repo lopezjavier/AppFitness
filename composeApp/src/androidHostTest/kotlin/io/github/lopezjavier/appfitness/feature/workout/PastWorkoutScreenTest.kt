@@ -104,7 +104,7 @@ class PastWorkoutScreenTest {
         rule.onNodeWithTag("past_workout_date").performClick()
         rule.onNodeWithTag("past_workout_date_dialog").assertExists()
         rule.onNode(hasText("October 15, 2026", substring = true)).performClick()
-        rule.onNodeWithTag("past_workout_date_dialog_confirm").performClick()
+        rule.onNodeWithTag("past_workout_date_dialog_accept").performClick()
         rule.onNodeWithTag("past_workout_date").assert(hasContentDescription("15 oct 2026", substring = true))
 
         rule.onNodeWithTag("past_workout_name").performTextInput("Piernas")
@@ -140,7 +140,7 @@ class PastWorkoutScreenTest {
 
         rule.onNodeWithTag("past_workout_date").performClick()
         rule.onNode(hasText("October 3, 2026", substring = true)).performClick()
-        rule.onNodeWithTag("past_workout_date_dialog_dismiss").performClick()
+        rule.onNodeWithTag("past_workout_date_dialog_discard").performClick()
 
         rule.onNodeWithTag("past_workout_date_dialog").assertDoesNotExist()
         rule.onNodeWithTag("past_workout_date").assert(hasContentDescription("18 oct 2026", substring = true))
@@ -234,6 +234,6 @@ class PastWorkoutScreenTest {
         show()
 
         rule.onNodeWithTag("past_workout_save").assertIsNotEnabled()
-        rule.onNodeWithText("Sin conexión: no se puede guardar").assertExists()
+        rule.onNodeWithText("Sin conexión: no se puede guardar", substring = true).assertExists()
     }
 }
