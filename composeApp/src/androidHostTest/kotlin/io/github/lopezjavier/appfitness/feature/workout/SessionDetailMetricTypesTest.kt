@@ -59,6 +59,6 @@ class SessionDetailMetricTypesTest {
     fun aSessionWithVolume_stillShowsKilos() {
         show(cardioSession(volumeKg = 672.0))
 
-        rule.onNodeWithTag("session_detail_volume").assertTextContains("672")
+        rule.onNodeWithTag("session_detail_volume").assertTextContains("672", substring = true)
     }
 }

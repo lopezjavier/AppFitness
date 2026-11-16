@@ -284,7 +284,7 @@ class PreferencesSectionScreenTest {
         show(PreferencesSection.Macros, dirtyState(PreferencesSection.Macros), effects)
         effects.trySend(PreferencesEffect.SaveFailed(offline = true))
         rule.waitForIdle()
-        assertEquals(listOf("Sin conexión: no se puede guardar"), messages.shown)
+        assertEquals(listOf("Sin conexión: no se puede guardar."), messages.shown)
     }
 
     // -- content ------------------------------

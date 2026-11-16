@@ -124,7 +124,7 @@ class PreferencesCookingTest {
         field("preferences_cooking_fried").performTextInput("21")
         rule.waitForIdle()
 
-        field("preferences_cooking_fried_error").assertTextContains("Introduce un valor entre 0 y 20 %.")
+        field("preferences_cooking_fried_error").assertTextContains("Entre 0 y 20 %.")
         rule.onNodeWithTag("preferences_cooking_save").assertIsNotEnabled()
     }
 
@@ -135,7 +135,7 @@ class PreferencesCookingTest {
         field("preferences_cooking_air_fryer").performTextClearance()
         rule.waitForIdle()
 
-        field("preferences_cooking_air_fryer_error").assertTextContains("Introduce un valor", substring = true)
+        field("preferences_cooking_air_fryer_error").assertTextContains("Entre 0 y 20 %.")
         rule.onNodeWithTag("preferences_cooking_save").assertIsNotEnabled()
     }
 

@@ -415,7 +415,7 @@ class WeightScreenTest {
 
         rule.onNodeWithTag("weight_hc_row_h1").assertExists()
         rule.onNodeWithTag("weight_hc_icon_h1", useUnmergedTree = true).assertExists()
-        assertEquals(setOf("Eliminar medición de 06:00"), customActionLabels("weight_hc_row_h1"))
+        assertEquals(setOf("Eliminar pesaje de 06:00"), customActionLabels("weight_hc_row_h1"))
         rule.onNodeWithTag("weight_hc_delete_h1").assertDoesNotExist()
         rule.onNodeWithTag("weight_day_sheet_commit").assertDoesNotExist()
         rule.onNodeWithTag("weight_sheet_weight_input").assertDoesNotExist()
@@ -427,7 +427,7 @@ class WeightScreenTest {
         showHistory(healthConnect("h1", "2026-10-19T06:00:00Z", 73.5))
 
         tap("month_calendar_day_2026-10-19")
-        runCustomAction("weight_hc_row_h1", "Eliminar medición de 06:00")
+        runCustomAction("weight_hc_row_h1", "Eliminar pesaje de 06:00")
 
         assertEquals(listOf("h1"), repository.deletes)
         rule.onNodeWithTag("weight_day_sheet").assertDoesNotExist()

@@ -479,7 +479,7 @@ class DraftRestorationTest {
         rule.waitForIdle()
         rule.onNodeWithTag("preferences_activity_row")
             .performScrollTo()
-            .assertContentDescriptionEquals("Actividad, Ligero, editar")
+            .assertContentDescriptionEquals("Nivel de actividad, Ligero, editar")
     }
 
     // -- scroll position (audit of the LazyColumn lists) ---------------------------------------------------------

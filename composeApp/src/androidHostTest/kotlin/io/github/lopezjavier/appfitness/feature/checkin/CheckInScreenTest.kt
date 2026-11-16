@@ -107,7 +107,7 @@ class CheckInScreenTest {
     fun weeklySummary_showsVolumeWorkoutsAndSetsWithTheirDifference() {
         show()
 
-        rule.onNodeWithTag("checkin_summary_volume").assertTextEquals("VOLUMEN", "12.400", "kg")
+        rule.onNodeWithTag("checkin_summary_volume").assertTextEquals("VOLUMEN", "12.400 kg")
         rule.onNodeWithTag("checkin_summary_workouts").assertTextEquals("ENTRENOS", "4")
         rule.onNodeWithTag("checkin_summary_sets").assertTextEquals("SERIES", "40")
         assertTilePill("checkin_summary_volume", "+800")
@@ -161,7 +161,7 @@ class CheckInScreenTest {
         val empty = TrainingSummary(0, 0, 0.0, 0)
         show(ready(summary(current = empty, previous = empty, records = emptyList())))
 
-        rule.onNodeWithTag("checkin_summary_volume").assertTextEquals("VOLUMEN", "0", "kg")
+        rule.onNodeWithTag("checkin_summary_volume").assertTextEquals("VOLUMEN", "0 kg")
         rule.onNodeWithTag("checkin_summary_workouts").assertTextEquals("ENTRENOS", "0")
         rule.onNodeWithTag("checkin_summary_sets").assertTextEquals("SERIES", "0")
         listOf("volume", "workouts", "sets").forEach { assertTilePill("checkin_summary_$it", "Igual") }

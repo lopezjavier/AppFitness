@@ -1,5 +1,6 @@
 package io.github.lopezjavier.appfitness.feature.profile
 
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.test.assertContentDescriptionEquals
 import androidx.compose.ui.test.assertHeightIsAtLeast
 import androidx.compose.ui.test.assertIsDisplayed
@@ -17,6 +18,8 @@ import io.github.lopezjavier.appfitness.designsystem.AppAvatarDefaults
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
 import io.github.lopezjavier.appfitness.designsystem.WindowWidthClassDefaults
 import io.github.lopezjavier.appfitness.domain.model.TrainingIntention
+import io.github.lopezjavier.appfitness.feature.notifications.LocalNotificationsEntry
+import io.github.lopezjavier.appfitness.feature.notifications.NotificationsEntry
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Rule
@@ -65,21 +68,23 @@ class ProfileRootScreenTest {
         myTrainingOpens = 0
         rule.setContent {
             AppTheme {
-                ProfileRootScreen(
-                    state = state,
-                    onEvent = { events += it },
-                    actions = ProfileRootActions(
-                        onOpenPreferences = { preferencesOpens++ },
-                        onOpenCatalog = if (withCatalog) ({ catalogOpens++ }) else null,
-                        onOpenStrength = { strengthOpens++ },
-                        onOpenWeight = { weightOpens++ },
-                        onOpenDiaryHistory = { diaryHistoryOpens++ },
-                        onOpenTrainingStats = { trainingStatsOpens++ },
-                        onOpenAbout = { aboutOpens++ },
-                        onOpenActivity = { activityOpens++ },
-                        onOpenMyTraining = { myTrainingOpens++ },
-                    ),
-                )
+                CompositionLocalProvider(LocalNotificationsEntry provides NotificationsEntry(0) {}) {
+                    ProfileRootScreen(
+                        state = state,
+                        onEvent = { events += it },
+                        actions = ProfileRootActions(
+                            onOpenPreferences = { preferencesOpens++ },
+                            onOpenCatalog = if (withCatalog) ({ catalogOpens++ }) else null,
+                            onOpenStrength = { strengthOpens++ },
+                            onOpenWeight = { weightOpens++ },
+                            onOpenDiaryHistory = { diaryHistoryOpens++ },
+                            onOpenTrainingStats = { trainingStatsOpens++ },
+                            onOpenAbout = { aboutOpens++ },
+                            onOpenActivity = { activityOpens++ },
+                            onOpenMyTraining = { myTrainingOpens++ },
+                        ),
+                    )
+                }
             }
         }
         rule.waitForIdle()

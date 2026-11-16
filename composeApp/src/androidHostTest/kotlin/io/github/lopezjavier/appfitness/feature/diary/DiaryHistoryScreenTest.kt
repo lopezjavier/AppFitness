@@ -136,7 +136,7 @@ class DiaryHistoryScreenTest {
     fun monthlySummary_showsTheDailyAverage_withoutTheTotalOrTheLoggedDays() {
         show(content(view = DiaryHistoryView.Month))
 
-        inside("diary_history_month_summary", "Media diaria").assertIsDisplayed()
+        inside("diary_history_month_summary", "· media diaria").assertIsDisplayed()
         inside("diary_history_month_summary", "1.900 kcal").assertIsDisplayed()
         rule.onNode(hasText("Total del mes")).assertDoesNotExist()
         rule.onNode(hasText("Días registrados")).assertDoesNotExist()

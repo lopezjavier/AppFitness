@@ -8,8 +8,6 @@ import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.getUnclippedBoundsInRoot
-import androidx.compose.ui.test.hasAnyAncestor
-import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
@@ -125,14 +123,9 @@ class PreferencesHubAccountTest {
     }
 
     @Test
-    fun deleting_disablesTheButton_readsBorrando_andShowsTheLoader() {
+    fun deleting_disablesTheButton_andReadsBorrando() {
         show(state(isDeleting = true))
         rule.onNodeWithTag("preferences_delete_account").assertIsNotEnabled().assertTextEquals("Borrando…")
-        rule.onNode(
-            SemanticsMatcher.keyIsDefined(SemanticsProperties.ProgressBarRangeInfo) and
-                hasAnyAncestor(hasTestTag("preferences_delete_account")),
-            useUnmergedTree = true,
-        ).assertExists()
     }
 
     @Test

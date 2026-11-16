@@ -408,7 +408,9 @@ class PreferencesScreenTest {
 
         rule.onNodeWithTag("preferences_sheet_activity").assertDoesNotExist()
 
-        rule.onNodeWithTag("preferences_activity_row").assertContentDescriptionEquals("Actividad, Ligero, editar")
+        rule.onNodeWithTag(
+            "preferences_activity_row",
+        ).assertContentDescriptionEquals("Nivel de actividad, Ligero, editar")
     }
 
     @Test

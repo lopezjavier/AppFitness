@@ -2,6 +2,7 @@ package io.github.lopezjavier.appfitness.app
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.size
 import androidx.compose.material3.Text
@@ -35,8 +36,10 @@ class TrainingStatsNavigationTest {
     }
     private val statsSlot: TrainingStatsSlot = { modifier, onOpenExercise, onOpenMuscleVolume, onBack ->
         AppScreen("Entrenos", modifier.testTag("stats_screen"), onBack = onBack, testTagPrefix = "stats") {
-            Box(Modifier.size(48.dp).testTag("stats_open_exercise").clickable { onOpenExercise("bench") })
-            Box(Modifier.size(48.dp).testTag("stats_open_muscle_volume").clickable(onClick = onOpenMuscleVolume))
+            Column {
+                Box(Modifier.size(48.dp).testTag("stats_open_exercise").clickable { onOpenExercise("bench") })
+                Box(Modifier.size(48.dp).testTag("stats_open_muscle_volume").clickable(onClick = onOpenMuscleVolume))
+            }
         }
     }
     private val muscleVolumeSlot: MuscleVolumeSlot = { modifier, _, onBack ->
