@@ -20,7 +20,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.unit.dp
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -69,8 +68,8 @@ import org.koin.compose.viewmodel.koinViewModel
 private const val NAME_MAX_LINES = 2
 private const val NAME_SKELETON_WIDTH_UNITS = 8
 private const val SKELETON_ROWS = 4
-private val HEADER_HEIGHT = 72.dp
-private val STAT_ICON_SIZE = 24.dp
+private val HEADER_HEIGHT = Spacing.xl * 3
+private val STAT_ICON_SIZE = Spacing.xl
 
 /** The callbacks of the Perfil root, grouped to keep the layout composables' signatures short. */
 @Suppress("LongParameterList") // One callback per row or button.

@@ -18,7 +18,6 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.unit.dp
 import io.github.lopezjavier.appfitness.composeapp.resources.Res
 import io.github.lopezjavier.appfitness.composeapp.resources.chart_date_short
 import io.github.lopezjavier.appfitness.composeapp.resources.muscle_volume_card_cd
@@ -46,7 +45,7 @@ import kotlin.math.roundToInt
 
 private const val COMPACT_COLUMNS = 4
 private const val WIDE_COLUMNS = 8
-private val OverviewChartHeight = 64.dp
+private val OverviewChartHeight = Spacing.lg * 4
 
 @Composable
 private fun LocalDate.weekLabel(): String = stringResource(Res.string.chart_date_short, day, month.shortLabel())
