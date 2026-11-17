@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # Developer's definition of done: run what CI would run on the checks that most often fail, once, locally.
-# Usage: bash scripts/verify-local.sh [--full]
+# Usage: bash scripts/verify-local.sh [--lint|--full]
+# --lint runs only steps 1-2 (no tests: the PR's CI is the test gate); this is what pr-creator runs.
 # Default mode (stops at the first failing step and says which one):
 #   1. ktlintFormat (all modules), then ktlintCheck detekt
 #   2. check-design-tokens.sh, check-unused-resources.py, python script tests, tests/test-check-ux-conventions.sh, check-ux-conventions.sh (as android-ci.yml)
@@ -16,7 +17,9 @@ set -uo pipefail
 cd "$(dirname "$0")/.."
 
 FULL=0
+LINT=0
 [ "${1:-}" = "--full" ] && FULL=1
+[ "${1:-}" = "--lint" ] && LINT=1
 
 mkdir -p .workflow
 stamp=.workflow/verify-local.stamp
@@ -33,7 +36,7 @@ summary() {
     s=$(sed -n 's/.*<testsuite [^>]*skipped="\([0-9]*\)".*/\1/p' "$x" | head -1)
     tests=$((tests + ${t:-0})); fails=$((fails + ${f:-0} + ${e:-0})); skips=$((skips + ${s:-0}))
   done < <(find . -path '*/build/test-results/*' -name 'TEST-*.xml' -newer "$stamp" 2>/dev/null)
-  if [ "$status" = OK ] && { [ "$tests" -eq 0 ] || [ "$fails" -gt 0 ]; }; then status=FAIL; fi
+  if [ "$status" = OK ] && [ "$LINT" -eq 0 ] && { [ "$tests" -eq 0 ] || [ "$fails" -gt 0 ]; }; then status=FAIL; fi
   [ -n "$failed_step" ] && echo "failed step: $failed_step"
   echo "VERIFY-LOCAL $status: $steps steps, $tests tests run, $fails failed, $skips skipped"
   [ "$status" = OK ]
@@ -89,6 +92,8 @@ run "test-check-ux-conventions" bash scripts/tests/test-check-ux-conventions.sh
 run "check-ux-conventions" bash scripts/check-ux-conventions.sh
 run "check-unused-resources" python -I scripts/check-unused-resources.py
 run "python script tests" bash -c 'for t in scripts/test_deliver_apk.py scripts/test_repdb_tools.py scripts/tests/test_generate_band_long.py scripts/tests/test_check_unused_resources.py scripts/tests/test_gallery_index.py scripts/tests/test_gitbash.py; do python -I "$t" || exit 1; done'
+
+[ "$LINT" -eq 1 ] && summary OK && exit 0
 
 # (c) cross-cutting classes
 mapfile -t cross < <(echo "$all_tests" | grep -E '(AppModuleTest|ShellChromeTest|StringsTest)\.kt$')
