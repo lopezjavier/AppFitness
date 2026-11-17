@@ -99,6 +99,7 @@ Every task pays 6-8 agent hand-offs, so stories stay whole unless one is too lar
 | 6 | T-282: Review round 2: Entreno | **M** (estimate) | US-123 | review + UI | 7 + review |
 | 7 | T-283: Review round 3: Trainer | **M** (estimate) | US-123 | review + UI | 7 + review |
 | 8 | T-284: Review round 4: Perfil | **M** (estimate) | US-123 | review + UI | 7 + review |
+| 8b | T-299: Trainer, Entreno and Perfil improvements (user request 2026-11-17, umbrella; the planner splits it) | **to be set by the planner** | US-123 family | review + UI | planner |
 | 9 | T-285: E19 closure (after the user's closure approval) | closure step (no size class) | DoD | PM | PM only |
 
 Why these splits and merges:
