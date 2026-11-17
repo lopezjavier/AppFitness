@@ -18,6 +18,8 @@ data class WorkoutFormView(
     val names: Map<String, String>,
     /** Every problem of the form right now; the UI flags fields once the user edited the form (R-27). */
     val issues: List<WorkoutDraftIssue>,
+    /** Bundled-picture key by exercise id, for catalogue exercises only; a custom exercise has none (placeholder). */
+    val imageKeys: Map<String, String> = emptyMap(),
 )
 
 /**
@@ -56,6 +58,9 @@ internal class WorkoutDraftEditor(
     var names: Map<String, String> = emptyMap()
         private set
 
+    var imageKeys: Map<String, String> = emptyMap()
+        private set
+
     private var metricTypes: Map<String, ExerciseMetricType> = emptyMap()
 
     /** True when a form was restored from the saved state, so it must not be replaced by the loaded source. */
@@ -68,6 +73,7 @@ internal class WorkoutDraftEditor(
         if (lookup == null || resolved == null) return false
         metricTypes = lookup.metricTypes
         names = resolved.byId
+        imageKeys = resolved.imageKeyById
         return true
     }
 
@@ -75,6 +81,7 @@ internal class WorkoutDraftEditor(
     fun updateNames(resolved: ExerciseNames) {
         if (form?.exercises?.all { resolved[it.exerciseId] != null } == false) return
         names = resolved.byId
+        imageKeys = resolved.imageKeyById
     }
 
     /** True when every exercise of the current form has a name. */
@@ -104,7 +111,7 @@ internal class WorkoutDraftEditor(
 
     fun draft(): WorkoutDraft? = form?.toDraft()
 
-    fun view(): WorkoutFormView? = form?.let { WorkoutFormView(it, names, issues()) }
+    fun view(): WorkoutFormView? = form?.let { WorkoutFormView(it, names, issues(), imageKeys) }
 
     /** Applies the edit; an exercise missing from the lookup (created after the screen opened) reloads it first. */
     fun apply(event: WorkoutFormEvent) {

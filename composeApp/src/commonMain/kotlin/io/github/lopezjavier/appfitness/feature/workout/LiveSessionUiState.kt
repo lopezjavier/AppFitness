@@ -89,6 +89,8 @@ data class LiveExercise(
     val routineNoteKind: ExerciseNoteKind? = null,
     /** The exercise belongs to a routine, so its routine note can be edited here (ADR-82). */
     val routineNoteEditable: Boolean = false,
+    /** The bundled-picture key of a catalogue exercise; null for a custom one (the UI draws the placeholder). */
+    val imageKey: String? = null,
 )
 
 /** An open discomfort on an exercise, shown at the highest [level] among its open rows. */

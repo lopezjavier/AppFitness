@@ -264,13 +264,17 @@ class TrainingStatsViewModel(
         }
     }
 
-    private fun namedOrNull(rows: List<ExerciseSetCount>, names: ExerciseNames): List<StatsExercise>? =
-        rows.map { StatsExercise(it.exerciseId, names[it.exerciseId] ?: return null, it.sets, it.sessions) }
+    private fun namedOrNull(rows: List<ExerciseSetCount>, names: ExerciseNames): List<StatsExercise>? = rows.map {
+        val name = names[it.exerciseId] ?: return null
+        StatsExercise(it.exerciseId, name, it.sets, it.sessions, names.imageKeyOf(it.exerciseId))
+    }
 
     /** A renamed custom exercise updates the rows already shown; ids the new lookup lacks keep their name. */
     private fun renameExercises(names: ExerciseNames) {
         lookupLoad = null // The cached lookup is stale after a rename.
-        fun List<StatsExercise>.renamed() = map { row -> names[row.exerciseId]?.let { row.copy(name = it) } ?: row }
+        fun List<StatsExercise>.renamed() = map { row ->
+            names[row.exerciseId]?.let { row.copy(name = it, imageKey = names.imageKeyOf(row.exerciseId)) } ?: row
+        }
         _uiState.update { state ->
             state.copy(
                 topExercises = (state.topExercises as? SectionState.Content)

@@ -465,6 +465,30 @@ class EditWorkoutViewModelTest {
     }
 
     @Test
+    fun theFormViewCarriesTheImageKeyOfCatalogueExercises() = runTest(dispatcher) {
+        seed()
+        val model = viewModel()
+
+        advanceUntilIdle()
+
+        assertEquals(mapOf("e1" to "bench"), model.content().view.imageKeys)
+    }
+
+    @Test
+    fun aCustomExerciseAddedLater_hasNoImageKey() = runTest(dispatcher) {
+        seed()
+        val model = viewModel()
+        advanceUntilIdle()
+        exercises.rows = exercises.rows + exerciseRow("mine", null, name = "Mi press", custom = true)
+
+        model.onEvent(WorkoutFormEvent.AddExercise("mine"))
+        advanceUntilIdle()
+
+        assertEquals("Mi press", model.content().view.names["mine"])
+        assertEquals(mapOf("e1" to "bench"), model.content().view.imageKeys)
+    }
+
+    @Test
     fun unreadableExercises_showTheErrorStateNotUnnamedRows() = runTest(dispatcher) {
         seed()
         exercises.failure = AppError.Network

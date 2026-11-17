@@ -601,6 +601,27 @@ class SessionDetailViewModelTest {
     }
 
     @Test
+    fun aCatalogueExerciseCarriesItsImageKey() = runTest(dispatcher) {
+        seed()
+        val model = viewModel()
+
+        advanceUntilIdle()
+
+        assertEquals("bench", model.content().exercises.single().imageKey)
+    }
+
+    @Test
+    fun aCustomExerciseHasNoImageKey() = runTest(dispatcher) {
+        exercises.rows = listOf(exerciseRow("e1", null, name = "Mi press", custom = true))
+        seed()
+        val model = viewModel()
+
+        advanceUntilIdle()
+
+        assertNull(model.content().exercises.single().imageKey)
+    }
+
+    @Test
     fun anExerciseWithoutAName_isTheErrorState() = runTest(dispatcher) {
         exercises.rows = emptyList()
         seed()
