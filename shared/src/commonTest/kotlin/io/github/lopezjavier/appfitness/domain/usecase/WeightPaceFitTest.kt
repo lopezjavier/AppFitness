@@ -296,6 +296,27 @@ class WeightPaceFitTest {
     }
 
     @Test
+    fun planLine_aLaterDeadline_movesTheEndWeeksAndKeepsTheTargetKg() {
+        val start = windowStartOf(5)
+
+        fun lineFor(on: LocalDate) = assertNotNull(
+            compute(
+                series(*line(5, 80.0, -0.5)),
+                -0.5,
+                weeksInPhase = PhaseWeeks(Phase.Cut, 5),
+                planStart = start.minus(DatePeriod(days = 30)),
+                outcome = outcome(on = on),
+            ).planLine,
+        )
+
+        val original = lineFor(deadline)
+        val extended = lineFor(deadline.plus(DatePeriod(days = 7)))
+
+        assertEquals(original.endWeeks + 1.0, extended.endWeeks, tolerance)
+        assertEquals(original.endKg, extended.endKg, tolerance)
+    }
+
+    @Test
     fun planLine_slopeEqualsThePlanRate() {
         val start = windowStartOf(5)
 
