@@ -93,7 +93,7 @@ Kotlin 2.x + Compose Multiplatform + AGP 9 (built-in Kotlin, Android-KMP library
 | `deploy-supabase.yml` | push `main` touching `supabase/**` + manual | `production` env -> `supabase link` -> `db push` -> `functions deploy` | - |
 | `keepalive.yml` | cron `0 6 */3 * *` + manual | GET `health` with the publishable key | - |
 
-The unused-resource guard `scripts/check-unused-resources.py` (ADR-107, T-277; KMP Compose resources are not seen by Android lint) runs in `android-ci.yml` and `verify-local.sh`; the stdlib Python tests of `scripts/` run in `security.yml`.
+The unused-resource guard `scripts/check-unused-resources.py` (ADR-107, T-277; KMP Compose resources are not seen by Android lint) runs in `android-ci.yml`; the stdlib Python tests of `scripts/` run in `security.yml`.
 
 ## 9. Network behavior
 
