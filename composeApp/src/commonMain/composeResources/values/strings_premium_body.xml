@@ -4,14 +4,11 @@
     <string name="px_body_readings_month">Días con peso este mes: %1$d</string>
     <string name="px_body_last_weight">Último peso: %1$s kg</string>
     <string name="px_body_goal_title">Objetivo diario</string>
-    <string name="px_body_goal_expenditure">Gasto estimado %1$s kcal</string>
     <string name="px_body_goal_deficit_zone">Déficit</string>
     <string name="px_body_goal_maintenance_zone">Mantenimiento</string>
     <string name="px_body_goal_surplus_zone">Superávit</string>
     <string name="px_body_goal_vs_expenditure">%1$s kcal respecto al gasto</string>
-    <string name="px_body_macro_split_title">Reparto de calorías</string>
     <string name="px_body_macro_centre">kcal</string>
-    <string name="px_body_day_split_title">Reparto del día</string>
     <string name="px_body_week_chart_title">Calorías por día</string>
     <string name="px_body_month_chart_title">Calorías por semana</string>
     <string name="px_body_chart_cd">Calorías por día frente al objetivo de %1$s kcal</string>

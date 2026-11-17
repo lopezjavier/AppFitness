@@ -5,6 +5,5 @@
     <string name="px_trainer_plan_empty_bullet_3">Ajustes del entrenador cuando los necesites</string>
     <string name="px_trainer_block_empty_bullet_1">Entrenos de cada semana según tu plan</string>
     <string name="px_trainer_block_empty_bullet_2">Progresión y revisión al terminar</string>
-    <string name="px_trainer_report_adherence">Cumplimiento de la semana</string>
     <string name="px_trainer_record">Récord</string>
 </resources>

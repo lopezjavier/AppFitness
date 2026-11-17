@@ -2348,7 +2348,6 @@
     <!-- Report figures (T-283, C-102, V-55): headline, spoken value, tile labels. U+00A0 keeps a fact on one line. -->
     <string name="report_sessions_headline">%1$d de %2$d</string>
     <string name="report_sessions_cd">%1$d de %2$d entrenos</string>
-    <string name="report_lift_range">%1$s → %2$s&#160;kg</string>
     <string name="report_lift_change">%1$s&#160;kg</string>
     <string name="report_tile_days_label">Días completos</string>
     <string name="report_tile_days_unit">de&#160;7</string>
