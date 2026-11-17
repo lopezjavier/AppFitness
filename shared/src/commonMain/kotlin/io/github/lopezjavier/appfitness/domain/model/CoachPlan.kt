@@ -104,3 +104,11 @@ data class CoachPlan(
     /** The weight outcome the Weight screen shows, if the plan has one. */
     val weightOutcome: PlanOutcome? get() = outcomes.firstOrNull { it.kind == OutcomeKind.Weight }
 }
+
+/**
+ * The plan with every outcome's goal date set to the block's real last day [blockEnd] (`coach_block_end`, which
+ * moves with pauses and extensions); the target values are unchanged. A null [blockEnd] (no saved block) keeps the
+ * stored dates.
+ */
+fun CoachPlan.endingOn(blockEnd: LocalDate?): CoachPlan =
+    if (blockEnd == null) this else copy(outcomes = outcomes.map { it.copy(deadline = blockEnd) })

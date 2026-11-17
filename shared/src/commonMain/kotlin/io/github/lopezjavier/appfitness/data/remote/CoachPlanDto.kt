@@ -265,6 +265,10 @@ internal data class AcceptPlanParams(
 @Serializable
 internal data class DiscardPlanParams(@SerialName("p_plan_id") val planId: String)
 
+/** `coach_block_end(p_plan_id)`: the last day of the plan's block, null while it has no saved block. */
+@Serializable
+internal data class BlockEndParams(@SerialName("p_plan_id") val planId: String)
+
 @Serializable
 internal data class SetCardioParams(
     @SerialName("p_plan_id") val planId: String,

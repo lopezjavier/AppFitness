@@ -265,7 +265,7 @@ class SupabaseCoachPlanRepositoryTest {
         val repository = repo { HttpStatusCode.OK to "[${planRow("a", "accepted")}]" }
 
         assertEquals("a", repository.acceptedPlan().getOrThrow()?.id)
-        assertTrue(rest().single().url.toString().contains("status=eq.accepted"))
+        assertTrue(rest().first().url.toString().contains("status=eq.accepted"))
     }
 
     @Test
@@ -274,10 +274,125 @@ class SupabaseCoachPlanRepositoryTest {
 
         val plan = repository.acceptPlan("p1", today).getOrThrow()
 
-        val call = rest().single()
+        val call = rest().first()
         assertTrue(call.url.encodedPath.endsWith("/rest/v1/rpc/accept_coach_plan"), call.url.toString())
         assertEquals("""{"p_plan_id":"p1","p_today":"2026-10-29"}""", bodyOf(call))
         assertEquals(PlanStatus.Accepted, plan.status)
+    }
+
+    // The goal date of the outcomes is the block's real last day (coach_block_end), derived on read (T-298).
+
+    private val storedDeadline = LocalDate(2026, 11, 26)
+    private val blockEnd = LocalDate(2026, 12, 8)
+
+    private fun isBlockEndCall(request: HttpRequestData) =
+        request.url.encodedPath.endsWith("/rest/v1/rpc/coach_block_end")
+
+    private fun blockEndCalls() = rest().filter(::isBlockEndCall)
+
+    /** Plan table reads and `accept_coach_plan` answer [row]; `coach_block_end` answers [blockEndAnswer]. */
+    private fun blockEndRoutes(
+        row: String,
+        blockEndAnswer: Pair<HttpStatusCode, String>,
+        listed: Boolean = true,
+    ): (HttpRequestData) -> Pair<HttpStatusCode, String> = { request ->
+        when {
+            isBlockEndCall(request) -> blockEndAnswer
+            listed && !request.url.encodedPath.contains("/rpc/") -> HttpStatusCode.OK to "[$row]"
+            else -> HttpStatusCode.OK to row
+        }
+    }
+
+    private val blockEndOk = HttpStatusCode.OK to "\"2026-12-08\""
+
+    @Test
+    fun acceptedPlan_outcomeDeadlineIsTheBlockEnd_andTheTargetIsUnchanged() = runTest {
+        val repository = repo(respond = blockEndRoutes(planRow("a", "accepted"), blockEndOk))
+
+        val outcome = repository.acceptedPlan().getOrThrow()?.outcomes?.single()
+
+        assertEquals(blockEnd, outcome?.deadline)
+        assertEquals(72.5, outcome?.targetValue)
+        val call = blockEndCalls().single()
+        assertEquals("""{"p_plan_id":"a"}""", bodyOf(call))
+    }
+
+    @Test
+    fun currentPlan_acceptedPlan_outcomeDeadlineIsTheBlockEnd() = runTest {
+        val repository = repo(respond = blockEndRoutes(planRow("a", "accepted"), blockEndOk))
+
+        assertEquals(blockEnd, repository.currentPlan().getOrThrow()?.outcomes?.single()?.deadline)
+    }
+
+    @Test
+    fun acceptedPlan_aNullBlockEnd_keepsTheStoredDeadline() = runTest {
+        val repository = repo(respond = blockEndRoutes(planRow("a", "accepted"), HttpStatusCode.OK to "null"))
+
+        assertEquals(storedDeadline, repository.acceptedPlan().getOrThrow()?.outcomes?.single()?.deadline)
+    }
+
+    @Test
+    fun acceptedPlan_aFailedBlockEndCall_stillReturnsThePlanWithTheStoredDeadline() = runTest {
+        val failure = HttpStatusCode.InternalServerError to """{"code":"XX000","message":"boom"}"""
+        val repository = repo(respond = blockEndRoutes(planRow("a", "accepted"), failure))
+
+        val plan = repository.acceptedPlan().getOrThrow()
+
+        assertEquals("a", plan?.id)
+        assertEquals(storedDeadline, plan?.outcomes?.single()?.deadline)
+    }
+
+    @Test
+    fun currentPlan_aProposedPlan_makesNoBlockEndCallAndKeepsTheStoredDeadline() = runTest {
+        val repository = repo(respond = blockEndRoutes(planRow("p", "proposed"), blockEndOk))
+
+        val plan = repository.currentPlan().getOrThrow()
+
+        assertEquals(storedDeadline, plan?.outcomes?.single()?.deadline)
+        assertTrue(blockEndCalls().isEmpty())
+    }
+
+    @Test
+    fun updatePlanOptions_aProposedPlan_makesNoBlockEndCall() = runTest {
+        val repository = repo(respond = ::planRoutes)
+
+        repository.updatePlanOptions("p1", today, 0.8, false).getOrThrow()
+
+        assertTrue(blockEndCalls().isEmpty())
+    }
+
+    @Test
+    fun setCardioMinutes_anAcceptedPlan_returnsTheBlockEndAsDeadline() = runTest {
+        val repository = repo { request ->
+            when {
+                isBlockEndCall(request) -> blockEndOk
+                request.url.encodedPath.contains("/rpc/") -> HttpStatusCode.OK to "{}"
+                else -> HttpStatusCode.OK to "[${planRow("p1", "accepted")}]"
+            }
+        }
+
+        val plan = repository.setCardioMinutes("p1", 90).getOrThrow()
+
+        assertEquals(blockEnd, plan.outcomes.single().deadline)
+    }
+
+    @Test
+    fun acceptPlan_blockNotCreatedYet_keepsTheStoredDeadline() = runTest {
+        val repository = repo(
+            respond = blockEndRoutes(planRow("p1", "accepted"), HttpStatusCode.OK to "null", listed = false),
+        )
+
+        val plan = repository.acceptPlan("p1", today).getOrThrow()
+
+        assertEquals(PlanStatus.Accepted, plan.status)
+        assertEquals(storedDeadline, plan.outcomes.single().deadline)
+    }
+
+    @Test
+    fun acceptPlan_withABlockEnd_returnsItAsDeadline() = runTest {
+        val repository = repo(respond = blockEndRoutes(planRow("p1", "accepted"), blockEndOk, listed = false))
+
+        assertEquals(blockEnd, repository.acceptPlan("p1", today).getOrThrow().outcomes.single().deadline)
     }
 
     @Test

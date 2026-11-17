@@ -11,6 +11,7 @@ import io.github.jan.supabase.postgrest.rpc
 import io.github.lopezjavier.appfitness.data.remote.AcceptPlanParams
 import io.github.lopezjavier.appfitness.data.remote.ApplyDietBreakParams
 import io.github.lopezjavier.appfitness.data.remote.ApplyDietBreakResultDto
+import io.github.lopezjavier.appfitness.data.remote.BlockEndParams
 import io.github.lopezjavier.appfitness.data.remote.CoachErrorParser
 import io.github.lopezjavier.appfitness.data.remote.CoachPlanDto
 import io.github.lopezjavier.appfitness.data.remote.CoachRecommendationDto
@@ -36,6 +37,7 @@ import io.github.lopezjavier.appfitness.domain.model.CoachPlan
 import io.github.lopezjavier.appfitness.domain.model.CutRate
 import io.github.lopezjavier.appfitness.domain.model.DietBreakApplication
 import io.github.lopezjavier.appfitness.domain.model.PlanStatus
+import io.github.lopezjavier.appfitness.domain.model.endingOn
 import io.github.lopezjavier.appfitness.domain.repository.CoachPlanRepository
 import io.ktor.client.plugins.HttpRequestTimeoutException
 import io.ktor.client.request.setBody
@@ -148,7 +150,7 @@ class SupabaseCoachPlanRepository internal constructor(
             }
             .decodeList<CoachPlanDto>()
             .map { it.toDomain() }
-        plans.firstOrNull { it.status == PlanStatus.Proposed } ?: plans.firstOrNull()
+        (plans.firstOrNull { it.status == PlanStatus.Proposed } ?: plans.firstOrNull())?.withBlockEnd()
     }
 
     override suspend fun acceptedPlan(): Result<CoachPlan?> = auth.ownRow {
@@ -159,11 +161,12 @@ class SupabaseCoachPlanRepository internal constructor(
                 limit(1)
             }
             .decodeList<CoachPlanDto>()
-            .firstOrNull()?.toDomain()
+            .firstOrNull()?.toDomain()?.withBlockEnd()
     }
 
     override suspend fun acceptPlan(planId: String, today: LocalDate): Result<CoachPlan> = auth.ownRow {
         postgrest.rpc("accept_coach_plan", AcceptPlanParams(planId, today)).decodeAs<CoachPlanDto>().toDomain()
+            .withBlockEnd()
     }.mapPlanErrors()
 
     override suspend fun discardPlan(planId: String): Result<Unit> = auth.ownRow {
@@ -210,7 +213,24 @@ class SupabaseCoachPlanRepository internal constructor(
     private suspend fun loadPlan(id: String): CoachPlan? = postgrest.from("coach_plans")
         .select { filter { eq("id", id) } }
         .decodeList<CoachPlanDto>()
-        .firstOrNull()?.toDomain()
+        .firstOrNull()?.toDomain()?.withBlockEnd()
+
+    /**
+     * An accepted plan shows its block's real last day (`coach_block_end`: it moves with pauses and extensions) as
+     * the goal date of its outcomes. A proposed plan has no block, and a failed or null answer keeps the stored
+     * date: the date never makes the plan read fail.
+     */
+    @Suppress("TooGenericExceptionCaught", "SwallowedException") // A failed date lookup keeps the stored date.
+    private suspend fun CoachPlan.withBlockEnd(): CoachPlan {
+        if (status != PlanStatus.Accepted) return this
+        return try {
+            endingOn(postgrest.rpc("coach_block_end", BlockEndParams(id)).decodeAs<LocalDate?>())
+        } catch (cancellation: CancellationException) {
+            throw cancellation
+        } catch (failure: Exception) {
+            this
+        }
+    }
 
     /** SQLSTATE 55000 is "derived values unconfirmed" while accepting, or a plan no longer in the expected state. */
     private fun <T> Result<T>.mapPlanErrors(): Result<T> = recoverCatching { failure ->
