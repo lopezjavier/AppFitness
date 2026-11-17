@@ -455,6 +455,8 @@
     <string name="builder_superset_sets_help_body">Las series se añaden y quitan en toda la superserie.</string>
     <string name="builder_superset_sets_help_cd">Ayuda: superserie</string>
     <string name="set_type_normal">Normal</string>
+    <string name="set_type_normal_numbered_cd">Serie normal %1$d</string>
+    <string name="live_set_type_normal_cd">Serie normal %1$d, cambiar tipo</string>
     <string name="set_type_warm_up">Calentamiento</string>
     <string name="set_type_failure">Fallo</string>
     <string name="set_type_drop">Drop</string>

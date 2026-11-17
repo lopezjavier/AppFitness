@@ -24,6 +24,7 @@ import io.github.lopezjavier.appfitness.composeapp.resources.live_pending_save
 import io.github.lopezjavier.appfitness.composeapp.resources.live_rpe_cell_cd
 import io.github.lopezjavier.appfitness.composeapp.resources.live_rpe_empty_state
 import io.github.lopezjavier.appfitness.composeapp.resources.live_set_delete_cd
+import io.github.lopezjavier.appfitness.composeapp.resources.live_set_type_normal_cd
 import io.github.lopezjavier.appfitness.composeapp.resources.note_edit
 import io.github.lopezjavier.appfitness.composeapp.resources.session_cardio_minutes_cd
 import io.github.lopezjavier.appfitness.composeapp.resources.session_cardio_minutes_hint
@@ -42,6 +43,7 @@ import io.github.lopezjavier.appfitness.designsystem.SwipeToDeleteRow
 import io.github.lopezjavier.appfitness.designsystem.setNoteSummary
 import io.github.lopezjavier.appfitness.domain.model.Equipment
 import io.github.lopezjavier.appfitness.domain.model.ExerciseMetricType
+import io.github.lopezjavier.appfitness.domain.model.SetType
 import io.github.lopezjavier.appfitness.domain.usecase.DurationFormat
 import io.github.lopezjavier.appfitness.feature.exercises.setFieldSpecs
 import org.jetbrains.compose.resources.painterResource
@@ -91,6 +93,7 @@ internal fun SessionSetRow(
     showRpe: Boolean = true,
     cardio: Boolean = false,
     current: Boolean = false,
+    normalNumber: Int? = null,
 ) {
     val cardioRow = cardio || row.plannedDurationMinutes != null
     val tag = "live_set_${position}_${row.setIndex}"
@@ -110,7 +113,7 @@ internal fun SessionSetRow(
                     position = position,
                     placeholder = cardioPlaceholder(row.plannedDurationMinutes),
                     placeholderDescription = cardioPlaceholderDescription(row.plannedDurationMinutes),
-                ).copy(current = current),
+                ).copy(current = current, typeNumber = normalNumber),
                 onWeightChange = { onEvent(LiveSessionEvent.WeightChanged(position, row.setIndex, it)) },
                 onRepsChange = { onEvent(LiveSessionEvent.RepsChanged(position, row.setIndex, it)) },
                 onCompletedChange = { onEvent(LiveSessionEvent.SetChecked(position, row.setIndex, it)) },
@@ -118,11 +121,15 @@ internal fun SessionSetRow(
                 showPrevious = false,
                 testTagPrefix = tag,
                 onTypeClick = { onEvent(LiveSessionEvent.OpenTypePicker(position, row.setIndex)) },
-                typeClickLabel = stringResource(
-                    Res.string.builder_set_type_cd,
-                    row.setIndex,
-                    stringResource(SetTypeBadgeDefaults.labelResource(row.type)),
-                ),
+                typeClickLabel = if (row.type == SetType.Working && normalNumber != null) {
+                    stringResource(Res.string.live_set_type_normal_cd, normalNumber)
+                } else {
+                    stringResource(
+                        Res.string.builder_set_type_cd,
+                        row.setIndex,
+                        stringResource(SetTypeBadgeDefaults.labelResource(row.type)),
+                    )
+                },
                 fields = setFieldSpecs(metricType, equipment),
                 actions = SetRowFieldActions(
                     onFieldChange = { kind, text -> onEvent(fieldChanged(kind, position, row.setIndex, text)) },

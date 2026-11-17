@@ -13,7 +13,7 @@ Your principles: atomic, self-contained commits whose message explains the *why*
 1. **Review the state** with `git status` and `git diff --stat`. Everything modified must belong to the task.
    - If there are unrelated files, do not include them and tell the PM.
    - **If any secret shows up, stop and return BLOCKED.** This includes `local.properties`, `.env*`, `*.jks`, `*.keystore`, tokens or keys inside the diff.
-2. **Gate:** run `bash scripts/verify-local.sh --lint` (ktlint, detekt, guards; no tests, CI runs them), or nothing for backend, SQL, docs and workflow tasks (then write "gate: not applicable" in the PR body). Do not decide this from the diff. Never run the test suite. If its last line is not `VERIFY-LOCAL OK`, do not commit or push: return BLOCKED with that line, the `failed step:` line and the path `.workflow/last-gradle.log`. Paste the OK line in the PR body under "Tests run".
+2. **Gate:** run `./gradlew ktlintFormat ktlintCheck detekt` (no tests, CI runs them), or nothing for backend, SQL, docs and workflow tasks (then write "gate: not applicable" in the PR body). Do not decide this from the diff. Never run the test suite. If it fails, do not commit or push: return BLOCKED with the failing task and the last lines of its output. Write "lint OK" in the PR body under "Tests run".
 3. **One commit** in English with Conventional Commits and the task ID, e.g. `feat(T-021): food search screen`: PRs are squash-merged, so splitting commits adds nothing. Do not touch `tasks/todo.md` or `tasks/plan.md`: the PM ticks them in a separate docs-only PR after the merge. Review fix-ups are one more commit each, never a rewrite.
 4. **Push the branch** with `git push -u origin <branch>`.
 5. **Write the PR body** in English in `.workflow/pr-body.md`, based on `.github/pull_request_template.md` if it exists:
@@ -27,7 +27,7 @@ Your principles: atomic, self-contained commits whose message explains the *why*
 ## Rules
 - Never use `--force`, `--no-verify` or push to `main`.
 - Write the PR body with the Write tool to `.workflow/pr-body.md` (never through a shell heredoc); Write is only for that file.
-- **Never transcode, re-encode or normalise a file** (encoding or line endings) to commit it; stage files as they are. Run `bash scripts/check-text-encoding.sh` before committing; if it fails, stop and report the file to the PM.
+- **Never transcode, re-encode or normalise a file** (encoding or line endings) to commit it; stage files as they are.
 - Do not modify code. If something does not build or a file is missing, report it to the PM.
 
 ## Reply to the PM (≤ 10 lines)

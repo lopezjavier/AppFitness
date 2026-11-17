@@ -6,6 +6,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.assert
+import androidx.compose.ui.test.assertContentDescriptionEquals
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
@@ -20,6 +21,7 @@ import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.StateRestorationTester
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithTag
+import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
@@ -103,21 +105,32 @@ class LiveSessionScreenTest {
     }
 
     @Test
-    fun header_showsLiveTitle_timer_andNoKeepAwakeIndicatorNorFixedFinishButton() {
+    fun header_showsTheRoutineNameWithoutStatusSubtitle_andNoKeepAwakeIndicatorNorFixedFinishButton() {
         show(active())
 
         rule.onNodeWithTag("live_screen").assertExists()
-        rule.onNodeWithTag("live_subtitle").assertTextContains("EN VIVO · 02:05")
+        rule.onNodeWithTag("live_title").assertTextEquals("Torso")
+        rule.onNodeWithTag("live_subtitle").assertDoesNotExist()
         rule.onNodeWithTag("live_keep_awake").assertDoesNotExist()
         rule.onNodeWithText("Pantalla activa").assertDoesNotExist()
         rule.onNodeWithTag("live_finish_button").assertDoesNotExist()
     }
 
     @Test
+    fun liveStatusAndTimer_appearExactlyOnce_inTheStatusStrip() {
+        show(active(), elapsed = 125)
+
+        rule.onAllNodesWithText("EN VIVO").assertCountEquals(1)
+        rule.onAllNodesWithText("02:05").assertCountEquals(1)
+        rule.onAllNodesWithText("EN VIVO · 02:05").assertCountEquals(0)
+        rule.onNodeWithTag("live_timer").assertTextEquals("02:05")
+    }
+
+    @Test
     fun timer_describesTheElapsedTimeForScreenReaders() {
         show(active(), elapsed = 125)
 
-        rule.onNodeWithTag("live_subtitle")
+        rule.onNodeWithTag("live_timer")
             .assert(hasContentDescription("Tiempo de entreno, 2 minutos 0 segundos"))
     }
 
@@ -431,7 +444,7 @@ class LiveSessionScreenTest {
     fun semantics_timerIsNotAHeading() {
         show(active())
 
-        val config = rule.onNodeWithTag("live_subtitle").fetchSemanticsNode().config
+        val config = rule.onNodeWithTag("live_timer").fetchSemanticsNode().config
         assertTrue(SemanticsProperties.Heading !in config)
     }
 
@@ -467,7 +480,7 @@ class LiveSessionScreenTest {
     )
 
     @Test
-    fun plannedSets_showTheTypeLetterInTheBadge_andNoOrdinalColumn() {
+    fun plannedSets_numberTheNormalSetsAndKeepTheWarmUpLetter_andNoOrdinalColumn() {
         show(plannedState())
 
         fun badge(set: Int) = rule.onNode(
@@ -475,9 +488,38 @@ class LiveSessionScreenTest {
             useUnmergedTree = true,
         )
         badge(1).assertTextEquals("C")
-        badge(2).assertTextEquals("N")
-        badge(4).assertTextEquals("N")
+        badge(2).assertTextEquals("1")
+        badge(3).assertTextEquals("2")
+        badge(4).assertTextEquals("3")
+        rule.onNodeWithTag("live_set_0_4_type").assertContentDescriptionEquals("Serie normal 3, cambiar tipo")
         rule.onAllNodesWithTag("set_ordinal").assertCountEquals(0)
+    }
+
+    @Test
+    fun normalSetNumbers_countOnlyNormalSetsInDisplayOrder() {
+        val sets = listOf(
+            LiveSetRow(1, "", "", false, type = SetType.WarmUp),
+            LiveSetRow(2, "", "", false),
+            LiveSetRow(3, "", "", false, type = SetType.Drop),
+            LiveSetRow(5, "", "", false),
+        )
+
+        assertEquals(mapOf(2 to 1, 5 to 2), normalSetNumbers(sets))
+    }
+
+    @Test
+    fun deletingANormalSet_renumbersTheNormalSetsThatFollow() {
+        var state by mutableStateOf<LiveSessionUiState>(plannedState())
+        rule.setContent { AppTheme { LiveSessionScreen(state, 0, {}, {}, onOpenExercise = {}) } }
+        val kept = listOf(LiveSetRow(1, "", "", false, "40", "10", type = SetType.WarmUp), LiveSetRow(3, "", "", false))
+
+        state = active(exercises = listOf(LiveExercise(0, "e1", "Press banca", null, kept)))
+        rule.waitForIdle()
+
+        rule.onNode(
+            hasTestTag("set_type_badge") and hasAnyAncestor(hasTestTag("live_set_0_3")),
+            useUnmergedTree = true,
+        ).assertTextEquals("1")
     }
 
     @Test

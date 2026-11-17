@@ -35,7 +35,7 @@ internal object GalleryManifest {
         "DiscStepperRow",
         "DiscardChangesDialog", "FilterChipFlow", "HelpTriggerButton", "IconTile", "InvalidTimeMessage",
         "ListRowSkeleton", "NavIcon", "NavLabel", "OfflineHint", "OptionPickerSheet", "PausedText",
-        "PillContainer", "ProgressLine", "RestTimerAction", "RingArc", "RpeHelpButton", "RpeOptionRow",
+        "PillContainer", "RestTimerAction", "RingArc", "RpeHelpButton", "RpeOptionRow",
         "RpePickerSheet", "ScaleOptionRow", "SetFieldInput", "SetNoteButton", "SetOrdinal", "SheetActionRow",
         "StatusChip", "StepScaffold", "StreamProgressState", "SupersetAccent",
         "TonalSquareIconButton",

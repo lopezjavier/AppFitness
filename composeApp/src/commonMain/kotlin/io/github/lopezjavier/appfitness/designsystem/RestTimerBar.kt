@@ -8,9 +8,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.sizeIn
@@ -22,7 +20,6 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.Role
-import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
@@ -42,10 +39,11 @@ import kotlin.time.Duration
 import kotlin.time.Duration.Companion.seconds
 
 /**
- * Stateless rest-timer bar: cyan countdown, "+30s" and "Omitir" actions and a thin progress line at the
- * bottom. The caller owns the time and removes the bar on skip or at zero. The caller's [modifier] lands
- * on the bar; with [testTagPrefix] the children are tagged `_countdown`, `_label`, `_add` and `_skip`. The optional
- * [label] (the "Descanso" tag) takes the spare width and ends in an ellipsis; the time never truncates.
+ * Stateless rest-timer bar: a progress ring, the cyan countdown and the "+30s" and "Omitir" actions (the ring is the
+ * only progress cue; there is no line along the bottom). The caller owns the time and removes the bar on skip or at
+ * zero. The caller's [modifier] lands on the bar; with [testTagPrefix] the children are tagged `_countdown`, `_label`,
+ * `_add` and `_skip`. The optional [label] (the "Descanso" tag) takes the spare width and ends in an ellipsis; the
+ * time never truncates.
  * The cardio run uses the same slot through [CardioTimerBar].
  */
 @Composable
@@ -99,7 +97,7 @@ fun RestTimerBar(
 internal fun timerTag(prefix: String?, part: String): Modifier =
     prefix?.let { Modifier.testTag("${it}_$part") } ?: Modifier
 
-/** The bar shell shared by the rest and the cardio variants: rounded overlay, content row and progress line. */
+/** The bar shell shared by the rest and the cardio variants: rounded overlay, progress ring and content row. */
 @Composable
 internal fun TimerBarSurface(
     progress: Float,
@@ -133,7 +131,6 @@ internal fun TimerBarSurface(
             )
             content()
         }
-        ProgressLine(progress = progress, colors = colors, modifier = Modifier.align(Alignment.BottomStart))
     }
 }
 
@@ -174,24 +171,6 @@ private fun spokenCountdown(remaining: Duration, paused: Boolean): String {
         secondsOnly -> stringResource(Res.string.rest_timer_cd_seconds, seconds.toString())
         paused -> stringResource(Res.string.rest_timer_paused_cd, minutes.toString(), seconds.toString())
         else -> stringResource(Res.string.rest_timer_cd, minutes.toString(), seconds.toString())
-    }
-}
-
-/** Decorative progress line: the countdown already carries the information, so it has no semantics. */
-@Composable
-internal fun ProgressLine(progress: Float, colors: RestTimerBarColors, modifier: Modifier = Modifier) {
-    Box(
-        modifier =
-        modifier
-            .fillMaxWidth()
-            .height(RestTimerBarDefaults.ProgressHeight)
-            .background(colors.progressTrack)
-            .clearAndSetSemantics {},
-    ) {
-        Box(
-            Modifier.fillMaxHeight().fillMaxWidth(progress.coerceIn(0f, 1f))
-                .background(AppPaint.horizontal(colors.progress)),
-        )
     }
 }
 

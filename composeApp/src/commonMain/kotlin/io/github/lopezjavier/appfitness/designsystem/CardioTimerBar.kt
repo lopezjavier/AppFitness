@@ -48,7 +48,7 @@ object CardioTimerBarDefaults {
     fun isOverTarget(elapsed: Duration, target: Duration?): Boolean =
         target != null && target > Duration.ZERO && elapsed > target
 
-    /** elapsed / target coerced to 0..1 (full when over); without a target the line stays empty. */
+    /** elapsed / target coerced to 0..1 (full when over); without a target the ring stays empty. */
     fun cardioProgress(elapsed: Duration, target: Duration?): Float =
         if (target == null || target <= Duration.ZERO) 0f else (elapsed / target).toFloat().coerceIn(0f, 1f)
 

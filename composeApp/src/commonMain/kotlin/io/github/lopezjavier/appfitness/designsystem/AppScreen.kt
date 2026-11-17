@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.WindowInsetsSides
+import androidx.compose.foundation.layout.consumeWindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
@@ -77,6 +78,7 @@ fun AppScreen(
 ) {
     val backDescription = stringResource(Res.string.topbar_back_cd)
     val backButton = remember(onBack, backDescription) { onBack?.let { AppTopBarButton(backDescription, it) } }
+    val bottomInsets = WindowInsets.safeDrawing.only(WindowInsetsSides.Bottom)
     Column(
         modifier
             .fillMaxSize()
@@ -100,7 +102,10 @@ fun AppScreen(
             Modifier
                 .weight(1f)
                 .fillMaxWidth()
-                .windowInsetsPadding(WindowInsets.safeDrawing.only(WindowInsetsSides.Horizontal)),
+                .windowInsetsPadding(WindowInsets.safeDrawing.only(WindowInsetsSides.Horizontal))
+                // The pinned footer already lifts itself above the keyboard and the bars: the content must not pad
+                // that bottom inset a second time (an inner imePadding would squeeze a list to nothing).
+                .then(if (footer != null) Modifier.consumeWindowInsets(bottomInsets) else Modifier),
             contentAlignment = Alignment.TopCenter,
         ) {
             Box(Modifier.widthIn(max = maxContentWidth).fillMaxSize()) { content(PaddingValues()) }

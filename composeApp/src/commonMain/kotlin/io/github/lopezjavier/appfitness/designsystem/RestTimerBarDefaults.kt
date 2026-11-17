@@ -18,7 +18,6 @@ data class RestTimerBarColors(
     val container: Color,
     val countdown: Color,
     val progress: Color,
-    val progressTrack: Color,
     val actionContainer: Color,
     val addContent: Color,
     val skipContent: Color,
@@ -30,7 +29,6 @@ object RestTimerBarDefaults {
     const val GLOW_ALPHA = 0.16f
 
     val MinHeight: Dp = 48.dp
-    val ProgressHeight: Dp = Spacing.xs
     val Shape = AppShapes.md
     val HorizontalPadding: Dp = Spacing.md
     val ActionMinTouch: Dp = 48.dp
@@ -77,7 +75,6 @@ object RestTimerBarDefaults {
         container = appColors.surfaceOverlay,
         countdown = appColors.athleticCyan,
         progress = appColors.athleticCyan,
-        progressTrack = appColors.surfaceBase,
         actionContainer = appColors.surfaceRaised,
         addContent = appColors.textPrimary,
         skipContent = appColors.textSecondary,
