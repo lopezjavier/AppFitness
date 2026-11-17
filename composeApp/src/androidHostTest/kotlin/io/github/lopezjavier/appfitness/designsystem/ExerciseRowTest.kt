@@ -10,6 +10,8 @@ import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.assertContentDescriptionEquals
 import androidx.compose.ui.test.assertHeightIsAtLeast
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertIsNotSelected
+import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.assertWidthIsAtLeast
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
@@ -195,6 +197,50 @@ class ExerciseRowTest {
         rule.onNodeWithTag("row_thumbnail").performClick()
 
         assertEquals(1, selected)
+        assertEquals(1, opened)
+    }
+
+    @Test
+    fun selectedTrue_showsTheLimeCheck_andIsSelected() {
+        rule.setContent {
+            AppTheme { ExerciseRow("Remo", null, {}, "row", selected = true) }
+        }
+
+        rule.onNodeWithTag("row").assertIsSelected()
+        rule.onNodeWithTag("row_selected_check", useUnmergedTree = true).assertIsDisplayed()
+    }
+
+    @Test
+    fun selectedFalse_showsNoCheck_andIsNotSelected() {
+        rule.setContent {
+            AppTheme { ExerciseRow("Remo", null, {}, "row", selected = false) }
+        }
+
+        rule.onNodeWithTag("row").assertIsNotSelected()
+        rule.onNodeWithTag("row_selected_check", useUnmergedTree = true).assertDoesNotExist()
+    }
+
+    @Test
+    fun selectedNull_isNotASelectableRow() {
+        rule.setContent {
+            AppTheme { ExerciseRow("Remo", null, {}, "row") }
+        }
+
+        rule.onNodeWithTag("row").assert(
+            SemanticsMatcher("has no selected state") { !it.config.contains(SemanticsProperties.Selected) },
+        )
+        rule.onNodeWithTag("row_selected_check", useUnmergedTree = true).assertDoesNotExist()
+    }
+
+    @Test
+    fun aSelectedRow_stillOpensOnTap() {
+        var opened = 0
+        rule.setContent {
+            AppTheme { ExerciseRow("Remo", null, { opened++ }, "row", selected = true) }
+        }
+
+        rule.onNodeWithText("Remo").performClick()
+
         assertEquals(1, opened)
     }
 

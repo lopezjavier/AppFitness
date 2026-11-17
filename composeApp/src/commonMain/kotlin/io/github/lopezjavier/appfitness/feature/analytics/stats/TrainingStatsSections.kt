@@ -1,19 +1,11 @@
 package io.github.lopezjavier.appfitness.feature.analytics.stats
 
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.heightIn
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.semantics.Role
-import androidx.compose.ui.semantics.contentDescription
-import androidx.compose.ui.semantics.semantics
 import io.github.lopezjavier.appfitness.composeapp.resources.Res
 import io.github.lopezjavier.appfitness.composeapp.resources.chart_date_short
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_bar_chart
@@ -39,8 +31,7 @@ import io.github.lopezjavier.appfitness.composeapp.resources.stats_unit_tonne
 import io.github.lopezjavier.appfitness.designsystem.AppBarChart
 import io.github.lopezjavier.appfitness.designsystem.AppNumberFormat
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
-import io.github.lopezjavier.appfitness.designsystem.IconBadge
-import io.github.lopezjavier.appfitness.designsystem.IconBadgeDefaults
+import io.github.lopezjavier.appfitness.designsystem.ExerciseRow
 import io.github.lopezjavier.appfitness.designsystem.MetricTile
 import io.github.lopezjavier.appfitness.designsystem.MetricTileRow
 import io.github.lopezjavier.appfitness.designsystem.MuscleSplitBar
@@ -51,6 +42,7 @@ import io.github.lopezjavier.appfitness.domain.model.MuscleGroupSets
 import io.github.lopezjavier.appfitness.domain.model.ProgressRange
 import io.github.lopezjavier.appfitness.domain.model.SetCountPoint
 import io.github.lopezjavier.appfitness.domain.model.TrainingSummary
+import io.github.lopezjavier.appfitness.feature.exercises.LocalExerciseMediaUris
 import io.github.lopezjavier.appfitness.feature.exercises.label
 import io.github.lopezjavier.appfitness.feature.exercises.tagName
 import io.github.lopezjavier.appfitness.feature.workout.shortLabel
@@ -220,38 +212,25 @@ internal fun TopExercisesCard(
         ) { rows ->
             Column {
                 rows.forEach {
-                    ExerciseRow(it, "stats_exercise_row_${it.exerciseId}", { onOpenExercise(it.exerciseId) })
+                    StatsExerciseRow(it, "stats_exercise_row_${it.exerciseId}", { onOpenExercise(it.exerciseId) })
                 }
             }
         }
     }
 }
 
-/** Name over "N series · M sesiones"; at least 48 dp, one button. Shared with the muscle sheet. */
+/** Exercise row of the top-exercises card and the muscle sheet: picture, name and "N series · M sesiones". */
 @Composable
-internal fun ExerciseRow(exercise: StatsExercise, tag: String, onClick: () -> Unit, modifier: Modifier = Modifier) {
-    val name = exercise.name
-    val detail =
-        stringResource(Res.string.stats_exercise_row_detail, setsText(exercise.sets), sessionsText(exercise.sessions))
-    Row(
-        modifier
-            .fillMaxWidth()
-            .heightIn(min = Spacing.minTouchTarget)
-            .clickable(role = Role.Button, onClick = onClick)
-            .semantics(mergeDescendants = true) { contentDescription = "$name, $detail" }
-            .testTag(tag),
-        horizontalArrangement = Arrangement.spacedBy(Spacing.md),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        IconBadge(
-            Res.drawable.ic_fitness_center,
-            AppTheme.colors.athleticCyan,
-            size = IconBadgeDefaults.SmallSize,
-            iconSize = IconBadgeDefaults.SmallIconSize,
-        )
-        Column(Modifier.weight(1f), verticalArrangement = Arrangement.Center) {
-            Text(name, style = AppTheme.typography.bodyLarge, color = AppTheme.colors.textPrimary)
-            Text(detail, style = AppTheme.typography.bodySmall, color = AppTheme.colors.textSecondary)
-        }
-    }
+internal fun StatsExerciseRow(exercise: StatsExercise, tag: String, onClick: () -> Unit) {
+    ExerciseRow(
+        name = exercise.name,
+        supporting = stringResource(
+            Res.string.stats_exercise_row_detail,
+            setsText(exercise.sets),
+            sessionsText(exercise.sessions),
+        ),
+        onOpen = onClick,
+        tagPrefix = tag,
+        imageUri = exercise.imageKey?.let(LocalExerciseMediaUris.current::start),
+    )
 }

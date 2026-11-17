@@ -22,11 +22,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import io.github.lopezjavier.appfitness.composeapp.resources.Res
 import io.github.lopezjavier.appfitness.composeapp.resources.builder_exercise_open_cd
-import io.github.lopezjavier.appfitness.composeapp.resources.ic_fitness_center
 import io.github.lopezjavier.appfitness.composeapp.resources.live_deload
 import io.github.lopezjavier.appfitness.composeapp.resources.live_deload_cd
 import io.github.lopezjavier.appfitness.composeapp.resources.live_deload_single
@@ -44,8 +44,6 @@ import io.github.lopezjavier.appfitness.designsystem.AppTheme
 import io.github.lopezjavier.appfitness.designsystem.ExerciseStatusChevron
 import io.github.lopezjavier.appfitness.designsystem.ExerciseStatusInfoMarker
 import io.github.lopezjavier.appfitness.designsystem.ExerciseStatusRow
-import io.github.lopezjavier.appfitness.designsystem.IconBadge
-import io.github.lopezjavier.appfitness.designsystem.IconBadgeDefaults
 import io.github.lopezjavier.appfitness.designsystem.PillContainer
 import io.github.lopezjavier.appfitness.designsystem.SetFieldSpec
 import io.github.lopezjavier.appfitness.designsystem.SetTableHeader
@@ -136,7 +134,7 @@ internal fun LiveExerciseCard(
     )
 }
 
-/** The badge (lime once every set is done), the heading, the coach marker and the menu button. */
+/** The picture (with a check once every set is done), the heading, the coach marker and the menu button. */
 @Composable
 private fun ExerciseHeader(exercise: LiveExercise, onOpenExercise: (String) -> Unit, onMenu: () -> Unit) {
     val name = exercise.name
@@ -145,16 +143,7 @@ private fun ExerciseHeader(exercise: LiveExercise, onOpenExercise: (String) -> U
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
     ) {
-        IconBadge(
-            icon = Res.drawable.ic_fitness_center,
-            tint = if (exercise.sets.isNotEmpty() && exercise.sets.all { it.completed }) {
-                AppTheme.colors.neonLime
-            } else {
-                AppTheme.colors.athleticCyan
-            },
-            size = IconBadgeDefaults.SmallSize,
-            iconSize = IconBadgeDefaults.SmallIconSize,
-        )
+        ExerciseHeaderVisual(exercise)
         ExerciseHeading(exercise, name, onOpenExercise, Modifier.weight(1f))
         exercise.coachMarker?.let { CoachChangeMarkerButton(name, it, "live_exercise_coach_marker_$position") }
         ExerciseMenuButton(name, position, onClick = onMenu)

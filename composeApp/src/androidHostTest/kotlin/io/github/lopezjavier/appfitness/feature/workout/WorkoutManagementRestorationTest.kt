@@ -1,5 +1,6 @@
 package io.github.lopezjavier.appfitness.feature.workout
 
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.test.assert
@@ -19,7 +20,9 @@ import io.github.lopezjavier.appfitness.app.FakeConnectivityObserver
 import io.github.lopezjavier.appfitness.app.FakeTrainingPreferencesRepository
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
 import io.github.lopezjavier.appfitness.feature.exercises.FakeExerciseLibrary
+import io.github.lopezjavier.appfitness.feature.exercises.FakeExerciseMediaUris
 import io.github.lopezjavier.appfitness.feature.exercises.FakeExerciseRepository
+import io.github.lopezjavier.appfitness.feature.exercises.LocalExerciseMediaUris
 import io.github.lopezjavier.appfitness.feature.exercises.exerciseInfo
 import io.github.lopezjavier.appfitness.feature.exercises.exerciseRow
 import io.github.lopezjavier.appfitness.feature.routines.FakeRoutineRepository
@@ -56,12 +59,14 @@ class WorkoutManagementRestorationTest {
         var current: EditWorkoutViewModel? = null
         val tester = StateRestorationTester(rule)
         tester.setContent {
-            AppTheme {
-                val model = remember {
-                    EditWorkoutViewModel("s1", repository, exercises, library, connectivity, MutableClock(), handle)
-                        .also { current = it }
+            CompositionLocalProvider(LocalExerciseMediaUris provides FakeExerciseMediaUris) {
+                AppTheme {
+                    val model = remember {
+                        EditWorkoutViewModel("s1", repository, exercises, library, connectivity, MutableClock(), handle)
+                            .also { current = it }
+                    }
+                    EditWorkoutRoot("s1", null, {}, {}, {}, {}, viewModel = model)
                 }
-                EditWorkoutRoot("s1", null, {}, {}, {}, {}, viewModel = model)
             }
         }
         rule.waitForIdle()
@@ -76,6 +81,7 @@ class WorkoutManagementRestorationTest {
         assertNotSame(before, current)
         rule.onNodeWithTag("edit_workout_description").assertTextContains("A medias")
         rule.onNodeWithTag("edit_workout_set_0_2_weight").assertExists()
+        rule.onNodeWithTag("edit_workout_exercise_0_thumbnail_image", useUnmergedTree = true).assertExists()
         assertTrue(repository.savedDrafts.isEmpty())
     }
 

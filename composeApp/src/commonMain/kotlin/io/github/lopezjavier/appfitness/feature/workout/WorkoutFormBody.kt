@@ -133,6 +133,7 @@ internal fun WorkoutFormBody(
                 onOpenTypePicker = { typePicker = slot(index, it) },
                 onOpenRpePicker = { rpePicker = slot(index, it) },
                 onOpenNote = { notePicker = slot(index, it) },
+                imageKey = view.imageKeys[exercise.exerciseId],
             )
         }
         AddItemButton(

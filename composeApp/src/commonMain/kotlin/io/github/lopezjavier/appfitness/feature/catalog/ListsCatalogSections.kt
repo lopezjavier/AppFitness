@@ -163,6 +163,13 @@ private fun RowsSection() {
             onOpen = {},
             tagPrefix = "catalog_exercise_row",
         )
+        ExerciseRow(
+            name = stringResource(Res.string.catalog_rows_exercise_name),
+            supporting = null,
+            onOpen = {},
+            tagPrefix = "catalog_exercise_row_selected",
+            selected = true,
+        )
         WorkoutRow(
             name = stringResource(Res.string.catalog_rows_workout_name),
             dateText = stringResource(Res.string.catalog_rows_workout_date),

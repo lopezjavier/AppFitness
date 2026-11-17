@@ -1,5 +1,6 @@
 package io.github.lopezjavier.appfitness.feature.workout
 
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
@@ -23,6 +24,8 @@ import io.github.lopezjavier.appfitness.domain.model.PersonalRecordType
 import io.github.lopezjavier.appfitness.domain.model.SetNoteKind
 import io.github.lopezjavier.appfitness.domain.model.SetType
 import io.github.lopezjavier.appfitness.domain.usecase.SessionStats
+import io.github.lopezjavier.appfitness.feature.exercises.FakeExerciseMediaUris
+import io.github.lopezjavier.appfitness.feature.exercises.LocalExerciseMediaUris
 import kotlinx.datetime.LocalDate
 import org.junit.Assert.assertEquals
 import org.junit.Rule
@@ -52,6 +55,7 @@ private fun detail(
             ),
             isPersonalRecord = firstRecord,
             records = if (firstRecord) setOf(PersonalRecordType.Best1Rm, PersonalRecordType.MaxVolume) else emptySet(),
+            imageKey = "barbell-bench-press",
         ),
         DetailExercise(1, "e2", "Remo", listOf(DetailSet(1, SetType.Working, "87,5 kg × 8")), isPersonalRecord = false),
     ),
@@ -70,7 +74,11 @@ class SessionDetailScreenTest {
     private val events = mutableListOf<SessionDetailEvent>()
 
     private fun show(state: SessionDetailUiState) {
-        rule.setContent { AppTheme { SessionDetailScreen(state, { events += it }) } }
+        rule.setContent {
+            CompositionLocalProvider(LocalExerciseMediaUris provides FakeExerciseMediaUris) {
+                AppTheme { SessionDetailScreen(state, { events += it }) }
+            }
+        }
         rule.waitForIdle()
     }
 
@@ -105,6 +113,15 @@ class SessionDetailScreenTest {
         rule.onNodeWithTag("session_detail_set_note_0_1").assertTextContains("Agarre flojo · pausa larga")
         rule.onNodeWithTag("session_detail_set_note_0_2").assertDoesNotExist()
         rule.onNodeWithTag("note_sheet_commit").assertDoesNotExist()
+    }
+
+    @Test
+    fun aCatalogueExercise_showsItsPicture_andACustomOneThePlaceholder() {
+        show(detail())
+
+        rule.onNodeWithTag("session_detail_exercise_0_thumbnail_image", useUnmergedTree = true).assertExists()
+        rule.onNodeWithTag("session_detail_list").performScrollToNode(hasTestTag("session_detail_exercise_1"))
+        rule.onNodeWithTag("session_detail_exercise_1_thumbnail_placeholder", useUnmergedTree = true).assertExists()
     }
 
     @Test

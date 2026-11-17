@@ -57,6 +57,7 @@ private fun formView(name: String = "Torso A"): WorkoutFormView = WorkoutFormVie
     ),
     names = mapOf("bench" to "Press de banca"),
     issues = emptyList(),
+    imageKeys = mapOf("bench" to "barbell-bench-press"),
 )
 
 /** The edit screen of a finished workout (EditWorkoutRoute) and its form pickers. */
