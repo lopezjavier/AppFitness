@@ -4,6 +4,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
@@ -11,19 +12,26 @@ import io.github.lopezjavier.appfitness.composeapp.resources.Res
 import io.github.lopezjavier.appfitness.composeapp.resources.diary_history_empty
 import io.github.lopezjavier.appfitness.composeapp.resources.diary_history_month_title
 import io.github.lopezjavier.appfitness.composeapp.resources.diary_history_week_title
+import io.github.lopezjavier.appfitness.composeapp.resources.px_body_chart_cd
+import io.github.lopezjavier.appfitness.composeapp.resources.px_body_month_chart_title
+import io.github.lopezjavier.appfitness.composeapp.resources.px_body_week_chart_title
+import io.github.lopezjavier.appfitness.composeapp.resources.px_body_weekday_initials
 import io.github.lopezjavier.appfitness.designsystem.AppDateFormat
+import io.github.lopezjavier.appfitness.designsystem.AppNumberFormat
+import io.github.lopezjavier.appfitness.designsystem.AppTheme
 import io.github.lopezjavier.appfitness.designsystem.DiaryHistoryRow
 import io.github.lopezjavier.appfitness.designsystem.HistoryTargets
 import io.github.lopezjavier.appfitness.designsystem.HistoryTotals
+import io.github.lopezjavier.appfitness.designsystem.MiniBarChart
 import io.github.lopezjavier.appfitness.designsystem.Spacing
 import io.github.lopezjavier.appfitness.domain.model.DiaryGoals
 import io.github.lopezjavier.appfitness.domain.model.MealTotals
-import io.github.lopezjavier.appfitness.domain.usecase.MonthSummary
-import io.github.lopezjavier.appfitness.domain.usecase.PeriodAverage
 import io.github.lopezjavier.appfitness.feature.workout.sessionDateLabel
 import io.github.lopezjavier.appfitness.feature.workout.text
+import kotlinx.datetime.DateTimeUnit
 import kotlinx.datetime.LocalDate
-import kotlinx.datetime.YearMonth
+import kotlinx.datetime.isoDayNumber
+import kotlinx.datetime.minus
 import org.jetbrains.compose.resources.stringResource
 
 private fun DiaryGoals.toTargets() = HistoryTargets(targetKcal, proteinG, carbsG, fatG)
@@ -47,12 +55,13 @@ internal fun DiaryHistorySummary(
                 emptyText = stringResource(Res.string.diary_history_empty),
                 modifier = modifier,
                 onClick = { onEvent(DiaryHistoryEvent.OpenDay) },
+                showSplit = true,
             )
         }
 
-        DiaryHistoryView.Week -> WeekSummary(content.week, targets, modifier)
+        DiaryHistoryView.Week -> WeekSummary(content, targets, modifier)
 
-        DiaryHistoryView.Month -> MonthSummaryCards(content.monthSummary, targets, content.month, modifier)
+        DiaryHistoryView.Month -> MonthSummaryCards(content, targets, modifier)
     }
 }
 
@@ -60,24 +69,33 @@ internal fun DiaryHistorySummary(
 private fun DiaryHistoryDay.label(today: LocalDate): String = sessionDateLabel(date, today).text()
 
 @Composable
-private fun WeekSummary(week: PeriodAverage?, targets: HistoryTargets?, modifier: Modifier = Modifier) {
+private fun WeekSummary(content: DiaryHistoryContent, targets: HistoryTargets?, modifier: Modifier = Modifier) {
+    val week = content.week
     Box(modifier.testTag("diary_history_week_summary")) {
         DiaryHistoryRow(
             title = stringResource(Res.string.diary_history_week_title),
             totals = week?.let { HistoryTotals(it.kcal, it.proteinG, it.carbsG, it.fatG) },
             targets = targets,
             emptyText = stringResource(Res.string.diary_history_empty),
+            chart = {
+                val initials = stringResource(Res.string.px_body_weekday_initials).split(",")
+                KcalBars(
+                    title = stringResource(Res.string.px_body_week_chart_title),
+                    values = content.weekKcal,
+                    labels = (WEEK_DAYS - 1 downTo 0).map {
+                        initials[content.today.minus(it, DateTimeUnit.DAY).dayOfWeek.isoDayNumber - 1]
+                    },
+                    target = targets?.kcal,
+                )
+            },
         )
     }
 }
 
 @Composable
-private fun MonthSummaryCards(
-    summary: MonthSummary?,
-    targets: HistoryTargets?,
-    month: YearMonth,
-    modifier: Modifier = Modifier,
-) {
+private fun MonthSummaryCards(content: DiaryHistoryContent, targets: HistoryTargets?, modifier: Modifier = Modifier) {
+    val summary = content.monthSummary
+    val month = content.month
     Column(
         modifier.fillMaxWidth().testTag("diary_history_month_summary"),
         verticalArrangement = Arrangement.spacedBy(Spacing.cardGap),
@@ -88,6 +106,45 @@ private fun MonthSummaryCards(
             totals = summary?.let { HistoryTotals(it.avgKcalPerLoggedDay, it.avgProteinG, it.avgCarbsG, it.avgFatG) },
             targets = targets,
             emptyText = stringResource(Res.string.diary_history_empty),
+            chart = {
+                val last = month.lastDay.dayOfMonth
+                KcalBars(
+                    title = stringResource(Res.string.px_body_month_chart_title),
+                    values = content.monthKcal,
+                    labels = content.monthKcal.indices.map { block ->
+                        val from = block * BLOCK_DAYS + 1
+                        "$from-${minOf(from + BLOCK_DAYS - 1, last)}"
+                    },
+                    target = targets?.kcal,
+                )
+            },
         )
     }
 }
+
+/** Calories per day (or block) against the target line; days over the target are amber, the last bar is lit. */
+@Composable
+private fun KcalBars(title: String, values: List<Float>, labels: List<String>, target: Int?) {
+    if (values.none { it > 0f }) return
+    val description = target?.let { stringResource(Res.string.px_body_chart_cd, AppNumberFormat.integer(it)) }
+    Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+        Text(
+            text = title.uppercase(),
+            style = AppTheme.typography.labelTechnical,
+            color = AppTheme.colors.textSecondary,
+        )
+        MiniBarChart(
+            values = values,
+            modifier = Modifier.fillMaxWidth().testTag("diary_history_chart"),
+            labels = labels,
+            color = AppTheme.colors.neonLime,
+            highlightIndex = values.lastIndex,
+            target = target?.toFloat(),
+            overColor = AppTheme.colors.energyAmber,
+            description = description,
+        )
+    }
+}
+
+private const val WEEK_DAYS = 7
+private const val BLOCK_DAYS = 7

@@ -4,6 +4,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.material3.Icon
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.Dp
 import io.github.lopezjavier.appfitness.composeapp.resources.Res
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_flame_outlined
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_intention_maintenance
@@ -28,11 +29,11 @@ internal val TrainingIntention.icon: DrawableResource
 
 /** The 24 dp intention glyph: `neonLime` when [selected] (R-64), `textSecondary` otherwise. */
 @Composable
-internal fun IntentionIcon(intention: TrainingIntention, selected: Boolean) {
+internal fun IntentionIcon(intention: TrainingIntention, selected: Boolean, size: Dp = Spacing.xl) {
     Icon(
         painter = painterResource(intention.icon),
         contentDescription = null,
         tint = if (selected) AppTheme.colors.neonLime else AppTheme.colors.textSecondary,
-        modifier = Modifier.size(Spacing.xl),
+        modifier = Modifier.size(size),
     )
 }

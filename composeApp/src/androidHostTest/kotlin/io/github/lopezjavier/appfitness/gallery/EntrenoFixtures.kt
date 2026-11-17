@@ -76,6 +76,14 @@ internal object EntrenoFixtures {
         moveFor = moveFor,
         folderMenuFor = folderMenuFor,
         folderSaving = folderSaving,
+        today = GalleryFixtures.today,
+        trainedDays = setOf(
+            LocalDate(2026, 10, 19),
+            LocalDate(2026, 10, 20),
+            LocalDate(2026, 10, 21),
+        ),
+        weekWorkouts = 4,
+        streakWeeks = 3,
     )
 
     private fun set(weight: Double?, reps: Int, type: SetType = SetType.Working) = PlannedSet(weight, reps, type)

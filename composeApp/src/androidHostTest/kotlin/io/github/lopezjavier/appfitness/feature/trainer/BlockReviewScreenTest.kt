@@ -115,7 +115,8 @@ class BlockReviewScreenTest {
     fun mainLift_showsItsTrendLine() {
         show(content())
 
-        rule.onNode(hasTextIgnoringNbsp("100 → 105 kg")).assertExists()
+        // The before/after bars are decorative; the range is spoken through their description.
+        rule.onNode(hasContentDescriptionIgnoringNbsp("100 → 105 kg")).assertExists()
         rule.onAllNodesWithTag("block_review_lift_id-bench_stall").assertCountEquals(0)
     }
 

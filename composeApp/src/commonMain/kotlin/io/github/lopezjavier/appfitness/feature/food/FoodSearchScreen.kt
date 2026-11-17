@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
@@ -20,6 +21,7 @@ import io.github.lopezjavier.appfitness.composeapp.resources.Res
 import io.github.lopezjavier.appfitness.composeapp.resources.action_retry
 import io.github.lopezjavier.appfitness.composeapp.resources.add_food_sheet_title
 import io.github.lopezjavier.appfitness.composeapp.resources.add_item
+import io.github.lopezjavier.appfitness.composeapp.resources.diary_meal_kcal
 import io.github.lopezjavier.appfitness.composeapp.resources.diary_quick_search_cd
 import io.github.lopezjavier.appfitness.composeapp.resources.favourite_add_cd
 import io.github.lopezjavier.appfitness.composeapp.resources.favourite_remove_cd
@@ -59,6 +61,7 @@ import io.github.lopezjavier.appfitness.designsystem.OfflineState
 import io.github.lopezjavier.appfitness.designsystem.PrimaryButton
 import io.github.lopezjavier.appfitness.designsystem.SkeletonBox
 import io.github.lopezjavier.appfitness.designsystem.Spacing
+import io.github.lopezjavier.appfitness.designsystem.TextPill
 import io.github.lopezjavier.appfitness.designsystem.appAnimateItem
 import io.github.lopezjavier.appfitness.domain.model.Food
 import io.github.lopezjavier.appfitness.feature.diary.addObjectLabel
@@ -354,13 +357,19 @@ private fun FoodRow(
         modifier = modifier.testTag("${TAG}_row_${food.id}"),
         supporting = if (brand != null) "$brand · $per100" else per100,
         trailing = {
-            FavouriteToggle(
-                selected = favourite,
-                onToggle = onToggleFavourite,
-                contentDescription = favouriteLabel,
-                modifier = Modifier.testTag("${TAG}_favourite_${food.id}"),
-                enabled = enabled,
-            )
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(Spacing.xs),
+            ) {
+                TextPill(stringResource(Res.string.diary_meal_kcal, wholeHalfUp(food.nutrition.kcal)))
+                FavouriteToggle(
+                    selected = favourite,
+                    onToggle = onToggleFavourite,
+                    contentDescription = favouriteLabel,
+                    modifier = Modifier.testTag("${TAG}_favourite_${food.id}"),
+                    enabled = enabled,
+                )
+            }
         },
         onClick = if (enabled) onClick else null,
     )

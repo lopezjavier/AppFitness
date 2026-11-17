@@ -32,6 +32,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.layout.onPlaced
 import androidx.compose.ui.layout.positionInParent
 import androidx.compose.ui.platform.LocalDensity
@@ -253,7 +254,7 @@ private fun WeekTab(
                 .fillMaxWidth()
                 .height(SegmentedProgressDefaults.ButtonHeight)
                 .clip(shape)
-                .background(container)
+                .background(if (state == StepState.Done) AppPaint.vertical(container) else SolidColor(container))
                 .let { if (state == StepState.Current) it.border(AppBorder.focus, colors.athleticCyan, shape) else it }
                 .padding(horizontal = Spacing.xs),
             horizontalArrangement = Arrangement.spacedBy(
@@ -310,7 +311,7 @@ private fun SegmentBar(isDone: Boolean, isCurrent: Boolean, staggerIndex: Int, m
                 Modifier
                     .fillMaxHeight()
                     .fillMaxWidth(fill.value)
-                    .background(colors.athleticCyan),
+                    .background(AppPaint.horizontal(colors.athleticCyan)),
             )
         }
     }

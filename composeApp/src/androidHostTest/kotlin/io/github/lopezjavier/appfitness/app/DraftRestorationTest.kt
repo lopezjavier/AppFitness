@@ -513,7 +513,15 @@ class DraftRestorationTest {
         tester.setContent {
             AppTheme {
                 val vm =
-                    remember { RoutinesViewModel(repository, FakeWorkoutSessionRepository(), connectivity, handle) }
+                    remember {
+                        RoutinesViewModel(
+                            repository,
+                            FakeWorkoutSessionRepository(),
+                            connectivity,
+                            FakeClock(),
+                            handle,
+                        )
+                    }
                 val state by vm.uiState.collectAsState()
                 RoutinesScreen(state, vm::onEvent)
             }

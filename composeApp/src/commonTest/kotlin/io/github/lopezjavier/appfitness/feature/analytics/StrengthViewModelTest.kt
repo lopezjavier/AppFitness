@@ -224,4 +224,36 @@ class StrengthViewModelTest {
 
         assertEquals(StrengthUiState.Error, model.uiState.value)
     }
+
+    @Test
+    fun theSeriesIsTheOneRepMaxPerSession_oldestFirst_withoutSessionsThatHaveNone() = runTest(dispatcher) {
+        seedThreeExercises()
+        workouts.history = workouts.history + (
+            "bench" to listOf(
+                point(LocalDate(2026, 10, 15), 113.5),
+                point(LocalDate(2026, 10, 1), null),
+                point(LocalDate(2026, 9, 1), 108.5),
+            )
+            )
+        val model = viewModel()
+
+        advanceUntilIdle()
+
+        assertEquals(listOf(108.5, 113.5), model.content().series)
+    }
+
+    @Test
+    fun theSeriesFollowsTheSelectedExercise_andIsEmptyWithoutHistory() = runTest(dispatcher) {
+        seedThreeExercises()
+        val model = viewModel()
+        advanceUntilIdle()
+
+        model.onEvent(StrengthEvent.SelectExercise("squat"))
+        advanceUntilIdle()
+        assertEquals(listOf(140.0), model.content().series)
+
+        model.onEvent(StrengthEvent.SelectExercise("row"))
+        advanceUntilIdle()
+        assertEquals(emptyList(), model.content().series)
+    }
 }

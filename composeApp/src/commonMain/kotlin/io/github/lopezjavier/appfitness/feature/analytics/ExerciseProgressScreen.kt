@@ -39,17 +39,25 @@ import io.github.lopezjavier.appfitness.composeapp.resources.exercise_progress_s
 import io.github.lopezjavier.appfitness.composeapp.resources.exercise_progress_single_value
 import io.github.lopezjavier.appfitness.composeapp.resources.exercise_progress_single_value_kg
 import io.github.lopezjavier.appfitness.composeapp.resources.exercise_progress_title
+import io.github.lopezjavier.appfitness.composeapp.resources.ic_insights
+import io.github.lopezjavier.appfitness.composeapp.resources.ic_star_filled
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_trending_up
+import io.github.lopezjavier.appfitness.composeapp.resources.px_stats_tile_best
+import io.github.lopezjavier.appfitness.composeapp.resources.px_stats_tile_change
+import io.github.lopezjavier.appfitness.composeapp.resources.px_stats_tile_last
 import io.github.lopezjavier.appfitness.designsystem.AppCard
 import io.github.lopezjavier.appfitness.designsystem.AppLineChart
 import io.github.lopezjavier.appfitness.designsystem.AppLineChartBlock
 import io.github.lopezjavier.appfitness.designsystem.AppLineChartSkeleton
 import io.github.lopezjavier.appfitness.designsystem.AppNumberFormat
+import io.github.lopezjavier.appfitness.designsystem.AppPaint
 import io.github.lopezjavier.appfitness.designsystem.AppScreen
 import io.github.lopezjavier.appfitness.designsystem.AppStateAction
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
 import io.github.lopezjavier.appfitness.designsystem.EmptyState
 import io.github.lopezjavier.appfitness.designsystem.ErrorState
+import io.github.lopezjavier.appfitness.designsystem.MetricTile
+import io.github.lopezjavier.appfitness.designsystem.MetricTileRow
 import io.github.lopezjavier.appfitness.designsystem.Spacing
 import io.github.lopezjavier.appfitness.designsystem.TimeRangeSelector
 import io.github.lopezjavier.appfitness.designsystem.WindowWidthClass
@@ -156,6 +164,7 @@ private fun ProgressCharts(progress: ExerciseProgress, wide: Boolean) {
         NotEnoughData(progress)
         return
     }
+    ProgressTiles(progress)
     val primary = @Composable { PrimaryChartCard(progress, Modifier.fillMaxWidth()) }
     val volume = @Composable {
         if (progress.volume.size >= 2) VolumeChartCard(progress.volume, Modifier.fillMaxWidth())
@@ -171,6 +180,46 @@ private fun ProgressCharts(progress: ExerciseProgress, wide: Boolean) {
             volume()
         }
     }
+}
+
+/** Last value, best value and change of the primary series as accent tiles. */
+@Composable
+private fun ProgressTiles(progress: ExerciseProgress) {
+    val format = progress.mode.spec().format
+    val values = progress.primary.map { it.value }
+    val colors = AppTheme.colors
+    val change = values.last() - values.first()
+    val changeText = (if (change > 0) "+" else "") + format(change)
+    val tiles = listOf<@Composable (Modifier) -> Unit>(
+        { m ->
+            MetricTile(
+                stringResource(Res.string.px_stats_tile_last),
+                format(values.last()),
+                m.testTag("exercise_progress_tile_last"),
+                accent = colors.athleticCyan,
+                icon = Res.drawable.ic_trending_up,
+            )
+        },
+        { m ->
+            MetricTile(
+                stringResource(Res.string.px_stats_tile_best),
+                format(values.max()),
+                m.testTag("exercise_progress_tile_best"),
+                accent = AppPaint.Gold,
+                icon = Res.drawable.ic_star_filled,
+            )
+        },
+        { m ->
+            MetricTile(
+                stringResource(Res.string.px_stats_tile_change),
+                changeText,
+                m.testTag("exercise_progress_tile_change"),
+                accent = if (change > 0) colors.electricGreen else colors.textSecondary,
+                icon = Res.drawable.ic_insights,
+            )
+        },
+    )
+    MetricTileRow(tiles, spacing = Spacing.md)
 }
 
 /** What the primary chart of a [ProgressMetric] shows: title, value format and test tag. */

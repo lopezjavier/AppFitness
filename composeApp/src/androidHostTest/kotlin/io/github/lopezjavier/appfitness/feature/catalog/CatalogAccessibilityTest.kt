@@ -54,7 +54,7 @@ private val ExpectedSections =
         "macro_stacked_bar",
         "sleep_stages_bar",
         "metric_tiles",
-        "trend_pills", "line_chart", "bar_chart", "radar", "body_heatmap",
+        "trend_pills", "line_chart", "bar_chart", "radar", "body_heatmap", "graphics", "celebration", "screen_graphics",
         "number_input", "text_field", "number_stepper", "set_checkbox", "set_rows",
         "stopwatch",
         "set_type",

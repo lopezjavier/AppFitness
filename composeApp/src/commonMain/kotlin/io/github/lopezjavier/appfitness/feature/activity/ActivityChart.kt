@@ -4,9 +4,11 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -35,6 +37,8 @@ import io.github.lopezjavier.appfitness.designsystem.AppLineChart
 import io.github.lopezjavier.appfitness.designsystem.AppNumberFormat
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
 import io.github.lopezjavier.appfitness.designsystem.ChartMetricPickerSheet
+import io.github.lopezjavier.appfitness.designsystem.IconBadge
+import io.github.lopezjavier.appfitness.designsystem.IconBadgeDefaults
 import io.github.lopezjavier.appfitness.designsystem.LocalAnimationsEnabled
 import io.github.lopezjavier.appfitness.designsystem.Spacing
 import io.github.lopezjavier.appfitness.designsystem.TimeRange
@@ -130,6 +134,13 @@ private fun MetricTrigger(metric: ActivityMetric, onClick: () -> Unit) {
         horizontalArrangement = Arrangement.spacedBy(Spacing.xs),
         verticalAlignment = Alignment.CenterVertically,
     ) {
+        IconBadge(
+            icon = metric.icon(),
+            tint = metric.accent(),
+            size = IconBadgeDefaults.SmallSize,
+            iconSize = IconBadgeDefaults.SmallIconSize,
+        )
+        Spacer(Modifier.width(Spacing.xs))
         Text(text = name, style = AppTheme.typography.titleMedium, color = AppTheme.colors.textPrimary)
         Icon(
             painter = painterResource(Res.drawable.ic_expand_more),

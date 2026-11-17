@@ -39,6 +39,7 @@ import io.github.lopezjavier.appfitness.composeapp.resources.before_start_note_s
 import io.github.lopezjavier.appfitness.composeapp.resources.before_start_reason_block
 import io.github.lopezjavier.appfitness.composeapp.resources.before_start_reason_plan
 import io.github.lopezjavier.appfitness.composeapp.resources.before_start_title
+import io.github.lopezjavier.appfitness.composeapp.resources.ic_warning
 import io.github.lopezjavier.appfitness.composeapp.resources.new_block_goal_change
 import io.github.lopezjavier.appfitness.composeapp.resources.new_block_goal_change_no_figures
 import io.github.lopezjavier.appfitness.composeapp.resources.new_block_prepare_failed
@@ -54,6 +55,8 @@ import io.github.lopezjavier.appfitness.designsystem.AppScreen
 import io.github.lopezjavier.appfitness.designsystem.AppStateAction
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
 import io.github.lopezjavier.appfitness.designsystem.ErrorState
+import io.github.lopezjavier.appfitness.designsystem.IconBadge
+import io.github.lopezjavier.appfitness.designsystem.IconBadgeDefaults
 import io.github.lopezjavier.appfitness.designsystem.InlineNote
 import io.github.lopezjavier.appfitness.designsystem.LocalAppHaptics
 import io.github.lopezjavier.appfitness.designsystem.LocalAppMessages
@@ -224,35 +227,7 @@ private fun BeforeStartContent(
         Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(Spacing.screenMargin),
         verticalArrangement = Arrangement.spacedBy(Spacing.blockGap),
     ) {
-        if (state.flags.isNotEmpty()) {
-            RowGroupCard(
-                rows = state.flags.map { row ->
-                    {
-                        NavigationRow(
-                            label = stringResource(Res.string.before_start_flag, row.labelText()),
-                            value = row.fixTarget?.let { stringResource(it.destinationLabel()) },
-                            onClick = {
-                                when (row.fixTarget) {
-                                    null -> onOpenYourData()
-
-                                    PlanFixTarget.ActivitySheet -> onEvent(BeforeStartEvent.OpenSheet)
-
-                                    PlanFixTarget.TrainingYears ->
-                                        openIntakeRow(IntakeRowKind.TrainingYears, state.intake, onEditorEvent)
-
-                                    PlanFixTarget.Maintenance ->
-                                        openIntakeRow(IntakeRowKind.Maintenance, state.intake, onEditorEvent)
-
-                                    else -> onFix(row.fixTarget)
-                                }
-                            },
-                            modifier = Modifier.padding(horizontal = Spacing.lg)
-                                .testTag("before_start_flag_${row.key.tagName()}"),
-                        )
-                    }
-                },
-            )
-        }
+        if (state.flags.isNotEmpty()) FlagRows(state, onEvent, onEditorEvent, onOpenYourData, onFix)
         state.missingNotes.forEach { row ->
             InlineNote(
                 text = stringResource(Res.string.before_start_note_missing, row.labelText()),
@@ -279,6 +254,51 @@ private fun BeforeStartContent(
             )
         }
     }
+}
+
+@Composable
+private fun FlagRows(
+    state: BeforeStartUiState.Content,
+    onEvent: (BeforeStartEvent) -> Unit,
+    onEditorEvent: (IntakeRowEvent) -> Unit,
+    onOpenYourData: () -> Unit,
+    onFix: (PlanFixTarget) -> Unit,
+) {
+    RowGroupCard(
+        rows = state.flags.map { row ->
+            {
+                NavigationRow(
+                    label = stringResource(Res.string.before_start_flag, row.labelText()),
+                    value = row.fixTarget?.let { stringResource(it.destinationLabel()) },
+                    leading = {
+                        IconBadge(
+                            Res.drawable.ic_warning,
+                            AppTheme.colors.energyAmber,
+                            size = IconBadgeDefaults.SmallSize,
+                            iconSize = IconBadgeDefaults.SmallIconSize,
+                        )
+                    },
+                    onClick = {
+                        when (row.fixTarget) {
+                            null -> onOpenYourData()
+
+                            PlanFixTarget.ActivitySheet -> onEvent(BeforeStartEvent.OpenSheet)
+
+                            PlanFixTarget.TrainingYears ->
+                                openIntakeRow(IntakeRowKind.TrainingYears, state.intake, onEditorEvent)
+
+                            PlanFixTarget.Maintenance ->
+                                openIntakeRow(IntakeRowKind.Maintenance, state.intake, onEditorEvent)
+
+                            else -> onFix(row.fixTarget)
+                        }
+                    },
+                    modifier = Modifier.padding(horizontal = Spacing.lg)
+                        .testTag("before_start_flag_${row.key.tagName()}"),
+                )
+            }
+        },
+    )
 }
 
 @Composable

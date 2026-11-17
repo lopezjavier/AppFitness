@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.layout.fillMaxSize
@@ -52,7 +53,8 @@ private val MaxContentWidth: Dp = WindowWidthClassDefaults.FormContentMaxWidth
  *
  * [step] is 1-based; changing it slides title, helper and content (forward from the end, back from the start,
  * RTL-aware) and never the footer. With [LocalAnimationsEnabled] false the step swaps without motion. Focus moves to
- * the title of the new step. [title], [helper] and [content] receive the step they render so the outgoing step keeps
+ * the title of the new step. With [totalSteps] > 0 the indicator comes with lit segments; [mark] is an optional hero
+ * mark shown before the title. [title], [helper] and [content] receive the step they render so the outgoing step keeps
  * its own text while it leaves.
  */
 @Suppress("LongParameterList") // The template slots: indicator, title, helper, content and footer.
@@ -66,6 +68,8 @@ fun StepScaffold(
     footer: @Composable () -> Unit,
     modifier: Modifier = Modifier,
     testTagPrefix: String = "step",
+    totalSteps: Int = 0,
+    mark: (@Composable (Int) -> Unit)? = null,
     content: @Composable ColumnScope.(Int) -> Unit,
 ) {
     val animate = LocalAnimationsEnabled.current
@@ -78,14 +82,7 @@ fun StepScaffold(
             .widthIn(max = MaxContentWidth)
             .padding(horizontal = Spacing.screenMargin),
     ) {
-        Text(
-            text = indicator,
-            style = AppTheme.typography.labelTechnical,
-            color = AppTheme.colors.textSecondary,
-            modifier = Modifier.padding(top = Spacing.lg)
-                .semantics { contentDescription = indicatorDescription }
-                .testTag("${testTagPrefix}_step_indicator"),
-        )
+        StepIndicatorRow(step, totalSteps, indicator, indicatorDescription, testTagPrefix)
         AnimatedContent(
             targetState = step,
             modifier = Modifier.weight(1f).fillMaxWidth(),
@@ -93,21 +90,30 @@ fun StepScaffold(
             label = "step",
         ) { shown ->
             Column(Modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-                Text(
-                    text = title(shown),
-                    style = AppTheme.typography.titleLarge,
-                    color = AppTheme.colors.textPrimary,
-                    modifier = Modifier.padding(top = Spacing.sm)
-                        .then(if (shown == step) Modifier.focusRequester(focusTitle).focusable() else Modifier)
-                        .semantics { heading() }
-                        .testTag("${testTagPrefix}_step_title"),
-                )
-                Text(
-                    text = helper(shown),
-                    style = AppTheme.typography.bodyMedium,
-                    color = AppTheme.colors.textSecondary,
-                    modifier = Modifier.testTag("${testTagPrefix}_step_helper"),
-                )
+                Row(
+                    Modifier.padding(top = Spacing.sm),
+                    horizontalArrangement = Arrangement.spacedBy(Spacing.md),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    mark?.invoke(shown)
+                    Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
+                        Text(
+                            text = title(shown),
+                            style = AppTheme.typography.titleLarge,
+                            color = AppTheme.colors.textPrimary,
+                            modifier = Modifier
+                                .then(if (shown == step) Modifier.focusRequester(focusTitle).focusable() else Modifier)
+                                .semantics { heading() }
+                                .testTag("${testTagPrefix}_step_title"),
+                        )
+                        Text(
+                            text = helper(shown),
+                            style = AppTheme.typography.bodyMedium,
+                            color = AppTheme.colors.textSecondary,
+                            modifier = Modifier.testTag("${testTagPrefix}_step_helper"),
+                        )
+                    }
+                }
                 Column(
                     Modifier.weight(1f).fillMaxWidth().padding(vertical = Spacing.blockGap)
                         .verticalScroll(rememberScrollState()),
@@ -145,4 +151,29 @@ private fun PinnedStepFooter(testTagPrefix: String, footer: @Composable () -> Un
             .onSizeChanged { size -> state?.height = with(density) { size.height.toDp() } }
             .testTag("${testTagPrefix}_footer"),
     ) { footer() }
+}
+
+@Composable
+private fun StepIndicatorRow(
+    step: Int,
+    totalSteps: Int,
+    indicator: String,
+    indicatorDescription: String,
+    testTagPrefix: String,
+) {
+    Row(
+        Modifier.fillMaxWidth().padding(top = Spacing.lg),
+        horizontalArrangement = Arrangement.spacedBy(Spacing.md),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        if (totalSteps > 0) StartStepProgress(step, totalSteps, Modifier.weight(1f))
+        Text(
+            text = indicator,
+            style = AppTheme.typography.labelTechnical,
+            color = AppTheme.colors.textSecondary,
+            modifier = Modifier
+                .semantics { contentDescription = indicatorDescription }
+                .testTag("${testTagPrefix}_step_indicator"),
+        )
+    }
 }

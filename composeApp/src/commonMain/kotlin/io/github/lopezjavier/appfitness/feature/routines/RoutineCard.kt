@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
@@ -22,6 +23,7 @@ import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.style.TextOverflow
 import io.github.lopezjavier.appfitness.composeapp.resources.Res
+import io.github.lopezjavier.appfitness.composeapp.resources.ic_fitness_center
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_flag
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_more_vert
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_play_arrow
@@ -36,6 +38,7 @@ import io.github.lopezjavier.appfitness.designsystem.AppCard
 import io.github.lopezjavier.appfitness.designsystem.AppIconButton
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
 import io.github.lopezjavier.appfitness.designsystem.CircleIconButton
+import io.github.lopezjavier.appfitness.designsystem.IconBadge
 import io.github.lopezjavier.appfitness.designsystem.LocalAnimationsEnabled
 import io.github.lopezjavier.appfitness.designsystem.ReorderableItemScope
 import io.github.lopezjavier.appfitness.designsystem.Spacing
@@ -97,8 +100,14 @@ private fun ReorderableItemScope.CardBody(
         highlighted = routine.isNext,
         contentPadding = PaddingValues(start = Spacing.md, end = Spacing.xs, top = Spacing.sm, bottom = Spacing.sm),
         lifted = dragging,
+        glow = if (routine.isNext) AppTheme.colors.athleticCyan else null,
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
+            IconBadge(
+                icon = Res.drawable.ic_fitness_center,
+                tint = if (routine.isNext) AppTheme.colors.athleticCyan else AppTheme.colors.neonLime,
+                modifier = Modifier.padding(end = Spacing.md),
+            )
             NameBlock(routine, onEvent, Modifier.weight(1f).dragOnLongPress())
             CircleIconButton(
                 contentDescription = startLabel,

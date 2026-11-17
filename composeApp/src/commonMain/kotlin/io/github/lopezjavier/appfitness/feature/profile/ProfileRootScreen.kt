@@ -1,5 +1,8 @@
+@file:Suppress("TooManyFunctions") // One small composable per block of the Perfil root.
+
 package io.github.lopezjavier.appfitness.feature.profile
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -11,13 +14,14 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.lifecycle.Lifecycle
@@ -42,15 +46,26 @@ import io.github.lopezjavier.appfitness.composeapp.resources.profile_strength_ro
 import io.github.lopezjavier.appfitness.composeapp.resources.profile_title
 import io.github.lopezjavier.appfitness.composeapp.resources.profile_training_stats_row
 import io.github.lopezjavier.appfitness.composeapp.resources.profile_weight_row
+import io.github.lopezjavier.appfitness.composeapp.resources.px_stats_hero_kcal
+import io.github.lopezjavier.appfitness.composeapp.resources.px_stats_hero_strength
+import io.github.lopezjavier.appfitness.composeapp.resources.px_stats_hero_weight
+import io.github.lopezjavier.appfitness.composeapp.resources.px_stats_value_kcal
+import io.github.lopezjavier.appfitness.composeapp.resources.px_stats_value_kg
 import io.github.lopezjavier.appfitness.composeapp.resources.root_error_message
+import io.github.lopezjavier.appfitness.composeapp.resources.unit_kg
 import io.github.lopezjavier.appfitness.designsystem.AppAvatar
 import io.github.lopezjavier.appfitness.designsystem.AppAvatarDefaults
 import io.github.lopezjavier.appfitness.designsystem.AppCard
+import io.github.lopezjavier.appfitness.designsystem.AppNumberFormat
+import io.github.lopezjavier.appfitness.designsystem.AppPaint
 import io.github.lopezjavier.appfitness.designsystem.AppScreen
 import io.github.lopezjavier.appfitness.designsystem.AppShapes
 import io.github.lopezjavier.appfitness.designsystem.AppStateAction
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
 import io.github.lopezjavier.appfitness.designsystem.ErrorState
+import io.github.lopezjavier.appfitness.designsystem.HeroStat
+import io.github.lopezjavier.appfitness.designsystem.IconBadge
+import io.github.lopezjavier.appfitness.designsystem.IconBadgeDefaults
 import io.github.lopezjavier.appfitness.designsystem.ListRowSkeleton
 import io.github.lopezjavier.appfitness.designsystem.ListSectionHeader
 import io.github.lopezjavier.appfitness.designsystem.NavigationRow
@@ -58,10 +73,10 @@ import io.github.lopezjavier.appfitness.designsystem.SecondaryButton
 import io.github.lopezjavier.appfitness.designsystem.SkeletonBox
 import io.github.lopezjavier.appfitness.designsystem.Spacing
 import io.github.lopezjavier.appfitness.designsystem.helpTopBarAction
+import io.github.lopezjavier.appfitness.domain.model.TrainingIntention
 import io.github.lopezjavier.appfitness.feature.notifications.notificationsBarAction
 import org.jetbrains.compose.resources.DrawableResource
 import org.jetbrains.compose.resources.StringResource
-import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
 
@@ -69,7 +84,7 @@ private const val NAME_MAX_LINES = 2
 private const val NAME_SKELETON_WIDTH_UNITS = 8
 private const val SKELETON_ROWS = 4
 private val HEADER_HEIGHT = Spacing.xl * 3
-private val STAT_ICON_SIZE = Spacing.xl
+private val HERO_AVATAR_SIZE = Spacing.xl * 3
 
 /** The callbacks of the Perfil root, grouped to keep the layout composables' signatures short. */
 @Suppress("LongParameterList") // One callback per row or button.
@@ -169,6 +184,7 @@ private fun RootBody(onOpenCatalog: (() -> Unit)?, content: @Composable () -> Un
 
 @Composable
 private fun RootLoaded(state: ProfileRootUiState.Loaded, actions: ProfileRootActions) {
+    val colors = AppTheme.colors
     Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(Spacing.lg)) {
         RootHeader(state)
         AppCard(Modifier.fillMaxWidth()) {
@@ -178,42 +194,119 @@ private fun RootLoaded(state: ProfileRootUiState.Loaded, actions: ProfileRootAct
                 modifier = Modifier.testTag("profile_my_training_row"),
                 value = state.intention?.let { stringResource(it.label) },
                 valueLeading = state.intention?.let { { IntentionIcon(it, selected = true) } },
+                leading = { RowBadge(Res.drawable.ic_fitness_center, colors.neonLime) },
             )
         }
-        StatisticsSection(actions)
+        StatisticsSection(state, actions)
         AppCard(Modifier.fillMaxWidth()) {
             NavigationRow(
                 label = stringResource(Res.string.preferences_title),
                 onClick = actions.onOpenPreferences,
                 modifier = Modifier.testTag("profile_preferences_row"),
-                leading = { RowIcon(Res.drawable.ic_settings) },
+                leading = { RowBadge(Res.drawable.ic_settings, colors.macroCarbs) },
             )
         }
     }
 }
 
-/** One 72 dp row: the 56 dp photo and the name, start-aligned (C-150). */
+/** The hero card: the photo in a lit ring, the name, the intention as a chip and the highlights as hero stats. */
 @Composable
 private fun RootHeader(state: ProfileRootUiState.Loaded) {
+    val colors = AppTheme.colors
+    AppCard(Modifier.fillMaxWidth(), glow = colors.neonLime) {
+        Column(verticalArrangement = Arrangement.spacedBy(Spacing.lg)) {
+            Row(
+                Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(Spacing.lg),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                AppAvatar(
+                    imageUrl = state.avatarUrl,
+                    size = HERO_AVATAR_SIZE,
+                    testTagPrefix = "profile_root",
+                    modifier = Modifier.testTag("profile_root_avatar"),
+                    ring = colors.neonLime,
+                )
+                Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+                    state.displayName?.let { name ->
+                        Text(
+                            text = name,
+                            style = AppTheme.typography.titleLarge,
+                            color = colors.textPrimary,
+                            maxLines = NAME_MAX_LINES,
+                            overflow = TextOverflow.Ellipsis,
+                            modifier = Modifier.testTag("profile_root_name"),
+                        )
+                    }
+                    state.intention?.let { IntentionChip(it) }
+                }
+            }
+            HeroHighlights(state)
+        }
+    }
+}
+
+@Composable
+private fun IntentionChip(intention: TrainingIntention) {
+    val colors = AppTheme.colors
     Row(
-        Modifier.fillMaxWidth().height(HEADER_HEIGHT),
-        horizontalArrangement = Arrangement.spacedBy(Spacing.lg),
+        Modifier
+            .clip(AppShapes.full)
+            .background(AppPaint.tintSurface(colors.neonLime))
+            .padding(horizontal = Spacing.md, vertical = Spacing.xs),
+        horizontalArrangement = Arrangement.spacedBy(Spacing.xs),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        AppAvatar(
-            imageUrl = state.avatarUrl,
-            size = AppAvatarDefaults.RootSize,
-            testTagPrefix = "profile_root",
-            modifier = Modifier.testTag("profile_root_avatar"),
+        IntentionIcon(intention, selected = true, size = Spacing.lg)
+        Text(
+            text = stringResource(intention.label),
+            style = AppTheme.typography.bodySmall,
+            color = colors.neonLime,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
         )
-        state.displayName?.let { name ->
-            Text(
-                text = name,
-                style = AppTheme.typography.titleLarge,
-                color = AppTheme.colors.textPrimary,
-                maxLines = NAME_MAX_LINES,
-                overflow = TextOverflow.Ellipsis,
-                modifier = Modifier.weight(1f).testTag("profile_root_name"),
+    }
+}
+
+/** Weight, strength record and daily calories as hero stats; only those already known show. */
+@Composable
+private fun HeroHighlights(state: ProfileRootUiState.Loaded) {
+    val colors = AppTheme.colors
+    val weight = state.weightKg
+    val record = state.strengthRecordKg
+    val kcal = state.avgKcal
+    if (weight == null && record == null && kcal == null) return
+    Row(
+        Modifier.fillMaxWidth().testTag("profile_root_highlights"),
+        horizontalArrangement = Arrangement.spacedBy(Spacing.md),
+    ) {
+        if (weight != null) {
+            HeroStat(
+                Res.drawable.ic_monitor_weight,
+                AppNumberFormat.decimal(weight),
+                stringResource(Res.string.px_stats_hero_weight),
+                colors.athleticCyan,
+                Modifier.weight(1f),
+                unit = stringResource(Res.string.unit_kg),
+            )
+        }
+        if (record != null) {
+            HeroStat(
+                Res.drawable.ic_fitness_center,
+                AppNumberFormat.decimal(record),
+                stringResource(Res.string.px_stats_hero_strength),
+                colors.neonLime,
+                Modifier.weight(1f),
+                unit = stringResource(Res.string.unit_kg),
+            )
+        }
+        if (kcal != null) {
+            HeroStat(
+                Res.drawable.ic_restaurant_outlined,
+                AppNumberFormat.integer(kcal),
+                stringResource(Res.string.px_stats_hero_kcal),
+                colors.energyAmber,
+                Modifier.weight(1f),
             )
         }
     }
@@ -221,52 +314,87 @@ private fun RootHeader(state: ProfileRootUiState.Loaded) {
 
 /** "Estadísticas": a heading and one card of [NavigationRow]s, each label equal to its screen title (R-04, R-109). */
 @Composable
-private fun StatisticsSection(actions: ProfileRootActions) {
+private fun StatisticsSection(state: ProfileRootUiState.Loaded, actions: ProfileRootActions) {
+    val colors = AppTheme.colors
+    val weight = state.weightKg?.let { stringResource(Res.string.px_stats_value_kg, AppNumberFormat.decimal(it)) }
+    val record = state.strengthRecordKg?.let {
+        stringResource(Res.string.px_stats_value_kg, AppNumberFormat.decimal(it))
+    }
+    val kcal = state.avgKcal?.let { stringResource(Res.string.px_stats_value_kcal, AppNumberFormat.integer(it)) }
+    val rows = listOf(
+        StatRowSpec(
+            Res.string.profile_weight_row,
+            Res.drawable.ic_monitor_weight,
+            colors.athleticCyan,
+            "profile_weight_row",
+            weight,
+            actions.onOpenWeight,
+        ),
+        StatRowSpec(
+            Res.string.profile_strength_row,
+            Res.drawable.ic_fitness_center,
+            colors.neonLime,
+            "profile_strength_row",
+            record,
+            actions.onOpenStrength,
+        ),
+        StatRowSpec(
+            Res.string.profile_diary_history_row,
+            Res.drawable.ic_restaurant_outlined,
+            colors.energyAmber,
+            "profile_diary_history_row",
+            kcal,
+            actions.onOpenDiaryHistory,
+        ),
+        StatRowSpec(
+            Res.string.profile_training_stats_row,
+            Res.drawable.ic_bar_chart,
+            colors.macroFat,
+            "profile_training_stats_row",
+            null,
+            actions.onOpenTrainingStats,
+        ),
+        StatRowSpec(
+            Res.string.profile_activity_row,
+            Res.drawable.ic_directions_walk_outlined,
+            colors.electricGreen,
+            "profile_activity_row",
+            null,
+            actions.onOpenActivity,
+        ),
+    )
     Column(Modifier.fillMaxWidth()) {
         ListSectionHeader(
             title = stringResource(Res.string.profile_statistics_section),
             modifier = Modifier.testTag("profile_statistics_heading"),
         )
-        AppCard(Modifier.fillMaxWidth()) {
-            StatRow(Res.string.profile_weight_row, Res.drawable.ic_monitor_weight, "profile_weight_row") {
-                actions.onOpenWeight()
-            }
-            StatRow(Res.string.profile_strength_row, Res.drawable.ic_fitness_center, "profile_strength_row") {
-                actions.onOpenStrength()
-            }
-            StatRow(
-                Res.string.profile_diary_history_row,
-                Res.drawable.ic_restaurant_outlined,
-                "profile_diary_history_row",
-            ) { actions.onOpenDiaryHistory() }
-            StatRow(Res.string.profile_training_stats_row, Res.drawable.ic_bar_chart, "profile_training_stats_row") {
-                actions.onOpenTrainingStats()
-            }
-            StatRow(Res.string.profile_activity_row, Res.drawable.ic_directions_walk_outlined, "profile_activity_row") {
-                actions.onOpenActivity()
-            }
-        }
+        AppCard(Modifier.fillMaxWidth()) { rows.forEach { StatRow(it) } }
     }
 }
 
+private class StatRowSpec(
+    val label: StringResource,
+    val icon: DrawableResource,
+    val tint: Color,
+    val tag: String,
+    val value: String?,
+    val onClick: () -> Unit,
+)
+
 @Composable
-private fun StatRow(label: StringResource, icon: DrawableResource, tag: String, onClick: () -> Unit) {
+private fun StatRow(spec: StatRowSpec) {
     NavigationRow(
-        label = stringResource(label),
-        onClick = onClick,
-        modifier = Modifier.testTag(tag),
-        leading = { RowIcon(icon) },
+        label = stringResource(spec.label),
+        onClick = spec.onClick,
+        modifier = Modifier.testTag(spec.tag),
+        value = spec.value,
+        leading = { RowBadge(spec.icon, spec.tint) },
     )
 }
 
 @Composable
-private fun RowIcon(icon: DrawableResource) {
-    Icon(
-        painter = painterResource(icon),
-        contentDescription = null,
-        tint = AppTheme.colors.textSecondary,
-        modifier = Modifier.size(STAT_ICON_SIZE),
-    )
+private fun RowBadge(icon: DrawableResource, tint: Color) {
+    IconBadge(icon, tint, size = IconBadgeDefaults.SmallSize, iconSize = IconBadgeDefaults.SmallIconSize)
 }
 
 @Composable

@@ -2,6 +2,7 @@
 
 package io.github.lopezjavier.appfitness.feature.workout
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -21,6 +22,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
@@ -46,6 +48,7 @@ import io.github.lopezjavier.appfitness.composeapp.resources.session_detail_save
 import io.github.lopezjavier.appfitness.designsystem.AppCard
 import io.github.lopezjavier.appfitness.designsystem.AppDateFormat
 import io.github.lopezjavier.appfitness.designsystem.AppNumberFormat
+import io.github.lopezjavier.appfitness.designsystem.AppPaint
 import io.github.lopezjavier.appfitness.designsystem.AppScreen
 import io.github.lopezjavier.appfitness.designsystem.AppShapes
 import io.github.lopezjavier.appfitness.designsystem.AppStateAction
@@ -57,12 +60,14 @@ import io.github.lopezjavier.appfitness.designsystem.InlineNote
 import io.github.lopezjavier.appfitness.designsystem.LocalAppHaptics
 import io.github.lopezjavier.appfitness.designsystem.LocalAppMessages
 import io.github.lopezjavier.appfitness.designsystem.OfflineHint
+import io.github.lopezjavier.appfitness.designsystem.PillContainer
 import io.github.lopezjavier.appfitness.designsystem.SetOrdinal
 import io.github.lopezjavier.appfitness.designsystem.SetTypeBadge
 import io.github.lopezjavier.appfitness.designsystem.SkeletonBox
 import io.github.lopezjavier.appfitness.designsystem.Spacing
 import io.github.lopezjavier.appfitness.designsystem.appAnimateItem
 import io.github.lopezjavier.appfitness.designsystem.setNoteSummary
+import io.github.lopezjavier.appfitness.domain.model.PersonalRecordType
 import io.github.lopezjavier.appfitness.domain.usecase.RpeScale
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
@@ -227,7 +232,8 @@ private fun DetailHeader(state: SessionDetailUiState.Content) {
 
 @Composable
 private fun ExerciseBlock(exercise: DetailExercise, onOpen: () -> Unit, modifier: Modifier = Modifier) {
-    AppCard(modifier.fillMaxWidth()) {
+    val record = exercise.records.any { it != PersonalRecordType.TotalReps }
+    AppCard(modifier.fillMaxWidth(), glow = if (record) AppPaint.Gold else null) {
         Column(verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
             ExerciseRow(
                 name = exercise.name,
@@ -253,10 +259,22 @@ private fun ExerciseBlock(exercise: DetailExercise, onOpen: () -> Unit, modifier
     }
 }
 
+private const val ZEBRA_ALPHA = 0.4f
+
 @Composable
 private fun SetLine(position: Int, set: DetailSet) {
     Row(
-        Modifier.fillMaxWidth().heightIn(min = Spacing.minTouchTarget)
+        Modifier.fillMaxWidth()
+            .clip(AppShapes.md)
+            .then(
+                if (set.setIndex % 2 == 0) {
+                    Modifier.background(AppTheme.colors.surfaceOverlay.copy(alpha = ZEBRA_ALPHA))
+                } else {
+                    Modifier
+                },
+            )
+            .heightIn(min = Spacing.minTouchTarget)
+            .padding(horizontal = Spacing.sm)
             .semantics(mergeDescendants = true) {}
             .testTag("session_detail_set_${position}_${set.setIndex}"),
         horizontalArrangement = Arrangement.spacedBy(Spacing.md),
@@ -271,12 +289,16 @@ private fun SetLine(position: Int, set: DetailSet) {
             modifier = Modifier.weight(1f),
         )
         set.rpe?.let { rpe ->
-            Text(
-                text = stringResource(Res.string.exercise_history_rpe, RpeScale.text(rpe)),
-                style = AppTheme.typography.labelNumeric,
-                color = AppTheme.colors.textSecondary,
-                modifier = Modifier.testTag("session_detail_set_rpe_${position}_${set.setIndex}"),
-            )
+            PillContainer(
+                Modifier.semantics(mergeDescendants = true) {}
+                    .testTag("session_detail_set_rpe_${position}_${set.setIndex}"),
+            ) {
+                Text(
+                    text = stringResource(Res.string.exercise_history_rpe, RpeScale.text(rpe)),
+                    style = AppTheme.typography.labelNumeric,
+                    color = AppTheme.colors.athleticCyan,
+                )
+            }
         }
     }
 }

@@ -1,8 +1,15 @@
 package io.github.lopezjavier.appfitness.feature.trainer
 
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import io.github.lopezjavier.appfitness.composeapp.resources.Res
 import io.github.lopezjavier.appfitness.composeapp.resources.report_tile_days_label
 import io.github.lopezjavier.appfitness.composeapp.resources.report_tile_days_unit
@@ -26,7 +33,12 @@ import io.github.lopezjavier.appfitness.composeapp.resources.week_summary_weight
 import io.github.lopezjavier.appfitness.composeapp.resources.week_summary_weight_no_target
 import io.github.lopezjavier.appfitness.composeapp.resources.week_summary_weight_none
 import io.github.lopezjavier.appfitness.designsystem.AppNumberFormat
+import io.github.lopezjavier.appfitness.designsystem.AppTheme
 import io.github.lopezjavier.appfitness.designsystem.SectionCard
+import io.github.lopezjavier.appfitness.designsystem.Spacing
+import io.github.lopezjavier.appfitness.designsystem.StatRing
+import io.github.lopezjavier.appfitness.designsystem.WeekStrip
+import io.github.lopezjavier.appfitness.designsystem.WeekStripDay
 import io.github.lopezjavier.appfitness.domain.model.ProposalStatus
 import io.github.lopezjavier.appfitness.domain.model.WeekSummary
 import io.github.lopezjavier.appfitness.domain.model.WeekSummaryDecision
@@ -51,6 +63,7 @@ internal fun NutritionSection(summary: WeekSummary) {
                 Modifier.testTag("week_summary_nutrition_missing"),
             )
         }
+        DaysLoggedRing(nutrition.completeDays)
         val tiles = nutritionTiles(summary, nutrition)
         if (tiles.isNotEmpty()) ReportTileGrid(tiles)
         if (summary.weight?.avgKg == null) {
@@ -64,6 +77,39 @@ internal fun NutritionSection(summary: WeekSummary) {
             Modifier.testTag("week_summary_nutrition_weigh_ins"),
         )
         nutrition.decisions.forEach { DecisionLine(it) }
+    }
+}
+
+private const val WEEK_DAYS = 7
+
+/** The days with complete records as a ring of the seven days of the week, with the count in its centre. */
+@Composable
+private fun DaysLoggedRing(days: Int) {
+    val shown = days.coerceIn(0, WEEK_DAYS)
+    val label = stringResource(
+        Res.string.report_tile_days_label,
+    ) + ": " + shown + "/" + WEEK_DAYS
+    Row(
+        Modifier.fillMaxWidth().semantics(mergeDescendants = true) { contentDescription = label },
+        horizontalArrangement = Arrangement.spacedBy(Spacing.lg),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        StatRing(
+            fraction = shown.toFloat() / WEEK_DAYS,
+            color = AppTheme.colors.neonLime,
+            modifier = Modifier.testTag("week_summary_nutrition_days_ring"),
+        ) {
+            Text(
+                text = "$shown/$WEEK_DAYS",
+                style = AppTheme.typography.labelNumeric,
+                color = AppTheme.colors.textPrimary,
+            )
+        }
+        WeekStrip(
+            days = (1..WEEK_DAYS).map { WeekStripDay(label = it.toString(), done = it <= shown) },
+            modifier = Modifier.weight(1f),
+            color = AppTheme.colors.neonLime,
+        )
     }
 }
 

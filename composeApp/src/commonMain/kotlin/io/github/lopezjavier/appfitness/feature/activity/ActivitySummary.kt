@@ -7,12 +7,11 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.size
-import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.heading
@@ -33,18 +32,28 @@ import io.github.lopezjavier.appfitness.designsystem.AppShapes
 import io.github.lopezjavier.appfitness.designsystem.AppStateAction
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
 import io.github.lopezjavier.appfitness.designsystem.ErrorState
+import io.github.lopezjavier.appfitness.designsystem.IconBadge
+import io.github.lopezjavier.appfitness.designsystem.IconBadgeDefaults
 import io.github.lopezjavier.appfitness.designsystem.MetricCard
 import io.github.lopezjavier.appfitness.designsystem.SkeletonBox
 import io.github.lopezjavier.appfitness.designsystem.Spacing
 import io.github.lopezjavier.appfitness.domain.model.HealthActivityDay
 import io.github.lopezjavier.appfitness.domain.usecase.ActivityMetric
-import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.resources.stringResource
 
 private const val STACK_FONT_SCALE = 1.5f
 private const val COLUMNS = 2
-private val IconSize = Spacing.lg
 private val SkeletonCardHeight = Spacing.xl * 3
+
+/** The colour of each metric in its badge: one per area, never a state. */
+@Composable
+internal fun ActivityMetric.accent(): Color = when (this) {
+    ActivityMetric.Steps -> AppTheme.colors.electricGreen
+    ActivityMetric.Sleep -> AppTheme.colors.macroProtein
+    ActivityMetric.ActiveKcal -> AppTheme.colors.energyAmber
+    ActivityMetric.TotalKcal -> AppTheme.colors.macroFat
+    ActivityMetric.RestingHeartRate -> AppTheme.colors.macroCarbs
+}
 
 /** The value text of [metric] on [day], or null when the watch gave none. */
 @Composable
@@ -162,11 +171,11 @@ private fun ActivityMetricCard(
         onClick = { onEvent(ActivityEvent.SelectMetric(metric)) },
         clickLabel = stringResource(Res.string.activity_card_click),
         labelLeading = {
-            Icon(
-                painter = painterResource(metric.icon()),
-                contentDescription = null,
-                tint = if (selected) AppTheme.colors.neonLime else AppTheme.colors.textSecondary,
-                modifier = Modifier.size(IconSize),
+            IconBadge(
+                icon = metric.icon(),
+                tint = metric.accent(),
+                size = IconBadgeDefaults.SmallSize,
+                iconSize = IconBadgeDefaults.SmallIconSize,
             )
         },
         selected = selected,

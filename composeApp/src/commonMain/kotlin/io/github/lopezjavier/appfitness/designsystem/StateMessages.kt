@@ -4,6 +4,7 @@
 package io.github.lopezjavier.appfitness.designsystem
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -19,7 +20,11 @@ import androidx.compose.runtime.Immutable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.LiveRegionMode
@@ -51,6 +56,14 @@ private object StateMessageMetrics {
 
     /** The `surfaceOverlay` circle behind the glyph (C-17). */
     val IconCircleSize: Dp = 72.dp
+
+    /** Halo of the medallion: reach of the light and radii of the two rings, relative to the medallion radius. */
+    const val HALO_REACH = 2.2f
+    const val HALO_ALPHA = 0.16f
+    const val RING_NEAR = 1.32f
+    const val RING_FAR = 1.7f
+    const val RING_ALPHA = 0.16f
+    const val MEDALLION_TINT = 0.16f
 
     /** Both buttons of an error block share this minimum width, so "Reintentar" and "Crear manualmente" align. */
     val ButtonMinWidth: Dp = 200.dp
@@ -245,10 +258,32 @@ private fun StateMessage(
 // Decorative: the text carries the meaning.
 @Composable
 private fun StateMessageGlyph(icon: DrawableResource, tint: Color) {
+    val overlay = AppTheme.colors.surfaceOverlay
     Box(
-        Modifier.size(
-            StateMessageMetrics.IconCircleSize,
-        ).clip(AppShapes.full).background(nestedContainerColor()),
+        Modifier
+            .size(StateMessageMetrics.IconCircleSize)
+            .drawBehind {
+                // Halo: a soft light of the glyph colour and two fading rings around the medallion.
+                val radius = size.minDimension / 2
+                drawRadialGlow(tint, center, radius * StateMessageMetrics.HALO_REACH, StateMessageMetrics.HALO_ALPHA)
+                drawCircle(
+                    color = tint.copy(alpha = StateMessageMetrics.RING_ALPHA),
+                    radius = radius * StateMessageMetrics.RING_NEAR,
+                    style = Stroke(AppBorder.thin.toPx()),
+                )
+                drawCircle(
+                    color = tint.copy(alpha = StateMessageMetrics.RING_ALPHA / 2),
+                    radius = radius * StateMessageMetrics.RING_FAR,
+                    style = Stroke(AppBorder.thin.toPx()),
+                )
+            }
+            .clip(AppShapes.full)
+            .background(
+                Brush.verticalGradient(
+                    listOf(lerp(overlay, tint, StateMessageMetrics.MEDALLION_TINT), nestedContainerColor()),
+                ),
+            )
+            .border(AppBorder.thin, AppPaint.accentBorder(tint), AppShapes.full),
         contentAlignment = Alignment.Center,
     ) {
         Icon(

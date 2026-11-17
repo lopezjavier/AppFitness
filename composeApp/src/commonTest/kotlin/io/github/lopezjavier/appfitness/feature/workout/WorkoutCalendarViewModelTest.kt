@@ -329,6 +329,25 @@ class WorkoutCalendarViewModelTest {
     }
 
     @Test
+    fun yearDayCounts_areTheWorkoutsPerDayOfTheShownYearOnly() = runTest(dispatcher) {
+        repository.completed += listOf(
+            completedSession("a", 0),
+            completedSession("b", 0, hourOffset = 1),
+            completedSession("c", 1),
+            completedSession("old", 800),
+        )
+        val model = viewModel()
+        advanceUntilIdle()
+
+        model.onEvent(WorkoutCalendarEvent.SelectView(WorkoutCalendarView.Year))
+        assertEquals(mapOf(day(0) to 2, day(1) to 1), model.content().yearDayCounts)
+
+        model.onEvent(WorkoutCalendarEvent.SelectView(WorkoutCalendarView.MultiYear))
+        model.onEvent(WorkoutCalendarEvent.SelectYear(day(800).year))
+        assertEquals(mapOf(day(800) to 1), model.content().yearDayCounts)
+    }
+
+    @Test
     fun selectingAYearShowsItsMonths() = runTest(dispatcher) {
         repository.completed += listOf(completedSession("a", 0), completedSession("old", 800))
         val model = viewModel()

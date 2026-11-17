@@ -6,8 +6,6 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
@@ -16,6 +14,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
@@ -29,7 +28,6 @@ import androidx.compose.ui.unit.dp
 import io.github.lopezjavier.appfitness.composeapp.resources.Res
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_cloud_off
 import io.github.lopezjavier.appfitness.composeapp.resources.offline_banner_message
-import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.resources.stringResource
 
 /** Colours of the [OfflineBanner]: strip background, bottom line, icon and text. */
@@ -74,9 +72,17 @@ fun OfflineBanner(
         rootModifier
             .semantics(mergeDescendants = true) { liveRegion = LiveRegionMode.Polite }
             .background(colors.background)
+            .background(
+                Brush.horizontalGradient(listOf(colors.icon.copy(alpha = 0.16f), colors.icon.copy(alpha = 0.04f))),
+            )
             .drawBehind {
                 val y = size.height - AppBorder.thin.toPx() / 2
-                drawLine(colors.border, Offset(0f, y), Offset(size.width, y), strokeWidth = AppBorder.thin.toPx())
+                drawLine(
+                    colors.icon.copy(alpha = 0.35f),
+                    Offset(0f, y),
+                    Offset(size.width, y),
+                    strokeWidth = AppBorder.thin.toPx(),
+                )
             }
             .heightIn(min = OfflineBannerDefaults.MinHeight)
             .padding(
@@ -87,11 +93,11 @@ fun OfflineBanner(
         horizontalArrangement = Arrangement.spacedBy(OfflineBannerDefaults.IconTextGap),
     ) {
         // Decorative: the text carries the meaning.
-        Icon(
-            painter = painterResource(Res.drawable.ic_cloud_off),
-            contentDescription = null,
-            tint = colors.icon,
-            modifier = Modifier.size(OfflineBannerDefaults.IconSize),
+        IconBadge(
+            Res.drawable.ic_cloud_off,
+            colors.icon,
+            size = IconBadgeDefaults.SmallSize,
+            iconSize = IconBadgeDefaults.SmallIconSize,
         )
         Text(
             text = message,

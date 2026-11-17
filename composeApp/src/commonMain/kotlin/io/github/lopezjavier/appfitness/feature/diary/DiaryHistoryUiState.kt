@@ -50,6 +50,10 @@ data class DiaryHistoryContent(
     val week: PeriodAverage?,
     val monthSummary: MonthSummary?,
     val goals: DiaryGoals?,
+    /** Calories of each of the last 7 days ending [today] (0 without entries); empty when not loaded. */
+    val weekKcal: List<Float> = emptyList(),
+    /** Average calories per logged day of each 7-day block of [month] (days 1-7, 8-14...); 0 for an empty block. */
+    val monthKcal: List<Float> = emptyList(),
 )
 
 sealed interface DiaryHistoryEvent {

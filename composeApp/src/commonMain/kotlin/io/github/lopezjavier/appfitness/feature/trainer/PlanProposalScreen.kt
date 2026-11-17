@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -32,6 +33,10 @@ import io.github.lopezjavier.appfitness.composeapp.resources.action_discard
 import io.github.lopezjavier.appfitness.composeapp.resources.before_start_confirm_error
 import io.github.lopezjavier.appfitness.composeapp.resources.cardio_save_error
 import io.github.lopezjavier.appfitness.composeapp.resources.cardio_save_offline
+import io.github.lopezjavier.appfitness.composeapp.resources.ic_restaurant_outlined
+import io.github.lopezjavier.appfitness.composeapp.resources.ic_trending_down
+import io.github.lopezjavier.appfitness.composeapp.resources.ic_trending_flat
+import io.github.lopezjavier.appfitness.composeapp.resources.ic_trending_up
 import io.github.lopezjavier.appfitness.composeapp.resources.plan_outcome_deadline
 import io.github.lopezjavier.appfitness.composeapp.resources.plan_outcome_help_cd
 import io.github.lopezjavier.appfitness.composeapp.resources.plan_outcome_help_title
@@ -73,14 +78,17 @@ import io.github.lopezjavier.appfitness.designsystem.AppScreen
 import io.github.lopezjavier.appfitness.designsystem.AppShapes
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
 import io.github.lopezjavier.appfitness.designsystem.DecisionButtonRow
+import io.github.lopezjavier.appfitness.designsystem.DonutChart
+import io.github.lopezjavier.appfitness.designsystem.DonutSlice
 import io.github.lopezjavier.appfitness.designsystem.HelpButton
+import io.github.lopezjavier.appfitness.designsystem.IconBadge
+import io.github.lopezjavier.appfitness.designsystem.IconBadgeDefaults
 import io.github.lopezjavier.appfitness.designsystem.InlineNote
 import io.github.lopezjavier.appfitness.designsystem.ListSectionHeader
 import io.github.lopezjavier.appfitness.designsystem.LocalAppHaptics
 import io.github.lopezjavier.appfitness.designsystem.LocalAppMessages
 import io.github.lopezjavier.appfitness.designsystem.Macro
 import io.github.lopezjavier.appfitness.designsystem.MacroDefaults
-import io.github.lopezjavier.appfitness.designsystem.MacroStackedBar
 import io.github.lopezjavier.appfitness.designsystem.MacroStackedBarDefaults
 import io.github.lopezjavier.appfitness.designsystem.NavigationRow
 import io.github.lopezjavier.appfitness.designsystem.OfflineHint
@@ -98,6 +106,7 @@ import io.github.lopezjavier.appfitness.domain.usecase.NutritionGoalsChecklist
 import io.github.lopezjavier.appfitness.feature.weight.decimalText
 import io.github.lopezjavier.appfitness.feature.weight.signedTenths
 import kotlinx.coroutines.flow.Flow
+import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.koinInject
 import org.koin.compose.viewmodel.koinViewModel
@@ -319,7 +328,7 @@ private fun ProposalContent(
 @Suppress("LongMethod") // One card layout of the proposal figures.
 private fun NutritionCard(state: PlanProposalUiState.Proposal) {
     val nutrition = state.plan.nutrition
-    AppCard(Modifier.fillMaxWidth().testTag("plan_proposal_nutrition")) {
+    AppCard(Modifier.fillMaxWidth().testTag("plan_proposal_nutrition"), glow = AppTheme.colors.neonLime) {
         Text(
             text = stringResource(Res.string.plan_proposal_calories),
             style = AppTheme.typography.titleMedium,
@@ -347,35 +356,67 @@ private fun NutritionCard(state: PlanProposalUiState.Proposal) {
             nutrition.carbsG.toDouble(),
             nutrition.fatG.toDouble(),
         )
-        MacroStackedBar(
-            proteinPct = shares.first,
-            carbsPct = shares.second,
-            fatPct = shares.third,
-            testTag = "plan_proposal_macro_bar",
-            barHeight = MacroStackedBarDefaults.SlimHeight,
-        )
-        MacroRow(
-            Macro.Protein,
-            stringResource(Res.string.plan_proposal_protein_headline, AppNumberFormat.integer(nutrition.proteinG)),
-            "plan_proposal_macro_protein",
-        )
-        MacroRow(
-            Macro.Fat,
-            stringResource(
-                Res.string.plan_proposal_fat_min,
-                AppNumberFormat.integer(nutrition.fatG),
-                AppNumberFormat.integer(NutritionGoalsChecklist.minFatG(nutrition.targetKcal)),
-            ),
-            "plan_proposal_macro_fat",
-        )
-        MacroRow(
-            Macro.Carbs,
-            stringResource(Res.string.plan_proposal_carbs_rest, AppNumberFormat.integer(nutrition.carbsG)),
-            "plan_proposal_macro_carbs",
-        )
+        val colors = AppTheme.colors
+        Row(
+            Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(Spacing.lg),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            DonutChart(
+                slices = listOf(
+                    DonutSlice(shares.first.toFloat(), MacroDefaults.color(Macro.Protein, colors)),
+                    DonutSlice(shares.second.toFloat(), MacroDefaults.color(Macro.Carbs, colors)),
+                    DonutSlice(shares.third.toFloat(), MacroDefaults.color(Macro.Fat, colors)),
+                ),
+                modifier = Modifier.testTag("plan_proposal_macro_bar"),
+            ) {
+                Icon(
+                    painter = painterResource(Res.drawable.ic_restaurant_outlined),
+                    contentDescription = null,
+                    tint = colors.textSecondary,
+                    modifier = Modifier.size(Spacing.xl),
+                )
+            }
+            Column(Modifier.weight(1f)) {
+                MacroRow(
+                    Macro.Protein,
+                    stringResource(
+                        Res.string.plan_proposal_protein_headline,
+                        AppNumberFormat.integer(nutrition.proteinG),
+                    ),
+                    "plan_proposal_macro_protein",
+                )
+                MacroRow(
+                    Macro.Fat,
+                    stringResource(
+                        Res.string.plan_proposal_fat_min,
+                        AppNumberFormat.integer(nutrition.fatG),
+                        AppNumberFormat.integer(NutritionGoalsChecklist.minFatG(nutrition.targetKcal)),
+                    ),
+                    "plan_proposal_macro_fat",
+                )
+                MacroRow(
+                    Macro.Carbs,
+                    stringResource(Res.string.plan_proposal_carbs_rest, AppNumberFormat.integer(nutrition.carbsG)),
+                    "plan_proposal_macro_carbs",
+                )
+            }
+        }
         AppListRow(
             headline = stringResource(Res.string.plan_proposal_rate),
             modifier = Modifier.testTag("plan_proposal_rate"),
+            leading = {
+                IconBadge(
+                    when {
+                        nutrition.rateKgWeek < 0.0 -> Res.drawable.ic_trending_down
+                        nutrition.rateKgWeek > 0.0 -> Res.drawable.ic_trending_up
+                        else -> Res.drawable.ic_trending_flat
+                    },
+                    AppTheme.colors.athleticCyan,
+                    size = IconBadgeDefaults.SmallSize,
+                    iconSize = IconBadgeDefaults.SmallIconSize,
+                )
+            },
             trailing = {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text(

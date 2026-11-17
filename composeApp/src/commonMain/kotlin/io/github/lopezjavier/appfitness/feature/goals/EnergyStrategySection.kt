@@ -40,12 +40,22 @@ import io.github.lopezjavier.appfitness.composeapp.resources.energy_strategy_mai
 import io.github.lopezjavier.appfitness.composeapp.resources.energy_strategy_surplus
 import io.github.lopezjavier.appfitness.composeapp.resources.energy_target
 import io.github.lopezjavier.appfitness.composeapp.resources.energy_tdee
+import io.github.lopezjavier.appfitness.composeapp.resources.ic_flame_outlined
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_warning
+import io.github.lopezjavier.appfitness.composeapp.resources.px_body_goal_deficit_zone
+import io.github.lopezjavier.appfitness.composeapp.resources.px_body_goal_maintenance_zone
+import io.github.lopezjavier.appfitness.composeapp.resources.px_body_goal_surplus_zone
+import io.github.lopezjavier.appfitness.composeapp.resources.px_body_goal_title
+import io.github.lopezjavier.appfitness.composeapp.resources.px_body_goal_vs_expenditure
+import io.github.lopezjavier.appfitness.designsystem.AppCard
 import io.github.lopezjavier.appfitness.designsystem.AppNumberFormat
 import io.github.lopezjavier.appfitness.designsystem.AppOption
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
+import io.github.lopezjavier.appfitness.designsystem.GaugeBar
+import io.github.lopezjavier.appfitness.designsystem.GaugeZone
 import io.github.lopezjavier.appfitness.designsystem.HelpButton
 import io.github.lopezjavier.appfitness.designsystem.HelpContent
+import io.github.lopezjavier.appfitness.designsystem.IconBadge
 import io.github.lopezjavier.appfitness.designsystem.NumberStepper
 import io.github.lopezjavier.appfitness.designsystem.SegmentedSelector
 import io.github.lopezjavier.appfitness.designsystem.Spacing
@@ -106,7 +116,7 @@ fun EnergyStrategySection(
                 onEvent(EnergyStrategyEvent.SelectStrategy(it))
             }
             AdjustmentRow(state, onEvent, testTagPrefix)
-            TargetText(state.targetKcal, Modifier.testTag("${testTagPrefix}_target"))
+            TargetHero(state, testTagPrefix)
             if (state.isFloored) FloorWarning(state.floorKcal, Modifier.testTag("${testTagPrefix}_floor_warning"))
         }
     }
@@ -165,7 +175,7 @@ private fun TargetText(targetKcal: Int, modifier: Modifier = Modifier) {
     val number = AppNumberFormat.integer(targetKcal)
     val full = stringResource(Res.string.energy_target, number)
     val secondary = SpanStyle(color = AppTheme.colors.textSecondary)
-    val metric = AppTheme.typography.headlineMetric.toSpanStyle().copy(color = AppTheme.colors.neonLime)
+    val metric = AppTheme.typography.displayHero.toSpanStyle().copy(color = AppTheme.colors.neonLime)
     val parts = splitAroundNumber(full, number)
     val text =
         if (parts == null) {
@@ -178,6 +188,63 @@ private fun TargetText(targetKcal: Int, modifier: Modifier = Modifier) {
             }
         }
     Text(text = text, style = AppTheme.typography.bodyMedium, modifier = modifier)
+}
+
+private const val ZONE_LOW = 0.97
+private const val ZONE_HIGH = 1.03
+private const val SCALE_MIN = 0.6
+private const val SCALE_MAX = 1.4
+
+/**
+ * The daily target as a hero figure with a scale showing where it sits against the estimated expenditure: deficit,
+ * maintenance or surplus.
+ */
+@Composable
+private fun TargetHero(state: EnergyStrategyUiState, prefix: String) {
+    val colors = AppTheme.colors
+    val tdee = state.tdeeKcal.toDouble()
+    AppCard(Modifier.fillMaxWidth(), glow = colors.neonLime) {
+        Column(verticalArrangement = Arrangement.spacedBy(Spacing.md)) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(Spacing.md),
+            ) {
+                IconBadge(Res.drawable.ic_flame_outlined, colors.neonLime)
+                Text(
+                    text = stringResource(Res.string.px_body_goal_title).uppercase(),
+                    style = AppTheme.typography.labelTechnical,
+                    color = colors.textSecondary,
+                )
+            }
+            TargetText(state.targetKcal, Modifier.testTag("${prefix}_target"))
+            GaugeBar(
+                value = state.targetKcal.toDouble(),
+                min = tdee * SCALE_MIN,
+                zones = listOf(
+                    GaugeZone(tdee * ZONE_LOW, colors.athleticCyan),
+                    GaugeZone(tdee * ZONE_HIGH, colors.electricGreen),
+                    GaugeZone(tdee * SCALE_MAX, colors.energyAmber),
+                ),
+            )
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                listOf(
+                    Res.string.px_body_goal_deficit_zone,
+                    Res.string.px_body_goal_maintenance_zone,
+                    Res.string.px_body_goal_surplus_zone,
+                ).forEach {
+                    Text(stringResource(it), style = AppTheme.typography.bodySmall, color = colors.textSecondary)
+                }
+            }
+            Text(
+                text = stringResource(
+                    Res.string.px_body_goal_vs_expenditure,
+                    AppNumberFormat.signedInteger(state.targetKcal - state.tdeeKcal),
+                ),
+                style = AppTheme.typography.bodyMedium,
+                color = colors.textSecondary,
+            )
+        }
+    }
 }
 
 @Composable

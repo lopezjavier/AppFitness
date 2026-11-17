@@ -94,6 +94,19 @@ class GoalViewModelTest {
     }
 
     @Test
+    fun sex_isTheOneSavedInTheProfile_andNullWhenNoneWasGiven() = runTest(dispatcher) {
+        profile.biometrics = Result.success(SavedBiometrics(sex = Sex.Female, heightCm = 165))
+        val female = viewModel()
+        advanceUntilIdle()
+        assertEquals(Sex.Female, female.content().sex)
+
+        profile.biometrics = Result.success(SavedBiometrics(heightCm = 165))
+        val unknown = viewModel()
+        advanceUntilIdle()
+        assertNull(unknown.content().sex)
+    }
+
+    @Test
     fun noHeight_hidesBmi() = runTest(dispatcher) {
         profile.biometrics = Result.success(SavedBiometrics(sex = Sex.Male))
         val vm = viewModel()

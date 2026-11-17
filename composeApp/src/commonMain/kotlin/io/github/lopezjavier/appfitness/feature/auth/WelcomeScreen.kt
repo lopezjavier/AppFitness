@@ -37,6 +37,16 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.github.lopezjavier.appfitness.composeapp.resources.Res
 import io.github.lopezjavier.appfitness.composeapp.resources.auth_error_generic
 import io.github.lopezjavier.appfitness.composeapp.resources.auth_error_no_network
+import io.github.lopezjavier.appfitness.composeapp.resources.ic_fitness_center
+import io.github.lopezjavier.appfitness.composeapp.resources.ic_insights
+import io.github.lopezjavier.appfitness.composeapp.resources.ic_restaurant_outlined
+import io.github.lopezjavier.appfitness.composeapp.resources.px_start_prop_nutrition_text
+import io.github.lopezjavier.appfitness.composeapp.resources.px_start_prop_nutrition_title
+import io.github.lopezjavier.appfitness.composeapp.resources.px_start_prop_progress_text
+import io.github.lopezjavier.appfitness.composeapp.resources.px_start_prop_progress_title
+import io.github.lopezjavier.appfitness.composeapp.resources.px_start_prop_training_text
+import io.github.lopezjavier.appfitness.composeapp.resources.px_start_prop_training_title
+import io.github.lopezjavier.appfitness.composeapp.resources.px_start_tagline
 import io.github.lopezjavier.appfitness.composeapp.resources.welcome_google_button
 import io.github.lopezjavier.appfitness.composeapp.resources.welcome_logo_description
 import io.github.lopezjavier.appfitness.composeapp.resources.welcome_signing_in
@@ -46,10 +56,15 @@ import io.github.lopezjavier.appfitness.composeapp.resources.welcome_title_suffi
 import io.github.lopezjavier.appfitness.designsystem.AppLogo
 import io.github.lopezjavier.appfitness.designsystem.AppLogoDefaults
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
+import io.github.lopezjavier.appfitness.designsystem.InlineNote
+import io.github.lopezjavier.appfitness.designsystem.InlineNoteTone
 import io.github.lopezjavier.appfitness.designsystem.PrimaryButton
 import io.github.lopezjavier.appfitness.designsystem.SecondaryButton
 import io.github.lopezjavier.appfitness.designsystem.Spacing
+import io.github.lopezjavier.appfitness.designsystem.StartHeroStage
+import io.github.lopezjavier.appfitness.designsystem.StartValueProp
 import io.github.lopezjavier.appfitness.designsystem.WindowWidthClassDefaults
+import io.github.lopezjavier.appfitness.designsystem.ambientBackdrop
 import io.github.lopezjavier.appfitness.designsystem.windowWidthClassFor
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
@@ -81,7 +96,10 @@ fun WelcomeScreen(
     modifier: Modifier = Modifier,
 ) {
     val colors = AppTheme.colors
-    BoxWithConstraints(modifier.fillMaxSize().background(colors.surfaceBase).testTag("welcome_screen")) {
+    BoxWithConstraints(
+        modifier.fillMaxSize().background(colors.surfaceBase).ambientBackdrop(colors.neonLime, colors.athleticCyan)
+            .testTag("welcome_screen"),
+    ) {
         val logoWidth = AppLogoDefaults.width(windowWidthClassFor(maxWidth))
         Column(
             modifier = Modifier.fillMaxSize().safeDrawingPadding().padding(horizontal = Spacing.screenMargin),
@@ -102,19 +120,17 @@ private fun BrandZone(logoWidth: Dp, modifier: Modifier = Modifier) {
         verticalArrangement = Arrangement.Center,
     ) {
         Column(
-            // Optically a bit above the centre.
-            modifier = Modifier.padding(
-                bottom = Spacing.xl,
-            ).semantics(mergeDescendants = true, properties = NoExtraSemantics)
+            modifier = Modifier.semantics(mergeDescendants = true, properties = NoExtraSemantics)
                 .testTag("welcome_brand"),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
-            AppLogo(
-                modifier = Modifier.testTag("welcome_logo"),
-                width = logoWidth,
-                contentDescription = stringResource(Res.string.welcome_logo_description),
-            )
-            Spacer(Modifier.height(Spacing.blockGap))
+            StartHeroStage(Modifier.widthIn(max = WindowWidthClassDefaults.NarrowContentMaxWidth)) {
+                AppLogo(
+                    modifier = Modifier.testTag("welcome_logo"),
+                    width = logoWidth,
+                    contentDescription = stringResource(Res.string.welcome_logo_description),
+                )
+            }
             Text(
                 text = brandTitle(),
                 style = AppTheme.typography.displayHero,
@@ -124,7 +140,43 @@ private fun BrandZone(logoWidth: Dp, modifier: Modifier = Modifier) {
                 overflow = TextOverflow.Ellipsis,
                 modifier = Modifier.semantics { heading() }.testTag("welcome_title"),
             )
+            Text(
+                text = stringResource(Res.string.px_start_tagline),
+                style = AppTheme.typography.bodyMedium,
+                color = AppTheme.colors.textSecondary,
+                textAlign = TextAlign.Center,
+                modifier = Modifier.padding(top = Spacing.sm).testTag("welcome_tagline"),
+            )
         }
+        ValueProps()
+        Spacer(Modifier.height(Spacing.lg))
+    }
+}
+
+@Composable
+private fun ValueProps() {
+    Column(
+        Modifier.padding(top = Spacing.xl).widthIn(max = WindowWidthClassDefaults.NarrowContentMaxWidth),
+        verticalArrangement = Arrangement.spacedBy(Spacing.md),
+    ) {
+        StartValueProp(
+            Res.drawable.ic_restaurant_outlined,
+            AppTheme.colors.neonLime,
+            stringResource(Res.string.px_start_prop_nutrition_title),
+            stringResource(Res.string.px_start_prop_nutrition_text),
+        )
+        StartValueProp(
+            Res.drawable.ic_fitness_center,
+            AppTheme.colors.athleticCyan,
+            stringResource(Res.string.px_start_prop_training_title),
+            stringResource(Res.string.px_start_prop_training_text),
+        )
+        StartValueProp(
+            Res.drawable.ic_insights,
+            AppTheme.colors.energyAmber,
+            stringResource(Res.string.px_start_prop_progress_title),
+            stringResource(Res.string.px_start_prop_progress_text),
+        )
     }
 }
 
@@ -179,13 +231,10 @@ private fun ErrorBlock(error: WelcomeError) {
             WelcomeError.NoNetwork -> stringResource(Res.string.auth_error_no_network)
             WelcomeError.Generic -> stringResource(Res.string.auth_error_generic)
         }
-    Text(
+    InlineNote(
         text = message,
-        style = AppTheme.typography.bodyMedium,
-        color = AppTheme.colors.error,
-        modifier = Modifier.fillMaxWidth().semantics {
-            liveRegion = LiveRegionMode.Polite
-        }.testTag("welcome_error_message"),
+        tone = InlineNoteTone.Error,
+        modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite }.testTag("welcome_error_message"),
     )
 }
 

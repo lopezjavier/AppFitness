@@ -3,6 +3,7 @@ package io.github.lopezjavier.appfitness.designsystem
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -67,6 +68,7 @@ fun SelectableCard(
     modifier: Modifier = Modifier,
     description: String = "",
     enabled: Boolean = true,
+    leading: (@Composable () -> Unit)? = null,
 ) {
     val colors = SelectableCardDefaults.colors(selected, AppTheme.colors)
     Row(
@@ -74,14 +76,19 @@ fun SelectableCard(
         modifier
             .fillMaxWidth()
             .heightIn(min = SelectableCardDefaults.MinHeight)
+            .then(
+                if (selected) Modifier.softGlow(AppTheme.colors.neonLime, AppRadius.lg, alpha = 0.22f) else Modifier,
+            )
             .clip(SelectableCardDefaults.Shape)
             .background(colors.container)
+            .then(if (selected) Modifier.background(AppPaint.tintSurface(AppTheme.colors.neonLime)) else Modifier)
             .border(SelectableCardDefaults.borderWidth(selected), colors.border, SelectableCardDefaults.Shape)
             .selectable(selected = selected, enabled = enabled, role = Role.RadioButton, onClick = onClick)
             .padding(Spacing.cardPadding),
         horizontalArrangement = Arrangement.spacedBy(Spacing.md),
         verticalAlignment = Alignment.CenterVertically,
     ) {
+        leading?.invoke()
         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
             Text(
                 text = title,
@@ -100,12 +107,18 @@ fun SelectableCard(
         }
         if (selected) {
             // Decorative: the selected state is conveyed by the selectable semantics.
-            Icon(
-                imageVector = vectorResource(Res.drawable.ic_check),
-                contentDescription = null,
-                tint = AppTheme.colors.neonLime,
-                modifier = Modifier.size(SelectableCardDefaults.CheckSize),
-            )
+            Box(
+                Modifier.size(SelectableCardDefaults.CheckSize).clip(AppShapes.full)
+                    .background(AppPaint.diagonal(AppTheme.colors.neonLime)),
+                contentAlignment = Alignment.Center,
+            ) {
+                Icon(
+                    imageVector = vectorResource(Res.drawable.ic_check),
+                    contentDescription = null,
+                    tint = AppTheme.colors.onNeonLime,
+                    modifier = Modifier.size(SelectableCardDefaults.CheckSize * 0.7f),
+                )
+            }
         }
     }
 }

@@ -67,7 +67,7 @@ class SessionDetailSplitTest {
         show(detailWith(emptyList()))
         rule.onNodeWithTag("session_detail_list").performScrollToNode(hasTestTag("session_detail_set_0_2"))
 
-        rule.onNodeWithTag("session_detail_set_rpe_0_1", useUnmergedTree = true).assertTextContains("RPE 8")
+        rule.onNodeWithTag("session_detail_set_rpe_0_1").assertTextContains("RPE 8")
         rule.onNodeWithTag("session_detail_set_rpe_0_2", useUnmergedTree = true).assertDoesNotExist()
     }
 }

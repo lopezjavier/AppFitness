@@ -255,6 +255,7 @@ class WorkoutCalendarViewModel(
             canAddToSelectedDay = selectedDay?.let { it <= clock.today() } == true,
             yearCounts = TrainingCalendar.yearCounts(days),
             monthCounts = TrainingCalendar.monthCounts(days, shownYear),
+            yearDayCounts = days.filterKeys { it.year == shownYear }.mapValues { it.value.size },
             canGoNext = shownMonth < clock.today().yearMonth,
             today = clock.today(),
             dayCards = if (selectedDay == null) DayCardsState.None else dayCards,

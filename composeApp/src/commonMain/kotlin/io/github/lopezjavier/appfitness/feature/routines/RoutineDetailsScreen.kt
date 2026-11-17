@@ -1,9 +1,12 @@
+@file:Suppress("TooManyFunctions") // The screen, its blocks and the set summaries.
+
 package io.github.lopezjavier.appfitness.feature.routines
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -27,8 +30,13 @@ import io.github.lopezjavier.appfitness.composeapp.resources.action_edit
 import io.github.lopezjavier.appfitness.composeapp.resources.action_retry
 import io.github.lopezjavier.appfitness.composeapp.resources.delete_failed
 import io.github.lopezjavier.appfitness.composeapp.resources.delete_offline
+import io.github.lopezjavier.appfitness.composeapp.resources.ic_bar_chart
+import io.github.lopezjavier.appfitness.composeapp.resources.ic_calendar
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_delete
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_edit
+import io.github.lopezjavier.appfitness.composeapp.resources.ic_fitness_center
+import io.github.lopezjavier.appfitness.composeapp.resources.px_routines_details_exercises
+import io.github.lopezjavier.appfitness.composeapp.resources.px_routines_details_sets
 import io.github.lopezjavier.appfitness.composeapp.resources.routine_details_error
 import io.github.lopezjavier.appfitness.composeapp.resources.routine_details_exercises
 import io.github.lopezjavier.appfitness.composeapp.resources.routine_details_last_done
@@ -40,6 +48,7 @@ import io.github.lopezjavier.appfitness.composeapp.resources.routine_details_wei
 import io.github.lopezjavier.appfitness.composeapp.resources.routines_action_failed
 import io.github.lopezjavier.appfitness.composeapp.resources.routines_start
 import io.github.lopezjavier.appfitness.composeapp.resources.workout_already_in_progress
+import io.github.lopezjavier.appfitness.designsystem.AppCard
 import io.github.lopezjavier.appfitness.designsystem.AppDateFormat
 import io.github.lopezjavier.appfitness.designsystem.AppNumberFormat
 import io.github.lopezjavier.appfitness.designsystem.AppScreen
@@ -49,6 +58,9 @@ import io.github.lopezjavier.appfitness.designsystem.AppTheme
 import io.github.lopezjavier.appfitness.designsystem.AppTopBarAction
 import io.github.lopezjavier.appfitness.designsystem.ErrorState
 import io.github.lopezjavier.appfitness.designsystem.ExerciseRow
+import io.github.lopezjavier.appfitness.designsystem.HeroStat
+import io.github.lopezjavier.appfitness.designsystem.IconBadge
+import io.github.lopezjavier.appfitness.designsystem.IconBadgeDefaults
 import io.github.lopezjavier.appfitness.designsystem.ListSectionHeader
 import io.github.lopezjavier.appfitness.designsystem.LocalAppHaptics
 import io.github.lopezjavier.appfitness.designsystem.LocalAppMessages
@@ -226,12 +238,7 @@ private fun DetailsList(
         verticalArrangement = Arrangement.spacedBy(Spacing.sm),
     ) {
         item(key = "last_done") {
-            Text(
-                text = lastDone,
-                style = AppTheme.typography.bodyMedium,
-                color = AppTheme.colors.textSecondary,
-                modifier = Modifier.testTag("${TAG}_last_done"),
-            )
+            DetailsSummary(content, lastDone)
         }
         item(key = "header") {
             ListSectionHeader(
@@ -250,6 +257,49 @@ private fun DetailsList(
                 modifier = appAnimateItem(),
                 imageUri = exercise.imageKey?.let { mediaUris.start(it) },
             )
+        }
+    }
+}
+
+/** Hero of the details: exercises and planned sets as figures and when the routine was last done as a pill. */
+@Composable
+private fun DetailsSummary(content: RoutineDetailsUiState.Content, lastDone: String) {
+    val sets = content.exercises.sumOf { it.plannedSets.size }
+    AppCard(Modifier.fillMaxWidth().testTag("${TAG}_summary"), glow = AppTheme.colors.athleticCyan) {
+        Column(verticalArrangement = Arrangement.spacedBy(Spacing.md)) {
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+                HeroStat(
+                    icon = Res.drawable.ic_fitness_center,
+                    value = AppNumberFormat.integer(content.exercises.size),
+                    label = stringResource(Res.string.px_routines_details_exercises),
+                    accent = AppTheme.colors.neonLime,
+                    modifier = Modifier.weight(1f),
+                )
+                HeroStat(
+                    icon = Res.drawable.ic_bar_chart,
+                    value = AppNumberFormat.integer(sets),
+                    label = stringResource(Res.string.px_routines_details_sets),
+                    accent = AppTheme.colors.athleticCyan,
+                    modifier = Modifier.weight(1f),
+                )
+            }
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+            ) {
+                IconBadge(
+                    icon = Res.drawable.ic_calendar,
+                    tint = AppTheme.colors.energyAmber,
+                    size = IconBadgeDefaults.SmallSize,
+                    iconSize = IconBadgeDefaults.SmallIconSize,
+                )
+                Text(
+                    text = lastDone,
+                    style = AppTheme.typography.bodyMedium,
+                    color = AppTheme.colors.textSecondary,
+                    modifier = Modifier.testTag("${TAG}_last_done"),
+                )
+            }
         }
     }
 }

@@ -1,10 +1,15 @@
 package io.github.lopezjavier.appfitness.feature.exercises
 
 import androidx.compose.foundation.ScrollState
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -12,7 +17,10 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import io.github.lopezjavier.appfitness.composeapp.resources.Res
@@ -21,9 +29,15 @@ import io.github.lopezjavier.appfitness.composeapp.resources.exercise_detail_no_
 import io.github.lopezjavier.appfitness.composeapp.resources.exercise_detail_tips
 import io.github.lopezjavier.appfitness.composeapp.resources.exercise_step_number
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_description
+import io.github.lopezjavier.appfitness.designsystem.AppBorder
+import io.github.lopezjavier.appfitness.designsystem.AppCard
+import io.github.lopezjavier.appfitness.designsystem.AppNumberFormat
+import io.github.lopezjavier.appfitness.designsystem.AppPaint
+import io.github.lopezjavier.appfitness.designsystem.AppShapes
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
 import io.github.lopezjavier.appfitness.designsystem.EmptyState
 import io.github.lopezjavier.appfitness.designsystem.ExerciseLayoutDefaults
+import io.github.lopezjavier.appfitness.designsystem.IconBadgeDefaults
 import io.github.lopezjavier.appfitness.designsystem.Spacing
 import io.github.lopezjavier.appfitness.domain.model.ExerciseDetail
 import org.jetbrains.compose.resources.stringResource
@@ -69,14 +83,44 @@ internal fun ExerciseHowToTab(
 
 @Composable
 private fun HowToSteps(instructions: List<String>) {
-    Column(Modifier.testTag("exercise_detail_how_to"), verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-        instructions.forEachIndexed { index, step ->
-            Text(
-                text = stringResource(Res.string.exercise_step_number, index + 1, step),
-                style = AppTheme.typography.bodyLarge,
-                color = AppTheme.colors.textPrimary,
-            )
+    AppCard(Modifier.fillMaxWidth()) {
+        Column(Modifier.testTag("exercise_detail_how_to"), verticalArrangement = Arrangement.spacedBy(Spacing.md)) {
+            instructions.forEachIndexed { index, step ->
+                val description = stringResource(Res.string.exercise_step_number, index + 1, step)
+                Row(
+                    Modifier.fillMaxWidth().semantics(mergeDescendants = true) { contentDescription = description },
+                    horizontalArrangement = Arrangement.spacedBy(Spacing.md),
+                ) {
+                    StepBadge(index + 1)
+                    Text(
+                        text = step,
+                        style = AppTheme.typography.bodyLarge,
+                        color = AppTheme.colors.textPrimary,
+                        modifier = Modifier.weight(1f).padding(top = Spacing.xs).clearAndSetSemantics {},
+                    )
+                }
+            }
         }
+    }
+}
+
+/** The number of a step on a lit cyan disc. Decorative: the row speaks "N. step". */
+@Composable
+private fun StepBadge(number: Int) {
+    Box(
+        Modifier
+            .size(IconBadgeDefaults.SmallSize)
+            .clip(AppShapes.full)
+            .background(AppPaint.tintSurface(AppTheme.colors.athleticCyan))
+            .border(AppBorder.thin, AppPaint.accentBorder(AppTheme.colors.athleticCyan), AppShapes.full)
+            .clearAndSetSemantics {},
+        contentAlignment = Alignment.Center,
+    ) {
+        Text(
+            text = AppNumberFormat.integer(number),
+            style = AppTheme.typography.labelNumeric,
+            color = AppTheme.colors.athleticCyan,
+        )
     }
 }
 

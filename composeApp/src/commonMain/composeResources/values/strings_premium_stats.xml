@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="px_stats_hero_weight">Peso</string>
+    <string name="px_stats_hero_strength">Récord 1RM</string>
+    <string name="px_stats_hero_kcal">Kcal al día</string>
+    <string name="px_stats_value_kg">%1$s&#160;kg</string>
+    <string name="px_stats_value_kcal">%1$s&#160;kcal</string>
+    <string name="px_stats_strength_record_badge">Récord personal</string>
+    <string name="px_stats_tile_last">Última</string>
+    <string name="px_stats_tile_best">Mejor</string>
+    <string name="px_stats_tile_change">Cambio</string>
+    <string name="px_stats_week_delta">%1$s&#160;kg vs. semana anterior</string>
+</resources>

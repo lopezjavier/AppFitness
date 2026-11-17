@@ -3,6 +3,7 @@ package io.github.lopezjavier.appfitness.feature.analytics
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -23,7 +24,10 @@ import androidx.compose.ui.text.withStyle
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.github.lopezjavier.appfitness.composeapp.resources.Res
 import io.github.lopezjavier.appfitness.composeapp.resources.action_retry
+import io.github.lopezjavier.appfitness.composeapp.resources.ic_fitness_center
+import io.github.lopezjavier.appfitness.composeapp.resources.ic_insights
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_nav_workout
+import io.github.lopezjavier.appfitness.composeapp.resources.px_stats_strength_record_badge
 import io.github.lopezjavier.appfitness.composeapp.resources.strength_card_title
 import io.github.lopezjavier.appfitness.composeapp.resources.strength_delta_down
 import io.github.lopezjavier.appfitness.composeapp.resources.strength_delta_flat
@@ -44,9 +48,13 @@ import io.github.lopezjavier.appfitness.designsystem.AppTheme
 import io.github.lopezjavier.appfitness.designsystem.EmptyState
 import io.github.lopezjavier.appfitness.designsystem.ErrorState
 import io.github.lopezjavier.appfitness.designsystem.FilterChipRow
+import io.github.lopezjavier.appfitness.designsystem.IconBadge
+import io.github.lopezjavier.appfitness.designsystem.IconBadgeDefaults
 import io.github.lopezjavier.appfitness.designsystem.NavigationRow
+import io.github.lopezjavier.appfitness.designsystem.RecordBadge
 import io.github.lopezjavier.appfitness.designsystem.SkeletonBox
 import io.github.lopezjavier.appfitness.designsystem.Spacing
+import io.github.lopezjavier.appfitness.designsystem.Sparkline
 import io.github.lopezjavier.appfitness.designsystem.TrendDirection
 import io.github.lopezjavier.appfitness.designsystem.TrendPill
 import io.github.lopezjavier.appfitness.designsystem.TrendPillDefaults
@@ -136,22 +144,40 @@ private fun StrengthContent(
     ) {
         AppCard(Modifier.fillMaxWidth()) {
             Column(verticalArrangement = Arrangement.spacedBy(Spacing.md)) {
-                Text(
-                    text = stringResource(Res.string.strength_card_title),
-                    style = AppTheme.typography.titleLarge,
-                    color = AppTheme.colors.textPrimary,
-                    modifier = Modifier.semantics { heading() },
-                )
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(Spacing.md),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    IconBadge(Res.drawable.ic_fitness_center, AppTheme.colors.neonLime)
+                    Text(
+                        text = stringResource(Res.string.strength_card_title),
+                        style = AppTheme.typography.titleLarge,
+                        color = AppTheme.colors.textPrimary,
+                        modifier = Modifier.semantics { heading() },
+                    )
+                }
                 FilterChipRow(
                     options = options,
                     selectedIndex = selectedIndex,
                     onSelect = { onEvent(StrengthEvent.SelectExercise(state.chips[it].exerciseId)) },
                 )
-                SummaryBlock(state.summary)
+            }
+        }
+        AppCard(Modifier.fillMaxWidth(), glow = AppTheme.colors.athleticCyan) {
+            Column(verticalArrangement = Arrangement.spacedBy(Spacing.md)) {
+                SummaryBlock(state.summary, state.series)
                 NavigationRow(
                     label = stringResource(Res.string.strength_open_exercise),
                     onClick = { onOpenExercise(state.selectedId) },
                     modifier = Modifier.testTag("strength_open_exercise"),
+                    leading = {
+                        IconBadge(
+                            Res.drawable.ic_insights,
+                            AppTheme.colors.athleticCyan,
+                            size = IconBadgeDefaults.SmallSize,
+                            iconSize = IconBadgeDefaults.SmallIconSize,
+                        )
+                    },
                 )
             }
         }
@@ -160,14 +186,24 @@ private fun StrengthContent(
 
 /** The record and its monthly delta; a skeleton while the summary of a newly selected exercise loads. */
 @Composable
-private fun SummaryBlock(summary: StrengthSummary?) {
+private fun SummaryBlock(summary: StrengthSummary?, series: List<Double>) {
     if (summary == null) {
         SkeletonBox(Modifier.fillMaxWidth().height(SkeletonRecordHeight).testTag("strength_summary_loading"))
         return
     }
     Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
         RecordText(summary.recordOneRepMax)
-        summary.monthlyDelta?.let { DeltaPill(it) }
+        Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm), verticalAlignment = Alignment.CenterVertically) {
+            summary.monthlyDelta?.let { DeltaPill(it) }
+            if (summary.recordOneRepMax != null) RecordBadge(stringResource(Res.string.px_stats_strength_record_badge))
+        }
+        if (series.size >= 2) {
+            Sparkline(
+                values = series,
+                modifier = Modifier.fillMaxWidth().testTag("strength_trend"),
+                color = AppTheme.colors.athleticCyan,
+            )
+        }
     }
 }
 
@@ -185,7 +221,7 @@ private fun RecordText(record: Double?) {
     val full = stringResource(Res.string.strength_record, formatKilos(record))
     val number = formatKilos(record)
     val numberStart = full.indexOf(number)
-    val value = AppTheme.typography.headlineMetric
+    val value = AppTheme.typography.displayHero
     val text = buildAnnotatedString {
         append(full.substring(0, numberStart))
         withStyle(

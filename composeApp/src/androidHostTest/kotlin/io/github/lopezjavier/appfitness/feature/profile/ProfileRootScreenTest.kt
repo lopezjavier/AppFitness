@@ -14,7 +14,6 @@ import androidx.compose.ui.test.performClick
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.height
 import androidx.compose.ui.unit.width
-import io.github.lopezjavier.appfitness.designsystem.AppAvatarDefaults
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
 import io.github.lopezjavier.appfitness.designsystem.WindowWidthClassDefaults
 import io.github.lopezjavier.appfitness.domain.model.TrainingIntention
@@ -100,11 +99,11 @@ class ProfileRootScreenTest {
     }
 
     @Test
-    fun avatar_isTheRootSize() {
+    fun avatar_isTheHeroSizeOfTheProfileCard() {
         show()
         val bounds = rule.onNodeWithTag("profile_root_avatar").getUnclippedBoundsInRoot()
-        assertEquals(AppAvatarDefaults.RootSize, bounds.width)
-        assertEquals(AppAvatarDefaults.RootSize, bounds.height)
+        assertEquals(72.dp, bounds.width)
+        assertEquals(72.dp, bounds.height)
     }
 
     @Test
@@ -171,14 +170,14 @@ class ProfileRootScreenTest {
     // -- statistics rows ------------------------------------------------------------------------------------------
 
     @Test
-    fun statisticsRows_showOnlyTheirLabel_evenWhenValuesAreKnown() {
+    fun statisticsRows_startWithTheirLabel_andAddTheKnownValue() {
         show()
         rule.onNodeWithTag("profile_statistics_heading").assertTextEquals("Estadísticas")
-        rule.onNodeWithTag("profile_weight_row").assertTextEquals("Peso")
-        rule.onNodeWithTag("profile_strength_row").assertTextEquals("Fuerza")
-        rule.onNodeWithTag("profile_diary_history_row").assertTextEquals("Calorías")
-        rule.onNodeWithTag("profile_training_stats_row").assertTextEquals("Entrenos")
-        rule.onNodeWithTag("profile_activity_row").assertTextEquals("Actividad")
+        rule.onNodeWithTag("profile_weight_row").assertTextContains("Peso")
+        rule.onNodeWithTag("profile_strength_row").assertTextContains("Fuerza")
+        rule.onNodeWithTag("profile_diary_history_row").assertTextContains("Calorías")
+        rule.onNodeWithTag("profile_training_stats_row").assertTextContains("Entrenos")
+        rule.onNodeWithTag("profile_activity_row").assertTextContains("Actividad")
     }
 
     @Test

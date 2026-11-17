@@ -2,8 +2,10 @@ package io.github.lopezjavier.appfitness.feature.weight
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.size
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
@@ -30,6 +32,7 @@ import io.github.lopezjavier.appfitness.composeapp.resources.circumference_title
 import io.github.lopezjavier.appfitness.composeapp.resources.circumference_value_cm
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_straighten
 import io.github.lopezjavier.appfitness.composeapp.resources.metric_tile_open_label
+import io.github.lopezjavier.appfitness.composeapp.resources.px_body_row_supporting
 import io.github.lopezjavier.appfitness.designsystem.AddItemButton
 import io.github.lopezjavier.appfitness.designsystem.AppDateFormat
 import io.github.lopezjavier.appfitness.designsystem.AppShapes
@@ -37,6 +40,8 @@ import io.github.lopezjavier.appfitness.designsystem.AppStateAction
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
 import io.github.lopezjavier.appfitness.designsystem.EmptyState
 import io.github.lopezjavier.appfitness.designsystem.ErrorState
+import io.github.lopezjavier.appfitness.designsystem.IconBadge
+import io.github.lopezjavier.appfitness.designsystem.IconBadgeDefaults
 import io.github.lopezjavier.appfitness.designsystem.ListSectionHeader
 import io.github.lopezjavier.appfitness.designsystem.MeasurementRow
 import io.github.lopezjavier.appfitness.designsystem.MetricCard
@@ -67,6 +72,7 @@ internal fun CircumferenceSection(
     onEvent: (CircumferencesEvent) -> Unit,
     modifier: Modifier = Modifier,
     onRatioClick: (() -> Unit)? = null,
+    ratioGauge: (@Composable () -> Unit)? = null,
 ) {
     Column(
         modifier.fillMaxWidth().testTag("circumference_section"),
@@ -88,7 +94,14 @@ internal fun CircumferenceSection(
                 testTagPrefix = "circumference_error",
             )
 
-            is CircumferencesUiState.Content -> SectionContent(state.content, today, timeZone, onEvent, onRatioClick)
+            is CircumferencesUiState.Content -> SectionContent(
+                state.content,
+                today,
+                timeZone,
+                onEvent,
+                onRatioClick,
+                ratioGauge,
+            )
         }
     }
 }
@@ -104,6 +117,7 @@ private fun SectionLoading() {
     }
 }
 
+@Suppress("LongParameterList") // The content plus the ratio card callbacks.
 @Composable
 private fun SectionContent(
     content: CircumferencesContent,
@@ -111,6 +125,7 @@ private fun SectionContent(
     timeZone: TimeZone,
     onEvent: (CircumferencesEvent) -> Unit,
     onRatioClick: (() -> Unit)?,
+    ratioGauge: (@Composable () -> Unit)?,
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(Spacing.md)) {
         if (content.isEmpty) {
@@ -122,7 +137,7 @@ private fun SectionContent(
                 testTagPrefix = "circumference_empty",
             )
         } else {
-            RatioCard(content.ratio, onRatioClick)
+            RatioCard(content.ratio, onRatioClick, ratioGauge)
             Column(verticalArrangement = Arrangement.spacedBy(Spacing.lg)) {
                 content.groups.forEach { group -> SiteGroup(group, content.isOnline, today, timeZone, onEvent) }
             }
@@ -136,11 +151,12 @@ private fun SectionContent(
 }
 
 @Composable
-private fun RatioCard(ratio: Double?, onClick: (() -> Unit)?) {
+private fun RatioCard(ratio: Double?, onClick: (() -> Unit)?, gauge: (@Composable () -> Unit)?) {
     MetricCard(
         label = stringResource(Res.string.circumference_ratio_label),
         value = ratio?.let(::ratioText) ?: stringResource(Res.string.circumference_ratio_unavailable),
         modifier = Modifier.testTag("weight_whr_card"),
+        leading = { IconBadge(Res.drawable.ic_straighten, AppTheme.colors.athleticCyan) },
         supporting = if (ratio == null) {
             {
                 Text(
@@ -150,7 +166,7 @@ private fun RatioCard(ratio: Double?, onClick: (() -> Unit)?) {
                 )
             }
         } else {
-            null
+            gauge
         },
         onClick = if (ratio != null) onClick else null,
         clickLabel = stringResource(Res.string.metric_tile_open_label),
@@ -166,13 +182,26 @@ private fun SiteGroup(
     onEvent: (CircumferencesEvent) -> Unit,
 ) {
     Column(Modifier.fillMaxWidth().testTag("circumference_group_${group.site.name.lowercase()}")) {
-        group.rows.forEach { row -> CircumferenceHistoryRow(row, isOnline, today, timeZone, onEvent) }
+        group.rows.forEachIndexed { index, row ->
+            CircumferenceHistoryRow(
+                row,
+                group.rows.getOrNull(index + 1),
+                index == 0,
+                isOnline,
+                today,
+                timeZone,
+                onEvent,
+            )
+        }
     }
 }
 
+@Suppress("LongParameterList") // The row, its neighbour, its position and the dialog context.
 @Composable
 private fun CircumferenceHistoryRow(
     row: BodyCircumference,
+    previous: BodyCircumference?,
+    latest: Boolean,
     isOnline: Boolean,
     today: LocalDate,
     timeZone: TimeZone,
@@ -192,7 +221,25 @@ private fun CircumferenceHistoryRow(
         MeasurementRow(
             label = siteLabel,
             value = value,
-            supporting = AppDateFormat.list(local.date, today),
+            supporting = previous?.let {
+                stringResource(
+                    Res.string.px_body_row_supporting,
+                    AppDateFormat.list(local.date, today),
+                    stringResource(Res.string.circumference_value_cm, signedTenths(row.valueCm - it.valueCm)),
+                )
+            } ?: AppDateFormat.list(local.date, today),
+            leading = {
+                if (latest) {
+                    IconBadge(
+                        Res.drawable.ic_straighten,
+                        AppTheme.colors.athleticCyan,
+                        size = IconBadgeDefaults.SmallSize,
+                        iconSize = IconBadgeDefaults.SmallIconSize,
+                    )
+                } else {
+                    Spacer(Modifier.size(IconBadgeDefaults.SmallSize))
+                }
+            },
             onClick = { onEvent(CircumferencesEvent.OpenEdit(row.id)) },
             clickLabel = stringResource(Res.string.circumference_row_edit_label),
         )

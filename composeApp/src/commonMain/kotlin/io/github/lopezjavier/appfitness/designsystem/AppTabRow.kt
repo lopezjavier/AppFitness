@@ -26,6 +26,7 @@ import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.onPlaced
 import androidx.compose.ui.layout.positionInParent
 import androidx.compose.ui.platform.LocalDensity
@@ -43,7 +44,7 @@ import kotlin.math.roundToInt
 /** Sizes of [AppTabRow]. */
 object AppTabRowDefaults {
     val TabMinHeight: Dp = Spacing.minTouchTarget
-    val IndicatorHeight: Dp = 2.dp
+    val IndicatorHeight: Dp = 3.dp
 
     /** Minimum width of a tab in the scrolling layout. */
     val TabMinWidth: Dp = 72.dp
@@ -159,7 +160,8 @@ private fun ScrollingTabs(options: List<AppOption>, selectedIndex: Int, viewport
                     )
                     .height(AppTabRowDefaults.IndicatorHeight)
                     .testTag("app_tab_indicator")
-                    .background(colors.neonLime),
+                    .clip(AppShapes.full)
+                    .background(AppPaint.horizontal(colors.neonLime)),
             )
         }
     }

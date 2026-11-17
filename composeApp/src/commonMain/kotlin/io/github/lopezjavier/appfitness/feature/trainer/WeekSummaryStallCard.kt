@@ -2,6 +2,7 @@ package io.github.lopezjavier.appfitness.feature.trainer
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -9,12 +10,14 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.semantics
 import io.github.lopezjavier.appfitness.composeapp.resources.Res
+import io.github.lopezjavier.appfitness.composeapp.resources.ic_trending_flat
 import io.github.lopezjavier.appfitness.composeapp.resources.week_summary_stall_header
 import io.github.lopezjavier.appfitness.composeapp.resources.week_summary_stall_help_body
 import io.github.lopezjavier.appfitness.composeapp.resources.week_summary_stall_help_cd
 import io.github.lopezjavier.appfitness.composeapp.resources.week_summary_stall_missing_food
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
 import io.github.lopezjavier.appfitness.designsystem.HelpButton
+import io.github.lopezjavier.appfitness.designsystem.IconBadge
 import io.github.lopezjavier.appfitness.designsystem.SectionCard
 import io.github.lopezjavier.appfitness.designsystem.Spacing
 import io.github.lopezjavier.appfitness.domain.model.StallDiagnosis
@@ -63,35 +66,38 @@ private fun StallItem(exerciseId: String, name: String, line: WeekSummaryText.St
     }?.let { if (line.groupLowercase) it.lowercase() else it }
     val causeArgs = line.causeArgs + listOfNotNull(groupLabel)
     val tag = "${testTagPrefix}_stall_$exerciseId"
-    Column(
+    Row(
         Modifier.fillMaxWidth().testTag(tag).semantics(mergeDescendants = true) {},
-        verticalArrangement = Arrangement.spacedBy(Spacing.xs),
+        horizontalArrangement = Arrangement.spacedBy(Spacing.md),
     ) {
-        Text(
-            text = name,
-            style = AppTheme.typography.titleMedium,
-            color = AppTheme.colors.textPrimary,
-            modifier = Modifier.testTag("${tag}_name"),
-        )
-        Text(
-            text = stringResource(line.cause, *causeArgs.toTypedArray()),
-            style = AppTheme.typography.bodyLarge,
-            color = AppTheme.colors.textPrimary,
-            modifier = Modifier.testTag("${tag}_cause"),
-        )
-        Text(
-            text = stringResource(line.action, *line.actionArgs.toTypedArray()),
-            style = AppTheme.typography.bodyMedium,
-            color = AppTheme.colors.textSecondary,
-            modifier = Modifier.testTag("${tag}_action"),
-        )
-        if (line.missingFood) {
+        IconBadge(Res.drawable.ic_trending_flat, AppTheme.colors.energyAmber)
+        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
             Text(
-                text = stringResource(Res.string.week_summary_stall_missing_food),
+                text = name,
+                style = AppTheme.typography.titleMedium,
+                color = AppTheme.colors.textPrimary,
+                modifier = Modifier.testTag("${tag}_name"),
+            )
+            Text(
+                text = stringResource(line.cause, *causeArgs.toTypedArray()),
+                style = AppTheme.typography.bodyLarge,
+                color = AppTheme.colors.textPrimary,
+                modifier = Modifier.testTag("${tag}_cause"),
+            )
+            Text(
+                text = stringResource(line.action, *line.actionArgs.toTypedArray()),
                 style = AppTheme.typography.bodyMedium,
                 color = AppTheme.colors.textSecondary,
-                modifier = Modifier.testTag("${tag}_missing_food"),
+                modifier = Modifier.testTag("${tag}_action"),
             )
+            if (line.missingFood) {
+                Text(
+                    text = stringResource(Res.string.week_summary_stall_missing_food),
+                    style = AppTheme.typography.bodyMedium,
+                    color = AppTheme.colors.textSecondary,
+                    modifier = Modifier.testTag("${tag}_missing_food"),
+                )
+            }
         }
     }
 }

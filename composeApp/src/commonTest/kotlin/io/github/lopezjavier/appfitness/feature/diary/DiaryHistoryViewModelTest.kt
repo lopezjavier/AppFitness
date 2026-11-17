@@ -63,6 +63,33 @@ class DiaryHistoryViewModelTest {
     private val oct18 = LocalDate(2026, 10, 18)
 
     @Test
+    fun weekKcal_isTheLastSevenDaysEndingToday_withZeroForADayWithoutEntries() = runTest(dispatcher) {
+        logged(oct18, 1840.0)
+        logged(LocalDate(2026, 10, 21), 600.0)
+        logged(LocalDate(2026, 10, 10), 999.0)
+
+        val model = viewModel()
+        advanceUntilIdle()
+
+        // 15, 16, 17, 18, 19, 20, 21 October; the 10th is outside the week.
+        assertEquals(listOf(0f, 0f, 0f, 1840f, 0f, 0f, 600f), model.content().weekKcal)
+    }
+
+    @Test
+    fun monthKcal_isTheAverageOfTheLoggedDaysOfEachSevenDayBlock() = runTest(dispatcher) {
+        logged(LocalDate(2026, 10, 2), 900.0)
+        logged(LocalDate(2026, 10, 4), 1100.0)
+        logged(oct18, 1840.0)
+        logged(LocalDate(2026, 10, 21), 600.0)
+
+        val model = viewModel()
+        advanceUntilIdle()
+
+        // October has 31 days: blocks 1-7, 8-14, 15-21, 22-28 and 29-31; an empty block is zero.
+        assertEquals(listOf(1000f, 0f, 1220f, 0f, 0f), model.content().monthKcal)
+    }
+
+    @Test
     fun opening_goesFromLoadingToTheCurrentMonthWithMarkedDaysAndTodaySelected() = runTest(dispatcher) {
         logged(oct18, 1840.0, 142.0, 210.0, 48.0)
         logged(LocalDate(2026, 10, 2), 900.0)

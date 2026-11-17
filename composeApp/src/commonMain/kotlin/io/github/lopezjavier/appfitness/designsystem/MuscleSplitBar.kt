@@ -55,7 +55,8 @@ fun MuscleSplitBar(
             Box(
                 Modifier.fillMaxWidth(fraction.coerceIn(0f, 1f)).fillMaxHeight()
                     .clip(AppShapes.full)
-                    .background(AppTheme.colors.athleticCyan),
+                    .background(AppPaint.horizontal(AppTheme.colors.athleticCyan))
+                    .barTipLight(),
             )
         }
     }

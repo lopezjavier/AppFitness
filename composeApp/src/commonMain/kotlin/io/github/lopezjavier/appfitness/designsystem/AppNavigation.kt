@@ -1,5 +1,9 @@
 package io.github.lopezjavier.appfitness.designsystem
 
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.snap
+import androidx.compose.animation.core.spring
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
@@ -20,11 +24,16 @@ import androidx.compose.material3.NavigationRailItem
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.Immutable
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawWithContent
+import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.clearAndSetSemantics
@@ -75,6 +84,15 @@ object AppNavigationDefaults {
 
     /** Bar height above the system navigation inset (mockup: 64). */
     val ContentHeight: Dp = 64.dp
+
+    /** Gap the M3 bar leaves between its equal-weight items; used to place the spotlight. */
+    val ItemGap: Dp = 8.dp
+
+    /** The spotlight of the active tab on the bar: a short bar on the top edge and the light under it. */
+    val SpotlightWidth: Dp = 32.dp
+    val SpotlightHeight: Dp = 3.dp
+    val SpotlightReach: Dp = 56.dp
+    const val SPOTLIGHT_ALPHA = 0.22f
 
     /** Minimum rail width (M3 NavigationRail container width); the rail grows to fit its header. */
     val RailMinWidth: Dp = 80.dp
@@ -152,17 +170,33 @@ private fun AppNavigationBar(
     modifier: Modifier = Modifier,
 ) {
     val borderColor = AppTheme.colors.borderSubtle
+    val accent = AppTheme.colors.neonLime
+    val surface = Brush.verticalGradient(listOf(AppTheme.colors.surfaceRaised, AppTheme.colors.surfaceBase))
     val barHeight = AppNavigationDefaults.barHeight(windowInsets)
+    // The spotlight slides to the selected tab; it jumps when decorative motion is off.
+    val position by animateFloatAsState(
+        targetValue = selectedIndex.toFloat(),
+        animationSpec = if (LocalAnimationsEnabled.current) {
+            spring(dampingRatio = Spring.DampingRatioLowBouncy, stiffness = Spring.StiffnessMediumLow)
+        } else {
+            snap()
+        },
+        label = "nav_spotlight",
+    )
     NavigationBar(
         modifier =
         modifier
             .height(barHeight)
             .drawWithContent {
+                drawRect(surface)
+                if (selectedIndex in items.indices) {
+                    drawSpotlight(navItemCenter(position, items.size), accent)
+                }
                 drawContent()
                 val y = AppBorder.thin.toPx() / 2
                 drawLine(borderColor, Offset(0f, y), Offset(size.width, y), strokeWidth = AppBorder.thin.toPx())
             },
-        containerColor = AppTheme.colors.surfaceBase,
+        containerColor = Color.Transparent,
         tonalElevation = 0.dp,
         windowInsets = windowInsets,
     ) {
@@ -179,6 +213,35 @@ private fun AppNavigationBar(
             )
         }
     }
+}
+
+/**
+ * Centre x of the item at (fractional) [position] among [count] equal items laid out like the M3 bar: equal weights
+ * with [AppNavigationDefaults.ItemGap] between them; mirrored in RTL.
+ */
+private fun DrawScope.navItemCenter(position: Float, count: Int): Float {
+    val gap = AppNavigationDefaults.ItemGap.toPx()
+    val itemWidth = (size.width - gap * (count - 1)) / count
+    val x = position * (itemWidth + gap) + itemWidth / 2f
+    return if (layoutDirection == LayoutDirection.Ltr) x else size.width - x
+}
+
+/** The spotlight of the active tab: a short lime bar on the top edge and a soft light falling from it. */
+private fun DrawScope.drawSpotlight(centerX: Float, accent: Color) {
+    val width = AppNavigationDefaults.SpotlightWidth.toPx()
+    val height = AppNavigationDefaults.SpotlightHeight.toPx()
+    drawRadialGlow(
+        accent,
+        Offset(centerX, 0f),
+        AppNavigationDefaults.SpotlightReach.toPx(),
+        AppNavigationDefaults.SPOTLIGHT_ALPHA,
+    )
+    drawRoundRect(
+        brush = AppPaint.horizontal(accent),
+        topLeft = Offset(centerX - width / 2f, 0f),
+        size = Size(width, height),
+        cornerRadius = CornerRadius(height / 2f),
+    )
 }
 
 @Composable

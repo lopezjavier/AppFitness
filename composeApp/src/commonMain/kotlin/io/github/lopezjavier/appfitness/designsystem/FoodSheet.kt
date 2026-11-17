@@ -279,25 +279,52 @@ private fun headerActions(
 private fun Totals(totals: FoodSheetTotals, tag: String) {
     val colors = AppTheme.colors
     val style = AppTheme.typography.labelNumeric
-    Row(
-        Modifier
-            .fillMaxWidth()
-            .semantics(mergeDescendants = true) { liveRegion = LiveRegionMode.Polite }
-            .testTag(tag),
-        horizontalArrangement = Arrangement.spacedBy(Spacing.md),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Text(
-            text = stringResource(Res.string.add_food_preview_kcal, totals.kcal),
-            style = style,
-            color = colors.textPrimary,
-            modifier = Modifier.testTag("${tag}_kcal"),
-        )
-        val macroStyle = AppTheme.typography.bodyMedium
-        MacroText(Res.string.diary_meal_protein, totals.proteinG, Macro.Protein, macroStyle)
-        MacroText(Res.string.diary_meal_carbs, totals.carbsG, Macro.Carbs, macroStyle)
-        MacroText(Res.string.diary_meal_fat, totals.fatG, Macro.Fat, macroStyle)
+    Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+        Row(
+            Modifier
+                .fillMaxWidth()
+                .semantics(mergeDescendants = true) { liveRegion = LiveRegionMode.Polite }
+                .testTag(tag),
+            horizontalArrangement = Arrangement.spacedBy(Spacing.md),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text(
+                text = stringResource(Res.string.add_food_preview_kcal, totals.kcal),
+                style = style,
+                color = colors.textPrimary,
+                modifier = Modifier.testTag("${tag}_kcal"),
+            )
+            val macroStyle = AppTheme.typography.bodyMedium
+            MacroText(Res.string.diary_meal_protein, totals.proteinG, Macro.Protein, macroStyle)
+            MacroText(Res.string.diary_meal_carbs, totals.carbsG, Macro.Carbs, macroStyle)
+            MacroText(Res.string.diary_meal_fat, totals.fatG, Macro.Fat, macroStyle)
+        }
+        TotalsSplit(totals, "${tag}_split")
     }
+}
+
+private const val SPLIT_PERCENT = 100
+private const val SPLIT_KCAL_PER_G = 4
+private const val SPLIT_KCAL_PER_G_FAT = 9
+
+/** The chosen quantity's calories split by macro as a stacked bar; hidden when the figures are not numbers. */
+@Composable
+private fun TotalsSplit(totals: FoodSheetTotals, tag: String) {
+    fun grams(text: String): Double = text.replace(',', '.').toDoubleOrNull() ?: 0.0
+    val protein = grams(totals.proteinG) * SPLIT_KCAL_PER_G
+    val carbs = grams(totals.carbsG) * SPLIT_KCAL_PER_G
+    val fat = grams(totals.fatG) * SPLIT_KCAL_PER_G_FAT
+    val sum = protein + carbs + fat
+    if (sum <= 0.0) return
+    val proteinPct = (protein * SPLIT_PERCENT / sum).toInt()
+    val carbsPct = (carbs * SPLIT_PERCENT / sum).toInt()
+    MacroStackedBar(
+        proteinPct = proteinPct,
+        carbsPct = carbsPct,
+        fatPct = SPLIT_PERCENT - proteinPct - carbsPct,
+        testTag = tag,
+        barHeight = DiaryGraphicsDefaults.SplitHeight,
+    )
 }
 
 @Composable

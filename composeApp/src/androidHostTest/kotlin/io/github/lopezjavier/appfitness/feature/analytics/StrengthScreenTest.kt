@@ -5,6 +5,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.test.assertIsNotSelected
 import androidx.compose.ui.test.assertIsSelected
+import androidx.compose.ui.test.assertTextContains
 import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
@@ -141,7 +142,7 @@ class StrengthScreenTest {
     fun verProgreso_opensTheSelectedExercise() {
         show(content(StrengthSummary(90.0, null), selectedId = "squat"))
 
-        rule.onNodeWithTag("strength_open_exercise").assertTextEquals("Progreso del ejercicio").performClick()
+        rule.onNodeWithTag("strength_open_exercise").assertTextContains("Progreso del ejercicio").performClick()
 
         assertEquals(listOf("squat"), opened)
     }

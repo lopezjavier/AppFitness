@@ -105,6 +105,12 @@
     <string name="catalog_section_radar">Radar</string>
     <string name="catalog_radar_cd">Pecho 12 series, Espalda 8 series, Hombros 6 series, Bíceps 4 series, Tríceps 5 series</string>
     <string name="catalog_section_body_heatmap">Mapa corporal</string>
+    <string name="catalog_section_graphics">Gráficos de datos</string>
+    <string name="catalog_section_celebration">Celebración y récords</string>
+    <string name="catalog_section_screen_graphics">Gráficos de pantalla</string>
+    <string name="catalog_graphics_sample_label">Etiqueta</string>
+    <string name="catalog_graphics_sample_title">Título de ejemplo</string>
+    <string name="catalog_graphics_sample_text">Texto de ejemplo</string>
     <string name="catalog_line_chart_cd">1RM estimado: de 100 a 113,5 kg, 5 entrenos</string>
     <string name="catalog_ring_empty">Vacío</string>
     <string name="catalog_ring_normal">Normal</string>
@@ -2348,8 +2354,8 @@
     <!-- Report figures (T-283, C-102, V-55): headline, spoken value, tile labels. U+00A0 keeps a fact on one line. -->
     <string name="report_sessions_headline">%1$d de %2$d</string>
     <string name="report_sessions_cd">%1$d de %2$d entrenos</string>
-    <string name="report_lift_range">%1$s → %2$s&#160;kg</string>
     <string name="report_lift_change">%1$s&#160;kg</string>
+    <string name="report_lift_range">%1$s → %2$s&#160;kg</string>
     <string name="report_tile_days_label">Días completos</string>
     <string name="report_tile_days_unit">de&#160;7</string>
     <string name="report_tile_kcal_label">Calorías medias</string>
@@ -2514,10 +2520,8 @@
     <string name="trainer_block_cardio_planned">Objetivo:&#160;%1$s&#160;min</string>
     <string name="trainer_change_figure">%1$s&#160;→&#160;%2$s&#160;kg</string>
     <!-- T-283 batch 6c: "Tu plan" card with the weight pace (C-131..C-138) -->
-    <string name="trainer_plan_goal_meta">Meta&#160;%1$s&#160;kg · %2$s</string>
     <string name="trainer_plan_pace_actual">Ritmo: %1$s&#160;kg/sem</string>
     <string name="trainer_plan_pace_actual_provisional">Ritmo provisional: %1$s&#160;kg/sem</string>
-    <string name="trainer_plan_pace_goal">Objetivo: %1$s&#160;kg/sem</string>
     <string name="trainer_plan_verdict_no_data">Aún no hay pesajes suficientes para ver tu ritmo. Pésate al menos 3 días por semana.</string>
     <string name="trainer_plan_verdict_on_pace">Vas al ritmo previsto.</string>
     <string name="trainer_plan_verdict_cut_slower">Pierdes peso más despacio de lo previsto.</string>

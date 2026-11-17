@@ -34,6 +34,9 @@ object BarListRowDefaults {
     val Gap: Dp = Spacing.sm
     const val LabelWeight: Float = 0.45f
 
+    /** Opacity of the ghost track behind the bar, so the slot of the largest value is visible. */
+    const val TRACK_ALPHA: Float = 0.45f
+
     /** Bar length as a share of the largest value; never below 0 and never above 1. */
     fun fraction(value: Number, largest: Number): Float {
         val max = largest.toFloat()
@@ -73,14 +76,21 @@ fun BarListRow(
             color = AppTheme.colors.textPrimary,
             modifier = Modifier.weight(BarListRowDefaults.LabelWeight),
         )
-        Box(Modifier.weight(1f - BarListRowDefaults.LabelWeight).height(BarListRowDefaults.BarHeight)) {
+        Box(
+            Modifier
+                .weight(1f - BarListRowDefaults.LabelWeight)
+                .height(BarListRowDefaults.BarHeight)
+                .clip(AppShapes.full)
+                .background(AppTheme.colors.trackInactive.copy(alpha = BarListRowDefaults.TRACK_ALPHA)),
+        ) {
             Box(
                 Modifier
                     .fillMaxWidth(target * fill.value)
                     .widthIn(min = BarListRowDefaults.MinBarWidth)
                     .height(BarListRowDefaults.BarHeight)
                     .clip(AppShapes.full)
-                    .background(AppTheme.colors.athleticCyan)
+                    .background(AppPaint.horizontal(AppTheme.colors.athleticCyan))
+                    .barTipLight()
                     .clearAndSetSemantics {},
             )
         }

@@ -101,11 +101,18 @@ object AppLineChartDefaults {
 
     /** Horizontal gridlines of the value axis (C-159). */
     const val GRIDLINES = 4
+
+    /** Opacity at the top of the faded area under the line. */
+    const val AREA_ALPHA = 0.28f
+
+    /** Curvature of the smoothed line (0 = straight segments). */
+    const val CURVATURE = 0.35f
 }
 
 /**
- * Line chart of one series (athleticCyan by default, no gradients, tabular numerals on the axes). [values] are plotted
- * left to right; [labels] name each value on the bottom axis (same size) and [valueLabel] formats the vertical axis.
+ * Line chart of one series (athleticCyan by default, a smoothed line over a faded area, tabular numerals on the axes).
+ * [values] are plotted left to right; [labels] name each value on the bottom axis (same size) and [valueLabel]
+ * formats the vertical axis.
  * [description] is the screen-reader summary (first, last, min, max and range), exposed as the state description of
  * the chart node.
  *
@@ -121,8 +128,9 @@ object AppLineChartDefaults {
  * [band] shades a horizontal value range (low-opacity athleticCyan, behind the line). It never widens the vertical
  * range (only the data and [referenceLine] do): the band is clipped to the visible range and skipped when it lies
  * outside; the caller mentions it in [description]. Null by default, which leaves the chart as it was.
- * The vertical domain is padded (C-159): data plus max(10 %, [domainStep]) rounded outwards to a multiple of
- * [domainStep] (5 by default, kilos), four gridlines, never anchored at zero.
+ * The vertical domain is fitted to the data (C-159): data plus a 12 % margin, three round-sized intervals (four
+ * labelled gridlines), never anchored at zero; a flat series gets a minimum spread of 40 % of [domainStep] (2 kg by
+ * default) so small moves stay visible.
  */
 @Composable
 // The extra parameters are the optional trend layer; every default keeps the single-series chart as it was.
@@ -267,6 +275,10 @@ private fun rememberAppCartesianChart(
                         LineCartesianLayer.rememberLine(
                             fill = LineCartesianLayer.LineFill.single(Fill(color)),
                             stroke = LineCartesianLayer.LineStroke.Continuous(lineThickness),
+                            areaFill = LineCartesianLayer.AreaFill.single(
+                                Fill(AppPaint.areaFade(color, AppLineChartDefaults.AREA_ALPHA)),
+                            ),
+                            interpolator = LineCartesianLayer.Interpolator.cubic(AppLineChartDefaults.CURVATURE),
                         ),
                     )
                     if (withMarkers) add(rememberMarkersLine(color))

@@ -17,6 +17,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
@@ -50,21 +51,35 @@ import io.github.lopezjavier.appfitness.composeapp.resources.help_checkin_energy
 import io.github.lopezjavier.appfitness.composeapp.resources.help_checkin_energy_cd
 import io.github.lopezjavier.appfitness.composeapp.resources.help_checkin_energy_intro
 import io.github.lopezjavier.appfitness.composeapp.resources.help_checkin_energy_title
+import io.github.lopezjavier.appfitness.composeapp.resources.ic_bar_chart
+import io.github.lopezjavier.appfitness.composeapp.resources.ic_fitness_center
+import io.github.lopezjavier.appfitness.composeapp.resources.ic_flame_outlined
+import io.github.lopezjavier.appfitness.composeapp.resources.ic_monitor_weight
+import io.github.lopezjavier.appfitness.composeapp.resources.px_diary_checkin_energy_high
+import io.github.lopezjavier.appfitness.composeapp.resources.px_diary_checkin_energy_low
+import io.github.lopezjavier.appfitness.composeapp.resources.px_diary_checkin_record_badge
+import io.github.lopezjavier.appfitness.composeapp.resources.px_diary_checkin_weight_down
+import io.github.lopezjavier.appfitness.composeapp.resources.px_diary_checkin_weight_flat
+import io.github.lopezjavier.appfitness.composeapp.resources.px_diary_checkin_weight_up
 import io.github.lopezjavier.appfitness.designsystem.AppCard
 import io.github.lopezjavier.appfitness.designsystem.AppEditorScreen
 import io.github.lopezjavier.appfitness.designsystem.AppListRow
 import io.github.lopezjavier.appfitness.designsystem.AppNumberFormat
 import io.github.lopezjavier.appfitness.designsystem.AppOption
+import io.github.lopezjavier.appfitness.designsystem.AppPaint
 import io.github.lopezjavier.appfitness.designsystem.AppStateAction
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
+import io.github.lopezjavier.appfitness.designsystem.DiaryEnergyScale
 import io.github.lopezjavier.appfitness.designsystem.ErrorState
 import io.github.lopezjavier.appfitness.designsystem.HelpButton
 import io.github.lopezjavier.appfitness.designsystem.HelpContent
+import io.github.lopezjavier.appfitness.designsystem.IconBadge
+import io.github.lopezjavier.appfitness.designsystem.IconBadgeDefaults
 import io.github.lopezjavier.appfitness.designsystem.ListSectionHeader
 import io.github.lopezjavier.appfitness.designsystem.MetricCard
 import io.github.lopezjavier.appfitness.designsystem.MetricTile
 import io.github.lopezjavier.appfitness.designsystem.MetricTileRow
-import io.github.lopezjavier.appfitness.designsystem.SegmentedSelector
+import io.github.lopezjavier.appfitness.designsystem.RecordBadge
 import io.github.lopezjavier.appfitness.designsystem.Spacing
 import io.github.lopezjavier.appfitness.designsystem.TrendPill
 import io.github.lopezjavier.appfitness.designsystem.TrendPillDefaults
@@ -78,6 +93,7 @@ import io.github.lopezjavier.appfitness.feature.workout.label
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.datetime.DayOfWeek
+import org.jetbrains.compose.resources.DrawableResource
 import org.jetbrains.compose.resources.stringResource
 import kotlin.math.roundToInt
 
@@ -165,45 +181,9 @@ private fun SummaryBlock(state: CheckInUiState.Ready, onEvent: (CheckInEvent) ->
 @Composable
 private fun SummaryCards(summary: WeeklySummary, names: Map<String, String>) {
     Column(verticalArrangement = Arrangement.spacedBy(Spacing.cardGap)) {
-        val current = summary.training.current
-        val previous = summary.training.previous
-        val volume = current.volume.roundToInt()
         Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
             // C-24: three figures side by side, each with its change as a pill; one caption says what it compares to.
-            MetricTileRow(
-                listOf(
-                    { m ->
-                        WeekTile(
-                            label = stringResource(Res.string.checkin_volume_label),
-                            value = AppNumberFormat.integer(volume),
-                            unit = stringResource(Res.string.checkin_kg_unit),
-                            delta = volume - previous.volume.roundToInt(),
-                            tag = "checkin_summary_volume",
-                            modifier = m,
-                        )
-                    },
-                    { m ->
-                        WeekTile(
-                            label = stringResource(Res.string.checkin_workouts_label),
-                            value = AppNumberFormat.integer(current.workouts),
-                            unit = null,
-                            delta = current.workouts - previous.workouts,
-                            tag = "checkin_summary_workouts",
-                            modifier = m,
-                        )
-                    },
-                    { m ->
-                        WeekTile(
-                            label = stringResource(Res.string.checkin_sets_label),
-                            value = AppNumberFormat.integer(current.sets),
-                            unit = null,
-                            delta = current.sets - previous.sets,
-                            tag = "checkin_summary_sets",
-                            modifier = m,
-                        )
-                    },
-                ),
-            )
+            MetricTileRow(weekFigures(summary).map { figure -> { m -> WeekTile(figure, m) } })
             Text(
                 text = stringResource(Res.string.checkin_delta_caption),
                 style = AppTheme.typography.bodySmall,
@@ -216,49 +196,73 @@ private fun SummaryCards(summary: WeeklySummary, names: Map<String, String>) {
     }
 }
 
+@Composable
+private fun weekFigures(summary: WeeklySummary): List<WeekFigure> {
+    val current = summary.training.current
+    val previous = summary.training.previous
+    val volume = current.volume.roundToInt()
+    return listOf(
+        WeekFigure(
+            label = stringResource(Res.string.checkin_volume_label),
+            value = AppNumberFormat.integer(volume),
+            unit = stringResource(Res.string.checkin_kg_unit),
+            delta = volume - previous.volume.roundToInt(),
+            tag = "checkin_summary_volume",
+            icon = Res.drawable.ic_fitness_center,
+            accent = AppTheme.colors.athleticCyan,
+        ),
+        WeekFigure(
+            label = stringResource(Res.string.checkin_workouts_label),
+            value = AppNumberFormat.integer(current.workouts),
+            unit = null,
+            delta = current.workouts - previous.workouts,
+            tag = "checkin_summary_workouts",
+            icon = Res.drawable.ic_flame_outlined,
+            accent = AppTheme.colors.neonLime,
+        ),
+        WeekFigure(
+            label = stringResource(Res.string.checkin_sets_label),
+            value = AppNumberFormat.integer(current.sets),
+            unit = null,
+            delta = current.sets - previous.sets,
+            tag = "checkin_summary_sets",
+            icon = Res.drawable.ic_bar_chart,
+            accent = AppTheme.colors.macroFat,
+        ),
+    )
+}
+
+/** The content of one [WeekTile]. */
+@Suppress("LongParameterList") // A plain holder of one tile.
+private class WeekFigure(
+    val label: String,
+    val value: String,
+    val unit: String?,
+    val delta: Int,
+    val tag: String,
+    val icon: DrawableResource,
+    val accent: Color,
+)
+
 /** One figure of the week with its signed difference to the week before as a pill (sign and words, not colour). */
 @Composable
-private fun WeekTile(
-    label: String,
-    value: String,
-    unit: String?,
-    delta: Int,
-    tag: String,
-    modifier: Modifier = Modifier,
-) {
-    val deltaText = if (delta == 0) {
+private fun WeekTile(figure: WeekFigure, modifier: Modifier = Modifier) {
+    val deltaText = if (figure.delta == 0) {
         stringResource(Res.string.checkin_delta_same_short)
     } else {
-        AppNumberFormat.signedInteger(delta)
+        AppNumberFormat.signedInteger(figure.delta)
     }
     MetricTile(
-        label = label,
-        value = value,
-        modifier = modifier.testTag(tag),
-        unit = unit,
+        label = figure.label,
+        value = figure.value,
+        modifier = modifier.testTag(figure.tag),
+        unit = figure.unit,
+        accent = figure.accent,
+        icon = figure.icon,
         supporting = {
-            TrendPill(deltaText, TrendTone.Neutral, direction = TrendPillDefaults.direction(delta.toDouble()))
+            TrendPill(deltaText, TrendTone.Neutral, direction = TrendPillDefaults.direction(figure.delta.toDouble()))
         },
     )
-}
-
-/** One figure with its difference to the week before as text (sign and words, never colour alone). */
-@Composable
-private fun MetricDeltaCard(label: String, value: String, delta: String, tag: String) {
-    MetricCard(
-        label = label,
-        value = value,
-        modifier = Modifier.testTag(tag).semantics(mergeDescendants = true) {
-            contentDescription =
-                "$label $value, $delta"
-        },
-        supporting = { DeltaText(delta) },
-    )
-}
-
-@Composable
-private fun DeltaText(text: String) {
-    Text(text = text, style = AppTheme.typography.bodyMedium, color = AppTheme.colors.textSecondary)
 }
 
 @Composable
@@ -268,12 +272,39 @@ private fun WeightCard(trend: WeeklyWeightTrend) {
         is WeeklyWeightTrend.Delta -> {
             val tenths = (trend.kgDelta * TENTHS).roundToInt() / TENTHS
             val signed = (if (tenths > 0) "+" else "") + AppNumberFormat.decimal(tenths)
-            MetricDeltaCard(
-                label = label,
-                value = stringResource(Res.string.checkin_weight_value, signed),
-                delta = stringResource(Res.string.checkin_weight_delta_caption),
-                tag = "checkin_summary_weight",
+            val value = stringResource(Res.string.checkin_weight_value, signed)
+            val caption = stringResource(Res.string.checkin_weight_delta_caption)
+            val words = stringResource(
+                when {
+                    tenths < 0 -> Res.string.px_diary_checkin_weight_down
+                    tenths > 0 -> Res.string.px_diary_checkin_weight_up
+                    else -> Res.string.px_diary_checkin_weight_flat
+                },
             )
+            AppCard(
+                Modifier.fillMaxWidth().testTag("checkin_summary_weight").semantics(mergeDescendants = true) {
+                    contentDescription = "$label $value, $caption"
+                },
+                glow = AppTheme.colors.athleticCyan,
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(Spacing.lg),
+                ) {
+                    IconBadge(
+                        icon = Res.drawable.ic_monitor_weight,
+                        tint = AppTheme.colors.athleticCyan,
+                        size = IconBadgeDefaults.LargeSize,
+                        iconSize = IconBadgeDefaults.LargeIconSize,
+                    )
+                    Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
+                        Text(label, style = AppTheme.typography.bodyMedium, color = AppTheme.colors.textSecondary)
+                        Text(value, style = AppTheme.typography.headlineMetric, color = AppTheme.colors.textPrimary)
+                        Text(caption, style = AppTheme.typography.bodySmall, color = AppTheme.colors.textSecondary)
+                    }
+                    TrendPill(words, TrendTone.Neutral, direction = TrendPillDefaults.direction(tenths))
+                }
+            }
         }
 
         WeeklyWeightTrend.NotEnoughData -> MetricCard(
@@ -303,6 +334,8 @@ private fun RecordsCard(records: List<WeekRecord>, names: Map<String, String>) {
                     headline = names.getValue(record.exerciseId),
                     supporting = "${record.recordType.label()} · $value",
                     modifier = Modifier.testTag("checkin_summary_record_$index").semantics(mergeDescendants = true) {},
+                    leading = { IconBadge(Res.drawable.ic_fitness_center, AppPaint.Gold) },
+                    trailing = { RecordBadge(stringResource(Res.string.px_diary_checkin_record_badge)) },
                 )
             }
         }
@@ -354,10 +387,12 @@ private fun FormBlock(state: CheckInUiState.Ready, onEvent: (CheckInEvent) -> Un
                     contentDescription = stringResource(Res.string.checkin_energy_option_cd, level),
                 )
             }
-            SegmentedSelector(
+            DiaryEnergyScale(
                 options = options,
                 selectedIndex = state.energy?.let { CHECK_IN_ENERGY_RANGE.indexOf(it) },
                 onSelect = { onEvent(CheckInEvent.SelectEnergy(CHECK_IN_ENERGY_RANGE.elementAt(it))) },
+                lowLabel = stringResource(Res.string.px_diary_checkin_energy_low),
+                highLabel = stringResource(Res.string.px_diary_checkin_energy_high),
                 enabled = !state.isSaving,
             )
         }

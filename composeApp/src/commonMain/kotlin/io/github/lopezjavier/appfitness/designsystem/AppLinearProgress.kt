@@ -16,6 +16,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.ProgressBarRangeInfo
@@ -127,7 +129,32 @@ private fun LinearTrack(
             Modifier
                 .fillMaxHeight()
                 .fillMaxWidth(if (staggerIndex != null) clamped * fill.value else clamped)
-                .background(fillColor ?: AppTheme.colors.athleticCyan),
+                .clip(AppShapes.full)
+                .background(AppPaint.horizontal(fillColor ?: AppTheme.colors.athleticCyan))
+                .barTipLight(),
         )
     }
 }
+
+/**
+ * The light on the tip of a filled bar: a short white fade at its end, so the fill reads as a moving mark and not as a
+ * flat slab. Decorative; drawn inside the (clipped) fill.
+ */
+internal fun Modifier.barTipLight(): Modifier = drawWithContent {
+    drawContent()
+    val reach = size.height * BAR_TIP_REACH
+    if (size.width > reach) {
+        drawRect(
+            brush = Brush.horizontalGradient(
+                colors = listOf(Color.Transparent, Color.White.copy(alpha = BAR_TIP_ALPHA)),
+                startX = size.width - reach,
+                endX = size.width,
+            ),
+            topLeft = Offset(size.width - reach, 0f),
+            size = Size(reach, size.height),
+        )
+    }
+}
+
+private const val BAR_TIP_REACH = 2.5f
+private const val BAR_TIP_ALPHA = 0.32f

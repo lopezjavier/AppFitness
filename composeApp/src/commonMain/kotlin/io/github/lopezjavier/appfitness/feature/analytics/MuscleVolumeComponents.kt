@@ -20,18 +20,26 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
 import io.github.lopezjavier.appfitness.composeapp.resources.Res
 import io.github.lopezjavier.appfitness.composeapp.resources.chart_date_short
+import io.github.lopezjavier.appfitness.composeapp.resources.ic_fitness_center
 import io.github.lopezjavier.appfitness.composeapp.resources.muscle_volume_card_cd
 import io.github.lopezjavier.appfitness.composeapp.resources.muscle_volume_chart_cd
 import io.github.lopezjavier.appfitness.composeapp.resources.muscle_volume_chart_cd_week
 import io.github.lopezjavier.appfitness.composeapp.resources.muscle_volume_chart_title
 import io.github.lopezjavier.appfitness.composeapp.resources.muscle_volume_current_value
 import io.github.lopezjavier.appfitness.composeapp.resources.muscle_volume_last_week
+import io.github.lopezjavier.appfitness.composeapp.resources.px_stats_week_delta
 import io.github.lopezjavier.appfitness.designsystem.AppBarChart
 import io.github.lopezjavier.appfitness.designsystem.AppCard
 import io.github.lopezjavier.appfitness.designsystem.AppLineChart
 import io.github.lopezjavier.appfitness.designsystem.AppLineChartBlock
+import io.github.lopezjavier.appfitness.designsystem.AppNumberFormat
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
+import io.github.lopezjavier.appfitness.designsystem.IconBadge
 import io.github.lopezjavier.appfitness.designsystem.Spacing
+import io.github.lopezjavier.appfitness.designsystem.TrendDirection
+import io.github.lopezjavier.appfitness.designsystem.TrendPill
+import io.github.lopezjavier.appfitness.designsystem.TrendPillDefaults
+import io.github.lopezjavier.appfitness.designsystem.TrendTone
 import io.github.lopezjavier.appfitness.designsystem.WindowWidthClass
 import io.github.lopezjavier.appfitness.designsystem.windowWidthClassFor
 import io.github.lopezjavier.appfitness.domain.model.MuscleGroup
@@ -69,20 +77,28 @@ internal fun GroupOverviewCard(
             .semantics { contentDescription = description }
             .testTag("muscle_volume_card_${group.tagName()}"),
     ) {
-        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-            Text(name, style = AppTheme.typography.titleMedium, color = AppTheme.colors.textPrimary)
-            Column(horizontalAlignment = Alignment.End) {
-                Text(
-                    text = stringResource(Res.string.muscle_volume_current_value, current),
-                    style = AppTheme.typography.labelNumeric,
-                    color = AppTheme.colors.athleticCyan,
-                    modifier = Modifier.testTag("muscle_volume_current_${group.tagName()}"),
-                )
+        Row(
+            Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(Spacing.md),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            IconBadge(Res.drawable.ic_fitness_center, AppTheme.colors.athleticCyan)
+            Column(Modifier.weight(1f)) {
+                Text(name, style = AppTheme.typography.titleMedium, color = AppTheme.colors.textPrimary)
                 Text(
                     text = stringResource(Res.string.muscle_volume_last_week),
                     style = AppTheme.typography.bodySmall,
                     color = AppTheme.colors.textSecondary,
                 )
+            }
+            Column(horizontalAlignment = Alignment.End) {
+                Text(
+                    text = stringResource(Res.string.muscle_volume_current_value, current),
+                    style = AppTheme.typography.headlineMetric,
+                    color = AppTheme.colors.athleticCyan,
+                    modifier = Modifier.testTag("muscle_volume_current_${group.tagName()}"),
+                )
+                WeekTrend(values)
             }
         }
         val labels = history.weeks.map { it.weekLabel() }
@@ -97,6 +113,21 @@ internal fun GroupOverviewCard(
                 .testTag("muscle_volume_overview_chart_${group.tagName()}"),
         )
     }
+}
+
+/** The change of the latest week against the one before it; flat or lower stays neutral, never red. */
+@Composable
+private fun WeekTrend(values: List<Double>) {
+    if (values.size < 2) return
+    val delta = values.last() - values[values.size - 2]
+    val direction = TrendPillDefaults.direction(delta)
+    val rounded = delta.roundToInt()
+    val text = stringResource(
+        Res.string.px_stats_week_delta,
+        (if (rounded > 0) "+" else "") + AppNumberFormat.integer(rounded),
+    )
+    val tone = if (direction == TrendDirection.Up) TrendTone.Favorable else TrendTone.Neutral
+    TrendPill(text, tone, Modifier, direction, showToneIcon = false)
 }
 
 /** The chart of one group over the 8 weeks with its values underneath. */

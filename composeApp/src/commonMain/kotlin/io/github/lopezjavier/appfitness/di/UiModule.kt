@@ -366,7 +366,15 @@ val uiModule =
             ExerciseDetailViewModel(exerciseId, get(), get(), get(), get(), get(), get())
         }
         viewModel { ExerciseChatViewModel(repository = get(), connectivity = get(), savedState = get()) }
-        viewModelOf(::RoutinesViewModel)
+        viewModel {
+            RoutinesViewModel(
+                repository = get(),
+                sessions = get(),
+                connectivity = get(),
+                clock = get(),
+                savedState = get(),
+            )
+        }
         viewModel { WorkoutEntryViewModel(repository = get(), connectivity = get(), savedState = get()) }
         viewModel {
             LiveSessionViewModel(

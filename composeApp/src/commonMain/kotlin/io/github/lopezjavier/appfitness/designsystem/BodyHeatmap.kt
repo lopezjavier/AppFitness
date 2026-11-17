@@ -130,11 +130,18 @@ private fun Silhouette(
             val scale = size.width / BodyMapPaths.WIDTH
             val outline = Stroke(BodyHeatmapDefaults.OutlineWidth.toPx(), join = StrokeJoin.Round)
             val gap = Stroke(BodyHeatmapDefaults.GapWidth.toPx(), join = StrokeJoin.Round)
-            BodyMapPaths.outline().forEach { drawShape(it, scale, colors.surfaceBase, colors.borderSubtle, outline) }
+            if (max > 0.0) {
+                drawRadialGlow(colors.athleticCyan, center, size.width * 0.95f, alpha = 0.16f)
+            }
+            BodyMapPaths.outline().forEach { drawShape(it, scale, colors.surfaceBase, colors.borderStrong, outline) }
             shapes.forEach { (group, polygons) ->
                 val step = BodyHeatmapDefaults.step(regions.firstOrNull { it.group == group }?.sets ?: 0.0, max)
                 polygons.forEach {
                     drawShape(it, scale, BodyHeatmapDefaults.color(colors, step), colors.surfaceBase, gap)
+                    if (step >= BodyHeatmapDefaults.DARK_TEXT_FROM) {
+                        val lit = colors.athleticCyan.copy(alpha = 0.9f)
+                        drawShape(it, scale, Color.Transparent, lit, Stroke(BodyHeatmapDefaults.OutlineWidth.toPx()))
+                    }
                 }
             }
         }
@@ -226,7 +233,11 @@ fun BodyHeatLegend(lessLabel: String, moreLabel: String, modifier: Modifier = Mo
     ) {
         Text(lessLabel, style = AppTheme.typography.bodySmall, color = AppTheme.colors.textSecondary)
         for (step in 1..BodyHeatmapDefaults.STEPS) {
-            Box(Modifier.size(Spacing.lg).background(BodyHeatmapDefaults.color(AppTheme.colors, step), AppShapes.sm))
+            Box(
+                Modifier
+                    .size(width = Spacing.xl, height = Spacing.md)
+                    .background(BodyHeatmapDefaults.color(AppTheme.colors, step), AppShapes.full),
+            )
         }
         Text(moreLabel, style = AppTheme.typography.bodySmall, color = AppTheme.colors.textSecondary)
     }

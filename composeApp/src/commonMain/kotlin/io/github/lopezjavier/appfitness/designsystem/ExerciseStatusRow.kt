@@ -1,6 +1,7 @@
 package io.github.lopezjavier.appfitness.designsystem
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -55,6 +56,8 @@ fun ExerciseStatusRow(
         modifier = modifier
             .fillMaxWidth()
             .background(AppTheme.colors.surfaceOverlay, AppShapes.md)
+            .background(AppPaint.tintSurface(AppTheme.colors.athleticCyan), AppShapes.md)
+            .border(AppBorder.thin, AppPaint.accentBorder(AppTheme.colors.athleticCyan), AppShapes.md)
             .let {
                 if (onClick != null) {
                     it.heightIn(min = Spacing.minTouchTarget)

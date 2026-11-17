@@ -15,6 +15,7 @@ import androidx.compose.ui.test.assertTextContains
 import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.getUnclippedBoundsInRoot
 import androidx.compose.ui.test.junit4.v2.createComposeRule
+import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
@@ -173,8 +174,9 @@ class ExerciseDetailScreenTest {
         show(loaded(tab = ExerciseDetailTab.HowTo))
 
         rule.onNodeWithTag("exercise_detail_tab_how_to").assertIsSelected()
-        rule.onNodeWithText("1. Primer paso").assertExists()
-        rule.onNodeWithText("2. Segundo paso").assertExists()
+        // Each step is one merged row spoken as "N. step"; its badge and text are hidden from the tree.
+        rule.onNodeWithContentDescription("1. Primer paso").assertExists()
+        rule.onNodeWithContentDescription("2. Segundo paso").assertExists()
         rule.onNodeWithText("Un consejo").assertExists()
         rule.onNodeWithTag("exercise_detail_animation").assertDoesNotExist()
     }
@@ -184,7 +186,7 @@ class ExerciseDetailScreenTest {
         var opened = 0
         show(loaded(), onOpenProgress = { opened++ })
 
-        rule.onNodeWithTag("exercise_detail_progress_link").assertTextEquals("Ver progreso").performClick()
+        rule.onNodeWithTag("exercise_detail_progress_link").assertTextContains("Ver progreso").performClick()
 
         assertEquals(1, opened)
     }

@@ -13,6 +13,7 @@ import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.lifecycle.SavedStateHandle
+import io.github.lopezjavier.appfitness.app.FakeClock
 import io.github.lopezjavier.appfitness.app.FakeConnectivityObserver
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
 import io.github.lopezjavier.appfitness.domain.model.RoutineFolder
@@ -41,7 +42,7 @@ class RoutinesFolderMenuTest {
     private val reviewed = mutableListOf<String>()
 
     private fun newModel(handle: SavedStateHandle = saved) =
-        RoutinesViewModel(repository, FakeWorkoutSessionRepository(), connectivity, handle)
+        RoutinesViewModel(repository, FakeWorkoutSessionRepository(), connectivity, FakeClock(), handle)
 
     private var current by mutableStateOf(newModel())
 

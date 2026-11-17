@@ -1,6 +1,7 @@
 package io.github.lopezjavier.appfitness.designsystem
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -111,15 +112,27 @@ internal fun TimerBarSurface(
         modifier
             .fillMaxWidth()
             .heightIn(min = RestTimerBarDefaults.MinHeight)
+            .softGlow(colors.progress, RestTimerBarDefaults.CornerGlow, alpha = RestTimerBarDefaults.GLOW_ALPHA)
             .clip(RestTimerBarDefaults.Shape)
-            .background(colors.container),
+            .background(colors.container)
+            .background(AppPaint.tintSurface(colors.progress))
+            .border(AppBorder.thin, AppPaint.accentBorder(colors.progress), RestTimerBarDefaults.Shape),
     ) {
         Row(
-            modifier = Modifier.fillMaxWidth().padding(horizontal = RestTimerBarDefaults.HorizontalPadding),
+            modifier = Modifier.fillMaxWidth()
+                .padding(horizontal = RestTimerBarDefaults.HorizontalPadding, vertical = Spacing.xs),
             horizontalArrangement = Arrangement.spacedBy(Spacing.xs),
             verticalAlignment = Alignment.CenterVertically,
-            content = content,
-        )
+        ) {
+            StatRing(
+                fraction = progress,
+                color = colors.progress,
+                size = StatRingDefaults.SmallSize,
+                strokeWidth = StatRingDefaults.SmallStroke,
+                modifier = Modifier.padding(end = Spacing.xs),
+            )
+            content()
+        }
         ProgressLine(progress = progress, colors = colors, modifier = Modifier.align(Alignment.BottomStart))
     }
 }
@@ -175,7 +188,10 @@ internal fun ProgressLine(progress: Float, colors: RestTimerBarColors, modifier:
             .background(colors.progressTrack)
             .clearAndSetSemantics {},
     ) {
-        Box(Modifier.fillMaxHeight().fillMaxWidth(progress).background(colors.progress))
+        Box(
+            Modifier.fillMaxHeight().fillMaxWidth(progress.coerceIn(0f, 1f))
+                .background(AppPaint.horizontal(colors.progress)),
+        )
     }
 }
 

@@ -47,6 +47,8 @@ private const val SHARED = "Compartido"
 private fun onboarding(step: OnboardingStep, block: (OnboardingUiState) -> OnboardingUiState = { it }) = block(
     OnboardingUiState(
         step = step,
+        sex = if (step == OnboardingStep.Goals) Sex.Male else null,
+        activity = if (step == OnboardingStep.Goals) ActivityLevel.Moderate else null,
         birthDate = LocalDate(1995, 6, 15),
         phase = OnboardingPhase.Content,
         today = GalleryFixtures.today,

@@ -52,6 +52,8 @@ class BlockReviewRestorationTest {
     fun recreation_keepsTheHelpDialogOpen() {
         val restoration = StateRestorationTester(rule)
         restoration.show(state())
+        // The lifts card sits below the hero and the week figures, so it is composed only once scrolled to.
+        rule.onNode(hasScrollAction()).performScrollToNode(hasTestTag("block_review_help_lifts"))
         rule.onNodeWithTag("block_review_help_lifts").performClick()
         rule.onNodeWithTag("block_review_help_lifts_sheet_body").assertIsDisplayed()
 

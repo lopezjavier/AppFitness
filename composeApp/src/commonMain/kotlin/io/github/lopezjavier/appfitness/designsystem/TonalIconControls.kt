@@ -3,6 +3,7 @@
 package io.github.lopezjavier.appfitness.designsystem
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.size
@@ -19,6 +20,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.compositeOver
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.Role
@@ -43,6 +45,11 @@ object TonalIconControlsDefaults {
 
     /** Side of an [IconTile]. */
     val TileSize: Dp = 40.dp
+
+    /** Glow of the accent [CircleIconButton]; it stays inside the 48 dp touch target. */
+    val GlowRadius: Dp = 4.dp
+    val GlowOffset: Dp = 1.dp
+    const val GLOW_ALPHA = 0.30f
     private const val DISABLED_CONTAINER_ALPHA = 0.2f
     private const val DISABLED_CONTENT_ALPHA = 0.5f
 
@@ -91,7 +98,33 @@ fun CircleIconButton(
             .testTag(testTag),
         contentAlignment = Alignment.Center,
     ) {
-        Box(Modifier.size(size).clip(AppShapes.full).background(container), contentAlignment = Alignment.Center) {
+        // The accent button is a lit lime disc with a soft glow; the tonal one a soft control surface.
+        val lit = accent && enabled
+        val paint = when {
+            lit -> AppPaint.diagonal(container)
+            enabled -> AppPaint.controlSurface(AppTheme.colors)
+            else -> SolidColor(container)
+        }
+        Box(
+            Modifier
+                .size(size)
+                .then(
+                    if (lit) {
+                        Modifier.softGlow(
+                            color = container,
+                            cornerRadius = size / 2,
+                            radius = TonalIconControlsDefaults.GlowRadius,
+                            alpha = TonalIconControlsDefaults.GLOW_ALPHA,
+                            offsetY = TonalIconControlsDefaults.GlowOffset,
+                        )
+                    } else {
+                        Modifier
+                    },
+                )
+                .clip(AppShapes.full)
+                .background(paint),
+            contentAlignment = Alignment.Center,
+        ) {
             Icon(
                 painter = painterResource(icon),
                 contentDescription = null,
@@ -121,7 +154,8 @@ fun TonalSquareIconButton(
             modifier
                 .size(TonalIconControlsDefaults.SquareSize)
                 .clip(AppShapes.lg)
-                .background(AppTheme.colors.surfaceControl)
+                .background(AppPaint.controlSurface(AppTheme.colors))
+                .border(AppBorder.thin, AppPaint.tileBorder(), AppShapes.lg)
                 .clickable(enabled = enabled, role = Role.Button, onClick = onClick)
                 .semantics { this.contentDescription = contentDescription }
                 .testTag(testTag),
@@ -155,7 +189,11 @@ fun TonalSquareIconButton(
 @Composable
 fun IconTile(icon: DrawableResource, modifier: Modifier = Modifier) {
     Box(
-        modifier.size(TonalIconControlsDefaults.TileSize).clip(AppShapes.md).background(AppTheme.colors.surfaceControl),
+        modifier
+            .size(TonalIconControlsDefaults.TileSize)
+            .clip(AppShapes.md)
+            .background(AppPaint.controlSurface(AppTheme.colors))
+            .border(AppBorder.thin, AppPaint.tileBorder(), AppShapes.md),
         contentAlignment = Alignment.Center,
     ) {
         Icon(

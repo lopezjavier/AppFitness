@@ -13,18 +13,19 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.material3.Icon
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
 import io.github.lopezjavier.appfitness.composeapp.resources.Res
 import io.github.lopezjavier.appfitness.composeapp.resources.action_retry
+import io.github.lopezjavier.appfitness.composeapp.resources.ic_check
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_fact_check
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_flag
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_insights
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_monitor_weight
-import io.github.lopezjavier.appfitness.composeapp.resources.ic_notifications
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_straighten
 import io.github.lopezjavier.appfitness.composeapp.resources.notifications_block_end_title
 import io.github.lopezjavier.appfitness.composeapp.resources.notifications_checkin_answered_supporting
@@ -47,19 +48,25 @@ import io.github.lopezjavier.appfitness.composeapp.resources.notifications_week_
 import io.github.lopezjavier.appfitness.composeapp.resources.notifications_week_summary_week
 import io.github.lopezjavier.appfitness.composeapp.resources.notifications_weight_reminder
 import io.github.lopezjavier.appfitness.composeapp.resources.notifications_weight_reminder_due
+import io.github.lopezjavier.appfitness.composeapp.resources.px_diary_notices_empty_kicker
+import io.github.lopezjavier.appfitness.composeapp.resources.px_diary_notices_pending_count
+import io.github.lopezjavier.appfitness.composeapp.resources.px_diary_notices_pending_one
 import io.github.lopezjavier.appfitness.composeapp.resources.reports_title
 import io.github.lopezjavier.appfitness.composeapp.resources.root_error_message
+import io.github.lopezjavier.appfitness.designsystem.AppCard
 import io.github.lopezjavier.appfitness.designsystem.AppDateFormat
 import io.github.lopezjavier.appfitness.designsystem.AppScreen
 import io.github.lopezjavier.appfitness.designsystem.AppShapes
 import io.github.lopezjavier.appfitness.designsystem.AppStateAction
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
-import io.github.lopezjavier.appfitness.designsystem.EmptyState
+import io.github.lopezjavier.appfitness.designsystem.CelebrationBurst
 import io.github.lopezjavier.appfitness.designsystem.ErrorState
+import io.github.lopezjavier.appfitness.designsystem.IconBadge
 import io.github.lopezjavier.appfitness.designsystem.ListSectionHeader
 import io.github.lopezjavier.appfitness.designsystem.NavigationRow
 import io.github.lopezjavier.appfitness.designsystem.SkeletonBox
 import io.github.lopezjavier.appfitness.designsystem.Spacing
+import io.github.lopezjavier.appfitness.designsystem.StatRing
 import io.github.lopezjavier.appfitness.designsystem.appAnimateItem
 import io.github.lopezjavier.appfitness.domain.model.CheckInDay
 import io.github.lopezjavier.appfitness.domain.model.Reminder
@@ -67,7 +74,6 @@ import io.github.lopezjavier.appfitness.domain.model.ReminderKind
 import kotlinx.datetime.DateTimeUnit
 import kotlinx.datetime.plus
 import org.jetbrains.compose.resources.DrawableResource
-import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.resources.pluralStringResource
 import org.jetbrains.compose.resources.stringResource
 
@@ -129,6 +135,9 @@ private fun CenterContent(
         contentPadding = PaddingValues(Spacing.screenMargin),
         verticalArrangement = Arrangement.spacedBy(Spacing.sm),
     ) {
+        if (state.reminders.isNotEmpty()) {
+            item(key = "pending_hero") { PendingHero(state.reminders.size) }
+        }
         item(key = "pending_header") {
             ListSectionHeader(
                 stringResource(Res.string.notifications_pending_section),
@@ -137,12 +146,7 @@ private fun CenterContent(
         }
         if (state.reminders.isEmpty()) {
             item(key = "empty") {
-                EmptyState(
-                    icon = Res.drawable.ic_notifications,
-                    message = stringResource(Res.string.notifications_empty_message),
-                    title = stringResource(Res.string.notifications_empty_title),
-                    modifier = Modifier.fillMaxWidth().padding(vertical = Spacing.lg).testTag("notifications_empty"),
-                )
+                AllClear(Modifier.fillMaxWidth().padding(vertical = Spacing.lg).testTag("notifications_empty"))
             }
         } else {
             items(state.reminders, key = { it.kind.name }) { reminder ->
@@ -227,7 +231,7 @@ private fun ReminderRow(
         onClick = { onOpen(reminder.kind) },
         modifier = modifier.testTag(tag),
         supporting = supporting,
-        leading = { RowIcon(reminder.kind.icon()) },
+        leading = { IconBadge(reminder.kind.icon(), reminder.kind.accent()) },
         onClickLabel = label,
     )
 }
@@ -256,14 +260,69 @@ private fun ReminderKind.icon(): DrawableResource = when (this) {
     ReminderKind.CheckIn -> Res.drawable.ic_fact_check
 }
 
+/** One accent per notice type, so the list reads at a glance. */
 @Composable
-private fun RowIcon(icon: DrawableResource) {
-    Icon(
-        painter = painterResource(icon),
-        contentDescription = null,
-        tint = AppTheme.colors.textSecondary,
-        modifier = Modifier.size(Spacing.xl),
-    )
+private fun ReminderKind.accent(): Color {
+    val colors = AppTheme.colors
+    return when (this) {
+        ReminderKind.Weight -> colors.athleticCyan
+        ReminderKind.Circumference -> colors.macroCarbs
+        ReminderKind.WeekSummary -> colors.macroFat
+        ReminderKind.BlockEnd -> colors.energyAmber
+        ReminderKind.CheckIn -> colors.neonLime
+    }
+}
+
+private const val RING_FULL_AT = 5f
+
+/** The pending count as a graphic: a ring that fills with the notices and the count as words beside it. */
+@Composable
+private fun PendingHero(count: Int) {
+    AppCard(Modifier.fillMaxWidth().testTag("notifications_hero"), glow = AppTheme.colors.neonLime) {
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.lg)) {
+            StatRing(fraction = (count / RING_FULL_AT).coerceAtMost(1f), color = AppTheme.colors.neonLime) {
+                Text(count.toString(), style = AppTheme.typography.headlineMetric, color = AppTheme.colors.textPrimary)
+            }
+            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
+                Text(
+                    text = if (count == 1) {
+                        stringResource(Res.string.px_diary_notices_pending_one)
+                    } else {
+                        stringResource(Res.string.px_diary_notices_pending_count, count)
+                    },
+                    style = AppTheme.typography.titleLarge,
+                    color = AppTheme.colors.textPrimary,
+                )
+            }
+        }
+    }
+}
+
+/** "Todo al día": a celebratory empty state. */
+@Composable
+private fun AllClear(modifier: Modifier = Modifier) {
+    Column(
+        modifier,
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(Spacing.sm),
+    ) {
+        CelebrationBurst(icon = Res.drawable.ic_check)
+        Text(
+            text = stringResource(Res.string.px_diary_notices_empty_kicker).uppercase(),
+            style = AppTheme.typography.labelTechnical,
+            color = AppTheme.colors.neonLime,
+        )
+        Text(
+            text = stringResource(Res.string.notifications_empty_title),
+            style = AppTheme.typography.titleLarge,
+            color = AppTheme.colors.textPrimary,
+        )
+        Text(
+            text = stringResource(Res.string.notifications_empty_message),
+            style = AppTheme.typography.bodyMedium,
+            color = AppTheme.colors.textSecondary,
+        )
+    }
 }
 
 /** "9 al 15 nov": the Monday-Sunday week of the check-in. */

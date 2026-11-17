@@ -30,6 +30,7 @@ import androidx.compose.ui.test.performTextClearance
 import androidx.compose.ui.test.performTextInput
 import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.unit.dp
+import io.github.lopezjavier.appfitness.app.FakeClock
 import io.github.lopezjavier.appfitness.app.FakeConnectivityObserver
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
 import io.github.lopezjavier.appfitness.designsystem.HapticEvent
@@ -75,7 +76,7 @@ class RoutinesFoldersScreenTest {
     private val haptics = RecordingAppHaptics()
 
     private fun show() {
-        val vm = RoutinesViewModel(repository, FakeWorkoutSessionRepository(), connectivity)
+        val vm = RoutinesViewModel(repository, FakeWorkoutSessionRepository(), connectivity, FakeClock())
         rule.setContent {
             CompositionLocalProvider(LocalAppHaptics provides haptics, LocalAppMessages provides messages) {
                 AppTheme { RoutinesRoot({}, {}, {}, viewModel = vm) }

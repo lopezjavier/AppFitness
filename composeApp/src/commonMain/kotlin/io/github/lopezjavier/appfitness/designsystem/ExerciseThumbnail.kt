@@ -3,6 +3,7 @@
 package io.github.lopezjavier.appfitness.designsystem
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.size
@@ -82,7 +83,8 @@ fun ExerciseThumbnail(
         modifier
             .size(size)
             .clip(AppShapes.md)
-            .background(colors.surfaceOverlay)
+            .background(AppPaint.tileSurface(colors))
+            .border(AppBorder.thin, AppPaint.tileBorder(), AppShapes.md)
             .then(semanticsModifier),
         contentAlignment = Alignment.Center,
     ) {
@@ -90,7 +92,7 @@ fun ExerciseThumbnail(
             Icon(
                 painter = painterResource(Res.drawable.ic_exercise_placeholder),
                 contentDescription = null,
-                tint = colors.textSecondary,
+                tint = AppPaint.ramp(colors.athleticCyan).bright.copy(alpha = 0.75f),
                 modifier =
                 Modifier
                     .size(size * ExerciseThumbnailDefaults.PLACEHOLDER_FRACTION)

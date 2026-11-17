@@ -18,10 +18,15 @@ sealed interface StrengthUiState {
 
     /**
      * Top exercises with [selectedId] chosen. [summary] is null while the record of a newly selected exercise loads.
+     * [series] is the 1RM of the selected exercise per session, oldest first.
      * The UI shows the monthly delta by its sign, and hides it when [StrengthSummary.monthlyDelta] is null.
      */
-    data class Content(val chips: List<StrengthChip>, val selectedId: String, val summary: StrengthSummary?) :
-        StrengthUiState
+    data class Content(
+        val chips: List<StrengthChip>,
+        val selectedId: String,
+        val summary: StrengthSummary?,
+        val series: List<Double> = emptyList(),
+    ) : StrengthUiState
 }
 
 sealed interface StrengthEvent {

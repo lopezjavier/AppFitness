@@ -19,6 +19,8 @@ import io.github.lopezjavier.appfitness.composeapp.resources.diary_meal_kcal
 import io.github.lopezjavier.appfitness.composeapp.resources.macro_carbs
 import io.github.lopezjavier.appfitness.composeapp.resources.macro_fat
 import io.github.lopezjavier.appfitness.composeapp.resources.macro_protein
+import io.github.lopezjavier.appfitness.composeapp.resources.px_body_percent
+import io.github.lopezjavier.appfitness.composeapp.resources.px_body_split_value
 import org.jetbrains.compose.resources.stringResource
 import kotlin.math.roundToInt
 
@@ -45,6 +47,8 @@ fun DiaryHistoryRow(
     modifier: Modifier = Modifier,
     subtitle: String? = null,
     onClick: (() -> Unit)? = null,
+    showSplit: Boolean = false,
+    chart: (@Composable () -> Unit)? = null,
 ) {
     val tag = if (onClick != null) "diary_history_row_open" else "diary_history_row"
     val cardModifier = if (onClick != null) {
@@ -53,7 +57,7 @@ fun DiaryHistoryRow(
     } else {
         modifier.fillMaxWidth()
     }
-    AppCard(cardModifier.testTag(tag)) {
+    AppCard(cardModifier.testTag(tag), glow = AppTheme.colors.neonLime) {
         Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(Spacing.md)) {
             Text(title, style = AppTheme.typography.titleMedium, color = AppTheme.colors.textPrimary)
             subtitle?.let { Text(it, style = AppTheme.typography.bodySmall, color = AppTheme.colors.textSecondary) }
@@ -65,16 +69,23 @@ fun DiaryHistoryRow(
                     modifier = Modifier.testTag("diary_history_empty"),
                 )
             } else {
-                HistoryFigures(totals, targets)
+                HistoryFigures(totals, targets, showSplit, chart)
             }
         }
     }
 }
 
 @Composable
-private fun HistoryFigures(totals: HistoryTotals, targets: HistoryTargets?) {
-    Column(verticalArrangement = Arrangement.spacedBy(Spacing.md)) {
+private fun HistoryFigures(
+    totals: HistoryTotals,
+    targets: HistoryTargets?,
+    showSplit: Boolean,
+    chart: (@Composable () -> Unit)?,
+) {
+    Column(verticalArrangement = Arrangement.spacedBy(Spacing.lg)) {
         KcalLine(totals, targets)
+        chart?.invoke()
+        if (showSplit) MacroSplit(totals)
         MacroLines(totals, targets)
     }
 }
@@ -84,21 +95,87 @@ private fun KcalLine(totals: HistoryTotals, targets: HistoryTargets?) {
     val kcal = AppNumberFormat.integer(totals.kcal.roundToInt())
     Row(
         Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
-        verticalAlignment = Alignment.Bottom,
+        horizontalArrangement = Arrangement.spacedBy(Spacing.md),
+        verticalAlignment = Alignment.CenterVertically,
     ) {
-        Text(
-            text = stringResource(Res.string.diary_meal_kcal, kcal),
-            style = AppTheme.typography.headlineMetric,
-            color = AppTheme.colors.textPrimary,
-            modifier = Modifier.testTag("diary_history_kcal"),
-        )
-        targets?.let {
+        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
             Text(
-                text = stringResource(Res.string.diary_history_target_kcal, AppNumberFormat.integer(it.kcal)),
-                style = AppTheme.typography.bodyMedium,
-                color = AppTheme.colors.textSecondary,
+                text = stringResource(Res.string.diary_meal_kcal, kcal),
+                style = AppTheme.typography.displayHero,
+                color = AppTheme.colors.textPrimary,
+                modifier = Modifier.testTag("diary_history_kcal"),
             )
+            targets?.let {
+                Text(
+                    text = stringResource(Res.string.diary_history_target_kcal, AppNumberFormat.integer(it.kcal)),
+                    style = AppTheme.typography.bodyMedium,
+                    color = AppTheme.colors.textSecondary,
+                )
+            }
+        }
+        if (targets != null && targets.kcal > 0) {
+            val fraction = (totals.kcal / targets.kcal).toFloat()
+            val over = fraction > 1f
+            StatRing(
+                fraction = fraction.coerceIn(0f, 1f),
+                color = if (over) AppTheme.colors.energyAmber else AppTheme.colors.neonLime,
+            ) {
+                Text(
+                    text = stringResource(
+                        Res.string.px_body_percent,
+                        AppNumberFormat.integer((fraction * 100).roundToInt()),
+                    ),
+                    style = AppTheme.typography.labelNumeric,
+                    color = AppTheme.colors.textPrimary,
+                )
+            }
+        }
+    }
+}
+
+private const val KCAL_PER_G_PROTEIN_CARBS = 4.0
+private const val KCAL_PER_G_FAT = 9.0
+
+/** The day's calories split by macro (4/4/9 kcal per gram) as a donut with its legend. */
+@Composable
+private fun MacroSplit(totals: HistoryTotals) {
+    val colors = AppTheme.colors
+    val parts = listOf(
+        Triple(
+            stringResource(Res.string.macro_protein),
+            totals.proteinG to KCAL_PER_G_PROTEIN_CARBS,
+            colors.macroProtein,
+        ),
+        Triple(stringResource(Res.string.macro_carbs), totals.carbsG to KCAL_PER_G_PROTEIN_CARBS, colors.macroCarbs),
+        Triple(stringResource(Res.string.macro_fat), totals.fatG to KCAL_PER_G_FAT, colors.macroFat),
+    )
+    val total = parts.sumOf { it.second.first * it.second.second }
+    if (total <= 0.0) return
+    Row(
+        Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(Spacing.lg),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        DonutChart(parts.map { DonutSlice((it.second.first * it.second.second).toFloat(), it.third) }) {
+            Text(
+                text = AppNumberFormat.integer(total.roundToInt()),
+                style = AppTheme.typography.labelNumeric,
+                color = AppTheme.colors.textPrimary,
+            )
+        }
+        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+            parts.forEach { (label, gramsAndFactor, color) ->
+                val percent = (gramsAndFactor.first * gramsAndFactor.second / total * 100).roundToInt()
+                LegendRow(
+                    label = label,
+                    value = stringResource(
+                        Res.string.px_body_split_value,
+                        AppNumberFormat.integer(gramsAndFactor.first.roundToInt()),
+                        AppNumberFormat.integer(percent),
+                    ),
+                    color = color,
+                )
+            }
         }
     }
 }

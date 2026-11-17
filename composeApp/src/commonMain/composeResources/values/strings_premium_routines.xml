@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="px_routines_week_title">Esta semana</string>
+    <string name="px_routines_week_cd">%1$d de 7 días entrenados</string>
+    <string name="px_routines_week_empty">Aún no has entrenado esta semana. ¡Empieza hoy!</string>
+    <string name="px_routines_stat_workouts">Entrenos</string>
+    <string name="px_routines_stat_days">Días</string>
+    <string name="px_routines_stat_streak">Racha</string>
+    <string name="px_routines_stat_streak_unit">sem.</string>
+    <string name="px_routines_details_sets">Series</string>
+    <string name="px_routines_details_exercises">Ejercicios</string>
+    <string name="px_routines_month_summary">%1$s este mes</string>
+    <string name="px_routines_month_none">Sin entrenos este mes</string>
+</resources>

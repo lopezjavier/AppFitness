@@ -110,7 +110,8 @@ class RoutineDetailsScreenTest {
     fun exercises_showNameAndPlannedSets_andOpenTheirDetail() {
         show(content)
 
-        rule.onNodeWithText("Ejercicios").assertIsDisplayed()
+        // "Ejercicios" is also the label of a figure of the summary hero, so the list header is found by its tag.
+        rule.onNodeWithTag("routine_details_exercises_header").assertIsDisplayed()
         rule.onNodeWithText("3 × 8", substring = true).assertIsDisplayed()
         rule.onNodeWithText("1 × 8 · 60 kg, 1 × 6 · 62,5 kg", substring = true).assertIsDisplayed()
         rule.onNodeWithTag("routine_details_exercise_e1").performClick()

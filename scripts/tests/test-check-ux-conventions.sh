@@ -344,6 +344,27 @@ expect "G26 a plain space before a unit in a Trainer string fails" 1
 run "$(mkstr g26b '<string name="trainer_x">%1$s&#160;kg al día</string>')" "$empty"
 expect "G26 a non-breaking space before a unit passes" 0 NOWARN
 
+# T-297: the text guards also scan the per-area strings_*.xml files (strings_premium_*.xml).
+mkprem() { # name string-line
+  local d="$work/prem-$1"
+  mkdir -p "$d/composeApp/src/commonMain/composeResources/values"
+  : > "$d/composeApp/src/commonMain/composeResources/values/strings.xml"
+  printf '%s\n' "$2" > "$d/composeApp/src/commonMain/composeResources/values/strings_premium_x.xml"
+  echo "$d"
+}
+run "$(mkprem g10 '<string name="px_x_title">Cargando...</string>')" "$empty"
+expect "G10 three dots in a premium strings file fail" 1
+run "$(mkprem g17 '<string name="px_x_title">%1$d %% del total</string>')" "$empty"
+expect "G17 a doubled percent sign in a premium strings file fails" 1
+run "$(mkprem g18 '<string name="px_x_hint">Toca para resolverlo</string>')" "$empty"
+expect "G18 an unlisted _hint key in a premium strings file fails" 1
+run "$(mkprem g25 '<string name="px_x_title">Entrena con un coach</string>')" "$empty"
+expect "G25 the word coach in a premium strings file fails" 1
+run "$(mkprem g26a '<string name="px_x_value">%1$s kg</string>')" "$empty"
+expect "G26 a plain space before a unit in a px_ string fails" 1
+run "$(mkprem g26b '<string name="px_x_value">%1$s&#160;kg</string>')" "$empty"
+expect "G26 a non-breaking space before a unit in a px_ string passes" 0 NOWARN
+
 # G22 also guards the other buttons of the card; G27 the other dialogs of the root screen.
 run "$(mkr g22c "$trainer_dir/TrainerPlanCard.kt" 'AppIconButton(onClick = {})')" "$empty"
 expect "G22 an icon button in the Tu plan root card fails" 1

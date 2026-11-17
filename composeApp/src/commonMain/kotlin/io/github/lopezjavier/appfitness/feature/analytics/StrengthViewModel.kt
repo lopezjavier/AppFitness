@@ -38,6 +38,7 @@ class StrengthViewModel(
     private var chips: List<StrengthChip> = emptyList()
     private var selectedId: String? = savedState.get<String>(KEY_SELECTED)
     private val summaries = mutableMapOf<String, StrengthSummary>()
+    private val series = mutableMapOf<String, List<Double>>()
 
     private val _uiState = MutableStateFlow<StrengthUiState>(StrengthUiState.Loading)
     val uiState: StateFlow<StrengthUiState> = _uiState.asStateFlow()
@@ -103,6 +104,7 @@ class StrengthViewModel(
             workouts.exerciseHistory(exerciseId).fold(
                 onSuccess = { history ->
                     summaries[exerciseId] = BuildStrengthSummary(history, clock.today())
+                    series[exerciseId] = history.sortedBy { it.date }.mapNotNull { it.bestOneRepMax }
                     publish()
                 },
                 onFailure = { _uiState.value = StrengthUiState.Error },
@@ -112,7 +114,7 @@ class StrengthViewModel(
 
     private fun publish() {
         val id = selectedId ?: return
-        _uiState.value = StrengthUiState.Content(chips, id, summaries[id])
+        _uiState.value = StrengthUiState.Content(chips, id, summaries[id], series[id].orEmpty())
     }
 
     private companion object {

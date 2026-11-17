@@ -40,6 +40,10 @@ object SetCompletionCheckboxDefaults {
     val CurrentRingWidth: Dp = 1.5.dp
     val Shape = AppShapes.full
 
+    /** Light around a done (or the current) circle. */
+    val GlowRadius: Dp = 8.dp
+    const val GLOW_ALPHA = 0.34f
+
     /** Both states draw the glyph; fill and glyph colour differ in luminance, so it survives greyscale. */
     fun colors(checked: Boolean, appColors: AppColors): SetCheckboxColors = if (checked) {
         SetCheckboxColors(container = appColors.neonLime, icon = appColors.onNeonLime)
@@ -49,6 +53,27 @@ object SetCompletionCheckboxDefaults {
 
     /** Completing a set is a Confirm (R-29); un-checking vibrates nothing. */
     fun hapticFor(newChecked: Boolean): HapticEvent? = if (newChecked) HapticEvent.Confirm else null
+}
+
+/** The lime glow of a checked circle, or the dimmer cyan one of the set to do next. */
+private fun Modifier.setGlow(checked: Boolean, ringed: Boolean, colors: AppColors): Modifier = when {
+    checked -> softGlow(
+        colors.neonLime,
+        SetCompletionCheckboxDefaults.VisualSize / 2,
+        radius = SetCompletionCheckboxDefaults.GlowRadius,
+        alpha = SetCompletionCheckboxDefaults.GLOW_ALPHA,
+        offsetY = 0.dp,
+    )
+
+    ringed -> softGlow(
+        colors.athleticCyan,
+        SetCompletionCheckboxDefaults.VisualSize / 2,
+        radius = SetCompletionCheckboxDefaults.GlowRadius,
+        alpha = SetCompletionCheckboxDefaults.GLOW_ALPHA / 2,
+        offsetY = 0.dp,
+    )
+
+    else -> this
 }
 
 /**
@@ -89,8 +114,10 @@ fun SetCompletionCheckbox(
             modifier =
             Modifier
                 .size(SetCompletionCheckboxDefaults.VisualSize)
+                .setGlow(checked, ringed, AppTheme.colors)
                 .clip(SetCompletionCheckboxDefaults.Shape)
                 .background(colors.container)
+                .then(if (checked) Modifier.background(AppPaint.diagonal(colors.container)) else Modifier)
                 .then(
                     if (ringed) {
                         Modifier.border(

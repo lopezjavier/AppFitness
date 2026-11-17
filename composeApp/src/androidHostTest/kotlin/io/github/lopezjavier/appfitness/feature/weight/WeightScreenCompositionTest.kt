@@ -97,7 +97,7 @@ class WeightScreenCompositionTest {
     }
 
     private fun tapCurrentWeight() {
-        rule.onNodeWithText("Peso actual").performClick()
+        rule.onNodeWithText("PESO ACTUAL").performClick()
         rule.waitForIdle()
     }
 
@@ -130,10 +130,10 @@ class WeightScreenCompositionTest {
     fun labelAndValue_areAButtonWithASpokenLabelAndOpenTheSheet() {
         show(healthConnectDay, olderManual)
 
-        val clickLabel = rule.onNodeWithText("Peso actual").fetchSemanticsNode().config
+        val clickLabel = rule.onNodeWithText("PESO ACTUAL").fetchSemanticsNode().config
             .getOrNull(SemanticsActions.OnClick)?.label
         assertEquals("Ver composición corporal", clickLabel)
-        rule.onNodeWithText("Peso actual").assertHasClickAction()
+        rule.onNodeWithText("PESO ACTUAL").assertHasClickAction()
         tapCurrentWeight()
 
         rule.onNodeWithTag("weight_composition_sheet_title").assertTextEquals("Composición corporal")

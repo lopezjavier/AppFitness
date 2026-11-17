@@ -3,7 +3,6 @@
 
 package io.github.lopezjavier.appfitness.designsystem
 
-import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -160,7 +159,6 @@ fun AppTopBar(
         modifier
             .fillMaxWidth()
             .testTag(testTagPrefix)
-            .background(colors.surfaceBase)
             .drawBehind {
                 val y = size.height - AppBorder.thin.toPx() / 2
                 drawLine(borderColor, Offset(0f, y), Offset(size.width, y), strokeWidth = AppBorder.thin.toPx())

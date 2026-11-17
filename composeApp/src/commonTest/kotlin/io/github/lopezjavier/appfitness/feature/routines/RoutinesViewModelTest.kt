@@ -2,16 +2,20 @@ package io.github.lopezjavier.appfitness.feature.routines
 
 import androidx.lifecycle.SavedStateHandle
 import app.cash.turbine.test
+import io.github.lopezjavier.appfitness.app.FakeClock
 import io.github.lopezjavier.appfitness.app.FakeConnectivityObserver
 import io.github.lopezjavier.appfitness.domain.AppError
 import io.github.lopezjavier.appfitness.domain.model.RoutineFolder
 import io.github.lopezjavier.appfitness.feature.workout.FakeWorkoutSessionRepository
+import io.github.lopezjavier.appfitness.feature.workout.completedSession
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
+import kotlinx.datetime.LocalDate
+import kotlinx.datetime.TimeZone
 import kotlin.test.AfterTest
 import kotlin.test.BeforeTest
 import kotlin.test.Test
@@ -27,6 +31,7 @@ class RoutinesViewModelTest {
         )
     private val sessions = FakeWorkoutSessionRepository()
     private val connectivity = FakeConnectivityObserver()
+    private val clock = FakeClock(today = LocalDate(2026, 10, 19))
 
     @BeforeTest
     fun setUp() {
@@ -39,7 +44,7 @@ class RoutinesViewModelTest {
     }
 
     private fun viewModel(saved: SavedStateHandle = SavedStateHandle()) =
-        RoutinesViewModel(repository, sessions, connectivity, saved)
+        RoutinesViewModel(repository, sessions, connectivity, clock, saved, TimeZone.UTC)
 
     private fun RoutinesViewModel.content() = assertIs<RoutinesUiState.Content>(uiState.value)
 
@@ -408,5 +413,35 @@ class RoutinesViewModelTest {
 
         assertNull(vm.content().folderMenuFor)
         assertEquals(FolderSheetMode.Rename, vm.content().folderSheet?.mode)
+    }
+
+    @Test
+    fun theWeekHero_countsTodaysWeekAndTheStreak_fromTheCompletedSessions() = runTest {
+        // Monday 19 October is today: one workout this week, one the Monday before.
+        sessions.completed += listOf(completedSession("a", daysAgo = 0), completedSession("b", daysAgo = 7))
+        val vm = viewModel()
+
+        advanceUntilIdle()
+
+        val content = vm.content()
+        assertEquals(LocalDate(2026, 10, 19), content.today)
+        assertEquals(setOf(LocalDate(2026, 10, 19)), content.trainedDays)
+        assertEquals(1, content.weekWorkouts)
+        assertEquals(2, content.streakWeeks)
+    }
+
+    @Test
+    fun aFailedSessionsRead_hidesTheHeroWithoutFailingTheLoad() = runTest {
+        sessions.summariesFailure = AppError.Network
+        val vm = viewModel()
+
+        advanceUntilIdle()
+
+        val content = vm.content()
+        assertEquals(listOf("Torso" to 2, "Pierna" to 1), content.routines.map { it.name to it.exerciseCount })
+        assertNull(content.today)
+        assertTrue(content.trainedDays.isEmpty())
+        assertEquals(0, content.weekWorkouts)
+        assertEquals(0, content.streakWeeks)
     }
 }

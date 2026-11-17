@@ -14,9 +14,11 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.PathEffect
+import androidx.compose.ui.graphics.StrokeJoin
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Fill
 import androidx.compose.ui.graphics.drawscope.Stroke
@@ -155,11 +157,32 @@ private fun DrawScope.drawRadar(
         drawPath(shape(it), colors.previous, style = Stroke(RadarChartDefaults.StrokeWidth.toPx(), pathEffect = dash))
     }
     val now = shape(current)
-    drawPath(now, colors.current.copy(alpha = RadarChartDefaults.FILL_ALPHA), style = Fill)
-    drawPath(now, colors.current, style = Stroke(RadarChartDefaults.StrokeWidth.toPx()))
+    // The area glows towards its rim, and every value gets a lit vertex.
+    drawPath(
+        now,
+        Brush.radialGradient(
+            colors = listOf(
+                colors.current.copy(alpha = RadarChartDefaults.FILL_ALPHA / 2),
+                colors.current.copy(alpha = RadarChartDefaults.FILL_ALPHA * 2),
+            ),
+            center = center,
+            radius = radius,
+        ),
+        style = Fill,
+    )
+    drawPath(now, colors.current, style = Stroke(RadarChartDefaults.StrokeWidth.toPx(), join = StrokeJoin.Round))
+    val vertex = RadarChartDefaults.StrokeWidth.toPx() * VERTEX_FACTOR
+    current.forEachIndexed { i, value ->
+        val at = point(i, (value / scale).toFloat())
+        drawRadialGlow(colors.current, at, vertex * VERTEX_GLOW, alpha = VERTEX_GLOW_ALPHA)
+        drawCircle(colors.current, vertex, at)
+    }
 }
 
 private const val SIDE_THRESHOLD = 0.3f
+private const val VERTEX_FACTOR = 1.4f
+private const val VERTEX_GLOW = 3.5f
+private const val VERTEX_GLOW_ALPHA = 0.4f
 
 private fun polygon(points: List<Offset>): Path = Path().apply {
     points.forEachIndexed { i, p -> if (i == 0) moveTo(p.x, p.y) else lineTo(p.x, p.y) }
