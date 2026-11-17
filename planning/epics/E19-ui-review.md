@@ -55,6 +55,36 @@ Feature: Review tooling
     Then one command starts the local backend with the dummy data and installs the app on the emulator
 ```
 
+## US-137 · See each exercise's picture and pick a lift in Fuerza (T-301)
+**As** the user
+**I want** every exercise listed or headed by name to show its picture, and Fuerza to list the lifts as rows
+**So that** I recognise an exercise at a glance.
+
+```gherkin
+Feature: Exercise pictures
+
+  Scenario: The live session header shows the picture
+    Given a catalogue exercise in the live session
+    Then its header shows the exercise picture at 32 dp, not a dumbbell badge
+    And a custom exercise shows the placeholder
+
+  Scenario: A finished exercise is marked by a check and text
+    Given every set of an exercise is done
+    Then its header shows a check described "Ejercicio completado"
+
+  Scenario: Estadísticas > Entreno and the muscle sheet show pictures
+    Then each exercise row shows its picture
+
+  Scenario: The workout form and the session detail show pictures
+    Then each exercise card in the new, edit and past workout form, and in the session detail, shows its picture
+
+  Scenario: Fuerza lists one row per exercise
+    Then each lift is a row with its picture and the chosen one has a lime check
+    When I select another row
+    Then "Récord 1RM estimado" shows that lift
+    And the selection survives leaving the app
+```
+
 ## US-123 · Review of all the UI
 **As** the user
 **I want** all the UI reviewed
