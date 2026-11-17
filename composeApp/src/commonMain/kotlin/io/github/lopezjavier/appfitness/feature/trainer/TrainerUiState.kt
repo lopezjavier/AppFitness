@@ -130,6 +130,8 @@ sealed interface TrainerUiState {
         val busyFollowUpExerciseId: String? = null,
         /** The local date of the read: places the cardio pace marker of the "Tu bloque" bars (05 §6.0f). */
         val today: LocalDate? = null,
+        /** The play button of the next pending routine was tapped and the session is being created (T-300). */
+        val startingRoutine: Boolean = false,
     ) : TrainerUiState {
         private val accepted: CoachPlan? get() = (plan as? PlanSummary.Accepted)?.plan
 
@@ -254,6 +256,12 @@ sealed interface TrainerEvent {
 
     /** Close on the health note. */
     data class DismissDiscomfortNote(val exerciseId: String) : TrainerEvent
+
+    /**
+     * The play button of a session card (T-300): starts a live workout from [routineId]. Ignored unless it is the
+     * routine of the current week's next pending session (`PlanWeek.nextPendingSession`), or a start is in flight.
+     */
+    data class StartRoutine(val routineId: String) : TrainerEvent
 }
 
 /** Why an undo was refused or failed. */
@@ -338,4 +346,13 @@ sealed interface TrainerEffect {
 
     /** "Ahora no" or closing the note could not be saved; the item is back. [offline] picks the offline hint. */
     data class FollowUpActionFailed(val offline: Boolean) : TrainerEffect
+
+    /** The session was created: navigate to the live workout (no haptic, like Entreno). */
+    data object OpenLiveSession : TrainerEffect
+
+    /** A workout is already in progress, so none was created: reject haptic and a message. */
+    data object SessionInProgress : TrainerEffect
+
+    /** Starting failed (reject haptic and message); [offline] picks the offline hint. */
+    data class StartFailed(val offline: Boolean) : TrainerEffect
 }

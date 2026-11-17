@@ -29,6 +29,14 @@ data class PlanWeek(
 )
 
 /**
+ * The session of this week that gets the play button (T-300): the pending one with the lowest
+ * [PlanWeekSession.sessionIndex], only while the week is the current one. It may have no routine; the caller then
+ * shows no button.
+ */
+fun PlanWeek.nextPendingSession(): PlanWeekSession? =
+    if (phase == WeekPhase.Current) sessions.filter { !it.done }.minByOrNull { it.sessionIndex } else null
+
+/**
  * Pause state of the block (US-106): [paused] while the last finished 7-day window has no completed workout and none
  * was done yet in the current one; [pausedWeeks] stays after the block resumes (the end moved by that many weeks);
  * [blockEnd] is the moved last day, null when the block has no weeks. [extensionDays] is the total the user added to

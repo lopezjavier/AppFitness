@@ -28,8 +28,10 @@ import io.github.lopezjavier.appfitness.composeapp.resources.coach_deload_reques
 import io.github.lopezjavier.appfitness.composeapp.resources.coach_deload_request_not_available
 import io.github.lopezjavier.appfitness.composeapp.resources.coach_deload_request_offline
 import io.github.lopezjavier.appfitness.composeapp.resources.plan_proposal_diet_break_offline
+import io.github.lopezjavier.appfitness.composeapp.resources.routines_action_failed
 import io.github.lopezjavier.appfitness.composeapp.resources.trainer_block_remove_action
 import io.github.lopezjavier.appfitness.composeapp.resources.trainer_block_remove_error
+import io.github.lopezjavier.appfitness.composeapp.resources.trainer_block_start_action
 import io.github.lopezjavier.appfitness.composeapp.resources.trainer_discomfort_change_action
 import io.github.lopezjavier.appfitness.composeapp.resources.trainer_discomfort_save_action
 import io.github.lopezjavier.appfitness.composeapp.resources.trainer_discomfort_save_error
@@ -37,6 +39,7 @@ import io.github.lopezjavier.appfitness.composeapp.resources.trainer_plan_diet_b
 import io.github.lopezjavier.appfitness.composeapp.resources.trainer_swap_applied
 import io.github.lopezjavier.appfitness.composeapp.resources.trainer_week_extend_error
 import io.github.lopezjavier.appfitness.composeapp.resources.trainer_week_extend_offline
+import io.github.lopezjavier.appfitness.composeapp.resources.workout_already_in_progress
 import io.github.lopezjavier.appfitness.designsystem.LocalAppHaptics
 import io.github.lopezjavier.appfitness.designsystem.LocalAppMessages
 import io.github.lopezjavier.appfitness.designsystem.offlineHint
@@ -85,6 +88,9 @@ internal fun TrainerEffectsHost(effects: Flow<TrainerEffect>, onRefresh: () -> U
     val swapOffline = offlineHint(stringResource(Res.string.trainer_discomfort_change_action)) + "."
     val saveError = stringResource(Res.string.trainer_discomfort_save_error)
     val saveOffline = offlineHint(stringResource(Res.string.trainer_discomfort_save_action)) + "."
+    val sessionInProgress = stringResource(Res.string.workout_already_in_progress)
+    val startError = stringResource(Res.string.routines_action_failed)
+    val startOffline = offlineHint(stringResource(Res.string.trainer_block_start_action)) + "."
     val latestHaptics by rememberUpdatedState(haptics)
     val latestActions by rememberUpdatedState(actions)
     val latestRefresh by rememberUpdatedState(onRefresh)
@@ -194,6 +200,18 @@ internal fun TrainerEffectsHost(effects: Flow<TrainerEffect>, onRefresh: () -> U
                 is TrainerEffect.FollowUpActionFailed -> {
                     latestHaptics.reject()
                     messages.show(if (effect.offline) saveOffline else saveError)
+                }
+
+                TrainerEffect.OpenLiveSession -> latestActions.onOpenLiveSession()
+
+                TrainerEffect.SessionInProgress -> {
+                    latestHaptics.reject()
+                    messages.show(sessionInProgress)
+                }
+
+                is TrainerEffect.StartFailed -> {
+                    latestHaptics.reject()
+                    messages.show(if (effect.offline) startOffline else startError)
                 }
 
                 is TrainerEffect.DeloadCancelFailed -> {
