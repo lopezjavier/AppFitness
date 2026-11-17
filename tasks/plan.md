@@ -99,7 +99,7 @@ Every task pays 6-8 agent hand-offs, so stories stay whole unless one is too lar
 | 6 | T-282: Review round 2: Entreno | **M** (estimate) | US-123 | review + UI | 7 + review |
 | 7 | T-283: Review round 3: Trainer | **M** (estimate) | US-123 | review + UI | 7 + review |
 | 8 | T-284: Review round 4: Perfil | **M** (estimate) | US-123 | review + UI | 7 + review |
-| 8b | T-299: Trainer, Entreno and Perfil improvements (user request 2026-11-17, umbrella; the planner splits it) | **to be set by the planner** | US-123 family | review + UI | planner |
+| 8b | T-299 umbrella (user request 2026-11-17), split into T-300 (Trainer play), T-301 (exercise thumbnails), T-302 (Fuerza rows), T-303 (Preferencias stops overwriting calories, migration), T-304 (remove Objetivo calórico and Macros), T-305 (routine-part icons in `05`), T-306 (routine icon derived), T-307 (routine icon override, migration), T-308 (activity level and Provisional lifecycle); details in `tasks/todo.md` "T-299 split" | M each (T-302 S/M, T-305 S) | US-136…US-140 | review + UI | planner per task |
 | 9 | T-285: E19 closure (after the user's closure approval) | closure step (no size class) | DoD | PM | PM only |
 
 Why these splits and merges:
