@@ -6,7 +6,7 @@ Operating instructions: [`CLAUDE.md`](../CLAUDE.md). Phase 1 history (frozen): [
 Legend: **👤** = done by the user (accounts, web consoles, secrets) · **PM** = done by Claude Code.
 Secrets rule: never pasted in the chat or in versioned files. The user enters them in their terminal or in the consoles, and Claude only verifies that they exist.
 
-Last task ID used: T-297 (T-297 = premium redesign: compile, tests and rules, user 2026-11-17; T-296 = design-system tests; T-289…T-295 = fix batches of review round 0, planner 2026-11-12; T-288 = review round 0, design system, user 2026-11-12; T-286, T-287 = split of T-277 by layer, user 2026-11-11; T-277…T-285 reserved by the E19 breakdown, epic-planner 2026-11-11; T-276 = Checkpoint E18-C feedback fix, user 2026-11-11; T-274, T-275 = US-134, US-135, added to E18 by ADR-106, epic-planner 2026-11-10; T-273 = revert of the unused-food cleanup, user decision 2026-11-10; T-271, T-272 = US-132, US-133, added to E18 by ADR-105, epic-planner 2026-11-10; T-268, T-269, T-270 = Checkpoint E18 feedback fixes; T-259…T-267 reserved by the E18 breakdown; T-257…T-258 = ADR-104 hard energy check, Checkpoint E17 feedback; T-251…T-256 reserved by the E17 breakdown; T-246…T-249 by E16; T-239…T-244 by E15; T-250 = user-reported fix below)
+Last task ID used: T-298 (T-298 = bug fix: nutrition plan runs past the block end after a week is edited, user 2026-11-17; T-297 = premium redesign: compile, tests and rules, user 2026-11-17; T-296 = design-system tests; T-289…T-295 = fix batches of review round 0, planner 2026-11-12; T-288 = review round 0, design system, user 2026-11-12; T-286, T-287 = split of T-277 by layer, user 2026-11-11; T-277…T-285 reserved by the E19 breakdown, epic-planner 2026-11-11; T-276 = Checkpoint E18-C feedback fix, user 2026-11-11; T-274, T-275 = US-134, US-135, added to E18 by ADR-106, epic-planner 2026-11-10; T-273 = revert of the unused-food cleanup, user decision 2026-11-10; T-271, T-272 = US-132, US-133, added to E18 by ADR-105, epic-planner 2026-11-10; T-268, T-269, T-270 = Checkpoint E18 feedback fixes; T-259…T-267 reserved by the E18 breakdown; T-257…T-258 = ADR-104 hard energy check, Checkpoint E17 feedback; T-251…T-256 reserved by the E17 breakdown; T-246…T-249 by E16; T-239…T-244 by E15; T-250 = user-reported fix below)
 
 **Done in the T-246 branch (user report, 2026-11-08; the user ordered it into the current branch, so it ships in T-246's PR as a separate `fix(T-250)` commit):** `fix(T-250)`: the `food-photo` dish prompt (`supabase/functions/food-photo/prompts.ts`) never says whether the per-100 g values are for the food as served; a 400 g cooked plate came back with raw-food kcal/100 g. Fix: the dish prompt states that values and `estimated_grams` describe the food as shown in the photo (cooked when cooked), with a handler/prompt test and a redeploy of `food-photo`. Backend only, no model-call change elsewhere.
 
@@ -399,6 +399,17 @@ Then the emulator look (`! python scripts/deliver-apk.py`), then the test task (
 - [ ] CI green on the PR; `python scripts/gallery.py` renders every area without a failing entry.
 **Dependencies:** none (branch `feat/ui-premium-redesign`, based on the T-284 handoff branch); T-285 waits for it.
 **Files likely touched:** the ~150 files of the redesign, `composeApp/src/androidHostTest/**`, `scripts/check-*`, `planning/05-design-system.md`, `tasks/todo.md`.
+
+## T-298: Fix: editing a week pushes the nutrition plan past the end of the block · S (estimate; user-reported bug 2026-11-17)
+
+**Story:** to be set by the planner (Trainer block and nutrition plan stories) · **Flow:** planner (reproduce first) → kotlin-core-developer (+ compose-ui-developer only if UI changes) → pr-reviewer → pr-creator; CI is the gate. Starts in a fresh session after T-297 merges.
+**Bug (user words):** "When a week is edited, the nutrition plan gets behind the end of the block."
+**Description:** Find why editing a week of the block leaves the nutrition plan's dates/weeks past the block's end, and fix it so the plan always ends with the block. The planner reproduces it with a failing test first, checks every layer in one pass (domain, data, migration/RPC if the dates are computed server-side, comments, tests) and records whether other edit paths (add/remove week, change duration) have the same problem. **Not related** to the `trainingWeekOf` streak finding of T-297 (that function only feeds the Entreno hero streak).
+**Acceptance criteria:**
+- [ ] After editing a week, the nutrition plan never extends beyond the block's last day (test fails before the fix).
+- [ ] Existing plans already past the block end are handled (decision recorded: normalise on read or leave), without changing production data outside a migration.
+**Dependencies:** T-297 merged (keeps T-297's PR focused); not blocking T-285 unless the user decides so.
+**Files likely touched:** `feature/trainer/*`, the block/nutrition-plan domain and data layers, tests.
 
 ## T-285: E19 closure → `v1.x` · closure step (PM only, not a developer task)
 
