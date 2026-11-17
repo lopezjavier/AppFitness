@@ -2,13 +2,17 @@ package io.github.lopezjavier.appfitness.designsystem
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
+import io.github.lopezjavier.appfitness.composeapp.resources.Res
+import io.github.lopezjavier.appfitness.composeapp.resources.ic_auto_awesome
 
 /**
  * A coach proposal waiting for a decision (E13 Q5): [title], the [payload] it would apply, the [reason] in plain
@@ -40,18 +44,28 @@ fun CoachProposalCard(
     footer: (@Composable () -> Unit)? = null,
     content: (@Composable () -> Unit)? = null,
 ) {
-    AppCard(modifier.fillMaxWidth().testTag(testTagPrefix), highlighted = highlighted) {
+    AppCard(
+        modifier.fillMaxWidth().testTag(testTagPrefix),
+        highlighted = highlighted,
+        glow = AppTheme.colors.neonLime,
+    ) {
         if (content != null) {
             content()
         } else {
-            Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(Spacing.md),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                IconBadge(Res.drawable.ic_auto_awesome, AppTheme.colors.neonLime)
                 Text(
                     text = title,
                     style = AppTheme.typography.titleMedium,
                     color = AppTheme.colors.textPrimary,
-                    modifier = Modifier.semantics { heading() },
+                    modifier = Modifier.weight(1f).semantics { heading() },
                 )
-                Text(text = payload, style = AppTheme.typography.titleLarge, color = AppTheme.colors.textPrimary)
+            }
+            Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+                Text(text = payload, style = AppTheme.typography.headlineMetric, color = AppTheme.colors.neonLime)
                 Text(text = reason, style = AppTheme.typography.bodyLarge, color = AppTheme.colors.textPrimary)
                 Text(text = dataUsed, style = AppTheme.typography.bodyMedium, color = AppTheme.colors.textSecondary)
             }

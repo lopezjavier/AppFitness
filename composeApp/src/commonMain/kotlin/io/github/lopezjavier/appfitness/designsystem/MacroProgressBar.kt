@@ -128,7 +128,12 @@ fun MacroProgressBar(
         verticalArrangement = Arrangement.spacedBy(Spacing.sm),
     ) {
         Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.clearAndSetSemantics {}) {
-            Box(Modifier.size(MacroProgressBarDefaults.DotSize).clip(AppShapes.full).background(macroColor))
+            Box(
+                Modifier
+                    .size(MacroProgressBarDefaults.DotSize)
+                    .clip(AppShapes.full)
+                    .background(AppPaint.diagonal(macroColor)),
+            )
             Spacer(Modifier.width(Spacing.sm))
             Text(
                 text = label.uppercase(),
@@ -163,7 +168,8 @@ fun MacroProgressBar(
                     .fillMaxWidth(fraction)
                     .fillMaxHeight()
                     .clip(MacroProgressBarDefaults.Shape)
-                    .background(macroColor),
+                    .background(AppPaint.horizontal(macroColor))
+                    .barTipLight(),
             )
         }
     }

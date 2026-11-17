@@ -80,7 +80,10 @@ fun CompactTonalIconButton(
             contentAlignment = Alignment.Center,
         ) {
             Box(
-                Modifier.size(CompactActionsDefaults.CircleSize).clip(AppShapes.full).background(colors.surfaceControl),
+                Modifier
+                    .size(CompactActionsDefaults.CircleSize)
+                    .clip(AppShapes.full)
+                    .background(AppPaint.controlSurface(colors)),
                 contentAlignment = Alignment.Center,
             ) {
                 Icon(
@@ -112,7 +115,7 @@ fun CompactAddButton(text: String, contentDescription: String, onClick: () -> Un
             Modifier
                 .heightIn(min = CompactActionsDefaults.AddButtonHeight)
                 .clip(AppShapes.full)
-                .background(colors.neonLime)
+                .background(AppPaint.vertical(colors.neonLime))
                 .padding(horizontal = Spacing.md),
             contentAlignment = Alignment.Center,
         ) {

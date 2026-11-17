@@ -4,6 +4,7 @@
 package io.github.lopezjavier.appfitness.designsystem
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
@@ -61,6 +62,7 @@ internal fun PillContainer(
             .heightIn(min = PillDefaults.MinHeight)
             .clip(PillDefaults.Shape)
             .background(containerColor)
+            .border(AppBorder.thin, AppPaint.tileBorder(), PillDefaults.Shape)
             .padding(horizontal = PillDefaults.HorizontalPadding, vertical = PillDefaults.VerticalPadding),
         horizontalArrangement = Arrangement.spacedBy(PillDefaults.ItemSpacing, Alignment.CenterHorizontally),
         verticalAlignment = Alignment.CenterVertically,

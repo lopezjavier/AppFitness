@@ -15,7 +15,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListScope
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Text
@@ -195,8 +195,10 @@ private fun WideDay(content: DiaryContent, actions: EntryActions, onEvent: (Diar
 
 /** One lazy item per meal card, keyed by the slot so a reordered or collapsed meal animates in place. */
 private fun LazyListScope.mealItems(content: DiaryContent, actions: EntryActions, onEvent: (DiaryEvent) -> Unit) {
-    items(content.meals, key = { it.slot.id }) { section ->
+    itemsIndexed(content.meals, key = { _, it -> it.slot.id }) { index, section ->
         MealSectionCard(
+            index = index,
+            dayKcal = content.dayTotals.kcal,
             section = section,
             collapsed = section.slot.id in content.collapsedSlotIds,
             actions = actions,

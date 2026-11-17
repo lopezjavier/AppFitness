@@ -45,6 +45,8 @@ import io.github.lopezjavier.appfitness.designsystem.EmptyState
 import io.github.lopezjavier.appfitness.designsystem.ErrorState
 import io.github.lopezjavier.appfitness.designsystem.ExerciseLayoutDefaults
 import io.github.lopezjavier.appfitness.designsystem.GhostButton
+import io.github.lopezjavier.appfitness.designsystem.IconBadge
+import io.github.lopezjavier.appfitness.designsystem.IconBadgeDefaults
 import io.github.lopezjavier.appfitness.designsystem.SetOrdinal
 import io.github.lopezjavier.appfitness.designsystem.SetTypeBadge
 import io.github.lopezjavier.appfitness.designsystem.SkeletonBox
@@ -144,9 +146,21 @@ private fun HistoryRowCard(row: ExerciseHistoryRow, position: Int, today: LocalD
     AppCard(
         modifier.fillMaxWidth().testTag("exercise_history_session_${row.sessionId}")
             .semantics(mergeDescendants = true) {},
+        glow = if (position == 0) AppTheme.colors.athleticCyan else null,
     ) {
         Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-            Text(date, style = AppTheme.typography.labelTechnical, color = AppTheme.colors.textSecondary)
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                IconBadge(
+                    Res.drawable.ic_calendar,
+                    AppTheme.colors.athleticCyan,
+                    size = IconBadgeDefaults.SmallSize,
+                    iconSize = IconBadgeDefaults.SmallIconSize,
+                )
+                Text(date, style = AppTheme.typography.labelTechnical, color = AppTheme.colors.textSecondary)
+            }
             Text(
                 text = row.name,
                 style = AppTheme.typography.titleMedium,

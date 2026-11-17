@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.PathEffect
@@ -68,6 +69,9 @@ object WeightPaceChartDefaults {
     val PlotEndInset: Dp = 8.dp
     const val DailyAlpha: Float = 0.3f
     const val BandAlpha: Float = 0.12f
+    const val AreaAlpha: Float = 0.20f
+    const val LastGlowFactor: Float = 5f
+    const val LastGlowAlpha: Float = 0.40f
     const val RangePadding: Double = 0.1
     const val MinRangeKg: Double = 2.0
     const val DotsStart: Float = 0.9f
@@ -233,9 +237,37 @@ private fun DrawScope.drawTrend(data: WeightPaceChartData, mapper: PaceMapper, p
         moveTo(first.x, first.y)
         data.weekly.drop(1).forEach { mapper.at(it).let { p -> lineTo(p.x, p.y) } }
     }
+    if (progress >= 1f) {
+        val first = mapper.at(data.weekly.first())
+        val last = mapper.at(data.weekly.last())
+        val area = Path().apply {
+            moveTo(first.x, first.y)
+            data.weekly.drop(1).forEach { mapper.at(it).let { p -> lineTo(p.x, p.y) } }
+            lineTo(last.x, mapper.plotBottom)
+            lineTo(first.x, mapper.plotBottom)
+            close()
+        }
+        drawPath(
+            area,
+            Brush.verticalGradient(
+                colors = listOf(
+                    palette.trend.copy(alpha = WeightPaceChartDefaults.AreaAlpha),
+                    palette.trend.copy(alpha = 0f),
+                ),
+                startY = mapper.plotTop,
+                endY = mapper.plotBottom,
+            ),
+        )
+        drawRadialGlow(
+            palette.trend,
+            last,
+            WeightPaceChartDefaults.WeeklyDotRadius.toPx() * WeightPaceChartDefaults.LastGlowFactor,
+            WeightPaceChartDefaults.LastGlowAlpha,
+        )
+    }
     drawPath(
         partOf(line, progress),
-        palette.trend,
+        AppPaint.horizontal(palette.trend),
         style = Stroke(
             WeightPaceChartDefaults.TrendStroke.toPx(),
             cap = StrokeCap.Round,

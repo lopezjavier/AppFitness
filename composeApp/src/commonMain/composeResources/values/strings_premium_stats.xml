@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="px_stats_hero_weight">Peso</string>
+    <string name="px_stats_hero_strength">Récord 1RM</string>
+    <string name="px_stats_hero_kcal">Kcal al día</string>
+    <string name="px_stats_value_kg">%1$s kg</string>
+    <string name="px_stats_value_kcal">%1$s kcal</string>
+    <string name="px_stats_strength_month">Este mes</string>
+    <string name="px_stats_strength_record_badge">Récord personal</string>
+    <string name="px_stats_exercise_progress_hint">Gráficas y récords por sesión</string>
+    <string name="px_stats_tile_last">Última</string>
+    <string name="px_stats_tile_best">Mejor</string>
+    <string name="px_stats_tile_change">Cambio</string>
+    <string name="px_stats_week_delta">%1$s kg vs. semana anterior</string>
+    <string name="px_stats_sheet_total">Series en 7 días</string>
+    <string name="px_stats_sheet_exercises">Ejercicios que lo trabajaron</string>
+    <string name="px_stats_sheet_share">%1$s%% del total</string>
+    <string name="px_stats_howto_step">Paso %1$s</string>
+</resources>

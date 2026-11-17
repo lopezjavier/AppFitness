@@ -21,13 +21,19 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.produceState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.github.lopezjavier.appfitness.composeapp.resources.Res
 import io.github.lopezjavier.appfitness.composeapp.resources.action_retry
+import io.github.lopezjavier.appfitness.composeapp.resources.ic_fact_check
+import io.github.lopezjavier.appfitness.composeapp.resources.ic_insights
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_nav_trainer
+import io.github.lopezjavier.appfitness.composeapp.resources.px_trainer_plan_empty_bullet_1
+import io.github.lopezjavier.appfitness.composeapp.resources.px_trainer_plan_empty_bullet_2
+import io.github.lopezjavier.appfitness.composeapp.resources.px_trainer_plan_empty_bullet_3
 import io.github.lopezjavier.appfitness.composeapp.resources.root_error_message
 import io.github.lopezjavier.appfitness.composeapp.resources.trainer_plan_create
 import io.github.lopezjavier.appfitness.composeapp.resources.trainer_plan_create_action
@@ -42,11 +48,13 @@ import io.github.lopezjavier.appfitness.designsystem.AppShapes
 import io.github.lopezjavier.appfitness.designsystem.AppStateAction
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
 import io.github.lopezjavier.appfitness.designsystem.AppTopBarDefaults
-import io.github.lopezjavier.appfitness.designsystem.EmptyState
 import io.github.lopezjavier.appfitness.designsystem.ErrorState
 import io.github.lopezjavier.appfitness.designsystem.HubDimensions
+import io.github.lopezjavier.appfitness.designsystem.IconBadge
+import io.github.lopezjavier.appfitness.designsystem.IconBadgeDefaults
 import io.github.lopezjavier.appfitness.designsystem.NavigationRow
 import io.github.lopezjavier.appfitness.designsystem.OfflineHint
+import io.github.lopezjavier.appfitness.designsystem.PrimaryButton
 import io.github.lopezjavier.appfitness.designsystem.RowGroupCard
 import io.github.lopezjavier.appfitness.designsystem.SkeletonBox
 import io.github.lopezjavier.appfitness.designsystem.Spacing
@@ -55,6 +63,7 @@ import io.github.lopezjavier.appfitness.domain.port.ConnectivityObserver
 import io.github.lopezjavier.appfitness.domain.usecase.ExerciseNameResolver
 import io.github.lopezjavier.appfitness.feature.notifications.NotificationsBell
 import kotlinx.coroutines.flow.Flow
+import org.jetbrains.compose.resources.DrawableResource
 import org.jetbrains.compose.resources.pluralStringResource
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.koinInject
@@ -260,19 +269,24 @@ private fun NoPlanContent(online: Boolean, provisionalCount: Int?, actions: Trai
     Column(Modifier.fillMaxSize().padding(Spacing.screenMargin)) {
         Box(Modifier.weight(1f).fillMaxWidth(), contentAlignment = Alignment.Center) {
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                EmptyState(
+                TrainerEmptyHero(
                     icon = Res.drawable.ic_nav_trainer,
                     title = stringResource(Res.string.trainer_plan_empty_title),
                     message = stringResource(Res.string.trainer_plan_empty_body),
-                    action = if (online) {
-                        AppStateAction(stringResource(Res.string.trainer_plan_create)) {
-                            actions.onOpenBeforeStart(BeforeStartMode.Plan, null, null)
-                        }
-                    } else {
-                        null
-                    },
-                    testTagPrefix = "trainer_empty",
+                    bullets = listOf(
+                        stringResource(Res.string.px_trainer_plan_empty_bullet_1),
+                        stringResource(Res.string.px_trainer_plan_empty_bullet_2),
+                        stringResource(Res.string.px_trainer_plan_empty_bullet_3),
+                    ),
+                    tagPrefix = "trainer_empty",
                 )
+                if (online) {
+                    PrimaryButton(
+                        text = stringResource(Res.string.trainer_plan_create),
+                        onClick = { actions.onOpenBeforeStart(BeforeStartMode.Plan, null, null) },
+                        modifier = Modifier.padding(top = Spacing.lg).testTag("trainer_empty_action"),
+                    )
+                }
                 if (!online) OfflineHint(stringResource(Res.string.trainer_plan_create_action))
             }
         }
@@ -355,6 +369,7 @@ private fun RootLinksGroup(provisionalCount: Int?, onOpenReports: () -> Unit, on
                     modifier = Modifier.padding(
                         horizontal = Spacing.lg,
                     ).heightIn(min = RootRowHeight).testTag("trainer_reports"),
+                    leading = { LinkBadge(Res.drawable.ic_insights, AppTheme.colors.athleticCyan) },
                 )
             },
             {
@@ -366,10 +381,16 @@ private fun RootLinksGroup(provisionalCount: Int?, onOpenReports: () -> Unit, on
                     ).heightIn(min = RootRowHeight).testTag("trainer_your_data"),
                     value = provisionalCount?.takeIf { it > 0 }
                         ?.let { pluralStringResource(Res.plurals.your_data_provisional_count, it, it) },
+                    leading = { LinkBadge(Res.drawable.ic_fact_check, AppTheme.colors.energyAmber) },
                 )
             },
         ),
     )
+}
+
+@Composable
+private fun LinkBadge(icon: DrawableResource, tint: Color) {
+    IconBadge(icon, tint, size = IconBadgeDefaults.SmallSize, iconSize = IconBadgeDefaults.SmallIconSize)
 }
 
 /** The tab heading, equal to the bottom-bar label (R-04). */

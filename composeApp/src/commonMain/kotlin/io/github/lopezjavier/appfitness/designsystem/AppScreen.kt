@@ -77,7 +77,12 @@ fun AppScreen(
 ) {
     val backDescription = stringResource(Res.string.topbar_back_cd)
     val backButton = remember(onBack, backDescription) { onBack?.let { AppTopBarButton(backDescription, it) } }
-    Column(modifier.fillMaxSize().background(AppTheme.colors.surfaceBase)) {
+    Column(
+        modifier
+            .fillMaxSize()
+            .background(AppTheme.colors.surfaceBase)
+            .ambientBackdrop(AppTheme.colors.neonLime, AppTheme.colors.athleticCyan),
+    ) {
         if (header != null) {
             CompactHeader(AppScreenDefaults.headerTag(testTagPrefix), header)
         } else {
@@ -113,7 +118,6 @@ private fun CompactHeader(tag: String, header: @Composable () -> Unit) {
         Modifier
             .fillMaxWidth()
             .testTag(tag)
-            .background(AppTheme.colors.surfaceBase)
             .drawBehind {
                 val y = size.height - AppBorder.thin.toPx() / 2
                 drawLine(borderColor, Offset(0f, y), Offset(size.width, y), strokeWidth = AppBorder.thin.toPx())

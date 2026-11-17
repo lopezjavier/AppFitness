@@ -51,12 +51,14 @@ import io.github.lopezjavier.appfitness.composeapp.resources.food_photo_error_un
 import io.github.lopezjavier.appfitness.composeapp.resources.food_photo_preview_image_cd
 import io.github.lopezjavier.appfitness.composeapp.resources.food_photo_retake
 import io.github.lopezjavier.appfitness.composeapp.resources.food_photo_use
+import io.github.lopezjavier.appfitness.composeapp.resources.ic_auto_awesome
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_photo_camera
 import io.github.lopezjavier.appfitness.designsystem.AppButtonDefaults
 import io.github.lopezjavier.appfitness.designsystem.AppShapes
 import io.github.lopezjavier.appfitness.designsystem.AppStateAction
 import io.github.lopezjavier.appfitness.designsystem.AppTextField
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
+import io.github.lopezjavier.appfitness.designsystem.DiaryAnalysingGraphic
 import io.github.lopezjavier.appfitness.designsystem.ErrorState
 import io.github.lopezjavier.appfitness.designsystem.PrimaryButton
 import io.github.lopezjavier.appfitness.designsystem.SecondaryButton
@@ -218,11 +220,14 @@ fun PhotoEstimating(modifier: Modifier = Modifier, isText: Boolean = false) {
     val message = stringResource(if (isText) Res.string.food_photo_analyzing_meal else Res.string.food_photo_analyzing)
     FullScreenStep("food_photo_estimating", onBack = {}, modifier = modifier) {
         Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-            StreamProgressState(
-                message = message,
-                stateDescription = message,
-                testTag = "food_photo_estimating_progress",
-            )
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                DiaryAnalysingGraphic(Res.drawable.ic_auto_awesome)
+                StreamProgressState(
+                    message = message,
+                    stateDescription = message,
+                    testTag = "food_photo_estimating_progress",
+                )
+            }
         }
     }
 }

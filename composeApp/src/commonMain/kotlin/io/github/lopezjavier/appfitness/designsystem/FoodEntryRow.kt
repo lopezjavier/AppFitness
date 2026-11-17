@@ -3,6 +3,7 @@ package io.github.lopezjavier.appfitness.designsystem
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Immutable
@@ -58,13 +59,16 @@ fun FoodEntryRow(
 ) {
     val tagged = modifier.testTag(FoodEntryRowDefaults.rowTag(tagPrefix, model.id))
     val row: @Composable () -> Unit = {
-        AppListRow(
-            headline = model.name,
-            supporting = model.detail,
-            supportingTestTag = FoodEntryRowDefaults.detailTag(tagPrefix, model.id),
-            onClick = onClick,
-            trailing = { EntryTotals(model) },
-        )
+        Column {
+            AppListRow(
+                headline = model.name,
+                supporting = model.detail,
+                supportingTestTag = FoodEntryRowDefaults.detailTag(tagPrefix, model.id),
+                onClick = onClick,
+                trailing = { EntryTotals(model) },
+            )
+            EntryMacroSplit(model, "${FoodEntryRowDefaults.rowTag(tagPrefix, model.id)}_split")
+        }
     }
     if (onDelete == null) {
         Column(tagged) { row() }
@@ -80,6 +84,30 @@ fun FoodEntryRow(
         )
     }
 }
+
+/** A slim bar under the row with the entry's calories split by macro (4/4/9 kcal per gram); hidden without macros. */
+@Composable
+private fun EntryMacroSplit(model: FoodEntryRowModel, tag: String) {
+    val protein = model.proteinG * KCAL_PER_G_PROTEIN_CARBS
+    val carbs = model.carbsG * KCAL_PER_G_PROTEIN_CARBS
+    val fat = model.fatG * KCAL_PER_G_FAT
+    val total = protein + carbs + fat
+    if (total <= 0) return
+    val proteinPct = protein * PERCENT / total
+    val carbsPct = carbs * PERCENT / total
+    MacroStackedBar(
+        proteinPct = proteinPct,
+        carbsPct = carbsPct,
+        fatPct = PERCENT - proteinPct - carbsPct,
+        modifier = Modifier.padding(horizontal = Spacing.xs).padding(bottom = Spacing.xs),
+        testTag = tag,
+        barHeight = DiaryGraphicsDefaults.ShareHeight,
+    )
+}
+
+private const val KCAL_PER_G_PROTEIN_CARBS = 4
+private const val KCAL_PER_G_FAT = 9
+private const val PERCENT = 100
 
 /** The trailing slot of [FoodEntryRow]: kcal over the macros; shared with the diary group row (C-60). */
 @Composable

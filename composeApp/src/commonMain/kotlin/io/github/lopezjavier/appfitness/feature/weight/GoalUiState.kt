@@ -1,6 +1,7 @@
 package io.github.lopezjavier.appfitness.feature.weight
 
 import io.github.lopezjavier.appfitness.domain.model.GoalStrategy
+import io.github.lopezjavier.appfitness.domain.model.Sex
 import io.github.lopezjavier.appfitness.domain.usecase.MetricInterpretation
 import io.github.lopezjavier.appfitness.domain.usecase.MetricKind
 
@@ -16,6 +17,8 @@ data class GoalContent(
     val waistToHip: MetricInterpretation?,
     val isOnline: Boolean,
     val openMetric: MetricKind?,
+    /** The sex used to read body fat and waist-to-hip; sets the gauge zones. */
+    val sex: Sex? = null,
 )
 
 sealed interface GoalUiState {

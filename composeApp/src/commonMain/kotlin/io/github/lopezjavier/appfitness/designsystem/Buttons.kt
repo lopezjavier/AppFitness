@@ -2,6 +2,7 @@ package io.github.lopezjavier.appfitness.designsystem
 
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsFocusedAsState
 import androidx.compose.foundation.interaction.collectIsPressedAsState
@@ -25,6 +26,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.compositeOver
 import androidx.compose.ui.graphics.graphicsLayer
@@ -133,6 +135,22 @@ object AppButtonDefaults {
         colors.border?.let { BorderStroke(AppBorder.thin, it) }
     }
 
+    /** Reach of the glow under an enabled primary button. */
+    val GlowRadius: Dp = 14.dp
+    const val GLOW_ALPHA = 0.22f
+    const val GLOW_PRESSED_ALPHA = 0.10f
+
+    /**
+     * The gradient painted behind an enabled primary (lime ramp) or secondary (soft control surface) button; null for
+     * every other state, which keeps the flat [colors] container. The label colours of [colors] are unchanged.
+     */
+    fun paint(variant: AppButtonVariant, enabled: Boolean, appColors: AppColors): Brush? = when {
+        !enabled -> null
+        variant == AppButtonVariant.Primary -> AppPaint.vertical(appColors.neonLime)
+        variant == AppButtonVariant.Secondary -> AppPaint.controlSurface(appColors)
+        else -> null
+    }
+
     private const val DISABLED_CONTAINER_ALPHA = 0.2f
     private const val DISABLED_CONTENT_ALPHA = 0.5f
 
@@ -206,6 +224,7 @@ private fun AppButton(
     val focused by source.collectIsFocusedAsState()
     val scale by animateFloatAsState(AppButtonDefaults.scale(pressed), label = "button_press_scale")
     val colors = AppButtonDefaults.colors(variant, enabled, AppTheme.colors, ghostTone)
+    val paint = AppButtonDefaults.paint(variant, enabled, AppTheme.colors)
     Surface(
         onClick = onClick,
         modifier =
@@ -214,10 +233,23 @@ private fun AppButton(
                 scaleX = scale
                 scaleY = scale
             }
-            .heightIn(min = AppButtonDefaults.minHeight(variant)),
+            .heightIn(min = AppButtonDefaults.minHeight(variant))
+            .then(
+                if (paint != null && variant == AppButtonVariant.Primary) {
+                    Modifier.softGlow(
+                        color = AppTheme.colors.neonLime,
+                        cornerRadius = AppRadius.lg,
+                        radius = AppButtonDefaults.GlowRadius,
+                        alpha = if (pressed) AppButtonDefaults.GLOW_PRESSED_ALPHA else AppButtonDefaults.GLOW_ALPHA,
+                    )
+                } else {
+                    Modifier
+                },
+            )
+            .then(if (paint != null) Modifier.background(paint, AppButtonDefaults.Shape) else Modifier),
         enabled = enabled,
         shape = AppButtonDefaults.Shape,
-        color = colors.container,
+        color = if (paint != null) Color.Transparent else colors.container,
         contentColor = colors.content,
         border =
         AppButtonDefaults.borderStroke(variant, enabled, focused, colors, AppTheme.colors),

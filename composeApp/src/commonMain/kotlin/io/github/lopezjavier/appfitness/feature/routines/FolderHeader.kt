@@ -40,7 +40,7 @@ import io.github.lopezjavier.appfitness.composeapp.resources.routines_folder_sum
 import io.github.lopezjavier.appfitness.designsystem.AppCard
 import io.github.lopezjavier.appfitness.designsystem.AppIconButton
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
-import io.github.lopezjavier.appfitness.designsystem.IconTile
+import io.github.lopezjavier.appfitness.designsystem.IconBadge
 import io.github.lopezjavier.appfitness.designsystem.Spacing
 import io.github.lopezjavier.appfitness.domain.model.RoutineFolder
 import io.github.lopezjavier.appfitness.domain.model.RoutineSummary
@@ -117,7 +117,10 @@ private fun FolderToggle(
         horizontalArrangement = Arrangement.spacedBy(Spacing.md),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        IconTile(if (expanded && !empty) Res.drawable.ic_folder_open else Res.drawable.ic_folder)
+        IconBadge(
+            icon = if (expanded && !empty) Res.drawable.ic_folder_open else Res.drawable.ic_folder,
+            tint = AppTheme.colors.energyAmber,
+        )
         Column(
             Modifier.weight(1f).semantics(mergeDescendants = true) { heading() }
                 .testTag("routines_folder_${folder.id}"),

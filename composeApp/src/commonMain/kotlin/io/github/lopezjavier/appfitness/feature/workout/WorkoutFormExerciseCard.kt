@@ -21,6 +21,7 @@ import io.github.lopezjavier.appfitness.composeapp.resources.builder_rest_unit
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_arrow_downward
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_arrow_upward
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_delete
+import io.github.lopezjavier.appfitness.composeapp.resources.ic_fitness_center
 import io.github.lopezjavier.appfitness.composeapp.resources.live_object_set
 import io.github.lopezjavier.appfitness.composeapp.resources.note_edit
 import io.github.lopezjavier.appfitness.composeapp.resources.workout_form_exercise_down_cd
@@ -31,6 +32,8 @@ import io.github.lopezjavier.appfitness.designsystem.AddItemButton
 import io.github.lopezjavier.appfitness.designsystem.AppCard
 import io.github.lopezjavier.appfitness.designsystem.AppIconButton
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
+import io.github.lopezjavier.appfitness.designsystem.IconBadge
+import io.github.lopezjavier.appfitness.designsystem.IconBadgeDefaults
 import io.github.lopezjavier.appfitness.designsystem.InlineNote
 import io.github.lopezjavier.appfitness.designsystem.NumberStepper
 import io.github.lopezjavier.appfitness.designsystem.Spacing
@@ -70,6 +73,13 @@ internal fun FormExerciseCard(
     AppCard(modifier.fillMaxWidth().testTag("${tagPrefix}_exercise_$index")) {
         Column(verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
+                IconBadge(
+                    icon = Res.drawable.ic_fitness_center,
+                    tint = AppTheme.colors.athleticCyan,
+                    modifier = Modifier.padding(end = Spacing.md),
+                    size = IconBadgeDefaults.SmallSize,
+                    iconSize = IconBadgeDefaults.SmallIconSize,
+                )
                 Text(
                     text = title,
                     style = AppTheme.typography.titleMedium,

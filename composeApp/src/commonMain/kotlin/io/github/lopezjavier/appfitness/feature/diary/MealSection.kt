@@ -22,6 +22,7 @@ import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.layout.SubcomposeLayout
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
@@ -38,12 +39,17 @@ import io.github.lopezjavier.appfitness.composeapp.resources.diary_section_colla
 import io.github.lopezjavier.appfitness.composeapp.resources.diary_section_expanded
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_expand_more
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_save_meal
+import io.github.lopezjavier.appfitness.composeapp.resources.px_diary_empty_meal
+import io.github.lopezjavier.appfitness.composeapp.resources.px_diary_meal_share_cd
 import io.github.lopezjavier.appfitness.designsystem.AppBorder
 import io.github.lopezjavier.appfitness.designsystem.AppCard
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
 import io.github.lopezjavier.appfitness.designsystem.CompactAddButton
 import io.github.lopezjavier.appfitness.designsystem.CompactKcalPill
 import io.github.lopezjavier.appfitness.designsystem.CompactTonalIconButton
+import io.github.lopezjavier.appfitness.designsystem.DiaryShareBar
+import io.github.lopezjavier.appfitness.designsystem.IconBadge
+import io.github.lopezjavier.appfitness.designsystem.IconBadgeDefaults
 import io.github.lopezjavier.appfitness.designsystem.MacroLine
 import io.github.lopezjavier.appfitness.designsystem.Spacing
 import io.github.lopezjavier.appfitness.designsystem.semiBold
@@ -53,6 +59,7 @@ import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.resources.stringResource
 
 internal const val EXPANDED_CHEVRON_ROTATION = 180f
+private const val PERCENT = 100
 
 /**
  * The object of the add button: "a <comida>" with the meal name as typed, no article (R-69: a meal named by the user
@@ -76,7 +83,10 @@ internal fun MealSectionCard(
     onAdd: () -> Unit,
     onSaveTemplate: () -> Unit,
     modifier: Modifier = Modifier,
+    index: Int = 0,
+    dayKcal: Double = 0.0,
 ) {
+    val accent = mealAccent(index)
     AppCard(
         modifier.fillMaxWidth().testTag("diary_section_${section.slot.id}"),
         // No padding above the name row (R-75); a collapsed or empty card keeps only 4 dp below (C-61).
@@ -86,13 +96,33 @@ internal fun MealSectionCard(
             bottom = if (collapsed || section.rows.isEmpty()) Spacing.xs else Spacing.cardPadding,
         ),
     ) {
-        SectionHeader(
-            section = section,
-            collapsed = collapsed,
-            onToggle = onToggle,
-            onAdd = onAdd,
-            onSaveTemplate = onSaveTemplate.takeIf { section.entries.isNotEmpty() },
-        )
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.md)) {
+            IconBadge(
+                icon = section.slot.icon(),
+                tint = accent,
+                size = IconBadgeDefaults.SmallSize,
+                iconSize = IconBadgeDefaults.SmallIconSize,
+            )
+            Box(Modifier.weight(1f)) {
+                SectionHeader(
+                    section = section,
+                    collapsed = collapsed,
+                    onToggle = onToggle,
+                    onAdd = onAdd,
+                    onSaveTemplate = onSaveTemplate.takeIf { section.entries.isNotEmpty() },
+                )
+            }
+        }
+        if (section.entries.isNotEmpty() && dayKcal > 0.0) {
+            val share = (section.totals.kcal / dayKcal).toFloat()
+            val percent = (share * PERCENT).toInt()
+            val shareDescription = stringResource(Res.string.px_diary_meal_share_cd, percent)
+            DiaryShareBar(
+                fraction = share,
+                color = accent,
+                modifier = Modifier.padding(bottom = Spacing.xs).semantics { contentDescription = shareDescription },
+            )
+        }
         if (!collapsed) MealBody(section, actions)
     }
 }
@@ -246,13 +276,22 @@ private fun SectionToggle(
         }
         val totals = section.totals
         val macros: @Composable (Modifier) -> Unit = { macroModifier ->
-            MacroLine(
-                proteinG = wholeHalfUp(totals.proteinG),
-                carbsG = wholeHalfUp(totals.carbsG),
-                fatG = wholeHalfUp(totals.fatG),
-                modifier = macroModifier,
-                muted = section.entries.isEmpty(),
-            )
+            if (section.entries.isEmpty()) {
+                Text(
+                    text = stringResource(Res.string.px_diary_empty_meal),
+                    style = AppTheme.typography.bodySmall,
+                    color = AppTheme.colors.textTertiary,
+                    modifier = macroModifier,
+                )
+            } else {
+                MacroLine(
+                    proteinG = wholeHalfUp(totals.proteinG),
+                    carbsG = wholeHalfUp(totals.carbsG),
+                    fatG = wholeHalfUp(totals.fatG),
+                    modifier = macroModifier,
+                    muted = section.entries.isEmpty(),
+                )
+            }
         }
         if (pillText != null && !pillInline) {
             Row(

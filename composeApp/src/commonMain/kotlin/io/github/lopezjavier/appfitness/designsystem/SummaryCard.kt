@@ -70,8 +70,13 @@ fun SummaryCard(
     content: (@Composable () -> Unit)? = null,
     footer: (@Composable () -> Unit)? = null,
     titleAction: (@Composable () -> Unit)? = null,
+    glow: androidx.compose.ui.graphics.Color? = null,
 ) {
-    AppCard(modifier.fillMaxWidth(), highlighted = highlighted) {
+    AppCard(
+        modifier.fillMaxWidth(),
+        highlighted = highlighted,
+        glow = glow ?: if (highlighted) AppTheme.colors.athleticCyan else null,
+    ) {
         Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
             val body = if (onClick != null) {
                 Modifier

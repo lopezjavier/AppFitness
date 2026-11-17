@@ -160,7 +160,6 @@ fun AppTopBar(
         modifier
             .fillMaxWidth()
             .testTag(testTagPrefix)
-            .background(colors.surfaceBase)
             .drawBehind {
                 val y = size.height - AppBorder.thin.toPx() / 2
                 drawLine(borderColor, Offset(0f, y), Offset(size.width, y), strokeWidth = AppBorder.thin.toPx())

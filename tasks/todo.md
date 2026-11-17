@@ -6,7 +6,7 @@ Operating instructions: [`CLAUDE.md`](../CLAUDE.md). Phase 1 history (frozen): [
 Legend: **👤** = done by the user (accounts, web consoles, secrets) · **PM** = done by Claude Code.
 Secrets rule: never pasted in the chat or in versioned files. The user enters them in their terminal or in the consoles, and Claude only verifies that they exist.
 
-Last task ID used: T-295 (T-289…T-295 = fix batches of review round 0, planner 2026-11-12; T-288 = review round 0, design system, user 2026-11-12; T-286, T-287 = split of T-277 by layer, user 2026-11-11; T-277…T-285 reserved by the E19 breakdown, epic-planner 2026-11-11; T-276 = Checkpoint E18-C feedback fix, user 2026-11-11; T-274, T-275 = US-134, US-135, added to E18 by ADR-106, epic-planner 2026-11-10; T-273 = revert of the unused-food cleanup, user decision 2026-11-10; T-271, T-272 = US-132, US-133, added to E18 by ADR-105, epic-planner 2026-11-10; T-268, T-269, T-270 = Checkpoint E18 feedback fixes; T-259…T-267 reserved by the E18 breakdown; T-257…T-258 = ADR-104 hard energy check, Checkpoint E17 feedback; T-251…T-256 reserved by the E17 breakdown; T-246…T-249 by E16; T-239…T-244 by E15; T-250 = user-reported fix below)
+Last task ID used: T-297 (T-297 = premium redesign: compile, tests and rules, user 2026-11-17; T-296 = design-system tests; T-289…T-295 = fix batches of review round 0, planner 2026-11-12; T-288 = review round 0, design system, user 2026-11-12; T-286, T-287 = split of T-277 by layer, user 2026-11-11; T-277…T-285 reserved by the E19 breakdown, epic-planner 2026-11-11; T-276 = Checkpoint E18-C feedback fix, user 2026-11-11; T-274, T-275 = US-134, US-135, added to E18 by ADR-106, epic-planner 2026-11-10; T-273 = revert of the unused-food cleanup, user decision 2026-11-10; T-271, T-272 = US-132, US-133, added to E18 by ADR-105, epic-planner 2026-11-10; T-268, T-269, T-270 = Checkpoint E18 feedback fixes; T-259…T-267 reserved by the E18 breakdown; T-257…T-258 = ADR-104 hard energy check, Checkpoint E17 feedback; T-251…T-256 reserved by the E17 breakdown; T-246…T-249 by E16; T-239…T-244 by E15; T-250 = user-reported fix below)
 
 **Done in the T-246 branch (user report, 2026-11-08; the user ordered it into the current branch, so it ships in T-246's PR as a separate `fix(T-250)` commit):** `fix(T-250)`: the `food-photo` dish prompt (`supabase/functions/food-photo/prompts.ts`) never says whether the per-100 g values are for the food as served; a 400 g cooked plate came back with raw-food kcal/100 g. Fix: the dish prompt states that values and `estimated_grams` describe the food as shown in the photo (cooked when cooked), with a handler/prompt test and a redeploy of `food-photo`. Backend only, no model-call change elsewhere.
 
@@ -376,6 +376,28 @@ Then the emulator look (`! python scripts/deliver-apk.py`), then the test task (
 **Estimated scope:** M (estimate)
 
 ---
+
+## T-297: Premium visual redesign: compile, fix the tests and adapt the broken rules (US-123) · L (estimate; added by the user 2026-11-17)
+
+**Story:** US-123 (UI review) · **Flow:** compose-ui-developer alone (build, tests and guards), then pr-reviewer ∥ ux-reviewer (diff) → pr-creator; CI is the gate. **Origin:** the "ultrapremium" redesign (about 150 files, written by general-purpose agents, uncommitted until 2026-11-17) was written on the user's order without the usual workflow and mostly **without a compiler**. Full account of the changes and decisions: [`tasks/premium-redesign-report.md`](premium-redesign-report.md).
+**Description:** Make the redesign shippable: (1) one compile of `commonMain` and of the test source set, fixing errors in the redesign files (three are already fixed by hand: the `ExperimentalLayoutApi` import in `WorkoutRow`, one 121-column line in `AccountActions`, the missing `AppTheme` import in `FoodSearchScreen`); (2) ktlint and detekt findings of the new files (long lines, import order, magic numbers, long functions); (3) adjust the host tests that the redesign broke and re-record the goldens that changed on purpose; (4) bring every rule, guard and document that the redesign contradicts back in line, either by changing the code or, with the user's OK on the exact wording, the rule (`05-design-system.md` §8-§10, ledger rows, `check-ux-conventions.sh`, `check-design-tokens.sh`, gallery catalogue coverage). Behaviour does not change.
+**Known breakages to check first (from the report, §6):**
+- `GalleryCoverageTest.realDesignSystem_everyComponentIsInTheCatalogOrExempt`: the new components (`AppGraphics.kt`, `CelebrationBurst.kt`, `StartGraphics.kt`, `DiaryGraphics.kt`, `DiaryEnergyScale.kt`, `DiaryAnalysing.kt`, `LiveStatusStrip.kt`, `TrainerGraphics.kt`) are not in the gallery catalogue: add catalogue sections or exemptions.
+- `check-unused-resources.py` already fails on 17 strings (16 `px_*` of `strings_premium_{body,routines,stats,trainer}.xml` and the existing `report_lift_range`, left unused by the redesign): use or delete them.
+- Tests tied to text or layout that changed: workout row stats string, the empty-meal macro line, the goals prompt row click, `trainer_empty_*` tags, `plan_proposal_macro_bar`, `trainer_box_block_sessions_progress`.
+- R-64 / C-20 ("selected is lime, cyan is informational only"), the 48 dp touch targets, `AccessibilitySweepTest` and font scale 1.3 at 360 dp against the new cards, strips and rings.
+- `check-ux-conventions.sh` and its allowlists, `check-unused-resources.py` (new drawables and the seven `strings_premium_*.xml` files), `check-text-encoding.sh`, `check-design-tokens.sh` (passes on the current tree).
+- Unfinished redesign items listed in the report §5 are out of scope here; they become their own task if the user wants them.
+**Acceptance criteria:**
+- [ ] `compileAndroidMain` and the test source set compile with no errors.
+- [ ] ktlint, detekt and the four guard scripts are green.
+- [ ] Host tests green; every re-recorded golden is listed in the PR with the reason (intended redesign change).
+- [ ] No rule, guard or doc contradicts the redesign: each broken rule is either satisfied by the code or changed in the same PR with the user's OK on the wording, and the decision is logged in the report.
+- [ ] The user approves the look in the emulator (`! python scripts/deliver-apk.py`) before merge.
+**Verification:**
+- [ ] CI green on the PR; `python scripts/gallery.py` renders every area without a failing entry.
+**Dependencies:** none (branch `feat/ui-premium-redesign`, based on the T-284 handoff branch); T-285 waits for it.
+**Files likely touched:** the ~150 files of the redesign, `composeApp/src/androidHostTest/**`, `scripts/check-*`, `planning/05-design-system.md`, `tasks/todo.md`.
 
 ## T-285: E19 closure → `v1.x` · closure step (PM only, not a developer task)
 

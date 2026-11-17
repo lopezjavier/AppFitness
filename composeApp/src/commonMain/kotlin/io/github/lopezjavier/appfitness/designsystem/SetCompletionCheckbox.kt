@@ -40,6 +40,10 @@ object SetCompletionCheckboxDefaults {
     val CurrentRingWidth: Dp = 1.5.dp
     val Shape = AppShapes.full
 
+    /** Light around a done (or the current) circle. */
+    val GlowRadius: Dp = 8.dp
+    const val GLOW_ALPHA = 0.34f
+
     /** Both states draw the glyph; fill and glyph colour differ in luminance, so it survives greyscale. */
     fun colors(checked: Boolean, appColors: AppColors): SetCheckboxColors = if (checked) {
         SetCheckboxColors(container = appColors.neonLime, icon = appColors.onNeonLime)
@@ -89,8 +93,30 @@ fun SetCompletionCheckbox(
             modifier =
             Modifier
                 .size(SetCompletionCheckboxDefaults.VisualSize)
+                .then(
+                    if (checked) {
+                        Modifier.softGlow(
+                            AppTheme.colors.neonLime,
+                            SetCompletionCheckboxDefaults.VisualSize / 2,
+                            radius = SetCompletionCheckboxDefaults.GlowRadius,
+                            alpha = SetCompletionCheckboxDefaults.GLOW_ALPHA,
+                            offsetY = 0.dp,
+                        )
+                    } else if (ringed) {
+                        Modifier.softGlow(
+                            AppTheme.colors.athleticCyan,
+                            SetCompletionCheckboxDefaults.VisualSize / 2,
+                            radius = SetCompletionCheckboxDefaults.GlowRadius,
+                            alpha = SetCompletionCheckboxDefaults.GLOW_ALPHA / 2,
+                            offsetY = 0.dp,
+                        )
+                    } else {
+                        Modifier
+                    },
+                )
                 .clip(SetCompletionCheckboxDefaults.Shape)
                 .background(colors.container)
+                .then(if (checked) Modifier.background(AppPaint.diagonal(colors.container)) else Modifier)
                 .then(
                     if (ringed) {
                         Modifier.border(

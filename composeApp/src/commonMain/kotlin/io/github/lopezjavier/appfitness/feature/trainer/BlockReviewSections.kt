@@ -3,7 +3,9 @@
 package io.github.lopezjavier.appfitness.feature.trainer
 
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -23,14 +25,24 @@ import io.github.lopezjavier.appfitness.composeapp.resources.block_review_waist_
 import io.github.lopezjavier.appfitness.composeapp.resources.block_review_weight_header
 import io.github.lopezjavier.appfitness.composeapp.resources.block_review_weight_help_body
 import io.github.lopezjavier.appfitness.composeapp.resources.block_review_weight_help_cd
+import io.github.lopezjavier.appfitness.composeapp.resources.ic_check
+import io.github.lopezjavier.appfitness.composeapp.resources.ic_fitness_center
+import io.github.lopezjavier.appfitness.composeapp.resources.ic_flag
+import io.github.lopezjavier.appfitness.composeapp.resources.ic_monitor_weight
+import io.github.lopezjavier.appfitness.composeapp.resources.px_trainer_record
 import io.github.lopezjavier.appfitness.composeapp.resources.report_lift_change
-import io.github.lopezjavier.appfitness.composeapp.resources.report_lift_range
 import io.github.lopezjavier.appfitness.designsystem.AppListRow
+import io.github.lopezjavier.appfitness.designsystem.AppPaint
+import io.github.lopezjavier.appfitness.designsystem.AppTheme
 import io.github.lopezjavier.appfitness.designsystem.HelpButton
+import io.github.lopezjavier.appfitness.designsystem.IconBadge
+import io.github.lopezjavier.appfitness.designsystem.RecordBadge
 import io.github.lopezjavier.appfitness.designsystem.SectionCard
 import io.github.lopezjavier.appfitness.designsystem.Spacing
 import io.github.lopezjavier.appfitness.designsystem.StatusChip
 import io.github.lopezjavier.appfitness.designsystem.StatusTone
+import io.github.lopezjavier.appfitness.designsystem.TrainerBeforeAfter
+import io.github.lopezjavier.appfitness.designsystem.TrainerTintedRow
 import io.github.lopezjavier.appfitness.designsystem.TrendDirection
 import io.github.lopezjavier.appfitness.designsystem.TrendPill
 import io.github.lopezjavier.appfitness.designsystem.TrendTone
@@ -74,38 +86,51 @@ internal fun LiftsCard(state: BlockReviewUiState.Content) {
             )
         },
     ) {
-        lifts.forEach { (lift, name) ->
-            val first = lift.firstE1rm
-            val last = lift.lastE1rm
-            val change = if (first != null && last != null) lift.changeKg ?: (last - first) else null
-            AppListRow(
-                headline = name,
-                modifier = Modifier.testTag("block_review_lift_${lift.exerciseId}"),
-                supporting = if (first != null && last != null) {
-                    stringResource(Res.string.report_lift_range, WeekSummaryText.kg(first), WeekSummaryText.kg(last))
-                } else {
-                    stringResource(Res.string.block_review_trend_none)
-                },
-                trailing = if (change != null || lift.stalled) {
-                    {
-                        Row(
-                            horizontalArrangement = Arrangement.spacedBy(Spacing.xs),
-                            verticalAlignment = Alignment.CenterVertically,
-                        ) {
-                            if (change != null) LiftChangePill(lift, change)
-                            if (lift.stalled) {
-                                StatusChip(
-                                    stalledLabel,
-                                    StatusTone.Caution,
-                                    Modifier.testTag("block_review_lift_${lift.exerciseId}_stall"),
-                                )
-                            }
-                        }
+        Column(verticalArrangement = Arrangement.spacedBy(Spacing.md)) {
+            lifts.forEach { (lift, name) -> LiftRow(lift, name, stalledLabel) }
+        }
+    }
+}
+
+/** One main lift: icon badge, name, the e1RM before and after as two bars, the weekly trend and the change pill. */
+@Composable
+private fun LiftRow(lift: BlockLift, name: String, stalledLabel: String) {
+    val first = lift.firstE1rm
+    val last = lift.lastE1rm
+    val change = if (first != null && last != null) lift.changeKg ?: (last - first) else null
+    val record = change != null && change > 0 && lift.weeks.isNotEmpty() && last == lift.weeks.maxOf { it.e1rm }
+    TrainerTintedRow(
+        accent = if (record) AppPaint.Gold else AppTheme.colors.athleticCyan,
+        modifier = Modifier.testTag("block_review_lift_${lift.exerciseId}"),
+        leading = { IconBadge(Res.drawable.ic_fitness_center, AppTheme.colors.athleticCyan) },
+    ) {
+        Column(verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
+            Text(text = name, style = AppTheme.typography.titleMedium, color = AppTheme.colors.textPrimary)
+            if (first != null && last != null) {
+                TrainerBeforeAfter(first, last, WeekSummaryText.kg(first), WeekSummaryText.kg(last))
+            } else {
+                Text(
+                    text = stringResource(Res.string.block_review_trend_none),
+                    style = AppTheme.typography.bodyMedium,
+                    color = AppTheme.colors.textSecondary,
+                )
+            }
+            if (change != null || lift.stalled || record) {
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(Spacing.xs),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    if (change != null) LiftChangePill(lift, change)
+                    if (record) RecordBadge(stringResource(Res.string.px_trainer_record))
+                    if (lift.stalled) {
+                        StatusChip(
+                            stalledLabel,
+                            StatusTone.Caution,
+                            Modifier.testTag("block_review_lift_${lift.exerciseId}_stall"),
+                        )
                     }
-                } else {
-                    null
-                },
-            )
+                }
+            }
         }
     }
 }
@@ -147,6 +172,24 @@ internal fun WeightCard(state: BlockReviewUiState.Content) {
             )
         },
     ) {
+        val first = state.review.weight?.firstAvgKg
+        val last = state.review.weight?.lastAvgKg
+        if (first != null && last != null) {
+            TrainerTintedRow(
+                accent = AppTheme.colors.athleticCyan,
+                modifier = Modifier.testTag("block_review_weight_graphic"),
+                leading = { IconBadge(Res.drawable.ic_monitor_weight, AppTheme.colors.athleticCyan) },
+            ) {
+                TrainerBeforeAfter(
+                    first,
+                    last,
+                    WeekSummaryText.kg(first),
+                    WeekSummaryText.kg(last),
+                    color = AppTheme.colors.athleticCyan,
+                    dropColor = AppTheme.colors.neonLime,
+                )
+            }
+        }
         SummaryLine(stringResource(line.res, *line.args.toTypedArray()))
     }
 }
@@ -186,6 +229,12 @@ internal fun OutcomeRow(index: Int, outcome: BlockOutcome, line: BlockReviewText
     AppListRow(
         headline = stringResource(line.res, *line.args.toTypedArray()),
         modifier = Modifier.testTag("block_review_outcome_$index"),
+        leading = {
+            IconBadge(
+                if (outcome.reached) Res.drawable.ic_check else Res.drawable.ic_flag,
+                if (outcome.reached) AppTheme.colors.electricGreen else AppTheme.colors.athleticCyan,
+            )
+        },
         trailing = {
             StatusChip(stringResource(label.res), tone, Modifier.testTag("block_review_outcome_${index}_chip"))
         },

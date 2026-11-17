@@ -31,12 +31,18 @@ import io.github.lopezjavier.appfitness.composeapp.resources.exercise_record_val
 import io.github.lopezjavier.appfitness.composeapp.resources.exercise_records_empty
 import io.github.lopezjavier.appfitness.composeapp.resources.exercise_records_error
 import io.github.lopezjavier.appfitness.composeapp.resources.exercise_records_title
+import io.github.lopezjavier.appfitness.composeapp.resources.ic_insights
+import io.github.lopezjavier.appfitness.composeapp.resources.ic_star_filled
+import io.github.lopezjavier.appfitness.composeapp.resources.px_stats_exercise_progress_hint
 import io.github.lopezjavier.appfitness.designsystem.AppCard
 import io.github.lopezjavier.appfitness.designsystem.AppNumberFormat
+import io.github.lopezjavier.appfitness.designsystem.AppPaint
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
 import io.github.lopezjavier.appfitness.designsystem.ExerciseAnimation
 import io.github.lopezjavier.appfitness.designsystem.ExerciseLayoutDefaults
 import io.github.lopezjavier.appfitness.designsystem.GhostButton
+import io.github.lopezjavier.appfitness.designsystem.IconBadge
+import io.github.lopezjavier.appfitness.designsystem.IconBadgeDefaults
 import io.github.lopezjavier.appfitness.designsystem.LocalAnimationsEnabled
 import io.github.lopezjavier.appfitness.designsystem.NavigationRow
 import io.github.lopezjavier.appfitness.designsystem.SkeletonBox
@@ -108,11 +114,22 @@ private fun SummaryText(
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(Spacing.blockGap)) {
         DetailHeader(detail)
-        NavigationRow(
-            label = stringResource(Res.string.exercise_progress_link),
-            onClick = onOpenProgress,
-            modifier = Modifier.testTag("exercise_detail_progress_link"),
-        )
+        AppCard(Modifier.fillMaxWidth(), glow = AppTheme.colors.athleticCyan) {
+            NavigationRow(
+                label = stringResource(Res.string.exercise_progress_link),
+                onClick = onOpenProgress,
+                modifier = Modifier.testTag("exercise_detail_progress_link"),
+                supporting = stringResource(Res.string.px_stats_exercise_progress_hint),
+                leading = {
+                    IconBadge(
+                        Res.drawable.ic_insights,
+                        AppTheme.colors.athleticCyan,
+                        size = IconBadgeDefaults.SmallSize,
+                        iconSize = IconBadgeDefaults.SmallIconSize,
+                    )
+                },
+            )
+        }
         RecordsBlock(records, today, onRetryRecords)
     }
 }
@@ -210,6 +227,12 @@ private fun RecordCard(record: PersonalRecord, today: LocalDate) {
             horizontalArrangement = Arrangement.spacedBy(Spacing.md),
             verticalAlignment = Alignment.CenterVertically,
         ) {
+            IconBadge(
+                Res.drawable.ic_star_filled,
+                AppPaint.Gold,
+                size = IconBadgeDefaults.SmallSize,
+                iconSize = IconBadgeDefaults.SmallIconSize,
+            )
             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
                 Text(record.type.label(), style = AppTheme.typography.bodyMedium, color = AppTheme.colors.textSecondary)
                 if (date != null) {

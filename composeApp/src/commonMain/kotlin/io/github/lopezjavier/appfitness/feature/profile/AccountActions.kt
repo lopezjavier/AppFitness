@@ -1,6 +1,8 @@
 package io.github.lopezjavier.appfitness.feature.profile
 
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Text
@@ -10,6 +12,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.semantics
@@ -17,6 +20,8 @@ import androidx.compose.ui.semantics.stateDescription
 import io.github.lopezjavier.appfitness.composeapp.resources.Res
 import io.github.lopezjavier.appfitness.composeapp.resources.delete_account_error
 import io.github.lopezjavier.appfitness.composeapp.resources.delete_account_error_offline
+import io.github.lopezjavier.appfitness.composeapp.resources.ic_avatar_person
+import io.github.lopezjavier.appfitness.composeapp.resources.ic_delete
 import io.github.lopezjavier.appfitness.composeapp.resources.profile_account_protected
 import io.github.lopezjavier.appfitness.composeapp.resources.profile_delete_account
 import io.github.lopezjavier.appfitness.composeapp.resources.profile_deleting_account
@@ -26,6 +31,8 @@ import io.github.lopezjavier.appfitness.designsystem.AppListRow
 import io.github.lopezjavier.appfitness.designsystem.AppTextButton
 import io.github.lopezjavier.appfitness.designsystem.AppTextButtonTone
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
+import io.github.lopezjavier.appfitness.designsystem.IconBadge
+import io.github.lopezjavier.appfitness.designsystem.IconBadgeDefaults
 import io.github.lopezjavier.appfitness.designsystem.LocalAppMessages
 import io.github.lopezjavier.appfitness.designsystem.Spacing
 import io.github.lopezjavier.appfitness.domain.model.AccountProtection
@@ -75,21 +82,47 @@ private fun AccountActions(state: AccountUiState, onSignOut: () -> Unit, onDelet
                 headline = stringResource(Res.string.profile_sign_out),
                 onClick = onSignOut,
                 modifier = Modifier.testTag("preferences_sign_out"),
+                leading = {
+                    IconBadge(
+                        Res.drawable.ic_avatar_person,
+                        AppTheme.colors.textSecondary,
+                        size = IconBadgeDefaults.SmallSize,
+                        iconSize = IconBadgeDefaults.SmallIconSize,
+                    )
+                },
             )
         }
         val protectedNote = stringResource(Res.string.profile_account_protected)
         val isProtected = state.protection == AccountProtection.Protected
-        AppTextButton(
-            text = stringResource(
-                if (state.isDeleting) Res.string.profile_deleting_account else Res.string.profile_delete_account,
-            ),
-            onClick = onDelete,
-            modifier = Modifier.padding(top = Spacing.xl)
-                .semantics { if (isProtected) stateDescription = protectedNote }
-                .testTag("preferences_delete_account"),
-            enabled = state.canDelete,
-            tone = AppTextButtonTone.Danger,
-        )
+        AppCard(Modifier.fillMaxWidth().padding(top = Spacing.xl), glow = AppTheme.colors.error) {
+            Row(
+                Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(Spacing.md),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                IconBadge(
+                    Res.drawable.ic_delete,
+                    AppTheme.colors.error,
+                    size = IconBadgeDefaults.SmallSize,
+                    iconSize = IconBadgeDefaults.SmallIconSize,
+                )
+                AppTextButton(
+                    text = stringResource(
+                        if (state.isDeleting) {
+                            Res.string.profile_deleting_account
+                        } else {
+                            Res.string.profile_delete_account
+                        },
+                    ),
+                    onClick = onDelete,
+                    modifier = Modifier
+                        .semantics { if (isProtected) stateDescription = protectedNote }
+                        .testTag("preferences_delete_account"),
+                    enabled = state.canDelete,
+                    tone = AppTextButtonTone.Danger,
+                )
+            }
+        }
         if (isProtected) {
             // The action also announces this text as its state, so TalkBack users get it with the action.
             Text(

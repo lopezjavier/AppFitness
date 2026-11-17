@@ -25,6 +25,8 @@ sealed interface WorkoutCalendarUiState {
         val selectedDay: LocalDate?,
         val yearCounts: Map<Int, Int>,
         val monthCounts: Map<Int, Int>,
+        /** Workouts per day of the shown [year] (the year heatmap). */
+        val yearDayCounts: Map<LocalDate, Int> = emptyMap(),
         val canGoNext: Boolean,
         /** The current day: later days of the grid are inert. */
         val today: LocalDate,

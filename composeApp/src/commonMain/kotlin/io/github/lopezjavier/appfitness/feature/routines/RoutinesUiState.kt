@@ -4,6 +4,7 @@ import io.github.lopezjavier.appfitness.domain.model.RoutineFolder
 import io.github.lopezjavier.appfitness.domain.model.RoutineGroup
 import io.github.lopezjavier.appfitness.domain.model.RoutineSummary
 import io.github.lopezjavier.appfitness.domain.usecase.groupRoutines
+import kotlinx.datetime.LocalDate
 
 /** Whether the folder sheet creates a folder or renames [FolderSheetState.folderId]. */
 enum class FolderSheetMode { Create, Rename }
@@ -43,6 +44,11 @@ sealed interface RoutinesUiState {
         val folderMenuFor: RoutineFolder? = null,
         /** True while the folder sheet's create/rename call runs (the sheet shows its saving state). */
         val folderSaving: Boolean = false,
+        /** The "this week" hero: null [today] hides it. [trainedDays] are the days with a completed workout. */
+        val today: LocalDate? = null,
+        val trainedDays: Set<LocalDate> = emptySet(),
+        val weekWorkouts: Int = 0,
+        val streakWeeks: Int = 0,
     ) : RoutinesUiState {
         /** No routines and no folders: the empty state. */
         val isEmpty: Boolean get() = routines.isEmpty() && folders.isEmpty()

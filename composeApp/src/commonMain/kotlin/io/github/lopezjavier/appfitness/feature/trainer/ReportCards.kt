@@ -5,6 +5,8 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -14,6 +16,8 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import io.github.lopezjavier.appfitness.composeapp.resources.Res
 import io.github.lopezjavier.appfitness.composeapp.resources.block_review_sessions_header
+import io.github.lopezjavier.appfitness.composeapp.resources.ic_check
+import io.github.lopezjavier.appfitness.composeapp.resources.ic_fitness_center
 import io.github.lopezjavier.appfitness.composeapp.resources.report_sessions_cd
 import io.github.lopezjavier.appfitness.composeapp.resources.report_sessions_headline
 import io.github.lopezjavier.appfitness.designsystem.AppCard
@@ -25,8 +29,11 @@ import io.github.lopezjavier.appfitness.designsystem.MetricTileRow
 import io.github.lopezjavier.appfitness.designsystem.SectionCard
 import io.github.lopezjavier.appfitness.designsystem.SegmentedProgress
 import io.github.lopezjavier.appfitness.designsystem.Spacing
+import io.github.lopezjavier.appfitness.designsystem.StatRing
+import io.github.lopezjavier.appfitness.designsystem.StatRingDefaults
 import io.github.lopezjavier.appfitness.domain.model.GroupSets
 import io.github.lopezjavier.appfitness.feature.exercises.label
+import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.resources.stringResource
 
 /**
@@ -36,32 +43,57 @@ import org.jetbrains.compose.resources.stringResource
 @Composable
 internal fun SessionsCard(tag: String, completed: Int, planned: Int, percent: String? = null) {
     val spoken = stringResource(Res.string.report_sessions_cd, completed, planned)
+    val done = completed >= planned && planned > 0
+    val tone = if (done) AppTheme.colors.electricGreen else AppTheme.colors.athleticCyan
     SectionCard(stringResource(Res.string.block_review_sessions_header), testTag = tag) {
         Row(
-            Modifier.semantics(mergeDescendants = true) { contentDescription = spoken },
-            horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+            Modifier.fillMaxWidth().semantics(mergeDescendants = true) { contentDescription = spoken },
+            horizontalArrangement = Arrangement.spacedBy(Spacing.lg),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Text(
-                text = stringResource(Res.string.report_sessions_headline, completed, planned),
-                style = AppTheme.typography.headlineMetric,
-                color = AppTheme.colors.textPrimary,
-                modifier = Modifier.testTag("${tag}_headline"),
-            )
-            if (percent != null) {
+            StatRing(
+                fraction = if (planned > 0) completed.toFloat() / planned else 0f,
+                color = tone,
+                size = StatRingDefaults.Size + Spacing.md,
+            ) {
+                if (done) {
+                    Icon(
+                        painter = painterResource(Res.drawable.ic_check),
+                        contentDescription = null,
+                        tint = tone,
+                        modifier = Modifier.size(Spacing.xl),
+                    )
+                } else {
+                    Icon(
+                        painter = painterResource(Res.drawable.ic_fitness_center),
+                        contentDescription = null,
+                        tint = tone,
+                        modifier = Modifier.size(Spacing.xl),
+                    )
+                }
+            }
+            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
                 Text(
-                    text = percent,
-                    style = AppTheme.typography.bodyMedium,
-                    color = AppTheme.colors.textSecondary,
-                    modifier = Modifier.testTag("${tag}_percent"),
+                    text = stringResource(Res.string.report_sessions_headline, completed, planned),
+                    style = AppTheme.typography.displayHero,
+                    color = AppTheme.colors.textPrimary,
+                    modifier = Modifier.testTag("${tag}_headline"),
                 )
+                if (percent != null) {
+                    Text(
+                        text = percent,
+                        style = AppTheme.typography.bodyMedium,
+                        color = tone,
+                        modifier = Modifier.testTag("${tag}_percent"),
+                    )
+                }
             }
         }
         SegmentedProgress(
             total = planned,
             done = completed.coerceAtMost(planned),
             stateDescription = spoken,
-            modifier = Modifier.fillMaxWidth().padding(top = Spacing.sm),
+            modifier = Modifier.fillMaxWidth().padding(top = Spacing.md),
             testTag = "${tag}_progress",
         )
     }
@@ -116,6 +148,7 @@ internal fun ReportTileGrid(tiles: List<ReportTile>) {
                             value = tile.value,
                             modifier = m.testTag(tile.tag),
                             unit = tile.unit,
+                            accent = AppTheme.colors.neonLime,
                             supporting = tile.supporting?.let {
                                 {
                                     Text(

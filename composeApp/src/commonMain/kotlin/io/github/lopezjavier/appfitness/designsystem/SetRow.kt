@@ -93,6 +93,9 @@ data class SetRowValues(
 }
 
 object SetRowDefaults {
+    const val DONE_TINT_ALPHA = 0.07f
+    const val CURRENT_TINT_ALPHA = 0.08f
+
     const val NO_PREVIOUS = "—"
     const val WEIGHT_MAX_DECIMALS = 2
     const val WEIGHT_MAX_INTEGER_DIGITS = 4
@@ -319,7 +322,7 @@ private fun SetRowLine(
     val onRpeClick = callbacks.onRpeClick
     val rpeClickLabel = callbacks.rpeClickLabel
     Row(
-        modifier = lineModifier.fillMaxWidth().padding(
+        modifier = lineModifier.fillMaxWidth().setRowTint(values.completed, values.current).padding(
             start = SetRowDefaults.rpeInset(withRpe),
         ).heightIn(min = SetRowDefaults.MinHeight),
         horizontalArrangement = Arrangement.spacedBy(SetRowDefaults.ColumnGap),
@@ -646,4 +649,16 @@ private fun SetRowPreview() {
             }
         }
     }
+}
+
+/** A lit wash behind a done row (lime) and the current one (cyan); other rows stay clear. */
+@Composable
+private fun Modifier.setRowTint(done: Boolean, current: Boolean): Modifier {
+    val colors = AppTheme.colors
+    val tint = when {
+        done -> colors.neonLime.copy(alpha = SetRowDefaults.DONE_TINT_ALPHA)
+        current -> colors.athleticCyan.copy(alpha = SetRowDefaults.CURRENT_TINT_ALPHA)
+        else -> return this
+    }
+    return clip(AppShapes.md).background(tint)
 }

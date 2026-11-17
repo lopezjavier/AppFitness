@@ -33,7 +33,8 @@ data class SleepStageSegment(val kind: SleepStageKind, val minutes: Int, val lab
 
 /** Geometry of [SleepStagesBar]. */
 object SleepStagesBarDefaults {
-    val Height: Dp = 12.dp
+    val Height: Dp = 16.dp
+    val SegmentGap: Dp = 2.dp
 
     /** Ordered ramp (C-18): Profundo 100 %, REM 75 %, Ligero 50 % of `athleticCyan`; Despierto is the amber alert. */
     private const val REM_ALPHA = 0.75f
@@ -80,13 +81,14 @@ fun SleepStagesBar(
                 .clip(AppShapes.full)
                 .background(AppTheme.colors.surfaceOverlay)
                 .clearAndSetSemantics {},
+            horizontalArrangement = Arrangement.spacedBy(SleepStagesBarDefaults.SegmentGap),
         ) {
             shown.forEach { segment ->
                 Box(
                     Modifier
                         .weight(segment.minutes.toFloat())
                         .fillMaxHeight()
-                        .background(SleepStagesBarDefaults.color(segment.kind))
+                        .background(AppPaint.horizontal(SleepStagesBarDefaults.color(segment.kind)))
                         .testTag(SleepStagesBarDefaults.segmentTag(testTag, segment.kind)),
                 )
             }
@@ -100,7 +102,7 @@ fun SleepStagesBar(
                     Modifier
                         .size(Spacing.md)
                         .clip(AppShapes.full)
-                        .background(SleepStagesBarDefaults.color(segment.kind))
+                        .background(AppPaint.diagonal(SleepStagesBarDefaults.color(segment.kind)))
                         .clearAndSetSemantics {},
                 )
                 Text(

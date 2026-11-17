@@ -1,8 +1,8 @@
 package io.github.lopezjavier.appfitness.feature.workout
 
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.FlowRow
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
@@ -19,8 +19,7 @@ import io.github.lopezjavier.appfitness.composeapp.resources.record_max_volume
 import io.github.lopezjavier.appfitness.composeapp.resources.record_most_floors
 import io.github.lopezjavier.appfitness.composeapp.resources.record_most_steps
 import io.github.lopezjavier.appfitness.composeapp.resources.record_total_reps
-import io.github.lopezjavier.appfitness.designsystem.AppTheme
-import io.github.lopezjavier.appfitness.designsystem.PillContainer
+import io.github.lopezjavier.appfitness.designsystem.RecordBadge
 import io.github.lopezjavier.appfitness.designsystem.Spacing
 import io.github.lopezjavier.appfitness.domain.model.PersonalRecordType
 import org.jetbrains.compose.resources.StringResource
@@ -68,16 +67,10 @@ internal fun PersonalRecordPills(
     ) {
         shown.forEach { type ->
             val description = type.contentDescriptionText()
-            PillContainer(
+            Box(
                 Modifier.testTag("${tagPrefix}_record_${position}_${type.key}")
                     .clearAndSetSemantics { contentDescription = description },
-            ) {
-                Text(
-                    text = type.label(),
-                    style = AppTheme.typography.labelTechnical,
-                    color = AppTheme.colors.athleticCyan,
-                )
-            }
+            ) { RecordBadge(text = type.label()) }
         }
     }
 }

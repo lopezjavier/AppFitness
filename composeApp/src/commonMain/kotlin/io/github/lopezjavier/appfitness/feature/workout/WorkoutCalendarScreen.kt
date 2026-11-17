@@ -147,6 +147,7 @@ private fun CalendarContent(state: WorkoutCalendarUiState.Content, onEvent: (Wor
             ViewSelector(state.view, onEvent)
             when (state.view) {
                 WorkoutCalendarView.Month -> {
+                    MonthSummary(state.dayCounts.values.sum())
                     MonthCalendarGrid(
                         month = state.month,
                         markedDays = state.markedDays,
@@ -174,6 +175,9 @@ private fun CalendarContent(state: WorkoutCalendarUiState.Content, onEvent: (Wor
                     year = state.year,
                     monthCounts = state.monthCounts,
                     wide = wide,
+                    dayCounts = state.yearDayCounts,
+                    today = state.today,
+                    highlightMonth = if (state.year == state.today.year) state.today.month.ordinal + 1 else null,
                     onSelectMonth = { onEvent(WorkoutCalendarEvent.SelectMonth(YearMonth(state.year, it))) },
                 )
 

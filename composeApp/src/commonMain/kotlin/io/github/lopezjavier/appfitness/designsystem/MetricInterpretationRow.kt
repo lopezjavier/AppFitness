@@ -88,6 +88,7 @@ fun MetricInterpretationRow(
     explanation: String,
     modifier: Modifier = Modifier,
     testTagPrefix: String? = null,
+    gauge: (@Composable () -> Unit)? = null,
 ) {
     Column(modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(Spacing.md)) {
         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
@@ -100,6 +101,7 @@ fun MetricInterpretationRow(
             Text(text = valueText, style = AppTheme.typography.headlineMetric, color = AppTheme.colors.textPrimary)
         }
         StatusChip(statusText, tone, testTagPrefix?.let { Modifier.testTag("${it}_status") } ?: Modifier)
+        gauge?.invoke()
         Text(
             text = explanation,
             style = AppTheme.typography.bodyMedium,

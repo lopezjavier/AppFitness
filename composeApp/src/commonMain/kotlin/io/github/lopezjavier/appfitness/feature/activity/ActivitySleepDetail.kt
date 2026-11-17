@@ -1,8 +1,12 @@
 package io.github.lopezjavier.appfitness.feature.activity
 
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import io.github.lopezjavier.appfitness.composeapp.resources.Res
@@ -13,10 +17,13 @@ import io.github.lopezjavier.appfitness.composeapp.resources.activity_stage_ligh
 import io.github.lopezjavier.appfitness.composeapp.resources.activity_stage_rem
 import io.github.lopezjavier.appfitness.composeapp.resources.activity_stage_sleeping
 import io.github.lopezjavier.appfitness.composeapp.resources.activity_stage_unknown
+import io.github.lopezjavier.appfitness.composeapp.resources.ic_sleep_outlined
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
+import io.github.lopezjavier.appfitness.designsystem.IconBadge
 import io.github.lopezjavier.appfitness.designsystem.SleepStageKind
 import io.github.lopezjavier.appfitness.designsystem.SleepStageSegment
 import io.github.lopezjavier.appfitness.designsystem.SleepStagesBar
+import io.github.lopezjavier.appfitness.designsystem.Spacing
 import io.github.lopezjavier.appfitness.domain.usecase.SleepStageSummary
 import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.stringResource
@@ -56,11 +63,25 @@ internal fun SleepDetail(state: ActivityUiState.Content) {
         val segments = stages.byKind().map { (kind, minutes) ->
             SleepStageSegment(kind, minutes, stringResource(kind.nameRes()), sleepText(minutes))
         }
-        SleepStagesBar(
-            segments = segments,
-            description = segments.joinToString(", ") { "${it.label} ${it.durationText}" },
-            testTag = "activity_sleep_stages",
-        )
+        Column(verticalArrangement = Arrangement.spacedBy(Spacing.md)) {
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(Spacing.md),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                IconBadge(Res.drawable.ic_sleep_outlined, AppTheme.colors.macroProtein)
+                Text(
+                    text = sleepText(stages.byKind().filter { it.first != SleepStageKind.Awake }.sumOf { it.second }),
+                    style = AppTheme.typography.headlineMetric,
+                    color = AppTheme.colors.textPrimary,
+                    modifier = Modifier.testTag("activity_sleep_hero"),
+                )
+            }
+            SleepStagesBar(
+                segments = segments,
+                description = segments.joinToString(", ") { "${it.label} ${it.durationText}" },
+                testTag = "activity_sleep_stages",
+            )
+        }
     } else {
         state.summary.sleep?.let {
             Text(

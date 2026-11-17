@@ -8,6 +8,7 @@ import androidx.compose.runtime.setValue
 import io.github.lopezjavier.appfitness.designsystem.AppInfoSheet
 import io.github.lopezjavier.appfitness.designsystem.MetricInterpretationRow
 import io.github.lopezjavier.appfitness.designsystem.Spacing
+import io.github.lopezjavier.appfitness.domain.model.Sex
 import io.github.lopezjavier.appfitness.domain.usecase.MetricInterpretation
 import org.jetbrains.compose.resources.stringResource
 
@@ -16,7 +17,7 @@ import org.jetbrains.compose.resources.stringResource
  * The header X closes it; it has no effect on any data.
  */
 @Composable
-internal fun MetricDetailSheet(metric: MetricInterpretation, onEvent: (GoalEvent) -> Unit) {
+internal fun MetricDetailSheet(metric: MetricInterpretation, onEvent: (GoalEvent) -> Unit, sex: Sex? = null) {
     AppInfoSheet(
         title = stringResource(metricLabelRes(metric.metric)),
         onDismiss = { onEvent(GoalEvent.CloseMetric) },
@@ -30,6 +31,7 @@ internal fun MetricDetailSheet(metric: MetricInterpretation, onEvent: (GoalEvent
                 tone = metric.status.tone.toStatusTone(),
                 explanation = stringResource(explanationRes(metric.status)),
                 testTagPrefix = "weight_metric",
+                gauge = { MetricGauge(metric, sex, showLimits = true) },
             )
         }
     }

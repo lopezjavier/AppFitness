@@ -25,6 +25,7 @@ import io.github.lopezjavier.appfitness.designsystem.MetricCard
 import io.github.lopezjavier.appfitness.designsystem.Spacing
 import io.github.lopezjavier.appfitness.designsystem.StatusChip
 import io.github.lopezjavier.appfitness.domain.model.PlanOutcome
+import io.github.lopezjavier.appfitness.domain.model.Sex
 import io.github.lopezjavier.appfitness.domain.usecase.MetricInterpretation
 import org.jetbrains.compose.resources.stringResource
 
@@ -40,16 +41,16 @@ internal fun MetricCardsSection(state: GoalUiState, onEvent: (GoalEvent) -> Unit
     if (bmi == null && fat == null) return
     if (LocalDensity.current.fontScale >= STACK_FONT_SCALE) {
         Column(modifier, verticalArrangement = Arrangement.spacedBy(Spacing.md)) {
-            bmi?.let { InterpretedCard(it, "weight_bmi_tile", onEvent) }
-            fat?.let { InterpretedCard(it, "weight_body_fat_tile", onEvent) }
+            bmi?.let { InterpretedCard(it, "weight_bmi_tile", onEvent, sex = content.sex) }
+            fat?.let { InterpretedCard(it, "weight_body_fat_tile", onEvent, sex = content.sex) }
         }
     } else {
         Row(
             modifier.fillMaxWidth().height(IntrinsicSize.Max),
             horizontalArrangement = Arrangement.spacedBy(Spacing.md),
         ) {
-            bmi?.let { InterpretedCard(it, "weight_bmi_tile", onEvent, Modifier.weight(1f)) }
-            fat?.let { InterpretedCard(it, "weight_body_fat_tile", onEvent, Modifier.weight(1f)) }
+            bmi?.let { InterpretedCard(it, "weight_bmi_tile", onEvent, Modifier.weight(1f), content.sex) }
+            fat?.let { InterpretedCard(it, "weight_body_fat_tile", onEvent, Modifier.weight(1f), content.sex) }
         }
     }
 }
@@ -61,17 +62,21 @@ private fun InterpretedCard(
     tag: String,
     onEvent: (GoalEvent) -> Unit,
     modifier: Modifier = Modifier,
+    sex: Sex? = null,
 ) {
     MetricCard(
         label = stringResource(metricLabelRes(metric.metric)),
         value = metricValueText(metric),
         modifier = modifier.testTag(tag),
         supporting = {
-            StatusChip(
-                stringResource(statusTextRes(metric.status)),
-                metric.status.tone.toStatusTone(),
-                mergeSemantics = false,
-            )
+            Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+                StatusChip(
+                    stringResource(statusTextRes(metric.status)),
+                    metric.status.tone.toStatusTone(),
+                    mergeSemantics = false,
+                )
+                MetricGauge(metric, sex)
+            }
         },
         onClick = { onEvent(GoalEvent.OpenMetric(metric.metric)) },
         clickLabel = stringResource(Res.string.metric_tile_open_label),

@@ -30,6 +30,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
@@ -172,6 +174,7 @@ fun WheelPicker(
                 }
             }.testTag(testTagPrefix),
         )
+        WheelFade(Modifier.matchParentSize())
     }
 }
 
@@ -261,19 +264,31 @@ private fun SelectionBand() {
         Modifier.fillMaxWidth().height(WheelPickerDefaults.ItemHeight)
             .clip(WheelPickerDefaults.BandShape)
             .background(colors.surfaceOverlay)
+            .background(AppPaint.tintSurface(colors.neonLime))
             .drawBehind {
                 val stroke = lineWidth.toPx()
-                drawLine(colors.borderStrong, Offset(0f, stroke / 2), Offset(size.width, stroke / 2), stroke)
-                drawLine(
-                    colors.borderStrong,
-                    Offset(0f, size.height - stroke / 2),
-                    Offset(
-                        size.width,
-                        size.height - stroke / 2,
-                    ),
-                    stroke,
+                val hairline = Brush.horizontalGradient(
+                    listOf(Color.Transparent, colors.neonLime.copy(alpha = 0.7f), Color.Transparent),
                 )
+                drawRect(hairline, Offset(0f, 0f), Size(size.width, stroke))
+                drawRect(hairline, Offset(0f, size.height - stroke), Size(size.width, stroke))
             },
+    )
+}
+
+/** Fades the items away from the centre into the surface behind the wheel. */
+@Composable
+private fun WheelFade(modifier: Modifier = Modifier) {
+    val base = AppTheme.colors.surfaceBase
+    Box(
+        modifier.background(
+            Brush.verticalGradient(
+                0f to base.copy(alpha = 0.85f),
+                0.3f to Color.Transparent,
+                0.7f to Color.Transparent,
+                1f to base.copy(alpha = 0.85f),
+            ),
+        ),
     )
 }
 

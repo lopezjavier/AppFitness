@@ -39,6 +39,7 @@ import io.github.lopezjavier.appfitness.composeapp.resources.before_start_note_s
 import io.github.lopezjavier.appfitness.composeapp.resources.before_start_reason_block
 import io.github.lopezjavier.appfitness.composeapp.resources.before_start_reason_plan
 import io.github.lopezjavier.appfitness.composeapp.resources.before_start_title
+import io.github.lopezjavier.appfitness.composeapp.resources.ic_warning
 import io.github.lopezjavier.appfitness.composeapp.resources.new_block_goal_change
 import io.github.lopezjavier.appfitness.composeapp.resources.new_block_goal_change_no_figures
 import io.github.lopezjavier.appfitness.composeapp.resources.new_block_prepare_failed
@@ -54,6 +55,8 @@ import io.github.lopezjavier.appfitness.designsystem.AppScreen
 import io.github.lopezjavier.appfitness.designsystem.AppStateAction
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
 import io.github.lopezjavier.appfitness.designsystem.ErrorState
+import io.github.lopezjavier.appfitness.designsystem.IconBadge
+import io.github.lopezjavier.appfitness.designsystem.IconBadgeDefaults
 import io.github.lopezjavier.appfitness.designsystem.InlineNote
 import io.github.lopezjavier.appfitness.designsystem.LocalAppHaptics
 import io.github.lopezjavier.appfitness.designsystem.LocalAppMessages
@@ -231,6 +234,14 @@ private fun BeforeStartContent(
                         NavigationRow(
                             label = stringResource(Res.string.before_start_flag, row.labelText()),
                             value = row.fixTarget?.let { stringResource(it.destinationLabel()) },
+                            leading = {
+                                IconBadge(
+                                    Res.drawable.ic_warning,
+                                    AppTheme.colors.energyAmber,
+                                    size = IconBadgeDefaults.SmallSize,
+                                    iconSize = IconBadgeDefaults.SmallIconSize,
+                                )
+                            },
                             onClick = {
                                 when (row.fixTarget) {
                                     null -> onOpenYourData()

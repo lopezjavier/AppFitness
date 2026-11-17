@@ -3,10 +3,12 @@ package io.github.lopezjavier.appfitness.feature.analytics.stats
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.Role
@@ -14,6 +16,10 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import io.github.lopezjavier.appfitness.composeapp.resources.Res
 import io.github.lopezjavier.appfitness.composeapp.resources.chart_date_short
+import io.github.lopezjavier.appfitness.composeapp.resources.ic_bar_chart
+import io.github.lopezjavier.appfitness.composeapp.resources.ic_fitness_center
+import io.github.lopezjavier.appfitness.composeapp.resources.ic_insights
+import io.github.lopezjavier.appfitness.composeapp.resources.ic_timer
 import io.github.lopezjavier.appfitness.composeapp.resources.muscle_volume_open
 import io.github.lopezjavier.appfitness.composeapp.resources.stats_chart_cd
 import io.github.lopezjavier.appfitness.composeapp.resources.stats_chart_empty
@@ -33,6 +39,8 @@ import io.github.lopezjavier.appfitness.composeapp.resources.stats_unit_tonne
 import io.github.lopezjavier.appfitness.designsystem.AppBarChart
 import io.github.lopezjavier.appfitness.designsystem.AppNumberFormat
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
+import io.github.lopezjavier.appfitness.designsystem.IconBadge
+import io.github.lopezjavier.appfitness.designsystem.IconBadgeDefaults
 import io.github.lopezjavier.appfitness.designsystem.MetricTile
 import io.github.lopezjavier.appfitness.designsystem.MetricTileRow
 import io.github.lopezjavier.appfitness.designsystem.MuscleSplitBar
@@ -56,6 +64,7 @@ private val ExercisesHeight = Spacing.xl * 6
 /** The four key values of the frame as a 2x2 grid of tiles. */
 @Composable
 internal fun SummaryTiles(summary: SectionState<TrainingSummary>, onRetry: () -> Unit, modifier: Modifier = Modifier) {
+    val colors = AppTheme.colors
     StatsBlock(summary, StatsSection.Summary, TilesHeight, onRetry, modifier) { data ->
         val volume = AppNumberFormat.volume(
             data.volume,
@@ -68,6 +77,8 @@ internal fun SummaryTiles(summary: SectionState<TrainingSummary>, onRetry: () ->
                     stringResource(Res.string.stats_tile_workouts),
                     AppNumberFormat.integer(data.workouts),
                     m.testTag("stats_tile_workouts"),
+                    accent = colors.neonLime,
+                    icon = Res.drawable.ic_fitness_center,
                 )
             },
             { m ->
@@ -75,6 +86,8 @@ internal fun SummaryTiles(summary: SectionState<TrainingSummary>, onRetry: () ->
                     stringResource(Res.string.stats_tile_sets),
                     AppNumberFormat.integer(data.sets),
                     m.testTag("stats_tile_sets"),
+                    accent = colors.athleticCyan,
+                    icon = Res.drawable.ic_bar_chart,
                 )
             },
             { m ->
@@ -83,6 +96,8 @@ internal fun SummaryTiles(summary: SectionState<TrainingSummary>, onRetry: () ->
                     volume.first,
                     m.testTag("stats_tile_volume"),
                     unit = volume.second,
+                    accent = colors.energyAmber,
+                    icon = Res.drawable.ic_insights,
                 )
             },
             { m ->
@@ -90,6 +105,8 @@ internal fun SummaryTiles(summary: SectionState<TrainingSummary>, onRetry: () ->
                     stringResource(Res.string.stats_tile_duration),
                     durationText(data.durationSeconds),
                     m.testTag("stats_tile_duration"),
+                    accent = colors.macroFat,
+                    icon = Res.drawable.ic_timer,
                 )
             },
         )
@@ -216,16 +233,25 @@ internal fun ExerciseRow(exercise: StatsExercise, tag: String, onClick: () -> Un
     val name = exercise.name
     val detail =
         stringResource(Res.string.stats_exercise_row_detail, setsText(exercise.sets), sessionsText(exercise.sessions))
-    Column(
+    Row(
         modifier
             .fillMaxWidth()
             .heightIn(min = Spacing.minTouchTarget)
             .clickable(role = Role.Button, onClick = onClick)
             .semantics(mergeDescendants = true) { contentDescription = "$name, $detail" }
             .testTag(tag),
-        verticalArrangement = Arrangement.Center,
+        horizontalArrangement = Arrangement.spacedBy(Spacing.md),
+        verticalAlignment = Alignment.CenterVertically,
     ) {
-        Text(name, style = AppTheme.typography.bodyLarge, color = AppTheme.colors.textPrimary)
-        Text(detail, style = AppTheme.typography.bodySmall, color = AppTheme.colors.textSecondary)
+        IconBadge(
+            Res.drawable.ic_fitness_center,
+            AppTheme.colors.athleticCyan,
+            size = IconBadgeDefaults.SmallSize,
+            iconSize = IconBadgeDefaults.SmallIconSize,
+        )
+        Column(Modifier.weight(1f), verticalArrangement = Arrangement.Center) {
+            Text(name, style = AppTheme.typography.bodyLarge, color = AppTheme.colors.textPrimary)
+            Text(detail, style = AppTheme.typography.bodySmall, color = AppTheme.colors.textSecondary)
+        }
     }
 }

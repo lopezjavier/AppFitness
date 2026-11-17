@@ -2,15 +2,22 @@ package io.github.lopezjavier.appfitness.gallery
 
 import io.github.lopezjavier.appfitness.domain.model.BodyCircumference
 import io.github.lopezjavier.appfitness.domain.model.BodyMeasurement
+import io.github.lopezjavier.appfitness.domain.model.BodyMetric
 import io.github.lopezjavier.appfitness.domain.model.CircumferenceSite
 import io.github.lopezjavier.appfitness.domain.model.Dated
 import io.github.lopezjavier.appfitness.domain.model.DayMeasurements
 import io.github.lopezjavier.appfitness.domain.model.GoalStrategy
 import io.github.lopezjavier.appfitness.domain.model.LatestComposition
 import io.github.lopezjavier.appfitness.domain.model.MeasurementSource
+import io.github.lopezjavier.appfitness.domain.model.Sex
 import io.github.lopezjavier.appfitness.domain.usecase.MetricInterpretation
 import io.github.lopezjavier.appfitness.domain.usecase.MetricKind
 import io.github.lopezjavier.appfitness.domain.usecase.MetricStatus
+import io.github.lopezjavier.appfitness.domain.usecase.RateTone
+import io.github.lopezjavier.appfitness.domain.usecase.TrendData
+import io.github.lopezjavier.appfitness.domain.usecase.TrendPoint
+import io.github.lopezjavier.appfitness.domain.usecase.WeeklyRate
+import io.github.lopezjavier.appfitness.domain.usecase.WeightChartRange
 import io.github.lopezjavier.appfitness.feature.weight.CircumferenceSheetState
 import io.github.lopezjavier.appfitness.feature.weight.CircumferencesContent
 import io.github.lopezjavier.appfitness.feature.weight.CircumferencesUiState
@@ -22,10 +29,13 @@ import io.github.lopezjavier.appfitness.feature.weight.WeightContent
 import io.github.lopezjavier.appfitness.feature.weight.WeightHistoryScreen
 import io.github.lopezjavier.appfitness.feature.weight.WeightScreen
 import io.github.lopezjavier.appfitness.feature.weight.WeightSheet
+import io.github.lopezjavier.appfitness.feature.weight.WeightTrendUiState
 import io.github.lopezjavier.appfitness.feature.weight.WeightUiState
+import kotlinx.datetime.DateTimeUnit
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.YearMonth
+import kotlinx.datetime.plus
 import kotlin.time.Instant
 
 private val Today = GalleryFixtures.today
@@ -65,7 +75,10 @@ private fun circumferences(sheet: CircumferenceSheetState? = null, empty: Boolea
         listOf(
             SiteHistory(
                 CircumferenceSite.Waist,
-                listOf(BodyCircumference("c1", CircumferenceSite.Waist, 84.0, at, at)),
+                listOf(
+                    BodyCircumference("c1", CircumferenceSite.Waist, 84.0, at, at),
+                    BodyCircumference("c3", CircumferenceSite.Waist, 85.0, Instant.parse("2026-10-06T08:00:00Z"), at),
+                ),
             ),
             SiteHistory(CircumferenceSite.Hip, listOf(BodyCircumference("c2", CircumferenceSite.Hip, 98.0, at, at))),
         )
@@ -113,17 +126,33 @@ private fun goal(open: MetricKind?) = GoalUiState.Content(
         strategy = GoalStrategy.Maintenance,
         bmi = MetricInterpretation(MetricKind.Bmi, 25.4, MetricStatus.Overweight),
         bodyFat = MetricInterpretation(MetricKind.BodyFat, 18.5, MetricStatus.Normal),
-        waistToHip = null,
+        waistToHip = MetricInterpretation(MetricKind.WaistToHip, 0.86, MetricStatus.WhrLowRisk),
         isOnline = true,
         openMetric = open,
+        sex = Sex.Male,
     ),
 )
+
+private fun trendFixture(): WeightTrendUiState {
+    val weights = listOf(84.1, 83.8, 83.9, 83.4, 83.2, 83.3, 82.9, 82.8, 83.0, 82.6, 82.5, 82.7, 82.4, 82.4)
+    val start = LocalDate(2026, 10, 8)
+    val points = weights.mapIndexed { i, kg -> TrendPoint(start.plus(i, DateTimeUnit.DAY), kg, kg) }
+    val rate = WeeklyRate(-0.45, RateTone.Favorable)
+    return WeightTrendUiState.Content(
+        range = WeightChartRange.Month,
+        metric = BodyMetric.Weight,
+        trend = TrendData(points, rate, true),
+        weeklyRate = rate,
+        selectedPoint = null,
+    )
+}
 
 private class WeightVariant(
     val state: String,
     val ui: WeightUiState,
     val circ: CircumferencesUiState = circumferences(),
     val goal: GoalUiState? = null,
+    val trend: WeightTrendUiState? = null,
     val kind: GalleryKind = GalleryKind.Screen,
     val wide: Boolean = false,
     val fontScale: Float = 1f,
@@ -135,7 +164,7 @@ private fun weight(): List<GalleryEntry> = listOf(
     WeightVariant("loading", WeightUiState.Loading, CircumferencesUiState.Loading),
     WeightVariant("error", WeightUiState.Error, CircumferencesUiState.Error),
     WeightVariant("empty", weightContent(current = null, days = emptyMap()), circumferences(empty = true)),
-    WeightVariant("with weights and circumferences", weightContent(), goal = goal(null)),
+    WeightVariant("with weights and circumferences", weightContent(), goal = goal(null), trend = trendFixture()),
     WeightVariant("offline", weightContent(online = false)),
     WeightVariant(
         "new weight sheet (Guardar disabled)",
@@ -175,8 +204,8 @@ private fun weight(): List<GalleryEntry> = listOf(
         kind = GalleryKind.Sheet,
         covers = setOf("MetricDetailSheet"),
     ),
-    WeightVariant("tablet width", weightContent(), goal = goal(null), wide = true),
-    WeightVariant("large font (1.3)", weightContent(), goal = goal(null), fontScale = 1.3f),
+    WeightVariant("tablet width", weightContent(), goal = goal(null), trend = trendFixture(), wide = true),
+    WeightVariant("large font (1.3)", weightContent(), goal = goal(null), trend = trendFixture(), fontScale = 1.3f),
 ).map { v ->
     GalleryEntry(
         PERFIL_AREA,
@@ -188,7 +217,7 @@ private fun weight(): List<GalleryEntry> = listOf(
         fontScale = v.fontScale,
     ) {
         WeightScreen(v.ui, onEvent = {
-        }, circumferences = v.circ, onCircumferenceEvent = {}, goal = v.goal, timeZone = TimeZone.UTC)
+        }, circumferences = v.circ, onCircumferenceEvent = {}, goal = v.goal, trend = v.trend, timeZone = TimeZone.UTC)
     }
 }
 

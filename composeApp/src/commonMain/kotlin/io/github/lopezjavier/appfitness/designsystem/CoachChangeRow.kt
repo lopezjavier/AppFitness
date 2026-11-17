@@ -15,6 +15,11 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
+import io.github.lopezjavier.appfitness.composeapp.resources.Res
+import io.github.lopezjavier.appfitness.composeapp.resources.ic_auto_awesome
+import io.github.lopezjavier.appfitness.composeapp.resources.ic_check
+import io.github.lopezjavier.appfitness.composeapp.resources.ic_info
+import io.github.lopezjavier.appfitness.composeapp.resources.ic_retry
 
 /** How a [CoachChangeRow] reads: decides the tone of the status chip (the chip text itself is the caller's). */
 enum class CoachChangeRowState { Applied, Undone, Pending, NoRange, Kept, Decided }
@@ -58,6 +63,7 @@ fun CoachChangeRow(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
             ) {
+                CoachChangeBadge(state)
                 if (headline.isNotBlank()) {
                     Text(
                         text = headline,
@@ -91,6 +97,19 @@ fun CoachChangeRow(
             footer?.invoke()
         }
     }
+}
+
+/** The state as a lit badge: applied is green with a check, undone amber with the undo glyph, the rest cyan. */
+@Composable
+private fun CoachChangeBadge(state: CoachChangeRowState) {
+    val colors = AppTheme.colors
+    val (icon, tint) = when (state) {
+        CoachChangeRowState.Applied, CoachChangeRowState.Decided -> Res.drawable.ic_check to colors.electricGreen
+        CoachChangeRowState.Undone -> Res.drawable.ic_retry to colors.energyAmber
+        CoachChangeRowState.Pending -> Res.drawable.ic_auto_awesome to colors.neonLime
+        CoachChangeRowState.NoRange, CoachChangeRowState.Kept -> Res.drawable.ic_info to colors.athleticCyan
+    }
+    IconBadge(icon, tint, size = IconBadgeDefaults.SmallSize, iconSize = IconBadgeDefaults.SmallIconSize)
 }
 
 @Composable

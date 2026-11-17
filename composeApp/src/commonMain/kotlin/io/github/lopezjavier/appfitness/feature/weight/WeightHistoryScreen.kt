@@ -4,6 +4,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -16,15 +17,20 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import io.github.lopezjavier.appfitness.composeapp.resources.Res
 import io.github.lopezjavier.appfitness.composeapp.resources.action_retry
+import io.github.lopezjavier.appfitness.composeapp.resources.ic_monitor_weight
+import io.github.lopezjavier.appfitness.composeapp.resources.px_body_last_weight
+import io.github.lopezjavier.appfitness.composeapp.resources.px_body_readings_month
 import io.github.lopezjavier.appfitness.composeapp.resources.weight_error_message
 import io.github.lopezjavier.appfitness.composeapp.resources.weight_history_empty_month
 import io.github.lopezjavier.appfitness.composeapp.resources.weight_history_tap_day
 import io.github.lopezjavier.appfitness.composeapp.resources.weight_history_title
+import io.github.lopezjavier.appfitness.designsystem.AppCard
 import io.github.lopezjavier.appfitness.designsystem.AppScreen
 import io.github.lopezjavier.appfitness.designsystem.AppShapes
 import io.github.lopezjavier.appfitness.designsystem.AppStateAction
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
 import io.github.lopezjavier.appfitness.designsystem.ErrorState
+import io.github.lopezjavier.appfitness.designsystem.IconBadge
 import io.github.lopezjavier.appfitness.designsystem.MonthCalendarGrid
 import io.github.lopezjavier.appfitness.designsystem.SkeletonBox
 import io.github.lopezjavier.appfitness.designsystem.Spacing
@@ -90,6 +96,34 @@ private fun HistoryCalendar(content: WeightContent, onEvent: (WeightEvent) -> Un
                 color = AppTheme.colors.textSecondary,
                 modifier = Modifier.testTag("weight_history_tap_day"),
             )
+        }
+        content.current?.let { current ->
+            item(key = "summary") {
+                val monthDays = content.markedDays.count {
+                    it.year == content.month.year && it.month == content.month.month
+                }
+                AppCard(Modifier.fillMaxWidth().testTag("weight_history_summary"), glow = AppTheme.colors.neonLime) {
+                    Row(
+                        Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(Spacing.md),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        IconBadge(Res.drawable.ic_monitor_weight, AppTheme.colors.neonLime)
+                        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
+                            Text(
+                                text = stringResource(Res.string.px_body_last_weight, decimalText(current.weightKg)),
+                                style = AppTheme.typography.titleMedium,
+                                color = AppTheme.colors.textPrimary,
+                            )
+                            Text(
+                                text = stringResource(Res.string.px_body_readings_month, monthDays),
+                                style = AppTheme.typography.bodyMedium,
+                                color = AppTheme.colors.textSecondary,
+                            )
+                        }
+                    }
+                }
+            }
         }
         item(key = "calendar") {
             MonthCalendarGrid(

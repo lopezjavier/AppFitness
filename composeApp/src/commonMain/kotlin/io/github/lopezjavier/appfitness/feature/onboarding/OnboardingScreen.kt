@@ -56,7 +56,6 @@ import io.github.lopezjavier.appfitness.designsystem.Spacing
 import io.github.lopezjavier.appfitness.designsystem.StepScaffold
 import io.github.lopezjavier.appfitness.designsystem.WindowWidthClassDefaults
 import io.github.lopezjavier.appfitness.domain.model.BiometricBounds
-import io.github.lopezjavier.appfitness.feature.biometrics.ActivityCards
 import io.github.lopezjavier.appfitness.feature.goals.EnergyStrategySection
 import kotlinx.coroutines.delay
 import kotlinx.datetime.LocalDate
@@ -186,6 +185,8 @@ private fun StepForm(state: OnboardingUiState, onEvent: (OnboardingEvent) -> Uni
             }
         },
         testTagPrefix = "onboarding",
+        totalSteps = OnboardingStep.TOTAL_STEPS,
+        mark = { StepMark(OnboardingStep.entries[it - 1]) },
     ) { shown ->
         when (OnboardingStep.entries[shown - 1]) {
             OnboardingStep.AboutYou -> AboutYouStep(
@@ -202,18 +203,20 @@ private fun StepForm(state: OnboardingUiState, onEvent: (OnboardingEvent) -> Uni
                 onWeight = { onEvent(OnboardingEvent.SetWeight(it)) },
             )
 
-            OnboardingStep.Activity -> ActivityCards(
+            OnboardingStep.Activity -> ActivityIntensityCards(
                 state.activity,
                 onSelect = { onEvent(OnboardingEvent.SelectActivity(it)) },
-                tagPrefix = "onboarding",
             )
 
             OnboardingStep.Goals -> state.energy?.let { energy ->
-                EnergyStrategySection(
-                    state = energy,
-                    onEvent = { onEvent(OnboardingEvent.Energy(it)) },
-                    testTagPrefix = "onboarding_goals",
-                )
+                Column(verticalArrangement = Arrangement.spacedBy(Spacing.blockGap)) {
+                    GoalsResult(energy)
+                    EnergyStrategySection(
+                        state = energy,
+                        onEvent = { onEvent(OnboardingEvent.Energy(it)) },
+                        testTagPrefix = "onboarding_goals",
+                    )
+                }
             }
         }
     }

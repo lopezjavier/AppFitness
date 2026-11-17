@@ -40,6 +40,7 @@ import io.github.lopezjavier.appfitness.designsystem.ErrorState
 import io.github.lopezjavier.appfitness.designsystem.LocalAppHaptics
 import io.github.lopezjavier.appfitness.designsystem.LocalAppMessages
 import io.github.lopezjavier.appfitness.designsystem.OfflineHint
+import io.github.lopezjavier.appfitness.designsystem.PrimaryButton
 import io.github.lopezjavier.appfitness.designsystem.SkeletonBox
 import io.github.lopezjavier.appfitness.designsystem.Spacing
 import io.github.lopezjavier.appfitness.designsystem.TonalSquareIconButton
@@ -148,10 +149,10 @@ private fun RoutinesContent(state: RoutinesUiState.Content, onEvent: (RoutinesEv
                 title = stringResource(Res.string.routines_empty_title),
                 testTagPrefix = "routines_empty",
             )
-            AddItemButton(
-                objectLabel = "rutina",
+            PrimaryButton(
+                text = stringResource(Res.string.add_item, "rutina"),
                 onClick = { onEvent(RoutinesEvent.NewRoutine) },
-                modifier = Modifier.testTag("routines_empty_add"),
+                modifier = Modifier.fillMaxWidth().testTag("routines_empty_add"),
                 enabled = state.isOnline,
             )
         }
@@ -163,6 +164,7 @@ private fun RoutinesContent(state: RoutinesUiState.Content, onEvent: (RoutinesEv
         verticalArrangement = Arrangement.spacedBy(Spacing.cardGap),
     ) {
         if (!state.isOnline) item(key = "offline_hint") { OfflineHint(action = "empezar") }
+        if (state.today != null) item(key = "week_hero") { RoutinesWeekHero(state) }
         routineGroups(state, onEvent)
         item(key = "add_row") {
             Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {

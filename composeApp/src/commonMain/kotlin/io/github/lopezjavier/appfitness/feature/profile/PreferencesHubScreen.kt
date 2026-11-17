@@ -20,6 +20,14 @@ import io.github.lopezjavier.appfitness.composeapp.resources.Res
 import io.github.lopezjavier.appfitness.composeapp.resources.energy_strategy_deficit
 import io.github.lopezjavier.appfitness.composeapp.resources.energy_strategy_maintenance
 import io.github.lopezjavier.appfitness.composeapp.resources.energy_strategy_surplus
+import io.github.lopezjavier.appfitness.composeapp.resources.ic_avatar_person
+import io.github.lopezjavier.appfitness.composeapp.resources.ic_bar_chart
+import io.github.lopezjavier.appfitness.composeapp.resources.ic_fitness_center
+import io.github.lopezjavier.appfitness.composeapp.resources.ic_flame_outlined
+import io.github.lopezjavier.appfitness.composeapp.resources.ic_meal_dinner
+import io.github.lopezjavier.appfitness.composeapp.resources.ic_meal_lunch
+import io.github.lopezjavier.appfitness.composeapp.resources.ic_notifications
+import io.github.lopezjavier.appfitness.composeapp.resources.ic_restaurant_outlined
 import io.github.lopezjavier.appfitness.composeapp.resources.meal_defaults_open
 import io.github.lopezjavier.appfitness.composeapp.resources.preferences_cooking_title
 import io.github.lopezjavier.appfitness.composeapp.resources.preferences_energy_title
@@ -41,6 +49,9 @@ import io.github.lopezjavier.appfitness.composeapp.resources.profile_personal_ti
 import io.github.lopezjavier.appfitness.designsystem.AppCard
 import io.github.lopezjavier.appfitness.designsystem.AppNumberFormat
 import io.github.lopezjavier.appfitness.designsystem.AppScreen
+import io.github.lopezjavier.appfitness.designsystem.AppTheme
+import io.github.lopezjavier.appfitness.designsystem.IconBadge
+import io.github.lopezjavier.appfitness.designsystem.IconBadgeDefaults
 import io.github.lopezjavier.appfitness.designsystem.ListSectionHeader
 import io.github.lopezjavier.appfitness.designsystem.NavigationRow
 import io.github.lopezjavier.appfitness.designsystem.Spacing
@@ -206,10 +217,24 @@ private fun HubGroup(title: StringResource, content: @Composable () -> Unit) {
 
 @Composable
 private fun HubRow(label: StringResource, key: String, supporting: String? = null, onClick: () -> Unit) {
+    val colors = AppTheme.colors
+    val (icon, tint) = when (key) {
+        "personal" -> Res.drawable.ic_avatar_person to colors.athleticCyan
+        "avisos" -> Res.drawable.ic_notifications to colors.energyAmber
+        "energy" -> Res.drawable.ic_flame_outlined to colors.neonLime
+        "macros" -> Res.drawable.ic_bar_chart to colors.macroCarbs
+        "meals" -> Res.drawable.ic_restaurant_outlined to colors.energyAmber
+        "meal_defaults" -> Res.drawable.ic_meal_lunch to colors.macroFat
+        "cooking" -> Res.drawable.ic_meal_dinner to colors.electricGreen
+        else -> Res.drawable.ic_fitness_center to colors.athleticCyan
+    }
     NavigationRow(
         label = stringResource(label),
         onClick = onClick,
         modifier = Modifier.testTag("preferences_row_$key"),
         supporting = supporting,
+        leading = {
+            IconBadge(icon, tint, size = IconBadgeDefaults.SmallSize, iconSize = IconBadgeDefaults.SmallIconSize)
+        },
     )
 }

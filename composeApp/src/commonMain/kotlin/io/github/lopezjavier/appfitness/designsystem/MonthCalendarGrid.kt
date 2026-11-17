@@ -244,9 +244,8 @@ private fun dayDescription(cell: DayCell): String {
 }
 
 /**
- * The visible circle of a day (R-64, C-33; a resting day has no fill, only selected and today draw a circle):
- * selected = `selectedContainer` fill with a 1 dp lime border; today = 1 dp cyan
- * ring. Today and selected: the cyan ring sits outside, so the lime border stays inside it.
+ * The visible circle of a day: a resting day has no fill; a marked day is a soft lime disc, the selected day a lit
+ * lime disc and today a cyan ring. Today and selected: the cyan ring sits outside the lit disc.
  */
 private fun Modifier.dayCellDecoration(cell: DayCell, colors: AppColors): Modifier = this
     .let {
@@ -257,11 +256,20 @@ private fun Modifier.dayCellDecoration(cell: DayCell, colors: AppColors): Modifi
         }
     }
     .clip(AppShapes.full)
-    .let { if (cell.selected) it.background(colors.selectedContainer) else it }
     .let {
         when {
-            cell.selected -> it.border(AppBorder.thin, colors.neonLime, AppShapes.full)
-            cell.isToday -> it.border(AppBorder.thin, colors.athleticCyan, AppShapes.full)
+            cell.selected -> it.background(AppPaint.diagonal(colors.neonLime))
+            cell.marked -> it.background(AppPaint.tintSurface(colors.neonLime))
+            else -> it
+        }
+    }
+    .let {
+        when {
+            cell.isToday && !cell.selected -> it.border(AppBorder.focus, colors.athleticCyan, AppShapes.full)
+
+            cell.marked && !cell.selected ->
+                it.border(AppBorder.thin, AppPaint.accentBorder(colors.neonLime), AppShapes.full)
+
             else -> it
         }
     }
@@ -313,21 +321,15 @@ private fun DayCellView(cell: DayCell, cellWidth: Dp, enabled: Boolean, onSelect
         Text(
             text = cell.date.day.toString(),
             style = AppTheme.typography.bodyMedium.let {
-                if (cell.selected) it.copy(fontWeight = FontWeight.W700) else it
+                if (cell.selected || cell.marked) it.copy(fontWeight = FontWeight.W700) else it
             },
-            color = if (cell.selected) colors.neonLime else colors.textPrimary,
+            color = when {
+                cell.selected -> colors.onNeonLime
+                cell.marked -> AppPaint.ramp(colors.neonLime).bright
+                else -> colors.textPrimary
+            },
             modifier = Modifier.clearAndSetSemantics {},
         )
-        if (cell.marked) {
-            Box(
-                Modifier
-                    .align(Alignment.BottomCenter)
-                    .padding(bottom = Spacing.xs)
-                    .size(MonthCalendarGridDefaults.MarkSize)
-                    .clip(AppShapes.full)
-                    .background(colors.neonLime),
-            )
-        }
     }
 }
 

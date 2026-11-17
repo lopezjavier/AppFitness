@@ -11,6 +11,7 @@ import io.github.lopezjavier.appfitness.domain.model.RoutineSummary
 import io.github.lopezjavier.appfitness.domain.port.ConnectivityObserver
 import io.github.lopezjavier.appfitness.domain.repository.RoutineRepository
 import io.github.lopezjavier.appfitness.domain.repository.WorkoutSessionRepository
+import io.github.lopezjavier.appfitness.domain.usecase.TrainingCalendar
 import io.github.lopezjavier.appfitness.domain.usecase.moveWithinGroup
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.Flow
@@ -20,6 +21,9 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.datetime.TimeZone
+import kotlinx.datetime.todayIn
+import kotlin.time.Clock
 
 private const val KEY_COLLAPSED = "routines_collapsed_folders"
 private const val KEY_SHEET_MODE = "routines_folder_sheet_mode"
@@ -149,12 +153,24 @@ class RoutinesViewModel(
             }
             val list = routines.getOrThrow()
             val folderList = folders.getOrThrow()
+            val week = loadWeek()
             _uiState.update { current ->
-                (current as? RoutinesUiState.Content)?.copy(routines = list, folders = folderList)
+                (current as? RoutinesUiState.Content)?.copy(
+                    routines = list,
+                    folders = folderList,
+                    today = week.today,
+                    trainedDays = week.trainedDays,
+                    weekWorkouts = week.workouts,
+                    streakWeeks = week.streakWeeks,
+                )
                     ?: RoutinesUiState.Content(
                         routines = list,
                         isOnline = online,
                         folders = folderList,
+                        today = week.today,
+                        trainedDays = week.trainedDays,
+                        weekWorkouts = week.workouts,
+                        streakWeeks = week.streakWeeks,
                         collapsedFolderIds = restoredCollapsed(),
                         folderSheet = restoredSheet(),
                         folderMenuFor = savedState.get<String>(KEY_FOLDER_MENU)
@@ -162,6 +178,14 @@ class RoutinesViewModel(
                     )
             }
         }
+    }
+
+    /** The hero's figures from the completed sessions; a failed read just hides the hero (no fake data). */
+    private suspend fun loadWeek(): TrainingWeek {
+        val zone = TimeZone.currentSystemDefault()
+        val sessionList = sessions.listCompletedSummaries().getOrNull() ?: return TrainingWeek()
+        val today = Clock.System.todayIn(zone)
+        return trainingWeekOf(TrainingCalendar.daysOf(sessionList, zone).mapValues { it.value.size }, today)
     }
 
     private fun duplicate(id: String) {

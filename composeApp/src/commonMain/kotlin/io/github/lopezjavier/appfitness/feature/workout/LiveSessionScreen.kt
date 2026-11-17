@@ -258,7 +258,7 @@ private fun LiveActive(
             if (wide) {
                 WideLive(state, onEvent, onOpenExercise, optionSaveFailed)
             } else {
-                NarrowLive(state, onEvent, onOpenExercise, optionSaveFailed)
+                NarrowLive(state, onEvent, onOpenExercise, optionSaveFailed, elapsedSeconds)
             }
         }
     }

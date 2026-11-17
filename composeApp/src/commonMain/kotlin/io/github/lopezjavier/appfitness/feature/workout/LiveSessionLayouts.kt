@@ -20,11 +20,15 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import io.github.lopezjavier.appfitness.composeapp.resources.Res
 import io.github.lopezjavier.appfitness.composeapp.resources.live_object_exercise
+import io.github.lopezjavier.appfitness.composeapp.resources.live_paused_label
 import io.github.lopezjavier.appfitness.composeapp.resources.live_progress_summary
+import io.github.lopezjavier.appfitness.composeapp.resources.live_title
+import io.github.lopezjavier.appfitness.composeapp.resources.px_live_sets_progress
 import io.github.lopezjavier.appfitness.designsystem.AddItemButton
 import io.github.lopezjavier.appfitness.designsystem.AppLinearProgress
 import io.github.lopezjavier.appfitness.designsystem.AppLinearProgressDefaults
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
+import io.github.lopezjavier.appfitness.designsystem.LiveStatusStrip
 import io.github.lopezjavier.appfitness.designsystem.Spacing
 import io.github.lopezjavier.appfitness.designsystem.appAnimateItem
 import org.jetbrains.compose.resources.stringResource
@@ -36,10 +40,18 @@ internal fun NarrowLive(
     onEvent: (LiveSessionEvent) -> Unit,
     onOpenExercise: (String) -> Unit,
     optionSaveFailed: Boolean,
+    elapsedSeconds: Long = 0L,
 ) {
     Column(Modifier.fillMaxSize()) {
         val sets = state.exercises.flatMap { it.sets }
         val done = sets.count { it.completed }
+        LiveStatusStrip(
+            statusText = stringResource(if (state.isPaused) Res.string.live_paused_label else Res.string.live_title),
+            progressText = stringResource(Res.string.px_live_sets_progress, done, sets.size),
+            paused = state.isPaused,
+            modifier = Modifier.testTag("live_status_strip"),
+            elapsedText = formatElapsed(elapsedSeconds),
+        )
         // Full-width session progress under the top bar (C-69); the tablet layout has the text summary instead.
         AppLinearProgress(
             fraction = if (sets.isEmpty()) 0f else done.toFloat() / sets.size,

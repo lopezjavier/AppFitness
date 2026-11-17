@@ -10,6 +10,11 @@ import androidx.compose.ui.platform.testTag
 import io.github.lopezjavier.appfitness.composeapp.resources.Res
 import io.github.lopezjavier.appfitness.composeapp.resources.action_retry
 import io.github.lopezjavier.appfitness.composeapp.resources.coach_failure_block_in_progress_action
+import io.github.lopezjavier.appfitness.composeapp.resources.ic_error
+import io.github.lopezjavier.appfitness.composeapp.resources.ic_fact_check
+import io.github.lopezjavier.appfitness.composeapp.resources.ic_fitness_center
+import io.github.lopezjavier.appfitness.composeapp.resources.ic_timer
+import io.github.lopezjavier.appfitness.composeapp.resources.ic_warning
 import io.github.lopezjavier.appfitness.designsystem.AppStateAction
 import io.github.lopezjavier.appfitness.designsystem.ErrorState
 import io.github.lopezjavier.appfitness.designsystem.OfflineState
@@ -17,6 +22,7 @@ import io.github.lopezjavier.appfitness.domain.model.CoachFailure
 import io.github.lopezjavier.appfitness.domain.model.MissingField
 import io.github.lopezjavier.appfitness.domain.model.PlanFixTarget
 import kotlinx.coroutines.flow.Flow
+import org.jetbrains.compose.resources.DrawableResource
 import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.stringResource
 
@@ -39,12 +45,14 @@ internal fun CoachFailureContent(
     onRetry: () -> Unit,
 ) {
     val retry = AppStateAction(stringResource(Res.string.action_retry), onRetry)
+    val icon = kind.glyph()
     val errorMessage: @Composable (StringResource) -> Unit = { message ->
         // A missing or infeasible input fails again on retry: the screen that fixes it comes first (R-59).
         val target = if (onFix != null) kind.fixTarget() else null
         if (target != null && onFix != null) {
             ErrorState(
                 modifier = Modifier.fillMaxSize(),
+                icon = icon,
                 message = stringResource(message),
                 action = AppStateAction(stringResource(target.destinationLabel())) { onFix(target) },
                 testTagPrefix = "${tagPrefix}_error",
@@ -56,6 +64,7 @@ internal fun CoachFailureContent(
             // A block already runs: retrying cannot help, so the way out comes first (V-69).
             ErrorState(
                 modifier = Modifier.fillMaxSize(),
+                icon = icon,
                 message = stringResource(message),
                 action = AppStateAction(stringResource(Res.string.coach_failure_block_in_progress_action), onLeave),
                 testTagPrefix = "${tagPrefix}_error",
@@ -66,6 +75,7 @@ internal fun CoachFailureContent(
         } else {
             ErrorState(
                 modifier = Modifier.fillMaxSize(),
+                icon = icon,
                 message = stringResource(message),
                 action = retry,
                 testTagPrefix = "${tagPrefix}_error",
@@ -89,6 +99,15 @@ internal fun CoachFailureContent(
 
         PlanFailureKind.Other -> errorMessage(copy.error)
     }
+}
+
+/** The glyph of each failure: what went wrong reads before the words (time, missing data, a running block...). */
+private fun PlanFailureKind.glyph(): DrawableResource = when (this) {
+    PlanFailureKind.Timeout, PlanFailureKind.Interrupted -> Res.drawable.ic_timer
+    is PlanFailureKind.Missing -> Res.drawable.ic_fact_check
+    PlanFailureKind.Infeasible, PlanFailureKind.Invalid -> Res.drawable.ic_warning
+    PlanFailureKind.BlockInProgress -> Res.drawable.ic_fitness_center
+    else -> Res.drawable.ic_error
 }
 
 /** Where the input a failed call lacks is fixed; null when no screen fixes it (R-59). */

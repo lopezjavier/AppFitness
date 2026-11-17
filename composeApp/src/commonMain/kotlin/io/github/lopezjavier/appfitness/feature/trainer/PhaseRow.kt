@@ -12,10 +12,12 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import io.github.lopezjavier.appfitness.composeapp.resources.Res
+import io.github.lopezjavier.appfitness.composeapp.resources.ic_flag
 import io.github.lopezjavier.appfitness.composeapp.resources.phase_help_cd
 import io.github.lopezjavier.appfitness.designsystem.AppCard
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
 import io.github.lopezjavier.appfitness.designsystem.HelpButton
+import io.github.lopezjavier.appfitness.designsystem.IconBadge
 import io.github.lopezjavier.appfitness.designsystem.Spacing
 import io.github.lopezjavier.appfitness.domain.model.Phase
 import io.github.lopezjavier.appfitness.domain.model.PhaseReason
@@ -40,6 +42,7 @@ internal fun PhaseRow(phase: Phase, reason: PhaseReason, testTagPrefix: String, 
 internal fun PhaseRowContent(phase: Phase, reasonText: String, testTagPrefix: String) {
     val label = stringResource(PhaseText.label(phase))
     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.xs)) {
+        IconBadge(Res.drawable.ic_flag, AppTheme.colors.athleticCyan)
         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
             Text(
                 text = label,

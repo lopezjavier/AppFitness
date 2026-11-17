@@ -21,6 +21,8 @@ import io.github.lopezjavier.appfitness.designsystem.AppCard
 import io.github.lopezjavier.appfitness.designsystem.AppInfoSheet
 import io.github.lopezjavier.appfitness.designsystem.AppStateAction
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
+import io.github.lopezjavier.appfitness.designsystem.DonutChart
+import io.github.lopezjavier.appfitness.designsystem.DonutSlice
 import io.github.lopezjavier.appfitness.designsystem.ErrorState
 import io.github.lopezjavier.appfitness.designsystem.FoodEntryRowModel
 import io.github.lopezjavier.appfitness.designsystem.SkeletonBox
@@ -54,15 +56,28 @@ internal fun DetailsRow.toRowModel(): FoodEntryRowModel {
 /** The total kcal and macros of the comida (the draft in the editor), tagged `<prefix>_kcal` and `_macros`. */
 @Composable
 internal fun TotalsCard(content: TemplateDetailsUiState.Content, prefix: String) {
-    AppCard(Modifier.fillMaxWidth().testTag("${prefix}_totals")) {
-        Row(horizontalArrangement = Arrangement.spacedBy(Spacing.md), verticalAlignment = Alignment.CenterVertically) {
-            KcalText(content.totalKcal, Modifier.testTag("${prefix}_kcal"))
-            Box(Modifier.testTag("${prefix}_macros")) {
-                MacroTexts(content.totalProteinG, content.totalCarbsG, content.totalFatG)
+    val colors = AppTheme.colors
+    AppCard(Modifier.fillMaxWidth().testTag("${prefix}_totals"), glow = colors.neonLime) {
+        Row(horizontalArrangement = Arrangement.spacedBy(Spacing.lg), verticalAlignment = Alignment.CenterVertically) {
+            DonutChart(
+                slices = listOf(
+                    DonutSlice((content.totalProteinG * KCAL_PER_G_PROTEIN_CARBS).toFloat(), colors.macroProtein),
+                    DonutSlice((content.totalCarbsG * KCAL_PER_G_PROTEIN_CARBS).toFloat(), colors.macroCarbs),
+                    DonutSlice((content.totalFatG * KCAL_PER_G_FAT).toFloat(), colors.macroFat),
+                ),
+            )
+            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+                KcalText(content.totalKcal, Modifier.testTag("${prefix}_kcal"))
+                Box(Modifier.testTag("${prefix}_macros")) {
+                    MacroTexts(content.totalProteinG, content.totalCarbsG, content.totalFatG)
+                }
             }
         }
     }
 }
+
+private const val KCAL_PER_G_PROTEIN_CARBS = 4
+private const val KCAL_PER_G_FAT = 9
 
 @Composable
 internal fun DetailsLoading(prefix: String) {

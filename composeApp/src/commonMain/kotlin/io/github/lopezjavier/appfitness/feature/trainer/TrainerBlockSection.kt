@@ -1,19 +1,12 @@
 package io.github.lopezjavier.appfitness.feature.trainer
 
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.size
-import androidx.compose.material3.Icon
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.text.style.TextAlign
 import io.github.lopezjavier.appfitness.composeapp.resources.Res
 import io.github.lopezjavier.appfitness.composeapp.resources.action_cancel
 import io.github.lopezjavier.appfitness.composeapp.resources.action_delete
@@ -21,6 +14,8 @@ import io.github.lopezjavier.appfitness.composeapp.resources.block_review_card_s
 import io.github.lopezjavier.appfitness.composeapp.resources.block_review_title
 import io.github.lopezjavier.appfitness.composeapp.resources.block_week_paused
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_fitness_center
+import io.github.lopezjavier.appfitness.composeapp.resources.px_trainer_block_empty_bullet_1
+import io.github.lopezjavier.appfitness.composeapp.resources.px_trainer_block_empty_bullet_2
 import io.github.lopezjavier.appfitness.composeapp.resources.trainer_block_create
 import io.github.lopezjavier.appfitness.composeapp.resources.trainer_block_create_action
 import io.github.lopezjavier.appfitness.composeapp.resources.trainer_block_proposed_supporting
@@ -33,14 +28,11 @@ import io.github.lopezjavier.appfitness.composeapp.resources.trainer_block_statu
 import io.github.lopezjavier.appfitness.composeapp.resources.trainer_box_empty_block
 import io.github.lopezjavier.appfitness.designsystem.AppCard
 import io.github.lopezjavier.appfitness.designsystem.AppConfirmDialog
-import io.github.lopezjavier.appfitness.designsystem.AppShapes
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
-import io.github.lopezjavier.appfitness.designsystem.HubDimensions
 import io.github.lopezjavier.appfitness.designsystem.OfflineHint
 import io.github.lopezjavier.appfitness.designsystem.PrimaryButton
 import io.github.lopezjavier.appfitness.designsystem.Spacing
 import io.github.lopezjavier.appfitness.designsystem.SummaryCard
-import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.resources.stringResource
 
 /** The block entry on the Trainer root: "Crear bloque" or the proposed block to review. */
@@ -101,35 +93,24 @@ internal fun BlockStatus.Saved.weekLine(): String = when {
  */
 @Composable
 private fun BlockEmptyCard(modifier: Modifier = Modifier, content: @Composable () -> Unit) {
-    AppCard(modifier.fillMaxWidth().testTag("trainer_block_empty")) {
+    AppCard(modifier.fillMaxWidth().testTag("trainer_block_empty"), glow = AppTheme.colors.neonLime) {
         Column(
             Modifier.fillMaxWidth(),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(Spacing.md),
         ) {
-            Box(
-                Modifier.size(BlockEmptyCircle).clip(AppShapes.full).background(AppTheme.colors.surfaceOverlay),
-                contentAlignment = Alignment.Center,
-            ) {
-                Icon(
-                    painter = painterResource(Res.drawable.ic_fitness_center),
-                    contentDescription = null,
-                    tint = AppTheme.colors.textSecondary,
-                    modifier = Modifier.size(Spacing.xl + Spacing.sm),
-                )
-            }
-            Text(
-                text = stringResource(Res.string.trainer_box_empty_block),
-                style = AppTheme.typography.bodyMedium,
-                color = AppTheme.colors.textSecondary,
-                textAlign = TextAlign.Center,
+            TrainerEmptyHero(
+                icon = Res.drawable.ic_fitness_center,
+                message = stringResource(Res.string.trainer_box_empty_block),
+                bullets = listOf(
+                    stringResource(Res.string.px_trainer_block_empty_bullet_1),
+                    stringResource(Res.string.px_trainer_block_empty_bullet_2),
+                ),
             )
             content()
         }
     }
 }
-
-private val BlockEmptyCircle = HubDimensions.EmptyGlyphCircle
 
 /** The end-of-block card (US-101): opens "Revisión del bloque"; the title equals the screen title (R-04). */
 @Composable

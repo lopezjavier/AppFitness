@@ -61,7 +61,15 @@ private fun strength(): List<GalleryEntry> {
         entry("loading", StrengthUiState.Loading),
         entry("empty", StrengthUiState.Empty),
         entry("error", StrengthUiState.Error),
-        entry("data, growing", StrengthUiState.Content(Chips, "bench", StrengthSummary(113.5, 5.0))),
+        entry(
+            "data, growing",
+            StrengthUiState.Content(
+                Chips,
+                "bench",
+                StrengthSummary(113.5, 5.0),
+                listOf(98.0, 101.5, 100.0, 104.0, 108.5, 107.0, 111.0, 113.5),
+            ),
+        ),
         entry("data, no change", StrengthUiState.Content(Chips, "squat", StrengthSummary(140.0, 0.0))),
         entry("record loading", StrengthUiState.Content(Chips, "row", null)),
     )
@@ -237,6 +245,8 @@ private fun diaryHistory(): List<GalleryEntry> {
             week = PeriodAverage(3, 2000.0, 150.0, 220.0, 60.0),
             monthSummary = MonthSummary(20, 38000.0, 1900.0, 140.0, 200.0, 55.0),
             goals = goalsSet,
+            weekKcal = listOf(2100f, 2350f, 2600f, 1900f, 2250f, 2480f, 1840f),
+            monthKcal = listOf(2050f, 2300f, 1950f, 0f),
         ),
     )
 

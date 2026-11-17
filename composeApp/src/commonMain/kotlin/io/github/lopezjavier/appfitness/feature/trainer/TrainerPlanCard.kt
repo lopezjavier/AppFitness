@@ -3,6 +3,7 @@
 package io.github.lopezjavier.appfitness.feature.trainer
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -13,13 +14,17 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
 import io.github.lopezjavier.appfitness.composeapp.resources.Res
+import io.github.lopezjavier.appfitness.composeapp.resources.ic_flag
+import io.github.lopezjavier.appfitness.composeapp.resources.ic_flame_outlined
 import io.github.lopezjavier.appfitness.composeapp.resources.trainer_goal_eyebrow
 import io.github.lopezjavier.appfitness.composeapp.resources.trainer_plan_calories_none
 import io.github.lopezjavier.appfitness.composeapp.resources.trainer_plan_calories_value
@@ -46,10 +51,13 @@ import io.github.lopezjavier.appfitness.composeapp.resources.trainer_plan_verdic
 import io.github.lopezjavier.appfitness.composeapp.resources.trainer_plan_verdict_on_pace
 import io.github.lopezjavier.appfitness.composeapp.resources.trainer_plan_verdict_rising
 import io.github.lopezjavier.appfitness.composeapp.resources.trainer_plan_verdict_stable
+import io.github.lopezjavier.appfitness.designsystem.AppBorder
 import io.github.lopezjavier.appfitness.designsystem.AppDateFormat
 import io.github.lopezjavier.appfitness.designsystem.AppNumberFormat
+import io.github.lopezjavier.appfitness.designsystem.AppPaint
 import io.github.lopezjavier.appfitness.designsystem.AppShapes
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
+import io.github.lopezjavier.appfitness.designsystem.IconBadge
 import io.github.lopezjavier.appfitness.designsystem.NonBreaking
 import io.github.lopezjavier.appfitness.designsystem.Spacing
 import io.github.lopezjavier.appfitness.designsystem.StatusChip
@@ -113,6 +121,7 @@ internal fun PlanCard(
         testTag = "trainer_box_plan",
         modifier = modifier,
         titleAction = menu,
+        glow = AppTheme.colors.athleticCyan,
         content = { PlanChartPanel(plan, pace) },
         footer = {
             Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
@@ -138,12 +147,15 @@ private fun PlanChartPanel(plan: CoachPlan, pace: WeightPace?) {
         Modifier
             .padding(top = Spacing.xs)
             .fillMaxWidth()
-            .background(AppTheme.colors.surfaceControl, AppShapes.md)
+            .clip(AppShapes.md)
+            .background(AppPaint.tintSurface(AppTheme.colors.athleticCyan))
+            .border(AppBorder.thin, AppPaint.accentBorder(AppTheme.colors.athleticCyan), AppShapes.md)
             .padding(Spacing.md)
             .testTag("trainer_box_plan_goal"),
         verticalArrangement = Arrangement.spacedBy(Spacing.sm),
     ) {
-        Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+        Row(horizontalArrangement = Arrangement.spacedBy(Spacing.md), verticalAlignment = Alignment.CenterVertically) {
+            IconBadge(Res.drawable.ic_flag, AppTheme.colors.athleticCyan)
             Column(Modifier.weight(1f)) {
                 Text(
                     text = stringResource(Res.string.trainer_goal_eyebrow).uppercase(),
@@ -286,7 +298,12 @@ private fun PaceFigures(plan: CoachPlan, pace: WeightPace?) {
 @Composable
 private fun PaceFigure(text: String, color: Color, dashed: Boolean, tag: String) {
     Row(
-        Modifier.testTag(tag),
+        Modifier
+            .testTag(tag)
+            .clip(AppShapes.full)
+            .background(AppPaint.tintSurface(color))
+            .border(AppBorder.thin, AppPaint.accentBorder(color), AppShapes.full)
+            .padding(horizontal = Spacing.md, vertical = Spacing.xs),
         horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
         verticalAlignment = Alignment.CenterVertically,
     ) {
@@ -299,7 +316,7 @@ private fun PaceFigure(text: String, color: Color, dashed: Boolean, tag: String)
                 Box(stroke.width(Spacing.lg))
             }
         }
-        Text(text = text, style = AppTheme.typography.bodyMedium, color = AppTheme.colors.textPrimary)
+        Text(text = text, style = AppTheme.typography.bodySmall, color = AppTheme.colors.textPrimary)
     }
 }
 
@@ -380,5 +397,6 @@ private fun CaloriesRow(plan: CoachPlan, diaryCalories: DiaryCalories?) {
         pace = null,
         stagger = TILE_STAGGER,
         tag = "trainer_box_plan_tile_calories",
+        icon = Res.drawable.ic_flame_outlined,
     )
 }

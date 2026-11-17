@@ -35,6 +35,7 @@ import io.github.lopezjavier.appfitness.designsystem.AppStateAction
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
 import io.github.lopezjavier.appfitness.designsystem.EmptyState
 import io.github.lopezjavier.appfitness.designsystem.ErrorState
+import io.github.lopezjavier.appfitness.designsystem.IconBadge
 import io.github.lopezjavier.appfitness.designsystem.ListRowSkeleton
 import io.github.lopezjavier.appfitness.designsystem.OfflineState
 import io.github.lopezjavier.appfitness.designsystem.RowGroupCard
@@ -142,11 +143,9 @@ private fun ReportRow(item: ReportItem, onOpen: (String) -> Unit, modifier: Modi
             if (isBlock) Res.string.reports_row_open_block else Res.string.reports_row_open_week,
         ),
         leading = {
-            Icon(
-                painter = painterResource(if (isBlock) Res.drawable.ic_fact_check else Res.drawable.ic_calendar),
-                contentDescription = null,
-                tint = AppTheme.colors.textSecondary,
-                modifier = Modifier.size(Spacing.xl),
+            IconBadge(
+                if (isBlock) Res.drawable.ic_fact_check else Res.drawable.ic_calendar,
+                if (isBlock) AppTheme.colors.neonLime else AppTheme.colors.athleticCyan,
             )
         },
         trailing = {

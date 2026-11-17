@@ -25,6 +25,10 @@ data class RestTimerBarColors(
 )
 
 object RestTimerBarDefaults {
+    /** Corner radius of the glow behind the bar, and its strength. */
+    val CornerGlow: Dp = 16.dp
+    const val GLOW_ALPHA = 0.16f
+
     val MinHeight: Dp = 48.dp
     val ProgressHeight: Dp = Spacing.xs
     val Shape = AppShapes.md

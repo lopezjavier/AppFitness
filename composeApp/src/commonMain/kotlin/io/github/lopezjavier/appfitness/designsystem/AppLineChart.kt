@@ -101,10 +101,16 @@ object AppLineChartDefaults {
 
     /** Horizontal gridlines of the value axis (C-159). */
     const val GRIDLINES = 4
+
+    /** Opacity at the top of the faded area under the line. */
+    const val AREA_ALPHA = 0.28f
+
+    /** Curvature of the smoothed line (0 = straight segments). */
+    const val CURVATURE = 0.35f
 }
 
 /**
- * Line chart of one series (athleticCyan by default, no gradients, tabular numerals on the axes). [values] are plotted
+ * Line chart of one series (athleticCyan by default, a smoothed line over a faded area, tabular numerals on the axes). [values] are plotted
  * left to right; [labels] name each value on the bottom axis (same size) and [valueLabel] formats the vertical axis.
  * [description] is the screen-reader summary (first, last, min, max and range), exposed as the state description of
  * the chart node.
@@ -267,6 +273,10 @@ private fun rememberAppCartesianChart(
                         LineCartesianLayer.rememberLine(
                             fill = LineCartesianLayer.LineFill.single(Fill(color)),
                             stroke = LineCartesianLayer.LineStroke.Continuous(lineThickness),
+                            areaFill = LineCartesianLayer.AreaFill.single(
+                                Fill(AppPaint.areaFade(color, AppLineChartDefaults.AREA_ALPHA)),
+                            ),
+                            interpolator = LineCartesianLayer.Interpolator.cubic(AppLineChartDefaults.CURVATURE),
                         ),
                     )
                     if (withMarkers) add(rememberMarkersLine(color))

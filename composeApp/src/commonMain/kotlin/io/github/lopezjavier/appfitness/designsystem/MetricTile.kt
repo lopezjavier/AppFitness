@@ -6,7 +6,9 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Immutable
@@ -14,9 +16,13 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.SpanStyle
@@ -26,6 +32,8 @@ import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import org.jetbrains.compose.resources.DrawableResource
+import org.jetbrains.compose.resources.painterResource
 
 /** Colours of [MetricTile]. */
 @Immutable
@@ -41,6 +49,13 @@ object MetricTileDefaults {
     val Shape = AppShapes.md
     val Padding: Dp = Spacing.md
     val BorderWidth: Dp = AppBorder.thin
+
+    /** The optional glyph before the label. */
+    val IconSize: Dp = 14.dp
+
+    /** Corner light of a tile with an accent. */
+    const val GLOW_REACH = 0.9f
+    const val GLOW_ALPHA = 0.18f
 
     /** [containerColor] replaces the overlay fill, e.g. a raised tile; null keeps the default. */
     fun colors(appColors: AppColors, containerColor: Color? = null): MetricTileColors = MetricTileColors(
@@ -119,24 +134,56 @@ fun MetricTile(
     unit: String? = null,
     supporting: (@Composable () -> Unit)? = null,
     containerColor: Color? = null,
+    accent: Color? = null,
+    icon: DrawableResource? = null,
 ) {
     val colors = MetricTileDefaults.colors(AppTheme.colors, containerColor)
+    val container = if (containerColor != null) SolidColor(containerColor) else AppPaint.tileSurface(AppTheme.colors)
+    val border = if (accent != null) AppPaint.accentBorder(accent) else AppPaint.tileBorder()
     Column(
         modifier =
         modifier
             .semantics(mergeDescendants = true) {}
             .clip(MetricTileDefaults.Shape)
-            .background(colors.container)
-            .border(MetricTileDefaults.BorderWidth, colors.border, MetricTileDefaults.Shape)
+            .background(container)
+            .then(
+                if (accent != null) {
+                    Modifier.drawBehind {
+                        drawRadialGlow(
+                            accent,
+                            Offset(size.width, 0f),
+                            size.width * MetricTileDefaults.GLOW_REACH,
+                            MetricTileDefaults.GLOW_ALPHA,
+                        )
+                    }
+                } else {
+                    Modifier
+                },
+            )
+            .border(MetricTileDefaults.BorderWidth, border, MetricTileDefaults.Shape)
             .padding(MetricTileDefaults.Padding),
         verticalArrangement = Arrangement.spacedBy(Spacing.xs),
     ) {
-        Text(
-            text = label.uppercase(),
-            style = MetricTileDefaults.labelStyle(AppTheme.typography),
-            color = colors.label,
-            modifier = Modifier.semantics { contentDescription = label },
-        )
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(Spacing.xs),
+        ) {
+            if (icon != null) {
+                // Decorative: the label names the metric.
+                Icon(
+                    painter = painterResource(icon),
+                    contentDescription = null,
+                    tint = accent ?: colors.label,
+                    modifier = Modifier.size(MetricTileDefaults.IconSize),
+                )
+            }
+            Text(
+                text = label.uppercase(),
+                style = MetricTileDefaults.labelStyle(AppTheme.typography),
+                color = colors.label,
+                modifier = Modifier.semantics { contentDescription = label },
+            )
+        }
         MetricValueText(value = value, unit = unit, valueColor = colors.value, unitColor = colors.unit)
         supporting?.invoke()
     }

@@ -2,16 +2,19 @@ package io.github.lopezjavier.appfitness.feature.trainer
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import io.github.lopezjavier.appfitness.composeapp.resources.Res
+import io.github.lopezjavier.appfitness.composeapp.resources.ic_insights
 import io.github.lopezjavier.appfitness.composeapp.resources.week_summary_diagnosis_header
 import io.github.lopezjavier.appfitness.composeapp.resources.week_summary_diagnosis_help_body
 import io.github.lopezjavier.appfitness.composeapp.resources.week_summary_diagnosis_help_cd
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
 import io.github.lopezjavier.appfitness.designsystem.HelpButton
+import io.github.lopezjavier.appfitness.designsystem.IconBadge
 import io.github.lopezjavier.appfitness.designsystem.SectionCard
 import io.github.lopezjavier.appfitness.designsystem.Spacing
 import io.github.lopezjavier.appfitness.domain.model.NutritionDiagnosis
@@ -46,19 +49,22 @@ internal fun DiagnosisCard(
             )
         },
     ) {
-        Column(verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
-            Text(
-                text = causeText,
-                style = AppTheme.typography.bodyLarge,
-                color = AppTheme.colors.textPrimary,
-                modifier = Modifier.testTag("${testTagPrefix}_diagnosis_cause"),
-            )
-            Text(
-                text = stringResource(line.action, *line.actionArgs.toTypedArray()),
-                style = AppTheme.typography.bodyMedium,
-                color = AppTheme.colors.textSecondary,
-                modifier = Modifier.testTag("${testTagPrefix}_diagnosis_action"),
-            )
+        Row(horizontalArrangement = Arrangement.spacedBy(Spacing.md)) {
+            IconBadge(Res.drawable.ic_insights, AppTheme.colors.energyAmber)
+            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
+                Text(
+                    text = causeText,
+                    style = AppTheme.typography.bodyLarge,
+                    color = AppTheme.colors.textPrimary,
+                    modifier = Modifier.testTag("${testTagPrefix}_diagnosis_cause"),
+                )
+                Text(
+                    text = stringResource(line.action, *line.actionArgs.toTypedArray()),
+                    style = AppTheme.typography.bodyMedium,
+                    color = AppTheme.colors.textSecondary,
+                    modifier = Modifier.testTag("${testTagPrefix}_diagnosis_action"),
+                )
+            }
         }
     }
 }

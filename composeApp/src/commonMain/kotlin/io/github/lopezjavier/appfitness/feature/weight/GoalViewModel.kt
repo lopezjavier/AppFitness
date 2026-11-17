@@ -126,6 +126,7 @@ class GoalViewModel(
             waistToHip = data.waistToHip?.let { interpret.waistToHip(it, data.biometrics.sex) },
             isOnline = isOnline,
             openMetric = metric,
+            sex = data.biometrics.sex,
         )
     }
 }

@@ -2,6 +2,7 @@ package io.github.lopezjavier.appfitness.feature.about
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -11,6 +12,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.heading
@@ -23,9 +25,12 @@ import io.github.lopezjavier.appfitness.composeapp.resources.about_title
 import io.github.lopezjavier.appfitness.composeapp.resources.about_version_flavor_format
 import io.github.lopezjavier.appfitness.composeapp.resources.about_version_format
 import io.github.lopezjavier.appfitness.composeapp.resources.credits
+import io.github.lopezjavier.appfitness.composeapp.resources.ic_app_logo
 import io.github.lopezjavier.appfitness.designsystem.AppCard
 import io.github.lopezjavier.appfitness.designsystem.AppScreen
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
+import io.github.lopezjavier.appfitness.designsystem.IconBadge
+import io.github.lopezjavier.appfitness.designsystem.IconBadgeDefaults
 import io.github.lopezjavier.appfitness.designsystem.ListSectionHeader
 import io.github.lopezjavier.appfitness.designsystem.NavigationRow
 import io.github.lopezjavier.appfitness.designsystem.Spacing
@@ -90,29 +95,44 @@ fun AboutScreen(state: AboutUiState, onBack: () -> Unit, onOpenLicenses: () -> U
 private fun Header(info: BuildInfo) {
     val version = stringResource(Res.string.about_version_format, info.versionName, info.versionCode)
     val line = info.flavorLabel?.let { stringResource(Res.string.about_version_flavor_format, version, it) } ?: version
-    Column(verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
-        Text(
-            text = info.appName,
-            style = AppTheme.typography.titleLarge,
-            color = AppTheme.colors.textPrimary,
-            modifier = Modifier.semantics { heading() }.testTag("about_app_name"),
-        )
-        Text(
-            text = line,
-            style = AppTheme.typography.bodyMedium,
-            color = AppTheme.colors.textSecondary,
-            modifier = Modifier.testTag("about_version"),
-        )
+    AppCard(Modifier.fillMaxWidth(), glow = AppTheme.colors.neonLime) {
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(Spacing.lg),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            IconBadge(
+                Res.drawable.ic_app_logo,
+                AppTheme.colors.neonLime,
+                size = IconBadgeDefaults.LargeSize,
+                iconSize = IconBadgeDefaults.LargeIconSize,
+            )
+            Column(verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
+                Text(
+                    text = info.appName,
+                    style = AppTheme.typography.titleLarge,
+                    color = AppTheme.colors.textPrimary,
+                    modifier = Modifier.semantics { heading() }.testTag("about_app_name"),
+                )
+                Text(
+                    text = line,
+                    style = AppTheme.typography.bodyMedium,
+                    color = AppTheme.colors.textSecondary,
+                    modifier = Modifier.testTag("about_version"),
+                )
+            }
+        }
     }
 }
 
 @Composable
 private fun CreditBlock(credit: Credit, index: Int) {
-    Column(
-        Modifier.fillMaxWidth().semantics(mergeDescendants = true) {}.testTag("about_credit_$index"),
-        verticalArrangement = Arrangement.spacedBy(Spacing.xs),
-    ) {
-        Text(text = credit.title, style = AppTheme.typography.titleMedium, color = AppTheme.colors.textPrimary)
-        Text(text = credit.text, style = AppTheme.typography.bodyMedium, color = AppTheme.colors.textSecondary)
+    AppCard(Modifier.fillMaxWidth()) {
+        Column(
+            Modifier.fillMaxWidth().semantics(mergeDescendants = true) {}.testTag("about_credit_$index"),
+            verticalArrangement = Arrangement.spacedBy(Spacing.xs),
+        ) {
+            Text(text = credit.title, style = AppTheme.typography.titleMedium, color = AppTheme.colors.textPrimary)
+            Text(text = credit.text, style = AppTheme.typography.bodyMedium, color = AppTheme.colors.textSecondary)
+        }
     }
 }

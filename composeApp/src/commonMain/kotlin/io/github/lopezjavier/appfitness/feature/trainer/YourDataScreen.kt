@@ -26,7 +26,9 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.github.lopezjavier.appfitness.composeapp.resources.Res
 import io.github.lopezjavier.appfitness.composeapp.resources.action_retry
 import io.github.lopezjavier.appfitness.composeapp.resources.before_start_error
+import io.github.lopezjavier.appfitness.composeapp.resources.ic_check
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_chevron_right
+import io.github.lopezjavier.appfitness.composeapp.resources.ic_info
 import io.github.lopezjavier.appfitness.composeapp.resources.trainer_provisional
 import io.github.lopezjavier.appfitness.composeapp.resources.your_data_handover_note
 import io.github.lopezjavier.appfitness.composeapp.resources.your_data_intake_provisional
@@ -40,6 +42,8 @@ import io.github.lopezjavier.appfitness.designsystem.AppScreen
 import io.github.lopezjavier.appfitness.designsystem.AppStateAction
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
 import io.github.lopezjavier.appfitness.designsystem.ErrorState
+import io.github.lopezjavier.appfitness.designsystem.IconBadge
+import io.github.lopezjavier.appfitness.designsystem.IconBadgeDefaults
 import io.github.lopezjavier.appfitness.designsystem.InlineNote
 import io.github.lopezjavier.appfitness.designsystem.ListSectionHeader
 import io.github.lopezjavier.appfitness.designsystem.LocalAppHaptics
@@ -263,6 +267,14 @@ private fun YourDataRow(
         modifier = Modifier.padding(horizontal = Spacing.lg).testTag(tag),
         supporting = note,
         supportingContent = chip,
+        leading = {
+            IconBadge(
+                if (chip != null) Res.drawable.ic_info else Res.drawable.ic_check,
+                if (chip != null) AppTheme.colors.energyAmber else AppTheme.colors.electricGreen,
+                size = IconBadgeDefaults.SmallSize,
+                iconSize = IconBadgeDefaults.SmallIconSize,
+            )
+        },
         trailing = trailing,
         onClick = target?.let {
             {

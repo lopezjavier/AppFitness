@@ -4,6 +4,7 @@
 package io.github.lopezjavier.appfitness.designsystem
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxHeight
@@ -31,6 +32,9 @@ object MacroStackedBarDefaults {
 
     /** The 8 dp bar of the nutrition plan (C-105). */
     val SlimHeight: Dp = 8.dp
+
+    /** Hairline gap between the macro segments. */
+    val SegmentGap: Dp = 2.dp
 
     /** Share of kcal per macro in percent (protein x4, carbs x4, fat x9); zeros when there are no kcal. */
     fun kcalShares(proteinG: Double, carbsG: Double, fatG: Double): Triple<Int, Int, Int> {
@@ -87,6 +91,7 @@ fun MacroStackedBar(
                     clipRect(right = size.width * reveal.value) { this@drawWithContent.drawContent() }
                 }
             },
+        horizontalArrangement = Arrangement.spacedBy(MacroStackedBarDefaults.SegmentGap),
     ) {
         listOf(Macro.Protein to proteinPct, Macro.Carbs to carbsPct, Macro.Fat to fatPct).forEach { (macro, pct) ->
             if (pct > 0) {
@@ -94,7 +99,7 @@ fun MacroStackedBar(
                     Modifier
                         .weight(pct.toFloat())
                         .fillMaxHeight()
-                        .background(MacroDefaults.color(macro, colors))
+                        .background(AppPaint.vertical(MacroDefaults.color(macro, colors)))
                         .testTag(MacroStackedBarDefaults.segmentTag(testTag, macro))
                         .clearAndSetSemantics {},
                 )
