@@ -26,7 +26,7 @@ Phase 2 archive (full text as it was when Phase 2 closed): [`phase2/06-agent-wor
 [PM] marks the task in tasks/todo.md on the branch
   -> pr-reviewer + ux-reviewer (diff of the working tree vs main; ux-reviewer only if files under feature/, designsystem/ or composeResources/ changed), in parallel
         a finding -> developer, one combined fix round
-  -> pr-creator         verify-local gate (Kotlin changes only); if green: commit(s), push, gh pr create
+  -> pr-creator         lint gate `verify-local.sh --lint` (Kotlin changes only, no tests: CI runs them); if green: commit(s), push, gh pr create
         red gate -> pr-creator stops and returns the failure to the PM; no PR is created
 [PM] on a red gate: resumes the developer who owns the failing area and reads the developer's report.
      Fix changed production behaviour -> PM re-runs the affected reviewer(s) before pr-creator.
@@ -83,7 +83,7 @@ When the user asks, the `product-owner` skill runs in the main session: brainsto
 | `kotlin-core-developer` | Domain, data, DI, ViewModels + unit tests |
 | `compose-ui-developer` | Screens, designsystem, navigation, Robolectric tests; starts from the core |
 | `backend-developer` | Migrations, RLS, pgTAP, Edge Functions + `deno test` |
-| `pr-creator` | Runs verify-local.sh as the gate when Kotlin changed; commits, push, PR; never re-encodes files; stops on any secret |
+| `pr-creator` | Runs `verify-local.sh --lint` (no tests; CI is the test gate) when Kotlin changed; commits, push, PR; never re-encodes files; stops on any secret |
 | `pr-reviewer` | Verdict returned to the PM (diff of the working tree vs main) |
 
 Models are the `model:` line of each agent file and are the user's decision. Each agent is self-contained. Only `pr-creator` commits; no agent other than the PM edits `tasks/`.
