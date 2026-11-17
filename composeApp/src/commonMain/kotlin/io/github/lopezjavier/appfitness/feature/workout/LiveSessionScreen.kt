@@ -149,7 +149,8 @@ private fun LiveSessionEvent.isOptionEdit() = this is LiveSessionEvent.BodyWeigh
     this is LiveSessionEvent.DismissVolumeDrafts
 
 /**
- * The live workout on [AppScreen]: the routine name with the stopwatch as subtitle, pause and menu actions, one card
+ * The live workout on [AppScreen]: the routine name, pause and menu actions, a status row (EN VIVO, stopwatch,
+ * series count), one card
  * per exercise and the rest bar pinned as the footer. Loading shows skeleton cards, a failed load offers "Reintentar"
  * and a finished session shows its summary. [onBack] leaves the screen without finishing the session.
  */
@@ -237,14 +238,11 @@ private fun LiveActive(
 ) {
     var menuOpen by rememberSaveable { mutableStateOf(false) }
     KeepScreenOn()
-    val subtitle = liveSubtitle(elapsedSeconds, state.isPaused)
     val timer = state.timerBar
     BoxWithConstraints(Modifier.fillMaxSize()) {
         val wide = windowWidthClassFor(maxWidth) == WindowWidthClass.Wide
         AppScreen(
             title = state.name.ifBlank { stringResource(Res.string.live_title_fallback) },
-            subtitle = subtitle.text,
-            subtitleSemantics = subtitle.semantics,
             onBack = onBack,
             actions = liveActions(state, onEvent, onMenu = { menuOpen = true }),
             footer = timer?.let { { TimerFooter(it, onEvent) } },
@@ -256,7 +254,7 @@ private fun LiveActive(
             testTagPrefix = "live",
         ) {
             if (wide) {
-                WideLive(state, onEvent, onOpenExercise, optionSaveFailed)
+                WideLive(state, onEvent, onOpenExercise, optionSaveFailed, elapsedSeconds)
             } else {
                 NarrowLive(state, onEvent, onOpenExercise, optionSaveFailed, elapsedSeconds)
             }

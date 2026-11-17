@@ -77,14 +77,14 @@ class LiveSessionTypePickerTest {
     }
 
     @Test
-    fun removingAType_tapNormal_showsTheNormalLetterAgain() {
+    fun removingAType_tapNormal_showsTheSetNumberAgain() {
         showStateful(listOf(SetType.WarmUp, SetType.Working))
 
         rule.onNodeWithTag("live_set_0_1_type").performClick()
         rule.onNodeWithTag("set_type_picker_option_working").performClick()
         rule.waitForIdle()
 
-        badge(1).assertTextEquals("N")
+        badge(1).assertTextEquals("1")
     }
 
     @Test
@@ -124,7 +124,7 @@ class LiveSessionTypePickerTest {
         rule.onNodeWithTag("set_type_picker_close").performClick()
         rule.waitForIdle()
 
-        badge(1).assertTextEquals("N")
+        badge(1).assertTextEquals("1")
         rule.onNodeWithTag("set_type_picker").assertDoesNotExist()
     }
 

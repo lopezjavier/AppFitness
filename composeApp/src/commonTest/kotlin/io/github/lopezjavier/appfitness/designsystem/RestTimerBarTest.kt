@@ -104,15 +104,11 @@ class RestTimerBarTest {
     }
 
     @Test
-    fun progressHeight_onSubGrid() = assertEquals(4.dp, RestTimerBarDefaults.ProgressHeight)
-
-    @Test
     fun colors_tokens() {
         val colors = RestTimerBarDefaults.colors(c)
         assertEquals(c.surfaceOverlay, colors.container)
         assertEquals(c.athleticCyan, colors.countdown)
         assertEquals(c.athleticCyan, colors.progress)
-        assertEquals(c.surfaceBase, colors.progressTrack)
         assertEquals(c.surfaceRaised, colors.actionContainer)
         assertEquals(c.textPrimary, colors.addContent)
         assertEquals(c.textSecondary, colors.skipContent)

@@ -60,6 +60,8 @@ data class SetRowValues(
     val weightPlaceholder: String? = null,
     val repsPlaceholder: String? = null,
     val type: SetType = SetType.Working,
+    /** Place among the normal sets of the exercise; a Normal badge shows it instead of "N". Null keeps the letter. */
+    val typeNumber: Int? = null,
     /** The logged RPE as "7,5"; null shows the empty marker. Only rendered when the row has an RPE handler. */
     val rpe: String? = null,
     /** Kilometres as typed, for a [SetFieldKind.Distance] field. */
@@ -334,6 +336,7 @@ private fun SetRowLine(
                 modifier = Modifier.tag(testTagPrefix, "type"),
                 onClick = onTypeClick,
                 clickLabel = typeClickLabel,
+                number = values.typeNumber,
             )
         }
         if (showPrevious) {

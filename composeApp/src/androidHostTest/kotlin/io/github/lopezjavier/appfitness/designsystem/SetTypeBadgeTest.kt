@@ -3,6 +3,7 @@ package io.github.lopezjavier.appfitness.designsystem
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.width
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.SemanticsProperties
@@ -10,12 +11,14 @@ import androidx.compose.ui.test.assertContentDescriptionEquals
 import androidx.compose.ui.test.assertHeightIsAtLeast
 import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.assertWidthIsAtLeast
+import androidx.compose.ui.test.getUnclippedBoundsInRoot
 import androidx.compose.ui.test.hasAnyAncestor
 import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.width
 import io.github.lopezjavier.appfitness.domain.model.SetType
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -60,6 +63,36 @@ class SetTypeBadgeTest {
         assertFalse(
             rule.onNodeWithTag("badge").fetchSemanticsNode().config.contains(SemanticsProperties.ContentDescription),
         )
+    }
+
+    @Test
+    fun aNumberedNormalBadge_showsTheNumber_andSaysSerieNormal() {
+        rule.setContent { AppTheme { SetTypeBadge(SetType.Working, Modifier.testTag("badge"), number = 3) } }
+
+        rule.onNode(hasTestTag("set_type_badge"), useUnmergedTree = true).assertTextEquals("3")
+        rule.onNodeWithTag("badge").assertContentDescriptionEquals("Serie normal 3")
+    }
+
+    @Test
+    fun aTwoDigitNumber_fitsTheTypeColumn() {
+        rule.setContent {
+            AppTheme {
+                Box(Modifier.width(SetRowDefaults.TypeColumnWidth)) {
+                    SetTypeBadge(SetType.Working, Modifier.testTag("badge"), number = 12)
+                }
+            }
+        }
+
+        rule.onNode(hasTestTag("set_type_badge"), useUnmergedTree = true).assertTextEquals("12")
+        val width = rule.onNodeWithTag("badge").getUnclippedBoundsInRoot().width
+        assertTrue(width <= SetRowDefaults.TypeColumnWidth)
+    }
+
+    @Test
+    fun aNumberOnAWarmUp_isIgnored_theLetterStays() {
+        rule.setContent { AppTheme { SetTypeBadge(SetType.WarmUp, number = 2) } }
+
+        rule.onNode(hasTestTag("set_type_badge"), useUnmergedTree = true).assertTextEquals("C")
     }
 
     @Test

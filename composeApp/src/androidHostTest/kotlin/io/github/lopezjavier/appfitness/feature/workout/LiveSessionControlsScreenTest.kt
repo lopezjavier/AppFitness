@@ -10,7 +10,6 @@ import androidx.compose.ui.semantics.getOrNull
 import androidx.compose.ui.test.assertContentDescriptionEquals
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
-import androidx.compose.ui.test.assertTextContains
 import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.getBoundsInRoot
 import androidx.compose.ui.test.junit4.StateRestorationTester
@@ -79,8 +78,9 @@ class LiveSessionControlsScreenTest {
     fun paused_showsPausedLabelInsteadOfLive_andMenuOffersResume() {
         show(controlsState(pausedAt = SESSION_START))
 
-        rule.onNodeWithTag("live_subtitle").assertTextContains("EN PAUSA", substring = true)
-        val description = rule.onNodeWithTag("live_subtitle").fetchSemanticsNode().config
+        rule.onNodeWithText("EN PAUSA").assertExists()
+        rule.onNodeWithText("EN VIVO").assertDoesNotExist()
+        val description = rule.onNodeWithTag("live_timer").fetchSemanticsNode().config
             .getOrNull(SemanticsProperties.StateDescription)
         assertEquals("En pausa", description)
 
@@ -111,7 +111,8 @@ class LiveSessionControlsScreenTest {
     fun running_hasNoPausedLabel() {
         show(controlsState())
 
-        rule.onNodeWithTag("live_subtitle").assertTextContains("EN VIVO", substring = true)
+        rule.onNodeWithText("EN VIVO").assertExists()
+        rule.onNodeWithText("EN PAUSA").assertDoesNotExist()
     }
 
     @Test
@@ -227,11 +228,11 @@ class LiveSessionControlsScreenTest {
             }
         }
         rule.onNodeWithTag("live_pause_toggle").performClick()
-        rule.onNodeWithTag("live_subtitle").assertTextContains("EN PAUSA", substring = true)
+        rule.onNodeWithText("EN PAUSA").assertExists()
 
         tester.emulateSavedInstanceStateRestore()
         rule.waitForIdle()
 
-        rule.onNodeWithTag("live_subtitle").assertTextContains("EN PAUSA", substring = true)
+        rule.onNodeWithText("EN PAUSA").assertExists()
     }
 }

@@ -5,8 +5,9 @@ package io.github.lopezjavier.appfitness.designsystem
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.heightIn
-import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.material3.Text
@@ -30,6 +31,7 @@ import io.github.lopezjavier.appfitness.composeapp.resources.set_type_letter_fai
 import io.github.lopezjavier.appfitness.composeapp.resources.set_type_letter_normal
 import io.github.lopezjavier.appfitness.composeapp.resources.set_type_letter_warm_up
 import io.github.lopezjavier.appfitness.composeapp.resources.set_type_normal
+import io.github.lopezjavier.appfitness.composeapp.resources.set_type_normal_numbered_cd
 import io.github.lopezjavier.appfitness.composeapp.resources.set_type_warm_up
 import io.github.lopezjavier.appfitness.domain.model.SetType
 import org.jetbrains.compose.resources.StringResource
@@ -64,6 +66,8 @@ object SetTypeBadgeDefaults {
 /**
  * Type slot of a set row: Normal, Calentamiento, Fallo and Drop show "N", "C", "F" and "D" with their own tone;
  * all but Normal carry the full label as description (the set order is a separate [SetOrdinal]).
+ * A Normal set with a [number] (its place among the normal sets of the exercise, as in the live table) shows that
+ * number instead of "N" and describes itself as "Serie normal 3"; the other types keep their letter.
  * With [onClick] the badge is a 48 dp button (the builder opens
  * the type picker); without it, it is display only. The glyph box is tagged `set_type_badge`.
  */
@@ -73,16 +77,24 @@ fun SetTypeBadge(
     modifier: Modifier = Modifier,
     onClick: (() -> Unit)? = null,
     clickLabel: String? = null,
+    number: Int? = null,
 ) {
-    val label = stringResource(SetTypeBadgeDefaults.labelResource(type))
-    val letter = stringResource(SetTypeBadgeDefaults.letterResource(type))
+    val numbered = number?.takeIf { type == SetType.Working }
+    val label = if (numbered != null) {
+        stringResource(Res.string.set_type_normal_numbered_cd, numbered)
+    } else {
+        stringResource(SetTypeBadgeDefaults.labelResource(type))
+    }
+    val letter = numbered?.let { AppNumberFormat.integer(it) }
+        ?: stringResource(SetTypeBadgeDefaults.letterResource(type))
     val (container, content) = SetTypeBadgeDefaults.colors(type, AppTheme.colors)
     val glyph: @Composable () -> Unit = {
         Box(
             Modifier
-                .size(SetRowDefaults.IndexBadgeSize)
+                .defaultMinSize(SetRowDefaults.IndexBadgeSize, SetRowDefaults.IndexBadgeSize)
                 .clip(AppShapes.sm)
-                .background(container),
+                .background(container)
+                .padding(horizontal = Spacing.xs),
             contentAlignment = Alignment.Center,
         ) {
             Text(
@@ -90,6 +102,7 @@ fun SetTypeBadge(
                 style = AppTheme.typography.labelTechnical.copy(fontWeight = FontWeight.W700),
                 color = content,
                 maxLines = 1,
+                softWrap = false,
                 modifier = Modifier.testTag("set_type_badge"),
             )
         }
@@ -97,7 +110,13 @@ fun SetTypeBadge(
     if (onClick == null) {
         Box(
             modifier.then(
-                if (type == SetType.Working) Modifier else Modifier.semantics { contentDescription = label },
+                if (type == SetType.Working &&
+                    numbered == null
+                ) {
+                    Modifier
+                } else {
+                    Modifier.semantics { contentDescription = label }
+                },
             ),
             contentAlignment = Alignment.Center,
         ) { glyph() }

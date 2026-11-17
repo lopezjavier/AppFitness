@@ -2,9 +2,11 @@ package io.github.lopezjavier.appfitness.quality
 
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.getUnclippedBoundsInRoot
 import androidx.compose.ui.test.junit4.v2.createComposeRule
+import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.unit.width
@@ -104,7 +106,19 @@ class WideWindowTest {
 
         rule.onNodeWithTag("live_session_two_column").assertIsDisplayed()
         assertNoWiderThan("live_session_two_column", WindowWidthClassDefaults.TwoColumnContentMaxWidth)
-        assertLeftOfRight("live_progress_summary", "live_exercise_0")
+        assertLeftOfRight("live_add_exercise", "live_exercise_0")
+    }
+
+    @Test
+    fun liveSession_wide_keepsTheStatusStripWithTheTimerOnce() {
+        rule.setContent { AppTheme { LiveSessionScreen(qualityLiveState(), 125, {}, {}, onOpenExercise = {}) } }
+        rule.waitForIdle()
+
+        rule.onNodeWithTag("live_status_strip").assertIsDisplayed()
+        rule.onAllNodesWithText("0 de 2 series").assertCountEquals(1)
+        rule.onAllNodesWithText("Series completadas", substring = true).assertCountEquals(0)
+        rule.onNodeWithTag("live_timer").assertIsDisplayed()
+        rule.onNodeWithTag("live_subtitle").assertDoesNotExist()
     }
 
     @Test

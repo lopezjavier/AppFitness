@@ -10,6 +10,7 @@ import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.junit4.StateRestorationTester
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
+import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTextInput
 import androidx.lifecycle.SavedStateHandle
@@ -208,7 +209,7 @@ class LiveSessionFirstSetRpeTest {
 
         rule.onNodeWithTag("live_rest_timer_paused").assertTextEquals("En pausa")
         rule.onNodeWithTag("live_rest_countdown").assertTextContains("01:00")
-        rule.onNodeWithTag("live_subtitle").assertTextContains("EN PAUSA", substring = true)
+        rule.onNodeWithText("EN PAUSA").assertExists()
 
         rule.onNodeWithTag("live_set_0_2_weight").performTextInput("60")
         rule.onNodeWithTag("live_set_0_2_reps").performTextInput("8")
@@ -217,7 +218,7 @@ class LiveSessionFirstSetRpeTest {
         rule.onNodeWithTag("rpe_picker_option_8").performClick()
         settle()
 
-        rule.onNodeWithTag("live_subtitle").assertTextContains("EN VIVO", substring = true)
+        rule.onNodeWithText("EN VIVO").assertExists()
         rule.onNodeWithTag("live_rest_timer_paused").assertDoesNotExist()
     }
 

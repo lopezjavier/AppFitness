@@ -24,7 +24,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.semantics.SemanticsPropertyReceiver
 import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 
@@ -38,7 +40,8 @@ object LiveStatusStripDefaults {
 /**
  * The status line of a running session: a lit pill with a dot ("EN VIVO", or "EN PAUSA" frozen) and the sets figure
  * ("12 de 20 series") on the end. The dot pulses only when decorative motion is on. The pill text and the figure are
- * given by the caller; the strip itself is decorative for assistive technology (the top bar already speaks the time).
+ * given by the caller. The optional [elapsedText] is the session stopwatch; [elapsedSemantics] gives it a spoken
+ * description for assistive technology (null keeps the timer decorative).
  */
 @Composable
 fun LiveStatusStrip(
@@ -47,6 +50,7 @@ fun LiveStatusStrip(
     paused: Boolean,
     modifier: Modifier = Modifier,
     elapsedText: String? = null,
+    elapsedSemantics: (SemanticsPropertyReceiver.() -> Unit)? = null,
 ) {
     val colors = AppTheme.colors
     val accent = if (paused) colors.energyAmber else colors.neonLime
@@ -94,7 +98,7 @@ fun LiveStatusStrip(
                 color = colors.textPrimary,
                 maxLines = 1,
                 softWrap = false,
-                modifier = Modifier.weight(1f).padding(horizontal = Spacing.sm).clearAndSetSemantics {},
+                modifier = Modifier.weight(1f).padding(horizontal = Spacing.sm).then(timerSemantics(elapsedSemantics)),
             )
         }
         Text(
@@ -106,3 +110,7 @@ fun LiveStatusStrip(
         )
     }
 }
+
+/** The stopwatch is decorative unless the caller gives it a spoken description. */
+private fun timerSemantics(properties: (SemanticsPropertyReceiver.() -> Unit)?): Modifier =
+    if (properties == null) Modifier.clearAndSetSemantics {} else Modifier.semantics(properties = properties)

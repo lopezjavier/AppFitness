@@ -54,6 +54,7 @@ import io.github.lopezjavier.appfitness.designsystem.exerciseNoteSummary
 import io.github.lopezjavier.appfitness.designsystem.supersetText
 import io.github.lopezjavier.appfitness.domain.model.DeloadExerciseSuggestion
 import io.github.lopezjavier.appfitness.domain.model.ProgressionSuggestion
+import io.github.lopezjavier.appfitness.domain.model.SetType
 import io.github.lopezjavier.appfitness.feature.exercises.setFieldSpecs
 import io.github.lopezjavier.appfitness.feature.trainer.CoachChangeMarkerButton
 import io.github.lopezjavier.appfitness.feature.weight.decimalText
@@ -101,6 +102,7 @@ internal fun LiveExerciseCard(
             val timed = exercise.sets.isNotEmpty() && exercise.sets.all { it.plannedDurationMinutes != null }
             val cardio = exercise.cardio || timed
             LiveSetTableHeader(fields, showRpe = !timed, cardio = cardio)
+            val normalNumbers = normalSetNumbers(exercise.sets)
             exercise.sets.forEach {
                 SessionSetRow(
                     position,
@@ -112,6 +114,7 @@ internal fun LiveExerciseCard(
                     showRpe = !timed,
                     cardio = cardio,
                     current = it.setIndex == currentSetIndex,
+                    normalNumber = normalNumbers[it.setIndex],
                 )
             }
             AddItemButton(
@@ -366,3 +369,7 @@ private fun ExerciseSheets(
         )
     }
 }
+
+/** Place of each normal set among the normal sets of an exercise, in display order (warm-up, failure and drop skip). */
+internal fun normalSetNumbers(sets: List<LiveSetRow>): Map<Int, Int> =
+    sets.filter { it.type == SetType.Working }.mapIndexed { index, row -> row.setIndex to index + 1 }.toMap()

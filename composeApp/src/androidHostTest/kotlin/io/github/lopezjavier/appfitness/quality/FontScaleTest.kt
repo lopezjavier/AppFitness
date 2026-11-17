@@ -84,7 +84,7 @@ class FontScaleTest {
         rule.setContent { WithFontScale { LiveSessionScreen(qualityLiveState(), 3_725, {}, {}, onOpenExercise = {}) } }
         rule.waitForIdle()
 
-        listOf("live_subtitle", "live_set_0_1_weight", "live_set_0_1_reps", "live_set_0_1_check").forEach {
+        listOf("live_timer", "live_set_0_1_weight", "live_set_0_1_reps", "live_set_0_1_check").forEach {
             rule.onNodeWithTag(it).assertIsDisplayed()
             rule.assertWithinWindowWidth(it)
         }
