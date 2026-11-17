@@ -18,7 +18,7 @@ One row per ux-critic finding. The PM has the dispositions recorded here as the 
 | C-12 | WeekdaySelector 7 weighted cells, no scroll, cells >= 40x48 dp | 0 | ADOPTED | 05 §6.0, §7 exception |
 | C-13 | titleSection 18/24 W600 for ListSectionHeader, top-bar title W700 | 0 | ADOPTED | 05 §3, §6.0 |
 | C-14 | AddItemButton leading ic_add 20 dp | 0 | ADOPTED | 05 §6.0 |
-| C-15 | WorkoutRow headline titleMedium, one bodyMedium supporting line, empty trailing | 0 | ADOPTED | 05 §6.0 |
+| C-15 | WorkoutRow headline titleMedium, one bodyMedium supporting line, empty trailing | 0 | ADOPTED (layout amended by C-176) | 05 §6.0 |
 | C-16 | nav labels sentence case 12/16 W600, icons 24 dp | 0 | ADOPTED | 05 §3, §6.0, §10 |
 | C-17 | EmptyState 32 dp glyph in 72 dp circle, per-domain icon; error buttons min width 200 dp | 0 | ADOPTED | 05 §6.0, R-66 |
 | C-18 | sleep stages cyan ramp 100/75/50 % + amber Despierto | 0 | ADOPTED | 05 §2.1a |
@@ -209,7 +209,7 @@ One row per ux-critic finding. The PM has the dispositions recorded here as the 
 | V-71 | "Objetivo" eyebrow and goal name in the Tu plan band | 3 | ADOPTED (user, 2026-11-15) | 05 §10 |
 | V-72 | "Tus datos" root row as a one-row `RowGroupCard`, 56 dp | 3 | ADOPTED (user, 2026-11-15; batch 6 makes it the second row of a two-row group, C-137) | 05 §6.0c |
 | C-131 | Tu plan card (user mockup 2026-11-15): goal header, `WeightPaceChart` (dashed plan line to "Meta", solid trend, weekly dots, faint daily dots, "rango probable" band), figures line "Ritmo / Objetivo", verdict, "Llevas N semanas", three tiles, "Crear plan nuevo" inside | 3 | ACCEPTED (not built; user, 2026-11-15) | 05 §6.0d, 07 §5 |
-| C-132 | `WeightPaceChart` (designsystem, new): neutral verdict only, no corridor, no error colour, no forward projection; the verdict line is the text alternative | 3 | ACCEPTED (not built) | 05 §6.0d, R-101 |
+| C-132 | `WeightPaceChart` (designsystem, new): neutral verdict only, no corridor, no error colour, no forward projection; the verdict line is the text alternative | 3 | ACCEPTED (not built; goal line amended by C-178) | 05 §6.0d, R-101 |
 | C-133 | Verdict wording from 07 §5 (5); the mockup's "Ritmo óptimo" and "En pasillo" chips and the "Fase activa" chip are dropped | 3 | ACCEPTED (not built) | 05 §10, R-101 |
 | C-134 | Tu plan tiles: Calorías, Cardio, Pasos (kcal eaten against the plan target; calories IN, macros OUT; no macro bar on the root) | 3 | ACCEPTED (not built) | 05 §6.0d, R-102 |
 | C-135 | Tu bloque card: week chip with pencil, segmented progress, "2 de 4 entrenos esta semana" with percent chip, four session cards (Listo / Pendiente), Cardio and Pasos al día bars | 3 | ACCEPTED (not built) | 05 §6.0d |
@@ -239,7 +239,7 @@ One row per ux-critic finding. The PM has the dispositions recorded here as the 
 | C-156 | Avisos order | 4 | ACCEPTED (not built) | 05 §6.0i |
 | C-157 | Calorías order (segmented, summary card, calendar); Semana band with 1 dp lime outline; Mes no selected day, month in card title. Diario calendar-icon question | 4 | ACCEPTED (order and Semana band; not built); Diario calendar-icon question OPEN (deferred product question, no rule) | 05 §6.0i |
 | C-158 | Deferred product question (user, round 4) | 4 | OPEN (deferred, no rule) | - |
-| C-159 | Line chart padded domain, 4 gridlines, zero baseline only on bars | 4 | ACCEPTED (not built) | 05 R-112 |
+| C-159 | Line chart padded domain, 4 gridlines, zero baseline only on bars | 4 | ACCEPTED (not built; padding formula amended by C-177) | 05 R-112 |
 | C-160 | MetricTile value/unit fit, tonnes from 100.000 kg, Actividad icon 16 dp, one column at font scale >= 1.3 | 4 | ACCEPTED (not built) | 05 §6.0i, R-111, §10 |
 | C-161 | NavigationRow two lines when label and value do not fit; label never ellipsized | 4 | ACCEPTED (not built) | 05 R-110 |
 | C-162 | NavigationRow value one style (bodyLarge textSecondary, trailing); its use as the trailing value on the Perfil root stat rows is reversed by the user (chevron only) | 4 | ACCEPTED (not built) | 05 R-110 |
@@ -274,6 +274,17 @@ One row per ux-critic finding. The PM has the dispositions recorded here as the 
 | V-94 | R-85 2 x 2 tile grid: resolved by C-160 (one column rules) | 4 | ACCEPTED (not built; resolved by C-160) | 05 R-111 |
 | V-95 | R-54 chip "Press banca" vs title "Press de banca": use the name resolver | 4 | ACCEPTED (not built) | 05 §9.0a |
 | V-96 | R-14b "Comidas del día" save-rejected footer notice: developer verifies; if missing, R-14b applies as written | 4 | ACCEPTED (not built; verify) | 05 R-14 |
+| C-174 | T-297 premium layer: gradients, lit hairlines and radial glows on premium surfaces (alpha shapes, no blur), `Gold` token for records; documents the code as built | 5 | ACCEPTED (user order 2026-11-17: premium design built ignoring the rules; documented as kept deliberately; pending the user's emulator verdict) | 05 §1, §2.2, §4, §6 |
+| C-175 | T-297 calendars as `MonthCalendarGrid` draws them: selected = lit lime disc, today = 1.5 dp cyan ring, marked = lime-tint disc with a lime border (lime marks both "has data" and "selected"); amends C-01 / R-64(e) | 5 | PREMIUM EXCEPTION (user order 2026-11-17), kept deliberately; revisit when the design system absorbs it | 05 R-64 |
+| C-176 | T-297 `WorkoutRow`: name, date and three glyph + text stats, chevron; amends C-15 and C-74 | 5 | ACCEPTED (user order 2026-11-17; built, pending the user's emulator verdict) | 05 §6.0, §6.0b, R-16 |
+| C-177 | T-297 line chart domain fits the data (12 % margin, min spread 2 kg / 0.4 h, three "nice" intervals as `niceUnit` has them: 1, 1.2, 1.5, 2, 2.5, 3, 4, 5, 6, 8 x 10^n); amends C-159 | 5 | ACCEPTED (user order 2026-11-17; built, pending the user's emulator verdict) | 05 §6.0i, R-112 |
+| C-178 | T-297 `WeightPaceChart`: flat dashed goal line keyed "Meta: X kg" only with a plan line, band hidden when taller than half the domain; "Tu plan" figures strip (Ahora, Meta, Fecha); amends C-132 | 5 | ACCEPTED (user order 2026-11-17; built, pending the user's emulator verdict) | 05 §6.0d, R-101, §10 |
+| C-179 | T-297 `DiaryEnergyScale`: amber-to-lime ramp, the chosen cell filled with its ramp tone, not the R-64 selected state | 5 | PREMIUM EXCEPTION (user order 2026-11-17), kept deliberately; revisit when the design system absorbs it | 05 R-64 |
+| C-180 | T-297 `TrainerEmptyHero`: hand-built Trainer empty hero with benefit bullets, instead of `EmptyState` | 5 | PREMIUM EXCEPTION (user order 2026-11-17) to R-31, R-57, R-39, kept deliberately; revisit when the design system absorbs it | 05 §6.0 (C-17) |
+| C-181 | T-297 a graphic whose labels are hidden from semantics needs a description or the same figures as text in the same card (`TrainerBeforeAfter`, `WeightCard`) | 5 | ACCEPTED (user order 2026-11-17) | 05 R-116 |
+| C-182 | T-297 glossary as built: "Meta" = weight goal, "Objetivo" = the plan's objective or rate, "Ahora" = latest weekly average, "Hoy · 79,3 kg" = chart today marker, "Fecha" = the deadline | 5 | ACCEPTED (user order 2026-11-17; matches the strings) | 05 §10 |
+| C-183 | T-297 Perfil root: statistics rows show a trailing value (Peso, Fuerza, Calorías) and the hero shows the same figures; exception to R-109 / C-162 | 5 | PREMIUM EXCEPTION (user order 2026-11-17), kept deliberately; revisit when the design system absorbs it | 05 R-109 |
+| C-184 | T-297 colour in the premium layer: accents used decoratively (Perfil badges incl. `macroFat`, `macroCarbs`, `electricGreen`, `energyAmber`; hero stats; `DiaryMealStyle` palette); exception to §2.2/§2.3 and principle 3 | 5 | PREMIUM EXCEPTION (user order 2026-11-17), kept deliberately; revisit when the design system absorbs it | 05 R-117 |
 
 Status values:
 - `PROPOSED`: reported by the critic, not decided yet.
@@ -283,6 +294,7 @@ Status values:
 - `REWORK`: seen in the emulator and not approved; the row records what was tried and what the user disliked.
 - `REJECTED`: refused by the user (also copied to `05` §8 "Decided — do not re-propose").
 - `DEFERRED`: postponed (link: E9 row or round).
+- `PREMIUM EXCEPTION`: the T-297 premium design was ordered by the user on 2026-11-17 ignoring the rules; the code is kept as built and `05` documents it as a deliberate exception, to revisit when the design system absorbs it.
 
 A round that changes tokens or components does not start while the previous such round has rows `IN REVIEW`.
 
