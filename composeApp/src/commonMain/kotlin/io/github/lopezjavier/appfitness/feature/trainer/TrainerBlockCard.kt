@@ -33,13 +33,16 @@ import io.github.lopezjavier.appfitness.composeapp.resources.Res
 import io.github.lopezjavier.appfitness.composeapp.resources.action_retry
 import io.github.lopezjavier.appfitness.composeapp.resources.block_week_paused
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_check
+import io.github.lopezjavier.appfitness.composeapp.resources.ic_play_arrow
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_steps_outlined
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_timer
 import io.github.lopezjavier.appfitness.composeapp.resources.report_sessions_headline
+import io.github.lopezjavier.appfitness.composeapp.resources.routines_start_cd
 import io.github.lopezjavier.appfitness.composeapp.resources.trainer_block_cardio_planned
 import io.github.lopezjavier.appfitness.composeapp.resources.trainer_block_cardio_value
 import io.github.lopezjavier.appfitness.composeapp.resources.trainer_block_end
 import io.github.lopezjavier.appfitness.composeapp.resources.trainer_block_session_cd
+import io.github.lopezjavier.appfitness.composeapp.resources.trainer_block_start_action
 import io.github.lopezjavier.appfitness.composeapp.resources.trainer_block_starts_chip
 import io.github.lopezjavier.appfitness.composeapp.resources.trainer_block_status_ended
 import io.github.lopezjavier.appfitness.composeapp.resources.trainer_block_steps_label
@@ -72,11 +75,13 @@ import io.github.lopezjavier.appfitness.designsystem.AppNumberFormat
 import io.github.lopezjavier.appfitness.designsystem.AppPaint
 import io.github.lopezjavier.appfitness.designsystem.AppShapes
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
+import io.github.lopezjavier.appfitness.designsystem.CircleIconButton
 import io.github.lopezjavier.appfitness.designsystem.IconBadge
 import io.github.lopezjavier.appfitness.designsystem.InlineNote
 import io.github.lopezjavier.appfitness.designsystem.InlineNoteTone
 import io.github.lopezjavier.appfitness.designsystem.LocalAnimationsEnabled
 import io.github.lopezjavier.appfitness.designsystem.NonBreaking
+import io.github.lopezjavier.appfitness.designsystem.OfflineHint
 import io.github.lopezjavier.appfitness.designsystem.SegmentedProgressDefaults
 import io.github.lopezjavier.appfitness.designsystem.SegmentedProgressPicker
 import io.github.lopezjavier.appfitness.designsystem.Spacing
@@ -88,6 +93,7 @@ import io.github.lopezjavier.appfitness.domain.model.BlockPause
 import io.github.lopezjavier.appfitness.domain.model.PlanWeek
 import io.github.lopezjavier.appfitness.domain.model.PlanWeekSession
 import io.github.lopezjavier.appfitness.domain.model.WeekPhase
+import io.github.lopezjavier.appfitness.domain.model.nextPendingSession
 import kotlinx.datetime.LocalDate
 import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.resources.pluralStringResource
@@ -126,8 +132,11 @@ internal fun BlockSummaryBox(
     dietBreakWeek: Int? = null,
     menu: (@Composable () -> Unit)? = null,
     initialWeek: Int? = null,
+    online: Boolean = true,
+    starting: Boolean = false,
 ) {
     if (status !is BlockStatus.Saved) return
+    val start = SessionStart(online, starting) { actions.onEvent(TrainerEvent.StartRoutine(it)) }
     SummaryCard(
         title = stringResource(Res.string.trainer_block_title),
         lines = emptyList(),
@@ -137,7 +146,7 @@ internal fun BlockSummaryBox(
         glow = AppTheme.colors.neonLime,
         status = if (weeks.isEmpty() || !status.reviewDue) null else ({ MainChip(status) }),
         titleAction = menu,
-        content = { BlockBody(status, weeks, today, pause, dietBreakWeek, initialWeek) },
+        content = { BlockBody(status, weeks, today, pause, dietBreakWeek, initialWeek, start) },
         footer = if (weeks.isEmpty()) ({ BlockWeeksError { actions.onEvent(TrainerEvent.Refresh) } }) else null,
     )
 }
@@ -171,6 +180,7 @@ private fun BlockBody(
     pause: BlockPause?,
     dietBreakWeek: Int?,
     initialWeek: Int?,
+    start: SessionStart,
 ) {
     // The weeks could not be read: the footer shows the retry note instead.
     if (weeks.isEmpty()) return
@@ -196,6 +206,7 @@ private fun BlockBody(
                         dietBreak = week.week == dietBreakWeek,
                         today = today,
                         pause = pause,
+                        start = start,
                     ),
                 )
             }
@@ -286,7 +297,11 @@ private class WeekDetailContext(
     val dietBreak: Boolean,
     val today: LocalDate?,
     val pause: BlockPause?,
+    val start: SessionStart,
 )
+
+/** What the play button of a session card needs: the connection, a start in flight and the event to send (T-300). */
+private class SessionStart(val online: Boolean, val starting: Boolean, val onStart: (routineId: String) -> Unit)
 
 /**
  * The chosen week, as the "Semanas del bloque" card showed it (US-73, US-75): "Semana 2" with its chips, the dates,
@@ -365,7 +380,7 @@ private fun WeekDetail(week: PlanWeek, context: WeekDetailContext) {
         } else if (week.planned > 0) {
             SessionsHeadline(week)
         }
-        if (week.sessions.isNotEmpty()) SessionCards(week)
+        if (week.sessions.isNotEmpty()) SessionCards(week, context.start)
         ActivityBars(week, today)
     }
 }
@@ -428,16 +443,26 @@ private fun SessionsHeadline(week: PlanWeek) {
     }
 }
 
-/** The week's sessions as small read-only cards in two columns (one column from font scale 1.2), no tap. */
+/**
+ * The week's sessions as small cards in two columns (one column from font scale 1.2). The cards are read-only; only the
+ * next pending session of the current week, when it has a routine, carries a play button (T-300).
+ */
 @Composable
-private fun SessionCards(week: PlanWeek) {
+private fun SessionCards(week: PlanWeek, start: SessionStart) {
     val columns = if (LocalDensity.current.fontScale >= STACK_FONT_SCALE) 1 else 2
+    val startable = week.nextPendingSession()?.takeIf { it.routineId != null }
     Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
         week.sessions.chunked(columns).forEach { rowSessions ->
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-                rowSessions.forEach { SessionCard(week, it, Modifier.weight(1f)) }
+                rowSessions.forEach { session ->
+                    val play = if (session == startable) start else null
+                    SessionCard(week, session, play, Modifier.weight(1f))
+                }
                 repeat(columns - rowSessions.size) { Row(Modifier.weight(1f)) {} }
             }
+        }
+        if (startable != null && !start.online) {
+            OfflineHint(stringResource(Res.string.trainer_block_start_action))
         }
     }
 }
@@ -457,7 +482,7 @@ private fun Modifier.sessionSurface(done: Boolean, colors: AppColors): Modifier 
  * past week; neutral, never an error) or "Planificado" (an upcoming week, `textTertiary`).
  */
 @Composable
-private fun SessionCard(week: PlanWeek, session: PlanWeekSession, modifier: Modifier = Modifier) {
+private fun SessionCard(week: PlanWeek, session: PlanWeekSession, start: SessionStart?, modifier: Modifier = Modifier) {
     val state = stringResource(
         when {
             session.done -> Res.string.trainer_week_session_done
@@ -466,15 +491,42 @@ private fun SessionCard(week: PlanWeek, session: PlanWeekSession, modifier: Modi
             else -> Res.string.trainer_week_session_planned
         },
     )
-    val description = stringResource(Res.string.trainer_block_session_cd, session.name, state)
-    // Name on top, state below: "Planificado" next to a name would squeeze it at 360 dp.
-    Column(
+    val tag = "trainer_box_block_session_${week.week}_${session.sessionIndex}"
+    val routineId = session.routineId
+    // The play button is a sibling of the merged text group: a merged parent would hide it from its own tag.
+    Row(
         modifier
             .heightIn(min = Spacing.minTouchTarget)
             .sessionSurface(session.done, AppTheme.colors)
-            .padding(horizontal = Spacing.md, vertical = Spacing.sm)
-            .semantics(mergeDescendants = true) { contentDescription = description }
-            .testTag("trainer_box_block_session_${week.week}_${session.sessionIndex}"),
+            .padding(
+                start = Spacing.md,
+                end = if (start != null) Spacing.xs else Spacing.md,
+                top = Spacing.sm,
+                bottom = Spacing.sm,
+            ),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        SessionCardText(week, session, state, Modifier.weight(1f).testTag(tag))
+        if (start != null && routineId != null) {
+            CircleIconButton(
+                contentDescription = stringResource(Res.string.routines_start_cd, session.name),
+                icon = Res.drawable.ic_play_arrow,
+                testTag = "${tag}_start",
+                onClick = { start.onStart(routineId) },
+                enabled = start.online && !start.starting,
+                accent = true,
+            )
+        }
+    }
+}
+
+/** The name on top and the state below, spoken as one node ("Pierna B: Pendiente"). */
+@Composable
+private fun SessionCardText(week: PlanWeek, session: PlanWeekSession, state: String, modifier: Modifier = Modifier) {
+    val description = stringResource(Res.string.trainer_block_session_cd, session.name, state)
+    // Name on top, state below: "Planificado" next to a name would squeeze it at 360 dp.
+    Column(
+        modifier.semantics(mergeDescendants = true) { contentDescription = description },
         verticalArrangement = Arrangement.spacedBy(Spacing.xs),
     ) {
         Text(

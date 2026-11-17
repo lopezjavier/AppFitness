@@ -2517,6 +2517,7 @@
     <string name="trainer_block_week_item_planned_cd">Semana %1$d, planificada</string>
     <string name="trainer_block_week_unit">entrenos</string>
     <string name="trainer_block_session_cd">%1$s: %2$s</string>
+    <string name="trainer_block_start_action">empezar</string>
     <string name="trainer_block_cardio_planned">Objetivo:&#160;%1$s&#160;min</string>
     <string name="trainer_change_figure">%1$s&#160;→&#160;%2$s&#160;kg</string>
     <!-- T-283 batch 6c: "Tu plan" card with the weight pace (C-131..C-138) -->

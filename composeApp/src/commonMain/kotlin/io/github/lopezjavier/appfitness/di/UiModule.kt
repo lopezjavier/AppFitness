@@ -497,6 +497,7 @@ val uiModule =
                 discomfortFollowUps = get(),
                 exerciseNames = get(),
                 diary = get(),
+                sessions = get(),
             )
         }
         viewModel {

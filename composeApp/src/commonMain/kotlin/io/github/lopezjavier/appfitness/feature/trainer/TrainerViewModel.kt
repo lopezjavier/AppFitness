@@ -22,7 +22,9 @@ import io.github.lopezjavier.appfitness.domain.model.PhaseWeeks
 import io.github.lopezjavier.appfitness.domain.model.PlanStatus
 import io.github.lopezjavier.appfitness.domain.model.PlanWeek
 import io.github.lopezjavier.appfitness.domain.model.ProgressionFlagDecision
+import io.github.lopezjavier.appfitness.domain.model.WeekPhase
 import io.github.lopezjavier.appfitness.domain.model.WeekSummary
+import io.github.lopezjavier.appfitness.domain.model.nextPendingSession
 import io.github.lopezjavier.appfitness.domain.port.Clock
 import io.github.lopezjavier.appfitness.domain.repository.BodyMeasurementRepository
 import io.github.lopezjavier.appfitness.domain.repository.CoachBlockRepository
@@ -33,6 +35,7 @@ import io.github.lopezjavier.appfitness.domain.repository.CoachSummaryRepository
 import io.github.lopezjavier.appfitness.domain.repository.CoachWeeksRepository
 import io.github.lopezjavier.appfitness.domain.repository.DiscomfortFollowUpRepository
 import io.github.lopezjavier.appfitness.domain.repository.FoodDiaryRepository
+import io.github.lopezjavier.appfitness.domain.repository.WorkoutSessionRepository
 import io.github.lopezjavier.appfitness.domain.usecase.DailyWeight
 import io.github.lopezjavier.appfitness.domain.usecase.DailyWeights
 import io.github.lopezjavier.appfitness.domain.usecase.DecideCalorieProposalUseCase
@@ -43,6 +46,8 @@ import io.github.lopezjavier.appfitness.domain.usecase.LoadWelcomeBack
 import io.github.lopezjavier.appfitness.domain.usecase.RecordPausedWeekReport
 import io.github.lopezjavier.appfitness.domain.usecase.WeightPace
 import io.github.lopezjavier.appfitness.domain.usecase.WeightPaceFit
+import io.github.lopezjavier.appfitness.feature.workout.SessionStartOutcome
+import io.github.lopezjavier.appfitness.feature.workout.toStartOutcome
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.async
 import kotlinx.coroutines.channels.Channel
@@ -122,6 +127,7 @@ class TrainerViewModel(
     exerciseNames: ExerciseNameResolver? = null,
     private val timeZone: TimeZone = TimeZone.currentSystemDefault(),
     private val diary: FoodDiaryRepository? = null,
+    private val sessions: WorkoutSessionRepository? = null,
 ) : ViewModel() {
     private val cardioEdit = CardioEditState(savedState)
 
@@ -132,6 +138,9 @@ class TrainerViewModel(
     val effects = effectChannel.receiveAsFlow()
 
     private var loadJob: Job? = null
+
+    // Authoritative double-tap guard of "start routine": a hub reload replaces the Content, so its flag can reset.
+    private var startingRoutine = false
 
     private val discomfort = discomfortFollowUps?.let {
         TrainerDiscomfortController(
@@ -188,6 +197,38 @@ class TrainerViewModel(
             is TrainerEvent.PickSwap -> discomfort?.pick(event.newExerciseId)
             is TrainerEvent.DeclineSwap -> discomfort?.decline(event.exerciseId)
             is TrainerEvent.DismissDiscomfortNote -> discomfort?.dismissNote(event.exerciseId)
+            is TrainerEvent.StartRoutine -> startRoutine(event.routineId)
+        }
+    }
+
+    /** Starts a live workout from the current week's next pending routine; any other routine id is a stale tap. */
+    @Suppress("ReturnCount") // Guards: no content or repository, a start in flight, not the next pending routine.
+    private fun startRoutine(routineId: String) {
+        val content = _uiState.value as? TrainerUiState.Content ?: return
+        val repository = sessions ?: return
+        if (startingRoutine) return
+        val next = content.weeks.firstOrNull { it.phase == WeekPhase.Current }?.nextPendingSession()?.routineId
+        if (next == null || next != routineId) return
+        startingRoutine = true
+        _uiState.value = content.copy(startingRoutine = true)
+        viewModelScope.launch {
+            val effect = try {
+                val result = repository.startFromRoutine(routineId)
+                when (result.toStartOutcome()) {
+                    SessionStartOutcome.Started -> TrainerEffect.OpenLiveSession
+
+                    SessionStartOutcome.AlreadyInProgress -> TrainerEffect.SessionInProgress
+
+                    SessionStartOutcome.Failed ->
+                        TrainerEffect.StartFailed(offline = result.appErrorOrNull() == AppError.Network)
+                }
+            } finally {
+                startingRoutine = false
+                _uiState.update { state ->
+                    if (state is TrainerUiState.Content) state.copy(startingRoutine = false) else state
+                }
+            }
+            effectChannel.send(effect)
         }
     }
 
@@ -582,6 +623,7 @@ class TrainerViewModel(
                         cardioEdit = state.cardioEdit,
                         dietBreakSaving = state.dietBreakSaving,
                         removingBlock = state.removingBlock,
+                        startingRoutine = startingRoutine,
                         provisionalCount = fresh.provisionalCount ?: state.provisionalCount,
                     )
                 } else {

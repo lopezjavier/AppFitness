@@ -812,6 +812,7 @@ internal fun AppNavHost(
             onOpenMyTraining = {
                 navController.navigateToFullScreen(PreferencesSectionRoute(PreferencesSection.MyTraining.key))
             },
+            onOpenLiveSession = openLiveSession,
         )
     }
     val openYourData = remember(navController) { { navController.navigateToFullScreen(YourDataRoute) } }

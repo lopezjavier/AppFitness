@@ -14,6 +14,8 @@ import io.github.lopezjavier.appfitness.domain.repository.RoutineRepository
 import io.github.lopezjavier.appfitness.domain.repository.WorkoutSessionRepository
 import io.github.lopezjavier.appfitness.domain.usecase.TrainingCalendar
 import io.github.lopezjavier.appfitness.domain.usecase.moveWithinGroup
+import io.github.lopezjavier.appfitness.feature.workout.SessionStartOutcome
+import io.github.lopezjavier.appfitness.feature.workout.toStartOutcome
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow

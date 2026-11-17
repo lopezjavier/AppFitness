@@ -90,6 +90,7 @@ data class TrainerActions(
     val onOpenExercise: (exerciseId: String) -> Unit = {},
     val onOpenRoutineRange: (routineId: String, exerciseId: String) -> Unit = { _, _ -> },
     val onOpenMyTraining: () -> Unit = {},
+    val onOpenLiveSession: () -> Unit = {},
 )
 
 /** Stateful Trainer tab root: connects [TrainerViewModel] to [TrainerScreen]; effects play in [TrainerEffectsHost]. */
@@ -322,6 +323,8 @@ private fun LazyGridScope.blockBoxes(
                 BlockCardMenu(state, online, onEvent, initiallyOpen = preview.openMenu == TrainerRootMenu.Block)
             },
             initialWeek = preview.week,
+            online = online,
+            starting = state.startingRoutine,
         )
         BlockMenuTargets(state, online, onEvent)
     }

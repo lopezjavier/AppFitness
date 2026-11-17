@@ -25,6 +25,7 @@ import io.github.lopezjavier.appfitness.domain.port.RestAlertScheduler
 import io.github.lopezjavier.appfitness.domain.repository.WorkoutSessionRepository
 import io.github.lopezjavier.appfitness.domain.usecase.PersonalRecordCatalogue
 import io.github.lopezjavier.appfitness.domain.usecase.SetWrite
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.datetime.LocalDate
 import kotlin.time.Duration
 import kotlin.time.Instant
@@ -171,8 +172,12 @@ internal class FakeWorkoutSessionRepository(var session: WorkoutSession? = null)
 
     private fun failing(error: AppError?) = error?.let { Result.failure<Nothing>(AppException(it)) }
 
+    /** When set, [startFromRoutine] records the call and then waits for it (a start call kept in flight). */
+    var startGate: CompletableDeferred<Unit>? = null
+
     override suspend fun startFromRoutine(routineId: String): Result<String> {
         startedRoutines += routineId
+        startGate?.await()
         return failing(startFailure) ?: Result.success(startedId)
     }
 
