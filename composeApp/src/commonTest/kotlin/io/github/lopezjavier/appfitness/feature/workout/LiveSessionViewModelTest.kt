@@ -378,6 +378,33 @@ class LiveSessionViewModelTest {
     }
 
     @Test
+    fun aCatalogueExerciseCarriesItsImageKey_andACustomOneHasNone() = runSessionTest {
+        repository.session = sessionOf(
+            SessionExercise("e1", 0, null, listOf(pendingSet(1))),
+            SessionExercise("e3", 1, null, listOf(pendingSet(1))),
+        )
+
+        val vm = loaded()
+
+        assertEquals(listOf("bench", null), vm.active().exercises.map { it.imageKey })
+    }
+
+    @Test
+    fun aRenameEmittedByTheResolver_keepsTheImageKeys() = runSessionTest {
+        repository.session = sessionOf(
+            SessionExercise("e1", 0, null, listOf(pendingSet(1))),
+            SessionExercise("e3", 1, null, listOf(pendingSet(1))),
+        )
+        val vm = loaded()
+
+        exercises.updateCustom("e3", "Nombre nuevo", MuscleGroup.Chest, Equipment.Barbell, false, null)
+        advanceUntilIdle()
+
+        assertEquals(listOf("Press banca", "Nombre nuevo"), vm.active().exercises.map { it.name })
+        assertEquals(listOf("bench", null), vm.active().exercises.map { it.imageKey })
+    }
+
+    @Test
     fun supersetExercisesCarryTheirLabel() = runSessionTest {
         repository.session = sessionOf(
             SessionExercise("e1", 0, 4, listOf(pendingSet(1))),

@@ -40,14 +40,14 @@ import io.github.lopezjavier.appfitness.composeapp.resources.strength_record
 import io.github.lopezjavier.appfitness.composeapp.resources.strength_record_none
 import io.github.lopezjavier.appfitness.composeapp.resources.strength_title
 import io.github.lopezjavier.appfitness.designsystem.AppCard
-import io.github.lopezjavier.appfitness.designsystem.AppOption
 import io.github.lopezjavier.appfitness.designsystem.AppScreen
 import io.github.lopezjavier.appfitness.designsystem.AppShapes
 import io.github.lopezjavier.appfitness.designsystem.AppStateAction
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
 import io.github.lopezjavier.appfitness.designsystem.EmptyState
 import io.github.lopezjavier.appfitness.designsystem.ErrorState
-import io.github.lopezjavier.appfitness.designsystem.FilterChipRow
+import io.github.lopezjavier.appfitness.designsystem.ExerciseLayoutDefaults
+import io.github.lopezjavier.appfitness.designsystem.ExerciseRow
 import io.github.lopezjavier.appfitness.designsystem.IconBadge
 import io.github.lopezjavier.appfitness.designsystem.IconBadgeDefaults
 import io.github.lopezjavier.appfitness.designsystem.NavigationRow
@@ -60,11 +60,12 @@ import io.github.lopezjavier.appfitness.designsystem.TrendPill
 import io.github.lopezjavier.appfitness.designsystem.TrendPillDefaults
 import io.github.lopezjavier.appfitness.designsystem.TrendTone
 import io.github.lopezjavier.appfitness.domain.model.StrengthSummary
+import io.github.lopezjavier.appfitness.feature.exercises.LocalExerciseMediaUris
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
 
 private val SkeletonRecordHeight = Spacing.xl * 2
-private val SkeletonChipsHeight = Spacing.minTouchTarget
+private val SkeletonRowsHeight = ExerciseLayoutDefaults.RowMinHeight * 3
 
 /**
  * Stateful "Fuerza" screen: connects [StrengthViewModel]. [onOpenExercise] opens the progress of an exercise,
@@ -83,8 +84,8 @@ fun StrengthRoot(
 }
 
 /**
- * "Fuerza" (US-15): the top exercises as chips, the 1RM record of the selected one, its change over the last month and
- * the way to its full progress.
+ * "Fuerza" (US-15): the top exercises as one row each (picture, name, check on the selected one), the 1RM record of
+ * the selected one, its change over the last month and the way to its full progress.
  */
 @Composable
 fun StrengthScreen(
@@ -136,8 +137,7 @@ private fun StrengthContent(
     onEvent: (StrengthEvent) -> Unit,
     onOpenExercise: (String) -> Unit,
 ) {
-    val options = state.chips.map { AppOption(it.name, "strength_chip_${it.exerciseId}") }
-    val selectedIndex = state.chips.indexOfFirst { it.exerciseId == state.selectedId }.takeIf { it >= 0 }
+    val mediaUris = LocalExerciseMediaUris.current
     Column(
         Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(Spacing.screenMargin),
         verticalArrangement = Arrangement.spacedBy(Spacing.blockGap),
@@ -156,11 +156,18 @@ private fun StrengthContent(
                         modifier = Modifier.semantics { heading() },
                     )
                 }
-                FilterChipRow(
-                    options = options,
-                    selectedIndex = selectedIndex,
-                    onSelect = { onEvent(StrengthEvent.SelectExercise(state.chips[it].exerciseId)) },
-                )
+                Column {
+                    state.chips.forEach { chip ->
+                        ExerciseRow(
+                            name = chip.name,
+                            supporting = null,
+                            onOpen = { onEvent(StrengthEvent.SelectExercise(chip.exerciseId)) },
+                            tagPrefix = "strength_row_${chip.exerciseId}",
+                            imageUri = chip.imageKey?.let(mediaUris::start),
+                            selected = chip.exerciseId == state.selectedId,
+                        )
+                    }
+                }
             }
         }
         AppCard(Modifier.fillMaxWidth(), glow = AppTheme.colors.athleticCyan) {
@@ -261,7 +268,7 @@ private fun StrengthLoading() {
         Modifier.fillMaxSize().padding(Spacing.screenMargin).testTag("strength_loading"),
         verticalArrangement = Arrangement.spacedBy(Spacing.md),
     ) {
-        SkeletonBox(Modifier.fillMaxWidth().height(SkeletonChipsHeight), AppShapes.lg)
+        SkeletonBox(Modifier.fillMaxWidth().height(SkeletonRowsHeight), AppShapes.lg)
         SkeletonBox(Modifier.fillMaxWidth().height(SkeletonRecordHeight), AppShapes.lg)
     }
 }

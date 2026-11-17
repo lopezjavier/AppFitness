@@ -57,6 +57,7 @@ class SessionDetailViewModel(
 ) : ViewModel() {
     private var session: WorkoutSession? = null
     private var names: Map<String, String> = emptyMap()
+    private var imageKeys: Map<String, String> = emptyMap()
 
     /** Primary muscle group by exercise id; empty when the exercises could not be read (no split). */
     private var groups: Map<String, MuscleGroup> = emptyMap()
@@ -101,6 +102,7 @@ class SessionDetailViewModel(
                 val current = session
                 if (current != null && current.exercises.all { resolved[it.exerciseId] != null }) {
                     names = resolved.byId
+                    imageKeys = resolved.imageKeyById
                     publish()
                 }
             }
@@ -151,6 +153,7 @@ class SessionDetailViewModel(
                     } else {
                         session = loaded
                         names = resolved.byId
+                        imageKeys = resolved.imageKeyById
                         val lookup = loadExerciseLookup(exerciseRepository)
                         groups = lookup?.groups ?: groups
                         includeWarmUp = preferences.warmUpIncludedOrDefault()
@@ -276,6 +279,7 @@ class SessionDetailViewModel(
                     },
                     isPersonalRecord = exercise.exerciseId in records,
                     records = beaten[exercise.exerciseId].orEmpty(),
+                    imageKey = imageKeys[exercise.exerciseId],
                 )
             },
             isOnline = online,

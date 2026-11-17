@@ -1,5 +1,6 @@
 package io.github.lopezjavier.appfitness.feature.workout
 
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.assertTextContains
@@ -15,7 +16,9 @@ import io.github.lopezjavier.appfitness.app.FakeConnectivityObserver
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
 import io.github.lopezjavier.appfitness.domain.model.SetEntry
 import io.github.lopezjavier.appfitness.feature.exercises.FakeExerciseLibrary
+import io.github.lopezjavier.appfitness.feature.exercises.FakeExerciseMediaUris
 import io.github.lopezjavier.appfitness.feature.exercises.FakeExerciseRepository
+import io.github.lopezjavier.appfitness.feature.exercises.LocalExerciseMediaUris
 import io.github.lopezjavier.appfitness.feature.exercises.exerciseInfo
 import io.github.lopezjavier.appfitness.feature.exercises.exerciseRow
 import io.github.lopezjavier.appfitness.feature.routines.FakeRoutineRepository
@@ -78,6 +81,38 @@ class PastWorkoutScreenTest {
 
         rule.onNodeWithTag("past_workout_date").assert(hasContentDescription("18 oct 2026", substring = true))
         rule.onNodeWithTag("past_workout_empty_hint").assertExists()
+    }
+
+    @Test
+    fun anAddedExercise_showsItsPictureInItsCard_andKeepsMoveAndDelete() {
+        val picked = androidx.compose.runtime.mutableStateOf<String?>(null)
+        val model = PastWorkoutViewModel(
+            PastWorkoutSource.Empty,
+            repository,
+            routines,
+            exercises,
+            library,
+            connectivity,
+            MutableClock(),
+        )
+        rule.setContent {
+            CompositionLocalProvider(LocalExerciseMediaUris provides FakeExerciseMediaUris) {
+                AppTheme {
+                    PastWorkoutRoot(null, null, picked.value, {
+                        picked.value = null
+                    }, {}, { closed++ }, viewModel = model)
+                }
+            }
+        }
+        rule.waitForIdle()
+
+        picked.value = "e1"
+        rule.waitForIdle()
+
+        rule.onNodeWithTag("past_workout_exercise_0_thumbnail_image", useUnmergedTree = true).assertExists()
+        rule.onNodeWithTag("past_workout_exercise_0_up").assertExists()
+        rule.onNodeWithTag("past_workout_exercise_0_down").assertExists()
+        rule.onNodeWithTag("past_workout_exercise_0_delete").assertExists()
     }
 
     @Test

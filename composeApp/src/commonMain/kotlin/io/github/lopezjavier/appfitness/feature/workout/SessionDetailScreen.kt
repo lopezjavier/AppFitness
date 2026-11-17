@@ -69,6 +69,7 @@ import io.github.lopezjavier.appfitness.designsystem.appAnimateItem
 import io.github.lopezjavier.appfitness.designsystem.setNoteSummary
 import io.github.lopezjavier.appfitness.domain.model.PersonalRecordType
 import io.github.lopezjavier.appfitness.domain.usecase.RpeScale
+import io.github.lopezjavier.appfitness.feature.exercises.LocalExerciseMediaUris
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
 import org.koin.core.parameter.parametersOf
@@ -240,6 +241,7 @@ private fun ExerciseBlock(exercise: DetailExercise, onOpen: () -> Unit, modifier
                 supporting = null,
                 onOpen = onOpen,
                 tagPrefix = "session_detail_exercise_${exercise.position}",
+                imageUri = exercise.imageKey?.let(LocalExerciseMediaUris.current::start),
             )
             PersonalRecordPills(exercise.records, exercise.position, "session_detail")
             if (exercise.sets.isEmpty()) {

@@ -1,8 +1,11 @@
 package io.github.lopezjavier.appfitness.feature.analytics
 
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsNotSelected
 import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.assertTextContains
@@ -11,8 +14,11 @@ import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.unit.Density
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
 import io.github.lopezjavier.appfitness.domain.model.StrengthSummary
+import io.github.lopezjavier.appfitness.feature.exercises.FakeExerciseMediaUris
+import io.github.lopezjavier.appfitness.feature.exercises.LocalExerciseMediaUris
 import org.junit.Assert.assertEquals
 import org.junit.Rule
 import org.junit.Test
@@ -21,8 +27,8 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 
 private val Chips = listOf(
-    StrengthChip("bench", "Press de banca"),
-    StrengthChip("squat", "Sentadilla"),
+    StrengthChip("bench", "Press de banca", imageKey = "barbell-bench-press"),
+    StrengthChip("squat", "Sentadilla", imageKey = "barbell-squat"),
     StrengthChip("row", "Remo"),
 )
 
@@ -44,14 +50,16 @@ class StrengthScreenTest {
 
     private fun show(state: StrengthUiState) {
         rule.setContent {
-            AppTheme {
-                StrengthScreen(
-                    state = state,
-                    onEvent = { events += it },
-                    onOpenExercise = { opened += it },
-                    onStartWorkout = { startedWorkout++ },
-                    onBack = { backs++ },
-                )
+            CompositionLocalProvider(LocalExerciseMediaUris provides FakeExerciseMediaUris) {
+                AppTheme {
+                    StrengthScreen(
+                        state = state,
+                        onEvent = { events += it },
+                        onOpenExercise = { opened += it },
+                        onStartWorkout = { startedWorkout++ },
+                        onBack = { backs++ },
+                    )
+                }
             }
         }
         rule.waitForIdle()
@@ -63,9 +71,56 @@ class StrengthScreenTest {
 
         rule.onNodeWithText("1RM estimado").assertExists()
         rule.onNodeWithTag("strength_title").assertTextEquals("Fuerza")
-        rule.onNodeWithTag("strength_chip_bench").assertIsSelected()
-        rule.onNodeWithTag("strength_chip_squat").assertIsNotSelected()
-        rule.onNodeWithTag("strength_chip_row").assertExists()
+        rule.onNodeWithTag("strength_row_bench").assertIsSelected()
+        rule.onNodeWithTag("strength_row_squat").assertIsNotSelected()
+        rule.onNodeWithTag("strength_row_row").assertExists()
+    }
+
+    @Test
+    fun topExercises_areOneRowEach_withNoChipRow() {
+        show(content(StrengthSummary(113.5, 5.0)))
+
+        listOf("bench", "squat", "row").forEach { rule.onNodeWithTag("strength_row_$it").assertExists() }
+        rule.onNodeWithTag("strength_row_bench").assertTextContains("Press de banca")
+        rule.onNodeWithTag("strength_chip_row").assertDoesNotExist()
+        rule.onNodeWithTag("strength_chip_bench").assertDoesNotExist()
+    }
+
+    @Test
+    fun onlyTheSelectedRow_showsTheLimeCheck() {
+        show(content(StrengthSummary(113.5, 5.0)))
+
+        rule.onNodeWithTag("strength_row_bench_selected_check", useUnmergedTree = true).assertExists()
+        rule.onNodeWithTag("strength_row_squat_selected_check", useUnmergedTree = true).assertDoesNotExist()
+        rule.onNodeWithTag("strength_row_row_selected_check", useUnmergedTree = true).assertDoesNotExist()
+    }
+
+    @Test
+    fun aKeyedChip_showsItsPicture_andACustomOneThePlaceholder() {
+        show(content(StrengthSummary(113.5, 5.0)))
+
+        rule.onNodeWithTag("strength_row_bench_thumbnail_image", useUnmergedTree = true).assertExists()
+        rule.onNodeWithTag("strength_row_row_thumbnail_image", useUnmergedTree = true).assertDoesNotExist()
+        rule.onNodeWithTag("strength_row_row_thumbnail_placeholder", useUnmergedTree = true).assertExists()
+    }
+
+    @Test
+    fun theRows_stayReadable_atFontScale2_withTheCheckNotTruncated() {
+        rule.setContent {
+            val density = LocalDensity.current
+            CompositionLocalProvider(
+                LocalDensity provides Density(density.density, fontScale = 2f),
+                LocalExerciseMediaUris provides FakeExerciseMediaUris,
+            ) {
+                AppTheme {
+                    StrengthScreen(content(StrengthSummary(113.5, 5.0)), {}, {}, {}, {})
+                }
+            }
+        }
+
+        rule.onNodeWithTag("strength_row_bench").assertTextContains("Press de banca")
+        rule.onNodeWithTag("strength_row_bench_selected_check", useUnmergedTree = true).assertIsDisplayed()
+        rule.onNodeWithTag("strength_row_row").assertIsDisplayed()
     }
 
     @Test
@@ -130,10 +185,10 @@ class StrengthScreenTest {
     }
 
     @Test
-    fun tappingAChip_selectsThatExercise() {
+    fun tappingARow_selectsThatExercise() {
         show(content(StrengthSummary(113.5, 5.0)))
 
-        rule.onNodeWithTag("strength_chip_squat").performClick()
+        rule.onNodeWithTag("strength_row_squat").performClick()
 
         assertEquals(listOf<StrengthEvent>(StrengthEvent.SelectExercise("squat")), events)
     }
@@ -176,15 +231,18 @@ class StrengthScreenTest {
     fun customExercise_isShownByItsName_andARenameIsShownWithoutRecreating() {
         var chips by mutableStateOf(listOf(StrengthChip("custom-1", "Remo en anillas")))
         rule.setContent {
-            AppTheme {
-                StrengthScreen(StrengthUiState.Content(chips, "custom-1", null), {}, {}, {}, {})
+            CompositionLocalProvider(LocalExerciseMediaUris provides FakeExerciseMediaUris) {
+                AppTheme {
+                    StrengthScreen(StrengthUiState.Content(chips, "custom-1", null), {}, {}, {}, {})
+                }
             }
         }
-        rule.onNodeWithTag("strength_chip_custom-1").assertTextEquals("Remo en anillas")
+        rule.onNodeWithTag("strength_row_custom-1").assertTextContains("Remo en anillas")
 
         chips = listOf(StrengthChip("custom-1", "Remo invertido"))
         rule.waitForIdle()
 
-        rule.onNodeWithTag("strength_chip_custom-1").assertTextEquals("Remo invertido")
+        rule.onNodeWithTag("strength_row_custom-1").assertTextContains("Remo invertido")
+        rule.onNodeWithTag("strength_row_custom-1_thumbnail_placeholder", useUnmergedTree = true).assertExists()
     }
 }

@@ -713,6 +713,7 @@
     </plurals>
     <string name="live_discard_title">¿Descartar entreno?</string>
     <string name="live_discard_message">Se eliminará este entreno con todas sus series.</string>
+    <string name="live_exercise_done_cd">Ejercicio completado</string>
     <string name="live_exercise_menu_cd">Más opciones de %1$s</string>
     <string name="live_exercise_menu_rest">Descanso</string>
     <string name="live_rest_sheet_title">Descanso</string>

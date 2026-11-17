@@ -467,6 +467,56 @@ class TrainingStatsViewModelTest {
     }
 
     @Test
+    fun topExercisesCarryTheirImageKey_andACustomOneHasNone() = runTest(dispatcher) {
+        exercises.rows = exercises.rows + exerciseRow("mine", null, name = "Mi press", custom = true)
+        stats.exercisesFor = { _, group ->
+            if (group !=
+                null
+            ) {
+                emptyList()
+            } else {
+                listOf(ExerciseSetCount("bench", 9.0, 3), ExerciseSetCount("mine", 5.0, 2))
+            }
+        }
+        val model = viewModel()
+        advanceUntilIdle()
+
+        val top = model.uiState.value.topExercises.data<List<StatsExercise>>()
+
+        assertEquals(listOf("bench", null), top.map { it.imageKey })
+    }
+
+    @Test
+    fun theMuscleDetailExercisesCarryTheirImageKey() = runTest(dispatcher) {
+        stats.exercisesFor = { _, group ->
+            if (group == MuscleGroup.Triceps) listOf(ExerciseSetCount("bench", 1.5, 1)) else emptyList()
+        }
+        val model = viewModel()
+        advanceUntilIdle()
+
+        model.onEvent(TrainingStatsEvent.OpenMuscle(MuscleGroup.Triceps))
+        advanceUntilIdle()
+
+        val detail = model.uiState.value.muscleDetail.data<MuscleDetail>()
+        assertEquals(listOf("bench"), detail.exercises.map { it.imageKey })
+    }
+
+    @Test
+    fun aRenameRefreshesTheNameAndKeepsTheImageKeys() = runTest(dispatcher) {
+        exercises.rows = exercises.rows + exerciseRow("mine", null, name = "Mi press", custom = true)
+        stats.exercisesFor = { _, _ -> listOf(ExerciseSetCount("bench", 9.0, 3), ExerciseSetCount("mine", 5.0, 2)) }
+        val model = viewModel()
+        advanceUntilIdle()
+
+        exercises.updateCustom("mine", "Press nuevo", MuscleGroup.Chest, Equipment.Barbell, false, null)
+        advanceUntilIdle()
+
+        val top = model.uiState.value.topExercises.data<List<StatsExercise>>()
+        assertEquals(listOf("Press de banca", "Press nuevo"), top.map { it.name })
+        assertEquals(listOf("bench", null), top.map { it.imageKey })
+    }
+
+    @Test
     fun anExerciseWithoutAName_failsTheSectionInsteadOfShowingAGenericRow() = runTest(dispatcher) {
         stats.exercisesFor = { _, _ -> listOf(ExerciseSetCount("ghost", 5.0, 2)) }
         val model = viewModel()

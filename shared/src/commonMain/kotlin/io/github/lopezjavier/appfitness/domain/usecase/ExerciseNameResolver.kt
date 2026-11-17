@@ -25,10 +25,12 @@ class ExerciseNameResolver(private val repository: ExerciseRepository, private v
     suspend fun resolve(): Result<ExerciseNames> {
         val rows = repository.getAll().getOrElse { return Result.failure(it) }
         val info = library.load()
+        val named = rows.mapNotNull { row -> displayNameOf(row, info)?.let { row to it } }
         return Result.success(
             ExerciseNames(
-                rows.mapNotNull { row ->
-                    displayNameOf(row, info)?.let { row.id to it }
+                byId = named.associate { (row, name) -> row.id to name },
+                imageKeyById = named.mapNotNull { (row, _) ->
+                    row.key?.takeIf { !row.isCustom }?.let { row.id to it }
                 }.toMap(),
             ),
         )

@@ -1,5 +1,6 @@
 package io.github.lopezjavier.appfitness.feature.workout
 
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.semantics.getOrNull
 import androidx.compose.ui.test.assertIsNotSelected
@@ -16,6 +17,8 @@ import io.github.lopezjavier.appfitness.domain.model.Equipment
 import io.github.lopezjavier.appfitness.domain.model.ExerciseMetricType
 import io.github.lopezjavier.appfitness.domain.model.SetType
 import io.github.lopezjavier.appfitness.domain.model.TrainingPreferences
+import io.github.lopezjavier.appfitness.feature.exercises.FakeExerciseMediaUris
+import io.github.lopezjavier.appfitness.feature.exercises.LocalExerciseMediaUris
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotEquals
 import org.junit.Rule
@@ -59,12 +62,17 @@ class LiveSessionRestorationTest {
                 ),
                 metricType = metric,
                 equipment = equipment,
+                imageKey = "barbell-bench-press",
             ),
         ),
     )
 
     private fun showAndRestore() {
-        tester.setContent { AppTheme { LiveSessionScreen(state, 0, {}, {}, onOpenExercise = {}) } }
+        tester.setContent {
+            CompositionLocalProvider(LocalExerciseMediaUris provides FakeExerciseMediaUris) {
+                AppTheme { LiveSessionScreen(state, 0, {}, {}, onOpenExercise = {}) }
+            }
+        }
         rule.waitForIdle()
     }
 
@@ -77,6 +85,15 @@ class LiveSessionRestorationTest {
         rule.onNodeWithTag(tag).fetchSemanticsNode().config.getOrNull(SemanticsProperties.Text)?.joinToString {
             it.text
         }
+
+    @Test
+    fun exerciseThumbnail_isStillShownAfterRecreation() {
+        showAndRestore()
+
+        recreate()
+
+        rule.onNodeWithTag("live_exercise_0_thumbnail_image", useUnmergedTree = true).assertExists()
+    }
 
     @Test
     fun exerciseActionSheet_staysOpen() {

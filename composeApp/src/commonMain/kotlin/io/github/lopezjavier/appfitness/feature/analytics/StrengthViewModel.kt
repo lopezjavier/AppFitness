@@ -89,7 +89,7 @@ class StrengthViewModel(
     }
 
     private fun nameChips(ids: List<String>, names: ExerciseNames): List<StrengthChip>? =
-        ids.map { id -> StrengthChip(id, names[id] ?: return null) }
+        ids.map { id -> StrengthChip(id, names[id] ?: return null, names.imageKeyOf(id)) }
 
     /** A renamed or new custom exercise updates the chips already shown; a partial lookup changes nothing. */
     private fun renameChips(names: ExerciseNames) {

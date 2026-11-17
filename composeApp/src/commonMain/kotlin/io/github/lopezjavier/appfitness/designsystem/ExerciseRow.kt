@@ -11,11 +11,13 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import io.github.lopezjavier.appfitness.composeapp.resources.Res
 import io.github.lopezjavier.appfitness.composeapp.resources.exercise_row_open_detail_cd
 import io.github.lopezjavier.appfitness.composeapp.resources.favourite_state_on
+import io.github.lopezjavier.appfitness.composeapp.resources.ic_check
 import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.resources.stringResource
 
@@ -29,6 +31,8 @@ import org.jetbrains.compose.resources.stringResource
  * the thumbnail still opens the details.
  * [supportingSecondary] is a second supporting line (`bodyMedium`, `textSecondary`; C-116, "puedes cambiarlo").
  * [trailing] is a separate slot for the caller's own controls.
+ * [selected] makes the row a single-choice option (R-64 b): null is a plain row; non-null adds the `selected`
+ * semantics and, when true and [trailing] is empty, a `neonLime` check (no fill, tag `<tagPrefix>_selected_check`).
  * [favorite] draws the filled star marker inline right after the name, through `AppListRow.headlineTrailing`, so
  * [trailing] stays free (R-56, T-204; tagged [favoriteTestTag]) and adds "Favorito"
  * to the row description. The row is tagged [tagPrefix]; the thumbnail
@@ -50,6 +54,7 @@ fun ExerciseRow(
     enabled: Boolean = true,
     supportingMaxLines: Int = Int.MAX_VALUE,
     supportingSecondary: String? = null,
+    selected: Boolean? = null,
 ) {
     val thumbnail: @Composable () -> Unit = {
         ExerciseThumbnail(
@@ -61,7 +66,9 @@ fun ExerciseRow(
     val detailDescription = stringResource(Res.string.exercise_row_open_detail_cd, name)
     AppListRow(
         headline = name,
-        modifier = modifier.testTag(tagPrefix),
+        modifier = modifier.testTag(tagPrefix).let { base ->
+            if (selected == null) base else base.semantics { this.selected = selected }
+        },
         supporting = supporting,
         leading = if (onSelect == null) {
             thumbnail
@@ -77,7 +84,11 @@ fun ExerciseRow(
                 ) { thumbnail() }
             }
         },
-        trailing = trailing,
+        trailing = trailing ?: if (selected == true) {
+            { SelectedCheck(tagPrefix) }
+        } else {
+            null
+        },
         headlineTrailing = if (favorite) {
             { FavoriteMarker(favoriteTestTag) }
         } else {
@@ -88,6 +99,17 @@ fun ExerciseRow(
         supportingSecondary = supportingSecondary,
         onClick = onSelect ?: onOpen,
         enabled = enabled,
+    )
+}
+
+/** The decorative `neonLime` check of a selected row (R-64 b); the row's `selected` semantics carry the state. */
+@Composable
+private fun SelectedCheck(tagPrefix: String) {
+    Icon(
+        painter = painterResource(Res.drawable.ic_check),
+        contentDescription = null,
+        tint = AppTheme.colors.neonLime,
+        modifier = Modifier.size(Spacing.xl).testTag("${tagPrefix}_selected_check"),
     )
 }
 

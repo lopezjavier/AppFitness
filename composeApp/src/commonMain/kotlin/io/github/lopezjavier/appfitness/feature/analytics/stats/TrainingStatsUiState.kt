@@ -19,8 +19,17 @@ sealed interface SectionState<out T> {
     data class Content<T>(val data: T) : SectionState<T>
 }
 
-/** An exercise with its set count in a period; [name] is always resolved (an unnamed exercise fails the section). */
-data class StatsExercise(val exerciseId: String, val name: String, val sets: Double, val sessions: Int)
+/**
+ * An exercise with its set count in a period; [name] is always resolved (an unnamed exercise fails the section).
+ * [imageKey] is the bundled-picture key, null for a custom exercise (the UI draws the placeholder).
+ */
+data class StatsExercise(
+    val exerciseId: String,
+    val name: String,
+    val sets: Double,
+    val sessions: Int,
+    val imageKey: String? = null,
+)
 
 /**
  * Radar series over a fixed list of axes (every [MuscleGroup], catalog order); [previous] is null for "Todo" and

@@ -21,7 +21,6 @@ import io.github.lopezjavier.appfitness.composeapp.resources.builder_rest_unit
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_arrow_downward
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_arrow_upward
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_delete
-import io.github.lopezjavier.appfitness.composeapp.resources.ic_fitness_center
 import io.github.lopezjavier.appfitness.composeapp.resources.live_object_set
 import io.github.lopezjavier.appfitness.composeapp.resources.note_edit
 import io.github.lopezjavier.appfitness.composeapp.resources.workout_form_exercise_down_cd
@@ -32,7 +31,7 @@ import io.github.lopezjavier.appfitness.designsystem.AddItemButton
 import io.github.lopezjavier.appfitness.designsystem.AppCard
 import io.github.lopezjavier.appfitness.designsystem.AppIconButton
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
-import io.github.lopezjavier.appfitness.designsystem.IconBadge
+import io.github.lopezjavier.appfitness.designsystem.ExerciseThumbnail
 import io.github.lopezjavier.appfitness.designsystem.IconBadgeDefaults
 import io.github.lopezjavier.appfitness.designsystem.InlineNote
 import io.github.lopezjavier.appfitness.designsystem.NumberStepper
@@ -40,6 +39,7 @@ import io.github.lopezjavier.appfitness.designsystem.Spacing
 import io.github.lopezjavier.appfitness.designsystem.setNoteSummary
 import io.github.lopezjavier.appfitness.domain.model.RoutineBounds
 import io.github.lopezjavier.appfitness.domain.model.WorkoutDraftBounds
+import io.github.lopezjavier.appfitness.feature.exercises.LocalExerciseMediaUris
 import org.jetbrains.compose.resources.stringResource
 
 /** What a card needs to know about its place in the list and what the form flags on it. */
@@ -52,7 +52,8 @@ internal data class FormCardState(
 )
 
 /**
- * One exercise of the form: name with up / down / remove icon buttons, the sets, "Añadir serie" and the rest stepper.
+ * One exercise of the form: its picture ([imageKey]; the placeholder when null) and name with up / down / remove icon
+ * buttons, the sets, "Añadir serie" and the rest stepper.
  * Tags are `<prefix>_exercise_<index>_up|down|delete`, `<prefix>_add_set_<index>` and `<prefix>_rest_<index>`.
  */
 @Composable
@@ -67,18 +68,18 @@ internal fun FormExerciseCard(
     onOpenRpePicker: (setIndex: Int) -> Unit,
     onOpenNote: (setIndex: Int) -> Unit,
     modifier: Modifier = Modifier,
+    imageKey: String? = null,
 ) {
     val title = name
     val index = card.index
     AppCard(modifier.fillMaxWidth().testTag("${tagPrefix}_exercise_$index")) {
         Column(verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                IconBadge(
-                    icon = Res.drawable.ic_fitness_center,
-                    tint = AppTheme.colors.athleticCyan,
-                    modifier = Modifier.padding(end = Spacing.md),
+                ExerciseThumbnail(
+                    imageUri = imageKey?.let(LocalExerciseMediaUris.current::start),
                     size = IconBadgeDefaults.SmallSize,
-                    iconSize = IconBadgeDefaults.SmallIconSize,
+                    testTagPrefix = "${tagPrefix}_exercise_$index",
+                    modifier = Modifier.padding(end = Spacing.md),
                 )
                 Text(
                     text = title,

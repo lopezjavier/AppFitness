@@ -28,6 +28,8 @@ data class DetailExercise(
     val isPersonalRecord: Boolean,
     /** Record families the session beat for this exercise, in enum order; empty while history is unavailable. */
     val records: Set<PersonalRecordType> = emptySet(),
+    /** The bundled-picture key of a catalogue exercise; null for a custom one (the UI draws the placeholder). */
+    val imageKey: String? = null,
 )
 
 /**

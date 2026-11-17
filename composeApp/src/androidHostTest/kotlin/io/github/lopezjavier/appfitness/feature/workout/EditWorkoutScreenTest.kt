@@ -36,7 +36,9 @@ import io.github.lopezjavier.appfitness.domain.model.SetEntry
 import io.github.lopezjavier.appfitness.domain.model.SetNoteKind
 import io.github.lopezjavier.appfitness.domain.model.SetType
 import io.github.lopezjavier.appfitness.feature.exercises.FakeExerciseLibrary
+import io.github.lopezjavier.appfitness.feature.exercises.FakeExerciseMediaUris
 import io.github.lopezjavier.appfitness.feature.exercises.FakeExerciseRepository
+import io.github.lopezjavier.appfitness.feature.exercises.LocalExerciseMediaUris
 import io.github.lopezjavier.appfitness.feature.exercises.exerciseInfo
 import io.github.lopezjavier.appfitness.feature.exercises.exerciseRow
 import kotlinx.coroutines.CoroutineScope
@@ -78,7 +80,11 @@ class EditWorkoutScreenTest {
         val model = EditWorkoutViewModel("s1", repository, exercises, library, connectivity, MutableClock())
         rule.setContent {
             AppTheme {
-                CompositionLocalProvider(LocalAppHaptics provides haptics, LocalAppMessages provides messages) {
+                CompositionLocalProvider(
+                    LocalAppHaptics provides haptics,
+                    LocalAppMessages provides messages,
+                    LocalExerciseMediaUris provides FakeExerciseMediaUris,
+                ) {
                     EditWorkoutRoot(
                         sessionId = "s1",
                         selectedExerciseId = picked,
@@ -101,6 +107,16 @@ class EditWorkoutScreenTest {
 
     private fun editDescription() {
         rule.onNodeWithTag("edit_workout_description").performScrollTo().performTextInput("Buen día")
+    }
+
+    @Test
+    fun theExerciseCard_showsItsPictureBeforeTheName_andKeepsMoveAndDelete() {
+        show()
+
+        rule.onNodeWithTag("edit_workout_exercise_0_thumbnail_image", useUnmergedTree = true).assertExists()
+        rule.onNodeWithTag("edit_workout_exercise_0_up").assertExists()
+        rule.onNodeWithTag("edit_workout_exercise_0_down").assertExists()
+        rule.onNodeWithTag("edit_workout_exercise_0_delete").assertExists()
     }
 
     @Test

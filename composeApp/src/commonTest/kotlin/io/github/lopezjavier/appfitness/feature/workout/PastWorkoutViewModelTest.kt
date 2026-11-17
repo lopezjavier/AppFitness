@@ -350,6 +350,29 @@ class PastWorkoutViewModelTest {
     }
 
     @Test
+    fun theFormViewCarriesTheImageKeyOfACatalogueExercise() = runTest(dispatcher) {
+        val model = viewModel()
+        advanceUntilIdle()
+        model.onEvent(WorkoutFormEvent.AddExercise("e1"))
+        advanceUntilIdle()
+
+        assertEquals("bench", model.content().view.imageKeys["e1"])
+    }
+
+    @Test
+    fun aCustomExerciseAddedLater_hasNoImageKey() = runTest(dispatcher) {
+        val model = viewModel()
+        advanceUntilIdle()
+        exercises.rows = exercises.rows + exerciseRow("mine", null, name = "Mi press", custom = true)
+
+        model.onEvent(WorkoutFormEvent.AddExercise("mine"))
+        advanceUntilIdle()
+
+        assertEquals("Mi press", model.content().view.names["mine"])
+        assertNull(model.content().view.imageKeys["mine"])
+    }
+
+    @Test
     fun unreadableExercises_showTheErrorStateAndRetryRecovers() = runTest(dispatcher) {
         exercises.failure = AppError.Network
         val model = viewModel()

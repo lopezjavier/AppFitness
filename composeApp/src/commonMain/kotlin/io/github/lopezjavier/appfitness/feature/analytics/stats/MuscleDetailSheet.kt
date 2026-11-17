@@ -77,7 +77,7 @@ internal fun MuscleDetailSheet(
                 } else {
                     Column {
                         data.exercises.forEach {
-                            ExerciseRow(
+                            StatsExerciseRow(
                                 it,
                                 "stats_muscle_sheet_exercise_${it.exerciseId}",
                                 { onOpenExercise(it.exerciseId) },

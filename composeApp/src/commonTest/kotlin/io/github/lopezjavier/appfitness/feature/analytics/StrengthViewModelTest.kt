@@ -205,6 +205,51 @@ class StrengthViewModelTest {
     }
 
     @Test
+    fun catalogueChipsCarryTheirImageKey() = runTest(dispatcher) {
+        seedThreeExercises()
+        val model = viewModel()
+
+        advanceUntilIdle()
+
+        assertEquals(listOf("bench", "squat", "row"), model.content().chips.map { it.imageKey })
+    }
+
+    @Test
+    fun aCustomChipHasNoImageKey_andARenameKeepsTheCatalogueKey() = runTest(dispatcher) {
+        exercises.rows = exercises.rows + exerciseRow("mine", null, name = "Mi press", custom = true)
+        strength.sessions = listOf(
+            completedWith("a", "2026-10-01T10:00:00Z", "bench", "mine"),
+            completedWith("b", "2026-10-08T10:00:00Z", "bench", "mine"),
+            completedWith("c", "2026-10-09T10:00:00Z", "bench"),
+        )
+        val model = viewModel()
+        advanceUntilIdle()
+        assertEquals(listOf("bench", null), model.content().chips.map { it.imageKey })
+
+        exercises.updateCustom("mine", "Press nuevo", MuscleGroup.Chest, Equipment.Barbell, false, null)
+        advanceUntilIdle()
+
+        assertEquals(listOf("Press de banca", "Press nuevo"), model.content().chips.map { it.name })
+        assertEquals(listOf("bench", null), model.content().chips.map { it.imageKey })
+    }
+
+    @Test
+    fun aViewModelRecreatedFromTheSameSavedState_keepsTheSelectionAndTheChipImageKeys() = runTest(dispatcher) {
+        seedThreeExercises()
+        val saved = SavedStateHandle()
+        val first = viewModel(saved)
+        advanceUntilIdle()
+        first.onEvent(StrengthEvent.SelectExercise("squat"))
+        advanceUntilIdle()
+
+        val recreated = viewModel(saved)
+        advanceUntilIdle()
+
+        assertEquals("squat", recreated.content().selectedId)
+        assertEquals(listOf("bench", "squat", "row"), recreated.content().chips.map { it.imageKey })
+    }
+
+    @Test
     fun anUnreadableExerciseList_isTheErrorStateNotUnnamedChips() = runTest(dispatcher) {
         seedThreeExercises()
         exercises.failure = AppError.Network

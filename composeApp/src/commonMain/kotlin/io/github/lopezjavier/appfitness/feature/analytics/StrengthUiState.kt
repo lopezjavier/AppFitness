@@ -4,8 +4,11 @@ import io.github.lopezjavier.appfitness.domain.model.ExerciseProgress
 import io.github.lopezjavier.appfitness.domain.model.ProgressRange
 import io.github.lopezjavier.appfitness.domain.model.StrengthSummary
 
-/** A top exercise chip; [name] is always resolved. */
-data class StrengthChip(val exerciseId: String, val name: String)
+/**
+ * A top exercise row; [name] is always resolved. [imageKey] is the bundled-picture key, null for a custom exercise
+ * (the UI draws the placeholder).
+ */
+data class StrengthChip(val exerciseId: String, val name: String, val imageKey: String? = null)
 
 sealed interface StrengthUiState {
     data object Loading : StrengthUiState

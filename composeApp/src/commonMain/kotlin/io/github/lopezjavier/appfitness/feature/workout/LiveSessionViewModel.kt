@@ -336,6 +336,7 @@ class LiveSessionViewModel(
     /** False while the screen is in the background: the rest still resolves, but without sound or vibration. */
     private var visible = true
     private var names: Map<String, String> = emptyMap()
+    private var imageKeys: Map<String, String> = emptyMap()
     private var traits: Map<String, ExerciseTraits> = emptyMap()
     private var stopwatchJob: Job? = null
     private var online = true
@@ -429,6 +430,7 @@ class LiveSessionViewModel(
                 val current = session
                 if (current != null && current.exercises.all { resolved[it.exerciseId] != null }) {
                     names = resolved.byId
+                    imageKeys = resolved.imageKeyById
                     publish()
                 }
             }
@@ -793,6 +795,7 @@ class LiveSessionViewModel(
         val resolved = exerciseNames.resolve().getOrNull() ?: return false
         val rows = exerciseRepository.getAll().getOrNull() ?: return false
         names = resolved.byId
+        imageKeys = resolved.imageKeyById
         traits = rows.associate {
             it.id to ExerciseTraits(it.metricType, it.equipment, it.movementPattern == MovementPattern.Cardio)
         }
@@ -2147,6 +2150,7 @@ class LiveSessionViewModel(
                     discomfort = DiscomfortStatus
                         .highestOpenLevel(discomforts[exercise.exerciseId].orEmpty(), clock.now())
                         ?.let { LiveDiscomfort(it, exercise.exerciseId in discomfortResolving) },
+                    imageKey = imageKeys[exercise.exerciseId],
                 )
             },
             timerBar = timerBarUi(),

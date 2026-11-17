@@ -1,11 +1,14 @@
 package io.github.lopezjavier.appfitness.feature.analytics.stats
 
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.assertContentDescriptionEquals
 import androidx.compose.ui.test.assertHeightIsAtLeast
+import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.assertTextContains
 import androidx.compose.ui.test.assertTextEquals
@@ -14,6 +17,7 @@ import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
+import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
 import io.github.lopezjavier.appfitness.domain.model.MuscleGroup
@@ -21,6 +25,8 @@ import io.github.lopezjavier.appfitness.domain.model.MuscleGroupSets
 import io.github.lopezjavier.appfitness.domain.model.ProgressRange
 import io.github.lopezjavier.appfitness.domain.model.SetCountPoint
 import io.github.lopezjavier.appfitness.domain.model.TrainingSummary
+import io.github.lopezjavier.appfitness.feature.exercises.FakeExerciseMediaUris
+import io.github.lopezjavier.appfitness.feature.exercises.LocalExerciseMediaUris
 import kotlinx.datetime.LocalDate
 import org.junit.Assert.assertEquals
 import org.junit.Rule
@@ -38,7 +44,8 @@ private val Weeks = listOf(
     SetCountPoint(LocalDate(2026, 10, 5), 24),
     SetCountPoint(LocalDate(2026, 10, 12), 0),
 )
-private val Bench = StatsExercise("bench", "Press banca", 9.0, 3)
+private val Bench = StatsExercise("bench", "Press banca", 9.0, 3, imageKey = "barbell-bench-press")
+private val Custom = StatsExercise("custom-1", "Dominadas lastradas", 4.0, 2)
 private val Squat = StatsExercise("squat", "Sentadilla", 6.0, 1)
 
 private fun content(range: ProgressRange = ProgressRange.OneMonth) = TrainingStatsUiState(
@@ -72,7 +79,9 @@ class TrainingStatsScreenTest {
 
     private fun show(state: TrainingStatsUiState) {
         rule.setContent {
-            AppTheme { TrainingStatsScreen(state, { events += it }, { opened += it }, { backs++ }) }
+            CompositionLocalProvider(LocalExerciseMediaUris provides FakeExerciseMediaUris) {
+                AppTheme { TrainingStatsScreen(state, { events += it }, { opened += it }, { backs++ }) }
+            }
         }
         rule.waitForIdle()
     }
@@ -150,13 +159,49 @@ class TrainingStatsScreenTest {
 
         scrollTo("stats_exercise_row_bench")
         rule.onNodeWithTag("stats_exercise_row_bench").assertHeightIsAtLeast(48.dp)
-            .assertContentDescriptionEquals("Press banca, 9 series · 3 entrenos")
-        rule.onNodeWithTag(
-            "stats_exercise_row_squat",
-        ).assertContentDescriptionEquals("Sentadilla, 6 series · 1 entreno")
+            .assertTextContains("Press banca").assertTextContains("9 series · 3 entrenos")
+        rule.onNodeWithTag("stats_exercise_row_squat")
+            .assertTextContains("Sentadilla").assertTextContains("6 series · 1 entreno")
         rule.onNodeWithTag("stats_exercise_row_bench").performClick()
 
         assertEquals(listOf("bench"), opened)
+    }
+
+    @Test
+    fun mainExercises_rowsShowTheirPicture_orThePlaceholderWhenCustom() {
+        show(content().copy(topExercises = SectionState.Content(listOf(Bench, Custom))))
+
+        scrollTo("stats_exercise_row_bench")
+        rule.onNodeWithTag("stats_exercise_row_bench_thumbnail_image", useUnmergedTree = true).assertExists()
+        rule.onNodeWithTag("stats_exercise_row_custom-1_thumbnail_image", useUnmergedTree = true).assertDoesNotExist()
+        rule.onNodeWithTag("stats_exercise_row_custom-1_thumbnail_placeholder", useUnmergedTree = true).assertExists()
+    }
+
+    @Test
+    fun muscleSheet_rowsShowTheSameThumbnails() {
+        val detail = MuscleDetail(MuscleGroup.Chest, 3.0, listOf(Bench, Custom))
+        show(content().copy(openMuscle = MuscleGroup.Chest, muscleDetail = SectionState.Content(detail)))
+
+        rule.onNodeWithTag("stats_muscle_sheet_exercise_bench_thumbnail_image", useUnmergedTree = true).assertExists()
+        rule.onNodeWithTag("stats_muscle_sheet_exercise_custom-1_thumbnail_placeholder", useUnmergedTree = true)
+            .assertExists()
+        rule.onNodeWithTag("stats_muscle_sheet_exercise_bench").assertTextContains("3 entrenos", substring = true)
+    }
+
+    @Test
+    fun mainExercises_rowsStayReadable_atFontScale2() {
+        rule.setContent {
+            CompositionLocalProvider(
+                LocalDensity provides Density(LocalDensity.current.density, fontScale = 2f),
+                LocalExerciseMediaUris provides FakeExerciseMediaUris,
+            ) {
+                AppTheme { TrainingStatsScreen(content(), {}, {}, {}) }
+            }
+        }
+
+        scrollTo("stats_exercise_row_bench")
+        rule.onNodeWithTag("stats_exercise_row_bench").assertIsDisplayed()
+            .assertTextContains("9 series · 3 entrenos")
     }
 
     @Test
@@ -414,8 +459,10 @@ class TrainingStatsScreenTest {
     fun customExercise_isShownByItsName_andARenameIsShownWithoutRecreating() {
         var top by mutableStateOf(listOf(StatsExercise("custom-1", "Dominadas lastradas", 4.0, 2)))
         rule.setContent {
-            AppTheme {
-                TrainingStatsScreen(content().copy(topExercises = SectionState.Content(top)), {}, {}, {})
+            CompositionLocalProvider(LocalExerciseMediaUris provides FakeExerciseMediaUris) {
+                AppTheme {
+                    TrainingStatsScreen(content().copy(topExercises = SectionState.Content(top)), {}, {}, {})
+                }
             }
         }
         scrollTo("stats_exercise_row_custom-1")

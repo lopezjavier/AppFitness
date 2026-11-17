@@ -11,6 +11,7 @@ import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.runTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertNotEquals
 import kotlin.test.assertNull
 
 class ExerciseNameResolverTest {
@@ -72,6 +73,51 @@ class ExerciseNameResolverTest {
             ),
             seen.map { it.byId },
         )
+    }
+
+    @Test
+    fun catalogueRow_carriesItsKeyAsImageKey() = runTest {
+        val resolver = ExerciseNameResolver(FakeExerciseRepository(listOf(catalogRow("1", "bench"))), library)
+
+        assertEquals("bench", resolver.resolve().getOrThrow().imageKeyOf("1"))
+    }
+
+    @Test
+    fun customRow_hasNoImageKey() = runTest {
+        val repo = FakeExerciseRepository(listOf(catalogRow("c", null, name = "Mi ejercicio", custom = true)))
+
+        assertNull(ExerciseNameResolver(repo, library).resolve().getOrThrow().imageKeyOf("c"))
+    }
+
+    @Test
+    fun catalogueRow_withAKeyMissingFromTheLibrary_hasNoNameAndNoImageKey() = runTest {
+        val resolver = ExerciseNameResolver(FakeExerciseRepository(listOf(catalogRow("2", "unknown"))), library)
+        val names = resolver.resolve().getOrThrow()
+
+        assertNull(names["2"])
+        assertNull(names.imageKeyOf("2"))
+    }
+
+    @Test
+    fun observe_emitsTheImageKeyAfterACustomCreate_andNoneForTheCustomRow() = runTest {
+        val repo = FakeExerciseRepository(listOf(catalogRow("1", "bench")))
+        val seen = mutableListOf<ExerciseNames>()
+        backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) {
+            ExerciseNameResolver(repo, library).observe().toList(seen)
+        }
+
+        val created = repo.createCustom("Hammer", MuscleGroup.Chest, Equipment.Machine).getOrThrow()
+
+        assertEquals("bench", seen.last().imageKeyOf("1"))
+        assertNull(seen.last().imageKeyOf(created.id))
+    }
+
+    @Test
+    fun namesWithEqualNamesAndDifferentImageKeys_areNotEqual() {
+        val byId = mapOf("1" to "Press de banca")
+
+        assertNotEquals(ExerciseNames(byId, mapOf("1" to "bench")), ExerciseNames(byId))
+        assertEquals(ExerciseNames(byId, mapOf("1" to "bench")), ExerciseNames(byId, mapOf("1" to "bench")))
     }
 
     @Test
