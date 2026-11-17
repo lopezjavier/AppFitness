@@ -108,8 +108,8 @@ Actividad steps ring (no step goal), Acerca de. Peso: preference-form polish, go
 4. **Host tests likely broken:** workout row stats string, empty-meal macro line, goals prompt row click, `trainer_empty_*`
    tags, `plan_proposal_macro_bar`, `trainer_box_block_sessions_progress`; goldens that changed by design are stale.
 5. **Rules to re-check:** R-64 / C-20 colour semantics, 48 dp targets and `AccessibilitySweepTest`, font scale 1.3 at 360 dp,
-   `check-ux-conventions.sh` (its run did not finish in the time available, so it is **unverified**), ktlint and detekt
-   (long functions, magic numbers, import order). `check-design-tokens.sh` (442 files) and `check-text-encoding.sh` pass.
+   ktlint and detekt (long functions, magic numbers, import order). `check-design-tokens.sh` (442 files),
+   `check-text-encoding.sh` and `check-ux-conventions.sh` (594 files, 0 warnings) pass.
 6. **Process:** this work skipped the normal pipeline (planner, ux-reviewer, pr-reviewer) by the user's order; T-297 puts it
    back through review before merge.
 
