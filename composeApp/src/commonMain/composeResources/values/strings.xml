@@ -2513,10 +2513,8 @@
     <string name="trainer_block_cardio_planned">Objetivo:&#160;%1$s&#160;min</string>
     <string name="trainer_change_figure">%1$s&#160;→&#160;%2$s&#160;kg</string>
     <!-- T-283 batch 6c: "Tu plan" card with the weight pace (C-131..C-138) -->
-    <string name="trainer_plan_goal_meta">Meta&#160;%1$s&#160;kg · %2$s</string>
     <string name="trainer_plan_pace_actual">Ritmo: %1$s&#160;kg/sem</string>
     <string name="trainer_plan_pace_actual_provisional">Ritmo provisional: %1$s&#160;kg/sem</string>
-    <string name="trainer_plan_pace_goal">Objetivo: %1$s&#160;kg/sem</string>
     <string name="trainer_plan_verdict_no_data">Aún no hay pesajes suficientes para ver tu ritmo. Pésate al menos 3 días por semana.</string>
     <string name="trainer_plan_verdict_on_pace">Vas al ritmo previsto.</string>
     <string name="trainer_plan_verdict_cut_slower">Pierdes peso más despacio de lo previsto.</string>

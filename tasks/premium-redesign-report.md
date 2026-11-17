@@ -126,3 +126,20 @@ Actividad steps ring (no step goal), Acerca de. Peso: preference-form polish, go
 
 ## 8. Size
 152 files: 126 modified and 26 new (about 3,800 lines added, 890 removed before this report).
+
+## 9. Graphic refinements after the first compile (user requests, 2026-11-17)
+1. **Diario, "Reparto por comida":** collapsed by default (only the title and the split bar); the title row with a chevron
+   expands the per-meal legend (`rememberSaveable`, tag `diary_meal_split_toggle`). Why: the full legend took too much
+   space on the Diario root.
+2. **Line chart domain (Peso, body measures, activity, sleep):** `plotRange` no longer pads by at least one `domainStep`
+   (5 kg), which drew a steady 80 kg as a flat line in 70-90. Now: data and reference plus 12 % of their spread, a
+   minimum spread of 40 % of `domainStep` (2 kg, 0.4 h for sleep), rounded to three "nice" intervals so the four axis
+   labels are round numbers (79.4-80.1 kg → 78-81).
+3. **Trainer, "Tu plan":** the inner cyan panel is gone; goal header with the rate chip, a new figures strip (Ahora, Meta,
+   Fecha), the `WeightPaceChart` redrawn (four round gridlines from the same `plotRange`, dashed "today" marker, hatched
+   future, thicker gradient trend with a lit "now" dot, larger weigh-in dots, bullseye target) and a plain legend under
+   the chart instead of pills. The goal is a **flat dashed line at the goal weight**, not a sloped plan line, so it
+   never competes with the real trend; its key reads "Meta: X kg". The 95 % band is hidden when taller than half the
+   domain (with few weeks it flooded the plot as a grey block) and is clipped to the plot.
+4. Guards after these changes: design tokens, text encoding, unused resources and UX conventions pass. Not compiled by
+   me; follow-ups are listed in T-297.

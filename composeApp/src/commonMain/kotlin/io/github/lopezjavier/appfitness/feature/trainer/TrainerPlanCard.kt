@@ -9,12 +9,13 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -22,9 +23,14 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.semantics.semantics
 import io.github.lopezjavier.appfitness.composeapp.resources.Res
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_flag
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_flame_outlined
+import io.github.lopezjavier.appfitness.composeapp.resources.px_trainer_plan_figure_date
+import io.github.lopezjavier.appfitness.composeapp.resources.px_trainer_plan_figure_goal
+import io.github.lopezjavier.appfitness.composeapp.resources.px_trainer_plan_figure_now
+import io.github.lopezjavier.appfitness.composeapp.resources.px_trainer_plan_key_goal
 import io.github.lopezjavier.appfitness.composeapp.resources.trainer_goal_eyebrow
 import io.github.lopezjavier.appfitness.composeapp.resources.trainer_plan_calories_none
 import io.github.lopezjavier.appfitness.composeapp.resources.trainer_plan_calories_value
@@ -32,10 +38,8 @@ import io.github.lopezjavier.appfitness.composeapp.resources.trainer_plan_chart_
 import io.github.lopezjavier.appfitness.composeapp.resources.trainer_plan_chart_today
 import io.github.lopezjavier.appfitness.composeapp.resources.trainer_plan_chart_today_value
 import io.github.lopezjavier.appfitness.composeapp.resources.trainer_plan_chart_week
-import io.github.lopezjavier.appfitness.composeapp.resources.trainer_plan_goal_meta
 import io.github.lopezjavier.appfitness.composeapp.resources.trainer_plan_pace_actual
 import io.github.lopezjavier.appfitness.composeapp.resources.trainer_plan_pace_actual_provisional
-import io.github.lopezjavier.appfitness.composeapp.resources.trainer_plan_pace_goal
 import io.github.lopezjavier.appfitness.composeapp.resources.trainer_plan_rate_unit
 import io.github.lopezjavier.appfitness.composeapp.resources.trainer_plan_section
 import io.github.lopezjavier.appfitness.composeapp.resources.trainer_plan_tile_calories
@@ -51,6 +55,7 @@ import io.github.lopezjavier.appfitness.composeapp.resources.trainer_plan_verdic
 import io.github.lopezjavier.appfitness.composeapp.resources.trainer_plan_verdict_on_pace
 import io.github.lopezjavier.appfitness.composeapp.resources.trainer_plan_verdict_rising
 import io.github.lopezjavier.appfitness.composeapp.resources.trainer_plan_verdict_stable
+import io.github.lopezjavier.appfitness.composeapp.resources.unit_kg
 import io.github.lopezjavier.appfitness.designsystem.AppBorder
 import io.github.lopezjavier.appfitness.designsystem.AppDateFormat
 import io.github.lopezjavier.appfitness.designsystem.AppNumberFormat
@@ -73,6 +78,7 @@ import io.github.lopezjavier.appfitness.domain.model.CoachPlan
 import io.github.lopezjavier.appfitness.domain.model.PhaseWeeks
 import io.github.lopezjavier.appfitness.domain.usecase.WeightPace
 import io.github.lopezjavier.appfitness.domain.usecase.WeightPaceState
+import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.stringResource
 import kotlin.math.abs
 import kotlin.math.max
@@ -86,6 +92,7 @@ private const val MIN_LABEL_GAP_WEEKS = 1.5f
 private const val MINUS = '−'
 private const val TILE_STAGGER = 1
 private const val KEY_DASH_FACTOR = 1.5f
+private const val KEY_DASHES = 3
 
 /** A rate with its sign and two decimals ("+0,18", "−0,05"); zero has no sign. True minus sign (U+2212). */
 internal fun signedHundredths(value: Double): String {
@@ -99,9 +106,9 @@ internal fun signedHundredths(value: Double): String {
 }
 
 /**
- * The accepted plan's card on the Trainer root (C-131..C-138, R-102, R-105): the goal header and the weight pace chart,
- * then
- * the phase's reason with its "?", the figures line, the verdict, the weeks in the phase and the Calorías row. The card
+ * The accepted plan's card on the Trainer root (C-131..C-138, R-102, R-105): the goal header, the figures strip, the
+ * weight pace chart and its key, then the phase's reason with its "?", the verdict, the weeks in the phase and the
+ * Calorías row. The card
  * opens nothing (the "Tu plan" screen is gone): its actions are in the ⋮ [menu] of the title row.
  */
 @Suppress("LongParameterList") // The plan, the figures around it and the card's menu.
@@ -126,8 +133,6 @@ internal fun PlanCard(
         footer = {
             Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
                 PhaseReasonLine(plan)
-                // The key explains the chart's lines: without a chart the rate chip already says it (R-102).
-                if (pace != null && hasChart(pace)) PaceFigures(plan, pace)
                 if (pace != null) PaceVerdict(pace)
                 weeksInPhase?.takeIf { it.weeks > 0 }?.let { WeeksInPhaseLine(it) }
                 CaloriesRow(plan, diaryCalories)
@@ -138,67 +143,138 @@ internal fun PlanCard(
 
 private fun hasChart(pace: WeightPace): Boolean = pace.planLine != null || pace.weekly.isNotEmpty()
 
-/** The panel: eyebrow, goal name, planned rate chip and the "Meta" line over the chart (C-131). */
+/**
+ * The plan's content (C-131): the goal header with the planned rate chip, the figures strip (now, goal weight and
+ * deadline), the weight pace chart and its key. No inner panel: the card's own cyan glow is the hero light.
+ */
 @Composable
 private fun PlanChartPanel(plan: CoachPlan, pace: WeightPace?) {
-    val rate = plan.nutrition.rateKgWeek
-    val outcome = plan.weightOutcome
     Column(
         Modifier
             .padding(top = Spacing.xs)
             .fillMaxWidth()
-            .clip(AppShapes.md)
-            .background(AppPaint.tintSurface(AppTheme.colors.athleticCyan))
-            .border(AppBorder.thin, AppPaint.accentBorder(AppTheme.colors.athleticCyan), AppShapes.md)
-            .padding(Spacing.md)
             .testTag("trainer_box_plan_goal"),
-        verticalArrangement = Arrangement.spacedBy(Spacing.sm),
+        verticalArrangement = Arrangement.spacedBy(Spacing.md),
     ) {
-        Row(horizontalArrangement = Arrangement.spacedBy(Spacing.md), verticalAlignment = Alignment.CenterVertically) {
-            IconBadge(Res.drawable.ic_flag, AppTheme.colors.athleticCyan)
-            Column(Modifier.weight(1f)) {
-                Text(
-                    text = stringResource(Res.string.trainer_goal_eyebrow).uppercase(),
-                    style = AppTheme.typography.labelTechnical,
-                    color = AppTheme.colors.textSecondary,
-                )
-                Text(
-                    text = stringResource(PhaseText.label(plan.phase)),
-                    style = AppTheme.typography.titleSection,
-                    color = AppTheme.colors.textPrimary,
-                )
-            }
-            Column(horizontalAlignment = Alignment.End, verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
-                if (abs(rate) >= RATE_EPSILON) {
-                    StatusChip(
-                        text = NonBreaking.join(
-                            signedHundredths(rate),
-                            stringResource(Res.string.trainer_plan_rate_unit),
-                        ),
-                        tone = StatusTone.Info,
-                        modifier = Modifier.testTag("trainer_box_plan_rate"),
-                    )
-                }
-                outcome?.let {
-                    Text(
-                        text = stringResource(
-                            Res.string.trainer_plan_goal_meta,
-                            AppNumberFormat.decimal(it.targetValue),
-                            AppDateFormat.shortDate(it.deadline),
-                        ),
-                        style = AppTheme.typography.bodySmall,
-                        color = AppTheme.colors.textSecondary,
-                        modifier = Modifier.testTag("trainer_box_plan_meta"),
-                    )
-                }
-            }
-        }
+        GoalHeader(plan)
+        PlanFigures(plan, pace)
         if (pace != null && hasChart(pace)) {
             WeightPaceChart(
                 data = chartDataOf(pace),
                 valueLabel = { AppNumberFormat.decimal(it) },
                 modifier = Modifier.testTag("trainer_box_plan_chart"),
             )
+            // The key explains the chart's lines: without a chart the rate chip already says it (R-102).
+            PaceFigures(pace)
+        }
+    }
+}
+
+/** Flag badge, "OBJETIVO" eyebrow and the phase name, with the planned rate chip at the end. */
+@Composable
+private fun GoalHeader(plan: CoachPlan) {
+    val rate = plan.nutrition.rateKgWeek
+    Row(horizontalArrangement = Arrangement.spacedBy(Spacing.md), verticalAlignment = Alignment.CenterVertically) {
+        IconBadge(Res.drawable.ic_flag, AppTheme.colors.athleticCyan)
+        Column(Modifier.weight(1f)) {
+            Text(
+                text = stringResource(Res.string.trainer_goal_eyebrow).uppercase(),
+                style = AppTheme.typography.labelTechnical,
+                color = AppTheme.colors.textSecondary,
+            )
+            Text(
+                text = stringResource(PhaseText.label(plan.phase)),
+                style = AppTheme.typography.titleSection,
+                color = AppTheme.colors.textPrimary,
+            )
+        }
+        if (abs(rate) >= RATE_EPSILON) {
+            StatusChip(
+                text = NonBreaking.join(signedHundredths(rate), stringResource(Res.string.trainer_plan_rate_unit)),
+                tone = StatusTone.Info,
+                modifier = Modifier.testTag("trainer_box_plan_rate"),
+            )
+        }
+    }
+}
+
+/**
+ * The figures strip: "Ahora" (the latest weekly average, in cyan like the trend), "Meta" (the goal weight) and "Fecha"
+ * (the deadline), split by hairlines on a raised tile. A figure without data is left out; no figure, no strip.
+ */
+@Composable
+private fun PlanFigures(plan: CoachPlan, pace: WeightPace?) {
+    val now = pace?.weekly?.lastOrNull()?.kg
+    val outcome = plan.weightOutcome
+    val kg = stringResource(Res.string.unit_kg)
+    val figures = buildList {
+        now?.let {
+            add(PlanFigure(Res.string.px_trainer_plan_figure_now, AppNumberFormat.decimal(it), kg, accent = true))
+        }
+        outcome?.let {
+            add(PlanFigure(Res.string.px_trainer_plan_figure_goal, AppNumberFormat.decimal(it.targetValue), kg))
+            add(PlanFigure(Res.string.px_trainer_plan_figure_date, AppDateFormat.shortDate(it.deadline), null))
+        }
+    }
+    if (figures.isEmpty()) return
+    Row(
+        Modifier
+            .fillMaxWidth()
+            .height(IntrinsicSize.Min)
+            .clip(AppShapes.md)
+            .background(AppPaint.tileSurface(AppTheme.colors))
+            .border(AppBorder.thin, AppPaint.tileBorder(), AppShapes.md)
+            .padding(vertical = Spacing.sm)
+            .testTag("trainer_box_plan_meta"),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        figures.forEachIndexed { index, figure ->
+            if (index > 0) {
+                Box(
+                    Modifier
+                        .width(AppBorder.thin)
+                        .fillMaxHeight()
+                        .background(AppTheme.colors.divider),
+                )
+            }
+            PlanFigureCell(figure, Modifier.weight(1f))
+        }
+    }
+}
+
+private class PlanFigure(
+    val label: StringResource,
+    val value: String,
+    val unit: String?,
+    val accent: Boolean = false,
+)
+
+@Composable
+private fun PlanFigureCell(figure: PlanFigure, modifier: Modifier) {
+    Column(
+        modifier
+            .padding(horizontal = Spacing.sm)
+            .semantics(mergeDescendants = true) {},
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(Spacing.xs),
+    ) {
+        Text(
+            text = stringResource(figure.label).uppercase(),
+            style = AppTheme.typography.labelTechnical,
+            color = AppTheme.colors.textSecondary,
+            maxLines = 1,
+        )
+        Row(horizontalArrangement = Arrangement.spacedBy(Spacing.xs), verticalAlignment = Alignment.Bottom) {
+            Text(
+                text = figure.value,
+                style = AppTheme.typography.labelNumeric,
+                color = if (figure.accent) AppTheme.colors.athleticCyan else AppTheme.colors.textPrimary,
+                maxLines = 1,
+                softWrap = false,
+            )
+            figure.unit?.let {
+                Text(text = it, style = AppTheme.typography.bodySmall, color = AppTheme.colors.textSecondary)
+            }
         }
     }
 }
@@ -262,13 +338,14 @@ private fun bandOf(pace: WeightPace, weekly: List<WeightPacePoint>): List<Weight
 /** "Ritmo / Objetivo" with a key for each chart line (the chart's legend, C-132). */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-private fun PaceFigures(plan: CoachPlan, pace: WeightPace?) {
+private fun PaceFigures(pace: WeightPace?) {
     // Without enough data only the plan's rate shows (07 §5 (5)).
     val actual = pace?.takeIf { it.slopeKgWeek != null && it.state != WeightPaceState.NoData }
     val slope = actual?.slopeKgWeek
     FlowRow(
         Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+        horizontalArrangement = Arrangement.spacedBy(Spacing.lg),
+        verticalArrangement = Arrangement.spacedBy(Spacing.xs),
     ) {
         if (actual != null && slope != null) {
             val provisional = actual.state == WeightPaceState.Soon
@@ -286,37 +363,35 @@ private fun PaceFigures(plan: CoachPlan, pace: WeightPace?) {
                 tag = "trainer_box_plan_pace_actual",
             )
         }
-        PaceFigure(
-            text = stringResource(Res.string.trainer_plan_pace_goal, signedHundredths(plan.nutrition.rateKgWeek)),
-            color = AppTheme.colors.textSecondary,
-            dashed = true,
-            tag = "trainer_box_plan_pace_goal",
-        )
+        // The dashed line is the flat goal weight, so its key names the goal, not a rate.
+        pace?.planLine?.let {
+            PaceFigure(
+                text = stringResource(Res.string.px_trainer_plan_key_goal, AppNumberFormat.decimal(it.endKg)),
+                color = AppTheme.colors.textSecondary,
+                dashed = true,
+                tag = "trainer_box_plan_pace_goal",
+            )
+        }
     }
 }
 
+/** One key of the chart: the line's swatch (solid or dashed) and its figure, with no pill around it. */
 @Composable
 private fun PaceFigure(text: String, color: Color, dashed: Boolean, tag: String) {
     Row(
-        Modifier
-            .testTag(tag)
-            .clip(AppShapes.full)
-            .background(AppPaint.tintSurface(color))
-            .border(AppBorder.thin, AppPaint.accentBorder(color), AppShapes.full)
-            .padding(horizontal = Spacing.md, vertical = Spacing.xs),
+        Modifier.testTag(tag).semantics(mergeDescendants = true) {},
         horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Row(horizontalArrangement = Arrangement.spacedBy(Spacing.xs)) {
-            val stroke = Modifier.height(Spacing.xs / 2).background(color)
+        Row(horizontalArrangement = Arrangement.spacedBy(Spacing.xs / 2)) {
+            val stroke = Modifier.height(Spacing.xs / 2).clip(AppShapes.full).background(color)
             if (dashed) {
-                Box(stroke.width(Spacing.xs * KEY_DASH_FACTOR))
-                Box(stroke.width(Spacing.xs * KEY_DASH_FACTOR))
+                repeat(KEY_DASHES) { Box(stroke.width(Spacing.xs * KEY_DASH_FACTOR)) }
             } else {
                 Box(stroke.width(Spacing.lg))
             }
         }
-        Text(text = text, style = AppTheme.typography.bodySmall, color = AppTheme.colors.textPrimary)
+        Text(text = text, style = AppTheme.typography.bodySmall, color = AppTheme.colors.textSecondary)
     }
 }
 

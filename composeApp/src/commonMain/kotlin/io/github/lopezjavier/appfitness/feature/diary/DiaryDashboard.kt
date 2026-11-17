@@ -7,12 +7,20 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.rememberTextMeasurer
@@ -21,6 +29,7 @@ import io.github.lopezjavier.appfitness.composeapp.resources.Res
 import io.github.lopezjavier.appfitness.composeapp.resources.diary_goals_prompt_supporting
 import io.github.lopezjavier.appfitness.composeapp.resources.diary_goals_prompt_title
 import io.github.lopezjavier.appfitness.composeapp.resources.diary_meal_kcal
+import io.github.lopezjavier.appfitness.composeapp.resources.ic_expand_more
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_flag
 import io.github.lopezjavier.appfitness.composeapp.resources.macro_carbs
 import io.github.lopezjavier.appfitness.composeapp.resources.macro_carbs_short
@@ -48,6 +57,7 @@ import io.github.lopezjavier.appfitness.designsystem.bold
 import io.github.lopezjavier.appfitness.designsystem.compactRingColumnWidth
 import io.github.lopezjavier.appfitness.domain.model.DiaryGoals
 import io.github.lopezjavier.appfitness.domain.model.MealTotals
+import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.resources.stringResource
 
 /** Font scale from which the hero falls back to the full ring over three bars, so no figure clips (R-68). */
@@ -176,26 +186,45 @@ private fun MacroBar(macro: Macro, label: String, consumedG: Double, targetG: In
 }
 
 /**
- * How the day's calories split by meal: a slim segmented bar and one legend line per meal with its calories. Hidden
- * until something is logged.
+ * How the day's calories split by meal: a slim segmented bar always visible and, on demand, one legend line per meal
+ * with its calories. Collapsed by default so the hero stays compact; the title row toggles the detail. Hidden until
+ * something is logged.
  */
 @Composable
 private fun MealSplit(meals: List<MealSectionUi>) {
     if (meals.none { it.totals.kcal > 0.0 }) return
+    var expanded by rememberSaveable { mutableStateOf(false) }
     val description = stringResource(Res.string.px_diary_split_cd)
     Column(
         Modifier.fillMaxWidth().semantics(mergeDescendants = true) { contentDescription = description },
         verticalArrangement = Arrangement.spacedBy(Spacing.sm),
     ) {
-        Text(
-            text = stringResource(Res.string.px_diary_split_title).uppercase(),
-            style = AppTheme.typography.labelTechnical,
-            color = AppTheme.colors.textSecondary,
-        )
+        Row(
+            Modifier
+                .fillMaxWidth()
+                .clickable(role = Role.Button) { expanded = !expanded }
+                .testTag("diary_meal_split_toggle"),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text(
+                text = stringResource(Res.string.px_diary_split_title).uppercase(),
+                style = AppTheme.typography.labelTechnical,
+                color = AppTheme.colors.textSecondary,
+                modifier = Modifier.weight(1f),
+            )
+            Icon(
+                painter = painterResource(Res.drawable.ic_expand_more),
+                contentDescription = null,
+                tint = AppTheme.colors.textSecondary,
+                modifier = Modifier.size(Spacing.lg).rotate(if (expanded) EXPANDED_CHEVRON_ROTATION else 0f),
+            )
+        }
         DiarySplitBar(meals.mapIndexed { index, meal -> DiarySplitPart(meal.totals.kcal.toFloat(), mealAccent(index)) })
-        Column(verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
-            meals.forEachIndexed { index, meal ->
-                if (meal.totals.kcal > 0.0) MealSplitLegend(meal, mealAccent(index))
+        if (expanded) {
+            Column(verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
+                meals.forEachIndexed { index, meal ->
+                    if (meal.totals.kcal > 0.0) MealSplitLegend(meal, mealAccent(index))
+                }
             }
         }
     }
