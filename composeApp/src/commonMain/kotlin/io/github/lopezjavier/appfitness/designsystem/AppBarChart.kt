@@ -62,9 +62,10 @@ object AppBarChartDefaults {
 
 /**
  * Column chart of one series (athleticCyan by default, no scroll): rounded bars with the accent ramp, the latest
- * non-zero one lit and the rest dimmed ([highlightIndex] picks another bar to light). One bar per entry of [values], the
- * entries named by [labels] (same size) on the bottom axis (a few of them, evenly spaced) and a "0" and maximum label
- * on the value axis. [description] is the screen-reader summary, exposed as the state description of the chart node.
+ * non-zero one lit and the rest dimmed ([highlightIndex] picks another bar to light). One bar per entry of [values],
+ * the entries named by [labels] (same size) on the bottom axis (a few of them, evenly spaced) and a "0" and the
+ * maximum label on the value axis. [description] is the screen-reader summary, exposed as the state description of
+ * the chart node.
  */
 @Composable
 fun AppBarChart(
@@ -126,49 +127,8 @@ private fun DrawScope.drawBars(input: BarChartInput, measurer: TextMeasurer, sty
     val lit = input.highlightIndex ?: input.values.indexOfLast { it > 0 }
     val ramp = AppPaint.ramp(input.color)
     input.values.forEachIndexed { index, value ->
-        val barHeight = max(plot.height * value.coerceAtLeast(0) / maxValue, AppBarChartDefaults.ZeroStub.toPx())
         val left = plot.left + slot * index + (slot - barWidth) / 2f
-        val top = plot.bottom - barHeight
-        if (value <= 0) {
-            drawRoundRect(
-                color = input.color.copy(alpha = AppBarChartDefaults.DIM_ALPHA),
-                topLeft = Offset(left, top),
-                size = Size(barWidth, barHeight),
-                cornerRadius = CornerRadius(barHeight / 2f),
-            )
-            return@forEachIndexed
-        }
-        val isLit = index == lit
-        if (isLit) {
-            drawRadialGlow(
-                input.color,
-                Offset(left + barWidth / 2f, top),
-                barWidth * 1.6f,
-                AppBarChartDefaults.GLOW_ALPHA,
-            )
-        }
-        val corner = minOf(AppBarChartDefaults.BarCorner.toPx(), barWidth / 2f, barHeight)
-        val path = Path().apply {
-            addRoundRect(
-                RoundRect(
-                    left = left,
-                    top = top,
-                    right = left + barWidth,
-                    bottom = plot.bottom,
-                    topLeftCornerRadius = CornerRadius(corner),
-                    topRightCornerRadius = CornerRadius(corner),
-                ),
-            )
-        }
-        drawPath(
-            path = path,
-            brush = Brush.verticalGradient(
-                colors = listOf(ramp.bright, ramp.base, ramp.deep),
-                startY = top,
-                endY = plot.bottom,
-            ),
-            alpha = if (isLit) 1f else AppBarChartDefaults.DIM_ALPHA,
-        )
+        drawBar(input.color, ramp, value, maxValue, left, barWidth, plot, isLit = index == lit)
     }
     val step = max(1, ceil(input.values.size / AppBarChartDefaults.MAX_BOTTOM_LABELS.toDouble()).toInt())
     for (index in input.labels.indices step step) {
@@ -177,6 +137,56 @@ private fun DrawScope.drawBars(input: BarChartInput, measurer: TextMeasurer, sty
         val left = (center - text.size.width / 2f).coerceIn(plot.left, max(plot.left, size.width - text.size.width))
         drawText(text, topLeft = Offset(left, plot.bottom + gap))
     }
+}
+
+/** One bar: a dim stub for a zero, otherwise a rounded gradient column (with a glow when [isLit]). */
+@Suppress("LongParameterList") // The bar geometry, computed once by the caller.
+private fun DrawScope.drawBar(
+    color: Color,
+    ramp: AccentRamp,
+    value: Int,
+    maxValue: Int,
+    left: Float,
+    barWidth: Float,
+    plot: BarPlot,
+    isLit: Boolean,
+) {
+    val barHeight = max(plot.height * value.coerceAtLeast(0) / maxValue, AppBarChartDefaults.ZeroStub.toPx())
+    val top = plot.bottom - barHeight
+    if (value <= 0) {
+        drawRoundRect(
+            color = color.copy(alpha = AppBarChartDefaults.DIM_ALPHA),
+            topLeft = Offset(left, top),
+            size = Size(barWidth, barHeight),
+            cornerRadius = CornerRadius(barHeight / 2f),
+        )
+        return
+    }
+    if (isLit) {
+        drawRadialGlow(color, Offset(left + barWidth / 2f, top), barWidth * 1.6f, AppBarChartDefaults.GLOW_ALPHA)
+    }
+    val corner = minOf(AppBarChartDefaults.BarCorner.toPx(), barWidth / 2f, barHeight)
+    val path = Path().apply {
+        addRoundRect(
+            RoundRect(
+                left = left,
+                top = top,
+                right = left + barWidth,
+                bottom = plot.bottom,
+                topLeftCornerRadius = CornerRadius(corner),
+                topRightCornerRadius = CornerRadius(corner),
+            ),
+        )
+    }
+    drawPath(
+        path = path,
+        brush = Brush.verticalGradient(
+            colors = listOf(ramp.bright, ramp.base, ramp.deep),
+            startY = top,
+            endY = plot.bottom,
+        ),
+        alpha = if (isLit) 1f else AppBarChartDefaults.DIM_ALPHA,
+    )
 }
 
 /** Baseline, top guide and a dashed middle guide. */

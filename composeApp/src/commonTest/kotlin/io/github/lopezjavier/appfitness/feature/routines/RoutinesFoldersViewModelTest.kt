@@ -2,6 +2,7 @@ package io.github.lopezjavier.appfitness.feature.routines
 
 import androidx.lifecycle.SavedStateHandle
 import app.cash.turbine.test
+import io.github.lopezjavier.appfitness.app.FakeClock
 import io.github.lopezjavier.appfitness.app.FakeConnectivityObserver
 import io.github.lopezjavier.appfitness.domain.AppError
 import io.github.lopezjavier.appfitness.domain.model.RoutineFolder
@@ -43,7 +44,7 @@ class RoutinesFoldersViewModelTest {
     }
 
     private fun viewModel(state: SavedStateHandle = savedState) =
-        RoutinesViewModel(repository, FakeWorkoutSessionRepository(), connectivity, state)
+        RoutinesViewModel(repository, FakeWorkoutSessionRepository(), connectivity, FakeClock(), state)
 
     private fun RoutinesViewModel.content() = assertIs<RoutinesUiState.Content>(uiState.value)
 

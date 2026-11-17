@@ -206,13 +206,14 @@ class DiaryHistoryViewModel(
             monthKcal = monthBlocks(data),
         )
     }
+}
 
-    private fun monthBlocks(data: HistoryData): List<Float> {
-        val blocks = (data.month.lastDay.dayOfMonth + BLOCK_DAYS - 1) / BLOCK_DAYS
-        return (0 until blocks).map { block ->
-            val days = data.monthDays.filter { (it.date.dayOfMonth - 1) / BLOCK_DAYS == block }
-            if (days.isEmpty()) 0f else days.map { it.totals.kcal }.average().toFloat()
-        }
+/** Average kcal of each block of [BLOCK_DAYS] days of the month, for the month chart. */
+private fun monthBlocks(data: HistoryData): List<Float> {
+    val blocks = (data.month.lastDay.dayOfMonth + BLOCK_DAYS - 1) / BLOCK_DAYS
+    return (0 until blocks).map { block ->
+        val days = data.monthDays.filter { (it.date.dayOfMonth - 1) / BLOCK_DAYS == block }
+        if (days.isEmpty()) 0f else days.map { it.totals.kcal }.average().toFloat()
     }
 }
 

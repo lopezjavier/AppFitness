@@ -205,6 +205,32 @@ fun GhostButton(
     loading: Boolean = false,
 ) = AppButton(AppButtonVariant.Ghost, text, onClick, modifier, enabled, interactionSource, tone, loading)
 
+/** Press scale, minimum height, the lime glow of a primary button and its gradient paint. */
+private fun Modifier.buttonChrome(
+    variant: AppButtonVariant,
+    paint: Brush?,
+    glow: Color,
+    scale: Float,
+    pressed: Boolean,
+): Modifier = graphicsLayer {
+    scaleX = scale
+    scaleY = scale
+}
+    .heightIn(min = AppButtonDefaults.minHeight(variant))
+    .then(
+        if (paint != null && variant == AppButtonVariant.Primary) {
+            Modifier.softGlow(
+                color = glow,
+                cornerRadius = AppRadius.lg,
+                radius = AppButtonDefaults.GlowRadius,
+                alpha = if (pressed) AppButtonDefaults.GLOW_PRESSED_ALPHA else AppButtonDefaults.GLOW_ALPHA,
+            )
+        } else {
+            Modifier
+        },
+    )
+    .then(if (paint != null) Modifier.background(paint, AppButtonDefaults.Shape) else Modifier)
+
 // Private shared implementation: the public wrappers own the defaults.
 @Suppress("LongParameterList", "ModifierWithoutDefault")
 @Composable
@@ -227,26 +253,7 @@ private fun AppButton(
     val paint = AppButtonDefaults.paint(variant, enabled, AppTheme.colors)
     Surface(
         onClick = onClick,
-        modifier =
-        modifier
-            .graphicsLayer {
-                scaleX = scale
-                scaleY = scale
-            }
-            .heightIn(min = AppButtonDefaults.minHeight(variant))
-            .then(
-                if (paint != null && variant == AppButtonVariant.Primary) {
-                    Modifier.softGlow(
-                        color = AppTheme.colors.neonLime,
-                        cornerRadius = AppRadius.lg,
-                        radius = AppButtonDefaults.GlowRadius,
-                        alpha = if (pressed) AppButtonDefaults.GLOW_PRESSED_ALPHA else AppButtonDefaults.GLOW_ALPHA,
-                    )
-                } else {
-                    Modifier
-                },
-            )
-            .then(if (paint != null) Modifier.background(paint, AppButtonDefaults.Shape) else Modifier),
+        modifier = modifier.buttonChrome(variant, paint, AppTheme.colors.neonLime, scale, pressed),
         enabled = enabled,
         shape = AppButtonDefaults.Shape,
         color = if (paint != null) Color.Transparent else colors.container,

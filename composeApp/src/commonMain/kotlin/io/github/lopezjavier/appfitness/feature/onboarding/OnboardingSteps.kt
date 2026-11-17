@@ -295,7 +295,7 @@ internal fun GoalsResult(energy: EnergyStrategyUiState, modifier: Modifier = Mod
                     DonutSlice(targets.carbsKcal.toFloat(), colors.macroCarbs),
                     DonutSlice(targets.fatKcal.toFloat(), colors.macroFat),
                 ),
-                size = DonutChartDefaults.Size * 1.3f,
+                size = DonutChartDefaults.Size * GOALS_DONUT_SCALE,
                 strokeWidth = DonutChartDefaults.StrokeWidth,
             ) {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
@@ -331,3 +331,6 @@ internal fun GoalsResult(energy: EnergyStrategyUiState, modifier: Modifier = Mod
         }
     }
 }
+
+/** The goals donut is drawn larger than the default one: it is the hero of the step. */
+private const val GOALS_DONUT_SCALE = 1.3f

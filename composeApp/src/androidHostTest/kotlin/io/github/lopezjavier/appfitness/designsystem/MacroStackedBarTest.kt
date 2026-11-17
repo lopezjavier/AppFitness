@@ -33,10 +33,11 @@ class MacroStackedBarTest {
     @Test
     fun segmentWidths_areProportionalToThePercents() {
         show(35, 42, 23)
-        val total = width("bar")
-        assertEquals(total.value * 0.35f, width("bar_protein").value, 1f)
-        assertEquals(total.value * 0.42f, width("bar_carbs").value, 1f)
-        assertEquals(total.value * 0.23f, width("bar_fat").value, 1f)
+        // The three segments share the bar minus the two hairline gaps between them.
+        val shared = width("bar").value - 2 * MacroStackedBarDefaults.SegmentGap.value
+        assertEquals(shared * 0.35f, width("bar_protein").value, 1f)
+        assertEquals(shared * 0.42f, width("bar_carbs").value, 1f)
+        assertEquals(shared * 0.23f, width("bar_fat").value, 1f)
     }
 
     @Test

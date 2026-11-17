@@ -1,3 +1,5 @@
+@file:Suppress("MatchingDeclarationName", "MagicNumber") // MetricGauge and its spec; clinical zone limits.
+
 package io.github.lopezjavier.appfitness.feature.weight
 
 import androidx.compose.foundation.layout.Column
@@ -26,7 +28,7 @@ private const val FAT_MAX = 45.0
 private const val WHR_MIN = 0.6
 private const val WHR_MAX = 1.2
 
-/** The gauge zones of [kind]; the limits are the ones `InterpretMetric` uses to choose the status (male when unknown). */
+/** The gauge zones of [kind]; the limits are the ones `InterpretMetric` uses for the status (male when unknown). */
 @Composable
 internal fun metricGaugeSpec(kind: MetricKind, sex: Sex?): MetricGaugeSpec {
     val colors = AppTheme.colors

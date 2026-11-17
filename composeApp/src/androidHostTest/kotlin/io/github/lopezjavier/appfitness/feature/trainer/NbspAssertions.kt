@@ -37,6 +37,13 @@ internal fun hasTextIgnoringNbsp(part: String): SemanticsMatcher =
             ?.any { it.text.plainSpaces().contains(part.plainSpaces()) } == true
     }
 
+/** Matches a node whose content description contains [part], U+00A0 and a plain space being the same character. */
+internal fun hasContentDescriptionIgnoringNbsp(part: String): SemanticsMatcher =
+    SemanticsMatcher("content description contains '$part' ignoring U+00A0") { node ->
+        node.config.getOrNull(SemanticsProperties.ContentDescription)
+            ?.any { it.plainSpaces().contains(part.plainSpaces()) } == true
+    }
+
 /** The node's text list element by element (a merged row), U+00A0 and a plain space being the same character. */
 internal fun SemanticsNodeInteraction.assertTextListIgnoringNbsp(vararg expected: String): SemanticsNodeInteraction {
     val actual = fetchSemanticsNode().config[SemanticsProperties.Text].map { it.text.plainSpaces() }

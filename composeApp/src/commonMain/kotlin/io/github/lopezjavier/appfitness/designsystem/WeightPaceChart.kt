@@ -361,12 +361,21 @@ private fun DrawScope.drawTrend(data: WeightPaceChartData, mapper: PaceMapper, p
         drawCircle(dailyColor, WeightPaceChartDefaults.DailyDotRadius.toPx(), mapper.at(it))
     }
     if (data.weekly.isEmpty()) return
-    val last = data.weekly.last()
     if (data.weekly.size >= 2) drawTrendLine(data.weekly, mapper, palette, progress)
     val dotAlpha = ((progress - WeightPaceChartDefaults.DotsStart) / (1f - WeightPaceChartDefaults.DotsStart))
         .coerceIn(0f, 1f)
+    drawWeeklyDots(data.weekly, mapper, palette, dotAlpha)
+}
+
+/** The weekly dots, the last one (now) larger and lit; nothing while [dotAlpha] is zero. */
+private fun DrawScope.drawWeeklyDots(
+    weekly: List<WeightPacePoint>,
+    mapper: PaceMapper,
+    palette: PacePalette,
+    dotAlpha: Float,
+) {
     if (dotAlpha <= 0f) return
-    data.weekly.dropLast(1).forEach {
+    weekly.dropLast(1).forEach {
         drawWeeklyDot(
             it,
             mapper,
@@ -376,6 +385,7 @@ private fun DrawScope.drawTrend(data: WeightPaceChartData, mapper: PaceMapper, p
             WeightPaceChartDefaults.WeeklyDotRing,
         )
     }
+    val last = weekly.last()
     drawRadialGlow(
         palette.trend,
         mapper.at(last),
@@ -392,6 +402,13 @@ private fun DrawScope.drawTrend(data: WeightPaceChartData, mapper: PaceMapper, p
     )
 }
 
+/** A path through the weekly points. */
+private fun polyline(weekly: List<WeightPacePoint>, mapper: PaceMapper): Path = Path().apply {
+    val first = mapper.at(weekly.first())
+    moveTo(first.x, first.y)
+    weekly.drop(1).forEach { point -> mapper.at(point).let { lineTo(it.x, it.y) } }
+}
+
 /** The trend: a gradient area down to the baseline (once drawn) under a lit gradient stroke. */
 private fun DrawScope.drawTrendLine(
     weekly: List<WeightPacePoint>,
@@ -399,16 +416,9 @@ private fun DrawScope.drawTrendLine(
     palette: PacePalette,
     progress: Float,
 ) {
-    val line = Path().apply {
-        val first = mapper.at(weekly.first())
-        moveTo(first.x, first.y)
-        weekly.drop(1).forEach { mapper.at(it).let { p -> lineTo(p.x, p.y) } }
-    }
+    val line = polyline(weekly, mapper)
     if (progress >= 1f) {
-        val area = Path().apply {
-            val first = mapper.at(weekly.first())
-            moveTo(first.x, first.y)
-            weekly.drop(1).forEach { mapper.at(it).let { p -> lineTo(p.x, p.y) } }
+        val area = polyline(weekly, mapper).apply {
             lineTo(mapper.at(weekly.last()).x, mapper.plotBottom)
             lineTo(mapper.at(weekly.first()).x, mapper.plotBottom)
             close()

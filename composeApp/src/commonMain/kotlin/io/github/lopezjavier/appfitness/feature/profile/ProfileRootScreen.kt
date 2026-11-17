@@ -1,3 +1,5 @@
+@file:Suppress("TooManyFunctions") // One small composable per block of the Perfil root.
+
 package io.github.lopezjavier.appfitness.feature.profile
 
 import androidx.compose.foundation.background
@@ -50,6 +52,7 @@ import io.github.lopezjavier.appfitness.composeapp.resources.px_stats_hero_weigh
 import io.github.lopezjavier.appfitness.composeapp.resources.px_stats_value_kcal
 import io.github.lopezjavier.appfitness.composeapp.resources.px_stats_value_kg
 import io.github.lopezjavier.appfitness.composeapp.resources.root_error_message
+import io.github.lopezjavier.appfitness.composeapp.resources.unit_kg
 import io.github.lopezjavier.appfitness.designsystem.AppAvatar
 import io.github.lopezjavier.appfitness.designsystem.AppAvatarDefaults
 import io.github.lopezjavier.appfitness.designsystem.AppCard
@@ -284,7 +287,7 @@ private fun HeroHighlights(state: ProfileRootUiState.Loaded) {
                 stringResource(Res.string.px_stats_hero_weight),
                 colors.athleticCyan,
                 Modifier.weight(1f),
-                unit = "kg",
+                unit = stringResource(Res.string.unit_kg),
             )
         }
         if (record != null) {
@@ -294,7 +297,7 @@ private fun HeroHighlights(state: ProfileRootUiState.Loaded) {
                 stringResource(Res.string.px_stats_hero_strength),
                 colors.neonLime,
                 Modifier.weight(1f),
-                unit = "kg",
+                unit = stringResource(Res.string.unit_kg),
             )
         }
         if (kcal != null) {

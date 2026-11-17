@@ -83,6 +83,31 @@ fun WeightHistoryScreen(
 }
 
 @Composable
+private fun HistorySummaryCard(lastWeightKg: Double, monthDays: Int) {
+    AppCard(Modifier.fillMaxWidth().testTag("weight_history_summary"), glow = AppTheme.colors.neonLime) {
+        Row(
+            Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(Spacing.md),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            IconBadge(Res.drawable.ic_monitor_weight, AppTheme.colors.neonLime)
+            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
+                Text(
+                    text = stringResource(Res.string.px_body_last_weight, decimalText(lastWeightKg)),
+                    style = AppTheme.typography.titleMedium,
+                    color = AppTheme.colors.textPrimary,
+                )
+                Text(
+                    text = stringResource(Res.string.px_body_readings_month, monthDays),
+                    style = AppTheme.typography.bodyMedium,
+                    color = AppTheme.colors.textSecondary,
+                )
+            }
+        }
+    }
+}
+
+@Composable
 private fun HistoryCalendar(content: WeightContent, onEvent: (WeightEvent) -> Unit) {
     LazyColumn(
         Modifier.fillMaxSize(),
@@ -102,27 +127,7 @@ private fun HistoryCalendar(content: WeightContent, onEvent: (WeightEvent) -> Un
                 val monthDays = content.markedDays.count {
                     it.year == content.month.year && it.month == content.month.month
                 }
-                AppCard(Modifier.fillMaxWidth().testTag("weight_history_summary"), glow = AppTheme.colors.neonLime) {
-                    Row(
-                        Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(Spacing.md),
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        IconBadge(Res.drawable.ic_monitor_weight, AppTheme.colors.neonLime)
-                        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
-                            Text(
-                                text = stringResource(Res.string.px_body_last_weight, decimalText(current.weightKg)),
-                                style = AppTheme.typography.titleMedium,
-                                color = AppTheme.colors.textPrimary,
-                            )
-                            Text(
-                                text = stringResource(Res.string.px_body_readings_month, monthDays),
-                                style = AppTheme.typography.bodyMedium,
-                                color = AppTheme.colors.textSecondary,
-                            )
-                        }
-                    }
-                }
+                HistorySummaryCard(current.weightKg, monthDays)
             }
         }
         item(key = "calendar") {

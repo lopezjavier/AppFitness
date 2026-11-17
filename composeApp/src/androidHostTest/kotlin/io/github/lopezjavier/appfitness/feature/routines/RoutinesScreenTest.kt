@@ -23,6 +23,7 @@ import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.unit.dp
+import io.github.lopezjavier.appfitness.app.FakeClock
 import io.github.lopezjavier.appfitness.app.FakeConnectivityObserver
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
 import io.github.lopezjavier.appfitness.designsystem.HapticEvent
@@ -57,7 +58,7 @@ class RoutinesScreenTest {
     private val messages = RecordingMessages()
 
     private fun show(): RoutinesViewModel {
-        val vm = RoutinesViewModel(repository, sessions, connectivity)
+        val vm = RoutinesViewModel(repository, sessions, connectivity, FakeClock())
         rule.setContent {
             CompositionLocalProvider(LocalAppHaptics provides haptics, LocalAppMessages provides messages) {
                 AppTheme {
@@ -341,7 +342,7 @@ class RoutinesScreenTest {
     fun empezar_whileASessionIsInProgress_showsTheMessage_andOpensNothing() {
         sessions.startFailure = AppError.SessionAlreadyInProgress
         var openedLive = 0
-        val vm = RoutinesViewModel(repository, sessions, connectivity)
+        val vm = RoutinesViewModel(repository, sessions, connectivity, FakeClock())
         rule.setContent {
             CompositionLocalProvider(LocalAppHaptics provides haptics, LocalAppMessages provides messages) {
                 AppTheme { RoutinesRoot({}, {}, { openedLive++ }, viewModel = vm) }
@@ -405,7 +406,7 @@ class RoutinesScreenTest {
     @Test
     fun aFailedDelete_putsTheRoutineBack_andShowsTheMessage() {
         repository.saveFailure = AppError.Network
-        val vm = RoutinesViewModel(repository, sessions, connectivity)
+        val vm = RoutinesViewModel(repository, sessions, connectivity, FakeClock())
         rule.setContent {
             CompositionLocalProvider(LocalAppHaptics provides haptics, LocalAppMessages provides messages) {
                 AppTheme { RoutinesRoot({}, {}, {}, viewModel = vm) }

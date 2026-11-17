@@ -14,6 +14,7 @@ import androidx.compose.ui.test.onNodeWithTag
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.YearMonth
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -30,14 +31,10 @@ class MonthCalendarVisualsTest {
     val rule = createComposeRule()
 
     @Test
-    fun monthCalendarGrid_selectedDay_hasLimeBorderAndSelectedContainerFill() {
-        var selectedContainer = Color.Unspecified
-        var lime = Color.Unspecified
+    fun monthCalendarGrid_selectedDay_isALitLimeDisc() {
         var base = Color.Unspecified
         rule.setContent {
             AppTheme {
-                selectedContainer = AppTheme.colors.selectedContainer
-                lime = AppTheme.colors.neonLime
                 base = AppTheme.colors.surfaceBase
                 Box(Modifier.background(base)) {
                     MonthCalendarGrid(
@@ -61,10 +58,10 @@ class MonthCalendarVisualsTest {
         val selectedMap = selected.captureToImage().toPixelMap()
         val otherMap = other.captureToImage().toPixelMap()
         val x = selectedMap.width / 2
-        // 48 dp cell, 4 dp padding, 1 dp border: the ring is at 4..5 dp, the fill just below it (xxhdpi = 3 px/dp).
-        assertEquals(lime, selectedMap[x, 14].withoutAlpha())
-        assertEquals(selectedContainer, selectedMap[x, 24].withoutAlpha())
-        // C-33: a resting day draws no circle, so its pixels are neither the border nor the selected fill.
+        // 48 dp cell, 4 dp padding (xxhdpi = 3 px/dp): the lit disc starts at 12 px and is a lime gradient (R-64).
+        assertLimeFill(selectedMap[x, 24].withoutAlpha())
+        assertLimeFill(selectedMap[x, 30].withoutAlpha())
+        // C-33: a resting day draws no circle, so its pixels are the plain background.
         assertEquals(base, otherMap[x, 14].withoutAlpha())
         assertEquals(base, otherMap[x, 24].withoutAlpha())
     }
@@ -108,13 +105,9 @@ class MonthCalendarVisualsTest {
     @Test
     fun monthCalendarGrid_todayAndSelected_hasOuterCyanRingAroundTheInnerLimeBorder() {
         var cyan = Color.Unspecified
-        var lime = Color.Unspecified
-        var container = Color.Unspecified
         rule.setContent {
             AppTheme {
                 cyan = AppTheme.colors.athleticCyan
-                lime = AppTheme.colors.neonLime
-                container = AppTheme.colors.selectedContainer
                 MonthCalendarGrid(
                     YearMonth(2026, 10),
                     emptySet(),
@@ -131,11 +124,9 @@ class MonthCalendarVisualsTest {
 
         val map = rule.onNodeWithTag("month_calendar_day_2026-10-14").captureToImage().toPixelMap()
         val x = map.width / 2
-        // xxhdpi = 3 px/dp: cyan ring 12..16.5 px (4 dp, 1.5 dp wide); the content is inset by ring + 2 dp gap, so the
-        // 1 dp lime border sits at 22.5..25.5 px; then the fill.
+        // xxhdpi = 3 px/dp: the cyan ring starts at 12 px (4 dp); the lit lime disc is inset by the ring and a gap.
         assertEquals(cyan, map[x, 14].withoutAlpha())
-        assertEquals(lime, map[x, 24].withoutAlpha())
-        assertEquals(container, map[x, 30].withoutAlpha())
+        assertLimeFill(map[x, 30].withoutAlpha())
     }
 
     @Test
@@ -158,4 +149,10 @@ class MonthCalendarVisualsTest {
     }
 
     private fun Color.withoutAlpha(): Color = copy(alpha = 1f)
+
+    /** The lit disc is a gradient of the lime ramp, so it is checked by hue (bright green-yellow), not by one value. */
+    private fun assertLimeFill(color: Color) {
+        val lime = color.green > 0.8f && color.green > color.red + 0.1f && color.blue < 0.5f
+        assertTrue("not a lime fill: $color", lime)
+    }
 }

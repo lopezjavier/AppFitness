@@ -195,7 +195,7 @@ private fun WideDay(content: DiaryContent, actions: EntryActions, onEvent: (Diar
 
 /** One lazy item per meal card, keyed by the slot so a reordered or collapsed meal animates in place. */
 private fun LazyListScope.mealItems(content: DiaryContent, actions: EntryActions, onEvent: (DiaryEvent) -> Unit) {
-    itemsIndexed(content.meals, key = { _, it -> it.slot.id }) { index, section ->
+    itemsIndexed(content.meals, key = { _, meal -> meal.slot.id }) { index, section ->
         MealSectionCard(
             index = index,
             dayKcal = content.dayTotals.kcal,

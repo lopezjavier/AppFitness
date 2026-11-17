@@ -242,15 +242,10 @@ private fun PlanFigures(plan: CoachPlan, pace: WeightPace?) {
     }
 }
 
-private class PlanFigure(
-    val label: StringResource,
-    val value: String,
-    val unit: String?,
-    val accent: Boolean = false,
-)
+private class PlanFigure(val label: StringResource, val value: String, val unit: String?, val accent: Boolean = false)
 
 @Composable
-private fun PlanFigureCell(figure: PlanFigure, modifier: Modifier) {
+private fun PlanFigureCell(figure: PlanFigure, modifier: Modifier = Modifier) {
     Column(
         modifier
             .padding(horizontal = Spacing.sm)

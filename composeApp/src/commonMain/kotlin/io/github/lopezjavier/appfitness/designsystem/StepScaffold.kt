@@ -82,21 +82,7 @@ fun StepScaffold(
             .widthIn(max = MaxContentWidth)
             .padding(horizontal = Spacing.screenMargin),
     ) {
-        Row(
-            Modifier.fillMaxWidth().padding(top = Spacing.lg),
-            horizontalArrangement = Arrangement.spacedBy(Spacing.md),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            if (totalSteps > 0) StartStepProgress(step, totalSteps, Modifier.weight(1f))
-            Text(
-                text = indicator,
-                style = AppTheme.typography.labelTechnical,
-                color = AppTheme.colors.textSecondary,
-                modifier = Modifier
-                    .semantics { contentDescription = indicatorDescription }
-                    .testTag("${testTagPrefix}_step_indicator"),
-            )
-        }
+        StepIndicatorRow(step, totalSteps, indicator, indicatorDescription, testTagPrefix)
         AnimatedContent(
             targetState = step,
             modifier = Modifier.weight(1f).fillMaxWidth(),
@@ -165,4 +151,29 @@ private fun PinnedStepFooter(testTagPrefix: String, footer: @Composable () -> Un
             .onSizeChanged { size -> state?.height = with(density) { size.height.toDp() } }
             .testTag("${testTagPrefix}_footer"),
     ) { footer() }
+}
+
+@Composable
+private fun StepIndicatorRow(
+    step: Int,
+    totalSteps: Int,
+    indicator: String,
+    indicatorDescription: String,
+    testTagPrefix: String,
+) {
+    Row(
+        Modifier.fillMaxWidth().padding(top = Spacing.lg),
+        horizontalArrangement = Arrangement.spacedBy(Spacing.md),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        if (totalSteps > 0) StartStepProgress(step, totalSteps, Modifier.weight(1f))
+        Text(
+            text = indicator,
+            style = AppTheme.typography.labelTechnical,
+            color = AppTheme.colors.textSecondary,
+            modifier = Modifier
+                .semantics { contentDescription = indicatorDescription }
+                .testTag("${testTagPrefix}_step_indicator"),
+        )
+    }
 }

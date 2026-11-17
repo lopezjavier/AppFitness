@@ -289,7 +289,10 @@ private fun SetLine(position: Int, set: DetailSet) {
             modifier = Modifier.weight(1f),
         )
         set.rpe?.let { rpe ->
-            PillContainer(Modifier.testTag("session_detail_set_rpe_${position}_${set.setIndex}")) {
+            PillContainer(
+                Modifier.semantics(mergeDescendants = true) {}
+                    .testTag("session_detail_set_rpe_${position}_${set.setIndex}"),
+            ) {
                 Text(
                     text = stringResource(Res.string.exercise_history_rpe, RpeScale.text(rpe)),
                     style = AppTheme.typography.labelNumeric,

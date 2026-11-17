@@ -3,11 +3,10 @@
     <string name="px_diary_split_title">Reparto por comida</string>
     <string name="px_diary_split_cd">Calorías del día por comida</string>
     <string name="px_diary_empty_meal">Aún sin registrar. Toca Añadir.</string>
-    <string name="px_diary_meal_share_cd">%1$d %% de las calorías del día</string>
+    <string name="px_diary_meal_share_cd">%1$d&#160;% de las calorías del día</string>
     <string name="px_diary_goals_prompt_cta">Configurar</string>
     <string name="px_diary_notices_pending_count">%1$d pendientes</string>
     <string name="px_diary_notices_pending_one">1 pendiente</string>
-    <string name="px_diary_notices_pending_hint">Toca un aviso para resolverlo</string>
     <string name="px_diary_notices_empty_kicker">Sin pendientes</string>
     <string name="px_diary_checkin_energy_low">Baja</string>
     <string name="px_diary_checkin_energy_high">Alta</string>

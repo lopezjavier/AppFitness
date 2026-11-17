@@ -1,4 +1,6 @@
-@file:Suppress("MagicNumber") // Paint proportions of the ring (glow widths, gradient stops), relative to the stroke.
+@file:Suppress("MagicNumber", "MatchingDeclarationName", "SpreadOperator")
+// MagicNumber: paint proportions of the ring. MatchingDeclarationName: RingArc and its Defaults.
+// SpreadOperator: the gradient stops are built once per draw.
 
 package io.github.lopezjavier.appfitness.designsystem
 
@@ -114,7 +116,7 @@ private fun sweepBrush(ramp: AccentRamp, sweep: Float, center: Offset): Brush {
     return Brush.sweepGradient(*stops.toTypedArray(), center = center)
 }
 
-/** A faint light inside the ring: nothing in the middle (the number stays on a clean surface), the accent at the rim. */
+/** A faint light inside the ring: nothing in the middle (the number stays clean), the accent at the rim. */
 private fun DrawScope.drawInnerLight(color: Color, innerRadius: Float) {
     if (innerRadius <= 0f) return
     drawCircle(

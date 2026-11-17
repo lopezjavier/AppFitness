@@ -66,6 +66,7 @@ import io.github.lopezjavier.appfitness.composeapp.resources.trainer_week_sessio
 import io.github.lopezjavier.appfitness.composeapp.resources.trainer_week_title
 import io.github.lopezjavier.appfitness.composeapp.resources.trainer_week_title_of
 import io.github.lopezjavier.appfitness.designsystem.AppBorder
+import io.github.lopezjavier.appfitness.designsystem.AppColors
 import io.github.lopezjavier.appfitness.designsystem.AppDateFormat
 import io.github.lopezjavier.appfitness.designsystem.AppNumberFormat
 import io.github.lopezjavier.appfitness.designsystem.AppPaint
@@ -441,6 +442,16 @@ private fun SessionCards(week: PlanWeek) {
     }
 }
 
+/** The lime-tinted surface of a done session, the plain tile of any other. */
+private fun Modifier.sessionSurface(done: Boolean, colors: AppColors): Modifier = this
+    .clip(AppShapes.md)
+    .background(if (done) AppPaint.tintSurface(colors.electricGreen) else AppPaint.tileSurface(colors))
+    .border(
+        AppBorder.thin,
+        if (done) AppPaint.accentBorder(colors.electricGreen) else AppPaint.tileBorder(),
+        AppShapes.md,
+    )
+
 /**
  * One session: its name and its state in words, "Hecho" with a lime check, "Pendiente" (this week), "No hecho" (a
  * past week; neutral, never an error) or "Planificado" (an upcoming week, `textTertiary`).
@@ -460,19 +471,7 @@ private fun SessionCard(week: PlanWeek, session: PlanWeekSession, modifier: Modi
     Column(
         modifier
             .heightIn(min = Spacing.minTouchTarget)
-            .clip(AppShapes.md)
-            .background(
-                if (session.done) {
-                    AppPaint.tintSurface(AppTheme.colors.electricGreen)
-                } else {
-                    AppPaint.tileSurface(AppTheme.colors)
-                },
-            )
-            .border(
-                AppBorder.thin,
-                if (session.done) AppPaint.accentBorder(AppTheme.colors.electricGreen) else AppPaint.tileBorder(),
-                AppShapes.md,
-            )
+            .sessionSurface(session.done, AppTheme.colors)
             .padding(horizontal = Spacing.md, vertical = Spacing.sm)
             .semantics(mergeDescendants = true) { contentDescription = description }
             .testTag("trainer_box_block_session_${week.week}_${session.sessionIndex}"),

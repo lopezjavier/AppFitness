@@ -1,3 +1,5 @@
+@file:Suppress("MatchingDeclarationName") // The file holds the components and their Defaults object.
+
 package io.github.lopezjavier.appfitness.designsystem
 
 import androidx.compose.animation.core.LinearEasing

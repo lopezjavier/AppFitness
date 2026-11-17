@@ -7,7 +7,6 @@ import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.junit4.StateRestorationTester
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
-import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performScrollToNode
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
 import io.github.lopezjavier.appfitness.domain.model.StallCause
@@ -41,7 +40,9 @@ class WeekSummaryRestorationTest {
         restoration.setContent {
             AppTheme { WeekSummaryScreen(state, flowOf(true), {}, {}) }
         }
-        rule.onNodeWithTag("week_summary_nutrition_kcal").performScrollTo().assertIsDisplayed()
+        // The hero and the figures above push the nutrition section out of the composed items until scrolled to.
+        rule.onNode(hasScrollAction()).performScrollToNode(hasTestTag("week_summary_nutrition_kcal"))
+        rule.onNodeWithTag("week_summary_nutrition_kcal").assertIsDisplayed()
 
         restoration.emulateSavedInstanceStateRestore()
         rule.waitForIdle()

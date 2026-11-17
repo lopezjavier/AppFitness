@@ -117,6 +117,7 @@ private fun SectionLoading() {
     }
 }
 
+@Suppress("LongParameterList") // The content plus the ratio card callbacks.
 @Composable
 private fun SectionContent(
     content: CircumferencesContent,
@@ -195,6 +196,7 @@ private fun SiteGroup(
     }
 }
 
+@Suppress("LongParameterList") // The row, its neighbour, its position and the dialog context.
 @Composable
 private fun CircumferenceHistoryRow(
     row: BodyCircumference,

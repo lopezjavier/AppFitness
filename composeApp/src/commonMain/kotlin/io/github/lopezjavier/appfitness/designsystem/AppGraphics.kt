@@ -341,6 +341,37 @@ private class MiniBarInput(
     val rise: Float,
 )
 
+@Suppress("LongParameterList") // The bar geometry, computed once by the caller.
+private fun DrawScope.drawMiniBar(
+    input: MiniBarInput,
+    palette: MiniBarPalette,
+    value: Float,
+    left: Float,
+    barWidth: Float,
+    plotBottom: Float,
+    plotHeight: Float,
+    scaleMax: Float,
+    index: Int,
+) {
+    val lit = input.highlightIndex == null || index == input.highlightIndex
+    val over = input.target != null && value > input.target && palette.over != null
+    val barColor = if (over) palette.over ?: palette.color else palette.color
+    val ramp = AppPaint.ramp(barColor)
+    val height = max(plotHeight * (value / scaleMax) * input.rise, MiniBarChartDefaults.MinFill.toPx())
+        .coerceAtMost(plotHeight)
+    val top = plotBottom - height
+    if (lit && input.highlightIndex != null) {
+        drawRadialGlow(barColor, Offset(left + barWidth / 2f, top), barWidth * 1.8f, alpha = 0.28f)
+    }
+    drawRoundRect(
+        brush = Brush.verticalGradient(listOf(ramp.bright, ramp.base, ramp.deep), startY = top, endY = plotBottom),
+        topLeft = Offset(left, top),
+        size = Size(barWidth, height),
+        cornerRadius = CornerRadius(barWidth / 2f),
+        alpha = if (lit) 1f else MiniBarChartDefaults.DIM_ALPHA,
+    )
+}
+
 private fun DrawScope.drawMiniBars(
     input: MiniBarInput,
     palette: MiniBarPalette,
@@ -362,38 +393,10 @@ private fun DrawScope.drawMiniBars(
     input.values.forEachIndexed { index, value ->
         val left = slot * index + (slot - barWidth) / 2f
         drawRoundRect(palette.track, Offset(left, plotTop), Size(barWidth, plotHeight), corner)
-        if (value > 0f) {
-            val lit = input.highlightIndex == null || index == input.highlightIndex
-            val over = input.target != null && value > input.target && palette.over != null
-            val barColor = if (over) palette.over ?: palette.color else palette.color
-            val ramp = AppPaint.ramp(barColor)
-            val height = max(plotHeight * (value / scaleMax) * input.rise, MiniBarChartDefaults.MinFill.toPx())
-                .coerceAtMost(plotHeight)
-            val top = plotBottom - height
-            if (lit && input.highlightIndex != null) {
-                drawRadialGlow(barColor, Offset(left + barWidth / 2f, top), barWidth * 1.8f, alpha = 0.28f)
-            }
-            drawRoundRect(
-                brush = Brush.verticalGradient(
-                    listOf(ramp.bright, ramp.base, ramp.deep),
-                    startY = top,
-                    endY = plotBottom,
-                ),
-                topLeft = Offset(left, top),
-                size = Size(barWidth, height),
-                cornerRadius = corner,
-                alpha = if (lit) 1f else MiniBarChartDefaults.DIM_ALPHA,
-            )
-        }
+        if (value > 0f) drawMiniBar(input, palette, value, left, barWidth, plotBottom, plotHeight, scaleMax, index)
         if (hasLabels) {
-            val lit = index == input.highlightIndex
-            val text = measurer.measure(
-                input.labels[index],
-                style.copy(
-                    color = if (lit) palette.labelLit else palette.label,
-                    fontWeight = if (lit) FontWeight.W700 else style.fontWeight,
-                ),
-            )
+            val labelStyle = miniBarLabelStyle(style, palette, index == input.highlightIndex)
+            val text = measurer.measure(input.labels[index], labelStyle)
             val x = (slot * index + slot / 2f - text.size.width / 2f).coerceIn(
                 0f,
                 max(0f, size.width - text.size.width),
@@ -402,16 +405,25 @@ private fun DrawScope.drawMiniBars(
         }
     }
     input.target?.takeIf { it > 0f }?.let { target ->
-        val y = plotBottom - plotHeight * (target / scaleMax)
-        val dash = MiniBarChartDefaults.TargetDash.toPx()
-        drawLine(
-            color = palette.target,
-            start = Offset(0f, y),
-            end = Offset(size.width, y),
-            strokeWidth = AppBorder.thin.toPx(),
-            pathEffect = PathEffect.dashPathEffect(floatArrayOf(dash, dash)),
-        )
+        drawTargetLine(palette.target, plotBottom - plotHeight * (target / scaleMax))
     }
+}
+
+private fun miniBarLabelStyle(style: TextStyle, palette: MiniBarPalette, lit: Boolean): TextStyle = style.copy(
+    color = if (lit) palette.labelLit else palette.label,
+    fontWeight = if (lit) FontWeight.W700 else style.fontWeight,
+)
+
+/** The dashed horizontal target line at [y]. */
+private fun DrawScope.drawTargetLine(color: Color, y: Float) {
+    val dash = MiniBarChartDefaults.TargetDash.toPx()
+    drawLine(
+        color = color,
+        start = Offset(0f, y),
+        end = Offset(size.width, y),
+        strokeWidth = AppBorder.thin.toPx(),
+        pathEffect = PathEffect.dashPathEffect(floatArrayOf(dash, dash)),
+    )
 }
 
 // ---------------------------------------------------------------------------------------------------------------------

@@ -8,6 +8,7 @@ import io.github.lopezjavier.appfitness.domain.AppError
 import io.github.lopezjavier.appfitness.domain.AppException
 import io.github.lopezjavier.appfitness.domain.model.RoutineFolder
 import io.github.lopezjavier.appfitness.domain.model.RoutineSummary
+import io.github.lopezjavier.appfitness.domain.port.Clock
 import io.github.lopezjavier.appfitness.domain.port.ConnectivityObserver
 import io.github.lopezjavier.appfitness.domain.repository.RoutineRepository
 import io.github.lopezjavier.appfitness.domain.repository.WorkoutSessionRepository
@@ -22,8 +23,6 @@ import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.datetime.TimeZone
-import kotlinx.datetime.todayIn
-import kotlin.time.Clock
 
 private const val KEY_COLLAPSED = "routines_collapsed_folders"
 private const val KEY_SHEET_MODE = "routines_folder_sheet_mode"
@@ -43,7 +42,9 @@ class RoutinesViewModel(
     private val repository: RoutineRepository,
     private val sessions: WorkoutSessionRepository,
     connectivity: ConnectivityObserver,
+    private val clock: Clock,
     private val savedState: SavedStateHandle = SavedStateHandle(),
+    private val zone: TimeZone = TimeZone.currentSystemDefault(),
 ) : ViewModel() {
     private val _uiState = MutableStateFlow<RoutinesUiState>(RoutinesUiState.Loading)
     val uiState: StateFlow<RoutinesUiState> = _uiState.asStateFlow()
@@ -182,10 +183,8 @@ class RoutinesViewModel(
 
     /** The hero's figures from the completed sessions; a failed read just hides the hero (no fake data). */
     private suspend fun loadWeek(): TrainingWeek {
-        val zone = TimeZone.currentSystemDefault()
         val sessionList = sessions.listCompletedSummaries().getOrNull() ?: return TrainingWeek()
-        val today = Clock.System.todayIn(zone)
-        return trainingWeekOf(TrainingCalendar.daysOf(sessionList, zone).mapValues { it.value.size }, today)
+        return trainingWeekOf(TrainingCalendar.daysOf(sessionList, zone).mapValues { it.value.size }, clock.today())
     }
 
     private fun duplicate(id: String) {

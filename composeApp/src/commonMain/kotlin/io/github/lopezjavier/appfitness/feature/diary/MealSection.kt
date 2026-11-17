@@ -227,6 +227,27 @@ private fun SectionHeader(
     }
 }
 
+/** The macros line of a meal, or the "empty meal" hint when it has no entries. */
+@Composable
+private fun MealMacros(section: MealSectionUi, modifier: Modifier = Modifier) {
+    val totals = section.totals
+    if (section.entries.isEmpty()) {
+        Text(
+            text = stringResource(Res.string.px_diary_empty_meal),
+            style = AppTheme.typography.bodySmall,
+            color = AppTheme.colors.textTertiary,
+            modifier = modifier,
+        )
+    } else {
+        MacroLine(
+            proteinG = wholeHalfUp(totals.proteinG),
+            carbsG = wholeHalfUp(totals.carbsG),
+            fatG = wholeHalfUp(totals.fatG),
+            modifier = modifier,
+        )
+    }
+}
+
 /**
  * The merged toggle of a meal header: name and chevron (and the kcal pill when [pillInline]), then the macros line
  * 4 dp below (C-63), preceded by the pill when it did not fit beside the name.
@@ -274,25 +295,6 @@ private fun SectionToggle(
             )
             if (pillText != null && pillInline) CompactKcalPill(pillText)
         }
-        val totals = section.totals
-        val macros: @Composable (Modifier) -> Unit = { macroModifier ->
-            if (section.entries.isEmpty()) {
-                Text(
-                    text = stringResource(Res.string.px_diary_empty_meal),
-                    style = AppTheme.typography.bodySmall,
-                    color = AppTheme.colors.textTertiary,
-                    modifier = macroModifier,
-                )
-            } else {
-                MacroLine(
-                    proteinG = wholeHalfUp(totals.proteinG),
-                    carbsG = wholeHalfUp(totals.carbsG),
-                    fatG = wholeHalfUp(totals.fatG),
-                    modifier = macroModifier,
-                    muted = section.entries.isEmpty(),
-                )
-            }
-        }
         if (pillText != null && !pillInline) {
             Row(
                 Modifier.padding(top = Spacing.xs),
@@ -300,10 +302,10 @@ private fun SectionToggle(
                 horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
             ) {
                 CompactKcalPill(pillText)
-                macros(Modifier.weight(1f))
+                MealMacros(section, Modifier.weight(1f))
             }
         } else {
-            macros(Modifier.padding(top = Spacing.xs))
+            MealMacros(section, Modifier.padding(top = Spacing.xs))
         }
     }
 }

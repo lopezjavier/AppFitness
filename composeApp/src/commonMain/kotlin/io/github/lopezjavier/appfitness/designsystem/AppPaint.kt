@@ -28,14 +28,16 @@ data class AccentRamp(val deep: Color, val base: Color, val bright: Color) {
  * Glows are layered alpha shapes and radial gradients, never blur, so they render the same on every API level.
  */
 object AppPaint {
-    /** Hand-tuned ramps of the accent tokens; any other colour gets a computed one. */
-    private val Ramps: Map<Color, AccentRamp> = mapOf(
-        Color(0xFFA3E635) to AccentRamp(Color(0xFF6FCB2A), Color(0xFFA3E635), Color(0xFFDDF97A)),
-        Color(0xFF38BDF8) to AccentRamp(Color(0xFF1C8DEB), Color(0xFF38BDF8), Color(0xFF8FE4FF)),
-        Color(0xFFF97316) to AccentRamp(Color(0xFFE5500B), Color(0xFFF97316), Color(0xFFFFB648)),
-        Color(0xFFF472B6) to AccentRamp(Color(0xFFDC4A99), Color(0xFFF472B6), Color(0xFFFFAFD9)),
-        Color(0xFF22C55E) to AccentRamp(Color(0xFF12A04F), Color(0xFF22C55E), Color(0xFF7DECA2)),
-    )
+    /** Hand-tuned ramps of the accent tokens (keyed by the tokens themselves); any other colour gets a computed one. */
+    private val Ramps: Map<Color, AccentRamp> = KineticDarkColors.let { tokens ->
+        mapOf(
+            tokens.neonLime to AccentRamp(Color(0xFF6FCB2A), tokens.neonLime, Color(0xFFDDF97A)),
+            tokens.athleticCyan to AccentRamp(Color(0xFF1C8DEB), tokens.athleticCyan, Color(0xFF8FE4FF)),
+            tokens.energyAmber to AccentRamp(Color(0xFFE5500B), tokens.energyAmber, Color(0xFFFFB648)),
+            tokens.macroFat to AccentRamp(Color(0xFFDC4A99), tokens.macroFat, Color(0xFFFFAFD9)),
+            tokens.electricGreen to AccentRamp(Color(0xFF12A04F), tokens.electricGreen, Color(0xFF7DECA2)),
+        )
+    }
 
     /** Record and achievement gold: used only by badges and celebration graphics, never as a state colour. */
     val Gold: Color = Color(0xFFFACC15)

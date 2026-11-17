@@ -105,6 +105,12 @@
     <string name="catalog_section_radar">Radar</string>
     <string name="catalog_radar_cd">Pecho 12 series, Espalda 8 series, Hombros 6 series, Bíceps 4 series, Tríceps 5 series</string>
     <string name="catalog_section_body_heatmap">Mapa corporal</string>
+    <string name="catalog_section_graphics">Gráficos de datos</string>
+    <string name="catalog_section_celebration">Celebración y récords</string>
+    <string name="catalog_section_screen_graphics">Gráficos de pantalla</string>
+    <string name="catalog_graphics_sample_label">Etiqueta</string>
+    <string name="catalog_graphics_sample_title">Título de ejemplo</string>
+    <string name="catalog_graphics_sample_text">Texto de ejemplo</string>
     <string name="catalog_line_chart_cd">1RM estimado: de 100 a 113,5 kg, 5 entrenos</string>
     <string name="catalog_ring_empty">Vacío</string>
     <string name="catalog_ring_normal">Normal</string>
@@ -2349,6 +2355,7 @@
     <string name="report_sessions_headline">%1$d de %2$d</string>
     <string name="report_sessions_cd">%1$d de %2$d entrenos</string>
     <string name="report_lift_change">%1$s&#160;kg</string>
+    <string name="report_lift_range">%1$s → %2$s&#160;kg</string>
     <string name="report_tile_days_label">Días completos</string>
     <string name="report_tile_days_unit">de&#160;7</string>
     <string name="report_tile_kcal_label">Calorías medias</string>

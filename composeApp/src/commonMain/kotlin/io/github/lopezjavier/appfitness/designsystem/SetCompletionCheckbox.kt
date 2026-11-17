@@ -55,6 +55,27 @@ object SetCompletionCheckboxDefaults {
     fun hapticFor(newChecked: Boolean): HapticEvent? = if (newChecked) HapticEvent.Confirm else null
 }
 
+/** The lime glow of a checked circle, or the dimmer cyan one of the set to do next. */
+private fun Modifier.setGlow(checked: Boolean, ringed: Boolean, colors: AppColors): Modifier = when {
+    checked -> softGlow(
+        colors.neonLime,
+        SetCompletionCheckboxDefaults.VisualSize / 2,
+        radius = SetCompletionCheckboxDefaults.GlowRadius,
+        alpha = SetCompletionCheckboxDefaults.GLOW_ALPHA,
+        offsetY = 0.dp,
+    )
+
+    ringed -> softGlow(
+        colors.athleticCyan,
+        SetCompletionCheckboxDefaults.VisualSize / 2,
+        radius = SetCompletionCheckboxDefaults.GlowRadius,
+        alpha = SetCompletionCheckboxDefaults.GLOW_ALPHA / 2,
+        offsetY = 0.dp,
+    )
+
+    else -> this
+}
+
 /**
  * Round set-completion checkbox: 38 dp circle inside a 48 dp touch target. Haptics fire only from user
  * toggles. The caller's [modifier] lands on the toggleable node (exposed as checkable/checked).
@@ -93,27 +114,7 @@ fun SetCompletionCheckbox(
             modifier =
             Modifier
                 .size(SetCompletionCheckboxDefaults.VisualSize)
-                .then(
-                    if (checked) {
-                        Modifier.softGlow(
-                            AppTheme.colors.neonLime,
-                            SetCompletionCheckboxDefaults.VisualSize / 2,
-                            radius = SetCompletionCheckboxDefaults.GlowRadius,
-                            alpha = SetCompletionCheckboxDefaults.GLOW_ALPHA,
-                            offsetY = 0.dp,
-                        )
-                    } else if (ringed) {
-                        Modifier.softGlow(
-                            AppTheme.colors.athleticCyan,
-                            SetCompletionCheckboxDefaults.VisualSize / 2,
-                            radius = SetCompletionCheckboxDefaults.GlowRadius,
-                            alpha = SetCompletionCheckboxDefaults.GLOW_ALPHA / 2,
-                            offsetY = 0.dp,
-                        )
-                    } else {
-                        Modifier
-                    },
-                )
+                .setGlow(checked, ringed, AppTheme.colors)
                 .clip(SetCompletionCheckboxDefaults.Shape)
                 .background(colors.container)
                 .then(if (checked) Modifier.background(AppPaint.diagonal(colors.container)) else Modifier)

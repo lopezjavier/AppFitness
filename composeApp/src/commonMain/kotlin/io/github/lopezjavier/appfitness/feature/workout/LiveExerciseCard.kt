@@ -83,26 +83,11 @@ internal fun LiveExerciseCard(
     // 12 dp inside the live card gives the set row its 48 dp cells at 360 dp (V-21).
     AppCard(modifier.fillMaxWidth(), contentPadding = PaddingValues(Spacing.md)) {
         Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
-            ) {
-                IconBadge(
-                    icon = Res.drawable.ic_fitness_center,
-                    tint = if (exercise.sets.isNotEmpty() && exercise.sets.all { it.completed }) {
-                        AppTheme.colors.neonLime
-                    } else {
-                        AppTheme.colors.athleticCyan
-                    },
-                    size = IconBadgeDefaults.SmallSize,
-                    iconSize = IconBadgeDefaults.SmallIconSize,
-                )
-                ExerciseHeading(exercise, name, onOpenExercise, Modifier.weight(1f))
-                exercise.coachMarker?.let { CoachChangeMarkerButton(name, it, "live_exercise_coach_marker_$position") }
-                ExerciseMenuButton(name, position, onClick = { sheet = ExerciseSheet.Menu })
-            }
+            ExerciseHeader(exercise, onOpenExercise) { sheet = ExerciseSheet.Menu }
             exercise.targetRpeText?.let {
-                PillContainer(Modifier.testTag("live_exercise_${position}_target_rpe")) {
+                PillContainer(
+                    Modifier.semantics(mergeDescendants = true) {}.testTag("live_exercise_${position}_target_rpe"),
+                ) {
                     Text(
                         text = stringResource(Res.string.live_target_rpe, it),
                         style = AppTheme.typography.labelTechnical,
@@ -146,6 +131,31 @@ internal fun LiveExerciseCard(
         onSheetChange = { sheet = it },
         onSheetClose = { from -> if (sheet == from) sheet = ExerciseSheet.None },
     )
+}
+
+/** The badge (lime once every set is done), the heading, the coach marker and the menu button. */
+@Composable
+private fun ExerciseHeader(exercise: LiveExercise, onOpenExercise: (String) -> Unit, onMenu: () -> Unit) {
+    val name = exercise.name
+    val position = exercise.position
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+    ) {
+        IconBadge(
+            icon = Res.drawable.ic_fitness_center,
+            tint = if (exercise.sets.isNotEmpty() && exercise.sets.all { it.completed }) {
+                AppTheme.colors.neonLime
+            } else {
+                AppTheme.colors.athleticCyan
+            },
+            size = IconBadgeDefaults.SmallSize,
+            iconSize = IconBadgeDefaults.SmallIconSize,
+        )
+        ExerciseHeading(exercise, name, onOpenExercise, Modifier.weight(1f))
+        exercise.coachMarker?.let { CoachChangeMarkerButton(name, it, "live_exercise_coach_marker_$position") }
+        ExerciseMenuButton(name, position, onClick = onMenu)
+    }
 }
 
 /**

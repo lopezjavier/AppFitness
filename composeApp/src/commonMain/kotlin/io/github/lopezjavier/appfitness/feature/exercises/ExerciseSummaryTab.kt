@@ -33,7 +33,6 @@ import io.github.lopezjavier.appfitness.composeapp.resources.exercise_records_er
 import io.github.lopezjavier.appfitness.composeapp.resources.exercise_records_title
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_insights
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_star_filled
-import io.github.lopezjavier.appfitness.composeapp.resources.px_stats_exercise_progress_hint
 import io.github.lopezjavier.appfitness.designsystem.AppCard
 import io.github.lopezjavier.appfitness.designsystem.AppNumberFormat
 import io.github.lopezjavier.appfitness.designsystem.AppPaint
@@ -119,7 +118,6 @@ private fun SummaryText(
                 label = stringResource(Res.string.exercise_progress_link),
                 onClick = onOpenProgress,
                 modifier = Modifier.testTag("exercise_detail_progress_link"),
-                supporting = stringResource(Res.string.px_stats_exercise_progress_hint),
                 leading = {
                     IconBadge(
                         Res.drawable.ic_insights,

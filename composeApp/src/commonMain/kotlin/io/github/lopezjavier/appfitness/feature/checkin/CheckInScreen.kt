@@ -55,9 +55,6 @@ import io.github.lopezjavier.appfitness.composeapp.resources.ic_bar_chart
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_fitness_center
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_flame_outlined
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_monitor_weight
-import io.github.lopezjavier.appfitness.composeapp.resources.ic_trending_down
-import io.github.lopezjavier.appfitness.composeapp.resources.ic_trending_flat
-import io.github.lopezjavier.appfitness.composeapp.resources.ic_trending_up
 import io.github.lopezjavier.appfitness.composeapp.resources.px_diary_checkin_energy_high
 import io.github.lopezjavier.appfitness.composeapp.resources.px_diary_checkin_energy_low
 import io.github.lopezjavier.appfitness.composeapp.resources.px_diary_checkin_record_badge
@@ -184,51 +181,9 @@ private fun SummaryBlock(state: CheckInUiState.Ready, onEvent: (CheckInEvent) ->
 @Composable
 private fun SummaryCards(summary: WeeklySummary, names: Map<String, String>) {
     Column(verticalArrangement = Arrangement.spacedBy(Spacing.cardGap)) {
-        val current = summary.training.current
-        val previous = summary.training.previous
-        val volume = current.volume.roundToInt()
         Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
             // C-24: three figures side by side, each with its change as a pill; one caption says what it compares to.
-            MetricTileRow(
-                listOf(
-                    { m ->
-                        WeekTile(
-                            label = stringResource(Res.string.checkin_volume_label),
-                            value = AppNumberFormat.integer(volume),
-                            unit = stringResource(Res.string.checkin_kg_unit),
-                            delta = volume - previous.volume.roundToInt(),
-                            tag = "checkin_summary_volume",
-                            icon = Res.drawable.ic_fitness_center,
-                            accent = AppTheme.colors.athleticCyan,
-                            modifier = m,
-                        )
-                    },
-                    { m ->
-                        WeekTile(
-                            label = stringResource(Res.string.checkin_workouts_label),
-                            value = AppNumberFormat.integer(current.workouts),
-                            unit = null,
-                            delta = current.workouts - previous.workouts,
-                            tag = "checkin_summary_workouts",
-                            icon = Res.drawable.ic_flame_outlined,
-                            accent = AppTheme.colors.neonLime,
-                            modifier = m,
-                        )
-                    },
-                    { m ->
-                        WeekTile(
-                            label = stringResource(Res.string.checkin_sets_label),
-                            value = AppNumberFormat.integer(current.sets),
-                            unit = null,
-                            delta = current.sets - previous.sets,
-                            tag = "checkin_summary_sets",
-                            icon = Res.drawable.ic_bar_chart,
-                            accent = AppTheme.colors.macroFat,
-                            modifier = m,
-                        )
-                    },
-                ),
-            )
+            MetricTileRow(weekFigures(summary).map { figure -> { m -> WeekTile(figure, m) } })
             Text(
                 text = stringResource(Res.string.checkin_delta_caption),
                 style = AppTheme.typography.bodySmall,
@@ -241,32 +196,71 @@ private fun SummaryCards(summary: WeeklySummary, names: Map<String, String>) {
     }
 }
 
+@Composable
+private fun weekFigures(summary: WeeklySummary): List<WeekFigure> {
+    val current = summary.training.current
+    val previous = summary.training.previous
+    val volume = current.volume.roundToInt()
+    return listOf(
+        WeekFigure(
+            label = stringResource(Res.string.checkin_volume_label),
+            value = AppNumberFormat.integer(volume),
+            unit = stringResource(Res.string.checkin_kg_unit),
+            delta = volume - previous.volume.roundToInt(),
+            tag = "checkin_summary_volume",
+            icon = Res.drawable.ic_fitness_center,
+            accent = AppTheme.colors.athleticCyan,
+        ),
+        WeekFigure(
+            label = stringResource(Res.string.checkin_workouts_label),
+            value = AppNumberFormat.integer(current.workouts),
+            unit = null,
+            delta = current.workouts - previous.workouts,
+            tag = "checkin_summary_workouts",
+            icon = Res.drawable.ic_flame_outlined,
+            accent = AppTheme.colors.neonLime,
+        ),
+        WeekFigure(
+            label = stringResource(Res.string.checkin_sets_label),
+            value = AppNumberFormat.integer(current.sets),
+            unit = null,
+            delta = current.sets - previous.sets,
+            tag = "checkin_summary_sets",
+            icon = Res.drawable.ic_bar_chart,
+            accent = AppTheme.colors.macroFat,
+        ),
+    )
+}
+
+/** The content of one [WeekTile]. */
+@Suppress("LongParameterList") // A plain holder of one tile.
+private class WeekFigure(
+    val label: String,
+    val value: String,
+    val unit: String?,
+    val delta: Int,
+    val tag: String,
+    val icon: DrawableResource,
+    val accent: Color,
+)
+
 /** One figure of the week with its signed difference to the week before as a pill (sign and words, not colour). */
 @Composable
-private fun WeekTile(
-    label: String,
-    value: String,
-    unit: String?,
-    delta: Int,
-    tag: String,
-    icon: DrawableResource,
-    accent: Color,
-    modifier: Modifier = Modifier,
-) {
-    val deltaText = if (delta == 0) {
+private fun WeekTile(figure: WeekFigure, modifier: Modifier = Modifier) {
+    val deltaText = if (figure.delta == 0) {
         stringResource(Res.string.checkin_delta_same_short)
     } else {
-        AppNumberFormat.signedInteger(delta)
+        AppNumberFormat.signedInteger(figure.delta)
     }
     MetricTile(
-        label = label,
-        value = value,
-        modifier = modifier.testTag(tag),
-        unit = unit,
-        accent = accent,
-        icon = icon,
+        label = figure.label,
+        value = figure.value,
+        modifier = modifier.testTag(figure.tag),
+        unit = figure.unit,
+        accent = figure.accent,
+        icon = figure.icon,
         supporting = {
-            TrendPill(deltaText, TrendTone.Neutral, direction = TrendPillDefaults.direction(delta.toDouble()))
+            TrendPill(deltaText, TrendTone.Neutral, direction = TrendPillDefaults.direction(figure.delta.toDouble()))
         },
     )
 }

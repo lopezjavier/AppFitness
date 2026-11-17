@@ -50,7 +50,6 @@ import io.github.lopezjavier.appfitness.composeapp.resources.notifications_weigh
 import io.github.lopezjavier.appfitness.composeapp.resources.notifications_weight_reminder_due
 import io.github.lopezjavier.appfitness.composeapp.resources.px_diary_notices_empty_kicker
 import io.github.lopezjavier.appfitness.composeapp.resources.px_diary_notices_pending_count
-import io.github.lopezjavier.appfitness.composeapp.resources.px_diary_notices_pending_hint
 import io.github.lopezjavier.appfitness.composeapp.resources.px_diary_notices_pending_one
 import io.github.lopezjavier.appfitness.composeapp.resources.reports_title
 import io.github.lopezjavier.appfitness.composeapp.resources.root_error_message
@@ -293,11 +292,6 @@ private fun PendingHero(count: Int) {
                     },
                     style = AppTheme.typography.titleLarge,
                     color = AppTheme.colors.textPrimary,
-                )
-                Text(
-                    text = stringResource(Res.string.px_diary_notices_pending_hint),
-                    style = AppTheme.typography.bodyMedium,
-                    color = AppTheme.colors.textSecondary,
                 )
             }
         }

@@ -5,6 +5,7 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.semantics.getOrNull
 import androidx.compose.ui.test.assertCountEquals
+import androidx.compose.ui.test.assertHasNoClickAction
 import androidx.compose.ui.test.assertHeightIsAtLeast
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
@@ -17,6 +18,7 @@ import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithTag
+import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
@@ -385,7 +387,7 @@ class DiaryScreenTest {
         rule.onNodeWithTag("diary_macro_protein").assertDoesNotExist()
         rule.onNodeWithTag("diary_section_breakfast").assertExists()
 
-        rule.onNodeWithTag("diary_goals_prompt").performClick()
+        rule.onNodeWithTag("diary_goals_prompt_cta").performClick()
 
         assertEquals(listOf<DiaryEvent>(DiaryEvent.OpenGoals), events)
     }
@@ -590,13 +592,28 @@ class DiaryScreenTest {
     }
 
     @Test
-    fun goalsPrompt_isOneNavigationRowWithoutHelp_andOpensGoals() {
+    fun mealSplit_startsCollapsed_isATouchTargetWithItsState_andExpandsToTheLegend() {
+        show(content(entries = listOf(entry("a", "breakfast", kcal = 300.0))))
+        val toggle = rule.onNodeWithTag("diary_meal_split_toggle")
+        val legendBefore = rule.onAllNodesWithText("Desayuno").fetchSemanticsNodes().size
+
+        toggle.assertHeightIsAtLeast(48.dp)
+        assertEquals("Contraída", toggle.fetchSemanticsNode().config.getOrNull(SemanticsProperties.StateDescription))
+        toggle.performClick()
+
+        assertEquals("Expandida", toggle.fetchSemanticsNode().config.getOrNull(SemanticsProperties.StateDescription))
+        rule.onAllNodesWithText("Desayuno").assertCountEquals(legendBefore + 1)
+    }
+
+    @Test
+    fun goalsPrompt_hasOneClickTarget_theButton_withoutHelp_andOpensGoals() {
         show(content(goals = DiaryGoalsState.NotSet))
 
         rule.onNodeWithText("Configura tu objetivo", useUnmergedTree = true).assertExists()
         rule.onNodeWithText("Calorías y macros diarios", useUnmergedTree = true).assertExists()
         rule.onNodeWithTag("diary_goals_prompt_help", useUnmergedTree = true).assertDoesNotExist()
-        rule.onNodeWithTag("diary_goals_prompt").performClick()
+        rule.onNodeWithTag("diary_goals_prompt").assertHasNoClickAction()
+        rule.onNodeWithTag("diary_goals_prompt_cta").performClick()
 
         assertEquals(listOf<DiaryEvent>(DiaryEvent.OpenGoals), events)
     }

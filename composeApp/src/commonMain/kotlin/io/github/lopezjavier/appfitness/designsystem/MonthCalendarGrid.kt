@@ -119,7 +119,8 @@ private class DayCell(
 
 /**
  * Month calendar, Monday first: a header with the previous/next arrows and the month title, the weekday names and one
- * 48 dp cell per day. [markedDays] carry a dot (they have diary entries), [selected] is filled and [today] outlined.
+ * 48 dp cell per day. [markedDays] (they have entries) are a soft lime disc, [selected] a lit lime disc and [today] a
+ * cyan ring.
  * Days after [today] are inert; days without entries are selectable. [onNextMonth] is disabled while [canGoNext] is
  * false. [bandDays] (a period such as the last 7 days, C-157, R-64) get one `selectedContainer` band with a 1 dp lime
  * outline around the run of cells (it breaks at the end of a calendar row). Tags: `month_calendar_prev|next|title` and

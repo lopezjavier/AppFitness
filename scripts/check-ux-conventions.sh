@@ -96,6 +96,13 @@ done < <(
     | grep -E '^composeApp/src/[^/]+Main/' | sort || true
 )
 strings_file="composeApp/src/commonMain/composeResources/values/strings.xml"
+# strings.xml plus the per-area strings_*.xml files (strings_premium_*.xml): the text guards G10, G17, G18, G25 and G26
+# scan all of them, so a premium string cannot dodge a convention by living in another file.
+strings_files=()
+[ -f "$strings_file" ] && strings_files+=("$strings_file")
+for extra in "$(dirname "$strings_file")"/strings_*.xml; do
+  [ -f "$extra" ] && strings_files+=("$extra")
+done
 
 violations=0
 warnings=0
@@ -255,7 +262,7 @@ if [ -f "$strings_file" ]; then
     [ "$rc" -eq 0 ] && report G9 "generic action text outside action_* keys (R-36)" "$hits"
   fi
   rc=0
-  hits=$(grep -HnE '\.\.\.|Deshacer' "$strings_file") || rc=$?
+  hits=$(grep -HnE '\.\.\.|Deshacer' "${strings_files[@]}") || rc=$?
   if [ "$rc" -ge 2 ]; then
     echo "UX conventions guard ERROR: grep failed with exit code $rc (G10)." >&2
     exit "$rc"
@@ -273,7 +280,7 @@ if [ -f "$strings_file" ]; then
   [ "$rc" -eq 0 ] && report G10 "three dots or 'Deshacer' in strings.xml (use the ellipsis character)" "$hits"
   # G17: Compose resources do not collapse %%, so a doubled sign prints twice (T-201). Use a single %.
   rc=0
-  hits=$(grep -HnE '%%' "$strings_file") || rc=$?
+  hits=$(grep -HnE '%%' "${strings_files[@]}") || rc=$?
   if [ "$rc" -ge 2 ]; then
     echo "UX conventions guard ERROR: grep failed with exit code $rc (G17)." >&2
     exit "$rc"
@@ -322,12 +329,12 @@ fi
 # key named *_helper/_hint/_example/_advice/_tip must be allow-listed (one short fact, disabled reason, empty
 # state, option descriptor); so must the key behind a Helper(...) / helper = ... call in feature code.
 # Limitation: advice under other key names (e.g. folder_review_result_*) is covered by review, not by this guard.
-if [ -f "$strings_file" ]; then
-  all_keys=$(grep -oE 'name="[^"]+"' "$strings_file" | sed -E 's/^name="//; s/"$//' || true)
+if [ "${#strings_files[@]}" -gt 0 ]; then
+  all_keys=$(grep -ohE 'name="[^"]+"' "${strings_files[@]}" | sed -E 's/^name="//; s/"$//' || true)
   while IFS= read -r key; do
     [ -z "$key" ] && continue
     if printf '%s' "$key" | grep -qE '_(helper|hint|example|advice|tip)$' && ! is_allowed_key "$key"; then
-      report G18 "inline helper/hint string not allow-listed (R-57: put it behind a HelpButton)" "$strings_file:1:$key"
+      report G18 "inline helper/hint string not allow-listed (R-57: put it behind a HelpButton)" "$(grep -lF "name=\"$key\"" "${strings_files[@]}" | head -n 1):1:$key"
     fi
   done <<< "$all_keys"
   for entry in "${allow_keys[@]+"${allow_keys[@]}"}"; do
@@ -404,18 +411,18 @@ scan G24 "MacroStackedBar in a Trainer root card (R-102: macros live in Plan nut
 # targets, never by TrainerScreen.kt).
 scan G27 "dialog on the Trainer root screen (R-103: dialogs belong to the card menu targets)" \
   '\b(RemoveBlockDialog|AppDatePickerDialog|AppConfirmDialog)\(' '' "${root_screen[@]+"${root_screen[@]}"}"
-if [ -f "$strings_file" ]; then
+if [ "${#strings_files[@]}" -gt 0 ]; then
   # G25 (R-100): the word "coach" is never shown; it is "entrenador".
   rc=0
-  hits=$(grep -HnE '>[^<]*\b[Cc]oach\b' "$strings_file") || rc=$?
+  hits=$(grep -HnE '>[^<]*\b[Cc]oach\b' "${strings_files[@]}") || rc=$?
   if [ "$rc" -ge 2 ]; then
     echo "UX conventions guard ERROR: grep failed with exit code $rc (G25)." >&2
     exit "$rc"
   fi
   [ "$rc" -eq 0 ] && report G25 "the word coach in strings.xml (R-100: entrenador)" "$hits"
-  # G26 (R-93): in the Trainer strings a number and its unit are joined with U+00A0 (&#160;), never a plain space.
+  # G26 (R-93): in the Trainer strings and every px_ (premium) string a number and its unit are joined with U+00A0 (&#160;), never a plain space.
   rc=0
-  hits=$(grep -HnE '<string name="(trainer|block|plan|week_summary|report)_[^"]*"[^>]*>[^<]*(%[0-9]\$[sd]|[0-9]) (kg|kcal|min|g|%)([^[:alnum:]]|$)' "$strings_file") || rc=$?
+  hits=$(grep -HnE '<string name="(trainer|block|plan|week_summary|report|px)_[^"]*"[^>]*>[^<]*(%[0-9]\$[sd]|[0-9]) (kg|kcal|min|g|%)([^[:alnum:]]|$)' "${strings_files[@]}") || rc=$?
   if [ "$rc" -ge 2 ]; then
     echo "UX conventions guard ERROR: grep failed with exit code $rc (G26)." >&2
     exit "$rc"

@@ -1,5 +1,6 @@
 package io.github.lopezjavier.appfitness.designsystem
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.ui.Modifier
@@ -31,7 +32,10 @@ class AppTopBarScreenshotTest {
     ).take(count)
 
     private fun shot(name: String, content: @androidx.compose.runtime.Composable () -> Unit) {
-        rule.setContent { AppTheme { Column(Modifier.testTag("shot")) { content() } } }
+        // The bar is transparent (the screen's ambient backdrop shows through), so the shot supplies the base colour.
+        rule.setContent {
+            AppTheme { Column(Modifier.background(AppTheme.colors.surfaceBase).testTag("shot")) { content() } }
+        }
         rule.onNodeWithTag("shot").assertScreenshot(name)
     }
 

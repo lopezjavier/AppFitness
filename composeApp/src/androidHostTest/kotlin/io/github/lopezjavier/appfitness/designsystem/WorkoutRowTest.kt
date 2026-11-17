@@ -44,13 +44,15 @@ class WorkoutRowTest {
     }
 
     @Test
-    fun theRow_showsNameDateAndOneStatsLine() {
+    fun theRow_showsNameDateAndOneStatPerFigure() {
         show()
 
         rule.onNodeWithText("Push", useUnmergedTree = true).assertIsDisplayed()
         rule.onNodeWithText("lun, 24 oct", useUnmergedTree = true).assertIsDisplayed()
-        rule.onNodeWithText("52 min · 8.400 kg · 18 series", useUnmergedTree = true).assertIsDisplayed()
-        rule.onAllNodesWithText("52 min", useUnmergedTree = true).assertCountEquals(0)
+        rule.onNodeWithText("52 min", useUnmergedTree = true).assertIsDisplayed()
+        rule.onNodeWithText("8.400 kg", useUnmergedTree = true).assertIsDisplayed()
+        rule.onNodeWithText("18 series", useUnmergedTree = true).assertIsDisplayed()
+        rule.onAllNodesWithText("52 min · 8.400 kg · 18 series", useUnmergedTree = true).assertCountEquals(0)
     }
 
     @Test

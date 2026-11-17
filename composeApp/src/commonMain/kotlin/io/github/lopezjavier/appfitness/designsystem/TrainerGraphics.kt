@@ -1,3 +1,5 @@
+@file:Suppress("MatchingDeclarationName") // The file holds the components and their Defaults object.
+
 package io.github.lopezjavier.appfitness.designsystem
 
 import androidx.compose.foundation.background
@@ -16,6 +18,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 
@@ -29,7 +32,8 @@ object TrainerGraphicsDefaults {
 /**
  * Two stacked bars that compare a figure [before] and [after] on the same scale: the first one dim, the second one
  * lit with the ramp of [color] (a drop is drawn in [dropColor]). Each bar carries its own [beforeLabel] / [afterLabel]
- * at its end. Decorative: the caller writes the figures and the change as text elsewhere in the row.
+ * at its end. Decorative for the bars; the figures are spoken through [description] ("100 → 105 kg") when given, or
+ * written as text by the caller elsewhere in the row.
  */
 @Composable
 fun TrainerBeforeAfter(
@@ -40,12 +44,13 @@ fun TrainerBeforeAfter(
     modifier: Modifier = Modifier,
     color: Color = AppTheme.colors.neonLime,
     dropColor: Color = AppTheme.colors.energyAmber,
+    description: String? = null,
 ) {
     val reveal = rememberFillProgress()
     val top = maxOf(before, after).takeIf { it > 0.0 } ?: 1.0
     val tone = if (after < before) dropColor else color
     Column(
-        modifier.fillMaxWidth().clearAndSetSemantics {},
+        modifier.fillMaxWidth().clearAndSetSemantics { description?.let { contentDescription = it } },
         verticalArrangement = Arrangement.spacedBy(Spacing.xs),
     ) {
         BeforeAfterBar((before / top).toFloat(), beforeLabel, AppTheme.colors.textTertiary, true, reveal.value)
@@ -93,8 +98,8 @@ private fun BeforeAfterBar(fraction: Float, label: String, tone: Color, dim: Boo
 @Composable
 fun TrainerTintedRow(
     accent: Color,
-    modifier: Modifier = Modifier,
     leading: @Composable () -> Unit,
+    modifier: Modifier = Modifier,
     content: @Composable () -> Unit,
 ) {
     Row(

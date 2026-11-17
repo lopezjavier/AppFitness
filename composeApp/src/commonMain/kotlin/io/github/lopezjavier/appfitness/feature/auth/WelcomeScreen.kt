@@ -148,30 +148,35 @@ private fun BrandZone(logoWidth: Dp, modifier: Modifier = Modifier) {
                 modifier = Modifier.padding(top = Spacing.sm).testTag("welcome_tagline"),
             )
         }
-        Column(
-            Modifier.padding(top = Spacing.xl).widthIn(max = WindowWidthClassDefaults.NarrowContentMaxWidth),
-            verticalArrangement = Arrangement.spacedBy(Spacing.md),
-        ) {
-            StartValueProp(
-                Res.drawable.ic_restaurant_outlined,
-                AppTheme.colors.neonLime,
-                stringResource(Res.string.px_start_prop_nutrition_title),
-                stringResource(Res.string.px_start_prop_nutrition_text),
-            )
-            StartValueProp(
-                Res.drawable.ic_fitness_center,
-                AppTheme.colors.athleticCyan,
-                stringResource(Res.string.px_start_prop_training_title),
-                stringResource(Res.string.px_start_prop_training_text),
-            )
-            StartValueProp(
-                Res.drawable.ic_insights,
-                AppTheme.colors.energyAmber,
-                stringResource(Res.string.px_start_prop_progress_title),
-                stringResource(Res.string.px_start_prop_progress_text),
-            )
-        }
+        ValueProps()
         Spacer(Modifier.height(Spacing.lg))
+    }
+}
+
+@Composable
+private fun ValueProps() {
+    Column(
+        Modifier.padding(top = Spacing.xl).widthIn(max = WindowWidthClassDefaults.NarrowContentMaxWidth),
+        verticalArrangement = Arrangement.spacedBy(Spacing.md),
+    ) {
+        StartValueProp(
+            Res.drawable.ic_restaurant_outlined,
+            AppTheme.colors.neonLime,
+            stringResource(Res.string.px_start_prop_nutrition_title),
+            stringResource(Res.string.px_start_prop_nutrition_text),
+        )
+        StartValueProp(
+            Res.drawable.ic_fitness_center,
+            AppTheme.colors.athleticCyan,
+            stringResource(Res.string.px_start_prop_training_title),
+            stringResource(Res.string.px_start_prop_training_text),
+        )
+        StartValueProp(
+            Res.drawable.ic_insights,
+            AppTheme.colors.energyAmber,
+            stringResource(Res.string.px_start_prop_progress_title),
+            stringResource(Res.string.px_start_prop_progress_text),
+        )
     }
 }
 

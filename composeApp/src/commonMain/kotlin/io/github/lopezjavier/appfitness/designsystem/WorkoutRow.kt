@@ -23,6 +23,7 @@ import io.github.lopezjavier.appfitness.composeapp.resources.Res
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_bar_chart
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_chevron_right
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_fitness_center
+import io.github.lopezjavier.appfitness.composeapp.resources.ic_monitor_weight
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_timer
 import org.jetbrains.compose.resources.DrawableResource
 import org.jetbrains.compose.resources.painterResource
@@ -74,7 +75,7 @@ fun WorkoutRow(
                     verticalArrangement = Arrangement.spacedBy(Spacing.xs),
                 ) {
                     WorkoutStat(Res.drawable.ic_timer, durationText)
-                    volumeText?.let { WorkoutStat(Res.drawable.ic_fitness_center, it) }
+                    volumeText?.let { WorkoutStat(Res.drawable.ic_monitor_weight, it) }
                     WorkoutStat(Res.drawable.ic_bar_chart, setsText)
                 }
             }

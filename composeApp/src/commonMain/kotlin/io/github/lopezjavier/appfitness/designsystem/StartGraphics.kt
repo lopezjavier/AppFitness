@@ -1,3 +1,5 @@
+@file:Suppress("MatchingDeclarationName") // The file holds the components and their Defaults object.
+
 package io.github.lopezjavier.appfitness.designsystem
 
 import androidx.compose.animation.core.LinearEasing
@@ -19,7 +21,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.State
-import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -67,7 +69,7 @@ fun StartHeroStage(modifier: Modifier = Modifier, content: @Composable BoxScope.
             label = "orbit_angle",
         )
     } else {
-        remember { mutableStateOf(40f) }
+        remember { mutableFloatStateOf(40f) }
     }
     Box(
         modifier
@@ -177,7 +179,7 @@ fun StartShimmerBar(modifier: Modifier = Modifier) {
             label = "shimmer_phase",
         )
     } else {
-        remember { mutableStateOf(0.3f) }
+        remember { mutableFloatStateOf(0.3f) }
     }
     Box(
         modifier.width(StartDefaults.ShimmerWidth).height(StartDefaults.ShimmerHeight).clip(AppShapes.full)

@@ -1,3 +1,5 @@
+@file:Suppress("MatchingDeclarationName") // The file holds the components and their Defaults object.
+
 package io.github.lopezjavier.appfitness.designsystem
 
 import androidx.compose.foundation.background
@@ -6,6 +8,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
@@ -17,6 +20,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.Role
@@ -63,35 +67,7 @@ fun DiaryEnergyScale(
                     colors.neonLime,
                     index / (options.size - 1).coerceAtLeast(1).toFloat(),
                 )
-                val selected = index == selectedIndex
-                val shape = AppShapes.md
-                Box(
-                    Modifier
-                        .weight(1f)
-                        .heightIn(min = DiaryEnergyScaleDefaults.CellHeight)
-                        .clip(shape)
-                        .background(
-                            if (selected) AppPaint.vertical(tone) else AppPaint.tintSurface(tone),
-                        )
-                        .border(
-                            if (selected) AppBorder.focus else AppBorder.thin,
-                            if (selected) tone else tone.copy(alpha = 0.35f),
-                            shape,
-                        )
-                        .selectable(selected = selected, enabled = enabled, role = Role.RadioButton) { onSelect(index) }
-                        .semantics { option.contentDescription?.let { contentDescription = it } }
-                        .testTag(option.testTag),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    Text(
-                        text = option.label,
-                        style = AppTheme.typography.headlineMetric.copy(
-                            fontWeight = if (selected) FontWeight.W700 else FontWeight.W500,
-                        ),
-                        color = if (selected) colors.surfaceBase else colors.textPrimary,
-                        textAlign = TextAlign.Center,
-                    )
-                }
+                EnergyCell(option, tone, index == selectedIndex, enabled) { onSelect(index) }
             }
         }
         Row(Modifier.fillMaxWidth().padding(horizontal = Spacing.xs)) {
@@ -109,5 +85,42 @@ fun DiaryEnergyScale(
                 modifier = Modifier.weight(1f),
             )
         }
+    }
+}
+
+@Composable
+private fun RowScope.EnergyCell(
+    option: AppOption,
+    tone: Color,
+    selected: Boolean,
+    enabled: Boolean,
+    onSelect: () -> Unit,
+) {
+    val colors = AppTheme.colors
+    val shape = AppShapes.md
+    Box(
+        Modifier
+            .weight(1f)
+            .heightIn(min = DiaryEnergyScaleDefaults.CellHeight)
+            .clip(shape)
+            .background(if (selected) AppPaint.vertical(tone) else AppPaint.tintSurface(tone))
+            .border(
+                if (selected) AppBorder.focus else AppBorder.thin,
+                if (selected) tone else tone.copy(alpha = 0.35f),
+                shape,
+            )
+            .selectable(selected = selected, enabled = enabled, role = Role.RadioButton, onClick = onSelect)
+            .semantics { option.contentDescription?.let { contentDescription = it } }
+            .testTag(option.testTag),
+        contentAlignment = Alignment.Center,
+    ) {
+        Text(
+            text = option.label,
+            style = AppTheme.typography.headlineMetric.copy(
+                fontWeight = if (selected) FontWeight.W700 else FontWeight.W500,
+            ),
+            color = if (selected) colors.surfaceBase else colors.textPrimary,
+            textAlign = TextAlign.Center,
+        )
     }
 }

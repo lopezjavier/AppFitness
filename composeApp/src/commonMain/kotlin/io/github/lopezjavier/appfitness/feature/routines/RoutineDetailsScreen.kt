@@ -1,3 +1,5 @@
+@file:Suppress("TooManyFunctions") // The screen, its blocks and the set summaries.
+
 package io.github.lopezjavier.appfitness.feature.routines
 
 import androidx.compose.foundation.layout.Arrangement

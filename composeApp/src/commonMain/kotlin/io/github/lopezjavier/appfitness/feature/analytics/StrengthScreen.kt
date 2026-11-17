@@ -27,7 +27,6 @@ import io.github.lopezjavier.appfitness.composeapp.resources.action_retry
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_fitness_center
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_insights
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_nav_workout
-import io.github.lopezjavier.appfitness.composeapp.resources.px_stats_exercise_progress_hint
 import io.github.lopezjavier.appfitness.composeapp.resources.px_stats_strength_record_badge
 import io.github.lopezjavier.appfitness.composeapp.resources.strength_card_title
 import io.github.lopezjavier.appfitness.composeapp.resources.strength_delta_down
@@ -171,7 +170,6 @@ private fun StrengthContent(
                     label = stringResource(Res.string.strength_open_exercise),
                     onClick = { onOpenExercise(state.selectedId) },
                     modifier = Modifier.testTag("strength_open_exercise"),
-                    supporting = stringResource(Res.string.px_stats_exercise_progress_hint),
                     leading = {
                         IconBadge(
                             Res.drawable.ic_insights,

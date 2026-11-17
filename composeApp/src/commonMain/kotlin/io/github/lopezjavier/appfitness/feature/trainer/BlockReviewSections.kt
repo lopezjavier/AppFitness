@@ -31,6 +31,7 @@ import io.github.lopezjavier.appfitness.composeapp.resources.ic_flag
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_monitor_weight
 import io.github.lopezjavier.appfitness.composeapp.resources.px_trainer_record
 import io.github.lopezjavier.appfitness.composeapp.resources.report_lift_change
+import io.github.lopezjavier.appfitness.composeapp.resources.report_lift_range
 import io.github.lopezjavier.appfitness.designsystem.AppListRow
 import io.github.lopezjavier.appfitness.designsystem.AppPaint
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
@@ -107,7 +108,17 @@ private fun LiftRow(lift: BlockLift, name: String, stalledLabel: String) {
         Column(verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
             Text(text = name, style = AppTheme.typography.titleMedium, color = AppTheme.colors.textPrimary)
             if (first != null && last != null) {
-                TrainerBeforeAfter(first, last, WeekSummaryText.kg(first), WeekSummaryText.kg(last))
+                TrainerBeforeAfter(
+                    before = first,
+                    after = last,
+                    beforeLabel = WeekSummaryText.kg(first),
+                    afterLabel = WeekSummaryText.kg(last),
+                    description = stringResource(
+                        Res.string.report_lift_range,
+                        WeekSummaryText.kg(first),
+                        WeekSummaryText.kg(last),
+                    ),
+                )
             } else {
                 Text(
                     text = stringResource(Res.string.block_review_trend_none),
@@ -115,22 +126,25 @@ private fun LiftRow(lift: BlockLift, name: String, stalledLabel: String) {
                     color = AppTheme.colors.textSecondary,
                 )
             }
-            if (change != null || lift.stalled || record) {
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(Spacing.xs),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    if (change != null) LiftChangePill(lift, change)
-                    if (record) RecordBadge(stringResource(Res.string.px_trainer_record))
-                    if (lift.stalled) {
-                        StatusChip(
-                            stalledLabel,
-                            StatusTone.Caution,
-                            Modifier.testTag("block_review_lift_${lift.exerciseId}_stall"),
-                        )
-                    }
-                }
-            }
+            if (change != null || lift.stalled || record) LiftBadges(lift, change, record, stalledLabel)
+        }
+    }
+}
+
+@Composable
+private fun LiftBadges(lift: BlockLift, change: Double?, record: Boolean, stalledLabel: String) {
+    Row(
+        horizontalArrangement = Arrangement.spacedBy(Spacing.xs),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        if (change != null) LiftChangePill(lift, change)
+        if (record) RecordBadge(stringResource(Res.string.px_trainer_record))
+        if (lift.stalled) {
+            StatusChip(
+                stalledLabel,
+                StatusTone.Caution,
+                Modifier.testTag("block_review_lift_${lift.exerciseId}_stall"),
+            )
         }
     }
 }

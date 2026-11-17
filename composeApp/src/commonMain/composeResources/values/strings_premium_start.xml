@@ -3,7 +3,7 @@
     <string name="px_start_tagline">Tu diario, tu entrenador y tu progreso en un solo sitio.</string>
     <string name="px_start_prop_nutrition_title">Diario de nutrición</string>
     <string name="px_start_prop_nutrition_text">Registra comidas y macros sin esfuerzo</string>
-    <string name="px_start_prop_training_title">Entrena con un coach</string>
+    <string name="px_start_prop_training_title">Entrenamiento a tu medida</string>
     <string name="px_start_prop_training_text">Rutinas y cargas que se adaptan a ti</string>
     <string name="px_start_prop_progress_title">Progreso visible</string>
     <string name="px_start_prop_progress_text">Peso, medidas y récords de un vistazo</string>
@@ -12,6 +12,6 @@
     <string name="px_start_macro_protein">Proteína</string>
     <string name="px_start_macro_carbs">Hidratos</string>
     <string name="px_start_macro_fat">Grasas</string>
-    <string name="px_start_grams">%1$d g</string>
+    <string name="px_start_grams">%1$d&#160;g</string>
     <string name="px_start_saved_subtitle">Ya puedes empezar tu diario.</string>
 </resources>
