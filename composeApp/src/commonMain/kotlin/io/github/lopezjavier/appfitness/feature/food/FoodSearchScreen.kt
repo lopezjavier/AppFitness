@@ -45,7 +45,6 @@ import io.github.lopezjavier.appfitness.composeapp.resources.food_tab_templates
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_add
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_auto_awesome
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_barcode_scanner
-import io.github.lopezjavier.appfitness.composeapp.resources.ic_restaurant_outlined
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_search
 import io.github.lopezjavier.appfitness.designsystem.AppIconButton
 import io.github.lopezjavier.appfitness.designsystem.AppListRow
@@ -54,12 +53,10 @@ import io.github.lopezjavier.appfitness.designsystem.AppScreen
 import io.github.lopezjavier.appfitness.designsystem.AppSearchField
 import io.github.lopezjavier.appfitness.designsystem.AppStateAction
 import io.github.lopezjavier.appfitness.designsystem.AppTabRow
-import io.github.lopezjavier.appfitness.designsystem.AppTheme
 import io.github.lopezjavier.appfitness.designsystem.AppTopBarAction
 import io.github.lopezjavier.appfitness.designsystem.EmptyState
 import io.github.lopezjavier.appfitness.designsystem.ErrorState
 import io.github.lopezjavier.appfitness.designsystem.FavouriteToggle
-import io.github.lopezjavier.appfitness.designsystem.IconBadge
 import io.github.lopezjavier.appfitness.designsystem.OfflineState
 import io.github.lopezjavier.appfitness.designsystem.PrimaryButton
 import io.github.lopezjavier.appfitness.designsystem.SkeletonBox
@@ -359,7 +356,6 @@ private fun FoodRow(
         headline = food.name,
         modifier = modifier.testTag("${TAG}_row_${food.id}"),
         supporting = if (brand != null) "$brand · $per100" else per100,
-        leading = { IconBadge(Res.drawable.ic_restaurant_outlined, AppTheme.colors.neonLime) },
         trailing = {
             Row(
                 verticalAlignment = Alignment.CenterVertically,
