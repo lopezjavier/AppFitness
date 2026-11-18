@@ -91,13 +91,18 @@ data class Routine(
 /** A folder of routines ("Mis rutinas" itself is the no-folder group). */
 data class RoutineFolder(val id: String, val name: String)
 
-/** One row of "Mis rutinas". The list arrives sorted by the user's manual order (position). */
+/**
+ * One row of "Mis rutinas". The list arrives sorted by the user's manual order (position). [exerciseIds] feeds the
+ * part derivation; [part] is [RoutinePart.Generic] as read and is filled by the ViewModel (display only, never stored).
+ */
 data class RoutineSummary(
     val id: String,
     val name: String,
     val exerciseCount: Int,
     val folderId: String? = null,
     val isNext: Boolean = false,
+    val exerciseIds: List<String> = emptyList(),
+    val part: RoutinePart = RoutinePart.Generic,
 )
 
 /** A group of routines: a folder, or the no-folder group ("Mis rutinas") when [folder] is null. */

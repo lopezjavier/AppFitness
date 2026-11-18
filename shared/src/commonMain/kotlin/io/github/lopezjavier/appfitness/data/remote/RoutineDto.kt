@@ -15,21 +15,27 @@ import io.github.lopezjavier.appfitness.domain.usecase.plannedSetsFromLegacy
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
-/** `routines` row with PostgREST's embedded count of its exercises (`routine_exercises(count)`). */
+/** `routines` row with the ids of its exercises embedded by PostgREST (`routine_exercises(exercise_id)`). */
 @Serializable
 internal data class RoutineSummaryDto(
     val id: String,
     val name: String,
     @SerialName("folder_id") val folderId: String? = null,
     @SerialName("is_next") val isNext: Boolean = false,
-    @SerialName("routine_exercises") val exercises: List<CountDto> = emptyList(),
+    @SerialName("routine_exercises") val exercises: List<ExerciseIdDto> = emptyList(),
 ) {
-    fun toDomain() = RoutineSummary(id, name, exercises.firstOrNull()?.count ?: 0, folderId, isNext)
+    fun toDomain(): RoutineSummary {
+        val ids = exercises.map { it.exerciseId }
+        return RoutineSummary(id, name, ids.size, folderId, isNext, ids)
+    }
 
     companion object {
-        const val COLUMNS = "id,name,folder_id,is_next,routine_exercises(count)"
+        const val COLUMNS = "id,name,folder_id,is_next,routine_exercises(exercise_id)"
     }
 }
+
+@Serializable
+internal data class ExerciseIdDto(@SerialName("exercise_id") val exerciseId: String)
 
 /** `routine_folders` row. */
 @Serializable
@@ -40,9 +46,6 @@ internal data class RoutineFolderDto(val id: String, val name: String) {
         const val COLUMNS = "id,name"
     }
 }
-
-@Serializable
-internal data class CountDto(val count: Int)
 
 /** `routines` row with its `routine_exercises` and their planned sets. */
 @Serializable
