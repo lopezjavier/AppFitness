@@ -114,6 +114,52 @@ Feature: Preferencias and the plan's calories
     Then the unit is drawn beside the number and never over it
 ```
 
+## US-140 · The trainer owns the activity level (T-308)
+**As** the user
+**I want** my activity level measured from my steps or watch when they exist, and never to block my plan when it changes nothing
+**So that** I only answer what the app cannot measure (ADR-109, `07` §2, `04` §7).
+
+```gherkin
+Feature: Activity level owned by the trainer
+
+  Scenario: Measured level is read-only
+    Given 7 or more days of steps in the last 28 days
+    When I open "Tus datos"
+    Then "Nivel de actividad" shows the level and "Según tus pasos: 8.200 al día" with no chip and no sheet
+
+  Scenario: Watch calories as basis
+    Given no steps but 7 or more days of active kcal
+    Then the row says "Según tu reloj: N kcal activas al día" and is read-only
+
+  Scenario: Without data it is my answer
+    Given fewer than 7 days of steps and of active kcal
+    Then the row is editable, has the "Provisional" chip and says "Según lo que nos contaste"
+
+  Scenario: The level does not block Aceptar when calories come from maintenance or measured data
+    Given a provisional level and the expenditure source is my stated maintenance or the adaptive one
+    Then "Aceptar" is enabled and "Valores por confirmar" does not list "Nivel de actividad"
+    And the activity row keeps its "Provisional" chip (it is still my answer; the chip does not block)
+    And a "?" on the row (Plan and Antes de empezar) opens a sheet "Nivel de actividad" saying it does not change my calories
+
+  Scenario: The level blocks on the formula path
+    Given a provisional level and the expenditure is BMR x factor
+    Then "Valores por confirmar" lists "Nivel de actividad" and "Aceptar" is disabled
+
+  Scenario: Provisional ends with data
+    Given the weight trend is used in the expenditure (20 diary days, 4 weekly averages, 8 weigh-in days)
+    Then "Calorías de mantenimiento" has no chip and does not block; with a diary alone it keeps "Provisional"
+    And Experiencia and Tiempo entrenando lose the chip together when my history reaches the class I reported
+
+  Scenario: Preferencias explains the answer
+    When I open the "Nivel de actividad" picker in Preferencias
+    Then its header has a "?" that says it is used only without step or watch data
+
+  Scenario: Leaving the app
+    Given the activity sheet is open on a level I picked but not saved
+    When I leave the app and come back, or data makes the level measured
+    Then the sheet is restored, or closed silently with no stale draft if the level became measured
+```
+
 ## US-123 · Review of all the UI
 **As** the user
 **I want** all the UI reviewed
