@@ -21,14 +21,23 @@ import kotlin.time.Instant
 private const val TOP_LIMIT = 3
 private const val DELTA_DAYS = 30
 
-/** Ids of the most trained exercises (by completed sessions since [since]); ties go to the most recent one. */
+/**
+ * Ids of the most trained exercises (by completed sessions since [since]); ties go to the most recent one. Ids in
+ * [excluded] (the cardio exercises, for Fuerza) are never ranked.
+ */
 object RankTopExercises {
-    operator fun invoke(sessions: List<WorkoutSession>, since: Instant, limit: Int = TOP_LIMIT): List<String> {
+    operator fun invoke(
+        sessions: List<WorkoutSession>,
+        since: Instant,
+        limit: Int = TOP_LIMIT,
+        excluded: Set<String> = emptySet(),
+    ): List<String> {
         val lastSeen = mutableMapOf<String, Instant>()
         val counts = mutableMapOf<String, Int>()
         sessions.filter { it.startedAt >= since }.forEach { session ->
             session.exercises.filter { exercise -> exercise.sets.any { it.isCompleted } }
                 .map { it.exerciseId }
+                .filter { it !in excluded }
                 .distinct()
                 .forEach { id ->
                     counts[id] = (counts[id] ?: 0) + 1

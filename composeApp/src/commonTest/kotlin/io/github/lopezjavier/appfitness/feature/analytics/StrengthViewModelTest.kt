@@ -4,6 +4,8 @@ import androidx.lifecycle.SavedStateHandle
 import io.github.lopezjavier.appfitness.domain.AppError
 import io.github.lopezjavier.appfitness.domain.model.Equipment
 import io.github.lopezjavier.appfitness.domain.model.ExerciseHistoryPoint
+import io.github.lopezjavier.appfitness.domain.model.ExerciseMetricType
+import io.github.lopezjavier.appfitness.domain.model.MovementPattern
 import io.github.lopezjavier.appfitness.domain.model.MuscleGroup
 import io.github.lopezjavier.appfitness.feature.exercises.FakeExerciseLibrary
 import io.github.lopezjavier.appfitness.feature.exercises.FakeExerciseRepository
@@ -79,6 +81,24 @@ class StrengthViewModelTest {
         assertEquals(listOf("bench", "squat", "row"), content.chips.map { it.exerciseId })
         assertEquals(listOf("Press de banca", "Sentadilla", "Remo"), content.chips.map { it.name })
         assertEquals("bench", content.selectedId)
+    }
+
+    @Test
+    fun cardioExercisesNeverAppearAsChipsEvenWhenTheyAreTheMostTrained() = runTest(dispatcher) {
+        exercises.rows += exerciseRow("run", "run", metric = ExerciseMetricType.DistanceDuration)
+        exercises.rows += exerciseRow("bike", "bike", pattern = MovementPattern.Cardio)
+        library.entries += mapOf("run" to exerciseInfo("run", "Correr"), "bike" to exerciseInfo("bike", "Bici"))
+        strength.sessions = listOf(
+            completedWith("a", "2026-10-01T10:00:00Z", "run", "bike", "bench"),
+            completedWith("b", "2026-10-08T10:00:00Z", "run", "bike", "bench"),
+            completedWith("c", "2026-10-15T10:00:00Z", "run", "squat"),
+        )
+        workouts.history = mapOf("bench" to listOf(point(LocalDate(2026, 10, 15), 100.0)))
+        val model = viewModel()
+
+        advanceUntilIdle()
+
+        assertEquals(listOf("bench", "squat"), model.content().chips.map { it.exerciseId })
     }
 
     @Test
