@@ -22,17 +22,18 @@ import androidx.compose.ui.text.style.TextOverflow
 import io.github.lopezjavier.appfitness.composeapp.resources.Res
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_bar_chart
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_chevron_right
-import io.github.lopezjavier.appfitness.composeapp.resources.ic_fitness_center
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_monitor_weight
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_timer
+import io.github.lopezjavier.appfitness.domain.model.RoutinePart
 import org.jetbrains.compose.resources.DrawableResource
 import org.jetbrains.compose.resources.painterResource
 
 /**
- * A completed workout in a list (R-16): a card with a lit icon badge, [name] as the headline (`titleMedium`, one
- * line), [dateText] ("lun, 24 oct") as the supporting line and the figures [durationText], [volumeText] (when there
- * is one) and [setsText] as small stats with a glyph each. The card is one tappable target of at least 48 dp that
- * reads as the single sentence [contentDescription]; the caller passes the already formatted texts and owns the [tag].
+ * A completed workout in a list (R-16): a card with the training-part icon badge of the routine ([part]), [name] as
+ * the headline (`titleMedium`, one line), [dateText] ("lun, 24 oct") as the supporting line and the figures
+ * [durationText], [volumeText] (when there is one) and [setsText] as small stats with a glyph each. The card is one
+ * tappable target of at least 48 dp that reads as the single sentence [contentDescription]; the caller passes the
+ * already formatted texts and owns the [tag].
  */
 @OptIn(ExperimentalLayoutApi::class) // FlowRow lets the stats wrap at large font scales.
 @Suppress("LongParameterList") // One slot per figure of the row.
@@ -46,6 +47,7 @@ fun WorkoutRow(
     onClick: () -> Unit,
     contentDescription: String,
     modifier: Modifier = Modifier,
+    part: RoutinePart = RoutinePart.Generic,
     tag: String = "workout_row",
 ) {
     AppCard(
@@ -60,7 +62,7 @@ fun WorkoutRow(
             horizontalArrangement = Arrangement.spacedBy(Spacing.md),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            IconBadge(Res.drawable.ic_fitness_center, AppTheme.colors.athleticCyan)
+            TrainingPartIcon(part, isNext = false, modifier = Modifier.testTag("${tag}_part_icon"))
             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
                 Text(
                     text = name,

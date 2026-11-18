@@ -89,6 +89,7 @@ import io.github.lopezjavier.appfitness.designsystem.StatRing
 import io.github.lopezjavier.appfitness.designsystem.StatusChip
 import io.github.lopezjavier.appfitness.designsystem.StatusTone
 import io.github.lopezjavier.appfitness.designsystem.SummaryCard
+import io.github.lopezjavier.appfitness.designsystem.TrainingPartGlyph
 import io.github.lopezjavier.appfitness.domain.model.BlockPause
 import io.github.lopezjavier.appfitness.domain.model.PlanWeek
 import io.github.lopezjavier.appfitness.domain.model.PlanWeekSession
@@ -529,13 +530,21 @@ private fun SessionCardText(week: PlanWeek, session: PlanWeekSession, state: Str
         modifier.semantics(mergeDescendants = true) { contentDescription = description },
         verticalArrangement = Arrangement.spacedBy(Spacing.xs),
     ) {
-        Text(
-            text = session.name,
-            style = AppTheme.typography.titleMedium,
-            color = AppTheme.colors.textPrimary,
-            maxLines = 2,
-            overflow = TextOverflow.Ellipsis,
-        )
+        Row(horizontalArrangement = Arrangement.spacedBy(Spacing.xs), verticalAlignment = Alignment.CenterVertically) {
+            // The bare glyph is 24 dp, as tall as the titleMedium line: the tile keeps its height.
+            TrainingPartGlyph(
+                routinePartOfName(session.name),
+                Modifier.testTag("trainer_box_block_session_icon_${week.week}_${session.sessionIndex}"),
+            )
+            Text(
+                text = session.name,
+                style = AppTheme.typography.titleMedium,
+                color = AppTheme.colors.textPrimary,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.weight(1f),
+            )
+        }
         Row(horizontalArrangement = Arrangement.spacedBy(Spacing.xs), verticalAlignment = Alignment.CenterVertically) {
             if (session.done) {
                 IconBadge(

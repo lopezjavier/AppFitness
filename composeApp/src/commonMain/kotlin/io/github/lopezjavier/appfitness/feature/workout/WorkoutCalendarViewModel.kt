@@ -3,6 +3,7 @@ package io.github.lopezjavier.appfitness.feature.workout
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import io.github.lopezjavier.appfitness.domain.model.Exercise
 import io.github.lopezjavier.appfitness.domain.model.TrainedSession
 import io.github.lopezjavier.appfitness.domain.model.WorkoutSession
 import io.github.lopezjavier.appfitness.domain.port.Clock
@@ -12,8 +13,9 @@ import io.github.lopezjavier.appfitness.domain.repository.TrainingPreferencesRep
 import io.github.lopezjavier.appfitness.domain.repository.WorkoutSessionRepository
 import io.github.lopezjavier.appfitness.domain.repository.warmUpIncludedOrDefault
 import io.github.lopezjavier.appfitness.domain.usecase.ComputeSessionStats
+import io.github.lopezjavier.appfitness.domain.usecase.DeriveRoutinePart
 import io.github.lopezjavier.appfitness.domain.usecase.TrainingCalendar
-import io.github.lopezjavier.appfitness.domain.usecase.perHandIdsOrDefault
+import io.github.lopezjavier.appfitness.domain.usecase.perHandIds
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.Flow
@@ -52,6 +54,7 @@ class WorkoutCalendarViewModel(
     private val savedState: SavedStateHandle = SavedStateHandle(),
     private val zone: TimeZone = TimeZone.currentSystemDefault(),
 ) : ViewModel() {
+    private val derivePart = DeriveRoutinePart()
     private var days: Map<LocalDate, List<TrainedSession>> = emptyMap()
     private var terminal: WorkoutCalendarUiState? = WorkoutCalendarUiState.Loading
 
@@ -173,7 +176,9 @@ class WorkoutCalendarViewModel(
         cardsJob = viewModelScope.launch {
             val includeWarmUp = preferences.warmUpIncludedOrDefault()
             val bodyWeightKg = bodyMeasurements.getLatestWeight().getOrNull()?.weightKg
-            val perHandIds = exercises.perHandIdsOrDefault()
+            val all = exercises.getAll().getOrNull().orEmpty()
+            val perHandIds = all.perHandIds()
+            val catalog = all.associateBy { it.id }
             val rows = mutableListOf<HistoryRow>()
             for (summary in sessions) {
                 val session = repository.getSession(summary.id).getOrNull()
@@ -182,7 +187,7 @@ class WorkoutCalendarViewModel(
                     publish()
                     return@launch
                 }
-                rows += session.toRow(includeWarmUp, bodyWeightKg, perHandIds)
+                rows += session.toRow(includeWarmUp, bodyWeightKg, perHandIds, catalog)
             }
             dayCards = DayCardsState.Loaded(rows)
             publish()
@@ -193,6 +198,7 @@ class WorkoutCalendarViewModel(
         includeWarmUp: Boolean,
         bodyWeightKg: Double?,
         perHandIds: Set<String>,
+        catalog: Map<String, Exercise>,
     ): HistoryRow {
         val stats = ComputeSessionStats(this, includeWarmUp, bodyWeightKg, perHandIds)
         return HistoryRow(
@@ -202,6 +208,7 @@ class WorkoutCalendarViewModel(
             durationSeconds = stats.durationSeconds,
             volumeKg = stats.volumeKg,
             completedSets = stats.completedSets,
+            part = derivePart(name, exercises.mapNotNull { catalog[it.exerciseId] }),
         )
     }
 

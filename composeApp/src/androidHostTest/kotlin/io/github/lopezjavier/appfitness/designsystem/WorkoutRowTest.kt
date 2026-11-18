@@ -10,6 +10,7 @@ import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.unit.dp
+import io.github.lopezjavier.appfitness.domain.model.RoutinePart
 import org.junit.Assert.assertEquals
 import org.junit.Rule
 import org.junit.Test
@@ -62,6 +63,27 @@ class WorkoutRowTest {
         rule.onNodeWithTag("workout_row_test").assertHeightIsAtLeast(48.dp)
         rule.onNodeWithTag("workout_row_test")
             .assertContentDescriptionEquals("Push, lun 24 oct, 52 min, 8.400 kg, 18 series")
+    }
+
+    @Test
+    fun theRow_showsTheTrainingPartIconOfItsRoutine() {
+        rule.setContent {
+            AppTheme {
+                WorkoutRow(
+                    name = "Push",
+                    dateText = "lun, 24 oct",
+                    durationText = "52 min",
+                    volumeText = null,
+                    setsText = "18 series",
+                    onClick = {},
+                    contentDescription = "Push",
+                    part = RoutinePart.Push,
+                    tag = "workout_row_test",
+                )
+            }
+        }
+
+        rule.onNodeWithTag("workout_row_test_part_icon", useUnmergedTree = true).assertIsDisplayed()
     }
 
     @Test

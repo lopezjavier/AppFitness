@@ -62,6 +62,7 @@ import io.github.lopezjavier.appfitness.designsystem.SwipeToDeleteRow
 import io.github.lopezjavier.appfitness.designsystem.TimeRange
 import io.github.lopezjavier.appfitness.designsystem.TimeRangeSelector
 import io.github.lopezjavier.appfitness.designsystem.WorkoutRow
+import io.github.lopezjavier.appfitness.domain.model.RoutinePart
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.stringResource
@@ -178,6 +179,7 @@ private fun RowsSection() {
             setsText = stringResource(Res.string.catalog_rows_workout_sets),
             onClick = {},
             contentDescription = stringResource(Res.string.catalog_rows_workout_cd),
+            part = RoutinePart.Push,
             tag = "catalog_workout_row",
         )
         AddItemButton(

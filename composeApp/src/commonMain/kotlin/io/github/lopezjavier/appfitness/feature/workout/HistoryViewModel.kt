@@ -2,6 +2,7 @@ package io.github.lopezjavier.appfitness.feature.workout
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import io.github.lopezjavier.appfitness.domain.model.Exercise
 import io.github.lopezjavier.appfitness.domain.model.WorkoutSession
 import io.github.lopezjavier.appfitness.domain.port.Clock
 import io.github.lopezjavier.appfitness.domain.repository.BodyMeasurementRepository
@@ -10,7 +11,8 @@ import io.github.lopezjavier.appfitness.domain.repository.TrainingPreferencesRep
 import io.github.lopezjavier.appfitness.domain.repository.WorkoutSessionRepository
 import io.github.lopezjavier.appfitness.domain.repository.warmUpIncludedOrDefault
 import io.github.lopezjavier.appfitness.domain.usecase.ComputeSessionStats
-import io.github.lopezjavier.appfitness.domain.usecase.perHandIdsOrDefault
+import io.github.lopezjavier.appfitness.domain.usecase.DeriveRoutinePart
+import io.github.lopezjavier.appfitness.domain.usecase.perHandIds
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.Flow
@@ -53,6 +55,10 @@ class HistoryViewModel(
     /** Per-hand exercises (volume counts twice), read with the first page and applied to every page. */
     private var perHandIds: Set<String> = emptySet()
 
+    /** Exercise catalog read with the first page, for the row icon; a failed read leaves the name-only part. */
+    private var catalog: Map<String, Exercise> = emptyMap()
+    private val derivePart = DeriveRoutinePart()
+
     init {
         loadFirstPage(showLoading = true)
     }
@@ -84,7 +90,9 @@ class HistoryViewModel(
         job = viewModelScope.launch {
             includeWarmUp = preferences.warmUpIncludedOrDefault()
             bodyWeightKg = bodyMeasurements.getLatestWeight().getOrNull()?.weightKg
-            perHandIds = exercises.perHandIdsOrDefault()
+            val all = exercises.getAll().getOrNull().orEmpty()
+            catalog = all.associateBy { it.id }
+            perHandIds = all.perHandIds()
             repository.listCompleted(0, PAGE_SIZE).fold(
                 onSuccess = { page ->
                     nextOffset = page.size
@@ -136,6 +144,7 @@ class HistoryViewModel(
             durationSeconds = stats.durationSeconds,
             volumeKg = stats.volumeKg,
             completedSets = stats.completedSets,
+            part = derivePart(name, exercises.mapNotNull { catalog[it.exerciseId] }),
         )
     }
 }

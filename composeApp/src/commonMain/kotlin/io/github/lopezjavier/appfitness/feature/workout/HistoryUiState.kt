@@ -1,5 +1,7 @@
 package io.github.lopezjavier.appfitness.feature.workout
 
+import io.github.lopezjavier.appfitness.domain.model.RoutinePart
+
 /** One completed session in the history list. */
 data class HistoryRow(
     val id: String,
@@ -8,6 +10,8 @@ data class HistoryRow(
     val durationSeconds: Long,
     val volumeKg: Double,
     val completedSets: Int,
+    /** The training part for the row's icon, derived from the session name and its exercises. */
+    val part: RoutinePart = RoutinePart.Generic,
 )
 
 sealed interface HistoryUiState {
