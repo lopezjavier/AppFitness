@@ -3,8 +3,6 @@ package io.github.lopezjavier.appfitness.feature.profile
 import io.github.lopezjavier.appfitness.domain.model.ActivityLevel
 import io.github.lopezjavier.appfitness.domain.model.CalculatorSettings
 import io.github.lopezjavier.appfitness.domain.model.Equipment
-import io.github.lopezjavier.appfitness.domain.model.GoalStrategy
-import io.github.lopezjavier.appfitness.domain.model.MacroSplit
 import io.github.lopezjavier.appfitness.domain.model.MyTraining
 import io.github.lopezjavier.appfitness.domain.model.PreviousValuesMode
 import io.github.lopezjavier.appfitness.domain.model.Sex
@@ -26,11 +24,6 @@ internal data class PreferencesDraft(
     val heightCm: Int,
     val weightKg: Double,
     val activity: String,
-    val strategy: String,
-    val adjustment: Int,
-    val proteinPct: Int,
-    val carbsPct: Int,
-    val fatPct: Int,
     /** Absent in drafts saved by older versions. */
     val warmUpIncluded: Boolean = false,
     /** [PreviousValuesMode] by name; absent in drafts saved by older versions. */
@@ -70,11 +63,6 @@ internal fun PreferencesForm.encodeDraft(): String = Json.encodeToString(
         heightCm = heightCm,
         weightKg = weightKg,
         activity = activity.name,
-        strategy = strategy.name,
-        adjustment = adjustment,
-        proteinPct = split.proteinPct,
-        carbsPct = split.carbsPct,
-        fatPct = split.fatPct,
         warmUpIncluded = warmUpIncluded,
         previousValuesMode = previousValuesMode.name,
         barWeightKg = calculators.barWeightKg,
@@ -106,7 +94,7 @@ private fun equipmentOfDraftName(name: String): Equipment? = Equipment.entries.f
 
 /** [saved] supplies the values a draft from an older version does not carry (the reminder switches). */
 internal fun decodeDraft(json: String, saved: PreferencesForm? = null): PreferencesForm? = runCatching {
-    // Drafts saved before ADR-56 still carry the two rounding fields.
+    // Older drafts still carry the two rounding fields (before ADR-56) and the energy and macro fields (before T-303).
     val draft = Json { ignoreUnknownKeys = true }.decodeFromString(PreferencesDraft.serializer(), json)
     PreferencesForm(
         name = draft.name,
@@ -115,9 +103,6 @@ internal fun decodeDraft(json: String, saved: PreferencesForm? = null): Preferen
         heightCm = draft.heightCm,
         weightKg = draft.weightKg,
         activity = ActivityLevel.valueOf(draft.activity),
-        strategy = GoalStrategy.valueOf(draft.strategy),
-        adjustment = draft.adjustment,
-        split = MacroSplit(draft.proteinPct, draft.carbsPct, draft.fatPct),
         warmUpIncluded = draft.warmUpIncluded,
         previousValuesMode = PreviousValuesMode.valueOf(draft.previousValuesMode),
         calculators = CalculatorSettings(

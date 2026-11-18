@@ -7,9 +7,6 @@ import io.github.lopezjavier.appfitness.domain.model.ActivityLevel
 import io.github.lopezjavier.appfitness.domain.model.Biometrics
 import io.github.lopezjavier.appfitness.domain.model.CalculatorSettings
 import io.github.lopezjavier.appfitness.domain.model.FoodPreferences
-import io.github.lopezjavier.appfitness.domain.model.GoalStrategy
-import io.github.lopezjavier.appfitness.domain.model.MacroSplit
-import io.github.lopezjavier.appfitness.domain.model.NutritionGoals
 import io.github.lopezjavier.appfitness.domain.model.PreviousValuesMode
 import io.github.lopezjavier.appfitness.domain.model.ProfileSummary
 import io.github.lopezjavier.appfitness.domain.model.SavedBiometrics
@@ -29,7 +26,6 @@ import kotlin.time.Instant
 private class Saved(
     val name: String,
     val biometrics: Biometrics,
-    val goals: NutritionGoals,
     val weight: WeightEntry?,
     val warmUpIncluded: Boolean?,
     val previousValuesMode: PreviousValuesMode?,
@@ -67,7 +63,6 @@ class SavePreferencesTest {
         override suspend fun savePreferences(
             displayName: String,
             biometrics: Biometrics,
-            goals: NutritionGoals,
             weight: WeightEntry?,
             warmUpIncluded: Boolean?,
             previousValuesMode: PreviousValuesMode?,
@@ -78,7 +73,6 @@ class SavePreferencesTest {
             saved += Saved(
                 displayName,
                 biometrics,
-                goals,
                 weight,
                 warmUpIncluded,
                 previousValuesMode,
@@ -97,8 +91,6 @@ class SavePreferencesTest {
         height: Int = 180,
         weightKg: Double = 100.0,
         weightChanged: Boolean = false,
-        adjustment: Int = -400,
-        split: MacroSplit = MacroSplit.DEFAULT,
         warmUpIncluded: Boolean? = false,
         previousValuesMode: PreviousValuesMode? = PreviousValuesMode.Overall,
         calculators: CalculatorSettings? = null,
@@ -111,18 +103,12 @@ class SavePreferencesTest {
         weightChanged = weightChanged,
         now = now,
         timeZone = zone,
-        strategy = if (adjustment < 0) GoalStrategy.Deficit else GoalStrategy.Maintenance,
-        adjustment = adjustment,
-        split = split,
         warmUpIncluded = warmUpIncluded,
         previousValuesMode = previousValuesMode,
         calculators = calculators,
         foodPreferences = foodPreferences,
         autoUpdateRoutine = autoUpdateRoutine,
     )
-
-    private fun tdee(sex: Sex, height: Int, weightKg: Double) =
-        CalculateTdee(sex, birthDate, height, weightKg, ActivityLevel.Sedentary, LocalDate(2026, 10, 19))
 
     @Test
     fun passesTheAutoUpdateRoutineSettingToTheRepository_andNullWhenNotCarried() = runTest {
@@ -138,34 +124,6 @@ class SavePreferencesTest {
 
         assertEquals(null, saved.single().warmUpIncluded)
         assertEquals(null, saved.single().previousValuesMode)
-    }
-
-    @Test
-    fun storesTargetAsTdeeOfTheEditedWeightPlusAdjustment() = runTest {
-        assertTrue(save(weightKg = 100.0, weightChanged = true).isSuccess)
-
-        val goals = saved.single().goals
-        assertEquals(tdee(Sex.Male, 180, 100.0) - 400, goals.targetKcal)
-        assertEquals(-400, goals.calorieAdjustment)
-        assertEquals(GoalStrategy.Deficit, goals.strategy)
-    }
-
-    @Test
-    fun changingTheWeight_recalculatesTheTarget() = runTest {
-        save(weightKg = 80.0, weightChanged = true)
-        save(weightKg = 100.0, weightChanged = true)
-
-        assertEquals(tdee(Sex.Male, 180, 80.0) - 400, saved[0].goals.targetKcal)
-        assertEquals(tdee(Sex.Male, 180, 100.0) - 400, saved[1].goals.targetKcal)
-    }
-
-    @Test
-    fun sexChange_reFloorsByTheNewSex() = runTest {
-        save(sex = Sex.Female, weightKg = 50.0, adjustment = -1500)
-        save(sex = Sex.Male, weightKg = 50.0, adjustment = -1500)
-
-        assertEquals(1200, saved[0].goals.targetKcal)
-        assertEquals(1500, saved[1].goals.targetKcal)
     }
 
     @Test
@@ -217,13 +175,6 @@ class SavePreferencesTest {
         assertTrue(save(weightKg = 400.0, weightChanged = true).isSuccess)
         assertEquals(AppError.Validation, save(weightKg = 400.1, weightChanged = true).appErrorOrNull())
         assertEquals(2, saved.size)
-    }
-
-    @Test
-    fun theSplitIsPassedThrough() = runTest {
-        save(split = MacroSplit(35, 42, 23))
-
-        assertEquals(MacroSplit(35, 42, 23), saved.single().goals.split)
     }
 
     @Test

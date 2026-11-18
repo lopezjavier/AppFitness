@@ -28,8 +28,6 @@ import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
 import io.github.lopezjavier.appfitness.domain.model.ActivityLevel
-import io.github.lopezjavier.appfitness.domain.model.GoalStrategy
-import io.github.lopezjavier.appfitness.domain.model.MacroSplit
 import io.github.lopezjavier.appfitness.domain.model.Sex
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.receiveAsFlow
@@ -62,10 +60,8 @@ class PreferencesScreenTest {
     private val today = LocalDate(2026, 10, 14)
     private val events = mutableListOf<PreferencesEvent>()
 
-    /** 26-year-old, 180 cm, 100 kg, sedentary: TDEE 2400, so the default split reads 180/270/67 g. */
+    /** 26-year-old, 180 cm, 100 kg, sedentary. */
     private fun loaded(
-        split: MacroSplit = MacroSplit.DEFAULT,
-        saved: MacroSplit = split,
         isOnline: Boolean = true,
         isSaving: Boolean = false,
         weightFromHealthConnect: Boolean = false,
@@ -77,13 +73,10 @@ class PreferencesScreenTest {
             heightCm = 180,
             weightKg = 100.0,
             activity = ActivityLevel.Sedentary,
-            strategy = GoalStrategy.Maintenance,
-            adjustment = 0,
-            split = split,
         )
         return PreferencesUiState.Loaded(
             form = base,
-            saved = base.copy(split = saved),
+            saved = base,
             section = PreferencesSection.PersonalData,
             today = today,
             isSaving = isSaving,
@@ -195,7 +188,7 @@ class PreferencesScreenTest {
 
     @Test
     fun blankName_showsTheErrorAndDisablesGuardar() {
-        val base = loaded(split = MacroSplit(35, 42, 23), saved = MacroSplit.DEFAULT)
+        val base = loaded()
         show(base.copy(form = base.form.copy(name = "")))
         rule.onNodeWithTag("preferences_name_field_error").performScrollTo().assertTextEquals("Escribe tu nombre")
         rule.onNodeWithTag("preferences_personal_save").assertIsNotEnabled()

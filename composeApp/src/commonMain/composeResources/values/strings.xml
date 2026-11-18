@@ -354,7 +354,6 @@
     <string name="profile_weight_hc_cd">%1$s, %2$s, sincronizado desde Health Connect</string>
     <string name="profile_weight_value">%1$s kg</string>
     <string name="profile_row_cd">%1$s, %2$s, editar</string>
-    <string name="profile_macros_total">TOTAL: 100 %</string>
     <string name="macro_stacked_bar_state">Proteínas %1$s %, carbohidratos %2$s %, grasas %3$s %</string>
     <string name="catalog_section_macro_stacked_bar">Barra de reparto de macros</string>
     <string name="catalog_section_weight_pace_chart">Peso frente al plan</string>
@@ -1089,8 +1088,6 @@
     <string name="preferences_group_training">Entreno</string>
     <string name="preferences_group_account">Cuenta</string>
     <string name="preferences_hub_personal_value">%1$d años · %2$d cm · %3$s</string>
-    <string name="preferences_hub_energy_value">%1$s kcal · %2$s</string>
-    <string name="preferences_hub_macros_value">P %1$d % · C %2$d % · G %3$d %</string>
     <plurals name="preferences_hub_meals_value">
         <item quantity="one">%1$d comida</item>
         <item quantity="other">%1$d comidas</item>
@@ -1720,8 +1717,6 @@
     <string name="assign_default_title">%1$s · %2$s</string>
     <string name="assign_default_day_error">Selecciona al menos un día</string>
     <string name="diary_defaults_failed">No se pudieron añadir tus comidas por defecto.</string>
-    <string name="preferences_energy_title">Objetivo calórico</string>
-    <string name="preferences_macros_title">Macros</string>
     <string name="preferences_save_error">No se pudo guardar. Inténtalo de nuevo.</string>
     <string name="preferences_save_error_offline">Sin conexión: no se puede guardar.</string>
     <string name="delete_account_error_offline">Sin conexión: no se puede borrar la cuenta</string>

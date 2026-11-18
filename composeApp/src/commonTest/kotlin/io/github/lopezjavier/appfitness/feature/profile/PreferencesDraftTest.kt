@@ -2,8 +2,6 @@ package io.github.lopezjavier.appfitness.feature.profile
 
 import io.github.lopezjavier.appfitness.domain.model.ActivityLevel
 import io.github.lopezjavier.appfitness.domain.model.Equipment
-import io.github.lopezjavier.appfitness.domain.model.GoalStrategy
-import io.github.lopezjavier.appfitness.domain.model.MacroSplit
 import io.github.lopezjavier.appfitness.domain.model.Sex
 import io.github.lopezjavier.appfitness.domain.model.TrainingIntention
 import io.github.lopezjavier.appfitness.domain.model.TrainingPlace
@@ -21,9 +19,6 @@ class PreferencesDraftTest {
         heightCm = 178,
         weightKg = 80.0,
         activity = ActivityLevel.Moderate,
-        strategy = GoalStrategy.Deficit,
-        adjustment = -400,
-        split = MacroSplit.DEFAULT,
     )
 
     @Test

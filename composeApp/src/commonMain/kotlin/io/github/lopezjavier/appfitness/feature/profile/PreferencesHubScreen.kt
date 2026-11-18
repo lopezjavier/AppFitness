@@ -17,37 +17,27 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.github.lopezjavier.appfitness.composeapp.resources.Res
-import io.github.lopezjavier.appfitness.composeapp.resources.energy_strategy_deficit
-import io.github.lopezjavier.appfitness.composeapp.resources.energy_strategy_maintenance
-import io.github.lopezjavier.appfitness.composeapp.resources.energy_strategy_surplus
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_avatar_person
-import io.github.lopezjavier.appfitness.composeapp.resources.ic_bar_chart
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_fitness_center
-import io.github.lopezjavier.appfitness.composeapp.resources.ic_flame_outlined
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_meal_dinner
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_meal_lunch
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_notifications
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_restaurant_outlined
 import io.github.lopezjavier.appfitness.composeapp.resources.meal_defaults_open
 import io.github.lopezjavier.appfitness.composeapp.resources.preferences_cooking_title
-import io.github.lopezjavier.appfitness.composeapp.resources.preferences_energy_title
 import io.github.lopezjavier.appfitness.composeapp.resources.preferences_group_account
 import io.github.lopezjavier.appfitness.composeapp.resources.preferences_group_general
 import io.github.lopezjavier.appfitness.composeapp.resources.preferences_group_nutrition
 import io.github.lopezjavier.appfitness.composeapp.resources.preferences_group_training
-import io.github.lopezjavier.appfitness.composeapp.resources.preferences_hub_energy_value
-import io.github.lopezjavier.appfitness.composeapp.resources.preferences_hub_macros_value
 import io.github.lopezjavier.appfitness.composeapp.resources.preferences_hub_meals_value
 import io.github.lopezjavier.appfitness.composeapp.resources.preferences_hub_personal_value
 import io.github.lopezjavier.appfitness.composeapp.resources.preferences_hub_reminders_value
-import io.github.lopezjavier.appfitness.composeapp.resources.preferences_macros_title
 import io.github.lopezjavier.appfitness.composeapp.resources.preferences_meals_title
 import io.github.lopezjavier.appfitness.composeapp.resources.preferences_reminders_title
 import io.github.lopezjavier.appfitness.composeapp.resources.preferences_title
 import io.github.lopezjavier.appfitness.composeapp.resources.preferences_training_title
 import io.github.lopezjavier.appfitness.composeapp.resources.profile_personal_title
 import io.github.lopezjavier.appfitness.designsystem.AppCard
-import io.github.lopezjavier.appfitness.designsystem.AppNumberFormat
 import io.github.lopezjavier.appfitness.designsystem.AppScreen
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
 import io.github.lopezjavier.appfitness.designsystem.IconBadge
@@ -55,7 +45,6 @@ import io.github.lopezjavier.appfitness.designsystem.IconBadgeDefaults
 import io.github.lopezjavier.appfitness.designsystem.ListSectionHeader
 import io.github.lopezjavier.appfitness.designsystem.NavigationRow
 import io.github.lopezjavier.appfitness.designsystem.Spacing
-import io.github.lopezjavier.appfitness.domain.model.GoalStrategy
 import io.github.lopezjavier.appfitness.feature.biometrics.activityTitle
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.emptyFlow
@@ -99,10 +88,11 @@ fun PreferencesHubRoot(
 
 /**
  * Preferencias hub (US-56, R-109): stateless, three named groups of [NavigationRow]s on a full-screen [AppScreen]:
- * General (Datos personales, Avisos), Nutrición (Objetivo calórico, Macros, Comidas del día, Comidas por defecto,
- * Cocina) and Entreno (Registro de series), then the last group "Cuenta" with "Cerrar sesión" and "Borrar cuenta"
- * (R-113, C-172). A row with a current value in [summary] shows it as its supporting line (C-153). "Mi entrenamiento"
- * lives in the Perfil root (T-154). Each row label is the title of the screen it opens (R-04).
+ * General (Datos personales, Avisos), Nutrición (Comidas del día, Comidas por defecto, Cocina; calories and
+ * macros live in the Trainer plan, T-303) and Entreno (Registro de series), then the last group "Cuenta" with
+ * "Cerrar sesión" and "Borrar cuenta" (R-113, C-172). A row with a current value in [summary] shows it as its
+ * supporting line (C-153). "Mi entrenamiento" lives in the Perfil root (T-154). Each row label is the title of the
+ * screen it opens (R-04).
  */
 @Composable
 fun PreferencesHubScreen(
@@ -162,16 +152,6 @@ private fun GeneralGroup(summary: PreferencesHubSummary, actions: PreferencesHub
 @Composable
 private fun NutritionGroup(summary: PreferencesHubSummary, actions: PreferencesHubActions) {
     HubGroup(Res.string.preferences_group_nutrition) {
-        HubRow(Res.string.preferences_energy_title, "energy", summary.energy?.let { energyText(it) }) {
-            actions.onOpenSection(PreferencesSection.EnergyGoal)
-        }
-        val split = summary.split
-        val macrosText = split?.let {
-            stringResource(Res.string.preferences_hub_macros_value, it.proteinPct, it.carbsPct, it.fatPct)
-        }
-        HubRow(Res.string.preferences_macros_title, "macros", macrosText) {
-            actions.onOpenSection(PreferencesSection.Macros)
-        }
         HubRow(Res.string.preferences_meals_title, "meals", summary.mealCount?.let { mealsText(it) }) {
             actions.onOpenMeals()
         }
@@ -188,19 +168,6 @@ private fun personalText(personal: PersonalSummary): String = stringResource(
     personal.ageYears,
     personal.heightCm,
     stringResource(activityTitle(personal.activity)),
-)
-
-@Composable
-private fun energyText(energy: EnergySummary): String = stringResource(
-    Res.string.preferences_hub_energy_value,
-    AppNumberFormat.integer(energy.targetKcal),
-    stringResource(
-        when (energy.strategy) {
-            GoalStrategy.Deficit -> Res.string.energy_strategy_deficit
-            GoalStrategy.Maintenance -> Res.string.energy_strategy_maintenance
-            GoalStrategy.Surplus -> Res.string.energy_strategy_surplus
-        },
-    ),
 )
 
 @Composable
@@ -221,8 +188,6 @@ private fun HubRow(label: StringResource, key: String, supporting: String? = nul
     val (icon, tint) = when (key) {
         "personal" -> Res.drawable.ic_avatar_person to colors.athleticCyan
         "avisos" -> Res.drawable.ic_notifications to colors.energyAmber
-        "energy" -> Res.drawable.ic_flame_outlined to colors.neonLime
-        "macros" -> Res.drawable.ic_bar_chart to colors.macroCarbs
         "meals" -> Res.drawable.ic_restaurant_outlined to colors.energyAmber
         "meal_defaults" -> Res.drawable.ic_meal_lunch to colors.macroFat
         "cooking" -> Res.drawable.ic_meal_dinner to colors.electricGreen

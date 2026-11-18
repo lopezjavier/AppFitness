@@ -6,9 +6,6 @@ import io.github.lopezjavier.appfitness.domain.model.BiometricBounds
 import io.github.lopezjavier.appfitness.domain.model.Biometrics
 import io.github.lopezjavier.appfitness.domain.model.CalculatorSettings
 import io.github.lopezjavier.appfitness.domain.model.FoodPreferences
-import io.github.lopezjavier.appfitness.domain.model.GoalStrategy
-import io.github.lopezjavier.appfitness.domain.model.MacroSplit
-import io.github.lopezjavier.appfitness.domain.model.NutritionGoals
 import io.github.lopezjavier.appfitness.domain.model.PreviousValuesMode
 import io.github.lopezjavier.appfitness.domain.model.WeightEntry
 import io.github.lopezjavier.appfitness.domain.repository.ProfileRepository
@@ -21,12 +18,12 @@ import kotlin.math.roundToInt
 import kotlin.time.Instant
 
 /**
- * Validates the edited preferences, recalculates the TDEE with the edited weight and the daily target (floored by
- * the new sex, ADR-25) and stores name, biometrics, goals and (only when [weightChanged]) today's manual weight in
- * one atomic call. "Today" is the local day of [now] in [timeZone].
+ * Validates the edited preferences and stores name, biometrics and (only when [weightChanged]) today's manual weight
+ * in one atomic call. It never writes the nutrition goals: the accepted plan owns calories and macros (T-303).
+ * "Today" is the local day of [now] in [timeZone].
  */
 class SavePreferences(private val profileRepository: ProfileRepository) {
-    @Suppress("LongParameterList") // The edited form fields, the clock inputs and the three goal choices.
+    @Suppress("LongParameterList") // The edited form fields and the clock inputs.
     suspend operator fun invoke(
         displayName: String,
         biometrics: Biometrics,
@@ -34,9 +31,6 @@ class SavePreferences(private val profileRepository: ProfileRepository) {
         weightChanged: Boolean,
         now: Instant,
         timeZone: TimeZone,
-        strategy: GoalStrategy,
-        adjustment: Int,
-        split: MacroSplit,
         warmUpIncluded: Boolean? = null,
         previousValuesMode: PreviousValuesMode? = null,
         calculators: CalculatorSettings? = null,
@@ -51,16 +45,6 @@ class SavePreferences(private val profileRepository: ProfileRepository) {
             return Result.failure(AppException(AppError.Validation))
         }
         val today = now.toLocalDateTime(timeZone).date
-        val tdee = CalculateTdee(
-            biometrics.sex,
-            biometrics.birthDate,
-            biometrics.heightCm,
-            weightKg,
-            biometrics.activityLevel,
-            today,
-        )
-        val target = CalculateCalorieTarget(tdee, biometrics.sex, strategy, adjustment)
-        val goals = NutritionGoals(strategy, adjustment, target.targetKcal, split)
         val weight = if (weightChanged) {
             WeightEntry(
                 weightKg = weightKg,
@@ -74,7 +58,6 @@ class SavePreferences(private val profileRepository: ProfileRepository) {
         return profileRepository.savePreferences(
             name,
             biometrics,
-            goals,
             weight,
             warmUpIncluded,
             previousValuesMode,

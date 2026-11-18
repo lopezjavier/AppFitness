@@ -15,9 +15,8 @@ import androidx.compose.ui.test.performClick
 import androidx.navigation.compose.rememberNavController
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
 import io.github.lopezjavier.appfitness.domain.model.ActivityLevel
-import io.github.lopezjavier.appfitness.domain.model.GoalStrategy
-import io.github.lopezjavier.appfitness.domain.model.MacroSplit
 import io.github.lopezjavier.appfitness.domain.model.Sex
+import io.github.lopezjavier.appfitness.feature.profile.FoodPreferencesForm
 import io.github.lopezjavier.appfitness.feature.profile.PreferencesEvent
 import io.github.lopezjavier.appfitness.feature.profile.PreferencesForm
 import io.github.lopezjavier.appfitness.feature.profile.PreferencesHubActions
@@ -51,9 +50,6 @@ class PreferencesNavigationTest {
         heightCm = 180,
         weightKg = 100.0,
         activity = ActivityLevel.Sedentary,
-        strategy = GoalStrategy.Maintenance,
-        adjustment = 0,
-        split = MacroSplit.DEFAULT,
     )
 
     private val profileSlot: ProfileSlot = { modifier, actions ->
@@ -72,20 +68,20 @@ class PreferencesNavigationTest {
         )
     }
 
-    /** A macros editor whose "Guardar" marks the section saved, as the view model would. */
+    /** A Cocina editor whose "Guardar" marks the section saved, as the view model would. */
     private val sectionSlot: PreferencesSectionSlot = { modifier, onClose ->
         var state by remember {
             mutableStateOf(
                 PreferencesUiState.Loaded(
-                    form.copy(split = MacroSplit(35, 42, 23)),
+                    form.copy(foodPreferences = FoodPreferencesForm(griddleText = "7")),
                     form,
-                    PreferencesSection.Macros,
+                    PreferencesSection.Cooking,
                     today,
                 ),
             )
         }
         PreferencesSectionScreen(
-            section = PreferencesSection.Macros,
+            section = PreferencesSection.Cooking,
             state = state,
             onEvent = { if (it == PreferencesEvent.Save) state = state.copy(saved = state.form, isSaved = true) },
             onClose = onClose,
@@ -144,13 +140,13 @@ class PreferencesNavigationTest {
     fun savingAnEditor_closesItAndReturnsToTheHub() {
         showShell()
         openHubFromPerfil()
-        tap("preferences_row_macros")
-        rule.onNodeWithTag("preferences_macros_save").assertExists()
+        tap("preferences_row_cooking")
+        rule.onNodeWithTag("preferences_cooking_save").assertExists()
 
-        tap("preferences_macros_save")
+        tap("preferences_cooking_save")
 
         rule.onNodeWithTag("preferences_hub").assertExists()
-        rule.onNodeWithTag("preferences_macros_save").assertDoesNotExist()
+        rule.onNodeWithTag("preferences_cooking_save").assertDoesNotExist()
     }
 
     @Test
@@ -159,9 +155,9 @@ class PreferencesNavigationTest {
         tap("nav_tab_profile")
         tap("profile_my_training_row")
         rule.onNodeWithTag("preferences_hub").assertDoesNotExist()
-        rule.onNodeWithTag("preferences_macros_save").assertExists()
+        rule.onNodeWithTag("preferences_cooking_save").assertExists()
 
-        tap("preferences_macros_save")
+        tap("preferences_cooking_save")
 
         rule.onNodeWithTag("profile_my_training_row").assertExists()
         rule.onNodeWithTag("preferences_hub").assertDoesNotExist()

@@ -75,7 +75,6 @@ class UnconfiguredProfileRepository : ProfileRepository {
     override suspend fun savePreferences(
         displayName: String,
         biometrics: Biometrics,
-        goals: NutritionGoals,
         weight: WeightEntry?,
         warmUpIncluded: Boolean?,
         previousValuesMode: PreviousValuesMode?,

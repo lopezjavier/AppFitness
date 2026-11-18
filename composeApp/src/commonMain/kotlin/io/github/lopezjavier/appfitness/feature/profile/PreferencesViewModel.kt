@@ -9,12 +9,9 @@ import io.github.lopezjavier.appfitness.domain.appErrorOrNull
 import io.github.lopezjavier.appfitness.domain.model.BiometricBounds
 import io.github.lopezjavier.appfitness.domain.model.BodyMeasurement
 import io.github.lopezjavier.appfitness.domain.model.FoodPreferences
-import io.github.lopezjavier.appfitness.domain.model.GoalStrategy
-import io.github.lopezjavier.appfitness.domain.model.MacroSplit
 import io.github.lopezjavier.appfitness.domain.model.MeasurementSource
 import io.github.lopezjavier.appfitness.domain.model.MyTraining
 import io.github.lopezjavier.appfitness.domain.model.NotificationKind
-import io.github.lopezjavier.appfitness.domain.model.NutritionGoals
 import io.github.lopezjavier.appfitness.domain.model.ProfileSummary
 import io.github.lopezjavier.appfitness.domain.model.SavedBiometrics
 import io.github.lopezjavier.appfitness.domain.model.TrainingPreferences
@@ -23,15 +20,11 @@ import io.github.lopezjavier.appfitness.domain.port.ConnectivityObserver
 import io.github.lopezjavier.appfitness.domain.repository.BodyMeasurementRepository
 import io.github.lopezjavier.appfitness.domain.repository.FoodPreferencesRepository
 import io.github.lopezjavier.appfitness.domain.repository.NotificationSettingsRepository
-import io.github.lopezjavier.appfitness.domain.repository.NutritionGoalsRepository
 import io.github.lopezjavier.appfitness.domain.repository.ProfileRepository
 import io.github.lopezjavier.appfitness.domain.repository.TrainingPreferencesRepository
-import io.github.lopezjavier.appfitness.domain.usecase.BalanceMacros
 import io.github.lopezjavier.appfitness.domain.usecase.DefaultEquipment
-import io.github.lopezjavier.appfitness.domain.usecase.EnergyStrategyRules
 import io.github.lopezjavier.appfitness.domain.usecase.HealthWriteBack
 import io.github.lopezjavier.appfitness.domain.usecase.SavePreferences
-import io.github.lopezjavier.appfitness.feature.goals.EnergyStrategyEvent
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.async
 import kotlinx.coroutines.channels.Channel
@@ -64,7 +57,6 @@ private class PreferencesData(
     val latestWeight: Result<BodyMeasurement?>,
     /** The newest Health Connect weight of the latest weight's local day, if any (it wins over a manual row). */
     val healthConnectWeight: BodyMeasurement?,
-    val goals: Result<NutritionGoals?>,
     val training: Result<TrainingPreferences>,
     val foodPreferences: Result<FoodPreferences>,
     val checkInWeekday: Result<Int>,
@@ -75,7 +67,8 @@ private class PreferencesData(
  * Edits one [PreferencesSection] (read from the saved-state handle, one instance per editor): only that section's
  * fields are edited, compared, drafted and saved. Nothing is written until [PreferencesEvent.Save], which stores the
  * section atomically (one RPC): the other sections' values are re-sent from what was read, and the optional training,
- * calculator, cooking and auto-update parameters only by the section that owns them. The weight is sent only by
+ * calculator, cooking and auto-update parameters only by the section that owns them. It never writes the nutrition
+ * goals: the accepted plan owns calories and macros (T-303). The weight is sent only by
  * "Datos personales" and only when it changed. "Avisos" is not part of that RPC: it writes one
  * `notification_settings` row per changed switch and then the check-in day, without a transaction (a partial failure
  * keeps the written parts as saved). "Today" for the weight row is the local day in [timeZone].
@@ -83,7 +76,6 @@ private class PreferencesData(
 @Suppress("LongParameterList", "TooManyFunctions") // One dependency per port; one small handler per event.
 class PreferencesViewModel(
     private val profileRepository: ProfileRepository,
-    private val goalsRepository: NutritionGoalsRepository,
     private val bodyMeasurementRepository: BodyMeasurementRepository,
     private val trainingPreferencesRepository: TrainingPreferencesRepository,
     private val foodPreferencesRepository: FoodPreferencesRepository,
@@ -144,11 +136,6 @@ class PreferencesViewModel(
                 }
 
             is PreferencesEvent.SelectActivity -> edit { it.copy(activity = event.level) }
-
-            is PreferencesEvent.Energy -> editLoaded { state, form -> applyEnergy(state, form, event.event) }
-
-            is PreferencesEvent.MoveMacro ->
-                edit { it.copy(split = BalanceMacros(it.split, event.macro, event.percent)) }
 
             is PreferencesEvent.SetWarmUpIncluded -> edit { it.copy(warmUpIncluded = event.included) }
 
@@ -229,39 +216,6 @@ class PreferencesViewModel(
         }
     }
 
-    private fun applyEnergy(
-        state: PreferencesUiState.Loaded,
-        form: PreferencesForm,
-        event: EnergyStrategyEvent,
-    ): PreferencesForm {
-        val energy = state.energy
-        return when (event) {
-            is EnergyStrategyEvent.SelectStrategy ->
-                if (event.strategy == form.strategy) {
-                    form
-                } else {
-                    form.copy(
-                        strategy = event.strategy,
-                        adjustment = EnergyStrategyRules.defaultAdjustment(event.strategy),
-                    )
-                }
-
-            EnergyStrategyEvent.StepDown ->
-                if (energy.canStepDown) {
-                    form.copy(adjustment = EnergyStrategyRules.stepDown(form.strategy, form.adjustment))
-                } else {
-                    form
-                }
-
-            EnergyStrategyEvent.StepUp ->
-                if (energy.canStepUp) {
-                    form.copy(adjustment = EnergyStrategyRules.stepUp(form.strategy, form.adjustment))
-                } else {
-                    form
-                }
-        }
-    }
-
     private fun edit(transform: (PreferencesForm) -> PreferencesForm) = editLoaded { _, form -> transform(form) }
 
     /** Applies an edit unless a save is running (values are frozen while saving). */
@@ -281,7 +235,6 @@ class PreferencesViewModel(
                 val profile = async { profileRepository.getOwnProfile() }
                 val biometrics = async { profileRepository.getBiometrics() }
                 val weight = async { bodyMeasurementRepository.getLatestWeight() }
-                val goals = async { goalsRepository.getOwn() }
                 val training = async { trainingPreferencesRepository.get() }
                 val food = async { foodPreferencesRepository.get() }
                 val checkInWeekday = async { profileRepository.getCheckInWeekday() }
@@ -292,7 +245,6 @@ class PreferencesViewModel(
                     biometrics.await(),
                     latest,
                     healthConnectWeightOf(latest),
-                    goals.await(),
                     training.await(),
                     food.await(),
                     checkInWeekday.await(),
@@ -312,14 +264,11 @@ class PreferencesViewModel(
         val weight = (hcWeight ?: latest)?.weightKg
         val fromHealthConnect = hcWeight != null
         if (profile == null || biometrics == null || weight == null) return null
-        if (data.goals.isFailure) return null
         val training = data.training.getOrNull() ?: return null
         val food = data.foodPreferences.getOrNull() ?: return null
         val checkInWeekday = data.checkInWeekday.getOrNull() ?: return null
         val switches = data.reminderSwitches.getOrNull() ?: return null
-        val goals = data.goals.getOrNull()
         val today = clock.today()
-        val strategy = goals?.strategy ?: GoalStrategy.Maintenance
         val form = PreferencesForm(
             name = profile.displayName.orEmpty().take(BiometricBounds.NAME_MAX_LENGTH),
             sex = biometrics.sex,
@@ -327,9 +276,6 @@ class PreferencesViewModel(
             heightCm = BiometricBounds.clampHeight(biometrics.heightCm),
             weightKg = BiometricBounds.clampWeightTenths((weight * TENTHS_PER_KG).roundToInt()) / TENTHS_PER_KG,
             activity = biometrics.activityLevel,
-            strategy = strategy,
-            adjustment = goals?.let { EnergyStrategyRules.clampAdjustment(strategy, it.calorieAdjustment) } ?: 0,
-            split = goals?.split ?: MacroSplit.DEFAULT,
             warmUpIncluded = training.warmUpIncluded,
             previousValuesMode = training.previousValuesMode,
             calculators = training.calculators,
@@ -434,9 +380,6 @@ class PreferencesViewModel(
                     weightChanged = weightChanged,
                     now = clock.now(),
                     timeZone = timeZone,
-                    strategy = source.strategy,
-                    adjustment = source.adjustment,
-                    split = source.split,
                     warmUpIncluded = source.warmUpIncluded.takeIf { training },
                     previousValuesMode = source.previousValuesMode.takeIf { training },
                     calculators = source.calculators.takeIf { training },

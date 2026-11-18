@@ -10,8 +10,6 @@ import io.github.lopezjavier.appfitness.domain.model.AccountProtection
 import io.github.lopezjavier.appfitness.domain.model.ActivityLevel
 import io.github.lopezjavier.appfitness.domain.model.BuildInfo
 import io.github.lopezjavier.appfitness.domain.model.Equipment
-import io.github.lopezjavier.appfitness.domain.model.GoalStrategy
-import io.github.lopezjavier.appfitness.domain.model.MacroSplit
 import io.github.lopezjavier.appfitness.domain.model.Sex
 import io.github.lopezjavier.appfitness.domain.model.TrainingIntention
 import io.github.lopezjavier.appfitness.domain.model.TrainingPlace
@@ -44,9 +42,6 @@ private val BaseForm = PreferencesForm(
     heightCm = 180,
     weightKg = 82.4,
     activity = ActivityLevel.Moderate,
-    strategy = GoalStrategy.Maintenance,
-    adjustment = 0,
-    split = MacroSplit.DEFAULT,
     intention = TrainingIntention.Muscle,
     place = TrainingPlace.Gym,
     equipment = setOf(Equipment.Barbell, Equipment.Dumbbell),
@@ -171,28 +166,6 @@ private fun preferences(): List<GalleryEntry> {
             covers = arrayOf("PickerSheet", "PersonalSheets"),
         ),
         section("Datos personales", personal, "large font (1.3)", loadedPreferences(personal, dirty), fontScale = 1.3f),
-        section(
-            "Objetivo calórico",
-            PreferencesSection.EnergyGoal,
-            "unchanged",
-            loadedPreferences(PreferencesSection.EnergyGoal),
-        ),
-        section(
-            "Objetivo calórico",
-            PreferencesSection.EnergyGoal,
-            "changed",
-            loadedPreferences(
-                PreferencesSection.EnergyGoal,
-                BaseForm.copy(strategy = GoalStrategy.Deficit, adjustment = -300),
-            ),
-        ),
-        section("Macros", PreferencesSection.Macros, "unchanged", loadedPreferences(PreferencesSection.Macros)),
-        section(
-            "Macros",
-            PreferencesSection.Macros,
-            "changed",
-            loadedPreferences(PreferencesSection.Macros, BaseForm.copy(split = MacroSplit(35, 42, 23))),
-        ),
         section("Cocina", PreferencesSection.Cooking, "unchanged", loadedPreferences(PreferencesSection.Cooking)),
         section(
             "Cocina",

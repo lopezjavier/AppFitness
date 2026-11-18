@@ -8,12 +8,6 @@ enum class PreferencesSection(val key: String) {
     /** Name, sex, birth date, height, activity level and current weight. */
     PersonalData("personal"),
 
-    /** Energy strategy and calorie adjustment. */
-    EnergyGoal("energy"),
-
-    /** Macro split. */
-    Macros("macros"),
-
     /** Added-fat percentages per cooking method. */
     Cooking("cooking"),
 
@@ -28,7 +22,10 @@ enum class PreferencesSection(val key: String) {
     ;
 
     companion object {
-        /** The section of a route argument; an unknown or missing key falls back to [PersonalData]. */
+        /**
+         * The section of a route argument; an unknown, removed ("energy", "macros") or missing key falls back to
+         * [PersonalData].
+         */
         fun fromKey(key: String?): PreferencesSection = entries.firstOrNull { it.key == key } ?: PersonalData
     }
 }
@@ -40,10 +37,6 @@ fun PreferencesForm.sectionEquals(section: PreferencesSection, other: Preference
 /** The values of the fields [section] owns, in a fixed order. */
 private fun PreferencesForm.ownedFields(section: PreferencesSection): List<Any> = when (section) {
     PreferencesSection.PersonalData -> listOf(name, sex, birthDate, heightCm, weightKg, activity)
-
-    PreferencesSection.EnergyGoal -> listOf(strategy, adjustment)
-
-    PreferencesSection.Macros -> listOf(split)
 
     PreferencesSection.Cooking -> listOf(foodPreferences)
 
@@ -77,10 +70,6 @@ fun PreferencesForm.withSectionFrom(section: PreferencesSection, other: Preferen
             weightKg = other.weightKg,
             activity = other.activity,
         )
-
-        PreferencesSection.EnergyGoal -> copy(strategy = other.strategy, adjustment = other.adjustment)
-
-        PreferencesSection.Macros -> copy(split = other.split)
 
         PreferencesSection.Cooking -> copy(foodPreferences = other.foodPreferences)
 

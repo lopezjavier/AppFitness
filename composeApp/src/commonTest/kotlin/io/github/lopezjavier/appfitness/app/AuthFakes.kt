@@ -66,7 +66,6 @@ internal class FakeAuthRepository(initial: AuthState = AuthState.Loading) : Auth
 internal data class SavedPreferences(
     val displayName: String,
     val biometrics: Biometrics,
-    val goals: NutritionGoals,
     val weight: WeightEntry?,
     val warmUpIncluded: Boolean? = null,
     val previousValuesMode: PreviousValuesMode? = null,
@@ -127,7 +126,6 @@ internal class FakeProfileRepository(results: List<Result<ProfileSummary>>) : Pr
     override suspend fun savePreferences(
         displayName: String,
         biometrics: Biometrics,
-        goals: NutritionGoals,
         weight: WeightEntry?,
         warmUpIncluded: Boolean?,
         previousValuesMode: PreviousValuesMode?,
@@ -138,7 +136,6 @@ internal class FakeProfileRepository(results: List<Result<ProfileSummary>>) : Pr
         preferenceSaves += SavedPreferences(
             displayName,
             biometrics,
-            goals,
             weight,
             warmUpIncluded,
             previousValuesMode,

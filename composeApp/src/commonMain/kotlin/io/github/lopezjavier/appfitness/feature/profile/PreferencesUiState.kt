@@ -5,28 +5,21 @@ import io.github.lopezjavier.appfitness.domain.model.Biometrics
 import io.github.lopezjavier.appfitness.domain.model.CalculatorSettings
 import io.github.lopezjavier.appfitness.domain.model.Equipment
 import io.github.lopezjavier.appfitness.domain.model.FoodPreferences
-import io.github.lopezjavier.appfitness.domain.model.GoalStrategy
-import io.github.lopezjavier.appfitness.domain.model.MacroSplit
-import io.github.lopezjavier.appfitness.domain.model.MacroTargets
-import io.github.lopezjavier.appfitness.domain.model.Macronutrient
 import io.github.lopezjavier.appfitness.domain.model.MyTraining
 import io.github.lopezjavier.appfitness.domain.model.NotificationKind
 import io.github.lopezjavier.appfitness.domain.model.PreviousValuesMode
 import io.github.lopezjavier.appfitness.domain.model.Sex
 import io.github.lopezjavier.appfitness.domain.model.TrainingIntention
 import io.github.lopezjavier.appfitness.domain.model.TrainingPlace
-import io.github.lopezjavier.appfitness.domain.usecase.CalculateMacroTargets
 import io.github.lopezjavier.appfitness.domain.usecase.DefaultEquipment
 import io.github.lopezjavier.appfitness.feature.food.formatNumber
 import io.github.lopezjavier.appfitness.feature.food.parseAmount
-import io.github.lopezjavier.appfitness.feature.goals.EnergyStrategyEvent
-import io.github.lopezjavier.appfitness.feature.goals.EnergyStrategyUiState
-import io.github.lopezjavier.appfitness.feature.goals.energyStrategyUiState
 import kotlinx.datetime.LocalDate
 
 /**
- * Everything Preferencias edits: the name, the biometrics, the current weight, the energy strategy and the macro
- * split. [weightKg] has one decimal (a multiple of 0.1).
+ * Everything Preferencias edits: the name, the biometrics, the current weight and the food, training and reminder
+ * settings. Calories and macros are not here: the accepted plan owns them (T-303). [weightKg] has one decimal (a
+ * multiple of 0.1).
  */
 data class PreferencesForm(
     val name: String,
@@ -35,9 +28,6 @@ data class PreferencesForm(
     val heightCm: Int,
     val weightKg: Double,
     val activity: ActivityLevel,
-    val strategy: GoalStrategy,
-    val adjustment: Int,
-    val split: MacroSplit,
     /** "Incluir calentamiento": warm-up sets count in volume, 1RM, records and set totals. */
     val warmUpIncluded: Boolean = false,
     /** "Valores anteriores": where the live session takes the previous values from. */
@@ -132,8 +122,7 @@ sealed interface PreferencesUiState {
     data object LoadFailed : PreferencesUiState
 
     /**
-     * [form] is what the user is editing, [saved] what the server holds. The energy card and the macro targets follow
-     * [form] live, including its weight.
+     * [form] is what the user is editing, [saved] what the server holds.
      */
     data class Loaded(
         val form: PreferencesForm,
@@ -166,8 +155,6 @@ sealed interface PreferencesUiState {
 
                 PreferencesSection.Cooking -> saved.isNameValid && form.foodPreferences.isValid
 
-                PreferencesSection.EnergyGoal, PreferencesSection.Macros -> saved.isNameValid
-
                 // Written alone (the name is not re-sent); the pickers only produce valid values.
                 PreferencesSection.MyTraining ->
                     MyTraining.isValidDays(form.daysPerWeek) && MyTraining.isValidSessionMinutes(form.sessionMinutes)
@@ -175,21 +162,6 @@ sealed interface PreferencesUiState {
                 // The reminders are written alone, so no other field has to be valid.
                 PreferencesSection.Reminders -> form.checkInWeekday in 1..DAYS_PER_WEEK
             }
-
-        val energy: EnergyStrategyUiState
-            get() = energyStrategyUiState(
-                sex = form.sex,
-                birthDate = form.birthDate,
-                heightCm = form.heightCm,
-                weightKg = form.weightKg,
-                activityLevel = form.activity,
-                today = today,
-                strategy = form.strategy,
-                adjustment = form.adjustment,
-                enabled = !isSaving,
-            )
-
-        val macroTargets: MacroTargets get() = CalculateMacroTargets(energy.targetKcal, form.split)
     }
 }
 
@@ -207,11 +179,6 @@ sealed interface PreferencesEvent {
     data class SetWeight(val tenths: Int) : PreferencesEvent
 
     data class SelectActivity(val level: ActivityLevel) : PreferencesEvent
-
-    data class Energy(val event: EnergyStrategyEvent) : PreferencesEvent
-
-    /** A macro slider moved to [percent]; the others rebalance. */
-    data class MoveMacro(val macro: Macronutrient, val percent: Int) : PreferencesEvent
 
     /** The "Incluir calentamiento" switch; only a draft until [Save]. */
     data class SetWarmUpIncluded(val included: Boolean) : PreferencesEvent
@@ -276,10 +243,6 @@ internal val PreferencesEvent.owner: PreferencesSection?
         is PreferencesEvent.SetHeight, is PreferencesEvent.SetWeight, is PreferencesEvent.SelectActivity,
         PreferencesEvent.Refresh,
         -> PreferencesSection.PersonalData
-
-        is PreferencesEvent.Energy -> PreferencesSection.EnergyGoal
-
-        is PreferencesEvent.MoveMacro -> PreferencesSection.Macros
 
         is PreferencesEvent.SetFatPctGriddle, is PreferencesEvent.SetFatPctAirFryer,
         is PreferencesEvent.SetFatPctFried,

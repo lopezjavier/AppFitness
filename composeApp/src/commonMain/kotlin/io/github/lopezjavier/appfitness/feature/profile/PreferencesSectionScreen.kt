@@ -23,8 +23,6 @@ import io.github.lopezjavier.appfitness.composeapp.resources.action_retry
 import io.github.lopezjavier.appfitness.composeapp.resources.preferences_cooking_help_body
 import io.github.lopezjavier.appfitness.composeapp.resources.preferences_cooking_help_cd
 import io.github.lopezjavier.appfitness.composeapp.resources.preferences_cooking_title
-import io.github.lopezjavier.appfitness.composeapp.resources.preferences_energy_title
-import io.github.lopezjavier.appfitness.composeapp.resources.preferences_macros_title
 import io.github.lopezjavier.appfitness.composeapp.resources.preferences_my_training_title
 import io.github.lopezjavier.appfitness.composeapp.resources.preferences_reminders_title
 import io.github.lopezjavier.appfitness.composeapp.resources.preferences_save_error
@@ -42,7 +40,6 @@ import io.github.lopezjavier.appfitness.designsystem.LocalAppMessages
 import io.github.lopezjavier.appfitness.designsystem.SkeletonBox
 import io.github.lopezjavier.appfitness.designsystem.Spacing
 import io.github.lopezjavier.appfitness.designsystem.rememberHelpTopBarAction
-import io.github.lopezjavier.appfitness.feature.goals.EnergyStrategySection
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.emptyFlow
 import org.jetbrains.compose.resources.StringResource
@@ -56,8 +53,6 @@ private const val SKELETON_CARD_UNITS = 5
 internal val PreferencesSection.title: StringResource
     get() = when (this) {
         PreferencesSection.PersonalData -> Res.string.profile_personal_title
-        PreferencesSection.EnergyGoal -> Res.string.preferences_energy_title
-        PreferencesSection.Macros -> Res.string.preferences_macros_title
         PreferencesSection.Cooking -> Res.string.preferences_cooking_title
         PreferencesSection.Training -> Res.string.preferences_training_title
         PreferencesSection.Reminders -> Res.string.preferences_reminders_title
@@ -165,14 +160,6 @@ private fun SectionContent(
     when (section) {
         // The picker sheets of "Datos personales" move to the picker archetypes in the next slice.
         PreferencesSection.PersonalData -> PersonalDataCard(state, onEvent)
-
-        PreferencesSection.EnergyGoal -> EnergyStrategySection(
-            state = state.energy,
-            onEvent = { onEvent(PreferencesEvent.Energy(it)) },
-            testTagPrefix = "preferences_energy",
-        )
-
-        PreferencesSection.Macros -> MacroSplitSection(state, onEvent)
 
         PreferencesSection.Cooking -> CookingSection(state.form.foodPreferences, onEvent)
 

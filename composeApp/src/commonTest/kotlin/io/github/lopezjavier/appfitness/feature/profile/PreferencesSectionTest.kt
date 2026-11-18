@@ -3,8 +3,6 @@ package io.github.lopezjavier.appfitness.feature.profile
 import io.github.lopezjavier.appfitness.domain.model.ActivityLevel
 import io.github.lopezjavier.appfitness.domain.model.CalculatorSettings
 import io.github.lopezjavier.appfitness.domain.model.Equipment
-import io.github.lopezjavier.appfitness.domain.model.GoalStrategy
-import io.github.lopezjavier.appfitness.domain.model.MacroSplit
 import io.github.lopezjavier.appfitness.domain.model.PreviousValuesMode
 import io.github.lopezjavier.appfitness.domain.model.Sex
 import io.github.lopezjavier.appfitness.domain.model.TrainingIntention
@@ -23,9 +21,6 @@ class PreferencesSectionTest {
         heightCm = 178,
         weightKg = 80.0,
         activity = ActivityLevel.Moderate,
-        strategy = GoalStrategy.Deficit,
-        adjustment = -400,
-        split = MacroSplit.DEFAULT,
     )
 
     /** One form per section with only that section's fields changed. */
@@ -38,8 +33,6 @@ class PreferencesSectionTest {
             weightKg = 60.0,
             activity = ActivityLevel.High,
         ),
-        PreferencesSection.EnergyGoal to base.copy(strategy = GoalStrategy.Surplus, adjustment = 250),
-        PreferencesSection.Macros to base.copy(split = MacroSplit(35, 42, 23)),
         PreferencesSection.Cooking to base.copy(foodPreferences = FoodPreferencesForm("1", "2", "3")),
         PreferencesSection.Training to base.copy(
             warmUpIncluded = true,
@@ -123,6 +116,9 @@ class PreferencesSectionTest {
         PreferencesSection.entries.forEach { assertEquals(it, PreferencesSection.fromKey(it.key)) }
         assertEquals(PreferencesSection.PersonalData, PreferencesSection.fromKey(null))
         assertEquals(PreferencesSection.PersonalData, PreferencesSection.fromKey("nope"))
+        // The sections removed by T-303: an old saved route argument opens "Datos personales", never crashes.
+        assertEquals(PreferencesSection.PersonalData, PreferencesSection.fromKey("energy"))
+        assertEquals(PreferencesSection.PersonalData, PreferencesSection.fromKey("macros"))
         assertTrue(PreferencesSection.entries.map { it.key }.toSet().size == PreferencesSection.entries.size)
     }
 }

@@ -110,7 +110,6 @@ val uiModule =
         viewModel {
             PreferencesViewModel(
                 profileRepository = get(),
-                goalsRepository = get(),
                 bodyMeasurementRepository = get(),
                 trainingPreferencesRepository = get(),
                 foodPreferencesRepository = get(),

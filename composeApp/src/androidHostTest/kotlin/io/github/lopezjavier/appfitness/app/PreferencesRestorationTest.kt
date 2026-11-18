@@ -19,12 +19,8 @@ import io.github.lopezjavier.appfitness.domain.model.AccountProtection
 import io.github.lopezjavier.appfitness.domain.model.ActivityLevel
 import io.github.lopezjavier.appfitness.domain.model.BodyMeasurement
 import io.github.lopezjavier.appfitness.domain.model.Equipment
-import io.github.lopezjavier.appfitness.domain.model.GoalStrategy
-import io.github.lopezjavier.appfitness.domain.model.MacroSplit
-import io.github.lopezjavier.appfitness.domain.model.Macronutrient
 import io.github.lopezjavier.appfitness.domain.model.MeasurementSource
 import io.github.lopezjavier.appfitness.domain.model.NotificationKind
-import io.github.lopezjavier.appfitness.domain.model.NutritionGoals
 import io.github.lopezjavier.appfitness.domain.model.ProfileSummary
 import io.github.lopezjavier.appfitness.domain.model.SavedBiometrics
 import io.github.lopezjavier.appfitness.domain.model.Sex
@@ -32,7 +28,6 @@ import io.github.lopezjavier.appfitness.domain.model.TrainingIntention
 import io.github.lopezjavier.appfitness.domain.model.TrainingPlace
 import io.github.lopezjavier.appfitness.domain.usecase.SavePreferences
 import io.github.lopezjavier.appfitness.feature.food.FakeFoodPreferencesRepository
-import io.github.lopezjavier.appfitness.feature.goals.EnergyStrategyEvent
 import io.github.lopezjavier.appfitness.feature.profile.AccountUiState
 import io.github.lopezjavier.appfitness.feature.profile.PreferencesEvent
 import io.github.lopezjavier.appfitness.feature.profile.PreferencesHubActions
@@ -75,14 +70,12 @@ class PreferencesRestorationTest {
             FakeBodyMeasurementRepository(
                 BodyMeasurement("w1", Instant.parse("2026-10-10T08:00:00Z"), 80.0, MeasurementSource.Manual),
             )
-        val goals = FakeNutritionGoalsRepository(NutritionGoals(GoalStrategy.Deficit, -400, 2000, MacroSplit.DEFAULT))
         tester.setContent {
             AppTheme {
                 val vm =
                     remember {
                         PreferencesViewModel(
                             profile,
-                            goals,
                             weights,
                             FakeTrainingPreferencesRepository(),
                             FakeFoodPreferencesRepository(),
@@ -126,25 +119,14 @@ class PreferencesRestorationTest {
     }
 
     @Test
-    fun energyGoal_keepsTheDraftAfterRecreation() {
+    fun aSavedRemovedSection_opensDatosPersonales_withoutCrashing() {
         val tester = StateRestorationTester(rule)
         show(tester, "energy")
-        send(PreferencesEvent.Energy(EnergyStrategyEvent.SelectStrategy(GoalStrategy.Surplus)))
+        send(PreferencesEvent.SetName("Beatriz"))
 
         recreate(tester)
 
-        rule.onNodeWithTag("preferences_energy_save").assertIsEnabled()
-    }
-
-    @Test
-    fun macros_keepTheDraftAfterRecreation() {
-        val tester = StateRestorationTester(rule)
-        show(tester, "macros")
-        send(PreferencesEvent.MoveMacro(Macronutrient.Protein, 40))
-
-        recreate(tester)
-
-        rule.onNodeWithTag("preferences_macros_save").assertIsEnabled()
+        rule.onNodeWithTag("preferences_personal_save").assertIsEnabled()
     }
 
     @Test
