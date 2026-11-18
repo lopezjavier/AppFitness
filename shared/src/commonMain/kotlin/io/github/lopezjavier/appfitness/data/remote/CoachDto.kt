@@ -51,6 +51,7 @@ internal data class ActivityLevelValueDto(
     val confirmed: Boolean = false,
     val edited: Boolean = false,
     val reask: Boolean = false,
+    val measured: Boolean = false,
     val uncertainty: Double? = null,
     val sources: ActivitySourcesDto = ActivitySourcesDto(),
     val missing: List<String> = emptyList(),
@@ -127,6 +128,7 @@ internal data class CoachDerivedDto(
             confirmed = activityLevel.confirmed,
             edited = activityLevel.edited,
             reask = activityLevel.reask,
+            measured = activityLevel.measured,
             uncertainty = activityLevel.uncertainty,
             sources = with(activityLevel.sources) {
                 ActivitySources(stepsAvg, stepsDays, activeKcalAvg, activeKcalDays, sessionsPerWeek)

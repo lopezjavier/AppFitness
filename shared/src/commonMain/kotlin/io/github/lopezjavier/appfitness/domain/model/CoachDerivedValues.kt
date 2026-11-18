@@ -62,6 +62,8 @@ data class DerivedActivityLevel(
     val uncertainty: Double?,
     val sources: ActivitySources,
     val missing: List<CoachMissing>,
+    /** True when step or watch data makes the level read-only: it never blocks accepting and has no editor. */
+    val measured: Boolean = false,
 ) {
     val state: ValueState get() = valueState(provisional, confirmed, edited, reask)
 }
