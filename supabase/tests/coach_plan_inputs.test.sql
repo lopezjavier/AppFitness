@@ -3,7 +3,7 @@ begin;
 create extension if not exists pgtap with schema extensions;
 set local search_path = extensions, public;
 
-select plan(72);
+select plan(83);
 
 -- ---------------------------------------------------------------------------
 -- Fixture helpers (run as the migration owner; today is the UTC date, inside the RPC window)
@@ -83,7 +83,7 @@ grant execute on all functions in schema pg_temp to authenticated;
 -- ---------------------------------------------------------------------------
 insert into auth.users (id, email)
 select pg_temp.u(n), 'inputs' || n || '@example.com'
-from generate_series(1, 20) n;
+from generate_series(1, 25) n;
 
 insert into public.foods (id, source, name, kcal_100) values ('0ff00000-0000-4000-8000-0000000000c1', 'off', 'Alimento c', 100);
 
@@ -110,6 +110,16 @@ select pg_temp.prefs(12, 'muscle', 'home', array['dumbbell', 'barbell']::public.
 -- 13 proposed, 14 accepted, 15 both, 16 superseded and discarded.
 select pg_temp.plan(13, 'proposed'), pg_temp.plan(14, 'accepted'), pg_temp.plan(15, 'accepted'),
        pg_temp.plan(15, 'proposed'), pg_temp.plan(16, 'superseded'), pg_temp.plan(16, 'discarded');
+
+-- T-308. 21: 10 days of steps. 22: only active kcal. 23: 6 days of steps. 24: no data. 25: stated maintenance.
+select pg_temp.profile(n) from generate_series(21, 25) n;
+insert into public.daily_activity (user_id, day, steps)
+select pg_temp.u(21), pg_temp.d0() - i, 8200 from generate_series(0, 9) i;
+insert into public.daily_activity (user_id, day, active_kcal)
+select pg_temp.u(22), pg_temp.d0() - i, 400 from generate_series(0, 9) i;
+insert into public.daily_activity (user_id, day, steps)
+select pg_temp.u(23), pg_temp.d0() - i, 8200 from generate_series(0, 5) i;
+insert into public.coach_user_intake (user_id, known_maintenance_kcal) values (pg_temp.u(25), 2600);
 
 -- ---------------------------------------------------------------------------
 -- Security and guards
@@ -246,6 +256,24 @@ select is(pg_temp.ent(pg_temp.inp(2, 'plan'), 'known_maintenance')->'value', '24
 select is(pg_temp.ent(pg_temp.inp(2, 'plan'), 'training_years')->'value', '3.0'::jsonb, 'the years value is returned');
 select ok(not (pg_temp.inp(2, 'plan')::text like '%free_text%'), 'no free text entry is listed for any user (T-286)');
 select ok(not (pg_temp.inp(2, 'plan')::text like '%situation%'), 'no situation or injured area is listed');
+
+-- T-308: a measured activity level has no editor, says what it is measured from and never blocks.
+select is(pg_temp.st(pg_temp.inp(21, 'plan'), 'activity_level'), 'ok/false/-', 'a level measured from steps is ok and has no fix target');
+select is(pg_temp.ent(pg_temp.inp(21, 'plan'), 'activity_level')->>'basis', 'steps', 'its basis is the steps');
+select is(pg_temp.ent(pg_temp.inp(21, 'plan'), 'activity_level')->>'blocks_accept', 'false', 'and it does not block accept');
+select is(pg_temp.st(pg_temp.inp(22, 'plan'), 'activity_level'), 'ok/false/-', 'a level measured from active kcal is ok too');
+select is(pg_temp.ent(pg_temp.inp(22, 'plan'), 'activity_level')->>'basis', 'active_kcal', 'its basis is the active kcal');
+select is(pg_temp.st(pg_temp.inp(23, 'plan'), 'activity_level'), 'provisional/false/activity_sheet',
+  '6 days of steps leave the level as the answer, with its sheet');
+select is(pg_temp.ent(pg_temp.inp(23, 'plan'), 'activity_level')->'basis', 'null'::jsonb, 'and without a basis');
+select is(pg_temp.ent(pg_temp.inp(23, 'plan'), 'activity_level')->>'blocks_accept', 'true',
+  'a provisional level blocks accept on the formula path');
+select is(pg_temp.st(pg_temp.inp(24, 'plan'), 'activity_level'), 'provisional/false/activity_sheet',
+  'the steps of other users never make a level measured');
+select is(pg_temp.st(pg_temp.inp(25, 'plan'), 'activity_level'), 'provisional/false/activity_sheet',
+  'with a stated maintenance the level is still the provisional answer');
+select is(pg_temp.ent(pg_temp.inp(25, 'plan'), 'activity_level')->>'blocks_accept', 'false',
+  'but it does not block accept');
 
 select set_config('request.jwt.claims', json_build_object('sub', pg_temp.u(15), 'role', 'authenticated')::text, true);
 create temp table before_counts as
