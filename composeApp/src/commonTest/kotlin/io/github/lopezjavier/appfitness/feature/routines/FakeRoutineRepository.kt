@@ -46,7 +46,14 @@ class FakeRoutineRepository(initial: List<Routine> = emptyList()) : RoutineRepos
         failing(failure)?.let { return it }
         return Result.success(
             routines.filter { !it.archived }.map {
-                RoutineSummary(it.id.orEmpty(), it.name, it.exercises.size, folderOf[it.id], it.id == nextId)
+                RoutineSummary(
+                    it.id.orEmpty(),
+                    it.name,
+                    it.exercises.size,
+                    folderOf[it.id],
+                    it.id == nextId,
+                    it.exercises.map { exercise -> exercise.exerciseId },
+                )
             },
         )
     }

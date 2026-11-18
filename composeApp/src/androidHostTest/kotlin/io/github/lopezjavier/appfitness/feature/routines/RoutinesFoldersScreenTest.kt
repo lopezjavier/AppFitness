@@ -38,6 +38,7 @@ import io.github.lopezjavier.appfitness.designsystem.LocalAppHaptics
 import io.github.lopezjavier.appfitness.designsystem.LocalAppMessages
 import io.github.lopezjavier.appfitness.designsystem.RecordingAppHaptics
 import io.github.lopezjavier.appfitness.domain.model.RoutineFolder
+import io.github.lopezjavier.appfitness.feature.exercises.FakeExerciseRepository
 import io.github.lopezjavier.appfitness.feature.workout.FakeWorkoutSessionRepository
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
@@ -76,7 +77,14 @@ class RoutinesFoldersScreenTest {
     private val haptics = RecordingAppHaptics()
 
     private fun show() {
-        val vm = RoutinesViewModel(repository, FakeWorkoutSessionRepository(), connectivity, FakeClock())
+        val vm =
+            RoutinesViewModel(
+                repository,
+                FakeWorkoutSessionRepository(),
+                connectivity,
+                FakeClock(),
+                exerciseRepository = FakeExerciseRepository(),
+            )
         rule.setContent {
             CompositionLocalProvider(LocalAppHaptics provides haptics, LocalAppMessages provides messages) {
                 AppTheme { RoutinesRoot({}, {}, {}, viewModel = vm) }

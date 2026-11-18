@@ -372,6 +372,7 @@ val uiModule =
                 connectivity = get(),
                 clock = get(),
                 savedState = get(),
+                exerciseRepository = get(),
             )
         }
         viewModel { WorkoutEntryViewModel(repository = get(), connectivity = get(), savedState = get()) }

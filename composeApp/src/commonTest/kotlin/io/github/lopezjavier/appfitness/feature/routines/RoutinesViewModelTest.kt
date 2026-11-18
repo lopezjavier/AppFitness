@@ -5,7 +5,11 @@ import app.cash.turbine.test
 import io.github.lopezjavier.appfitness.app.FakeClock
 import io.github.lopezjavier.appfitness.app.FakeConnectivityObserver
 import io.github.lopezjavier.appfitness.domain.AppError
+import io.github.lopezjavier.appfitness.domain.model.MuscleGroup
 import io.github.lopezjavier.appfitness.domain.model.RoutineFolder
+import io.github.lopezjavier.appfitness.domain.model.RoutinePart
+import io.github.lopezjavier.appfitness.feature.exercises.FakeExerciseRepository
+import io.github.lopezjavier.appfitness.feature.exercises.exerciseRow
 import io.github.lopezjavier.appfitness.feature.workout.FakeWorkoutSessionRepository
 import io.github.lopezjavier.appfitness.feature.workout.completedSession
 import kotlinx.coroutines.Dispatchers
@@ -43,8 +47,84 @@ class RoutinesViewModelTest {
         Dispatchers.resetMain()
     }
 
+    private val exerciseRepository = FakeExerciseRepository()
+
     private fun viewModel(saved: SavedStateHandle = SavedStateHandle()) =
-        RoutinesViewModel(repository, sessions, connectivity, clock, saved, TimeZone.UTC)
+        RoutinesViewModel(repository, sessions, connectivity, clock, saved, TimeZone.UTC, exerciseRepository)
+
+    private fun RoutinesUiState.Content.partOf(name: String) = routines.first { it.name == name }.part
+
+    @Test
+    fun eachRoutineExposesThePartDerivedFromItsName() = runTest {
+        val vm = viewModel()
+
+        advanceUntilIdle()
+
+        assertEquals(RoutinePart.Upper, vm.content().partOf("Torso"))
+        assertEquals(RoutinePart.Lower, vm.content().partOf("Pierna"))
+    }
+
+    @Test
+    fun aRoutineWithAnUnmatchedNameIsClassifiedByItsExercises() = runTest {
+        exerciseRepository.rows = listOf(
+            exerciseRow("x1", "k1", MuscleGroup.Chest),
+            exerciseRow("x2", "k2", MuscleGroup.Triceps),
+        )
+        repository.routines += routineOf("r3", "Mi rutina", "x1", "x2")
+        val vm = viewModel()
+
+        advanceUntilIdle()
+
+        assertEquals(RoutinePart.Push, vm.content().partOf("Mi rutina"))
+    }
+
+    @Test
+    fun aRoutineWithNothingToClassifyKeepsTheGenericPart() = runTest {
+        repository.routines += routineOf("r3", "Mi rutina")
+        val vm = viewModel()
+
+        advanceUntilIdle()
+
+        assertEquals(RoutinePart.Generic, vm.content().partOf("Mi rutina"))
+    }
+
+    @Test
+    fun aFailedExerciseLoadStillListsTheRoutinesWithNameOnlyParts() = runTest {
+        exerciseRepository.failure = AppError.Network
+        repository.routines += routineOf("r3", "Mi rutina", "x1")
+        val vm = viewModel()
+
+        advanceUntilIdle()
+
+        val content = vm.content()
+        assertEquals(3, content.routines.size)
+        assertEquals(RoutinePart.Upper, content.partOf("Torso"))
+        assertEquals(RoutinePart.Generic, content.partOf("Mi rutina"))
+    }
+
+    @Test
+    fun thePartIsDerivedAgainAfterARefresh() = runTest {
+        val vm = viewModel()
+        advanceUntilIdle()
+        repository.routines[0] = repository.routines[0].copy(name = "Empuje")
+
+        vm.onEvent(RoutinesEvent.Refresh)
+        advanceUntilIdle()
+
+        assertEquals(RoutinePart.Push, vm.content().partOf("Empuje"))
+    }
+
+    @Test
+    fun aViewModelRecreatedFromTheSameSavedStateDerivesTheSameParts() = runTest {
+        val saved = SavedStateHandle()
+        val first = viewModel(saved)
+        advanceUntilIdle()
+
+        val second = viewModel(saved)
+        advanceUntilIdle()
+
+        assertEquals(first.content().routines.map { it.part }, second.content().routines.map { it.part })
+    }
 
     private fun RoutinesViewModel.content() = assertIs<RoutinesUiState.Content>(uiState.value)
 

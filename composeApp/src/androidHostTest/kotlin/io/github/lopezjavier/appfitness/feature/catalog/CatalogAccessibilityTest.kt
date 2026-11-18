@@ -64,7 +64,7 @@ private val ExpectedSections =
         "state_messages", "offline_banner", "action_row", "summary_card",
         "favourite_toggle", "portion_selector", "cooking_selector", "weekday_selector", "month_calendar",
         "diary_history_row", "diary_parts",
-        "muscle_split_bar",
+        "muscle_split_bar", "training_part_icons",
         "goal_metrics", "swipe", "rows", "food_entry", "metric_card", "time_range",
         "top_bar", "weight_pace_chart", "progress_picker",
         "screen", "editor", "messages", "offline_state", "action_sheet",

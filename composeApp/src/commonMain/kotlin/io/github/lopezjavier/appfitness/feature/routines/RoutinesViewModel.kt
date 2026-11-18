@@ -10,8 +10,10 @@ import io.github.lopezjavier.appfitness.domain.model.RoutineFolder
 import io.github.lopezjavier.appfitness.domain.model.RoutineSummary
 import io.github.lopezjavier.appfitness.domain.port.Clock
 import io.github.lopezjavier.appfitness.domain.port.ConnectivityObserver
+import io.github.lopezjavier.appfitness.domain.repository.ExerciseRepository
 import io.github.lopezjavier.appfitness.domain.repository.RoutineRepository
 import io.github.lopezjavier.appfitness.domain.repository.WorkoutSessionRepository
+import io.github.lopezjavier.appfitness.domain.usecase.DeriveRoutinePart
 import io.github.lopezjavier.appfitness.domain.usecase.TrainingCalendar
 import io.github.lopezjavier.appfitness.domain.usecase.moveWithinGroup
 import io.github.lopezjavier.appfitness.feature.workout.SessionStartOutcome
@@ -47,7 +49,11 @@ class RoutinesViewModel(
     private val clock: Clock,
     private val savedState: SavedStateHandle = SavedStateHandle(),
     private val zone: TimeZone = TimeZone.currentSystemDefault(),
+    // Feeds the icon's part; a failed read leaves the name-only part, the icon is decoration.
+    private val exerciseRepository: ExerciseRepository,
 ) : ViewModel() {
+    private val derivePart = DeriveRoutinePart()
+
     private val _uiState = MutableStateFlow<RoutinesUiState>(RoutinesUiState.Loading)
     val uiState: StateFlow<RoutinesUiState> = _uiState.asStateFlow()
 
@@ -154,7 +160,7 @@ class RoutinesViewModel(
                 if (showLoading) _uiState.value = RoutinesUiState.Error
                 return@launch
             }
-            val list = routines.getOrThrow()
+            val list = withParts(routines.getOrThrow())
             val folderList = folders.getOrThrow()
             val week = loadWeek()
             _uiState.update { current ->
@@ -180,6 +186,13 @@ class RoutinesViewModel(
                             ?.let { id -> folderList.firstOrNull { it.id == id } },
                     )
             }
+        }
+    }
+
+    private suspend fun withParts(list: List<RoutineSummary>): List<RoutineSummary> {
+        val catalog = exerciseRepository.getAll().getOrNull().orEmpty().associateBy { it.id }
+        return list.map { routine ->
+            routine.copy(part = derivePart(routine.name, routine.exerciseIds.mapNotNull(catalog::get)))
         }
     }
 

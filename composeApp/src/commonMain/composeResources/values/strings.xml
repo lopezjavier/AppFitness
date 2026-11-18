@@ -1733,6 +1733,7 @@
         <item>RepDB|Datos de ejercicios por RepDB (repdb.co)</item>
         <item>Open Food Facts|Datos de alimentos de Open Food Facts (openfoodfacts.org), con licencia ODbL</item>
         <item>Google Gemini|Estimaciones de comidas a partir de fotos con Google Gemini</item>
+        <item>Iconos de entrenamiento|Iconos de Flaticon (flaticon.com)</item>
     </string-array>
 
     <!-- T-135 notification center -->
@@ -2542,4 +2543,15 @@
     <string name="trainer_plan_tile_calories">Calorías</string>
     <string name="trainer_plan_calories_value">%1$s&#160;de&#160;%2$s&#160;kcal</string>
     <string name="trainer_plan_calories_none">Sin datos de comidas</string>
+    <string name="catalog_section_training_part_icons">Iconos de parte de entrenamiento</string>
+    <string name="catalog_part_full_body">Cuerpo completo</string>
+    <string name="catalog_part_upper">Torso</string>
+    <string name="catalog_part_lower">Pierna</string>
+    <string name="catalog_part_push">Empuje</string>
+    <string name="catalog_part_pull">Tirón</string>
+    <string name="catalog_part_arms">Brazos</string>
+    <string name="catalog_part_glutes">Glúteo</string>
+    <string name="catalog_part_core">Core</string>
+    <string name="catalog_part_cardio">Cardio</string>
+    <string name="catalog_part_generic">Genérico</string>
 </resources>

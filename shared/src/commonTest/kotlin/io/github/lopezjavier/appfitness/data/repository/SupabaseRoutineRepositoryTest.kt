@@ -338,15 +338,17 @@ class SupabaseRoutineRepositoryTest {
     }
 
     @Test
-    fun listActive_mapsCountFolderAndNext_andAsksForPositionOrderNonArchived() = runTest {
+    fun listActive_mapsExerciseIdsCountFolderAndNext_andAsksForPositionOrderNonArchived() = runTest {
         val repo = signedIn()
         getBody =
-            """[{"id":"r1","name":"A","folder_id":"f1","is_next":true,"routine_exercises":[{"count":3}]},""" +
+            """[{"id":"r1","name":"A","folder_id":"f1","is_next":true,""" +
+            """"routine_exercises":[{"exercise_id":"e1"},{"exercise_id":"e2"},{"exercise_id":"e3"}]},""" +
             """{"id":"r2","name":"B","folder_id":null,"is_next":false,"routine_exercises":[]}]"""
 
         val list = repo.listActive().getOrThrow()
 
         assertEquals(listOf("A" to 3, "B" to 0), list.map { it.name to it.exerciseCount })
+        assertEquals(listOf(listOf("e1", "e2", "e3"), emptyList()), list.map { it.exerciseIds })
         assertEquals(listOf("f1", null), list.map { it.folderId })
         assertEquals(listOf(true, false), list.map { it.isNext })
         val query = rest().single().url.encodedQuery
@@ -356,7 +358,10 @@ class SupabaseRoutineRepositoryTest {
             query,
         )
         assertTrue("folder_id,is_next" in query || "folder_id%2Cis_next" in query, query)
-        assertTrue("routine_exercises(count)" in query || "routine_exercises%28count%29" in query, query)
+        assertTrue(
+            "routine_exercises(exercise_id)" in query || "routine_exercises%28exercise_id%29" in query,
+            query,
+        )
     }
 
     @Test

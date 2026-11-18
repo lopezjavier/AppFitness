@@ -6,6 +6,7 @@ import io.github.lopezjavier.appfitness.app.FakeClock
 import io.github.lopezjavier.appfitness.app.FakeConnectivityObserver
 import io.github.lopezjavier.appfitness.domain.AppError
 import io.github.lopezjavier.appfitness.domain.model.RoutineFolder
+import io.github.lopezjavier.appfitness.feature.exercises.FakeExerciseRepository
 import io.github.lopezjavier.appfitness.feature.workout.FakeWorkoutSessionRepository
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.test.StandardTestDispatcher
@@ -43,8 +44,14 @@ class RoutinesFoldersViewModelTest {
         Dispatchers.resetMain()
     }
 
-    private fun viewModel(state: SavedStateHandle = savedState) =
-        RoutinesViewModel(repository, FakeWorkoutSessionRepository(), connectivity, FakeClock(), state)
+    private fun viewModel(state: SavedStateHandle = savedState) = RoutinesViewModel(
+        repository,
+        FakeWorkoutSessionRepository(),
+        connectivity,
+        FakeClock(),
+        state,
+        exerciseRepository = FakeExerciseRepository(),
+    )
 
     private fun RoutinesViewModel.content() = assertIs<RoutinesUiState.Content>(uiState.value)
 
