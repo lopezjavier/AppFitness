@@ -11,7 +11,7 @@ object FeatureMetrics {
     val DateNavigatorMaxWidth: Dp = 320.dp
 
     /** Width of the input of a nutrient table row of the create-food form (C-36). */
-    val NutrientInputWidth: Dp = 96.dp
+    val NutrientInputWidth: Dp = 112.dp
 
     /** Height of the input of a nutrient table row; the 48 dp touch target. */
     val NutrientInputHeight: Dp = Spacing.minTouchTarget

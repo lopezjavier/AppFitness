@@ -164,6 +164,8 @@
     <string name="catalog_number_weight">Peso (kg)</string>
     <string name="catalog_number_reps">Repeticiones</string>
     <string name="catalog_number_grams">Cantidad (g)</string>
+    <string name="catalog_number_energy">Energía</string>
+    <string name="catalog_number_duration">Duración</string>
     <string name="catalog_checkbox_unchecked">Pendiente</string>
     <string name="catalog_checkbox_checked">Completada</string>
     <string name="catalog_checkbox_cd">Completar serie</string>
