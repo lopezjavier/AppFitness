@@ -1,5 +1,7 @@
 package io.github.lopezjavier.appfitness.feature.trainer
 
+import io.github.lopezjavier.appfitness.domain.model.ActivityBasis
+import io.github.lopezjavier.appfitness.domain.model.DerivedSource
 import io.github.lopezjavier.appfitness.domain.model.PlanFixTarget
 import io.github.lopezjavier.appfitness.domain.model.PlanInput
 import io.github.lopezjavier.appfitness.domain.model.PlanInputKey
@@ -46,6 +48,8 @@ data class PlanInputRow(
     val date: LocalDate?,
     /** True when the server refuses to accept a plan while this input is provisional. */
     val blocksAccept: Boolean = false,
+    /** What a measured (read-only) activity level is measured from; null for every other row. */
+    val basis: ActivityBasis? = null,
 ) {
     val isFlag: Boolean get() = marker == PlanInputMarker.Flag
     val isProvisional: Boolean get() = marker == PlanInputMarker.Provisional
@@ -68,6 +72,7 @@ fun PlanInput.toRow(): PlanInputRow = PlanInputRow(
     fixTarget = fixTarget,
     date = date,
     blocksAccept = blocksAccept,
+    basis = basis,
 )
 
 private fun PlanInput.markerOf(): PlanInputMarker = when (status) {
@@ -116,4 +121,20 @@ fun PlanInputKind.summaryLines(): List<List<PlanInputKey>> = when (this) {
 fun mergeRows(plan: List<PlanInputRow>, block: List<PlanInputRow>): List<PlanInputRow> {
     val seen = mutableSetOf<PlanInputKey>()
     return (plan + block).filter { it.key == PlanInputKey.Unknown || seen.add(it.key) }
+}
+
+/** Why a provisional activity level does not change the calories (the text of its "?"); see ADR-109. */
+enum class ActivityNoChange { Maintenance, Adaptive }
+
+/**
+ * The "?" case of the activity row: the level is still the user's answer ([PlanInputMarker.Provisional]) but does not
+ * block "Aceptar" because the calories come from the stated maintenance or the measured expenditure. The server
+ * sends the expenditure source only with the derived values, never in the plan inputs.
+ */
+fun activityNoChange(row: PlanInputRow?, expenditure: DerivedSource?): ActivityNoChange? = when {
+    row == null || row.key != PlanInputKey.ActivityLevel -> null
+    !row.isProvisional || row.blocksAccept || row.basis != null -> null
+    expenditure == DerivedSource.Intake -> ActivityNoChange.Maintenance
+    expenditure == DerivedSource.Adaptive -> ActivityNoChange.Adaptive
+    else -> null
 }

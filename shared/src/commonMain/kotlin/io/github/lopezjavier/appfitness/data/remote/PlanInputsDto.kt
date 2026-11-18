@@ -1,5 +1,6 @@
 package io.github.lopezjavier.appfitness.data.remote
 
+import io.github.lopezjavier.appfitness.domain.model.ActivityBasis
 import io.github.lopezjavier.appfitness.domain.model.CurrentPlan
 import io.github.lopezjavier.appfitness.domain.model.PlanFixTarget
 import io.github.lopezjavier.appfitness.domain.model.PlanInput
@@ -62,6 +63,7 @@ internal data class PlanInputDto(
     @SerialName("fix_target") val fixTarget: String? = null,
     val date: LocalDate? = null,
     @SerialName("blocks_accept") val blocksAccept: Boolean = false,
+    val basis: String? = null,
 ) {
     fun toDomain() = PlanInput(
         key = KEYS[key] ?: PlanInputKey.Unknown,
@@ -72,6 +74,11 @@ internal data class PlanInputDto(
         fixTarget = if (fixTarget == "intake") INTAKE_FIX_BY_KEY[key] else FIX_TARGETS[fixTarget],
         date = date,
         blocksAccept = blocksAccept,
+        basis = when (basis) {
+            "steps" -> ActivityBasis.Steps
+            "active_kcal" -> ActivityBasis.ActiveKcal
+            else -> null
+        },
     )
 
     private companion object {

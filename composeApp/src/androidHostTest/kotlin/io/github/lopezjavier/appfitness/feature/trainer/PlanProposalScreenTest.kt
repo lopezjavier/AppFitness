@@ -1,29 +1,39 @@
 package io.github.lopezjavier.appfitness.feature.trainer
 
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.assertTextContains
 import androidx.compose.ui.test.assertTextEquals
+import androidx.compose.ui.test.getUnclippedBoundsInRoot
 import androidx.compose.ui.test.hasSetTextAction
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.unit.Density
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.height
+import androidx.compose.ui.unit.width
 import androidx.lifecycle.SavedStateHandle
 import io.github.lopezjavier.appfitness.app.FakeConnectivityObserver
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
+import io.github.lopezjavier.appfitness.domain.model.ActivityBasis
 import io.github.lopezjavier.appfitness.domain.model.ActivityLevel
 import io.github.lopezjavier.appfitness.domain.model.CoachPlan
+import io.github.lopezjavier.appfitness.domain.model.DerivedSource
 import io.github.lopezjavier.appfitness.domain.model.MissingField
 import io.github.lopezjavier.appfitness.domain.model.OutcomeKind
 import io.github.lopezjavier.appfitness.domain.model.PlanFixTarget
 import io.github.lopezjavier.appfitness.domain.model.PlanInput
 import io.github.lopezjavier.appfitness.domain.model.PlanInputKey
 import io.github.lopezjavier.appfitness.domain.model.PlanInputStatus
+import io.github.lopezjavier.appfitness.domain.model.PlanInputValue
 import io.github.lopezjavier.appfitness.domain.model.PlanLimit
 import io.github.lopezjavier.appfitness.domain.model.PlanOutcome
 import io.github.lopezjavier.appfitness.feature.workout.MutableClock
@@ -514,5 +524,89 @@ class PlanProposalScreenTest {
         assertEquals(1, plans.requests.size)
         rule.onNodeWithTag("plan_proposal_kcal").assertTextContains("2.000", substring = true)
         assertTrue(plans.acceptCalls.isEmpty())
+    }
+
+    private fun levelThatDoesNotBlock() = proposal(confirmed = true).copy(
+        activityRow = planInput(
+            PlanInputKey.ActivityLevel,
+            PlanInputStatus.Provisional,
+            value = PlanInputValue.Text("light"),
+            fixTarget = PlanFixTarget.ActivitySheet,
+        ).toRow(),
+    )
+
+    @Test
+    fun aProvisionalLevel_withMaintenanceCalories_keepsItsChip_doesNotBlock_andItsHelpExplainsIt() {
+        show(levelThatDoesNotBlock().copy(expenditureSource = DerivedSource.Intake))
+
+        rule.onNodeWithTag("plan_proposal_accept").assertIsEnabled()
+        rule.onNodeWithTag("plan_proposal_unconfirmed_section").assertDoesNotExist()
+        rule.onNodeWithTag("plan_proposal_activity_chip").assertTextEquals("Provisional")
+        tap("plan_proposal_activity_help")
+        rule.onNodeWithText(
+            "Tu nivel de actividad no cambia tus calorías: partimos de tus calorías de mantenimiento.",
+        ).assertExists()
+    }
+
+    @Test
+    fun aProvisionalLevel_withMeasuredCalories_saysSoInItsHelp() {
+        show(levelThatDoesNotBlock().copy(expenditureSource = DerivedSource.Adaptive))
+
+        rule.onNodeWithTag("plan_proposal_accept").assertIsEnabled()
+        tap("plan_proposal_activity_help")
+        rule.onNodeWithText(
+            "Tu nivel de actividad no cambia tus calorías: usamos las calorías que medimos con tu peso y tu diario.",
+        ).assertExists()
+    }
+
+    @Test
+    fun aProvisionalLevel_onTheFormulaPath_isListedAsAValueToConfirm_andAcceptIsDisabled() {
+        show(proposal(confirmed = false).copy(expenditureSource = DerivedSource.Formula))
+
+        rule.onNodeWithTag("plan_proposal_unconfirmed_activity_level").assertExists()
+        rule.onNodeWithTag("plan_proposal_accept").assertIsNotEnabled()
+        rule.onNodeWithTag("plan_proposal_activity_help").assertDoesNotExist()
+    }
+
+    @Test
+    fun aMeasuredLevel_hasNoRowAndNoHelp() {
+        show(
+            proposal(confirmed = true).copy(
+                activityRow = planInput(
+                    PlanInputKey.ActivityLevel,
+                    value = PlanInputValue.Text("light"),
+                    basis = ActivityBasis.Steps,
+                ).toRow(),
+                expenditureSource = DerivedSource.Intake,
+            ),
+        )
+
+        rule.onNodeWithTag("plan_proposal_activity_row").assertDoesNotExist()
+        rule.onNodeWithTag("plan_proposal_accept").assertIsEnabled()
+    }
+
+    @Test
+    fun theActivityRow_atFontScale2_keepsHeadlineValueAndHelpApart_andTheHelpTargetBig() {
+        val state = levelThatDoesNotBlock().copy(expenditureSource = DerivedSource.Intake)
+        rule.setContent {
+            AppTheme {
+                CompositionLocalProvider(
+                    LocalDensity provides Density(LocalDensity.current.density, fontScale = 2f),
+                ) {
+                    PlanProposalScreen(state, flowOf(true), {}, {}, {}, onFix = {})
+                }
+            }
+        }
+        rule.waitForIdle()
+
+        val headline = rule.onNodeWithText("Nivel de actividad", useUnmergedTree = true).getUnclippedBoundsInRoot()
+        val value = rule.onNodeWithText("Ligero", useUnmergedTree = true).getUnclippedBoundsInRoot()
+        val help = rule.onNodeWithTag("plan_proposal_activity_help").getUnclippedBoundsInRoot()
+        val row = rule.onNodeWithTag("plan_proposal_activity_row").getUnclippedBoundsInRoot()
+        assertTrue("help target is $help", help.width >= 47.5.dp && help.height >= 47.5.dp)
+        assertTrue("help inside the row: $help in $row", help.right <= row.right)
+        assertTrue("headline $headline overlaps $value", headline.right <= value.left || headline.bottom <= value.top)
+        assertTrue("value $value overlaps help $help", value.right <= help.left)
+        rule.onNodeWithTag("plan_proposal_activity_chip").assertIsDisplayed()
     }
 }

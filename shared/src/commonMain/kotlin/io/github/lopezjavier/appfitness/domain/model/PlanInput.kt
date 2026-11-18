@@ -50,6 +50,9 @@ enum class PlanFixTarget { MyTraining, PersonalData, Weight, ActivitySheet, Trai
 
 enum class PlanInputSource { Profile, MyTraining, WeighIn, CoachEstimate, Intake, Unknown }
 
+/** The measured data a read-only activity level comes from. */
+enum class ActivityBasis { Steps, ActiveKcal }
+
 /** The plan the new one would replace, when there is one. */
 enum class CurrentPlan { Accepted, Proposed }
 
@@ -79,6 +82,8 @@ data class PlanInput(
     val date: LocalDate?,
     /** True when the server refuses to accept a plan while this input is provisional (plan kind only). */
     val blocksAccept: Boolean = false,
+    /** What a measured activity level is measured from; null for every other input and for an answered level. */
+    val basis: ActivityBasis? = null,
 )
 
 data class PlanInputs(val kind: PlanInputKind, val currentPlan: CurrentPlan?, val inputs: List<PlanInput>) {

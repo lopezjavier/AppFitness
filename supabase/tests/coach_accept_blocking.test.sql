@@ -3,7 +3,7 @@ begin;
 create extension if not exists pgtap with schema extensions;
 set local search_path = extensions, public;
 
-select plan(18);
+select plan(31);
 
 create function pg_temp.d0() returns date language sql as $$ select (now() at time zone 'utc')::date $$;
 
@@ -46,10 +46,33 @@ create function pg_temp.blockers() returns text[] language sql as $$
 
 grant execute on all functions in schema pg_temp to authenticated;
 
-insert into auth.users (id, email) select pg_temp.u(n), 'accblock' || n || '@example.com' from generate_series(1, 3) n;
+-- One weigh-in on the day_offset-th day after the Monday of the week that started weeks_ago weeks ago.
+create function pg_temp.wd(n int, weeks_ago int, day_offset int, kg numeric) returns void language sql as $$
+  insert into public.body_measurements (user_id, weight_kg, source, measured_at)
+  select pg_temp.u(n), kg, 'manual',
+         ((pg_temp.d0() - (extract(isodow from pg_temp.d0())::int - 1) - 7 * weeks_ago + day_offset)::timestamp
+           + interval '30 minutes') at time zone 'UTC' $$;
+
+create function pg_temp.diary(n int, days int, kcal numeric) returns void language sql as $$
+  insert into public.food_log_entries (user_id, log_date, meal_slot_id, food_id, amount, food_name, kcal, protein_g, carbs_g, fat_g)
+  select pg_temp.u(n), pg_temp.d0() - i,
+         (select id from public.meal_slots where user_id = pg_temp.u(n) and code = 'breakfast'),
+         '0ff00000-0000-4000-8000-0000000000c1', 100, 'Alimento', kcal, 10, 10, 10
+  from generate_series(0, days - 1) i $$;
+
+insert into auth.users (id, email) select pg_temp.u(n), 'accblock' || n || '@example.com' from generate_series(1, 7) n;
+insert into public.foods (id, source, name, kcal_100) values ('0ff00000-0000-4000-8000-0000000000c1', 'off', 'Alimento c', 100);
 -- 1 fresh account. 2 fresh account whose expenditure comes from the stated maintenance. 3 another user.
 select pg_temp.fresh(1), pg_temp.fresh(2), pg_temp.fresh(3);
 insert into public.coach_user_intake (user_id, known_maintenance_kcal) values (pg_temp.u(2), 2600);
+-- T-308 (provisional activity level, experience already backed by a 0.2 year report). 4: stated maintenance.
+-- 5: reliable diary and weight slope (adaptive, slope used). 6: formula. 7: reliable diary without enough weights.
+select pg_temp.fresh(4), pg_temp.fresh(5), pg_temp.fresh(6), pg_temp.fresh(7);
+insert into public.coach_user_intake (user_id, training_years, known_maintenance_kcal)
+values (pg_temp.u(4), 0.2, 2600), (pg_temp.u(5), 0.2, null), (pg_temp.u(6), 0.2, null), (pg_temp.u(7), 0.2, null);
+select pg_temp.diary(5, 20, 2000), pg_temp.diary(7, 20, 2000);
+select pg_temp.wd(5, w, o, k)
+from (values (3, 0, 80), (2, 0, 79), (1, 0, 79), (1, 1, 79), (1, 2, 79), (2, 1, 79), (2, 2, 79), (3, 1, 80), (3, 2, 80)) t(w, o, k);
 
 -- ---------------------------------------------------------------------------
 -- Privileges
@@ -101,6 +124,49 @@ select is(public.coach_plan_inputs('plan', pg_temp.d0())->'inputs' @> '[{"key":"
 select lives_ok(
   $$select public.accept_coach_plan((select id from public.coach_plans where status = 'proposed'), pg_temp.d0())$$,
   'an intake-sourced expenditure does not block accept');
+
+-- ---------------------------------------------------------------------------
+-- T-308: a provisional activity level blocks only on the formula path
+-- ---------------------------------------------------------------------------
+select pg_temp.as_user(4);
+select public.propose_coach_plan(pg_temp.d0(), 'fat_loss', pg_temp.nut(), '[]', '{}', '{}');
+select is(pg_temp.blockers(), array[]::text[], 'a provisional level and a stated maintenance: nothing blocks');
+select is(public.coach_plan_inputs('plan', pg_temp.d0())->'inputs' @> '[{"key":"activity_level","status":"provisional"}]', true,
+  'the level keeps its provisional status');
+select is(pg_temp.ba('activity_level'), 'false', 'but does not block accept');
+select lives_ok(
+  $$select public.accept_coach_plan((select id from public.coach_plans where status = 'proposed'), pg_temp.d0())$$,
+  'a provisional level does not block when the expenditure is the stated maintenance');
+
+-- Adaptive with the weight slope: the weight trend is the only thing left to confirm.
+select pg_temp.as_user(5);
+select public.propose_coach_plan(pg_temp.d0(), 'fat_loss', pg_temp.nut(), '[]', '{}', '{}');
+insert into public.coach_confirmed_values (key, estimate, uncertainty)
+select 'weight_trend', (e->'weight_trend'->>'slope_kg_week')::numeric, 0.5
+from (select public.coach_compute(pg_temp.d0(), null) as e) x;
+select is(pg_temp.ba('total_expenditure'), 'false', 'an adaptive expenditure backed by the slope does not block');
+select is(pg_temp.ba('activity_level'), 'false', 'a provisional level does not block on the adaptive path');
+select is(pg_temp.blockers(), array[]::text[], 'nothing blocks on the adaptive path');
+select lives_ok(
+  $$select public.accept_coach_plan((select id from public.coach_plans where status = 'proposed'), pg_temp.d0())$$,
+  'a provisional level does not block when the expenditure is adaptive');
+
+-- Formula path: the level changes a figure, so it blocks.
+select pg_temp.as_user(6);
+select public.propose_coach_plan(pg_temp.d0(), 'fat_loss', pg_temp.nut(), '[]', '{}', '{}');
+select ok(pg_temp.blockers() @> array['activity_level'], 'a provisional level blocks on the formula path');
+select throws_ok(
+  $$select public.accept_coach_plan((select id from public.coach_plans where status = 'proposed'), pg_temp.d0())$$,
+  '55000', 'derived values unconfirmed', 'and accept is refused');
+
+-- Adaptive from the diary alone: the expenditure itself is still provisional, the level is not what blocks.
+select pg_temp.as_user(7);
+select public.propose_coach_plan(pg_temp.d0(), 'fat_loss', pg_temp.nut(), '[]', '{}', '{}');
+select is(pg_temp.ba('total_expenditure'), 'true', 'an adaptive expenditure without the slope still blocks');
+select is(pg_temp.ba('activity_level'), 'false', 'while the level does not');
+select throws_ok(
+  $$select public.accept_coach_plan((select id from public.coach_plans where status = 'proposed'), pg_temp.d0())$$,
+  '55000', 'derived values unconfirmed', 'and accept is refused');
 
 -- ---------------------------------------------------------------------------
 -- Isolation: user B confirming does not unblock user A

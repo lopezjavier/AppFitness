@@ -1,5 +1,6 @@
 package io.github.lopezjavier.appfitness.data.remote
 
+import io.github.lopezjavier.appfitness.domain.model.ActivityBasis
 import io.github.lopezjavier.appfitness.domain.model.CurrentPlan
 import io.github.lopezjavier.appfitness.domain.model.PlanFixTarget
 import io.github.lopezjavier.appfitness.domain.model.PlanInputKey
@@ -43,6 +44,24 @@ class PlanInputsDtoTest {
         )
 
         assertEquals(listOf(true, false, false), result.inputs.map { it.blocksAccept })
+    }
+
+    @Test
+    fun basis_isParsed_andAbsentOrUnknownMeansNull() {
+        val result = decode(
+            list(
+                entry(key = "activity_level", extra = ""","basis":"steps""""),
+                entry(key = "activity_level", extra = ""","basis":"active_kcal""""),
+                entry(key = "activity_level", extra = ""","basis":null"""),
+                entry(key = "activity_level", extra = ""","basis":"something_new""""),
+                entry(key = "activity_level"),
+            ),
+        )
+
+        assertEquals(
+            listOf(ActivityBasis.Steps, ActivityBasis.ActiveKcal, null, null, null),
+            result.inputs.map { it.basis },
+        )
     }
 
     @Test

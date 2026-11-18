@@ -425,6 +425,28 @@ Deno.test("unconfirmed values still produce a proposed plan flagged requires_con
     assertEquals(saved.length, 1);
 });
 
+Deno.test("a provisional activity level does not require confirmation with a stated or measured expenditure", async () => {
+    for (const source of ["intake", "adaptive"]) {
+        const { handler } = setup({
+            summary: summary({
+                estimates: {
+                    activity_level: { provisional: true },
+                    total_expenditure: {
+                        value: 2600,
+                        source,
+                        provisional: source === "intake",
+                    },
+                    experience: { value: "intermediate", provisional: false },
+                    weight_trend: { slope_kg_week: null, provisional: true },
+                },
+            }),
+        });
+        const plan = await planOf(await handler(post()));
+        assertEquals(plan.nutrition.requires_confirmation, false, source);
+        assertEquals(plan.nutrition.unconfirmed, [], source);
+    }
+});
+
 Deno.test("a persistence failure is INTERNAL and leaves no usage", async () => {
     const t = setup({ saveFails: true });
     const res = await t.handler(post());

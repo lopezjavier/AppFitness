@@ -133,7 +133,11 @@ Deno.test("unconfirmedKeys follows the accept_coach_plan rule", () => {
     assertEquals(
         unconfirmedKeys({
             activity_level: { provisional: true },
-            total_expenditure: { value: 2500, provisional: true },
+            total_expenditure: {
+                value: 2500,
+                source: "formula",
+                provisional: true,
+            },
             experience: { provisional: true },
             weight_trend: { slope_kg_week: -0.4, provisional: true },
         }),
@@ -148,6 +152,45 @@ Deno.test("unconfirmedKeys follows the accept_coach_plan rule", () => {
         [],
     );
     assertEquals(unconfirmedKeys(null), []);
+});
+
+Deno.test("a provisional activity level blocks only on the formula path", () => {
+    const level = { provisional: true };
+    const keysFor = (exp: Record<string, unknown>) =>
+        unconfirmedKeys({ activity_level: level, total_expenditure: exp });
+    assertEquals(
+        keysFor({ value: 2500, source: "formula", provisional: false }),
+        ["activity_level"],
+    );
+    assertEquals(
+        keysFor({ value: 2500, source: "intake", provisional: true }),
+        [],
+    );
+    assertEquals(
+        keysFor({ value: 2500, source: "adaptive", provisional: false }),
+        [],
+    );
+    // The expenditure itself still blocks when it is provisional and not the stated maintenance.
+    assertEquals(
+        keysFor({ value: 2500, source: "adaptive", provisional: true }),
+        ["total_expenditure"],
+    );
+    // No expenditure yet: the level is what is left to confirm.
+    assertEquals(keysFor({ value: null, source: "formula" }), [
+        "activity_level",
+    ]);
+    // A measured level is never provisional, so it never blocks.
+    assertEquals(
+        unconfirmedKeys({
+            activity_level: { provisional: false, measured: true },
+            total_expenditure: {
+                value: 2500,
+                source: "formula",
+                provisional: false,
+            },
+        }),
+        [],
+    );
 });
 
 // --- T-180: target against the intake anchor (04 section 8.7) ---

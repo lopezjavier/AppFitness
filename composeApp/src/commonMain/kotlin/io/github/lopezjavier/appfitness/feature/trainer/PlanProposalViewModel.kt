@@ -10,6 +10,7 @@ import io.github.lopezjavier.appfitness.domain.model.CoachException
 import io.github.lopezjavier.appfitness.domain.model.CoachFailure
 import io.github.lopezjavier.appfitness.domain.model.CoachPlan
 import io.github.lopezjavier.appfitness.domain.model.CutRate
+import io.github.lopezjavier.appfitness.domain.model.DerivedSource
 import io.github.lopezjavier.appfitness.domain.model.PlanInputKey
 import io.github.lopezjavier.appfitness.domain.model.PlanInputKind
 import io.github.lopezjavier.appfitness.domain.model.PlanInputStatus
@@ -162,6 +163,7 @@ class PlanProposalViewModel(
                 _uiState.update { state ->
                     if (state is PlanProposalUiState.Proposal) {
                         state.copy(
+                            activityRow = list?.activityRow() ?: state.activityRow,
                             unconfirmedValues = list?.blockingRows() ?: state.unconfirmedValues,
                             stale = list?.let { isStale(state.plan.id, it) } ?: state.stale,
                             activitySheet = null,
@@ -291,17 +293,34 @@ class PlanProposalViewModel(
         _uiState.value = coach.planInputs(PlanInputKind.Plan, today()).fold(
             onSuccess = {
                 val saved = plan.nutrition.activity?.cardioMinWeek
+                val activity = it.activityRow()
                 PlanProposalUiState.Proposal(
                     plan,
                     unconfirmedValues = it.blockingRows(),
                     stale = isStale(plan.id, it),
                     cardioEdit = cardioEdit.current(saved),
-                    activitySheet = restoredActivityDraft(),
+                    activitySheet = if (activity?.basis == null) restoredActivityDraft() else dropActivityDraft(),
                     intake = readIntake() ?: IntakeSummary(),
+                    activityRow = activity,
+                    expenditureSource = readExpenditureSource(),
                 )
             },
             onFailure = { PlanProposalUiState.Failed(kindOf(it)) },
         )
+    }
+
+    /** The activity-level input as listed (the "?" and the measured case read it), or null when absent. */
+    private fun PlanInputs.activityRow(): PlanInputRow? =
+        inputs.firstOrNull { it.key == PlanInputKey.ActivityLevel }?.toRow()
+
+    /** Where the expenditure comes from; only the derived values carry it (the plan inputs always say estimate). */
+    private suspend fun readExpenditureSource(): DerivedSource? =
+        coach.derivedValues(today()).getOrNull()?.totalExpenditure?.source
+
+    /** A level that became measured has no editor: its saved draft is dropped silently (R-14). */
+    private fun dropActivityDraft(): ActivityLevel? {
+        savedState.remove<String>(KEY_ACTIVITY_DRAFT)
+        return null
     }
 
     /** The stated intake, or null without a repo or when it cannot be read (the sheets then open empty). */
@@ -333,10 +352,16 @@ class PlanProposalViewModel(
         if (proposal.busy) return
         viewModelScope.launch {
             val intake = readIntake()
+            val source = readExpenditureSource()
             coach.planInputs(PlanInputKind.Plan, today()).onSuccess { list ->
                 _uiState.update { state ->
                     if (state is PlanProposalUiState.Proposal && !state.busy) {
+                        val activity = list.activityRow()
+                        if (activity?.basis != null) savedState.remove<String>(KEY_ACTIVITY_DRAFT)
                         state.copy(
+                            activitySheet = state.activitySheet.takeIf { activity?.basis == null },
+                            activityRow = activity,
+                            expenditureSource = source ?: state.expenditureSource,
                             intake = intake ?: state.intake,
                             unconfirmedValues = list.blockingRows(),
                             stale = isStale(state.plan.id, list),
@@ -362,6 +387,7 @@ class PlanProposalViewModel(
                 _uiState.update { state ->
                     if (state is PlanProposalUiState.Proposal) {
                         state.copy(
+                            activityRow = list?.activityRow() ?: state.activityRow,
                             unconfirmedValues = list?.blockingRows() ?: state.unconfirmedValues,
                             stale = list?.let { isStale(state.plan.id, it) } ?: state.stale,
                             dataChanged = list == null && state.dataChanged,

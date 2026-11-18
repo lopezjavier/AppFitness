@@ -12,6 +12,7 @@ import io.github.lopezjavier.appfitness.domain.coach.builder.Pick
 import io.github.lopezjavier.appfitness.domain.coach.builder.PickerEntry
 import io.github.lopezjavier.appfitness.domain.coach.builder.RoutineType
 import io.github.lopezjavier.appfitness.domain.coach.builder.SplitCatalog
+import io.github.lopezjavier.appfitness.domain.model.ActivityBasis
 import io.github.lopezjavier.appfitness.domain.model.ActivityLevel
 import io.github.lopezjavier.appfitness.domain.model.BlockAdherence
 import io.github.lopezjavier.appfitness.domain.model.BlockExercise
@@ -28,6 +29,7 @@ import io.github.lopezjavier.appfitness.domain.model.CoachChangeFigures
 import io.github.lopezjavier.appfitness.domain.model.CoachChangeKind
 import io.github.lopezjavier.appfitness.domain.model.CoachChangeStatus
 import io.github.lopezjavier.appfitness.domain.model.CoachPlan
+import io.github.lopezjavier.appfitness.domain.model.DerivedSource
 import io.github.lopezjavier.appfitness.domain.model.DietBreakWeek
 import io.github.lopezjavier.appfitness.domain.model.Equipment
 import io.github.lopezjavier.appfitness.domain.model.Exercise
@@ -595,6 +597,55 @@ internal object TrainerFixtures {
         sheet = sheet,
         startChoice = startChoice,
     )
+
+    /** The activity level read from steps or the watch (ADR-109): no editor, no chip. */
+    private fun measuredActivity(basis: ActivityBasis) = PlanInput(
+        PlanInputKey.ActivityLevel,
+        PlanInputValue.Text("moderate"),
+        PlanInputSource.CoachEstimate,
+        PlanInputStatus.Ok,
+        false,
+        null,
+        null,
+        basis = basis,
+    )
+
+    /** The activity level as the user's answer, provisional but not blocking (maintenance or measured calories). */
+    private fun answeredActivity() = input(
+        PlanInputKey.ActivityLevel,
+        status = PlanInputStatus.Provisional,
+        value = PlanInputValue.Text("light"),
+        source = PlanInputSource.CoachEstimate,
+        fixTarget = PlanFixTarget.ActivitySheet,
+    ).toRow()
+
+    /** "Tus datos" with a measured activity level: [basis] picks the steps or the watch line. */
+    fun yourDataMeasured(basis: ActivityBasis): YourDataUiState.Content = YourDataUiState.Content(
+        rows = completeInputs().inputs.filter { it.key != PlanInputKey.ActivityLevel }
+            .plus(measuredActivity(basis)).map { it.toRow() },
+        activityFigure = if (basis == ActivityBasis.Steps) 8_200 else 540,
+    )
+
+    /** A proposal whose provisional level does not block: its "?" says the calories come from [source]. */
+    fun proposalActivityNoChange(source: DerivedSource): PlanProposalUiState.Proposal =
+        proposal().copy(activityRow = answeredActivity(), expenditureSource = source)
+
+    /** "Antes de empezar" with a provisional level that does not block ("?" on the row). */
+    fun beforeStartActivityNoChange(source: DerivedSource) = beforeStart().let { content ->
+        content.copy(
+            inputs = content.inputs.copy(
+                inputs = content.inputs.inputs.filter { it.key != PlanInputKey.ActivityLevel } +
+                    input(
+                        PlanInputKey.ActivityLevel,
+                        status = PlanInputStatus.Provisional,
+                        value = PlanInputValue.Text("light"),
+                        source = PlanInputSource.CoachEstimate,
+                        fixTarget = PlanFixTarget.ActivitySheet,
+                    ),
+            ),
+            expenditureSource = source,
+        )
+    }
 
     /** "Tus datos" rows: the complete set, or the set with one provisional value. */
     fun yourDataContent(provisional: Boolean = false): YourDataUiState.Content = YourDataUiState.Content(

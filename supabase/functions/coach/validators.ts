@@ -214,11 +214,19 @@ export function unconfirmedKeys(estimates: unknown): string[] {
     const part = (k: string): Record<string, unknown> =>
         isRecord(e[k]) ? e[k] as Record<string, unknown> : {};
     const keys: string[] = [];
-    if (part("activity_level").provisional === true) {
+    const exp = part("total_expenditure");
+    // The level blocks only where it changes a figure: the formula path (or no expenditure yet). T-308.
+    if (
+        part("activity_level").provisional === true &&
+        (exp.value == null || exp.source === "formula")
+    ) {
         keys.push("activity_level");
     }
-    const exp = part("total_expenditure");
-    if (exp.value != null && exp.provisional === true) {
+    // A maintenance the user stated (source "intake") never blocks (T-245 Q1), as in coach_unconfirmed_keys.
+    if (
+        exp.value != null && exp.provisional === true &&
+        exp.source !== "intake"
+    ) {
         keys.push("total_expenditure");
     }
     if (part("experience").provisional === true) keys.push("experience");

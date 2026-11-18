@@ -16,6 +16,7 @@ import io.github.lopezjavier.appfitness.domain.AppException
 import io.github.lopezjavier.appfitness.domain.model.ActivityLevel
 import io.github.lopezjavier.appfitness.domain.model.CoachIntake
 import io.github.lopezjavier.appfitness.domain.model.CurrentPlan
+import io.github.lopezjavier.appfitness.domain.model.DerivedSource
 import io.github.lopezjavier.appfitness.domain.model.PlanFixTarget
 import io.github.lopezjavier.appfitness.domain.model.PlanInput
 import io.github.lopezjavier.appfitness.domain.model.PlanInputKey
@@ -499,5 +500,48 @@ class BeforeStartScreenTest {
 
         rule.onNodeWithText("Sin conexión").assertExists()
         rule.onNodeWithTag("before_start_summary").assertDoesNotExist()
+    }
+
+    private fun withLevel(blocksAccept: Boolean, source: DerivedSource) {
+        repository.inputs[PlanInputKind.Plan] = Result.success(
+            planKeys().let { keys ->
+                keys.copy(
+                    inputs = keys.inputs.filter { it.key != PlanInputKey.ActivityLevel } + planInput(
+                        PlanInputKey.ActivityLevel,
+                        PlanInputStatus.Provisional,
+                        value = PlanInputValue.Text("light"),
+                        source = PlanInputSource.CoachEstimate,
+                        fixTarget = PlanFixTarget.ActivitySheet,
+                        blocksAccept = blocksAccept,
+                    ),
+                )
+            },
+        )
+        repository.loaded = Result.success(coachValuesFrom(source))
+    }
+
+    @Test
+    fun aProvisionalLevel_withMaintenanceCalories_keepsItsChip_andItsHelpOpensTheExplanation() {
+        withLevel(blocksAccept = false, source = DerivedSource.Intake)
+
+        show()
+
+        rule.onNodeWithTag("before_start_activity_chip").assertTextEquals("Provisional")
+        rule.onNodeWithTag("before_start_confirm_line").assertDoesNotExist()
+        rule.onNodeWithTag("before_start_create").assertIsEnabled()
+        tap("before_start_activity_help")
+        rule.onNodeWithText(
+            "Tu nivel de actividad no cambia tus calorías: partimos de tus calorías de mantenimiento.",
+        ).assertExists()
+    }
+
+    @Test
+    fun aProvisionalLevel_onTheFormulaPath_hasNoHelp_andStaysAValueToConfirm() {
+        withLevel(blocksAccept = true, source = DerivedSource.Formula)
+
+        show()
+
+        rule.onNodeWithTag("before_start_activity_help").assertDoesNotExist()
+        rule.onNodeWithTag("before_start_confirm_line").assertExists()
     }
 }

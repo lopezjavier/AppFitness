@@ -3,7 +3,7 @@ begin;
 create extension if not exists pgtap with schema extensions;
 set local search_path = extensions, public;
 
-select plan(136);
+select plan(160);
 
 -- ---------------------------------------------------------------------------
 -- Fixture helpers (run as the migration owner; today is the UTC date, inside the RPC window)
@@ -118,7 +118,7 @@ grant execute on all functions in schema pg_temp to authenticated;
 insert into auth.users (id, email)
 select pg_temp.u(n), 'coach' || n || '@example.com'
 from unnest(array[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 20, 21, 22, 23, 24, 30, 31, 32, 33, 34, 35, 36,
-                  40, 41, 42, 43, 44, 45, 46, 50, 51, 52, 54, 60, 61, 62, 64]) n;
+                  40, 41, 42, 43, 44, 45, 46, 50, 51, 52, 54, 60, 61, 62, 64, 71, 72, 75, 80, 81, 82]) n;
 
 insert into public.foods (id, source, name, kcal_100) values ('0ff00000-0000-4000-8000-0000000000c1', 'off', 'Alimento c', 100);
 
@@ -166,7 +166,12 @@ select pg_temp.sessions(40, 23, 100), pg_temp.sessions(41, 24, 100), pg_temp.ses
        pg_temp.sessions(43, 24, 84), pg_temp.sessions(44, 150, 364), pg_temp.sessions(45, 150, 357);
 -- 50: confirmation and re-ask. 51: edited level. 52: the edge of the uncertainty. 54: no data.
 select pg_temp.profile(50, 'sedentary'), pg_temp.profile(51, 'light'), pg_temp.profile(52, 'sedentary');
-select pg_temp.steps(50, 10, 7500), pg_temp.steps(52, 10, 7500);
+select pg_temp.steps(50, 10, 7500);
+-- T-308. 71: 6 days of steps (an answer) that become 7. 72: measured, then an edit is attempted. 75: an edited answer
+-- that data overrides and that applies again when the data disappears. 80..82: experience against the self-report.
+select pg_temp.profile(n, 'sedentary', null) from unnest(array[71, 72, 75, 80, 81, 82]) n;
+select pg_temp.steps(71, 6, 9000), pg_temp.steps(72, 10, 5000);
+insert into public.coach_user_intake (user_id, training_years) values (pg_temp.u(80), 0.2), (pg_temp.u(81), 3);
 
 -- ---------------------------------------------------------------------------
 -- Schema and security
@@ -337,8 +342,7 @@ select is((select count(*)::int from public.coach_confirmed_values), 3, 'three v
 reset role;
 update public.daily_activity set steps = 10000 where user_id = pg_temp.u(50);
 set local role authenticated;
-select is((pg_temp.est(50)->'activity_level'->>'reask')::boolean, true, 'a new estimate outside the uncertainty asks again');
-select is((pg_temp.est(50)->'activity_level'->>'confirmed')::boolean, false, 'and the value is no longer confirmed');
+select is((pg_temp.est(50)->'activity_level'->>'reask')::boolean, false, 'a measured level never asks again (T-308)');
 select is(pg_temp.est(50)->'activity_level'->>'value', 'high', 'and shows the new estimate');
 select is((pg_temp.est(50)->'total_expenditure'->>'reask')::boolean, true, 'the expenditure moves outside its uncertainty too');
 
@@ -364,21 +368,67 @@ select is((pg_temp.est(51)->'activity_level'->>'confirmed')::boolean, true,
 reset role;
 update public.daily_activity set steps = 10000 where user_id = pg_temp.u(51);
 set local role authenticated;
-select is((pg_temp.est(51)->'activity_level'->>'reask')::boolean, true, 'a move outside it asks again');
-select is((pg_temp.est(51)->'activity_level'->>'edited')::boolean, false, 'and drops the edit');
+select is(pg_temp.est(51)->'activity_level'->>'value', 'high', 'once the level is measured the estimate replaces the edit');
+select is((pg_temp.est(51)->'activity_level'->>'edited')::boolean, false, 'and the edit is dropped');
 
 -- Exactly on the edge of the uncertainty stays confirmed; just outside asks again.
 select pg_temp.est(52);
-select lives_ok($$insert into public.coach_confirmed_values (key, estimate, uncertainty) values ('activity_level', 1.45, 0.1)$$,
+select lives_ok($$insert into public.coach_confirmed_values (key, estimate, uncertainty) values ('activity_level', 1.1, 0.1)$$,
   'a user can store a confirmation for themselves');
 select is((pg_temp.est(52)->'activity_level'->>'reask')::boolean, false, 'a difference equal to the uncertainty stays confirmed');
-update public.coach_confirmed_values set estimate = 1.449 where key = 'activity_level';
+update public.coach_confirmed_values set estimate = 1.099 where key = 'activity_level';
 select is((pg_temp.est(52)->'activity_level'->>'reask')::boolean, true, 'a difference just above it asks again');
+
+-- ---------------------------------------------------------------------------
+-- T-308: a measured level is the trainer's; without data it is the user's answer
+-- ---------------------------------------------------------------------------
+select is(pg_temp.est(71)->'activity_level'->>'source', 'profile', '6 days of steps are not enough: the level stays the answer');
+select is((pg_temp.est(71)->'activity_level'->>'measured')::boolean, false, 'and it is not measured');
+select is((pg_temp.est(71)->'activity_level'->>'provisional')::boolean, true, 'and it is provisional');
+select is(pg_temp.cfm(71, 'very_high')->'activity_level'->>'value', 'very_high', 'an answer can be edited');
+reset role;
+insert into public.daily_activity (user_id, day, steps) values (pg_temp.u(71), pg_temp.d0() - 6, 9000);
+set local role authenticated;
+select is((pg_temp.est(71)->'activity_level'->>'measured')::boolean, true, 'the 7th day of steps makes the level measured');
+select is((pg_temp.est(71)->'activity_level'->>'provisional')::boolean, false, 'a measured level is not provisional');
+select is(pg_temp.est(71)->'activity_level'->>'value', 'moderate', 'a measured level ignores the edited level');
+select is((pg_temp.est(71)->'activity_level'->>'edited')::boolean, false, 'and is not edited');
+select is((pg_temp.est(71)->'activity_level'->>'reask')::boolean, false, 'and never asks again');
+select is((pg_temp.est(4)->'activity_level'->>'measured')::boolean, true, '10 days of steps are measured');
+select is((pg_temp.est(11)->'activity_level'->>'measured')::boolean, false, '6 days of steps are not measured');
+select is((pg_temp.est(12)->'activity_level'->>'measured')::boolean, true, 'without steps, 10 days of active kcal are measured');
+
+select is(pg_temp.cfm(72, 'very_high')->'activity_level'->>'value', 'light', 'confirming an edit while measured keeps the estimate');
+select is((pg_temp.est(72)->'activity_level'->>'edited')::boolean, false, 'and stores no edit');
+
+select is(pg_temp.cfm(75, 'high')->'activity_level'->>'value', 'high', 'user 75 edits the answer');
+reset role;
+select pg_temp.steps(75, 10, 5000);
+set local role authenticated;
+select is(pg_temp.est(75)->'activity_level'->>'value', 'light', 'data override the stored edit');
+reset role;
+delete from public.daily_activity where user_id = pg_temp.u(75);
+set local role authenticated;
+select is(pg_temp.est(75)->'activity_level'->>'value', 'high', 'without data the stored edit applies again, inside its uncertainty');
+select is((pg_temp.est(75)->'activity_level'->>'edited')::boolean, true, 'and is edited');
+
+select is((pg_temp.est(60)->'total_expenditure'->>'provisional')::boolean, false,
+  'an adaptive expenditure with the slope is backed by data');
+select is((pg_temp.est(34)->'total_expenditure'->>'provisional')::boolean, true,
+  'an adaptive expenditure from the diary alone stays provisional');
+select is((pg_temp.est(35)->'total_expenditure'->>'provisional')::boolean, true, 'a formula expenditure stays provisional');
+
+select is((pg_temp.est(80)->'experience'->>'provisional')::boolean, false,
+  'a history that reaches the reported class is not provisional');
+select is((pg_temp.est(81)->'experience'->>'provisional')::boolean, true,
+  'a reported class above the history stays provisional');
+select is((pg_temp.est(82)->'experience'->>'provisional')::boolean, true, 'without a report the experience stays provisional');
 
 -- ---------------------------------------------------------------------------
 -- Isolation between users
 -- ---------------------------------------------------------------------------
 select pg_temp.est(54);
+select is((pg_temp.est(54)->'activity_level'->>'measured')::boolean, false, 'the steps of others never make a level measured');
 select is((select count(*)::int from public.coach_confirmed_values), 0, 'a user does not see the confirmations of others');
 select throws_ok(
   format($$insert into public.coach_confirmed_values (user_id, key, estimate, uncertainty) values (%L, 'experience', 0, 0.5)$$,

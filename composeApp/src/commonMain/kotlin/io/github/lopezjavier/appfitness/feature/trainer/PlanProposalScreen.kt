@@ -273,6 +273,7 @@ private fun ProposalContent(
     ) {
         PhaseRow(state.plan.phase, nutrition.phaseReason, "plan_proposal")
         if (state.unconfirmedValues.isNotEmpty()) UnconfirmedSection(state, online, onEvent, onFix, onEditorEvent)
+        ActivityNoChangeRow(state.activityRow, state.activityNoChange, "plan_proposal")
         NutritionCard(state)
         if (state.hasCutOptions) {
             CutOptions(

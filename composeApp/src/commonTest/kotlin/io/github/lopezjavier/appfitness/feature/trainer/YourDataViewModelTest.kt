@@ -4,12 +4,14 @@ import androidx.lifecycle.SavedStateHandle
 import app.cash.turbine.test
 import io.github.lopezjavier.appfitness.domain.AppError
 import io.github.lopezjavier.appfitness.domain.AppException
+import io.github.lopezjavier.appfitness.domain.model.ActivityBasis
 import io.github.lopezjavier.appfitness.domain.model.ActivityLevel
 import io.github.lopezjavier.appfitness.domain.model.CoachDerivedValues
 import io.github.lopezjavier.appfitness.domain.model.CoachIntake
 import io.github.lopezjavier.appfitness.domain.model.DerivedSource
 import io.github.lopezjavier.appfitness.domain.model.ExperienceSource
 import io.github.lopezjavier.appfitness.domain.model.IntakeUpdate
+import io.github.lopezjavier.appfitness.domain.model.PlanFixTarget
 import io.github.lopezjavier.appfitness.domain.model.PlanInput
 import io.github.lopezjavier.appfitness.domain.model.PlanInputKey
 import io.github.lopezjavier.appfitness.domain.model.PlanInputKind
@@ -367,5 +369,88 @@ class YourDataViewModelTest {
 
         assertEquals(listOf(PlanInputKey.Sex), model.content().rows.map { it.key })
         assertTrue(model.content().intake.isEmpty)
+    }
+
+    private fun measuredLevel(basis: ActivityBasis) = planInput(
+        PlanInputKey.ActivityLevel,
+        value = PlanInputValue.Text("light"),
+        source = PlanInputSource.CoachEstimate,
+        basis = basis,
+    )
+
+    private fun answeredLevel() =
+        planInput(PlanInputKey.ActivityLevel, PlanInputStatus.Provisional, fixTarget = PlanFixTarget.ActivitySheet)
+
+    @Test
+    fun measuredLevelFromSteps_showsTheStepsAverage() = runTest(dispatcher) {
+        plan(measuredLevel(ActivityBasis.Steps))
+        coach.loaded = Result.success(coachValuesFrom(DerivedSource.Intake, stepsAvg = 8199.6, activeKcalAvg = 540.0))
+        val model = viewModel()
+
+        advanceUntilIdle()
+
+        assertTrue(model.content().activityMeasured)
+        assertEquals(8200, model.content().activityFigure)
+    }
+
+    @Test
+    fun measuredLevelFromTheWatch_showsTheActiveKcalAverage() = runTest(dispatcher) {
+        plan(measuredLevel(ActivityBasis.ActiveKcal))
+        coach.loaded = Result.success(coachValuesFrom(DerivedSource.Intake, activeKcalAvg = 540.0))
+        val model = viewModel()
+
+        advanceUntilIdle()
+
+        assertEquals(540, model.content().activityFigure)
+    }
+
+    @Test
+    fun anAnsweredLevel_isNotMeasured() = runTest(dispatcher) {
+        plan(answeredLevel())
+        val model = viewModel()
+
+        advanceUntilIdle()
+
+        assertFalse(model.content().activityMeasured)
+        assertNull(model.content().activityFigure)
+    }
+
+    @Test
+    fun aSavedDraft_isDroppedSilentlyWhenTheLevelBecameMeasured() = runTest(dispatcher) {
+        plan(measuredLevel(ActivityBasis.Steps))
+        val saved = SavedStateHandle(mapOf("your_data_activity_draft" to "High"))
+        val model = viewModel(saved)
+
+        advanceUntilIdle()
+
+        assertNull(model.content().sheet)
+        assertNull(saved.get<String>("your_data_activity_draft"))
+    }
+
+    @Test
+    fun aSavedDraft_isRestoredWhileTheLevelIsStillTheAnswer() = runTest(dispatcher) {
+        plan(answeredLevel())
+        val model = viewModel(SavedStateHandle(mapOf("your_data_activity_draft" to "High")))
+
+        advanceUntilIdle()
+
+        assertEquals(ActivityLevel.High, model.content().sheet)
+    }
+
+    @Test
+    fun anOpenSheet_closesOnRefreshWhenTheLevelBecomesMeasured() = runTest(dispatcher) {
+        plan(answeredLevel())
+        val saved = SavedStateHandle()
+        val model = viewModel(saved)
+        advanceUntilIdle()
+        model.onEvent(YourDataEvent.OpenSheet)
+        assertEquals(ActivityLevel.Moderate, model.content().sheet)
+
+        plan(measuredLevel(ActivityBasis.Steps))
+        model.onEvent(YourDataEvent.Refresh)
+        advanceUntilIdle()
+
+        assertNull(model.content().sheet)
+        assertNull(saved.get<String>("your_data_activity_draft"))
     }
 }

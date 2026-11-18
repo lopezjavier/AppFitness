@@ -143,6 +143,15 @@ class CoachDtoTest {
     }
 
     @Test
+    fun measuredFlag_isMapped_andAbsentMeansFalse() {
+        val measured = parse(payload(activity = """{"value":"light","source":"data","measured":true}"""))
+        val answer = parse(payload(activity = ACTIVITY_PROFILE))
+
+        assertTrue(measured.activityLevel.measured)
+        assertFalse(answer.activityLevel.measured)
+    }
+
+    @Test
     fun reask_isReaskStateAndAnyReask() {
         val values = parse(payload(activity = ACTIVITY_DATA.replace("\"reask\":false", "\"reask\":true")))
 

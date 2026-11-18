@@ -6,6 +6,7 @@ import io.github.lopezjavier.appfitness.domain.model.ActivityLevel
 import io.github.lopezjavier.appfitness.domain.model.CoachException
 import io.github.lopezjavier.appfitness.domain.model.CoachFailure
 import io.github.lopezjavier.appfitness.domain.model.CoachPlan
+import io.github.lopezjavier.appfitness.domain.model.DerivedSource
 import io.github.lopezjavier.appfitness.domain.model.MissingField
 import io.github.lopezjavier.appfitness.domain.model.Phase
 
@@ -105,12 +106,19 @@ sealed interface PlanProposalUiState {
         val cardioEdit: CardioEdit? = null,
         /** True while the cut rate or the diet break is being stored and the plan recomputed. */
         val optionsSaving: Boolean = false,
+        /** The activity-level input as the server lists it (null when absent); drives the "?" of its row. */
+        val activityRow: PlanInputRow? = null,
+        /** Where the expenditure comes from (derived values); null when that read failed. */
+        val expenditureSource: DerivedSource? = null,
     ) : PlanProposalUiState {
         val busy: Boolean
             get() = accepting || discarding || optionsSaving || confirming || savingLevel || cardioEdit?.saving == true
 
         /** The rate selector and the diet-break switch exist only on a cut plan. */
         val hasCutOptions: Boolean get() = plan.phase == Phase.Cut
+
+        /** The "?" case of the activity row: still an answer, not blocking, calories from maintenance or data. */
+        val activityNoChange: ActivityNoChange? get() = activityNoChange(activityRow, expenditureSource)
 
         /** True while a value blocks the acceptance: a listed one, or the server said so and the list is empty. */
         val unconfirmed: Boolean get() = unconfirmedValues.isNotEmpty() || dataChanged

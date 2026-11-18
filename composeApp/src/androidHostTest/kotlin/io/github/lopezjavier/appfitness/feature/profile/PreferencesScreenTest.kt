@@ -466,4 +466,18 @@ class PreferencesScreenTest {
         rule.waitForIdle()
         rule.onNodeWithTag("preferences_sheet_weight").assertExists()
     }
+
+    @Test
+    fun activitySheet_hasAHelpThatSaysItIsUsedOnlyWithoutStepOrWatchData() {
+        show()
+        rule.onNodeWithTag("preferences_activity_row").performScrollTo().performClick()
+        rule.waitForIdle()
+
+        rule.onNodeWithTag("profile_activity_sheet_help").performClick()
+        rule.waitForIdle()
+
+        rule.onNodeWithText("Lo usamos solo cuando no hay datos de pasos ni de tu reloj.", substring = true)
+            .assertExists()
+        assertTrue("reading the help applies nothing", events.isEmpty())
+    }
 }
