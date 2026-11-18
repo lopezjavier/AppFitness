@@ -27,12 +27,9 @@ import io.github.lopezjavier.appfitness.composeapp.resources.catalog_part_upper
 import io.github.lopezjavier.appfitness.composeapp.resources.catalog_section_training_part_icons
 import io.github.lopezjavier.appfitness.designsystem.AppCard
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
-import io.github.lopezjavier.appfitness.designsystem.IconBadge
-import io.github.lopezjavier.appfitness.designsystem.IconBadgeDefaults
 import io.github.lopezjavier.appfitness.designsystem.Spacing
 import io.github.lopezjavier.appfitness.designsystem.TrainingPartIcon
 import io.github.lopezjavier.appfitness.domain.model.RoutinePart
-import org.jetbrains.compose.resources.DrawableResource
 import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.resources.stringResource
@@ -42,17 +39,17 @@ internal fun LazyListScope.trainingPartIconItems() {
     item { TrainingPartIconsSection() }
 }
 
-private val PartIcons: List<Pair<DrawableResource, StringResource>> = listOf(
-    TrainingPartIcon.drawableFor(RoutinePart.FullBody) to Res.string.catalog_part_full_body,
-    TrainingPartIcon.drawableFor(RoutinePart.Upper) to Res.string.catalog_part_upper,
-    TrainingPartIcon.drawableFor(RoutinePart.Lower) to Res.string.catalog_part_lower,
-    TrainingPartIcon.drawableFor(RoutinePart.Push) to Res.string.catalog_part_push,
-    TrainingPartIcon.drawableFor(RoutinePart.Pull) to Res.string.catalog_part_pull,
-    TrainingPartIcon.drawableFor(RoutinePart.Arms) to Res.string.catalog_part_arms,
-    TrainingPartIcon.drawableFor(RoutinePart.Glutes) to Res.string.catalog_part_glutes,
-    TrainingPartIcon.drawableFor(RoutinePart.Core) to Res.string.catalog_part_core,
-    TrainingPartIcon.drawableFor(RoutinePart.Cardio) to Res.string.catalog_part_cardio,
-    TrainingPartIcon.drawableFor(RoutinePart.Generic) to Res.string.catalog_part_generic,
+private val PartIcons: List<Pair<RoutinePart, StringResource>> = listOf(
+    RoutinePart.FullBody to Res.string.catalog_part_full_body,
+    RoutinePart.Upper to Res.string.catalog_part_upper,
+    RoutinePart.Lower to Res.string.catalog_part_lower,
+    RoutinePart.Push to Res.string.catalog_part_push,
+    RoutinePart.Pull to Res.string.catalog_part_pull,
+    RoutinePart.Arms to Res.string.catalog_part_arms,
+    RoutinePart.Glutes to Res.string.catalog_part_glutes,
+    RoutinePart.Core to Res.string.catalog_part_core,
+    RoutinePart.Cardio to Res.string.catalog_part_cardio,
+    RoutinePart.Generic to Res.string.catalog_part_generic,
 )
 
 private val EnlargedSize = Spacing.xl * 2
@@ -81,9 +78,9 @@ private fun PartIconRows(tint: Color) {
             horizontalArrangement = Arrangement.spacedBy(Spacing.md),
             verticalArrangement = Arrangement.spacedBy(Spacing.md),
         ) {
-            PartIcons.forEach { (icon, label) ->
+            PartIcons.forEach { (part, label) ->
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    IconBadge(icon, tint, iconSize = IconBadgeDefaults.LargeIconSize)
+                    TrainingPartIcon(part, isNext = tint == AppTheme.colors.athleticCyan)
                     Text(stringResource(label), color = AppTheme.colors.textSecondary)
                 }
             }
@@ -92,10 +89,10 @@ private fun PartIconRows(tint: Color) {
             horizontalArrangement = Arrangement.spacedBy(Spacing.md),
             verticalArrangement = Arrangement.spacedBy(Spacing.md),
         ) {
-            PartIcons.forEach { (icon, _) ->
+            PartIcons.forEach { (part, _) ->
                 Row {
                     Icon(
-                        painter = painterResource(icon),
+                        painter = painterResource(TrainingPartIcon.drawableFor(part)),
                         contentDescription = null,
                         tint = tint,
                         modifier = Modifier.size(EnlargedSize),
