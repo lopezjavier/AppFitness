@@ -2,6 +2,7 @@ package io.github.lopezjavier.appfitness.feature.trainer
 
 import io.github.lopezjavier.appfitness.domain.model.ActivityLevel
 import io.github.lopezjavier.appfitness.domain.model.CurrentPlan
+import io.github.lopezjavier.appfitness.domain.model.DerivedSource
 import io.github.lopezjavier.appfitness.domain.model.Phase
 import io.github.lopezjavier.appfitness.domain.model.PlanInputKey
 import io.github.lopezjavier.appfitness.domain.model.PlanInputKind
@@ -68,6 +69,8 @@ sealed interface BeforeStartUiState {
         val goalChange: GoalChangeNote? = null,
         /** New-block mode only: the stored goal-switch plan the builder saves on; null when the goal did not change. */
         val previewPlanId: String? = null,
+        /** Where the expenditure comes from (derived values); null when that read failed or in a block. */
+        val expenditureSource: DerivedSource? = null,
     ) : BeforeStartUiState {
         val rows: List<PlanInputRow> = inputs.rows()
 
@@ -92,7 +95,15 @@ sealed interface BeforeStartUiState {
         val staleWeight: PlanInputRow?
             get() = rows.firstOrNull { it.key == PlanInputKey.Weight && it.marker == PlanInputMarker.Stale }
 
-        val hasProvisional: Boolean get() = rows.any { it.isProvisional }
+        /** The activity-level row, when listed. */
+        val activityRow: PlanInputRow? get() = rows.firstOrNull { it.key == PlanInputKey.ActivityLevel }
+
+        /** The "?" case of the activity row (a provisional level that does not block, ADR-109). */
+        val activityNoChange: ActivityNoChange? get() = activityNoChange(activityRow, expenditureSource)
+
+        /** Provisional values the create button confirms; a level that does not block is not one of them. */
+        val hasProvisional: Boolean
+            get() = rows.any { it.isProvisional && !(it.key == PlanInputKey.ActivityLevel && activityNoChange != null) }
 
         /** Disabled-footer reason applies (the UI also disables the footer while offline). */
         val hasBlocking: Boolean get() = inputs.hasBlocking

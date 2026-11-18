@@ -4,10 +4,12 @@ import androidx.lifecycle.SavedStateHandle
 import app.cash.turbine.test
 import io.github.lopezjavier.appfitness.domain.AppError
 import io.github.lopezjavier.appfitness.domain.AppException
+import io.github.lopezjavier.appfitness.domain.model.ActivityBasis
 import io.github.lopezjavier.appfitness.domain.model.ActivityLevel
 import io.github.lopezjavier.appfitness.domain.model.CoachDerivedValues
 import io.github.lopezjavier.appfitness.domain.model.CoachIntake
 import io.github.lopezjavier.appfitness.domain.model.CurrentPlan
+import io.github.lopezjavier.appfitness.domain.model.DerivedSource
 import io.github.lopezjavier.appfitness.domain.model.IntakeUpdate
 import io.github.lopezjavier.appfitness.domain.model.PlanFixTarget
 import io.github.lopezjavier.appfitness.domain.model.PlanInput
@@ -723,5 +725,47 @@ class BeforeStartViewModelTest {
         advanceUntilIdle()
 
         assertEquals(IntakeRowSheet.Years(2.5), second.editor.value.sheet)
+    }
+
+    private fun planWith(activity: PlanInput) =
+        PlanInputs(PlanInputKind.Plan, null, listOf(planInput(PlanInputKey.Intention), activity))
+
+    @Test
+    fun aProvisionalLevel_withMaintenanceCalories_isNotAValueToConfirm() = runTest(dispatcher) {
+        givenPlan(planWith(provisionalActivity.copy(fixTarget = PlanFixTarget.ActivitySheet)))
+        coach.loaded = Result.success(coachValuesFrom(DerivedSource.Intake))
+        val model = viewModel()
+
+        advanceUntilIdle()
+
+        assertFalse(model.content().hasProvisional)
+        assertEquals(ActivityNoChange.Maintenance, model.content().activityNoChange)
+        model.onEvent(BeforeStartEvent.Create)
+        advanceUntilIdle()
+        assertTrue(coach.confirmCalls.isEmpty())
+    }
+
+    @Test
+    fun aProvisionalLevel_onTheFormulaPath_stillIsAValueToConfirm() = runTest(dispatcher) {
+        givenPlan(planWith(provisionalActivity.copy(blocksAccept = true)))
+        coach.loaded = Result.success(coachValuesFrom(DerivedSource.Formula))
+        val model = viewModel()
+
+        advanceUntilIdle()
+
+        assertTrue(model.content().hasProvisional)
+        assertNull(model.content().activityNoChange)
+    }
+
+    @Test
+    fun aSavedDraft_isDroppedSilentlyWhenTheLevelIsMeasured() = runTest(dispatcher) {
+        givenPlan(planWith(planInput(PlanInputKey.ActivityLevel, basis = ActivityBasis.ActiveKcal)))
+        val saved = args().apply { set("before_start_activity_draft", "High") }
+        val model = viewModel(saved)
+
+        advanceUntilIdle()
+
+        assertNull(model.content().sheet)
+        assertNull(saved.get<String>("before_start_activity_draft"))
     }
 }

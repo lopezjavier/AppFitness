@@ -30,6 +30,9 @@ import io.github.lopezjavier.appfitness.composeapp.resources.ic_check
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_chevron_right
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_info
 import io.github.lopezjavier.appfitness.composeapp.resources.trainer_provisional
+import io.github.lopezjavier.appfitness.composeapp.resources.your_data_activity_answer
+import io.github.lopezjavier.appfitness.composeapp.resources.your_data_activity_basis_steps
+import io.github.lopezjavier.appfitness.composeapp.resources.your_data_activity_basis_watch
 import io.github.lopezjavier.appfitness.composeapp.resources.your_data_handover_note
 import io.github.lopezjavier.appfitness.composeapp.resources.your_data_intake_provisional
 import io.github.lopezjavier.appfitness.composeapp.resources.your_data_save_action
@@ -55,7 +58,9 @@ import io.github.lopezjavier.appfitness.designsystem.Spacing
 import io.github.lopezjavier.appfitness.designsystem.StatusChip
 import io.github.lopezjavier.appfitness.designsystem.StatusTone
 import io.github.lopezjavier.appfitness.designsystem.offlineHint
+import io.github.lopezjavier.appfitness.domain.model.ActivityBasis
 import io.github.lopezjavier.appfitness.domain.model.PlanFixTarget
+import io.github.lopezjavier.appfitness.domain.model.PlanInputKey
 import io.github.lopezjavier.appfitness.domain.port.ConnectivityObserver
 import io.github.lopezjavier.appfitness.feature.exercises.tagName
 import kotlinx.coroutines.flow.Flow
@@ -189,6 +194,7 @@ private fun YourDataContent(
                             YourDataRow(
                                 row,
                                 row.key in state.intakeSourcedKeys,
+                                state.activityFigure,
                                 state.intake,
                                 onEvent,
                                 onEditorEvent,
@@ -228,6 +234,7 @@ private fun HandoverNote(kcal: Double?, onEvent: (YourDataEvent) -> Unit) {
 private fun YourDataRow(
     row: PlanInputRow,
     fromIntake: Boolean,
+    basisFigure: Int?,
     intake: IntakeSummary,
     onEvent: (YourDataEvent) -> Unit,
     onEditorEvent: (IntakeRowEvent) -> Unit,
@@ -248,24 +255,18 @@ private fun YourDataRow(
     } else {
         null
     }
-    val note = if (fromIntake) stringResource(Res.string.your_data_intake_provisional) else null
-    val trailing: @Composable () -> Unit = {
-        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.xs)) {
-            Text(text = value, style = AppTheme.typography.bodyMedium, color = AppTheme.colors.textSecondary)
-            if (target != null) {
-                Icon(
-                    painter = painterResource(Res.drawable.ic_chevron_right),
-                    contentDescription = null,
-                    tint = AppTheme.colors.textSecondary,
-                    modifier = Modifier.size(Spacing.xl),
-                )
-            }
-        }
-    }
+    val note = rowNote(row, fromIntake, basisFigure)
     AppListRow(
         headline = row.labelText(),
         modifier = Modifier.padding(horizontal = Spacing.lg).testTag(tag),
         supporting = note,
+        supportingTestTag = if (row.key == PlanInputKey.ActivityLevel &&
+            row.basis != null
+        ) {
+            "your_data_activity_measured_basis"
+        } else {
+            null
+        },
         supportingContent = chip,
         leading = {
             IconBadge(
@@ -275,7 +276,7 @@ private fun YourDataRow(
                 iconSize = IconBadgeDefaults.SmallIconSize,
             )
         },
-        trailing = trailing,
+        trailing = { RowValue(value, hasEditor = target != null) },
         onClick = target?.let {
             {
                 when (it) {
@@ -292,6 +293,39 @@ private fun YourDataRow(
             }
         },
     )
+}
+
+/** The value of a row, with the chevron when the row opens an editor. */
+@Composable
+private fun RowValue(value: String, hasEditor: Boolean) {
+    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.xs)) {
+        Text(text = value, style = AppTheme.typography.bodyMedium, color = AppTheme.colors.textSecondary)
+        if (hasEditor) {
+            Icon(
+                painter = painterResource(Res.drawable.ic_chevron_right),
+                contentDescription = null,
+                tint = AppTheme.colors.textSecondary,
+                modifier = Modifier.size(Spacing.xl),
+            )
+        }
+    }
+}
+
+/**
+ * The supporting line of a row. A measured activity level (ADR-109) says what it is measured from (no chip, no
+ * editor); an answered one says it is the user's answer.
+ */
+@Composable
+private fun rowNote(row: PlanInputRow, fromIntake: Boolean, basisFigure: Int?): String? = when {
+    fromIntake -> stringResource(Res.string.your_data_intake_provisional)
+    row.key != PlanInputKey.ActivityLevel -> null
+    row.basis == null -> stringResource(Res.string.your_data_activity_answer)
+    else -> basisFigure?.let { stringResource(basisText(row.basis), AppNumberFormat.integer(it)) }
+}
+
+private fun basisText(basis: ActivityBasis?) = when (basis) {
+    ActivityBasis.ActiveKcal -> Res.string.your_data_activity_basis_watch
+    else -> Res.string.your_data_activity_basis_steps
 }
 
 /** Card-shaped placeholder while the data loads (R-31): a title bar and one bar per row. */

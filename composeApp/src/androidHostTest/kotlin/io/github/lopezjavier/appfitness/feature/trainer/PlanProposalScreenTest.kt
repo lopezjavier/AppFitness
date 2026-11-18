@@ -16,14 +16,17 @@ import androidx.compose.ui.test.performClick
 import androidx.lifecycle.SavedStateHandle
 import io.github.lopezjavier.appfitness.app.FakeConnectivityObserver
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
+import io.github.lopezjavier.appfitness.domain.model.ActivityBasis
 import io.github.lopezjavier.appfitness.domain.model.ActivityLevel
 import io.github.lopezjavier.appfitness.domain.model.CoachPlan
+import io.github.lopezjavier.appfitness.domain.model.DerivedSource
 import io.github.lopezjavier.appfitness.domain.model.MissingField
 import io.github.lopezjavier.appfitness.domain.model.OutcomeKind
 import io.github.lopezjavier.appfitness.domain.model.PlanFixTarget
 import io.github.lopezjavier.appfitness.domain.model.PlanInput
 import io.github.lopezjavier.appfitness.domain.model.PlanInputKey
 import io.github.lopezjavier.appfitness.domain.model.PlanInputStatus
+import io.github.lopezjavier.appfitness.domain.model.PlanInputValue
 import io.github.lopezjavier.appfitness.domain.model.PlanLimit
 import io.github.lopezjavier.appfitness.domain.model.PlanOutcome
 import io.github.lopezjavier.appfitness.feature.workout.MutableClock
@@ -514,5 +517,64 @@ class PlanProposalScreenTest {
         assertEquals(1, plans.requests.size)
         rule.onNodeWithTag("plan_proposal_kcal").assertTextContains("2.000", substring = true)
         assertTrue(plans.acceptCalls.isEmpty())
+    }
+
+    private fun levelThatDoesNotBlock() = proposal(confirmed = true).copy(
+        activityRow = planInput(
+            PlanInputKey.ActivityLevel,
+            PlanInputStatus.Provisional,
+            value = PlanInputValue.Text("light"),
+            fixTarget = PlanFixTarget.ActivitySheet,
+        ).toRow(),
+    )
+
+    @Test
+    fun aProvisionalLevel_withMaintenanceCalories_keepsItsChip_doesNotBlock_andItsHelpExplainsIt() {
+        show(levelThatDoesNotBlock().copy(expenditureSource = DerivedSource.Intake))
+
+        rule.onNodeWithTag("plan_proposal_accept").assertIsEnabled()
+        rule.onNodeWithTag("plan_proposal_unconfirmed_section").assertDoesNotExist()
+        rule.onNodeWithTag("plan_proposal_activity_chip").assertTextEquals("Provisional")
+        tap("plan_proposal_activity_help")
+        rule.onNodeWithText(
+            "Tu nivel de actividad no cambia tus calorías: partimos de tus calorías de mantenimiento.",
+        ).assertExists()
+    }
+
+    @Test
+    fun aProvisionalLevel_withMeasuredCalories_saysSoInItsHelp() {
+        show(levelThatDoesNotBlock().copy(expenditureSource = DerivedSource.Adaptive))
+
+        rule.onNodeWithTag("plan_proposal_accept").assertIsEnabled()
+        tap("plan_proposal_activity_help")
+        rule.onNodeWithText(
+            "Tu nivel de actividad no cambia tus calorías: usamos las calorías que medimos con tu peso y tu diario.",
+        ).assertExists()
+    }
+
+    @Test
+    fun aProvisionalLevel_onTheFormulaPath_isListedAsAValueToConfirm_andAcceptIsDisabled() {
+        show(proposal(confirmed = false).copy(expenditureSource = DerivedSource.Formula))
+
+        rule.onNodeWithTag("plan_proposal_unconfirmed_activity_level").assertExists()
+        rule.onNodeWithTag("plan_proposal_accept").assertIsNotEnabled()
+        rule.onNodeWithTag("plan_proposal_activity_help").assertDoesNotExist()
+    }
+
+    @Test
+    fun aMeasuredLevel_hasNoRowAndNoHelp() {
+        show(
+            proposal(confirmed = true).copy(
+                activityRow = planInput(
+                    PlanInputKey.ActivityLevel,
+                    value = PlanInputValue.Text("light"),
+                    basis = ActivityBasis.Steps,
+                ).toRow(),
+                expenditureSource = DerivedSource.Intake,
+            ),
+        )
+
+        rule.onNodeWithTag("plan_proposal_activity_row").assertDoesNotExist()
+        rule.onNodeWithTag("plan_proposal_accept").assertIsEnabled()
     }
 }

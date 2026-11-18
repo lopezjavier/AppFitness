@@ -6,6 +6,7 @@ import androidx.lifecycle.viewModelScope
 import io.github.lopezjavier.appfitness.domain.AppError
 import io.github.lopezjavier.appfitness.domain.appErrorOrNull
 import io.github.lopezjavier.appfitness.domain.model.ActivityLevel
+import io.github.lopezjavier.appfitness.domain.model.DerivedSource
 import io.github.lopezjavier.appfitness.domain.model.PlanInputKey
 import io.github.lopezjavier.appfitness.domain.model.PlanInputValue
 import io.github.lopezjavier.appfitness.domain.port.Clock
@@ -105,7 +106,7 @@ class BeforeStartViewModel(
             _uiState.update { state ->
                 if (state is BeforeStartUiState.Content) {
                     fresh.copy(
-                        sheet = state.sheet,
+                        sheet = state.sheet.takeIf { fresh.activityRow?.basis == null },
                         creating = state.creating,
                         savingLevel = state.savingLevel,
                         startChoice = state.startChoice,
@@ -181,14 +182,17 @@ class BeforeStartViewModel(
             onSuccess = {
                 // The intake only enriches the rows: a failed read leaves them empty.
                 val intake = intakeRepo.get().getOrNull()
+                val measured = it.inputs.any { input -> input.key == PlanInputKey.ActivityLevel && input.basis != null }
                 BeforeStartUiState.Content(
                     it,
                     mode,
                     planId,
                     replacingPlanId,
-                    sheet = restoredDraft(),
+                    // A level that became measured has no editor: its draft closes silently (R-14).
+                    sheet = if (measured) dropDraft() else restoredDraft(),
                     intake = IntakeSummary.of(intake),
                     startChoice = restoredChoice(),
+                    expenditureSource = readExpenditureSource(),
                 )
             },
             onFailure = { failedState(result.appErrorOrNull()) },
@@ -286,6 +290,15 @@ class BeforeStartViewModel(
         ?.let { name -> StartChoiceStep.entries.firstOrNull { it.name == name } }
         ?.takeIf { mode == BeforeStartMode.Block }
         ?: StartChoiceStep.None
+
+    private fun dropDraft(): ActivityLevel? {
+        savedState.remove<String>(KEY_DRAFT)
+        return null
+    }
+
+    /** Only a plan reads the expenditure; the derived values carry its source (the inputs always say estimate). */
+    private suspend fun readExpenditureSource(): DerivedSource? =
+        if (mode == BeforeStartMode.Plan) coach.derivedValues(today()).getOrNull()?.totalExpenditure?.source else null
 
     private fun restoredDraft(): ActivityLevel? = savedState.get<String>(KEY_DRAFT)
         ?.let { name -> ActivityLevel.entries.firstOrNull { it.name == name } }

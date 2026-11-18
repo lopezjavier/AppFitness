@@ -1,5 +1,7 @@
 package io.github.lopezjavier.appfitness.feature.trainer
 
+import io.github.lopezjavier.appfitness.domain.model.ActivityBasis
+import io.github.lopezjavier.appfitness.domain.model.DerivedSource
 import io.github.lopezjavier.appfitness.domain.model.PlanFixTarget
 import io.github.lopezjavier.appfitness.domain.model.PlanInput
 import io.github.lopezjavier.appfitness.domain.model.PlanInputKey
@@ -22,7 +24,20 @@ internal fun planInput(
     fixTarget: PlanFixTarget? = null,
     date: LocalDate? = null,
     blocksAccept: Boolean = false,
-) = PlanInput(key, value, source, status, blocking, fixTarget, date, blocksAccept)
+    basis: ActivityBasis? = null,
+) = PlanInput(key, value, source, status, blocking, fixTarget, date, blocksAccept, basis)
+
+/** Derived values whose expenditure comes from [source] and whose activity level averaged the given figures. */
+internal fun coachValuesFrom(source: DerivedSource, stepsAvg: Double? = null, activeKcalAvg: Double? = null) =
+    coachValues(provisional = false).let { base ->
+        base.copy(
+            activityLevel = base.activityLevel.copy(
+                measured = stepsAvg != null || activeKcalAvg != null,
+                sources = base.activityLevel.sources.copy(stepsAvg = stepsAvg, activeKcalAvg = activeKcalAvg),
+            ),
+            totalExpenditure = base.totalExpenditure.copy(source = source),
+        )
+    }
 
 class PlanInputRowsTest {
     private fun markerOf(status: PlanInputStatus, blocking: Boolean = false) =
@@ -176,5 +191,34 @@ class PlanInputRowsTest {
             merged.map { it.key },
         )
         assertEquals(PlanInputValue.Text("plan"), merged.first().value)
+    }
+
+    private fun activityRow(
+        status: PlanInputStatus = PlanInputStatus.Provisional,
+        blocksAccept: Boolean = false,
+        basis: ActivityBasis? = null,
+    ) = planInput(PlanInputKey.ActivityLevel, status, blocksAccept = blocksAccept, basis = basis).toRow()
+
+    @Test
+    fun aProvisionalLevel_thatDoesNotBlock_explainsItselfOnlyWithMaintenanceOrMeasuredCalories() {
+        assertEquals(ActivityNoChange.Maintenance, activityNoChange(activityRow(), DerivedSource.Intake))
+        assertEquals(ActivityNoChange.Adaptive, activityNoChange(activityRow(), DerivedSource.Adaptive))
+        assertEquals(null, activityNoChange(activityRow(), DerivedSource.Formula))
+        assertEquals(null, activityNoChange(activityRow(), null))
+    }
+
+    @Test
+    fun aBlockingOrMeasuredOrConfirmedLevel_hasNoExplanation() {
+        assertEquals(null, activityNoChange(activityRow(blocksAccept = true), DerivedSource.Intake))
+        assertEquals(
+            null,
+            activityNoChange(activityRow(PlanInputStatus.Ok, basis = ActivityBasis.Steps), DerivedSource.Intake),
+        )
+        assertEquals(null, activityNoChange(activityRow(PlanInputStatus.Ok), DerivedSource.Adaptive))
+    }
+
+    @Test
+    fun aMeasuredLevel_carriesItsBasis() {
+        assertEquals(ActivityBasis.ActiveKcal, activityRow(PlanInputStatus.Ok, basis = ActivityBasis.ActiveKcal).basis)
     }
 }

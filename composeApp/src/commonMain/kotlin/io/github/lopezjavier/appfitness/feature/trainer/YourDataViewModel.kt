@@ -5,6 +5,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import io.github.lopezjavier.appfitness.domain.AppError
 import io.github.lopezjavier.appfitness.domain.appErrorOrNull
+import io.github.lopezjavier.appfitness.domain.model.ActivityBasis
 import io.github.lopezjavier.appfitness.domain.model.ActivityLevel
 import io.github.lopezjavier.appfitness.domain.model.DerivedSource
 import io.github.lopezjavier.appfitness.domain.model.ExperienceSource
@@ -27,6 +28,7 @@ import kotlinx.coroutines.launch
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
+import kotlin.math.roundToInt
 
 /**
  * "Tus datos": every input the coach reads, plan and block merged, grouped by origin. Read-only apart from the
@@ -90,7 +92,12 @@ class YourDataViewModel(
             val fresh = fetch() as? YourDataUiState.Content ?: return@launch
             _uiState.update { state ->
                 if (state is YourDataUiState.Content) {
-                    fresh.copy(sheet = state.sheet, savingLevel = state.savingLevel)
+                    // A level that became measured has no editor: its open draft closes silently (R-14).
+                    if (fresh.activityMeasured) savedState.remove<String>(KEY_DRAFT)
+                    fresh.copy(
+                        sheet = state.sheet.takeUnless { fresh.activityMeasured },
+                        savingLevel = state.savingLevel,
+                    )
                 } else {
                     state
                 }
@@ -118,9 +125,18 @@ class YourDataViewModel(
             else -> {
                 // The intake and the derived values only enrich the screen: a failure leaves them out.
                 val handover = derived?.totalExpenditure?.handover == true && !handoverAcknowledged
+                val rows = mergeRows(planRows.orEmpty(), blockRows.orEmpty())
+                val basis = rows.firstOrNull { it.key == PlanInputKey.ActivityLevel }?.basis
                 YourDataUiState.Content(
-                    rows = mergeRows(planRows.orEmpty(), blockRows.orEmpty()),
-                    sheet = restoredDraft(),
+                    rows = rows,
+                    sheet = if (basis == null) restoredDraft() else dropDraft(),
+                    activityFigure = derived?.activityLevel?.sources?.let { sources ->
+                        when (basis) {
+                            ActivityBasis.Steps -> sources.stepsAvg
+                            ActivityBasis.ActiveKcal -> sources.activeKcalAvg
+                            null -> null
+                        }?.roundToInt()
+                    },
                     intake = IntakeSummary.of(intake),
                     intakeSourcedKeys = buildSet {
                         if (derived?.experience?.source == ExperienceSource.Intake) add(PlanInputKey.Experience)
@@ -145,6 +161,11 @@ class YourDataViewModel(
             // On failure the note may come back once more; better than losing it unseen.
             if (intakeRepo.acknowledgeMaintenanceHandover().isFailure) handoverAcknowledged = false
         }
+    }
+
+    private fun dropDraft(): ActivityLevel? {
+        savedState.remove<String>(KEY_DRAFT)
+        return null
     }
 
     private fun restoredDraft(): ActivityLevel? = savedState.get<String>(KEY_DRAFT)

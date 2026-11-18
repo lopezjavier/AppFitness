@@ -4,8 +4,10 @@ import androidx.lifecycle.SavedStateHandle
 import app.cash.turbine.test
 import io.github.lopezjavier.appfitness.domain.AppError
 import io.github.lopezjavier.appfitness.domain.AppException
+import io.github.lopezjavier.appfitness.domain.model.ActivityBasis
 import io.github.lopezjavier.appfitness.domain.model.CoachException
 import io.github.lopezjavier.appfitness.domain.model.CoachFailure
+import io.github.lopezjavier.appfitness.domain.model.DerivedSource
 import io.github.lopezjavier.appfitness.domain.model.MissingField
 import io.github.lopezjavier.appfitness.domain.model.PlanFixTarget
 import io.github.lopezjavier.appfitness.domain.model.PlanInputKey
@@ -626,5 +628,76 @@ class PlanProposalViewModelTest {
         advanceUntilIdle()
 
         assertEquals(CardioEdit(draft = 90, saved = 150), second.proposal().cardioEdit)
+    }
+
+    private fun givenLevel(blocksAccept: Boolean, source: DerivedSource, basis: ActivityBasis? = null) {
+        coach.inputs[PlanInputKind.Plan] = Result.success(
+            PlanInputs(
+                PlanInputKind.Plan,
+                null,
+                listOf(
+                    planInput(
+                        PlanInputKey.ActivityLevel,
+                        if (basis == null) PlanInputStatus.Provisional else PlanInputStatus.Ok,
+                        value = PlanInputValue.Text("moderate"),
+                        source = PlanInputSource.CoachEstimate,
+                        fixTarget = PlanFixTarget.ActivitySheet.takeIf { basis == null },
+                        blocksAccept = blocksAccept,
+                        basis = basis,
+                    ),
+                ),
+            ),
+        )
+        coach.loaded = Result.success(coachValuesFrom(source))
+    }
+
+    @Test
+    fun aProvisionalLevel_withMaintenanceCalories_doesNotBlock_andExplainsItself() = runTest(dispatcher) {
+        givenLevel(blocksAccept = false, source = DerivedSource.Intake)
+        plans.current = Result.success(coachPlan())
+        val model = viewModel()
+
+        advanceUntilIdle()
+
+        assertTrue(model.proposal().canAccept)
+        assertTrue(model.proposal().unconfirmedValues.isEmpty())
+        assertEquals(ActivityNoChange.Maintenance, model.proposal().activityNoChange)
+    }
+
+    @Test
+    fun aProvisionalLevel_withMeasuredCalories_explainsItselfWithTheMeasuredText() = runTest(dispatcher) {
+        givenLevel(blocksAccept = false, source = DerivedSource.Adaptive)
+        plans.current = Result.success(coachPlan())
+        val model = viewModel()
+
+        advanceUntilIdle()
+
+        assertEquals(ActivityNoChange.Adaptive, model.proposal().activityNoChange)
+    }
+
+    @Test
+    fun aProvisionalLevel_onTheFormulaPath_blocksAndHasNoExplanation() = runTest(dispatcher) {
+        givenLevel(blocksAccept = true, source = DerivedSource.Formula)
+        plans.current = Result.success(coachPlan())
+        val model = viewModel()
+
+        advanceUntilIdle()
+
+        assertFalse(model.proposal().canAccept)
+        assertEquals(listOf(PlanInputKey.ActivityLevel), model.proposal().unconfirmedValues.map { it.key })
+        assertNull(model.proposal().activityNoChange)
+    }
+
+    @Test
+    fun aSavedDraft_isDroppedSilentlyWhenTheLevelIsMeasured() = runTest(dispatcher) {
+        givenLevel(blocksAccept = false, source = DerivedSource.Formula, basis = ActivityBasis.Steps)
+        plans.current = Result.success(coachPlan())
+        val saved = SavedStateHandle(mapOf("plan_proposal_activity_draft" to "High"))
+        val model = viewModel(saved)
+
+        advanceUntilIdle()
+
+        assertNull(model.proposal().activitySheet)
+        assertNull(saved.get<String>("plan_proposal_activity_draft"))
     }
 }

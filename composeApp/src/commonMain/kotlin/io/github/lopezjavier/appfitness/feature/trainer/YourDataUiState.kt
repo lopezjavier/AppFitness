@@ -21,6 +21,8 @@ sealed interface YourDataUiState {
         /** The one-time note "Ahora usamos tus datos reales"; [handoverKcal] is the measured expenditure. */
         val showHandover: Boolean = false,
         val handoverKcal: Double? = null,
+        /** The average a measured activity level shows (steps per day or active kcal per day); null when unknown. */
+        val activityFigure: Int? = null,
     ) : YourDataUiState {
         /** Non-empty sections in screen order. */
         val sections: List<YourDataSection> = PlanInputOrigin.entries
@@ -28,6 +30,9 @@ sealed interface YourDataUiState {
             .filter { it.rows.isNotEmpty() }
 
         val provisionalCount: Int get() = rows.count { it.isProvisional }
+
+        /** True when step or watch data makes the activity level read-only (no chip, no sheet). */
+        val activityMeasured: Boolean get() = rows.any { it.key == PlanInputKey.ActivityLevel && it.basis != null }
     }
 
     data object Offline : YourDataUiState

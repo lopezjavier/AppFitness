@@ -24,6 +24,7 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.Dp
 import io.github.lopezjavier.appfitness.composeapp.resources.Res
+import io.github.lopezjavier.appfitness.composeapp.resources.activity_help_cd
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_chevron_right
 import io.github.lopezjavier.appfitness.composeapp.resources.name_error_blank
 import io.github.lopezjavier.appfitness.composeapp.resources.onboarding_age
@@ -32,6 +33,7 @@ import io.github.lopezjavier.appfitness.composeapp.resources.onboarding_label_bi
 import io.github.lopezjavier.appfitness.composeapp.resources.onboarding_label_height
 import io.github.lopezjavier.appfitness.composeapp.resources.onboarding_label_sex
 import io.github.lopezjavier.appfitness.composeapp.resources.onboarding_label_weight
+import io.github.lopezjavier.appfitness.composeapp.resources.profile_activity_help_body
 import io.github.lopezjavier.appfitness.composeapp.resources.profile_activity_label
 import io.github.lopezjavier.appfitness.composeapp.resources.profile_age_label
 import io.github.lopezjavier.appfitness.composeapp.resources.profile_height_spoken
@@ -46,6 +48,7 @@ import io.github.lopezjavier.appfitness.designsystem.AppEditSheet
 import io.github.lopezjavier.appfitness.designsystem.AppPickerSheet
 import io.github.lopezjavier.appfitness.designsystem.AppTextField
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
+import io.github.lopezjavier.appfitness.designsystem.HelpButton
 import io.github.lopezjavier.appfitness.designsystem.SheetCommit
 import io.github.lopezjavier.appfitness.designsystem.Spacing
 import io.github.lopezjavier.appfitness.domain.model.BiometricBounds
@@ -277,6 +280,14 @@ private fun PersonalSheets(
         PersonalSheet.Activity -> AppPickerSheet(
             title = stringResource(Res.string.profile_activity_label),
             onDismiss = onClose,
+            help = {
+                HelpButton(
+                    contentDescription = stringResource(Res.string.activity_help_cd),
+                    title = stringResource(Res.string.profile_activity_label),
+                    body = stringResource(Res.string.profile_activity_help_body),
+                    testTag = "profile_activity_sheet_help",
+                )
+            },
             testTagPrefix = "preferences_sheet",
         ) {
             ActivityCards(

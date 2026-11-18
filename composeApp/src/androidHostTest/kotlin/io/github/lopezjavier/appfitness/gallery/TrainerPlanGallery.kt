@@ -6,7 +6,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import com.github.takahirom.roborazzi.ExperimentalRoborazziApi
+import io.github.lopezjavier.appfitness.domain.model.ActivityBasis
 import io.github.lopezjavier.appfitness.domain.model.ActivityLevel
+import io.github.lopezjavier.appfitness.domain.model.DerivedSource
 import io.github.lopezjavier.appfitness.domain.model.PlanLimit
 import io.github.lopezjavier.appfitness.domain.model.RoutineFolder
 import io.github.lopezjavier.appfitness.feature.trainer.ActivityLevelSheet
@@ -74,6 +76,14 @@ private fun planProposal(): List<GalleryEntry> {
         proposal("proposal", TrainerFixtures.proposal()),
         proposal("blocked by an unconfirmed value", TrainerFixtures.proposal(unconfirmed = true)),
         proposal("blocked, data changed", TrainerFixtures.proposal(dataChanged = true)),
+        proposal(
+            "level is my answer, calories from maintenance",
+            TrainerFixtures.proposalActivityNoChange(DerivedSource.Intake),
+        ),
+        proposal(
+            "level is my answer, calories measured",
+            TrainerFixtures.proposalActivityNoChange(DerivedSource.Adaptive),
+        ),
         proposal("blocked, level changed (stale)", TrainerFixtures.proposal(stale = true)),
         proposal("accepting", TrainerFixtures.proposal(accepting = true)),
         proposal("calorie floor limits the plan", TrainerFixtures.proposal(limitedBy = PlanLimit.Floor)),
@@ -137,6 +147,7 @@ private fun beforeStart(): List<GalleryEntry> {
         start("offline", BeforeStartUiState.Offline),
         start("plan, complete", TrainerFixtures.beforeStart()),
         start("block, complete", block),
+        start("plan, level is my answer", TrainerFixtures.beforeStartActivityNoChange(DerivedSource.Intake)),
         start(
             "plan, activity level sheet",
             TrainerFixtures.beforeStart(sheet = ActivityLevel.Moderate),
@@ -196,6 +207,8 @@ private fun yourData(): List<GalleryEntry> {
         data("complete", complete),
         data("provisional value", TrainerFixtures.yourDataContent(provisional = true)),
         data("handover note", complete.copy(showHandover = true, handoverKcal = 2_300.0)),
+        data("measured level, steps", TrainerFixtures.yourDataMeasured(ActivityBasis.Steps)),
+        data("measured level, watch", TrainerFixtures.yourDataMeasured(ActivityBasis.ActiveKcal)),
         data(
             "years sheet",
             complete,

@@ -242,6 +242,7 @@ private fun BeforeStartContent(
         }
         state.replaces?.let { ReplacesInlineNote(it) }
         state.goalChange?.let { GoalChangeInlineNote(it) }
+        ActivityNoChangeRow(state.activityRow, state.activityNoChange, "before_start")
         YourDataSummary(state, onOpenYourData)
         if (state.intakeRows.isNotEmpty()) {
             // Never a flag, "Sin indicar" when nothing was said; each row opens only its own editor (R-55).

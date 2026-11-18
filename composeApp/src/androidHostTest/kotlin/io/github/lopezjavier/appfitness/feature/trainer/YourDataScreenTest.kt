@@ -1,18 +1,25 @@
 package io.github.lopezjavier.appfitness.feature.trainer
 
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.test.assertHasNoClickAction
+import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.unit.Density
 import androidx.lifecycle.SavedStateHandle
 import io.github.lopezjavier.appfitness.app.FakeConnectivityObserver
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
 import io.github.lopezjavier.appfitness.domain.AppError
 import io.github.lopezjavier.appfitness.domain.AppException
+import io.github.lopezjavier.appfitness.domain.model.ActivityBasis
 import io.github.lopezjavier.appfitness.domain.model.ActivityLevel
 import io.github.lopezjavier.appfitness.domain.model.DerivedSource
 import io.github.lopezjavier.appfitness.domain.model.PlanFixTarget
+import io.github.lopezjavier.appfitness.domain.model.PlanInput
 import io.github.lopezjavier.appfitness.domain.model.PlanInputKey
 import io.github.lopezjavier.appfitness.domain.model.PlanInputKind
 import io.github.lopezjavier.appfitness.domain.model.PlanInputSource
@@ -225,5 +232,86 @@ class YourDataScreenTest {
         show()
 
         rule.onNodeWithText("Sin conexión").assertExists()
+    }
+
+    private fun withLevel(row: PlanInput, steps: Double? = null, kcal: Double? = null) {
+        repository.inputs[PlanInputKind.Plan] = Result.success(
+            planKeys().let { keys ->
+                keys.copy(inputs = keys.inputs.filter { it.key != PlanInputKey.ActivityLevel } + row)
+            },
+        )
+        repository.loaded = Result.success(coachValuesFrom(DerivedSource.Intake, steps, kcal))
+    }
+
+    private fun measuredRow(basis: ActivityBasis) = planInput(
+        PlanInputKey.ActivityLevel,
+        value = PlanInputValue.Text("moderate"),
+        source = PlanInputSource.CoachEstimate,
+        basis = basis,
+    )
+
+    @Test
+    fun measuredLevelFromSteps_isReadOnly_withoutChipOrSheet() {
+        withLevel(measuredRow(ActivityBasis.Steps), steps = 8200.0)
+        show()
+
+        rule.onNodeWithTag("your_data_activity_measured_basis", useUnmergedTree = true)
+            .assertTextEquals("Según tus pasos: 8.200 al día")
+        rule.onNodeWithTag("your_data_chip_provisional_activity_level").assertDoesNotExist()
+        rule.onNodeWithTag("your_data_row_activity_level").assertHasNoClickAction()
+        tap("your_data_row_activity_level")
+        rule.onNodeWithTag("your_data_activity_sheet_activity_high").assertDoesNotExist()
+    }
+
+    @Test
+    fun measuredLevelFromTheWatch_saysSoWithItsFigure() {
+        withLevel(measuredRow(ActivityBasis.ActiveKcal), kcal = 540.0)
+        show()
+
+        rule.onNodeWithTag("your_data_activity_measured_basis", useUnmergedTree = true)
+            .assertTextEquals("Según tu reloj: 540 kcal activas al día")
+        rule.onNodeWithTag("your_data_chip_provisional_activity_level").assertDoesNotExist()
+    }
+
+    @Test
+    fun withoutData_theLevelIsMyAnswer_editableAndProvisional() {
+        withLevel(
+            planInput(
+                PlanInputKey.ActivityLevel,
+                PlanInputStatus.Provisional,
+                PlanInputValue.Text("light"),
+                PlanInputSource.CoachEstimate,
+                fixTarget = PlanFixTarget.ActivitySheet,
+            ),
+        )
+        show()
+
+        rule.onNodeWithTag("your_data_chip_provisional_activity_level").assertTextEquals("Provisional")
+        rule.onNodeWithText("Según lo que nos contaste", useUnmergedTree = true).assertExists()
+        tap("your_data_row_activity_level")
+        rule.onNodeWithTag("your_data_activity_sheet_activity_high").assertExists()
+    }
+
+    @Test
+    fun measuredBasisLine_staysReadableAtLargeFontScales() {
+        withLevel(measuredRow(ActivityBasis.ActiveKcal), kcal = 540.0)
+        val model = YourDataViewModel(repository, intake, MutableClock(), SavedStateHandle())
+        rule.setContent {
+            AppTheme {
+                CompositionLocalProvider(
+                    LocalDensity provides Density(LocalDensity.current.density, fontScale = 2.0f),
+                ) {
+                    YourDataRoot(
+                        onBack = {},
+                        onFix = {},
+                        viewModel = model,
+                        connectivity = FakeConnectivityObserver(true),
+                    )
+                }
+            }
+        }
+        rule.waitForIdle()
+
+        rule.onNodeWithTag("your_data_activity_measured_basis", useUnmergedTree = true).assertIsDisplayed()
     }
 }
