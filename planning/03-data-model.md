@@ -16,7 +16,7 @@ Compact summary; full column tables, constraints and RPC contracts are in [`phas
 
 ## 2. Profile and goals
 - `profiles` (id = auth user): display_name, avatar_url (Google, `https://` only), birth_date, sex, height_cm, activity_level, onboarding_completed (the former `target_weight_kg` was dropped in T-162, ADR-78: the weight outcome now lives in the accepted `coach_plans.outcomes`). Created by the `on_auth_user_created` trigger (sanitized metadata); `on_auth_user_metadata_updated` refreshes the avatar only. Client has SELECT and column-level UPDATE; no delete. Current weight is the latest `body_measurements` row.
-- `nutrition_goals` (one per user): strategy, calorie_adjustment, target_kcal, protein/carbs/fat percentages. Written together with `profiles` through `save_preferences`.
+- `nutrition_goals` (one per user): strategy, calorie_adjustment, target_kcal, protein/carbs/fat percentages. Written by onboarding and by the accepted Trainer plan; `save_preferences` writes it only when the caller sends all six goal parameters, and the app never does (ADR-108).
 
 ## 3. Nutrition
 - `foods`: source (`off`/`user`), barcode, off_id, base_unit, nutrition per 100 base units (kcal, macros), `micronutrients jsonb` (35 label keys), `alcohol_g_100 numeric(5,1)` null (grams per 100 base units, never % vol; OFF rows store `% vol x 0.789`; ADR-102), `off_data jsonb` (full OFF product, Edge-Function-written only), serving fields, image_url, created_by, `search_vector`, `fetched_at`. Shared cache for OFF rows; manual foods are owner-only (editable, ADR-53).
@@ -73,7 +73,7 @@ Compact summary; full column tables, constraints and RPC contracts are in [`phas
 - **Equipment items (T-201, ADR-92):** `equipment` gains `ez_bar` ("Barra Z", the 20 `ez-bar` catalogue rows) and `cardio_machine` ("Máquina de cardio", the eight cardio rows); the five T-184 cardio values stay in the Postgres type, unused, and `training_preferences` refuses them in new writes (`training_preferences_no_old_cardio_values`). Landmine, T-bar, hex bar, pull-up bar, dip station, rings, TRX and the single cases of `07` §3 are `other`; `behind-the-neck-lat-pulldown` and `v-bar-lat-pulldown` are `cable`. Saved lists (`training_preferences.equipment`, `coach_plans.training->equipment`) were migrated once by a data migration (`ez_bar` only for a gym list or a list with every old lifting value; never to an empty list); the helper was dropped by T-286 (ADR-107). `exercise_alternatives.similarity` check is now `0.90 <= similarity <= 1`; the barbell / EZ bar / dumbbell groups of `07` §3 add 71 pairs at 1.00 (473 pairs in total).
 
 ## 6. RPC functions (`security invoker` unless stated, `authenticated` only, owner-scoped)
-- Profile: `save_preferences` (profile + goals + optional weight, one transaction).
+- Profile: `save_preferences` (profile + optional weight, one transaction; the goals block is optional and unused by the app, ADR-108).
 - Weight: `save_body_measurement`.
 - Training session: `start_workout_session`, `pause_/resume_workout_session`, `finish_workout_session`, `discard_workout_session`, `delete_workout_set`, `set_session_rest`, `last_performance`, `save_completed_workout`, `save_workout_as_routine`, `update_routine_from_session`.
 - Routines: `save_routine` (jsonb with per-exercise planned sets, `target_rpe`, supersets share set counts).

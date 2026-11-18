@@ -19,7 +19,7 @@ Male `10·kg + 6.25·cm − 5·age + 5`; female `… − 161`. Age in full years
 - `target_kcal = TDEE + calorie_adjustment`. Default adjustment: Deficit −400, Maintenance 0, Surplus +250. Steps of 50 within Deficit [−1000, −50], Maintenance [−100, +100], Surplus [+50, +750].
 - Safety floor by sex (ADR-25): 1200 kcal women, 1500 kcal men; below it the target is the floor and a warning shows.
 - Label by |adjustment|: <= 300 ligero, <= 600 moderado, > 600 agresivo (e.g. "−400 kcal · Déficit moderado").
-- Recalculated only when the user saves in Preferencias (ADR-24), with the latest weight; stored in `nutrition_goals`. Logging weight does not change it.
+- Written at onboarding and by the accepted Trainer plan; Preferencias no longer edits or recomputes it (ADR-108, amends ADR-24). Stored in `nutrition_goals`. Logging weight does not change it.
 - No goal progress: the target weight is no longer a user input (ADR-78, T-162); "Peso" shows the accepted plan's weight outcome (§8) read-only, with no distance and no progress bar.
 
 ### 1.5 Macro split (auto-balance)

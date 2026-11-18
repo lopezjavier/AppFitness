@@ -4,7 +4,7 @@ Live index of every closed decision, one line per ADR, with the numbers kept sin
 
 ## New ADRs go here
 
-Phase 3 ADRs continue the numbering (next: **ADR-108**) and are written **in full** in this file, below the index, with their one-line row in the index. Format: context -> decision -> consequences. A new decision also updates the affected live docs.
+Phase 3 ADRs continue the numbering (next: **ADR-109**) and are written **in full** in this file, below the index, with their one-line row in the index. Format: context -> decision -> consequences. A new decision also updates the affected live docs.
 
 ## Index (Phase 1, ADR-01..72)
 
@@ -210,3 +210,10 @@ Older ADRs: [`phase2/00-decisions.md`](phase2/00-decisions.md) (73-100) and [`ph
   - Live docs updated by T-287: `02`, `03`, `04` (§6.5, §7.5, §7.8, §7.9), `05`, `07`, `10-feature-inventory.md`, the `README`, E4 and E10, and the stories US-81 and US-89 in E13 (marked "Amended by ADR-107").
 - **Approval:** user, 2026-11-11 (chat: the T-277 audit decisions and the split into T-277, T-286 and T-287).
 
+### ADR-108 — Preferencias no longer edits calories or macros; the Trainer plan owns them (E19 US-138; amends ADR-24 and `04` §1.4)
+- **Context:** every Preferencias section save recomputed `target_kcal` client-side (Mifflin × profile activity + stored adjustment) and upserted `nutrition_goals` through `save_preferences`, replacing the target the Trainer plan had accepted and flagging the plan `edited_by_user`. The plan's expenditure comes from `coach_compute` and its adjustment is rate-based, so the two numbers disagreed (the user saw it in the Diary and in the hub).
+- **Decision (user, 2026-11-17 D1, chat; implementation approach approved 2026-11-17):** "Objetivo calórico" and "Macros" are removed from Preferencias; the Trainer plan owns calories and macros and Preferencias never writes `nutrition_goals`. Onboarding keeps its first write (it uses `CompleteOnboarding` and `NutritionGoalsRepository`, never `save_preferences`).
+  - **Backend, migration `20270128100000_save_preferences_goals_optional.sql` (T-303):** same 24-parameter signature, the six goal parameters `default null`; the `nutrition_goals` upsert runs only when all six are non-null, a partial set raises 22023 before any write. Old app versions that still send the goals keep working.
+  - **App:** `SavePreferences`, `ProfileRepository` and `SavePreferencesParams` carry no goals; `PreferencesViewModel`, the hub and the section screen have no Energy or Macros; old saved drafts and the `energy`/`macros` section keys fall back to Datos personales.
+- **Consequences:** a user without an accepted Trainer plan can no longer change calories or macros after onboarding. Calories and macros are read in the Trainer's "Tu plan". The migration is deployed to production with the merge; `deploy-supabase` must be green on `main` with the data intact before the next task.
+- **Approval:** user, 2026-11-17 (D1) and 2026-11-18 (approach and `05` R-124).

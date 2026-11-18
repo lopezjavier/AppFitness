@@ -85,6 +85,35 @@ Feature: Exercise pictures
     And the selection survives leaving the app
 ```
 
+## US-138 · Preferencias keeps the plan's calories (T-303)
+**As** the user
+**I want** saving a Preferencias section never to change my calories or macros, and numbers with a unit never to overlap it
+**So that** the Trainer plan's target stays the one I accepted and every field is readable.
+
+```gherkin
+Feature: Preferencias and the plan's calories
+
+  Scenario: Saving a section leaves the goals untouched
+    Given an accepted plan with a calorie target
+    When I save "Cocina" in Preferencias
+    Then the stored calorie target and macros do not change
+    And the plan is not marked as edited by me
+
+  Scenario: Nutrición lists no calories or macros
+    When I open Preferencias
+    Then Nutrición lists "Comidas del día", "Comidas por defecto" and "Cocina" only
+
+  Scenario: An old saved draft still opens
+    Given a saved draft that has energy or macros keys
+    When I come back to Preferencias
+    Then it opens without error and the other values are restored
+
+  Scenario: A unit never overlaps its number
+    Given a field with a unit such as "kcal", "g" or "min"
+    When the value is up to four digits with a decimal, at any font size
+    Then the unit is drawn beside the number and never over it
+```
+
 ## US-123 · Review of all the UI
 **As** the user
 **I want** all the UI reviewed
