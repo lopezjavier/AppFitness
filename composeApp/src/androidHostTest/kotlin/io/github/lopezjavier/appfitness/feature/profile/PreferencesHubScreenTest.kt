@@ -13,8 +13,6 @@ import androidx.compose.ui.unit.width
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
 import io.github.lopezjavier.appfitness.designsystem.WindowWidthClassDefaults
 import io.github.lopezjavier.appfitness.domain.model.ActivityLevel
-import io.github.lopezjavier.appfitness.domain.model.GoalStrategy
-import io.github.lopezjavier.appfitness.domain.model.MacroSplit
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Rule
@@ -23,7 +21,7 @@ import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 
-/** US-56 and US-59 on the Preferencias hub: eight rows in order, each opening its destination, no state of its own. */
+/** US-56 and US-59 on the Preferencias hub: six rows in order, each opening its destination, no state of its own. */
 @RunWith(RobolectricTestRunner::class)
 @Config(qualifiers = "w360dp-h1000dp-xxhdpi")
 class PreferencesHubScreenTest {
@@ -37,7 +35,7 @@ class PreferencesHubScreenTest {
     private var mealDefaults = 0
 
     private val keys =
-        listOf("personal", "avisos", "energy", "macros", "meals", "meal_defaults", "cooking", "training")
+        listOf("personal", "avisos", "meals", "meal_defaults", "cooking", "training")
 
     private fun show(summary: PreferencesHubSummary = PreferencesHubSummary()) {
         rule.setContent {
@@ -61,14 +59,12 @@ class PreferencesHubScreenTest {
     }
 
     @Test
-    fun eightRows_readTheDestinationTitles_inOrder_andThereIsNoFoodAuditRow() {
+    fun sixRows_readTheDestinationTitles_inOrder_andThereIsNoFoodAuditRow() {
         show()
         rule.onNodeWithTag("preferences_row_food_audit").assertDoesNotExist()
         val labels = listOf(
             "Datos personales",
             "Avisos",
-            "Objetivo calórico",
-            "Macros",
             "Comidas del día",
             "Comidas por defecto",
             "Cocina",
@@ -89,8 +85,6 @@ class PreferencesHubScreenTest {
             listOf(
                 PreferencesSection.PersonalData,
                 PreferencesSection.Reminders,
-                PreferencesSection.EnergyGoal,
-                PreferencesSection.Macros,
                 PreferencesSection.Cooking,
                 PreferencesSection.Training,
             ),
@@ -123,17 +117,22 @@ class PreferencesHubScreenTest {
         show(
             PreferencesHubSummary(
                 personal = PersonalSummary(30, 180, ActivityLevel.Moderate),
-                energy = EnergySummary(2788, GoalStrategy.Maintenance),
-                split = MacroSplit(30, 40, 30),
                 mealCount = 4,
                 remindersOn = 3,
             ),
         )
-        rule.onNodeWithTag("preferences_row_energy").assertTextContains("2.788 kcal · Mantenimiento", substring = true)
-        rule.onNodeWithTag("preferences_row_macros").assertTextContains("P 30 % · C 40 % · G 30 %", substring = true)
         rule.onNodeWithTag("preferences_row_meals").assertTextContains("4 comidas", substring = true)
         rule.onNodeWithTag("preferences_row_avisos").assertTextContains("3 de ", substring = true)
         rule.onNodeWithTag("preferences_row_personal").assertTextContains("30 años · 180 cm", substring = true)
+    }
+
+    @Test
+    fun nutricion_listsOnlyFoodPreferences_caloriesAndMacrosLiveInTheTrainerPlan() {
+        show()
+        rule.onNodeWithTag("preferences_row_energy").assertDoesNotExist()
+        rule.onNodeWithTag("preferences_row_macros").assertDoesNotExist()
+        rule.onNodeWithText("Objetivo calórico").assertDoesNotExist()
+        rule.onNodeWithText("Macros").assertDoesNotExist()
     }
 
     @Test
@@ -146,7 +145,7 @@ class PreferencesHubScreenTest {
     @Config(qualifiers = "w840dp-h1000dp-mdpi")
     fun tablet_capsTheContentWidth() {
         show()
-        val row = rule.onNodeWithTag("preferences_row_energy").getUnclippedBoundsInRoot()
+        val row = rule.onNodeWithTag("preferences_row_personal").getUnclippedBoundsInRoot()
         assertTrue("row width ${row.width}", row.width <= WindowWidthClassDefaults.FormContentMaxWidth)
     }
 }

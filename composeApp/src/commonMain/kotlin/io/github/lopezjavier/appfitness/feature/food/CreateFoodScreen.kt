@@ -62,6 +62,7 @@ import io.github.lopezjavier.appfitness.designsystem.InlineNote
 import io.github.lopezjavier.appfitness.designsystem.Macro
 import io.github.lopezjavier.appfitness.designsystem.MacroDefaults
 import io.github.lopezjavier.appfitness.designsystem.NumberInput
+import io.github.lopezjavier.appfitness.designsystem.NumberInputDefaults
 import io.github.lopezjavier.appfitness.designsystem.SegmentedSelector
 import io.github.lopezjavier.appfitness.designsystem.SkeletonBox
 import io.github.lopezjavier.appfitness.designsystem.Spacing
@@ -327,7 +328,7 @@ internal fun FieldGrid(fields: List<@Composable () -> Unit>) {
 
 /**
  * One table row of a nutrient (C-36): the label at the start (in the macro colour when set; a "de los cuales" part is
- * indented 16 dp), a 96 x 48 dp input with the unit suffix at the end, 56 dp high, and the error text under it.
+ * indented 16 dp), a 112 x 48 dp input with the unit suffix at the end, 56 dp high, and the error text under it.
  */
 @Composable
 internal fun NutrientField(
@@ -352,6 +353,7 @@ internal fun NutrientField(
                     text = spec.label,
                     style = AppTheme.typography.bodyLarge,
                     color = spec.macro?.let { MacroDefaults.color(it, AppTheme.colors) } ?: AppTheme.colors.textPrimary,
+                    modifier = Modifier.weight(1f, fill = false).testTag("${spec.tag}_label"),
                 )
                 help?.invoke()
             }
@@ -360,7 +362,7 @@ internal fun NutrientField(
                 onValueChange = onChange,
                 label = spec.spokenLabel,
                 modifier = Modifier.width(
-                    FeatureMetrics.NutrientInputWidth,
+                    NumberInputDefaults.widthFor(FeatureMetrics.NutrientInputWidth),
                 ).height(FeatureMetrics.NutrientInputHeight).testTag(spec.tag),
                 maxDecimals = spec.decimals,
                 showLabel = false,

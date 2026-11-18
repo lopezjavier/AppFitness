@@ -3,12 +3,13 @@ begin;
 create extension if not exists pgtap with schema extensions;
 set local search_path = extensions, public;
 
-select plan(35);
+select plan(50);
 
 insert into auth.users (id, email) values
   ('11111111-1111-4111-8111-111111111111', 'ana@example.com'),
   ('22222222-2222-4222-8222-222222222222', 'bea@example.com'),
-  ('33333333-3333-4333-8333-333333333333', 'carl@example.com');
+  ('33333333-3333-4333-8333-333333333333', 'carl@example.com'),
+  ('44444444-4444-4444-8444-444444444444', 'dani@example.com');
 
 -- A and B have a profile (sign-up trigger) and onboarding data; B also has goals and a weight today.
 update public.profiles
@@ -190,6 +191,93 @@ select ok(
   and (select fat_pct_griddle = 1.5 from public.food_preferences
        where user_id = '11111111-1111-4111-8111-111111111111'),
   'a rejected percentage leaves the profile and the percentages unchanged (atomic)');
+
+-- ---------------------------------------------------------------------------
+-- Goals are optional (T-303, US-138, ADR-108): saving without them never touches nutrition_goals
+-- and never flags the accepted plan as edited_by_user.
+-- ---------------------------------------------------------------------------
+reset role;
+insert into public.coach_plans (user_id, block_start, intention, nutrition, status, accepted_at) values
+  ('11111111-1111-4111-8111-111111111111', current_date, 'fat_loss',
+   '{"target_kcal": 2507, "edited_by_user": false}'::jsonb, 'accepted', now()),
+  ('22222222-2222-4222-8222-222222222222', current_date, 'fat_loss',
+   '{"target_kcal": 2507, "edited_by_user": false}'::jsonb, 'accepted', now());
+set local role authenticated;
+select set_config('request.jwt.claims',
+  '{"sub":"11111111-1111-4111-8111-111111111111","role":"authenticated"}', true);
+
+select is(
+  (select pronargdefaults::int from pg_proc
+   where proname = 'save_preferences' and pronamespace = 'public'::regnamespace),
+  19, 'the six goal parameters and the thirteen optional ones all have a default');
+
+select lives_ok(
+  $$select public.save_preferences('Ana', 'male', '1999-06-15', 182, 'high')$$,
+  'A saves without goals');
+select results_eq(
+  $$select strategy::text, calorie_adjustment, target_kcal, protein_pct::int, carbs_pct::int, fat_pct::int
+    from public.nutrition_goals where user_id = '11111111-1111-4111-8111-111111111111'$$,
+  $$values ('surplus', 300, 3000, 30, 45, 25)$$,
+  'a save without goals leaves the stored goals unchanged');
+select is(
+  (select height_cm from public.profiles where id = '11111111-1111-4111-8111-111111111111'),
+  182.0::numeric, 'a save without goals still updates the profile');
+select is(
+  (select (nutrition->>'edited_by_user')::boolean from public.coach_plans
+   where user_id = '11111111-1111-4111-8111-111111111111' and status = 'accepted'),
+  false, 'a save without goals does not flag the accepted plan as edited');
+
+select lives_ok(
+  $$select public.save_preferences('Ana', 'male', '1999-06-15', 182, 'high', 'deficit', -300, 2800, 30::smallint, 40::smallint, 30::smallint)$$,
+  'A saves with the full goal set');
+select results_eq(
+  $$select strategy::text, calorie_adjustment, target_kcal, protein_pct::int, carbs_pct::int, fat_pct::int
+    from public.nutrition_goals where user_id = '11111111-1111-4111-8111-111111111111'$$,
+  $$values ('deficit', -300, 2800, 30, 40, 30)$$,
+  'the full goal set is written');
+select is(
+  (select (nutrition->>'edited_by_user')::boolean from public.coach_plans
+   where user_id = '11111111-1111-4111-8111-111111111111' and status = 'accepted'),
+  true, 'writing goals still flags the accepted plan as edited');
+
+select throws_ok(
+  $$select public.save_preferences('Parcial', 'male', '1999-06-15', 190, 'high',
+      p_strategy => 'surplus', p_target_kcal => 3500)$$,
+  '22023', null, 'a partial goal set is rejected');
+select ok(
+  (select display_name = 'Ana' and height_cm = 182 from public.profiles
+   where id = '11111111-1111-4111-8111-111111111111')
+  and (select target_kcal = 2800 and strategy = 'deficit' from public.nutrition_goals
+       where user_id = '11111111-1111-4111-8111-111111111111'),
+  'a rejected partial goal set writes nothing');
+
+-- D has no goals row: a save without goals does not create one.
+select set_config('request.jwt.claims',
+  '{"sub":"44444444-4444-4444-8444-444444444444","role":"authenticated"}', true);
+select lives_ok(
+  $$select public.save_preferences('Dani', 'male', '1999-06-15', 175, 'light')$$,
+  'D saves without goals and without a goals row');
+select is(
+  (select count(*)::int from public.nutrition_goals where user_id = '44444444-4444-4444-8444-444444444444'),
+  0, 'a save without goals creates no goals row');
+
+-- B saves without goals: neither B's nor A's goals or plan flag change.
+select set_config('request.jwt.claims',
+  '{"sub":"22222222-2222-4222-8222-222222222222","role":"authenticated"}', true);
+select lives_ok(
+  $$select public.save_preferences('Bea', 'female', '1990-01-01', 165, 'light')$$,
+  'B saves without goals');
+select ok(
+  (select target_kcal = 2500 from public.nutrition_goals where user_id = '22222222-2222-4222-8222-222222222222')
+  and (select (nutrition->>'edited_by_user')::boolean = false from public.coach_plans
+       where user_id = '22222222-2222-4222-8222-222222222222' and status = 'accepted'),
+  'B''s goals and plan flag are untouched by B''s save without goals');
+reset role;
+select ok(
+  (select target_kcal = 2800 from public.nutrition_goals where user_id = '11111111-1111-4111-8111-111111111111')
+  and (select height_cm = 182 from public.profiles where id = '11111111-1111-4111-8111-111111111111'),
+  'A''s goals and profile are untouched by B''s save');
+set local role authenticated;
 
 -- ---------------------------------------------------------------------------
 -- No profile row / no JWT

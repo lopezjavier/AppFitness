@@ -44,7 +44,6 @@ Columns: functionality, label as shown in the app (Spanish), route type or host,
 | Manual weight and body measurements | "Peso", "Circunferencias" | `WeightRoute` (`CircumferenceSheet`) | RPCs `save_body_measurement`, `delete_body_measurement` | US-25 |
 | Metrics panel, goal and trend chart | "Historial de peso", "Composición corporal" | `WeightHistoryRoute`, `WeightRoute` | - | US-27 |
 | Health Connect sync (manual) and watch data | "Actividad", "Sincronizar" | `ActivityRoute` | RPCs `import_health_activity`, `import_health_measurements` | US-26, US-61, US-62, US-63, US-64 (watch data) |
-| Energy strategy, calorie target and macro split | "Objetivo calórico", "Macros" | `PreferencesSectionRoute` | RPC `save_preferences` | US-07, US-08 |
 
 ## Entreno
 

@@ -28,6 +28,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.clearAndSetSemantics
@@ -74,8 +75,16 @@ object NumberInputDefaults {
     val HorizontalPadding: Dp = Spacing.xs
     val LabelSpacing: Dp = Spacing.xs
 
-    /** End space kept free for the unit text so a long value never overlaps it. */
-    val UnitReserve: Dp = 28.dp
+    /** Test tag of the area where the number is drawn (only present when the field has a unit). */
+    const val VALUE_AREA_TAG = "number_input_value_area"
+
+    /**
+     * Width of a field with a unit suffix: [base] at font scale 1.0, growing with larger font scales so the
+     * value and its unit keep fitting side by side (R-124). Never narrower than [base].
+     */
+    @Composable
+    fun widthFor(base: Dp): Dp = base * LocalDensity.current.fontScale.coerceAtLeast(1f)
+
     const val DECIMAL_SEPARATOR = ','
     const val DEFAULT_MAX_INTEGER_DIGITS = 4
     private const val ALTERNATE_SEPARATOR = '.'
@@ -179,7 +188,9 @@ object NumberInputDefaults {
  * spoken; it is drawn above the field when [showLabel] is true. The [placeholder] is ghost data shown while
  * the field is empty and is not spoken (the field announces [placeholderDescription], e.g. "Previsto", instead).
  * The caller's [modifier] lands on the text field node. [startAligned] (default centred, for table cells) starts the
- * value at the leading edge with the [unit] in the trailing slot, as in a form (C-77). [flatWhenReadOnly] draws a
+ * value at the leading edge with the [unit] in the trailing slot, as in a form (C-77). The unit is laid out beside the
+ * value area at its measured width, single-line, never over the number (R-124); give a fixed-width field
+ * [NumberInputDefaults.widthFor] so it grows with the font scale. [flatWhenReadOnly] draws a
  * read-only field on `surfaceOverlay` with no border, so a done set row no longer looks editable (C-67).
  *
  * [value] must be updated synchronously inside [onValueChange] (plain `mutableStateOf`/`TextFieldState`-style
@@ -285,23 +296,33 @@ fun NumberInput(
                                 )
                             },
                         )
-                        .padding(
-                            start = NumberInputDefaults.HorizontalPadding,
-                            end = NumberInputDefaults.HorizontalPadding +
-                                if (unit != null) NumberInputDefaults.UnitReserve else 0.dp,
-                        ),
-                    contentAlignment = if (startAligned) Alignment.CenterStart else Alignment.Center,
+                        .padding(horizontal = NumberInputDefaults.HorizontalPadding),
+                    contentAlignment = Alignment.Center,
                 ) {
-                    if (value.isEmpty() && placeholder != null) NumberInputPlaceholder(placeholder, textStyle, colors)
-                    innerTextField()
-                    if (unit != null) {
-                        Text(
-                            text = unit,
-                            style = AppTheme.typography.bodySmall,
-                            color = colors.label,
-                            maxLines = 1,
-                            modifier = Modifier.align(Alignment.CenterEnd),
-                        )
+                    val alignment = if (startAligned) Alignment.CenterStart else Alignment.Center
+                    val valueArea: @Composable (Modifier) -> Unit = { areaModifier ->
+                        Box(areaModifier, contentAlignment = alignment) {
+                            if (value.isEmpty() && placeholder != null) {
+                                NumberInputPlaceholder(placeholder, textStyle, colors)
+                            }
+                            innerTextField()
+                        }
+                    }
+                    if (unit == null) {
+                        valueArea(Modifier.fillMaxWidth())
+                    } else {
+                        // R-124: the unit takes its measured width beside the value area, never over it.
+                        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                            valueArea(Modifier.weight(1f).testTag(NumberInputDefaults.VALUE_AREA_TAG))
+                            Text(
+                                text = unit,
+                                style = AppTheme.typography.bodySmall,
+                                color = colors.label,
+                                maxLines = 1,
+                                softWrap = false,
+                                modifier = Modifier.padding(start = Spacing.xs),
+                            )
+                        }
                     }
                 }
                 if (errorText != null) {

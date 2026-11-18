@@ -21,7 +21,6 @@ import io.github.lopezjavier.appfitness.domain.AppException
 import io.github.lopezjavier.appfitness.domain.model.Biometrics
 import io.github.lopezjavier.appfitness.domain.model.CalculatorSettings
 import io.github.lopezjavier.appfitness.domain.model.FoodPreferences
-import io.github.lopezjavier.appfitness.domain.model.NutritionGoals
 import io.github.lopezjavier.appfitness.domain.model.PreviousValuesMode
 import io.github.lopezjavier.appfitness.domain.model.ProfileSummary
 import io.github.lopezjavier.appfitness.domain.model.SavedBiometrics
@@ -80,7 +79,6 @@ class SupabaseProfileRepository(private val auth: Auth, private val postgrest: P
     override suspend fun savePreferences(
         displayName: String,
         biometrics: Biometrics,
-        goals: NutritionGoals,
         weight: WeightEntry?,
         warmUpIncluded: Boolean?,
         previousValuesMode: PreviousValuesMode?,
@@ -93,7 +91,6 @@ class SupabaseProfileRepository(private val auth: Auth, private val postgrest: P
             SavePreferencesParams.from(
                 displayName,
                 biometrics,
-                goals,
                 weight,
                 warmUpIncluded,
                 previousValuesMode,

@@ -70,7 +70,11 @@ internal data class NutritionGoalsUpsertDto(
     }
 }
 
-/** Arguments of the `save_preferences` RPC: name, biometrics, goals and optionally today's weight, atomically. */
+/**
+ * Arguments of the `save_preferences` RPC: name, biometrics and optionally today's weight, atomically. The six goal
+ * parameters of the RPC default to null on the server (T-303) and are never sent: this call never touches
+ * `nutrition_goals`.
+ */
 @Serializable
 internal data class SavePreferencesParams(
     @SerialName("p_display_name") val displayName: String,
@@ -78,12 +82,6 @@ internal data class SavePreferencesParams(
     @SerialName("p_birth_date") val birthDate: String,
     @SerialName("p_height_cm") val heightCm: Int,
     @SerialName("p_activity_level") val activityLevel: ActivityLevelDto,
-    @SerialName("p_strategy") val strategy: GoalStrategyDto,
-    @SerialName("p_calorie_adjustment") val calorieAdjustment: Int,
-    @SerialName("p_target_kcal") val targetKcal: Int,
-    @SerialName("p_protein_pct") val proteinPct: Int,
-    @SerialName("p_carbs_pct") val carbsPct: Int,
-    @SerialName("p_fat_pct") val fatPct: Int,
     @SerialName("p_weight_kg") val weightKg: Double? = null,
     @SerialName("p_measured_at") val measuredAt: String? = null,
     @SerialName("p_day_start") val dayStart: String? = null,
@@ -103,7 +101,6 @@ internal data class SavePreferencesParams(
         fun from(
             displayName: String,
             biometrics: Biometrics,
-            goals: NutritionGoals,
             weight: WeightEntry?,
             warmUpIncluded: Boolean?,
             previousValuesMode: PreviousValuesMode?,
@@ -118,12 +115,6 @@ internal data class SavePreferencesParams(
                 birthDate = profile.birthDate,
                 heightCm = profile.heightCm,
                 activityLevel = profile.activityLevel,
-                strategy = GoalStrategyDto.entries.first { it.domain == goals.strategy },
-                calorieAdjustment = goals.calorieAdjustment,
-                targetKcal = goals.targetKcal,
-                proteinPct = goals.split.proteinPct,
-                carbsPct = goals.split.carbsPct,
-                fatPct = goals.split.fatPct,
                 weightKg = weight?.weightKg,
                 measuredAt = weight?.measuredAt?.toString(),
                 dayStart = weight?.dayStart?.toString(),

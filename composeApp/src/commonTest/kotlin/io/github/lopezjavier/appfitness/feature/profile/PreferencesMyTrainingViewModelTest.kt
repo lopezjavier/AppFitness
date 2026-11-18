@@ -6,7 +6,6 @@ import io.github.lopezjavier.appfitness.app.FakeBodyMeasurementRepository
 import io.github.lopezjavier.appfitness.app.FakeClock
 import io.github.lopezjavier.appfitness.app.FakeConnectivityObserver
 import io.github.lopezjavier.appfitness.app.FakeNotificationSettingsRepository
-import io.github.lopezjavier.appfitness.app.FakeNutritionGoalsRepository
 import io.github.lopezjavier.appfitness.app.FakeProfileRepository
 import io.github.lopezjavier.appfitness.app.FakeTrainingPreferencesRepository
 import io.github.lopezjavier.appfitness.domain.AppError
@@ -14,11 +13,8 @@ import io.github.lopezjavier.appfitness.domain.AppException
 import io.github.lopezjavier.appfitness.domain.model.ActivityLevel
 import io.github.lopezjavier.appfitness.domain.model.BodyMeasurement
 import io.github.lopezjavier.appfitness.domain.model.Equipment
-import io.github.lopezjavier.appfitness.domain.model.GoalStrategy
-import io.github.lopezjavier.appfitness.domain.model.MacroSplit
 import io.github.lopezjavier.appfitness.domain.model.MeasurementSource
 import io.github.lopezjavier.appfitness.domain.model.MyTraining
-import io.github.lopezjavier.appfitness.domain.model.NutritionGoals
 import io.github.lopezjavier.appfitness.domain.model.ProfileSummary
 import io.github.lopezjavier.appfitness.domain.model.SavedBiometrics
 import io.github.lopezjavier.appfitness.domain.model.Sex
@@ -56,8 +52,6 @@ class PreferencesMyTrainingViewModelTest {
     private val weights = FakeBodyMeasurementRepository(
         BodyMeasurement("w1", Instant.parse("2026-10-10T08:00:00Z"), 80.0, MeasurementSource.Manual),
     )
-    private val goals =
-        FakeNutritionGoalsRepository(NutritionGoals(GoalStrategy.Deficit, -400, 2000, MacroSplit.DEFAULT))
     private val connectivity = FakeConnectivityObserver(initial = true)
     private val training = FakeTrainingPreferencesRepository()
 
@@ -76,7 +70,6 @@ class PreferencesMyTrainingViewModelTest {
 
     private fun viewModel(handle: SavedStateHandle = SavedStateHandle()) = PreferencesViewModel(
         profileRepository = profile,
-        goalsRepository = goals,
         bodyMeasurementRepository = weights,
         trainingPreferencesRepository = training,
         foodPreferencesRepository = FakeFoodPreferencesRepository(),
@@ -311,7 +304,6 @@ class PreferencesMyTrainingViewModelTest {
             training.savedMyTraining.single(),
         )
         assertTrue(profile.preferenceSaves.isEmpty(), "save_preferences is not involved")
-        assertEquals(goals.row, NutritionGoals(GoalStrategy.Deficit, -400, 2000, MacroSplit.DEFAULT))
     }
 
     @Test

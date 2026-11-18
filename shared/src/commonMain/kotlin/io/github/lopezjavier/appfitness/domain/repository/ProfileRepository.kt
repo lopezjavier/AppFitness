@@ -3,7 +3,6 @@ package io.github.lopezjavier.appfitness.domain.repository
 import io.github.lopezjavier.appfitness.domain.model.Biometrics
 import io.github.lopezjavier.appfitness.domain.model.CalculatorSettings
 import io.github.lopezjavier.appfitness.domain.model.FoodPreferences
-import io.github.lopezjavier.appfitness.domain.model.NutritionGoals
 import io.github.lopezjavier.appfitness.domain.model.PreviousValuesMode
 import io.github.lopezjavier.appfitness.domain.model.ProfileSummary
 import io.github.lopezjavier.appfitness.domain.model.SavedBiometrics
@@ -36,13 +35,12 @@ interface ProfileRepository {
     fun hasProvidedFullName(): Boolean
 
     /**
-     * Saves the name, biometrics and goals, and (when [weight] is not null) today's manual weight in one atomic
-     * call (RPC `save_preferences`): all or nothing.
+     * Saves the name and biometrics, and (when [weight] is not null) today's manual weight in one atomic call
+     * (RPC `save_preferences`): all or nothing. It never writes the nutrition goals (T-303).
      */
     suspend fun savePreferences(
         displayName: String,
         biometrics: Biometrics,
-        goals: NutritionGoals,
         weight: WeightEntry?,
         warmUpIncluded: Boolean? = null,
         previousValuesMode: PreviousValuesMode? = null,

@@ -27,8 +27,6 @@ import androidx.compose.ui.unit.dp
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
 import io.github.lopezjavier.appfitness.domain.model.ActivityLevel
 import io.github.lopezjavier.appfitness.domain.model.CalculatorSettings
-import io.github.lopezjavier.appfitness.domain.model.GoalStrategy
-import io.github.lopezjavier.appfitness.domain.model.MacroSplit
 import io.github.lopezjavier.appfitness.domain.model.PreviousValuesMode
 import io.github.lopezjavier.appfitness.domain.model.Sex
 import kotlinx.datetime.LocalDate
@@ -60,9 +58,6 @@ class PreferencesTrainingCardTest {
         heightCm = 180,
         weightKg = 100.0,
         activity = ActivityLevel.Sedentary,
-        strategy = GoalStrategy.Maintenance,
-        adjustment = 0,
-        split = MacroSplit.DEFAULT,
         warmUpIncluded = warmUp,
         previousValuesMode = mode,
         calculators = calculators,

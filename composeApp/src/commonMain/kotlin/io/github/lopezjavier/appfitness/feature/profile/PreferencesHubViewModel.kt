@@ -4,13 +4,10 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import io.github.lopezjavier.appfitness.domain.model.ActivityLevel
 import io.github.lopezjavier.appfitness.domain.model.BiometricBounds
-import io.github.lopezjavier.appfitness.domain.model.GoalStrategy
-import io.github.lopezjavier.appfitness.domain.model.MacroSplit
 import io.github.lopezjavier.appfitness.domain.model.NotificationKind
 import io.github.lopezjavier.appfitness.domain.port.Clock
 import io.github.lopezjavier.appfitness.domain.repository.MealSlotRepository
 import io.github.lopezjavier.appfitness.domain.repository.NotificationSettingsRepository
-import io.github.lopezjavier.appfitness.domain.repository.NutritionGoalsRepository
 import io.github.lopezjavier.appfitness.domain.repository.ProfileRepository
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -21,17 +18,12 @@ import kotlinx.coroutines.launch
 /** What "Datos personales" shows under its hub row: "31 años · 180 cm · Moderado". */
 data class PersonalSummary(val ageYears: Int, val heightCm: Int, val activity: ActivityLevel)
 
-/** "2.788 kcal · Mantenimiento". */
-data class EnergySummary(val targetKcal: Int, val strategy: GoalStrategy)
-
 /**
  * The current values the Preferencias hub shows under its rows (R-109). A value is null while it loads or when it
  * cannot be read: its row then shows no supporting line, and the hub never fails because of it.
  */
 data class PreferencesHubSummary(
     val personal: PersonalSummary? = null,
-    val energy: EnergySummary? = null,
-    val split: MacroSplit? = null,
     val mealCount: Int? = null,
     val remindersOn: Int? = null,
 ) {
@@ -50,7 +42,6 @@ sealed interface PreferencesHubEvent {
 /** Reads the values of the hub rows. Read-only: every editor keeps its own view model. */
 class PreferencesHubViewModel(
     private val profileRepository: ProfileRepository,
-    private val goalsRepository: NutritionGoalsRepository,
     private val notificationSettings: NotificationSettingsRepository,
     private val mealSlots: MealSlotRepository,
     private val clock: Clock,
@@ -80,14 +71,6 @@ class PreferencesHubViewModel(
                     val age = BiometricBounds.ageOn(biometrics.birthDate, clock.today())
                     _summary.value = _summary.value.copy(
                         personal = PersonalSummary(age, biometrics.heightCm, biometrics.activityLevel),
-                    )
-                }
-            }
-            launch {
-                goalsRepository.getOwn().onSuccess { goals ->
-                    _summary.value = _summary.value.copy(
-                        energy = goals?.let { EnergySummary(it.targetKcal, it.strategy) },
-                        split = goals?.split,
                     )
                 }
             }

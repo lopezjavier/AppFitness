@@ -4,6 +4,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -17,6 +18,8 @@ import io.github.lopezjavier.appfitness.composeapp.resources.Res
 import io.github.lopezjavier.appfitness.composeapp.resources.catalog_checkbox_cd
 import io.github.lopezjavier.appfitness.composeapp.resources.catalog_checkbox_checked
 import io.github.lopezjavier.appfitness.composeapp.resources.catalog_checkbox_unchecked
+import io.github.lopezjavier.appfitness.composeapp.resources.catalog_number_duration
+import io.github.lopezjavier.appfitness.composeapp.resources.catalog_number_energy
 import io.github.lopezjavier.appfitness.composeapp.resources.catalog_number_grams
 import io.github.lopezjavier.appfitness.composeapp.resources.catalog_number_reps
 import io.github.lopezjavier.appfitness.composeapp.resources.catalog_number_weight
@@ -31,8 +34,10 @@ import io.github.lopezjavier.appfitness.composeapp.resources.catalog_set_previou
 import io.github.lopezjavier.appfitness.composeapp.resources.catalog_set_previous_2
 import io.github.lopezjavier.appfitness.composeapp.resources.catalog_set_rpe_clickable_cd
 import io.github.lopezjavier.appfitness.composeapp.resources.catalog_set_type_clickable_cd
+import io.github.lopezjavier.appfitness.composeapp.resources.create_food_unit_kcal
 import io.github.lopezjavier.appfitness.composeapp.resources.energy_adjust_decrease_cd
 import io.github.lopezjavier.appfitness.composeapp.resources.energy_adjust_increase_cd
+import io.github.lopezjavier.appfitness.composeapp.resources.metric_unit_min
 import io.github.lopezjavier.appfitness.composeapp.resources.name_error_blank
 import io.github.lopezjavier.appfitness.composeapp.resources.number_range_error
 import io.github.lopezjavier.appfitness.composeapp.resources.profile_name_label
@@ -40,6 +45,7 @@ import io.github.lopezjavier.appfitness.designsystem.AppCard
 import io.github.lopezjavier.appfitness.designsystem.AppNumberFormat
 import io.github.lopezjavier.appfitness.designsystem.AppSearchField
 import io.github.lopezjavier.appfitness.designsystem.AppTextField
+import io.github.lopezjavier.appfitness.designsystem.FeatureMetrics
 import io.github.lopezjavier.appfitness.designsystem.NumberInput
 import io.github.lopezjavier.appfitness.designsystem.NumberInputDefaults
 import io.github.lopezjavier.appfitness.designsystem.NumberStepper
@@ -57,6 +63,9 @@ private const val RANGE_MAX_KG = 300.0
 private const val WEIGHT_PLACEHOLDER = "85"
 private const val REPS_PLACEHOLDER = "8"
 private const val GRAMS_DEFAULT = "150"
+private const val ENERGY_LONG_VALUE = "1234,5"
+private const val DURATION_DEFAULT = "45"
+private const val DURATION_MAX_INTEGER_DIGITS = 3
 private const val GRAMS_MAX_DECIMALS = 1
 private const val GRAMS_MAX_INTEGER_DIGITS = 4
 private const val COMPLETED_ROW_WEIGHT = "60"
@@ -126,8 +135,37 @@ private fun NumberInputSection() {
                     maxDecimals = GRAMS_MAX_DECIMALS,
                     maxIntegerDigits = GRAMS_MAX_INTEGER_DIGITS,
                 )
+                UnitSuffixSamples()
             }
         }
+    }
+}
+
+/** Unit suffix samples (R-124): a long value next to "kcal" and a start-aligned form field with "min". */
+@Composable
+private fun UnitSuffixSamples() {
+    var energy by rememberSaveable { mutableStateOf(ENERGY_LONG_VALUE) }
+    var duration by rememberSaveable { mutableStateOf(DURATION_DEFAULT) }
+    Column(verticalArrangement = Arrangement.spacedBy(Spacing.lg)) {
+        NumberInput(
+            value = energy,
+            onValueChange = { energy = it },
+            label = stringResource(Res.string.catalog_number_energy),
+            modifier = Modifier.width(NumberInputDefaults.widthFor(FeatureMetrics.NutrientInputWidth))
+                .testTag("catalog_number_input_energy"),
+            maxDecimals = GRAMS_MAX_DECIMALS,
+            maxIntegerDigits = GRAMS_MAX_INTEGER_DIGITS,
+            unit = stringResource(Res.string.create_food_unit_kcal),
+        )
+        NumberInput(
+            value = duration,
+            onValueChange = { duration = it },
+            label = stringResource(Res.string.catalog_number_duration),
+            modifier = Modifier.testTag("catalog_number_input_duration"),
+            maxIntegerDigits = DURATION_MAX_INTEGER_DIGITS,
+            startAligned = true,
+            unit = stringResource(Res.string.metric_unit_min),
+        )
     }
 }
 

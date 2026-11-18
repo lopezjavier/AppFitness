@@ -2,15 +2,9 @@ package io.github.lopezjavier.appfitness.feature.profile
 
 import io.github.lopezjavier.appfitness.app.FakeClock
 import io.github.lopezjavier.appfitness.app.FakeNotificationSettingsRepository
-import io.github.lopezjavier.appfitness.app.FakeNutritionGoalsRepository
 import io.github.lopezjavier.appfitness.app.FakeProfileRepository
-import io.github.lopezjavier.appfitness.domain.AppError
-import io.github.lopezjavier.appfitness.domain.AppException
 import io.github.lopezjavier.appfitness.domain.model.ActivityLevel
-import io.github.lopezjavier.appfitness.domain.model.GoalStrategy
-import io.github.lopezjavier.appfitness.domain.model.MacroSplit
 import io.github.lopezjavier.appfitness.domain.model.NotificationKind
-import io.github.lopezjavier.appfitness.domain.model.NutritionGoals
 import io.github.lopezjavier.appfitness.domain.model.ProfileSummary
 import io.github.lopezjavier.appfitness.domain.model.SavedBiometrics
 import io.github.lopezjavier.appfitness.domain.model.Sex
@@ -34,8 +28,6 @@ import kotlin.test.assertNull
 @OptIn(ExperimentalCoroutinesApi::class)
 class PreferencesHubViewModelTest {
     private val profile = FakeProfileRepository(Result.success(ProfileSummary("Ana", null, true)))
-    private val goals =
-        FakeNutritionGoalsRepository(NutritionGoals(GoalStrategy.Maintenance, 0, 2788, MacroSplit.DEFAULT))
     private val settings = FakeNotificationSettingsRepository(NotificationKind.entries.first() to false)
     private val slots = FakeMealSlotRepository()
 
@@ -54,7 +46,6 @@ class PreferencesHubViewModelTest {
 
     private fun viewModel() = PreferencesHubViewModel(
         profileRepository = profile,
-        goalsRepository = goals,
         notificationSettings = settings,
         mealSlots = slots,
         clock = FakeClock(LocalDate(2026, 10, 14)),
@@ -67,21 +58,18 @@ class PreferencesHubViewModelTest {
 
         val summary = viewModel.summary.value
         assertEquals(PersonalSummary(31, 180, ActivityLevel.Moderate), summary.personal)
-        assertEquals(EnergySummary(2788, GoalStrategy.Maintenance), summary.energy)
-        assertEquals(MacroSplit.DEFAULT, summary.split)
         assertEquals(DefaultMealSlots.size, summary.mealCount)
         assertEquals(PreferencesHubSummary.REMINDER_TOTAL - 1, summary.remindersOn)
     }
 
     @Test
     fun aFailedRead_leavesOnlyThatValueEmpty() = runTest {
-        goals.readResult = Result.failure(AppException(AppError.Network))
+        settings.failReads = true
         val viewModel = viewModel()
         advanceUntilIdle()
 
         val summary = viewModel.summary.value
-        assertNull(summary.energy)
-        assertNull(summary.split)
+        assertNull(summary.remindersOn)
         assertEquals(DefaultMealSlots.size, summary.mealCount)
     }
 
@@ -89,23 +77,23 @@ class PreferencesHubViewModelTest {
     fun aFailedRefresh_keepsTheLastKnownValue() = runTest {
         val viewModel = viewModel()
         advanceUntilIdle()
-        goals.readResult = Result.failure(AppException(AppError.Network))
+        settings.failReads = true
 
         viewModel.onEvent(PreferencesHubEvent.Refresh)
         advanceUntilIdle()
 
-        assertEquals(EnergySummary(2788, GoalStrategy.Maintenance), viewModel.summary.value.energy)
+        assertEquals(PreferencesHubSummary.REMINDER_TOTAL - 1, viewModel.summary.value.remindersOn)
     }
 
     @Test
     fun refresh_readsTheSavedValuesAgain() = runTest {
         val viewModel = viewModel()
         advanceUntilIdle()
-        goals.row = NutritionGoals(GoalStrategy.Deficit, -400, 2388, MacroSplit.DEFAULT)
+        settings.values[NotificationKind.entries.first()] = true
 
         viewModel.onEvent(PreferencesHubEvent.Refresh)
         advanceUntilIdle()
 
-        assertEquals(EnergySummary(2388, GoalStrategy.Deficit), viewModel.summary.value.energy)
+        assertEquals(PreferencesHubSummary.REMINDER_TOTAL, viewModel.summary.value.remindersOn)
     }
 }

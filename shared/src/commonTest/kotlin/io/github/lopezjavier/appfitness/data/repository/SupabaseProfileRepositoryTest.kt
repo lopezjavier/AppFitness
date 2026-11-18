@@ -11,9 +11,6 @@ import io.github.lopezjavier.appfitness.domain.model.ActivityLevel
 import io.github.lopezjavier.appfitness.domain.model.Biometrics
 import io.github.lopezjavier.appfitness.domain.model.CalculatorSettings
 import io.github.lopezjavier.appfitness.domain.model.FoodPreferences
-import io.github.lopezjavier.appfitness.domain.model.GoalStrategy
-import io.github.lopezjavier.appfitness.domain.model.MacroSplit
-import io.github.lopezjavier.appfitness.domain.model.NutritionGoals
 import io.github.lopezjavier.appfitness.domain.model.PreviousValuesMode
 import io.github.lopezjavier.appfitness.domain.model.ProfileSummary
 import io.github.lopezjavier.appfitness.domain.model.SavedBiometrics
@@ -213,14 +210,10 @@ class SupabaseProfileRepositorySavePreferencesTest {
             """"user":{"id":"user-1","aud":"authenticated","email":"a@b.c","user_metadata":$metadata}}"""
 
     private val biometrics = Biometrics(Sex.Male, LocalDate(1999, 6, 15), 180, ActivityLevel.Moderate)
-    private val goals = NutritionGoals(GoalStrategy.Deficit, -400, 2292, MacroSplit(35, 42, 23))
-    private val goalsJson =
-        """"p_strategy":"deficit","p_calorie_adjustment":-400,"p_target_kcal":2292,""" +
-            """"p_protein_pct":35,"p_carbs_pct":42,"p_fat_pct":23"""
 
     @Test
     fun withoutWeight_callsTheRpcWithoutTheWeightArguments() = runTest {
-        val result = repository().savePreferences("Ana", biometrics, goals, null, false, PreviousValuesMode.Overall)
+        val result = repository().savePreferences("Ana", biometrics, null, false, PreviousValuesMode.Overall)
 
         assertTrue(result.isSuccess)
         val call = requests.last()
@@ -229,15 +222,48 @@ class SupabaseProfileRepositorySavePreferencesTest {
         val body = (call.body as TextContent).text
         assertEquals(
             """{"p_display_name":"Ana","p_sex":"male","p_birth_date":"1999-06-15","p_height_cm":180,""" +
-                """"p_activity_level":"moderate",$goalsJson,"p_warm_up_included":false,""" +
+                """"p_activity_level":"moderate","p_warm_up_included":false,""" +
                 """"p_previous_values_mode":"overall"}""",
             body,
         )
     }
 
     @Test
+    fun savingPreferences_sendsNoGoalArgumentsSoTheStoredPlanIsNeverTouched() = runTest {
+        val weight =
+            WeightEntry(
+                weightKg = 81.5,
+                measuredAt = Instant.parse("2026-10-19T10:00:00Z"),
+                dayStart = Instant.parse("2026-10-18T22:00:00Z"),
+                dayEnd = Instant.parse("2026-10-19T22:00:00Z"),
+            )
+
+        repository().savePreferences(
+            "Ana",
+            biometrics,
+            weight,
+            true,
+            PreviousValuesMode.Overall,
+            CalculatorSettings(),
+            FoodPreferences(),
+            true,
+        ).getOrThrow()
+
+        val body = (requests.last().body as TextContent).text
+        val goalArguments = listOf(
+            "p_strategy",
+            "p_calorie_adjustment",
+            "p_target_kcal",
+            "p_protein_pct",
+            "p_carbs_pct",
+            "p_fat_pct\"",
+        )
+        assertEquals(emptyList(), goalArguments.filter { body.contains(it) }, body)
+    }
+
+    @Test
     fun withoutTrainingParameters_omitsWarmUpAndPreviousValuesModeSoTheServerKeepsThem() = runTest {
-        repository().savePreferences("Ana", biometrics, goals, null).getOrThrow()
+        repository().savePreferences("Ana", biometrics, null).getOrThrow()
 
         val body = (requests.last().body as TextContent).text
         assertTrue(!body.contains("p_warm_up_included") && !body.contains("p_previous_values_mode"), body)
@@ -251,7 +277,6 @@ class SupabaseProfileRepositorySavePreferencesTest {
             repository().savePreferences(
                 "Ana",
                 biometrics,
-                goals,
                 null,
                 false,
                 PreviousValuesMode.Overall,
@@ -275,7 +300,6 @@ class SupabaseProfileRepositorySavePreferencesTest {
             repository().savePreferences(
                 "Ana",
                 biometrics,
-                goals,
                 null,
                 false,
                 PreviousValuesMode.Overall,
@@ -289,14 +313,14 @@ class SupabaseProfileRepositorySavePreferencesTest {
 
     @Test
     fun withoutAutoUpdateRoutine_omitsTheArgumentSoTheServerKeepsIt() = runTest {
-        repository().savePreferences("Ana", biometrics, goals, null, false, PreviousValuesMode.Overall).getOrThrow()
+        repository().savePreferences("Ana", biometrics, null, false, PreviousValuesMode.Overall).getOrThrow()
 
         assertTrue(!(requests.last().body as TextContent).text.contains("p_auto_update_routine"))
     }
 
     @Test
     fun withoutFoodPreferences_omitsTheFatPercentages() = runTest {
-        repository().savePreferences("Ana", biometrics, goals, null, false, PreviousValuesMode.Overall).getOrThrow()
+        repository().savePreferences("Ana", biometrics, null, false, PreviousValuesMode.Overall).getOrThrow()
 
         assertTrue(!(requests.last().body as TextContent).text.contains("p_fat_pct_"))
     }
@@ -309,7 +333,6 @@ class SupabaseProfileRepositorySavePreferencesTest {
             repository().savePreferences(
                 "Ana",
                 biometrics,
-                goals,
                 null,
                 false,
                 PreviousValuesMode.Overall,
@@ -338,13 +361,13 @@ class SupabaseProfileRepositorySavePreferencesTest {
             )
 
         assertTrue(
-            repository().savePreferences("Ana", biometrics, goals, weight, true, PreviousValuesMode.Overall).isSuccess,
+            repository().savePreferences("Ana", biometrics, weight, true, PreviousValuesMode.Overall).isSuccess,
         )
 
         val body = (requests.last().body as TextContent).text
         assertEquals(
             """{"p_display_name":"Ana","p_sex":"male","p_birth_date":"1999-06-15","p_height_cm":180,""" +
-                """"p_activity_level":"moderate",$goalsJson,"p_weight_kg":81.5,""" +
+                """"p_activity_level":"moderate","p_weight_kg":81.5,""" +
                 """"p_measured_at":"2026-10-19T10:00:00Z","p_day_start":"2026-10-18T22:00:00Z",""" +
                 """"p_day_end":"2026-10-19T22:00:00Z","p_warm_up_included":true,"p_previous_values_mode":"overall"}""",
             body,
@@ -358,7 +381,7 @@ class SupabaseProfileRepositorySavePreferencesTest {
 
         assertEquals(
             AppError.Network,
-            repo.savePreferences("Ana", biometrics, goals, null, false, PreviousValuesMode.Overall).appErrorOrNull(),
+            repo.savePreferences("Ana", biometrics, null, false, PreviousValuesMode.Overall).appErrorOrNull(),
         )
     }
 
@@ -369,7 +392,7 @@ class SupabaseProfileRepositorySavePreferencesTest {
 
         assertEquals(
             AppError.Unknown,
-            repo.savePreferences("Ana", biometrics, goals, null, false, PreviousValuesMode.Overall).appErrorOrNull(),
+            repo.savePreferences("Ana", biometrics, null, false, PreviousValuesMode.Overall).appErrorOrNull(),
         )
     }
 

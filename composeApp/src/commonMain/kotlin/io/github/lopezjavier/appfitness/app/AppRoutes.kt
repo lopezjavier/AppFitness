@@ -56,8 +56,9 @@ data object CatalogRoute : AppRoute
 data object PreferencesRoute : AppRoute
 
 /**
- * One Preferencias editor (US-56): [section] is the `PreferencesSection.key` (`personal`, `energy`, `macros`,
- * `cooking`, `training`, `checkin`). The argument is stored as `section`, the key under which its view model reads it.
+ * One Preferencias editor (US-56): [section] is the `PreferencesSection.key` (`personal`,
+ * `cooking`, `training`, `checkin`; the removed keys `energy` and `macros` fall back to Datos personales). The argument
+ * is stored as `section`, the key under which its view model reads it.
  */
 @Serializable
 data class PreferencesSectionRoute(val section: String) : AppRoute
