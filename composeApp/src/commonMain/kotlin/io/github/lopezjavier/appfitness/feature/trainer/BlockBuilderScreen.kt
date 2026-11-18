@@ -79,10 +79,12 @@ import io.github.lopezjavier.appfitness.designsystem.PrimaryButton
 import io.github.lopezjavier.appfitness.designsystem.SheetActionRow
 import io.github.lopezjavier.appfitness.designsystem.SkeletonBox
 import io.github.lopezjavier.appfitness.designsystem.Spacing
+import io.github.lopezjavier.appfitness.designsystem.TrainingPartGlyph
 import io.github.lopezjavier.appfitness.designsystem.durationText
 import io.github.lopezjavier.appfitness.designsystem.supersetText
 import io.github.lopezjavier.appfitness.domain.coach.builder.BuilderDay
 import io.github.lopezjavier.appfitness.domain.coach.builder.FilledSlot
+import io.github.lopezjavier.appfitness.domain.coach.builder.part
 import io.github.lopezjavier.appfitness.domain.model.CatalogExercise
 import io.github.lopezjavier.appfitness.domain.model.TrainingIntention
 import io.github.lopezjavier.appfitness.domain.usecase.SupersetLabel
@@ -217,6 +219,15 @@ private fun BlockBuilderContent(
     }
 }
 
+/** The day's name with the bare glyph of its type (16 dp, so the title row keeps its height). */
+@Composable
+private fun DayTitle(day: BuilderDay, dayIndex: Int) {
+    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+        TrainingPartGlyph(day.type.part, Modifier.testTag("block_builder_day_icon_$dayIndex"), size = Spacing.lg)
+        ListSectionHeader(day.name, Modifier.weight(1f).testTag("block_builder_day_title_$dayIndex"))
+    }
+}
+
 @Composable
 private fun DayContent(
     ui: BlockBuilderUiState.Builder,
@@ -229,7 +240,7 @@ private fun DayContent(
         val state = ui.state
         val day = state.days[dayIndex]
         val cardioMin = state.cardioPlan.perRoutineMin[dayIndex]
-        ListSectionHeader(day.name, Modifier.testTag("block_builder_day_title_$dayIndex"))
+        DayTitle(day, dayIndex)
         Column(Modifier.testTag("block_builder_day_total_$dayIndex")) {
             Text(
                 stringResource(

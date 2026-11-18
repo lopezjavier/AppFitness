@@ -68,6 +68,17 @@ class RankTopExercisesTest {
     }
 
     @Test
+    fun excludedExercisesAreNeverRankedEvenWhenTheyAreTheMostTrained() {
+        val sessions = listOf(
+            session("a", "2026-10-01T10:00:00Z", "run", "bench"),
+            session("b", "2026-10-05T10:00:00Z", "run", "bench"),
+            session("c", "2026-10-09T10:00:00Z", "run", "squat"),
+        )
+
+        assertEquals(listOf("bench", "squat"), RankTopExercises(sessions, since, excluded = setOf("run")))
+    }
+
+    @Test
     fun noSessionsMeansNoExercises() {
         assertEquals(emptyList(), RankTopExercises(emptyList(), since))
     }

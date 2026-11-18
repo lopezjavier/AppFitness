@@ -32,7 +32,9 @@ import io.github.lopezjavier.appfitness.designsystem.ListSectionHeader
 import io.github.lopezjavier.appfitness.designsystem.NavigationRow
 import io.github.lopezjavier.appfitness.designsystem.PrimaryButton
 import io.github.lopezjavier.appfitness.designsystem.Spacing
+import io.github.lopezjavier.appfitness.designsystem.TrainingPartGlyph
 import io.github.lopezjavier.appfitness.domain.coach.builder.RoutineType
+import io.github.lopezjavier.appfitness.domain.coach.builder.part
 import org.jetbrains.compose.resources.stringResource
 
 /**
@@ -93,17 +95,23 @@ private fun DayTypeRow(
         type.displayName
     }
     val label = stringResource(Res.string.block_types_day, day + 1)
+    // The bare glyph of the day type replaces any box; 24 dp fits the row's existing height.
+    val glyph: @Composable () -> Unit = {
+        TrainingPartGlyph(type.part, Modifier.testTag("block_types_day_${day}_part_icon"))
+    }
     Row(verticalAlignment = Alignment.CenterVertically) {
         if (state.options[day].size > 1) {
             NavigationRow(
                 label = label,
                 value = value,
+                leading = glyph,
                 onClick = { onEvent(BlockBuilderEvent.OpenDay(day)) },
                 modifier = Modifier.weight(1f).testTag("block_types_day_$day"),
             )
         } else {
             AppListRow(
                 headline = label,
+                leading = glyph,
                 trailing = {
                     Text(
                         type.displayName,

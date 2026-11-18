@@ -7,6 +7,7 @@ import io.github.lopezjavier.appfitness.domain.AppException
 import io.github.lopezjavier.appfitness.domain.model.BodyMeasurement
 import io.github.lopezjavier.appfitness.domain.model.MeasurementSource
 import io.github.lopezjavier.appfitness.domain.model.PreviousSet
+import io.github.lopezjavier.appfitness.domain.model.RoutinePart
 import io.github.lopezjavier.appfitness.domain.model.SessionExercise
 import io.github.lopezjavier.appfitness.domain.model.SessionStatus
 import io.github.lopezjavier.appfitness.domain.model.SetEntry
@@ -101,6 +102,20 @@ class HistoryViewModelTest {
         assertEquals(52 * 60L, row.durationSeconds)
         assertEquals(1400.0, row.volumeKg)
         assertEquals(2, row.completedSets)
+    }
+
+    @Test
+    fun aRowCarriesThePartFromTheNameOrElseFromTheExercises() = runTest(dispatcher) {
+        repository.completed += completedSession("named", hourOffset = 2, name = "Pierna")
+        repository.completed += completedSession("byExercises", hourOffset = 1, name = "Sesion libre")
+        val model = viewModel()
+
+        advanceUntilIdle()
+
+        assertEquals(
+            listOf(RoutinePart.Lower, RoutinePart.Push),
+            model.content().rows.map { it.part },
+        )
     }
 
     private fun withWarmUp(id: String) = completedSession(id).copy(

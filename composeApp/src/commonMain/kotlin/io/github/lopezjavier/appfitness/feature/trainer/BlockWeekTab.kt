@@ -1,5 +1,6 @@
 package io.github.lopezjavier.appfitness.feature.trainer
 
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -36,6 +37,7 @@ import io.github.lopezjavier.appfitness.designsystem.HelpTriggerButton
 import io.github.lopezjavier.appfitness.designsystem.Spacing
 import io.github.lopezjavier.appfitness.designsystem.SupersetAccent
 import io.github.lopezjavier.appfitness.designsystem.SupersetAccentWidth
+import io.github.lopezjavier.appfitness.designsystem.TrainingPartGlyph
 import io.github.lopezjavier.appfitness.designsystem.supersetText
 import io.github.lopezjavier.appfitness.domain.model.BlockExercise
 import io.github.lopezjavier.appfitness.domain.model.BlockSession
@@ -96,12 +98,19 @@ private fun BlockRoutineCard(
     totalMin: Int?,
 ) {
     AppCard(Modifier.fillMaxWidth().testTag("block_preview_routine_${session.week}_${session.sessionIndex}")) {
-        Text(
-            text = session.name,
-            style = AppTheme.typography.titleMedium,
-            color = AppTheme.colors.textPrimary,
-            modifier = Modifier.semantics { heading() },
-        )
+        Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm), verticalAlignment = Alignment.CenterVertically) {
+            // The bare glyph is 24 dp, as tall as the titleMedium line: the title row keeps its height.
+            TrainingPartGlyph(
+                routinePartOfName(session.name),
+                Modifier.testTag("block_preview_routine_icon_${session.week}_${session.sessionIndex}"),
+            )
+            Text(
+                text = session.name,
+                style = AppTheme.typography.titleMedium,
+                color = AppTheme.colors.textPrimary,
+                modifier = Modifier.weight(1f).semantics { heading() },
+            )
+        }
         if (session.focus.isNotEmpty()) {
             Text(
                 text = session.focus.map { blockMuscleName(it) }.joinToString(", "),

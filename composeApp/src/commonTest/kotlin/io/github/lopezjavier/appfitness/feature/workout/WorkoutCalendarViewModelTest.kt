@@ -4,6 +4,7 @@ import androidx.lifecycle.SavedStateHandle
 import app.cash.turbine.test
 import io.github.lopezjavier.appfitness.app.FakeTrainingPreferencesRepository
 import io.github.lopezjavier.appfitness.domain.AppError
+import io.github.lopezjavier.appfitness.domain.model.RoutinePart
 import io.github.lopezjavier.appfitness.feature.exercises.FakeExerciseRepository
 import io.github.lopezjavier.appfitness.feature.exercises.exerciseRow
 import io.github.lopezjavier.appfitness.feature.weight.FakeWeightRepository
@@ -140,6 +141,19 @@ class WorkoutCalendarViewModelTest {
     }
 
     private fun WorkoutCalendarViewModel.rows() = assertIs<DayCardsState.Loaded>(content().dayCards).rows
+
+    @Test
+    fun theDayCardsCarryThePartFromTheNameOrElseFromTheExercises() = runTest(dispatcher) {
+        repository.completed += completedSession("a", 0, name = "Pierna", hourOffset = 0)
+        repository.completed += completedSession("b", 0, name = "Sesion libre", hourOffset = 1)
+        val model = viewModel()
+        advanceUntilIdle()
+
+        model.onEvent(WorkoutCalendarEvent.SelectDay(today))
+        advanceUntilIdle()
+
+        assertEquals(listOf(RoutinePart.Lower, RoutinePart.Push), model.rows().map { it.part })
+    }
 
     @Test
     fun tappingADayWithOneWorkoutSelectsItAndShowsItsCardWithoutNavigating() = runTest(dispatcher) {

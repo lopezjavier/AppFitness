@@ -2,14 +2,17 @@ package io.github.lopezjavier.appfitness.feature.trainer
 
 import androidx.compose.ui.test.assertHasClickAction
 import androidx.compose.ui.test.assertHasNoClickAction
+import androidx.compose.ui.test.assertHeightIsEqualTo
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.assertTextContains
+import androidx.compose.ui.test.assertWidthIsEqualTo
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.unit.dp
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
 import io.github.lopezjavier.appfitness.domain.coach.builder.RoutineType
 import io.github.lopezjavier.appfitness.domain.coach.builder.SplitCatalog
@@ -59,6 +62,36 @@ class DayTypeSheetTest {
         rule.onNodeWithTag("block_types_day_0").assertExists()
         rule.onNodeWithTag("block_types_day_0").assertTextContains("Torso · Recomendado", substring = true)
         rule.onNodeWithTag("block_types_day_1").assertTextContains("Pierna · Recomendado", substring = true)
+    }
+
+    @Test
+    fun eachDayRow_showsTheBareGlyphOfItsType_at24dp() {
+        show(typesState())
+
+        for (day in 0..3) {
+            rule.onNodeWithTag("block_types_day_${day}_part_icon", useUnmergedTree = true)
+                .assertWidthIsEqualTo(24.dp)
+                .assertHeightIsEqualTo(24.dp)
+        }
+    }
+
+    @Test
+    fun eachTypeOfTheSheet_showsTheBareGlyphOfItsPart() {
+        show(typesState(openDay = 0))
+
+        listOf("Upper", "Lower").forEach {
+            rule.onNodeWithTag("block_type_option_${it}_part_icon", useUnmergedTree = true)
+                .assertWidthIsEqualTo(24.dp)
+        }
+    }
+
+    @Test
+    fun theLoneCuerpoCompletoDay_showsItsGlyphToo() {
+        val chosen = SplitCatalog.splitsFor(3)[1].types
+        show(typesState(chosen = chosen, splitIndex = 1))
+
+        val fbDay = chosen.indexOf(RoutineType.FullBody)
+        rule.onNodeWithTag("block_types_day_${fbDay}_part_icon", useUnmergedTree = true).assertExists()
     }
 
     @Test

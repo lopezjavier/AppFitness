@@ -149,6 +149,20 @@ class TrainerSessionStartTest {
         rule.onNodeWithTag(PIERNA_B_TAG).assert(hasContentDescription("Pierna B: Pendiente"))
     }
 
+    @Test
+    fun everySessionCard_showsTheBareGlyphOfItsPart_atTheHeightOfItsTitleLine() {
+        show(state(weeks()))
+
+        for (index in 0..3) {
+            rule.onNodeWithTag("trainer_box_block_session_icon_${CURRENT_WEEK}_$index", useUnmergedTree = true)
+                .assertExists()
+        }
+        val glyph = rule.onNodeWithTag("trainer_box_block_session_icon_${CURRENT_WEEK}_3", useUnmergedTree = true)
+            .getUnclippedBoundsInRoot()
+        assertEquals(24.dp, glyph.width)
+        assertEquals(24.dp, glyph.height)
+    }
+
     // Gherkin: no button without a routine, in other weeks or when all are done
 
     @Test

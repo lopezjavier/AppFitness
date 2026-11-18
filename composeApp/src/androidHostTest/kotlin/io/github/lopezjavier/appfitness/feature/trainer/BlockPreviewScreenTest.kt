@@ -76,6 +76,13 @@ class BlockPreviewScreenTest {
     }
 
     @Test
+    fun preview_showsTheBareGlyphOfEachRoutine() {
+        show(preview())
+
+        for (index in 0..2) rule.onNodeWithTag("block_preview_routine_icon_1_$index").assertExists()
+    }
+
+    @Test
     fun preview_showsTheWeekTabsRoutinesAndTheReasonButton() {
         show(preview())
 

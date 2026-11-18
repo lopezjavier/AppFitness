@@ -29,6 +29,7 @@ internal fun HistoryWorkoutRow(row: HistoryRow, onClick: () -> Unit, tag: String
             stringResource(Res.string.history_row_cd, date, row.name, duration, volume)
         },
         modifier = modifier,
+        part = row.part,
         tag = tag,
     )
 }

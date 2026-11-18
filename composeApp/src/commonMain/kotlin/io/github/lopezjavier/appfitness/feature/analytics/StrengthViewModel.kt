@@ -5,6 +5,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import io.github.lopezjavier.appfitness.domain.model.ExerciseNames
 import io.github.lopezjavier.appfitness.domain.model.StrengthSummary
+import io.github.lopezjavier.appfitness.domain.model.isCardioWork
 import io.github.lopezjavier.appfitness.domain.port.Clock
 import io.github.lopezjavier.appfitness.domain.port.ExerciseLibrary
 import io.github.lopezjavier.appfitness.domain.repository.ExerciseRepository
@@ -29,7 +30,7 @@ private const val WINDOW_DAYS = 42
 class StrengthViewModel(
     private val strength: StrengthRepository,
     private val workouts: WorkoutSessionRepository,
-    exerciseRepository: ExerciseRepository,
+    private val exerciseRepository: ExerciseRepository,
     exerciseLibrary: ExerciseLibrary,
     private val clock: Clock,
     private val savedState: SavedStateHandle = SavedStateHandle(),
@@ -68,7 +69,13 @@ class StrengthViewModel(
                 _uiState.value = StrengthUiState.Error
                 return@launch
             }
-            val top = RankTopExercises(sessions, clock.now() - WINDOW_DAYS.days)
+            val catalog = exerciseRepository.getAll().getOrNull()
+            if (catalog == null) {
+                _uiState.value = StrengthUiState.Error
+                return@launch
+            }
+            val cardioIds = catalog.filter { it.isCardioWork }.map { it.id }.toSet()
+            val top = RankTopExercises(sessions, clock.now() - WINDOW_DAYS.days, excluded = cardioIds)
             if (top.isEmpty()) {
                 _uiState.value = StrengthUiState.Empty
                 return@launch

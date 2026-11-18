@@ -19,8 +19,10 @@ import io.github.lopezjavier.appfitness.designsystem.AppListRow
 import io.github.lopezjavier.appfitness.designsystem.AppPickerSheet
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
 import io.github.lopezjavier.appfitness.designsystem.Spacing
+import io.github.lopezjavier.appfitness.designsystem.TrainingPartGlyph
 import io.github.lopezjavier.appfitness.domain.coach.builder.DayTypeOption
 import io.github.lopezjavier.appfitness.domain.coach.builder.RoutineType
+import io.github.lopezjavier.appfitness.domain.coach.builder.part
 import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.resources.stringResource
 
@@ -70,6 +72,9 @@ private fun DayTypeRow(option: DayTypeOption, current: Boolean, onPick: (Routine
             }
         } else {
             null
+        },
+        leading = {
+            TrainingPartGlyph(option.type.part, Modifier.testTag("block_type_option_${option.type.name}_part_icon"))
         },
         enabled = option.enabled,
         onClick = { onPick(option.type) },

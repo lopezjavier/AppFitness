@@ -5,6 +5,7 @@ import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.assertTextContains
+import androidx.compose.ui.test.assertWidthIsEqualTo
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithTag
@@ -12,6 +13,7 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performTextInput
+import androidx.compose.ui.unit.dp
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
 import io.github.lopezjavier.appfitness.domain.coach.builder.Pick
 import io.github.lopezjavier.appfitness.domain.coach.builder.PickerDisabledReason
@@ -112,6 +114,13 @@ class BlockBuilderScreenTest {
         rule.onNodeWithTag("block_builder_day_tab_1").performClick()
 
         assertEquals(listOf<BlockBuilderEvent>(BlockBuilderEvent.SelectDay(1)), events)
+    }
+
+    @Test
+    fun eachDayTitle_carriesTheBareGlyphOfItsType() {
+        show(Data.builderUi(selectedDay = 1))
+
+        rule.onNodeWithTag("block_builder_day_icon_1").assertWidthIsEqualTo(16.dp)
     }
 
     @Test

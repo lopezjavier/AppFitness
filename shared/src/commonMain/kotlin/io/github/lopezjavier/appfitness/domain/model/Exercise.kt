@@ -146,6 +146,18 @@ data class Exercise(
     val countsAsStrength: Boolean = true,
 )
 
+/** Cardio work (by movement pattern, cardio equipment or a distance/steps/floors metric): never part of Fuerza. */
+val Exercise.isCardioWork: Boolean
+    get() = movementPattern == MovementPattern.Cardio ||
+        equipment.isCardio ||
+        metricType in CARDIO_METRICS
+
+private val CARDIO_METRICS = setOf(
+    ExerciseMetricType.DistanceDuration,
+    ExerciseMetricType.StepsDuration,
+    ExerciseMetricType.FloorsDuration,
+)
+
 /** Client library entry of one catalog exercise (Spanish texts from the RepDB bundle). */
 data class ExerciseInfo(
     val key: String,
