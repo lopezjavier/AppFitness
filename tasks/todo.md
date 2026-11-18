@@ -476,6 +476,16 @@ T-299 is now an umbrella that closes when T-300, T-301, T-303, T-306 and T-308 a
 
 **Risks:** T-303's production migration (above); `ExerciseNames` has many callers (a defaulted field keeps them compiling; update `ExerciseNameResolverTest` and `AppModuleTest`); old routines have no stored part (derived, so none needs migrating); screenshots in `design/reported/t299-*.png` stay until the user confirms each item.
 
+## T-310: Remove "Check-in semanal" and enhance the Trainer's weekly report · size to be set by the planner (user request 2026-11-18, before the E19 closure)
+
+**Story:** to be set by the planner · **Flow:** planner first, in a fresh session; no developer starts before the user agrees the planner's scope in chat.
+**User request (his words, condensed):** "Check-in semanal" never appeared in a month of use (the Trainer's weekly summary did), and two weekly summaries have no value: remove the check-in and enhance the Trainer's weekly report. **The user will give the report feedback when the task starts; do not guess it.**
+**Description:** (1) Remove the weekly check-in in every layer (screen, route, reminder kind, `weekly_check_ins` and its notice, the Preferencias "check-in day", strings, tests, gallery, docs; production drops listed for the user's explicit OK first). It needs a new ADR amending ADR-73 and updates to `04` §6, `10-feature-inventory.md` and US-59. (2) Move whatever the user wants to keep from the check-in (e.g. weekly records, weight change, energy) into the Trainer's weekly report, per the feedback above. The planner first reproduces why the check-in never showed (suspected: the window needs a `manual` onboarding weight, `ResolveCheckInDay`) and records it, since the cause may also affect other reminders.
+**Acceptance criteria (to be refined into Gherkin by the planner):**
+- [ ] No "Check-in semanal" entry, route, reminder or setting remains; the Trainer's weekly report holds the agreed content.
+**Dependencies:** T-308 merged. **T-285 (E19 closure) waits for T-310** (user: "right before the closure").
+**Files likely touched:** `feature/checkin/*`, `feature/trainer/*`, reminders and notifications (`ComputeReminders`, `LoadReminders`), `supabase/`, `planning/00`, `03`, `04`, `10`.
+
 ## T-285: E19 closure → `v1.x` · closure step (PM only, not a developer task)
 
 **Story:** E19 Definition of Done · **Flow:** PM closure step after T-284 merges and the user approves the epic closure (the normal closure approval; E19 has no 👤 checkpoint, user decision 2026-11-11). No developer agent, no size class; it cannot merge into a task because it waits for that approval.
@@ -487,7 +497,7 @@ T-299 is now an umbrella that closes when T-300, T-301, T-303, T-306 and T-308 a
 - [ ] Version bumped; `tasks/todo.md` pointer updated through a PR.
 **Verification:**
 - [ ] `git tag` lists the E19 tag.
-**Dependencies:** T-284 and T-299 (T-300, T-301, T-303, T-306, T-308) merged; the user's epic-closure approval.
+**Dependencies:** T-284, T-299 (T-300, T-301, T-303, T-306, T-308) and T-310 merged; the user's epic-closure approval.
 **Files likely touched:** `androidApp/build.gradle.kts`, `tasks/todo.md`, `tasks/plan.md`, `planning/09-open-questions.md`, `planning/01-scope.md`, `planning/epics/E19-ui-review.md`, `retrospectives/E19.md`
 **Estimated scope:** closure step (PM)
 

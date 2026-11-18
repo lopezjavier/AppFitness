@@ -100,6 +100,7 @@ Every task pays 6-8 agent hand-offs, so stories stay whole unless one is too lar
 | 7 | T-283: Review round 3: Trainer | **M** (estimate) | US-123 | review + UI | 7 + review |
 | 8 | T-284: Review round 4: Perfil | **M** (estimate) | US-123 | review + UI | 7 + review |
 | 8b | T-299 umbrella (user request 2026-11-17), split into T-300 (Trainer play), T-301 (exercise pictures + Fuerza rows), T-303 (Preferencias stops overwriting calories, migration, Objetivo calórico and Macros removed), T-306 (routine icons, derived) and T-308 (activity level and Provisional lifecycle); T-302, T-304, T-305 absorbed, T-307 parked as optional; details in `tasks/todo.md` "T-299 split" | M each | US-136…US-140 | review + UI | planner per task |
+| 8c | T-310: remove "Check-in semanal" and enhance the Trainer weekly report (user request 2026-11-18; feedback given when it starts) | to be set by the planner | US-59 removed, weekly report | core + UI + backend | planner |
 | 9 | T-285: E19 closure (after the user's closure approval) | closure step (no size class) | DoD | PM | PM only |
 
 Why these splits and merges:
