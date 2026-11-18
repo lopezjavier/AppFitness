@@ -1,18 +1,23 @@
 package io.github.lopezjavier.appfitness.feature.trainer
 
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.assertTextContains
 import androidx.compose.ui.test.assertTextEquals
+import androidx.compose.ui.test.getUnclippedBoundsInRoot
 import androidx.compose.ui.test.hasSetTextAction
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.unit.Density
+import androidx.compose.ui.unit.dp
 import androidx.lifecycle.SavedStateHandle
 import io.github.lopezjavier.appfitness.app.FakeConnectivityObserver
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
@@ -576,5 +581,30 @@ class PlanProposalScreenTest {
 
         rule.onNodeWithTag("plan_proposal_activity_row").assertDoesNotExist()
         rule.onNodeWithTag("plan_proposal_accept").assertIsEnabled()
+    }
+
+    @Test
+    fun theActivityRow_atFontScale2_keepsHeadlineValueAndHelpApart_andTheHelpTargetBig() {
+        val state = levelThatDoesNotBlock().copy(expenditureSource = DerivedSource.Intake)
+        rule.setContent {
+            AppTheme {
+                CompositionLocalProvider(
+                    LocalDensity provides Density(LocalDensity.current.density, fontScale = 2f),
+                ) {
+                    PlanProposalScreen(state, flowOf(true), {}, {}, {}, onFix = {})
+                }
+            }
+        }
+        rule.waitForIdle()
+
+        val headline = rule.onNodeWithText("Nivel de actividad", useUnmergedTree = true).getUnclippedBoundsInRoot()
+        val value = rule.onNodeWithText("Ligero", useUnmergedTree = true).getUnclippedBoundsInRoot()
+        val help = rule.onNodeWithTag("plan_proposal_activity_help").getUnclippedBoundsInRoot()
+        val row = rule.onNodeWithTag("plan_proposal_activity_row").getUnclippedBoundsInRoot()
+        assertTrue("help target is $help", help.width >= 47.5.dp && help.height >= 47.5.dp)
+        assertTrue("help inside the row: $help in $row", help.right <= row.right)
+        assertTrue("headline $headline overlaps $value", headline.right <= value.left || headline.bottom <= value.top)
+        assertTrue("value $value overlaps help $help", value.right <= help.left)
+        rule.onNodeWithTag("plan_proposal_activity_chip").assertIsDisplayed()
     }
 }
