@@ -64,6 +64,7 @@ internal fun LazyListScope.graphicsItems() {
     item { DataGraphicsSection() }
     item { CelebrationSection() }
     item { ScreenGraphicsSection() }
+    trainingPartIconItems()
 }
 
 private val SampleSeries = listOf(78.4, 78.1, 78.3, 77.8, 77.6, 77.2, 77.0)

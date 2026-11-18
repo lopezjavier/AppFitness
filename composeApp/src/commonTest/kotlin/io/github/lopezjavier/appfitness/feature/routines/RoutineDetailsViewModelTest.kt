@@ -1,11 +1,13 @@
 package io.github.lopezjavier.appfitness.feature.routines
 
 import app.cash.turbine.test
+import io.github.lopezjavier.appfitness.app.FakeClock
 import io.github.lopezjavier.appfitness.app.FakeConnectivityObserver
 import io.github.lopezjavier.appfitness.domain.AppError
 import io.github.lopezjavier.appfitness.domain.model.Equipment
 import io.github.lopezjavier.appfitness.domain.model.MuscleGroup
 import io.github.lopezjavier.appfitness.domain.model.PlannedSet
+import io.github.lopezjavier.appfitness.domain.model.RoutinePart
 import io.github.lopezjavier.appfitness.domain.model.SetType
 import io.github.lopezjavier.appfitness.domain.usecase.LoadExerciseCatalog
 import io.github.lopezjavier.appfitness.feature.exercises.FakeExerciseLibrary
@@ -76,6 +78,28 @@ class RoutineDetailsViewModelTest {
         assertEquals(listOf("Press de banca", "Remo con barra"), content.exercises.map { it.name })
         assertEquals(listOf("bench", "row"), content.exercises.map { it.imageKey })
         assertEquals(List(3) { PlannedSet(null, 8, SetType.Working) }, content.exercises.first().plannedSets)
+    }
+
+    @Test
+    fun exposesThePartDerivedFromTheName() = runTest {
+        val vm = viewModel()
+
+        advanceUntilIdle()
+
+        assertEquals(RoutinePart.Upper, vm.content().part)
+    }
+
+    @Test
+    fun exposesTheSamePartAsTheListForAnUnmatchedName() = runTest {
+        repository.routines += routineOf("r2", "Mi rutina", "a")
+        val details = viewModel("r2")
+        val list = RoutinesViewModel(repository, sessions, connectivity, FakeClock(), exerciseRepository = exercises)
+
+        advanceUntilIdle()
+
+        val listed = assertIs<RoutinesUiState.Content>(list.uiState.value).routines.first { it.id == "r2" }
+        assertEquals(RoutinePart.Push, details.content().part)
+        assertEquals(listed.part, details.content().part)
     }
 
     @Test

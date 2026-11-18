@@ -8,6 +8,7 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.semantics.SemanticsNode
 import androidx.compose.ui.semantics.getOrNull
+import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.assertContentDescriptionEquals
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertHeightIsAtLeast
@@ -32,6 +33,7 @@ import io.github.lopezjavier.appfitness.designsystem.LocalAppMessages
 import io.github.lopezjavier.appfitness.designsystem.RecordingAppHaptics
 import io.github.lopezjavier.appfitness.domain.AppError
 import io.github.lopezjavier.appfitness.domain.model.RoutineSummary
+import io.github.lopezjavier.appfitness.feature.exercises.FakeExerciseRepository
 import io.github.lopezjavier.appfitness.feature.workout.FakeWorkoutSessionRepository
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
@@ -58,7 +60,14 @@ class RoutinesScreenTest {
     private val messages = RecordingMessages()
 
     private fun show(): RoutinesViewModel {
-        val vm = RoutinesViewModel(repository, sessions, connectivity, FakeClock())
+        val vm =
+            RoutinesViewModel(
+                repository,
+                sessions,
+                connectivity,
+                FakeClock(),
+                exerciseRepository = FakeExerciseRepository(),
+            )
         rule.setContent {
             CompositionLocalProvider(LocalAppHaptics provides haptics, LocalAppMessages provides messages) {
                 AppTheme {
@@ -75,6 +84,43 @@ class RoutinesScreenTest {
     private fun openMenu(id: String) {
         rule.onNodeWithTag("routines_row_menu_$id").performClick()
         rule.waitForIdle()
+    }
+
+    @Test
+    fun everyCard_showsItsPartIcon_decorativeAndNotSpoken() {
+        show()
+
+        listOf("r1", "r2").forEach { id ->
+            rule.onNodeWithTag("routines_row_icon_$id").assertIsDisplayed()
+        }
+        // The icon adds no spoken text: it carries no content description.
+        rule.onNodeWithTag("routines_row_icon_r1").assert(
+            androidx.compose.ui.test.hasContentDescription("", substring = true).not(),
+        )
+    }
+
+    @Test
+    fun partIcon_survivesRecreation() {
+        val tester = androidx.compose.ui.test.junit4.StateRestorationTester(rule)
+        val vm =
+            RoutinesViewModel(
+                repository,
+                sessions,
+                connectivity,
+                FakeClock(),
+                exerciseRepository = FakeExerciseRepository(),
+            )
+        tester.setContent {
+            AppTheme {
+                val state by vm.uiState.collectAsState()
+                RoutinesScreen(state, vm::onEvent)
+            }
+        }
+        rule.waitForIdle()
+
+        tester.emulateSavedInstanceStateRestore()
+
+        rule.onNodeWithTag("routines_row_icon_r2").assertIsDisplayed()
     }
 
     /** Width of a card in px: the list minus its horizontal content padding. */
@@ -342,7 +388,14 @@ class RoutinesScreenTest {
     fun empezar_whileASessionIsInProgress_showsTheMessage_andOpensNothing() {
         sessions.startFailure = AppError.SessionAlreadyInProgress
         var openedLive = 0
-        val vm = RoutinesViewModel(repository, sessions, connectivity, FakeClock())
+        val vm =
+            RoutinesViewModel(
+                repository,
+                sessions,
+                connectivity,
+                FakeClock(),
+                exerciseRepository = FakeExerciseRepository(),
+            )
         rule.setContent {
             CompositionLocalProvider(LocalAppHaptics provides haptics, LocalAppMessages provides messages) {
                 AppTheme { RoutinesRoot({}, {}, { openedLive++ }, viewModel = vm) }
@@ -406,7 +459,14 @@ class RoutinesScreenTest {
     @Test
     fun aFailedDelete_putsTheRoutineBack_andShowsTheMessage() {
         repository.saveFailure = AppError.Network
-        val vm = RoutinesViewModel(repository, sessions, connectivity, FakeClock())
+        val vm =
+            RoutinesViewModel(
+                repository,
+                sessions,
+                connectivity,
+                FakeClock(),
+                exerciseRepository = FakeExerciseRepository(),
+            )
         rule.setContent {
             CompositionLocalProvider(LocalAppHaptics provides haptics, LocalAppMessages provides messages) {
                 AppTheme { RoutinesRoot({}, {}, {}, viewModel = vm) }

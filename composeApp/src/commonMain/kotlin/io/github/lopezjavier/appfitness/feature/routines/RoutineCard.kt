@@ -23,7 +23,6 @@ import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.style.TextOverflow
 import io.github.lopezjavier.appfitness.composeapp.resources.Res
-import io.github.lopezjavier.appfitness.composeapp.resources.ic_fitness_center
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_flag
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_more_vert
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_play_arrow
@@ -38,11 +37,11 @@ import io.github.lopezjavier.appfitness.designsystem.AppCard
 import io.github.lopezjavier.appfitness.designsystem.AppIconButton
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
 import io.github.lopezjavier.appfitness.designsystem.CircleIconButton
-import io.github.lopezjavier.appfitness.designsystem.IconBadge
 import io.github.lopezjavier.appfitness.designsystem.LocalAnimationsEnabled
 import io.github.lopezjavier.appfitness.designsystem.ReorderableItemScope
 import io.github.lopezjavier.appfitness.designsystem.Spacing
 import io.github.lopezjavier.appfitness.designsystem.SwipeToDeleteRow
+import io.github.lopezjavier.appfitness.designsystem.TrainingPartIcon
 import io.github.lopezjavier.appfitness.domain.model.RoutineSummary
 import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.resources.pluralStringResource
@@ -103,10 +102,10 @@ private fun ReorderableItemScope.CardBody(
         glow = if (routine.isNext) AppTheme.colors.athleticCyan else null,
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
-            IconBadge(
-                icon = Res.drawable.ic_fitness_center,
-                tint = if (routine.isNext) AppTheme.colors.athleticCyan else AppTheme.colors.neonLime,
-                modifier = Modifier.padding(end = Spacing.md),
+            TrainingPartIcon(
+                part = routine.part,
+                isNext = routine.isNext,
+                modifier = Modifier.padding(end = Spacing.md).testTag("routines_row_icon_${routine.id}"),
             )
             NameBlock(routine, onEvent, Modifier.weight(1f).dragOnLongPress())
             CircleIconButton(

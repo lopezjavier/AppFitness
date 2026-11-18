@@ -4,17 +4,20 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.test.assert
+import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.hasContentDescription
 import androidx.compose.ui.test.junit4.v2.createComposeRule
+import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
 import io.github.lopezjavier.appfitness.domain.model.PlannedSet
+import io.github.lopezjavier.appfitness.domain.model.RoutinePart
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.TimeZone
 import org.junit.Assert.assertEquals
@@ -61,6 +64,15 @@ class RoutineDetailsScreenTest {
                 )
             }
         }
+    }
+
+    @Test
+    fun hero_showsThePartIconBesideTheName_withoutRepeatingItForAccessibility() {
+        show(content.copy(part = RoutinePart.Upper))
+
+        rule.onNodeWithTag("routine_details_summary_icon").assertIsDisplayed()
+        // Only the top bar title speaks the name.
+        rule.onAllNodesWithText("Torso A").assertCountEquals(1)
     }
 
     @Test

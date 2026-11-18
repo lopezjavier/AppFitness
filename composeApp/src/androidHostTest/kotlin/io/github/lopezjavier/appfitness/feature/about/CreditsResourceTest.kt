@@ -14,8 +14,8 @@ class CreditsResourceTest {
     }
 
     @Test
-    fun credits_holdExactlyThreeParsableEntries() {
-        assertEquals(3, entries.size)
+    fun credits_holdExactlyFourParsableEntries() {
+        assertEquals(4, entries.size)
         entries.forEach { Credit.parse(it) }
     }
 
@@ -27,5 +27,13 @@ class CreditsResourceTest {
         assertTrue(credits[1].title.contains("Open Food Facts"))
         assertTrue(credits[2].title.contains("Gemini"))
         assertEquals("Datos de ejercicios por RepDB (repdb.co)", credits[0].text)
+    }
+
+    @Test
+    fun credits_attributesTheTrainingIconsToFlaticon_asTextOnly() {
+        val icons = Credit.parse(entries[3])
+
+        assertEquals("Iconos de entrenamiento", icons.title)
+        assertEquals("Iconos de Flaticon (flaticon.com)", icons.text)
     }
 }

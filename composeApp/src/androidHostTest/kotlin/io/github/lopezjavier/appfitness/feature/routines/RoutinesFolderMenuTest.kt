@@ -17,6 +17,7 @@ import io.github.lopezjavier.appfitness.app.FakeClock
 import io.github.lopezjavier.appfitness.app.FakeConnectivityObserver
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
 import io.github.lopezjavier.appfitness.domain.model.RoutineFolder
+import io.github.lopezjavier.appfitness.feature.exercises.FakeExerciseRepository
 import io.github.lopezjavier.appfitness.feature.workout.FakeWorkoutSessionRepository
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
@@ -41,8 +42,14 @@ class RoutinesFolderMenuTest {
     private val saved = SavedStateHandle()
     private val reviewed = mutableListOf<String>()
 
-    private fun newModel(handle: SavedStateHandle = saved) =
-        RoutinesViewModel(repository, FakeWorkoutSessionRepository(), connectivity, FakeClock(), handle)
+    private fun newModel(handle: SavedStateHandle = saved) = RoutinesViewModel(
+        repository,
+        FakeWorkoutSessionRepository(),
+        connectivity,
+        FakeClock(),
+        handle,
+        exerciseRepository = FakeExerciseRepository(),
+    )
 
     private var current by mutableStateOf(newModel())
 

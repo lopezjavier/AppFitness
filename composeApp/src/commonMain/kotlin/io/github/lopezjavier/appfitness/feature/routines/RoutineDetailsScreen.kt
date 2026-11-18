@@ -21,6 +21,8 @@ import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -68,6 +70,7 @@ import io.github.lopezjavier.appfitness.designsystem.OfflineHint
 import io.github.lopezjavier.appfitness.designsystem.PrimaryButton
 import io.github.lopezjavier.appfitness.designsystem.SkeletonBox
 import io.github.lopezjavier.appfitness.designsystem.Spacing
+import io.github.lopezjavier.appfitness.designsystem.TrainingPartIcon
 import io.github.lopezjavier.appfitness.designsystem.appAnimateItem
 import io.github.lopezjavier.appfitness.domain.model.PlannedSet
 import io.github.lopezjavier.appfitness.domain.model.RoutineBounds
@@ -267,6 +270,25 @@ private fun DetailsSummary(content: RoutineDetailsUiState.Content, lastDone: Str
     val sets = content.exercises.sumOf { it.plannedSets.size }
     AppCard(Modifier.fillMaxWidth().testTag("${TAG}_summary"), glow = AppTheme.colors.athleticCyan) {
         Column(verticalArrangement = Arrangement.spacedBy(Spacing.md)) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(Spacing.md),
+            ) {
+                TrainingPartIcon(
+                    part = content.part,
+                    isNext = false,
+                    modifier = Modifier.testTag("${TAG}_summary_icon"),
+                )
+                // The title already speaks the name: the hero copy is visual only.
+                Text(
+                    text = content.name,
+                    style = AppTheme.typography.titleMedium,
+                    color = AppTheme.colors.textPrimary,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.weight(1f).clearAndSetSemantics {},
+                )
+            }
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
                 HeroStat(
                     icon = Res.drawable.ic_fitness_center,

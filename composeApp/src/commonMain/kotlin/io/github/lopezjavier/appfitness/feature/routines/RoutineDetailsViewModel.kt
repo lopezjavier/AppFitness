@@ -6,6 +6,7 @@ import io.github.lopezjavier.appfitness.domain.model.CatalogExercise
 import io.github.lopezjavier.appfitness.domain.port.ConnectivityObserver
 import io.github.lopezjavier.appfitness.domain.repository.RoutineRepository
 import io.github.lopezjavier.appfitness.domain.repository.WorkoutSessionRepository
+import io.github.lopezjavier.appfitness.domain.usecase.DeriveRoutinePart
 import io.github.lopezjavier.appfitness.domain.usecase.LoadExerciseCatalog
 import io.github.lopezjavier.appfitness.feature.workout.SessionStartOutcome
 import io.github.lopezjavier.appfitness.feature.workout.toStartOutcome
@@ -31,6 +32,7 @@ class RoutineDetailsViewModel(
     private val loadCatalog: LoadExerciseCatalog,
     connectivity: ConnectivityObserver,
 ) : ViewModel() {
+    private val derivePart = DeriveRoutinePart()
     private val _uiState = MutableStateFlow<RoutineDetailsUiState>(RoutineDetailsUiState.Loading)
     val uiState: StateFlow<RoutineDetailsUiState> = _uiState.asStateFlow()
 
@@ -83,7 +85,14 @@ class RoutineDetailsViewModel(
             }
             _uiState.update { current ->
                 val busy = (current as? RoutineDetailsUiState.Content)?.busy ?: false
-                RoutineDetailsUiState.Content(routine.name, exercises, lastDone, isOnline = online, busy = busy)
+                RoutineDetailsUiState.Content(
+                    routine.name,
+                    exercises,
+                    lastDone,
+                    isOnline = online,
+                    busy = busy,
+                    part = derivePart(routine.name, routine.exercises.map { catalog.getValue(it.exerciseId).exercise }),
+                )
             }
         }
     }

@@ -1,6 +1,7 @@
 package io.github.lopezjavier.appfitness.feature.routines
 
 import io.github.lopezjavier.appfitness.domain.model.PlannedSet
+import io.github.lopezjavier.appfitness.domain.model.RoutinePart
 import kotlin.time.Instant
 
 /**
@@ -32,6 +33,8 @@ sealed interface RoutineDetailsUiState {
         val lastDone: Instant? = null,
         val isOnline: Boolean = true,
         val busy: Boolean = false,
+        /** Training part for the hero icon, derived like the list's (decoration; Generic keeps the dumbbell). */
+        val part: RoutinePart = RoutinePart.Generic,
     ) : RoutineDetailsUiState
 }
 

@@ -515,6 +515,7 @@ class DraftRestorationTest {
                             connectivity,
                             FakeClock(),
                             handle,
+                            exerciseRepository = FakeExerciseRepository(),
                         )
                     }
                 val state by vm.uiState.collectAsState()
