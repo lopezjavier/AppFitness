@@ -3,11 +3,8 @@ package io.github.lopezjavier.appfitness.feature.catalog
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.FlowRow
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyListScope
-import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -28,10 +25,10 @@ import io.github.lopezjavier.appfitness.composeapp.resources.catalog_section_tra
 import io.github.lopezjavier.appfitness.designsystem.AppCard
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
 import io.github.lopezjavier.appfitness.designsystem.Spacing
+import io.github.lopezjavier.appfitness.designsystem.TrainingPartGlyph
 import io.github.lopezjavier.appfitness.designsystem.TrainingPartIcon
 import io.github.lopezjavier.appfitness.domain.model.RoutinePart
 import org.jetbrains.compose.resources.StringResource
-import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.resources.stringResource
 
 /** Catalog section of the training-part icons (T-306, 05 §6.0j): ten glyphs, lime and cyan, 24 dp and enlarged. */
@@ -90,14 +87,7 @@ private fun PartIconRows(tint: Color) {
             verticalArrangement = Arrangement.spacedBy(Spacing.md),
         ) {
             PartIcons.forEach { (part, _) ->
-                Row {
-                    Icon(
-                        painter = painterResource(TrainingPartIcon.drawableFor(part)),
-                        contentDescription = null,
-                        tint = tint,
-                        modifier = Modifier.size(EnlargedSize),
-                    )
-                }
+                TrainingPartGlyph(part, size = EnlargedSize, tint = tint)
             }
         }
     }
