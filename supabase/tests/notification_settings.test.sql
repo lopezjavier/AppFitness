@@ -3,7 +3,7 @@ begin;
 create extension if not exists pgtap with schema extensions;
 set local search_path = extensions, public;
 
-select plan(21);
+select plan(22);
 
 insert into auth.users (id, email) values
   ('11111111-1111-4111-8111-111111111111', 'ana@example.com'),
@@ -17,8 +17,12 @@ insert into public.notification_settings (user_id, kind, enabled) values
 
 -- Schema and security
 select has_table('public', 'notification_settings', 'public.notification_settings exists');
-select enum_has_labels('public', 'notification_kind', array['weight', 'circumference', 'weekly_check_in', 'week_summary', 'block_end'],
-  'notification_kind has the five planned values');
+select enum_has_labels('public', 'notification_kind', array['weight', 'circumference', 'week_summary', 'block_end'],
+  'notification_kind has the four planned values');
+select throws_ok(
+  $$insert into public.notification_settings (user_id, kind, enabled)
+    values ('33333333-3333-4333-8333-333333333333', 'weekly_check_in', true)$$,
+  '22P02', null, 'the removed weekly_check_in kind is rejected (ADR-110)');
 select ok(
   (select relrowsecurity and relforcerowsecurity from pg_class where oid = 'public.notification_settings'::regclass),
   'RLS is enabled and forced on notification_settings');

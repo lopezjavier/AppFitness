@@ -12,7 +12,7 @@
 --   block 1   d0-70 .. d0-43  four weeks, 3 sessions each, ended; its review is stored and the phase kept
 --   block 2   d0-24 ..        accepted, saved; plan week 1 done (d0-24), the window d0-17..d0-11 has no workout (paused
 --                             week), plan week 2 done (d0-10), plan week 3 started (d0-2); the block end is extended by 3 days
---   notices   weight (last weigh-in d0-3), circumferences (set at d0-20), weekly check-in (today is the check-in day),
+--   notices   weight (last weigh-in d0-3), circumferences (set at d0-20),
 --             an unseen weekly summary. No `block_end` notice: it is listed only while a review is open and block 2 is
 --             already saved (a single accepted plan forces this order).
 -- The plan data is written the way the pgTAP fixtures do (coach_block_review.test.sql); reports, the block review, the
@@ -52,7 +52,6 @@ delete from public.food_log_entries where user_id = pg_temp.uid();
 delete from public.foods where created_by = pg_temp.uid() and source = 'user'; -- portions cascade
 delete from public.body_measurements where user_id = pg_temp.uid();
 delete from public.body_circumferences where user_id = pg_temp.uid();
-delete from public.weekly_check_ins where user_id = pg_temp.uid();
 delete from public.coach_user_intake where user_id = pg_temp.uid();
 
 -- ---------------------------------------------------------------------------
@@ -61,8 +60,6 @@ delete from public.coach_user_intake where user_id = pg_temp.uid();
 do $$
 begin
   perform pg_temp.as_user();
-  -- Today is the check-in day: the weekly check-in notice is listed (this week is the one not answered).
-  update public.profiles set check_in_weekday = extract(isodow from pg_temp.d0())::smallint where id = pg_temp.uid();
 
   insert into public.training_preferences (user_id, intention, place, equipment, days_per_week, session_minutes)
   values (pg_temp.uid(), 'fat_loss', 'gym', array['barbell', 'dumbbell', 'machine', 'cable', 'cardio_machine']::public.equipment[], 3, 60)
@@ -190,13 +187,6 @@ begin
   -- The food is deleted after logging: its entries keep food_name and macros (food_id becomes null).
   delete from public.foods where id = v_deleted;
 end $$;
-
--- ---------------------------------------------------------------------------
--- 4. Weekly check-ins: the last 3 weeks answered, the current one not
--- ---------------------------------------------------------------------------
-insert into public.weekly_check_ins (user_id, week_start, energy)
-select pg_temp.uid(), date_trunc('week', pg_temp.d0()::timestamp)::date - 7 * k, 4 - (k % 2)
-from generate_series(1, 3) k;
 
 -- ---------------------------------------------------------------------------
 -- 5. Coach: block 1 (ended, reviewed) and block 2 (in progress)

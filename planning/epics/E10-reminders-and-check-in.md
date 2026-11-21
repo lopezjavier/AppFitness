@@ -8,15 +8,15 @@ Remind the user, inside the app, to log what the coach needs (weight and circumf
 - Out of scope: Android system notifications for reminders (reminders appear the next time the user opens the app; there is no time window), muscle soreness prompts (ADR-73, `07-coach-design.md` §7), the training streak (still deferred, `09-open-questions.md`), water and voice (out of scope for the app, ADR-101).
 
 ## Decisions
-ADR-73. Amends ADR-66 (weekly check-in returns) and E8 US-44 (the check-in part).
+ADR-73. Amends ADR-66 (weekly check-in returns) and E8 US-44 (the check-in part). Amended by ADR-110: the weekly check-in was removed (T-311, T-312).
 
 ## Dependencies
 E2 (Preferencias), E5 (weight and circumferences), E6 (sessions), E8 (weekly volume and records RPCs).
 
 ## Tables
-- `notification_settings` (`user_id`, `kind` enum `weight` | `circumference` | `weekly_check_in`, `enabled`), unique per user and kind; a missing row means enabled.
-- `weekly_check_ins` (`user_id`, `week_start` date (Monday), `energy` 1-5), unique per user and week. Amended by ADR-107: the check-in note (`notes`) was removed (T-277, T-286).
-- `profiles.check_in_weekday` (ISO weekday, default 7 = Sunday; design decision).
+- `notification_settings` (`user_id`, `kind` enum `weight` | `circumference` | `weekly_check_in`, `enabled`), unique per user and kind; a missing row means enabled. The `weekly_check_in` label and its rows were dropped by T-312 (ADR-110).
+- `weekly_check_ins` (`user_id`, `week_start` date (Monday), `energy` 1-5), unique per user and week. Amended by ADR-107: the check-in note (`notes`) was removed (T-277, T-286). The table was dropped by T-312 (ADR-110).
+- `profiles.check_in_weekday` (ISO weekday, default 7 = Sunday; design decision). Dropped by T-312 (ADR-110).
 
 ## Navigation
 The entry point of "Centro de avisos" is defined by ux-reviewer in the plan pass, within the 3-tab navigation (ADR-37).
@@ -107,7 +107,7 @@ Feature: Weight and circumference reminders
 - 14 days for circumferences is a design decision (`07-coach-design.md` §9).
 - Days are calendar days in the device time zone, as `log_date`.
 
-## US-59 · Weekly check-in (reactivates US-44 in part)
+## US-59 · Weekly check-in (reactivates US-44 in part) · **Removed by ADR-110** (T-311, T-312)
 **As** a user
 **I want** a short weekly check-in with how I felt and my week in figures
 **So that** I review my week and the coach can read it with my training.
