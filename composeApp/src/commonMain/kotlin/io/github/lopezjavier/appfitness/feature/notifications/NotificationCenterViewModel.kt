@@ -17,10 +17,10 @@ import kotlinx.coroutines.launch
 private const val STOP_TIMEOUT_MS = 5_000L
 
 /**
- * The notification center (US-57): the pending reminders of the [ReminderCoordinator] (an answered check-in is listed
- * apart and not counted). The switches live in Preferencias, "Avisos"; here they only filter: a silenced kind is not
- * listed. The center reloads on [NotificationCenterEvent.Refresh] since it is re-entered after saving there. Nothing
- * here is editable, so there is nothing to restore (ADR-40).
+ * The notification center (US-57): the pending reminders of the [ReminderCoordinator]. The switches live in
+ * Preferencias, "Avisos"; here they only filter: a silenced kind is not listed. The center reloads on
+ * [NotificationCenterEvent.Refresh] since it is re-entered after saving there. Nothing here is editable, so there is
+ * nothing to restore (ADR-40).
  */
 class NotificationCenterViewModel(
     private val coordinator: ReminderCoordinator,
@@ -32,31 +32,12 @@ class NotificationCenterViewModel(
     private val failed = MutableStateFlow(false)
 
     val uiState: StateFlow<NotificationCenterUiState> =
-        combine(switches, failed, coordinator.reminders, coordinator.checkIn) {
-                stored,
-                loadFailed,
-                reminders,
-                checkIn,
-            ->
+        combine(switches, failed, coordinator.reminders) { stored, loadFailed, reminders ->
             when {
-                stored != null -> {
-                    val weight = stored.isEnabled(NotificationKind.Weight)
-                    val circumference = stored.isEnabled(NotificationKind.Circumference)
-                    val checkInEnabled = stored.isEnabled(NotificationKind.WeeklyCheckIn)
-                    NotificationCenterUiState.Content(
-                        reminders = reminders.filter {
-                            when (it.kind) {
-                                ReminderKind.Weight -> weight
-                                ReminderKind.Circumference -> circumference
-                                ReminderKind.CheckIn -> checkInEnabled
-                                ReminderKind.WeekSummary -> stored.isEnabled(NotificationKind.WeekSummary)
-                                ReminderKind.BlockEnd -> stored.isEnabled(NotificationKind.BlockEnd)
-                            }
-                        },
-                        today = clock.today(),
-                        checkIn = checkIn?.takeIf { checkInEnabled },
-                    )
-                }
+                stored != null -> NotificationCenterUiState.Content(
+                    reminders = reminders.filter { stored.isEnabled(it.kind.notificationKind()) },
+                    today = clock.today(),
+                )
 
                 loadFailed -> NotificationCenterUiState.Error
 
@@ -96,4 +77,11 @@ class NotificationCenterViewModel(
     }
 
     private fun Map<NotificationKind, Boolean>.isEnabled(kind: NotificationKind): Boolean = this[kind] ?: true
+
+    private fun ReminderKind.notificationKind(): NotificationKind = when (this) {
+        ReminderKind.Weight -> NotificationKind.Weight
+        ReminderKind.Circumference -> NotificationKind.Circumference
+        ReminderKind.WeekSummary -> NotificationKind.WeekSummary
+        ReminderKind.BlockEnd -> NotificationKind.BlockEnd
+    }
 }

@@ -59,8 +59,8 @@ class PreferencesRestorationTest {
 
     private var viewModel: PreferencesViewModel? = null
 
-    private fun show(tester: StateRestorationTester, section: String) {
-        val handle = SavedStateHandle(mapOf("section" to section))
+    private fun show(tester: StateRestorationTester, section: String, savedDraft: String? = null) {
+        val handle = SavedStateHandle(mapOf("section" to section, "preferences_draft" to savedDraft))
         val profile =
             FakeProfileRepository(Result.success(ProfileSummary("Ana", null, true))).apply {
                 biometrics =
@@ -182,17 +182,34 @@ class PreferencesRestorationTest {
     }
 
     @Test
-    fun reminders_keepToggledSwitches_andTheOpenWeekdayPicker_afterRecreation() {
+    fun reminders_keepToggledSwitches_afterRecreation() {
         val tester = StateRestorationTester(rule)
         show(tester, "avisos")
         send(PreferencesEvent.SetReminderEnabled(NotificationKind.Circumference, false))
-        rule.onNodeWithTag("preferences_checkin_weekday_row").performScrollTo().performClick()
-        rule.waitForIdle()
 
         recreate(tester)
 
-        rule.onNodeWithTag("preferences_checkin_weekday_option_3").assertIsDisplayed()
         rule.onNodeWithTag("preferences_reminders_switch_circumference").assertIsOff()
+        rule.onNodeWithTag("preferences_avisos_save").assertIsEnabled()
+    }
+
+    /** US-142: a draft saved by a build before T-311 still carries the retired check-in day and switch. */
+    @Test
+    fun reminders_aDraftSavedBeforeT311_opensAvisosWithoutError() {
+        val legacyDraft =
+            """{"name":"Ana","sex":"Male","birthDate":"2000-03-01","heightCm":178,"weightKg":80.0,""" +
+                """"activity":"Moderate","checkInWeekday":3,"weightReminder":false,"circumferenceReminder":true,""" +
+                """"checkInReminder":false,"weekSummaryReminder":true,"blockEndReminder":true}"""
+        val tester = StateRestorationTester(rule)
+
+        show(tester, "avisos", savedDraft = legacyDraft)
+
+        rule.onNodeWithTag("preferences_reminders_switch_weight").assertIsOff()
+        rule.onNodeWithTag("preferences_reminders_switch_circumference").assertIsOn()
+        rule.onNodeWithTag("preferences_switch_week_summary").assertIsOn()
+        rule.onNodeWithTag("preferences_switch_block_end").performScrollTo().assertIsOn()
+        rule.onNodeWithTag("preferences_reminders_switch_checkin").assertDoesNotExist()
+        rule.onNodeWithTag("preferences_checkin_weekday_row").assertDoesNotExist()
         rule.onNodeWithTag("preferences_avisos_save").assertIsEnabled()
     }
 

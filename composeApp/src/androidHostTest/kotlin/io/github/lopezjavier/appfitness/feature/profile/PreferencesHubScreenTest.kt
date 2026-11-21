@@ -122,7 +122,7 @@ class PreferencesHubScreenTest {
             ),
         )
         rule.onNodeWithTag("preferences_row_meals").assertTextContains("4 comidas", substring = true)
-        rule.onNodeWithTag("preferences_row_avisos").assertTextContains("3 de ", substring = true)
+        rule.onNodeWithTag("preferences_row_avisos").assertTextContains("3 de 4 activados", substring = true)
         rule.onNodeWithTag("preferences_row_personal").assertTextContains("30 años · 180 cm", substring = true)
     }
 

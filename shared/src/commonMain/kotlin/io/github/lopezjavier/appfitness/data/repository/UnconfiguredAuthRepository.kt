@@ -66,10 +66,6 @@ class UnconfiguredProfileRepository : ProfileRepository {
 
     override suspend fun updateDisplayName(name: String): Result<Unit> = Result.failure(AppException(AppError.Unknown))
 
-    override suspend fun getCheckInWeekday(): Result<Int> = Result.failure(AppException(AppError.Unknown))
-
-    override suspend fun setCheckInWeekday(weekday: Int): Result<Unit> = Result.failure(AppException(AppError.Unknown))
-
     override fun hasProvidedFullName(): Boolean = false
 
     override suspend fun savePreferences(
@@ -93,6 +89,8 @@ class UnconfiguredBodyMeasurementRepository : BodyMeasurementRepository {
         Result.failure(AppException(AppError.Unknown))
 
     override suspend fun getLatestWeight(): Result<BodyMeasurement?> = Result.failure(AppException(AppError.Unknown))
+
+    override suspend fun getEarliestWeight(): Result<BodyMeasurement?> = Result.failure(AppException(AppError.Unknown))
 
     override suspend fun getMeasurements(from: Instant, toExclusive: Instant): Result<List<BodyMeasurement>> =
         Result.failure(AppException(AppError.Unknown))

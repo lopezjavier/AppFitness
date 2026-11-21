@@ -6,7 +6,6 @@ import io.github.lopezjavier.appfitness.app.ReminderCoordinator
 import io.github.lopezjavier.appfitness.app.ReminderEnv
 import io.github.lopezjavier.appfitness.domain.model.BodyCircumference
 import io.github.lopezjavier.appfitness.domain.model.BodyMeasurement
-import io.github.lopezjavier.appfitness.domain.model.CheckIn
 import io.github.lopezjavier.appfitness.domain.model.CircumferenceSite
 import io.github.lopezjavier.appfitness.domain.model.MeasurementSource
 import io.github.lopezjavier.appfitness.domain.model.NotificationKind
@@ -91,6 +90,27 @@ class NotificationCenterViewModelTest {
     }
 
     @Test
+    fun content_listsOnlyTheFourKinds_whenEachIsPending() = runTest {
+        // Weight 3 days ago, no circumference: the first weigh-in 20 days ago anchors the circumference reminder.
+        val env = ReminderEnv(TODAY).apply {
+            weight.rows += BodyMeasurement("w", day(3).atStartOfDayIn(TimeZone.UTC), 80.0, MeasurementSource.Manual)
+            weight.rows +=
+                BodyMeasurement("hc", day(20).atStartOfDayIn(TimeZone.UTC), 81.0, MeasurementSource.HealthConnect)
+            summaries.latest = Result.success(
+                io.github.lopezjavier.appfitness.feature.trainer.weekSummary(seen = false),
+            )
+            reviews.review = Result.success(io.github.lopezjavier.appfitness.feature.trainer.blockReview())
+        }
+        val f = fixture(env)
+
+        f.viewModel.uiState.test {
+            assertEquals(ReminderKind.entries.toSet(), content().reminders.map { it.kind }.toSet())
+            assertEquals(4, ReminderKind.entries.size)
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
     fun aSilencedKind_isNotListed() = runTest {
         val env = env().apply { settings.values[NotificationKind.Weight] = false }
         val f = fixture(env)
@@ -170,61 +190,6 @@ class NotificationCenterViewModelTest {
 
         f.viewModel.uiState.test {
             assertTrue(content().reminders.isEmpty())
-            cancelAndIgnoreRemainingEvents()
-        }
-    }
-
-    @Test
-    fun silencedCheckIn_hidesTheReminderAndTheAnsweredRow() = runTest {
-        val env = checkInEnv().apply { settings.values[NotificationKind.WeeklyCheckIn] = false }
-        env.checkIns.rows[LocalDate(2026, 10, 19)] = CheckIn(LocalDate(2026, 10, 19), 4)
-        val f = fixture(env)
-
-        f.viewModel.uiState.test {
-            val content = content()
-            assertTrue(content.reminders.isEmpty())
-            assertEquals(null, content.checkIn)
-            cancelAndIgnoreRemainingEvents()
-        }
-    }
-
-    /** Both measurement reminders cleared and the onboarding day known: only the Sunday 25 Oct check-in is open. */
-    private fun checkInEnv() = ReminderEnv(TODAY).apply {
-        weight.rows += BodyMeasurement("w", TODAY.atStartOfDayIn(TimeZone.UTC), 80.0, MeasurementSource.Manual)
-        weight.onboarding = BodyMeasurement("o", day(20).atStartOfDayIn(TimeZone.UTC), 80.0, MeasurementSource.Manual)
-        circumferences.rows += BodyCircumference(
-            "c",
-            CircumferenceSite.Waist,
-            90.0,
-            TODAY.atStartOfDayIn(TimeZone.UTC),
-            TODAY.atStartOfDayIn(TimeZone.UTC),
-        )
-    }
-
-    @Test
-    fun pendingCheckIn_isListedAsAReminderWithItsWindow() = runTest {
-        val f = fixture(checkInEnv())
-
-        f.viewModel.uiState.test {
-            val content = content()
-            assertEquals(listOf(ReminderKind.CheckIn), content.reminders.map { it.kind })
-            assertEquals(null, content.checkIn?.answer)
-            assertEquals(LocalDate(2026, 10, 19), content.checkIn?.weekStart)
-            cancelAndIgnoreRemainingEvents()
-        }
-    }
-
-    @Test
-    fun answeredCheckIn_isReachableButNotCounted() = runTest {
-        val env = checkInEnv()
-        env.checkIns.rows[LocalDate(2026, 10, 19)] = CheckIn(LocalDate(2026, 10, 19), 4)
-        val f = fixture(env)
-
-        f.viewModel.uiState.test {
-            val content = content()
-            assertTrue(content.reminders.isEmpty())
-            assertEquals(4, content.checkIn?.answer?.energy)
-            assertTrue(f.coordinator.reminders.value.isEmpty())
             cancelAndIgnoreRemainingEvents()
         }
     }

@@ -2,11 +2,11 @@ package io.github.lopezjavier.appfitness.domain.model
 
 import kotlinx.datetime.LocalDate
 
-/** Kinds of in-app reminders. [CheckIn] is the weekly check-in, due on the user's chosen weekday. */
-enum class ReminderKind { Weight, Circumference, CheckIn, WeekSummary, BlockEnd }
+/** Kinds of in-app reminders. */
+enum class ReminderKind { Weight, Circumference, WeekSummary, BlockEnd }
 
-/** Kinds the user can silence; mapped 1:1 to the DB enum `notification_kind`. */
-enum class NotificationKind { Weight, Circumference, WeeklyCheckIn, WeekSummary, BlockEnd }
+/** Kinds the user can silence; each maps to one value of the DB enum `notification_kind`. */
+enum class NotificationKind { Weight, Circumference, WeekSummary, BlockEnd }
 
 /**
  * A derived, never stored reminder. [dueDate] is the day it became due and [days] the whole days elapsed since the

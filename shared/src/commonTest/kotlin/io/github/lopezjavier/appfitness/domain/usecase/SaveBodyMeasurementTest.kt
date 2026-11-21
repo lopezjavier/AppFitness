@@ -29,6 +29,8 @@ private class RecordingRepository : BodyMeasurementRepository {
 
     override suspend fun getLatestWeight(): Result<BodyMeasurement?> = Result.success(null)
 
+    override suspend fun getEarliestWeight(): Result<BodyMeasurement?> = Result.success(null)
+
     override suspend fun getMeasurements(from: Instant, toExclusive: Instant): Result<List<BodyMeasurement>> =
         Result.success(emptyList())
 

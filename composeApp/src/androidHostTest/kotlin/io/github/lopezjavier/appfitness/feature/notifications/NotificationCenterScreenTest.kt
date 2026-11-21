@@ -11,8 +11,6 @@ import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
-import io.github.lopezjavier.appfitness.domain.model.CheckIn
-import io.github.lopezjavier.appfitness.domain.model.CheckInDay
 import io.github.lopezjavier.appfitness.domain.model.Reminder
 import io.github.lopezjavier.appfitness.domain.model.ReminderKind
 import kotlinx.datetime.LocalDate
@@ -36,16 +34,8 @@ class NotificationCenterScreenTest {
     private val weight = Reminder(ReminderKind.Weight, LocalDate(2026, 10, 24), days = 4)
     private val circumference = Reminder(ReminderKind.Circumference, LocalDate(2026, 10, 14), days = 14)
 
-    private fun content(reminders: List<Reminder> = listOf(weight, circumference), checkIn: CheckInDay? = null) =
-        NotificationCenterUiState.Content(
-            reminders,
-            TODAY,
-            checkIn = checkIn,
-        )
-
-    private val checkInReminder = Reminder(ReminderKind.CheckIn, LocalDate(2026, 11, 15), days = 0)
-    private val openWindow = CheckInDay(LocalDate(2026, 11, 15), LocalDate(2026, 11, 9), answer = null)
-    private val answeredWindow = openWindow.copy(answer = CheckIn(LocalDate(2026, 11, 9), energy = 4))
+    private fun content(reminders: List<Reminder> = listOf(weight, circumference)) =
+        NotificationCenterUiState.Content(reminders, TODAY)
 
     private fun show(
         state: NotificationCenterUiState,
@@ -165,56 +155,36 @@ class NotificationCenterScreenTest {
     fun theCenterHasNoSwitches_theyLiveInPreferencias() {
         show(content())
 
-        listOf("weight", "circumference", "checkin").forEach {
+        listOf("weight", "circumference").forEach {
             rule.onAllNodesWithTag("notifications_switch_$it").assertCountEquals(0)
         }
         rule.onAllNodesWithText("Recordatorio de peso").assertCountEquals(0)
-        rule.onAllNodesWithText("Check-in semanal").assertCountEquals(0)
     }
 
+    /** US-142: with every notice kind pending, the center lists the four rows and nothing of the weekly check-in. */
     @Test
-    fun checkInReminder_showsItsHeadlineAndWeek_andOpensTheCheckIn() {
-        val opened = mutableListOf<ReminderKind>()
-        show(content(reminders = listOf(checkInReminder), checkIn = openWindow), opened = opened)
+    fun noCheckInRowOrSection_withEveryKindPending() {
+        val all = listOf(
+            weight,
+            circumference,
+            Reminder(ReminderKind.WeekSummary, LocalDate(2026, 10, 25), days = 0, week = 3),
+            Reminder(ReminderKind.BlockEnd, LocalDate(2026, 10, 26), days = 0),
+        )
+        show(content(reminders = all))
 
-        rule.onNodeWithText("Hacer el check-in semanal").assertIsDisplayed()
-        rule.onNodeWithTag(
+        listOf(
+            "notifications_reminder_weight",
+            "notifications_reminder_circumference",
+            "notification_center_row_week_summary",
+            "notification_center_row_block_end",
+        ).forEach { rule.onNodeWithTag(it, useUnmergedTree = true).assertExists() }
+        listOf(
             "notifications_reminder_checkin",
-        ).assertTextContains("Semana del 9 al 15 nov", substring = true)
-        rule.onNodeWithTag("notifications_reminder_checkin").performClick()
-
-        assertEquals(listOf(ReminderKind.CheckIn), opened)
-    }
-
-    @Test
-    fun answeredCheckIn_isListedUnderEstaSemana_withItsEnergy_andReopens() {
-        val opened = mutableListOf<ReminderKind>()
-        show(content(reminders = emptyList(), checkIn = answeredWindow), opened = opened)
-
-        rule.onNodeWithTag("notifications_section_this_week").assertIsDisplayed()
-        rule.onNodeWithTag(
             "notifications_checkin_answered",
-        ).assertTextContains("Respondido · Energía 4/5", substring = true)
-        rule.onAllNodesWithTag("notifications_reminder_checkin").assertCountEquals(0)
-        rule.onNodeWithTag("notifications_checkin_answered").performClick()
-
-        assertEquals(listOf(ReminderKind.CheckIn), opened)
-    }
-
-    @Test
-    fun answeredCheckIn_isNotCountedAmongThePending() {
-        show(content(reminders = emptyList(), checkIn = answeredWindow))
-
-        rule.onNodeWithTag("notifications_empty").assertIsDisplayed()
-        rule.onNodeWithText("Todo al día").assertIsDisplayed()
-    }
-
-    @Test
-    fun withoutAnOpenCheckIn_noThisWeekSectionIsShown() {
-        show(content())
-
-        rule.onAllNodesWithTag("notifications_section_this_week").assertCountEquals(0)
-        rule.onAllNodesWithTag("notifications_checkin_answered").assertCountEquals(0)
+            "notifications_section_this_week",
+        ).forEach { rule.onAllNodesWithTag(it, useUnmergedTree = true).assertCountEquals(0) }
+        rule.onAllNodesWithText("Hacer el check-in semanal", substring = true).assertCountEquals(0)
+        rule.onAllNodesWithText("Check-in semanal", substring = true, ignoreCase = true).assertCountEquals(0)
     }
 
     @Test

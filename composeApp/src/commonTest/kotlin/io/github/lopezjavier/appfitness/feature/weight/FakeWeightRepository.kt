@@ -16,6 +16,9 @@ internal class FakeWeightRepository(vararg initial: BodyMeasurement) : BodyMeasu
     val deletes = mutableListOf<String>()
     val hcRecordIds = mutableListOf<Pair<String, String?>>()
     var failReads = false
+
+    /** Fails only [getEarliestWeight] (it also fails while [failReads] is set). */
+    var failEarliestRead = false
     var getMeasurementsCalls = 0
     var failComposition = false
     var onboarding: BodyMeasurement? = null
@@ -32,6 +35,12 @@ internal class FakeWeightRepository(vararg initial: BodyMeasurement) : BodyMeasu
         Result.failure(AppException(AppError.Network))
     } else {
         Result.success(rows.maxByOrNull { it.measuredAt })
+    }
+
+    override suspend fun getEarliestWeight(): Result<BodyMeasurement?> = if (failReads || failEarliestRead) {
+        Result.failure(AppException(AppError.Network))
+    } else {
+        Result.success(rows.minByOrNull { it.measuredAt })
     }
 
     override suspend fun getMeasurements(from: Instant, toExclusive: Instant): Result<List<BodyMeasurement>> =

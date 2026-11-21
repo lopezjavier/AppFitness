@@ -18,7 +18,6 @@ import androidx.compose.ui.test.performClick
 import androidx.navigation.compose.rememberNavController
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
 import io.github.lopezjavier.appfitness.designsystem.ICON_BUTTON_BADGE_TAG
-import io.github.lopezjavier.appfitness.domain.model.CheckInDay
 import io.github.lopezjavier.appfitness.domain.model.Reminder
 import io.github.lopezjavier.appfitness.domain.model.ReminderKind
 import io.github.lopezjavier.appfitness.feature.diary.DiaryScreen
@@ -56,23 +55,15 @@ class NotificationNavigationTest {
         listOf(
             Reminder(ReminderKind.Weight, LocalDate(2026, 10, 24), 4),
             Reminder(ReminderKind.Circumference, LocalDate(2026, 10, 14), 14),
-            Reminder(ReminderKind.CheckIn, LocalDate(2026, 10, 25), 0),
             Reminder(ReminderKind.WeekSummary, LocalDate(2026, 10, 25), 0),
         ),
         today = today,
-        checkIn = CheckInDay(LocalDate(2026, 10, 25), LocalDate(2026, 10, 19), answer = null),
     )
     private val centerSlot: NotificationCenterSlot = { modifier, onOpenReminder, onOpenReports, onBack ->
         NotificationCenterScreen(reminders, {}, onOpenReminder, onBack, modifier, onOpenReports)
     }
     private val weightSlot: WeightSlot = { modifier, openEntry, _, _ ->
         Box(modifier.fillMaxSize().testTag("weight_screen")) { Text("target=$openEntry") }
-    }
-
-    private val checkInSlot: CheckInSlot = { modifier, onClose ->
-        Box(modifier.fillMaxSize().testTag("checkin_screen")) {
-            Text("close", Modifier.testTag("checkin_close").clickable(onClick = onClose))
-        }
     }
 
     private val summarySlot: WeekSummarySlot = { modifier, onBack ->
@@ -107,7 +98,6 @@ class NotificationNavigationTest {
                     profile = profileSlot,
                     notificationCenter = centerSlot,
                     weight = weightSlot,
-                    checkIn = checkInSlot,
                     weekSummary = summarySlot,
                     reports = reportsSlot,
                     pastReport = pastReportSlot,
@@ -181,18 +171,6 @@ class NotificationNavigationTest {
         tap("notifications_reminder_circumference")
 
         rule.onNode(androidx.compose.ui.test.hasText("target=Circumference")).assertIsDisplayed()
-    }
-
-    @Test
-    fun tappingTheCheckInReminder_opensTheCheckIn_andClosingReturnsToTheCenter() {
-        open(pending = 3)
-        tap("diary_action_notifications")
-
-        tap("notifications_reminder_checkin")
-        rule.onNodeWithTag("checkin_screen").assertIsDisplayed()
-        tap("checkin_close")
-
-        rule.onNodeWithTag("notifications_screen").assertIsDisplayed()
     }
 
     @Test

@@ -13,7 +13,6 @@ import io.github.lopezjavier.appfitness.feature.analytics.MuscleVolumeViewModel
 import io.github.lopezjavier.appfitness.feature.analytics.StrengthViewModel
 import io.github.lopezjavier.appfitness.feature.analytics.stats.TrainingStatsViewModel
 import io.github.lopezjavier.appfitness.feature.auth.WelcomeViewModel
-import io.github.lopezjavier.appfitness.feature.checkin.CheckInViewModel
 import io.github.lopezjavier.appfitness.feature.diary.DiaryHistoryViewModel
 import io.github.lopezjavier.appfitness.feature.diary.DiaryViewModel
 import io.github.lopezjavier.appfitness.feature.diary.EditEntryViewModel
@@ -92,18 +91,6 @@ val uiModule =
         viewModelOf(::ProfileRootViewModel)
         viewModelOf(::PreferencesHubViewModel)
         viewModelOf(::NotificationCenterViewModel)
-        viewModel {
-            CheckInViewModel(
-                get(),
-                get(),
-                get(),
-                get(),
-                savedState = get(),
-                exercises = get(),
-                library = get(),
-                exerciseNames = get(),
-            )
-        }
         viewModelOf(::AccountViewModel)
         viewModelOf(::AboutViewModel)
         // Explicit: the time zone is a defaulted constructor parameter (the device zone), not a dependency.

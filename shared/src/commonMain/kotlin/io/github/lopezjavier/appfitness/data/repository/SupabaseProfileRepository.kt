@@ -11,7 +11,6 @@ import io.github.jan.supabase.postgrest.query.Columns
 import io.github.jan.supabase.postgrest.rpc
 import io.github.lopezjavier.appfitness.data.remote.BiometricsDto
 import io.github.lopezjavier.appfitness.data.remote.BiometricsUpdateDto
-import io.github.lopezjavier.appfitness.data.remote.CheckInWeekdayDto
 import io.github.lopezjavier.appfitness.data.remote.DisplayNameUpdateDto
 import io.github.lopezjavier.appfitness.data.remote.OnboardingCompletedDto
 import io.github.lopezjavier.appfitness.data.remote.ProfileDto
@@ -58,17 +57,6 @@ class SupabaseProfileRepository(private val auth: Auth, private val postgrest: P
 
     override suspend fun updateDisplayName(name: String): Result<Unit> = ownRow { userId ->
         postgrest.from("profiles").update(DisplayNameUpdateDto(name)) { filter { eq("id", userId) } }
-    }.map {}
-
-    override suspend fun getCheckInWeekday(): Result<Int> = ownRow { userId ->
-        postgrest.from("profiles")
-            .select(Columns.raw(CheckInWeekdayDto.COLUMNS)) { filter { eq("id", userId) } }
-            .decodeSingle<CheckInWeekdayDto>()
-            .weekday
-    }
-
-    override suspend fun setCheckInWeekday(weekday: Int): Result<Unit> = ownRow { userId ->
-        postgrest.from("profiles").update(CheckInWeekdayDto(weekday)) { filter { eq("id", userId) } }
     }.map {}
 
     override fun hasProvidedFullName(): Boolean {

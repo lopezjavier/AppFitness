@@ -63,6 +63,18 @@ class SupabaseBodyMeasurementRepository(private val auth: Auth, private val post
             ?.toDomain()
     }
 
+    override suspend fun getEarliestWeight(): Result<BodyMeasurement?> = signedIn {
+        postgrest.from("body_measurements")
+            .select(Columns.raw(BodyMeasurementDto.COLUMNS)) {
+                order("measured_at", Order.ASCENDING)
+                order("id", Order.ASCENDING)
+                limit(1)
+            }
+            .decodeList<BodyMeasurementDto>()
+            .firstOrNull()
+            ?.toDomain()
+    }
+
     override suspend fun getMeasurements(from: Instant, toExclusive: Instant): Result<List<BodyMeasurement>> =
         signedIn {
             postgrest.from("body_measurements")

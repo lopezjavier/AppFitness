@@ -54,10 +54,6 @@ class SavePreferencesTest {
 
         override suspend fun updateDisplayName(name: String): Result<Unit> = error("unused")
 
-        override suspend fun getCheckInWeekday(): Result<Int> = error("unused")
-
-        override suspend fun setCheckInWeekday(weekday: Int): Result<Unit> = error("unused")
-
         override fun hasProvidedFullName(): Boolean = error("unused")
 
         override suspend fun savePreferences(

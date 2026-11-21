@@ -40,7 +40,7 @@ class PreferencesSectionTest {
             calculators = CalculatorSettings(barWeightKg = 15.0),
             autoUpdateRoutine = true,
         ),
-        PreferencesSection.Reminders to base.copy(checkInWeekday = 3),
+        PreferencesSection.Reminders to base.copy(weightReminder = false, blockEndReminder = false),
         PreferencesSection.MyTraining to base.copy(
             intention = TrainingIntention.Strength,
             place = TrainingPlace.Home,
@@ -92,7 +92,8 @@ class PreferencesSectionTest {
         val switches = listOf(
             base.copy(weightReminder = false),
             base.copy(circumferenceReminder = false),
-            base.copy(checkInReminder = false),
+            base.copy(weekSummaryReminder = false),
+            base.copy(blockEndReminder = false),
         )
         for (changed in switches) {
             assertFalse(base.sectionEquals(PreferencesSection.Reminders, changed))

@@ -12,7 +12,6 @@ import io.github.lopezjavier.appfitness.feature.analytics.ExerciseProgressRoot
 import io.github.lopezjavier.appfitness.feature.analytics.MuscleVolumeRoot
 import io.github.lopezjavier.appfitness.feature.analytics.StrengthRoot
 import io.github.lopezjavier.appfitness.feature.analytics.stats.TrainingStatsRoot
-import io.github.lopezjavier.appfitness.feature.checkin.CheckInRoot
 import io.github.lopezjavier.appfitness.feature.diary.DiaryHistoryRoot
 import io.github.lopezjavier.appfitness.feature.diary.DiaryRoot
 import io.github.lopezjavier.appfitness.feature.diary.EditEntryRoot
@@ -186,7 +185,6 @@ fun AppRoot(
         },
         reports = { reportsModifier, onOpen, onBack -> ReportsRoot(onOpen, onBack, reportsModifier) },
         pastReport = { reportModifier, reportId, onBack -> PastReportRoot(reportId, onBack, reportModifier) },
-        checkIn = { checkInModifier, onClose -> CheckInRoot(onClose, checkInModifier) },
         weekSummary = { summaryModifier, onBack -> WeekSummaryRoot(onBack, summaryModifier) },
         blockReview = { reviewModifier, onBack, onOpenBeforeStart ->
             BlockReviewRoot(onBack, onOpenBeforeStart, reviewModifier)

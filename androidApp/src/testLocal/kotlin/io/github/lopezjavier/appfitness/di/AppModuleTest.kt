@@ -50,7 +50,6 @@ import io.github.lopezjavier.appfitness.domain.repository.RoutineRepository
 import io.github.lopezjavier.appfitness.domain.repository.StrengthRepository
 import io.github.lopezjavier.appfitness.domain.repository.TrainingPreferencesRepository
 import io.github.lopezjavier.appfitness.domain.repository.TrainingStatsRepository
-import io.github.lopezjavier.appfitness.domain.repository.WeeklyCheckInRepository
 import io.github.lopezjavier.appfitness.domain.repository.WeightChartPreferences
 import io.github.lopezjavier.appfitness.domain.repository.WorkoutSessionRepository
 import io.github.lopezjavier.appfitness.domain.usecase.AddTemplateToDiary
@@ -71,7 +70,6 @@ import io.github.lopezjavier.appfitness.domain.usecase.GroupMealEntries
 import io.github.lopezjavier.appfitness.domain.usecase.HealthWriteBack
 import io.github.lopezjavier.appfitness.domain.usecase.InterpretMetric
 import io.github.lopezjavier.appfitness.domain.usecase.LoadBlockReviewUseCase
-import io.github.lopezjavier.appfitness.domain.usecase.LoadCheckInSummary
 import io.github.lopezjavier.appfitness.domain.usecase.LoadExerciseCatalog
 import io.github.lopezjavier.appfitness.domain.usecase.LoadNextBlockContextUseCase
 import io.github.lopezjavier.appfitness.domain.usecase.LoadPastReport
@@ -259,10 +257,8 @@ class AppModuleTest {
                 ValidateBodyMeasurement::class,
                 CircumferenceRepository::class,
                 NotificationSettingsRepository::class,
-                WeeklyCheckInRepository::class,
                 DiscomfortRepository::class,
                 DiscomfortFollowUpRepository::class,
-                LoadCheckInSummary::class,
                 MarkWeekSummarySeen::class,
                 MarkBlockReviewSeen::class,
                 RecordPausedWeekReport::class,

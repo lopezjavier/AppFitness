@@ -5,22 +5,11 @@ import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
 import com.github.takahirom.roborazzi.ExperimentalRoborazziApi
-import io.github.lopezjavier.appfitness.domain.model.CheckIn
-import io.github.lopezjavier.appfitness.domain.model.CheckInDay
 import io.github.lopezjavier.appfitness.domain.model.DiaryGoals
 import io.github.lopezjavier.appfitness.domain.model.FoodLogEntry
 import io.github.lopezjavier.appfitness.domain.model.MealCode
 import io.github.lopezjavier.appfitness.domain.model.MealSlot
 import io.github.lopezjavier.appfitness.domain.model.MealTotals
-import io.github.lopezjavier.appfitness.domain.model.PeriodTraining
-import io.github.lopezjavier.appfitness.domain.model.PersonalRecordType
-import io.github.lopezjavier.appfitness.domain.model.TrainingSummary
-import io.github.lopezjavier.appfitness.domain.model.WeekRecord
-import io.github.lopezjavier.appfitness.domain.model.WeeklySummary
-import io.github.lopezjavier.appfitness.domain.model.WeeklyWeightTrend
-import io.github.lopezjavier.appfitness.feature.checkin.CheckInScreen
-import io.github.lopezjavier.appfitness.feature.checkin.CheckInSummaryState
-import io.github.lopezjavier.appfitness.feature.checkin.CheckInUiState
 import io.github.lopezjavier.appfitness.feature.diary.DiaryContent
 import io.github.lopezjavier.appfitness.feature.diary.DiaryGoalsState
 import io.github.lopezjavier.appfitness.feature.diary.DiaryScreen
@@ -156,48 +145,8 @@ private fun diaryScreens(): List<GalleryEntry> {
 
 private fun remaining() = DiaryGoalsState.Set(DiaryGoals(2400, 180, 270, 67), remainingKcal = 1365)
 
-private fun checkIns(): List<GalleryEntry> {
-    val sunday = LocalDate(2026, 10, 18)
-    val monday = LocalDate(2026, 10, 12)
-    val summary = CheckInSummaryState.Loaded(
-        WeeklySummary(
-            PeriodTraining(TrainingSummary(4, 40, 12_400.0, 0), TrainingSummary(3, 30, 11_600.0, 0)),
-            listOf(WeekRecord("bench", PersonalRecordType.HeaviestLift, 100.0, LocalDate(2026, 10, 16))),
-            WeeklyWeightTrend.Delta(-0.4),
-        ),
-    )
-
-    fun ready(
-        energy: Int? = null,
-        answer: CheckIn? = null,
-        summaryState: CheckInSummaryState = summary,
-        offline: Boolean = false,
-    ) = CheckInUiState.Ready(
-        CheckInDay(sunday, monday, answer),
-        energy,
-        summaryState,
-        isOffline = offline,
-        exerciseNames = mapOf("bench" to "Press banca"),
-    )
-
-    fun entry(state: String, ui: CheckInUiState) =
-        GalleryEntry(DIARIO_AREA, "Check-in semanal", state, covers = setOf("CheckInRoute")) {
-            CheckInScreen(ui, onEvent = {}, onClose = {})
-        }
-    return listOf(
-        entry("loading", CheckInUiState.Loading),
-        entry("load failed", CheckInUiState.LoadFailed),
-        entry("new, no energy chosen (Guardar disabled)", ready()),
-        entry("new, energy chosen (Guardar enabled)", ready(energy = 4)),
-        entry("already answered", ready(energy = 3, answer = CheckIn(monday, 3))),
-        entry("summary loading", ready(summaryState = CheckInSummaryState.Loading)),
-        entry("summary failed", ready(summaryState = CheckInSummaryState.Failed)),
-        entry("offline", ready(energy = 4, offline = true)),
-    )
-}
-
 internal fun diarioEntries(): List<GalleryEntry> =
-    diaryScreens() + checkIns() + diarioFoodEntries() + diarioTemplateEntries() + notificationCenterEntries()
+    diaryScreens() + diarioFoodEntries() + diarioTemplateEntries() + notificationCenterEntries()
 
 /** Renders the Diario entries (US-131); skipped unless `-Pgallery`. */
 @OptIn(ExperimentalRoborazziApi::class)
@@ -209,7 +158,7 @@ class DiarioGallery {
     val rule = createComposeRule()
 
     @Test
-    fun rendersDiaryAndCheckIn() = rule.renderGallery(diaryScreens().filter { !it.wide && !it.tall } + checkIns())
+    fun rendersDiary() = rule.renderGallery(diaryScreens().filter { !it.wide && !it.tall })
 
     @Test
     fun rendersFood() = rule.renderGallery(diarioFoodEntries().filter { !it.wide && !it.tall })

@@ -25,12 +25,6 @@ interface ProfileRepository {
     /** Saves the display name only (onboarding, when Google gave none). The name is trimmed by the caller. */
     suspend fun updateDisplayName(name: String): Result<Unit>
 
-    /** The weekly check-in day, ISO weekday 1 (Monday) to 7 (Sunday); 7 by default. */
-    suspend fun getCheckInWeekday(): Result<Int>
-
-    /** Sets the weekly check-in day (1 Monday .. 7 Sunday). */
-    suspend fun setCheckInWeekday(weekday: Int): Result<Unit>
-
     /** True when the sign-in provider (Google) supplied a non-blank `full_name`. Reads the cached session. */
     fun hasProvidedFullName(): Boolean
 

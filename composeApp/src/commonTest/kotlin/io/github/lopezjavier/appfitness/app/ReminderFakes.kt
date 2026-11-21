@@ -2,14 +2,11 @@ package io.github.lopezjavier.appfitness.app
 
 import io.github.lopezjavier.appfitness.domain.AppError
 import io.github.lopezjavier.appfitness.domain.AppException
-import io.github.lopezjavier.appfitness.domain.model.CheckIn
 import io.github.lopezjavier.appfitness.domain.model.NotificationKind
-import io.github.lopezjavier.appfitness.domain.model.ProfileSummary
 import io.github.lopezjavier.appfitness.domain.model.WeekSummary
 import io.github.lopezjavier.appfitness.domain.port.Clock
 import io.github.lopezjavier.appfitness.domain.repository.CoachSummaryRepository
 import io.github.lopezjavier.appfitness.domain.repository.NotificationSettingsRepository
-import io.github.lopezjavier.appfitness.domain.repository.WeeklyCheckInRepository
 import io.github.lopezjavier.appfitness.domain.usecase.ComputeReminders
 import io.github.lopezjavier.appfitness.domain.usecase.LoadBlockReviewUseCase
 import io.github.lopezjavier.appfitness.domain.usecase.LoadReminders
@@ -46,25 +43,6 @@ internal class FakeNotificationSettingsRepository(vararg initial: Pair<Notificat
     }
 }
 
-/** In-memory [WeeklyCheckInRepository] keyed by week start; failures are switchable. */
-internal class FakeWeeklyCheckInRepository : WeeklyCheckInRepository {
-    val rows = mutableMapOf<LocalDate, CheckIn>()
-    val saves = mutableListOf<CheckIn>()
-    var failReads = false
-    var failWrites = false
-    var saveError: AppError = AppError.Network
-
-    override suspend fun get(weekStart: LocalDate): Result<CheckIn?> =
-        if (failReads) Result.failure(AppException(AppError.Network)) else Result.success(rows[weekStart])
-
-    override suspend fun save(checkIn: CheckIn): Result<Unit> {
-        if (failWrites) return Result.failure(AppException(saveError))
-        saves += checkIn
-        rows[checkIn.weekStart] = checkIn
-        return Result.success(Unit)
-    }
-}
-
 internal class ReminderClock(var day: LocalDate, private val zone: TimeZone = UTC) : Clock {
     override fun today(): LocalDate = day
 
@@ -84,8 +62,6 @@ internal class ReminderEnv(today: LocalDate, val timeZone: TimeZone = TimeZone.U
     val weight = FakeWeightRepository()
     val circumferences = FakeCircumferenceRepository()
     val settings = FakeNotificationSettingsRepository()
-    val profile = FakeProfileRepository(Result.success(ProfileSummary(null, null, onboardingCompleted = true)))
-    val checkIns = FakeWeeklyCheckInRepository()
     val clock = ReminderClock(today)
     val summaries = FakeCoachSummaryRepository()
     val reviews = FakeCoachReviewRepository()
@@ -93,8 +69,6 @@ internal class ReminderEnv(today: LocalDate, val timeZone: TimeZone = TimeZone.U
         weight,
         circumferences,
         settings,
-        profile,
-        checkIns,
         clock,
         timeZone,
         ComputeReminders(),

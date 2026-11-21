@@ -14,7 +14,7 @@ enum class PreferencesSection(val key: String) {
     /** Warm-up, previous values, calculators and the automatic routine update. */
     Training("training"),
 
-    /** "Avisos": the three reminder switches (weight, circumferences, weekly check-in) and the check-in day. */
+    /** "Avisos": the four notice switches (weight, circumferences, weekly summary, block end). */
     Reminders("avisos"),
 
     /** "Mi entrenamiento": intention, place, equipment, days per week and session length. */
@@ -43,14 +43,7 @@ private fun PreferencesForm.ownedFields(section: PreferencesSection): List<Any> 
     PreferencesSection.Training -> listOf(warmUpIncluded, previousValuesMode, calculators, autoUpdateRoutine)
 
     PreferencesSection.Reminders ->
-        listOf(
-            weightReminder,
-            circumferenceReminder,
-            checkInReminder,
-            weekSummaryReminder,
-            blockEndReminder,
-            checkInWeekday,
-        )
+        listOf(weightReminder, circumferenceReminder, weekSummaryReminder, blockEndReminder)
 
     PreferencesSection.MyTraining ->
         listOf(intention ?: NONE, place ?: NONE, equipment, daysPerWeek ?: NONE, sessionMinutes ?: NONE)
@@ -83,10 +76,8 @@ fun PreferencesForm.withSectionFrom(section: PreferencesSection, other: Preferen
         PreferencesSection.Reminders -> copy(
             weightReminder = other.weightReminder,
             circumferenceReminder = other.circumferenceReminder,
-            checkInReminder = other.checkInReminder,
             weekSummaryReminder = other.weekSummaryReminder,
             blockEndReminder = other.blockEndReminder,
-            checkInWeekday = other.checkInWeekday,
         )
 
         PreferencesSection.MyTraining -> copy(

@@ -202,7 +202,7 @@ def main(argv=None):
 
     log(f"[{TOTAL_STEPS}/{TOTAL_STEPS}] {credentials_line()}")
     log("Then look at: Diario, Peso, Entreno, Trainer, Informes and the Centro de avisos "
-        "(a weekly summary, the weight, circumference and check-in reminders).")
+        "(a weekly summary, the weight and circumference reminders).")
     return 0
 
 

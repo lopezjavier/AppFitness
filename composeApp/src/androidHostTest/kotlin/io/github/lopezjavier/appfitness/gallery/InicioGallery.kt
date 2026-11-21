@@ -15,8 +15,6 @@ import io.github.lopezjavier.appfitness.designsystem.AppNavigation
 import io.github.lopezjavier.appfitness.designsystem.AppNavigationItem
 import io.github.lopezjavier.appfitness.designsystem.OfflineBanner
 import io.github.lopezjavier.appfitness.domain.model.ActivityLevel
-import io.github.lopezjavier.appfitness.domain.model.CheckIn
-import io.github.lopezjavier.appfitness.domain.model.CheckInDay
 import io.github.lopezjavier.appfitness.domain.model.Reminder
 import io.github.lopezjavier.appfitness.domain.model.ReminderKind
 import io.github.lopezjavier.appfitness.domain.model.Sex
@@ -132,8 +130,6 @@ internal fun notificationCenterEntries(): List<GalleryEntry> {
     val circumference = Reminder(ReminderKind.Circumference, LocalDate(2026, 10, 7), days = 14)
     val summary = Reminder(ReminderKind.WeekSummary, LocalDate(2026, 10, 18), days = 0, week = 3)
     val blockEnd = Reminder(ReminderKind.BlockEnd, LocalDate(2026, 10, 19), days = 2)
-    val checkInDue = Reminder(ReminderKind.CheckIn, LocalDate(2026, 10, 20), days = 0)
-    val window = CheckInDay(LocalDate(2026, 10, 20), LocalDate(2026, 10, 14), answer = null)
 
     fun entry(state: String, ui: NotificationCenterUiState) = GalleryEntry(
         DIARIO,
@@ -144,10 +140,7 @@ internal fun notificationCenterEntries(): List<GalleryEntry> {
     ) {
         NotificationCenterScreen(ui, onEvent = {}, onOpenReminder = {}, onBack = {}, onOpenReports = {})
     }
-    fun content(vararg reminders: Reminder, checkIn: CheckInDay? = null) =
-        NotificationCenterUiState.Content(reminders.toList(), today, checkIn)
-
-    fun answered(energy: Int) = window.copy(answer = CheckIn(LocalDate(2026, 10, 14), energy = energy))
+    fun content(vararg reminders: Reminder) = NotificationCenterUiState.Content(reminders.toList(), today)
 
     fun weightDays(days: Int) = Reminder(ReminderKind.Weight, today.minus(days, DateTimeUnit.DAY), days)
 
@@ -155,7 +148,7 @@ internal fun notificationCenterEntries(): List<GalleryEntry> {
     return listOf(
         entry("loading", NotificationCenterUiState.Loading),
         entry("empty (Todo al día)", content()),
-        entry("all notices", content(weight, circumference, summary, blockEnd, checkInDue, checkIn = window)),
+        entry("all notices", content(weight, circumference, summary, blockEnd)),
         entry("error", NotificationCenterUiState.Error),
         entry("Weight alone", content(weight)),
         entry("Weight, due today", content(weightDays(0))),
@@ -167,15 +160,10 @@ internal fun notificationCenterEntries(): List<GalleryEntry> {
         entry("Circumference, 1 week", content(circumferenceDays(7))),
         entry("Circumference, 2 weeks", content(circumference)),
         entry("Circumference, 6 weeks", content(circumferenceDays(42))),
-        entry("CheckIn alone, with window", content(checkInDue, checkIn = window)),
-        entry("CheckIn alone, without window", content(checkInDue)),
         entry("WeekSummary alone, with week number", content(summary)),
         entry("WeekSummary alone, without week number", content(summary.copy(week = null))),
         entry("BlockEnd alone", content(blockEnd)),
         entry("BlockEnd, due today", content(blockEnd.copy(dueDate = today, days = 0))),
-        entry("check-in answered, energy 1", content(weight, checkIn = answered(1))),
-        entry("check-in answered, energy 3", content(checkIn = answered(3))),
-        entry("check-in answered, energy 5", content(summary, checkIn = answered(5))),
     )
 }
 

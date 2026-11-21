@@ -22,27 +22,20 @@ import androidx.compose.ui.platform.testTag
 import io.github.lopezjavier.appfitness.composeapp.resources.Res
 import io.github.lopezjavier.appfitness.composeapp.resources.action_retry
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_check
-import io.github.lopezjavier.appfitness.composeapp.resources.ic_fact_check
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_flag
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_insights
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_monitor_weight
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_straighten
 import io.github.lopezjavier.appfitness.composeapp.resources.notifications_block_end_title
-import io.github.lopezjavier.appfitness.composeapp.resources.notifications_checkin_answered_supporting
-import io.github.lopezjavier.appfitness.composeapp.resources.notifications_checkin_answered_title
-import io.github.lopezjavier.appfitness.composeapp.resources.notifications_checkin_week
 import io.github.lopezjavier.appfitness.composeapp.resources.notifications_circumference_reminder
 import io.github.lopezjavier.appfitness.composeapp.resources.notifications_circumference_reminder_due
 import io.github.lopezjavier.appfitness.composeapp.resources.notifications_empty_message
 import io.github.lopezjavier.appfitness.composeapp.resources.notifications_empty_title
 import io.github.lopezjavier.appfitness.composeapp.resources.notifications_pending_section
-import io.github.lopezjavier.appfitness.composeapp.resources.notifications_reminder_checkin
 import io.github.lopezjavier.appfitness.composeapp.resources.notifications_reminder_open_block_review
-import io.github.lopezjavier.appfitness.composeapp.resources.notifications_reminder_open_checkin
 import io.github.lopezjavier.appfitness.composeapp.resources.notifications_reminder_open_circumference
 import io.github.lopezjavier.appfitness.composeapp.resources.notifications_reminder_open_week_summary
 import io.github.lopezjavier.appfitness.composeapp.resources.notifications_reminder_open_weight
-import io.github.lopezjavier.appfitness.composeapp.resources.notifications_this_week_section
 import io.github.lopezjavier.appfitness.composeapp.resources.notifications_title
 import io.github.lopezjavier.appfitness.composeapp.resources.notifications_week_summary_title
 import io.github.lopezjavier.appfitness.composeapp.resources.notifications_week_summary_week
@@ -68,25 +61,20 @@ import io.github.lopezjavier.appfitness.designsystem.SkeletonBox
 import io.github.lopezjavier.appfitness.designsystem.Spacing
 import io.github.lopezjavier.appfitness.designsystem.StatRing
 import io.github.lopezjavier.appfitness.designsystem.appAnimateItem
-import io.github.lopezjavier.appfitness.domain.model.CheckInDay
 import io.github.lopezjavier.appfitness.domain.model.Reminder
 import io.github.lopezjavier.appfitness.domain.model.ReminderKind
-import kotlinx.datetime.DateTimeUnit
-import kotlinx.datetime.plus
 import org.jetbrains.compose.resources.DrawableResource
 import org.jetbrains.compose.resources.pluralStringResource
 import org.jetbrains.compose.resources.stringResource
 
 private const val SKELETON_ROWS = 3
-private const val DAYS_TO_SUNDAY = 6
 private const val SKELETON_HEADER_FRACTION = 0.3f
 private const val SKELETON_TITLE_FRACTION = 0.7f
 private const val SKELETON_DETAIL_FRACTION = 0.4f
 
 /**
  * "Centro de avisos" (US-57) on [AppScreen]: "Pendientes" lists the derived reminders (one tap opens where to log
- * it through [onOpenReminder]) or "Todo al día", plus the answered check-in. It has no settings: the switches live
- * in Preferencias, "Avisos".
+ * it through [onOpenReminder]) or "Todo al día". It has no settings: the switches live in Preferencias, "Avisos".
  */
 @Composable
 fun NotificationCenterScreen(
@@ -153,16 +141,6 @@ private fun CenterContent(
                 ReminderRow(reminder, state, onOpenReminder, appAnimateItem())
             }
         }
-        val answered = state.checkIn?.takeIf { it.answer != null }
-        if (answered != null) {
-            item(key = "this_week_header") {
-                ListSectionHeader(
-                    stringResource(Res.string.notifications_this_week_section),
-                    Modifier.padding(top = Spacing.lg).testTag("notifications_section_this_week"),
-                )
-            }
-            item(key = "checkin_answered") { AnsweredCheckInRow(answered, onOpenReminder, appAnimateItem()) }
-        }
         // The stored reports are a destination, not a notice: always last, never counted by the bell.
         item(key = "reports_entry") {
             NavigationRow(
@@ -206,13 +184,6 @@ private fun ReminderRow(
             tag = "notifications_reminder_circumference"
         }
 
-        ReminderKind.CheckIn -> {
-            headline = stringResource(Res.string.notifications_reminder_checkin)
-            label = stringResource(Res.string.notifications_reminder_open_checkin)
-            tag = "notifications_reminder_checkin"
-            state.checkIn?.let { supporting = stringResource(Res.string.notifications_checkin_week, it.weekRange()) }
-        }
-
         ReminderKind.WeekSummary -> {
             headline = stringResource(Res.string.notifications_week_summary_title)
             label = stringResource(Res.string.notifications_reminder_open_week_summary)
@@ -236,28 +207,12 @@ private fun ReminderRow(
     )
 }
 
-/** The answered check-in of the open window: reachable and editable, but not a pending reminder (not counted). */
-@Composable
-private fun AnsweredCheckInRow(window: CheckInDay, onOpen: (ReminderKind) -> Unit, modifier: Modifier = Modifier) {
-    NavigationRow(
-        label = stringResource(Res.string.notifications_checkin_answered_title),
-        onClick = { onOpen(ReminderKind.CheckIn) },
-        modifier = modifier.testTag("notifications_checkin_answered"),
-        supporting = stringResource(
-            Res.string.notifications_checkin_answered_supporting,
-            window.answer?.energy ?: 0,
-        ),
-        onClickLabel = stringResource(Res.string.notifications_reminder_open_checkin),
-    )
-}
-
 /** One leading icon per notice type (R-74, C-32). */
 private fun ReminderKind.icon(): DrawableResource = when (this) {
     ReminderKind.Weight -> Res.drawable.ic_monitor_weight
     ReminderKind.Circumference -> Res.drawable.ic_straighten
     ReminderKind.WeekSummary -> Res.drawable.ic_insights
     ReminderKind.BlockEnd -> Res.drawable.ic_flag
-    ReminderKind.CheckIn -> Res.drawable.ic_fact_check
 }
 
 /** One accent per notice type, so the list reads at a glance. */
@@ -269,13 +224,16 @@ private fun ReminderKind.accent(): Color {
         ReminderKind.Circumference -> colors.macroCarbs
         ReminderKind.WeekSummary -> colors.macroFat
         ReminderKind.BlockEnd -> colors.energyAmber
-        ReminderKind.CheckIn -> colors.neonLime
     }
 }
 
-private const val RING_FULL_AT = 5f
+/** One pending notice of each kind fills the ring. */
+private val RING_FULL_AT = ReminderKind.entries.size.toFloat()
 
-/** The pending count as a graphic: a ring that fills with the notices and the count as words beside it. */
+/**
+ * The pending count as a graphic: a ring that fills with the notices (full when every kind is pending) and the count
+ * as words beside it.
+ */
 @Composable
 private fun PendingHero(count: Int) {
     AppCard(Modifier.fillMaxWidth().testTag("notifications_hero"), glow = AppTheme.colors.neonLime) {
@@ -324,10 +282,6 @@ private fun AllClear(modifier: Modifier = Modifier) {
         )
     }
 }
-
-/** "9 al 15 nov": the Monday-Sunday week of the check-in. */
-private fun CheckInDay.weekRange(): String =
-    AppDateFormat.dayRange(weekStart, weekStart.plus(DAYS_TO_SUNDAY, DateTimeUnit.DAY))
 
 @Composable
 private fun Skeleton() {

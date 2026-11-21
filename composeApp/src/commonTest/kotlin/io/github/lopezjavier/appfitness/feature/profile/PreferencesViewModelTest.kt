@@ -1187,7 +1187,7 @@ class PreferencesViewModelTest {
             PreferencesSection.PersonalData to PreferencesEvent.SetHeight(190),
             PreferencesSection.Cooking to PreferencesEvent.SetFatPctFried("9"),
             PreferencesSection.Training to PreferencesEvent.SetWarmUpIncluded(true),
-            PreferencesSection.Reminders to PreferencesEvent.SetCheckInWeekday(3),
+            PreferencesSection.Reminders to PreferencesEvent.SetReminderEnabled(NotificationKind.WeekSummary, false),
             PreferencesSection.MyTraining to PreferencesEvent.SetIntention(TrainingIntention.Strength),
         )
         val reminderSwitch = PreferencesEvent.SetReminderEnabled(NotificationKind.Weight, enabled = false)
@@ -1271,16 +1271,13 @@ class PreferencesViewModelTest {
     }
 
     @Test
-    fun reminders_loadTheSavedWeekdayAndSwitches_andAreCleanUntilEdited() = runTest {
-        profile.checkInWeekday = Result.success(5)
+    fun reminders_loadTheSavedSwitches_andAreCleanUntilEdited() = runTest {
         settings.values[NotificationKind.Circumference] = false
 
         val (_, state) = loaded(PreferencesSection.Reminders)
 
-        assertEquals(5, state().form.checkInWeekday)
         assertEquals(true, state().form.weightReminder, "a missing row means enabled")
         assertEquals(false, state().form.circumferenceReminder)
-        assertEquals(true, state().form.checkInReminder)
         assertFalse(state().isDirty)
         assertFalse(state().canSave)
     }
@@ -1295,7 +1292,6 @@ class PreferencesViewModelTest {
         assertTrue(state().isDirty)
         assertTrue(state().canSave)
         assertTrue(settings.writes.isEmpty())
-        assertTrue(profile.checkInWeekdaySaves.isEmpty())
     }
 
     @Test
@@ -1326,39 +1322,6 @@ class PreferencesViewModelTest {
     }
 
     @Test
-    fun reminders_saveWritesOnlyTheChangedKinds_andNotTheUnchangedWeekday() = runTest {
-        val (viewModel, state) = loaded(PreferencesSection.Reminders)
-
-        viewModel.onEvent(PreferencesEvent.SetReminderEnabled(NotificationKind.Weight, enabled = false))
-        viewModel.onEvent(PreferencesEvent.SetReminderEnabled(NotificationKind.WeeklyCheckIn, enabled = false))
-        viewModel.onEvent(PreferencesEvent.Save)
-        advanceUntilIdle()
-
-        assertEquals(
-            listOf(NotificationKind.Weight to false, NotificationKind.WeeklyCheckIn to false),
-            settings.writes,
-        )
-        assertTrue(profile.checkInWeekdaySaves.isEmpty())
-        assertTrue(profile.preferenceSaves.isEmpty())
-        assertTrue(state().isSaved)
-        assertFalse(state().isDirty)
-    }
-
-    @Test
-    fun reminders_saveWritesSwitchesAndWeekdayTogether() = runTest {
-        val (viewModel, state) = loaded(PreferencesSection.Reminders)
-
-        viewModel.onEvent(PreferencesEvent.SetReminderEnabled(NotificationKind.Circumference, enabled = false))
-        viewModel.onEvent(PreferencesEvent.SetCheckInWeekday(2))
-        viewModel.onEvent(PreferencesEvent.Save)
-        advanceUntilIdle()
-
-        assertEquals(listOf(NotificationKind.Circumference to false), settings.writes)
-        assertEquals(listOf(2), profile.checkInWeekdaySaves)
-        assertTrue(state().isSaved)
-    }
-
-    @Test
     fun reminders_switchWriteFailure_emitsSaveFailed_andKeepsTheDraft() = runTest {
         settings.failWrites = true
         val (viewModel, state) = loaded(PreferencesSection.Reminders)
@@ -1382,7 +1345,6 @@ class PreferencesViewModelTest {
 
         viewModel.onEvent(PreferencesEvent.SetReminderEnabled(NotificationKind.Weight, enabled = false))
         viewModel.onEvent(PreferencesEvent.SetReminderEnabled(NotificationKind.Circumference, enabled = false))
-        viewModel.onEvent(PreferencesEvent.SetCheckInWeekday(2))
         viewModel.effects.test {
             viewModel.onEvent(PreferencesEvent.Save)
             advanceUntilIdle()
@@ -1391,12 +1353,9 @@ class PreferencesViewModelTest {
 
         assertEquals(false, state().saved.weightReminder, "the written switch is saved")
         assertEquals(true, state().saved.circumferenceReminder, "the failed one is not")
-        assertEquals(PreferencesForm.DEFAULT_CHECK_IN_WEEKDAY, state().saved.checkInWeekday)
         assertEquals(false, state().form.circumferenceReminder)
-        assertEquals(2, state().form.checkInWeekday)
         assertTrue(state().isDirty)
         assertFalse(state().isSaved)
-        assertTrue(profile.checkInWeekdaySaves.isEmpty(), "the day is not written after a failed switch")
     }
 
     @Test
@@ -1420,13 +1379,12 @@ class PreferencesViewModelTest {
     }
 
     @Test
-    fun reminders_restoreTheSwitchesAndTheWeekdayFromTheSavedState() = runTest {
+    fun reminders_restoreTheSwitchesFromTheSavedState() = runTest {
         val handle = SavedStateHandle()
         val first = viewModel(handle, PreferencesSection.Reminders)
         advanceUntilIdle()
         first.onEvent(PreferencesEvent.SetReminderEnabled(NotificationKind.Weight, enabled = false))
-        first.onEvent(PreferencesEvent.SetReminderEnabled(NotificationKind.WeeklyCheckIn, enabled = false))
-        first.onEvent(PreferencesEvent.SetCheckInWeekday(4))
+        first.onEvent(PreferencesEvent.SetReminderEnabled(NotificationKind.BlockEnd, enabled = false))
 
         val second = viewModel(handle, PreferencesSection.Reminders)
         advanceUntilIdle()
@@ -1434,8 +1392,7 @@ class PreferencesViewModelTest {
         val restored = assertIs<PreferencesUiState.Loaded>(second.uiState.value)
         assertEquals(false, restored.form.weightReminder)
         assertEquals(true, restored.form.circumferenceReminder)
-        assertEquals(false, restored.form.checkInReminder)
-        assertEquals(4, restored.form.checkInWeekday)
+        assertEquals(false, restored.form.blockEndReminder)
         assertTrue(restored.isDirty)
     }
 
@@ -1459,7 +1416,7 @@ class PreferencesViewModelTest {
     fun reminders_aDraftWithoutTheSwitches_fallsBackToTheSavedValues() = runTest {
         settings.values[NotificationKind.Weight] = false
         val handle = SavedStateHandle()
-        // A draft from before the switches existed: only the weekday is there.
+        // A draft from before the weight and circumference switches existed.
         val old = PreferencesForm(
             name = "Ana",
             sex = Sex.Male,
@@ -1467,55 +1424,95 @@ class PreferencesViewModelTest {
             heightCm = 178,
             weightKg = 80.0,
             activity = ActivityLevel.Moderate,
-            checkInWeekday = 3,
-        ).encodeDraft().replace(Regex(",\"(weight|circumference|checkIn)Reminder\":(true|false)"), "")
+        ).encodeDraft().replace(Regex(",\"(weight|circumference)Reminder\":(true|false)"), "")
         handle["preferences_draft"] = old
 
         val viewModel = viewModel(handle, PreferencesSection.Reminders)
         advanceUntilIdle()
 
         val state = assertIs<PreferencesUiState.Loaded>(viewModel.uiState.value)
-        assertEquals(3, state.form.checkInWeekday)
         assertEquals(false, state.form.weightReminder, "the saved switch, not a default")
     }
 
-    @Test
-    fun reminders_weekdayOnlySaveWritesNoSwitch_andRefreshesTheCenter() = runTest {
-        val env = ReminderEnv(today)
-        val instant = Instant.parse("2026-10-14T08:00:00Z")
-        env.weight.rows += BodyMeasurement("t", instant, 80.0, MeasurementSource.Manual)
-        env.weight.onboarding =
-            BodyMeasurement("o", Instant.parse("2026-10-01T08:00:00Z"), 80.0, MeasurementSource.Manual)
-        env.circumferences.rows += BodyCircumference("c", CircumferenceSite.Waist, 90.0, instant, instant)
-        val load = LoadReminders(
-            env.weight,
-            env.circumferences,
-            env.settings,
-            profile,
-            env.checkIns,
-            env.clock,
-            env.timeZone,
-            ComputeReminders(),
-        )
-        val coordinator = ReminderCoordinator(load, CoroutineScope(UnconfinedTestDispatcher(testScheduler)))
-        coordinator.refresh()
-        assertEquals(LocalDate(2026, 10, 11), coordinator.checkIn.value?.day)
-        val (viewModel, state) = loaded(PreferencesSection.Reminders, coordinator)
+    /** A draft written by a build before T-311: it still carries the retired check-in day and switch. */
+    private fun legacyDraft(name: String = "Ana") =
+        """{"name":"$name","sex":"Male","birthDate":"2000-03-01","heightCm":178,"weightKg":80.0,""" +
+            """"activity":"Moderate","checkInWeekday":3,"weightReminder":false,"circumferenceReminder":true,""" +
+            """"checkInReminder":false,"weekSummaryReminder":true,"blockEndReminder":false}"""
 
-        viewModel.onEvent(PreferencesEvent.SetCheckInWeekday(3))
-        assertTrue(state().canSave)
-        viewModel.onEvent(PreferencesEvent.Save)
+    @Test
+    fun avisos_aDraftSavedBeforeT311WithTheOldKeys_restoresTheSwitches() = runTest {
+        val handle = SavedStateHandle().also { it["preferences_draft"] = legacyDraft() }
+
+        val viewModel = viewModel(handle, PreferencesSection.Reminders)
         advanceUntilIdle()
 
-        assertEquals(listOf(3), profile.checkInWeekdaySaves)
-        assertTrue(profile.preferenceSaves.isEmpty(), "the preferences RPC is not involved")
-        assertTrue(state().isSaved)
-        assertEquals(3, state().saved.checkInWeekday)
-        assertEquals(today, coordinator.checkIn.value?.day, "the center follows the new day")
+        val state = assertIs<PreferencesUiState.Loaded>(viewModel.uiState.value)
+        assertEquals(false, state.form.weightReminder)
+        assertEquals(true, state.form.circumferenceReminder)
+        assertEquals(true, state.form.weekSummaryReminder)
+        assertEquals(false, state.form.blockEndReminder)
+        assertTrue(state.isDirty)
+        assertTrue(state.canSave)
     }
 
     @Test
-    fun otherSections_neverWriteTheWeekday() = runTest {
+    fun personalData_aLegacyDraft_stillRestores() = runTest {
+        val handle = SavedStateHandle().also { it["preferences_draft"] = legacyDraft(name = "Beatriz") }
+
+        val viewModel = viewModel(handle, PreferencesSection.PersonalData)
+        advanceUntilIdle()
+
+        val state = assertIs<PreferencesUiState.Loaded>(viewModel.uiState.value)
+        assertEquals("Beatriz", state.form.name)
+        assertEquals("Ana", state.saved.name)
+        assertTrue(state.canSave)
+    }
+
+    @Test
+    fun avisos_savesOnlyTheChangedKindsOfTheFour_andNeverWritesTheProfile() = runTest {
+        val (viewModel, state) = loaded(PreferencesSection.Reminders)
+
+        viewModel.onEvent(PreferencesEvent.SetReminderEnabled(NotificationKind.Circumference, enabled = false))
+        viewModel.onEvent(PreferencesEvent.SetReminderEnabled(NotificationKind.WeekSummary, enabled = false))
+        viewModel.onEvent(PreferencesEvent.Save)
+        advanceUntilIdle()
+
+        assertEquals(
+            listOf(NotificationKind.Circumference to false, NotificationKind.WeekSummary to false),
+            settings.writes,
+        )
+        assertTrue(profile.preferenceSaves.isEmpty())
+        assertTrue(profile.displayNameUpdates.isEmpty())
+        assertTrue(profile.biometricsUpdates.isEmpty())
+        assertTrue(state().isSaved)
+        assertFalse(state().isDirty)
+    }
+
+    @Test
+    fun reminders_aSavedSwitch_refreshesTheCenter() = runTest {
+        val env = ReminderEnv(today)
+        env.weight.rows += BodyMeasurement("t", Instant.parse("2026-10-11T08:00:00Z"), 80.0, MeasurementSource.Manual)
+        val instant = Instant.parse("2026-10-14T08:00:00Z")
+        env.circumferences.rows += BodyCircumference("c", CircumferenceSite.Waist, 90.0, instant, instant)
+        // The center reads the same switches the editor writes.
+        val load = LoadReminders(env.weight, env.circumferences, settings, env.clock, env.timeZone, ComputeReminders())
+        val coordinator = ReminderCoordinator(load, CoroutineScope(UnconfinedTestDispatcher(testScheduler)))
+        coordinator.refresh()
+        assertEquals(1, coordinator.reminders.value.size)
+        val (viewModel, state) = loaded(PreferencesSection.Reminders, coordinator)
+
+        viewModel.onEvent(PreferencesEvent.SetReminderEnabled(NotificationKind.Weight, enabled = false))
+        viewModel.onEvent(PreferencesEvent.Save)
+        advanceUntilIdle()
+
+        assertTrue(state().isSaved)
+        assertTrue(profile.preferenceSaves.isEmpty(), "the preferences RPC is not involved")
+        assertTrue(coordinator.reminders.value.isEmpty(), "the center follows the new switch")
+    }
+
+    @Test
+    fun otherSections_neverWriteTheSwitches() = runTest {
         for (section in PreferencesSection.entries.filter { it != PreferencesSection.Reminders }) {
             val (viewModel, _) = loaded(section)
             when (section) {
@@ -1527,40 +1524,18 @@ class PreferencesViewModelTest {
             advanceUntilIdle()
         }
 
-        assertTrue(profile.checkInWeekdaySaves.isEmpty())
         assertTrue(settings.writes.isEmpty())
     }
 
     @Test
-    fun reminders_failedWeekdaySaveKeepsTheDraftAndEmitsAnEffect() = runTest {
-        profile.checkInWeekdaySaveResult = Result.failure(AppException(AppError.Network))
+    fun reminders_revertingASwitch_isNotDirty() = runTest {
         val (viewModel, state) = loaded(PreferencesSection.Reminders)
+        viewModel.onEvent(PreferencesEvent.SetReminderEnabled(NotificationKind.WeekSummary, enabled = false))
 
-        viewModel.onEvent(PreferencesEvent.SetCheckInWeekday(2))
-        viewModel.effects.test {
-            viewModel.onEvent(PreferencesEvent.Save)
-            advanceUntilIdle()
-            assertEquals(PreferencesEffect.SaveFailed(offline = true), awaitItem())
-        }
+        viewModel.onEvent(PreferencesEvent.SetReminderEnabled(NotificationKind.WeekSummary, enabled = true))
 
-        assertFalse(state().isSaved)
-        assertEquals(2, state().form.checkInWeekday)
-        assertTrue(state().isDirty)
-    }
-
-    @Test
-    fun reminders_discardingLeavesTheSavedDay() = runTest {
-        profile.checkInWeekday = Result.success(7)
-        val handle = SavedStateHandle()
-        val first = viewModel(handle, PreferencesSection.Reminders)
-        advanceUntilIdle()
-        first.onEvent(PreferencesEvent.SetCheckInWeekday(1))
-
-        first.onEvent(PreferencesEvent.SetCheckInWeekday(7))
-
-        val state = assertIs<PreferencesUiState.Loaded>(first.uiState.value)
-        assertFalse(state.isDirty)
-        assertTrue(profile.checkInWeekdaySaves.isEmpty())
+        assertFalse(state().isDirty)
+        assertTrue(settings.writes.isEmpty())
     }
 
     @Test
@@ -1641,10 +1616,8 @@ class PreferencesViewModelTest {
 
                 PreferencesSection.Training -> first.onEvent(PreferencesEvent.SetWarmUpIncluded(true))
 
-                PreferencesSection.Reminders -> {
-                    first.onEvent(PreferencesEvent.SetCheckInWeekday(3))
+                PreferencesSection.Reminders ->
                     first.onEvent(PreferencesEvent.SetReminderEnabled(NotificationKind.Circumference, false))
-                }
 
                 PreferencesSection.MyTraining -> first.onEvent(PreferencesEvent.SetPlace(TrainingPlace.Home))
             }

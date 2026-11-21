@@ -46,12 +46,24 @@ class SupabaseNotificationSettingsRepositoryTest {
     fun getAll_mapsEnumValuesAndToleratesUpdatedAt() = runTest {
         val repo = signedIn(
             """[{"kind":"weight","enabled":false,"updated_at":"2026-11-17T10:00:00+00:00"},""" +
-                """{"kind":"weekly_check_in","enabled":true}]""",
+                """{"kind":"circumference","enabled":true}]""",
         )
 
         val all = repo.getAll().getOrThrow()
 
-        assertEquals(mapOf(NotificationKind.Weight to false, NotificationKind.WeeklyCheckIn to true), all)
+        assertEquals(mapOf(NotificationKind.Weight to false, NotificationKind.Circumference to true), all)
+    }
+
+    @Test
+    fun getAll_skipsAKindThisAppDoesNotKnow() = runTest {
+        val repo = signedIn(
+            """[{"kind":"weight","enabled":false},{"kind":"retired_kind","enabled":false},""" +
+                """{"kind":"block_end","enabled":true}]""",
+        )
+
+        val all = repo.getAll().getOrThrow()
+
+        assertEquals(mapOf(NotificationKind.Weight to false, NotificationKind.BlockEnd to true), all)
     }
 
     @Test

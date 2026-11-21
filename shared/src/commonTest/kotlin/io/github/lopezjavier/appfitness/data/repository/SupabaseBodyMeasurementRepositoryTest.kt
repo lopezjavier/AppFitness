@@ -141,6 +141,43 @@ class SupabaseBodyMeasurementRepositoryTest {
     }
 
     @Test
+    fun getEarliestWeight_ordersAscendingByMeasuredAtWithoutASourceFilter() = runTest {
+        val repo = signedIn(
+            rows = {
+                """[{"id":"row-hc","measured_at":"2026-09-01T07:00:00+00:00","weight_kg":76.4,""" +
+                    """"source":"health_connect"}]"""
+            },
+        )
+
+        val row = repo.getEarliestWeight().getOrThrow()
+
+        assertEquals(
+            BodyMeasurement("row-hc", Instant.parse("2026-09-01T07:00:00Z"), 76.4, MeasurementSource.HealthConnect),
+            row,
+        )
+        val url = requests.last().url
+        assertTrue(url.encodedPath.endsWith("/body_measurements"), url.toString())
+        val order = url.parameters["order"].orEmpty()
+        assertTrue(order.startsWith("measured_at.asc") && ",id.asc" in order, order)
+        assertEquals("1", url.parameters["limit"])
+        assertNull(url.parameters["source"], url.toString())
+    }
+
+    @Test
+    fun getEarliestWeight_emptyIsNull() = runTest {
+        assertNull(signedIn().getEarliestWeight().getOrThrow())
+    }
+
+    @Test
+    fun getEarliestWeight_offlineIsNetwork_signedOutIsUnauthorized() = runTest {
+        assertEquals(AppError.Unauthorized, signedOut().getEarliestWeight().appErrorOrNull())
+        var fail = false
+        val repo = signedIn(failing = { fail })
+        fail = true
+        assertEquals(AppError.Network, repo.getEarliestWeight().appErrorOrNull())
+    }
+
+    @Test
     fun emptyResults_giveNull() = runTest {
         val repo = signedIn()
 

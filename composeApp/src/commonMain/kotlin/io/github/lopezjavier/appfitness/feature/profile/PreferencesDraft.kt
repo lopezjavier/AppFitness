@@ -38,12 +38,9 @@ internal data class PreferencesDraft(
     val fatPctFriedText: String = FoodPreferencesForm().friedText,
     /** Absent in drafts saved by older versions. */
     val autoUpdateRoutine: Boolean = false,
-    /** ISO weekday of the check-in; absent in drafts saved by older versions (Sunday then). */
-    val checkInWeekday: Int = PreferencesForm.DEFAULT_CHECK_IN_WEEKDAY,
     /** Reminder switches; null in drafts saved by older versions (the saved values then). */
     val weightReminder: Boolean? = null,
     val circumferenceReminder: Boolean? = null,
-    val checkInReminder: Boolean? = null,
     val weekSummaryReminder: Boolean? = null,
     val blockEndReminder: Boolean? = null,
     /** "Mi entrenamiento": enums by name, equipment as names; absent in drafts saved by older versions. */
@@ -72,10 +69,8 @@ internal fun PreferencesForm.encodeDraft(): String = Json.encodeToString(
         fatPctAirFryerText = foodPreferences.airFryerText,
         fatPctFriedText = foodPreferences.friedText,
         autoUpdateRoutine = autoUpdateRoutine,
-        checkInWeekday = checkInWeekday,
         weightReminder = weightReminder,
         circumferenceReminder = circumferenceReminder,
-        checkInReminder = checkInReminder,
         weekSummaryReminder = weekSummaryReminder,
         blockEndReminder = blockEndReminder,
         intention = intention?.name,
@@ -94,7 +89,8 @@ private fun equipmentOfDraftName(name: String): Equipment? = Equipment.entries.f
 
 /** [saved] supplies the values a draft from an older version does not carry (the reminder switches). */
 internal fun decodeDraft(json: String, saved: PreferencesForm? = null): PreferencesForm? = runCatching {
-    // Older drafts still carry the two rounding fields (before ADR-56) and the energy and macro fields (before T-303).
+    // Older drafts still carry the two rounding fields (before ADR-56), the energy and macro fields (before T-303)
+    // and the check-in day and switch (before T-311).
     val draft = Json { ignoreUnknownKeys = true }.decodeFromString(PreferencesDraft.serializer(), json)
     PreferencesForm(
         name = draft.name,
@@ -112,10 +108,8 @@ internal fun decodeDraft(json: String, saved: PreferencesForm? = null): Preferen
         ),
         foodPreferences = FoodPreferencesForm(draft.fatPctGriddleText, draft.fatPctAirFryerText, draft.fatPctFriedText),
         autoUpdateRoutine = draft.autoUpdateRoutine,
-        checkInWeekday = draft.checkInWeekday,
         weightReminder = draft.weightReminder ?: saved?.weightReminder ?: true,
         circumferenceReminder = draft.circumferenceReminder ?: saved?.circumferenceReminder ?: true,
-        checkInReminder = draft.checkInReminder ?: saved?.checkInReminder ?: true,
         weekSummaryReminder = draft.weekSummaryReminder ?: saved?.weekSummaryReminder ?: true,
         blockEndReminder = draft.blockEndReminder ?: saved?.blockEndReminder ?: true,
         intention = draft.intention?.let(TrainingIntention::valueOf),

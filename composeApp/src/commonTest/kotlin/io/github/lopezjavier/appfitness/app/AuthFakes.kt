@@ -106,19 +106,6 @@ internal class FakeProfileRepository(results: List<Result<ProfileSummary>>) : Pr
         return updateResult
     }
 
-    /** Result of [getCheckInWeekday]; saves go to [checkInWeekdaySaves], answered by [checkInWeekdaySaveResult]. */
-    var checkInWeekday: Result<Int> = Result.success(7)
-    var checkInWeekdaySaveResult: Result<Unit> = Result.success(Unit)
-    val checkInWeekdaySaves = mutableListOf<Int>()
-
-    override suspend fun getCheckInWeekday(): Result<Int> = checkInWeekday
-
-    override suspend fun setCheckInWeekday(weekday: Int): Result<Unit> {
-        checkInWeekdaySaves += weekday
-        if (checkInWeekdaySaveResult.isSuccess) checkInWeekday = Result.success(weekday)
-        return checkInWeekdaySaveResult
-    }
-
     /** Result of every [savePreferences], which also records the arguments. */
     var settingsResult: Result<Unit> = Result.success(Unit)
     val preferenceSaves = mutableListOf<SavedPreferences>()
@@ -231,6 +218,9 @@ internal class FakeBodyMeasurementRepository(var row: BodyMeasurement? = null) :
     }
 
     override suspend fun getLatestWeight(): Result<BodyMeasurement?> = Result.success(row)
+
+    override suspend fun getEarliestWeight(): Result<BodyMeasurement?> =
+        Result.success(rows?.minByOrNull { it.measuredAt } ?: row)
 
     override suspend fun getMeasurements(from: Instant, toExclusive: Instant): Result<List<BodyMeasurement>> {
         measurementReads++

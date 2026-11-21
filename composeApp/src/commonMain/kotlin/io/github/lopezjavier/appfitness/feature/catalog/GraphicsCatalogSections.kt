@@ -26,12 +26,10 @@ import io.github.lopezjavier.appfitness.composeapp.resources.ic_live_trophy
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_restaurant_outlined
 import io.github.lopezjavier.appfitness.designsystem.ActivityHeatmap
 import io.github.lopezjavier.appfitness.designsystem.AppCard
-import io.github.lopezjavier.appfitness.designsystem.AppOption
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
 import io.github.lopezjavier.appfitness.designsystem.CelebrationBurst
 import io.github.lopezjavier.appfitness.designsystem.DiaryAnalysingGraphic
 import io.github.lopezjavier.appfitness.designsystem.DiaryDot
-import io.github.lopezjavier.appfitness.designsystem.DiaryEnergyScale
 import io.github.lopezjavier.appfitness.designsystem.DiaryShareBar
 import io.github.lopezjavier.appfitness.designsystem.DiarySplitBar
 import io.github.lopezjavier.appfitness.designsystem.DiarySplitPart
@@ -170,13 +168,6 @@ private fun ScreenGraphicsSection() {
                     DiaryDot(colors.macroFat)
                     DiaryShareBar(0.4f, colors.macroFat, Modifier.weight(1f))
                 }
-                DiaryEnergyScale(
-                    options = List(5) { AppOption((it + 1).toString(), "catalog_energy_${it + 1}") },
-                    selectedIndex = 2,
-                    onSelect = {},
-                    lowLabel = label,
-                    highLabel = label,
-                )
                 DiaryAnalysingGraphic(Res.drawable.ic_bar_chart)
                 LiveStatusStrip(statusText = label, progressText = "12", paused = false, elapsedText = "32")
                 TrainerBeforeAfter(100.0, 112.5, "100", "112")

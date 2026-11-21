@@ -16,6 +16,9 @@ interface BodyMeasurementRepository {
     /** The most recent entry by measurement time, or null if there is none. */
     suspend fun getLatestWeight(): Result<BodyMeasurement?>
 
+    /** The earliest entry of any source by measurement time (id as the tie-break), or null if there is none. */
+    suspend fun getEarliestWeight(): Result<BodyMeasurement?>
+
     /** Entries with `from <= measuredAt < toExclusive` of any source, newest first. */
     suspend fun getMeasurements(from: Instant, toExclusive: Instant): Result<List<BodyMeasurement>>
 

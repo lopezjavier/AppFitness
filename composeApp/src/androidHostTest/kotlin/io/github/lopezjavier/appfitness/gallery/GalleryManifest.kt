@@ -42,7 +42,7 @@ internal object GalleryManifest {
         "TimeInput", "TimerBarLabel", "TimerBarSurface",
         // Trainer round 3 (T-283): shown in the Trainer gallery screens; a catalog section is owed.
         "BarListRow", "DecisionButtonRow", "RowGroupCard", "SectionCard", "SegmentedProgress",
-        // Perfil round 4 (T-284): used by the stats, Actividad and check-in screens; a catalog section is owed.
+        // Perfil round 4 (T-284): used by the stats, Actividad and report screens; a catalog section is owed.
         "MetricTileRow", "MetricValueText",
     ).associateWith {
         "Not in the component catalog yet: recorded gap in tasks/todo.md (T-280), owner review rounds T-281 to T-284."
