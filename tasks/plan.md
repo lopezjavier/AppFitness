@@ -100,8 +100,14 @@ Every task pays 6-8 agent hand-offs, so stories stay whole unless one is too lar
 | 7 | T-283: Review round 3: Trainer | **M** (estimate) | US-123 | review + UI | 7 + review |
 | 8 | T-284: Review round 4: Perfil | **M** (estimate) | US-123 | review + UI | 7 + review |
 | 8b | T-299 umbrella (user request 2026-11-17), split into T-300 (Trainer play), T-301 (exercise pictures + Fuerza rows), T-303 (Preferencias stops overwriting calories, migration, Objetivo calórico and Macros removed), T-306 (routine icons, derived) and T-308 (activity level and Provisional lifecycle); T-302, T-304, T-305 absorbed, T-307 parked as optional; details in `tasks/todo.md` "T-299 split" | M each | US-136…US-140 | review + UI | planner per task |
-| 8c | T-310: remove "Check-in semanal" and enhance the Trainer weekly report (user request 2026-11-18; feedback given when it starts) | to be set by the planner | US-59 removed, weekly report | core + UI + backend | planner |
-| 9 | T-285: E19 closure (after the user's closure approval) | closure step (no size class) | DoD | PM | PM only |
+| 8c | T-310 umbrella (user request 2026-11-18; split approved by the user 2026-11-21, with the scope and the 5 production drops of T-312; ADR-110; every agent except pr-creator on Opus); details in `tasks/todo.md` "T-310 split" | umbrella | US-141, US-142 | — | — |
+| 8c.1 | T-311: check-in removal, app side, and the circumference reminder anchor (earliest weigh-in of any source, R3) | **M** | US-142 | core + UI (2.1 without ui-designer) | 7 |
+| 8c.2 | T-312: check-in removal, backend: the 5 approved production drops (enum recreated, R1) and the check-in docs; the user installs the T-311 APK first | **S** (cannot be folded into T-311 or T-313: old-app window, R2; T-313 already L) | US-142 | backend + docs (2.2) | 4 |
+| 8c.3 | T-313: weekly progress builder, live snapshot v2 and the Q17 refresh | **L** | US-141 | backend (2.2, two runs) | 5 |
+| 8c.4 | T-314: backfill of the stored weekly reports to v2 (production data; only stored weeks, Q1; the user's OK on the migration file before merge) | **M** | US-141 | backend (2.2) | 4 |
+| 8c.5 | T-315: the weekly report UI, progress-first (visual-first: ui-designer → user in gallery/emulator → ux-critic → ux-reviewer → core → UI) | **L** | US-141 | core + UI (2.1 visual-first) | 8 + user look |
+| 8c.6 | 👤 Checkpoint E19-R · weekly report (7 items, after T-315 merges and T-314's deploy checks pass; releases T-285) | checkpoint | US-141, US-142 | user | — |
+| 9 | T-285: E19 closure (after Checkpoint E19-R and the user's closure approval) | closure step (no size class) | DoD | PM | PM only |
 
 Why these splits and merges:
 - **Cleanup → one task, T-277 (user decision).** The audit, the app removal and the backend migration go in one PR. The audit-first gate and the by-name approval of production drops stay inside it. The deploy-order risk is handled as described in "Architecture decisions". It is mostly deletions; it splits by layer with a new ID only above ~30 files with real edits.

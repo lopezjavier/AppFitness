@@ -160,6 +160,99 @@ Feature: Activity level owned by the trainer
     Then the sheet is restored, or closed silently with no stale draft if the level became measured
 ```
 
+## US-141 · The weekly report shows my progress (T-313, T-314, T-315)
+**As** the user
+**I want** the Trainer's weekly report ("Resumen semanal", live and in "Informes") to show my progress, not compliance counts
+**So that** each week I see what moved toward my goal (ADR-110, `07` §3 "Weekly report: progress first").
+
+```gherkin
+Feature: Progress-first weekly report
+
+  Scenario: Coach card on top
+    When I open a weekly report
+    Then the first card shows one progress sentence and one action, the first that applies: a pending calorie proposal, then "¿Por qué no avanza tu peso?", then a stall, then missing data, then a deload, else "Sigue con el plan"
+    And on a past week a decided proposal reads "Propuesta −150 kcal · aplicada"
+
+  Scenario: Strength per muscle group
+    Then each muscle group row shows one state icon per exercise and "2 de 3 suben"
+    When I tap a group
+    Then it lists each exercise as "80 kg × 8 → 82,5 kg × 6"
+    And a context line reads "3 de 4 entrenos · 18 de 20 series"
+    And in week 1 it reads "Semana 1: esta es tu base. Desde la semana 2 verás qué sube."
+
+  Scenario: Paused exercise with a health note
+    Given an unresolved level 4-5 discomfort whose note is due and not dismissed
+    When I open the latest week's report
+    Then the exercise's row shows the paused state and the health note text of 07 §7
+    And the paused state replaces Igual or Baja but not Sube
+    And a past report shows no note
+
+  Scenario: Main lifts
+    Then up to 6 main lifts show a sparkline
+    And each reads "Sube +5 kg (+5 %)", "dentro del margen de un día a otro", "Estancado" or "provisional" (fewer than 3 weeks)
+    And deload weeks are drawn hollow
+
+  Scenario: Records
+    Then at most 3 record badges show the amount, main lifts first
+    And with no record there is no records card
+
+  Scenario: Weight
+    Then the weight card shows the plan-week average
+    And the change against last week only with 3 or more weigh-ins in both weeks, reading "igual que la semana pasada" when it rounds to 0
+    And the change since the phase started, a sparkline with the dashed plan line ending at "Meta {x} kg · {fecha}", and the "Tu plan" verdict
+    And below the gates it reads "Faltan pesajes para ver el cambio" or "Pésate 3 días esta semana"
+
+  Scenario: Waist
+    Given a week with a new waist measurement
+    Then the waist card shows the change, reading "dentro del margen de medida" under 3,0 cm
+    And in a week without one there is no waist card
+
+  Scenario: Order by goal
+    Then with "Perder grasa" Weight comes first
+    And with "Ganar fuerza" or "Ganar musculatura" Strength comes first
+    And with "Mantenimiento" or "Recomposición" the order is Strength, Waist, Weight
+
+  Scenario: No compliance cards
+    Then there is no "Series por grupo", sessions ring, "Días" strip or nutrition card
+
+  Scenario: Past weeks remade
+    Given a report stored before the change
+    When I open it in "Informes"
+    Then it shows the new cards rebuilt as of that week's end, with its original decisions
+    And a missing input hides its line and says what is missing
+
+  Scenario: Late data
+    Given a weigh-in synced after the week ended
+    Then it counts in the latest finished week until the next week ends
+
+  Scenario: Leaving the app
+    Given the group sheet is open
+    When I leave the app and come back
+    Then the screen and the sheet are restored
+```
+
+## US-142 · No weekly check-in (T-311, T-312)
+**As** the user
+**I want** the weekly check-in gone from every place, and the measures reminder to work with Health Connect weigh-ins
+**So that** nothing asks me for a check-in the app never showed, and no reminder depends on it (ADR-110, amends ADR-73).
+
+```gherkin
+Feature: No weekly check-in
+
+  Scenario: No check-in anywhere
+    When I open "Centro de avisos", Preferencias > Avisos or follow an old link
+    Then there is no "Check-in semanal" item, switch, "Día del check-in" row or screen
+
+  Scenario: Old saved state
+    Given a saved Preferencias draft or navigation stack from before
+    When I come back
+    Then it opens without error (the check-in route falls back to the Trainer root or is discarded)
+
+  Scenario: Circumference reminder without a manual weigh-in
+    Given only Health Connect weigh-ins and no circumference
+    Then 14 days after my first weigh-in "Medidas" is listed
+```
+
 ## US-123 · Review of all the UI
 **As** the user
 **I want** all the UI reviewed
