@@ -250,7 +250,7 @@ Feature: No weekly check-in
 
   Scenario: Circumference reminder without a manual weigh-in
     Given only Health Connect weigh-ins and no circumference
-    Then 14 days after my first weigh-in "Medidas" is listed
+    Then 14 days after my first weigh-in "Llevas 2 semanas sin medirte" is listed
 ```
 
 ## US-123 · Review of all the UI

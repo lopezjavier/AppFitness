@@ -76,7 +76,6 @@ values (pg_temp.u(1), pg_temp.d0(),
 insert into public.daily_activity (user_id, day, steps, active_kcal) values (pg_temp.u(1), pg_temp.d0(), 8000, 450);
 insert into public.sleep_sessions (user_id, external_id, started_at, ended_at, minutes) values
   (pg_temp.u(1), 's1', pg_temp.d0()::timestamp at time zone 'utc' - interval '7 hours', pg_temp.d0()::timestamp at time zone 'utc', 420);
-insert into public.weekly_check_ins (user_id, week_start, energy) values (pg_temp.u(1), pg_temp.mon0(), 4);
 
 -- ---------------------------------------------------------------------------
 -- User 4: the worst case (8 weeks of daily data, 20 custom main/cardio exercises, 10 open discomforts)
@@ -102,8 +101,6 @@ select pg_temp.u(4), pg_temp.d0() - i, 7000 + i * 13, 300 + i from generate_seri
 insert into public.sleep_sessions (user_id, external_id, started_at, ended_at, minutes)
 select pg_temp.u(4), 'sl' || i, now() - make_interval(days => i, hours => 9), now() - make_interval(days => i, hours => 1), 400 + i
 from generate_series(0, 55) i;
-insert into public.weekly_check_ins (user_id, week_start, energy)
-select pg_temp.u(4), pg_temp.mon0() - 7 * i, 1 + i % 5 from generate_series(0, 7) i;
 insert into public.workout_sessions (id, user_id, name, status, started_at, ended_at)
 select ('a5000000-0000-4000-8000-0000000002' || lpad(i::text, 2, '0'))::uuid, pg_temp.u(4), 's', 'completed',
        now() - make_interval(days => i), now() - make_interval(days => i) + interval '1 hour'
@@ -164,7 +161,8 @@ select is((pg_temp.sm(1)->'weeks'->7->>'steps_avg')::numeric, 8000::numeric, 'st
 select is((pg_temp.sm(1)->'weeks'->7->>'sleep_minutes_avg')::numeric, 420::numeric, 'sleep is summarised per week');
 select is((pg_temp.sm(1)->'weeks'->7->>'kcal_avg')::numeric, 2000::numeric, 'the diary is averaged over logged days');
 select is(pg_temp.sm(1)->'weeks'->7->'cardio', '{"sessions": 1, "minutes": 30}'::jsonb, 'cardio sessions are listed with their minutes');
-select is((pg_temp.sm(1)->'weeks'->7->>'check_in_energy')::int, 4, 'the check-in energy is included');
+select ok(not exists (select 1 from jsonb_array_elements(pg_temp.sm(1)->'weeks') w where w ? 'check_in_energy'),
+  'no week carries the removed check-in energy (ADR-110)');
 select is(pg_temp.sm(1)->'weeks'->7->'sets_by_muscle'->0, '{"muscle": "chest", "sets": 1}'::jsonb,
   'working sets per muscle group exclude warm-ups and cardio (chest ties with quads, enum order)');
 select is(pg_temp.sm(1)->'open_discomforts', jsonb_build_array(

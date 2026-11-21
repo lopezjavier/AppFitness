@@ -2,7 +2,7 @@
 
 Updated by T-287 on 2026-11-11 after the T-277 cleanup; a task that adds or removes a functionality updates this file.
 
-Verified on 2026-11-11 against the repo: 50 route registrations in `composeApp/src/commonMain/kotlin/io/github/lopezjavier/appfitness/app/AppNavHost.kt` (`composable<` and `dialog<`, one per route type in [`AppRoutes.kt`](../composeApp/src/commonMain/kotlin/io/github/lopezjavier/appfitness/app/AppRoutes.kt); `CatalogRoute` only when `catalogAvailable`); 8 Edge Functions in `supabase/functions/`; no live `pg_cron` job; every RPC named here is defined by a migration in `supabase/migrations/`. Stories are the owner of each functionality by its title in [`epics/`](epics/); `-` means no story. Items that are not built yet (for example US-125, export my data, E21) are not listed. Removed items are not listed either: [ADR-107](00-decisions.md) holds that history.
+Verified on 2026-11-11 against the repo: 50 route registrations in `composeApp/src/commonMain/kotlin/io/github/lopezjavier/appfitness/app/AppNavHost.kt` (`composable<` and `dialog<`, one per route type in [`AppRoutes.kt`](../composeApp/src/commonMain/kotlin/io/github/lopezjavier/appfitness/app/AppRoutes.kt); `CatalogRoute` only when `catalogAvailable`); 8 Edge Functions in `supabase/functions/`; no live `pg_cron` job; every RPC named here is defined by a migration in `supabase/migrations/`. Stories are the owner of each functionality by its title in [`epics/`](epics/); `-` means no story. Items that are not built yet (for example US-125, export my data, E21) are not listed. Removed items are not listed either: [ADR-107](00-decisions.md) and ADR-110 hold that history.
 
 Columns: functionality, label as shown in the app (Spanish), route type or host, backend (RPC, table or Edge Function), story.
 
@@ -61,7 +61,7 @@ Columns: functionality, label as shown in the app (Spanish), route type or host,
 | Notes per set and per routine exercise | "Nota de la serie", "Nota del ejercicio" | sheet `NoteSheet` of `LiveSessionRoute` and `RoutineBuilderRoute` | tables `workout_sets.notes`, `routine_exercises.notes` | US-66 |
 | Discomfort log per exercise | "Molestia" | sheet `DiscomfortSheet` of `LiveSessionRoute` | table `exercise_discomforts`; RPC `dismiss_discomfort_note` | US-67 |
 | Workout history, session detail, calendar and editing | "Historial de entrenos", "Entreno completado", "Editar entreno", "Entreno pasado" | `HistoryRoute`, `SessionDetailRoute`, `EditWorkoutRoute`, `PastWorkoutRoute` | RPC `save_workout_as_routine` | US-14, US-37 |
-| Strength, muscle volume, stats and exercise progress | "Fuerza", "Volumen", "Entrenamiento", "Progreso del ejercicio" | `StrengthRoute`, `MuscleVolumeRoute`, `StatsRoute`, `ExerciseProgressRoute` | RPCs `weekly_muscle_volume`, `training_summary`, `weekly_records`, `weekly_set_counts`, `muscle_group_sets` | US-15, US-39, US-40, US-41, US-137 |
+| Strength, muscle volume, stats and exercise progress | "Fuerza", "Volumen", "Entrenamiento", "Progreso del ejercicio" | `StrengthRoute`, `MuscleVolumeRoute`, `StatsRoute`, `ExerciseProgressRoute` | RPCs `weekly_muscle_volume`, `training_summary`, `weekly_set_counts`, `muscle_group_sets` | US-15, US-39, US-40, US-41, US-137 |
 
 ## Trainer
 
@@ -105,7 +105,6 @@ Columns: functionality, label as shown in the app (Spanish), route type or host,
 | Functionality | Label in the app | Route or host | Backend | Story |
 |---|---|---|---|---|
 | In-app notification center | "Centro de avisos", "Todo al día" | `NotificationCenterRoute` | - | US-57, US-109 |
-| Weekly check-in (energy only) | "Check-in semanal", "Energía de la semana" | `CheckInRoute` | table `weekly_check_ins` (`energy`) | US-59 |
 | Weight and circumference reminders | "Avisos" | computed on the device, never stored (`04` §6) | - | US-58 |
 
 ## Backend jobs and Edge Functions

@@ -7,7 +7,7 @@ begin;
 create extension if not exists pgtap with schema extensions;
 set local search_path = extensions, public;
 
-select plan(28);
+select plan(25);
 
 create function pg_temp.plan() returns uuid language sql as $$
   select id from public.coach_plans where user_id = '00000000-0000-4000-8000-000000000001' and status = 'accepted' $$;
@@ -34,11 +34,6 @@ select is((select max(measured_at at time zone 'utc')::date from public.body_mea
   'the latest weigh-in is 3 days ago (the weight reminder is due)');
 select is((select max(measured_at at time zone 'utc')::date from public.body_circumferences), (now() at time zone 'utc')::date - 20,
   'the circumferences were measured 20 days ago (the reminder is due)');
-select is((select check_in_weekday::int from public.profiles where id = '00000000-0000-4000-8000-000000000001'),
-  extract(isodow from (now() at time zone 'utc')::date)::int, 'today is the check-in day');
-select is((select count(*)::int from public.weekly_check_ins), 3, 'the last 3 weeks are answered');
-select is((select count(*)::int from public.weekly_check_ins
-           where week_start >= date_trunc('week', (now() at time zone 'utc')::timestamp)::date), 0, 'the current week is not answered');
 
 select is((select count(*)::int from public.coach_plans), 2, 'two plans: the finished block and the accepted one');
 select is((select count(*)::int from public.coach_plans where status = 'accepted'), 1, 'one accepted plan');
