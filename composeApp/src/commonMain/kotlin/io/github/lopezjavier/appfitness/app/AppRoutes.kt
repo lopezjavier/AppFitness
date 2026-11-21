@@ -56,9 +56,9 @@ data object CatalogRoute : AppRoute
 data object PreferencesRoute : AppRoute
 
 /**
- * One Preferencias editor (US-56): [section] is the `PreferencesSection.key` (`personal`,
- * `cooking`, `training`, `checkin`; the removed keys `energy` and `macros` fall back to Datos personales). The argument
- * is stored as `section`, the key under which its view model reads it.
+ * One Preferencias editor (US-56): [section] is the `PreferencesSection.key` (`personal`, `cooking`, `training`,
+ * `avisos`, `mi_entrenamiento`; the removed keys `energy` and `macros` fall back to Datos personales). The argument is
+ * stored as `section`, the key under which its view model reads it.
  */
 @Serializable
 data class PreferencesSectionRoute(val section: String) : AppRoute
@@ -276,10 +276,6 @@ data class WeightRoute(val openEntry: WeightEntryTarget? = null) : AppRoute
 @Serializable
 data object NotificationCenterRoute : AppRoute
 
-/** "Check-in semanal": the closed week plus energy and notes, opened from the notification center (US-59). */
-@Serializable
-data object CheckInRoute : AppRoute
-
 /** "Resumen semanal" (US-98): the latest finished plan week, opened from the Trainer tab or its notice. */
 @Serializable
 data object WeekSummaryRoute : AppRoute
@@ -441,7 +437,6 @@ object AppDestinations {
             FolderBlockRoute("", ""),
             FolderReviewResultRoute(""),
             NotificationCenterRoute,
-            CheckInRoute,
             WeekSummaryRoute,
             BlockReviewRoute,
             ReportsRoute,

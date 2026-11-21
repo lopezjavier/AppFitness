@@ -46,7 +46,6 @@ import io.github.lopezjavier.appfitness.data.repository.SupabaseRoutineRepositor
 import io.github.lopezjavier.appfitness.data.repository.SupabaseStrengthRepository
 import io.github.lopezjavier.appfitness.data.repository.SupabaseTrainingPreferencesRepository
 import io.github.lopezjavier.appfitness.data.repository.SupabaseTrainingStatsRepository
-import io.github.lopezjavier.appfitness.data.repository.SupabaseWeeklyCheckInRepository
 import io.github.lopezjavier.appfitness.data.repository.SupabaseWorkoutSessionRepository
 import io.github.lopezjavier.appfitness.data.repository.UnconfiguredAccountRepository
 import io.github.lopezjavier.appfitness.data.repository.UnconfiguredAuthRepository
@@ -84,7 +83,6 @@ import io.github.lopezjavier.appfitness.data.repository.UnconfiguredRoutineRepos
 import io.github.lopezjavier.appfitness.data.repository.UnconfiguredStrengthRepository
 import io.github.lopezjavier.appfitness.data.repository.UnconfiguredTrainingPreferencesRepository
 import io.github.lopezjavier.appfitness.data.repository.UnconfiguredTrainingStatsRepository
-import io.github.lopezjavier.appfitness.data.repository.UnconfiguredWeeklyCheckInRepository
 import io.github.lopezjavier.appfitness.data.repository.UnconfiguredWorkoutSessionRepository
 import io.github.lopezjavier.appfitness.domain.port.Clock
 import io.github.lopezjavier.appfitness.domain.port.RestAlertPreferences
@@ -125,7 +123,6 @@ import io.github.lopezjavier.appfitness.domain.repository.RoutineRepository
 import io.github.lopezjavier.appfitness.domain.repository.StrengthRepository
 import io.github.lopezjavier.appfitness.domain.repository.TrainingPreferencesRepository
 import io.github.lopezjavier.appfitness.domain.repository.TrainingStatsRepository
-import io.github.lopezjavier.appfitness.domain.repository.WeeklyCheckInRepository
 import io.github.lopezjavier.appfitness.domain.repository.WeightChartPreferences
 import io.github.lopezjavier.appfitness.domain.repository.WorkoutSessionRepository
 import io.github.lopezjavier.appfitness.domain.usecase.AddTemplateToDiary
@@ -149,7 +146,6 @@ import io.github.lopezjavier.appfitness.domain.usecase.GroupMealEntries
 import io.github.lopezjavier.appfitness.domain.usecase.HealthWriteBack
 import io.github.lopezjavier.appfitness.domain.usecase.InterpretMetric
 import io.github.lopezjavier.appfitness.domain.usecase.LoadBlockReviewUseCase
-import io.github.lopezjavier.appfitness.domain.usecase.LoadCheckInSummary
 import io.github.lopezjavier.appfitness.domain.usecase.LoadExerciseCatalog
 import io.github.lopezjavier.appfitness.domain.usecase.LoadFolderBlockUseCase
 import io.github.lopezjavier.appfitness.domain.usecase.LoadNextBlockContextUseCase
@@ -165,7 +161,6 @@ import io.github.lopezjavier.appfitness.domain.usecase.OpenNewBlockUseCase
 import io.github.lopezjavier.appfitness.domain.usecase.PreviewGoalSwitchUseCase
 import io.github.lopezjavier.appfitness.domain.usecase.RecalculateEntry
 import io.github.lopezjavier.appfitness.domain.usecase.RecordPausedWeekReport
-import io.github.lopezjavier.appfitness.domain.usecase.ResolveCheckInDay
 import io.github.lopezjavier.appfitness.domain.usecase.ResolvePortion
 import io.github.lopezjavier.appfitness.domain.usecase.ReviewFolderUseCase
 import io.github.lopezjavier.appfitness.domain.usecase.SaveBodyMeasurement
@@ -316,14 +311,6 @@ val sharedModule =
                 SupabaseStrengthRepository(client.auth, client.postgrest)
             } else {
                 UnconfiguredStrengthRepository()
-            }
-        }
-        single<WeeklyCheckInRepository> {
-            if (get<AppConfig>().isSupabaseConfigured) {
-                val client = get<SupabaseClient>()
-                SupabaseWeeklyCheckInRepository(client.auth, client.postgrest)
-            } else {
-                UnconfiguredWeeklyCheckInRepository()
             }
         }
         single<DiscomfortRepository> {
@@ -514,7 +501,6 @@ val sharedModule =
         factory { SyncHealthData(get(), get(), get(), get(), get(), TimeZone.currentSystemDefault()) }
         factory { AutoSyncHealth(get(), get(), get(), get(), get(), TimeZone.currentSystemDefault()) }
         factory { ComputeReminders() }
-        factory { ResolveCheckInDay() }
         single<CoachSummaryRepository> {
             if (get<AppConfig>().isSupabaseConfigured) {
                 val client = get<SupabaseClient>()
@@ -556,8 +542,6 @@ val sharedModule =
                 get(),
                 get(),
                 get(),
-                get(),
-                get(),
                 TimeZone.currentSystemDefault(),
                 get(),
                 summaries = get(),
@@ -565,6 +549,5 @@ val sharedModule =
             )
         }
         factory { LoadWelcomeBack(get(), get(), TimeZone.currentSystemDefault()) }
-        factory { LoadCheckInSummary(get(), get(), TimeZone.currentSystemDefault()) }
         factory { SaveBodyMeasurement(get(), get(), TimeZone.currentSystemDefault(), get(), get()) }
     }

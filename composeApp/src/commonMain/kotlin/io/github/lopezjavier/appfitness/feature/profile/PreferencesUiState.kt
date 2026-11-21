@@ -38,14 +38,10 @@ data class PreferencesForm(
     val foodPreferences: FoodPreferencesForm = FoodPreferencesForm(),
     /** "Actualizar automáticamente" (ADR-70): a finished routine session updates its routine without asking. */
     val autoUpdateRoutine: Boolean = false,
-    /** "Día del check-in": ISO weekday, 1 (Monday) to 7 (Sunday). */
-    val checkInWeekday: Int = DEFAULT_CHECK_IN_WEEKDAY,
     /** "Recordatorio de peso": a missing stored row means enabled. */
     val weightReminder: Boolean = true,
     /** "Recordatorio de circunferencias". */
     val circumferenceReminder: Boolean = true,
-    /** "Avisos". */
-    val checkInReminder: Boolean = true,
     /** "Resumen semanal" notice (T-231). */
     val weekSummaryReminder: Boolean = true,
     /** "Bloque terminado" notice (T-243). */
@@ -67,11 +63,6 @@ data class PreferencesForm(
 
     /** The name without surrounding blanks is what gets stored; an empty one is not valid. */
     val isNameValid: Boolean get() = name.isNotBlank()
-
-    companion object {
-        /** Sunday. */
-        const val DEFAULT_CHECK_IN_WEEKDAY = 7
-    }
 }
 
 /**
@@ -111,8 +102,6 @@ data class FoodPreferencesForm(
 }
 
 private fun parseFatPct(text: String): Double? = parseAmount(text)?.takeIf(FoodPreferences::isValidPct)
-
-private const val DAYS_PER_WEEK = 7
 
 /** State of the Preferencias screen. */
 sealed interface PreferencesUiState {
@@ -160,7 +149,7 @@ sealed interface PreferencesUiState {
                     MyTraining.isValidDays(form.daysPerWeek) && MyTraining.isValidSessionMinutes(form.sessionMinutes)
 
                 // The reminders are written alone, so no other field has to be valid.
-                PreferencesSection.Reminders -> form.checkInWeekday in 1..DAYS_PER_WEEK
+                PreferencesSection.Reminders -> true
             }
     }
 }
@@ -207,9 +196,6 @@ sealed interface PreferencesEvent {
     /** "Grasa añadida al freír (%)" as typed; only a draft until [Save]. */
     data class SetFatPctFried(val text: String) : PreferencesEvent
 
-    /** "Día del check-in" picked (ISO weekday 1..7); only a draft until [Save]. */
-    data class SetCheckInWeekday(val weekday: Int) : PreferencesEvent
-
     /** A reminder switch of "Avisos"; only a draft until [Save]. */
     data class SetReminderEnabled(val kind: NotificationKind, val enabled: Boolean) : PreferencesEvent
 
@@ -253,7 +239,7 @@ internal val PreferencesEvent.owner: PreferencesSection?
         is PreferencesEvent.SetDumbbellHandle, is PreferencesEvent.SetPlateEnabled,
         -> PreferencesSection.Training
 
-        is PreferencesEvent.SetCheckInWeekday, is PreferencesEvent.SetReminderEnabled -> PreferencesSection.Reminders
+        is PreferencesEvent.SetReminderEnabled -> PreferencesSection.Reminders
 
         is PreferencesEvent.SetIntention, is PreferencesEvent.SetPlace, is PreferencesEvent.SetEquipment,
         is PreferencesEvent.SetDaysPerWeek, is PreferencesEvent.SetSessionMinutes,

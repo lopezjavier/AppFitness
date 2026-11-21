@@ -21,8 +21,8 @@ import org.robolectric.annotation.Config
 
 /**
  * ADR-40: a back stack saved by a build that still had a destination this build removed (the AI usage screen, then
- * the free-text lines screen) is dropped, not restored (restoring an unknown destination makes Navigation throw), and
- * the app starts at its start tab.
+ * the free-text lines screen, then the weekly check-in screen) is dropped, not restored (restoring an unknown
+ * destination makes Navigation throw), and the app starts at its start tab.
  */
 @RunWith(RobolectricTestRunner::class)
 @Config(qualifiers = "w360dp-h2400dp-xxhdpi")
@@ -83,6 +83,15 @@ class RemovedRouteRestorationTest {
     @Test
     fun aStackSavedByTheLastBuildWithTheFreeTextScreen_isDropped_underTheCurrentVersion() {
         openYourDataThenRecreateWith(savedVersion = 1, newVersion = NAV_STATE_VERSION)
+
+        rule.onNodeWithTag("your_data_screen").assertDoesNotExist()
+        rule.onNodeWithTag("nav_tab_diary").assertExists()
+    }
+
+    /** US-142: a stack saved by the last build with the weekly check-in screen opens on Diario, without error. */
+    @Test
+    fun aStackSavedByTheLastBuildWithTheCheckInScreen_isDropped_underTheCurrentVersion() {
+        openYourDataThenRecreateWith(savedVersion = 2, newVersion = NAV_STATE_VERSION)
 
         rule.onNodeWithTag("your_data_screen").assertDoesNotExist()
         rule.onNodeWithTag("nav_tab_diary").assertExists()

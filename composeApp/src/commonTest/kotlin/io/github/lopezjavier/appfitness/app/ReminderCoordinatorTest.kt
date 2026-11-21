@@ -2,7 +2,6 @@ package io.github.lopezjavier.appfitness.app
 
 import io.github.lopezjavier.appfitness.domain.model.BodyCircumference
 import io.github.lopezjavier.appfitness.domain.model.BodyMeasurement
-import io.github.lopezjavier.appfitness.domain.model.CheckIn
 import io.github.lopezjavier.appfitness.domain.model.CircumferenceSite
 import io.github.lopezjavier.appfitness.domain.model.MeasurementSource
 import io.github.lopezjavier.appfitness.domain.model.NotificationKind
@@ -163,8 +162,6 @@ class ReminderCoordinatorTest {
             env.weight,
             env.circumferences,
             settings,
-            env.profile,
-            env.checkIns,
             env.clock,
             env.timeZone,
             ComputeReminders(),
@@ -191,58 +188,6 @@ class ReminderCoordinatorTest {
         assertTrue(coordinator.reminders.value.isEmpty())
     }
 
-    private fun checkInEnv() = ReminderEnv(TODAY).apply {
-        weight.rows += weightAt(0)
-        weight.onboarding = weightAt(20, id = "onb")
-        circumferences.rows += circumferenceAt(0)
-    }
-
-    @Test
-    fun refresh_exposesTheUnansweredCheckInAsReminderAndWindow() = runTest {
-        val coordinator = coordinator(checkInEnv())
-
-        coordinator.refresh()
-
-        assertEquals(listOf(ReminderKind.CheckIn), coordinator.reminders.value.map { it.kind })
-        assertEquals(LocalDate(2026, 10, 25), coordinator.checkIn.value?.day)
-    }
-
-    @Test
-    fun answeredCheckIn_staysInTheWindowButLeavesTheCount() = runTest {
-        val env = checkInEnv()
-        val coordinator = coordinator(env)
-        coordinator.refresh()
-
-        env.checkIns.save(CheckIn(LocalDate(2026, 10, 19), 5)).getOrThrow()
-        coordinator.refresh()
-
-        assertTrue(coordinator.reminders.value.isEmpty())
-        assertEquals(5, coordinator.checkIn.value?.answer?.energy)
-    }
-
-    @Test
-    fun clear_alsoForgetsTheCheckInWindow() = runTest {
-        val coordinator = coordinator(checkInEnv())
-        coordinator.refresh()
-
-        coordinator.clear()
-
-        assertEquals(null, coordinator.checkIn.value)
-    }
-
-    @Test
-    fun failedRefresh_keepsTheCheckInWindow() = runTest {
-        val env = checkInEnv()
-        val coordinator = coordinator(env)
-        coordinator.refresh()
-        val before = coordinator.checkIn.value
-
-        env.checkIns.failReads = true
-        coordinator.refresh()
-
-        assertEquals(before, coordinator.checkIn.value)
-    }
-
     @Test
     fun localDayBoundary_usesTheDeviceTimeZone() = runTest {
         // 23:30 UTC on 25 Oct is already 26 Oct in +02:00; with today = 28 Oct that is exactly two days.
@@ -258,11 +203,10 @@ class ReminderCoordinatorTest {
     }
 
     @Test
-    fun neverMeasured_circumferenceAnchorsOnOnboardingDay() = runTest {
+    fun neverMeasured_circumferenceAnchorsOnTheEarliestWeighIn() = runTest {
         val env = ReminderEnv(TODAY).apply {
             weight.rows += weightAt(0)
-            weight.onboarding = weightAt(15, id = "onb")
-            settings.values[NotificationKind.WeeklyCheckIn] = false
+            weight.rows += weightAt(15, MeasurementSource.HealthConnect, "hc")
         }
         val coordinator = coordinator(env)
 

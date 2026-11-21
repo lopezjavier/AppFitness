@@ -4,8 +4,6 @@ import io.github.lopezjavier.appfitness.domain.AppError
 import io.github.lopezjavier.appfitness.domain.AppException
 import io.github.lopezjavier.appfitness.domain.model.BodyCircumference
 import io.github.lopezjavier.appfitness.domain.model.BodyMeasurement
-import io.github.lopezjavier.appfitness.domain.model.CheckIn
-import io.github.lopezjavier.appfitness.domain.model.CheckInDay
 import io.github.lopezjavier.appfitness.domain.model.CircumferenceSite
 import io.github.lopezjavier.appfitness.domain.model.MeasurementSource
 import io.github.lopezjavier.appfitness.domain.model.NotificationKind
@@ -40,7 +38,7 @@ class LoadRemindersTest {
         val env = ReminderEnv(today, TimeZone.of("+02:00"))
         env.weight.rows += weightAtInstant(utc(LocalDate(2026, 10, 25), 23, 30))
 
-        val reminders = env.load().getOrThrow().reminders
+        val reminders = env.load().getOrThrow()
 
         assertEquals(2, reminders.single { it.kind == ReminderKind.Weight }.days)
     }
@@ -50,7 +48,7 @@ class LoadRemindersTest {
         val env = ReminderEnv(today, TimeZone.of("-05:00"))
         env.weight.rows += weightAtInstant(utc(LocalDate(2026, 10, 25), 23, 30))
 
-        val reminders = env.load().getOrThrow().reminders
+        val reminders = env.load().getOrThrow()
 
         assertEquals(3, reminders.single { it.kind == ReminderKind.Weight }.days)
     }
@@ -61,7 +59,7 @@ class LoadRemindersTest {
         val env = ReminderEnv(LocalDate(2026, 11, 5), TimeZone.of("America/New_York"))
         env.weight.rows += weightAtInstant(utc(LocalDate(2026, 11, 2), 4, 30))
 
-        val reminders = env.load().getOrThrow().reminders
+        val reminders = env.load().getOrThrow()
 
         assertEquals(4, reminders.single { it.kind == ReminderKind.Weight }.days)
     }
@@ -78,8 +76,8 @@ class LoadRemindersTest {
             circumferences.rows += circumferenceAtInstant(at)
         }
 
-        assertEquals(14, plusTwo.load().getOrThrow().reminders.single().days)
-        assertEquals(15, minusFive.load().getOrThrow().reminders.single().days)
+        assertEquals(14, plusTwo.load().getOrThrow().single().days)
+        assertEquals(15, minusFive.load().getOrThrow().single().days)
     }
 
     @Test
@@ -87,7 +85,7 @@ class LoadRemindersTest {
         val env = ReminderEnv(today)
         env.weight.rows += weightAtInstant(utc(LocalDate(2026, 10, 20), 10, 0))
 
-        val reminders = env.load().getOrThrow().reminders
+        val reminders = env.load().getOrThrow()
 
         assertEquals(listOf(ReminderKind.Weight), reminders.map { it.kind })
     }
@@ -98,7 +96,7 @@ class LoadRemindersTest {
         env.settings.values[NotificationKind.Weight] = true
         env.weight.rows += weightAtInstant(utc(LocalDate(2026, 10, 20), 10, 0))
 
-        assertEquals(1, env.load().getOrThrow().reminders.size)
+        assertEquals(1, env.load().getOrThrow().size)
     }
 
     @Test
@@ -108,7 +106,7 @@ class LoadRemindersTest {
         env.weight.rows += weightAtInstant(utc(LocalDate(2026, 10, 20), 10, 0))
         env.circumferences.rows += circumferenceAtInstant(utc(LocalDate(2026, 9, 1), 10, 0))
 
-        val reminders = env.load().getOrThrow().reminders
+        val reminders = env.load().getOrThrow()
 
         assertEquals(listOf(ReminderKind.Circumference), reminders.map { it.kind })
     }
@@ -134,66 +132,6 @@ class LoadRemindersTest {
         assertTrue(env.load().isFailure)
     }
 
-    // today = Wednesday 28 Oct 2026: the Sunday check-in day is 25 Oct, of the week starting Monday 19 Oct.
-    private val checkInDay = LocalDate(2026, 10, 25)
-    private val checkInWeek = LocalDate(2026, 10, 19)
-
-    private fun checkInEnv() = ReminderEnv(today).apply {
-        weight.rows += weightAtInstant(utc(today, 8, 0))
-        weight.onboarding = weightAtInstant(utc(LocalDate(2026, 10, 1), 8, 0))
-        circumferences.rows += circumferenceAtInstant(utc(today, 8, 0))
-    }
-
-    @Test
-    fun unansweredCheckIn_isListedAndExposedInTheSnapshot() = runTest {
-        val snapshot = checkInEnv().load().getOrThrow()
-
-        assertEquals(listOf(ReminderKind.CheckIn), snapshot.reminders.map { it.kind })
-        assertEquals(CheckInDay(checkInDay, checkInWeek, null), snapshot.checkIn)
-    }
-
-    @Test
-    fun answeredCheckIn_isInTheSnapshotButNotCounted() = runTest {
-        val env = checkInEnv()
-        val answer = CheckIn(checkInWeek, 4)
-        env.checkIns.rows[checkInWeek] = answer
-
-        val snapshot = env.load().getOrThrow()
-
-        assertTrue(snapshot.reminders.isEmpty())
-        assertEquals(answer, snapshot.checkIn?.answer)
-    }
-
-    @Test
-    fun silencedCheckIn_hidesBothTheReminderAndTheAnsweredRow() = runTest {
-        val env = checkInEnv()
-        env.settings.values[NotificationKind.WeeklyCheckIn] = false
-        env.checkIns.rows[checkInWeek] = CheckIn(checkInWeek, 4)
-
-        val snapshot = env.load().getOrThrow()
-
-        assertTrue(snapshot.reminders.isEmpty())
-        assertNull(snapshot.checkIn)
-    }
-
-    @Test
-    fun chosenWeekday_movesTheCheckInDay() = runTest {
-        val env = checkInEnv()
-        env.profile.checkInWeekday = Result.success(2) // Tuesday 27 Oct
-
-        assertEquals(LocalDate(2026, 10, 27), env.load().getOrThrow().checkIn?.day)
-    }
-
-    @Test
-    fun withoutOnboardingWeight_noCheckInIsListed() = runTest {
-        val env = checkInEnv().apply { weight.onboarding = null }
-
-        val snapshot = env.load().getOrThrow()
-
-        assertNull(snapshot.checkIn)
-        assertTrue(snapshot.reminders.isEmpty())
-    }
-
     private fun summary(seen: Boolean = false) = WeekSummary(
         planId = "p1",
         week = 3,
@@ -211,7 +149,7 @@ class LoadRemindersTest {
     )
 
     private suspend fun weekSummaryReminders(env: ReminderEnv) =
-        env.load().getOrThrow().reminders.filter { it.kind == ReminderKind.WeekSummary }
+        env.load().getOrThrow().filter { it.kind == ReminderKind.WeekSummary }
 
     @Test
     fun unseenWeekSummary_isListedDueOnTheWeekEnd() = runTest {
@@ -263,7 +201,7 @@ class LoadRemindersTest {
     }
 
     private suspend fun blockEndReminders(env: ReminderEnv) =
-        env.load().getOrThrow().reminders.filter { it.kind == ReminderKind.BlockEnd }
+        env.load().getOrThrow().filter { it.kind == ReminderKind.BlockEnd }
 
     @Test
     fun openBlockReview_isListedDueTheDayAfterTheLastDay() = runTest {
@@ -298,7 +236,7 @@ class LoadRemindersTest {
             weight.rows += weightAtInstant(utc(LocalDate(2026, 10, 20), 10, 0))
         }
 
-        assertEquals(listOf(ReminderKind.Weight), env.load().getOrThrow().reminders.map { it.kind })
+        assertEquals(listOf(ReminderKind.Weight), env.load().getOrThrow().map { it.kind })
     }
 
     @Test
@@ -327,7 +265,7 @@ class LoadRemindersTest {
         val result = env.load()
 
         assertTrue(result.isSuccess)
-        assertEquals(listOf(ReminderKind.Weight), result.getOrThrow().reminders.map { it.kind })
+        assertEquals(listOf(ReminderKind.Weight), result.getOrThrow().map { it.kind })
     }
 
     @Test
@@ -343,15 +281,39 @@ class LoadRemindersTest {
     }
 
     @Test
-    fun failedCheckInRead_returnsFailure() = runTest {
-        val env = checkInEnv().apply { checkIns.failReads = true }
+    fun healthConnectOnly_noCircumference_listsTheCircumferenceReminder14DaysAfterTheFirstWeighIn() = runTest {
+        // 23:30 UTC on 13 Oct is 01:30 on 14 Oct at +02:00: 14 local days before today (15 in UTC).
+        val env = ReminderEnv(today, TimeZone.of("+02:00")).apply {
+            weight.rows += weightAtInstant(utc(LocalDate(2026, 10, 13), 23, 30), MeasurementSource.HealthConnect)
+            weight.rows += weightAtInstant(utc(today, 6, 0), MeasurementSource.HealthConnect)
+        }
 
-        assertTrue(env.load().isFailure)
+        val reminder = env.load().getOrThrow().single()
+
+        assertEquals(ReminderKind.Circumference, reminder.kind)
+        assertEquals(today, reminder.dueDate)
+        assertEquals(14, reminder.days)
+        assertEquals(2, reminder.weeks)
     }
 
     @Test
-    fun failedWeekdayRead_returnsFailure() = runTest {
-        val env = checkInEnv().apply { profile.checkInWeekday = Result.failure(AppException(AppError.Network)) }
+    fun earliestWeighInOfAnySource_isTheAnchor_evenWithALaterManualRow() = runTest {
+        val manual = weightAtInstant(utc(LocalDate(2026, 10, 18), 8, 0))
+        val env = ReminderEnv(today).apply {
+            weight.rows += weightAtInstant(utc(LocalDate(2026, 10, 12), 8, 0), MeasurementSource.HealthConnect)
+            weight.rows += manual
+            weight.rows += weightAtInstant(utc(today, 8, 0))
+            weight.onboarding = manual
+        }
+
+        val reminder = env.load().getOrThrow().single { it.kind == ReminderKind.Circumference }
+
+        assertEquals(16, reminder.days)
+    }
+
+    @Test
+    fun failedEarliestWeightRead_returnsFailure() = runTest {
+        val env = ReminderEnv(today).apply { weight.failEarliestRead = true }
 
         assertTrue(env.load().isFailure)
     }
@@ -362,7 +324,7 @@ class LoadRemindersTest {
         env.weight.rows += weightAtInstant(utc(LocalDate(2026, 10, 20), 10, 0))
         env.weight.rows += weightAtInstant(utc(today, 8, 0), MeasurementSource.HealthConnect)
 
-        val reminders = env.load().getOrThrow().reminders
+        val reminders = env.load().getOrThrow()
 
         assertTrue(reminders.none { it.kind == ReminderKind.Weight })
     }

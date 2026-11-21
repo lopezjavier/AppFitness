@@ -78,7 +78,6 @@ class ShellChromeTest {
                 FolderBlockRoute::class,
                 FolderReviewResultRoute::class,
                 NotificationCenterRoute,
-                CheckInRoute,
                 WeekSummaryRoute,
                 BlockReviewRoute,
                 ReportsRoute,
@@ -100,7 +99,6 @@ class ShellChromeTest {
                     it is AboutRoute ||
                     it is YourDataRoute ||
                     it is NotificationCenterRoute ||
-                    it is CheckInRoute ||
                     it is WeekSummaryRoute ||
                     it is BlockReviewRoute ||
                     it is ReportsRoute

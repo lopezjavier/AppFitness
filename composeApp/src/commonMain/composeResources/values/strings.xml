@@ -1500,14 +1500,6 @@
     <string name="help_discomfort_level_bullet_3">Pinchazo o chasquido: dolor breve o ruido en la articulación.</string>
     <string name="help_discomfort_level_bullet_4">Hinchazón, hormigueo o entumecimiento: señales que conviene tomar en serio.</string>
     <string name="help_discomfort_level_bullet_5">Dolor agudo o lesión: dolor fuerte o que te impide mover la zona.</string>
-    <string name="help_checkin_energy_cd">Ayuda: energía de la semana</string>
-    <string name="help_checkin_energy_title">Energía de la semana</string>
-    <string name="help_checkin_energy_intro">Valora de 1 a 5 cómo ha sido tu energía en general durante la semana.</string>
-    <string name="help_checkin_energy_bullet_1">1: agotado, sin fuerzas para casi nada.</string>
-    <string name="help_checkin_energy_bullet_2">2: baja, con cansancio frecuente.</string>
-    <string name="help_checkin_energy_bullet_3">3: normal, con días buenos y malos.</string>
-    <string name="help_checkin_energy_bullet_4">4: buena, con energía casi siempre.</string>
-    <string name="help_checkin_energy_bullet_5">5: excelente, con mucha energía toda la semana.</string>
     <string name="help_photo_confidence_cd">Ayuda: confianza de la estimación</string>
     <string name="help_photo_confidence_title">Confianza de la estimación</string>
     <string name="help_photo_confidence_intro">Indica lo seguro que está el análisis de que la cantidad de la foto es correcta. Revisa siempre la cantidad antes de guardar.</string>
@@ -1762,43 +1754,6 @@
     <string name="preferences_reminders_circumference_helper">Si pasan 2 semanas sin medirte.</string>
     <string name="notifications_empty_title">Todo al día</string>
     <string name="notifications_empty_message">No tienes avisos pendientes.</string>
-
-    <!-- T-136 weekly check-in -->
-    <string name="notifications_reminder_checkin">Hacer el check-in semanal</string>
-    <string name="notifications_reminder_open_checkin">Abrir el check-in</string>
-    <string name="notifications_checkin_week">Semana del %1$s</string>
-    <string name="notifications_this_week_section">Esta semana</string>
-    <string name="notifications_checkin_answered_title">Check-in semanal</string>
-    <string name="notifications_checkin_answered_supporting">Respondido · Energía %1$d/5</string>
-    <string name="preferences_reminders_checkin">Check-in semanal</string>
-    <string name="preferences_reminders_checkin_help_body">Se avisa el día elegido abajo, si aún no lo has respondido.</string>
-    <string name="preferences_reminders_checkin_help_cd">Ayuda: check-in semanal</string>
-    <string name="preferences_checkin_day_row">Día del check-in</string>
-    <string name="preferences_checkin_day_help_body">Tu check-in usa la semana de lunes a domingo que incluye ese día.</string>
-    <string name="preferences_checkin_day_help_cd">Ayuda: día del check-in</string>
-    <string name="checkin_title">Check-in semanal</string>
-    <string name="checkin_summary_header">Resumen de la semana</string>
-    <string name="checkin_summary_caption">Semana de lunes a domingo</string>
-    <string name="checkin_volume_label">Volumen</string>
-    <string name="checkin_workouts_label">Entrenos</string>
-    <string name="checkin_sets_label">Series</string>
-    <string name="checkin_delta_same_short">Igual</string>
-    <string name="checkin_delta_caption">Comparado con la semana anterior</string>
-    <string name="checkin_kg_unit">kg</string>
-    <string name="checkin_weight_label">Peso</string>
-    <string name="checkin_weight_value">%1$s kg</string>
-    <string name="checkin_weight_delta_caption">vs semana anterior</string>
-    <string name="checkin_weight_not_enough">Sin datos suficientes</string>
-    <string name="checkin_records_header">Récords de la semana</string>
-    <string name="checkin_records_empty">Sin récords esta semana</string>
-    <string name="checkin_summary_error">No se pudo cargar el resumen. Inténtalo de nuevo.</string>
-    <string name="checkin_load_error">No se pudo cargar el check-in. Inténtalo de nuevo.</string>
-    <string name="checkin_form_header">¿Cómo te has sentido?</string>
-    <string name="checkin_energy_label">Energía</string>
-    <string name="checkin_energy_group_cd">Energía de la semana</string>
-    <string name="checkin_energy_option_cd">Energía %1$d de 5</string>
-    <string name="checkin_save_error">No se pudo guardar el check-in. Inténtalo de nuevo.</string>
-    <string name="checkin_save_error_offline">Sin conexión: no se puede guardar el check-in.</string>
 
     <!-- Trainer tab (T-158, US-68, US-69) -->
     <string name="trainer_title">Trainer</string>

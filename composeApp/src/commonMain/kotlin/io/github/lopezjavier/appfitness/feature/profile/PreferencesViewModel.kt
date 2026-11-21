@@ -59,7 +59,6 @@ private class PreferencesData(
     val healthConnectWeight: BodyMeasurement?,
     val training: Result<TrainingPreferences>,
     val foodPreferences: Result<FoodPreferences>,
-    val checkInWeekday: Result<Int>,
     val reminderSwitches: Result<Map<NotificationKind, Boolean>>,
 )
 
@@ -70,8 +69,8 @@ private class PreferencesData(
  * calculator, cooking and auto-update parameters only by the section that owns them. It never writes the nutrition
  * goals: the accepted plan owns calories and macros (T-303). The weight is sent only by
  * "Datos personales" and only when it changed. "Avisos" is not part of that RPC: it writes one
- * `notification_settings` row per changed switch and then the check-in day, without a transaction (a partial failure
- * keeps the written parts as saved). "Today" for the weight row is the local day in [timeZone].
+ * `notification_settings` row per changed switch, without a transaction (a partial failure keeps the written parts as
+ * saved). "Today" for the weight row is the local day in [timeZone].
  */
 @Suppress("LongParameterList", "TooManyFunctions") // One dependency per port; one small handler per event.
 class PreferencesViewModel(
@@ -86,7 +85,7 @@ class PreferencesViewModel(
     private val timeZone: TimeZone = TimeZone.currentSystemDefault(),
     private val savedState: SavedStateHandle = SavedStateHandle(),
     private val healthWriteBack: HealthWriteBack? = null,
-    /** Recomputed after "Avisos" is saved, so the center reflects the new switches and day. */
+    /** Recomputed after "Avisos" is saved, so the center reflects the new switches. */
     private val reminders: ReminderCoordinator? = null,
 ) : ViewModel() {
     private val _uiState = MutableStateFlow<PreferencesUiState>(PreferencesUiState.Loading)
@@ -156,13 +155,10 @@ class PreferencesViewModel(
 
             is PreferencesEvent.SetFatPctFried -> edit { it.withFood { copy(friedText = event.text) } }
 
-            is PreferencesEvent.SetCheckInWeekday -> edit { it.copy(checkInWeekday = event.weekday) }
-
             is PreferencesEvent.SetReminderEnabled -> edit {
                 when (event.kind) {
                     NotificationKind.Weight -> it.copy(weightReminder = event.enabled)
                     NotificationKind.Circumference -> it.copy(circumferenceReminder = event.enabled)
-                    NotificationKind.WeeklyCheckIn -> it.copy(checkInReminder = event.enabled)
                     NotificationKind.WeekSummary -> it.copy(weekSummaryReminder = event.enabled)
                     NotificationKind.BlockEnd -> it.copy(blockEndReminder = event.enabled)
                 }
@@ -237,7 +233,6 @@ class PreferencesViewModel(
                 val weight = async { bodyMeasurementRepository.getLatestWeight() }
                 val training = async { trainingPreferencesRepository.get() }
                 val food = async { foodPreferencesRepository.get() }
-                val checkInWeekday = async { profileRepository.getCheckInWeekday() }
                 val switches = async { notificationSettings.getAll() }
                 val latest = weight.await()
                 PreferencesData(
@@ -247,7 +242,6 @@ class PreferencesViewModel(
                     healthConnectWeightOf(latest),
                     training.await(),
                     food.await(),
-                    checkInWeekday.await(),
                     switches.await(),
                 )
             }
@@ -266,7 +260,6 @@ class PreferencesViewModel(
         if (profile == null || biometrics == null || weight == null) return null
         val training = data.training.getOrNull() ?: return null
         val food = data.foodPreferences.getOrNull() ?: return null
-        val checkInWeekday = data.checkInWeekday.getOrNull() ?: return null
         val switches = data.reminderSwitches.getOrNull() ?: return null
         val today = clock.today()
         val form = PreferencesForm(
@@ -281,10 +274,8 @@ class PreferencesViewModel(
             calculators = training.calculators,
             foodPreferences = FoodPreferencesForm.of(food),
             autoUpdateRoutine = training.autoUpdateRoutine,
-            checkInWeekday = checkInWeekday,
             weightReminder = switches[NotificationKind.Weight] ?: true,
             circumferenceReminder = switches[NotificationKind.Circumference] ?: true,
-            checkInReminder = switches[NotificationKind.WeeklyCheckIn] ?: true,
             weekSummaryReminder = switches[NotificationKind.WeekSummary] ?: true,
             blockEndReminder = switches[NotificationKind.BlockEnd] ?: true,
             intention = training.intention,
@@ -400,15 +391,14 @@ class PreferencesViewModel(
     private fun PreferencesForm.withReminder(kind: NotificationKind, enabled: Boolean): PreferencesForm = when (kind) {
         NotificationKind.Weight -> copy(weightReminder = enabled)
         NotificationKind.Circumference -> copy(circumferenceReminder = enabled)
-        NotificationKind.WeeklyCheckIn -> copy(checkInReminder = enabled)
         NotificationKind.WeekSummary -> copy(weekSummaryReminder = enabled)
         NotificationKind.BlockEnd -> copy(blockEndReminder = enabled)
     }
 
     /**
-     * "Avisos" lives in other tables than the preferences RPC: one write per changed switch, then the check-in day.
-     * There is no transaction (accepted for three rows): a failure keeps the parts already written as saved and the
-     * rest as the draft, and stops.
+     * "Avisos" lives in another table than the preferences RPC: one write per changed switch. There is no transaction
+     * (accepted for four rows): a failure keeps the switches already written as saved and the rest as the draft, and
+     * stops.
      */
     private suspend fun saveReminders(state: PreferencesUiState.Loaded, source: PreferencesForm) {
         var written = state.saved
@@ -416,7 +406,6 @@ class PreferencesViewModel(
         val switches = listOf(
             Triple(NotificationKind.Weight, source.weightReminder, state.saved.weightReminder),
             Triple(NotificationKind.Circumference, source.circumferenceReminder, state.saved.circumferenceReminder),
-            Triple(NotificationKind.WeeklyCheckIn, source.checkInReminder, state.saved.checkInReminder),
             Triple(NotificationKind.WeekSummary, source.weekSummaryReminder, state.saved.weekSummaryReminder),
             Triple(NotificationKind.BlockEnd, source.blockEndReminder, state.saved.blockEndReminder),
         )
@@ -428,10 +417,6 @@ class PreferencesViewModel(
             } else {
                 failure = result
             }
-        }
-        if (failure == null && source.checkInWeekday != state.saved.checkInWeekday) {
-            val result = profileRepository.setCheckInWeekday(source.checkInWeekday)
-            if (result.isSuccess) written = written.copy(checkInWeekday = source.checkInWeekday) else failure = result
         }
         if (written != state.saved) reminders?.requestRefresh()
         if (failure == null) {

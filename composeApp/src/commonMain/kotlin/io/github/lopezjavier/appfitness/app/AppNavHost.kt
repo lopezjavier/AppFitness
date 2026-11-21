@@ -216,9 +216,6 @@ internal typealias NotificationCenterSlot =
         onBack: () -> Unit,
     ) -> Unit
 
-/** Weekly check-in content: modifier (full-screen insets) and how to close it. */
-internal typealias CheckInSlot = @Composable (modifier: Modifier, onClose: () -> Unit) -> Unit
-
 /** Weekly summary content (US-98): modifier (full-screen insets) and back. */
 internal typealias WeekSummarySlot = @Composable (modifier: Modifier, onBack: () -> Unit) -> Unit
 
@@ -544,11 +541,6 @@ internal val DefaultNotificationCenterSlot: NotificationCenterSlot = { modifier,
     Box(modifier.fillMaxSize().testTag("notifications_screen"))
 }
 
-/** Empty weekly check-in for previews and shell tests; the real one is wired by `AppRoot`. */
-internal val DefaultCheckInSlot: CheckInSlot = { modifier, _ ->
-    Box(modifier.fillMaxSize().testTag("checkin_screen"))
-}
-
 /** Empty weekly summary for previews and shell tests; the real one is wired by `AppRoot`. */
 internal val DefaultWeekSummarySlot: WeekSummarySlot = { modifier, _ ->
     Box(modifier.fillMaxSize().testTag("week_summary_screen"))
@@ -758,7 +750,6 @@ internal fun AppNavHost(
     weight: WeightSlot = DefaultWeightSlot,
     weightHistory: WeightHistorySlot = DefaultWeightHistorySlot,
     notificationCenter: NotificationCenterSlot = DefaultNotificationCenterSlot,
-    checkIn: CheckInSlot = DefaultCheckInSlot,
     weekSummary: WeekSummarySlot = DefaultWeekSummarySlot,
     blockReview: BlockReviewSlot = DefaultBlockReviewSlot,
     reports: ReportsSlot = DefaultReportsSlot,
@@ -1025,9 +1016,6 @@ internal fun AppNavHost(
                 Modifier.padding(fullScreenPadding),
                 entry.toRoute<PastReportRoute>().reportId,
             ) { navController.popFullScreen(entry) }
-        }
-        composable<CheckInRoute> { entry ->
-            checkIn(Modifier.padding(fullScreenPadding)) { navController.popFullScreen(entry) }
         }
         composable<WeekSummaryRoute> { entry ->
             weekSummary(Modifier.padding(fullScreenPadding)) { navController.popFullScreen(entry) }
@@ -1374,7 +1362,6 @@ private fun NavHostController.openReminder(kind: ReminderKind) {
     when (kind) {
         ReminderKind.Weight -> navigateToFullScreen(WeightRoute())
         ReminderKind.Circumference -> navigateToFullScreen(WeightRoute(WeightEntryTarget.Circumference))
-        ReminderKind.CheckIn -> navigateToFullScreen(CheckInRoute)
         ReminderKind.WeekSummary -> navigateToFullScreen(WeekSummaryRoute)
         ReminderKind.BlockEnd -> navigateToFullScreen(BlockReviewRoute)
     }

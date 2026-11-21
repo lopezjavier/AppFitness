@@ -39,9 +39,10 @@ import io.github.lopezjavier.appfitness.feature.onboarding.OnboardingRoute
 /**
  * Version of the saved navigation state: raise it whenever a destination is removed, so a back stack saved by an
  * older build is dropped instead of failing to restore. 1 is the first build without the AI usage screen (T-260); 2 is
- * the first build without the free-text lines screen (T-277).
+ * the first build without the free-text lines screen (T-277); 3 is the first build without the weekly check-in screen
+ * (T-311).
  */
-internal const val NAV_STATE_VERSION = 2
+internal const val NAV_STATE_VERSION = 3
 private const val EPOCHS_PER_NAV_STATE_VERSION = 1000
 
 /**
@@ -91,7 +92,6 @@ fun App(
     weight: WeightSlot = DefaultWeightSlot,
     weightHistory: WeightHistorySlot = DefaultWeightHistorySlot,
     notificationCenter: NotificationCenterSlot = DefaultNotificationCenterSlot,
-    checkIn: CheckInSlot = DefaultCheckInSlot,
     weekSummary: WeekSummarySlot = DefaultWeekSummarySlot,
     blockReview: BlockReviewSlot = DefaultBlockReviewSlot,
     reports: ReportsSlot = DefaultReportsSlot,
@@ -163,7 +163,6 @@ fun App(
                         weight = weight,
                         weightHistory = weightHistory,
                         notificationCenter = notificationCenter,
-                        checkIn = checkIn,
                         weekSummary = weekSummary,
                         blockReview = blockReview,
                         reports = reports,

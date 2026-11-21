@@ -1,8 +1,6 @@
 package io.github.lopezjavier.appfitness.domain.usecase
 
 import io.github.lopezjavier.appfitness.domain.model.BlockEndNotice
-import io.github.lopezjavier.appfitness.domain.model.CheckIn
-import io.github.lopezjavier.appfitness.domain.model.CheckInDay
 import io.github.lopezjavier.appfitness.domain.model.NotificationKind
 import io.github.lopezjavier.appfitness.domain.model.Reminder
 import io.github.lopezjavier.appfitness.domain.model.ReminderKind
@@ -144,6 +142,33 @@ class ComputeRemindersTest {
     }
 
     @Test
+    fun circumference_withoutAnyMeasurement_isDue14DaysAfterTheFirstWeighIn() {
+        val result = compute(
+            today = today,
+            lastWeightDay = today,
+            lastCircumferenceDay = null,
+            firstWeightDay = daysAgo(14),
+            silenced = emptySet(),
+        )
+
+        assertEquals(listOf(Reminder(ReminderKind.Circumference, today, 14)), result)
+        assertEquals(2, result.single().weeks)
+    }
+
+    @Test
+    fun circumference_withoutAnyMeasurement_isNotDue13DaysAfterTheFirstWeighIn() {
+        val result = compute(
+            today = today,
+            lastWeightDay = today,
+            lastCircumferenceDay = null,
+            firstWeightDay = daysAgo(13),
+            silenced = emptySet(),
+        )
+
+        assertTrue(result.isEmpty())
+    }
+
+    @Test
     fun neverMeasuredWithoutAnchor_hasNoCircumferenceReminder() {
         assertTrue(run(lastCircumference = null, first = null).isEmpty())
     }
@@ -180,60 +205,6 @@ class ComputeRemindersTest {
         val result = run(lastWeight = daysAgo(5), lastCircumference = daysAgo(30))
 
         assertEquals(listOf(ReminderKind.Weight, ReminderKind.Circumference), result.map { it.kind })
-    }
-
-    private fun checkInDay(answered: Boolean = false, day: LocalDate = daysAgo(1)) = CheckInDay(
-        day,
-        day,
-        if (answered) CheckIn(day, 3) else null,
-    )
-
-    private fun runWithCheckIn(
-        checkIn: CheckInDay?,
-        silenced: Set<NotificationKind> = emptySet(),
-        lastWeight: LocalDate? = today,
-        lastCircumference: LocalDate? = today,
-    ) = compute(today, lastWeight, lastCircumference, null, silenced, checkIn)
-
-    @Test
-    fun pendingCheckIn_isListedDueOnItsDay() {
-        val result = runWithCheckIn(checkInDay())
-
-        assertEquals(listOf(Reminder(ReminderKind.CheckIn, daysAgo(1), 0)), result)
-    }
-
-    @Test
-    fun answeredCheckIn_isNotListed() {
-        assertTrue(runWithCheckIn(checkInDay(answered = true)).isEmpty())
-    }
-
-    @Test
-    fun silencedCheckIn_isNotListed() {
-        assertTrue(runWithCheckIn(checkInDay(), silenced = setOf(NotificationKind.WeeklyCheckIn)).isEmpty())
-    }
-
-    @Test
-    fun noCheckInWindow_isNotListed() {
-        assertTrue(runWithCheckIn(null).isEmpty())
-    }
-
-    @Test
-    fun checkIn_sortsByDueDateAmongTheOthers() {
-        // Weight due today - 3, circumference due today - 16, check-in due today - 1.
-        val result = runWithCheckIn(checkInDay(), lastWeight = daysAgo(5), lastCircumference = daysAgo(30))
-
-        assertEquals(
-            listOf(ReminderKind.CheckIn, ReminderKind.Weight, ReminderKind.Circumference),
-            result.map { it.kind },
-        )
-        assertEquals(3, result.size)
-    }
-
-    @Test
-    fun checkIn_sameDueDate_sortsAfterWeightAndCircumference() {
-        val result = runWithCheckIn(checkInDay(day = daysAgo(3)), lastWeight = daysAgo(5))
-
-        assertEquals(listOf(ReminderKind.Weight, ReminderKind.CheckIn), result.map { it.kind })
     }
 
     @Test

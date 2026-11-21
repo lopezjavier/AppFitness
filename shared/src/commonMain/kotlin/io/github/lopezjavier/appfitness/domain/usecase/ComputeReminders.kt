@@ -1,7 +1,6 @@
 package io.github.lopezjavier.appfitness.domain.usecase
 
 import io.github.lopezjavier.appfitness.domain.model.BlockEndNotice
-import io.github.lopezjavier.appfitness.domain.model.CheckInDay
 import io.github.lopezjavier.appfitness.domain.model.NotificationKind
 import io.github.lopezjavier.appfitness.domain.model.Reminder
 import io.github.lopezjavier.appfitness.domain.model.ReminderKind
@@ -15,19 +14,18 @@ private const val CIRCUMFERENCE_AFTER_DAYS = 14
 
 /**
  * Derives the pending reminders (US-58). Weight is due once [WEIGHT_AFTER_DAYS] days passed since the last weigh-in;
- * circumferences after [CIRCUMFERENCE_AFTER_DAYS] days since the last measurement, or since [firstDay] (the
- * onboarding weight day) when none was ever taken. The weekly check-in is due on its check-in day while unanswered.
- * An unseen [weekSummary] is due on its week's end date; an open [blockEnd] review the day after the block's last
- * day. Silenced kinds are skipped. Newest due date first, then by kind.
+ * circumferences after [CIRCUMFERENCE_AFTER_DAYS] days since the last measurement, or since [firstWeightDay] (the day
+ * of the earliest weigh-in of any source) when none was ever taken. An unseen [weekSummary] is due on its week's end
+ * date; an open [blockEnd] review the day after the block's last day. Silenced kinds are skipped. Newest due date
+ * first, then by kind.
  */
 class ComputeReminders {
     operator fun invoke(
         today: LocalDate,
         lastWeightDay: LocalDate?,
         lastCircumferenceDay: LocalDate?,
-        firstDay: LocalDate?,
+        firstWeightDay: LocalDate?,
         silenced: Set<NotificationKind>,
-        checkIn: CheckInDay? = null,
         weekSummary: WeekSummaryNotice? = null,
         blockEnd: BlockEndNotice? = null,
     ): List<Reminder> {
@@ -38,15 +36,12 @@ class ComputeReminders {
             if (blockEnd != null && NotificationKind.BlockEnd !in silenced) {
                 add(Reminder(ReminderKind.BlockEnd, blockEnd.endedOn.plus(DatePeriod(days = 1)), days = 0))
             }
-            if (checkIn != null && checkIn.answer == null && NotificationKind.WeeklyCheckIn !in silenced) {
-                add(Reminder(ReminderKind.CheckIn, checkIn.day, days = 0))
-            }
             if (NotificationKind.Weight !in silenced) {
                 due(ReminderKind.Weight, today, lastWeightDay, WEIGHT_AFTER_DAYS)?.let(::add)
             }
             if (NotificationKind.Circumference !in silenced) {
-                due(ReminderKind.Circumference, today, lastCircumferenceDay ?: firstDay, CIRCUMFERENCE_AFTER_DAYS)
-                    ?.let(::add)
+                val anchor = lastCircumferenceDay ?: firstWeightDay
+                due(ReminderKind.Circumference, today, anchor, CIRCUMFERENCE_AFTER_DAYS)?.let(::add)
             }
         }
         return reminders.sortedWith(compareByDescending<Reminder> { it.dueDate }.thenBy { it.kind })

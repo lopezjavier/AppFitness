@@ -194,6 +194,8 @@ internal class FakeMeasurementsRepository(var dayRows: List<BodyMeasurement> = e
 
     override suspend fun getLatestWeight() = Result.success<BodyMeasurement?>(null)
 
+    override suspend fun getEarliestWeight() = Result.success<BodyMeasurement?>(null)
+
     override suspend fun getMeasurements(from: Instant, toExclusive: Instant) =
         Result.success(dayRows.filter { it.measuredAt >= from && it.measuredAt < toExclusive })
 

@@ -4,18 +4,14 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.assertIsOff
 import androidx.compose.ui.test.assertIsOn
-import androidx.compose.ui.test.assertTextContains
 import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.getUnclippedBoundsInRoot
 import androidx.compose.ui.test.junit4.v2.createComposeRule
-import androidx.compose.ui.test.onAllNodesWithTag
-import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
@@ -294,37 +290,46 @@ class PreferencesSectionScreenTest {
         rule.onNodeWithTag("preferences_error").assertDoesNotExist()
     }
 
-    // -- Avisos (US-57, US-59) ------------------------------
+    // -- Avisos (US-57, US-142) -----------------------------
 
     @Test
-    fun remindersEditor_isTitledAvisos_andShowsTheChosenDayLowercase() {
-        show(PreferencesSection.Reminders, loaded(PreferencesSection.Reminders, base.copy(checkInWeekday = 3)))
+    fun remindersEditor_isTitledAvisos() {
+        show(PreferencesSection.Reminders)
 
         rule.onNodeWithTag("preferences_avisos_title").assertTextEquals("Avisos")
-        rule.onNodeWithTag("preferences_checkin_weekday_row").assertTextContains("miércoles", substring = true)
+    }
+
+    /** US-142: Avisos holds the four notice switches and no check-in switch, day row or picker. */
+    @Test
+    fun avisos_showsTheFourSwitches_andNoCheckInRow() {
+        show(PreferencesSection.Reminders)
+
+        listOf(
+            "preferences_reminders_switch_weight",
+            "preferences_reminders_switch_circumference",
+            "preferences_switch_week_summary",
+            "preferences_switch_block_end",
+        ).forEach { rule.onNodeWithTag(it).assertExists() }
+        listOf(
+            "preferences_reminders_switch_checkin",
+            "preferences_reminders_checkin_help",
+            "preferences_checkin_weekday_row",
+            "preferences_checkin_day_help",
+        ).forEach { rule.onNodeWithTag(it).assertDoesNotExist() }
+        rule.onNodeWithText("Día del check-in", ignoreCase = true).assertDoesNotExist()
+        rule.onNodeWithText("Check-in semanal", ignoreCase = true).assertDoesNotExist()
     }
 
     @Test
     fun reminders_switchesRenderTheFormValues() {
-        val form = base.copy(weightReminder = true, circumferenceReminder = false, checkInReminder = true)
+        val form = base.copy(weightReminder = true, circumferenceReminder = false)
         show(PreferencesSection.Reminders, loaded(PreferencesSection.Reminders, form))
 
         rule.onNodeWithTag("preferences_reminders_switch_weight").assertIsOn()
         rule.onNodeWithTag("preferences_reminders_switch_circumference").assertIsOff()
-        rule.onNodeWithTag("preferences_reminders_switch_checkin").assertIsOn()
         rule.onNodeWithText("Recordatorio de peso").assertIsDisplayed()
         rule.onNodeWithText("Si pasan 2 días sin pesarte.").assertIsDisplayed()
         rule.onNodeWithText("Si pasan 2 semanas sin medirte.").assertIsDisplayed()
-        rule.onNodeWithText("Se avisa el día elegido abajo, si aún no lo has respondido.").assertDoesNotExist()
-        rule.onNodeWithText("Tu check-in usa la semana de lunes a domingo que incluye ese día.")
-            .assertDoesNotExist()
-        rule.onAllNodesWithTag("preferences_reminders_checkin_help").assertCountEquals(1)
-        rule.onAllNodesWithTag("preferences_checkin_day_help").assertCountEquals(1)
-        rule.onNodeWithContentDescription("Ayuda: check-in semanal").assertExists()
-        rule.onNodeWithContentDescription("Ayuda: día del check-in").assertExists()
-        rule.onNodeWithTag("preferences_reminders_checkin_help").performClick()
-        rule.onNodeWithTag("preferences_reminders_checkin_help_sheet_body")
-            .assertTextContains("Se avisa el día elegido abajo, si aún no lo has respondido.", substring = true)
     }
 
     @Test
@@ -361,29 +366,14 @@ class PreferencesSectionScreenTest {
 
         rule.onNodeWithTag("preferences_reminders_switch_weight").performClick()
         rule.onNodeWithTag("preferences_reminders_switch_circumference").performClick()
-        rule.onNodeWithTag("preferences_reminders_switch_checkin").performClick()
 
         assertEquals(
             listOf<PreferencesEvent>(
                 PreferencesEvent.SetReminderEnabled(NotificationKind.Weight, false),
                 PreferencesEvent.SetReminderEnabled(NotificationKind.Circumference, false),
-                PreferencesEvent.SetReminderEnabled(NotificationKind.WeeklyCheckIn, false),
             ),
             events,
         )
-    }
-
-    @Test
-    fun checkInDay_pickerAppliesOnTap_andClosesWithoutSaving() {
-        show(PreferencesSection.Reminders)
-
-        rule.onNodeWithTag("preferences_checkin_weekday_row").performClick()
-        for (day in 1..7) rule.onNodeWithTag("preferences_checkin_weekday_option_$day").assertIsDisplayed()
-        rule.onNodeWithTag("preferences_checkin_weekday_option_5").performClick()
-        rule.waitForIdle()
-
-        assertEquals(listOf<PreferencesEvent>(PreferencesEvent.SetCheckInWeekday(5)), events)
-        rule.onNodeWithTag("preferences_checkin_weekday_option_5").assertDoesNotExist()
     }
 
     @Test

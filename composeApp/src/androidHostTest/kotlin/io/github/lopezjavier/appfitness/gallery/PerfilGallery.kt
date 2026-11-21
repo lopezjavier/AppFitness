@@ -199,15 +199,6 @@ private fun preferences(): List<GalleryEntry> {
             ),
         ),
         section(
-            "Avisos",
-            PreferencesSection.Reminders,
-            "check-in day sheet",
-            loadedPreferences(PreferencesSection.Reminders),
-            GalleryKind.Sheet,
-            scrollTap("preferences_checkin_weekday_row"),
-            covers = arrayOf("WeekdayPicker"),
-        ),
-        section(
             "Mi entrenamiento",
             PreferencesSection.MyTraining,
             "filled",
