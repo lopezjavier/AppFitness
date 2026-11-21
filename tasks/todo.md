@@ -559,6 +559,7 @@ T-310 is now an umbrella that closes when T-311, T-312, T-313, T-314 and T-315 a
 **Verification:**
 - [ ] `npx supabase db reset && npx supabase db lint && npx supabase test db` green (CI); "Rich dataset" step green.
 - [ ] After the merge, `deploy-supabase` green on `main` with data intact (the migration notices), **before T-313 starts**.
+**Notes from T-311 planning (planner and ux-reviewer, 2026-11-21):** `04` §6.3 is the silencing rule for every kind: amend it to drop "check-in", do not remove it; `04` §6.2 must state the new no-circumference anchor (earliest weigh-in of any source, R3); the third US-142 scenario should quote the visible row "Llevas 2 semanas sin medirte" instead of "Medidas". T-311 makes `SupabaseNotificationSettingsRepository.getAll` skip unknown kinds, so the `weekly_check_in` rows are harmless until this drop.
 **Dependencies:** T-311 merged and its APK installed.
 **Files likely touched:** `supabase/migrations/20270130100000_remove_check_in.sql`, `supabase/tests/*.test.sql` (listed above), `supabase/seed-review.sql`, `supabase/review/seed-review.check.sql`, `planning/{03-data-model,04-business-rules,05-design-system,10-feature-inventory}.md`, `planning/epics/E10-*.md`.
 
