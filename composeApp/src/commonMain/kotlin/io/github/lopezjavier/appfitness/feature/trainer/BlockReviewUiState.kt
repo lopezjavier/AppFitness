@@ -22,6 +22,8 @@ sealed interface BlockReviewUiState {
         val decidingCalorie: Boolean = false,
         val calorieFailed: CalorieChoice? = null,
         val nextPlanId: String? = null,
+        /** The progress-first model (T-318); null only where no report was built. */
+        val report: BlockReportUi? = null,
     ) : BlockReviewUiState {
         /** The proposal still waits for an answer. */
         val phaseDecidable: Boolean

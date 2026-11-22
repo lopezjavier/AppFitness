@@ -5,12 +5,15 @@ import androidx.lifecycle.viewModelScope
 import io.github.lopezjavier.appfitness.domain.AppError
 import io.github.lopezjavier.appfitness.domain.appErrorOrNull
 import io.github.lopezjavier.appfitness.domain.model.PastReport
+import io.github.lopezjavier.appfitness.domain.port.Clock
 import io.github.lopezjavier.appfitness.domain.usecase.ExerciseNameResolver
 import io.github.lopezjavier.appfitness.domain.usecase.LoadPastReport
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import kotlinx.datetime.TimeZone
+import kotlinx.datetime.toLocalDateTime
 
 /**
  * A stored weekly summary or block review opened read-only (US-129). The [reportId] is the route argument (kept by
@@ -21,6 +24,7 @@ class PastReportViewModel(
     private val reportId: String,
     private val loadReport: LoadPastReport,
     private val names: ExerciseNameResolver,
+    private val clock: Clock,
 ) : ViewModel() {
     private val _uiState = MutableStateFlow<PastReportUiState>(PastReportUiState.Loading)
     val uiState: StateFlow<PastReportUiState> = _uiState.asStateFlow()
@@ -60,6 +64,14 @@ class PastReportViewModel(
             week.copy(report = weekReportOf(report.summary, week.content.exerciseNames, live = false))
         }
 
-        is PastReport.Block -> PastReportUiState.Block(report.item, names.blockReviewContent(report.review))
+        is PastReport.Block -> PastReportUiState.Block(
+            report.item,
+            // A stored review is never live: no pending action, the decision reads as text.
+            names.blockReviewContent(
+                report.review,
+                live = false,
+                today = clock.now().toLocalDateTime(TimeZone.UTC).date,
+            ),
+        )
     }
 }

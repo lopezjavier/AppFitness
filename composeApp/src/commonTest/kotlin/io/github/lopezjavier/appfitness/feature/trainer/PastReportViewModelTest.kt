@@ -6,6 +6,7 @@ import io.github.lopezjavier.appfitness.app.ReminderEnv
 import io.github.lopezjavier.appfitness.domain.AppError
 import io.github.lopezjavier.appfitness.domain.AppException
 import io.github.lopezjavier.appfitness.domain.model.BlockReview
+import io.github.lopezjavier.appfitness.domain.model.Phase
 import io.github.lopezjavier.appfitness.domain.model.PhaseDecision
 import io.github.lopezjavier.appfitness.domain.model.WeekSummary
 import io.github.lopezjavier.appfitness.domain.usecase.DecideCalorieProposalUseCase
@@ -55,7 +56,7 @@ class PastReportViewModelTest {
 
     private fun resolver() = ExerciseNameResolver(exercises, library)
 
-    private fun viewModel(id: String) = PastReportViewModel(id, LoadPastReport(reports), resolver())
+    private fun viewModel(id: String) = PastReportViewModel(id, LoadPastReport(reports), resolver(), MutableClock())
 
     @Test
     fun weekReport_buildsTheSameUiModelAsTheLiveWeekSummaryScreen() = runTest(dispatcher) {
@@ -107,11 +108,37 @@ class PastReportViewModelTest {
         advanceUntilIdle()
 
         val state = assertIs<PastReportUiState.Block>(model.uiState.value)
-        assertEquals(liveBlockContent(review), state.content)
+        // The live report differs by design (pending actions); everything else goes through the same builders.
+        assertEquals(liveBlockContent(review).copy(report = null), state.content.copy(report = null))
         assertNull(state.content.calorieProposal)
         assertNull(state.content.nextPlanId)
         assertEquals(PhaseDecision.Accepted, state.content.review.phaseDecision)
         assertEquals("Press banca", state.content.exerciseNames["id-bench"])
+    }
+
+    @Test
+    fun v2BlockReport_isNotLiveAndReadsTheDecisionAsText() = runTest(dispatcher) {
+        val review = blockReview(phaseDecision = PhaseDecision.Accepted, progress = blockProgress(), seen = true)
+        reports.reports["b2"] = Result.success(blockReport("b2", review))
+
+        val model = viewModel("b2")
+        advanceUntilIdle()
+
+        val report = assertNotNull(assertIs<PastReportUiState.Block>(model.uiState.value).content.report)
+        assertNotNull(report.progress)
+        assertEquals(BlockReportAction.DecidedPhase(PhaseDecision.Accepted, Phase.Maintenance), report.coach.action)
+    }
+
+    @Test
+    fun v1BlockReport_opensWithoutProgress() = runTest(dispatcher) {
+        reports.reports["b1"] = Result.success(blockReport("b1", blockReview(phaseDecision = null)))
+
+        val model = viewModel("b1")
+        advanceUntilIdle()
+
+        val report = assertNotNull(assertIs<PastReportUiState.Block>(model.uiState.value).content.report)
+        assertNull(report.progress)
+        assertEquals(BlockReportAction.CreateNext, report.coach.action) // An undecided stored proposal offers nothing.
     }
 
     @Test

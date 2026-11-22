@@ -6,6 +6,9 @@ import io.github.lopezjavier.appfitness.app.ReminderCoordinator
 import io.github.lopezjavier.appfitness.app.ReminderEnv
 import io.github.lopezjavier.appfitness.domain.AppError
 import io.github.lopezjavier.appfitness.domain.AppException
+import io.github.lopezjavier.appfitness.domain.model.BlockOutcome
+import io.github.lopezjavier.appfitness.domain.model.OutcomeKind
+import io.github.lopezjavier.appfitness.domain.model.Phase
 import io.github.lopezjavier.appfitness.domain.model.PhaseDecision
 import io.github.lopezjavier.appfitness.domain.model.ReminderKind
 import io.github.lopezjavier.appfitness.domain.usecase.DecideCalorieProposalUseCase
@@ -32,6 +35,7 @@ import kotlin.test.BeforeTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertIs
+import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
@@ -79,6 +83,76 @@ class BlockReviewViewModelTest {
         assertEquals("Press banca", content.exerciseNames["id-bench"])
         assertNull(content.calorieProposal)
         assertNull(content.nextPlanId)
+    }
+
+    @Test
+    fun load_buildsTheLiveReportWithTodayFromTheClock() = runTest(dispatcher) {
+        reviews.review = Result.success(
+            blockReview(
+                phaseProposal = null,
+                progress = blockProgress(),
+                outcomes = listOf(
+                    BlockOutcome(OutcomeKind.E1rm, "id-bench", 100.0, "kg", LocalDate(2026, 10, 18), 90.0, false),
+                ),
+            ),
+        )
+        val model = viewModel()
+
+        advanceUntilIdle()
+
+        val report = assertNotNull(model.content().report)
+        assertEquals(BlockReportAction.CreateNext, report.coach.action)
+        assertNotNull(report.progress)
+        // The fake clock is 2026-10-19, the day after the deadline.
+        assertEquals(OutcomeChip.NotReached, report.outcomes.single().chip)
+    }
+
+    @Test
+    fun v1Review_opensWithoutProgressAndNoError() = runTest(dispatcher) {
+        val model = viewModel()
+
+        advanceUntilIdle()
+
+        val report = assertNotNull(model.content().report)
+        assertNull(report.progress)
+        assertEquals(BlockReportAction.PendingPhase(Phase.Maintenance), report.coach.action)
+    }
+
+    @Test
+    fun earlyReview_buildsTheSameLiveReport() = runTest(dispatcher) {
+        reviews.review = Result.success(blockReview(progress = blockProgress()).copy(id = null, early = true))
+        val model = viewModel()
+
+        advanceUntilIdle()
+
+        assertNotNull(model.content().report?.progress)
+    }
+
+    @Test
+    fun phaseDecision_changesTheCoachAction() = runTest(dispatcher) {
+        reviews.review = Result.success(blockReview(progress = blockProgress()))
+        val model = viewModel()
+        advanceUntilIdle()
+        assertIs<BlockReportAction.PendingPhase>(model.content().report?.coach?.action)
+
+        model.onEvent(BlockReviewEvent.DecidePhase(PhaseDecision.Kept))
+        advanceUntilIdle()
+
+        assertEquals(BlockReportAction.CreateNext, model.content().report?.coach?.action)
+    }
+
+    @Test
+    fun calorieDecision_changesTheCoachAction() = runTest(dispatcher) {
+        reviews.review = Result.success(blockReview(phaseProposal = null, progress = blockProgress()))
+        plans.pending = Result.success(calorieProposal())
+        val model = viewModel()
+        advanceUntilIdle()
+        assertIs<BlockReportAction.PendingCalorie>(model.content().report?.coach?.action)
+
+        model.onEvent(BlockReviewEvent.NotNowCalorie)
+        advanceUntilIdle()
+
+        assertEquals(BlockReportAction.CreateNext, model.content().report?.coach?.action)
     }
 
     @Test

@@ -13,6 +13,15 @@ import kotlinx.datetime.LocalDate
  * `WeekSummaryUiState.Content.exerciseNames` (R-54).
  */
 
+/**
+ * Which report a shared progress card (coach, Strength, Lifts, Records, Weight, Waist) draws: the weekly one (the
+ * default, its look and testTags unchanged) or the block review (T-318: block copy, `block_review_` testTags).
+ */
+enum class ReportScope(val tag: String) {
+    Week("week_summary"),
+    Block("block_review"),
+}
+
 /** Everything the progress-first report shows beyond the kept cards. */
 data class WeekReportUi(
     val intention: TrainingIntention,

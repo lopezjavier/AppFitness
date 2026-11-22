@@ -7,15 +7,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import com.github.takahirom.roborazzi.ExperimentalRoborazziApi
 import io.github.lopezjavier.appfitness.domain.model.Equipment
-import io.github.lopezjavier.appfitness.domain.model.PhaseDecision
 import io.github.lopezjavier.appfitness.feature.exercises.SimilarExerciseRow
 import io.github.lopezjavier.appfitness.feature.trainer.AlternativesState
 import io.github.lopezjavier.appfitness.feature.trainer.BlockPreviewScreen
 import io.github.lopezjavier.appfitness.feature.trainer.BlockPreviewUiState
 import io.github.lopezjavier.appfitness.feature.trainer.BlockReplaceSheet
-import io.github.lopezjavier.appfitness.feature.trainer.BlockReviewScreen
-import io.github.lopezjavier.appfitness.feature.trainer.BlockReviewUiState
-import io.github.lopezjavier.appfitness.feature.trainer.CalorieChoice
 import io.github.lopezjavier.appfitness.feature.trainer.ExerciseReasonSheet
 import io.github.lopezjavier.appfitness.feature.trainer.PlanFailureKind
 import io.github.lopezjavier.appfitness.feature.trainer.Replacement
@@ -31,7 +27,6 @@ import org.robolectric.annotation.GraphicsMode
 
 private const val BLOCK_PREVIEW_SCREEN = "Vista previa del bloque"
 private const val WEEK_SUMMARY_SCREEN = "Resumen semanal"
-private const val BLOCK_REVIEW_SCREEN = "Revisión del bloque"
 private const val REASON_SHEET = "Por qué este ejercicio"
 
 /** The saved block preview (BlockPreviewRoute): every week tab, its failures and its replace and reason sheets. */
@@ -125,58 +120,8 @@ private fun weekSummary(): List<GalleryEntry> {
     )
 }
 
-/** The block review (BlockReviewRoute): the open decision, the decided and failed states and the calorie card. */
-private fun blockReview(): List<GalleryEntry> {
-    fun review(state: String, ui: BlockReviewUiState, online: Boolean = true, wide: Boolean = false) = GalleryEntry(
-        TRAINER_AREA,
-        BLOCK_REVIEW_SCREEN,
-        state,
-        covers = setOf("BlockReviewRoute"),
-        wide = wide,
-    ) {
-        BlockReviewScreen(
-            state = ui,
-            isOnline = flowOf(online),
-            onEvent = {},
-            onBack = {},
-            onOpenBeforeStart = { _, _, _ -> },
-        )
-    }
-
-    fun content(
-        decision: PhaseDecision? = null,
-        deciding: PhaseDecision? = null,
-        decisionFailed: PhaseDecision? = null,
-        calorieFailed: CalorieChoice? = null,
-        calorie: Boolean = false,
-        stalled: Boolean = false,
-    ) = BlockReviewUiState.Content(
-        review = TrainerFixtures.blockReview(decision = decision, stalled = stalled),
-        exerciseNames = TrainerFixtures.exerciseNames,
-        calorieProposal = if (calorie) TrainerFixtures.calorieProposal else null,
-        deciding = deciding,
-        decisionFailed = decisionFailed,
-        calorieFailed = calorieFailed,
-    )
-
-    return listOf(
-        review("loading", BlockReviewUiState.Loading),
-        review("empty, no block ended", BlockReviewUiState.Empty),
-        review("failed", BlockReviewUiState.Error),
-        review("offline", BlockReviewUiState.Offline, online = false),
-        review("phase decision open", content()),
-        review("phase decision in flight", content(deciding = PhaseDecision.Accepted)),
-        review("phase decision failed", content(decisionFailed = PhaseDecision.Kept)),
-        review("phase decided", content(decision = PhaseDecision.Accepted)),
-        review("calorie proposal", content(decision = PhaseDecision.Kept, calorie = true)),
-        review("calorie proposal failed", content(calorie = true, calorieFailed = CalorieChoice.Apply)),
-        review("stalled lift, not achieved", content(stalled = true)),
-        review("tablet width", content(), wide = true),
-    )
-}
-
 internal fun trainerBlockEntries(): List<GalleryEntry> =
-    blockPreview() + blockPreviewSheets() + weekSummary() + trainerWeekReportEntries() + blockReview()
+    blockPreview() + blockPreviewSheets() + weekSummary() + trainerWeekReportEntries() + blockReviewEntries()
 
 /** Renders the Trainer block, review and week entries (US-131); skipped unless `-Pgallery`. */
 @OptIn(ExperimentalRoborazziApi::class)

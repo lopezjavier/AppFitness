@@ -93,22 +93,22 @@ internal object WeekReportFixtures {
         ),
     )
 
-    private fun points(vararg e1rm: Double, hollowAt: Int = -1) =
+    internal fun points(vararg e1rm: Double, hollowAt: Int = -1) =
         e1rm.mapIndexed { index, v -> LiftPointUi(v, deload = index == hollowAt) }
 
-    private val lifts = listOf(
+    internal val lifts = listOf(
         LiftUi("bench", points(95.0, 97.5, 96.0, 99.0, 103.0), LiftState.Up, 8.0, 8.4),
         LiftUi("squat", points(120.0, 124.0, 126.0, 108.0, 127.0, hollowAt = 3), LiftState.Margin, 7.0, 3.1),
         LiftUi("row", points(80.0, 82.0, 81.5, 81.0), LiftState.Stalled, 1.0, 1.3),
         LiftUi("ohp", points(52.0, 54.0), LiftState.Provisional, null, null),
     )
 
-    private val records = listOf(
+    internal val records = listOf(
         RecordUi("bench", RecordKind.E1rm, 103.0, 99.0, mainLift = true),
         RecordUi("row", RecordKind.Heaviest, 75.0, 72.5, mainLift = true),
     )
 
-    private fun pace() = WeightPace(
+    internal fun pace() = WeightPace(
         state = WeightPaceState.OnPace,
         planRateKgWeek = -0.4,
         slopeKgWeek = -0.35,
