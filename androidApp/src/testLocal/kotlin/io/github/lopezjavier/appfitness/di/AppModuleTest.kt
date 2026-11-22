@@ -70,6 +70,7 @@ import io.github.lopezjavier.appfitness.domain.usecase.GroupMealEntries
 import io.github.lopezjavier.appfitness.domain.usecase.HealthWriteBack
 import io.github.lopezjavier.appfitness.domain.usecase.InterpretMetric
 import io.github.lopezjavier.appfitness.domain.usecase.LoadBlockReviewUseCase
+import io.github.lopezjavier.appfitness.domain.usecase.LoadDiscomfortFollowUpsUseCase
 import io.github.lopezjavier.appfitness.domain.usecase.LoadExerciseCatalog
 import io.github.lopezjavier.appfitness.domain.usecase.LoadNextBlockContextUseCase
 import io.github.lopezjavier.appfitness.domain.usecase.LoadPastReport
@@ -260,6 +261,7 @@ class AppModuleTest {
                 DiscomfortRepository::class,
                 DiscomfortFollowUpRepository::class,
                 MarkWeekSummarySeen::class,
+                LoadDiscomfortFollowUpsUseCase::class,
                 MarkBlockReviewSeen::class,
                 RecordPausedWeekReport::class,
                 LoadReports::class,
