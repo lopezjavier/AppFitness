@@ -1,6 +1,9 @@
 package io.github.lopezjavier.appfitness.feature.trainer
 
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -16,16 +19,24 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.github.lopezjavier.appfitness.composeapp.resources.Res
 import io.github.lopezjavier.appfitness.composeapp.resources.action_retry
 import io.github.lopezjavier.appfitness.composeapp.resources.block_review_title
+import io.github.lopezjavier.appfitness.composeapp.resources.block_week_paused
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_calendar
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_chevron_right
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_description
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_fact_check
+import io.github.lopezjavier.appfitness.composeapp.resources.ic_pause
 import io.github.lopezjavier.appfitness.composeapp.resources.reports_empty_message
 import io.github.lopezjavier.appfitness.composeapp.resources.reports_empty_title
 import io.github.lopezjavier.appfitness.composeapp.resources.reports_error
+import io.github.lopezjavier.appfitness.composeapp.resources.reports_group_title
 import io.github.lopezjavier.appfitness.composeapp.resources.reports_row_open_block
 import io.github.lopezjavier.appfitness.composeapp.resources.reports_row_open_week
-import io.github.lopezjavier.appfitness.composeapp.resources.reports_row_paused
+import io.github.lopezjavier.appfitness.composeapp.resources.reports_row_week
+import io.github.lopezjavier.appfitness.composeapp.resources.reports_teaser_up
+import io.github.lopezjavier.appfitness.composeapp.resources.reports_teaser_up_none
+import io.github.lopezjavier.appfitness.composeapp.resources.reports_teaser_up_of
+import io.github.lopezjavier.appfitness.composeapp.resources.reports_teaser_weight
+import io.github.lopezjavier.appfitness.composeapp.resources.reports_teaser_weight_same
 import io.github.lopezjavier.appfitness.composeapp.resources.reports_title
 import io.github.lopezjavier.appfitness.composeapp.resources.week_summary_title
 import io.github.lopezjavier.appfitness.designsystem.AppDateFormat
@@ -37,15 +48,20 @@ import io.github.lopezjavier.appfitness.designsystem.EmptyState
 import io.github.lopezjavier.appfitness.designsystem.ErrorState
 import io.github.lopezjavier.appfitness.designsystem.IconBadge
 import io.github.lopezjavier.appfitness.designsystem.ListRowSkeleton
+import io.github.lopezjavier.appfitness.designsystem.ListSectionHeader
 import io.github.lopezjavier.appfitness.designsystem.OfflineState
 import io.github.lopezjavier.appfitness.designsystem.RowGroupCard
 import io.github.lopezjavier.appfitness.designsystem.Spacing
+import io.github.lopezjavier.appfitness.designsystem.StatusChip
+import io.github.lopezjavier.appfitness.designsystem.StatusTone
 import io.github.lopezjavier.appfitness.designsystem.WindowWidthClassDefaults
 import io.github.lopezjavier.appfitness.domain.model.ReportItem
 import io.github.lopezjavier.appfitness.domain.model.ReportKind
+import io.github.lopezjavier.appfitness.domain.model.ReportTeaser
 import io.github.lopezjavier.appfitness.domain.port.ConnectivityObserver
 import kotlinx.coroutines.flow.Flow
 import org.jetbrains.compose.resources.painterResource
+import org.jetbrains.compose.resources.pluralStringResource
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.koinInject
 import org.koin.compose.viewmodel.koinViewModel
@@ -66,7 +82,8 @@ fun ReportsRoot(
 }
 
 /**
- * "Informes" on a pushed [AppScreen]: the stored weekly summaries and block reviews as rows, newest first as served.
+ * "Informes" on a pushed [AppScreen]: the stored weekly summaries and block reviews as rows grouped under a heading
+ * per block (newest block first, the block review first in its group), each with a progress teaser.
  * One tap opens the report read-only. Loading is a row skeleton, nothing stored an [EmptyState], a failed load an
  * [ErrorState] with "Reintentar" and no connection the offline state (R-31). The list keeps its scroll position
  * through [gridState] (saved with the back stack entry).
@@ -117,12 +134,18 @@ fun ReportsScreen(
                     OfflineState(isOnline = isOnline, onReload = { onEvent(ReportsEvent.Retry) })
                 }
 
-                is ReportsUiState.Content -> HubGrid(state = gridState) {
-                    fullSpanItem("reports") {
-                        RowGroupCard(
-                            rows = state.items.map { item -> { ReportRow(item, onOpen) } },
-                            modifier = Modifier.testTag("reports_group"),
-                        )
+                is ReportsUiState.Content -> HubGrid(state = gridState, modifier = Modifier.testTag("reports_list")) {
+                    state.groups.forEach { group ->
+                        fullSpanItem("header_${group.planId}") {
+                            ListSectionHeader(
+                                title = stringResource(Res.string.reports_group_title, group.number),
+                                count = group.rows.size,
+                                modifier = Modifier.testTag("reports_group_${group.planId}"),
+                            )
+                        }
+                        fullSpanItem("rows_${group.planId}") {
+                            RowGroupCard(rows = group.rows.map { row -> { ReportRow(row, onOpen) } })
+                        }
                     }
                 }
             }
@@ -133,10 +156,18 @@ fun ReportsScreen(
 @Composable
 private fun ReportRow(item: ReportItem, onOpen: (String) -> Unit, modifier: Modifier = Modifier) {
     val isBlock = item.kind == ReportKind.BlockReview
-    val period = AppDateFormat.dayRange(item.periodStart, item.periodEnd)
+    val paused = item.paused
+    val headline = when {
+        isBlock -> stringResource(Res.string.block_review_title)
+
+        paused -> stringResource(Res.string.block_week_paused)
+
+        else -> item.week?.let { stringResource(Res.string.reports_row_week, it) }
+            ?: stringResource(Res.string.week_summary_title)
+    }
     AppListRow(
-        headline = stringResource(if (isBlock) Res.string.block_review_title else Res.string.week_summary_title),
-        supporting = if (item.paused) stringResource(Res.string.reports_row_paused, period) else period,
+        headline = headline,
+        supporting = AppDateFormat.dayRange(item.periodStart, item.periodEnd),
         modifier = modifier.padding(horizontal = Spacing.lg).testTag("reports_row_${item.id}"),
         onClick = { onOpen(item.id) },
         onClickLabel = stringResource(
@@ -144,10 +175,19 @@ private fun ReportRow(item: ReportItem, onOpen: (String) -> Unit, modifier: Modi
         ),
         leading = {
             IconBadge(
-                if (isBlock) Res.drawable.ic_fact_check else Res.drawable.ic_calendar,
-                if (isBlock) AppTheme.colors.neonLime else AppTheme.colors.athleticCyan,
+                when {
+                    isBlock -> Res.drawable.ic_fact_check
+                    paused -> Res.drawable.ic_pause
+                    else -> Res.drawable.ic_calendar
+                },
+                when {
+                    isBlock -> AppTheme.colors.neonLime
+                    paused -> AppTheme.colors.textSecondary
+                    else -> AppTheme.colors.athleticCyan
+                },
             )
         },
+        supportingContent = item.teaser?.takeIf { !paused }?.let { teaser -> { ReportTeaserChips(item.id, teaser) } },
         trailing = {
             Icon(
                 painter = painterResource(Res.drawable.ic_chevron_right),
@@ -157,4 +197,39 @@ private fun ReportRow(item: ReportItem, onOpen: (String) -> Unit, modifier: Modi
             )
         },
     )
+}
+
+/**
+ * The one-line result of a report as up to two chips: strength ("3 suben", green with its icon when something rose)
+ * and weight ("−0,3 kg", neutral: a weight change is not good or bad by itself). Figures that are null are left out.
+ */
+@OptIn(ExperimentalLayoutApi::class) // FlowRow wraps the chips at large font.
+@Composable
+private fun ReportTeaserChips(id: String, teaser: ReportTeaser) {
+    FlowRow(
+        Modifier.testTag("reports_teaser_$id"),
+        horizontalArrangement = Arrangement.spacedBy(Spacing.xs),
+        verticalArrangement = Arrangement.spacedBy(Spacing.xs),
+    ) {
+        teaser.ups?.let { ups ->
+            val total = teaser.total
+            val text = when {
+                total != null -> stringResource(Res.string.reports_teaser_up_of, ups, total)
+                ups == 0 -> stringResource(Res.string.reports_teaser_up_none)
+                else -> pluralStringResource(Res.plurals.reports_teaser_up, ups, ups)
+            }
+            StatusChip(text, if (ups > 0) StatusTone.Good else StatusTone.Neutral)
+        }
+        teaser.weightChangeKg?.let { change ->
+            val signed = WeekSummaryText.signedKg(change)
+            StatusChip(
+                if (signed == "0") {
+                    stringResource(Res.string.reports_teaser_weight_same)
+                } else {
+                    stringResource(Res.string.reports_teaser_weight, signed)
+                },
+                StatusTone.Neutral,
+            )
+        }
+    }
 }

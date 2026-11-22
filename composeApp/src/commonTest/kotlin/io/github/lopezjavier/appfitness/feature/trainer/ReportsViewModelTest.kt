@@ -3,6 +3,7 @@ package io.github.lopezjavier.appfitness.feature.trainer
 import io.github.lopezjavier.appfitness.domain.AppError
 import io.github.lopezjavier.appfitness.domain.AppException
 import io.github.lopezjavier.appfitness.domain.model.ReportKind
+import io.github.lopezjavier.appfitness.domain.model.ReportTeaser
 import io.github.lopezjavier.appfitness.domain.usecase.LoadReports
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -46,8 +47,30 @@ class ReportsViewModelTest {
 
         advanceUntilIdle()
 
-        val items = assertIs<ReportsUiState.Content>(model.uiState.value).items
-        assertEquals(listOf("older", "newer", "same-day"), items.map { it.id })
+        val groups = assertIs<ReportsUiState.Content>(model.uiState.value).groups
+        // One plan: the block review moves first, the weeks keep the served order.
+        assertEquals(listOf("newer", "older", "same-day"), groups.single().rows.map { it.id })
+    }
+
+    @Test
+    fun load_groupsByBlockNewestFirstNumberedFromTheOldestWithTeasersKept() = runTest(dispatcher) {
+        val teaser = ReportTeaser(3, null, -0.3)
+        reports.items = Result.success(
+            listOf(
+                reportItem("n2", planId = "new", teaser = teaser),
+                reportItem("o2", planId = "old"),
+                reportItem("o-review", ReportKind.BlockReview, week = null, planId = "old"),
+            ),
+        )
+        val model = viewModel()
+
+        advanceUntilIdle()
+
+        val groups = assertIs<ReportsUiState.Content>(model.uiState.value).groups
+        assertEquals(listOf("new", "old"), groups.map { it.planId })
+        assertEquals(listOf(2, 1), groups.map { it.number })
+        assertEquals(listOf("o-review", "o2"), groups[1].rows.map { it.id })
+        assertEquals(teaser, groups[0].rows.single().teaser)
     }
 
     @Test
@@ -66,7 +89,7 @@ class ReportsViewModelTest {
 
         advanceUntilIdle()
 
-        val items = assertIs<ReportsUiState.Content>(model.uiState.value).items
+        val items = assertIs<ReportsUiState.Content>(model.uiState.value).groups.single().rows
         assertEquals(listOf(true, false), items.map { it.paused })
     }
 
