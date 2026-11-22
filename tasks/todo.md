@@ -654,7 +654,7 @@ After T-315 merges (the last implementation task of T-310), CI green, `deploy-su
 
 Out of scope: "Revisión del bloque", the "Informes" list, the diary history and Estadísticas (audit (d), follow-up tasks after this approval).
 
-## T-316: Remake every other report like the weekly report (follow-up (d) of T-310) · umbrella, split into T-317…T-323 + 4 👤 checkpoints (user request 2026-11-22, before the E19 closure; split by the planner 2026-11-22)
+## T-316: Remake every other report like the weekly report (follow-up (d) of T-310) · umbrella, split into T-317…T-323 + one 👤 Checkpoint E19-R2 (user request 2026-11-22, before the E19 closure; split by the planner 2026-11-22)
 
 **Story:** US-123 (UI review) and US-141's standard (a report shows my progress) applied to every other report; the planner writes the stories and Gherkin · **Flow:** umbrella, like T-310: audit → the user's decisions → planner split → one task at a time (visual-first for UI: ui-designer → user in gallery/emulator → ux-critic → ux-reviewer → core → UI) → one 👤 checkpoint per report journey.
 **User request (2026-11-22, verbatim):** "I only have 1 weekly summary that is now fixed, I expect the same for other reports." The E19 closure waits for it.
@@ -671,27 +671,25 @@ Out of scope: "Revisión del bloque", the "Informes" list, the diary history and
 **fitness-scientist audit (2026-11-22):** `tasks/T-316/audit.md` (7 reports: "Revisión del bloque" live and stored, the "Informes" list, "Calorías" (diary history), "Entrenos" (Estadísticas) and "Kilos por grupo muscular", "Fuerza" and "Progreso del ejercicio", "Entreno completado" (found by the audit), the Perfil highlights; Peso, Historial de peso, Actividad, Historial de entrenos and the session detail are data viewers, unchanged).
 **User decisions (2026-11-22): all 12 questions of the audit (§9) accepted as recommended:** Q1 block review content as the audit's item 1 table; Q2 block card order by training intention (R7); Q3 "No conseguido" only after the outcome's deadline, no chip before; Q4 stored block reviews rebuilt in production (backup `inputs_v1`, decisions frozen; the user's explicit OK on the migration file before merge); Q5 "Informes" rows get "Semana N", a progress teaser and grouping by block; Q6 Estadísticas "Entrenos" gets "Tu progreso en este periodo" and the period's records on top, "Entrenos · Series" as a context line, "Volumen" and "Duración" tiles removed, "Ejercicios principales" rows show the e1RM change; Q7 radar and body map kept at the bottom; Q8 "Kilos por grupo muscular" converted to weekly sets per group; Q9 "Calorías" bars in one colour (no amber), target line kept; Q10 "Calorías" stays a log (no progress or protein card), with the complete-day average and today excluded from the week mean; Q11 "Entreno completado" shows "Frente a la última vez" per exercise, records kept, duration and sets as one line; Q12 the Perfil strength highlight names its exercise, the kcal highlight uses the complete-day average, the data viewers stay. Plus Fuerza's monthly change reads "dentro del margen de un día a otro" under 4 %.
 **Production count (user, 2026-11-22):** `coach_block_reviews` holds **no rows** in production, so Q4 needs **no backfill migration** and no `inputs_v1` backup (PM decision): the block review's builder change ships as a normal migration, and every review is built with the new content from the start. Rules: `07` §3 "Other reports: progress first" (A-G).
-**Dependencies:** 👤 Checkpoint E19-R approved (2026-11-22). Blocks T-285.
+**Dependencies:** 👤 Checkpoint E19-R approved (2026-11-22). Blocks T-285. Closes with T-317…T-323 merged and the single 👤 Checkpoint E19-R2 approved (user, 2026-11-22: one checkpoint for the whole split).
 
 ### T-316 split (planner, 2026-11-22; the user's 12 decisions and the production count of zero stored block reviews are above)
 
-T-316 is now an umbrella that closes when T-317…T-323 are merged and the 4 checkpoints below are approved. One task per session, in this order; T-285 waits for all of it. **Each section below is self-contained**: a fresh session needs only it, `07` §3 "Other reports: progress first" (A)-(G) (and the weekly section it links), ADR-111 and `tasks/T-316/audit.md` for the "current content" of each screen. Do not copy the `07` rules into code comments or tasks; link the section. **Models:** as T-310, every agent except pr-creator runs on Opus, through a per-spawn override (user, 2026-11-21, carried; the PM confirms if the user wants it for T-316 too). **No S:** the Informes list (M) cannot fold into T-318 (L already); T-320 (backend M) stays apart from its UI for the T-313 precedent (deploy and check before the UI).
+T-316 is now an umbrella that closes when T-317…T-323 are merged and the single 👤 Checkpoint E19-R2 (after T-323) is approved. One task per session, in this order; T-285 waits for all of it. **Each section below is self-contained**: a fresh session needs only it, `07` §3 "Other reports: progress first" (A)-(G) (and the weekly section it links), ADR-111 and `tasks/T-316/audit.md` for the "current content" of each screen. Do not copy the `07` rules into code comments or tasks; link the section. **Models:** as T-310, every agent except pr-creator runs on Opus, through a per-spawn override (user, 2026-11-21, carried; the PM confirms if the user wants it for T-316 too). **No S:** the Informes list (M) cannot fold into T-318 (L already); T-320 (backend M) stays apart from its UI for the T-313 precedent (deploy and check before the UI).
 
 | Order | Task | Size | Layers | Flow | Needs before start |
 |---|---|---|---|---|---|
 | 1 | **T-317** Block review: backend (progress v2, block weight, outcomes, teaser fields) + ADR-111 consequences in `03`/`04` | L | backend + docs | 2.2, two backend-developer runs | Checkpoint E19-R approved |
 | 2 | **T-318** Block review: the UI (retires `SessionsCard`/`GroupsCard`) | L | core + UI | 2.1 visual-first | T-317 merged, `deploy-supabase` green |
 | 3 | **T-319** "Informes" list: teaser, "Semana N", grouping by block | M | core + UI | 2.1 visual-first (light: list rows) | T-318 merged |
-| 4 | **👤 Checkpoint E19-R2 · block review and Informes** | 8 items | user | — | T-319 merged, CI green |
-| 5 | **T-320** Estadísticas: backend (range progress, records of the range, weekly sets per group) | M | backend | 2.2 | R2 approved, T-319 merged |
-| 6 | **T-321** Estadísticas "Entrenos" and "Series por grupo muscular": the UI | L | core + UI | 2.1 visual-first | T-320 merged, `deploy-supabase` green |
-| 7 | **👤 Checkpoint E19-R3 · Estadísticas** | 6 items | user | — | T-321 merged, CI green |
-| 8 | **T-322** Calorías, Fuerza and Perfil highlights | M | core + UI | 2.1 without ui-designer (copy, one colour, a count line) | R3 approved |
-| 9 | **👤 Checkpoint E19-R4 · Perfil: Calorías, Fuerza, highlights** | 5 items | user | — | T-322 merged, CI green |
-| 10 | **T-323** "Entreno completado": "Frente a la última vez" | M | core + UI | 2.1 visual-first | R4 approved |
-| 11 | **👤 Checkpoint E19-R5 · finishing a workout** | 4 items | user | — | T-323 merged, CI green |
+| 4 | **T-320** Estadísticas: backend (range progress, records of the range, weekly sets per group) | M | backend | 2.2 | T-319 merged |
+| 5 | **T-321** Estadísticas "Entrenos" and "Series por grupo muscular": the UI | L | core + UI | 2.1 visual-first | T-320 merged, `deploy-supabase` green |
+| 6 | **T-322** Calorías, Fuerza and Perfil highlights | M | core + UI | 2.1 without ui-designer (copy, one colour, a count line) | T-321 merged |
+| 7 | **T-323** "Entreno completado": "Frente a la última vez" | M | core + UI | 2.1 visual-first | T-322 merged |
+| 8 | **👤 Checkpoint E19-R2 · the other reports** | 23 items | user | — | T-323 merged, CI green, `deploy-supabase` green for T-317 and T-320 |
 
-Every checkpoint is a hard gate (CLAUDE.md): nothing starts after it merges until the user approves. **PM decisions (2026-11-22, within `planning/`; no session re-asks them):**
+**One checkpoint for the whole split (user decision, 2026-11-22):** there is no checkpoint between the tasks; each task needs only the previous task merged and, after a backend task, its `deploy-supabase` green on `main`. The user tests every report once, after T-323 (hard gate, CLAUDE.md: nothing starts after it merges until the user approves). **PM decisions (2026-11-22, within `planning/`; no session re-asks them):**
+- **Single checkpoint (user, 2026-11-22):** replaces the per-report checkpoints (earlier draft R2…R5); a defect found at it becomes a `fix(T-###)` task as usual. Consequence: T-319 builds on T-318 and T-322, T-323 on earlier work without a user check in between; the visual-first looks are still judged by the user in the gallery before each UI task's developer runs.
 - **ADR-111 is written in this docs PR** (`00-decisions.md`, index row 111, "next: ADR-112"): the decision is final and the audit answers are in chat, as ADR-110 was. T-317 carries only the `03`/`04`/`10` consequences. Text summary: the stored block review gains `schema_version: 2` + `progress`; frozen decisions unchanged; no backfill (zero rows); outcome chip by deadline (amends `04` §8.10); the other reports are live.
 - **No migration needs the user's OK by name** (no production data is rewritten; T-317's self-check raises if the `coach_block_reviews` count changes). The deploy still must be green on `main` before T-318.
 - **Calorías complete-day rule (T-322): on the device**, not a `food_diary_summary` flag: the RPC already returns per-day totals, the filter is one pure function (40 % of the median of the logged days of the 28 days ending at the period's last day; for Semana the day before today), and the SQL function stays untouched (no migration, no old-app risk).
@@ -717,7 +715,7 @@ Every checkpoint is a hard gate (CLAUDE.md): nothing starts after it merges unti
 **Verification:**
 - [ ] CI green (`db reset`, `db lint`, `test db`, "Rich dataset"); the cost of one call reported in the PR.
 - [ ] After the merge, `deploy-supabase` green on `main` (notices: count of `coach_block_reviews` unchanged) **before T-318 starts**.
-**Dependencies:** Checkpoint E19-R approved (done).
+**Dependencies:** Checkpoint E19-R approved (done); no other gate.
 **Files likely touched:** `supabase/migrations/20270202100000_coach_block_review_progress.sql`, `supabase/tests/coach_block_review_progress.test.sql` and the existing block review and `list_coach_reports` tests, `supabase/seed-review.sql`, `supabase/review/seed-review.check.sql`, `planning/{03-data-model,04-business-rules,10-feature-inventory}.md`.
 **Risks:** the builders take `p_week` and a week-start; calling them for the block's last plan week must reproduce "block to date" (the pgTAP case with a deload week 4 proves it). Dropping and recreating `list_coach_reports` must keep its grants and the app's DTO tolerant of the new column (check `ReportsRepository` DTO).
 
@@ -733,7 +731,7 @@ Every checkpoint is a hard gate (CLAUDE.md): nothing starts after it merges unti
 - [ ] A review without `progress` (v1) opens without error; card order follows the intention.
 - [ ] Leaving the app with the group sheet open and coming back restores the screen and the sheet.
 **Host tests:** unit: `BlockReviewDtoTest` (v2 parse, v1 → null progress, unknown state dropped), `BlockReportHeadlineTest` (each action wins over the next; stored decided text), `OutcomeChipTest` (reached, before and after deadline, none), `BlockReviewViewModelTest`, `PastReportViewModelTest` (v1 and v2). Robolectric: `BlockReviewScreenTest` + `PastReportScreenTest` one per scenario; `BlockReviewRestorationTest` (`StateRestorationTester` with the sheet open + ViewModel recreated from the same `SavedStateHandle`); font scale 1.3/2.0 on the Strength row and the Weight card; gallery entries for every state (first block, deload last week, no records, weight gates, no weigh-in, each goal order, outcome chips, stored review, v1 review, tablet).
-**Verification:** CI green on the PR; then Checkpoint E19-R2 waits for T-319.
+**Verification:** CI green on the PR (no checkpoint here; Checkpoint E19-R2 comes after T-323).
 **Dependencies:** T-317 merged and deployed.
 **Files likely touched:** `shared/**` (block review DTO and model, `BlockReportHeadline`, outcome chip), `feature/trainer/{BlockReviewScreen,BlockReviewSections,BlockReviewText,BlockReviewStored,BlockReviewViewModel,BlockReviewUiState,PastReportScreen,PastReportUiState,ReportContent,ReportCards}.kt`, the shared `WeekReport*.kt` (parameters), `strings.xml`, galleries (`TrainerReportsGallery`, `TrainerBlockGallery`), tests, `planning/05-design-system.md`.
 **Risks:** `WeekReport*` composables get a block-copy parameter: list every caller (weekly screens) and keep the weekly look byte-equal (existing weekly screen tests stay green).
@@ -749,23 +747,9 @@ Every checkpoint is a hard gate (CLAUDE.md): nothing starts after it merges unti
 - [ ] Tapping a row opens the same report as before (weekly live/past, block review).
 - [ ] The list scroll position and the open state survive leaving the app.
 **Host tests:** unit `GroupReportsByBlockTest`, `ReportTeaserTest` (week, week 1, paused, block, null teaser, weight gate not passed), `ReportsViewModelTest`; Robolectric `ReportsScreenTest` (one per scenario), `ReportsRestorationTest`, font scale 2.0; gallery entries (mixed list, only weeks, empty, error, tablet).
-**Verification:** CI green; then Checkpoint E19-R2.
+**Verification:** CI green.
 **Dependencies:** T-318 merged (the block teaser reuses its headline).
 **Files likely touched:** `shared/**` (report list DTO and model, `ReportTeaser`, `GroupReportsByBlock`), `feature/trainer/{ReportsScreen,ReportsViewModel,ReportsUiState}.kt`, `strings.xml`, `TrainerReportsGallery`, tests.
-
-### 👤 Checkpoint E19-R2 · block review and Informes (8 items, leave and come back included) *(planner, 2026-11-22)*
-
-After T-319 merges (T-317's deploy green), CI green; install the new APK right after (`python scripts/deliver-apk.py`). Main account; a finished block must exist (the review seed or a real one; the PM says which before presenting).
-- [ ] 1. Entrenador > Informes: each row reads "Semana N" or "Revisión del bloque" with dates and a one-line progress teaser ("3 suben · −0,3 kg"); weeks sit under their block, newest block first; a paused week says "Semana en pausa".
-- [ ] 2. Open a block review: the coach card is on top with one sentence and one action; the cards follow your goal's order; there is no "Entrenos", "Series por grupo" or block "Récord" badge.
-- [ ] 3. Strength: one icon per exercise, "N de M suben", the context line "N de M entrenos · N de M series"; tap a group and the "?".
-- [ ] 4. Main lifts, Records ("N récords en el bloque") and Weight (change over the block, the line to "Meta …", "Tu plan", "Faltan pesajes para ver el cambio del bloque" if you lack weigh-ins).
-- [ ] 5. Objetivos: "objetivo … · ahora …"; "Conseguido" when reached; no "No conseguido" before the deadline.
-- [ ] 6. Accept or keep the phase proposal, then reopen the review from Informes: the decision reads as text, not a button.
-- [ ] 7. Open an older weekly report from the list: unchanged from Checkpoint E19-R.
-- [ ] 8. With the group sheet open, leave the app and come back: the same screen and sheet.
-
-Out of scope: Estadísticas, Calorías, Fuerza, the Perfil highlights and "Entreno completado" (later checkpoints). Stored block reviews were not backfilled: production had none.
 
 ## T-320: Estadísticas backend: range progress, records of the range, weekly sets per group (US-145 data) · M
 
@@ -779,7 +763,7 @@ Out of scope: Estadísticas, Calorías, Fuerza, the Perfil highlights and "Entre
 - [ ] Cross-user isolation; existing RPCs unchanged.
 **Host tests:** pgTAP `training_range_progress.test.sql` (two users): Sube +6 %, margin 3,9 %, Baja −4 %, one session, no load metric, main lifts first, records cap 3 with `total`, first session never a record, "Todo", range outside any session → empty; `weekly_muscle_sets.test.sql` (halves, empty weeks present, last 8); `removed_objects` untouched.
 **Verification:** CI green (`db reset`, `db lint`, `test db`, "Rich dataset"); `deploy-supabase` green on `main` **before T-321 starts**.
-**Dependencies:** Checkpoint E19-R2 approved, T-319 merged.
+**Dependencies:** T-319 merged.
 **Files likely touched:** `supabase/migrations/20270203100000_training_range_progress.sql`, `supabase/tests/{training_range_progress,weekly_muscle_sets}.test.sql`, `supabase/seed-review.sql`, `planning/{03-data-model,10-feature-inventory}.md`.
 **Risks:** extracting the record logic touches T-313's function: pgTAP of the weekly and block reports must stay green.
 
@@ -794,21 +778,9 @@ Out of scope: Estadísticas, Calorías, Fuerza, the Perfil highlights and "Entre
 - [ ] An exercise with one session reads "Sin comparar"; an empty range keeps "Sin entrenos en este periodo".
 - [ ] Range and the opened exercise survive leaving the app.
 **Host tests:** unit `PeriodProgressTest`, `TrainingStatsViewModelTest` (range change, failure of one call hides only that card), `MuscleVolumeViewModelTest`, DTO tests; Robolectric `TrainingStatsScreenTest` (one per scenario), `StatsRestorationTest` (range + ViewModel from the same `SavedStateHandle`), font scale 1.3/2.0; gallery entries (all states, no records, one-session exercises, empty range, tablet).
-**Verification:** CI green; then Checkpoint E19-R3.
+**Verification:** CI green.
 **Dependencies:** T-320 merged and deployed.
 **Files likely touched:** `shared/**` (`TrainingStatsRepository`, DTOs, `PeriodProgress`), `feature/analytics/stats/*`, `feature/analytics/MuscleVolume*`, `strings.xml`, galleries, tests.
-
-### 👤 Checkpoint E19-R3 · Estadísticas (6 items, leave and come back included) *(planner, 2026-11-22)*
-
-After T-321 merges (T-320 deployed), CI green; install the new APK right after. Main account, with at least 3 months of workouts.
-- [ ] 1. Perfil > Estadísticas > Entrenos, range 3M: "Tu progreso en este periodo" is on top: "N de M ejercicios suben", each exercise with "Sube +x %", "dentro del margen de un día a otro", "Baja" or "Sin comparar"; tap one: "Progreso del ejercicio".
-- [ ] 2. Records of the period (at most 3 badges) or no card; one line "N entrenos · N series"; no "Volumen" or "Duración".
-- [ ] 3. Change the range (1M, 6M, 1A, Todo): the progress card follows.
-- [ ] 4. "Ejercicios principales" rows show the change ("+5 kg · N entrenos"); the radar and the body map are still at the bottom.
-- [ ] 5. "Series por grupo muscular": weekly sets per group for the last 8 weeks, no kilos.
-- [ ] 6. On range 6M with an exercise open, leave the app and come back: the same range and screen.
-
-Out of scope: Calorías, Fuerza and the Perfil highlights (next checkpoint).
 
 ## T-322: Calorías, Fuerza and Perfil highlights (US-146) · M
 
@@ -821,21 +793,10 @@ Out of scope: Calorías, Fuerza and the Perfil highlights (next checkpoint).
 - [ ] No amber bar remains in the diary history; `check-ux-conventions.sh` and `check-unused-resources.py` green.
 - [ ] Calorías panel and period survive leaving the app.
 **Host tests:** unit `CompleteDaysTest` (2 partial days of 7, none complete, one logged day, today excluded, 28-day window median, exactly 40 %), `DiaryHistoryViewModelTest`, `StrengthViewModelTest` (3,9 % margin text, 4 % amount only), `ProfileRootViewModelTest` (exercise name, complete-day kcal); Robolectric `DiaryHistoryScreenTest`, `StrengthScreenTest`, `ProfileHomeTest`, `DiaryHistoryRestorationTest` (`StateRestorationTester` + ViewModel from the same `SavedStateHandle`); gallery entries updated (one colour, "Sin días completos", Fuerza margin).
-**Verification:** CI green; then Checkpoint E19-R4.
-**Dependencies:** Checkpoint E19-R3 approved.
+**Verification:** CI green.
+**Dependencies:** T-321 merged.
 **Files likely touched:** `shared/**` (`CompleteDays`, diary and profile view-model helpers), `feature/diary/DiaryHistory*.kt`, `designsystem/{DiaryHistoryRow,MiniBarChart}.kt`, `feature/analytics/Strength*.kt`, `feature/profile/{ProfileRootScreen,ProfileRootViewModel}.kt`, `strings.xml`, galleries, tests, `planning/05-design-system.md`.
 **Risks:** `DiaryHistoryRow` and `MiniBarChart` have other callers (grep; the catalogue `DiaryHistoryCatalogSections`): removing the amber state must not change them, so the parameter is removed only when no caller sets it.
-
-### 👤 Checkpoint E19-R4 · Calorías, Fuerza and the Perfil highlights (5 items, leave and come back included) *(planner, 2026-11-22)*
-
-After T-322 merges, CI green; install the new APK right after.
-- [ ] 1. Perfil > Estadísticas > Calorías > Semana: "Media de N días completos"; a half-logged day is not in the average; today's bar is drawn but not counted.
-- [ ] 2. Every bar has one colour and the target line stays; Mes reads "Media de N días completos" too.
-- [ ] 3. Fuerza: with a small monthly change the line reads "… este mes · dentro del margen de un día a otro".
-- [ ] 4. Perfil home: the strength highlight names its exercise; the kcal highlight equals the Calorías Semana average.
-- [ ] 5. On Calorías > Mes, leave the app and come back: the same panel.
-
-Out of scope: "Entreno completado" (next checkpoint); Peso, Actividad and the history viewers (unchanged by decision).
 
 ## T-323: "Entreno completado": "Frente a la última vez" (US-147) · M
 
@@ -848,19 +809,46 @@ Out of scope: "Entreno completado" (next checkpoint); Peso, Actividad and the hi
 - [ ] The device rule gives the same state as the parity table on the same numbers.
 - [ ] The summary is shown again after leaving the app until "Hecho" is tapped (the existing behaviour is kept and tested).
 **Host tests:** unit `CompareToPreviousSessionTest` (Sube by load, Sube by reps over shared sets, Igual, "Mantienes" in a cut, Baja, RPE +2 blocks Sube, rep-range change, 14-day gap, deload excluded, no previous session, paused, missing RPE) + the parity table, `LiveSessionViewModelTest`; Robolectric `SessionSummaryScreenTest` (one per scenario), `LiveSessionRestorationTest` (summary shown, ViewModel from the same `SavedStateHandle`), font scale 1.3/2.0; gallery entries (all states, no previous, records, tablet).
-**Verification:** CI green; then Checkpoint E19-R5.
-**Dependencies:** Checkpoint E19-R4 approved.
+**Verification:** CI green; then Checkpoint E19-R2 is presented.
+**Dependencies:** T-322 merged.
 **Files likely touched:** `shared/**` (`CompareToPreviousSession`, live-session summary model), `feature/workout/{SessionSummaryScreen,LiveSessionViewModel,LiveSessionUiState}.kt`, `strings.xml`, galleries, tests.
 
-### 👤 Checkpoint E19-R5 · finishing a workout (4 items, leave and come back included) *(planner, 2026-11-22)*
+### 👤 Checkpoint E19-R2 · the other reports (23 items in 4 journeys, leave and come back included) *(planner, 2026-11-22; the single checkpoint of the T-316 split, user decision 2026-11-22)*
 
-After T-323 merges, CI green; install the new APK right after. Do one real workout of a routine you have done before.
-- [ ] 1. Finish the workout: "Entreno completado" lists each exercise as "antes → ahora" with its state (Sube, Igual, Baja or "Sin comparar"); no volume bars.
-- [ ] 2. The records badge and pills still show when you set a record; duration and sets are one line.
-- [ ] 3. An exercise you changed the rep range of, or did not do for 2 weeks or more, reads "Sin comparar".
-- [ ] 4. With the summary open, leave the app and come back: the summary is shown again until "Hecho".
+After T-323 merges, CI green, and `deploy-supabase` green on `main` after T-317 and T-320 (the new RPCs deployed); install the new APK right after (`python scripts/deliver-apk.py`). Main account with at least 3 months of workouts; **a finished block must exist** (the review seed or a real one; the PM says which before presenting). Test the journeys in this order.
 
-Out of scope: everything else; with this checkpoint approved and T-317…T-323 merged, T-316 closes and T-285 waits only for the user's epic-closure approval.
+**A. Block review and Informes (T-317…T-319)**
+- [ ] 1. Entrenador > Informes: each row reads "Semana N" or "Revisión del bloque" with dates and a one-line progress teaser ("3 suben · −0,3 kg"); weeks sit under their block, newest block first; a paused week says "Semana en pausa".
+- [ ] 2. Open a block review: the coach card is on top with one sentence and one action; the cards follow your goal's order; there is no "Entrenos", "Series por grupo" or block "Récord" badge.
+- [ ] 3. Strength: one icon per exercise, "N de M suben", the context line "N de M entrenos · N de M series"; tap a group and the "?".
+- [ ] 4. Main lifts, Records ("N récords en el bloque") and Weight (change over the block, the line to "Meta …", "Tu plan", "Faltan pesajes para ver el cambio del bloque" if you lack weigh-ins).
+- [ ] 5. Objetivos: "objetivo … · ahora …"; "Conseguido" when reached; no "No conseguido" before the deadline.
+- [ ] 6. Accept or keep the phase proposal, then reopen the review from Informes: the decision reads as text, not a button.
+- [ ] 7. Open an older weekly report from the list: unchanged from Checkpoint E19-R.
+- [ ] 8. With the group sheet open, leave the app and come back: the same screen and sheet.
+
+**B. Estadísticas (T-320, T-321)**
+- [ ] 9. Perfil > Estadísticas > Entrenos, range 3M: "Tu progreso en este periodo" is on top: "N de M ejercicios suben", each exercise with "Sube +x %", "dentro del margen de un día a otro", "Baja" or "Sin comparar"; tap one: "Progreso del ejercicio".
+- [ ] 10. Records of the period (at most 3 badges) or no card; one line "N entrenos · N series"; no "Volumen" or "Duración".
+- [ ] 11. Change the range (1M, 6M, 1A, Todo): the progress card follows.
+- [ ] 12. "Ejercicios principales" rows show the change ("+5 kg · N entrenos"); the radar and the body map are still at the bottom.
+- [ ] 13. "Series por grupo muscular": weekly sets per group for the last 8 weeks, no kilos.
+- [ ] 14. On range 6M with an exercise open, leave the app and come back: the same range and screen.
+
+**C. Calorías, Fuerza and the Perfil highlights (T-322)**
+- [ ] 15. Perfil > Estadísticas > Calorías > Semana: "Media de N días completos"; a half-logged day is not in the average; today's bar is drawn but not counted.
+- [ ] 16. Every bar has one colour and the target line stays; Mes reads "Media de N días completos" too.
+- [ ] 17. Fuerza: with a small monthly change the line reads "… este mes · dentro del margen de un día a otro".
+- [ ] 18. Perfil home: the strength highlight names its exercise; the kcal highlight equals the Calorías Semana average.
+- [ ] 19. On Calorías > Mes, leave the app and come back: the same panel.
+
+**D. Finishing a workout (T-323)** (do one real workout of a routine you have done before)
+- [ ] 20. Finish the workout: "Entreno completado" lists each exercise as "antes → ahora" with its state (Sube, Igual, Baja or "Sin comparar"); no volume bars.
+- [ ] 21. The records badge and pills still show when you set a record; duration and sets are one line.
+- [ ] 22. An exercise you changed the rep range of, or did not do for 2 weeks or more, reads "Sin comparar".
+- [ ] 23. With the summary open, leave the app and come back: the summary is shown again until "Hecho".
+
+Out of scope: Peso, Historial de peso, Actividad, Historial de entrenos, the session detail and "Progreso del ejercicio" (data viewers, unchanged by decision); stored block reviews were not backfilled (production had none). With this checkpoint approved and T-317…T-323 merged, T-316 closes and T-285 waits only for the user's epic-closure approval.
 
 ## T-285: E19 closure → `v1.x` · closure step (PM only, not a developer task)
 
@@ -873,7 +861,7 @@ Out of scope: everything else; with this checkpoint approved and T-317…T-323 m
 - [ ] Version bumped; `tasks/todo.md` pointer updated through a PR.
 **Verification:**
 - [ ] `git tag` lists the E19 tag.
-**Dependencies:** T-284, T-299 (T-300, T-301, T-303, T-306, T-308) and T-310 (T-311…T-315) merged; **👤 Checkpoint E19-R approved** (T-310 split, 2026-11-21); T-316 and its split tasks merged with their checkpoints approved (user, 2026-11-22); the user's epic-closure approval.
+**Dependencies:** T-284, T-299 (T-300, T-301, T-303, T-306, T-308) and T-310 (T-311…T-315) merged; **👤 Checkpoint E19-R approved** (T-310 split, 2026-11-21); T-316 and its split tasks (T-317…T-323) merged and **👤 Checkpoint E19-R2** (the single checkpoint of the T-316 split, user 2026-11-22) approved; the user's epic-closure approval.
 **Files likely touched:** `androidApp/build.gradle.kts`, `tasks/todo.md`, `tasks/plan.md`, `planning/09-open-questions.md`, `planning/01-scope.md`, `planning/epics/E19-ui-review.md`, `retrospectives/E19.md`
 **Estimated scope:** closure step (PM)
 
