@@ -36,7 +36,8 @@ data class BlockOutcome(
     val unit: String?,
     val deadline: LocalDate?,
     val currentValue: Double?,
-    val reached: Boolean,
+    /** Null while the weight gate is not passed (no verdict yet): no chip. */
+    val reached: Boolean?,
 )
 
 /** Waist change over at least 28 days; [withinMargin] is true below 3 cm (measurement margin). Never a trigger. */
@@ -71,4 +72,44 @@ data class BlockReview(
     val early: Boolean = false,
     /** True once the user opened the review (`seen_at` set): the block-end notice is no longer listed. */
     val seen: Boolean = false,
+    /** The progress-first part (schema v2, T-317); null for a v1 review stored before it. */
+    val progress: BlockProgress? = null,
+)
+
+/** The best main-lift change of the block (server `headline.main_lift`); the app builds its own from named data. */
+data class BlockMainLift(val exerciseId: String, val changeKg: Double?, val changePct: Double?)
+
+/** The server's block sentence parts, for the teasers; [ups] and [total] are null in plan week 1. */
+data class BlockHeadline(val ups: Int?, val total: Int?, val mainLift: BlockMainLift?, val weightChangeKg: Double?)
+
+/**
+ * Weight over the plan-week averages of the block: [daysFirst] and [daysLast] are the weigh-in days of the first and
+ * last plan week, [changeKg] is null under the 3-day gate. [outcome] is the plan's weight goal.
+ */
+data class BlockWeightProgress(
+    val avgFirstKg: Double?,
+    val avgLastKg: Double?,
+    val daysFirst: Int,
+    val daysLast: Int,
+    val changeKg: Double?,
+    val series: List<WeightPoint>,
+    val outcome: WeightOutcome?,
+    val trend: WeekWeightTrend?,
+    val rateKgWeek: Double?,
+)
+
+/** `inputs.progress` of a block review (schema v2, `07` section 3 "Other reports: progress first"). */
+data class BlockProgress(
+    val asOf: LocalDate?,
+    val intention: TrainingIntention?,
+    val phase: Phase?,
+    val missing: List<MissingKind>,
+    val headline: BlockHeadline?,
+    val context: ProgressContext,
+    val strength: StrengthProgress,
+    val lifts: List<LiftSeries>,
+    val records: List<WeekRecordBadge>,
+    val recordsTotal: Int,
+    val weight: BlockWeightProgress?,
+    val waist: WaistProgress?,
 )

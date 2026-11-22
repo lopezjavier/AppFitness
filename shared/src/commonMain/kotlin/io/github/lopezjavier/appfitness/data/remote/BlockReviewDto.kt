@@ -1,23 +1,35 @@
+@file:Suppress("TooManyFunctions") // One small reader per block of the contract.
+
 package io.github.lopezjavier.appfitness.data.remote
 
 import io.github.lopezjavier.appfitness.domain.model.BlockAdherence
+import io.github.lopezjavier.appfitness.domain.model.BlockHeadline
 import io.github.lopezjavier.appfitness.domain.model.BlockLift
 import io.github.lopezjavier.appfitness.domain.model.BlockLiftWeek
+import io.github.lopezjavier.appfitness.domain.model.BlockMainLift
 import io.github.lopezjavier.appfitness.domain.model.BlockOutcome
+import io.github.lopezjavier.appfitness.domain.model.BlockProgress
 import io.github.lopezjavier.appfitness.domain.model.BlockReview
 import io.github.lopezjavier.appfitness.domain.model.BlockWaist
 import io.github.lopezjavier.appfitness.domain.model.BlockWeight
+import io.github.lopezjavier.appfitness.domain.model.BlockWeightProgress
 import io.github.lopezjavier.appfitness.domain.model.OutcomeKind
 import io.github.lopezjavier.appfitness.domain.model.Phase
 import io.github.lopezjavier.appfitness.domain.model.PhaseChangeReason
 import io.github.lopezjavier.appfitness.domain.model.PhaseDecision
 import io.github.lopezjavier.appfitness.domain.model.PhaseProposal
+import io.github.lopezjavier.appfitness.domain.model.WeekWeightTrend
+import io.github.lopezjavier.appfitness.domain.model.WeightOutcome
+import io.github.lopezjavier.appfitness.domain.model.WeightPoint
+import io.github.lopezjavier.appfitness.domain.model.phaseOrNull
 import kotlinx.datetime.LocalDate
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.serialization.json.booleanOrNull
 
 @Serializable
 internal data class OpenBlockReviewParams(@SerialName("p_today") val today: LocalDate)
@@ -62,7 +74,7 @@ private fun adherenceOf(obj: JsonObject?) = BlockAdherence(
     pct = obj?.int("pct"),
 )
 
-private fun liftOf(obj: JsonObject): BlockLift? {
+private fun blockLiftOf(obj: JsonObject): BlockLift? {
     val id = obj.text("exercise_id") ?: return null
     val weeks = obj["weeks"].items().mapNotNull { w ->
         val week = w.int("week")
@@ -100,11 +112,11 @@ private fun outcomeOf(obj: JsonObject): BlockOutcome? {
         unit = obj.text("unit"),
         deadline = obj.day("deadline"),
         currentValue = obj.number("current_value"),
-        reached = obj.truth("reached"),
+        reached = (obj["reached"] as? JsonPrimitive)?.booleanOrNull,
     )
 }
 
-private fun waistOf(obj: JsonObject?): BlockWaist? {
+private fun blockWaistOf(obj: JsonObject?): BlockWaist? {
     if (obj == null) return null
     val delta = obj.number("delta_cm")
     val from = obj.day("from_date")
@@ -123,6 +135,63 @@ private fun proposalOf(obj: JsonObject?): PhaseProposal? {
     val raw = obj?.get("figures").obj() ?: JsonObject(emptyMap())
     val figures = raw.keys.mapNotNull { key -> raw.number(key)?.let { key to it } }.toMap()
     return if (phase == null || reason == null) null else PhaseProposal(phase, reason, figures)
+}
+
+private fun headlineOf(obj: JsonObject?): BlockHeadline? = obj?.let {
+    BlockHeadline(
+        ups = it.int("ups"),
+        total = it.int("total"),
+        mainLift = it["main_lift"].obj()?.let { lift ->
+            lift.text("exercise_id")?.let { id ->
+                BlockMainLift(id, lift.number("change_kg"), lift.number("change_pct"))
+            }
+        },
+        weightChangeKg = it.number("weight_change_kg"),
+    )
+}
+
+private fun blockWeightOf(obj: JsonObject?): BlockWeightProgress? = obj?.let {
+    val outcome = it["outcome"].obj()
+    val outcomeKg = outcome?.number("kg")
+    val deadline = outcome?.day("deadline")
+    val trend = it["trend"].obj()
+    BlockWeightProgress(
+        avgFirstKg = it.number("avg_first_kg"),
+        avgLastKg = it.number("avg_last_kg"),
+        daysFirst = it.count("days_first"),
+        daysLast = it.count("days_last"),
+        changeKg = it.number("change_kg"),
+        series = it["series"].items().mapNotNull { point ->
+            point.number("avg_kg")?.let { kg -> WeightPoint(point.day("start_date"), kg, point.count("days")) }
+        },
+        outcome = if (outcomeKg != null && deadline != null) WeightOutcome(outcomeKg, deadline) else null,
+        trend = trend?.let { t ->
+            WeekWeightTrend(t.number("slope"), t.number("low"), t.number("high"), t.count("weeks"))
+        },
+        rateKgWeek = it.number("rate_kg_week"),
+    )
+}
+
+/** A missing, null or non-object `progress` (a v1 review) yields null; unknown items are dropped, never an error. */
+private fun blockProgressOf(obj: JsonObject?): BlockProgress? = obj?.let {
+    val records = it["records"].obj()
+    val items = records?.get("items").items().mapNotNull(::recordOf)
+    BlockProgress(
+        asOf = it.day("as_of"),
+        intention = it.text("intention")?.let(INTENTIONS::get),
+        phase = phaseOrNull(it.text("phase")),
+        missing = ((it["missing"] as? JsonArray) ?: emptyList<JsonElement>())
+            .mapNotNull { m -> (m as? JsonPrimitive)?.content?.let(MISSING_KINDS::get) }
+            .distinct(),
+        headline = headlineOf(it["headline"].obj()),
+        context = contextOf(it["context"].obj()),
+        strength = strengthOf(it["strength"].obj()),
+        lifts = it["lifts"].items().mapNotNull(::liftOf),
+        records = items,
+        recordsTotal = maxOf(records?.int("total") ?: 0, items.size),
+        weight = blockWeightOf(it["weight"].obj()),
+        waist = waistOf(it["waist"].obj()),
+    )
 }
 
 /**
@@ -146,15 +215,16 @@ internal fun reviewBodyOf(obj: JsonObject): BlockReview? {
         planId = planId,
         endedOn = endedOn,
         adherence = adherenceOf(inputs?.get("adherence").obj()),
-        lifts = inputs?.get("lifts").items().mapNotNull(::liftOf),
+        lifts = inputs?.get("lifts").items().mapNotNull(::blockLiftOf),
         groups = groupsOf(inputs?.get("groups")),
         weight = weightOf(inputs?.get("weight").obj()),
         outcomes = inputs?.get("outcomes").items().mapNotNull(::outcomeOf),
-        waist = waistOf(inputs?.get("waist").obj()),
+        waist = blockWaistOf(inputs?.get("waist").obj()),
         stalls = stallsOf(inputs?.get("stalls")),
         phaseProposal = proposalOf(obj["phase_proposal"].obj()),
         phaseDecision = obj.text("phase_decision")?.let(DECISIONS::get),
         early = obj.truth("early"),
         seen = obj.text("seen_at") != null,
+        progress = blockProgressOf(inputs?.get("progress").obj()),
     )
 }
