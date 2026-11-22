@@ -1,5 +1,6 @@
 package io.github.lopezjavier.appfitness.feature.trainer
 
+import androidx.compose.ui.test.assertTextContains
 import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.junit4.StateRestorationTester
 import androidx.compose.ui.test.junit4.v2.createComposeRule
@@ -82,10 +83,10 @@ class BlockPauseScreenTest {
         rule.setContent { AppTheme { WeekSummaryScreen(state, flowOf(true), {}, {}) } }
         rule.waitForIdle()
 
-        rule.onNodeWithTag("week_summary_paused").assertTextEquals("Semana en pausa")
+        rule.onNodeWithTag("week_summary_paused").assertTextContains("Semana en pausa", substring = true)
         rule.onNodeWithTag("week_summary_subtitle").assertTextEquals("3 al 9 nov")
-        rule.onNodeWithTag("week_summary_section_sessions").assertDoesNotExist()
-        rule.onNodeWithTag("week_summary_section_nutrition").assertDoesNotExist()
+        rule.onNodeWithTag("week_summary_coach_card").assertDoesNotExist()
+        rule.onNodeWithTag("week_summary_section_strength").assertDoesNotExist()
         rule.onNodeWithTag("week_summary_section_proposal").assertDoesNotExist()
     }
 

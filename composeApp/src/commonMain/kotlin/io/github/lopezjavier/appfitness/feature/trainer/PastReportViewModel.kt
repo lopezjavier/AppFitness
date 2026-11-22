@@ -52,7 +52,14 @@ class PastReportViewModel(
     }
 
     private suspend fun build(report: PastReport): PastReportUiState = when (report) {
-        is PastReport.Week -> PastReportUiState.Week(report.item, names.weekSummaryContent(report.summary))
+        is PastReport.Week -> PastReportUiState.Week(
+            report.item,
+            names.weekSummaryContent(report.summary),
+        ).let { week ->
+            // Stored report: not live, so no follow-up read, no health note and no live action.
+            week.copy(report = weekReportOf(report.summary, week.content.exerciseNames, live = false))
+        }
+
         is PastReport.Block -> PastReportUiState.Block(report.item, names.blockReviewContent(report.review))
     }
 }

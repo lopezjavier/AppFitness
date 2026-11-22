@@ -13,6 +13,9 @@ import kotlin.math.sqrt
 /** The card's verdict (planning/07-coach-design.md §5 (3)); the Spanish text belongs to the UI. */
 enum class WeightPaceState { NoData, Soon, OnPace, Slower, Faster, Stable, Rising, Falling }
 
+/** The verdict of [WeightPaceFit.verdictOf]: the [state] and the neutral early-cut line flag. */
+data class WeightPaceVerdict(val state: WeightPaceState, val earlyCutNote: Boolean)
+
 /** A weekly average: [index] is the week from the window start (0-based), [days] the weigh-in days behind it. */
 data class WeeklyWeight(val index: Int, val kg: Double, val days: Int, val partial: Boolean)
 
@@ -86,7 +89,19 @@ object WeightPaceFit {
             }
             .sortedBy { it.index }
         val fit = fitOf(weekly)
-        val state = stateOf(weekly, fit, rateKgWeek, windowWeeks)
+        // The latest complete week is the one before the current (last) window week; it needs 3 weigh-in days.
+        val latestComplete = weekly.lastOrNull { it.index < windowWeeks - 1 }
+        val verdict = verdictOf(
+            slope = fit?.slope,
+            low = fit?.low,
+            high = fit?.high,
+            weeks = weekly.size,
+            rate = rateKgWeek,
+            phase = phase,
+            weeksInPhase = phaseWeeks,
+            latestWeekComplete = latestComplete != null && latestComplete.days >= MIN_DAYS_IN_LATEST_WEEK,
+        )
+        val state = verdict.state
         return WeightPace(
             state = state,
             planRateKgWeek = rateKgWeek,
@@ -99,8 +114,7 @@ object WeightPaceFit {
             planLine = planLineOf(outcome, rateKgWeek, planStart, windowStart),
             windowStart = windowStart,
             windowWeeks = windowWeeks,
-            earlyCutNote = phase == Phase.Cut && state == WeightPaceState.Faster &&
-                (phaseWeeks ?: Int.MAX_VALUE) <= EARLY_CUT_WEEKS,
+            earlyCutNote = verdict.earlyCutNote,
             weeksInPhase = phaseWeeks,
         )
     }
@@ -127,20 +141,37 @@ object WeightPaceFit {
         return Fit(slope, slope - half, slope + half)
     }
 
-    @Suppress("ReturnCount") // One guard per state of 07 §5 (2).
-    private fun stateOf(weekly: List<WeeklyWeight>, fit: Fit?, rate: Double, windowWeeks: Int): WeightPaceState {
-        if (fit == null) return WeightPaceState.NoData
-        val low = fit.low
-        val high = fit.high
-        // The latest complete week is the one before the current (last) window week.
-        val latestComplete = weekly.lastOrNull { it.index < windowWeeks - 1 }
-        val gated = weekly.size < MIN_WEEKS_FOR_VERDICT ||
-            latestComplete == null || latestComplete.days < MIN_DAYS_IN_LATEST_WEEK
-        if (gated || low == null || high == null) return WeightPaceState.Soon
-        return verdictOf(rate, low, high)
+    /**
+     * The card's verdict from a fitted trend (`07` §5 (2)), shared by "Tu plan" and the weekly report so there is one
+     * pace. [weeks] is the number of weekly averages behind the fit, [weeksInPhase] the weeks of the current phase run
+     * when known, and [latestWeekComplete] says the latest complete week had 3 weigh-in days (the report's snapshot
+     * has no such flag, so it keeps the default).
+     */
+    @Suppress("LongParameterList") // Plain values of one pure decision.
+    fun verdictOf(
+        slope: Double?,
+        low: Double?,
+        high: Double?,
+        weeks: Int,
+        rate: Double,
+        phase: Phase,
+        weeksInPhase: Int? = null,
+        latestWeekComplete: Boolean = true,
+    ): WeightPaceVerdict {
+        val state = when {
+            slope == null -> WeightPaceState.NoData
+
+            weeks < MIN_WEEKS_FOR_VERDICT || !latestWeekComplete || low == null || high == null ->
+                WeightPaceState.Soon
+
+            else -> stateOf(rate, low, high)
+        }
+        val early = phase == Phase.Cut && state == WeightPaceState.Faster &&
+            (weeksInPhase ?: Int.MAX_VALUE) <= EARLY_CUT_WEEKS
+        return WeightPaceVerdict(state, early)
     }
 
-    private fun verdictOf(rate: Double, low: Double, high: Double): WeightPaceState {
+    private fun stateOf(rate: Double, low: Double, high: Double): WeightPaceState {
         if (abs(rate) < EPSILON) {
             return when {
                 low > 0.0 -> WeightPaceState.Rising

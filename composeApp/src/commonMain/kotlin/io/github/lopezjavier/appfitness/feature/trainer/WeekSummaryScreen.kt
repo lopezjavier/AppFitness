@@ -3,16 +3,20 @@ package io.github.lopezjavier.appfitness.feature.trainer
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.semantics.semantics
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.github.lopezjavier.appfitness.composeapp.resources.Res
 import io.github.lopezjavier.appfitness.composeapp.resources.action_retry
@@ -21,9 +25,10 @@ import io.github.lopezjavier.appfitness.composeapp.resources.coach_changes_heade
 import io.github.lopezjavier.appfitness.composeapp.resources.coach_deload_headline
 import io.github.lopezjavier.appfitness.composeapp.resources.coach_deload_status_cancelled
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_calendar
+import io.github.lopezjavier.appfitness.composeapp.resources.ic_pause
+import io.github.lopezjavier.appfitness.composeapp.resources.week_report_paused_body
 import io.github.lopezjavier.appfitness.composeapp.resources.week_summary_empty
 import io.github.lopezjavier.appfitness.composeapp.resources.week_summary_error
-import io.github.lopezjavier.appfitness.composeapp.resources.week_summary_groups_header
 import io.github.lopezjavier.appfitness.composeapp.resources.week_summary_subtitle
 import io.github.lopezjavier.appfitness.composeapp.resources.week_summary_title
 import io.github.lopezjavier.appfitness.designsystem.AppCard
@@ -35,15 +40,17 @@ import io.github.lopezjavier.appfitness.designsystem.CoachChangeRow
 import io.github.lopezjavier.appfitness.designsystem.CoachChangeRowState
 import io.github.lopezjavier.appfitness.designsystem.EmptyState
 import io.github.lopezjavier.appfitness.designsystem.ErrorState
+import io.github.lopezjavier.appfitness.designsystem.IconBadge
+import io.github.lopezjavier.appfitness.designsystem.LocalAnimationsEnabled
 import io.github.lopezjavier.appfitness.designsystem.OfflineState
 import io.github.lopezjavier.appfitness.designsystem.SectionCard
 import io.github.lopezjavier.appfitness.designsystem.SkeletonBox
 import io.github.lopezjavier.appfitness.designsystem.Spacing
 import io.github.lopezjavier.appfitness.designsystem.WindowWidthClassDefaults
 import io.github.lopezjavier.appfitness.domain.model.CoachChangeStatus
-import io.github.lopezjavier.appfitness.domain.model.ProposalStatus
 import io.github.lopezjavier.appfitness.domain.port.ConnectivityObserver
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.koinInject
 import org.koin.compose.viewmodel.koinViewModel
@@ -63,9 +70,9 @@ fun WeekSummaryRoot(
 }
 
 /**
- * "Resumen semanal" on [AppScreen] with back: read-only [AppCard] sections in one column (workouts, sets per muscle
- * group, nutrition, the coach changes and the deload). Loading is a skeleton, no summary
- * an [EmptyState], a failed load an [ErrorState] with "Reintentar" and no connection the offline state (R-31).
+ * "Resumen semanal" on [AppScreen] with back: the progress-first report (US-141) and the kept coach cards.
+ * Loading is a skeleton, no summary an [EmptyState], a failed load an [ErrorState] with "Reintentar" and no
+ * connection the offline state (R-31).
  */
 @Composable
 fun WeekSummaryScreen(
@@ -121,49 +128,64 @@ fun WeekSummaryScreen(
     }
 }
 
+/**
+ * The report body shared by the live and the past screen: the coach card, the progress cards in the order of the goal
+ * and the kept cards. The coach card's action scrolls to the diagnosis or stall card when the live report has one
+ * (the grid state is saved with the screen, ADR-40); on a past report it is never a button (R-60).
+ */
 @Composable
 internal fun SummaryContent(state: WeekSummaryUiState.Content) {
-    val summary = state.summary
-    val changeRows = visibleChangeRows(state)
-    HubGrid {
-        if (summary.paused) {
-            // A paused week (US-106) has nothing to summarise: only its label.
-            fullSpanItem("paused") {
+    val gridState = rememberLazyGridState()
+    val scope = rememberCoroutineScope()
+    val animate = LocalAnimationsEnabled.current
+    val report = state.report
+    val cards = summaryCards(state)
+    if (state.summary.paused) {
+        // A paused week (US-106) has nothing to summarise: only its label.
+        HubGrid(state = gridState) { fullSpanItem("paused") { PausedWeekCard() } }
+        return
+    }
+    val coach = report?.let { ui ->
+        val target = if (ui.live) actionTarget(ui.coach.action) else null
+        val index = cards.indexOfFirst { it.key == target }
+        // The coach card is item 0, so a card's grid index is its position in [cards] plus one.
+        val hasTarget = index >= 0
+        val open: (() -> Unit)? = if (hasTarget) {
+            {
+                scope.launch {
+                    // R-97: no animation under "remove animations".
+                    if (animate) gridState.animateScrollToItem(index + 1) else gridState.scrollToItem(index + 1)
+                }
+            }
+        } else {
+            null
+        }
+        SummaryItem("coach") { WeekReportCoachCard(ui.coach, open) }
+    }
+    HubGrid(state = gridState) {
+        (listOfNotNull(coach) + cards).forEach { item ->
+            if (item.fullSpan) fullSpanItem(item.key, item.content) else item(key = item.key) { item.content() }
+        }
+    }
+}
+
+/** A paused week (US-106): a pause glyph and the label, with the reason there is nothing to compare. */
+@Composable
+private fun PausedWeekCard() {
+    AppCard(Modifier.fillMaxWidth().semantics(mergeDescendants = true) {}.testTag("week_summary_paused")) {
+        Row(horizontalArrangement = Arrangement.spacedBy(Spacing.md), verticalAlignment = Alignment.CenterVertically) {
+            IconBadge(Res.drawable.ic_pause, AppTheme.colors.athleticCyan)
+            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
                 Text(
                     text = stringResource(Res.string.block_week_paused),
                     style = AppTheme.typography.titleMedium,
                     color = AppTheme.colors.textPrimary,
-                    modifier = Modifier.testTag("week_summary_paused"),
                 )
-            }
-            return@HubGrid
-        }
-        item("sessions") {
-            SessionsCard("week_summary_section_sessions", summary.sessionsDone, summary.sessionsPlanned)
-        }
-        if (WeekSummaryText.visibleGroups(summary.groups).isNotEmpty()) {
-            item("groups") {
-                GroupsCard(summary.groups, "week_summary", stringResource(Res.string.week_summary_groups_header))
-            }
-        }
-        if (summary.nutrition != null) fullSpanItem("nutrition") { NutritionSection(summary) }
-        summary.nutrition?.diagnosis?.let { diagnosis ->
-            fullSpanItem("diagnosis") {
-                DiagnosisCard(
-                    diagnosis,
-                    hasProposal = summary.nutrition?.decisions?.any { it.status == ProposalStatus.Pending } == true,
+                Text(
+                    text = stringResource(Res.string.week_report_paused_body),
+                    style = AppTheme.typography.bodyMedium,
+                    color = AppTheme.colors.textSecondary,
                 )
-            }
-        }
-        if (changeRows.isNotEmpty()) fullSpanItem("changes") { ChangesSection(changeRows) }
-        if (state.summary.stalls.any { it.exerciseId in state.exerciseNames }) {
-            fullSpanItem("stalls") { StallCard(state.summary.stalls, state.exerciseNames) }
-        }
-        if (WeekSummaryText.showsSeparateDeload(summary)) {
-            fullSpanItem("deload") {
-                ReportNoteCard("week_summary_section_deload") {
-                    SummaryLine(stringResource(Res.string.coach_deload_headline))
-                }
             }
         }
     }
@@ -179,10 +201,10 @@ internal fun SummaryLine(text: String, modifier: Modifier = Modifier) {
     )
 }
 
-private typealias ChangeRow = Pair<CoachChangeRowUi, String?>
+internal typealias ChangeRow = Pair<CoachChangeRowUi, String?>
 
 /** The coach's changes that can be drawn: a change waits for its exercise name (R-54); a deload is plan-level. */
-private fun visibleChangeRows(state: WeekSummaryUiState.Content): List<ChangeRow> =
+internal fun visibleChangeRows(state: WeekSummaryUiState.Content): List<ChangeRow> =
     state.summary.changes.toCoachChangeRows().mapNotNull { row ->
         val name = row.exerciseId?.let { state.exerciseNames[it] }
         if (row.kind.isDeload || name != null) row to name else null
@@ -190,7 +212,7 @@ private fun visibleChangeRows(state: WeekSummaryUiState.Content): List<ChangeRow
 
 /** The coach's changes of the week, read-only: the shared row without actions, pending flags as plain status text. */
 @Composable
-private fun ChangesSection(rows: List<ChangeRow>) {
+internal fun ChangesSection(rows: List<ChangeRow>) {
     SectionCard(stringResource(Res.string.coach_changes_header), testTag = "week_summary_section_changes") {
         rows.forEach { (row, name) ->
             val cancelled = row.status == CoachChangeStatus.Undone

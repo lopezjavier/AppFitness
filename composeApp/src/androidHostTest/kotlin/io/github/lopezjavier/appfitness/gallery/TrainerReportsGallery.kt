@@ -9,7 +9,6 @@ import io.github.lopezjavier.appfitness.feature.trainer.PastReportScreen
 import io.github.lopezjavier.appfitness.feature.trainer.PastReportUiState
 import io.github.lopezjavier.appfitness.feature.trainer.ReportsScreen
 import io.github.lopezjavier.appfitness.feature.trainer.ReportsUiState
-import io.github.lopezjavier.appfitness.feature.trainer.WeekSummaryUiState
 import kotlinx.coroutines.flow.flowOf
 import org.junit.Rule
 import org.junit.Test
@@ -55,7 +54,7 @@ private fun reports(): List<GalleryEntry> {
     )
 }
 
-/** A stored report opened from the list (PastReportRoute): weekly, block and the failures. */
+/** A stored report from the list (PastReportRoute): block and failures; weekly ones: TrainerWeekReportGallery. */
 private fun pastReport(): List<GalleryEntry> {
     fun past(state: String, ui: PastReportUiState, online: Boolean = true, wide: Boolean = false) = GalleryEntry(
         TRAINER_AREA,
@@ -67,13 +66,6 @@ private fun pastReport(): List<GalleryEntry> {
         PastReportScreen(state = ui, isOnline = flowOf(online), onEvent = {}, onBack = {})
     }
 
-    val week = PastReportUiState.Week(
-        item = TrainerFixtures.reportItem(id = "report-2", kind = ReportKind.WeekSummary, week = 2),
-        content = WeekSummaryUiState.Content(
-            summary = TrainerFixtures.weekSummary(seen = true),
-            exerciseNames = TrainerFixtures.exerciseNames,
-        ),
-    )
     val block = PastReportUiState.Block(
         item = TrainerFixtures.reportItem(id = "report-1", kind = ReportKind.BlockReview, week = null),
         content = BlockReviewUiState.Content(
@@ -86,9 +78,7 @@ private fun pastReport(): List<GalleryEntry> {
         past("not found", PastReportUiState.NotFound),
         past("failed", PastReportUiState.Error),
         past("offline", PastReportUiState.Offline, online = false),
-        past("weekly summary", week),
         past("block review", block),
-        past("tablet width, weekly summary", week, wide = true),
     )
 }
 

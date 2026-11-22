@@ -13,7 +13,12 @@ sealed interface PastReportUiState {
     data object Offline : PastReportUiState
 
     /** A stored weekly summary, built by the same function as the live screen; [item] carries the period. */
-    data class Week(val item: ReportItem, val content: WeekSummaryUiState.Content) : PastReportUiState
+    data class Week(
+        val item: ReportItem,
+        val content: WeekSummaryUiState.Content,
+        /** The progress-first report, built with `live = false`; null for a paused week. */
+        val report: WeekReportUi? = null,
+    ) : PastReportUiState
 
     /**
      * A stored block review shown read-only: [content] never has a calorie proposal or a next plan id, and its

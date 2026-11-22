@@ -9,7 +9,12 @@ sealed interface WeekSummaryUiState {
      * The summary of the latest finished plan week. [exerciseNames] resolves the exercises of its coach changes
      * (R-54): a change whose name is unknown is not listed.
      */
-    data class Content(val summary: WeekSummary, val exerciseNames: Map<String, String>) : WeekSummaryUiState
+    data class Content(
+        val summary: WeekSummary,
+        val exerciseNames: Map<String, String>,
+        /** The progress-first report (T-315); null for a paused week. */
+        val report: WeekReportUi? = null,
+    ) : WeekSummaryUiState
 
     /** No finished week with records any more (for example an old notice): "Aún no hay resumen semanal." */
     data object Empty : WeekSummaryUiState

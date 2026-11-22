@@ -112,7 +112,7 @@ fun PastReportScreen(
                     OfflineState(isOnline = isOnline, onReload = { onEvent(PastReportEvent.Retry) })
                 }
 
-                is PastReportUiState.Week -> SummaryContent(state.content)
+                is PastReportUiState.Week -> SummaryContent(state.content.copy(report = state.report))
 
                 is PastReportUiState.Block -> ReviewContent(state.content, online = true, onEvent = {}, readOnly = true)
             }

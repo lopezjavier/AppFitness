@@ -348,4 +348,79 @@ class WeightPaceFitTest {
 
         assertNull(pace.planLine)
     }
+
+    // Extracted verdict (shared with the weekly report)
+
+    @Test
+    fun verdictOf_matchesComputeOnTheSameFit() {
+        val cases = listOf(
+            Triple(five(-0.5, 82.0, 81.5, 81.0, 80.5, 80.0), -0.5, Phase.Cut),
+            Triple(five(-0.5, 80.0, 79.0, 79.0, 78.0), -0.5, Phase.Cut),
+            Triple(five(-0.5, 80.0, 80.0, 80.0, 80.0, 80.0), -0.5, Phase.Cut),
+            Triple(five(0.25, 80.0, 79.0, 78.0, 77.0, 76.0, phase = Phase.Gain), 0.25, Phase.Gain),
+            Triple(five(0.0, 80.0, 80.1, 79.9, 80.0, 80.1, phase = Phase.Maintenance), 0.0, Phase.Maintenance),
+        )
+
+        cases.forEach { (pace, rate, phase) ->
+            val verdict = WeightPaceFit.verdictOf(
+                slope = pace.slopeKgWeek,
+                low = pace.slopeLowKgWeek,
+                high = pace.slopeHighKgWeek,
+                weeks = pace.weekly.size,
+                rate = rate,
+                phase = phase,
+                weeksInPhase = pace.weeksInPhase,
+            )
+
+            assertEquals(pace.state, verdict.state)
+            assertEquals(pace.earlyCutNote, verdict.earlyCutNote)
+        }
+    }
+
+    @Test
+    fun verdictOf_underFourWeeksIsSoon_andWithoutSlopeIsNoData() {
+        assertEquals(
+            WeightPaceState.Soon,
+            WeightPaceFit.verdictOf(-0.6, -1.2, 0.0, weeks = 3, rate = -0.5, phase = Phase.Cut).state,
+        )
+        assertEquals(
+            WeightPaceState.NoData,
+            WeightPaceFit.verdictOf(null, null, null, weeks = 1, rate = -0.5, phase = Phase.Cut).state,
+        )
+    }
+
+    @Test
+    fun verdictOf_earlyCutFlagOnlyForAFasterCutInTheFirstSixWeeks() {
+        val faster = WeightPaceFit.verdictOf(
+            -1.5,
+            -1.8,
+            -1.2,
+            weeks = 5,
+            rate = -0.5,
+            phase = Phase.Cut,
+            weeksInPhase = 5,
+        )
+        val later = WeightPaceFit.verdictOf(
+            -1.5,
+            -1.8,
+            -1.2,
+            weeks = 5,
+            rate = -0.5,
+            phase = Phase.Cut,
+            weeksInPhase = 8,
+        )
+
+        assertEquals(WeightPaceState.Faster, faster.state)
+        assertTrue(faster.earlyCutNote)
+        assertFalse(later.earlyCutNote)
+    }
+
+    @Test
+    fun weighIns80_79_79_78_fitTheDocumentedExample() {
+        val pace = five(-0.5, 80.0, 79.0, 79.0, 78.0)
+
+        assertEquals(-0.6, assertNotNull(pace.slopeKgWeek), 1e-9)
+        assertEquals(-1.209, assertNotNull(pace.slopeLowKgWeek), 1e-3)
+        assertEquals(0.009, assertNotNull(pace.slopeHighKgWeek), 1e-3)
+    }
 }

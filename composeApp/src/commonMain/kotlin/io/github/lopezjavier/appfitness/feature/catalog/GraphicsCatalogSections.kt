@@ -41,7 +41,10 @@ import io.github.lopezjavier.appfitness.designsystem.HeroStat
 import io.github.lopezjavier.appfitness.designsystem.IconBadge
 import io.github.lopezjavier.appfitness.designsystem.LegendRow
 import io.github.lopezjavier.appfitness.designsystem.LiveStatusStrip
+import io.github.lopezjavier.appfitness.designsystem.MeasurementTrack
 import io.github.lopezjavier.appfitness.designsystem.MiniBarChart
+import io.github.lopezjavier.appfitness.designsystem.ProgressGlyph
+import io.github.lopezjavier.appfitness.designsystem.ProgressStateIcon
 import io.github.lopezjavier.appfitness.designsystem.RecordBadge
 import io.github.lopezjavier.appfitness.designsystem.Spacing
 import io.github.lopezjavier.appfitness.designsystem.Sparkline
@@ -55,6 +58,7 @@ import io.github.lopezjavier.appfitness.designsystem.TrainerBeforeAfter
 import io.github.lopezjavier.appfitness.designsystem.TrainerTintedRow
 import io.github.lopezjavier.appfitness.designsystem.WeekStrip
 import io.github.lopezjavier.appfitness.designsystem.WeekStripDay
+import io.github.lopezjavier.appfitness.designsystem.WeighInGateDots
 import org.jetbrains.compose.resources.stringResource
 
 /** Catalog sections of the premium graphics kit: data graphics, celebration, and the per-screen graphics. */
@@ -85,6 +89,12 @@ private fun DataGraphicsSection() {
                     StatRing(0.7f, color = colors.neonLime) { Text("70", color = colors.textPrimary) }
                 }
                 Sparkline(SampleSeries, Modifier.fillMaxWidth())
+                Sparkline(SampleSeries, Modifier.fillMaxWidth(), hollowPoints = setOf(3, 4))
+                Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+                    ProgressGlyph.entries.forEach { ProgressStateIcon(it) }
+                }
+                WeighInGateDots(have = 2, total = 3, description = label)
+                MeasurementTrack()
                 MiniBarChart(
                     values = SampleBars,
                     modifier = Modifier.fillMaxWidth(),
@@ -107,25 +117,28 @@ private fun DataGraphicsSection() {
                     ),
                     modifier = Modifier.fillMaxWidth(),
                 )
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(Spacing.lg),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    DonutChart(
-                        slices = listOf(
-                            DonutSlice(30f, colors.macroProtein),
-                            DonutSlice(45f, colors.macroCarbs),
-                            DonutSlice(25f, colors.macroFat),
-                        ),
-                    )
-                    Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
-                        LegendRow(label, "30", colors.macroProtein)
-                        LegendRow(label, "45", colors.macroCarbs)
-                        LegendRow(label, "25", colors.macroFat)
-                    }
-                }
+                DonutWithLegend(label)
                 ActivityHeatmap(SampleHeatmap, Modifier.fillMaxWidth(), highlightIndex = SampleHeatmap.lastIndex)
             }
+        }
+    }
+}
+
+@Composable
+private fun DonutWithLegend(label: String) {
+    val colors = AppTheme.colors
+    Row(horizontalArrangement = Arrangement.spacedBy(Spacing.lg), verticalAlignment = Alignment.CenterVertically) {
+        DonutChart(
+            slices = listOf(
+                DonutSlice(30f, colors.macroProtein),
+                DonutSlice(45f, colors.macroCarbs),
+                DonutSlice(25f, colors.macroFat),
+            ),
+        )
+        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
+            LegendRow(label, "30", colors.macroProtein)
+            LegendRow(label, "45", colors.macroCarbs)
+            LegendRow(label, "25", colors.macroFat)
         }
     }
 }

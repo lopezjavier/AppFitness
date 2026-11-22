@@ -2,16 +2,24 @@ package io.github.lopezjavier.appfitness.feature.trainer
 
 import androidx.lifecycle.SavedStateHandle
 import io.github.lopezjavier.appfitness.app.FakeCoachSummaryRepository
+import io.github.lopezjavier.appfitness.app.FakeDiscomfortFollowUpRepository
 import io.github.lopezjavier.appfitness.app.ReminderCoordinator
 import io.github.lopezjavier.appfitness.app.ReminderEnv
+import io.github.lopezjavier.appfitness.designsystem.ProgressGlyph
 import io.github.lopezjavier.appfitness.domain.AppError
 import io.github.lopezjavier.appfitness.domain.AppException
+import io.github.lopezjavier.appfitness.domain.model.DiscomfortFollowUp
+import io.github.lopezjavier.appfitness.domain.model.DiscomfortNoteReason
+import io.github.lopezjavier.appfitness.domain.model.MuscleGroup
+import io.github.lopezjavier.appfitness.domain.model.ProgressState
 import io.github.lopezjavier.appfitness.domain.model.ReminderKind
 import io.github.lopezjavier.appfitness.domain.model.StallCause
 import io.github.lopezjavier.appfitness.domain.model.StallDiagnosis
+import io.github.lopezjavier.appfitness.domain.model.StrengthGroup
 import io.github.lopezjavier.appfitness.domain.model.WeekSummary
 import io.github.lopezjavier.appfitness.domain.port.Clock
 import io.github.lopezjavier.appfitness.domain.usecase.ExerciseNameResolver
+import io.github.lopezjavier.appfitness.domain.usecase.LoadDiscomfortFollowUpsUseCase
 import io.github.lopezjavier.appfitness.domain.usecase.MarkWeekSummarySeen
 import io.github.lopezjavier.appfitness.domain.usecase.RecordPausedWeekReport
 import io.github.lopezjavier.appfitness.feature.exercises.FakeExerciseLibrary
@@ -34,6 +42,7 @@ import kotlin.test.BeforeTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertIs
+import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
 import kotlin.time.Instant
@@ -45,8 +54,12 @@ class WeekSummaryViewModelTest {
     private val env = ReminderEnv(LocalDate(2026, 11, 10))
     private val summaries: FakeCoachSummaryRepository get() = env.summaries
     private val reports = FakeReportRepository()
-    private val exercises = FakeExerciseRepository(listOf(exerciseRow("id-bench", "bench")))
-    private val library = FakeExerciseLibrary(mapOf("bench" to exerciseInfo("bench", "Press banca")))
+    private val discomfort = FakeDiscomfortFollowUpRepository()
+    private val exercises =
+        FakeExerciseRepository(listOf(exerciseRow("id-bench", "bench"), exerciseRow("id-fly", "fly")))
+    private val library = FakeExerciseLibrary(
+        mapOf("bench" to exerciseInfo("bench", "Press banca"), "fly" to exerciseInfo("fly", "Aperturas")),
+    )
 
     @BeforeTest
     fun setUp() = Dispatchers.setMain(dispatcher)
@@ -65,6 +78,7 @@ class WeekSummaryViewModelTest {
         recordPausedWeek = RecordPausedWeekReport(reports),
         reminders = coordinator,
         names = ExerciseNameResolver(exercises, library),
+        discomfortFollowUps = LoadDiscomfortFollowUpsUseCase(discomfort),
         clock = clock,
         savedState = saved,
         timeZone = timeZone,
@@ -148,6 +162,80 @@ class WeekSummaryViewModelTest {
         advanceUntilIdle()
 
         assertEquals(summary.nutrition, assertIs<WeekSummaryUiState.Content>(model.uiState.value).summary.nutrition)
+    }
+
+    private fun pausedBenchSummary() = v2Summary(
+        weekProgress(
+            groups = listOf(
+                StrengthGroup(
+                    MuscleGroup.Chest,
+                    listOf(
+                        exerciseProgress("id-bench", ProgressState.Paused),
+                        exerciseProgress("id-fly", ProgressState.Up),
+                    ),
+                ),
+            ),
+        ),
+    )
+
+    private fun due(id: String) = DiscomfortFollowUp(
+        id,
+        "d-$id",
+        Instant.parse("2026-11-01T10:00:00Z"),
+        offerSwap = false,
+        showNote = true,
+        noteReason = DiscomfortNoteReason.Sessions3,
+    )
+
+    @Test
+    fun load_fillsTheLiveReportFromTheProgress() = runTest(dispatcher) {
+        summaries.latest = Result.success(v2Summary())
+        val model = viewModel()
+
+        advanceUntilIdle()
+
+        val report = assertNotNull(assertIs<WeekSummaryUiState.Content>(model.uiState.value).report)
+        assertTrue(report.live)
+        assertNotNull(report.progress)
+    }
+
+    @Test
+    fun healthNote_showsOnlyForAPausedExerciseWithADueNote() = runTest(dispatcher) {
+        summaries.latest = Result.success(pausedBenchSummary())
+        discomfort.followUps = listOf(due("id-bench"), due("id-fly"))
+        val model = viewModel()
+
+        advanceUntilIdle()
+
+        val rows = assertNotNull(assertIs<WeekSummaryUiState.Content>(model.uiState.value).report)
+            .progress!!.strength.groups.single().exercises
+        assertEquals(HealthNoteKind.ThreeSessions, rows[0].healthNote)
+        assertNull(rows[1].healthNote)
+    }
+
+    @Test
+    fun failedFollowUpRead_hidesOnlyTheNoteAndTheReportStillShows() = runTest(dispatcher) {
+        summaries.latest = Result.success(pausedBenchSummary())
+        discomfort.followUps = listOf(due("id-bench"))
+        discomfort.failing = true
+        val model = viewModel()
+
+        advanceUntilIdle()
+
+        val rows = assertNotNull(assertIs<WeekSummaryUiState.Content>(model.uiState.value).report)
+            .progress!!.strength.groups.single().exercises
+        assertNull(rows.first().healthNote)
+        assertEquals(ProgressGlyph.Paused, rows.first().state)
+    }
+
+    @Test
+    fun pausedWeek_hasNoReport() = runTest(dispatcher) {
+        summaries.latest = Result.success(pausedSummary())
+        val model = viewModel()
+
+        advanceUntilIdle()
+
+        assertNull(assertIs<WeekSummaryUiState.Content>(model.uiState.value).report)
     }
 
     // 22:30 UTC on 9 Nov is already 10 Nov at +02:00.

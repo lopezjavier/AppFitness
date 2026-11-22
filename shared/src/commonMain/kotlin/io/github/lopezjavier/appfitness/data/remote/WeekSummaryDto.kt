@@ -136,7 +136,7 @@ internal fun weekSummaryOf(element: JsonElement): WeekSummary? {
     if (planId == null || start == null || end == null) return null
     // A paused week (`{plan_id, paused:true, start_date, end_date}`) carries no week number or figures.
     return if (obj.truth("paused")) {
-        WeekSummary.pausedWeek(planId, start, end)
+        WeekSummary.pausedWeek(planId, start, end).copy(schemaVersion = obj.int("schema_version") ?: 1)
     } else {
         obj.int("week")?.let { week ->
             WeekSummary(
@@ -155,6 +155,8 @@ internal fun weekSummaryOf(element: JsonElement): WeekSummary? {
                 deload = obj.truth("deload"),
                 stalls = stallsOf(obj["stalls"]),
                 nutrition = nutritionOf(obj["nutrition"].obj()),
+                progress = progressOf(obj["progress"]),
+                schemaVersion = obj.int("schema_version") ?: 1,
             )
         }
     }
