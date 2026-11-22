@@ -61,7 +61,7 @@ Columns: functionality, label as shown in the app (Spanish), route type or host,
 | Notes per set and per routine exercise | "Nota de la serie", "Nota del ejercicio" | sheet `NoteSheet` of `LiveSessionRoute` and `RoutineBuilderRoute` | tables `workout_sets.notes`, `routine_exercises.notes` | US-66 |
 | Discomfort log per exercise | "Molestia" | sheet `DiscomfortSheet` of `LiveSessionRoute` | table `exercise_discomforts`; RPC `dismiss_discomfort_note` | US-67 |
 | Workout history, session detail, calendar and editing | "Historial de entrenos", "Entreno completado", "Editar entreno", "Entreno pasado" | `HistoryRoute`, `SessionDetailRoute`, `EditWorkoutRoute`, `PastWorkoutRoute` | RPC `save_workout_as_routine` | US-14, US-37 |
-| Strength, muscle volume, stats and exercise progress | "Fuerza", "Volumen", "Entrenamiento", "Progreso del ejercicio" | `StrengthRoute`, `MuscleVolumeRoute`, `StatsRoute`, `ExerciseProgressRoute` | RPCs `weekly_muscle_volume`, `training_summary`, `weekly_set_counts`, `muscle_group_sets` | US-15, US-39, US-40, US-41, US-137 |
+| Strength, muscle volume, stats and exercise progress | "Fuerza", "Volumen", "Entrenamiento", "Progreso del ejercicio" | `StrengthRoute`, `MuscleVolumeRoute`, `StatsRoute`, `ExerciseProgressRoute` | RPCs `weekly_muscle_volume`, `training_summary`, `weekly_set_counts`, `muscle_group_sets`, `training_range_progress` and `weekly_muscle_sets` (Estadisticas range progress, US-145 data side, T-320) | US-15, US-39, US-40, US-41, US-137, US-145 |
 
 ## Trainer
 
