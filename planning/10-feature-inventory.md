@@ -84,11 +84,11 @@ Columns: functionality, label as shown in the app (Spanish), route type or host,
 | Deloads on their own, requested or cancelled | "Cancelar descarga", "Hacer descarga la próxima semana" | `TrainerBlockRoute`, `TrainerHome` | RPCs `evaluate_coach_deload`, `deload_suggestions`, `request_coach_deload`, `cancel_coach_deload` | US-75, US-100 |
 | Diet break in a cut | "Descanso de dieta" | `TrainerPlanRoute` | RPC `apply_coach_diet_break` | US-115 |
 | Weekly summary with the training and nutrition sections, stall and nutrition diagnosis | "Resumen semanal", "¿Por qué no progreso?", "¿Por qué no avanza tu peso?" | `WeekSummaryRoute` | RPCs `coach_week_summary`, `mark_coach_week_summary_seen`, `evaluate_coach_calorie_change` | US-98, US-105, US-112, US-113, US-114 |
-| End-of-block review, phase change and next block | "Revisión del bloque" | `BlockReviewRoute` | RPCs `open_coach_block_review`, `mark_coach_block_review_seen`, `keep_coach_phase`, `accept_coach_plan` | US-101, US-102, US-103 |
+| End-of-block review, phase change and next block | "Revisión del bloque" | `BlockReviewRoute` | RPCs `open_coach_block_review` (stores `inputs.progress` v2, T-317), `mark_coach_block_review_seen`, `keep_coach_phase`, `accept_coach_plan` | US-101, US-102, US-103 |
 | Phases over the year | "Fase aceptada: …" | `PlanProposalRoute`, `BlockReviewRoute` | RPCs `coach_weeks_in_phase`, `keep_coach_phase` | US-82 |
 | Goal switch with "Bloque nuevo" and a clean restart | "Bloque nuevo" | `BeforeStartRoute` (new-block mode), `BlockBuilderRoute` | RPC `open_coach_block_new` | US-110, US-111 |
 | Discomfort that does not go away: the swap offer | "Ahora no" | `TrainerBlockRoute` (offer) | RPCs `coach_discomfort_followups`, `coach_swap_candidates`, `coach_swap_flagged_exercise`, `decline_discomfort_swap` | US-108 |
-| Past reports and the weekly reports | "Informes", "Informe" | `ReportsRoute`, `PastReportRoute` | RPCs `list_coach_reports`, `get_coach_report` | US-129 |
+| Past reports and the weekly reports | "Informes", "Informe" | `ReportsRoute`, `PastReportRoute` | RPCs `list_coach_reports` (rows carry a `teaser`, T-317), `get_coach_report` | US-129 |
 
 ## Perfil
 

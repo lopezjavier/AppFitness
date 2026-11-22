@@ -7,7 +7,7 @@ begin;
 create extension if not exists pgtap with schema extensions;
 set local search_path = extensions, public;
 
-select plan(28);
+select plan(32);
 
 create function pg_temp.plan() returns uuid language sql as $$
   select id from public.coach_plans where user_id = '00000000-0000-4000-8000-000000000001' and status = 'accepted' $$;
@@ -53,6 +53,15 @@ select ok((select bool_and(snapshot->>'schema_version' = '2') from public.coach_
 select is((select count(*)::int from public.coach_week_reports where body_v1 is not null), 0,
   'no stored weekly report has a v1 backup (the dataset is written as v2)');
 select cmp_ok((select count(*)::int from public.coach_block_reviews), '>=', 1, 'a block review is stored');
+select ok((select bool_and(inputs->>'schema_version' = '2' and inputs ? 'progress') from public.coach_block_reviews),
+  'every stored block review is v2 with progress');
+select ok((select bool_and(inputs->'progress'->'weight'->'change_kg' <> 'null'::jsonb) from public.coach_block_reviews),
+  'the block review has a weight change (weigh-ins in its first and last week)');
+select ok((select bool_and(jsonb_typeof(inputs->'progress'->'headline') = 'object') from public.coach_block_reviews),
+  'the block review has its headline');
+select ok(exists (select 1 from jsonb_array_elements(public.list_coach_reports()) e
+                  where e->>'kind' = 'block_review' and jsonb_typeof(e->'teaser') = 'object'),
+  'the block row of the list has a teaser');
 
 select lives_ok($$select public.coach_plan_weeks(pg_temp.plan(), (now() at time zone 'utc')::date)$$, 'coach_plan_weeks reads the block');
 select is((public.coach_week_summary((now() at time zone 'utc')::date))->>'seen', 'false', 'the weekly summary is unseen');

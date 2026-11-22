@@ -9,7 +9,8 @@
 -- are no personal data and no free text beyond food and routine names (ADR-107).
 --
 -- Timeline (d0 = today):
---   block 1   d0-70 .. d0-43  four weeks, 3 sessions each, ended; its review is stored and the phase kept
+--   block 1   d0-70 .. d0-43  four weeks, 3 sessions each, week 4 a deload, a weight outcome, weigh-ins in its first and
+--                             last week, ended; its review is stored (progress v2) and the phase kept
 --   block 2   d0-24 ..        accepted, saved; plan week 1 done (d0-24), the window d0-17..d0-11 has no workout (paused
 --                             week), plan week 2 done (d0-10), plan week 3 started (d0-2); the block end is extended by 3 days
 --   notices   weight (last weigh-in d0-3), circumferences (set at d0-20),
@@ -78,13 +79,14 @@ begin
 end $$;
 
 -- ---------------------------------------------------------------------------
--- 2. Weights (8 weeks, about 5 a week, slowly down, latest d0-3) and one circumference set (d0-20)
+-- 2. Weights (about 10 weeks, about 5 a week, slowly down, latest d0-3; they reach block 1's first week, d0-70) and one
+-- circumference set (d0-20)
 -- ---------------------------------------------------------------------------
 do $$
 declare i int;
 begin
   perform pg_temp.as_user();
-  for i in 3..59 loop
+  for i in 3..73 loop
     if i % 7 not in (2, 5) then
       -- Direct insert: save_body_measurement needs the client's day range; the row is the same (source manual).
       insert into public.body_measurements (user_id, measured_at, weight_kg, source)
@@ -287,6 +289,11 @@ begin
 
   -- Block 1: four weeks, a session on days 0, 2 and 4 of each week; ended on d0-43.
   v_p1 := pg_temp.mk_block(v_s1, 'accepted', '{"source":"builder","cardio":{"target_min_week":25}}'::jsonb, pg_temp.nut(2250, -450), 4);
+  -- T-317: week 4 is a deload week and the block has a weight outcome (no deadline of its own), so its review shows the
+  -- carried comparison, the block weight change (weigh-ins in the first and the last week) and an outcome.
+  update public.coach_plan_sessions set deload = true where plan_id = v_p1 and week = 4;
+  update public.coach_plans set outcomes = '[{"kind":"weight","key":"weight","target_value":74,"unit":"kg"}]'::jsonb
+  where id = v_p1;
   for k in 0..3 loop
     for i in 1..3 loop
       perform pg_temp.do_session(v_p1, k + 1, i, v_s1 + 7 * k + 2 * (i - 1), 50 + 2.5 * k);

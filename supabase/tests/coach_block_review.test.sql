@@ -177,6 +177,8 @@ select pg_temp.squats(1, pg_temp.plan_of(1), 100, 105, 110, 115);
 update public.coach_plan_sessions set session_id = null where plan_id = pg_temp.plan_of(1) and week = 4;
 select pg_temp.weigh(1, pg_temp.d0() - 26, 80);
 select pg_temp.weigh(1, pg_temp.d0() - 3, 78);
+select pg_temp.weigh(1, pg_temp.d0() - 4, 78);   -- 3 weigh-in days in the last week: the weight gate of the outcome (T-317)
+select pg_temp.weigh(1, pg_temp.d0() - 2, 78);
 select pg_temp.waist(1, pg_temp.d0() - 60, 100.0);
 select pg_temp.waist(1, pg_temp.d0() - 10, 97.1);
 -- 2: week 4 of 4 (not finished). 3: today is the last day.
@@ -227,6 +229,8 @@ select pg_temp.mk(22, 'accepted', pg_temp.d0() - 28, 'c', 'fat_loss', null, 4, t
     jsonb_build_object('kind', 'e1rm', 'key', pg_temp.sqkey(), 'target_value', 140, 'unit', 'kg', 'deadline', (pg_temp.d0() - 1)::text)));
 select pg_temp.squats(22, pg_temp.plan_of(22), 100, 105, 110, 115);
 select pg_temp.weigh(22, pg_temp.d0() - 3, 78);
+select pg_temp.weigh(22, pg_temp.d0() - 4, 78);
+select pg_temp.weigh(22, pg_temp.d0() - 2, 78);
 select pg_temp.mk(23, 'accepted', pg_temp.d0() - 28, 'c');
 select pg_temp.waist(23, pg_temp.d0() - 60, 100.0);
 select pg_temp.waist(23, pg_temp.d0() - 10, 97.0);
