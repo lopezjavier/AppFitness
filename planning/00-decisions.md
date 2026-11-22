@@ -4,7 +4,7 @@ Live index of every closed decision, one line per ADR, with the numbers kept sin
 
 ## New ADRs go here
 
-Phase 3 ADRs continue the numbering (next: **ADR-111**) and are written **in full** in this file, below the index, with their one-line row in the index. Format: context -> decision -> consequences. A new decision also updates the affected live docs.
+Phase 3 ADRs continue the numbering (next: **ADR-112**) and are written **in full** in this file, below the index, with their one-line row in the index. Format: context -> decision -> consequences. A new decision also updates the affected live docs.
 
 ## Index (Phase 1, ADR-01..72)
 
@@ -130,6 +130,7 @@ The rows of ADR-93, 94, 98 and 99 are added here: the Phase 2 archive index lack
 | 106 | Extend the block by date (a pencil on the week in progress, within the 14-day limit); alcohol by volume in the food form (E18 US-134, US-135) | Amends 101 and Q-E17-1 |
 | 107 | Free-text notes and unused code removed in every layer (E19 US-123): the coach reads only structured data; one migration drops the free-text storage and unused SQL objects; rule R-63 | Amends 87 and 91 (free text), 97, 98, 99 and the US-81 and US-89 decisions |
 | 110 | Weekly check-in removed in every layer (it never showed without a manual weigh-in); the Trainer's weekly report becomes progress-first (`07` §3) and every stored weekly report is rebuilt to snapshot v2 with its decisions frozen and the original kept; the latest finished week refreshes until the next week ends (Q17) (E19 US-141, US-142) | Amends 73 (check-in) and `04` §6.11 |
+| 111 | Every other report becomes progress-first like the weekly report (`07` §3 "Other reports: progress first"); a stored block review carries progress figures built as of the block end plus its frozen decisions (schema v2, no backfill: production holds no stored review); the outcome chip "reached" depends on the deadline (E19 US-143…US-147) | Amends `04` §6.11 (block reviews) and §8.10 (outcome "reached") |
 
 ## Phase 3 ADRs (full text)
 
@@ -239,3 +240,13 @@ Older ADRs: [`phase2/00-decisions.md`](phase2/00-decisions.md) (73-100) and [`ph
   - **Late data (Q17):** the latest finished week's `progress` refreshes (throttled to 10 minutes) until the next week ends, then it is final.
 - **Consequences:** `03` (dropped objects, `coach_week_reports.body_v1`, snapshot v2), `04` §6 (title, §6.3-§6.6 removed, §6.7 and §6.11 v2 and refresh, §7.8 no check-in energy), `05` (R-74 icon list, new report components, glossary rows), `10-feature-inventory.md` row 108 and E10 US-59 ("Removed by ADR-110") are updated by T-312 and T-315; `07` §1/§7 check-in mentions by `fitness-scientist`. The v1 keys stay in v2, so the Trainer root "Tu plan" Calorías tile and an app that ignores `progress` keep working. E19 gains **👤 Checkpoint E19-R** (weekly report), which the closure T-285 waits for. The same audit of the other summaries ("Revisión del bloque", "Informes", the diary history, Estadísticas) follows the user's approval as new tasks.
 - **Approval:** user, 2026-11-21 (chat: report design, split, scope and the 5 production drops of T-312); T-314's migration file needs the user's explicit OK before merge.
+
+### ADR-111 — Every other report is progress-first; stored block reviews carry progress figures (E19 US-143…US-147; amends `04` §6.11 for block reviews and §8.10)
+- **Context:** after Checkpoint E19-R the user asked for "the same" for every other report (2026-11-22). The fitness-scientist audit (`tasks/T-316/audit.md`) found that "Revisión del bloque", Estadísticas "Entrenos" and "Entreno completado" show effort or compliance, not progress, and three figures that disagree with existing rules: the block review's "Récord" badge (best week of the block, not a record by `04` §4.5), its ungated weight averages and its "No conseguido" chip evaluated at the block end although the outcome's deadline is later (`04` §8.10).
+- **Decision (user, 2026-11-22, all 12 audit questions accepted as recommended; rules in `07` §3 "Other reports: progress first" (A)-(G)):**
+  - **Block review:** the stored `coach_block_reviews.inputs` gains `schema_version: 2` and `progress` (coach-card figures, strength per group, context, lifts, records, block weight, waist) built by the T-313 builders as of `ended_on`; kept as stored at the first open, never recomputed: the phase proposal, decision and its date, the next plan, the stalls, the adherence and the outcomes. The v1 keys stay, so an app that ignores `progress` keeps working. **No backfill:** production holds no stored block review (user, 2026-11-22), so there is no `inputs_v1` backup and no data migration; every review is built v2 from the start, and a v1 row (none exists) would open with the old keys and no progress cards.
+  - **Outcome chip (amends `04` §8.10):** "Conseguido" when reached; "No conseguido" only once the outcome's deadline has passed; otherwise no chip and the current value shows the gap.
+  - **"Informes" list:** `list_coach_reports` returns teaser fields read from the stored `progress` (weeks: v2 snapshot; blocks: `inputs.progress`); rows are grouped by block.
+  - **Live reports (no stored shape):** "Entrenos" (Estadísticas), "Kilos por grupo muscular" (becomes weekly sets per group), "Fuerza", "Entreno completado", "Calorías" (complete days only, today excluded from the week, one bar colour) and the Perfil highlights follow `07` §3 (C)-(G).
+- **Consequences:** `03` (block review `inputs` v2, new RPCs of T-320, `list_coach_reports` teaser fields), `04` §6.11 and §8.10, `05` (new components, glossary rows; `SessionsCard` and `GroupsCard` retired), `10-feature-inventory.md` are updated by the tasks that change them (T-317 first). E19 gains one 👤 Checkpoint E19-R2 (the other reports, after the last task of the T-316 split; the user chose a single checkpoint, 2026-11-22), which T-285 waits for.
+- **Approval:** user, 2026-11-22 (chat: the 12 answers and the production count of zero stored block reviews).

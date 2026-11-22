@@ -107,8 +107,16 @@ Every task pays 6-8 agent hand-offs, so stories stay whole unless one is too lar
 | 8c.4 | T-314: backfill of the stored weekly reports to v2 (production data; only stored weeks, Q1; the user's OK on the migration file before merge) | **M** | US-141 | backend (2.2) | 4 |
 | 8c.5 | T-315: the weekly report UI, progress-first (visual-first: ui-designer → user in gallery/emulator → ux-critic → ux-reviewer → core → UI) | **L** | US-141 | core + UI (2.1 visual-first) | 8 + user look |
 | 8c.6 | 👤 Checkpoint E19-R · weekly report (7 items, after T-315 merges and T-314's deploy checks pass; releases T-285) | checkpoint | US-141, US-142 | user | — |
-| 8d | T-316 umbrella (user request 2026-11-22): every other report remade like the weekly report (audit by fitness-scientist + ui-designer → the user's decisions → planner split with checkpoints); details in `tasks/todo.md` "T-316" | split by the planner | US-123, US-141 standard | review + backend + UI | planner |
-| 9 | T-285: E19 closure (after Checkpoint E19-R, T-316 and its checkpoints, and the user's closure approval) | closure step (no size class) | DoD | PM | PM only |
+| 8d | T-316 umbrella (user request 2026-11-22): every other report remade like the weekly report (audit, the user's 12 decisions, ADR-111; split by the planner 2026-11-22); details in `tasks/todo.md` "T-316 split" | umbrella | US-143…US-147 | — | — |
+| 8d.1 | T-317: block review backend: progress v2, block weight, outcome deadline, report teasers (no backfill: zero stored reviews) | **L** | US-143, US-144 | backend (2.2, two runs) | 5 |
+| 8d.2 | T-318: block review UI, progress-first (retires `SessionsCard`/`GroupsCard`) | **L** | US-143 | core + UI (2.1 visual-first) | 8 + user look |
+| 8d.3 | T-319: "Informes" list: teaser, "Semana N", grouping by block | **M** | US-144 | core + UI (2.1 visual-first, light) | 6 |
+| 8d.4 | T-320: Estadísticas backend: range progress, records of the range, weekly sets per group | **M** | US-145 | backend (2.2) | 4 |
+| 8d.5 | T-321: Estadísticas "Entrenos" and "Series por grupo muscular" UI | **L** | US-145 | core + UI (2.1 visual-first) | 8 + user look |
+| 8d.6 | T-322: Calorías (complete days, one colour), Fuerza margin, Perfil highlights | **M** | US-146 | core + UI (2.1 without ui-designer) | 7 |
+| 8d.7 | T-323: "Entreno completado": "Frente a la última vez" | **M** | US-147 | core + UI (2.1 visual-first) | 7 + user look |
+| 8d.8 | 👤 Checkpoint E19-R2 · the other reports (23 items in 4 journeys; the single checkpoint of the T-316 split, user 2026-11-22; after T-323, CI green and the T-317 and T-320 deploys green) | checkpoint | US-143…US-147 | user | — |
+| 9 | T-285: E19 closure (after Checkpoint E19-R, T-317…T-323 and Checkpoint E19-R2, and the user's closure approval) | closure step (no size class) | DoD | PM | PM only |
 
 Why these splits and merges:
 - **Cleanup → one task, T-277 (user decision).** The audit, the app removal and the backend migration go in one PR. The audit-first gate and the by-name approval of production drops stay inside it. The deploy-order risk is handled as described in "Architecture decisions". It is mostly deletions; it splits by layer with a new ID only above ~30 files with real edits.

@@ -253,6 +253,184 @@ Feature: No weekly check-in
     Then 14 days after my first weigh-in "Llevas 2 semanas sin medirte" is listed
 ```
 
+## US-143 · The block review shows my progress (T-317, T-318)
+**As** the user
+**I want** "Revisión del bloque" (live and in "Informes") to show what moved over the block
+**So that** at the block end I see progress toward my goal, not attendance counts (ADR-111, `07` §3 "Other reports: progress first" (A)).
+
+```gherkin
+Feature: Progress-first block review
+
+  Scenario: Coach card on top
+    When I open a block review
+    Then the first card shows one sentence such as "En este bloque: 5 ejercicios suben, press banca +5 kg (+6 %), peso −1,8 kg." and one action, the first that applies: a pending phase proposal, a pending calorie proposal, a stall, missing data, else "Crea el siguiente bloque"
+    And on a stored review a decided proposal reads as text ("Fase aceptada: Mantenimiento"), never a button
+
+  Scenario: Strength per muscle group over the block
+    Then each muscle group shows one state icon per exercise and "12 de 15 suben"
+    And a context line reads "14 de 16 entrenos · 170 de 180 series"
+    And there is no "Entrenos" or "Series por grupo" card
+
+  Scenario: Main lifts and records of the block
+    Then main lifts show a sparkline with deload weeks hollow and read "Sube +5 kg (+5 %)" only from 4 %, else "dentro del margen de un día a otro"
+    And there is no "Récord" badge for the best week of the block
+    And at most 3 record badges show, with "N récords en el bloque" when there are more; with none there is no records card
+
+  Scenario: Weight over the block
+    Given 3 or more weigh-in days in the first and in the last week of the block
+    Then the weight card shows the change, a sparkline with the dashed plan line to "Meta {x} kg · {fecha}" and the "Tu plan" verdict
+    And otherwise it reads "Faltan pesajes para ver el cambio del bloque"
+    And with no weigh-in at all there is no weight card and the coach card says "Pésate 3 días por semana"
+
+  Scenario: Objectives show the gap, the chip only when true
+    Then each objective reads "Peso: objetivo 78 kg · ahora 79,8 kg"
+    And "Conseguido" shows when reached
+    And "No conseguido" shows only after the objective's deadline
+
+  Scenario: Order by goal
+    Then with "Perder grasa" Weight comes first and with "Ganar fuerza" or "Ganar musculatura" Strength comes first
+    And Objectives come after the progress cards and the stall, phase and calorie cards last
+
+  Scenario: A stored review keeps its decisions
+    Given a review stored at the block end
+    When I open it later in "Informes"
+    Then it shows the progress built at the block end and its original phase decision
+
+  Scenario: Leaving the app
+    Given the group sheet of the block review is open
+    When I leave the app and come back
+    Then the screen and the sheet are restored
+```
+
+## US-144 · "Informes" shows progress per report (T-319)
+**As** the user
+**I want** each row of "Informes" to say what moved
+**So that** I scan my history without opening every report (`07` §3 (B)).
+
+```gherkin
+Feature: Informes list
+
+  Scenario: Teaser per row
+    When I open "Informes y resumen semanal" > "Informes"
+    Then a week row reads "Semana 3" with its dates and "3 suben · −0,3 kg"
+    And a block row reads "Revisión del bloque" with its dates and "12 de 15 suben · −1,8 kg"
+    And a paused week reads "Semana en pausa"
+
+  Scenario: Only gated figures
+    Then a teaser shows a weight change only when the report's own weight gate passed
+    And a report stored without progress figures shows only its dates
+
+  Scenario: Grouped by block
+    Then weeks sit under their block's heading, the block review first, newest block first
+
+  Scenario: Leaving the app
+    Given I scrolled the list
+    When I leave the app and come back
+    Then the list is at the same place
+```
+
+## US-145 · Estadísticas shows my progress over a period (T-320, T-321)
+**As** the user
+**I want** "Entrenos" in Estadísticas to start with what got stronger in the range, and the muscle-group view to show sets
+**So that** the screen answers "am I improving?" (`07` §3 (D)).
+
+```gherkin
+Feature: Progress-first training statistics
+
+  Scenario: Progress of the period on top
+    When I open Estadísticas > Entrenos with range 3M
+    Then the first card reads "8 de 11 ejercicios suben", main lifts first
+    And each exercise with 2 or more sessions shows "Sube +6 %", "dentro del margen de un día a otro" or "Baja"
+    And an exercise with one session reads "Sin comparar"
+    When I tap an exercise
+    Then "Progreso del ejercicio" opens
+
+  Scenario: Records of the period
+    Then at most 3 record badges show with the amount and "N récords" when there are more; with none there is no card
+
+  Scenario: Effort as one context line
+    Then one line reads "24 entrenos · 412 series"
+    And there are no "Volumen" or "Duración" tiles
+
+  Scenario: Principal exercises show their change
+    Then each "Ejercicios principales" row reads "+5 kg · 6 entrenos"
+
+  Scenario: Distribution kept below
+    Then the sets chart, sets per muscle group, the radar and the body map follow the progress cards
+
+  Scenario: Sets per muscle group by week
+    When I open "Series por grupo muscular" from Entrenos (formerly "Kilos por grupo muscular")
+    Then the last 8 weeks show weekly sets per group, not kilos
+
+  Scenario: Leaving the app
+    Given I chose range 6M and opened an exercise
+    When I leave the app and come back
+    Then the range and the screen are restored
+```
+
+## US-146 · Calorías, Fuerza and the Perfil highlights are honest (T-322)
+**As** the user
+**I want** averages that ignore forgotten days and today, and highlights that name what they show
+**So that** the figures are not dragged down by a half-logged day (`07` §3 (C), (E), (G)).
+
+```gherkin
+Feature: Calorías, Fuerza and Perfil highlights
+
+  Scenario: Complete days only
+    Given 7 days of which 2 are under 40 % of the median of the logged days
+    When I open Perfil > Estadísticas > Calorías > Semana
+    Then the average reads "Media de 5 días completos"
+    And with no complete day it reads "Sin días completos"
+
+  Scenario: Today is not in the week
+    Then the week is the 7 days before today
+    And today's bar is drawn but not counted until the day ends
+
+  Scenario: One bar colour
+    Then every bar has one colour and the target line stays; no bar is amber
+
+  Scenario: Fuerza change inside the margin
+    Given an exercise whose 1RM changed less than 4 % in 30 days
+    Then Fuerza reads "+1,5 kg este mes · dentro del margen de un día a otro"
+
+  Scenario: Perfil highlights
+    Then the strength highlight reads "Press banca · 92,5 kg"
+    And the kcal highlight is the complete-day week average of Calorías
+
+  Scenario: Leaving the app
+    Given Calorías is open on Mes
+    When I leave the app and come back
+    Then the same panel is restored
+```
+
+## US-147 · "Entreno completado" shows what changed since last time (T-323)
+**As** the user
+**I want** the end-of-workout summary to compare each exercise with the last time
+**So that** I see right away whether I progressed (`07` §3 (F)).
+
+```gherkin
+Feature: Workout summary against the last time
+
+  Scenario: Frente a la última vez
+    When I finish a workout
+    Then each exercise reads "80 kg × 8 → 82,5 kg × 6" with its state: Sube, Igual ("Mantienes" in a cut), Baja or "Sin comparar"
+    And an exercise with an open discomfort shows the paused state, with no note
+
+  Scenario: Sin comparar
+    Given the exercise changed its rep range or has no session in the previous 14 days
+    Then it reads "Sin comparar"
+
+  Scenario: Records and context
+    Then the records badge and pills stay
+    And duration and sets are one line
+    And there is no per-exercise volume bar
+
+  Scenario: Leaving the app
+    Given the summary is open
+    When I leave the app and come back
+    Then the summary is shown again until I tap "Hecho"
+```
+
 ## US-123 · Review of all the UI
 **As** the user
 **I want** all the UI reviewed
