@@ -107,7 +107,8 @@ Every task pays 6-8 agent hand-offs, so stories stay whole unless one is too lar
 | 8c.4 | T-314: backfill of the stored weekly reports to v2 (production data; only stored weeks, Q1; the user's OK on the migration file before merge) | **M** | US-141 | backend (2.2) | 4 |
 | 8c.5 | T-315: the weekly report UI, progress-first (visual-first: ui-designer → user in gallery/emulator → ux-critic → ux-reviewer → core → UI) | **L** | US-141 | core + UI (2.1 visual-first) | 8 + user look |
 | 8c.6 | 👤 Checkpoint E19-R · weekly report (7 items, after T-315 merges and T-314's deploy checks pass; releases T-285) | checkpoint | US-141, US-142 | user | — |
-| 9 | T-285: E19 closure (after Checkpoint E19-R and the user's closure approval) | closure step (no size class) | DoD | PM | PM only |
+| 8d | T-316 umbrella (user request 2026-11-22): every other report remade like the weekly report (audit by fitness-scientist + ui-designer → the user's decisions → planner split with checkpoints); details in `tasks/todo.md` "T-316" | split by the planner | US-123, US-141 standard | review + backend + UI | planner |
+| 9 | T-285: E19 closure (after Checkpoint E19-R, T-316 and its checkpoints, and the user's closure approval) | closure step (no size class) | DoD | PM | PM only |
 
 Why these splits and merges:
 - **Cleanup → one task, T-277 (user decision).** The audit, the app removal and the backend migration go in one PR. The audit-first gate and the by-name approval of production drops stay inside it. The deploy-order risk is handled as described in "Architecture decisions". It is mostly deletions; it splits by layer with a new ID only above ~30 files with real edits.
@@ -151,7 +152,7 @@ No 👤 checkpoint (user decision 2026-11-11). The user's feedback comes through
 - T-278 needs T-277 merged and deployed, because it seeds the post-cleanup schema.
 - T-279 needs T-278 merged. There is no build dependency: the gallery does not use the dummy user. T-280 needs T-279 merged.
 - T-288 needs T-280 merged. T-289 needs T-288's rules; T-290, T-291, T-292 need T-289; T-293 needs T-290 and T-292; T-294 needs T-293; T-295 needs T-293 and T-294. T-281 needs T-295 merged and the user's verdict on the round 0 ledger. T-282 needs T-281, T-283 needs T-282 and T-284 needs T-283 merged, because each round reviews the gallery as the previous round left it.
-- T-285 needs T-284 merged and the user's closure approval.
+- T-285 needs T-284 merged, T-316 (and its split tasks and checkpoints) merged, and the user's closure approval.
 - Built pieces E19 relies on:
   - Roborazzi and the host-test setup, and the CI artifact upload.
   - The `local` flavor and "Test login".
