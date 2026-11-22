@@ -319,10 +319,11 @@ begin
   -- Reports. The latest finished week (plan week 2) is stored by the RPC on first build and left unseen.
   perform public.coach_week_summary(pg_temp.d0());
   -- The paused week report: record_paused_week_report only builds the previous window of today, so it is stored here with
-  -- the exact snapshot it would hold (plan, paused flag and the window dates).
+  -- the exact snapshot it would hold (plan, paused flag, the window dates and schema_version 2).
   insert into public.coach_week_reports (user_id, plan_id, week, paused, period_start, period_end, snapshot)
   select v_uid, v_p2, null, true, w.start_date, w.end_date,
-         jsonb_build_object('plan_id', v_p2, 'paused', true, 'start_date', w.start_date, 'end_date', w.end_date)
+         jsonb_build_object('plan_id', v_p2, 'paused', true, 'start_date', w.start_date, 'end_date', w.end_date,
+                            'schema_version', 2)
   from public.coach_plan_window_for(v_uid, v_p2, 1) w
   on conflict (user_id, plan_id, period_start) do nothing;
 end $$;
